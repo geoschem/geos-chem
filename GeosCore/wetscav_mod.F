@@ -181,27 +181,19 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE DO_WETDEP( State_Met )
-#else
-      SUBROUTINE DO_WETDEP
-#endif
 !
 ! !USES:
 !
-      USE ERROR_MOD,   ONLY : DEBUG_MSG
-      USE LOGICAL_MOD, ONLY : LPRT
-#if defined( DEVEL )
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE LOGICAL_MOD,        ONLY : LPRT
 
-      USE CMN_SIZE_MOD    ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
-#if defined( DEVEL )
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 ! 
 ! !REMARKS:
 !  NOTE FROM HONGYU LIU (hyl@nianet.org) -- 3/5/08
@@ -225,9 +217,7 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-
-#if defined( DEVEL )
-
+!
 #if   defined( MERRA ) || defined( GEOS_57 )
 
       !=================================================================
@@ -288,70 +278,6 @@
 
 #endif
 
-#else
-
-#if   defined( MERRA ) || defined( GEOS_57 )
-
-      !=================================================================
-      ! MERRA: Only do wet deposition for large-scale + anvil precip
-      !=================================================================
-
-      ! Create precip fields
-      CALL MAKE_QQ( LS=.TRUE. )
-      IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: before LS wetdep' )
-
-      ! Do wet deposition
-      CALL WETDEP_MERRA(  LS=.TRUE. )
-      IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
-
-#elif defined( GEOS_5 )
-
-      !=================================================================
-      ! GEOS5: Only do wet deposition for large-scale + anvil precip
-      !=================================================================
-
-      ! Create precip fields
-      CALL MAKE_QQ( LS=.TRUE. )
-      IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: before LS wetdep' )
-
-      ! Do wet deposition
-      CALL WETDEP(  LS=.TRUE. )
-      IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
-
-#else
-
-      !=================================================================
-      ! Other met fields: Do wetdep for both LS & convective precip
-      !=================================================================
-
-      !---------------------
-      ! Large-scale precip
-      !---------------------
-
-      ! Create precip fields
-      CALL MAKE_QQ( LS=.TRUE. )
-      IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: before LS wetdep' )
-
-      ! Do wet deposition
-      CALL WETDEP(  LS=.TRUE. )
-      IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
-
-      !---------------------
-      ! Convective precip
-      !---------------------
-
-      ! Create precip fields
-      CALL MAKE_QQ( LS=.FALSE. )
-      IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: before conv wetdep' )
-
-      !  Do wet deposition
-      CALL WETDEP(  LS=.FALSE. )
-      IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: after conv wetdep' )
-
-#endif
-
-#endif  ! DEVEL
-
       END SUBROUTINE DO_WETDEP
 !EOC
 !------------------------------------------------------------------------------
@@ -367,31 +293,20 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE MAKE_QQ( State_Met, LS )
-#else
-      SUBROUTINE MAKE_QQ( LS )
-#endif
 !
 ! !USES:
 !
-      USE DAO_MOD,   ONLY : AIRDEN,  BXHEIGHT, DQRLSAN
-      USE DAO_MOD,   ONLY : MOISTQ,  PFLLSAN,  PFILSAN
-      USE DAO_MOD,   ONLY : PREACC,  PRECON
-      USE ERROR_MOD, ONLY : ALLOC_ERR
-#if defined( DEVEL )
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
       
-      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL, INTENT(IN) :: LS   ! =T, denotes large scale precip
-                                  ! =F, denotes convective precip
-#if defined( DEVEL )
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
+      LOGICAL,        INTENT(IN) :: LS         ! =T, denotes large scale precip
+                                               ! =F, denotes convective precip
+      TYPE(MetState), INTENT(IN) :: State_Met  ! Meteorology State object
 ! 
 ! !REMARKS:
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -500,6 +415,8 @@
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  16 Sep 2010 - R. Yantosca - Compute QQ and PDOWN from MERRA met fields
 !  09 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met fields
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -532,7 +449,6 @@
       !=================================================================
       ! Loop over surface grid boxes
       !=================================================================
-#if defined( DEVEL )
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -591,7 +507,7 @@
          !==============================================================
          ! %%%%% FOR ALL OTHER MET FIELDS EXCEPT MERRA %%%%%
          !==============================================================
-         IF ( PREACC(I,J) > 0d0 ) THEN
+         IF ( State_Met%PRECTOT(I,J) > 0d0 ) THEN
 
             ! Large scale or convective fraction of precipitation
             IF ( LS ) THEN
@@ -694,156 +610,6 @@
       ENDDO  
       ENDDO
 !$OMP END PARALLEL DO
-
-#else
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, FRAC, L, PTEMP )
-!$OMP+SCHEDULE( DYNAMIC )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-#if   defined( GEOS_57 )
-
-         !==============================================================
-         ! %%%%% FOR GEOS-5.7.x MET FIELDS ONLY %%%%%  
-         !
-         ! In GEOS-5.7.x, the PFILSAN and PFLLSAN fields are defined
-         ! on level edges.  Therefore, we must use L+1 to index them.
-         !==============================================================
-
-         ! Loop over vertical levels
-         DO L = 1, LLPAR
-
-            ! Rate of new precipitation formation in grid box (I,J,L)
-            ! [cm3 H2O/cm3 air/s]
-            QQ(L,I,J)    = ( DQRLSAN(I,J,L)                   )
-     &                   * ( AIRDEN(L,I,J)  / 1000d0          )
-
-            ! Column precipitation [cm3 H2O/cm2 air/s]
-            PDOWN(L,I,J) = ( ( PFLLSAN(I,J,L+1) / 1000d0 ) 
-     &                   +   ( PFILSAN(I,J,L+1) /  917d0 ) ) * 100d0
-
-         ENDDO
-
-#elif   defined( MERRA )
-
-         !==============================================================
-         ! %%%%% FOR MERRA MET FIELDS ONLY %%%%%  
-         !==============================================================
-
-         ! Loop over vertical levels
-         DO L = 1, LLPAR
-
-            ! Rate of new precipitation formation in grid box (I,J,L)
-            ! [cm3 H2O/cm3 air/s]
-            QQ(L,I,J)    = ( DQRLSAN(I,J,L)                   )
-     &                   * ( AIRDEN(L,I,J)  / 1000d0          )
-
-            ! Column precipitation [cm3 H2O/cm2 air/s]
-            PDOWN(L,I,J) = ( ( PFLLSAN(I,J,L) / 1000d0 ) 
-     &                   +   ( PFILSAN(I,J,L) /  917d0 ) ) * 100d0
-
-         ENDDO
-
-#else 
-
-         !==============================================================
-         ! %%%%% FOR ALL OTHER MET FIELDS EXCEPT MERRA %%%%%
-         !==============================================================
-         IF ( PREACC(I,J) > 0d0 ) THEN
-
-            ! Large scale or convective fraction of precipitation
-            IF ( LS ) THEN
-               FRAC = ( PREACC(I,J) - PRECON(I,J) ) / PREACC(I,J) 
-            ELSE
-               FRAC = PRECON(I,J) / PREACC(I,J)
-            ENDIF
-
-           !##################################################################
-           !### KLUDGE: On July 22, 2010, there is an error where PREACC
-           !### is set to a very small number (but nonzero).  This causes
-           !### FRAC to blow up to near infinity and PDOWN to be a very
-           !### large number.  For now, limit FRAC to be between 0 and 1.
-           !### 
-           IF ( FRAC > 1d0 ) FRAC = 1d0
-           IF ( FRAC < 0d0 ) FRAC = 0d0 
-           !##################################################################
-
-            ! Start at the top of the atmosphere
-            L = LLPAR
-
-            ! Compute QQ and PDOWN.  Keep PTEMP for the next level
-            QQ(L,I,J)    = FRAC * MOISTQ(L,I,J) * AIRDEN(L,I,J) / 1d3
-            PTEMP        = QQ(L,I,J) * BXHEIGHT(I,J,L) * 1d2
-            PDOWN(L,I,J) = PTEMP
-
-            ! PDOWN cannot be negative
-            IF ( PDOWN(L,I,J) < 0d0 ) PDOWN(L,I,J) = 0.d0
-
-            ! Loop down from LLPAR to the surface
-            DO L = LLPAR-1, 1, -1
-               
-               ! Compute QQ and PDOWN.  Keep PTEMP for the next level.
-               QQ(L,I,J)    = FRAC * MOISTQ(L,I,J) * AIRDEN(L,I,J) / 1d3
-               PDOWN(L,I,J) = PTEMP + QQ(L,I,J) * BXHEIGHT(I,J,L) * 1d2  
-               PTEMP        = PDOWN(L,I,J)
-
-               ! PDOWN cannot be negative
-               IF ( PDOWN(L,I,J) < 0.0d0 ) PDOWN(L,I,J) = 0.d0
-            ENDDO
-  
-         !==============================================================
-         ! If there is no precipitation reaching the surface in the 
-         ! (I,J) column, then assume any precipitation at altitude to 
-         ! be large-scale.
-         ! 
-         ! (1) Assume the large scale fraction = 1d0, 
-         !                convective fraction  = 0d0
-         ! (2) Compute QQ as described above
-         ! (3) Compute PDOWN as described above
-         !==============================================================
-         ELSE
-
-            ! Assume large-scale precipitation!
-            IF ( LS ) THEN
-               FRAC = 1d0
-            ELSE         
-               FRAC = 0d0
-            ENDIF
-
-            ! Start at the top of the atmosphere
-            L = LLPAR
-
-            ! Compute QQ and PDOWN.  Keep PTEMP for the next level
-            QQ(L,I,J)    = FRAC * MOISTQ(L,I,J) * AIRDEN(L,I,J) / 1d3
-            PTEMP        = QQ(L,I,J) * BXHEIGHT(I,J,L) * 1d2
-            PDOWN(L,I,J) = PTEMP
-           
-            ! PDOWN cannot be negative
-            IF( PDOWN(L,I,J) < 0d0 ) PDOWN(L,I,J) = 0.d0
-
-            ! Loop down from LLPAR to the surface
-            DO L = LLPAR-1, 1, -1
-              
-               ! Compute QQ and PDOWN.  Keep PTEMP for the next level
-               QQ(L,I,J)    = FRAC * MOISTQ(L,I,J) * AIRDEN(L,I,J) / 1d3
-               PDOWN(L,I,J) = PTEMP + QQ(L,I,J) * BXHEIGHT(I,J,L) * 1d2 
-               PTEMP        = PDOWN(L,I,J)
-
-               ! PDOWN cannot be negative
-               IF ( PDOWN(L,I,J) < 0.0d0 ) PDOWN(L,I,J) = 0.d0
-            ENDDO
-         ENDIF
-
-#endif
-
-      ENDDO  
-      ENDDO
-!$OMP END PARALLEL DO
-
-#endif  ! DEVEL
 
       END SUBROUTINE MAKE_QQ
 !EOC
@@ -980,54 +746,47 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE COMPUTE_F( N, F, ISOL, State_Met )
-#else
-      SUBROUTINE COMPUTE_F( N, F, ISOL )
-#endif
 !
 ! !USES:
 !
-      USE DAO_MOD,      ONLY : BXHEIGHT, T
-      USE TRACERID_MOD, ONLY : IDTPB,    IDTBE7,   IDTHNO3, IDTH2O2 
-      USE TRACERID_MOD, ONLY : IDTCH2O,  IDTMP,    IDTSO2,  IDTSO4  
-      USE TRACERID_MOD, ONLY : IDTSO4s,  IDTSO4aq, IDTMSA,  IDTNH3   
-      USE TRACERID_MOD, ONLY : IDTNH4,   IDTNH4aq, IDTNIT,  IDTNITs  
-      USE TRACERID_MOD, ONLY : IDTAS,    IDTAHS,   IDTLET,  IDTBCPI 
-      USE TRACERID_MOD, ONLY : IDTOCPI,  IDTBCPO,  IDTOCPO, IDTDST1 
-      USE TRACERID_MOD, ONLY : IDTDST2,  IDTDST3,  IDTDST4, IDTSALA 
-      USE TRACERID_MOD, ONLY : IDTSALC,  IDTALPH,  IDTLIMO, IDTALCO 
-      USE TRACERID_MOD, ONLY : IDTSOG1,  IDTSOG2,  IDTSOG3, IDTSOG4
-      USE TRACERID_MOD, ONLY : IDTSOA1,  IDTSOA2,  IDTSOA3, IDTSOA4
-      USE TRACERID_MOD, ONLY : IS_Hg2,   IS_HgP
-      USE TRACERID_MOD, ONLY : IDTGLYX,  IDTMGLY,  IDTGLYC      
-      USE TRACERID_MOD, ONLY : IDTSOAG,  IDTSOAM
-      USE TRACERID_MOD, ONLY : IDTSOA5,  IDTSOG5
-      USE TRACERID_MOD, ONLY : IDTMOBA,  IDTPROPNN
-      USE TRACERID_MOD, ONLY : IDTISOPN, IDTMMN
-      USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP
-      USE TRACERID_MOD, ONLY : IDTMAP
-      ! jpp 4/27/09
-      USE TRACERID_MOD, ONLY : IDTHOBr,  IDTHBr,   IDTBr2
-#if defined( DEVEL )
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE TRACERID_MOD,       ONLY : IDTPB,    IDTBE7,   IDTHNO3 
+      USE TRACERID_MOD,       ONLY : IDTH2O2,  IDTCH2O,  IDTMP
+      USE TRACERID_MOD,       ONLY : IDTSO2,   IDTSO4,   IDTSO4s
+      USE TRACERID_MOD,       ONLY : IDTSO4aq, IDTMSA,   IDTNH3   
+      USE TRACERID_MOD,       ONLY : IDTNH4,   IDTNH4aq, IDTNIT  
+      USE TRACERID_MOD,       ONLY : IDTNITs,  IDTAS,    IDTAHS
+      USE TRACERID_MOD,       ONLY : IDTLET,   IDTBCPI,  IDTOCPI
+      USE TRACERID_MOD,       ONLY : IDTBCPO,  IDTOCPO,  IDTDST1 
+      USE TRACERID_MOD,       ONLY : IDTDST2,  IDTDST3,  IDTDST4 
+      USE TRACERID_MOD,       ONLY : IDTSALA,  IDTSALC,  IDTALPH
+      USE TRACERID_MOD,       ONLY : IDTLIMO,  IDTALCO,  IDTSOG1
+      USE TRACERID_MOD,       ONLY : IDTSOG2,  IDTSOG3,  IDTSOG4
+      USE TRACERID_MOD,       ONLY : IDTSOA1,  IDTSOA2,  IDTSOA3
+      USE TRACERID_MOD,       ONLY : IDTSOA4,  IS_Hg2,   IS_HgP
+      USE TRACERID_MOD,       ONLY : IDTGLYX,  IDTMGLY,  IDTGLYC      
+      USE TRACERID_MOD,       ONLY : IDTSOAG,  IDTSOAM
+      USE TRACERID_MOD,       ONLY : IDTSOA5,  IDTSOG5
+      USE TRACERID_MOD,       ONLY : IDTMOBA,  IDTPROPNN
+      USE TRACERID_MOD,       ONLY : IDTISOPN, IDTMMN
+      USE TRACERID_MOD,       ONLY : IDTIEPOX, IDTRIP
+      USE TRACERID_MOD,       ONLY : IDTMAP
+      USE TRACERID_MOD,       ONLY : IDTHOBr,  IDTHBr,   IDTBr2
 
-      USE CMN_SIZE_MOD                               ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)  :: N                      ! Tracer number
-#if defined( DEVEL )
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
+      INTEGER,        INTENT(IN)  :: N                    ! Tracer number
+      TYPE(MetState), INTENT(IN)  :: State_Met            ! Met State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER, INTENT(OUT) :: ISOL                   ! Index for ND38 diag
-      REAL*8,  INTENT(OUT) :: F(IIPAR,JJPAR,LLPAR)   ! Fraction of tracer
-                                                     !  scavenged in cloud
-                                                     !  updraft [unitless]
+      INTEGER,        INTENT(OUT) :: ISOL                 ! Index for ND38 diag
+      REAL*8,         INTENT(OUT) :: F(IIPAR,JJPAR,LLPAR) ! Fraction of tracer
+                                                          !  scavenged in cloud
+                                                          !  updraft [unitless]
 !
 ! !REVISION HISTORY: 
 !  23 Feb 2000 - H. Liu, R. Yantosca - Initial version
@@ -1085,6 +844,8 @@
 !                         1985). Henry's law constant in wetscav_mod.f is 
 !                         now consistent with what's used in mercury_mod.f
 !  27 Sep 2011 - H. Amos - remove LHg_WETDasHNO3 logical, it's obsolete
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1120,22 +881,14 @@
       ! 210Pb and 7Be (aerosols)
       !-------------------------------
       IF ( N == IDTPb .or. N == IDTBe7 ) THEN
-#if defined( DEVEL )
          CALL F_AEROSOL( KC, N, F, State_Met )
-#else
-         CALL F_AEROSOL( KC, N, F )
-#endif
          ISOL = GET_ISOL( N )
 
       !-------------------------------
       ! HNO3 (aerosol)
       !-------------------------------
       ELSE IF ( N == IDTHNO3 ) THEN
-#if defined( DEVEL )
          CALL F_AEROSOL( KC, N, F, State_Met )
-#else
-         CALL F_AEROSOL( KC, N, F )
-#endif
          ISOL = GET_ISOL( N ) 
 
       !-------------------------------
@@ -1159,7 +912,6 @@
                I2G = 0d0
             ENDIF
 
-#if defined( DEVEL )
             ! Compute liquid to gas ratio for H2O2, using
             ! the appropriate parameters for Henry's law
             ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
@@ -1190,36 +942,6 @@
             ! Distance between grid box centers [m]
             TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
      &                      State_Met%BXHEIGHT(I,J,L) ) 
-#else
-            ! Compute liquid to gas ratio for H2O2, using
-            ! the appropriate parameters for Henry's law
-            ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-            CALL COMPUTE_L2G( 8.3d4,    -7.4d3, 
-     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
-
-            ! Fraction of H2O2 in liquid & ice phases
-            ! (Eqs. 4, 5, 6, Jacob et al, 2000)
-            C_TOT = 1d0 + L2G + I2G
-            F_L   = L2G / C_TOT
-            F_I   = I2G / C_TOT
-
-            ! Compute the rate constant K.  The retention factor for 
-            ! liquid H2O2 is 0.05 for 248 K < T < 268 K and 1.0 for 
-            ! T >= 268 K. (Eq. 1, Jacob et al, 2000)
-            IF ( T(I,J,L) >= 268d0 ) THEN
-               K = KC * ( F_L + F_I )
- 
-            ELSE IF ( T(I,J,L) > 248d0  .and. T(I,J,L) < 268d0 ) THEN
-               K = KC * ( ( 5d-2 * F_L ) + F_I ) 
-
-            ELSE
-               K = KC * F_I
-                  
-            ENDIF
-
-            ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
-#endif
             
             ! Compute F, the fraction of scavenged H2O2.
             ! (Eq. 2, Jacob et al, 2000)
@@ -1245,7 +967,6 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-#if defined( DEVEL )
             ! Compute liquid to gas ratio for CH2O, using
             ! the appropriate parameters for Henry's law
             ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
@@ -1276,36 +997,6 @@
             ! Distance between grid box centers [m]
             TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
      &                      State_Met%BXHEIGHT(I,J,L) ) 
-#else
-            ! Compute liquid to gas ratio for CH2O, using
-            ! the appropriate parameters for Henry's law
-            ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-            CALL COMPUTE_L2G( 3.0d3,    -7.2d3, 
-     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
-
-            ! Fraction of CH2O in liquid phase 
-            ! NOTE: CH2O does not exist in the ice phase!
-            ! (Eqs. 4, 5, 6, Jacob et al, 2000)
-            C_TOT = 1d0 + L2G
-            F_L   = L2G / C_TOT
-
-            ! Compute the rate constant K.  The retention factor 
-            ! for liquid CH2O is 0.0 for T <= 248K and 0.02 for 
-            ! 248 K < T < 268 K. (Eq. 1, Jacob et al, 2000)
-            IF ( T(I,J,L) >= 268d0 ) THEN
-               K = KC * F_L  
-
-            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
-               K = KC * ( 2d-2 * F_L ) 
-
-            ELSE
-               K = 0d0
-
-            ENDIF
-
-            ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
-#endif
                
             ! F is the fraction of CH2O scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -1341,8 +1032,8 @@
             ! (- 12 kcal/mol)
             ! acid dissociation constant in Heff is small (1.5e-9), reported
             ! by Haag and Holne [1983]
-            CALL COMPUTE_L2G( 6.1d3, -6014.d0, 
-     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
+            CALL COMPUTE_L2G( 6.1d3, -6014.d0, State_Met%T(I,J,L), 
+     &                        CLDLIQ(I,J,L), L2G )
 
             ! Fraction of HOBr in liquid phase
             ! (Eqs. 4, 5, 6, Jacob et al, 2000)
@@ -1350,11 +1041,12 @@
             F_L   = L2G / C_TOT
 
             ! Compute the rate constant K.
-            IF ( T(I,J,L) >= 268d0 ) THEN
+            IF ( State_Met%T(I,J,L) >= 268d0 ) THEN
 
                K = KC * F_L
 
-            ELSE IF ( T(I,J,L) > 248d0  .and. T(I,J,L) < 268d0 ) THEN
+            ELSE IF ( State_Met%T(I,J,L) > 248d0  .and.
+     &                State_Met%T(I,J,L) < 268d0 ) THEN
 
                K = KC * (0.d0 * F_L) 
 
@@ -1365,7 +1057,8 @@
             ENDIF
 
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+            TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
+     &                      State_Met%BXHEIGHT(I,J,L) ) 
                
             ! F is the fraction of HOBr scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -1397,8 +1090,8 @@
             ! which I've calculated for pH = 4.5
             !
             ! H0 and heat of solution are estimated by Yang et al. [2005]
-            CALL COMPUTE_L2G( 7.1d13, -10200.0d0, 
-     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
+            CALL COMPUTE_L2G( 7.1d13, -10200.0d0, State_Met%T(I,J,L),
+     &                        CLDLIQ(I,J,L), L2G )
 
 
             ! Fraction of HBr in liquid phase
@@ -1407,11 +1100,12 @@
             F_L   = L2G / C_TOT
 
             ! Compute the rate constant K.
-            IF ( T(I,J,L) >= 268d0 ) THEN
+            IF ( State_Met%T(I,J,L) >= 268d0 ) THEN
 
                K = KC * F_L
 
-            ELSE IF ( T(I,J,L) > 248d0  .and. T(I,J,L) < 268d0 ) THEN
+            ELSE IF ( State_Met%T(I,J,L) > 248d0  .and.
+     &                State_Met%T(I,J,L) < 268d0 ) THEN
                
                ! HBr has a large effective Henry's
                ! Law Constant, similar to HCl and HNO3, which have
@@ -1430,7 +1124,8 @@
             ENDIF
 
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+            TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
+     &                      State_Met%BXHEIGHT(I,J,L) ) 
 
             ! F is the fraction of HBr scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -1459,8 +1154,8 @@
          DO I = 1, IIPAR
 
             ! Compute liquid to gas ratio for Br2:
-            CALL COMPUTE_L2G( 0.76d0, -3.72d3, 
-     &           T(I,J,L), CLDLIQ(I,J,L), L2G )
+            CALL COMPUTE_L2G( 0.76d0, -3.72d3, State_Met%T(I,J,L),
+     &                        CLDLIQ(I,J,L), L2G )
 
             ! Fraction of Br2 in liquid phase
             C_TOT = 1d0 + L2G
@@ -1475,17 +1170,25 @@
             !   above 248K and below 268K. (jpp, 1/14/2011)
             ! * CL2 analogue has low mass accomodation coeff. for ice
             !   0 uptake in cold clouds. (<1e-4, Sander et al [2010] - JPL)
-            IF ( T(I,J,L) >= 268d0 ) THEN
+            IF ( State_Met%T(I,J,L) >= 268d0 ) THEN
+
                K = KC * F_L
-            ELSE IF ( T(I,J,L) > 248d0  .and. T(I,J,L) < 268d0 ) THEN
+
+            ELSE IF ( State_Met%T(I,J,L) > 248d0  .and.
+     &                State_Met%T(I,J,L) < 268d0 ) THEN
+
                K = KC * (0.d0 * F_L) !jpp, testing riming efficiency
+
             ELSE
+
                K = 0d0   
+
             ENDIF
 
 
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+            TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
+     &                      State_Met%BXHEIGHT(I,J,L) ) 
                   
             ! F is the fraction of Br2 scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -1513,7 +1216,6 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-#if defined( DEVEL )
             ! Compute liquid to gas ratio for GLYX, using
             ! (1) Zhou and Mopper (1990): Kstar298 = 3.6e5 M/atm 
             ! (2) Schweitzer et al. (1998) showed that the temperature 
@@ -1545,37 +1247,6 @@
             ! Distance between grid box centers [m]
             TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
      &                      State_Met%BXHEIGHT(I,J,L) ) 
-#else
-            ! Compute liquid to gas ratio for GLYX, using
-            ! (1) Zhou and Mopper (1990): Kstar298 = 3.6e5 M/atm 
-            ! (2) Schweitzer et al. (1998) showed that the temperature 
-            ! dependence for CH2O works well for glyoxal, so we use the 
-            ! same H298_R as CH2O
-            CALL COMPUTE_L2G( 3.6d5,   -7.2d3, 
-     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
-
-            ! Fraction of GLYX in liquid phase 
-            C_TOT = 1d0 + L2G
-            F_L   = L2G / C_TOT
-
-            ! assume same retention factor as CH2O
-            ! Compute the rate constant K.  The retention factor 
-            ! for liquid CH2O is 0.0 for T <= 248K and 0.02 for 
-            ! 248 K < T < 268 K. (Eq. 1, Jacob et al, 2000)
-            IF ( T(I,J,L) >= 268d0 ) THEN
-               K = KC * F_L  
-
-            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
-               K = KC * ( 2d-2 * F_L ) 
-
-            ELSE
-               K = 0d0
-
-            ENDIF
-
-            ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
-#endif
                
             ! F is the fraction of GLYX scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -1601,7 +1272,6 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-#if defined( DEVEL )
             ! Compute liquid to gas ratio for MGLY, using
             ! the appropriate parameters for Henry's law
             ! from Betterton and Hoffman 1988): Kstar298 = 3.71d3 M/atm;  
@@ -1634,38 +1304,6 @@
             ! Distance between grid box centers [m]
             TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
      &                      State_Met%BXHEIGHT(I,J,L) ) 
-#else
-            ! Compute liquid to gas ratio for MGLY, using
-            ! the appropriate parameters for Henry's law
-            ! from Betterton and Hoffman 1988): Kstar298 = 3.71d3 M/atm;  
-            ! H298_R = -7.5d3 K
-            CALL COMPUTE_L2G( 3.7d3,    -7.5d3, 
-     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
-
-            ! Fraction of MGLY in liquid phase 
-            ! NOTE: CH2O does not exist in the ice phase!
-            ! (Eqs. 4, 5, 6, Jacob et al, 2000)
-            C_TOT = 1d0 + L2G
-            F_L   = L2G / C_TOT
-
-            ! assume same retention factor as CH2O
-            ! Compute the rate constant K.  The retention factor 
-            ! for liquid CH2O is 0.0 for T <= 248K and 0.02 for 
-            ! 248 K < T < 268 K. (Eq. 1, Jacob et al, 2000)
-            IF ( T(I,J,L) >= 268d0 ) THEN
-               K = KC * F_L  
-
-            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
-               K = KC * ( 2d-2 * F_L ) 
-
-            ELSE
-               K = 0d0
-
-            ENDIF
-
-            ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
-#endif
                
             ! F is the fraction of MGLY scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -1691,7 +1329,6 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-#if defined( DEVEL )
             ! Compute liquid to gas ratio for GLYC, using
             ! the appropriate parameters for Henry's law
             ! from Betterton and Hoffman 1988): 
@@ -1724,38 +1361,6 @@
             ! Distance between grid box centers [m]
             TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
      &                      State_Met%BXHEIGHT(I,J,L) ) 
-#else
-            ! Compute liquid to gas ratio for GLYC, using
-            ! the appropriate parameters for Henry's law
-            ! from Betterton and Hoffman 1988): 
-            ! Kstar298 = 4.1d4 M/atm;  H298_R = -4600 K
-            CALL COMPUTE_L2G( 4.1d4,    -4.6d3, 
-     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
-
-            ! Fraction of MGLY in liquid phase 
-            ! NOTE: CH2O does not exist in the ice phase!
-            ! (Eqs. 4, 5, 6, Jacob et al, 2000)
-            C_TOT = 1d0 + L2G
-            F_L   = L2G / C_TOT
-
-            ! assume same retention factor as CH2O
-            ! Compute the rate constant K.  The retention factor 
-            ! for liquid CH2O is 0.0 for T <= 248K and 0.02 for 
-            ! 248 K < T < 268 K. (Eq. 1, Jacob et al, 2000)
-            IF ( T(I,J,L) >= 268d0 ) THEN
-               K = KC * F_L  
-
-            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
-               K = KC * ( 2d-2 * F_L ) 
-
-            ELSE
-               K = 0d0
-
-            ENDIF
-
-            ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
-#endif
                
             ! F is the fraction of MGLY scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -1781,7 +1386,6 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-#if defined( DEVEL )
             ! Compute liquid to gas ratio for CH3OOH, using
             ! the appropriate parameters for Henry's law
             ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
@@ -1812,36 +1416,6 @@
             ! Distance between grid box centers [m]
             TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
      &                      State_Met%BXHEIGHT(I,J,L) ) 
-#else
-            ! Compute liquid to gas ratio for CH3OOH, using
-            ! the appropriate parameters for Henry's law
-            ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-            CALL COMPUTE_L2G( 3.1d2,    -5.2d3, 
-     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
-
-            ! Fraction of CH3OOH in liquid phase
-            ! NOTE: CH3OOH does not exist in the ice phase!
-            ! (Eq. 4, 5, 6, Jacob et al, 2000)
-            C_TOT = 1d0 + L2G
-            F_L   = L2G / C_TOT
-
-            ! Compute the rate constant K.  The retention factor  
-            ! for liquid CH3OOH is 0.0 for T <= 248 K and 0.02 for 
-            ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
-            IF ( T(I,J,L) >= 268d0 ) THEN
-               K = KC * F_L  
-
-            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
-               K = KC * ( 2d-2 * F_L ) 
-                  
-            ELSE
-               K = 0d0
-
-            ENDIF
-               
-            ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
-#endif
 
             ! F is the fraction of CH3OOH scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -1860,11 +1434,7 @@
       ELSE IF ( N == IDTSO2 ) THEN
 
          ! Compute fraction of SO2 scavenged
-#if defined( DEVEL )
          CALL F_AEROSOL( KC, N, F, State_Met )
-#else
-         CALL F_AEROSOL( KC,N, F )
-#endif
          ISOL = GET_ISOL( N )
 
          !==============================================================
@@ -1913,22 +1483,14 @@
       !-------------------------------
       ELSE IF ( N == IDTSO4 .or. N == IDTSO4s .or. N == IDTSO4aq ) THEN
 
-#if defined( DEVEL )
          CALL F_AEROSOL( KC, N, F, State_Met ) 
-#else
-         CALL F_AEROSOL( KC,N, F ) 
-#endif
          ISOL = GET_ISOL( N ) 
 
       !-------------------------------
       ! MSA (aerosol)
       !-------------------------------
       ELSE IF ( N == IDTMSA ) THEN
-#if defined( DEVEL )
          CALL F_AEROSOL( KC, N, F, State_Met ) 
-#else
-         CALL F_AEROSOL( KC,N, F )
-#endif
          ISOL = GET_ISOL( N )
 
       !-------------------------------
@@ -1952,7 +1514,6 @@
                I2G = 0d0
             ENDIF
 
-#if defined( DEVEL )
             ! Compute liquid to gas ratio for NH3, using
             ! the appropriate parameters for Henry's law
             ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
@@ -1984,37 +1545,6 @@
             ! (Eq. 2, Jacob et al, 2000)
             F(I,J,L) = 1d0 - EXP( -K * State_Met%BXHEIGHT(I,J,L) /
      &                            Vud(I,J) )
-#else
-            ! Compute liquid to gas ratio for NH3, using
-            ! the appropriate parameters for Henry's law
-            ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-            CALL COMPUTE_L2G( 3.3d6,    -4.1d3, 
-     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
-
-            ! Fraction of NH3 in liquid & ice phases
-            ! (Eqs. 4, 5, 6, Jacob et al, 2000)
-            C_TOT = 1d0 + L2G + I2G
-            F_L   = L2G / C_TOT
-            F_I   = I2G / C_TOT
-
-            ! Compute the rate constant K.  The retention factor  
-            ! for liquid NH3 is 0.0 for T <= 248 K and 0.05 for 
-            ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
-            IF ( T(I,J,L) >= 268d0 ) THEN
-               K = KC * ( F_L + F_I )
-                  
-            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
-               K = KC * ( ( 5d-2 * F_L ) + F_I )
-                  
-            ELSE
-               K = KC * F_I
-
-            ENDIF
-  
-            ! F is the fraction of NH3 scavenged out of the updraft
-            ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = 1d0 - EXP( -K * BXHEIGHT(I,J,L) / Vud(I,J) )
-#endif
          ENDDO
          ENDDO
          ENDDO
@@ -2027,11 +1557,7 @@
       ! NH4aq (aqueous aerosol)
       !-------------------------------
       ELSE IF ( N == IDTNH4 .or. N == IDTNH4aq ) THEN
-#if defined( DEVEL )
          CALL F_AEROSOL( KC, N, F, State_Met ) 
-#else
-         CALL F_AEROSOL( KC,N, F )
-#endif
          ISOL = GET_ISOL( N )
          
       !-------------------------------
@@ -2040,11 +1566,7 @@
       ELSE IF ( N == IDTNIT  .or. N == IDTNITs .or.
      &          N == IDTAS   .or. N == IDTAHS  .or. 
      &          N == IDTLET ) THEN 
-#if defined( DEVEL )
          CALL F_AEROSOL( KC, N, F, State_Met ) 
-#else
-         CALL F_AEROSOL( KC,N, F )
-#endif
          ISOL = GET_ISOL( N )
 
       !-------------------------------
@@ -2054,11 +1576,7 @@
       !-------------------------------
       ELSE IF ( N == IDTBCPI .or. N == IDTOCPI .or.
      &          N == IDTBCPO ) THEN
-#if defined( DEVEL )
          CALL F_AEROSOL( KC, N, F, State_Met ) 
-#else
-         CALL F_AEROSOL( KC,N, F )
-#endif
          ISOL = GET_ISOL( N )
 
       !-------------------------------
@@ -2076,11 +1594,7 @@
       !-------------------------------
       ELSE IF ( N == IDTDST1 .or. N == IDTDST2 .or.
      &          N == IDTDST3 .or. N == IDTDST4 ) THEN
-#if defined( DEVEL )
          CALL F_AEROSOL( KC, N, F, State_Met ) 
-#else
-         CALL F_AEROSOL( KC,N, F )
-#endif
          ISOL = GET_ISOL( N )
 
       !-------------------------------
@@ -2088,11 +1602,7 @@
       ! Coarse mode seasalt (aerosol)
       !-------------------------------
       ELSE IF ( N == IDTSALA .or. N == IDTSALC ) THEN
-#if defined( DEVEL )
          CALL F_AEROSOL( KC, N, F, State_Met ) 
-#else
-         CALL F_AEROSOL( KC,N, F )
-#endif
          ISOL = GET_ISOL( N )
 
       !-------------------------------
@@ -2108,7 +1618,6 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-#if defined( DEVEL )
             ! Compute liquid to gas ratio for ALPH, using
             ! the appropriate parameters for Henry's law
             ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
@@ -2138,35 +1647,6 @@
             ! Distance between grid box centers [m]
             TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
      &                      State_Met%BXHEIGHT(I,J,L) ) 
-#else
-            ! Compute liquid to gas ratio for ALPH, using
-            ! the appropriate parameters for Henry's law
-            ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-            CALL COMPUTE_L2G( 0.023d0, 0.d0, 
-     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
-
-            ! Fraction of ALPH in liquid phase
-            ! (Eq. 4, 5, 6, Jacob et al, 2000)
-            C_TOT = 1d0 + L2G
-            F_L   = L2G / C_TOT
-
-            ! Compute the rate constant K.  Assume retention factor  
-            ! for liquid ALPH is 0.0 for T <= 248 K and 0.02 for 
-            ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
-            IF ( T(I,J,L) >= 268d0 ) THEN
-               K = KC * F_L  
-
-            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
-               K = KC * ( 2d-2 * F_L ) 
-                  
-            ELSE
-               K = 0d0
-
-            ENDIF
-               
-            ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
-#endif
 
             ! F is the fraction of ALPH scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -2191,7 +1671,6 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-#if defined( DEVEL )
             ! Compute liquid to gas ratio for LIMO, using
             ! the appropriate parameters for Henry's law
             ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
@@ -2221,35 +1700,6 @@
             ! Distance between grid box centers [m]
             TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
      &                      State_Met%BXHEIGHT(I,J,L) ) 
-#else
-            ! Compute liquid to gas ratio for LIMO, using
-            ! the appropriate parameters for Henry's law
-            ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-            CALL COMPUTE_L2G( 0.07d0, 0.d0, 
-     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
-
-            ! Fraction of LIMO in liquid phase
-            ! (Eq. 4, 5, 6, Jacob et al, 2000)
-            C_TOT = 1d0 + L2G
-            F_L   = L2G / C_TOT
-
-            ! Compute the rate constant K.  Assume retention factor  
-            ! for liquid LIMO is 0.0 for T <= 248 K and 0.02 for 
-            ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
-            IF ( T(I,J,L) >= 268d0 ) THEN
-               K = KC * F_L  
-
-            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
-               K = KC * ( 2d-2 * F_L ) 
-                  
-            ELSE
-               K = 0d0
-
-            ENDIF
-               
-            ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
-#endif
 
             ! F is the fraction of LIMO scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -2275,7 +1725,6 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-#if defined( DEVEL )
             ! Compute liquid to gas ratio for ALCO, using
             ! the appropriate parameters for Henry's law
             ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
@@ -2305,35 +1754,6 @@
             ! Distance between grid box centers [m]
             TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
      &                      State_Met%BXHEIGHT(I,J,L) ) 
-#else
-            ! Compute liquid to gas ratio for ALCO, using
-            ! the appropriate parameters for Henry's law
-            ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-            CALL COMPUTE_L2G( 54.d0, 0.d0, 
-     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
-
-            ! Fraction of ALCO in liquid phase
-            ! (Eq. 4, 5, 6, Jacob et al, 2000)
-            C_TOT = 1d0 + L2G
-            F_L   = L2G / C_TOT
-
-            ! Compute the rate constant K.  Assume retention factor  
-            ! for liquid ALCO is 0.0 for T <= 248 K and 0.02 for 
-            ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
-            IF ( T(I,J,L) >= 268d0 ) THEN
-               K = KC * F_L  
-
-            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
-               K = KC * ( 2d-2 * F_L ) 
-                  
-            ELSE
-               K = 0d0
-
-            ENDIF
-               
-            ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
-#endif
 
             ! F is the fraction of ALCO scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -2366,7 +1786,6 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-#if defined( DEVEL )
             ! Compute liquid to gas ratio for GAS1, using
             ! the appropriate parameters for Henry's law
             ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
@@ -2396,35 +1815,6 @@
             ! Distance between grid box centers [m]
             TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
      &                      State_Met%BXHEIGHT(I,J,L) ) 
-#else
-            ! Compute liquid to gas ratio for GAS1, using
-            ! the appropriate parameters for Henry's law
-            ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-            CALL COMPUTE_L2G( 1.0d5, -6.039d3, 
-     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
-
-            ! Fraction of GAS1 in liquid phase
-            ! (Eq. 4, 5, 6, Jacob et al, 2000)
-            C_TOT = 1d0 + L2G
-            F_L   = L2G / C_TOT
-
-            ! Compute the rate constant K.  Assume retention factor  
-            ! for liquid GAS1 is 0.0 for T <= 248 K and 0.02 for 
-            ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
-            IF ( T(I,J,L) >= 268d0 ) THEN
-               K = KC * F_L  
-
-            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
-               K = KC * ( 2d-2 * F_L ) 
-                  
-            ELSE
-               K = 0d0
-
-            ENDIF
-               
-            ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
-#endif
 
             ! F is the fraction of GAS1 scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -2447,11 +1837,7 @@
       ELSE IF ( N == IDTSOA1 .or. N == IDTSOA2  .or. 
      &          N == IDTSOA3 .or. N == IDTSOA4  .or. 
      &          N == IDTSOA5                    ) THEN
-#if defined( DEVEL )
          CALL F_AEROSOL( KC, N, F, State_Met ) 
-#else
-         CALL F_AEROSOL( KC,N, F )
-#endif
 
          DO L = 2, LLPAR
          DO J = 1, JJPAR
@@ -2470,11 +1856,7 @@
       ! Scavenging efficiency for SOA is 0.8
       !------------------------------------------
       ELSE IF ( N == IDTSOAG .or. N == IDTSOAM ) THEN
-#if defined( DEVEL )
          CALL F_AEROSOL( KC, N, F, State_Met ) 
-#else
-         CALL F_AEROSOL( KC,N, F )
-#endif
 
          DO L = 2, LLPAR
          DO J = 1, JJPAR
@@ -2503,7 +1885,6 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-#if defined( DEVEL )
             ! Compute liquid to gas ratio for HgCl2, using
             ! the appropriate parameters for Henry's law
             ! (Refs: INSERT HERE)
@@ -2532,35 +1913,6 @@
             ! Distance between grid box centers [m]
             TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
      &                      State_Met%BXHEIGHT(I,J,L) ) 
-#else
-            ! Compute liquid to gas ratio for HgCl2, using
-            ! the appropriate parameters for Henry's law
-            ! (Refs: INSERT HERE)
-            !
-            ! hma, 10-Jan-2011, Henry's law constant for 
-            ! HgCl2 = 1.4d+6 M/atm
-            ! Ref: Lindqvist and Rhode, 1985
-            CALL COMPUTE_L2G( 1.4d+6, -8.4d3, 
-     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
-
-            ! Fraction of HgCl2 in liquid phase 
-            ! Assume that HgCl2 is not present in ice phase
-            ! (Eqs. 4, 5, 6, Jacob et al, 2000)
-            C_TOT = 1d0 + L2G
-            F_L   = L2G / C_TOT
-
-            ! Compute the rate constant K. 
-            !CDH allow scavening during riming (8/7/2009
-            !Scavenging at all temperatures
-            IF ( T(I,J,L) >= 248d0 ) THEN
-               K = KC * F_L  
-            ELSE 
-               K = 0d0
-            ENDIF
-
-            ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
-#endif
               
             ! F is the fraction of HgCl2 scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -2578,11 +1930,7 @@
       !-------------------------------
       ELSE IF ( IS_HgP( N ) ) THEN
 
-#if defined( DEVEL )
          CALL F_AEROSOL( KC, N, F, State_Met ) 
-#else
-         CALL F_AEROSOL( KC,N, F ) 
-#endif
          ISOL = GET_ISOL( N )
 
       ! Additional tracers for isoprene
@@ -2603,7 +1951,6 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-#if defined( DEVEL )
             ! Compute liquid to gas ratio for LIMO, using
             ! the appropriate parameters for Henry's law
             ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
@@ -2637,39 +1984,6 @@
             ! Distance between grid box centers [m]
             TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
      &                      State_Met%BXHEIGHT(I,J,L) ) 
-#else
-            ! Compute liquid to gas ratio for LIMO, using
-            ! the appropriate parameters for Henry's law
-            ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-            !FP_ISOP
-            !based on methacrylic acid with acetic acid T dependance
-            ! pKa = 4.1 - pH=5
-
-            CALL COMPUTE_L2G( 2.3d4, -6.3d3, T(I,J,L), 
-     &                          CLDLIQ(I,J,L), L2G )
-
-            ! Fraction of LIMO in liquid phase
-            ! (Eq. 4, 5, 6, Jacob et al, 2000)
-            C_TOT = 1d0 + L2G
-            F_L   = L2G / C_TOT
-
-            ! Compute the rate constant K.  Assume retention factor  
-            ! for liquid LIMO is 0.0 for T <= 248 K and 0.02 for 
-            ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
-            IF ( T(I,J,L) >= 268d0 ) THEN
-               K = KC * F_L  
-
-            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
-               K = KC * ( 2d-2 * F_L ) 
-                  
-            ELSE
-               K = 0d0
-
-            ENDIF
-               
-            ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
-#endif
 
             ! F is the fraction of LIMO scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -2695,7 +2009,6 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-#if defined( DEVEL )
             ! Compute liquid to gas ratio for LIMO, using
             ! the appropriate parameters for Henry's law
             ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
@@ -2727,37 +2040,6 @@
             ! Distance between grid box centers [m]
             TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
      &                      State_Met%BXHEIGHT(I,J,L) ) 
-#else
-            ! Compute liquid to gas ratio for LIMO, using
-            ! the appropriate parameters for Henry's law
-            ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-
-
-            !FP ISOP : BUG FIX FOR CONSISTENCY WITH DRY DEP MODULE
-            !USE ITO NUMBER
-            CALL COMPUTE_L2G( 17D3, -9.2d3, T(I,J,L), 
-     &                          CLDLIQ(I,J,L), L2G )
-
-            C_TOT = 1d0 + L2G
-            F_L   = L2G / C_TOT
-
-            ! Compute the rate constant K.  Assume retention factor  
-            ! for liquid LIMO is 0.0 for T <= 248 K and 0.02 for 
-            ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
-            IF ( T(I,J,L) >= 268d0 ) THEN
-               K = KC * F_L  
-
-            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
-               K = KC * ( 2d-2 * F_L ) 
-                  
-            ELSE
-               K = 0d0
-
-            ENDIF
-               
-            ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
-#endif
 
             ! F is the fraction of LIMO scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -2783,7 +2065,6 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-#if defined( DEVEL )
             ! Compute liquid to gas ratio for LIMO, using
             ! the appropriate parameters for Henry's law
             ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
@@ -2814,36 +2095,6 @@
             ! Distance between grid box centers [m]
             TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
      &                      State_Met%BXHEIGHT(I,J,L) ) 
-#else
-            ! Compute liquid to gas ratio for LIMO, using
-            ! the appropriate parameters for Henry's law
-            ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-
-            !FP ISOP : BUG FIX FOR CONSISTENCY WITH DRY DEP MODULE
-            !USE ITO NUMBER
-            CALL COMPUTE_L2G( 17D3, -9.2d3, T(I,J,L), 
-     &                          CLDLIQ(I,J,L), L2G )
-
-            C_TOT = 1d0 + L2G
-            F_L   = L2G / C_TOT
-
-            ! Compute the rate constant K.  Assume retention factor  
-            ! for liquid LIMO is 0.0 for T <= 248 K and 0.02 for 
-            ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
-            IF ( T(I,J,L) >= 268d0 ) THEN
-               K = KC * F_L  
-
-            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
-               K = KC * ( 2d-2 * F_L ) 
-                  
-            ELSE
-               K = 0d0
-
-            ENDIF
-               
-            ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
-#endif
 
             ! F is the fraction of LIMO scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -2869,7 +2120,6 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-#if defined( DEVEL )
             ! Compute liquid to gas ratio for LIMO, using
             ! the appropriate parameters for Henry's law
             ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
@@ -2900,36 +2150,6 @@
             ! Distance between grid box centers [m]
             TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
      &                      State_Met%BXHEIGHT(I,J,L) ) 
-#else
-            ! Compute liquid to gas ratio for LIMO, using
-            ! the appropriate parameters for Henry's law
-            ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-
-            !NITROOXYACETONE IN SANDER TABLE
-            CALL COMPUTE_L2G( 1.0d3, 0.0d0, T(I,J,L), 
-     &                          CLDLIQ(I,J,L), L2G )
-
-
-            C_TOT = 1d0 + L2G
-            F_L   = L2G / C_TOT
-
-            ! Compute the rate constant K.  Assume retention factor  
-            ! for liquid LIMO is 0.0 for T <= 248 K and 0.02 for 
-            ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
-            IF ( T(I,J,L) >= 268d0 ) THEN
-               K = KC * F_L  
-
-            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
-               K = KC * ( 2d-2 * F_L ) 
-                  
-            ELSE
-               K = 0d0
-
-            ENDIF
-               
-            ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
-#endif
 
             ! F is the fraction of LIMO scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -2955,7 +2175,6 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-#if defined( DEVEL )
             CALL COMPUTE_L2G( 8.3d4, -7.4d3, State_Met%T(I,J,L), !USE H2O2
      &                        CLDLIQ(I,J,L), L2G )
 
@@ -2982,32 +2201,6 @@
             ! Distance between grid box centers [m]
             TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
      &                      State_Met%BXHEIGHT(I,J,L) ) 
-#else
-            CALL COMPUTE_L2G( 8.3d4, -7.4d3, T(I,J,L), !USE H2O2
-     &                          CLDLIQ(I,J,L), L2G )
-
-            ! Fraction of LIMO in liquid phase
-            ! (Eq. 4, 5, 6, Jacob et al, 2000)
-            C_TOT = 1d0 + L2G
-            F_L   = L2G / C_TOT
-
-            ! Compute the rate constant K.  Assume retention factor  
-            ! for liquid LIMO is 0.0 for T <= 248 K and 0.02 for 
-            ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
-            IF ( T(I,J,L) >= 268d0 ) THEN
-               K = KC * F_L  
-
-            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
-               K = KC * ( 2d-2 * F_L ) 
-                  
-            ELSE
-               K = 0d0
-
-            ENDIF
-               
-            ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
-#endif
 
             ! F is the fraction of LIMO scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -3033,7 +2226,6 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-#if defined( DEVEL )
             CALL COMPUTE_L2G( 8.4d2, -5.3d3, State_Met%T(I,J,L), !USE H2O2
      &                        CLDLIQ(I,J,L), L2G )
 
@@ -3055,27 +2247,6 @@
             ! Distance between grid box centers [m]
             TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
      &                      State_Met%BXHEIGHT(I,J,L) ) 
-#else
-            CALL COMPUTE_L2G( 8.4d2, -5.3d3, T(I,J,L), !USE H2O2
-     &                          CLDLIQ(I,J,L), L2G )
-
-            C_TOT = 1d0 + L2G
-            F_L   = L2G / C_TOT
-
-            IF ( T(I,J,L) >= 268d0 ) THEN
-               K = KC * F_L  
-
-            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
-               K = KC * ( 2d-2 * F_L ) 
-                  
-            ELSE
-               K = 0d0
-
-            ENDIF
-               
-            ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
-#endif
 
             ! F is the fraction of LIMO scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -3102,7 +2273,6 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-#if defined( DEVEL )
             CALL COMPUTE_L2G( 8.3d4, -7.4d3, State_Met%T(I,J,L), !USE H2O2
      &                        CLDLIQ(I,J,L), L2G )
 
@@ -3124,27 +2294,6 @@
             ! Distance between grid box centers [m]
             TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
      &                      State_Met%BXHEIGHT(I,J,L) ) 
-#else
-            CALL COMPUTE_L2G( 8.3d4,    -7.4d3, 
-     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )    !USE H2O2
-
-            C_TOT = 1d0 + L2G
-            F_L   = L2G / C_TOT
-
-            IF ( T(I,J,L) >= 268d0 ) THEN
-               K = KC * F_L  
-
-            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
-               K = KC * ( 2d-2 * F_L ) 
-                  
-            ELSE
-               K = 0d0
-
-            ENDIF
-               
-            ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
-#endif
 
             ! F is the fraction of LIMO scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -3181,41 +2330,37 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE F_AEROSOL( KC, N, F, State_Met ) 
-#else
-      SUBROUTINE F_AEROSOL( KC,N, F ) 
-#endif
 !
 ! !USES:
 !
-      USE DAO_MOD, ONLY : BXHEIGHT, T
-      USE TRACERID_MOD, ONLY : IDTBCPO,  IDTDST1,  IDTHNO3 
-      USE TRACERID_MOD, ONLY : IDTDST2,  IDTDST3,  IDTDST4
-#if defined( DEVEL )
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE TRACERID_MOD,       ONLY : IDTBCPO,  IDTDST1,  IDTHNO3 
+      USE TRACERID_MOD,       ONLY : IDTDST2,  IDTDST3,  IDTDST4
 
-      USE CMN_SIZE_MOD   ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
       ! Conversion rate from cloud condensate to precip [1/s]
-      REAL*8, INTENT(IN)  :: KC
+      REAL*8,         INTENT(IN)  :: KC
+
       !Add N to idendify tracers (qq,10/11/2011)
-      INTEGER, INTENT(IN) :: N
-#if defined( DEVEL )
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
+      INTEGER,        INTENT(IN)  :: N
+
+      ! Meteorology State object
+      TYPE(MetState), INTENT(IN)  :: State_Met
 !
 ! !OUTPUT PARAMETERS:
 !
       ! Fraction of aerosol scavenged in updrafts [unitless]
-      REAL*8, INTENT(OUT) :: F(IIPAR,JJPAR,LLPAR)
+      REAL*8,         INTENT(OUT) :: F(IIPAR,JJPAR,LLPAR)
 ! 
 ! !REVISION HISTORY: 
 !  07 Nov 2002 - R. Yantosca - Initial version
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3241,7 +2386,6 @@
       DO I = 1, IIPAR
                 
          ! Distance between grid box centers [m]
-#if defined( DEVEL )
          TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
      &                   State_Met%BXHEIGHT(I,J,L) ) 
        
@@ -3257,21 +2401,6 @@
      &        N /= IDTDST3  .and. N /= IDTDST4) THEN
             F(I,J,L) = 0d0
          ENDIF
-#else
-         TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
-       
-         ! (Eq. 2, Jacob et al, 2000, with K = Kc)
-         F(I,J,L) = 1d0 - EXP( -KC * TMP / Vud(I,J) )
-         ! snow vs rain (qq, 10/11/2011)
-         IF (T(I,J,L) >= 258d0 .and. N == IDTBCPO) THEN
-            F(I,J,L) = 0d0
-         ENDIF
-         IF (T(I,J,L) <258d0 .and. N /= IDTBCPO  .and. N /= IDTHNO3
-     &     .and. N /= IDTDST1 .and. N /= IDTDST2 .and. N /= IDTDST3 
-     &     .and. N /= IDTDST4) THEN
-            F(I,J,L) = 0d0
-         ENDIF
-#endif
             
       ENDDO
       ENDDO
@@ -3375,61 +2504,52 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE RAINOUT( I, J, L, N, K_RAIN, DT, F, RAINFRAC,
      &                    State_Met )
-#else
-      SUBROUTINE RAINOUT( I, J, L, N, K_RAIN, DT, F, RAINFRAC )
-#endif
 !
 ! !USES:
 !
-      USE DAO_MOD,      ONLY : T
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE TRACERID_MOD, ONLY : IDTPB,   IDTBE7,   IDTHNO3, IDTH2O2 
-      USE TRACERID_MOD, ONLY : IDTCH2O, IDTMP,    IDTSO2,  IDTSO4  
-      USE TRACERID_MOD, ONLY : IDTSO4s, IDTSO4aq, IDTMSA,  IDTNH3   
-      USE TRACERID_MOD, ONLY : IDTNH4,  IDTNH4aq, IDTNIT,  IDTNITs  
-      USE TRACERID_MOD, ONLY : IDTAS,   IDTAHS,   IDTLET,  IDTBCPI 
-      USE TRACERID_MOD, ONLY : IDTOCPI, IDTBCPO,  IDTOCPO, IDTDST1 
-      USE TRACERID_MOD, ONLY : IDTDST2, IDTDST3,  IDTDST4, IDTSALA 
-      USE TRACERID_MOD, ONLY : IDTSALC, IDTALPH,  IDTLIMO, IDTALCO 
-      USE TRACERID_MOD, ONLY : IDTSOG1, IDTSOG2,  IDTSOG3, IDTSOG4
-      USE TRACERID_MOD, ONLY : IDTSOA1, IDTSOA2,  IDTSOA3, IDTSOA4
-      USE TRACERID_MOD, ONLY : IDTSOA5, IDTSOG5
-      USE TRACERID_MOD, ONLY : IS_Hg2,  IS_HgP
-      USE TRACERID_MOD, ONLY : IDTGLYX, IDTMGLY,  IDTGLYC
-      USE TRACERID_MOD, ONLY : IDTSOAG, IDTSOAM
-      USE TRACERID_MOD, ONLY : IDTMOBA,  IDTPROPNN
-      USE TRACERID_MOD, ONLY : IDTISOPN, IDTMMN
-      USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP, IDTMAP
-      ! jpp 4/27/09
-      USE TRACERID_MOD, ONLY : IDTHOBr, IDTHBr,   IDTBr2
-      USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM 
-#if defined( DEVEL )
+      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE TRACERID_MOD,       ONLY : IDTPB,   IDTBE7,   IDTHNO3, IDTH2O2 
+      USE TRACERID_MOD,       ONLY : IDTCH2O, IDTMP,    IDTSO2,  IDTSO4  
+      USE TRACERID_MOD,       ONLY : IDTSO4s, IDTSO4aq, IDTMSA,  IDTNH3   
+      USE TRACERID_MOD,       ONLY : IDTNH4,  IDTNH4aq, IDTNIT,  IDTNITs  
+      USE TRACERID_MOD,       ONLY : IDTAS,   IDTAHS,   IDTLET,  IDTBCPI 
+      USE TRACERID_MOD,       ONLY : IDTOCPI, IDTBCPO,  IDTOCPO, IDTDST1 
+      USE TRACERID_MOD,       ONLY : IDTDST2, IDTDST3,  IDTDST4, IDTSALA 
+      USE TRACERID_MOD,       ONLY : IDTSALC, IDTALPH,  IDTLIMO, IDTALCO 
+      USE TRACERID_MOD,       ONLY : IDTSOG1, IDTSOG2,  IDTSOG3, IDTSOG4
+      USE TRACERID_MOD,       ONLY : IDTSOA1, IDTSOA2,  IDTSOA3, IDTSOA4
+      USE TRACERID_MOD,       ONLY : IDTSOA5, IDTSOG5
+      USE TRACERID_MOD,       ONLY : IS_Hg2,  IS_HgP
+      USE TRACERID_MOD,       ONLY : IDTGLYX, IDTMGLY,  IDTGLYC
+      USE TRACERID_MOD,       ONLY : IDTSOAG, IDTSOAM
+      USE TRACERID_MOD,       ONLY : IDTMOBA,  IDTPROPNN
+      USE TRACERID_MOD,       ONLY : IDTISOPN, IDTMMN
+      USE TRACERID_MOD,       ONLY : IDTIEPOX, IDTRIP, IDTMAP
+      ! jpp 4/27/09           
+      USE TRACERID_MOD,       ONLY : IDTHOBr, IDTHBr,   IDTBr2
+      USE TRACER_MOD,         ONLY : ITS_A_MERCURY_SIM 
 
-      USE CMN_SIZE_MOD                   ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)  :: I          ! Longitude index
-      INTEGER, INTENT(IN)  :: J          ! Latitude index
-      INTEGER, INTENT(IN)  :: L          ! Level index
-      INTEGER, INTENT(IN)  :: N          ! Tracer number
-      REAL*8,  INTENT(IN)  :: K_RAIN     ! Rainout rate constant [1/s]
-      REAL*8,  INTENT(IN)  :: DT         ! Timestep for rainout event [s]
-      REAL*8,  INTENT(IN)  :: F          ! Fraction of grid box that is
-                                         !  precipitating [unitless]
-#if defined( DEVEL )
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
+      INTEGER,        INTENT(IN)  :: I          ! Longitude index
+      INTEGER,        INTENT(IN)  :: J          ! Latitude index
+      INTEGER,        INTENT(IN)  :: L          ! Level index
+      INTEGER,        INTENT(IN)  :: N          ! Tracer number
+      REAL*8,         INTENT(IN)  :: K_RAIN     ! Rainout rate constant [1/s]
+      REAL*8,         INTENT(IN)  :: DT         ! Timestep for rainout event [s]
+      REAL*8,         INTENT(IN)  :: F          ! Fraction of grid box that is
+                                                !  precipitating [unitless]
+      TYPE(MetState), INTENT(IN)  :: State_Met  ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(OUT) :: RAINFRAC   ! Fraction of tracer lost 
-                                         !  to rainout [unitless]
+      REAL*8,         INTENT(OUT) :: RAINFRAC   ! Fraction of tracer lost 
+                                                !  to rainout [unitless]
 ! 
 ! !REVISION HISTORY: 
 !  28 Feb 2000 - R. Yantosca - Initial version
@@ -3468,6 +2588,8 @@
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  27 Sep 2011 - H. Amos     - remove LHg_WETDasHNO3 logical, it's obsolete
 !  09 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3496,11 +2618,7 @@
       !==================================================================
 
       ! Save the local temperature in TK for convenience
-#if defined( DEVEL )
       TK = State_Met%T(I,J,L)
-#else
-      TK = T(I,J,L)
-#endif
 
       !------------------------------
       ! H2O2 (liquid & ice phases)
@@ -3947,8 +3065,7 @@
          ! 
          ! McGrath and Rowland, 1994 estimate - 50 kJ/mol heat of solution
          ! H0 comes from Freznel et al. [1998]
-         CALL COMPUTE_L2G( 6.1d3, -6014.d0,
-     &                     TK,    CLDLIQ(I,J,L), L2G )      
+         CALL COMPUTE_L2G( 6.1d3, -6014.d0, TK, CLDLIQ(I,J,L), L2G )      
 
          ! Fraction of HOBr in liquid phase
          ! (Eqs. 4, 5, 6, Jacob et al, 2000)
@@ -3981,8 +3098,7 @@
          ! which I've calculated for pH = 4.5
          !
          ! H0 and heat of solution are estimated by Yang et al. [2005]
-         CALL COMPUTE_L2G( 7.1d13,   -10200.0d0,
-     &                     T(I,J,L), CLDLIQ(I,J,L), L2G )
+         CALL COMPUTE_L2G( 7.1d13, -10200.0d0, TK, CLDLIQ(I,J,L), L2G )
 
          ! Fraction of HBr in liquid phase
          ! (Eqs. 4, 5, 6, Jacob et al, 2000)
@@ -4020,8 +3136,7 @@
          ! 1. H0 and the heat of solution are taken from Dean [1992].
          ! 2. Dissociation constant for hydrolysis is small (4e-9) and taken
          !    from Beckwith et al. [1996]
-         CALL COMPUTE_L2G( 0.76d0,   -3.72d3,
-     &                     T(I,J,L), CLDLIQ(I,J,L), L2G )
+         CALL COMPUTE_L2G( 0.76d0, -3.72d3, TK, CLDLIQ(I,J,L), L2G )
 
          ! Fraction of HBr in liquid phase
          C_TOT = 1d0 + L2G
@@ -5267,44 +4382,35 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE WETDEP( State_Met, LS )
-#else
-      SUBROUTINE WETDEP( LS )
-#endif
 !
 ! !USES:
 !
-      USE LOGICAL_MOD,       ONLY : LDYNOCEAN
-      USE DEPO_MERCURY_MOD,  ONLY : ADD_Hg2_WD
-      USE DEPO_MERCURY_MOD,  ONLY : ADD_HgP_WD
-      USE TIME_MOD,          ONLY : GET_TS_DYN
-      USE TRACER_MOD,        ONLY : ITS_A_MERCURY_SIM
-      USE TRACER_MOD,        ONLY : STT
-      USE TRACERID_MOD,      ONLY : IDTSO2
-      USE TRACERID_MOD,      ONLY : IDTSO4
-      USE TRACERID_MOD,      ONLY : IS_Hg2
-      USE TRACERID_MOD,      ONLY : IS_HgP
-      USE DEPO_MERCURY_MOD,  ONLY : ADD_Hg2_SNOWPACK
-      USE LOGICAL_MOD,       ONLY : LGTMM
-      USE LOGICAL_MOD,       ONLY : LSOILNOX
-      USE GET_NDEP_MOD,      ONLY : SOIL_WETDEP
-
-#if defined( DEVEL )
+      USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_WD
+      USE DEPO_MERCURY_MOD,   ONLY : ADD_HgP_WD
+      USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
+      USE GET_NDEP_MOD,       ONLY : SOIL_WETDEP
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE LOGICAL_MOD,        ONLY : LGTMM
+      USE LOGICAL_MOD,        ONLY : LSOILNOX
+      USE LOGICAL_MOD,        ONLY : LDYNOCEAN
+      USE TIME_MOD,           ONLY : GET_TS_DYN
+      USE TRACER_MOD,         ONLY : ITS_A_MERCURY_SIM
+      USE TRACER_MOD,         ONLY : STT
+      USE TRACERID_MOD,       ONLY : IDTSO2
+      USE TRACERID_MOD,       ONLY : IDTSO4
+      USE TRACERID_MOD,       ONLY : IS_Hg2
+      USE TRACERID_MOD,       ONLY : IS_HgP
 
-      USE CMN_SIZE_MOD            ! Size parameters
-      USE CMN_DIAG_MOD            ! Diagnostic arrays and switches
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! Diagnostic arrays and switches
       USE COMMSOIL_MOD
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL, INTENT(IN) :: LS   ! =T denotes large-scale precip
-                                  ! =F denotes convective precip
-#if defined( DEVEL )
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
+      LOGICAL,        INTENT(IN)  :: LS         ! =T denotes large-scale precip
+                                                ! =F denotes convective precip
+      TYPE(MetState), INTENT(IN)  :: State_Met  ! Meteorology State object
 !
 ! !REMARKS:
 !  Precipitation fields:
@@ -5578,15 +4684,9 @@
             ! Only compute rainout if F > 0. 
             ! This helps to eliminate unnecessary CPU cycles.
             IF ( F > 0d0 ) THEN 
-#if defined( DEVEL )
                CALL DO_RAINOUT_ONLY( LS,  I,      J,    L,   
      &                               IDX, ERRMSG, F,    K_RAIN, 
      &                               DT,  STT,    DSTT, State_Met )
-#else
-               CALL DO_RAINOUT_ONLY( LS,  I,      J,   L,   
-     &                               IDX, ERRMSG, F,   K_RAIN, 
-     &                               DT,  STT,    DSTT         )
-#endif
             ENDIF
 
             ! Save FTOP for the next lower level 
@@ -5705,15 +4805,9 @@
                ERRMSG = 'RAINOUT: Middle levels'
 
                ! Do rainout if we meet the above criteria
-#if defined( DEVEL )
                CALL DO_RAINOUT_ONLY( LS,  I,      J,         L,   
      &                               IDX, ERRMSG, F_RAINOUT, K_RAIN,  
      &                               DT,  STT,    DSTT,      State_Met )
-#else
-               CALL DO_RAINOUT_ONLY( LS,  I,      J,         L,   
-     &                               IDX, ERRMSG, F_RAINOUT, K_RAIN,  
-     &                               DT,  STT,    DSTT               )
-#endif
             ENDIF
 
             !==============================================================
@@ -5749,19 +4843,11 @@
                ERRMSG = 'WASHOUT: Middle levels'
 
                ! Do the washout
-#if defined( DEVEL )
                CALL DO_WASHOUT_ONLY( LS,        I,    J,     
      &                               L,         IDX,  ERRMSG, 
      &                               QDOWN,     Q,    F_WASHOUT, 
      &                               F_RAINOUT, DT,   PDOWN,     
      &                               STT,       DSTT, State_Met  )
-#else
-               CALL DO_WASHOUT_ONLY( LS,        I,    J,     
-     &                               L,         IDX,  ERRMSG, 
-     &                               QDOWN,     Q,    F_WASHOUT, 
-     &                               F_RAINOUT, DT,   PDOWN,     
-     &                               STT,       DSTT             )
-#endif
             ENDIF
 
             !===========================================================
@@ -5825,15 +4911,9 @@
 
             ! Only compute washout if F > 0.
             IF ( F > 0d0 ) THEN
-#if defined( DEVEL )
                CALL DO_WASHOUT_AT_SFC( LS,  I,      J,     L,         
      &                                 IDX, ERRMSG, QDOWN, F,   
      &                                 DT,  STT,    DSTT,  State_Met )
-#else
-               CALL DO_WASHOUT_AT_SFC( LS,  I,      J,     L,         
-     &                                 IDX, ERRMSG, QDOWN, F,   
-     &                                 DT,  STT,    DSTT      )
-#endif
             ENDIF    
          ENDIF
 
@@ -5861,23 +4941,15 @@
                IF ( IS_Hg2( N ) ) THEN
 
                   CALL ADD_Hg2_WD      ( I, J, N, DSTT(NN,1,I,J) )
-#if defined( DEVEL )
                   CALL ADD_Hg2_SNOWPACK( I, J, N, DSTT(NN,1,I,J),
      &                                   State_Met )
-#else
-                  CALL ADD_Hg2_SNOWPACK( I, J, N, DSTT(NN,1,I,J) )
-#endif
 
                ! Check if it is a HgP tag
                ELSE IF ( IS_HgP( N ) ) THEN
                   
                   CALL ADD_HgP_WD      ( I, J, N, DSTT(NN,1,I,J) )
-#if defined( DEVEL )
                   CALL ADD_Hg2_SNOWPACK( I, J, N, DSTT(NN,1,I,J),
      &                                   State_Met )
-#else
-                  CALL ADD_Hg2_SNOWPACK( I, J, N, DSTT(NN,1,I,J) )
-#endif
                   
                ENDIF
 
@@ -5906,41 +4978,32 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE WETDEP_MERRA( LS, State_Met )
-#else
-      SUBROUTINE WETDEP_MERRA( LS )
-#endif
 !
 ! !USES:
 !
-      USE LOGICAL_MOD,       ONLY : LDYNOCEAN
-      USE DEPO_MERCURY_MOD,  ONLY : ADD_Hg2_WD
-      USE DEPO_MERCURY_MOD,  ONLY : ADD_HgP_WD
-      USE TIME_MOD,          ONLY : GET_TS_DYN
-      USE TRACER_MOD,        ONLY : ITS_A_MERCURY_SIM
-      USE TRACER_MOD,        ONLY : STT
-      USE TRACERID_MOD,      ONLY : IDTSO2
-      USE TRACERID_MOD,      ONLY : IDTSO4
-      USE TRACERID_MOD,      ONLY : IS_Hg2
-      USE TRACERID_MOD,      ONLY : IS_HgP
-      USE DEPO_MERCURY_MOD,  ONLY : ADD_Hg2_SNOWPACK
-      USE LOGICAL_MOD,       ONLY : LGTMM
-
-#if defined( DEVEL )
+      USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_WD
+      USE DEPO_MERCURY_MOD,   ONLY : ADD_HgP_WD
+      USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE LOGICAL_MOD,        ONLY : LDYNOCEAN
+      USE LOGICAL_MOD,        ONLY : LGTMM
+      USE TIME_MOD,           ONLY : GET_TS_DYN
+      USE TRACER_MOD,         ONLY : ITS_A_MERCURY_SIM
+      USE TRACER_MOD,         ONLY : STT
+      USE TRACERID_MOD,       ONLY : IDTSO2
+      USE TRACERID_MOD,       ONLY : IDTSO4
+      USE TRACERID_MOD,       ONLY : IS_Hg2
+      USE TRACERID_MOD,       ONLY : IS_HgP
 
-      USE CMN_SIZE_MOD            ! Size parameters
-      USE CMN_DIAG_MOD            ! Diagnostic arrays and switches
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! Diagnostic arrays and switches
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL, INTENT(IN) :: LS   ! =T denotes large-scale precip
-                                  ! =F denotes convective precip
-#if defined( DEVEL )
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
+      LOGICAL,        INTENT(IN)  :: LS         ! =T denotes large-scale precip
+                                                ! =F denotes convective precip
+      TYPE(MetState), INTENT(IN)  :: State_Met  ! Meteorology State object
 !
 ! !REMARKS:
 !  Precipitation fields:
@@ -6155,15 +5218,9 @@
             ! Only compute rainout if F > 0. 
             ! This helps to eliminate unnecessary CPU cycles.
             IF ( F > 0d0 ) THEN 
-#if defined( DEVEL )
                CALL DO_RAINOUT_ONLY( LS,  I,      J,    L,   
      &                               IDX, ERRMSG, F,    K_RAIN, 
      &                               DT,  STT,    DSTT, State_Met )
-#else
-               CALL DO_RAINOUT_ONLY( LS,  I,      J,   L,   
-     &                               IDX, ERRMSG, F,   K_RAIN, 
-     &                               DT,  STT,    DSTT         )
-#endif
             ENDIF
 
             ! Save FTOP for the next lower level 
@@ -6268,15 +5325,9 @@
                ERRMSG = 'RAINOUT'
 
                ! Do rainout if we meet the above criteria
-#if defined( DEVEL )
                CALL DO_RAINOUT_ONLY( LS,  I,      J,         L,   
      &                               IDX, ERRMSG, F_RAINOUT, K_RAIN,  
      &                               DT,  STT,    DSTT,      State_Met )
-#else
-               CALL DO_RAINOUT_ONLY( LS,  I,      J,         L,   
-     &                               IDX, ERRMSG, F_RAINOUT, K_RAIN,  
-     &                               DT,  STT,    DSTT               )
-#endif
             ENDIF  
 
             IF ( IS_WASHOUT ) THEN 
@@ -6289,19 +5340,11 @@
                ERRMSG = 'WASHOUT'
 
                ! Do the washout
-#if defined( DEVEL )
                CALL DO_WASHOUT_ONLY( LS,        I,   J,     
      &                               L,         IDX, ERRMSG,   
      &                               QDOWN,     Q,   F_WASHOUT, 
      &                               F_RAINOUT, DT,  PDOWN,     
      &                               STT,       DSTT, State_Met )
-#else
-               CALL DO_WASHOUT_ONLY( LS,        I,   J,     
-     &                               L,         IDX, ERRMSG,   
-     &                               QDOWN,     Q,   F_WASHOUT, 
-     &                               F_RAINOUT, DT,  PDOWN,     
-     &                               STT,       DSTT            )
-#endif
 
             ENDIF
 
@@ -6365,15 +5408,9 @@
 
             ! Only compute washout if F > 0.
             IF ( F > 0d0 ) THEN
-#if defined( DEVEL )
                CALL DO_WASHOUT_AT_SFC( LS,  I,      J,     L,         
      &                                 IDX, ERRMSG, QDOWN, F,   
      &                                 DT,  STT,    DSTT,  State_Met )
-#else
-               CALL DO_WASHOUT_AT_SFC( LS,  I,      J,     L,         
-     &                                 IDX, ERRMSG, QDOWN, F,   
-     &                                 DT,  STT,    DSTT   )
-#endif
 
             ENDIF    
          ENDIF
@@ -6402,23 +5439,15 @@
                IF ( IS_Hg2( N ) ) THEN
 
                   CALL ADD_Hg2_WD      ( I, J, N, DSTT(NN,1,I,J) )
-#if defined( DEVEL )
                   CALL ADD_Hg2_SNOWPACK( I, J, N, DSTT(NN,1,I,J),
      &                                   State_Met )
-#else
-                  CALL ADD_Hg2_SNOWPACK( I, J, N, DSTT(NN,1,I,J) )
-#endif
 
                ! Check if it is a HgP tag
                ELSE IF ( IS_HgP( N ) ) THEN
                   
                   CALL ADD_HgP_WD      ( I, J, N, DSTT(NN,1,I,J) )
-#if defined( DEVEL )
                   CALL ADD_Hg2_SNOWPACK( I, J, N, DSTT(NN,1,I,J),
      &                                   State_Met )
-#else
-                  CALL ADD_Hg2_SNOWPACK( I, J, N, DSTT(NN,1,I,J) )
-#endif
                   
                ENDIF
 
@@ -6594,32 +5623,23 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE DO_RAINOUT_ONLY( LS,  I,      J,         L,   
      &                            IDX, ERRMSG, F_RAINOUT, K_RAIN, 
      &                            DT,  STT,    DSTT,      State_Met )
-#else
-      SUBROUTINE DO_RAINOUT_ONLY( LS,  I,      J,         L,   
-     &                            IDX, ERRMSG, F_RAINOUT, K_RAIN, 
-     &                            DT,  STT,    DSTT               )
-#endif
 !
 ! !USES:
 !
-      USE DAO_MOD,      ONLY : BXHEIGHT                ! Grid box height [m]
-      USE DIAG_MOD,     ONLY : AD16                    ! ND16 diag array
-      USE DIAG_MOD,     ONLY : AD17                    ! ND17 diag array
-      USE DIAG_MOD,     ONLY : AD39                    ! ND39 diag array
-      USE DIAG_MOD,     ONLY : CT16                    ! ND16 diag counter
-      USE DIAG_MOD,     ONLY : CT17                    ! ND17 diag counter
-      USE ERROR_MOD,    ONLY : IT_IS_NAN               ! Test for NaN
-      USE GET_NDEP_MOD, ONLY : SOIL_WETDEP             ! Wet deposited species
-      USE LOGICAL_MOD,  ONLY : LGTMM                   ! Use GTMM for Hg sim?
-      USE LOGICAL_MOD,  ONLY : LSOILNOX                ! Use soil NOx?
-#if defined( DEVEL )
-      USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
-
+      USE DIAG_MOD,           ONLY : AD16              ! ND16 diag array
+      USE DIAG_MOD,           ONLY : AD17              ! ND17 diag array
+      USE DIAG_MOD,           ONLY : AD39              ! ND39 diag array
+      USE DIAG_MOD,           ONLY : CT16              ! ND16 diag counter
+      USE DIAG_MOD,           ONLY : CT17              ! ND17 diag counter
+      USE ERROR_MOD,          ONLY : IT_IS_NAN         ! Test for NaN
+      USE GET_NDEP_MOD,       ONLY : SOIL_WETDEP       ! Wet deposited species
+      USE GIGC_State_Met_Mod, ONLY : MetState          ! Met State object
+      USE LOGICAL_MOD,        ONLY : LGTMM             ! Use GTMM for Hg sim?
+      USE LOGICAL_MOD,        ONLY : LSOILNOX          ! Use soil NOx?
+ 
       USE CMN_SIZE_MOD                                 ! Size parameters
       USE CMN_DIAG_MOD                                 ! Diagnostic flags
 !
@@ -6635,9 +5655,7 @@
       REAL*8,           INTENT(IN)    :: K_RAIN        ! Rainout constant
       REAL*8,           INTENT(IN)    :: DT            ! Rainout timestep [s]
       CHARACTER(LEN=*), INTENT(IN)    :: ERRMSG        ! Error message
-#if defined( DEVEL )
       TYPE(MetState),   INTENT(IN)    :: State_Met     ! Met State object
-#endif
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -6700,12 +5718,8 @@
                   
          ! Call subroutine RAINOUT to comptue the fraction
          ! of tracer lost to rainout in grid box (I,J,L) 
-#if defined( DEVEL )
          CALL RAINOUT( I, J, L, N, K_RAIN, DT, F_RAINOUT, RAINFRAC,
      &                 State_Met )
-#else
-         CALL RAINOUT( I, J, L, N, K_RAIN, DT, F_RAINOUT, RAINFRAC )
-#endif
 
          ! WETLOSS is the amount of tracer in grid box 
          ! (I,J,L) that is lost to rainout.
@@ -6801,39 +5815,28 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE DO_WASHOUT_ONLY( LS,        I,         J,      L,
      &                            IDX,       ERRMSG,    QDOWN,  Q,
      &                            F_WASHOUT, F_RAINOUT, DT,     PDOWN,
      &                            STT,       DSTT,      
      &                            State_Met, REEVAP     )
-#else
-      SUBROUTINE DO_WASHOUT_ONLY( LS,        I,         J,      L,         
-     &                            IDX,       ERRMSG,    QDOWN,  Q,    
-     &                            F_WASHOUT, F_RAINOUT, DT,     PDOWN,  
-     &                            STT,       DSTT,      REEVAP        )
-#endif
 !
 ! !USES:
 !
-      USE DAO_MOD,      ONLY : T                       ! air temperature [K]
-      USE DAO_MOD,      ONLY : BXHEIGHT                ! Grid box height [m]  
-      USE DIAG_MOD,     ONLY : AD16                    ! ND16 diag array
-      USE DIAG_MOD,     ONLY : AD17                    ! ND17 diag array
-      USE DIAG_MOD,     ONLY : AD18                    ! ND18 diag array
-      USE DIAG_MOD,     ONLY : AD39                    ! ND39 diag array
-      USE DIAG_MOD,     ONLY : CT16                    ! ND16 diag counter
-      USE DIAG_MOD,     ONLY : CT17                    ! ND17 diag counter
-      USE DIAG_MOD,     ONLY : CT18                    ! ND18 diag counter
-      USE ERROR_MOD,    ONLY : IT_IS_NAN               ! Test for NaN
-      USE GET_NDEP_MOD, ONLY : SOIL_WETDEP             ! Wet deposited species
-      USE LOGICAL_MOD,  ONLY : LGTMM                   ! Use GTMM w/ Hg sim?
-      USE LOGICAL_MOD,  ONLY : LSOILNOX                ! Use soil NOx?
-      USE TRACERID_MOD, ONLY : IDTSO2                  ! ID flag for SO2
-      USE TRACERID_MOD, ONLY : IDTSO4                  ! ID flag for SO4
-#if defined( DEVEL )
-      USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE DIAG_MOD,           ONLY : AD16              ! ND16 diag array
+      USE DIAG_MOD,           ONLY : AD17              ! ND17 diag array
+      USE DIAG_MOD,           ONLY : AD18              ! ND18 diag array
+      USE DIAG_MOD,           ONLY : AD39              ! ND39 diag array
+      USE DIAG_MOD,           ONLY : CT16              ! ND16 diag counter
+      USE DIAG_MOD,           ONLY : CT17              ! ND17 diag counter
+      USE DIAG_MOD,           ONLY : CT18              ! ND18 diag counter
+      USE ERROR_MOD,          ONLY : IT_IS_NAN         ! Test for NaN
+      USE GET_NDEP_MOD,       ONLY : SOIL_WETDEP       ! Wet deposited species
+      USE GIGC_State_Met_Mod, ONLY : MetState          ! Met State object
+      USE LOGICAL_MOD,        ONLY : LGTMM             ! Use GTMM w/ Hg sim?
+      USE LOGICAL_MOD,        ONLY : LSOILNOX          ! Use soil NOx?
+      USE TRACERID_MOD,       ONLY : IDTSO2            ! ID flag for SO2
+      USE TRACERID_MOD,       ONLY : IDTSO4            ! ID flag for SO4
 
       USE CMN_SIZE_MOD                                 ! Size parameters
       USE CMN_DIAG_MOD                                 ! Diagnostic flags
@@ -6857,9 +5860,7 @@
                                                        !  undergoing rainout
       REAL*8,           INTENT(IN)    :: DT            ! Rainout timestep [s]
       REAL*8,           INTENT(IN)    :: PDOWN(:,:,:)  ! Precip 
-#if defined( DEVEL )
       TYPE(MetState),   INTENT(IN)    :: State_Met     ! Met State object
-#endif
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -6935,6 +5936,8 @@
 !  16 Aug 2011 - H. Amos     - Replace logical AER with KIN to emphasize that
 !                              washout is either modeled as a kinetic process
 !                              or an equilibrium process
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6963,11 +5966,7 @@
       ENDIF
 
       ! air temperature [K]
-#if defined( DEVEL )
       TK  = State_Met%T(I,J,L)
-#else
-      TK  = T(I,J,L)   
-#endif
 
       ! TOTAL precipitation fraction
       TF  = F_WASHOUT + F_RAINOUT
@@ -6992,18 +5991,11 @@
 
          ! Call WASHOUT to compute the fraction of 
          ! tracer lost to washout in grid box (I,J,L)
-#if defined( DEVEL )
          CALL WASHOUT( L,         N,
      &                 State_Met%BXHEIGHT(I,J,L), 
      &                 TK,        QDOWN,        DT,   
      &                 TF,        H2O2s(I,J,L), SO2s(I,J,L), 
      &                 WASHFRAC,  KIN )
-#else
-         CALL WASHOUT( L,         N,            BXHEIGHT(I,J,L), 
-     &                 TK,        QDOWN,        DT,   
-     &                 TF,        H2O2s(I,J,L), SO2s(I,J,L), 
-     &                 WASHFRAC,  KIN )
-#endif
 
 #if    defined( MERRA ) || defined( GEOS_57 )
          !%%% BUG FIX: Only apply this section of when running
@@ -7038,13 +6030,8 @@
 
             ! Define ALPHA, the fraction of the raindrops that 
             ! re-evaporate when falling from (I,J,L+1) to (I,J,L)
-#if defined( DEVEL )
             ALPHA = ( ABS( Q ) * State_Met%BXHEIGHT(I,J,L) * 100d0 )
      &            / ( PDOWN(L+1,I,J)                               )
-#else
-            ALPHA = ( ABS( Q ) * BXHEIGHT(I,J,L) * 100d0 )
-     &            / ( PDOWN(L+1,I,J)                     )
-#endif
 
             ! Restrict ALPHA to be less than 1 (>1 is unphysical)
             ! (hma, 24-Dec-2010)
@@ -7337,36 +6324,26 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE DO_WASHOUT_AT_SFC( LS,  I,      J,     L,         
      &                              IDX, ERRMSG, QDOWN, F,   
      &                              DT,  STT,    DSTT,  State_Met )
-#else
-      SUBROUTINE DO_WASHOUT_AT_SFC( LS,  I,      J,     L,         
-     &                              IDX, ERRMSG, QDOWN, F,   
-     &                              DT,  STT,    DSTT      )
-#endif
 !
 ! !USES:
 !
-      USE DAO_MOD,      ONLY : T                       ! air temperature [K]
-      USE DAO_MOD,      ONLY : BXHEIGHT                ! Grid box height [m]  
-      USE DIAG_MOD,     ONLY : AD16                    ! ND16 diag array
-      USE DIAG_MOD,     ONLY : AD17                    ! ND17 diag array
-      USE DIAG_MOD,     ONLY : AD18                    ! ND18 diag array
-      USE DIAG_MOD,     ONLY : AD39                    ! ND39 diag array
-      USE DIAG_MOD,     ONLY : CT16                    ! ND16 diag counter
-      USE DIAG_MOD,     ONLY : CT17                    ! ND17 diag counter
-      USE DIAG_MOD,     ONLY : CT18                    ! ND18 diag counter
-      USE ERROR_MOD,    ONLY : IT_IS_NAN               ! Test for NaN
-      USE GET_NDEP_MOD, ONLY : SOIL_WETDEP             ! Wet deposited species
-      USE LOGICAL_MOD,  ONLY : LGTMM                   ! Use GTMM w/ Hg sim?
-      USE LOGICAL_MOD,  ONLY : LSOILNOX                ! Use soil NOx?
-      USE TRACERID_MOD, ONLY : IDTSO2                  ! ID flag for SO2
-      USE TRACERID_MOD, ONLY : IDTSO4                  ! ID flag for SO4
-#if defined( DEVEL )
-      USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE DIAG_MOD,           ONLY : AD16              ! ND16 diag array
+      USE DIAG_MOD,           ONLY : AD17              ! ND17 diag array
+      USE DIAG_MOD,           ONLY : AD18              ! ND18 diag array
+      USE DIAG_MOD,           ONLY : AD39              ! ND39 diag array
+      USE DIAG_MOD,           ONLY : CT16              ! ND16 diag counter
+      USE DIAG_MOD,           ONLY : CT17              ! ND17 diag counter
+      USE DIAG_MOD,           ONLY : CT18              ! ND18 diag counter
+      USE ERROR_MOD,          ONLY : IT_IS_NAN         ! Test for NaN
+      USE GET_NDEP_MOD,       ONLY : SOIL_WETDEP       ! Wet deposited species
+      USE GIGC_State_Met_Mod, ONLY : MetState          ! Met State object
+      USE LOGICAL_MOD,        ONLY : LGTMM             ! Use GTMM w/ Hg sim?
+      USE LOGICAL_MOD,        ONLY : LSOILNOX          ! Use soil NOx?
+      USE TRACERID_MOD,       ONLY : IDTSO2            ! ID flag for SO2
+      USE TRACERID_MOD,       ONLY : IDTSO4            ! ID flag for SO4
 
       USE CMN_SIZE_MOD                                 ! Size parameters
       USE CMN_DIAG_MOD                                 ! Diagnostic flags
@@ -7384,9 +6361,7 @@
       REAL*8,           INTENT(IN)    :: F             ! Fraction of grid box 
                                                        !  undergoing precip
       REAL*8,           INTENT(IN)    :: DT            ! Rainout timestep [s]
-#if defined( DEVEL )
       TYPE(MetState),   INTENT(IN)    :: State_Met     ! Met State object
-#endif
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -7403,6 +6378,8 @@
 !
 ! !REVISION HISTORY: 
 !  16 Sep 2010 - R. Yantosca - Initial version
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7430,11 +6407,7 @@
       ENDIF
 
       ! air temperature [K]
-#if defined( DEVEL )
       TK = State_Met%T(I,J,L)
-#else
-      TK = T(I,J,L)   
-#endif
 
       !-----------------------------------------------------------------
       ! Loop over all wet deposition species
@@ -7446,18 +6419,11 @@
 
          ! Call WASHOUT to compute the fraction of tracer 
          ! in grid box (I,J,L) that is lost to washout.  
-#if defined( DEVEL )
          CALL WASHOUT( L,        N,
      &                 State_Met%BXHEIGHT(I,J,L), 
      &                 TK ,      QDOWN,        DT,   
      &                 F,        H2O2s(I,J,L), SO2s(I,J,L), 
      &                 WASHFRAC, KIN )
-#else
-         CALL WASHOUT( L,        N,            BXHEIGHT(I,J,L), 
-     &                 TK ,      QDOWN,        DT,   
-     &                 F,        H2O2s(I,J,L), SO2s(I,J,L), 
-     &                 WASHFRAC, KIN )
-#endif
 
          ! NOTE: for HNO3 and aerosols, there is an F factor
          ! already present in WASHFRAC.  For other soluble
@@ -8250,32 +7216,23 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE INIT_WETSCAV( State_Met )
-#else
-      SUBROUTINE INIT_WETSCAV
-#endif
 !
 ! !USES:
 !
-      USE DAO_MOD,      ONLY : T, IS_WATER
-      USE ERROR_MOD,    ONLY : ALLOC_ERR
-      USE PRESSURE_MOD, ONLY : GET_PCENTER
-      USE TRACER_MOD,   ONLY : STT
-      USE TRACERID_MOD, ONLY : IDTH2O2, IDTSO2
-
-#if defined( DEVEL )
+      USE DAO_MOD,            ONLY : IS_WATER
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER
+      USE TRACER_MOD,         ONLY : STT
+      USE TRACERID_MOD,       ONLY : IDTH2O2, IDTSO2
 
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 
 !
 ! !INPUT PARAMETERS:
 !
-#if defined( DEVEL )
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  23 Feb 2000 - R. Yantosca - Initial version
@@ -8306,6 +7263,8 @@
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  18 Oct 2012 - R. Yantosca - Removed DEVEL from #ifdef statement, now use
 !                              EXTERNAL_GRID || EXTERNAL_FORCING
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8397,11 +7356,7 @@
       DO I = 1, IIPAR
 
          ! Compute Temp [K] and Pressure [hPa]
-#if defined( DEVEL )
          TK = State_Met%T(I,J,L)
-#else
-         TK = T(I,J,L)
-#endif
          PL = GET_PCENTER(I,J,L)
 
          !==============================================================
@@ -8409,11 +7364,7 @@
          ! Assume Vud is the same at all altitudes; the array can be 2-D
          !==============================================================
          IF ( L == 1 ) THEN
-#if defined( DEVEL )
             IF ( IS_WATER( I, J, State_Met ) ) THEN
-#else
-            IF ( IS_WATER( I, J ) ) THEN
-#endif
                Vud(I,J) = 5d0
             ELSE
                Vud(I,J) = 10d0

@@ -354,37 +354,32 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE EMISS_TAGGED_CO( State_Met )
-#else
-      SUBROUTINE EMISS_TAGGED_CO
-#endif
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_O3_MOD         ! FSCALYR, SCNR89, TODH, EMISTCO, EMISRR
-      USE CMN_DIAG_MOD       ! Diagnostic arrays & switches
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_O3_MOD               ! FSCALYR, SCNR89, TODH, EMISTCO, EMISRR
+      USE CMN_DIAG_MOD             ! Diagnostic arrays & switches
 
-      USE BIOFUEL_MOD,  ONLY : BIOFUEL
-      USE BIOMASS_MOD,  ONLY : BIOMASS!,     IDBCO
-      USE DAO_MOD,      ONLY : SUNCOS,        PARDF,       PARDR
-      USE DAO_MOD,      ONLY : TS
-      USE DIAG_MOD,     ONLY : AD29,          AD46
-      USE GRID_MOD,     ONLY : GET_XOFFSET,   GET_YOFFSET, GET_AREA_CM2
-      USE LOGICAL_MOD,  ONLY : LSPLIT,        LANTHRO
-      USE LOGICAL_MOD,  ONLY : LBIOMASS,      LBIOFUEL
-      USE LOGICAL_MOD,  ONLY : LBIOGENIC,        LMEGAN
-      USE MEGAN_MOD,    ONLY : GET_EMISOP_MEGAN, GET_EMMONOT_MEGAN
-      USE MEGANUT_MOD,  ONLY : XLTMMP
-      USE PBL_MIX_MOD,  ONLY : GET_PBL_MAX_L, GET_FRAC_OF_PBL
-      USE TIME_MOD,     ONLY : GET_MONTH,     GET_TAU 
-      USE TIME_MOD,     ONLY : GET_YEAR,      GET_TS_EMIS  
-      USE TRACER_MOD,   ONLY : STT
-      USE TRACERID_MOD, ONLY : IDBFCO,        IDECO,          IDBCO
-#if defined( DEVEL )
+      USE BIOFUEL_MOD,        ONLY : BIOFUEL
+      USE BIOMASS_MOD,        ONLY : BIOMASS
+      USE DAO_MOD,            ONLY : SUNCOS
+      USE DIAG_MOD,           ONLY : AD29,          AD46
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE GRID_MOD,           ONLY : GET_XOFFSET,   GET_YOFFSET
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE LOGICAL_MOD,        ONLY : LSPLIT,        LANTHRO
+      USE LOGICAL_MOD,        ONLY : LBIOMASS,      LBIOFUEL
+      USE LOGICAL_MOD,        ONLY : LBIOGENIC,     LMEGAN
+      USE MEGAN_MOD,          ONLY : GET_EMISOP_MEGAN
+      USE MEGAN_MOD,          ONLY : GET_EMMONOT_MEGAN
+      USE MEGANUT_MOD,        ONLY : XLTMMP
+      USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L, GET_FRAC_OF_PBL
+      USE TIME_MOD,           ONLY : GET_MONTH,     GET_TAU 
+      USE TIME_MOD,           ONLY : GET_YEAR,      GET_TS_EMIS  
+      USE TRACER_MOD,         ONLY : STT
+      USE TRACERID_MOD,       ONLY : IDBFCO, IDECO, IDBCO
 
       IMPLICIT NONE
 #     include "define.h"
@@ -392,9 +387,7 @@
 !
 ! !INPUT PARAMETERS:
 !
-#if defined( DEVEL )
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
 ! 
 ! !REVISION HISTORY: 
 !  21 Jul 2000 - I. Bey, B. Field, B. Duncan - Initial version
@@ -457,6 +450,8 @@
 !  (26) IDBCO is now defined in tracerid_mod.f (fp, 6/09)
 !  08 Dec 2011 - M. Payer    - Remove GEIA biogenic emission option
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -650,13 +645,8 @@
          DO I = 1, IIPAR
 
             ! Convert biofuel CO from [molec CO/cm3/s] to [kg CO]
-#if defined( DEVEL )
             E_CO = BIOFUEL(IDBFCO,I,J)    / XNUMOL_CO * 
      &             BOXVL(I,J,1,State_Met) * DTSRCE
-#else
-            E_CO = BIOFUEL(IDBFCO,I,J) / XNUMOL_CO * 
-     &             BOXVL(I,J,1)        * DTSRCE
-#endif
 
             ! Add biofuel CO burning to tracer #1 -- total CO [kg CO]
             STT(I,J,1,1) = STT(I,J,1,1) + E_CO
@@ -709,11 +699,7 @@
          !===========================================================
 
          ! Surface air temperature [K]
-#if defined( DEVEL )
          TMMP = XLTMMP( I, J, State_Met%TS, IJLOOP )
-#else
-         TMMP = XLTMMP( I, J, TS, IJLOOP )
-#endif
       
          ! Add MEGAN biogenics (jaf, 3/10/09)
          IF ( LMEGAN ) THEN
@@ -725,13 +711,8 @@
             SC = SUNCOS(IJLOOP)
 
             ! Diffuse and direct PAR
-#if defined( DEVEL )
             PDR = State_Met%PARDR(I,J)
             PDF = State_Met%PARDF(I,J)
-#else
-            PDR = PARDR(I,J)
-            PDF = PARDF(I,J)
-#endif
 
             ! Isoprene [atoms C/box/timestep]
             EMIS = GET_EMISOP_MEGAN(  I, J,     SC, TMMP,
@@ -791,39 +772,30 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE CHEM_TAGGED_CO( State_Met )
-#else
-      SUBROUTINE CHEM_TAGGED_CO
-#endif
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD         ! Size parameters
-      USE CMN_DIAG_MOD         ! ND65
-      USE DAO_MOD,        ONLY : AD, AIRVOL, T, DELP
-      USE DIAG_MOD,       ONLY : AD29
-      USE DIAG_PL_MOD,    ONLY : AD65
-      USE ERROR_MOD,      ONLY : CHECK_VALUE
-      USE GLOBAL_OH_MOD,  ONLY : GET_GLOBAL_OH,   OH
-      USE GLOBAL_NOX_MOD, ONLY : GET_GLOBAL_NOX,  BNOX
-      USE GRID_MOD,       ONLY : GET_YMID,        GET_AREA_CM2
-      USE LOGICAL_MOD,    ONLY : LSPLIT
-      USE PRESSURE_MOD,   ONLY : GET_PCENTER
-      USE TIME_MOD,       ONLY : GET_TS_CHEM,     GET_TS_EMIS
-      USE TIME_MOD,       ONLY : GET_MONTH,       GET_YEAR
-      USE TIME_MOD,       ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
-      USE TRACER_MOD,     ONLY : N_TRACERS,       STT
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
-#if defined( DEVEL )
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND65
+      USE DIAG_MOD,           ONLY : AD29
+      USE DIAG_PL_MOD,        ONLY : AD65
+      USE ERROR_MOD,          ONLY : CHECK_VALUE
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE GLOBAL_OH_MOD,      ONLY : GET_GLOBAL_OH,   OH
+      USE GLOBAL_NOX_MOD,     ONLY : GET_GLOBAL_NOX,  BNOX
+      USE GRID_MOD,           ONLY : GET_YMID,        GET_AREA_CM2
+      USE LOGICAL_MOD,        ONLY : LSPLIT
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER
+      USE TIME_MOD,           ONLY : GET_TS_CHEM,     GET_TS_EMIS
+      USE TIME_MOD,           ONLY : GET_MONTH,       GET_YEAR
+      USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
+      USE TRACER_MOD,         ONLY : N_TRACERS,       STT
+      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
 !
 ! !INPUT PARAMETERS:
 !
-#if defined( DEVEL )
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  19 Oct 1999 - Q. Li, B. Duncan, B. Field - Initial version
@@ -875,6 +847,8 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !  22 Oct 2012 - R. Yantosca - Now pass am_I_Root=.TRUE. to GET_GLOBAL_CH4
 !  23 Oct 2012 - R. Yantosca - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -989,7 +963,6 @@
          ! (0) Define useful quantities
          !==============================================================
 
-#if defined( DEVEL )
          ! STTCO [molec CO/cm3/kg CO] converts [kg CO] --> [molec CO/cm3]
          ! kg CO/box * box/cm3 * mole/0.028 kg CO * Avog.#/mole
          STTCO = 1d0     / State_Met%AIRVOL(I,J,L) / 1d6 /
@@ -1001,17 +974,6 @@
          ! DENS is the number density of air [molec air/cm3]
          DENS  = State_Met%AD(I,J,L)    * 1000.d0   /
      &           BOXVL(I,J,L,State_Met) * 6.023d23  / WTAIR
-#else
-         ! STTCO [molec CO/cm3/kg CO] converts [kg CO] --> [molec CO/cm3]
-         ! kg CO/box * box/cm3 * mole/0.028 kg CO * Avog.#/mole
-         STTCO = 1d0 / AIRVOL(I,J,L) / 1d6 / FMOL_CO * 6.023d23
-
-         ! GCO is CO concentration in [molec CO/cm3]
-         GCO   = STT(I,J,L,1) * STTCO
-
-         ! DENS is the number density of air [molec air/cm3]
-         DENS  = AD(I,J,L) * 1000.d0 / BOXVL(I,J,L) * 6.023d23  / WTAIR
-#endif
 
          !==============================================================
          ! (1a) Production of CO by reaction with CH4
@@ -1021,11 +983,7 @@
          CO_CH4 = 0d0
 
          ! Test level for stratosphere or troposphere
-#if defined( DEVEL )
          IF ( ITS_IN_THE_STRAT( I, J, L, State_Met ) ) THEN
-#else
-         IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN
-#endif
 
             !===========================================================
             ! (1a-1) Production of CO from CH4 in the stratosphere 
@@ -1057,11 +1015,7 @@
             ALPHA_CH4 = 1d0
 
             ! Calculate updated rate constant [s-1] (bnd, bmy, 1/2/01)
-#if defined( DEVEL )
             KRATE = 2.45D-12 * EXP( -1775.d0 / State_Met%T(I,J,L) ) 
-#else
-            KRATE = 2.45D-12 * EXP( -1775.d0 / T(I,J,L) ) 
-#endif 
 
             ! Production of CO from CH4 = alpha * k * [CH4] * [OH] * dt 
             ! Units are [molec CO/cm3]
@@ -1125,7 +1079,6 @@
             !
             ! Units of ALPHA_ISOP are [molec CO/molec ISOP]
             ! Units of CO_ISOP are [molec CO/cm3]
-#if defined( DEVEL )
             CO_ISOP = SUMISOPCO(I,J) / BOXVL(I,J,L,State_Met) /
      &                5.d0           * ALPHA_ISOP
 
@@ -1134,15 +1087,6 @@
             CO_CH3OH = ( SUMISOPCO(I,J) / BOXVL(I,J,L,State_Met) ) * 
      &                 ( 100d0          / 397d0                  ) * 
      &                 ( 12d0           / 28d0                   )
-#else
-            CO_ISOP = SUMISOPCO(I,J) / BOXVL(I,J,L) / 5.d0 * ALPHA_ISOP
-
-            ! P(CO) from CH3OH is scaled to Isoprene Flux (see above)
-            ! Units are [molec CO/cm3]
-            CO_CH3OH = ( SUMISOPCO(I,J) / BOXVL(I,J,L) ) * 
-     &                 ( 100d0          / 397d0        ) * 
-     &                 ( 12d0           / 28d0         )
-#endif
  
             ! Zero SUMISOPCO and SUMCH3OHCO for the next emission step
             SUMISOPCO(I,J)  = 0d0
@@ -1203,12 +1147,8 @@
 
             ! P(CO) from Monoterpene Flux =  alpha * Flux(Mono)
             ! Units are [molec CO/cm3]
-#if defined( DEVEL )
             CO_MONO = ( SUMMONOCO(I,J) / BOXVL(I,J,L,State_Met) ) *
      &                ALPHA_MONO
-#else
-            CO_MONO = ( SUMMONOCO(I,J) / BOXVL(I,J,L) ) * ALPHA_MONO
-#endif
 
             ! Zero SUMMONOCO for the next emission step
             SUMMONOCO(I,J) = 0d0
@@ -1249,12 +1189,8 @@
             ALPHA_ACET = 2.D0 / 3.D0
             
             ! Units are [molec CO/cc]
-#if defined( DEVEL )
             CO_ACET = SUMACETCO(I,J) / BOXVL(I,J,L,State_Met) *
      &                ALPHA_ACET
-#else
-            CO_ACET = SUMACETCO(I,J) / BOXVL(I,J,L) * ALPHA_ACET
-#endif
 
             ! Zero SUMACETCO for the next emission step
             SUMACETCO(I,J) = 0d0
@@ -1292,11 +1228,7 @@
          !==============================================================
 
          ! Select out tropospheric or stratospheric boxes
-#if defined( DEVEL )
          IF ( ITS_IN_THE_STRAT( I, J, L, State_Met ) ) THEN
-#else
-         IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN
-#endif
 
             !===========================================================
             ! (2a-1) Stratospheric loss of CO due to chemical rxn w/ OH
@@ -1377,7 +1309,6 @@
             ! Decay rate
             !KRATE = ( 1.d0 + ( 0.6d0 * PCO ) ) * 1.5d-13
 
-#if defined( DEVEL )
             ! Decay rate - new JPL 2006 version (jaf, 3/4/09)
             ! KLO1 = k_0(T) from JPL Data Eval (page 2-1)
             KLO1   = 5.9D-33 * ( State_Met%T(I,J,L) / 300 )**(-1.4D0)
@@ -1401,29 +1332,6 @@
 
             ! KRATE is the sum of the two.
             KRATE  = KCO1 + KCO2
-#else
-            ! Decay rate - new JPL 2006 version (jaf, 3/4/09)
-            ! KLO1 = k_0(T) from JPL Data Eval (page 2-1)
-            KLO1=5.9D-33*(T(I,J,L)/300)**(-1.4D0)
-            ! KHI1 = k_inf(T) from JPL Data Eval (page 2-1)
-            KHI1=1.1D-12*(T(I,J,L)/300)**(1.3D0)
-            XYRAT1=KLO1*DENS/KHI1
-            BLOG1=LOG10(XYRAT1)
-            FEXP1=1.D0/(1.D0+BLOG1*BLOG1)
-            ! KCO1 = k_f([M],T) from JPL Data Eval (page 2-1)
-            KCO1=KLO1*DENS*0.6**FEXP1/(1.d0+XYRAT1)
-            ! KLO2 = k_0(T) from JPL Data Eval (page 2-1)
-            KLO2=1.5D-13*(T(I,J,L)/300)**(0.6D0)
-            ! KHI2 = k_inf(T) from JPL Data Eval (page 2-1)
-            KHI2=2.1D09 *(T(I,J,L)/300)**(6.1D0)
-            XYRAT2=KLO2*DENS/KHI2
-            BLOG2=LOG10(XYRAT2)
-            FEXP2=1.D0/(1.D0+BLOG2*BLOG2)
-            ! KCO2 = k_f^ca([M],T) from JPL Data Eval (page 2-2)
-            KCO2=KLO2*0.6**FEXP2/(1.d0+XYRAT2)
-            ! KRATE is the sum of the two.
-            KRATE=KCO1+KCO2
-#endif
 
             ! CO_OH = Tropospheric loss of CO by OH [molec/cm3]
             CO_OH = KRATE * GCO * OH(I,J,L) * DTCHEM

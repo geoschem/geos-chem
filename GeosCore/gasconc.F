@@ -11,56 +11,43 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE GASCONC( am_I_Root, 
      &                    FIRSTCHEM, NTRACER,    STT, 
      &                    XNUMOL,    READ_CSPEC, State_Met )
-#else
-      SUBROUTINE GASCONC( am_I_Root, 
-     &                    FIRSTCHEM, NTRACER,   STT, 
-     &                    XNUMOL,    FRCLND,    READ_CSPEC )
-#endif
 !
 ! !USES:
 !
-      USE COMODE_MOD,     ONLY : ABSHUM, AIRDENS, CSPEC,  IXSAVE
-      USE COMODE_MOD,     ONLY : IYSAVE, IZSAVE,  PRESS3, T3
-      USE COMODE_MOD,     ONLY : CSPEC_FULL, JLOP
-      USE DRYDEP_MOD,     ONLY : NUMDEP
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP, COPY_FULL_TROP
-      USE TROPOPAUSE_MOD, ONLY : SAVE_FULL_TROP
-      USE LOGICAL_MOD,    ONLY : LVARTROP
-      USE DAO_MOD,        ONLY : T
-      USE PRESSURE_MOD,   ONLY : GET_PCENTER
-      USE ERROR_MOD,      ONLY : ERROR_STOP ! (dkh, 10/06/06)  
-      USE LOGICAL_MOD,    ONLY : LSOA ! (dkh, 10/06/06)  
-#if defined( DEVEL )
+      USE COMODE_MOD,         ONLY : ABSHUM, AIRDENS, CSPEC,  IXSAVE
+      USE COMODE_MOD,         ONLY : IYSAVE, IZSAVE,  PRESS3, T3
+      USE COMODE_MOD,         ONLY : CSPEC_FULL, JLOP
+      USE DRYDEP_MOD,         ONLY : NUMDEP
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_TROP, COPY_FULL_TROP
+      USE TROPOPAUSE_MOD,     ONLY : SAVE_FULL_TROP
+      USE LOGICAL_MOD,        ONLY : LVARTROP
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER
+      USE ERROR_MOD,          ONLY : ERROR_STOP ! (dkh, 10/06/06)  
+      USE LOGICAL_MOD,        ONLY : LSOA ! (dkh, 10/06/06)  
       
-      USE CMN_SIZE_MOD         ! Size parameters
-      USE COMODE_LOOP_MOD      ! SMVGEAR II arrays
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE COMODE_LOOP_MOD          ! SMVGEAR II arrays
 
       IMPLICIT NONE
 #     include "define.h"
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL,        INTENT(IN) :: am_I_Root       ! Is this the root CPU?
-      LOGICAL,        INTENT(IN) :: FIRSTCHEM       ! First-time flag
-      INTEGER,        INTENT(IN) :: NTRACER         ! # of tracers
-      REAL*8,         INTENT(IN) :: XNUMOL(NTRACER) ! Molec tracer/kg tracer
-      LOGICAL,        INTENT(IN) :: READ_CSPEC      ! Is 
-#if defined( DEVEL )
-      TYPE(MetState), INTENT(IN) :: State_Met       ! Meteorology State object
-#else
-      REAL*8,         INTENT(IN) :: FRCLND(IIPAR,JJPAR)  ! Land fraction
-#endif
+      LOGICAL,        INTENT(IN)    :: am_I_Root       ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: FIRSTCHEM       ! First-time flag
+      INTEGER,        INTENT(IN)    :: NTRACER         ! # of tracers
+      REAL*8,         INTENT(IN)    :: XNUMOL(NTRACER) ! Molec tracer/kg tracer
+      LOGICAL,        INTENT(IN)    :: READ_CSPEC      ! Is 
+      TYPE(MetState), INTENT(IN)    :: State_Met       ! Met State object
 !
 ! !OUTPUT PARAMETERS:
 !
       ! Tracer concentrations 
-      REAL*8,  INTENT(INOUT)  :: STT(IIPAR,JJPAR,LLPAR,NTRACER)
+      REAL*8,         INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,NTRACER)
 !
 ! !REMARKS:
 !
@@ -123,6 +110,8 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  30 Jul 2012 - R. Yantosca - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -186,12 +175,8 @@
                DO IX = 1, IIPAR
 
                   ! Conversion factor
-#if defined( DEVEL )
                   CONST = GET_PCENTER(IX,IY,IZ) * 1000D0 / 
      &                  ( State_Met%T(IX,IY,IZ) * BK )
-#else
-                  CONST = GET_PCENTER(IX,IY,IZ)*1000D0/(T(IX,IY,IZ)*BK)
-#endif
                 
                   !------------------------------
                   ! Test for altitude
@@ -202,11 +187,7 @@
                      !---------------------------
                      ! Test for ocean/land boxes
                      !---------------------------
-#if defined( DEVEL )
                      IF ( State_Met%FRCLND(IX,IY) >= 0.5 ) THEN
-#else
-                     IF ( FRCLND(IX,IY) >= 0.5 ) THEN
-#endif
 
                          ! Continental boundary layer: 2 ppbv MOH
                         CSPEC_FULL(IX,IY,IZ,JGAS) = 2.000d-9 * CONST
@@ -230,12 +211,8 @@
                      !---------------------------
                      ! Test for troposphere
                      !---------------------------
-#if defined( DEVEL )
                      IF ( ITS_IN_THE_TROP( IX, IY, IZ, 
      &                                     State_Met ) ) THEN
-#else
-                     IF ( ITS_IN_THE_TROP( IX, IY, IZ ) ) THEN
-#endif
                       
                         ! Free troposphere: 0.6 ppbv MOH
                         CSPEC_FULL(IX,IY,IZ,JGAS) = 0.600d-9 * CONST
@@ -266,12 +243,8 @@
                DO IX = 1, IIPAR
 
                   ! Conversion factor
-#if defined( DEVEL )
                   CONST = GET_PCENTER(IX,IY,IZ) * 1000D0 /
      &                  ( State_Met%T(IX,IY,IZ) * BK )
-#else
-                  CONST = GET_PCENTER(IX,IY,IZ)*1000D0/(T(IX,IY,IZ)*BK)
-#endif
                 
                   ! Copy default background conc. from "globchem.dat" to CSPEC
                   CSPEC_FULL(IX,IY,IZ,JGAS) = QBKCHEM(JGAS,NCS)* CONST

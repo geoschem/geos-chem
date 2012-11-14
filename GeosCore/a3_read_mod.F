@@ -485,11 +485,7 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE GET_A3_FIELDS( NYMD, NHMS, State_Met )
-#else
-      SUBROUTINE GET_A3_FIELDS( NYMD, NHMS )
-#endif
 !
 ! !USES:
 !
@@ -500,9 +496,7 @@
       USE DAO_MOD, ONLY : SNODP,   SNOW,   TROPP,  TS,       TSKIN
       USE DAO_MOD, ONLY : U10M,    USTAR,  V10M,   Z0, EFLUX
       USE DAO_MOD, ONLY : FRLAND,  FROCEAN,FRLAKE, FRLANDIC
-#if defined( DEVEL )
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
 
       USE CMN_SIZE_MOD  ! Size parameters
 !
@@ -513,9 +507,7 @@
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-#if defined( DEVEL )
       TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
-#endif
 ! 
 ! !REVISION HISTORY: 
 !  23 Jun 2003 - R. Yantosca - Initial version
@@ -535,6 +527,8 @@
 !        (kjw, 8/18/09)
 !  21 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
+!                              object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -576,27 +570,25 @@
      &              TS=TS,           TSKIN=TSKIN,   U10M=U10M,       
      &              USTAR=USTAR ,    V10M=V10M,     Z0=Z0 )
 
-      ! Add met fields to object of type GC_MET_LOCAL
-#if defined( DEVEL )
-      State_Met%ALBD    = ALBD
-      State_Met%CLDFRC  = CLDFRC
-      State_Met%GWETTOP = GWETTOP
-      State_Met%HFLUX   = HFLUX
-      State_Met%PARDF   = PARDF
-      State_Met%PARDR   = PARDR
-      State_Met%PBLH    = PBL
-      State_Met%PRECTOT = PREACC
-      State_Met%PRECCON = PRECON
-      State_Met%RADLWG  = RADLWG
-      State_Met%RADSWG  = RADSWG
-      State_Met%SNOW    = SNOW
-      State_Met%TS      = TS
-      State_Met%TSKIN   = TSKIN
-      State_Met%U10M    = U10M
-      State_Met%USTAR   = USTAR
-      State_Met%V10M    = V10M
-      State_Met%Z0      = Z0
-#endif
+      ! Copy met fields to State_Met
+      State_Met%ALBD    => ALBD
+      State_Met%CLDFRC  => CLDFRC
+      State_Met%GWETTOP => GWETTOP
+      State_Met%HFLUX   => HFLUX
+      State_Met%PARDF   => PARDF
+      State_Met%PARDR   => PARDR
+      State_Met%PBLH    => PBL
+      State_Met%PRECTOT => PREACC
+      State_Met%PRECCON => PRECON
+      State_Met%RADLWG  => RADLWG
+      State_Met%RADSWG  => RADSWG
+      State_Met%SNOW    => SNOW
+      State_Met%TS      => TS
+      State_Met%TSKIN   => TSKIN
+      State_Met%U10M    => U10M
+      State_Met%USTAR   => USTAR
+      State_Met%V10M    => V10M
+      State_Met%Z0      => Z0
 
 #elif defined( GEOS_5 )
 
@@ -622,39 +614,37 @@
      &              EFLUX=EFLUX,       FRLAND=FRLAND,   FROCEAN=FROCEAN, 
      &              FRLAKE=FRLAKE,     FRLANDIC=FRLANDIC )
 
-      ! Add met fields to object of type GC_MET_LOCAL
-#if defined( DEVEL )
-      State_Met%ALBD     = ALBD
-      State_Met%CLDFRC   = CLDFRC
-      State_Met%EFLUX    = EFLUX
-      State_Met%EVAP     = EVAP
-      State_Met%FRLAKE   = FRLAKE
-      State_Met%FRLAND   = FRLAND
-      State_Met%FRLANDIC = FRLANDIC
-      State_Met%FROCEAN  = FROCEAN
-      State_Met%GRN      = GRN
-      State_Met%GWETROOT = GWETROOT
-      State_Met%GWETTOP  = GWETTOP
-      State_Met%HFLUX    = HFLUX
-      State_Met%LAI      = LAI
-      State_Met%PARDF    = PARDF
-      State_Met%PARDR    = PARDR
-      State_Met%PBLH     = PBL
-      State_Met%PRECTOT  = PREACC
-      State_Met%PRECCON  = PRECON
-      State_Met%PRECSNO  = PRECSNO
-      State_Met%RADLWG   = RADLWG
-      State_Met%RADSWG   = RADSWG
-      State_Met%SNODP    = SNODP
-      State_Met%SNOMAS   = SNOMAS
-      State_Met%TROPP    = TROPP
-      State_Met%TS       = TS
-      State_Met%TSKIN    = TSKIN
-      State_Met%U10M     = U10M
-      State_Met%USTAR    = USTAR
-      State_Met%V10M     = V10M
-      State_Met%Z0       = Z0
-#endif
+      ! Copy met fields to State_Met
+      State_Met%ALBD     => ALBD
+      State_Met%CLDFRC   => CLDFRC
+      State_Met%EFLUX    => EFLUX
+      State_Met%EVAP     => EVAP
+      State_Met%FRLAKE   => FRLAKE
+      State_Met%FRLAND   => FRLAND
+      State_Met%FRLANDIC => FRLANDIC
+      State_Met%FROCEAN  => FROCEAN
+      State_Met%GRN      => GRN
+      State_Met%GWETROOT => GWETROOT
+      State_Met%GWETTOP  => GWETTOP
+      State_Met%HFLUX    => HFLUX
+      State_Met%LAI      => LAI
+      State_Met%PARDF    => PARDF
+      State_Met%PARDR    => PARDR
+      State_Met%PBLH     => PBL
+      State_Met%PRECTOT  => PREACC
+      State_Met%PRECCON  => PRECON
+      State_Met%PRECSNO  => PRECSNO
+      State_Met%RADLWG   => RADLWG
+      State_Met%RADSWG   => RADSWG
+      State_Met%SNODP    => SNODP
+      State_Met%SNOMAS   => SNOMAS
+      State_Met%TROPP    => TROPP
+      State_Met%TS       => TS
+      State_Met%TSKIN    => TSKIN
+      State_Met%U10M     => U10M
+      State_Met%USTAR    => USTAR
+      State_Met%V10M     => V10M
+      State_Met%Z0       => Z0
 
 #elif defined( GCAP )
 
@@ -678,25 +668,23 @@
       ! Convert [m] to [mm]
       SNOW = SNOW*1000.D0
 
-      ! Add met fields to object of type GC_MET_LOCAL
-#if defined( DEVEL )
-      State_Met%ALBD     = ALBD
-      State_Met%GWETTOP  = GWETTOP
-      State_Met%MOLENGTH = MOLENGTH
-      State_Met%OICE     = OICE
-      State_Met%PARDF    = PARDF
-      State_Met%PARDR    = PARDR
-      State_Met%PBLH     = PBL
-      State_Met%PRECTOT  = PREACC
-      State_Met%PRECCON  = PRECON
-      State_Met%RADSWG   = RADSWG
-      State_Met%SNICE    = SNICE
-      State_Met%SNOW     = SNOW
-      State_Met%TS       = TS
-      State_Met%U10M     = U10M
-      State_Met%USTAR    = USTAR
-      State_Met%V10M     = V10M
-#endif
+      ! Copy met fields to State_Met
+      State_Met%ALBD     => ALBD
+      State_Met%GWETTOP  => GWETTOP
+      State_Met%MOLENGTH => MOLENGTH
+      State_Met%OICE     => OICE
+      State_Met%PARDF    => PARDF
+      State_Met%PARDR    => PARDR
+      State_Met%PBLH     => PBL
+      State_Met%PRECTOT  => PREACC
+      State_Met%PRECCON  => PRECON
+      State_Met%RADSWG   => RADSWG
+      State_Met%SNICE    => SNICE
+      State_Met%SNOW     => SNOW
+      State_Met%TS       => TS
+      State_Met%U10M     => U10M
+      State_Met%USTAR    => USTAR
+      State_Met%V10M     => V10M
 
 #endif
 

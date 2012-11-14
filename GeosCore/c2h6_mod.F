@@ -94,44 +94,41 @@
 #if defined( DEVEL )      
       SUBROUTINE EMISSC2H6( State_Met, EMISS, BIO_EMISS)
 #else
-      SUBROUTINE EMISSC2H6
+      SUBROUTINE EMISSC2H6( State_Met )
 #endif
 !
 ! !USES:
 !
-      USE BIOMASS_MOD,   ONLY : BIOMASS
-      USE TRACERID_MOD,  ONLY : IDBC2H6      
-      USE BIOFUEL_MOD,   ONLY : BIOFUEL, BIOFUEL_BURN
-      USE DIAG_MOD,      ONLY : AD36
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE GEIA_MOD,      ONLY : READ_C3H8_C2H6_NGAS, TOTAL_FOSSIL_TG
-      USE GRID_MOD,      ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,   ONLY : LSPLIT, LBIOMASS, LBIOFUEL, LANTHRO
-      USE TIME_MOD,      ONLY : GET_MONTH, GET_TS_EMIS
-      USE TRACER_MOD,    ONLY : STT
-      USE TRACER_MOD,    ONLY : ITS_A_C2H6_SIM
-      USE TRACERID_MOD,  ONLY : IDBFC2H6, IDEC2H6, IDTC2H6
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-#if defined( DEVEL )
+      USE BIOMASS_MOD,        ONLY : BIOMASS
+      USE BIOFUEL_MOD,        ONLY : BIOFUEL, BIOFUEL_BURN
+      USE DIAG_MOD,           ONLY : AD36
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR
+      USE GEIA_MOD,           ONLY : READ_C3H8_C2H6_NGAS
+      USE GEIA_MOD,           ONLY : TOTAL_FOSSIL_TG
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE LOGICAL_MOD,        ONLY : LSPLIT, LBIOMASS, LBIOFUEL, LANTHRO
+      USE TIME_MOD,           ONLY : GET_MONTH, GET_TS_EMIS
+      USE TRACER_MOD,         ONLY : STT
+      USE TRACER_MOD,         ONLY : ITS_A_C2H6_SIM
+      USE TRACERID_MOD,       ONLY : IDBC2H6      
+      USE TRACERID_MOD,       ONLY : IDBFC2H6, IDEC2H6, IDTC2H6
+      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
 
-      USE CMN_SIZE_MOD        ! Size parameters
-      USE CMN_O3_MOD          ! EMISTC2H6
-      USE CMN_DIAG_MOD        ! Diagnostic arrays & switches
-      USE CMN_MOD             ! STT, etc.
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_O3_MOD               ! EMISTC2H6
+      USE CMN_DIAG_MOD             ! Diagnostic arrays & switches
+      USE CMN_MOD                  ! STT, etc.
 !
 ! !INPUT PARAMETERS:
 !
-#if defined( DEVEL )
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
 #if defined( DEVEL )
-      REAL*8, INTENT(INOUT)  :: EMISS(IIPAR,JJPAR)
-      REAL*8, INTENT(INOUT)  :: BIO_EMISS(:,:,:)
+      REAL*8,         INTENT(INOUT) :: EMISS(IIPAR,JJPAR)
+      REAL*8,         INTENT(INOUT) :: BIO_EMISS(:,:,:)
 #endif
 !
 ! !REVISION HISTORY:
@@ -246,7 +243,7 @@
 #if defined( DEVEL )
             CALL BIOFUEL_BURN( State_Met, BIO_EMISS )
 #else
-            CALL BIOFUEL_BURN
+            CALL BIOFUEL_BURN( State_Met )
 #endif
 
 !$OMP PARALLEL DO
@@ -256,13 +253,8 @@
             DO I = 1, IIPAR
  
                ! Convert [molec C/cm3/s] to [kg C2H6] and store in E_C2H6
-#if defined( DEVEL )
                E_C2H6_BF = BIOFUEL(IDBFC2H6,I,J) / 2.0d0 / 
      &                     XNUMOL_C2H6 * BOXVL(I,J,1,State_Met) * DTSRCE
-#else
-               E_C2H6_BF = BIOFUEL(IDBFC2H6,I,J) / 2.0d0 / 
-     &                     XNUMOL_C2H6 * BOXVL(I,J,1) * DTSRCE  
-#endif
 
                ! Add BF C2H6 to tracer #1 -- total C2H6 [kg C2H6]
                STT(I,J,1,1) = STT(I,J,1,1) + E_C2H6_BF
@@ -367,30 +359,21 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE CHEMC2H6( State_Met )
-#else
-      SUBROUTINE CHEMC2H6
-#endif
 !
 ! !USES:
 !
-      USE DAO_MOD,       ONLY : T
-      USE GLOBAL_OH_MOD, ONLY : OH,        GET_GLOBAL_OH
-      USE LOGICAL_MOD,   ONLY : LSPLIT 
-      USE TIME_MOD,      ONLY : GET_MONTH, GET_TS_CHEM
-      USE TRACER_MOD,    ONLY : N_TRACERS, STT
-#if defined( DEVEL )
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE GLOBAL_OH_MOD,      ONLY : OH,        GET_GLOBAL_OH
+      USE LOGICAL_MOD,        ONLY : LSPLIT 
+      USE TIME_MOD,           ONLY : GET_MONTH, GET_TS_CHEM
+      USE TRACER_MOD,         ONLY : N_TRACERS, STT
 
-      USE CMN_SIZE_MOD        ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
-#if defined( DEVEL )
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
 ! 
 ! !REVISION HISTORY:
 !  (1 ) Now do chemistry all the way to the model top. 
@@ -403,6 +386,8 @@
 !  (5 ) Now reference STT & N_TRACERS from "tracer_mod.f".  Now reference 
 !        LSPLIT from "logical_mod.f" (bmy, 7/20/04)
 !  22 Mar 2012 - M. Payer    - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -451,11 +436,7 @@
       DO I = 1, IIPAR
          
          ! Loss rate [molec2 C2H6/cm6/s]^-1
-#if defined( DEVEL )
          KRATE = 8.7d-12 * EXP( -1070.0d0 / State_Met%T(I,J,L) )
-#else
-         KRATE = 8.7d-12 * EXP( -1070.0d0 / T(I,J,L) )
-#endif
 
          ! Apply loss to total C2H6 (tracer #1)
          STT(I,J,L,1) = STT(I,J,L,1) *

@@ -249,11 +249,7 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE GET_MERRA_A3_FIELDS( NYMD, NHMS, State_Met )
-#else
-      SUBROUTINE GET_MERRA_A3_FIELDS( NYMD, NHMS )
-#endif
 !
 ! !USES:
 !
@@ -264,25 +260,23 @@
       USE DAO_MOD, ONLY : QL,      SPHU,     REEVAPCN, REEVAPLS
       USE DAO_MOD, ONLY : T,       TAUCLI,   TAUCLW,   UWND
       USE DAO_MOD, ONLY : VWND
-#if defined( DEVEL )
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
 
-      USE CMN_SIZE_MOD            ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: NYMD   ! YYYYMMDD and
-      INTEGER, INTENT(IN) :: NHMS   !  hhmmss of desired data fields
+      INTEGER,        INTENT(IN)    :: NYMD   ! YYYYMMDD and
+      INTEGER,        INTENT(IN)    :: NHMS   !  hhmmss of desired data fields
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-#if defined( DEVEL )
       TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
-#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Aug 2010 - R. Yantosca - Initial version, based on a3_read_mod.f
+!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
+!                              object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -339,33 +333,32 @@
       LASTNYMD = NYMD
       LASTNHMS = NHMS
 
-#if defined( DEVEL )
-      State_Met%CLDF     = CLDF
-      State_Met%CLDTOPS  = CLDTOPS
-      State_Met%CMFMC    = CMFMC
-      State_Met%DQRCU    = DQRCU
-      State_Met%DQRLSAN  = DQRLSAN
-      State_Met%DQIDTMST = DQIDTMST
-      State_Met%DQLDTMST = DQLDTMST
-      State_Met%DQVDTMST = DQVDTMST
-      State_Met%DTRAIN   = DTRAIN
-      State_Met%MOISTQ   = MOISTQ
-      State_Met%OPTDEP   = OPTDEP
-      State_Met%PFICU    = PFICU
-      State_Met%PFILSAN  = PFILSAN
-      State_Met%PFLCU    = PFLCU
-      State_Met%PFLLSAN  = PFLLSAN
-      State_Met%QI       = QI
-      State_Met%QL       = QL
-      State_Met%SPHU     = SPHU
-      State_Met%REEVAPCN = REEVAPCN
-      State_Met%REEVAPLS = REEVAPLS
-      State_Met%T        = T
-      State_Met%TAUCLI   = TAUCLI
-      State_Met%TAUCLW   = TAUCLW
-      State_Met%U        = UWND
-      State_Met%V        = VWND
-#endif
+      ! Copy met fields to State_Met
+      State_Met%CLDF     => CLDF
+      State_Met%CLDTOPS  => CLDTOPS
+      State_Met%CMFMC    => CMFMC
+      State_Met%DQRCU    => DQRCU
+      State_Met%DQRLSAN  => DQRLSAN
+      State_Met%DQIDTMST => DQIDTMST
+      State_Met%DQLDTMST => DQLDTMST
+      State_Met%DQVDTMST => DQVDTMST
+      State_Met%DTRAIN   => DTRAIN
+      State_Met%MOISTQ   => MOISTQ
+      State_Met%OPTDEP   => OPTDEP
+      State_Met%PFICU    => PFICU
+      State_Met%PFILSAN  => PFILSAN
+      State_Met%PFLCU    => PFLCU
+      State_Met%PFLLSAN  => PFLLSAN
+      State_Met%QI       => QI
+      State_Met%QL       => QL
+      State_Met%SPHU     => SPHU
+      State_Met%REEVAPCN => REEVAPCN
+      State_Met%REEVAPLS => REEVAPLS
+      State_Met%T        => T
+      State_Met%TAUCLI   => TAUCLI
+      State_Met%TAUCLW   => TAUCLW
+      State_Met%U        => UWND
+      State_Met%V        => VWND
 
       END SUBROUTINE GET_MERRA_A3_FIELDS
 !EOC

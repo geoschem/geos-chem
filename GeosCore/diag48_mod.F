@@ -135,11 +135,7 @@
 
 !------------------------------------------------------------------------------
 
-#if defined( DEVEL )
       SUBROUTINE DIAG48( State_Met )
-#else
-      SUBROUTINE DIAG48 
-#endif
 !
 !******************************************************************************
 !  Subroutine DIAG48 saves station time series diagnostics to disk.
@@ -164,40 +160,35 @@
 !  (9 ) Now save SLP under tracer #18 in "DAO-FLDS" (tai, bmy, 10/13/09)
 !  12 Nov 2010 - R. Yantosca - Save out PEDGE-$ (pressure @ level edges) rather
 !                              than PSURFACE - PTOP.
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD,    ONLY : BPCH2
-      USE DAO_MOD,      ONLY : AD,      AIRDEN, BXHEIGHT, CLDF 
-      USE DAO_MOD,      ONLY : CLDTOPS, OPTD,   RH,       SLP   
-      USE DAO_MOD,      ONLY : T,       UWND,   VWND 
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE GRID_MOD,     ONLY : GET_XOFFSET,        GET_YOFFSET
-      USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
-      USE PRESSURE_MOD, ONLY : GET_PEDGE
-      USE TIME_MOD,     ONLY : GET_LOCALTIME,      GET_NYMD
-      USE TIME_MOD,     ONLY : GET_NHMS,           GET_TAU
-      USE TIME_MOD,     ONLY : EXPAND_DATE,        ITS_A_NEW_DAY
-      USE TRACER_MOD,   ONLY : ITS_A_FULLCHEM_SIM, N_TRACERS
-      USE TRACER_MOD,   ONLY : STT,                TCVV  
-      USE TRACER_MOD,   ONLY : XNUMOLAIR
-      USE TRACERID_MOD, ONLY : IDTHNO3, IDTN2O5, IDTHNO4, IDTNOX
-      USE TRACERID_MOD, ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
-      USE TRACERID_MOD, ONLY : IDTR4N2, IDTSALA, IDTSALC 
-#if defined( DEVEL )
+      USE BPCH2_MOD,          ONLY : BPCH2
+      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE GRID_MOD,           ONLY : GET_XOFFSET,        GET_YOFFSET
+      USE LOGICAL_MOD,        ONLY : DO_DIAG_WRITE
+      USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE
+      USE TIME_MOD,           ONLY : GET_LOCALTIME,      GET_NYMD
+      USE TIME_MOD,           ONLY : GET_NHMS,           GET_TAU
+      USE TIME_MOD,           ONLY : EXPAND_DATE,        ITS_A_NEW_DAY
+      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM, N_TRACERS
+      USE TRACER_MOD,         ONLY : STT,                TCVV  
+      USE TRACER_MOD,         ONLY : XNUMOLAIR
+      USE TRACERID_MOD,       ONLY : IDTHNO3, IDTN2O5, IDTHNO4, IDTNOX
+      USE TRACERID_MOD,       ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
+      USE TRACERID_MOD,       ONLY : IDTR4N2, IDTSALA, IDTSALC 
 
-      USE CMN_FJ_MOD,   ONLY : JPMAX, JPPJ    ! Size parameters + FAST-J stuff
-      USE JV_CMN_MOD    ! ODAER, ODMDUST, QAA, QAA_OUT
-      USE CMN_O3_MOD      ! XNUMOLAIR
-      USE CMN_GCTM_MOD    ! SCALE_HEIGHT
-      USE LOGICAL_MOD,  ONLY : DO_DIAG_WRITE
+      USE CMN_FJ_MOD,         ONLY : JPMAX, JPPJ  ! Size parameters + FAST-J
+      USE JV_CMN_MOD               ! ODAER, ODMDUST, QAA, QAA_OUT
+      USE CMN_O3_MOD               ! XNUMOLAIR
+      USE CMN_GCTM_MOD             ! SCALE_HEIGHT
 
       ! Arguments
-#if defined( DEVEL )
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 
       ! Local variables
       LOGICAL, SAVE      :: IS_CLDTOPS,  IS_OPTD, IS_SEASALT, IS_SLP
@@ -224,15 +215,9 @@
       IF ( FIRST ) THEN
 
          ! Set logical flags on first timestep
-#if defined( DEVEL )
          IS_CLDTOPS  = ASSOCIATED( State_Met%CLDTOPS )
          IS_SLP      = ASSOCIATED( State_Met%SLP     )
          IS_OPTD     = ASSOCIATED( State_Met%OPTD    )
-#else
-         IS_CLDTOPS  = ALLOCATED( CLDTOPS )
-         IS_SLP      = ALLOCATED( SLP     )
-         IS_OPTD     = ALLOCATED( OPTD    )
-#endif
          IS_FULLCHEM = ITS_A_FULLCHEM_SIM()
          IS_SEASALT  = ( IDTSALA > 0 .and. IDTSALC > 0 )
          IS_Ox       = ( IS_FULLCHEM .and. IDTOX   > 0 )
@@ -289,15 +274,9 @@
             UNIT     = ''              ! Let GAMAP pick the unit
             GMTRC    = N
 
-#if defined( DEVEL )
             DO L = 1, K
                Q(L) = STT(I,J,L,N) * TCVV(N) / State_Met%AD(I,J,L)
             ENDDO
-#else
-            DO L = 1, K
-               Q(L) = STT(I,J,L,N) * TCVV(N) / AD(I,J,L)
-            ENDDO
-#endif
 
          ELSE IF ( N == 91 .and. IS_Ox ) THEN
  
@@ -308,17 +287,10 @@
             UNIT     = ''              ! Let GAMAP pick the unit
             GMTRC    = N_TRACERS + 1
 
-#if defined( DEVEL )
             DO L = 1, K
                Q(L) = STT(I,J,L,IDTOX)    * TCVV(IDTOX)  / 
      &                State_Met%AD(I,J,L) * FRACO3(I,J,L)
             ENDDO
-#else
-            DO L = 1, K
-               Q(L) = STT(I,J,L,IDTOX) * TCVV(IDTOX)  / 
-     &                AD(I,J,L)        * FRACO3(I,J,L)
-            ENDDO
-#endif
                
          ELSE IF ( N == 92 .and. IS_NOx ) THEN
 
@@ -329,17 +301,10 @@
             UNIT     = ''           ! Let GAMAP pick the unit
             GMTRC    = 9
 
-#if defined( DEVEL )
             DO L = 1, K
                Q(L) = STT(I,J,L,IDTNOX) * TCVV(IDTNOX) * 
      &                FRACNO(I,J,L)     / State_Met%AD(I,J,L)
             ENDDO
-#else
-            DO L = 1, K
-               Q(L) = STT(I,J,L,IDTNOX) * TCVV(IDTNOX) * 
-     &                FRACNO(I,J,L)     / AD(I,J,L)
-            ENDDO
-#endif
 
          ELSE IF ( N == 93 .and. IS_NOy ) THEN
 
@@ -350,7 +315,6 @@
             UNIT     = ''              ! Let GAMAP pick unit
             GMTRC    = 3
 
-#if defined( DEVEL )
             DO L = 1, K
 
                ! Initialize
@@ -396,45 +360,6 @@
      &                         STT(I,J,L,IDTHNO4)  / 
      &                         State_Met%AD(I,J,L) )
             ENDDO
-#else
-            DO L = 1, K
-
-               ! Initialize
-               Q(L) = 0d0
-
-               ! NOx
-               Q(L) = Q(L) + ( TCVV(IDTNOX)        * 
-     &                         STT(I,J,L,IDTNOX)   / AD(I,J,L) )
-
-               ! PAN
-               Q(L) = Q(L) + ( TCVV(IDTPAN)        * 
-     &                         STT(I,J,L,IDTPAN)   / AD(I,J,L) )
-
-               ! HNO3
-               Q(L) = Q(L) + ( TCVV(IDTHNO3)       *
-     &                         STT(I,J,L,IDTHNO3)  / AD(I,J,L) )
-            
-               ! PMN
-               Q(L) = Q(L) + ( TCVV(IDTPMN)        *
-     &                         STT(I,J,L,IDTPMN)   / AD(I,J,L) )
-
-               ! PPN
-               Q(L) = Q(L) + ( TCVV(IDTPPN)        * 
-     &                         STT(I,J,L,IDTPPN)   / AD(I,J,L) )
- 
-               ! R4N2
-               Q(L) = Q(L) + ( TCVV(IDTR4N2)       *
-     &                         STT(I,J,L,IDTR4N2)  / AD(I,J,L) )
-            
-               ! N2O5
-               Q(L) = Q(L) + ( 2d0 * TCVV(IDTN2O5) *
-     &                         STT(I,J,L,IDTN2O5)  / AD(I,J,L) )
-                        
-               ! HNO4
-               Q(L) = Q(L) + ( TCVV(IDTHNO4)       *
-     &                         STT(I,J,L,IDTHNO4)  / AD(I,J,L) )
-            ENDDO
-#endif
 
          ELSE IF ( N == 76 .and. IS_FULLCHEM ) THEN
 
@@ -499,11 +424,7 @@
             GMTRC    = 22
 
             DO L = 1, K
-#if defined( DEVEL )
                Q(L) = State_Met%AIRDEN(L,I,J) * XNUMOLAIR * 1d-6
-#else
-               Q(L) = AIRDEN(L,I,J) * XNUMOLAIR * 1d-6
-#endif
             ENDDO
 
          ELSE IF ( N == 81 ) THEN
@@ -516,11 +437,7 @@
             GMTRC    = 19
 
             DO L = 1, K
-#if defined( DEVEL )
                Q(L) = State_Met%CLDF(L,I,J)
-#else
-               Q(L) = CLDF(L,I,J)
-#endif
             ENDDO
 
          ELSE IF ( N == 82 .and. IS_OPTD ) THEN
@@ -532,11 +449,7 @@
             UNIT     = 'unitless'
             GMTRC    = 20
 
-#if defined( DEVEL )
             Q(1) = SUM( State_Met%OPTD(:,I,J) )
-#else
-            Q(1) = SUM( OPTD(:,I,J) )
-#endif
 
          ELSE IF ( N == 83 .and. IS_CLDTOPS ) THEN
 
@@ -548,11 +461,7 @@
             GMTRC    = 21
 
             IF ( K == 1 ) THEN
-#if defined( DEVEL )
                Q(1) = GET_PEDGE( I, J, State_Met%CLDTOPS(I,J) )
-#else
-               Q(1) = GET_PEDGE( I, J, CLDTOPS(I,J) )
-#endif
             ENDIF
 
          ELSE IF ( N == 84 ) THEN
@@ -710,17 +619,10 @@
             UNIT     = ''              ! Let GAMAP pick unit
             GMTRC    = 24
 
-#if defined( DEVEL )
             DO L = 1, K
                Q(L) = ( STT(I,J,L,IDTSALA) + STT(I,J,L,IDTSALC) ) *
      &                  TCVV(IDTSALA)      / State_Met%AD(I,J,L) 
             ENDDO
-#else
-            DO L = 1, K
-               Q(L) = ( STT(I,J,L,IDTSALA) + STT(I,J,L,IDTSALC) ) *
-     &                  TCVV(IDTSALA)      / AD(I,J,L) 
-            ENDDO
-#endif
 
          ELSE IF ( N == 94 ) THEN 
 
@@ -731,15 +633,9 @@
             UNIT     = 'm'
             GMTRC    = 1
 
-#if defined( DEVEL )
             DO L = 1, K
                Q(L) = State_Met%BXHEIGHT(I,J,L)
             ENDDO
-#else
-            DO L = 1, K
-               Q(L) = BXHEIGHT(I,J,L)
-            ENDDO
-#endif
 
          ELSE IF ( N == 95 ) THEN 
 
@@ -750,15 +646,9 @@
             UNIT     = '%'
             GMTRC    = 17
 
-#if defined( DEVEL )
             DO L = 1, K
                Q(L) = State_Met%RH(I,J,L)
             ENDDO
-#else
-            DO L = 1, K
-               Q(L) = RH(I,J,L)
-            ENDDO
-#endif
 
          ELSE IF ( N == 96 .and. IS_SLP ) THEN
 
@@ -770,11 +660,7 @@
             GMTRC    = 18
 
             IF ( K == 1 ) THEN
-#if defined( DEVEL )
                Q(1) = State_Met%SLP(I,J)
-#else
-               Q(1) = SLP(I,J)
-#endif
             ENDIF
 
          ELSE IF ( N == 97 ) THEN
@@ -787,11 +673,7 @@
             GMTRC    = 1
 
             DO L = 1, K
-#if defined( DEVEL )
                Q(L) = State_Met%U(I,J,L)
-#else
-               Q(L) = UWND(I,J,L)
-#endif
             ENDDO
             
          ELSE IF ( N == 98 ) THEN 
@@ -804,11 +686,7 @@
             GMTRC    = 2
 
             DO L = 1, K
-#if defined( DEVEL )
                Q(L) = State_Met%V(I,J,L)
-#else
-               Q(L) = VWND(I,J,L)
-#endif
             ENDDO
 
          ELSE IF ( N == 99 ) THEN
@@ -834,11 +712,7 @@
             GMTRC    = 3            
 
             DO L = 1, K
-#if defined( DEVEL )
                Q(L) = State_Met%T(I,J,L)
-#else
-               Q(L) = T(I,J,L)
-#endif
             ENDDO
 
          ELSE

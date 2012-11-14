@@ -107,30 +107,22 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE DO_PBL_MIX( DO_TURBDAY, State_Met )
-#else
-      SUBROUTINE DO_PBL_MIX( DO_TURBDAY )
-#endif
 !
 ! !USES:
 !
-      USE LOGICAL_MOD, ONLY : LTURB
-      USE TRACER_MOD,  ONLY : N_TRACERS, STT, TCVV 
-#if   defined( APM ) 
-      USE TRACER_MOD,  ONLY : N_APMTRA
-#endif
-#if defined( DEVEL )
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE LOGICAL_MOD,        ONLY : LTURB
+      USE TRACER_MOD,         ONLY : N_TRACERS, STT, TCVV 
+#if   defined( APM ) 
+      USE TRACER_MOD,         ONLY : N_APMTRA
 #endif
 !
 ! !INPUT PARAMETERS: 
 !
       LOGICAL,        INTENT(IN) :: DO_TURBDAY  ! =T means call TURBDAY 
                                                 !    for full PBL mixing
-#if defined( DEVEL )
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
 !
 ! !REVISION HISTORY: 
 !  11 Feb 2005 - R. Yantosca - Initial version
@@ -163,18 +155,10 @@
       ENDIF
          
       ! Compute PBL height and related quantities
-#if defined( DEVEL )
       CALL COMPUTE_PBL_HEIGHT( State_Met )
-#else
-      CALL COMPUTE_PBL_HEIGHT
-#endif
 
       ! Do complete mixing of tracers in the PBL (if necessary)
-#if defined( DEVEL )
       IF ( DO_TURBDAY ) CALL TURBDAY( N_TOT_TRC, STT, TCVV, State_Met )
-#else
-      IF ( DO_TURBDAY ) CALL TURBDAY( N_TOT_TRC, STT, TCVV )
-#endif
 
       END SUBROUTINE DO_PBL_MIX
 !EOC
@@ -191,29 +175,20 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE COMPUTE_PBL_HEIGHT( State_Met )
-#else
-      SUBROUTINE COMPUTE_PBL_HEIGHT
-#endif
 !
 ! !USES:
 !
-      USE DAO_MOD,      ONLY : BXHEIGHT, PBL
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE PRESSURE_MOD, ONLY : GET_PEDGE
-#if defined( DEVEL )
+      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE
 
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_GCTM_MOD       ! Scale height
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_GCTM_MOD             ! Scale height
 !
 ! !INPUT PARAMETERS: 
 !
-#if defined( DEVEL )
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !REVISION HISTORY: 
 !  11 Feb 2005 - R. Yantosca - Initial version
@@ -224,6 +199,8 @@
 !  (3 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  28 Feb 2012 - R. Yantosca - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -261,11 +238,7 @@
 
          ! BLTOP = pressure at PBL top [hPa]
          ! Use barometric law since PBL is in [m]
-#if defined( DEVEL )
          BLTOP  = P(0) * EXP( -State_Met%PBLH(I,J) / SCALE_HEIGHT )
-#else
-         BLTOP  = P(0) * EXP( -PBL(I,J) / SCALE_HEIGHT )
-#endif
 
          ! BLTHIK is PBL thickness [hPa]
          BLTHIK = P(0) - BLTOP
@@ -331,12 +304,8 @@
                F_UNDER_TOP(I,J,L) = 1d0
 
                ! PBL height [m]
-#if defined( DEVEL )
                PBL_TOP_m(I,J)     = PBL_TOP_m(I,J) +
      &                              State_Met%BXHEIGHT(I,J,L)
-#else
-               PBL_TOP_m(I,J)     = PBL_TOP_m(I,J) + BXHEIGHT(I,J,L)
-#endif
 
             ELSE IF ( L == IMIX(I,J) ) THEN
 
@@ -351,14 +320,9 @@
                F_UNDER_TOP(I,J,L) = FPBL(I,J) 
                
                ! PBL height [m] 
-#if defined( DEVEL )
                PBL_TOP_m(I,J)     = PBL_TOP_m(I,J) + 
      &                            ( State_Met%BXHEIGHT(I,J,L) *
      &                              FPBL(I,J) )
-#else
-               PBL_TOP_m(I,J)     = PBL_TOP_m(I,J) + 
-     &                              ( BXHEIGHT(I,J,L) * FPBL(I,J) )
-#endif
 
             ELSE
 
@@ -427,41 +391,32 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE TURBDAY( NTRC, TC, TCVV, State_Met )              
-#else
-      SUBROUTINE TURBDAY( NTRC, TC, TCVV )              
-#endif
 !
 ! !USES:
 !
-      USE DAO_MOD,     ONLY : AD
-      USE DIAG_MOD,    ONLY : TURBFLUP
-      USE TIME_MOD,    ONLY : GET_TS_CONV
-#if defined( DEVEL )
+      USE DIAG_MOD,           ONLY : TURBFLUP
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE TIME_MOD,           ONLY : GET_TS_CONV
 
-      USE CMN_SIZE_MOD      ! Size parameters    
-      USE CMN_DIAG_MOD      ! ND15
+      USE CMN_SIZE_MOD             ! Size parameters    
+      USE CMN_DIAG_MOD             ! ND15
 !
 ! !INPUT PARAMETERS: 
 !
       ! Number of tracers used in computation
-      INTEGER,  INTENT(IN)    :: NTRC             
+      INTEGER,        INTENT(IN)    :: NTRC             
 
       ! MW air (g/mol) / MW tracer (g/mol)     [ unitless ]
-      REAL*8,   INTENT(IN)    :: TCVV(NTRC)
+      REAL*8,         INTENT(IN)    :: TCVV(NTRC)
 
-#if defined( DEVEL )
       ! Meteorology State object
-      TYPE(MetState), INTENT(IN) :: State_Met
-#endif
+      TYPE(MetState), INTENT(IN)    :: State_Met
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       ! Tracer concentration [v/v]
-      REAL*8,   INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NTRC) 
+      REAL*8,         INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NTRC) 
 ! 
 ! !REMARKS:
 !  Original subroutine by Dale Allen, Univ of MD.
@@ -523,6 +478,8 @@
 !        (bmy, 2/15/05)
 !  28 Feb 2012 - R. Yantosca - Added ProTeX headers
 !   2 Mar 2012 - R. Yantosca - Remove reference to GET_AREA_M2
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -574,19 +531,11 @@
          ! Calculate air mass within PBL at grid box (I,J,L)
          AA = 0.d0 
          DO L = 1, IMIX(I,J)-1 
-#if defined( DEVEL )
             AA = AA + State_Met%AD(I,J,L) 
-#else
-            AA = AA + AD(I,J,L) 
-#endif
          ENDDO       
                
          L  = IMIX(I,J) 
-#if defined( DEVEL )
          AA = AA + State_Met%AD(I,J,L) * FPBL(I,J)
-#else
-         AA = AA + AD(I,J,L) * FPBL(I,J)
-#endif
 
          ! Loop over tracers 
          DO N = 1, NTRC
@@ -598,20 +547,12 @@
             ! Sum mass from (I,J,L) below the PBL top
             CC = 0.d0
             DO L = 1, IMIX(I,J)-1 
-#if defined( DEVEL )
                CC = CC + State_Met%AD(I,J,L) * TC(I,J,L,N)
-#else
-               CC = CC + AD(I,J,L) * TC(I,J,L,N)
-#endif
             ENDDO       
                
             ! Then also sum mass from (I,J,L) which straddle the PBL top
             L     = IMIX(I,J) 
-#if defined( DEVEL )
             CC    = CC + State_Met%AD(I,J,L) * TC(I,J,L,N) * FPBL(I,J)
-#else
-            CC    = CC + AD(I,J,L) * TC(I,J,L,N) * FPBL(I,J)
-#endif
             
             ! CC/AA is the mean mixing ratio of tracer at 
             ! (I,J) from L=1 to L=LTOP
@@ -632,7 +573,6 @@
             ! so DTC/AD is the change in (V/V) mixing ratio units.  
             !========================================================
 
-#if defined( DEVEL )
             ! For grid boxes (I,J,L) which lie below the PBL top
             DO L = 1, IMIX(I,J)-1 
                DTC(I,J,L,N) = ( A(I,J) * CC_AA       *
@@ -655,24 +595,6 @@
                
             TC(I,J,L,N) = TC(I,J,L,N) + DTC(I,J,L,N) / 
      &                    State_Met%AD(I,J,L)
-#else
-            ! For grid boxes (I,J,L) which lie below the PBL top
-            DO L = 1, IMIX(I,J)-1 
-               DTC(I,J,L,N) = ( A(I,J) * CC_AA       * AD(I,J,L) -
-     &                          A(I,J) * TC(I,J,L,N) * AD(I,J,L) ) 
-
-               TC(I,J,L,N) = TC(I,J,L,N) + DTC(I,J,L,N)/AD(I,J,L)
-            ENDDO 
-
-            ! For grid boxes (I,J,L) which straddle the PBL top
-            L = IMIX(I,J) 
-
-            DTC(I,J,L,N)  = 
-     &           ( A(I,J) * FPBL(I,J) * CC_AA       * AD(I,J,L) - 
-     &             A(I,J) * FPBL(I,J) * TC(I,J,L,N) * AD(I,J,L) ) 
-               
-            TC(I,J,L,N) = TC(I,J,L,N) + DTC(I,J,L,N)/AD(I,J,L)
-#endif
 
             !=======================================================
             ! ND15 Diagnostic: 

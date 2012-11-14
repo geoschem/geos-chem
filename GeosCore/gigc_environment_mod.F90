@@ -1,4 +1,3 @@
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -38,7 +37,9 @@ MODULE GIGC_Environment_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
   PUBLIC  :: GIGC_Allocate_All
+#endif
   PUBLIC  :: GIGC_Init_All
 !
 ! !PRIVATE MEMBER FUNCTIONS:
@@ -59,6 +60,7 @@ MODULE GIGC_Environment_Mod
 !------------------------------------------------------------------------------
 !BOC
 CONTAINS
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !EOC        
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -128,6 +130,7 @@ CONTAINS
           
   END SUBROUTINE GIGC_Allocate_All
 !EOC
+#endif
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -429,4 +432,3 @@ CONTAINS
   END SUBROUTINE Get_nSchm_nSchmBry
 !EOC
 END MODULE GIGC_Environment_Mod
-#endif

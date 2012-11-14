@@ -280,11 +280,7 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE GET_MERRA_A1_FIELDS( NYMD, NHMS, State_Met )
-#else
-      SUBROUTINE GET_MERRA_A1_FIELDS( NYMD, NHMS )
-#endif
 !
 ! !USES:
 !
@@ -299,26 +295,24 @@
       USE DAO_MOD, ONLY : SLP,      SNODP,    SNOMAS,   TROPP
       USE DAO_MOD, ONLY : TS,       TSKIN,    U10M,     USTAR
       USE DAO_MOD, ONLY : V10M,     Z0 
-#if defined( DEVEL )
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
 
-      USE CMN_SIZE_MOD            ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: NYMD   ! YYYYMMDD 
-      INTEGER, INTENT(IN) :: NHMS   !  and hhmmss of data to read from disk
+      INTEGER,        INTENT(IN)    :: NYMD   ! YYYYMMDD and 
+      INTEGER,        INTENT(IN)    :: NHMS   ! hhmmss of data to read from disk
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-#if defined( DEVEL )
       TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
-#endif
 ! 
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version, based on a3_read_mod.f
 !  25 Aug 2010 - R. Yantosca - Now pass LWI down to READ_A1
+!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
+!                              object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -392,50 +386,32 @@
       LASTNYMD = NYMD
       LASTNHMS = NHMS
 
-#if defined( DEVEL )
-      State_Met%ALBD     = ALBD
-      State_Met%CLDFRC   = CLDFRC
-      State_Met%EFLUX    = EFLUX
-      State_Met%EVAP     = EVAP
-      State_Met%FRSEAICE = FRSEAICE
-      State_Met%FRSNO    = FRSNO
-      State_Met%GRN      = GRN
-      State_Met%GWETROOT = GWETROOT
-      State_Met%GWETTOP  = GWETTOP
-      State_Met%HFLUX    = HFLUX
-      State_Met%LAI      = LAI
-      State_Met%LWI      = LWI
-      State_Met%PARDR    = PARDR
-      State_Met%PARDF    = PARDF
-      State_Met%PBLH     = PBL
-      State_Met%PRECANV  = PREANV
-      State_Met%PRECCON  = PRECON
-      State_Met%PRECTOT  = PREACC
-      State_Met%PRECLSC  = PRELSC
-      State_Met%PRECSNO  = PRECSNO
-      State_Met%RADLWG   = RADLWG
-      State_Met%RADSWG   = RADSWG
-      State_Met%SEAICE00 = SEAICE00
-      State_Met%SEAICE10 = SEAICE10
-      State_Met%SEAICE20 = SEAICE20
-      State_Met%SEAICE30 = SEAICE30
-      State_Met%SEAICE40 = SEAICE40
-      State_Met%SEAICE50 = SEAICE50
-      State_Met%SEAICE60 = SEAICE60
-      State_Met%SEAICE70 = SEAICE70
-      State_Met%SEAICE80 = SEAICE80
-      State_Met%SEAICE90 = SEAICE90
-      State_Met%SLP      = SLP
-      State_Met%SNODP    = SNODP
-      State_Met%SNOMAS   = SNOMAS
-      State_Met%TROPP    = TROPP
-      State_Met%TS       = TS
-      State_Met%TSKIN    = TSKIN
-      State_Met%U10M     = U10M
-      State_Met%USTAR    = USTAR
-      State_Met%V10M     = V10M
-      State_Met%Z0       = Z0
-#endif
+      ! Copy met fields to State_Met
+      State_Met%ALBD     => PREACC
+      State_Met%PRECLSC  => PRELSC
+      State_Met%PRECSNO  => PRECSNO
+      State_Met%RADLWG   => RADLWG
+      State_Met%RADSWG   => RADSWG
+      State_Met%SEAICE00 => SEAICE00
+      State_Met%SEAICE10 => SEAICE10
+      State_Met%SEAICE20 => SEAICE20
+      State_Met%SEAICE30 => SEAICE30
+      State_Met%SEAICE40 => SEAICE40
+      State_Met%SEAICE50 => SEAICE50
+      State_Met%SEAICE60 => SEAICE60
+      State_Met%SEAICE70 => SEAICE70
+      State_Met%SEAICE80 => SEAICE80
+      State_Met%SEAICE90 => SEAICE90
+      State_Met%SLP      => SLP
+      State_Met%SNODP    => SNODP
+      State_Met%SNOMAS   => SNOMAS
+      State_Met%TROPP    => TROPP
+      State_Met%TS       => TS
+      State_Met%TSKIN    => TSKIN
+      State_Met%U10M     => U10M
+      State_Met%USTAR    => USTAR
+      State_Met%V10M     => V10M
+      State_Met%Z0       => Z0
 
       END SUBROUTINE GET_MERRA_A1_FIELDS
 !EOC

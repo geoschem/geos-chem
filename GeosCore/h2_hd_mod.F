@@ -113,45 +113,41 @@
 #if defined( DEVEL )
       SUBROUTINE EMISS_H2_HD( State_Met, BIO_EMISS )
 #else
-      SUBROUTINE EMISS_H2_HD
+      SUBROUTINE EMISS_H2_HD( State_Met )
 #endif
 !
 ! !USES:
 !
-      USE BIOFUEL_MOD,      ONLY : BIOFUEL,     BIOFUEL_BURN
-      USE BIOMASS_MOD,      ONLY : BIOMASS
-      USE DAO_MOD,          ONLY : SUNCOS,      BXHEIGHT
-      USE DAO_MOD,          ONLY : PARDF,       PARDR
-      USE DAO_MOD,          ONLY : SUNCOS_MID,  TS
-      USE DIAG_MOD,         ONLY : AD29,        AD46,          AD10em
-      USE GEIA_MOD,         ONLY : GET_IHOUR,   GET_DAY_INDEX, READ_GEIA
-      USE GEIA_MOD,         ONLY : READ_LIQCO2, READ_TOTCO2,   READ_TODX
-      USE GRID_MOD,         ONLY : GET_XOFFSET, GET_YOFFSET  
-      USE GRID_MOD,         ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,      ONLY : LANTHRO,     LGFED2BB,      LGFED3BB
-      USE LOGICAL_MOD,      ONLY : LBIOMASS,    LBIOFUEL,      LNEI99
-      USE LOGICAL_MOD,      ONLY : LSTREETS,    LEDGAR,        LBRAVO
-      USE LOGICAL_MOD,      ONLY : LMEGAN
-      USE MEGANUT_MOD,      ONLY : XLTMMP
-      USE MEGAN_MOD,        ONLY : GET_EMMONOT_MEGAN
-      USE MEGAN_MOD,        ONLY : GET_EMISOP_MEGAN
-      USE TRACERID_MOD,     ONLY : IDBCO
-      USE TIME_MOD,         ONLY : GET_MONTH,   GET_TAU 
-      USE TIME_MOD,         ONLY : GET_YEAR,    GET_TS_EMIS  
-      USE TRACER_MOD,       ONLY : STT
-      USE TRACERID_MOD,     ONLY : IDBFCO,      IDTH2,         IDTHD
-      USE TAGGED_CO_MOD,    ONLY : INIT_TAGGED_CO
-      USE TAGGED_CO_MOD,    ONLY : READ_ACETONE,  EMACET
-      USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
-#if defined( DEVEL )
+      USE BIOFUEL_MOD,        ONLY : BIOFUEL,     BIOFUEL_BURN
+      USE BIOMASS_MOD,        ONLY : BIOMASS
+      USE DAO_MOD,            ONLY : SUNCOS,      SUNCOS_MID
+      USE DIAG_MOD,           ONLY : AD29,        AD46,         AD10em
+      USE GEIA_MOD,           ONLY : GET_IHOUR,   GET_DAY_INDEX
+      USE GEIA_MOD,           ONLY : READ_GEIA,   READ_TODX
+      USE GEIA_MOD,           ONLY : READ_LIQCO2, READ_TOTCO2
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET  
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE LOGICAL_MOD,        ONLY : LANTHRO,     LGFED2BB,     LGFED3BB
+      USE LOGICAL_MOD,        ONLY : LBIOMASS,    LBIOFUEL,     LNEI99
+      USE LOGICAL_MOD,        ONLY : LSTREETS,    LEDGAR,       LBRAVO
+      USE LOGICAL_MOD,        ONLY : LMEGAN
+      USE MEGANUT_MOD,        ONLY : XLTMMP
+      USE MEGAN_MOD,          ONLY : GET_EMMONOT_MEGAN
+      USE MEGAN_MOD,          ONLY : GET_EMISOP_MEGAN
+      USE TRACERID_MOD,       ONLY : IDBCO
+      USE TIME_MOD,           ONLY : GET_MONTH,   GET_TAU 
+      USE TIME_MOD,           ONLY : GET_YEAR,    GET_TS_EMIS  
+      USE TRACER_MOD,         ONLY : STT
+      USE TRACERID_MOD,       ONLY : IDBFCO,      IDTH2,        IDTHD
+      USE TAGGED_CO_MOD,      ONLY : INIT_TAGGED_CO
+      USE TAGGED_CO_MOD,      ONLY : READ_ACETONE,  EMACET
+      USE SCALE_ANTHRO_MOD,   ONLY : GET_ANNUAL_SCALAR
       
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE CMN_O3_MOD        ! FSCALYR, SCNR89, TODH, EMISTCO
-      USE CMN_DIAG_MOD      ! Diagnostic arrays & switches
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_O3_MOD               ! FSCALYR, SCNR89, TODH, EMISTCO
+      USE CMN_DIAG_MOD             ! Diagnostic arrays & switches
 
-#if defined( DEVEL )
 !
 ! !INPUT PARAMETERS: 
 !
@@ -159,6 +155,7 @@
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
+#if defined( DEVEL )
       REAL*8,         INTENT(INOUT) :: BIO_EMISS(:,:,:)
 #endif
 ! 
@@ -171,6 +168,8 @@
 !  08 Dec 2011 - M. Payer    - Remove obsolete GEIA biogenic emissions and add
 !                              MEGAN biogenic emissions.
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -515,7 +514,7 @@
 #if defined( DEVEL )
          CALL BIOFUEL_BURN( State_Met, BIO_EMISS )
 #else
-         CALL BIOFUEL_BURN
+         CALL BIOFUEL_BURN( State_Met )
 #endif
 
 !$OMP PARALLEL DO
@@ -524,7 +523,6 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-#if defined( DEVEL )
             ! Convert from [molec CO/cm3/s] to [kg H2]
             ! BIOFUEL(IDBFCO,I,J) contains biofuel CO emissions.
             ! Scale by 0.322d0 H2/CO from Andreae and Merlet
@@ -550,32 +548,6 @@
      &                 ( ( 0.189d0 * H2CO_YIELD(I,J,1) ) + 0.322d0 ) *
      &                       State_Met%BXHEIGHT(I,J,1)   * 100d0 )
             ENDIF 
-#else
-            ! Convert from [molec CO/cm3/s] to [kg H2]
-            ! BIOFUEL(IDBFCO,I,J) contains biofuel CO emissions.
-            ! Scale by 0.322d0 H2/CO from Andreae and Merlet
-            ! and enhance by 18.9% * yield h2/co from photochemical
-            ! oxidation (lyj, 2/10/07)
-            E_H2 = BIOFUEL(IDBFCO,I,J)  / XNUMOL_H2 *
-     &             BOXVL(I,J,1)        * DTSRCE  *
-     &             ( ( 0.189d0 * H2CO_YIELD(I,J,1) ) + 0.322d0 )
-
-
-            ! Calculate the HD emissions using a -290 permil
-            ! isotopic signature (see BB emissions above).
-            ! jaegle (4/20/07)
-
-            E_HD = ( BIOFUEL(IDBFCO,I,J) * 1.1059d-4 ) * 
-     &             ( ( 0.189d0 * H2CO_YIELD(I,J,1) ) + 0.322d0 ) /
-     &             XNUMOL_HD * ( BOXVL(I,J,1) * DTSRCE ) * 2.d0
-
-            ! ND10 -- store Biofuel Fuel H2 [molec/cm2/s]
-            IF ( ND10 > 0 ) THEN
-               AD10em(I,J,3) = AD10em(I,J,3) + ( BIOFUEL(IDBFCO,I,J) *
-     &                 ( ( 0.189d0 * H2CO_YIELD(I,J,1) ) + 0.322d0 ) *
-     &                       BXHEIGHT(I,J,1)*100d0 )
-            ENDIF 
-#endif
 
             ! Add H2 HD biomass burning to corresponding tracers -
             ! - total H2/HD [kg H2/HD]
@@ -613,11 +585,7 @@
             !===========================================================
 
             ! Surface air temperature [K]
-#if defined( DEVEL )
             TMMP = XLTMMP( I, J, State_Met%TS, IJLOOP )
-#else
-            TMMP = XLTMMP( I, J, TS, IJLOOP )
-#endif
 
             ! MEGAN biogenic emissions (mpayer,12/8/11)
             IF ( LMEGAN ) THEN
@@ -626,13 +594,8 @@
                SC   = SUNCOS_MID(IJLOOP)
 
                ! Diffuse and direct PAR
-#if defined( DEVEL )
                PDR  = State_Met%PARDR(I,J)
                PDF  = State_Met%PARDF(I,J)
-#else
-               PDR  = PARDR(I,J)
-               PDF  = PARDF(I,J)
-#endif
 
                ! ISOP and MONOTERPENE emissions in [atoms C/box/time step]
                EMXX = GET_EMISOP_MEGAN(  I,   J,   SC,    TMMP, 
@@ -728,48 +691,43 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE CHEM_H2_HD( State_Met )
-#else
-      SUBROUTINE CHEM_H2_HD
-#endif
 !
 ! !USES:
 !
-      USE DAO_MOD,        ONLY : AD, AIRVOL, T
-      USE DIAG_MOD,       ONLY : AD10
-      USE ERROR_MOD,      ONLY : CHECK_VALUE
-      USE GLOBAL_OH_MOD,  ONLY : GET_GLOBAL_OH,   OH
-      USE GLOBAL_O1D_MOD, ONLY : GET_GLOBAL_O1D, O1D
-      USE GLOBAL_NOX_MOD, ONLY : GET_GLOBAL_NOX,  BNOX
-      USE GRID_MOD,       ONLY : GET_YMID, GET_AREA_M2, GET_AREA_CM2
-      USE PRESSURE_MOD,   ONLY : GET_PCENTER, GET_PEDGE
-      USE TIME_MOD,       ONLY : GET_TS_CHEM,     GET_MONTH, GET_YEAR
-      USE TIME_MOD,       ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
-      USE DRYDEP_MOD,     ONLY : DEPSAV
-      USE TRACER_MOD,     ONLY : N_TRACERS,       STT
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
-      USE TRACERID_MOD,   ONLY : IDTH2, IDTHD
-      USE TAGGED_CO_MOD,  ONLY : GET_ALPHA_ISOP,    READ_PCO_LCO_STRAT
-      USE TAGGED_CO_MOD,  ONLY : GET_PCO_LCO_STRAT
-#if defined( DEVEL )
+      USE DIAG_MOD,           ONLY : AD10
+      USE ERROR_MOD,          ONLY : CHECK_VALUE
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE GLOBAL_OH_MOD,      ONLY : GET_GLOBAL_OH,   OH
+      USE GLOBAL_O1D_MOD,     ONLY : GET_GLOBAL_O1D, O1D
+      USE GLOBAL_NOX_MOD,     ONLY : GET_GLOBAL_NOX,  BNOX
+      USE GRID_MOD,           ONLY : GET_YMID, GET_AREA_M2, GET_AREA_CM2
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER, GET_PEDGE
+      USE TIME_MOD,           ONLY : GET_TS_CHEM,     GET_MONTH
+      USE TIME_MOD,           ONLY : GET_YEAR
+      USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
+      USE DRYDEP_MOD,         ONLY : DEPSAV
+      USE TRACER_MOD,         ONLY : N_TRACERS,       STT
+      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
+      USE TRACERID_MOD,       ONLY : IDTH2, IDTHD
+      USE TAGGED_CO_MOD,      ONLY : GET_ALPHA_ISOP
+      USE TAGGED_CO_MOD,      ONLY : READ_PCO_LCO_STRAT
+      USE TAGGED_CO_MOD,      ONLY : GET_PCO_LCO_STRAT
 
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DIAG_MOD     ! ND65
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND65
 !
 ! !INPUT PARAMETERS: 
 !
-#if defined( DEVEL )
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  18 Sep 2007 - L. Jaegle, H. U. Price, P. Le Sager -- Initial version
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -875,17 +833,11 @@
 
          ! STTH2 [molec H2/cm3/kg H2] converts [kg H2] --> [molec H2/cm3]
          ! kg H2/box * box/cm3 * mole/0.002 kg H2 * Avog.#/mole
-#if defined( DEVEL )
          STTH2 = 1d0     / State_Met%AIRVOL(I,J,L) / 1d6 /
      &           FMOL_H2 * 6.023d23
 	 
 	 STTHD = 1d0     / State_Met%AIRVOL(I,J,L) / 1d6 / 
      &           FMOL_HD * 6.023d23 
-#else
-         STTH2 = 1d0 / AIRVOL(I,J,L) / 1d6 / FMOL_H2 * 6.023d23
-	 
-	 STTHD = 1d0 / AIRVOL(I,J,L) / 1d6 / FMOL_HD * 6.023d23 
-#endif
                   
          ! GH2 is H2 concentration in [molec H2/cm3]
          GH2   = STT(I,J,L,IDTH2) * STTH2
@@ -894,12 +846,8 @@
 	 GHD   = STT(I,J,L,IDTHD) * STTHD
 
          ! DENS is the number density of air [molec air/cm3]
-#if defined( DEVEL )
          DENS  = State_Met%AD(I,J,L)    * 1000.d0  /
      &           BOXVL(I,J,L,State_Met) * 6.023d23 / WTAIR
-#else
-         DENS  = AD(I,J,L) * 1000.d0 / BOXVL(I,J,L) * 6.023d23  / WTAIR
-#endif
 
          !==============================================================
          ! (1a) Production of H2 and HD by methane oxidation
@@ -909,11 +857,7 @@
          H2_CH4 = 0d0
 
          ! Test level for stratosphere or troposphere
-#if defined( DEVEL )
          IF ( ITS_IN_THE_STRAT( I, J, L, State_Met ) ) THEN
-#else
-         IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN
-#endif
 
             !===========================================================
             ! (1a-1) Production of H2 from CH4 in the stratosphere
@@ -965,11 +909,7 @@
             ALPHA_CH4 = 1d0
 
             ! Calculate updated rate constant [s-1] (bnd, bmy, 1/2/01)
-#if defined( DEVEL )
             KRATE     = 2.45D-12 * EXP( -1775.d0 / State_Met%T(I,J,L) ) 
-#else
-            KRATE     = 2.45D-12 * EXP( -1775.d0 / T(I,J,L) ) 
-#endif
  
             ! Production of CO from CH4 = alpha * k * [CH4] * [OH] * dt
             ! Scale this by the H2 yield relative to CO
@@ -1044,7 +984,6 @@
             ! scale ALPHA_ISOP by the relative H2/CO yield
             ALPHA_ISOP = ALPHA_ISOP * H2CO_YIELD(I,J,L)
 
-#if defined( DEVEL )
             ! P(CO) from Isoprene Flux = ALPHA_ISOP * Flux(ISOP)
             ! Convert from [molec ISOP/box] to [molec CO/cm3]
             ! Also account for the fact that ISOP has 5 carbons
@@ -1059,21 +998,6 @@
      &                 ( 100d0          / 397d0                  ) *
      &                 ( H2CO_YIELD(I,J,L)                       ) *
      &                 ( 12d0           / 28d0                   ) 
-#else
-            ! P(CO) from Isoprene Flux = ALPHA_ISOP * Flux(ISOP)
-            ! Convert from [molec ISOP/box] to [molec CO/cm3]
-            ! Also account for the fact that ISOP has 5 carbons
-            H2_ISOP = SUMISOPCO(I,J) / BOXVL(I,J,L) / 5.d0 * ALPHA_ISOP
-	    
-            ! P(CO) from CH3OH is scaled to Isoprene Flux (see above)
-	    ! Units are [molec CO/cm3]
-            ! For H2, scale by the relative CO/H2 molar weights and
-            ! the H2/CO yields.
-            H2_CH3OH = ( SUMISOPCO(I,J) / BOXVL(I,J,L) ) *
-     &                 ( 100d0          / 397d0        ) *
-     &                 ( H2CO_YIELD(I,J,L)             ) *
-     &                 ( 12d0           / 28d0         ) 
-#endif
  
             ! Zero SUMISOPCO and SUMCH3OHCO for the next emission step
             SUMISOPCO(I,J)  = 0d0
@@ -1137,13 +1061,8 @@
             ! P(CO) from Monoterpene Flux =  alpha * Flux(Mono)
             ! Units are [molec H2/cm3]. Scale by the
             ! H2/CO photochemical yield.
-#if defined( DEVEL )
             H2_MONO = ( SUMMONOCO(I,J) / BOXVL(I,J,L,State_Met) ) * 
      &                ( ALPHA_MONO     * H2CO_YIELD(I,J,L) )
-#else
-            H2_MONO = ( SUMMONOCO(I,J) / BOXVL(I,J,L)      ) * 
-     &                ( ALPHA_MONO     * H2CO_YIELD(I,J,L) )
-#endif
 
             ! Zero SUMMONOCO for the next emission step
             SUMMONOCO(I,J) = 0d0
@@ -1187,13 +1106,8 @@
             ALPHA_ACET = 2.D0 / 3.D0
             
             ! Units are [molec H2/cc]. Scale by the H2/CO yield.
-#if defined( DEVEL )
             H2_ACET = SUMACETCO(I,J) / BOXVL(I,J,L,State_Met) * 
      &                ALPHA_ACET     * H2CO_YIELD (I,J,L)
-#else
-            H2_ACET = SUMACETCO(I,J) / BOXVL(I,J,L) * 
-     &                ALPHA_ACET * H2CO_YIELD (I,J,L)
-#endif
 
             ! Zero SUMACETCO for the next emission step
             SUMACETCO(I,J) = 0d0
@@ -1217,11 +1131,7 @@
          HD_O1D = 0.d0
 
          ! Select out tropospheric or stratospheric boxes
-#if defined( DEVEL )
          IF ( ITS_IN_THE_STRAT( I, J, L, State_Met ) ) THEN
-#else
-         IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN
-#endif
 
             !===========================================================
             ! (2a-1) Stratospheric loss H2 HD due to chem rxn w/OH & O1D
@@ -1231,13 +1141,8 @@
             CORATE = GET_PCO_LCO_STRAT( .FALSE., I, J, L )
 	    
 	    ! Rate constants for H2+OH and HD+OH from JPL, 2004 (hup, 06/28/04)
-#if defined( DEVEL )
             H2_RATE = 5.5D-12 * EXP( -2000.d0 / State_Met%T(I,J,L) )
             HD_RATE = 5.0D-12 * EXP( -2130.d0 / State_Met%T(I,J,L) )
-#else
-            H2_RATE = 5.5D-12 * EXP( -2000.d0 / T(I,J,L) )
-            HD_RATE = 5.0D-12 * EXP( -2130.d0 / T(I,J,L) )
-#endif
 	    
             ! H2_OH = Stratospheric loss of H2 by OH [molec/cm3]
 	    ! alpha=0.52 for HD-OH in strat 230K (Rockmann et al., 2003)
@@ -1289,13 +1194,8 @@
 
 	    ! Loss for H2 and HD by reaction with OH accd JPL, 2004 
 	    ! (hup, 06/28/04)
-#if defined( DEVEL )
             H2_RATE = 5.5D-12 * EXP( -2000.d0 / State_Met%T(I,J,L) )
 	    HD_RATE = 5.0D-12 * EXP( -2130.d0 / State_Met%T(I,J,L) )
-#else
-            H2_RATE = 5.5D-12 * EXP( -2000.d0 / T(I,J,L) )
-	    HD_RATE = 5.0D-12 * EXP( -2130.d0 / T(I,J,L) )
-#endif
 
             ! H2_OH = Tropospheric loss of H2 by OH [molec/cm3]
             H2_OH   = H2_RATE * GH2 * OH(I,J,L) * DTCHEM

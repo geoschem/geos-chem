@@ -377,25 +377,17 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE AIRQNT( State_Met )
-#else
-      SUBROUTINE AIRQNT
-#endif
 !
 ! !USES:
 !
-      USE GRID_MOD,           ONLY : GET_AREA_M2
-      USE PRESSURE_MOD,       ONLY : GET_BP, GET_PEDGE
-#if defined( DEVEL )
-      USE GIGC_State_Met_Mod, ONLY: MetState
-#endif
+      USE GIGC_State_Met_Mod,   ONLY : MetState
+      USE GRID_MOD,             ONLY : GET_AREA_M2
+      USE PRESSURE_MOD,         ONLY : GET_BP, GET_PEDGE
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-#if defined( DEVEL )
       TYPE(MetState), INTENT(INOUT) :: State_Met   ! Obj for met fields
-#endif
 !
 ! !REMARKS:
 !  DAO met fields updated by AIRQNT:
@@ -450,6 +442,8 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !  22 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
 !  22 Oct 2012 - R. Yantosca - Renamed LOCAL_MET argument to State_Met
+!  09 Nov 2012 - M. Payer    - Copy met field arrays to the State_Met derived
+!                              type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -481,9 +475,10 @@
 
          ! Pressure difference between top & bottom edges [hPa]
          DELP(L,I,J) = P1 - P2
-#if defined( DEVEL )
+
+         ! Copy met field to State_Met
          State_Met%DELP(L,I,J) = DELP(L,I,J)
-#endif            
+
          !===========================================================
          ! BXHEIGHT is the height (Delta-Z) of grid box (I,J,L) 
          ! in meters. 
@@ -494,9 +489,9 @@
          ! Rd = 8.31 J/(mol*K) / 0.02897 kg/mol. 
          !===========================================================
          BXHEIGHT(I,J,L) = Rdg0 * T(I,J,L) * LOG( P1 / P2 )
-#if defined( DEVEL )
+
+         ! Copy met field to State_Met
          State_Met%BXHEIGHT(I,J,L) = BXHEIGHT(I,J,L)
-#endif            
 
          !===========================================================
          ! AIRVOL is the volume of grid box (I,J,L) in meters^3
@@ -516,9 +511,9 @@
          ! in using AREA_M2 for grid boxes (I, J, L > 1)
          !===========================================================
          AIRVOL(I,J,L) = BXHEIGHT(I,J,L) * AREA_M2
-#if defined( DEVEL )
+
+         ! Copy met field to State_Met
          State_Met%AIRVOL(I,J,L) = AIRVOL(I,J,L)
-#endif            
 
          !===========================================================
          ! AD = (dry) mass of air in grid box (I,J,L) in kg, 
@@ -533,17 +528,18 @@
          !    1          1          mb       m             1
          !===========================================================
          AD(I,J,L) = DELP(L,I,J) * G0_100 * AREA_M2
-#if defined( DEVEL )
+
+         ! Copy met field to State_Met
          State_Met%AD(I,J,L) = AD(I,J,L)
-#endif            
 
          !===========================================================
          ! AIRDEN = density of air (AD / AIRVOL) in kg / m^3 
          !===========================================================
          AIRDEN(L,I,J) = AD(I,J,L) / AIRVOL(I,J,L)
-#if defined( DEVEL )
+
+         ! Copy met field to State_Met
          State_Met%AIRDEN(L,I,J) = AIRDEN(L,I,J)
-#endif            
+
       ENDDO
       ENDDO
       ENDDO
@@ -681,31 +677,25 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE INTERP( NTIME0, NTIME1, NTDT, State_Met )
-#else
-      SUBROUTINE INTERP( NTIME0, NTIME1, NTDT )
-#endif
 !
 ! !USES:
 !
-      USE GRID_MOD,    ONLY : GET_YEDGE
-      USE LOGICAL_MOD, ONLY : LVARTROP
-#if defined( DEVEL )
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE GRID_MOD,           ONLY : GET_YEDGE
+      USE LOGICAL_MOD,        ONLY : LVARTROP
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)  :: NTIME0   ! Elapsed time [s] at start of 6hr step
-      INTEGER, INTENT(IN)  :: NTIME1   ! Elapsed time [s] at current time
-      INTEGER, INTENT(IN)  :: NTDT     ! Length of dynamic timestep [s]
+      INTEGER,        INTENT(IN)    :: NTIME0   ! Elapsed time [s] at start of
+                                                !  6hr step
+      INTEGER,        INTENT(IN)    :: NTIME1   ! Elapsed time [s] at current
+                                                !  time
+      INTEGER,        INTENT(IN)    :: NTDT     ! Length of dynamic timestep [s]
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-#if defined( DEVEL )
-      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
-#endif
+      TYPE(MetState), INTENT(INOUT) :: State_Met  ! Meteorology State object
 ! 
 ! !REMARKS:
 !  Different met fields are archived at I6 (instantaneous 6-hr) time 
@@ -755,6 +745,8 @@
 !  06 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x met fields
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  01 Mar 2012 - R. Yantosca - Now use GET_YEDGE(I,J,L) from new grid_mod.F90
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -786,8 +778,6 @@
       
       ! Fraction of 6h timestep elapsed at the end of this dyn timestep
       TC2 = ( D_NTIME1 + D_NTDT     - D_NTIME0 ) / D_NDT 
-
-#if defined( DEVEL )
 
 #if   defined( GEOS_4 ) || defined( GCAP )
 
@@ -980,184 +970,6 @@
 
 #endif
 
-#else
-
-#if   defined( GEOS_4 ) || defined( GCAP )
-
-      !=================================================================
-      ! Do the interpolation for GEOS-4 or GCAP met fields 
-      !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, YSOUTH, YNORTH )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! North & south edges of box
-         YSOUTH = GET_YEDGE( I, J,   1 )
-         YNORTH = GET_YEDGE( I, J+1, 1 )
-
-         ! Interpolate pressure [hPa] to the end of the dynamic timestep
-         PSC2(I,J) = PS1(I,J) + ( PS2(I,J) - PS1(I,J) ) * TC2 
-
-         ! Test if we are using the variable tropopause
-         IF ( LVARTROP ) THEN
- 
-            ! Interpolate TROPP [hPa] to the midpt of the dynamic timestep
-            TROPP(I,J) = TROPP1(I,J) 
-     &                 + ( TROPP2(I,J) - TROPP1(I,J) ) * TM
-
-            ! However, we still need to make sure to cap TROPP in the
-            ! polar regions (if the entire box is outside 60S-60N)
-            ! so that we don't do chemistry at an abnormally high
-            ! altitude.  Set TROPP in the polar regions to 200 hPa.
-            ! (jal, phs, bmy, 9/18/07)
-            IF ( YSOUTH >= 60d0 .or. YNORTH <= -60d0 ) THEN
-               TROPP(I,J) = MAX( TROPP(I,J), 200d0 )
-            ENDIF
-         ENDIF
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-#elif defined( GEOS_5 )
-
-      !=================================================================
-      ! Do the interpolation for GEOS-5 met fields 
-      !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, YSOUTH, YNORTH )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! North & south edges of box
-         YSOUTH = GET_YEDGE( I, J,   1 )
-         YNORTH = GET_YEDGE( I, J+1, 1 )
-
-         ! Interpolate pressure [hPa] to the end of the dynamic timestep
-         PSC2(I,J) = PS1(I,J)  + ( PS2(I,J)  - PS1(I,J)  ) * TC2 
-
-         ! Interpolate the GEOS-5 total O3 column [DU] to current time
-         TO3(I,J)  = TO31(I,J) + ( TO32(I,J) - TO31(I,J) ) * TM
-
-         ! Even though TROPP is a 3-hour average field, we 
-         ! we still need to make sure to cap TROPP in the
-         ! polar regions (if the entire box is outside 60S-60N)
-         ! so that we don't do chemistry at an abnormally high
-         ! altitude.  Set TROPP in the polar regions to 200 hPa.
-         ! (jal, phs, bmy, 9/18/07)
-         IF ( LVARTROP ) THEN
-            IF ( YSOUTH >= 60d0 .or. YNORTH <= -60d0 ) THEN
-               TROPP(I,J) = MAX( TROPP(I,J), 200d0 )
-            ENDIF
-         ENDIF
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-#elif defined( MERRA )
-
-      !=================================================================
-      ! Do the interpolation for MERRA met fields 
-      !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, YSOUTH, YNORTH )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         !----------------------------------------------------
-         ! Interpolate 2D variables
-         !----------------------------------------------------
-         IF ( L == 1 ) THEN
-
-            ! North & south edges of box
-            YSOUTH     = GET_YEDGE( I, J,   L )
-            YNORTH     = GET_YEDGE( I, J+1, L )
-            
-            ! Interpolate pressure [hPa] to the end of the dynamic timestep
-            PSC2(I,J)  = PS1(I,J) + ( PS2(I,J) - PS1(I,J) ) * TC2 
-
-            ! Even though TROPP is a 3-hour average field, we 
-            ! we still need to make sure to cap TROPP in the
-            ! polar regions (if the entire box is outside 60S-60N)
-            ! so that we don't do chemistry at an abnormally high
-            ! altitude.  Set TROPP in the polar regions to 200 hPa.
-            ! (jal, phs, bmy, 9/18/07)
-            IF ( LVARTROP ) THEN
-               IF ( YSOUTH >= 60d0 .or. YNORTH <= -60d0 ) THEN
-                  TROPP(I,J) = MAX( TROPP(I,J), 200d0 )
-               ENDIF
-            ENDIF
-         ENDIF
-
-         !----------------------------------------------------
-         ! Interpolate 3D variables
-         !----------------------------------------------------
-         RH(I,J,L) = RH1(I,J,L) + ( RH2(I,J,L) - RH1(I,J,L) ) * TM
-
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-#elif defined( GEOS_57 )
-
-      !=================================================================
-      ! Do the interpolation for GEOS-5.7.x met fields 
-      !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, YSOUTH, YNORTH )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         !----------------------------------------------------
-         ! Interpolate 2D variables
-         !----------------------------------------------------
-         IF ( L == 1 ) THEN
-
-            ! North & south edges of box
-            YSOUTH     = GET_YEDGE( I, J,   L )
-            YNORTH     = GET_YEDGE( I, J+1, L )
-
-            ! Interpolate pressure [hPa] to the end of the dynamic timestep
-            PSC2(I,J)  = PS1(I,J) + ( PS2(I,J) - PS1(I,J) ) * TC2 
-
-            ! Even though TROPP is a 3-hour average field, we 
-            ! we still need to make sure to cap TROPP in the
-            ! polar regions (if the entire box is outside 60S-60N)
-            ! so that we don't do chemistry at an abnormally high
-            ! altitude.  Set TROPP in the polar regions to 200 hPa.
-            ! (jal, phs, bmy, 9/18/07)
-            IF ( LVARTROP ) THEN
-               IF ( YSOUTH >= 60d0 .or. YNORTH <= -60d0 ) THEN
-                  TROPP(I,J) = MAX( TROPP(I,J), 200d0 )
-               ENDIF
-            ENDIF
-         ENDIF
-
-         !----------------------------------------------------
-         ! Interpolate 3D variables
-         !----------------------------------------------------
-         T   (I,J,L) = TMPU1(I,J,L)
-     &               + ( TMPU2(I,J,L) - TMPU1(I,J,L) ) * TM
-
-         SPHU(I,J,L) = SPHU1(I,J,L)
-     &               + ( SPHU2(I,J,L) - SPHU1(I,J,L) ) * TM 
-
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-#endif
-
-#endif  ! DEVEL
-
       END SUBROUTINE INTERP
 !EOC
 !------------------------------------------------------------------------------
@@ -1173,30 +985,22 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       FUNCTION IS_LAND( I, J, State_Met ) RESULT ( LAND )
-#else
-      FUNCTION IS_LAND( I, J ) RESULT ( LAND )
-#endif
 !
 ! !USES:
 !
-      USE TIME_MOD,    ONLY : GET_YEAR
-#if defined( DEVEL )
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE TIME_MOD,           ONLY : GET_YEAR
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER,        INTENT(IN) :: I           ! Longitude index of grid box
-      INTEGER,        INTENT(IN) :: J           ! Latitude  index of grid box
-#if defined( DEVEL )
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
+      INTEGER,        INTENT(IN)  :: I           ! Longitude index of grid box
+      INTEGER,        INTENT(IN)  :: J           ! Latitude  index of grid box
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !RETURN VALUE:
 !
-      LOGICAL              :: LAND        ! =T if it is a land box
+      LOGICAL                     :: LAND        ! =T if it is a land box
 ! 
 ! !REVISION HISTORY: 
 !  26 Jun 2000 - R. Yantosca - Initial version
@@ -1223,11 +1027,11 @@
 !  25 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
 !  06 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA/GEOS-5
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-
-#if defined( DEVEL )
 
 #if   defined( GCAP )
 
@@ -1252,31 +1056,6 @@
 
 #endif
 
-#else
-
-#if   defined( GCAP )
-
-      !--------------------------
-      ! GCAP
-      !--------------------------
-
-      ! It's a land box if 50% or more of the box is covered by 
-      ! land and less than 50% of the box is covered by ice
-      LAND = ( LWI_GISS(I,J) >= 0.5d0 .and. SNICE(I,J) < 0.5d0 )
-
-#else
-
-      !--------------------------
-      ! GEOS-4 / GEOS-5 / MERRA
-      !--------------------------
-
-      ! LWI=1 and ALBEDO less than 69.5% is a LAND box 
-      LAND = ( NINT( LWI(I,J) ) == 1 .and. ALBD(I,J) < 0.695d0 )
-    
-#endif
-
-#endif  ! DEVEL
-
       END FUNCTION IS_LAND
 !EOC
 !------------------------------------------------------------------------------
@@ -1292,30 +1071,22 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       FUNCTION IS_WATER( I, J, State_Met ) RESULT ( WATER )
-#else
-      FUNCTION IS_WATER( I, J ) RESULT ( WATER )
-#endif
 !
 ! !USES:
 !
-      USE TIME_MOD,    ONLY : GET_YEAR
-#if defined( DEVEL )
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE TIME_MOD,           ONLY : GET_YEAR
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER,        INTENT(IN) :: I           ! Longitude index of grid box
-      INTEGER,        INTENT(IN) :: J           ! Latitude  index of grid box
-#if defined( DEVEL )
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
+      INTEGER,         INTENT(IN) :: I           ! Longitude index of grid box
+      INTEGER,         INTENT(IN) :: J           ! Latitude  index of grid box
+      TYPE(MetState),  INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !RETURN VALUE:
 !
-      LOGICAL              :: WATER       ! =T if this is a water box
+      LOGICAL                     :: WATER       ! =T if this is a water box
 ! 
 ! !REVISION HISTORY: 
 !  30 Jan 1998 - R. Yantosca - Initial version
@@ -1342,11 +1113,11 @@
 !  25 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
 !  06 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA/GEOS-5
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-
-#if defined( DEVEL )
 
 #if   defined( GCAP )
 
@@ -1371,31 +1142,6 @@
 
 #endif
 
-#else
-
-#if   defined( GCAP )
-
-      !--------------------------
-      ! GCAP
-      !--------------------------
-
-      ! It's a water box if less than 50% of the box is
-      ! covered by land and less than 50% is covered by ice
-      WATER = ( LWI_GISS(I,J) < 0.5d0 .and. SNICE(I,J) < 0.5d0 )
-
-#else
-
-      !---------------------------
-      ! GEOS-4 / GEOS-5 / MERRA
-      !---------------------------
-
-      ! LWI=0 and ALBEDO less than 69.5% is a water box 
-      WATER = ( NINT( LWI(I,J) ) == 0 .and. ALBD(I,J) < 0.695d0 )
-
-#endif
-
-#endif  ! DEVEL
-
       END FUNCTION IS_WATER
 !EOC
 !------------------------------------------------------------------------------
@@ -1411,30 +1157,22 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       FUNCTION IS_ICE( I, J, State_Met ) RESULT ( ICE )
-#else
-      FUNCTION IS_ICE( I, J ) RESULT ( ICE )
-#endif
 !
 ! !USES:
 !
-      USE TIME_MOD,    ONLY : GET_YEAR
-#if defined( DEVEL )
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE TIME_MOD,           ONLY : GET_YEAR
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER,        INTENT(IN) :: I           ! Longitude index of grid box
-      INTEGER,        INTENT(IN) :: J           ! Latitude  index of grid box
-#if defined( DEVEL )
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
+      INTEGER,         INTENT(IN) :: I           ! Longitude index of grid box
+      INTEGER,         INTENT(IN) :: J           ! Latitude  index of grid box
+      TYPE(MetState),  INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !RETURN VALUE:
 !
-      LOGICAL              :: ICE         ! =T if this is an ice box
+      LOGICAL                     :: ICE         ! =T if this is an ice box
 !
 ! 
 ! !REVISION HISTORY: 
@@ -1447,8 +1185,6 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-
-#if defined( DEVEL )
 
 #if   defined( GCAP )
 
@@ -1471,30 +1207,6 @@
 
 #endif
 
-#else
-
-#if   defined( GCAP )
-
-      !--------------------------
-      ! GCAP
-      !--------------------------
-
-      ! It's an ice box if 50% or more of the box is covered by ice
-      ICE = ( SNICE(I,J) >= 0.5d0 )
-
-#else
-
-      !--------------------------
-      ! GEOS-4 / GEOS-5 / MERRA
-      !--------------------------
-
-      ! LWI=2 or ALBEDO > 69.5% is ice
-      ICE = ( NINT( LWI(I,J) ) == 2 .or. ALBD(I,J) >= 0.695d0 )
-
-#endif
-
-#endif  ! DEVEL
-
       END FUNCTION IS_ICE
 !EOC
 !------------------------------------------------------------------------------
@@ -1511,18 +1223,12 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       FUNCTION IS_NEAR( I, J, THRESH, NEIGHBOR, State_Met )
      &   RESULT ( NEAR )
-#else
-      FUNCTION IS_NEAR( I, J, THRESH, NEIGHBOR ) RESULT ( NEAR )
-#endif
 !
 ! !USES:
 !
-#if defined( DEVEL )
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1530,13 +1236,11 @@
       INTEGER,        INTENT(IN) :: I, J       ! Lon & lat grid box indices
       INTEGER,        INTENT(IN) :: NEIGHBOR   ! # of neighbor boxes to consider
       REAL*8,         INTENT(IN) :: THRESH     ! LWI threshold for near-land 
-#if defined( DEVEL )
       TYPE(MetState), INTENT(IN) :: State_Met  ! Meteorology State object
-#endif
 !
 ! !RETURN VALUE:
 !
-      LOGICAL             :: NEAR        ! # of near land boxes
+      LOGICAL                    :: NEAR       ! # of near land boxes
 !
 ! !REMARKS:
 !  Typical values for:
@@ -1556,6 +1260,8 @@
 !  25 Aug 2010 - R. Yantosca - Treat MERRA in same way as GEOS-5
 !  06 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA/GEOS-5
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1590,7 +1296,6 @@
             IF ( LONGI < 1     ) LONGI = LONGI + IIPAR 
             IF ( LONGI > IIPAR ) LONGI = LONGI - IIPAR
             
-#if defined( DEVEL )
             ! If it's an ice box, skip to next neighbor
             IF ( IS_ICE( LONGI, LATJ, State_Met ) ) CYCLE
 
@@ -1642,61 +1347,6 @@
 
 #endif
 
-#else
-
-            ! If it's an ice box, skip to next neighbor
-            IF ( IS_ICE( LONGI, LATJ ) ) CYCLE
-
-#if   defined( GCAP ) 
-
-            !---------------------------------------------------
-            ! GCAP met fields
-            !
-            ! LWI_GISS = 0.0 means that the box is all water
-            ! LWI_GISS = 1.0 means that the box is all land
-            !
-            ! with fractional values at land-water boundaries
-            !
-            ! It's near-land if THRESH <= LWI_GISS <= 1.0 
-            !---------------------------------------------------
-            IF ( LWI_GISS(LONGI,LATJ) >  THRESH .and.
-     &           LWI_GISS(LONGI,LATJ) <= 1.0d0 ) THEN
-
-               ! We are in a near-land box
-               NEAR = .TRUE.
-
-               ! Break out of loop
-               GOTO 999
-            ENDIF
-
-#elif defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
-
-            !---------------------------------------------------
-            ! GEOS-4 / GEOS-5 / MERRA met fields
-            !
-            ! LWI = 0.0 is ocean
-            ! LWI = 1.0 is land
-            ! LWI = 2.0 is ice 
-            !
-            ! with fractional values at land-water, land-ice,
-            ! and water-ice boundaries.
-            !
-            ! It's near-land if THRESH <= LWI <= 1.0 
-            !---------------------------------------------------
-            IF ( LWI(LONGI,LATJ) >  THRESH  .and.
-     &           LWI(LONGI,LATJ) <= 1d0    ) THEN
-
-               ! We are in a near-land box
-               NEAR = .TRUE.
-
-               ! Break out of loop
-               GOTO 999
-            ENDIF
-
-#endif
-
-#endif  ! DEVEL
-
          ENDDO
       ENDDO
 
@@ -1718,23 +1368,15 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE MAKE_AVGW( State_Met )
-#else
-      SUBROUTINE MAKE_AVGW
-#endif
 !
 ! !USES:
 !
-#if defined( DEVEL )
-      USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE GIGC_State_Met_Mod,   ONLY : MetState
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-#if defined( DEVEL )
       TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
-#endif
 ! 
 ! !REVISION HISTORY: 
 !  30 Jan 1998 - R. Yantosca - Initial version
@@ -1747,6 +1389,8 @@
 !  (4 ) SPHU and AVGW are declared w/in "dao_mod.f", so we don't need to pass
 !        these as arguments anymore (bmy, 11/15/02)
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1787,12 +1431,8 @@
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-#if defined( DEVEL )
 !         State_Met%AVGW(I,J,L) = HCONV * State_Met%SPHU(I,J,L)
          State_Met%AVGW(I,J,L) = HCONV * SPHU(I,J,L)
-#else
-         AVGW(I,J,L) = HCONV * SPHU(I,J,L) 
-#endif
       ENDDO
       ENDDO
       ENDDO
@@ -1813,24 +1453,16 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE MAKE_RH( State_Met )
-#else
-      SUBROUTINE MAKE_RH
-#endif
 !
 ! !USES:
 !
-      USE PRESSURE_MOD, ONLY : GET_PCENTER
-#if defined( DEVEL )
-      USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE GIGC_State_Met_Mod,   ONLY : MetState
+      USE PRESSURE_MOD,         ONLY : GET_PCENTER
 !
 ! !INPUT PARAMETERS: 
 !
-#if defined( DEVEL )
       TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
-#endif
 !
 ! !REMARKS:
 !  Module variables used:
@@ -1851,6 +1483,8 @@
 !  (5 ) Now remove SPHU, TMPU, RH from the arg list, since these are now
 !        all contained w/in this dao_mod.f as module variables. (bmy, 9/23/02)
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1880,30 +1514,18 @@
          PRES = GET_PCENTER(I,J,L)
 
          ! Temperature at grid box (I,J,L)
-#if defined( DEVEL )
          TEMP = State_Met%T(I,J,L)
-#else
-         TEMP = T(I,J,L)
-#endif
 
          ! Saturation water vapor pressure in mbar 
          ! (from NASA GTE PEM-Tropics handbook)
          ESAT = ( 10d0**( A - ( B / TEMP ) ) ) * ( TEMP**C )
             
-#if defined( DEVEL )
          ! Specific humidity in mb
 !         SHMB = State_Met%SPHU(I,J,L) * 1.6072d-3 * PRES
          SHMB = SPHU(I,J,L) * 1.6072d-3 * PRES
             
          ! Relative humidity as a percentage
          State_Met%RH(I,J,L) = ( SHMB / ESAT ) * 100d0 
-#else
-         ! Specific humidity in mb
-         SHMB = SPHU(I,J,L) * 1.6072d-3 * PRES
-            
-         ! Relative humidity as a percentage
-         RH(I,J,L) = ( SHMB / ESAT ) * 100d0 
-#endif
 
       ENDDO
       ENDDO
@@ -1925,29 +1547,21 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       FUNCTION GET_OBK( I, J, State_Met ) RESULT( OBK )
-#else
-      FUNCTION GET_OBK( I, J ) RESULT( OBK )
-#endif
 !
 ! !USES:
 !
-#if defined( DEVEL )
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER,        INTENT(IN) :: I           ! Longitude index
-      INTEGER,        INTENT(IN) :: J           ! Latitude  index
-#if defined( DEVEL )
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
+      INTEGER,         INTENT(IN) :: I           ! Longitude index
+      INTEGER,         INTENT(IN) :: J           ! Latitude  index
+      TYPE(MetState),  INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !RETURN VALUE:
 !
-      REAL*8              :: OBK   ! Monin-Obhukhov length
+      REAL*8                      :: OBK         ! Monin-Obhukhov length
 !
 ! !REMARKS:
 ! 
@@ -1955,6 +1569,8 @@
 ! !REVISION HISTORY: 
 !  25 May 2005 - R. Yantosca - Initial version
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1966,11 +1582,7 @@
       !=================================================================
 
       ! Monin-Obhukov length is a GCAP met field
-#if defined( DEVEL )
       OBK = State_Met%MOLENGTH(I,J)
-#else
-      OBK = MOLENGTH(I,J)
-#endif
 
 #else
 
@@ -1997,7 +1609,6 @@
       REAL*8, PARAMETER :: KAPPA = 0.4d0 
       REAL*8, PARAMETER :: CP    = 1000.0d0
 
-#if defined( DEVEL )
       ! Numerator
       NUM = - State_Met%AIRDEN(1,I,J) * CP                   *
      &        State_Met%TS(I,J)        * State_Met%USTAR(I,J) *
@@ -2005,14 +1616,6 @@
 
       ! Denominator
       DEN =  KAPPA         * g0       * State_Met%HFLUX(I,J) 
-#else
-      ! Numerator
-      NUM = -AIRDEN(1,I,J) *  CP            * TS(I,J) *
-     &       USTAR(I,J)    *  USTAR(I,J)    * USTAR(I,J)
-
-      ! Denominator
-      DEN =  KAPPA * g0 * HFLUX(I,J) 
-#endif
 
       ! Prevent div by zero
       IF ( ABS( DEN ) > 0d0 ) THEN
@@ -2476,23 +2079,15 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE COPY_I3_I6_FIELDS( State_Met )
-#else
-      SUBROUTINE COPY_I3_I6_FIELDS
-#endif
 !
 ! !USES:
 !
-#if defined( DEVEL )
-      USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE GIGC_State_Met_Mod,   ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
-#if defined( DEVEL )
       TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
-#endif
 ! 
 ! !REVISION HISTORY: 
 !  13 Apr 2004 - R. Yantosca - Initial version
@@ -2506,6 +2101,8 @@
 !  06 Feb 2012 - R. Yantosca - Added #if block for GEOS-5.7.x met fields
 !  07 Feb 2012 - R. Yantosca - Renamed to COPY_I3_I6_FIELDS
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2517,8 +2114,6 @@
       !=================================================================
       ! COPY_I6_FIELDS begins here!
       !=================================================================
-
-#if defined( DEVEL )
 
 #if   defined( GCAP )
 
@@ -2561,52 +2156,6 @@
       State_Met%RH1    = State_Met%RH2     ! I6 relative humidity   [%]
 
 #endif
-
-#else
-
-#if   defined( GCAP )
-
-      !------------------
-      ! GCAP met
-      !------------------
-      PS1    = PS2          ! I6 surface pressure    [hPa]
-      TROPP1 = TROPP2       ! I6 tropopause pressure [hPa]
-
-#elif defined( GEOS_4 )
-
-      !------------------
-      ! GEOS-4 met
-      !------------------
-      PS1    = PS2          ! I6 surface pressure    [hPa]
-      TROPP1 = TROPP2       ! I6 tropopause pressure [hPa]
-
-#elif defined( GEOS_5 )
-
-      !------------------
-      ! GEOS-5 met
-      !------------------
-      PS1    = PS2          ! I6 surface pressure    [hPa] 
-
-#elif defined( GEOS_57 )
-
-      !------------------
-      ! GEOS-5.7.x met
-      !------------------
-      PS1    = PS2          ! I3 surface pressure    [hPa]
-      SPHU1  = SPHU2        ! I3 specific humidity   [g/kg]
-      TMPU1  = TMPU2        ! I3 temperature         [K]
-
-#elif defined( MERRA )
-
-      !------------------
-      ! MERRA met
-      !------------------
-      PS1    = PS2          ! I6 surface pressure    [hPa]
-      RH1    = RH2          ! I6 relative humidity   [%]
-
-#endif
-
-#endif  ! DEVEL
 
       END SUBROUTINE COPY_I3_I6_FIELDS
 !EOC

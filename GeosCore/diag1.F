@@ -11,44 +11,35 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE DIAG1( State_Met )
-#else
-      SUBROUTINE DIAG1 
-#endif
 !
 ! !USES:
 !
       ! References to F90 modules
-      USE DAO_MOD,        ONLY : AD,  AIRDEN, AVGW,     BXHEIGHT 
-      USE DAO_MOD,        ONLY : PBL, IS_ICE, IS_WATER, IS_LAND!, IS_NEAR
-      USE DIAG_MOD,       ONLY : AD30, AD31, AD33, AD35, AD45, AD54 
-      USE DIAG_MOD,       ONLY : AD47, AD67, AD68, AD69, LTOTH, LTO3
-      USE DIAG_MOD,       ONLY : AD57
-      USE DAO_MOD,        ONLY : T
-      USE PRESSURE_MOD,   ONLY : GET_PCENTER
-      USE GRID_MOD,       ONLY : GET_AREA_M2
-      USE PRESSURE_MOD,   ONLY : GET_PEDGE
-      USE TIME_MOD,       ONLY : ITS_TIME_FOR_CHEM
-      USE TRACER_MOD,     ONLY : N_TRACERS, STT, TCVV
-      USE TRACER_MOD,     ONLY : ITS_A_FULLCHEM_SIM
-      USE TRACER_MOD,     ONLY : XNUMOLAIR
-      USE TRACERID_MOD,   ONLY : IDTOX
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
-      USE DIAG03_MOD       , ONLY : AD03_RGM, AD03_PBM, ND03   
-      USE OCEAN_MERCURY_MOD, ONLY : Fg, Fp, PARTITION_Hg2
-
-#if   defined( APM )
-      USE TRACER_MOD,     ONLY : N_APMTRA
-#endif
-#if defined( DEVEL )
+      USE DAO_MOD,            ONLY : IS_ICE, IS_WATER, IS_LAND
+      USE DIAG_MOD,           ONLY : AD30, AD31, AD33, AD35, AD45, AD54 
+      USE DIAG_MOD,           ONLY : AD47, AD67, AD68, AD69, LTOTH, LTO3
+      USE DIAG_MOD,           ONLY : AD57
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_M2
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE
+      USE TIME_MOD,           ONLY : ITS_TIME_FOR_CHEM
+      USE TRACER_MOD,         ONLY : N_TRACERS, STT, TCVV
+      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
+      USE TRACER_MOD,         ONLY : XNUMOLAIR
+      USE TRACERID_MOD,       ONLY : IDTOX
+      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_TROP
+      USE DIAG03_MOD,         ONLY : AD03_RGM, AD03_PBM, ND03   
+      USE OCEAN_MERCURY_MOD,  ONLY : Fg, Fp, PARTITION_Hg2
+#if   defined( APM )
+      USE TRACER_MOD,         ONLY : N_APMTRA
 #endif
 
-      USE CMN_SIZE_MOD  ! Size parameters
-      USE CMN_O3_MOD    ! FRACO3
-      USE CMN_DIAG_MOD  ! Diagnostic arrays & parameters
-      USE CMN_GCTM_MOD  ! Physical constants
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_O3_MOD               ! FRACO3
+      USE CMN_DIAG_MOD             ! Diagnostic arrays & parameters
+      USE CMN_GCTM_MOD             ! Physical constants
 
       IMPLICIT NONE
 #     include "define.h"
@@ -56,9 +47,7 @@
 !
 ! !INPUT PARAMETERS:
 !
-#if defined( DEVEL )
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !REVISION HISTORY:
 !  (1 ) This subroutine was reconstructed from gmg's version of (10/10/97)
@@ -115,6 +104,8 @@
 !  15 Feb 2011 - R. Yantosca - Added modifications for APM from G. Luo
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !
 ! !REMARKS:
 !  For a complete list of GEOS-Chem diagnostics, please see this web page:
@@ -162,13 +153,8 @@
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-#if defined( DEVEL )
             STT_VV(I,J,L,N) = 
      &         MAX( STT(I,J,L,N) * TCVV(N) / State_Met%AD(I,J,L), 0d0 )
-#else
-            STT_VV(I,J,L,N) = 
-     &           MAX( STT(I,J,L,N) * TCVV(N) / AD(I,J,L), 0d0 )
-#endif
          ENDDO
          ENDDO
          ENDDO
@@ -191,7 +177,6 @@
         DO J = 1, JJPAR
         DO I = 1, IIPAR
 
-#if defined( DEVEL )
           ! Reactive gaseous mercury, RGM
           AD03_RGM(I,J,L) = AD03_RGM(I,J,L) +
      &                      Fg(I,J,L) * STT(I,J,L,2) * TCVV(2) /
@@ -201,15 +186,6 @@
           AD03_PBM(I,J,L) = AD03_PBM(I,J,L) +
      &                      Fp(I,J,L) * STT(I,J,L,2) * TCVV(2) /
      &                      State_Met%AD(I,J,L) *1D12
-#else
-          ! Reactive gaseous mercury, RGM
-          AD03_RGM(I,J,L) = AD03_RGM(I,J,L)+
-     &      Fg(I,J,L) * STT(I,J,L,2) * TCVV(2) / AD(I,J,L) *1D12
-
-          ! Reactive particulate mercury, PBM
-          AD03_PBM(I,J,L) = AD03_PBM(I,J,L) + 
-     &      Fp(I,J,L)* STT(I,J,L,2) * TCVV(2) / AD(I,J,L) *1D12
-#endif
                                                        
         ENDDO
         ENDDO
@@ -227,18 +203,12 @@
 !$OMP+PRIVATE( I, J )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-#if defined( DEVEL )
             IF ( IS_WATER( I, J, State_Met ) )
      &           AD30(I,J) = AD30(I,J) + 0e0
             IF ( IS_LAND ( I, J, State_Met ) )
      &           AD30(I,J) = AD30(I,J) + 1e0
             IF ( IS_ICE  ( I, J, State_Met ) )
      &           AD30(I,J) = AD30(I,J) + 2e0
-#else
-            IF ( IS_WATER( I, J ) ) AD30(I,J) = AD30(I,J) + 0e0
-            IF ( IS_LAND ( I, J ) ) AD30(I,J) = AD30(I,J) + 1e0
-            IF ( IS_ICE  ( I, J ) ) AD30(I,J) = AD30(I,J) + 2e0
-#endif
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
@@ -397,13 +367,8 @@
             DO L = 1, LD54
             DO J = 1, JJPAR
             DO I = 1, IIPAR
-#if defined( DEVEL )
                IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) )
      &              AD54(I,J,L) = AD54(I,J,L) + 1.
-#else
-               IF ( ITS_IN_THE_TROP(I,J,L) )
-     &              AD54(I,J,L) = AD54(I,J,L) + 1.
-#endif
             ENDDO   
             ENDDO
             ENDDO
@@ -424,13 +389,8 @@
 
             P0          = GET_PEDGE(I,J,1)
 
-#if defined( DEVEL )
             AD57(I,J,L) = AD57(I,J,L) + State_Met%T(I,J,L) *
      &                  ( P0 / GET_PCENTER( I, J, L ) )**0.286
-#else
-            AD57(I,J,L) = AD57(I,J,L)
-     &                  + T(I,J,L)*(P0/GET_PCENTER( I, J, L ))**0.286
-#endif
 
          ENDDO
          ENDDO
@@ -446,14 +406,9 @@
          DO I = 1, IIPAR
 
             ! PBL is in [m], use hydrostatic law to get [hPa]
-#if defined( DEVEL )
             AD67(I,J,13) = AD67(I,J,13) + 
      &                   ( GET_PEDGE(I,J,1) * EXP( -State_Met%PBLH(I,J)
      &                   / SCALE_HEIGHT ) )
-#else
-            AD67(I,J,13) = AD67(I,J,13) + 
-     &           ( GET_PEDGE(I,J,1) * EXP( -PBL(I,J) / SCALE_HEIGHT ) )
-#endif
 
          ENDDO
          ENDDO
@@ -470,11 +425,7 @@
       IF ( ND68 > 0 ) THEN
 
          ! Set a flag for whether AVGW is allocated or not
-#if defined( DEVEL )
          AVGW_ALLOCATED = ASSOCIATED( State_Met%AVGW )
-#else
-         AVGW_ALLOCATED = ALLOCATED( AVGW )
-#endif
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
@@ -482,7 +433,6 @@
          DO L = 1, LD68
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-#if defined( DEVEL )
             AD68(I,J,L,1) = AD68(I,J,L,1) + State_Met%BXHEIGHT(I,J,L)
             AD68(I,J,L,2) = AD68(I,J,L,2) + State_Met%AD(I,J,L)
             AD68(I,J,L,4) = AD68(I,J,L,4) + State_Met%AIRDEN(L,I,J) *
@@ -492,16 +442,6 @@
             IF ( AVGW_ALLOCATED ) THEN
                AD68(I,J,L,3) = AD68(I,J,L,3) + State_Met%AVGW(I,J,L)
             ENDIF
-#else
-            AD68(I,J,L,1) = AD68(I,J,L,1) + BXHEIGHT(I,J,L)
-            AD68(I,J,L,2) = AD68(I,J,L,2) + AD(I,J,L)
-            AD68(I,J,L,4) = AD68(I,J,L,4) + AIRDEN(L,I,J) * XNUMOLAIR
-
-            ! Make sure AVGW is now allocated (bmy, 9/25/01)
-            IF ( AVGW_ALLOCATED ) THEN
-              AD68(I,J,L,3) = AD68(I,J,L,3) + AVGW(I,J,L)
-           ENDIF
-#endif
          ENDDO
          ENDDO
          ENDDO

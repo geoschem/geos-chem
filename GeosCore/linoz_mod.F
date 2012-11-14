@@ -94,27 +94,19 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE DO_LINOZ( am_I_Root, State_Met )
-#else
-      SUBROUTINE DO_LINOZ( am_I_Root )
-#endif
 !
 ! !USES:
 !
       USE TIME_MOD
-#if defined( DEVEL )
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
 
       USE CMN_SIZE_MOD
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-#if defined( DEVEL )
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
 !
 ! !REVISION HISTORY: 
 !  24 Jun 2003 - B. Field & D. Jones - Further updates for GEOS-Chem
@@ -142,11 +134,7 @@
       NSCHEM = GET_TS_CHEM() * 60D0 
 
       ! Call the Linoz chemistry
-#if defined( DEVEL )
       CALL LINOZ_CHEM3( NSCHEM, am_I_Root, State_Met )
-#else
-      CALL LINOZ_CHEM3( NSCHEM, am_I_Root )
-#endif
 
       END SUBROUTINE DO_LINOZ    
 !EOC
@@ -163,25 +151,18 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE LINOZ_CHEM3( DTCHEM, am_I_Root, State_Met )
-#else
-      SUBROUTINE LINOZ_CHEM3( DTCHEM, am_I_Root )
-#endif
 !
 ! !USES:
 !
-      USE DAO_MOD                               
-      USE GRID_MOD,       ONLY : GET_AREA_CM2   
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_CM2   
       USE TRACER_MOD
       USE TRACERID_MOD                          
-      USE TROPOPAUSE_MOD, ONLY : GET_TPAUSE_LEVEL 
-      USE TROPOPAUSE_MOD, ONLY : GET_MAX_TPAUSE_LEVEL
-      USE PRESSURE_MOD,   ONLY : GET_PEDGE
-      USE PRESSURE_MOD,   ONLY : GET_PCENTER
-#if defined( DEVEL )
-      USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE TROPOPAUSE_MOD,     ONLY : GET_TPAUSE_LEVEL 
+      USE TROPOPAUSE_MOD,     ONLY : GET_MAX_TPAUSE_LEVEL
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER
   
       USE CMN_SIZE_MOD
       USE CMN_MOD
@@ -190,9 +171,7 @@
 !
       REAL*8,         INTENT(IN) :: DTCHEM      ! Time step [seconds]
       LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-#if defined( DEVEL )
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
 !
 ! !REVISION HISTORY: 
 !  24 Jun 2003 - B. Field & D. Jones - Further updates for GEOS-Chem
@@ -204,6 +183,8 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -302,11 +283,7 @@
 !------------------------------------------------------------------------------
          DO J = 1, JM
          DO I = 1, IM
-#if defined( DEVEL )
             LBOT = GET_TPAUSE_LEVEL( I, J, State_Met ) + 1
-#else
-            LBOT = GET_TPAUSE_LEVEL(I,J)+1
-#endif
             LPOS = 1
             DO WHILE (GET_PEDGE(I,J,LPOS+1) .GE. 0.3D0)
               LPOS = LPOS +1
@@ -336,14 +313,16 @@
 
                ! bdf stt is in v/v, make conversion to DU
                if (l.eq.lm) then !top model layer
-                  dcolo3(i,j,l) = (stt(i,j,l,NTRACER)*AD(I,J,L)/
-     &                 TCVV(NTRACER))/ GET_AREA_CM2(I,J,L) *
-     &                 6.022d23/(28.97/TCVV(NTRACER)*1d-3)/ 2.687d16
+                  dcolo3(i,j,l) = (stt(i,j,l,NTRACER) *
+     &                 State_Met%AD(I,J,L) /
+     &                 TCVV(NTRACER))      / GET_AREA_CM2(I,J,L) *
+     &                 6.022d23 / (28.97/TCVV(NTRACER)*1d-3) / 2.687d16
                   colo3(i,j,l) = dcolo3(i,j,l)*0.5
                else
-                  dcolo3(i,j,l) = (stt(i,j,l,NTRACER)*AD(I,J,L)/
-     &                 TCVV(NTRACER))/ GET_AREA_CM2(I,J,L) *
-     &                 6.022d23/(28.97/TCVV(NTRACER)*1d-3)/ 2.687d16
+                  dcolo3(i,j,l) = (stt(i,j,l,NTRACER) * 
+     &                 State_Met%AD(I,J,L) / 
+     &                 TCVV(NTRACER))      / GET_AREA_CM2(I,J,L) *
+     &                 6.022d23 / (28.97/TCVV(NTRACER)*1d-3) / 2.687d16
                   colo3(i,j,l) = colo3(i,j,l+1) +
      &                 (dcolo3(i,j,l)+dcolo3(i,j,l+1))*0.5
                endif
@@ -362,13 +341,8 @@
                dco3=(colo3(i,j,l)-tlstt(j,l,3)) ! deviation from o3 climatology.
                ! ++++++ temperature feedback: ++++++ 
                dertmp=tlstt(j,l,6)              ! Derivative w.r.t. Temperature
-#if defined( DEVEL )
                dtmp=(State_Met%T(I,J,L) -       ! Deviation in Temperature 
-     &                tlstt(j,l,2))              !  from climatology.
-#else
-               dtmp=(T(I,J,L)-tlstt(j,l,2))     ! Deviation in Temperature 
-                                                !  from climatology.
-#endif
+     &                tlstt(j,l,2))             !  from climatology.
 
                ! ++++++ calculate steady-state ozone: ++++++ 
                sso3=climo3 - (climpml+dtmp*dertmp+dco3*derco3)/dero3 

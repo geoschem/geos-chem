@@ -122,7 +122,7 @@
 #if defined( DEVEL )
       SUBROUTINE BIOFUEL_BURN( State_Met, BIO_EMISS )
 #else
-      SUBROUTINE BIOFUEL_BURN
+      SUBROUTINE BIOFUEL_BURN( State_Met )
 #endif
 !
 !******************************************************************************
@@ -197,15 +197,17 @@
 !  06 Apr 2012 - M. Payer    - Changed regrid algorithm to map_a2a (M. Cooper)
 !  24 May 2012 - R. Yantosca - Fix minor bugs in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D,  GET_RES_EXT
       USE BPCH2_MOD,            ONLY : GET_TAU0,         READ_BPCH2
-      USE DAO_MOD,              ONLY : BXHEIGHT
       USE DIAG_MOD,             ONLY : AD29,    AD32_bf, AD34
       USE DIRECTORY_MOD,        ONLY : DATA_DIR,         DATA_DIR_1x1
       USE EPA_NEI_MOD,          ONLY : GET_EPA_BIOFUEL,  GET_USA_MASK
+      USE GIGC_State_Met_Mod,   ONLY : MetState
       USE LOGICAL_MOD,          ONLY : LFUTURE, LNEI99,  LSTREETS
       USE LOGICAL_MOD,          ONLY : LRETRO ! (dbm, 8/18/2011)
       USE LOGICAL_MOD,          ONLY : LNEI05
@@ -229,9 +231,6 @@
       USE TIME_MOD,             ONLY : GET_HISTYR
       USE REGRID_A2A_MOD,       ONLY : DO_REGRID_A2A
 !eml]
-#if defined( DEVEL )
-      USE GIGC_State_Met_Mod,   ONLY : MetState
-#endif
 
       USE CMN_SIZE_MOD               ! Size parameters
       USE CMN_O3_MOD                 ! FSCLYR
@@ -267,8 +266,8 @@
       REAL*8                        :: BF_CO( IIPAR, JJPAR )  ! Biofuel emission of CO [molec/cm2/s]
 
       ! Inout parameters
-#if defined( DEVEL )
       TYPE(MetState), INTENT(IN)    :: State_Met      ! Meteorology State object
+#if defined( DEVEL )
       REAL*8,         INTENT(INOUT) :: BIO_EMISS(:,:,:)
 #endif
 
@@ -848,11 +847,7 @@
       DO I = 1, IIPAR
 
          ! BXHEIGHT_CM = the surface grid box height in cm
-#if defined( DEVEL )
          BXHEIGHT_CM = State_Met%BXHEIGHT(I,J,1) * 1d2
-#else
-         BXHEIGHT_CM = BXHEIGHT(I,J,1) * 1d2
-#endif
 
          ! Loop over all biofuel tracers
          DO N = 1, NBFTRACE
@@ -861,15 +856,9 @@
             NN = BFTRACE(N)
 
             ! Biofuel emissions in [molec/cm3/s]
-#if defined( DEVEL )
             BIOFUEL(N,I,J) = BIOFUEL_KG(N,I,J)                  * 
      &                       ( 6.023d23 / MOLWT(N)            ) /
      &                       ( 365d0 * 86400d0 * BOXVL(I,J,1,State_Met))
-#else
-            BIOFUEL(N,I,J) = BIOFUEL_KG(N,I,J)                  * 
-     &                       ( 6.023d23 / MOLWT(N)            ) /
-     &                       ( 365d0 * 86400d0 * BOXVL(I,J,1) )
-#endif
 
             !-----------------------------------------------------------
             ! RETRO anthropogenic emissions include residential biofuel,
@@ -1070,11 +1059,7 @@
       DO I = 1, IIPAR
 
             ! BXHEIGHT_CM = the surface grid box height in cm
-#if defined( DEVEL )
             BXHEIGHT_CM = State_Met%BXHEIGHT(I,J,1) * 1d2
-#else
-            BXHEIGHT_CM = BXHEIGHT(I,J,1) * 1d2
-#endif
 
             ! loop over biofuel species
             DO N = 1, NBFTRACE

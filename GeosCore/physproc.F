@@ -12,29 +12,23 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE PHYSPROC( SUNCOS, am_I_Root, State_Met )
-#else
-      SUBROUTINE PHYSPROC( SUNCOS, am_I_Root )
-#endif
 !
 ! !USES:
 !
 #     include "define.h"
 
-      USE COMODE_MOD,      ONLY : ABSHUM, AIRDENS,  CSPEC,   CSUMA,  
-     &                            CSUMC,  ERRMX2,  IXSAVE, 
-     &                            IYSAVE, T3
-      USE LOGICAL_MOD,     ONLY : LKPP
-      USE TIME_MOD,        ONLY : TIMESTAMP_STRING
-      USE CHEMISTRY_MOD,   ONLY : GCKPP_DRIVER
-      USE GCKPP_GLOBAL,    ONLY : NTT
-#if defined( DEVEL )
+      USE COMODE_MOD,         ONLY : ABSHUM, AIRDENS,  CSPEC,   CSUMA,  
+     &                               CSUMC,  ERRMX2,  IXSAVE, 
+     &                               IYSAVE, T3
+      USE LOGICAL_MOD,        ONLY : LKPP
+      USE TIME_MOD,           ONLY : TIMESTAMP_STRING
+      USE CHEMISTRY_MOD,      ONLY : GCKPP_DRIVER
+      USE GCKPP_GLOBAL,       ONLY : NTT
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
 
-      USE CMN_SIZE_MOD          ! Size parameters
-      USE COMODE_LOOP_MOD       ! SMVGEAR II arrays
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE COMODE_LOOP_MOD          ! SMVGEAR II arrays
 
       IMPLICIT NONE
 !
@@ -42,9 +36,7 @@
 !
       REAL*8,         INTENT(IN) :: SUNCOS(MAXIJ) ! Cos of solar zenith angle
       LOGICAL,        INTENT(IN) :: am_I_Root     ! Is this the root CPU?
-#if defined( DEVEL )
       TYPE(MetState), INTENT(IN) :: State_Met     ! Meteorology State object
-#endif
 !
 ! !REMARKS:
 !
@@ -330,12 +322,7 @@
 ! *              CALCULATE REACTION RATE COEFFICIENTS                 *
 ! *********************************************************************
 !
-
-#if defined( DEVEL )
           CALL CALCRATE( SUNCOS, State_Met )
-#else
-          CALL CALCRATE(SUNCOS)
-#endif
 !
 ! *********************************************************************
 ! *                        SOLVE CHEMICAL ODES                        *

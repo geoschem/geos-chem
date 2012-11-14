@@ -22,7 +22,7 @@
       USE COMMSOIL_MOD                          ! Soil wetness variables
       USE COMODE_MOD                            ! Large arrays for SMVGEAR
       USE COMODE_LOOP_MOD                       ! Formerly "comode.h"
-      USE DAO_MOD                               ! Met field arrays
+      USE DAO_MOD                               ! Met field subroutines
       USE DIAG_MOD,       ONLY : AD44           ! Diagnostic arrays
       USE DIRECTORY_MOD                         ! Data directory paths
       USE ERROR_MOD                             ! Error handling routines
@@ -290,25 +290,16 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE DO_DRYDEP( am_I_Root, State_Met )
-#else
-      SUBROUTINE DO_DRYDEP( am_I_Root )
-#endif
 !
 ! !USES:
 !
-      USE DAO_MOD,      ONLY : BXHEIGHT
-#if defined( DEVEL )
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-#if defined( DEVEL )
       TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
-#endif
 !
 ! !REMARKS:
 !  NOTE: Modeled aerosol dry deposition velocities over snow and ice surfaces 
@@ -358,6 +349,8 @@
 !  26 Mar 2012 - R. Yantosca - Remove calls to obsolete MODIN, RDDRYCF routines
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -416,13 +409,8 @@
       ! Call METERO to obtain meterological fields (all 1-D arrays)
       ! Added sfc pressure as PRESSU and 10m windspeed as W10 
       !  (jaegle 5/11/11, mpayer 1/10/12)
-#if defined( DEVEL )
       CALL METERO( State_Met,  CZ1, TC0,   OBK, CFRAC,  RADIAT, 
      &             AZO, USTAR, ZH,  LSNOW, RHB, PRESSU, W10 )
-#else
-      CALL METERO( CZ1, TC0,   OBK, CFRAC, RADIAT, 
-     &             AZO, USTAR, ZH,  LSNOW, RHB, PRESSU, W10 )
-#endif
 
       !=================================================================
       ! Call DEPVEL to compute dry deposition velocities [m/s]
@@ -446,11 +434,7 @@
          IJLOOP  = ( (J-1) * IIPAR ) + I
 
          ! THIK = thickness of surface layer [m]
-#if defined( DEVEL )
          THIK    = State_Met%BXHEIGHT(I,J,1)
-#else
-         THIK    = BXHEIGHT(I,J,1)
-#endif
          
          ! Now we calculate drydep throughout the entire PBL.  
          ! Make sure that the PBL depth is greater than or equal 
@@ -479,11 +463,7 @@
             ! and not over the oceans.
             IF ( NN == IDTACET ) THEN
 
-#if defined( DEVEL )
                IF ( IS_LAND( I, J, State_Met ) ) THEN
-#else
-               IF ( IS_LAND( I, J ) ) THEN
-#endif
                   DVZ = 0.1 
                ELSE
                   DVZ = 0d0
@@ -604,26 +584,16 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE METERO( State_Met, CZ1, TC0,  OBK,  CFRAC,  RADIAT, 
      &                   AZO, USTR, ZH,  LSNOW, RHB, PRESSU, W10 )
-#else
-      SUBROUTINE METERO( CZ1, TC0,  OBK, CFRAC, RADIAT, 
-     &                   AZO, USTR, ZH,  LSNOW, RHB, PRESSU, W10 )
-#endif
 !
 ! !USES:
 !
-      USE DAO_MOD,      ONLY : BXHEIGHT
-#if defined( DEVEL )
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
 !
 ! !INPUT PARAMETERS:
 !
-#if defined( DEVEL )
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -679,6 +649,8 @@
 !  (9 ) Add sea level pressure and 10m windspeed as arguments (jaegle 5/11/11)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  10 Jan 2012 - M. Payer    - Added local surface pressure
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -714,11 +686,7 @@
          IJLOOP         = ( (J-1) * IIPAR ) + I
 
          ! THIK = thickness of layer 1 [m]
-#if defined( DEVEL )
          THIK           = State_Met%BXHEIGHT(I,J,1)
-#else
-         THIK           = BXHEIGHT(I,J,1)
-#endif
 
          ! Midpoint height of first model level [m]
          CZ1(IJLOOP)    = THIK / 2.0d0
@@ -732,8 +700,6 @@
          !==============================================================
          ! Return meterological quantities as 1-D arrays for DEPVEL
          !==============================================================
-
-#if defined( DEVEL )
 
 #if   !defined( GCAP )
          ! For GEOS: Roughness height [m] is a function of lat/lon
@@ -772,44 +738,6 @@
          W10(IJLOOP)    =  SQRT( SFCWINDSQR( I, J,
      &                                       State_Met%U10M,
      &                                       State_Met%V10M ) )
-
-#else
-
-#if   !defined( GCAP )
-         ! For GEOS: Roughness height [m] is a function of lat/lon
-         AZO(IJLOOP)    = Z0(I,J)
-#endif
-         ! Column cloud fraction [unitless]
-         CFRAC(IJLOOP)  = CLDFRC(I,J)
-
-         ! Set logical LSNOW if snow and sea ice (ALBEDO > 0.4)
-         LSNOW(IJLOOP)  = ( ALBD(I,J) > 0.4 )
-
-         ! Monin-Obhukov length [m]
-         OBK(IJLOOP)    = GET_OBK( I, J )
-
-         ! Solar insolation @ ground [W/m2]
-         RADIAT(IJLOOP) = RADSWG(I,J) 
-
-         ! Surface temperature [K]
-         TC0(IJLOOP)    = TS(I,J)
-
-         ! Friction velocity [m/s]
-         USTR(IJLOOP)   = USTAR(I,J)
-
-         ! Mixed layer depth [m]
-         ZH(IJLOOP)     = GET_PBL_TOP_m( I, J )
-
-         ! Relative humidity @ surface [unitless] (bec, bmy, 4/13/05)
-         !RHB(IJLOOP)    = MIN( 0.99d0, RH(I,J,1) * 1.d-2 ) 
-         !  changed to 98% due to vapor pressure lowering above sea water
-         !  (Lewis & Schwartz, 2004)
-         !  jaegle (5/11/11)
-         RHB(IJLOOP)    = MIN( 0.98d0, RH(I,J,1) * 1.d-2 )
-
-         ! 10m windspeed (jaegle 5/11/11)
-         W10(IJLOOP)    =  SQRT( SFCWINDSQR( I, J, U10M, V10M ) )
-#endif
 
       ENDDO
       ENDDO
@@ -1122,39 +1050,30 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE DRYFLXH2HD( State_Met )
-#else
-      SUBROUTINE DRYFLXH2HD
-#endif
 !
 ! !USES:
 !
-      USE DIAG_MOD,     ONLY : AD44
-      USE ERROR_MOD,    ONLY : ERROR_STOP, GEOS_CHEM_STOP
-      USE TIME_MOD,     ONLY : GET_TS_CHEM
-      USE GRID_MOD,     ONLY : GET_AREA_CM2, GET_XOFFSET, GET_YOFFSET
-      USE DAO_MOD,      ONLY : T, TS, ALBD
-      USE TRACER_MOD,   ONLY : STT
-      USE LOGICAL_MOD,  ONLY : LDRYD
-      USE DAO_MOD,      ONLY : BXHEIGHT
-      USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_m
-      USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
-      !USE MEGANUT_MOD,  ONLY : XLTMMP
-#if defined( DEVEL )
+      USE DIAG_MOD,           ONLY : AD44
+      USE ERROR_MOD,          ONLY : ERROR_STOP, GEOS_CHEM_STOP
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET
+      USE LOGICAL_MOD,        ONLY : LDRYD
+      USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_m
+      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
+      USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+      USE TRACER_MOD,         ONLY : STT
       
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_DIAG_MOD       ! Diagnostic switches & arrays
-      USE CMN_DEP_MOD        ! Dry deposition variables
-      USE COMMSOIL_MOD       ! Soil wetness variables
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! Diagnostic switches & arrays
+      USE CMN_DEP_MOD              ! Dry deposition variables
+      USE COMMSOIL_MOD             ! Soil wetness variables
 !
 ! !INPUT PARAMETERS:
 !
-#if defined( DEVEL )
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 ! 
 ! !REMARKS:
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1175,6 +1094,8 @@
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  09 Apr 2012 - R. Yantosca - Replace IJLAND, IJUSE arrays w/ ILAND, IUSE
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1251,7 +1172,6 @@
 !               J      = JREF - J0
 !               IJLOOP = JLOP(I,J,1)
 !
-!#if defined( DEVEL )
 !               ! Fraction of grid box that is ocean
 !               FSOIL = State_Met%FRCLND(I,J)
 ! 
@@ -1263,18 +1183,6 @@
 !     &              (J.GE.1)       .AND. (J.LE.JJPAR)  .AND.
 !     &              (FSOIL > 0.d0) .AND. 
 !     &              (State_Met%ALBD(I,J) < 0.4d0) ) THEN
-!#else
-!               ! Fraction of grid box that is ocean
-!               FSOIL = FRCLND(I,J)
-! 
-!
-!               ! Only apply dry deposition over land surfaces which
-!                    ! are not covered with ice or desert (albedo < 0.4)
-!               ! and if we are in the window simulation.
-!               IF ( (I.GE.1)       .AND. (I.LE.IIPAR)  .AND.
-!     &              (J.GE.1)       .AND. (J.LE.JJPAR)  .AND.
-!     &              (FSOIL > 0.d0) .AND. (ALBD(I,J) < 0.4d0) ) THEN
-!#endif
 !
 !                  ! Grid box area in cm2
 !                  AREA_CM2 = GET_AREA_CM2( I, J, 1 )
@@ -1288,13 +1196,8 @@
 !                  ! by 1/2, and additional 1/2 below -15C(hup, 6/21/2005)
 !                  ! for now use surface temperature (TS) instead of
 !                  ! air temperature (T) jaegle, 12/12/2005
-!#if defined( DEVEL )
 !		  IF (State_Met%TS(I,J) <= 273.15d0) SVEL = SVEL / 2.0d0
 !		  IF (State_Met%TS(I,J) <= 258.15d0) SVEL = SVEL / 2.0d0
-!#else
-!		  IF (TS(I,J) <= 273.15d0) SVEL = SVEL / 2.0d0
-!		  IF (TS(I,J) <= 258.15d0) SVEL =  SVEL / 2.0d0
-!#endif
 !                  
 !		  ! if desert, set deposition velocity to zero by multiplying
 !		  ! dep vel by the fraction covered by desert(hup, 5/1/2006)
@@ -1327,11 +1230,8 @@
 !                  MLD = GET_PBL_TOP_m( I, J )
 !      
 !                  ! THIK = thickness of surface layer [m]
-!#if defined( DEVEL )
 !                  THIK    = State_Met%BXHEIGHT(I,J,1)
-!#else
-!                  THIK    = BXHEIGHT(I,J,1)
-!#endif
+!
 !                  ! Add option for non-local PBL mixing scheme: 
 !                  ! only the surface (Lin, 03/31/09) 
 !                  IF (.NOT. LNLPBL) THIK    = MAX( MLD, THIK ) 

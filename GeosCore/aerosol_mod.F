@@ -105,39 +105,31 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE AEROSOL_RURALBOX( N_TROP, am_I_Root, State_Met )
-#else
-      SUBROUTINE AEROSOL_RURALBOX( N_TROP, am_I_Root )
-#endif
 !
 ! !USES:
 !
-      USE COMODE_MOD,     ONLY : ABSHUM, AIRDENS, IXSAVE   
-      USE COMODE_MOD,     ONLY : IYSAVE, IZSAVE,  JLOP       
-      USE DAO_MOD,        ONLY : AD,     AVGW,    MAKE_AVGW, T
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
-      USE LOGICAL_MOD,    ONLY : LVARTROP
-#if defined( DEVEL )
+      USE COMODE_MOD,         ONLY : ABSHUM, AIRDENS, IXSAVE   
+      USE COMODE_MOD,         ONLY : IYSAVE, IZSAVE,  JLOP       
+      USE DAO_MOD,            ONLY : MAKE_AVGW
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE LOGICAL_MOD,        ONLY : LVARTROP
+      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_TROP
 
-      USE CMN_SIZE_MOD                    ! Size parameters
-      USE COMODE_LOOP_MOD                 ! AD, AVG, WTAIR, etc.
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE COMODE_LOOP_MOD          ! AD, AVG, WTAIR, etc.
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,            INTENT(IN)    :: am_I_Root ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root ! Is this the root CPU?
 !
 ! !INPUT PARAMETERS: 
 !
-#if defined( DEVEL )
-      TYPE(MetState), INTENT(INOUT) :: State_Met     ! Meteorology State object
-#endif
+      TYPE(MetState), INTENT(INOUT) :: State_Met ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,            INTENT(OUT)   :: N_TROP    ! # tropospheric boxes
+      INTEGER,        INTENT(OUT)   :: N_TROP    ! # tropospheric boxes
 !
 ! !REVISION HISTORY: 
 !  (1 ) Now convert ABSHUM from absolute humidity to relative humidity in
@@ -150,6 +142,8 @@
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  08 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -173,11 +167,7 @@
       NPVERT = NVERT
 
       ! Create AVGW field -- mixing ratio of water [v/v]
-#if defined( DEVEL )
       CALL MAKE_AVGW( State_Met )
-#else
-      CALL MAKE_AVGW
-#endif
 
       !=================================================================
       ! Pre-save SMVGEAR loop indices on the first call
@@ -200,11 +190,7 @@
             !----------------------------------
             ! Boxes w/in ann mean tropopause
             !----------------------------------
-#if defined( DEVEL )
             IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) THEN
-#else
-            IF ( ITS_IN_THE_TROP( I, J, L ) ) THEN
-#endif
 
                ! Increment JLOOP for trop boxes
                JLOOP          = JLOOP + 1
@@ -285,7 +271,6 @@
          !----------------------------------
          IF ( JLOOP > 0 ) THEN
 
-#if defined( DEVEL )
             ! Air density in [molec/cm3]
             AIRDENS(JLOOP) = State_Met%AD(I,J,L)    * 1000.d0 / 
      &                       BOXVL(I,J,L,State_Met) * AVG  / WTAIR
@@ -296,18 +281,7 @@
             ! Convert ABSHUM to relative humidity [fraction]
             ! using the same algorithm as in "gasconc.f"
             TK             = State_Met%T(I,J,L)
-#else
-            ! Air density in [molec/cm3]
-            AIRDENS(JLOOP) = AD(I,J,L)*1000.d0/BOXVL(I,J,L)*AVG/WTAIR
 
-            ! ABSHUM = absolute humidity [molec H2O/cm3 air]
-            ABSHUM(JLOOP)  = AVGW(I,J,L) * AIRDENS(JLOOP)
-
-
-            ! Convert ABSHUM to relative humidity [fraction]
-            ! using the same algorithm as in "gasconc.f"
-            TK             = T(I,J,L)
-#endif
             CONSEXP        = 17.2693882d0      * 
      &                       ( TK - 273.16d0 ) / ( TK - 35.86d0 )
             VPRESH2O       = CONSVAP * EXP( CONSEXP ) / TK
@@ -336,34 +310,26 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE AEROSOL_CONC( State_Met )
-#else
-      SUBROUTINE AEROSOL_CONC
-#endif
 !
 ! !USES:
 !
-      USE DAO_MOD,      ONLY : AIRVOL
-      USE LOGICAL_MOD,  ONLY : LCARB,   LDUST,   LSOA,    LSSALT, LSULF
-      USE TRACER_MOD,   ONLY : STT
-      USE TRACERID_MOD, ONLY : IDTBCPI, IDTBCPO, IDTDST1, IDTDST2
-      USE TRACERID_MOD, ONLY : IDTDST3, IDTDST4, IDTNH4,  IDTNIT  
-      USE TRACERID_MOD, ONLY : IDTOCPO, IDTOCPI, IDTSALA, IDTSALC 
-      USE TRACERID_MOD, ONLY : IDTSOA1, IDTSOA2, IDTSOA3, IDTSOA4
-      USE TRACERID_MOD, ONLY : IDTSO4,  IDTSOA5  
-      USE TRACERID_MOD, ONLY : IDTSOAG, IDTSOAM
-#if defined( DEVEL )
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE LOGICAL_MOD,        ONLY : LCARB,   LDUST,   LSOA,    LSSALT
+      USE LOGICAL_MOD,        ONLY : LSULF
+      USE TRACER_MOD,         ONLY : STT
+      USE TRACERID_MOD,       ONLY : IDTBCPI, IDTBCPO, IDTDST1, IDTDST2
+      USE TRACERID_MOD,       ONLY : IDTDST3, IDTDST4, IDTNH4,  IDTNIT  
+      USE TRACERID_MOD,       ONLY : IDTOCPO, IDTOCPI, IDTSALA, IDTSALC 
+      USE TRACERID_MOD,       ONLY : IDTSOA1, IDTSOA2, IDTSOA3, IDTSOA4
+      USE TRACERID_MOD,       ONLY : IDTSO4,  IDTSOA5  
+      USE TRACERID_MOD,       ONLY : IDTSOAG, IDTSOAM
 
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
-#if defined( DEVEL )
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
 !
 ! !REMARKS:
 !  This code was originally included in "chemdr.f", but the same computation 
@@ -378,6 +344,8 @@
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  08 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -412,7 +380,6 @@
          FIRST = .FALSE.
       ENDIF
 
-#if defined( DEVEL )
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
@@ -579,165 +546,6 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-#else
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
-!$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-      
-         !==============================================================
-         ! S U L F A T E   A E R O S O L S
-         !
-         ! Dump hydrophilic aerosols into one array that will be passed 
-         ! to RDAER and then used for heterogeneous chemistry as well 
-         ! as photolysis rate calculations interatively. 
-         !
-         ! For the full-chemistry run, If LSULF=F, then we read these 
-         ! aerosol data from Mian's simulation.  If LSULF=T then we use 
-         ! the online tracers.
-         !
-         ! Now assume that all sulfate, ammonium, and nitrate are 
-         ! hydrophilic but sooner or later we can pass only hydrophilic 
-         ! aerosols from the thermodynamic calculations for this 
-         ! purpose.  This dumping should be done before calling INITGAS, 
-         ! which converts the unit of STT from kg/box to molec/cm3.
-         !
-         ! Units of SO4_NH4_NIT are [kg/m3].  (rjp, bmy, 3/23/03)
-         !==============================================================
-         IF ( LSULF ) THEN
-
-            ! Compute SO4 aerosol concentration [kg/m3]
-            SO4_NH4_NIT(I,J,L) = ( STT(I,J,L,IDTSO4) + 
-     &                             STT(I,J,L,IDTNH4) +
-     &                             STT(I,J,L,IDTNIT) ) / AIRVOL(I,J,L)
-
-         ENDIF
-
-         !==============================================================
-         ! C A R B O N  &  2 n d A R Y   O R G A N I C   A E R O S O L S
-         !
-         ! Compute hydrophilic and hydrophobic BC and OC in [kg/m3]
-         ! Also add online 2ndary organics if necessary
-         !==============================================================
-         IF ( LCARB ) THEN
-
-            ! Hydrophilic BC [kg/m3]
-            BCPI(I,J,L) = STT(I,J,L,IDTBCPI) / AIRVOL(I,J,L)
-
-            ! Hydrophobic BC [kg/m3]
-            BCPO(I,J,L) = STT(I,J,L,IDTBCPO) / AIRVOL(I,J,L)
-
-            ! Hydrophobic OC [kg/m3] 
-            OCPO(I,J,L) = STT(I,J,L,IDTOCPO) * OCF / AIRVOL(I,J,L)
-
-            IF ( LSOA ) THEN
-
-               ! Hydrophilic primary OC plus SOA [kg/m3A.  We need
-               ! to multiply by OCF to account for the mass of other 
-               ! components which are attached to the OC aerosol.
-               ! (rjp, bmy, 7/15/04)
-               ! (clh, 05/19/10) bug corrected SOA5 missing from OCPI
-               OCPI(I,J,L) = ( STT(I,J,L,IDTOCPI) * OCF 
-     &                     +   STT(I,J,L,IDTSOA1)
-     &                     +   STT(I,J,L,IDTSOA2)
-     &                     +   STT(I,J,L,IDTSOA3)
-     &                     +   STT(I,J,L,IDTSOA4)
-     &                     +   STT(I,J,L,IDTSOA5) ) / AIRVOL(I,J,L)
- 
-               ! Check to see if we are simulating SOAG and SOAM (tmf, 1/7/09)
-               IF ( IDTSOAG > 0 ) THEN
-                 OCPI(I,J,L) = OCPI(I,J,L) + 
-     &                         STT(I,J,L,IDTSOAG) * OCFG / AIRVOL(I,J,L)
-               ENDIF
-
-               IF ( IDTSOAM > 0 ) THEN
-                 OCPI(I,J,L) = OCPI(I,J,L) + 
-     &                         STT(I,J,L,IDTSOAM) * OCFM / AIRVOL(I,J,L)
-               ENDIF
-            ELSE
-
-               ! Hydrophilic primary and SOA OC [kg/m3].   We need
-               ! to multiply by OCF to account for the mass of other 
-               ! components which are attached to the OC aerosol.
-               ! (rjp, bmy, 7/15/04)
-               OCPI(I,J,L) = STT(I,J,L,IDTOCPI) * OCF / AIRVOL(I,J,L)
-                  
-            ENDIF
-
-            ! Now avoid division by zero (bmy, 4/20/04)
-            BCPI(I,J,L) = MAX( BCPI(I,J,L), 1d-35 )
-            OCPI(I,J,L) = MAX( OCPI(I,J,L), 1d-35 )
-            BCPO(I,J,L) = MAX( BCPO(I,J,L), 1d-35 )
-            OCPO(I,J,L) = MAX( OCPO(I,J,L), 1d-35 )
-         
-         ENDIF
-            
-         !===========================================================
-         ! M I N E R A L   D U S T   A E R O S O L S
-         !
-         ! NOTE: We can do better than this! Currently we carry 4 
-         ! dust tracers...but het. chem and fast-j use 7 dust bins 
-         ! hardwired from Ginoux.
-         !
-         ! Now, I apportion the first dust tracer into four smallest 
-         ! dust bins equally in mass for het. chem and fast-j. 
-         ! 
-         ! Maybe we need to think about chaning our fast-j and het. 
-         ! chem to use just four dust bins or more flexible 
-         ! calculations depending on the number of dust bins. 
-         ! (rjp, 03/27/04)
-         !
-         ! Now splitting mass into bins in fractions derived from
-         ! Highwood et al. (2003).  Data is from log-normal fit of
-         ! PCASP measurements of Saharan dust (Solid line in Fig.4b)
-         ! (dar, 04/25/10)
-         !===========================================================
-         IF ( LDUST ) THEN
-
-            ! Lump 1st dust tracer for het chem
-            SOILDUST(I,J,L,1) = 
-     &              0.06d0 * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
-            SOILDUST(I,J,L,2) =
-     &              0.12d0 * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
-            SOILDUST(I,J,L,3) =
-     &              0.24d0 * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
-            SOILDUST(I,J,L,4) =
-     &              0.58d0 * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
-
-            ! Other hetchem bins
-            SOILDUST(I,J,L,5) = STT(I,J,L,IDTDST2) / AIRVOL(I,J,L)
-            SOILDUST(I,J,L,6) = STT(I,J,L,IDTDST3) / AIRVOL(I,J,L)
-            SOILDUST(I,J,L,7) = STT(I,J,L,IDTDST4) / AIRVOL(I,J,L)
-            
-         ENDIF
-
-         !===========================================================
-         ! S E A S A L T   A E R O S O L S
-         !
-         ! Compute accumulation & coarse mode concentration [kg/m3]
-         !===========================================================
-         IF ( LSSALT ) THEN
-
-            ! Accumulation mode seasalt aerosol [kg/m3]
-            SALA(I,J,L) = STT(I,J,L,IDTSALA) / AIRVOL(I,J,L)
-            
-            ! Coarse mode seasalt aerosol [kg/m3]
-            SALC(I,J,L) = STT(I,J,L,IDTSALC) / AIRVOL(I,J,L)
-
-            ! Avoid division by zero
-            SALA(I,J,L) = MAX( SALA(I,J,L), 1d-35 )
-            SALC(I,J,L) = MAX( SALC(I,J,L), 1d-35 )
-
-         ENDIF
-
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-#endif ! DEVEL
 
       END SUBROUTINE AEROSOL_CONC
 !EOC
@@ -757,45 +565,32 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE RDAER( am_I_Root, State_Met, MONTH, YEAR, WAVELENGTH )
-#else
-      SUBROUTINE RDAER( am_I_Root, MONTH, YEAR, WAVELENGTH )
-#endif
 !
 ! !USES:
 !
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
-      USE COMODE_MOD,    ONLY : ABSHUM,       ERADIUS,    IXSAVE
-      USE COMODE_MOD,    ONLY : IYSAVE,       IZSAVE,     TAREA 
-      USE COMODE_MOD,    ONLY : WTAREA,       WERADIUS
-      USE DAO_MOD,       ONLY : BXHEIGHT
-      USE DIAG_MOD,      ONLY : AD21
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE LOGICAL_MOD,   ONLY : LSULF,        LCARB,      LSSALT
-      USE TIME_MOD,      ONLY : ITS_A_NEW_MONTH
-      USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM
-      USE TRANSFER_MOD,  ONLY : TRANSFER_3D
-#if defined( DEVEL )
+      USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_RES_EXT
+      USE BPCH2_MOD,          ONLY : GET_TAU0,     READ_BPCH2
+      USE COMODE_MOD,         ONLY : ABSHUM,       ERADIUS,    IXSAVE
+      USE COMODE_MOD,         ONLY : IYSAVE,       IZSAVE,     TAREA 
+      USE COMODE_MOD,         ONLY : WTAREA,       WERADIUS
+      USE DIAG_MOD,           ONLY : AD21
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR
+      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE LOGICAL_MOD,        ONLY : LSULF,        LCARB,      LSSALT
+      USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
+      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
+      USE TRANSFER_MOD,       ONLY : TRANSFER_3D
 
-      USE CMN_SIZE_MOD,  ONLY : NNPAR, NDSTBIN, IIPAR,   JJPAR,   LLTROP
-      USE CMN_SIZE_MOD,  ONLY : LLPAR, MAXFAM,  NEMPARA, NEMPARB, LGLOB
-      USE JV_CMN_MOD          ! }ODAER, QAA, RAA, QAA_AOD (clh)
-      USE COMODE_LOOP_MOD     ! NTLOOP
-      USE CMN_DIAG_MOD        ! ND21, LD21
-
-!#if defined( DEVEL )
-      USE CMN_FJ_MOD,    ONLY : JPMAX, JPPJ   
-!#else
-!      USE CMN_FJ_MOD,    ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ   
-!#endif
-      USE JV_CMN_MOD   ! ODAER, QAA, RAA, QAA_AOD (clh)
-      USE COMODE_LOOP_MOD   ! NTLOOP
-      USE CMN_DIAG_MOD   ! ND21, LD21
+      USE CMN_SIZE_MOD,       ONLY : NNPAR, NDSTBIN
+      USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR,   LLTROP
+      USE CMN_FJ_MOD,         ONLY : JPMAX, JPPJ   
+      USE CMN_SIZE_MOD,       ONLY : LLPAR, MAXFAM,  NEMPARA, NEMPARB
+      USE CMN_SIZE_MOD,       ONLY : LGLOB
+      USE JV_CMN_MOD               ! }ODAER, QAA, RAA, QAA_AOD (clh)
+      USE COMODE_LOOP_MOD          ! NTLOOP
+      USE CMN_DIAG_MOD             ! ND21, LD21
 
       IMPLICIT NONE
 #     include "define.h"
@@ -803,16 +598,22 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN)           :: am_I_Root  ! Is this the root CPU?
-      INTEGER, INTENT(IN), OPTIONAL :: MONTH      ! # of current month (1-12)
-      INTEGER, INTENT(IN), OPTIONAL :: YEAR       ! 4-digit year (e.g. 2002)
-      INTEGER, INTENT(IN), OPTIONAL :: WAVELENGTH ! Logical indicator
-!                                                 ! = 0 AOD computed at 999 nm
-!                                                 ! = 1 AOD computed at
-!                                                 !   wavelength in jv_spec_aod
-#if defined( DEVEL )
-      TYPE(MetState), INTENT(IN) :: State_Met     ! Meteorology State object
-#endif
+      ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)           :: am_I_Root
+
+      ! # of current month (1-12)
+      INTEGER,        INTENT(IN), OPTIONAL :: MONTH
+
+      ! 4-digit year (e.g. 2002)
+      INTEGER,        INTENT(IN), OPTIONAL :: YEAR
+
+      ! Logical indicator
+      ! = 0 AOD computed at 999 nm
+      ! = 1 AOD computed at wavelength in jv_spec_aod
+      INTEGER,        INTENT(IN), OPTIONAL :: WAVELENGTH
+
+      ! Meteorology State object
+      TYPE(MetState), INTENT(IN)           :: State_Met
 !
 ! !REVISION HISTORY: 
 !  (1 ) At the point in which "rdaer.f" is called, ABSHUM is actually
@@ -852,6 +653,8 @@
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1379,7 +1182,6 @@
 
             IF ( WAVELENGTH > 0 ) THEN
 
-#if defined( DEVEL )
             ! Save aerosol optical depth for each combination 
             ! of aerosol type and relative humidity into ODAER, 
             ! which will get passed to the FAST-J routines
@@ -1397,25 +1199,6 @@
      &                        * State_Met%BXHEIGHT(I,J,L) 
      &                        * WAERSL(I,J,L,N)  * QAA(4,IND(N)) / 
      &                        ( MSDENS(N) * RAA(4,IND(N)) * 1.0D-6 )
-#else
-            ! Save aerosol optical depth for each combination 
-            ! of aerosol type and relative humidity into ODAER, 
-            ! which will get passed to the FAST-J routines
-            ODAER(I,J,L,IRHN) = SCALEOD(I,J,L,R) 
-     &                        * 0.75d0 * BXHEIGHT(I,J,L) 
-     &                        * WAERSL(I,J,L,N) * QAA_AOD(IND(N)) / 
-     &                        ( MSDENS(N) * RAA_AOD(IND(N)) * 1.0D-6 )
-
-            ELSE
-
-            ! Save aerosol optical depth for each combination 
-            ! of aerosol type and relative humidity into ODAER, 
-            ! which will get passed to the FAST-J routines
-            ODAER(I,J,L,IRHN) = SCALEOD(I,J,L,R) 
-     &                        * 0.75d0 * BXHEIGHT(I,J,L) 
-     &                        * WAERSL(I,J,L,N) * QAA(4,IND(N)) / 
-     &                        ( MSDENS(N) * RAA(4,IND(N)) * 1.0D-6 )
-#endif
 
             ENDIF
 
@@ -1501,7 +1284,6 @@
 
             IF ( WAVELENGTH > 0 ) THEN
 
-#if defined( DEVEL )
             ! Aerosol optical depth
             ODAER(I,J,L,IRHN) = ODAER(I,J,L,IRHN) + 0.75d0 *
      &                          State_Met%BXHEIGHT(I,J,L)  * 
@@ -1515,21 +1297,6 @@
      &                          State_Met%BXHEIGHT(I,J,L)  * 
      &                          DAERSL(I,J,L,N-1) * QAA(4,IND(N))   / 
      &                          ( MSDENS(N) * RAA(4,IND(N)) * 1.0D-6 )
-#else
-            ! Aerosol optical depth
-            ODAER(I,J,L,IRHN) = ODAER(I,J,L,IRHN) + 
-     &                          0.75d0            * BXHEIGHT(I,J,L) * 
-     &                          DAERSL(I,J,L,N-1) * QAA_AOD(IND(N))   / 
-     &                          ( MSDENS(N) * RAA_AOD(IND(N)) * 1.0D-6 )
-
-            ELSE
-
-            ! Aerosol optical depth
-            ODAER(I,J,L,IRHN) = ODAER(I,J,L,IRHN) + 
-     &                          0.75d0            * BXHEIGHT(I,J,L) * 
-     &                          DAERSL(I,J,L,N-1) * QAA(4,IND(N))   / 
-     &                          ( MSDENS(N) * RAA(4,IND(N)) * 1.0D-6 )
-#endif
 
             ENDIF
 

@@ -64,11 +64,7 @@
 
 !------------------------------------------------------------------------------
       
-#if defined( DEVEL )
       FUNCTION GET_HNO3_UGM3( I, J, L, State_Met ) RESULT( HNO3_UGM3 )
-#else
-      FUNCTION GET_HNO3_UGM3( I, J, L ) RESULT( HNO3_UGM3 )
-#endif
 !
 !******************************************************************************
 !  Subroutine GET_HNO3_UGM3 converts monthly mean HNO3 mixing ratio from [v/v] 
@@ -82,43 +78,32 @@
 !
 !  NOTES:
 !  (1 ) Now references TCVV from "tracer_mod.f" (bmy, 7/20/04)
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,    ONLY : AD, AIRVOL
-      USE TRACER_MOD, ONLY : TCVV
-#if defined( DEVEL )
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE TRACER_MOD,         ONLY : TCVV
 
-      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 
       ! Arguments
-      INTEGER, INTENT(IN) :: I, J, L
-#if defined( DEVEL )
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
+      INTEGER,        INTENT(IN)  :: I, J, L
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 
-      ! Local variables
-      REAL*8              :: HNO3_UGM3
+      ! Return value
+      REAL*8                      :: HNO3_UGM3
       
       !=================================================================
       ! GET_HNO3_UGM3 begins here!
       !=================================================================
 
-#if defined( DEVEL )
       ! First convert HNO3 from [v/v] to [kg]
       HNO3_UGM3 = HNO3(I,J,L) * State_Met%AD(I,J,L) / ( 28.97d0 / 63d0 )
 
       ! Then convert HNO3 from [kg] to [ug/m3]
       HNO3_UGM3 = HNO3_UGM3 * 1.d9 / State_Met%AIRVOL(I,J,L)
-#else
-      ! First convert HNO3 from [v/v] to [kg]
-      HNO3_UGM3 = HNO3(I,J,L) * AD(I,J,L) / ( 28.97d0 / 63d0 )
-
-      ! Then convert HNO3 from [kg] to [ug/m3]
-      HNO3_UGM3 = HNO3_UGM3 * 1.d9 / AIRVOL(I,J,L)
-#endif
 
       ! Return to calling program
       END FUNCTION GET_HNO3_UGM3

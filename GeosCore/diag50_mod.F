@@ -174,24 +174,16 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE DIAG50( State_Met )
-#else
-      SUBROUTINE DIAG50
-#endif
 !
 ! !USES:
 !
-      USE LOGICAL_MOD, ONLY : DO_DIAG_WRITE
-#if defined( DEVEL )
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE LOGICAL_MOD,        ONLY : DO_DIAG_WRITE
 !
 ! !INPUT PARAMETERS:
 !
-#if defined( DEVEL )
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -205,11 +197,7 @@
       !=================================================================
 
       ! Accumulate data over a 24-hr period in the Q array
-#if defined( DEVEL )
       CALL ACCUMULATE_DIAG50( State_Met )
-#else
-      CALL ACCUMULATE_DIAG50
-#endif
 
       ! Write data to disk at the end of the day
       IF ( ITS_TIME_FOR_WRITE_DIAG50() .and. DO_DIAG_WRITE ) THEN
@@ -231,44 +219,34 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE ACCUMULATE_DIAG50( State_Met )
-#else
-      SUBROUTINE ACCUMULATE_DIAG50
-#endif
 !
 ! !USES:
 !
-      USE COMODE_MOD,     ONLY : JLOP
-      USE DAO_MOD,        ONLY : AD,      AIRDEN, BXHEIGHT, CLDF
-      USE DAO_MOD,        ONLY : CLDTOPS, OPTD,   RH,       T 
-      USE DAO_MOD,        ONLY : UWND,    VWND,   SLP
-      USE PBL_MIX_MOD,    ONLY : GET_PBL_TOP_L, GET_PBL_TOP_m
-      USE PRESSURE_MOD,   ONLY : GET_PEDGE
-      USE TIME_MOD,       ONLY : GET_ELAPSED_MIN, GET_TS_CHEM
-      USE TIME_MOD,       ONLY : TIMESTAMP_STRING
-      USE TRACER_MOD,     ONLY : STT, TCVV, ITS_A_FULLCHEM_SIM
-      USE TRACER_MOD,     ONLY : N_TRACERS
-      USE TRACER_MOD,     ONLY : XNUMOLAIR
-      USE TRACERID_MOD,   ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNOX  
-      USE TRACERID_MOD,   ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
-      USE TRACERID_MOD,   ONLY : IDTR4N2, IDTSALA, IDTSALC 
-#if defined( DEVEL )
+      USE COMODE_MOD,         ONLY : JLOP
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE LOGICAL_MOD,        ONLY : DO_DIAG_WRITE
+      USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L, GET_PBL_TOP_m
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE
+      USE TIME_MOD,           ONLY : GET_ELAPSED_MIN, GET_TS_CHEM
+      USE TIME_MOD,           ONLY : TIMESTAMP_STRING
+      USE TRACER_MOD,         ONLY : STT, TCVV, ITS_A_FULLCHEM_SIM
+      USE TRACER_MOD,         ONLY : N_TRACERS
+      USE TRACER_MOD,         ONLY : XNUMOLAIR
+      USE TRACERID_MOD,       ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNOX  
+      USE TRACERID_MOD,       ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
+      USE TRACERID_MOD,       ONLY : IDTR4N2, IDTSALA, IDTSALC 
 
-      USE CMN_FJ_MOD,     ONLY : JPMAX, JPPJ  ! includes F77_CMN_SIZE
-      USE JV_CMN_MOD  ! ODAER, QAA, QAA_OUT
-      USE COMODE_LOOP_MOD  ! NPVERT
-      USE CMN_O3_MOD    ! FRACO3, FRACNO, SAVEO3, SAVENO2, SAVEHO2, FRACNO2
-      USE CMN_GCTM_MOD  ! SCALE_HEIGHT
-      USE LOGICAL_MOD,    ONLY : DO_DIAG_WRITE
+      USE CMN_FJ_MOD,         ONLY : JPMAX, JPPJ      ! includes F77_CMN_SIZE
+      USE JV_CMN_MOD               ! ODAER,   QAA,    QAA_OUT
+      USE COMODE_LOOP_MOD          ! NPVERT
+      USE CMN_O3_MOD               ! FRACO3,  FRACNO, SAVEO3, SAVENO2,
+                                   ! SAVEHO2, FRACNO2
+      USE CMN_GCTM_MOD             ! SCALE_HEIGHT
 !
 ! !INPUT PARAMETERS:
 !
-#if defined( DEVEL )
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -299,6 +277,8 @@
 !  12 Nov 2010 - R. Yantosca - Now save out PEDGE-$ (pressure at level edges)
 !                              rather than Psurface - PTOP
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -322,15 +302,9 @@
 
       ! Set logical flags
       IF ( FIRST ) THEN
-#if defined( DEVEL )
          IS_OPTD     = ASSOCIATED( State_Met%OPTD    )
          IS_CLDTOPS  = ASSOCIATED( State_Met%CLDTOPS )
          IS_SLP      = ASSOCIATED( State_Met%SLP     )
-#else
-         IS_OPTD     = ALLOCATED( OPTD    )
-         IS_CLDTOPS  = ALLOCATED( CLDTOPS )
-         IS_SLP      = ALLOCATED( SLP     )
-#endif
          IS_FULLCHEM = ITS_A_FULLCHEM_SIM()
          IS_SEASALT  = ( IDTSALA > 0 .and. IDTSALC > 0 )
          IS_NOx      = ( IS_FULLCHEM .and. IDTNOX  > 0 )
@@ -419,14 +393,9 @@
                !--------------------------------------
                ! GEOS-CHEM TRACERS [v/v]
                !--------------------------------------
-#if defined( DEVEL )
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &                      ( STT(I,J,L,N) * TCVV(N) /
      &                      State_Met%AD(I,J,L) )
-#else
-               Q(X,Y,K,W) = Q(X,Y,K,W) + 
-     &                      ( STT(I,J,L,N) * TCVV(N) / AD(I,J,L) )
-#endif
 
             ELSE IF ( N == 91 .and. IS_Ox ) THEN
 
@@ -434,15 +403,9 @@
                ! PURE O3 CONCENTRATION [v/v]
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
-#if defined( DEVEL )
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &                      ( STT(I,J,L,IDTOX) * FRACO3(I,J,L) *
      &                        TCVV(IDTOX)      / State_Met%AD(I,J,L) )
-#else
-               Q(X,Y,K,W) = Q(X,Y,K,W) + 
-     &                      ( STT(I,J,L,IDTOX) * FRACO3(I,J,L) *
-     &                        TCVV(IDTOX)      / AD(I,J,L)      )
-#endif
 
             ELSE IF ( N == 92 .and. IS_NOx ) THEN
 
@@ -450,15 +413,9 @@
                ! NO CONCENTRATION [v/v]
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
-#if defined( DEVEL )
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &                      ( STT(I,J,L,IDTNOX) * FRACNO(I,J,L) *
      &                        TCVV(IDTNOX)      / State_Met%AD(I,J,L) )
-#else
-               Q(X,Y,K,W) = Q(X,Y,K,W) + 
-     &                      ( STT(I,J,L,IDTNOX) * FRACNO(I,J,L) *
-     &                        TCVV(IDTNOX)      / AD(I,J,L)      )
-#endif
 
             ELSE IF ( N == 93 .and. IS_NOy ) THEN
 
@@ -469,7 +426,6 @@
                ! Temp variable for accumulation
                TMP = 0d0
             
-#if defined( DEVEL )
                ! NOx
                TMP = TMP + ( TCVV(IDTNOX)        * 
      &                       STT(I,J,L,IDTNOX)   / 
@@ -509,39 +465,6 @@
                TMP = TMP + ( TCVV(IDTHNO4)       * 
      &                       STT(I,J,L,IDTHNO4)  / 
      &                       State_Met%AD(I,J,L) )
-#else
-               ! NOx
-               TMP = TMP + ( TCVV(IDTNOX)       * 
-     &                       STT(I,J,L,IDTNOX)  / AD(I,J,L) )
-
-               ! PAN
-               TMP = TMP + ( TCVV(IDTPAN)       * 
-     &                       STT(I,J,L,IDTPAN)  / AD(I,J,L) )
-
-               ! HNO3
-               TMP = TMP + ( TCVV(IDTHNO3)      * 
-     &                       STT(I,J,L,IDTHNO3) / AD(I,J,L) )
-            
-               ! PMN
-               TMP = TMP + ( TCVV(IDTPMN)       * 
-     &                       STT(I,J,L,IDTPMN)  / AD(I,J,L) )
-
-               ! PPN
-               TMP = TMP + ( TCVV(IDTPPN)       * 
-     &                       STT(I,J,L,IDTPPN)  / AD(I,J,L) )
- 
-               ! R4N2
-               TMP = TMP + ( TCVV(IDTR4N2)       * 
-     &                       STT(I,J,L,IDTR4N2)  / AD(I,J,L) )
-            
-               ! N2O5
-               TMP = TMP + ( 2d0 * TCVV(IDTN2O5) * 
-     &                       STT(I,J,L,IDTN2O5)  / AD(I,J,L) )
-                        
-               ! HNO4
-               TMP = TMP + ( TCVV(IDTHNO4)       * 
-     &                       STT(I,J,L,IDTHNO4)  / AD(I,J,L) )
-#endif
 
                ! Accumulate into Q
                Q(X,Y,K,W) = Q(X,Y,K,W) + TMP
@@ -560,15 +483,9 @@
                ! NO2 CONCENTRATION [v/v]
                ! NOTE: Only archive at chem timestep
                !--------------------------------------     
-#if defined( DEVEL )
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &                      ( STT(I,J,L,IDTNOX) * FRACNO2(I,J,L) *
      &                        TCVV(IDTNOX)      / State_Met%AD(I,J,L) )
-#else
-               Q(X,Y,K,W) = Q(X,Y,K,W) + 
-     &                      ( STT(I,J,L,IDTNOX) * FRACNO2(I,J,L) *
-     &                        TCVV(IDTNOX)      / AD(I,J,L)       )
-#endif
  
             ELSE IF ( N == 78 ) THEN
 
@@ -593,35 +510,22 @@
                !--------------------------------------
                ! AIR DENSITY [molec/cm3] 
                !--------------------------------------
-#if defined( DEVEL )
                Q(X,Y,K,W) = Q(X,Y,K,W) + ( State_Met%AIRDEN(L,I,J) *
      &                      XNUMOLAIR  * 1d-6 )
-#else
-               Q(X,Y,K,W) = Q(X,Y,K,W) + 
-     &                      ( AIRDEN(L,I,J) * XNUMOLAIR * 1d-6 )
-#endif
 
             ELSE IF ( N == 81 ) THEN
 
                !--------------------------------------
                ! 3_D CLOUD FRACTION [unitless]
                !--------------------------------------
-#if defined( DEVEL )
                Q(X,Y,K,W) = Q(X,Y,K,W) + State_Met%CLDF(L,I,J)
-#else
-               Q(X,Y,K,W) = Q(X,Y,K,W) + CLDF(L,I,J)
-#endif
 
             ELSE IF ( N == 82 .and. IS_OPTD ) THEN
 
                !--------------------------------------
                ! COLUMN OPTICAL DEPTH [unitless]
                !--------------------------------------
-#if defined( DEVEL )
                Q(X,Y,1,W) = Q(X,Y,1,W) + State_Met%OPTD(L,I,J)
-#else
-               Q(X,Y,1,W) = Q(X,Y,1,W) + OPTD(L,I,J)
-#endif
 
             ELSE IF ( N == 83 .and. IS_CLDTOPS ) THEN
 
@@ -629,12 +533,8 @@
                ! CLOUD TOP HEIGHTS [mb]
                !--------------------------------------
                IF ( K == 1 ) THEN
-#if defined( DEVEL )
                   Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &                         GET_PEDGE( I, J, State_Met%CLDTOPS(I,J) )
-#else
-                  Q(X,Y,K,W) = Q(X,Y,K,W) + GET_PEDGE(I,J,CLDTOPS(I,J))
-#endif
                ENDIF
 
             ELSE IF ( N == 84 ) THEN
@@ -772,39 +672,24 @@
                !--------------------------------------
                ! TOTAL SEASALT TRACER [v/v]
                !--------------------------------------
-#if defined( DEVEL )
                Q(X,Y,K,W) = Q(X,Y,K,W) +
      &                      ( STT(I,J,L,IDTSALA) + 
      &                        STT(I,J,L,IDTSALC) ) *
      &                        TCVV(IDTSALA)  / State_Met%AD(I,J,L) 
-#else
-               Q(X,Y,K,W) = Q(X,Y,K,W) +
-     &                      ( STT(I,J,L,IDTSALA) + 
-     &                        STT(I,J,L,IDTSALC) ) *
-     &                        TCVV(IDTSALA)  / AD(I,J,L) 
-#endif
 
             ELSE IF ( N == 94 ) THEN
 
                !--------------------------------------
                ! GRID BOX HEIGHTS [m]
                !--------------------------------------               
-#if defined( DEVEL )
                Q(X,Y,K,W) = Q(X,Y,K,W) + State_Met%BXHEIGHT(I,J,L)
-#else
-               Q(X,Y,K,W) = Q(X,Y,K,W) + BXHEIGHT(I,J,L)
-#endif
 
             ELSE IF ( N == 95 ) THEN
 
                !--------------------------------------
                ! RELATIVE HUMIDITY [%]
                !--------------------------------------
-#if defined( DEVEL )               
                Q(X,Y,K,W) = Q(X,Y,K,W) + State_Met%RH(I,J,L)
-#else
-               Q(X,Y,K,W) = Q(X,Y,K,W) + RH(I,J,L)
-#endif
 
             ELSE IF ( N == 96 .and. IS_SLP ) THEN
 
@@ -812,11 +697,7 @@
                ! SEA LEVEL PRESSURE [hPa]
                !--------------------------------------            
                IF ( K == 1 ) THEN
-#if defined( DEVEL )
                   Q(X,Y,K,W) = Q(X,Y,K,W) + State_Met%SLP(I,J)
-#else
-                  Q(X,Y,K,W) = Q(X,Y,K,W) + SLP(I,J)
-#endif
                ENDIF
 
             ELSE IF ( N == 97 ) THEN
@@ -824,22 +705,14 @@
                !--------------------------------------
                ! ZONAL (U) WIND [m/s]
                !--------------------------------------               
-#if defined( DEVEL )
                Q(X,Y,K,W) = Q(X,Y,K,W) + State_Met%U(I,J,L)
-#else
-               Q(X,Y,K,W) = Q(X,Y,K,W) + UWND(I,J,L)
-#endif
 
             ELSE IF ( N == 98 ) THEN
 
                !--------------------------------------
                ! MERIDIONAL (V) WIND [m/s]
                !--------------------------------------            
-#if defined( DEVEL )
                Q(X,Y,K,W) = Q(X,Y,K,W) + State_Met%V(I,J,L)
-#else
-               Q(X,Y,K,W) = Q(X,Y,K,W) + VWND(I,J,L)
-#endif
 
             ELSE IF ( N == 99 ) THEN
 
@@ -853,11 +726,7 @@
                !--------------------------------------
                ! TEMPERATURE [K]
                !--------------------------------------
-#if defined( DEVEL )
                Q(X,Y,K,W) = Q(X,Y,K,W) + State_Met%T(I,J,L)
-#else
-               Q(X,Y,K,W) = Q(X,Y,K,W) + T(I,J,L)
-#endif
 
             ENDIF
          ENDDO

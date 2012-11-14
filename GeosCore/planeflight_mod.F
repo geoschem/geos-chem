@@ -1118,38 +1118,25 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE PLANEFLIGHT( State_Met )
-#else
-      SUBROUTINE PLANEFLIGHT
-#endif
 !
 ! !USES:
 !
-      USE COMODE_MOD,   ONLY : AIRDENS,        CSPEC,       JLOP
-      USE COMODE_MOD,   ONLY : T3,             VOLUME,      ABSHUM
-      USE COMODE_MOD,   ONLY : TAREA
-      USE DAO_MOD,      ONLY : AD,             SEAICE00,    SEAICE10
-      USE DAO_MOD,      ONLY : SEAICE20,       SEAICE30,    SEAICE40
-      USE DAO_MOD,      ONLY : SEAICE50,       SEAICE60,    SEAICE70
-      USE DAO_MOD,      ONLY : SEAICE80,       SEAICE90,    T        
-      USE DAO_MOD,      ONLY : UWND,           VWND
-      USE ERROR_MOD,    ONLY : GEOS_CHEM_STOP  
-      USE PRESSURE_MOD, ONLY : GET_PEDGE
-      USE TIME_MOD,     ONLY : GET_TAU,        GET_TS_DIAG
-      USE TRACER_MOD,   ONLY : STT,            TCVV
-#if defined( DEVEL )
+      USE COMODE_MOD,         ONLY : AIRDENS,        CSPEC,       JLOP
+      USE COMODE_MOD,         ONLY : T3,             VOLUME,      ABSHUM
+      USE COMODE_MOD,         ONLY : TAREA
+      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP  
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE
+      USE TIME_MOD,           ONLY : GET_TAU,        GET_TS_DIAG
+      USE TRACER_MOD,         ONLY : STT,            TCVV
 
-      USE JV_CMN_MOD         ! ODAER, QAA, QAA_AOD
-      USE COMODE_LOOP_MOD    ! CSPEC, etc.
+      USE JV_CMN_MOD               ! ODAER, QAA, QAA_AOD
+      USE COMODE_LOOP_MOD          ! CSPEC, etc.
 !
 ! !INPUT PARAMETERS: 
 !
-#if defined( DEVEL )
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  08 Jul 2002 - M. Evans    - Initial version
@@ -1173,6 +1160,8 @@
 !  (11) Now scale AOD's to jv_spec_aod.dat wavelength. (clh, 5/14/09)
 !  29 Jul 2011 - R. Yantosca - Added ProTeX headers
 !  09 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1324,11 +1313,7 @@
                   ! GMAO temperature [K]
                   !--------------------------
                   CASE ( 1001 )
-#if defined( DEVEL )
                      VARI(V) = State_Met%T(I,J,L)
-#else
-                     VARI(V) = T(I,J,L)
-#endif
 
                   !--------------------------
                   ! GMAO abs humidity [frac]
@@ -1368,7 +1353,6 @@
                   CASE ( 1004 )
                      VARI(V) = GET_PEDGE(I,J,1)
 
-#if defined( DEVEL )
                   !-------------------------
                   ! GMAO U-wind [m/s]
                   !-------------------------
@@ -1380,19 +1364,6 @@
                   !--------------------------
                   CASE ( 1006 )
                      VARI(V) = State_Met%V(I,J,L)
-#else
-                  !-------------------------
-                  ! GMAO U-wind [m/s]
-                  !-------------------------
-                  CASE ( 1005 )
-                     VARI(V) = UWND(I,J,L)
-
-                  !--------------------------
-                  ! GMAO V-wind [m/s]
-                  !--------------------------
-                  CASE ( 1006 )
-                     VARI(V) = VWND(I,J,L)
-#endif
 
                   !--------------------------
                   ! GEOS-Chem Grid Box I
@@ -1413,7 +1384,6 @@
                      VARI(V) = L
 
 #if   defined( MERRA ) || defined( GEOS_57 )
-#if defined( DEVEL )
                   !--------------------------
                   ! GEOS-Chem SEAICE frac's
                   !--------------------------
@@ -1437,31 +1407,6 @@
                      VARI(V) = State_Met%SEAICE80(I,J)
                   CASE ( 1109 )
                      VARI(V) = State_Met%SEAICE90(I,J)
-#else
-                  !--------------------------
-                  ! GEOS-Chem SEAICE frac's
-                  !--------------------------
-                  CASE ( 1100 )
-                     VARI(V) = SEAICE00(I,J)
-                  CASE ( 1101 )
-                     VARI(V) = SEAICE10(I,J)
-                  CASE ( 1102 )
-                     VARI(V) = SEAICE20(I,J)
-                  CASE ( 1103 )
-                     VARI(V) = SEAICE30(I,J)
-                  CASE ( 1104 )
-                     VARI(V) = SEAICE40(I,J)
-                  CASE ( 1105 )
-                     VARI(V) = SEAICE50(I,J)
-                  CASE ( 1106 )
-                     VARI(V) = SEAICE60(I,J)
-                  CASE ( 1107 )
-                     VARI(V) = SEAICE70(I,J)
-                  CASE ( 1108 )
-                     VARI(V) = SEAICE80(I,J)
-                  CASE ( 1109 )
-                     VARI(V) = SEAICE90(I,J)
-#endif  ! DEVEL
 #endif
 
                   !--------------------------
@@ -1560,12 +1505,8 @@
                      N = PVAR(V) - 100000
                      
                      ! Convert from [kg] --> [v/v]
-#if defined( DEVEL )
                      VARI(V) = STT(I,J,L,N) * TCVV(N) /
      &                         State_Met%AD(I,J,L)
-#else
-                     VARI(V) = STT(I,J,L,N) * TCVV(N) / AD(I,J,L)
-#endif
 
                      IF ( VARI(V) < TINY ) VARI(V) = 0.d0
 

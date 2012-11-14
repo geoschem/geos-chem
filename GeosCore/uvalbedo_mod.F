@@ -51,11 +51,7 @@
 
 !------------------------------------------------------------------------------
 
-#if defined( DEVEL )
       SUBROUTINE READ_UVALBEDO( MONTH, State_Met )
-#else
-      SUBROUTINE READ_UVALBEDO( MONTH )
-#endif
 !
 !******************************************************************************
 !  Subroutine READ_UVALBEDO reads in UV albedo data from a binary punch
@@ -99,22 +95,18 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE ERROR_MOD,     ONLY : ALLOC_ERR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-#if defined( DEVEL )
+      USE BPCH2_MOD,          ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,          ONLY : GET_TAU0,        READ_BPCH2
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
 
-      USE CMN_SIZE_MOD   ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 
       ! Arguments
-      INTEGER, INTENT(IN)  :: MONTH
-#if defined( DEVEL )
+      INTEGER,        INTENT(IN)    :: MONTH
       TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
-#endif
       
       ! Local Variables
       LOGICAL              :: FIRST = .TRUE.
@@ -165,10 +157,8 @@
       ! Transfer data from REAL*4 to REAL*8 and to size (IIPAR,JJPAR)
       CALL TRANSFER_2D( ARRAY(:,:,1), UVALBEDO )
       
-#if defined( DEVEL )
-      ! Copy field to derived type object
+      ! Copy met field to State_Met
       State_Met%UVALBEDO = UVALBEDO
-#endif
 
       ! Return to calling program
       END SUBROUTINE READ_UVALBEDO

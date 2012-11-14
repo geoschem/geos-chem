@@ -146,29 +146,21 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE CH4_AVGTP( State_Met )
-#else
-      SUBROUTINE CH4_AVGTP
-#endif
 !
 ! !USES:
 !
-      USE DAO_MOD,      ONLY : T
-      USE ERROR_MOD,    ONLY : GEOS_CHEM_STOP
-      USE PRESSURE_MOD, ONLY : GET_PCENTER
-      USE TIME_MOD,     ONLY : GET_TS_DYN, GET_TS_CHEM, GET_ELAPSED_MIN
-#if defined( DEVEL )
+      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER
+      USE TIME_MOD,           ONLY : GET_TS_DYN, GET_TS_CHEM
+      USE TIME_MOD,           ONLY : GET_ELAPSED_MIN
 
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
-#if defined( DEVEL )
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY:
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry and
@@ -189,6 +181,8 @@
 !        GET_TS_CHEM, and GET_ELAPSED_MIN from "time_mod.f" (bmy, 3/27/03)
 !  (9 ) Remove reference to CMN, it's not needed (bmy, 7/20/04)
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -282,11 +276,7 @@
          Pavg(I,J,L) = Pavg(I,J,L) + GET_PCENTER(I,J,L)
 
          ! Archive temperature
-#if defined( DEVEL )
          Tavg(I,J,L) = Tavg(I,J,L) + State_Met%T(I,J,L)
-#else
-         Tavg(I,J,L) = Tavg(I,J,L) + T(I,J,L)
-#endif
       ENDDO
       ENDDO
       ENDDO
@@ -320,41 +310,33 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE EMISSCH4( State_Met )
-#else
-      SUBROUTINE EMISSCH4
-#endif
 !
 ! !USES:
 !
-      USE TIME_MOD,      ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR 
-      USE TIME_MOD,      ONLY : GET_MONTH,       GET_YEAR
-      USE TIME_MOD,      ONLY : GET_TS_EMIS
-      USE GRID_MOD,      ONLY : GET_AREA_CM2,    GET_XOFFSET
-      USE GRID_MOD,      ONLY : GET_YOFFSET 
-      USE TRACER_MOD,    ONLY : STT
-      USE LOGICAL_MOD,   ONLY : LSPLIT
-      USE DIAG_MOD,      ONLY : AD58
-      USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP,  IT_IS_NAN
-      USE TRACER_MOD,    ONLY : N_TRACERS, ID_TRACER
-      USE LOGICAL_MOD,   ONLY : LWETL,           LBMCH4,       LRICE
-      USE LOGICAL_MOD,   ONLY : LBFCH4
-      USE VDIFF_PRE_MOD, ONLY : EMIS_SAVE ! (ccc, 08/31/09)
-      USE LOGICAL_MOD,   ONLY : LNLPBL    ! (ccc, 08/31/09)
-#if defined( DEVEL )
+      USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR 
+      USE TIME_MOD,           ONLY : GET_MONTH,       GET_YEAR
+      USE TIME_MOD,           ONLY : GET_TS_EMIS
+      USE GRID_MOD,           ONLY : GET_AREA_CM2,    GET_XOFFSET
+      USE GRID_MOD,           ONLY : GET_YOFFSET 
+      USE TRACER_MOD,         ONLY : STT
+      USE LOGICAL_MOD,        ONLY : LSPLIT
+      USE DIAG_MOD,           ONLY : AD58
+      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP, IT_IS_NAN
+      USE TRACER_MOD,         ONLY : N_TRACERS,      ID_TRACER
+      USE LOGICAL_MOD,        ONLY : LWETL,          LBMCH4,       LRICE
+      USE LOGICAL_MOD,        ONLY : LBFCH4
+      USE VDIFF_PRE_MOD,      ONLY : EMIS_SAVE ! (ccc, 08/31/09)
+      USE LOGICAL_MOD,        ONLY : LNLPBL    ! (ccc, 08/31/09)
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
 
-      USE CMN_SIZE_MOD        ! Size parameters
-      USE CMN_DIAG_MOD        ! Diagnostic switches
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! Diagnostic switches
 
 !
 ! !INPUT PARAMETERS:
 !
-#if defined( DEVEL )
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 ! 
 ! !REMARKS:
 !  WARNING: Soil absorption has to be the 11th field in CH4_EMIS
@@ -451,11 +433,7 @@
 
       !4.1 Wetland emissions
       IF ( LWETL ) THEN
-#if defined( DEVEL )
          CALL WETLAND_EMIS( State_Met )
-#else
-         CALL WETLAND_EMIS 
-#endif
       ENDIF
 
       ! ==================================================================
@@ -647,40 +625,29 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE WETLAND_EMIS( State_Met )
-#else
-      SUBROUTINE WETLAND_EMIS
-#endif
 !
 ! !USES:
 !
-      USE DAO_MOD,       ONLY : GWETTOP,      LWI
-      USE DAO_MOD,       ONLY : TSKIN
-      USE DAO_MOD,       ONLY : FRLAND,       FRLAKE
-      USE DAO_MOD,       ONLY : FROCEAN,      FRLANDIC
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT,  GET_MODELNAME
-      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_NAME_EXT_2D
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE FILE_MOD,      ONLY : IOERROR
-      USE GRID_MOD,      ONLY : GET_AREA_M2
-      USE TIME_MOD,      ONLY : GET_MONTH,    GET_YEAR,    GET_TS_EMIS
-      USE TIME_MOD,      ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-      USE DIAG_MOD,      ONLY : AD60, AD58
-#if defined( DEVEL )
+      USE BPCH2_MOD,          ONLY : GET_RES_EXT,  GET_MODELNAME
+      USE BPCH2_MOD,          ONLY : GET_TAU0,     READ_BPCH2
+      USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_NAME_EXT_2D
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR
+      USE FILE_MOD,           ONLY : IOERROR
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE GRID_MOD,           ONLY : GET_AREA_M2
+      USE TIME_MOD,           ONLY : GET_MONTH,       GET_YEAR
+      USE TIME_MOD,           ONLY : GET_TS_EMIS
+      USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
+      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
+      USE DIAG_MOD,           ONLY : AD60, AD58
 
-      USE CMN_SIZE_MOD        ! Size parameters
-      USE CMN_DIAG_MOD        ! Diagnostic switches
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! Diagnostic switches
 !
 ! !INPUT PARAMETERS:
 !
-#if defined( DEVEL )
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY:
 !  (1 ) Adapted by Jérôme Drevet (3/06) from the BIOME-TG Wetland-Methane
@@ -696,6 +663,8 @@
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -794,8 +763,6 @@
       ! REALWET is the actual inundated fraction of a box
       REALWET(:,:) = 0d0
 
-#if defined( DEVEL )
-
       ! GEOS4 calculation of inundated fraction
 #if   defined( GEOS_4 )
 !$OMP PARALLEL DO
@@ -866,73 +833,6 @@
 !$OMP END PARALLEL DO
 
 #endif
-
-#else
-
-      ! GEOS4 calculation of inundated fraction
-#if   defined( GEOS_4 )
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( J, I )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-	 ! We don't want emissions in frozen regions
-	 IF (TSKIN(I,J) > 273d0) THEN
-         ! We want emissions from land boxes only
-         IF (LWI(I,J) == 1) THEN 
-	    ! If wetness>0.1, the wetland fraction is equal
-            ! to the maximal potential wetland fraction
-            IF (GWETTOP(I,J) > 0.1d0) THEN
-		REALWET(I,J) = WETFRAC(I,J)
-            ELSE
-		REALWET(I,J) = 0.d0
-            ENDIF
-	 ENDIF
-	 ENDIF	
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      ! GEOS5 Calculation of inundated fraction
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( J, I )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-	 ! We don't want emissions in frozen regions
-	 IF (TSKIN(I,J) > 273d0) THEN
-         ! We want emissions from any box that contains some land
-         ! FRLAND is fraction of grid box that is land
-         IF (FRLAND(I,J) > 0) THEN 
-            ! Actual wetness of land /= GWETTOP because GWETTOP includes
-            ! wetness in lakes, ocean, and ice.  Below is a scheme to
-            ! calculate effective GWETTOP of the land fraction
-            EFF_GWET(I,J) = ( GWETTOP(I,J) - 
-     &           ( FROCEAN(I,J) + FRLAKE(I,J) + FRLANDIC(I,J) ) ) 
-     &                       / FRLAND(I,J)
-
-            ! Catch for negative EFF_GWET
-            IF ( EFF_GWET(I,J) < 0d0 ) THEN
-               EFF_GWET(I,J) = 0d0
-            ENDIF
-
-	    ! If wetness>0.1, the wetland fraction is equal
-            ! to the maximal potential wetland fraction
-            IF (EFF_GWET(I,J) > 0.1d0) THEN
-		REALWET(I,J) = WETFRAC(I,J)
-            ELSE
-		REALWET(I,J) = 0.d0
-            ENDIF
-	 ENDIF
-	 ENDIF	
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-#endif
-
-#endif  ! DEVEL
 
       ! Update Wetland Fraction Diagnostic
       GM = GET_MONTH()
@@ -1080,21 +980,12 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
         
-#if defined( DEVEL )
 	 IF ( State_Met%TSKIN(I,J) < 233.d0 ) THEN
 	    F_TEMP = 0d0
 	 ELSE
 	    F_TEMP = exp(308.56d0*(1.0d0/56.02d0-
      &           1.0d0/(State_Met%TSKIN(I,J)-227.13d0))) !Lloyd & Taylor 1994
          ENDIF
-#else
-	 IF ( tskin(I,J) < 233.d0 ) THEN
-	    F_TEMP = 0d0
-	 ELSE
-	    F_TEMP = exp(308.56d0*(1.0d0/56.02d0-
-     &           1.0d0/(tskin(I,J)-227.13d0))) !Lloyd & Taylor 1994	
-	 ENDIF
-#endif
 
          ! Calculate Heterotrophic respiration
          litterfast = 0.985d0 * LITTER_C(i,j)
@@ -1683,40 +1574,33 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE CHEMCH4( State_Met )
-#else
-      SUBROUTINE CHEMCH4
-#endif
 !
 ! !USES:
 !
-      USE DAO_MOD,       ONLY : AD
-      USE DIAG_MOD,      ONLY : AD43
-      USE DIRECTORY_MOD, ONLY : DATA_DIR, OH_DIR
-      USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP, IT_IS_NAN, IT_IS_FINITE
-      USE GLOBAL_OH_MOD, ONLY : GET_GLOBAL_OH, OH
-      USE TIME_MOD,      ONLY : GET_DAY, GET_MONTH, GET_NYMDb, GET_NYMDe
-      USE TIME_MOD,      ONLY : GET_TAU, GET_YEAR
-      USE BPCH2_MOD,     ONLY : GET_TAU0, READ_BPCH2, GET_MODELNAME
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
-      USE TRACER_MOD,    ONLY : STT
-      USE LOGICAL_MOD,   ONLY : LSPLIT, LCH4BUD
-      USE TIME_MOD,      ONLY : ITS_A_NEW_MONTH
-#if defined( DEVEL )
+      USE BPCH2_MOD,          ONLY : GET_TAU0, READ_BPCH2, GET_MODELNAME
+      USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_RES_EXT
+      USE DIAG_MOD,           ONLY : AD43
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR, OH_DIR
+      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
+      USE ERROR_MOD,          ONLY : IT_IS_NAN, IT_IS_FINITE
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE GLOBAL_OH_MOD,      ONLY : GET_GLOBAL_OH, OH
+      USE LOGICAL_MOD,        ONLY : LSPLIT, LCH4BUD
+      USE TIME_MOD,           ONLY : GET_DAY,   GET_MONTH
+      USE TIME_MOD,           ONLY : GET_NYMDb, GET_NYMDe
+      USE TIME_MOD,           ONLY : GET_TAU,   GET_YEAR
+      USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
+      USE TRACER_MOD,         ONLY : STT
+      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
 
-      USE CMN_SIZE_MOD        ! Size parameters
-      USE CMN_DIAG_MOD        ! ND43, AD43
-      USE CMN_MOD             ! LPAUSE
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND43, AD43
+      USE CMN_MOD                  ! LPAUSE
 !
 ! !INPUT PARAMETERS:
 !
-#if defined( DEVEL )
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 ! 
 ! !REMARKS:
 !  CH4 SOURCES
@@ -1757,6 +1641,8 @@
 !  (8 ) Now reference DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (9 ) Remove reference to BPCH2_MOD, it's not needed (bmy, 10/3/05)
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1804,13 +1690,8 @@
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-#if defined( DEVEL )
          BAIRDENS(I,J,L) = State_Met%AD(I,J,L)    * 1000d0   /
      &                     BOXVL(I,J,L,State_Met) * 6.023D23 / WTAIR
-#else
-         BAIRDENS(I,J,L) = AD(I,J,L) * 1000d0   / BOXVL(I,J,L) * 
-     &                                 6.023D23 / WTAIR
-#endif
       ENDDO
       ENDDO
       ENDDO
@@ -1916,11 +1797,7 @@
       ! (4) Save OH concentrations for printing of global mean [OH] and
       !     CH3CCLl3 at end of simulation.
       !=================================================================
-#if defined( DEVEL )
       CALL CH4_OHSAVE( State_Met )
-#else
-      CALL CH4_OHSAVE
-#endif
 
       !=================================================================
       ! (5) If multi-CH4 tracers, we store the CH4 total conc. to
@@ -1943,20 +1820,12 @@
       !=================================================================
       ! (6) calculate rate of decay of CH4 by OH oxidation.
       !=================================================================
-#if defined( DEVEL )
       CALL CH4_DECAY( State_Met )
-#else
-      CALL CH4_DECAY
-#endif
 
       !=================================================================
       ! (7) calculate CH4 chemistry in layers above tropopause.
       !=================================================================
-#if defined( DEVEL )
       CALL CH4_STRAT( State_Met )
-#else
-      CALL CH4_STRAT
-#endif
 
       !=================================================================
       ! (8) distribute the chemistry sink from total CH4 to other CH4 
@@ -2236,31 +2105,23 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE CH4_DECAY( State_Met )
-#else
-      SUBROUTINE CH4_DECAY
-#endif
 !
 ! !USES:
 !
-      USE DAO_MOD,    ONLY : AIRVOL, T
-      USE TIME_MOD,   ONLY : GET_TS_CHEM, ITS_A_NEW_YEAR, GET_MONTH
-      USE TRACER_MOD, ONLY : STT
-      USE DIAG_MOD,   ONLY : AD19   	      
-#if defined( DEVEL )
+      USE DIAG_MOD,           ONLY : AD19   	      
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE TIME_MOD,           ONLY : GET_TS_CHEM, ITS_A_NEW_YEAR
+      USE TIME_MOD,           ONLY : GET_MONTH
+      USE TRACER_MOD,         ONLY : STT
 
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DIAG_MOD     ! ND19
-      USE CMN_MOD          ! STT, LPAUSE
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND19
+      USE CMN_MOD                  ! STT, LPAUSE
 !
 ! !INPUT PARAMETERS: 
 !
-#if defined( DEVEL )
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 ! 
 ! !REMARKS:
 !  The annual mean tropopause is stored in the LPAUSE array 
@@ -2284,6 +2145,8 @@
 !  (3 ) Now use function GET_TS_CHEM from "time_mod.f" (bmy, 3/27/03)
 !  (4 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2331,7 +2194,6 @@
          ! Only consider tropospheric boxes
          IF ( L < LPAUSE(I,J) ) THEN 
 
-#if defined( DEVEL )
             ! Use 24-hr avg temperature to calc. rate coeff.
             ! citation needed
             KRATE = 2.45d-12 * EXP( -1775d0 / State_Met%T(I,J,L) )  
@@ -2347,22 +2209,6 @@
             TCH4(I,J,L,3) = TCH4(I,J,L,3) + 
      &                      ( GCH4  * BOXVL(I,J,L,State_Met) *
      &                        KRATE * BOH(I,J,L,LMN)         * DT )
-#else
-            ! Use 24-hr avg temperature to calc. rate coeff.
-            ! citation needed
-            KRATE = 2.45d-12 * EXP( -1775d0 / T(I,J,L) )  
-
-            ! Conversion from [kg/box] --> [molec/cm3]
-            ! [kg CH4/box] * [box/cm3] * XNUMOL_CH4 [molec CH4/kg CH4]
-            STT2GCH4 = 1d0 / AIRVOL(I,J,L) / 1d6 * XNUMOL_CH4 
-
-            ! CH4 in [molec/cm3]
-            GCH4 = STT(I,J,L,1) * STT2GCH4
-	
-            ! Sum loss in TCH4(3) (molecules/box)
-            TCH4(I,J,L,3) = TCH4(I,J,L,3)+ 
-     &           ( GCH4 * BOXVL(I,J,L) * KRATE * BOH(I,J,L,LMN) * DT)
-#endif
 
             TROPOCH4=TROPOCH4 + GCH4 * KRATE * BOH(I,J,L,LMN) * DT / 
      &               STT2GCH4
@@ -2408,30 +2254,21 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE CH4_OHSAVE( State_Met )
-#else
-      SUBROUTINE CH4_OHSAVE
-#endif
 !
 ! !USES:
 !
       ! References to F90 modules
-      USE DIAG_OH_MOD, ONLY : DO_DIAG_OH_CH4
-      USE TIME_MOD,    ONLY : GET_MONTH
-      USE DAO_MOD,     ONLY : T
-#if defined( DEVEL )
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE DIAG_OH_MOD,        ONLY : DO_DIAG_OH_CH4
+      USE TIME_MOD,           ONLY : GET_MONTH
 
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE CMN_MOD           ! LPAUSE
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_MOD                  ! LPAUSE
 !
 ! !INPUT PARAMETERS:
 !
-#if defined( DEVEL )
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 ! 
 ! !REMARKS:
 !  The annual mean tropopause is stored in the LPAUSE array 
@@ -2449,6 +2286,8 @@
 !  (3 ) Now call DO_DIAG_OH_CH4 to pass OH diagnostic info to the
 !        "diag_oh_mod.f" (bmy, 7/20/04)
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2480,7 +2319,6 @@
          IF ( L < LPAUSE(I,J) ) THEN
 
             ! Calculate OH mass [molec / box]
-#if defined( DEVEL )
             OHMASS = BOH(I,J,L,LMN)  * BAIRDENS(I,J,L) *
      &               BOXVL(I,J,L,State_Met)
 
@@ -2494,20 +2332,6 @@
             ! Calculate Loss term [molec / box / s]
             LOSS   = KCLO            * BOH(I,J,L,LMN)  *
      &               BAIRDENS(I,J,L) * BOXVL(I,J,L,State_Met)
-#else
-            OHMASS = BOH(I,J,L,LMN) * BAIRDENS(I,J,L) * BOXVL(I,J,L)
-
-            ! Calculate total air mass [molec / box]
-            MASST  = BAIRDENS(I,J,L) * BOXVL(I,J,L)
-
-            ! Calculate CH3CCl3 + OH rate constant from JPL '06
-            ! [cm3 / molec / s]
-            KCLO   = 1.64d-12 * EXP( -1520.d0 / T(I,J,L) )
-
-            ! Calculate Loss term [molec / box / s]
-            LOSS   = KCLO            * BOH(I,J,L,LMN)  *
-     &               BAIRDENS(I,J,L) * BOXVL(I,J,L)
-#endif
 
             ! Pass OH mass, total mass, and loss to "diag_oh_mod.f",
             ! which calculates mass-weighted mean [OH] and CH3CCl3
@@ -2535,29 +2359,20 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE CH4_STRAT( State_Met )
-#else
-      SUBROUTINE CH4_STRAT
-#endif
 !
 ! !USES:
 !
-      USE DAO_MOD,    ONLY : AIRVOL
-      USE TIME_MOD,   ONLY : GET_MONTH, GET_TS_CHEM
-      USE TRACER_MOD, ONLY : STT, CHECK_STT
-#if defined( DEVEL )
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE TIME_MOD,           ONLY : GET_MONTH, GET_TS_CHEM
+      USE TRACER_MOD,         ONLY : STT, CHECK_STT
 
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_MOD          ! STT, LPAUSE
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_MOD                  ! STT, LPAUSE
 !
 ! !INPUT PARAMETERS:
 !
-#if defined( DEVEL )
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 ! 
 ! !REMARKS:
 !  Production (mixing ratio/sec) rate provided by Dylan Jones.  
@@ -2579,6 +2394,8 @@
 !        functions GET_MONTH and GET_TS_CHEM from "time_mod.f" (bmy, 3/27/03)
 !  (4 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2614,11 +2431,7 @@
 
             ! Conversion factor [kg/box] --> [molec/cm3]
             ! [kg/box] / [AIRVOL * 1e6 cm3] * [XNUMOL_CH4 molec/mole]
-#if defined( DEVEL )
             STT2GCH4 = 1d0 / State_Met%AIRVOL(I,J,L) / 1d6 * XNUMOL_CH4
-#else
-            STT2GCH4 = 1d0 / AIRVOL(I,J,L) / 1d6 * XNUMOL_CH4
-#endif
 
             ! CH4 in [molec/cm3]
             GCH4 = STT(I,J,L,1) * STT2GCH4

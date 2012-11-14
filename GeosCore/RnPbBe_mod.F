@@ -262,39 +262,27 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE EMISSRnPbBe( State_Met )
-#else
-      SUBROUTINE EMISSRnPbBe
-#endif
 !
 ! !USES:
 !
-      USE DAO_MOD,        ONLY : AD, TS
-      USE DIAG_MOD,       ONLY : AD01 
-      USE GRID_MOD,       ONLY : GET_AREA_CM2
-      USE GRID_MOD,       ONLY : GET_YMID
-      USE GRID_MOD,       ONLY : GET_YEDGE 
-      USE LOGICAL_MOD,    ONLY : LEMIS
-      USE TIME_MOD,       ONLY : GET_TS_EMIS
-      USE TRACER_MOD,     ONLY : STT, N_TRACERS
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
-      USE PRESSURE_MOD,   ONLY : GET_PCENTER
-#if defined( DEVEL )
+      USE DIAG_MOD,           ONLY : AD01 
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE GRID_MOD,           ONLY : GET_YMID
+      USE GRID_MOD,           ONLY : GET_YEDGE 
+      USE LOGICAL_MOD,        ONLY : LEMIS
+      USE TIME_MOD,           ONLY : GET_TS_EMIS
+      USE TRACER_MOD,         ONLY : STT, N_TRACERS
+      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER
 
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_DIAG_MOD       ! ND02 
-#if !defined( DEVEL )
-      USE CMN_DEP_MOD        ! FRCLND
-#endif
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND02 
 !
 ! !INPUT PARAMETERS: 
 !
-#if defined( DEVEL )
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
 ! 
 ! !REVISION HISTORY: 
 !  28 May 1999 - I. Bey - Initial version
@@ -338,6 +326,8 @@
 !  08 Nov 2011 - R. Yantosca - Prevent out-of-bounds errors in diagnostics
 !  01 Mar 2012 - R. Yantosca - Now use functions GET_AREA_CM2(I,J,L) and
 !                              GET_YEDGE(I,J,L) from the new grid_mod.F90
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -415,11 +405,7 @@
          Rn_WATER   = Rn_LAND * 0.005d0
 
          ! Fraction of grid box that is land
-#if defined( DEVEL )
          F_LAND  = State_Met%FRCLND(I,J)
-#else
-         F_LAND  = FRCLND(I,J)
-#endif
 
          ! Fraction of grid box that is water
          F_WATER = 1d0 - F_LAND
@@ -486,11 +472,7 @@
          ENDIF
 
          ! For boxes below freezing, reduce 222Rn emissions by 3x
-#if defined( DEVEL )
          IF ( State_Met%TS(I,J) < 273.15 ) ADD_Rn = ADD_Rn / 3d0
-#else
-         IF ( TS(I,J) < 273.15 ) ADD_Rn = ADD_Rn / 3d0
-#endif
 
          ! Save 222Rn into STT array [kg]
          STT(I,J,1,1) = STT(I,J,1,1) + ADD_Rn
@@ -537,25 +519,15 @@
 
             ! Be_TMP = [stars/g air/s] * [0.045 atom/star] * 
             !          [kg air] * [1e3 g/kg] = 7Be emissions [atoms/s]
-#if defined( DEVEL )
             Be_TMP  = Be_TMP * 0.045d0 * State_Met%AD(I,J,L) * 1.d3 
-#else
-            Be_TMP  = Be_TMP * 0.045d0 * AD(I,J,L) * 1.d3 
-#endif
                   
             ! ADD_Be = [atoms/s] * [s] / [atom/kg] = 7Be emissions [kg]
             ADD_Be  = Be_TMP * DTSRCE / XNUMOL_Be 
 
             ! Correct the strat-trop exchange of 7Be
-#if defined( DEVEL )
             IF ( ITS_IN_THE_STRAT( I, J, L, State_Met ) ) THEN
                CALL CORRECT_STE( ADD_Be )
             ENDIF
-#else
-            IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN
-               CALL CORRECT_STE( ADD_Be )
-            ENDIF
-#endif
 
             ! Add 7Be into STT tracer array [kg]
             STT(I,J,L,3) = STT(I,J,L,3) + ADD_Be
@@ -588,30 +560,22 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE CHEMRnPbBe( State_Met )
-#else
-      SUBROUTINE CHEMRnPbBe
-#endif
 !
 ! !USES:
 !
-      USE DIAG_MOD,       ONLY : AD01, AD02
-      USE TIME_MOD,       ONLY : GET_TS_CHEM
-      USE TRACER_MOD,     ONLY : STT, N_TRACERS
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
-#if defined( DEVEL )
+      USE DIAG_MOD,           ONLY : AD01, AD02
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+      USE TRACER_MOD,         ONLY : STT, N_TRACERS
+      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
 
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_DIAG_MOD       ! ND01, ND02
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND01, ND02
 !
 ! !INPUT PARAMETERS: 
 !
-#if defined( DEVEL )
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
 ! 
 ! !REVISION HISTORY:
 !  31 Oct 1999 - H. Liu - Initial version
@@ -633,6 +597,8 @@
 !        from "tropopause_mod.f" to diagnose strat boxes. (bmy, 8/15/05)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  08 Nov 2011 - R. Yantosca - Prevent out-of-bounds errors in diagnostics
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -710,15 +676,9 @@
             ADD_Pb = Rn_LOST(I,J,L) * Pb_Rn_RATIO 
 
             ! Correct strat-trop exchange of 210Pb in stratosphere
-#if defined( DEVEL )
             IF ( ITS_IN_THE_STRAT( I, J, L, State_Met ) ) THEN
                CALL CORRECT_STE( ADD_Pb )
             ENDIF
-#else
-            IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN
-               CALL CORRECT_STE( ADD_Pb )
-            ENDIF
-#endif
 
             ! ND01 diag: 210Pb emission from 222Rn decay [kg/s]
             IF ( ND01 > 0 .and. L <= LD01 ) THEN

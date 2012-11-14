@@ -27,22 +27,21 @@
       ! Current practice is to call DO_CHEMISTRY with am_I_Root as the
       ! only argument. (bmy, 10/25/12)
       !-----------------------------------------------------------------
-      SUBROUTINE CHEMDR( am_I_Root )
+      SUBROUTINE CHEMDR( am_I_Root, State_Met )
 #endif
 !
 ! !USES:
 !
-      USE AEROSOL_MOD,          ONLY : AEROSOL_CONC, RDAER, SOILDUST
+      USE AEROSOL_MOD,          ONLY : AEROSOL_CONC,  RDAER, SOILDUST
       USE COMODE_MOD,           ONLY : ABSHUM, CSPEC, ERADIUS, TAREA
-      USE COMODE_MOD,           ONLY : JLOP,   JLOP_PREVIOUS
-      USE DAO_MOD,              ONLY : AD,        ALBD,      AVGW
-      USE DAO_MOD,              ONLY : MAKE_AVGW, OPTD  
-      USE DAO_MOD,              ONLY : T,         SUNCOS_MID
+      USE COMODE_MOD,           ONLY : JLOP,          JLOP_PREVIOUS
+      USE DAO_MOD,              ONLY : MAKE_AVGW,     SUNCOS_MID
       USE DIAG_OH_MOD,          ONLY : DO_DIAG_OH
       USE DIAG_PL_MOD,          ONLY : DO_DIAG_PL
       USE DUST_MOD,             ONLY : RDUST_ONLINE, RDUST_OFFLINE
       USE ERROR_MOD,            ONLY : DEBUG_MSG,    ERROR_STOP
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_YEAR
+      USE GIGC_State_Met_Mod,   ONLY : MetState
       USE LOGICAL_MOD,          ONLY : LCARB,        LDUST
       USE LOGICAL_MOD,          ONLY : LPRT,         LSSALT,    LSULF  
       USE LOGICAL_MOD,          ONLY : LSOA,         LVARTROP,  LFUTURE
@@ -52,9 +51,6 @@
       USE TRACER_MOD,           ONLY : STT,          N_TRACERS, XNUMOL
       USE TRACERID_MOD,         ONLY : IDTNOX,       IDTOX,     SETTRACE
       USE TROPOPAUSE_MOD,       ONLY : SAVE_FULL_TROP
-#if !defined( DEVEL )
-      USE UVALBEDO_MOD,         ONLY : UVALBEDO
-#endif
       USE RESTART_MOD,          ONLY : READ_CSPEC_FILE 
       USE TIME_MOD,             ONLY : GET_NYMD,     GET_NHMS
       USE LOGICAL_MOD,          ONLY : LSVCSPEC,     LLINOZ
@@ -64,9 +60,6 @@
       USE CMN_O3_MOD                 ! EMISRRN, EMISRR
       USE CMN_DIAG_MOD               ! ND40
       USE CMN_NOX_MOD                ! SLBASE
-#if !defined( DEVEL )
-      USE CMN_DEP_MOD                ! FRCLND
-#endif
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
@@ -77,7 +70,6 @@
       !-----------------------------------------------------------------
       USE GIGC_ErrCode_Mod
       USE GIGC_State_Chm_Mod,   ONLY : ChmState
-      USE GIGC_State_Met_Mod,   ONLY : MetState
 #endif
 
       IMPLICIT NONE
@@ -90,14 +82,18 @@
       INTEGER,        INTENT(IN)    :: NI          ! # of lons on this CPU
       INTEGER,        INTENT(IN)    :: NJ          ! # of lats on this CPU
       INTEGER,        INTENT(IN)    :: NL          ! # of levs on this CPU
+#endif
 !
 ! !INPUT/OUTPUT VARIABLES:
 !
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
       TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 #endif
 !
@@ -310,11 +306,7 @@
       !=================================================================
       ! Compute AVGW, the mixing ratio of water vapor
       !=================================================================
-#if defined( DEVEL )
       CALL MAKE_AVGW( State_Met )
-#else
-      CALL MAKE_AVGW
-#endif
 
       !=================================================================
       ! Open "smv2.log" output file and read chem mechanism switches
@@ -365,11 +357,7 @@
       JLOP_PREVIOUS(:,:,:) = JLOP(:,:,:)
 
       ! Locate the tropopsheric boxes
-#if defined( DEVEL )
       CALL RURALBOX( State_Met )
-#else
-      CALL RURALBOX( AD, T, AVGW, ALBD )
-#endif
 
       ! For the first chemistry timestep only, save JLOP into 
       ! JLOP_PREVIOUS, because there is no previous timestep.
@@ -561,11 +549,7 @@
       IF ( LSULF .or. LCARB .or. LDUST .or. LSSALT ) THEN
 
          ! Skip this section if all these are turned off
-#if defined( DEVEL )
          CALL AEROSOL_CONC( State_Met )
-#else
-         CALL AEROSOL_CONC
-#endif
 
       ENDIF
 
@@ -622,7 +606,6 @@
       ! Assume there
       IT_EXISTS = .FALSE.
 
-#if defined( DEVEL )
       ! Test if 
       IF ( FIRSTCHEM .AND. LSVCSPEC ) THEN 
 
@@ -677,62 +660,6 @@
 
       ENDIF 
 
-#else
-
-      ! Test if 
-      IF ( FIRSTCHEM .and. LSVCSPEC ) THEN 
-
-         ! Read the CSPEC restart file.  If not found, then 
-         ! return IT_EXISTS = .FALSE.
-         CALL READ_CSPEC_FILE( am_I_Root,  GET_NYMD(), 
-     &                         GET_NHMS(), IT_EXISTS ) 
-  
-         IF ( .not. IT_EXISTS ) THEN 
-             
-            !-----------------------------------------------------------
-            ! (2) First chemistry timestep, Call GASCONC to initialize 
-            !     CSPEC with default values from globchem.dat.
-            !-----------------------------------------------------------
-            IF ( am_I_Root ) THEN
-               WRITE(6,*) 
-     &  '    - CHEMDR: CSPEC restart not found, use background values'
-            ENDIF
- 
-            CALL GASCONC( am_I_Root,
-     &                    FIRSTCHEM,              N_TRACERS, 
-     &                    STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),    
-     &                    FRCLND,                 IT_EXISTS )
-         ELSE 
-
-            !-----------------------------------------------------------
-            ! (1) First chemistry timestep, Call GASCONC to initialize 
-            !     CSPEC with values from the CSPEC restart file
-            !-----------------------------------------------------------
-            IF ( am_I_Root ) THEN
-               WRITE(6,*) 
-     &        '    - CHEMDR: using CSPEC values from restart file'
-            ENDIF
-
-            CALL GASCONC(  am_I_Root,
-     &                     .FALSE.,                 N_TRACERS, 
-     &                     STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),    
-     &                     FRCLND,                 IT_EXISTS )
-
-         ENDIF 
-
-      ELSE 
-
-         !--------------------------------------------------------------
-         ! (3) All other chemistry timesteps, call GASCONC with
-         !     the current CSPEC values.  Do not re-initialize.
-         !--------------------------------------------------------------
-         CALL GASCONC(  am_I_Root,
-     &                  FIRSTCHEM,              N_TRACERS, 
-     &                  STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),  
-     &                  FRCLND,                 IT_EXISTS )
-
-      ENDIF 
-#endif
       IT_EXISTS = .FALSE.
 
       !### Debug
@@ -744,11 +671,7 @@
       !=================================================================  
       ! Call SETEMIS which sets emission rates REMIS 
       !=================================================================
-#if defined( DEVEL )
       CALL SETEMIS( EMISRR, EMISRRN, am_I_Root, State_Met )
-#else
-      CALL SETEMIS( EMISRR, EMISRRN, am_I_Root )
-#endif
       
       !### Debug
       IF ( LPRT .and. am_I_Root ) THEN
@@ -762,11 +685,7 @@
       ! Call RDAER to compute AOD for FAST-J (skim, 02/03/11)
       WAVELENGTH = 0
 
-#if defined( DEVEL )
       CALL RDAER( am_I_Root, State_Met, MONTH, YEAR, WAVELENGTH )
-#else
-      CALL RDAER( am_I_Root, MONTH, YEAR, WAVELENGTH )
-#endif
 
       !### Debug
       IF ( LPRT .and. am_I_Root ) THEN 
@@ -782,20 +701,12 @@
       ! in GEOS-CHEM...so read monthly-mean dust files from disk.
       ! (rjp, tdf, bmy, 4/1/04)
       !=================================================================
-#if defined( DEVEL )
       IF ( LDUST ) THEN
          CALL RDUST_ONLINE(  SOILDUST,    WAVELENGTH, State_Met )
       ELSE
          CALL RDUST_OFFLINE( MONTH, YEAR, WAVELENGTH, am_I_Root,
      &                       State_Met )
       ENDIF
-#else
-      IF ( LDUST ) THEN
-         CALL RDUST_ONLINE( SOILDUST, WAVELENGTH )
-      ELSE
-         CALL RDUST_OFFLINE( MONTH, YEAR, WAVELENGTH, am_I_Root )
-      ENDIF
-#endif
 
       !### Debug
       IF ( LPRT .and. am_I_Root ) THEN
@@ -812,24 +723,7 @@
       ! Call photolysis routine to compute J-Values
       !=================================================================
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Call FAST_J by passing values from the Meteorology State
-      ! object.  This will facilitate connecting to the ESMF interface.
-      !-----------------------------------------------------------------
       CALL FAST_J( SUNCOS_MID, am_I_Root, State_Met )              
-#else
-      !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Call FAST_J with arrays from dao_mod.F.  These will eventually
-      ! be removed in favor of the meteorology state.  But for now,
-      ! this is current practice in the std GEOS-Chem. (bmy, 10/24/12)
-      !-----------------------------------------------------------------
-      CALL FAST_J( SUNCOS_MID, OPTD, UVALBEDO, am_I_Root )              
-#endif
 
       !### Debug
       IF ( LPRT .and. am_I_Root ) THEN
@@ -843,11 +737,7 @@
       ! PHYSPROC calls both CALCRATE, which computes rxn rates 
       ! and SMVGEAR (if we do not use the solver coded by kpp), which
       ! is the chemistry solver
-#if defined( DEVEL )
       CALL PHYSPROC( SUNCOS_MID, am_I_Root, State_Met )
-#else
-      CALL PHYSPROC( SUNCOS_MID, am_I_Root )
-#endif
 
       !### Debug
       IF ( LPRT .and. am_I_Root ) THEN

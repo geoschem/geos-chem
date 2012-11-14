@@ -2686,25 +2686,16 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE UPDATE_T_DAY( State_Met )
-#else
-      SUBROUTINE UPDATE_T_DAY
-#endif
 !
 ! !USES:
 !
-      USE MEGANUT_MOD     ! We use all functions from the module
-      USE DAO_MOD,     ONLY : PARDR, PARDF, TS
-#if defined( DEVEL )
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE MEGANUT_MOD              ! We use all functions from the module
 !
 ! !INPUT PARAMETERS: 
 !
-#if defined( DEVEL )
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  (1 ) All MEGAN biogenic emission are currently calculated using TS from DAO 
@@ -2713,6 +2704,8 @@
 !  (2 ) In GEOS4, TS are originally T2M in the A3 files, read in 
 !        'a3_read_mod.f'. 
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2739,15 +2732,9 @@
          ENDDO
             
          ! Store 
-#if defined( DEVEL )
          T_DAY(I,J,1)     = XLTMMP ( I, J, State_Met%TS    )
          PARDF_DAY(I,J,1) = XLPARDF( I, J, State_Met%PARDF )
          PARDR_DAY(I,J,1) = XLPARDR( I, J, State_Met%PARDR )
-#else
-         T_DAY(I,J,1)     = XLTMMP ( I, J, TS    )
-         PARDF_DAY(I,J,1) = XLPARDF( I, J, PARDF )
-         PARDR_DAY(I,J,1) = XLPARDR( I, J, PARDR )
-#endif
 
       ENDDO
       ENDDO
@@ -2862,28 +2849,26 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE INIT_MEGAN( State_Met )
-#else
-      SUBROUTINE INIT_MEGAN
-#endif
 !
 ! !USES:
 !
       USE A3_READ_MOD
-      USE GEOS57_READ_MOD,  ONLY : GEOS57_READ_A1
-      USE inquireMod,       ONLY : findFreeLUN
-      USE MERRA_A1_MOD
-      USE JULDAY_MOD,       ONLY : CALDATE
-      USE ERROR_MOD,        ONLY : ALLOC_ERR
-      USE LOGICAL_MOD,      ONLY : LUNZIP
-      USE TIME_MOD,         ONLY : GET_FIRST_A3_TIME
-      USE TIME_MOD,         ONLY : GET_JD
-      USE TIME_MOD,         ONLY : ITS_A_LEAPYEAR
-      USE TIME_MOD,         ONLY : YMD_EXTRACT
-#if defined( DEVEL )
+      USE GEOS57_READ_MOD,    ONLY : GEOS57_READ_A1
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE inquireMod,         ONLY : findFreeLUN
+      USE MERRA_A1_MOD
+      USE JULDAY_MOD,         ONLY : CALDATE
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE LOGICAL_MOD,        ONLY : LUNZIP
+      USE TIME_MOD,           ONLY : GET_FIRST_A3_TIME
+      USE TIME_MOD,           ONLY : GET_JD
+      USE TIME_MOD,           ONLY : ITS_A_LEAPYEAR
+      USE TIME_MOD,           ONLY : YMD_EXTRACT
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  (1 ) Change the logic in the #if block for G4AHEAD. (bmy, 12/6/05)
@@ -2914,10 +2899,6 @@
       INTEGER              :: I,         J,         G4AHEAD
       INTEGER              :: THISYEAR,  THISMONTH, THISDAY, BACK_ONE
       REAL*8               :: JD_T15b,   JD_T15
-
-#if defined( DEVEL )
-      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
-#endif
       
       !=================================================================
       ! INIT_MEGAN begins here!
@@ -3136,9 +3117,6 @@
             CALL UNZIP_A3_FIELDS( 'unzip foreground', NYMD_T15 )
          ENDIF
 
-
-#if defined( DEVEL )
-
          ! Loop over 3h periods during day
          DO J = 0, DAY_DIM-1  
 
@@ -3183,56 +3161,6 @@
             ! Update hourly temperatures
             CALL UPDATE_T_DAY( State_Met )
          ENDDO     
-
-#else
-
-         ! Loop over 3h periods during day
-         DO J = 0, DAY_DIM-1  
-
-#if   defined( GEOS_57 )
-
-            !-----------------------------
-            ! GEOS-5.7.x met fields
-            ! Sfc temp is hourly data
-            !-----------------------------
-            CALL GEOS57_READ_A1( NYMD_T15, 010000*J + G4AHEAD ) 
-
-#elif   defined( MERRA )
-
-            !-----------------------------
-            ! MERRA met fields
-            ! Sfc temp is hourly data
-            !-----------------------------
-
-            ! Open A1 fields
-            CALL OPEN_MERRA_A1_FIELDS( NYMD_T15, 
-     &                                 010000*J + G4AHEAD, 
-     &                                 IUNIT=IUNIT                  )
-
-            ! Read A1 fields from disk
-            CALL GET_MERRA_A1_FIELDS(  NYMD_T15, 010000*J + G4AHEAD ) 
-
-#else
-            !-----------------------------
-            ! All other met field types!
-            ! Sfc temp is 3-hourly data
-            !-----------------------------
-
-            ! Open A3 fields
-            CALL OPEN_A3_FIELDS( NYMD_T15, 
-     &                           030000*J + G4AHEAD,  
-     &                           IUNIT=IUNIT                  )
-
-            ! Read A3 fields from disk
-            CALL GET_A3_FIELDS(  NYMD_T15, 030000*J + G4AHEAD )
-
-#endif
-
-            ! Update hourly temperatures
-            CALL UPDATE_T_DAY
-         ENDDO     
-
-#endif   ! DEVEL
 
          ! Compute 15-day average temperatures
          CALL UPDATE_T_15_AVG

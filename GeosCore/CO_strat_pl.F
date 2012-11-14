@@ -1,9 +1,5 @@
 ! $Id: CO_strat_pl.f,v 1.1 2009/09/16 14:06:49 bmy Exp $
-#if defined( DEVEL )
       SUBROUTINE CO_STRAT_PL( COPROD, COLOSS, State_Met )
-#else
-      SUBROUTINE CO_STRAT_PL( COPROD, COLOSS )
-#endif
 !
 !******************************************************************************
 !  Subroutine CO_STRAT_PL computes net production of CO above the 
@@ -30,29 +26,27 @@
 !        is in the stratosphere or not.  Remove reference to CMN, it's 
 !        obsolete. (bmy, 8/22/05)
 !  (7 ) Now reference XNUMOL and XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !******************************************************************************
 !
       ! References to F90 modules 
-      USE DAO_MOD,        ONLY : AD
-      USE TIME_MOD,       ONLY : GET_TS_CHEM
-      USE TRACER_MOD,     ONLY : STT,   XNUMOL,   XNUMOLAIR
-      USE TRACERID_MOD,   ONLY : IDTCO,           IDTCH2O
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP, GET_MIN_TPAUSE_LEVEL
-#if defined( DEVEL )
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+      USE TRACER_MOD,         ONLY : STT,   XNUMOL,   XNUMOLAIR
+      USE TRACERID_MOD,       ONLY : IDTCO,           IDTCH2O
+      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_TROP
+      USE TROPOPAUSE_MOD,     ONLY : GET_MIN_TPAUSE_LEVEL
 
-      USE CMN_SIZE_MOD   ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 
       IMPLICIT NONE
 #     include "define.h"
 
       ! Arguments
-      REAL*4,  INTENT(IN) :: COPROD(JJPAR,LLPAR)
-      REAL*4,  INTENT(IN) :: COLOSS(JJPAR,LLPAR)
-#if defined( DEVEL )
+      REAL*4,         INTENT(IN) :: COPROD(JJPAR,LLPAR)
+      REAL*4,         INTENT(IN) :: COLOSS(JJPAR,LLPAR)
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
 
       ! Local variables
       INTEGER             :: I, J, L, M, N, LMIN
@@ -95,29 +89,17 @@
       DO I = 1,    IIPAR
 
          ! Skip tropospheric grid boxes
-#if defined( DEVEL )
          IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) CYCLE
 
          ! conversion factor from [kg/box] to [molec/cm3]
          STTTOGCO = 6.022d23 / ( 28d-3 * BOXVL(I,J,L,State_Met) )
-#else
-         IF ( ITS_IN_THE_TROP(I,J,L) ) CYCLE
-
-         ! conversion factor from [kg/box] to [molec/cm3]
-         STTTOGCO = 6.022d23 / ( 28d-3 * BOXVL(I,J,L) )
-#endif
 
          ! Convert STT from [kg/box] to [molec/cm3]
          GCO = STT(I,J,L,IDTCO) * STTTOGCO
 
-#if defined( DEVEL )
          ! Air density in molec/cm3
          BAIRDENS = State_Met%AD(I,J,L) * XNUMOLAIR /
      &              BOXVL(I,J,L,State_Met)
-#else
-         ! Air density in molec/cm3
-         BAIRDENS = AD(I,J,L) * XNUMOLAIR / BOXVL(I,J,L)
-#endif
 
          ! Apply P(CO) and L(CO) rates to GCO
          GCO = GCO * ( 1d0 - COLOSS(J,L) * DT ) +

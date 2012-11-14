@@ -137,22 +137,24 @@ CONTAINS
   ! Current practice is to call DO_STRAT_CHEM with just the am_I_Root
   ! argument. (bmy, 10/26/12)
   !-------------------------------------------------------------------------
-  SUBROUTINE DO_STRAT_CHEM( am_I_Root )
+  SUBROUTINE DO_STRAT_CHEM( am_I_Root, State_Met )
 #endif
 !
 ! !USES:
 !
-    USE DAO_MOD,        ONLY : AD, CONVERT_UNITS, T, SUNCOS
-    USE ERROR_MOD,      ONLY : DEBUG_MSG, GEOS_CHEM_STOP
-    USE LOGICAL_MOD,    ONLY : LLINOZ, LPRT
-    USE LINOZ_MOD,      ONLY : DO_LINOZ
-    USE TIME_MOD,       ONLY : GET_MONTH, TIMESTAMP_STRING
-    USE TRACER_MOD,     ONLY : ITS_A_FULLCHEM_SIM, ITS_A_TAGOX_SIM
-    USE TRACER_MOD,     ONLY : ITS_A_H2HD_SIM
-    USE TRACER_MOD,     ONLY : N_TRACERS, STT, TCVV, TRACER_MW_KG, XNUMOLAIR
-    USE TRACERID_MOD,   ONLY : IDTOX, IDTCHBr3, IDTCH2Br2, IDTCH3Br
-    USE TROPOPAUSE_MOD, ONLY : GET_MIN_TPAUSE_LEVEL, GET_TPAUSE_LEVEL
-    USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
+    USE DAO_MOD,            ONLY : CONVERT_UNITS, SUNCOS
+    USE ERROR_MOD,          ONLY : DEBUG_MSG, GEOS_CHEM_STOP
+    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE LOGICAL_MOD,        ONLY : LLINOZ, LPRT
+    USE LINOZ_MOD,          ONLY : DO_LINOZ
+    USE TIME_MOD,           ONLY : GET_MONTH, TIMESTAMP_STRING
+    USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM, ITS_A_TAGOX_SIM
+    USE TRACER_MOD,         ONLY : ITS_A_H2HD_SIM
+    USE TRACER_MOD,         ONLY : N_TRACERS, STT, TCVV, TRACER_MW_KG
+    USE TRACER_MOD,         ONLY : XNUMOLAIR
+    USE TRACERID_MOD,       ONLY : IDTOX, IDTCHBr3, IDTCH2Br2, IDTCH3Br
+    USE TROPOPAUSE_MOD,     ONLY : GET_MIN_TPAUSE_LEVEL, GET_TPAUSE_LEVEL
+    USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_TROP
 
     USE CMN_SIZE_MOD
 
@@ -165,7 +167,6 @@ CONTAINS
     !-----------------------------------------------------------------------
     USE GIGC_ErrCode_Mod
     USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
     IMPLICIT NONE
@@ -175,11 +176,11 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
     TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
     TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
@@ -200,6 +201,8 @@ CONTAINS
 !                              running with the traditional driver main.F
 !  07 Aug 2012 - R. Yantosca - Make BEFORE a local variable for parallel loop
 !  26 Oct 2012 - R. Yantosca - Now pass the Chemistry State object for GIGC
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -308,22 +311,14 @@ CONTAINS
           DO I=1,IIPAR
 
              ! Add to tropopause level aggregator for later determining STE flux
-#if defined( DEVEL )
              TpauseL(I,J) = TpauseL(I,J) + GET_TPAUSE_LEVEL( I, J, State_Met )
-#else
-             TpauseL(I,J) = TpauseL(I,J) + GET_TPAUSE_LEVEL(I,J)
-#endif
 
              ! NOTE: For compatibility w/ the GEOS-5 GCM, we can no longer
              ! assume a minimum tropopause level.  Loop from 1,LLPAR instead.
              ! (bmy, 7/18/12)
              DO L = 1, LLPAR
 
-#if defined( DEVEL )
                 IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) CYCLE
-#else
-                IF ( ITS_IN_THE_TROP( I, J, L ) ) CYCLE
-#endif
 
                 DO N=1,NSCHEM ! Tracer index of active strat chem species
                    NN = Strat_TrID_GC(N) ! Tracer index in STT
@@ -333,12 +328,8 @@ CONTAINS
 
                    dt = DTCHEM                              ! timestep [s]
                    k = LOSS(I,J,L,N)                        ! loss freq [s-1]
-#if defined( DEVEL )
                    P = PROD(I,J,L,N) * State_Met%AD(I,J,L) &! prod term [kg s-1]
                      / TCVV(NN)
-#else
-                   P = PROD(I,J,L,N) * AD(I,J,L) / TCVV(NN) ! prod term [kg s-1]
-#endif
                    M0 = STT(I,J,L,NN)                       ! initial mass [kg]
 
                    ! No prod or loss at all
@@ -368,7 +359,6 @@ CONTAINS
        ! Make note of inital state for determining tendency later
        BEFORE = STT(:,:,:,IDTOX )
 
-#if defined( DEVEL )
        ! Put ozone in v/v
        STT(:,:,:,IDTOX ) = STT(:,:,:,IDTOX) * TCVV( IDTOX ) / &
                            State_Met%AD
@@ -382,20 +372,6 @@ CONTAINS
 
        ! Put ozone back to kg
        STT(:,:,:,IDTOX) = STT(:,:,:,IDTOX) * State_Met%AD / TCVV( IDTOX )
-#else
-       ! Put ozone in v/v
-       STT(:,:,:,IDTOX ) = STT(:,:,:,IDTOX) * TCVV( IDTOX ) / AD
-
-       ! Do Linoz or Synoz
-       IF ( LLINOZ ) THEN
-          CALL Do_Linoz( am_I_Root )
-       ELSE
-          CALL Do_Synoz( am_I_Root )
-       ENDIF
-
-       ! Put ozone back to kg
-       STT(:,:,:,IDTOX) = STT(:,:,:,IDTOX) * AD / TCVV( IDTOX )
-#endif
 
        ! Put tendency into diagnostic array [kg box-1]
        SCHEM_TEND(:,:,:,IDTOX) = SCHEM_TEND(:,:,:,IDTOX) + &
@@ -420,7 +396,6 @@ CONTAINS
              ! (bmy, 7/18/12)
              DO L = 1, LLPAR
 
-#if defined( DEVEL )
                 IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) CYCLE
 
                 ! Density of air at grid box (I,J,L) in [molec cm-3]
@@ -431,18 +406,6 @@ CONTAINS
 
                 ! Temperature at grid box (I,J,L) in K
                 TK = State_Met%T(I,J,L)
-#else
-                IF ( ITS_IN_THE_TROP(I,J,L) ) CYCLE
-
-                ! Density of air at grid box (I,J,L) in [molec cm-3]
-                M = AD(I,J,L) / BOXVL(I,J,L) * XNUMOLAIR
-
-                ! OH number density [molec cm-3]
-                mOH = M * STRAT_OH(I,J,L)
-
-                ! Temperature at grid box (I,J,L) in K
-                TK = T(I,J,L)
-#endif
 
                 !============!
                 ! CH3Br + OH !
@@ -510,7 +473,6 @@ CONTAINS
              DO J = 1, JJPAR
              DO I = 1, IIPAR  
                   
-#if defined( DEVEL )
                 IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) CYCLE
                    
                 ! Set the Bry boundary conditions. Simulated
@@ -533,28 +495,6 @@ CONTAINS
                             / TCVV(GC_Bry_TrID(NN))
                    STT(I,J,L, GC_Bry_TrID(NN) ) = BryNight
                 ENDIF
-#else
-                IF ( ITS_IN_THE_TROP(I,J,L) ) CYCLE
-                   
-                ! Set the Bry boundary conditions. Simulated
-                ! output from the GEOS5 CCM stratosphere.
-                ! (jpp, 6/27/2011)
-                IJWINDOW   = (J-1)*IIPAR + I
-                   
-                IF (SUNCOS(IJWINDOW) > 0.d0) THEN
-                   ! daytime [ppt] -> [kg]
-                   BryDay = bry_day(I,J,L,NN) &
-                          * 1.d-12 & ! convert from [ppt]
-                          * AD(I,J,L) / TCVV(GC_Bry_TrID(NN))
-                   STT(I,J,L, GC_Bry_TrID(NN) ) = BryDay
-                ELSE
-                   ! nighttime [ppt] -> [kg]
-                   BryNight = bry_night(I,J,L,NN) &
-                            * 1.d-12 & ! convert from [ppt]
-                            * AD(I,J,L) / TCVV(GC_Bry_TrID(NN))
-                   STT(I,J,L, GC_Bry_TrID(NN) ) = BryNight
-                ENDIF
-#endif
                    
              ENDDO
              ENDDO
@@ -581,7 +521,6 @@ CONTAINS
        ! Intial conditions
        STT0(:,:,:,:) = STT(:,:,:,:)
 
-#if defined( DEVEL )
        CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, State_Met%AD, STT ) ! kg -> v/v
        IF ( LLINOZ ) THEN
           CALL Do_Linoz( am_I_Root, State_Met )
@@ -589,16 +528,6 @@ CONTAINS
           CALL Do_Synoz( am_I_Root, State_Met )
        ENDIF
        CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, State_Met%AD, STT ) ! v/v -> kg
-#else
-       CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, AD, STT ) ! kg -> v/v
-       IF ( LLINOZ ) THEN
-          CALL Do_Linoz( am_I_Root )
-       ELSE 
-          CALL Do_Synoz( am_I_Root )
-       ENDIF
-       CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, AD, STT ) ! v/v -> kg
-#endif
-
 
        ! Add to tropopause level aggregator for later determining STE flux
        TpauseL_CNT = TpauseL_CNT + 1d0
@@ -608,11 +537,7 @@ CONTAINS
        !$OMP PRIVATE( I, J )
        DO J = 1, JJPAR
        DO I = 1, IIPAR
-#if defined( DEVEL )
           TpauseL(I,J) = TpauseL(I,J) + GET_TPAUSE_LEVEL( I, J, State_Met )
-#else
-          TpauseL(I,J) = TpauseL(I,J) + GET_TPAUSE_LEVEL(I,J)
-#endif
        ENDDO
        ENDDO
        !$OMP END PARALLEL DO
@@ -634,15 +559,9 @@ CONTAINS
        ! Intial conditions
        STT0(:,:,:,:) = STT(:,:,:,:)
 
-#if defined( DEVEL )
        CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, State_Met%AD, STT ) ! kg -> v/v
        CALL UPBDFLX_HD( State_Met )
        CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, State_Met%AD, STT ) ! v/v -> kg
-#else
-       CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, AD, STT ) ! kg -> v/v
-       CALL UPBDFLX_HD
-       CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, AD, STT ) ! v/v -> kg
-#endif
 
        ! Add to tropopause level aggregator for later determining STE flux
        TpauseL_CNT = TpauseL_CNT + 1d0
@@ -651,11 +570,7 @@ CONTAINS
        !$OMP PRIVATE( I, J )
        DO J = 1, JJPAR
        DO I = 1, IIPAR
-#if defined( DEVEL )
           TpauseL(I,J) = TpauseL(I,J) + GET_TPAUSE_LEVEL( I, J, State_Met )
-#else
-          TpauseL(I,J) = TpauseL(I,J) + GET_TPAUSE_LEVEL(I,J)
-#endif
        ENDDO
        ENDDO
        !$OMP END PARALLEL DO
@@ -1728,39 +1643,30 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
   SUBROUTINE Do_Synoz( am_I_Root, State_Met )   
-#else
-  SUBROUTINE Do_Synoz( am_I_Root )   
-#endif
 !
 ! !USES:
 !
-    USE DAO_MOD,        ONLY : AD, BXHEIGHT, T, TROPP
-    USE ERROR_MOD,      ONLY : ERROR_STOP
-    USE LOGICAL_MOD,    ONLY : LVARTROP 
-    USE PRESSURE_MOD,   ONLY : GET_PEDGE, GET_PCENTER
-    USE TAGGED_OX_MOD,  ONLY : ADD_STRAT_POX
-    USE TIME_MOD,       ONLY : GET_TS_CHEM, GET_YEAR
-    USE TRACER_MOD,     ONLY : STT, ITS_A_TAGOX_SIM
-    USE TRACERID_MOD,   ONLY : IDTOX, IDTOxStrt
-    USE TROPOPAUSE_MOD, ONLY : GET_TPAUSE_LEVEL
-#if defined( DEVEL )
+    USE ERROR_MOD,          ONLY : ERROR_STOP
     USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+    USE LOGICAL_MOD,        ONLY : LVARTROP 
+    USE PRESSURE_MOD,       ONLY : GET_PEDGE, GET_PCENTER
+    USE TAGGED_OX_MOD,      ONLY : ADD_STRAT_POX
+    USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_YEAR
+    USE TRACER_MOD,         ONLY : STT, ITS_A_TAGOX_SIM
+    USE TRACERID_MOD,       ONLY : IDTOX, IDTOxStrt
+    USE TROPOPAUSE_MOD,     ONLY : GET_TPAUSE_LEVEL
 
-    USE CMN_SIZE_MOD       ! Size parameters
-    USE CMN_GCTM_MOD       ! Rdg0
+    USE CMN_SIZE_MOD             ! Size parameters
+    USE CMN_GCTM_MOD             ! Rdg0
 
     IMPLICIT NONE
 #include "define.h"
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-#if defined( DEVEL )
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
+    LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
+    TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !REMARKS:
 !  Reference:
@@ -1836,6 +1742,8 @@ CONTAINS
 !                 F90, renamed from UPBDFLX_O3 to DO_SYNOZ. Use chem timestep
 !                 now. Also, removed INIT_UPBDFLX, which was last used for 
 !                 GEOS-3.
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2016,13 +1924,8 @@ CONTAINS
           ! ZUP is the height from the sigma center of the 
           ! (L70mb-1)th layer
           !============================================================== 
-#if defined( DEVEL )
           T2   = State_Met%T(I,J,L70mb  )
           T1   = State_Met%T(I,J,L70mb-1)
-#else
-          T2   = T(I,J,L70mb  )
-          T1   = T(I,J,L70mb-1)        
-#endif
 
           DZ   = Rdg0 * ( (T1 + T2) / 2d0 ) * LOG( P1 / P70mb ) 
           ZUP  = Rdg0 * T1 * LOG( P1 /P3 )
@@ -2035,11 +1938,7 @@ CONTAINS
           ! If DZ <  ZUP then DZ is in level L70mb-1.
           !==============================================================       
           IF ( DZ >= ZUP ) THEN
-#if defined( DEVEL )
              H70mb = State_Met%BXHEIGHT(I,J,L70mb) - ( DZ - ZUP )
-#else
-             H70mb = BXHEIGHT(I,J,L70mb) - ( DZ - ZUP )
-#endif
           ELSE
              L70mb = L70mb - 1
              H70mb = ZUP - DZ
@@ -2066,11 +1965,7 @@ CONTAINS
              ! of this level that lies above 70 mb, and scale 
              ! the O3 flux accordingly.
              IF ( L == L70mb ) THEN
-#if defined( DEVEL )
                 PO3 = PO3 * H70mb / State_Met%BXHEIGHT(I,J,L) 
-#else
-                PO3 = PO3 * H70mb / BXHEIGHT(I,J,L) 
-#endif
              ENDIF
 
              ! Store O3 flux in the proper tracer number
@@ -2083,15 +1978,9 @@ CONTAINS
 
              ! Archive stratospheric O3 for printout in [Tg/yr]
              IF ( FIRST ) THEN
-#if defined( DEVEL )
                 STFLUX(I,J,L) = STFLUX(I,J,L) + &
                      PO3 * State_Met%AD(I,J,L) * 1000.d0 / 28.8d0 / &
                      DTCHEM * 48.d0 * 365.25d0 * 86400d0 / 1e12
-#else
-                STFLUX(I,J,L) = STFLUX(I,J,L) + &
-                     PO3 * AD(I,J,L) * 1000.d0 / 28.8d0 / &
-                     DTCHEM * 48.d0 * 365.25d0 * 86400d0 / 1e12
-#endif
              ENDIF
           ENDDO
        ENDDO
@@ -2125,32 +2014,23 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
   SUBROUTINE UPBDFLX_HD( State_Met )
-#else
-  SUBROUTINE UPBDFLX_HD
-#endif
 !
 ! !USES:
 !
-    USE DAO_MOD,      ONLY : BXHEIGHT, T
-    USE ERROR_MOD,    ONLY : ERROR_STOP
-    USE PRESSURE_MOD, ONLY : GET_PEDGE, GET_PCENTER
-    USE TIME_MOD,     ONLY : GET_TS_CHEM
-    USE TRACER_MOD,   ONLY : STT
-    USE TRACERID_MOD, ONLY : IDTHD, IDTH2
-#if defined( DEVEL )
+    USE ERROR_MOD,          ONLY : ERROR_STOP
+    USE PRESSURE_MOD,       ONLY : GET_PEDGE, GET_PCENTER
+    USE TIME_MOD,           ONLY : GET_TS_CHEM
+    USE TRACER_MOD,         ONLY : STT
+    USE TRACERID_MOD,       ONLY : IDTHD, IDTH2
     USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
     
-    USE CMN_SIZE_MOD     ! Size parameters
-    USE CMN_GCTM_MOD     ! Rdg0
+    USE CMN_SIZE_MOD             ! Size parameters
+    USE CMN_GCTM_MOD             ! Rdg0
 !
 ! !INPUT PARAMETERS:
 !
-#if defined( DEVEL )
-    TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
+    TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !REMARKS:
 !  Instead of calculating the fractionation of H2 in the stratosphere 
@@ -2176,7 +2056,9 @@ CONTAINS
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.2 in the same way as MERRA
 !  10 Feb 2012 - R. Yantosca - Modified for 0.25 x 0.3125 grids
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
-!  20 Jun 2012 - L. Murray - Moved from upbdflx_mod.F to here.
+!  20 Jun 2012 - L. Murray   - Moved from upbdflx_mod.F to here.
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2312,13 +2194,8 @@ CONTAINS
           ! ZUP is the height from the sigma center of the 
           ! (L70mb-1)th layer
           !=========================================================== 
-#if defined( DEVEL )
           T2   = State_Met%T(I,J,L70mb  )
           T1   = State_Met%T(I,J,L70mb-1)
-#else
-          T2   = T(I,J,L70mb  )
-          T1   = T(I,J,L70mb-1)        
-#endif
 
           DZ   = Rdg0 * ( (T1 + T2) / 2d0 ) * LOG( P1 / P70mb ) 
           ZUP  = Rdg0 * T1 * LOG( P1 /P3 )
@@ -2331,11 +2208,7 @@ CONTAINS
           ! If DZ <  ZUP then DZ is in level L70mb-1.
           !===========================================================       
           IF ( DZ >= ZUP ) THEN
-#if defined( DEVEL )
              H70mb = State_Met%BXHEIGHT(I,J,L70mb) - ( DZ - ZUP )
-#else
-             H70mb = BXHEIGHT(I,J,L70mb) - ( DZ - ZUP )
-#endif
           ELSE
              L70mb = L70mb - 1
              H70mb = ZUP - DZ
@@ -2362,11 +2235,7 @@ CONTAINS
              ! of this level that lies above 70 mb, and scale 
              ! the HD flux accordingly.
              IF ( L == L70mb ) THEN
-#if defined( DEVEL )
                 PHD = PHD * H70mb / State_Met%BXHEIGHT(I,J,L) 
-#else
-                PHD = PHD * H70mb / BXHEIGHT(I,J,L) 
-#endif
              ENDIF
 
              ! Store HD flux in the proper tracer number

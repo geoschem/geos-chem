@@ -12,40 +12,29 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE RURALBOX( State_Met )
-#else
-      SUBROUTINE RURALBOX( AD, T, AVGW, ALBD )
-#endif
 !
 ! !USES:
 !
-      USE COMODE_MOD,     ONLY : ABSHUM, AIRDENS,  IXSAVE, IYSAVE
-      USE COMODE_MOD,     ONLY : IZSAVE, JLOP,     PRESS3, T3,  VOLUME 
-      USE PRESSURE_MOD,   ONLY : GET_PCENTER,      GET_PEDGE
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT, ITS_IN_THE_TROP
-#if defined( DEVEL )
+      USE COMODE_MOD,         ONLY : ABSHUM, AIRDENS
+      USE COMODE_MOD,         ONLY : IXSAVE, IYSAVE
+      USE COMODE_MOD,         ONLY : IZSAVE, JLOP
+      USE COMODE_MOD,         ONLY : PRESS3, T3,       VOLUME 
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER,      GET_PEDGE
+      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT, ITS_IN_THE_TROP
 
 #     include "define.h"
 
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE COMODE_LOOP_MOD       ! NPVERT
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE COMODE_LOOP_MOD          ! NPVERT
 
       IMPLICIT NONE
 
 !
 ! !INPUT PARAMETERS: 
 !
-#if defined( DEVEL )
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#else
-      REAL*8,  INTENT(IN) :: AD(IIPAR,JJPAR,LLPAR)     ! Air mass [kg]
-      REAL*8,  INTENT(IN) :: T(IIPAR,JJPAR,LLPAR)      ! Temperature [K]
-      REAL*8,  INTENT(IN) :: AVGW(IIPAR,JJPAR,LLPAR)   ! Mix rat. of H2O [v/v]
-      REAL*8,  INTENT(IN) :: ALBD(IIPAR,JJPAR)         ! Sfc albedo [unitless]
-#endif
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !REMARKS:
 !  Developers: amf, bey, ljm, lwh, gmg, bdf, bmy, 7/16/01, 2/25/10)
@@ -81,6 +70,8 @@
 !  (14) Remove ALT and CLOUDS from arg list -- they are obsolete (bmy, 4/10/06)
 !  (15) Remove obsolete embedded chemistry stuff (bmy, 2/25/10)
 !  10 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -133,11 +124,7 @@
                !=======================================================
                ! Skip over strat boxes
                !=======================================================
-#if defined( DEVEL )
                IF ( ITS_IN_THE_STRAT( I, J, L, State_Met ) ) GOTO 40
-#else
-               IF ( ITS_IN_THE_STRAT( I, J, L ) ) GOTO 40
-#endif
 
                ! Increment JLOOP for trop boxes
                JLOOP          = JLOOP + 1
@@ -164,11 +151,7 @@
                JLOOP          = JLOOP + 1
                JLOP(I,J,L)    = JLOOP
 
-#if defined( DEVEL )
                IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) THEN
-#else
-               IF ( ITS_IN_THE_TROP( I, J, L ) ) THEN
-#endif
 
                   ! Tropospheric boxes go into the SMVGEAR II "URBAN" slot
                   NTLOOPNCS(NCSURBAN) = NTLOOPNCS(NCSURBAN) + 1
@@ -200,7 +183,6 @@
             IYSAVE(JLOOP)  = J
             IZSAVE(JLOOP)  = L                              
 
-#if defined( DEVEL )
             ! get box volume [cm3]
             VOLUME(JLOOP)  = BOXVL( I, J, L, State_Met )
 
@@ -217,23 +199,6 @@
             ! Get relative humidity (here is absolute #H2O/cc air)
             ! AVGW is the mixing ratio of water vapor [v/v]
             ABSHUM(JLOOP)  = State_Met%AVGW(I,J,L) * AIRDENS(JLOOP)
-#else
-            ! get box volume [cm3]
-            VOLUME(JLOOP)  = BOXVL(I, J, L)
-
-            ! get air density in (molecs cm^-3)
-            AIRDENS(JLOOP) = AD(I,J,L)*1000.d0/VOLUME(JLOOP)*AVG/WTAIR
-
-            ! get temperature
-            T3(JLOOP)      = T(I,J,L)
-
-            ! PRESS3 = pressure in bar, multiply mb * 1000
-            PRESS3(JLOOP) = GET_PCENTER(I,J,L) * 1000d0
-
-            ! Get relative humidity (here is absolute #H2O/cc air)
-            ! AVGW is the mixing ratio of water vapor [v/v]
-            ABSHUM(JLOOP) = AVGW(I,J,L) * AIRDENS(JLOOP)
-#endif
 
             ! Go to next I
  40         CONTINUE           

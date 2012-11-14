@@ -186,33 +186,27 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE GET_MERRA_I6_FIELDS_1( NYMD, NHMS, State_Met )
-#else
-      SUBROUTINE GET_MERRA_I6_FIELDS_1( NYMD, NHMS )
-#endif
 !
 ! !USES:
 !
       USE DAO_MOD, ONLY : PS1       ! Surface pressure  [hPa]
       USE DAO_MOD, ONLY : RH1       ! Relative humidity [fraction]
-#if defined( DEVEL )
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: NYMD   ! YYYYMMDD date 
-      INTEGER, INTENT(IN) :: NHMS   !  and hhmmss time of desired data
+      INTEGER,        INTENT(IN)    :: NYMD   ! YYYYMMDD date 
+      INTEGER,        INTENT(IN)    :: NHMS   ! hhmmss time of desired data
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-#if defined( DEVEL )
       TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
-#endif
 ! 
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
+!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
+!                              object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -224,10 +218,9 @@
      &              PS   = PS1, 
      &              RH   = RH1   )
 
-#if defined( DEVEL )
-      State_Met%PS1 = PS1
-      State_Met%RH1 = RH1
-#endif
+      ! Copy met fields to State_Met
+      State_Met%PS1 => PS1
+      State_Met%RH1 => RH1
       
       END SUBROUTINE GET_MERRA_I6_FIELDS_1
 !EOC
@@ -244,33 +237,27 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE GET_MERRA_I6_FIELDS_2( NYMD, NHMS, State_Met )
-#else
-      SUBROUTINE GET_MERRA_I6_FIELDS_2( NYMD, NHMS )
-#endif
 !
 ! !USES:
 !
       USE DAO_MOD, ONLY : PS2       ! Surface pressure  [hPa]
       USE DAO_MOD, ONLY : RH2       ! Relative humidity [fraction]
-#if defined( DEVEL )
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: NYMD   ! YYYYMMDD date 
-      INTEGER, INTENT(IN) :: NHMS   !  and hhmmss time of desired data
+      INTEGER,        INTENT(IN)    :: NYMD   ! YYYYMMDD date 
+      INTEGER,        INTENT(IN)    :: NHMS   ! hhmmss time of desired data
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-#if defined( DEVEL )
       TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
-#endif
 ! 
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
+!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
+!                              object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -282,10 +269,9 @@
      &              PS   = PS2, 
      &              RH   = RH2   )
 
-#if defined( DEVEL )
-      State_Met%PS2 = PS2
-      State_Met%RH2 = RH2
-#endif
+      ! Copy met fields to State_Met
+      State_Met%PS2 => PS2
+      State_Met%RH2 => RH2
       
       END SUBROUTINE GET_MERRA_I6_FIELDS_2
 !EOC

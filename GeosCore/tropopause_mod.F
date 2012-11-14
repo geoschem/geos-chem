@@ -230,27 +230,19 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE CHECK_VAR_TROP( State_Met )
-#else
-      SUBROUTINE CHECK_VAR_TROP
-#endif
 !
 ! !USES:
 !
-      USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
-#if defined( DEVEL )
+      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
 
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE CMN_MOD           ! LPAUSE, for backwards compatibility
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_MOD                  ! LPAUSE, for backwards compatibility
 !
 ! !INPUT PARAMETERS: 
 !
-#if defined( DEVEL )
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  24 Aug 2006 - P. Le Sager - Initial version
@@ -273,11 +265,7 @@
       ! set LMIN and LMAX to current min and max tropopause
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-#if defined( DEVEL )
          TPAUSE_LEV(I,J) = GET_TPAUSE_LEVEL( I, J, State_Met )
-#else
-         TPAUSE_LEV(I,J) = GET_TPAUSE_LEVEL(I,J)
-#endif
       ENDDO
       ENDDO
 
@@ -526,40 +514,33 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       FUNCTION GET_TPAUSE_LEVEL( I, J, State_Met ) RESULT( L_TP )
-#else
-      FUNCTION GET_TPAUSE_LEVEL( I, J ) RESULT( L_TP )
-#endif
 !
 ! !USES:
 !
-      USE DAO_MOD,      ONLY : TROPP, PSC2
-      USE LOGICAL_MOD,  ONLY : LVARTROP
-      USE ERROR_MOD,    ONLY : GEOS_CHEM_STOP
-      USE PRESSURE_MOD, ONLY : GET_PEDGE
-#if defined( DEVEL )
+      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE LOGICAL_MOD,        ONLY : LVARTROP
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE
 
-      USE CMN_SIZE_MOD            ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: I      ! Longitude index
-      INTEGER, INTENT(IN) :: J      ! Latitude index
-#if defined( DEVEL )
+      INTEGER,        INTENT(IN) :: I           ! Longitude index
+      INTEGER,        INTENT(IN) :: J           ! Latitude index
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
 !
 ! !RETURN VALUE:
 !
-      INTEGER             :: L_TP   ! Tropopause level at (I,J)
+      INTEGER                    :: L_TP   ! Tropopause level at (I,J)
 !
 ! !REVISION HISTORY: 
 !  22 Aug 2005 - R. Yantosca - Initial version
 !  09 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  10 Sep 2010 - R. Yantosca - Update comments, remove obsolete documentation
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -590,11 +571,7 @@
             ! Break out of this loop if we encounter the box (I,J,L_TP)
             ! where the tropopause occurs.  This box is partially in the
             ! trop and partially in the strat.
-#if defined( DEVEL )
             IF ( State_Met%TROPP(I,J) >= PRESS_BEDGE ) THEN
-#else
-            IF ( TROPP(I,J) >= PRESS_BEDGE ) THEN
-#endif
                L_TP = L - 1       
                EXIT
             ENDIF
@@ -643,33 +620,24 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       FUNCTION ITS_IN_THE_TROP( I, J, L, State_Met ) RESULT ( IS_TROP )
-#else
-      FUNCTION ITS_IN_THE_TROP( I, J, L ) RESULT ( IS_TROP )
-#endif
 !
 ! !USES:
 !
-      USE DAO_MOD,      ONLY : TROPP, PSC2
+      USE GIGC_State_Met_Mod, ONLY : MetState
       USE LOGICAL_MOD,  ONLY : LVARTROP
       USE PRESSURE_MOD, ONLY : GET_PEDGE
-#if defined( DEVEL )
-      USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: I         ! Longitude index
-      INTEGER, INTENT(IN) :: J         ! Latitude index
-      INTEGER, INTENT(IN) :: L         ! Level index
-#if defined( DEVEL )
+      INTEGER,        INTENT(IN) :: I           ! Longitude index
+      INTEGER,        INTENT(IN) :: J           ! Latitude index
+      INTEGER,        INTENT(IN) :: L           ! Level index
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
 !
 ! !RETURN VALUE:
 !
-      LOGICAL             :: IS_TROP   ! =T if we are in the troposphere 
+      LOGICAL                    :: IS_TROP   ! =T if we are in the troposphere 
 !
 ! !REMARKS:
 ! 
@@ -678,6 +646,8 @@
 !  10 Feb 2005 - P. Le Sager - Initial version
 !  (1 ) Modified for variable tropopause (phs, 9/14/06)
 !  09 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -695,11 +665,7 @@
          PRESS_BEDGE = GET_PEDGE(I,J,L)
 
          ! Check against actual tropopause pressure
-#if defined( DEVEL )
          IS_TROP     = ( PRESS_BEDGE > State_Met%TROPP(I,J) )
-#else
-         IS_TROP     = ( PRESS_BEDGE > TROPP(I,J) )
-#endif
 
       ELSE
          
@@ -723,30 +689,22 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       FUNCTION ITS_IN_THE_STRAT( I, J, L, State_Met ) RESULT( IS_STRAT )
-#else
-      FUNCTION ITS_IN_THE_STRAT( I, J, L ) RESULT( IS_STRAT )
-#endif
 !
 ! !USES:
 !
-#if defined( DEVEL )
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: I          ! Longitude index
-      INTEGER, INTENT(IN) :: J          ! Latitude index
-      INTEGER, INTENT(IN) :: L          ! Level index
-#if defined( DEVEL )
+      INTEGER,        INTENT(IN) :: I           ! Longitude index
+      INTEGER,        INTENT(IN) :: J           ! Latitude index
+      INTEGER,        INTENT(IN) :: L           ! Level index
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
 !
 ! !RETURN VALUE:
 !
-      LOGICAL             :: IS_STRAT   ! =T if we are in the stratosphere
+      LOGICAL                    :: IS_STRAT  ! =T if we are in the stratosphere
 !
 ! !REVISION HISTORY: 
 !  10 Feb 2005 - P. Le Sager - Initial version
@@ -763,11 +721,7 @@
       ! Make the algorithm more robust by making ITS_IN_THE_STRAT be the 
       ! exact opposite of function ITS_IN_THE_TROP.  This should avoid
       ! numerical issues. (phs, 11/14/08)
-#if defined( DEVEL )
       IS_STRAT = ( .not. ITS_IN_THE_TROP( I, J, L, State_Met ) )
-#else
-      IS_STRAT = ( .not. ITS_IN_THE_TROP( I, J, L ) )
-#endif
 
       END FUNCTION ITS_IN_THE_STRAT
 !EOC
@@ -783,32 +737,22 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE DIAG_TROPOPAUSE( State_Met )
-#else
-      SUBROUTINE DIAG_TROPOPAUSE
-#endif
 !
 ! !USES:
 !
-      USE DAO_MOD,        ONLY : BXHEIGHT
-      USE DAO_MOD,        ONLY : TROPP
-      USE DIAG_MOD,       ONLY : AD55
-      USE LOGICAL_MOD,    ONLY : LVARTROP
-      USE PRESSURE_MOD,   ONLY : GET_PCENTER
-      USE PRESSURE_MOD,   ONLY : GET_PEDGE
-#if defined( DEVEL )
+      USE DIAG_MOD,           ONLY : AD55
       USE GIGC_State_Met_Mod, ONLY : MetState
-#endif
+      USE LOGICAL_MOD,        ONLY : LVARTROP
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE
 
-      USE CMN_SIZE_MOD  ! Size parameters
-      USE CMN_DIAG_MOD  ! Diagnostic switches
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! Diagnostic switches
 !
 ! !INPUT PARAMETERS: 
 !
-#if defined( DEVEL )
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#endif
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !REMARKS:
 !  For GEOS-4, GEOS-5, 'MERRA', we use the tropopause pressure from the met 
@@ -853,6 +797,8 @@
 !  10 Sep 2010 - R. Yantosca - Reorganize #if blocks for clarity
 !  10 Sep 2010 - R. Yantosca - Renamed to DIAG_TROPOPAUSE and bundled into
 !                              tropopause_mod.f
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -872,8 +818,6 @@
       ! Compute tropopause height to be consistent w/ the pressure
       !=================================================================
       IF ( ND55 > 0 ) THEN
-
-#if defined( DEVEL )
 
          ! Loop over surface grid boxes
 !$OMP PARALLEL DO
@@ -919,53 +863,6 @@
          ENDDO
 !$OMP END PARALLEL DO
 
-#else
-
-         ! Loop over surface grid boxes
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L_TP, H, Pb, Pt, FRAC )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-
-            !---------------------------
-            ! Compute quantities
-            !---------------------------
-    
-            ! For this (I,J) column, get the level where the t'pause occurs
-            L_TP = GET_TPAUSE_LEVEL( I, J )
-
-            ! Get height (from surface to top edge) of all boxes that lie
-            ! totally w/in the troposphere.  NOTE: Grid box (I,J,L_TP-1)
-            ! is the highest purely tropospheric grid box in the column.
-            H    = SUM( BXHEIGHT( I, J, 1:L_TP-1 ) )
-
-            ! Get the pressures [hPa] at the bottom and top edges
-            ! of the grid box in which the tropopause occurs
-            Pb   = GET_PEDGE( I, J, L_TP   )  
-            Pt   = GET_PEDGE( I, J, L_TP+1 )
-
-            ! FRAC is the fraction of the grid box (I,J,L_TP) 
-            ! that lies totally within the troposphere
-            FRAC = ( Pb - TROPP(I,J) ) / ( Pb - Pt ) 
-
-            ! Add to H the height [m] of the purely tropospheric 
-            ! fraction of grid box (I,J,L_TP)
-            H    = H + ( FRAC * BXHEIGHT(I,J,L_TP) )
-
-            !---------------------------
-            ! Archive into ND55 array
-            !---------------------------
-            AD55(I,J,1) = AD55(I,J,1) + L_TP        ! T'pause level
-            AD55(I,J,2) = AD55(I,J,2) + H/1.0d3     ! T'pause height [km]
-            AD55(I,J,3) = AD55(I,J,3) + TROPP(I,J)  ! T'pause pressure [hPa]
-
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-
-#endif  ! DEVEL
-
       ENDIF
 
 #else
@@ -993,11 +890,7 @@
       ! H (in m) is the height of the midpoint of layer L (hyl, 03/28/99)
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-#if defined( DEVEL )
          H(I,J,1) = State_Met%BXHEIGHT(I,J,1) / 2.d0
-#else
-         H(I,J,1) = BXHEIGHT(I,J,1) / 2.d0
-#endif
       ENDDO
       ENDDO
 
@@ -1005,14 +898,9 @@
       DO L = 1, LLPAR-1
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-#if defined( DEVEL )
          H(I,J,L+1) = H(I,J,L) + 
      &               ( State_Met%BXHEIGHT(I,J,L) +
      &                 State_Met%BXHEIGHT(I,J,L+1) ) / 2.d0
-#else
-         H(I,J,L+1) = H(I,J,L) + 
-     &               ( BXHEIGHT(I,J,L) + BXHEIGHT(I,J,L+1) ) / 2.d0
-#endif
       ENDDO
       ENDDO
       ENDDO
@@ -1025,11 +913,7 @@
          DO I = 1, IIPAR
 
             ! Get the tropopause level
-#if defined( DEVEL )
             L           = GET_TPAUSE_LEVEL( I, J, State_Met )
-#else
-            L           = GET_TPAUSE_LEVEL( I, J )
-#endif
 
             ! If we are using the variable tropopause, then (I,J,L) is the
             ! highest purely tropospheric grid box.  The grid box in which
