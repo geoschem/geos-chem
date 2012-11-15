@@ -57,6 +57,9 @@
       USE CMN_O3_MOD               ! EMISR, EMISRR, etc...
       USE CMN_DIAG_MOD             ! Diagnostic switches & arrays
 
+      ! 10/24/12, ckeller: NOX diurnal scale factors fix:
+      USE TIME_MOD,           ONLY : GET_LOCALTIME
+ 
       IMPLICIT NONE
 #     include "define.h"
 !
@@ -147,6 +150,8 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  22 Mar 2012 - M. Payer    - Update for C2H6. RETRO ethane emissions are too
 !                              low so we will use Yaping Xiao's offline emiss.
+!  24 Oct 2012 - C. Keller   - Use localtime instead of UTC to derive NOx 
+!                              diurnal scale factors.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -163,6 +168,8 @@
       REAL*8  :: CAC,   SHIP,    VISTAS, NEI05
       REAL*8  :: RETRO
       REAL*8  :: C2H6_ANTHRO
+      ! 10/24/12, ckeller: NOX diurnal scale factors fix:
+      INTEGER :: NOXHOUR
 
       !=================================================================
       ! EMFOSSIL begins here!
@@ -203,9 +210,13 @@
          ! Initialize work variables
          EMX(:)  = 0d0
 
+         ! 10/24/12, ckeller: fix for EDGAR diurnal scale factors:
+         NOXHOUR = MIN( 23, NINT( GET_LOCALTIME ( I, J, 1 ) ) )
+         TODX = GET_EDGAR_TODN(I,J,NOXHOUR)
+
          ! Use spatially varying diurnal scale factors 
          ! from EDGAR (amv, phs, 3/10/08)
-         TODX = GET_EDGAR_TODN(I,J,HOUR)
+!         TODX = GET_EDGAR_TODN(I,J,HOUR)
 
          
          ! Loop over all of the emission levels for NOx (e.g. surface, 100m)
@@ -459,6 +470,7 @@
 ![eml
             IF ( LNEI05 .and. .not. LHIST ) THEN
 !eml]
+
                ! If we are over the USA and CAN/MEX
                IF ( NEI05_MASK( I, J ) > 0d0 ) THEN
 
@@ -474,7 +486,6 @@
      &                      ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)
 
                ENDIF
-               
 
             ENDIF
 
