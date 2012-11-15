@@ -91,27 +91,28 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE MAKE_RESTART_FILE( YYYYMMDD, HHMMSS, TAU )
+      SUBROUTINE MAKE_RESTART_FILE( YYYYMMDD, HHMMSS, TAU, State_Met )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,   ONLY : BPCH2,         GET_MODELNAME
-      USE BPCH2_MOD,   ONLY : GET_HALFPOLAR, OPEN_BPCH2_FOR_WRITE
-      USE DAO_MOD,     ONLY : AD
-      USE ERROR_MOD,   ONLY : DEBUG_MSG
-      USE FILE_MOD,    ONLY : IOERROR
-      USE GRID_MOD,    ONLY : GET_XOFFSET,   GET_YOFFSET
-      USE LOGICAL_MOD, ONLY : LPRT
-      USE TIME_MOD,    ONLY : EXPAND_DATE
-      USE TRACER_MOD,  ONLY : STT,           N_TRACERS,  TCVV
+      USE BPCH2_MOD,          ONLY : BPCH2,         GET_MODELNAME
+      USE BPCH2_MOD,          ONLY : GET_HALFPOLAR, OPEN_BPCH2_FOR_WRITE
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_XOFFSET,   GET_YOFFSET
+      USE LOGICAL_MOD,        ONLY : LPRT
+      USE TIME_MOD,           ONLY : EXPAND_DATE
+      USE TRACER_MOD,         ONLY : STT,           N_TRACERS,  TCVV
 
-      USE CMN_SIZE_MOD                   ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)  :: YYYYMMDD   ! YYYY/MM/DD GMT date
-      INTEGER, INTENT(IN)  :: HHMMSS     ! hh:mm:ss GMT time
-      REAL*8,  INTENT(IN)  :: TAU        ! TAU value (hrs from 1/1/1985)
+      INTEGER,        INTENT(IN)  :: YYYYMMDD   ! YYYY/MM/DD GMT date
+      INTEGER,        INTENT(IN)  :: HHMMSS     ! hh:mm:ss GMT time
+      REAL*8,         INTENT(IN)  :: TAU        ! TAU value (hrs from 1/1/1985)
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  27 May 1999 - R. Yantosca - Initial version
@@ -143,6 +144,8 @@
 !  21 Jul 2011 - M. Long     - Now include F77_CMN_SIZE instead of CMN_SIZE
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -222,7 +225,7 @@
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            TRACER(I,J,L) = STT(I,J,L,N) * TCVV(N) / AD(I,J,L)
+            TRACER(I,J,L) = STT(I,J,L,N) * TCVV(N) / State_Met%AD(I,J,L)
          ENDDO
          ENDDO
          ENDDO
@@ -258,28 +261,29 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_RESTART_FILE( YYYYMMDD, HHMMSS ) 
+      SUBROUTINE READ_RESTART_FILE( YYYYMMDD, HHMMSS, State_Met ) 
 !
 ! !USES:
 !
-      USE BPCH2_MOD,   ONLY : OPEN_BPCH2_FOR_READ
-      USE DAO_MOD,     ONLY : AD
-      USE ERROR_MOD,   ONLY : DEBUG_MSG
-      USE FILE_MOD,    ONLY : IOERROR
-      USE LOGICAL_MOD, ONLY : LSPLIT
-      USE LOGICAL_MOD, ONLY : LPRT
-      USE TIME_MOD,    ONLY : EXPAND_DATE
-      USE TRACER_MOD,  ONLY : N_TRACERS
-      USE TRACER_MOD,  ONLY : STT
-      USE TRACER_MOD,  ONLY : TRACER_NAME
-      USE TRACER_MOD,  ONLY : TRACER_MW_G
+      USE BPCH2_MOD,          ONLY : OPEN_BPCH2_FOR_READ
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE LOGICAL_MOD,        ONLY : LSPLIT
+      USE LOGICAL_MOD,        ONLY : LPRT
+      USE TIME_MOD,           ONLY : EXPAND_DATE
+      USE TRACER_MOD,         ONLY : N_TRACERS
+      USE TRACER_MOD,         ONLY : STT
+      USE TRACER_MOD,         ONLY : TRACER_NAME
+      USE TRACER_MOD,         ONLY : TRACER_MW_G
 
-      USE CMN_SIZE_MOD                  ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: YYYYMMDD   ! YYYY/MM/DD GMT date
-      INTEGER, INTENT(IN) :: HHMMSS     ! hh:mm:ss   GMT time
+      INTEGER,        INTENT(IN) :: YYYYMMDD   ! YYYY/MM/DD GMT date
+      INTEGER,        INTENT(IN) :: HHMMSS     ! hh:mm:ss   GMT time
+      TYPE(MetState), INTENT(IN) :: State_Met  ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  27 May 1999 - R. Yantosca - Initial version
@@ -415,7 +419,7 @@
             CALL CONVERT_TRACER_TO_VV( NTRACER, TRACER, UNIT )
 
             ! Convert TRACER from [v/v] to [kg] and copy into STT array
-            CALL COPY_STT( NTRACER, TRACER, NCOUNT )
+            CALL COPY_STT( NTRACER, TRACER, NCOUNT, State_Met )
 
          ENDIF
       ENDDO
@@ -621,24 +625,25 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE COPY_STT( NTRACER, TRACER, NCOUNT )
+      SUBROUTINE COPY_STT( NTRACER, TRACER, NCOUNT, State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD,    ONLY : AD
-      USE TRACER_MOD, ONLY : N_TRACERS, STT, TCVV
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TRACER_MOD,         ONLY : N_TRACERS, STT, TCVV
       
-      USE CMN_SIZE_MOD                                     ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)    :: NTRACER                    ! Tracer #
-      REAL*4,  INTENT(IN)    :: TRACER(IIPAR,JJPAR,LLPAR)  ! Tracers from 
-                                                           !  rst file [v/v]
+      INTEGER,        INTENT(IN)    :: NTRACER                   ! Tracer #
+      REAL*4,         INTENT(IN)    :: TRACER(IIPAR,JJPAR,LLPAR) ! Tracers from 
+                                                                 !rst file [v/v]
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      INTEGER, INTENT(INOUT) :: NCOUNT(NNPAR)              ! # of data blocks
+      INTEGER,        INTENT(INOUT) :: NCOUNT(NNPAR)      ! # of data blocks
 !                                                          !  for each tracer
 ! 
 ! !REVISION HISTORY: 
@@ -649,6 +654,8 @@
 !  (5 ) Remove call to TRUE_TRACER_INDEX (bmy, 6/24/05)
 !  11 Jul 2011 - R. Yantosca - Added ProTeX headers
 !  21 Jul 2011 - M. Long     - Now include F77_CMN_SIZE instead of CMN_SIZE
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -674,7 +681,7 @@
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         STT(I,J,L,N) = TRACER(I,J,L) * AD(I,J,L) / TCVV(N) 
+         STT(I,J,L,N) = TRACER(I,J,L) * State_Met%AD(I,J,L) / TCVV(N) 
       ENDDO
       ENDDO
       ENDDO

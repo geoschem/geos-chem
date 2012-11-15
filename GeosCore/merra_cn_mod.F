@@ -190,7 +190,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_MERRA_CN_FIELDS( NYMD, NHMS )
+      SUBROUTINE GET_MERRA_CN_FIELDS( NYMD, NHMS, State_Met )
 !
 ! !USES:
 !
@@ -199,14 +199,21 @@
       USE DAO_MOD, ONLY : FRLANDIC   ! Fraction of grid box that is land ice
       USE DAO_MOD, ONLY : FROCEAN    ! Fraction of grid box that is ocean
       USE DAO_MOD, ONLY : PHIS       ! Surface geopotential height
+      USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: NYMD    ! YYYYMMDD date 
-      INTEGER, INTENT(IN) :: NHMS    !  and hhmmss time of desired data
+      INTEGER,        INTENT(IN)    :: NYMD    ! YYYYMMDD date 
+      INTEGER,        INTENT(IN)    :: NHMS    ! hhmmss time of desired data
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
+!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
+!                              object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -220,6 +227,13 @@
      &              FRLANDIC = FRLANDIC, 
      &              FROCEAN  = FROCEAN, 
      &              PHIS     = PHIS      )
+
+      ! Copy met fields to State_Met
+      State_Met%FRLAKE   => FRLAKE
+      State_Met%FRLAND   => FRLAND
+      State_Met%FRLANDIC => FRLANDIC
+      State_Met%FROCEAN  => FROCEAN
+      State_Met%PHIS     => PHIS
       
       END SUBROUTINE GET_MERRA_CN_FIELDS
 !EOC
@@ -325,7 +339,7 @@
                ENDIF
 
             !-----------------------------------------------
-            ! FRLAKE: Fraction of box covered by lakes
+            ! FRLAND: Fraction of box covered by land
             !-----------------------------------------------
             CASE ( 'FRLAND' )
                READ( IU_CN, IOSTAT=IOS ) XYMD, XHMS, Q2

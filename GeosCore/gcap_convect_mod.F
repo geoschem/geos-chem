@@ -432,7 +432,6 @@
       ! References to F90 modules
       USE DIAG_MOD,     ONLY : AD38, CONVFLUP
       USE GRID_MOD,     ONLY : GET_AREA_M2
-      USE DAO_MOD,      ONLY : AD
       USE PRESSURE_MOD, ONLY : GET_PEDGE
 
       USE CMN_SIZE_MOD     ! Size parameters

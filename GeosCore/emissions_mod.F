@@ -81,9 +81,10 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      SUBROUTINE DO_EMISSIONS( am_I_Root, Input_Opt, State_Chm, RC )
+      SUBROUTINE DO_EMISSIONS( am_I_Root, Input_Opt, 
+     &                         State_Met, State_Chm, RC )
 #else
-      SUBROUTINE DO_EMISSIONS
+      SUBROUTINE DO_EMISSIONS( State_Met )
 #endif
 !
 ! !USES:
@@ -103,27 +104,30 @@
       USE EMEP_MOD,               ONLY : EMISS_EMEP_05x0666
       USE EPA_NEI_MOD,            ONLY : EMISS_EPA_NEI
       USE ERROR_MOD,              ONLY : DEBUG_MSG
+      USE GIGC_State_Met_Mod,     ONLY : MetState
       USE GLOBAL_CH4_MOD,         ONLY : EMISSCH4
       USE H2_HD_MOD,              ONLY : EMISS_H2_HD
       USE HCN_CH3CN_MOD,          ONLY : EMISS_HCN_CH3CN
+      USE ICOADS_SHIP_MOD,        ONLY : EMISS_ICOADS_SHIP
       USE LOGICAL_MOD                
       USE MERCURY_MOD,            ONLY : EMISSMERCURY
       USE NEI2005_ANTHRO_MOD,     ONLY : EMISS_NEI2005_ANTHRO
       USE NEI2005_ANTHRO_MOD,     ONLY : EMISS_NEI2005_ANTHRO_05x0666
+      USE PARANOX_MOD,            ONLY : READ_PARANOX_LUT
       USE RETRO_MOD,              ONLY : EMISS_RETRO
       USE RnPbBe_MOD,             ONLY : EMISSRnPbBe
       USE SEASALT_MOD,            ONLY : EMISSSEASALT
+      USE SSA_BROMINE_MOD,        ONLY : EMIT_Br2
       USE STREETS_ANTHRO_MOD,     ONLY : EMISS_STREETS_ANTHRO
       USE STREETS_ANTHRO_MOD,     ONLY : EMISS_STREETS_ANTHRO_05x0666
       USE SULFATE_MOD,            ONLY : EMISSSULFATE 
-      USE TIME_MOD,               ONLY : GET_MONTH,       GET_YEAR
-      USE TIME_MOD,               ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
+      USE TIME_MOD,               ONLY : GET_MONTH
+      USE TIME_MOD,               ONLY : GET_YEAR
+      USE TIME_MOD,               ONLY : ITS_A_NEW_MONTH
+      USE TIME_MOD,               ONLY : ITS_A_NEW_YEAR
       USE TRACER_MOD                 
       USE TAGGED_CO_MOD,          ONLY : EMISS_TAGGED_CO
       USE VISTAS_ANTHRO_MOD,      ONLY : EMISS_VISTAS_ANTHRO
-      USE ICOADS_SHIP_MOD,        ONLY : EMISS_ICOADS_SHIP !(cklee,7/09/09)
-      USE PARANOX_MOD,            ONLY : READ_PARANOX_LUT
-      USE SSA_BROMINE_MOD,        ONLY : EMIT_Br2          !jpp, 8/4/10
 
       USE CMN_SIZE_MOD                 ! Size parameters
       USE CMN_O3_MOD                   ! FSCLYR
@@ -132,17 +136,19 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod,     ONLY : OptInput
       USE GIGC_State_Chm_Mod,     ONLY : ChmState
-      USE GIGC_State_Met_Mod,     ONLY : MetState
       USE TRACERID_MOD,           ONLY : IDTSO2, IDTC2H6
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+#endif
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      TYPE(ChmState), INTENT(INOUT)1:: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -192,6 +198,8 @@
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
 !  19 Oct 2012 - R. Yantosca - Rename CHEM_STATE argument to State_Chm
+!  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
+!  15 Nov 2012 - M. Payer    - Now pass all met fields via State_Met object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -254,16 +262,16 @@
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 #if   defined(GRID05x0666)
             CALL EMISS_STREETS_ANTHRO_05x0666 
-     &           (State_Chm%TRAC_TEND(:,:,1,:))
+     &           ( State_Met, State_Chm%TRAC_TEND(:,:,1,:) )
 #else
             CALL EMISS_STREETS_ANTHRO
-     &           (State_Chm%TRAC_TEND(:,:,1,:))
+     &           ( State_Met, State_Chm%TRAC_TEND(:,:,1,:) )
 #endif
 #else
 #if   defined(GRID05x0666)
-            CALL EMISS_STREETS_ANTHRO_05x0666      !(dan)
+            CALL EMISS_STREETS_ANTHRO_05x0666( State_Met)
 #else
-            CALL EMISS_STREETS_ANTHRO
+            CALL EMISS_STREETS_ANTHRO( State_Met )
 #endif
 #endif
          ENDIF
@@ -402,44 +410,49 @@
          ! C2H6 emissions using RETRO are too low, use Yaping Xiao's
          ! offline C2H6 emissions instead (mpayer, 3/22/12)
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-         CALL EMISSC2H6( 
+         CALL EMISSC2H6( State_Met,
      &        State_Chm%TRAC_TEND (:,:,1,IDTC2H6),
      &        State_Chm%TRAC_BTEND(:,:,1,:)       )
 #else
-         CALL EMISSC2H6
+         CALL EMISSC2H6( State_Met )
 #endif
 
          ! NOx-Ox-HC (w/ or w/o aerosols)
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !         write(*,*) 'TRAC_TEND:', shape(State_Chm%TRAC_TEND)
-         CALL EMISSDR( State_Chm%TRAC_TEND, State_Chm%TRAC_BTEND )
+         CALL EMISSDR( State_Met, 
+     &                 State_Chm%TRAC_TEND, State_Chm%TRAC_BTEND )
 #else
-         CALL EMISSDR
+         CALL EMISSDR( State_Met )
 #endif
 
          ! Emissions for various aerosol types
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
          IF ( LSSALT            ) 
-     &      CALL EMISSSEASALT( State_Chm%TRAC_TEND(:,:,:,:), ssa_br2 )
+     &      CALL EMISSSEASALT( State_Met, State_Chm%TRAC_TEND(:,:,:,:),
+     &                         ssa_br2    )
          IF ( LSULF .or. LCRYST ) 
-     &      CALL EMISSSULFATE(State_Chm%TRAC_TEND(:,:,:,:))
+     &      CALL EMISSSULFATE( State_Met, State_Chm%TRAC_TEND(:,:,:,:))
          IF ( LCARB             ) 
-     &      CALL EMISSCARBON(State_Chm%TRAC_TEND(:,:,1,:))
+     &      CALL EMISSCARBON ( State_Met, State_Chm%TRAC_TEND(:,:,1,:))
          IF ( LDUST             ) 
-     &      CALL EMISSDUST( am_I_Root, Input_Opt, 
-     &                      State_Chm%TRAC_TEND(:,:,:,:), RC)
+     &      CALL EMISSDUST( am_I_Root, 
+     &                      Input_Opt, 
+     &                      State_Met, 
+     &                      State_Chm%TRAC_TEND(:,:,:,:), 
+     &                      RC                             )
 #else
-         IF ( LSSALT            ) CALL EMISSSEASALT(ssa_br2) !jpp, 3/2/10
-         IF ( LSULF .or. LCRYST ) CALL EMISSSULFATE
-         IF ( LCARB             ) CALL EMISSCARBON
-         IF ( LDUST             ) CALL EMISSDUST
+         IF ( LSSALT            ) CALL EMISSSEASALT( State_Met, ssa_br2)
+         IF ( LSULF .or. LCRYST ) CALL EMISSSULFATE( State_Met )
+         IF ( LCARB             ) CALL EMISSCARBON( State_Met )
+         IF ( LDUST             ) CALL EMISSDUST( State_Met )
 #endif
 
          ! jpp, 3/2/10:
          ! Now distribute the Br2 emitted from SSA, through
          ! the full mixed layer.
          IF ( LSSABr2 ) THEN
-            CALL EMIT_BR2(SSA_Br2)
+            CALL EMIT_BR2( SSA_Br2 )
          ENDIF
 
       ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
@@ -453,16 +466,16 @@
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 #if   defined(GRID05x0666)
             CALL EMISS_STREETS_ANTHRO_05x0666 
-     &           (State_Chm%TRAC_TEND(:,:,1,:))
+     &           ( State_Met, State_Chm%TRAC_TEND(:,:,1,:))
 #else
             CALL EMISS_STREETS_ANTHRO
-     &           (State_Chm%TRAC_TEND(:,:,1,:))
+     &           ( State_Met, State_Chm%TRAC_TEND(:,:,1,:))
 #endif
 #else
 #if   defined( GRID05x0666 )
-            CALL EMISS_STREETS_ANTHRO_05x0666      !(dan)
+            CALL EMISS_STREETS_ANTHRO_05x0666( State_Met )
 #else
-            CALL EMISS_STREETS_ANTHRO
+            CALL EMISS_STREETS_ANTHRO( State_Met )
 #endif
 #endif
          ENDIF
@@ -582,19 +595,22 @@
          ! Emissions for various aerosol types
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
          IF ( LSSALT            ) 
-     &   CALL EMISSSEASALT(State_Chm%TRAC_TEND(:,:,:,:))
+     &   CALL EMISSSEASALT( State_Met, State_Chm%TRAC_TEND(:,:,:,:))
          IF ( LSULF .or. LCRYST ) 
-     &   CALL EMISSSULFATE(State_Chm%TRAC_TEND(:,:,:,:))
+     &   CALL EMISSSULFATE( State_Met, State_Chm%TRAC_TEND(:,:,:,:))
          IF ( LCARB             ) 
-     &   CALL EMISSCARBON(State_Chm%TRAC_TEND(:,:,1,:))
+     &   CALL EMISSCARBON ( State_Met, State_Chm%TRAC_TEND(:,:,1,:))
          IF ( LDUST             ) 
-     &   CALL EMISSDUST( am_I_Root, Input_Opt,
-     &                   State_Chm%TRAC_TEND(:,:,:,:), RC )
+     &   CALL EMISSDUST( am_I_Root, 
+     &                   Input_Opt,
+     &                   State_Met,
+     &                   State_Chm%TRAC_TEND(:,:,:,:), 
+     &                   RC                            )
 #else
-         IF ( LSSALT            ) CALL EMISSSEASALT()
-         IF ( LSULF .or. LCRYST ) CALL EMISSSULFATE
-         IF ( LCARB             ) CALL EMISSCARBON
-         IF ( LDUST             ) CALL EMISSDUST
+         IF ( LSSALT            ) CALL EMISSSEASALT( State_Met )
+         IF ( LSULF .or. LCRYST ) CALL EMISSSULFATE( State_Met )
+         IF ( LCARB             ) CALL EMISSCARBON( State_Met )
+         IF ( LDUST             ) CALL EMISSDUST( State_Met )
 #endif
 
       ELSE IF ( ITS_A_RnPbBe_SIM() ) THEN
@@ -602,7 +618,7 @@
          !--------------------
          ! Rn-Pb-Be
          !--------------------
-         CALL EMISSRnPbBe
+         CALL EMISSRnPbBe( State_Met )
 
       ELSE IF ( ITS_A_CH3I_SIM() ) THEN
 
@@ -612,9 +628,9 @@
 
          ! Emit CH3I
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-         CALL EMISSCH3I( State_Chm%TRAC_BTEND(:,:,1,:) )
+         CALL EMISSCH3I( State_Met, State_Chm%TRAC_BTEND(:,:,1,:) )
 #else
-         CALL EMISSCH3I
+         CALL EMISSCH3I( State_Met )
 #endif
 
       ELSE IF ( ITS_A_HCN_SIM() ) THEN
@@ -636,16 +652,16 @@
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 #if   defined(GRID05x0666)
             CALL EMISS_STREETS_ANTHRO_05x0666 
-     &           (State_Chm%TRAC_TEND(:,:,1,:))
+     &           ( State_Met, State_Chm%TRAC_TEND(:,:,1,:))
 #else
             CALL EMISS_STREETS_ANTHRO
-     &           (State_Chm%TRAC_TEND(:,:,1,:))
+     &           ( State_Met, State_Chm%TRAC_TEND(:,:,1,:))
 #endif
 #else
 #if   defined( GRID05x0666 )
-            CALL EMISS_STREETS_ANTHRO_05x0666   ! (dan)
+            CALL EMISS_STREETS_ANTHRO_05x0666( State_Met )
 #else
-            CALL EMISS_STREETS_ANTHRO           
+            CALL EMISS_STREETS_ANTHRO( State_Met )
 #endif
 #endif
          ENDIF
@@ -760,7 +776,7 @@
          CALL EMISSDR 
          
          ! Emit tagged CO
-         CALL EMISS_TAGGED_CO
+         CALL EMISS_TAGGED_CO( State_Met )
 
       ELSE IF ( ITS_A_C2H6_SIM() ) THEN
 
@@ -770,11 +786,11 @@
 
          ! Emit C2H6
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-         CALL EMISSC2H6( 
+         CALL EMISSC2H6( State_Met,
      &        State_Chm%TRAC_TEND (:,:,1,IDTC2H6),
      &        State_Chm%TRAC_BTEND(:,:,1,:)       )
 #else
-         CALL EMISSC2H6
+         CALL EMISSC2H6( State_Met )
 #endif
 
       ELSE IF ( ITS_A_CH4_SIM() ) THEN
@@ -789,29 +805,29 @@
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 #if   defined(GRID05x0666)
             CALL EMISS_STREETS_ANTHRO_05x0666 
-     &           (State_Chm%TRAC_TEND(:,:,1,:))
+     &           ( State_Met, State_Chm%TRAC_TEND(:,:,1,:) )
 #else
             CALL EMISS_STREETS_ANTHRO
-     &           (State_Chm%TRAC_TEND(:,:,1,:))
+     &           ( State_Met, State_Chm%TRAC_TEND(:,:,1,:) )
 #endif
 #else
 #if   defined( GRID05x0666 )
-            CALL EMISS_STREETS_ANTHRO_05x0666      !(dan)
+            CALL EMISS_STREETS_ANTHRO_05x0666( State_Met )
 #else
-            CALL EMISS_STREETS_ANTHRO
+            CALL EMISS_STREETS_ANTHRO( State_Met)
 #endif
 #endif
          ENDIF
 
          ! Emit CH4
-         CALL EMISSCH4
+         CALL EMISSCH4( State_Met )
 
       ELSE IF ( ITS_A_MERCURY_SIM() ) THEN
 
          !--------------------
          ! Mercury
          !--------------------
-         CALL EMISSMERCURY
+         CALL EMISSMERCURY( State_Met )
 
       ELSE IF ( ITS_A_CO2_SIM() ) THEN
 
@@ -825,30 +841,33 @@
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 #if   defined(GRID05x0666)
             CALL EMISS_STREETS_ANTHRO_05x0666 
-     &           (State_Chm%TRAC_TEND(:,:,1,:))
+     &           ( State_Met, State_Chm%TRAC_TEND(:,:,1,:) )
 #else
             CALL EMISS_STREETS_ANTHRO
-     &           (State_Chm%TRAC_TEND(:,:,1,:))
+     &           ( State_Met, State_Chm%TRAC_TEND(:,:,1,:) )
 #endif
 #else
 #if   defined( GRID05x0666 )
-            CALL EMISS_STREETS_ANTHRO_05x0666      !(dan)
+            CALL EMISS_STREETS_ANTHRO_05x0666( State_Met )
 #else
-            CALL EMISS_STREETS_ANTHRO
+            CALL EMISS_STREETS_ANTHRO( State_Met )
 #endif
 #endif
          ENDIF
 
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
          ! Read CO2 ARCTAS SHIP emissions
          IF ( LARCSHIP .and. ITS_A_NEW_YEAR() )
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
      &        CALL EMISS_ARCTAS_SHIP( YEAR,
      &                   State_Chm%TRAC_TEND(:,:,1,N_TRACERS+1))
 #else
+         ! Read CO2 ARCTAS SHIP emissions
+         IF ( LARCSHIP .and. ITS_A_NEW_YEAR() )
      &        CALL EMISS_ARCTAS_SHIP( YEAR )
 #endif
+
          ! Emit CO2
-         CALL EMISSCO2
+         CALL EMISSCO2( State_Met )
 
       ELSE IF ( ITS_A_H2HD_SIM() ) THEN
 
@@ -862,16 +881,16 @@
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 #if   defined(GRID05x0666)
             CALL EMISS_STREETS_ANTHRO_05x0666 
-     &           (State_Chm%TRAC_TEND(:,:,1,:))
+     &           ( State_Met, State_Chm%TRAC_TEND(:,:,1,:) )
 #else
             CALL EMISS_STREETS_ANTHRO
-     &           (State_Chm%TRAC_TEND(:,:,1,:))
+     &           ( State_Met, State_Chm%TRAC_TEND(:,:,1,:) )
 #endif
 #else
 #if   defined( GRID05x0666 )
-            CALL EMISS_STREETS_ANTHRO_05x0666      !(dan)
+            CALL EMISS_STREETS_ANTHRO_05x0666( State_Met )
 #else
-            CALL EMISS_STREETS_ANTHRO
+            CALL EMISS_STREETS_ANTHRO( State_Met )
 #endif
 #endif
          ENDIF
@@ -981,9 +1000,9 @@
 
          ! Emit H2/HD
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ) 
-         CALL EMISS_H2_HD( State_Chm%TRAC_BTEND(:,:,1,:) )
+         CALL EMISS_H2_HD( State_Met, State_Chm%TRAC_BTEND(:,:,1,:) )
 #else
-         CALL EMISS_H2_HD
+         CALL EMISS_H2_HD( State_Met )
 #endif
 
       ENDIF

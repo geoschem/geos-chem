@@ -435,7 +435,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE GET_I6_FIELDS_1( NYMD, NHMS )
+      SUBROUTINE GET_I6_FIELDS_1( NYMD, NHMS, State_Met )
 !
 !******************************************************************************
 !  Subroutine GET_I6_FIELDS_1 is a wrapper for routine READ_I6.  This routine
@@ -453,14 +453,18 @@
 !  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (3 ) Now also read TO3 and TTO3 for GEOS-5 (bmy, 1/16/07)
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
+!                              object
 !******************************************************************************
 !      
       ! References to F90 modules
-      USE DAO_MOD, ONLY : ALBD1, LWI,  PS1,   SLP,    SPHU1, T
-      USE DAO_MOD, ONLY : TO31,   TTO3, TMPU1, TROPP1, UWND1, VWND1
+      USE DAO_MOD,            ONLY : LWI,   PS1,  SLP
+      USE DAO_MOD,            ONLY : TO31,  TTO3, TROPP1
+      USE GIGC_State_Met_Mod, ONLY : MetState
 
       ! Arguments
-      INTEGER, INTENT(IN) :: NYMD, NHMS 
+      INTEGER,        INTENT(IN)    :: NYMD, NHMS 
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 
 #if   defined( GEOS_4 )
 
@@ -470,6 +474,12 @@
       CALL READ_I6( NYMD=NYMD, NHMS=NHMS, 
      &              LWI=LWI,   PS=PS1,  SLP=SLP, TROPP=TROPP1 )
 
+      ! Copy met fields to State_Met
+      State_Met%LWI    => LWI
+      State_Met%PS1    => PS1
+      State_Met%SLP    => SLP
+      State_Met%TROPP1 => TROPP1
+
 #elif defined( GEOS_5 )
 
       !=================================================================
@@ -478,6 +488,13 @@
       CALL READ_I6( NYMD=NYMD, NHMS=NHMS, 
      &              LWI=LWI,   PS=PS1,  SLP=SLP, TO3=TO31, TTO3=TTO3 )
 
+      ! Copy met fields State_Met
+      State_Met%LWI    => LWI
+      State_Met%PS1    => PS1
+      State_Met%SLP    => SLP
+      State_Met%TO31   => TO31
+      State_Met%TTO3   => TTO3
+
 #elif defined( GCAP )
 
       !=================================================================
@@ -485,14 +502,18 @@
       !=================================================================
       CALL READ_I6( NYMD=NYMD, NHMS=NHMS, PS=PS1, SLP=SLP )
 
+      ! Copy met fields State_Met
+      State_Met%PS1    => PS1
+      State_Met%SLP    => SLP
+
 #endif
-      
+
       ! Return to calling program
       END SUBROUTINE GET_I6_FIELDS_1
 
 !-----------------------------------------------------------------------------
 
-      SUBROUTINE GET_I6_FIELDS_2( NYMD, NHMS )
+      SUBROUTINE GET_I6_FIELDS_2( NYMD, NHMS, State_Met )
 !
 !******************************************************************************
 !  Subroutine GET_I6_FIELDS_2 is a wrapper for routine READ_I6.  This routine
@@ -510,15 +531,19 @@
 !  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (3 ) Now read TO3 and TTO3 for GEOS-5 (bmy, 1/16/07)
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
+!                              object
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD, ONLY : ALBD2,  LWI,   PS2,   SLP,    SPHU2
-      USE DAO_MOD, ONLY : T,      TO32,   TTO3,  TMPU1,  TMPU2
-      USE DAO_MOD, ONLY : TROPP2, UWND2, VWND2
+      USE DAO_MOD,            ONLY : LWI,   PS2,   SLP
+      USE DAO_MOD,            ONLY : TO32,  TTO3
+      USE DAO_MOD,            ONLY : TROPP2
+      USE GIGC_State_Met_Mod, ONLY : MetState
 
       ! Arguments
-      INTEGER, INTENT(IN) :: NYMD, NHMS 
+      INTEGER,        INTENT(IN)    :: NYMD, NHMS 
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 
 #if   defined( GEOS_4 )
 
@@ -528,6 +553,12 @@
       CALL READ_I6( NYMD=NYMD, NHMS=NHMS, 
      &              LWI=LWI,   PS=PS2, SLP=SLP, TROPP=TROPP2 )
 
+      ! Copy met fields to State_Met
+      State_Met%LWI    => LWI
+      State_Met%PS2    => PS2
+      State_Met%SLP    => SLP
+      State_Met%TROPP2 => TROPP2
+
 #elif defined( GEOS_5 )
 
       !=================================================================
@@ -536,6 +567,12 @@
       CALL READ_I6( NYMD=NYMD, NHMS=NHMS, 
      &              LWI=LWI,   PS=PS2,   SLP=SLP, TO3=TO32, TTO3=TTO3 )
 
+      ! Copy met fields to State_Met
+      State_Met%LWI    => LWI
+      State_Met%PS2    => PS2
+      State_Met%SLP    => SLP
+      State_Met%TO32   => TO32
+      State_Met%TTO3   => TTO3
 
 #elif defined( GCAP )
 
@@ -543,6 +580,10 @@
       ! GCAP: read PS1, SLP
       !=================================================================
       CALL READ_I6( NYMD=NYMD, NHMS=NHMS, PS=PS2, SLP=SLP )
+
+      ! Copy met fields to State_Met
+      State_Met%PS2    => PS2
+      State_Met%SLP    => SLP
 
 #endif
 

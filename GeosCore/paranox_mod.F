@@ -158,33 +158,37 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INTERPOLATE_LUT( I, J, fraction_nox, int_ope ) 
+      SUBROUTINE INTERPOLATE_LUT( I, J, fraction_nox, int_ope,
+     &                            State_Met ) 
 !
 ! !USES:
 !
-      USE DAO_MOD,      ONLY : TS,   AD
-      USE DAO_MOD,      ONLY : SUNCOS_MID,  SUNCOS_MID_5hr
-      USE TRACERID_MOD, ONLY : IDO3, IDTOX, IDTCO
-      USE TRACER_MOD,   ONLY : STT,  TCVV
-      USE TIME_MOD,     ONLY : GET_LOCALTIME
-      USE ERROR_MOD,    ONLY : ERROR_STOP
+      USE DAO_MOD,            ONLY : SUNCOS_MID,  SUNCOS_MID_5hr
+      USE TRACERID_MOD,       ONLY : IDO3, IDTOX, IDTCO
+      USE TRACER_MOD,         ONLY : STT,  TCVV
+      USE TIME_MOD,           ONLY : GET_LOCALTIME
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_State_Met_Mod, ONLY : MetState
 
-      USE CMN_FJ_MOD         ! Photolysis parameters
-      USE CMN_O3_MOD         ! fracnox, intope, jvalues
+      USE CMN_FJ_MOD               ! Photolysis parameters
+      USE CMN_O3_MOD               ! fracnox, intope, jvalues
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)        :: I, J
+      INTEGER,        INTENT(IN)  :: I, J
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS: 
 !
-      REAL,    INTENT(OUT)       :: fraction_nox, int_ope
+      REAL,           INTENT(OUT) :: fraction_nox, int_ope
 !
 ! !REVISION HISTORY:
 !     Jun 2010 - G.C.M. Vinken - Initial version
 !  06 Feb 2012 - M. Payer      - Moved from emissions_mod.F to paranox_mod.F;
 !                                Added ProTeX headers 
 !  15 Feb 2012 - M. Payer      - Add error trap to ensure 0 < fracnox < 1.
+!  09 Nov 2012 - M. Payer      - Replaced all met field arrays with State_Met
+!                                derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -258,16 +262,16 @@
 !      PRINT*,"This is grid cell: ",I,J
       
       ! Temperature
-!      PRINT*,"Temperature here is: ",TS(I,J)
-!      PRINT*,"USA: ",TS(32,64)
+!      PRINT*,"Temperature here is: ",State_Met%TS(I,J)
+!      PRINT*,"USA: ", State_Met%TS(32,64)
 
       ! Tracer concentrations in v/v
-!      PRINT*,"[O3] is: ",STT(I,J,1,IDTOX)/ AD(I,J,1) * TCVV(IDTOX)
-!      PRINT*,"[CO] is: ",STT(I,J,1,IDTCO)/ AD(I,J,1) * TCVV(IDTCO)
+!      PRINT*,"[O3] is: ",STT(I,J,1,IDTOX)/ State_Met%AD(I,J,1) * TCVV(IDTOX)
+!      PRINT*,"[CO] is: ",STT(I,J,1,IDTCO)/ State_Met%AD(I,J,1) * TCVV(IDTCO)
 !      PRINT*,"IDTOX is: ", IDTOX
 !      PRINT*,"IDO3 is: ", IDO3
-!      PRINT*,"In USA: ",STT(32,64,1,IDTOX)/ AD(32,64,1) * TCVV(IDTOX)
-      
+!      PRINT*,"In USA: ",STT(32,64,1,IDTOX)/State_Met%AD(32,64,1) * TCVV(IDTOX)
+
       ! SOLAR ZENITH ANGLES IN DEGREES
 !      IJLOOP = ( (J-1) * IIPAR ) + I
 !      PRINT*,"Local Time: ",GET_LOCALTIME(I,1,1)
@@ -280,15 +284,17 @@
       
       ! Set the variables
       IJLOOP       = ( (J-1) * IIPAR ) + I 
-      var_array(1) = TS(I,J)                          ! Temperature
+      var_array(1) = State_Met%TS(I,J)                ! Temperature
       var_array(2) = jvalues(I,J,1)                   ! J(NO2)
-      var_array(3) = STT(I,J,1,IDTOX)/ AD(I,J,1) *    ! [O3] in ppbv 
-     $               TCVV(IDTOX) * 1.E9   
+      var_array(3) = STT(I,J,1,IDTOX)    /            ! [O3] in ppbv 
+     $               State_Met%AD(I,J,1) *
+     $               TCVV(IDTOX)         * 1.E9   
       var_array(4) = ASIND(SUNCOS_MID_5hr(IJLOOP))    ! alfa0
       var_array(5) = ASIND(SUNCOS_MID(IJLOOP))        ! alfa5
       var_array(6) = jvalues(I,J,2) / jvalues(I,J,1)  ! J(O1D)/J(NO2)
-      var_array(7) = STT(I,J,1,IDTCO)/ AD(I,J,1) *    ! [CO] in ppbv
-     $               TCVV(IDTCO) * 1.E9   
+      var_array(7) = STT(I,J,1,IDTCO)    /            ! [CO] in ppbv
+     $               State_Met%AD(I,J,1) *
+     $               TCVV(IDTCO)         * 1.E9   
 
       ! prevent NaN when jvalues are 0.
       IF (jvalues(I,J,1) .eq. 0.) var_array(6) = 0.
@@ -551,27 +557,27 @@
 ! !INTERFACE:
 !
       SUBROUTINE INTERPOLATE_LUT2( I, J, o3, no, no2, dens,
-     &                             fraction_nox, int_ope ) 
+     &                             fraction_nox, int_ope, State_Met ) 
 !
 ! !USES:
 !
-      USE DAO_MOD,   ONLY : TS
-      USE DAO_MOD,   ONLY : SUNCOS_MID,  SUNCOS_MID_5hr
-      USE TIME_MOD,  ONLY : GET_LOCALTIME
-      USE ERROR_MOD, ONLY : ERROR_STOP
+      USE DAO_MOD,            ONLY : SUNCOS_MID,  SUNCOS_MID_5hr
+      USE TIME_MOD,           ONLY : GET_LOCALTIME
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_State_Met_Mod, ONLY : MetState
 
-      USE CMN_FJ_MOD      ! Photolysis parameters
-      USE CMN_O3_MOD      ! fracnox, intope, jvalues
+      USE CMN_FJ_MOD               ! Photolysis parameters
+      USE CMN_O3_MOD               ! fracnox, intope, jvalues
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)        :: I, J
-      REAL*8,  INTENT(IN)        :: o3, no, no2, dens
+      INTEGER,        INTENT(IN)  :: I, J
+      REAL*8,         INTENT(IN)  :: o3, no, no2, dens
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS: 
 !
-      REAL,    INTENT(OUT)       :: fraction_nox, int_ope
-
+      REAL,           INTENT(OUT) :: fraction_nox, int_ope
 !
 ! !REVISION HISTORY:
 !     Jun 2010 - G.C.M. Vinken - Initial version
@@ -579,6 +585,8 @@
 !  06 Feb 2012 - M. Payer      - Moved from emissions_mod.F to paranox_mod.F;
 !                                Added ProTeX headers
 !  15 Feb 2012 - M. Payer      - Add error trap to ensure 0 < fracnox < 1.
+!  09 Nov 2012 - M. Payer      - Replaced all met field arrays with State_Met
+!                                derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -658,15 +666,15 @@
 !      PRINT*,"This is grid cell: ",I,J
       
       ! Temperature
-!      PRINT*,"Temperature here is: ",TS(I,J)
-!      PRINT*,"USA: ",TS(32,64)
+!      PRINT*,"Temperature here is: ",State_Met%TS(I,J)
+!      PRINT*,"USA: ",State_Met%TS(32,64)
 
       ! Tracer concentrations in v/v
-!      PRINT*,"[O3] is: ",STT(I,J,1,IDTOX)/ AD(I,J,1) * TCVV(IDTOX)
-!      PRINT*,"[CO] is: ",STT(I,J,1,IDTCO)/ AD(I,J,1) * TCVV(IDTCO)
+!      PRINT*,"[O3] is: ",STT(I,J,1,IDTOX)/ State_Met%AD(I,J,1) * TCVV(IDTOX)
+!      PRINT*,"[CO] is: ",STT(I,J,1,IDTCO)/ State_Met%AD(I,J,1) * TCVV(IDTCO)
 !      PRINT*,"IDTOX is: ", IDTOX
 !      PRINT*,"IDO3 is: ", IDO3
-!      PRINT*,"In USA: ",STT(32,64,1,IDTOX)/ AD(32,64,1) * TCVV(IDTOX)
+!      PRINT*,"In USA: ",STT(32,64,1,IDTOX)/State_Met%AD(32,64,1) * TCVV(IDTOX)
       
       ! SOLAR ZENITH ANGLES IN DEGREES
 !      IJLOOP = ( (J-1) * IIPAR ) + I
@@ -680,7 +688,7 @@
       
       ! Set the variables
       IJLOOP       = ( (J-1) * IIPAR ) + I
-      var_array(1) = TS(I,J)                          ! Temperature
+      var_array(1) = State_Met%TS(I,J)                ! Temperature
       var_array(2) = jvalues(I,J,1)                   ! J(NO2)
       var_array(3) = o3 / dens * 1.E9                 ! [O3] in ppbv
       var_array(4) = ASIND(SUNCOS_MID_5hr(IJLOOP))    ! alfa0

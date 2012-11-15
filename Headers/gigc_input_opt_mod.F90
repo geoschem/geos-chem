@@ -1,4 +1,3 @@
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -1303,4 +1302,3 @@ CONTAINS
   END SUBROUTINE Cleanup_GIGC_Input_Opt
 !EOC
 END MODULE GIGC_Input_Opt_Mod
-#endif

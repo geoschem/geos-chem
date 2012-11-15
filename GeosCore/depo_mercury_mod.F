@@ -292,23 +292,23 @@
 !\\
 ! !INTERFACE: 
 !
-      SUBROUTINE ADD_HG2_SNOWPACK( I, J, N, DEP_Hg2 )
+      SUBROUTINE ADD_HG2_SNOWPACK( I, J, N, DEP_Hg2, State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD,           ONLY : SNOW, SNOMAS 
-      USE DAO_MOD,           ONLY : IS_ICE, IS_LAND
-      USE DAO_MOD,           ONLY : FRSNO, FRSEAICE, FRLANDIC 
-      USE TRACERID_MOD,      ONLY : GET_Hg2_CAT, GET_HgP_CAT
-      USE TRACERID_MOD,      ONLY : IS_Hg2,      IS_HgP
+      USE DAO_MOD,            ONLY : IS_ICE, IS_LAND
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TRACERID_MOD,       ONLY : GET_Hg2_CAT, GET_HgP_CAT
+      USE TRACERID_MOD,       ONLY : IS_Hg2,      IS_HgP
 
 #     include "define.h"
 !
 ! !INPUT PARAMETERS:
 !
       ! Arguments as input
-      INTEGER, INTENT(IN)   :: I, J, N
-      REAL*8,  INTENT(IN)   :: Dep_Hg2
+      INTEGER,        INTENT(IN)  :: I, J, N
+      REAL*8,         INTENT(IN)  :: Dep_Hg2
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !REVISION HISTORY:
 !  02 Sep 2008 - C. Holmes   - Initial version
@@ -318,6 +318,8 @@
 !  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
 !  13 Apr 2011 - R. Yantosca - Bug fix: reference IS_LAND from dao_mod.f
 !   8 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -352,24 +354,23 @@
       FRAC_SNOW_OR_ICE = 1d0
 
 #if   defined( MERRA ) || defined( GEOS_57 )
-
       ! Don't let fraction be greater than 1
-      FRAC_SNOW_OR_ICE = MIN(FRSNO(I,J) 
-     &                 + FRSEAICE(I,J) + FRLANDIC(I,J), 1d0)
+      FRAC_SNOW_OR_ICE = MIN( State_Met%FRSNO(I,J)     +
+     &                        State_Met%FRSEAICE(I,J)  + 
+     &                        State_Met%FRLANDIC(I,J), 1d0)
       IS_SNOW_OR_ICE   = ( FRAC_SNOW_OR_ICE > 0d0 )
 
 #elif defined( GEOS_5 )
-
       ! Use GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-      IS_SNOW_OR_ICE   = ( (IS_ICE(I,J)) .OR. 
-     &                     (IS_LAND(I,J) .AND. SNOMAS(I,J) > 10d0) )
- 
+      IS_SNOW_OR_ICE   = (( IS_ICE ( I, J, State_Met     )) .OR. 
+     &                    ( IS_LAND( I, J, State_Met     )  .AND. 
+     &                      State_Met%SNOMAS(I,J) > 10d0 ))
+
 #else
-
       ! Use GEOS1-4 snow height (water equivalent) in mm
-      IS_SNOW_OR_ICE   = ( (IS_ICE(I,J)) .OR. 
-     &                     (IS_LAND(I,J) .AND. SNOW(I,J) > 10d0) )
-
+      IS_SNOW_OR_ICE   = (( IS_ICE ( I, J, State_Met     )) .OR. 
+     &                    ( IS_LAND( I, J, State_Met     )  .AND. 
+     &                      State_Met%SNOW(I,J)   > 10d0 ))
 #endif 
 
       ! Check if there is snow on the ground, or if this is sea ice

@@ -305,23 +305,26 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_REGIONAL_POX( I, J, L, PP )
+      SUBROUTINE GET_REGIONAL_POX( I, J, L, PP, State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD,        ONLY : PBL
-      USE GRID_MOD,       ONLY : GET_XMID,  GET_YMID
-      USE TIME_MOD,       ONLY : GET_TS_CHEM
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_XMID,  GET_YMID
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_TROP
 
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_DIAG_MOD       ! ND44, ND65, LD65
-      USE CMN_GCTM_MOD       ! SCALE_HEIGHT
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND44, ND65, LD65
+      USE CMN_GCTM_MOD             ! SCALE_HEIGHT
 !
 ! !INPUT PARAMETERS: 
 !
       ! GEOS-Chem grid box indices for lon, lat, alt
-      INTEGER, INTENT(IN)  :: I, J, L
+      INTEGER,        INTENT(IN)  :: I, J, L
+
+      ! Meteorology State object
+      TYPE(MetState), INTENT(IN)  :: State_Met
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -369,7 +372,7 @@
       PP(I,J,L,:) = 0d0
       
       ! IS TROP is TRUE if we are in the troposphere
-      ITS_IN_TROP = ITS_IN_THE_TROP( I, J, L )
+      ITS_IN_TROP = ITS_IN_THE_TROP( I, J, L, State_Met )
       
       ! Skip stratospheric boxes
       IF ( .not. ITS_IN_TROP ) RETURN
@@ -416,7 +419,8 @@
       !=================================================================
 
       ! P(Ox) [kg]
-      PPROD = P24H(I,J,L) * BOXVL(I,J,L) * ( GET_TS_CHEM() * 60d0 )
+      PPROD = P24H(I,J,L)     * BOXVL(I,J,L,State_Met) *
+     &        ( GET_TS_CHEM() * 60d0 )
 
       !-----------------------
       ! #1: Total P(Ox)
@@ -501,34 +505,39 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_TAGGED_OX 
+      SUBROUTINE CHEM_TAGGED_OX( State_Met )
 !
 ! !USES:
 !
-      USE DIAG_MOD,       ONLY : AD44
-      USE DIAG_PL_MOD,    ONLY : AD65
-      USE ERROR_MOD,      ONLY : GEOS_CHEM_STOP
-      USE DRYDEP_MOD,     ONLY : DEPSAV      
-      USE GRID_MOD,       ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,    ONLY : LDRYD
-      USE PBL_MIX_MOD,    ONLY : GET_FRAC_UNDER_PBLTOP
-      USE PBL_MIX_MOD,    ONLY : GET_PBL_MAX_L
-      USE TIME_MOD,       ONLY : GET_TS_CHEM
-      USE TIME_MOD,       ONLY : ITS_A_NEW_DAY 
-      USE TIME_MOD,       ONLY : TIMESTAMP_STRING
-      USE TRACER_MOD,     ONLY : STT
-      USE TRACER_MOD,     ONLY : N_TRACERS
-      USE TRACER_MOD,     ONLY : XNUMOL
-      USE TRACERID_MOD,   ONLY : IDTOX
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
-      USE LOGICAL_MOD,    ONLY : LNLPBL
+      USE DIAG_MOD,           ONLY : AD44
+      USE DIAG_PL_MOD,        ONLY : AD65
+      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
+      USE DRYDEP_MOD,         ONLY : DEPSAV      
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE LOGICAL_MOD,        ONLY : LDRYD
+      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
+      USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+      USE TIME_MOD,           ONLY : ITS_A_NEW_DAY 
+      USE TIME_MOD,           ONLY : TIMESTAMP_STRING
+      USE TRACER_MOD,         ONLY : STT
+      USE TRACER_MOD,         ONLY : N_TRACERS
+      USE TRACER_MOD,         ONLY : XNUMOL
+      USE TRACERID_MOD,       ONLY : IDTOX
+      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_TROP
+      USE LOGICAL_MOD,        ONLY : LNLPBL
 
-      USE CMN_SIZE_MOD  ! Size parameters
-      USE CMN_DIAG_MOD  ! ND44, ND65, LD65
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND44, ND65, LD65
 
       IMPLICIT NONE
 #     include "define.h"
 
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY:
 !  20 Aug 2003 - R. Hudman   - Initial version
@@ -644,15 +653,17 @@
 
             ! P(Ox) is a function of geographic & altitude location
             ! NOTE: We call this only when N==1 for optimal looping
-            IF ( N == 1 ) CALL GET_REGIONAL_POX( I, J, L, PP )
+            IF ( N == 1 ) CALL GET_REGIONAL_POX( I, J, L, PP,
+     &                                           State_Met   )
             
             ! L(Ox) is originally in [1/cm3/s]; convert to [kg] 
-            IF ( ITS_IN_THE_TROP( I, J, L ) ) THEN
-               LL = STT(I,J,L,N) * L24H(I,J,L) * BOXVL(I,J,L) * DTCHEM
+            IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) THEN
+               LL = STT(I,J,L,N)           * L24H(I,J,L) *
+     &              BOXVL(I,J,L,State_Met) * DTCHEM
             ELSE
                LL = 0.0d0
             ENDIF 
-                           
+
             !===========================================================
             ! ND65 diagnostic: Chemical prod/loss [kg/s]
             !===========================================================
@@ -661,13 +672,14 @@
                ! Only archive chemical production if this
                ! region has production to begin with [kg/s]
                IF ( PP(I,J,L,N) > 0d0 ) THEN
-                  PL            = P24H(I,J,L) * BOXVL(I,J,L)
+                  PL            = P24H(I,J,L) * BOXVL(I,J,L,State_Met)
                   AD65(I,J,L,N) = AD65(I,J,L,N) + PL
                ENDIF
 
                ! Archive loss for all tracers [kg/s]
-               PL = STT(I,J,L,N) * L24H(I,J,L) * BOXVL(I,J,L)
+               PL = STT(I,J,L,N) * L24H(I,J,L) * BOXVL(I,J,L,State_Met)
                AD65(I,J,L,N_TRACERS+N) = AD65(I,J,L,N_TRACERS+N) + PL
+
             ENDIF
 
             !===========================================================

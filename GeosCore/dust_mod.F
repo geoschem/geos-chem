@@ -101,24 +101,28 @@
       ! Add the Input Options object and RC status flag as arguments
       ! (bmy, 11/13/12)
       !-----------------------------------------------------------------
-      SUBROUTINE CHEMDUST( am_I_Root, Input_Opt, RC )
+      SUBROUTINE CHEMDUST( am_I_Root, Input_Opt, State_Met, RC )
 #else
       !-----------------------------------------------------------------
       !              %%%%% TRADITIONAL GEOS-Chem %%%%%
       !
       ! Preserve existing subroutine call (bmy, 11/13/12)
       !-----------------------------------------------------------------
-      SUBROUTINE CHEMDUST( am_I_Root )
+      SUBROUTINE CHEMDUST( am_I_Root, State_Met )
 #endif
 !
 ! !USES:
 !
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE DRYDEP_MOD,   ONLY : DEPNAME, NUMDEP
-      USE TRACER_MOD,   ONLY : STT
-      USE TRACERID_MOD, ONLY : IDTDST1, IDTDST2, IDTDST3, IDTDST4
-
-      USE CMN_SIZE_MOD                   ! Size parameters
+      USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE DRYDEP_MOD,         ONLY : DEPNAME
+      USE DRYDEP_MOD,         ONLY : NUMDEP
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TRACER_MOD,         ONLY : STT
+      USE TRACERID_MOD,       ONLY : IDTDST1
+      USE TRACERID_MOD,       ONLY : IDTDST2
+      USE TRACERID_MOD,       ONLY : IDTDST3
+      USE TRACERID_MOD,       ONLY : IDTDST4
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
@@ -139,12 +143,14 @@
       ! logical flags directly from module GeosCore/logical_mod.F.
       ! (bmy, 11/13/12)
       !-----------------------------------------------------------------
-      USE LOGICAL_MOD,  ONLY : LDRYD,   LDUST
+      USE LOGICAL_MOD,        ONLY : LDRYD
+      USE LOGICAL_MOD,        ONLY : LDUST
 #endif
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
 !
@@ -163,6 +169,7 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
+!  15 Nov 2012 - M. Payer    - Now pass State_Met as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -271,8 +278,8 @@
       !-----------------------------------------------------------------
 
       ! Dust settling
-      CALL DRY_SETTLING(      am_I_Root,                  Input_Opt,  
-     &                        STT(:,:,:,IDTDST1:IDTDST4), RC         )
+      CALL DRY_SETTLING(  am_I_Root, Input_Opt,  
+     &                    State_Met, STT(:,:,:,IDTDST1:IDTDST4), RC )
 
       ! Dust deposition
       IF ( LDRYD ) THEN
@@ -288,7 +295,7 @@
       !-----------------------------------------------------------------
 
       ! Dust settling
-      CALL DRY_SETTLING(      STT(:,:,:,IDTDST1:IDTDST4) )
+      CALL DRY_SETTLING( State_Met, STT(:,:,:,IDTDST1:IDTDST4) )
 
       ! Dust deposition
       IF ( LDRYD ) THEN
@@ -296,7 +303,6 @@
       ENDIF
 
 #endif
-
 
       END SUBROUTINE CHEMDUST
 !EOC
@@ -320,28 +326,27 @@
       ! Add the Input Options object and RC status flag as arguments
       ! (bmy, 11/13/12)
       !-----------------------------------------------------------------
-      SUBROUTINE DRY_SETTLING( am_I_Root, Input_Opt, TC, RC )
+      SUBROUTINE DRY_SETTLING( am_I_Root, Input_Opt, State_Met, TC, RC )
 #else
       !-----------------------------------------------------------------
       !              %%%%% TRADITIONAL GEOS-Chem %%%%%
       !
       ! Preserve existing subroutine call (bmy, 11/13/12)
       !-----------------------------------------------------------------
-      SUBROUTINE DRY_SETTLING( TC )
+      SUBROUTINE DRY_SETTLING( State_Met, TC )
 #endif
 !
 ! !USES:
 !
-      USE DAO_MOD,      ONLY : T, BXHEIGHT
-      USE DIAG_MOD,     ONLY : AD44
-      USE PRESSURE_MOD, ONLY : GET_PCENTER
-      USE TIME_MOD,     ONLY : GET_TS_CHEM
-      USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE TRACERID_MOD, ONLY : IDTDST1
-
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_DIAG_MOD       ! ND44
-      USE CMN_GCTM_MOD       ! g0
+      USE CMN_GCTM_MOD
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
+      USE DIAG_MOD,           ONLY : AD44
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+      USE TRACERID_MOD,       ONLY : IDTDST1
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
@@ -362,22 +367,27 @@
       ! logical flags directly from module GeosCore/logical_mod.F.
       ! (bmy, 11/13/12)
       !-----------------------------------------------------------------
-      USE TRACER_MOD,        ONLY : XNUMOL
+      USE TRACER_MOD,         ONLY : XNUMOL
+#endif
+      USE CMN_DIAG_MOD             ! ND44
+      USE CMN_GCTM_MOD             ! g0
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(IN)   :: State_Met   ! Meteorology State object
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      LOGICAL,        INTENT(IN)   :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)   :: Input_Opt   ! Input Options object
 #endif
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 ! 
-      REAL*8, INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN)  ! Dust mass [kg]
+      REAL*8,         INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN) ! Dust [kg]
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+      INTEGER,        INTENT(OUT)  :: RC          ! Success or failure?
 #endif
 ! 
 ! !REVISION HISTORY: 
@@ -388,6 +398,8 @@
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
+!  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -495,7 +507,7 @@
 
                   ! Get P [kPa], T [K], and P*DP
                   P    = GET_PCENTER(I,J,L) * 0.1d0
-                  TEMP = T(I,J,L)
+                  TEMP = State_Met%T(I,J,L)
                   PDP  = P * DP
 
                   !=====================================================
@@ -541,13 +553,13 @@
 
                ! We know the boundary condition at the model top
                L           = LLTROP
-               DELZ        = BXHEIGHT(I,J,L)
+               DELZ        = State_Met%BXHEIGHT(I,J,L)
                TC(I,J,L,N) = TC(I,J,L,N) / 
      &                       ( 1.d0 + DT_SETTL * VTS(L) / DELZ )
 
                DO L = LLTROP-1, 1, -1
-                  DELZ        = BXHEIGHT(I,J,L)
-                  DELZ1       = BXHEIGHT(I,J,L+1)
+                  DELZ        = State_Met%BXHEIGHT(I,J,L)
+                  DELZ1       = State_Met%BXHEIGHT(I,J,L+1)
                   TC(I,J,L,N) = 1.d0 / 
      &                          ( 1.d0 + DT_SETTL * VTS(L)   / DELZ )
      &                 * (TC(I,J,L,N)  + DT_SETTL * VTS(L+1) / DELZ1
@@ -615,14 +627,13 @@
 !
 ! !USES:
 !
-      USE DIAG_MOD,     ONLY : AD44
-      USE DRYDEP_MOD,   ONLY : DEPSAV 
-      USE TIME_MOD,     ONLY : GET_TS_CHEM
-      USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE TRACERID_MOD, ONLY : IDTDST1
-
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_DIAG_MOD       ! ND44
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
+      USE DIAG_MOD,           ONLY : AD44
+      USE DRYDEP_MOD,         ONLY : DEPSAV 
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+      USE TRACERID_MOD,       ONLY : IDTDST1
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
@@ -645,16 +656,18 @@
       !-----------------------------------------------------------------
       USE TRACER_MOD,         ONLY : XNUMOL
 #endif
-!
-! !INPUT/OUTPUT PARAMETERS: 
-! 
-      REAL*8, INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN)  ! Dust mass [kg]
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+#endif
+!
+! !INPUT/OUTPUT PARAMETERS: 
+! 
+      REAL*8, INTENT(INOUT)       :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN)  ! Dust [kg]
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -768,7 +781,6 @@
 !\\
 ! !INTERFACE:
 !
-
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
       !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
@@ -776,24 +788,28 @@
       ! Add the Input Options object and RC status flag as arguments
       ! (bmy, 11/13/12)
       !-----------------------------------------------------------------
-      SUBROUTINE EMISSDUST( am_I_Root, Input_Opt, SFLX, RC )
+      SUBROUTINE EMISSDUST( am_I_Root, Input_Opt, State_Met, SFLX, RC )
 #else
       !-----------------------------------------------------------------
       !              %%%%% TRADITIONAL GEOS-Chem %%%%%
       !
       ! Preserve existing subroutine call (bmy, 11/13/12)
       !-----------------------------------------------------------------
-      SUBROUTINE EMISSDUST()
+      SUBROUTINE EMISSDUST( State_Met )
 #endif
 !
 ! !USES:
 !
-      USE ERROR_MOD,    ONLY : ERROR_STOP, DEBUG_MSG
-      USE TRACER_MOD,   ONLY : STT
-      USE TRACERID_MOD, ONLY : IDTDST1, IDTDST2, IDTDST3, IDTDST4
-      USE TIME_MOD,     ONLY : GET_TS_EMIS
-
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TRACER_MOD,         ONLY : STT
+      USE TRACERID_MOD,       ONLY : IDTDST1
+      USE TRACERID_MOD,       ONLY : IDTDST2
+      USE TRACERID_MOD,       ONLY : IDTDST3
+      USE TRACERID_MOD,       ONLY : IDTDST4
+      USE TIME_MOD,           ONLY : GET_TS_EMIS
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
@@ -814,15 +830,16 @@
       ! logical flags directly from module GeosCore/logical_mod.F.
       ! (bmy, 11/13/12)
       !-----------------------------------------------------------------
-      USE TRACER_MOD,   ONLY : N_TRACERS
-      USE LOGICAL_MOD,  ONLY : LDEAD, LDUST, LPRT
+      USE TRACER_MOD,         ONLY : N_TRACERS
+      USE LOGICAL_MOD,        ONLY : LDEAD
+      USE LOGICAL_MOD,        ONLY : LDUST
+      USE LOGICAL_MOD,        ONLY : LPRT
 #endif
-
-
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !
 ! !INPUT PARAMETERS:
 !
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
@@ -918,7 +935,7 @@
       IF ( LDEAD ) THEN
 
          ! Use Zender's DEAD dust source function
-         CALL SRC_DUST_DEAD( STT(:,:,:,IDTDST1:IDTDST4) )
+         CALL SRC_DUST_DEAD( STT(:,:,:,IDTDST1:IDTDST4), State_Met )
 
          !### Debug
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSDUST: a SRC_DUST_DEAD' )
@@ -926,15 +943,16 @@
       ELSE
 
          ! Use Paul Ginoux's dust source function
-         CALL SRC_DUST_GINOUX( STT(:,:,:,IDTDST1:IDTDST4) )
+         CALL SRC_DUST_GINOUX( STT(:,:,:,IDTDST1:IDTDST4 ), State_Met )
 
          !### Debug
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSDUST: a SRC_DUST_GINOUX')
 
       ENDIF     
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      SFLX(:,:,:,IDTDST1:IDTDST4) = (STT(:,:,:,IDTDST1:IDTDST4)-STT_TMP)/(GET_TS_EMIS()*60.d0)
+#if defined( DEVEL )
+      SFLX(:,:,:,IDTDST1:IDTDST4) = (STT(:,:,:,IDTDST1:IDTDST4)-STT_TMP)
+     &                            / (GET_TS_EMIS()*60.d0)
 #endif
 
       END SUBROUTINE EMISSDUST
@@ -953,33 +971,37 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SRC_DUST_DEAD( TC )
+      SUBROUTINE SRC_DUST_DEAD( TC, State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD,       ONLY : BXHEIGHT,     GWETTOP,   LWI
-      USE DAO_MOD,       ONLY : SNOW,         SPHU,      T    
-      USE DAO_MOD,       ONLY : TS,           UWND,      VWND
-      USE DAO_MOD,       ONLY : SNOMAS
-      USE DUST_DEAD_MOD, ONLY : GET_TIME_INVARIANT_DATA, GET_ORO
-      USE DUST_DEAD_MOD, ONLY : GET_MONTHLY_DATA,        DST_MBL
-      USE DIAG_MOD,      ONLY : AD06
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE FILE_MOD,      ONLY : IOERROR
-      USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
-      USE GRID_MOD,      ONLY : GET_YMID_R
-      USE PRESSURE_MOD,  ONLY : GET_PEDGE,       GET_PCENTER 
-      USE TIME_MOD,      ONLY : GET_TS_EMIS,     GET_MONTH   
-      USE TIME_MOD,      ONLY : GET_DAY_OF_YEAR, ITS_A_NEW_MONTH
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
+      USE DAO_MOD,            ONLY : SPHU
+      USE DIAG_MOD,           ONLY : AD06
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR
+      USE DUST_DEAD_MOD,      ONLY : GET_TIME_INVARIANT_DATA, GET_ORO
+      USE DUST_DEAD_MOD,      ONLY : GET_MONTHLY_DATA,        DST_MBL
+      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_YMID_R
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE,       GET_PCENTER 
+      USE TIME_MOD,           ONLY : GET_TS_EMIS,     GET_MONTH   
+      USE TIME_MOD,           ONLY : GET_DAY_OF_YEAR, ITS_A_NEW_MONTH
+      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
 
-      USE CMN_SIZE_MOD        ! Size parameters
-      USE CMN_DIAG_MOD        ! ND06
-      USE CMN_GCTM_MOD        ! g0
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND06
+      USE CMN_GCTM_MOD             ! g0
+!
+! !INPUT PARAMETERS: 
+!
+      ! Meteorology State object
+      TYPE(MetState), INTENT(IN)    :: State_Met
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 ! 
-      REAL*8, INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN)  ! Dust mass [kg]
+      ! Dust mass [kg]
+      REAL*8,         INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN)
 !
 ! !REMARKS:
 !  Input:
@@ -1021,6 +1043,8 @@
 !                              so we need to convert to m H2O.
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R(I,J,L) from grid_mod.F90
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1054,8 +1078,6 @@
       REAL*8                 :: SNW_HGT_LQD(IIPAR)   ! equivalent snow ht.
       REAL*8                 :: DSRC(IIPAR,NDSTBIN)  ! dust mixing ratio incr.
 
-      ! External functions
-      REAL*8,  EXTERNAL       :: SFCWINDSQR
 !
 ! !DEFINED PARAMETERS:
 !
@@ -1113,7 +1135,7 @@
       !=================================================================
 
       ! Make OROGRAPHY array from GEOS-CHEM LWI
-      CALL GET_ORO( OROGRAPHY )
+      CALL GET_ORO( OROGRAPHY, State_Met )
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -1138,20 +1160,21 @@
             PMID(I)        = GET_PCENTER(I,J,1) * 100d0 
 
             ! Temperature [K] at surface layer
-            TLON(I)        = T(I,J,1)
+            TLON(I)        = State_Met%T(I,J,1)
 
             ! Potential temperature [K] at surface layer
             THLON(I)       = TLON(I) * ( P1000 / PMID(I) )**AKAP
 
             ! U and V winds at surface [m/s]
-            ULON(I)        = UWND(I,J,1)
-            VLON(I)        = VWND(I,J,1)
+            ULON(I)        = State_Met%U(I,J,1)
+            VLON(I)        = State_Met%V(I,J,1)
             
             ! Half box height at surface [m]
-            BHT2(I)        = BXHEIGHT(I,J,1) / 2.d0
+            BHT2(I)        = State_Met%BXHEIGHT(I,J,1) / 2.d0
 
             ! Specific humidity at surface [kg H2O/kg air]
-            Q_H2O(I)       = SPHU(I,J,1) / 1000.d0         
+!            Q_H2O(I)       = State_Met%SPHU(I,J,1) / 1000.d0
+            Q_H2O(I)       = SPHU(I,J,1) / 1000.d0
 
             ! Orography at surface
             ! Ocean is 0; land is 1; ice is 2
@@ -1159,10 +1182,11 @@
 
             ! Snow height [m H2O]
 #if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
-            SNW_HGT_LQD(I) = SNOMAS(I,J) / 1000d0
+            SNW_HGT_LQD(I) = State_Met%SNOMAS(I,J) / 1000d0
 #else
-            SNW_HGT_LQD(I) = SNOW(I,J) / 1000d0
+            SNW_HGT_LQD(I) = State_Met%SNOW(I,J) / 1000d0
 #endif
+
             ! Dust tracer and increments
             DO N = 1, NDSTBIN
                DSRC(I,N)   = 0.0d0
@@ -1177,10 +1201,10 @@
          YMID_R = GET_YMID_R( 1, J, 1 )
 
          ! Call DEAD dust mobilization
-         CALL DST_MBL( DOY,    BHT2,  J,     YMID_R, ORO,    
-     &                 PTHICK, PMID,  Q_H2O, DSRC,   SNW_HGT_LQD, 
-     &                 DTSRCE, TLON,  THLON, VLON,   ULON,
-     &                 FIRST,  J )
+         CALL DST_MBL( DOY,    BHT2,  J,      YMID_R, ORO,    
+     &                 PTHICK, PMID,  Q_H2O,  DSRC,   SNW_HGT_LQD, 
+     &                 DTSRCE, TLON,  THLON,  VLON,   ULON,
+     &                 FIRST,  J,     State_Met )
 
          ! Update
          DO N = 1, NDSTBIN
@@ -1222,24 +1246,31 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SRC_DUST_GINOUX( TC )
+      SUBROUTINE SRC_DUST_GINOUX( TC, State_Met )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE DAO_MOD,       ONLY : GWETTOP   
-      USE DIAG_MOD,      ONLY : AD06
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE FILE_MOD,      ONLY : IOERROR
-      USE TIME_MOD,      ONLY : GET_TS_EMIS
-      USE GRID_MOD,      ONLY : GET_AREA_M2
-      USE CMN_SIZE_MOD        ! Size parameters
-      USE CMN_DIAG_MOD        ! ND19, LD13 (for now)
-      USE CMN_GCTM_MOD        ! g0
+      USE BPCH2_MOD,          ONLY : GET_RES_EXT
+      USE DIAG_MOD,           ONLY : AD06
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_M2
+      USE TIME_MOD,           ONLY : GET_TS_EMIS
+
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND19, LD13 (for now)
+      USE CMN_GCTM_MOD             ! g0
+!
+! !INPUT PARAMETERS: 
+!
+      ! Meteorology State object
+      TYPE(MetState), INTENT(IN)    :: State_Met
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 ! 
-      REAL*8, INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN)  ! Dust mass [kg]
+      ! Dust mass [kg]
+      REAL*8,         INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN)
 !
 ! !REMARKS:
 !  Input:
@@ -1286,6 +1317,8 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1416,10 +1449,10 @@
                CW = 1.d0
 
                ! Case of surface dry enough to erode
-               IF ( GWETTOP(I,J) < 0.2d0 ) THEN
+               IF ( State_Met%GWETTOP(I,J) < 0.2d0 ) THEN
                
-                  U_TS = U_TS0*( 1.2d0 + 
-     &                           0.2d0*LOG10( MAX(1.d-3,GWETTOP(I,J))))
+                  U_TS = U_TS0 *( 1.2d0 + 0.2d0 *
+     &                   LOG10( MAX(1.d-3,State_Met%GWETTOP(I,J))))
                   U_TS = MAX( 0.d0, U_TS )
 
                ELSE
@@ -1430,7 +1463,9 @@
                ENDIF
 
                ! 10m wind speed [m/s]
-               W10M   = SQRT( SFCWINDSQR(I,J) )
+               W10M   = SQRT( SFCWINDSQR( I, J,
+     &                                    State_Met%U10M,
+     &                                    State_Met%V10M ) )
 
                ! Units are m2
                SRCE_P = FRAC_S(N) * SRCE_FUNC(I,J,M) * AREA_M2
@@ -1472,30 +1507,28 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RDUST_ONLINE( DUST, WAVELENGTH )
+      SUBROUTINE RDUST_ONLINE( DUST, WAVELENGTH, State_Met )
 !
 ! !USES:
 !
-      USE COMODE_MOD,    ONLY : ERADIUS, IXSAVE, IYSAVE 
-      USE COMODE_MOD,    ONLY : IZSAVE,  JLOP,   TAREA
-      USE DAO_MOD,       ONLY : BXHEIGHT
-      USE DIAG_MOD,      ONLY : AD21
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE TRANSFER_MOD,  ONLY : TRANSFER_3D
-      USE COMODE_MOD,    ONLY : WTAREA, WERADIUS
-      USE DAO_MOD,       ONLY : RH
+      USE COMODE_MOD,         ONLY : ERADIUS, IXSAVE, IYSAVE 
+      USE COMODE_MOD,         ONLY : IZSAVE,  JLOP,   TAREA
+      USE COMODE_MOD,         ONLY : WTAREA, WERADIUS
+      USE DIAG_MOD,           ONLY : AD21
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TRANSFER_MOD,       ONLY : TRANSFER_3D
 
-!      USE CMN_FJ_MOD,    ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ      
-      USE JV_CMN_MOD          ! ODMDUST, QAA, RAA, QAA_AOD (clh)
-      USE COMODE_LOOP_MOD     ! NTTLOOP
-
-      USE CMN_DIAG_MOD        ! ND21, LD21
+      USE JV_CMN_MOD               ! ODMDUST, QAA, RAA, QAA_AOD (clh)
+      USE COMODE_LOOP_MOD          ! NTTLOOP
+      USE CMN_DIAG_MOD             ! ND21, LD21
 !
 ! !INPUT PARAMETERS: 
 ! 
-      REAL*8,  INTENT(IN) :: DUST(IIPAR,JJPAR,LLPAR,NDUST)   ! Dust [kg/m3]
-      INTEGER, INTENT(IN) :: WAVELENGTH
+      REAL*8,         INTENT(IN) :: DUST(IIPAR,JJPAR,LLPAR,NDUST) ! Dust [kg/m3]
+      INTEGER,        INTENT(IN) :: WAVELENGTH
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  01 Apr 2004 - R. Martin, R. Park - Initial version
@@ -1511,6 +1544,8 @@
 !                              used for the calculation of the AOD. The ND21 
 !                              diagnostic should only be updated when 
 !                              WAVELENGTH = 1. (skim, 02/03/11)
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1568,13 +1603,13 @@
 
          IF ( WAVELENGTH > 0 ) THEN
 
-            ODMDUST(I,J,L,N) = 0.75d0        * BXHEIGHT(I,J,L) * 
+            ODMDUST(I,J,L,N) = 0.75d0 * State_Met%BXHEIGHT(I,J,L) * 
      &                         DUST(I,J,L,N) * QAA_AOD(14+N)     / 
      &                        ( MSDENS(N) * RAA_AOD(14+N) * 1.0D-6 )
 
          ELSE
 
-            ODMDUST(I,J,L,N) = 0.75d0        * BXHEIGHT(I,J,L) * 
+            ODMDUST(I,J,L,N) = 0.75d0 * State_Met%BXHEIGHT(I,J,L) * 
      &                         DUST(I,J,L,N) * QAA(4,14+N)     / 
      &                        ( MSDENS(N) * RAA(4,14+N) * 1.0D-6 )
 
@@ -1627,7 +1662,7 @@
 
          ! Archive WTAREA and WERADIUS when RH > 35%  (tmf, 6/13/07) 
          ! Get RH  
-         XRH     = RH( I, J, L )   ![%]
+         XRH                = State_Met%RH( I, J, L )  ! [%]
          WTAREA(JLOOP, N)   = 0.d0
          WERADIUS(JLOOP, N) = 0.d0
 
@@ -1710,39 +1745,39 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RDUST_OFFLINE( THISMONTH,  THISYEAR, 
-     &                          WAVELENGTH, am_I_Root )
+      SUBROUTINE RDUST_OFFLINE( THISMONTH, THISYEAR, WAVELENGTH,
+     &                          am_I_Root, State_Met )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
-      USE COMODE_MOD,    ONLY : ERADIUS, IXSAVE, IYSAVE
-      USE COMODE_MOD,    ONLY : IZSAVE,  JLOP,   TAREA
-      USE DAO_MOD,       ONLY : BXHEIGHT
-      USE DIAG_MOD,      ONLY : AD21
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE TRANSFER_MOD,  ONLY : TRANSFER_3D
-      USE COMODE_MOD,    ONLY : WTAREA, WERADIUS
-      USE DAO_MOD,       ONLY : RH
+      USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_RES_EXT
+      USE BPCH2_MOD,          ONLY : GET_TAU0,     READ_BPCH2
+      USE COMODE_MOD,         ONLY : ERADIUS, IXSAVE, IYSAVE
+      USE COMODE_MOD,         ONLY : IZSAVE,  JLOP,   TAREA
+      USE COMODE_MOD,         ONLY : WTAREA, WERADIUS
+      USE DIAG_MOD,           ONLY : AD21
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TRANSFER_MOD,       ONLY : TRANSFER_3D
 
 #     include "define.h"
 
-      USE CMN_FJ_MOD,    ONLY : JPMAX, JPPJ
-      USE JV_CMN_MOD,    ONLY : ODMDUST, QAA, RAA, RAA_AOD, QAA_AOD
-      USE COMODE_LOOP_MOD     ! NTTLOOP
-      USE CMN_DIAG_MOD        ! ND21, LD21
+      USE CMN_FJ_MOD,         ONLY : JPMAX, JPPJ
+      USE JV_CMN_MOD,         ONLY : ODMDUST, QAA, RAA, RAA_AOD, QAA_AOD
+      USE COMODE_LOOP_MOD          ! NTTLOOP
+      USE CMN_DIAG_MOD             ! ND21, LD21
 
       IMPLICIT NONE
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: THISMONTH   ! Current month (1-12)
-      INTEGER, INTENT(IN) :: THISYEAR    ! Current year  (YYYY format)
-      INTEGER, INTENT(IN) :: WAVELENGTH  ! Determine which wavelength to use 
-                                         !  for optical properties
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      INTEGER,        INTENT(IN) :: THISMONTH   ! Current month (1-12)
+      INTEGER,        INTENT(IN) :: THISYEAR    ! Current year  (YYYY format)
+      INTEGER,        INTENT(IN) :: WAVELENGTH  ! Determine which wavelength to
+                                                !  use for optical properties
+      LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !REVISION HISTORY: 
 !  (1 ) RDUST was patterned after rdaerosol.f (rvm, 9/30/00)
@@ -1802,6 +1837,8 @@
 !                              WAVELENGTH = 1.
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1895,13 +1932,15 @@
 
             IF ( WAVELENGTH > 0 ) THEN
 
-               ODMDUST(I,J,L,N) = 0.75d0        * BXHEIGHT(I,J,L) * 
+               ODMDUST(I,J,L,N) = 0.75d0        *
+     &                            State_Met%BXHEIGHT(I,J,L) * 
      &                            DUST(I,J,L,N) * QAA_AOD(14+N)     / 
      &                           ( MSDENS(N) * RAA_AOD(14+N) * 1.0D-6 )
 
             ELSE
 
-               ODMDUST(I,J,L,N) = 0.75d0        * BXHEIGHT(I,J,L) * 
+               ODMDUST(I,J,L,N) = 0.75d0        *
+     &                            State_Met%BXHEIGHT(I,J,L) * 
      &                            DUST(I,J,L,N) * QAA(4,14+N)     / 
      &                           ( MSDENS(N) * RAA(4,14+N) * 1.0D-6 )
 
@@ -1960,7 +1999,7 @@
 
          ! Archive WTAREA and WERADIUS when RH > 35% (tmf, 6/13/07) 
          ! Get RH  
-         XRH     = RH( I, J, L )   ![%]
+         XRH                = State_Met%RH( I, J, L )  ! [%]
          WTAREA(JLOOP, N)   = 0.d0
          WERADIUS(JLOOP, N) = 0.d0
 

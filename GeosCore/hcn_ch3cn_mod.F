@@ -319,9 +319,6 @@
       REAL*8,  PARAMETER     :: ECH3CN_bb = 0.20d-2
       REAL*8,  PARAMETER     :: ECH3CN_df = 0.25d-2
 
-      ! External functions
-      REAL*8, EXTERNAL       :: BOXVL
-
       !=================================================================
       ! EMISS_TAGGED_HCN_CH3CN begins here!
       !=================================================================
@@ -473,7 +470,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE CHEM_HCN_CH3CN( N_TRACERS, STT )
+      SUBROUTINE CHEM_HCN_CH3CN( N_TRACERS, STT, State_Met )
 !
 !******************************************************************************
 !  Subroutine CHEM_HCN_CH3CN computes the loss of HCN and CH3CN due to 
@@ -486,23 +483,26 @@
 !  NOTES:
 !  (1 ) Now use Nightingale et al [2000b] formulation for KL (bmy, 8/16/05)
 !  (2 ) Bug fix: remove duplicate declaration of KTMP (bmy, 11/2/05)
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !******************************************************************************
 ! 
       ! References to F90 modules
-      USE DAO_MOD,       ONLY : AD, ALBD, T, TS, U10M, V10M
-      USE DIAG_MOD,      ONLY : AD09, AD09_em
-      USE GLOBAL_OH_MOD, ONLY : OH, GET_GLOBAL_OH
-      USE GRID_MOD,      ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,   ONLY : LSPLIT
-      USE TIME_MOD,      ONLY : GET_TS_CHEM, GET_MONTH, ITS_A_NEW_MONTH
+      USE DIAG_MOD,           ONLY : AD09, AD09_em
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GLOBAL_OH_MOD,      ONLY : OH, GET_GLOBAL_OH
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE LOGICAL_MOD,        ONLY : LSPLIT
+      USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_MONTH
+      USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
 
-      USE CMN_SIZE_MOD     ! Size parameters 
-      USE CMN_DIAG_MOD     ! ND09
-      USE CMN_DEP_MOD      ! FRCLND 
+      USE CMN_SIZE_MOD             ! Size parameters 
+      USE CMN_DIAG_MOD             ! ND09
 
       ! Arguments
-      INTEGER, INTENT(IN)    :: N_TRACERS
-      REAL*8,  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
+      INTEGER,        INTENT(IN)    :: N_TRACERS
+      REAL*8,         INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
       
       ! Local variables
       LOGICAL, SAVE          :: FIRST = .TRUE.
@@ -574,8 +574,9 @@
          !------------------------------------------------------------------
 
          K0    = 7.4d-33 
-         K1    = 9.0d-15 * ( T(I,J,L) / 300d0 ) ** 3.2d0
-         TMP   = K0 / K1 * AD(I,J,L) * XNUMOL_AIR / BOXVL(I,J,L)
+         K1    = 9.0d-15    * ( State_Met%T(I,J,L)  / 300d0 ) ** 3.2d0
+         TMP   = K0  /  K1  *   State_Met%AD(I,J,L) *
+     &           XNUMOL_AIR / BOXVL(I,J,L,State_Met)
 
          ! K: [cm3/molec/s]
          KTMP  = K1 * TMP / ( 1d0 + TMP )      
@@ -607,7 +608,7 @@
          !------------------------------------------------------------------
 
          ! K: [cm3/molec/s]
-         KTMP  = 7.8d-13 * EXP( -1050d0 / T(I,J,L) )
+         KTMP  = 7.8d-13 * EXP( -1050d0 / State_Met%T(I,J,L) )
          KRATE = KTMP * OH(I,J,L) * DTCHEM
 
          ! Subtract lost CH3CN tracer from STT
@@ -647,30 +648,31 @@
       DO I = 1, IIPAR
 
          ! Fraction of a grid box that is ocean
-         FOCEAN          = 1d0 - FRCLND(I,J) 
+         FOCEAN          = 1d0 - State_Met%FRCLND(I,J) 
 
          ! Initialize HCN and CH3CN [kg] lost into the ocean
          OCEAN_HCN       = 0d0
          OCEAN_CH3CN     = 0d0
 
          ! Make sure there is > 50% ocean (not ice) in the grid box
-         IF ( FOCEAN > 0.5d0 .AND. ALBD(I,J) <= 0.4d0 ) THEN
+         IF ( FOCEAN > 0.5d0 .AND. State_Met%ALBD(I,J) <= 0.4d0 ) THEN
 
             ! Grid box area in [cm2]
             ACM2         = GET_AREA_CM2( I, J, 1 ) 
             
             ! Wind speed [m/s] at 10m above the surface 
-            U            = SQRT( U10M(I,J)**2 + V10M(I,J)**2 )
+            U            = SQRT( State_Met%U10M(I,J)**2 + 
+     &                           State_Met%V10M(I,J)**2 )
 
             ! Surface temperature [C]
-            TC           = TS(I,J) - 273.15d0  
+            TC           = State_Met%TS(I,J) - 273.15d0  
 
             !-----------------------------------------------------------
             ! (1) HCN ocean uptake
             !-----------------------------------------------------------
 
             ! Henry's law constant for HCN [unitless]
-            H            = 7.93d4 * EXP( -5000d0 / TS(I,J) ) 
+            H            = 7.93d4 * EXP( -5000d0 / State_Met%TS(I,J) ) 
             
             ! SC is Schmidt # for HCN in seawater [unitless]
             SC           = A0 + TC * ( A1 + TC * ( A2 + TC * ( A3 )))
@@ -694,7 +696,7 @@
                N            = HCN_INDEX(NN)
 
                ! Bulk concentration of HCN in gas phase [kg/cm3]
-               CG           = STT(I,J,1,N) / BOXVL(I,J,1)
+               CG           = STT(I,J,1,N) / BOXVL(I,J,1,State_Met)
 
                ! Air-to-sea flux of HCN [kg/cm2/s]
                FLUX         = ALPHA_HCN * KKG * CG     
@@ -717,7 +719,7 @@
             !-----------------------------------------------------------
 
             ! Henry's law constant for CH3CN [unitless]
-            H            = 861.7d0 * EXP( -4100d0 / TS(I,J) ) 
+            H            = 861.7d0 * EXP( -4100d0 / State_Met%TS(I,J) ) 
 
             ! SC is Schmidt # for HCN in seawater [unitless]
             SC           = B0 + TC * ( B1 + TC * ( B2 + TC * ( B3 )))
@@ -742,7 +744,7 @@
                N              = CH3CN_INDEX(NN)
 
                ! Bulk concentration of CH3CN in gas phase [kg/cm3]
-               CG             = STT(I,J,1,N) / BOXVL(I,J,1)
+               CG             = STT(I,J,1,N) / BOXVL(I,J,1,State_Met)
 
                ! Air-to-sea flux of HCN [kg/cm2/s]
                FLUX           = ALPHA_HCN * KKG * CG     

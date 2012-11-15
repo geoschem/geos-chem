@@ -246,6 +246,10 @@
       ! EMIT_BR2 begins here!
       !=================================================================
 
+      ! Set some size variables
+      NLAT   = JJPAR
+      NLONG  = IIPAR
+
       ! Emission timestep [s]
       DTEMIS = GET_TS_EMIS() * 60d0
 

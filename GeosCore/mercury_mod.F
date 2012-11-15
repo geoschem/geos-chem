@@ -242,7 +242,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE CHEMMERCURY
+      SUBROUTINE CHEMMERCURY( State_Met )
 !
 !******************************************************************************
 !  Subroutine CHEMMERCURY is the driver routine for mercury chemistry
@@ -259,22 +259,26 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DRYDEP_MOD       , ONLY : DEPSAV
-      USE ERROR_MOD        , ONLY : DEBUG_MSG
-      USE GLOBAL_O3_MOD    , ONLY : GET_GLOBAL_O3
-      USE GLOBAL_OH_MOD    , ONLY : GET_GLOBAL_OH
-      USE GLOBAL_BR_MOD    , ONLY : GET_GLOBAL_BR
-      USE PBL_MIX_MOD      , ONLY : GET_PBL_MAX_L
-      USE LOGICAL_MOD      , ONLY : LPRT, LGTMM, LNLPBL 
-      USE TIME_MOD         , ONLY : GET_MONTH, ITS_A_NEW_MONTH
-      USE TRACER_MOD       , ONLY : N_TRACERS
-      USE TRACERID_MOD     , ONLY : N_HG_CATS
-      USE TIME_MOD         , ONLY : ITS_TIME_FOR_A3 
-      USE DRYDEP_MOD       , ONLY : DRYHg0, DRYHg2, DRYHgP
-      USE OCEAN_MERCURY_MOD, ONLY : Fg, Fp  
-      USE OCEAN_MERCURY_MOD, ONLY : PARTITION_Hg2
+      USE DRYDEP_MOD,         ONLY : DEPSAV
+      USE DRYDEP_MOD,         ONLY : DRYHg0, DRYHg2, DRYHgP
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GLOBAL_O3_MOD,      ONLY : GET_GLOBAL_O3
+      USE GLOBAL_OH_MOD,      ONLY : GET_GLOBAL_OH
+      USE GLOBAL_BR_MOD,      ONLY : GET_GLOBAL_BR
+      USE LOGICAL_MOD,        ONLY : LPRT, LGTMM, LNLPBL 
+      USE OCEAN_MERCURY_MOD,  ONLY : Fg, Fp  
+      USE OCEAN_MERCURY_MOD,  ONLY : PARTITION_Hg2
+      USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L
+      USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
+      USE TIME_MOD,           ONLY : ITS_TIME_FOR_A3 
+      USE TRACER_MOD,         ONLY : N_TRACERS
+      USE TRACERID_MOD,       ONLY : N_HG_CATS
 
-      USE CMN_SIZE_MOD        ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
+
+      !Arguments
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 
       ! Local variables
       LOGICAL, SAVE          :: FIRST = .TRUE.
@@ -300,8 +304,7 @@
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_O3' )
 
          ! Renamed to GET_GLOBAL_BR
-         !CALL GET_GLOBAL_BR_NEW( MONTH )
-         CALL GET_GLOBAL_BR( MONTH )
+         CALL GET_GLOBAL_BR( MONTH, State_Met )
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_BR' )
 
          IF (LRED_JNO2) THEN
@@ -322,7 +325,7 @@
 
       ! Calculate the rate of sea salt aerosol uptake of Hg2
       IF ( LDYNSEASALT .AND. ITS_TIME_FOR_A3() ) THEN
-         CALL CALC_HG2_SEASALT_LOSSRATE
+         CALL CALC_HG2_SEASALT_LOSSRATE( State_Met )
          IF ( LPRT ) CALL DEBUG_MSG( 'CHEMMERCURY: a SEASALT_LOSSRATE' )
       ENDIF
 
@@ -352,30 +355,32 @@
 
          ! Dry deposition occurs with PBL mixing,
          ! pass zero deposition frequency
-         CALL CHEM_Hg0_Hg2( ZERO_DVEL, ZERO_DVEL)
-         
+         CALL CHEM_Hg0_Hg2( ZERO_DVEL, ZERO_DVEL, State_Met )
+
       ELSE
 
          IF ( DRYHg2 > 0 .and. DRYHg0 > 0 ) THEN
-         
+
             ! Dry deposition active for both Hg0 and Hg2; 
-            ! pass drydep frequency to CHEM_Hg0_Hg2 (NOTE: DEPSAV has units 1/s)
-            CALL CHEM_Hg0_Hg2( K_DRYD2, DEPSAV(:,:,DRYHg0) )
-            
+            ! pass drydep frequency to CHEM_Hg0_Hg2
+            ! (NOTE: DEPSAV has units 1/s)
+            CALL CHEM_Hg0_Hg2( K_DRYD2, DEPSAV(:,:,DRYHg0), State_Met )
+
          ELSEIF (DRYHg2 > 0 .and. DRYHg0 .le. 0) THEN
 
             ! Only Hg2 dry deposition is active
-            CALL CHEM_Hg0_Hg2( K_DRYD2, ZERO_DVEL) 
-            
+            CALL CHEM_Hg0_Hg2( K_DRYD2, ZERO_DVEL, State_Met )
+
          ELSEIF (DRYHg2 <= 0 .and. DRYHg0 > 0) THEN
 
             ! Only Hg0 dry deposition is active
-            CALL CHEM_Hg0_Hg2( ZERO_DVEL , DEPSAV(:,:,DRYHg0))
-            
+            CALL CHEM_Hg0_Hg2( ZERO_DVEL , DEPSAV(:,:,DRYHg0),
+     &                         State_Met )
+
          ELSE
 
             ! No dry deposition, pass zero deposition frequency
-            CALL CHEM_Hg0_Hg2( ZERO_DVEL , ZERO_DVEL)
+            CALL CHEM_Hg0_Hg2( ZERO_DVEL , ZERO_DVEL, State_Met )
 
          ENDIF
 
@@ -410,7 +415,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE CHEM_Hg0_Hg2( V_DEP_Hg2, V_DEP_Hg0 )
+      SUBROUTINE CHEM_Hg0_Hg2( V_DEP_Hg2, V_DEP_Hg0, State_Met )
 !
 !******************************************************************************
 !  Subroutine CHEM_Hg0_Hg2 is the chemistry subroutine for the oxidation,
@@ -493,39 +498,38 @@
 !                              from GEOS-5 and MERRA met fields
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,          ONLY : T, AD, IS_WATER, IS_ICE, IS_LAND
-      USE DIAG03_MOD,       ONLY : AD03_Hg2_Hg0, AD03_Hg2_O3
-      USE DIAG03_MOD,       ONLY : AD03_Hg2_Br, AD03_Hg2_OH
-      USE DIAG03_MOD,       ONLY : AD03_Hg2_SS,  LD03,        ND03
-      USE DIAG03_MOD,       ONLY : AD03_Hg2_SSR 
-      USE DIAG03_MOD,       ONLY : AD03_Br 
-      USE LOGICAL_MOD,      ONLY : LSPLIT, LGTMM !ccc for GTMM
-      USE PBL_MIX_MOD,      ONLY : GET_FRAC_UNDER_PBLTOP
-      USE TIME_MOD,         ONLY : GET_TS_CHEM
-      USE TRACER_MOD,       ONLY : STT,    XNUMOL
-      USE TRACERID_MOD,     ONLY : ID_Hg0, ID_Hg2, ID_Hg_tot, N_Hg_CATS
-      USE TRACERID_MOD,     ONLY : IS_Hg2
-      USE GRID_MOD,         ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,      ONLY : LPRT, LDYNOCEAN, LNLPBL
-      USE ERROR_MOD,        ONLY : DEBUG_MSG 
-      USE DEPO_MERCURY_MOD, ONLY : ADD_HG2_DD
-      USE DAO_MOD,          ONLY : SNOW, SNOMAS
-      USE PRESSURE_MOD,     ONLY : GET_PCENTER 
-      USE DIAG_MOD,         ONLY : AD44
-      USE DAO_MOD,          ONLY : AIRDEN, QL
-      USE DAO_MOD,          ONLY : AD, CLDF
-      USE DAO_MOD,          ONLY : LWI
-      USE DAO_MOD,          ONLY : FRSNO, FRLANDIC, FROCEAN
+      USE DAO_MOD,            ONLY : IS_WATER, IS_ICE, IS_LAND
+      USE DEPO_MERCURY_MOD,   ONLY : ADD_HG2_DD
+      USE DIAG_MOD,           ONLY : AD44
+      USE DIAG03_MOD,         ONLY : AD03_Hg2_Hg0, AD03_Hg2_O3
+      USE DIAG03_MOD,         ONLY : AD03_Hg2_Br, AD03_Hg2_OH
+      USE DIAG03_MOD,         ONLY : AD03_Hg2_SS,  LD03,        ND03
+      USE DIAG03_MOD,         ONLY : AD03_Hg2_SSR 
+      USE DIAG03_MOD,         ONLY : AD03_Br 
+      USE ERROR_MOD,          ONLY : DEBUG_MSG 
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE LOGICAL_MOD,        ONLY : LPRT, LDYNOCEAN, LNLPBL
+      USE LOGICAL_MOD,        ONLY : LSPLIT, LGTMM !ccc for GTMM
+      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER 
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+      USE TRACER_MOD,         ONLY : STT,    XNUMOL
+      USE TRACERID_MOD,       ONLY : ID_Hg0, ID_Hg2, ID_Hg_tot
+      USE TRACERID_MOD,       ONLY : IS_Hg2, N_Hg_CATS
 
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_DIAG_MOD       ! ND44
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND44
 
       ! Arguments
-      REAL*8, INTENT(IN)    :: V_DEP_Hg2(IIPAR,JJPAR)
-      REAL*8, INTENT(IN)    :: V_DEP_Hg0(IIPAR,JJPAR)
+      REAL*8,         INTENT(IN)  :: V_DEP_Hg2(IIPAR,JJPAR)
+      REAL*8,         INTENT(IN)  :: V_DEP_Hg0(IIPAR,JJPAR)
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 
       ! Local variables
       INTEGER               :: I, J, L, NN
@@ -592,9 +596,6 @@
       ! K for sea salt (eck, bmy, 4/6/06) [/s]
       REAL*8, PARAMETER     :: K_SALT_FIXED   = 3.8d-5
 
-      ! External functions
-      REAL*8,  EXTERNAL     :: BOXVL
-
       ! Set of Hg/Br rate constants to use
       ! Recommended: DonohoueYBBalabanov, GoodsiteY, or DonohoueYB
       ! DonohoueYBBalabanov used by Holmes et al. 2010
@@ -633,9 +634,9 @@
          F_PBL = GET_FRAC_UNDER_PBLTOP( I, J, L )
 
          ! Monthly mean O3, OH Br concentrations [molec/cm3]
-         C_O3        = GET_O3( I, J, L )
+         C_BR        = GET_BR( I, J, L, C_BRO,    State_Met )
+         C_O3        = GET_O3( I, J, L, State_Met )
          C_OH        = GET_OH( I, J, L )
-         C_BR        = GET_BR( I, J, L, C_BRO )
 
 #if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
@@ -645,13 +646,13 @@
          !---------------------------------------------
 
          ! Get cloud fraction from met fields [unitless]
-         FC = CLDF(L,I,J)
+         FC = State_Met%CLDF(L,I,J)
 
          IF ( LGEOSLWC ) THEN
 
             ! Get liquid water content [m3 H2O/m3 air] within cloud from met
             ! Units: [kg H2O/kg air] * [kg air/m3 air] * [m3 H2O/1e3 kg H2O]
-            LWC = QL(I,J,L) * AIRDEN(L,I,J) * 1D-3
+            LWC = State_Met%QL(I,J,L) * State_Met%AIRDEN(L,I,J) * 1D-3
 
             !%%% NOTE: Someone should investigate effect of dividing LWC by the
             !%%% cloud fraction, as is done in sulfate_mod.f (bmy, 5/27/11)
@@ -660,10 +661,10 @@
 
             ! Get liquid water content for entire grid box,
             ! based on formula for LWC in cloud [m3 H2O/m3 air]
-            LWC = GET_LWC( T(I,J,L) ) * FC 
+            LWC = GET_LWC( State_Met%T(I,J,L) ) * FC 
 
             ! There should be no liquid water when T < 258K 
-            IF ( T(I,J,L) < 258D0 )  LWC = 0D0
+            IF ( State_Met%T(I,J,L) < 258D0 )  LWC = 0D0
 
          ENDIF
 
@@ -674,25 +675,26 @@
 
          ! Get volume fraction of gridbox containing 
          ! cloud [unitless], following Sundqvist et al 1989.
-         FC          = GET_VCLDF( I, J, L )
+         FC          = GET_VCLDF( I, J, L, State_Met )
 
          ! Get liquid water content for entire grid box,
          ! based on formula for LWC in cloud (m3/m3)
-         LWC         = GET_LWC( T(I,J,L) ) * FC 
+         LWC         = GET_LWC( State_Met%T(I,J,L) ) * FC 
 
          ! There should be no liquid water when T < 258K 
-         IF ( T(I,J,L) < 258D0 )  LWC = 0D0
+         IF ( State_Met%T(I,J,L) < 258D0 )  LWC = 0D0
 
 #endif
 
          ! Define fraction of Hg(II) which is in aqueous solution
          ! [dimensionless]
-         FA          = ( HL * R * T(I,J,L) * LWC )
+         FA          = ( HL * R * State_Met%T(I,J,L) * LWC )
          FA          = FA / ( 1d0 + FA )
 
          ! Cl- in sea-salt aerosol enhances solubility 2000X in MBL
-         IF (LRED_JNO2 .AND. (F_PBL >0.1) .AND. IS_WATER(I,J)) THEN
-            FA          = ( HL * 2D3 * R * T(I,J,L) * LWC )
+         IF ( LRED_JNO2 .AND. ( F_PBL >0.1  )  .AND. 
+     &        IS_WATER( I, J, State_Met )) THEN
+            FA          = ( HL * 2D3 * R * State_Met%T(I,J,L) * LWC )
             FA          = FA / ( 1d0 + FA )
             
          ENDIF
@@ -702,8 +704,8 @@
          K_OH        = K_HG_OH * C_OH
 
          IF (LBRCHEM) THEN
-            K_BR = GET_HGBR_RATE( C_BR, T(I,J,L), 
-     &           GET_PCENTER(I,J,L), C_OH, METHOD )
+            K_BR = GET_HGBR_RATE( C_BR, State_Met%T(I,J,L), 
+     &             GET_PCENTER(I,J,L), C_OH, METHOD )
          ELSE
             K_BR = 0d0
          ENDIF
@@ -751,7 +753,7 @@
          ! K_SALT, so that deposition doesn't occur over land.
          ! Remove the IF statement once HG2_SEASALT_LOSSRATE 
          ! is in the standard version. (cdh, 2/8/08)
-         IF ( IS_WATER(I,J) ) THEN
+         IF ( IS_WATER( I, J, State_Met ) ) THEN
 
             IF (LDYNSEASALT) THEN
                ! Uptake based on sea-salt aerosol flux and salinity [/s]
@@ -795,20 +797,26 @@
          ! Except in MERRA, we assume entire grid box is water or ice
          ! if conditions are met (jaf, 4/26/11)
          FRAC_NO_HG0_DEP = 1d0
+
 #if   defined( MERRA ) || defined( GEOS_57 )
-         FRAC_NO_HG0_DEP =
-     &        MIN(FROCEAN(I,J) + FRSNO(I,J) + FRLANDIC(I,J), 1d0) 
+         FRAC_NO_HG0_DEP = MIN( State_Met%FROCEAN(I,J) + 
+     &                          State_Met%FRSNO(I,J)   +
+     &                          State_Met%FRLANDIC(I,J), 1d0 ) 
          ZERO_HG0_DEP = ( FRAC_NO_HG0_DEP > 0d0 )
+
 #elif defined( GEOS_5 )
          ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-         ZERO_HG0_DEP = ( (LWI(I,J) == 0) .OR. 
-     &                   (IS_ICE(I,J)) .OR.
-     &                   (IS_LAND(I,J) .AND. SNOMAS(I,J) > 10d0) )
+         ZERO_HG0_DEP = (( State_Met%LWI(I,J)   == 0    )  .OR. 
+     &                   ( IS_ICE ( I, J, State_Met     )) .OR.
+     &                   ( IS_LAND( I, J, State_Met     )  .AND.
+     &                     State_Met%SNOMAS(I,J) > 10d0 ))
+
 #else
          ! GEOS1-4 snow heigt (water equivalent) in mm
-         ZERO_HG0_DEP = ( (LWI(I,J) == 0) .OR.
-     &                   (IS_ICE(I,J)) .OR. 
-     &                   (IS_LAND(I,J) .AND. SNOW(I,J) > 10d0) )
+         ZERO_HG0_DEP = (( State_Met%LWI(I,J) == 0    )  .OR.
+     &                   ( IS_ICE ( I, J, State_Met   )) .OR. 
+     &                   ( IS_LAND( I, J, State_Met   )  .AND.
+     &                     State_Met%SNOW(I,J) > 10d0 ))
 #endif 
 
          K_DEP0 = K_DRYD0
@@ -955,7 +963,8 @@
 
             ! Add deposited Hg(II) to the snowpack
             IF ( LHGSNOW .AND. (DEP_Hg2>0d0) ) THEN
-               CALL ADD_HG2_SNOWPACK(I,J,ID_Hg2(NN),DEP_HG2_DRY)
+               CALL ADD_HG2_SNOWPACK(I,J,ID_Hg2(NN),DEP_HG2_DRY,
+     &                               State_Met)
             ENDIF
                
 
@@ -1845,7 +1854,7 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to callwing program
+      ! Return to calling program
       END SUBROUTINE CHEM_HgP
 
 !------------------------------------------------------------------------------
@@ -1936,7 +1945,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE EMISSMERCURY
+      SUBROUTINE EMISSMERCURY( State_Met )
 !
 !******************************************************************************
 !  Subroutine EMISSMERCURY is the driver routine for mercury emissions.
@@ -1954,26 +1963,30 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD,         ONLY : DEBUG_MSG
-      USE LOGICAL_MOD,       ONLY : LPRT, LDYNOCEAN, LNLPBL 
-      USE OCEAN_MERCURY_MOD, ONLY : OCEAN_MERCURY_FLUX
-      USE DEPO_MERCURY_MOD,  ONLY : RESET_HG_DEP_ARRAYS
-      USE TIME_MOD,          ONLY : GET_MONTH, ITS_A_NEW_MONTH
-      USE TRACER_MOD,        ONLY : STT
-      USE TRACERID_MOD,      ONLY : N_HG_CATS
-      USE DIAG03_MOD,        ONLY : AD03_nat
-      USE VDIFF_PRE_MOD,     ONLY : EMIS_SAVE 
-      USE LAND_MERCURY_MOD,  ONLY : LAND_MERCURY_FLUX, VEGEMIS
-      USE LAND_MERCURY_MOD,  ONLY : SOILEMIS, BIOMASSHG
-      USE LAND_MERCURY_MOD,  ONLY : SNOWPACK_MERCURY_FLUX
-      USE GRID_MOD,          ONLY : GET_XMID, GET_YMID
+      USE DEPO_MERCURY_MOD,   ONLY : RESET_HG_DEP_ARRAYS
+      USE DIAG03_MOD,         ONLY : AD03_nat
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_XMID, GET_YMID
+      USE LAND_MERCURY_MOD,   ONLY : LAND_MERCURY_FLUX, VEGEMIS
+      USE LAND_MERCURY_MOD,   ONLY : SOILEMIS, BIOMASSHG
+      USE LAND_MERCURY_MOD,   ONLY : SNOWPACK_MERCURY_FLUX
+      USE LOGICAL_MOD,        ONLY : LPRT, LDYNOCEAN, LNLPBL 
+      USE OCEAN_MERCURY_MOD,  ONLY : OCEAN_MERCURY_FLUX
+      USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
+      USE TRACER_MOD,         ONLY : STT
+      USE TRACERID_MOD,       ONLY : N_HG_CATS
+      USE VDIFF_PRE_MOD,      ONLY : EMIS_SAVE 
 
-! Added for GTMM (ccc, 11/19/09)
-      USE LOGICAL_MOD,       ONLY : LGTMM
-      USE LAND_MERCURY_MOD,  ONLY : GTMM_DR
-      USE TRACERID_MOD,      ONLY : ID_Hg_tot, ID_Hg0
+      ! Added for GTMM (ccc, 11/19/09)
+      USE LOGICAL_MOD,        ONLY : LGTMM
+      USE LAND_MERCURY_MOD,   ONLY : GTMM_DR
+      USE TRACERID_MOD,       ONLY : ID_Hg_tot, ID_Hg0
 
-      USE CMN_SIZE_MOD          ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
+
+      ! Arguments
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 
       ! Local variables
       LOGICAL, SAVE :: FIRST = .TRUE. 
@@ -1996,7 +2009,7 @@
       !=================================================================
       ! Call emission routines for Hg(0), Hg(II), and Hg(P)
       !=================================================================
-    
+
       ! Ocean flux of Hg(0)
       IF ( LDYNOCEAN ) THEN
          
@@ -2004,34 +2017,33 @@
          ! (cdh, 4/30/09)
          EHg0_oc = 0d0
 
-         CALL OCEAN_MERCURY_FLUX( EHg0_oc )
+         CALL OCEAN_MERCURY_FLUX( EHg0_oc, State_Met )
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a OCEAN_FLUX' )
 
       ENDIF
 
       IF ( LGTMM ) THEN
          IF ( ITS_A_NEW_MONTH() ) THEN
-            CALL GTMM_DR(EHg0_gtm(:,:))
+            CALL GTMM_DR( EHg0_gtm(:,:), State_Met )
             IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a GTMM' )
          ENDIF
   
       ELSE
          
-         CALL LAND_MERCURY_FLUX ( EHg0_ln, LHGSNOW )
+         CALL LAND_MERCURY_FLUX ( EHg0_ln, LHGSNOW, State_Met )
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a LAND_FLUX' )
       
          ! Bug fix: VEGEMIS shouldn't be tied to GCAP emissions
          ! (jaf, eds, 4/1/11)
-         !CALL VEGEMIS( LGCAPEMIS, EHg0_dist, EHg0_vg )
-         CALL VEGEMIS( LVEGEMIS, EHg0_dist, EHg0_vg )
+         CALL VEGEMIS( LVEGEMIS, EHg0_dist, EHg0_vg, State_Met )
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a VEGEMIS' )
       
-         CALL SOILEMIS( EHg0_dist, EHg0_so )
+         CALL SOILEMIS( EHg0_dist, EHg0_so, State_Met )
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SOILEMIS' )
 
       ENDIF
 
-      CALL SNOWPACK_MERCURY_FLUX ( EHg0_snow, LHGSNOW )
+      CALL SNOWPACK_MERCURY_FLUX ( EHg0_snow, LHGSNOW, State_Met )
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SNOW_FLUX' )
       
       CALL BIOMASSHG( EHg0_bb )
@@ -2161,7 +2173,6 @@
       USE TRACERID_MOD, ONLY : ID_Hg0
       
       USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DEP_MOD      ! FRCLND
 
       ! Local variables
       INTEGER               :: I,      J,    L,        N,    PBL_MAX
@@ -3354,7 +3365,7 @@
 
 !------------------------------------------------------------------------------
 
-      FUNCTION GET_VCLDF( I, J, L ) RESULT( VCLDF )
+      FUNCTION GET_VCLDF( I, J, L, State_Met ) RESULT( VCLDF )
 ! 
 !******************************************************************************
 !  Subroutine GET_VCLDF computes the volume cloud fraction for Hg0 and Hg2
@@ -3371,14 +3382,17 @@
 !  NOTES:
 !  (1  ) Copied from "sulfate_mod.f" but was made into a function since we are
 !         already looping over (I,J,L) in CHEM_Hg0_Hg2 (eck, bmy, 12/6/04)
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !******************************************************************************
 !
       ! References to F90 modules 
-      USE DAO_MOD,      ONLY : RH
-      USE PRESSURE_MOD, ONLY : GET_PCENTER, GET_PEDGE
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER, GET_PEDGE
       
       ! Arguments
-      INTEGER, INTENT(IN)  :: I, J, L
+      INTEGER,        INTENT(IN)  :: I, J, L
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 
       ! Local variables
       REAL*8               :: PRES, PSFC, RH2, R0, B0
@@ -3399,7 +3413,7 @@
         
       ! RH (from "dao_mod.f") is relative humidity [%]
       ! Convert to fraction and store in RH2
-      RH2  = RH(I,J,L) * 1.0d-2
+      RH2  = State_Met%RH(I,J,L) * 1.0d-2
         
       ! Terms from Sundqvist ???
       R0   = ZRT + ( ZRS - ZRT ) * EXP( 1d0 - ( PSFC / PRES )**2.5 )
@@ -3417,7 +3431,7 @@
 
 !------------------------------------------------------------------------------
 
-      FUNCTION GET_O3( I, J, L ) RESULT( O3_MOLEC_CM3 )
+      FUNCTION GET_O3( I, J, L, State_Met ) RESULT( O3_MOLEC_CM3 )
 !
 !******************************************************************************
 !  Function GET_O3 returns monthly mean O3 for offline sulfate aerosol
@@ -3430,16 +3444,19 @@
 !  NOTES:
 !  (1 ) We assume SETTRACE has been called to define IDO3. (bmy, 12/16/02)
 !  (2 ) Now reference inquiry functions from "tracer_mod.f" (bmy, 7/20/04)
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD      , ONLY : AD
-      USE GLOBAL_O3_MOD, ONLY : O3
+      USE GLOBAL_O3_MOD,      ONLY : O3
+      USE GIGC_State_Met_Mod, ONLY : MetState
 
-      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 
       ! Arguments
-      INTEGER, INTENT(IN) :: I, J, L
+      INTEGER,        INTENT(IN)  :: I, J, L
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 
       ! Local variables
       REAL*8              :: O3_MOLEC_CM3
@@ -3453,8 +3470,8 @@
 
       ! Get ozone [v/v] for this gridbox & month
       ! and convert to [molec/cm3] (eck, 12/2/04)
-      O3_MOLEC_CM3 = O3(I,J,L) * ( 6.022d23 / 28.97d-3 ) * 
-     &               AD(I,J,L)  /  BOXVL(I,J,L)
+      O3_MOLEC_CM3 = O3(I,J,L)           * ( 6.022d23 / 28.97d-3 ) * 
+     &               State_Met%AD(I,J,L) / BOXVL(I,J,L,State_Met)
 
       ! Return to calling program
       END FUNCTION GET_O3
@@ -3518,7 +3535,8 @@
 
 !------------------------------------------------------------------------------
 
-      FUNCTION GET_BR( I, J, L, BRO_MOLEC_CM3 ) RESULT( BR_MOLEC_CM3 )
+      FUNCTION GET_BR( I, J, L, BRO_MOLEC_CM3, State_Met )
+     &   RESULT( BR_MOLEC_CM3 )
 !
 !******************************************************************************
 !  Function GET_BR returns instantaneous Br concentration calculated from
@@ -3536,29 +3554,33 @@
 !  NOTES:
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_LOCALTIME(I,J,L) from time_mod.F90
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD       , ONLY : SUNCOS, AD, T
-      USE GLOBAL_BR_MOD , ONLY : BR_MERGE,  BR_TROP,  BR_STRAT, J_BRO
-      USE GLOBAL_BR_MOD , ONLY : BRO_MERGE, BRO_TROP, BRO_STRAT
-      USE TIME_MOD      , ONLY : GET_TS_CHEM, GET_LOCALTIME 
-      USE TIME_MOD      , ONLY : ITS_A_NEW_DAY
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP, ITS_IN_THE_STRAT
-      USE DAO_MOD       , ONLY : IS_WATER
-      USE PBL_MIX_MOD   , ONLY : GET_FRAC_UNDER_PBLTOP
-      USE GRID_MOD      , ONLY : GET_YMID
-      USE TIME_MOD      , ONLY : GET_MONTH
-      USE DAO_MOD       , ONLY : LWI, GET_OBK, IS_ICE
-      USE PRESSURE_MOD  , ONLY : GET_PCENTER
-      USE ERROR_MOD     , ONLY : SAFE_DIV
+      USE DAO_MOD,            ONLY : SUNCOS
+      USE DAO_MOD,            ONLY : GET_OBK
+      USE DAO_MOD,            ONLY : IS_WATER
+      USE ERROR_MOD,          ONLY : SAFE_DIV
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GLOBAL_BR_MOD,      ONLY : BR_MERGE,  BR_TROP
+      USE GLOBAL_BR_MOD,      ONLY : BR_STRAT, J_BRO
+      USE GLOBAL_BR_MOD,      ONLY : BRO_MERGE, BRO_TROP, BRO_STRAT
+      USE GRID_MOD,           ONLY : GET_YMID
+      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER
+      USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_LOCALTIME 
+      USE TIME_MOD,           ONLY : ITS_A_NEW_DAY
+      USE TIME_MOD,           ONLY : GET_MONTH
+      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
 
-      USE CMN_SIZE_MOD  ! Size parameters
-      USE CMN_DEP_MOD   ! FRCLND
+      USE CMN_SIZE_MOD             ! Size parameters
 
       ! Arguments
-      INTEGER, INTENT(IN) :: I, J, L
-      REAL*8, INTENT(OUT) :: BrO_MOLEC_CM3 
+      INTEGER,        INTENT(IN)  :: I, J, L
+      REAL*8,         INTENT(OUT) :: BrO_MOLEC_CM3 
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 
       ! Local variables
       INTEGER             :: JLOOP
@@ -3604,8 +3626,8 @@
       BRO_PPTV = BRO_MERGE(I,J,L)
 
       ! Multiple stratospheric concentrations by Factor, if necessary
-      IF ( (ITS_IN_THE_STRAT(I,J,L)) .AND.
-     &     (ABS(STRAT_BR_FACTOR - 1d0) > 1d-2) ) THEN
+      IF ( (ITS_IN_THE_STRAT( I, J, L, State_Met )) .AND.
+     &     (ABS(STRAT_BR_FACTOR - 1d0) > 1d-2) )    THEN
 
          BR_PPTV  = BR_PPTV  * STRAT_BR_FACTOR
          BRO_PPTV = BRO_PPTV * STRAT_BR_FACTOR
@@ -3619,14 +3641,14 @@
       ! Fraction of grid box mass which is within the mixed layer
       FPBL = GET_FRAC_UNDER_PBLTOP(I,J,L)
 
-      IF ( IS_WATER(I,J) .AND. (FPBL > 0d0) ) THEN
+      IF ( IS_WATER( I, J, State_Met ) .AND. (FPBL > 0d0) ) THEN
 
          ! Convert BrO concentration to corresponding Br based on
          ! photochemical steady state, pptv
          ! Platt & Janssen, Faraday Discussions (1995)
          BR_MBL = BRO_MBL *( J_BRO(I,J,L) + K_BRO_NO * C_NO ) / 
-     &                     ( K_BR_O3 * GET_O3(I,J,L) ) *
-     &                     FPBL
+     &                     ( K_BR_O3      * GET_O3(I,J,L,State_Met) ) *
+     &                       FPBL
 
          ! MBL concentration is the greater of the TOMCAT Br or 1pptv BrO
          BR_PPTV  = MAX( BR_PPTV,  BR_MBL )
@@ -3647,9 +3669,11 @@
       ! 1-D grid box index for SUNCOS
       JLOOP = ( (J-1) * IIPAR ) + I
 
-      IF ( (LPOLARBR)         .AND. (FPBL > 0d0) .AND.
-     &     (SUNCOS(JLOOP) > 0D0) .AND. (T(I,J,1) <= 268D0) .AND.
-     &     ( LWI(I,J)==2 )  .AND. GET_OBK(I,J) > 0D0 ) THEN
+      IF ( ( LPOLARBR ) .AND. ( FPBL >  0d0   ) .AND.
+     &     ( SUNCOS(JLOOP)           >  0D0   ) .AND. 
+     &     ( State_Met%T(I,J,1)      <= 268D0 ) .AND.
+     &     ( State_Met%LWI(I,J)      == 2     ) .AND. 
+     &       GET_OBK(I,J,State_Met)  >  0D0   ) THEN
 
          IF ( ( (GET_YMID(I,J,L) > 60D0) .AND. 
      &          (GET_MONTH() >= 3) .AND. (GET_MONTH() <= 5)  ) .OR.
@@ -3724,10 +3748,12 @@
 
 
       ! Convert pptv mixing ratio -> molec/cm3
-      BR_MOLEC_CM3  = BR_PPTV * 1D-12 * ( 6.022D23 / 28.97D-3 ) * 
-     &                AD(I,J,L)  /  BOXVL(I,J,L)
-      BRO_MOLEC_CM3 = BRO_PPTV * 1D-12 * ( 6.022D23 / 28.97D-3 ) * 
-     &                AD(I,J,L)  /  BOXVL(I,J,L)
+      BR_MOLEC_CM3  = BR_PPTV             * 1D-12      *
+     &                ( 6.022D23          / 28.97D-3 ) * 
+     &                State_Met%AD(I,J,L) / BOXVL(I,J,L,State_Met)
+      BRO_MOLEC_CM3 = BRO_PPTV            * 1D-12      *
+     &                ( 6.022D23          / 28.97D-3 ) * 
+     &                State_Met%AD(I,J,L) / BOXVL(I,J,L,State_Met)
 
       ! Return to calling program
       END FUNCTION GET_BR
@@ -4008,7 +4034,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE CALC_HG2_SEASALT_LOSSRATE
+      SUBROUTINE CALC_HG2_SEASALT_LOSSRATE( State_Met )
 !
 !******************************************************************************
 !  Subroutine HG2_SEASALT_LOSSRATE calculates the loss rate of RGM (/s) by 
@@ -4025,13 +4051,17 @@
 !  NOTES:
 !******************************************************************************
 !
-      ! References to F90 modules
-      USE DAO_MOD    , ONLY : IS_WATER, RH
-      USE PBL_MIX_MOD, ONLY : GET_PBL_TOP_M
-      USE RNPBBE_MOD , ONLY : SLQ
 
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DEP_MOD      ! FRCLND
+      ! References to F90 modules
+      USE DAO_MOD,            ONLY : IS_WATER
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_M
+      USE RNPBBE_MOD,         ONLY : SLQ
+
+      USE CMN_SIZE_MOD             ! Size parameters
+
+      !Arguments
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 
       ! Local variables
       REAL*8                :: U10M, S
@@ -4059,10 +4089,12 @@
       DO I = 1, IIPAR
 
          ! Only calculate deposition via sea salt over water
-         IF ( IS_WATER(I,J) ) THEN
+         IF ( IS_WATER( I, J, State_Met ) ) THEN
 
             ! Wind speed at 10m altitude [m/s]
-            U10M = SQRT( SFCWINDSQR(I,J) )
+            U10M = SQRT( SFCWINDSQR( I, J,
+     &                               State_Met%U10M,
+     &                               State_Met%V10M ) )
             
             ! Don't allow wind >20 m/s which is the limit of this 
             ! parameterization
@@ -4074,7 +4106,7 @@
             !
             ! Don't allow supersaturation, as [Cl-] is undefined for RH>=1 
             ! Cap RH at 99%, Don't allow RH < 75% as happens in coastal areas
-            S = MAX( MIN( RH(I,J,1), 99D0 ), 75D0 ) * 1D-2
+            S = MAX( MIN( State_Met%RH(I,J,1), 99D0 ), 75D0 ) * 1D-2
             
             LOSS_FREQ = 1D-10 * ( 1D0 - EXP( -57.758D0 * (1D0-S) ) ) *
      &           EXP( -1.9351D0  * U10M + 

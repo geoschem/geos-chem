@@ -17,7 +17,7 @@
 !
       USE BRAVO_MOD,          ONLY : GET_BRAVO_ANTHRO, GET_BRAVO_MASK
       USE CAC_ANTHRO_MOD,     ONLY : GET_CANADA_MASK,  GET_CAC_ANTHRO
-      USE DAO_MOD,            ONLY : IS_WATER
+      !USE DAO_MOD,            ONLY : IS_WATER
       USE DIAG_MOD,           ONLY : AD29,   AD32_an,  AD36
       USE EDGAR_MOD,          ONLY : GET_EDGAR_CO,     GET_EDGAR_NOx
       USE EDGAR_MOD,          ONLY : GET_EDGAR_TODN

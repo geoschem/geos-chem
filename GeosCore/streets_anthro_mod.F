@@ -408,9 +408,9 @@
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      SUBROUTINE EMISS_STREETS_ANTHRO(EMISSIONS)
+      SUBROUTINE EMISS_STREETS_ANTHRO( State_Met, EMISSIONS )
 #else
-      SUBROUTINE EMISS_STREETS_ANTHRO
+      SUBROUTINE EMISS_STREETS_ANTHRO( State_Met )
 #endif
 !
 !******************************************************************************
@@ -433,27 +433,37 @@
 !  (7 ) Bug fix : overwrite NOx, SO2, and CO emissions over water (ship tracks)
 !        with zero for Streets 2000 emissions since these are double counted 
 !        (jaf, gcmv, amv, 1/30/12)
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD,        ONLY : GET_TAU0,          READ_BPCH2
-      USE DAO_MOD,          ONLY : FROCEAN, IS_WATER !jaf
-      USE DIRECTORY_MOD,    ONLY : DATA_DIR_1x1 
-      USE LOGICAL_MOD,      ONLY : LFUTURE
-      USE TRACER_MOD,       ONLY : ITS_A_CO2_SIM,     ITS_A_CH4_SIM
-      USE TIME_MOD,         ONLY : GET_YEAR,          GET_MONTH
-      USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
+      USE BPCH2_MOD,          ONLY : GET_TAU0,          READ_BPCH2
+      USE DAO_MOD,            ONLY : IS_WATER
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR_1x1 
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE LOGICAL_MOD,        ONLY : LFUTURE
+      USE TRACER_MOD,         ONLY : ITS_A_CO2_SIM,     ITS_A_CH4_SIM
+      USE TIME_MOD,           ONLY : GET_YEAR,          GET_MONTH
+      USE SCALE_ANTHRO_MOD,   ONLY : GET_ANNUAL_SCALAR
 
-      USE CMN_SIZE_MOD         ! Size parameters
-      USE CMN_O3_MOD           ! FSCALYR
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_O3_MOD               ! FSCALYR
 
 #if defined( DEVEL )
-      USE TRACER_MOD,       ONLY : N_TRACERS
-      USE TRACERID_MOD,     ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
-      USE TRACERID_MOD,     ONLY : IDTACET, IDTALK4, IDTC2H6
-      USE TRACERID_MOD,     ONLY : IDTCH2O, IDTMEK,  IDTALD2
-      USE TRACERID_MOD,     ONLY : IDTPRPE, IDTC3H8
+      USE TRACER_MOD,         ONLY : N_TRACERS
+      USE TRACERID_MOD,       ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
+      USE TRACERID_MOD,       ONLY : IDTACET, IDTALK4, IDTC2H6
+      USE TRACERID_MOD,       ONLY : IDTCH2O, IDTMEK,  IDTALD2
+      USE TRACERID_MOD,       ONLY : IDTPRPE, IDTC3H8
 #endif
+
+      ! Arguments
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+      REAL*8,         INTENT(INOUT) :: EMISSIONS(IIPAR,JJPAR,N_TRACERS)
+#endif
+
       ! Local variables
       LOGICAL, SAVE              :: FIRST = .TRUE.
       INTEGER                    :: BASE_YEAR,       SIM_YEAR
@@ -478,9 +488,6 @@
       REAL*8                     :: TAU2000,       TAU2004,      TAU2006
       REAL*8                     :: TAUMONTH_2001, TAUMONTH_2004, TAU
 
-#if defined( DEVEL )
-      REAL*8,INTENT(INOUT)       :: EMISSIONS(IIPAR,JJPAR,N_TRACERS)
-#endif
       !=================================================================
       ! EMISS_STREETS_ANTHRO begins here!
       !=================================================================
@@ -561,12 +568,14 @@
       IF (.NOT. IS_2006) THEN
          DO J = 1, JJPAR
          DO I = 1, IIPAR
+
 #if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_527 )
-            IF ( FROCEAN(I,J) == 1d0 ) SCALOC(I,J) = 0d0
+            IF ( State_Met%FROCEAN(I,J) == 1d0 ) SCALOC(I,J) = 0d0
 #else
-            IF ( IS_WATER(I,J) ) SCALOC(I,J) = 0d0
-#endif            
-        ENDDO
+            IF ( IS_WATER(I,J,State_Met) ) SCALOC(I,J) = 0d0
+#endif
+
+         ENDDO
          ENDDO
       ENDIF 
 
@@ -1271,9 +1280,9 @@
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      SUBROUTINE EMISS_STREETS_ANTHRO_05x0666(EMISSIONS)
+      SUBROUTINE EMISS_STREETS_ANTHRO_05x0666( State_Met, EMISSIONS)
 #else
-      SUBROUTINE EMISS_STREETS_ANTHRO_05x0666
+      SUBROUTINE EMISS_STREETS_ANTHRO_05x0666( State_Met )
 #endif
 !
 !******************************************************************************
@@ -1298,25 +1307,32 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD,        ONLY : GET_TAU0,         READ_BPCH2
-      USE DAO_MOD,          ONLY : FROCEAN ! jaf
-      USE LOGICAL_MOD,      ONLY : LFUTURE
-      USE TRACER_MOD,       ONLY : ITS_A_CO2_SIM,    ITS_A_CH4_SIM
-      USE DIRECTORY_MOD,    ONLY : DATA_DIR              
-      USE TIME_MOD,         ONLY : GET_MONTH, GET_YEAR  
-      USE TRACER_MOD,       ONLY : XNUMOL
-      USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR_05x0666_NESTED
+      USE BPCH2_MOD,          ONLY : GET_TAU0,         READ_BPCH2
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR              
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE LOGICAL_MOD,        ONLY : LFUTURE
+      USE TIME_MOD,           ONLY : GET_MONTH, GET_YEAR  
+      USE TRACER_MOD,         ONLY : ITS_A_CO2_SIM,    ITS_A_CH4_SIM
+      USE TRACER_MOD,         ONLY : XNUMOL
+      USE SCALE_ANTHRO_MOD,   ONLY : GET_ANNUAL_SCALAR_05x0666_NESTED
 
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_O3_MOD         ! FSCALYR
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_O3_MOD               ! FSCALYR
 
 #if defined( DEVEL )
-      USE TRACER_MOD,       ONLY : N_TRACERS
-      USE TRACERID_MOD,     ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
-      USE TRACERID_MOD,     ONLY : IDTACET, IDTALK4, IDTC2H6
-      USE TRACERID_MOD,     ONLY : IDTCH2O, IDTMEK,  IDTALD2
-      USE TRACERID_MOD,     ONLY : IDTPRPE, IDTC3H8
+      USE TRACER_MOD,         ONLY : N_TRACERS
+      USE TRACERID_MOD,       ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
+      USE TRACERID_MOD,       ONLY : IDTACET, IDTALK4, IDTC2H6
+      USE TRACERID_MOD,       ONLY : IDTCH2O, IDTMEK,  IDTALD2
+      USE TRACERID_MOD,       ONLY : IDTPRPE, IDTC3H8
 #endif
+
+      ! Arguments
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+      REAL*8,         INTENT(INOUT) :: EMISSIONS(IIPAR,JJPAR,N_TRACERS)
+#endif
+
       ! Local variables
       LOGICAL, SAVE              :: FIRST = .TRUE.
       INTEGER                    :: BASE_YEAR,       SIM_YEAR
@@ -1340,10 +1356,6 @@
       ! TAUs
       REAL*8                     :: TAU2000,       TAU2004,      TAU2006
       REAL*8                     :: TAUMONTH_2001, TAUMONTH_2004, TAU
-
-#if defined( DEVEL )
-      REAL*8,INTENT(INOUT)       :: EMISSIONS(IIPAR,JJPAR,N_TRACERS)
-#endif
       
       !=================================================================
       ! EMISS_STREETS_ANTHRO begins here!
@@ -1432,7 +1444,7 @@
       IF (.NOT. IS_2006) THEN
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            IF ( FROCEAN(I,J) == 1d0 ) SCALOC(I,J) = 0d0
+            IF ( State_Met%FROCEAN(I,J) == 1d0 ) SCALOC(I,J) = 0d0
          ENDDO
          ENDDO
       ENDIF 

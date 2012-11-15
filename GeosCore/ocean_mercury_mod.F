@@ -214,7 +214,7 @@
 
 !-------------------------------------------------------------------------
 
-      SUBROUTINE PARTITION_Hg2(THISMONTH)
+      SUBROUTINE PARTITION_Hg2( THISMONTH, State_Met )
 
 !****************************************************************************  
 !  SUBROUTINE PARTITION_Hg2 calculates the fractions of Hg(II) is the particle 
@@ -305,24 +305,27 @@
 !                         and has been extended to 59 tracers.
 !  09 Mar 2011 - H Amos - clean up comments
 !  25 Oct 2011 - H Amos - brought into v9-01-02
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !*****************************************************************************
      
       ! References F90 modules
-      USE DAO_MOD      , ONLY : T, AIRDEN  
-      USE BPCH2_MOD    , ONLY : GET_NAME_EXT , GET_RES_EXT
-      USE BPCH2_MOD    , ONLY : GET_TAU0     , READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE TRANSFER_MOD , ONLY : TRANSFER_3D  , TRANSFER_3D_TROP
-      USE DIAG03_MOD   , ONLY : ND03                
-      USE TIME_MOD     , ONLY : SET_Hg2_DIAG        
-      USE DIRECTORY_MOD, ONLY : DATA_DIR      
-      USE ERROR_MOD    , ONLY : GEOS_CHEM_STOP
+      USE BPCH2_MOD,          ONLY : GET_NAME_EXT , GET_RES_EXT
+      USE BPCH2_MOD,          ONLY : GET_TAU0     , READ_BPCH2
+      USE DIAG03_MOD,         ONLY : ND03                
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR      
+      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TIME_MOD,           ONLY : SET_Hg2_DIAG        
+      USE TRANSFER_MOD,       ONLY : TRANSFER_3D  , TRANSFER_3D_TROP
 
-      USE CMN_SIZE_MOD  ! Size parameters3
-      USE CMN_DIAG_MOD  ! Diagnostic arrays & parameters
+      USE CMN_SIZE_MOD             ! Size parameters3
+      USE CMN_DIAG_MOD             ! Diagnostic arrays & parameters
 
       ! Arguments
-      INTEGER, INTENT(IN)  :: THISMONTH
+      INTEGER,        INTENT(IN)  :: THISMONTH
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 
       ! Arrays to hold aerosol concentrations  
       REAL*4               :: ARRAYso4(  IGLOB, JGLOB, LGLOB )  ! so4
@@ -475,15 +478,16 @@
         !       as ppb, so only 4x5 needs to be scaled by 1d9.
         !       (hma, 20120104)
 #if defined( GRID4x5 )
-        BULK_CONC(I,J,L) = 1d9 * ( BULK_CONC(I,J,L) * AIRDEN(L,I,J)  )
+        BULK_CONC(I,J,L) = 1d9 * ( BULK_CONC(I,J,L) *
+     &                     State_Met%AIRDEN(L,I,J)  )
 #elif defined( GRID2x25 )
-        BULK_CONC(I,J,L) = ( BULK_CONC(I,J,L) * AIRDEN(L,I,J)  )
+        BULK_CONC(I,J,L) = ( BULK_CONC(I,J,L) * State_Met%AIRDEN(L,I,J))
 #endif 
 
         ! Calculate R = HgP_ads/RGM (i.e. the ratio of Hg2
         ! adsorbed onto aerosol to Hg2 in the  gas phase) 
         R(I,J,L) = BULK_CONC(I,J,L)*
-     &           ( 10d0**( ( 2.5d3 / T(I,J,L)) - 10d0 ))
+     &           ( 10d0**( ( 2.5d3 / State_Met%T(I,J,L)) - 10d0 ))
 
         ! Fraction of Hg(II) in the gas phase (unitless)
         Fg(I,J,L) = 1d0 / (R(I,J,L) + 1d0)   
@@ -528,10 +532,7 @@
 
 !------------------------------------------------------------------------------
 
-
-!------------------------------------------------------------------------------
-
-      SUBROUTINE OCEAN_MERCURY_FLUX( FLUX )
+      SUBROUTINE OCEAN_MERCURY_FLUX( FLUX, State_Met )
 !
 !******************************************************************************
 !  Subroutine OCEAN_MERCURY_FLUX calculates emissions of Hg(0) from 
@@ -688,31 +689,31 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,          ONLY : AIRVOL, ALBD, TSKIN, RADSWG, IS_WATER 
-      USE DAO_MOD,          ONLY : FRLAND, FROCEAN, FRSEAICE, SEAICE00 ! jaf
-      USE DIAG03_MOD,       ONLY : AD03, ND03
-      USE DIRECTORY_MOD,    ONLY : DATA_DIR
-      USE GRID_MOD,         ONLY : GET_AREA_M2, GET_XMID, GET_YMID 
-      USE LOGICAL_MOD,      ONLY : LSPLIT
-      USE TIME_MOD,         ONLY : GET_TS_EMIS,     GET_MONTH 
-      USE TIME_MOD,         ONLY : ITS_A_NEW_MONTH, ITS_MIDMONTH
-      USE TIME_MOD,         ONLY : GET_YEAR 
-      USE TRACER_MOD,       ONLY : STT,             TRACER_MW_KG
-      USE TRACERID_MOD,     ONLY : ID_Hg_tot,       ID_Hg_oc
-      USE TRACERID_MOD,     ONLY : ID_Hg0,          N_Hg_CATS
-      USE TRANSFER_MOD,     ONLY : TRANSFER_2D
-      USE DEPO_MERCURY_MOD, ONLY: DD_Hg2, WD_Hg2, DD_HgP, WD_HgP
- 
+      USE DAO_MOD,            ONLY : IS_WATER 
+      USE DEPO_MERCURY_MOD,   ONLY : DD_Hg2, WD_Hg2, DD_HgP, WD_HgP
+      USE DIAG03_MOD,         ONLY : AD03, ND03
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_M2, GET_XMID, GET_YMID 
+      USE LOGICAL_MOD,        ONLY : LSPLIT
+      USE TIME_MOD,           ONLY : GET_TS_EMIS,     GET_MONTH 
+      USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH, ITS_MIDMONTH
+      USE TIME_MOD,           ONLY : GET_YEAR 
+      USE TRACER_MOD,         ONLY : STT,             TRACER_MW_KG
+      USE TRACERID_MOD,       ONLY : ID_Hg_tot,       ID_Hg_oc
+      USE TRACERID_MOD,       ONLY : ID_Hg0,          N_Hg_CATS
+      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
 
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE CMN_DEP_MOD       ! FRCLND
+      USE CMN_SIZE_MOD             ! Size parameters
 
       ! Arguments 
-      REAL*8,  INTENT(OUT)  :: FLUX(IIPAR,JJPAR,N_Hg_CATS)
-
+      REAL*8,         INTENT(OUT) :: FLUX(IIPAR,JJPAR,N_Hg_CATS)
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 
       ! Local variables
       LOGICAL, SAVE         :: FIRST = .TRUE.
@@ -849,12 +850,13 @@
          ! need to subtract the sea ice fraction.
 #if   defined( MERRA ) || defined( GEOS_57 )
          NPP_tot = NPP_tot+ NPP(I,J) * A_M2 * 
-     &             ( FROCEAN(I,J) - FRSEAICE(I,J) )
+     &             ( State_Met%FROCEAN(I,J) - State_Met%FRSEAICE(I,J) )
          A_ocean = A_ocean + A_M2 * 
-     &             ( FROCEAN(I,J) - FRSEAICE(I,J) )
+     &             ( State_Met%FROCEAN(I,J) - State_Met%FRSEAICE(I,J) )
 #else
-         NPP_tot = NPP_tot+ NPP(I,J) * A_M2 * ( 1d0 - FRCLND(I,J))
-         A_ocean = A_ocean + A_M2 * ( 1 - FRCLND(I,J) ) 
+         NPP_tot = NPP_tot+ NPP(I,J) * A_M2 *
+     &             ( 1d0 - State_Met%FRCLND(I,J))
+         A_ocean = A_ocean + A_M2 * ( 1 - State_Met%FRCLND(I,J) ) 
 #endif
 
       ENDDO
@@ -925,20 +927,22 @@
          ! need to subtract the sea ice fraction. Don't let the fraction
          ! be less than zero (jaf, 4/26/11)
 #if   defined( MERRA ) || defined( GEOS_57 )
-         FRAC_L     = FRLAND(I,J)
-         FRAC_O     = MAX(FROCEAN(I,J) - FRSEAICE(I,J), 0d0)
-         IS_OCEAN_BOX = ((FRAC_O > 0d0) .and. (SEAICE00(I,J) > 0.5d0))
+         FRAC_L       = State_Met%FRLAND(I,J)
+         FRAC_O       = MAX( State_Met%FROCEAN(I,J) -
+     &                       State_Met%FRSEAICE(I,J), 0d0 )
+         IS_OCEAN_BOX = (( FRAC_O > 0d0 ) .and. 
+                         ( State_Met%SEAICE00(I,J)  > 0.5d0 ))
 #else
-         FRAC_L     = FRCLND(I,J)
-         FRAC_O     = 1d0 - FRAC_L
-         IS_OCEAN_BOX = ( IS_WATER(I,J) )
+         FRAC_L       = State_Met%FRCLND(I,J)
+         FRAC_O       = 1d0 - FRAC_L
+         IS_OCEAN_BOX = ( IS_WATER( I, J, State_Met ) )
 #endif
+
 !--jaf.end
 
          ! Change ocean mass due to mixed layer depth change
-         ! Keep before next IF so that we adjust mass in ice-covered boxes 
-         CALL MLD_ADJUSTMENT( I, J, OLDMLD*1d-2, MLDcm*1d-2 )
-
+         ! Keep before next IF so that we adjust mass in ice-covered boxes
+         CALL MLD_ADJUSTMENT( I, J, OLDMLD*1d-2, MLDcm*1d-2, State_Met )
 
          !===========================================================
          ! Make sure we are in an ocean box
@@ -966,7 +970,8 @@
             EC     = (EC_w + ( EC_doc * C_doc * ( NPP(I,J) / NPP_avg ) ) 
      &               + ( ECchla * CHL(I,J) / 1000 ) )             
 
-            RADz   = ( 1 / ( MLDcm * 1d-2 )) * ( RADSWG(I,J) / EC )    
+            RADz   = ( 1 / ( MLDcm * 1d-2 ))
+     &               * (State_Met%RADSWG(I,J) / EC )    
      &               * ( 1 - EXP( -EC * ( MLDcm * 1d-2) ) )
 
             !--------------------------------------------------------
@@ -1046,7 +1051,7 @@
             ! where TSKIN is the temperature (K) at the ground/sea surface
             ! (Use as surrogate for SST, cap at freezing point)
 
-            TK     = MAX( TSKIN(I,J), 273.15d0 )                           
+            TK     = MAX( State_Met%TSKIN(I,J), 273.15d0 )
 
             TC     = TK - 273.15d0
 
@@ -1089,8 +1094,7 @@
             ScCO2  = 644.7d0 + TC * ( -6.16d0 + TC * ( 0.11d0 ) ) 
 
             ! Square of surface (actually 10m) wind speed [m2/s2]
-
-            Usq    = SFCWINDSQR(I,J)
+            Usq    = SFCWINDSQR( I, J, State_Met%U10M, State_Met%V10M )
 
             !------------------------------------------------------
             ! Parameterizations for calculating water side mass trasfer coefficient 
@@ -1454,7 +1458,8 @@
      &                         ( A_M2          * FRAC_O ) / MLDcm 
                
                ! Gas phase Hg(0) concentration: convert [kg] -> [ng/L]
-               CHg0          = STT(I,J,1,N) * 1.0D9 / AIRVOL(I,J,1)
+               CHg0          = STT(I,J,1,N) * 1.0D9 /
+     &                         State_Met%AIRVOL(I,J,1)
                
                !--------------------------------------------------------
                ! Compute flux of Hg(0) from the ocean to the air
@@ -1843,7 +1848,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE MLD_ADJUSTMENT( I, J, MLDold, MLDnew )
+      SUBROUTINE MLD_ADJUSTMENT( I, J, MLDold, MLDnew, State_Met )
 !
 !******************************************************************************
 !  Subroutine MLD_ADJUSTMENT entrains new water when mixed layer depth deepens
@@ -1867,21 +1872,23 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !******************************************************************************
 !
       ! Reference to fortran90 modules
-      USE GRID_MOD,     ONLY : GET_AREA_M2, GET_XMID, GET_YMID !(X,Y added, anls 01/05/09)
-      USE LOGICAL_MOD,  ONLY : LSPLIT
-      USE TRACER_MOD,   ONLY : TRACER_MW_KG
-      USE TRACERID_MOD, ONLY : ID_Hg_tot, ID_Hg_oc, N_Hg_CATS
-      USE DAO_MOD,      ONLY : FROCEAN, FRSEAICE ! jaf
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_M2, GET_XMID, GET_YMID
+      USE LOGICAL_MOD,        ONLY : LSPLIT
+      USE TRACER_MOD,         ONLY : TRACER_MW_KG
+      USE TRACERID_MOD,       ONLY : ID_Hg_tot, ID_Hg_oc, N_Hg_CATS
 
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DEP_MOD      ! FRCLND
+      USE CMN_SIZE_MOD             ! Size parameters
       
       ! Arguments
-      INTEGER, INTENT(IN)   :: I, J 
-      REAL*8,  INTENT(IN)   :: MLDold, MLDnew  
+      INTEGER,        INTENT(IN)  :: I, J 
+      REAL*8,         INTENT(IN)  :: MLDold, MLDnew  
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 
       ! Local variables
       INTEGER               :: C,    NN,     N_tot_oc    
@@ -1908,11 +1915,12 @@
       ! FROCEAN is a constant, so to get correct ocean fraction we
       ! need to subtract the sea ice fraction.
 #if   defined( MERRA ) || defined( GEOS_57 )
-      FRAC_O     = MAX(FROCEAN(I,J) - FRSEAICE(I,J), 0d0)
+      FRAC_O     = MAX( State_Met%FROCEAN(I,J) - 
+     &                  State_Met%FRSEAICE(I,J), 0d0)
 #else
-      FRAC_O = 1d0 - FRCLND(I,J)
+      FRAC_O = 1d0 - State_Met%FRCLND(I,J)
 #endif
-      
+
       ! Molecular weight of Hg (valid for all tagged tracers)
       MHg    = TRACER_MW_KG(ID_Hg_tot)
 

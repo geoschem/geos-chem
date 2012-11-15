@@ -1,4 +1,3 @@
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -404,13 +403,18 @@ CONTAINS
     State_Chm%Species     = 0d0
 
     ! Stratospheric chemistry    
-    State_Chm%Schm_Id     = 0
-    State_Chm%Schm_Name   = ''
-    State_Chm%Schm_P      = 0d0
-    State_Chm%Schm_k      = 0d0
-    State_Chm%Schm_BryId  = 0
-    State_Chm%Schm_BryDay = 0d0
-    State_Chm%Schm_BryNit = 0d0
+    IF ( nSchm > 0 ) THEN
+       State_Chm%Schm_Id     = 0
+       State_Chm%Schm_Name   = ''
+       State_Chm%Schm_P      = 0d0
+       State_Chm%Schm_k      = 0d0
+    ENDIF
+    IF ( nSchmBry > 0 ) THEN
+       State_Chm%Schm_BryId  = 0
+       State_Chm%Schm_BryNam = ''
+       State_Chm%Schm_BryDay = 0d0
+       State_Chm%Schm_BryNit = 0d0
+    ENDIF
 
   END SUBROUTINE Init_GIGC_State_Chm
 !EOC
@@ -480,4 +484,3 @@ CONTAINS
   END SUBROUTINE Cleanup_GIGC_State_Chm
 !EOC
 END MODULE GIGC_State_Chm_Mod
-#endif

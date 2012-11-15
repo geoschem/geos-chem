@@ -187,11 +187,16 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Compute_Olson_LandMap( mapping )
+  SUBROUTINE Compute_Olson_LandMap( mapping, State_Met )
+!
+! !USES:
+!
+    USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(MapWeight), POINTER :: mapping(:,:)   ! "fine" -> "coarse" mapping
+    TYPE(MapWeight), POINTER       :: mapping(:,:) ! "fine" -> "coarse" mapping
+    TYPE(MetState),  INTENT(INOUT) :: State_Met    ! Meteorology State object
 !
 ! !REMARKS:
 !  This routine supplies arrays that are required for legacy code routines:
@@ -214,6 +219,8 @@ CONTAINS
 !                              are replaced by IREG, ILAND, IUSE arrays
 !  17 Apr 2012 - R. Yantosca - Rename "map" object to "mapping" to avoid name
 !                              confusion with an F90 intrinsic function
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -273,7 +280,7 @@ CONTAINS
     IREG               = 0
     ILAND              = 0
     IUSE               = 0
-    FRCLND             = 1000e0
+    State_Met%FRCLND   = 1000e0
     isGlobal           = ( .not. ITS_A_NESTED_GRID() )
 
     !======================================================================
@@ -448,13 +455,13 @@ CONTAINS
           ! If the current Olson land type is water (type 0),
           ! subtract the coverage fraction (IUSE) from FRCLND.
           IF ( ILAND(I,J,T) == 0 ) THEN
-             FRCLND(I,J) = FRCLND(I,J) - IUSE(I,J,T)
+             State_Met%FRCLND(I,J) = State_Met%FRCLND(I,J) - IUSE(I,J,T)
           ENDIF
        ENDDO
 
        ! Normalize FRCLND into the range of 0-1
        ! NOTE: Use REAL*4 for backwards compatibility w/ existing code!
-       FRCLND(I,J) = FRCLND(I,J) / 1000e0
+       State_Met%FRCLND(I,J) = State_Met%FRCLND(I,J) / 1000e0
 
     ENDDO
     ENDDO
