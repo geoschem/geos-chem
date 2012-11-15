@@ -197,6 +197,9 @@
 !  06 Apr 2012 - M. Payer    - Changed regrid algorithm to map_a2a (M. Cooper)
 !  24 May 2012 - R. Yantosca - Fix minor bugs in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  15 Nov 2012 - C. Keller   - Set biofuel emissions to zero if BRAVO or CAC 
+!                              emissions are used, since these inventories 
+!                              already contain biofuel emissions.
 !******************************************************************************
 !
       ! References to F90 modules
@@ -229,10 +232,15 @@
       USE TIME_MOD,             ONLY : GET_HISTYR
       USE REGRID_A2A_MOD,       ONLY : DO_REGRID_A2A
 !eml]
+      ! for CAC / BRAVO emissions fix (ckeller, 11/15/12)
+      USE LOGICAL_MOD,          ONLY : LBRAVO, LCAC
+      USE BRAVO_MOD,            ONLY : GET_BRAVO_MASK
+      USE CAC_ANTHRO_MOD,       ONLY : GET_CANADA_MASK
 
       USE CMN_SIZE_MOD               ! Size parameters
       USE CMN_O3_MOD                 ! FSCLYR
       USE CMN_DIAG_MOD               ! ND29, ND32, ND34
+
 
       IMPLICIT NONE
 #     include "define.h"
@@ -935,6 +943,45 @@
                      ENDIF
                   ENDIF
                ENDIF
+
+               !--------------------------------------------------------
+               ! BRAVO anthropogenic emissions include residential 
+               ! biofuel, so set this to zero if we are using BRAVO
+               ! (ckeller, 11/15/2012)
+               !--------------------------------------------------------
+               IF ( LBRAVO .AND. .NOT. LHIST ) THEN
+
+                  ! If we are over the BRAVO region
+                  IF ( GET_BRAVO_MASK( I, J ) > 0d0 ) THEN
+
+                     ! If it's a BRAVO species 
+                     IF ( (NN == IDTNOX) .or. (NN == IDTCO) ) THEN
+
+                        BIOFUEL(N,I,J) = 0.d0
+
+                     ENDIF
+                  ENDIF
+               ENDIF
+
+               !--------------------------------------------------------
+               ! CAC anthropogenic emissions include residential 
+               ! biofuel, so set this to zero if we are using CAC
+               ! (ckeller, 11/15/2012)
+               !--------------------------------------------------------
+               IF ( LCAC .AND. .NOT. LHIST ) THEN
+
+                  ! If we are over the CAC region
+                  IF ( GET_CANADA_MASK( I, J ) > 0d0 ) THEN
+
+                     ! If it's a CAC species 
+                     IF ( (NN == IDTNOX) .or. (NN == IDTCO) ) THEN
+
+                        BIOFUEL(N,I,J) = 0.d0
+
+                     ENDIF
+                  ENDIF
+               ENDIF
+
             ENDIF
          ENDDO  
 
