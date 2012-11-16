@@ -194,11 +194,11 @@
 !
 ! !USES:
 !
-      USE DAO_MOD, ONLY : FRLAKE     ! Fraction of grid box that is lake
-      USE DAO_MOD, ONLY : FRLAND     ! Fraction of grid box that is land
-      USE DAO_MOD, ONLY : FRLANDIC   ! Fraction of grid box that is land ice
-      USE DAO_MOD, ONLY : FROCEAN    ! Fraction of grid box that is ocean
-      USE DAO_MOD, ONLY : PHIS       ! Surface geopotential height
+      !USE DAO_MOD, ONLY : FRLAKE     ! Fraction of grid box that is lake
+      !USE DAO_MOD, ONLY : FRLAND     ! Fraction of grid box that is land
+      !USE DAO_MOD, ONLY : FRLANDIC   ! Fraction of grid box that is land ice
+      !USE DAO_MOD, ONLY : FROCEAN    ! Fraction of grid box that is ocean
+      !USE DAO_MOD, ONLY : PHIS       ! Surface geopotential height
       USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
@@ -222,18 +222,18 @@
       !=================================================================
       CALL READ_CN( NYMD     = NYMD,   
      &              NHMS     = NHMS, 
-     &              FRLAKE   = FRLAKE, 
-     &              FRLAND   = FRLAND, 
-     &              FRLANDIC = FRLANDIC, 
-     &              FROCEAN  = FROCEAN, 
-     &              PHIS     = PHIS      )
+     &              FRLAKE   = State_Met%FRLAKE, 
+     &              FRLAND   = State_Met%FRLAND, 
+     &              FRLANDIC = State_Met%FRLANDIC, 
+     &              FROCEAN  = State_Met%FROCEAN, 
+     &              PHIS     = State_Met%PHIS      )
 
-      ! Copy met fields to State_Met
-      State_Met%FRLAKE   => FRLAKE
-      State_Met%FRLAND   => FRLAND
-      State_Met%FRLANDIC => FRLANDIC
-      State_Met%FROCEAN  => FROCEAN
-      State_Met%PHIS     => PHIS
+      !! Copy met fields to State_Met
+      !State_Met%FRLAKE   => FRLAKE
+      !State_Met%FRLAND   => FRLAND
+      !State_Met%FRLANDIC => FRLANDIC
+      !State_Met%FROCEAN  => FROCEAN
+      !State_Met%PHIS     => PHIS
       
       END SUBROUTINE GET_MERRA_CN_FIELDS
 !EOC

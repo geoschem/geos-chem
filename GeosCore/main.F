@@ -364,7 +364,7 @@
       ! Current practice in the std GEOS-Chem is to call routine
       ! READ_INPUT_FILE with just the "am_I_Root" variable.
       !-----------------------------------------------------------------
-      CALL READ_INPUT_FILE( am_I_Root ) 
+      CALL READ_INPUT_FILE( am_I_Root, Input_Opt, RC )
 #endif
 
       ! Set a flag to denote if we should print ND70 debug output
@@ -393,7 +393,7 @@
       ! reason we are migrating towards used of these objects instead
       ! of the existing ALLOCATABLE module arrays. (bmy, 10/25/12)
       
-      ! Initialize State_Met and CHEMSTATE objects
+      ! Initialize Input_Opt, State_Chem, State_Met, objects
       CALL GIGC_Init_All( am_I_Root, Input_Opt, 
      &                    State_Chm, State_Met, RC )
 

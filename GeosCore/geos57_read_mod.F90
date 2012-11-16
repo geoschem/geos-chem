@@ -64,6 +64,7 @@ MODULE Geos57_Read_Mod
 !  07 Feb 2012 - R. Yantosca - Now echo info after reading fields from disk
 !  10 Feb 2012 - R. Yantosca - Add function Get_Resolution_String
 !  05 Apr 2012 - R. Yantosca - Convert units for specific humidity properly
+!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -238,11 +239,11 @@ CONTAINS
 !
 ! !USES:
 !
-    USE DAO_MOD,            ONLY : FRLAKE
-    USE DAO_MOD,            ONLY : FRLAND
-    USE DAO_MOD,            ONLY : FRLANDIC
-    USE DAO_MOD,            ONLY : FROCEAN
-    USE DAO_MOD,            ONLY : PHIS
+    !USE DAO_MOD,            ONLY : FRLAKE
+    !USE DAO_MOD,            ONLY : FRLAND
+    !USE DAO_MOD,            ONLY : FRLANDIC
+    !USE DAO_MOD,            ONLY : FROCEAN
+    !USE DAO_MOD,            ONLY : PHIS
     USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -264,6 +265,7 @@ CONTAINS
 !  10 Feb 2012 - R. Yantosca - Now get a string for the model resolution
 !  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
 !                              object
+!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -326,34 +328,34 @@ CONTAINS
     ! Read FRLAKE
     v_name = "FRLAKE"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, FRLAKE )
+    CALL Transfer_2d( Q, State_Met%FRLAKE )
 
     ! Read FRLAND
     v_name = "FRLAND"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, FRLAND )
+    CALL Transfer_2d( Q, State_Met%FRLAND )
 
     ! Read FRLANDIC
     v_name = "FRLANDIC"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, FRLANDIC )
+    CALL Transfer_2d( Q, State_Met%FRLANDIC )
     
     ! Read FROCEAN
     v_name = "FROCEAN"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, FROCEAN )
+    CALL Transfer_2d( Q, State_Met%FROCEAN )
     
     ! Read PHIS
     v_name = "PHIS"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, PHIS )
+    CALL Transfer_2d( Q, State_Met%PHIS )
 
-    ! Copy met fields to State_Met
-    State_Met%FRLAKE   => FRLAKE
-    State_Met%FRLAND   => FRLAND
-    State_Met%FRLANDIC => FRLANDIC
-    State_Met%FROCEAN  => FROCEAN
-    State_Met%PHIS     => PHIS
+    !! Copy met fields to State_Met
+    !State_Met%FRLAKE   => FRLAKE
+    !State_Met%FRLAND   => FRLAND
+    !State_Met%FRLANDIC => FRLANDIC
+    !State_Met%FROCEAN  => FROCEAN
+    !State_Met%PHIS     => PHIS
 
     ! Echo info
     stamp = TimeStamp_String( 20110101, 000000 )
@@ -365,11 +367,11 @@ CONTAINS
     !======================================================================
 
     ! Convert PHIS from [m2/s2] to [m]
-    PHIS = PHIS / g0
+    State_Met%PHIS = State_Met%PHIS / g0
 
     ! ND67 diagnostic 
     IF ( ND67 > 0 ) THEN
-       AD67(:,:,15) = AD67(:,:,15) + PHIS  ! Sfc geopotential [m]
+       AD67(:,:,15) = AD67(:,:,15) + State_Met%PHIS  ! Sfc geopotential [m]
     ENDIF
 
     ! Close netCDF file
@@ -394,49 +396,49 @@ CONTAINS
 !
 ! !USES:
 
-    USE DAO_MOD,            ONLY : ALBEDO   => ALBD
-    USE DAO_MOD,            ONLY : CLDTOT   => CLDFRC
-    USE DAO_MOD,            ONLY : EFLUX
-    USE DAO_MOD,            ONLY : EVAP
-    USE DAO_MOD,            ONLY : FRSEAICE
-    USE DAO_MOD,            ONLY : FRSNO
-    USE DAO_MOD,            ONLY : GRN
-    USE DAO_MOD,            ONLY : GWETROOT
-    USE DAO_MOD,            ONLY : GWETTOP
-    USE DAO_MOD,            ONLY : HFLUX
-    USE DAO_MOD,            ONLY : LAI
-    USE DAO_MOD,            ONLY : LWI
-    USE DAO_MOD,            ONLY : LWGNT    => RADLWG
-    USE DAO_MOD,            ONLY : PARDF
-    USE DAO_MOD,            ONLY : PARDR
-    USE DAO_MOD,            ONLY : PBLH     => PBL
-    USE DAO_MOD,            ONLY : PRECANV  => PREANV
-    USE DAO_MOD,            ONLY : PRECCON  => PRECON
-    USE DAO_MOD,            ONLY : PRECLSC  => PRELSC
-    USE DAO_MOD,            ONLY : PRECSNO
-    USE DAO_MOD,            ONLY : PRECTOT  => PREACC
-    USE DAO_MOD,            ONLY : SEAICE00  
-    USE DAO_MOD,            ONLY : SEAICE10
-    USE DAO_MOD,            ONLY : SEAICE20
-    USE DAO_MOD,            ONLY : SEAICE30
-    USE DAO_MOD,            ONLY : SEAICE40
-    USE DAO_MOD,            ONLY : SEAICE50
-    USE DAO_MOD,            ONLY : SEAICE60
-    USE DAO_MOD,            ONLY : SEAICE70
-    USE DAO_MOD,            ONLY : SEAICE80
-    USE DAO_MOD,            ONLY : SEAICE90
-    USE DAO_MOD,            ONLY : SLP
-    USE DAO_MOD,            ONLY : SNODP
-    USE DAO_MOD,            ONLY : SNOMAS
-    USE DAO_MOD,            ONLY : SWGDN    => RADSWG
-    USE DAO_MOD,            ONLY : SWGNT    => RADSWG
-    USE DAO_MOD,            ONLY : TROPPT   => TROPP
-    USE DAO_MOD,            ONLY : T2M      => TS
-    USE DAO_MOD,            ONLY : TS       => TSKIN
-    USE DAO_MOD,            ONLY : U10M
-    USE DAO_MOD,            ONLY : USTAR
-    USE DAO_MOD,            ONLY : V10M
-    USE DAO_MOD,            ONLY : Z0M      => Z0
+    !USE DAO_MOD,            ONLY : ALBEDO   => ALBD
+    !USE DAO_MOD,            ONLY : CLDTOT   => CLDFRC
+    !USE DAO_MOD,            ONLY : EFLUX
+    !USE DAO_MOD,            ONLY : EVAP
+    !USE DAO_MOD,            ONLY : FRSEAICE
+    !USE DAO_MOD,            ONLY : FRSNO
+    !USE DAO_MOD,            ONLY : GRN
+    !USE DAO_MOD,            ONLY : GWETROOT
+    !USE DAO_MOD,            ONLY : GWETTOP
+    !USE DAO_MOD,            ONLY : HFLUX
+    !USE DAO_MOD,            ONLY : LAI
+    !USE DAO_MOD,            ONLY : LWI
+    !USE DAO_MOD,            ONLY : LWGNT    => RADLWG
+    !USE DAO_MOD,            ONLY : PARDF
+    !USE DAO_MOD,            ONLY : PARDR
+    !USE DAO_MOD,            ONLY : PBLH     => PBL
+    !USE DAO_MOD,            ONLY : PRECANV  => PREANV
+    !USE DAO_MOD,            ONLY : PRECCON  => PRECON
+    !USE DAO_MOD,            ONLY : PRECLSC  => PRELSC
+    !USE DAO_MOD,            ONLY : PRECSNO
+    !USE DAO_MOD,            ONLY : PRECTOT  => PREACC
+    !USE DAO_MOD,            ONLY : SEAICE00  
+    !USE DAO_MOD,            ONLY : SEAICE10
+    !USE DAO_MOD,            ONLY : SEAICE20
+    !USE DAO_MOD,            ONLY : SEAICE30
+    !USE DAO_MOD,            ONLY : SEAICE40
+    !USE DAO_MOD,            ONLY : SEAICE50
+    !USE DAO_MOD,            ONLY : SEAICE60
+    !USE DAO_MOD,            ONLY : SEAICE70
+    !USE DAO_MOD,            ONLY : SEAICE80
+    !USE DAO_MOD,            ONLY : SEAICE90
+    !USE DAO_MOD,            ONLY : SLP
+    !USE DAO_MOD,            ONLY : SNODP
+    !USE DAO_MOD,            ONLY : SNOMAS
+    !USE DAO_MOD,            ONLY : SWGDN    => RADSWG
+    !USE DAO_MOD,            ONLY : SWGNT    => RADSWG
+    !USE DAO_MOD,            ONLY : TROPPT   => TROPP
+    !USE DAO_MOD,            ONLY : T2M      => TS
+    !USE DAO_MOD,            ONLY : TS       => TSKIN
+    !USE DAO_MOD,            ONLY : U10M
+    !USE DAO_MOD,            ONLY : USTAR
+    !USE DAO_MOD,            ONLY : V10M
+    !USE DAO_MOD,            ONLY : Z0M      => Z0
     USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS:
@@ -480,6 +482,7 @@ CONTAINS
 !  10 Feb 2012 - R. Yantosca - Now get a string for the model resolution
 !  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
 !                              object
+!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -566,272 +569,272 @@ CONTAINS
     ! Read ALBEDO
     v_name = "ALBEDO"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, ALBEDO )
+    CALL Transfer_2d( Q, State_Met%ALBD )
 
     ! Read CLDTOT
     v_name = "CLDTOT"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, CLDTOT )
+    CALL Transfer_2d( Q, State_Met%CLDFRC )
 
     ! Read EFLUX
     v_name = "EFLUX"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, EFLUX )
+    CALL Transfer_2d( Q, State_Met%EFLUX )
 
     ! Read EVAP
     v_name = "EVAP"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, EVAP )
+    CALL Transfer_2d( Q, State_Met%EVAP )
 
     ! Read FRSEAICE
     v_name = "FRSEAICE"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, FRSEAICE )
+    CALL Transfer_2d( Q, State_Met%FRSEAICE )
 
     ! Read FRSNO
     v_name = "FRSNO"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, FRSNO )
+    CALL Transfer_2d( Q, State_Met%FRSNO )
 
     ! Read GRN
     v_name = "GRN"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, GRN )
+    CALL Transfer_2d( Q, State_Met%GRN )
 
     ! Read GWETROOT
     v_name = "GWETROOT"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, GWETROOT )
+    CALL Transfer_2d( Q, State_Met%GWETROOT )
 
     ! Read GWETTOP
     v_name = "GWETTOP"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, GWETTOP )
+    CALL Transfer_2d( Q, State_Met%GWETTOP )
 
     ! Read HFLUX from file
     v_name = "HFLUX"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, HFLUX )
+    CALL Transfer_2d( Q, State_Met%HFLUX )
 
     ! Read LAI
     v_name = "LAI"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, LAI )
+    CALL Transfer_2d( Q, State_Met%LAI )
 
     ! Read LWI
     v_name = "LWI"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, LWI )
+    CALL Transfer_2d( Q, State_Met%LWI )
 
     ! Read LWGNT 
     v_name = "LWGNT"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, LWGNT )
+    CALL Transfer_2d( Q, State_Met%RADLWG )
 
     !-----------------------------------------------------------------------
     ! Comment this out for now, this field isn't needed (bmy, 2/2/12)
     !! Read LWTUP
     !v_name = "LWTUP"
     !CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    !CALL Transfer_2d( Q, FRLAKE )
+    !CALL Transfer_2d( Q, State_Met%FRLAKE )
     !-----------------------------------------------------------------------
 
     ! Read PARDF
     v_name = "PARDF"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, PARDF )
+    CALL Transfer_2d( Q, State_Met%PARDF )
 
     ! Read PARDR
     v_name = "PARDR"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, PARDR )
+    CALL Transfer_2d( Q, State_Met%PARDR )
 
     ! Read PBLH
     v_name = "PBLH"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, PBLH )
+    CALL Transfer_2d( Q, State_Met%PBLH )
 
     ! Read PRECANV
     v_name = "PRECANV"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, PRECANV )
+    CALL Transfer_2d( Q, State_Met%PRECANV )
 
     ! Read PRECCON
     v_name = "PRECCON"
-    CALL NcRd( PRECCON, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, PRECCON )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, State_Met%PRECCON )
 
     ! Read PRECLSC
     v_name = "PRECLSC"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, PRECLSC )
+    CALL Transfer_2d( Q, State_Met%PRECLSC )
 
     ! Read PRECSNO
     v_name = "PRECSNO"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, PRECSNO )
+    CALL Transfer_2d( Q, State_Met%PRECSNO )
 
     ! Read PRECTOT
     v_name = "PRECTOT"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, PRECTOT )
+    CALL Transfer_2d( Q, State_Met%PRECTOT )
 
     !-----------------------------------------------------------------------
     ! Comment this out for now, this field isn't needed (bmy, 2/2/12)
     !! Read QV2M
     !v_name = "QV2M"
     !CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    !CALL Transfer_2d( Q, QV2M )
+    !CALL Transfer_2d( Q, State_Met%QV2M )
     !-----------------------------------------------------------------------
 
     ! Read SEAICE00
     v_name = "SEAICE00"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, SEAICE00 )
+    CALL Transfer_2d( Q, State_Met%SEAICE00 )
 
     ! Read SEAICE10
     v_name = "SEAICE10"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, SEAICE10 )
+    CALL Transfer_2d( Q, State_Met%SEAICE10 )
 
     ! Read SEAICE20
     v_name = "SEAICE20"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, SEAICE20 )
+    CALL Transfer_2d( Q, State_Met%SEAICE20 )
 
     ! Read SEAICE30
     v_name = "SEAICE30"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, SEAICE30 )
+    CALL Transfer_2d( Q, State_Met%SEAICE30 )
 
     ! Read SEAICE40
     v_name = "SEAICE40"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, SEAICE40 )
+    CALL Transfer_2d( Q, State_Met%SEAICE40 )
 
     ! Read SEAICE50
     v_name = "SEAICE50"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, SEAICE50 )
+    CALL Transfer_2d( Q, State_Met%SEAICE50 )
 
     ! Read SEAICE60 
     v_name = "SEAICE60"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, SEAICE60 )
+    CALL Transfer_2d( Q, State_Met%SEAICE60 )
 
     ! Read SEAICE70
     v_name = "SEAICE70"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, SEAICE70 )
+    CALL Transfer_2d( Q, State_Met%SEAICE70 )
 
     ! Read SEAICE80
     v_name = "SEAICE80"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, SEAICE80 )
+    CALL Transfer_2d( Q, State_Met%SEAICE80 )
 
     ! Read SEAICE90
     v_name = "SEAICE90"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, SEAICE90 )
+    CALL Transfer_2d( Q, State_Met%SEAICE90 )
 
     ! Read SLP
     v_name = "SLP"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, SLP )
+    CALL Transfer_2d( Q, State_Met%SLP )
 
     ! Read SNODP
     v_name = "SNODP"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, SNODP )
+    CALL Transfer_2d( Q, State_Met%SNODP )
 
     ! Read SNOMAS
     v_name = "SNOMAS"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, SNOMAS )
+    CALL Transfer_2d( Q, State_Met%SNOMAS )
 
     ! Read SWGDN
     v_name = "SWGDN"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, SWGDN )
+    CALL Transfer_2d( Q, State_Met%RADSWG )
 
     ! Read TROPPT
     v_name = "TROPPT"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, TROPPT )
+    CALL Transfer_2d( Q, State_Met%TROPP )
 
     ! Read TS
     v_name = "TS"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, TS )
+    CALL Transfer_2d( Q, State_Met%TSKIN )
 
     ! Read T2M
     v_name = "T2M"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, T2M )
+    CALL Transfer_2d( Q, State_Met%TS )
 
     ! Read U10M
     v_name = "U10M"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, U10M )
+    CALL Transfer_2d( Q, State_Met%U10M )
 
     ! Read USTAR
     v_name = "USTAR"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, USTAR )
+    CALL Transfer_2d( Q, State_Met%USTAR )
 
     ! Read V10M
     v_name = "V10M"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, V10M )
+    CALL Transfer_2d( Q, State_Met% V10M )
 
     ! Read Z0M
     v_name = "Z0M"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q, Z0M )
+    CALL Transfer_2d( Q, State_Met%Z0 )
 
-    ! Copy met fields to State_Met
-    State_Met%ALBD     => ALBEDO
-    State_Met%CLDFRC   => CLDTOT
-    State_Met%EFLUX    => EFLUX
-    State_Met%EVAP     => EVAP
-    State_Met%FRSEAICE => FRSEAICE
-    State_Met%FRSNO    => FRSNO
-    State_Met%GRN      => GRN
-    State_Met%GWETROOT => GWETROOT
-    State_Met%GWETTOP  => GWETTOP
-    State_Met%HFLUX    => HFLUX
-    State_Met%LAI      => LAI
-    State_Met%LWI      => LWI
-    State_Met%PARDR    => PARDR
-    State_Met%PARDF    => PARDF
-    State_Met%PBLH     => PBLH
-    State_Met%PRECANV  => PRECANV
-    State_Met%PRECCON  => PRECCON
-    State_Met%PRECLSC  => PRECLSC
-    State_Met%PRECSNO  => PRECSNO
-    State_Met%PRECTOT  => PRECTOT
-    State_Met%RADLWG   => LWGNT
-    State_Met%RADSWG   => SWGDN
-    State_Met%SEAICE00 => SEAICE00
-    State_Met%SEAICE10 => SEAICE10
-    State_Met%SEAICE20 => SEAICE20
-    State_Met%SEAICE30 => SEAICE30
-    State_Met%SEAICE40 => SEAICE40
-    State_Met%SEAICE50 => SEAICE50
-    State_Met%SEAICE60 => SEAICE60
-    State_Met%SEAICE70 => SEAICE70
-    State_Met%SEAICE80 => SEAICE80
-    State_Met%SEAICE90 => SEAICE90
-    State_Met%SLP      => SLP
-    State_Met%SNODP    => SNODP
-    State_Met%SNOMAS   => SNOMAS
-    State_Met%TROPP    => TROPPT
-    State_Met%TS       => T2M
-    State_Met%TSKIN    => TS
-    State_Met%U10M     => U10M
-    State_Met%USTAR    => USTAR
-    State_Met%V10M     => V10M
-    State_Met%Z0       => Z0M
+    !! Copy met fields to State_Met
+    !State_Met%ALBD     => ALBEDO
+    !State_Met%CLDFRC   => CLDTOT
+    !State_Met%EFLUX    => EFLUX
+    !State_Met%EVAP     => EVAP
+    !State_Met%FRSEAICE => FRSEAICE
+    !State_Met%FRSNO    => FRSNO
+    !State_Met%GRN      => GRN
+    !State_Met%GWETROOT => GWETROOT
+    !State_Met%GWETTOP  => GWETTOP
+    !State_Met%HFLUX    => HFLUX
+    !State_Met%LAI      => LAI
+    !State_Met%LWI      => LWI
+    !State_Met%PARDR    => PARDR
+    !State_Met%PARDF    => PARDF
+    !State_Met%PBLH     => PBLH
+    !State_Met%PRECANV  => PRECANV
+    !State_Met%PRECCON  => PRECCON
+    !State_Met%PRECLSC  => PRECLSC
+    !State_Met%PRECSNO  => PRECSNO
+    !State_Met%PRECTOT  => PRECTOT
+    !State_Met%RADLWG   => LWGNT
+    !State_Met%RADSWG   => SWGDN
+    !State_Met%SEAICE00 => SEAICE00
+    !State_Met%SEAICE10 => SEAICE10
+    !State_Met%SEAICE20 => SEAICE20
+    !State_Met%SEAICE30 => SEAICE30
+    !State_Met%SEAICE40 => SEAICE40
+    !State_Met%SEAICE50 => SEAICE50
+    !State_Met%SEAICE60 => SEAICE60
+    !State_Met%SEAICE70 => SEAICE70
+    !State_Met%SEAICE80 => SEAICE80
+    !State_Met%SEAICE90 => SEAICE90
+    !State_Met%SLP      => SLP
+    !State_Met%SNODP    => SNODP
+    !State_Met%SNOMAS   => SNOMAS
+    !State_Met%TROPP    => TROPPT
+    !State_Met%TS       => T2M
+    !State_Met%TSKIN    => TS
+    !State_Met%U10M     => U10M
+    !State_Met%USTAR    => USTAR
+    !State_Met%V10M     => V10M
+    !State_Met%Z0       => Z0M
 
     ! Echo info
     stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
@@ -849,33 +852,33 @@ CONTAINS
     CALL Set_Ct_A1( INCREMENT=.TRUE. )
       
     ! Convert surface precip fields from [kg/m2/s] --> [mm/day]
-    PRECANV = PRECANV * 86400d0
-    PRECCON = PRECCON * 86400d0
-    PRECLSC = PRECLSC * 86400d0
-    PRECTOT = PRECTOT * 86400d0
+    State_Met%PRECANV = State_Met%PRECANV * 86400d0
+    State_Met%PRECCON = State_Met%PRECCON * 86400d0
+    State_Met%PRECLSC = State_Met%PRECLSC * 86400d0
+    State_Met%PRECTOT = State_Met%PRECTOT * 86400d0
 
     ! ND67 diagnostic: surface fields
     IF ( ND67 > 0 ) THEN
-       AD67(:,:,1 ) = AD67(:,:,1 ) + HFLUX    ! Sensible heat flux [W/m2]
-       AD67(:,:,2 ) = AD67(:,:,2 ) + SWGDN    ! Incident SW rad @ sfc [W/m2]
-       AD67(:,:,3 ) = AD67(:,:,3 ) + PRECTOT  ! Tot prec @ sfc [kg/m2/s]
-       AD67(:,:,4 ) = AD67(:,:,4 ) + PRECCON  ! CV prec @ sfc [kg/m2/s]
-       AD67(:,:,5 ) = AD67(:,:,5 ) + T2M      ! T @ 2m height [K]
-       AD67(:,:,6 ) = AD67(:,:,6 ) + 0e0      !
-       AD67(:,:,7 ) = AD67(:,:,7 ) + USTAR    ! Friction velocity [m/s]
-       AD67(:,:,8 ) = AD67(:,:,8 ) + Z0M      ! Roughness height [m]
-       AD67(:,:,9 ) = AD67(:,:,9 ) + PBLH     ! PBL height [m]
-       AD67(:,:,10) = AD67(:,:,10) + CLDTOT   ! Column cld fraction
-       AD67(:,:,11) = AD67(:,:,11) + U10M     ! U-wind @ 10m [m/s]
-       AD67(:,:,12) = AD67(:,:,12) + V10M     ! V-wind @ 10m [m/s]
-       AD67(:,:,14) = AD67(:,:,14) + ALBEDO   ! Sfc albedo [unitless]
-       AD67(:,:,17) = AD67(:,:,17) + TROPPT   ! T'pause pressure [hPa]
-       AD67(:,:,18) = AD67(:,:,18) + SLP      ! Sea level pressure [hPa]
-       AD67(:,:,19) = AD67(:,:,19) + TS       ! Sfc skin temperature [K]
-       AD67(:,:,20) = AD67(:,:,20) + PARDF    ! Diffuse PAR [W/m2]
-       AD67(:,:,21) = AD67(:,:,21) + PARDR    ! Direct PAR [W/m2]
-       AD67(:,:,22) = AD67(:,:,22) + GWETTOP  ! Topsoil wetness [frac]
-       AD67(:,:,23) = AD67(:,:,23) + EFLUX    ! Latent heat flux [W/m2]
+       AD67(:,:,1 ) = AD67(:,:,1 ) + State_Met%HFLUX    ! Sens heat flux [W/m2]
+       AD67(:,:,2 ) = AD67(:,:,2 ) + State_Met%RADSWG   ! SW rad @ sfc [W/m2]
+       AD67(:,:,3 ) = AD67(:,:,3 ) + State_Met%PRECTOT  ! Tot prec [kg/m2/s]
+       AD67(:,:,4 ) = AD67(:,:,4 ) + State_Met%PRECCON  ! Sfc conv prec[kg/m2/s]
+       AD67(:,:,5 ) = AD67(:,:,5 ) + State_Met%TS       ! T @ 2m height [K]
+       AD67(:,:,6 ) = AD67(:,:,6 ) + 0e0                !
+       AD67(:,:,7 ) = AD67(:,:,7 ) + State_Met%USTAR    ! Friction vel [m/s]
+       AD67(:,:,8 ) = AD67(:,:,8 ) + State_Met%Z0       ! Roughness height [m]
+       AD67(:,:,9 ) = AD67(:,:,9 ) + State_Met%PBLH     ! PBL height [m]
+       AD67(:,:,10) = AD67(:,:,10) + State_Met%CLDFRC   ! Column cld fraction
+       AD67(:,:,11) = AD67(:,:,11) + State_Met%U10M     ! U-wind @ 10m [m/s]
+       AD67(:,:,12) = AD67(:,:,12) + State_Met%V10M     ! V-wind @ 10m [m/s]
+       AD67(:,:,14) = AD67(:,:,14) + State_Met%ALBD     ! Sfc albedo [unitless]
+       AD67(:,:,17) = AD67(:,:,17) + State_Met%TROPP    ! T'pause pressure [hPa]
+       AD67(:,:,18) = AD67(:,:,18) + State_Met%SLP      ! Sea level prs [hPa]
+       AD67(:,:,19) = AD67(:,:,19) + State_Met%TS       ! Sfc skin temp [K]
+       AD67(:,:,20) = AD67(:,:,20) + State_Met%PARDF    ! Diffuse PAR [W/m2]
+       AD67(:,:,21) = AD67(:,:,21) + State_Met%PARDR    ! Direct PAR [W/m2]
+       AD67(:,:,22) = AD67(:,:,22) + State_Met%GWETTOP  ! Topsoil wetness [frac]
+       AD67(:,:,23) = AD67(:,:,23) + State_Met%EFLUX    ! Latent heat flux [W/m2]
     ENDIF
 
     ! Save date & time for next iteration
@@ -985,12 +988,12 @@ CONTAINS
 !
 ! !USES:
 !
-    USE DAO_MOD,            ONLY : CLOUD    => CLDF
-    USE DAO_MOD,            ONLY : OPTDEPTH => OPTDEP
-    USE DAO_MOD,            ONLY : QI
-    USE DAO_MOD,            ONLY : QL
-    USE DAO_MOD,            ONLY : TAUCLI
-    USE DAO_MOD,            ONLY : TAUCLW
+    !USE DAO_MOD,            ONLY : CLOUD    => CLDF
+    !USE DAO_MOD,            ONLY : OPTDEPTH => OPTDEP
+    !USE DAO_MOD,            ONLY : QI
+    !USE DAO_MOD,            ONLY : QL
+    !USE DAO_MOD,            ONLY : TAUCLI
+    !USE DAO_MOD,            ONLY : TAUCLW
     USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS:
@@ -1018,6 +1021,7 @@ CONTAINS
 !  05 Apr 2012 - R. Yantosca - Fixed bug: TAUCLI was overwritten w/ TAUCLW
 !  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
 !                              object
+!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1092,40 +1096,40 @@ CONTAINS
     ! Read CLOUD
     v_name = "CLOUD"
     CALL NcRd( Q, fId, TRIM(v_name), st4d, ct4d )
-    CALL TRANSFER_A6( Q, CLOUD )
+    CALL TRANSFER_A6( Q, State_Met%CLDF )
     
     ! Read OPTDEPTH
     v_name = "OPTDEPTH"
     CALL NcRd( Q, fId, TRIM(v_name), st4d, ct4d )
-    CALL TRANSFER_A6( Q, OPTDEPTH )
+    CALL TRANSFER_A6( Q, State_Met%OPTDEP )
 
     ! Read QI
     v_name = "QI"
     CALL NcRd( Q, fId, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q, QI )
+    CALL Transfer_3d( Q, State_Met%QI )
 
     ! Read QL
     v_name = "QL"
     CALL NcRd( Q, fId, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q, QL )
+    CALL Transfer_3d( Q, State_Met%QL )
 
     ! Read TAUCLI
     v_name = "TAUCLI"
     CALL NcRd( Q, fId, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q, TAUCLI )
+    CALL Transfer_3d( Q, State_Met%TAUCLI )
 
     ! Read TAUCLW
     v_name = "TAUCLW"
     CALL NcRd( Q, fId, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q, TAUCLW )
+    CALL Transfer_3d( Q, State_Met%TAUCLW )
 
-    ! Copy met fields to State_Met
-    State_Met%CLDF   => CLOUD
-    State_Met%OPTDEP => OPTDEPTH
-    State_Met%QI     => QI
-    State_Met%QL     => QL
-    State_Met%TAUCLI => TAUCLI
-    State_Met%TAUCLW => TAUCLW
+    !! Copy met fields to State_Met
+    !State_Met%CLDF   => CLOUD
+    !State_Met%OPTDEP => OPTDEPTH
+    !State_Met%QI     => QI
+    !State_Met%QL     => QL
+    !State_Met%TAUCLI => TAUCLI
+    !State_Met%TAUCLW => TAUCLW
 
     ! Echo info
     stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
@@ -1158,13 +1162,13 @@ CONTAINS
 !
 ! !USES:
 !
-    USE DAO_MOD,            ONLY : CLDTOPS 
-    USE DAO_MOD,            ONLY : CMFMC
-    USE DAO_MOD,            ONLY : DTRAIN
-   !USE DAO_MOD,            ONLY : OMEGA
-    USE DAO_MOD,            ONLY : RH
-    USE DAO_MOD,            ONLY : U      => UWND
-    USE DAO_MOD,            ONLY : V      => VWND
+    !USE DAO_MOD,            ONLY : CLDTOPS 
+    !USE DAO_MOD,            ONLY : CMFMC
+    !USE DAO_MOD,            ONLY : DTRAIN
+    !USE DAO_MOD,            ONLY : OMEGA
+    !USE DAO_MOD,            ONLY : RH
+    !USE DAO_MOD,            ONLY : U      => UWND
+    !USE DAO_MOD,            ONLY : V      => VWND
     USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS:
@@ -1191,6 +1195,7 @@ CONTAINS
 !  10 Feb 2012 - R. Yantosca - Now get a string for the model resolution
 !  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
 !                              object
+!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1271,7 +1276,7 @@ CONTAINS
     ! Read CMFMC
     v_name = "CMFMC"
     CALL NcRd( Qe, fId, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d_Lp1( Qe, CMFMC )
+    CALL Transfer_3d_Lp1( Qe, State_Met%CMFMC )
 
     !--------------------------------
     ! Read data on level centers
@@ -1284,34 +1289,34 @@ CONTAINS
     ! Read DTRAIN
     v_name = "DTRAIN"
     CALL NcRd( Q, fId, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q, DTRAIN )
+    CALL Transfer_3d( Q, State_Met%DTRAIN )
 
     !! Read OMEGA  from file
     !v_name = "OMEGA"
     !CALL NcRd( Q, fId, TRIM(v_name), st4d, ct4d )
-    !CALL Transfer_3d( Q, OMEGA )
+    !CALL Transfer_3d( Q, State_Met%OMEGA )
 
     ! Read RH
     v_name = "RH"
     CALL NcRd( Q, fId, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q, RH )
+    CALL Transfer_3d( Q, State_Met%RH )
 
     ! Read U
     v_name = "U"
     CALL NcRd( Q, fId, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q, U )
+    CALL Transfer_3d( Q, State_Met%U )
 
     ! Read V
     v_name = "V"
     CALL NcRd( Q, fId, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q, V )
+    CALL Transfer_3d( Q, State_Met%V )
 
-    ! Copy met fields to State_Met
-    State_Met%CMFMC  => CMFMC
-    State_Met%DTRAIN => DTRAIN
-    State_Met%RH     => RH
-    State_Met%U      => U
-    State_Met%V      => V
+    !! Copy met fields to State_Met
+    !State_Met%CMFMC  => CMFMC
+    !State_Met%DTRAIN => DTRAIN
+    !State_Met%RH     => RH
+    !State_Met%U      => U
+    !State_Met%V      => V
 
     ! Echo info
     stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
@@ -1325,30 +1330,30 @@ CONTAINS
     ! CLDTOPS = highest location of CMFMC in the column (I,J)
     DO J = 1, JJPAR
     DO I = 1, IIPAR
-       CLDTOPS(I,J) = 1
+       State_Met%CLDTOPS(I,J) = 1
        DO L = LLPAR, 1, -1
-          IF ( CMFMC(I,J,L) > 0d0 ) THEN
-             CLDTOPS(I,J) = L + 1
+          IF ( State_Met%CMFMC(I,J,L) > 0d0 ) THEN
+             State_Met%CLDTOPS(I,J) = L + 1
              EXIT
           ENDIF
        ENDDO
     ENDDO
     ENDDO
 
-    ! Copy met fields to State_Met
-    State_Met%CLDTOPS => CLDTOPS
+    !! Copy met fields to State_Met
+    !State_Met%CLDTOPS => CLDTOPS
 
     ! ND66 diagnostic: U, V, CMFMC, DTRAIN met fields
     IF ( ND66 > 0 ) THEN
-       AD66(:,:,1:LD66,1) = AD66(:,:,1:LD66,1) + U     (:,:,1:LD66) ! [m/s    ]
-       AD66(:,:,1:LD66,2) = AD66(:,:,1:LD66,2) + V     (:,:,1:LD66) ! [m/s    ]
-       AD66(:,:,1:LD66,5) = AD66(:,:,1:LD66,5) + CMFMC (:,:,1:LD66) ! [kg/m2/s]
-       AD66(:,:,1:LD66,6) = AD66(:,:,1:LD66,6) + DTRAIN(:,:,1:LD66) ! [kg/m2/s]
+       AD66(:,:,1:LD66,1) = AD66(:,:,1:LD66,1) + State_Met%U     (:,:,1:LD66)
+       AD66(:,:,1:LD66,2) = AD66(:,:,1:LD66,2) + State_Met%V     (:,:,1:LD66)
+       AD66(:,:,1:LD66,5) = AD66(:,:,1:LD66,5) + State_Met%CMFMC (:,:,1:LD66)
+       AD66(:,:,1:LD66,6) = AD66(:,:,1:LD66,6) + State_Met%DTRAIN(:,:,1:LD66)
     ENDIF
 
     ! ND67 diagnostic: CLDTOPS
     IF ( ND67 > 0 ) THEN
-       AD67(:,:,16) = AD67(:,:,16) + CLDTOPS                        ! [levels]
+       AD67(:,:,16) = AD67(:,:,16) + State_Met%CLDTOPS         ! [levels]
     ENDIF
 
     ! Close netCDF file
@@ -1374,10 +1379,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE DAO_MOD,            ONLY : DQRCU
-    USE DAO_MOD,            ONLY : DQRLSAN
-    USE DAO_MOD,            ONLY : REEVAPCN
-    USE DAO_MOD,            ONLY : REEVAPLS
+    !USE DAO_MOD,            ONLY : DQRCU
+    !USE DAO_MOD,            ONLY : DQRLSAN
+    !USE DAO_MOD,            ONLY : REEVAPCN
+    !USE DAO_MOD,            ONLY : REEVAPLS
     USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS:
@@ -1404,6 +1409,7 @@ CONTAINS
 !  10 Feb 2012 - R. Yantosca - Now get a string for the model resolution
 !  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
 !                              object
+!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1479,28 +1485,28 @@ CONTAINS
     ! Read DQRCU  from file
     v_name = "DQRCU"
     CALL NcRd( Q, fId, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q, DQRCU )
+    CALL Transfer_3d( Q, State_Met%DQRCU )
 
     ! Read DQRLSAN
     v_name = "DQRLSAN"
     CALL NcRd( Q, fId, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q, DQRLSAN )
+    CALL Transfer_3d( Q, State_Met%DQRLSAN )
 
     ! Read REEVAPCN
     v_name = "REEVAPCN"
     CALL NcRd( Q, fId, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q, REEVAPCN )
+    CALL Transfer_3d( Q, State_Met%REEVAPCN )
 
     ! Read  from file
     v_name = "REEVAPLS"
     CALL NcRd( Q, fId, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q, REEVAPLS )
+    CALL Transfer_3d( Q, State_Met%REEVAPLS )
 
-    ! Copy met fields to State_Met
-    State_Met%DQRCU    => DQRCU
-    State_Met%DQRLSAN  => DQRLSAN
-    State_Met%REEVAPCN => REEVAPCN
-    State_Met%REEVAPLS => REEVAPLS
+    !! Copy met fields to State_Met
+    !State_Met%DQRCU    => DQRCU
+    !State_Met%DQRLSAN  => DQRLSAN
+    !State_Met%REEVAPCN => REEVAPCN
+    !State_Met%REEVAPLS => REEVAPLS
 
     ! Echo info
     stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
@@ -1564,6 +1570,7 @@ CONTAINS
 !  10 Feb 2012 - R. Yantosca - Now get a string for the model resolution
 !  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
 !                              object
+!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1639,28 +1646,28 @@ CONTAINS
     ! Read PFICU
     v_name = "PFICU"
     CALL NcRd( Qe, fId, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d_Lp1( Qe, PFICU )
+    CALL Transfer_3d_Lp1( Qe, State_Met%PFICU )
 
     ! Read PFILSAN
     v_name = "PFILSAN"
     CALL NcRd( Qe, fId, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d_Lp1( Qe, PFILSAN )
+    CALL Transfer_3d_Lp1( Qe, State_Met%PFILSAN )
 
     ! Read PFLCU
     v_name = "PFLCU"
     CALL NcRd( Qe, fId, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d_Lp1( Qe, PFLCU )
+    CALL Transfer_3d_Lp1( Qe, State_Met%PFLCU )
 
     ! Read  from file
     v_name = "PFLLSAN"
     CALL NcRd( Qe, fId, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d_Lp1( Qe,  PFLLSAN )
+    CALL Transfer_3d_Lp1( Qe, State_Met%PFLLSAN )
 
-    ! Copy met fields to State_Met
-    State_Met%PFICU   => PFICU
-    State_Met%PFILSAN => PFILSAN
-    State_Met%PFLCU   => PFLCU
-    State_Met%PFLLSAN => PFLLSAN
+    !! Copy met fields to State_Met
+    !State_Met%PFICU   => PFICU
+    !State_Met%PFILSAN => PFILSAN
+    !State_Met%PFLCU   => PFLCU
+    !State_Met%PFLLSAN => PFLLSAN
 
     ! Echo info
     stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
@@ -1724,6 +1731,7 @@ CONTAINS
 !  05 Apr 2012 - R. Yantosca - Now convert QV1 from [kg/kg] to [g/kg]
 !  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
 !                              object
+!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1805,7 +1813,7 @@ CONTAINS
     ! Read PS
     v_name = "PS"
     CALL NcRd( Q2, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q2, PS1 )
+    CALL Transfer_2d( Q2, State_Met%PS1 )
 
     !-------------------------------------------------
     ! Read 4D data (3D spatial + 1D time)
@@ -1821,24 +1829,24 @@ CONTAINS
     !! Read PV
     !v_name = "PV"
     !CALL NcRd( Q3, fId, TRIM(v_name), st4d, ct4d )
-    !CALL Transfer_3d( Q3, PV )
+    !CALL Transfer_3d( Q3, !State_Met%PV )
     !----------------------------------------------------------------
 
     ! Read QV
     v_name = "QV"
     CALL NcRd( Q3, fId, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q3, QV1 )
+    CALL Transfer_3d( Q3, State_Met%SPHU1 )
 
     ! Read T
     v_name = "T"
     CALL NcRd( Q3, fId, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q3, T1 )
+    CALL Transfer_3d( Q3, State_Met%TMPU1 )
 
-    ! Copy met fields to State_Met
-    State_Met%PS1   => PS1
-   !State_Met%PV1   => PV1
-    State_Met%SPHU1 => QV1
-    State_Met%TMPU1 => T1
+    !! Copy met fields to State_Met
+    !State_Met%PS1   => PS1
+    !!State_Met%PV1   => PV1
+    !State_Met%SPHU1 => QV1
+    !State_Met%TMPU1 => T1
 
     ! Echo info
     stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
@@ -1848,16 +1856,16 @@ CONTAINS
     !-------------------------------------------------
     ! Unit conversions & special handling
     !-------------------------------------------------
-    WHERE ( QV1 < 0d0 ) 
+    WHERE ( State_Met%SPHU1 < 0d0 ) 
 
        ! NOTE: Now set negative Q to a small positive # 
        ! instead of zero, so as not to blow up logarithms
-       QV1 = 1d-32
+       State_Met%SPHU1 = 1d-32
 
     ELSEWHERE
 
        ! Convert GEOS-5.7.x specific humidity from [kg/kg] to [g/kg]
-       QV1 = QV1 * 1000d0
+       State_Met%SPHU1 = State_Met%SPHU1 * 1000d0
 
     ENDWHERE
 
@@ -1873,8 +1881,8 @@ CONTAINS
 
     ! ND66 diagnostic: T1, QV1 met fields
     IF ( ND66 > 0 ) THEN
-       AD66(:,:,1:LD66,3) = AD66(:,:,1:LD66,3) + T1 (:,:,1:LD66) ! [K   ]
-       AD66(:,:,1:LD66,4) = AD66(:,:,1:LD66,4) + QV1(:,:,1:LD66) ! [g/kg]
+       AD66(:,:,1:LD66,3) = AD66(:,:,1:LD66,3) + State_Met%TMPU1(:,:,1:LD66)
+       AD66(:,:,1:LD66,4) = AD66(:,:,1:LD66,4) + State_Met%SPHU1(:,:,1:LD66)
     ENDIF
 
   END SUBROUTINE Geos57_Read_I3_1
@@ -1896,10 +1904,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE DAO_MOD,            ONLY : PS2
-   !USE DAO_MOD,            ONLY : PV2
-    USE DAO_MOD,            ONLY : QV2 => SPHU2
-    USE DAO_MOD,            ONLY : T2  => TMPU2
+    !USE DAO_MOD,            ONLY : PS2
+   !!USE DAO_MOD,            ONLY : PV2
+    !USE DAO_MOD,            ONLY : QV2 => SPHU2
+    !USE DAO_MOD,            ONLY : T2  => TMPU2
     USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS:
@@ -1927,6 +1935,7 @@ CONTAINS
 !  05 Apr 2012 - R. Yantosca - Now convert QV2 from [kg/kg] to [g/kg]
 !  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
 !                              object
+!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2008,7 +2017,7 @@ CONTAINS
     ! Read PS
     v_name = "PS"
     CALL NcRd( Q2, fId, TRIM(v_name), st3d, ct3d )
-    CALL Transfer_2d( Q2, PS2 )
+    CALL Transfer_2d( Q2, State_Met%PS2 )
 
     !-------------------------------------------------
     ! Read 4D data (3D spatial + 1D time)
@@ -2024,24 +2033,24 @@ CONTAINS
     !! Read PV
     !v_name = "PV"
     !CALL NcRd( Q3, fId, TRIM(v_name), st4d, ct4d )
-    !CALL Transfer_3d( Q3, PV )
+    !CALL Transfer_3d( Q3, State_Met%PV )
     !----------------------------------------------------------------
 
     ! Read QV
     v_name = "QV"
     CALL NcRd( Q3, fId, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q3, QV2 )
+    CALL Transfer_3d( Q3, State_Met%SPHU2 )
 
     ! Read T
     v_name = "T"
     CALL NcRd( Q3, fId, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q3, T2 )
+    CALL Transfer_3d( Q3, State_Met%TMPU2 )
 
-    ! Copy met fields to State_Met
-    State_Met%PS2   => PS2
-   !State_Met%PV2   => PV2
-    State_Met%SPHU2 => QV2
-    State_Met%TMPU2 => T2
+    !! Copy met fields to State_Met
+    !State_Met%PS2   => PS2
+    !State_Met%PV2   => PV2
+    !State_Met%SPHU2 => QV2
+    !State_Met%TMPU2 => T2
 
     ! Echo info
     stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
@@ -2051,16 +2060,16 @@ CONTAINS
     !-------------------------------------------------
     ! Unit conversions & special handling
     !-------------------------------------------------
-    WHERE ( QV2 < 0d0 ) 
+    WHERE ( State_Met%SPHU2 < 0d0 ) 
 
        ! NOTE: Now set negative Q to a small positive # 
        ! instead of zero, so as not to blow up logarithms
-       QV2 = 1d-32
+       State_Met%SPHU2 = 1d-32
 
     ELSEWHERE
 
        ! Convert GEOS-5.7.x specific humidity from [kg/kg] to [g/kg]
-       QV2 = QV2 * 1000d0
+       State_Met%SPHU2 = State_Met%SPHU2 * 1000d0
 
     ENDWHERE
 
@@ -2076,8 +2085,8 @@ CONTAINS
 
     ! ND66 diagnostic: T2, QV2 met fields
     IF ( ND66 > 0 ) THEN
-       AD66(:,:,1:LD66,3) = AD66(:,:,1:LD66,3) + T2 (:,:,1:LD66) ! [K   ]
-       AD66(:,:,1:LD66,4) = AD66(:,:,1:LD66,4) + QV2(:,:,1:LD66) ! [g/kg]
+       AD66(:,:,1:LD66,3) = AD66(:,:,1:LD66,3) + State_Met%TMPU2(:,:,1:LD66)
+       AD66(:,:,1:LD66,4) = AD66(:,:,1:LD66,4) + State_Met%SPHU2(:,:,1:LD66)
     ENDIF
 
   END SUBROUTINE Geos57_Read_I3_2

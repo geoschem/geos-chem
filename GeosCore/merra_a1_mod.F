@@ -38,8 +38,8 @@
 ! !REVISION HISTORY:
 !  19 Aug 2010 - R. Yantosca - Initial version, based on a3_read_mod.f
 !  03 Aug 2012 - R. Yantosca - Now make IU_A1 a private module variable
+!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
 !EOP
-
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -284,25 +284,27 @@
 !
 ! !USES:
 !
-      USE DAO_MOD, ONLY : ALBD,     CLDFRC,   EFLUX,    EVAP    
-      USE DAO_MOD, ONLY : FRSEAICE, FRSNO,    GRN,      GWETROOT  
-      USE DAO_MOD, ONLY : GWETTOP,  HFLUX,    LAI,      LWI
-      USE DAO_MOD, ONLY : PARDF,    PARDR,    PBL,      PREANV
-      USE DAO_MOD, ONLY : PREACC,   PRECON,   PRELSC,   PRECSNO
-      USE DAO_MOD, ONLY : RADLWG,   RADSWG,   SEAICE00, SEAICE10 
-      USE DAO_MOD, ONLY : SEAICE20, SEAICE30, SEAICE40, SEAICE50
-      USE DAO_MOD, ONLY : SEAICE60, SEAICE70, SEAICE80, SEAICE90
-      USE DAO_MOD, ONLY : SLP,      SNODP,    SNOMAS,   TROPP
-      USE DAO_MOD, ONLY : TS,       TSKIN,    U10M,     USTAR
-      USE DAO_MOD, ONLY : V10M,     Z0 
+      !----------------------------------------------------------------------
+      ! NOTE: These are now replaced by the fields of STATE_MET
+      !USE DAO_MOD, ONLY : ALBD,     CLDFRC,   EFLUX,    EVAP    
+      !USE DAO_MOD, ONLY : FRSEAICE, FRSNO,    GRN,      GWETROOT  
+      !USE DAO_MOD, ONLY : GWETTOP,  HFLUX,    LAI,      LWI
+      !USE DAO_MOD, ONLY : PARDF,    PARDR,    PBL,      PREANV
+      !USE DAO_MOD, ONLY : PREACC,   PRECON,   PRELSC,   PRECSNO
+      !USE DAO_MOD, ONLY : RADLWG,   RADSWG,   SEAICE00, SEAICE10 
+      !USE DAO_MOD, ONLY : SEAICE20, SEAICE30, SEAICE40, SEAICE50
+      !USE DAO_MOD, ONLY : SEAICE60, SEAICE70, SEAICE80, SEAICE90
+      !USE DAO_MOD, ONLY : SLP,      SNODP,    SNOMAS,   TROPP
+      !USE DAO_MOD, ONLY : TS,       TSKIN,    U10M,     USTAR
+      !USE DAO_MOD, ONLY : V10M,     Z0 
+      !----------------------------------------------------------------------
+      USE CMN_SIZE_MOD
       USE GIGC_State_Met_Mod, ONLY : MetState
-
-      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER,        INTENT(IN)    :: NYMD   ! YYYYMMDD and 
-      INTEGER,        INTENT(IN)    :: NHMS   ! hhmmss of data to read from disk
+      INTEGER,        INTENT(IN)    :: NYMD        ! YYYYMMDD and 
+      INTEGER,        INTENT(IN)    :: NHMS        !  hhmmss of data to read
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -313,6 +315,7 @@
 !  25 Aug 2010 - R. Yantosca - Now pass LWI down to READ_A1
 !  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
 !                              object
+!  15 Nov 2012 - R. Yantosca - Remove reference to dao_mod.F module arrays
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -339,79 +342,79 @@
       !=================================================================
       CALL READ_A1( NYMD     = NYMD, 
      &              NHMS     = NHMS,
-     &              ALBEDO   = ALBD,
-     &              CLDTOT   = CLDFRC,   
-     &              EFLUX    = EFLUX,    
-     &              EVAP     = EVAP,
-     &              FRSEAICE = FRSEAICE,
-     &              FRSNO    = FRSNO, 
-     &              GRN      = GRN,      
-     &              GWETROOT = GWETROOT,
-     &              GWETTOP  = GWETTOP, 
-     &              HFLUX    = HFLUX,  
-     &              LAI      = LAI,
-     &              LWI      = LWI,
-     &              LWGNT    = RADLWG,
-     &              PARDF    = PARDF,
-     &              PARDR    = PARDR,
-     &              PBLH     = PBL,
-     &              PRECANV  = PREANV,   
-     &              PRECTOT  = PREACC,  
-     &              PRECCON  = PRECON, 
-     &              PRECLSC  = PRELSC,   
-     &              PRECSNO  = PRECSNO,
-     &              SEAICE00 = SEAICE00,
-     &              SEAICE10 = SEAICE10,
-     &              SEAICE20 = SEAICE20,
-     &              SEAICE30 = SEAICE30,
-     &              SEAICE40 = SEAICE40,
-     &              SEAICE50 = SEAICE50,
-     &              SEAICE60 = SEAICE60,
-     &              SEAICE70 = SEAICE70,
-     &              SEAICE80 = SEAICE80,
-     &              SEAICE90 = SEAICE90,
-     &              SLP      = SLP,
-     &              SNODP    = SNODP,
-     &              SNOMAS   = SNOMAS,
-     &              SWGNT    = RADSWG,
-     &              TROPPT   = TROPP,
-     &              T2M      = TS,
-     &              TS       = TSKIN, 
-     &              U10M     = U10M,
-     &              USTAR    = USTAR,
-     &              V10M     = V10M,
-     &              Z0M      = Z0        )
+     &              ALBEDO   = State_Met%ALBD,
+     &              CLDTOT   = State_Met%CLDFRC,   
+     &              EFLUX    = State_Met%EFLUX,    
+     &              EVAP     = State_Met%EVAP,
+     &              FRSEAICE = State_Met%FRSEAICE,
+     &              FRSNO    = State_Met%FRSNO, 
+     &              GRN      = State_Met%GRN,      
+     &              GWETROOT = State_Met%GWETROOT,
+     &              GWETTOP  = State_Met%GWETTOP, 
+     &              HFLUX    = State_Met%HFLUX,  
+     &              LAI      = State_Met%LAI,
+     &              LWI      = State_Met%LWI,
+     &              LWGNT    = State_Met%RADLWG,
+     &              PARDF    = State_Met%PARDF,
+     &              PARDR    = State_Met%PARDR,
+     &              PBLH     = State_Met%PBLH,
+     &              PRECANV  = State_Met%PRECANV,   
+     &              PRECTOT  = State_Met%PRECTOT,  
+     &              PRECCON  = State_Met%PRECCON, 
+     &              PRECLSC  = State_Met%PRECLSC,   
+     &              PRECSNO  = State_Met%PRECSNO,
+     &              SEAICE00 = State_Met%SEAICE00,
+     &              SEAICE10 = State_Met%SEAICE10,
+     &              SEAICE20 = State_Met%SEAICE20,
+     &              SEAICE30 = State_Met%SEAICE30,
+     &              SEAICE40 = State_Met%SEAICE40,
+     &              SEAICE50 = State_Met%SEAICE50,
+     &              SEAICE60 = State_Met%SEAICE60,
+     &              SEAICE70 = State_Met%SEAICE70,
+     &              SEAICE80 = State_Met%SEAICE80,
+     &              SEAICE90 = State_Met%SEAICE90,
+     &              SLP      = State_Met%SLP,
+     &              SNODP    = State_Met%SNODP,
+     &              SNOMAS   = State_Met%SNOMAS,
+     &              SWGNT    = State_Met%RADSWG,
+     &              TROPPT   = State_Met%TROPP,
+     &              T2M      = State_Met%TS,
+     &              TS       = State_Met%TSKIN, 
+     &              U10M     = State_Met%U10M,
+     &              USTAR    = State_Met%USTAR,
+     &              V10M     = State_Met%V10M,
+     &              Z0M      = State_Met%Z0        )
 
       ! Save NYMD, NHMS for next call
       LASTNYMD = NYMD
       LASTNHMS = NHMS
 
-      ! Copy met fields to State_Met
-      State_Met%ALBD     => PREACC
-      State_Met%PRECLSC  => PRELSC
-      State_Met%PRECSNO  => PRECSNO
-      State_Met%RADLWG   => RADLWG
-      State_Met%RADSWG   => RADSWG
-      State_Met%SEAICE00 => SEAICE00
-      State_Met%SEAICE10 => SEAICE10
-      State_Met%SEAICE20 => SEAICE20
-      State_Met%SEAICE30 => SEAICE30
-      State_Met%SEAICE40 => SEAICE40
-      State_Met%SEAICE50 => SEAICE50
-      State_Met%SEAICE60 => SEAICE60
-      State_Met%SEAICE70 => SEAICE70
-      State_Met%SEAICE80 => SEAICE80
-      State_Met%SEAICE90 => SEAICE90
-      State_Met%SLP      => SLP
-      State_Met%SNODP    => SNODP
-      State_Met%SNOMAS   => SNOMAS
-      State_Met%TROPP    => TROPP
-      State_Met%TS       => TS
-      State_Met%TSKIN    => TSKIN
-      State_Met%U10M     => U10M
-      State_Met%USTAR    => USTAR
-      State_Met%V10M     => V10M
-      State_Met%Z0       => Z0
+      !! Copy met fields to State_Met
+      !State_Met%ALBD     => PREACC
+      !State_Met%PRECLSC  => PRELSC
+      !State_Met%PRECSNO  => PRECSNO
+      !State_Met%RADLWG   => RADLWG
+      !State_Met%RADSWG   => RADSWG
+      !State_Met%SEAICE00 => SEAICE00
+      !State_Met%SEAICE10 => SEAICE10
+      !State_Met%SEAICE20 => SEAICE20
+      !State_Met%SEAICE30 => SEAICE30
+      !State_Met%SEAICE40 => SEAICE40
+      !State_Met%SEAICE50 => SEAICE50
+      !State_Met%SEAICE60 => SEAICE60
+      !State_Met%SEAICE70 => SEAICE70
+      !State_Met%SEAICE80 => SEAICE80
+      !State_Met%SEAICE90 => SEAICE90
+      !State_Met%SLP      => SLP
+      !State_Met%SNODP    => SNODP
+      !State_Met%SNOMAS   => SNOMAS
+      !State_Met%TROPP    => TROPP
+      !State_Met%TS       => TS
+      !State_Met%TSKIN    => TSKIN
+      !State_Met%U10M     => U10M
+      !State_Met%USTAR    => USTAR
+      !State_Met%V10M     => V10M
+      !State_Met%Z0       => Z0
 
       END SUBROUTINE GET_MERRA_A1_FIELDS
 !EOC

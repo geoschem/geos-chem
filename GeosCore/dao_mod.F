@@ -465,19 +465,16 @@
       DO I = 1, IIPAR
 
          ! Grid box surface area [m2]
-         AREA_M2     = GET_AREA_M2( I, J, L )
+         AREA_M2                   = GET_AREA_M2( I, J, L )
   
          ! Pressure at bottom edge of grid box [hPa]
-         P1          = GET_PEDGE( I, J, L )
+         P1                        = GET_PEDGE( I, J, L )
 
          ! Pressure at top edge of grid box [hPa]
-         P2          = GET_PEDGE( I, J, L+1 )
+         P2                        = GET_PEDGE( I, J, L+1 )
 
          ! Pressure difference between top & bottom edges [hPa]
-         DELP(L,I,J) = P1 - P2
-
-         ! Copy met field to State_Met
-         State_Met%DELP(L,I,J) = DELP(L,I,J)
+         State_Met%DELP(L,I,J)     = P1 - P2
 
          !===========================================================
          ! BXHEIGHT is the height (Delta-Z) of grid box (I,J,L) 
@@ -488,10 +485,9 @@
          ! R for air (M.W = 0.02897 kg/mol),  or 
          ! Rd = 8.31 J/(mol*K) / 0.02897 kg/mol. 
          !===========================================================
-         BXHEIGHT(I,J,L) = Rdg0 * T(I,J,L) * LOG( P1 / P2 )
-
-         ! Copy met field to State_Met
-         State_Met%BXHEIGHT(I,J,L) = BXHEIGHT(I,J,L)
+         State_Met%BXHEIGHT(I,J,L) = Rdg0 
+     &                             * State_Met%T(I,J,L) 
+     &                             * LOG( P1 / P2 )
 
          !===========================================================
          ! AIRVOL is the volume of grid box (I,J,L) in meters^3
@@ -510,10 +506,7 @@
          ! approx. the same as AREA_M2.  Thus we are justified 
          ! in using AREA_M2 for grid boxes (I, J, L > 1)
          !===========================================================
-         AIRVOL(I,J,L) = BXHEIGHT(I,J,L) * AREA_M2
-
-         ! Copy met field to State_Met
-         State_Met%AIRVOL(I,J,L) = AIRVOL(I,J,L)
+         State_Met%AIRVOL(I,J,L) = State_Met%BXHEIGHT(I,J,L) * AREA_M2
 
          !===========================================================
          ! AD = (dry) mass of air in grid box (I,J,L) in kg, 
@@ -527,18 +520,15 @@
          !  ----  =    ----      * ----  * -----  *      -----
          !    1          1          mb       m             1
          !===========================================================
-         AD(I,J,L) = DELP(L,I,J) * G0_100 * AREA_M2
-
-         ! Copy met field to State_Met
-         State_Met%AD(I,J,L) = AD(I,J,L)
+         State_Met%AD(I,J,L) = State_Met%DELP(L,I,J) 
+     &                       * G0_100 
+     &                       * AREA_M2
 
          !===========================================================
          ! AIRDEN = density of air (AD / AIRVOL) in kg / m^3 
          !===========================================================
-         AIRDEN(L,I,J) = AD(I,J,L) / AIRVOL(I,J,L)
-
-         ! Copy met field to State_Met
-         State_Met%AIRDEN(L,I,J) = AIRDEN(L,I,J)
+         State_Met%AIRDEN(L,I,J) = State_Met%AD(I,J,L) 
+     &                           / State_Met%AIRVOL(I,J,L)
 
       ENDDO
       ENDDO

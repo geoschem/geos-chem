@@ -166,26 +166,23 @@
 !\\
 ! !INTERFACE:
 ! 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       SUBROUTINE READ_INPUT_FILE( am_I_Root, Input_Opt, RC )
-#else
-      SUBROUTINE READ_INPUT_FILE( am_I_Root )
-#endif
+!#else
+!      SUBROUTINE READ_INPUT_FILE( am_I_Root )
+!#endif
 !
 ! !USES:
 !
       USE CHARPAK_MOD,        ONLY : STRREPL
       USE FILE_MOD,           ONLY : IOERROR
       USE GAMAP_MOD,          ONLY : DO_GAMAP
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#endif
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -194,7 +191,6 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -242,20 +238,11 @@
       ! Find a free file LUN
       IU_GEOS  = findFreeLUN()
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Define the RC flag and append a ___.rc suffix to the
-      ! input.geos file name. (bmy, 11/9/12)
-      !-----------------------------------------------------------------
-
       ! Assume success
       RC       = GIGC_SUCCESS
 
       ! For ESMF interface to GEOS-5 GCM, we need to add "*___.rc"
       FILENAME = TRIM( FILENAME ) // '___.rc'
-#endif
 
       ! Open file
       OPEN( IU_GEOS, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
@@ -294,25 +281,13 @@
          !      UNIX CMDS, ARCHIVED OH, and O3PL menus.
          !=============================================================
          IF      ( INDEX( LINE, 'SIMULATION MENU'  ) > 0 ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
             CALL READ_SIMULATION_MENU( am_I_Root, Input_Opt, RC )             
-#else
-            CALL READ_SIMULATION_MENU( am_I_Root )             
-#endif
                                      
          ELSE IF ( INDEX( LINE, 'TRACER MENU'      ) > 0 ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
             CALL READ_TRACER_MENU( am_I_Root, Input_Opt, RC )                 
-#else
-            CALL READ_TRACER_MENU( am_I_Root )                 
-#endif
 
          ELSE IF ( INDEX( LINE, 'AEROSOL MENU'     ) > 0 ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
             CALL READ_AEROSOL_MENU( am_I_Root, Input_Opt, RC )              
-#else
-            CALL READ_AEROSOL_MENU( am_I_Root )              
-#endif
 
 #if   defined( APM )
          ELSE IF ( INDEX( LINE, 'APM MENU'         ) > 0 ) THEN
@@ -320,179 +295,79 @@
 #endif
 
          ELSE IF ( INDEX( LINE, 'EMISSIONS MENU'   ) > 0 ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
             CALL READ_EMISSIONS_MENU( am_I_Root, Input_Opt, RC )             
-#else
-            CALL READ_EMISSIONS_MENU( am_I_Root )             
-#endif
 
          ELSE IF ( INDEX( LINE, 'FUTURE MENU'      ) > 0 ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
             CALL READ_FUTURE_MENU( am_I_Root, Input_Opt, RC ) 
-#else
-            CALL READ_FUTURE_MENU( am_I_Root ) 
-#endif     
                                                    
          ELSE IF ( INDEX( LINE, 'CHEMISTRY MENU'   ) > 0 ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
             CALL READ_CHEMISTRY_MENU( am_I_Root, Input_Opt, RC )              
-#else
-            CALL READ_CHEMISTRY_MENU( am_I_Root )              
-#endif
                                                  
          ELSE IF ( INDEX( LINE, 'TRANSPORT MENU'   ) > 0 ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
             CALL READ_TRANSPORT_MENU( am_I_Root, Input_Opt, RC )              
-#else
-            CALL READ_TRANSPORT_MENU( am_I_Root )              
-#endif     
                                              
          ELSE IF ( INDEX( LINE, 'CONVECTION MENU'  ) > 0 ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
             CALL READ_CONVECTION_MENU( am_I_Root, Input_Opt, RC )            
-#else
-            CALL READ_CONVECTION_MENU( am_I_Root )            
-#endif
                                              
          ELSE IF ( INDEX( LINE, 'DEPOSITION MENU'  ) > 0 ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
             CALL READ_DEPOSITION_MENU( am_I_Root, Input_Opt, RC )             
-#else
-            CALL READ_DEPOSITION_MENU( am_I_Root )             
-#endif
 
          ELSE IF ( INDEX( LINE, 'CO2 SIM MENU'     ) > 0 ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
             CALL READ_CO2_SIM_MENU( am_I_Root, Input_Opt, RC )
-#else
-            CALL READ_CO2_SIM_MENU( am_I_Root )
-#endif
                                     
          ELSE IF ( INDEX( LINE, 'GAMAP MENU'       ) > 0 ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
             CALL READ_GAMAP_MENU( am_I_Root, Input_Opt, RC )                 
-#else
-            CALL READ_GAMAP_MENU( am_I_Root )                 
-#endif
                                                   
          ELSE IF ( INDEX( LINE, 'OUTPUT MENU'      ) > 0 ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
             CALL READ_OUTPUT_MENU( am_I_Root, Input_Opt, RC )                 
-#else
-            CALL READ_OUTPUT_MENU( am_I_Root )                 
-#endif
                                                   
          ELSE IF ( INDEX( LINE, 'DIAGNOSTIC MENU'  ) > 0 ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
             CALL READ_DIAGNOSTIC_MENU( am_I_Root, Input_Opt, RC )             
-#else
-            CALL READ_DIAGNOSTIC_MENU( am_I_Root )             
-#endif
 
          ELSE IF ( INDEX( LINE, 'PLANEFLIGHT MENU' ) > 0 ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
             CALL READ_PLANEFLIGHT_MENU( am_I_Root, Input_Opt, RC )             
-#else
-            CALL READ_PLANEFLIGHT_MENU( am_I_Root )             
-#endif
                                                   
          ELSE IF ( INDEX( LINE, 'ND48 MENU'        ) > 0 ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
             CALL READ_ND48_MENU( am_I_Root, Input_Opt, RC )                  
-#else
-            CALL READ_ND48_MENU( am_I_Root )                  
-#endif
 
          ELSE IF ( INDEX( LINE, 'ND49 MENU'        ) > 0 ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
             CALL READ_ND49_MENU( am_I_Root, Input_Opt, RC )                   
-#else
-            CALL READ_ND49_MENU( am_I_Root )                   
-#endif
                                                   
          ELSE IF ( INDEX( LINE, 'ND50 MENU'        ) > 0 ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
             CALL READ_ND50_MENU( am_I_Root, Input_Opt, RC )                   
-#else
-            CALL READ_ND50_MENU( am_I_Root )                   
-#endif
                                                   
          ELSE IF ( INDEX( LINE, 'ND51 MENU'        ) > 0 ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
             CALL READ_ND51_MENU( am_I_Root, Input_Opt, RC )                   
-#else
-            CALL READ_ND51_MENU( am_I_Root )                   
-#endif
                                                   
          ELSE IF ( INDEX( LINE, 'ND51b MENU'       ) > 0 ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
             CALL READ_ND51b_MENU( am_I_Root, Input_Opt, RC )  
-#else
-            CALL READ_ND51b_MENU( am_I_Root )  
-#endif
 
          ELSE IF ( INDEX( LINE, 'ND63 MENU'        ) > 0 ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
             CALL READ_ND63_MENU( am_I_Root, Input_Opt, RC )                   
-#else
-            CALL READ_ND63_MENU( am_I_Root )                   
-#endif
 
          ELSE IF ( INDEX( LINE, 'PROD & LOSS MENU' ) > 0 ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
             CALL READ_PROD_LOSS_MENU( am_I_Root, Input_Opt, RC )               
-#else
-            CALL READ_PROD_LOSS_MENU( am_I_Root )               
-#endif     
                                              
          ELSE IF ( INDEX( LINE, 'UNIX CMDS MENU'   ) > 0 ) THEN 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
             CALL READ_UNIX_CMDS_MENU( am_I_Root, Input_Opt, RC )              
-#else
-            CALL READ_UNIX_CMDS_MENU( am_I_Root )              
-#endif
 
          ELSE IF ( INDEX( LINE, 'NESTED GRID MENU' ) > 0 ) THEN 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
             CALL READ_NESTED_GRID_MENU( am_I_Root, Input_Opt, RC )
-#else
-            CALL READ_NESTED_GRID_MENU( am_I_Root )
-#endif
 
          ELSE IF ( INDEX( LINE, 'ARCHIVED OH MENU' ) > 0 ) THEN 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
             CALL READ_ARCHIVED_OH_MENU( am_I_Root, Input_Opt, RC  )
-#else
-            CALL READ_ARCHIVED_OH_MENU( am_I_Root )
-#endif
 
          ELSE IF ( INDEX( LINE, 'O3 P/L MENU'      ) > 0 ) THEN 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
             CALL READ_O3PL_MENU( am_I_Root, Input_Opt, RC  )
-#else
-            CALL READ_O3PL_MENU( am_I_Root )
-#endif
 
          ELSE IF ( INDEX( LINE, 'BENCHMARK MENU'   ) > 0 ) THEN 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
             CALL READ_BENCHMARK_MENU( am_I_Root, Input_Opt, RC  )
-#else
-            CALL READ_BENCHMARK_MENU( am_I_Root )
-#endif     
          
          ELSE IF ( INDEX( LINE, 'MERCURY MENU'     ) > 0 ) THEN 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
             CALL READ_MERCURY_MENU( am_I_Root, Input_Opt, RC  )
-#else
-            CALL READ_MERCURY_MENU( am_I_Root )
-#endif 
                                    
          ELSE IF ( INDEX( LINE, 'CH4 MENU'         ) > 0 ) THEN 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
             CALL READ_CH4_MENU( am_I_Root, Input_Opt, RC )
-#else
-            CALL READ_CH4_MENU( am_I_Root )
-#endif                                    
          ELSE IF ( INDEX( LINE, 'END OF FILE'      ) > 0 ) THEN 
             EXIT
 
@@ -511,25 +386,8 @@
       !-----------------------------------------------------------------
 #else
 
-#if defined( DEVEL )
-      !-----------------------------------------------------------------
-      !   %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%% 
-      !
-      ! If we are testing the Grid-Independent data flow by compiling
-      ! the "traditional" GEOS-Chem with the DEVEL=yes option, then we
-      ! need to pass the Input Options argument and the am_I_Root flag
-      ! to NDXX_SETUP. (bmy, 11/9/12)
-      !-----------------------------------------------------------------
+      ! Define GEOS-Chem diagnostic info
       CALL NDXX_SETUP( am_I_Root, Input_Opt, RC )
-#else
-      !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Current practice in the std GEOS-Chem is to call NDXX_SETUP
-      ! with no arguments. (bmy, 11/2/12)
-      !-----------------------------------------------------------------
-      CALL NDXX_SETUP()
-#endif
 
       !=================================================================
       ! Further error-checking and initialization
@@ -740,11 +598,7 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       SUBROUTINE READ_SIMULATION_MENU( am_I_Root, Input_Opt, RC )
-#else
-      SUBROUTINE READ_SIMULATION_MENU( am_I_Root )
-#endif
 !
 ! !USES:
 !
@@ -761,15 +615,12 @@
       USE TIME_MOD,      ONLY : SET_CURRENT_TIME, SET_DIAGb
       USE TIME_MOD,      ONLY : SET_NDIAGTIME,    GET_TAU
       USE TRANSFER_MOD,  ONLY : INIT_TRANSFER
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#endif
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -778,7 +629,6 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -905,7 +755,6 @@
       LUNZIP = .FALSE. 
 #endif
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !=================================================================
       ! Set fields of Input Options object
       !=================================================================
@@ -933,7 +782,6 @@
 
       ! Return success
       RC = GIGC_SUCCESS
-#endif
 
       !=================================================================
       ! Print to screen
@@ -1190,11 +1038,7 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       SUBROUTINE READ_TRACER_MENU( am_I_Root, Input_Opt, RC )
-#else
-      SUBROUTINE READ_TRACER_MENU( am_I_Root )
-#endif
 !
 ! !USES:
 !
@@ -1216,15 +1060,12 @@
       USE TRACERID_MOD, ONLY : TRACERID
 
       USE CMN_SIZE_MOD                    ! Size parameters
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#endif
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1233,7 +1074,6 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -1503,7 +1343,6 @@
       ! Set counter
       CT1 = CT1 + 1
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !=================================================================
       ! Set fields of Input Options object
       !=================================================================
@@ -1543,7 +1382,6 @@
 
       ! Return success
       RC = GIGC_SUCCESS
-#endif
 
       END SUBROUTINE READ_TRACER_MENU
 !EOC
@@ -1560,11 +1398,7 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       SUBROUTINE READ_AEROSOL_MENU( am_I_Root, Input_Opt, RC )
-#else
-      SUBROUTINE READ_AEROSOL_MENU( am_I_Root )
-#endif
 !
 ! !USES:
 !
@@ -1585,15 +1419,12 @@
       USE TRACERID_MOD, ONLY : IDTDST1,  IDTDST2,  IDTDST3, IDTDST4
       USE TRACERID_MOD, ONLY : IDTSALA,  IDTSALC 
       USE TRACERID_MOD, ONLY : IDTSOAG,  IDTSOAM,  IDTSOA5
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#endif
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1602,7 +1433,6 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -1856,7 +1686,6 @@
          ENDIF
       ENDIF
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !=================================================================
       ! Set fields of Input Options object
       !=================================================================
@@ -1873,7 +1702,6 @@
 
       ! Return success
       RC = GIGC_SUCCESS
-#endif
 
       !=================================================================
       ! Print to screen
@@ -1912,11 +1740,7 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       SUBROUTINE READ_EMISSIONS_MENU( am_I_Root, Input_Opt, RC )
-#else
-      SUBROUTINE READ_EMISSIONS_MENU( am_I_Root )
-#endif
 !
 ! !USES:
 !
@@ -1930,15 +1754,12 @@
       USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM
       USE CMN_SIZE_MOD      ! Size parameters
       USE CMN_O3_MOD        ! FSCALYR
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#endif
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1947,7 +1768,6 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -2570,8 +2390,6 @@
 
       ENDIF
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-
       !=================================================================
       ! Set fields of Input Options object
       !=================================================================
@@ -2629,7 +2447,6 @@
 
       ! Return success
       RC = GIGC_SUCCESS
-#endif
 
       !=================================================================
       ! Initialization
@@ -2722,11 +2539,7 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       SUBROUTINE READ_CO2_SIM_MENU( am_I_Root, Input_Opt, RC )
-#else
-      SUBROUTINE READ_CO2_SIM_MENU( am_I_Root )
-#endif
 !
 ! !USES:
 !
@@ -2736,15 +2549,12 @@
 
       USE CMN_SIZE_MOD                   ! Size parameters
       USE CMN_O3_MOD                     ! FSCALYR
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#endif
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -2753,7 +2563,6 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-#endif
 ! 
 ! !REVISION HISTORY: 
 !  02 Mar 2009 - R. Nassar   - Initial version
@@ -2969,7 +2778,6 @@
            LSHIPEDG = .FALSE.
 	ENDIF
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !=================================================================
       ! Set fields of Input Options object
       !=================================================================
@@ -2996,7 +2804,6 @@
 
       ! Return success
       RC = GIGC_SUCCESS
-#endif
 
       !=================================================================
       ! Print to screen
@@ -3061,28 +2868,21 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       SUBROUTINE READ_FUTURE_MENU( am_I_Root, Input_Opt, RC )
-#else
-      SUBROUTINE READ_FUTURE_MENU( am_I_Root )
-#endif
 !
 ! !USES:
 !
       USE FUTURE_EMISSIONS_MOD, ONLY : DO_FUTURE_EMISSIONS
       USE LOGICAL_MOD,          ONLY : LFUTURE
  
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#endif
 
 #     include "define.h"             ! C-preprocessor switches
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -3091,7 +2891,6 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-#endif
 ! 
 ! !REVISION HISTORY: 
 !  01 Jun 2006 - S. Wu       - Initial version
@@ -3137,7 +2936,6 @@
       LFUTURE = .FALSE. 
 #endif
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !=================================================================
       ! Set fields of Input Options object
       !=================================================================
@@ -3147,7 +2945,6 @@
 
       ! Return success
       RC = GIGC_SUCCESS
-#endif
 
       !=================================================================
       ! Print to screen
@@ -3190,11 +2987,7 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       SUBROUTINE READ_CHEMISTRY_MENU( am_I_Root, Input_Opt, RC )
-#else
-      SUBROUTINE READ_CHEMISTRY_MENU( am_I_Root )
-#endif
 !
 ! !USES:
 !
@@ -3205,15 +2998,12 @@
       USE TRACER_MOD,  ONLY : N_TRACERS
 
       USE CMN_SIZE_MOD                   ! Size parameters
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#endif
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -3222,7 +3012,6 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -3280,7 +3069,6 @@
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:7' )
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !=================================================================
       ! Set fields of Input Options object
       !=================================================================
@@ -3293,7 +3081,6 @@
 
       ! Return success
       RC = GIGC_SUCCESS
-#endif
 
       !=================================================================
       ! Print to screen
@@ -3329,11 +3116,7 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       SUBROUTINE READ_TRANSPORT_MENU( am_I_Root, Input_Opt, RC )
-#else
-      SUBROUTINE READ_TRANSPORT_MENU( am_I_Root )
-#endif
 !
 ! !USES:
 !
@@ -3344,15 +3127,12 @@
 #if ! defined( ESMF_ )
       USE TRANSPORT_MOD, ONLY : SET_TRANSPORT
 #endif
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#endif
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -3361,7 +3141,6 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -3448,7 +3227,6 @@
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !=================================================================
       ! Set fields of Input Options object
       !=================================================================
@@ -3462,7 +3240,6 @@
 
       ! Return success
       RC = GIGC_SUCCESS
-#endif
 
       !=================================================================
       ! Print to screen
@@ -3506,26 +3283,19 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       SUBROUTINE READ_CONVECTION_MENU( am_I_Root, Input_Opt, RC )
-#else
-      SUBROUTINE READ_CONVECTION_MENU( am_I_Root )
-#endif
 !
 ! !USES:
 !
       USE ERROR_MOD,   ONLY : ERROR_STOP
       USE LOGICAL_MOD, ONLY : LCONV, LTURB
       USE LOGICAL_MOD, ONLY : LNLPBL        ! (Lin, 03/31/09)
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#endif
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -3534,7 +3304,6 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -3600,7 +3369,6 @@
       ENDIF
 #endif
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !=================================================================
       ! Set fields of Input Options object
       !=================================================================
@@ -3611,7 +3379,6 @@
 
       ! Return success
       RC = GIGC_SUCCESS
-#endif
 
       !=================================================================
       ! Print to screen
@@ -3644,11 +3411,7 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       SUBROUTINE READ_DEPOSITION_MENU( am_I_Root, Input_Opt, RC )
-#else
-      SUBROUTINE READ_DEPOSITION_MENU( am_I_Root )
-#endif
 !
 ! !USES:
 !
@@ -3665,15 +3428,12 @@
 #if   defined( APM )
       USE APM_WETS_MOD, ONLY : WETDEPBINID
 #endif
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#endif
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -3682,7 +3442,6 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -3743,7 +3502,6 @@
       IF ( ITS_A_C2H6_SIM()    ) LWETD = .FALSE.
       IF ( ITS_A_CH4_SIM()     ) LWETD = .FALSE.
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !=================================================================
       ! Set fields of Input Options object
       !=================================================================
@@ -3752,7 +3510,6 @@
 
       ! Return success
       RC = GIGC_SUCCESS
-#endif
 
       !=================================================================
       ! Print to screen
@@ -3816,23 +3573,16 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       SUBROUTINE READ_GAMAP_MENU( am_I_Root, Input_Opt, RC )
-#else
-      SUBROUTINE READ_GAMAP_MENU( am_I_Root )
-#endif
 !
 ! !USES:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#endif
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -3841,7 +3591,6 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-#endif
 ! 
 ! !REVISION HISTORY: 
 !  25 Apr 2005 - R. Yantosca - Initial version
@@ -3874,7 +3623,6 @@
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_gamap_menu:3' )
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !=================================================================
       ! Set fields of Input Options object
       !=================================================================
@@ -3883,7 +3631,6 @@
 
       ! Return success
       RC = GIGC_SUCCESS
-#endif
 
       !=================================================================
       ! Print to screen
@@ -3912,11 +3659,7 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       SUBROUTINE READ_OUTPUT_MENU( am_I_Root, Input_Opt, RC )
-#else
-      SUBROUTINE READ_OUTPUT_MENU( am_I_Root )
-#endif
 !
 ! !USES:
 !
@@ -3924,15 +3667,12 @@
       
       USE CMN_SIZE_MOD   ! Size parameters
       USE CMN_DIAG_MOD   ! NJDAY
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#endif
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -3941,7 +3681,6 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -3969,7 +3708,6 @@
       ! Error check
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_GEOS, 'read_output_menu:1' )
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !=================================================================
       ! Set fields of Input Options object
       !=================================================================
@@ -3977,7 +3715,6 @@
       
       ! Return success
       RC = GIGC_SUCCESS
-#endif
 
       !=================================================================
       ! Print to screen
@@ -4018,11 +3755,7 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       SUBROUTINE READ_DIAGNOSTIC_MENU( am_I_Root, Input_Opt, RC )
-#else
-      SUBROUTINE READ_DIAGNOSTIC_MENU( am_I_Root )
-#endif
 !
 ! !USES:
 !
@@ -4052,18 +3785,15 @@
 
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_DIAG_MOD       ! NDxx flags
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE DIAG_MOD,           ONLY: TINDEX
       USE DIAG_MOD,           ONLY: TCOUNT
       USE DIAG_MOD,           ONLY: TMAX
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#endif
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -4072,7 +3802,6 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-#endif
 !
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -4626,7 +4355,6 @@
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_diagnostic_menu:69' )
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !=================================================================
       ! Call other setup routines
       !=================================================================
@@ -4714,7 +4442,6 @@
 
       ! Return success
       RC = GIGC_SUCCESS
-#endif
 
       !=================================================================
       ! Call other setup routines
@@ -4892,11 +4619,7 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       SUBROUTINE READ_PLANEFLIGHT_MENU( am_I_Root, Input_Opt, RC )
-#else
-      SUBROUTINE READ_PLANEFLIGHT_MENU( am_I_Root )
-#endif
 !
 ! !USES:
 !
@@ -4905,15 +4628,12 @@
 
       USE CMN_SIZE_MOD                   ! MAXFAM
       USE CMN_DIAG_MOD                   ! ND40
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#endif
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -4922,8 +4642,7 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-#endif
-! 
+!
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
@@ -4973,7 +4692,6 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_planeflight_menu:3' )
       READ( SUBSTRS(1:N), '(a)' ) OFILE
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !=================================================================
       ! Set fields of Input Options object
       !=================================================================
@@ -4983,7 +4701,6 @@
 
       ! Return success
       RC = GIGC_SUCCESS
-#endif
 
       !=================================================================
       ! Print to screen
@@ -5022,25 +4739,18 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       SUBROUTINE READ_ND48_MENU( am_I_Root, Input_Opt, RC )
-#else
-      SUBROUTINE READ_ND48_MENU( am_I_Root )
-#endif
 !
 ! !USES:
 !
       USE DIAG48_MOD, ONLY : INIT_DIAG48, ND48_MAX_STATIONS
       USE ERROR_MOD,  ONLY : ERROR_STOP
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#endif
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -5049,7 +4759,6 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -5117,7 +4826,6 @@
          READ( SUBSTRS(4), * ) NARR(S) 
       ENDDO
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !=================================================================
       ! Set fields of Input Options object
       !=================================================================
@@ -5132,7 +4840,6 @@
 
       ! Return success
       RC = GIGC_SUCCESS
-#endif
 
       !=================================================================
       ! Print to screen
@@ -5178,11 +4885,7 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       SUBROUTINE READ_ND49_MENU( am_I_Root, Input_Opt, RC )
-#else
-      SUBROUTINE READ_ND49_MENU( am_I_Root )
-#endif
 !
 ! !USES:
 !
@@ -5190,15 +4893,12 @@
       USE ERROR_MOD,  ONLY : ERROR_STOP
 
       USE CMN_SIZE_MOD     ! Size parameters
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#endif
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -5207,7 +4907,6 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -5278,8 +4977,6 @@
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd49_menu:8' )
 
-
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !=================================================================
       ! Set fields of Input Options object
       !=================================================================
@@ -5296,7 +4993,6 @@
 
       ! Return success
       RC = GIGC_SUCCESS
-#endif
 
       !=================================================================
       ! Print to screen
@@ -5344,26 +5040,19 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       SUBROUTINE READ_ND50_MENU( am_I_Root, Input_Opt, RC )
-#else
-      SUBROUTINE READ_ND50_MENU( am_I_Root )
-#endif
 !
 ! !USES:
 !
       USE DIAG50_MOD,  ONLY : INIT_DIAG50
       USE ERROR_MOD,   ONLY : ERROR_STOP
       USE LOGICAL_MOD, ONLY : LND50_HDF
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#endif
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -5372,7 +5061,6 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -5449,7 +5137,6 @@
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd50_menu:8' )
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !=================================================================
       ! Set fields of Input Options object
       !=================================================================
@@ -5466,7 +5153,6 @@
 
       ! Return success
       RC = GIGC_SUCCESS
-#endif
 
       !=================================================================
       ! Print to screen
@@ -5513,11 +5199,7 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       SUBROUTINE READ_ND51_MENU( am_I_Root, Input_Opt, RC )
-#else
-      SUBROUTINE READ_ND51_MENU( am_I_Root )
-#endif
 !
 ! !USES:
 !
@@ -5527,15 +5209,12 @@
 
       USE CMN_SIZE_MOD      ! Size parameters
       USE CMN_DIAG_MOD      ! NDxx flags
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#endif
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -5544,7 +5223,6 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -5631,7 +5309,6 @@
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd51_menu:11' )
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !=================================================================
       ! Set fields of Input Options object
       !=================================================================
@@ -5651,7 +5328,6 @@
 
       ! Return success
       RC = GIGC_SUCCESS
-#endif
 
       !=================================================================
       ! Print to screen
@@ -5702,11 +5378,7 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       SUBROUTINE READ_ND51b_MENU( am_I_Root, Input_Opt, RC )
-#else
-      SUBROUTINE READ_ND51b_MENU( am_I_Root )
-#endif
 !
 ! !USES:
 !
@@ -5716,15 +5388,12 @@
 
       USE CMN_SIZE_MOD      ! Size parameters
       USE CMN_DIAG_MOD      ! NDxx flags
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#endif
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -5733,7 +5402,6 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-#endif
 !
 ! !REVISION HISTORY: 
 !  21 Dec 2009 - Aaron van D - Initial version
@@ -5817,7 +5485,6 @@
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd51b_menu:10' )
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !=================================================================
       ! Set fields of Input Options object
       !=================================================================
@@ -5837,7 +5504,6 @@
 
       ! Return success
       RC = GIGC_SUCCESS
-#endif
 
       !=================================================================
       ! Print to screen
@@ -5888,11 +5554,7 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       SUBROUTINE READ_ND63_MENU( am_I_Root, Input_Opt, RC )
-#else
-      SUBROUTINE READ_ND63_MENU( am_I_Root )
-#endif
 !
 ! !USES:
 !
@@ -5900,15 +5562,12 @@
       USE ERROR_MOD,  ONLY : ERROR_STOP
 
       USE CMN_SIZE_MOD     ! Size parameters
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#endif
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -5917,7 +5576,6 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-#endif
 ! 
 ! !REVISION HISTORY:
 !  25 Feb 2011 - G. Vinken   - Initial version
@@ -5984,7 +5642,6 @@
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd63_menu:8' )
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !=================================================================
       ! Set fields of Input Options object
       !=================================================================
@@ -5999,7 +5656,6 @@
 
       ! Return success
       RC = GIGC_SUCCESS
-#endif
 
       !=================================================================
       ! Print to screen
@@ -6045,11 +5701,7 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       SUBROUTINE READ_PROD_LOSS_MENU( am_I_Root, Input_Opt, RC )
-#else
-      SUBROUTINE READ_PROD_LOSS_MENU( am_I_Root )
-#endif
 !
 ! !USES:
 !
@@ -6062,15 +5714,12 @@
 
       USE CMN_SIZE_MOD      ! MAXFAM
       USE CMN_DIAG_MOD      ! ND65
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#endif
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -6079,7 +5728,6 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -6270,7 +5918,6 @@
  120  FORMAT( /, 'Family=', A5, '  Type=', a4 )
  130  FORMAT( I3, 1X, F4.1, 1X, A5 )
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !=================================================================
       ! Set fields of Input Options object
       !=================================================================
@@ -6295,7 +5942,6 @@
 
       ! Return success
       RC = GIGC_SUCCESS
-#endif
 
       !=================================================================
       ! Call setup routines from other F90 modules
@@ -6320,11 +5966,7 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       SUBROUTINE READ_UNIX_CMDS_MENU( am_I_Root, Input_Opt, RC )
-#else
-      SUBROUTINE READ_UNIX_CMDS_MENU( am_I_Root )
-#endif
 !
 ! !USES:
 !
@@ -6332,15 +5974,12 @@
       USE UNIX_CMDS_MOD, ONLY : BACKGROUND, REDIRECT,  REMOVE_CMD 
       USE UNIX_CMDS_MOD, ONLY : SEPARATOR,  SPACE,     UNZIP_CMD
       USE UNIX_CMDS_MOD, ONLY : WILD_CARD,  ZIP_SUFFIX 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#endif
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -6349,7 +5988,6 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-#endif 
 !
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -6408,7 +6046,6 @@
       ! Just hardwire the SPACE character
       SPACE = ' '
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !=================================================================
       ! Set fields of Input Options object
       !=================================================================
@@ -6422,7 +6059,6 @@
 
       ! Return success
       RC = GIGC_SUCCESS
-#endif
 
       !=================================================================
       ! Print to screen
@@ -6464,11 +6100,7 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       SUBROUTINE READ_NESTED_GRID_MENU( am_I_Root, Input_Opt, RC )
-#else
-      SUBROUTINE READ_NESTED_GRID_MENU( am_I_Root )
-#endif
 !
 ! !USES:
 !
@@ -6479,15 +6111,12 @@
       USE LOGICAL_MOD,   ONLY : LWINDO_NA,   LWINDO_EU,   LWINDO_CH
       USE LOGICAL_MOD,   ONLY : LWINDO_SE
       USE TPCORE_BC_MOD, ONLY : INIT_TPCORE_BC
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#endif
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -6496,7 +6125,6 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -6586,7 +6214,6 @@
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:15' )
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !=================================================================
       ! Set fields of Input Options object
       !=================================================================
@@ -6612,7 +6239,7 @@
 
       ! Return success
       RC = GIGC_SUCCESS
-#endif
+
       !=================================================================
       ! Print to screen
       !=================================================================
@@ -6655,25 +6282,18 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       SUBROUTINE READ_BENCHMARK_MENU( am_I_Root, Input_Opt, RC )
-#else
-      SUBROUTINE READ_BENCHMARK_MENU( am_I_Root )
-#endif
 !
 ! !USES:
 !
       USE BENCHMARK_MOD, ONLY : INITIAL_FILE, FINAL_FILE
       USE LOGICAL_MOD,   ONLY : LSTDRUN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#endif
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -6682,7 +6302,6 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -6718,7 +6337,6 @@
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_benchmark_menu:4' )
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !=================================================================
       ! Set fields of Input Options object
       !=================================================================
@@ -6728,7 +6346,6 @@
 
       ! Return success
       RC = GIGC_SUCCESS
-#endif
 
       !=================================================================
       ! Print to screen
@@ -6762,24 +6379,17 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       SUBROUTINE READ_ARCHIVED_OH_MENU( am_I_Root, Input_Opt, RC )
-#else
-      SUBROUTINE READ_ARCHIVED_OH_MENU( am_I_Root )
-#endif
 !
 ! !USES:
 !
       USE DIRECTORY_MOD, ONLY : OH_DIR
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#endif
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -6788,7 +6398,6 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -6816,7 +6425,6 @@
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_archived_oh_menu:1' )
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !=================================================================
       ! Set fields of Input Options object
       !=================================================================
@@ -6824,7 +6432,6 @@
 
       ! Return success
       RC = GIGC_SUCCESS
-#endif
 
       !=================================================================
       ! Print to screen
@@ -6853,24 +6460,17 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       SUBROUTINE READ_O3PL_MENU( am_I_Root, Input_Opt, RC )
-#else
-      SUBROUTINE READ_O3PL_MENU( am_I_Root )
-#endif
 !
 ! !USES:
 !
       USE DIRECTORY_MOD, ONLY : O3PL_DIR
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#endif
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -6879,7 +6479,6 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -6904,7 +6503,6 @@
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_archived_oh_menu:2' )
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !=================================================================
       ! Set fields of Input Options object
       !=================================================================
@@ -6912,7 +6510,6 @@
 
       ! Return success
       RC = GIGC_SUCCESS
-#endif
 
       !=================================================================
       ! Print to screen
@@ -6942,11 +6539,7 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       SUBROUTINE READ_MERCURY_MENU( am_I_Root, Input_Opt, RC )
-#else
-      SUBROUTINE READ_MERCURY_MENU( am_I_Root )
-#endif
 !
 ! !USES:
 !
@@ -6957,15 +6550,12 @@
       USE DEPO_MERCURY_MOD,  ONLY : INIT_DEPO_MERCURY
       USE LAND_MERCURY_MOD,  ONLY : INIT_LAND_MERCURY
       USE TRACER_MOD,        ONLY : ITS_A_MERCURY_SIM
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#endif
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -6974,7 +6564,6 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-#endif
 ! 
 ! !REVISION HISTORY: 
 !  24 Feb 2006 - R. Yantosca - Initial version
@@ -7059,7 +6648,6 @@
  110  FORMAT( A, L5  )
  120  FORMAT( A, A   )
     
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !=================================================================
       ! Copy to Input Options object
       !=================================================================
@@ -7073,7 +6661,6 @@
 
       ! Return success
       RC = GIGC_SUCCESS
-#endif
 
       ! If we are performing a Hg simulation ...
       IF ( ITS_A_MERCURY_SIM() ) THEN 
@@ -7106,11 +6693,7 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       SUBROUTINE READ_CH4_MENU( am_I_Root, Input_Opt, RC )
-#else
-      SUBROUTINE READ_CH4_MENU( am_I_Root )
-#endif
 !
 ! !USES:
 !
@@ -7124,17 +6707,14 @@
       USE LOGICAL_MOD, ONLY : LGFED3BB, LDAYBB3
       USE LOGICAL_MOD, ONLY : LGFED2BB, L8DAYBB
       USE ERROR_MOD,   ONLY : ERROR_STOP
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#endif
 
 #     include "define.h"             ! C-preprocessor switches
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -7143,7 +6723,6 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-#endif
 ! 
 ! !REVISION HISTORY: 
 !  03 Aug 2009 - K. Wecht, C. Pickett-Heaps - Initial version
@@ -7257,7 +6836,6 @@
       ! FORMAT statements
  100  FORMAT( A, L5  )
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !=================================================================
       ! Set fields of Input Options object
       !=================================================================
@@ -7276,7 +6854,6 @@
 
       ! Return success
       RC = GIGC_SUCCESS         
-#endif
 
       END SUBROUTINE READ_CH4_MENU
 !EOC
@@ -7294,26 +6871,19 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       SUBROUTINE READ_APM_MENU( am_I_Root, Input_Opt, RC )
-#else
-      SUBROUTINE READ_APM_MENU( am_I_Root )
-#endif
 !
 ! !USES:
 !
       USE CHARPAK_MOD,        ONLY : STRREPL
       USE FILE_MOD,           ONLY : IOERROR
       USE GAMAP_MOD,          ONLY : DO_GAMAP
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#endif
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -7322,7 +6892,6 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-#endif
 !
 ! !USES:
 !
@@ -7386,7 +6955,6 @@
          XNUMOL(N_TRACERS+T) = 6.022d+23 / APMTRACER_MW_KG(T) 
       ENDDO
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !=================================================================
       ! Set fields of the Input Options object
       !=================================================================
@@ -7400,7 +6968,6 @@
 
       ! Return success
       RC = GIGC_SUCCESS
-#endif
 
       !=================================================================
       ! Print to screen

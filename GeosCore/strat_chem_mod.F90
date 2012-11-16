@@ -150,7 +150,6 @@ CONTAINS
     USE ERROR_MOD,          ONLY : DEBUG_MSG
     USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
     USE GIGC_State_Met_Mod, ONLY : MetState
-    USE LOGICAL_MOD,        ONLY : LLINOZ, LPRT
     USE LINOZ_MOD,          ONLY : DO_LINOZ
     USE TIME_MOD,           ONLY : GET_MONTH
     USE TIME_MOD,           ONLY : TIMESTAMP_STRING
@@ -261,7 +260,8 @@ CONTAINS
     LOGICAL           :: LLINOZ
     LOGICAL           :: LPRT
     INTEGER           :: N_TRACERS
-  
+    REAL*8            :: TCVV(Input_Opt%N_TRACERS)
+
     ! Arrays
     REAL*8            :: STT0  (IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS)
     REAL*8            :: BEFORE(IIPAR,JJPAR,LLPAR)

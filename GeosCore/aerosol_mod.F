@@ -668,15 +668,23 @@
 !
 ! !USES:
 !
-      USE CMN_FJ_MOD,         ONLY : JPMAX, JPPJ   
+      USE CMN_FJ_MOD,         ONLY : JPMAX
+      USE CMN_FJ_MOD,         ONLY : JPPJ   
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
       USE COMODE_LOOP_MOD
-      USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_RES_EXT
-      USE BPCH2_MOD,          ONLY : GET_TAU0,     READ_BPCH2
-      USE COMODE_MOD,         ONLY : ABSHUM,       ERADIUS,    IXSAVE
-      USE COMODE_MOD,         ONLY : IYSAVE,       IZSAVE,     TAREA 
-      USE COMODE_MOD,         ONLY : WTAREA,       WERADIUS
+      USE BPCH2_MOD,          ONLY : GET_NAME_EXT
+      USE BPCH2_MOD,          ONLY : GET_RES_EXT
+      USE BPCH2_MOD,          ONLY : GET_TAU0
+      USE BPCH2_MOD,          ONLY : READ_BPCH2
+      USE COMODE_MOD,         ONLY : ABSHUM
+      USE COMODE_MOD,         ONLY : ERADIUS
+      USE COMODE_MOD,         ONLY : IXSAVE
+      USE COMODE_MOD,         ONLY : IYSAVE
+      USE COMODE_MOD,         ONLY : IZSAVE
+      USE COMODE_MOD,         ONLY : TAREA 
+      USE COMODE_MOD,         ONLY : WTAREA
+      USE COMODE_MOD,         ONLY : WERADIUS
       USE DIAG_MOD,           ONLY : AD21
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -716,23 +724,22 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)           :: am_I_Root  ! Are we on root CPU?
-      TYPE(MetState), INTENT(IN)           :: State_Met  ! Meteorology State
-
-      INTEGER,        INTENT(IN), OPTIONAL :: MONTH      ! # of current month
-      INTEGER,        INTENT(IN), OPTIONAL :: YEAR       ! 4-digit year
-      INTEGER,        INTENT(IN), OPTIONAL :: WAVELENGTH ! Logical indicator
-                                                         ! = 0 AOD computed 
-                                                         !     at 999 nm
-                                                         ! = 1 AOD computed 
-                                                         !     at wavelength 
-                                                         !     in jv_spec_aod
+      LOGICAL,        INTENT(IN)  :: am_I_Root     ! Are we on root CPU?
+      TYPE(MetState), INTENT(IN)  :: State_Met     ! Meteorology State
+      INTEGER,        OPTIONAL    :: MONTH         ! # of current month
+      INTEGER,        OPTIONAL    :: YEAR          ! 4-digit year
+      INTEGER,        OPTIONAL    :: WAVELENGTH    ! Logical indicator
+                                                   !  = 0: AOD computed 
+                                                   !       at 999 nm
+                                                   !  = 1: AOD computed 
+                                                   !       at wavelength 
+                                                   !       in jv_spec_aod.dat
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      TYPE(OptInput), INTENT(IN)           :: Input_Opt  ! Input Options object
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt     ! Input Options object
 !
-! !OUTPUT PARAMETERS:
-!     
-      INTEGER,        INTENT(OUT)          :: RC         ! Success or failure?
+! !OUTPUT PARAMETERS:                             
+!
+      INTEGER,        INTENT(OUT) :: RC            ! Success or failure?
 #endif
 !
 ! !REVISION HISTORY: 

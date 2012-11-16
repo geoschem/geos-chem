@@ -215,6 +215,7 @@ CONTAINS
 !  19 Oct 2012 - R. Yantosca - Now pass all dimensions as arguments
 !  23 Oct 2012 - R. Yantosca - Now allocate QI, QL fields
 !  15 Nov 2012 - M. Payer    - Added all remaining met fields
+!  16 Nov 2012 - R. Yantosca - Now zero all fields after allocating
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -227,129 +228,171 @@ CONTAINS
     !=======================================================================
     ALLOCATE( State_Met%ALBD    ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%ALBD     = 0d0
 
     ALLOCATE( State_Met%CLDFRC  ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%CLDFRC   = 0d0
 
     ALLOCATE( State_Met%CLDTOPS ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%CLDTOPS  = 0d0
 
     ALLOCATE( State_Met%EFLUX   ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%EFLUX    = 0d0
 
     ALLOCATE( State_Met%EVAP    ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%EVAP     = 0d0
 
     ALLOCATE( State_Met%FRCLND  ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%FRCLND   = 0d0
 
     ALLOCATE( State_Met%FRLAKE  ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%FRLAKE   = 0d0
 
     ALLOCATE( State_Met%FRLAND  ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%FRLAND   = 0d0 
 
     ALLOCATE( State_Met%FRLANDIC( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%FRLANDIC = 0d0 
 
     ALLOCATE( State_Met%FROCEAN ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
-
+    State_Met%FROCEAN  = 0d0
+ 
     ALLOCATE( State_Met%GRN     ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%GRN      = 0d0 
 
     ALLOCATE( State_Met%GWETROOT( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%GWETROOT = 0d0 
 
     ALLOCATE( State_Met%GWETTOP ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%GWETTOP  = 0d0 
 
     ALLOCATE( State_Met%HFLUX   ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%HFLUX    = 0d0 
 
     ALLOCATE( State_Met%LAI     ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%LAI      = 0d0
 
     ALLOCATE( State_Met%LWI     ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%LWI      = 0d0
 
     ALLOCATE( State_Met%PARDR   ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%PARDR    = 0d0
 
     ALLOCATE( State_Met%PARDF   ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%PARDF    = 0d0
 
     ALLOCATE( State_Met%PBLH    ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%PBLH     = 0d0
 
     ALLOCATE( State_Met%PHIS    ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%PHIS     = 0d0
 
     ALLOCATE( State_Met%PRECCON ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%PRECCON  = 0d0
 
     ALLOCATE( State_Met%PRECSNO ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%PRECSNO  = 0d0
 
     ALLOCATE( State_Met%PRECTOT ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%PRECTOT  = 0d0
 
     ALLOCATE( State_Met%PS1     ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%PS1      = 0d0
 
     ALLOCATE( State_Met%PS2     ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%PS2      = 0d0
 
     ALLOCATE( State_Met%PSC2    ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%PSC2     = 0d0
 
     ALLOCATE( State_Met%RADLWG  ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%RADLWG   = 0d0
 
     ALLOCATE( State_Met%RADSWG  ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%RADSWG   = 0d0
 
     ALLOCATE( State_Met%SLP     ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%SLP      = 0d0
 
     ALLOCATE( State_Met%SNODP   ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%SNODP    = 0d0
 
     ALLOCATE( State_Met%SNOMAS  ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%SNOMAS   = 0d0
 
     ALLOCATE( State_Met%SST     ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%SST      = 0d0
 
     ALLOCATE( State_Met%SUNCOS  ( IM* JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%SUNCOS   = 0d0
 
     ALLOCATE( State_Met%TO3     ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%TO3      = 0d0
 
     ALLOCATE( State_Met%TROPP   ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%TROPP    = 0d0
 
     ALLOCATE( State_Met%TS      ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%TS       = 0d0
 
     ALLOCATE( State_Met%TSKIN   ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%TSKIN    = 0d0
 
     ALLOCATE( State_Met%U10M    ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%U10M     = 0d0
 
     ALLOCATE( State_Met%USTAR   ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%USTAR    = 0d0
 
     ALLOCATE( State_Met%UVALBEDO( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%UVALBEDO = 0d0
 
     ALLOCATE( State_Met%V10M    ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%V10M     = 0d0
 
     ALLOCATE( State_Met%Z0      ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%Z0       = 0d0
 
 #if defined( GCAP )
 
@@ -359,24 +402,31 @@ CONTAINS
 
     ALLOCATE( State_Met%LWI_GISS( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%LWI_GISS = 0d0
 
     ALLOCATE( State_Met%MOLENGTH( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%MOLENGTH = 0d0
 
     ALLOCATE( State_Met%OICE    ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OICE     = 0d0
 
     ALLOCATE( State_Met%SNICE   ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%SNICE    = 0d0
 
     ALLOCATE( State_Met%SNOW    ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%SNOW     = 0d0
 
     ALLOCATE( State_Met%TROPP1  ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%TROPP1   = 0d0
 
     ALLOCATE( State_Met%TROPP2  ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%TROPP2   = 0d0
 
 #elif defined( GEOS_4 )
 
@@ -386,12 +436,15 @@ CONTAINS
 
     ALLOCATE( State_Met%SNOW    ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%SNOW     = 0d0
 
     ALLOCATE( State_Met%TROPP1  ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%TROPP1   = 0d0
 
     ALLOCATE( State_Met%TROPP2  ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%TROPP2   = 0d0
 
 #elif defined( GEOS_5 )
 
@@ -401,12 +454,15 @@ CONTAINS
 
     ALLOCATE( State_Met%TO31    ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%TO31     = 0d0
 
     ALLOCATE( State_Met%TO32    ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%TO32     = 0d0
 
     ALLOCATE( State_Met%TTO3    ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%TTO3     = 0d0
 
 #elif defined( GEOS_57 ) || defined( MERRA )
 
@@ -416,45 +472,59 @@ CONTAINS
 
     ALLOCATE( State_Met%FRSEAICE( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%FRSEAICE = 0d0
 
     ALLOCATE( State_Met%FRSNO   ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%FRSNO    = 0d0
 
     ALLOCATE( State_Met%PRECANV ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%PRECANV  = 0d0
 
     ALLOCATE( State_Met%PRECLSC ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%PRECLSC  = 0d0
 
     ALLOCATE( State_Met%SEAICE00( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%SEAICE00 = 0d0
 
     ALLOCATE( State_Met%SEAICE10( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%SEAICE10 = 0d0
 
     ALLOCATE( State_Met%SEAICE20( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%SEAICE20 = 0d0
 
     ALLOCATE( State_Met%SEAICE30( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%SEAICE30 = 0d0
 
     ALLOCATE( State_Met%SEAICE40( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%SEAICE40 = 0d0
 
     ALLOCATE( State_Met%SEAICE50( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%SEAICE50 = 0d0
 
     ALLOCATE( State_Met%SEAICE60( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%SEAICE60 = 0d0
 
     ALLOCATE( State_Met%SEAICE70( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%SEAICE70 = 0d0
 
     ALLOCATE( State_Met%SEAICE80( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%SEAICE80 = 0d0
 
     ALLOCATE( State_Met%SEAICE90( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%SEAICE90 = 0d0
 
 #endif
 
@@ -463,93 +533,123 @@ CONTAINS
     !=======================================================================
     ALLOCATE( State_Met%AD      ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
+    State_Met%AD       = 0d0
                                                
     ALLOCATE( State_Met%AIRDEN  ( LM, IM, JM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
-                                               
+    State_Met%AIRDEN   = 0d0
+                              
     ALLOCATE( State_Met%AIRVOL  ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
+    State_Met%AIRVOL   = 0d0
                                                
     ALLOCATE( State_Met%AREA_M2 ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
+    State_Met%AREA_M2  = 0d0
 
     ALLOCATE( State_Met%AVGW    ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%AVGW     = 0d0
                                                
     ALLOCATE( State_Met%BXHEIGHT( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
+    State_Met%BXHEIGHT = 0d0
                                                
     ALLOCATE( State_Met%CLDF    ( LM, IM, JM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
+    State_Met%CLDF     = 0d0
                                                
     ALLOCATE( State_Met%CMFMC   ( IM, JM, LM+1 ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
+    State_Met%CMFMC    = 0d0
                                                
     ALLOCATE( State_Met%DELP    ( LM, IM, JM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%DELP     = 0d0
 
     ALLOCATE( State_Met%DQRCU   ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%DQRCU    = 0d0
 
     ALLOCATE( State_Met%DQRLSAN ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%DQRLSAN  = 0d0
 
     ALLOCATE( State_Met%DQIDTMST( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
+    State_Met%DQIDTMST = 0d0
                                                
     ALLOCATE( State_Met%DQLDTMST( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
+    State_Met%DQLDTMST = 0d0
                                                
     ALLOCATE( State_Met%DQVDTMST( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
+    State_Met%DQVDTMST = 0d0
                                                
     ALLOCATE( State_Met%DTRAIN  ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
+    State_Met%DTRAIN   = 0d0
                                                
     ALLOCATE( State_Met%MOISTQ  ( LM, IM, JM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
+    State_Met%MOISTQ   = 0d0
                                                
     ALLOCATE( State_Met%OPTD    ( LM, IM, JM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
+    State_Met%OPTD     = 0d0
                                                
     ALLOCATE( State_Met%OPTDEP  ( LM, IM, JM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%OPTDEP   = 0d0
 
     ALLOCATE( State_Met%PEDGE   ( IM, JM, LM+1 ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
+    State_Met%PEDGE    = 0d0
                                                
     ALLOCATE( State_Met%PMID    ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
+    State_Met%PMID     = 0d0
 
     ALLOCATE( State_Met%PV      ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%PV       = 0d0
 
     ALLOCATE( State_Met%QI      ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
+    State_Met%QI       = 0d0
                                                
     ALLOCATE( State_Met%QL      ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
-                                               
+    State_Met%QL       = 0d0
+                         
     ALLOCATE( State_Met%RH      ( IM, JM, LM   ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN           
-                                               
+    IF ( RC /= GIGC_SUCCESS ) RETURN                                 
+    State_Met%RH       = 0d0
+                        
     ALLOCATE( State_Met%SPHU    ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
+    State_Met%SPHU     = 0d0
                                                
     ALLOCATE( State_Met%T       ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
+    State_Met%T        = 0d0
                                                
     ALLOCATE( State_Met%TAUCLI  ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
+    State_Met%TAUCLI   = 0d0
                                                
     ALLOCATE( State_Met%TAUCLW  ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%TAUCLW   = 0d0
     
     ALLOCATE( State_Met%U       ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%U        = 0d0
 
     ALLOCATE( State_Met%V       ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%V        = 0d0
 
 #if defined( GCAP )
 
@@ -559,24 +659,31 @@ CONTAINS
 
     ALLOCATE( State_Met%DETRAINE( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%DETRAINE = 0d0
 
     ALLOCATE( State_Met%DETRAINN( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%DETRAINN = 0d0
 
     ALLOCATE( State_Met%DNDE    ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%DNDE     = 0d0
 
     ALLOCATE( State_Met%DNDN    ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%DNDN     = 0d0
 
     ALLOCATE( State_Met%ENTRAIN ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%ENTRAIN  = 0d0
 
     ALLOCATE( State_Met%UPDE    ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%UPDE     = 0d0
 
     ALLOCATE( State_Met%UPDN    ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%UPDN     = 0d0
 
 #elif defined( GEOS_4 )
 
@@ -586,18 +693,23 @@ CONTAINS
 
     ALLOCATE( State_Met%HKBETA  ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%HKETA    = 0d0
 
     ALLOCATE( State_Met%HKETA   ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%HKBETA   = 0d0
 
     ALLOCATE( State_Met%ZMEU    ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%ZMEU     = 0d0
 
     ALLOCATE( State_Met%ZMMD    ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%ZMMD     = 0d0
 
     ALLOCATE( State_Met%ZMMU    ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%ZMMU     = 0d0
 
 #elif defined( GEOS_57 ) || defined( MERRA )
 
@@ -607,39 +719,51 @@ CONTAINS
 
     ALLOCATE( State_Met%PFICU   ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%PFICU    = 0d0
 
     ALLOCATE( State_Met%PFILSAN ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%PFILSAN  = 0d0
 
     ALLOCATE( State_Met%PFLCU   ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%PFLCU    = 0d0
 
     ALLOCATE( State_Met%PFLLSAN ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%PFLLSAN  = 0d0
 
     ALLOCATE( State_Met%REEVAPCN( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%REEVAPCN = 0d0
 
     ALLOCATE( State_Met%REEVAPLS( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%REEVAPLS = 0d0
 
     ALLOCATE( State_Met%RH1     ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%RH1      = 0d0
 
     ALLOCATE( State_Met%RH2     ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%RH2      = 0d0
 
     ALLOCATE( State_Met%SPHU1   ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%SPHU1    = 0d0
 
     ALLOCATE( State_Met%SPHU2   ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%SPHU2    = 0d0
 
     ALLOCATE( State_Met%TMPU1   ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%TMPU1    = 0d0
 
     ALLOCATE( State_Met%TMPU2   ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%TMPU2    = 0d0
 
 #endif
 

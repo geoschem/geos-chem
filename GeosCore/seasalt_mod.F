@@ -297,7 +297,7 @@
       ! Pass Input_Opt, RC to WET_SETTLING (bmy, 11/13/12)
       !-----------------------------------------------------------------
       CALL WET_SETTLING( am_I_Root,          Input_Opt, State_Met,
-                         STT(:,:,:,IDTSALA), 1,         RC         )
+     &                   STT(:,:,:,IDTSALA), 1,         RC         )
 #else
       !-----------------------------------------------------------------
       !              %%%%% TRADITIONAL GEOS-Chem %%%%%
@@ -889,7 +889,7 @@
       !
       ! Add am_I_Root, Input_Opt, RC arguments (bmy, 11/13/12)
       !-----------------------------------------------------------------
-      SUBROUTINE DRY_DEPOSITION( am_I_Root, TC, N, Input_Opt, RC )
+      SUBROUTINE DRY_DEPOSITION( am_I_Root, Input_Opt, TC, N, RC )
 #else
       !--------------------------------------------------------------
       !               %%%%% TRADITIONAL GEOS-Chem %%%%%

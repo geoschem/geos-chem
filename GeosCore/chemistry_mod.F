@@ -563,7 +563,7 @@
             YEAR       = 0
             WAVELENGTH = 0
             CALL RDAER( am_I_Root, Input_Opt, State_Met,  RC,
-     &                  MONTH,     YEAR,      WAVELENGTH,     )
+     &                  MONTH,     YEAR,      WAVELENGTH      )
 
             !*** AEROSOL THERMODYNAMIC EQUILIBRIUM ***
             IF ( LSSALT ) THEN
@@ -1309,7 +1309,7 @@
                ! Now pass Input_Opt, RC arguments to RDAER (bmy, 11/13/12)
                !--------------------------------------------------------------
                CALL RDAER( am_I_Root, Input_Opt, State_Met,  RC,
-     &                     MONTH,     YEAR,      WAVELENGTH,     )
+     &                     MONTH,     YEAR,      WAVELENGTH      )
 
 #else
                !--------------------------------------------------------------
