@@ -237,7 +237,7 @@
                   EDGAR   = GET_EDGAR_NOx( I, J, MOLEC_CM2_S=.TRUE. )
 
                   ! Apply EDGAR time-of-day factor
-                  EDGAR   = EDGAR * GET_EDGAR_TODN( I, J, HOUR )
+                  EDGAR   = EDGAR * TODX
 
                   ! Replace GEIA with EPA/NEI emissions at surface
                   EMX(LL) = EDGAR * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
