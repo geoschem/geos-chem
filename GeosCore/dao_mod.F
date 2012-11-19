@@ -55,133 +55,133 @@
 ! !PUBLIC DATA MEMBERS:
 !
       ! 2-D data fields
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: ALBD1          (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: ALBD2          (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: ALBD           (:,:  )
-      INTEGER, ALLOCATABLE, PUBLIC, TARGET :: CLDTOPS        (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CLDFRC         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: EFLUX          (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: EVAP           (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: FRLAKE         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: FRLAND         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: FROCEAN        (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: FRLANDIC       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: FRSEAICE       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: FRSNO          (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: GRN            (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: GWETROOT       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: GWETTOP        (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: HFLUX          (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: LAI            (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: LWI_GISS       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: LWI            (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: MOLENGTH       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: OICE           (:,:  )      
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PARDF          (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PARDR          (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PBL            (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PHIS           (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PREACC         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PREANV         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PRECON         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PRELSC         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PRECSNO        (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PS1            (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PS2            (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PSC2           (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: RADLWG         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: RADSWG         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SEAICE00       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SEAICE10       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SEAICE20       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SEAICE30       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SEAICE40       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SEAICE50       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SEAICE60       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SEAICE70       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SEAICE80       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SEAICE90       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SLP            (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SNICE          (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SNODP          (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SNOMAS         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SNOW           (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: ALBD1          (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: ALBD2          (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: ALBD           (:,:  )
+      !INTEGER, ALLOCATABLE, PUBLIC, TARGET :: CLDTOPS        (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CLDFRC         (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: EFLUX          (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: EVAP           (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: FRLAKE         (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: FRLAND         (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: FROCEAN        (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: FRLANDIC       (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: FRSEAICE       (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: FRSNO          (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: GRN            (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: GWETROOT       (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: GWETTOP        (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: HFLUX          (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: LAI            (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: LWI_GISS       (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: LWI            (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: MOLENGTH       (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: OICE           (:,:  )      
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PARDF          (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PARDR          (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PBL            (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PHIS           (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PREACC         (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PREANV         (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PRECON         (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PRELSC         (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PRECSNO        (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PS1            (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PS2            (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PSC2           (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: RADLWG         (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: RADSWG         (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SEAICE00       (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SEAICE10       (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SEAICE20       (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SEAICE30       (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SEAICE40       (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SEAICE50       (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SEAICE60       (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SEAICE70       (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SEAICE80       (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SEAICE90       (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SLP            (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SNICE          (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SNODP          (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SNOMAS         (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SNOW           (:,:  )
       REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SUNCOS         (:    )
       REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SUNCOS_MID     (:    )
       REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SUNCOS_MID_5hr (:    )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TO31           (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TO32           (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TO3            (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TTO3           (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TROPP1         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TROPP2         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TROPP          (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TS             (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TSKIN          (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: U10M           (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TO31           (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TO32           (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TO3            (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TTO3           (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TROPP1         (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TROPP2         (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TROPP          (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TS             (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TSKIN          (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: U10M           (:,:  )
       REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: USTAR          (:,:  )  
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: V10M           (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: Z0             (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: V10M           (:,:  )
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: Z0             (:,:  )
 
       ! 3-D data fields
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: AD             (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: AIRDEN         (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: AIRVOL         (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: AVGW           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: BXHEIGHT       (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DQRCU          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DQRLSAN        (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CLDF           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CLDMAS         (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CMFMC          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DELP           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DETRAINE       (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DETRAINN       (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DNDE           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DNDN           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DQIDTMST       (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DQLDTMST       (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DQRCON         (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DQRLSC         (:,:,:)    
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DQVDTMST       (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DTRAIN         (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: ENTRAIN        (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: HKBETA         (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: HKETA          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: MFXC           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: MFYC           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: MFZ            (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: MOISTQ         (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: OPTDEP         (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: OPTD           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PFICU          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PFILSAN        (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PFLCU          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PFLLSAN        (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PV             (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: QI             (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: QL             (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: REEVAPCN       (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: REEVAPLS       (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: RH1            (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: RH2            (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: RH             (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: AD             (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: AIRDEN         (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: AIRVOL         (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: AVGW           (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: BXHEIGHT       (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DQRCU          (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DQRLSAN        (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CLDF           (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CLDMAS         (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CMFMC          (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DELP           (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DETRAINE       (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DETRAINN       (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DNDE           (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DNDN           (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DQIDTMST       (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DQLDTMST       (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DQRCON         (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DQRLSC         (:,:,:)    
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DQVDTMST       (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DTRAIN         (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: ENTRAIN        (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: HKBETA         (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: HKETA          (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: MFXC           (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: MFYC           (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: MFZ            (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: MOISTQ         (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: OPTDEP         (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: OPTD           (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PFICU          (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PFILSAN        (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PFLCU          (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PFLLSAN        (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PV             (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: QI             (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: QL             (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: REEVAPCN       (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: REEVAPLS       (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: RH1            (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: RH2            (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: RH             (:,:,:)
       REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SPHU1          (:,:,:)
       REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SPHU2          (:,:,:)
       REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SPHU           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: T              (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TAUCLI         (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TAUCLW         (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TMPU1          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TMPU2          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: UPDE           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: UPDN           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: UWND           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: VWND1          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: VWND           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: ZMEU           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: ZMMD           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: ZMMU           (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: T              (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TAUCLI         (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TAUCLW         (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TMPU1          (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TMPU2          (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: UPDE           (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: UPDN           (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: UWND           (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: VWND1          (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: VWND           (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: ZMEU           (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: ZMMD           (:,:,:)
+      !REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: ZMMU           (:,:,:)
       REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: AIRDEN_FULLGRID(:,:,:)
       REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: T_FULLGRID     (:,:,:)
 !
@@ -2182,208 +2182,208 @@
       ! A-3 fields
       !=================================================================
 
-      ALLOCATE( ALBD( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALBD' )
-      ALBD = 0d0
-
-      ALLOCATE( CLDFRC( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDFRC' )
-      CLDFRC = 0d0
-
-      ALLOCATE( GWETTOP( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GWETTOP' )
-      GWETTOP = 0d0
-
-      ALLOCATE( HFLUX( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HFLUX' )
-      HFLUX = 0d0
-
-      ALLOCATE( MOLENGTH( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOLENGTH' )
-      MOLENGTH = 0d0
-
-      ALLOCATE( OICE( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OICE' )
-      OICE = 0d0
-
-      ALLOCATE( PARDF( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDF' )
-      PARDF = 0d0
-
-      ALLOCATE( PARDR( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDR' )
-      PARDR = 0d0
-
-      ALLOCATE( PBL( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PBL' )
-      PBL = 0d0
-
-      ALLOCATE( PREACC( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PREACC' )
-      PREACC = 0d0
-
-      ALLOCATE( PRECON( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRECON' )
-      PRECON = 0d0
-   
-      ALLOCATE( RADLWG( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADLWG' )
-      RADLWG = 0d0
-
-      ALLOCATE( RADSWG( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADSWG' )
-      RADSWG = 0d0
-
-      ALLOCATE( SNICE( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNICE' )
-      SNICE = 0d0
-
-      ALLOCATE( SNOW( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNOW' )
-      SNOW = 0d0
-
-      ALLOCATE( TS( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TS' )
-      TS = 0d0
-
-      ALLOCATE( TSKIN( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TSKIN' )
-      TSKIN = 0d0
-
-      ALLOCATE( U10M( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'U10M' )
-      U10M = 0d0
+!      ALLOCATE( ALBD( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALBD' )
+!      ALBD = 0d0
+!
+!      ALLOCATE( CLDFRC( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDFRC' )
+!      CLDFRC = 0d0
+!
+!      ALLOCATE( GWETTOP( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GWETTOP' )
+!      GWETTOP = 0d0
+!
+!      ALLOCATE( HFLUX( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HFLUX' )
+!      HFLUX = 0d0
+!
+!      ALLOCATE( MOLENGTH( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOLENGTH' )
+!      MOLENGTH = 0d0
+!
+!      ALLOCATE( OICE( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OICE' )
+!      OICE = 0d0
+!
+!      ALLOCATE( PARDF( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDF' )
+!      PARDF = 0d0
+!
+!      ALLOCATE( PARDR( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDR' )
+!      PARDR = 0d0
+!
+!      ALLOCATE( PBL( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PBL' )
+!      PBL = 0d0
+!
+!      ALLOCATE( PREACC( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PREACC' )
+!      PREACC = 0d0
+!
+!      ALLOCATE( PRECON( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRECON' )
+!      PRECON = 0d0
+!   
+!      ALLOCATE( RADLWG( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADLWG' )
+!      RADLWG = 0d0
+!
+!      ALLOCATE( RADSWG( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADSWG' )
+!      RADSWG = 0d0
+!
+!      ALLOCATE( SNICE( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNICE' )
+!      SNICE = 0d0
+!
+!      ALLOCATE( SNOW( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNOW' )
+!      SNOW = 0d0
+!
+!      ALLOCATE( TS( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TS' )
+!      TS = 0d0
+!
+!      ALLOCATE( TSKIN( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TSKIN' )
+!      TSKIN = 0d0
+!
+!      ALLOCATE( U10M( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'U10M' )
+!      U10M = 0d0
 
       ALLOCATE( USTAR( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'USTAR' )
       USTAR = 0d0
 
-      ALLOCATE( V10M( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'V10M' )
-      V10M = 0d0
-
-      ALLOCATE( Z0( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Z0' )
-      Z0 = 0d0
-
-      !=================================================================
-      ! A-6 fields
-      !=================================================================
-
-      ALLOCATE( CLDF( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDF' )
-      CLDF = 0d0
-
-      ALLOCATE( DETRAINE( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DETRAINE' )
-      DETRAINE = 0d0  
-
-      ALLOCATE( DETRAINN( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DETRAINN' )
-      DETRAINN = 0d0  
-
-      ALLOCATE( DNDE( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DNDE' )
-      DNDE = 0d0  
-
-      ALLOCATE( DNDN( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DNDN' )
-      DNDN = 0d0  
-
-      ALLOCATE( ENTRAIN( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ENTRAIN' )
-      ENTRAIN = 0d0  
-
-      ALLOCATE( MOISTQ( LLPAR, IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOISTQ' )
-      MOISTQ = 0d0
-
-      ALLOCATE( OPTDEP( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTDEP' )
-      OPTDEP = 0d0
-
-      ALLOCATE( OPTD( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTD' )
-      OPTD = 0d0
+!     ALLOCATE( V10M( IIPAR, JJPAR ), STAT=AS )
+!     IF ( AS /= 0 ) CALL ALLOC_ERR( 'V10M' )
+!     V10M = 0d0
+!
+!     ALLOCATE( Z0( IIPAR, JJPAR ), STAT=AS )
+!     IF ( AS /= 0 ) CALL ALLOC_ERR( 'Z0' )
+!     Z0 = 0d0
+!
+!     !=================================================================
+!     ! A-6 fields
+!     !=================================================================
+!
+!     ALLOCATE( CLDF( LLPAR, IIPAR, JJPAR ), STAT=AS )
+!     IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDF' )
+!     CLDF = 0d0
+!
+!     ALLOCATE( DETRAINE( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!     IF ( AS /= 0 ) CALL ALLOC_ERR( 'DETRAINE' )
+!     DETRAINE = 0d0  
+!
+!     ALLOCATE( DETRAINN( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!     IF ( AS /= 0 ) CALL ALLOC_ERR( 'DETRAINN' )
+!     DETRAINN = 0d0  
+!
+!     ALLOCATE( DNDE( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!     IF ( AS /= 0 ) CALL ALLOC_ERR( 'DNDE' )
+!     DNDE = 0d0  
+!
+!     ALLOCATE( DNDN( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!     IF ( AS /= 0 ) CALL ALLOC_ERR( 'DNDN' )
+!     DNDN = 0d0  
+!
+!     ALLOCATE( ENTRAIN( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!     IF ( AS /= 0 ) CALL ALLOC_ERR( 'ENTRAIN' )
+!     ENTRAIN = 0d0  
+!
+!     ALLOCATE( MOISTQ( LLPAR, IIPAR, JJPAR ), STAT=AS ) 
+!     IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOISTQ' )
+!     MOISTQ = 0d0
+!
+!     ALLOCATE( OPTDEP( LLPAR, IIPAR, JJPAR ), STAT=AS )
+!     IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTDEP' )
+!     OPTDEP = 0d0
+!
+!     ALLOCATE( OPTD( LLPAR, IIPAR, JJPAR ), STAT=AS )
+!     IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTD' )
+!     OPTD = 0d0
 
       ALLOCATE( SPHU( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPHU' )
       SPHU = 0d0
 
-      ALLOCATE( T( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'T' )
-      T = 0d0
-
-      ALLOCATE( UPDE( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UPDE' )
-      UPDE = 0d0  
-
-      ALLOCATE( UPDN( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UPDN' )
-      UPDN = 0d0  
-
-      ALLOCATE( UWND( IIPAR, JJPAR, LLPAR), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UWND' )
-      UWND = 0d0
-
-      ALLOCATE( VWND( IIPAR, JJPAR, LLPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'VWND' )
-      VWND = 0d0
-
-      !=================================================================
-      ! I-6 fields / interpolated fields
-      !=================================================================
-
-      ALLOCATE( PS1( IIPAR, JJPAR ), STAT=AS )  
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS1' )
-      PS1 = 0d0
-
-      ! Pressure at end of 6hr timestep
-      ALLOCATE( PS2( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS2' )
-      PS2 = 0d0
-
-      ALLOCATE( PSC2( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSC2' )
-      PSC2 = 0d0
-
-      ALLOCATE( RH( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH' )
-      RH = 0d0
-
-      ALLOCATE( SLP( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SLP' )
-      SLP = 0d0      
-
-      ALLOCATE( TROPP( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP' )
-      TROPP = 0d0
-
-      ALLOCATE( TROPP1( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) C ALL ALLOC_ERR( 'TROPP1' )
-      TROPP1 = 0d0
-
-      ALLOCATE( TROPP2( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP2' )
-      TROPP2 = 0d0
-
-      ! NOTE: Allocate this here, it will always be 0 for GCAP
-      ! (bmy, 3/6/12)
-      ALLOCATE( TO3( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO3' )
-      TO3 = 0d0
-
-      !=================================================================
-      ! Constant fields
-      !=================================================================
-
-      ALLOCATE( PHIS( IIPAR, JJPAR ), STAT=AS )  
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PHIS' )
-      PHIS = 0d0
-
-      ALLOCATE( LWI_GISS( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LWI_GISS' )
-      LWI_GISS = 0d0
+!      ALLOCATE( T( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'T' )
+!      T = 0d0
+!
+!      ALLOCATE( UPDE( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UPDE' )
+!      UPDE = 0d0  
+!
+!      ALLOCATE( UPDN( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UPDN' )
+!      UPDN = 0d0  
+!
+!      ALLOCATE( UWND( IIPAR, JJPAR, LLPAR), STAT=AS ) 
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UWND' )
+!      UWND = 0d0
+!
+!      ALLOCATE( VWND( IIPAR, JJPAR, LLPAR ), STAT=AS ) 
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'VWND' )
+!      VWND = 0d0
+!
+!      !=================================================================
+!      ! I-6 fields / interpolated fields
+!      !=================================================================
+!
+!      ALLOCATE( PS1( IIPAR, JJPAR ), STAT=AS )  
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS1' )
+!      PS1 = 0d0
+!
+!      ! Pressure at end of 6hr timestep
+!      ALLOCATE( PS2( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS2' )
+!      PS2 = 0d0
+!
+!      ALLOCATE( PSC2( IIPAR, JJPAR ), STAT=AS ) 
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSC2' )
+!      PSC2 = 0d0
+!
+!      ALLOCATE( RH( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH' )
+!      RH = 0d0
+!
+!      ALLOCATE( SLP( IIPAR, JJPAR ), STAT=AS ) 
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SLP' )
+!      SLP = 0d0      
+!
+!      ALLOCATE( TROPP( IIPAR, JJPAR ), STAT=AS ) 
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP' )
+!      TROPP = 0d0
+!
+!      ALLOCATE( TROPP1( IIPAR, JJPAR ), STAT=AS ) 
+!      IF ( AS /= 0 ) C ALL ALLOC_ERR( 'TROPP1' )
+!      TROPP1 = 0d0
+!
+!      ALLOCATE( TROPP2( IIPAR, JJPAR ), STAT=AS ) 
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP2' )
+!      TROPP2 = 0d0
+!
+!      ! NOTE: Allocate this here, it will always be 0 for GCAP
+!      ! (bmy, 3/6/12)
+!      ALLOCATE( TO3( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO3' )
+!      TO3 = 0d0
+!
+!      !=================================================================
+!      ! Constant fields
+!      !=================================================================
+!
+!      ALLOCATE( PHIS( IIPAR, JJPAR ), STAT=AS )  
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PHIS' )
+!      PHIS = 0d0
+!
+!      ALLOCATE( LWI_GISS( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LWI_GISS' )
+!      LWI_GISS = 0d0
 
       END SUBROUTINE INIT_DAO_GCAP
 !EOC
@@ -2420,183 +2420,183 @@
       ! A-3 fields
       !=================================================================
 
-      ALLOCATE( ALBD( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALBD' )
-      ALBD = 0d0
-
-      ALLOCATE( CLDFRC( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDFRC' )
-      CLDFRC = 0d0
-
-      ALLOCATE( GWETTOP( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GWETTOP' )
-      GWETTOP = 0d0
-
-      ALLOCATE( HFLUX( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HFLUX' )
-      HFLUX = 0d0
-
-      ALLOCATE( PARDF( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDF' )
-      PARDF = 0d0
-
-      ALLOCATE( PARDR( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDR' )
-      PARDR = 0d0
-
-      ALLOCATE( PBL( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PBL' )
-      PBL = 0d0
-
-      ALLOCATE( PHIS( IIPAR, JJPAR ), STAT=AS )  
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PHIS' )
-      PHIS = 0d0
-
-      ALLOCATE( PREACC( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PREACC' )
-      PREACC = 0d0
-
-      ALLOCATE( PRECON( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRECON' )
-      PRECON = 0d0
-   
-      ALLOCATE( RADLWG( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADLWG' )
-      RADLWG = 0d0
-
-      ALLOCATE( RADSWG( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADSWG' )
-      RADSWG = 0d0
-
-      ALLOCATE( SNOW( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNOW' )
-      SNOW = 0d0
-
-      ALLOCATE( TS( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TS' )
-      TS = 0d0
-
-      ALLOCATE( TSKIN( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TSKIN' )
-      TSKIN = 0d0
-
-      ALLOCATE( U10M( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'U10M' )
-      U10M = 0d0
+!      ALLOCATE( ALBD( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALBD' )
+!      ALBD = 0d0
+!
+!      ALLOCATE( CLDFRC( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDFRC' )
+!      CLDFRC = 0d0
+!
+!      ALLOCATE( GWETTOP( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GWETTOP' )
+!      GWETTOP = 0d0
+!
+!      ALLOCATE( HFLUX( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HFLUX' )
+!      HFLUX = 0d0
+!
+!      ALLOCATE( PARDF( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDF' )
+!      PARDF = 0d0
+!
+!      ALLOCATE( PARDR( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDR' )
+!      PARDR = 0d0
+!
+!      ALLOCATE( PBL( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PBL' )
+!      PBL = 0d0
+!
+!      ALLOCATE( PHIS( IIPAR, JJPAR ), STAT=AS )  
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PHIS' )
+!      PHIS = 0d0
+!
+!      ALLOCATE( PREACC( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PREACC' )
+!      PREACC = 0d0
+!
+!      ALLOCATE( PRECON( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRECON' )
+!      PRECON = 0d0
+!   
+!      ALLOCATE( RADLWG( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADLWG' )
+!      RADLWG = 0d0
+!
+!      ALLOCATE( RADSWG( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADSWG' )
+!      RADSWG = 0d0
+!
+!      ALLOCATE( SNOW( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNOW' )
+!      SNOW = 0d0
+!
+!      ALLOCATE( TS( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TS' )
+!      TS = 0d0
+!
+!      ALLOCATE( TSKIN( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TSKIN' )
+!      TSKIN = 0d0
+!
+!      ALLOCATE( U10M( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'U10M' )
+!      U10M = 0d0
 
       ALLOCATE( USTAR( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'USTAR' )
       USTAR = 0d0
 
-      ALLOCATE( V10M( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'V10M' )
-      V10M = 0d0
-
-      ALLOCATE( Z0( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Z0' )
-      Z0 = 0d0
-
-      !=================================================================
-      ! A-6 fields
-      !=================================================================
-
-      ALLOCATE( CLDF( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDF' )
-      CLDF = 0d0
-
-      ALLOCATE( HKBETA( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HKBETA' )
-      HKBETA = 0d0
-
-      ALLOCATE( HKETA( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HKETA' )
-      HKETA = 0d0
-
-      ALLOCATE( MOISTQ( LLPAR, IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOISTQ' )
-      MOISTQ = 0d0
-
-      ALLOCATE( OPTDEP( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTDEP' )
-      OPTDEP = 0d0
-
-      ALLOCATE( OPTD( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTD' )
-      OPTD = 0d0
+!      ALLOCATE( V10M( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'V10M' )
+!      V10M = 0d0
+!
+!      ALLOCATE( Z0( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Z0' )
+!      Z0 = 0d0
+!
+!      !=================================================================
+!      ! A-6 fields
+!      !=================================================================
+!
+!      ALLOCATE( CLDF( LLPAR, IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDF' )
+!      CLDF = 0d0
+!
+!      ALLOCATE( HKBETA( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HKBETA' )
+!      HKBETA = 0d0
+!
+!      ALLOCATE( HKETA( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HKETA' )
+!      HKETA = 0d0
+!
+!      ALLOCATE( MOISTQ( LLPAR, IIPAR, JJPAR ), STAT=AS ) 
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOISTQ' )
+!      MOISTQ = 0d0
+!
+!      ALLOCATE( OPTDEP( LLPAR, IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTDEP' )
+!      OPTDEP = 0d0
+!
+!      ALLOCATE( OPTD( LLPAR, IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTD' )
+!      OPTD = 0d0
 
       ALLOCATE( SPHU( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPHU' )
       SPHU = 0d0
 
-      ALLOCATE( T( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'T' )
-      T = 0d0
-
-      ALLOCATE( UWND( IIPAR, JJPAR, LLPAR), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UWND' )
-      UWND = 0d0
-
-      ALLOCATE( VWND( IIPAR, JJPAR, LLPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'VWND' )
-      VWND = 0d0
-
-      ALLOCATE( ZMEU( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ZMEU' )
-      ZMEU = 0d0
-
-      ALLOCATE( ZMMD( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ZMMD' )
-      ZMMD = 0d0
-
-      ALLOCATE( ZMMU( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ZMMU' )
-      ZMMU = 0d0
-
-      !=================================================================
-      ! I-6 fields / interpolated fields
-      !=================================================================
-
-      ALLOCATE( LWI( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LWI' )
-      LWI = 0
-
-      ALLOCATE( PS1( IIPAR, JJPAR ), STAT=AS )  
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS1' )
-      PS1 = 0d0
-
-      ALLOCATE( PS2( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS2' )
-      PS2 = 0d0
-
-      ALLOCATE( PSC2( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSC2' )
-      PSC2 = 0d0
-
-      ALLOCATE( RH( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH' )
-      RH = 0d0
-
-      ALLOCATE( SLP( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SLP' )
-      SLP = 0d0      
-
-      ALLOCATE( TROPP( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP' )
-      TROPP = 0d0
-
-      ALLOCATE( TROPP1( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) C ALL ALLOC_ERR( 'TROPP1' )
-      TROPP1 = 0d0
-
-      ALLOCATE( TROPP2( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP2' )
-      TROPP2 = 0d0
-
-      ! NOTE: Allocate this here, it will always be 0 for GEOS-4
-      ! (bmy, 3/6/12)
-      ALLOCATE( TO3( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO3' )
-      TO3 = 0d0
+!      ALLOCATE( T( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'T' )
+!      T = 0d0
+!
+!      ALLOCATE( UWND( IIPAR, JJPAR, LLPAR), STAT=AS ) 
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UWND' )
+!      UWND = 0d0
+!
+!      ALLOCATE( VWND( IIPAR, JJPAR, LLPAR ), STAT=AS ) 
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'VWND' )
+!      VWND = 0d0
+!
+!      ALLOCATE( ZMEU( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ZMEU' )
+!      ZMEU = 0d0
+!
+!      ALLOCATE( ZMMD( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ZMMD' )
+!      ZMMD = 0d0
+!
+!      ALLOCATE( ZMMU( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ZMMU' )
+!      ZMMU = 0d0
+!
+!      !=================================================================
+!      ! I-6 fields / interpolated fields
+!      !=================================================================
+!
+!      ALLOCATE( LWI( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LWI' )
+!      LWI = 0
+!
+!      ALLOCATE( PS1( IIPAR, JJPAR ), STAT=AS )  
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS1' )
+!      PS1 = 0d0
+!
+!      ALLOCATE( PS2( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS2' )
+!      PS2 = 0d0
+!
+!      ALLOCATE( PSC2( IIPAR, JJPAR ), STAT=AS ) 
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSC2' )
+!      PSC2 = 0d0
+!
+!      ALLOCATE( RH( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH' )
+!      RH = 0d0
+!
+!      ALLOCATE( SLP( IIPAR, JJPAR ), STAT=AS ) 
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SLP' )
+!      SLP = 0d0      
+!
+!      ALLOCATE( TROPP( IIPAR, JJPAR ), STAT=AS ) 
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP' )
+!      TROPP = 0d0
+!
+!      ALLOCATE( TROPP1( IIPAR, JJPAR ), STAT=AS ) 
+!      IF ( AS /= 0 ) C ALL ALLOC_ERR( 'TROPP1' )
+!      TROPP1 = 0d0
+!
+!      ALLOCATE( TROPP2( IIPAR, JJPAR ), STAT=AS ) 
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP2' )
+!      TROPP2 = 0d0
+!
+!      ! NOTE: Allocate this here, it will always be 0 for GEOS-4
+!      ! (bmy, 3/6/12)
+!      ALLOCATE( TO3( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO3' )
+!      TO3 = 0d0
 
       END SUBROUTINE INIT_DAO_GEOS4
 !EOC
@@ -2634,257 +2634,257 @@
       ! A-3 fields
       !=================================================================
 
-      ALLOCATE( ALBD( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALBD' )
-      ALBD = 0d0
-
-      ALLOCATE( CLDFRC( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDFRC' )
-      CLDFRC = 0d0
-
-      ALLOCATE( EFLUX( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EFLUX' )
-      EFLUX = 0d0
-
-      ALLOCATE( EVAP( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EVAP' )
-      EVAP = 0d0
-
-      ALLOCATE( FRLAND( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRLAND' )
-      FRLAND = 0d0
-
-      ALLOCATE( FRLAKE( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRLAKE' )
-      FRLAKE = 0d0
-
-      ALLOCATE( FROCEAN( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FROCEAN' )
-      FROCEAN = 0d0
-
-      ALLOCATE( FRLANDIC( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRLANDIC' )
-      FRLANDIC = 0d0
-
-      ALLOCATE( GRN( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GRN' )
-      GRN = 0d0
-
-      ALLOCATE( GWETROOT( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GWETROOT' )
-      GWETROOT = 0d0
-
-      ALLOCATE( LAI( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LAI' )
-      LAI = 0d0
-
-      ALLOCATE( PRECSNO( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRECSNO' )
-      PRECSNO = 0d0
-
-      ALLOCATE( GWETTOP( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GWETTOP' )
-      GWETTOP = 0d0
-
-      ALLOCATE( HFLUX( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HFLUX' )
-      HFLUX = 0d0
-
-      ALLOCATE( PARDF( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDF' )
-      PARDF = 0d0
-
-      ALLOCATE( PARDR( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDR' )
-      PARDR = 0d0
-
-      ALLOCATE( PBL( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PBL' )
-      PBL = 0d0
-
-      ALLOCATE( PHIS( IIPAR, JJPAR ), STAT=AS )  
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PHIS' )
-      PHIS = 0d0
-
-      ALLOCATE( PREACC( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PREACC' )
-      PREACC = 0d0
-
-      ALLOCATE( PRECON( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRECON' )
-      PRECON = 0d0
-
-      ALLOCATE( RADLWG( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADLWG' )
-      RADLWG = 0d0
-
-      ALLOCATE( RADSWG( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADSWG' )
-      RADSWG = 0d0
-
-      ALLOCATE( SNOMAS( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNOMAS' )
-      SNOMAS = 0d0
-
-      ALLOCATE( SNODP( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNODP' )
-      SNODP = 0d0
-
-      ALLOCATE( TROPP( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP' )
-      TROPP = 0d0
-
-      ALLOCATE( TS( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TS' )
-      TS = 0d0
-
-      ALLOCATE( TSKIN( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TSKIN' )
-      TSKIN = 0d0
-
-      ALLOCATE( U10M( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'U10M' )
-      U10M = 0d0
+!      ALLOCATE( ALBD( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALBD' )
+!      ALBD = 0d0
+!
+!      ALLOCATE( CLDFRC( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDFRC' )
+!      CLDFRC = 0d0
+!
+!      ALLOCATE( EFLUX( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EFLUX' )
+!      EFLUX = 0d0
+!
+!      ALLOCATE( EVAP( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EVAP' )
+!      EVAP = 0d0
+!
+!      ALLOCATE( FRLAND( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRLAND' )
+!      FRLAND = 0d0
+!
+!      ALLOCATE( FRLAKE( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRLAKE' )
+!      FRLAKE = 0d0
+!
+!      ALLOCATE( FROCEAN( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FROCEAN' )
+!      FROCEAN = 0d0
+!
+!      ALLOCATE( FRLANDIC( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRLANDIC' )
+!      FRLANDIC = 0d0
+!
+!      ALLOCATE( GRN( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GRN' )
+!      GRN = 0d0
+!
+!      ALLOCATE( GWETROOT( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GWETROOT' )
+!      GWETROOT = 0d0
+!
+!      ALLOCATE( LAI( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LAI' )
+!      LAI = 0d0
+!
+!      ALLOCATE( PRECSNO( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRECSNO' )
+!      PRECSNO = 0d0
+!
+!      ALLOCATE( GWETTOP( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GWETTOP' )
+!      GWETTOP = 0d0
+!
+!      ALLOCATE( HFLUX( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HFLUX' )
+!      HFLUX = 0d0
+!
+!      ALLOCATE( PARDF( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDF' )
+!      PARDF = 0d0
+!
+!      ALLOCATE( PARDR( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDR' )
+!      PARDR = 0d0
+!
+!      ALLOCATE( PBL( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PBL' )
+!      PBL = 0d0
+!
+!      ALLOCATE( PHIS( IIPAR, JJPAR ), STAT=AS )  
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PHIS' )
+!      PHIS = 0d0
+!
+!      ALLOCATE( PREACC( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PREACC' )
+!      PREACC = 0d0
+!
+!      ALLOCATE( PRECON( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRECON' )
+!      PRECON = 0d0
+!
+!      ALLOCATE( RADLWG( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADLWG' )
+!      RADLWG = 0d0
+!
+!      ALLOCATE( RADSWG( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADSWG' )
+!      RADSWG = 0d0
+!
+!      ALLOCATE( SNOMAS( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNOMAS' )
+!      SNOMAS = 0d0
+!
+!      ALLOCATE( SNODP( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNODP' )
+!      SNODP = 0d0
+!
+!      ALLOCATE( TROPP( IIPAR, JJPAR ), STAT=AS ) 
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP' )
+!      TROPP = 0d0
+!
+!      ALLOCATE( TS( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TS' )
+!      TS = 0d0
+!
+!      ALLOCATE( TSKIN( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TSKIN' )
+!      TSKIN = 0d0
+!
+!      ALLOCATE( U10M( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'U10M' )
+!      U10M = 0d0
 
       ALLOCATE( USTAR( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'USTAR' )
       USTAR = 0d0
 
-      ALLOCATE( V10M( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'V10M' )
-      V10M = 0d0
-
-      ALLOCATE( Z0( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Z0' )
-      Z0 = 0d0
-
-      !=================================================================
-      ! A-6 fields
-      !=================================================================
-
-      ALLOCATE( CLDF( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDF' )
-      CLDF = 0d0
-
-      ALLOCATE( CMFMC( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CMFMC' )
-      CMFMC = 0d0
-
-      ALLOCATE( DQIDTMST( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQIDTMST' )
-      DQIDTMST = 0d0
-
-      ALLOCATE( DQLDTMST( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQLDTMST' )
-      DQLDTMST = 0d0
-
-      ALLOCATE( DQVDTMST( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQVDTMST' )
-      DQVDTMST = 0d0
-
-      ALLOCATE( DQRCON( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRCON' )
-      DQRCON = 0d0
-
-      ALLOCATE( DQRLSC( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRLSC' )
-      DQRLSC = 0d0
-
-      ALLOCATE( DTRAIN( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DTRAIN' )
-      DTRAIN = 0d0
-
-      ALLOCATE( MOISTQ( LLPAR, IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOISTQ' )
-      MOISTQ = 0d0
-
-      ALLOCATE( OPTDEP( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTDEP' )
-      OPTDEP = 0d0
-
-      ALLOCATE( OPTD( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTD' )
-      OPTD = 0d0
-
-      ALLOCATE( PV( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PV' )
-      PV = 0d0
-
-      ALLOCATE( QI( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QI' )
-      QI = 0d0
-
-      ALLOCATE( QL( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QL' )
-      QL = 0d0
-
-      ALLOCATE( RH( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH' )
-      RH = 0d0
+!      ALLOCATE( V10M( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'V10M' )
+!      V10M = 0d0
+!
+!      ALLOCATE( Z0( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Z0' )
+!      Z0 = 0d0
+!
+!      !=================================================================
+!      ! A-6 fields
+!      !=================================================================
+!
+!      ALLOCATE( CLDF( LLPAR, IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDF' )
+!      CLDF = 0d0
+!
+!      ALLOCATE( CMFMC( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CMFMC' )
+!      CMFMC = 0d0
+!
+!      ALLOCATE( DQIDTMST( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQIDTMST' )
+!      DQIDTMST = 0d0
+!
+!      ALLOCATE( DQLDTMST( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQLDTMST' )
+!      DQLDTMST = 0d0
+!
+!      ALLOCATE( DQVDTMST( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQVDTMST' )
+!      DQVDTMST = 0d0
+!
+!      ALLOCATE( DQRCON( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRCON' )
+!      DQRCON = 0d0
+!
+!      ALLOCATE( DQRLSC( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRLSC' )
+!      DQRLSC = 0d0
+!
+!      ALLOCATE( DTRAIN( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DTRAIN' )
+!      DTRAIN = 0d0
+!
+!      ALLOCATE( MOISTQ( LLPAR, IIPAR, JJPAR ), STAT=AS ) 
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOISTQ' )
+!      MOISTQ = 0d0
+!
+!      ALLOCATE( OPTDEP( LLPAR, IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTDEP' )
+!      OPTDEP = 0d0
+!
+!      ALLOCATE( OPTD( LLPAR, IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTD' )
+!      OPTD = 0d0
+!
+!      ALLOCATE( PV( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PV' )
+!      PV = 0d0
+!
+!      ALLOCATE( QI( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QI' )
+!      QI = 0d0
+!
+!      ALLOCATE( QL( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QL' )
+!      QL = 0d0
+!
+!      ALLOCATE( RH( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH' )
+!      RH = 0d0
 
       ALLOCATE( SPHU( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPHU' )
       SPHU = 0d0
 
-      ALLOCATE( T( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'T' )
-      T = 0d0
-
-      ALLOCATE( TAUCLI( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLI' )
-      TAUCLI = 0d0
-
-      ALLOCATE( TAUCLW( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLW' )
-      TAUCLW = 0d0
-
-      ALLOCATE( UWND( IIPAR, JJPAR, LLPAR), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UWND' )
-      UWND = 0d0
-
-      ALLOCATE( VWND( IIPAR, JJPAR, LLPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'VWND' )
-      VWND = 0d0
-
-      !=================================================================
-      ! I-6 fields
-      !=================================================================
-
-      ALLOCATE( LWI( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LWI' )
-      LWI = 0
-
-      ALLOCATE( PS1( IIPAR, JJPAR ), STAT=AS )  
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS1' )
-      PS1 = 0d0
-
-      ALLOCATE( PS2( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS2' )
-      PS2 = 0d0
-
-      ALLOCATE( PSC2( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSC2' )
-      PSC2 = 0d0
-
-      ALLOCATE( SLP( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SLP' )
-      SLP = 0d0    
-
-      ALLOCATE( TO31( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO31' )
-      TO31 = 0d0
-
-      ALLOCATE( TO32( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO32' )
-      TO32 = 0d0
-
-      ALLOCATE( TO3( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO3' )
-      TO3 = 0d0
-
-      ALLOCATE( TTO3( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TTO3' )
-      TTO3 = 0d0
+!      ALLOCATE( T( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'T' )
+!      T = 0d0
+!
+!      ALLOCATE( TAUCLI( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLI' )
+!      TAUCLI = 0d0
+!
+!      ALLOCATE( TAUCLW( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLW' )
+!      TAUCLW = 0d0
+!
+!      ALLOCATE( UWND( IIPAR, JJPAR, LLPAR), STAT=AS ) 
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UWND' )
+!      UWND = 0d0
+!
+!      ALLOCATE( VWND( IIPAR, JJPAR, LLPAR ), STAT=AS ) 
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'VWND' )
+!      VWND = 0d0
+!
+!      !=================================================================
+!      ! I-6 fields
+!      !=================================================================
+!
+!      ALLOCATE( LWI( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LWI' )
+!      LWI = 0
+!
+!      ALLOCATE( PS1( IIPAR, JJPAR ), STAT=AS )  
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS1' )
+!      PS1 = 0d0
+!
+!      ALLOCATE( PS2( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS2' )
+!      PS2 = 0d0
+!
+!      ALLOCATE( PSC2( IIPAR, JJPAR ), STAT=AS ) 
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSC2' )
+!      PSC2 = 0d0
+!
+!      ALLOCATE( SLP( IIPAR, JJPAR ), STAT=AS ) 
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SLP' )
+!      SLP = 0d0    
+!
+!      ALLOCATE( TO31( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO31' )
+!      TO31 = 0d0
+!
+!      ALLOCATE( TO32( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO32' )
+!      TO32 = 0d0
+!
+!      ALLOCATE( TO3( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO3' )
+!      TO3 = 0d0
+!
+!      ALLOCATE( TTO3( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TTO3' )
+!      TTO3 = 0d0
   
       END SUBROUTINE INIT_DAO_GEOS5
 !EOC
@@ -2921,318 +2921,318 @@
       ! A1 fields
       !=================================================================
 
-      ALLOCATE( ALBD( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALBD' )
-      ALBD = 0d0
-
-      ALLOCATE( CLDFRC( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDFRC' )
-      CLDFRC = 0d0
-
-      ALLOCATE( EFLUX( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EFLUX' )
-      EFLUX = 0d0
-
-      ALLOCATE( EVAP( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EVAP' )
-      EVAP = 0d0
-
-      ALLOCATE( FRSEAICE( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRSEAICE' )
-      FRSEAICE = 0d0
-
-      ALLOCATE( FRSNO( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRSNO' )
-      FRSNO = 0d0
-
-      ALLOCATE( GRN( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GRN' )
-      GRN = 0d0
-
-      ALLOCATE( GWETROOT( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GWETROOT' )
-      GWETROOT = 0d0
-
-      ALLOCATE( GWETTOP( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GWETTOP' )
-      GWETTOP = 0d0
-
-      ALLOCATE( HFLUX( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HFLUX' )
-      HFLUX = 0d0
-
-      ALLOCATE( LAI( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LAI' )
-      LAI = 0d0
-
-      ALLOCATE( LWI( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LWI' )
-      LWI = 0
-
-      ALLOCATE( PARDF( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDF' )
-      PARDF = 0d0
-
-      ALLOCATE( PARDR( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDR' )
-      PARDR = 0d0
- 
-      ALLOCATE( PBL( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PBL' )
-      PBL = 0d0
-
-      ALLOCATE( PREACC( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PREACC' )
-      PREACC = 0d0
-
-      ALLOCATE( PREANV( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PREANV' )
-      PREANV = 0d0
-
-      ALLOCATE( PRECON( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRECON' )
-      PRECON = 0d0
-  
-      ALLOCATE( PRELSC( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRELSC' )
-      PRELSC = 0d0
-
-      ALLOCATE( PRECSNO( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRECSNO' )
-      PRECSNO = 0d0
-
-      ALLOCATE( RADLWG( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADLWG' )
-      RADLWG = 0d0
-
-      ALLOCATE( RADSWG( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADSWG' )
-      RADSWG = 0d0
-
-      ALLOCATE( SEAICE00( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE00' )
-      SEAICE00 = 0d0
-
-      ALLOCATE( SEAICE10( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE10' )
-      SEAICE10 = 0d0
-
-      ALLOCATE( SEAICE20( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE20' )
-      SEAICE20 = 0d0
-
-      ALLOCATE( SEAICE30( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE30' )
-      SEAICE30 = 0d0
-
-      ALLOCATE( SEAICE40( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE40' )
-      SEAICE40 = 0d0
-
-      ALLOCATE( SEAICE50( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE50' )
-      SEAICE50 = 0d0
-
-      ALLOCATE( SEAICE60( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE60' )
-      SEAICE60 = 0d0
-
-      ALLOCATE( SEAICE70( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE70' )
-      SEAICE70 = 0d0
-
-      ALLOCATE( SEAICE80( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE80' )
-      SEAICE80 = 0d0
-
-      ALLOCATE( SEAICE90( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE90' )
-      SEAICE90 = 0d0
-
-      ALLOCATE( SLP( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SLP' )
-      SLP = 0d0     
-
-      ALLOCATE( SNODP( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNODP' )
-      SNODP = 0d0
-
-      ALLOCATE( SNOMAS( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNOMAS' )
-      SNOMAS = 0d0
-
-      ALLOCATE( TROPP( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP' )
-      TROPP = 0d0
-
-      ALLOCATE( TS( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TS' )
-      TS = 0d0
-
-      ALLOCATE( TSKIN( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TSKIN' )
-      TSKIN = 0d0
-
-      ALLOCATE( U10M( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'U10M' )
-      U10M = 0d0
+!      ALLOCATE( ALBD( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALBD' )
+!      ALBD = 0d0
+!
+!      ALLOCATE( CLDFRC( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDFRC' )
+!      CLDFRC = 0d0
+!
+!      ALLOCATE( EFLUX( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EFLUX' )
+!      EFLUX = 0d0
+!
+!      ALLOCATE( EVAP( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EVAP' )
+!      EVAP = 0d0
+!
+!      ALLOCATE( FRSEAICE( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRSEAICE' )
+!      FRSEAICE = 0d0
+!
+!      ALLOCATE( FRSNO( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRSNO' )
+!      FRSNO = 0d0
+!
+!      ALLOCATE( GRN( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GRN' )
+!      GRN = 0d0
+!
+!      ALLOCATE( GWETROOT( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GWETROOT' )
+!      GWETROOT = 0d0
+!
+!      ALLOCATE( GWETTOP( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GWETTOP' )
+!      GWETTOP = 0d0
+!
+!      ALLOCATE( HFLUX( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HFLUX' )
+!      HFLUX = 0d0
+!
+!      ALLOCATE( LAI( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LAI' )
+!      LAI = 0d0
+!
+!      ALLOCATE( LWI( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LWI' )
+!      LWI = 0
+!
+!      ALLOCATE( PARDF( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDF' )
+!      PARDF = 0d0
+!
+!      ALLOCATE( PARDR( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDR' )
+!      PARDR = 0d0
+! 
+!      ALLOCATE( PBL( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PBL' )
+!      PBL = 0d0
+!
+!      ALLOCATE( PREACC( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PREACC' )
+!      PREACC = 0d0
+!
+!      ALLOCATE( PREANV( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PREANV' )
+!      PREANV = 0d0
+!
+!      ALLOCATE( PRECON( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRECON' )
+!      PRECON = 0d0
+!  
+!      ALLOCATE( PRELSC( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRELSC' )
+!      PRELSC = 0d0
+!
+!      ALLOCATE( PRECSNO( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRECSNO' )
+!      PRECSNO = 0d0
+!
+!      ALLOCATE( RADLWG( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADLWG' )
+!      RADLWG = 0d0
+!
+!      ALLOCATE( RADSWG( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADSWG' )
+!      RADSWG = 0d0
+!
+!      ALLOCATE( SEAICE00( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE00' )
+!      SEAICE00 = 0d0
+!
+!      ALLOCATE( SEAICE10( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE10' )
+!      SEAICE10 = 0d0
+!
+!      ALLOCATE( SEAICE20( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE20' )
+!      SEAICE20 = 0d0
+!
+!      ALLOCATE( SEAICE30( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE30' )
+!      SEAICE30 = 0d0
+!
+!      ALLOCATE( SEAICE40( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE40' )
+!      SEAICE40 = 0d0
+!
+!      ALLOCATE( SEAICE50( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE50' )
+!      SEAICE50 = 0d0
+!
+!      ALLOCATE( SEAICE60( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE60' )
+!      SEAICE60 = 0d0
+!
+!      ALLOCATE( SEAICE70( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE70' )
+!      SEAICE70 = 0d0
+!
+!      ALLOCATE( SEAICE80( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE80' )
+!      SEAICE80 = 0d0
+!
+!      ALLOCATE( SEAICE90( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE90' )
+!      SEAICE90 = 0d0
+!
+!      ALLOCATE( SLP( IIPAR, JJPAR ), STAT=AS ) 
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SLP' )
+!      SLP = 0d0     
+!
+!      ALLOCATE( SNODP( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNODP' )
+!      SNODP = 0d0
+!
+!      ALLOCATE( SNOMAS( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNOMAS' )
+!      SNOMAS = 0d0
+!
+!      ALLOCATE( TROPP( IIPAR, JJPAR ), STAT=AS ) 
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP' )
+!      TROPP = 0d0
+!
+!      ALLOCATE( TS( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TS' )
+!      TS = 0d0
+!
+!      ALLOCATE( TSKIN( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TSKIN' )
+!      TSKIN = 0d0
+!
+!      ALLOCATE( U10M( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'U10M' )
+!      U10M = 0d0
 
       ALLOCATE( USTAR( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'USTAR' )
       USTAR = 0d0
 
-      ALLOCATE( V10M( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'V10M' )
-      V10M = 0d0
-
-      ALLOCATE( Z0( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Z0' )
-      Z0 = 0d0
-
-      !=================================================================
-      ! A3cld fields
-      !=================================================================
-
-      ALLOCATE( CLDF( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDF' )
-      CLDF = 0d0
-
-      ALLOCATE( QI( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QI' )
-      QI = 0d0
-
-      ALLOCATE( QL( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QL' )
-      QL = 0d0
-
-      ALLOCATE( OPTDEP( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTDEP' )
-      OPTDEP = 0d0
-
-      ALLOCATE( OPTD( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTD' )
-      OPTD = 0d0
-
-      ALLOCATE( TAUCLI( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLI' )
-      TAUCLI = 0d0
-
-      ALLOCATE( TAUCLW( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLW' )
-      TAUCLW = 0d0
-
-      !=================================================================
-      ! A3dyn fields
-      !=================================================================
-
-      ALLOCATE( CMFMC( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CMFMC' )
-      CMFMC = 0d0
-
-      ALLOCATE( DTRAIN( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DTRAIN' )
-      DTRAIN = 0d0
-
-      ALLOCATE( RH( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH' )
-      RH = 0d0
-
-      ! U-wind
-      ALLOCATE( UWND( IIPAR, JJPAR, LLPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UWND' )
-      UWND = 0d0
-
-      ! V-wind
-      ALLOCATE( VWND( IIPAR, JJPAR, LLPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'VWND' )
-      VWND = 0d0
-
-      !=================================================================
-      ! A3mstC fields
-      !=================================================================
-
-      ALLOCATE( DQRCU( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRCU' )
-      DQRCU = 0d0
-
-      ALLOCATE( DQRLSAN( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRLSAN' )
-      DQRLSAN = 0d0
-
-      ALLOCATE( REEVAPCN( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'REEVAPCN' )
-      REEVAPCN = 0d0
-
-      ALLOCATE( REEVAPLS( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'REEVAPLS' )
-      REEVAPLS = 0d0
-
-      !=================================================================
-      ! A3mstE fields
-      !=================================================================
-
-      ALLOCATE( PFICU( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFICU' )
-      PFICU = 0d0
-
-      ALLOCATE( PFILSAN( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFILSAN' )
-      PFILSAN = 0d0
-
-      ALLOCATE( PFLCU( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFLCU' )
-      PFLCU = 0d0
-
-      ALLOCATE( PFLLSAN( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFLLSAN' )
-      PFLLSAN = 0d0
-
-      !=================================================================
-      ! Constant fields
-      !=================================================================
-
-      ALLOCATE( FRLAKE( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRLAKE' )
-      FRLAKE = 0d0
-
-      ALLOCATE( FRLAND( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRLAND' )
-      FRLAND = 0d0
-
-      ALLOCATE( FROCEAN( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FROCEAN' )
-      FROCEAN = 0d0
-
-      ALLOCATE( FRLANDIC( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRLANDIC' )
-      FRLANDIC = 0d0
-
-      ALLOCATE( PHIS( IIPAR, JJPAR ), STAT=AS )  
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PHIS' )
-      PHIS = 0d0
-
-      !=================================================================
-      ! I3 fields / interpolated fields
-      !=================================================================
-
-      ! Pressure at beginning of 6hr timestep
-      ALLOCATE( PS1( IIPAR, JJPAR ), STAT=AS )  
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS1' )
-      PS1 = 0d0
-
-      ! Pressure at end of 6hr timestep
-      ALLOCATE( PS2( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS2' )
-      PS2 = 0d0
-
-      ! Pressure at end of dynamic timestep
-      ALLOCATE( PSC2( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSC2' )
-      PSC2 = 0d0
-
-      ALLOCATE( PV( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PV' )
-      PV = 0d0
+!      ALLOCATE( V10M( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'V10M' )
+!      V10M = 0d0
+!
+!      ALLOCATE( Z0( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Z0' )
+!      Z0 = 0d0
+!
+!      !=================================================================
+!      ! A3cld fields
+!      !=================================================================
+!
+!      ALLOCATE( CLDF( LLPAR, IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDF' )
+!      CLDF = 0d0
+!
+!      ALLOCATE( QI( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QI' )
+!      QI = 0d0
+!
+!      ALLOCATE( QL( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QL' )
+!      QL = 0d0
+!
+!      ALLOCATE( OPTDEP( LLPAR, IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTDEP' )
+!      OPTDEP = 0d0
+!
+!      ALLOCATE( OPTD( LLPAR, IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTD' )
+!      OPTD = 0d0
+!
+!      ALLOCATE( TAUCLI( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLI' )
+!      TAUCLI = 0d0
+!
+!      ALLOCATE( TAUCLW( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLW' )
+!      TAUCLW = 0d0
+!
+!      !=================================================================
+!      ! A3dyn fields
+!      !=================================================================
+!
+!      ALLOCATE( CMFMC( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CMFMC' )
+!      CMFMC = 0d0
+!
+!      ALLOCATE( DTRAIN( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DTRAIN' )
+!      DTRAIN = 0d0
+!
+!      ALLOCATE( RH( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH' )
+!      RH = 0d0
+!
+!      ! U-wind
+!      ALLOCATE( UWND( IIPAR, JJPAR, LLPAR ), STAT=AS ) 
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UWND' )
+!      UWND = 0d0
+!
+!      ! V-wind
+!      ALLOCATE( VWND( IIPAR, JJPAR, LLPAR ), STAT=AS ) 
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'VWND' )
+!      VWND = 0d0
+!
+!      !=================================================================
+!      ! A3mstC fields
+!      !=================================================================
+!
+!      ALLOCATE( DQRCU( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRCU' )
+!      DQRCU = 0d0
+!
+!      ALLOCATE( DQRLSAN( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRLSAN' )
+!      DQRLSAN = 0d0
+!
+!      ALLOCATE( REEVAPCN( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'REEVAPCN' )
+!      REEVAPCN = 0d0
+!
+!      ALLOCATE( REEVAPLS( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'REEVAPLS' )
+!      REEVAPLS = 0d0
+!
+!      !=================================================================
+!      ! A3mstE fields
+!      !=================================================================
+!
+!      ALLOCATE( PFICU( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFICU' )
+!      PFICU = 0d0
+!
+!      ALLOCATE( PFILSAN( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFILSAN' )
+!      PFILSAN = 0d0
+!
+!      ALLOCATE( PFLCU( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFLCU' )
+!      PFLCU = 0d0
+!
+!      ALLOCATE( PFLLSAN( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFLLSAN' )
+!      PFLLSAN = 0d0
+!
+!      !=================================================================
+!      ! Constant fields
+!      !=================================================================
+!
+!      ALLOCATE( FRLAKE( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRLAKE' )
+!      FRLAKE = 0d0
+!
+!      ALLOCATE( FRLAND( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRLAND' )
+!      FRLAND = 0d0
+!
+!      ALLOCATE( FROCEAN( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FROCEAN' )
+!      FROCEAN = 0d0
+!
+!      ALLOCATE( FRLANDIC( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRLANDIC' )
+!      FRLANDIC = 0d0
+!
+!      ALLOCATE( PHIS( IIPAR, JJPAR ), STAT=AS )  
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PHIS' )
+!      PHIS = 0d0
+!
+!      !=================================================================
+!      ! I3 fields / interpolated fields
+!      !=================================================================
+!
+!      ! Pressure at beginning of 6hr timestep
+!      ALLOCATE( PS1( IIPAR, JJPAR ), STAT=AS )  
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS1' )
+!      PS1 = 0d0
+!
+!      ! Pressure at end of 6hr timestep
+!      ALLOCATE( PS2( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS2' )
+!      PS2 = 0d0
+!
+!      ! Pressure at end of dynamic timestep
+!      ALLOCATE( PSC2( IIPAR, JJPAR ), STAT=AS ) 
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSC2' )
+!      PSC2 = 0d0
+!
+!      ALLOCATE( PV( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PV' )
+!      PV = 0d0
 
       ALLOCATE( SPHU( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPHU' )
@@ -3246,23 +3246,23 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPHU2' )
       SPHU2 = 0d0
 
-      ALLOCATE( T( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'T' )
-      T = 0d0
-
-      ALLOCATE( TMPU1( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TMPU1' )
-      TMPU1 = 0d0
-
-      ALLOCATE( TMPU2( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TMPU2' )
-      TMPU2 = 0d0
-
-      ! NOTE: Allocate this here, it will always be 0 for GEOS_5.7.x
-      ! (bmy, 3/6/12)
-      ALLOCATE( TO3( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO3' )
-      TO3 = 0d0
+!      ALLOCATE( T( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'T' )
+!      T = 0d0
+!
+!      ALLOCATE( TMPU1( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TMPU1' )
+!      TMPU1 = 0d0
+!
+!      ALLOCATE( TMPU2( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TMPU2' )
+!      TMPU2 = 0d0
+!
+!      ! NOTE: Allocate this here, it will always be 0 for GEOS_5.7.x
+!      ! (bmy, 3/6/12)
+!      ALLOCATE( TO3( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO3' )
+!      TO3 = 0d0
 
       END SUBROUTINE INIT_DAO_GEOS57
 !EOC
@@ -3300,339 +3300,339 @@
       ! A1 fields
       !=================================================================
 
-      ALLOCATE( ALBD( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALBD' )
-      ALBD = 0d0
-
-      ALLOCATE( CLDFRC( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDFRC' )
-      CLDFRC = 0d0
-
-      ALLOCATE( EFLUX( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EFLUX' )
-      EFLUX = 0d0
-
-      ALLOCATE( EVAP( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EVAP' )
-      EVAP = 0d0
-
-      ALLOCATE( FRSEAICE( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRSEAICE' )
-      FRSEAICE = 0d0
-
-      ALLOCATE( FRSNO( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRSNO' )
-      FRSNO = 0d0
-
-      ALLOCATE( GRN( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GRN' )
-      GRN = 0d0
-
-      ALLOCATE( GWETROOT( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GWETROOT' )
-      GWETROOT = 0d0
-
-      ALLOCATE( GWETTOP( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GWETTOP' )
-      GWETTOP = 0d0
-
-      ALLOCATE( HFLUX( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HFLUX' )
-      HFLUX = 0d0
-
-      ALLOCATE( LAI( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LAI' )
-      LAI = 0d0
-
-      ALLOCATE( LWI( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LWI' )
-      LWI = 0
-
-      ALLOCATE( PRECSNO( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRECSNO' )
-      PRECSNO = 0d0
-
-      ALLOCATE( PARDF( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDF' )
-      PARDF = 0d0
-
-      ALLOCATE( PARDR( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDR' )
-      PARDR = 0d0
-
-      ALLOCATE( PBL( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PBL' )
-      PBL = 0d0
-
-      ALLOCATE( PREACC( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PREACC' )
-      PREACC = 0d0
-
-      ALLOCATE( PREANV( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PREANV' )
-      PREANV = 0d0
-
-      ALLOCATE( PRECON( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRECON' )
-      PRECON = 0d0
-
-      ALLOCATE( PRELSC( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRELSC' )
-      PRELSC = 0d0
-
-      ALLOCATE( SEAICE00( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE00' )
-      SEAICE00 = 0d0
-
-      ALLOCATE( SEAICE10( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE10' )
-      SEAICE10 = 0d0
-
-      ALLOCATE( SEAICE20( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE20' )
-      SEAICE20 = 0d0
-
-      ALLOCATE( SEAICE30( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE30' )
-      SEAICE30 = 0d0
-
-      ALLOCATE( SEAICE40( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE40' )
-      SEAICE40 = 0d0
-
-      ALLOCATE( SEAICE50( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE50' )
-      SEAICE50 = 0d0
-
-      ALLOCATE( SEAICE60( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE60' )
-      SEAICE60 = 0d0
-
-      ALLOCATE( SEAICE70( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE70' )
-      SEAICE70 = 0d0
-
-      ALLOCATE( SEAICE80( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE80' )
-      SEAICE80 = 0d0
-
-      ALLOCATE( SEAICE90( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE90' )
-      SEAICE90 = 0d0
-
-      ALLOCATE( RADLWG( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADLWG' )
-      RADLWG = 0d0
-
-      ALLOCATE( RADSWG( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADSWG' )
-      RADSWG = 0d0
-
-      ALLOCATE( SLP( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SLP' )
-      SLP = 0d0    
-
-      ALLOCATE( SNODP( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNODP' )
-      SNODP = 0d0
-
-      ALLOCATE( SNOMAS( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNOMAS' )
-      SNOMAS = 0d0
-
-      ALLOCATE( TROPP( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP' )
-      TROPP = 0d0
-
-      ALLOCATE( TS( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TS' )
-      TS = 0d0
-
-      ALLOCATE( TSKIN( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TSKIN' )
-      TSKIN = 0d0
-
-      ALLOCATE( U10M( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'U10M' )
-      U10M = 0d0
+!      ALLOCATE( ALBD( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALBD' )
+!      ALBD = 0d0
+!
+!      ALLOCATE( CLDFRC( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDFRC' )
+!      CLDFRC = 0d0
+!
+!      ALLOCATE( EFLUX( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EFLUX' )
+!      EFLUX = 0d0
+!
+!      ALLOCATE( EVAP( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EVAP' )
+!      EVAP = 0d0
+!
+!      ALLOCATE( FRSEAICE( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRSEAICE' )
+!      FRSEAICE = 0d0
+!
+!      ALLOCATE( FRSNO( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRSNO' )
+!      FRSNO = 0d0
+!
+!      ALLOCATE( GRN( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GRN' )
+!      GRN = 0d0
+!
+!      ALLOCATE( GWETROOT( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GWETROOT' )
+!      GWETROOT = 0d0
+!
+!      ALLOCATE( GWETTOP( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GWETTOP' )
+!      GWETTOP = 0d0
+!
+!      ALLOCATE( HFLUX( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HFLUX' )
+!      HFLUX = 0d0
+!
+!      ALLOCATE( LAI( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LAI' )
+!      LAI = 0d0
+!
+!      ALLOCATE( LWI( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LWI' )
+!      LWI = 0
+!
+!      ALLOCATE( PRECSNO( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRECSNO' )
+!      PRECSNO = 0d0
+!
+!      ALLOCATE( PARDF( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDF' )
+!      PARDF = 0d0
+!
+!      ALLOCATE( PARDR( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDR' )
+!      PARDR = 0d0
+!
+!      ALLOCATE( PBL( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PBL' )
+!      PBL = 0d0
+!
+!      ALLOCATE( PREACC( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PREACC' )
+!      PREACC = 0d0
+!
+!      ALLOCATE( PREANV( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PREANV' )
+!      PREANV = 0d0
+!
+!      ALLOCATE( PRECON( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRECON' )
+!      PRECON = 0d0
+!
+!      ALLOCATE( PRELSC( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRELSC' )
+!      PRELSC = 0d0
+!
+!      ALLOCATE( SEAICE00( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE00' )
+!      SEAICE00 = 0d0
+!
+!      ALLOCATE( SEAICE10( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE10' )
+!      SEAICE10 = 0d0
+!
+!      ALLOCATE( SEAICE20( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE20' )
+!      SEAICE20 = 0d0
+!
+!      ALLOCATE( SEAICE30( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE30' )
+!      SEAICE30 = 0d0
+!
+!      ALLOCATE( SEAICE40( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE40' )
+!      SEAICE40 = 0d0
+!
+!      ALLOCATE( SEAICE50( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE50' )
+!      SEAICE50 = 0d0
+!
+!      ALLOCATE( SEAICE60( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE60' )
+!      SEAICE60 = 0d0
+!
+!      ALLOCATE( SEAICE70( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE70' )
+!      SEAICE70 = 0d0
+!
+!      ALLOCATE( SEAICE80( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE80' )
+!      SEAICE80 = 0d0
+!
+!      ALLOCATE( SEAICE90( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE90' )
+!      SEAICE90 = 0d0
+!
+!      ALLOCATE( RADLWG( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADLWG' )
+!      RADLWG = 0d0
+!
+!      ALLOCATE( RADSWG( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADSWG' )
+!      RADSWG = 0d0
+!
+!      ALLOCATE( SLP( IIPAR, JJPAR ), STAT=AS ) 
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SLP' )
+!      SLP = 0d0    
+!
+!      ALLOCATE( SNODP( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNODP' )
+!      SNODP = 0d0
+!
+!      ALLOCATE( SNOMAS( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNOMAS' )
+!      SNOMAS = 0d0
+!
+!      ALLOCATE( TROPP( IIPAR, JJPAR ), STAT=AS ) 
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP' )
+!      TROPP = 0d0
+!
+!      ALLOCATE( TS( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TS' )
+!      TS = 0d0
+!
+!      ALLOCATE( TSKIN( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TSKIN' )
+!      TSKIN = 0d0
+!
+!      ALLOCATE( U10M( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'U10M' )
+!      U10M = 0d0
 
       ALLOCATE( USTAR( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'USTAR' )
       USTAR = 0d0
  
-      ALLOCATE( V10M( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'V10M' )
-      V10M = 0d0
-
-      ALLOCATE( Z0( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Z0' )
-      Z0 = 0d0
-
-      !=================================================================
-      ! A3 fields
-      !=================================================================
-
-      ALLOCATE( CLDF( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDF' )
-      CLDF = 0d0
-
-      ALLOCATE( CMFMC( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CMFMC' )
-      CMFMC = 0d0
-
-      ALLOCATE( DQIDTMST( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQIDTMST' )
-      DQIDTMST = 0d0
-
-      ALLOCATE( DQLDTMST( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQLDTMST' )
-      DQLDTMST = 0d0
-
-      ALLOCATE( DQRCU( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRCU' )
-      DQRCU = 0d0
-
-      ALLOCATE( DQRLSAN( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRLSAN' )
-      DQRLSAN = 0d0
-
-      ALLOCATE( DQVDTMST( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQVDTMST' )
-      DQVDTMST = 0d0
-
-      ALLOCATE( DTRAIN( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DTRAIN' )
-      DTRAIN = 0d0
-
-      ALLOCATE( MOISTQ( LLPAR, IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOISTQ' )
-      MOISTQ = 0d0
-
-      ALLOCATE( OPTDEP( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTDEP' )
-      OPTDEP = 0d0
-
-      ALLOCATE( OPTD( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTD' )
-      OPTD = 0d0
-
-      ALLOCATE( PFICU( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFICU' )
-      PFICU = 0d0
-
-      ALLOCATE( PFILSAN( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFILSAN' )
-      PFILSAN = 0d0
-
-      ALLOCATE( PFLCU( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFLCU' )
-      PFLCU = 0d0
-
-      ALLOCATE( PFLLSAN( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFLLSAN' )
-      PFLLSAN = 0d0
-
-      ALLOCATE( QI( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QI' )
-      QI = 0d0
-
-      ALLOCATE( QL( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QL' )
-      QL = 0d0
-
-      ALLOCATE( REEVAPCN( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'REEVAPCN' )
-      REEVAPCN = 0d0
-
-      ALLOCATE( REEVAPLS( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'REEVAPLS' )
-      REEVAPLS = 0d0
+!      ALLOCATE( V10M( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'V10M' )
+!      V10M = 0d0
+!
+!      ALLOCATE( Z0( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Z0' )
+!      Z0 = 0d0
+!
+!      !=================================================================
+!      ! A3 fields
+!      !=================================================================
+!
+!      ALLOCATE( CLDF( LLPAR, IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDF' )
+!      CLDF = 0d0
+!
+!      ALLOCATE( CMFMC( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CMFMC' )
+!      CMFMC = 0d0
+!
+!      ALLOCATE( DQIDTMST( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQIDTMST' )
+!      DQIDTMST = 0d0
+!
+!      ALLOCATE( DQLDTMST( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQLDTMST' )
+!      DQLDTMST = 0d0
+!
+!      ALLOCATE( DQRCU( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRCU' )
+!      DQRCU = 0d0
+!
+!      ALLOCATE( DQRLSAN( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRLSAN' )
+!      DQRLSAN = 0d0
+!
+!      ALLOCATE( DQVDTMST( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQVDTMST' )
+!      DQVDTMST = 0d0
+!
+!      ALLOCATE( DTRAIN( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DTRAIN' )
+!      DTRAIN = 0d0
+!
+!      ALLOCATE( MOISTQ( LLPAR, IIPAR, JJPAR ), STAT=AS ) 
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOISTQ' )
+!      MOISTQ = 0d0
+!
+!      ALLOCATE( OPTDEP( LLPAR, IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTDEP' )
+!      OPTDEP = 0d0
+!
+!      ALLOCATE( OPTD( LLPAR, IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTD' )
+!      OPTD = 0d0
+!
+!      ALLOCATE( PFICU( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFICU' )
+!      PFICU = 0d0
+!
+!      ALLOCATE( PFILSAN( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFILSAN' )
+!      PFILSAN = 0d0
+!
+!      ALLOCATE( PFLCU( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFLCU' )
+!      PFLCU = 0d0
+!
+!      ALLOCATE( PFLLSAN( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFLLSAN' )
+!      PFLLSAN = 0d0
+!
+!      ALLOCATE( QI( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QI' )
+!      QI = 0d0
+!
+!      ALLOCATE( QL( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QL' )
+!      QL = 0d0
+!
+!      ALLOCATE( REEVAPCN( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'REEVAPCN' )
+!      REEVAPCN = 0d0
+!
+!      ALLOCATE( REEVAPLS( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'REEVAPLS' )
+!      REEVAPLS = 0d0
 
       ALLOCATE( SPHU( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPHU' )
       SPHU = 0d0
 
-      ALLOCATE( T( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'T' )
-      T = 0d0
-
-      ALLOCATE( TAUCLI( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLI' )
-      TAUCLI = 0d0
-
-      ALLOCATE( TAUCLW( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLW' )
-      TAUCLW = 0d0
-
-      ALLOCATE( UWND( IIPAR, JJPAR, LLPAR), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UWND' )
-      UWND = 0d0
-
-      ALLOCATE( VWND( IIPAR, JJPAR, LLPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'VWND' )
-      VWND = 0d0
-
-      !=================================================================
-      ! Constant fields
-      !=================================================================
-
-      ALLOCATE( FRLAKE( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRLAKE' )
-      FRLAKE = 0d0
-
-      ALLOCATE( FRLAND( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRLAND' )
-      FRLAND = 0d0
-
-      ALLOCATE( FROCEAN( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FROCEAN' )
-      FROCEAN = 0d0
-
-      ALLOCATE( FRLANDIC( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRLANDIC' )
-      FRLANDIC = 0d0
-
-      ALLOCATE( PHIS( IIPAR, JJPAR ), STAT=AS )  
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PHIS' )
-      PHIS = 0d0
-
-      !=================================================================
-      ! I6 fields / interpolated fields
-      !=================================================================
-
-      ALLOCATE( PS1( IIPAR, JJPAR ), STAT=AS )  
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS1' )
-      PS1 = 0d0
-
-      ALLOCATE( PS2( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS2' )
-      PS2 = 0d0
-
-      ALLOCATE( PSC2( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSC2' )
-      PSC2 = 0d0
-
-      ALLOCATE( PV( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PV' )
-      PV = 0d0
-
-      ALLOCATE( RH( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH' )
-      RH = 0d0
-
-      ALLOCATE( RH1( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH1' )
-      RH1 = 0d0
-
-      ALLOCATE( RH2( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH2' )
-      RH2 = 0d0
-
-      ! NOTE: Allocate this here, it will always be 0 for MERRA
-      ! (bmy, 3/6/12)
-      ALLOCATE( TO3( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO3' )
-      TO3 = 0d0
+!      ALLOCATE( T( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'T' )
+!      T = 0d0
+!
+!      ALLOCATE( TAUCLI( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLI' )
+!      TAUCLI = 0d0
+!
+!      ALLOCATE( TAUCLW( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLW' )
+!      TAUCLW = 0d0
+!
+!      ALLOCATE( UWND( IIPAR, JJPAR, LLPAR), STAT=AS ) 
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UWND' )
+!      UWND = 0d0
+!
+!      ALLOCATE( VWND( IIPAR, JJPAR, LLPAR ), STAT=AS ) 
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'VWND' )
+!      VWND = 0d0
+!
+!      !=================================================================
+!      ! Constant fields
+!      !=================================================================
+!
+!      ALLOCATE( FRLAKE( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRLAKE' )
+!      FRLAKE = 0d0
+!
+!      ALLOCATE( FRLAND( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRLAND' )
+!      FRLAND = 0d0
+!
+!      ALLOCATE( FROCEAN( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FROCEAN' )
+!      FROCEAN = 0d0
+!
+!      ALLOCATE( FRLANDIC( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRLANDIC' )
+!      FRLANDIC = 0d0
+!
+!      ALLOCATE( PHIS( IIPAR, JJPAR ), STAT=AS )  
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PHIS' )
+!      PHIS = 0d0
+!
+!      !=================================================================
+!      ! I6 fields / interpolated fields
+!      !=================================================================
+!
+!      ALLOCATE( PS1( IIPAR, JJPAR ), STAT=AS )  
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS1' )
+!      PS1 = 0d0
+!
+!      ALLOCATE( PS2( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS2' )
+!      PS2 = 0d0
+!
+!      ALLOCATE( PSC2( IIPAR, JJPAR ), STAT=AS ) 
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSC2' )
+!      PSC2 = 0d0
+!
+!      ALLOCATE( PV( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PV' )
+!      PV = 0d0
+!
+!      ALLOCATE( RH( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH' )
+!      RH = 0d0
+!
+!      ALLOCATE( RH1( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH1' )
+!      RH1 = 0d0
+!
+!      ALLOCATE( RH2( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH2' )
+!      RH2 = 0d0
+!
+!      ! NOTE: Allocate this here, it will always be 0 for MERRA
+!      ! (bmy, 3/6/12)
+!      ALLOCATE( TO3( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO3' )
+!      TO3 = 0d0
 
       END SUBROUTINE INIT_DAO_MERRA
 !EOC
@@ -3672,39 +3672,39 @@
       ! Derived fields
       !=================================================================
 
-      ALLOCATE( AD( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD' )
-      AD = 0d0
-
-      ALLOCATE( AIRDEN( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AIRDEN' )
-      AIRDEN = 0d0
+!      ALLOCATE( AD( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD' )
+!      AD = 0d0
+!
+!      ALLOCATE( AIRDEN( LLPAR, IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AIRDEN' )
+!      AIRDEN = 0d0
 
       ALLOCATE( AIRDEN_FULLGRID( LGLOB, IIPAR, JJPAR ), STAT=AS ) 
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AIRDEN_FULLGRID' )
       AIRDEN_FULLGRID = 0d0
 
-      ALLOCATE( AIRVOL( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AIRVOL' )
-      AIRVOL = 0d0
-      
-      IF ( ITS_A_FULLCHEM_SIM() .or. ITS_AN_AEROSOL_SIM() ) THEN 
-         ALLOCATE( AVGW( IIPAR, JJPAR, LLPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AVGW' )
-         AVGW = 0d0
-      ENDIF
-
-      ALLOCATE( BXHEIGHT( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BXHEIGHT' )
-      BXHEIGHT = 0d0
-
-      ALLOCATE( CLDTOPS( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDTOPS' )
-      CLDTOPS = 0
-
-      ALLOCATE( DELP( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DELP' )
-      DELP = 0d0
+!      ALLOCATE( AIRVOL( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AIRVOL' )
+!      AIRVOL = 0d0
+!      
+!      IF ( ITS_A_FULLCHEM_SIM() .or. ITS_AN_AEROSOL_SIM() ) THEN 
+!         ALLOCATE( AVGW( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AVGW' )
+!         AVGW = 0d0
+!      ENDIF
+!
+!      ALLOCATE( BXHEIGHT( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BXHEIGHT' )
+!      BXHEIGHT = 0d0
+!
+!      ALLOCATE( CLDTOPS( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDTOPS' )
+!      CLDTOPS = 0
+!
+!      ALLOCATE( DELP( LLPAR, IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DELP' )
+!      DELP = 0d0
 
       ALLOCATE( SUNCOS( MAXIJ ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUNCOS' )
@@ -3873,132 +3873,132 @@
       !=================================================================
       ! CLEANUP_DAO begins here!
       !=================================================================
-      IF ( ALLOCATED( AD              ) ) DEALLOCATE( AD              ) 
-      IF ( ALLOCATED( AIRDEN          ) ) DEALLOCATE( AIRDEN          )
+!      IF ( ALLOCATED( AD              ) ) DEALLOCATE( AD              ) 
+!      IF ( ALLOCATED( AIRDEN          ) ) DEALLOCATE( AIRDEN          )
       IF ( ALLOCATED( AIRDEN_FULLGRID ) ) DEALLOCATE( AIRDEN_FULLGRID )
-      IF ( ALLOCATED( AIRVOL          ) ) DEALLOCATE( AIRVOL          )
-      IF ( ALLOCATED( ALBD1           ) ) DEALLOCATE( ALBD1           )
-      IF ( ALLOCATED( ALBD2           ) ) DEALLOCATE( ALBD2           )
-      IF ( ALLOCATED( ALBD            ) ) DEALLOCATE( ALBD            )
-      IF ( ALLOCATED( AVGW            ) ) DEALLOCATE( AVGW            )
-      IF ( ALLOCATED( BXHEIGHT        ) ) DEALLOCATE( BXHEIGHT        )
-      IF ( ALLOCATED( CLDF            ) ) DEALLOCATE( CLDF            )
-      IF ( ALLOCATED( CLDFRC          ) ) DEALLOCATE( CLDFRC          )
-      IF ( ALLOCATED( CLDMAS          ) ) DEALLOCATE( CLDMAS          )
-      IF ( ALLOCATED( CLDTOPS         ) ) DEALLOCATE( CLDTOPS         )
-      IF ( ALLOCATED( CMFMC           ) ) DEALLOCATE( CMFMC           )
-      IF ( ALLOCATED( DELP            ) ) DEALLOCATE( DELP            )
-      IF ( ALLOCATED( DETRAINE        ) ) DEALLOCATE( DETRAINE        )
-      IF ( ALLOCATED( DETRAINN        ) ) DEALLOCATE( DETRAINN        ) 
-      IF ( ALLOCATED( DNDE            ) ) DEALLOCATE( DNDE            ) 
-      IF ( ALLOCATED( DNDN            ) ) DEALLOCATE( DNDN            )
-      IF ( ALLOCATED( DQIDTMST        ) ) DEALLOCATE( DQIDTMST        )
-      IF ( ALLOCATED( DQLDTMST        ) ) DEALLOCATE( DQLDTMST        )
-      IF ( ALLOCATED( DQRCON          ) ) DEALLOCATE( DQRCON          )
-      IF ( ALLOCATED( DQRCU           ) ) DEALLOCATE( DQRCU           )
-      IF ( ALLOCATED( DQRLSC          ) ) DEALLOCATE( DQRLSC          )
-      IF ( ALLOCATED( DQRLSAN         ) ) DEALLOCATE( DQRLSAN         )
-      IF ( ALLOCATED( DQVDTMST        ) ) DEALLOCATE( DQVDTMST        )
-      IF ( ALLOCATED( DTRAIN          ) ) DEALLOCATE( DTRAIN          )
-      IF ( ALLOCATED( ENTRAIN         ) ) DEALLOCATE( ENTRAIN         ) 
-      IF ( ALLOCATED( EFLUX           ) ) DEALLOCATE( EFLUX           )
-      IF ( ALLOCATED( EVAP            ) ) DEALLOCATE( EVAP            ) 
-      IF ( ALLOCATED( FRLAND          ) ) DEALLOCATE( FRLAND          )
-      IF ( ALLOCATED( FRLAKE          ) ) DEALLOCATE( FRLAKE          )
-      IF ( ALLOCATED( FROCEAN         ) ) DEALLOCATE( FROCEAN         )
-      IF ( ALLOCATED( FRLANDIC        ) ) DEALLOCATE( FRLANDIC        )
-      IF ( ALLOCATED( FRSEAICE        ) ) DEALLOCATE( FRSEAICE        )
-      IF ( ALLOCATED( FRSNO           ) ) DEALLOCATE( FRSNO           )
-      IF ( ALLOCATED( GRN             ) ) DEALLOCATE( GRN             ) 
-      IF ( ALLOCATED( GWETROOT        ) ) DEALLOCATE( GWETROOT        ) 
-      IF ( ALLOCATED( GWETTOP         ) ) DEALLOCATE( GWETTOP         )
-      IF ( ALLOCATED( HFLUX           ) ) DEALLOCATE( HFLUX           )
-      IF ( ALLOCATED( HKBETA          ) ) DEALLOCATE( HKBETA          )
-      IF ( ALLOCATED( HKETA           ) ) DEALLOCATE( HKETA           )
-      IF ( ALLOCATED( LAI             ) ) DEALLOCATE( LAI             )      
-      IF ( ALLOCATED( LWI             ) ) DEALLOCATE( LWI             )
-      IF ( ALLOCATED( LWI_GISS        ) ) DEALLOCATE( LWI_GISS        ) 
-      IF ( ALLOCATED( MFXC            ) ) DEALLOCATE( MFXC            ) 
-      IF ( ALLOCATED( MFYC            ) ) DEALLOCATE( MFYC            ) 
-      IF ( ALLOCATED( MFZ             ) ) DEALLOCATE( MFZ             ) 
-      IF ( ALLOCATED( MOLENGTH        ) ) DEALLOCATE( MOLENGTH        ) 
-      IF ( ALLOCATED( MOISTQ          ) ) DEALLOCATE( MOISTQ          )
-      IF ( ALLOCATED( OICE            ) ) DEALLOCATE( OICE            )  
-      IF ( ALLOCATED( OPTD            ) ) DEALLOCATE( OPTD            )
-      IF ( ALLOCATED( OPTDEP          ) ) DEALLOCATE( OPTDEP          )
-      IF ( ALLOCATED( PARDF           ) ) DEALLOCATE( PARDF           )
-      IF ( ALLOCATED( PARDR           ) ) DEALLOCATE( PARDR           )
-      IF ( ALLOCATED( PBL             ) ) DEALLOCATE( PBL             )
-      IF ( ALLOCATED( PHIS            ) ) DEALLOCATE( PHIS            )
-      IF ( ALLOCATED( PFICU           ) ) DEALLOCATE( PFICU           )
-      IF ( ALLOCATED( PFILSAN         ) ) DEALLOCATE( PFILSAN         )
-      IF ( ALLOCATED( PFLCU           ) ) DEALLOCATE( PFLCU           )
-      IF ( ALLOCATED( PFLLSAN         ) ) DEALLOCATE( PFLLSAN         )
-      IF ( ALLOCATED( PREACC          ) ) DEALLOCATE( PREACC          )
-      IF ( ALLOCATED( PREANV          ) ) DEALLOCATE( PREANV          )
-      IF ( ALLOCATED( PRECON          ) ) DEALLOCATE( PRECON          )
-      IF ( ALLOCATED( PRELSC          ) ) DEALLOCATE( PRELSC          )
-      IF ( ALLOCATED( PRECSNO         ) ) DEALLOCATE( PRECSNO         )
-      IF ( ALLOCATED( PS1             ) ) DEALLOCATE( PS1             )
-      IF ( ALLOCATED( PS2             ) ) DEALLOCATE( PS2             )
-      IF ( ALLOCATED( PSC2            ) ) DEALLOCATE( PSC2            )
-      IF ( ALLOCATED( PV              ) ) DEALLOCATE( PV              )
-      IF ( ALLOCATED( QI              ) ) DEALLOCATE( QI              )
-      IF ( ALLOCATED( QL              ) ) DEALLOCATE( QL              )
-      IF ( ALLOCATED( RADLWG          ) ) DEALLOCATE( RADLWG          )
-      IF ( ALLOCATED( RADSWG          ) ) DEALLOCATE( RADSWG          )
-      IF ( ALLOCATED( REEVAPCN        ) ) DEALLOCATE( REEVAPCN        )
-      IF ( ALLOCATED( REEVAPLS        ) ) DEALLOCATE( REEVAPLS        )
-      IF ( ALLOCATED( RH1             ) ) DEALLOCATE( RH1             )
-      IF ( ALLOCATED( RH2             ) ) DEALLOCATE( RH2             )
-      IF ( ALLOCATED( RH              ) ) DEALLOCATE( RH              )
-      IF ( ALLOCATED( SEAICE00        ) ) DEALLOCATE( SEAICE00        )
-      IF ( ALLOCATED( SEAICE10        ) ) DEALLOCATE( SEAICE10        )
-      IF ( ALLOCATED( SEAICE20        ) ) DEALLOCATE( SEAICE20        )
-      IF ( ALLOCATED( SEAICE30        ) ) DEALLOCATE( SEAICE30        )
-      IF ( ALLOCATED( SEAICE40        ) ) DEALLOCATE( SEAICE40        )
-      IF ( ALLOCATED( SEAICE50        ) ) DEALLOCATE( SEAICE50        )
-      IF ( ALLOCATED( SEAICE60        ) ) DEALLOCATE( SEAICE60        )
-      IF ( ALLOCATED( SEAICE70        ) ) DEALLOCATE( SEAICE70        )
-      IF ( ALLOCATED( SEAICE80        ) ) DEALLOCATE( SEAICE80        )
-      IF ( ALLOCATED( SEAICE90        ) ) DEALLOCATE( SEAICE90        )
-      IF ( ALLOCATED( SLP             ) ) DEALLOCATE( SLP             )
-      IF ( ALLOCATED( SNICE           ) ) DEALLOCATE( SNICE           )
-      IF ( ALLOCATED( SNODP           ) ) DEALLOCATE( SNODP           )
-      IF ( ALLOCATED( SNOMAS          ) ) DEALLOCATE( SNOMAS          )
-      IF ( ALLOCATED( SNOW            ) ) DEALLOCATE( SNOW            )
+!      IF ( ALLOCATED( AIRVOL          ) ) DEALLOCATE( AIRVOL          )
+!      IF ( ALLOCATED( ALBD1           ) ) DEALLOCATE( ALBD1           )
+!      IF ( ALLOCATED( ALBD2           ) ) DEALLOCATE( ALBD2           )
+!      IF ( ALLOCATED( ALBD            ) ) DEALLOCATE( ALBD            )
+!      IF ( ALLOCATED( AVGW            ) ) DEALLOCATE( AVGW            )
+!      IF ( ALLOCATED( BXHEIGHT        ) ) DEALLOCATE( BXHEIGHT        )
+!      IF ( ALLOCATED( CLDF            ) ) DEALLOCATE( CLDF            )
+!      IF ( ALLOCATED( CLDFRC          ) ) DEALLOCATE( CLDFRC          )
+!      IF ( ALLOCATED( CLDMAS          ) ) DEALLOCATE( CLDMAS          )
+!      IF ( ALLOCATED( CLDTOPS         ) ) DEALLOCATE( CLDTOPS         )
+!      IF ( ALLOCATED( CMFMC           ) ) DEALLOCATE( CMFMC           )
+!      IF ( ALLOCATED( DELP            ) ) DEALLOCATE( DELP            )
+!      IF ( ALLOCATED( DETRAINE        ) ) DEALLOCATE( DETRAINE        )
+!      IF ( ALLOCATED( DETRAINN        ) ) DEALLOCATE( DETRAINN        ) 
+!      IF ( ALLOCATED( DNDE            ) ) DEALLOCATE( DNDE            ) 
+!      IF ( ALLOCATED( DNDN            ) ) DEALLOCATE( DNDN            )
+!      IF ( ALLOCATED( DQIDTMST        ) ) DEALLOCATE( DQIDTMST        )
+!      IF ( ALLOCATED( DQLDTMST        ) ) DEALLOCATE( DQLDTMST        )
+!      IF ( ALLOCATED( DQRCON          ) ) DEALLOCATE( DQRCON          )
+!      IF ( ALLOCATED( DQRCU           ) ) DEALLOCATE( DQRCU           )
+!      IF ( ALLOCATED( DQRLSC          ) ) DEALLOCATE( DQRLSC          )
+!      IF ( ALLOCATED( DQRLSAN         ) ) DEALLOCATE( DQRLSAN         )
+!      IF ( ALLOCATED( DQVDTMST        ) ) DEALLOCATE( DQVDTMST        )
+!      IF ( ALLOCATED( DTRAIN          ) ) DEALLOCATE( DTRAIN          )
+!      IF ( ALLOCATED( ENTRAIN         ) ) DEALLOCATE( ENTRAIN         ) 
+!      IF ( ALLOCATED( EFLUX           ) ) DEALLOCATE( EFLUX           )
+!      IF ( ALLOCATED( EVAP            ) ) DEALLOCATE( EVAP            ) 
+!      IF ( ALLOCATED( FRLAND          ) ) DEALLOCATE( FRLAND          )
+!      IF ( ALLOCATED( FRLAKE          ) ) DEALLOCATE( FRLAKE          )
+!      IF ( ALLOCATED( FROCEAN         ) ) DEALLOCATE( FROCEAN         )
+!      IF ( ALLOCATED( FRLANDIC        ) ) DEALLOCATE( FRLANDIC        )
+!      IF ( ALLOCATED( FRSEAICE        ) ) DEALLOCATE( FRSEAICE        )
+!      IF ( ALLOCATED( FRSNO           ) ) DEALLOCATE( FRSNO           )
+!      IF ( ALLOCATED( GRN             ) ) DEALLOCATE( GRN             ) 
+!      IF ( ALLOCATED( GWETROOT        ) ) DEALLOCATE( GWETROOT        ) 
+!      IF ( ALLOCATED( GWETTOP         ) ) DEALLOCATE( GWETTOP         )
+!      IF ( ALLOCATED( HFLUX           ) ) DEALLOCATE( HFLUX           )
+!      IF ( ALLOCATED( HKBETA          ) ) DEALLOCATE( HKBETA          )
+!      IF ( ALLOCATED( HKETA           ) ) DEALLOCATE( HKETA           )
+!      IF ( ALLOCATED( LAI             ) ) DEALLOCATE( LAI             )      
+!      IF ( ALLOCATED( LWI             ) ) DEALLOCATE( LWI             )
+!      IF ( ALLOCATED( LWI_GISS        ) ) DEALLOCATE( LWI_GISS        ) 
+!      IF ( ALLOCATED( MFXC            ) ) DEALLOCATE( MFXC            ) 
+!      IF ( ALLOCATED( MFYC            ) ) DEALLOCATE( MFYC            ) 
+!      IF ( ALLOCATED( MFZ             ) ) DEALLOCATE( MFZ             ) 
+!      IF ( ALLOCATED( MOLENGTH        ) ) DEALLOCATE( MOLENGTH        ) 
+!      IF ( ALLOCATED( MOISTQ          ) ) DEALLOCATE( MOISTQ          )
+!      IF ( ALLOCATED( OICE            ) ) DEALLOCATE( OICE            )  
+!      IF ( ALLOCATED( OPTD            ) ) DEALLOCATE( OPTD            )
+!      IF ( ALLOCATED( OPTDEP          ) ) DEALLOCATE( OPTDEP          )
+!      IF ( ALLOCATED( PARDF           ) ) DEALLOCATE( PARDF           )
+!      IF ( ALLOCATED( PARDR           ) ) DEALLOCATE( PARDR           )
+!      IF ( ALLOCATED( PBL             ) ) DEALLOCATE( PBL             )
+!      IF ( ALLOCATED( PHIS            ) ) DEALLOCATE( PHIS            )
+!      IF ( ALLOCATED( PFICU           ) ) DEALLOCATE( PFICU           )
+!      IF ( ALLOCATED( PFILSAN         ) ) DEALLOCATE( PFILSAN         )
+!      IF ( ALLOCATED( PFLCU           ) ) DEALLOCATE( PFLCU           )
+!      IF ( ALLOCATED( PFLLSAN         ) ) DEALLOCATE( PFLLSAN         )
+!      IF ( ALLOCATED( PREACC          ) ) DEALLOCATE( PREACC          )
+!      IF ( ALLOCATED( PREANV          ) ) DEALLOCATE( PREANV          )
+!      IF ( ALLOCATED( PRECON          ) ) DEALLOCATE( PRECON          )
+!      IF ( ALLOCATED( PRELSC          ) ) DEALLOCATE( PRELSC          )
+!      IF ( ALLOCATED( PRECSNO         ) ) DEALLOCATE( PRECSNO         )
+!      IF ( ALLOCATED( PS1             ) ) DEALLOCATE( PS1             )
+!      IF ( ALLOCATED( PS2             ) ) DEALLOCATE( PS2             )
+!      IF ( ALLOCATED( PSC2            ) ) DEALLOCATE( PSC2            )
+!      IF ( ALLOCATED( PV              ) ) DEALLOCATE( PV              )
+!      IF ( ALLOCATED( QI              ) ) DEALLOCATE( QI              )
+!      IF ( ALLOCATED( QL              ) ) DEALLOCATE( QL              )
+!      IF ( ALLOCATED( RADLWG          ) ) DEALLOCATE( RADLWG          )
+!      IF ( ALLOCATED( RADSWG          ) ) DEALLOCATE( RADSWG          )
+!      IF ( ALLOCATED( REEVAPCN        ) ) DEALLOCATE( REEVAPCN        )
+!      IF ( ALLOCATED( REEVAPLS        ) ) DEALLOCATE( REEVAPLS        )
+!      IF ( ALLOCATED( RH1             ) ) DEALLOCATE( RH1             )
+!      IF ( ALLOCATED( RH2             ) ) DEALLOCATE( RH2             )
+!      IF ( ALLOCATED( RH              ) ) DEALLOCATE( RH              )
+!      IF ( ALLOCATED( SEAICE00        ) ) DEALLOCATE( SEAICE00        )
+!      IF ( ALLOCATED( SEAICE10        ) ) DEALLOCATE( SEAICE10        )
+!      IF ( ALLOCATED( SEAICE20        ) ) DEALLOCATE( SEAICE20        )
+!      IF ( ALLOCATED( SEAICE30        ) ) DEALLOCATE( SEAICE30        )
+!      IF ( ALLOCATED( SEAICE40        ) ) DEALLOCATE( SEAICE40        )
+!      IF ( ALLOCATED( SEAICE50        ) ) DEALLOCATE( SEAICE50        )
+!      IF ( ALLOCATED( SEAICE60        ) ) DEALLOCATE( SEAICE60        )
+!      IF ( ALLOCATED( SEAICE70        ) ) DEALLOCATE( SEAICE70        )
+!      IF ( ALLOCATED( SEAICE80        ) ) DEALLOCATE( SEAICE80        )
+!      IF ( ALLOCATED( SEAICE90        ) ) DEALLOCATE( SEAICE90        )
+!      IF ( ALLOCATED( SLP             ) ) DEALLOCATE( SLP             )
+!      IF ( ALLOCATED( SNICE           ) ) DEALLOCATE( SNICE           )
+!      IF ( ALLOCATED( SNODP           ) ) DEALLOCATE( SNODP           )
+!      IF ( ALLOCATED( SNOMAS          ) ) DEALLOCATE( SNOMAS          )
+!      IF ( ALLOCATED( SNOW            ) ) DEALLOCATE( SNOW            )
       IF ( ALLOCATED( SPHU1           ) ) DEALLOCATE( SPHU1           )
       IF ( ALLOCATED( SPHU2           ) ) DEALLOCATE( SPHU2           )
       IF ( ALLOCATED( SPHU            ) ) DEALLOCATE( SPHU            )
       IF ( ALLOCATED( SUNCOS          ) ) DEALLOCATE( SUNCOS          )     
       IF ( ALLOCATED( SUNCOS_MID      ) ) DEALLOCATE( SUNCOS_MID      )
       IF ( ALLOCATED( SUNCOS_MID_5hr  ) ) DEALLOCATE( SUNCOS_MID_5hr  )
-      IF ( ALLOCATED( T               ) ) DEALLOCATE( T               )
+!      IF ( ALLOCATED( T               ) ) DEALLOCATE( T               )
       IF ( ALLOCATED( T_FULLGRID      ) ) DEALLOCATE( T_FULLGRID      )
-      IF ( ALLOCATED( TAUCLI          ) ) DEALLOCATE( TAUCLI          )
-      IF ( ALLOCATED( TAUCLW          ) ) DEALLOCATE( TAUCLW          )
-      IF ( ALLOCATED( TO31            ) ) DEALLOCATE( TO31            )
-      IF ( ALLOCATED( TO32            ) ) DEALLOCATE( TO32            )
-      IF ( ALLOCATED( TO3             ) ) DEALLOCATE( TO3             )
-      IF ( ALLOCATED( TTO3            ) ) DEALLOCATE( TTO3            )
-      IF ( ALLOCATED( TMPU1           ) ) DEALLOCATE( TMPU1           )
-      IF ( ALLOCATED( TMPU2           ) ) DEALLOCATE( TMPU2           )
-      IF ( ALLOCATED( TROPP           ) ) DEALLOCATE( TROPP           )
-      IF ( ALLOCATED( TROPP1          ) ) DEALLOCATE( TROPP1          )
-      IF ( ALLOCATED( TROPP2          ) ) DEALLOCATE( TROPP2          )
-      IF ( ALLOCATED( TS              ) ) DEALLOCATE( TS              )
-      IF ( ALLOCATED( TSKIN           ) ) DEALLOCATE( TSKIN           )
-      IF ( ALLOCATED( U10M            ) ) DEALLOCATE( U10M            )
-      IF ( ALLOCATED( UPDE            ) ) DEALLOCATE( UPDE            ) 
-      IF ( ALLOCATED( UPDN            ) ) DEALLOCATE( UPDN            ) 
+!      IF ( ALLOCATED( TAUCLI          ) ) DEALLOCATE( TAUCLI          )
+!      IF ( ALLOCATED( TAUCLW          ) ) DEALLOCATE( TAUCLW          )
+!      IF ( ALLOCATED( TO31            ) ) DEALLOCATE( TO31            )
+!      IF ( ALLOCATED( TO32            ) ) DEALLOCATE( TO32            )
+!      IF ( ALLOCATED( TO3             ) ) DEALLOCATE( TO3             )
+!      IF ( ALLOCATED( TTO3            ) ) DEALLOCATE( TTO3            )
+!      IF ( ALLOCATED( TMPU1           ) ) DEALLOCATE( TMPU1           )
+!      IF ( ALLOCATED( TMPU2           ) ) DEALLOCATE( TMPU2           )
+!      IF ( ALLOCATED( TROPP           ) ) DEALLOCATE( TROPP           )
+!      IF ( ALLOCATED( TROPP1          ) ) DEALLOCATE( TROPP1          )
+!      IF ( ALLOCATED( TROPP2          ) ) DEALLOCATE( TROPP2          )
+!      IF ( ALLOCATED( TS              ) ) DEALLOCATE( TS              )
+!      IF ( ALLOCATED( TSKIN           ) ) DEALLOCATE( TSKIN           )
+!      IF ( ALLOCATED( U10M            ) ) DEALLOCATE( U10M            )
+!      IF ( ALLOCATED( UPDE            ) ) DEALLOCATE( UPDE            ) 
+!      IF ( ALLOCATED( UPDN            ) ) DEALLOCATE( UPDN            ) 
       IF ( ALLOCATED( USTAR           ) ) DEALLOCATE( USTAR           )
-      IF ( ALLOCATED( UWND            ) ) DEALLOCATE( UWND            )
-      IF ( ALLOCATED( V10M            ) ) DEALLOCATE( V10M            ) 
-      IF ( ALLOCATED( VWND            ) ) DEALLOCATE( VWND            )
-      IF ( ALLOCATED( Z0              ) ) DEALLOCATE( Z0              )
-      IF ( ALLOCATED( ZMEU            ) ) DEALLOCATE( ZMEU            )
-      IF ( ALLOCATED( ZMMD            ) ) DEALLOCATE( ZMMD            )
-      IF ( ALLOCATED( ZMMU            ) ) DEALLOCATE( ZMMU            )
+!      IF ( ALLOCATED( UWND            ) ) DEALLOCATE( UWND            )
+!      IF ( ALLOCATED( V10M            ) ) DEALLOCATE( V10M            ) 
+!      IF ( ALLOCATED( VWND            ) ) DEALLOCATE( VWND            )
+!      IF ( ALLOCATED( Z0              ) ) DEALLOCATE( Z0              )
+!      IF ( ALLOCATED( ZMEU            ) ) DEALLOCATE( ZMEU            )
+!      IF ( ALLOCATED( ZMMD            ) ) DEALLOCATE( ZMMD            )
+!      IF ( ALLOCATED( ZMMU            ) ) DEALLOCATE( ZMMU            )
 
       END SUBROUTINE CLEANUP_DAO
 !EOC

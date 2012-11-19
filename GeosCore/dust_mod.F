@@ -68,15 +68,12 @@
 !
 ! !PRIVATE TYPES:
 !
-      INTEGER                :: DRYDST1, DRYDST2, DRYDST3, DRYDST4
-      INTEGER, ALLOCATABLE   :: IDDEP(:)
-      REAL*8,  ALLOCATABLE   :: FRAC_S(:)
-      REAL*8,  ALLOCATABLE   :: DUSTREFF(:)
-      REAL*8,  ALLOCATABLE   :: DUSTDEN(:)
-      
-#if defined( DEVEL )
-      REAL*8, ALLOCATABLE, SAVE :: SRCE_FUNC(:,:,:)
-#endif
+      INTEGER              :: DRYDST1, DRYDST2, DRYDST3, DRYDST4
+      INTEGER, ALLOCATABLE :: IDDEP(:)
+      REAL*8,  ALLOCATABLE :: FRAC_S(:)
+      REAL*8,  ALLOCATABLE :: DUSTREFF(:)
+      REAL*8,  ALLOCATABLE :: DUSTDEN(:)
+      REAL*8,  ALLOCATABLE :: SRCE_FUNC(:,:,:)
 
       CONTAINS
 !EOC
@@ -1333,9 +1330,9 @@
       REAL*8                 :: SRCE_P, DSRC, REYNOL, ALPHA, BETA
       REAL*8                 :: GAMMA,  CW,   DTSRCE, AREA_M2
       CHARACTER(LEN=255)     :: FILENAME
-#if   !defined( DEVEL )
-      REAL*8, SAVE           :: SRCE_FUNC(IIPAR,JJPAR,3)
-#endif
+!#if   !defined( DEVEL )
+!      REAL*8, SAVE           :: SRCE_FUNC(IIPAR,JJPAR,3)
+!#endif
 
       ! Transfer coeff for type natural source  (kg*s2/m5)
       REAL*8, PARAMETER      :: CH_DUST  = 9.375d-10

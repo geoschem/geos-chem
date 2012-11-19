@@ -79,13 +79,12 @@
       REAL*8, ALLOCATABLE :: SO4_NH4_NIT(:,:,:)
       REAL*8, ALLOCATABLE :: SOILDUST(:,:,:,:)
 
-#if defined( DEVEL )
       ! Mass of hydrophobic aerosol from Mian Chin
       REAL*8, ALLOCATABLE, SAVE   :: DAERSL(:,:,:,:)
 
       ! Mass of hydrophilic aerosol from Mian Chin
       REAL*8, ALLOCATABLE, SAVE   :: WAERSL(:,:,:,:)
-#endif
+
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
       !=================================================================
@@ -800,13 +799,13 @@
       REAL*8              :: TEMP2(IIPAR,JJPAR,LLPAR)
       REAL*8              :: MSDENS(NAER), XTAU, DRYAREA
 
-#if !defined( DEVEL )
-      ! Mass of hydrophobic aerosol from Mian Chin
-      REAL*8, SAVE        :: DAERSL(IIPAR,JJPAR,LLPAR,2)       
-
-      ! Mass of hydrophilic aerosol from Mian Chin
-      REAL*8, SAVE        :: WAERSL(IIPAR,JJPAR,LLPAR,NAER) 
-#endif
+!#if !defined( DEVEL )
+!      ! Mass of hydrophobic aerosol from Mian Chin
+!      REAL*8, SAVE        :: DAERSL(IIPAR,JJPAR,LLPAR,2)       
+!
+!      ! Mass of hydrophilic aerosol from Mian Chin
+!      REAL*8, SAVE        :: WAERSL(IIPAR,JJPAR,LLPAR,NAER) 
+!#endif
 
       ! Effective radius at RH bins read in from "jv_spec.dat"
       REAL*8		  :: RW(NRH)	
@@ -1702,7 +1701,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SOILDUST' )
       SOILDUST = 0d0
 
-#if defined( DEVEL )
+!#if defined( DEVEL )
       ! Mass of hydrophobic aerosol from Mian Chin
       ALLOCATE( DAERSL(IIPAR,JJPAR,LLPAR,2), STAT=AS)       
       IF ( AS /= 0) CALL ALLOC_ERR( 'DAERSL' )
@@ -1712,7 +1711,7 @@
       ALLOCATE( WAERSL(IIPAR,JJPAR,LLPAR,NAER), STAT=AS)       
       IF ( AS /= 0) CALL ALLOC_ERR( 'WAERSL' )
       DAERSL = 0d0
-#endif
+!#endif
 
       ! Return to calling program
 

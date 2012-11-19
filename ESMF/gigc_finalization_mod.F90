@@ -288,6 +288,19 @@ CONTAINS
     CALL CLEANUP_ICOADS_SHIP !(cklee,7/09/09)
     CALL CLEANUP_RETRO
     
+    ! Call cleanup routines from the Headers/ directory
+    CALL Cleanup_CMN        ( am_I_Root, RC )
+    CALL Cleanup_CMN_DIAG   ( am_I_Root, RC )
+    CALL Cleanup_COMMSOIL   ( am_I_Root, RC )
+    CALL Cleanup_CMN_DIAG   ( am_I_Root, RC )
+    CALL Cleanup_CMN_NOX    ( am_I_Root, RC )
+    CALL Cleanup_CMN_O3     ( am_I_Root, RC )
+    CALL Cleanup_CMN        ( am_I_Root, RC )
+    CALL Cleanup_CMN_FJ     ( am_I_Root, RC )
+    CALL Cleanup_COMODE_LOOP( am_I_Root, RC )
+    CALL Cleanup_JV_CMN     ( am_I_Root, RC )
+    CALL Cleanup_VDIFF_PRE  ( am_I_Root, RC )
+
   END SUBROUTINE GIGC_CleanUp_GeosChem
 !EOC
 END MODULE GIGC_Finalization_Mod

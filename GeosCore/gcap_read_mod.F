@@ -319,7 +319,7 @@
 !
 ! !USES:
 !
-      USE DAO_MOD,            ONLY : PHIS, LWI_GISS
+      !USE DAO_MOD,            ONLY : PHIS, LWI_GISS
       USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -349,11 +349,14 @@
       NHMS = 000000
 
       ! For GCAP met fields: read PHIS and LWI_GISS
-      CALL READ_GCAP( NYMD=NYMD, NHMS=NHMS, PHIS=PHIS, LWI=LWI_GISS )
+      CALL READ_GCAP( NYMD = NYMD, 
+     &                NHMS = NHMS, 
+     &                PHIS = State_Met%PHIS, 
+     &                LWI  = State_Met%LWI_GISS )
 
-      ! Copy met fields to State_Met
-      State_Met%PHIS     => PHIS
-      State_Met%LWI_GISS => LWI_GISS
+      !! Copy met fields to State_Met
+      !State_Met%PHIS     => PHIS
+      !State_Met%LWI_GISS => LWI_GISS
 
       ! Return to calling program
       END SUBROUTINE GET_GCAP_FIELDS

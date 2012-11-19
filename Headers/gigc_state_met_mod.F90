@@ -804,6 +804,8 @@ CONTAINS
 !  19 Oct 2012 - R. Yantosca - Initial version, based on gc_environment_mod.F90
 !  23 Oct 2012 - R. Yantosca - Now deallocate QI, QL fields
 !  15 Nov 2012 - M. Payer    - Added all remaining met fields
+!  19 Nov 2012 - R. Yantosca - Segregate DEALLOCATE statements w/ #ifdefs
+!                              for each met field data product type
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -811,7 +813,11 @@ CONTAINS
     ! Return success
     RC = GIGC_SUCCESS
 
-    ! Surface fields
+    !========================================================================
+    ! These met fields are used for all data products
+    !========================================================================
+
+    ! 2-D fields
     IF ( ASSOCIATED( State_Met%ALBD     )  ) DEALLOCATE( State_Met%ALBD     ) 
     IF ( ASSOCIATED( State_Met%CLDFRC   )  ) DEALLOCATE( State_Met%CLDFRC   ) 
     IF ( ASSOCIATED( State_Met%CLDTOPS  )  ) DEALLOCATE( State_Met%CLDTOPS  )
@@ -822,31 +828,131 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%FRLAND   )  ) DEALLOCATE( State_Met%FRLAND   )
     IF ( ASSOCIATED( State_Met%FRLANDIC )  ) DEALLOCATE( State_Met%FRLANDIC )
     IF ( ASSOCIATED( State_Met%FROCEAN  )  ) DEALLOCATE( State_Met%FROCEAN  )
-    IF ( ASSOCIATED( State_Met%FRSEAICE )  ) DEALLOCATE( State_Met%FRSEAICE )
-    IF ( ASSOCIATED( State_Met%FRSNO    )  ) DEALLOCATE( State_Met%FRSNO    )
     IF ( ASSOCIATED( State_Met%GRN      )  ) DEALLOCATE( State_Met%GRN      )
     IF ( ASSOCIATED( State_Met%GWETROOT )  ) DEALLOCATE( State_Met%GWETROOT )
     IF ( ASSOCIATED( State_Met%GWETTOP  )  ) DEALLOCATE( State_Met%GWETTOP  )
     IF ( ASSOCIATED( State_Met%HFLUX    )  ) DEALLOCATE( State_Met%HFLUX    )
     IF ( ASSOCIATED( State_Met%LAI      )  ) DEALLOCATE( State_Met%LAI      )
     IF ( ASSOCIATED( State_Met%LWI      )  ) DEALLOCATE( State_Met%LWI      )
-    IF ( ASSOCIATED( State_Met%LWI_GISS )  ) DEALLOCATE( State_Met%LWI_GISS )
-    IF ( ASSOCIATED( State_Met%MOLENGTH )  ) DEALLOCATE( State_Met%MOLENGTH )
-    IF ( ASSOCIATED( State_Met%OICE     )  ) DEALLOCATE( State_Met%OICE     )
     IF ( ASSOCIATED( State_Met%PARDR    )  ) DEALLOCATE( State_Met%PARDR    )
     IF ( ASSOCIATED( State_Met%PARDF    )  ) DEALLOCATE( State_Met%PARDF    )
     IF ( ASSOCIATED( State_Met%PBLH     )  ) DEALLOCATE( State_Met%PBLH     )
     IF ( ASSOCIATED( State_Met%PHIS     )  ) DEALLOCATE( State_Met%PHIS     )
-    IF ( ASSOCIATED( State_Met%PRECANV  )  ) DEALLOCATE( State_Met%PRECANV  )
     IF ( ASSOCIATED( State_Met%PRECCON  )  ) DEALLOCATE( State_Met%PRECCON  )
     IF ( ASSOCIATED( State_Met%PRECTOT  )  ) DEALLOCATE( State_Met%PRECTOT  )
-    IF ( ASSOCIATED( State_Met%PRECLSC  )  ) DEALLOCATE( State_Met%PRECLSC  )
     IF ( ASSOCIATED( State_Met%PRECSNO  )  ) DEALLOCATE( State_Met%PRECSNO  )
     IF ( ASSOCIATED( State_Met%PS1      )  ) DEALLOCATE( State_Met%PS1      )
     IF ( ASSOCIATED( State_Met%PS2      )  ) DEALLOCATE( State_Met%PS2      )
     IF ( ASSOCIATED( State_Met%PSC2     )  ) DEALLOCATE( State_Met%PSC2     )
     IF ( ASSOCIATED( State_Met%RADLWG   )  ) DEALLOCATE( State_Met%RADLWG   )
     IF ( ASSOCIATED( State_Met%RADSWG   )  ) DEALLOCATE( State_Met%RADSWG   )
+    IF ( ASSOCIATED( State_Met%SLP      )  ) DEALLOCATE( State_Met%SLP      )
+    IF ( ASSOCIATED( State_Met%SNODP    )  ) DEALLOCATE( State_Met%SNODP    )
+    IF ( ASSOCIATED( State_Met%SNOMAS   )  ) DEALLOCATE( State_Met%SNOMAS   )
+    IF ( ASSOCIATED( State_Met%SST      )  ) DEALLOCATE( State_Met%SST      )
+    IF ( ASSOCIATED( State_Met%SUNCOS   )  ) DEALLOCATE( State_Met%SUNCOS   )
+    IF ( ASSOCIATED( State_Met%TROPP    )  ) DEALLOCATE( State_Met%TROPP    )
+    IF ( ASSOCIATED( State_Met%TS       )  ) DEALLOCATE( State_Met%TS       )
+    IF ( ASSOCIATED( State_Met%TSKIN    )  ) DEALLOCATE( State_Met%TSKIN    )
+    IF ( ASSOCIATED( State_Met%TO3      )  ) DEALLOCATE( State_Met%TO3      )
+    IF ( ASSOCIATED( State_Met%U10M     )  ) DEALLOCATE( State_Met%U10M     )
+    IF ( ASSOCIATED( State_Met%USTAR    )  ) DEALLOCATE( State_Met%USTAR    )
+    IF ( ASSOCIATED( State_Met%UVALBEDO )  ) DEALLOCATE( State_Met%V10M     )
+    IF ( ASSOCIATED( State_Met%V10M     )  ) DEALLOCATE( State_Met%UVALBEDO )
+    IF ( ASSOCIATED( State_Met%Z0       )  ) DEALLOCATE( State_Met%Z0       )
+
+    ! 3-D fields
+    IF ( ASSOCIATED( State_Met%AD       )  ) DEALLOCATE( State_Met%AD       )
+    IF ( ASSOCIATED( State_Met%AIRDEN   )  ) DEALLOCATE( State_Met%AIRDEN   )
+    IF ( ASSOCIATED( State_Met%AIRVOL   )  ) DEALLOCATE( State_Met%AIRVOL   )
+    IF ( ASSOCIATED( State_Met%AREA_M2  )  ) DEALLOCATE( State_Met%AREA_M2  )
+    IF ( ASSOCIATED( State_Met%AVGW     )  ) DEALLOCATE( State_Met%AVGW     )
+    IF ( ASSOCIATED( State_Met%BXHEIGHT )  ) DEALLOCATE( State_Met%BXHEIGHT )
+    IF ( ASSOCIATED( State_Met%CLDF     )  ) DEALLOCATE( State_Met%CLDF     )
+    IF ( ASSOCIATED( State_Met%CMFMC    )  ) DEALLOCATE( State_Met%CMFMC    )
+    IF ( ASSOCIATED( State_Met%DELP     )  ) DEALLOCATE( State_Met%DELP     )
+    IF ( ASSOCIATED( State_Met%DQRCU    )  ) DEALLOCATE( State_Met%DQRCU    )
+    IF ( ASSOCIATED( State_Met%DQRLSAN  )  ) DEALLOCATE( State_Met%DQRLSAN  )
+    IF ( ASSOCIATED( State_Met%DQIDTMST )  ) DEALLOCATE( State_Met%DQIDTMST )
+    IF ( ASSOCIATED( State_Met%DQLDTMST )  ) DEALLOCATE( State_Met%DQLDTMST )
+    IF ( ASSOCIATED( State_Met%DQVDTMST )  ) DEALLOCATE( State_Met%DQVDTMST )
+    IF ( ASSOCIATED( State_Met%DTRAIN   )  ) DEALLOCATE( State_Met%DTRAIN   )
+    IF ( ASSOCIATED( State_Met%MOISTQ   )  ) DEALLOCATE( State_Met%MOISTQ   )
+    IF ( ASSOCIATED( State_Met%OPTD     )  ) DEALLOCATE( State_Met%OPTD     )
+    IF ( ASSOCIATED( State_Met%OPTDEP   )  ) DEALLOCATE( State_Met%OPTDEP   )
+    IF ( ASSOCIATED( State_Met%PEDGE    )  ) DEALLOCATE( State_Met%PEDGE    )
+    IF ( ASSOCIATED( State_Met%PMID     )  ) DEALLOCATE( State_Met%PMID     )
+    IF ( ASSOCIATED( State_Met%PV       )  ) DEALLOCATE( State_Met%PV       )
+    IF ( ASSOCIATED( State_Met%QI       )  ) DEALLOCATE( State_Met%QI       )
+    IF ( ASSOCIATED( State_Met%QL       )  ) DEALLOCATE( State_Met%QL       )
+    IF ( ASSOCIATED( State_Met%RH       )  ) DEALLOCATE( State_Met%RH       )
+    IF ( ASSOCIATED( State_Met%SPHU     )  ) DEALLOCATE( State_Met%SPHU     )
+    IF ( ASSOCIATED( State_Met%T        )  ) DEALLOCATE( State_Met%T        )
+    IF ( ASSOCIATED( State_Met%TAUCLI   )  ) DEALLOCATE( State_Met%TAUCLI   )
+    IF ( ASSOCIATED( State_Met%TAUCLW   )  ) DEALLOCATE( State_Met%TAUCLW   ) 
+    IF ( ASSOCIATED( State_Met%U        )  ) DEALLOCATE( State_Met%U        )
+    IF ( ASSOCIATED( State_Met%V        )  ) DEALLOCATE( State_Met%V        )
+
+#if defined( GCAP )
+    !========================================================================
+    ! Fields specific to the GCAP met data product
+    !========================================================================
+
+    ! 2-D fields
+    IF ( ASSOCIATED( State_Met%LWI_GISS )  ) DEALLOCATE( State_Met%LWI_GISS )
+    IF ( ASSOCIATED( State_Met%MOLENGTH )  ) DEALLOCATE( State_Met%MOLENGTH )
+    IF ( ASSOCIATED( State_Met%OICE     )  ) DEALLOCATE( State_Met%OICE     )
+    IF ( ASSOCIATED( State_Met%SNICE    )  ) DEALLOCATE( State_Met%SNICE    )
+    IF ( ASSOCIATED( State_Met%SNOW     )  ) DEALLOCATE( State_Met%SNOW     )
+    IF ( ASSOCIATED( State_Met%TROPP1   )  ) DEALLOCATE( State_Met%TROPP1   )
+    IF ( ASSOCIATED( State_Met%TROPP2   )  ) DEALLOCATE( State_Met%TROPP2   )
+
+    ! 3-D fields
+    IF ( ASSOCIATED( State_Met%DETRAINE )  ) DEALLOCATE( State_Met%DETRAINE )
+    IF ( ASSOCIATED( State_Met%DETRAINN )  ) DEALLOCATE( State_Met%DETRAINN )
+    IF ( ASSOCIATED( State_Met%DNDE     )  ) DEALLOCATE( State_Met%DNDE     )
+    IF ( ASSOCIATED( State_Met%DNDN     )  ) DEALLOCATE( State_Met%DNDN     )
+    IF ( ASSOCIATED( State_Met%ENTRAIN  )  ) DEALLOCATE( State_Met%ENTRAIN  )
+    IF ( ASSOCIATED( State_Met%UPDE     )  ) DEALLOCATE( State_Met%UPDE     )
+    IF ( ASSOCIATED( State_Met%UPDN     )  ) DEALLOCATE( State_Met%UPDN     )
+
+#elif defined( GEOS_4 )
+    !========================================================================
+    ! Fields specific to the GMAO GEOS-4 met data product
+    !========================================================================
+
+    ! 2-D fields
+    IF ( ASSOCIATED( State_Met%SNOW     )  ) DEALLOCATE( State_Met%SNOW     )
+    IF ( ASSOCIATED( State_Met%TROPP1   )  ) DEALLOCATE( State_Met%TROPP1   )
+    IF ( ASSOCIATED( State_Met%TROPP2   )  ) DEALLOCATE( State_Met%TROPP2   
+
+    ! 3-D fields
+    IF ( ASSOCIATED( State_Met%HKBETA   )  ) DEALLOCATE( State_Met%HKBETA   )
+    IF ( ASSOCIATED( State_Met%HKETA    )  ) DEALLOCATE( State_Met%HKETA    )
+    IF ( ASSOCIATED( State_Met%ZMEU     )  ) DEALLOCATE( State_Met%ZMEU     )
+    IF ( ASSOCIATED( State_Met%ZMMD     )  ) DEALLOCATE( State_Met%ZMMD     )
+    IF ( ASSOCIATED( State_Met%ZMMU     )  ) DEALLOCATE( State_Met%ZMMU     )
+
+#elif defined( GEOS_5 )
+    !========================================================================
+    ! Fields specific to the GMAO GEOS-5 met data product
+    !========================================================================
+
+    ! 2-D fields
+    IF ( ASSOCIATED( State_Met%TO31     )  ) DEALLOCATE( State_Met%TO31     )
+    IF ( ASSOCIATED( State_Met%TO32     )  ) DEALLOCATE( State_Met%TO32     )
+    IF ( ASSOCIATED( State_Met%TTO3     )  ) DEALLOCATE( State_Met%TTO3     )
+
+#elif defined( GEOS_57 ) || defined( MERRA )
+    !========================================================================
+    ! Fields specific to the GMAO MERRA and GEOS-5.7.x met data products
+    !========================================================================
+
+    ! 2-D fields
+    IF ( ASSOCIATED( State_Met%FRSEAICE )  ) DEALLOCATE( State_Met%FRSEAICE )
+    IF ( ASSOCIATED( State_Met%FRSNO    )  ) DEALLOCATE( State_Met%FRSNO    )
+    IF ( ASSOCIATED( State_Met%PRECANV  )  ) DEALLOCATE( State_Met%PRECANV  )
+    IF ( ASSOCIATED( State_Met%PRECLSC  )  ) DEALLOCATE( State_Met%PRECLSC  )
     IF ( ASSOCIATED( State_Met%SEAICE00 )  ) DEALLOCATE( State_Met%SEAICE00 )
     IF ( ASSOCIATED( State_Met%SEAICE10 )  ) DEALLOCATE( State_Met%SEAICE10 )
     IF ( ASSOCIATED( State_Met%SEAICE20 )  ) DEALLOCATE( State_Met%SEAICE20 )
@@ -857,81 +963,23 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%SEAICE70 )  ) DEALLOCATE( State_Met%SEAICE70 )
     IF ( ASSOCIATED( State_Met%SEAICE80 )  ) DEALLOCATE( State_Met%SEAICE80 )
     IF ( ASSOCIATED( State_Met%SEAICE90 )  ) DEALLOCATE( State_Met%SEAICE90 )
-    IF ( ASSOCIATED( State_Met%SLP      )  ) DEALLOCATE( State_Met%SLP      )
-    IF ( ASSOCIATED( State_Met%SNICE    )  ) DEALLOCATE( State_Met%SNICE    )
-    IF ( ASSOCIATED( State_Met%SNODP    )  ) DEALLOCATE( State_Met%SNODP    )
-    IF ( ASSOCIATED( State_Met%SNOMAS   )  ) DEALLOCATE( State_Met%SNOMAS   )
-    IF ( ASSOCIATED( State_Met%SNOW     )  ) DEALLOCATE( State_Met%SNOW     )
-    IF ( ASSOCIATED( State_Met%SST      )  ) DEALLOCATE( State_Met%SST      )
-    IF ( ASSOCIATED( State_Met%SUNCOS   )  ) DEALLOCATE( State_Met%SUNCOS   )
-    IF ( ASSOCIATED( State_Met%TO3      )  ) DEALLOCATE( State_Met%TO3      )
-    IF ( ASSOCIATED( State_Met%TO31     )  ) DEALLOCATE( State_Met%TO31     )
-    IF ( ASSOCIATED( State_Met%TO32     )  ) DEALLOCATE( State_Met%TO32     )
-    IF ( ASSOCIATED( State_Met%TROPP    )  ) DEALLOCATE( State_Met%TROPP    )
-    IF ( ASSOCIATED( State_Met%TROPP1   )  ) DEALLOCATE( State_Met%TROPP1   )
-    IF ( ASSOCIATED( State_Met%TROPP2   )  ) DEALLOCATE( State_Met%TROPP2   )
-    IF ( ASSOCIATED( State_Met%TS       )  ) DEALLOCATE( State_Met%TS       )
-    IF ( ASSOCIATED( State_Met%TSKIN    )  ) DEALLOCATE( State_Met%TSKIN    )
-    IF ( ASSOCIATED( State_Met%TTO3     )  ) DEALLOCATE( State_Met%TTO3     )
-    IF ( ASSOCIATED( State_Met%U10M     )  ) DEALLOCATE( State_Met%U10M     )
-    IF ( ASSOCIATED( State_Met%USTAR    )  ) DEALLOCATE( State_Met%USTAR    )
-    IF ( ASSOCIATED( State_Met%UVALBEDO )  ) DEALLOCATE( State_Met%V10M     )
-    IF ( ASSOCIATED( State_Met%V10M     )  ) DEALLOCATE( State_Met%UVALBEDO )
-    IF ( ASSOCIATED( State_Met%Z0       )  ) DEALLOCATE( State_Met%Z0       )
-    IF ( ASSOCIATED( State_Met%AD       )  ) DEALLOCATE( State_Met%AD       )
-    IF ( ASSOCIATED( State_Met%AIRDEN   )  ) DEALLOCATE( State_Met%AIRDEN   )
-    IF ( ASSOCIATED( State_Met%AIRVOL   )  ) DEALLOCATE( State_Met%AIRVOL   )
-    IF ( ASSOCIATED( State_Met%AREA_M2  )  ) DEALLOCATE( State_Met%AREA_M2  )
-    IF ( ASSOCIATED( State_Met%AVGW     )  ) DEALLOCATE( State_Met%AVGW     )
-    IF ( ASSOCIATED( State_Met%BXHEIGHT )  ) DEALLOCATE( State_Met%BXHEIGHT )
-    IF ( ASSOCIATED( State_Met%CLDF     )  ) DEALLOCATE( State_Met%CLDF     )
-    IF ( ASSOCIATED( State_Met%CMFMC    )  ) DEALLOCATE( State_Met%CMFMC    )
-    IF ( ASSOCIATED( State_Met%DELP     )  ) DEALLOCATE( State_Met%DELP     )
-    IF ( ASSOCIATED( State_Met%DETRAINE )  ) DEALLOCATE( State_Met%DETRAINE )
-    IF ( ASSOCIATED( State_Met%DETRAINN )  ) DEALLOCATE( State_Met%DETRAINN )
-    IF ( ASSOCIATED( State_Met%DNDE     )  ) DEALLOCATE( State_Met%DNDE     )
-    IF ( ASSOCIATED( State_Met%DNDN     )  ) DEALLOCATE( State_Met%DNDN     )
-    IF ( ASSOCIATED( State_Met%DQRCU    )  ) DEALLOCATE( State_Met%DQRCU    )
-    IF ( ASSOCIATED( State_Met%DQRLSAN  )  ) DEALLOCATE( State_Met%DQRLSAN  )
-    IF ( ASSOCIATED( State_Met%DQIDTMST )  ) DEALLOCATE( State_Met%DQIDTMST )
-    IF ( ASSOCIATED( State_Met%DQLDTMST )  ) DEALLOCATE( State_Met%DQLDTMST )
-    IF ( ASSOCIATED( State_Met%DQVDTMST )  ) DEALLOCATE( State_Met%DQVDTMST )
-    IF ( ASSOCIATED( State_Met%DTRAIN   )  ) DEALLOCATE( State_Met%DTRAIN   )
-    IF ( ASSOCIATED( State_Met%ENTRAIN  )  ) DEALLOCATE( State_Met%ENTRAIN  )
-    IF ( ASSOCIATED( State_Met%HKBETA   )  ) DEALLOCATE( State_Met%HKBETA   )
-    IF ( ASSOCIATED( State_Met%HKETA    )  ) DEALLOCATE( State_Met%HKETA    )
-    IF ( ASSOCIATED( State_Met%MOISTQ   )  ) DEALLOCATE( State_Met%MOISTQ   )
-    IF ( ASSOCIATED( State_Met%OPTD     )  ) DEALLOCATE( State_Met%OPTD     )
-    IF ( ASSOCIATED( State_Met%OPTDEP   )  ) DEALLOCATE( State_Met%OPTDEP   )
-    IF ( ASSOCIATED( State_Met%PEDGE    )  ) DEALLOCATE( State_Met%PEDGE    )
-    IF ( ASSOCIATED( State_Met%PMID     )  ) DEALLOCATE( State_Met%PMID     )
+
+    ! 3-D fields
     IF ( ASSOCIATED( State_Met%PFICU    )  ) DEALLOCATE( State_Met%PFICU    )
     IF ( ASSOCIATED( State_Met%PFILSAN  )  ) DEALLOCATE( State_Met%PFILSAN  )
     IF ( ASSOCIATED( State_Met%PFLCU    )  ) DEALLOCATE( State_Met%PFLCU    )
     IF ( ASSOCIATED( State_Met%PFLLSAN  )  ) DEALLOCATE( State_Met%PFLLSAN  )
-    IF ( ASSOCIATED( State_Met%PV       )  ) DEALLOCATE( State_Met%PV       )
-    IF ( ASSOCIATED( State_Met%QI       )  ) DEALLOCATE( State_Met%QI       )
-    IF ( ASSOCIATED( State_Met%QL       )  ) DEALLOCATE( State_Met%QL       )
     IF ( ASSOCIATED( State_Met%REEVAPCN )  ) DEALLOCATE( State_Met%REEVAPCN )
     IF ( ASSOCIATED( State_Met%REEVAPLS )  ) DEALLOCATE( State_Met%REEVAPLS )
-    IF ( ASSOCIATED( State_Met%RH       )  ) DEALLOCATE( State_Met%RH       )
     IF ( ASSOCIATED( State_Met%RH1      )  ) DEALLOCATE( State_Met%RH1      )
     IF ( ASSOCIATED( State_Met%RH2      )  ) DEALLOCATE( State_Met%RH2      )
-    IF ( ASSOCIATED( State_Met%SPHU     )  ) DEALLOCATE( State_Met%SPHU     )
     IF ( ASSOCIATED( State_Met%SPHU1    )  ) DEALLOCATE( State_Met%SPHU1    )
     IF ( ASSOCIATED( State_Met%SPHU2    )  ) DEALLOCATE( State_Met%SPHU2    )
-    IF ( ASSOCIATED( State_Met%T        )  ) DEALLOCATE( State_Met%T        )
-    IF ( ASSOCIATED( State_Met%TAUCLI   )  ) DEALLOCATE( State_Met%TAUCLI   )
-    IF ( ASSOCIATED( State_Met%TAUCLW   )  ) DEALLOCATE( State_Met%TAUCLW   ) 
     IF ( ASSOCIATED( State_Met%TMPU1    )  ) DEALLOCATE( State_Met%TMPU1    )
     IF ( ASSOCIATED( State_Met%TMPU2    )  ) DEALLOCATE( State_Met%TMPU2    )
-    IF ( ASSOCIATED( State_Met%U        )  ) DEALLOCATE( State_Met%U        )
-    IF ( ASSOCIATED( State_Met%UPDE     )  ) DEALLOCATE( State_Met%UPDE     )
-    IF ( ASSOCIATED( State_Met%UPDN     )  ) DEALLOCATE( State_Met%UPDN     )
-    IF ( ASSOCIATED( State_Met%V        )  ) DEALLOCATE( State_Met%V        )
-    IF ( ASSOCIATED( State_Met%ZMEU     )  ) DEALLOCATE( State_Met%ZMEU     )
-    IF ( ASSOCIATED( State_Met%ZMMD     )  ) DEALLOCATE( State_Met%ZMMD     )
-    IF ( ASSOCIATED( State_Met%ZMMU     )  ) DEALLOCATE( State_Met%ZMMU     )
+
+#endif
+
 
    END SUBROUTINE Cleanup_GIGC_State_Met
 !EOC

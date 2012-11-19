@@ -83,9 +83,7 @@
       ! and routines from being seen outside "tpcore_mod.f"
       !=================================================================
 
-#if defined( DEVEL )
       USE ERROR_MOD, ONLY : ALLOC_ERR
-#endif
 
       ! Make everything PRIVATE ...
       PRIVATE
@@ -2923,13 +2921,13 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
       REAL*8                 :: VMFLX(IIPAR,JJPAR,LLPAR)
 
       ! Local SAVEd variables
-#if defined( DEVEL )
+!#if defined( DEVEL )
       LOGICAL, SAVE              :: FIRST = .TRUE.
       REAL*8,  ALLOCATABLE, SAVE :: DXYP(:)
-#else
-      LOGICAL, SAVE          :: FIRST = .TRUE.
-      REAL*8,  SAVE          :: DXYP(JJPAR)
-#endif
+!else
+!      LOGICAL, SAVE          :: FIRST = .TRUE.
+!      REAL*8,  SAVE          :: DXYP(JJPAR)
+!#endif
       !=================================================================
       ! PRESS_FIX begins here!
       !
@@ -2953,10 +2951,10 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 
       ! Save grid box surface areas [m2] into the local DXYP array
       IF ( FIRST ) THEN
-#if defined( DEVEL )
+!#if defined( DEVEL )
          ALLOCATE( DXYP(JJPAR), STAT=AS)
          IF ( AS /=0 ) CALL ALLOC_ERR( 'DXYP_PRESS_FIX')
-#endif
+!#endif
 
          DO J = 1, JJPAR
             DXYP(J) = GET_AREA_M2( 1, J, 1 )
@@ -3202,13 +3200,13 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
       ! Local saved variables
       LOGICAL, SAVE          :: FIRST = .TRUE.
 
-#if defined( DEVEL )
+!#if defined( DEVEL )
       REAL*8,  ALLOCATABLE, SAVE :: DXYP(:)
       REAL*8,  ALLOCATABLE, SAVE :: DSIG(:)
-#else
-      REAL*8,  SAVE          :: DXYP(JJPAR)
-      REAL*8,  SAVE          :: DSIG(LLPAR)
-#endif
+!#else
+!      REAL*8,  SAVE          :: DXYP(JJPAR)
+!      REAL*8,  SAVE          :: DSIG(LLPAR)
+!#endif
 
       !=================================================================
       ! DYN0 begins here!

@@ -162,10 +162,8 @@
                                                 !  [cm3 H2O/cm3 air]
 
       REAL*8,  ALLOCATABLE :: PDOWN(:,:,:)      ! Precipitation thru the
-                                                !  bottom of the grid box 
-                                                !  [cm3 H2O/cm2 area/s]
       REAL*8,  ALLOCATABLE :: QQ(:,:,:)         ! Rate of new precip formation
-                                                !   [cm3 H2O/cm3 air/s]
+                                                !  [cm3 H2O/cm3 air/s]
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------

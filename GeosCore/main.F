@@ -245,25 +245,23 @@
       TYPE(MapWeight), POINTER :: mapping(:,:) => NULL()
 
       !-----------------------------------------------------------------
-      !    %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%%
+      ! %%%% REPLICATING GIGC FUNCTIONALITY IN EXISTING GEOS-CHEM %%%%
       !
       ! We must declare the Chemistry State (State_Chm), Meteorology
       ! State (State_Met), and Input Options (Input_Opt) objects
       ! for use with the Grid-Independent GEOS-Chem code. 
       !
-      ! Also define NI, NJ, NL for more consistent naming w/r/t the 
-      ! ESMF interface.  Initialize these from IIPAR, JJPAR, JJPAR
-      ! (bmy, 11/9/12)
-      !-----------------------------------------------------------------
       TYPE(OptInput)           :: Input_Opt   ! Input Options object
       TYPE(ChmState)           :: State_Chm   ! Chemistry State object
       TYPE(MetState)           :: State_Met   ! Meteorology State object
+      !
+      ! Also define NI, NJ, NL for more consistent naming w/r/t the 
+      ! ESMF interface.  Initialize these from IIPAR, JJPAR, JJPAR
+      ! (bmy, 11/9/12)
+      !
       INTEGER                  :: NI          ! # of longitudes 
       INTEGER                  :: NJ          ! # of latitudes
       INTEGER                  :: NL          ! # of levels
-
-      !-----------------------------------------------------------------
-      !    %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%%
       !
       ! When connecting G-C to an external GCM, we need to only write 
       ! to stdout if we are on the root CPU.  Otherwise this will slow
@@ -276,71 +274,47 @@
       ! all of the lower-level routines.  The main.F routine is not
       ! called when connecting G-C to an external GCM. 
       ! (mlong, bmy, 7/30/12)
-      !-----------------------------------------------------------------
+      !
       LOGICAL, PARAMETER       :: am_I_Root = .TRUE. 
+      !-----------------------------------------------------------------
 
       !=================================================================
       ! GEOS-CHEM starts here!                                            
       !=================================================================
 
-      ! Assume success
-      RC = GIGC_SUCCESS
-
+      !-----------------------------------------------------------------
+      ! %%%% REPLICATING GIGC FUNCTIONALITY IN EXISTING GEOS-CHEM %%%%
+      !
+      ! Assume a successful return until otherwise
+      !
+      RC                 = GIGC_SUCCESS
+      !
       ! Define NI, NJ, NL dimensions for use below
+      !
       NI                 = IIPAR
       NJ                 = JJPAR
       NL                 = LLPAR
-
+      !
       ! Define dimensions for fields of the Input Options object
       ! NOTE: At this point we have not yet read in the "input.geos"
       ! file so these are just placeholder values (bmy, 11/7/12)
+      !
       Input_Opt%MAX_DIAG = MAX_DIAG
       Input_Opt%MAX_TRCS = NNPAR
       Input_Opt%MAX_MEMB = N_MEMBERS
       Input_Opt%MAX_FAMS = MAXFAM
-
-#if defined( DEVEL )
-      !-----------------------------------------------------------------
-      !   %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%%
       !
-      ! 
       ! Call the routine GIGC_Allocate_All (located in module file
       ! GeosCore/gigc_environment_mod.F90) to allocate all lat/lon
-      ! allocatable arrays used by GEOS-Chem.  
+      ! allocatable arrays used by GEOS-Chem, as well as the Input 
+      ! Options object.  The IIPAR and JJPAR dimensions are not 
+      ! declared as PARAMETERs, but are module variables that are 
+      ! initialized in this call.
       !
-      ! The IIPAR and JJPAR dimensions are not declared as PARAMETERs,
-      ! but are module variables that are initialized in this call.
-      !
-      ! If we were connecting to the GEOS-5 GCM, then IIPAR and JJPAR
-      ! would be defined with the # of lons and # of lats on each
-      ! CPU.  To simulate this behavior without ESMF, we set IIPAR
-      ! to IGLOB and JJPAR to JGLOB, where IGLOB, JGLOB depend on the
-      ! particular met fields being used. (bmy, 10/25/12)
-      !
-      ! GIGC_Allocate_All now also initializes fields of the soil NOx
-      ! and 
-      !-----------------------------------------------------------------
-
-      ! Allocate fields of the Input Options object as well
-      ! as other GEOS-Chem allocatable module arrays
       CALL GIGC_Allocate_All( am_I_root, Input_Opt, RC )
-#else
-      !--------------------------------------------------------------
-      !               %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! For the new Soil Nox algorithm, make sure to call routine
-      ! SET_COMMSOIL_MOD to zero all soil NOx arrays.  This was
-      ! added to routine RDSOIL by Bram Maasakkers, but RDSOIL is
-      ! now obsolete has been removed. (bmy, 10/25/12)
-      !--------------------------------------------------------------
-
-      ! Initialize fields of the Input Options object
-      CALL Set_GIGC_Input_Opt( am_I_Root, Input_Opt, RC )
-
-      ! Initialize fields of the Soil NOx module
-      CALL Set_CommSoil_Mod( am_I_Root, RC )
-#endif
-
+      IF ( RC /= GIGC_SUCCESS ) GOTO 9999
+      !-----------------------------------------------------------------
+      
       ! Display current grid resolution and data set type
       CALL DISPLAY_GRID_AND_MODEL
 
@@ -349,23 +323,7 @@
       !=================================================================
 
       ! Read input file and call init routines from other modules
-#if defined( DEVEL )
-      !-----------------------------------------------------------------
-      !   %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%%
-      !
-      ! Now pass the Input_Options object and RC status flag to
-      ! routine READ_INPUT_FILE (bmy, 11/13/12)
-      !-----------------------------------------------------------------
       CALL READ_INPUT_FILE( am_I_Root, Input_Opt, RC ) 
-#else
-      !-----------------------------------------------------------------
-      !               %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Current practice in the std GEOS-Chem is to call routine
-      ! READ_INPUT_FILE with just the "am_I_Root" variable.
-      !-----------------------------------------------------------------
-      CALL READ_INPUT_FILE( am_I_Root, Input_Opt, RC )
-#endif
 
       ! Set a flag to denote if we should print ND70 debug output
       prtDebug = ( LPRT .and. am_I_Root )
@@ -374,7 +332,7 @@
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_INPUT_FILE' )
 
       !-----------------------------------------------------------------
-      !   %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%%
+      ! %%%% REPLICATING GIGC FUNCTIONALITY IN EXISTING GEOS-CHEM %%%%
       !
       ! To replicate the functionality of the ESMF interface, we must
       ! initialize the Meteorology State (i.e. State_Met) and the
@@ -392,16 +350,19 @@
       ! GEOS-Chem directly from the ESMF interface.  This is the main
       ! reason we are migrating towards used of these objects instead
       ! of the existing ALLOCATABLE module arrays. (bmy, 10/25/12)
-      
+      !
       ! Initialize Input_Opt, State_Chem, State_Met, objects
+      !
       CALL GIGC_Init_All( am_I_Root, Input_Opt, 
      &                    State_Chm, State_Met, RC )
 
 #if defined( DEVEL )
+      !
       ! Assign values to the TRAC_NAME, TRAC_ID, SMVG_ID fields
       ! of the State_Chm object.  NOTE: This has to be done after
       ! the call to READ_INPUT_FILE, since we need the value of
       ! N_TRACERS, which is obtained by reading the input.geos file.
+      !
       CALL Fill_Chem_State_Name_IDs( am_I_Root, State_Chm )
 #endif
       !-----------------------------------------------------------------
@@ -1226,12 +1187,6 @@
             ! (bmy, 10/25/12)
             !-----------------------------------------------------------
 
-            !%%% Kludge, for now initialize fields that would have
-            !%%% been initialized in routine OPTDEPTH (bmy, 11/9/12)
-            OPTD          (1:NL,1:NI,1:NJ) = OPTDEP(1:NL,1:NI,1:NJ)
-            State_Met%OPTD(1:NL,1:NI,1:NJ) = OPTDEP(1:NL,1:NI,1:NJ)
-            State_Met%CLDF(1:NL,1:NI,1:NJ) = CLDF  (1:NL,1:NI,1:NJ)
-
             ! Initialize the tracer field fo the
             State_Chm%TRACERS( :, :, :, 1:N_TRACERS ) = 
      &                    STT( :, :, :, 1:N_TRACERS )
@@ -1487,7 +1442,7 @@
       CALL Cleanup_GIGC_State_Met( am_I_Root, State_Met, RC )
 
       ! Deallocate dynamic module arrays
-      CALL CLEANUP
+      CALL CLEANUP( am_I_Root, RC )
 
       ! Deallocate the derived type object w/ mapping info
       CALL CLEANUP_MAPPING( mapping )

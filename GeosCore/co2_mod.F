@@ -143,9 +143,9 @@
       REAL*8,  ALLOCATABLE :: CHEMCO2(:,:,:)
       REAL*8,  ALLOCATABLE :: EMIS_SUB(:,:)
 
-#if defined( DEVEL )
+!#if defined( DEVEL )
       REAL*8,  ALLOCATABLE, SAVE :: CHEMSRC(:,:,:) !dbj, msl
-#endif
+!#endif
 !
 ! !DEFINED PARAMETERS:
 !
@@ -227,9 +227,9 @@
       INTEGER                :: DAY,   DOY,    HOUR, MONTH, YEAR   
       REAL*8                 :: A_CM2, DTSRCE, E_CO2
       REAL*8                 :: biomass_sum, bionet_sum
-#if   !defined( DEVEL )
-      REAL*8, SAVE           :: CHEMSRC(IIPAR,JJPAR,LLPAR)  ! dbj
-#endif
+!#if   !defined( DEVEL )
+!      REAL*8, SAVE           :: CHEMSRC(IIPAR,JJPAR,LLPAR)  ! dbj
+!#endif
 
       ! External functions     
       REAL*8, EXTERNAL       :: BOXVL    ! dbj

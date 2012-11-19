@@ -19,17 +19,17 @@
       USE CMN_SIZE_MOD, ONLY : IIPAR, JJPAR, MAXIJ
 
       IMPLICIT NONE
-      PUBLIC
+      PRIVATE
 
 #     include "define.h"
 !
 ! !DEFINED PARAMETERS: 
 !      
       ! The defined soil types (Olson soil types)
-      INTEGER, PARAMETER :: NSOIL = 11
+      INTEGER, PUBLIC, PARAMETER :: NSOIL = 11
 
       ! Number of MODIS/Koppen biome types
-      INTEGER, PARAMETER :: NSOILB = 24
+      INTEGER, PUBLIC, PARAMETER :: NSOILB = 24
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -37,124 +37,76 @@
       ! The following arrays depend on longitude & latitude
       !=================================================================
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! All arrays that depend on (IIPAR,JJPAR) need to be made
-      ! ALLOCATABLE.  The sizes of IIPAR, JJPAR will be determined by
-      ! the ESMF interface so we cannot assume that they are fixed
-      ! parameters. (bmy, 10/30/12)
-      !-----------------------------------------------------------------
-
       ! Soil NOx emissions [molec/cm2/s]
-      REAL*8,  ALLOCATABLE :: SOILNOX      (:,:  )
+      REAL*8,  PUBLIC, ALLOCATABLE :: SOILNOX      (:,:  )
 
       ! Soil fertilizer 
-      REAL*8,  ALLOCATABLE :: SOILFERT     (:,:,:)
+      REAL*8,  PUBLIC, ALLOCATABLE :: SOILFERT     (:,:,:)
 
       ! Fraction of arid (layer 1) and non-arid (layer 2) land
-      REAL*4,  ALLOCATABLE :: CLIM         (:,:,:)
+      REAL*4,  PUBLIC, ALLOCATABLE :: CLIM         (:,:,:)
                                          
       ! MODIS landtype
-      REAL*4,  ALLOCATABLE :: LAND2        (:,:,:)
+      REAL*4,  PUBLIC, ALLOCATABLE :: LAND2        (:,:,:)
 
       ! Dry period length
-      REAL*4,  ALLOCATABLE :: DRYPERIOD    (:,:  )
+      REAL*4,  PUBLIC, ALLOCATABLE :: DRYPERIOD    (:,:  )
 
       ! Pulse factors
-      REAL*4,  ALLOCATABLE :: PFACTOR      (:,:  )
-      REAL*4,  ALLOCATABLE :: GWET_PREV    (:,:  )
+      REAL*4,  PUBLIC, ALLOCATABLE :: PFACTOR      (:,:  )
+      REAL*4,  PUBLIC, ALLOCATABLE :: GWET_PREV    (:,:  )
 
       ! Instantaneous soil NOx and fertilizer
-      REAL*8,  ALLOCATABLE :: INST_SOIL    (:,:  )
-      REAL*8,  ALLOCATABLE :: INST_FERT    (:,:  )
+      REAL*8,  PUBLIC, ALLOCATABLE :: INST_SOIL    (:,:  )
+      REAL*8,  PUBLIC, ALLOCATABLE :: INST_FERT    (:,:  )
 
       ! NOx in the canopy, used in dry deposition
-      REAL*8,  ALLOCATABLE :: CANOPYNOX    (:,:  )
+      REAL*8,  PUBLIC, ALLOCATABLE :: CANOPYNOX    (:,:  )
 
       ! Soil NOx deposited N arrays
-      REAL*8,  ALLOCATABLE :: DRY_NO2      (:,:  )
-      REAL*8,  ALLOCATABLE :: DRY_PAN      (:,:  )
-      REAL*8,  ALLOCATABLE :: DRY_HNO3     (:,:  )
-      REAL*8,  ALLOCATABLE :: DRY_NH3      (:,:  )
-      REAL*8,  ALLOCATABLE :: DRY_NH4      (:,:  )
-      REAL*8,  ALLOCATABLE :: DRY_NIT      (:,:  )
-      REAL*8,  ALLOCATABLE :: DEP_RESERVOIR(:,:  )
-      REAL*8,  ALLOCATABLE :: WET_HNO3     (:,:  ) 
-      REAL*8,  ALLOCATABLE :: WET_NH3      (:,:  )
-      REAL*8,  ALLOCATABLE :: WET_NH4      (:,:  )
-      REAL*8,  ALLOCATABLE :: WET_NIT      (:,:  )
-
-#else
-      !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Current practice in the std GEOS-Chem is to declare arrays
-      ! with IIPAR, JJPAR as fixed parameters. (bmy, 10/30/12)
-      !-----------------------------------------------------------------
-
-      ! SOIL NOx emissions [molec/cm2/s]
-      REAL*8               :: SOILNOX      (IIPAR,JJPAR    ) 
-
-      ! New Soil NOx model arrays
-      REAL*8               :: SOILFERT     (IIPAR,JJPAR,366)
-
-      ! Fraction of arid (layer 1) and non-arid (layer 2) land
-      REAL*4               :: CLIM         (IIPAR,JJPAR,2  )      
-
-      ! MODIS landtype
-      REAL*4               :: LAND2        (IIPAR,JJPAR,24 )    
-
-      ! Dry period length
-      REAL*4               :: DRYPERIOD    (IIPAR,JJPAR    )   
-
-      ! Pulsing factors
-      REAL*4               :: PFACTOR      (IIPAR,JJPAR    )   
-      REAL*4               :: GWET_PREV    (IIPAR,JJPAR    )   
-
-      ! Instantaneous soil NOx and fertilizer
-      REAL*8               :: INST_SOIL    (IIPAR,JJPAR    ) 
-      REAL*8               :: INST_FERT    (IIPAR,JJPAR    ) 
-
-      ! NOx in the canopy, used in dry deposition
-      REAL*8               :: CANOPYNOX    (MAXIJ,NSOILB   ) 
-
-      ! Soil NOx deposited N arrays
-      REAL*8               :: DRY_NO2      (IIPAR,JJPAR    )  
-      REAL*8               :: DRY_PAN      (IIPAR,JJPAR    )  
-      REAL*8               :: DRY_HNO3     (IIPAR,JJPAR    )
-      REAL*8               :: DRY_NH3      (IIPAR,JJPAR    )
-      REAL*8               :: DRY_NH4      (IIPAR,JJPAR    )
-      REAL*8               :: DRY_NIT      (IIPAR,JJPAR    )
-      REAL*8               :: DEP_RESERVOIR(IIPAR,JJPAR    )
-      REAL*8               :: WET_HNO3     (IIPAR,JJPAR    )
-      REAL*8               :: WET_NH3      (IIPAR,JJPAR    )
-      REAL*8               :: WET_NH4      (IIPAR,JJPAR    )
-      REAL*8               :: WET_NIT      (IIPAR,JJPAR    )
-
-#endif
+      REAL*8,  PUBLIC, ALLOCATABLE :: DRY_NO2      (:,:  )
+      REAL*8,  PUBLIC, ALLOCATABLE :: DRY_PAN      (:,:  )
+      REAL*8,  PUBLIC, ALLOCATABLE :: DRY_HNO3     (:,:  )
+      REAL*8,  PUBLIC, ALLOCATABLE :: DRY_NH3      (:,:  )
+      REAL*8,  PUBLIC, ALLOCATABLE :: DRY_NH4      (:,:  )
+      REAL*8,  PUBLIC, ALLOCATABLE :: DRY_NIT      (:,:  )
+      REAL*8,  PUBLIC, ALLOCATABLE :: DEP_RESERVOIR(:,:  )
+      REAL*8,  PUBLIC, ALLOCATABLE :: WET_HNO3     (:,:  ) 
+      REAL*8,  PUBLIC, ALLOCATABLE :: WET_NH3      (:,:  )
+      REAL*8,  PUBLIC, ALLOCATABLE :: WET_NH4      (:,:  )
+      REAL*8,  PUBLIC, ALLOCATABLE :: WET_NIT      (:,:  )
 
       !=================================================================
       ! The following arrays do not depend on longitude & latitude
       !=================================================================
 
-      REAL*8               :: SOILEXC      (NSOILB)
+      REAL*8,  PUBLIC              :: SOILEXC      (NSOILB)
 
       ! MODIS/Koppen resistance values
-      INTEGER              :: SNIMODIS     (NSOILB)
-      INTEGER              :: SNIRI        (NSOILB)       
-      INTEGER              :: SNIRLU       (NSOILB)      
-      INTEGER              :: SNIRAC       (NSOILB)      
-      INTEGER              :: SNIRGSS      (NSOILB)     
-      INTEGER              :: SNIRGSO      (NSOILB)     
-      INTEGER              :: SNIRCLS      (NSOILB)     
-      INTEGER              :: SNIRCLO      (NSOILB) 
-      INTEGER              :: SNIVSMAX     (NSOILB) 
+      INTEGER, PUBLIC              :: SNIMODIS     (NSOILB)
+      INTEGER, PUBLIC              :: SNIRI        (NSOILB)       
+      INTEGER, PUBLIC              :: SNIRLU       (NSOILB)      
+      INTEGER, PUBLIC              :: SNIRAC       (NSOILB)      
+      INTEGER, PUBLIC              :: SNIRGSS      (NSOILB)     
+      INTEGER, PUBLIC              :: SNIRGSO      (NSOILB)     
+      INTEGER, PUBLIC              :: SNIRCLS      (NSOILB)     
+      INTEGER, PUBLIC              :: SNIRCLO      (NSOILB) 
+      INTEGER, PUBLIC              :: SNIVSMAX     (NSOILB) 
+!
+! !PUBLIC MEMBER FUNCTIONS:
+!
+      PUBLIC :: Init_COMMSOIL
+      PUBLIC :: Cleanup_COMMSOIL
 !
 ! !REMARKS:
 !  Updated to new Soil NOx algorithm (2012).  See:
 !  http://wiki.seas.harvard.edu/geos-chem/index.php/Soil_NOx_Emissions
+!                                                                             .
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%% NOTE: THIS MODULE IS DEPRECATED.  WE MAY END UP PLACING THE MODULE %%%
+!  %%% VARIABLES INTO A DERIVED TYPE FOR THE NEW EMISSIONS COMPONENT IN   %%%
+!  %%% THE NEAR FUTURE. (bmy, 11/19/12)                                   %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 ! !REVISION HISTORY:
 !  (1 ) Be sure to force double precision with the DBLE function            
@@ -192,7 +144,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_COMMSOIL_MOD( am_I_Root, RC )
+      SUBROUTINE Init_COMMSOIL( am_I_Root, RC )
 !
 ! !USES:
 !
@@ -219,17 +171,6 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! For the GIGC, we need to make these arrays ALLOCATABLE, becuase
-      ! the ESMF interface to the GEOS-5 GCM will determine the values
-      ! of IIPAR and JJPAR.  We cannot use fixed IIPAR and JJPAR
-      ! parameters as is done for the traditional GEOS-Chem.
-      !-----------------------------------------------------------------
 
       ALLOCATE( CANOPYNOX    ( IIPAR*JJPAR, NSOILB ), STAT=RC )
       IF ( RC /= GIGC_SUCCESS ) RETURN
@@ -294,8 +235,6 @@
       ALLOCATE( WET_NIT      ( IIPAR, JJPAR        ), STAT=RC )
       IF ( RC /= GIGC_SUCCESS ) RETURN
 
-#endif
-
       ! Zero arrays
       SOILNOX       = 0d0
       SOILFERT      = 0d0
@@ -319,6 +258,66 @@
       WET_NH4       = 0d0
       WET_NIT       = 0d0
 
-      END SUBROUTINE SET_COMMSOIL_MOD
+      END SUBROUTINE Init_COMMSOIL
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_commsoil
+!
+! !DESCRIPTION: Subroutine CLEANUP\_COMMSOIL deallocates all module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Cleanup_COMMSOIL( am_I_Root, RC )
+!
+! !USES:
+!
+      USE GIGC_ErrCode_Mod
+!
+! !INPUT PARAMETERS: 
+!     
+      LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: RC          ! Return code
+! 
+! !REVISION HISTORY: 
+!  19 Nov 2012 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      ! Assume success
+      RC = GIGC_SUCCESS
+      
+      ! Deallocate arrays
+
+      IF( ALLOCATED( CANOPYNOX     ) ) DEALLOCATE( CANOPYNOX     )
+      IF( ALLOCATED( SOILNOX       ) ) DEALLOCATE( SOILNOX       )
+      IF( ALLOCATED( SOILFERT      ) ) DEALLOCATE( SOILFERT      )
+      IF( ALLOCATED( CLIM          ) ) DEALLOCATE( CLIM          )
+      IF( ALLOCATED( LAND2         ) ) DEALLOCATE( LAND2         )
+      IF( ALLOCATED( DRYPERIOD     ) ) DEALLOCATE( DRYPERIOD     )
+      IF( ALLOCATED( PFACTOR       ) ) DEALLOCATE( PFACTOR       )
+      IF( ALLOCATED( GWET_PREV     ) ) DEALLOCATE( GWET_PREV     )
+      IF( ALLOCATED( INST_SOIL     ) ) DEALLOCATE( INST_SOIL     )
+      IF( ALLOCATED( INST_FERT     ) ) DEALLOCATE( INST_FERT     )
+      IF( ALLOCATED( DRY_NO2       ) ) DEALLOCATE( DRY_NO2       )
+      IF( ALLOCATED( DRY_PAN       ) ) DEALLOCATE( DRY_PAN       )
+      IF( ALLOCATED( DRY_HNO3      ) ) DEALLOCATE( DRY_HNO3      )
+      IF( ALLOCATED( DRY_NH3       ) ) DEALLOCATE( DRY_NH3       )
+      IF( ALLOCATED( DRY_NH4       ) ) DEALLOCATE( DRY_NH4       )
+      IF( ALLOCATED( DRY_NIT       ) ) DEALLOCATE( DRY_NIT       )
+      IF( ALLOCATED( DEP_RESERVOIR ) ) DEALLOCATE( DEP_RESERVOIR )
+      IF( ALLOCATED( WET_HNO3      ) ) DEALLOCATE( WET_HNO3      ) 
+      IF( ALLOCATED( WET_NH3       ) ) DEALLOCATE( WET_NH3       )
+      IF( ALLOCATED( WET_NH4       ) ) DEALLOCATE( WET_NH4       )
+      IF( ALLOCATED( WET_NIT       ) ) DEALLOCATE( WET_NIT       )
+
+      END SUBROUTINE Cleanup_COMMSOIL
 !EOC
       END MODULE COMMSOIL_MOD

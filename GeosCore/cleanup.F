@@ -11,7 +11,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CLEANUP
+      SUBROUTINE CLEANUP( am_I_Root, RC )
 !
 ! !USES:
 !
@@ -94,10 +94,26 @@
 #if ! defined( ESMF_ )
       USE TRANSPORT_MOD,           ONLY : CLEANUP_TRANSPORT
 #endif
+      USE CMN_Mod,                 ONLY : Cleanup_CMN
+      USE CMN_DEP_Mod,             ONLY : Cleanup_CMN_DEP
+      USE CMN_FJ_Mod,              ONLY : Cleanup_CMN_FJ
+      USE CMN_NOX_Mod,             ONLY : Cleanup_CMN_NOX
+      USE CMN_O3_Mod,              ONLY : Cleanup_CMN_O3
+      USE COMODE_LOOP_Mod,         ONLY : Cleanup_COMODE_LOOP
+      USE COMMSOIL_Mod,            ONLY : Cleanup_COMMSOIL
+      USE JV_CMN_Mod,              ONLY : Cleanup_JV_CMN
+      USE VDIFF_PRE_Mod,           ONLY : Cleanup_VDIFF_PRE
 
       IMPLICIT NONE
 #     include "define.h"
-
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL, INTENT(IN)  :: am_I_Root    ! Are we on the root CPU?
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: RC           ! Success or failure
 !
 ! !REVISION HISTORY: 
 !  29 Nov 1999 - R. Yantosca - Initial version
@@ -190,6 +206,8 @@
 !  11 Apr 2012 - R. Yantosca - Remove reference to obsolete lai_mod.F
 !  01 May 2012 - M. Payer    - Added calls for CLEANUP_GLOBAL_GRID and
 !                              CLEANUP_GRID
+!  19 Nov 2012 - R. Yantosca - Add cleanup calls for modules in Headers;
+!                              these were omitted during development
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -288,6 +306,17 @@
 #else
       CALL EXIT_TPCORE
 #endif
+
+      ! Call extra cleanup routines, mostly from modules in Headers/
+      CALL Cleanup_CMN        ( am_I_Root, RC )
+      CALL Cleanup_CMN_DEP    ( am_I_Root, RC )
+      CALL Cleanup_CMN_FJ     ( am_I_Root, RC )
+      CALL Cleanup_CMN_NOX    ( am_I_Root, RC )
+      CALL Cleanup_CMN_O3     ( am_I_Root, RC )
+      CALL Cleanup_COMMSOIL   ( am_I_Root, RC )
+      CALL Cleanup_COMODE_LOOP( am_I_Root, RC )
+      CALL Cleanup_JV_CMN     ( am_I_Root, RC )
+      CALL Cleanup_VDIFF_PRE  ( am_I_Root, RC )
 
       END SUBROUTINE CLEANUP
 !EOC

@@ -1540,10 +1540,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE DAO_MOD,            ONLY : PFICU    
-    USE DAO_MOD,            ONLY : PFILSAN
-    USE DAO_MOD,            ONLY : PFLCU
-    USE DAO_MOD,            ONLY : PFLLSAN
+    !USE DAO_MOD,            ONLY : PFICU    
+    !USE DAO_MOD,            ONLY : PFILSAN
+    !USE DAO_MOD,            ONLY : PFLCU
+    !USE DAO_MOD,            ONLY : PFLLSAN
     USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS:
@@ -1700,10 +1700,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE DAO_MOD,            ONLY : PS1
-   !USE DAO_MOD,            ONLY : PV1
-    USE DAO_MOD,            ONLY : QV1 => SPHU1
-    USE DAO_MOD,            ONLY : T1  => TMPU1
+    !USE DAO_MOD,            ONLY : PS1
+    !!USE DAO_MOD,            ONLY : PV1
+    !USE DAO_MOD,            ONLY : QV1 => SPHU1
+    !USE DAO_MOD,            ONLY : T1  => TMPU1
     USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS:

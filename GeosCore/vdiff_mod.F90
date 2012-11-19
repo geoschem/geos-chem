@@ -18,15 +18,11 @@ MODULE VDIFF_MOD
   USE TRACER_MOD,    ONLY : pcnst => N_TRACERS
   USE LOGICAL_MOD,   ONLY : LPRT
   USE ERROR_MOD,     ONLY : DEBUG_MSG
-#if defined( DEVEL )
   USE VDIFF_PRE_MOD, ONLY : plev  => LLPAR
   USE CMN_SIZE_MOD,  ONLY : IIPAR, JJPAR, LLPAR
-#else
-  USE VDIFF_PRE_MOD, ONLY : LLPAR
-#endif  
 
   IMPLICIT NONE
-#     include "define.h"
+# include "define.h"
   
   PRIVATE
 !
@@ -39,11 +35,7 @@ MODULE VDIFF_MOD
   save
   
 
-#if defined( DEVEL ) 
   integer :: plevp
-#else  
-  integer, parameter :: plev = LLPAR, plevp = plev + 1
-#endif
   
   real*8, parameter ::          &
        rearth = 6.37122d6,      & ! radius earth (m)
@@ -90,11 +82,11 @@ MODULE VDIFF_MOD
 !-----------------------------------------------------------------------
   real*8 :: &
        zkmin            ! minimum kneutral*f(ri)
-#if defined( DEVEL )
+!#if defined( DEVEL )
   real*8, allocatable :: ml2(:)   ! mixing lengths squaredB
-#else
-  real*8 :: ml2(plevp)   ! mixing lengths squared
-#endif
+!#else
+!  real*8 :: ml2(plevp)   ! mixing lengths squared
+!#endif
   real*8, allocatable :: qmincg(:)   ! min. constituent concentration 
                                      !  counter-gradient term
   
@@ -168,9 +160,9 @@ contains
 !-----------------------------------------------------------------------
 ! 	... basic constants
 !-----------------------------------------------------------------------
-#if defined( DEVEL )
+!#if defined( DEVEL )
     plevp = plev+1
-#endif
+!#endif
 
     g    = gravx
     onet = 1d0/3.d0
@@ -1692,22 +1684,22 @@ contains
     
     integer :: AS
     
-#if defined( DEVEL )
+!#if defined( DEVEL )
     real*8, allocatable :: ref_pmid(:)
-#else
-    real*8 :: ref_pmid(LLPAR)
-#endif
+!#else
+!    real*8 :: ref_pmid(LLPAR)
+!#endif
 
     !=================================================================
     ! vdinti begins here!
     !=================================================================
 
-#if defined( DEVEL )
+!#if defined( DEVEL )
     ALLOCATE( ref_pmid(LLPAR), STAT=AS )
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'ref_pmid' )
     ref_pmid = 0.d0
     plevp = plev+1
-#endif
+!#endif
 !-----------------------------------------------------------------------
 ! 	... hard-wired numbers.
 !           zkmin = minimum k = kneutral*f(ri)
@@ -1747,10 +1739,10 @@ contains
 !-----------------------------------------------------------------------
 ! 	... set the square of the mixing lengths
 !-----------------------------------------------------------------------
-#if defined( DEVEL )
+!#if defined( DEVEL )
     ALLOCATE( ml2(plevp), STAT=AS )
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'ml2' )
-#endif
+!#endif
 
     ml2(1) = 0.d0
     do k = 2,plev
@@ -2451,9 +2443,9 @@ contains
        p_zm               => zm    ( :, :, LLPAR  :1:-1    )
        p_thp              => thp   ( :, :, LLPAR  :1:-1    )
 !#if defined( DEVEL )
-!       p_shp              => State_Met%SPHU( :, :, LLPAR  :1:-1    )
-!#else
-       p_shp              => shp   ( :, :, LLPAR  :1:-1    )
+       p_shp              => State_Met%SPHU( :, :, LLPAR  :1:-1    )
+!!#else
+!       p_shp              => shp   ( :, :, LLPAR  :1:-1    )
 !#endif
        ! 3-D fields on level edges
        p_pint             => pint  ( :, :, LLPAR+1:1:-1    )
@@ -2647,12 +2639,6 @@ contains
 
        ! If it's time to do emissions, call SETEMIS
        IF ( ITS_TIME_FOR_EMIS() ) THEN 
-!-------------------------------------------------------------------------------
-! Prior to 10/2/12:
-! Need to also pass a value to the am_I_Root argument of setemis.F
-! (mpayer, bmy, 10/2/12)
-!          CALL SETEMIS( EMISRR, EMISRRN )
-!-------------------------------------------------------------------------------
           CALL SETEMIS( EMISRR, EMISRRN, .TRUE., State_Met )
           IF ( LPRT ) CALL DEBUG_MSG( '### DO_PBL_MIX_2: aft SETEMIS' )
        ENDIF

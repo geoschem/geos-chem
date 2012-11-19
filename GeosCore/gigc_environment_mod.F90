@@ -37,9 +37,7 @@ MODULE GIGC_Environment_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
   PUBLIC  :: GIGC_Allocate_All
-#endif
   PUBLIC  :: GIGC_Init_All
 !
 ! !PRIVATE MEMBER FUNCTIONS:
@@ -61,7 +59,6 @@ MODULE GIGC_Environment_Mod
 !BOC
 CONTAINS
 !EOC        
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -80,19 +77,19 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_DEP_MOD,       ONLY : SET_CMN_DEP_MOD
-    USE CMN_NOX_MOD,       ONLY : SET_CMN_NOX_MOD
-    USE CMN_O3_MOD,        ONLY : SET_CMN_O3_MOD
-    USE CMN_MOD,           ONLY : SET_CMN_MOD
-    USE CMN_FJ_MOD,        ONLY : SET_CMN_FJ_MOD
-    USE CMN_SIZE_MOD,      ONLY : SET_CMN_SIZE_MOD
-    USE CMN_DIAG_MOD,      ONLY : SET_CMN_DIAG_MOD
-    USE COMODE_LOOP_MOD,   ONLY : SET_COMODE_LOOP_MOD
-    USE COMMSOIL_MOD,      ONLY : SET_COMMSOIL_MOD
-    USE GIGC_ErrCode_Mod
+    USE CMN_Mod,            ONLY : Init_CMN
+    USE CMN_DEP_Mod,        ONLY : Init_CMN_DEP
+    USE CMN_DIAG_Mod,       ONLY : Init_CMN_DIAG
+    USE CMN_FJ_Mod,         ONLY : Init_CMN_FJ
+    USE CMN_NOX_Mod,        ONLY : Init_CMN_NOX
+    USE CMN_O3_Mod,         ONLY : Init_CMN_O3
+    USE CMN_SIZE_Mod,       ONLY : Init_CMN_SIZE
+    USE COMODE_LOOP_Mod,    ONLY : Init_COMODE_LOOP
+    USE COMMSOIL_Mod,       ONLY : Init_COMMSOIL
+    USE GIGC_ErrCode_Mod  
     USE GIGC_Input_Opt_Mod
-    USE JV_CMN_MOD,        ONLY : SET_JV_CMN_MOD
-    USE VDIFF_PRE_MOD,     ONLY : SET_VDIFF_PRE_MOD
+    USE JV_CMN_Mod,         ONLY : Init_JV_CMN
+    USE VDIFF_PRE_Mod,      ONLY : Init_VDIFF_PRE
 
     IMPLICIT NONE
 !
@@ -109,7 +106,8 @@ CONTAINS
     INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
-!  Need to add better error checking and exit upon failure.
+!  For error checking, return up to the main routine w/ an error code.
+!  This can be improved upon later.
 !
 ! !REVISION HISTORY: 
 !  26 Jan 2012 - M. Long     - Initial version
@@ -118,31 +116,56 @@ CONTAINS
 !  22 Oct 2012 - R. Yantosca - Renamed to GIGC_Allocate_All
 !  30 Oct 2012 - R. Yantosca - Now pass am_I_Root, RC to SET_COMMSOIL_MOD
 !  01 Nov 2012 - R. Yantosca - Now zero the fields of the Input Options object
+!  16 Nov 2012 - R. Yantosca - Remove this routine from the #ifdef DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
     ! Initialize fields of the Input Options object
     CALL Set_GIGC_Input_Opt( am_I_Root, Input_Opt, RC )
+    IF ( RC /= GIGC_SUCCESS ) THEN
+       WRITE( 6, '(a)' ) 'ERROR initializing Input_Opt'
+       RETURN
+    ENDIF
 
-    ! Allocate module fields with the locally-determined 
-    ! longitude (IIPAR) and latitude (JJPAR) dimensions
-    CALL SET_CMN_SIZE_MOD
-    CALL SET_CMN_DEP_MOD
-    CALL SET_CMN_DIAG_MOD
-    CALL SET_CMN_NOX_MOD
-    CALL SET_CMN_O3_MOD
-    CALL SET_CMN_MOD
-    CALL SET_CMN_FJ_MOD
-    CALL SET_COMMSOIL_MOD   ( am_I_Root, RC )
-    CALL SET_COMODE_LOOP_MOD( am_I_Root, RC )
-    CALL SET_JV_CMN_MOD
-    
-    CALL SET_VDIFF_PRE_MOD
+    ! Set dimensions in CMN_SIZE_mod.F
+    ! Call this before the others)
+    CALL Init_CMN_SIZE
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+
+    ! Set dimensions in CMN_DEP_mod.F and allocate arrays
+    CALL Init_CMN( am_I_Root, RC )  
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+
+    CALL Init_CMN_DEP( am_I_Root, RC )  
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+
+    CALL Init_CMN_DIAG( am_I_Root, RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+
+    CALL Init_CMN_FJ( am_I_Root, RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+
+    CALL Init_CMN_NOX( am_I_Root, RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+
+    CALL Init_CMN_O3( am_I_Root, RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+
+    CALL Init_COMMSOIL( am_I_Root, RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+
+    CALL Init_COMODE_LOOP( am_I_Root, RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+
+    CALL Init_JV_CMN( am_I_Root, RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+
+    CALL Init_VDIFF_PRE( am_I_Root, RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
           
   END SUBROUTINE GIGC_Allocate_All
 !EOC
-#endif
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
