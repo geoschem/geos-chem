@@ -282,23 +282,24 @@ CONTAINS
     ! allocate the corresponding fields of the chemistry state.
     ! (bmy, 11/1/12)
     !-----------------------------------------------------------------------
-    IF ( Input_Opt%LSCHEM ) THEN
-
-       ! Strat chem is turned on, find out the # of stratospheric 
-       ! chemistry species for which we need to read rates from disk.
-       ! NOTE: Bromine species are handled specially.
-       CALL Get_nSchm_nSchmBry( am_I_Root  = am_I_Root,  &  ! Root CPU (Y/N)?
-                                nSchm      = nSchm,      &  ! # strat chem spec
-                                nSchmBry   = nSchmBry,   &  ! # strat chem spec
-                                RC         = RC         )   ! Success or failure
-
-    ELSE
-
+! Comment out for now, leave for future expansion (bmy, 11/20/12)
+!    IF ( Input_Opt%LSCHEM ) THEN
+!
+!       ! Strat chem is turned on, find out the # of stratospheric 
+!       ! chemistry species for which we need to read rates from disk.
+!       ! NOTE: Bromine species are handled specially.
+!       CALL Get_nSchm_nSchmBry( am_I_Root  = am_I_Root,  &  ! Root CPU (Y/N)?
+!                                nSchm      = nSchm,      &  ! # strat chem spec
+!                                nSchmBry   = nSchmBry,   &  ! # strat chem spec
+!                                RC         = RC         )   ! Success or failure
+!
+!    ELSE
+!
        ! Strat chem is turned off
        nSchm    = 0
        nSchmBry = 0
-
-    ENDIF
+!
+!    ENDIF
 
 #endif
 

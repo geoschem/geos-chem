@@ -1725,7 +1725,6 @@
       ! Return to calling program
       END SUBROUTINE SETTRACE
 !EOC
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -1777,7 +1776,6 @@
 
       END SUBROUTINE FILL_CHEM_STATE_NAME_IDs
 !EOC 
-#endif
 !------------------------------------------------------------------------------
 
       FUNCTION IS_Hg0( N ) RESULT( IT_IS_Hg0 )

@@ -356,7 +356,6 @@
       CALL GIGC_Init_All( am_I_Root, Input_Opt, 
      &                    State_Chm, State_Met, RC )
 
-#if defined( DEVEL )
       !
       ! Assign values to the TRAC_NAME, TRAC_ID, SMVG_ID fields
       ! of the State_Chm object.  NOTE: This has to be done after
@@ -364,7 +363,6 @@
       ! N_TRACERS, which is obtained by reading the input.geos file.
       !
       CALL Fill_Chem_State_Name_IDs( am_I_Root, State_Chm )
-#endif
       !-----------------------------------------------------------------
 
       ! Initialize met field arrays from "dao_mod.f"
@@ -1435,11 +1433,17 @@
       CALL CLOSE_FILES
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a CLOSE_FILES' )
 
-      ! Deallocate fields of the Input Options, Chemistry State,
-      ! and Meteorology State objects.  Call these before CLEANUP.
+      ! Deallocate fields of the Input Options object
       CALL Cleanup_GIGC_Input_Opt( am_I_Root, Input_Opt, RC )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a cleanup Input_Opt' )
+
+      ! Deallocate fields of the Chemistry State object
       CALL Cleanup_GIGC_State_Chm( am_I_Root, State_Chm, RC )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a cleanup State_Chm' )
+
+      ! Deallocate fields of the Meteorology State object
       CALL Cleanup_GIGC_State_Met( am_I_Root, State_Met, RC )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a cleanup State_met' )
 
       ! Deallocate dynamic module arrays
       CALL CLEANUP( am_I_Root, RC )
