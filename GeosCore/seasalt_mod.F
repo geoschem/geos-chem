@@ -306,15 +306,13 @@
       !-----------------------------------------------------------------
       CALL WET_SETTLING( State_Met, STT(:,:,:,IDTSALA), 1 )
 #endif
-
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum' )
       ENDIF
 
-      !IF ( LDRYD ) THEN
       ! If LNLPBL (non local PBL mixing) is turned on, do sea salt
       ! dry deposition in vdiff as for all the other aerosols (jaegle 5/11/11)
-      IF ( LDRYD .AND. .NOT. LNLPBL ) THEN
+      IF ( LDRYD .and. ( .not. LNLPBL ) ) THEN
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
          !-----------------------------------------------------------------
          !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
@@ -359,10 +357,9 @@
          CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Coarse' )
       ENDIF
 
-      !IF ( LDRYD ) THEN
       ! If LNLPBL (non local PBL mixing) is turned on, do sea salt
       ! dry deposition in vdiff as for all the other aerosols (jaegle 5/11/11)
-      IF ( LDRYD .AND. .NOT. LNLPBL ) THEN
+      IF ( LDRYD .and. ( .not. LNLPBL ) ) THEN
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
          !--------------------------------------------------------------
          !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
@@ -378,7 +375,6 @@
          ! Preserve existing subroutine call (bmy, 11/13/12)
          !--------------------------------------------------------------
          CALL DRY_DEPOSITION( STT(:,:,:,IDTSALC), 2 )
-
 #endif
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMSEASALT: DRY_DEP, Coarse')
@@ -963,6 +959,8 @@
 !       prior met fields). (jaegle 5/11/11)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  20 Nov 2012 - R. Yantosca - Bug fix: use temp array to archive ND44 drydep
+!                              then save back to AD44 outside parallel loop
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -977,7 +975,8 @@
       ! New variables for applying dry dep thoughout the PBL (jaegle 5/11/11)
       INTEGER                :: PBL_MAX
       REAL*8                 :: F_UNDER_TOP, FREQ
-
+      REAL*8                 :: ND44_TMP(IIPAR,JJPAR,LLPAR)
+      
       ! Parameters
       REAL*8,  PARAMETER     :: RHOA = 1.25d-3
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
@@ -1016,6 +1015,8 @@
       ! Maximum extent of the PBL [model layers] (jaegle 5/11/11)
       PBL_MAX = GET_PBL_MAX_L()
 
+      ! Zero temporary array for drydep diagnostic
+      IF ( ND44 > 0 ) ND44_TMP = 0d0
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -1054,7 +1055,6 @@
                ! New tracer concentration [kg]
                NEW  = OLD * EXP( -FREQ * DTCHEM )
 
-
                ! Old tracer concentration [kg]
                !OLD  = TC(I,J,1)
 
@@ -1070,8 +1070,8 @@
                   FLUX = ( OLD - NEW ) / DTCHEM 
                   FLUX = FLUX * XNUMOL(IDTSALA) / AREA_CM2 
          
-                  ! Store in AD44
-                  AD44(I,J,IDDEP(N),1) = AD44(I,J,IDDEP(N),1) + FLUX
+                  ! Save in ND44 temporary array
+                  ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
                ENDIF
 
                ! Update tracer array
@@ -1082,6 +1082,21 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+      !====================================================================
+      ! ND44 diagnostic: save into AD44 array, summing in the vertical
+      !====================================================================
+      IF ( ND44 > 0 ) THEN
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J )
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            AD44(I,J,IDDEP(N),1) = SUM( ND44_TMP(I,J,:) ) 
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+      ENDIF
 
       END SUBROUTINE DRY_DEPOSITION
 !EOC
