@@ -903,7 +903,10 @@
       USE DIAG_MOD,           ONLY : AD44
       USE DRYDEP_MOD,         ONLY : DEPSAV 
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
-      USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L
+      !-----------------------------------------------------------------------
+      ! Prior to 11/20/12:
+      !USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L
+      !-----------------------------------------------------------------------
       USE TRACERID_MOD,       ONLY : IDTSALA
       USE TRACERID_MOD,       ONLY : IDTSALC
       USE TIME_MOD,           ONLY : GET_MONTH
@@ -961,6 +964,8 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  20 Nov 2012 - R. Yantosca - Bug fix: use temp array to archive ND44 drydep
 !                              then save back to AD44 outside parallel loop
+!  20 Nov 2012 - R. Yantosca - Now loop from 1..LLPAR for GIGC.  Remove
+!                              references to GET_PBL_MAX_L.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -973,7 +978,10 @@
       REAL*8                 :: BETA,     GAMMA, DENS,   FLUX 
       REAL*8                 :: AREA_CM2, TOT1,  TOT2
       ! New variables for applying dry dep thoughout the PBL (jaegle 5/11/11)
-      INTEGER                :: PBL_MAX
+      !-----------------------------------------------------------------------
+      ! Prior to 11/20/12:
+      !INTEGER                :: PBL_MAX
+      !-----------------------------------------------------------------------
       REAL*8                 :: F_UNDER_TOP, FREQ
       REAL*8                 :: ND44_TMP(IIPAR,JJPAR,LLPAR)
       
@@ -1012,8 +1020,11 @@
       ! Chemistry timestep [s]
       DTCHEM = GET_TS_CHEM() * 60d0
 
-      ! Maximum extent of the PBL [model layers] (jaegle 5/11/11)
-      PBL_MAX = GET_PBL_MAX_L()
+      !-----------------------------------------------------------------------
+      ! Prior to 11/20/12:
+      !! Maximum extent of the PBL [model layers] (jaegle 5/11/11)
+      !PBL_MAX = GET_PBL_MAX_L()
+      !-----------------------------------------------------------------------
 
       ! Zero temporary array for drydep diagnostic
       IF ( ND44 > 0 ) ND44_TMP = 0d0
@@ -1024,13 +1035,11 @@
 !$OMP+PRIVATE( L, F_UNDER_TOP   , FREQ ) ! (jaegle 5/11/11)
 !$OMP+SCHEDULE( DYNAMIC )
 
-      ! Loop over levels under PBL
-      DO L = 1, PBL_MAX
-
-      ! Loop over latitudes
+      ! Note, for grid-independent GEOS-Chem we have to loop over
+      ! all levels and then just shunt if we are in the stratosphere
+      ! (bmy, 11/20/12)
+      DO L = 1, LLPAR
       DO J = 1, JJPAR
-
-      ! Loop over longitudes
       DO I = 1, IIPAR
 
          ! Grid box surface area [cm2]
