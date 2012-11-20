@@ -63,24 +63,24 @@
       USE DIAG_MOD,        ONLY : CTOTH,       AD46,        AD47
       USE DIAG_MOD,        ONLY : AD52,        AD54,        AD63
       USE DIAG_MOD,        ONLY : AD19,        AD58,        AD60
-      USE DIAG_MOD,        ONLY : AD59_NUMB,   AD59_SULF,   AD59_SALT    !(win, 7/9/09)
-      USE DIAG_MOD,        ONLY : AD59_ECIL,   AD59_ECOB    !(win, 7/9/09)
+      USE DIAG_MOD,        ONLY : AD59_NUMB,   AD59_SULF,   AD59_SALT  !(win, 7/9/09)
+      USE DIAG_MOD,        ONLY : AD59_ECIL,   AD59_ECOB               !(win, 7/9/09)
       USE DIAG_MOD,        ONLY : AD59_OCIL,   AD59_OCOB,   AD59_DUST  !(win, 7/9/09)
       USE DIAG_MOD,        ONLY : AD60_COND,   AD60_COAG,   AD60_NUCL  !(win, 7/9/09)
       USE DIAG_MOD,        ONLY : AD60_AQOX,   AD60_ERROR,  AD60_SOA   !(win, 7/9/09)
-      USE DIAG_MOD,        ONLY : AD61,        AD61_INST    !(win, 7/9/09)
+      USE DIAG_MOD,        ONLY : AD61,        AD61_INST               !(win, 7/9/09)
       USE DIAG_MOD,        ONLY : AD55,        AD66,        AD67
       USE DIAG_MOD,        ONLY : AD68,        AD69,        CTO3
       USE DIAG_MOD,        ONLY : AD10,        AD10em,      CTO3_24h
       USE DIAG63_MOD,      ONLY : DO_SAVE_DIAG63
       ! Add O3 for ND45 diag. (ccc, 8/12/09)
       USE DIAG_MOD,        ONLY : LTO3
-      USE DIAG_MOD,        ONLY : AD59_NUMB,   AD59_SULF,   AD59_SALT    !(win, 7/9/09)
-      USE DIAG_MOD,        ONLY : AD59_ECIL,   AD59_ECOB    !(win, 7/9/09)
+      USE DIAG_MOD,        ONLY : AD59_NUMB,   AD59_SULF,   AD59_SALT  !(win, 7/9/09)
+      USE DIAG_MOD,        ONLY : AD59_ECIL,   AD59_ECOB               !(win, 7/9/09)
       USE DIAG_MOD,        ONLY : AD59_OCIL,   AD59_OCOB,   AD59_DUST  !(win, 7/9/09)
       USE DIAG_MOD,        ONLY : AD60_COND,   AD60_COAG,   AD60_NUCL  !(win, 7/9/09)
       USE DIAG_MOD,        ONLY : AD60_AQOX,   AD60_ERROR,  AD60_SOA   !(win, 7/9/09)
-      USE DIAG_MOD,        ONLY : AD61,        AD61_INST    !(win, 7/9/09) 
+      USE DIAG_MOD,        ONLY : AD61,        AD61_INST               !(win, 7/9/09) 
       USE DIAG_OH_MOD,     ONLY : INIT_DIAG_OH
       USE DRYDEP_MOD,      ONLY : NUMDEP
       USE ERROR_MOD,       ONLY : ALLOC_ERR,   ERROR_STOP
@@ -1100,9 +1100,6 @@
 
       !=================================================================
       ! ND53: Free diagnostics
-      !=================================================================
-
-      !=================================================================
       !
       ! ND54 - Time spend in the troposphere
       !        --> uses AD54 array (allocatable)

@@ -174,7 +174,7 @@ c$$$      INTEGER,           SAVE        :: SRTNH4
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE DO_TOMAS
+      SUBROUTINE DO_TOMAS( State_Met )
 !
 !******************************************************************************
 !  Subroutine DO_TOMAS is the driver subroutine that calls the appropriate
@@ -184,26 +184,30 @@ c$$$      INTEGER,           SAVE        :: SRTNH4
 !******************************************************************************
 !
       ! References to F90 modules
-      USE LOGICAL_MOD,    ONLY : LDRYD,  LTOMAS
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE LOGICAL_MOD,        ONLY : LDRYD,  LTOMAS
+
+      ! Arguments
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 
       !=================================================================
       ! DO_TOMAS begins here
       !=================================================================
 
       ! Do TOMAS aerosol microphysics
-      IF( LTOMAS ) CALL AEROPHYS
+      IF( LTOMAS ) CALL AEROPHYS( State_Met )
 
       ! Do dry deposition
-      IF( LDRYD) CALL AERO_DRYDEP
+      IF( LDRYD) CALL AERO_DRYDEP( State_Met )
 
-      CALL CHECKMN( 0, 0, 0, 'kg', 'Before exiting DO_TOMAS')
+      CALL CHECKMN( 0, 0, 0, State_Met, 'kg', 'Before exiting DO_TOMAS')
 
       ! Return to calling program 
       END SUBROUTINE DO_TOMAS
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE AEROPHYS()
+      SUBROUTINE AEROPHYS( State_Met )
 !
 !******************************************************************************
 !  Subroutine AEROPHYS does aerosol microphysics, including nucleation, 
@@ -219,25 +223,30 @@ c$$$      INTEGER,           SAVE        :: SRTNH4
 !       for SO4 - refer to diag_pl_mod.f (win, 9/30/08)
 !  (3 ) Reference to NFAMILIES from comode.h  --> should change in the future.
 !       Prefer not to use .h file (win, 9/30/08)
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD,      ONLY : ERROR_STOP, IT_IS_NAN, check_value
-      USE DAO_MOD,        ONLY : RH, AIRVOL, T, AD
-      USE DIAG_MOD,       ONLY : AD61,  AD61_INST
-      USE DIAG_PL_MOD,    ONLY : H2SO4RATE, FAM_NAME
-      USE LOGICAL_MOD,    ONLY : LPRT
-      USE PRESSURE_MOD,   ONLY : GET_PCENTER
-      USE TRACER_MOD,     ONLY : STT
-      USE TRACERID_MOD,   ONLY : IDTNK1, IDTH2SO4
-      USE TRACERID_MOD,   ONLY : IDTAW1, IDTSF1,  IDTSO4
-      USE TRACERID_MOD,   ONLY : IDTNH3, IDTNH4
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
-      USE ERROR_MOD,      ONLY : ERROR_STOP
+      USE ERROR_MOD,          ONLY : ERROR_STOP, IT_IS_NAN, check_value
+      USE DIAG_MOD,           ONLY : AD61,  AD61_INST
+      USE DIAG_PL_MOD,        ONLY : H2SO4RATE, FAM_NAME
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE LOGICAL_MOD,        ONLY : LPRT
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER
+      USE TRACER_MOD,         ONLY : STT
+      USE TRACERID_MOD,       ONLY : IDTNK1, IDTH2SO4
+      USE TRACERID_MOD,       ONLY : IDTAW1, IDTSF1,  IDTSO4
+      USE TRACERID_MOD,       ONLY : IDTNH3, IDTNH4
+      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
      
-      USE CMN_SIZE_MOD         ! Size parameters
-      USE CMN_DIAG_MOD         ! ND60, ND61,  LD61
-      USE COMODE_LOOP_MOD      ! NFAMILIES
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND60, ND61,  LD61
+      USE COMODE_LOOP_MOD          ! NFAMILIES
+
+      ! Arguments
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 
       ! Local variables
       INTEGER           :: I, J, L, N, JC, K !counters
@@ -349,7 +358,7 @@ c$$$      INTEGER,           SAVE        :: SRTNH4
          AD61_INST(I,J,L,:) = 0e0
 
          ! Skip stratospheric boxes
-         IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE
+         IF ( ITS_IN_THE_STRAT( I, J, L, State_Met ) ) CYCLE
 
 cvbn         write(890,89)I,J,L,STT(i,j,l,IDTH2SO4)
 
@@ -359,11 +368,11 @@ cvbn         write(890,89)I,J,L,STT(i,j,l,IDTH2SO4)
          ! Get info on this grid box
          ADT     = 3600.
          PRES    = GET_PCENTER(i,j,l)*100.0 ! in Pa       
-         TEMPTMS = T(I,J,L)
-         BOXMASS = AD(I,J,L)
-         RHTOMAS = RH(I,J,L)/ 1.e2 
+         TEMPTMS = State_Met%T(I,J,L)
+         BOXMASS = State_Met%AD(I,J,L)
+         RHTOMAS = State_Met%RH(I,J,L)/ 1.e2 
          IF ( RHTOMAS > 0.99 ) RHTOMAS = 0.99
-         BOXVOL  = AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3 
+         BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3 
          
          printneg = .FALSE.
 
@@ -2761,7 +2770,7 @@ Cjrp      endif
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE AQOXID ( MOXID, KMIN, I, J, L )
+      SUBROUTINE AQOXID ( MOXID, KMIN, I, J, L, State_Met )
 !
 !******************************************************************************
 !  Subroutine AQOXID takes an amount of SO4 produced via in-cloud oxidation and
@@ -2781,17 +2790,19 @@ Cjrp      endif
 !*****************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD,      ONLY : ERROR_STOP
-      USE TRACER_MOD,     ONLY : STT
-      USE TRACERID_MOD,   ONLY : IDTNK1, IDTAW1, IDTNH4
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TRACER_MOD,         ONLY : STT
+      USE TRACERID_MOD,       ONLY : IDTNK1, IDTAW1, IDTNH4
+      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
 
-      USE CMN_SIZE_MOD         ! Size parameters
-      USE CMN_DIAG_MOD         ! ND60
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND60
 
       ! Arguments
-      REAL*8                 :: MOXID
-      INTEGER                :: KMIN, I, J, L
+      REAL*8                      :: MOXID
+      INTEGER                     :: KMIN, I, J, L
+      TYPE(MetState), INTENT(IN)  :: State_Met      ! Meteorology State object
 
       ! Local variables
       INTEGER,     PARAMETER :: K_MIN = 4
@@ -2813,7 +2824,7 @@ Cjrp      endif
 
       ! Update aerosol water from the current RH
       DO K = 1, IBINS
-         CALL EZWATEREQM2( I, J, L, K )
+         CALL EZWATEREQM2( I, J, L, K, State_Met )
       ENDDO
       
       ! Swap GEOSCHEM variables into aerosol algorithm variables
@@ -2883,7 +2894,8 @@ Cjrp      endif
               ! WRITE(*,*) 'K, N, MSO4, MH2O: ',K,Nk(k),
   !   &              MK(K,SRTSO4),MK(K,SRTH2O)
             ENDDO
-            IF ( MOXID > 5D0 .and. ITS_IN_THE_STRAT( I, J, L ) ) THEN
+            IF ( MOXID > 5D0 .and.
+     &           ITS_IN_THE_STRAT( I, J, L, State_Met ) ) THEN
                CALL ERROR_STOP( 'Too few number for condensing mass',
      &                          'AQOXID:1'                           )
             ELSE
@@ -5517,24 +5529,30 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE EZWATEREQM2( I, J, L, BIN) 
+      SUBROUTINE EZWATEREQM2( I, J, L, BIN, State_Met) 
 !
 !******************************************************************************
 !  Subroutine EZWATEREQM2 is just like EZWATEREQM but access directly to STT
 !  array unlike EZWATEREQM that needs the array Mke to be passed in and out.  
 !  This subroutine is for calling from outside microphysics module.
 !  (win, 8/6/07)
+!
+!  NOTES:
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !******************************************************************************
 !
       ! Reference to F90 modules
-      USE DAO_MOD,      ONLY : RH
-      USE TRACERID_MOD, ONLY : IDTNK1, IDTSF1, IDTSS1, IDTAW1, IDTOCIL1
-      USE TRACER_MOD,   ONLY : STT
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TRACERID_MOD,       ONLY : IDTNK1, IDTSF1, IDTSS1
+      USE TRACERID_MOD,       ONLY : IDTAW1, IDTOCIL1
+      USE TRACER_MOD,         ONLY : STT
 
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 
       ! Arguments
-      INTEGER,  INTENT(IN) :: I, J, L, BIN
+      INTEGER,  INTENT(IN)        :: I, J, L, BIN
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 
       ! Local variables
       REAL*8               :: RHE
@@ -5545,7 +5563,7 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
       ! EZWATEREQM begins here!
       !========================================================================
 
-      rhe=RH(i,j,l)             !RH [=] percent
+      rhe = State_Met%RH(i,j,l)             !RH [=] percent
       
       if (rhe .gt. 99.) rhe=99.
       if (rhe .lt. 1.) rhe=1.
@@ -5634,7 +5652,7 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
       
 !------------------------------------------------------------------------------
 
-      SUBROUTINE AERO_DIADEN( DIA, DENSITY, LEV  )
+      SUBROUTINE AERO_DIADEN( DIA, DENSITY, LEV, State_Met )
 
 !******************************************************************************
 !  Subroutine AERO_DIADEN calculate the diameter and density by calling external
@@ -5645,18 +5663,22 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
 !******************************************************************************
 
 c      USE LOGICAL_MOD,    ONLY : LSULF30, LSALT30, LCARB30, LDUST30
-      USE ERROR_MOD,      ONLY : ERROR_STOP
-      USE TRACER_MOD,     ONLY : STT
-      USE TRACERID_MOD,   ONLY : IDTNK1,   IDTSF1,   IDTSS1,   IDTDUST1
-      USE TRACERID_MOD,   ONLY : IDTECIL1, IDTECOB1, IDTOCIL1, IDTOCOB1
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TRACER_MOD,         ONLY : STT
+      USE TRACERID_MOD,       ONLY : IDTNK1,   IDTSF1,   IDTSS1
+      USE TRACERID_MOD,       ONLY : IDTDUST1, IDTECIL1, IDTECOB1
+      USE TRACERID_MOD,       ONLY : IDTOCIL1, IDTOCOB1
 
-      USE CMN_SIZE_MOD         ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 
       IMPLICIT NONE
 
       ! Arguments 
-      REAL*8,  INTENT(OUT):: DIA(MAXIJ, IBINS), DENSITY(MAXIJ, IBINS)
-      INTEGER, INTENT(IN) :: LEV  
+      REAL*8,         INTENT(OUT) :: DIA(MAXIJ, IBINS)
+      REAL*8,         INTENT(OUT) :: DENSITY(MAXIJ, IBINS)
+      INTEGER,        INTENT(IN)  :: LEV  
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
       
       ! Local variables
       INTEGER           :: I,J, BIN, JC, IJLOOP, TRACID, WID
@@ -5679,7 +5701,8 @@ c      USE LOGICAL_MOD,    ONLY : LSULF30, LSALT30, LCARB30, LDUST30
       MOCOB = 0d0
       MDUST = 0d0
 
-      CALL CHECKMN( 0, 0, 0, 'kg', 'AERO_DIADEN called from DEPVEL')
+      CALL CHECKMN( 0, 0, 0, State_Met, 'kg',
+     &              'AERO_DIADEN called from DEPVEL')
 
       DO BIN = 1, IBINS
       DO IJLOOP = 1, MAXIJ
@@ -5694,7 +5717,7 @@ c         print *,"TRACID=",TRACID,"IDTNK1=",IDTNK1, "BIN=", BIN
         WID    = IDTNK1 + (ICOMP-1) * IBINS - 1 + BIN  !(fixed WID to 281-310. dmw 10/3/09)
 c         print *, "wid=", WID, "ICOMP=", ICOMP, "IBINS=", IBINS
          ! Get the diameter from an external function
-         DIA(IJLOOP,BIN) = GETDP( I, J, LEV, TRACID )
+         DIA(IJLOOP,BIN) = GETDP( I, J, LEV, TRACID, State_Met )
          
          ! Prepare the mass to call external function for density
          MH2O = STT(I,J,1,WID         )
@@ -5725,7 +5748,7 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
       
 !-----------------------------------------------------------------------------
       
-      SUBROUTINE CHECKMN ( II, JJ, LL, UNIT, LOCATION )
+      SUBROUTINE CHECKMN ( II, JJ, LL, State_Met, UNIT, LOCATION )
 !      
 !*****************************************************************************
 !  Subroutine CHECKMN use the subroutine MNFIX to check for error in the 
@@ -5738,21 +5761,25 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
 !  NOTES:
 !  (1 ) Now just access STT directly and avoid having to pass values in-out
 !       (Win, 7/24/07)
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !*****************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,      ONLY : AD, CONVERT_UNITS      
-      USE ERROR_MOD,    ONLY : ERROR_STOP, DEBUG_MSG, IT_IS_NAN
-      USE LOGICAL_MOD,  ONLY : LPRT
-      USE TRACERID_MOD, ONLY : IDTNK1,  IDTAW1
-      USE TRACER_MOD,   ONLY : STT, TCVV, XNUMOL, N_TRACERS
+      USE DAO_MOD,            ONLY : CONVERT_UNITS      
+      USE ERROR_MOD,          ONLY : ERROR_STOP, DEBUG_MSG, IT_IS_NAN
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE LOGICAL_MOD,        ONLY : LPRT
+      USE TRACERID_MOD,       ONLY : IDTNK1,  IDTAW1
+      USE TRACER_MOD,         ONLY : STT, TCVV, XNUMOL, N_TRACERS
 
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_DIAG_MOD       ! ND60
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND60
 
       ! Arguments
-      INTEGER                :: II, JJ, LL
+      INTEGER                      :: II, JJ, LL
       CHARACTER(LEN=*), INTENT(IN) :: UNIT, LOCATION
+      TYPE(MetState),   INTENT(IN) :: State_Met   ! Meteorology State object
 
       ! Local variables
       INTEGER                :: I, J, L
@@ -5771,7 +5798,7 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
       ! We want to work with STT in [kg]
       IF ( TRIM( UNIT ) == 'V/V' .or. TRIM( UNIT ) == 'v/v' )
       ! Convert STT from v/v --> kg
-     &     CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, AD, STT ) 
+     &     CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, State_Met%AD, STT ) 
 
       ! Check throughout all grid boxes
       IF ( II == 0 .and. JJ == 0 .and. LL == 0 ) THEN 
@@ -5849,7 +5876,7 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
       ! In the input unit is [v/v], then convert [kg] back to [v/v]
       IF ( TRIM( UNIT ) == 'V/V' .or. TRIM( UNIT ) == 'v/v' ) 
        ! Convert STT from kg --> v/v
-     &     CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, AD, STT ) 
+     &     CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, State_Met%AD, STT ) 
         
       IF ( LPRT ) WRITE(6,*)' #### CHECKMN: finish at ',LOCATION
 
@@ -6981,7 +7008,7 @@ Cpja Perform some numerical checks on dmdt_int
 
 !-----------------------------------------------------------------------------
 
-      FUNCTION GETDP( I, J, L, N ) RESULT( VALUE )
+      FUNCTION GETDP( I, J, L, N, State_Met ) RESULT( VALUE )
 !
 !*****************************************************************************
 !  Function GETDP calculate multi-component aerosol diameter
@@ -6999,20 +7026,23 @@ Cpja Perform some numerical checks on dmdt_int
 !  NOTES: 
 !  (1 ) Each component mass has a unit of kg/grid box
 !  (2 ) Total mass assumed to be ammonium bisulfate including water
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !*****************************************************************************
 
-      USE DAO_MOD,      ONLY : RH,     AIRVOL
-      USE ERROR_MOD,    ONLY : ERROR_STOP, IT_IS_NAN
-      USE TRACERID_MOD, ONLY : IDTNK1,  IDTAW1
-      USE TRACER_MOD,   ONLY : STT
+      USE ERROR_MOD,          ONLY : ERROR_STOP, IT_IS_NAN
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TRACERID_MOD,       ONLY : IDTNK1,  IDTAW1
+      USE TRACER_MOD,         ONLY : STT
 
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_DIAG_MOD       ! ND60
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND60
 
       implicit none
 
       ! Arguments
-      INTEGER,   INTENT(IN) :: I, J, L, N
+      INTEGER,   INTENT(IN)       :: I, J, L, N
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 
       ! Return value
       REAL*8                :: VALUE
@@ -7044,7 +7074,7 @@ Cpja Perform some numerical checks on dmdt_int
       !-------------------------------------------------------------
       ! Calculate aerosol water in case it has not been initialized elsewhere 
       !-------------------------------------------------------------
-      CALL EZWATEREQM2(I,J,L,NUMBIN)
+      CALL EZWATEREQM2( I, J, L, NUMBIN, State_Met )
 
       !-------------------------------------------------------------
       ! Check negative STT
@@ -7055,7 +7085,7 @@ Cpja Perform some numerical checks on dmdt_int
       IF( STT(I,J,L,ID) == 0d0 ) GOTO 10
 
       IF( STT(I,J,L,ID) < 0d0 ) THEN
-         NCONC = ABS( STT(I,J,L,ID) )/ AIRVOL(I,J,L)/1D6
+         NCONC = ABS( STT(I,J,L,ID) )/ State_Met%AIRVOL(I,J,L)/1D6
          IF ( nconc <= 1d-1 ) THEN
             STT(I,J,L,ID) = 0d0
          ELSE
@@ -7068,7 +7098,8 @@ Cpja Perform some numerical checks on dmdt_int
      &     'GETDP at (I,J,L)',I,J,L,'Bin',NUMBIN,': Nk'
       DO JC = 1, ICOMP-IDIAG 
          IF( STT(I,J,L,ID+JC*IBINS) < 0d0 ) THEN
-            MCONC = ( ABS(STT(I,J,L,ID+JC*IBINS))* 1.D9/ AIRVOL(I,J,L) )
+            MCONC = ( ABS(STT(I,J,L,ID+JC*IBINS)) * 1.D9 /
+     &              State_Met%AIRVOL(I,J,L) )
             IF ( MCONC <= 1.d-4 ) THEN
                STT(I,J,L,ID+JC*IBINS) = 0d0
             ELSE

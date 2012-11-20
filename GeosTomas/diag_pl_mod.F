@@ -578,20 +578,21 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_DIAG_PL( am_I_Root ) 
+      SUBROUTINE DO_DIAG_PL( am_I_Root, State_Met ) 
 !
 ! !USES:
 !
-      USE COMODE_MOD, ONLY : CSPEC, JLOP
-      USE DAO_MOD,    ONLY : AIRVOL
+      USE COMODE_MOD, ONLY         : CSPEC, JLOP
+      USE GIGC_State_Met_Mod, ONLY : MetState
 
-      USE CMN_SIZE_MOD                      ! Size parameters
-      USE COMODE_LOOP_MOD                   ! SMVGEAR II arrays
-      USE CMN_DIAG_MOD                      ! LD65
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE COMODE_LOOP_MOD          ! SMVGEAR II arrays
+      USE CMN_DIAG_MOD             ! LD65
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root      ! Is this the root CPU?
+      LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY:
 !  16 Mar 2000 - I. Bey      - Initial version
@@ -602,6 +603,8 @@
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -648,15 +651,16 @@
             ! (win, 8/4/09)
             IF ( FAM_NAME(N) == 'PSO21' .or. FAM_NAME(N) == 'PSO22' .or.
      &           FAM_NAME(N) == 'PSO4'  .or. FAM_NAME(N) == 'PMSA' ) 
-     &           FAM_PL(I,J,L,N)      = CSPEC(JLOOP,IFAM(N)) / 6.022d23
-     &                                  * 32.d-3 * AIRVOL(I,J,L) * 1d6
+     &           FAM_PL(I,J,L,N)  = CSPEC(JLOOP,IFAM(N)) / 6.022d23  *
+     &                              32.d-3 * State_Met%AIRVOL(I,J,L) *
+     &                              1d6
 
             ! Calculate H2SO4 production rate [kg s-1] in each time step 
             ! (win, 8/4/09)
             IF ( FAM_NAME(N) == 'PSO4' ) 
-     &           H2SO4RATE(I,J,L) = CSPEC(JLOOP,IFAM(N)) / 6.022d23 *
-     &                              98.d-3 * AIRVOL(I,J,L) * 1d6 /
-     &                              CHEMINTV
+     &           H2SO4RATE(I,J,L) = CSPEC(JLOOP,IFAM(N)) / 6.022d23  *
+     &                              98.d-3 * State_Met%AIRVOL(I,J,L) *
+     &                              1d6   / CHEMINTV
 
             !Debug print (win, 8/4/09)
 c            if (fam_name(n) =='PSO4') 

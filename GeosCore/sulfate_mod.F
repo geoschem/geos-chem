@@ -636,13 +636,13 @@
 !
       USE DIAG_MOD,           ONLY : AD44
       USE DRYDEP_MOD,         ONLY : DEPSAV
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TRACER_MOD,         ONLY : SALA_REDGE_um,   SALC_REDGE_um
       USE TRACER_MOD,         ONLY : XNUMOL
       USE TRACERID_MOD,       ONLY : IDTSO4s,         IDTNITs
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC, GET_TS_CHEM
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE GIGC_State_Met_Mod, ONLY : MetState
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND44
