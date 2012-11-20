@@ -4048,8 +4048,8 @@ c
       USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
       USE TRACER_MOD,         ONLY : STT
 
-      USE CMN_SIZE_MOD    ! Size parameters
-      USE CMN_DIAG_MOD    ! ND07
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND07
 
 #if defined( DEVEL )
       USE TRACERID_MOD,       ONLY : IDTBCPI, IDTBCPO, IDTOCPI, IDTOCPO

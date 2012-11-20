@@ -94,21 +94,23 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEMDUST( am_I_Root )
+      SUBROUTINE CHEMDUST( am_I_Root, State_Met )
 !
 ! !USES:
 !
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE LOGICAL_MOD,  ONLY : LDRYD,   LDUST
-      USE DRYDEP_MOD,   ONLY : DEPNAME, NUMDEP
-      USE TRACER_MOD,   ONLY : STT
-      USE TRACERID_MOD, ONLY : IDTDST1, IDTDST2, IDTDST3, IDTDST4
+      USE DRYDEP_MOD,         ONLY : DEPNAME, NUMDEP
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE LOGICAL_MOD,        ONLY : LDRYD,   LDUST
+      USE TRACER_MOD,         ONLY : STT
+      USE TRACERID_MOD,       ONLY : IDTDST1, IDTDST2, IDTDST3, IDTDST4
 
-      USE CMN_SIZE_MOD                   ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  30 Mar 2004 - T. D. Fairlie - Initial version
@@ -180,7 +182,7 @@
 #if   defined( APM )
 
       ! Call APM size-resolved settling algorithm
-      CALL DRY_SETTLINGBIN
+      CALL DRY_SETTLINGBIN( State_Met )
 
       ! Call APM size-resolved drydep algorithm
       IF ( LDRYD ) THEN
@@ -190,7 +192,7 @@
 #else
 
       ! Dust settling
-      CALL DRY_SETTLING(   STT(:,:,:,IDTDST1:IDTDST4) )
+      CALL DRY_SETTLING( STT(:,:,:,IDTDST1:IDTDST4), State_Met )
 
       ! Dust deposition
       IF ( LDRYD ) THEN
@@ -214,21 +216,26 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DRY_SETTLING( TC )
+
+      SUBROUTINE DRY_SETTLING( TC, State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD,      ONLY : T, BXHEIGHT
-      USE DIAG_MOD,     ONLY : AD44
-      USE PRESSURE_MOD, ONLY : GET_PCENTER
-      USE TIME_MOD,     ONLY : GET_TS_CHEM
-      USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE TRACER_MOD,   ONLY : XNUMOL
-      USE TRACERID_MOD, ONLY : IDTDST1
+      USE DIAG_MOD,           ONLY : AD44
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+      USE TRACER_MOD,         ONLY : XNUMOL
+      USE TRACERID_MOD,       ONLY : IDTDST1
 
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_DIAG_MOD       ! ND44
-      USE CMN_GCTM_MOD       ! g0
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND44
+      USE CMN_GCTM_MOD             ! g0
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 ! 
@@ -241,6 +248,8 @@
 !  (3 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -322,7 +331,7 @@
 
                   ! Get P [kPa], T [K], and P*DP
                   P    = GET_PCENTER(I,J,L) * 0.1d0
-                  TEMP = T(I,J,L)
+                  TEMP = State_Met%T(I,J,L)
                   PDP  = P * DP
 
                   !=====================================================
@@ -368,13 +377,13 @@
 
                ! We know the boundary condition at the model top
                L           = LLTROP
-               DELZ        = BXHEIGHT(I,J,L)
+               DELZ        = State_Met%BXHEIGHT(I,J,L)
                TC(I,J,L,N) = TC(I,J,L,N) / 
      &                       ( 1.d0 + DT_SETTL * VTS(L) / DELZ )
 
                DO L = LLTROP-1, 1, -1
-                  DELZ        = BXHEIGHT(I,J,L)
-                  DELZ1       = BXHEIGHT(I,J,L+1)
+                  DELZ        = State_Met%BXHEIGHT(I,J,L)
+                  DELZ1       = State_Met%BXHEIGHT(I,J,L+1)
                   TC(I,J,L,N) = 1.d0 / 
      &                          ( 1.d0 + DT_SETTL * VTS(L)   / DELZ )
      &                 * (TC(I,J,L,N)  + DT_SETTL * VTS(L+1) / DELZ1
@@ -523,22 +532,33 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE EMISSDUST( SFLX )
+      SUBROUTINE EMISSDUST( State_Met, SFLX )
 #else
-      SUBROUTINE EMISSDUST
+      SUBROUTINE EMISSDUST( State_Met )
 #endif
 !
 ! !USES:
 !
-      USE ERROR_MOD,    ONLY : ERROR_STOP, DEBUG_MSG
-      USE LOGICAL_MOD,  ONLY : LDEAD, LDUST, LPRT
-      USE TRACER_MOD,   ONLY : STT
-      USE TRACERID_MOD, ONLY : IDTDST1, IDTDST2, IDTDST3, IDTDST4
-
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE ERROR_MOD,          ONLY : ERROR_STOP, DEBUG_MSG
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE LOGICAL_MOD,        ONLY : LDEAD, LDUST, LPRT
+      USE TRACER_MOD,         ONLY : STT
+      USE TRACERID_MOD,       ONLY : IDTDST1, IDTDST2, IDTDST3, IDTDST4
 #if defined( DEVEL )
-      USE TRACER_MOD,   ONLY : N_TRACERS
-      USE TIME_MOD,     ONLY : GET_TS_EMIS
+      USE TRACER_MOD,         ONLY : N_TRACERS
+      USE TIME_MOD,           ONLY : GET_TS_EMIS
+#endif
+
+      USE CMN_SIZE_MOD             ! Size parameters
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      REAL*8, INTENT(INOUT) :: SFLX(IIPAR,JJPAR,LLPAR,N_TRACERS+1)
 #endif
 ! 
 ! !REVISION HISTORY: 
@@ -556,10 +576,9 @@
       LOGICAL, SAVE :: FIRST = .TRUE.
       
 #if defined( DEVEL )
-      REAL*8, INTENT(INOUT) :: SFLX(IIPAR,JJPAR,LLPAR,N_TRACERS+1)
-      REAL*8                :: STT_TMP(IIPAR,JJPAR,LLPAR,4)
-!      REAL*8                :: DTSRCE
+      REAL*8        :: STT_TMP(IIPAR,JJPAR,LLPAR,4)
 #endif
+
       !=================================================================
       ! EMISSDUST begins here!
       !=================================================================
@@ -593,7 +612,7 @@
       IF ( LDEAD ) THEN
 
          ! Use Zender's DEAD dust source function
-         CALL SRC_DUST_DEAD( STT(:,:,:,IDTDST1:IDTDST4) )
+         CALL SRC_DUST_DEAD( STT(:,:,:,IDTDST1:IDTDST4), State_Met )
 
          !### Debug
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSDUST: a SRC_DUST_DEAD' )
@@ -601,7 +620,7 @@
       ELSE
 
          ! Use Paul Ginoux's dust source function
-         CALL SRC_DUST_GINOUX( STT(:,:,:,IDTDST1:IDTDST4) )
+         CALL SRC_DUST_GINOUX( STT(:,:,:,IDTDST1:IDTDST4 ), State_Met )
 
          !### Debug
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSDUST: a SRC_DUST_GINOUX')
@@ -609,7 +628,8 @@
       ENDIF     
 
 #if defined( DEVEL )
-      SFLX(:,:,:,IDTDST1:IDTDST4) = (STT(:,:,:,IDTDST1:IDTDST4)-STT_TMP)/(GET_TS_EMIS()*60.d0)
+      SFLX(:,:,:,IDTDST1:IDTDST4) = (STT(:,:,:,IDTDST1:IDTDST4)-STT_TMP)
+     &                            / (GET_TS_EMIS()*60.d0)
 #endif
 
       END SUBROUTINE EMISSDUST
@@ -628,38 +648,42 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SRC_DUST_DEAD( TC )
+      SUBROUTINE SRC_DUST_DEAD( TC, State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD,       ONLY : BXHEIGHT,     GWETTOP,   LWI
-      USE DAO_MOD,       ONLY : SNOW,         SPHU,      T    
-      USE DAO_MOD,       ONLY : TS,           UWND,      VWND
-      USE DAO_MOD,       ONLY : SNOMAS
-      USE DUST_DEAD_MOD, ONLY : GET_TIME_INVARIANT_DATA, GET_ORO
-      USE DUST_DEAD_MOD, ONLY : GET_MONTHLY_DATA,        DST_MBL
-      USE DIAG_MOD,      ONLY : AD06
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE FILE_MOD,      ONLY : IOERROR
-      USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
-      USE GRID_MOD,      ONLY : GET_YMID_R
-      USE PRESSURE_MOD,  ONLY : GET_PEDGE,       GET_PCENTER 
-      USE TIME_MOD,      ONLY : GET_TS_EMIS,     GET_MONTH   
-      USE TIME_MOD,      ONLY : GET_DAY_OF_YEAR, ITS_A_NEW_MONTH
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
+      USE DAO_MOD,            ONLY : SPHU
+      USE DIAG_MOD,           ONLY : AD06
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR
+      USE DUST_DEAD_MOD,      ONLY : GET_TIME_INVARIANT_DATA, GET_ORO
+      USE DUST_DEAD_MOD,      ONLY : GET_MONTHLY_DATA,        DST_MBL
+      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_YMID_R
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE,       GET_PCENTER 
+      USE TIME_MOD,           ONLY : GET_TS_EMIS,     GET_MONTH   
+      USE TIME_MOD,           ONLY : GET_DAY_OF_YEAR, ITS_A_NEW_MONTH
+      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
 #if   defined( APM )
-      USE TRACER_MOD,    ONLY : STT
-      USE APM_INIT_MOD,  ONLY : NDSTB
-      USE APM_INIT_MOD,  ONLY : IDTDSTBIN1
+      USE TRACER_MOD,         ONLY : STT
+      USE APM_INIT_MOD,       ONLY : NDSTB
+      USE APM_INIT_MOD,       ONLY : IDTDSTBIN1
 #endif
 
-      USE CMN_SIZE_MOD        ! Size parameters
-      USE CMN_DIAG_MOD        ! ND06
-      USE CMN_GCTM_MOD        ! g0
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND06
+      USE CMN_GCTM_MOD             ! g0
+!
+! !INPUT PARAMETERS: 
+!
+      ! Meteorology State object
+      TYPE(MetState), INTENT(IN)    :: State_Met
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 ! 
-      REAL*8, INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN)  ! Dust mass [kg]
+      ! Dust mass [kg]
+      REAL*8,         INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN)
 !
 ! !REMARKS:
 !  Input:
@@ -701,6 +725,8 @@
 !                              so we need to convert to m H2O.
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R(I,J,L) from grid_mod.F90
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -708,48 +734,46 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL, SAVE      :: FIRST = .TRUE.
-      INTEGER            :: I,      J,      L,       N
-      INTEGER            :: M,      IOS,    INC,     LAT_IDX
-      INTEGER            :: NDB,    NSTEP,  N_DST_BIN
-      REAL*8             :: W10M,   DEN,    DIAM,    U_TS0 
-      REAL*8             :: U_TS,   SRCE_P, Reynol,  YMID_R
-      REAL*8             :: ALPHA,  BETA,   GAMMA,   CW
-      REAL*8             :: DTSRCE, XTAU,   P1,      P2
-      REAL*8             :: DOY             
-      CHARACTER(LEN=255) :: FILENAME
+      LOGICAL, SAVE          :: FIRST = .TRUE.
+      INTEGER                :: I,      J,      L,       N
+      INTEGER                :: M,      IOS,    INC,     LAT_IDX
+      INTEGER                :: NDB,    NSTEP,  N_DST_BIN
+      REAL*8                 :: W10M,   DEN,    DIAM,    U_TS0 
+      REAL*8                 :: U_TS,   SRCE_P, Reynol,  YMID_R
+      REAL*8                 :: ALPHA,  BETA,   GAMMA,   CW
+      REAL*8                 :: DTSRCE, XTAU,   P1,      P2
+      REAL*8                 :: DOY             
+      CHARACTER(LEN=255)     :: FILENAME
 
       ! Arrays
-      INTEGER            :: OROGRAPHY(IIPAR,JJPAR)
-      REAL*8             :: PSLON(IIPAR)         ! surface pressure
-      REAL*8             :: PTHICK(IIPAR)        ! delta P (L=1)
-      REAL*8             :: PMID(IIPAR)          ! mid layer P (L=1)
-      REAL*8             :: TLON(IIPAR)          ! temperature (L=1)
-      REAL*8             :: THLON(IIPAR)         ! pot. temp. (L=1)
-      REAL*8             :: ULON(IIPAR)          ! U-wind (L=1)
-      REAL*8             :: VLON(IIPAR)          ! V-wind (L=1)
-      REAL*8             :: BHT2(IIPAR)          ! half box height (L=1)
-      REAL*8             :: Q_H2O(IIPAR)         ! specific humidity (L=1)
-      REAL*8             :: ORO(IIPAR)           ! "orography" 
-      REAL*8             :: SNW_HGT_LQD(IIPAR)   ! equivalent snow ht.
+      INTEGER                :: OROGRAPHY(IIPAR,JJPAR)
+      REAL*8                 :: PSLON(IIPAR)         ! surface pressure
+      REAL*8                 :: PTHICK(IIPAR)        ! delta P (L=1)
+      REAL*8                 :: PMID(IIPAR)          ! mid layer P (L=1)
+      REAL*8                 :: TLON(IIPAR)          ! temperature (L=1)
+      REAL*8                 :: THLON(IIPAR)         ! pot. temp. (L=1)
+      REAL*8                 :: ULON(IIPAR)          ! U-wind (L=1)
+      REAL*8                 :: VLON(IIPAR)          ! V-wind (L=1)
+      REAL*8                 :: BHT2(IIPAR)          ! half box height (L=1)
+      REAL*8                 :: Q_H2O(IIPAR)         ! specific humidity (L=1)
+      REAL*8                 :: ORO(IIPAR)           ! "orography" 
+      REAL*8                 :: SNW_HGT_LQD(IIPAR)   ! equivalent snow ht.
 #if   defined( APM )     
-      REAL*8             :: DSRC(IIPAR,NDSTBIN+NDSTB)  ! dust mixing ratio incr
+      REAL*8                 :: DSRC(IIPAR,NDSTBIN+NDSTB) ! dust mixing ratio incr
 #else                    
-      REAL*8             :: DSRC(IIPAR,NDSTBIN)  ! dust mixing ratio incr.
+      REAL*8                 :: DSRC(IIPAR,NDSTBIN)  ! dust mixing ratio incr.
 #endif
 
-      ! External functions
-      REAL*8,  EXTERNAL  :: SFCWINDSQR
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL*8, PARAMETER  :: Ch_dust = 9.375d-10
-      REAL*8, PARAMETER  :: G       = g0 * 1.D2
-      REAL*8, PARAMETER  :: RHOA    = 1.25D-3
-      REAL*8, PARAMETER  :: CP      = 1004.16d0
-      REAL*8, PARAMETER  :: RGAS    = 8314.3d0 / 28.97d0
-      REAL*8, PARAMETER  :: AKAP    = RGAS     / CP
-      REAL*8, PARAMETER  :: P1000   = 1000d0
+      REAL*8, PARAMETER      :: Ch_dust = 9.375d-10
+      REAL*8, PARAMETER      :: G       = g0 * 1.D2
+      REAL*8, PARAMETER      :: RHOA    = 1.25D-3
+      REAL*8, PARAMETER      :: CP      = 1004.16d0
+      REAL*8, PARAMETER      :: RGAS    = 8314.3d0 / 28.97d0
+      REAL*8, PARAMETER      :: AKAP    = RGAS     / CP
+      REAL*8, PARAMETER      :: P1000   = 1000d0
 
       !=================================================================
       ! SRC_DUST_DEAD begins here!
@@ -804,7 +828,7 @@
       !=================================================================
 
       ! Make OROGRAPHY array from GEOS-CHEM LWI
-      CALL GET_ORO( OROGRAPHY )
+      CALL GET_ORO( OROGRAPHY, State_Met )
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -829,20 +853,21 @@
             PMID(I)        = GET_PCENTER(I,J,1) * 100d0 
 
             ! Temperature [K] at surface layer
-            TLON(I)        = T(I,J,1)
+            TLON(I)        = State_Met%T(I,J,1)
 
             ! Potential temperature [K] at surface layer
             THLON(I)       = TLON(I) * ( P1000 / PMID(I) )**AKAP
 
             ! U and V winds at surface [m/s]
-            ULON(I)        = UWND(I,J,1)
-            VLON(I)        = VWND(I,J,1)
+            ULON(I)        = State_Met%U(I,J,1)
+            VLON(I)        = State_Met%V(I,J,1)
             
             ! Half box height at surface [m]
-            BHT2(I)        = BXHEIGHT(I,J,1) / 2.d0
+            BHT2(I)        = State_Met%BXHEIGHT(I,J,1) / 2.d0
 
             ! Specific humidity at surface [kg H2O/kg air]
-            Q_H2O(I)       = SPHU(I,J,1) / 1000.d0         
+!            Q_H2O(I)       = State_Met%SPHU(I,J,1) / 1000.d0
+            Q_H2O(I)       = SPHU(I,J,1) / 1000.d0
 
             ! Orography at surface
             ! Ocean is 0; land is 1; ice is 2
@@ -850,12 +875,13 @@
 
             ! Snow height [m H2O]
 #if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
-            SNW_HGT_LQD(I) = SNOMAS(I,J) / 1000d0
+            SNW_HGT_LQD(I) = State_Met%SNOMAS(I,J) / 1000d0
 #else
-            SNW_HGT_LQD(I) = SNOW(I,J) / 1000d0
+            SNW_HGT_LQD(I) = State_Met%SNOW(I,J) / 1000d0
 #endif
+
             ! Dust tracer and increments
-            DO N = 1, N_DST_BIN
+            DO N = 1, NDSTBIN
                DSRC(I,N)   = 0.0d0
             ENDDO
          ENDDO 
@@ -868,10 +894,10 @@
          YMID_R = GET_YMID_R( 1, J, 1 )
 
          ! Call DEAD dust mobilization
-         CALL DST_MBL( DOY,    BHT2,  J,     YMID_R, ORO,    
-     &                 PTHICK, PMID,  Q_H2O, DSRC,   SNW_HGT_LQD, 
-     &                 DTSRCE, TLON,  THLON, VLON,   ULON,
-     &                 FIRST,  J )
+         CALL DST_MBL( DOY,    BHT2,  J,      YMID_R, ORO,    
+     &                 PTHICK, PMID,  Q_H2O,  DSRC,   SNW_HGT_LQD, 
+     &                 DTSRCE, TLON,  THLON,  VLON,   ULON,
+     &                 FIRST,  J,     State_Met )
 
          ! Update
          DO N = 1, NDSTBIN
@@ -923,25 +949,31 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SRC_DUST_GINOUX( TC )
+      SUBROUTINE SRC_DUST_GINOUX( TC, State_Met )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE DAO_MOD,       ONLY : GWETTOP   
-      USE DIAG_MOD,      ONLY : AD06
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE FILE_MOD,      ONLY : IOERROR
-      USE TIME_MOD,      ONLY : GET_TS_EMIS
-      USE GRID_MOD,      ONLY : GET_AREA_M2
+      USE BPCH2_MOD,          ONLY : GET_RES_EXT
+      USE DIAG_MOD,           ONLY : AD06
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_M2
+      USE TIME_MOD,           ONLY : GET_TS_EMIS
 
-      USE CMN_SIZE_MOD        ! Size parameters
-      USE CMN_DIAG_MOD        ! ND19, LD13 (for now)
-      USE CMN_GCTM_MOD        ! g0
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND19, LD13 (for now)
+      USE CMN_GCTM_MOD             ! g0
+!
+! !INPUT PARAMETERS: 
+!
+      ! Meteorology State object
+      TYPE(MetState), INTENT(IN)    :: State_Met
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 ! 
-      REAL*8, INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN)  ! Dust mass [kg]
+      ! Dust mass [kg]
+      REAL*8,         INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN)
 !
 ! !REMARKS:
 !  Input:
@@ -988,6 +1020,8 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1118,10 +1152,10 @@
                CW = 1.d0
 
                ! Case of surface dry enough to erode
-               IF ( GWETTOP(I,J) < 0.2d0 ) THEN
+               IF ( State_Met%GWETTOP(I,J) < 0.2d0 ) THEN
                
-                  U_TS = U_TS0*( 1.2d0 + 
-     &                           0.2d0*LOG10( MAX(1.d-3,GWETTOP(I,J))))
+                  U_TS = U_TS0 *( 1.2d0 + 0.2d0 *
+     &                   LOG10( MAX(1.d-3,State_Met%GWETTOP(I,J))))
                   U_TS = MAX( 0.d0, U_TS )
 
                ELSE
@@ -1132,7 +1166,9 @@
                ENDIF
 
                ! 10m wind speed [m/s]
-               W10M   = SQRT( SFCWINDSQR(I,J) )
+               W10M   = SQRT( SFCWINDSQR( I, J,
+     &                                    State_Met%U10M,
+     &                                    State_Met%V10M ) )
 
                ! Units are m2
                SRCE_P = FRAC_S(N) * SRCE_FUNC(I,J,M) * AREA_M2
@@ -1174,30 +1210,28 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RDUST_ONLINE( DUST, WAVELENGTH )
+      SUBROUTINE RDUST_ONLINE( DUST, WAVELENGTH, State_Met )
 !
 ! !USES:
 !
-      USE COMODE_MOD,    ONLY : ERADIUS, IXSAVE, IYSAVE 
-      USE COMODE_MOD,    ONLY : IZSAVE,  JLOP,   TAREA
-      USE DAO_MOD,       ONLY : BXHEIGHT
-      USE DIAG_MOD,      ONLY : AD21
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE TRANSFER_MOD,  ONLY : TRANSFER_3D
-      USE COMODE_MOD,    ONLY : WTAREA, WERADIUS
-      USE DAO_MOD,       ONLY : RH
+      USE COMODE_MOD,         ONLY : ERADIUS, IXSAVE, IYSAVE 
+      USE COMODE_MOD,         ONLY : IZSAVE,  JLOP,   TAREA
+      USE COMODE_MOD,         ONLY : WTAREA, WERADIUS
+      USE DIAG_MOD,           ONLY : AD21
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TRANSFER_MOD,       ONLY : TRANSFER_3D
 
-!      USE CMN_FJ_MOD,    ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ      
-      USE JV_CMN_MOD          ! ODMDUST, QAA, RAA, QAA_AOD (clh)
-      USE COMODE_LOOP_MOD     ! NTTLOOP
-
-      USE CMN_DIAG_MOD        ! ND21, LD21
+      USE JV_CMN_MOD               ! ODMDUST, QAA, RAA, QAA_AOD (clh)
+      USE COMODE_LOOP_MOD          ! NTTLOOP
+      USE CMN_DIAG_MOD             ! ND21, LD21
 !
 ! !INPUT PARAMETERS: 
 ! 
-      REAL*8,  INTENT(IN) :: DUST(IIPAR,JJPAR,LLPAR,NDUST)   ! Dust [kg/m3]
-      INTEGER, INTENT(IN) :: WAVELENGTH
+      REAL*8,         INTENT(IN) :: DUST(IIPAR,JJPAR,LLPAR,NDUST) ! Dust [kg/m3]
+      INTEGER,        INTENT(IN) :: WAVELENGTH
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  01 Apr 2004 - R. Martin, R. Park - Initial version
@@ -1213,6 +1247,8 @@
 !                              used for the calculation of the AOD. The ND21 
 !                              diagnostic should only be updated when 
 !                              WAVELENGTH = 1. (skim, 02/03/11)
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1270,13 +1306,13 @@
 
          IF ( WAVELENGTH > 0 ) THEN
 
-            ODMDUST(I,J,L,N) = 0.75d0        * BXHEIGHT(I,J,L) * 
+            ODMDUST(I,J,L,N) = 0.75d0 * State_Met%BXHEIGHT(I,J,L) * 
      &                         DUST(I,J,L,N) * QAA_AOD(14+N)     / 
      &                        ( MSDENS(N) * RAA_AOD(14+N) * 1.0D-6 )
 
          ELSE
 
-            ODMDUST(I,J,L,N) = 0.75d0        * BXHEIGHT(I,J,L) * 
+            ODMDUST(I,J,L,N) = 0.75d0 * State_Met%BXHEIGHT(I,J,L) * 
      &                         DUST(I,J,L,N) * QAA(4,14+N)     / 
      &                        ( MSDENS(N) * RAA(4,14+N) * 1.0D-6 )
 
@@ -1329,7 +1365,7 @@
 
          ! Archive WTAREA and WERADIUS when RH > 35%  (tmf, 6/13/07) 
          ! Get RH  
-         XRH     = RH( I, J, L )   ![%]
+         XRH                = State_Met%RH( I, J, L )  ! [%]
          WTAREA(JLOOP, N)   = 0.d0
          WERADIUS(JLOOP, N) = 0.d0
 
@@ -1412,39 +1448,39 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RDUST_OFFLINE( THISMONTH,  THISYEAR, 
-     &                          WAVELENGTH, am_I_Root )
+      SUBROUTINE RDUST_OFFLINE( THISMONTH, THISYEAR, WAVELENGTH,
+     &                          am_I_Root, State_Met )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
-      USE COMODE_MOD,    ONLY : ERADIUS, IXSAVE, IYSAVE
-      USE COMODE_MOD,    ONLY : IZSAVE,  JLOP,   TAREA
-      USE DAO_MOD,       ONLY : BXHEIGHT
-      USE DIAG_MOD,      ONLY : AD21
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE TRANSFER_MOD,  ONLY : TRANSFER_3D
-      USE COMODE_MOD,    ONLY : WTAREA, WERADIUS
-      USE DAO_MOD,       ONLY : RH
+      USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_RES_EXT
+      USE BPCH2_MOD,          ONLY : GET_TAU0,     READ_BPCH2
+      USE COMODE_MOD,         ONLY : ERADIUS, IXSAVE, IYSAVE
+      USE COMODE_MOD,         ONLY : IZSAVE,  JLOP,   TAREA
+      USE COMODE_MOD,         ONLY : WTAREA, WERADIUS
+      USE DIAG_MOD,           ONLY : AD21
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TRANSFER_MOD,       ONLY : TRANSFER_3D
 
 #     include "define.h"
 
-      USE CMN_FJ_MOD,    ONLY : JPMAX, JPPJ
-      USE JV_CMN_MOD,    ONLY : ODMDUST, QAA, RAA, RAA_AOD, QAA_AOD
-      USE COMODE_LOOP_MOD     ! NTTLOOP
-      USE CMN_DIAG_MOD        ! ND21, LD21
+      USE CMN_FJ_MOD,         ONLY : JPMAX, JPPJ
+      USE JV_CMN_MOD,         ONLY : ODMDUST, QAA, RAA, RAA_AOD, QAA_AOD
+      USE COMODE_LOOP_MOD          ! NTTLOOP
+      USE CMN_DIAG_MOD             ! ND21, LD21
 
       IMPLICIT NONE
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: THISMONTH   ! Current month (1-12)
-      INTEGER, INTENT(IN) :: THISYEAR    ! Current year  (YYYY format)
-      INTEGER, INTENT(IN) :: WAVELENGTH  ! Determine which wavelength to use 
-                                         !  for optical properties
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      INTEGER,        INTENT(IN) :: THISMONTH   ! Current month (1-12)
+      INTEGER,        INTENT(IN) :: THISYEAR    ! Current year  (YYYY format)
+      INTEGER,        INTENT(IN) :: WAVELENGTH  ! Determine which wavelength to
+                                                !  use for optical properties
+      LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !REVISION HISTORY: 
 !  (1 ) RDUST was patterned after rdaerosol.f (rvm, 9/30/00)
@@ -1504,6 +1540,8 @@
 !                              WAVELENGTH = 1.
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1597,13 +1635,15 @@
 
             IF ( WAVELENGTH > 0 ) THEN
 
-               ODMDUST(I,J,L,N) = 0.75d0        * BXHEIGHT(I,J,L) * 
+               ODMDUST(I,J,L,N) = 0.75d0        *
+     &                            State_Met%BXHEIGHT(I,J,L) * 
      &                            DUST(I,J,L,N) * QAA_AOD(14+N)     / 
      &                           ( MSDENS(N) * RAA_AOD(14+N) * 1.0D-6 )
 
             ELSE
 
-               ODMDUST(I,J,L,N) = 0.75d0        * BXHEIGHT(I,J,L) * 
+               ODMDUST(I,J,L,N) = 0.75d0        *
+     &                            State_Met%BXHEIGHT(I,J,L) * 
      &                            DUST(I,J,L,N) * QAA(4,14+N)     / 
      &                           ( MSDENS(N) * RAA(4,14+N) * 1.0D-6 )
 
@@ -1662,7 +1702,7 @@
 
          ! Archive WTAREA and WERADIUS when RH > 35% (tmf, 6/13/07) 
          ! Get RH  
-         XRH     = RH( I, J, L )   ![%]
+         XRH                = State_Met%RH( I, J, L )  ! [%]
          WTAREA(JLOOP, N)   = 0.d0
          WERADIUS(JLOOP, N) = 0.d0
 
@@ -1736,7 +1776,7 @@
 !------------------------------------------------------------------------------
 !APM_GanLuo+
 #if   defined( APM )
-      SUBROUTINE DRY_SETTLINGBIN
+      SUBROUTINE DRY_SETTLINGBIN( State_Met )
 !
 !******************************************************************************
 ! Modified for APM simulation
@@ -1745,23 +1785,28 @@
 !  ============================================================================
 !  (1 ) TC (REAL*8) : Dust tracer array 
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !******************************************************************************
 ! 
-      USE DAO_MOD,      ONLY : T, BXHEIGHT
-      USE DIAG_MOD,     ONLY : AD44
-      USE PRESSURE_MOD, ONLY : GET_PCENTER
-      USE TIME_MOD,     ONLY : GET_TS_CHEM
-      USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE TRACER_MOD,   ONLY : XNUMOL
-      USE TRACERID_MOD, ONLY : IDTDST1
-      USE TRACER_MOD,   ONLY : STT
-      USE TRACER_MOD,   ONLY : N_TRACERS, N_APMTRA
-      USE APM_INIT_MOD, ONLY : NCTDST,NDSTB,DENDST,RDST
-      USE APM_INIT_MOD, ONLY : IDTCTDST,IDTDSTBIN1
+      USE DIAG_MOD,           ONLY : AD44
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+      USE TRACER_MOD,         ONLY : XNUMOL
+      USE TRACERID_MOD,       ONLY : IDTDST1
+      USE TRACER_MOD,         ONLY : STT
+      USE TRACER_MOD,         ONLY : N_TRACERS, N_APMTRA
+      USE APM_INIT_MOD,       ONLY : NCTDST,NDSTB,DENDST,RDST
+      USE APM_INIT_MOD,       ONLY : IDTCTDST,IDTDSTBIN1
 
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_GCTM_MOD       ! g0
-      USE CMN_DIAG_MOD       ! ND44
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_GCTM_MOD             ! g0
+      USE CMN_DIAG_MOD             ! ND44
+
+      ! Input Parameters 
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 
       ! Arguments
       REAL*8, DIMENSION(IIPAR,JJPAR,LLPAR) :: MASS0, MASS1
@@ -1865,7 +1910,7 @@
 
                   ! Get P [kPa], T [K], and P*DP
                   P    = GET_PCENTER(I,J,L) * 0.1d0
-                  TEMP = T(I,J,L)
+                  TEMP = State_Met%T(I,J,L)
                   PDP  = P * DP
 
                   ! Slip correction factor as function of (P*dp)
@@ -1894,7 +1939,7 @@
 
                ! We know the boundary condition at the model top
                DO L = LLTROP, 2, -1
-                  DELZ        = BXHEIGHT(I,J,L)
+                  DELZ        = State_Met%BXHEIGHT(I,J,L)
                   STT(I,J,L,IDTEMP) = TC0(L) /
      &            ( 1.D0 + DT_SETTL * VTS(L) / DELZ )
                   MASS(I,J,(L-1),N) = TC0(L) *

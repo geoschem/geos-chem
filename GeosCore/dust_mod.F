@@ -1751,7 +1751,8 @@
 !
       USE LOGICAL_MOD, ONLY : LDEAD
       USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE CMN_SIZE_MOD                   ! Size parameters
+
+      USE CMN_SIZE_MOD      ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  30 Mar 2004 - R. Yantosca - Initial version
