@@ -460,8 +460,6 @@
 !******************************************************************************
 !      
       ! References to F90 modules
-      !USE DAO_MOD,            ONLY : LWI,   PS1,  SLP
-      !USE DAO_MOD,            ONLY : TO31,  TTO3, TROPP1
       USE GIGC_State_Met_Mod, ONLY : MetState
 
       ! Arguments
@@ -480,12 +478,6 @@
      &              SLP   = State_Met%SLP, 
      &              TROPP = State_Met%TROPP1 )
 
-      !! Copy met fields to State_Met
-      !State_Met%LWI    => LWI
-      !State_Met%PS1    => PS1
-      !State_Met%SLP    => SLP
-      !State_Met%TROPP1 => TROPP1
-
 #elif defined( GEOS_5 )
 
       !=================================================================
@@ -499,13 +491,6 @@
      &              TO3  = State_Met%TO31, 
      &              TTO3 = State_Met%TTO3 )
 
-      !! Copy met fields State_Met
-      !State_Met%LWI    => LWI
-      !State_Met%PS1    => PS1
-      !State_Met%SLP    => SLP
-      !State_Met%TO31   => TO31
-      !State_Met%TTO3   => TTO3
-
 #elif defined( GCAP )
 
       !=================================================================
@@ -515,10 +500,6 @@
      &              NHMS = NHMS, 
      &              PS   = State_Met%PS1, 
      &              SLP  = State_Met%SLP )
-
-      !! Copy met fields State_Met
-      !State_Met%PS1    => PS1
-      !State_Met%SLP    => SLP
 
 #endif
 
@@ -551,9 +532,6 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      !USE DAO_MOD,            ONLY : LWI,   PS2,   SLP
-      !USE DAO_MOD,            ONLY : TO32,  TTO3
-      !USE DAO_MOD,            ONLY : TROPP2
       USE GIGC_State_Met_Mod, ONLY : MetState
 
       ! Arguments
@@ -572,12 +550,6 @@
      &              SLP   = State_Met%SLP, 
      &              TROPP = State_Met%TROPP2 )
 
-      !! Copy met fields to State_Met
-      !State_Met%LWI    => LWI
-      !State_Met%PS2    => PS2
-      !State_Met%SLP    => SLP
-      !State_Met%TROPP2 => TROPP2
-
 #elif defined( GEOS_5 )
 
       !=================================================================
@@ -591,13 +563,6 @@
      &              TO3  = State_Met%TO32, 
      &              TTO3 = State_Met%TTO3 )
 
-      !! Copy met fields to State_Met
-      !State_Met%LWI    => LWI
-      !State_Met%PS2    => PS2
-      !State_Met%SLP    => SLP
-      !State_Met%TO32   => TO32
-      !State_Met%TTO3   => TTO3
-
 #elif defined( GCAP )
 
       !=================================================================
@@ -607,10 +572,6 @@
      &              NHMS = NHMS, 
      &              PS   = State_Met%PS2, 
      &              SLP  = State_Met%SLP )
-
-      !! Copy met fields to State_Met
-      !State_Met%PS2    => PS2
-      !State_Met%SLP    => SLP
 
 #endif
 

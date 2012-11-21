@@ -254,17 +254,6 @@
 !
 ! !USES:
 !
-      !-----------------------------------------------------------------------
-      ! Prior to 11/15/12:
-      !USE DAO_MOD, ONLY : CLDF,    CLDTOPS,  CMFMC,    DQRCU
-      !USE DAO_MOD, ONLY : DQRLSAN, DQIDTMST, DQLDTMST, DQVDTMST
-      !USE DAO_MOD, ONLY : DTRAIN,  MOISTQ,   OPTDEP,   PFICU
-      !USE DAO_MOD, ONLY : PFILSAN, PFLCU,    PFLLSAN,  QI
-      !USE DAO_MOD, ONLY : QL,      SPHU,     REEVAPCN, REEVAPLS
-      !USE DAO_MOD, ONLY : T,       TAUCLI,   TAUCLW,   UWND
-      !USE DAO_MOD, ONLY : VWND
-      !-----------------------------------------------------------------------
-      USE DAO_MOD,            ONLY : SPHU
       USE CMN_SIZE_MOD
       USE GIGC_State_Met_Mod, ONLY : MetState
 !
@@ -334,39 +323,9 @@
      &              U        = State_Met%U,            
      &              V        = State_Met%V        )   
 
-      ! Save for debugging
-      SPHU = State_Met%SPHU
-
       ! Save NYMD and NHMS for next call
       LASTNYMD = NYMD
       LASTNHMS = NHMS
-
-      !! Copy met fields to State_Met
-      !State_Met%CLDF     => CLDF
-      !State_Met%CLDTOPS  => CLDTOPS
-      !State_Met%CMFMC    => CMFMC
-      !State_Met%DQRCU    => DQRCU
-      !State_Met%DQRLSAN  => DQRLSAN
-      !State_Met%DQIDTMST => DQIDTMST
-      !State_Met%DQLDTMST => DQLDTMST
-      !State_Met%DQVDTMST => DQVDTMST
-      !State_Met%DTRAIN   => DTRAIN
-      !State_Met%MOISTQ   => MOISTQ
-      !State_Met%OPTDEP   => OPTDEP
-      !State_Met%PFICU    => PFICU
-      !State_Met%PFILSAN  => PFILSAN
-      !State_Met%PFLCU    => PFLCU
-      !State_Met%PFLLSAN  => PFLLSAN
-      !State_Met%QI       => QI
-      !State_Met%QL       => QL
-      !State_Met%SPHU     => SPHU
-      !State_Met%REEVAPCN => REEVAPCN
-      !State_Met%REEVAPLS => REEVAPLS
-      !State_Met%T        => T
-      !State_Met%TAUCLI   => TAUCLI
-      !State_Met%TAUCLW   => TAUCLW
-      !State_Met%U        => UWND
-      !State_Met%V        => VWND
 
       END SUBROUTINE GET_MERRA_A3_FIELDS
 !EOC

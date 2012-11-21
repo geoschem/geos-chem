@@ -191,8 +191,6 @@
 !
 ! !USES:
 !
-      !USE DAO_MOD, ONLY : PS1       ! Surface pressure  [hPa]
-      !USE DAO_MOD, ONLY : RH1       ! Relative humidity [fraction]
       USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
@@ -220,10 +218,6 @@
      &              PS   = State_Met%PS1, 
      &              RH   = State_Met%RH1   )
 
-      !! Copy met fields to State_Met
-      !State_Met%PS1 => PS1
-      !State_Met%RH1 => RH1
-      
       END SUBROUTINE GET_MERRA_I6_FIELDS_1
 !EOC
 !------------------------------------------------------------------------------
@@ -243,8 +237,6 @@
 !
 ! !USES:
 !
-      !USE DAO_MOD, ONLY : PS2       ! Surface pressure  [hPa]
-      !USE DAO_MOD, ONLY : RH2       ! Relative humidity [fraction]
       USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
@@ -271,10 +263,6 @@
      &              PS   = State_Met%PS2, 
      &              RH   = State_Met%RH2  )
 
-      !! Copy met fields to State_Met
-      !State_Met%PS2 => PS2
-      !State_Met%RH2 => RH2
-      
       END SUBROUTINE GET_MERRA_I6_FIELDS_2
 !EOC
 !------------------------------------------------------------------------------

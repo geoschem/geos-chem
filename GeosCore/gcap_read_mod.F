@@ -319,7 +319,6 @@
 !
 ! !USES:
 !
-      !USE DAO_MOD,            ONLY : PHIS, LWI_GISS
       USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -353,10 +352,6 @@
      &                NHMS = NHMS, 
      &                PHIS = State_Met%PHIS, 
      &                LWI  = State_Met%LWI_GISS )
-
-      !! Copy met fields to State_Met
-      !State_Met%PHIS     => PHIS
-      !State_Met%LWI_GISS => LWI_GISS
 
       ! Return to calling program
       END SUBROUTINE GET_GCAP_FIELDS

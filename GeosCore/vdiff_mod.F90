@@ -82,11 +82,7 @@ MODULE VDIFF_MOD
 !-----------------------------------------------------------------------
   real*8 :: &
        zkmin            ! minimum kneutral*f(ri)
-!#if defined( DEVEL )
   real*8, allocatable :: ml2(:)   ! mixing lengths squaredB
-!#else
-!  real*8 :: ml2(plevp)   ! mixing lengths squared
-!#endif
   real*8, allocatable :: qmincg(:)   ! min. constituent concentration 
                                      !  counter-gradient term
   
@@ -1796,7 +1792,6 @@ contains
 ! !USES:
 ! 
     USE COMODE_MOD,         ONLY : JLOP,      REMIS,   VOLUME
-    USE DAO_MOD,            ONLY : USTAR
     USE DAO_MOD,            ONLY : IS_ICE, IS_LAND
     USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_DD, ADD_HgP_DD
     USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
@@ -2447,11 +2442,8 @@ contains
        p_rpdeli           => rpdeli         ( :, :, LLPAR  :1:-1    )
        p_zm               => zm             ( :, :, LLPAR  :1:-1    )
        p_thp              => thp            ( :, :, LLPAR  :1:-1    )
-!#if defined( DEVEL )
        p_shp              => State_Met%SPHU ( :, :, LLPAR  :1:-1    )
-!!#else
-!       p_shp              => shp           ( :, :, LLPAR  :1:-1    )
-!#endif
+
        ! 3-D fields on level edges
        p_pint             => pint           ( :, :, LLPAR+1:1:-1    )
        p_kvh              => kvh            ( :, :, LLPAR+1:1:-1    )
@@ -2481,7 +2473,7 @@ contains
                       sflx,     p_thp,  p_as2,  pblh,            &
                       p_kvh,    p_kvm,  tpert,  qpert,           &
                       p_cgs,    p_shp,  shflx,  IIPAR,           &
-                      State_Met,        ustar_arg=ustar )
+                      State_Met,        ustar_arg=p_ustar )
        enddo
 !$OMP END PARALLEL DO
 

@@ -284,20 +284,6 @@
 !
 ! !USES:
 !
-      !----------------------------------------------------------------------
-      ! NOTE: These are now replaced by the fields of STATE_MET
-      !USE DAO_MOD, ONLY : ALBD,     CLDFRC,   EFLUX,    EVAP    
-      !USE DAO_MOD, ONLY : FRSEAICE, FRSNO,    GRN,      GWETROOT  
-      !USE DAO_MOD, ONLY : GWETTOP,  HFLUX,    LAI,      LWI
-      !USE DAO_MOD, ONLY : PARDF,    PARDR,    PBL,      PREANV
-      !USE DAO_MOD, ONLY : PREACC,   PRECON,   PRELSC,   PRECSNO
-      !USE DAO_MOD, ONLY : RADLWG,   RADSWG,   SEAICE00, SEAICE10 
-      !USE DAO_MOD, ONLY : SEAICE20, SEAICE30, SEAICE40, SEAICE50
-      !USE DAO_MOD, ONLY : SEAICE60, SEAICE70, SEAICE80, SEAICE90
-      !USE DAO_MOD, ONLY : SLP,      SNODP,    SNOMAS,   TROPP
-      !USE DAO_MOD, ONLY : TS,       TSKIN,    U10M,     USTAR
-      !USE DAO_MOD, ONLY : V10M,     Z0 
-      !----------------------------------------------------------------------
       USE CMN_SIZE_MOD
       USE GIGC_State_Met_Mod, ONLY : MetState
 !
@@ -388,33 +374,6 @@
       ! Save NYMD, NHMS for next call
       LASTNYMD = NYMD
       LASTNHMS = NHMS
-
-      !! Copy met fields to State_Met
-      !State_Met%ALBD     => PREACC
-      !State_Met%PRECLSC  => PRELSC
-      !State_Met%PRECSNO  => PRECSNO
-      !State_Met%RADLWG   => RADLWG
-      !State_Met%RADSWG   => RADSWG
-      !State_Met%SEAICE00 => SEAICE00
-      !State_Met%SEAICE10 => SEAICE10
-      !State_Met%SEAICE20 => SEAICE20
-      !State_Met%SEAICE30 => SEAICE30
-      !State_Met%SEAICE40 => SEAICE40
-      !State_Met%SEAICE50 => SEAICE50
-      !State_Met%SEAICE60 => SEAICE60
-      !State_Met%SEAICE70 => SEAICE70
-      !State_Met%SEAICE80 => SEAICE80
-      !State_Met%SEAICE90 => SEAICE90
-      !State_Met%SLP      => SLP
-      !State_Met%SNODP    => SNODP
-      !State_Met%SNOMAS   => SNOMAS
-      !State_Met%TROPP    => TROPP
-      !State_Met%TS       => TS
-      !State_Met%TSKIN    => TSKIN
-      !State_Met%U10M     => U10M
-      !State_Met%USTAR    => USTAR
-      !State_Met%V10M     => V10M
-      !State_Met%Z0       => Z0
 
       END SUBROUTINE GET_MERRA_A1_FIELDS
 !EOC

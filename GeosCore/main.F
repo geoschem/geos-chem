@@ -484,6 +484,7 @@
          CALL DO_PBL_MIX  ( .FALSE., State_Met )
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:1' )
       ELSE
+         !### DEBUG
          CALL DO_PBL_MIX_2( .FALSE., State_Met )
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a NLPBL 1' )
       ENDIF
@@ -1047,7 +1048,7 @@
                CALL DO_PBL_MIX_2( LTURB, State_Met )
                IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a NLPBL 2' )
             ENDIF
-            !### Debug
+
             IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:2' )
 
             !===========================================================
@@ -1841,7 +1842,7 @@
       CALL OPEN_I6_FIELDS(  DATE(1), DATE(2) )
       CALL GET_I6_FIELDS_1( DATE(1), DATE(2), State_Met )
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st I6 TIME' )
-      
+    
 #if   defined( GCAP )
 
       !-----------------------------------------------------------------

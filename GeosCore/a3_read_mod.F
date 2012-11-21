@@ -490,17 +490,8 @@
 !
 ! !USES:
 !
-      !USE DAO_MOD, ONLY : ALBD,    CLDFRC, EVAP,   GRN,      GWETROOT 
-      !USE DAO_MOD, ONLY : GWETTOP, HFLUX,  LAI,    MOLENGTH, OICE    
-      !USE DAO_MOD, ONLY : PARDF,   PARDR,  PBL,    PREACC,   PRECON
-      !USE DAO_MOD, ONLY : PRECSNO, RADLWG, RADSWG, SNICE,    SNOMAS
-      !USE DAO_MOD, ONLY : SNODP,   SNOW,   TROPP,  TS,       TSKIN
-      !USE DAO_MOD, ONLY : U10M,    USTAR,  V10M,   Z0, EFLUX
-      !USE DAO_MOD, ONLY : FRLAND,  FROCEAN,FRLAKE, FRLANDIC
-      USE DAO_MOD, ONLY            : USTAR
+      USE CMN_SIZE_MOD
       USE GIGC_State_Met_Mod, ONLY : MetState
-
-      USE CMN_SIZE_MOD  ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -586,29 +577,6 @@
      &              V10M    = State_Met%V10M,     
      &              Z0      = State_Met%Z0 )
 
-      ! for debugging
-      USTAR = State_Met%USTAR
-
-      ! Copy met fields to State_Met
-      !State_Met%ALBD    => ALBD
-      !State_Met%CLDFRC  => CLDFRC
-      !State_Met%GWETTOP => GWETTOP
-      !State_Met%HFLUX   => HFLUX
-      !State_Met%PARDF   => PARDF
-      !State_Met%PARDR   => PARDR
-      !State_Met%PBLH    => PBL
-      !State_Met%PRECTOT => PREACC
-      !State_Met%PRECCON => PRECON
-      !State_Met%RADLWG  => RADLWG
-      !State_Met%RADSWG  => RADSWG
-      !State_Met%SNOW    => SNOW
-      !State_Met%TS      => TS
-      !State_Met%TSKIN   => TSKIN
-      !State_Met%U10M    => U10M
-      !State_Met%USTAR   => USTAR
-      !State_Met%V10M    => V10M
-      !State_Met%Z0      => Z0
-
 #elif defined( GEOS_5 )
 
       !=================================================================
@@ -654,41 +622,6 @@
      &              FRLAKE   = State_Met%FRLAKE,     
      &              FRLANDIC = State_Met%FRLANDIC )
 
-      ! for debugging
-      USTAR = State_Met%USTAR
-
-      ! Copy met fields to State_Met
-      !State_Met%ALBD     => ALBD
-      !State_Met%CLDFRC   => CLDFRC
-      !State_Met%EFLUX    => EFLUX
-      !State_Met%EVAP     => EVAP
-      !State_Met%FRLAKE   => FRLAKE
-      !State_Met%FRLAND   => FRLAND
-      !State_Met%FRLANDIC => FRLANDIC
-      !State_Met%FROCEAN  => FROCEAN
-      !State_Met%GRN      => GRN
-      !State_Met%GWETROOT => GWETROOT
-      !State_Met%GWETTOP  => GWETTOP
-      !State_Met%HFLUX    => HFLUX
-      !State_Met%LAI      => LAI
-      !State_Met%PARDF    => PARDF
-      !State_Met%PARDR    => PARDR
-      !State_Met%PBLH     => PBL
-      !State_Met%PRECTOT  => PREACC
-      !State_Met%PRECCON  => PRECON
-      !State_Met%PRECSNO  => PRECSNO
-      !State_Met%RADLWG   => RADLWG
-      !State_Met%RADSWG   => RADSWG
-      !State_Met%SNODP    => SNODP
-      !State_Met%SNOMAS   => SNOMAS
-      !State_Met%TROPP    => TROPP
-      !State_Met%TS       => TS
-      !State_Met%TSKIN    => TSKIN
-      !State_Met%U10M     => U10M
-      !State_Met%USTAR    => USTAR
-      !State_Met%V10M     => V10M
-      !State_Met%Z0       => Z0
-
 #elif defined( GCAP )
 
       !================================================================
@@ -721,27 +654,6 @@
 
       ! Convert [m] to [mm]
       State_Met%SNOW = State_Met%SNOW*1000.D0
-
-      ! for debugging
-      USTAR = State_Met%USTAR
-
-      !! Copy met fields to State_Met
-      !State_Met%ALBD     => ALBD
-      !State_Met%GWETTOP  => GWETTOP
-      !State_Met%MOLENGTH => MOLENGTH
-      !State_Met%OICE     => OICE
-      !State_Met%PARDF    => PARDF
-      !State_Met%PARDR    => PARDR
-      !State_Met%PBLH     => PBL
-      !State_Met%PRECTOT  => PREACC
-      !State_Met%PRECCON  => PRECON
-      !State_Met%RADSWG   => RADSWG
-      !State_Met%SNICE    => SNICE
-      !State_Met%SNOW     => SNOW
-      !State_Met%TS       => TS
-      !State_Met%U10M     => U10M
-      !State_Met%USTAR    => USTAR
-      !State_Met%V10M     => V10M
 
 #endif
 

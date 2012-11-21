@@ -43,6 +43,7 @@
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
 !  20 Aug 2010 - R. Yantosca - Moved include files to top of module
 !  03 Aug 2012 - R. Yantosca - Now make IU_A3 a private module variable
+!  09 Nov 2012 - R. Yantosca - Now get met fields from State_Met object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -194,11 +195,6 @@
 !
 ! !USES:
 !
-      !USE DAO_MOD, ONLY : FRLAKE     ! Fraction of grid box that is lake
-      !USE DAO_MOD, ONLY : FRLAND     ! Fraction of grid box that is land
-      !USE DAO_MOD, ONLY : FRLANDIC   ! Fraction of grid box that is land ice
-      !USE DAO_MOD, ONLY : FROCEAN    ! Fraction of grid box that is ocean
-      !USE DAO_MOD, ONLY : PHIS       ! Surface geopotential height
       USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
@@ -228,13 +224,6 @@
      &              FROCEAN  = State_Met%FROCEAN, 
      &              PHIS     = State_Met%PHIS      )
 
-      !! Copy met fields to State_Met
-      !State_Met%FRLAKE   => FRLAKE
-      !State_Met%FRLAND   => FRLAND
-      !State_Met%FRLANDIC => FRLANDIC
-      !State_Met%FROCEAN  => FROCEAN
-      !State_Met%PHIS     => PHIS
-      
       END SUBROUTINE GET_MERRA_CN_FIELDS
 !EOC
 !------------------------------------------------------------------------------

@@ -488,20 +488,8 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      !USE DAO_MOD,      ONLY : CLDF,    CLDFRC,   CLDMAS,   CLDTOPS 
-      !USE DAO_MOD,      ONLY : CMFMC,   DETRAINE, DETRAINN, DNDE    
-      !USE DAO_MOD,      ONLY : DNDN,    DQIDTMST, DQLDTMST, DQRCON
-      !USE DAO_MOD,      ONLY : DQRLSC,  DQVDTMST, DTRAIN,   ENTRAIN
-      !USE DAO_MOD,      ONLY : HKBETA,  HKETA,    MFXC,     MFYC
-      !USE DAO_MOD,      ONLY : MFZ,     MOISTQ,   OPTDEP,   PV
-      !USE DAO_MOD,      ONLY : QI,      QL,       RH,       SPHU 
-      !USE DAO_MOD,      ONLY : T,       TAUCLI,   TAUCLW,   UPDE
-      !USE DAO_MOD,      ONLY : UPDN,    UWND,     VWND,     ZMEU
-      !USE DAO_MOD,      ONLY : ZMMD,    ZMMU
-      USE DAO_MOD,            ONLY : SPHU
+      USE CMN_SIZE_MOD
       USE GIGC_State_Met_Mod, ONLY : MetState
-
-      USE CMN_SIZE_MOD             ! Size parameters
 
       ! Arguments
       INTEGER,        INTENT(IN)    :: NYMD, NHMS 
@@ -544,24 +532,6 @@
      &              ZMMD     = State_Met%ZMMD,       
      &              ZMMU     = State_Met%ZMMU ) 
 
-      ! for debugging
-      SPHU = State_Met%SPHU
-
-      !! Copy met fields to State_Met
-      !State_Met%CLDF     => CLDF
-      !State_Met%CLDTOPS  => CLDTOPS
-      !State_Met%HKBETA   => HKBETA
-      !State_Met%HKETA    => HKETA
-      !State_Met%MOISTQ   => MOISTQ
-      !State_Met%OPTDEP   => OPTDEP
-      !State_Met%SPHU     => SPHU
-      !State_Met%T        => T
-      !State_Met%U        => UWND
-      !State_Met%V        => VWND
-      !State_Met%ZMEU     => ZMEU
-      !State_Met%ZMMD     => ZMMD
-      !State_Met%ZMMU     => ZMMU
-
 #elif defined( GEOS_5 )
 
       !=================================================================      
@@ -595,32 +565,6 @@
      &              U        = State_Met%U,             
      &              V        = State_Met%V          ) 
 
-      ! for debugging
-      SPHU = State_Met%SPHU
-
-      !! Copy met fields to State_Met
-      !State_Met%CLDF     => CLDF
-      !State_Met%CLDTOPS  => CLDTOPS
-      !State_Met%CMFMC    => CMFMC
-      !State_Met%DQIDTMST => DQIDTMST
-      !State_Met%DQLDTMST => DQLDTMST
-      !State_Met%DQVDTMST => DQVDTMST
-      !State_Met%DQRCU    => DQRCON
-      !State_Met%DQRLSAN  => DQRLSC
-      !State_Met%DTRAIN   => DTRAIN
-      !State_Met%MOISTQ   => MOISTQ
-      !State_Met%OPTDEP   => OPTDEP
-      !State_Met%PV       => PV
-      !State_Met%QI       => QI
-      !State_Met%QL       => QL
-      !State_Met%RH       => RH
-      !State_Met%SPHU     => SPHU
-      !State_Met%T        => T
-      !State_Met%TAUCLI   => TAUCLI
-      !State_Met%TAUCLW   => TAUCLW
-      !State_Met%U        => UWND
-      !State_Met%V        => VWND
-
 #elif defined( GCAP ) 
 
       !=================================================================
@@ -645,31 +589,10 @@
      &              UPDE     = State_Met%UPDE,          
      &              UPDN     = State_Met%UPDN,  
      &              V        = State_Met%VWND )
-
-      ! for debugging
-      SPHU = State_Met%SPHU
-    
+     
       ! Create 2-D CLDFRC field from 3-D CLDF field
       CALL MAKE_GCAP_CLDFRC( State_Met%CLDF, State_Met%CLDFRC )
       
-      !! Copy met fields to State_Met
-      !State_Met%CLDF     => CLDF
-      !State_Met%CLDFRC   => CLDFRC
-      !State_Met%CLDTOPS  => CLDTOPS
-      !State_Met%DETRAINE => DETRAINE
-      !State_Met%DETRAINN => DETRAINN
-      !State_Met%DNDE     => DNDE
-      !State_Met%DNDN     => DNDN
-      !State_Met%ENTRAIN  => ENTRAIN
-      !State_Met%MOISTQ   => MOISTQ
-      !State_Met%OPTDEP   => OPTDEP
-      !State_Met%SPHU     => SPHU
-      !State_Met%T        => T
-      !State_Met%U        => UWND
-      !State_Met%UPDE     => UPDE
-      !State_Met%UPDN     => UPDN
-      !State_Met%V        => VWND
-
 #endif
 
       ! Save NYMD and NHMS for next call

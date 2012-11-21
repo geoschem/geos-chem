@@ -3153,7 +3153,6 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,            ONLY : SPHU
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2, GET_YOFFSET
       USE PRESSURE_MOD,       ONLY : GET_BP
@@ -3366,8 +3365,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
          XYZB(I,J,L)    = DSIG(L) * DXYP(J) * 1.d2 / G0
          AD_L(I,J,L)    = State_Met%AIRDEN(L,I,J) *
      &                    State_Met%AIRVOL(I,J,L)
-!         SPHU_KG(I,J,L) = State_Met%SPHU(I,J,L) / 1000d0
-         SPHU_KG(I,J,L) = SPHU(I,J,L) / 1000d0
+         SPHU_KG(I,J,L) = State_Met%SPHU(I,J,L) / 1000d0
       ENDDO
       ENDDO
       ENDDO

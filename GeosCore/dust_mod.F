@@ -972,7 +972,6 @@
 !
 ! !USES:
 !
-      USE DAO_MOD,            ONLY : SPHU
       USE DIAG_MOD,           ONLY : AD06
       USE DIRECTORY_MOD,      ONLY : DATA_DIR
       USE DUST_DEAD_MOD,      ONLY : GET_TIME_INVARIANT_DATA, GET_ORO
@@ -1170,8 +1169,7 @@
             BHT2(I)        = State_Met%BXHEIGHT(I,J,1) / 2.d0
 
             ! Specific humidity at surface [kg H2O/kg air]
-!            Q_H2O(I)       = State_Met%SPHU(I,J,1) / 1000.d0
-            Q_H2O(I)       = SPHU(I,J,1) / 1000.d0
+            Q_H2O(I)       = State_Met%SPHU(I,J,1) / 1000.d0
 
             ! Orography at surface
             ! Ocean is 0; land is 1; ice is 2
