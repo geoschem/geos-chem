@@ -3720,14 +3720,23 @@
             
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
             
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_can )
-            
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_can, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
+
                ! Convert from [kg/yr] to [kg/s]
                EHg0_can = EHg0_can / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -3746,14 +3755,23 @@
             
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
             
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_usa )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_usa, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
                EHg0_usa = EHg0_usa / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -3772,14 +3790,23 @@
             
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
             
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_cam )
-            
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_cam, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
+
                ! Convert from [kg/yr] to [kg/s]
                EHg0_cam = EHg0_cam / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -3798,14 +3825,23 @@
             
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
             
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_sam )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_sam, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
                EHg0_sam = EHg0_sam / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -3824,14 +3860,23 @@
             
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
             
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_waf )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_waf, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
                EHg0_waf = EHg0_waf / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -3850,14 +3895,23 @@
             
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
             
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_eaf )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_eaf, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
                EHg0_eaf = EHg0_eaf / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -3876,14 +3930,23 @@
             
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
             
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_saf )
-            
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_saf, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
+
                ! Convert from [kg/yr] to [kg/s]
                EHg0_saf = EHg0_saf / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -3902,14 +3965,23 @@
             
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
             
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_naf )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_naf, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
                EHg0_naf = EHg0_naf / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -3928,14 +4000,23 @@
             
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
             
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_eur )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_eur, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
                EHg0_eur = EHg0_eur / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -3954,14 +4035,23 @@
             
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
             
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_eeu )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_eeu, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
                EHg0_eeu = EHg0_eeu / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -3980,14 +4070,23 @@
             
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
             
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_mde )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_mde, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
                EHg0_mde = EHg0_mde / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -4006,14 +4105,23 @@
             
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
             
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_sov )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_sov, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
                EHg0_sov = EHg0_sov / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -4032,14 +4140,23 @@
             
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
             
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_sas )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_sas, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
                EHg0_sas = EHg0_sas / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -4058,14 +4175,23 @@
             
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
             
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_eas )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_eas, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
                EHg0_eas = EHg0_eas / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -4084,14 +4210,23 @@
             
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
             
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_sea )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_sea, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
                EHg0_sea = EHg0_sea / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -4110,14 +4245,23 @@
             
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
             
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_jpn )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_jpn, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
                EHg0_jpn = EHg0_jpn / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -4136,14 +4280,23 @@
             
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
             
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_oce )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_oce, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
                EHg0_oce = EHg0_oce / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
             
             ENDIF ! LSPLIT
 !----------------------------------------------------------------            
@@ -4371,14 +4524,23 @@
             
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
             
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_can )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_can, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
                EHg2_can = EHg2_can / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -4397,14 +4559,23 @@
             
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
             
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_usa )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_usa, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
                EHg2_usa = EHg2_usa / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -4423,14 +4594,23 @@
             
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
             
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_cam )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_cam, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
                EHg2_cam = EHg2_cam / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -4449,14 +4629,23 @@
             
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
             
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_sam )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_sam, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
                EHg2_sam = EHg2_sam / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -4475,14 +4664,23 @@
             
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
             
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_waf )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_waf, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
                EHg2_waf = EHg2_waf / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -4501,14 +4699,23 @@
             
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
             
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_eaf )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_eaf, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
                EHg2_eaf = EHg2_eaf / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -4527,14 +4734,23 @@
             
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
             
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_saf )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_saf, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
                EHg2_saf = EHg2_saf / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -4553,14 +4769,23 @@
             
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
             
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_naf )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_naf, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
                EHg2_naf = EHg2_naf / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -4579,14 +4804,23 @@
             
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-     &              XTAU,      I1x1,     J1x1,
-     &              1,         ARRAY1,   QUIET=.TRUE. )
+     &                          XTAU,      I1x1,     J1x1-1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
             
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_eur )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_eur, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
                EHg2_eur = EHg2_eur / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -4605,14 +4839,23 @@
             
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
             
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_eeu )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_eeu, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
                EHg2_eeu = EHg2_eeu / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -4631,14 +4874,23 @@
             
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
             
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_mde )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_mde, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
                EHg2_mde = EHg2_mde / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -4657,14 +4909,23 @@
             
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
             
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_sov )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_sov, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
                EHg2_sov = EHg2_sov / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -4683,14 +4944,23 @@
             
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
             
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_sas )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_sas, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
                EHg2_sas = EHg2_sas / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -4709,14 +4979,23 @@
             
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
             
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_eas )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_eas, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
                EHg2_eas = EHg2_eas / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -4735,14 +5014,23 @@
             
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
             
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_sea )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_sea, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
                EHg2_sea = EHg2_sea / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -4761,14 +5049,23 @@
             
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
             
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_jpn )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_jpn, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
                EHg2_jpn = EHg2_jpn / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -4787,14 +5084,23 @@
             
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
             
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_oce )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_oce, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
             
                ! Convert from [kg/yr] to [kg/s]
                EHg2_oce = EHg2_oce / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
             
             ENDIF ! LSPLIT
 !----------------------------------------------------------------
@@ -4949,14 +5255,23 @@
            
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
            
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_can )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_can, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
            
                ! Convert from [kg/yr] to [kg/s]
                EHgP_can = EHgP_can / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -4975,14 +5290,23 @@
            
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
            
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_usa )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_usa, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
            
                ! Convert from [kg/yr] to [kg/s]
                EHgP_usa = EHgP_usa / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -5001,14 +5325,23 @@
            
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
            
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_cam )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_cam, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
            
                ! Convert from [kg/yr] to [kg/s]
                EHgP_cam = EHgP_cam / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -5027,14 +5360,23 @@
            
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
            
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_sam )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_sam, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
            
                ! Convert from [kg/yr] to [kg/s]
                EHgP_sam = EHgP_sam / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -5053,14 +5395,23 @@
            
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
            
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_waf )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_waf, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
            
                ! Convert from [kg/yr] to [kg/s]
                EHgP_waf = EHgP_waf / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -5079,14 +5430,23 @@
            
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
            
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_eaf )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_eaf, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
            
                ! Convert from [kg/yr] to [kg/s]
                EHgP_eaf = EHgP_eaf / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -5105,14 +5465,23 @@
            
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
            
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_saf )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_saf, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
            
                ! Convert from [kg/yr] to [kg/s]
                EHgP_saf = EHgP_saf / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -5131,14 +5500,23 @@
            
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
            
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_naf )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_naf, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
            
                ! Convert from [kg/yr] to [kg/s]
                EHgP_naf = EHgP_naf / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -5157,14 +5535,23 @@
            
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
            
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_eur )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_eur, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
            
                ! Convert from [kg/yr] to [kg/s]
                EHgP_eur = EHgP_eur / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -5183,14 +5570,23 @@
            
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
            
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_eeu )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_eeu, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
            
                ! Convert from [kg/yr] to [kg/s]
                EHgP_eeu = EHgP_eeu / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -5209,14 +5605,23 @@
            
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
            
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_mde )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_mde, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
            
                ! Convert from [kg/yr] to [kg/s]
                EHgP_mde = EHgP_mde / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -5235,14 +5640,23 @@
            
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
            
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_sov )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_sov, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
            
                ! Convert from [kg/yr] to [kg/s]
                EHgP_sov = EHgP_sov / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -5261,14 +5675,23 @@
            
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
            
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_sas )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_sas, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
            
                ! Convert from [kg/yr] to [kg/s]
                EHgP_sas = EHgP_sas / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -5287,14 +5710,23 @@
            
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
            
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_eas )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_eas, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
            
                ! Convert from [kg/yr] to [kg/s]
                EHgP_eas = EHgP_eas / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -5313,14 +5745,23 @@
            
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
            
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_sea )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_sea, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
            
                ! Convert from [kg/yr] to [kg/s]
                EHgP_sea = EHgP_sea / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -5339,14 +5780,23 @@
            
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
            
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_jpn )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_jpn, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
            
                ! Convert from [kg/yr] to [kg/s]
                EHgP_jpn = EHgP_jpn / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
 
 
                !===========================
@@ -5365,14 +5815,23 @@
            
                ! Read data in [kg/yr]
                CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-     &                          XTAU,      I1x1,     J1x1,
+     &                          XTAU,      I1x1,     J1x1-1,
      &                          1,         ARRAY1,   QUIET=.TRUE. )
            
-               ! Regrid from 1x1 to the current grid
-               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_oce )
+               ! Cast to REAL*8 before regridding
+               GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+               ! Regrid from GENERIC 1x1 to the current grid
+               INGRID  => GEN_1x1(:,:)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1,
+     &                             INGRID,     EHg0_oce, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
            
                ! Convert from [kg/yr] to [kg/s]
                EHgP_oce = EHgP_oce / SEC_PER_YR
+
+               ! Free pointer
+               NULLIFY( INGRID )
            
             ENDIF ! LSPLIT
 
