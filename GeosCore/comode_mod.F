@@ -109,62 +109,24 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Pass the Input Options argument and RC status flag to 
-      ! INIT_COMODE as arguments. (bmy, 11/13/12)
-      !-----------------------------------------------------------------
       SUBROUTINE INIT_COMODE( am_I_Root, Input_Opt, RC )
-#else
-      !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Current practice is to call INIT_COMODE with am_I_Root as the
-      ! only argument. (bmy, 11/13/12)
-      !-----------------------------------------------------------------
-      SUBROUTINE INIT_COMODE( am_I_Root )
-#endif
 !
 ! !USES:
 !    
       USE CMN_SIZE_MOD
       USE COMODE_LOOP_MOD 
       USE ERROR_MOD,          ONLY : ALLOC_ERR
-
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! We need to reference some modules particular to the Grid-
-      ! Independent GEOS-Chem implementation here.   In particular,
-      ! the settings from the Input Options object will replace
-      ! the ITS_A_*SIM functions from tracer_mod.F (bmy, 11/8/12)
-      !-----------------------------------------------------------------
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#else
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Current practice in the std G-C is to reference ITS_A_*_SIM 
-      ! functions directly from GeosCore/tracer_mod.F (bmy, 11/13/12)
-      !-----------------------------------------------------------------
-      USE TRACER_MOD,         ONLY : ITS_AN_AEROSOL_SIM
-      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
-#endif
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
-#endif
 ! 
 ! !REVISION HISTORY: 
 !  31 Aug 2000 - R. Yantosca - Initial version
@@ -194,30 +156,12 @@
       ENDIF
  100  FORMAT( '     - INIT_COMODE: Allocating arrays for SMVGEAR...' )
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Initialize the RC argument.  Also copy logical values from the
-      ! Input Options object over to local variables. (bmy, 11/13/12)
-      !-----------------------------------------------------------------
-
       ! Assume success
       RC                   = GIGC_SUCCESS
 
       ! Copy logical fields from INPUT_OPT to local variables for use below
       IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
       IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
-#else
-      !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Save values from ITS_A_*_SIM functions from tracer_mod.F
-      ! to local variables (bmy, 11/13/12)
-      !-----------------------------------------------------------------
-      IT_IS_AN_AEROSOL_SIM = ITS_AN_AEROSOL_SIM()
-      IT_IS_A_FULLCHEM_SIM = ITS_A_FULLCHEM_SIM()
-#endif
 
       !----------------------------------
       ! FULL CHEMISTRY SIMULATION

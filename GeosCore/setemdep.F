@@ -12,22 +12,7 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Now pass Input_Opt, RC as arguments for the GIGC (bmy, 11/12/13)
-      !-----------------------------------------------------------------
       SUBROUTINE SETEMDEP( am_I_Root, Input_Opt, RC )
-#else
-      !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Current practice is to call SETEMDEP with just NTRACER and
-      ! am_I_Root arguments. (bmy, 11/12/13)
-      !-----------------------------------------------------------------
-      SUBROUTINE SETEMDEP( NTRACER, am_I_Root )
-#endif
 !
 ! !USES:
 !
@@ -38,29 +23,12 @@
 
       USE CMN_SIZE_MOD                   ! Size parameters
       USE COMODE_LOOP_MOD                ! SMVGEAR II arrays
-
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Reference modules pertinent to the GIGC (bmy, 11/13/12)
-      !-----------------------------------------------------------------
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#else
-      !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Current practice is to reference TRACER_NAME from tracer_mod.F
-      ! in the standard GEOS-Chem (bmy, 11/13/12)
-      !-----------------------------------------------------------------=
-      USE TRACER_MOD,   ONLY : TRACER_NAME
-#endif
 
       IMPLICIT NONE
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN) :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
@@ -68,13 +36,6 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(IN) :: RC          ! Success or failure
-#else
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER, INTENT(IN) :: NTRACER     ! # of tracers
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-#endif
 ! 
 ! !REVISION HISTORY: 
 !  03 Jan 1994 - L. Horowitz et al - - Initial version
@@ -94,20 +55,14 @@
 !BOC
 !
 ! !LOCAL VARIABLES:
-!
+!     
+      ! Scalars
       INTEGER            :: I, N, NK, NCS_TEMP
+      INTEGER            :: NTRACER
       CHARACTER(LEN=14)  :: NAME1
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Declare local variables for quantities that will be obtained
-      ! from the Input_Opt object (bmy, 11/13/12)
-      !-----------------------------------------------------------------
-      INTEGER            :: NTRACER
+      ! Arrays
       CHARACTER(LEN=14 ) :: TRACER_NAME(Input_Opt%N_TRACERS)
-#endif
 
       !=================================================================
       ! SETEMDEP begins here!
@@ -120,15 +75,9 @@
          WRITE( IO93,'(a,/)' ) REPEAT( '=', 79 )
       ENDIF
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Set local variables from the Input_Opt object (bmy, 11/13/12)
-      !-----------------------------------------------------------------
+      ! Set local variables from the Input_Opt object
       NTRACER     = Input_Opt%N_TRACERS
       TRACER_NAME = Input_Opt%TRACER_NAME
-#endif
 
       !=================================================================
       ! Flag EMISSION REACTIONS in "globchem.dat" for GEOS-CHEM tracers

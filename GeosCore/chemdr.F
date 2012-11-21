@@ -11,24 +11,8 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Call CHEMDR with dimension values as well as the Input Options,
-      ! Meteorology State,  and Chemistry State objects. (bmy, 11/8/12)
-      !-----------------------------------------------------------------
       SUBROUTINE CHEMDR( am_I_Root, NI,        NJ,        NL, 
      &                   Input_Opt, State_Met, State_Chm, RC  )
-#else
-      !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Current practice is to call DO_CHEMISTRY with am_I_Root as the
-      ! only argument. (bmy, 10/25/12)
-      !-----------------------------------------------------------------
-      SUBROUTINE CHEMDR( am_I_Root, State_Met )
-#endif
 !
 ! !USES:
 !
@@ -55,6 +39,9 @@
       USE ERROR_MOD,            ONLY : DEBUG_MSG
       USE ERROR_MOD,            ONLY : ERROR_STOP
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_YEAR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
+      USE GIGC_State_Chm_Mod,   ONLY : ChmState
       USE GIGC_State_Met_Mod,   ONLY : MetState
       USE PLANEFLIGHT_MOD,      ONLY : SETUP_PLANEFLIGHT
       USE RESTART_MOD,          ONLY : READ_CSPEC_FILE 
@@ -69,64 +56,26 @@
       USE TRACERID_MOD,         ONLY : SETTRACE
       USE TROPOPAUSE_MOD,       ONLY : SAVE_FULL_TROP
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! We need to reference some modules particular to the Grid-
-      ! Independent GEOS-Chem implementation here.   In particular,
-      ! the settings from the Input Options object will replace
-      ! logical flags from logical_mod.F. (bmy, 11/8/12)
-      !-----------------------------------------------------------------
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
-      USE GIGC_State_Chm_Mod,   ONLY : ChmState
-#else
-      !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Current practice in the standard GEOS-Chem is to reference
-      ! logical flags directly from module GeosCore/logical_mod.F.
-      !
-      ! We also need to reference N_TRACERS and XNUMOL from
-      ! module GeosCore/tracer_mod.F (bmy, 11/8/12)
-      !-----------------------------------------------------------------
-      USE TRACER_MOD,           ONLY : N_TRACERS
-      USE TRACER_MOD,           ONLY : XNUMOL
-      USE LOGICAL_MOD,          ONLY : LCARB
-      USE LOGICAL_MOD,          ONLY : LDUST
-      USE LOGICAL_MOD,          ONLY : LPRT
-      USE LOGICAL_MOD,          ONLY : LSSALT
-      USE LOGICAL_MOD,          ONLY : LSULF  
-      USE LOGICAL_MOD,          ONLY : LSOA
-      USE LOGICAL_MOD,          ONLY : LVARTROP
-      USE LOGICAL_MOD,          ONLY : LFUTURE
-      USE LOGICAL_MOD,          ONLY : LSVCSPEC
-#endif
-
       IMPLICIT NONE
 #     include "define.h"
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       INTEGER,        INTENT(IN)    :: NI          ! # of lons on this CPU
       INTEGER,        INTENT(IN)    :: NJ          ! # of lats on this CPU
       INTEGER,        INTENT(IN)    :: NL          ! # of levs on this CPU
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-#endif
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-#endif
+!#endif
 !
 ! !REMARKS:
 !  Important input variables from "dao_mod.f" and "uvalbedo_mod.f":
@@ -311,14 +260,7 @@
       ! For printing debug output
       LOGICAL       :: prtDebug
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! To simplify the coding for the ESMF interface, define local 
-      ! variables values that will be obtained from the Input Options 
-      ! object. (bmy, 11/8/12)
-      !-----------------------------------------------------------------
+      ! Local variables for quantities from Input_Opt
       INTEGER       :: N_TRACERS
       REAL*8        :: XNUMOL(Input_Opt%N_TRACERS)
       LOGICAL       :: LCARB
@@ -330,19 +272,10 @@
       LOGICAL       :: LVARTROP
       LOGICAL       :: LFUTURE
       LOGICAL       :: LSVCSPEC
-#endif
 
       !=================================================================
       ! CHEMDR begins here!
       !=================================================================
-
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Initialize the RC argument.  Also copy logical values from the
-      ! Input Options object over to local variables. (bmy, 11/8/12)
-      !-----------------------------------------------------------------
 
       ! Assume success
       RC        = GIGC_SUCCESS
@@ -359,7 +292,6 @@
       LVARTROP  = Input_Opt%LVARTROP
       LFUTURE   = Input_Opt%LFUTURE
       LSVCSPEC  = Input_Opt%LSVCSPEC
-#endif
 
       ! Do we need to print debug output?
       prtDebug  = ( LPRT .and. am_I_Root )
@@ -482,23 +414,8 @@
          !---------------------------------
 
          ! Read "globchem.dat" chemistry mechanism
-#if defined( DEVEL )
-         !--------------------------------------------------------------
-         !  %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%%
-         !
-         ! Now pass the Input Options object and RC status flag to
-         ! routine READCHEM (bmy, 11/13/12)
-         !--------------------------------------------------------------
          CALL READCHEM( am_I_Root, Input_Opt, RC )
-#else
-         !--------------------------------------------------------------
-         !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-         !
-         ! Current practice in the std G-C is to call READCHEM with
-         ! just the am_I_Root argument (bmy, 11/13/12)
-         !--------------------------------------------------------------
-         CALL READCHEM( am_I_Root )
-#endif
+
          ! Set NCS=NCSURBAN here since we have defined our tropospheric
          ! chemistry mechanism in the urban slot of SMVGEAR II (bmy, 4/21/03)
          NCS = NCSURBAN
@@ -554,30 +471,7 @@
          !-------------------------------
          ! Flag certain chemical species
          !-------------------------------
-#if defined( DEVEL )
-         !--------------------------------------------------------------
-         !  %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%%
-         !
-         ! Here we are not using the ESMF interface to drive the
-         ! GEOS-Chem chemistry, but instead are compiling the regular
-         ! GEOS-Chem with the DEVEL=yes tag.  In this case, pass
-         ! the Input Options object, Chemistry State object and 
-         ! RC status flag to routine SETTRACE. 
-         !
-         ! NOTE: This is a temporary situation, as we will eventually
-         ! use the GEOS-Chem Chemistry State object instead of the
-         ! existing tracer array STT. (bmy, 10/25/12)
-         !--------------------------------------------------------------
          CALL SETTRACE( am_I_Root, Input_Opt, State_Chm, RC )
-#else
-         !--------------------------------------------------------------
-         !            %%%%% TRADITIONAL GEOS-Chem %%%%%
-         !
-         ! Current practice is to call SETTRACE with am_I_Root as the
-         ! only argument. (bmy, 10/25/12)
-         !--------------------------------------------------------------
-         CALL SETTRACE( am_I_Root )
-#endif
 
          !### Debug
          IF ( prtDebug ) THEN
@@ -587,22 +481,8 @@
          !-------------------------------
          ! Flag emission & drydep rxns
          !-------------------------------
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-         !--------------------------------------------------------------
-         !    %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-         !
-         ! Now pass the Input Options and RC to SETEMDEP (bmy, 11/13/12)
-         !--------------------------------------------------------------
          CALL SETEMDEP( am_I_Root, Input_Opt, RC )
-#else
-         !--------------------------------------------------------------
-         !            %%%%% TRADITIONAL GEOS-Chem %%%%%
-         !  
-         ! Current practice in the std GEOS-Chem is to call SETEMDEP w/
-         ! just N_TRACERs and am_I_Root as arguments (bmy, 11/13/12)
-         !--------------------------------------------------------------
-         CALL SETEMDEP( N_TRACERS, am_I_Root )
-#endif
+
          !### Debug
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMDR: after SETEMDEP' )
@@ -650,28 +530,9 @@
       !=================================================================
       IF ( LSULF .or. LCARB .or. LDUST .or. LSSALT ) THEN
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-         !--------------------------------------------------------------
-         !   %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-         !
-         ! Now pass the Input Options object and RC status flag
-         ! as arguments to AEROSOL_CONC (bmy, 11/13/12)
-         !--------------------------------------------------------------
-
          ! Skip this section if all these are turned off
          CALL AEROSOL_CONC( am_I_Root, Input_Opt, State_Met, RC )
 
-#else
-         !--------------------------------------------------------------
-         !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-         !
-         ! Current practice in the standard GEOS-Chem is to call 
-         ! AEROSOL_CONC without any arguments (bmy, 11/13/12)
-         !--------------------------------------------------------------
-
-         ! Skip this section if all these are turned off
-         CALL AEROSOL_CONC( State_Met )
-#endif
       ENDIF
 
       !=================================================================
@@ -804,24 +665,8 @@
 
       ! Call RDAER to compute AOD for FAST-J (skim, 02/03/11)
       WAVELENGTH = 0
-
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !    %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Now pass the Input Options and RC to RDAER (bmy, 11/13/12)
-      !-----------------------------------------------------------------
       CALL RDAER( am_I_Root, Input_Opt, State_Met,  RC,
      &            MONTH,     YEAR,      WAVELENGTH      )
-#else
-      !-----------------------------------------------------------------
-      !            %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !  
-      ! Current practice in the std GEOS-Chem is to call RDAER w/
-      ! just am_I_Root, MONTH, YEAR, WAVELENGTH (bmy, 11/13/12)
-      !-----------------------------------------------------------------
-      CALL RDAER( am_I_Root, State_Met, MONTH, YEAR, WAVELENGTH )
-#endif
 
       !### Debug
       IF ( prtDebug ) THEN 
@@ -937,11 +782,7 @@
       ! Call DO_DIAG_PL to compute the family prod/loss diagnostics.
       ! This is current practice in the std GEOS-Chem. (bmy, 10/24/12)
       !-----------------------------------------------------------------
-#if defined( DEVEL )
-      IF ( Input_Opt%LFAMILY ) THEN                      !%%% For ESMF
-#else
-      IF ( LFAMILY ) THEN                                !%%% For std G-C
-#endif
+      IF ( Input_Opt%LFAMILY ) THEN
          CALL DO_DIAG_PL( am_I_Root )
 
          !### Debug

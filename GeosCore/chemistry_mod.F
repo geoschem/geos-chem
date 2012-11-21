@@ -68,24 +68,8 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Call CHEMDR with dimension values as well as the Input Options,
-      ! Meteorology State,  and Chemistry State objects. (bmy, 11/8/12)
-      !-----------------------------------------------------------------
       SUBROUTINE DO_CHEMISTRY( am_I_Root, NI,        NJ,        NL, 
      &                         Input_Opt, State_Chm, State_Met, RC )
-#else
-      !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Current practice is to call DO_CHEMISTRY with am_I_Root as the
-      ! only argument. (bmy, 10/25/12)
-      !-----------------------------------------------------------------
-      SUBROUTINE DO_CHEMISTRY( am_I_Root, State_Met )
-#endif
 !
 ! !USES:
 !
@@ -106,6 +90,9 @@
       USE DUST_MOD,           ONLY : CHEMDUST
       USE DUST_MOD,           ONLY : RDUST_ONLINE
       USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GLOBAL_CH4_MOD,     ONLY : CHEMCH4
       USE H2_HD_MOD,          ONLY : CHEM_H2_HD
@@ -125,65 +112,23 @@
       USE TRACER_MOD,         ONLY : STT  
       USE TRACERID_MOD,       ONLY : IDTACET
       USE TRACERID_MOD,       ONLY : IDTISOP
-
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! We need to reference some modules particular to the Grid-
-      ! Independent GEOS-Chem implementation here.   In particular,
-      ! the settings from the Input Options object will replace
-      ! logical flags from logical_mod.F. (bmy, 11/8/12)
-      !-----------------------------------------------------------------
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-#else
-      !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Current practice in the standard GEOS-Chem is to reference
-      ! logical flags directly from module GeosCore/logical_mod.F.
-      ! We also reference the ITS_A_*_SIM functions directly from
-      ! module GeosCore/tracer_mod.F.   (bmy, 11/8/12)
-      !-----------------------------------------------------------------
-      USE LOGICAL_MOD,     ONLY : LCARB, LCHEM,  LCRYST, LDUST, LSCHEM
-      USE LOGICAL_MOD,     ONLY : LPRT,  LSSALT, LSULF,  LSOA,  LNLPBL 
-      USE TRACER_MOD,      ONLY : N_TRACERS
-      USE TRACER_MOD,      ONLY : ITS_A_C2H6_SIM
-      USE TRACER_MOD,      ONLY : ITS_A_CH3I_SIM
-      USE TRACER_MOD,      ONLY : ITS_A_CH4_SIM
-      USE TRACER_MOD,      ONLY : ITS_A_FULLCHEM_SIM
-      USE TRACER_MOD,      ONLY : ITS_A_H2HD_SIM
-      USE TRACER_MOD,      ONLY : ITS_A_HCN_SIM
-      USE TRACER_MOD,      ONLY : ITS_A_MERCURY_SIM
-      USE TRACER_MOD,      ONLY : ITS_A_RnPbBe_SIM
-      USE TRACER_MOD,      ONLY : ITS_A_TAGCO_SIM
-      USE TRACER_MOD,      ONLY : ITS_A_TAGOX_SIM
-      USE TRACER_MOD,      ONLY : ITS_AN_AEROSOL_SIM
-      USE TRACER_MOD,      ONLY : ITS_NOT_COPARAM_OR_CH4
-#endif
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       INTEGER,        INTENT(IN)    :: NI          ! # of lons on this PET
       INTEGER,        INTENT(IN)    :: NJ          ! # of lats on this PET 
       INTEGER,        INTENT(IN)    :: NL          ! # of levels on this PET
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-#endif
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-#endif
 !
 ! !REMARKS:
 !  (1) State_Chm%TRACERS needs to enter this routine w/ units of [kg].
@@ -255,6 +200,7 @@
 !
 ! !LOCAL VARIABLES:
 ! 
+      INTEGER       :: N_TRACERS
       INTEGER       :: N_TROP
       INTEGER       :: MONTH
       INTEGER       :: YEAR
@@ -271,19 +217,6 @@
       LOGICAL       :: IT_IS_A_TAGOX_SIM
       LOGICAL       :: IT_IS_AN_AEROSOL_SIM
       LOGICAL       :: IT_IS_NOT_COPARAM_OR_CH4
-
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! We need to define local logical flags to hold corresponding
-      ! values from the Input Options object.  We do not need to define
-      ! these for the traditional GEOS-Chem since it will refer to 
-      ! variables from the same name from GeosCore/logical_mod.F.
-      ! Also need to shadow the N_TRACERS variable from module
-      ! GeosCore/tracer_mod.F. (bmy, 11/9/12)
-      !-----------------------------------------------------------------
-      INTEGER       :: N_TRACERS
       LOGICAL       :: LCARB
       LOGICAL       :: LCHEM
       LOGICAL       :: LCRYST
@@ -294,7 +227,6 @@
       LOGICAL       :: LSULF
       LOGICAL       :: LSOA
       LOGICAL       :: LNLPBL
-#endif
 
       ! SAVEd variables
       LOGICAL, SAVE :: FIRST = .TRUE.
@@ -302,30 +234,6 @@
       !=================================================================
       ! DO_CHEMISTRY begins here!
       !=================================================================
-
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! At present (13 Nov 2012), we have not yet completely replaced 
-      ! the GEOS-Chem arrays with fields from the Chemistry State
-      ! (i.e. State_Chm) and Meteorology State (i.e. State_Met) 
-      ! objects.  In order to continue GIGC development without 
-      ! disrupting the existing GEOS-Chem workflow, we shall copy the 
-      ! tracer array State_Chm%TRACERS to STT before chemistry. 
-      !
-      ! Also note: State_Chm%TRACERS needs to enter this routine with
-      ! units of [kg].  If we are calling this routine from the 
-      ! traditional "main.F" driver, then the tracers are already in
-      ! [kg] and no further unit conversion is necessary.  If on the
-      ! other hand we are calling this routine from the ESMF interface,
-      ! then we need to convert State_Chm%TRACERS from [v/v] to [kg]
-      ! in the calling routine GIGC_Do_Chem (in ESMF/gigc_chemdr.F90)
-      !
-      ! To simplify the coding for both the ESMF interface and the
-      ! traditional GEOS-Chem, define local logical variables for
-      ! various flags and simulation types. (bmy, 11/8/12)
-      !-----------------------------------------------------------------
 
       ! Assume success
       RC                       = GIGC_SUCCESS
@@ -358,29 +266,6 @@
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       STT(:,:,:,1:N_TRACERS)   = State_Chm%TRACERS(:,:,:,1:N_TRACERS)
 
-#else
-      !--------------------------------------------------------------
-      !               %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Define local logical flags to store values from the various
-      ! ITS_A_*_SIM routines from GeosCore/tracer_mod.F.  We do this
-      ! in order to clarify the coding for both the ESMF interface
-      ! as well as for the traditional GEOS-Chem.  (bmy, 11/8/12)
-      !--------------------------------------------------------------
-      IT_IS_A_C2H6_SIM         = ITS_A_C2H6_SIM()
-      IT_IS_A_CH3I_SIM         = ITS_A_CH3I_SIM()
-      IT_IS_A_CH4_SIM          = ITS_A_CH4_SIM()
-      IT_IS_A_FULLCHEM_SIM     = ITS_A_FULLCHEM_SIM()
-      IT_IS_A_H2HD_SIM         = ITS_A_H2HD_SIM()
-      IT_IS_A_HCN_SIM          = ITS_A_HCN_SIM()
-      IT_IS_A_MERCURY_SIM      = ITS_A_MERCURY_SIM()
-      IT_IS_A_RnPbBe_SIM       = ITS_A_RnPbBe_SIM()
-      IT_IS_A_TAGCO_SIM        = ITS_A_TAGCO_SIM()
-      IT_IS_A_TAGOX_SIM        = ITS_A_TAGOX_SIM()
-      IT_IS_AN_AEROSOL_SIM     = ITS_AN_AEROSOL_SIM()
-      IT_IS_NOT_COPARAM_OR_CH4 = ITS_NOT_COPARAM_OR_CH4()
-#endif
-
       ! Compute optical depths (except for CH4 simulation)
       IF ( .not. IT_IS_A_CH4_SIM ) THEN
          CALL OPTDEPTH( LLPAR,            State_Met%CLDF,
@@ -397,78 +282,68 @@
          !---------------------------------
          IF ( IT_IS_A_FULLCHEM_SIM ) THEN 
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-            !-----------------------------------------------------------
-            !  %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-            !
-            ! Pass am_I_Root, Input_Opt, the RC status flag, and in
-            ! some cases, State_Met and State_Chm to routines
-            ! as is necessary.  (bmy, 11/14/12)
-            !-----------------------------------------------------------
-
             ! Call gas-phase chemistry
             CALL CHEMDR( am_I_Root, NI,        NJ,        NL, 
      &                   Input_Opt, State_Met, State_Chm, RC  )
 
+!-----------------------------------------------------------------------------
+! NOTE: Don't apply the new call to DO_STRAT_CHEM just yet (bmy, 11/21/12)
+!
+!            ! Call linearized stratospheric scheme
+!            IF ( LSCHEM ) THEN 
+!               CALL DO_STRAT_CHEM( am_I_Root, Input_Opt, 
+!     &                             State_Met, State_Chm, RC )
+!            ENDIF
+!
+!-----------------------------------------------------------------------------
+
             ! Call linearized stratospheric scheme
-            IF ( LSCHEM ) THEN 
-               CALL DO_STRAT_CHEM( am_I_Root, Input_Opt, 
-     &                             State_Met, State_Chm, RC )
-            ENDIF
+            IF ( LSCHEM ) CALL DO_STRAT_CHEM( am_I_Root, State_Met )
 
             ! Do seasalt aerosol chemistry
             IF ( LSSALT ) THEN
                CALL CHEMSEASALT( am_I_Root, Input_Opt, State_Met, RC )
             ENDIF
 
-            ! Also do sulfate chemistry
-            IF ( LSULF ) THEN
+!NOTE: Activate the new calls individually (bmy, 11/21/12)
+!            ! Also do sulfate chemistry
+!            IF ( LSULF ) THEN
+!
+!               ! Do sulfate chemistry
+!               CALL CHEMSULFATE( am_I_Root, Input_Opt, State_Met, RC )
+!
+!               ! Do aerosol thermodynamic equilibrium
+!               IF ( LSSALT ) THEN
+!
+!#if   !defined( NO_ISORROPIA )
+!                  ! ISOROPIA takes Na+, Cl- into account
+!                  CALL DO_ISOROPIAII( am_I_Root, Input_Opt, 
+!     &                                State_Met, RC         )
+!#endif
+!
+!               ELSE
+!
+!                  ! RPMARES does not take Na+, Cl- into account
+!                  CALL DO_RPMARES( am_I_Root, State_Met )
+!
+!               ENDIF
+!
+!            ENDIF
+!
+!            ! Do carbonaceous aerosol chemistry
+!            IF ( LCARB ) THEN
+!               CALL CHEMCARBON( am_I_Root, Input_Opt, State_Met, RC )
+!            ENDIF
+!
+!            ! Do dust aerosol chemistry
+!            IF ( LDUST ) THEN
+!               CALL CHEMDUST( am_I_Root, Input_Opt, State_Met, RC )
+!            ENDIF
+!#else
+!------------------------------------------
 
-               ! Do sulfate chemistry
-               CALL CHEMSULFATE( am_I_Root, Input_Opt, State_Met, RC )
-
-               ! Do aerosol thermodynamic equilibrium
-               IF ( LSSALT ) THEN
-
-#if   !defined( NO_ISORROPIA )
-                  ! ISOROPIA takes Na+, Cl- into account
-                  CALL DO_ISOROPIAII( am_I_Root, Input_Opt, 
-     &                                State_Met, RC         )
-#endif
-
-               ELSE
-
-                  ! RPMARES does not take Na+, Cl- into account
-                  CALL DO_RPMARES( am_I_Root, State_Met )
-
-               ENDIF
-
-            ENDIF
-
-            ! Do carbonaceous aerosol chemistry
-            IF ( LCARB ) THEN
-               CALL CHEMCARBON( am_I_Root, Input_Opt, State_Met, RC )
-            ENDIF
-
-            ! Do dust aerosol chemistry
-            IF ( LDUST ) THEN
-               CALL CHEMDUST( am_I_Root, Input_Opt, State_Met, RC )
-            ENDIF
-#else
-            !-----------------------------------------------------------
-            !            %%%%% TRADITIONAL GEOS-Chem %%%%%
-            ! 
-            ! Preserve existing subroutine calls (bmy, 11/13/12)
-            !-----------------------------------------------------------
-
-            ! Call gas-phase chemistry
-            CALL CHEMDR( am_I_Root, State_Met )
-
-            ! Call linearized stratospheric scheme
-            IF ( LSCHEM ) CALL DO_STRAT_CHEM( am_I_Root, State_Met )
-
-            ! Do seasalt aerosol chemistry
-            IF ( LSSALT ) CALL CHEMSEASALT( am_I_Root, State_Met )
+! NOTE: Replace the calls below with the ones above.  This has to be done
+! in a piecemeal fashion (bmy, 11/21/12) 
 
             ! Also do sulfate chemistry
             IF ( LSULF ) THEN
@@ -498,7 +373,6 @@
  
             ! Do dust aerosol chemistry
             IF ( LDUST ) CALL CHEMDUST( am_I_Root, State_Met )
-#endif
  
             ! ND44 drydep fluxes
             ! The drydep fluxes diag. is done in vdiff_mod.f when non-local 
@@ -526,13 +400,9 @@
             IF ( FIRST ) THEN
 
                ! Init chem mechanism and photolysis
-               CALL READER  ( FIRST,         am_I_Root )
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-               CALL READCHEM( am_I_Root, Input_Opt, RC )    !%%% For ESMF
-#else
-               CALL READCHEM(                am_I_Root )    !%%% Std G-C
-#endif
-               CALL INPHOT  ( LLTROP, NPHOT, am_I_Root )
+               CALL READER  ( FIRST,     am_I_Root            )
+               CALL READCHEM( am_I_Root, Input_Opt, RC        )
+               CALL INPHOT  ( LLTROP,    NPHOT,     am_I_Root )
  
                ! Reset NCS with NCSURBAN
                NCS     = NCSURBAN
@@ -546,14 +416,6 @@
                FIRST = .FALSE.
             ENDIF
  
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-            !-----------------------------------------------------------
-            !  %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-            !
-            ! Add the Input Options object and RC status flag as
-            ! arguments to RDAER for the GIGC.  (bmy, 11/13/12)
-            !-----------------------------------------------------------
-
             ! Compute aerosol & dust concentrations [kg/m3]
             ! (NOTE: SOILDUST in "aerosol_mod.f" is computed here)
             CALL AEROSOL_CONC( am_I_Root, Input_Opt, State_Met, RC )
@@ -565,73 +427,55 @@
             CALL RDAER( am_I_Root, Input_Opt, State_Met,  RC,
      &                  MONTH,     YEAR,      WAVELENGTH      )
 
-            !*** AEROSOL THERMODYNAMIC EQUILIBRIUM ***
-            IF ( LSSALT ) THEN
-
-#if   !defined( NO_ISORROPIA )
-               ! ISOROPIA takes Na+, Cl- into account
-               CALL DO_ISOROPIAII( am_I_Root, Input_Opt, State_Met, RC )
-#endif
-
-            ELSE
-
-               ! RPMARES does not take Na+, Cl- into account
-               ! (skip for crystalline & aqueous offline run)
-               IF ( .not. LCRYST ) THEN
-                  CALL DO_RPMARES( am_I_Root, State_Met )
-               ENDIF
-
-            ENDIF
-
-            !*** SEASALT AEROSOLS ***
-            IF ( LSSALT ) THEN
-               CALL CHEMSEASALT( am_I_Root, Input_Opt, State_Met, RC )
-            ENDIF
-
-            !*** SULFATE AEROSOLS ***
-            IF ( LSULF .or. LCRYST ) THEN
-
-               ! Do sulfate chemistry
-               CALL CHEMSULFATE( am_I_Root, Input_Opt, State_Met, RC )
-
-            ENDIF
-
-            !*** CARBON AND 2NDARY ORGANIC AEROSOLS ***
-            IF ( LCARB ) THEN
-               CALL CHEMCARBON( am_I_Root, Input_Opt, State_Met, RC )
-            ENDIF
-
-            !*** MINERAL DUST AEROSOLS ***
-            IF ( LDUST ) THEN
-
-               ! Do dust aerosol chemistry
-               CALL CHEMDUST( am_I_Root, Input_Opt, State_Met, RC )
-
-               WAVELENGTH = 0
-
-               ! Compute dust OD's & surface areas
-               CALL RDUST_ONLINE( SOILDUST, WAVELENGTH, State_Met )
-            ENDIF
-
-#else
-            !-----------------------------------------------------------
-            !            %%%%% TRADITIONAL GEOS-Chem %%%%%
-            !
-            ! Current practice in the std GEOS-Chem is to call both
-            ! RDAER with just am_I_Root, MONTH, YEAR, and WAVELENGTH
-            ! arguments. (bmy, 11/13/12)
-            !-----------------------------------------------------------
-
-            ! Compute aerosol & dust concentrations [kg/m3]
-            ! (NOTE: SOILDUST in "aerosol_mod.f" is computed here)
-            CALL AEROSOL_CONC( State_Met )
- 
-            ! Compute AOD's and surface areas at 999 nm
-            MONTH = 0
-            YEAR  = 0
-            WAVELENGTH = 0
-            CALL RDAER( am_I_Root, State_Met, MONTH, YEAR, WAVELENGTH )
- 
+!NOTE: Activate these new calls individually (bmy, 11/21/12)
+!            !*** AEROSOL THERMODYNAMIC EQUILIBRIUM ***
+!            IF ( LSSALT ) THEN
+!
+!#if   !defined( NO_ISORROPIA )
+!               ! ISOROPIA takes Na+, Cl- into account
+!               CALL DO_ISOROPIAII( am_I_Root, Input_Opt, State_Met, RC )
+!#endif
+!
+!            ELSE
+!
+!               ! RPMARES does not take Na+, Cl- into account
+!               ! (skip for crystalline & aqueous offline run)
+!               IF ( .not. LCRYST ) THEN
+!                  CALL DO_RPMARES( am_I_Root, State_Met )
+!               ENDIF
+!
+!            ENDIF
+!
+!            !*** SEASALT AEROSOLS ***
+!            IF ( LSSALT ) THEN
+!               CALL CHEMSEASALT( am_I_Root, Input_Opt, State_Met, RC )
+!            ENDIF
+!
+!            !*** SULFATE AEROSOLS ***
+!            IF ( LSULF .or. LCRYST ) THEN
+!
+!               ! Do sulfate chemistry
+!               CALL CHEMSULFATE( am_I_Root, Input_Opt, State_Met, RC )
+!
+!            ENDIF
+!
+!            !*** CARBON AND 2NDARY ORGANIC AEROSOLS ***
+!            IF ( LCARB ) THEN
+!               CALL CHEMCARBON( am_I_Root, Input_Opt, State_Met, RC )
+!            ENDIF
+!
+!            !*** MINERAL DUST AEROSOLS ***
+!            IF ( LDUST ) THEN
+!
+!               ! Do dust aerosol chemistry
+!               CALL CHEMDUST( am_I_Root, Input_Opt, State_Met, RC )
+!
+!               WAVELENGTH = 0
+!
+!               ! Compute dust OD's & surface areas
+!               CALL RDUST_ONLINE( SOILDUST, WAVELENGTH, State_Met )
+!            ENDIF
+!
             !*** AEROSOL THERMODYNAMIC EQUILIBRIUM ***
             IF ( LSSALT ) THEN
 
@@ -650,7 +494,9 @@
             ENDIF
 
             !*** SEASALT AEROSOLS ***
-            IF ( LSSALT ) CALL CHEMSEASALT( am_I_Root, State_Met )
+            IF ( LSSALT ) THEN
+               CALL CHEMSEASALT( am_I_Root, Input_Opt, State_Met, RC )
+            ENDIF
 
             !*** SULFATE AEROSOLS ***
             IF ( LSULF .or. LCRYST ) THEN
@@ -674,7 +520,7 @@
                ! Compute dust OD's & surface areas
                CALL RDUST_ONLINE( SOILDUST, WAVELENGTH, State_Met )
             ENDIF
-#endif
+!#endif
  
          !---------------------------------
          ! Rn-Pb-Be
@@ -1127,7 +973,7 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
       !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
       !
@@ -1135,15 +981,15 @@
       ! to RECOMPUTE_OD (bmy, 11/13/12)
       !-----------------------------------------------------------------
       SUBROUTINE RECOMPUTE_OD( am_I_Root, Input_Opt, State_Met, RC )
-#else
-      !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Current practice in the standard GEOS-Chem is to call
-      ! RECOMPUTE_OD only with am_I_Root (bmy, 11/13/12)
-      !-----------------------------------------------------------------
-      SUBROUTINE RECOMPUTE_OD( am_I_Root, State_Met )
-#endif
+!#else
+!      !-----------------------------------------------------------------
+!      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+!      !
+!      ! Current practice in the standard GEOS-Chem is to call
+!      ! RECOMPUTE_OD only with am_I_Root (bmy, 11/13/12)
+!      !-----------------------------------------------------------------
+!      SUBROUTINE RECOMPUTE_OD( am_I_Root, State_Met )
+!#endif
 !
 ! !USES:
 !
@@ -1158,7 +1004,7 @@
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : GET_YEAR
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
       !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
       !
@@ -1169,32 +1015,32 @@
       !-----------------------------------------------------------------
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#else
-      !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Current practice in the standard GEOS-Chem is to reference
-      ! logical flags directly from module GeosCore/logical_mod.F, 
-      ! and the ITS_A_*_SIM functions from GeosCore/tracer_mod.F. 
-      ! (bmy, 11/13/12)
-      !-----------------------------------------------------------------
-      USE LOGICAL_MOD,        ONLY : LCARB, LCHEM, LCRYST, LDUST
-      USE LOGICAL_MOD,        ONLY : LPRT, LSSALT, LSULF,  LSOA
-      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
-      USE TRACER_MOD,         ONLY : ITS_AN_AEROSOL_SIM
-#endif
+!#else
+!      !-----------------------------------------------------------------
+!      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+!      !
+!      ! Current practice in the standard GEOS-Chem is to reference
+!      ! logical flags directly from module GeosCore/logical_mod.F, 
+!      ! and the ITS_A_*_SIM functions from GeosCore/tracer_mod.F. 
+!      ! (bmy, 11/13/12)
+!      !-----------------------------------------------------------------
+!      USE LOGICAL_MOD,        ONLY : LCARB, LCHEM, LCRYST, LDUST
+!      USE LOGICAL_MOD,        ONLY : LPRT, LSSALT, LSULF,  LSOA
+!      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
+!      USE TRACER_MOD,         ONLY : ITS_AN_AEROSOL_SIM
+!#endif
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
-#endif
+!#endif
 !
 ! !REVISION HISTORY: 
 !  03 Fev 2011 - Adapted from chemdr.f by skim
@@ -1212,7 +1058,7 @@
       LOGICAL :: IT_IS_A_FULLCHEM_SIM
       LOGICAL :: IT_IS_AN_AEROSOL_SIM
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
       !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
       !
@@ -1224,7 +1070,7 @@
       LOGICAL :: LPRT, LSSALT, LSULF,  LSOA
       LOGICAL :: ITS_A_FULLCHEM_SIM
       LOGICAL :: ITS_AN_AEROSOL_SIM
-#endif
+!#endif
 
       !=================================================================
       ! RECOMPUTE_OD begins here!
@@ -1234,7 +1080,7 @@
       MONTH = GET_MONTH()
       YEAR  = GET_YEAR()
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
       !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
       !
@@ -1256,16 +1102,16 @@
       LSOA                 = Input_Opt%LSOA
       IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
       IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM    
-#else
-      !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Current practice in the std GEOS-Chem is to reference the
-      ! ITS_A_*_SIM functions directly from tracer_mod.F (bmy, 11/13/12)
-      !-----------------------------------------------------------------
-      IT_IS_A_FULLCHEM_SIM = ITS_A_FULLCHEM_SIM()
-      IT_IS_AN_AEROSOL_SIM = ITS_AN_AEROSOL_SIM()
-#endif
+!#else
+!      !-----------------------------------------------------------------
+!      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+!      !
+!      ! Current practice in the std GEOS-Chem is to reference the
+!      ! ITS_A_*_SIM functions directly from tracer_mod.F (bmy, 11/13/12)
+!      !-----------------------------------------------------------------
+!      IT_IS_A_FULLCHEM_SIM = ITS_A_FULLCHEM_SIM()
+!      IT_IS_AN_AEROSOL_SIM = ITS_AN_AEROSOL_SIM()
+!#endif
 
       ! First make sure chemistry is turned on
       IF ( LCHEM ) THEN
@@ -1277,7 +1123,7 @@
             IF ( LSULF .or. LCARB .or. LDUST .or. LSSALT ) THEN
 
                ! Skip this section if all of these are turned off
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
                !--------------------------------------------------------------
                !    %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
                ! 
@@ -1285,15 +1131,15 @@
                ! (bmy, 11/13/12)
                !--------------------------------------------------------------
                CALL AEROSOL_CONC( am_I_Root, Input_Opt, State_Met, RC )
-#else
-               !--------------------------------------------------------------
-               !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-               !
-               ! Current practice in the std GEOS-Chem is to call AEROSOL_CONC
-               ! w/ am_I_Root, MONTH, YEAR, and WAVELENGTH (bmy, 11/13/12)
-               !--------------------------------------------------------------
-               CALL AEROSOL_CONC( State_Met )
-#endif
+!#else
+!               !--------------------------------------------------------------
+!               !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+!               !
+!               ! Current practice in the std GEOS-Chem is to call AEROSOL_CONC
+!               ! w/ am_I_Root, MONTH, YEAR, and WAVELENGTH (bmy, 11/13/12)
+!               !--------------------------------------------------------------
+!               CALL AEROSOL_CONC( State_Met )
+!#endif
 
                !===============================================================
                ! Call RDAER -- computes aerosol optical depths
@@ -1302,7 +1148,7 @@
                ! Calculate the AOD at the wavelength specified in jv_spec_aod
                WAVELENGTH = 1
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
                !--------------------------------------------------------------
                !    %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
                ! 
@@ -1311,16 +1157,16 @@
                CALL RDAER( am_I_Root, Input_Opt, State_Met,  RC,
      &                     MONTH,     YEAR,      WAVELENGTH      )
 
-#else
-               !--------------------------------------------------------------
-               !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-               !
-               ! Current practice in the std GEOS-Chem is to call RDAER w/
-               ! just am_I_Root, MONTH, YEAR, and WAVELENGTH (bmy, 11/13/12)
-               !--------------------------------------------------------------
-               CALL RDAER( am_I_Root, State_Met, 
-     &                     MONTH,     YEAR,       WAVELENGTH )
-#endif
+!#else
+!               !--------------------------------------------------------------
+!               !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+!               !
+!               ! Current practice in the std GEOS-Chem is to call RDAER w/
+!               ! just am_I_Root, MONTH, YEAR, and WAVELENGTH (bmy, 11/13/12)
+!               !--------------------------------------------------------------
+!               CALL RDAER( am_I_Root, State_Met, 
+!     &                     MONTH,     YEAR,       WAVELENGTH )
+!#endif
 
                !### Debug
                IF ( LPRT .and. am_I_Root ) THEN 

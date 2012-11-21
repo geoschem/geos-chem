@@ -387,27 +387,10 @@
 
       ! Initialize allocatable SMVGEAR/KPP arrays
       IF ( LEMIS .or. LCHEM ) THEN
-#if defined( DEVEL )
-         !--------------------------------------------------------------
-         !  %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%%
-         !
-         ! Pass the Input Options object and RC status flag to
-         ! INIT_COMODE as arguments. (bmy, 11/13/12)
-         !--------------------------------------------------------------
          IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or.
      &        Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
             CALL INIT_COMODE( am_I_Root, Input_Opt, RC )
          ENDIF
-#else
-         !-----------------------------------------------------------
-         !               %%%%% TRADITIONAL GEOS-Chem %%%%%
-         !
-         ! Current practice is to call INIT_COMODE without any 
-         ! arguments. (bmy, 11/13/12)
-         !-----------------------------------------------------------
-         IF ( ITS_A_FULLCHEM_SIM() ) CALL INIT_COMODE( am_I_Root )
-         IF ( ITS_AN_AEROSOL_SIM() ) CALL INIT_COMODE( am_I_Root )
-#endif
          IF ( LKPP ) THEN
             CALL INIT_GCKPP_COMODE( am_I_Root, IIPAR,  JJPAR,   
      &                              LLTROP,    ITLOOP, NMTRATE, 
@@ -854,11 +837,6 @@
             ! To be revised later.
             ! Also read soil-type info for fullchem simulation
             IF ( ITS_A_FULLCHEM_SIM() .or. ITS_A_H2HD_SIM() ) THEN
-               !---------------------------------------------------------
-               ! Prior to 10/30/12:
-               ! Retire call to RDSOIL, it's obsolete (bmy 10/30/12)
-               !CALL RDSOIL 
-               !---------------------------------------------------------
 	       CALL READSOIL
 	       CALL READFERT
 	       CALL READCLIM
@@ -923,13 +901,6 @@
                CALL DEBUG_MSG( '### MAIN: a CONVERT_UNITS:1' )
             ENDIF
          ENDIF
-
-!%%%!    ltm: As of v9-01-03, UPBDFLX and SCHEM are depreciated. These
-!%%%!    subroutines and their children will be removed in the future.
-!%%%!    !==============================================================
-!%%%!    !     ***** S T R A T O S P H E R I C   F L U X E S *****
-!%%%!    !==============================================================
-!%%%!    IF ( LUPBD ) CALL DO_UPBDFLX
 
          !==============================================================
          !              ***** T R A N S P O R T *****
@@ -1165,14 +1136,13 @@
             ! Increment chemistry timestep counter
             CALL SET_CT_CHEM( INCREMENT=.TRUE. )
 
-#if defined( DEVEL )
             !-----------------------------------------------------------
-            ! %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%%
+            ! %% REPLICATING GIGC FUNCTIONALITY IN EXISTING GEOS-CHEM %%
             !
-            ! We must pass the Chemistry State (i.e. State_Chm) and 
-            ! Meteorology State (i.e. State_Met) objects, along with 
-            ! the global dimension sizes, to the GEOS-Chem chemistry 
-            ! driver DO_CHEMISTRY.
+            ! We must pass the Input Options (Input_Opt), Chemistry 
+            ! State (State_Chm) and Meteorology State (i.e. State_Met) 
+            ! objects, along with the global dimension sizes, to the 
+            ! GEOS-Chem chemistry driver DO_CHEMISTRY.
             !
             ! Eventually, the tracer fields in the Chemistry State 
             ! object (State_Chm%TRACERS) will replace current GEOS-Chem
@@ -1184,24 +1154,15 @@
             ! units of [kg].  Because STT is already in [kg] at this 
             ! point, no further unit conversion is necessary here.
             ! (bmy, 10/25/12)
-            !-----------------------------------------------------------
 
-            ! Initialize the tracer field fo the
+            ! Initialize the tracer field in the Chemistry State object
             State_Chm%TRACERS( :, :, :, 1:N_TRACERS ) = 
      &                    STT( :, :, :, 1:N_TRACERS )
 
             ! Do GEOS-Chem chemistry
             CALL DO_CHEMISTRY( am_I_Root, NI,        NJ,        NL,
      &                         Input_Opt, State_Chm, State_Met, RC     ) 
-#else
             !-----------------------------------------------------------
-            !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-            !
-            ! Current practice is to call routine DO_CHEMISTRY with
-            ! am_I_Root as the only argument. (bmy, 10/25/12)
-            !-----------------------------------------------------------
-            CALL DO_CHEMISTRY( am_I_Root, State_Met )
-#endif
 
          ENDIF 
 
@@ -1239,23 +1200,7 @@
          ! diagnostic and only on a chemistry timestep.
          ! (skim, 02/05/11)
          IF ( ITS_TIME_FOR_CHEM() ) THEN
-#if defined( DEVEL )
-            !-----------------------------------------------------------
-            ! %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%%
-            !
-            ! Now pass the Input Options object and RC status flag
-            ! to RECOMPUTE_OD as arguments (bmy, 11/13/12)
-            !-----------------------------------------------------------
             CALL RECOMPUTE_OD( am_I_Root, Input_Opt, State_Met, RC )
-#else
-            !-----------------------------------------------------------
-            !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-            !
-            ! Current practice is to call routine RECOMPUTE_OD with
-            ! am_I_Root as the only argument. (bmy, 10/25/12)
-            !-----------------------------------------------------------
-            CALL RECOMPUTE_OD( am_I_Root, State_Met )
-#endif
          ENDIF
 
          !==============================================================

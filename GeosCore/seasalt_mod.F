@@ -133,22 +133,7 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !      %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Now add Input_Opt, RC as arguments (bmy, 11/13/12)
-      !-----------------------------------------------------------------
       SUBROUTINE CHEMSEASALT( am_I_Root, Input_Opt, State_Met, RC )
-#else
-      !-----------------------------------------------------------------
-      !               %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Current practice in the standard GEOS-Chem is to call
-      ! CHEMSEASALT just with am_I_Root (bmy, 11/13/12)
-      !-----------------------------------------------------------------
-      SUBROUTINE CHEMSEASALT( am_I_Root, State_Met )
-#endif
 !
 ! !USES:
 !
@@ -157,46 +142,22 @@
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE DRYDEP_MOD,         ONLY : NUMDEP
       USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRACER_MOD,         ONLY : STT
       USE TRACERID_MOD,       ONLY : IDTSALA
       USE TRACERID_MOD,       ONLY : IDTSALC
-
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! We need to reference some modules particular to the Grid-
-      ! Independent GEOS-Chem implementation here.   In particular,
-      ! the settings from the Input Options object will replace
-      ! logical flags from logical_mod.F. (bmy, 11/13/12)
-      !-----------------------------------------------------------------
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#else
-      !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Current practice in the standard GEOS-Chem is to reference
-      ! logical flags directly from module GeosCore/logical_mod.F.
-      ! (bmy, 11/13/12)
-      !-----------------------------------------------------------------
-      USE LOGICAL_MOD,        ONLY : LDRYD   
-      USE LOGICAL_MOD,        ONLY : LNLPBL
-      USE LOGICAL_MOD,        ONLY : LPRT
-#endif
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
 !      
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
-#endif
 ! 
 ! !REVISION HISTORY:
 !  (1 ) Now reference STT from "tracer_mod.f".  Now references LPRT from
@@ -213,45 +174,27 @@
 !
 ! !LOCAL VARIABLES:
 !
+      ! SAVEd variables
       LOGICAL, SAVE  :: FIRST = .TRUE.
-      LOGICAL        :: prtDebug
-      INTEGER        :: N
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! We need to define local logical flags to hold corresponding
-      ! values from the Input Options object.  We do not need to define
-      ! these for the traditional GEOS-Chem since it will refer to 
-      ! variables from the same name from GeosCore/logical_mod.F.
-      ! (bmy, 11/13/12)
-      !-----------------------------------------------------------------
+      ! Non-SAVEd variables
+      LOGICAL        :: prtDebug
       LOGICAL        :: LDRYD
       LOGICAL        :: LNLPBL
       LOGICAL        :: LPRT
-#endif
+      INTEGER        :: N
 
       !=================================================================
       ! CHEMSEASALT begins here!
       !=================================================================
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Initialize the RC argument.  Also copy logical values from the
-      ! Input Options object over to local variables. (bmy, 11/13/12)
-      !-----------------------------------------------------------------
-
       ! Assume success
-      RC    = GIGC_SUCCESS
+      RC       = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      LDRYD  = Input_Opt%LDRYD
-      LNLPBL = Input_Opt%LNLPBL
-      LPRT   = Input_Opt%LPRT
-#endif
+      LDRYD    = Input_Opt%LDRYD
+      LNLPBL   = Input_Opt%LNLPBL
+      LPRT     = Input_Opt%LPRT
 
       ! Do we have to print debug output?
       prtDebug = ( LPRT .and. am_I_Root )
@@ -290,22 +233,9 @@
       !-------------------
       ! Accumulation mode
       !-------------------
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Pass Input_Opt, RC to WET_SETTLING (bmy, 11/13/12)
-      !-----------------------------------------------------------------
       CALL WET_SETTLING( am_I_Root,          Input_Opt, State_Met,
      &                   STT(:,:,:,IDTSALA), 1,         RC         )
-#else
-      !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Preserve existing subroutine call (bmy, 11/13/12)
-      !-----------------------------------------------------------------
-      CALL WET_SETTLING( State_Met, STT(:,:,:,IDTSALA), 1 )
-#endif
+
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum' )
       ENDIF
@@ -313,22 +243,9 @@
       ! If LNLPBL (non local PBL mixing) is turned on, do sea salt
       ! dry deposition in vdiff as for all the other aerosols (jaegle 5/11/11)
       IF ( LDRYD .and. ( .not. LNLPBL ) ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-         !-----------------------------------------------------------------
-         !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-         !
-         ! Pass Input_Opt, RC to DRY_DEPOSITION (bmy, 11/13/12)
-         !-----------------------------------------------------------------
          CALL DRY_DEPOSITION( am_I_Root,          Input_Opt, 
      &                        STT(:,:,:,IDTSALA), 1,         RC )
-#else
-         !--------------------------------------------------------------
-         !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-         !
-         ! Preserve existing subroutine call (bmy, 11/13/12)
-         !--------------------------------------------------------------
-         CALL DRY_DEPOSITION( STT(:,:,:,IDTSALA), 1 )
-#endif
+
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMSEASALT: DRY_DEP, Accum' )
          ENDIF
@@ -337,22 +254,9 @@
       !-------------------
       ! Coarse mode
       !-------------------
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Pass Input_Opt, RC to WET_SETTLING (bmy, 11/13/12)
-      !-----------------------------------------------------------------
       CALL WET_SETTLING( am_I_Root,          Input_Opt, State_Met,
      &                   STT(:,:,:,IDTSALC), 2,         RC         )
-#else
-      !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Preserve existing subroutine call (bmy, 11/13/12)
-      !-----------------------------------------------------------------
-      CALL WET_SETTLING( State_Met, STT(:,:,:,IDTSALC), 2 )
-#endif
+
       IF ( prtDebug ) THEN 
          CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Coarse' )
       ENDIF
@@ -360,22 +264,9 @@
       ! If LNLPBL (non local PBL mixing) is turned on, do sea salt
       ! dry deposition in vdiff as for all the other aerosols (jaegle 5/11/11)
       IF ( LDRYD .and. ( .not. LNLPBL ) ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-         !--------------------------------------------------------------
-         !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-         !
-         ! Pass Input_Opt, RC to DRY_DEPOSITION (bmy, 11/13/12)
-         !--------------------------------------------------------------
          CALL DRY_DEPOSITION( am_I_Root,          Input_Opt,
      &                        STT(:,:,:,IDTSALC), 2,         RC )
-#else
-         !--------------------------------------------------------------
-         !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-         !
-         ! Preserve existing subroutine call (bmy, 11/13/12)
-         !--------------------------------------------------------------
-         CALL DRY_DEPOSITION( STT(:,:,:,IDTSALC), 2 )
-#endif
+
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMSEASALT: DRY_DEP, Coarse')
          ENDIF
@@ -396,24 +287,8 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Add the Input Options object and RC status flag as arguments
-      ! (bmy, 11/13/12)
-      !-----------------------------------------------------------------
       SUBROUTINE WET_SETTLING( am_I_Root, Input_Opt, State_Met, 
      &                         TC,        N,         RC         )
-#else
-      !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Current practice is to call WET_SETTLING with just TC and N
-      ! as arguments. (bmy, 11/13/12)
-      !-----------------------------------------------------------------
-      SUBROUTINE WET_SETTLING( State_Met, TC, N )
-#endif
 !
 ! !USES:
 !
@@ -424,59 +299,30 @@
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TRACERID_MOD,       ONLY : IDTSALA
       USE TRACERID_MOD,       ONLY : IDTSALC
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE GRID_MOD,           ONLY : GET_AREA_CM2
-
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! We need to define local logical flags to hold corresponding
-      ! values from the Input Options object.  We do not need to define
-      ! these for the traditional GEOS-Chem since it will refer to 
-      ! variables from the same name from GeosCore/logical_mod.F.
-      ! Also need to shadow the N_TRACERS variable from module
-      ! GeosCore/tracer_mod.F. (bmy, 11/13/12)
-      !-----------------------------------------------------------------
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#else
-      !--------------------------------------------------------------
-      !               %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Define local variables to store values from the various
-      ! quantities of GeosCore/tracer_mod.F.  We do this
-      ! in order to clarify the coding for both the ESMF interface
-      ! as well as for the traditional GEOS-Chem.  (bmy, 11/8/12)
-      !--------------------------------------------------------------
-      USE TRACER_MOD,         ONLY : SALA_REDGE_um
-      USE TRACER_MOD,         ONLY : SALC_REDGE_um
-      USE TRACER_MOD,         ONLY : XNUMOL
-#endif
 !
 ! !INPUT PARAMETERS: 
 !
-      TYPE(MetState), INTENT(IN)    :: State_Met             ! MeteorologyState
       INTEGER,        INTENT(IN)    :: N                     ! 1=accum mode; 
                                                              ! 2=coarse mode
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       LOGICAL,        INTENT(IN)    :: am_I_Root             ! Root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt             ! Input Options
-#endif
+      TYPE(MetState), INTENT(IN)    :: State_Met             ! MeteorologyState
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       REAL*8,         INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! Sea salt [kg]
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC                    ! Success/failure 
-#endif
 !
 ! !REVISION HISTORY:
 !  (1 ) Now references SALA_REDGE_um and SALC_REDGE_um from "tracer_mod.f"
@@ -545,48 +391,29 @@
       REAL*8,  PARAMETER     ::   SIG_A = 1.5d0
       REAL*8,  PARAMETER     ::   SIG_C = 1.8d0
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! We need to define local logical flags to hold corresponding
-      ! values from the Input Options object.  We do not need to define
-      ! these for the traditional GEOS-Chem since it will refer to 
-      ! variables from the same name from GeosCore/logical_mod.F.
-      ! Also need to shadow the N_TRACERS variable from module
-      ! GeosCore/tracer_mod.F. (bmy, 11/13/12)
-      !-----------------------------------------------------------------
+      ! Local variables for Input_Opt quantities
       REAL*8                 :: SALA_REDGE_um(2)
       REAL*8                 :: SALC_REDGE_um(2)
       REAL*8                 :: XNUMOL(Input_Opt%N_TRACERS)
-#endif
 
       !=================================================================
       ! WET_SETTLING begins here!
       !=================================================================
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Initialize the RC argument.  Also copy logical values from the
-      ! Input Options object over to local variables. (bmy, 11/13/12)
-      !-----------------------------------------------------------------
 
       ! Assume success
-      RC        = GIGC_SUCCESS
+      RC            = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
       SALA_REDGE_um = Input_Opt%SALA_REDGE_um 
       SALC_REDGE_um = Input_Opt%SALC_REDGE_um
       XNUMOL        = Input_Opt%XNUMOL
-#endif      
 
       ! Chemistry timestep [s]
-      DTCHEM = GET_TS_CHEM() * 60d0
+      DTCHEM        = GET_TS_CHEM() * 60d0
 
       ! Sea salt density [kg/m3]
-      DEN  = SS_DEN( N )
+      DEN            = SS_DEN( N )
 
       ! Seasalt effective radius (i.e. midpt of radius bin) [m]
       SELECT CASE ( N )
@@ -879,21 +706,7 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Add am_I_Root, Input_Opt, RC arguments (bmy, 11/13/12)
-      !-----------------------------------------------------------------
       SUBROUTINE DRY_DEPOSITION( am_I_Root, Input_Opt, TC, N, RC )
-#else
-      !--------------------------------------------------------------
-      !               %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Preserve the existing subroutine call (bmy, 11/13/12
-      !--------------------------------------------------------------
-      SUBROUTINE DRY_DEPOSITION( TC, N )
-#endif
 !
 ! !USES:
 !
@@ -902,57 +715,28 @@
       USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD44
       USE DRYDEP_MOD,         ONLY : DEPSAV 
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
-      !-----------------------------------------------------------------------
-      ! Prior to 11/20/12:
-      !USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L
-      !-----------------------------------------------------------------------
       USE TRACERID_MOD,       ONLY : IDTSALA
       USE TRACERID_MOD,       ONLY : IDTSALC
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE GRID_MOD,           ONLY : GET_AREA_CM2
-
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! We need to reference some modules particular to the Grid-
-      ! Independent GEOS-Chem implementation here.   In particular,
-      ! the settings from the Input Options object will replace
-      ! logical flags from logical_mod.F. (bmy, 11/8/12)
-      !-----------------------------------------------------------------
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#else
-      !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Current practice in the standard GEOS-Chem is to reference
-      ! logical flags directly from module GeosCore/logical_mod.F
-      ! and 
-      ! (bmy, 11/13/12)
-      !-----------------------------------------------------------------
-      USE TRACER_MOD,         ONLY : XNUMOL
-#endif
 !
 ! !INPUT PARAMETERS: 
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       LOGICAL,        INTENT(IN)    :: am_I_Root             ! Is this root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt             ! Input Options
-#endif
       INTEGER,        INTENT(IN)    :: N                     ! 1=accum; 2=coarse
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       REAL*8,         INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! Sea salt [kg]
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC                    ! Success?
-#endif
 !
 ! !REVISION HISTORY:
 !  (1 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
@@ -972,59 +756,34 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                :: I,        J,     L,      DTCHEM
-      REAL*8                 :: OLD,      NEW,   G,      REFF
-      REAL*8                 :: DIAM,     U_TS0, REYNOL, ALPHA 
-      REAL*8                 :: BETA,     GAMMA, DENS,   FLUX 
-      REAL*8                 :: AREA_CM2, TOT1,  TOT2
-      ! New variables for applying dry dep thoughout the PBL (jaegle 5/11/11)
-      !-----------------------------------------------------------------------
-      ! Prior to 11/20/12:
-      !INTEGER                :: PBL_MAX
-      !-----------------------------------------------------------------------
-      REAL*8                 :: F_UNDER_TOP, FREQ
-      REAL*8                 :: ND44_TMP(IIPAR,JJPAR,LLPAR)
-      
-      ! Parameters
-      REAL*8,  PARAMETER     :: RHOA = 1.25d-3
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! We need to define local variables logical flags to hold the
-      ! corresponding values from the Input Options object. 
-      ! (bmy, 11/13/12)
-      !-----------------------------------------------------------------
-      REAL*8                 :: XNUMOL(Input_Opt%N_TRACERS)
-#endif
+      ! Scalars
+      INTEGER            :: I,        J,     L,      DTCHEM
+      REAL*8             :: OLD,      NEW,   G,      REFF
+      REAL*8             :: DIAM,     U_TS0, REYNOL, ALPHA 
+      REAL*8             :: BETA,     GAMMA, DENS,   FLUX 
+      REAL*8             :: AREA_CM2, TOT1,  TOT2
+      REAL*8             :: F_UNDER_TOP, FREQ
+
+      ! Arrays
+      REAL*8             :: ND44_TMP(IIPAR,JJPAR,LLPAR)
+      REAL*8             :: XNUMOL(Input_Opt%N_TRACERS)
+!
+! !DEFINED PARAMETERS:
+!
+      REAL*8,  PARAMETER :: RHOA = 1.25d-3
 
       !=================================================================
       ! DRY_DEPOSITION begins here!
       !=================================================================
-
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Initialize the RC argument.  Also copy logical values from the
-      ! Input Options object over to local variables. (bmy, 11/13/12)
-      !-----------------------------------------------------------------
 
       ! Assume success
       RC     = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
       XNUMOL = Input_Opt%XNUMOL
-#endif
 
       ! Chemistry timestep [s]
       DTCHEM = GET_TS_CHEM() * 60d0
-
-      !-----------------------------------------------------------------------
-      ! Prior to 11/20/12:
-      !! Maximum extent of the PBL [model layers] (jaegle 5/11/11)
-      !PBL_MAX = GET_PBL_MAX_L()
-      !-----------------------------------------------------------------------
 
       ! Zero temporary array for drydep diagnostic
       IF ( ND44 > 0 ) ND44_TMP = 0d0
