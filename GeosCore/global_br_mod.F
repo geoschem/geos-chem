@@ -74,24 +74,22 @@
 !\\
 ! !INTERFACE:
 !
-      ! Rename to GET_GLOBAL_Br
-      !SUBROUTINE GET_GLOBAL_Br_NEW( THISMONTH )
       SUBROUTINE GET_GLOBAL_Br( THISMONTH )
 !
 ! !USES:
 !
-      !USE LOGICAL_MOD,    ONLY : LVARTROP     ! Comment this out for now
-      USE BPCH2_MOD,      ONLY : GET_NAME_EXT
-      USE BPCH2_MOD,      ONLY : GET_RES_EXT
-      USE BPCH2_MOD,      ONLY : GET_TAU0
-      USE BPCH2_MOD,      ONLY : READ_BPCH2
-      USE DIRECTORY_MOD,  ONLY : DATA_DIR ! cdh
-      USE TRANSFER_MOD,   ONLY : TRANSFER_3D
-      USE TRANSFER_MOD,   ONLY : TRANSFER_3D_TROP
-      USE TROPOPAUSE_MOD, ONLY : GET_TPAUSE_LEVEL
-      USE OCEAN_MERCURY_MOD, ONLY: LGCBROMINE     !eds 4/19/12
+      !USE LOGICAL_MOD,      ONLY : LVARTROP     ! Comment this out for now
+      USE BPCH2_MOD,         ONLY : GET_NAME_EXT
+      USE BPCH2_MOD,         ONLY : GET_RES_EXT
+      USE BPCH2_MOD,         ONLY : GET_TAU0
+      USE BPCH2_MOD,         ONLY : READ_BPCH2
+      USE DIRECTORY_MOD,     ONLY : DATA_DIR ! cdh
+      USE TRANSFER_MOD,      ONLY : TRANSFER_3D
+      USE TRANSFER_MOD,      ONLY : TRANSFER_3D_TROP
+      USE TROPOPAUSE_MOD,    ONLY : GET_TPAUSE_LEVEL
+      USE OCEAN_MERCURY_MOD, ONLY : LGCBROMINE     !eds 4/19/12
 
-      USE CMN_SIZE_MOD                 ! Size parameters
+      USE CMN_SIZE_MOD            ! Size parameters
 
 !
 ! !INPUT PARAMETERS: 
@@ -145,81 +143,81 @@
 
       IF ( LGCBROMINE ) THEN
 
-      !-----------------------------------------------------------------
-      ! Read Br from GEOS-Chem
-      !-----------------------------------------------------------------
-      
-      ! Filename
-      FILENAME = TRIM( BR_DIR ) // 'BrOx.GC.' //
-     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
-
-      ! Get the TAU0 value for the start of the given month
-      XTAU = GET_TAU0( THISMONTH, 1, 2007 ) 
-
-      ! Echo some information to the standard output
-      WRITE( 6, 120 ) TRIM( FILENAME )
- 120  FORMAT( '     - GET_GLOBAL_BR: Reading BR from: ', a )
-
-      CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 45,
-     &                 XTAU,	  IIPAR,     JJPAR,
-     &                 LGLOB,     ARRAY,     QUIET=.FALSE. )
-
-      ! Assign data from ARRAY to the module variable BR
-      CALL TRANSFER_3D( ARRAY, BR_TROP )
-
-      ! Convert	ppbv ->	pptv
-      BR_TROP  = BR_TROP * 1D3                         
-
-      !-----------------------------------------------------------------
-      ! Read BrO from GEOS-Chem
-      !-----------------------------------------------------------------
-
-      CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 46,
-     &                 XTAU,	  IIPAR,     JJPAR,
-     &                 LGLOB,     ARRAY,     QUIET=.TRUE. )
-
-      ! Assign data from ARRAY to the module variable BRO
-      CALL TRANSFER_3D( ARRAY, BRO_TROP )
-    
-      ! Convert ppbv -> pptv
-      BRO_TROP  = BRO_TROP * 1D3 
+         !-----------------------------------------------------------------
+         ! Read Br from GEOS-Chem
+         !-----------------------------------------------------------------
+         
+         ! Filename
+         FILENAME = TRIM( BR_DIR ) // 'BrOx.GC.' //
+     &              GET_NAME_EXT() // '.' // GET_RES_EXT()
+   
+         ! Get the TAU0 value for the start of the given month
+         XTAU = GET_TAU0( THISMONTH, 1, 2007 ) 
+   
+         ! Echo some information to the standard output
+         WRITE( 6, 120 ) TRIM( FILENAME )
+ 120     FORMAT( '     - GET_GLOBAL_BR: Reading BR from: ', a )
+   
+         CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 45,
+     &                    XTAU,	    IIPAR,      JJPAR,
+     &                    LGLOB,    ARRAY,      QUIET=.FALSE. )
+   
+         ! Assign data from ARRAY to the module variable BR
+         CALL TRANSFER_3D( ARRAY, BR_TROP )
+   
+         ! Convert	ppbv ->	pptv
+         BR_TROP  = BR_TROP * 1D3                         
+   
+         !-----------------------------------------------------------------
+         ! Read BrO from GEOS-Chem
+         !-----------------------------------------------------------------
+   
+         CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 46,
+     &                    XTAU,	    IIPAR,      JJPAR,
+     &                    LGLOB,    ARRAY,      QUIET=.TRUE. )
+   
+         ! Assign data from ARRAY to the module variable BRO
+         CALL TRANSFER_3D( ARRAY, BRO_TROP )
+       
+         ! Convert ppbv -> pptv
+         BRO_TROP  = BRO_TROP * 1D3 
 
       ELSE
 
-      !-----------------------------------------------------------------
-      ! Read Br from pTOMCAT biogenic bromocarbons
-      !-----------------------------------------------------------------
+         !-----------------------------------------------------------------
+         ! Read Br from pTOMCAT biogenic bromocarbons
+         !-----------------------------------------------------------------
 
-      ! Filename
-      FILENAME = TRIM( BR_DIR ) // 'BrOx.TOMCAT_org.' //
-     &           GET_NAME_EXT() // '.' // GET_RES_EXT() 
-
-      ! Get the TAU0 value for the start of the given month
-      XTAU = GET_TAU0( THISMONTH, 1, 1985 ) 
-
-      ! Echo some information to the standard output
-      WRITE( 6, 130 ) TRIM( FILENAME )
- 130  FORMAT( '     - GET_GLOBAL_BR: Reading BR from: ', a )
-
-      ! Read BR data from the binary punch file
-      CALL READ_BPCH2( FILENAME, 'CHEM-L=$', 6,     
-     &                 XTAU,      IIPAR,     JJPAR,      
-     &                 LGLOB,     ARRAY,     QUIET=.TRUE. )
-
-      ! Assign data from ARRAY to the module variable BR
-      CALL TRANSFER_3D( ARRAY, BR_TROP )
-
-      !-----------------------------------------------------------------
-      ! Read BrO from pTOMCAT biogenic bromocarbons
-      !-----------------------------------------------------------------
-
-      ! Read BRO data from the binary punch file
-      CALL READ_BPCH2( FILENAME, 'CHEM-L=$', 7,     
-     &                 XTAU,      IIPAR,     JJPAR,      
-     &                 LGLOB,     ARRAY,     QUIET=.TRUE. )
-
-      ! Assign data from ARRAY to the module variable BRO
-      CALL TRANSFER_3D( ARRAY, BRO_TROP )
+         ! Filename
+         FILENAME = TRIM( BR_DIR ) // 'BrOx.TOMCAT_org.' //
+     &              GET_NAME_EXT() // '.' // GET_RES_EXT() 
+         
+         ! Get the TAU0 value for the start of the given month
+         XTAU = GET_TAU0( THISMONTH, 1, 1985 ) 
+         
+         ! Echo some information to the standard output
+         WRITE( 6, 130 ) TRIM( FILENAME )
+ 130     FORMAT( '     - GET_GLOBAL_BR: Reading BR from: ', a )
+         
+         ! Read BR data from the binary punch file
+         CALL READ_BPCH2( FILENAME, 'CHEM-L=$', 6,     
+     &                    XTAU,      IIPAR,     JJPAR,      
+     &                    LGLOB,     ARRAY,     QUIET=.TRUE. )
+         
+         ! Assign data from ARRAY to the module variable BR
+         CALL TRANSFER_3D( ARRAY, BR_TROP )
+         
+         !-----------------------------------------------------------------
+         ! Read BrO from pTOMCAT biogenic bromocarbons
+         !-----------------------------------------------------------------
+         
+         ! Read BRO data from the binary punch file
+         CALL READ_BPCH2( FILENAME, 'CHEM-L=$', 7,     
+     &                    XTAU,      IIPAR,     JJPAR,      
+     &                    LGLOB,     ARRAY,     QUIET=.TRUE. )
+         
+         ! Assign data from ARRAY to the module variable BRO
+         CALL TRANSFER_3D( ARRAY, BRO_TROP )
 
       ENDIF
 

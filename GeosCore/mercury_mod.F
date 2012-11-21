@@ -3692,421 +3692,460 @@
             NULLIFY( INGRID )
 
 !- eds 8/31/10 ------------------------------------------------------
-         IF (LSPLIT) THEN
-              
-            !- eds 5/17/12 -----------------------------------------
-            ! GEIA 2005 emissions are scaled to 2006 or 2050
-             NYMD = ( ANTHRO_Hg_YEAR * 10000 ) + 0101
-             XTAU = GET_TAU0( 1, 1, ANTHRO_Hg_YEAR )
-
-            ! Anthro Canada Hg0
-            FILENAME = TRIM( DATA_DIR_1x1) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_Hg0_CAN.geos.1x1.YYYY'
-            !--------------------------------------------------------
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 101 ) TRIM( FILENAME )
- 101        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_can )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHg0_can = EHg0_can / SEC_PER_YR
-
-
-         !Anthro United States Hg0
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_Hg0_USA.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 102 ) TRIM( FILENAME )
- 102        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_usa )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHg0_usa = EHg0_usa / SEC_PER_YR
-
-
-         !Anthro Central America Hg0
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_Hg0_CAM.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 103 ) TRIM( FILENAME )
- 103        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_cam )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHg0_cam = EHg0_cam / SEC_PER_YR
-
-
-         !Anthro South America Hg0
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_Hg0_SAM.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 104 ) TRIM( FILENAME )
- 104        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_sam )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHg0_sam = EHg0_sam / SEC_PER_YR
-
-
-         !Anthro West Africa Hg0
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_Hg0_WAF.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 105 ) TRIM( FILENAME )
- 105        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_waf )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHg0_waf = EHg0_waf / SEC_PER_YR
-
-
-         !Anthro East Africa Hg0
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_Hg0_EAF.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 106 ) TRIM( FILENAME )
- 106        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_eaf )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHg0_eaf = EHg0_eaf / SEC_PER_YR
-
-
-         !Anthro South Africa Hg0
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_Hg0_SAF.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 107 ) TRIM( FILENAME )
- 107        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_saf )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHg0_saf = EHg0_saf / SEC_PER_YR
-
-
-         !Anthro North Africa Hg0
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_Hg0_NAF.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 108 ) TRIM( FILENAME )
- 108        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_naf )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHg0_naf = EHg0_naf / SEC_PER_YR
-
-         !Anthro OECD Europe Hg0
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_Hg0_EUR.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 109 ) TRIM( FILENAME )
- 109        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_eur )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHg0_eur = EHg0_eur / SEC_PER_YR
-
-
-         !Anthro Eastern Europe Hg0
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_Hg0_EEU.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 110 ) TRIM( FILENAME )
- 110        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_eeu )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHg0_eeu = EHg0_eeu / SEC_PER_YR
-
-
-         !Anthro Middle East Hg0
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_Hg0_MDE.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 111 ) TRIM( FILENAME )
- 111        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_mde )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHg0_mde = EHg0_mde / SEC_PER_YR
-
-
-         !Anthro Former USSR Hg0
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_Hg0_SOV.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 112 ) TRIM( FILENAME )
- 112        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_sov )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHg0_sov = EHg0_sov / SEC_PER_YR
-
-
-         !Anthro South Asia Hg0
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_Hg0_SAS.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 113 ) TRIM( FILENAME )
- 113        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_sas )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHg0_sas = EHg0_sas / SEC_PER_YR
-
-
-         !Anthro East Asia Hg0
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_Hg0_EAS.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 114 ) TRIM( FILENAME )
- 114        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_eas )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHg0_eas = EHg0_eas / SEC_PER_YR
-
-
-         !Anthro Southeast Asia Hg0
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_Hg0_SEA.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 115 ) TRIM( FILENAME )
- 115        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_sea )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHg0_sea = EHg0_sea / SEC_PER_YR
-
-
-         !Anthro Japan Hg0
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_Hg0_JPN.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 116 ) TRIM( FILENAME )
- 116        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_jpn )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHg0_jpn = EHg0_jpn / SEC_PER_YR
-
-
-         !Anthro Oceania Hg0
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_Hg0_OCE.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 117 ) TRIM( FILENAME )
- 117        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_oce )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHg0_oce = EHg0_oce / SEC_PER_YR
-
-         ENDIF
+            !-------------------------------------
+            ! Tagged anthro Hg0
+            !-------------------------------------
+            IF (LSPLIT) THEN
+
+               !- eds 5/17/12 -----------------------------------------
+               ! GEIA 2005 emissions are scaled to 2006 or 2050
+                NYMD = ( ANTHRO_Hg_YEAR * 10000 ) + 0101
+                XTAU = GET_TAU0( 1, 1, ANTHRO_Hg_YEAR )
+
+
+               !===========================
+               ! Anthro Canada Hg0
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'     // TRIM( SCENARIO )  //
+     &                    '_Hg0_CAN.geos.1x1.YYYY'
+               !--------------------------------------------------------
+            
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+            
+               ! Echo info
+               WRITE( 6, 101 ) TRIM( FILENAME )
+ 101           FORMAT( '     - MERCURY_READYR: Reading ', a )
+            
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+            
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_can )
+            
+               ! Convert from [kg/yr] to [kg/s]
+               EHg0_can = EHg0_can / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro United States Hg0
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_Hg0_USA.geos.1x1.YYYY'
+            
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+            
+               ! Echo info
+               WRITE( 6, 102 ) TRIM( FILENAME )
+ 102           FORMAT( '     - MERCURY_READYR: Reading ', a )
+            
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+            
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_usa )
+            
+               ! Convert from [kg/yr] to [kg/s]
+               EHg0_usa = EHg0_usa / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro Central America Hg0
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_Hg0_CAM.geos.1x1.YYYY'
+            
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+            
+               ! Echo info
+               WRITE( 6, 103 ) TRIM( FILENAME )
+ 103           FORMAT( '     - MERCURY_READYR: Reading ', a )
+            
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+            
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_cam )
+            
+               ! Convert from [kg/yr] to [kg/s]
+               EHg0_cam = EHg0_cam / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro South America Hg0
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_Hg0_SAM.geos.1x1.YYYY'
+            
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+            
+               ! Echo info
+               WRITE( 6, 104 ) TRIM( FILENAME )
+ 104           FORMAT( '     - MERCURY_READYR: Reading ', a )
+            
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+            
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_sam )
+            
+               ! Convert from [kg/yr] to [kg/s]
+               EHg0_sam = EHg0_sam / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro West Africa Hg0
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_Hg0_WAF.geos.1x1.YYYY'
+            
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+            
+               ! Echo info
+               WRITE( 6, 105 ) TRIM( FILENAME )
+ 105           FORMAT( '     - MERCURY_READYR: Reading ', a )
+            
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+            
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_waf )
+            
+               ! Convert from [kg/yr] to [kg/s]
+               EHg0_waf = EHg0_waf / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro East Africa Hg0
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_Hg0_EAF.geos.1x1.YYYY'
+            
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+            
+               ! Echo info
+               WRITE( 6, 106 ) TRIM( FILENAME )
+ 106           FORMAT( '     - MERCURY_READYR: Reading ', a )
+            
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+            
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_eaf )
+            
+               ! Convert from [kg/yr] to [kg/s]
+               EHg0_eaf = EHg0_eaf / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro South Africa Hg0
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_Hg0_SAF.geos.1x1.YYYY'
+            
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+            
+               ! Echo info
+               WRITE( 6, 107 ) TRIM( FILENAME )
+ 107           FORMAT( '     - MERCURY_READYR: Reading ', a )
+            
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+            
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_saf )
+            
+               ! Convert from [kg/yr] to [kg/s]
+               EHg0_saf = EHg0_saf / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro North Africa Hg0
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_Hg0_NAF.geos.1x1.YYYY'
+            
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+            
+               ! Echo info
+               WRITE( 6, 108 ) TRIM( FILENAME )
+ 108           FORMAT( '     - MERCURY_READYR: Reading ', a )
+            
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+            
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_naf )
+            
+               ! Convert from [kg/yr] to [kg/s]
+               EHg0_naf = EHg0_naf / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro OECD Europe Hg0
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_Hg0_EUR.geos.1x1.YYYY'
+            
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+            
+               ! Echo info
+               WRITE( 6, 109 ) TRIM( FILENAME )
+ 109           FORMAT( '     - MERCURY_READYR: Reading ', a )
+            
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+            
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_eur )
+            
+               ! Convert from [kg/yr] to [kg/s]
+               EHg0_eur = EHg0_eur / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro Eastern Europe Hg0
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_Hg0_EEU.geos.1x1.YYYY'
+            
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+            
+               ! Echo info
+               WRITE( 6, 110 ) TRIM( FILENAME )
+ 110           FORMAT( '     - MERCURY_READYR: Reading ', a )
+            
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+            
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_eeu )
+            
+               ! Convert from [kg/yr] to [kg/s]
+               EHg0_eeu = EHg0_eeu / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro Middle East Hg0
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_Hg0_MDE.geos.1x1.YYYY'
+            
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+            
+               ! Echo info
+               WRITE( 6, 111 ) TRIM( FILENAME )
+ 111           FORMAT( '     - MERCURY_READYR: Reading ', a )
+            
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+            
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_mde )
+            
+               ! Convert from [kg/yr] to [kg/s]
+               EHg0_mde = EHg0_mde / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro Former USSR Hg0
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_Hg0_SOV.geos.1x1.YYYY'
+            
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+            
+               ! Echo info
+               WRITE( 6, 112 ) TRIM( FILENAME )
+ 112           FORMAT( '     - MERCURY_READYR: Reading ', a )
+            
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+            
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_sov )
+            
+               ! Convert from [kg/yr] to [kg/s]
+               EHg0_sov = EHg0_sov / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro South Asia Hg0
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_Hg0_SAS.geos.1x1.YYYY'
+            
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+            
+               ! Echo info
+               WRITE( 6, 113 ) TRIM( FILENAME )
+ 113           FORMAT( '     - MERCURY_READYR: Reading ', a )
+            
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+            
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_sas )
+            
+               ! Convert from [kg/yr] to [kg/s]
+               EHg0_sas = EHg0_sas / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro East Asia Hg0
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_Hg0_EAS.geos.1x1.YYYY'
+            
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+            
+               ! Echo info
+               WRITE( 6, 114 ) TRIM( FILENAME )
+ 114           FORMAT( '     - MERCURY_READYR: Reading ', a )
+            
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+            
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_eas )
+            
+               ! Convert from [kg/yr] to [kg/s]
+               EHg0_eas = EHg0_eas / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro Southeast Asia Hg0
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_Hg0_SEA.geos.1x1.YYYY'
+            
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+            
+               ! Echo info
+               WRITE( 6, 115 ) TRIM( FILENAME )
+ 115           FORMAT( '     - MERCURY_READYR: Reading ', a )
+            
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+            
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_sea )
+            
+               ! Convert from [kg/yr] to [kg/s]
+               EHg0_sea = EHg0_sea / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro Japan Hg0
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_Hg0_JPN.geos.1x1.YYYY'
+            
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+            
+               ! Echo info
+               WRITE( 6, 116 ) TRIM( FILENAME )
+ 116           FORMAT( '     - MERCURY_READYR: Reading ', a )
+            
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+            
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_jpn )
+            
+               ! Convert from [kg/yr] to [kg/s]
+               EHg0_jpn = EHg0_jpn / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro Oceania Hg0
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_Hg0_OCE.geos.1x1.YYYY'
+            
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+            
+               ! Echo info
+               WRITE( 6, 117 ) TRIM( FILENAME )
+ 117           FORMAT( '     - MERCURY_READYR: Reading ', a )
+            
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+            
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_oce )
+            
+               ! Convert from [kg/yr] to [kg/s]
+               EHg0_oce = EHg0_oce / SEC_PER_YR
+            
+            ENDIF ! LSPLIT
 !----------------------------------------------------------------            
         
          ELSEIF (LGEIA05) THEN
@@ -4304,421 +4343,460 @@
             NULLIFY( INGRID )
 
 !- eds 8/31/10 ----------------------------------------------------
-         IF (LSPLIT) THEN
+            !-------------------------------------
+            ! Tagged anthro Hg2
+            !-------------------------------------
+            IF (LSPLIT) THEN
 
 !- eds 5/17/12 ----------------------------------------------------
-            ! GEIA 2005 emissions are scaled to 2006 or 2050
-             NYMD = ( ANTHRO_Hg_YEAR * 10000 ) + 0101
-             XTAU = GET_TAU0( 1, 1, ANTHRO_Hg_YEAR )
+               ! GEIA 2005 emissions are scaled to 2006 or 2050
+               NYMD = ( ANTHRO_Hg_YEAR * 10000 ) + 0101
+               XTAU = GET_TAU0( 1, 1, ANTHRO_Hg_YEAR )
 !-----------------------------------------------------------------
 
-            !Anthro Canada Hg2
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_Hg2_CAN.geos.1x1.YYYY'
 
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 118 ) TRIM( FILENAME )
- 118        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_can )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHg2_can = EHg2_can / SEC_PER_YR
-
-
-         !Anthro United States Hg2
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_Hg2_USA.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 119 ) TRIM( FILENAME )
- 119        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_usa )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHg2_usa = EHg2_usa / SEC_PER_YR
-
-
-         !Anthro Central America Hg2
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_Hg2_CAM.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 120 ) TRIM( FILENAME )
- 120        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_cam )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHg2_cam = EHg2_cam / SEC_PER_YR
-
-
-         !Anthro South America Hg2
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_Hg2_SAM.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 121 ) TRIM( FILENAME )
- 121        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_sam )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHg2_sam = EHg2_sam / SEC_PER_YR
-
-
-         !Anthro West Africa Hg2
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_Hg2_WAF.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 122 ) TRIM( FILENAME )
- 122        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_waf )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHg2_waf = EHg2_waf / SEC_PER_YR
-
-
-         !Anthro East Africa Hg2
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_Hg2_EAF.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 123 ) TRIM( FILENAME )
- 123        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_eaf )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHg2_eaf = EHg2_eaf / SEC_PER_YR
-
-
-         !Anthro South Africa Hg2
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_Hg2_SAF.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 124 ) TRIM( FILENAME )
- 124        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_saf )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHg2_saf = EHg2_saf / SEC_PER_YR
-
-
-         !Anthro North Africa Hg2
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_Hg2_NAF.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 125 ) TRIM( FILENAME )
- 125        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_naf )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHg2_naf = EHg2_naf / SEC_PER_YR
-
-         !Anthro OECD Europe Hg2
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_Hg2_EUR.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 126 ) TRIM( FILENAME )
- 126        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_eur )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHg2_eur = EHg2_eur / SEC_PER_YR
-
-
-         !Anthro Eastern Europe Hg2
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_Hg2_EEU.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 127 ) TRIM( FILENAME )
- 127        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_eeu )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHg2_eeu = EHg2_eeu / SEC_PER_YR
-
-
-         !Anthro Middle East Hg2
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_Hg2_MDE.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 128 ) TRIM( FILENAME )
- 128        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_mde )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHg2_mde = EHg2_mde / SEC_PER_YR
-
-
-         !Anthro Former USSR Hg2
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_Hg2_SOV.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 129 ) TRIM( FILENAME )
- 129        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_sov )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHg2_sov = EHg2_sov / SEC_PER_YR
-
-
-         !Anthro South Asia Hg2
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_Hg2_SAS.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 130 ) TRIM( FILENAME )
- 130        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_sas )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHg2_sas = EHg2_sas / SEC_PER_YR
-
-
-         !Anthro East Asia Hg2
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_Hg2_EAS.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 131 ) TRIM( FILENAME )
- 131        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_eas )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHg2_eas = EHg2_eas / SEC_PER_YR
-
-
-         !Anthro Southeast Asia Hg2
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_Hg2_SEA.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 132 ) TRIM( FILENAME )
- 132        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_sea )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHg2_sea = EHg2_sea / SEC_PER_YR
-
-
-         !Anthro Japan Hg2
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_Hg2_JPN.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 133 ) TRIM( FILENAME )
- 133        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_jpn )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHg2_jpn = EHg2_jpn / SEC_PER_YR
-
-
-         !Anthro Oceania Hg2
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_Hg2_OCE.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 134 ) TRIM( FILENAME )
- 134        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_oce )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHg2_oce = EHg2_oce / SEC_PER_YR
-
-         ENDIF
+               !===========================
+               ! Anthro Canada Hg2
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_Hg2_CAN.geos.1x1.YYYY'
+            
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+            
+               ! Echo info
+               WRITE( 6, 118 ) TRIM( FILENAME )
+ 118           FORMAT( '     - MERCURY_READYR: Reading ', a )
+            
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+            
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_can )
+            
+               ! Convert from [kg/yr] to [kg/s]
+               EHg2_can = EHg2_can / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro United States Hg2
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_Hg2_USA.geos.1x1.YYYY'
+            
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+            
+               ! Echo info
+               WRITE( 6, 119 ) TRIM( FILENAME )
+ 119           FORMAT( '     - MERCURY_READYR: Reading ', a )
+            
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+            
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_usa )
+            
+               ! Convert from [kg/yr] to [kg/s]
+               EHg2_usa = EHg2_usa / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro Central America Hg2
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_Hg2_CAM.geos.1x1.YYYY'
+            
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+            
+               ! Echo info
+               WRITE( 6, 120 ) TRIM( FILENAME )
+ 120           FORMAT( '     - MERCURY_READYR: Reading ', a )
+            
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+            
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_cam )
+            
+               ! Convert from [kg/yr] to [kg/s]
+               EHg2_cam = EHg2_cam / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro South America Hg2
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_Hg2_SAM.geos.1x1.YYYY'
+            
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+            
+               ! Echo info
+               WRITE( 6, 121 ) TRIM( FILENAME )
+ 121           FORMAT( '     - MERCURY_READYR: Reading ', a )
+            
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+            
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_sam )
+            
+               ! Convert from [kg/yr] to [kg/s]
+               EHg2_sam = EHg2_sam / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro West Africa Hg2
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_Hg2_WAF.geos.1x1.YYYY'
+            
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+            
+               ! Echo info
+               WRITE( 6, 122 ) TRIM( FILENAME )
+ 122           FORMAT( '     - MERCURY_READYR: Reading ', a )
+            
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+            
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_waf )
+            
+               ! Convert from [kg/yr] to [kg/s]
+               EHg2_waf = EHg2_waf / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro East Africa Hg2
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_Hg2_EAF.geos.1x1.YYYY'
+            
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+            
+               ! Echo info
+               WRITE( 6, 123 ) TRIM( FILENAME )
+ 123           FORMAT( '     - MERCURY_READYR: Reading ', a )
+            
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+            
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_eaf )
+            
+               ! Convert from [kg/yr] to [kg/s]
+               EHg2_eaf = EHg2_eaf / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro South Africa Hg2
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_Hg2_SAF.geos.1x1.YYYY'
+            
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+            
+               ! Echo info
+               WRITE( 6, 124 ) TRIM( FILENAME )
+ 124           FORMAT( '     - MERCURY_READYR: Reading ', a )
+            
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+            
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_saf )
+            
+               ! Convert from [kg/yr] to [kg/s]
+               EHg2_saf = EHg2_saf / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro North Africa Hg2
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_Hg2_NAF.geos.1x1.YYYY'
+            
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+            
+               ! Echo info
+               WRITE( 6, 125 ) TRIM( FILENAME )
+ 125           FORMAT( '     - MERCURY_READYR: Reading ', a )
+            
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+            
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_naf )
+            
+               ! Convert from [kg/yr] to [kg/s]
+               EHg2_naf = EHg2_naf / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro OECD Europe Hg2
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_Hg2_EUR.geos.1x1.YYYY'
+            
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+            
+               ! Echo info
+               WRITE( 6, 126 ) TRIM( FILENAME )
+ 126           FORMAT( '     - MERCURY_READYR: Reading ', a )
+            
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
+     &              XTAU,      I1x1,     J1x1,
+     &              1,         ARRAY1,   QUIET=.TRUE. )
+            
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_eur )
+            
+               ! Convert from [kg/yr] to [kg/s]
+               EHg2_eur = EHg2_eur / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro Eastern Europe Hg2
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_Hg2_EEU.geos.1x1.YYYY'
+            
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+            
+               ! Echo info
+               WRITE( 6, 127 ) TRIM( FILENAME )
+ 127           FORMAT( '     - MERCURY_READYR: Reading ', a )
+            
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+            
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_eeu )
+            
+               ! Convert from [kg/yr] to [kg/s]
+               EHg2_eeu = EHg2_eeu / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro Middle East Hg2
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_Hg2_MDE.geos.1x1.YYYY'
+            
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+            
+               ! Echo info
+               WRITE( 6, 128 ) TRIM( FILENAME )
+ 128           FORMAT( '     - MERCURY_READYR: Reading ', a )
+            
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+            
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_mde )
+            
+               ! Convert from [kg/yr] to [kg/s]
+               EHg2_mde = EHg2_mde / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro Former USSR Hg2
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_Hg2_SOV.geos.1x1.YYYY'
+            
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+            
+               ! Echo info
+               WRITE( 6, 129 ) TRIM( FILENAME )
+ 129           FORMAT( '     - MERCURY_READYR: Reading ', a )
+            
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+            
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_sov )
+            
+               ! Convert from [kg/yr] to [kg/s]
+               EHg2_sov = EHg2_sov / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro South Asia Hg2
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_Hg2_SAS.geos.1x1.YYYY'
+            
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+            
+               ! Echo info
+               WRITE( 6, 130 ) TRIM( FILENAME )
+ 130           FORMAT( '     - MERCURY_READYR: Reading ', a )
+            
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+            
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_sas )
+            
+               ! Convert from [kg/yr] to [kg/s]
+               EHg2_sas = EHg2_sas / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro East Asia Hg2
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_Hg2_EAS.geos.1x1.YYYY'
+            
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+            
+               ! Echo info
+               WRITE( 6, 131 ) TRIM( FILENAME )
+ 131           FORMAT( '     - MERCURY_READYR: Reading ', a )
+            
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+            
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_eas )
+            
+               ! Convert from [kg/yr] to [kg/s]
+               EHg2_eas = EHg2_eas / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro Southeast Asia Hg2
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_Hg2_SEA.geos.1x1.YYYY'
+            
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+            
+               ! Echo info
+               WRITE( 6, 132 ) TRIM( FILENAME )
+ 132           FORMAT( '     - MERCURY_READYR: Reading ', a )
+            
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+            
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_sea )
+            
+               ! Convert from [kg/yr] to [kg/s]
+               EHg2_sea = EHg2_sea / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro Japan Hg2
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_Hg2_JPN.geos.1x1.YYYY'
+            
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+            
+               ! Echo info
+               WRITE( 6, 133 ) TRIM( FILENAME )
+ 133           FORMAT( '     - MERCURY_READYR: Reading ', a )
+            
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+            
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_jpn )
+            
+               ! Convert from [kg/yr] to [kg/s]
+               EHg2_jpn = EHg2_jpn / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro Oceania Hg2
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_Hg2_OCE.geos.1x1.YYYY'
+            
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+            
+               ! Echo info
+               WRITE( 6, 134 ) TRIM( FILENAME )
+ 134           FORMAT( '     - MERCURY_READYR: Reading ', a )
+            
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+            
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_oce )
+            
+               ! Convert from [kg/yr] to [kg/s]
+               EHg2_oce = EHg2_oce / SEC_PER_YR
+            
+            ENDIF ! LSPLIT
 !----------------------------------------------------------------
         
          ELSEIF (LGEIA05) THEN
@@ -4844,426 +4922,461 @@
             NULLIFY( INGRID )
 
 !- eds 8/31/10 ----------------------------------------------------
-         IF (LSPLIT) THEN
+            !-------------------------------------
+            ! Tagged anthro HgP
+            !-------------------------------------
+            IF (LSPLIT) THEN
 
 !- eds 5/17/12 ----------------------------------------------------
-            ! GEIA 2005 emissions are scaled to 2006 or 2050
-             NYMD = ( ANTHRO_Hg_YEAR * 10000 ) + 0101
-             XTAU = GET_TAU0( 1, 1, ANTHRO_Hg_YEAR )   
+               ! GEIA 2005 emissions are scaled to 2006 or 2050
+               NYMD = ( ANTHRO_Hg_YEAR * 10000 ) + 0101
+               XTAU = GET_TAU0( 1, 1, ANTHRO_Hg_YEAR )   
 !-----------------------------------------------------------------
 
-         !Anthro Canada HgP
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_HgP_CAN.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 135 ) TRIM( FILENAME )
- 135        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_can )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHgP_can = EHgP_can / SEC_PER_YR
-
-
-         !Anthro United States HgP
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_HgP_USA.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 136 ) TRIM( FILENAME )
- 136        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_usa )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHgP_usa = EHgP_usa / SEC_PER_YR
-
-
-         !Anthro Central America HgP
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_HgP_CAM.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 137 ) TRIM( FILENAME )
- 137        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_cam )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHgP_cam = EHgP_cam / SEC_PER_YR
-
-
-         !Anthro South America HgP
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_HgP_SAM.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 138 ) TRIM( FILENAME )
- 138        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_sam )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHgP_sam = EHgP_sam / SEC_PER_YR
-
-
-         !Anthro West Africa HgP
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_HgP_WAF.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 139 ) TRIM( FILENAME )
- 139        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_waf )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHgP_waf = EHgP_waf / SEC_PER_YR
-
-
-         !Anthro East Africa HgP
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_HgP_EAF.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 140 ) TRIM( FILENAME )
- 140        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_eaf )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHgP_eaf = EHgP_eaf / SEC_PER_YR
-
-
-         !Anthro South Africa HgP
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_HgP_SAF.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 141 ) TRIM( FILENAME )
- 141        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_saf )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHgP_saf = EHgP_saf / SEC_PER_YR
-
-
-         !Anthro North Africa HgP
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_HgP_NAF.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 142 ) TRIM( FILENAME )
- 142        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_naf )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHgP_naf = EHgP_naf / SEC_PER_YR
-
-         !Anthro OECD Europe HgP
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_HgP_EUR.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 143 ) TRIM( FILENAME )
- 143        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_eur )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHgP_eur = EHgP_eur / SEC_PER_YR
-
-
-         !Anthro Eastern Europe HgP
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_HgP_EEU.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 144 ) TRIM( FILENAME )
- 144        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_eeu )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHgP_eeu = EHgP_eeu / SEC_PER_YR
-
-
-         !Anthro Middle East HgP
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_HgP_MDE.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 145 ) TRIM( FILENAME )
- 145        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_mde )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHgP_mde = EHgP_mde / SEC_PER_YR
-
-
-         !Anthro Former USSR HgP
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_HgP_SOV.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 146 ) TRIM( FILENAME )
- 146        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_sov )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHgP_sov = EHgP_sov / SEC_PER_YR
-
-
-         !Anthro South Asia HgP
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_HgP_SAS.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 147 ) TRIM( FILENAME )
- 147        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_sas )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHgP_sas = EHgP_sas / SEC_PER_YR
-
-
-         !Anthro East Asia HgP
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_HgP_EAS.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 148 ) TRIM( FILENAME )
- 148        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_eas )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHgP_eas = EHgP_eas / SEC_PER_YR
-
-
-         !Anthro Southeast Asia HgP
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_HgP_SEA.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 149 ) TRIM( FILENAME )
- 149        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_sea )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHgP_sea = EHgP_sea / SEC_PER_YR
-
-
-         !Anthro Japan HgP
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_HgP_JPN.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 150 ) TRIM( FILENAME )
- 150        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_jpn )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHgP_jpn = EHgP_jpn / SEC_PER_YR
-
-
-         !Anthro Oceania HgP
-            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
-     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_HgP_OCE.geos.1x1.YYYY'
-
-            ! Add year to the filename
-            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-
-            ! Echo info
-            WRITE( 6, 151 ) TRIM( FILENAME )
- 151        FORMAT( '     - MERCURY_READYR: Reading ', a )
-
-            ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
-     &           XTAU,      I1x1,     J1x1,
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_oce )
-
-            ! Convert from [kg/yr] to [kg/s]
-            EHgP_oce = EHgP_oce / SEC_PER_YR
-
-        ENDIF
+               !===========================
+               ! Anthro Canada HgP
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_HgP_CAN.geos.1x1.YYYY'
+           
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+           
+               ! Echo info
+               WRITE( 6, 135 ) TRIM( FILENAME )
+ 135           FORMAT( '     - MERCURY_READYR: Reading ', a )
+           
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+           
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_can )
+           
+               ! Convert from [kg/yr] to [kg/s]
+               EHgP_can = EHgP_can / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro United States HgP
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_HgP_USA.geos.1x1.YYYY'
+           
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+           
+               ! Echo info
+               WRITE( 6, 136 ) TRIM( FILENAME )
+ 136           FORMAT( '     - MERCURY_READYR: Reading ', a )
+           
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+           
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_usa )
+           
+               ! Convert from [kg/yr] to [kg/s]
+               EHgP_usa = EHgP_usa / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro Central America HgP
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_HgP_CAM.geos.1x1.YYYY'
+           
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+           
+               ! Echo info
+               WRITE( 6, 137 ) TRIM( FILENAME )
+ 137           FORMAT( '     - MERCURY_READYR: Reading ', a )
+           
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+           
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_cam )
+           
+               ! Convert from [kg/yr] to [kg/s]
+               EHgP_cam = EHgP_cam / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro South America HgP
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_HgP_SAM.geos.1x1.YYYY'
+           
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+           
+               ! Echo info
+               WRITE( 6, 138 ) TRIM( FILENAME )
+ 138           FORMAT( '     - MERCURY_READYR: Reading ', a )
+           
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+           
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_sam )
+           
+               ! Convert from [kg/yr] to [kg/s]
+               EHgP_sam = EHgP_sam / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro West Africa HgP
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_HgP_WAF.geos.1x1.YYYY'
+           
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+           
+               ! Echo info
+               WRITE( 6, 139 ) TRIM( FILENAME )
+ 139           FORMAT( '     - MERCURY_READYR: Reading ', a )
+           
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+           
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_waf )
+           
+               ! Convert from [kg/yr] to [kg/s]
+               EHgP_waf = EHgP_waf / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro East Africa HgP
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_HgP_EAF.geos.1x1.YYYY'
+           
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+           
+               ! Echo info
+               WRITE( 6, 140 ) TRIM( FILENAME )
+ 140           FORMAT( '     - MERCURY_READYR: Reading ', a )
+           
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+           
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_eaf )
+           
+               ! Convert from [kg/yr] to [kg/s]
+               EHgP_eaf = EHgP_eaf / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro South Africa HgP
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_HgP_SAF.geos.1x1.YYYY'
+           
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+           
+               ! Echo info
+               WRITE( 6, 141 ) TRIM( FILENAME )
+ 141           FORMAT( '     - MERCURY_READYR: Reading ', a )
+           
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+           
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_saf )
+           
+               ! Convert from [kg/yr] to [kg/s]
+               EHgP_saf = EHgP_saf / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro North Africa HgP
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_HgP_NAF.geos.1x1.YYYY'
+           
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+           
+               ! Echo info
+               WRITE( 6, 142 ) TRIM( FILENAME )
+ 142           FORMAT( '     - MERCURY_READYR: Reading ', a )
+           
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+           
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_naf )
+           
+               ! Convert from [kg/yr] to [kg/s]
+               EHgP_naf = EHgP_naf / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro OECD Europe HgP
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_HgP_EUR.geos.1x1.YYYY'
+           
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+           
+               ! Echo info
+               WRITE( 6, 143 ) TRIM( FILENAME )
+ 143           FORMAT( '     - MERCURY_READYR: Reading ', a )
+           
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+           
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_eur )
+           
+               ! Convert from [kg/yr] to [kg/s]
+               EHgP_eur = EHgP_eur / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro Eastern Europe HgP
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_HgP_EEU.geos.1x1.YYYY'
+           
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+           
+               ! Echo info
+               WRITE( 6, 144 ) TRIM( FILENAME )
+ 144           FORMAT( '     - MERCURY_READYR: Reading ', a )
+           
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+           
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_eeu )
+           
+               ! Convert from [kg/yr] to [kg/s]
+               EHgP_eeu = EHgP_eeu / SEC_PER_YR
+
+
+               !===========================
+               !Anthro Middle East HgP
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_HgP_MDE.geos.1x1.YYYY'
+           
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+           
+               ! Echo info
+               WRITE( 6, 145 ) TRIM( FILENAME )
+ 145           FORMAT( '     - MERCURY_READYR: Reading ', a )
+           
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+           
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_mde )
+           
+               ! Convert from [kg/yr] to [kg/s]
+               EHgP_mde = EHgP_mde / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro Former USSR HgP
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_HgP_SOV.geos.1x1.YYYY'
+           
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+           
+               ! Echo info
+               WRITE( 6, 146 ) TRIM( FILENAME )
+ 146           FORMAT( '     - MERCURY_READYR: Reading ', a )
+           
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+           
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_sov )
+           
+               ! Convert from [kg/yr] to [kg/s]
+               EHgP_sov = EHgP_sov / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro South Asia HgP
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_HgP_SAS.geos.1x1.YYYY'
+           
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+           
+               ! Echo info
+               WRITE( 6, 147 ) TRIM( FILENAME )
+ 147           FORMAT( '     - MERCURY_READYR: Reading ', a )
+           
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+           
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_sas )
+           
+               ! Convert from [kg/yr] to [kg/s]
+               EHgP_sas = EHgP_sas / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro East Asia HgP
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_HgP_EAS.geos.1x1.YYYY'
+           
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+           
+               ! Echo info
+               WRITE( 6, 148 ) TRIM( FILENAME )
+ 148           FORMAT( '     - MERCURY_READYR: Reading ', a )
+           
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+           
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_eas )
+           
+               ! Convert from [kg/yr] to [kg/s]
+               EHgP_eas = EHgP_eas / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro Southeast Asia HgP
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_HgP_SEA.geos.1x1.YYYY'
+           
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+           
+               ! Echo info
+               WRITE( 6, 149 ) TRIM( FILENAME )
+ 149           FORMAT( '     - MERCURY_READYR: Reading ', a )
+           
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+           
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_sea )
+           
+               ! Convert from [kg/yr] to [kg/s]
+               EHgP_sea = EHgP_sea / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro Japan HgP
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_HgP_JPN.geos.1x1.YYYY'
+           
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+           
+               ! Echo info
+               WRITE( 6, 150 ) TRIM( FILENAME )
+ 150           FORMAT( '     - MERCURY_READYR: Reading ', a )
+           
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+           
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_jpn )
+           
+               ! Convert from [kg/yr] to [kg/s]
+               EHgP_jpn = EHgP_jpn / SEC_PER_YR
+
+
+               !===========================
+               ! Anthro Oceania HgP
+               !===========================
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &                    'GEIA_Streets_'      // TRIM( SCENARIO )  //
+     &                    '_HgP_OCE.geos.1x1.YYYY'
+           
+               ! Add year to the filename
+               CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+           
+               ! Echo info
+               WRITE( 6, 151 ) TRIM( FILENAME )
+ 151           FORMAT( '     - MERCURY_READYR: Reading ', a )
+           
+               ! Read data in [kg/yr]
+               CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
+     &                          XTAU,      I1x1,     J1x1,
+     &                          1,         ARRAY1,   QUIET=.TRUE. )
+           
+               ! Regrid from 1x1 to the current grid
+               CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_oce )
+           
+               ! Convert from [kg/yr] to [kg/s]
+               EHgP_oce = EHgP_oce / SEC_PER_YR
+           
+            ENDIF ! LSPLIT
 
 !----------------------------------------------------------------
-
-            ! Free pointer
-            NULLIFY( INGRID )
 
          ELSEIF (LGEIA05) THEN
             ! Use GEIA 2005 emissions (eck, 10/19/11)
