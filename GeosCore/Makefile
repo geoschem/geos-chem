@@ -896,7 +896,8 @@ pjc_pfix_mod.o              : pjc_pfix_mod.F
 
 planeflight_mod.o           : planeflight_mod.F                              \
                               comode_mod.o            dao_mod.o              \
-                              tracer_mod.o            tropopause_mod.o       
+                              tracer_mod.o            tropopause_mod.o       \
+                              ocean_mercury_mod.o
 
 precipfrac.o                : precipfrac.F            dao_mod.o
 

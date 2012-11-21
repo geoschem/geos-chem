@@ -381,7 +381,7 @@
      &           'mercury_201007/Hg_partitioning/' //
      &           'aero.IJ_AVG.2007.geos5.4x5'
 #elif defined( GRID2x25 )
-      FILENAME = '/home/h/hamos/GC/input_files/aerosols/' //
+      FILENAME = '/home/hamos/GC/input_files/aerosols/' //
      &           'GEOS5/aero.IJ_AVG.2007.geos5.2x25'
 
 #endif

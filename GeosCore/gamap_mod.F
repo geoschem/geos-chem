@@ -1562,7 +1562,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: N, NN, NYMDb, NHMSb, T
+      INTEGER :: N, NN, NYMDb, NHMSb, T, NUM_TRACERS
       LOGICAL :: DO_TIMESERIES
 
 
@@ -1584,10 +1584,10 @@
       !HgP is now emitted and treated as Hg2, so all HgP IJ-AVG-$
       !  fields are just zeroes
       IF ( ITS_A_MERCURY_SIM() ) THEN
-         N_TRACERS = N_TRACERS - 1
+         NUM_TRACERS = N_TRACERS - 1
       ENDIF
 
-      DO T = 1, N_TRACERS
+      DO T = 1, NUM_TRACERS
 
          ! Store quantities for each tracer
          NAME (T,45) = TRACER_NAME(T)
