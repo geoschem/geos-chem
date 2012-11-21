@@ -107,6 +107,11 @@ MODULE VDIFF_MOD
                                                    !-- useless when 
                                                    !   pbl_mean_drydep=.false.
 !
+! !REMARKS:
+!  The non-local PBL mixing routine VDIFF modifies the specific humidity,
+!  (State_Met%SPHU) field.  Therefore, we must pass State_Met as an argument
+!  to DO_PBL_MIX_2 and VDIFFDR with INTENT(INOUT).
+!
 ! !REVISION HISTORY:
 !  (1 ) This code is modified from mo_vdiff.F90 in MOZART-2.4. (lin, 5/14/09)
 !  07 Oct 2009 - R. Yantosca - Added CVS Id Tag
@@ -160,12 +165,9 @@ contains
 !-----------------------------------------------------------------------
 ! 	... basic constants
 !-----------------------------------------------------------------------
-!#if defined( DEVEL )
     plevp = plev+1
-!#endif
-
-    g    = gravx
-    onet = 1d0/3.d0
+    g     = gravx
+    onet  = 1d0/3.d0
     
 !-----------------------------------------------------------------------
 ! 	... derived constants
@@ -1794,7 +1796,7 @@ contains
 ! !USES:
 ! 
     USE COMODE_MOD,         ONLY : JLOP,      REMIS,   VOLUME
-    USE DAO_MOD,            ONLY : shp   => SPHU,      USTAR
+    USE DAO_MOD,            ONLY : USTAR
     USE DAO_MOD,            ONLY : IS_ICE, IS_LAND
     USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_DD, ADD_HgP_DD
     USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
@@ -1823,25 +1825,24 @@ contains
     USE VDIFF_PRE_MOD,      ONLY : IIPAR, JJPAR, IDEMS, NEMIS, NCS, ND44, &
                                    NDRYDEP, emis_save
 
-
 #   include "define.h"
 
     implicit none
 !
-! !INPUT PARAMETERS: 
-!
-    TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-!
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-    real*8, intent(inout), TARGET :: as2(IIPAR,JJPAR,LLPAR,N_TRACERS) ! advected species
+    ! Meteorology State object
+    TYPE(MetState), INTENT(INOUT)         :: State_Met   
 
-!    REAL*8                :: SNOW_HT !cdh - obsolete
-    REAL*8                :: FRAC_NO_HG0_DEP !jaf 
-    LOGICAL               :: ZERO_HG0_DEP !jaf 
+    ! Advected species
+    REAL*8,         intent(inout), TARGET :: as2(IIPAR,JJPAR,LLPAR,N_TRACERS) 
+!
+! !REMARKS:
+!  Need to declare the Meteorology State object (State_MET) with
+!  INTENT(INOUT).  This is because VDIFF will modify the specific
+!  humidity field. (bmy, 11/21/12)
 !
 ! !REVISION HISTORY:
-!
 ! (1 ) Calls to vdiff and vdiffar are now done with full arrays as arguments.
 !       (ccc, 11/19/09)
 !  04 Jun 2010 - C. Carouge  - Updates for mercury simulations with GTMM 
@@ -1869,6 +1870,10 @@ contains
 ! !LOCAL VARIABLES:
 !
     integer :: I,J,L,JLOOP,N,NN
+
+!    REAL*8                :: SNOW_HT !cdh - obsolete
+    REAL*8                :: FRAC_NO_HG0_DEP !jaf 
+    LOGICAL               :: ZERO_HG0_DEP !jaf 
 
     real*8, TARGET, dimension(IIPAR,JJPAR,LLPAR) :: pmid, rpdel, rpdeli, zm
     real*8, TARGET, dimension(IIPAR,JJPAR,LLPAR+1) :: pint
@@ -2432,26 +2437,26 @@ contains
        !-------------------------------------------------------------------
 
        ! 3-D fields on level centers
-       p_um1              => State_Met%U( :, :, LLPAR  :1:-1    )   
-       p_vm1              => State_Met%V( :, :, LLPAR  :1:-1    )
-       p_tadv             => State_Met%T( :, :, LLPAR  :1:-1    )
+       p_um1              => State_Met%U    ( :, :, LLPAR  :1:-1    )   
+       p_vm1              => State_Met%V    ( :, :, LLPAR  :1:-1    )
+       p_tadv             => State_Met%T    ( :, :, LLPAR  :1:-1    )
        p_hflux            => State_Met%HFLUX
        p_ustar            => State_Met%USTAR
-       p_pmid             => pmid  ( :, :, LLPAR  :1:-1    )
-       p_rpdel            => rpdel ( :, :, LLPAR  :1:-1    )
-       p_rpdeli           => rpdeli( :, :, LLPAR  :1:-1    )
-       p_zm               => zm    ( :, :, LLPAR  :1:-1    )
-       p_thp              => thp   ( :, :, LLPAR  :1:-1    )
+       p_pmid             => pmid           ( :, :, LLPAR  :1:-1    )
+       p_rpdel            => rpdel          ( :, :, LLPAR  :1:-1    )
+       p_rpdeli           => rpdeli         ( :, :, LLPAR  :1:-1    )
+       p_zm               => zm             ( :, :, LLPAR  :1:-1    )
+       p_thp              => thp            ( :, :, LLPAR  :1:-1    )
 !#if defined( DEVEL )
-       p_shp              => State_Met%SPHU( :, :, LLPAR  :1:-1    )
+       p_shp              => State_Met%SPHU ( :, :, LLPAR  :1:-1    )
 !!#else
-!       p_shp              => shp   ( :, :, LLPAR  :1:-1    )
+!       p_shp              => shp           ( :, :, LLPAR  :1:-1    )
 !#endif
        ! 3-D fields on level edges
-       p_pint             => pint  ( :, :, LLPAR+1:1:-1    )
-       p_kvh              => kvh   ( :, :, LLPAR+1:1:-1    )
-       p_kvm              => kvm   ( :, :, LLPAR+1:1:-1    )
-       p_cgs              => cgs   ( :, :, LLPAR+1:1:-1    )
+       p_pint             => pint           ( :, :, LLPAR+1:1:-1    )
+       p_kvh              => kvh            ( :, :, LLPAR+1:1:-1    )
+       p_kvm              => kvm            ( :, :, LLPAR+1:1:-1    )
+       p_cgs              => cgs            ( :, :, LLPAR+1:1:-1    )
 
        ! Tracer concentration fields
        p_as2              => as2   ( :, :, LLPAR  :1:-1, : )
@@ -2510,17 +2515,17 @@ contains
 
        ! INPUTS: 3-D fields on level centers
        p_tadv   => State_Met%T( :, :, LLPAR  :1:-1   )
-       p_pmid   => pmid  ( :, :, LLPAR  :1:-1   )
-       p_rpdel  => rpdel ( :, :, LLPAR  :1:-1   )
-       p_rpdeli => rpdeli( :, :, LLPAR  :1:-1   )
+       p_pmid   => pmid       ( :, :, LLPAR  :1:-1   )
+       p_rpdel  => rpdel      ( :, :, LLPAR  :1:-1   )
+       p_rpdeli => rpdeli     ( :, :, LLPAR  :1:-1   )
 
        ! INPUTS: 3-D fields on level edges
-       p_pint   => pint  ( :, :, LLPAR+1:1:-1   )
-       p_kvh    => kvh   ( :, :, LLPAR+1:1:-1   )
-       p_cgs    => cgs   ( :, :, LLPAR+1:1:-1   )
+       p_pint   => pint       ( :, :, LLPAR+1:1:-1   )
+       p_kvh    => kvh        ( :, :, LLPAR+1:1:-1   )
+       p_cgs    => cgs        ( :, :, LLPAR+1:1:-1   )
 
        ! INPUTS: Tracer concentration fields
-       p_as2    => as2   ( :, :, LLPAR:1:-1,  : )
+       p_as2    => as2        ( :, :, LLPAR:1:-1,  : )
 
        ! Convert from v/v -> m/m (i.e., kg/kg)
        do N = 1, N_TRACERS
@@ -2602,7 +2607,7 @@ contains
 !
     LOGICAL,        INTENT(IN) :: DO_TURBDAY  ! Switch which turns on PBL
                                               !  mixing of tracers
-    TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+    TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 !
 ! !REVISION HISTORY: 
 !  11 Feb 2005 - R. Yantosca - Initial version
