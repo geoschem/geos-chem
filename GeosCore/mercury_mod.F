@@ -4470,9 +4470,9 @@
          IF (LNEI2005) THEN
             ! Use US EPA2005 and Canadian NPRI2005 emissions
 
-            ! Mercury data is either for 2006
-            NYMD     = ( ANTHRO_Hg_YEAR * 10000 ) + 0101
-            XTAU     = GET_TAU0( 1, 1, ANTHRO_Hg_YEAR )
+            ! Mercury data is for 2005
+            NYMD     = ( 2005 * 10000 ) + 0101
+            XTAU     = GET_TAU0( 1, 1, 2005 )
 
             ! Filename for anthropogenic mercury source
             IF (LInPlume) THEN
@@ -4498,25 +4498,24 @@
      &                       XTAU,      IIPAR,        JJPAR,
      &                       1,         ARRAY(:,:,1), QUIET=.TRUE. )
 
-             ! Replace the NA emission
-              DO J = 1, JJPAR
+            ! Replace the NA emission
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
 
                ! Grid-box latitude [degrees]
-               Y = GET_YMID( J )
+               Y = GET_YMID( I, J, 1 )
 
-               DO I = 1, IIPAR
-
-                  ! Grid box longitude [degrees]
-                  X = GET_XMID( I )
+               ! Grid box longitude [degrees]
+               X = GET_XMID( I, J, 1 )
  
-                    ! In the nested domain, use NEI2005 emission inventory
-                    IF ( X .GE. -140.0 .AND. X .LE. -40.0 .AND.
-     &                  Y .GE. 10.0 .AND. Y .LE. 70.0 ) THEN                  
-                         EHg0_an(I,J) = ARRAY(I,J,1) / SEC_PER_YR
-                    ENDIF
+               ! In the nested domain, use NEI2005 emission inventory
+               IF ( X .GE. -140.0 .AND. X .LE. -40.0 .AND.
+     &              Y .GE.   10.0 .AND. Y .LE.  70.0 ) THEN
+                    EHg0_an(I,J) = ARRAY(I,J,1) / SEC_PER_YR
+               ENDIF
  
-               ENDDO
-             ENDDO
+            ENDDO
+            ENDDO
 
          ENDIF
 
@@ -5319,9 +5318,9 @@
          IF (LNEI2005) THEN
             ! Use US EPA2005 emissions
 
-            ! Mercury data is either for 2006
-            NYMD     = ( ANTHRO_Hg_YEAR * 10000 ) + 0101
-            XTAU     = GET_TAU0( 1, 1, ANTHRO_Hg_YEAR )
+            ! Mercury data is for 2005
+            NYMD     = ( 2005 * 10000 ) + 0101
+            XTAU     = GET_TAU0( 1, 1, 2005 )
 
             ! Filename for anthropogenic mercury source
             IF (LInPlume) THEN
@@ -5347,25 +5346,24 @@
      &           XTAU,      IIPAR,     JJPAR,
      &           1,     ARRAY(:,:,1),     QUIET=.TRUE. )
 
-             ! Replace the NA emission
-              DO J = 1, JJPAR
+            ! Replace the NA emission
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
 
                ! Grid-box latitude [degrees]
-               Y = GET_YMID( J )
+               Y = GET_YMID( I, J, 1 )
 
-               DO I = 1, IIPAR
-
-                  ! Grid box longitude [degrees]
-                  X = GET_XMID( I )
+               ! Grid box longitude [degrees]
+               X = GET_XMID( I, J, 1 )
  
-                    ! In the nested domain, use NEI2005 emission inventory
-                    IF ( X .GE. -140.0 .AND. X .LE. -40.0 .AND.
-     &                  Y .GE. 10.0 .AND. Y .LE. 70.0 ) THEN                  
-                         EHg2_an(I,J) = ARRAY(I,J,1) / SEC_PER_YR
-                    ENDIF
+               ! In the nested domain, use NEI2005 emission inventory
+               IF ( X .GE. -140.0 .AND. X .LE. -40.0 .AND.
+     &              Y .GE.   10.0 .AND. Y .LE.  70.0 ) THEN
+                    EHg2_an(I,J) = ARRAY(I,J,1) / SEC_PER_YR
+               ENDIF
  
-               ENDDO
-             ENDDO
+            ENDDO
+            ENDDO
 
          ENDIF
 
@@ -6121,9 +6119,9 @@
          IF (LNEI2005) THEN
             ! Use US EPA2005 emissions
 
-            ! Mercury data is either for 2006
-            NYMD     = ( ANTHRO_Hg_YEAR * 10000 ) + 0101
-            XTAU     = GET_TAU0( 1, 1, ANTHRO_Hg_YEAR )
+            ! Mercury data is for 2005
+            NYMD     = ( 2005 * 10000 ) + 0101
+            XTAU     = GET_TAU0( 1, 1, 2005 )
 
             ! Filename for anthropogenic mercury source
             IF (LInPlume) THEN
@@ -6149,25 +6147,24 @@
      &           XTAU,      IIPAR,     JJPAR,
      &           1,     ARRAY(:,:,1),     QUIET=.TRUE. )
 
-             ! Replace the NA emission
-              DO J = 1, JJPAR
+            ! Replace the NA emission
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
 
                ! Grid-box latitude [degrees]
-               Y = GET_YMID( J )
+               Y = GET_YMID( I, J, 1 )
 
-               DO I = 1, IIPAR
-
-                  ! Grid box longitude [degrees]
-                  X = GET_XMID( I )
+               ! Grid box longitude [degrees]
+               X = GET_XMID( I, J, 1 )
  
-                    ! In the nested domain, use NEI2005 emission inventory
-                    IF ( X .GE. -140.0 .AND. X .LE. -40.0 .AND.
-     &                  Y .GE. 10.0 .AND. Y .LE. 70.0 ) THEN                  
-                         EHgP_an(I,J) = ARRAY(I,J,1) / SEC_PER_YR
-                    ENDIF
+               ! In the nested domain, use NEI2005 emission inventory
+               IF ( X .GE. -140.0 .AND. X .LE. -40.0 .AND.
+     &              Y .GE.   10.0 .AND. Y .LE.  70.0 ) THEN
+                    EHgP_an(I,J) = ARRAY(I,J,1) / SEC_PER_YR
+               ENDIF
  
-               ENDDO
-             ENDDO
+            ENDDO
+            ENDDO
 
         ENDIF
 
@@ -6235,7 +6232,6 @@
 #endif
 
       ENDIF
-#endif
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )

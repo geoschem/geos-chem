@@ -331,7 +331,7 @@
       USE DIAG03_MOD   , ONLY : ND03                
       USE TIME_MOD     , ONLY : SET_Hg2_DIAG        
       USE DIRECTORY_MOD, ONLY : DATA_DIR      
-      USE ERROR_MOD    , ONLY : GEOS_CHEM_STOP
+      USE ERROR_MOD    , ONLY : GEOS_CHEM_STOP, ERROR_STOP
 
       USE CMN_SIZE_MOD  ! Size parameters3
       USE CMN_DIAG_MOD  ! Diagnostic arrays & parameters
@@ -385,7 +385,9 @@
 #elif defined( GRID2x25 )
       FILENAME = '/home/hamos/GC/input_files/aerosols/' //
      &           'GEOS5/aero.IJ_AVG.2007.geos5.2x25'
-
+#else
+      CALL ERROR_STOP( "You need to make an aerosols file. ", 
+     &                 "PARTITION_Hg2")
 #endif
 
       ! Echo some information to the standard output
@@ -2026,6 +2028,7 @@
 !
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_TAU0, GET_RES_EXT, READ_BPCH2
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT   
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
@@ -2045,8 +2048,16 @@
       !=================================================================
 
       ! MLD file name
+#if defined( GRID05x0666 ) && defined( NESTED_NA )
+      ! Need to read emission file at nested-resolution, Y. Zhang 11/1/2011 
+      FILENAME = TRIM( DATA_DIR )                  // 
+     &           'mercury_201203/MLD_DReqDT.'      // 
+     &           GET_NAME_EXT()    // '.'          //
+     &           GET_RES_EXT()   
+#else
       FILENAME = TRIM( DATA_DIR )	//
      &           'mercury_201007/MLD_DReqDT.geos.' // GET_RES_EXT()
+#endif
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
