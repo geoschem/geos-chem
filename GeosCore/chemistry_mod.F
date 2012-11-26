@@ -94,6 +94,7 @@
       USE LOGICAL_MOD,     ONLY : LCARB, LCHEM,  LCRYST, LDUST, LSCHEM
       USE LOGICAL_MOD,     ONLY : LPRT,  LSSALT, LSULF,  LSOA
       USE MERCURY_MOD,     ONLY : CHEMMERCURY
+      USE POPS_MOD,        ONLY : CHEMPOPS
       USE OPTDEPTH_MOD,    ONLY : OPTDEPTH
       USE RnPbBe_MOD,      ONLY : CHEMRnPbBe
       USE RPMARES_MOD,     ONLY : DO_RPMARES
@@ -111,6 +112,7 @@
       USE TRACER_MOD,      ONLY : ITS_A_H2HD_SIM
       USE TRACER_MOD,      ONLY : ITS_A_HCN_SIM
       USE TRACER_MOD,      ONLY : ITS_A_MERCURY_SIM
+      USE TRACER_MOD,      ONLY : ITS_A_POPS_SIM
       USE TRACER_MOD,      ONLY : ITS_A_RnPbBe_SIM
       USE TRACER_MOD,      ONLY : ITS_A_TAGCO_SIM
       USE TRACER_MOD,      ONLY : ITS_A_TAGOX_SIM
@@ -174,6 +176,8 @@
 !        unphysical values at low RH.  Wait for ISORROPIA II. (bmy, 4/2/08)
 !  (18) The dry deposition diagnostic (ND44) is done in vdiff_mod if using non-
 !        local PBL (lin, ccc, 5/29/09)
+!  (19) Now calls CHEMPOPS from "pops_mod.f" for an offline POPs simulation
+!       (eck, 9/20/10)
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  28 Jan 2010 - C. Carouge, R. Yantosca - Modified for ISORROPIA II
 !  19 Mar 2012 - R. Yantosca - Add C-preprocessor switch to shut off 
@@ -415,6 +419,14 @@
  
             ! Do Hg chemistry
             CALL CHEMMERCURY
+
+         !---------------------------------
+         ! POPs
+         !---------------------------------
+         ELSE IF ( ITS_A_POPS_SIM() ) THEN
+ 
+            ! Do POPS chemistry
+            CALL CHEMPOPS
                
          !---------------------------------
          ! Offline H2/HD

@@ -33,6 +33,7 @@
       PUBLIC :: ITS_A_MERCURY_SIM
       PUBLIC :: ITS_A_CO2_SIM
       PUBLIC :: ITS_A_H2HD_SIM
+      PUBLIC :: ITS_A_POPS_SIM
       PUBLIC :: ITS_NOT_COPARAM_OR_CH4
       PUBLIC :: GET_SIM_NAME
       PUBLIC :: CHECK_STT
@@ -100,6 +101,7 @@
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (5 ) Now added XNUMOL, XNUMOLAIR as module variables (bmy, 10/25/05)
 !  (6 ) Added public routine ITS_A_H2HD_SIM (phs, 9/18/07)
+!  (7 ) Added public routine ITS_A_POPS_SIM (eck, 9/20/10)
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !  05 Mar 2012 - M. Payer    - Added ProTeX headers
 !EOP
@@ -439,6 +441,28 @@
       END FUNCTION ITS_A_MERCURY_SIM
 !EOC
 !------------------------------------------------------------------------------
+
+      FUNCTION ITS_A_POPS_SIM() RESULT( VALUE )
+!
+!******************************************************************************
+!  Function ITS_A_POPS_SIM returns TRUE if we are doing a GEOS-CHEM
+!  offline POPS simulation. (eck, 9/20/10)
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! Local variables
+      LOGICAL :: VALUE
+      
+      !=================================================================
+      ! ITS_A_POPS_SIM begins here!
+      !=================================================================
+      VALUE = ( SIM_TYPE == 14 )
+
+      ! Return to calling program
+      END FUNCTION ITS_A_POPS_SIM
+
+!------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
@@ -601,6 +625,8 @@
             NAME = 'CO2'
          CASE( 13 )
             NAME = 'H2 and HD'
+         CASE( 14 )
+            NAME = 'POPs'
          CASE DEFAULT
             NAME = 'UNKNOWN'
        END SELECT

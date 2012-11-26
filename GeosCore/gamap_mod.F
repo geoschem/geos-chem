@@ -1445,6 +1445,16 @@
       DESCRIPT(N) = 'Ship diagnostics'
       OFFSET(N)   = SPACING * 59
 
+      ! Added for POPs (clf, 3/2/2011)
+      N           = N + 1
+      CATEGORY(N) = 'PG-SRCE'
+      DESCRIPT(N) = 'POPs Emissions'
+      OFFSET(N)   = SPACING * 52
+
+      N           = N + 1
+      CATEGORY(N) = 'PG-PP-$'
+      DESCRIPT(N) = 'POP partitioning/oxidation'
+      OFFSET(N)   = SPACING * 53
 
 ! NEED TO DO THAT AT ONE POINT      
 !      ! New for CSPEC
@@ -1485,6 +1495,7 @@
       USE DIAG50_MOD,   ONLY : DO_SAVE_DIAG50
       USE DIAG51_MOD,   ONLY : DO_SAVE_DIAG51
       USE DIAG51b_MOD,  ONLY : DO_SAVE_DIAG51b
+      USE DIAG53_MOD,   ONLY : ND53, PD53
       USE DIAG56_MOD,   ONLY : ND56
       USE DIAG63_MOD,   ONLY:  DO_SAVE_DIAG63
       USE DIAG_PL_MOD,  ONLY : DO_SAVE_PL,  GET_NFAM
@@ -1521,7 +1532,7 @@
       USE TRACERID_MOD, ONLY : IDTXYLE, IDTBENZ, IDTTOLU
       USE TRACERID_MOD, ONLY : N_Hg_CATS  !CDH for snowpack
       USE LOGICAL_MOD,  ONLY : LSPLIT
-
+      USE GET_POPSINFO_MOD, ONLY : GET_POP_XMW
 ! 
 ! !REVISION HISTORY: 
 !  17 Oct 1996 - R. Yantosca & P. Le Sager - Initial version
@@ -1549,6 +1560,7 @@
 !  09-Dec-2010 - H. Amos     - fix spacing and #s for PL-HG2-$ diagnostics
 !  12 Nov 2010 - R. Yantosca - Need to save out surface pressure line to 
 !                              tracerinfo.dat for the timeseries diagnostics
+!  22 Mar 2011 - C. Friedman - Added POPs
 !  24 Jan 2012 - M. Payer    - Change scale factors for Rn-Pb-Be simulation so
 !                              units are in mBq/SCM
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
@@ -1566,9 +1578,13 @@
       LOGICAL :: DO_TIMESERIES
 
 
+      REAL*8,     SAVE      :: POP_XMW
+      REAL*8                :: DUM
+
       !=================================================================
       ! INIT_TRACERINFO begins here!
       !=================================================================
+      DUM = 1.0
 
       ! Set a flag if any timeseries diagnostics are turned on
       DO_TIMESERIES = ( DO_SAVE_DIAG48 .or. DO_SAVE_DIAG49 .or.
@@ -5900,6 +5916,72 @@
          MOLC (T,52) = 1
          MWT  (T,52) = 0e0
          SCALE(T,52) = 1e0
+      ENDIF
+
+
+      !-----------------------------------
+      ! POPS (ND53) clf (03/22/11)
+      !-----------------------------------
+      IF ( ND53 > 0 ) THEN
+         NTRAC(53)  = PD53
+
+         ! Loop over tracers
+         DO T = 1, PD53
+
+            ! Define quantities
+            UNIT (T,53) = 'kg'
+            MOLC (T,53) = 1
+            MWT  (T,53) = GET_POP_XMW(DUM)
+            SCALE(T,53) = 1e0
+
+            ! Get name, long-name, index, and new units
+            SELECT CASE( T )
+               CASE( 1  )
+                  NAME (T,53) = 'POPT'
+                  FNAME(T,53) = 'POP total emissions'
+                  INDEX(T,53) = T + ( SPACING * 52 )
+               CASE( 2  )
+                  NAME (T,53) = 'POPPOC'
+                  FNAME(T,53) = 'POPPOC emissions'
+                  INDEX(T,53) = T + ( SPACING * 52 )
+               CASE( 3  )
+                  NAME (T,53) = 'POPPBC'
+                  FNAME(T,53) = 'POPPBC emissions'
+                  INDEX(T,53) = T + ( SPACING * 52 )
+               CASE( 4  )
+                  NAME (T,53) = 'POPG'
+                  FNAME(T,53) = 'POPG emissions'
+                  INDEX(T,53) = T + ( SPACING * 52 )
+               CASE( 5  )
+                  NAME (T,53) = 'POPPOC'
+                  FNAME(T,53) = 'Gross POPPOC lost to gas'
+                  INDEX(T,53) = T + ( SPACING * 53 )
+               CASE( 6  )
+                  NAME (T,53) = 'POPPOC'
+                  FNAME(T,53) = 'Gross POPPOC formed from gas'
+                  INDEX(T,53) = T + ( SPACING * 53 )
+               CASE( 7  )
+                  NAME (T,53) = 'POPPBC'
+                  FNAME(T,53) = 'Gross POPPBC lost to gas'
+                  INDEX(T,53) = T + ( SPACING * 53 )
+               CASE( 8  )
+                  NAME (T,53) = 'POPPBC'
+                  FNAME(T,53) = 'Gross POPPBC formed from gas'
+                  INDEX(T,53) = T + ( SPACING * 53 )
+               CASE( 9  )
+                  NAME (T,53) = 'POPG'
+                  FNAME(T,53) = 'POPG oxidized by OH'
+                  INDEX(T,53) = T + ( SPACING * 53 )
+               CASE( 10  )
+                  NAME (T,53) = 'POPPOC'
+                  FNAME(T,53) = 'POPPOC oxidized by O3'
+                  INDEX(T,53) = T + ( SPACING * 53 )
+               CASE( 11  )
+                  NAME (T,53) = 'POPPBC'
+                  FNAME(T,53) = 'POPPBC oxidized by O3'
+                  INDEX(T,53) = T + ( SPACING * 53 )
+            END SELECT
+         ENDDO
       ENDIF
 
       !-------------------------------------      
