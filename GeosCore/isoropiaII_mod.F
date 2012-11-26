@@ -106,22 +106,7 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Add the Input Options object and RC status flag as arguments
-      ! (bmy, 11/13/12)
-      !-----------------------------------------------------------------
       SUBROUTINE DO_ISOROPIAII( am_I_Root, Input_Opt, State_Met, RC )
-#else
-      !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Preserve existing subroutine call (bmy, 11/13/12)
-      !-----------------------------------------------------------------
-      SUBROUTINE DO_ISOROPIAII( am_I_Root, State_Met )
-#endif
 !
 ! !USES:
 !
@@ -129,6 +114,8 @@
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : SAFE_DIV
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GLOBAL_HNO3_MOD,    ONLY : GET_GLOBAL_HNO3
       USE TIME_MOD,           ONLY : GET_MONTH
@@ -149,42 +136,16 @@
       USE APM_INIT_MOD,       ONLY : IDTCTDST
       USE APM_INIT_MOD,       ONLY : IDTCTSO4
 #endif
-
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! We need to reference some modules particular to the Grid-
-      ! Independent GEOS-Chem implementation here.   In particular,
-      ! the settings from the Input Options object will replace
-      ! logical flags from logical_mod.F. (bmy, 11/8/12)
-      !-----------------------------------------------------------------
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#else
-      !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Current practice in the standard GEOS-Chem is to reference
-      ! logical flags directly from module GeosCore/logical_mod.F.
-      ! (bmy, 11/13/12)
-      !-----------------------------------------------------------------
-      USE LOGICAL_MOD,        ONLY : LPRT
-      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
-      USE TRACER_MOD,         ONLY : ITS_AN_AEROSOL_SIM  
-#endif
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
-#endif
 !
 ! !REMARKS:
 !  Original isoropia v1.3 implmentation: (rjp, bec, bmy, 12/17/01, 8/22/05)
@@ -199,7 +160,7 @@
 !  30 Jul 2012 - R. Yantosca  - Now accept am_I_Root as an argument when
 !                               running with the traditional driver main.F
 !  31 Jul 2012 - R. Yantosca  - Now loop from 1..LLPAR for GIGC compatibilit
-!  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
+!  14 Nov 2012 - R. Yantosca  - Add am_I_Root, Input_Opt, RC as arguments
 !  15 Nov 2012 - M. Payer     - Replaced all met field arrays with State_Met
 !                               derived type object
 !EOP
@@ -252,32 +213,11 @@
 
       LOGICAL                  :: IT_IS_AN_AEROSOL_SIM
       LOGICAL                  :: IT_IS_A_FULLCHEM_SIM
-
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! We need to define local logical flags to hold corresponding
-      ! values from the Input Options object.  We do not need to define
-      ! these for the traditional GEOS-Chem since it will refer to 
-      ! variables from the same name from GeosCore/logical_mod.F.
-      ! Also need to shadow the N_TRACERS variable from module
-      ! GeosCore/tracer_mod.F. (bmy, 11/13/12)
-      !-----------------------------------------------------------------
       LOGICAL                  :: LPRT
-#endif
                   
       !=================================================================
       ! DO_ISOROPIAII begins here!
       !=================================================================
-
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Initialize the RC argument.  Also copy logical values from the
-      ! Input Options object over to local variables. (bmy, 11/13/12)
-      !-----------------------------------------------------------------
 
       ! Assume success
       RC                   = GIGC_SUCCESS
@@ -286,18 +226,6 @@
       LPRT                 = Input_Opt%LPRT  
       IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
       IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
-#else
-      !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Current practice in the standard GEOS-Chem is to reference
-      ! logical flags directly from module GeosCore/logical_mod.F
-      ! and the ITS_A_*_SIM functions directly from module
-      ! GeosCore/tracer_mod.F (bmy, 11/14/12)
-      !-----------------------------------------------------------------
-      IT_IS_AN_AEROSOL_SIM = ITS_AN_AEROSOL_SIM()
-      IT_IS_A_FULLCHEM_SIM = ITS_A_FULLCHEM_SIM()
-#endif
 
       ! Location string
       X = 'DO_ISOROPIAII (isoropiaII_mod.f)'

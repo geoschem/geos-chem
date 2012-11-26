@@ -297,7 +297,7 @@
 !
 !-----------------------------------------------------------------------------
 
-            ! Call linearized stratospheric scheme
+!            ! Call linearized stratospheric scheme
             IF ( LSCHEM ) CALL DO_STRAT_CHEM( am_I_Root, State_Met )
 
             ! Do seasalt aerosol chemistry
@@ -305,58 +305,19 @@
                CALL CHEMSEASALT( am_I_Root, Input_Opt, State_Met, RC )
             ENDIF
 
-!NOTE: Activate the new calls individually (bmy, 11/21/12)
-!            ! Also do sulfate chemistry
-!            IF ( LSULF ) THEN
-!
-!               ! Do sulfate chemistry
-!               CALL CHEMSULFATE( am_I_Root, Input_Opt, State_Met, RC )
-!
-!               ! Do aerosol thermodynamic equilibrium
-!               IF ( LSSALT ) THEN
-!
-!#if   !defined( NO_ISORROPIA )
-!                  ! ISOROPIA takes Na+, Cl- into account
-!                  CALL DO_ISOROPIAII( am_I_Root, Input_Opt, 
-!     &                                State_Met, RC         )
-!#endif
-!
-!               ELSE
-!
-!                  ! RPMARES does not take Na+, Cl- into account
-!                  CALL DO_RPMARES( am_I_Root, State_Met )
-!
-!               ENDIF
-!
-!            ENDIF
-!
-!            ! Do carbonaceous aerosol chemistry
-!            IF ( LCARB ) THEN
-!               CALL CHEMCARBON( am_I_Root, Input_Opt, State_Met, RC )
-!            ENDIF
-!
-!            ! Do dust aerosol chemistry
-!            IF ( LDUST ) THEN
-!               CALL CHEMDUST( am_I_Root, Input_Opt, State_Met, RC )
-!            ENDIF
-!#else
-!------------------------------------------
-
-! NOTE: Replace the calls below with the ones above.  This has to be done
-! in a piecemeal fashion (bmy, 11/21/12) 
-
             ! Also do sulfate chemistry
             IF ( LSULF ) THEN
 
                ! Do sulfate chemistry
-               CALL CHEMSULFATE( am_I_Root, State_Met )
- 
+               CALL CHEMSULFATE( am_I_Root, Input_Opt, State_Met, RC )
+
                ! Do aerosol thermodynamic equilibrium
                IF ( LSSALT ) THEN
 
 #if   !defined( NO_ISORROPIA )
                   ! ISOROPIA takes Na+, Cl- into account
-                  CALL DO_ISOROPIAII( am_I_Root, State_Met )
+                  CALL DO_ISOROPIAII( am_I_Root, Input_Opt, 
+     &                                State_Met, RC         )
 #endif
 
                ELSE
@@ -365,14 +326,18 @@
                   CALL DO_RPMARES( am_I_Root, State_Met )
 
                ENDIF
-                
+
             ENDIF
 
             ! Do carbonaceous aerosol chemistry
-            IF ( LCARB ) CALL CHEMCARBON( am_I_Root, State_Met )
- 
+            IF ( LCARB ) THEN
+               CALL CHEMCARBON( am_I_Root, Input_Opt, State_Met, RC )
+            ENDIF
+
             ! Do dust aerosol chemistry
-            IF ( LDUST ) CALL CHEMDUST( am_I_Root, State_Met )
+            IF ( LDUST ) THEN
+               CALL CHEMDUST( am_I_Root, Input_Opt, State_Met, RC )
+            ENDIF
  
             ! ND44 drydep fluxes
             ! The drydep fluxes diag. is done in vdiff_mod.f when non-local 
@@ -427,61 +392,12 @@
             CALL RDAER( am_I_Root, Input_Opt, State_Met,  RC,
      &                  MONTH,     YEAR,      WAVELENGTH      )
 
-!NOTE: Activate these new calls individually (bmy, 11/21/12)
-!            !*** AEROSOL THERMODYNAMIC EQUILIBRIUM ***
-!            IF ( LSSALT ) THEN
-!
-!#if   !defined( NO_ISORROPIA )
-!               ! ISOROPIA takes Na+, Cl- into account
-!               CALL DO_ISOROPIAII( am_I_Root, Input_Opt, State_Met, RC )
-!#endif
-!
-!            ELSE
-!
-!               ! RPMARES does not take Na+, Cl- into account
-!               ! (skip for crystalline & aqueous offline run)
-!               IF ( .not. LCRYST ) THEN
-!                  CALL DO_RPMARES( am_I_Root, State_Met )
-!               ENDIF
-!
-!            ENDIF
-!
-!            !*** SEASALT AEROSOLS ***
-!            IF ( LSSALT ) THEN
-!               CALL CHEMSEASALT( am_I_Root, Input_Opt, State_Met, RC )
-!            ENDIF
-!
-!            !*** SULFATE AEROSOLS ***
-!            IF ( LSULF .or. LCRYST ) THEN
-!
-!               ! Do sulfate chemistry
-!               CALL CHEMSULFATE( am_I_Root, Input_Opt, State_Met, RC )
-!
-!            ENDIF
-!
-!            !*** CARBON AND 2NDARY ORGANIC AEROSOLS ***
-!            IF ( LCARB ) THEN
-!               CALL CHEMCARBON( am_I_Root, Input_Opt, State_Met, RC )
-!            ENDIF
-!
-!            !*** MINERAL DUST AEROSOLS ***
-!            IF ( LDUST ) THEN
-!
-!               ! Do dust aerosol chemistry
-!               CALL CHEMDUST( am_I_Root, Input_Opt, State_Met, RC )
-!
-!               WAVELENGTH = 0
-!
-!               ! Compute dust OD's & surface areas
-!               CALL RDUST_ONLINE( SOILDUST, WAVELENGTH, State_Met )
-!            ENDIF
-!
             !*** AEROSOL THERMODYNAMIC EQUILIBRIUM ***
             IF ( LSSALT ) THEN
 
 #if   !defined( NO_ISORROPIA )
                ! ISOROPIA takes Na+, Cl- into account
-               CALL DO_ISOROPIAII( am_I_Root, State_Met )
+               CALL DO_ISOROPIAII( am_I_Root, Input_Opt, State_Met, RC )
 #endif
 
             ELSE
@@ -502,25 +418,25 @@
             IF ( LSULF .or. LCRYST ) THEN
  
                ! Do sulfate chemistry
-               CALL CHEMSULFATE( am_I_Root, State_Met )
- 
+               CALL CHEMSULFATE( am_I_Root, Input_Opt, State_Met, RC ) 
+
             ENDIF
 
             !*** CARBON AND 2NDARY ORGANIC AEROSOLS ***
-            IF ( LCARB ) CALL CHEMCARBON( am_I_Root, State_Met )
+            IF ( LCARB ) THEN
+               CALL CHEMCARBON( am_I_Root, Input_Opt, State_Met, RC )
+            ENDIF
 
             !*** MINERAL DUST AEROSOLS ***
             IF ( LDUST ) THEN 
  
                ! Do dust aerosol chemsitry
-               CALL CHEMDUST( am_I_Root, State_Met )
-
-               WAVELENGTH = 0
+               CALL CHEMDUST( am_I_Root, Input_Opt, State_Met, RC )
 
                ! Compute dust OD's & surface areas
+               WAVELENGTH = 0
                CALL RDUST_ONLINE( SOILDUST, WAVELENGTH, State_Met )
             ENDIF
-!#endif
  
          !---------------------------------
          ! Rn-Pb-Be

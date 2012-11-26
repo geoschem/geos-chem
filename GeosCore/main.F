@@ -951,26 +951,10 @@
             !===========================================================
             !             ***** E M I S S I O N S *****
             !===========================================================
-#if defined( DEVEL )
-            !-----------------------------------------------------------
-            ! %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%%
-            !
-            ! Pass the am_I_Root, Input_Opt, State_Chm as arguments
-            ! to routine DO_EMISSIONS. (bmy, 11/14/12)
-            !-----------------------------------------------------------
             IF ( LEMIS ) THEN
                CALL DO_EMISSIONS( am_I_Root, Input_Opt, 
      &                            State_Met, State_Chm, RC )
             ENDIF
-#else
-            !-----------------------------------------------------------
-            !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-            !
-            ! Current practice is to call routine DO_EMISSIONS without 
-            ! any arguments. (bmy, 10/25/12)
-            !-----------------------------------------------------------
-            IF ( LEMIS ) CALL DO_EMISSIONS( State_Met )
-#endif
 
             IF ( ITS_TIME_FOR_UNIT() )
      &         CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, 
@@ -1077,26 +1061,10 @@
             !===========================================================
             !             ***** E M I S S I O N S *****
             !===========================================================
-#if defined( DEVEL )
-            !-----------------------------------------------------------
-            ! %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%%
-            !
-            ! Pass the Chemistry State object (i.e. State_Chm) to 
-            ! routine DO_EMISSIONS (bmy, 10/25/12)
-            !-----------------------------------------------------------
             IF ( LEMIS ) THEN
                CALL DO_EMISSIONS( am_I_Root, Input_Opt, 
      &                            State_Met, State_Chm, RC )
             ENDIF
-#else
-            !-----------------------------------------------------------
-            !             %%%%% TRADITIONAL GEOS-Chem %%%%%
-            !
-            ! Current practice is to call DO_EMISSIONS without any
-            ! arguments. (bmy, 10/25/12)
-            !-----------------------------------------------------------
-            IF ( LEMIS ) CALL DO_EMISSIONS( State_Met )
-#endif
 
             IF ( ITS_A_FULLCHEM_SIM() ) THEN
                !========================================================

@@ -271,9 +271,7 @@
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
       !=================================================================
       CONTAINS
-
-!------------------------------------------------------------------------------
-
+!EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -289,22 +287,7 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Add the Input Options object and RC status flag as arguments
-      ! (bmy, 11/13/12)
-      !-----------------------------------------------------------------
       SUBROUTINE CHEMCARBON( am_I_Root, Input_Opt, State_Met, RC )
-#else
-      !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Preserve existing subroutine call (bmy, 11/13/12)
-      !-----------------------------------------------------------------
-      SUBROUTINE CHEMCARBON( am_I_Root, State_Met )
-#endif
 !
 ! !USES:
 !
@@ -312,6 +295,8 @@
       USE DRYDEP_MOD,         ONLY : DEPNAME
       USE DRYDEP_MOD,         ONLY : NUMDEP
       USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GLOBAL_OH_MOD,      ONLY : GET_GLOBAL_OH
       USE GLOBAL_NO3_MOD,     ONLY : GET_GLOBAL_NO3
@@ -323,47 +308,18 @@
       USE TRACERID_MOD,       ONLY : IDTOCPO, IDTSOG4, IDTSOA4
       USE TRACERID_MOD,       ONLY : IDTSOG5, IDTSOA5
       USE TRACERID_MOD,       ONLY : IDTSOAG, IDTSOAM
-
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! We need to reference some modules particular to the Grid-
-      ! Independent GEOS-Chem implementation here.   In particular,
-      ! the settings from the Input Options object will replace
-      ! logical flags from logical_mod.F. (bmy, 11/8/12)
-      !-----------------------------------------------------------------
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#else
-      !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Current practice in the standard GEOS-Chem is to reference
-      ! logical flags directly from module GeosCore/logical_mod.F.
-      ! (bmy, 11/13/12)
-      !-----------------------------------------------------------------
-      USE LOGICAL_MOD,        ONLY : LSOA
-      USE LOGICAL_MOD,        ONLY : LEMIS
-      USE LOGICAL_MOD,        ONLY : LPRT
-      USE TRACER_MOD,         ONLY : ITS_AN_AEROSOL_SIM
-#endif
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
-#endif
 !
 ! !REMARKS:
-! 
 ! 
 ! !REVISION HISTORY: 
 !  01 Apr 1994 - R. Park - Initial version
@@ -392,35 +348,15 @@
       LOGICAL, SAVE :: FIRSTCHEM = .TRUE.
       LOGICAL       :: prtDebug
       LOGICAL       :: IT_IS_AN_AEROSOL_SIM
-      INTEGER       :: N, THISMONTH
-
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! We need to define local logical flags to hold corresponding
-      ! values from the Input Options object.  We do not need to define
-      ! these for the traditional GEOS-Chem since it will refer to 
-      ! variables from the same name from GeosCore/logical_mod.F.
-      ! Also need to shadow the N_TRACERS variable from module
-      ! GeosCore/tracer_mod.F. (bmy, 11/13/12)
-      !-----------------------------------------------------------------
       LOGICAL       :: LSOA
       LOGICAL       :: LEMIS
       LOGICAL       :: LPRT
-#endif
+      INTEGER       :: N
+      INTEGER       :: THISMONTH
 
       !=================================================================
       ! CHEMCARBON begins here!
       !=================================================================
-
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Initialize the RC argument.  Also copy logical values from the
-      ! Input Options object over to local variables. (bmy, 11/13/12)
-      !-----------------------------------------------------------------
 
       ! Assume success
       RC                   = GIGC_SUCCESS
@@ -430,17 +366,6 @@
       LEMIS                = Input_Opt%LEMIS
       LPRT                 = Input_Opt%LPRT
       IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
-#else
-      !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Current practice in the standard GEOS-Chem is to reference
-      ! logical flags directly from module GeosCore/logical_mod.F
-      ! and the ITS_A_*_SIM functions directly from module
-      ! GeosCore/tracer_mod.F (bmy, 11/14/12)
-      !-----------------------------------------------------------------
-      IT_IS_AN_AEROSOL_SIM = ITS_AN_AEROSOL_SIM()
-#endif
 
       ! Do we have to print debug output?
       prtDebug = ( LPRT .and. am_I_Root )
@@ -526,12 +451,7 @@
 
       ! Chemistry for hydrophobic BC
       IF ( IDTBCPO > 0 ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
          CALL CHEM_BCPO( am_I_Root, Input_Opt, STT(:,:,:,IDTBCPO), RC )
-#else
-         CALL CHEM_BCPO( STT(:,:,:,IDTBCPO) )
-#endif
-
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPO' )
          ENDIF
@@ -539,11 +459,7 @@
 
       ! Chemistry for hydrophilic BC
       IF ( IDTBCPI > 0 ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
          CALL CHEM_BCPI( am_I_Root, Input_Opt, STT(:,:,:,IDTBCPI), RC )
-#else
-         CALL CHEM_BCPI( STT(:,:,:,IDTBCPI) )
-#endif
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPI' )
          ENDIF
@@ -551,11 +467,7 @@
 
       ! Chemistry for hydrophobic OC
       IF ( IDTOCPO > 0 ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
          CALL CHEM_OCPO( am_I_Root, Input_Opt, STT(:,:,:,IDTOCPO), RC )
-#else
-         CALL CHEM_OCPO( STT(:,:,:,IDTOCPO) )
-#endif
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPO' )
          ENDIF
@@ -563,11 +475,7 @@
 
       ! Chemistry for hydrophilic OC
       IF ( IDTOCPI > 0 ) THEN 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
          CALL CHEM_OCPI( am_I_Root, Input_Opt, STT(:,:,:,IDTOCPI), RC )
-#else
-         CALL CHEM_OCPI( STT(:,:,:,IDTOCPI) )
-#endif
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPI' )
          ENDIF
@@ -655,37 +563,53 @@
    
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE CHEMCARBON
-
-!-----------------------------------------------------------------------------
-
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Add the Input Options object and RC status flag as arguments
-      ! (bmy, 11/13/12)
-      !-----------------------------------------------------------------
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: chem_bcpo
+!
+! !DESCRIPTION: Subroutine CHEM\_BCPO converts hydrophobic BC to hydrophilic 
+!  BC and calculates the dry deposition of hydrophobic BC. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CHEM_BCPO( am_I_Root, Input_Opt, TC, RC )
-#else
-      !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Preserve existing subroutine call (bmy, 11/13/12)
-      !-----------------------------------------------------------------
-      SUBROUTINE CHEM_BCPO( TC )
-#endif
 !
-!******************************************************************************
-!  Subroutine CHEM_BCPO converts hydrophobic BC to hydrophilic BC and
-!  calculates the dry deposition of hydrophobic BC. (rjp, bmy, 4/1/04,10/25/05)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) TC (REAL*8) : Array of hydrophobic BC tracer 
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
+      USE DIAG_MOD,           ONLY : AD44, AD07_BC 
+      USE DRYDEP_MOD,         ONLY : DEPSAV
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
+      USE TRACERID_MOD,       ONLY : IDTBCPO
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
-!  NOTES:
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root             ! Root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt             ! Input Options
+!
+! !INPUT/OUTPUT PARAMETERS:
+! 
+      REAL*8,         INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! H-phobic BC [kg]
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC                    ! Success?
+!
+! !REMARKS:
+! 
+! !REVISION HISTORY:
+!  01 Apr 2004 - R. Park - Initial version
 !  (1 ) Remove reference to "CMN", it's obsolete (bmy, 7/20/04)
 !  (2 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP 
 !        from "pbl_mix_mod.f" (bmy, 2/17/05)
@@ -693,80 +617,25 @@
 !  (4 ) Add option for non-local PBL scheme (lin, 06/09/08)
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
-!******************************************************************************
-!
-      ! References to F90 modules
-      USE DIAG_MOD,     ONLY : AD44, AD07_BC 
-      USE DRYDEP_MOD,   ONLY : DEPSAV
-      USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP
-      USE TRACERID_MOD, ONLY : IDTBCPO
-      USE TIME_MOD,     ONLY : GET_TS_CHEM
-
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DIAG_MOD     ! ND44, ND07, LD07
-
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! We need to reference some modules particular to the Grid-
-      ! Independent GEOS-Chem implementation here.   In particular,
-      ! the settings from the Input Options object will replace
-      ! logical flags from logical_mod.F. (bmy, 11/8/12)
-      !-----------------------------------------------------------------
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#else
-      !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Current practice in the standard GEOS-Chem is to reference
-      ! logical flags directly from module GeosCore/logical_mod.F.
-      ! (bmy, 11/13/12)
-      !-----------------------------------------------------------------
-      USE TRACER_MOD,   ONLY : XNUMOL
-#endif
-!
-! !INPUT/OUTPUT PARAMETERS:
-! 
-      REAL*8,  INTENT(INOUT)    :: TC(IIPAR,JJPAR,LLPAR)
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)  :: am_I_Root
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT) :: RC
-#endif
+!  26 Nov 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
 ! !LOCAL VARIABLES:
 !
+      ! Scalars
       INTEGER            :: I,       J,   L
-      REAL*8             :: ND44_TMP(IIPAR,JJPAR,LLPAR)     
       REAL*8             :: DTCHEM, FLUX, KBC, FREQ
       REAL*8             :: TC0,    CNEW, RKT, AREA_CM2, BL_FRAC
+
+      ! Arrays
+      REAL*8             :: ND44_TMP(IIPAR,JJPAR,LLPAR)     
+      REAL*8             :: XNUMOL(Input_Opt%N_TRACERS)
 !
 ! !DEFINED PARAMETERS:
 !
       REAL*8,  PARAMETER :: BC_LIFE = 1.15D0
-
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! We need to define local logical flags to hold corresponding
-      ! values from the Input Options object.  We do not need to define
-      ! these for the traditional GEOS-Chem since it will refer to 
-      ! variables from the same name from GeosCore/logical_mod.F.
-      ! Also need to shadow the N_TRACERS variable from module
-      ! GeosCore/tracer_mod.F. (bmy, 11/13/12)
-      !-----------------------------------------------------------------
-      REAL*8                 :: XNUMOL(Input_Opt%N_TRACERS)
-#endif
 
       !=================================================================
       ! CHEM_BCPO begins here!
@@ -775,39 +644,19 @@
       ! Return if BCPO isn't defined
       IF ( IDTBCPO == 0 .or. DRYBCPO == 0 ) RETURN
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Initialize the RC argument.  Also copy logical values from the
-      ! Input Options object over to local variables. (bmy, 11/13/12)
-      !-----------------------------------------------------------------
-
       ! Assume success
-      RC        = GIGC_SUCCESS
+      RC     = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      XNUMOL    = Input_Opt%XNUMOL
-#endif
+      XNUMOL = Input_Opt%XNUMOL
 
       ! Initialize
       KBC    = 1.D0 / ( 86400d0 * BC_LIFE )
       DTCHEM = GET_TS_CHEM() * 60d0
+      BCCONV = 0d0
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         BCCONV(I,J,L) = 0d0
-
-         ! Initialize for drydep diagnostic
-         IF ( ND44 > 0 ) ND44_TMP(I,J,L) = 0d0
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
+      ! Initialize for drydep diagnostic
+      IF ( ND44 > 0 ) ND44_TMP = 0d0
 
       !=================================================================
       ! For tracers with dry deposition, the loss rate of dry dep is 
@@ -910,109 +759,74 @@
 !$OMP END PARALLEL DO
       ENDIF      
 
-      ! Return to calling program
       END SUBROUTINE CHEM_BCPO
-
+!EOC
 !------------------------------------------------------------------------------
-
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Add the Input Options object and RC status flag as arguments
-      ! (bmy, 11/13/12)
-      !-----------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: chem_bcpi
+!
+! !DESCRIPTION: Subroutine CHEM\_BCPI calculates dry deposition of 
+!  hydrophilic BC.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CHEM_BCPI( am_I_Root, Input_Opt, TC, RC )
-#else
-      !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Preserve existing subroutine call (bmy, 11/13/12)
-      !-----------------------------------------------------------------
-      SUBROUTINE CHEM_BCPI( TC )
-#endif
 !
-!******************************************************************************
-!  Subroutine CHEM_BCPI calculates dry deposition of hydrophilic BC.
-!  (rjp, bmy, 4/1/04, 10/25/05)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) TC (REAL*8) : Array of hydrophilic BC tracer 
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
+      USE DIAG_MOD,           ONLY : AD44 
+      USE DRYDEP_MOD,         ONLY : DEPSAV
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
+      USE TRACERID_MOD,       ONLY : IDTBCPI
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root             ! Root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt             ! Input Options
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      REAL*8,         INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! H-philic BC [kg]
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC                    ! Success?
+!
+! !REMARKS:
 ! 
-!  NOTES:
+! !REVISION HISTORY: 
+!  01 Apr 2004 - R. Park - Initial version
 !  (1 ) Remove reference to "CMN", it's obsolete (bmy, 7/20/04)
 !  (2 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP from 
 !        "pbl_mix_mod.f" (bmy, 2/17/05)
 !  (3 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
-!******************************************************************************
-!
-      ! References to F90 modules
-      USE DIAG_MOD,     ONLY : AD44 
-      USE DRYDEP_MOD,   ONLY : DEPSAV
-      USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP
-      USE TRACERID_MOD, ONLY : IDTBCPI
-      USE TIME_MOD,     ONLY : GET_TS_CHEM
-
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DIAG_MOD     ! ND44
-
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! We need to reference some modules particular to the Grid-
-      ! Independent GEOS-Chem implementation here.   In particular,
-      ! the settings from the Input Options object will replace
-      ! logical flags from logical_mod.F. (bmy, 11/8/12)
-      !-----------------------------------------------------------------
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#else
-      !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Current practice in the standard GEOS-Chem is to reference
-      ! logical flags directly from module GeosCore/logical_mod.F.
-      ! (bmy, 11/13/12)
-      !-----------------------------------------------------------------
-      USE TRACER_MOD,         ONLY : XNUMOL
-#endif
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-      REAL*8,         INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-!
-! !INPUT PARAMETERS
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT)   :: RC
-#endif
+!  26 Nov 2012 - R. Yantosca - Added ProTeX Headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
 ! !LOCAL VARIABLES:
 !
+      ! Scalars
       INTEGER :: I, J, L
       REAL*8  :: DTCHEM, FLUX, BL_FRAC, AREA_CM2
       REAL*8  :: TC0,    CNEW, CCV,     FREQ
-      REAL*8  :: ND44_TMP(IIPAR,JJPAR,LLPAR)
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! We need to define local variables to hold corresponding
-      ! values from the Input Options object. (bmy, 11/14/12)
-      !-----------------------------------------------------------------
+      ! Arrays
+      REAL*8  :: ND44_TMP(IIPAR,JJPAR,LLPAR)
       REAL*8  :: XNUMOL(Input_Opt%N_TRACERS)
-#endif
 
       !=================================================================
       ! CHEM_BCPI begins here!
@@ -1021,38 +835,17 @@
       ! Return if BCPI isn't defined
       IF ( IDTBCPI == 0 .or. DRYBCPI == 0 ) RETURN
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Initialize the RC argument.  Also copy logical values from the
-      ! Input Options object over to local variables. (bmy, 11/13/12)
-      !-----------------------------------------------------------------
-
       ! Assume success
-      RC        = GIGC_SUCCESS
+      RC     = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      XNUMOL    = Input_Opt%XNUMOL
-#endif
+      XNUMOL = Input_Opt%XNUMOL
 
       ! Chemistry timestep [s]
       DTCHEM = GET_TS_CHEM() * 60d0
 
       ! Initialize for ND44 diagnostic
-      IF ( ND44 > 0 ) THEN
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            ND44_TMP(I,J,L) = 0d0
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      ENDIF
+      IF ( ND44 > 0 ) ND44_TMP = 0d0
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -1132,17 +925,7 @@
       !=================================================================
       ! Zero out the BCCONV array for the next iteration
       !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         BCCONV(I,J,L) = 0.d0
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
+      BCCONV = 0d0
 
       !=================================================================
       ! ND44: Sum drydep fluxes by level into the AD44 array in
@@ -1162,109 +945,75 @@
 !$OMP END PARALLEL DO
       ENDIF      
 
-      ! Return to calling program
       END SUBROUTINE CHEM_BCPI
-
+!EOC
 !------------------------------------------------------------------------------
-
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Add the Input Options object and RC status flag as arguments
-      ! (bmy, 11/13/12)
-      !-----------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: chem_ocpo
+!
+! !DESCRIPTION: Subroutine CHEM\_OCPO converts hydrophobic OC to hydrophilic
+!  OC and calculates the dry deposition of hydrophobic OC.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CHEM_OCPO( am_I_Root, Input_Opt, TC, RC )
-#else
-      !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Preserve existing subroutine call (bmy, 11/13/12)
-      !-----------------------------------------------------------------
-      SUBROUTINE CHEM_OCPO( TC )
-#endif
 !
-!******************************************************************************
-!  Subroutine CHEM_OCPO converts hydrophobic OC to hydrophilic OC and
-!  calculates the dry deposition of hydrophobic OC. (rjp, bmy, 4/1/04,10/25/05)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) TC (REAL*8) : Array of hydrophobic OC tracer [kg]
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
+      USE DIAG_MOD,           ONLY : AD44
+      USE DIAG_MOD,           ONLY : AD07_OC 
+      USE DRYDEP_MOD,         ONLY : DEPSAV
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
+      USE TRACERID_MOD,       ONLY : IDTOCPO
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
-!  NOTES:
+! !INPUT PARAMETERS: 
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root             ! Root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt             ! Input Options
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      REAL*8,         INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! H-phobic OC [kg]
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC                    ! Success?
+!
+! !REMARKS:
+! 
+! !REVISION HISTORY: 
+!  01 Apr 2004 - R. Park - Initial version
 !  (1 ) Remove reference to "CMN", it's obsolete (bmy, 7/20/04)
 !  (2 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP from 
 !        "pbl_mix_mod.f" (bmy, 2/17/05)
 !  (3 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
-!******************************************************************************
-!
-      ! References to F90 modules
-      USE DIAG_MOD,     ONLY : AD44, AD07_OC 
-      USE DRYDEP_MOD,   ONLY : DEPSAV
-      USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP
-      USE TRACERID_MOD, ONLY : IDTOCPO
-      USE TIME_MOD,     ONLY : GET_TS_CHEM
-
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DIAG_MOD     ! ND44, ND07, LD07
-
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! We need to reference some modules particular to the Grid-
-      ! Independent GEOS-Chem implementation here.   In particular,
-      ! the settings from the Input Options object will replace
-      ! logical flags from logical_mod.F. (bmy, 11/8/12)
-      !-----------------------------------------------------------------
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#else
-      !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Current practice in the standard GEOS-Chem is to reference
-      ! logical flags directly from module GeosCore/logical_mod.F.
-      ! (bmy, 11/13/12)
-      !-----------------------------------------------------------------
-      USE TRACER_MOD,         ONLY : XNUMOL
-#endif
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-      REAL*8,         INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT)   :: RC
-#endif
+!  26 Nov 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
 ! !LOCAL VARIABLES:
 !
+      ! Scalars
       INTEGER            :: I, J, L
-      REAL*8             :: ND44_TMP(IIPAR,JJPAR,LLPAR)
       REAL*8             :: DTCHEM, FLUX, KOC,  BL_FRAC
       REAL*8             :: TC0,    FREQ, CNEW, RKT, AREA_CM2
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! We need to define local variables to hold corresponding
-      ! values from the Input Options object. (bmy, 11/14/12)
-      !-----------------------------------------------------------------
+      ! Arrays
+      REAL*8             :: ND44_TMP(IIPAR,JJPAR,LLPAR)
       REAL*8             :: XNUMOL(Input_Opt%N_TRACERS)
-#endif
 !
 ! !DEFINED PARAMETERS:
 !
@@ -1277,39 +1026,19 @@
       ! Return if OCPO isn't defined
       IF ( IDTOCPO == 0 .or. DRYOCPO == 0 ) RETURN
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Initialize the RC argument.  Also copy logical values from the
-      ! Input Options object over to local variables. (bmy, 11/13/12)
-      !-----------------------------------------------------------------
-
       ! Assume success
-      RC        = GIGC_SUCCESS
+      RC     = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      XNUMOL    = Input_Opt%XNUMOL
-#endif
+      XNUMOL = Input_Opt%XNUMOL
 
       ! Initialize
       KOC    = 1.D0 / ( 86400d0 * OC_LIFE )
       DTCHEM = GET_TS_CHEM() * 60d0
+      OCCONV = 0d0
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         OCCONV(I,J,L) = 0d0
-
-         ! Initialize for drydep diagnostic
-         IF ( ND44 > 0 ) ND44_TMP(I,J,L) = 0d0
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
+      ! Initialize for drydep diagnostic
+      IF ( ND44 > 0 ) ND44_TMP = 0d0
 
       !=================================================================
       ! For tracers with dry deposition, the loss rate of dry dep is 
@@ -1412,37 +1141,54 @@
 !$OMP END PARALLEL DO
       ENDIF   
 
-      ! Return to calling program
       END SUBROUTINE CHEM_OCPO
-
+!EOC
 !------------------------------------------------------------------------------
-
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Add the Input Options object and RC status flag as arguments
-      ! (bmy, 11/13/12)
-      !-----------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: chem_ocpi
+!
+! !DESCRIPTION: Subroutine CHEM\_BCPI calculates dry deposition of 
+!  hydrophilic OC.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CHEM_OCPI( am_I_Root, Input_Opt, TC, RC )
-#else
-      !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Preserve existing subroutine call (bmy, 11/13/12)
-      !-----------------------------------------------------------------
-      SUBROUTINE CHEM_OCPI( TC )
-#endif
 !
-!******************************************************************************
-!  Subroutine CHEM_BCPI calculates dry deposition of hydrophilic OC.
-!  (rjp, bmy, 4/1/04, 10/25/05)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) TC (REAL*8) : Array of hydrophilic BC tracer 
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
+      USE DIAG_MOD,           ONLY : AD44 
+      USE DRYDEP_MOD,         ONLY : DEPSAV
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
+      USE TRACERID_MOD,       ONLY : IDTOCPI
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root             ! Root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt             ! Input Options
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      REAL*8,         INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! H-philic OC [kg]
+
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC                    ! Success?
+!
+! !REMARKS:
 ! 
-!  NOTES:
+! !REVISION HISTORY:
+!  01 Apr 2004 - R. Park - Initial version 
 !  (1 ) Remove reference to "CMN", it's obsolete (bmy, 7/20/04)
 !  (2 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP from 
 !        "pbl_mix_mod.f" (bmy, 2/17/05)
@@ -1450,110 +1196,38 @@
 !  (4 ) Now refrerences XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
-!******************************************************************************
-!
-      ! References to F90 modules
-      USE DIAG_MOD,     ONLY : AD44 
-      USE DRYDEP_MOD,   ONLY : DEPSAV
-      USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP
-      USE TRACERID_MOD, ONLY : IDTOCPI
-      USE TIME_MOD,     ONLY : GET_TS_CHEM
-
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_DIAG_MOD       ! ND44
-
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! We need to reference some modules particular to the Grid-
-      ! Independent GEOS-Chem implementation here.   In particular,
-      ! the settings from the Input Options object will replace
-      ! logical flags from logical_mod.F. (bmy, 11/8/12)
-      !-----------------------------------------------------------------
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#else
-      !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Current practice in the standard GEOS-Chem is to reference
-      ! logical flags directly from module GeosCore/logical_mod.F.
-      ! (bmy, 11/13/12)
-      !-----------------------------------------------------------------
-      USE TRACER_MOD,   ONLY : XNUMOL
-#endif
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-      REAL*8,         INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-#endif
+!  26 Nov 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
 ! !LOCAL VARIABLES:
 !
+      ! Scalars
       INTEGER :: I, J, L
       REAL*8  :: DTCHEM, FLUX, BL_FRAC
       REAL*8  :: TC0, CNEW, CCV, FREQ, AREA_CM2
-      REAL*8  :: ND44_TMP(IIPAR,JJPAR,LLPAR)
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! We need to define local variables to hold corresponding
-      ! values from the Input Options object. (bmy, 11/14/12)
-      !-----------------------------------------------------------------
+      ! Arrays
+      REAL*8  :: ND44_TMP(IIPAR,JJPAR,LLPAR)
       REAL*8  :: XNUMOL(Input_Opt%N_TRACERS)
-#endif
 
       !=================================================================
       ! CHEM_OCPI begins here!
       !=================================================================
       IF ( IDTOCPI == 0 .or. DRYOCPI == 0 ) RETURN
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Initialize the RC argument.  Also copy logical values from the
-      ! Input Options object over to local variables. (bmy, 11/13/12)
-      !-----------------------------------------------------------------
-
       ! Assume success
       RC     = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
       XNUMOL = Input_Opt%XNUMOL
-#endif
 
       ! Chemistry timestep [s]
       DTCHEM = GET_TS_CHEM() * 60d0
 
       ! Initialize for drydep diagnostic
-      IF ( ND44 > 0 ) THEN
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            ND44_TMP(I,J,L) = 0d0
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      ENDIF
+      IF ( ND44 > 0 ) ND44_TMP = 0d0
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -1634,18 +1308,7 @@
       !=================================================================
       ! Zero OCCONV array for next timestep
       !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         OCCONV(I,J,L) = 0d0
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
+      OCCONV = 0d0
 
       !=================================================================
       ! ND44: Sum drydep fluxes by level into the AD44 array in
@@ -1665,7 +1328,6 @@
 !$OMP END PARALLEL DO
       ENDIF    
 
-      ! Return to calling program
       END SUBROUTINE CHEM_OCPI
 
 !-------------------------------------------------------------------------------

@@ -474,6 +474,8 @@ CONTAINS
     IF ( ASSOCIATED(State_Chm%Trac_Btend ) ) DEALLOCATE(State_Chm%Trac_Btend )
     IF ( ASSOCIATED(State_Chm%Tracers    ) ) DEALLOCATE(State_Chm%Tracers    )
     IF ( ASSOCIATED(State_Chm%Species    ) ) DEALLOCATE(State_Chm%Species    )
+
+    ! NOTE: Comment out for now, leave for future expansion (bmy, 11/26/12)
     !IF ( ASSOCIATED(State_Chm%Schm_Id    ) ) DEALLOCATE(State_Chm%Schm_Id    )
     !IF ( ASSOCIATED(State_Chm%Schm_Name  ) ) DEALLOCATE(State_Chm%Schm_Name  )
     !IF ( ASSOCIATED(State_Chm%Schm_P     ) ) DEALLOCATE(State_Chm%Schm_P     )

@@ -260,11 +260,11 @@ CONTAINS
     LOGICAL           :: LLINOZ
     LOGICAL           :: LPRT
     INTEGER           :: N_TRACERS
-    REAL*8            :: TCVV(Input_Opt%N_TRACERS)
 
     ! Arrays
     REAL*8            :: STT0  (IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS)
     REAL*8            :: BEFORE(IIPAR,JJPAR,LLPAR)
+    REAL*8            :: TCVV(Input_Opt%N_TRACERS)
 #else
     !---------------------------------------------------------------------
     !                  %%%%% TRADITIONAL GEOS-Chem %%%%%
@@ -928,17 +928,18 @@ CONTAINS
 
        call NcCl( fileID )
 
-#if defined( DEVEL ) 
-       !-----------------------------------------------------------------
-       !   %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%%
-       !
-       ! Call the routine GIGC_Allocate_All (located in module file
-       ! GeosCore/gigc_environment_mod.F90) to allocate all lat/lon
-       ! allocatable arrays used by GEOS-Chem.  
-       !-----------------------------------------------------------------
-       State_Chm%Schm_P(:,:,:,N) = PROD(:,:,:,N)
-       State_Chm%Schm_k(:,:,:,N) = LOSS(:,:,:,N)
-#endif
+!#if defined( DEVEL ) 
+! NOTE: Comment out the strat chem fields of State_Chem for now (bmy, 11/26/12)
+!       !-----------------------------------------------------------------
+!       !   %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%%
+!       !
+!       ! Call the routine GIGC_Allocate_All (located in module file
+!       ! GeosCore/gigc_environment_mod.F90) to allocate all lat/lon
+!       ! allocatable arrays used by GEOS-Chem.  
+!       !-----------------------------------------------------------------
+!       State_Chm%Schm_P(:,:,:,N) = PROD(:,:,:,N)
+!       State_Chm%Schm_k(:,:,:,N) = LOSS(:,:,:,N)
+!#endif
 
     ENDDO
 
@@ -1671,14 +1672,15 @@ CONTAINS
                 Strat_TrID_GC(NSCHEM)  = N  ! Maps 1:NSCHEM to STT index
                 Strat_TrID_GMI(NSCHEM) = NN ! Maps 1:NSCHEM to GMI_TrName index
 
-#if defined( DEVEL ) 
-                !---------------------------------------------------------
-                ! %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-                !
-                !---------------------------------------------------------
-                State_Chm%Schm_Id(NSCHEM)   = Strat_TrID_GC(NSCHEM)
-                State_Chm%Schm_Name(NSCHEM) = TRIM( TRACER_NAME(N) )
-#endif
+! NOTE: Comment out strat-chem fields of State_Chm for now (bmy, 11/26/12)
+!#if defined( DEVEL ) 
+!                !---------------------------------------------------------
+!                ! %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+!                !
+!                !---------------------------------------------------------
+!                State_Chm%Schm_Id(NSCHEM)   = Strat_TrID_GC(NSCHEM)
+!                State_Chm%Schm_Name(NSCHEM) = TRIM( TRACER_NAME(N) )
+!#endif
 
              ENDIF
 

@@ -80,12 +80,12 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       SUBROUTINE DO_EMISSIONS( am_I_Root, Input_Opt, 
      &                         State_Met, State_Chm, RC )
-#else
-      SUBROUTINE DO_EMISSIONS( State_Met )
-#endif
+!#else
+!      SUBROUTINE DO_EMISSIONS( State_Met )
+!#endif
 !
 ! !USES:
 !
@@ -132,7 +132,7 @@
       USE CMN_SIZE_MOD                 ! Size parameters
       USE CMN_O3_MOD                   ! FSCLYR
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod,     ONLY : OptInput
       USE GIGC_State_Chm_Mod,     ONLY : ChmState
@@ -142,18 +142,18 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-#endif
+!#endif
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object!
+!#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-#endif
+!#endif
 !
 ! !REVISION HISTORY: 
 !  (1 ) Now references DEBUG_MSG from "error_mod.f" (bmy, 8/7/03)
@@ -214,7 +214,7 @@
       ! DO_EMISSIONS begins here!
       !=================================================================
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
       !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
       !
@@ -224,7 +224,7 @@
 
       ! Assume success
       RC        = GIGC_SUCCESS
-#endif
+!#endif
 
       ! Get year and month
       MONTH = GET_MONTH()
@@ -435,18 +435,23 @@
      &      CALL EMISSSULFATE( State_Met, State_Chm%TRAC_TEND(:,:,:,:))
          IF ( LCARB             ) 
      &      CALL EMISSCARBON ( State_Met, State_Chm%TRAC_TEND(:,:,1,:))
-         IF ( LDUST             ) 
-     &      CALL EMISSDUST( am_I_Root, 
-     &                      Input_Opt, 
-     &                      State_Met, 
-     &                      State_Chm%TRAC_TEND(:,:,:,:), 
-     &                      RC                             )
 #else
          IF ( LSSALT            ) CALL EMISSSEASALT( State_Met, ssa_br2)
          IF ( LSULF .or. LCRYST ) CALL EMISSSULFATE( State_Met )
          IF ( LCARB             ) CALL EMISSCARBON( State_Met )
-         IF ( LDUST             ) CALL EMISSDUST( State_Met )
+         !---------------------------------------------------------------------
+         ! Prior to 11/26/12:
+         ! Now mainline new call for EMISSDUST w/ Input_Opt (bmy, 11/26/12)
+         !IF ( LDUST             ) CALL EMISSDUST( State_Met )
+         !---------------------------------------------------------------------
 #endif
+         IF ( LDUST             ) THEN
+            CALL EMISSDUST( am_I_Root, 
+     &                      Input_Opt, 
+     &                      State_Met, 
+     &                      State_Chm%TRAC_TEND(:,:,:,:), 
+     &                      RC                             )
+         ENDIF
 
          ! jpp, 3/2/10:
          ! Now distribute the Br2 emitted from SSA, through
@@ -600,18 +605,23 @@
      &   CALL EMISSSULFATE( State_Met, State_Chm%TRAC_TEND(:,:,:,:))
          IF ( LCARB             ) 
      &   CALL EMISSCARBON ( State_Met, State_Chm%TRAC_TEND(:,:,1,:))
-         IF ( LDUST             ) 
-     &   CALL EMISSDUST( am_I_Root, 
-     &                   Input_Opt,
-     &                   State_Met,
-     &                   State_Chm%TRAC_TEND(:,:,:,:), 
-     &                   RC                            )
+
 #else
          IF ( LSSALT            ) CALL EMISSSEASALT( State_Met )
          IF ( LSULF .or. LCRYST ) CALL EMISSSULFATE( State_Met )
          IF ( LCARB             ) CALL EMISSCARBON( State_Met )
-         IF ( LDUST             ) CALL EMISSDUST( State_Met )
+         !-------------------------------------------------------------------
+         ! Now mainline new subroutine call to EMISSDUST (bmy, 11/26/12)
+         !IF ( LDUST             ) CALL EMISSDUST( State_Met )
+         !-------------------------------------------------------------------
 #endif
+         IF ( LDUST             ) THEN
+            CALL EMISSDUST( am_I_Root, 
+     &                      Input_Opt,
+     &                      State_Met,
+     &                      State_Chm%TRAC_TEND(:,:,:,:), 
+     &                      RC                            )
+         ENDIF
 
       ELSE IF ( ITS_A_RnPbBe_SIM() ) THEN
          
