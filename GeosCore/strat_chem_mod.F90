@@ -333,16 +333,16 @@ CONTAINS
        ! Read rates for this month
        IF ( IT_IS_A_FULLCHEM_SIM ) THEN
 #if defined( GRID4x5 ) || defined( GRID2x25 )
-#if defined( DEVEL ) 
-          !-----------------------------------------------------------------
-          !   %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%%
-          !
-          ! Pass the Chemistry State object to GET_RATES.  We don't call
-          ! this routine from the ESMF interface. (bmy, 10/26/12)
-          !-----------------------------------------------------------------
-          CALL GET_RATES( GET_MONTH(), Input_Opt, State_Chm,  &
-                                       am_I_Root, errCode    )
-#else
+!#if defined( DEVEL ) 
+!          !-----------------------------------------------------------------
+!          !   %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%%
+!          !
+!          ! Pass the Chemistry State object to GET_RATES.  We don't call
+!          ! this routine from the ESMF interface. (bmy, 10/26/12)
+!          !-----------------------------------------------------------------
+!          CALL GET_RATES( GET_MONTH(), Input_Opt, State_Chm,  &
+!                                       am_I_Root, errCode    )
+!#else
           !-----------------------------------------------------------------
           !              %%%%% TRADITIONAL GEOS-Chem %%%%%
           !
@@ -350,7 +350,7 @@ CONTAINS
           ! month and the the am_I_Root argument. (bmy, 10/26/12)
           !-----------------------------------------------------------------
           CALL GET_RATES( GET_MONTH(), am_I_Root )
-#endif
+!#endif
 #else
           ! For resolutions finer than 2x2.5, nested, 
           ! or otherwise exotic domains and resolutions
@@ -1447,69 +1447,29 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !      
-#if defined( DEVEL )
-  !------------------------------------------------------------------------
-  !         %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-  !
-  ! Call INIT_STRAT_CHEM dimension values as well as the Input Objects,
-  ! and Meteorology State objects. (bmy, 11/9/12)
-  !------------------------------------------------------------------------
   SUBROUTINE INIT_STRAT_CHEM( am_I_Root, Input_Opt, State_Chm, RC )
-#else
-  !-------------------------------------------------------------------------
-  !                 %%%%% TRADITIONAL GEOS-Chem %%%%%
-  !
-  ! Current practice in the standard GEOS-Chem is to read strat chem
-  ! prod/loss data from netCDF files. (bmy, 10/26/12)
-  !-------------------------------------------------------------------------
-  SUBROUTINE INIT_STRAT_CHEM( am_I_Root )
-#endif
 !
 ! !USES:
 !
-    USE ERROR_MOD,     ONLY : ALLOC_ERR
-    USE TRACER_MOD,    ONLY : STT
-    USE TRACERID_MOD,  ONLY : IDTCHBr3, IDTCH2Br2, IDTCH3Br
-    USE TRACERID_MOD,  ONLY : IDTBr2,IDTBr,IDTBrO,IDTHOBr,IDTHBr,IDTBrNO3
-    USE TIME_MOD,      ONLY : GET_TAU, GET_NYMD, GET_NHMS, GET_TS_CHEM
-
-    USE m_netcdf_io_open
-    USE m_netcdf_io_read
-    USE m_netcdf_io_close
-
     USE CMN_SIZE_MOD
-
-#if defined( DEVEL )
-    !-----------------------------------------------------------------------
-    !         %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-    !
-    ! We need to reference some modules particular to the Grid-
-    ! Independent GEOS-Chem implementation here. (bmy, 11/9/12)
-    !-----------------------------------------------------------------------
+    USE ERROR_MOD,          ONLY : ALLOC_ERR
     USE GIGC_ErrCode_Mod
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Chm_Mod, ONLY : ChmState
-#else
-    !-------------------------------------------------------------------------
-    !                 %%%%% TRADITIONAL GEOS-Chem %%%%%
-    !
-    ! Current practice in the standard GEOS-Chem is to reference logical
-    ! flags from GeosCore/logical_mod.F and tracer quantities from
-    ! Geoscore/tracer_mod.F. (bmy, 11/9/12)
-    !-------------------------------------------------------------------------
-    USE LOGICAL_MOD,       ONLY : LLINOZ
-    USE TRACER_MOD,        ONLY : ITS_A_FULLCHEM_SIM
-    USE TRACER_MOD,        ONLY : ITS_A_TAGOX_SIM
-    USE TRACER_MOD,        ONLY : N_TRACERS
-    USE TRACER_MOD,        ONLY : TRACER_NAME
-#endif
+    USE TRACER_MOD,         ONLY : STT
+    USE TRACERID_MOD,       ONLY : IDTCHBr3, IDTCH2Br2, IDTCH3Br
+    USE TRACERID_MOD,       ONLY : IDTBr2,   IDTBr,     IDTBrO
+    USE TRACERID_MOD,       ONLY : IDTHOBr,  IDTHBr,    IDTBrNO3
+    USE TIME_MOD,           ONLY : GET_TAU
+    USE TIME_MOD,           ONLY : GET_NYMD
+    USE TIME_MOD,           ONLY : GET_NHMS
+    USE TIME_MOD,           ONLY : GET_TS_CHEM
 
     IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-#if defined( DEVEL )
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1519,7 +1479,6 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-#endif
 ! 
 ! !REVISION HISTORY:
 !  01 Feb 2011 - L. Murray   - Initial version
@@ -1533,34 +1492,20 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    ! Scalars
     CHARACTER(LEN=16) :: sname
     INTEGER           :: AS, N, NN
     LOGICAL           :: IT_IS_A_FULLCHEM_SIM
     LOGICAL           :: IT_IS_A_TAGOX_SIM
-
-#if defined( DEVEL )
-    !-----------------------------------------------------------------------
-    !         %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-    !
-    ! Define local variables for quantities that will be initialized 
-    ! from the Input_Opt object.  
-    !-----------------------------------------------------------------------
     LOGICAL           :: LLINOZ
     INTEGER           :: N_TRACERS
+
+    ! Arrays
     CHARACTER(LEN=14) :: TRACER_NAME(Input_Opt%N_TRACERS)
-#endif
 
     !=================================================================
     ! INIT_STRAT_CHEM begins here!
     !=================================================================
-
-#if defined( DEVEL )
-    !-----------------------------------------------------------------------
-    !         %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-    !
-    ! We need to reference some modules particular to the Grid-
-    ! Independent GEOS-Chem implementation here. (bmy, 11/9/12)
-    !-----------------------------------------------------------------------
 
     ! Assume success
     RC                       = GIGC_SUCCESS
@@ -1571,17 +1516,6 @@ CONTAINS
     IT_IS_A_FULLCHEM_SIM     = Input_Opt%ITS_A_FULLCHEM_SIM
     IT_IS_A_TAGOX_SIM        = Input_Opt%ITS_A_TAGOX_SIM
     TRACER_NAME(1:N_TRACERS) = Input_Opt%TRACER_NAME(1:N_TRACERS)
-#else
-    !---------------------------------------------------------------------
-    !                 %%%%% TRADITIONAL GEOS-Chem %%%%%
-    !
-    ! Current practice in the standard GEOS-Chem is to reference logical
-    ! flags from GeosCore/logical_mod.F and tracer quantities from
-    ! Geoscore/tracer_mod.F. (bmy, 11/9/12)
-    !---------------------------------------------------------------------
-    IT_IS_A_FULLCHEM_SIM     = ITS_A_FULLCHEM_SIM()
-    IT_IS_A_TAGOX_SIM        = ITS_A_TAGOX_SIM()
-#endif
 
     ! Initialize counters, initial times, mapping arrays
     TpauseL_Cnt              = 0.

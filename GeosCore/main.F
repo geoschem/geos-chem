@@ -480,32 +480,10 @@
       CALL READ_RESTART_FILE( NYMDb, NHMSb, State_met )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_RESTART_FILE' )
 
-#if defined( DEVEL )
-      !-----------------------------------------------------------------
-      !   %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%%
-      ! 
-      ! We must pass the Chemistry Object (i.e. State_Chm) to routine
-      ! INIT_STRAT_CHEM.  This object contains several individual met fields
-      ! which are used by the GEOS-Chem chemistry routines.
-      !-----------------------------------------------------------------
-
       ! Capture initial state of atmosphere for STE flux calc (ltm, 06/10/12)
       IF ( LSCHEM ) THEN
          CALL INIT_STRAT_CHEM( am_I_Root, Input_Opt, State_Chm, RC )
       ENDIF
-
-#else
-      !--------------------------------------------------------------
-      !               %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Current practice is to call INIT_STRAT_CHEM without any 
-      ! arguments. (bmy, 10/25/12)
-      !--------------------------------------------------------------
-
-      ! Capture initial state of atmosphere for STE flux calc (ltm, 06/10/12)
-      IF ( LSCHEM ) CALL INIT_STRAT_CHEM( am_I_Root )
-
-#endif
 
       ! Read soil NOx initial conditions
       IF ( LSOILNOX ) THEN
