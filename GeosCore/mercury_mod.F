@@ -60,8 +60,10 @@
 !  (19) GET_OH             : Returns monthly mean OH field (w/ diurnal scaling)
 !  (20) OHNO3TIME          : Computes diurnal scaling for monthly mean OH
 !  (21) DEFINE_TAGGED_Hg   : Defines tracer number for tagged Hg tracers 
-!  (22) INIT_MERCURY       : Allocates and zeroes module arrays
-!  (23) CLEANUP_MERCURY    : Deallocates module arrays
+!  (22) RED_INPLUME_GRID: conduct in plume reduction of Hg2 for selected grids
+!  (23) RED_INPLUME: conduct in plume reduction of Hg2 for selected grids
+!  (24) INIT_MERCURY       : Allocates and zeroes module arrays
+!  (25) CLEANUP_MERCURY    : Deallocates module arrays
 !
 !  GEOS-CHEM modules referenced by mercury_mod.f
 !  ============================================================================
@@ -180,6 +182,7 @@
 !  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
 !  01 Apr 2011 - H. Amos     - added LVEGEMIS, distinct from LGCAPEMIS
 !  27 Sep 2011 - H. Amos     - Remove LHg_WETDasHNO3 logical, it's obsolete
+!  01 Nov 2011 - Y. Zhang    - Add subroutines to do in plume reduction of Hg
 !  07 Feb 2012 - E. Corbitt  - Imported tagged tracers; renamed nt to geo.
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x met
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
@@ -200,6 +203,7 @@
       USE OCEAN_MERCURY_MOD, ONLY : LAnthroHgOnly, LOHO3CHEM
       USE OCEAN_MERCURY_MOD, ONLY : LGCBROMINE !eds 4/19/12
       USE OCEAN_MERCURY_MOD, ONLY : LnoUSAemis,  LBROCHEM
+      USE OCEAN_MERCURY_MOD, ONLY : LNEI2005, LInPlume    !yzh
 
       IMPLICIT NONE
 #     include "define.h"
@@ -596,6 +600,7 @@
       USE GRID_MOD,         ONLY : GET_AREA_CM2
       USE LOGICAL_MOD,      ONLY : LPRT, LDYNOCEAN, LNLPBL
       USE ERROR_MOD,        ONLY : DEBUG_MSG 
+      USE ERROR_MOD,        ONLY : SAFE_DIV   !yzh
       USE DEPO_MERCURY_MOD, ONLY : ADD_HG2_DD
       USE DAO_MOD,          ONLY : SNOW, SNOMAS
       USE PRESSURE_MOD,     ONLY : GET_PCENTER 
@@ -667,11 +672,14 @@
       ! change implemented 10/19/11 by eck
       ! inserted ifdefs for future tuning of 2x2.5 by eck
 #if defined (GRID4x5)
-      REAL*8, PARAMETER     :: K_RED_JNO2 = 3.5D-3/2d0 
+      !REAL*8, PARAMETER     :: K_RED_JNO2 = 3.5d-3 / 2d0 ! ref: Amos et al. (2011)
+      REAL*8, PARAMETER     :: K_RED_JNO2 = 6.4d-3 ! yzh, consider cloud fraction 
 #elif defined (GRID2x25)
       REAL*8, PARAMETER     :: K_RED_JNO2 = 3.5D-3/2d0
+#elif defined( GRID05x0666 ) && defined( NESTED_NA )
+      REAL*8, PARAMETER     :: K_RED_JNO2 = 6.4D-3 * 1.33 ! yzh
 #else
-      REAL*8, PARAMETER     :: K_RED_JNO2 = 3.5D-3/2d0
+      REAL*8, PARAMETER     :: K_RED_JNO2 = 6.4d-3        ! yzh, need tune 
 #endif      
 
       ! K for sea salt (eck, bmy, 4/6/06) [/s]
@@ -742,6 +750,15 @@
             !%%% NOTE: Someone should investigate effect of dividing LWC by the
             !%%% cloud fraction, as is done in sulfate_mod.f (bmy, 5/27/11)
 
+            ! yzh added this. (11/9/2011)
+            ! LWC is a grid-box averaged quantity. To improve representation 
+            ! of sulfate chemistry, we divide LWC by the cloud fraction and 
+            ! compute sulfate chemistry based on the LWC within the cloud.  We 
+            ! get the appropriate grid-box averaged mass of SO2 and sulfate by 
+            ! multiplying these quantities by FC AFTER computing the aqueous 
+            ! sulfur chemistry within the cloud. (lzh, jaf, bmy, 5/27/11)
+            LWC     = SAFE_DIV( LWC, FC, 0d0 )
+
          ELSE
 
             ! Get liquid water content for entire grid box,
@@ -782,6 +799,16 @@
             FA          = FA / ( 1d0 + FA )
             
          ENDIF
+
+         ! yzh added this. (11/9/2011)
+         ! We have used the in-cloud LWC to compute the sulfate
+         ! aqueous chemistry.  We get the appropriate grid-box averaged 
+         ! mass of SO2 and sulfate by multiplying the reaction rates
+         ! L2S and L3s by the cloud fraction after the aqueous chemistry
+         ! has been done.  (lzh, jaf, bmy, 5/27/11)
+#if   defined( GEOS_5 ) || defined( MERRA ) 
+         IF ( LGEOSLWC ) FA =  FA * FC
+#endif
 
          ! Define K's for the oxidation reactions [/s]
          K_O3        = K_HG_O3 * C_O3
@@ -2089,6 +2116,7 @@
       USE LAND_MERCURY_MOD,  ONLY : SOILEMIS, BIOMASSHG
       USE LAND_MERCURY_MOD,  ONLY : SNOWPACK_MERCURY_FLUX
       USE GRID_MOD,          ONLY : GET_XMID, GET_YMID
+      USE LOGICAL_MOD,       ONLY : LPREINDHG   ! Y. Zhang
 
 ! Added for GTMM (ccc, 11/19/09)
       USE LOGICAL_MOD,       ONLY : LGTMM
@@ -2110,6 +2138,11 @@
 
          ! Read anthro, ocean, land emissions of Hg from disk
          CALL MERCURY_READYR
+
+         ! In plume degradation of Hg2 by SO2 in U.S. and Canada at CFPPs, yzh 11/1/2011
+         IF ( LInPlume .AND. .NOT. LPREINDHG .AND. LNEI2005) THEN
+              CALL DO_RED_INPLUME
+         ENDIF
 
          ! Reset first-time flag
          FIRST = .FALSE.
@@ -2165,10 +2198,14 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-            IF ( GET_XMID( I, J, 1 ) > -125 .AND. 
-     &           GET_XMID( I, J, 1 ) < -65  .AND.
-     &           GET_YMID( I, J, 1 ) >  25  .AND. 
-     &           GET_YMID( I, J, 1 ) < 50 ) THEN
+!            IF ( GET_XMID( I, J, 1 ) > -125 .AND. 
+!     &           GET_XMID( I, J, 1 ) < -65  .AND.
+!     &           GET_YMID( I, J, 1 ) >  25  .AND. 
+!     &           GET_YMID( I, J, 1 ) < 50 ) THEN
+            IF ( GET_XMID( I, J, 1 ) > -140 .AND.
+     &           GET_XMID( I, J, 1 ) < -40  .AND.
+     &           GET_YMID( I, J, 1 ) >  10  .AND.
+     &           GET_YMID( I, J, 1 ) <  70 ) THEN
                
                EHg0_An(I,J) = 0d0
                EHg2_An(I,J) = 0d0
@@ -3593,6 +3630,7 @@
 !
       ! References to F90 modules
       USE BPCH2_MOD,      ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,      ONLY : GET_NAME_EXT    ! yzh, 11/01/2011
       USE BPCH2_MOD,      ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1,    DATA_DIR
       USE LOGICAL_MOD,    ONLY : LDYNOCEAN,       LPREINDHG
@@ -4309,8 +4347,16 @@
             XTAU     = GET_TAU0( 1, 1, 2005 )
 
             ! Filename for anthropogenic mercury source
+#if defined( GRID05x0666 ) && defined( NESTED_NA )
+            ! Need to read emission file at nested-resolution, Y. Zhang 11/1/11
+            FILENAME = TRIM( DATA_DIR )           // 
+     &           'mercury_201203/GEIA_Hg0.'       //
+     &           GET_NAME_EXT()     // '.'        //
+     &           GET_RES_EXT()      //  '.YYYY'
+#else
             FILENAME = TRIM( DATA_DIR_1x1 )       // 
      &           'mercury_201002/GEIA_Hg0.geos.1x1.YYYY'
+#endif
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -4319,6 +4365,14 @@
             WRITE( 6, 100 ) TRIM( FILENAME )
 
             ! Read data in [kg/yr]
+#if defined( GRID05x0666 ) && defined( NESTED_NA )
+            ! Need to read emission file at nested-resolution, Y. Zhang 11/1/11
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE',     1, 
+     &                       XTAU,      IIPAR,        JJPAR,    
+     &                       1,         ARRAY(:,:,1), QUIET=.TRUE. )
+
+            CALL TRANSFER_2D( ARRAY(:,:,1), EHg0_an )
+#else
             CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1, 
      &                       XTAU,      I1x1,     J1x1-1,
      &                       1,         ARRAY1,   QUIET=.TRUE. )
@@ -4332,6 +4386,10 @@
      &                          INGRID,     EHg0_an, PERAREA=1,
      &                          netCDF=.TRUE.                   )
 
+            ! Free pointer
+            NULLIFY( INGRID )
+#endif
+
             ! Convert from [kg/yr] to [kg/s]
             EHg0_an = EHg0_an / SEC_PER_YR    
 
@@ -4340,10 +4398,7 @@
             ! Fossil fuels make up ~47% of total global anthro emis
             ! Refs: Amos et al. (2011, ACPD), Y. Zhang et al. (2011, in prep)
             ! Implemented 10/19/11 by eck
-            EHg0_an=1.24d0*EHg0_an
-            
-            ! Free pointer
-            NULLIFY( INGRID )
+            IF (LInPlume) EHg0_an=1.24d0*EHg0_an
 
          ELSE
             ! Otherwise use Selin et al. 2008 emissions
@@ -4410,6 +4465,61 @@
 
          ENDIF
 
+         ! Read the NEI2005 emission inventory, override in the NA region
+         ! Y. Zhang, 11/1/2011
+         IF (LNEI2005) THEN
+            ! Use US EPA2005 and Canadian NPRI2005 emissions
+
+            ! Mercury data is either for 2006
+            NYMD     = ( ANTHRO_Hg_YEAR * 10000 ) + 0101
+            XTAU     = GET_TAU0( 1, 1, ANTHRO_Hg_YEAR )
+
+            ! Filename for anthropogenic mercury source
+            IF (LInPlume) THEN
+               FILENAME = TRIM( DATA_DIR) // 'mercury_201203/' //
+     &              'NEI2005_NPRI2005_NewSpeciation_Hg0.'     //
+     &              GET_NAME_EXT() // '.' // GET_RES_EXT()    //
+     &              '.YYYY'
+            ELSE
+               FILENAME = TRIM( DATA_DIR)   // 'mercury_201203/' //
+     &              'NEI2005_NPRI2005_Hg0.' //
+     &              GET_NAME_EXT() // '.'   // GET_RES_EXT()    //
+     &              '.YYYY'
+            ENDIF
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 100 ) TRIM( FILENAME )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE',     1,
+     &                       XTAU,      IIPAR,        JJPAR,
+     &                       1,         ARRAY(:,:,1), QUIET=.TRUE. )
+
+             ! Replace the NA emission
+              DO J = 1, JJPAR
+
+               ! Grid-box latitude [degrees]
+               Y = GET_YMID( J )
+
+               DO I = 1, IIPAR
+
+                  ! Grid box longitude [degrees]
+                  X = GET_XMID( I )
+ 
+                    ! In the nested domain, use NEI2005 emission inventory
+                    IF ( X .GE. -140.0 .AND. X .LE. -40.0 .AND.
+     &                  Y .GE. 10.0 .AND. Y .LE. 70.0 ) THEN                  
+                         EHg0_an(I,J) = ARRAY(I,J,1) / SEC_PER_YR
+                    ENDIF
+ 
+               ENDDO
+             ENDDO
+
+         ENDIF
+
          !---------------------------
          ! Artisanal mining Hg(0) emissions [kg/s]
          !---------------------------
@@ -4419,7 +4529,12 @@
          XTAU     = GET_TAU0( 1, 1, 1985 )
 
          ! Filename for artisanal mining emissions (4x5 only for now)
-         FILENAME=TRIM( DATA_DIR ) // 'mercury_201007/artisanal.bpch'
+#if defined( GRID05x0666 ) && defined( NESTED_NA )
+         FILENAME = TRIM( DATA_DIR ) // 'mercury_201203/artisanal.' //
+     &              GET_NAME_EXT()   // '.' // GET_RES_EXT()
+#else
+         FILENAME = TRIM( DATA_DIR ) // 'mercury_201007/artisanal.bpch'
+#endif
 
          ! Echo info
          WRITE( 6, 100 ) TRIM( FILENAME )
@@ -5109,8 +5224,16 @@
             ! Use GEIA 2005 emissions (eck, 10/19/11)
 
             ! Filename for anthropogenic mercury source
+#if defined( GRID05x0666 ) && defined( NESTED_NA )
+            ! Need to read emission file at nested-resolution, Y. Zhang 11/1/11
+            FILENAME = TRIM( DATA_DIR )           // 
+     &           'mercury_201203/GEIA_Hg2.'       //
+     &           GET_NAME_EXT()     // '.'        //
+     &           GET_RES_EXT()      // '.YYYY'
+#else
             FILENAME = TRIM( DATA_DIR_1x1 )               // 
      &           'mercury_201002/GEIA_Hg2.geos.1x1.YYYY'
+#endif
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -5120,6 +5243,14 @@
             WRITE( 6, 100 ) TRIM( FILENAME )
 
             ! Read data in [kg/yr]
+#if defined( GRID05x0666 ) && defined( NESTED_NA )
+            ! Need to read emission file at nested-resolution, Y. Zhang 11/1/11
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE',     6, 
+     &                       XTAU,      IIPAR,        JJPAR,    
+     &                       1,         ARRAY(:,:,1), QUIET=.TRUE. )
+
+            CALL TRANSFER_2D( ARRAY(:,:,1), EHg2_an )
+#else
             CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6, 
      &                       XTAU,      I1x1,     J1x1-1,
      &                       1,         ARRAY1,   QUIET=.TRUE. )
@@ -5133,6 +5264,10 @@
      &                          INGRID,     EHg2_an, PERAREA=1,
      &                          netCDF=.TRUE.                   )
 
+            ! Free pointer
+            NULLIFY( INGRID )
+#endif
+
             ! Convert from [kg/yr] to [kg/s]
             EHg2_an = EHg2_an / SEC_PER_YR
 
@@ -5141,10 +5276,7 @@
             ! Fossil fuels make up ~47% of total global anthro emis
             ! Refs: Amos et al. (2011, ACPD), Y. Zhang et al. (2011, in prep)
             ! Implemented 10/19/11 by eck
-            EHg2_an=0.45d0*EHg2_an
-
-            ! Free pointer
-            NULLIFY( INGRID )
+            IF (LInPlume) EHg2_an=0.45d0*EHg2_an
 
          ELSE
             ! Otherwise use Selin et al. 2008 emissions
@@ -5182,6 +5314,61 @@
 
          ENDIF
 
+         ! Read the NEI2005 emission inventory, override in the NA region
+         ! Y. Zhang, 11/1/2011
+         IF (LNEI2005) THEN
+            ! Use US EPA2005 emissions
+
+            ! Mercury data is either for 2006
+            NYMD     = ( ANTHRO_Hg_YEAR * 10000 ) + 0101
+            XTAU     = GET_TAU0( 1, 1, ANTHRO_Hg_YEAR )
+
+            ! Filename for anthropogenic mercury source
+            IF (LInPlume) THEN
+               FILENAME = TRIM( DATA_DIR) // 'mercury_201203/' //
+     &              'NEI2005_NPRI2005_NewSpeciation_Hg2.'      //
+     &              GET_NAME_EXT() // '.' // GET_RES_EXT()     //
+     &              '.YYYY'
+            ELSE
+               FILENAME = TRIM( DATA_DIR) // 'mercury_201203/' //
+     &              'NEI2005_NPRI2005_Hg2.'                    //
+     &              GET_NAME_EXT() // '.' // GET_RES_EXT()     //
+     &              '.YYYY'
+            ENDIF
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 100 ) TRIM( FILENAME )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
+     &           XTAU,      IIPAR,     JJPAR,
+     &           1,     ARRAY(:,:,1),     QUIET=.TRUE. )
+
+             ! Replace the NA emission
+              DO J = 1, JJPAR
+
+               ! Grid-box latitude [degrees]
+               Y = GET_YMID( J )
+
+               DO I = 1, IIPAR
+
+                  ! Grid box longitude [degrees]
+                  X = GET_XMID( I )
+ 
+                    ! In the nested domain, use NEI2005 emission inventory
+                    IF ( X .GE. -140.0 .AND. X .LE. -40.0 .AND.
+     &                  Y .GE. 10.0 .AND. Y .LE. 70.0 ) THEN                  
+                         EHg2_an(I,J) = ARRAY(I,J,1) / SEC_PER_YR
+                    ENDIF
+ 
+               ENDDO
+             ENDDO
+
+         ENDIF
+
          !---------------------------
          ! HgP emissions [kg/s]
          !---------------------------
@@ -5195,10 +5382,10 @@
              XTAU = GET_TAU0( 1, 1, ANTHRO_Hg_YEAR )
 
 
-            ! Anthro Canada HgP
+            ! Anthro HgP
             FILENAME = TRIM( DATA_DIR_1x1) // 'mercury_201205/' //
      &           'GEIA_Streets_' // TRIM( SCENARIO ) //
-     &           '_HgP_CAN.geos.1x1.YYYY'
+     &           '_HgP.geos.1x1.YYYY'
             !--------------------------------------------------------   
 
             ! Add year to the filename
@@ -5841,8 +6028,16 @@
             ! Use GEIA 2005 emissions (eck, 10/19/11)
 
             ! Filename for anthropogenic mercury source
+#if defined( GRID05x0666 ) && defined( NESTED_NA )
+            ! Need to read emission file at nested-resolution, Y. Zhang 11/1/11
+            FILENAME = TRIM( DATA_DIR )           //
+     &           'mercury_201203/GEIA_HgP.'       //
+     &           GET_NAME_EXT()     // '.'        //
+     &           GET_RES_EXT()      //'.YYYY'
+#else
             FILENAME = TRIM( DATA_DIR_1x1)   //
      &           'mercury_201002/GEIA_HgP.geos.1x1.YYYY'
+#endif
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -5851,6 +6046,14 @@
             WRITE( 6, 100 ) TRIM( FILENAME )
 
             ! Read data in [kg/yr]
+#if defined( GRID05x0666 ) && defined( NESTED_NA )
+            ! Need to read emission file at nested-resolution, Y. Zhang 11/1/11
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE',     9, 
+     &                       XTAU,      IIPAR,        JJPAR,    
+     &                       1,         ARRAY(:,:,1), QUIET=.TRUE. )
+
+            CALL TRANSFER_2D( ARRAY(:,:,1), EHgP_an )
+#else
             CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
      &                       XTAU,      I1x1,     J1x1-1,
      &                       1,         ARRAY1,   QUIET=.TRUE. )
@@ -5864,6 +6067,10 @@
      &                          INGRID,     EHgP_an, PERAREA=1,
      &                          netCDF=.TRUE.                   )
 
+            ! Free pointer
+            NULLIFY( INGRID )
+#endif
+
             ! Convert from [kg/yr] to [kg/s]
             EHgP_an = EHgP_an / SEC_PER_YR
 
@@ -5872,10 +6079,7 @@
             ! Fossil fuels make up ~47% of total global anthro emis
             ! Refs: Amos et al. (2011, ACPD), Y. Zhang et al. (2011, in prep)
             ! Implemented 10/19/11 by eck
-            EHgP_an=0.55d0*EHgP_an
-
-            ! Free pointer
-            NULLIFY( INGRID )
+            IF (LInPlume) EHgP_an=0.55d0*EHgP_an
 
          ELSE
             ! Otherwise use Selin et al. 2008 emissions
@@ -5912,6 +6116,61 @@
 
          ENDIF
 
+         ! Read the NEI2005 emission inventory, override in the NA region
+         ! Y. Zhang, 11/1/2011
+         IF (LNEI2005) THEN
+            ! Use US EPA2005 emissions
+
+            ! Mercury data is either for 2006
+            NYMD     = ( ANTHRO_Hg_YEAR * 10000 ) + 0101
+            XTAU     = GET_TAU0( 1, 1, ANTHRO_Hg_YEAR )
+
+            ! Filename for anthropogenic mercury source
+            IF (LInPlume) THEN
+               FILENAME = TRIM( DATA_DIR) // 'mercury_201203/' //
+     &              'NEI2005_NPRI2005_NewSpeciation_HgP.'      //
+     &              GET_NAME_EXT() // '.' // GET_RES_EXT()     //
+     &              '.YYYY'
+            ELSE
+               FILENAME = TRIM( DATA_DIR) // 'mercury_201203/' //
+     &              'NEI2005_NPRI2005_HgP.'                    //
+     &              GET_NAME_EXT() // '.' // GET_RES_EXT()     //
+     &              '.YYYY'
+            ENDIF
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 100 ) TRIM( FILENAME )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
+     &           XTAU,      IIPAR,     JJPAR,
+     &           1,     ARRAY(:,:,1),     QUIET=.TRUE. )
+
+             ! Replace the NA emission
+              DO J = 1, JJPAR
+
+               ! Grid-box latitude [degrees]
+               Y = GET_YMID( J )
+
+               DO I = 1, IIPAR
+
+                  ! Grid box longitude [degrees]
+                  X = GET_XMID( I )
+ 
+                    ! In the nested domain, use NEI2005 emission inventory
+                    IF ( X .GE. -140.0 .AND. X .LE. -40.0 .AND.
+     &                  Y .GE. 10.0 .AND. Y .LE. 70.0 ) THEN                  
+                         EHgP_an(I,J) = ARRAY(I,J,1) / SEC_PER_YR
+                    ENDIF
+ 
+               ENDDO
+             ENDDO
+
+        ENDIF
+
       ENDIF
  
       ! Assume HgP is part of the pool of Hg2 
@@ -5937,18 +6196,18 @@
          ! Pre-industrial 
          !-----------------------
 #if   defined( GEOS_5 ) && defined( GRID4x5 )
-        FILENAME= TRIM( DATA_DIR )            //
-     &            'mercury_201110/soilHg.102311.preind.bpch'
+         FILENAME= TRIM( DATA_DIR )            //
+     &             'mercury_201110/soilHg.102311.preind.bpch'
 #elif defined( GEOS_5 ) && defined( GRID2x25 )
-        FILENAME= TRIM( DATA_DIR )            //
-     &            'mercury_201110/soilHg.102311.preind.bpch'
+         FILENAME= TRIM( DATA_DIR )            //
+     &             'mercury_201110/soilHg.102311.preind.bpch'
 #elif defined( MERRA ) && defined( GRID4x5 )
-        FILENAME= TRIM( DATA_DIR )            //
-     &            'mercury_201110/soilHg.merra.preind.bpch'
+         FILENAME= TRIM( DATA_DIR )            //
+     &             'mercury_201110/soilHg.merra.preind.bpch'
 #else
-        ! Include a location for the error message (skim, 6/28/12)
-        CALL ERROR_STOP( "You need to make a Hg soil file. ", 
-     &                   "PREINDUSTRIAL MERCURY")
+         ! Include a location for the error message (skim, 6/28/12)
+         CALL ERROR_STOP( "You need to make a Hg soil file. ", 
+     &                    "PREINDUSTRIAL MERCURY")
 #endif
 
       ELSE
@@ -5956,21 +6215,27 @@
          ! Present day
          !-----------------------
 #if   defined( GEOS_5 ) && defined( GRID4x5 )
-        FILENAME= TRIM( DATA_DIR )            //
-     &            'mercury_201110/soilHg.102311.presentday.bpch'
+         FILENAME= TRIM( DATA_DIR )            //
+     &             'mercury_201110/soilHg.102311.presentday.bpch'
 #elif defined( GEOS_5 ) && defined( GRID2x25 )
-        FILENAME= TRIM( DATA_DIR )            //
-     &            'mercury_201110/soilHg.102311.presentday.bpch'
+         FILENAME= TRIM( DATA_DIR )            //
+     &             'mercury_201110/soilHg.102311.presentday.bpch'
 #elif defined( MERRA ) && defined( GRID4x5 )
-        FILENAME= TRIM( DATA_DIR )            //
-     &            'mercury_201110/soilHg.merra.presentday.bpch'
+         FILENAME= TRIM( DATA_DIR )            //
+     &             'mercury_201110/soilHg.merra.presentday.bpch'
+#elif defined( GRID05x0666 ) && defined( NESTED_NA )
+         ! Need to read nested-grid files, yzh
+         FILENAME= TRIM( DATA_DIR )           //
+     &             'mercury_201203/soilhg.presentday.' //
+     &             GET_NAME_EXT() // '.' // GET_RES_EXT()
 #else
-        ! Include a location for the error message (skim, 6/28/12)
-        CALL ERROR_STOP( "You need to make a Hg soil file. ", 
-     &                   "PRESENT DAY MERCURY")
+         ! Include a location for the error message (skim, 6/28/12)
+         CALL ERROR_STOP( "You need to make a Hg soil file. ", 
+     &                    "PRESENT DAY MERCURY")
 #endif
 
       ENDIF
+#endif
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -5991,8 +6256,15 @@
       XTAU     = GET_TAU0( 1, 1, 1985 )
 
       ! Filename for natural land-source mercury
+#if defined( GRID05x0666 ) && defined( NESTED_NA )
+      ! Need to read emission file at nested-resolution, Y. Zhang 11/1/2011
+      FILENAME = TRIM( DATA_DIR) // 'mercury_201203/' //
+     &           'newnatural.'   // GET_NAME_EXT()    //
+     &            '.'            // GET_RES_EXT()
+#else
       FILENAME= TRIM( DATA_DIR )            //
      &     'mercury_201007/newnatural.bpch'
+#endif
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -6925,10 +7197,14 @@
 
       !CDH -WE EVENTUALLY NEED TO SUPPORT OTHER MODEL RESOLUTIONS
       ! Filename for full-level GEOS5 model
+#if defined( GRID05x0666 ) && defined( NESTED_NA )
+      FILENAME = TRIM( DATA_DIR )  // 'mercury_201203/jvalues.noon.' //
+     &           GET_NAME_EXT()    // '.' // GET_RES_EXT()
+#else
       FILENAME = 
      &           TRIM( DATA_DIR )  // 'mercury_201007/jvalues.noon.' //
      &           GET_NAME_EXT() // '.' // GET_RES_EXT()
-
+#endif
 
       ! Echo some information to the standard output
       WRITE( 6, 110 ) TRIM( FILENAME )
@@ -7178,6 +7454,123 @@
 
 !-----------------------------------------------------------------------------
 
+      SUBROUTINE RED_INPLUME_GRID(I,J,E_plant)
+!
+!******************************************************************************
+!  Subroutine RED_INPLUME_GRID conduct in plume reduction of Hg2 for selected grids
+!
+!  NOTES:
+!******************************************************************************
+!  Added by Y. Zhang, 11/1/11
+!
+
+      ! Local variables
+      INTEGER,INTENT(IN) :: I,J
+      REAL*8,INTENT(IN)  :: E_plant
+      REAL*8             :: E_deg
+
+      ! Parameters
+      ! The source species profile (0.2 Hg0
+      ! 0.78 Hg2, 0.02 HgP, Streets, 2005), we use 75%, very high end
+      REAL*8,  PARAMETER :: K_Red_InPlume = 7.5d-1
+
+      !=================================================================
+      ! RED_INPLUME_GRID begins here!
+      !=================================================================
+
+      ! Calculate the mass of Hg2 been degraded in plume
+      E_deg = K_Red_InPlume * E_plant
+
+      ! Subtract this part of Hg2 from the emission
+      EHg2_an(I,J) = EHg2_an(I,J) - E_deg
+
+      ! Degraded to Hg0
+      EHg0_an(I,J) = EHg0_an(I,J) + E_deg
+
+      END SUBROUTINE RED_INPLUME_GRID
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE DO_RED_INPLUME
+!
+!******************************************************************************
+!  Subroutine RED_INPLUME conduct in plume reduction of Hg2 for selected grids
+!
+!  NOTES:
+!******************************************************************************
+!  Added by Y. Zhang, 11/1/11
+!
+      ! References to F90 modules
+      USE BPCH2_MOD,      ONLY : GET_NAME_EXT, GET_RES_EXT
+      USE BPCH2_MOD,      ONLY : GET_TAU0,     READ_BPCH2
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR
+      USE TIME_MOD,       ONLY : EXPAND_DATE
+      USE ERROR_MOD,      ONLY : ERROR_STOP
+      USE TRANSFER_MOD,   ONLY : TRANSFER_2D
+      USE CMN_SIZE_MOD     ! Size parameters
+
+      IMPLICIT NONE
+
+      ! Local variables
+      INTEGER           :: NYMD, I, J
+      REAL*4             :: ARRAY(IIPAR,JJPAR,1)
+      REAL*8             :: E_ELECTRICITY_Hg2(IIPAR,JJPAR)
+
+      REAL*8             :: XTAU, rFACTOR
+      REAL*8             :: E_plant
+
+      ! For filename
+      CHARACTER(LEN=255) :: FILENAME
+
+      ! Parameters
+      REAL*8,  PARAMETER :: SEC_PER_YR = 365.25d0 * 86400d0
+
+      !=================================================================
+      ! DO_RED_INPLUME begins here!
+      !=================================================================
+
+      ! Mercury data is for 2005
+      NYMD     = ( 2005 * 10000 ) + 0101
+      XTAU     = GET_TAU0( 1, 1, 2005 )
+
+      ! Read power plant emissions
+           FILENAME = TRIM( DATA_DIR) // 'mercury_201203/' //
+     &           'CFPP_NEI2005_NPRI2005_Hg2.' //
+     &           GET_NAME_EXT() // '.' // GET_RES_EXT() //
+     &           '.YYYY'
+     
+           ! Add year to the filename
+           CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+     
+           ! Echo info
+           WRITE( 6, 50 ) TRIM( FILENAME )
+50       FORMAT( '     - RED_INPLUME: Reading ', a )
+     
+           ! Read data in [kg/yr]
+           CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
+     &           XTAU,      IIPAR,     JJPAR,
+     &           1,     ARRAY(:,:,1),     QUIET=.TRUE. )
+     
+           ! Regrid to the current grid
+           CALL TRANSFER_2D( ARRAY(:,:,1), E_ELECTRICITY_Hg2 )
+
+           DO J=1,JJPAR
+           DO I=1,IIPAR
+
+             ! Transfer unit to kg/s
+             ! Hg emission in CFPP sector decreased for 45.14% during 2005-2010 
+             E_plant = E_ELECTRICITY_Hg2(I,J) / SEC_PER_YR
+             
+             ! Reduce the Hg2 from plume
+             CALL RED_INPLUME_GRID( I, J, E_plant )
+
+           ENDDO
+           ENDDO
+
+      ! Return to calling program
+      END SUBROUTINE DO_RED_INPLUME
+
+!------------------------------------------------------------------------------
 
       SUBROUTINE INIT_MERCURY( THIS_ANTHRO_Hg_YEAR, HG_SCENARIO )
 !
@@ -7584,6 +7977,10 @@
       LGCAPEMIS=.TRUE.
       ! Use GEIA 2005 inventory
       LGEIA05=.FALSE.
+      ! Switch use NEI2005 and NPRI2005 emission inventories
+      LNEI2005=.TRUE.
+      ! Switch modifying the speciation profile of Hg emission
+      LInPlume=.TRUE.
 
       ! no Hg emitted through transpiration (VEGEMIS off)
       LVEGEMIS=.FALSE.
@@ -7605,7 +8002,11 @@
 
       ! Switch for using GEOS-Chem tropospheric bromine fields,
       ! ref. Parrella et al. 2012, instead of older TOMCAT fields
+#if defined( GRID05x0666 ) && defined( NESTED_NA )
+      LGCBROMINE = .FALSE. 
+#else
       LGCBROMINE = .TRUE. 
+#endif
 
       ! Switch specifies that Hg2 is 50% bound to aerosol and 50% in
       ! gas phase (TRUE). If FALSE, then use temperature dependent 

@@ -146,7 +146,8 @@
       PUBLIC :: LGCBROMINE !eds 4/19/12         
       PUBLIC :: PARTITION_Hg2 ! hma       
       PUBLIC :: Fp, Fg        ! hma 
-
+      PUBLIC :: LNEI2005,               LInPlume     ! yzh
+         
       !=================================================================
       ! MODULE VARIABLES
       !=================================================================
@@ -211,6 +212,7 @@
       LOGICAL   :: LAnthroHgOnly,          LOHO3CHEM
       LOGICAL   :: LGCBROMINE !eds 4/19/12
       LOGICAL   :: LnoUSAemis
+      LOGICAL   :: LNEI2005, LInPlume    ! yzh
       REAL*8    :: STRAT_BR_FACTOR
 
       ! CDH Set this TRUE to use corrected area-flux relationship
@@ -1751,9 +1753,18 @@
       !------------------------------
 
       ! MLD file name
-      FILENAME = TRIM( DATA_DIR )       // 
-     &           'mercury_201007/MLD_DReqDT.geos.' // GET_RES_EXT()  
-     
+#if defined( GRID05x0666 ) && defined( NESTED_NA )
+      ! Need to read emission file at nested-resolution, Y. Zhang 11/1/2011
+      FILENAME = TRIM( DATA_DIR )                  // 
+     &           'mercury_201203/MLD_DReqDT.'      // 
+     &           GET_NAME_EXT()    // '.'          //
+     &           GET_RES_EXT()
+#else
+      FILENAME = TRIM( DATA_DIR )                  // 
+     &           'mercury_201007/MLD_DReqDT.geos.' // 
+     &           GET_RES_EXT()
+#endif
+
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
  100  FORMAT( '     - OCEAN_MERCURY_READ: Reading ', a )  
@@ -1787,8 +1798,17 @@
 !-------------------------------------------------
 
       ! Chl file name
-      FILENAME = TRIM( DATA_DIR )       // 
-     &           'mercury_201007/Chl_2003.geos.' // GET_RES_EXT()
+#if defined( GRID05x0666 ) && defined( NESTED_NA )
+      FILENAME = TRIM( DATA_DIR )                  // 
+     &           'mercury_201203/Chl_2003.'        // 
+     &           GET_NAME_EXT()     // '.'         //
+     &           GET_RES_EXT()
+#else
+      ! Need to read emission file at nested-resolution, Y. Zhang 11/1/2011
+      FILENAME = TRIM( DATA_DIR )                  // 
+     &           'mercury_201007/Chl_2003.geos.'   //
+     &           GET_RES_EXT()
+#endif
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -1816,8 +1836,17 @@
       !--------------------------------
  
       ! NPP file name (anls, 100111)
-      FILENAME = TRIM( DATA_DIR )       // 
-     &           'mercury_201007/NPP_2003.geos.' // GET_RES_EXT()
+#if defined( GRID05x0666 ) && defined( NESTED_NA )
+      ! Need to read emission file at nested-resolution, Y. Zhang 11/1/2011
+      FILENAME = TRIM( DATA_DIR )                  // 
+     &           'mercury_201203/NPP_2003.'        // 
+     &          GET_NAME_EXT()     // '.'          //
+     &          GET_RES_EXT()  
+#else
+      FILENAME = TRIM( DATA_DIR )                  // 
+     &           'mercury_201007/NPP_2003.geos.'   //
+     &           GET_RES_EXT()
+#endif
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -1839,8 +1868,17 @@
       !---------------------------------
 
       ! NPP file name
+#if defined( GRID05x0666 ) && defined( NESTED_NA )
+      ! Need to read emission file at nested-resolution, Y. Zhang 11/1/2011
+      FILENAME = TRIM( DATA_DIR )                   // 
+     &           'mercury_201203/ekman_upvel.'      // 
+     &           GET_NAME_EXT()    // '.'           //
+     &           GET_RES_EXT() 
+#else
       FILENAME = TRIM( DATA_DIR_1x1 )               // 
-     &           'mercury_200511/ekman_upvel.geos.' // GET_RES_EXT() 
+     &           'mercury_200511/ekman_upvel.geos.' //
+     &           GET_RES_EXT()
+#endif
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -1849,9 +1887,15 @@
       TAU = GET_TAU0( THISMONTH, 1, 1985 )
 
       ! Read from disk; original units are [cm/s]
+#if defined( GRID05x0666 ) && defined( NESTED_NA )
+      CALL READ_BPCH2( FILENAME, 'BXHGHT-$',    6,  
+     &                 TAU,       IIPAR,        JJPAR,      
+     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
+#else
       CALL READ_BPCH2( FILENAME, 'EKMAN-V',     1,  
      &                 TAU,       IIPAR,        JJPAR,      
      &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
+#endif
 
       ! Resize and cast to REAL*8
       CALL TRANSFER_2D( ARRAY(:,:,1), UPVEL )
@@ -1886,6 +1930,7 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
       USE TIME_MOD,      ONLY : ITS_A_LEAPYEAR
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT   ! Y. Zhang
 
       USE CMN_SIZE_MOD      ! Size parameters
 
@@ -1914,8 +1959,17 @@
       ENDIF
 
       ! MLD file name
-      FILENAME = TRIM( DATA_DIR )       // 
-     &           'mercury_201007/MLD_DReqDT.geos.' // GET_RES_EXT()      
+#if defined( GRID05x0666 ) && defined( NESTED_NA )
+      ! Need to read emission file at nested-resolution, Y. Zhang 11/1/2011 
+      FILENAME = TRIM( DATA_DIR )                  // 
+     &           'mercury_201203/MLD_DReqDT.'      // 
+     &           GET_NAME_EXT()    // '.'          //
+     &           GET_RES_EXT()   
+#else
+      FILENAME = TRIM( DATA_DIR )                  // 
+     &           'mercury_201007/MLD_DReqDT.geos.' //
+     &            GET_RES_EXT()
+#endif
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -2605,6 +2659,9 @@
 
       ! Hg2
       DO NN = 1, N_Hg_CATS
+!     Bug fixed, Y. Zhang, 11/1/2011
+!         WRITE( 6, 140 ) ID_Hg2(NN), TRACER_NAME( Id_Hg2(NN) ), 
+!     &                   SUM( Hg0aq(:,:,NN) ), 'kg'
          WRITE( 6, 140 ) ID_Hg2(NN), TRACER_NAME( Id_Hg2(NN) ), 
      &                   SUM( Hg2aq(:,:,NN) ), 'kg'
       ENDDO
