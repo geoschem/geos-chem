@@ -123,24 +123,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-  !-----------------------------------------------------------------------
-  !         %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-  !
-  ! Pass size dimenisons, the Input Options object, and the Chemistry
-  ! State object as arguments. (bmy, 11/9/12)
-  !------------------------------------------------------------------------
   SUBROUTINE DO_STRAT_CHEM( am_I_Root, Input_Opt,          &
                             State_Met, State_Chm, errCode )
-#else
-  !-------------------------------------------------------------------------
-  !                 %%%%% TRADITIONAL GEOS-Chem %%%%%
-  !
-  ! Current practice is to call DO_STRAT_CHEM with just the am_I_Root
-  ! argument. (bmy, 11/9/12)
-  !-------------------------------------------------------------------------
-  SUBROUTINE DO_STRAT_CHEM( am_I_Root, State_Met )
-#endif
 !
 ! !USES:
 !
@@ -149,6 +133,9 @@ CONTAINS
     USE DAO_MOD,            ONLY : SUNCOS
     USE ERROR_MOD,          ONLY : DEBUG_MSG
     USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE LINOZ_MOD,          ONLY : DO_LINOZ
     USE TIME_MOD,           ONLY : GET_MONTH
@@ -163,33 +150,6 @@ CONTAINS
     USE TROPOPAUSE_MOD,     ONLY : GET_TPAUSE_LEVEL
     USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_TROP
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-    !-----------------------------------------------------------------------
-    !         %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-    !
-    ! We need to reference some modules particular to the Grid-
-    ! Independent GEOS-Chem implementation here. (bmy, 10/25/12)
-    !-----------------------------------------------------------------------
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
-#else
-    !---------------------------------------------------------------------
-    !                  %%%%% TRADITIONAL GEOS-Chem %%%%%
-    !
-    ! Reference logical flags from GeosCore/logical_mod.F and tracer
-    ! quantities from GeosCore/tracer_mod.F (bmy, 11/9/12)
-    !---------------------------------------------------------------------
-    USE LOGICAL_MOD,        ONLY : LLINOZ
-    USE LOGICAL_MOD,        ONLY : LPRT
-    USE TRACER_MOD,         ONLY : N_TRACERS
-    USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
-    USE TRACER_MOD,         ONLY : ITS_A_TAGOX_SIM
-    USE TRACER_MOD,         ONLY : ITS_A_H2HD_SIM
-    USE TRACER_MOD,         ONLY : TCVV
-    USE TRACER_MOD,         ONLY : TRACER_MW_KG
-#endif
-
     IMPLICIT NONE
 
 #include "define.h"
@@ -197,9 +157,8 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object 
+    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -208,7 +167,6 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     INTEGER,        INTENT(OUT)   :: errCode     ! Success or failure
-#endif
 !f
 ! !REMARKS:
 ! 
@@ -247,16 +205,6 @@ CONTAINS
     INTEGER           :: I,    IJWINDOW, J,   L,   N,      NN
     REAL*8            :: dt,   P,        k,   M0,  RC,     M
     REAL*8            :: TK,   RDLOSS,   T1L, mOH, BryDay, BryNight
-
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-    !---------------------------------------------------------------------
-    !       %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-    !
-    ! Declare local copies for arrays that we are no longer referencing
-    ! from logical_mod.F and tracer_mod.F.
-    ! 
-    ! Use Input_Opt%N_TRACERS to declare arrays (bmy, 11/9/12)
-    !---------------------------------------------------------------------
     LOGICAL           :: LLINOZ
     LOGICAL           :: LPRT
     INTEGER           :: N_TRACERS
@@ -265,18 +213,6 @@ CONTAINS
     REAL*8            :: STT0  (IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS)
     REAL*8            :: BEFORE(IIPAR,JJPAR,LLPAR)
     REAL*8            :: TCVV(Input_Opt%N_TRACERS)
-#else
-    !---------------------------------------------------------------------
-    !                  %%%%% TRADITIONAL GEOS-Chem %%%%%
-    !
-    ! Use N_TRACERS from GeosCore/tracer_mod.F to declare arrays
-    ! (bmy, 11/9/12)
-    !---------------------------------------------------------------------
-
-    ! Arrays
-    REAL*8            :: STT0(IIPAR,JJPAR,LLPAR,N_TRACERS)
-    REAL*8            :: BEFORE(IIPAR,JJPAR,LLPAR)
-#endif
 
     ! External functions
     REAL*8, EXTERNAL  :: BOXVL
@@ -284,14 +220,6 @@ CONTAINS
     !===============================
     ! DO_STRAT_CHEM begins here!
     !===============================
-
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-    !-----------------------------------------------------------------------
-    !         %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-    !
-    ! To simplify the coding for the ESMF interface and traditional
-    ! GEOS-Chem, copy values from Input_Opt to local arrays. (bmy, 11/9/12)
-    !-----------------------------------------------------------------------
 
     ! Assume Success
     errCode              = GIGC_SUCCESS
@@ -303,17 +231,7 @@ CONTAINS
     IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
     IT_IS_A_TAGOX_SIM    = Input_Opt%ITS_A_TAGOX_SIM  
     IT_IS_A_H2HD_SIM     = Input_Opt%ITS_A_H2HD_SIM
-#else
-    !-----------------------------------------------------------------------
-    !                  %%%%% TRADITIONAL GEOS-Chem %%%%%
-    !
-    ! To simplify the coding, save values from ITS_A_*_SIM functions (from 
-    ! GeosCore/tracer_mod.F) to local variables (bmy, 11/9/12)
-    !-----------------------------------------------------------------------
-    IT_IS_A_FULLCHEM_SIM = ITS_A_FULLCHEM_SIM()
-    IT_IS_A_TAGOX_SIM    = ITS_A_TAGOX_SIM()
-    IT_IS_A_H2HD_SIM     = ITS_A_H2HD_SIM()
-#endif
+    TCVV                 = Input_Opt%TCVV
 
     ! Set a flag for debug printing
     prtDebug             = ( LPRT .and. am_I_Root )
@@ -333,24 +251,8 @@ CONTAINS
        ! Read rates for this month
        IF ( IT_IS_A_FULLCHEM_SIM ) THEN
 #if defined( GRID4x5 ) || defined( GRID2x25 )
-!#if defined( DEVEL ) 
-!          !-----------------------------------------------------------------
-!          !   %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%%
-!          !
-!          ! Pass the Chemistry State object to GET_RATES.  We don't call
-!          ! this routine from the ESMF interface. (bmy, 10/26/12)
-!          !-----------------------------------------------------------------
-!          CALL GET_RATES( GET_MONTH(), Input_Opt, State_Chm,  &
-!                                       am_I_Root, errCode    )
-!#else
-          !-----------------------------------------------------------------
-          !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-          !
-          ! Current practice is to call DO_STRAT_CHEM with the current
-          ! month and the the am_I_Root argument. (bmy, 10/26/12)
-          !-----------------------------------------------------------------
-          CALL GET_RATES( GET_MONTH(), am_I_Root )
-!#endif
+          CALL GET_RATES( GET_MONTH(), Input_Opt, State_Chm,  &
+                                       am_I_Root, errCode    )
 #else
           ! For resolutions finer than 2x2.5, nested, 
           ! or otherwise exotic domains and resolutions
@@ -691,61 +593,27 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-  !------------------------------------------------------------------------
-  !         %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-  !
-  ! Call CHEMDR with dimension values as well as the Input Options, 
-  ! Meteorology State, and Chemistry State objects. (bmy, 10/25/12)
-  !------------------------------------------------------------------------
   SUBROUTINE GET_RATES( THISMONTH, Input_Opt, State_Chm, am_I_Root, RC )
-#else
-  !-------------------------------------------------------------------------
-  !                 %%%%% TRADITIONAL GEOS-Chem %%%%%
-  !
-  ! Current practice in the standard GEOS-Chem is to read strat chem
-  ! prod/loss data from netCDF files. (bmy, 10/26/12)
-  !-------------------------------------------------------------------------
-  SUBROUTINE GET_RATES( THISMONTH, am_I_Root )
-#endif
 !
 ! !USES:
 !
+    ! GEOS-Chem routines
     USE BPCH2_MOD,          ONLY : GET_NAME_EXT
     USE BPCH2_MOD,          ONLY : GET_RES_EXT
     USE BPCH2_MOD,          ONLY : GET_TAU0
     USE BPCH2_MOD,          ONLY : READ_BPCH2
-    USE DIRECTORY_MOD,      ONLY : DATA_DIR
-    USE TIME_MOD,           ONLY : GET_MONTH
-    USE TRANSFER_MOD,       ONLY : TRANSFER_3D
-
-    USE m_netcdf_io_open
-    USE m_netcdf_io_read
-    USE m_netcdf_io_close
-
     USE CMN_SIZE_MOD
-
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-    !-----------------------------------------------------------------------
-    !         %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-    !
-    ! We need to reference some modules particular to the Grid-
-    ! Independent GEOS-Chem implementation here. (bmy, 10/25/12)
-    !-----------------------------------------------------------------------
+    USE DIRECTORY_MOD,      ONLY : DATA_DIR
     USE GIGC_ErrCode_Mod
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Chm_Mod, ONLY : ChmState
-#else
-    !-----------------------------------------------------------------------
-    !                   %%%%% TRADITIONAL GEOS-Chem %%%%%
-    !
-    ! Current practice in the standard GEOS-Chem is to reference logical
-    ! flags from GeosCore/logical_mod.F and tracer quantities from 
-    ! GeosCore/tracer_mod.F. (bmy, 10/26/12)
-    !-----------------------------------------------------------------------
-    USE TRACER_MOD,         ONLY : N_TRACERS
-    USE TRACER_MOD,         ONLY : TRACER_NAME
-#endif
+    USE TIME_MOD,           ONLY : GET_MONTH
+    USE TRANSFER_MOD,       ONLY : TRANSFER_3D
+
+    ! netCDF routines
+    USE m_netcdf_io_open
+    USE m_netcdf_io_read
+    USE m_netcdf_io_close
 
     IMPLICIT NONE
 !
@@ -753,7 +621,6 @@ CONTAINS
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
     INTEGER,        INTENT(IN)    :: THISMONTH   ! Current month
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -763,7 +630,6 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-#endif
 !
 ! !REVISION HISTORY: 
 !  01 Feb 2011 - L. Murray   - Initial version
@@ -783,21 +649,12 @@ CONTAINS
     INTEGER            :: N,        M,       S
     INTEGER            :: F,        NN,      fileID
     REAL*8             :: XTAU
+    INTEGER            :: N_TRACERS
 
     ! Arrays
     REAL*4             :: ARRAY ( IIPAR, JJPAR, LGLOB )  ! Full vertical res
     REAL*8             :: ARRAY2( IIPAR, JJPAR, LLPAR )  ! Actual vertical res
-
-#if defined( DEVEL )
-    !-----------------------------------------------------------------------
-    !        %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-    !
-    ! Define local variables to hold quantities from Input_Opt
-    ! (bmy, 11/9/12)
-    !----------------------------------------------------------------------
-    INTEGER            :: N_TRACERS
     CHARACTER(LEN=14)  :: TRACER_NAME(Input_Opt%N_TRACERS)
-#endif
 
     !=================================================================
     ! GET_RATES begins here
@@ -808,8 +665,9 @@ CONTAINS
     PROD = 0d0
 
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+
     !-----------------------------------------------------------------------
-    !        %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+    !         %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
     !
     ! Do nothing, since we would not be reading in data here when using
     ! the ESMF interface.  The strat-chem data would have to come in
@@ -820,30 +678,17 @@ CONTAINS
     RC                       = GIGC_SUCCESS
 
 #else
-
-#if defined( DEVEL )
     !----------------------------------------------------------------------
-    !      %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%%
-    ! 
-    ! If we are compiling GEOS-Chem with the DEVEL=yes option, then we
-    ! need to copy fields of Input_Opt to local variables (bmy, 11/9/12)
+    !                %%%%% TRADITIONAL GEOS-Chem %%%%%
+    !
+    ! Current practice in the standard GEOS-Chem is to read strat chem
+    ! prod/loss data from netCDF files. (bmy, 10/26/12)
     !----------------------------------------------------------------------
-
-    ! Assume success
-    RC                       = GIGC_SUCCESS
 
     ! Copy fields from Input_Opt to Llocal variables
     N_TRACERS                = Input_Opt%N_TRACERS
     TRACER_NAME(1:N_TRACERS) = Input_Opt%TRACER_NAME(1:N_TRACERS)
 
-#endif
-
-    !-----------------------------------------------------------------------
-    !                %%%%% TRADITIONAL GEOS-Chem %%%%%
-    !
-    ! Current practice in the standard GEOS-Chem is to read strat chem
-    ! prod/loss data from netCDF files. (bmy, 10/26/12)
-    !-----------------------------------------------------------------------
     IF ( am_I_Root ) THEN
        WRITE( 6, 11 ) &
           '       - Getting new strat prod/loss rates for month: ', THISMONTH
@@ -1007,10 +852,12 @@ CONTAINS
 !
 ! !USES:
 !
+    ! GEOS-Chem routines
     USE BPCH2_MOD,       ONLY : GET_NAME_EXT
     USE BPCH2_MOD,       ONLY : GET_RES_EXT
     USE BPCH2_MOD,       ONLY : GET_TAU0
     USE BPCH2_MOD,       ONLY : READ_BPCH2
+    USE CMN_SIZE_MOD
     USE DIRECTORY_MOD,   ONLY : DATA_DIR_1x1
     USE GRID_MOD,        ONLY : GET_XMID
     USE GRID_MOD,        ONLY : GET_YMID
@@ -1020,11 +867,10 @@ CONTAINS
     USE TRANSFER_MOD,    ONLY : TRANSFER_3D
     USE TRANSFER_MOD,    ONLY : TRANSFER_3D_Bry
 
+    ! netCDF routines
     USE m_netcdf_io_open
     USE m_netcdf_io_read
     USE m_netcdf_io_close
-
-    USE CMN_SIZE_MOD
 
     IMPLICIT NONE
 !
