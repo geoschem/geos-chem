@@ -1618,14 +1618,8 @@
       ! PAH emissions are for the year 2004
       ! Each PAH congener is emitted individually and contained in separate
       ! files
- 
-      ! Filename for congener you wish to model:
-      !FILENAME = TRIM( DATA_DIR_1x1 )       // 
-!     &           'PAHs_2004/PHE_EM_4x5.bpch' 
-!      FILENAME = '/net/fs03/d0/geosdata/data/GEOS_4x5/PAHs_2004/' //
-!     &           '1x1/updated060911/PYR_EM_1x1.bpch'
-
-      FILENAME = POP_EMISDIR
+      FILENAME = TRIM( DATA_DIR_1x1 )       // 'POPs_201209/' //
+     &           TRIM( POP_EMISDIR  )
       
       ! Timestamp for emissions
       ! All PAH emissions are for the year 2004
