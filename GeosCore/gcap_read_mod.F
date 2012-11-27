@@ -54,13 +54,12 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: unzip_gcap_fields
 !
 ! !DESCRIPTION: Subroutine UNZIP\_GCAP\_FIELDS invokes a FORTRAN system call
 !  to uncompress GCAP PHIS met field files and store the uncompressed data in a 
 !  temporary directory, where GEOS-CHEM can read them.  The original data 
 !  files are not disturbed.
- 
 !\\
 !\\
 ! !INTERFACE:
@@ -191,9 +190,8 @@
 !
 ! !IROUTINE: 
 !
-! !DESCRIPTION: Subroutine OPEN_GCAP_FIELDS opens the PHIS and LWI met fields 
+! !DESCRIPTION: Subroutine OPEN\_GCAP\_FIELDS opens the PHIS and LWI met fields 
 !  file.
-
 !\\
 !\\
 ! !INTERFACE:
@@ -358,7 +356,6 @@
 ! !DESCRIPTION: Function CHECK\_TIME checks to see if the timestamp of the 
 !  GCAP field just read from disk matches the current time.  If so, then it's 
 !  time to return the GCAP field to the calling program. (bmy, 6/16/03)
-
 !\\
 !\\
 ! !INTERFACE:
@@ -411,7 +408,7 @@
 !
 ! !DESCRIPTION: Subroutine READ\_PHIS reads DAO PHIS (surface geopotential 
 !  heights) field from disk.  PHIS is an I-6 field, but is time-independent.  
-!  Thus READ_PHIS only needs to be called once at the beginning of the model 
+!  Thus READ\_PHIS only needs to be called once at the beginning of the model 
 !  run.
 !\\
 !\\
@@ -585,7 +582,6 @@
 ! !REVISION HISTORY: 
 !  15 Jun 1998 - R. Yantosca - Initial version
 !  (1 ) Adapted from DAO_CHECK from "dao_read_mod.f" (bmy, 6/16/03)
-
 !  06 Aug 2012 - R. Yantosca - Added ProTeX headers
 !EOP
 !------------------------------------------------------------------------------

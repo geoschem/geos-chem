@@ -15,8 +15,6 @@
 ! (2) Initialize met. field derived type.
 ! (3) Initialize CHEM, PHYS, and EMISSIONS states
 ! (4) ...
-!\\
-!\\
 !  NOTE: This is mostly for testing the grid-independent code in the current 
 !  GEOS-Chem.  Many of these inputs will come from the GEOS-5 interface. It will
 !  remain in DEVEL state for some time.
@@ -62,7 +60,6 @@ CONTAINS
 ! !DESCRIPTION: Subroutine ALLOCATE\_ALL allocates all LAT/LON ALLOCATABLE 
 !  arrays for global use by the GEOS-Chem either as a standalone program or
 !  module.
-
 !\\
 !\\
 ! !INTERFACE:
@@ -160,7 +157,7 @@ CONTAINS
 ! !IROUTINE: init_local_met
 !
 ! !DESCRIPTION: Subroutine INIT\_LOCAL\_MET allocates all fields of an
-!  object based on derived type GC_MET_LOCAL (from gc_type_mod.F90).
+!  object based on derived type GC\_MET\_LOCAL (from gc\_type\_mod.F90).
 !\\
 !\\
 ! !INTERFACE:

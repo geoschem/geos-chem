@@ -281,7 +281,7 @@
 ! !IROUTINE:  get_pop_k_popp_o3a
 !
 ! !DESCRIPTION: Function GET\_POP\_K\_POPP\_O3A returns the POP reaction rate
-!  constant for reaction of particle phase POP with ozone [s^-1].
+!  constant for reaction of particle phase POP with ozone [s\^-1].
 !\\
 !\\
 ! !INTERFACE:
@@ -422,7 +422,7 @@
 !
 ! !IROUTINE:  get_pop_del_H
 !
-! !DESCRIPTION: Function GET_POP_DEL_H returns the enthalpy of air-water
+! !DESCRIPTION: Function GET\_POP\_DEL\_H returns the enthalpy of air-water
 !  exchange (K).
 !\\
 !\\
