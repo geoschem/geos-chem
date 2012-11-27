@@ -703,7 +703,7 @@
       !=================================================================
       ! Call photolysis routine to compute J-Values
       !=================================================================
-      CALL FAST_J( SUNCOS_MID, am_I_Root, State_Met )              
+      CALL FAST_J( am_I_Root, State_Met, RC )              
 
       !### Debug
       IF ( prtDebug ) THEN
@@ -717,7 +717,7 @@
       ! PHYSPROC calls both CALCRATE, which computes rxn rates 
       ! and SMVGEAR (if we do not use the solver coded by kpp), which
       ! is the chemistry solver
-      CALL PHYSPROC( SUNCOS_MID, am_I_Root, State_Met )
+      CALL PHYSPROC( am_I_Root, Input_Opt, State_Met, RC )
 
       !### Debug
       IF ( prtDebug ) THEN

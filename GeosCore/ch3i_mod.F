@@ -946,10 +946,10 @@
 !        (swu, bmy, 8/16/05)
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  27 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,            ONLY : SUNCOS
       USE DIAG_MOD,           ONLY : AD22, LTJV
       USE DIAG_PL_MOD,        ONLY : AD65
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -974,6 +974,7 @@
 
       ! Local loop and index variables
       INTEGER                :: I, IFNC, IBRCH, J, L, LN22, N, NK, NR
+      INTEGER                :: RC
 
       ! Hardwired Logical flag for FAST-J
       LOGICAL, PARAMETER     :: DO_FASTJ = .TRUE. 
@@ -1029,7 +1030,7 @@
          ! them in an internal array.  SUNCOS, OPTD, and UVALBEDO are 
          ! needed for FAST-J.
          !==============================================================
-         CALL FAST_J( SUNCOS, am_I_Root, State_Met )
+         CALL FAST_J( am_I_Root, State_Met, RC )
         
          !==============================================================
          ! NR is the loop over the number of reactions (NR=1 for now!)
@@ -1069,7 +1070,7 @@
             DO I = 1, IIPAR
 
                ! SUNCOS > 0 means daytime!
-               IF ( SUNCOS( (J-1)*IIPAR + I ) > 0 ) THEN
+               IF ( State_Met%SUNCOS(I,J) > 0d0 ) THEN
                   JVALUE = FJFUNC( I, J, L, NR, IBRCH, SPECNAME )
                   RLRAD  = JVALUE * DTCHEM
                   RDLOSS = EXP( -RLRAD )

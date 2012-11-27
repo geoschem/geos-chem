@@ -94,6 +94,7 @@
 !                              emissions are turned off (e.g. for tagged CO)
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  27 Nov 2012 - R. Yantosca - Replace SUNCOS_MID with State_Met%SUNCOSmid
 !******************************************************************************
 !
       ! References to F90 modules
@@ -103,7 +104,6 @@
       USE BROMOCARB_MOD,      ONLY : EMIS_CHBr3, EMIS_CH2Br2
       USE BROMOCARB_MOD,      ONLY : Br_SCALING
       USE CANOPY_NOX_MOD,     ONLY : GET_CANOPY_NOX
-      USE DAO_MOD,            ONLY : SUNCOS_MID
       USE DIAG_MOD,           ONLY : AD29,          AD46
       USE DIAG_MOD,           ONLY : AD32_fe,       AD32_so
       USE EMISSIONS_MOD,      ONLY : ISOP_SCALING
@@ -288,7 +288,8 @@
      &                              PFACTOR(I,J),   GEMISNOX2(I,J),
      &                              DEP_FERT,       FERTDIAG, 
      &                              CLIM(I,J,:),    LAND2(I,J,:),
-     &                              RC,             SUNCOS_MID(IJLOOP),
+     &                              RC,             
+     &                              State_Met%SUNCOSmid(I,J),
      &				    State_Met%U10M(I,J),
      &                              State_Met%V10M(I,J), 
      &                              CANOPYNOX(IJLOOP,:), 
@@ -418,13 +419,6 @@
             IF ( LLIGHTNOX ) CALL EMLIGHTNING( I, J, State_Met )
 #endif
 !-----------------------------------------------------------------------------
-! SOIL EMISSIONS NOX [molecules/cm3/s]
-!
-!            IF ( ( LSOILNOX .OR. LFERTILIZERNOX )
-!     &             .AND. I == 1 .AND. J == 1 ) 
-!     &         CALL SOILNOXEMS( SUNCOS_MID, State_Met, 
-!     &                          EMISS_TEND(:,:,1,IDTNOX) )
-!-----------------------------------------------------------------------------
 ! AIRCRAFT emissions NOx [molecules/cm3/s]
 !
 #if defined( DEVEL )
@@ -461,8 +455,8 @@
                   !------------------
 
                   ! Cosine of solar zenith angle
-                  SC   = SUNCOS_MID(IJLOOP)
-               
+                  SC   = State_Met%SUNCOSmid(I,J)
+
                   ! Diffuse and direct PAR
                   PDR  = State_Met%PARDR(I,J)
                   PDF  = State_Met%PARDF(I,J)

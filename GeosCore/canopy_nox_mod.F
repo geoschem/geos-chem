@@ -105,7 +105,6 @@
 !
 ! !USES:
 !
-      USE DAO_MOD,            ONLY : SUNCOS
       USE DRYDEP_MOD,         ONLY : DRYCOEFF	!todo
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE MODIS_LAI_MOD
@@ -308,8 +307,10 @@
 
                IF ( RAD0 > 0d0 .AND. GC_LAI(I,J) > 0d0 ) THEN
                   GFACI= 1d0 / 
-     &                   BIOFIT( DRYCOEFF,       GC_LAI(I,J),
-     &                           SUNCOS(IJLOOP), State_Met%CLDFRC(I,J) )
+     &                   BIOFIT( DRYCOEFF,       
+     &                           GC_LAI(I,J),
+     &                           State_Met%SUNCOS(I,J), 
+     &                           State_Met%CLDFRC(I,J)  )
                ENDIF
             
                RIX = RIX * GFACT * GFACI

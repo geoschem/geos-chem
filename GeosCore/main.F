@@ -26,7 +26,6 @@
       USE COMMSOIL_MOD          ! Soil NOx emissions header file
       USE ERROR_MOD             ! For error checking
       USE FILE_MOD              ! For file I/O
-      USE GIGC_ErrCode_Mod      ! Error codes for success or failure
       USE INPUT_MOD             ! For reading settings from "input.geos"
       USE LOGICAL_MOD           ! Logical flags to toggle G-C options
       USE MAPPING_MOD           ! For regridding MODIS LAI
@@ -114,6 +113,7 @@
       !-----------------------------------------------------------------
       ! Modules for the Grid-Independent GEOS-Chem (aka "GIGC")
       !-----------------------------------------------------------------
+      USE GIGC_ErrCode_Mod      ! Error codes for success or failure
       USE GIGC_Environment_Mod  ! For allocating objects
       USE GIGC_Input_Opt_Mod    ! Derived type for Input Options 
       USE GIGC_State_Chm_Mod    ! Derived type for Chemistry State object    
@@ -849,7 +849,14 @@
          ! SUNCOS         = cos(SZA) at the current time
          ! SUNCOS_MID     = cos(SZA) at the midpt of the chem timestep
          ! SUNCOS_MID_5hr = cos(SZA) at the midpt of the chem timestep 5hrs ago
-         CALL GET_COSINE_SZA( SUNCOS, SUNCOS_MID, SUNCOS_MID_5hr )
+         !
+         ! NOTE: Now pass the State_Met object.  During testing we will need
+         ! to keep both the traditional SUNCOS arrays from dao_mod.F and
+         ! the SUNCOS fields of the State_Met object.  But the State_Met will
+         ! eventually replace the SUNCOS arrays from dao_mod.F. (bmy, 11/27/12)
+         CALL GET_COSINE_SZA( am_I_Root, Input_Opt,  State_Met, 
+     &                        SUNCOS,    SUNCOS_MID, SUNCOS_MID_5hr, 
+     &                        RC                                     )
 
          ! Compute tropopause height for ND55 diagnostic
          IF ( ND55 > 0 ) CALL DIAG_TROPOPAUSE( State_Met )
@@ -956,9 +963,11 @@
                ! concentration of BrO equal to 1 pptv during daytime.
                ! ----------------------------------------------------
                IF ( LEMIS .and. ( IDTBrO > 0 ) )
-     &            CALL SET_BRO( N_TRACERS,           TCVV,
-     &                          SUNCOS,              STT,
-     &                          ITS_TIME_FOR_UNIT(), State_Met )
+     &            CALL SET_BRO( N_TRACERS,           
+     &                          TCVV,
+     &                          STT,
+     &                          ITS_TIME_FOR_UNIT(), 
+     &                          State_Met            )
             ENDIF
          ENDIF
 
@@ -1062,9 +1071,11 @@
                ! concentration of BrO equal to 1 pptv during daytime.
                ! ----------------------------------------------------
                IF ( LEMIS .and. ( IDTBrO > 0 ) )
-     &            CALL SET_BRO( N_TRACERS,           TCVV,
-     &                          SUNCOS,              STT,
-     &                          ITS_TIME_FOR_UNIT(), State_Met )
+     &            CALL SET_BRO( N_TRACERS,           
+     &                          TCVV,
+     &                          STT,
+     &                          ITS_TIME_FOR_UNIT(), 
+     &                          State_Met            )
 
             ENDIF
          ENDIF

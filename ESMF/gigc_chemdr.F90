@@ -141,7 +141,7 @@ CONTAINS
 
       ! Met fields  (these will eventually be wrapped into State_Met)
       SUNCOS(1:NI*NJ)    = State_Met%SUNCOS    ! Cosine of solar zenith angle
-      SUNCOS_MID(1:NI*NJ)= State_Met%SUNCOS    ! Cosine of solar zenith angle
+      SUNCOS_MID(1:NI*NJ)= State_Met%SUNCOSmid ! Cosine of solar zenith angle
 
       !======================================================================
       ! Set 3-D variables

@@ -24,7 +24,7 @@
 !
 ! !INTERFACE:
 !
-      SUBROUTINE FAST_J( SUNCOS, am_I_Root, State_Met )
+      SUBROUTINE FAST_J( am_I_Root, State_Met, RC )
 !
 ! !USES:
 !
@@ -45,6 +45,7 @@
       USE JV_CMN_MOD,         ONLY : PJ
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_YMID
       USE PRESSURE_MOD,       ONLY : GET_PEDGE
@@ -62,11 +63,12 @@
       ! Is this the root CPU?
       LOGICAL,        INTENT(IN)  :: am_I_Root
 
-      ! Cosine of solar zenith angle [unitless]
-      REAL*8,         INTENT(IN)  :: SUNCOS(MAXIJ)   
-
       ! Meteorology State object
       TYPE(MetState), INTENT(IN)  :: State_Met
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC
 !
 ! !REMARKS:
 !
@@ -133,6 +135,7 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  27 Nov 2012 - R. Yantosca - Cosmetic changes
+!  27 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOSmid field
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -147,7 +150,7 @@
       REAL*8             :: OPTAER(LLPAR,NAER*NRH)
 
       ! Local variables for cloud overlap (hyl, phs)
-      INTEGER           :: NUMB, KK, I
+      INTEGER            :: NUMB, KK, I
       INTEGER            :: INDIC(LLPAR+1)
       INTEGER            :: INDGEN(LLPAR+1)
       INTEGER            :: KBOT(LLPAR)
@@ -171,6 +174,9 @@
       !=================================================================
       ! FAST_J begins here!
       !=================================================================
+
+      ! Assume success
+      RC = GIGC_SUCCESS
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       IF ( FIRST ) THEN
@@ -217,7 +223,7 @@
             YLAT         = GET_YMID( NLON, NLAT, 1 )
 
             ! Cosine of solar zenith angle [unitless] at (NLON,NLAT)
-            CSZA         = SUNCOS( (NLAT-1)*IIPAR + NLON ) 
+            CSZA         = State_Met%SUNCOSmid(NLON,NLAT)
 
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
             ! Define the PJ array here, using GCM pressures

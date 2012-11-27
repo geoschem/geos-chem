@@ -364,7 +364,6 @@
 
       USE BIOFUEL_MOD,        ONLY : BIOFUEL
       USE BIOMASS_MOD,        ONLY : BIOMASS
-      USE DAO_MOD,            ONLY : SUNCOS
       USE DIAG_MOD,           ONLY : AD29,          AD46
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_XOFFSET,   GET_YOFFSET
@@ -452,6 +451,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  27 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -708,7 +708,7 @@
             !------------------
 
             ! Cosine of solar zenith angle
-            SC = SUNCOS(IJLOOP)
+            SC  = State_Met%SUNCOS(I,J)
 
             ! Diffuse and direct PAR
             PDR = State_Met%PARDR(I,J)

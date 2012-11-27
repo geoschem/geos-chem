@@ -1394,32 +1394,56 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_COSINE_SZA( SUNCOS, SUNCOS_MID, SUNCOS_MID_5hr )
+      SUBROUTINE GET_COSINE_SZA( am_I_Root, Input_Opt,  State_Met,
+     &                           SUNCOS,    SUNCOS_MID, SUNCOS_MID_5hr,
+     &                           RC  )
 !
 ! USES:
 !
-      USE JULDAY_MOD, ONLY : JULDAY
-      USE TIME_MOD,   ONLY : GET_DAY_OF_YEAR
-      USE TIME_MOD,   ONLY : GET_DAY
-      USE TIME_MOD,   ONLY : GET_GMT
-      USE TIME_MOD,   ONLY : GET_HOUR 
-      USE TIME_MOD,   ONLY : GET_MINUTE
-      USE TIME_MOD,   ONLY : GET_MONTH
-      USE TIME_MOD,   ONLY : GET_YEAR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE JULDAY_MOD,         ONLY : JULDAY
+      USE TIME_MOD,           ONLY : GET_DAY_OF_YEAR
+      USE TIME_MOD,           ONLY : GET_DAY
+      USE TIME_MOD,           ONLY : GET_GMT
+      USE TIME_MOD,           ONLY : GET_HOUR 
+      USE TIME_MOD,           ONLY : GET_MINUTE
+      USE TIME_MOD,           ONLY : GET_MONTH
+      USE TIME_MOD,           ONLY : GET_YEAR
 !
 ! !INPUT PARAMETERS:
 !
+      ! Are we on the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root
+
+      ! Input Options object
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      ! Meteorology State object
+      TYPE(MetState), INTENT(INOUT) :: State_Met
+!
+! !OUTPUT PARAMETERS:
+!
       ! Cosine(SZA) at current time
-      REAL*8,  INTENT(OUT) :: SUNCOS(MAXIJ)
+      REAL*8,         INTENT(OUT)   :: SUNCOS(MAXIJ)
 
       ! Cosine(SZA) at midpoint of current chemistry  timestep
-      REAL*8,  INTENT(OUT) :: SUNCOS_MID(MAXIJ)
+      REAL*8,         INTENT(OUT)   :: SUNCOS_MID(MAXIJ)
 
       ! Cosine(SZA) at midpoint of the chemistry timestep 5hrs ago
-      REAL*8,  INTENT(OUT) :: SUNCOS_MID_5hr(MAXIJ)
+      REAL*8,         INTENT(OUT)   :: SUNCOS_MID_5hr(MAXIJ)
+
+      ! Success or failure?
+      INTEGER,        INTENT(OUT)   :: RC
 !
 ! !REVISION HISTORY: 
 !  07 Feb 2012 - R. Yantosca - Initial version
+!  27 Nov 2012 - R. Yantosca - Add am_I_root, Input_Opt, State_Met, RC args
+!  27 Nov 2012 - R. Yantosca - Now pass State_Met to COSSZA so that the
+!                              SUNCOS fields may be updated
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1449,7 +1473,8 @@
       JD     = JULDAY( YEAR, MONTH, DDAY )             ! Current Julian date
 
       ! Compute cosine(SZA) quantities for the current time
-      CALL COSSZA( DOY, HOUR, SUNCOS, SUNCOS_MID )
+      CALL COSSZA( DOY,         HOUR,   SUNCOS, 
+     &             SUNCOS_MID, .FALSE., State_Met )
 
       !=================================================================
       ! Get cosine (SZA) at 5 hours behind the current time (SUNCOS_5hr)
@@ -1464,7 +1489,8 @@
       HOUR5  = INT( GMT5 )
 
       ! Compute cosine(SZA) quantities for 5h ago
-      CALL COSSZA( DOY5, HOUR5, SUNCOS_5hr, SUNCOS_MID_5hr )
+      CALL COSSZA( DOY5,            HOUR5, SUNCOS_5hr, 
+     &             SUNCOS_MID_5hr, .TRUE., State_Met   )
 
       END SUBROUTINE GET_COSINE_SZA
 !EOC
@@ -1483,27 +1509,41 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE COSSZA( DOY, GMT_HOUR, SUNCOS, SUNCOS_MID )
+      SUBROUTINE COSSZA( DOY,        GMT_HOUR,   SUNCOS, 
+     &                   SUNCOS_MID, DO_5hr_AGO, State_Met )
 !
 ! !USES:
 !
-      USE GRID_MOD, ONLY : GET_YMID_R
-      USE TIME_MOD, ONLY : GET_MINUTE
-      USE TIME_MOD, ONLY : GET_LOCALTIME
-      USE TIME_MOD, ONLY : GET_TS_CHEM
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_YMID_R
+      USE TIME_MOD,           ONLY : GET_MINUTE
+      USE TIME_MOD,           ONLY : GET_LOCALTIME
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)  :: DOY                 ! Day of the year
-      INTEGER, INTENT(IN)  :: GMT_HOUR            ! Hour of day
+      INTEGER,        INTENT(IN)    :: DOY                ! Day of the year
+      INTEGER,        INTENT(IN)    :: GMT_HOUR           ! Hour of day
+      LOGICAL,        INTENT(IN)    :: DO_5hr_AGO         ! Compute 5h ago?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(INOUT) :: State_Met          ! Meteorology State
 !
 ! !OUTPUT PARAMETERS:
 !
       ! Cosine of the solar zenith angle at: 
-      REAL*8,  INTENT(OUT) :: SUNCOS    (MAXIJ)   ! the current time
-      REAL*8,  INTENT(OUT) :: SUNCOS_MID(MAXIJ)   ! midpt of chem timestep
+      REAL*8,         INTENT(OUT)   :: SUNCOS    (MAXIJ)  ! current time
+      REAL*8,         INTENT(OUT)   :: SUNCOS_MID(MAXIJ)  ! midpt of chem step
 !
 ! !REMARKS:
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%  NOTE: The SUNCOS arrays of dimension MAXIJ are now deprecated.  We  %%%
+!  %%%  are replacing them with the SUNCOS fields of the State_Met object,  %%%
+!  %%%  which are of dimensions (IIPAR,JJPAR).   During the transition we   %%%
+!  %%%  will keep the old arrays. (bmy, 11/27/12)                           %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!                                                                             .
 !  Hour angle (AHR) is a function of longitude.  AHR is zero at solar noon, 
 !  and increases by 15 deg for every hour before or after solar noon.  Hour 
 !  angle can be thought of as the time in hours since the sun last passed
@@ -1552,6 +1592,7 @@
 !                              will facilitate computing sun angles 5h ago
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_LOCALTIME(I,J,L) from time_mod.F90
+!  27 Nov 2012 - R. Yantosca - Update SUNCOS fields of the State_Met object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1624,9 +1665,9 @@
          ! 1-D grid box index
          IJLOOP             = ( (J-1) * IIPAR ) + I
 
-         !===========================================================
+         !==============================================================
          ! Compute cosine of SZA at the current GMT time
-         !===========================================================
+         !==============================================================
 
          ! Local time at box (I,J) [hours]
          TIMLOC             = GET_LOCALTIME( I, J, 1, GMT=GMT_CUR )
@@ -1638,10 +1679,10 @@
          SUNCOS(IJLOOP)     = ( S_YMID_R * S_DEC              ) 
      &                      + ( C_YMID_R * C_DEC * COS( AHR ) )
 
-         !===========================================================
+         !==============================================================
          ! Compute cosine of SZA at the midpoint of the chem timestep
          ! Required for photolysis, chemistry, emissions, drydep
-         !===========================================================
+         !==============================================================
 
          ! Local time [hours] at box (I,J) at the midpt of the chem timestep
          TIMLOC             = GET_LOCALTIME( I, J, 1, GMT=GMT_MID )
@@ -1652,6 +1693,25 @@
          ! Corresponding cosine( SZA ) at box (I,J) [unitless]
          SUNCOS_MID(IJLOOP) = ( S_YMID_R * S_DEC              )
      &                      + ( C_YMID_R * C_DEC * COS( AHR ) )
+
+         !==============================================================
+         ! Copy data into fields of the Meteorology State object
+         !==============================================================
+         IF ( DO_5hr_AGO ) THEN
+
+            ! COS(SZA) at midpt of chemistry timestep that was 5h ago
+            ! This is needed for the PARANOX ship plume model
+            State_Met%SUNCOSmid5(I,J) = SUNCOS_MID(IJLOOP) 
+
+         ELSE
+
+            ! COS(SZA) at the current time
+            State_Met%SUNCOS    (I,J) = SUNCOS    (IJLOOP) 
+                               
+            ! COS(SZA) @ the midpoint of the current chemistry timestep
+            State_Met%SUNCOSmid (I,J) = SUNCOS_MID(IJLOOP) 
+                                                           
+         ENDIF                                             
 
       ENDDO
       ENDDO

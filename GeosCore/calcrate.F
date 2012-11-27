@@ -1,5 +1,5 @@
 ! $Id: calcrate.f,v 1.6 2010/03/15 19:33:25 ccarouge Exp $
-      SUBROUTINE CALCRATE( SUNCOS, State_Met )
+      SUBROUTINE CALCRATE( State_Met )
 !
 !******************************************************************************
 !  Subroutine CALCRATE computes reaction rates before passing them to the
@@ -74,6 +74,8 @@
 !                              lead to better scalability.
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  27 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOSmid
+
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -161,7 +163,7 @@
       REAL*8  :: RATE2AIR,RATE3H2O,RIS,RST,TBEGIN,TFINISH
       REAL*8  :: PBEG,PFIN,PBEGNEW,PFINNEW,TOFDAYB,TOFDAYE,HOURANGB
       REAL*8  :: HOURANGE,SINFUNCB,SINFUNCE,XAREA,XRADIUS,XSQM,RRATE2
-      REAL*8  :: XSTKCF,GMU,SUNCOS(MAXIJ),DUMMY(KBLOOP),XDENA,XSTK
+      REAL*8  :: XSTKCF,GMU,DUMMY(KBLOOP),XDENA,XSTK
       REAL*8  :: TK,     CONSEXP, VPRESH2O
       ! New variables for new reations (jmao, 4/20/09)
       REAL*8  :: KHI1,KLO1,XYRAT1,BLOG1,FEXP1,KHI2,KLO2,XYRAT2,BLOG2
@@ -316,7 +318,8 @@
             IX                = IXSAVE(JLOOP)
             IY                = IYSAVE(JLOOP)
             IJWINDOW          = (IY-1)*IIPAR + IX
-            GMU               = SUNCOS(IJWINDOW)
+            !GMU               = SUNCOS(IJWINDOW)
+            GMU               = State_Met%SUNCOSmid(IX,IY)
             IF(GMU .GT. 0.D0) KSUN = 1
 
             !==========================================================
@@ -1172,7 +1175,8 @@ c new OH+CO rate from JPL2006.
 
                ! Get cosine( SZA ) using 1-D array index
                IJWINDOW         = (IY-1)*IIPAR + IX
-               GMU              = SUNCOS(IJWINDOW)
+               !GMU              = SUNCOS(IJWINDOW)
+               GMU              = State_Met%SUNCOSmid(IX,IY)
 
                ! For daylight boxes...
                IF(GMU.GT. 0.D0) THEN

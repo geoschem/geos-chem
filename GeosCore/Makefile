@@ -107,6 +107,7 @@
 #  12 Apr 2012 - R. Yantosca - Remove reference to findmon.F
 #  19 Apr 2012 - R. Yantosca - Remove reference to rd_prof.F
 #  30 Oct 2012 - R. Yantosca - Remove reference to rdsoil.F
+#  27 Nov 2012 - R. Yantosca - Remvoe reference to getifsun.F
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -659,8 +660,6 @@ get_global_ch4.o            : get_global_ch4.F                               \
 
 get_ndep_mod.o              : get_ndep_mod.F          tracerid_mod.o         \
 			      diag_mod.o 
-
-getifsun.o                  : getifsun.F              comode_mod.o
 
 gfed2_biomass_mod.o         : gfed2_biomass_mod.F                            \
                               future_emissions_mod.o  logical_mod.o          \

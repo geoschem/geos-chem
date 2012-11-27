@@ -130,7 +130,6 @@ CONTAINS
 !
     USE CMN_SIZE_MOD
     USE DAO_MOD,            ONLY : CONVERT_UNITS
-    USE DAO_MOD,            ONLY : SUNCOS
     USE ERROR_MOD,          ONLY : DEBUG_MSG
     USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
     USE GIGC_ErrCode_Mod
@@ -184,6 +183,7 @@ CONTAINS
 !  09 Nov 2012 - R. Yantosca - Now pass the Input Options object for GIGC
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  27 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -202,9 +202,9 @@ CONTAINS
     ! Scalars
     LOGICAL           :: prtDebug
     CHARACTER(LEN=16) :: STAMP
-    INTEGER           :: I,    IJWINDOW, J,   L,   N,      NN
-    REAL*8            :: dt,   P,        k,   M0,  RC,     M
-    REAL*8            :: TK,   RDLOSS,   T1L, mOH, BryDay, BryNight
+    INTEGER           :: I,    J,      L,   N,   NN
+    REAL*8            :: dt,   P,      k,   M0,  RC,     M
+    REAL*8            :: TK,   RDLOSS, T1L, mOH, BryDay, BryNight
     LOGICAL           :: LLINOZ
     LOGICAL           :: LPRT
     INTEGER           :: N_TRACERS
@@ -435,7 +435,7 @@ CONTAINS
 
        !$OMP PARALLEL DO &
        !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( NN, BEFORE, I, J, L, BryDay, BryNight, IJWINDOW )
+       !$OMP PRIVATE( NN, BEFORE, I, J, L, BryDay, BryNight )
        DO NN=1,6
 
           IF ( GC_Bry_TrID(NN) > 0 ) THEN
@@ -455,12 +455,7 @@ CONTAINS
                   
                 IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) CYCLE
                    
-                ! Set the Bry boundary conditions. Simulated
-                ! output from the GEOS5 CCM stratosphere.
-                ! (jpp, 6/27/2011)
-                IJWINDOW   = (J-1)*IIPAR + I
-                   
-                IF (SUNCOS(IJWINDOW) > 0.d0) THEN
+                IF ( State_Met%SUNCOS(I,J) > 0.d0 ) THEN
                    ! daytime [ppt] -> [kg]
                    BryDay = bry_day(I,J,L,NN)     &
                           * 1.d-12                & ! convert from [ppt]

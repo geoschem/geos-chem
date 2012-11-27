@@ -585,8 +585,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_BRO( N_TRACERS, TCVV, SUNCOS, STT, unit_flag,
-     &                    State_Met  )
+      SUBROUTINE SET_BRO( N_TRACERS, TCVV, STT, unit_flag, State_Met )
 ! 
 ! !USES:
 !
@@ -603,7 +602,6 @@
       LOGICAL,        INTENT(IN)    :: unit_flag
       INTEGER,        INTENT(IN)    :: N_TRACERS 
       REAL*8,         INTENT(IN)    :: TCVV(N_TRACERS)  ! [Air MW / Tracer MW]
-      REAL*8,         INTENT(IN)    :: SUNCOS(MAXIJ) 
       TYPE(MetState), INTENT(IN)    :: State_Met        ! Met State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -622,6 +620,7 @@
 !  28 Aug 2012 - M. Payer    - Add error check for BrO to avoid OOB error
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  27 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -693,7 +692,7 @@
             ! -----------------------------------------
             IJLOOP = ( (J-1) * IIPAR ) + I
 
-            IF ( SUNCOS(IJLOOP) > 0.d0 ) THEN
+            IF ( State_Met%SUNCOS(I,J) > 0.d0 ) THEN
                BrO_conc = 1.0d-12 ! 1pptv if daytime
             ELSE
                BrO_conc = 0.d0    ! 0 otherwise
