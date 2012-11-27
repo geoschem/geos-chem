@@ -557,7 +557,7 @@
       CALL GASCONC(  am_I_Root,
      &               .FALSE.,                N_TRACERS, 
      &               STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),  
-     &               FRCLND,                 .FALSE. )
+     &               .FALSE.,                State_Met             )
 #else
       !-----------------------------------------------------------------
       !              %%%%% TRADITIONAL GEOS-Chem %%%%%
