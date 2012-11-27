@@ -441,17 +441,29 @@
       END FUNCTION ITS_A_MERCURY_SIM
 !EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_a_pops_sim
+!
+! !DESCRIPTION: Function ITS\_A\_POPS\_SIM returns TRUE if we are doing a
+!  GEOS-CHEM offline POPs simulation.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION ITS_A_POPS_SIM() RESULT( VALUE )
+! 
+! !REVISION HISTORY: 
+!  20 Sep 2010 - N.E. Selin  - Initial version
+!  26 Nov 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-!******************************************************************************
-!  Function ITS_A_POPS_SIM returns TRUE if we are doing a GEOS-CHEM
-!  offline POPS simulation. (eck, 9/20/10)
+! !LOCAL VARIABLES:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Local variables
       LOGICAL :: VALUE
       
       !=================================================================
@@ -459,9 +471,8 @@
       !=================================================================
       VALUE = ( SIM_TYPE == 14 )
 
-      ! Return to calling program
       END FUNCTION ITS_A_POPS_SIM
-
+!EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------

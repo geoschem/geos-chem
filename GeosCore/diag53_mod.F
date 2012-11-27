@@ -3,12 +3,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: diag53_mod.f
+! !MODULE: diag53_mod
 !
-! !DESCRIPTION: !  Module DIAG53_MOD contains arrays and routines 
-!  for archiving the ND53
-!  diagnostic --POPS emissions, mass, and production. 
-!  ( eck 9/20/10 based on DIAG03_MOD, bmy, 1/21/05, 9/5/06) 
+! !DESCRIPTION: Module DIAG53\_MOD contains arrays and routines for archiving
+!  the ND53 diagnostic -- POPS emissions, mass, and production. (eck 9/20/10)
 !\\
 !\\
 ! !INTERFACE: 
@@ -18,99 +16,79 @@
 ! !USES:
 !
       IMPLICIT NONE
-! Make everything Public ...
-      PUBLIC
+      PRIVATE
 !
-! !PUBLIC TYPES:
+! !DEFINED PARAMETERS:
 !
-
+      INTEGER, PUBLIC, PARAMETER   :: PD53 = 11  ! # of AD53 diags
+!
 ! !PUBLIC MEMBER FUNCTIONS:
 !
+      PUBLIC :: ZERO_DIAG53
+      PUBLIC :: WRITE_DIAG53
+      PUBLIC :: INIT_DIAG53
+      PUBLIC :: CLEANUP_DIAG53
 !
 ! !PUBLIC DATA MEMBERS:
 !
-! !REVISION HISTORY:
-!  20 September 2010 N.E. Selin - Initial Version
+      ! Scalars
+      INTEGER, PUBLIC              :: ND53  ! ND53 on/off flag
+      INTEGER, PUBLIC              :: LD53  ! # of levels
+
+      ! Arrays
+      REAL*4,  PUBLIC, ALLOCATABLE :: AD53(:,:,:)
+      REAL*4,  PUBLIC, ALLOCATABLE :: AD53_PG_OC_NEG(:,:,:)
+      REAL*4,  PUBLIC, ALLOCATABLE :: AD53_PG_OC_POS(:,:,:)
+      REAL*4,  PUBLIC, ALLOCATABLE :: AD53_PG_BC_NEG(:,:,:)
+      REAL*4,  PUBLIC, ALLOCATABLE :: AD53_PG_BC_POS(:,:,:)
+      REAL*4,  PUBLIC, ALLOCATABLE :: AD53_POPG_OH(:,:,:)
+      REAL*4,  PUBLIC, ALLOCATABLE :: AD53_POPP_OC_O3(:,:,:)
+      REAL*4,  PUBLIC, ALLOCATABLE :: AD53_POPP_BC_O3(:,:,:)
+
+!      REAL*4,  PUBLIC, ALLOCATABLE :: AD53_POPG_NO3(:,:,:)
+!      REAL*4,  PUBLIC, ALLOCATABLE :: AD53_POPG_OX(:,:,:)
 !
 ! !REMARKS:
-!EOP
-
-
-!  
-!  Module Variables:
-!  ============================================================================
-!  (1 ) AD53         (REAL*4) : Array for POPS emissions
-!  (2 ) AD53_PG_OC   (REAL*4) : Array for archiving POP in OC particles 
-!  (3 ) AD53_PG_BC   (REAL*4) : Array for archiving POP on BC particles 
-!  (4 ) AD53_PG_G    (REAL*4) : Array for archiving gas phase POP
-!  (4 ) AD53_POPG_OH (REAL*4) : Array for POPG oxidized by OH
-
-!
-!  Module Routines:
-!  ============================================================================
-!  (1 ) ZERO_DIAG53           : Sets all module arrays to zero
-!  (2 ) WRITE_DIAG53          : Writes data in module arrays to bpch file
-!  (3 ) INIT_DIAG53           : Allocates all module arrays
-!  (4 ) CLEANUP_DIAG53        : Deallocates all module arrays
-!
-!  GEOS-CHEM modules referenced by diag53_mod.f
-!  ============================================================================
-!  (1 ) bpch2_mod.f           : Module w/ routines for binary pch file I/O
-!  (2 ) error_mod.f           : Module w/ NaN and other error check routines
-!  (3 ) file_mod.f            : Module w/ file unit numbers and error checks
-!  (4 ) grid_mod.f            : Module w/ horizontal grid information
-!  (5 ) time_mod.f            : Module w/ routines to compute date & time
-!
 !  Nomenclature: 
 !  ============================================================================
 !  (1 ) POPG                  : Gas phase POP
 !  (2 ) POPP                  : PARTICULATE PHASE POP
-
-
-      !=================================================================
-      ! MODULE VARIABLES 
-      !=================================================================
-
-      ! Scalars
-      INTEGER              :: ND53, LD53
-      INTEGER, PARAMETER   :: PD53 = 11  ! Number of diagnostics for AD53
-
-      ! Arrays
-      REAL*4,  ALLOCATABLE :: AD53(:,:,:)
-      REAL*4,  ALLOCATABLE :: AD53_PG_OC_NEG(:,:,:)
-      REAL*4,  ALLOCATABLE :: AD53_PG_OC_POS(:,:,:)
-      REAL*4,  ALLOCATABLE :: AD53_PG_BC_NEG(:,:,:)
-      REAL*4,  ALLOCATABLE :: AD53_PG_BC_POS(:,:,:)
-      REAL*4,  ALLOCATABLE :: AD53_POPG_OH(:,:,:)
-      REAL*4,  ALLOCATABLE :: AD53_POPP_OC_O3(:,:,:)
-      REAL*4,  ALLOCATABLE :: AD53_POPP_BC_O3(:,:,:)
-
-!      REAL*4,  ALLOCATABLE :: AD53_POPG_NO3(:,:,:)
-!      REAL*4,  ALLOCATABLE :: AD53_POPG_OX(:,:,:)
- 
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement
-      !=================================================================
-      CONTAINS
-     
+!
+! !REVISION HISTORY:
+!  20 Sep 2010 - N.E. Selin  - Initial Version based on DIAG03_MOD
+!  27 Nov 2012 - M. Payer    - Added ProTeX headers
+!EOP
 !------------------------------------------------------------------------------
-
+!BOC
+      CONTAINS
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: zero_diag53
+!
+! !DESCRIPTION: Subroutine ZERO\_DIAG53 zeroes all module arrays. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE ZERO_DIAG53
 !
-!******************************************************************************
-!  Subroutine ZERO_DIAG53 zeroes the ND53 diagnostic arrays. 
-!  (bmy, 1/21/05, 4/6/06) (now diag 53, eck 9/20/10)
+! !USES:
 !
-!  NOTES:
-!  (1 ) 
-!******************************************************************************
+      USE CMN_SIZE_MOD  ! Size parameters
+! 
+! !REVISION HISTORY: 
+!  20 Sep 2010 - N.E. Selin  - Initial Version
+!  27 Nov 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-  
-
-#     include "CMN_SIZE"  ! Size parameters
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       INTEGER :: I, J, L, N
 
       !=================================================================
@@ -127,39 +105,51 @@
       AD53_PG_BC_NEG    = 0D0
       AD53_PG_BC_POS    = 0D0
       AD53_POPG_OH      = 0D0
-  
-      ! Return to calling program
+
       END SUBROUTINE ZERO_DIAG53
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: write_diag53
+!
+! !DESCRIPTION: Subroutine WRITE\_DIAG53 writes the ND53 diagnostic arrays to 
+!  the binary punch file at the proper time.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE WRITE_DIAG53
 !
-!******************************************************************************
-!  Subroutine WRITE_DIAG53 writes the ND53 diagnostic arrays to the binary
-!  punch file at the proper time. (bmy, 1/21/05, 2/24/06)
+! !USES:
 !
-!   # : Field    : Description                                   : Units    : Scale factor
-!  -------------------------------------------------------------------------
-!  (1 ) PG-SRCE  : POP emissions                                 : kg       : 1
-!  (2 ) PG-PP-$  : Gas phase POP reacted with OH or partitioned  : kg       : 1
-!   
-!
-!  NOTES:
-!******************************************************************************
-!
-      ! References to F90 modules
       USE BPCH2_MOD,    ONLY : BPCH2, GET_MODELNAME, GET_HALFPOLAR
       USE FILE_MOD,     ONLY : IU_BPCH
       USE GRID_MOD,     ONLY : GET_XOFFSET, GET_YOFFSET
       USE TIME_MOD,     ONLY : GET_CT_EMIS, GET_DIAGb,  GET_DIAGe
       USE TIME_MOD,     ONLY : GET_CT_CHEM ! CDH for sea salt loss rate
 
-
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! TINDEX
-
-      ! Local variables
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_DIAG_MOD       ! TINDEX
+!
+! !REMARKS:
+!   # : Field    : Description                     : Units    : Scale factor
+!  -------------------------------------------------------------------------
+!  (1 ) PG-SRCE  : POP emissions                   : kg       : 1
+!  (2 ) PG-PP-$  : Gas phase POP reacted with OH   : kg       : 1
+!                   or partitioned
+! 
+! !REVISION HISTORY:
+!  20 Sep 2010 - N.E. Selin  - Initial Version
+!  27 Nov 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER               :: CENTER180, HALFPOLAR,   IFIRST
       INTEGER               :: JFIRST,    LFIRST,      LMAX
       INTEGER               :: M,         N,           NN
@@ -308,25 +298,37 @@
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LMAX) )
       ENDDO
 
-      ! Return to calling program
       END SUBROUTINE WRITE_DIAG53
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_diag53
+!
+! !DESCRIPTION: Subroutine INIT\_DIAG53 allocates all module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_DIAG53
 !
-!******************************************************************************
-!  Subroutine INIT_DIAG53 allocates all module arrays (bmy, 1/21/05, 4/6/06)
+! !USES:
 !
-!******************************************************************************
-!
-      ! References to F90 modules
       USE ERROR_MOD,    ONLY : ALLOC_ERR
-
    
-#     include "CMN_SIZE" 
-
-      ! Local variables
+      USE CMN_SIZE_MOD
+! 
+! !REVISION HISTORY:
+!  20 Sep 2010 - N.E. Selin  - Initial Version
+!  27 Nov 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER :: AS
       
       !=================================================================
@@ -367,24 +369,32 @@
 
       ALLOCATE( AD53_POPP_BC_O3( IIPAR, JJPAR, LD53 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD53_POPP_BC_O3' )
-
     
       ! Zero arrays
       CALL ZERO_DIAG53
 
-      ! Return to calling program
       END SUBROUTINE INIT_DIAG53
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_diag53
+!
+! !DESCRIPTION: Subroutine CLEANUP\_DIAG53 deallocates all module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CLEANUP_DIAG53
-!
-!******************************************************************************
-!  Subroutine CLEANUP_DIAG53 deallocates all module arrays 
-!  (bmy, 1/21/05, 4/6/06)
-!
-!******************************************************************************
-!
+! 
+! !REVISION HISTORY:
+!  20 Sep 2010 - N.E. Selin  - Initial Version
+!  27 Nov 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! CLEANUP_DIAG53 begins here!
       !=================================================================
@@ -397,10 +407,6 @@
       IF ( ALLOCATED( AD53_POPP_OC_O3 ) ) DEALLOCATE( AD53_POPP_OC_O3 )
       IF ( ALLOCATED( AD53_POPP_BC_O3 ) ) DEALLOCATE( AD53_POPP_BC_O3 )
 
-      ! Return to calling program
       END SUBROUTINE CLEANUP_DIAG53
-
-!------------------------------------------------------------------------------
-
-      ! End of module
+!EOC
       END MODULE DIAG53_MOD

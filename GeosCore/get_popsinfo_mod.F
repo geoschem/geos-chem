@@ -3,10 +3,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: get_popsinfo_mod.f
+! !MODULE: get_popsinfo_mod
 !
-! !DESCRIPTION: This module contains variables and routines for the 
-!  GEOS-Chem peristent organic pollutants (POPs) simulation. 
+! !DESCRIPTION: Module GET\_POPSINFO\_MOD contains variables and routines for
+!  the GEOS-Chem peristent organic pollutants (POPs) simulation. 
 !\\
 !\\
 ! !INTERFACE: 
@@ -16,12 +16,8 @@
 ! !USES:
 !
       IMPLICIT NONE
-
-! Make everything Private ...
       PRIVATE
 !
-! !PUBLIC TYPES:
-
 ! !PUBLIC MEMBER FUNCTIONS:
 !
       PUBLIC :: GET_POP_TYPE
@@ -36,52 +32,43 @@
       PUBLIC :: GET_POP_K_POPG_OH
       PUBLIC :: GET_POP_KOA
       PUBLIC :: INIT_POP_PARAMS
-
 !
-! !PUBLIC DATA MEMBERS:
-!
-
 ! !REVISION HISTORY:
-!  30 September - Initial version - C. Pike Thackray
-!
-! !REMARKS:
-! Under construction
-!
+!  30 Sep 2012 - C. Pike Thackray - Initial version
 !EOP
-
+!------------------------------------------------------------------------------
+!BOC
       CONTAINS
-
-!******************************************************************************
+!EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE:  GET_POP_TYPE
+! !IROUTINE:  get_pop_type
 !
-! !DESCRIPTION: Function to retrieve type of POP
+! !DESCRIPTION: Function GET\_POP\_TYPE is used to retrieve type of POP.
 !\\
 !\\
 ! !INTERFACE:
+!
       FUNCTION GET_POP_TYPE( IN_TYPE )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
+      CHARACTER(LEN=3), INTENT(IN) :: IN_TYPE
 !
-! !INPUT/OUTPUT PARAMETERS: 
-!
-!
-! !OUTPUT PARAMETERS:
-!!
+! !REVISION HISTORY:
+!  30 Sep 2012 - C. Pike Thackray - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-
-      ! Local variables
-      CHARACTER(LEN=3)               :: GET_POP_TYPE
-      CHARACTER(LEN=3), SAVE         :: POP_TYPE
-      CHARACTER(LEN=3), INTENT(IN)   :: IN_TYPE
-      LOGICAL, SAVE                  :: IS_SET
+!
+! !LOCAL VARIABLES:
+!
+      CHARACTER(LEN=3)             :: GET_POP_TYPE
+      CHARACTER(LEN=3), SAVE       :: POP_TYPE
+      LOGICAL, SAVE                :: IS_SET
 
       !=================================================================
       ! GET_POP_TYPE begins here
@@ -99,37 +86,35 @@
 
       END FUNCTION GET_POP_TYPE
 !EOC
-
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE:  GET_POP_XMW
+! !IROUTINE:  get_pop_xmw
 !
-! !DESCRIPTION: Function to retrieve POP molecular weight in kg/mol
+! !DESCRIPTION: Function GET\_POP\_XMW returns POP molecular weight in kg/mol.
 !\\
 !\\
 ! !INTERFACE:
+!
       FUNCTION GET_POP_XMW( IN_XMW )
 !
 ! !INPUT PARAMETERS: 
 !
+      REAL*8, INTENT(IN) :: IN_XMW
 !
-! !INPUT/OUTPUT PARAMETERS: 
-!
-!
-! !OUTPUT PARAMETERS:
-!!
+! !REVISION HISTORY:
+!  30 Sep 2012 - C. Pike Thackray - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-
-      ! Local variables
-      REAL*8                         :: GET_POP_XMW
-      REAL*8, SAVE                   :: POP_XMW
-      REAL*8, INTENT(IN)             :: IN_XMW
-      LOGICAL, SAVE                  :: IS_SET
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8             :: GET_POP_XMW
+      REAL*8, SAVE       :: POP_XMW
+      LOGICAL, SAVE      :: IS_SET
 
       !=================================================================
       ! GET_POP_XMW begins here
@@ -147,40 +132,36 @@
 
       END FUNCTION GET_POP_XMW
 !EOC
-
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE:  GET_POP_KOA
+! !IROUTINE:  get_pop_koa
 !
-! !DESCRIPTION: Function to retrieve the POP octanol-water
-!     partition coefficient [unitless]
+! !DESCRIPTION: Function GET\_POP\_KOA returns the POP octanol-water
+!  partition coefficient [unitless].
 !\\
 !\\
 ! !INTERFACE:
-
+!
       FUNCTION GET_POP_KOA( IN_KOA )
 !
 ! !INPUT PARAMETERS: 
 !
+      REAL*8, INTENT(IN) :: IN_KOA
 !
-! !INPUT/OUTPUT PARAMETERS: 
-!
-!
-! !OUTPUT PARAMETERS:
-!!
+! !REVISION HISTORY:
+!  30 Sep 2012 - C. Pike Thackray - Initial version
 !EOP
 !------------------------------------------------------------------------------
-! 
 !BOC
-
-      ! Local variables
-      REAL*8                         :: GET_POP_KOA
-      REAL*8, SAVE                   :: POP_KOA
-      REAL*8, INTENT(IN)             :: IN_KOA
-      LOGICAL, SAVE                  :: IS_SET
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8             :: GET_POP_KOA
+      REAL*8, SAVE       :: POP_KOA
+      LOGICAL, SAVE      :: IS_SET
 
       !=================================================================
       ! GET_POP_KOA begins here
@@ -198,39 +179,36 @@
 
       END FUNCTION GET_POP_KOA
 !EOC
-
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE:  GET_POP_KBC
+! !IROUTINE:  get_pop_kbc
 !
-! !DESCRIPTION: Function to retrieve the POP black carbon-air
-!     partition coefficient [unitless]
+! !DESCRIPTION: Function GET\_POP\_KBC returns the POP black carbon-air
+!  partition coefficient [unitless].
 !\\
 !\\
 ! !INTERFACE:
+!
       FUNCTION GET_POP_KBC( IN_KBC )
-
+!
 ! !INPUT PARAMETERS: 
 !
+      REAL*8, INTENT(IN) :: IN_KBC
 !
-! !INPUT/OUTPUT PARAMETERS: 
-!
-!
-! !OUTPUT PARAMETERS:
-!!
+! !REVISION HISTORY:
+!  30 Sep 2012 - C. Pike Thackray - Initial version
 !EOP
 !------------------------------------------------------------------------------
-! 
 !BOC
-
-      ! Local variables
-      REAL*8                         :: GET_POP_KBC
-      REAL*8, SAVE                   :: POP_KBC
-      REAL*8, INTENT(IN)             :: IN_KBC
-      LOGICAL, SAVE                  :: IS_SET
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8             :: GET_POP_KBC
+      REAL*8, SAVE       :: POP_KBC
+      LOGICAL, SAVE      :: IS_SET
 
       !=================================================================
       ! GET_POP_KBC begins here
@@ -247,40 +225,37 @@
       RETURN
 
       END FUNCTION GET_POP_KBC
-!
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE:  GET_POP_K_POPG_OH
+! !IROUTINE:  get_pop_k_popg_oh
 !
-! !DESCRIPTION: Function to retrieve the POP reaction rate constant for
-!      reaction of gas phase POP with hydroxyl radical [cm3/molecule/s]
+! !DESCRIPTION: Function GET\_POP\_K\_POPG\_OH returns the POP reaction rate
+!  constant for reaction of gas phase POP with hydroxyl radical [cm3/molecule/s]
 !\\
 !\\
 ! !INTERFACE:
-
+!
       FUNCTION GET_POP_K_POPG_OH( IN_K_POPG_OH )
-
+!
 ! !INPUT PARAMETERS: 
 !
+      REAL*8, INTENT(IN) :: IN_K_POPG_OH
 !
-! !INPUT/OUTPUT PARAMETERS: 
-!
-!
-! !OUTPUT PARAMETERS:
-!!
+! !REVISION HISTORY:
+!  30 Sep 2012 - C. Pike Thackray - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-
-      ! Local variables
-      REAL*8                         :: GET_POP_K_POPG_OH
-      REAL*8, SAVE                   :: POP_K_POPG_OH
-      REAL*8, INTENT(IN)             :: IN_K_POPG_OH
-      LOGICAL, SAVE                  :: IS_SET
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8             :: GET_POP_K_POPG_OH
+      REAL*8,  SAVE      :: POP_K_POPG_OH
+      LOGICAL, SAVE      :: IS_SET
 
       !=================================================================
       ! GET_POP_K_POPG_OH begins here
@@ -297,40 +272,37 @@
       RETURN
 
       END FUNCTION GET_POP_K_POPG_OH
-
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE:  GET_POP_K_POPP_O3A
+! !IROUTINE:  get_pop_k_popp_o3a
 !
-! !DESCRIPTION: Function to retrieve the POP reaction rate constant for
-!      reaction of particle phase POP with ozone [s^-1]
+! !DESCRIPTION: Function GET\_POP\_K\_POPP\_O3A returns the POP reaction rate
+!  constant for reaction of particle phase POP with ozone [s^-1].
 !\\
 !\\
 ! !INTERFACE:
-
+!
       FUNCTION GET_POP_K_POPP_O3A( IN_K_POPP_O3A )
-
+!
 ! !INPUT PARAMETERS: 
 !
+      REAL*8, INTENT(IN) :: IN_K_POPP_O3A
 !
-! !INPUT/OUTPUT PARAMETERS: 
-!
-!
-! !OUTPUT PARAMETERS:
-!!
+! !REVISION HISTORY:
+!  30 Sep 2012 - C. Pike Thackray - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-
-      ! Local variables
-      REAL*8                         :: GET_POP_K_POPP_O3A
-      REAL*8, SAVE                   :: POP_K_POPP_O3A
-      REAL*8, INTENT(IN)             :: IN_K_POPP_O3A
-      LOGICAL, SAVE                  :: IS_SET
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8             :: GET_POP_K_POPP_O3A
+      REAL*8, SAVE       :: POP_K_POPP_O3A
+      LOGICAL, SAVE      :: IS_SET
 
       !=================================================================
       ! GET_POP_K_POPP_O3A begins here
@@ -347,40 +319,37 @@
       RETURN
 
       END FUNCTION GET_POP_K_POPP_O3A
-
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE:  GET_POP_K_POPP_O3B
+! !IROUTINE:  get_pop_k_popp_o3b
 !
-! !DESCRIPTION: Function to retrieve the POP reaction rate constant for
-!      reaction of particle phase POP with ozone [molec/cm3]
+! !DESCRIPTION: Function GET\_POP\_K\_POPP\_O3B returns the POP reaction rate
+!  constant for reaction of particle phase POP with ozone [molec/cm3].
 !\\
 !\\
 ! !INTERFACE:
-
+!
       FUNCTION GET_POP_K_POPP_O3B( IN_K_POPP_O3B )
-
+!
 ! !INPUT PARAMETERS: 
 !
+      REAL*8, INTENT(IN) :: IN_K_POPP_O3B
 !
-! !INPUT/OUTPUT PARAMETERS: 
-!
-!
-! !OUTPUT PARAMETERS:
-!!
+! !REVISION HISTORY:
+!  30 Sep 2012 - C. Pike Thackray - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-
-      ! Local variables
-      REAL*8                         :: GET_POP_K_POPP_O3B
-      REAL*8, SAVE                   :: POP_K_POPP_O3B
-      REAL*8, INTENT(IN)             :: IN_K_POPP_O3B
-      LOGICAL, SAVE                  :: IS_SET
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8             :: GET_POP_K_POPP_O3B
+      REAL*8, SAVE       :: POP_K_POPP_O3B
+      LOGICAL, SAVE      :: IS_SET
 
       !=================================================================
       ! GET_POP_K_POPP_O3B begins here
@@ -397,38 +366,37 @@
       RETURN
 
       END FUNCTION GET_POP_K_POPP_O3B
-
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE:  GET_POP_HSTAR
+! !IROUTINE:  get_pop_hstar
 !
-! !DESCRIPTION: Function to retrieve the POP Henry's Law constant in atm/M/K
+! !DESCRIPTION: Function GET\_POP\_HSTAR returns the POP Henry's Law constant in
+!  atm/M/K.
 !\\
 !\\
 ! !INTERFACE:
+!
       FUNCTION GET_POP_HSTAR( IN_HSTAR )
-
+!
 ! !INPUT PARAMETERS: 
 !
+      REAL*8, INTENT(IN) :: IN_HSTAR
 !
-! !INPUT/OUTPUT PARAMETERS: 
-!
-!
-! !OUTPUT PARAMETERS:
-!!
+! !REVISION HISTORY:
+!  30 Sep 2012 - C. Pike Thackray - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-
-      ! Local variables
-      REAL*8                         :: GET_POP_HSTAR
-      REAL*8, SAVE                   :: POP_HSTAR
-      REAL*8, INTENT(IN)             :: IN_HSTAR
-      LOGICAL, SAVE                  :: IS_SET
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8             :: GET_POP_HSTAR
+      REAL*8, SAVE       :: POP_HSTAR
+      LOGICAL, SAVE      :: IS_SET
 
       !=================================================================
       ! GET_POP_HSTAR begins here
@@ -452,32 +420,31 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE:  GET_POP_DEL_H
+! !IROUTINE:  get_pop_del_H
 !
-! !DESCRIPTION: Function to retrieve the enthalpy of air-water exchange (K)
+! !DESCRIPTION: Function GET_POP_DEL_H returns the enthalpy of air-water
+!  exchange (K).
 !\\
 !\\
 ! !INTERFACE:
-
+!
       FUNCTION GET_POP_DEL_H( IN_DEL_H )
-
+!
 ! !INPUT PARAMETERS: 
 !
+      REAL*8, INTENT(IN) :: IN_DEL_H
 !
-! !INPUT/OUTPUT PARAMETERS: 
-!
-!
-! !OUTPUT PARAMETERS:
-!!
+! !REVISION HISTORY:
+!  30 Sep 2012 - C. Pike Thackray - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-
-      ! Local variables
-      REAL*8                         :: GET_POP_DEL_H
-      REAL*8, SAVE                   :: POP_DEL_H
-      REAL*8, INTENT(IN)             :: IN_DEL_H
-      LOGICAL, SAVE                  :: IS_SET
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8             :: GET_POP_DEL_H
+      REAL*8, SAVE       :: POP_DEL_H
+      LOGICAL, SAVE      :: IS_SET
 
       !=================================================================
       ! GET_POP_DEL_H begins here
@@ -494,40 +461,37 @@
       RETURN
 
       END FUNCTION GET_POP_DEL_H
-
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE:  GET_POP_DEL_Hw
+! !IROUTINE:  get_pop_del_Hw
 !
-! !DESCRIPTION: Function to retrieve the enthalpy of phase transfer from gas phase
-! to particle phase
+! !DESCRIPTION: Function GET\_POP\_DEL\_Hw returns the enthalpy of phase
+!  transfer from gas phaseto particle phase.
 !\\
 !\\
 ! !INTERFACE:
-
+!
       FUNCTION GET_POP_DEL_Hw( IN_DEL_Hw )
-
+!
 ! !INPUT PARAMETERS: 
 !
+      REAL*8, INTENT(IN) :: IN_DEL_Hw
 !
-! !INPUT/OUTPUT PARAMETERS: 
-!
-!
-! !OUTPUT PARAMETERS:
-!!
+! !REVISION HISTORY:
+!  30 Sep 2012 - C. Pike Thackray - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-
-      ! Local variables
-      REAL*8                         :: GET_POP_DEL_Hw
-      REAL*8, SAVE                   :: POP_DEL_Hw
-      REAL*8, INTENT(IN)             :: IN_DEL_Hw
-      LOGICAL, SAVE                  :: IS_SET
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8             :: GET_POP_DEL_Hw
+      REAL*8, SAVE       :: POP_DEL_Hw
+      LOGICAL, SAVE      :: IS_SET
 
       !=================================================================
       ! GET_POP_DEL_Hw begins here
@@ -544,90 +508,84 @@
       RETURN
 
       END FUNCTION GET_POP_DEL_Hw
-
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE:  INIT_POP_PARAMS
+! !IROUTINE:  init_pop_params
 !
-! !DESCRIPTION: Routine to initalize POP parameters
+! !DESCRIPTION: Subroutine INIT\_POP\_PARAMS initalizes POP parameters.
 !\\
 !\\
 ! !INTERFACE:
-
-      SUBROUTINE INIT_POP_PARAMS(POP_XMW, POP_KOA, POP_KBC, 
-     &                         POP_K_POPG_OH,
-     &                         POP_K_POPP_O3A, POP_K_POPP_O3B, 
-     &                         POP_HSTAR, POP_DEL_H, POP_DEL_Hw )
-
-! !INPUT PARAMETERS: 
 !
+      SUBROUTINE INIT_POP_PARAMS( POP_XMW,        POP_KOA, 
+     &                            POP_KBC,        POP_K_POPG_OH,
+     &                            POP_K_POPP_O3A, POP_K_POPP_O3B, 
+     &                            POP_HSTAR,      POP_DEL_H,
+     &                            POP_DEL_Hw      )
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
+      REAL*8 :: POP_XMW,        POP_KOA
+      REAL*8 :: POP_KBC,        POP_K_POPG_OH
+      REAL*8 :: POP_K_POPP_O3A, POP_K_POPP_O3B
+      REAL*8 :: POP_HSTAR,      POP_DEL_H
+      REAL*8 :: POP_DEL_Hw
 !
-! !OUTPUT PARAMETERS:
-!!
+! !REVISION HISTORY:
+!  30 Sep 2012 - C. Pike Thackray - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-
-      ! Local variables
-      REAL*8                :: POP_XMW, POP_KOA, POP_KBC, POP_K_POPG_OH
-      REAL*8                :: POP_K_POPP_O3A, POP_K_POPP_O3B
-      REAL*8                :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
-
       !=================================================================
       ! INIT_POP_PARAMS begins here
       !=================================================================
 
-      POP_XMW = GET_POP_XMW( POP_XMW )
-      POP_KOA = GET_POP_KOA( POP_KOA )
-      POP_KBC = GET_POP_KBC( POP_KBC )
-      POP_K_POPG_OH = GET_POP_K_POPG_OH( POP_K_POPG_OH )
+      POP_XMW        = GET_POP_XMW( POP_XMW )
+      POP_KOA        = GET_POP_KOA( POP_KOA )
+      POP_KBC        = GET_POP_KBC( POP_KBC )
+      POP_K_POPG_OH  = GET_POP_K_POPG_OH( POP_K_POPG_OH )
       POP_K_POPP_O3A = GET_POP_K_POPP_O3A( POP_K_POPP_O3A )
       POP_K_POPP_O3B = GET_POP_K_POPP_O3B( POP_K_POPP_O3B )
-      POP_HSTAR = GET_POP_HSTAR( POP_HSTAR )
-      POP_DEL_H = GET_POP_DEL_H( POP_DEL_H )
-      POP_DEL_Hw = GET_POP_DEL_Hw( POP_DEL_Hw )
+      POP_HSTAR      = GET_POP_HSTAR( POP_HSTAR )
+      POP_DEL_H      = GET_POP_DEL_H( POP_DEL_H )
+      POP_DEL_Hw     = GET_POP_DEL_Hw( POP_DEL_Hw )
 
       END SUBROUTINE INIT_POP_PARAMS
-
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE:  GET_EMISSFILE
+! !IROUTINE:  get_emissfile
 !
-! !DESCRIPTION: Function to retrieve emissions file for particular POP
+! !DESCRIPTION: Function GET\_EMISSFILE returns the emissions file for
+!  particular POP.
 !\\
 !\\
 ! !INTERFACE:
-
+!
       FUNCTION GET_EMISSFILE( IN_FILE )
-
+!
 ! !INPUT PARAMETERS: 
 !
+      CHARACTER, INTENT(IN)    :: IN_FILE
 !
-! !INPUT/OUTPUT PARAMETERS: 
-!
-!
-! !OUTPUT PARAMETERS:
-!!
+! !REVISION HISTORY:
+!  30 Sep 2012 - C. Pike Thackray - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-
-      ! Local variables
-      CHARACTER(LEN=225)             :: GET_EMISSFILE
-      CHARACTER(LEN=225), SAVE       :: EMISSFILE
-      CHARACTER, INTENT(IN)          :: IN_FILE
-      LOGICAL, SAVE                  :: IS_SET
+!
+! !LOCAL VARIABLES:
+!
+      CHARACTER(LEN=225)       :: GET_EMISSFILE
+      CHARACTER(LEN=225), SAVE :: EMISSFILE
+      LOGICAL, SAVE            :: IS_SET
 
       !=================================================================
       ! GET_EMISSFILE begins here
@@ -644,8 +602,6 @@
       RETURN
 
       END FUNCTION GET_EMISSFILE
-
 !EOC
-!------------------------------------------------------------------------------
       END MODULE GET_POPSINFO_MOD
 
