@@ -657,8 +657,6 @@ geos57_read_mod.o           : geos57_read_mod.F90                            \
 
 get_popsinfo_mod.o          : get_popsinfo_mod.F
 
-GEN.o                       : GEN.f
-
 get_global_ch4.o            : get_global_ch4.F                               \
                               future_emissions_mod.o  logical_mod.o          
 

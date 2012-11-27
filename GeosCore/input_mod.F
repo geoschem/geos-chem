@@ -343,7 +343,7 @@
             CALL READ_BENCHMARK_MENU( am_I_Root )
               
          ELSE IF ( INDEX( LINE, 'POPS MENU'        ) > 0 ) THEN
-            CALL READ_POPS_MENU
+            CALL READ_POPS_MENU( am_I_Root )
            
          ELSE IF ( INDEX( LINE, 'MERCURY MENU'     ) > 0 ) THEN 
             CALL READ_MERCURY_MENU( am_I_Root )
@@ -3369,6 +3369,7 @@
       USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM,    ITS_A_RnPbBe_SIM
       USE TRACER_MOD,   ONLY : ITS_A_TAGOX_SIM,      ITS_A_CH3I_SIM
       USE TRACER_MOD,   ONLY : SALA_REDGE_um,        ITS_A_CH4_SIM
+      USE TRACER_MOD,   ONLY : ITS_A_POPS_SIM
       USE TRACERID_MOD, ONLY : NEMANTHRO
       USE WETSCAV_MOD,  ONLY : GET_WETDEP_NMAX
 
@@ -3818,7 +3819,7 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:52' )
       READ( SUBSTRS(1), * ) ND53
       IF ( .not. ITS_A_POPS_SIM() ) ND53 = 0
-      CALL SET_TINDEX( 53, ND53, SUBSTRS(2:N), N-1, PD53 )
+      CALL SET_TINDEX( am_I_Root, 53, ND53, SUBSTRS(2:N), N-1, PD53 )
 
       !--------------------------
       ! ND54: Time in troposphere
@@ -5951,21 +5952,41 @@
       END SUBROUTINE READ_CH4_MENU
 !EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE READ_POPS_MENU
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-! 
-!******************************************************************************
+! !IROUTINE: read_pops_menu
 !
-      ! References to F90 modules
+! !DESCRIPTION: Subroutine READ\_POPS\_MENU reads the POPS MENU section of 
+!  the GEOS-Chem input file; this defines emissions options for POPs
+!  simulations.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE READ_POPS_MENU( am_I_Root )
+!
+! !USES:
+!
       USE GET_POPSINFO_MOD,  ONLY : GET_POP_TYPE
       USE POPS_MOD,          ONLY : INIT_POPS
       USE DIRECTORY_MOD,     ONLY : POP_EMISDIR
       USE TRACER_MOD,        ONLY : ITS_A_POPS_SIM
-      !second one might be tracerid_mod
- 
-      ! Local variables
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN)        :: am_I_Root   ! Is this the root CPU?
+! 
+! !REVISION HISTORY: 
+!  01 Oct 2012 - C. Friedman - Initial version
+!  26 Nov 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER                    :: N
       LOGICAL                    :: CHEM_PROCESS
       CHARACTER(LEN=255)         :: SUBSTRS(MAXDIM)
@@ -5974,7 +5995,6 @@
       REAL*8                     :: POP_K_POPG_OH
       REAL*8                     :: POP_K_POPP_O3A, POP_K_POPP_O3B
       REAL*8                     :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
-
 
       !=================================================================
       ! READ_POPS_MENU begins here!
@@ -6034,19 +6054,22 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      WRITE( 6, '(/,a)' ) 'POPS MENU'
-      WRITE( 6, '(  a)' ) '------------'
-      WRITE( 6, 120     ) 'Species of POP    : ', 
-     &                     POP_TYPE
-      WRITE( 6, 110     ) 'Chemistry on? : ', CHEM_PROCESS
-      WRITE( 6, 120     ) '=> POP Emissions file       : ',
-     &                     TRIM( POP_EMISDIR )
-      WRITE( 6, 130     ) 'Param 1:', POP_XMW
+      IF( am_I_Root ) THEN
+         WRITE( 6, '(/,a)' ) 'POPS MENU'
+         WRITE( 6, '(  a)' ) '------------'
+         WRITE( 6, 120     ) 'Species of POP    : ', 
+     &                        POP_TYPE
+         WRITE( 6, 110     ) 'Chemistry on? : ', CHEM_PROCESS
+         WRITE( 6, 120     ) '=> POP Emissions file       : ',
+     &                        TRIM( POP_EMISDIR )
+         WRITE( 6, 130     ) 'Param 1:', POP_XMW
+      ENDIF
 
       ! FORMAT statements
- 110      FORMAT( A, L5  )
- 120        FORMAT( A, A   )
- 130         FORMAT( A, f6.5 )
+ 110  FORMAT( A, L5  )
+ 120  FORMAT( A, A   )
+ 130  FORMAT( A, f6.5 )
+
       ! If we are performing a POPS simulation ...
       IF ( ITS_A_POPS_SIM() ) THEN 
 
@@ -6058,15 +6081,13 @@
 
          ! Initialize "pops_mod.f"
          CALL INIT_POPS(POP_XMW, POP_KOA, POP_KBC, POP_K_POPG_OH,
-     &                         POP_K_POPP_O3A, POP_K_POPP_O3B, 
-     &                         POP_HSTAR, POP_DEL_H, POP_DEL_Hw )
+     &                  POP_K_POPP_O3A, POP_K_POPP_O3B, 
+     &                  POP_HSTAR, POP_DEL_H, POP_DEL_Hw )
 
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE READ_POPS_MENU
-
-!------------------------------------------------------------------------------
+!EOC
 #if   defined( APM ) 
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !

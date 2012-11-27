@@ -263,6 +263,7 @@
       INTEGER              :: NDVZIND (MAXDEP   )
       INTEGER              :: NTRAIND (MAXDEP   )
       REAL*8               :: HSTAR   (MAXDEP   )
+      REAL*8               :: KOA     (MAXDEP   )
       REAL*8               :: F0      (MAXDEP   )
       REAL*8               :: XMW     (MAXDEP   )
       REAL*8               :: A_RADI  (MAXDEP   )
@@ -1466,12 +1467,21 @@
       ! Logical for snow and sea ice
       LOGICAL LSNOW(MAXIJ)
 
+      ! Loop indices (bmy, 3/29/12)
+      INTEGER :: I, J
+
       ! Logical switch for POPS in order to use octanol-air partitioning instead
       ! of Henry's Law for scaling of cuticular resitances (clf, 1/3/2011)
       LOGICAL IS_POPS
 
       ! Is this a POPs simmulation?
       IS_POPS = ITS_A_POPS_SIM()  ! clf, 1/3/2011
+
+!***********************************************************************       
+!
+!
+!** If LDEP(K)=F, species does not deposit.
+!** Deposition is applied only to species with LDEP=T.
 
       DO K = 1,NUMDEP
          LDEP(K) = (HSTAR(K).GT.0.D0 .OR. F0(K).GT.0.D0 

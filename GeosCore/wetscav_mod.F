@@ -755,6 +755,8 @@
       USE TRACERID_MOD, ONLY : IDTMAP
       ! jpp 4/27/09
       USE TRACERID_MOD, ONLY : IDTHOBr,  IDTHBr,   IDTBr2
+      !(eck, 9/21/10)
+      USE TRACERID_MOD, ONLY : IDTPOPPOC,  IDTPOPPBC,  IDTPOPG 
       USE GET_POPSINFO_MOD, ONLY : GET_POP_HSTAR, GET_POP_DEL_Hw
 
       USE CMN_SIZE_MOD                               ! Size parameters
@@ -4155,25 +4157,24 @@
       ! POPG (liquid and gas phases) (clf, 11/17/2010)
       !------------------------------
       ELSE IF ( N == IDTPOPG ) THEN
-         AER      = .FALSE.
+         KIN      = .FALSE.
          CALL WASHFRAC_LIQ_GAS( GET_POP_HSTAR(DUM) , 
      &                          GET_POP_DEL_Hw(DUM),
-     &                          PP, DT, F, DZ, TK, K_WASH,
-     &                          WASHFRAC, AER                 )     
+     &                          PP, DT, F, DZ, TK, WASHFRAC, KIN )     
 
       !------------------------------
       ! POPPOC (treat like hydrophobic OC aerosol) 
       !------------------------------
       ELSE IF ( N == IDTPOPPOC ) THEN 
-         AER      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
+         KIN      = .TRUE.
+         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
       !------------------------------
       ! POPPBC (treat like hydrophobic BC aerosol) 
       !------------------------------
       ELSE IF ( N == IDTPOPPBC ) THEN 
-         AER      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
+         KIN      = .TRUE.
+         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
       !------------------------------
       ! ERROR: Insoluble tracer
