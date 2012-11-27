@@ -117,6 +117,7 @@ CONTAINS
 !  30 Oct 2012 - R. Yantosca - Now pass am_I_Root, RC to SET_COMMSOIL_MOD
 !  01 Nov 2012 - R. Yantosca - Now zero the fields of the Input Options object
 !  16 Nov 2012 - R. Yantosca - Remove this routine from the #ifdef DEVEL block
+!  27 Nov 2012 - R. Yantosca - Now pass Input_Opt to INIT_COMODE_LOOP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -155,7 +156,7 @@ CONTAINS
     CALL Init_COMMSOIL( am_I_Root, RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
-    CALL Init_COMODE_LOOP( am_I_Root, RC )
+    CALL Init_COMODE_LOOP( am_I_Root, Input_Opt, RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
     CALL Init_JV_CMN( am_I_Root, RC )

@@ -270,8 +270,7 @@
 
       ! Compute optical depths (except for CH4 simulation)
       IF ( .not. IT_IS_A_CH4_SIM ) THEN
-         CALL OPTDEPTH( LLPAR,            State_Met%CLDF,
-     &                  State_Met%OPTDEP, State_Met%OPTD )
+         CALL OPTDEPTH( am_I_Root, Input_Opt, State_Met, RC )
       ENDIF
 
       !=================================================================
@@ -513,7 +512,6 @@
          ENDIF
       ENDIF
       
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
       !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
       !
@@ -536,7 +534,6 @@
 
       ! Reset Chemistry State tracers [kg] from GEOS-Chem tracer array
       State_Chm%TRACERS(:,:,:,1:N_TRACERS) = STT(:,:,:,1:N_TRACERS)
-#endif
 
       END SUBROUTINE DO_CHEMISTRY
 !EOC
@@ -845,23 +842,7 @@
 !\\
 ! !INTERFACE:
 !
-!#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Add the Input Options object and RC status flag as arguments
-      ! to RECOMPUTE_OD (bmy, 11/13/12)
-      !-----------------------------------------------------------------
       SUBROUTINE RECOMPUTE_OD( am_I_Root, Input_Opt, State_Met, RC )
-!#else
-!      !-----------------------------------------------------------------
-!      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-!      !
-!      ! Current practice in the standard GEOS-Chem is to call
-!      ! RECOMPUTE_OD only with am_I_Root (bmy, 11/13/12)
-!      !-----------------------------------------------------------------
-!      SUBROUTINE RECOMPUTE_OD( am_I_Root, State_Met )
-!#endif
 !
 ! !USES:
 !
@@ -872,47 +853,21 @@
       USE DUST_MOD,           ONLY : RDUST_ONLINE
       USE DUST_MOD,           ONLY : RDUST_OFFLINE
       USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : GET_YEAR
-
-!#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! We need to reference some modules particular to the Grid-
-      ! Independent GEOS-Chem implementation here.   In particular,
-      ! the settings from the Input Options object will replace
-      ! logical flags from logical_mod.F. (bmy, 11/8/12)
-      !-----------------------------------------------------------------
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-!#else
-!      !-----------------------------------------------------------------
-!      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-!      !
-!      ! Current practice in the standard GEOS-Chem is to reference
-!      ! logical flags directly from module GeosCore/logical_mod.F, 
-!      ! and the ITS_A_*_SIM functions from GeosCore/tracer_mod.F. 
-!      ! (bmy, 11/13/12)
-!      !-----------------------------------------------------------------
-!      USE LOGICAL_MOD,        ONLY : LCARB, LCHEM, LCRYST, LDUST
-!      USE LOGICAL_MOD,        ONLY : LPRT, LSSALT, LSULF,  LSOA
-!      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
-!      USE TRACER_MOD,         ONLY : ITS_AN_AEROSOL_SIM
-!#endif
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-!#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
-!#endif
 !
 ! !REVISION HISTORY: 
 !  03 Fev 2011 - Adapted from chemdr.f by skim
@@ -926,39 +881,19 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: MONTH, YEAR, WAVELENGTH
       LOGICAL :: IT_IS_A_FULLCHEM_SIM
       LOGICAL :: IT_IS_AN_AEROSOL_SIM
-
-!#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! To simplify the coding for the ESMF interface, define local 
-      ! variables values that will be obtained from the Input Options 
-      ! object. (bmy, 11/8/12)
-      !----------------------------------------------------------------- 
-      LOGICAL :: LCARB, LCHEM, LCRYST, LDUST
-      LOGICAL :: LPRT, LSSALT, LSULF,  LSOA
-      LOGICAL :: ITS_A_FULLCHEM_SIM
-      LOGICAL :: ITS_AN_AEROSOL_SIM
-!#endif
+      LOGICAL :: LCARB, LCHEM,  LCRYST,     LDUST
+      LOGICAL :: LPRT,  LSSALT, LSULF,      LSOA
+      INTEGER :: MONTH, YEAR,   WAVELENGTH
 
       !=================================================================
       ! RECOMPUTE_OD begins here!
       !=================================================================
 
       ! Get month and year
-      MONTH = GET_MONTH()
-      YEAR  = GET_YEAR()
-
-!#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Initialize the RC argument.  Also copy logical values from the
-      ! Input Options object over to local variables. (bmy, 11/8/12)
-      !-----------------------------------------------------------------
+      MONTH                = GET_MONTH()
+      YEAR                 = GET_YEAR()
 
       ! Assume success
       RC                   = GIGC_SUCCESS
@@ -974,16 +909,6 @@
       LSOA                 = Input_Opt%LSOA
       IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
       IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM    
-!#else
-!      !-----------------------------------------------------------------
-!      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-!      !
-!      ! Current practice in the std GEOS-Chem is to reference the
-!      ! ITS_A_*_SIM functions directly from tracer_mod.F (bmy, 11/13/12)
-!      !-----------------------------------------------------------------
-!      IT_IS_A_FULLCHEM_SIM = ITS_A_FULLCHEM_SIM()
-!      IT_IS_AN_AEROSOL_SIM = ITS_AN_AEROSOL_SIM()
-!#endif
 
       ! First make sure chemistry is turned on
       IF ( LCHEM ) THEN
@@ -995,23 +920,7 @@
             IF ( LSULF .or. LCARB .or. LDUST .or. LSSALT ) THEN
 
                ! Skip this section if all of these are turned off
-!#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-               !--------------------------------------------------------------
-               !    %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-               ! 
-               ! Now pass Input_Opt, RC arguments to AEROSOL_CONC 
-               ! (bmy, 11/13/12)
-               !--------------------------------------------------------------
                CALL AEROSOL_CONC( am_I_Root, Input_Opt, State_Met, RC )
-!#else
-!               !--------------------------------------------------------------
-!               !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-!               !
-!               ! Current practice in the std GEOS-Chem is to call AEROSOL_CONC
-!               ! w/ am_I_Root, MONTH, YEAR, and WAVELENGTH (bmy, 11/13/12)
-!               !--------------------------------------------------------------
-!               CALL AEROSOL_CONC( State_Met )
-!#endif
 
                !===============================================================
                ! Call RDAER -- computes aerosol optical depths
@@ -1019,26 +928,8 @@
 
                ! Calculate the AOD at the wavelength specified in jv_spec_aod
                WAVELENGTH = 1
-
-!#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-               !--------------------------------------------------------------
-               !    %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-               ! 
-               ! Now pass Input_Opt, RC arguments to RDAER (bmy, 11/13/12)
-               !--------------------------------------------------------------
                CALL RDAER( am_I_Root, Input_Opt, State_Met,  RC,
      &                     MONTH,     YEAR,      WAVELENGTH      )
-
-!#else
-!               !--------------------------------------------------------------
-!               !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-!               !
-!               ! Current practice in the std GEOS-Chem is to call RDAER w/
-!               ! just am_I_Root, MONTH, YEAR, and WAVELENGTH (bmy, 11/13/12)
-!               !--------------------------------------------------------------
-!               CALL RDAER( am_I_Root, State_Met, 
-!     &                     MONTH,     YEAR,       WAVELENGTH )
-!#endif
 
                !### Debug
                IF ( LPRT .and. am_I_Root ) THEN 

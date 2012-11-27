@@ -181,13 +181,8 @@
       INTEGER, PARAMETER :: KBLOOP  = 24
 #endif
 
-!#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
       ! These values need to be defined as variables instead of
-      ! parameters so that they can be defined from the ESMF interface.
-      !-----------------------------------------------------------------
+      ! parameters so that they can be defined dynamically.
       INTEGER            :: ILAT
       INTEGER            :: ILONG
       INTEGER            :: IVERT
@@ -197,24 +192,6 @@
       INTEGER            :: ILAYER
       INTEGER            :: ILTLOOP
       INTEGER            :: MXBLOCK
-!#else
-!      !-----------------------------------------------------------------
-!      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-!      !
-!      ! Define these values as parameters.  This is the current
-!      ! practice in the standard GEOS-Chem. (bmy, 10/24/12)
-!      !-----------------------------------------------------------------
-!      ! Define parameters
-!      INTEGER, PARAMETER :: ILAT    = JJPAR
-!      INTEGER, PARAMETER :: ILONG   = IIPAR
-!      INTEGER, PARAMETER :: IVERT   = LLTROP
-!      INTEGER, PARAMETER :: IPVERT  = IVERT + IPLUME
-!      INTEGER, PARAMETER :: ITLOOP  = ILAT * ILONG * IPVERT
-!      INTEGER, PARAMETER :: IMLOOP  = ILAT * ILONG
-!      INTEGER, PARAMETER :: ILAYER  = IVERT + 1
-!      INTEGER, PARAMETER :: ILTLOOP = IMLOOP * ILAYER
-!      INTEGER, PARAMETER :: MXBLOCK = 16 + ITLOOP/KBLOOP
-!#endif
 !
 ! ************************* TRACER PARAMETERS ****************************
 ! IDEMS    = EMISSION ID NUMBER (WHICH SPECIES)
@@ -462,19 +439,11 @@
 ! *               SET REAL AND INTEGER ARRAY VARIABLES                *
 ! *********************************************************************
 !
-!#if defined( DEVEL )
       INTEGER, ALLOCATABLE ::  JLOWVAR( :), KTLPVAR( :), 
      &                         JLOFIXED(:), JHIFIXED(:)
 
       INTEGER, ALLOCATABLE ::  JREORDER(:), LREORDER(:), 
      &                         ITWO(    :), NCSLOOP( :,:)
-!#else
-!      INTEGER ::        JLOWVAR( MXBLOCK), KTLPVAR( MXBLOCK), 
-!     &                  JLOFIXED(MXBLOCK), JHIFIXED(MXBLOCK)
-!
-!      INTEGER ::        JREORDER(ITLOOP), LREORDER(ITLOOP), 
-!     &                  ITWO(    ITLOOP), NCSLOOP( ITLOOP,ICS)
-!#endif
 
       ! Add NKSPECG for DMS+OH+O2 rxn (bdf, bmy, 4/18/03)
       ! Added NKSPECF, NKSPECH to /IDICS/ for C2H4 chemistry (tmf, 3/6/09) 
@@ -580,11 +549,7 @@
       ! /DKBLOOP0/ needs to be held THREADPRIVATE
       REAL*8  :: CC2(KBLOOP,0:MXARRAY)  
 
-!#if defined( DEVEL )
       INTEGER, ALLOCATABLE :: MLOP(:,:), JLOP_SMV(:,:,:)
-!#else
-!      INTEGER :: MLOP(ILAT,ILONG), JLOP_SMV(ILAT,ILONG,ILAYER)
-!#endif
 
       INTEGER :: 
      &  NKPHOTRAT(IPHOT,ICS),      NPPHOTRAT(IPHOT,ICS),  
@@ -670,11 +635,7 @@
 
       REAL*8 ::  PERTS2(MORDER,3), PERTST(MORDER,3)
 
-!#if defined( DEVEL )
       INTEGER, ALLOCATABLE :: JLLOW(:), KLHI(:)
-!#else
-!      INTEGER :: JLLOW(MXBLOCK), KLHI(MXBLOCK)
-!#endif
 
       REAL*8 ::  XGDFCF, ASTKCF, RUARSL, RH100
 
@@ -734,19 +695,21 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE Init_COMODE_LOOP( am_I_Root, RC )
+      SUBROUTINE Init_COMODE_LOOP( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
       USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER, INTENT(OUT) :: RC          ! Success or failure?
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  Need to add error-checking on the allocation statements, so that we
@@ -756,6 +719,7 @@
 !  17 Oct 2012 - R. Yantosca - Need to also set NLAT, NLONG, etc.
 !  17 Oct 2012 - R. Yantosca - Added ProTeX headers
 !  22 Oct 2012 - R. Yantosca - Now references gigc_errcode_mod.F90
+!  27 Nov 2012 - R. Yantosca - Now pass Input_Opt via the argument list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -853,7 +817,7 @@
          RETURN
       ENDIF
 
-      IF ( am_I_Root ) THEN
+      IF ( Input_Opt%LPRT .and. am_I_Root ) THEN
          write( 6, * ) '###########################################'
          write( 6, * ) '### END of Init_COMODE_LOOP_MOD'
          write( 6, * ) '### IIPAR   : ', IIPAR

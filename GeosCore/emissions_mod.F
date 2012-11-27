@@ -80,23 +80,21 @@
 !\\
 ! !INTERFACE:
 !
-!#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       SUBROUTINE DO_EMISSIONS( am_I_Root, Input_Opt, 
      &                         State_Met, State_Chm, RC )
-!#else
-!      SUBROUTINE DO_EMISSIONS( State_Met )
-!#endif
 !
 ! !USES:
 !
-      USE BIOMASS_MOD,            ONLY : COMPUTE_BIOMASS_EMISSIONS
       USE ARCTAS_SHIP_EMISS_MOD,  ONLY : EMISS_ARCTAS_SHIP
+      USE BIOMASS_MOD,            ONLY : COMPUTE_BIOMASS_EMISSIONS
       USE BRAVO_MOD,              ONLY : EMISS_BRAVO
       USE C2H6_MOD,               ONLY : EMISSC2H6
       USE CAC_ANTHRO_MOD,         ONLY : EMISS_CAC_ANTHRO
       USE CAC_ANTHRO_MOD,         ONLY : EMISS_CAC_ANTHRO_05x0666
       USE CARBON_MOD,             ONLY : EMISSCARBON
       USE CH3I_MOD,               ONLY : EMISSCH3I
+      USE CMN_O3_MOD
+      USE CMN_SIZE_MOD
       USE CO2_MOD,                ONLY : EMISSCO2
       USE DUST_MOD,               ONLY : EMISSDUST
       USE EDGAR_MOD,              ONLY : EMISS_EDGAR
@@ -104,6 +102,9 @@
       USE EMEP_MOD,               ONLY : EMISS_EMEP_05x0666
       USE EPA_NEI_MOD,            ONLY : EMISS_EPA_NEI
       USE ERROR_MOD,              ONLY : DEBUG_MSG
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod,     ONLY : OptInput
+      USE GIGC_State_Chm_Mod,     ONLY : ChmState
       USE GIGC_State_Met_Mod,     ONLY : MetState
       USE GLOBAL_CH4_MOD,         ONLY : EMISSCH4
       USE H2_HD_MOD,              ONLY : EMISS_H2_HD
@@ -121,39 +122,28 @@
       USE STREETS_ANTHRO_MOD,     ONLY : EMISS_STREETS_ANTHRO
       USE STREETS_ANTHRO_MOD,     ONLY : EMISS_STREETS_ANTHRO_05x0666
       USE SULFATE_MOD,            ONLY : EMISSSULFATE 
+      USE TAGGED_CO_MOD,          ONLY : EMISS_TAGGED_CO
       USE TIME_MOD,               ONLY : GET_MONTH
       USE TIME_MOD,               ONLY : GET_YEAR
       USE TIME_MOD,               ONLY : ITS_A_NEW_MONTH
       USE TIME_MOD,               ONLY : ITS_A_NEW_YEAR
       USE TRACER_MOD                 
-      USE TAGGED_CO_MOD,          ONLY : EMISS_TAGGED_CO
-      USE VISTAS_ANTHRO_MOD,      ONLY : EMISS_VISTAS_ANTHRO
-
-      USE CMN_SIZE_MOD                 ! Size parameters
-      USE CMN_O3_MOD                   ! FSCLYR
-
-!#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod,     ONLY : OptInput
-      USE GIGC_State_Chm_Mod,     ONLY : ChmState
       USE TRACERID_MOD,           ONLY : IDTSO2, IDTC2H6
+      USE VISTAS_ANTHRO_MOD,      ONLY : EMISS_VISTAS_ANTHRO
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-!#endif
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object!
-!#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-!#endif
 !
 ! !REVISION HISTORY: 
 !  (1 ) Now references DEBUG_MSG from "error_mod.f" (bmy, 8/7/03)
@@ -214,17 +204,8 @@
       ! DO_EMISSIONS begins here!
       !=================================================================
 
-!#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Initialize the RC argument.  Also copy logical values from the
-      ! Input Options object over to local variables. (bmy, 11/13/12)
-      !-----------------------------------------------------------------
-
       ! Assume success
-      RC        = GIGC_SUCCESS
-!#endif
+      RC    = GIGC_SUCCESS
 
       ! Get year and month
       MONTH = GET_MONTH()

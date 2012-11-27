@@ -886,23 +886,26 @@
 !
 ! !USES:
 !
-      USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_WD, ADD_HgP_WD
-      USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK !CDH
-      USE DIAG_MOD,           ONLY : AD37, AD38,   CONVFLUP
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
+      USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_WD
+      USE DEPO_MERCURY_MOD,   ONLY : ADD_HgP_WD
+      USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
+      USE DIAG_MOD,           ONLY : AD37
+      USE DIAG_MOD,           ONLY : AD38
+      USE DIAG_MOD,           ONLY : CONVFLUP
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2
-      USE LOGICAL_MOD,        ONLY : LDYNOCEAN, LGTMM
-      USE PRESSURE_MOD,       ONLY : GET_BP, GET_PEDGE
+      USE LOGICAL_MOD,        ONLY : LDYNOCEAN
+      USE LOGICAL_MOD,        ONLY : LGTMM
+      USE PRESSURE_MOD,       ONLY : GET_BP
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE
       USE TIME_MOD,           ONLY : GET_TS_CONV
       USE TRACER_MOD,         ONLY : ITS_A_MERCURY_SIM
-      USE TRACERID_MOD,       ONLY : IS_Hg2, IS_HgP 
+      USE TRACERID_MOD,       ONLY : IS_Hg2
+      USE TRACERID_MOD,       ONLY : IS_HgP 
       USE WETSCAV_MOD,        ONLY : COMPUTE_F
-!#if defined( DEVEL )
       USE ERROR_MOD,          ONLY : ALLOC_ERR
-!endif
-
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_DIAG_MOD             ! Diagnostic switches & arrays
 
       IMPLICIT NONE
 #     include "define.h"
@@ -1078,16 +1081,12 @@
       LOGICAL, SAVE          :: IS_Hg = .TRUE.
       INTEGER                :: I, J, K, KTOP, L, N, NDT
       INTEGER                :: IC, ISTEP, JUMP, JS, JN, NS
-!#if defined( DEVEL )
       INTEGER                :: IMR, JNP, NLAY, AS
-      REAL*8, ALLOCATABLE, SAVE :: DSIG(:)
-!#else
-!      INTEGER                :: IMR, JNP, NLAY
-!      REAL*8, SAVE           :: DSIG(LLPAR)
-!#endif
       REAL*8                 :: SDT, CMOUT, ENTRN, DQ, AREA_M2
       REAL*8                 :: T0, T1, T2, T3, T4, TSUM, DELQ
       REAL*8                 :: DTCSUM(IIPAR,JJPAR,LLPAR,NC)
+
+      REAL*8, ALLOCATABLE, SAVE :: DSIG(:)
 
       ! F is the fraction of tracer lost to wet scavenging in updrafts
       REAL*8                 :: F(IIPAR,JJPAR,LLPAR,NC)
@@ -1130,14 +1129,14 @@
          WRITE( 6, '(a)' ) 'Last Modification Date: 1/27/04'
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
-#if   !defined( GEOS_5 ) 
+#if defined( GEOS_5 ) || defined( GEOS_57 ) || defined( MERRA )
+         ! Do nothing, these are all hybrid grids
+#else
          ! NOTE: We don't need to do this for GEOS-5 (bmy, 6/27/07)
          ! DSIG is the sigma-level thickness (NOTE: this assumes that
          ! we are using a pure-sigma grid.  Use new routine for fvDAS.)
-!#if defined( DEVEL )
          ALLOCATE( DSIG(LLPAR), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'DSIG_CONVECTION' )
-!#endif
 
          DO L = 1, LLPAR        
             DSIG(L) = GET_BP(L) - GET_BP(L+1)

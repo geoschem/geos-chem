@@ -309,12 +309,6 @@
 !\\
 ! !INTERFACE:
 !
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Now pass the am_I_Root, Input_Opt, and RC as arguments 
-      ! to AEROSOL_CONC for the ESMF interface (bmy, 11/13/12)
-      !-----------------------------------------------------------------
       SUBROUTINE AEROSOL_CONC( am_I_Root, Input_Opt, State_Met, RC )
 !
 ! !USES:
@@ -405,7 +399,7 @@
 
       ! First-time initialization
       IF ( FIRST ) THEN
-         CALL INIT_AEROSOL
+         CALL INIT_AEROSOL()
          FIRST = .FALSE.
       ENDIF
 

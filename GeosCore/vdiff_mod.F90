@@ -1681,23 +1681,14 @@ contains
                m
     
     integer :: AS
-    
-!#if defined( DEVEL )
-    real*8, allocatable :: ref_pmid(:)
-!#else
-!    real*8 :: ref_pmid(LLPAR)
-!#endif
+    real*8  :: ref_pmid(LLPAR)
 
     !=================================================================
     ! vdinti begins here!
     !=================================================================
 
-!#if defined( DEVEL )
-    ALLOCATE( ref_pmid(LLPAR), STAT=AS )
-    IF ( AS /= 0 ) CALL ALLOC_ERR( 'ref_pmid' )
     ref_pmid = 0.d0
     plevp = plev+1
-!#endif
 !-----------------------------------------------------------------------
 ! 	... hard-wired numbers.
 !           zkmin = minimum k = kneutral*f(ri)
@@ -1737,10 +1728,8 @@ contains
 !-----------------------------------------------------------------------
 ! 	... set the square of the mixing lengths
 !-----------------------------------------------------------------------
-!#if defined( DEVEL )
     ALLOCATE( ml2(plevp), STAT=AS )
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'ml2' )
-!#endif
 
     ml2(1) = 0.d0
     do k = 2,plev

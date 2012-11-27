@@ -30,18 +30,30 @@
 !
 #     include "define.h"
 
-      USE ERROR_MOD,          ONLY : ERROR_STOP, ALLOC_ERR
+      USE CMN_SIZE_MOD,       ONLY : IIPAR
+      USE CMN_SIZE_MOD,       ONLY : JJPAR
+      USE CMN_SIZE_MOD,       ONLY : LLPAR
+      USE CMN_SIZE_MOD,       ONLY : NDUST
+      USE CMN_SIZE_MOD,       ONLY : MAXIJ
+      USE CMN_SIZE_MOD,       ONLY : NAER
+      USE CMN_SIZE_MOD,       ONLY : NRH
+      USE CMN_FJ_MOD,         ONLY : JPMAX
+      USE CMN_FJ_MOD,         ONLY : JPPJ
+      USE JV_CMN_MOD,         ONLY : NB
+      USE JV_CMN_MOD,         ONLY : ODAER
+      USE JV_CMN_MOD,         ONLY : ODMDUST
+      USE JV_CMN_MOD,         ONLY : PJ
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_YMID
       USE PRESSURE_MOD,       ONLY : GET_PEDGE
-      USE TIME_MOD,           ONLY : GET_MONTH, GET_DAY, GET_DAY_OF_YEAR
-      USE TIME_MOD,           ONLY : GET_TAU,   GET_YEAR
+      USE TIME_MOD,           ONLY : GET_MONTH
+      USE TIME_MOD,           ONLY : GET_DAY
+      USE TIME_MOD,           ONLY : GET_DAY_OF_YEAR
+      USE TIME_MOD,           ONLY : GET_TAU
+      USE TIME_MOD,           ONLY : GET_YEAR
       USE TOMS_MOD,           ONLY : GET_OVERHEAD_O3
-
-      USE CMN_SIZE_MOD,       ONLY : IIPAR,   JJPAR, LLPAR
-      USE CMN_SIZE_MOD,       ONLY : NDUST,   MAXIJ, NAER,  NRH
-      USE CMN_FJ_MOD,         ONLY : JPMAX,   JPPJ
-      USE JV_CMN_MOD,         ONLY : ODMDUST, PJ,    NB,    ODAER
 
       IMPLICIT NONE
 !
@@ -120,6 +132,7 @@
 !  10 Aug 2012 - R. Yantosca - Replace IPAR, JPAR, LPAR w/ IIPAR, JJPAR, LLPAR
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  27 Nov 2012 - R. Yantosca - Cosmetic changes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -136,12 +149,7 @@
       ! Local variables for cloud overlap (hyl, phs)
       INTEGER           :: NUMB, KK, I
       INTEGER            :: INDIC(LLPAR+1)
-!#if defined( DEVEL )
-!      INTEGER, ALLOCATABLE :: INDGEN(:)
-!      INTEGER              :: AS
-!#else
-      INTEGER            :: INDGEN(LLPAR+1)! = (/ (i,i=1,LLPAR+1) /)
-!#endif
+      INTEGER            :: INDGEN(LLPAR+1)
       INTEGER            :: KBOT(LLPAR)
       INTEGER            :: KTOP(LLPAR)
       INTEGER            :: INDICATOR(LLPAR+2)
@@ -167,11 +175,8 @@
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       IF ( FIRST ) THEN
 
-!         ALLOCATE ( INDGEN(LLPAR+1), STAT=AS)
-!         IF ( AS /=0 ) CALL ALLOC_ERR( 'INDGEN' )
-
          DO i = 1,LLPAR+1
-            INDGEN(i) = i       !(/(i,i=1,LLPAR+1)/)
+            INDGEN(i) = i
          ENDDO
          FIRST = .FALSE.
 
