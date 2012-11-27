@@ -587,10 +587,12 @@
 
 !FP_ISOP - for debug (6/2009)
 
+#if !defined( ESMF_ )
       IF ( LPRT .and. am_I_Root ) THEN
          WRITE(*,*) DINP,IORD,ARRT(1),BRRT(1),KCRRT(1),NCOF,SPECL(1),
      &              FCVT(1),FCT1T(1),FCT2T(1),COMMENT
       ENDIF
+#endif
 
       IF (NCOF+1.GT.MXCOF) THEN
        IF ( am_I_Root ) WRITE(6,155) NCOF+1, MXCOF, IORD

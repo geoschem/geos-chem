@@ -12,7 +12,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      SUBROUTINE CHEMDR( am_I_Root, NI, NJ, NL, GC_MET, GC_STATE )
+      SUBROUTINE CHEMDR( am_I_Root, NI, NJ, NL, State_Met, State_Chm )
 #else
       SUBROUTINE CHEMDR( am_I_Root )
 #endif
@@ -52,20 +52,25 @@
       USE CMN_DEP_MOD                ! FRCLND
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      USE GC_TYPE_MOD,          ONLY : GC_MET_LOCAL
-      USE GC_TYPE2_MOD,         ONLY : CHEMSTATE
+      USE GIGC_State_Chm_Mod,   ONLY : ChmState
+      USE GIGC_State_Met_Mod,   ONLY : MetState
 #endif
 
       IMPLICIT NONE
 #     include "define.h"
-
 !
 ! !INPUT VARIABLES:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      INTEGER, INTENT(IN) :: NI, NJ, NL  ! Local size indices
+      INTEGER,        INTENT(IN)    :: NI          ! # of lons on this CPU
+      INTEGER,        INTENT(IN)    :: NJ          ! # of lats on this CPU
+      INTEGER,        INTENT(IN)    :: NL          ! # of levs on this CPU
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT VARIABLES:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 #endif
 !
 ! !REMARKS:
@@ -221,13 +226,14 @@
 !   6 Mar 2012 - R. Yantosca - Now reference TO3 from dao_mod.F
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  10 Aug 2012 - R. Yantosca - Cosmetic changes
+!  16 Oct 2012 - R. Yantosca - Renamed Chemistry State object to State_Chm
+!  16 Oct 2012 - R. Yantosca - Renamed Meteorology State object to State_Met
+!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
+!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      TYPE(GC_MET_LOCAL), INTENT(IN)    :: GC_MET
-      TYPE(CHEMSTATE),    INTENT(INOUT) :: GC_STATE
-#endif
 !
 ! !LOCAL VARIABLES:
 !
@@ -390,7 +396,7 @@
          ! Flag certain chemical species
          !-------------------------------
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-         CALL SETTRACE( GC_STATE, am_I_Root )
+         CALL SETTRACE( State_Chm, am_I_Root )
 #else
          CALL SETTRACE( am_I_Root )
 #endif
@@ -556,9 +562,9 @@
       !=================================================================
       ! Call photolysis routine to compute J-Values
       !=================================================================
-#if defined( DEVEL )
-      CALL FAST_J( SUNCOS_MID, OPTD, UVALBEDO, GC_MET%PEDGE, am_I_Root )
-      PRINT *,"CHMEDR: Done with FAST_J"
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      CALL FAST_J( SUNCOS_MID,      OPTD,     UVALBEDO, 
+     &             State_Met%PEDGE, am_I_Root           )
 #else
       CALL FAST_J( SUNCOS_MID, OPTD, UVALBEDO, am_I_Root )              
 #endif

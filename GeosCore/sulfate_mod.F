@@ -3264,6 +3264,8 @@
       USE TIME_MOD,     ONLY : GET_TS_CHEM
       USE TRACER_MOD,   ONLY : STT, TCVV, XNUMOL
       USE TRACERID_MOD, ONLY : IDTNH3
+      USE LOGICAL_MOD,  ONLY : LSOILNOX  
+      USE GET_NDEP_MOD, ONLY : SOIL_DRYDEP
 
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_DIAG_MOD       ! ND44    
@@ -3359,6 +3361,7 @@
                ! ND44 diagnostic: Drydep flux of NH3 [molec/cm2/s]
                !========================================================
                IF ( ND44 > 0 .and. NH3 > 0d0 ) THEN
+               !IF ( NH3 > 0d0 ) THEN
 
                   ! Surface area [cm2]
                   AREA_CM2 = GET_AREA_CM2( I, J, L )
@@ -3381,14 +3384,22 @@
       ! ND44: Sum drydep fluxes by level into the AD44 array in
       ! order to ensure that  we get the same results w/ sp or mp 
       !===============================================================
-      IF ( ND44 > 0 ) THEN 
+      IF ( ND44 > 0 .or. LSOILNOX) THEN 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
          DO L = 1, LLPAR
-            AD44(I,J,DRYNH3,1) = AD44(I,J,DRYNH3,1) + ND44_TMP(I,J,L)
+
+            IF (ND44 > 0) THEN            
+               AD44(I,J,DRYNH3,1) = AD44(I,J,DRYNH3,1) + ND44_TMP(I,J,L)
+            ENDIF
+
+            IF (LSOILNOX) THEN
+               CALL SOIL_DRYDEP ( I, J, L, IDTNH3, ND44_TMP(I,J,L) )
+            ENDIF
+
          ENDDO
          ENDDO
          ENDDO
@@ -3422,6 +3433,8 @@
       USE TIME_MOD,     ONLY : GET_TS_CHEM
       USE TRACER_MOD,   ONLY : STT, TCVV, XNUMOL
       USE TRACERID_MOD, ONLY : IDTNH4
+      USE LOGICAL_MOD,  ONLY : LSOILNOX  
+      USE GET_NDEP_MOD, ONLY : SOIL_DRYDEP
 
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_DIAG_MOD       ! ND44
@@ -3539,14 +3552,22 @@
       ! ND44: Sum drydep fluxes by level into the AD44 array in
       ! order to ensure that  we get the same results w/ sp or mp 
       !===============================================================
-      IF ( ND44 > 0 ) THEN 
+      IF ( ND44 > 0 .or. LSOILNOX) THEN 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
          DO L = 1, LLPAR
+
+            IF (ND44 > 0 ) THEN
             AD44(I,J,DRYNH4,1) = AD44(I,J,DRYNH4,1) + ND44_TMP(I,J,L)
+            ENDIF
+
+            IF (LSOILNOX) THEN
+            CALL SOIL_DRYDEP ( I, J, L, IDTNH4, ND44_TMP(I,J,L) )
+            ENDIF
+
          ENDDO
          ENDDO
          ENDDO
@@ -3580,6 +3601,8 @@
       USE TIME_MOD,     ONLY : GET_TS_CHEM
       USE TRACER_MOD,   ONLY : STT, TCVV, XNUMOL
       USE TRACERID_MOD, ONLY : IDTNH4aq
+      USE LOGICAL_MOD,  ONLY : LSOILNOX  
+      USE GET_NDEP_MOD, ONLY : SOIL_DRYDEP
 
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_DIAG_MOD       ! ND44
@@ -3688,14 +3711,22 @@
       ! ND44: Sum drydep fluxes by level into the AD44 array in
       ! order to ensure that  we get the same results w/ sp or mp 
       !===============================================================
-      IF ( ND44 > 0 ) THEN 
+      IF ( ND44 > 0 .or. LSOILNOX ) THEN 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
          DO L = 1, LLPAR
+
+            IF ( ND44 > 0 ) THEN
             AD44(I,J,DRYNH4aq,1) = AD44(I,J,DRYNH4aq,1) + T44(I,J,L)
+            ENDIF
+
+            IF (LSOILNOX) THEN
+            CALL SOIL_DRYDEP ( I, J, L, IDTNH4aq, T44(I,J,L) )
+            ENDIF
+
          ENDDO
          ENDDO
          ENDDO
@@ -3730,6 +3761,8 @@
       USE TIME_MOD,     ONLY : GET_TS_CHEM
       USE TRACER_MOD,   ONLY : STT, TCVV, XNUMOL
       USE TRACERID_MOD, ONLY : IDTNIT, IDTNITs
+      USE LOGICAL_MOD,  ONLY : LSOILNOX  
+      USE GET_NDEP_MOD, ONLY : SOIL_DRYDEP
 
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_DIAG_MOD       ! ND44
@@ -3942,15 +3975,24 @@
       ! ND44: Sum drydep fluxes by level into the AD44 array in
       ! order to ensure that  we get the same results w/ sp or mp 
       !===============================================================
-      IF ( ND44 > 0 ) THEN 
+      IF ( ND44 > 0 .or. LSOILNOX ) THEN 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
          DO L = 1, LLPAR
+
+            IF ( ND44 > 0) THEN
             AD44(I,J,DRYNIT, 1) = AD44(I,J,DRYNIT, 1) + T44(I,J,L,1)
             AD44(I,J,DRYNITs,1) = AD44(I,J,DRYNITs,1) + T44(I,J,L,2)
+            ENDIF
+
+            IF (LSOILNOX) THEN
+            CALL SOIL_DRYDEP ( I, J, L, IDTNIT,  T44(I,J,L,1) )
+            CALL SOIL_DRYDEP ( I, J, L, IDTNITs, T44(I,J,L,2) )
+            ENDIF
+
          ENDDO
          ENDDO
          ENDDO
