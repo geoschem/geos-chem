@@ -1601,6 +1601,8 @@
       !  fields are just zeroes
       IF ( ITS_A_MERCURY_SIM() ) THEN
          NUM_TRACERS = N_TRACERS - 1
+      ELSE
+         NUM_TRACERS = N_TRACERS
       ENDIF
 
       DO T = 1, NUM_TRACERS
