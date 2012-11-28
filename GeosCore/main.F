@@ -365,10 +365,6 @@
       CALL Fill_Chem_State_Name_IDs( am_I_Root, State_Chm )
       !-----------------------------------------------------------------
 
-      ! Initialize met field arrays from "dao_mod.f"
-      CALL INIT_DAO
-      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_DAO' )
-
       ! Initialize diagnostic arrays and counters
       CALL INITIALIZE( 2, am_I_Root )
       CALL INITIALIZE( 3, am_I_Root )
@@ -846,17 +842,10 @@
          CALL AIRQNT( State_Met )
 
          ! Compute the cosine of the solar zenith angle array
-         ! SUNCOS         = cos(SZA) at the current time
-         ! SUNCOS_MID     = cos(SZA) at the midpt of the chem timestep
-         ! SUNCOS_MID_5hr = cos(SZA) at the midpt of the chem timestep 5hrs ago
-         !
-         ! NOTE: Now pass the State_Met object.  During testing we will need
-         ! to keep both the traditional SUNCOS arrays from dao_mod.F and
-         ! the SUNCOS fields of the State_Met object.  But the State_Met will
-         ! eventually replace the SUNCOS arrays from dao_mod.F. (bmy, 11/27/12)
-         CALL GET_COSINE_SZA( am_I_Root, Input_Opt,  State_Met, 
-     &                        SUNCOS,    SUNCOS_MID, SUNCOS_MID_5hr, 
-     &                        RC                                     )
+         ! State_Met%SUNCOS     = at the current time
+         ! State_Met%SUNCOSmid  = at the midpt of the chem timestep
+         ! State_Met%SUNCOSmid5 = at the midpt of the chem timestep 5hrs ago
+         CALL GET_COSINE_SZA( am_I_Root, Input_Opt, State_Met, RC )
 
          ! Compute tropopause height for ND55 diagnostic
          IF ( ND55 > 0 ) CALL DIAG_TROPOPAUSE( State_Met )

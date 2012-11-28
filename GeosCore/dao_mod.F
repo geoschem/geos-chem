@@ -23,21 +23,14 @@
       PRIVATE
 
 #     include "define.h"
-!
-! !PRIVATE MEMBER FUNCTIONS:
-!
-      PRIVATE :: INIT_DAO_DERIVED
-!
 ! !PUBLIC MEMBER FUNCTIONS:
 !
       PUBLIC  :: AVGPOLE
       PUBLIC  :: AIRQNT
-      PUBLIC  :: CLEANUP_DAO
       PUBLIC  :: CONVERT_UNITS
       PUBLIC  :: COPY_I3_I6_FIELDS
       PUBLIC  :: GET_COSINE_SZA
       PUBLIC  :: GET_OBK
-      PUBLIC  :: INIT_DAO
       PUBLIC  :: INTERP
       PUBLIC  :: IS_LAND
       PUBLIC  :: IS_WATER
@@ -45,17 +38,6 @@
       PUBLIC  :: IS_NEAR
       PUBLIC  :: MAKE_AVGW
       PUBLIC  :: MAKE_RH
-!
-! !PUBLIC DATA MEMBERS:
-!
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !%%% NOTE: These arrays are now deprecated.  We will seek to move   %%%
-      !%%% these into the Meteorology State object (State_Met) soon.      %%%
-      !%%% (bmy, 11/27/12)                                                %%%
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SUNCOS         (:    )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SUNCOS_MID     (:    )
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SUNCOS_MID_5hr (:    )
 !
 ! !REVISION HISTORY:
 !  26 Jun 2010 - R. Yantosca - Initial version
@@ -134,7 +116,9 @@
 !                              INIT_DAO_GEOS5, INIT_DAO_GEOS57, INIT_DAO_MERRA
 !  27 Nov 2012 - R. Yantosca - Removed obsolete AIRQNT_FULLGRID routine and 
 !                              obsolete arrays AIRDEN_FULLGRID, T_FULLGRID
-!            
+!  28 Nov 2012 - R. Yantosca - Removed SUNCOS, SUNCOS_MID, SUNCOS_MID_5hr
+!  28 Nov 2012 - R. Yantosca - Removed routines INIT_DAO, INIT_DAO_DERIVED, and
+!                              CLEANUP_DAO; we have no more allocatable arrays
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1394,9 +1378,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_COSINE_SZA( am_I_Root, Input_Opt,  State_Met,
-     &                           SUNCOS,    SUNCOS_MID, SUNCOS_MID_5hr,
-     &                           RC  )
+      SUBROUTINE GET_COSINE_SZA( am_I_Root, Input_Opt, State_Met, RC  )
 !
 ! USES:
 !
@@ -1414,36 +1396,23 @@
 !
 ! !INPUT PARAMETERS:
 !
-      ! Are we on the root CPU?
-      LOGICAL,        INTENT(IN)    :: am_I_Root
-
-      ! Input Options object
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      ! Meteorology State object
-      TYPE(MetState), INTENT(INOUT) :: State_Met
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      ! Cosine(SZA) at current time
-      REAL*8,         INTENT(OUT)   :: SUNCOS(MAXIJ)
-
-      ! Cosine(SZA) at midpoint of current chemistry  timestep
-      REAL*8,         INTENT(OUT)   :: SUNCOS_MID(MAXIJ)
-
-      ! Cosine(SZA) at midpoint of the chemistry timestep 5hrs ago
-      REAL*8,         INTENT(OUT)   :: SUNCOS_MID_5hr(MAXIJ)
-
-      ! Success or failure?
-      INTEGER,        INTENT(OUT)   :: RC
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  07 Feb 2012 - R. Yantosca - Initial version
 !  27 Nov 2012 - R. Yantosca - Add am_I_root, Input_Opt, State_Met, RC args
 !  27 Nov 2012 - R. Yantosca - Now pass State_Met to COSSZA so that the
 !                              SUNCOS fields may be updated
+!  28 Nov 2012 - R. Yantosca - Removed references to 1-D SUNCOS arrays
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1453,8 +1422,6 @@
       ! Scalars
       INTEGER :: DOY,  DOY5, YEAR, MONTH,  DAY, HOUR, HOUR5, MINUTE
       REAL*8  :: DDAY, JD,   JD5,  JDJan0, GMT, GMT5
-      ! Arrays
-      REAL*8  :: SUNCOS_5hr(MAXIJ)    
 
       !=================================================================
       ! Get cosine(SZA) at the current time (SUNCOS) and at the
@@ -1473,8 +1440,7 @@
       JD     = JULDAY( YEAR, MONTH, DDAY )             ! Current Julian date
 
       ! Compute cosine(SZA) quantities for the current time
-      CALL COSSZA( DOY,         HOUR,   SUNCOS, 
-     &             SUNCOS_MID, .FALSE., State_Met )
+      CALL COSSZA( DOY, HOUR,  .FALSE., State_Met )
 
       !=================================================================
       ! Get cosine (SZA) at 5 hours behind the current time (SUNCOS_5hr)
@@ -1489,8 +1455,7 @@
       HOUR5  = INT( GMT5 )
 
       ! Compute cosine(SZA) quantities for 5h ago
-      CALL COSSZA( DOY5,            HOUR5, SUNCOS_5hr, 
-     &             SUNCOS_MID_5hr, .TRUE., State_Met   )
+      CALL COSSZA( DOY5, HOUR5, .TRUE., State_Met )
 
       END SUBROUTINE GET_COSINE_SZA
 !EOC
@@ -1509,8 +1474,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE COSSZA( DOY,        GMT_HOUR,   SUNCOS, 
-     &                   SUNCOS_MID, DO_5hr_AGO, State_Met )
+      SUBROUTINE COSSZA( DOY, GMT_HOUR, DO_5hr_AGO, State_Met )
 !
 ! !USES:
 !
@@ -1522,19 +1486,13 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER,        INTENT(IN)    :: DOY                ! Day of the year
-      INTEGER,        INTENT(IN)    :: GMT_HOUR           ! Hour of day
-      LOGICAL,        INTENT(IN)    :: DO_5hr_AGO         ! Compute 5h ago?
+      INTEGER,        INTENT(IN)    :: DOY          ! Day of the year
+      INTEGER,        INTENT(IN)    :: GMT_HOUR     ! Hour of day
+      LOGICAL,        INTENT(IN)    :: DO_5hr_AGO   ! Compute 5h ago?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(MetState), INTENT(INOUT) :: State_Met          ! Meteorology State
-!
-! !OUTPUT PARAMETERS:
-!
-      ! Cosine of the solar zenith angle at: 
-      REAL*8,         INTENT(OUT)   :: SUNCOS    (MAXIJ)  ! current time
-      REAL*8,         INTENT(OUT)   :: SUNCOS_MID(MAXIJ)  ! midpt of chem step
+      TYPE(MetState), INTENT(INOUT) :: State_Met    ! Meteorology State
 !
 ! !REMARKS:
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1605,6 +1563,7 @@
       REAL*8             :: TIMLOC,   DEC,      C_DEC
       REAL*8             :: S_DEC,    R,        YMID_R
       REAL*8             :: C_YMID_R, S_YMID_R
+      REAL*8             :: SUNCOS,   SUNCOS_MID
 !
 ! !DEFINED PARAMETERS:
 !
@@ -1651,33 +1610,31 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, YMID_R, S_YMID_R, C_YMID_R, IJLOOP, TIMLOC, AHR )
+!$OMP+PRIVATE( I,      J,   YMID_R, S_YMID_R,  C_YMID_R )
+!$OMP+PRIVATE( TIMLOC, AHR, SUNCOS, SUNCOS_MID          )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
          ! Latitude of grid box [radians]
-         YMID_R             = GET_YMID_R( I, J, 1 )
+         YMID_R     = GET_YMID_R( I, J, 1 )
 
          ! Pre-compute sin & cos of DEC outside of I loop (for efficiency)
-         S_YMID_R           = SIN( YMID_R )
-         C_YMID_R           = COS( YMID_R )
-
-         ! 1-D grid box index
-         IJLOOP             = ( (J-1) * IIPAR ) + I
+         S_YMID_R   = SIN( YMID_R )
+         C_YMID_R   = COS( YMID_R )
 
          !==============================================================
          ! Compute cosine of SZA at the current GMT time
          !==============================================================
 
          ! Local time at box (I,J) [hours]
-         TIMLOC             = GET_LOCALTIME( I, J, 1, GMT=GMT_CUR )
+         TIMLOC     = GET_LOCALTIME( I, J, 1, GMT=GMT_CUR )
 
          ! Hour angle at box (I,J) [radians]
-         AHR                = ABS( TIMLOC - 12d0 ) * 15d0 * PI_180
+         AHR        = ABS( TIMLOC - 12d0 ) * 15d0 * PI_180
          
          ! Cosine of solar zenith angle at box (I,J) [unitless]
-         SUNCOS(IJLOOP)     = ( S_YMID_R * S_DEC              ) 
-     &                      + ( C_YMID_R * C_DEC * COS( AHR ) )
+         SUNCOS     = ( S_YMID_R * S_DEC              ) 
+     &              + ( C_YMID_R * C_DEC * COS( AHR ) )
 
          !==============================================================
          ! Compute cosine of SZA at the midpoint of the chem timestep
@@ -1685,14 +1642,14 @@
          !==============================================================
 
          ! Local time [hours] at box (I,J) at the midpt of the chem timestep
-         TIMLOC             = GET_LOCALTIME( I, J, 1, GMT=GMT_MID )
+         TIMLOC     = GET_LOCALTIME( I, J, 1, GMT=GMT_MID )
 
          ! Hour angle at box (I,J) [radians]
-         AHR                = ABS( TIMLOC - 12d0 ) * 15d0 * PI_180
+         AHR        = ABS( TIMLOC - 12d0 ) * 15d0 * PI_180
          
          ! Corresponding cosine( SZA ) at box (I,J) [unitless]
-         SUNCOS_MID(IJLOOP) = ( S_YMID_R * S_DEC              )
-     &                      + ( C_YMID_R * C_DEC * COS( AHR ) )
+         SUNCOS_MID = ( S_YMID_R * S_DEC              )
+     &              + ( C_YMID_R * C_DEC * COS( AHR ) )
 
          !==============================================================
          ! Copy data into fields of the Meteorology State object
@@ -1701,15 +1658,15 @@
 
             ! COS(SZA) at midpt of chemistry timestep that was 5h ago
             ! This is needed for the PARANOX ship plume model
-            State_Met%SUNCOSmid5(I,J) = SUNCOS_MID(IJLOOP) 
+            State_Met%SUNCOSmid5(I,J) = SUNCOS_MID
 
          ELSE
 
             ! COS(SZA) at the current time
-            State_Met%SUNCOS    (I,J) = SUNCOS    (IJLOOP) 
+            State_Met%SUNCOS    (I,J) = SUNCOS
                                
             ! COS(SZA) @ the midpoint of the current chemistry timestep
-            State_Met%SUNCOSmid (I,J) = SUNCOS_MID(IJLOOP) 
+            State_Met%SUNCOSmid (I,J) = SUNCOS_MID
                                                            
          ENDIF                                             
 
@@ -1759,6 +1716,16 @@
       !  Array containing tracer conc. [kg] or [v/v]
       REAL*8,  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
 !
+! !REMARKS
+!  Most of the GEOS-Chem subroutines require the tracer array STT to be in 
+!  units of [kg].  However, the cloud convection, PBL mixing, and transport
+!  routines require STT to be in volume mixing ratio [v/v].   
+!                                                                             .
+!  Therefore, we need to call CONVERT_UNITS to convert STT from [kg] to [v/v]
+!  before calling convection, PBL mixing, or transport.  We also need to
+!  call CONVERT_UNITS after these routines to make the inverse conversion
+!  from [v/v] to [kg].
+
 ! !REVISION HISTORY: 
 !  15 Jun 1998 - R. Yantosca - Initial version
 !  (1 ) CONVERT_UNITS is written in Fixed-Form Fortran 90.
@@ -1784,18 +1751,6 @@
 
       !=================================================================
       ! CONVERT_UNITS begins here!
-      !
-      ! Most of the GEOS-CHEM subroutines require the tracer array 
-      ! STT to be in units of [kg].  However, the cloud convection 
-      ! (NFCLDMX), boundaryk layer mixing (TURBDAY), diffusion (DIFFUSE), 
-      ! and transport (TPCORE) routines require STT to be in volume 
-      ! mixing ratio [v/v].  
-      !
-      ! Therefore, before calling NFCLDMX, TURBDAY, DIFFUSE, or TPCORE, 
-      ! call subroutine CONVERT_UNITS to convert STT from [kg] to [v/v].  
-      !
-      ! Also call CONVERT_UNITS again after calling NFCLDMX, TURBDAY, 
-      ! DIFFUSE, or TPCORE to convert back from [v/v] to [kg].  
       !=================================================================
       SELECT CASE ( IFLAG )
 
@@ -1968,192 +1923,5 @@
 #endif
 
       END SUBROUTINE COPY_I3_I6_FIELDS
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: init_dao_derived
-!
-! !DESCRIPTION: Subroutine INIT\_DAO\_DERIVED allocates memory for "derived"
-!  fields (i.e. met quantities that are computed from the fields that are
-!  read in from disk.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE INIT_DAO_DERIVED
-!
-! !USES:
-!
-      USE ERROR_MOD,  ONLY : ALLOC_ERR
-      USE TRACER_MOD, ONLY : ITS_AN_AEROSOL_SIM, ITS_A_FULLCHEM_SIM
-!
-! !REMARKS:
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%% NOTE: These fields are now deprecated.  We will move these into  %%%
-!  %%% Meteorology State object (State_Met) at a later time.            %%%
-!  %%% (bmy, 11/20/12)
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!
-! !REVISION HISTORY:
-!  06 Feb 2012 - R. Yantosca - Split off init from routine INIT_DAO
-!  24 Feb 2012 - M. Payer    - Add SUNCOS_MID_5hr for PARANOX
-!  27 Nov 2012 - R. Yantosca - Removed obsolete AIRDEN_FULLGRID, T_FULLGRID
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: AS
-
-      !=================================================================
-      ! Derived fields
-      !=================================================================
-
-      ALLOCATE( SUNCOS( MAXIJ ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUNCOS' )
-      SUNCOS = 0d0
-
-      ALLOCATE( SUNCOS_MID( MAXIJ ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUNCOS_MID' )
-      SUNCOS_MID = 0d0
-
-      ALLOCATE( SUNCOS_MID_5hr( MAXIJ ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUNCOS_MID_5hr' )
-      SUNCOS_MID_5hr = 0d0
-
-      END SUBROUTINE INIT_DAO_DERIVED
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: init_dao
-!
-! !DESCRIPTION: Subroutine INIT\_DAO allocates memory for all allocatable 
-!  module arrays. 
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE INIT_DAO
-!
-! !REVISION HISTORY: 
-!  26 Jun 2000 - R. Yantosca - Initial version
-!  (1 ) Now allocate AVGW for either NSRCX == 3 or NSRCX == 5 (bmy, 9/24/01)
-!  (2 ) Removed obsolete code from 9/01 (bmy, 10/23/01)
-!  (3 ) Add PSC2 array for TPCORE mixing ratio fix.   (bmy, 3/27/02)
-!  (4 ) Elimintated PS, PSC arrays for floating-pressure fix.
-!        (dsa, bdf, bmy, 8/20/02)
-!  (5 ) Added AD, BXHEIGHT, T to "dao_mod.f" as allocatable arrays, to remove
-!        historical baggage and centralize variables.  Also remove GEOS_2 
-!        flag from C-preprocessor statements.  Also allocate RH array
-!        but only if we are doing a sulfate simulation.  Now references
-!        ALLOC_ERR from "error_mod.f" (bmy, 10/15/02)
-!  (6 ) Now allocate PHIS array (bmy, 3/11/03)
-!  (7 ) Now allocate SUNCOSB array for SMVGEAR II.  Also removed KZZ array,
-!        that is now obsolete. (bdf, bmy, 4/28/03)
-!  (8 ) Now order all arrays in alphabetical order.  Also added new fields
-!        for GEOS-4/fvDAS: HKBETA, HKETA, ZMEU, ZMMD, ZMMU, TSKIN, PARDF,
-!        and PARDR. (bmy, 6/25/03)
-!  (9 ) Now allocate CLDFRC, RADLWG, RADSWG, SNOW arrays.  USTAR, CLDFRC,
-!        and Z0 and RADSWG are now 2-D arrays. (bmy, 12/9/03)
-!  (10) Allocate RADLWG and SNOW for both GEOS-3 & GEOS-4 (bmy, 4/2/04)
-!  (11) Now reference inquiry functions from "tracer_mod.f".  Now reference
-!        LWETD, LDRYD, LCHEM from "logical_mod.f".  Now allocate RH regardless
-!        of simulation. (bmy, 7/20/04)
-!  (12) Now also allocate AVGW for offline aerosol simulations (bmy, 9/27/04)
-!  (13) Now modified for GCAP met fields.  Removed references to CO-OH param 
-!        simulation.  Now allocate AVGW only for fullchem or offline aerosol
-!        simulations. (bmy, 6/24/05)
-!  (14) Now allocate SNOW and GWETTOP for GCAP (bmy, 8/17/05)
-!  (15) Now also add TSKIN for GEOS-3 (bmy, 10/20/05)
-!  (16) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!  (17) Reorganized for GEOS-5 met fields (bmy, 1/17/07)
-!  (18) Bug fix: should be CMFMC=0 after allocating CMFMC (jaf, bmy, 6/11/08)
-!  (19) Remove obsolete SUNCOSB array (bmy, 4/28/10)
-!  16 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  18 Aug 2010 - R. Yantosca - Now allocate met fields for MERRA
-!  20 Aug 2010 - R. Yantosca - Bug fix, now allocate REEVAPCN
-!  01 Feb 2012 - R. Yantosca - Now allocate met field arrays for GEOS-5.7.x
-!  06 Feb 2012 - R. Yantosca - Now split off array initializations into
-!                              separate routines, for clarity
-!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: AS
-
-      !=================================================================
-      ! INIT_DAO begins here!
-      !=================================================================
-
-      ! Initialize derived fields (used by all met data types)
-      CALL INIT_DAO_DERIVED()
-
-      END SUBROUTINE INIT_DAO
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: cleanup_dao
-!
-! !DESCRIPTION: Subroutine CLEANUP\_DAO deallocates all met field arrays. 
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE CLEANUP_DAO
-! 
-! !REVISION HISTORY: 
-!  26 Jun 2000 - R. Yantosca - Initial version
-!  (1 ) Now deallocate SLP met field for GEOS-3 (bmy, 10/10/00)
-!  (2 ) Now deallocate OPTDEP met field for GEOS-3 (bmy, 8/15/01)
-!  (3 ) Now deallocate AVGW (bmy, 9/24/01)
-!  (4 ) Remove TAUCLD deallocation -- it's obsolete (bmy, 10/23/01)
-!  (5 ) Add call to deallocate PSC2 array (bmy, 3/27/02)
-!  (6 ) Elimintated PS, PSC arrays for floating-pressure fix.
-!        (dsa, bdf, bmy, 8/20/02)
-!  (7 ) Now deallocate AD, BXHEIGHT, and T arrays (bmy, 9/18/02)
-!  (8 ) Now deallocate PHIS array (bmy, 3/11/03)
-!  (9 ) Now deallocate SUNCOSB array.  Remove reference to KZZ, since
-!        that is now obsolete. (bmy, 4/28/03)
-!  (10) Now list all arrays in order.  Now also deallocate new arrays
-!        for GEOS-4/fvDAS. (bmy, 6/25/03)
-!  (11) Now deallocate CLDFRC, RADLWG, RADSWG, SNOW arrays (bmy, 12/9/03)
-!  (12) Now deallocate GCAP met fields (bmy, 5/25/05)
-!  (13) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!  (14) Deallocate additional arrays for GEOS-5 (bmy, 1/17/07)
-!  (15) Remove obsolete SUNCOSB (bmy, 4/28/10)
-!  16 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  18 Aug 2010 - R. Yantosca - Now deallocate MERRA met field arrays
-!  05 Oct 2011 - R. Yantosca - Now deallocate SUNCOS_MID
-!  06 Feb 2012 - R. Yantosca - Cosmetic changes
-!  24 Feb 2012 - R. Yantosca - Now deallocate SUNCOS_MID_5hr; cosmetic changes
-!  21 Nov 2012 - R. Yantosca - Remove most arrays, these are now in State_Met
-!  27 Nov 2012 - R. Yantosca - Removed obsolete AIRDEN_FULLGRID, T_FULLGRID
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      !=================================================================
-      ! CLEANUP_DAO begins here!
-      !=================================================================
-      IF ( ALLOCATED( SUNCOS          ) ) DEALLOCATE( SUNCOS          )     
-      IF ( ALLOCATED( SUNCOS_MID      ) ) DEALLOCATE( SUNCOS_MID      )
-      IF ( ALLOCATED( SUNCOS_MID_5hr  ) ) DEALLOCATE( SUNCOS_MID_5hr  )
-
-      END SUBROUTINE CLEANUP_DAO
 !EOC
       END MODULE DAO_MOD

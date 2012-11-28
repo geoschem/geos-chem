@@ -28,7 +28,6 @@
       USE CO2_MOD,                 ONLY : CLEANUP_CO2
       USE COMODE_MOD,              ONLY : CLEANUP_COMODE
       USE GCKPP_COMODE_MOD,        ONLY : CLEANUP_GCKPP_COMODE
-      USE DAO_MOD,                 ONLY : CLEANUP_DAO
       USE DIAG_MOD,                ONLY : CLEANUP_DIAG
       USE DIAG03_MOD,              ONLY : CLEANUP_DIAG03
       USE DIAG04_MOD,              ONLY : CLEANUP_DIAG04
@@ -208,6 +207,8 @@
 !                              CLEANUP_GRID
 !  19 Nov 2012 - R. Yantosca - Add cleanup calls for modules in Headers;
 !                              these were omitted during development
+!  28 Nov 2012 - R. Yantosca - Remove reference to CLEANUP_DAO; we have now
+!                              removed all allocatable arrays from dao_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -234,7 +235,6 @@
       CALL CLEANUP_CO2
       CALL CLEANUP_COMODE
       CALL CLEANUP_GCKPP_COMODE
-      CALL CLEANUP_DAO
       CALL CLEANUP_DIAG
       CALL CLEANUP_DIAG03
       CALL CLEANUP_DIAG04

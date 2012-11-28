@@ -31,7 +31,6 @@
       USE COMODE_MOD,           ONLY : TAREA
       USE COMODE_LOOP_MOD
       USE DAO_MOD,              ONLY : MAKE_AVGW
-      USE DAO_MOD,              ONLY : SUNCOS_MID
       USE DIAG_OH_MOD,          ONLY : DO_DIAG_OH
       USE DIAG_PL_MOD,          ONLY : DO_DIAG_PL
       USE DUST_MOD,             ONLY : RDUST_ONLINE

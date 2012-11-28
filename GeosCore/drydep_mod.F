@@ -351,6 +351,8 @@
 !                              running with the traditional driver main.F
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  28 Nov 2012 - R. Yantosca - Now make SUNCOS_MID a local array of size
+!                              MAXIJ, populated from State_Met%SUNCOSmid
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -375,6 +377,10 @@
       REAL*8        :: DVEL  (MAXIJ,MAXDEP)   ! Drydep velocities [m/s]
       REAL*8        :: PRESSU(MAXIJ       )   ! Local surface pressure [Pa]
       REAL*8        :: W10   (MAXIJ       )   ! 10m windspeed [m/s]
+
+      ! Now make SUNCOS_MID a local array (bmy, 11/28/12)
+      REAL*8        :: SUNCOS_MID(MAXIJ   )   ! COS(SZA) @ midpoint of the
+                                              !  current chemistry timestep
 
       ! Dimension AZO for GCAP or GEOS met fields (swu, bmy, 5/25/05)
 #if   defined( GCAP )
@@ -409,8 +415,9 @@
       ! Call METERO to obtain meterological fields (all 1-D arrays)
       ! Added sfc pressure as PRESSU and 10m windspeed as W10 
       !  (jaegle 5/11/11, mpayer 1/10/12)
-      CALL METERO( State_Met,  CZ1, TC0,   OBK, CFRAC,  RADIAT, 
-     &             AZO, USTAR, ZH,  LSNOW, RHB, PRESSU, W10 )
+      CALL METERO( State_Met, CZ1,    TC0,   OBK,       CFRAC,  
+     &             RADIAT,    AZO,    USTAR, ZH,        LSNOW, 
+     &             RHB,       PRESSU, W10,   SUNCOS_MID        )
 
       !=================================================================
       ! Call DEPVEL to compute dry deposition velocities [m/s]
@@ -584,8 +591,9 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE METERO( State_Met, CZ1, TC0,  OBK,  CFRAC,  RADIAT, 
-     &                   AZO, USTR, ZH,  LSNOW, RHB, PRESSU, W10 )
+      SUBROUTINE METERO( State_Met, CZ1,    TC0,  OBK,       CFRAC,  
+     &                   RADIAT,    AZO,    USTR, ZH,        LSNOW, 
+     &                   RHB,       PRESSU, W10,  SUNCOS_MID        )
 !
 ! !USES:
 !
@@ -608,6 +616,8 @@
       REAL*8,  INTENT(OUT) :: ZH    (MAXIJ)  ! PBL height [m]
       REAL*8,  INTENT(OUT) :: PRESSU(MAXIJ)  ! Local surface pressure [Pa]
       REAL*8,  INTENT(OUT) :: W10   (MAXIJ)  ! 10 meter windspeed [m/s]
+      REAL*8,  INTENT(OUT) :: SUNCOS_MID(MAXIJ)  ! COS(SZA) @ midpt of current
+                                                 !  chemistry timestep
 
       ! Dimension AZO for GCAP or GEOS met fields (swu, bmy, 5/25/05)
 #if   defined( GCAP )
@@ -617,6 +627,9 @@
 #endif
 !
 ! !REMARKS:
+!  NOTE: We save into arrays of dimension MAXIJ=IIPAR*JJPAR for compatibility
+!  with the legacy drydep routine DEPVEL.
+!                                                                             .
 !  References (see full citations above):
 !  ============================================================================
 !  (1 ) Wesely, M. L., 1989. 
@@ -651,6 +664,8 @@
 !  10 Jan 2012 - M. Payer    - Added local surface pressure
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  28 Nov 2012 - R. Yantosca - Add SUNCOS_MID to the argument list and 
+!                              populate that with State_Met%SUNCOSmid
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -738,6 +753,10 @@
          W10(IJLOOP)    =  SQRT( SFCWINDSQR( I, J,
      &                                       State_Met%U10M,
      &                                       State_Met%V10M ) )
+
+         ! Cosine of solar zenith angle at midpoint 
+         ! of the current chemistry timestep.
+         SUNCOS_MID(IJLOOP) = State_Met%SUNCOSmid(I,J)
 
       ENDDO
       ENDDO

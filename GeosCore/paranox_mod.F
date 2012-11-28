@@ -163,7 +163,6 @@
 !
 ! !USES:
 !
-      USE DAO_MOD,            ONLY : SUNCOS_MID,  SUNCOS_MID_5hr
       USE TRACERID_MOD,       ONLY : IDO3, IDTOX, IDTCO
       USE TRACER_MOD,         ONLY : STT,  TCVV
       USE TIME_MOD,           ONLY : GET_LOCALTIME
@@ -189,6 +188,8 @@
 !  15 Feb 2012 - M. Payer      - Add error trap to ensure 0 < fracnox < 1.
 !  09 Nov 2012 - M. Payer      - Replaced all met field arrays with State_Met
 !                                derived type object
+!  28 Nov 2012 - R. Yantosca   - Replace SUNCOS_MID w/ State_Met%SUNCOSmid
+!  28 Nov 2012 - R. Yantosca   - Replace SUNCOS_MID_5hr w/ State_Met%SUNCOSmid5
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -276,11 +277,13 @@
 !      IJLOOP = ( (J-1) * IIPAR ) + I
 !      PRINT*,"Local Time: ",GET_LOCALTIME(I,1,1)
 !      PRINT*,"Solar Zenith Angle at this location: ", 
-!     $            ASIND(SUNCOS_MID(IJLOOP))
+!     $            ASIND(State_Met%SUNCOSmid(I,J))
 !      IJLOOP = ( (64-1) * IIPAR ) + 32
 !      PRINT*,"Local USA time: ", GET_LOCALTIME(32,1,1)
-!      PRINT*,"Solar Zenith Angle at USA: ", ASIND(SUNCOS_MID(IJLOOP))
-!      PRINT*,"Solar Zenith Angle at USA - 5: ",ASIND(SUNCOS_MID_5hr(IJLOOP))
+!      PRINT*,"Solar Zenith Angle at USA: ", 
+!    &   ASIND(State_Met%SUNCOSmid(I,J))
+!      PRINT*,"Solar Zenith Angle at USA - 5: ",
+!    &   ASIND(State_Met%SUNCOSmid5(I,J))
       
       ! Set the variables
       IJLOOP       = ( (J-1) * IIPAR ) + I 
@@ -289,8 +292,8 @@
       var_array(3) = STT(I,J,1,IDTOX)    /            ! [O3] in ppbv 
      $               State_Met%AD(I,J,1) *
      $               TCVV(IDTOX)         * 1.E9   
-      var_array(4) = ASIND(SUNCOS_MID_5hr(IJLOOP))    ! alfa0
-      var_array(5) = ASIND(SUNCOS_MID(IJLOOP))        ! alfa5
+      var_array(4) = ASIND(State_Met%SUNCOSmid5(I,J)) ! alfa0
+      var_array(5) = ASIND(State_Met%SUNCOSmid(I,J))  ! alfa5
       var_array(6) = jvalues(I,J,2) / jvalues(I,J,1)  ! J(O1D)/J(NO2)
       var_array(7) = STT(I,J,1,IDTCO)    /            ! [CO] in ppbv
      $               State_Met%AD(I,J,1) *
@@ -561,7 +564,6 @@
 !
 ! !USES:
 !
-      USE DAO_MOD,            ONLY : SUNCOS_MID,  SUNCOS_MID_5hr
       USE TIME_MOD,           ONLY : GET_LOCALTIME
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -587,6 +589,8 @@
 !  15 Feb 2012 - M. Payer      - Add error trap to ensure 0 < fracnox < 1.
 !  09 Nov 2012 - M. Payer      - Replaced all met field arrays with State_Met
 !                                derived type object
+!  28 Nov 2012 - R. Yantosca   - Replace SUNCOS_MID w/ State_Met%SUNCOSmid
+!  28 Nov 2012 - R. Yantosca   - Replace SUNCOS_MID_5hr w/ State_Met%SUNCOSmid5
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -680,19 +684,21 @@
 !      IJLOOP = ( (J-1) * IIPAR ) + I
 !      PRINT*,"Local Time: ",GET_LOCALTIME(I,1,1)
 !      PRINT*,"Solar Zenith Angle at this location: ", 
-!     $            ASIND(SUNCOS_MID(IJLOOP))
+!     $            ASIND(State_Met%SUNCOSmid(I,J))
 !      IJLOOP = ( (64-1) * IIPAR ) + 32
 !      PRINT*,"Local USA time: ", GET_LOCALTIME(32,1,1)
-!      PRINT*,"Solar Zenith Angle at USA: ", ASIND(SUNCOS_MID(IJLOOP))
-!      PRINT*,"Solar Zenith Angle at USA - 5: ",ASIND(SUNCOS_MID_5hr(IJLOOP))
+!      PRINT*,"Solar Zenith Angle at USA: ", 
+!     &  ASIND(State_Met%SUNCOSmid(I,J))
+!      PRINT*,"Solar Zenith Angle at USA - 5: ",
+!     &  ASIND(State_Met%SUNCOSmid5(I,J))
       
       ! Set the variables
       IJLOOP       = ( (J-1) * IIPAR ) + I
       var_array(1) = State_Met%TS(I,J)                ! Temperature
       var_array(2) = jvalues(I,J,1)                   ! J(NO2)
       var_array(3) = o3 / dens * 1.E9                 ! [O3] in ppbv
-      var_array(4) = ASIND(SUNCOS_MID_5hr(IJLOOP))    ! alfa0
-      var_array(5) = ASIND(SUNCOS_MID(IJLOOP))        ! alfa5
+      var_array(4) = ASIND(State_Met%SUNCOSmid5(I,J)) ! alfa0
+      var_array(5) = ASIND(State_Met%SUNCOSmid(I,J))  ! alfa5
       var_array(6) = jvalues(I,J,2) / jvalues(I,J,1)  ! J(O1D)/J(NO2)
       var_array(7) = (no + no2) / dens * 1.E12        ! [NOx] in pptv
       
