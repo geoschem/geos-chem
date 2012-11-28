@@ -129,6 +129,7 @@
 !  08 Feb 2012 - R. Yantosca   - Add modifications for GEOS-5.7.2 met
 !  01 Mar 2012 - R. Yantosca   - Now reference new grid_mod.F90
 !  13 Mar 2012 - M. Cooper     - Changed regrid algorithm to map_a2a
+!  28 Nov 2012 - R. Yantosca   - Use SUNCOS fields from the State_Met object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1001,7 +1002,6 @@
       USE CMN_GCTM_MOD         
       USE CMN_DIAG_MOD         
       USE CMN_SIZE_MOD         
-      USE DAO_MOD,            ONLY : SUNCOS
       USE DIAG_MOD,           ONLY : AD05
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GIGC_ErrCode_Mod
@@ -1070,6 +1070,7 @@
 !  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1089,7 +1090,7 @@
 !
       ! Scalars
       LOGICAL           :: IS_FULLCHEM
-      INTEGER           :: I,   J,    L,      IJLOOP
+      INTEGER           :: I,   J,    L
       REAL*8            :: TK,  O2,   RK1,    RK2,    RK3,   F  
       REAL*8            :: DMS, DMS0, DMS_OH, DTCHEM, XOH,   XN3 
       REAL*8            :: XX,  OH,   OH0,    XNO3,   XNO30, LOH
@@ -1125,7 +1126,7 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, IJLOOP, J, L, TK, O2, DMS0, OH, XNO3, RK1, RK2 )
+!$OMP+PRIVATE( I, J, L, TK, O2, DMS0,OH, XNO3, RK1, RK2 )
 !$OMP+PRIVATE( RK3, DMS_OH, DMS, OH0, XNO30, XOH, XN3, XX, LOH, LNO3  )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLPAR
@@ -1135,16 +1136,13 @@
          ! Skip stratospheric boxes
          IF ( ITS_IN_THE_STRAT( I, J, L, State_Met ) ) CYCLE
 
-         ! IJLOOP is the 1-D grid box index for SUNCOS
-         IJLOOP = ( (J-1) * IIPAR ) + I
-
          ! Temperature [K]
          TK     = State_Met%T(I,J,L)
 
          ! Get O2 [molec/cm3], DMS [v/v], OH [molec/cm3], NO3 [molec/cm3]
          O2     = State_Met%AIRDEN(L,I,J) * f * 0.21d0
          DMS0   = STT(I,J,L,IDTDMS)
-         OH     = GET_OH( I, J, L )
+         OH     = GET_OH(  I, J, L, State_Met )
          XNO3   = GET_NO3( I, J, L, State_Met )
 
          !==============================================================
@@ -1167,7 +1165,7 @@
          !==============================================================
          ! (2) DMS + NO3 (only happens at night):  
          !==============================================================
-         IF ( SUNCOS(IJLOOP) <= 0d0 ) THEN
+         IF ( State_Met%SUNCOS(I,J) <= 0d0 ) THEN
             RK3 = 1.9d-13 * EXP( 500.d0 / TK ) * XNO3
          ENDIF
 
@@ -1311,7 +1309,6 @@
       USE CMN_FJ_MOD,         ONLY : JPMAX, JPPJ
       USE CMN_DIAG_MOD
       USE CMN_GCTM_MOD
-      USE DAO_MOD,            ONLY : SUNCOS
       USE DIAG_MOD,           ONLY : AD44 
       USE DIRECTORY_MOD,      ONLY : DATA_DIR
       USE DRYDEP_MOD,         ONLY : DEPSAV
@@ -1374,6 +1371,7 @@
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  26 Nov 2012 - R. Yantosca - Dimension ND44_TMP array with LLPAR, not LLTROP
+!  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1485,7 +1483,8 @@
          H2O20 = STT(I,J,L,IDTH2O2)
 
          ! Loss frequenty due to OH oxidation [s-1]
-         KOH   = A * EXP( -160.d0 / State_Met%T(I,J,L) ) * GET_OH(I,J,L)
+         KOH   = A * EXP( -160.d0 / State_Met%T(I,J,L) ) * 
+     &           GET_OH( I, J, L, State_Met )
 
          ! H2O2 drydep frequency [1/s].  Account for the fraction
          ! of grid box (I,J,L) that is located beneath the PBL top.
@@ -1501,7 +1500,7 @@
          ! solar zenith angle normalized by maximum solar zenith angle 
          ! because the archived JH2O2 is for local noon time
          IF ( COSZM(I,J) > 0.d0 ) THEN
-            PHOTJ = JH2O2(I,J,L) * SUNCOS(JLOOP) / COSZM(I,J)
+            PHOTJ = JH2O2(I,J,L) * State_Met%SUNCOS(I,J) / COSZM(I,J)
             PHOTJ = MAX( PHOTJ, 0d0 )
          ELSE
             PHOTJ = 0d0
@@ -1775,7 +1774,8 @@
             M   = State_Met%AIRDEN(L,I,J) * F
             KK  = K0 * M / Ki
             F1  = ( 1.d0 + ( LOG10( KK ) )**2 )**( -1 )
-            RK1 = ( K0 * M / ( 1.d0 + KK ) ) * 0.6d0**F1 * GET_OH(I,J,L)
+            RK1 = ( K0 * M / ( 1.d0 + KK ) ) * 0.6d0**F1 * 
+     &            GET_OH( I, J, L, State_Met )
 
          ELSE 
 
@@ -6099,24 +6099,24 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_OH( I, J, L ) RESULT( OH_MOLEC_CM3 )
+      FUNCTION GET_OH( I, J, L, State_Met ) RESULT( OH_MOLEC_CM3 )
 !
 ! !USES:
 !
-      USE COMODE_MOD,    ONLY : CSPEC, JLOP
-      USE DAO_MOD,       ONLY : SUNCOS
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE GLOBAL_OH_MOD, ONLY : OH
-      USE TIME_MOD,      ONLY : GET_TS_CHEM
-      USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM
-      USE TRACERID_MOD,  ONLY : IDOH
-
-      USE CMN_SIZE_MOD        ! Size parameters
+      USE CMN_SIZE_MOD
+      USE COMODE_MOD,         ONLY : CSPEC, JLOP
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GLOBAL_OH_MOD,      ONLY : OH
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
+      USE TRACER_MOD,         ONLY : ITS_AN_AEROSOL_SIM
+      USE TRACERID_MOD,       ONLY : IDOH
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: I, J, L ! Indices for lon, lat, vertical level
-
+      INTEGER,        INTENT(IN) :: I, J, L     ! Lon, lat, level indices
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !REVISION HISTORY: 
 !  (1 ) We assume SETTRACE has been called to define IDOH (bmy, 11/1/02)
@@ -6125,6 +6125,8 @@
 !        "tracer_mod.f".  Also replace IJSURF w/ an analytic function. 
 !        (bmy, 7/20/04)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
+!  28 Nov 2012 - R. Yantosca - Add State_Met to argument list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6165,12 +6167,12 @@
          JLOOP = ( (J-1) * IIPAR ) + I
 
          ! Test for sunlight...
-         IF ( SUNCOS(JLOOP) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
+         IF ( State_Met%SUNCOS(I,J) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
 
             ! Impose a diurnal variation on OH during the day
-            OH_MOLEC_CM3 = OH(I,J,L)                      *           
-     &                     ( SUNCOS(JLOOP) / TCOSZ(I,J) ) *
-     &                     ( 1440d0        / GET_TS_CHEM() )
+            OH_MOLEC_CM3 = OH(I,J,L)                              *           
+     &                     ( State_Met%SUNCOS(I,J) / TCOSZ(I,J) ) *
+     &                     ( 1440d0                / GET_TS_CHEM() )
 
             ! Make sure OH is not negative
             OH_MOLEC_CM3 = MAX( OH_MOLEC_CM3, 0d0 )
@@ -6266,7 +6268,6 @@
 ! !USES:
 !
       USE COMODE_MOD,         ONLY : CSPEC, JLOP
-      USE DAO_MOD,            ONLY : SUNCOS
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GLOBAL_NO3_MOD,     ONLY : NO3
@@ -6291,6 +6292,7 @@
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6355,7 +6357,7 @@
          JLOOP = ( (J-1) * IIPAR ) + I
 
          ! Test if daylight
-         IF ( SUNCOS(JLOOP) > 0d0 ) THEN
+         IF ( State_Met%SUNCOS(I,J) > 0d0 ) THEN
 
             ! NO3 goes to zero during the day
             NO3_MOLEC_CM3 = 0d0
@@ -8786,7 +8788,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE      :: IS_INIT = .FALSE.
-      INTEGER            :: AS, I, J, N, IJLOOP
+      INTEGER            :: AS, I, J, N
 
       !=================================================================
       ! INIT_SULFATE begins here!

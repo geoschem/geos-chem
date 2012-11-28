@@ -479,7 +479,7 @@
 !
 ! !USES:
 !
-      USE DAO_MOD,            ONLY : SUNCOS, IS_LAND
+      USE DAO_MOD,            ONLY : IS_LAND
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2
       USE MODIS_LAI_MOD,      ONLY : ISOLAI  => GC_LAI
@@ -535,6 +535,7 @@
 !  11 Apr 2012 - R. Yantosca - Replace lai_mod.F with modis_lai_mod.F90
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -628,7 +629,7 @@
 
             ! For very low and below-horizon solar zenith angles, use
             ! same attenuation as for SZA=85 degrees
-            SUNCOSVALUE = MAX( SUNCOS(JLOOP), 0.09D0 )
+            SUNCOSVALUE = MAX( State_Met%SUNCOS(I,J), 0.09D0 )
 
             ! fraction of light reaching the surface is
             ! attenuated based on LAI
@@ -762,7 +763,6 @@
 !
 ! !USES:
 !
-      USE DAO_MOD,            ONLY : SUNCOS
       USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_EMIS
@@ -795,6 +795,7 @@
 !  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -834,7 +835,7 @@
          JLOOP = ( (J-1) * IIPAR ) + I
 
          ! If the sun is set, then no emissions, go to next box
-         IF (SUNCOS(JLOOP)<0D0) CYCLE 
+         IF ( State_Met%SUNCOS(I,J) < 0D0 ) CYCLE 
 
             ! Decrease residence time to 1 week when T > -3C
             ! Update to Holmes et al. 2010 version (jaf, 4/11/11)

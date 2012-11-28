@@ -175,6 +175,8 @@
 !  (27) Modified to include GFED3 (psk, 1/5/11)
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  30 Jul 2012 - R. Yantosca - Modifications for grid-independence
+!  28 Nov 2012 - R. Yantosca - Replace SUNCOS array with State_Met%SUNCOS and
+!                              SUNCOS_MID array with State_Met%SUNCOSmid
 !******************************************************************************
 !
       USE LOGICAL_MOD,    ONLY : LNLPBL ! (Lin,03/31/09)
@@ -3270,7 +3272,7 @@ c
       DTCHEM  = GET_TS_CHEM() * 60d0 
 
       ! Get offline OH, NO3, O3 concentrations [molec/cm3]
-      OHMC    = GET_OH(  I, J, L ) 
+      OHMC    = GET_OH(  I, J, L, State_Met ) 
       TTNO3   = GET_NO3( I, J, L, State_Met )
       TTO3    = GET_O3(  I, J, L, State_Met ) 
 
@@ -4446,12 +4448,12 @@ c
 !  08 Dec 2011 - M. Payer    - Remove GEIA biogenic emissions option
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  28 Nov 2012 - R. Yantosca - Replace SUNCOS_MID with State_Met%SUNCOSmid
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,          ONLY : GET_NAME_EXT_2D,  GET_RES_EXT
       USE BPCH2_MOD,          ONLY : GET_TAU0,         READ_BPCH2
-      USE DAO_MOD,            ONLY : SUNCOS_MID
       USE DIRECTORY_MOD,      ONLY : DATA_DIR
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE LOGICAL_MOD,        ONLY : LMEGANMONO,       LSOA
@@ -4516,7 +4518,7 @@ c
             ! ** MEGAN v2.1 **
             ! Cosine of solar zenith angle   (mpb,2009) 
             ! Diffuse and direct PAR         (mpb,2009)
-            SC   = SUNCOS_MID(IJLOOP)   
+            SC   = State_Met%SUNCOSmid(I,J)
             PDR  = State_Met%PARDR(I,J)
             PDF  = State_Met%PARDF(I,J)
             ! +++++++++++++++++++++++++++++++++++++++++
@@ -4595,7 +4597,7 @@ c
             ! ** MEGAN v2.1 **
             ! Cosine of solar zenith angle   (mpb,2009) 
             ! Diffuse and direct PAR         (mpb,2009)
-            SC   = SUNCOS_MID(IJLOOP)   
+            SC   = State_Met%SUNCOSmid(I,J)
             PDR  = State_Met%PARDR(I,J)
             PDF  = State_Met%PARDF(I,J)
             ! +++++++++++++++++++++++++++++++++++++++++
@@ -4609,10 +4611,11 @@ c
             !---------------------------------------------------
             ! Impose a diurnal variation on NVOC during the day
             !---------------------------------------------------
-            IF ( SUNCOS_MID(IJLOOP) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
+            IF ( State_Met%SUNCOSmid(I,J) > 0d0  .and. 
+     &           TCOSZ(I,J)               > 0d0 ) THEN
                DIUR_ORVC(I,J) = GEIA_ORVC(I,J)*
-     &                          ( SUNCOS_MID(IJLOOP) / TCOSZ(I,J) ) *
-     &                          ( 1440d0           / GET_TS_CHEM() )
+     &              ( State_Met%SUNCOSmid(I,J) / TCOSZ(I,J) ) *
+     &              ( 1440d0                   / GET_TS_CHEM() )
 
                ! Make sure ORVC is not negative
                DIUR_ORVC(I,J) = MAX( DIUR_ORVC(I,J), 0d0 )
@@ -5896,7 +5899,7 @@ c
 
 !------------------------------------------------------------------------------
 
-      FUNCTION GET_OH( I, J, L ) RESULT( OH_MOLEC_CM3 )
+      FUNCTION GET_OH( I, J, L, State_Met ) RESULT( OH_MOLEC_CM3 )
 !
 !******************************************************************************
 !  Function GET_OH returns OH from SMVGEAR's CSPEC array (for coupled runs)
@@ -5911,21 +5914,24 @@ c
 !  (1 ) We assume SETTRACE has been called to define IDOH (bmy, 11/1/02)
 !  (2 ) Now use function GET_TS_CHEM from "time_mod.f" (bmy, 3/27/03)
 !  (3 ) Now reference inquiry functions from "tracer_mod.f" (bmy, 7/20/04)
+!  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
+!  28 Nov 2012 - R. Yantosca - Add State_Met to the argument list
 !******************************************************************************
 !
       ! References to F90 modules
-      USE COMODE_MOD,    ONLY : CSPEC, JLOP
-      USE DAO_MOD,       ONLY : SUNCOS
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE GLOBAL_OH_MOD, ONLY : OH
-      USE TIME_MOD,      ONLY : GET_TS_CHEM
-      USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM
-      USE TRACERID_MOD,  ONLY : IDOH
-
-      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_SIZE_MOD
+      USE COMODE_MOD,         ONLY : CSPEC, JLOP
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GLOBAL_OH_MOD,      ONLY : OH
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
+      USE TRACER_MOD,         ONLY : ITS_AN_AEROSOL_SIM
+      USE TRACERID_MOD,       ONLY : IDOH
 
       ! Arguments
-      INTEGER, INTENT(IN) :: I, J, L
+      INTEGER,        INTENT(IN) :: I, J, L
+      TYPE(MetState), INTENT(IN) :: State_Met
 
       ! Local variables
       INTEGER             :: JLOOP
@@ -5961,12 +5967,12 @@ c
          JLOOP = ( (J-1) * IIPAR ) + I
 
          ! Test for sunlight...
-         IF ( SUNCOS(JLOOP) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
+         IF ( State_Met%SUNCOS(I,J) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
 
             ! Impose a diurnal variation on OH during the day
-            OH_MOLEC_CM3 = OH(I,J,L)                      *           
-     &                     ( SUNCOS(JLOOP) / TCOSZ(I,J) ) *
-     &                     ( 1440d0        / GET_TS_CHEM() )
+            OH_MOLEC_CM3 = OH(I,J,L)                                *           
+     &                     ( State_Met%SUNCOS(I,J) / TCOSZ(I,J) )   *
+     &                     ( 1440d0                / GET_TS_CHEM() )
 
             ! Make sure OH is not negative
             OH_MOLEC_CM3 = MAX( OH_MOLEC_CM3, 0d0 )
@@ -6011,11 +6017,11 @@ c
 !  (2 ) Now reference inquiry functions from "tracer_mod.f" (bmy, 7/20/04)
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
 !******************************************************************************
 !
       ! References to F90 modules
       USE COMODE_MOD,         ONLY : CSPEC, JLOP
-      USE DAO_MOD,            ONLY : SUNCOS
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GLOBAL_NO3_MOD,     ONLY : NO3
@@ -6088,7 +6094,7 @@ c
          JLOOP = ( (J-1) * IIPAR ) + I
 
          ! Test if daylight
-         IF ( SUNCOS(JLOOP) > 0d0 ) THEN
+         IF ( State_Met%SUNCOS(I,J) > 0d0 ) THEN
 
             ! NO3 goes to zero during the day
             NO3_MOLEC_CM3 = 0d0
@@ -6139,11 +6145,11 @@ c
 !  (3 ) Now reference XNUMOLAIR from "tracer_mod.f" (bmy, 10/20/05)
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
 !******************************************************************************
 !
       ! References to F90 modules
       USE COMODE_MOD,         ONLY : CSPEC, JLOP, VOLUME
-      USE DAO_MOD,            ONLY : SUNCOS
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GLOBAL_O3_MOD,      ONLY : O3
@@ -6212,12 +6218,12 @@ c
          JLOOP = ( (J-1) * IIPAR ) + I
 
          ! Test for sunlight...
-         IF ( SUNCOS(JLOOP) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
+         IF ( State_Met%SUNCOS(I,J) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
 
             ! Impose a diurnal variation on OH during the day
-            O3_MOLEC_CM3 = O3_MOLEC_CM3                     *        
-     &                     ( SUNCOS(JLOOP) / TCOSZ(I,J) )   *
-     &                     ( 1440d0        / GET_TS_CHEM() )
+            O3_MOLEC_CM3 = O3_MOLEC_CM3                             *        
+     &                     ( State_Met%SUNCOS(I,J) / TCOSZ(I,J) )   *
+     &                     ( 1440d0                / GET_TS_CHEM() )
 
             ! Make sure OH is not negative
             O3_MOLEC_CM3 = MAX( O3_MOLEC_CM3, 0d0 )

@@ -500,6 +500,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  28 Nov 2012 - R. Yantosca - Now pass State_Met to GET_OH and GET_JNO2
 !******************************************************************************
 !
       ! References to F90 modules
@@ -634,9 +635,9 @@
          F_PBL = GET_FRAC_UNDER_PBLTOP( I, J, L )
 
          ! Monthly mean O3, OH Br concentrations [molec/cm3]
-         C_BR        = GET_BR( I, J, L, C_BRO,    State_Met )
-         C_O3        = GET_O3( I, J, L, State_Met )
-         C_OH        = GET_OH( I, J, L )
+         C_BR        = GET_BR( I, J, L, C_BRO, State_Met )
+         C_O3        = GET_O3( I, J, L,        State_Met )
+         C_OH        = GET_OH( I, J, L,        State_Met )
 
 #if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
@@ -726,7 +727,7 @@
          
          ! Define K for the reduction reaction. 
          IF (LRED_JNO2) THEN
-            K_RED = K_RED_JNO2 * FA * GET_JNO2(I,J,L)
+            K_RED = K_RED_JNO2 * FA * GET_JNO2(I,J,L,State_Met)
 
          ELSE
             ! Include the fraction of 
@@ -3478,7 +3479,7 @@
 
 !------------------------------------------------------------------------------
 
-      FUNCTION GET_OH( I, J, L ) RESULT( OH_MOLEC_CM3 )
+      FUNCTION GET_OH( I, J, L, State_Met ) RESULT( OH_MOLEC_CM3 )
 !
 !******************************************************************************
 !  Function GET_OH returns monthly mean OH and imposes a diurnal variation.
@@ -3489,17 +3490,19 @@
 !  (1-3) I, J, L (INTEGER) : Grid box indices for lon, lat, vertical level
 !
 !  NOTES:
+!  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
+!  28 Nov 2012 - R. Yantosca - Now pass State_Met via the argument list
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD      , ONLY : SUNCOS
-      USE GLOBAL_OH_MOD, ONLY : OH
-      USE TIME_MOD     , ONLY : GET_TS_CHEM
-
-      USE CMN_SIZE_MOD  ! Size parameters
-
+      USE CMN_SIZE_MOD
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GLOBAL_OH_MOD,      ONLY : OH
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+     
       ! Arguments
-      INTEGER, INTENT(IN) :: I, J, L
+      INTEGER,        INTENT(IN) :: I, J, L
+      TYPE(MetState), INTENT(IN) :: State_Met
 
       ! Local variables
       INTEGER             :: JLOOP
@@ -3513,12 +3516,12 @@
       JLOOP = ( (J-1) * IIPAR ) + I
 
       ! Test for sunlight...
-      IF ( SUNCOS(JLOOP) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
+      IF ( State_Met%SUNCOS(I,J) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
 
          ! Impose a diurnal variation on OH during the day
-         OH_MOLEC_CM3 = OH(I,J,L)                      *           
-     &                  ( SUNCOS(JLOOP) / TCOSZ(I,J) ) *
-     &                  ( 1440d0        / GET_TS_CHEM() )
+         OH_MOLEC_CM3 = OH(I,J,L)                                 *           
+     &                  ( State_Met%SUNCOS(I,J) / TCOSZ(I,J)    ) *
+     &                  ( 1440d0                / GET_TS_CHEM() )
 
          ! Make sure OH is not negative
          OH_MOLEC_CM3 = MAX( OH_MOLEC_CM3, 0d0 )
@@ -3556,10 +3559,10 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_LOCALTIME(I,J,L) from time_mod.F90
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,            ONLY : SUNCOS
       USE DAO_MOD,            ONLY : GET_OBK
       USE DAO_MOD,            ONLY : IS_WATER
       USE ERROR_MOD,          ONLY : SAFE_DIV
@@ -3670,7 +3673,7 @@
       JLOOP = ( (J-1) * IIPAR ) + I
 
       IF ( ( LPOLARBR ) .AND. ( FPBL >  0d0   ) .AND.
-     &     ( SUNCOS(JLOOP)           >  0D0   ) .AND. 
+     &     ( State_Met%SUNCOS(I,J)   >  0D0   ) .AND. 
      &     ( State_Met%T(I,J,1)      <= 268D0 ) .AND.
      &     ( State_Met%LWI(I,J)      == 2     ) .AND. 
      &       GET_OBK(I,J,State_Met)  >  0D0   ) THEN
@@ -3703,7 +3706,7 @@
       JLOOP = ( (J-1) * IIPAR ) + I
       
       ! Test for sunlight...
-      IF ( (SUNCOS(JLOOP) > 0d0) .and. (TTDAY(I,J) > 0d0) ) THEN
+      IF ( (State_Met%SUNCOS(I,J) > 0d0) .and. (TTDAY(I,J) > 0d0) ) THEN
       
          ! Use a constant function if daylight is < 2 hours or > 22hours
          IF ( ( TTDAY(I,J) < 120d0  ) .OR. 
@@ -4216,7 +4219,7 @@
 
 !------------------------------------------------------------------------------
 
-      FUNCTION GET_JNO2( I, J, L ) RESULT( JNO2_NOW )
+      FUNCTION GET_JNO2( I, J, L, State_Met ) RESULT( JNO2_NOW )
 !
 !******************************************************************************
 !  Function GET_JNO2 returns monthly mean JNO2 and imposes a diurnal 
@@ -4230,18 +4233,20 @@
 !
 !  NOTES:
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R(I,J,L) from grid_mod.F90
+!  28 Nov 2012 - R. Yantosca - Now pass State_Met via the argument list
+!  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,       ONLY : SUNCOS
-      USE TIME_MOD,      ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR 
-      USE GRID_MOD,      ONLY : GET_YMID_R
-
-      USE CMN_SIZE_MOD  ! Size parameters
-      USE CMN_GCTM_MOD    ! Physical constants
+      USE CMN_GCTM_MOD
+      USE CMN_SIZE_MOD
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR 
+      USE GRID_MOD,           ONLY : GET_YMID_R
 
       ! Arguments
-      INTEGER, INTENT(IN) :: I, J, L
+      INTEGER,        INTENT(IN) :: I, J, L
+      TYPE(MetState), INTENT(IN) :: State_Met
 
       ! Local variables
       INTEGER             :: JLOOP, JDAY
@@ -4257,7 +4262,7 @@
       JLOOP = ( (J-1) * IIPAR ) + I
 
       ! Test for sunlight...
-      IF ( SUNCOS(JLOOP) > TINY(1D0) ) THEN
+      IF ( State_Met%SUNCOS(I,J) > TINY(1D0) ) THEN
 
          ! Day of year
          JDAY = GET_DAY_OF_YEAR()
@@ -4297,7 +4302,7 @@
          ! because we already checked SUNCOS(JLOOP) and we know
          ! CSZANOON >= SUNCOS(JLOOP)
          JNO2_NOW = JNO2(I,J,L) * 
-     &        EXP( 0.36D0 * ( 1D0/CSZANOON - 1D0/SUNCOS(JLOOP) ) )
+     &     EXP( 0.36D0 * ( 1D0/CSZANOON - 1D0/State_Met%SUNCOS(I,J) ) )
 
          ! Make sure OH is not negative
          JNO2_NOW= MAX( JNO2_NOW, 0d0 )
