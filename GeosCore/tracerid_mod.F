@@ -1461,6 +1461,9 @@
       ! SETTRACE begins here!
       !=================================================================
 
+      ! Assume success
+      RC             = GIGC_SUCCESS
+
       ! Copy values from Input_Opt to local variables
       LPRT           = Input_Opt%LPRT
       N_TRACERS      = Input_Opt%N_TRACERS

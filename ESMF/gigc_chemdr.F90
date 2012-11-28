@@ -133,17 +133,6 @@ CONTAINS
       TRATE      = 0.E0
 
       !======================================================================
-      ! Set 2-D variables
-      !
-      ! NOTE: SUNCOS, SUNCOS_MID will eventually be incorporated into
-      ! the State_Met object
-      !======================================================================
-
-      ! Met fields  (these will eventually be wrapped into State_Met)
-      SUNCOS(1:NI*NJ)    = State_Met%SUNCOS    ! Cosine of solar zenith angle
-      SUNCOS_MID(1:NI*NJ)= State_Met%SUNCOSmid ! Cosine of solar zenith angle
-
-      !======================================================================
       ! Set 3-D variables
       !======================================================================
 
