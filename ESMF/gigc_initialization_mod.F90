@@ -72,7 +72,6 @@ CONTAINS
     USE COMODE_LOOP_MOD       
     USE GCKPP_COMODE_MOD,     ONLY : INIT_GCKPP_COMODE
     USE GRID_MOD,             ONLY : INIT_GRID
-    USE DAO_MOD
     USE LOGICAL_MOD
     USE PBL_MIX_MOD,          ONLY : INIT_PBL_MIX
     USE PRESSURE_MOD,         ONLY : INIT_PRESSURE
@@ -101,7 +100,7 @@ CONTAINS
     INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?  
 !
 ! !REMARKS
-!  Add other calls to GEOS-Chem init routines as necessary.
+!  Add other calls to G EOS-Chem init routines as necessary.
 !  NOTE: Later on maybe split these init calls among other routines.
 !  Also need to add better error trapping
 !
@@ -115,6 +114,8 @@ CONTAINS
 !  09 Nov 2012 - R. Yantosca - Now use fields from Input Options object
 !  13 Nov 2012 - R. Yantosca - Pass Input Options object to routines 
 !                              SETEMDEP, INIT_COMODE
+!  28 Nov 2012 - R. Yantosca - Remove reference to INIT_DAO, since there are
+!                              no more module arrays anymore in dao_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -158,9 +159,6 @@ CONTAINS
        
     ! Allocate and zero GEOS-Chem diagnostic arrays
     CALL Ndxx_Setup( am_I_Root, Input_Opt, RC )
-
-    ! Allocate and initialize met field arrays
-    CALL Init_Dao
 
     ! Initialize the GEOS-Chem pressure module (set Ap & Bp)
     CALL Init_Pressure( am_I_Root )
