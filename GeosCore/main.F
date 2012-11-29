@@ -453,9 +453,9 @@
 
       ! Compute the Olson land types that occur in each grid box
       ! (i.e. this is a replacement for rdland.F and vegtype.global)
-      CALL Init_Olson_Landmap()
-      CALL Compute_Olson_Landmap( mapping, State_Met )
-      CALL Cleanup_Olson_Landmap()
+      CALL Init_Olson_Landmap   ( am_I_Root                     )
+      CALL Compute_Olson_Landmap( am_I_Root, mapping, State_Met )
+      CALL Cleanup_Olson_Landmap( am_I_Root                     )
 
       ! Initialize PBL quantities but do not do mixing
       ! Add option for non-local PBL (Lin, 03/31/09) 

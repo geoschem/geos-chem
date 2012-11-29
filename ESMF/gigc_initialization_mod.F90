@@ -133,6 +133,7 @@ CONTAINS
 !  28 Nov 2012 - R. Yantosca - Remove reference to INIT_DAO, since there are
 !                              no more module arrays anymore in dao_mod.F
 !  29 Nov 2012 - R. Yantosca - Add lonCtr, latCtr, latEdg as arguments
+!  29 Nov 2012 - R. Yantosca - Now pass am_I_Root to Olson landmap routines
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -303,9 +304,9 @@ CONTAINS
     
        ! Compute the Olson land types that occur in each grid box
        ! (i.e. this is a replacement for rdland.F and vegtype.global)
-       CALL Init_Olson_Landmap()
+       CALL Init_Olson_Landmap   ( am_I_Root                     )
        CALL Compute_Olson_Landmap( am_I_Root, mapping, State_Met )
-       CALL Cleanup_Olson_Landmap()
+       CALL Cleanup_Olson_Landmap( am_I_Root                     )
     
        !### Debug
        IF ( prtDebug ) THEN
