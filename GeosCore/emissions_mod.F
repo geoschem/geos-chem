@@ -54,6 +54,7 @@
 !        (dan, ccc, 3/11/09)
 !  18 Dec 2009 - Aaron van D - Added emissions for nested grids @ 0.5 x 0.666
 !  26 Fev 2010 - Fabien P.   - Add scaling for isoprene and Nox emissions
+!  01 Feb 2011 - C Friedman  - Added POP emissions
 !  07 Feb 2011 - R. Yantosca - Now use EPA/NEI99 biofuel emissions when
 !                              EPA/NEI05 anthro emissions are selected.
 !EOP
@@ -115,6 +116,7 @@
       USE NEI2005_ANTHRO_MOD,     ONLY : EMISS_NEI2005_ANTHRO
       USE NEI2005_ANTHRO_MOD,     ONLY : EMISS_NEI2005_ANTHRO_05x0666
       USE PARANOX_MOD,            ONLY : READ_PARANOX_LUT
+      USE POPS_MOD,               ONLY : EMISSPOPS  !(clf, 2/1/2011)
       USE RETRO_MOD,              ONLY : EMISS_RETRO
       USE RnPbBe_MOD,             ONLY : EMISSRnPbBe
       USE SEASALT_MOD,            ONLY : EMISSSEASALT
@@ -181,6 +183,7 @@
 !        (amv, 10/19/09)
 !  18 Dec 2009 - Aaron van D - Added emissions for nested grids @ 0.5 x 0.666
 !  08 Feb 2010 - NBIOMAX is now in CMN_SIZE
+!  01 Feb 2011 - CFriedman   - Added emissions for POPs
 !  07 Feb 2011 - R. Yantosca - Use NEI99 biofuels when useing NEI05 anthro
 !  17 Aug 2011 - R. Yantosca - Added call to RETRO anthro emissions
 !  07 Feb 2012 - M. Payer    - Added call to read PARANOX look up tables
@@ -819,6 +822,13 @@
          ! Mercury
          !--------------------
          CALL EMISSMERCURY( State_Met )
+
+      ELSE IF ( ITS_A_POPS_SIM() ) THEN
+
+         !--------------------
+         ! POPS
+         !--------------------
+         CALL EMISSPOPS
 
       ELSE IF ( ITS_A_CO2_SIM() ) THEN
 

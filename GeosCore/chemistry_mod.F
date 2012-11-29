@@ -100,6 +100,7 @@
       USE ISOROPIAII_MOD,     ONLY : DO_ISOROPIAII
       USE MERCURY_MOD,        ONLY : CHEMMERCURY
       USE OPTDEPTH_MOD,       ONLY : OPTDEPTH
+      USE POPS_MOD,           ONLY : CHEMPOPS
       USE RnPbBe_MOD,         ONLY : CHEMRnPbBe
       USE RPMARES_MOD,        ONLY : DO_RPMARES
       USE SEASALT_MOD,        ONLY : CHEMSEASALT
@@ -176,6 +177,8 @@
 !        unphysical values at low RH.  Wait for ISORROPIA II. (bmy, 4/2/08)
 !  (18) The dry deposition diagnostic (ND44) is done in vdiff_mod if using non-
 !        local PBL (lin, ccc, 5/29/09)
+!  (19) Now calls CHEMPOPS from "pops_mod.f" for an offline POPs simulation
+!       (eck, 9/20/10)
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  28 Jan 2010 - C. Carouge, R. Yantosca - Modified for ISORROPIA II
 !  19 Mar 2012 - R. Yantosca - Add C-preprocessor switch to shut off 
@@ -492,6 +495,14 @@
             ! Do Hg chemistry
             CALL CHEMMERCURY( State_Met )
 
+         !---------------------------------
+         ! POPs
+         !---------------------------------
+         ELSE IF ( ITS_A_POPS_SIM() ) THEN
+ 
+            ! Do POPS chemistry
+            CALL CHEMPOPS
+               
          !---------------------------------
          ! Offline H2/HD
          !---------------------------------

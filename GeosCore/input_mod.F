@@ -363,6 +363,9 @@
          ELSE IF ( INDEX( LINE, 'BENCHMARK MENU'   ) > 0 ) THEN 
             CALL READ_BENCHMARK_MENU( am_I_Root, Input_Opt, RC  )
          
+         ELSE IF ( INDEX( LINE, 'POPS MENU'        ) > 0 ) THEN
+            CALL READ_POPS_MENU( am_I_Root )
+           
          ELSE IF ( INDEX( LINE, 'MERCURY MENU'     ) > 0 ) THEN 
             CALL READ_MERCURY_MENU( am_I_Root, Input_Opt, RC  )
                                    
@@ -2337,6 +2340,7 @@
          LGFED2BB = .FALSE.
       ENDIF
 
+#if   !defined( GCAP)
       ! Force to use MODIS LAI if we use MEGAN. (ccc, 2/23/10)
       IF ( LMEGAN .OR. LMEGANMONO ) THEN
          LMODISLAI = .TRUE.
@@ -2347,6 +2351,7 @@
      &         ' AVHRR LAI will not be used'
          ENDIF
       ENDIF
+#endif
 
       !=================================================================
       ! Error checks
@@ -3762,9 +3767,11 @@
       USE BIOFUEL_MOD,  ONLY : NBFTRACE
       USE BPCH2_MOD,    ONLY : OPEN_BPCH2_FOR_WRITE
       USE DIAG03_MOD,   ONLY : ND03,      PD03,      INIT_DIAG03
+      USE DIAG03_MOD,   ONLY : PD03_PL    !eds 9/9/10
       USE DIAG04_MOD,   ONLY : ND04,      PD04,      INIT_DIAG04
       USE DIAG41_MOD,   ONLY : ND41,      PD41,      INIT_DIAG41
       USE DIAG42_MOD,   ONLY : ND42,      PD42,      INIT_DIAG42
+      USE DIAG53_MOD,   ONLY : ND53,      PD53,      INIT_DIAG53
       USE DIAG56_MOD,   ONLY : ND56,      PD56,      INIT_DIAG56
       USE DIAG_OH_MOD,  ONLY : INIT_DIAG_OH
       USE DRYDEP_MOD,   ONLY : NUMDEP
@@ -3780,6 +3787,7 @@
       USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM,    ITS_A_RnPbBe_SIM
       USE TRACER_MOD,   ONLY : ITS_A_TAGOX_SIM,      ITS_A_CH3I_SIM
       USE TRACER_MOD,   ONLY : SALA_REDGE_um,        ITS_A_CH4_SIM
+      USE TRACER_MOD,   ONLY : ITS_A_POPS_SIM
       USE TRACERID_MOD, ONLY : NEMANTHRO
       USE WETSCAV_MOD,  ONLY : GET_WETDEP_NMAX
 
@@ -3889,7 +3897,7 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:5' )
       READ( SUBSTRS(1), * ) ND03
       IF ( .not. ITS_A_MERCURY_SIM() ) ND03 = 0
-      CALL SET_TINDEX( am_I_Root, 03, ND03, SUBSTRS(2:N), N-1, PD03 )
+      CALL SET_TINDEX( am_I_Root, 03, ND03, SUBSTRS(2:N), N-1, PD03_PL ) !eds 9/9/10
 
       !--------------------------
       ! ND04: CO2 emissions
@@ -4238,12 +4246,12 @@
       CALL SET_TINDEX( am_I_Root, 52, ND52, SUBSTRS(2:N), N-1, PD52 )
 
       !--------------------------
-      ! ND53: Free
+      ! ND53: POPS
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:52' )
       READ( SUBSTRS(1), * ) ND53
-      CALL SET_TINDEX( am_I_Root, 
-     &                 53, ND53, SUBSTRS(2:N), N-1, N_TRACERS )
+      IF ( .not. ITS_A_POPS_SIM() ) ND53 = 0
+      CALL SET_TINDEX( am_I_Root, 53, ND53, SUBSTRS(2:N), N-1, PD53 )
 
       !--------------------------
       ! ND54: Time in troposphere
@@ -4452,6 +4460,7 @@
       CALL INIT_DIAG04
       CALL INIT_DIAG41
       CALL INIT_DIAG42
+      CALL INIT_DIAG53
       CALL INIT_DIAG56
 
       ! Enable Mean OH (or CH3CCl3) diag for runs which need it
@@ -6581,6 +6590,7 @@
 !
       LOGICAL            :: USE_CHECKS
       INTEGER            :: ANTHRO_Hg_YEAR,  N 
+      CHARACTER(LEN=255) :: HG_SCENARIO  !eds 5/17/12
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), Hg_RST_FILE
       CHARACTER(LEN=255) :: GTMM_RST_FILE
 
@@ -6592,32 +6602,36 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:1' )
       READ( SUBSTRS(1:N), * ) ANTHRO_Hg_YEAR
 
-      ! Use error check for tag/tot Hg?
+      ! Use future emissions scenario?   !eds 5/17/12
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:2' )
+      READ( SUBSTRS(1:N), '(a)' ) HG_SCENARIO
+
+      ! Use error check for tag/tot Hg?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:3' )
       READ( SUBSTRS(1:N), * ) USE_CHECKS
 
       ! Use dynamic ocean model?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:3' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:4' )
       READ( SUBSTRS(1:N), * ) LDYNOCEAN
 
       ! Use preindustrial simulation?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read mercury_menu:4' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read mercury_menu:5' )
       READ( SUBSTRS(1:N), * ) LPREINDHG
 
       ! Name of ocean restart file
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:5' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:6' )
       READ( SUBSTRS(1:N), '(a)' ) Hg_RST_FILE
 
       ! Use GTMM ?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:6' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:7' )
       READ( SUBSTRS(1:N), * ) LGTMM
 
       ! Name of GTMM restart file
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:7' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:8' )
       READ( SUBSTRS(1:N), * ) GTMM_RST_FILE
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:8' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:9' )
 
       ! Check on logical
       IF (.NOT.( ITS_A_MERCURY_SIM() ) ) THEN
@@ -6633,6 +6647,8 @@
          WRITE( 6, '(  a)' ) '------------'
          WRITE( 6, 100 ) 'Anthro Hg emissions year    : ', 
      &                    ANTHRO_Hg_YEAR
+         WRITE( 6, 120 ) 'Future emissions scenario   : ',  !eds 5/17/12
+     &                    TRIM( HG_SCENARIO )
          WRITE( 6, 110 ) 'Error check tag & total Hg? : ', USE_CHECKS
          WRITE( 6, 110 ) 'Use dynamic ocean Hg model? : ', LDYNOCEAN
          WRITE( 6, 110 ) 'Preindustrial simulation?   : ', LPREINDHG
@@ -6666,7 +6682,7 @@
       IF ( ITS_A_MERCURY_SIM() ) THEN 
 
          ! Initialize "mercury_mod.f"
-         CALL INIT_MERCURY( ANTHRO_Hg_YEAR )
+         CALL INIT_MERCURY( ANTHRO_Hg_YEAR, HG_SCENARIO ) !eds 5/17/12
          CALL INIT_LAND_MERCURY()
          CALL INIT_DEPO_MERCURY(TRIM( GTMM_RST_FILE ))
 
@@ -6856,6 +6872,143 @@
       RC = GIGC_SUCCESS         
 
       END SUBROUTINE READ_CH4_MENU
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_pops_menu
+!
+! !DESCRIPTION: Subroutine READ\_POPS\_MENU reads the POPS MENU section of 
+!  the GEOS-Chem input file; this defines emissions options for POPs
+!  simulations.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE READ_POPS_MENU( am_I_Root )
+!
+! !USES:
+!
+      USE GET_POPSINFO_MOD,  ONLY : GET_POP_TYPE
+      USE POPS_MOD,          ONLY : INIT_POPS
+      USE DIRECTORY_MOD,     ONLY : POP_EMISDIR
+      USE TRACER_MOD,        ONLY : ITS_A_POPS_SIM
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN)        :: am_I_Root   ! Is this the root CPU?
+! 
+! !REVISION HISTORY: 
+!  01 Oct 2012 - C. Friedman - Initial version
+!  26 Nov 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER                    :: N
+      LOGICAL                    :: CHEM_PROCESS
+      CHARACTER(LEN=255)         :: SUBSTRS(MAXDIM)
+      CHARACTER(LEN=3)           :: POP_TYPE
+      REAL*8                     :: POP_XMW, POP_KOA, POP_KBC
+      REAL*8                     :: POP_K_POPG_OH
+      REAL*8                     :: POP_K_POPP_O3A, POP_K_POPP_O3B
+      REAL*8                     :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
+
+      !=================================================================
+      ! READ_POPS_MENU begins here!
+      !=================================================================
+
+      ! POP species
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:1' )
+      READ( SUBSTRS(1:N), * ) POP_TYPE
+
+      ! Dummy for future process logical switches
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:2' )
+      READ( SUBSTRS(1:N), * ) CHEM_PROCESS
+
+      ! Name of pops emissions file
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:3' )
+      READ( SUBSTRS(1:N), '(a)' ) POP_EMISDIR
+
+      ! Molecular weight
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:4' )
+      READ( SUBSTRS(1:N), * ) POP_XMW
+
+      ! KOA
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:5' )
+      READ( SUBSTRS(1:N), * ) POP_KOA
+
+      ! KBC
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:6' )
+      READ( SUBSTRS(1:N), * ) POP_KBC
+
+      ! OH oxidation
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:7' )
+      READ( SUBSTRS(1:N), * ) POP_K_POPG_OH
+
+      ! O3 oxidation 1
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:8' )
+      READ( SUBSTRS(1:N), * ) POP_K_POPP_O3A
+
+      ! O3 oxidation 2
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:9' )
+      READ( SUBSTRS(1:N), * ) POP_K_POPP_O3B
+
+      ! H*
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:10' )
+      READ( SUBSTRS(1:N), * ) POP_HSTAR
+
+      ! DEL_H
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:11' )
+      READ( SUBSTRS(1:N), * ) POP_DEL_H
+
+      ! DEL_Hw
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:12' )
+      READ( SUBSTRS(1:N), * ) POP_DEL_Hw
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:13' )
+
+      !=================================================================
+      ! Print to screen
+      !=================================================================
+      IF( am_I_Root ) THEN
+         WRITE( 6, '(/,a)' ) 'POPS MENU'
+         WRITE( 6, '(  a)' ) '------------'
+         WRITE( 6, 120     ) 'Species of POP    : ', 
+     &                        POP_TYPE
+         WRITE( 6, 110     ) 'Chemistry on? : ', CHEM_PROCESS
+         WRITE( 6, 120     ) '=> POP Emissions file       : ',
+     &                        TRIM( POP_EMISDIR )
+         WRITE( 6, 130     ) 'Param 1:', POP_XMW
+      ENDIF
+
+      ! FORMAT statements
+ 110  FORMAT( A, L5  )
+ 120  FORMAT( A, A   )
+ 130  FORMAT( A, f6.5 )
+
+      ! If we are performing a POPS simulation ...
+      IF ( ITS_A_POPS_SIM() ) THEN 
+
+         ! Initially set pop type
+         POP_TYPE = GET_POP_TYPE( POP_TYPE )
+
+         ! Set emissions file to use
+!         POP_EMISSFILE = GET_EMISSFILE( TRIM( POP_EMISSFILE ) )
+
+         ! Initialize "pops_mod.f"
+         CALL INIT_POPS(POP_XMW, POP_KOA, POP_KBC, POP_K_POPG_OH,
+     &                  POP_K_POPP_O3A, POP_K_POPP_O3B, 
+     &                  POP_HSTAR, POP_DEL_H, POP_DEL_Hw )
+
+      ENDIF
+
+      END SUBROUTINE READ_POPS_MENU
 !EOC
 #if   defined( APM ) 
 !------------------------------------------------------------------------------
@@ -7052,6 +7205,8 @@
       CALL CHECK_DIRECTORY( RUN_DIR      )
       CALL CHECK_DIRECTORY( OH_DIR       )
       CALL CHECK_DIRECTORY( O3PL_DIR     )
+!      CALL CHECK_DIRECTORY( OC_DIR       )  !(clf, 1/20/2011)
+!      CALL CHECK_DIRECTORY( BC_DIR       )  !(clf, 1/20/2011)
 
       ! Only validate the TEMP_DIR if we are unzipping met fields
       IF ( LUNZIP ) CALL CHECK_DIRECTORY( TEMP_DIR )

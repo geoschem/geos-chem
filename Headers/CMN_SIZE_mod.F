@@ -411,7 +411,12 @@
 #elif defined( APM )
       INTEGER, PARAMETER :: NNPAR   = 154   ! For APM (G. Luo, 3/8/11)
 #else
-      INTEGER, PARAMETER :: NNPAR   = 85    ! For non-TOMAS simulations
+!------------------------------------------------------------------------------
+! Prior to 10/22/12:
+! Increase to 100 for tagged Hg sim (eds, mpayer, 10/22/12)
+!      INTEGER, PARAMETER :: NNPAR   = 85    ! For non-TOMAS simulations
+!------------------------------------------------------------------------------
+      INTEGER, PARAMETER :: NNPAR   = 100   ! For non-TOMAS simulations
 #endif
 
       ! Nempara increased to 26. (fp, 2/8/10)
@@ -571,12 +576,13 @@
 !  10 Feb 2012 - R. Yantosca - Added #if blocks for GEOS-5.7.x nested CH grid
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  27 Mar 2012 - R. Yantosca - Increase NTYPE from 15 to 25 for Olson 2001 map
+!  22 Oct 2012 - M. Payer    - Increase NNPAR to 100 for tagged Hg simulation
+!                              (E. Corbitt)
 !  25 Oct 2012 - R. Yantosca - Now also set LLPAR, LLTROP, LLTROP_FIX to
 !                              LGLOB for grid-independent simulation
 !  19 Nov 2012 - R. Yantosca - Renamed to INIT_CMN_SIZE, to better follow
 !                              adopted GEOS-Chem naming convention
 !  27 Nov 2012 - R. Yantosca - Removed commented out code
-
 !EOP
 !------------------------------------------------------------------------------
 !BOC

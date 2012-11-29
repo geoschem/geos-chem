@@ -588,7 +588,6 @@
 ! !REVISION HISTORY: 
 !  15 Jun 1998 - R. Yantosca - Initial version
 !  (1 ) Adapted from DAO_CHECK from "dao_read_mod.f" (bmy, 6/16/03)
-
 !  06 Aug 2012 - R. Yantosca - Added ProTeX headers
 !EOP
 !------------------------------------------------------------------------------

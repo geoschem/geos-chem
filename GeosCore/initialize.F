@@ -32,6 +32,7 @@
       USE DIAG04_MOD
       USE DIAG41_MOD
       USE DIAG42_MOD
+      USE DIAG53_MOD
       USE DIAG56_MOD
       USE DIAG_PL_MOD
       USE LOGICAL_MOD
@@ -194,6 +195,11 @@
          ! For ND03 - mercury simulations (eck, sas, bmy, 1/20/05)
          IF ( ND03 > 0 ) THEN
             CALL ZERO_DIAG03
+         ENDIF
+
+         ! For ND53: POPS simulations (eck, 9/20/10)
+         IF ( ND53 > 0 ) THEN
+            CALL ZERO_DIAG53
          ENDIF
 
          ! For ND04 - CO2 simulation (pns, bmy, 7/26/05)
