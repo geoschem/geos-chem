@@ -221,6 +221,7 @@ MODULE GIGC_Input_Opt_Mod
      !----------------------------------------
      LOGICAL                     :: LDRYD
      LOGICAL                     :: LWETD
+     LOGICAL                     :: USE_OLSON_2001
 
      !----------------------------------------
      ! GAMAP MENU fields
@@ -529,6 +530,7 @@ MODULE GIGC_Input_Opt_Mod
 !  07 Nov 2012 - R. Yantosca - Added Input_Opt%ITS_A_*_SIM fields
 !  08 Nov 2012 - R. Yantosca - Added APM MENU fields
 !  09 Nov 2012 - R. Yantosca - Added LD* variables for diagnostic levels
+!  28 Nov 2012 - R. Yantosca - Add USE_OLSON_2001 logical flag
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -577,6 +579,7 @@ CONTAINS
 !  07 Nov 2012 - R. Yantosca - Now add size parameter fields to Input_Opt
 !                              that can be set prior to calling this routine
 !  09 Nov 2012 - R. Yantosca - Now zero LD* fields for diagnostic levels
+!  28 Nov 2012 - R. Yantosca - Now set USE_OLSON_2001 logical flag
 !  29 Nov 2012 - M. Payer    - Add Input_Opt%ITS_A_POPS_SIM
 !EOP
 !------------------------------------------------------------------------------
@@ -795,6 +798,7 @@ CONTAINS
     !----------------------------------------
     Input_Opt%LDRYD                  = .FALSE.
     Input_Opt%LWETD                  = .FALSE.
+    Input_Opt%USE_OLSON_2001         = .FALSE.
 
     !----------------------------------------
     ! GAMAP_MENU fields

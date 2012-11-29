@@ -56,7 +56,8 @@ CONTAINS
 !
   SUBROUTINE GIGC_Init_Simulation( Input_Opt,  State_Met, State_Chm,  &
                                    tsChem,     nymd,      nhms,       &
-                                   am_I_Root,  RC                    )
+                                   am_I_Root,  lonCtr,    latCtr,     &
+                                   latEdg,     mapping,   RC         )
 !
 ! !USES:
 !
@@ -71,8 +72,13 @@ CONTAINS
     USE COMODE_MOD
     USE COMODE_LOOP_MOD       
     USE GCKPP_COMODE_MOD,     ONLY : INIT_GCKPP_COMODE
+    USE ERROR_MOD,            ONLY : DEBUG_MSG
     USE GRID_MOD,             ONLY : INIT_GRID
-    USE LOGICAL_MOD
+    USE Mapping_Mod,          ONLY : MapWeight
+    USE Mapping_Mod,          ONLY : Init_Mapping
+    USE Olson_Landmap_Mod,    ONLY : Init_Olson_Landmap
+    USE Olson_Landmap_Mod,    ONLY : Compute_Olson_Landmap
+    USE Olson_Landmap_Mod,    ONLY : Cleanup_Olson_Landmap
     USE PBL_MIX_MOD,          ONLY : INIT_PBL_MIX
     USE PRESSURE_MOD,         ONLY : INIT_PRESSURE
     USE TRACER_MOD,           ONLY : ITS_A_FULLCHEM_SIM
@@ -80,24 +86,29 @@ CONTAINS
     USE TRACERID_MOD,         ONLY : SETTRACE
     USE TOMS_MOD,             ONLY : TO3_DAILY
     USE WETSCAV_MOD,          ONLY : INIT_WETSCAV
-    USE ERROR_MOD,            ONLY : DEBUG_MSG
+    
 !
 ! !INPUT PARAMETERS: 
 !
-    REAL,           INTENT(IN)    :: tsChem      ! Chemistry timestep [s]
-    INTEGER,        INTENT(IN)    :: nymd        ! GMT date (YYYY/MM/DD)
-    INTEGER,        INTENT(IN)    :: nhms        ! GMT time (hh:mm:ss)
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+    REAL,            INTENT(IN)    :: tsChem        ! Chemistry timestep [s]
+    INTEGER,         INTENT(IN)    :: nymd          ! GMT date (YYYY/MM/DD)
+    INTEGER,         INTENT(IN)    :: nhms          ! GMT time (hh:mm:ss)
+    LOGICAL,         INTENT(IN)    :: am_I_Root     ! Is this the root CPU?
+    REAL*4,  TARGET, INTENT(IN)    :: lonCtr(:,:)   ! Lon centers [radians]
+    REAL*4,  TARGET, INTENT(IN)    :: latCtr(:,:)   ! Lat centers [radians]
+    REAL*4,  TARGET, INTENT(IN)    :: latEdg(:,:)   ! Lat centers [radians]
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
-    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-    TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
+    TYPE(OptInput),  INTENT(INOUT) :: Input_Opt     ! Input Options object
+    TYPE(ChmState),  INTENT(INOUT) :: State_Chm     ! Chemistry State object
+    TYPE(MetState),  INTENT(INOUT) :: State_Met     ! Meteorology State object
+    TYPE(MapWeight), POINTER       :: mapping(:,:)  ! Olson mapping object
+!
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?  
+    INTEGER,         INTENT(OUT)   :: RC            ! Success or failure?  
 !
 ! !REMARKS
 !  Add other calls to G EOS-Chem init routines as necessary.
@@ -177,8 +188,8 @@ CONTAINS
     NPVERT = NVERT
     NPVERT = NVERT + IPLUME
 
-!    ! INITIALIZE ALLOCATABLE SMVGEAR/KPP ARRAYS
-!    IF ( LEMIS .OR. LCHEM ) THEN
+    ! INITIALIZE ALLOCATABLE SMVGEAR/KPP ARRAYS
+    IF ( Input_Opt%LCHEM ) THEN
 
        ! Initialize arrays in comode_mod.F
        CALL INIT_COMODE( am_I_Root, Input_Opt, RC )
@@ -264,6 +275,29 @@ CONTAINS
     !### Debug
     IF ( prtDebug ) THEN
        CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after SETEMDEP' )
+    ENDIF
+
+    ! Setup for dry deposition
+    IF ( Input_Opt%LDRYD ) THEN
+
+       ! Initialize the derived type object containing
+       ! mapping information for the MODIS LAI routines
+       IF ( Input_Opt%USE_OLSON_2001 ) THEN
+          CALL Init_Mapping( 1440, 720, IIPAR, JJPAR, mapping )
+       ELSE
+          CALL Init_Mapping(  720, 360, IIPAR, JJPAR, mapping )
+       ENDIF
+    
+       ! Compute the Olson land types that occur in each grid box
+       ! (i.e. this is a replacement for rdland.F and vegtype.global)
+       CALL Init_Olson_Landmap()
+       CALL Compute_Olson_Landmap( mapping )
+       CALL Cleanup_Olson_Landmap()
+    
+       !### Debug
+       IF ( prtDebug ) THEN
+          CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after OLSON' )
+       ENDIF
     ENDIF
 
     ! Initialize dry deposition (work in progress), add here
