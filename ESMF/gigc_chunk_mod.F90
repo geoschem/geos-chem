@@ -85,11 +85,12 @@ CONTAINS
 !
 ! !USES:
 !
+    USE ESMF_Mod,                ONLY: ESMF_KIND_R4
     USE GIGC_Initialization_Mod
     USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod,    ONLY : OptInput
-    USE GIGC_State_Chm_Mod,    ONLY : ChmState
-    USE GIGC_State_Met_Mod,    ONLY : MetState
+    USE GIGC_Input_Opt_Mod,      ONLY : OptInput
+    USE GIGC_State_Chm_Mod,      ONLY : ChmState
+    USE GIGC_State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -180,6 +181,7 @@ CONTAINS
 ! !USES:
 !
     USE GIGC_ChemDr
+    USE GIGC_DryDep_Mod
     USE GIGC_ErrCode_Mod
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -222,6 +224,8 @@ CONTAINS
 !  01 Nov 2012 - R. Yantosca - Now reference gigc_input_opt_mod.F90
 !  08 Nov 2012 - R. Yantosca - Now pass Input_Opt to GIGC_Do_Chem
 !  13 Nov 2012 - M. Long     - Added Dry Deposition method
+!  29 Nov 2012 - R. Yantosca - Now block off calls to GIGC_DO_DRYDEP and
+!                              GIGC_DO_CHEM w/ the appropriate logical flags
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -236,26 +240,31 @@ CONTAINS
     ! Number of advected tracers
     NC = SIZE( State_Chm%Tracers, 4 )
 
-    ! Call the dry deposition run method
-    CALL GIGC_Do_DryDep( am_I_Root  = am_I_Root,  &   ! Are we on the root CPU?
-                         NI         = NI,         &   ! # lons on this CPU
-                         NJ         = NJ,         &   ! # lats on this CPU
-                         NL         = NL,         &   ! # levels on this CPU
-                         Input_Opt  = Input_Opt,  &   ! Input Options object
-                         State_Chm  = State_Chm,  &   ! Chemistry State object
-                         State_Met  = State_Met,  &   ! Meteorology State object
-                         RC         = RC          )   ! Success or failure
+! Comment out for now
+!    ! Call the dry deposition run method
+!    IF ( Input_Opt%LDRYD ) THEN
+!       CALL GIGC_Do_DryDep( am_I_Root  = am_I_Root,  &   ! Are we on root CPU?
+!                            NI         = NI,         &   ! # lons on this CPU
+!                            NJ         = NJ,         &   ! # lats on this CPU
+!                            NL         = NL,         &   ! # levels on this CPU
+!                            Input_Opt  = Input_Opt,  &   ! Input Options
+!                            State_Chm  = State_Chm,  &   ! Chemistry State
+!                            State_Met  = State_Met,  &   ! Meteorology State
+!                            RC         = RC          )   ! Success or failure
+!    ENDIF
 
     ! Call the chemistry run method
-    CALL GIGC_Do_Chem(   am_I_Root  = am_I_Root,  &   ! Are we on the root CPU?
-                         NI         = NI,         &   ! # lons on this CPU
-                         NJ         = NJ,         &   ! # lats on this CPU
-                         NL         = NL,         &   ! # levels on this CPU
-                         NCNST      = NC,         &   ! # of advected tracers
-                         Input_Opt  = Input_Opt,  &   ! Input Options object
-                         State_Chm  = State_Chm,  &   ! Chemistry State object
-                         State_Met  = State_Met,  &   ! Meteorology State object
-                         RC         = RC         )    ! Success or failure
+    IF ( Input_Opt%LCHEM ) THEN
+       CALL GIGC_Do_Chem(   am_I_Root  = am_I_Root,  &   ! Are we on root CPU?
+                            NI         = NI,         &   ! # lons on this CPU
+                            NJ         = NJ,         &   ! # lats on this CPU
+                            NL         = NL,         &   ! # levels on this CPU
+                            NCNST      = NC,         &   ! # of advected tracers
+                            Input_Opt  = Input_Opt,  &   ! Input Options
+                            State_Chm  = State_Chm,  &   ! Chemistry State
+                            State_Met  = State_Met,  &   ! Meteorology State
+                            RC         = RC         )    ! Success or failure
+    ENDIF
 
   END SUBROUTINE GIGC_Chunk_Run
 !EOC
