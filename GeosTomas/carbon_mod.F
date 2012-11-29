@@ -275,7 +275,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE CHEMCARBON( am_I_Root )
+      SUBROUTINE CHEMCARBON( am_I_Root, State_Met )
 !
 !******************************************************************************
 !  Subroutine CHEMCARBON is the interface between the GEOS-CHEM main program 
@@ -298,35 +298,39 @@
 !        to H-philic EC or OC. (win, 1/25/10)
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DRYDEP_MOD,     ONLY : DEPNAME, NUMDEP
-      USE ERROR_MOD,      ONLY : DEBUG_MSG
-      USE GLOBAL_OH_MOD,  ONLY : GET_GLOBAL_OH
-      USE GLOBAL_NO3_MOD, ONLY : GET_GLOBAL_NO3
-      USE GLOBAL_O3_MOD,  ONLY : GET_GLOBAL_O3
-      USE LOGICAL_MOD,    ONLY : LSOA, LEMIS, LPRT
-      USE TIME_MOD,       ONLY : GET_MONTH, ITS_A_NEW_MONTH
-      USE TRACER_MOD,     ONLY : STT, ITS_AN_AEROSOL_SIM
-      USE TRACERID_MOD,   ONLY : IDTBCPI, IDTBCPO, IDTOCPI
-      USE TRACERID_MOD,   ONLY : IDTOCPO, IDTSOG4, IDTSOA4
-      USE TRACERID_MOD,   ONLY : IDTSOG5, IDTSOA5  ! (dkh, 03/24/07)  
-      USE TRACERID_MOD,   ONLY : IDTSOAG, IDTSOAM
-      USE TRACERID_MOD,   ONLY : IDTECIL1, IDTECOB1   !(win, 1/25/10)
-      USE TRACERID_MOD,   ONLY : IDTOCIL1, IDTOCOB1, IDTNK1  !(win, 1/25/10)
-      USE TOMAS_MOD,      ONLY : IBINS  !(win, 1/25/10)
+      USE DRYDEP_MOD,         ONLY : DEPNAME, NUMDEP
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GLOBAL_OH_MOD,      ONLY : GET_GLOBAL_OH
+      USE GLOBAL_NO3_MOD,     ONLY : GET_GLOBAL_NO3
+      USE GLOBAL_O3_MOD,      ONLY : GET_GLOBAL_O3
+      USE LOGICAL_MOD,        ONLY : LSOA, LEMIS, LPRT
+      USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
+      USE TRACER_MOD,         ONLY : STT, ITS_AN_AEROSOL_SIM
+      USE TRACERID_MOD,       ONLY : IDTBCPI, IDTBCPO, IDTOCPI
+      USE TRACERID_MOD,       ONLY : IDTOCPO, IDTSOG4, IDTSOA4
+      USE TRACERID_MOD,       ONLY : IDTSOG5, IDTSOA5  ! (dkh, 03/24/07)  
+      USE TRACERID_MOD,       ONLY : IDTSOAG, IDTSOAM
+      USE TRACERID_MOD,       ONLY : IDTECIL1, IDTECOB1          !(win, 1/25/10)
+      USE TRACERID_MOD,       ONLY : IDTOCIL1, IDTOCOB1, IDTNK1  !(win, 1/25/10)
+      USE TOMAS_MOD,          ONLY : IBINS                       !(win, 1/25/10)
 
-      USE CMN_SIZE_MOD                   ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE       :: FIRSTCHEM = .TRUE.
-      INTEGER             :: N, THISMONTH
+      LOGICAL, SAVE :: FIRSTCHEM = .TRUE.
+      INTEGER       :: N, THISMONTH
 
       !=================================================================
       ! CHEMCARBON begins here!
@@ -489,7 +493,7 @@
          ! Compute SOA chemistry
          ! NOTE: This is SOA production from the reversible mechanism only 
          ! (tmf, 12/07/07) 
-         CALL SOA_CHEMISTRY( am_I_Root )
+         CALL SOA_CHEMISTRY( am_I_Root, State_Met )
          IF ( LPRT .and. am_I_Root ) THEN
             CALL DEBUG_MSG( '### CHEMCARBON: a SOA_CHEM' )
          ENDIF
@@ -500,18 +504,18 @@
 
             ! Get grid box cloud fraction (tmf, 2/26/07)
             ! NOTE: We skip this for GEOS-5/MERRA met (skim, bmy, 1/14/10)
-            CALL GET_VCLDF
+            CALL GET_VCLDF( State_Met )
 
             ! Cloud uptake
-            CALL SOAG_CLOUD
+            CALL SOAG_CLOUD( State_Met )
             IF ( LPRT .and. am_I_Root ) THEN
-               CALL DEBUG_MSG('### CHEMCARBON: a SOAG_CLOUD')        
+               CALL DEBUG_MSG('### CHEMCARBON: a SOAG_CLOUD')
             ENDIF
-               
+
             ! Aqueous aerosol uptake
-            CALL SOAG_LIGGIO_DIFF
-            IF ( LPRT .and. am_I_Root ) THEN 
-               CALL DEBUG_MSG('### CHEMCARBON: a SOAG_LIGGIO_DIFF')        
+            CALL SOAG_LIGGIO_DIFF( State_Met )
+            IF ( LPRT .and. am_I_Root ) THEN       
+               CALL DEBUG_MSG('### CHEMCARBON: a SOAG_LIGGIO_DIFF')
             ENDIF
 
          ENDIF
@@ -520,19 +524,20 @@
          
             ! Get grid box cloud fraction (tmf, 2/26/07)
             ! NOTE: We skip this for GEOS-5/MERRA met (skim, bmy, 1/14/10)
-            CALL GET_VCLDF
+            CALL GET_VCLDF( State_Met )
 
             ! Cloud uptake
-            CALL SOAM_CLOUD
+            CALL SOAM_CLOUD( State_Met )
             IF ( LPRT .and. am_I_Root ) THEN
-               CALL DEBUG_MSG('### CHEMCARBON: a SOAM_CLOUD')        
+               CALL DEBUG_MSG('### CHEMCARBON: a SOAM_CLOUD')
             ENDIF
 
             ! Aqueous aerosol uptake
-            CALL SOAM_LIGGIO_DIFF
+            CALL SOAM_LIGGIO_DIFF( State_Met )
             IF ( LPRT .and. am_I_Root ) THEN
-               CALL DEBUG_MSG( '### CHEMCARBON: a SOAM_LIGGIO_DIFF' )        
+               CALL DEBUG_MSG( '### CHEMCARBON: a SOAM_LIGGIO_DIFF' )
             ENDIF
+
          ENDIF
    
       ENDIF
@@ -562,7 +567,6 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,      ONLY : AD
       USE DIAG_MOD,     ONLY : AD44, AD07_BC 
       USE DRYDEP_MOD,   ONLY : DEPSAV
       USE GRID_MOD,     ONLY : GET_AREA_CM2
@@ -735,7 +739,6 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,      ONLY : AD
       USE DIAG_MOD,     ONLY : AD44 
       USE DRYDEP_MOD,   ONLY : DEPSAV
       USE GRID_MOD,     ONLY : GET_AREA_CM2
@@ -913,7 +916,6 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,      ONLY : AD
       USE DIAG_MOD,     ONLY : AD44, AD07_OC 
       USE DRYDEP_MOD,   ONLY : DEPSAV
       USE GRID_MOD,     ONLY : GET_AREA_CM2
@@ -1087,7 +1089,6 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,      ONLY : AD
       USE DIAG_MOD,     ONLY : AD44 
       USE DRYDEP_MOD,   ONLY : DEPSAV
       USE GRID_MOD,     ONLY : GET_AREA_CM2
@@ -1293,7 +1294,7 @@
  
 !------------------------------------------------------------------------------
 
-      SUBROUTINE SOAG_LIGGIO_DIFF
+      SUBROUTINE SOAG_LIGGIO_DIFF( State_Met )
 !
 !******************************************************************************
 !  Subroutine SOAG_LIGGIO_DIFF produces SOA on aqueous aerosol surfaces
@@ -1307,53 +1308,58 @@
 !  NOTES:
 !  (1 ) SOAG (SOA product of GLYX is produced at existing hydrophilic aerosol
 !        surface.
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !******************************************************************************
 !
       ! References to F90 modules
-      USE COMODE_MOD,   ONLY : WTAREA, WERADIUS 
-      USE COMODE_MOD,   ONLY : AIRDENS, JLOP
-      USE DAO_MOD,      ONLY : AIRVOL, T, RH
+      USE COMODE_MOD,         ONLY : WTAREA, WERADIUS 
+      USE COMODE_MOD,         ONLY : AIRDENS, JLOP
+      USE DIAG_MOD,           ONLY : AD07_SOAGM
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_MONTH
+      USE TRACER_MOD,         ONLY : STT 
+      USE TRACERID_MOD,       ONLY : IDTGLYX, IDTSOAG
 
-      USE ERROR_MOD,    ONLY : DEBUG_MSG
-      USE DIAG_MOD,     ONLY : AD07_SOAGM
-      USE TIME_MOD,     ONLY : GET_TS_CHEM, GET_MONTH
-      USE TRACER_MOD,   ONLY : STT 
-      USE TRACERID_MOD, ONLY : IDTGLYX, IDTSOAG
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE COMODE_LOOP_MOD          ! AD, WTAIR, other SMVGEAR variables
+      USE CMN_O3_MOD               ! XNUMOL
+      USE CMN_DIAG_MOD             ! ND44, ND07, LD07
 
-      USE CMN_SIZE_MOD         ! Size parameters
-      USE COMODE_LOOP_MOD      ! AD, WTAIR, other SMVGEAR variables
-      USE CMN_O3_MOD           ! XNUMOL
-      USE CMN_DIAG_MOD         ! ND44, ND07, LD07
-
+      ! Input parameters
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 
       ! Local variables
-      INTEGER              :: I, J, L, JLOOP, N
-      REAL*8               :: XTEMP       ! Temperature [K]
-      REAL*8               :: XSQTEMP     ! SQRT of Temperature
-      REAL*8               :: XAD         ! Air density [molec/cm3]
-      REAL*8               :: XRADIUS     ! particle radius [cm]
-      REAL*8               :: XDFKG       ! Gas phase diffusion coeff [cm2/s]
-      REAL*8               :: XARSL1K     ! 1st order k
-      REAL*8               :: XRH         ! Relative humidity [%]
-      REAL*8               :: XAIRM3      ! Air volume in grid box [m3]
-      REAL*8               :: XGASM       ! Gas mass at grid box before uptake [kg]
-      REAL*8               :: XGASC       ! Gas concentration at grid box before uptake [molec/cm3]
-      REAL*8               :: XWAREA      ! Wet aerosol surface area at grid box [cm^2 wet sfc area of aerosol cm^-3 air]
-      REAL*8               :: XUPTK0      ! Potential uptake of gas by aerosol in grid box by aerosol type [molec/cm3]
-      REAL*8               :: XUPTK1      ! Potential uptake of gas by aerosol in grid box by aerosol type [kg]
-      REAL*8               :: XUPTKSUM    ! Potential uptake of gas by aerosol in grid box [kg]
-      REAL*8               :: XUPTK       ! Actual uptake of gas by aerosol in grid box [kg]
-                                          !  XUPTK <= STT( I, J, L, IDTGLYX )
-      REAL*8               :: XGAMMA      ! Uptake coefficient 
+      INTEGER :: I, J, L, JLOOP, N
+      REAL*8  :: XTEMP       ! Temperature [K]
+      REAL*8  :: XSQTEMP     ! SQRT of Temperature
+      REAL*8  :: XAD         ! Air density [molec/cm3]
+      REAL*8  :: XRADIUS     ! particle radius [cm]
+      REAL*8  :: XDFKG       ! Gas phase diffusion coeff [cm2/s]
+      REAL*8  :: XARSL1K     ! 1st order k
+      REAL*8  :: XRH         ! Relative humidity [%]
+      REAL*8  :: XAIRM3      ! Air volume [m3]
+      REAL*8  :: XGASM       ! Gas mass at grid box before uptake [kg]
+      REAL*8  :: XGASC       ! Gas concentration before uptake [molec/cm3]
+      REAL*8  :: XWAREA      ! Wet aerosol surface area
+                             !  [cm^2 wet sfc area of aerosol cm^-3 air]
+      REAL*8  :: XUPTK0      ! Potential uptake of gas by aerosol by aerosol
+                             !  type [molec/cm3]
+      REAL*8  :: XUPTK1      ! Potential uptake of gas by aerosol by aerosol
+                             !  type [kg]
+      REAL*8  :: XUPTKSUM    ! Potential uptake of gas by aerosol [kg]
+      REAL*8  :: XUPTK       ! Actual uptake of gas by aerosol [kg]
+                             !  XUPTK <= STT( I, J, L, IDTGLYX )
+      REAL*8  :: XGAMMA      ! Uptake coefficient 
 
       ! Local variables not changing 
-      REAL*8               :: DTCHEM      ! Chemistry time step [s]
-      REAL*8               :: XMW         ! Molecular weight of gas [g/mole]
-      REAL*8               :: XSQMW       ! Square root of molecular weight [g/mole]
-      REAL*8               :: CRITRH      ! Critical RH [%], above which 
-                                          !  heteorogeneous chem takes place
-      REAL*8               :: XNAVO       ! Avogadro number
+      REAL*8  :: DTCHEM      ! Chemistry time step [s]
+      REAL*8  :: XMW         ! Molecular weight of gas [g/mole]
+      REAL*8  :: XSQMW       ! Square root of molecular weight [g/mole]
+      REAL*8  :: CRITRH      ! Critical RH [%], above which 
+                             !  heteorogeneous chem takes place
+      REAL*8  :: XNAVO       ! Avogadro number
 
       !=================================================================
       ! SOAG_LIGGIO_DIFF begins here!
@@ -1392,7 +1398,7 @@
             IF ( JLOOP == 0 ) CYCLE
 
             ! Get RH  
-            XRH     = RH( I, J, L )   ![%]
+            XRH     = State_Met%RH( I, J, L )   ![%]
 
             ! initialize for safety
             XUPTK0   = 0d0
@@ -1401,14 +1407,14 @@
             XUPTK    = 0d0
 
             ! Get T
-            XTEMP   = T( I, J, L )
+            XTEMP   = State_Met%T( I, J, L )
             XSQTEMP = SQRT( XTEMP )
 
             ! Get air density  [molec/cm3]
             XAD     = AIRDENS( JLOOP )
 
             ! Get air volumne [m3]
-            XAIRM3  = AIRVOL( I, J, L )
+            XAIRM3   = State_Met%AIRVOL( I, J, L )
 
             ! Get gas mass at grid box [kg]
             XGASM   = STT( I, J, L, IDTGLYX )
@@ -1499,7 +1505,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE SOAM_LIGGIO_DIFF
+      SUBROUTINE SOAM_LIGGIO_DIFF( State_Met )
 !
 !******************************************************************************
 !  Subroutine SOAG_LIGGIO_DIFF produces SOA on aqueous aerosol surfaces
@@ -1513,53 +1519,58 @@
 !  NOTES:
 !  (1 ) SOAM (SOA product of MGLY) is produced at existing hydrophilic aerosol
 !        surface.
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !******************************************************************************
 !
       ! References to F90 modules
-      USE COMODE_MOD,   ONLY : WTAREA, WERADIUS
-      USE COMODE_MOD,   ONLY : AIRDENS, JLOP
-      USE DAO_MOD,      ONLY : AIRVOL, T, RH
+      USE COMODE_MOD,         ONLY : WTAREA, WERADIUS
+      USE COMODE_MOD,         ONLY : AIRDENS, JLOP
+      USE DIAG_MOD,           ONLY : AD07_SOAGM
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_MONTH
+      USE TRACER_MOD,         ONLY : STT 
+      USE TRACERID_MOD,       ONLY : IDTMGLY, IDTSOAM
 
-      USE ERROR_MOD,    ONLY : DEBUG_MSG
-      USE DIAG_MOD,     ONLY : AD07_SOAGM
-      USE TIME_MOD,     ONLY : GET_TS_CHEM, GET_MONTH
-      USE TRACER_MOD,   ONLY : STT 
-      USE TRACERID_MOD, ONLY : IDTMGLY, IDTSOAM
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE COMODE_LOOP_MOD          ! AD, WTAIR, other SMVGEAR variables
+      USE CMN_O3_MOD               ! XNUMOL
+      USE CMN_DIAG_MOD             ! ND44, ND07, LD07
 
-      USE CMN_SIZE_MOD         ! Size parameters
-      USE COMODE_LOOP_MOD      ! AD, WTAIR, other SMVGEAR variables
-      USE CMN_O3_MOD           ! XNUMOL
-      USE CMN_DIAG_MOD         ! ND44, ND07, LD07
-
+      ! Input parameters
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 
       ! Local variables
-      INTEGER              :: I, J, L, JLOOP, N
-      REAL*8               :: XTEMP       ! Temperature [K]
-      REAL*8               :: XSQTEMP     ! SQRT of Temperature
-      REAL*8               :: XAD         ! Air density [molec/cm3]
-      REAL*8               :: XRADIUS     ! particle radius [cm]
-      REAL*8               :: XDFKG       ! Gas phase diffusion coeff [cm2/s]
-      REAL*8               :: XARSL1K     ! 1st order k
-      REAL*8               :: XRH         ! Relative humidity [%]
-      REAL*8               :: XAIRM3      ! Air volume in grid box [m3]
-      REAL*8               :: XGASM       ! Gas mass at grid box before uptake [kg]
-      REAL*8               :: XGASC       ! Gas concentration at grid box before uptake [molec/cm3]
-      REAL*8               :: XWAREA      ! Wet aerosol surface area at grid box [cm^2 wet sfc area of aerosol cm^-3 air]
-      REAL*8               :: XUPTK0      ! Potential uptake of gas by aerosol in grid box by aerosol type [molec/cm3]
-      REAL*8               :: XUPTK1      ! Potential uptake of gas by aerosol in grid box by aerosol type [kg]
-      REAL*8               :: XUPTKSUM    ! Potential uptake of gas by aerosol in grid box [kg]
-      REAL*8               :: XUPTK       ! Actual uptake of gas by aerosol in grid box [kg]
-                                          !  XUPTK <= STT( I, J, L, IDTGLYX )
-      REAL*8               :: XGAMMA      ! Uptake coefficient 
+      INTEGER :: I, J, L, JLOOP, N
+      REAL*8  :: XTEMP       ! Temperature [K]
+      REAL*8  :: XSQTEMP     ! SQRT of Temperature
+      REAL*8  :: XAD         ! Air density [molec/cm3]
+      REAL*8  :: XRADIUS     ! particle radius [cm]
+      REAL*8  :: XDFKG       ! Gas phase diffusion coeff [cm2/s]
+      REAL*8  :: XARSL1K     ! 1st order k
+      REAL*8  :: XRH         ! Relative humidity [%]
+      REAL*8  :: XAIRM3      ! Air volume [m3]
+      REAL*8  :: XGASM       ! Gas mass at grid box before uptake [kg]
+      REAL*8  :: XGASC       ! Gas concentration before uptake [molec/cm3]
+      REAL*8  :: XWAREA      ! Wet aerosol surface area
+                             !  [cm^2 wet sfc area of aerosol cm^-3 air]
+      REAL*8  :: XUPTK0      ! Potential uptake of gas by aerosol by aerosol
+                             !  type [molec/cm3]
+      REAL*8  :: XUPTK1      ! Potential uptake of gas by aerosol by aerosol
+                             !  type [kg]
+      REAL*8  :: XUPTKSUM    ! Potential uptake of gas by aerosol [kg]
+      REAL*8  :: XUPTK       ! Actual uptake of gas by aerosol [kg]
+                             !  XUPTK <= STT( I, J, L, IDTGLYX )
+      REAL*8  :: XGAMMA      ! Uptake coefficient 
 
-      ! Local variables not changing 
-      REAL*8               :: DTCHEM      ! Chemistry time step [s]
-      REAL*8               :: XMW         ! Molecular weight of gas [g/mole]
-      REAL*8               :: XSQMW       ! Square root of molecular weight [g/mole]
-      REAL*8               :: CRITRH      ! Critical RH [%], above which 
-                                          !  heteorogeneous chem takes place
-      REAL*8               :: XNAVO       ! Avogadro number
+      ! Local  changing 
+      REAL*8  :: DTCHEM      ! Chemistry time step [s]
+      REAL*8  :: XMW         ! Molecular weight of gas [g/mole]
+      REAL*8  :: XSQMW       ! Square root of molecular weight [g/mole]
+      REAL*8  :: CRITRH      ! Critical RH [%], above which 
+                             !  heteorogeneous chem takes place
+      REAL*8  :: XNAVO       ! Avogadro number
 
       !=================================================================
       ! SOAG_LIGGIO_DIFF begins here!
@@ -1581,11 +1592,11 @@
       ! Uptake coefficient from Liggio et al. [2005b]
       XGAMMA = 2.9d-3
 
-      ! Create RH field -- relative humidity (in dao_mod.f)
-!      CALL MAKE_RH
-
       !=================================================================
       ! Loop over grid boxes
+      !
+      !%%% NOTE: NEED TO REPLACE LLTROP WITH LLPAR FOR GIGC
+      !%%% DO THIS LATER SINCE WE ARE NOT USING THE SOA MECHANISM YET
       !=================================================================
       DO L = 1, LLTROP
       DO J = 1, JJPAR
@@ -1598,7 +1609,7 @@
             IF ( JLOOP == 0 ) CYCLE
 
             ! Get RH  
-            XRH     = RH( I, J, L )   ![%]
+            XRH     = State_Met%RH( I, J, L )   ![%]
 
             ! initialize for safety
             XUPTK0   = 0d0
@@ -1607,14 +1618,14 @@
             XUPTK    = 0d0
 
             ! Get T
-            XTEMP   = T( I, J, L )
+            XTEMP   = State_Met%T( I, J, L )
             XSQTEMP = SQRT( XTEMP )
 
             ! Get air density  [molec/cm3]
             XAD     = AIRDENS( JLOOP )
 
             ! Get air volumne [m3]
-            XAIRM3  = AIRVOL( I, J, L )
+            XAIRM3  = State_Met%AIRVOL( I, J, L )
 
             ! Get gas mass at grid box [kg]
             XGASM   = STT( I, J, L, IDTMGLY )
@@ -1706,7 +1717,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE SOA_CHEMISTRY( am_I_Root )
+      SUBROUTINE SOA_CHEMISTRY( am_I_Root, State_Met )
 !
 !******************************************************************************
 !  Subroutine SOA_CHEMISTRY performs SOA formation.  This code is from the
@@ -1778,54 +1789,57 @@
 !  05 Oct 2011 - R. Yantosca - SUNCOS is not needed, so remove
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD,    ONLY : DEBUG_MSG
-      USE DAO_MOD,      ONLY : T, AD, AIRVOL
-      USE DIAG_MOD,     ONLY : AD07_HC
-      USE TRACER_MOD,   ONLY : STT 
-      USE TRACERID_MOD, ONLY : IDTALCO, IDTALPH, IDTLIMO, IDTOCPI
-      USE TRACERID_MOD, ONLY : IDTOCPO, IDTSOA1, IDTSOA2, IDTSOA3
-      USE TRACERID_MOD, ONLY : IDTSOA4, IDTSOG1, IDTSOG2, IDTSOG3
-      USE TRACERID_MOD, ONLY : IDTSOG4, IDTSO4,  IDTNH4,  IDTNIT
-      USE TRACERID_MOD, ONLY : IDTSOG5, IDTSOA5  ! (dkh, 03/24/07)  
-      USE TIME_MOD,     ONLY : GET_TS_CHEM,      GET_MONTH
-      USE TIME_MOD,     ONLY : ITS_TIME_FOR_BPCH
-      USE LOGICAL_MOD,  ONLY : LPRT   !(bmy, 4/21/10)
+      USE DIAG_MOD,           ONLY : AD07_HC
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE LOGICAL_MOD,        ONLY : LPRT   !(bmy, 4/21/10)
+      USE TRACER_MOD,         ONLY : STT 
+      USE TRACERID_MOD,       ONLY : IDTALCO, IDTALPH, IDTLIMO, IDTOCPI
+      USE TRACERID_MOD,       ONLY : IDTOCPO, IDTSOA1, IDTSOA2, IDTSOA3
+      USE TRACERID_MOD,       ONLY : IDTSOA4, IDTSOG1, IDTSOG2, IDTSOG3
+      USE TRACERID_MOD,       ONLY : IDTSOG4, IDTSO4,  IDTNH4,  IDTNIT
+      USE TRACERID_MOD,       ONLY : IDTSOG5, IDTSOA5  ! (dkh, 03/24/07)  
+      USE TIME_MOD,           ONLY : GET_TS_CHEM,      GET_MONTH
+      USE TIME_MOD,           ONLY : ITS_TIME_FOR_BPCH
 
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_O3_MOD         ! XNUMOL
-      USE CMN_DIAG_MOD       ! ND44
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_O3_MOD               ! XNUMOL
+      USE CMN_DIAG_MOD             ! ND44
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE         :: FIRST = .TRUE.
-      INTEGER               :: I,        J,        L,        N    
-      INTEGER               :: JHC,      IPR,      NOX ! (dkh, 10/30/06)  
-      REAL*8                :: RTEMP,    VOL,      FAC,      MPOC 
-      REAL*8                :: MNEW,     MSOA_OLD, MPRODUCT, CAIR
-      REAL*8                :: LOWER,    UPPER,    TOL,      VALUE
-      REAL*8                :: KO3(MHC), KOH(MHC), KNO3(MHC)
-      !REAL*8                :: ALPHA(NPROD,MHC),   KOM(NPROD,MHC)
-      !REAL*8                :: GM0(NPROD,MHC),     AM0(NPROD,MHC)
-      !REAL*8                :: ORG_AER(NPROD,MHC), ORG_GAS(NPROD,MHC)
-      REAL*8                :: KOM(MNOX,MPROD,MHC)
-      REAL*8                :: GM0(MNOX,MPROD,MHC), AM0(MNOX,MPROD,MHC)
-      REAL*8                :: ORG_AER(MNOX,MPROD,MHC)
-      REAL*8                :: ORG_GAS(MNOX,MPROD,MHC)
-      REAL*8                :: SOA_BURD_0(5),       DARO2_TOT_0(6)
-      REAL*8                :: SOA_BURD(5)
-      REAL*8                :: GLOB_AM0_AROM(MNOX,3)
-      REAL*8                :: GLOB_AM0_AROM_0(MNOX,3)
-      REAL*8, SAVE          :: DARO2_TOT(6)     = 0d0
+      LOGICAL, SAVE   :: FIRST = .TRUE.
+      INTEGER         :: I,        J,        L,        N    
+      INTEGER         :: JHC,      IPR,      NOX ! (dkh, 10/30/06)  
+      REAL*8          :: RTEMP,    VOL,      FAC,      MPOC 
+      REAL*8          :: MNEW,     MSOA_OLD, MPRODUCT, CAIR
+      REAL*8          :: LOWER,    UPPER,    TOL,      VALUE
+      REAL*8          :: KO3(MHC), KOH(MHC), KNO3(MHC)
+      !REAL*8          :: ALPHA(NPROD,MHC),   KOM(NPROD,MHC)
+      !REAL*8          :: GM0(NPROD,MHC),     AM0(NPROD,MHC)
+      !REAL*8          :: ORG_AER(NPROD,MHC), ORG_GAS(NPROD,MHC)
+      REAL*8          :: KOM(MNOX,MPROD,MHC)
+      REAL*8          :: GM0(MNOX,MPROD,MHC), AM0(MNOX,MPROD,MHC)
+      REAL*8          :: ORG_AER(MNOX,MPROD,MHC)
+      REAL*8          :: ORG_GAS(MNOX,MPROD,MHC)
+      REAL*8          :: SOA_BURD_0(5),       DARO2_TOT_0(6)
+      REAL*8          :: SOA_BURD(5)
+      REAL*8          :: GLOB_AM0_AROM(MNOX,3)
+      REAL*8          :: GLOB_AM0_AROM_0(MNOX,3)
+      REAL*8, SAVE    :: DARO2_TOT(6)     = 0d0
 
-      REAL*8, SAVE          :: SOA_PROD         = 0d0
-      REAL*8, SAVE          :: AM0_AROM_PROD(6) = 0d0
+      REAL*8, SAVE    :: SOA_PROD         = 0d0
+      REAL*8, SAVE    :: AM0_AROM_PROD(6) = 0d0
 
       !=================================================================
       ! SOA_CHEMISTRY begins here!
@@ -1857,22 +1871,21 @@
       DO I = 1, IIPAR
 
          ! Volume of grid box [m3]
-         VOL    = AIRVOL(I,J,L)    
+         VOL    = State_Met%AIRVOL(I,J,L)
 
          ! conversion factor from kg to ug/m3
          FAC    = 1.D9 / VOL       
 
          ! air conc. in kg/m3
-         CAIR   = AD(I,J,L) / VOL  
+         CAIR   = State_Met%AD(I,J,L) / VOL
 
          ! Temperature [K]
-         RTEMP  = T(I,J,L)         
+         RTEMP  = State_Met%T(I,J,L)
 
          ! Get SOA yield parameters
          ! ALPHA is a module variable now. (ccc, 2/2/10)
-         !CALL SOA_PARA( I, J, L, RTEMP, KO3, KOH, KNO3, ALPHA, KOM )
-         CALL SOA_PARA( RTEMP, KO3, KOH, KNO3, KOM, ! ) (dkh, 10/09/05)  
-     &                  I,     J,   L                     )
+         CALL SOA_PARA( RTEMP, KO3, KOH, KNO3, KOM,
+     &                  I,     J,   L,   State_Met  )
 
          ! Partition mass of gas & aerosol tracers 
          ! according to 5 VOC classes & 3 oxidants
@@ -1885,8 +1898,7 @@
 
          ! Compute oxidation of hydrocarbons by O3, OH, NO3
          ! ALPHA is a module variable now (ccc, 2/2/10)
-         !CALL CHEM_NVOC( I, J, L, KO3, KOH, KNO3, ALPHA, GM0 )
-         CALL CHEM_NVOC( I, J, L, KO3, KOH, KNO3, GM0 )
+         CALL CHEM_NVOC( I, J, L, KO3, KOH, KNO3, GM0, State_Met )
 
          !==============================================================
          ! Equilibrium calculation between GAS (SOG) and Aerosol (SOA)
@@ -1917,7 +1929,7 @@
 
          ! No need to proceed because there is no
          ! products that need to be re-equilibrated.
-         IF ( ( MPRODUCT / AD(I,J,L) ) <= 29.D-18 ) CYCLE
+         IF ( ( MPRODUCT / State_Met%AD(I,J,L) ) <= 29.D-18 ) CYCLE
 
          ! Individual SOA's; units: [ug/m3]
          DO JHC = 1, MHC
@@ -2068,7 +2080,7 @@
                 !GM0(IPR,JHC) = GM0(IPR,JHC) + AM0(IPR,JHC)
                 !AM0(IPR,JHC) = 1.D-18 * AD(I,J,L)
                 GM0(NOX,IPR,JHC) = GM0(NOX,IPR,JHC) + AM0(NOX,IPR,JHC)
-                AM0(NOX,IPR,JHC) = 1.D-18 * AD(I,J,L)
+                AM0(NOX,IPR,JHC) = 1.D-18 * State_Met%AD(I,J,L)
              ENDDO
              ENDDO
              ENDDO
@@ -2523,10 +2535,8 @@ c
 
 !------------------------------------------------------------------------------
 
-!      SUBROUTINE SOA_PARA( II,  JJ,  LL,   TEMP, 
-!     &                     KO3, KOH, KNO3, RALPHA, KOM )
       SUBROUTINE SOA_PARA( TEMP, KO3, KOH, KNO3, KOM,
-     &                     II,   JJ,  LL                      ) ! (dkh, 10/09/05)
+     &                     II,   JJ,  LL,  State_Met  )
 !
 !******************************************************************************
 !  Subroutine SOA_PARA gves mass-based stoichiometric coefficients for semi-
@@ -2581,18 +2591,20 @@ c
 !  (3 ) Corrected confusing documentation. (clh, bmy, 6/30/08)
 !  (4 ) Add paramters for aromtics. Add high NOx low NOx index to every 
 !        parameter, NNOX (dkh, 10/29/06) 
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !******************************************************************************
 !
       ! References to F90 modules
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_TROP
 
       ! Arguments
-      INTEGER, INTENT(IN)  :: II, JJ, LL
-      REAL*8,  INTENT(IN)  :: TEMP
-      REAL*8,  INTENT(OUT) :: KO3(MHC), KOH(MHC), KNO3(MHC)
-      ! make RAPLPHA a module variable, defined only once
-      !REAL*8,  INTENT(OUT) :: RALPHA(NPROD,MHC), KOM(NPROD,MHC)
-      REAL*8, INTENT(OUT)  :: KOM(MNOX,MPROD,MHC)
+      INTEGER,        INTENT(IN)  :: II, JJ, LL
+      REAL*8,         INTENT(IN)  :: TEMP
+      REAL*8,         INTENT(OUT) :: KO3(MHC), KOH(MHC), KNO3(MHC)
+      REAL*8,         INTENT(OUT) :: KOM(MNOX,MPROD,MHC)
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 
       ! Local variables
       INTEGER              :: IPR,  JHC,  J
@@ -2665,7 +2677,7 @@ c
       ! If we are in the troposphere, then calculate ISOP oxidation rates
       ! If we are in the stratosphere, set ISOP oxidation rates to zero
       ! (dkh, bmy, 5/22/06)
-      IF ( ITS_IN_THE_TROP( II, JJ, LL ) ) THEN
+      IF ( ITS_IN_THE_TROP( II, JJ, LL, State_Met ) ) THEN
          KO3(6)  = 1.05d-14 * EXP(-2000.d0 / TEMP )
          KOH(6)  = 2.70d-11 * EXP( 390.d0 / TEMP )
          KNO3(6) = 3.03d-12 * EXP(-446.d0 / TEMP )
@@ -3162,9 +3174,7 @@ c
 
 !------------------------------------------------------------------------------
 
-      !SUBROUTINE CHEM_NVOC( I, J, L, KO3, KOH, KNO3, ALPHA, GM0 )
-      SUBROUTINE CHEM_NVOC( I, J, L, KO3, KOH, KNO3, GM0 )
-
+      SUBROUTINE CHEM_NVOC( I, J, L, KO3, KOH, KNO3, GM0, State_Met )
 !
 !******************************************************************************
 !  Subroutine CHEM_NVOC computes the oxidation of Hydrocarbon by O3, OH, and 
@@ -3190,28 +3200,29 @@ c
 !  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (3 ) Updated for SOA from isoprene.  Now calls GET_DOH. (dkh, bmy, 6/1/06)
 !  (4 ) Updated for SOA from aromatics. (dkh, 10/29/06)  
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !******************************************************************************
 !
       ! References to F90 kmodules
-      USE TRACER_MOD,    ONLY : STT
-      USE TRACERID_MOD,  ONLY : IDTALCO,     IDTALPH,  IDTLIMO
-      USE TIME_MOD,      ONLY : GET_TS_CHEM, GET_MONTH
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_MONTH
+      USE TRACER_MOD,         ONLY : STT
+      USE TRACERID_MOD,       ONLY : IDTALCO,     IDTALPH,  IDTLIMO
 
-      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 
       ! Arguments
-      INTEGER, INTENT(IN)    :: I, J, L
-      REAL*8,  INTENT(IN)    :: KO3(MHC), KOH(MHC), KNO3(MHC)
-      !REAL*8,  INTENT(IN)    :: ALPHA(NPROD,MHC)
-      !REAL*8,  INTENT(INOUT) :: GM0(NPROD,MHC)
-      REAL*8,  INTENT(INOUT) :: GM0(MNOX,MPROD,MHC)
+      INTEGER,        INTENT(IN)    :: I, J, L
+      REAL*8,         INTENT(IN)    :: KO3(MHC), KOH(MHC), KNO3(MHC)
+      REAL*8,         INTENT(INOUT) :: GM0(MNOX,MPROD,MHC)
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 
       ! Local variables
-      INTEGER                :: JHC, IPR, NOX
-!      REAL*8                 :: DELHC(NPROD), CHANGE(MHC), NMVOC(MHC)
-      REAL*8                 :: DELHC(MPROD), CHANGE(MHC), NMVOC(MHC)
-      REAL*8                 :: OHMC, TTNO3, TTO3, DTCHEM, RK
-      REAL*8                 :: OVER, DO3, DOH, DNO3
+      INTEGER  :: JHC, IPR, NOX
+      REAL*8   :: DELHC(MPROD), CHANGE(MHC), NMVOC(MHC)
+      REAL*8   :: OHMC, TTNO3, TTO3, DTCHEM, RK
+      REAL*8   :: OVER, DO3, DOH, DNO3
 
       !=================================================================
       ! CHEM_NVOC begins here!
@@ -3222,8 +3233,8 @@ c
 
       ! Get offline OH, NO3, O3 concentrations [molec/cm3]
       OHMC    = GET_OH(  I, J, L ) 
-      TTNO3   = GET_NO3( I, J, L )
-      TTO3    = GET_O3(  I, J, L ) 
+      TTNO3   = GET_NO3( I, J, L, State_Met )
+      TTO3    = GET_O3(  I, J, L, State_Met ) 
 
       ! 6 classes NVOC concentrations followed by 4 primary species
       NMVOC(1) = STT(I,J,L,IDTALPH)
@@ -3937,7 +3948,6 @@ c
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,      ONLY : AD
       USE DIAG_MOD,     ONLY : AD44 
       USE DRYDEP_MOD,   ONLY : DEPSAV
       USE GRID_MOD,     ONLY : GET_AREA_CM2
@@ -4068,9 +4078,9 @@ c
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      SUBROUTINE EMISSCARBON(EMISSIONS)
+      SUBROUTINE EMISSCARBON( State_Met, EMISSIONS )
 #else
-      SUBROUTINE EMISSCARBON
+      SUBROUTINE EMISSCARBON( State_Met )
 #endif
 !
 !******************************************************************************
@@ -4102,40 +4112,48 @@ c
 !        arrays later. (win, 2/26/08)
 !  (11) Correct the biogenic mass input to SOA condensation from mass OC to
 !        mass OM using the OC2OM factor. (win, 9/20/08)
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIAG_MOD,          ONLY : AD07
-      USE DAO_MOD,           ONLY : PBL
-      USE ERROR_MOD,         ONLY : DEBUG_MSG
-      USE LOGICAL_MOD,       ONLY : LSOA,      LPRT,  LCOOKE
-      USE TIME_MOD,          ONLY : GET_MONTH, ITS_A_NEW_MONTH
-      USE TRACER_MOD,        ONLY : STT
-      USE GFED2_BIOMASS_MOD, ONLY : GFED2_IS_NEW
-      USE GFED3_BIOMASS_MOD, ONLY : GFED3_IS_NEW
-      !USE TRACERID_MOD
-      USE DIAG_MOD,    ONLY : AD59_ECIL,   AD59_ECOB  !(win, 1/25/10)
-      USE DIAG_MOD,    ONLY : AD59_OCIL,   AD59_OCOB !(win, 1/25/10)
-      USE DIAG_MOD,    ONLY : AD59_NUMB   !(win, 1/25/10)
-      USE TOMAS_MOD,   ONLY : IBINS, AVGMASS,  SOACOND, ICOMP, IDIAG  !(win, 1/25/10)
-      USE TRACERID_MOD,ONLY : IDTECIL1, IDTECOB1, IDTNK1  !(win, 1/25/10)
-      USE TRACERID_MOD,ONLY : IDTOCIL1, IDTOCOB1  !(win, 1/25/10)
+      USE DIAG_MOD,           ONLY : AD07
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE GFED2_BIOMASS_MOD,  ONLY : GFED2_IS_NEW
+      USE GFED3_BIOMASS_MOD,  ONLY : GFED3_IS_NEW
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE LOGICAL_MOD,        ONLY : LSOA,      LPRT,  LCOOKE
+      USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
+      USE TRACER_MOD,         ONLY : STT
+      USE TRACERID_MOD,       ONLY : IDTECIL1, IDTECOB1          !(win, 1/25/10)
+      USE TRACERID_MOD,       ONLY : IDTOCIL1, IDTOCOB1, IDTNK1  !(win, 1/25/10)
+      USE TOMAS_MOD,          ONLY : IBINS                       !(win, 1/25/10)
+      USE DIAG_MOD,           ONLY : AD59_ECIL,   AD59_ECOB      !(win, 1/25/10)
+      USE DIAG_MOD,           ONLY : AD59_OCIL,   AD59_OCOB      !(win, 1/25/10)
+      USE DIAG_MOD,           ONLY : AD59_NUMB                   !(win, 1/25/10)
+      USE TOMAS_MOD,          ONLY : IBINS, AVGMASS,  SOACOND    !(win, 1/25/10)
+      USE TOMAS_MOD,          ONLY : ICOMP, IDIAG                !(win, 1/25/10)
+      USE TRACERID_MOD,       ONLY : IDTECIL1, IDTECOB1, IDTNK1  !(win, 1/25/10)
+      USE TRACERID_MOD,       ONLY : IDTOCIL1, IDTOCOB1          !(win, 1/25/10)
 
       USE CMN_SIZE_MOD    ! Size parameters
       USE CMN_DIAG_MOD    ! ND07
 
 #if defined( DEVEL )
-      USE TRACERID_MOD, ONLY : IDTBCPI, IDTBCPO, IDTOCPI, IDTOCPO
-      USE TRACER_MOD, ONLY   : N_TRACERS 
+      USE TRACERID_MOD,       ONLY : IDTBCPI, IDTBCPO, IDTOCPI, IDTOCPO
+      USE TRACER_MOD,         ONLY : N_TRACERS 
 #endif
+
       ! Local variables
       LOGICAL, SAVE        :: FIRST = .TRUE.
       INTEGER              :: I, J, MONTH, N
       REAL*8               :: BCSRC(IIPAR,JJPAR,2)
       REAL*8               :: OCSRC(IIPAR,JJPAR,2)
 
+      ! Arguments
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #if defined( DEVEL )
-      REAL*8, INTENT(INOUT)      :: EMISSIONS(IIPAR,JJPAR,N_TRACERS+1)
+      REAL*8,      INTENT(INOUT) :: EMISSIONS(IIPAR,JJPAR,N_TRACERS+1)
 #endif
 
       ! more variables (win, 9/4/07)
@@ -4262,7 +4280,7 @@ c
       !--------------------------
       ! Compute biogenic OC
       !--------------------------
-      CALL BIOGENIC_OC
+      CALL BIOGENIC_OC( State_Met )
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: after BIOGENIC_OC' )
 
       !=================================================================
@@ -4399,9 +4417,9 @@ c
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISCARB: after ND07' )
       ENDIF
 
-! Added for emitting 30-bin EC and OC by Win Trivitayanurak (9/4/07)
-! From this point to the end of this subroutine and also added function 
-!  SCALECARB and subroutine EMITHIGH2 and EMITSGC in carbon_mod.f 
+      ! Added for emitting 30-bin EC and OC by Win Trivitayanurak (9/4/07)
+      ! From this point to the end of this subroutine and also added function 
+      !  SCALECARB and subroutine EMITHIGH2 and EMITSGC in carbon_mod.f 
       !=================================================================
       ! Emit EC and OC for 30-bin aerosol    (win, 9/4/07)
       !=================================================================
@@ -4491,7 +4509,8 @@ c
          enddo
       endif
 !temp debug --------
-            CALL EMITSGC( EC30SRC(:,:,:,1) + EC30SRC(:,:,:,2),1 )
+            CALL EMITSGC( EC30SRC(:,:,:,1) + EC30SRC(:,:,:,2), 1,
+     &                    State_Met )
  !temp debug            if(sum(OC30SRC(ii,jj,:,:)) > 0d0) dbg = .true.
       if( dbg) then
          print *,'===== Before EMITSGC:OC ===== at',ii,jj,ll
@@ -4504,8 +4523,8 @@ c
          enddo
       endif
 !temp debug --------
-
-            CALL EMITSGC( OC30SRC(:,:,:,1) + OC30SRC(:,:,:,2),2 )
+            CALL EMITSGC( OC30SRC(:,:,:,1) + OC30SRC(:,:,:,2), 2,
+     &                    State_Met )
  !temp debug
       if( dbg) then
          print *,'===== After EMITSGC:OC ===== at',ii,jj,ll
@@ -4605,54 +4624,65 @@ c
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE EMITSGC( EMISMASS, CTYPE )
+      SUBROUTINE EMITSGC( EMISMASS, CTYPE, State_Met )
 !
 !******************************************************************************
 !  Subroutine EMITSGC calculates sub-grid coagulation for the size distribution
 !  of emission. (win, 10/6/07)
 !
+! !REVISION HISTORY:
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !******************************************************************************
 
       ! References to F90 modules
-      USE DAO_MOD,      ONLY : AIRVOL, T
-      USE DIAG_MOD,     ONLY : AD59_ECIL,   AD59_ECOB
-      USE DIAG_MOD,     ONLY : AD59_OCIL,   AD59_OCOB
-      USE DIAG_MOD,     ONLY : AD59_NUMB
-      USE PBL_MIX_MOD,  ONLY : GET_FRAC_OF_PBL,  GET_PBL_MAX_L
-      USE PRESSURE_MOD, ONLY : GET_PCENTER
-      USE TRACER_MOD,   ONLY : STT
-      USE TRACERID_MOD, ONLY : IDTECIL1, IDTECOB1
-      USE TRACERID_MOD, ONLY : IDTOCIL1, IDTOCOB1, IDTNK1
-      USE TRACERID_MOD, ONLY : IDTNH4,   IDTAW1
-      USE TOMAS_MOD,    ONLY : IBINS,    AVGMASS,  ICOMP,   IDIAG
-      USE TOMAS_MOD,    ONLY : SRTECIL,  SRTECOB,  SRTOCIL, SRTOCOB
-      USE TOMAS_MOD,    ONLY : SRTSO4,   SRTNH4,   SRTH2O
-      USE TOMAS_MOD,    ONLY : SUBGRIDCOAG,   MNFIX, NH4BULKTOBIN
-      USE ERROR_MOD,    ONLY : IT_IS_NAN
+      USE DIAG_MOD,           ONLY : AD59_ECIL,   AD59_ECOB
+      USE DIAG_MOD,           ONLY : AD59_OCIL,   AD59_OCOB
+      USE DIAG_MOD,           ONLY : AD59_NUMB
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL,  GET_PBL_MAX_L
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER
+      USE TRACER_MOD,         ONLY : STT
+      USE TRACERID_MOD,       ONLY : IDTECIL1, IDTECOB1
+      USE TRACERID_MOD,       ONLY : IDTOCIL1, IDTOCOB1, IDTNK1
+      USE TRACERID_MOD,       ONLY : IDTNH4,   IDTAW1
+      USE TOMAS_MOD,          ONLY : IBINS,    AVGMASS,  ICOMP,   IDIAG
+      USE TOMAS_MOD,          ONLY : SRTECIL,  SRTECOB,  SRTOCIL
+      USE TOMAS_MOD,          ONLY : SRTOCOB,  SRTSO4,   SRTNH4
+      USE TOMAS_MOD,          ONLY : SRTH2O,   MNFIX
+      USE TOMAS_MOD,          ONLY : SUBGRIDCOAG
+      USE TOMAS_MOD,          ONLY : NH4BULKTOBIN
+      USE ERROR_MOD,          ONLY : IT_IS_NAN
 
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_DIAG_MOD       ! ND59
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND59
 
       ! Arguments
-      REAL*8,  INTENT(IN)    :: EMISMASS(IIPAR, JJPAR, IBINS)
-      INTEGER, INTENT(IN)    :: CTYPE   ! 1 = EC and 2 = OC
+      REAL*8,         INTENT(IN)  :: EMISMASS(IIPAR, JJPAR, IBINS)
+      INTEGER,        INTENT(IN)  :: CTYPE       ! 1 = EC and 2 = OC
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 
       ! Local variables
-      REAL*8                 :: NDISTINIT(IBINS) 
-      REAL*8                 :: NDISTFINAL(IBINS) 
-      REAL*8                 :: MADDFINAL(IBINS) 
-      REAL*8                 :: NDIST(IBINS),  MDIST(IBINS,ICOMP)
-      REAL*8                 :: NDIST2(IBINS), MDIST2(IBINS,ICOMP)
-      REAL*8                 :: TSCALE, BOXVOL, TEMP, PRES
-      INTEGER                :: I, J, L, K, C, PBL_MAX
-      REAL*8                 :: F_OF_PBL
-      LOGICAL                :: ERRORSWITCH, PDBUG
-      REAL*4                 :: N0(LLPAR,IBINS), N1(LLPAR,IBINS)
-      REAL*4                 :: MIL0(LLPAR,IBINS), MIL1(LLPAR,IBINS)
-      REAL*4                 :: MOB0(LLPAR,IBINS), MOB1(LLPAR,IBINS)
-      integer                :: ii, jj, ll
-      logical                :: dbg = .false.
-      data ii, jj, ll /53, 29, 8 /
+      REAL*8                      :: NDISTINIT(IBINS) 
+      REAL*8                      :: NDISTFINAL(IBINS) 
+      REAL*8                      :: MADDFINAL(IBINS) 
+      REAL*8                      :: NDIST(IBINS)
+      REAL*8                      :: MDIST(IBINS,ICOMP)
+      REAL*8                      :: NDIST2(IBINS)
+      REAL*8                      :: MDIST2(IBINS,ICOMP)
+      REAL*8                      :: TSCALE, BOXVOL, TEMP, PRES
+      INTEGER                     :: I, J, L, K, C, PBL_MAX
+      REAL*8                      :: F_OF_PBL
+      LOGICAL                     :: ERRORSWITCH, PDBUG
+      REAL*4                      :: N0(LLPAR,IBINS)
+      REAL*4                      :: N1(LLPAR,IBINS)
+      REAL*4                      :: MIL0(LLPAR,IBINS)
+      REAL*4                      :: MIL1(LLPAR,IBINS)
+      REAL*4                      :: MOB0(LLPAR,IBINS)
+      REAL*4                      :: MOB1(LLPAR,IBINS)
+      INTEGER                     :: ii, jj, ll
+      LOGICAL                     :: dbg = .false.
+      DATA ii, jj, ll /53, 29, 8 /
 
       !=================================================================
       ! EMITSGC begins here!
@@ -4741,8 +4771,8 @@ c
 !            print *, 'Now doing subgrid coag with timescale ',
 !     &           TSCALE/3600.,'hr'
 
-         BOXVOL  = AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3 
-         TEMP    = T(I,J,L)
+         BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3 
+         TEMP    = State_Met%T(I,J,L)
          PRES    = GET_PCENTER(i,j,l)*100.0 ! in Pa
 
          PDBUG = .FALSE.
@@ -4956,7 +4986,7 @@ ccc
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE BIOGENIC_OC
+      SUBROUTINE BIOGENIC_OC( State_Met )
 !
 !******************************************************************************
 !  Subroutine BIOGENIC_OC emits secondary organic carbon aerosols.
@@ -4982,47 +5012,49 @@ ccc
 !  07 Oct 2011 - R. Yantosca - Rename SUNCOS30 to SUNCOS_MID, which is the
 !                              cos(SZA) at the midpt of the chemistry timestep
 !  08 Dec 2011 - M. Payer    - Remove GEIA biogenic emissions option
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D,  GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,         READ_BPCH2
-      USE DAO_MOD,       ONLY : SUNCOS_MID
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE LOGICAL_MOD,   ONLY : LMEGANMONO,       LSOA
-      USE MEGAN_MOD,     ONLY : GET_EMMONOT_MEGAN
-      ! Speciated MEGAN monoterpenes (hotp 3/10/10)
-      USE MEGAN_MOD,     ONLY : GET_EMMONOG_MEGAN
-      ! ----
-      USE TIME_MOD,      ONLY : GET_MONTH,        GET_TS_CHEM
-      USE TIME_MOD,      ONLY : GET_TS_EMIS,      ITS_A_NEW_MONTH
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-      ! For monoterpenes (mpb,2009)
-      USE DAO_MOD,       ONLY : PARDF, PARDR
-      USE MEGANUT_MOD,   ONLY : XLTMMP
+      USE BPCH2_MOD,          ONLY : GET_NAME_EXT_2D,  GET_RES_EXT
+      USE BPCH2_MOD,          ONLY : GET_TAU0,         READ_BPCH2
+      USE DAO_MOD,            ONLY : SUNCOS_MID
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE LOGICAL_MOD,        ONLY : LMEGANMONO,       LSOA
+      USE MEGAN_MOD,          ONLY : GET_EMMONOT_MEGAN
+      USE MEGAN_MOD,          ONLY : GET_EMMONOG_MEGAN
+      USE MEGANUT_MOD,        ONLY : XLTMMP
+      USE TIME_MOD,           ONLY : GET_MONTH,        GET_TS_CHEM
+      USE TIME_MOD,           ONLY : GET_TS_EMIS,      ITS_A_NEW_MONTH
+      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
 
-      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
+
+      ! Arguments
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 
       ! Local variables
-      LOGICAL, SAVE          :: FIRST = .TRUE.
-      INTEGER                :: I, J, IJLOOP, THISMONTH
-      REAL*4                 :: ARRAY(IIPAR,JJPAR,1)
-      REAL*8                 :: CONVERT(NVEGTYPE)
-      REAL*8                 :: GMONOT(NVEGTYPE)
-      REAL*8                 :: FD2D(IIPAR,JJPAR)
-      REAL*8                 :: TMMP, EMMO, VALUE
-      REAL*8                 :: XTAU, STEPS_PER_MON
-      REAL*8, PARAMETER      :: FC1 = 136.2364D0 / 120.11D0
-      REAL*8, PARAMETER      :: FC2 = 154.2516D0 / 120.11D0
-      REAL*8, PARAMETER      :: FC3 = 204.3546D0 / 180.165D0
-      REAL*8, PARAMETER      :: FC4 = 152.D0     / 120.11D0
-      CHARACTER(LEN=255)     :: FILENAME
+      LOGICAL, SAVE               :: FIRST = .TRUE.
+      INTEGER                     :: I, J, IJLOOP, THISMONTH
+      REAL*4                      :: ARRAY(IIPAR,JJPAR,1)
+      REAL*8                      :: CONVERT(NVEGTYPE)
+      REAL*8                      :: GMONOT(NVEGTYPE)
+      REAL*8                      :: FD2D(IIPAR,JJPAR)
+      REAL*8                      :: TMMP, EMMO, VALUE
+      REAL*8                      :: XTAU, STEPS_PER_MON
+      REAL*8, PARAMETER           :: FC1 = 136.2364D0 / 120.11D0
+      REAL*8, PARAMETER           :: FC2 = 154.2516D0 / 120.11D0
+      REAL*8, PARAMETER           :: FC3 = 204.3546D0 / 180.165D0
+      REAL*8, PARAMETER           :: FC4 = 152.D0     / 120.11D0
+      CHARACTER(LEN=255)          :: FILENAME
 
       ! Fraction of yield of OC (hydrophilic) from terpene emission
-      REAL*8, PARAMETER      :: FBIOG = 1.0d-1
+      REAL*8, PARAMETER           :: FBIOG = 1.0d-1
 
       ! Cosine SZA & PAR (for calculation of monoterpenes) (mpb,2009)
-      REAL*8                 :: SC, PDF, PDR
+      REAL*8                      :: SC, PDF, PDR
 
       ! External functions
 
@@ -5045,16 +5077,16 @@ ccc
             ! 1-D loop index
             IJLOOP         = ( (J-1) * IIPAR ) + I
 
-             ! Surface temperature [K]
-            TMMP           = XLTMMP(I,J,IJLOOP)
+            ! Surface temperature [K]
+            TMMP           = XLTMMP( I, J, State_Met%TS, IJLOOP )
 
             ! +++++++++++++++++++++++++++++++++++++++++
             ! ** MEGAN v2.1 **
             ! Cosine of solar zenith angle   (mpb,2009) 
             ! Diffuse and direct PAR         (mpb,2009)
             SC   = SUNCOS_MID(IJLOOP)   
-            PDR  = PARDR(I,J)
-            PDF  = PARDF(I,J)
+            PDR  = State_Met%PARDR(I,J)
+            PDF  = State_Met%PARDF(I,J)
             ! +++++++++++++++++++++++++++++++++++++++++
 
             ! Get monoterpenes from MEGAN [kg C/box]
@@ -5123,7 +5155,7 @@ ccc
             IJLOOP         = ( (J-1) * IIPAR ) + I
 
             ! Surface temperature [K]
-            TMMP           = XLTMMP(I,J,IJLOOP)
+            TMMP           = XLTMMP( I, J, State_Met%TS, IJLOOP )
 
             ! Monoterpene emission [kg C/box/timestep]
 
@@ -5132,8 +5164,8 @@ ccc
             ! Cosine of solar zenith angle   (mpb,2009) 
             ! Diffuse and direct PAR         (mpb,2009)
             SC   = SUNCOS_MID(IJLOOP)   
-            PDR  = PARDR(I,J)
-            PDF  = PARDF(I,J)
+            PDR  = State_Met%PARDR(I,J)
+            PDF  = State_Met%PARDF(I,J)
             ! +++++++++++++++++++++++++++++++++++++++++
 
             ! Get monoterpenes from MEGAN [kg C/box]
@@ -6633,7 +6665,7 @@ ccc
 
 !------------------------------------------------------------------------------
 
-      FUNCTION GET_NO3( I, J, L ) RESULT( NO3_MOLEC_CM3 ) 
+      FUNCTION GET_NO3( I, J, L, State_Met ) RESULT( NO3_MOLEC_CM3 ) 
 !
 !******************************************************************************
 !  Function GET_NO3 returns NO3 from SMVGEAR's CSPEC array (for coupled runs)
@@ -6649,29 +6681,34 @@ ccc
 !        SETTRACE has been called to define IDNO3.  Now also set NO3 to 
 !        zero during the day. (rjp, bmy, 12/16/02)
 !  (2 ) Now reference inquiry functions from "tracer_mod.f" (bmy, 7/20/04)
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !******************************************************************************
 !
       ! References to F90 modules
-      USE COMODE_MOD,     ONLY : CSPEC, JLOP
-      USE DAO_MOD,        ONLY : AD,    SUNCOS
-      USE ERROR_MOD,      ONLY : ERROR_STOP
-      USE GLOBAL_NO3_MOD, ONLY : NO3
-      USE TRACER_MOD,     ONLY : ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM
-      USE TRACERID_MOD,   ONLY : IDNO3
+      USE COMODE_MOD,         ONLY : CSPEC, JLOP
+      USE DAO_MOD,            ONLY : SUNCOS
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GLOBAL_NO3_MOD,     ONLY : NO3
+      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
+      USE TRACER_MOD,         ONLY : ITS_AN_AEROSOL_SIM
+      USE TRACERID_MOD,       ONLY : IDNO3
 
-      USE CMN_SIZE_MOD  ! Size parameters
-      USE CMN_MOD       ! NSRCX
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_MOD                  ! NSRCX
 
       ! Arguments
-      INTEGER, INTENT(IN) :: I, J, L
+      INTEGER,        INTENT(IN)  :: I, J, L
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 
       ! Local variables
-      INTEGER             :: JLOOP
-      REAL*8              :: NO3_MOLEC_CM3
-      REAL*8,  PARAMETER  :: XNUMOL_NO3 = 6.022d23 / 62d-3
- 
-      ! External functions
-      REAL*8,  EXTERNAL   :: BOXVL
+      INTEGER                     :: JLOOP
+      REAL*8                      :: NO3_MOLEC_CM3
+      REAL*8,  PARAMETER          :: XNUMOL_NO3 = 6.022d23 / 62d-3
+                              
+      ! External functions    
+      REAL*8,  EXTERNAL           :: BOXVL
 
       !=================================================================
       ! GET_NO3 begins here!
@@ -6731,11 +6768,13 @@ ccc
          ELSE
 
             ! At night: Get NO3 [v/v] and convert it to [kg]
-            NO3_MOLEC_CM3 = NO3(I,J,L) * AD(I,J,L) * ( 62d0/28.97d0 ) 
-               
+            NO3_MOLEC_CM3 = NO3(I,J,L) * State_Met%AD(I,J,L) *
+     &                      ( 62d0/28.97d0 )
+
             ! Convert NO3 from [kg] to [molec/cm3]
-            NO3_MOLEC_CM3 = NO3_MOLEC_CM3 * XNUMOL_NO3 / BOXVL(I,J,L)
-                  
+            NO3_MOLEC_CM3 = NO3_MOLEC_CM3 * XNUMOL_NO3 /
+     &                      BOXVL(I,J,L,State_Met)
+                     
          ENDIF
             
          ! Make sure NO3 is not negative
@@ -6756,7 +6795,7 @@ ccc
 
 !------------------------------------------------------------------------------
 
-      FUNCTION GET_O3( I, J, L ) RESULT( O3_MOLEC_CM3 )
+      FUNCTION GET_O3( I, J, L, State_Met ) RESULT( O3_MOLEC_CM3 )
 !
 !******************************************************************************
 !  Function GET_O3 returns monthly mean O3 for offline sulfate aerosol
@@ -6770,30 +6809,35 @@ ccc
 !  (1 ) We assume SETTRACE has been called to define IDO3. (bmy, 12/16/02)
 !  (2 ) Now reference inquiry functions from "tracer_mod.f" (bmy, 7/20/04)
 !  (3 ) Now reference XNUMOLAIR from "tracer_mod.f" (bmy, 10/20/05)
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !******************************************************************************
 !
       ! References to F90 modules
-      USE COMODE_MOD,    ONLY : CSPEC, JLOP, VOLUME
-      USE DAO_MOD,       ONLY : SUNCOS, AD
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE GLOBAL_O3_MOD, ONLY : O3
-      USE TIME_MOD,      ONLY : GET_TS_CHEM
-      USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM
-      USE TRACER_MOD,    ONLY : XNUMOLAIR
-      USE TRACERID_MOD,  ONLY : IDO3
+      USE COMODE_MOD,         ONLY : CSPEC, JLOP, VOLUME
+      USE DAO_MOD,            ONLY : SUNCOS
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GLOBAL_O3_MOD,      ONLY : O3
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
+      USE TRACER_MOD,         ONLY : ITS_AN_AEROSOL_SIM
+      USE TRACER_MOD,         ONLY : XNUMOLAIR
+      USE TRACERID_MOD,       ONLY : IDO3
 
-      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 
       ! Arguments
-      INTEGER, INTENT(IN) :: I, J, L
+      INTEGER,        INTENT(IN) :: I, J, L
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 
       ! Local variables
-      INTEGER             :: JLOOP
-      REAL*8              :: O3_MOLEC_CM3
-      REAL*8,  PARAMETER  :: XNUMOL_O3 = 6.022d23 / 48d-3
- 
-      ! External functions
-      REAL*8,  EXTERNAL   :: BOXVL
+      INTEGER                    :: JLOOP
+      REAL*8                     :: O3_MOLEC_CM3
+      REAL*8,  PARAMETER         :: XNUMOL_O3 = 6.022d23 / 48d-3
+                               
+      ! External functions     
+      REAL*8,  EXTERNAL          :: BOXVL
 
       !=================================================================
       ! GET_O3 begins here!
@@ -6826,10 +6870,12 @@ ccc
          IF ( L <= LLTROP ) THEN
 
             ! Get O3 [v/v] and convert it to [kg]
-            O3_MOLEC_CM3 = O3(I,J,L) * AD(I,J,L) * ( 48d0/28.97d0 )
+            O3_MOLEC_CM3 = O3(I,J,L) * State_Met%AD(I,J,L) *
+     &                     ( 48d0/28.97d0 )
                
             ! Convert O3 from [kg] to [molec/cm3]
-            O3_MOLEC_CM3 = O3_MOLEC_CM3 * XNUMOL_O3 / BOXVL(I,J,L)
+            O3_MOLEC_CM3 = O3_MOLEC_CM3 * XNUMOL_O3 /
+     &                     BOXVL(I,J,L,State_Met)
          ELSE
             O3_MOLEC_CM3 = 0d0
          ENDIF
@@ -7143,7 +7189,7 @@ ccc
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE GET_VCLDF
+      SUBROUTINE GET_VCLDF( State_Met )
 !
 !******************************************************************************
 !  Subroutine GET_VCLDF computes the volume cloud fraction for SO2 chemistry.
@@ -7156,20 +7202,25 @@ ccc
 !  NOTES:
 !  (1 ) Copied from 'sulfate_mod.f' for cloud uptake of GLYX and MGLY (tmf, 2/26/07)
 !  14 Jan 2011 - R. Yantosca - Return if VCLDF is not allocated
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !******************************************************************************
 !
       ! References to F90 modules 
-      USE DAO_MOD,      ONLY : RH
-      USE PRESSURE_MOD, ONLY : GET_PCENTER, GET_PEDGE
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER, GET_PEDGE
 
-      USE CMN_SIZE_MOD   ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
+
+      ! Arguments
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 
       ! Local variables
-      INTEGER              :: I,    J,    L
-      REAL*8               :: PRES, PSFC, RH2, R0, B0
-
-      ! Parameters
-      REAL*8,  PARAMETER   :: ZRT = 0.60d0, ZRS = 0.99d0
+      INTEGER                     :: I,    J,    L
+      REAL*8                      :: PRES, PSFC, RH2, R0, B0
+                                 
+      ! Parameters               
+      REAL*8,  PARAMETER          :: ZRT = 0.60d0, ZRS = 0.99d0
 		
       !=================================================================
       ! GET_VCLDF begins here!
@@ -7194,7 +7245,7 @@ ccc
 
          ! RH (from "dao_mod.f") is relative humidity [%]
          ! Convert to fraction and store in RH2
-         RH2  = RH(I,J,L) * 1.0d-2
+         RH2  = State_Met%RH(I,J,L) * 1.0d-2
 
          ! Terms from Sundqvist ???
          R0   = ZRT + ( ZRS - ZRT ) * EXP( 1d0 - ( PSFC / PRES )**2.5 )
@@ -7263,7 +7314,7 @@ ccc
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE SOAG_CLOUD
+      SUBROUTINE SOAG_CLOUD( State_Met )
 !
 !******************************************************************************
 !  Subroutine SOAG_CLOUD produces SOAG from GLYX during a cloud event.
@@ -7279,49 +7330,58 @@ ccc
 !  (2 ) Assume marine and continental cloud droplet size (tmf, 2/26/07)
 !  14 Jan 2011 - R. Yantosca - Now compute cloud fraction and liquid water
 !                              content directly from GEOS-5 & MERRA met fields
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
-      USE DAO_MOD,         ONLY : AD, T, AIRVOL
-      USE DAO_MOD,         ONLY : IS_LAND        ! return true if sfc grid box is land
-      USE DAO_MOD,         ONLY : AIRDEN, CLDF, QL
-      USE DIAG_MOD,        ONLY : AD07_SOAGM
-      USE TIME_MOD,        ONLY : GET_TS_CHEM
-      USE TROPOPAUSE_MOD,  ONLY : ITS_IN_THE_STRAT
-      USE TRACER_MOD,      ONLY : STT
-      USE TRACERID_MOD,    ONLY : IDTGLYX, IDTSOAG
+      USE DAO_MOD,            ONLY : IS_LAND     ! True if sfc grid box is land
+      USE DIAG_MOD,           ONLY : AD07_SOAGM
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
+      USE TRACER_MOD,         ONLY : STT
+      USE TRACERID_MOD,       ONLY : IDTGLYX, IDTSOAG
 
-      USE CMN_SIZE_MOD    ! Size parameters
-      USE CMN_DIAG_MOD     ! ND44, ND07, LD07
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND44, ND07, LD07
+
+      ! Arguments
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 
       ! Local variables
-      INTEGER   :: I, J, L
-      REAL*8    :: DTCHEM      ! Chemistry time step [s]
-      REAL*8    :: XAIRM       ! Air mass in grid box [kg/box]
-      REAL*8    :: XAIRM3      ! Air volume in grid box [m3]
-      REAL*8    :: XGASM       ! Gas mass at grid box before uptake [kg]
-      REAL*8    :: XGASC       ! Gas concentration at grid box before uptake [molec/cm3]
-      REAL*8    :: XGASMIX     ! Gas mixing ratio [v/v]
-
-      REAL*8    :: XCLDR    ! cloud droplet radius [cm]
-      REAL*8    :: XDF      ! gas-phase diffusivity [cm2/s]
-      REAL*8    :: XMS      ! Mean molecular speed [cm/s] 
-      REAL*8    :: XKT      ! phase-transfer coefficient [1/s]
-      REAL*8    :: XTEMP    ! Temperature [K]
-      REAL*8    :: XDELTAC  ! Potential maximum change of gas concentration due to cloud chemistry [molecules/cm3]
-      REAL*8    :: XUPTKMAX    ! Potential maximum uptake of gas by cloud in grid box [kg]
-      REAL*8    :: XUPTK       ! Actual uptake of gas by cloud in grid box [kg]
-                                          !  XUPTK <= STT( I, J, L, IDTGLYX )
-      REAL*8    :: FC          ! Cloud fraction by volume [unitless]
-      REAL*8    :: LWC         ! Liquid water content [g/m3]
+      INTEGER           :: I, J, L
+      REAL*8            :: DTCHEM    ! Chemistry time step [s]
+      REAL*8            :: XAIRM     ! Air mass [kg/box]
+      REAL*8            :: XAIRM3    ! Air volume [m3]
+      REAL*8            :: XGASM     ! Gas mass before uptake [kg]
+      REAL*8            :: XGASC     ! Gas conc before uptake [molec/cm3]
+      REAL*8            :: XGASMIX   ! Gas mixing ratio [v/v]
+      REAL*8            :: XCLDR     ! Cloud droplet radius [cm]
+      REAL*8            :: XDF       ! Gas-phase diffusivity [cm2/s]
+      REAL*8            :: XMS       ! Mean molecular speed [cm/s] 
+      REAL*8            :: XKT       ! Phase-transfer coefficient [1/s]
+      REAL*8            :: XTEMP     ! Temperature [K]
+      REAL*8            :: XDELTAC   ! Potential max change of gas conc due 
+                                     !  to cloud chemistry [molecules/cm3]
+      REAL*8            :: XUPTKMAX  ! Potential max uptake of gas by cloud [kg]
+      REAL*8            :: XUPTK     ! Actual uptake of gas by cloud [kg]
+                                     !  XUPTK <= STT( I, J, L, IDTGLYX )
+      REAL*8            :: FC        ! Cloud fraction by volume [unitless]
+      REAL*8            :: LWC       ! Liquid water content [g/m3]
 
       ! Parameters
-      REAL*8, PARAMETER :: XCLDR_CONT =  6.d-4  ! Cloud droplet radius in continental warm clouds [cm]
-      REAL*8, PARAMETER :: XCLDR_MARI = 10.d-4  ! Cloud droplet radius in marine warm clouds [cm]
-      REAL*8, PARAMETER :: XMW = 58.d0    ! Molecular weight of glyoxal [g/mole]
+      REAL*8, PARAMETER :: XCLDR_CONT =  6.d-4 ! Cloud droplet radius in
+                                               !  continental warm clouds [cm]
+      REAL*8, PARAMETER :: XCLDR_MARI = 10.d-4 ! Cloud droplet radius in marine
+                                               !  warm clouds [cm]
+      REAL*8, PARAMETER :: XMW = 58.d0         ! Molec wt of glyoxal [g/mole]
       REAL*8, PARAMETER :: XNAVO = 6.023d23    ! Avogadro's number
-      REAL*8, PARAMETER :: MINDAT = 1.d-20   ! Minimum GLYX mixing ratio to calculate cloud uptake
-      REAL*8, PARAMETER :: XGAMMA = 2.9d-3   ! Uptake coefficient (Assume XGAMMA = 2.9d-3 following Liggio et al., 2005)
+      REAL*8, PARAMETER :: MINDAT = 1.d-20     ! Minimum GLYX mixing ratio to
+                                               !  calculate cloud uptake
+      REAL*8, PARAMETER :: XGAMMA = 2.9d-3     ! Uptake coefficient (Assume
+                                               !  XGAMMA = 2.9d-3 following
+                                               ! Liggio et al., 2005)
 
       !=================================================================
       ! SOAG_CLOUD
@@ -7336,20 +7396,20 @@ ccc
       DO I = 1, IIPAR
 
          ! Skip stratospheric boxes
-         IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE
+         IF ( ITS_IN_THE_STRAT( I, J, L, State_Met ) ) CYCLE
 
          ! initialize for safety
          XUPTKMAX = 0d0
          XUPTK    = 0d0
 
          ! Get temperature
-         XTEMP   = T( I, J, L )
+         XTEMP   = State_Met%T( I, J, L )
 
          ! Get air mass  [kg/box]
-         XAIRM   = AD( I, J, L  )
+         XAIRM   = State_Met%AD( I, J, L  )
 
          ! Get air volumne [m3]
-         XAIRM3  = AIRVOL( I, J, L )
+         XAIRM3  = State_Met%AIRVOL( I, J, L )
 
          ! Get gas mass at grid box [kg]
          XGASM   = STT( I, J, L, IDTGLYX )
@@ -7368,11 +7428,11 @@ ccc
          !---------------------------------------------
 
          ! Get cloud fraction from met fields
-         FC      = CLDF(L,I,J)
+         FC      = State_Met%CLDF(L,I,J)
 
          ! Get liquid water content within cloud [g/m3] directly from met
          ! Units: [kg H2O/kg air] * [kg air/m3] * [1000 g/kg] = [g H2O/m3]
-         LWC     = QL(I,J,L) * AIRDEN(L,I,J) * 1d3
+         LWC     = State_Met%QL(I,J,L) * State_Met%AIRDEN(L,I,J) * 1d3
 
          !%%% NOTE: Someone should investigate effect of dividing LWC by the
          !%%% cloud fraction, as is done in sulfate_mod.f (bmy, 5/27/11)
@@ -7398,7 +7458,7 @@ ccc
      &        ( XGASMIX > MINDAT )  .AND. 
      &        ( XTEMP   > 258.0  ) ) THEN
 
-            IF ( IS_LAND(I,J) ) THEN
+            IF ( IS_LAND( I, J, State_Met ) ) THEN
                XCLDR = XCLDR_CONT     ! Continental cloud droplet radius  [m]
             ELSE
                XCLDR = XCLDR_MARI     ! Marine cloud droplet radius  [m]
@@ -7467,7 +7527,7 @@ ccc
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE SOAM_CLOUD
+      SUBROUTINE SOAM_CLOUD( State_Met )
 !
 !******************************************************************************
 !  Subroutine SOAM_CLOUD produces SOAM from MGLY during a cloud event.
@@ -7481,49 +7541,59 @@ ccc
 !  (1 ) SOAM (SOA product of MGLY is produced at existing hydrophilic aerosol
 !        surface. (tmf, 2/26/07)
 !  (2 ) Assume typical marine and continental cloud droplet size (tmf, 2/26/07)
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
-      USE DAO_MOD,         ONLY : AD, T, AIRVOL
-      USE DAO_MOD,         ONLY : IS_LAND        ! return true if sfc grid box is land
-      USE DAO_MOD,         ONLY : CLDF, QL, AIRDEN
-      USE DIAG_MOD,        ONLY : AD07_SOAGM
-      USE TIME_MOD,        ONLY : GET_TS_CHEM
-      USE TROPOPAUSE_MOD,  ONLY : ITS_IN_THE_STRAT
-      USE TRACER_MOD,      ONLY : STT
-      USE TRACERID_MOD,    ONLY : IDTMGLY, IDTSOAM
+      USE DAO_MOD,            ONLY : IS_LAND     ! True if sfc grid box is land
+      USE DIAG_MOD,           ONLY : AD07_SOAGM
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
+      USE TRACER_MOD,         ONLY : STT
+      USE TRACERID_MOD,       ONLY : IDTMGLY, IDTSOAM
 
-      USE CMN_SIZE_MOD    ! Size parameters
-      USE CMN_DIAG_MOD     ! ND44, ND07, LD07
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND44, ND07, LD07
+
+      !Arguments
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 
       ! Local variables
-      INTEGER   :: I, J, L
-      REAL*8    :: DTCHEM      ! Chemistry time step [s]
-      REAL*8    :: XAIRM       ! Air mass in grid box [kg/box]
-      REAL*8    :: XAIRM3      ! Air volume in grid box [m3]
-      REAL*8    :: XGASM       ! Gas mass at grid box before uptake [kg]
-      REAL*8    :: XGASC       ! Gas concentration at grid box before uptake [molec/cm3]
-      REAL*8    :: XGASMIX     ! Gas mixing ratio [v/v]
-
-      REAL*8    :: XCLDR       ! cloud droplet radius [cm]
-      REAL*8    :: XDF         ! gas-phase diffusivity [cm2/s]
-      REAL*8    :: XMS         ! Mean molecular speed [cm/s] 
-      REAL*8    :: XKT         ! phase-transfer coefficient [1/s]
-      REAL*8    :: XTEMP       ! Temperature [K]
-      REAL*8    :: XDELTAC     ! Potential maximum change of gas concentration due to cloud chemistry [molecules/cm3]
-      REAL*8    :: XUPTKMAX    ! Potential maximum uptake of gas by cloud in grid box [kg]
-      REAL*8    :: XUPTK       ! Actual uptake of gas by cloud in grid box [kg]
-                                          !  XUPTK <= STT( I, J, L, IDTGLYX )
-      REAL*8    :: FC          ! Cloud fraction by volume [unitless]
-      REAL*8    :: LWC         ! Liquid water content [g/m3]
+      INTEGER           :: I, J, L
+      REAL*8            :: DTCHEM    ! Chemistry time step [s]
+      REAL*8            :: XAIRM     ! Air mass [kg/box]
+      REAL*8            :: XAIRM3    ! Air volume [m3]
+      REAL*8            :: XGASM     ! Gas mass before uptake [kg]
+      REAL*8            :: XGASC     ! Gas conc before uptake [molec/cm3]
+      REAL*8            :: XGASMIX   ! Gas mixing ratio [v/v]
+      REAL*8            :: XCLDR     ! Cloud droplet radius [cm]
+      REAL*8            :: XDF       ! Gas-phase diffusivity [cm2/s]
+      REAL*8            :: XMS       ! Mean molecular speed [cm/s] 
+      REAL*8            :: XKT       ! Phase-transfer coefficient [1/s]
+      REAL*8            :: XTEMP     ! Temperature [K]
+      REAL*8            :: XDELTAC   ! Potential max change of gas conc due
+                                     !  to cloud chemistry [molecules/cm3]
+      REAL*8            :: XUPTKMAX  ! Potential max uptake of gas by cloud [kg]
+      REAL*8            :: XUPTK     ! Actual uptake of gas by cloud [kg]
+                                     !  XUPTK <= STT( I, J, L, IDTGLYX )
+      REAL*8            :: FC        ! Cloud fraction by volume [unitless]
+      REAL*8            :: LWC       ! Liquid water content [g/m3]
 
       ! Parameters
-      REAL*8, PARAMETER :: XCLDR_CONT =  6.d-4  ! Cloud droplet radius in continental warm clouds [cm]
-      REAL*8, PARAMETER :: XCLDR_MARI = 10.d-4  ! Cloud droplet radius in marine warm clouds [cm]
-      REAL*8, PARAMETER :: XMW = 72.d0    ! Molecular weight of methylglyoxal [g/mole]
+      REAL*8, PARAMETER :: XCLDR_CONT =  6.d-4 ! Cloud droplet radius in
+                                               !  continental warm clouds [cm]
+      REAL*8, PARAMETER :: XCLDR_MARI = 10.d-4 ! Cloud droplet radius in marine
+                                               !  warm clouds [cm]
+      REAL*8, PARAMETER :: XMW = 72.d0         ! Molec wt of methylglyoxal
+                                               !  [g/mole]
       REAL*8, PARAMETER :: XNAVO = 6.023d23    ! Avogadro's number
-      REAL*8, PARAMETER :: MINDAT = 1.d-20   ! Minimum GLYX mixing ratio to calculate cloud uptake
-      REAL*8, PARAMETER :: XGAMMA = 2.9d-3   ! Uptake coefficient (Assume XGAMMA = 2.9d-3 following Liggio et al., 2005)
+      REAL*8, PARAMETER :: MINDAT = 1.d-20     ! Minimum GLYX mixing ratio to
+                                               !  calculate cloud uptake
+      REAL*8, PARAMETER :: XGAMMA = 2.9d-3     ! Uptake coefficient (Assume
+                                               !  XGAMMA = 2.9d-3 following
+                                               !  Liggio et al., 2005)
 
       !=================================================================
       ! SOAG_CLOUD
@@ -7538,20 +7608,20 @@ ccc
       DO I = 1, IIPAR
 
          ! Skip stratospheric boxes
-         IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE
+         IF ( ITS_IN_THE_STRAT( I, J, L, State_Met ) ) CYCLE
 
          ! initialize for safety
          XUPTKMAX = 0d0
          XUPTK    = 0d0
 
          ! Get temperature
-         XTEMP   = T( I, J, L )
+         XTEMP   = State_Met%T( I, J, L )
 
          ! Get air mass  [kg/box]
-         XAIRM   = AD( I, J, L  )
+         XAIRM   = State_Met%AD( I, J, L  )
 
          ! Get air volumne [m3]
-         XAIRM3  = AIRVOL( I, J, L )
+         XAIRM3  = State_Met%AIRVOL( I, J, L )
 
          ! Get gas mass at grid box [kg]
          XGASM   = STT( I, J, L, IDTMGLY )
@@ -7570,11 +7640,11 @@ ccc
          !---------------------------------------------
 
          ! Get cloud fraction from met fields [unitless]
-         FC      = CLDF(L,I,J)
+         FC      = State_Met%CLDF(L,I,J)
 
          ! Get liquid water content within cloud [g/m3] directly from met
          ! Units: [kg H2O/kg air] * [kg air/m3] * [1000 g/kg] = [g H2O/m3]
-         LWC     = QL(I,J,L) * AIRDEN(L,I,J) * 1d3
+         LWC     = State_Met%QL(I,J,L) * State_Met%AIRDEN(L,I,J) * 1d3
 
 #else
          !---------------------------------------------
@@ -7597,7 +7667,7 @@ ccc
      &        ( XGASMIX > MINDAT )  .AND. 
      &        ( XTEMP   > 258.0  ) ) THEN
 
-            IF ( IS_LAND(I,J) ) THEN
+            IF ( IS_LAND( I, J, State_Met ) ) THEN
                XCLDR = XCLDR_CONT     ! Continental cloud droplet radius  [m]
             ELSE
                XCLDR = XCLDR_MARI     ! Marine cloud droplet radius  [m]
@@ -7624,7 +7694,8 @@ ccc
      &                     ( 4.d0 * XCLDR / 3.d0 / XMS / XGAMMA ) )
 
             !---------------------------------------
-            ! Maximum potential change in concentration [molecules/cm3]   [Lim et al., 2005 Eq. (1)]
+            ! Maximum potential change in concentration [molecules/cm3]
+            !   [Lim et al., 2005 Eq. (1)]
             !---------------------------------------
             XDELTAC = LWC * XKT * XGASC * DTCHEM
 
@@ -8104,7 +8175,7 @@ ccc
 
 #endif
 #endif
-
+              
       ! Reset IS_INIT before exiting
       IS_INIT = .TRUE.
 

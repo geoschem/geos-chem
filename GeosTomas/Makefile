@@ -125,7 +125,7 @@ NOABS.o                  modis_lai_mod.o                                     \
 OPMIE.o                  epa_nei_mod.o                                       \
 RD_TJPL.o                fast_j.o                                            \
 RnPbBe_mod.o                                     SPHERE.o                    \
-XSEC1D.o                 fjfunc.o                rdsoil.o                    \
+XSEC1D.o                 fjfunc.o                                            \
 XSECO2.o                 fjx_acet_mod.o          readchem.o                  \
 XSECO3.o                 future_emissions_mod.o  reader.o                    \
 a3_read_mod.o            fvdas_convect_mod.o                                 \
@@ -934,8 +934,6 @@ precipfrac.o                : precipfrac.F            dao_mod.o
 RD_AOD.o                    : RD_AOD.F
 
 rd_js.o                     : rd_js.F
-
-rdsoil.o                    : rdsoil.F
 
 readsoil.o		    : readsoil.F
 

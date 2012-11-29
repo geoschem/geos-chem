@@ -247,5 +247,6 @@
       LOGICAL :: DO_DIAG_WRITE = .TRUE.  ! TURN ON/OFF DIAGNOSTIC WRITING
 
       LOGICAL :: LUPBD           ! Use stratospheric O3, NOY bdry conditions
+
       END MODULE LOGICAL_MOD
 !EOC

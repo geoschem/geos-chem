@@ -143,8 +143,7 @@ ohsave.o                 optdepth_mod.o          partition.o		     \
 pbl_mix_mod.o            pderiv.o                photoj.o		     \
 physproc.o               pjc_pfix_mod.o          pjc_pfix_geos5_window_mod.o \
 planeflight_mod.o        precipfrac.o                   		     \
-rd_js.o                                                                      \
-rdsoil.o                 readchem.o	                                     \
+rd_js.o                  readchem.o	                                     \
 reader.o                 restart_mod.o		                             \
 rpmares_mod.o            ruralbox.o              scale_anthro_mod.o	     \
 seasalt_mod.o            set_aer.o	                                     \
@@ -941,8 +940,6 @@ precipfrac.o                : precipfrac.F            dao_mod.o
 RD_AOD.o                    : RD_AOD.F
 
 rd_js.o                     : rd_js.F
-
-rdsoil.o                    : rdsoil.F
 
 readsoil.o		    : readsoil.F
 

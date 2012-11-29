@@ -485,7 +485,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_A3_FIELDS( NYMD, NHMS )
+      SUBROUTINE GET_A3_FIELDS( NYMD, NHMS, State_Met )
 !
 ! !USES:
 !
@@ -496,6 +496,7 @@
       USE DAO_MOD, ONLY : SNODP,   SNOW,   TROPP,  TS,       TSKIN
       USE DAO_MOD, ONLY : U10M,    USTAR,  V10M,   Z0, EFLUX
       USE DAO_MOD, ONLY : FRLAND,  FROCEAN,FRLAKE, FRLANDIC
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #if   defined( APM )
       USE DAO_MOD, ONLY : PBL0a, PBL0b
 #endif
@@ -506,6 +507,10 @@
 !
       INTEGER, INTENT(IN) :: NYMD   ! YYYY/MM/DD
       INTEGER, INTENT(IN) :: NHMS   !  and hh:mm:ss of desired data
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  23 Jun 2003 - R. Yantosca - Initial version
@@ -525,6 +530,8 @@
 !        (kjw, 8/18/09)
 !  21 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
+!                              object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -569,6 +576,26 @@
      &              TS=TS,           TSKIN=TSKIN,   U10M=U10M,       
      &              USTAR=USTAR ,    V10M=V10M,     Z0=Z0 )
 
+      ! Copy met fields to State_Met
+      State_Met%ALBD    => ALBD
+      State_Met%CLDFRC  => CLDFRC
+      State_Met%GWETTOP => GWETTOP
+      State_Met%HFLUX   => HFLUX
+      State_Met%PARDF   => PARDF
+      State_Met%PARDR   => PARDR
+      State_Met%PBLH    => PBL
+      State_Met%PRECTOT => PREACC
+      State_Met%PRECCON => PRECON
+      State_Met%RADLWG  => RADLWG
+      State_Met%RADSWG  => RADSWG
+      State_Met%SNOW    => SNOW
+      State_Met%TS      => TS
+      State_Met%TSKIN   => TSKIN
+      State_Met%U10M    => U10M
+      State_Met%USTAR   => USTAR
+      State_Met%V10M    => V10M
+      State_Met%Z0      => Z0
+
 #elif defined( GEOS_5 )
 
       !=================================================================
@@ -593,6 +620,38 @@
      &              EFLUX=EFLUX,       FRLAND=FRLAND,   FROCEAN=FROCEAN, 
      &              FRLAKE=FRLAKE,     FRLANDIC=FRLANDIC )
 
+      ! Copy met fields to State_Met
+      State_Met%ALBD     => ALBD
+      State_Met%CLDFRC   => CLDFRC
+      State_Met%EFLUX    => EFLUX
+      State_Met%EVAP     => EVAP
+      State_Met%FRLAKE   => FRLAKE
+      State_Met%FRLAND   => FRLAND
+      State_Met%FRLANDIC => FRLANDIC
+      State_Met%FROCEAN  => FROCEAN
+      State_Met%GRN      => GRN
+      State_Met%GWETROOT => GWETROOT
+      State_Met%GWETTOP  => GWETTOP
+      State_Met%HFLUX    => HFLUX
+      State_Met%LAI      => LAI
+      State_Met%PARDF    => PARDF
+      State_Met%PARDR    => PARDR
+      State_Met%PBLH     => PBL
+      State_Met%PRECTOT  => PREACC
+      State_Met%PRECCON  => PRECON
+      State_Met%PRECSNO  => PRECSNO
+      State_Met%RADLWG   => RADLWG
+      State_Met%RADSWG   => RADSWG
+      State_Met%SNODP    => SNODP
+      State_Met%SNOMAS   => SNOMAS
+      State_Met%TROPP    => TROPP
+      State_Met%TS       => TS
+      State_Met%TSKIN    => TSKIN
+      State_Met%U10M     => U10M
+      State_Met%USTAR    => USTAR
+      State_Met%V10M     => V10M
+      State_Met%Z0       => Z0
+
 #elif defined( GCAP )
 
       !================================================================
@@ -614,6 +673,24 @@
 
       ! Convert [m] to [mm]
       SNOW = SNOW*1000.D0
+
+      ! Copy met fields to State_Met
+      State_Met%ALBD     => ALBD
+      State_Met%GWETTOP  => GWETTOP
+      State_Met%MOLENGTH => MOLENGTH
+      State_Met%OICE     => OICE
+      State_Met%PARDF    => PARDF
+      State_Met%PARDR    => PARDR
+      State_Met%PBLH     => PBL
+      State_Met%PRECTOT  => PREACC
+      State_Met%PRECCON  => PRECON
+      State_Met%RADSWG   => RADSWG
+      State_Met%SNICE    => SNICE
+      State_Met%SNOW     => SNOW
+      State_Met%TS       => TS
+      State_Met%U10M     => U10M
+      State_Met%USTAR    => USTAR
+      State_Met%V10M     => V10M
 
 #endif
 
@@ -886,6 +963,7 @@
 !  (10) Now read FRLAND, FROCEAN, FRLANDIC, FRLAKE for methane (kjw, 8/18/09)
 !  (11) Remove reference to IN_CLOUD_OD (bmy, 10/15/09)
 !  21 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  08 Jun 2012 - S. Philip   - Correction for GEOS_5 boundary layer height
 !  03 Aug 2012 - R. Yantosca - Now use locally-defined IU_A3 file LUN
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !EOP
@@ -1448,6 +1526,16 @@
 
       ! Convert GEOS-5 PRECCON from [kg/m2/s] to [mm/day]
       IF ( PRESENT( PRECON ) ) PRECON = PRECON * 86400d0
+
+      ! Correction for GEOS_5 PBLH:
+      ! PBLH must be greater than a minimum mechanical mixing depth,
+      ! defined as 700*friction velocity
+      ! (Koracin and Berkowicz, 1988; Lin and McElroy, 2010)
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+         PBL(I,J) = max( PBL(I,J), 700d0*USTAR(I,J) )
+      ENDDO
+      ENDDO
 
 #endif
 

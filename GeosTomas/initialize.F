@@ -303,7 +303,7 @@
          IF ( ND65 > 0 ) THEN
             AD65  = 0d0
             IF ( ALLOCATED( FAM_PL ) ) FAM_PL = 0d0      
-        ENDIF
+         ENDIF
 
          ! Echo output
          IF ( am_I_Root ) THEN
@@ -346,17 +346,6 @@
          IF ( ND43 >               0 ) CTHO2      = 0
          IF ( ND43 >               0 ) CTNO3      = 0
          ! update for arom (dkh, 06/21/07)  
-!-----------------------------------------------------------------------------
-! Prior to 10/15/12:
-! Test if each of these are allocated before using them.  Otherwise the 
-! code will fail in the ESMF sandbox. (bmy, 10/15/12)
-!         IF ( ND43 >               0 ) CTLBRO2H   = 0
-!         IF ( ND43 >               0 ) CTLBRO2N   = 0
-!         IF ( ND43 >               0 ) CTLTRO2H   = 0
-!         IF ( ND43 >               0 ) CTLTRO2N   = 0
-!         IF ( ND43 >               0 ) CTLXRO2H   = 0
-!         IF ( ND43 >               0 ) CTLXRO2N   = 0
-!-----------------------------------------------------------------------------
          IF ( ND43 > 0 ) THEN
             IF ( ALLOCATED( CTLBRO2H ) ) CTLBRO2H   = 0
             IF ( ALLOCATED( CTLBRO2N ) ) CTLBRO2N   = 0
@@ -371,6 +360,6 @@
             WRITE( 6, '(a)' ) '     - INITIALIZE: Diag counters zeroed!'
          ENDIF
       ENDIF
- 
+
       END SUBROUTINE INITIALIZE
 !EOC

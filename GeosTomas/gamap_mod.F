@@ -289,6 +289,7 @@
 !
       USE FILE_MOD,    ONLY : IOERROR
       USE LOGICAL_MOD, ONLY : LSOA
+      USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM
       USE LOGICAL_MOD, ONLY : LTOMAS    !(win, 7/9/09)
 ! 
 ! !REVISION HISTORY: 
@@ -298,6 +299,7 @@
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  31 Oct 2012 - R. Yantosca - Now save out info about soil NOx restart file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -357,9 +359,9 @@
      &        ' to unit given below'                                   )
  155  FORMAT( '# UNIT     (A40  )  Unit string',                 /,'#' )
 
-      !-----------------------------------
+      !-------------------------------------
       ! 0: Tracers [ppbv]
-      !-----------------------------------
+      !-------------------------------------
 
       ! Write separator line
       CALL WRITE_SEPARATOR( IU_FILE, 0 )
@@ -375,9 +377,9 @@
      &                     MOLC(T,45), SCALE(T,45), UNIT(T,45), N )
       ENDDO
 
-      !-----------------------------------
+      !-------------------------------------
       ! SPACING*1: Tracers [molec/cm2/s]
-      !-----------------------------------
+      !-------------------------------------
 
       ! Write separator line
       CALL WRITE_SEPARATOR( IU_FILE, 100 )
@@ -403,9 +405,9 @@
      &                     MOLC(T,45), SCALE_NEW,   UNIT_NEW, N )
       ENDDO
 
-      !-----------------------------------
+      !-------------------------------------
       ! SPACING*2: Tracers [molec/cm2]
-      !-----------------------------------
+      !-------------------------------------
 
       ! Write separator line
       CALL WRITE_SEPARATOR( IU_FILE, 200 )
@@ -431,9 +433,9 @@
      &                     MOLC(T,45), SCALE_NEW,   UNIT_NEW, N )
       ENDDO
 
-      !-----------------------------------
+      !-------------------------------------
       ! SPACING*3: Tracers [kg/s]
-      !-----------------------------------
+      !-------------------------------------
 
       ! Write separator line
       CALL WRITE_SEPARATOR( IU_FILE, 300 )
@@ -459,9 +461,9 @@
      &                     MOLC(T,45), SCALE_NEW,   UNIT_NEW, N )
       ENDDO
 
-      !-----------------------------------
+      !-------------------------------------
       ! SPACING*4: Tracers [kg]
-      !-----------------------------------
+      !-------------------------------------
 
       ! Write separator line
       CALL WRITE_SEPARATOR( IU_FILE, 400 )
@@ -516,9 +518,9 @@
 !     &                     MOLC(T,45), SCALE_NEW,   UNIT_NEW, N )
 !      ENDDO
 
-      !-----------------------------------
+      !-------------------------------------
       ! SPACING*6: GPROD & APROD [kg/kg]
-      !-----------------------------------
+      !-------------------------------------
       IF ( LSOA ) THEN
 
          ! Write separator line
@@ -551,9 +553,47 @@
 
       ENDIF
 
-      !------------------------------
+      !-------------------------------------      
+      ! SPACING*60: Soil NOx restart file
+      !-------------------------------------   
+      IF ( ITS_A_FULLCHEM_SIM() ) THEN
+         
+         ! Write separator line
+         CALL WRITE_SEPARATOR( IU_FILE, 999 )
+
+         ! Dry period [h]
+         NAME_NEW = 'P_DRY'
+         UNIT_NEW = 'hours'
+         CALL WRITE_TINFO(  IU_FILE,     NAME_NEW, 
+     &                      NAME_NEW,    REAL(1e0,4), 1,            
+     &                      REAL(1e0,4), UNIT_NEW,    60001  )
+
+         ! Pulse factor [unitless]
+         NAME_NEW = 'PFACTOR'
+         UNIT_NEW = 'unitless'
+         CALL WRITE_TINFO(  IU_FILE,     NAME_NEW, 
+     &                      NAME_NEW,    REAL(1e0,4), 1,            
+     &                      REAL(1e0,4), UNIT_NEW,    60002  )
+
+         ! GWET from previous timestep [unitless]
+         NAME_NEW = 'GWET_PRV'
+         UNIT_NEW = 'unitless'
+         CALL WRITE_TINFO(  IU_FILE,     NAME_NEW, 
+     &                      NAME_NEW,    REAL(1e0,4), 1,            
+     &                      REAL(1e0,4), UNIT_NEW,    60003  )
+
+         ! Reservoir of deposited N [ng N/m2]
+         NAME_NEW = 'N_RESVR'
+         UNIT_NEW = 'ng N/m2'
+         CALL WRITE_TINFO(  IU_FILE,     NAME_NEW, 
+     &                      NAME_NEW,    REAL(1e0,4), 1,            
+     &                      REAL(1e0,4), UNIT_NEW,    60004  )
+
+      ENDIF
+
+      !-------------------------------------
       ! All other diagnostics 
-      !------------------------------
+      !-------------------------------------
       DO D = 1, MAXDIAG
 
          ! If tracers are defined then...
@@ -664,6 +704,7 @@
 !  03 May 2005 - R. Yantosca - Initial version
 !  06 Feb 2007 - R. Yantosca - Added new header for GPROD & APROD info
 !  03 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  31 Oct 2012 - R. Yantosca - Add write statement for soil NOx restart file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -701,9 +742,11 @@
          CASE( 600 ) 
             WRITE( IU_FILE, 160, IOSTAT=IOS )
          CASE( 700 )          !(win, 7/9/09)
-            WRITE( IU_FILE, 180, IOSTAT=IOS )
+            WRITE( IU_FILE, 190, IOSTAT=IOS )
+         CASE( 999 ) 
+            WRITE( IU_FILE, 170, IOSTAT=IOS )
          CASE DEFAULT
-            WRITE( IU_FILE, 170, IOSTAT=IOS ) DIAG
+            WRITE( IU_FILE, 180, IOSTAT=IOS ) DIAG
       END SELECT
 
       ! Error check
@@ -714,16 +757,17 @@
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'write_separator:3' )
 
       ! FORMAT strings
- 100  FORMAT( '# GEOS-CHEM tracers [ppbv]'           )
- 110  FORMAT( '# GEOS-CHEM tracers [molec/cm2/s]'    )
- 120  FORMAT( '# GEOS-CHEM tracers [molec/cm2]'      )
- 130  FORMAT( '# GEOS-CHEM tracers [kg/s]'           )
- 140  FORMAT( '# GEOS-CHEM tracers [kg]'             )
- 150  FORMAT( '# GEOS-CHEM tracers [ug/m3]'          )
- 160  FORMAT( '# SOA GPROD & APROD [kg/kg]'          )
- 170  FORMAT( '# ND', i2.2, ' diagnostic quantities' )
- 180  FORMAT( '# TOMAS aerosol rate [cm-3 s-1]'      )   !(win, 7/9/09)
-     
+ 100  FORMAT( '# GEOS-CHEM tracers [ppbv]'             )
+ 110  FORMAT( '# GEOS-CHEM tracers [molec/cm2/s]'      )
+ 120  FORMAT( '# GEOS-CHEM tracers [molec/cm2]'        )
+ 130  FORMAT( '# GEOS-CHEM tracers [kg/s]'             )
+ 140  FORMAT( '# GEOS-CHEM tracers [kg]'               )
+ 150  FORMAT( '# GEOS-CHEM tracers [ug/m3]'            )
+ 160  FORMAT( '# SOA GPROD & APROD [kg/kg]'            )
+ 170  FORMAT( '# Quantities for Soil NOx restart file' )
+ 180  FORMAT( '# ND', i2.2, ' diagnostic quantities'   )
+ 190  FORMAT( '# TOMAS aerosol rate [cm-3 s-1]'      )   !(win, 7/9/09)
+      
       END SUBROUTINE WRITE_SEPARATOR
 !EOC
 !------------------------------------------------------------------------------
@@ -761,6 +805,7 @@
 !                              TURBMC-$, EW-FLX-$, NS-FLX-$, UP-FLX-$
 !  21 Oct 2010 - R. Yantosca - Bug fix: MC-FRC-$ should have an offset of 
 !                              SPACING*3 since it has units of kg/s.
+!  31 Oct 2012 - R. Yantosca - Save soil NOx restart quantities as SPACING*60
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1371,6 +1416,10 @@
       DESCRIPT(N) = 'Ship diagnostics'
       OFFSET(N)   = SPACING * 59
 
+      N           = N + 1
+      CATEGORY(N) = 'RST-SOIL'
+      DESCRIPT(N) = 'Soil NOx restart file'
+      OFFSET(N)   = SPACING * 60
 
 ! NEED TO DO THAT AT ONE POINT      
 !      ! New for CSPEC
@@ -1446,7 +1495,7 @@
       USE TRACERID_MOD, ONLY : IDTBCPI,   IDTOCPI
       USE TRACERID_MOD, ONLY : IDTXYLE, IDTBENZ, IDTTOLU
       USE TOMAS_MOD,    ONLY : IBINS, ICOMP,   IDIAG  !(win, 7/14/09)
-      USE TRACERID_MOD, ONLY : IDTNK1     !(win, 7/14/09)
+      USE TRACERID_MOD, ONLY : IDTNK1                 !(win, 7/14/09)
       USE TRACERID_MOD, ONLY : N_Hg_CATS  !CDH for snowpack
 ! 
 ! !REVISION HISTORY: 

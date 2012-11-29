@@ -355,7 +355,7 @@
       NTLOOP = NLOOP * NVERT
 
       !vartrop fix (dkh, 05/08/11)
-      !Save a corpy of JLOP from the previous time step before re-ordering
+      !Save a copy of JLOP from the previous time step before re-ordering
       !the grid mappings.
       JLOP_PREVIOUS(:,:,:) = JLOP(:,:,:)
 

@@ -143,21 +143,23 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEMSEASALT( am_I_Root )
+      SUBROUTINE CHEMSEASALT( am_I_Root, State_Met )
 !
 ! !USES:
 !
-      USE DRYDEP_MOD,   ONLY : DEPNAME, NUMDEP
-      USE ERROR_MOD,    ONLY : DEBUG_MSG
-      USE LOGICAL_MOD,  ONLY : LPRT,    LDRYD
-      USE TRACER_MOD,   ONLY : STT
-      USE TRACERID_MOD, ONLY : IDTSALA, IDTSALC
+      USE DRYDEP_MOD,         ONLY : DEPNAME, NUMDEP, DEPSAV
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE LOGICAL_MOD,        ONLY : LPRT,    LDRYD
+      USE TRACER_MOD,         ONLY : STT
+      USE TRACERID_MOD,       ONLY : IDTSALA, IDTSALC
 
-      USE CMN_SIZE_MOD                   ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY:
 !  (1 ) Now reference STT from "tracer_mod.f".  Now references LPRT from
@@ -213,7 +215,7 @@
       !-------------------
       ! Accumulation mode
       !-------------------
-      CALL WET_SETTLING( STT(:,:,:,IDTSALA), 1 )
+      CALL WET_SETTLING( STT(:,:,:,IDTSALA), 1, State_Met )
       IF ( LPRT .and. am_I_Root ) THEN
          CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum' )
       ENDIF
@@ -231,7 +233,7 @@
       !-------------------
       ! Coarse mode
       !-------------------
-      CALL WET_SETTLING( STT(:,:,:,IDTSALC), 2 )
+      CALL WET_SETTLING( STT(:,:,:,IDTSALC), 2, State_Met )
       IF ( LPRT .and. am_I_Root ) THEN 
          CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Coarse' )
       ENDIF
@@ -241,14 +243,16 @@
       ! dry deposition in vdiff as for all the other aerosols (jaegle 5/11/11)
       IF ( LDRYD .AND. .NOT. LNLPBL ) THEN
          CALL DRY_DEPOSITION( STT(:,:,:,IDTSALC), 2 )
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSEASALT: DRY_DEP, Coarse')
+         IF ( LPRT .and. am_I_Root ) THEN
+            CALL DEBUG_MSG( '### CHEMSEASALT: DRY_DEP, Coarse')
+         ENDIF
       ENDIF
 
 #if   defined( APM )
       !-------------------
       ! APM microphysics
       !-------------------
-      CALL WET_SETTLINGBIN( STT(:,:,:,IDTSEA1:IDTSEA2) )
+      CALL WET_SETTLINGBIN( STT(:,:,:,IDTSEA1:IDTSEA2), State_Met )
       IF ( LPRT .and. am_I_Root ) THEN
          CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Bins' )
       ENDIF
@@ -276,32 +280,33 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WET_SETTLING( TC, N )
+      SUBROUTINE WET_SETTLING( TC, N, State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD,       ONLY : T, BXHEIGHT, RH
-      USE DIAG_MOD,      ONLY : AD44
-      USE DRYDEP_MOD,    ONLY : DEPSAV
-      USE PRESSURE_MOD,  ONLY : GET_PCENTER
-      USE TRACER_MOD,    ONLY : SALA_REDGE_um, SALC_REDGE_um, XNUMOL
-      USE TRACERID_MOD,  ONLY : IDTSALA,       IDTSALC
-      USE TIME_MOD,      ONLY : GET_TS_CHEM
-      USE GRID_MOD,      ONLY : GET_AREA_CM2
-      ! add (jaegle 5/11/11)
-      USE ERROR_MOD,     ONLY : DEBUG_MSG, ERROR_STOP
+      USE DIAG_MOD,           ONLY : AD44
+      USE DRYDEP_MOD,         ONLY : DEPSAV
+      USE ERROR_MOD,          ONLY : DEBUG_MSG, ERROR_STOP
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER
+      USE TRACER_MOD,         ONLY : SALA_REDGE_um, SALC_REDGE_um
+      USE TRACER_MOD,         ONLY : XNUMOL
+      USE TRACERID_MOD,       ONLY : IDTSALA,       IDTSALC
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
 
-      USE CMN_SIZE_MOD        ! Size parameters
-      USE CMN_DIAG_MOD        ! ND44
-      USE CMN_GCTM_MOD        ! g0
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND44
+      USE CMN_GCTM_MOD             ! g0
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)    :: N  ! N=1 is accum mode; N=2 is coarse mode
+      INTEGER,        INTENT(IN)  :: N  ! N=1 is accum mode; N=2 is coarse mode
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! Sea salt tracer [kg]
+      REAL*8,      INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! Sea salt [kg]
 !
 ! !REVISION HISTORY:
 !  (1 ) Now references SALA_REDGE_um and SALC_REDGE_um from "tracer_mod.f"
@@ -319,6 +324,8 @@
 !        5/11/11)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -481,10 +488,10 @@
             P       = GET_PCENTER(I,J,L) * 0.1d0
 
             ! Temperature [K]
-            TEMP    = T(I,J,L)
+            TEMP    = State_Met%T(I,J,L)
 
             ! Cap RH at 0.99 
-            RHB     = MIN( 0.99d0, RH(I,J,L) * 1d-2 )
+            RHB     = MIN( 0.99d0, State_Met%RH(I,J,L) * 1d-2 )
 
             ! Safety check (phs, 5/1/08)
             RHB     = MAX( TINY(RHB), RHB           )
@@ -613,13 +620,13 @@
 
          ! We know the boundary condition at the model top
          L    = LLTROP
-         DELZ = BXHEIGHT(I,J,L)
+         DELZ = State_Met%BXHEIGHT(I,J,L)
 
          TC(I,J,L) = TC(I,J,L) / ( 1.d0 + DTCHEM * VTS(L) / DELZ )
 
          DO L = LLTROP-1, 1, -1
-            DELZ  = BXHEIGHT(I,J,L)
-            DELZ1 = BXHEIGHT(I,J,L+1)
+            DELZ  = State_Met%BXHEIGHT(I,J,L)
+            DELZ1 = State_Met%BXHEIGHT(I,J,L+1)
             TC(I,J,L) = 1.d0 / ( 1.d0 + DTCHEM * VTS(L) / DELZ )
      &                * ( TC(I,J,L) + DTCHEM * VTS(L+1) / DELZ1
      &                *  TC(I,J,L+1) )
@@ -814,27 +821,27 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE EMISSSEASALT( SFLX, SSA_Br2 )
+      SUBROUTINE EMISSSEASALT( State_Met, SFLX, SSA_Br2 )
 #else
-      SUBROUTINE EMISSSEASALT( SSA_Br2 )
+      SUBROUTINE EMISSSEASALT( State_Met, SSA_Br2 )
 #endif
 !
 ! !USES:
 !
-      USE ERROR_MOD,    ONLY : DEBUG_MSG
-      USE LOGICAL_MOD,  ONLY : LPRT
-      USE TRACER_MOD,   ONLY : STT
-      USE TRACERID_MOD, ONLY : IDTSALA, IDTSALC
-      USE VDIFF_PRE_MOD,ONLY : emis_save ! (Lin, 03/31/09)
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE LOGICAL_MOD,        ONLY : LPRT
+      USE TRACER_MOD,         ONLY : STT
+      USE TRACERID_MOD,       ONLY : IDTSALA, IDTSALC
+      USE VDIFF_PRE_MOD,      ONLY : emis_save ! (Lin, 03/31/09)
 #if defined( DEVEL )
-      USE TRACER_MOD,   ONLY : N_TRACERS
+      USE TRACER_MOD,         ONLY : N_TRACERS
 #endif
-
-      USE CMN_SIZE_MOD       ! Size parameters
-
 #if   defined( APM )
-      USE APM_INIT_MOD, ONLY : IDTSEABIN1
+      USE APM_INIT_MOD,       ONLY : IDTSEABIN1
 #endif
+
+      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -845,6 +852,10 @@
 #if defined( DEVEL )
       REAL*8, INTENT(INOUT) :: SFLX(IIPAR,JJPAR,LLPAR,N_TRACERS+1)
 #endif
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !REVISION HISTORY: 
 !  (1 ) Now references LPRT from "logical_mod.f" and STT from "tracer_mod.f".
@@ -910,7 +921,7 @@
 
       ! Accumulation mode emissions
       IF ( IDTSALA > 0 ) THEN
-         CALL SRCSALT( STT(:,:,:,IDTSALA), tmpbr2(:,:), 1 )
+         CALL SRCSALT( STT(:,:,:,IDTSALA), tmpbr2(:,:), 1, State_Met )
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSEASALT: Accum' )
       ENDIF
 
@@ -925,7 +936,7 @@
 
       ! Coarse mode emissions
       IF ( IDTSALC > 0 ) THEN
-         CALL SRCSALT( STT(:,:,:,IDTSALC), tmpbr2(:,:), 2 )
+         CALL SRCSALT( STT(:,:,:,IDTSALC), tmpbr2(:,:), 2, State_Met )
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSEASALT: Coarse' )
       ENDIF
 
@@ -936,7 +947,7 @@
 
 #if   defined( APM )
       ! Sea salt emissions for extra APM bins
-      CALL SRCSALTBIN( STT(:,:,:,IDTSEA1:IDTSEA2) )
+      CALL SRCSALTBIN( STT(:,:,:,IDTSEA1:IDTSEA2), State_Met )
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISSEASALT: Bin' )
 #endif
 
@@ -979,37 +990,38 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SRCSALT( TC, SSA_Br2, N )
+      SUBROUTINE SRCSALT( TC, SSA_Br2, N, State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD,       ONLY : PBL, AD, IS_WATER, AIRVOL
-      ! Add TSKIN (jaegle 5/11/11)
-      USE DAO_MOD,       ONLY : TSKIN ! jaegle
-      USE DIAG_MOD,      ONLY : AD08
-      USE ERROR_MOD,     ONLY : DEBUG_MSG, ERROR_STOP
-      USE GRID_MOD,      ONLY : GET_AREA_M2
-      USE PBL_MIX_MOD,   ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
-      USE TIME_MOD,      ONLY : GET_TS_EMIS
-      USE TRACER_MOD,    ONLY : SALA_REDGE_um, SALC_REDGE_um, XNUMOL
-      USE SSA_BROMINE_MOD, ONLY : EMISS_SSA_BROMINE
+      USE DAO_MOD,            ONLY : IS_WATER
+      USE DIAG_MOD,           ONLY : AD08
+      USE ERROR_MOD,          ONLY : DEBUG_MSG, ERROR_STOP
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_M2
+      USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
+      USE SSA_BROMINE_MOD,    ONLY : EMISS_SSA_BROMINE
+      USE TIME_MOD,           ONLY : GET_TS_EMIS
+      USE TRACER_MOD,         ONLY : SALA_REDGE_um, SALC_REDGE_um
+      USE TRACER_MOD,         ONLY : XNUMOL
 
-      USE CMN_SIZE_MOD        ! Size parameters
-      USE CMN_DIAG_MOD        ! ND44, ND08
-      USE CMN_GCTM_MOD        ! PI
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND44, ND08
+      USE CMN_GCTM_MOD             ! PI
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)    :: N  ! N=1 is accum mode; N=2 is coarse mode
+      INTEGER,        INTENT(IN)  :: N  ! N=1 is accum mode; N=2 is coarse mode
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! Sea salt tracer [v/v]
+      REAL*8,       INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! Sea salt [v/v]
 !
 ! !OUTPUT PARAMETERS:
 !
       !jpp, 3/2/10
-      REAL*8,  INTENT(OUT)   :: SSA_Br2(IIPAR,JJPAR)  ! Br2 sea salt emissions
+      REAL*8,       INTENT(OUT)   :: SSA_Br2(IIPAR,JJPAR)  ! Br2 sea salt emissions
 !
 ! !REMARKS:
 !  References:
@@ -1048,6 +1060,8 @@
 !       (jaegle 5/11/11)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1220,16 +1234,20 @@
             A_M2 = GET_AREA_M2( I, J, 1 )
 
             ! Test if this is a water box
-            IF ( IS_WATER(I,J) ) THEN
+            IF ( IS_WATER( I, J, State_Met ) ) THEN
 
                ! Wind speed at 10 m altitude [m/s]
-               W10M = SQRT( SFCWINDSQR(I,J) )
+               W10M = SQRT( SFCWINDSQR( I, J,
+     &                                  State_Met%U10M,
+     &                                  State_Met%V10M) )
 
                ! Sea surface temperature in Celcius (jaegle 5/11/11)
-               SST = TSKIN(I,J) - 273.15d0
+               SST = State_Met%TSKIN(I,J) - 273.15d0
+
                ! Limit SST to 0-30C range
-               SST = MAX( SST , 0d0 ) ! limit to  0C
+               SST = MAX( SST , 0d0 )  ! limit to  0C
                SST = MIN( SST , 30d0 ) ! limit to 30C
+
                ! Empirical SST scaling factor (jaegle 5/11/11)
                SCALE = 0.329d0 + 0.0904d0*SST -
      &                 0.00717d0*SST**2d0 + 0.000207d0*SST**3d0
@@ -1312,7 +1330,7 @@
             ALK_EMIS(I,J,L,N) = SALT(I,J)
 
 	    ! Number density [#/m3] (bec, bmy, 4/13/05)
-	    N_DENS(I,J,L,N)   = SALT_N(I,J) / AIRVOL(I,J,L)              
+	    N_DENS(I,J,L,N)   = SALT_N(I,J) / State_Met%AIRVOL(I,J,L)
 
          ENDDO
 
@@ -1340,18 +1358,19 @@
 !\\
 ! !INTERFACE:
 !
-
-      SUBROUTINE GET_ALK( I, J, L, ALK1, ALK2, Kt1, Kt2, Kt1N, Kt2N )
+      SUBROUTINE GET_ALK( I, J, L, ALK1, ALK2, Kt1, Kt2, Kt1N, Kt2N,
+     &                    State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD,      ONLY : AD, RH
-      USE ERROR_MOD,    ONLY : IT_IS_NAN
-      USE TRACER_MOD,   ONLY : SALA_REDGE_um, SALC_REDGE_um
+      USE ERROR_MOD,          ONLY : IT_IS_NAN
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TRACER_MOD,         ONLY : SALA_REDGE_um, SALC_REDGE_um
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)  :: I, J, L 
+      INTEGER,        INTENT(IN)  :: I, J, L 
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS: 
 !
@@ -1364,6 +1383,8 @@
 !        TERM{123}A, TERM{123}B, TERM{123}AN, TERM{123}BN. (bec, bmy, 7/18/08)
 !  (3 ) Updated hygroscopic growth parameters (bec, bmy, 11/23/09)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1414,8 +1435,8 @@
       !! alkalinity [v/v] to [kg] use this when transporting alk
       !! or using Liao et al [2004] assumption of a continuous supply of
       ! alkalinity based on Laskin et al. [2003]
-      !ALK1 = STT(I,J,L,IDTSALA) * AD(I,J,L)/TCVV(IDTSALA)
-      !ALK2 = STT(I,J,L,IDTSALC) * AD(I,J,L)/TCVV(IDTSALC)
+      !ALK1 = STT(I,J,L,IDTSALA) * State_Met%AD(I,J,L)/TCVV(IDTSALA)
+      !ALK2 = STT(I,J,L,IDTSALC) * State_Met%AD(I,J,L)/TCVV(IDTSALC)
       !-----------------------------------------------------------------------
 
       ! Conversion from [m-3] --> [cm-3]
@@ -1428,7 +1449,7 @@
       IF ( ALK > MINDAT ) THEN
 
          ! set humidity index IRH as a percent
-         IRH = RH(I,J,L)
+         IRH = State_Met%RH(I,J,L)
          IRH = MAX(  1, IRH )
          IRH = MIN( 99, IRH )
 
@@ -1649,31 +1670,37 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WET_SETTLINGBIN( TC )
+      SUBROUTINE WET_SETTLINGBIN( TC, State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD,      ONLY : T, BXHEIGHT
-      USE DRYDEP_MOD,   ONLY : DEPSAVSIZE
-      USE PRESSURE_MOD, ONLY : GET_PCENTER
-      USE APM_INIT_MOD, ONLY : RSALT
-      USE APM_DRIV_MOD, ONLY : GFTOT3D,DENWET3D
-      USE TIME_MOD,     ONLY : GET_TS_CHEM
-      USE TRACER_MOD,   ONLY : STT
-      USE TRACER_MOD,   ONLY : N_TRACERS, N_APMTRA
-      USE APM_INIT_MOD, ONLY : NCTSEA
-      USE APM_INIT_MOD, ONLY : IDTCTSEA
+      USE APM_INIT_MOD,       ONLY : RSALT
+      USE APM_DRIV_MOD,       ONLY : GFTOT3D,DENWET3D
+      USE APM_INIT_MOD,       ONLY : NCTSEA
+      USE APM_INIT_MOD,       ONLY : IDTCTSEA
+      USE DRYDEP_MOD,         ONLY : DEPSAVSIZE
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+      USE TRACER_MOD,         ONLY : STT
+      USE TRACER_MOD,         ONLY : N_TRACERS, N_APMTRA
 
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_DIAG_MOD       ! ND44
-      USE CMN_GCTM_MOD       ! g0
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND44
+      USE CMN_GCTM_MOD             ! g0
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      REAL*8,INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NSALTBIN)
+      REAL*8,         INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NSALTBIN)
 !
 ! !REVISION HISTORY: 
 !   9 Feb 2012 - R. Yantosca - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1739,7 +1766,7 @@
             P       = GET_PCENTER(I,J,L) * 0.1d0
 
             ! Temperature [K]
-            TEMP    = T(I,J,L)
+            TEMP    = State_Met%T(I,J,L)
 
             RWET    = REFF * GFTOT3D(I,J,L,2)
 
@@ -1776,7 +1803,7 @@
 
          ! We know the boundary condition at the model top
          DO L = LLTROP, 2, -1
-            DELZ        = BXHEIGHT(I,J,L)
+            DELZ        = State_Met%BXHEIGHT(I,J,L)
             TC(I,J,L,N) = TC0(L) /
      &      ( 1.D0 + DTCHEM * VTS(L) / DELZ )
             MASS(I,J,(L-1),N) = TC0(L) *
@@ -1967,28 +1994,35 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SRCSALTBIN( TC )
+      SUBROUTINE SRCSALTBIN( TC, State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD,       ONLY : PBL, AD, IS_WATER, AIRVOL
-      USE ERROR_MOD,     ONLY : DEBUG_MSG, ERROR_STOP
-      USE GRID_MOD,      ONLY : GET_AREA_M2
-      USE PBL_MIX_MOD,   ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
-      USE TIME_MOD,      ONLY : GET_TS_EMIS
-      USE APM_INIT_MOD,  ONLY : DFMSALT9  ! kg m-2 s-1
+      USE DAO_MOD,            ONLY : IS_WATER
+      USE ERROR_MOD,          ONLY : DEBUG_MSG, ERROR_STOP
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_M2
+      USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
+      USE TIME_MOD,           ONLY : GET_TS_EMIS
+      USE APM_INIT_MOD,       ONLY : DFMSALT9  ! kg m-2 s-1
 
-      USE CMN_SIZE_MOD        ! Size parameters
-      USE CMN_DIAG_MOD        ! ND44, ND08
-      USE CMN_GCTM_MOD        ! PI
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND44, ND08
+      USE CMN_GCTM_MOD             ! PI
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NSALTBIN)
+      REAL*8,         INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NSALTBIN)
 !
 ! !REVISION HISTORY: 
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2042,10 +2076,12 @@
             A_M2 = GET_AREA_M2( I, J, 1 )
 
             ! Test if this is a water box
-            IF ( IS_WATER(I,J) ) THEN
+            IF ( IS_WATER( I, J, State_Met ) ) THEN
 
                ! Wind speed at 10 m altitude [m/s]
-               W10M = SQRT( SFCWINDSQR(I,J) )
+               W10M = SQRT( SFCWINDSQR(I ,J,
+     &                                 State_Met%U10M,
+     &                                 State_Met%V10M ) )
 
                ! Loop over size bins
 
