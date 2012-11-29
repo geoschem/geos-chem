@@ -54,10 +54,10 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GIGC_Init_Simulation( Input_Opt,  State_Met, State_Chm,  &
-                                   tsChem,     nymd,      nhms,       &
-                                   am_I_Root,  lonCtr,    latCtr,     &
-                                   latEdg,     mapping,   RC         )
+  SUBROUTINE GIGC_Init_Simulation( am_I_Root, tsChem,    nymd,       &
+                                   nhms,      lonCtr,    latCtr,     &
+                                   latEdg,    Input_Opt, State_Met,  &
+                                   State_Chm, mapping,   RC         )
 !
 ! !USES:
 !
@@ -73,7 +73,12 @@ CONTAINS
     USE COMODE_LOOP_MOD       
     USE GCKPP_COMODE_MOD,     ONLY : INIT_GCKPP_COMODE
     USE ERROR_MOD,            ONLY : DEBUG_MSG
+    USE GRID_MOD,             ONLY : AREA_M2
     USE GRID_MOD,             ONLY : INIT_GRID
+    USE GRID_MOD,             ONLY : XEDGE
+    USE GRID_MOD,             ONLY : XMID
+    USE GRID_MOD,             ONLY : YEDGE
+    USE GRID_MOD,             ONLY : YMID
     USE Mapping_Mod,          ONLY : MapWeight
     USE Mapping_Mod,          ONLY : Init_Mapping
     USE Olson_Landmap_Mod,    ONLY : Init_Olson_Landmap
@@ -90,10 +95,10 @@ CONTAINS
 !
 ! !INPUT PARAMETERS: 
 !
+    LOGICAL,         INTENT(IN)    :: am_I_Root     ! Is this the root CPU?
     REAL,            INTENT(IN)    :: tsChem        ! Chemistry timestep [s]
     INTEGER,         INTENT(IN)    :: nymd          ! GMT date (YYYY/MM/DD)
     INTEGER,         INTENT(IN)    :: nhms          ! GMT time (hh:mm:ss)
-    LOGICAL,         INTENT(IN)    :: am_I_Root     ! Is this the root CPU?
     REAL*4,  TARGET, INTENT(IN)    :: lonCtr(:,:)   ! Lon centers [radians]
     REAL*4,  TARGET, INTENT(IN)    :: latCtr(:,:)   ! Lat centers [radians]
     REAL*4,  TARGET, INTENT(IN)    :: latEdg(:,:)   ! Lat centers [radians]
@@ -127,6 +132,7 @@ CONTAINS
 !                              SETEMDEP, INIT_COMODE
 !  28 Nov 2012 - R. Yantosca - Remove reference to INIT_DAO, since there are
 !                              no more module arrays anymore in dao_mod.F
+!  29 Nov 2012 - R. Yantosca - Add lonCtr, latCtr, latEdg as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -155,6 +161,12 @@ CONTAINS
 
     ! Read options from the GEOS-Chem input file "input.geos"
     CALL GIGC_Get_Options( am_I_Root, Input_Opt, RC )
+
+    ! KLUDGE: Initialize grid_mod values from ESMF (mlong, bmy, 11/29/12)
+    YMID(:,:,1)  = latCtr  
+    XMID(:,:,1)  = lonCtr
+    YEDGE(:,:,1) = latEdg*30
+    XEDGE(:,:,1) = lonCtr*30
 
     ! Determine if we have to print debug output
     prtDebug = ( Input_Opt%LPRT .and. am_I_Root )
@@ -195,11 +207,11 @@ CONTAINS
        CALL INIT_COMODE( am_I_Root, Input_Opt, RC )
 
        ! Initialize KPP (if necessary)
-       IF ( LKPP ) THEN
+       IF ( Input_Opt%LKPP ) THEN
           CALL INIT_GCKPP_COMODE( am_I_Root, IIPAR,   JJPAR, LLTROP,  &
                                   ITLOOP,    NMTRATE, IGAS,  RC      )
        ENDIF
-!    ENDIF
+    ENDIF
 
     ! Read from data file mglob.dat
     CALL READER( .TRUE., am_I_Root )
@@ -285,13 +297,14 @@ CONTAINS
        IF ( Input_Opt%USE_OLSON_2001 ) THEN
           CALL Init_Mapping( 1440, 720, IIPAR, JJPAR, mapping )
        ELSE
+          CALL DEBUG_MSG( '### Init Mapping 05x05')
           CALL Init_Mapping(  720, 360, IIPAR, JJPAR, mapping )
        ENDIF
     
        ! Compute the Olson land types that occur in each grid box
        ! (i.e. this is a replacement for rdland.F and vegtype.global)
        CALL Init_Olson_Landmap()
-       CALL Compute_Olson_Landmap( mapping )
+       CALL Compute_Olson_Landmap( am_I_Root, mapping, State_Met )
        CALL Cleanup_Olson_Landmap()
     
        !### Debug
