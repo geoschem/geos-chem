@@ -298,16 +298,38 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      SUBROUTINE DO_DRYDEP( am_I_Root, NI,        NJ,        NL,
+     &                      Input_Opt, State_Met, State_Chm, RC )
+#else
       SUBROUTINE DO_DRYDEP( am_I_Root, State_Met )
+#endif
 !
 ! !USES:
 !
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      INTEGER,        INTENT(IN)    :: NI
+      INTEGER,        INTENT(IN)    :: NJ
+      INTEGER,        INTENT(IN)    :: NL
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC
+#endif
 !
 ! !REMARKS:
 !  NOTE: Modeled aerosol dry deposition velocities over snow and ice surfaces 
@@ -397,10 +419,30 @@
       REAL*8        :: AZO   (MAXIJ       )   ! Z0, per (I,J) square
 #endif
 
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      ! For ESMF, need to assign these from Input_Opt
+      LOGICAL       :: LNLPBL
+      LOGICAL       :: LPRT
+#endif
+
       !=================================================================
       ! DO_DRYDEP begins here!
       !=================================================================
+
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      ! Assume success
+      RC     = GIGC_SUCCESS
       
+      ! Copy values from the Input Options object to local variables
+      LNLPBL = Input_Opt%LNLPBL
+      LPRT   = Input_Opt%LPRT
+#endif
+
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      ! For ESMF, skip reading from netCDF (for now)
+      FIRST = .FALSE.
+#else
+
       ! Read drydep coeff's and land types on first call
       IF ( FIRST ) THEN
 
@@ -419,7 +461,8 @@
          CALL INIT_WEIGHTSS()
          FIRST = .FALSE.
       ENDIF
- 
+#endif
+
       ! Call METERO to obtain meterological fields (all 1-D arrays)
       ! Added sfc pressure as PRESSU and 10m windspeed as W10 
       !  (jaegle 5/11/11, mpayer 1/10/12)

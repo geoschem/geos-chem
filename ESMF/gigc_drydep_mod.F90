@@ -45,9 +45,9 @@ MODULE GIGC_DryDep_Mod
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: gigc_do_chem
+! !IROUTINE: gigc_do_drydep
 !
-! !DESCRIPTION: Routine GIGC\_DO\_CHEM is the chemistry driver for the
+! !DESCRIPTION: Routine GIGC\_DO\_DRYDEP is the chemistry driver for the
 !  Grid-Independent GEOS-Chem (aka "GIGC") model.  This routine is called by
 !  the Run method from the ESMF interface to the GEOS-5 GCM.
 !\\
@@ -157,17 +157,18 @@ MODULE GIGC_DryDep_Mod
       !### Debug, print values in v/v before chem
       IF ( am_I_Root ) THEN
          WRITE(6,*) '##### GIGC_Do_DryDep, LDRYD'
-         WRITE(6,*) LDRYD
+         WRITE(6,*) Input_Opt%LDRYD
       ENDIF
 
       ! If we are doing chemistry
-      IF ( LDRYD ) THEN
+      IF ( Input_Opt%LDRYD ) THEN
 
          ! Convert Units
 
          ! Call the GEOS-Chem Dry Deposition routines
          CALL Do_DryDep( am_I_Root, NI,        NJ,        NL,  &
                          Input_Opt, State_Met, State_Chm, RC )
+
          RC = 1
 
          ! Convert Units
