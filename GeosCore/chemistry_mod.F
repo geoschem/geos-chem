@@ -222,6 +222,7 @@
       LOGICAL       :: IT_IS_A_TAGOX_SIM
       LOGICAL       :: IT_IS_AN_AEROSOL_SIM
       LOGICAL       :: IT_IS_NOT_COPARAM_OR_CH4
+      LOGICAL       :: IT_IS_A_POPS_SIM
       LOGICAL       :: LCARB
       LOGICAL       :: LCHEM
       LOGICAL       :: LCRYST
@@ -265,6 +266,7 @@
       IT_IS_A_RnPbBe_SIM       = Input_Opt%ITS_A_TAGCO_SIM
       IT_IS_A_TAGCO_SIM        = Input_Opt%ITS_A_TAGCO_SIM
       IT_IS_A_TAGOX_SIM        = Input_Opt%ITS_A_TAGOX_SIM
+      IT_IS_A_POPS_SIM         = Input_Opt%ITS_A_POPS_SIM
       IT_IS_AN_AEROSOL_SIM     = Input_Opt%ITS_AN_AEROSOL_SIM
       IT_IS_NOT_COPARAM_OR_CH4 = Input_Opt%ITS_NOT_COPARAM_OR_CH4
 
@@ -498,10 +500,10 @@
          !---------------------------------
          ! POPs
          !---------------------------------
-         ELSE IF ( ITS_A_POPS_SIM() ) THEN
+         ELSE IF ( IT_IS_A_POPS_SIM ) THEN
  
             ! Do POPS chemistry
-            CALL CHEMPOPS
+            CALL CHEMPOPS( State_Met )
                
          !---------------------------------
          ! Offline H2/HD

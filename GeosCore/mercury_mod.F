@@ -602,6 +602,7 @@
       USE DIAG03_MOD,         ONLY : AD03_Hg2_SSR 
       USE DIAG03_MOD,         ONLY : AD03_Br 
       USE ERROR_MOD,          ONLY : DEBUG_MSG 
+      USE ERROR_MOD,          ONLY : SAFE_DIV   !yzh
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE LOGICAL_MOD,        ONLY : LPRT, LDYNOCEAN, LNLPBL

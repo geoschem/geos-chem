@@ -828,7 +828,7 @@
          !--------------------
          ! POPS
          !--------------------
-         CALL EMISSPOPS
+         CALL EMISSPOPS( State_Met )
 
       ELSE IF ( ITS_A_CO2_SIM() ) THEN
 

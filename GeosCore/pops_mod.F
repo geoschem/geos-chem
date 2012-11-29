@@ -87,23 +87,29 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEMPOPS
+      SUBROUTINE CHEMPOPS( State_Met )
 !
 ! !USES:
 !
-      USE DRYDEP_MOD,    ONLY : DEPSAV
-      USE ERROR_MOD,     ONLY : DEBUG_MSG
-      USE GLOBAL_OH_MOD, ONLY : GET_GLOBAL_OH
-      USE GLOBAL_O3_MOD, ONLY : GET_GLOBAL_O3 !clf, 6/27/2010
-      USE GLOBAL_OC_MOD, ONLY : GET_GLOBAL_OC !clf, 1/20/2011
-      USE GLOBAL_BC_MOD, ONLY : GET_GLOBAL_BC !clf, 1/20/2011
-      USE PBL_MIX_MOD,   ONLY : GET_PBL_MAX_L
-      USE LOGICAL_MOD,   ONLY : LPRT, LGTMM, LNLPBL !CDH added LNLPBL
-      USE TIME_MOD,      ONLY : GET_MONTH, ITS_A_NEW_MONTH, GET_YEAR
-      USE TRACER_MOD,    ONLY : N_TRACERS
-      USE DRYDEP_MOD,    ONLY : DRYPOPG, DRYPOPP_OC, DRYPOPP_BC
+      USE DRYDEP_MOD,         ONLY : DEPSAV
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GLOBAL_OH_MOD,      ONLY : GET_GLOBAL_OH
+      USE GLOBAL_O3_MOD,      ONLY : GET_GLOBAL_O3 !clf, 6/27/2010
+      USE GLOBAL_OC_MOD,      ONLY : GET_GLOBAL_OC !clf, 1/20/2011
+      USE GLOBAL_BC_MOD,      ONLY : GET_GLOBAL_BC !clf, 1/20/2011
+      USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L
+      USE LOGICAL_MOD,        ONLY : LPRT, LGTMM, LNLPBL !CDH added LNLPBL
+      USE TIME_MOD,           ONLY : GET_MONTH, GET_YEAR
+      USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
+      USE TRACER_MOD,         ONLY : N_TRACERS
+      USE DRYDEP_MOD,         ONLY : DRYPOPG, DRYPOPP_OC, DRYPOPP_BC
 
-      USE CMN_SIZE_MOD        ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !REVISION HISTORY: 
 !  20 September 2010 - N.E. Selin - Initial Version based on CHEMMERCURY
@@ -169,7 +175,7 @@
 
          ! Dry deposition occurs with PBL mixing,
          ! pass zero deposition frequency
-         CALL CHEM_POPGP( ZERO_DVEL, ZERO_DVEL, ZERO_DVEL)
+         CALL CHEM_POPGP( ZERO_DVEL, ZERO_DVEL, ZERO_DVEL, State_Met )
          
       ELSE
 
@@ -178,53 +184,68 @@
          
             ! Dry deposition active for both POP-Gas and POP-Particle; 
             ! pass drydep frequency to CHEM_POPGP (NOTE: DEPSAV has units 1/s)
-            CALL CHEM_POPGP(DEPSAV(:,:,DRYPOPG), DEPSAV(:,:,DRYPOPP_OC),
-     &          DEPSAV(:,:,DRYPOPP_BC) )
+            CALL CHEM_POPGP(DEPSAV(:,:,DRYPOPG),   
+     &                      DEPSAV(:,:,DRYPOPP_OC),
+     &                      DEPSAV(:,:,DRYPOPP_BC),
+     &                      State_Met )
 
            ELSEIF (DRYPOPG > 0 .and. DRYPOPP_OC > 0 .and. 
      &          DRYPOPP_BC .le. 0 ) THEN
 
             ! Only POPG and POPP_OC dry deposition are active
-            CALL CHEM_POPGP(DEPSAV(:,:,DRYPOPG), DEPSAV(:,:,DRYPOPP_OC), 
-     &          ZERO_DVEL) 
+            CALL CHEM_POPGP(DEPSAV(:,:,DRYPOPG),
+     &                      DEPSAV(:,:,DRYPOPP_OC), 
+     &                      ZERO_DVEL,
+     &                      State_Met ) 
 
            ELSEIF (DRYPOPG > 0 .and. DRYPOPP_OC .le. 0 .and. 
      &          DRYPOPP_BC > 0 ) THEN
 
             ! Only POPG and POPP_BC dry deposition are active
-            CALL CHEM_POPGP(DEPSAV(:,:,DRYPOPG), ZERO_DVEL, 
-     &          DEPSAV(:,:,DRYPOPP_BC)) 
+            CALL CHEM_POPGP(DEPSAV(:,:,DRYPOPG),
+     &                      ZERO_DVEL, 
+     &                      DEPSAV(:,:,DRYPOPP_BC),
+     &                      State_Met ) 
          
            ELSEIF (DRYPOPG > 0 .and. DRYPOPP_OC .le. 0 .and. 
      &          DRYPOPP_BC .le. 0 ) THEN
 
             ! Only POPG dry deposition is active
-            CALL CHEM_POPGP( DEPSAV(:,:,DRYPOPG), ZERO_DVEL, ZERO_DVEL) 
+            CALL CHEM_POPGP( DEPSAV(:,:,DRYPOPG),
+     &                       ZERO_DVEL,
+     &                       ZERO_DVEL,
+     &                       State_Met ) 
             
            ELSEIF (DRYPOPG <= 0 .and. DRYPOPP_OC > 0 .and. 
      &          DRYPOPP_BC > 0) THEN
 
             ! Only POPP dry deposition is active
-            CALL CHEM_POPGP( ZERO_DVEL , DEPSAV(:,:,DRYPOPP_OC), 
-     &           DEPSAV(:,:,DRYPOPP_BC))
+            CALL CHEM_POPGP( ZERO_DVEL,
+     &                       DEPSAV(:,:,DRYPOPP_OC), 
+     &                       DEPSAV(:,:,DRYPOPP_BC),
+     &                       State_Met )
 
            ELSEIF (DRYPOPG <= 0 .and. DRYPOPP_OC > 0 .and. 
      &          DRYPOPP_BC <= 0) THEN
 
             ! Only POPP_OC dry deposition is active
-            CALL CHEM_POPGP( ZERO_DVEL , DEPSAV(:,:,DRYPOPP_OC), 
-     &           ZERO_DVEL)
+            CALL CHEM_POPGP( ZERO_DVEL,
+     &                       DEPSAV(:,:,DRYPOPP_OC), 
+     &                       ZERO_DVEL,
+     &                       State_Met )
 
            ELSEIF (DRYPOPG <= 0 .and. DRYPOPP_OC <= 0 .and. 
      &          DRYPOPP_BC > 0) THEN
 
             ! Only POPP_OC dry deposition is active
-            CALL CHEM_POPGP( ZERO_DVEL , ZERO_DVEL, 
-     &           DEPSAV(:,:,DRYPOPP_BC))            
+            CALL CHEM_POPGP( ZERO_DVEL,
+     &                       ZERO_DVEL, 
+     &                       DEPSAV(:,:,DRYPOPP_BC),
+     &                       State_Met )            
          ELSE
 
             ! No dry deposition, pass zero deposition frequency
-            CALL CHEM_POPGP( ZERO_DVEL, ZERO_DVEL, ZERO_DVEL)
+            CALL CHEM_POPGP( ZERO_DVEL, ZERO_DVEL, ZERO_DVEL, State_Met)
 
          ENDIF
 
@@ -248,47 +269,51 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_POPGP (V_DEP_G, V_DEP_P_OC, V_DEP_P_BC)
+      SUBROUTINE CHEM_POPGP ( V_DEP_G,  V_DEP_P_OC, V_DEP_P_BC,
+     &                        State_Met )
 !
 ! !USES:
 !
-      USE TRACER_MOD,       ONLY : STT,        XNUMOL
-      USE TRACERID_MOD,     ONLY : IDTPOPG,    IDTPOPPOC,  IDTPOPPBC
-      USE DIAG53_MOD,       ONLY : AD53_PG_OC_NEG
-      USE DIAG53_MOD,       ONLY : AD53_PG_BC_NEG
-      USE DIAG53_MOD,       ONLY : AD53_PG_OC_POS
-      USE DIAG53_MOD,       ONLY : AD53_PG_BC_POS
-      USE DIAG53_MOD,       ONLY : ND53, LD53
-      USE DIAG53_MOD,       ONLY : AD53_POPG_OH
-      USE DIAG53_MOD,       ONLY : AD53_POPP_OC_O3
-      USE DIAG53_MOD,       ONLY : AD53_POPP_BC_O3
-      USE TIME_MOD,         ONLY : GET_TS_CHEM
-      USE DIAG_MOD,         ONLY : AD44
-      USE LOGICAL_MOD,      ONLY : LNLPBL,     LGTMM
-      USE PBL_MIX_MOD,      ONLY : GET_FRAC_UNDER_PBLTOP
-      USE GRID_MOD,         ONLY : GET_AREA_CM2
-      USE DAO_MOD,          ONLY : T,          AIRVOL
-      USE ERROR_MOD,        ONLY : DEBUG_MSG
-      USE GET_POPSINFO_MOD, ONLY : GET_POP_DEL_H
-      USE GET_POPSINFO_MOD, ONLY : GET_POP_KOA
-      USE GET_POPSINFO_MOD, ONLY : GET_POP_KBC
-      USE GET_POPSINFO_MOD, ONLY : GET_POP_K_POPG_OH
-      USE GET_POPSINFO_MOD, ONLY : GET_POP_K_POPP_O3A
-      USE GET_POPSINFO_MOD, ONLY : GET_POP_K_POPP_O3B
+      USE DIAG_MOD,           ONLY : AD44
+      USE DIAG53_MOD,         ONLY : AD53_PG_OC_NEG
+      USE DIAG53_MOD,         ONLY : AD53_PG_BC_NEG
+      USE DIAG53_MOD,         ONLY : AD53_PG_OC_POS
+      USE DIAG53_MOD,         ONLY : AD53_PG_BC_POS
+      USE DIAG53_MOD,         ONLY : ND53, LD53
+      USE DIAG53_MOD,         ONLY : AD53_POPG_OH
+      USE DIAG53_MOD,         ONLY : AD53_POPP_OC_O3
+      USE DIAG53_MOD,         ONLY : AD53_POPP_BC_O3
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE GET_POPSINFO_MOD,   ONLY : GET_POP_DEL_H
+      USE GET_POPSINFO_MOD,   ONLY : GET_POP_KOA
+      USE GET_POPSINFO_MOD,   ONLY : GET_POP_KBC
+      USE GET_POPSINFO_MOD,   ONLY : GET_POP_K_POPG_OH
+      USE GET_POPSINFO_MOD,   ONLY : GET_POP_K_POPP_O3A
+      USE GET_POPSINFO_MOD,   ONLY : GET_POP_K_POPP_O3B
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE LOGICAL_MOD,        ONLY : LNLPBL,     LGTMM
+      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+      USE TRACER_MOD,         ONLY : STT,        XNUMOL
+      USE TRACERID_MOD,       ONLY : IDTPOPG,    IDTPOPPOC,  IDTPOPPBC
 
-      USE CMN_SIZE_MOD           ! Size parameters
-      USE CMN_DIAG_MOD           ! ND44
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND44
 !
 ! !INPUT PARAMETERS: 
 !
       ! Dry deposition frequency for gaseous POP [/s]
-      REAL*8, INTENT(IN)        :: V_DEP_G(IIPAR,JJPAR)
+      REAL*8, INTENT(IN)          :: V_DEP_G(IIPAR,JJPAR)
 
       !  Dry deposition frequency for OC-POP [/s]
-      REAL*8, INTENT(IN)        :: V_DEP_P_OC(IIPAR,JJPAR)
+      REAL*8, INTENT(IN)          :: V_DEP_P_OC(IIPAR,JJPAR)
 
       ! Dry deposition frequency for BC-POP [/s]
-      REAL*8, INTENT(IN)        :: V_DEP_P_BC(IIPAR,JJPAR)   
+      REAL*8, INTENT(IN)          :: V_DEP_P_BC(IIPAR,JJPAR)   
+
+      ! Meteorology State object
+      TYPE(MetState), INTENT(IN)  :: State_Met
 !
 ! !REMARKS:
 !  References:
@@ -297,7 +322,9 @@
 !  PAHs and PCDD/Fs. J. Phys. Chem. A. 102:915-921. 
 !
 ! !REVISION HISTORY: 
-!  20 September 2010 - N.E. Selin - Initial Version based on CHEM_HG0_HG2
+!  20 Sep 2010 - N.E. Selin  - Initial Version based on CHEM_HG0_HG2
+!  29 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -492,13 +519,13 @@
          GROSS_OX_BC = 0d0
 
          ! Save local temperature in TK for convenience [K]
-         TK = T(I,J,L)
+         TK = State_Met%T(I,J,L)
 
          ! Get monthly mean OH concentrations
-         C_OH        = GET_OH( I, J, L )
+         C_OH        = GET_OH( I, J, L, State_Met )
 
          ! Get monthly mean O3 concentrations
-         C_O3        = GET_O3( I, J, L )
+         C_O3        = GET_O3( I, J, L, State_Met )
 
          ! Fraction of box (I,J,L) underneath the PBL top [dimensionless]
          F_PBL = GET_FRAC_UNDER_PBLTOP( I, J, L )
@@ -569,7 +596,7 @@
          C_BC_CHEM1        = C_BC_CHEM / DENS_BC
 
          ! Get AIRVOL
-         AIR_VOL = AIRVOL(I,J,L)
+         AIR_VOL = State_Met%AIRVOL(I,J,L)
 
          ! Define volume ratios:
          ! VR_OC_AIR = volume ratio of OC to air [unitless]     
@@ -1160,35 +1187,42 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE EMISSPOPS
+      SUBROUTINE EMISSPOPS( State_Met )
 !
 ! !USES:
 !
-      USE ERROR_MOD,         ONLY : DEBUG_MSG, ERROR_STOP
-      USE LOGICAL_MOD,       ONLY : LPRT, LNLPBL !CDH added LNLPBL
-      USE TIME_MOD,          ONLY : GET_MONTH, ITS_A_NEW_MONTH, GET_YEAR
-      USE TRACER_MOD,        ONLY : STT
-      USE VDIFF_PRE_MOD,     ONLY : EMIS_SAVE !cdh for LNLPBL
-      USE DAO_MOD,           ONLY : T, AIRVOL
-      USE GLOBAL_OC_MOD,     ONLY : GET_GLOBAL_OC
-      USE GLOBAL_BC_MOD,     ONLY : GET_GLOBAL_BC
-      USE DIAG53_MOD,        ONLY : AD53, ND53
-      USE PBL_MIX_MOD,       ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
-      USE TIME_MOD,          ONLY : GET_TS_EMIS
-      USE TRACERID_MOD,      ONLY : IDTPOPG, IDTPOPPOC,  IDTPOPPBC
-      USE GET_POPSINFO_MOD,  ONLY : GET_POP_DEL_H
-      USE GET_POPSINFO_MOD,  ONLY : GET_POP_KOA
-      USE GET_POPSINFO_MOD,  ONLY : GET_POP_KBC
-      USE GET_POPSINFO_MOD,  ONLY : GET_POP_K_POPG_OH
-      USE GET_POPSINFO_MOD,  ONLY : GET_POP_K_POPP_O3A
-      USE GET_POPSINFO_MOD,  ONLY : GET_POP_K_POPP_O3B
-      
-      USE CMN_SIZE_MOD            ! Size parameters
-      USE CMN_DEP_MOD             ! FRCLND
+      USE DIAG53_MOD,         ONLY : AD53, ND53
+      USE ERROR_MOD,          ONLY : DEBUG_MSG, ERROR_STOP
+      USE GET_POPSINFO_MOD,   ONLY : GET_POP_DEL_H
+      USE GET_POPSINFO_MOD,   ONLY : GET_POP_KOA
+      USE GET_POPSINFO_MOD,   ONLY : GET_POP_KBC
+      USE GET_POPSINFO_MOD,   ONLY : GET_POP_K_POPG_OH
+      USE GET_POPSINFO_MOD,   ONLY : GET_POP_K_POPP_O3A
+      USE GET_POPSINFO_MOD,   ONLY : GET_POP_K_POPP_O3B
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GLOBAL_BC_MOD,      ONLY : GET_GLOBAL_BC
+      USE GLOBAL_OC_MOD,      ONLY : GET_GLOBAL_OC
+      USE LOGICAL_MOD,        ONLY : LPRT, LNLPBL !CDH added LNLPBL
+      USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
+      USE TIME_MOD,           ONLY : GET_MONTH, GET_YEAR
+      USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
+      USE TIME_MOD,           ONLY : GET_TS_EMIS
+      USE TRACER_MOD,         ONLY : STT
+      USE TRACERID_MOD,       ONLY : IDTPOPG, IDTPOPPOC,  IDTPOPPBC
+      USE VDIFF_PRE_MOD,      ONLY : EMIS_SAVE !cdh for LNLPBL
+
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DEP_MOD              ! FRCLND
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !REVISION HISTORY: 
-!  20 September 2010 - N.E. Selin - Initial Version based on EMISSMERCURY
-!
+!  20 Sep 2010 - N.E. Selin  - Initial Version based on EMISSMERCURY
+!  29 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1358,7 +1392,7 @@
          DO L = 1, PBL_MAX
 
             !Get temp [K]
-            TK = T(I,J,L)
+            TK = State_Met%T(I,J,L)
 
             ! Define temperature-dependent partition coefficients:
             ! KOA_T, the octanol-air partition coeff at temp T [unitless]
@@ -1388,7 +1422,7 @@
             C_BC2        = C_BC1 / DENS_BC
 
             ! Get air volume (m^3)
-            AIR_VOL     = AIRVOL(I,J,L) 
+            AIR_VOL     = State_Met%AIRVOL(I,J,L) 
 
             ! Define volume ratios:
             ! VR_OC_AIR = volume ratio of OC to air [unitless]    
@@ -1655,27 +1689,32 @@
 !\\   
 ! !INTERFACE: 
 !
-      FUNCTION GET_O3( I, J, L ) RESULT( O3_MOLEC_CM3 )
+      FUNCTION GET_O3( I, J, L, State_Met ) RESULT( O3_MOLEC_CM3 )
 !
 ! !USES:
 !
-      USE DAO_MOD,       ONLY : AD
-      USE GLOBAL_O3_MOD, ONLY : O3
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GLOBAL_O3_MOD,      ONLY : O3
 
-      USE CMN_SIZE_MOD        ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
       ! Grid box indices for lon, lat, vertical level
-      INTEGER, INTENT(IN) :: I, J, L
+      INTEGER, INTENT(IN)         :: I, J, L
+
+      ! Meteorology State object
+      TYPE(MetState), INTENT(IN)  :: State_Met
 !
 ! !RETURN VALUE:
 !
-      REAL*8              :: O3_MOLEC_CM3
+      REAL*8                      :: O3_MOLEC_CM3
 !
 ! !REVISION HISTORY:
 !  (1 ) We assume SETTRACE has been called to define IDO3. (bmy, 12/16/02)
 !  (2 ) Now reference inquiry functions from "tracer_mod.f" (bmy, 7/20/04)
+!  29 Nov 2012 - M. Payer   - Replaced all met field arrays with State_Met
+!                             derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1691,7 +1730,7 @@
       ! Get ozone [v/v] for this gridbox & month
       ! and convert to [molec/cm3] (eck, 12/2/04)
       O3_MOLEC_CM3 = O3(I,J,L) * ( 6.022d23 / 28.97d-3 ) * 
-     &               AD(I,J,L)  /  BOXVL(I,J,L)
+     &               State_Met%AD(I,J,L)  /  BOXVL(I,J,L)
 
       END FUNCTION GET_O3
 !EOC
@@ -1708,47 +1747,47 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_OH( I, J, L ) RESULT( OH_MOLEC_CM3 )
+      FUNCTION GET_OH( I, J, L, State_Met ) RESULT( OH_MOLEC_CM3 )
 !
 ! !USES:
 !
-      USE DAO_MOD,       ONLY : SUNCOS 
-      USE GLOBAL_OH_MOD, ONLY : OH
-      USE TIME_MOD,      ONLY : GET_TS_CHEM
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GLOBAL_OH_MOD,      ONLY : OH
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
 
-      USE CMN_SIZE_MOD        ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: I, J, L
+      INTEGER, INTENT(IN)         :: I, J, L
+
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !REMARKS:
 ! Copied GET_OH function from mercury_mod.f - CLF
 !
 ! !REVISION HISTORY: 
-!  03 February 2011 - CL Friedman - Initial Version
+!  03 Feb 2011 - CL Friedman - Initial Version
+!  29 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-       INTEGER       :: JLOOP
        REAL*8        :: OH_MOLEC_CM3
     
        !=================================================================
        ! GET_OH begins here!
        !=================================================================
 
-       ! 1-D grid box index for SUNCOS
-       JLOOP = ( (J-1) * IIPAR ) + I
-
        ! Test for sunlight...
-       IF ( SUNCOS(JLOOP) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
+       IF ( State_Met%SUNCOS(I,J) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
 
          ! Impose a diurnal variation on OH during the day
          OH_MOLEC_CM3 = OH(I,J,L)                      *           
-     &                  ( SUNCOS(JLOOP) / TCOSZ(I,J) ) *
+     &                  ( State_Met%SUNCOS(I,J) / TCOSZ(I,J) ) *
      &                  ( 1440d0        / GET_TS_CHEM() )
 
          ! Make sure OH is not negative

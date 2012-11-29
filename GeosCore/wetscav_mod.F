@@ -1972,7 +1972,7 @@
             ! For BENZO[a]PYRENE, HSTAR = 1.32d3 and del_H = -5.65d3 (HSTAR from
             ! Ma et al and Del_H the same as pyrene for now)
             CALL COMPUTE_L2G( GET_POP_HSTAR(DUM), GET_POP_DEL_Hw(DUM), 
-     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
+     &                        State_Met%T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             ! Fraction of POP in liquid phase 
             ! Assume (for now) that POP is not present in ice phase
@@ -1983,7 +1983,7 @@
             ! Compute the rate constant K.  Assume retention efficiency  
             ! for POPG in liquid is 0.0 for T <= 248 K and 0.02 for 
             ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
-            IF ( T(I,J,L) >= 268d0 ) THEN
+            IF ( State_Met%T(I,J,L) >= 268d0 ) THEN
                K = KC * F_L  
 
             ! ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
@@ -1996,7 +1996,8 @@
             ENDIF
                
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+            TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
+     &                      State_Met%BXHEIGHT(I,J,L) ) 
 
             ! F is the fraction of POP scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -3649,8 +3650,8 @@
             ! al and del_H from Scharzenbach 2003, p200)
             ! For BENZO[a]PYRENE, HSTAR = 1.32d3 and del_H = -5.17d3 (HSTAR from
             ! Ma et al and Del_H the same as pyrene for now)
-            CALL COMPUTE_L2G( GET_POP_HSTAR(DUM),GET_POP_DEL_Hw(DUM), 
-     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
+            CALL COMPUTE_L2G( GET_POP_HSTAR(DUM), GET_POP_DEL_Hw(DUM), 
+     &                        State_Met%T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             ! Fraction of POP in liquid phase 
             ! Assume (for now) that POP is not present in ice phase

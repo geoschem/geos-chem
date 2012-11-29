@@ -364,7 +364,7 @@
             CALL READ_BENCHMARK_MENU( am_I_Root, Input_Opt, RC  )
          
          ELSE IF ( INDEX( LINE, 'POPS MENU'        ) > 0 ) THEN
-            CALL READ_POPS_MENU( am_I_Root )
+            CALL READ_POPS_MENU( am_I_Root, Input_Opt, RC )
            
          ELSE IF ( INDEX( LINE, 'MERCURY MENU'     ) > 0 ) THEN 
             CALL READ_MERCURY_MENU( am_I_Root, Input_Opt, RC  )
@@ -1364,6 +1364,7 @@
       Input_Opt%ITS_A_MERCURY_SIM      = ( SIM_TYPE == 11 )
       Input_Opt%ITS_A_CO2_SIM          = ( SIM_TYPE == 12 )
       Input_Opt%ITS_A_H2HD_SIM         = ( SIM_TYPE == 13 )
+      Input_Opt%ITS_A_POPS_SIM         = ( SIM_TYPE == 14 )
       
       ! Print info about each tracer
       DO T = 1, N_TRACERS
@@ -6668,6 +6669,7 @@
       ! Copy to Input Options object
       !=================================================================
       Input_Opt%ANTHRO_Hg_YEAR = ANTHRO_Hg_YEAR
+      Input_Opt%HG_SCENARIO    = HG_SCENARIO
       Input_Opt%USE_CHECKS     = USE_CHECKS
       Input_Opt%LDYNOCEAN      = LDYNOCEAN
       Input_Opt%LPREINDHG      = LPREINDHG
@@ -6887,22 +6889,33 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_POPS_MENU( am_I_Root )
+      SUBROUTINE READ_POPS_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE GET_POPSINFO_MOD,  ONLY : GET_POP_TYPE
-      USE POPS_MOD,          ONLY : INIT_POPS
-      USE DIRECTORY_MOD,     ONLY : POP_EMISDIR
-      USE TRACER_MOD,        ONLY : ITS_A_POPS_SIM
+      USE GET_POPSINFO_MOD,     ONLY : GET_POP_TYPE
+      USE POPS_MOD,             ONLY : INIT_POPS
+      USE DIRECTORY_MOD,        ONLY : POP_EMISDIR
+      USE TRACER_MOD,           ONLY : ITS_A_POPS_SIM
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN)        :: am_I_Root   ! Is this the root CPU?
+      LOGICAL, INTENT(IN)           :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  01 Oct 2012 - C. Friedman - Initial version
 !  26 Nov 2012 - M. Payer    - Added ProTeX headers
+!  29 Nov 2012 - M. Payer    - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6991,6 +7004,25 @@
  110  FORMAT( A, L5  )
  120  FORMAT( A, A   )
  130  FORMAT( A, f6.5 )
+
+      !=================================================================
+      ! Copy to Input Options object
+      !=================================================================
+      Input_Opt%POP_TYPE       = POP_TYPE
+      Input_Opt%CHEM_PROCESS   = CHEM_PROCESS
+      Input_Opt%POP_EMISFILE   = POP_EMISDIR
+      Input_Opt%POP_XMW        = POP_XMW
+      Input_Opt%POP_KOA        = POP_KOA
+      Input_Opt%POP_KBC        = POP_KBC
+      Input_Opt%POP_K_POPG_OH  = POP_K_POPG_OH
+      Input_Opt%POP_K_POPP_O3A = POP_K_POPP_O3A
+      Input_Opt%POP_K_POPP_O3B = POP_K_POPP_O3B
+      Input_Opt%POP_HSTAR      = POP_HSTAR
+      Input_Opt%POP_DEL_H      = POP_DEL_H 
+      Input_Opt%POP_DEL_Hw     = POP_DEL_Hw
+
+      ! Return success
+      RC = GIGC_SUCCESS
 
       ! If we are performing a POPS simulation ...
       IF ( ITS_A_POPS_SIM() ) THEN 

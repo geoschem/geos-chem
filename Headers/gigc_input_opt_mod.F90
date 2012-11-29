@@ -90,6 +90,7 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: ITS_A_MERCURY_SIM
      LOGICAL                     :: ITS_A_CO2_SIM
      LOGICAL                     :: ITS_A_H2HD_SIM
+     LOGICAL                     :: ITS_A_POPS_SIM
      LOGICAL                     :: ITS_NOT_COPARAM_OR_CH4
 
      !----------------------------------------
@@ -471,6 +472,7 @@ MODULE GIGC_Input_Opt_Mod
      ! MERCURY MENU fields
      !----------------------------------------     
      INTEGER                     :: ANTHRO_Hg_YEAR
+     CHARACTER(LEN=255)          :: HG_SCENARIO
      LOGICAL                     :: USE_CHECKS
      LOGICAL                     :: LDYNOCEAN
      LOGICAL                     :: LPREINDHG
@@ -499,6 +501,22 @@ MODULE GIGC_Input_Opt_Mod
      !----------------------------------------  
      LOGICAL                     :: IFNUCL
      REAL*8                      :: FE0
+
+     !----------------------------------------
+     ! POPS MENU fields
+     !----------------------------------------
+      CHARACTER(LEN=3)           :: POP_TYPE
+      LOGICAL                    :: CHEM_PROCESS
+      CHARACTER(LEN=255)         :: POP_EMISFILE
+      REAL*8                     :: POP_XMW
+      REAL*8                     :: POP_KOA
+      REAL*8                     :: POP_KBC
+      REAL*8                     :: POP_K_POPG_OH
+      REAL*8                     :: POP_K_POPP_O3A
+      REAL*8                     :: POP_K_POPP_O3B
+      REAL*8                     :: POP_HSTAR
+      REAL*8                     :: POP_DEL_H
+      REAL*8                     :: POP_DEL_Hw
 
   END TYPE OptInput
 !
@@ -559,6 +577,7 @@ CONTAINS
 !  07 Nov 2012 - R. Yantosca - Now add size parameter fields to Input_Opt
 !                              that can be set prior to calling this routine
 !  09 Nov 2012 - R. Yantosca - Now zero LD* fields for diagnostic levels
+!  29 Nov 2012 - M. Payer    - Add Input_Opt%ITS_A_POPS_SIM
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -641,6 +660,7 @@ CONTAINS
     Input_Opt%ITS_A_MERCURY_SIM      = .FALSE.
     Input_Opt%ITS_A_CO2_SIM          = .FALSE.
     Input_Opt%ITS_A_H2HD_SIM         = .FALSE.
+    Input_Opt%ITS_A_POPS_SIM         = .FALSE.
     Input_Opt%ITS_NOT_COPARAM_OR_CH4 = .FALSE.
 
     !----------------------------------------
@@ -1120,6 +1140,7 @@ CONTAINS
     ! MERCURY MENU fields
     !----------------------------------------     
     Input_Opt%ANTHRO_Hg_YEAR         = 0
+    Input_Opt%HG_SCENARIO            = ''
     Input_Opt%USE_CHECKS             = .FALSE.
     Input_Opt%LDYNOCEAN              = .FALSE.
     Input_Opt%LPREINDHG              = .FALSE.
@@ -1148,6 +1169,23 @@ CONTAINS
     !----------------------------------------  
     Input_Opt%IFNUCL                 = .FALSE.
     Input_Opt%FE0                    = 0d0
+
+    !----------------------------------------
+    ! POPS MENU fields
+    !----------------------------------------
+    Input_Opt%POP_TYPE               = ''
+    Input_Opt%CHEM_PROCESS           = .FALSE.
+    Input_Opt%POP_EMISFILE           = ''
+    Input_Opt%POP_XMW                = 0d0
+    Input_Opt%POP_KOA                = 0d0
+    Input_Opt%POP_KBC                = 0d0
+    Input_Opt%POP_K_POPG_OH          = 0d0
+    Input_Opt%POP_K_POPP_O3A         = 0d0
+    Input_Opt%POP_K_POPP_O3B         = 0d0
+    Input_Opt%POP_HSTAR              = 0d0
+    Input_Opt%POP_DEL_H              = 0d0
+    Input_Opt%POP_DEL_Hw             = 0d0
+
 
   END SUBROUTINE Set_GIGC_Input_Opt
 !EOC
