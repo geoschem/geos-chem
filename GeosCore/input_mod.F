@@ -166,14 +166,11 @@
 !\\
 ! !INTERFACE:
 ! 
-!#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       SUBROUTINE READ_INPUT_FILE( am_I_Root, Input_Opt, RC )
-!#else
-!      SUBROUTINE READ_INPUT_FILE( am_I_Root )
-!#endif
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
       USE CHARPAK_MOD,        ONLY : STRREPL
       USE FILE_MOD,           ONLY : IOERROR
       USE GAMAP_MOD,          ONLY : DO_GAMAP
@@ -282,7 +279,6 @@
          !=============================================================
          IF      ( INDEX( LINE, 'SIMULATION MENU'  ) > 0 ) THEN
             CALL READ_SIMULATION_MENU( am_I_Root, Input_Opt, RC )             
-                                     
          ELSE IF ( INDEX( LINE, 'TRACER MENU'      ) > 0 ) THEN
             CALL READ_TRACER_MENU( am_I_Root, Input_Opt, RC )                 
 
@@ -604,7 +600,8 @@
       SUBROUTINE READ_SIMULATION_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
-!
+!     
+      USE CMN_SIZE_MOD
       USE DIRECTORY_MOD, ONLY : DATA_DIR,    DATA_DIR_1x1, GCAP_DIR
       USE DIRECTORY_MOD, ONLY : GEOS_4_DIR,  GEOS_5_DIR
       USE DIRECTORY_MOD, ONLY : MERRA_DIR,   GEOS_57_DIR
@@ -857,7 +854,7 @@
       CALL SET_YOFFSET( J0 )
 
       ! Initialize GEOS-Chem horizontal grid structure
-      CALL INITIALIZE_GEOS_GRID( am_I_Root )
+      CALL INITIALIZE_GEOS_GRID( am_I_Root, RC )
 
       ! Initialze quantities for "transfer_mod.f"
       CALL INIT_TRANSFER( 0, 0 )
@@ -880,17 +877,25 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INITIALIZE_GEOS_GRID( am_I_Root )
+      SUBROUTINE INITIALIZE_GEOS_GRID( am_I_Root, RC )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD
+      USE CMN_SIZE_MOD,    ONLY : DLAT,     DLON
+      USE CMN_SIZE_MOD,    ONLY : I_LO,     J_LO
+      USE CMN_SIZE_MOD,    ONLY : I_HI,     J_HI
+      USE CMN_SIZE_MOD,    ONLY : JM_WORLD, LLPAR
       USE GLOBAL_GRID_MOD, ONLY : COMPUTE_GLOBAL_GRID
-      USE GRID_MOD,        ONLY : INIT_GRID, COMPUTE_GRID
+      USE GRID_MOD,        ONLY : COMPUTE_GRID
+      USE GRID_MOD,        ONLY : INIT_GRID
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL, INTENT(IN)  :: am_I_Root    ! Is this the root CPU?
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: RC           ! Success or failure?
 !
 ! !REMARKS:
 !  The module grid_mod.F90 has been modified to save grid parameters in 3D
@@ -901,64 +906,60 @@
 !  biomass emissions, which are available on a 0.5x0.5 global grid. The global
 !  arrays may need to be used in the future for regridding other emissions for
 !  nested grids.
-!
+!                                                                             .
 ! !REVISION HISTORY: 
 !  01 Mar 2012 - R. Yantosca - Initial version
 !  01 May 2012 - M. Payer    - Add call to COMPUTE_GLOBAL_GRID for nested grids
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!  30 Nov 2012 - R. Yantosca - Accept external DLON, DLAT from ESMF interface
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-
-      ! Scalars
       INTEGER :: JSP, JNP
-      
-      ! Arrays
-      REAL*8  :: DLON(IIPAR,JJPAR,LLPAR)   ! Delta-longitudes
-      REAL*8  :: DLAT(IIPAR,JJPAR,LLPAR)   ! Delta-latitudes
 
+      !=================================================================
+      ! Define inputs depending on the grid that is selected
+      !=================================================================
 #if   defined( GRID4x5 )
 
       !-----------------------------
       ! Global 4 x 5 grid
       !-----------------------------
-      JSP             = 1                  ! Lat index of S Pole
-      JNP             = JJPAR              ! Lat index of N pole
-      DLON            = 5.0d0              ! Delta-longitude array [degrees]
-      DLAT            = 4.0d0              ! Delta-latitude array [degrees]
-      DLAT(:,1,    :) = 2.0d0              !  Half-sized S Pole boxes
-      DLAT(:,JJPAR,:) = 2.0d0              !  Half-sized N Pole boxes
-
+      JSP           = 1                  ! Lat index of S Pole
+      JNP           = JM_WORLD           ! Lat index of N pole
+      DLON          = 5.0d0              ! Delta-longitude array [degrees]
+      DLAT          = 4.0d0              ! Delta-latitude array [degrees]
+      DLAT(:,JSP :) = 2.0d0              !  Half-sized S Pole boxes
+      DLAT(:,JNP,:) = 2.0d0              !  Half-sized N Pole boxes
 
 #elif defined( GRID2x25 )
 
       !-----------------------------
       ! Global 2 x 2.5 grid
       !-----------------------------
-      JSP             = 1                  ! Lat index of S Pole
-      JNP             = JJPAR              ! Lat index of N pole
-      DLON            = 2.5d0              ! Delta-longitude array [degrees]
-      DLAT            = 2.0d0              ! Delta-latitude array [degrees]
-      DLAT(:,1,    :) = 1.0d0              !  Half-sized S Pole boxes
-      DLAT(:,JJPAR,:) = 1.0d0              !  Half-sized N Pole boxes
-  
+      JSP           = 1                  ! Lat index of S Pole
+      JNP           = JM_WORLD           ! Lat index of N pole
+      DLON          = 2.5d0              ! Delta-longitude array [degrees]
+      DLAT          = 2.0d0              ! Delta-latitude array [degrees]
+      DLAT(:,JSP,:) = 1.0d0              !  Half-sized S Pole boxes
+      DLAT(:,JNP,:) = 1.0d0              !  Half-sized N Pole boxes
 
 #elif defined( GRID1x125 )
 
       !-----------------------------
       ! Global 1 x 1.25 grid
       !-----------------------------
-      JSP             = 1                  ! Lat index of S Pole
-      JNP             = JJPAR              ! Lat index of N pole
-      DLON            = 1.25d0             ! Delta-longitude array [degrees]
-      DLAT            = 1.0d0              ! Delta-latitude array [degrees]
-      DLAT(:,1,    :) = 0.5d0              !  Half-sized S Pole boxes
-      DLAT(:,JJPAR,:) = 0.5d0              !  Half-sized N Pole boxes
+      JSP           = 1                  ! Lat index of S Pole
+      JNP           = JM_WORLD           ! Lat index of N pole
+      DLON          = 1.25d0             ! Delta-longitude array [degrees]
+      DLAT          = 1.0d0              ! Delta-latitude array [degrees]
+      DLAT(:,JSP,:) = 0.5d0              !  Half-sized S Pole boxes
+      DLAT(:,JNP,:) = 0.5d0              !  Half-sized N Pole boxes
 
 
 #elif defined( GRID1x1 )
@@ -966,12 +967,12 @@
       !-----------------------------
       ! Global 1 x 1 
       !-----------------------------
-      JSP             = 1                  ! Lat index of S Pole
-      JNP             = JJPAR              ! Lat index of N pole
-      DLON            = 1.0d0              ! Delta-longitude array [degrees]
-      DLAT            = 1.0d0              ! Delta-latitude array [degrees]
-      DLAT(:,1,    :) = 0.5d0              !  Half-sized S Pole boxes
-      DLAT(:,JJPAR,:) = 0.5d0              !  Half-sized N Pole boxes
+      JSP           = 1                  ! Lat index of S Pole
+      JNP           = JM_WORLD           ! Lat index of N pole
+      DLON          = 1.0d0              ! Delta-longitude array [degrees]
+      DLAT          = 1.0d0              ! Delta-latitude array [degrees]
+      DLAT(:,JSP,:) = 0.5d0              !  Half-sized S Pole boxes
+      DLAT(:,JNP,:) = 0.5d0              !  Half-sized N Pole boxes
 
 #elif defined( GRID05x0666 )
 
@@ -980,10 +981,10 @@
       !-------------------=---------
       ! Nested 0.5 x 0.666 grids
       !-----------------------------
-      JSP             = 0                  ! Lat index of S Pole
-      JNP             = 0                  ! Lat index of N pole
-      DLON            = 2d0/3d0            ! Delta-longitude array [degrees]
-      DLAT            = 0.5d0              ! Delta-latitude array [degrees]
+      JSP           = 0                  ! Lat index of S Pole
+      JNP           = 0                  ! Lat index of N pole
+      DLON          = 2d0/3d0            ! Delta-longitude array [degrees]
+      DLAT          = 0.5d0              ! Delta-latitude array [degrees]
 
 #elif defined( GRID025x03125 )
 
@@ -992,39 +993,53 @@
       !-----------------------------
       ! Nested 0.25 x 0.3125 grids
       !-----------------------------
-      JSP             = 0                  ! Lat index of S Pole
-      JNP             = 0                  ! Lat index of N pole
-      DLON            = 0.3125d0           ! Delta-longitude array [degrees]
-      DLAT            = 0.25d0             ! Delta-latitude array [degrees]
+      JSP           = 0                  ! Lat index of S Pole
+      JNP           = 0                  ! Lat index of N pole
+      DLON          = 0.3125d0           ! Delta-longitude array [degrees]
+      DLAT          = 0.25d0             ! Delta-latitude array [degrees]
+
+#elif defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING)
+
+      !-----------------------------
+      ! Connecting to GCM via ESMF
+      !-----------------------------
+      JSP           = 1
+      JNP           = JM_WORLD
+
+      ! NOTE: DLON, DLAT are defined in routine GIGC_Get_Options in
+      ! ESMF/gigc_initialization_mod.F90, so no need to define them
+      ! here.  (bmy, 12/3/12)
 
 #endif
+
+      !=================================================================
+      ! Initialize the horizontal grid
+      !=================================================================
 
       ! Allocate module arrays in grid_mod.F90
-      CALL INIT_GRID   ( I1=1,      I2=IIPAR,  
-     &                   J1=1,      J2=JJPAR,  
-     &                   L1=1,      L2=LLPAR  )
+      CALL INIT_GRID   ( am_I_Root = am_I_Root,     ! Are we on the root CPU?
+     &                   I1        = I_LO,          ! Min lon index, this CPU
+     &                   J1        = J_LO,          ! Min lat index, this CPU
+     &                   L1        = 1,             ! Min lev index, this CPU
+     &                   I2        = I_HI,          ! Max lon index, this CPU
+     &                   J2        = J_HI,          ! Max lat index, this CPU
+     &                   L2        = LLPAR,         ! Max lat index, this CPU
+     &                   RC        = RC         )   ! Success or failure?
 
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! The horiziontal grid definition shall be defined by the ESMF
-      ! interface, so do nothing here (bmy, 11/1/12)
-      !-----------------------------------------------------------------
-#else 
-      !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Current practice is to call COMPUTE_GRID from grid_mod.F90
-      ! to compute the horizontal grid properties. (bmy, 11/1/12)
-      !-----------------------------------------------------------------
-      CALL COMPUTE_GRID( am_I_Root=am_I_Root,
-     &                   I1=1,      I2=IIPAR,  
-     &                   J1=1,      J2=JJPAR,  
-     &                   JSP=JSP,   JNP=JNP,   
-     &                   L1=1,      L2=LLPAR,  
-     &                   DLON=DLON, DLAT=DLAT )
-#endif
+      ! Compute the horiziontal grid properties
+      CALL COMPUTE_GRID( am_I_Root = am_I_Root,     ! Are we on the root CPU?
+     &                   I1        = I_LO,          ! Min lon index, this CPU
+     &                   J1        = J_LO,          ! Min lat index, this CPU
+     &                   L1        = 1,             ! Min lev index, this CPU
+     &                   I2        = I_HI,          ! Max lon index, this CPU
+     &                   J2        = J_HI,          ! Max lat index, this CPU
+     &                   L2        = LLPAR,         ! Max lev index, this CPU
+     &                   JSP       = JSP,           ! Lat index of South Pole
+     &                   JNP       = JNP,           ! Lat index of North Pole
+     &                   DLON      = DLON,          ! Delta-longitudes [deg]
+     &                   DLAT      = DLAT,          ! Delta-latitudes  [deg]
+     &                   RC        = RC         )   ! Success or failure?
+
 
       END SUBROUTINE INITIALIZE_GEOS_GRID
 !EOC

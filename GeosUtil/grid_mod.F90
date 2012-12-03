@@ -108,22 +108,31 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Compute_Grid( am_I_Root, &
-                           I1, I2, J1, J2, JSP, JNP, L1, L2, DLON, DLAT )
+                           I1, I2, J1, J2, JSP, JNP, L1, L2, DLON, DLAT, RC )
+!
+! !USES:
+!
+    USE GIGC_ErrCode_Mod
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL, INTENT(IN) :: am_I_Root                ! Is this the root CPU?
-    INTEGER, INTENT(IN) :: I1,  I2                  ! Local CPU lon idx bounds
-    INTEGER, INTENT(IN) :: J1,  J2                  ! Local CPU lat idx bounds
-    INTEGER, INTENT(IN) :: JSP, JNP                 ! Polar lat indices
-    INTEGER, INTENT(IN) :: L1,  L2                  ! Local CPU lev idx bounds
-    REAL*8,  INTENT(IN) :: DLON(I1:I2,J1:J2,L1:L2)  ! Delta lon [degrees]
-    REAL*8,  INTENT(IN) :: DLAT(I1:I2,J1:J2,L1:L2)  ! Delta lat [degrees]
+    LOGICAL, INTENT(IN)  :: am_I_Root                ! Is this the root CPU?
+    INTEGER, INTENT(IN)  :: I1,  I2                  ! Local CPU lon idx bounds
+    INTEGER, INTENT(IN)  :: J1,  J2                  ! Local CPU lat idx bounds
+    INTEGER, INTENT(IN)  :: JSP, JNP                 ! Polar lat indices
+    INTEGER, INTENT(IN)  :: L1,  L2                  ! Local CPU lev idx bounds
+    REAL*8,  INTENT(IN)  :: DLON(I1:I2,J1:J2,L1:L2)  ! Delta lon [degrees]
+    REAL*8,  INTENT(IN)  :: DLAT(I1:I2,J1:J2,L1:L2)  ! Delta lat [degrees]
+!
+! !OUTPUT PARAMETERS:
+!  
+    INTEGER, INTENT(OUT) :: RC                       ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  23 Feb 2012 - R. Yantosca - Initial version, based on grid_mod.F
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  03 Dec 2012 - R. Yantosca - Add RC to argument list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -334,6 +343,9 @@ CONTAINS
 
     ENDDO
 
+    ! Return successfully
+    RC = GIGC_SUCCESS
+
     !=================================================================
     ! Echo info to stdout
     !=================================================================
@@ -342,16 +354,31 @@ CONTAINS
        WRITE( 6, '(''Nested-Grid Y-offset [boxes]:'', i4 )' ) J0
        WRITE( 6, '(a)' )
        WRITE( 6, '(''Grid box longitude centers [degrees]: '')' )
-       WRITE( 6, '(8(f8.3,1x))' ) ( XMID(I,1,1),  I=I1,I2 )
+       WRITE( 6, '(8(f8.3,1x))' ) ( XMID(I,1,1),  I=1,I2-I1+1 )
        WRITE( 6, '(a)' )
        WRITE( 6, '(''Grid box longitude edges [degrees]: '')' )
-       WRITE( 6, '(8(f8.3,1x))' ) ( XEDGE(I,1,1), I=I1,I2+1 )
+       WRITE( 6, '(8(f8.3,1x))' ) ( XEDGE(I,1,1), I=1,I2+1-I1+1 )
        WRITE( 6, '(a)' )
        WRITE( 6, '(''Grid box latitude centers [degrees]: '')' )
-       WRITE( 6, '(8(f8.3,1x))' ) ( YMID(1,J,1),  J=J1,J2 )
+       WRITE( 6, '(8(f8.3,1x))' ) ( YMID(1,J,1),  J=1,J2-J1+1 )
        WRITE( 6, '(a)' )
        WRITE( 6, '(''Grid box latitude edges [degrees]: '')' )
-       WRITE( 6, '(8(f8.3,1x))' ) ( YEDGE(1,J,1), J=J1,J2+1 )
+       WRITE( 6, '(8(f8.3,1x))' ) ( YEDGE(1,J,1), J=1,J2+1-J1+1 )
+    ELSE
+       WRITE( 7, '(''Nested-Grid X-offset [boxes]:'', i4 )' ) I0
+       WRITE( 7, '(''Nested-Grid Y-offset [boxes]:'', i4 )' ) J0
+       WRITE( 7, '(a)' )
+       WRITE( 7, '(''Grid box longitude centers [degrees]: '')' )
+       WRITE( 7, '(8(f8.3,1x))' ) ( XMID(I,1,1),  I=1,I2-I1+1 )
+       WRITE( 7, '(a)' )
+       WRITE( 7, '(''Grid box longitude edges [degrees]: '')' )
+       WRITE( 7, '(8(f8.3,1x))' ) ( XEDGE(I,1,1), I=1,I2+1-I1+1 )
+       WRITE( 7, '(a)' )
+       WRITE( 7, '(''Grid box latitude centers [degrees]: '')' )
+       WRITE( 7, '(8(f8.3,1x))' ) ( YMID(1,J,1),  J=1,J2-J1+1 )
+       WRITE( 7, '(a)' )
+       WRITE( 7, '(''Grid box latitude edges [degrees]: '')' )
+       WRITE( 7, '(8(f8.3,1x))' ) ( YEDGE(1,J,1), J=1,J2+1-J1+1 )
     ENDIF
 
   END SUBROUTINE Compute_Grid
@@ -1011,17 +1038,27 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_Grid( I1, I2, J1, J2, L1, L2 )
+  SUBROUTINE Init_Grid( am_I_Root, I1, I2, J1, J2, L1, L2, RC )
+!
+! !USES:
+!
+    USE GIGC_ErrCode_Mod
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER, INTENT(IN) :: I1, I2   ! Local CPU lon index bounds
-    INTEGER, INTENT(IN) :: J1, J2   ! Local CPU lat index bounds
-    INTEGER, INTENT(IN) :: L1, L2   ! Local CPU lev index bounds
+    LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU 
+    INTEGER, INTENT(IN)  :: I1, I2      ! Local CPU lon index bounds
+    INTEGER, INTENT(IN)  :: J1, J2      ! Local CPU lat index bounds
+    INTEGER, INTENT(IN)  :: L1, L2      ! Local CPU lev index bounds
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER, INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  24 Feb 2012 - R. Yantosca - Initial version, based on grid_mod.F
 !  01 Mar 2012 - R. Yantosca - Now define IS_NESTED based on Cpp flags
+!  03 Dec 2012 - R. Yantosca - Add am_I_Root, RC to argument list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1084,6 +1121,9 @@ CONTAINS
     YMID_R_W = 0d0
 
 #endif
+
+    ! Return successfully
+    RC = GIGC_SUCCESS
 
   END SUBROUTINE Init_Grid
 !EOC

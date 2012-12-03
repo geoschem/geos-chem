@@ -101,6 +101,7 @@
       USE CMN_FJ_Mod,              ONLY : Cleanup_CMN_FJ
       USE CMN_NOX_Mod,             ONLY : Cleanup_CMN_NOX
       USE CMN_O3_Mod,              ONLY : Cleanup_CMN_O3
+      USE CMN_SIZE_Mod,            ONLY : Cleanup_CMN_SIZE
       USE COMODE_LOOP_Mod,         ONLY : Cleanup_COMODE_LOOP
       USE COMMSOIL_Mod,            ONLY : Cleanup_COMMSOIL
       USE JV_CMN_Mod,              ONLY : Cleanup_JV_CMN
@@ -216,6 +217,7 @@
 !                              these were omitted during development
 !  28 Nov 2012 - R. Yantosca - Remove reference to CLEANUP_DAO; we have now
 !                              removed all allocatable arrays from dao_mod.F
+!  03 Dec 2012 - R. Yantosca - Now call Cleanup_CMN_SIZE
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -323,6 +325,7 @@
       CALL Cleanup_CMN_FJ     ( am_I_Root, RC )
       CALL Cleanup_CMN_NOX    ( am_I_Root, RC )
       CALL Cleanup_CMN_O3     ( am_I_Root, RC )
+      CALL Cleanup_CMN_SIZE   ( am_I_Root, RC )
       CALL Cleanup_COMMSOIL   ( am_I_Root, RC )
       CALL Cleanup_COMODE_LOOP( am_I_Root, RC )
       CALL Cleanup_JV_CMN     ( am_I_Root, RC )

@@ -78,15 +78,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GIGC_Chunk_Init( am_I_Root, NI,     NJ,        NL,         &
-                              nymd,      nhms,   tsChem,    lonCtr,     &
-                              latCtr,    latEdg, Input_Opt, State_Chm,  &
-                              State_Met, RC                            )
+  SUBROUTINE GIGC_Chunk_Init( am_I_Root, I_LO,      J_LO,      I_HI,       &
+                              J_HI,      IM,        JM,        LM,         &
+                              IM_WORLD,  JM_WORLD,  LM_WORLD,  nymd,       &
+                              nhms,      tsChem,    lonCtr,    latCtr,     &
+                              latEdg,    Input_Opt, State_Chm, State_Met,  &
+                              RC                                          )
 !
 ! !USES:
 !
-    USE ESMF_Mod,                ONLY: ESMF_KIND_R4
-    USE GIGC_Initialization_Mod
+    USE ESMF_Mod,                ONLY : ESMF_KIND_R4
+    USE GIGC_Initialization_Mod, ONLY : GIGC_Init_Simulation
     USE GIGC_ErrCode_Mod
     USE GIGC_Input_Opt_Mod,      ONLY : OptInput
     USE GIGC_State_Chm_Mod,      ONLY : ChmState
@@ -95,9 +97,16 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,            INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-    INTEGER,            INTENT(IN)    :: NI          ! # of longitudes
-    INTEGER,            INTENT(IN)    :: NJ          ! # of latitudes
-    INTEGER,            INTENT(IN)    :: NL          ! # of levels
+    INTEGER,            INTENT(IN)    :: I_LO        ! Min lon index, this CPU
+    INTEGER,            INTENT(IN)    :: J_LO        ! Min lat index, this CPU
+    INTEGER,            INTENT(IN)    :: I_HI        ! Max lon index, this CPU
+    INTEGER,            INTENT(IN)    :: J_HI        ! Max lat index, this CPU
+    INTEGER,            INTENT(IN)    :: IM          ! # lons, this CPU
+    INTEGER,            INTENT(IN)    :: JM          ! # lats, this CPU
+    INTEGER,            INTENT(IN)    :: LM          ! # levs, this CPU
+    INTEGER,            INTENT(IN)    :: IM_WORLD    ! # lons, global grid
+    INTEGER,            INTENT(IN)    :: JM_WORLD    ! # lats, global grid
+    INTEGER,            INTENT(IN)    :: LM_WORLD    ! # levs, global grid
     INTEGER,            INTENT(IN)    :: nymd        ! GMT date (YYYY/MM/DD)
     INTEGER,            INTENT(IN)    :: nhms        ! GMT time (hh:mm:ss)
     REAL,               INTENT(IN)    :: tsChem      ! Chemistry timestep
@@ -131,6 +140,12 @@ CONTAINS
 !  01 Nov 2012 - R. Yantosca - Reordered arguments for clarit
 !  28 Nov 2012 - M. Long     - Now pass lonCtr, latCtr, latEdg as arguments
 !                              to routine GIGC_Init_Simulation
+!  03 Dec 2012 - R. Yantosca - Now call Init_CMN_SIZE (in CMN_SIZE_mod.F)
+!                              instead of GIGC_Init_Dimensions to initialize
+!                              the size parameters.
+!  03 Dec 2012 - R. Yantosca - Rename NI, NJ, NL to IM, JM, LM for clarity
+!  03 Dec 2012 - R. Yantosca - Now pass I_LO, J_LO, I_HI, J_HI, IM_WORLD, 
+!                              JM_WORLD, LM_WORLD via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -138,22 +153,32 @@ CONTAINS
     ! Assume success
     RC = GIGC_SUCCESS
 
-    ! Initialize GEOS-Chem dimensions w/ the dimensions on this PET
-    CALL GIGC_Init_Dimensions( NI, NJ, NL )
-
+    !======================================================================
     ! Initialize the G-C simulation and chemistry mechanism
-    CALL GIGC_Init_Simulation( am_I_Root = am_I_Root,   &   ! Root CPU?
-                               tsChem    = tsChem,      &   ! Chem timestep
-                               nymd      = nymd,        &   ! Date
-                               nhms      = nhms,        &   ! Time
-                               Input_Opt = Input_Opt,   &   ! Input Options
-                               State_Chm = State_Chm,   &   ! Chemistry State
-                               State_Met = State_Met,   &   ! Meteorology State
-                               lonCtr    = lonCtr,      &   ! lon ctr [radians]
-                               latCtr    = latCtr,      &   ! lon ctr [radians]
-                               latEdg    = latEdg,      &   ! lat edg [radians]
-                               mapping   = mapping,     &   ! Olson map weights
-                               RC        = RC          )
+    !=======================================================================
+    CALL GIGC_Init_Simulation( am_I_Root      = am_I_Root,  & ! Root CPU?
+                               tsChem         = tsChem,     & ! Chem timestep
+                               nymd           = nymd,       & ! Date
+                               nhms           = nhms,       & ! Time
+                               value_I_LO     = I_LO,       & ! Local min lon
+                               value_J_LO     = J_LO,       & ! Local min lat
+                               value_I_HI     = I_HI,       & ! Local max lon 
+                               value_J_HI     = J_HI,       & ! Local max lat
+                               value_IM       = IM,         & ! Local # lons
+                               value_JM       = JM,         & ! Local # lats
+                               value_LM       = LM,         & ! Local # levs
+                               value_IM_WORLD = IM_WORLD,   & ! Global # lons
+                               value_JM_WORLD = JM_WORLD,   & ! Global # lats
+                               value_LM_WORLD = LM_WORLD,   & ! Global # levs
+                               lonCtr         = lonCtr,     & ! Lon ctrs [rad]
+                               latCtr         = latCtr,     & ! Lat ctrs [rad]
+                               latEdg         = latEdg,     & ! lat edgs [rad]
+                               Input_Opt      = Input_Opt,  & ! Input Options
+                               State_Chm      = State_Chm,  & ! Chemistry State
+                               State_Met      = State_Met,  & ! Met State
+                               mapping        = mapping,    & ! Olson map wts
+                               RC             = RC         )  ! Success?
+
 
   END SUBROUTINE GIGC_Chunk_Init
 !EOC

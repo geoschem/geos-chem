@@ -1428,6 +1428,9 @@
       ! midpoint of the chemistry timestep (SUNCOS_MID)
       !=================================================================
 
+      ! Assume success
+      RC     = GIGC_SUCCESS
+
       ! Current time
       DOY    = GET_DAY_OF_YEAR()                       ! Current day of year
       YEAR   = GET_YEAR()                              ! Current year

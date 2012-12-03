@@ -49,7 +49,20 @@
 #endif
 
       !=================================================================
-      ! GRID PARAMETERS
+      ! GRID SETTINGS #1: Necessary for the grid-independent GEOS-Chem
+      !=================================================================
+      INTEGER             :: I_LO         ! Minimum lon index on this CPU
+      INTEGER             :: J_LO         ! Minimum lat index on this CPU
+      INTEGER             :: I_HI         ! Maximum lon index on this CPU
+      INTEGER             :: J_HI         ! Maximum lat index on this CPU
+      INTEGER             :: IM_WORLD     ! # of lons in the whole global grid
+      INTEGER             :: JM_WORLD     ! # of lats in the whole global grid
+      INTEGER             :: LM_WORLD     ! # of levs in the whole global grid
+      REAL*8, ALLOCATABLE :: DLON(:,:,:)  ! Array of delta-longitude [degrees]
+      REAL*8, ALLOCATABLE :: DLAT(:,:,:)  ! Array of delta-latitude  [degrees]
+
+      !=================================================================
+      ! GRID SETTINGS #2: Mostly historical declarations (keep for now)
       !
       ! IGLOB      = global longitude dimension
       ! JGLOB      = global latitude dimension
@@ -504,6 +517,8 @@
 ! !REMARKS:
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !  %%% NOTE: THIS WAS MADE INTO A MODULE IN ORDER TO REMOVE COMMON BLOCKS  %%%
+!  %%% WE WILL KEEP THIS FOR NOW.  EVENTUALLY WE MIGHT MIGRATE THESE DATA  %%%
+!  %%% INTO A DERIVED TYPE OBJECT. (bmy, 12/3/12)                          %%%
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 ! !REVISION HISTORY:
@@ -587,207 +602,264 @@
 !------------------------------------------------------------------------------
 !BOC
       CONTAINS
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_cmn_size
+!
+! !DESCRIPTION: Routine INIT\_CMN\_SIZE initializes the grid dimension values
+!  in module CMN_SIZE_mod.F.
+!\\
+!\\
+! !INTERFACE:
 
-      SUBROUTINE INIT_CMN_SIZE
-      
-      IMPLICIT NONE
+      SUBROUTINE Init_CMN_SIZE( am_I_Root,      RC,                    
+     &                          value_I_LO,     value_J_LO,
+     &                          value_I_HI,     value_J_HI,
+     &                          value_IM,       value_JM,  
+     &                          value_LM,       value_IM_WORLD, 
+     &                          value_JM_WORLD, value_LM_WORLD  )
+!
+! !USES:
+!
+      USE GIGC_ErrCode_Mod
+!
+! !INPUT PARAMETERS: 
+! 
+      LOGICAL, INTENT(IN)  :: am_I_Root        ! Are we on the root CPU?
+      INTEGER, OPTIONAL    :: value_I_LO       ! Lower lon index on this CPU
+      INTEGER, OPTIONAL    :: value_J_LO       ! Lower lat index on this CPU
+      INTEGER, OPTIONAL    :: value_I_HI       ! Upper lon index on this CPU
+      INTEGER, OPTIONAL    :: value_J_HI       ! Upper lat index on this CPU
+      INTEGER, OPTIONAL    :: value_IM         ! # of lons   on this CPU
+      INTEGER, OPTIONAL    :: value_JM         ! # of lats   on this CPU
+      INTEGER, OPTIONAL    :: value_LM         ! # of levels on this CPU
+      INTEGER, OPTIONAL    :: value_IM_WORLD   ! # of lons in the global grid
+      INTEGER, OPTIONAL    :: value_JM_WORLD   ! # of lats in the global grid
+      INTEGER, OPTIONAL    :: value_LM_WORLD   ! # of levs in the global grid
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: RC          ! Success or failure?
+! 
+! !REVISION HISTORY: 
+!  15 Oct 2012 - M. Long     - Initial version
+!  15 Oct 2012 - R. Yantosca - Added ProTeX Headers, use F90 format/indents
+!  22 Oct 2012 - R. Yantosca - Renamed to GIGC_Init_Dimensions
+!  03 Dec 2012 - R. Yantosca - Rewritten for clarity.  Also pass optional 
+!                              arguments to carry values from ESMF environment
+!  03 Dec 2012 - R. Yantosca - Now allocate DLON, DLAT arrays here.
+!EOP
+!------------------------------------------------------------------------------
+!BOC      
 
-#if   defined( GCAP ) && defined( GRID4x5 )
-
-      !-----------------------------------------------------------------
-      ! GCAP: 4 x 5
-      !-----------------------------------------------------------------
-      IIPAR      = IGLOB
-      JJPAR      = JGLOB
-      LLPAR      = LGLOB
-
-#elif defined( GEOS_4 ) && defined( GRID4x5 )
-
-      !-----------------------------------------------------------------
-      ! GEOS-4: 4 x 5
-      !-----------------------------------------------------------------
-      IIPAR      = IGLOB
-      JJPAR      = JGLOB
-#if   defined( GRIDREDUCED ) 
-
-#else
-      LLPAR      = LGLOB     ! Full vertical grid
-#endif
-
-#elif defined( GEOS_4 ) && defined( GRID2x25 )
-
-      !-----------------------------------------------------------------
-      ! GEOS-4: 2 x 2.5
-      !-----------------------------------------------------------------
-      IIPAR      = IGLOB
-      JJPAR      = JGLOB
-#if   defined( GRIDREDUCED )
-
-#else 
-      LLPAR      = LGLOB     ! Full vertical grid
-#endif
-
-#elif defined( GEOS_4 ) && defined( GRID1x125 )
-
-      !-----------------------------------------------------------------
-      ! GEOS-4: 1 x 1.2.5
-      !-----------------------------------------------------------------
-      IIPAR      = IGLOB
-      JJPAR      = JGLOB
-#if   defined( GRIDREDUCED )
-
-#else 
-      LLPAR      = LGLOB     ! Full vertical grid
-#endif
-
-#elif defined( GEOS_5 ) && defined( GRID4x5 )
-
-      !-----------------------------------------------------------------
-      ! GEOS-5: 4 x 5
-      !-----------------------------------------------------------------
-      IIPAR      = IGLOB
-      JJPAR      = JGLOB
-#if   defined( GRIDREDUCED ) 
-
-#else
-      LLPAR      = LGLOB     ! Full vertical grid
-#endif
-
-#elif defined( GEOS_5 ) && defined( GRID2x25 )
-
-      !-----------------------------------------------------------------
-      ! GEOS-5: 2 x 2.5
-      !-----------------------------------------------------------------
-      IIPAR      = IGLOB
-      JJPAR      = JGLOB
-#if   defined( GRIDREDUCED )
-
-#else 
-      LLPAR      = LGLOB     ! Full vertical grid
-#endif
-
-#elif defined( GEOS_5 ) && defined( GRID1x125 )
-
-      !-----------------------------------------------------------------
-      ! GEOS-5: 1 x 1.25
-      !-----------------------------------------------------------------
-      IIPAR      = IGLOB
-      JJPAR      = JGLOB
-#if   defined( GRIDREDUCED )
-
-#else 
-      LLPAR      = LGLOB     ! Full vertical grid
-#endif
-
-#elif defined( GEOS_5 ) && defined( GRID05x0666 )
-
-      !-----------------------------------------------------------------
-      ! GEOS-5: 0.5 x 0.666
-      !-----------------------------------------------------------------
-      IIPAR      = IGLOB  
-      JJPAR      = JGLOB
-#if   defined( GRIDREDUCED )
-
-#else
-      LLPAR      = LGLOB     ! Full vertical grid
-#endif
-
-#elif defined( MERRA ) && defined( GRID2x25 )
-
-      !-----------------------------------------------------------------
-      ! MERRA: 2 x 2.5
-      !-----------------------------------------------------------------
-      IIPAR      = IGLOB
-      JJPAR      = JGLOB
-#if   defined( GRIDREDUCED )
-
-#else 
-      LLPAR      = LGLOB     ! Full vertical grid
-#endif
-
-#elif defined( MERRA ) && defined( GRID4x5 )
-
-      !-----------------------------------------------------------------
-      ! MERRA: 4 x 5
-      !-----------------------------------------------------------------
-      IIPAR      = IGLOB
-      JJPAR      = JGLOB
-#if   defined( GRIDREDUCED ) 
-
-#else
-      LLPAR      = LGLOB     ! Full vertical grid
-#endif
-
-#elif defined( GEOS_57 ) && defined( GRID025x03125 )
-
-#if   defined( NESTED_CH ) || defined( SEAC4RS )
-
-      !-----------------------------------------------------------------
-      ! GEOS-5.7.x: Nested Grids
-      !-----------------------------------------------------------------
-      IIPAR      = IGLOB
-      JJPAR      = JGLOB
-
-#if   defined( GRIDREDUCED ) 
-
-#else
-      LLPAR      = LGLOB     ! Full vertical grid
-#endif
-
-#endif
-
-#elif defined( GEOS_57 ) && defined( GRID2x25 )
-
-      !-----------------------------------------------------------------
-      ! GEOS-5.7.x: 2 x 2.5
-      !-----------------------------------------------------------------
-      IIPAR      = IGLOB
-      JJPAR      = JGLOB
-#if   defined( GRIDREDUCED ) 
-
-#else
-      LLPAR      = LGLOB     ! Full vertical grid
-#endif
-
-#elif defined( GEOS_57 ) && defined( GRID4x5 )
-
-      !-----------------------------------------------------------------
-      ! GEOS-5.7.x: 4 x 5
-      !-----------------------------------------------------------------
-      IIPAR      = IGLOB
-      JJPAR      = JGLOB
-#if   defined( GRIDREDUCED ) 
-
-#else
-      LLPAR      = LGLOB     ! Full vertical grid
-#endif
-
-#elif defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
       !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
       !
-      ! If we are connecting to the ESMF interface, then IGLOB, JGLOB,
-      ! and LGLOB have already been defined by the call to routine
-      ! GIGC_Init_Dimensions (in ESMF/gigc_initialization_mod.F90).
+      ! If we are connecting to the ESMF interface, then define all
+      ! size parameters with values passed from the ESMF environment
+      ! via the optional arguments.  
       !
-      ! From these, we define the values for IIPAR, JJPAR, LLPAR,
-      ! LLTROP, and LLTROP_FIX.  We set LLTROP and LLTROP_FIX to LGLOB,
-      ! since we can only have one vertical dimension for the ESMF.
-      ! (bmy, 10/25/12)
+      ! We have introduced variables for the lower and upper longitude
+      ! and latitude indices on the current CPU (I_LO, J_LO, I_HI, J_HI)
+      ! as well as the # of longitudes, latitudes, and levels in the 
+      ! entire global grid (IM_WORLD, JM_WORLD, LM_WORLD).  Knowing 
+      ! these values will facilitate computation of certain quantities
+      ! when running with  MPI parallelization in the ESMF environment.  
+      !
+      ! NOTE: We don't need to define min & max level variables L_LO, 
+      ! L_HI, because we will always be decomposing the data with MPI 
+      ! in the  horizontal.  Thus L_LO=1 and L_HI=LLPAR.
+      !
+      ! We must also fix LLTROP = LLPAR and LLTROP_FIX = LLPAR, 
+      ! because we can only have one vertical dimension within the
+      ! ESMF environment. (bmy, 12/3/12)
       !-----------------------------------------------------------------
-      IIPAR      = IIPAR  
-      JJPAR      = JJPAR  
-      LLPAR      = LGLOB
-      LLTROP     = LGLOB
-      LLTROP_FIX = LGLOB
 
+      !=================================================================
+      ! Set values for the upper & lower longitude and latitude
+      ! indices that will be processed by the current CPU.  
+      !=================================================================
+      I_LO       = value_I_LO       ! Min longitude index on this CPU
+      J_LO       = value_J_LO       ! Min latitude  index on this CPU
+      I_HI       = value_I_HI       ! Max longitude index on this CPU
+      J_HI       = value_J_HI       ! Max latitude  index on this CPU
+
+      !=================================================================
+      ! Set values for the number of longitudes, latitudes, and 
+      ! levels that will be processed by the current CPU. 
+      !=================================================================
+      IIPAR      = value_IM         ! # of longitudes on this CPU
+      JJPAR      = value_JM         ! # of latitudes  on this CPU
+      LLPAR      = value_LM         ! # of levels     on this CPU
+
+      IGLOB      = IIPAR            ! For backwards compatibility, set = IIPAR
+      JGLOB      = JJPAR            ! For backwards compatibility, set = JJPAR
+      LGLOB      = LLPAR            ! For backwards compatibility, set = LLPAR
+      LLTROP     = LLPAR            ! For backwards compatibility, set = LLPAR
+      LLTROP_FIX = LLPAR            ! For backwards compatibility, set = LLPAR
+
+      !=================================================================
+      ! Set values for the number of longitudes, latitudes, and levels 
+      ! in the whole global grid.  We need these values to compute 
+      ! certain quantities (i.e. grid box areas) when connecting to 
+      ! the GEOS-5 GCM via the ESMF environment.
+      !=================================================================
+      IM_WORLD   = value_IM_WORLD   ! # of longitudes in the global grid
+      JM_WORLD   = value_JM_WORLD   ! # of latitudes  in the global grid
+      LM_WORLD   = value_LM_WORLD   ! # of levels     in the global grid
+
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Current practice in the standard GEOS-Chem is to set the IIPAR,
+      ! JJPAR, and LLPAR variables from the IGLOB, JGLOB, and LGLOB
+      ! parameters defined at the top of the module, above the CONTAINS
+      ! statement.  The values of IGLOB, JGLOB, LGLOB are pegged to the 
+      ! particular met field that is being used.
+      !
+      ! Also, only the GMAO met fields (GEOS-4, GEOS-5, GEOS-5.7, and
+      ! MERRA) have a reduced-grid option.  Therefore, set LLPAR to
+      ! LGLOB for GCAP here.  (bmy, 12/3/12)
+      !-----------------------------------------------------------------
+
+      !=================================================================
+      ! Set values for for IIPAR, JJPAR, LLPAR variables from the 
+      ! parameter settings IGLOB, JGLOB, LGLOB defined above
+      !=================================================================
+      IIPAR      = IGLOB            ! Set IIPAR to IGLOB parameter
+      JJPAR      = JGLOB            ! Set JJPAR to JGLOB parameter
+
+#if defined( GCAP )
+      LLPAR      = LGLOB            ! GCAP does not have a reduced grid option
+#else 
+
+#if !defined( GRIDREDUCED )
+      LLPAR      = LGLOB            ! If GRIDREDUCED is chosen, then LLPAR
+                                    !  and LLTROP are defined above, so no
+                                    !  need to reset them here.
 #endif
+#endif
+
+      !=================================================================
+      ! In the traditional GEOS-Chem, we use the OpenMP (or loop-level)
+      ! paralellization instead of MPI parallelization.  The following
+      ! variables may be therefore be set to global values.
+      !=================================================================
+      I_LO       = 1                ! Min longitude index on this CPU
+      J_LO       = 1                ! Min latitude  index on this CPU
+      I_HI       = IIPAR            ! Max longitude index on this CPU
+      J_HI       = JJPAR            ! Max latitude  index on this CPU
+      IM_WORLD   = IIPAR            ! # of longitudes in the global grid
+      JM_WORLD   = JJPAR            ! # of latitudes  in the global grid
+      LM_WORLD   = LLPAR            ! # of levels     in the global grid
+
+#endif   
 
       ! Set values for former variables declared as parameters
       MAXIJ   = IIPAR * JJPAR      
       LLCONVM = LLPAR - 1
 
-      END SUBROUTINE INIT_CMN_SIZE
+      !================================================================
+      ! Allocate arrays here
+      !================================================================
+
+      ! Delta-longitudes [degrees]
+      ALLOCATE( DLON( I_LO:I_HI, J_LO:J_HI, 1:LLPAR ), STAT=RC )
+      IF ( RC/= GIGC_SUCCESS ) RETURN
+      DLON = 0d0
+
+      ! Delta-latitudes [degrees]
+      ALLOCATE( DLAT( I_LO:I_HI, J_LO:J_HI, 1:LLPAR ), STAT=RC )
+      IF ( RC/= GIGC_SUCCESS ) RETURN
+      DLON = 0d0
+
+      ! Return w/ success
+      RC = GIGC_SUCCESS
+
+      IF ( am_I_Root ) THEN
+         WRITE(6,*) '#########################################'
+         WRITE(6,*) '### End of INIT_CMN_SIZE'
+         WRITE(6,*) '### I_LO       : ',I_LO
+         WRITE(6,*) '### J_LO       : ',J_LO
+         WRITE(6,*) '### I_HI       : ',I_HI
+         WRITE(6,*) '### J_HI       : ',J_HI
+         WRITE(6,*) '### IIPAR      : ',IIPAR
+         WRITE(6,*) '### JJPAR      : ',JJPAR
+         WRITE(6,*) '### LLPAR      : ',LLPAR
+         WRITE(6,*) '### IGLOB      : ',IGLOB
+         WRITE(6,*) '### JGLOB      : ',JGLOB
+         WRITE(6,*) '### LGLOB      : ',LGLOB
+         WRITE(6,*) '### LLTROP     : ',LLTROP
+         WRITE(6,*) '### LLTROP_FIX : ',LLTROP_FIX
+         WRITE(6,*) '### IM_WORLD   : ',IM_WORLD
+         WRITE(6,*) '### JM_WORLD   : ',JM_WORLD
+         WRITE(6,*) '### LM_WORLD   : ',LM_WORLD
+      ELSE
+         WRITE(7,*) '#########################################'
+         WRITE(7,*) '### End of INIT_CMN_SIZE'
+         WRITE(7,*) '### I_LO       : ',I_LO
+         WRITE(7,*) '### J_LO       : ',J_LO
+         WRITE(7,*) '### I_HI       : ',I_HI
+         WRITE(7,*) '### J_HI       : ',J_HI
+         WRITE(7,*) '### IIPAR      : ',IIPAR
+         WRITE(7,*) '### JJPAR      : ',JJPAR
+         WRITE(7,*) '### LLPAR      : ',LLPAR
+         WRITE(7,*) '### IGLOB      : ',IGLOB
+         WRITE(7,*) '### JGLOB      : ',JGLOB
+         WRITE(7,*) '### LGLOB      : ',LGLOB
+         WRITE(7,*) '### LLTROP     : ',LLTROP
+         WRITE(7,*) '### LLTROP_FIX : ',LLTROP_FIX
+         WRITE(7,*) '### IM_WORLD   : ',IM_WORLD
+         WRITE(7,*) '### JM_WORLD   : ',JM_WORLD
+         WRITE(7,*) '### LM_WORLD   : ',LM_WORLD
+      ENDIF
+
+      END SUBROUTINE Init_CMN_SIZE
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_cmn_size
+!
+! !DESCRIPTION: Subroutine CLEANUP\_CMN\_SIZE deallocates all module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Cleanup_CMN_SIZE( am_I_Root, RC )
+!
+! !USES:
+!
+      USE GIGC_ErrCode_Mod
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: RC          ! Success or failure?
+! 
+! !REVISION HISTORY: 
+!   3 Dec 2012 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      ! Deallocate arrays
+      IF ( ALLOCATED( DLON ) ) DEALLOCATE( DLON )
+      IF ( ALLOCATED( DLAT ) ) DEALLOCATE( DLAT )
+
+      ! Return successfully
+      RC = GIGC_SUCCESS
+
+      END SUBROUTINE Cleanup_CMN_SIZE
 !EOC
       END MODULE CMN_SIZE_MOD

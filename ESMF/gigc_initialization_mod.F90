@@ -22,11 +22,9 @@ MODULE GIGC_Initialization_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !      
-  PUBLIC :: GIGC_Init_Simulation
   PUBLIC :: GIGC_Get_Options
+  PUBLIC :: GIGC_Init_Simulation
   PUBLIC :: GIGC_Init_Time_Interface
-  PUBLIC :: GIGC_Init_Dimensions
-  PUBLIC :: GIGC_Allocate_Interface
 !
 ! !REVISION HISTORY: 
 !  16 Oct 2012 - M. Long     - Initial version
@@ -34,10 +32,94 @@ MODULE GIGC_Initialization_Mod
 !  22 Oct 2012 - R. Yantosca - Renamed to gigc_initialization_mod.F90
 !  22 Oct 2012 - R. Yantosca - Renamed several routines for better consistency
 !  25 Oct 2012 - R. Yantosca - Remove routine GIGC_SetEnv
+!  03 Dec 2012 - R. Yantosca - Now pass extra arguments to GIGC_Init_Dimensions
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 CONTAINS
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: gigc_get_options
+!
+! !DESCRIPTION: Routine GIGC\_GET\_OPTIONS reads options for a GEOS-Chem 
+!  simulation from the input.geos\_\_\_.rc input file.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE GIGC_Get_Options( am_I_Root, lonCtr, latCtr, Input_Opt, RC )
+!
+! !USES:
+!
+    USE CMN_GCTM_Mod       
+    USE CMN_SIZE_Mod,       ONLY : dLat
+    USE CMN_SIZE_Mod,       ONLY : dLon
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE Input_Mod,          ONLY : Read_Input_File
+!
+! !INPUT PARAMETERS: 
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+    REAL*4,         INTENT(IN)    :: lonCtr(:,:)
+    REAL*4,         INTENT(IN)    :: latCtr(:,:)
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+! 
+! !REMARKS:
+!  NOTE: For now assume that GEOS_Chem will always accept a regular 
+!  Cartesian grid.  This is more or less dictated by the input data.
+!  The GEOS-5 data can be regridded via ESMF from whatever grid it uses.
+!  (bmy, 11/30/12)
+!
+! !REVISION HISTORY: 
+!  15 Oct 2012 - M. Long     - Initial version
+!  15 Oct 2012 - R. Yantosca - Added ProTeX Headers, use F90 format/indents
+!  22 Oct 2012 - R. Yantosca - Renamed to GIGC_Get_Options
+!  22 Oct 2012 - R. Yantosca - Added RC output argument
+!  01 Nov 2012 - R. Yantosca - Now pass the Input Options object via arg list
+!  03 Dec 2012 - R. Yantosca - Reorder subroutines for clarity
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    ! Scalars
+    REAL*8 :: deltaLon, deltaLat
+  
+    ! Assume success
+    RC       = GIGC_SUCCESS
+
+    ! Assume the longitude difference is the same for all grid boxes 
+    deltaLon = Roundoff( ( DBLE( lonCtr(2,1) ) / PI_180 ), 4 )  &
+             - Roundoff( ( DBLE( lonCtr(1,1) ) / PI_180 ), 4 )
+
+    ! Assume the latitude difference is the same for all grid boxes
+    deltaLat = Roundoff( ( DBLE( latCtr(1,2) ) / PI_180 ), 4 )  &
+             - Roundoff( ( DBLE( latCtr(1,1) ) / PI_180 ), 4 )
+
+    IF ( am_I_Root ) THEN
+       write(6,*) '### DELTA_LON: ', deltaLon
+       write(6,*) '### DELTA_LON: ', deltaLat
+    ENDIF
+
+    ! Save into arrays of CMN_SIZE
+    dLon     = deltaLon
+    dLat     = deltaLat
+
+    ! Read the GEOS-Chem input file here
+    CALL Read_Input_File( am_I_Root, Input_Opt, RC )
+
+  END SUBROUTINE GIGC_Get_Options
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -54,10 +136,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GIGC_Init_Simulation( am_I_Root, tsChem,    nymd,       &
-                                   nhms,      lonCtr,    latCtr,     &
-                                   latEdg,    Input_Opt, State_Met,  &
-                                   State_Chm, mapping,   RC         )
+  SUBROUTINE GIGC_Init_Simulation( am_I_Root,       tsChem,          &
+                                   nymd,            nhms,            &
+                                   lonCtr,          latCtr,          &      
+                                   latEdg,          value_I_LO,      &
+                                   value_J_LO,      value_I_HI,      &
+                                   value_J_HI,      value_IM,        &
+                                   value_JM,        value_LM,        &
+                                   value_IM_WORLD,  value_JM_WORLD,  &
+                                   value_LM_WORLD,  Input_Opt,       &
+                                   State_Chm,       State_Met,       &
+                                   mapping,         RC              )      
 !
 ! !USES:
 !
@@ -66,9 +155,8 @@ CONTAINS
     USE GIGC_Input_Opt_Mod
     USE GIGC_State_Chm_Mod
     USE GIGC_State_Met_Mod
-    USE CMN_SIZE_MOD,         ONLY : IIPAR
-    USE CMN_SIZE_MOD,         ONLY : JJPAR
-    USE CMN_SIZE_MOD,         ONLY : LLTROP
+    USE CMN_GCTM_Mod
+    USE CMN_SIZE_MOD
     USE COMODE_MOD
     USE COMODE_LOOP_MOD       
     USE GCKPP_COMODE_MOD,     ONLY : INIT_GCKPP_COMODE
@@ -91,29 +179,38 @@ CONTAINS
     USE TRACERID_MOD,         ONLY : SETTRACE
     USE TOMS_MOD,             ONLY : TO3_DAILY
     USE WETSCAV_MOD,          ONLY : INIT_WETSCAV
-    
 !
 ! !INPUT PARAMETERS: 
 !
-    LOGICAL,         INTENT(IN)    :: am_I_Root     ! Is this the root CPU?
-    REAL,            INTENT(IN)    :: tsChem        ! Chemistry timestep [s]
-    INTEGER,         INTENT(IN)    :: nymd          ! GMT date (YYYY/MM/DD)
-    INTEGER,         INTENT(IN)    :: nhms          ! GMT time (hh:mm:ss)
-    REAL*4,  TARGET, INTENT(IN)    :: lonCtr(:,:)   ! Lon centers [radians]
-    REAL*4,  TARGET, INTENT(IN)    :: latCtr(:,:)   ! Lat centers [radians]
-    REAL*4,  TARGET, INTENT(IN)    :: latEdg(:,:)   ! Lat centers [radians]
+    LOGICAL,         INTENT(IN)    :: am_I_Root        ! Is this the root CPU?
+    REAL,            INTENT(IN)    :: tsChem           ! Chemistry timestep [s]
+    INTEGER,         INTENT(IN)    :: nymd             ! GMT date (YYYY/MM/DD)
+    INTEGER,         INTENT(IN)    :: nhms             ! GMT time (hh:mm:ss)
+    REAL*4,  TARGET, INTENT(IN)    :: lonCtr(:,:)      ! Lon centers [radians]
+    REAL*4,  TARGET, INTENT(IN)    :: latCtr(:,:)      ! Lat centers [radians]
+    REAL*4,  TARGET, INTENT(IN)    :: latEdg(:,:)      ! Lat centers [radians]
+    INTEGER,         INTENT(IN)    :: value_I_LO       ! Min local lon index
+    INTEGER,         INTENT(IN)    :: value_J_LO       ! Min local lat index
+    INTEGER,         INTENT(IN)    :: value_I_HI       ! Max local lon index
+    INTEGER,         INTENT(IN)    :: value_J_HI       ! Max local lat index
+    INTEGER,         INTENT(IN)    :: value_IM         ! Local # of lons
+    INTEGER,         INTENT(IN)    :: value_JM         ! Local # of lats
+    INTEGER,         INTENT(IN)    :: value_LM         ! Local # of levels
+    INTEGER,         INTENT(IN)    :: value_IM_WORLD   ! Global # of lons
+    INTEGER,         INTENT(IN)    :: value_JM_WORLD   ! Global # of lats
+    INTEGER,         INTENT(IN)    :: value_LM_WORLD   ! Global # of levels
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(OptInput),  INTENT(INOUT) :: Input_Opt     ! Input Options object
-    TYPE(ChmState),  INTENT(INOUT) :: State_Chm     ! Chemistry State object
-    TYPE(MetState),  INTENT(INOUT) :: State_Met     ! Meteorology State object
-    TYPE(MapWeight), POINTER       :: mapping(:,:)  ! Olson mapping object
+    TYPE(OptInput),  INTENT(INOUT) :: Input_Opt        ! Input Options
+    TYPE(ChmState),  INTENT(INOUT) :: State_Chm        ! Chemistry State
+    TYPE(MetState),  INTENT(INOUT) :: State_Met        ! Meteorology State
+    TYPE(MapWeight), POINTER       :: mapping(:,:)     ! Olson mapping object
 !
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,         INTENT(OUT)   :: RC            ! Success or failure?  
+    INTEGER,         INTENT(OUT)   :: RC               ! Success or failure?  
 !
 ! !REMARKS
 !  Add other calls to G EOS-Chem init routines as necessary.
@@ -134,6 +231,8 @@ CONTAINS
 !                              no more module arrays anymore in dao_mod.F
 !  29 Nov 2012 - R. Yantosca - Add lonCtr, latCtr, latEdg as arguments
 !  29 Nov 2012 - R. Yantosca - Now pass am_I_Root to Olson landmap routines
+!  03 Dec 2012 - R. Yantosca - Now pass value_* arguments to pass dimension
+!                              info from ESMF down to lower-level routines
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -141,7 +240,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 ! 
     LOGICAL :: prtDebug
-    INTEGER :: DTIME, K, AS, N, YEAR
+    INTEGER :: DTIME, K, AS, N, YEAR, I, J, L
 
     !=======================================================================
     ! Initialize key GEOS-Chem sections
@@ -155,19 +254,16 @@ CONTAINS
     CALL GIGC_Init_Time_Interface( DTIME, nymd, nhms, am_I_Root, RC )
 
     ! Allocate GEOS-Chem module arrays
-    CALL GIGC_Allocate_All( am_I_Root, Input_Opt, RC )
-
-    ! Allocate arrays that would not be otherwise allocated
-    CALL GIGC_Allocate_Interface( am_I_Root, RC )
+    CALL GIGC_Allocate_All( am_I_Root,       Input_Opt,       &
+                            RC,              value_I_LO,      &
+                            value_J_LO,      value_I_HI,      &
+                            value_J_HI,      value_IM,        &
+                            value_JM,        value_LM,        &
+                            value_IM_WORLD,  value_JM_WORLD,  &
+                            value_LM_WORLD                   )
 
     ! Read options from the GEOS-Chem input file "input.geos"
-    CALL GIGC_Get_Options( am_I_Root, Input_Opt, RC )
-
-    ! KLUDGE: Initialize grid_mod values from ESMF (mlong, bmy, 11/29/12)
-    YMID(:,:,1)  = latCtr  
-    XMID(:,:,1)  = lonCtr
-    YEDGE(:,:,1) = latEdg*30
-    XEDGE(:,:,1) = lonCtr*30
+    CALL GIGC_Get_Options( am_I_Root, lonCtr, latCtr, Input_Opt, RC )
 
     ! Determine if we have to print debug output
     prtDebug = ( Input_Opt%LPRT .and. am_I_Root )
@@ -320,61 +416,7 @@ CONTAINS
     TO3_DAILY = 0d0
 
   END SUBROUTINE GIGC_Init_Simulation
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: gigc_get_options
-!
-! !DESCRIPTION: Routine GIGC\_GET\_OPTIONS reads options for a GEOS-Chem 
-!  simulation from the input.geos\_\_\_.rc input file.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE GIGC_Get_Options( am_I_Root, Input_Opt, RC )
-!
-! !USES:
-!
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE Input_Mod,          ONLY : Read_Input_File
-!
-! !INPUT PARAMETERS: 
-!
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-! 
-! !REMARKS:
-!  NOTE: We will probably convert the input file into an ESMF resource file
-!  in the near future.
-!
-! !REVISION HISTORY: 
-!  15 Oct 2012 - M. Long     - Initial version
-!  15 Oct 2012 - R. Yantosca - Added ProTeX Headers, use F90 format/indents
-!  22 Oct 2012 - R. Yantosca - Renamed to GIGC_Get_Options
-!  22 Oct 2012 - R. Yantosca - Added RC output argument
-!  01 Nov 2012 - R. Yantosca - Now pass the Input Options object via arg list
-!EOP
-!------------------------------------------------------------------------------
-!BOC
 
-    ! Assume succes
-    RC = GIGC_Success
-    
-    ! Read the GEOS-Chem input file here
-    CALL Read_Input_File( am_I_Root, Input_Opt, RC )
-
-  END SUBROUTINE GIGC_Get_Options
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -467,103 +509,116 @@ CONTAINS
     CALL INITIALIZE( 3, am_I_Root )
 
   END SUBROUTINE GIGC_Init_Time_Interface
+
 !EOC
 !------------------------------------------------------------------------------
+! Prior to 12/3/12:
+! NOTE: UVALBEDO is now contained in State_Met (bmy, 12/3/12)
+!!EOC
+!!------------------------------------------------------------------------------
+!!          Harvard University Atmospheric Chemistry Modeling Group            !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: gigc_allocate_interface
+!!
+!! !DESCRIPTION: Routine GIGC\_ALLOCATE\_INTERFACE allocates GEOS-Chem arrays
+!!  for a Grid-Independent GEOS-Chem (aka "GIGC") simulation.
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!  SUBROUTINE GIGC_Allocate_Interface( am_I_Root, RC )
+!!
+!! !USES:
+!!
+!    USE CMN_SIZE_MOD,     ONLY : IIPAR, JJPAR, LLPAR
+!    USE GIGC_ErrCode_Mod
+!    USE ERROR_MOD,        ONLY : ALLOC_ERR
+!    USE UVALBEDO_MOD,     ONLY : UVALBEDO
+!   !USE DAO_MOD,          ONLY : TO3
+!!
+!! !INPUT PARAMETERS: 
+!!
+!    LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+!!
+!! !OUTPUT PARAMETERS:
+!!
+!    INTEGER, INTENT(OUT) :: RC          ! Success or failure
+!! 
+!! !REVISION HISTORY: 
+!!  15 Oct 2012 - M. Long     - Initial version
+!!  15 Oct 2012 - R. Yantosca - Added ProTeX Headers, use F90 format/indents
+!!  22 Oct 2012 - R. Yantosca - Renamed to GIGC_Allocate_Interface
+!
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!    INTEGER :: AS
+!
+!    ! Assume success
+!    RC = GIGC_SUCCESS
+!
+!    ! UV albedo for photolysis
+!    ALLOCATE( UVALBEDO( IIPAR, JJPAR), STAT=RC  )
+!
+!  END SUBROUTINE GIGC_Allocate_Interface
+!EOC
+!------------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: gigc_init_dimensions
+! !IROUTINE: RoundOff
 !
-! !DESCRIPTION: Routine GIGC\_INIT\_DIMENSIONS initializes the geospatial
-!  dimensions for a Grid-Independent GEOS-Chem (aka "GIGC") simulation 
-!  directly from the ESMF interface.
+! !DESCRIPTION: Rounds a number X to N decimal places of precision.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GIGC_Init_Dimensions( NI, NJ, NL )
+  FUNCTION RoundOff( X, N ) RESULT( Y )
 !
-! !USES:
-!
-    USE CMN_SIZE_MOD, ONLY: IIPAR, JJPAR, LLPAR, IGLOB, JGLOB, LGLOB
-!
-! !INPUT PARAMETERS: 
-!
-    INTEGER, INTENT(IN) :: NI    ! Size of local I dimension
-    INTEGER, INTENT(IN) :: NJ    ! Size of local J dimension
-    INTEGER, INTENT(IN) :: NL    ! Number of levels
+! !INPUT PARAMETERS:
 ! 
-! !REVISION HISTORY: 
-!  15 Oct 2012 - M. Long     - Initial version
-!  15 Oct 2012 - R. Yantosca - Added ProTeX Headers, use F90 format/indents
-!  22 Oct 2012 - R. Yantosca - Renamed to GIGC_Init_Dimensions
-
+    REAL*8,  INTENT(IN) :: X   ! Number to be rounded
+    INTEGER, INTENT(IN) :: N   ! Number of decimal places to keep
+!
+! !RETURN VALUE:
+!
+    REAL*8              :: Y   ! Number rounded to N decimal places
+!
+! !REMARKS:
+!  The algorithm to round X to N decimal places is as follows:
+!  (1) Multiply X by 10**(N+1)
+!  (2) If X < 0, then add -5 to X; otherwise add 5 to X
+!  (3) Round X to nearest integer
+!  (4) Divide X by 10**(N+1)
+!  (5) Truncate X to N decimal places: INT( X * 10**N ) / 10**N
+!                                                                             .
+!  Rounding algorithm from: Hultquist, P.F, "Numerical Methods for Engineers 
+!   and Computer Scientists", Benjamin/Cummings, Menlo Park CA, 1988, p. 20.
+!                                                                             .
+!  Truncation algorithm from: http://en.wikipedia.org/wiki/Truncation
+!                                                                             .
+!  The two algorithms have been merged together for efficiency.
+!
+! !REVISION HISTORY:
+!  14 Jul 2010 - R. Yantosca - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    
-    ! Set GEOS-Chem size variables from the locally-defined 
-    ! dimensions returned by the ESMF framework
-    IGLOB = NI
-    JGLOB = NJ
-    LGLOB = NL
-    IIPAR = NI
-    JJPAR = NJ
-    LLPAR = NL
+!
+! !LOCAL VARIABLES
+!
+    ! Round and truncate X to N decimal places
+    Y = INT( NINT( X*(10d0**(N+1)) + SIGN( 5d0, X ) ) / 10d0 ) / (10d0**N)
 
-  END SUBROUTINE GIGC_Init_Dimensions
+  END FUNCTION RoundOff
 !EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: gigc_allocate_interface
-!
-! !DESCRIPTION: Routine GIGC\_ALLOCATE\_INTERFACE allocates GEOS-Chem arrays
-!  for a Grid-Independent GEOS-Chem (aka "GIGC") simulation.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE GIGC_Allocate_Interface( am_I_Root, RC )
-!
-! !USES:
-!
-    USE CMN_SIZE_MOD,     ONLY : IIPAR, JJPAR, LLPAR
-    USE GIGC_ErrCode_Mod
-    USE ERROR_MOD,        ONLY : ALLOC_ERR
-    USE UVALBEDO_MOD,     ONLY : UVALBEDO
-   !USE DAO_MOD,          ONLY : TO3
-!
-! !INPUT PARAMETERS: 
-!
-    LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER, INTENT(OUT) :: RC          ! Success or failure
-! 
-! !REVISION HISTORY: 
-!  15 Oct 2012 - M. Long     - Initial version
-!  15 Oct 2012 - R. Yantosca - Added ProTeX Headers, use F90 format/indents
-!  22 Oct 2012 - R. Yantosca - Renamed to GIGC_Allocate_Interface
-
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    INTEGER :: AS
-
-    ! Assume success
-    RC = GIGC_SUCCESS
-
-    ! UV albedo for photolysis
-    ALLOCATE( UVALBEDO( IIPAR, JJPAR), STAT=RC  )
-
-  END SUBROUTINE GIGC_Allocate_Interface
 END MODULE GIGC_Initialization_Mod
 #endif

@@ -73,7 +73,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GIGC_Allocate_All( am_I_Root, Input_Opt, RC )
+  SUBROUTINE GIGC_Allocate_All( am_I_Root,       Input_Opt,       &
+                                RC,              value_I_LO,      &
+                                value_J_LO,      value_I_HI,      &
+                                value_J_HI,      value_IM,        &
+                                value_JM,        value_LM,        &
+                                value_IM_WORLD,  value_JM_WORLD,  &
+                                value_LM_WORLD )
 !
 ! !USES:
 !
@@ -95,15 +101,25 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+    LOGICAL,        INTENT(IN)    :: am_I_Root        ! Are we on the root CPU?
+    INTEGER,        OPTIONAL      :: value_I_LO       ! Min local lon index
+    INTEGER,        OPTIONAL      :: value_J_LO       ! Min local lat index
+    INTEGER,        OPTIONAL      :: value_I_HI       ! Max local lon index
+    INTEGER,        OPTIONAL      :: value_J_HI       ! Max local lat index
+    INTEGER,        OPTIONAL      :: value_IM         ! Local # of lons
+    INTEGER,        OPTIONAL      :: value_JM         ! Local # of lats
+    INTEGER,        OPTIONAL      :: value_LM         ! Local # of levels
+    INTEGER,        OPTIONAL      :: value_IM_WORLD   ! Global # of lons
+    INTEGER,        OPTIONAL      :: value_JM_WORLD   ! Global # of lats
+    INTEGER,        OPTIONAL      :: value_LM_WORLD   ! Global # of levels
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
+    TYPE(OptInput), INTENT(INOUT) :: Input_Opt        ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+    INTEGER,        INTENT(OUT)   :: RC               ! Success or failure?
 !
 ! !REMARKS:
 !  For error checking, return up to the main routine w/ an error code.
@@ -118,6 +134,9 @@ CONTAINS
 !  01 Nov 2012 - R. Yantosca - Now zero the fields of the Input Options object
 !  16 Nov 2012 - R. Yantosca - Remove this routine from the #ifdef DEVEL block
 !  27 Nov 2012 - R. Yantosca - Now pass Input_Opt to INIT_COMODE_LOOP
+!  03 Dec 2012 - R. Yantosca - Now pass am_I_Root, RC to INIT_CMN_SIZE
+!  03 Dec 2012 - R. Yantosca - Add optional arguments to accept dimension
+!                              size information from the ESMF interface
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -129,10 +148,49 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Set dimensions in CMN_SIZE_mod.F
-    ! Call this before the others)
-    CALL Init_CMN_SIZE
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+    !-----------------------------------------------------------------------
+    !        %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+    !
+    ! Pass dimension sizes obtained from the ESMF interface to routine 
+    ! INIT_CMN_SIZE via several optional arguments (i.e. "value_*").  This
+    ! obviates the need to call INIT_CMN_SIZE from a higher level in the
+    ! code (i.e. from GIGC_Chunk_Init in ESMF/gigc_chunk_mod.F90).
+    ! (bmy, 12/3/12)
+    !-----------------------------------------------------------------------
+
+    ! Set dimensions in CMN_SIZE
+    CALL Init_CMN_SIZE( am_I_Root      = am_I_Root,       &
+                        value_I_LO     = value_I_LO,      &
+                        value_J_LO     = value_J_LO,      &
+                        value_I_HI     = value_I_HI,      &
+                        value_J_HI     = value_J_HI,      &
+                        value_IM       = value_IM,        &
+                        value_JM       = value_JM,        &
+                        value_LM       = value_LM,        &
+                        value_IM_WORLD = value_IM_WORLD,  &
+                        value_JM_WORLD = value_JM_WORLD,  &
+                        value_LM_WORLD = value_LM_WORLD,  &
+                        RC             = RC              )
+
+    ! Exit upon error
     IF ( RC /= GIGC_SUCCESS ) RETURN
+
+#else
+    !-----------------------------------------------------------------------
+    !                   %%%%% TRADITIONAL GEOS-Chem %%%%%
+    !
+    ! Current practice in the standard GEOS-Chem is to set dimension sizes
+    ! from parameters IGLOB, JGLOB, LGLOB in CMN_SIZE_mod.F.  Therefore,
+    ! we do not need to call INIT_CMN_SIZE with optional parameters as is
+    ! done when connecting to the ESMF interface.  
+    !-----------------------------------------------------------------------
+
+    ! Set dimensions in CMN_SIZE
+    CALL Init_CMN_SIZE( am_I_Root, RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+
+#endif
 
     ! Set dimensions in CMN_DEP_mod.F and allocate arrays
     CALL Init_CMN( am_I_Root, RC )  

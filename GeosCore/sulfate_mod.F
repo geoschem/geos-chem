@@ -1685,7 +1685,7 @@
 !
       ! Scalars
       LOGICAL               :: IS_OFFLINE
-      INTEGER               :: I,      J,       L,      I1,   I2
+      INTEGER               :: I,      J,       L       !,      I1,   I2
       INTEGER               :: II,     NSTEP
       REAL*8                :: K0,     Ki,      KK,     M,    L1
       REAL*8                :: L2,     L3,      Ld,     F,    Fc
