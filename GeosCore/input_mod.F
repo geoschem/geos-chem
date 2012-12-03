@@ -934,7 +934,7 @@
       JNP           = JM_WORLD           ! Lat index of N pole
       DLON          = 5.0d0              ! Delta-longitude array [degrees]
       DLAT          = 4.0d0              ! Delta-latitude array [degrees]
-      DLAT(:,JSP :) = 2.0d0              !  Half-sized S Pole boxes
+      DLAT(:,JSP,:) = 2.0d0              !  Half-sized S Pole boxes
       DLAT(:,JNP,:) = 2.0d0              !  Half-sized N Pole boxes
 
 #elif defined( GRID2x25 )
@@ -960,7 +960,6 @@
       DLAT          = 1.0d0              ! Delta-latitude array [degrees]
       DLAT(:,JSP,:) = 0.5d0              !  Half-sized S Pole boxes
       DLAT(:,JNP,:) = 0.5d0              !  Half-sized N Pole boxes
-
 
 #elif defined( GRID1x1 )
 
@@ -998,7 +997,7 @@
       DLON          = 0.3125d0           ! Delta-longitude array [degrees]
       DLAT          = 0.25d0             ! Delta-latitude array [degrees]
 
-#elif defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING)
+#elif defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 
       !-----------------------------
       ! Connecting to GCM via ESMF
