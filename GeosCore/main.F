@@ -919,7 +919,12 @@
             !         ***** D R Y   D E P O S I T I O N *****
             !===========================================================
             IF ( LDRYD .and. ( .not. ITS_A_H2HD_SIM() ) ) THEN
+#if defined( DEVEL )
+               CALL DO_DRYDEP( am_I_Root, IIPAR,     JJPAR,     LLPAR,
+     &                         Input_Opt, State_Met, State_Chm, RC     )
+#else
                CALL DO_DRYDEP( am_I_Root, State_Met )
+#endif
             ENDIF
 
             !===========================================================
@@ -1031,7 +1036,12 @@
             !         ***** D R Y   D E P O S I T I O N *****
             !===========================================================
             IF ( LDRYD .and. ( .not. ITS_A_H2HD_SIM() ) ) THEN
+#if defined( DEVEL )
+               CALL DO_DRYDEP( am_I_Root, IIPAR,     JJPAR,     LLPAR,
+     &                         Input_Opt, State_Met, State_Chm, RC     )
+#else
                CALL DO_DRYDEP( am_I_Root, State_Met )
+#endif
             ENDIF
 
             !===========================================================

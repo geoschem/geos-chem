@@ -109,71 +109,65 @@ CONTAINS
 !                              (and from [kg] -> [v/v] after chemistry)
 !  08 Nov 2012 - R. Yantosca - Now pass the Input_Opt object to DO_CHEMISTRY
 !  27 Nov 2012 - R. Yantosca - Now use met fields directly from State_Met
+!  04 Dec 2012 - R. Yantosca - Now do unit conversion one level higher
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+!-----------------------------------------------------------------------------
+! Prior to 12/4/12:
+! This is now done when we initialize the grid (bmy, 12/4/12)
+!!<><><><><><><><><><><><><><><><><><><><><><>
+!! TEMPORARY INITIALIZATION SECTION
+!      IIPAR      = NI
+!      JJPAR      = NJ
+!      LLPAR      = NL
+!      LLTROP     = NL
+!      LLTROP_FIX = NL
+!-----------------------------------------------------------------------------
+    RRATE      = 0.E0
+    TRATE      = 0.E0
 
-! TESTING SECTION
-!<><><><><><><><><><><><><><><><><><><><><><>
-     !CALL GIGC_Dump_Config( am_I_Root )
+    !=======================================================================
+    ! Set 3-D variables
+    !=======================================================================
 
+    ! Met fields
+    EXTERNAL_PEDGE     = State_Met%PEDGE     ! Pressure @ level edges [hPa]
 
-!<><><><><><><><><><><><><><><><><><><><><><>
-! TEMPORARY INITIALIZATION SECTION
-      IIPAR      = NI
-      JJPAR      = NJ
-      LLPAR      = NL
-      LLTROP     = NL
-      LLTROP_FIX = NL
+    ! Constituents
+    CSPEC_FULL         = State_Chm%Species   ! Chemical species
 
-      RRATE      = 0.E0
-      TRATE      = 0.E0
+    !=======================================================================
+    ! Call the GEOS-Chem Chemistry routines
+    !=======================================================================
 
-      !======================================================================
-      ! Set 3-D variables
-      !======================================================================
+    !### Debug, print values in v/v before chem
+    !IF ( am_I_Root ) THEN
+    !   WRITE(6,*) '##### GIGC_DO_CHEM, TRC_OX before chem [v/v]'
+    !   WRITE(6,*) State_Chm%Tracers(1,1,:,2)
+    !ENDIF
 
-      ! Met fields
-      EXTERNAL_PEDGE     = State_Met%PEDGE     ! Pressure @ level edges [hPa]
+    ! If we are doing chemistry
+    IF ( Input_Opt%LCHEM ) THEN
 
-      ! Constituents
-      CSPEC_FULL         = State_Chm%Species   ! Chemical species
-
-      !======================================================================
-      ! Call the GEOS-Chem Chemistry routines
-      !
-      ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      ! %%% NOTE: The values of State_Chm%TRACERS are taken from the ESMF %%%
-      ! %%% Internal State, which has units of [v/v].  We need to convert %%%
-      ! %%% this to [kg] before passing to the GEOS-Chem chemistry.  The  %%%
-      ! %%% GEOS-Chem code expects tracers to be in [kg] at the point     %%%
-      ! %%% where the chemistry routines are called. (bmy, 10/25/12)      %%%
-      ! %%%                                                               %%%
-      ! %%% NOTE: For now we initialize the GEOS-Chem tracer array STT    %%%
-      ! %%% with State_Chm%TRACERS within DO_CHEMISTRY (bmy, 10/25/12)    %%%
-      ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !======================================================================
-
-      !### Debug, print values in v/v before chem
-      !IF ( am_I_Root ) THEN
-      !   WRITE(6,*) '##### GIGC_Do_Chem, TRC_OX before chem [v/v]'
-      !   WRITE(6,*) State_Chm%Tracers(1,1,:,2)
-      !ENDIF
-
-      ! If we are doing chemistry
-      IF ( Input_Opt%LCHEM ) THEN
-
-         ! The tracer concentrations in State_Chm%TRACERS state have units 
-         ! of [v/v] (since these come from the ESMF internal state).  We need
-         ! to convert these to [kg] before calling the GEOS-Chem chemistry.
-         CALL Convert_Units( IFLAG     = 2,                    &
-                             N_TRACERS = Input_Opt%N_TRACERS,  &
-                             TCVV      = Input_Opt%TCVV,       &
-                             AD        = State_Met%AD,         &
-                             STT       = State_Chm%Tracers    )
+!-----------------------------------------------------------------------------
+! Prior to 12/4/12:
+! Now convert units in the higher level routine GIGC_Chunk_Run (bmy, 12/4/12)
+!         ! The tracer concentrations in State_Chm%TRACERS state have units 
+!         ! of [v/v] (since these come from the ESMF internal state).  We need
+!         ! to convert these to [kg] before calling the GEOS-Chem chemistry.
+!         CALL Convert_Units( IFLAG     = 2,                    &
+!                             N_TRACERS = Input_Opt%N_TRACERS,  &
+!                             TCVV      = Input_Opt%TCVV,       &
+!                             AD        = State_Met%AD,         &
+!                             STT       = State_Chm%Tracers    )
+!-----------------------------------------------------------------------------
 
          ! Call the GEOS-Chem chemistry routines
          CALL Do_Chemistry ( am_I_Root = am_I_Root,            &
@@ -185,14 +179,18 @@ CONTAINS
                              State_Met = State_Met,            &    
                              RC        = RC                   )
 
-         ! Convert the tracer concentrations in State_Chm%TRACERS back to
-         ! [v/v] so that they can be stored in the ESMF internal state
-         ! for the next chemistry timestep.
-         CALL Convert_Units( IFLAG     = 1,                    &
-                             N_TRACERS = Input_Opt%N_TRACERS,  &
-                             TCVV      = Input_Opt%TCVV,       &
-                             AD        = State_Met%AD,         &
-                             STT       = State_Chm%Tracers    )
+!-----------------------------------------------------------------------------
+! Prior to 12/4/12:
+! Now convert units in the higher level routine GIGC_Chunk_Run (bmy, 12/4/12)
+!         ! Convert the tracer concentrations in State_Chm%TRACERS back to
+!         ! [v/v] so that they can be stored in the ESMF internal state
+!         ! for the next chemistry timestep.
+!         CALL Convert_Units( IFLAG     = 1,                    &
+!                             N_TRACERS = Input_Opt%N_TRACERS,  &
+!                             TCVV      = Input_Opt%TCVV,       &
+!                             AD        = State_Met%AD,         &
+!                             STT       = State_Chm%Tracers    )
+!-----------------------------------------------------------------------------
 
       ENDIF
 

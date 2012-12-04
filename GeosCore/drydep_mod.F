@@ -317,9 +317,9 @@
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      INTEGER,        INTENT(IN)    :: NI
-      INTEGER,        INTENT(IN)    :: NJ
-      INTEGER,        INTENT(IN)    :: NL
+      INTEGER,        INTENT(IN)    :: NI          ! # of lons on this CPU
+      INTEGER,        INTENT(IN)    :: NJ          ! # of lats on this CPU
+      INTEGER,        INTENT(IN)    :: NL          ! # of levs on this CPU
       TYPE(OptInput), INTENT(IN)    :: Input_Opt
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -5365,13 +5365,13 @@
       WRITE( 6, '(a)'   )
      & '            Number Index  Law Const  Factor   Weight  (T or F)'
       WRITE( 6, '(a)'   ) REPEAT( '-', 65 )
-      ENDIF
 
       DO N = 1, NUMDEP
          WRITE( 6, 100 ) N, TRIM( DEPNAME(N) ), NTRAIND(N), NDVZIND(N), 
      &                   HSTAR(N),  F0(N),      XMW(N),     AIROSOL(N)
       ENDDO
  100  FORMAT( i3, 3x, a4, 2(3x,i3), 4x, es8.1, 2(3x,f6.3), 3x, L3 )
+      ENDIF
 
       END SUBROUTINE INIT_DRYDEP
 !EOC

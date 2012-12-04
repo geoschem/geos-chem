@@ -92,7 +92,9 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-
+!
+! !LOCAL VARIABLES:
+!
     ! Scalars
     REAL*8 :: deltaLon, deltaLat
   
@@ -106,11 +108,6 @@ CONTAINS
     ! Assume the latitude difference is the same for all grid boxes
     deltaLat = Roundoff( ( DBLE( latCtr(1,2) ) / PI_180 ), 4 )  &
              - Roundoff( ( DBLE( latCtr(1,1) ) / PI_180 ), 4 )
-
-    IF ( am_I_Root ) THEN
-       write(6,*) '### DELTA_LON: ', deltaLon
-       write(6,*) '### DELTA_LON: ', deltaLat
-    ENDIF
 
     ! Save into arrays of CMN_SIZE
     dLon     = deltaLon
@@ -238,7 +235,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-! 
+!
     LOGICAL :: prtDebug
     INTEGER :: DTIME, K, AS, N, YEAR, I, J, L
 
@@ -284,7 +281,55 @@ CONTAINS
     CALL Init_Pressure( am_I_Root )
 
     ! Initialize the PBL mixing module
-    CALL Init_PBL_Mix
+    CALL Init_PBL_Mix()
+
+    ! Initialize arrays SO2s, H2O2s in wetscav_mod.F for use in sulfate chem
+    CALL Init_WetScav( State_Met )
+
+    !=======================================================================
+    ! Initialize dry deposition 
+    !=======================================================================
+    IF ( Input_Opt%LDRYD )  THEN
+
+       ! Initialize the derived type object containing
+       ! mapping information for the MODIS LAI routines
+       IF ( Input_Opt%USE_OLSON_2001 ) THEN
+          CALL Init_Mapping( 1440, 720, IIPAR, JJPAR, mapping )
+       ELSE
+          CALL DEBUG_MSG( '### Init Mapping 05x05')
+          CALL Init_Mapping(  720, 360, IIPAR, JJPAR, mapping )
+       ENDIF
+
+       ! Compute the Olson land types that occur in each grid box
+       ! (i.e. this is a replacement for rdland.F and vegtype.global)
+       CALL Init_Olson_Landmap   ( am_I_Root                     )
+       CALL Compute_Olson_Landmap( am_I_Root, mapping, State_Met )
+       CALL Cleanup_Olson_Landmap( am_I_Root                     )
+
+       !### Debug
+       IF ( prtDebug ) THEN
+          CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after OLSON' )
+       ENDIF
+
+!-----------------------------------------------------------------------------
+! NOTE: Add this soon (bmy, 12/4/12)
+!      ! Read drydep inputs from the netCDF file
+!      ! Save Olson indices in INDOLSON array, in order to avoid
+!      ! confusion w/ previously-assinged variable name IOLSON
+!      CALL READ_DRYDEP_INPUTS( am_I_Root,                      &
+!     &                            DRYCOEFF, INDOLSON, IDEP,       &
+!     &                            IWATER,   NWATER,   IZO,        
+!     &                            IDRYDEP,  IRI,      IRLU,     
+!     &                            IRAC,     IRGSS,    IRGSO, 
+!     &                            IRCLS,    IRCLO,    IVSMAX )
+!
+!      ! Calls INIT_WEIGHTSS to calculate the volume distribution of 
+!      ! sea salt aerosols (jaegle 5/11/11)
+!      CALL INIT_WEIGHTSS()
+!      FIRST = .FALSE.
+!-----------------------------------------------------------------------------
+
+    ENDIF
 
     !=======================================================================
     ! Initialize chemistry mechanism
@@ -297,7 +342,7 @@ CONTAINS
     NPVERT = NVERT
     NPVERT = NVERT + IPLUME
 
-    ! INITIALIZE ALLOCATABLE SMVGEAR/KPP ARRAYS
+    ! If we are doing chemistry ...
     IF ( Input_Opt%LCHEM ) THEN
 
        ! Initialize arrays in comode_mod.F
@@ -308,112 +353,89 @@ CONTAINS
           CALL INIT_GCKPP_COMODE( am_I_Root, IIPAR,   JJPAR, LLTROP,  &
                                   ITLOOP,    NMTRATE, IGAS,  RC      )
        ENDIF
-    ENDIF
+       
+       ! Read from data file mglob.dat
+       CALL READER( .TRUE., am_I_Root )
 
-    ! Read from data file mglob.dat
-    CALL READER( .TRUE., am_I_Root )
-
-    !### Debug
-    IF ( prtDebug ) THEN
-       CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after READER' )
-    ENDIF
-
-    ! Set NCS for urban chemistry only (since that is where we
-    ! have defined the GEOS-CHEM mechanism) (bdf, bmy, 4/21/03)
-    NCS = NCSURBAN
-
-    !### Debug
-    IF ( prtDebug ) THEN
-       CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after READER' )        
-    ENDIF
-
-    ! Redefine NTLOOP since READER defines it initially (bmy, 9/28/04)
-    NLOOP   = NLAT  * NLONG
-    NTLOOP  = NLOOP * NVERT
-    NTTLOOP = NTLOOP
-
-    ! Read "globchem.dat" chemistry mechanism
-    CALL READCHEM( am_I_Root, Input_Opt, RC )
-
-    !### Debug
-    IF ( prtDebug ) THEN
-       CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after READCHEM' )        
-    ENDIF
-
-    ! Save Chemical species names ID's into State_Chm
-    DO N = 1, IGAS
-       IF ( LEN_TRIM( NAMEGAS(N) ) > 0 ) THEN 
-          State_Chm%SPEC_NAME(N) = TRIM( NAMEGAS(N) )
-          State_Chm%SPEC_ID  (N) = N
-       ENDIF
-    ENDDO
-
-    ! Set NCS=NCSURBAN here since we have defined our tropospheric
-    ! chemistry mechanism in the urban slot of SMVGEAR II (bmy, 4/21/03)
-    NCS = NCSURBAN
-
-    ! Get CH4 [ppbv] in 4 latitude bins for each year
-    YEAR = NYMD / 10000
-    CALL GET_GLOBAL_CH4( YEAR,   .TRUE., C3090S, &
-                         C0030S, C0030N, C3090N, am_I_Root )
-
-    !### Debug
-    IF ( prtDebug ) THEN
-       CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after GET_GLOBAL_CH4' )        
-    ENDIF
-
-    ! Initialize FAST-J photolysis
-    CALL INPHOT( LLPAR, NPHOT, am_I_Root ) 
-         
-    !### Debug
-    IF ( prtDebug ) THEN
-       CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after INPHOT' )        
-    ENDIF
-
-    ! Flag certain chemical species
-    CALL SETTRACE( am_I_Root, Input_Opt, State_Chm, RC )
-
-    !### Debug
-    IF ( prtDebug ) THEN
-       CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after SETTRACE' )
-    ENDIF
-
-    ! Flag emission & drydep rxns
-    CALL SETEMDEP( am_I_Root, Input_Opt, RC )
-
-    !### Debug
-    IF ( prtDebug ) THEN
-       CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after SETEMDEP' )
-    ENDIF
-
-    ! Setup for dry deposition
-    IF ( Input_Opt%LDRYD ) THEN
-
-       ! Initialize the derived type object containing
-       ! mapping information for the MODIS LAI routines
-       IF ( Input_Opt%USE_OLSON_2001 ) THEN
-          CALL Init_Mapping( 1440, 720, IIPAR, JJPAR, mapping )
-       ELSE
-          CALL DEBUG_MSG( '### Init Mapping 05x05')
-          CALL Init_Mapping(  720, 360, IIPAR, JJPAR, mapping )
-       ENDIF
-    
-       ! Compute the Olson land types that occur in each grid box
-       ! (i.e. this is a replacement for rdland.F and vegtype.global)
-       CALL Init_Olson_Landmap   ( am_I_Root                     )
-       CALL Compute_Olson_Landmap( am_I_Root, mapping, State_Met )
-       CALL Cleanup_Olson_Landmap( am_I_Root                     )
-    
        !### Debug
        IF ( prtDebug ) THEN
-          CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after OLSON' )
+          CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after READER' )
        ENDIF
-    ENDIF
 
-    ! Initialize dry deposition (work in progress), add here
-    ! Allocate array of overhead O3 columns for TOMS
-    ALLOCATE( TO3_DAILY( IIPAR, JJPAR ), STAT=AS )
-    TO3_DAILY = 0d0
+       ! Set NCS for urban chemistry only (since that is where we
+       ! have defined the GEOS-CHEM mechanism) (bdf, bmy, 4/21/03)
+       NCS = NCSURBAN
+
+       !### Debug
+       IF ( prtDebug ) THEN
+          CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after READER' )        
+       ENDIF
+       
+       ! Redefine NTLOOP since READER defines it initially (bmy, 9/28/04)
+       NLOOP   = NLAT  * NLONG
+       NTLOOP  = NLOOP * NVERT
+       NTTLOOP = NTLOOP
+       
+       ! Read "globchem.dat" chemistry mechanism
+       CALL READCHEM( am_I_Root, Input_Opt, RC )
+       
+       !### Debug
+       IF ( prtDebug ) THEN
+          CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after READCHEM' )        
+       ENDIF
+       
+       ! Save Chemical species names ID's into State_Chm
+       DO N = 1, IGAS
+          IF ( LEN_TRIM( NAMEGAS(N) ) > 0 ) THEN 
+             State_Chm%SPEC_NAME(N) = TRIM( NAMEGAS(N) )
+             State_Chm%SPEC_ID  (N) = N
+          ENDIF
+       ENDDO
+       
+       ! Set NCS=NCSURBAN here since we have defined our tropospheric
+       ! chemistry mechanism in the urban slot of SMVGEAR II (bmy, 4/21/03)
+       NCS = NCSURBAN
+
+       ! Get CH4 [ppbv] in 4 latitude bins for each year
+       YEAR = NYMD / 10000
+       CALL GET_GLOBAL_CH4( YEAR,   .TRUE., C3090S, &
+                            C0030S, C0030N, C3090N, am_I_Root )
+
+       !### Debug
+       IF ( prtDebug ) THEN
+          CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after GET_GLOBAL_CH4' )
+       ENDIF
+
+       ! Initialize FAST-J photolysis
+       CALL INPHOT( LLPAR, NPHOT, am_I_Root ) 
+       
+       !### Debug
+       IF ( prtDebug ) THEN
+          CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after INPHOT' )        
+       ENDIF
+       
+       ! Flag certain chemical species
+       CALL SETTRACE( am_I_Root, Input_Opt, State_Chm, RC )
+       
+       !### Debug
+       IF ( prtDebug ) THEN
+          CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after SETTRACE' )
+       ENDIF
+       
+       ! Flag emission & drydep rxns
+       CALL SETEMDEP( am_I_Root, Input_Opt, RC )
+       
+       !### Debug
+       IF ( prtDebug ) THEN
+          CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after SETEMDEP' )
+       ENDIF
+
+       ! Initialize dry deposition (work in progress), add here
+       ! Allocate array of overhead O3 columns for TOMS
+       ALLOCATE( TO3_DAILY( IIPAR, JJPAR ), STAT=AS )
+       TO3_DAILY = 0d0
+
+    ENDIF
 
   END SUBROUTINE GIGC_Init_Simulation
 

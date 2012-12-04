@@ -1019,7 +1019,6 @@
      &                   LM        = LLPAR,         ! # of levs on this CPU
      &                   RC        = RC         )   ! Success or failure?
 
-
       ! Compute the horiziontal grid properties
       CALL Compute_Grid( am_I_Root = am_I_Root,     ! Are we on the root CPU?
      &                   I1        = I_LO,          ! Min lon index, this CPU

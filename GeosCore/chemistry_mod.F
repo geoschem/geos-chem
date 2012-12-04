@@ -68,7 +68,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_CHEMISTRY( am_I_Root, NI,        NJ,        NL, 
+      SUBROUTINE DO_CHEMISTRY( am_I_Root, NI,        NJ,        NL,
      &                         Input_Opt, State_Chm, State_Met, RC )
 !
 ! !USES:

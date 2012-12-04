@@ -30,8 +30,12 @@
       ! IUSE   - Fraction ((per mil) of gridbox area occupied by land type
       INTEGER, PUBLIC, ALLOCATABLE :: IUSE(:,:,:)
 
-      ! Fraction of land in grid box
-      REAL*8,  PUBLIC, ALLOCATABLE :: FRCLND(:,:)
+      !----------------------------------------------------------------------
+      ! Prior to 12/4/12:
+      ! This is now included in State_Met (bmy, mpayer, 12/4/12)
+      !! Fraction of land in grid box
+      !REAL*8,  PUBLIC, ALLOCATABLE :: FRCLND(:,:)
+      !----------------------------------------------------------------------
 
       ! XLAI    - Leaf Area Index of land type for current MONTH
       REAL*8,  PUBLIC, ALLOCATABLE :: XLAI(:,:,:)
@@ -45,14 +49,14 @@
       PUBLIC :: Cleanup_CMN_DEP
 !
 ! !REMARKS:
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%%  NOTE: THIS MODULE IS DEPRECATED.  IT WILL BE REMOVED WHEN THE  %%%
-!  %%%  GEIA BIOGENIC EMISSIONS ARE REMOVED FROM GEOS-CHEM (v9-01-03)  %%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%  NOTE: THIS MODULE IS DEPRECATED.  IT WILL BE REMOVED EVENTUALLY.  %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 ! !REVISION HISTORY:
 !  23 Aug 2011 - M. Long     - Converted to Module from Header file
 !  25 Aug 2011 - R. Yantosca - Change IGLOB,JGLOB to IIPAR,JJPAR
+!  04 Dec 2012 - R. Yantosca - Remove FRCLND; it is now included in State_Met
 !EOP
 !-----------------------------------------------------------------------------
 !BOC
@@ -93,6 +97,7 @@
 ! !REVISION HISTORY: 
 !  16 Nov 2012 - R. Yantosca - Added ProTeX headers
 !  19 Nov 2012 - R. Yantosca - Renamed to INIT_CMN_DEP, added error checks
+!  04 Dec 2012 - R. Yantosca - Remove FRCLND; it is now included in State_Met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -114,12 +119,16 @@
          WRITE( 6, '(a)' ) 'Cannot allocate IUSE (CMN_DEP_mod.F)'
          RETURN
       ENDIF
-
-      ALLOCATE( FRCLND( IIPAR, JJPAR ), STAT=RC )
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         WRITE( 6, '(a)' ) 'Cannot allocate FRCLND (CMN_DEP_mod.F)'
-         RETURN
-      ENDIF
+      
+      !------------------------------------------------------------------------
+      ! Prior to 12/4/12:
+      ! This is now included in State_Met (bmy, mpayer, 12/4/12)
+      !ALLOCATE( FRCLND( IIPAR, JJPAR ), STAT=RC )
+      !IF ( RC /= GIGC_SUCCESS ) THEN
+      !   WRITE( 6, '(a)' ) 'Cannot allocate FRCLND (CMN_DEP_mod.F)'
+      !   RETURN
+      !ENDIF
+      !------------------------------------------------------------------------
 
       ALLOCATE( XLAI  ( IIPAR, JJPAR, NTYPE ), STAT=RC )
       IF ( RC /= GIGC_SUCCESS ) THEN
@@ -164,6 +173,7 @@
 !
 ! !REVISION HISTORY: 
 !  19 Nov 2012 - R. Yantosca - Initial version
+!  04 Dec 2012 - R. Yantosca - Remove FRCLND; it is now included in State_Met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -174,7 +184,11 @@
       IF ( ALLOCATED( IREG   ) ) DEALLOCATE( IREG   )
       IF ( ALLOCATED( ILAND  ) ) DEALLOCATE( ILAND  )
       IF ( ALLOCATED( IUSE   ) ) DEALLOCATE( IUSE   )
-      IF ( ALLOCATED( FRCLND ) ) DEALLOCATE( FRCLND )
+      !---------------------------------------------------------------------
+      ! Prior to 12/4/12:
+      ! This is now included in State_Met (bmy, 12/4/12)
+      !IF ( ALLOCATED( FRCLND ) ) DEALLOCATE( FRCLND )
+      !---------------------------------------------------------------------
       IF ( ALLOCATED( XLAI   ) ) DEALLOCATE( XLAI   )
       IF ( ALLOCATED( XLAI2  ) ) DEALLOCATE( XLAI2  )
 

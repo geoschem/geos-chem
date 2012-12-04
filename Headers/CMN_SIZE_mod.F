@@ -424,11 +424,6 @@
 #elif defined( APM )
       INTEGER, PARAMETER :: NNPAR   = 154   ! For APM (G. Luo, 3/8/11)
 #else
-!------------------------------------------------------------------------------
-! Prior to 10/22/12:
-! Increase to 100 for tagged Hg sim (eds, mpayer, 10/22/12)
-!      INTEGER, PARAMETER :: NNPAR   = 85    ! For non-TOMAS simulations
-!------------------------------------------------------------------------------
       INTEGER, PARAMETER :: NNPAR   = 100   ! For non-TOMAS simulations
 #endif
 
@@ -450,7 +445,24 @@
       ! NTYPE    - Maximum number of veg types in a CTM grid box
       ! NPOLY    - Number of coefficients for polynomial fits
       INTEGER, PARAMETER :: NVEGTYPE = 74
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_TYPE )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! For testing the ESMF interface to GEOS-Chem with a grid that 
+      ! is smaller than the usual 72x46, increase NTYPE (bmy, 12/4/12)
+      !-----------------------------------------------------------------
+      INTEGER, PARAMETER :: NTYPE    = 75
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Current practice in the std GEOS-Chem is to set NTYPE to 25,
+      ! which is large enough if using the Olson 2001 land map at
+      ! 0.25 x 0.25 resolution. (bmy, 12/4/12)
+      !-----------------------------------------------------------------
       INTEGER, PARAMETER :: NTYPE    = 25
+#endif
       INTEGER, PARAMETER :: NPOLY    = 20
 
       ! NNSTA = max number of time series stations (in inptr.ctm)
@@ -781,45 +793,7 @@
 
       ! Return w/ success
       RC = GIGC_SUCCESS
-
-      IF ( am_I_Root ) THEN
-         WRITE(6,*) '#########################################'
-         WRITE(6,*) '### End of INIT_CMN_SIZE'
-         WRITE(6,*) '### I_LO       : ',I_LO
-         WRITE(6,*) '### J_LO       : ',J_LO
-         WRITE(6,*) '### I_HI       : ',I_HI
-         WRITE(6,*) '### J_HI       : ',J_HI
-         WRITE(6,*) '### IIPAR      : ',IIPAR
-         WRITE(6,*) '### JJPAR      : ',JJPAR
-         WRITE(6,*) '### LLPAR      : ',LLPAR
-         WRITE(6,*) '### IGLOB      : ',IGLOB
-         WRITE(6,*) '### JGLOB      : ',JGLOB
-         WRITE(6,*) '### LGLOB      : ',LGLOB
-         WRITE(6,*) '### LLTROP     : ',LLTROP
-         WRITE(6,*) '### LLTROP_FIX : ',LLTROP_FIX
-         WRITE(6,*) '### IM_WORLD   : ',IM_WORLD
-         WRITE(6,*) '### JM_WORLD   : ',JM_WORLD
-         WRITE(6,*) '### LM_WORLD   : ',LM_WORLD
-      ELSE
-         WRITE(7,*) '#########################################'
-         WRITE(7,*) '### End of INIT_CMN_SIZE'
-         WRITE(7,*) '### I_LO       : ',I_LO
-         WRITE(7,*) '### J_LO       : ',J_LO
-         WRITE(7,*) '### I_HI       : ',I_HI
-         WRITE(7,*) '### J_HI       : ',J_HI
-         WRITE(7,*) '### IIPAR      : ',IIPAR
-         WRITE(7,*) '### JJPAR      : ',JJPAR
-         WRITE(7,*) '### LLPAR      : ',LLPAR
-         WRITE(7,*) '### IGLOB      : ',IGLOB
-         WRITE(7,*) '### JGLOB      : ',JGLOB
-         WRITE(7,*) '### LGLOB      : ',LGLOB
-         WRITE(7,*) '### LLTROP     : ',LLTROP
-         WRITE(7,*) '### LLTROP_FIX : ',LLTROP_FIX
-         WRITE(7,*) '### IM_WORLD   : ',IM_WORLD
-         WRITE(7,*) '### JM_WORLD   : ',JM_WORLD
-         WRITE(7,*) '### LM_WORLD   : ',LM_WORLD
-      ENDIF
-
+      
       END SUBROUTINE Init_CMN_SIZE
 !EOC
 !------------------------------------------------------------------------------
