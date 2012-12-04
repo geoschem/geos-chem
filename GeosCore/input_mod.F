@@ -881,10 +881,7 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD,    ONLY : DLAT,     DLON
-      USE CMN_SIZE_MOD,    ONLY : I_LO,     J_LO
-      USE CMN_SIZE_MOD,    ONLY : I_HI,     J_HI
-      USE CMN_SIZE_MOD,    ONLY : JM_WORLD, LLPAR
+      USE CMN_SIZE_MOD
       USE GLOBAL_GRID_MOD, ONLY : COMPUTE_GLOBAL_GRID
       USE GRID_MOD,        ONLY : COMPUTE_GRID
       USE GRID_MOD,        ONLY : INIT_GRID
@@ -1016,17 +1013,15 @@
       !=================================================================
 
       ! Allocate module arrays in grid_mod.F90
-      CALL INIT_GRID   ( am_I_Root = am_I_Root,     ! Are we on the root CPU?
-     &                   I1        = I_LO,          ! Min lon index, this CPU
-     &                   J1        = J_LO,          ! Min lat index, this CPU
-     &                   L1        = 1,             ! Min lev index, this CPU
-     &                   I2        = I_HI,          ! Max lon index, this CPU
-     &                   J2        = J_HI,          ! Max lat index, this CPU
-     &                   L2        = LLPAR,         ! Max lat index, this CPU
+      CALL Init_Grid   ( am_I_Root = am_I_Root,     ! Are we on the root CPU?
+     &                   IM        = IIPAR,         ! # of lons on this CPU
+     &                   JM        = JJPAR,         ! # of lats on this CPU
+     &                   LM        = LLPAR,         ! # of levs on this CPU
      &                   RC        = RC         )   ! Success or failure?
 
+
       ! Compute the horiziontal grid properties
-      CALL COMPUTE_GRID( am_I_Root = am_I_Root,     ! Are we on the root CPU?
+      CALL Compute_Grid( am_I_Root = am_I_Root,     ! Are we on the root CPU?
      &                   I1        = I_LO,          ! Min lon index, this CPU
      &                   J1        = J_LO,          ! Min lat index, this CPU
      &                   L1        = 1,             ! Min lev index, this CPU

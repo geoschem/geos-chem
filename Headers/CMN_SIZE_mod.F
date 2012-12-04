@@ -770,12 +770,12 @@
       !================================================================
 
       ! Delta-longitudes [degrees]
-      ALLOCATE( DLON( I_LO:I_HI, J_LO:J_HI, 1:LLPAR ), STAT=RC )
+      ALLOCATE( DLON( IIPAR, JJPAR, LLPAR ), STAT=RC )
       IF ( RC/= GIGC_SUCCESS ) RETURN
       DLON = 0d0
 
       ! Delta-latitudes [degrees]
-      ALLOCATE( DLAT( I_LO:I_HI, J_LO:J_HI, 1:LLPAR ), STAT=RC )
+      ALLOCATE( DLAT( IIPAR, JJPAR, LLPAR ), STAT=RC )
       IF ( RC/= GIGC_SUCCESS ) RETURN
       DLON = 0d0
 
