@@ -460,11 +460,7 @@
 
 !------------------------------------------------------------------------------
 
-#if defined( DEVEL )
-      SUBROUTINE GET_A6_FIELDS( NYMD, NHMS, LOCAL_MET )
-#else
-      SUBROUTINE GET_A6_FIELDS( NYMD, NHMS )
-#endif
+      SUBROUTINE GET_A6_FIELDS( NYMD, NHMS, State_Met )
 !
 !******************************************************************************
 !  Subroutine GET_A6_FIELDS is a wrapper for routine READ_A6.  GET_A6_FIELDS
@@ -486,6 +482,10 @@
 !        MFYC, MFZ, PV, QI, QL, RH, TAUCLI, TAUCLW for GEOS-5 
 !        (bmy, 10/30/07)
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
+!  23 Oct 2012 - R. Yantosca - Add QI, QL to the State_Met object
+!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
+!                              object
 !******************************************************************************
 !
       ! References to F90 modules
@@ -499,6 +499,7 @@
       USE DAO_MOD,      ONLY : T,       TAUCLI,   TAUCLW,   UPDE
       USE DAO_MOD,      ONLY : UPDN,    UWND,     VWND,     ZMEU
       USE DAO_MOD,      ONLY : ZMMD,    ZMMU
+      USE GIGC_State_Met_Mod, Only : MetState
 
 #if   defined( APM )
       ! A-6 fields used by interpolation for APM simulation
@@ -542,10 +543,8 @@
 #endif
 
       ! Arguments
-      INTEGER, INTENT(IN) :: NYMD, NHMS 
-#if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET
-#endif
+      INTEGER,        INTENT(IN)    :: NYMD, NHMS 
+      TYPE(MetState), INTENT(INOUT) :: State_Met
 
       ! Local variables
       INTEGER, SAVE       :: LASTNYMD = -1, LASTNHMS = -1
@@ -585,6 +584,21 @@
      &              ZMEU=ZMEU,     ZMMD=ZMMD,       ZMMU=ZMMU ) 
 #endif
 
+      ! Copy met fields to State_Met
+      State_Met%CLDF     => CLDF
+      State_Met%CLDTOPS  => CLDTOPS
+      State_Met%HKBETA   => HKBETA
+      State_Met%HKETA    => HKETA
+      State_Met%MOISTQ   => MOISTQ
+      State_Met%OPTDEP   => OPTDEP
+      State_Met%SPHU     => SPHU
+      State_Met%T        => T
+      State_Met%U        => UWND
+      State_Met%V        => VWND
+      State_Met%ZMEU     => ZMEU
+      State_Met%ZMMD     => ZMMD
+      State_Met%ZMMU     => ZMMU
+
 #elif defined( GEOS_5 )
 
       !=================================================================      
@@ -622,6 +636,29 @@
      &              U=UWND,             V=VWND         ) 
 #endif
 
+      ! Copy met fields to State_Met
+      State_Met%CLDF     => CLDF
+      State_Met%CLDTOPS  => CLDTOPS
+      State_Met%CMFMC    => CMFMC
+      State_Met%DQIDTMST => DQIDTMST
+      State_Met%DQLDTMST => DQLDTMST
+      State_Met%DQVDTMST => DQVDTMST
+      State_Met%DQRCU    => DQRCON
+      State_Met%DQRLSAN  => DQRLSC
+      State_Met%DTRAIN   => DTRAIN
+      State_Met%MOISTQ   => MOISTQ
+      State_Met%OPTDEP   => OPTDEP
+      State_Met%PV       => PV
+      State_Met%QI       => QI
+      State_Met%QL       => QL
+      State_Met%RH       => RH
+      State_Met%SPHU     => SPHU
+      State_Met%T        => T
+      State_Met%TAUCLI   => TAUCLI
+      State_Met%TAUCLW   => TAUCLW
+      State_Met%U        => UWND
+      State_Met%V        => VWND
+
 #elif defined( GCAP ) 
 
       !=================================================================
@@ -658,28 +695,28 @@
       CALL MAKE_GCAP_CLDFRC( CLDF, CLDFRC )
 #endif
 
-      
+      ! Copy met fields to State_Met
+      State_Met%CLDF     => CLDF
+      State_Met%CLDFRC   => CLDFRC
+      State_Met%CLDTOPS  => CLDTOPS
+      State_Met%DETRAINE => DETRAINE
+      State_Met%DETRAINN => DETRAINN
+      State_Met%DNDE     => DNDE
+      State_Met%DNDN     => DNDN
+      State_Met%ENTRAIN  => ENTRAIN
+      State_Met%MOISTQ   => MOISTQ
+      State_Met%OPTDEP   => OPTDEP
+      State_Met%SPHU     => SPHU
+      State_Met%T        => T
+      State_Met%U        => UWND
+      State_Met%UPDE     => UPDE
+      State_Met%UPDN     => UPDN
+      State_Met%V        => VWND     
 #endif
 
       ! Save NYMD and NHMS for next call
       LASTNYMD = NYMD
       LASTNHMS = NHMS
-
-#if defined( DEVEL )
-      LOCAL_MET%CLDF     = CLDF
-      LOCAL_MET%CMFMC    = CMFMC
-      LOCAL_MET%DTRAIN   = DTRAIN
-      LOCAL_MET%MOISTQ   = MOISTQ
-      LOCAL_MET%OPTD     = OPTDEP
-      LOCAL_MET%RH       = RH
-      LOCAL_MET%SPHU     = SPHU
-      LOCAL_MET%T        = T
-      LOCAL_MET%DQIDTMST = DQIDTMST
-      LOCAL_MET%DQLDTMST = DQLDTMST
-      LOCAL_MET%TAUCLI   = TAUCLI
-      LOCAL_MET%TAUCLW   = TAUCLW
-      LOCAL_MET%DQVDTMST = DQVDTMST
-#endif
 
 #if   defined( APM )
 

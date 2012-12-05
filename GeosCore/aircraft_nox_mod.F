@@ -256,9 +256,9 @@
 
 !------------------------------------------------------------------------------
 #if defined( DEVEL )
-      SUBROUTINE AIREMISS( EMISS )
+      SUBROUTINE AIREMISS( State_Met, EMISS )
 #else
-      SUBROUTINE AIREMISS
+      SUBROUTINE AIREMISS( State_Met )
 #endif
 !
 !******************************************************************************
@@ -283,17 +283,19 @@
 !        and GET_YOFFSET from "grid_mod.f" (bmy, 2/11/03)
 !  (8 ) Replace GEMISNOX (from "CMN_NOX") with module variable EMIS_AC_NOx
 !        in order to avoid common block errors. (ltm, bmy, 10/3/07)
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,      ONLY : BXHEIGHT
-      USE DIAG_MOD,     ONLY : AD32_ac
-      USE GRID_MOD,     ONLY : GET_XOFFSET, GET_YOFFSET
-      USE PRESSURE_MOD, ONLY : GET_PEDGE
+      USE DIAG_MOD,           ONLY : AD32_ac
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE
 
-      USE CMN_SIZE_MOD  ! Size parameters
-      USE CMN_DIAG_MOD  ! Diagnostic switches
-      USE CMN_MOD       ! PTOP, SIGE, AVP
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! Diagnostic switches
+      USE CMN_MOD                  ! PTOP, SIGE, AVP
 
       INTEGER             :: I,    J,     IREF, JREF,  L,     K
       INTEGER             :: I0,   J0
@@ -302,8 +304,10 @@
       ! External functions
       REAL*8, EXTERNAL    ::  BOXVL
 
+      ! Arguments
+      TYPE(MetState), INTENT(IN)    :: State_Met    ! Meteorology State object
 #if defined( DEVEL )
-      REAL*8, INTENT(INOUT) :: EMISS(:,:,:)
+      REAL*8,         INTENT(INOUT) :: EMISS(:,:,:)
 #endif
       
       !=================================================================
@@ -391,7 +395,7 @@
             IF ( AIREMIS(I,J,L) > 0.0 ) THEN
 
                ! Convert from [molec/s] to [molec/cm3/s]
-               TMP             = AIREMIS(I,J,L)  / BOXVL(I,J,L)
+               TMP = AIREMIS(I,J,L)  / BOXVL(I,J,L,State_Met)
 
                ! Store in GEMISNOX in [molec/cm3/s]
                EMIS_AC_NOx(I,J,L) = TMP
@@ -400,7 +404,7 @@
                ! [molec/cm2/s] in subroutine "diag3.f" (bmy, 3/16/00)
                IF ( ND32 > 0 ) THEN
                   AD32_ac(I,J,L) = AD32_ac(I,J,L) +
-     &                    ( TMP * BXHEIGHT(I,J,L) * 1d2 )
+     &                     ( TMP * State_Met%BXHEIGHT(I,J,L) * 1d2 )
                ENDIF
             ENDIF
 

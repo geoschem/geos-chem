@@ -143,9 +143,7 @@
       REAL*8,  ALLOCATABLE :: CHEMCO2(:,:,:)
       REAL*8,  ALLOCATABLE :: EMIS_SUB(:,:)
 
-#if defined( DEVEL )
       REAL*8,  ALLOCATABLE, SAVE :: CHEMSRC(:,:,:) !dbj, msl
-#endif
 !
 ! !DEFINED PARAMETERS:
 !
@@ -170,33 +168,29 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE EMISSCO2
+      SUBROUTINE EMISSCO2( State_Met )
 !
 ! !USES:
 !
-      USE BIOMASS_MOD,  ONLY : BIOMASS
-      USE DIAG04_MOD,   ONLY : AD04, ND04
-      USE DIAG04_MOD,   ONLY : AD04_plane,    AD04_chem
-      USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE TIME_MOD,     ONLY : GET_DAY,       GET_DAY_OF_YEAR
-      USE TIME_MOD,     ONLY : GET_HOUR,      GET_MONTH
-      USE TIME_MOD,     ONLY : GET_YEAR,      GET_TS_CHEM, GET_TS_EMIS 
-      USE TIME_MOD,     ONLY : ITS_A_NEW_DAY, ITS_A_NEW_MONTH
-      USE TRACER_MOD,   ONLY : N_TRACERS,     STT
-      USE TRACERID_MOD, ONLY : IDBCO2
-      USE LOGICAL_MOD,  ONLY : LGENFF,      LANNFF,   LMONFF, LSTREETS
-      USE LOGICAL_MOD,  ONLY : LSEASBB,     LGFED2BB, L8DAYBB, LBIOFUEL
-      USE LOGICAL_MOD,  ONLY : LGFED3BB
-      USE LOGICAL_MOD,  ONLY : LBIODAILY,   LBIODIURNAL
-      USE LOGICAL_MOD,  ONLY : LBIONETORIG, LBIONETCLIM
-      USE LOGICAL_MOD,  ONLY : LOCN1997,    LOCN2009ANN, LOCN2009MON
-      USE LOGICAL_MOD,  ONLY : LSHIPEDG,    LSHIPICO,    LPLANE
-      USE LOGICAL_MOD,  ONLY : LBIOSPHTAG,  LFOSSILTAG,  LFFBKGRD
-      USE LOGICAL_MOD,  ONLY : LSHIPTAG,    LPLANETAG
-      USE LOGICAL_MOD,  ONLY : LSHIPSCALE,  LPLANESCALE
-      USE LOGICAL_MOD,  ONLY : LCHEMCO2
+      USE BIOMASS_MOD,        ONLY : BIOMASS
+      USE DIAG04_MOD,         ONLY : AD04, ND04
+      USE DIAG04_MOD,         ONLY : AD04_plane,    AD04_chem
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE LOGICAL_MOD
+      USE TIME_MOD,           ONLY : GET_DAY,       GET_DAY_OF_YEAR
+      USE TIME_MOD,           ONLY : GET_HOUR,      GET_MONTH
+      USE TIME_MOD,           ONLY : GET_YEAR,      GET_TS_CHEM
+      USE TIME_MOD,           ONLY : GET_TS_EMIS 
+      USE TIME_MOD,           ONLY : ITS_A_NEW_DAY, ITS_A_NEW_MONTH
+      USE TRACER_MOD,         ONLY : N_TRACERS,     STT
+      USE TRACERID_MOD,       ONLY : IDBCO2
 
-      USE CMN_SIZE_MOD    ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !REMARKS:
 !  The initial condition for CO2 has to be at least 50 ppm or higher or else
@@ -216,6 +210,8 @@
 !        international and domestic aviation, and the chemical CO2 source
 !        from the oxidation of CO, CH4, and other organics (rnassar,dbj, 2009)
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -229,9 +225,6 @@
       INTEGER                :: DAY,   DOY,    HOUR, MONTH, YEAR   
       REAL*8                 :: A_CM2, DTSRCE, E_CO2
       REAL*8                 :: biomass_sum, bionet_sum
-#if   !defined( DEVEL )
-      REAL*8, SAVE           :: CHEMSRC(IIPAR,JJPAR,LLPAR)  ! dbj
-#endif
 
       ! External functions     
       REAL*8, EXTERNAL       :: BOXVL    ! dbj
@@ -348,7 +341,7 @@
          IF ( LSHIPICO ) CALL READ_SHIPCO2_ICOADS
  
          ! Aircraft CO2 emissions
-         IF ( LPLANE   ) CALL READ_AVIATION_CO2
+         IF ( LPLANE   ) CALL READ_AVIATION_CO2( State_Met )
 		
          ! Get chemical source   ! dbj
          IF ( LCHEMCO2 ) THEN
@@ -627,7 +620,8 @@
                ENDIF
 
                ! Convert E_CO2 from [molec CO2/cm3/s] to [kg]
-               E_CO2    = E_CO2 * BOXVL(I,J,L) * DTSRCE / XNUMOL_CO2
+               E_CO2    = E_CO2  * BOXVL(I,J,L,State_Met) *
+     &                    DTSRCE / XNUMOL_CO2
 
                ! Add to Tracer #1: Total CO2 [kg CO2]
                STT(I,J,L,1)   = STT(I,J,L,1) + E_CO2
@@ -667,7 +661,8 @@
                ENDIF
 
                !  Convert from [molec/cm3/s] to [kg]
-               E_CO2  = E_CO2 * BOXVL(I,J,L) * DTSRCE / XNUMOL_CO2
+               E_CO2  = E_CO2  * BOXVL(I,J,L,State_Met) *
+     &                  DTSRCE / XNUMOL_CO2
 
                ! Add to Tracer #1: Total CO2 [kg CO2]
                STT(I,J,L,1)   = STT(I,J,L,1) + E_CO2
@@ -1980,17 +1975,22 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_AVIATION_CO2
+      SUBROUTINE READ_AVIATION_CO2( State_Met )
 !
 ! !USES:
 !
       ! Reference to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT, GET_TAU0, READ_BPCH2
-      USE DAO_MOD,       ONLY : BXHEIGHT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR 
-      USE FILE_MOD,      ONLY : IOERROR
-      USE TIME_MOD,      ONLY : GET_MONTH, GET_YEAR
-      USE CMN_SIZE_MOD        ! Size parameters
+      USE BPCH2_MOD,          ONLY : GET_RES_EXT, GET_TAU0, READ_BPCH2
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR 
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_MONTH, GET_YEAR
+
+      USE CMN_SIZE_MOD             ! Size parameters
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !REMARKS:
 !  This is a modified version of READ_AIRCRAFT_SO2 from:
@@ -2017,6 +2017,8 @@
 !  18 May 2010 - R. Nassar, D. Jones - Initial version
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2121,7 +2123,7 @@
             DO L = 1, LLPAR
 
                ! Altitude of top edge of level L, from ground [km]
-               ZH(L) = ZH(L-1) + ( BXHEIGHT(I,J,L) * 1d-3 )
+               ZH(L) = ZH(L-1) + ( State_Met%BXHEIGHT(I,J,L) * 1d-3 )
                
                IF ( ZH(L-1) > DBLE(K)   ) EXIT
                IF ( ZH(L  ) < DBLE(K-1) ) CYCLE
@@ -2181,7 +2183,7 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
       DO L = 1, LLPAR
-         EMPLANECO2(I,J,L) = EMPLANECO2(I,J,L) / BOXVL(I,J,L)
+         EMPLANECO2(I,J,L) = EMPLANECO2(I,J,L) / BOXVL(I,J,L,State_Met)
      &                     * 6.022d23 / 44.01d-3
 
 	 ! Apply scaling to obtain a specified global Total

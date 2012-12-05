@@ -38,6 +38,7 @@
 ! !REVISION HISTORY:
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
 !  03 Aug 2012 - R. Yantosca - Now make IU_I6 a private module variable
+!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -186,20 +187,26 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_MERRA_I6_FIELDS_1( NYMD, NHMS )
+      SUBROUTINE GET_MERRA_I6_FIELDS_1( NYMD, NHMS, State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD, ONLY : PS1       ! Surface pressure  [hPa]
-      USE DAO_MOD, ONLY : RH1       ! Relative humidity [fraction]
+      USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: NYMD   ! YYYYMMDD date 
-      INTEGER, INTENT(IN) :: NHMS   !  and hhmmss time of desired data
+      INTEGER,        INTENT(IN)    :: NYMD   ! YYYYMMDD date 
+      INTEGER,        INTENT(IN)    :: NHMS   ! hhmmss time of desired data
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
+!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
+!                              object
+!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -208,9 +215,9 @@
       !=================================================================
       CALL READ_I6( NYMD = NYMD, 
      &              NHMS = NHMS, 
-     &              PS   = PS1, 
-     &              RH   = RH1   )
-      
+     &              PS   = State_Met%PS1, 
+     &              RH   = State_Met%RH1   )
+
       END SUBROUTINE GET_MERRA_I6_FIELDS_1
 !EOC
 !------------------------------------------------------------------------------
@@ -226,20 +233,25 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_MERRA_I6_FIELDS_2( NYMD, NHMS )
+      SUBROUTINE GET_MERRA_I6_FIELDS_2( NYMD, NHMS, State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD, ONLY : PS2       ! Surface pressure  [hPa]
-      USE DAO_MOD, ONLY : RH2       ! Relative humidity [fraction]
+      USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: NYMD   ! YYYYMMDD date 
-      INTEGER, INTENT(IN) :: NHMS   !  and hhmmss time of desired data
+      INTEGER,        INTENT(IN)    :: NYMD   ! YYYYMMDD date 
+      INTEGER,        INTENT(IN)    :: NHMS   ! hhmmss time of desired data
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
+!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
+!                              object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -248,9 +260,9 @@
       !=================================================================
       CALL READ_I6( NYMD = NYMD, 
      &              NHMS = NHMS,
-     &              PS   = PS2, 
-     &              RH   = RH2   )
-      
+     &              PS   = State_Met%PS2, 
+     &              RH   = State_Met%RH2  )
+
       END SUBROUTINE GET_MERRA_I6_FIELDS_2
 !EOC
 !------------------------------------------------------------------------------

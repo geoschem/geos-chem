@@ -1,4 +1,3 @@
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -349,43 +348,44 @@ CONTAINS
     ALLOCATE( State_Chm%Species       ( IM, JM, LM, nSpecies   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
-    !=====================================================================
-    ! Allocate stratospheric chemistry fields
-    !=====================================================================
-
-    ! Only allocate if strat chem is turned on
-    IF ( nSchm > 0 ) THEN
-
-       ALLOCATE( State_Chm%Schm_Id    (             nSchm      ), STAT=RC )
-       IF ( RC /= GIGC_SUCCESS ) RETURN
-       
-       ALLOCATE( State_Chm%Schm_Name  (             nSchm      ), STAT=RC )
-       IF ( RC /= GIGC_SUCCESS ) RETURN
-       
-       ALLOCATE( State_Chm%Schm_P     ( IM, JM, LM, nSchm      ), STAT=RC )
-       IF ( RC /= GIGC_SUCCESS ) RETURN
-       
-       ALLOCATE( State_Chm%Schm_k     ( IM, JM, LM, nSchm      ), STAT=RC )
-       IF ( RC /= GIGC_SUCCESS ) RETURN
-    
-    ENDIF
-
-    ! Only allocate if strat chem is turned on
-    IF ( nSchmBry > 0 ) THEN
-   
-       ALLOCATE( State_Chm%Schm_BryId (             nSchmBry   ), STAT=RC )
-       IF ( RC /= GIGC_SUCCESS ) RETURN
-       
-       ALLOCATE( State_Chm%Schm_BryNam(             nSchmBry   ), STAT=RC )
-       IF ( RC /= GIGC_SUCCESS ) RETURN
-
-       ALLOCATE( State_Chm%Schm_BryDay( IM, JM, LM, nSchmBry   ), STAT=RC )
-       IF ( RC /= GIGC_SUCCESS ) RETURN
-
-       ALLOCATE( State_Chm%Schm_BryNit( IM, JM, LM, nSchmBry   ), STAT=RC )
-       IF ( RC /= GIGC_SUCCESS ) RETURN
-
-    ENDIF
+! NOTE: Comment out for now, leave for future expansion (bmy, 11/20/12)
+!    !=====================================================================
+!    ! Allocate stratospheric chemistry fields
+!    !=====================================================================
+!
+!    ! Only allocate if strat chem is turned on
+!    IF ( nSchm > 0 ) THEN
+!
+!       ALLOCATE( State_Chm%Schm_Id    (             nSchm      ), STAT=RC )
+!       IF ( RC /= GIGC_SUCCESS ) RETURN
+!       
+!       ALLOCATE( State_Chm%Schm_Name  (             nSchm      ), STAT=RC )
+!       IF ( RC /= GIGC_SUCCESS ) RETURN
+!       
+!       ALLOCATE( State_Chm%Schm_P     ( IM, JM, LM, nSchm      ), STAT=RC )
+!       IF ( RC /= GIGC_SUCCESS ) RETURN
+!       
+!       ALLOCATE( State_Chm%Schm_k     ( IM, JM, LM, nSchm      ), STAT=RC )
+!       IF ( RC /= GIGC_SUCCESS ) RETURN
+!    
+!    ENDIF
+!
+!    ! Only allocate if strat chem is turned on
+!    IF ( nSchmBry > 0 ) THEN
+!   
+!       ALLOCATE( State_Chm%Schm_BryId (             nSchmBry   ), STAT=RC )
+!       IF ( RC /= GIGC_SUCCESS ) RETURN
+!       
+!       ALLOCATE( State_Chm%Schm_BryNam(             nSchmBry   ), STAT=RC )
+!       IF ( RC /= GIGC_SUCCESS ) RETURN
+!
+!       ALLOCATE( State_Chm%Schm_BryDay( IM, JM, LM, nSchmBry   ), STAT=RC )
+!       IF ( RC /= GIGC_SUCCESS ) RETURN
+!
+!       ALLOCATE( State_Chm%Schm_BryNit( IM, JM, LM, nSchmBry   ), STAT=RC )
+!       IF ( RC /= GIGC_SUCCESS ) RETURN
+!
+!    ENDIF
 
     !=====================================================================
     ! Initialize fields
@@ -403,14 +403,20 @@ CONTAINS
     State_Chm%Spec_Name   = ''
     State_Chm%Species     = 0d0
 
-    ! Stratospheric chemistry    
-    State_Chm%Schm_Id     = 0
-    State_Chm%Schm_Name   = ''
-    State_Chm%Schm_P      = 0d0
-    State_Chm%Schm_k      = 0d0
-    State_Chm%Schm_BryId  = 0
-    State_Chm%Schm_BryDay = 0d0
-    State_Chm%Schm_BryNit = 0d0
+! NOTE: Comment out for now, leave for future expansion (bmy, 11/20/12)
+!    ! Stratospheric chemistry    
+!    IF ( nSchm > 0 ) THEN
+!       State_Chm%Schm_Id     = 0
+!       State_Chm%Schm_Name   = ''
+!       State_Chm%Schm_P      = 0d0
+!       State_Chm%Schm_k      = 0d0
+!    ENDIF
+!    IF ( nSchmBry > 0 ) THEN
+!       State_Chm%Schm_BryId  = 0
+!       State_Chm%Schm_BryNam = ''
+!       State_Chm%Schm_BryDay = 0d0
+!       State_Chm%Schm_BryNit = 0d0
+!    ENDIF
 
   END SUBROUTINE Init_GIGC_State_Chm
 !EOC
@@ -468,16 +474,17 @@ CONTAINS
     IF ( ASSOCIATED(State_Chm%Trac_Btend ) ) DEALLOCATE(State_Chm%Trac_Btend )
     IF ( ASSOCIATED(State_Chm%Tracers    ) ) DEALLOCATE(State_Chm%Tracers    )
     IF ( ASSOCIATED(State_Chm%Species    ) ) DEALLOCATE(State_Chm%Species    )
-    IF ( ASSOCIATED(State_Chm%Schm_Id    ) ) DEALLOCATE(State_Chm%Schm_Id    )
-    IF ( ASSOCIATED(State_Chm%Schm_Name  ) ) DEALLOCATE(State_Chm%Schm_Name  )
-    IF ( ASSOCIATED(State_Chm%Schm_P     ) ) DEALLOCATE(State_Chm%Schm_P     )
-    IF ( ASSOCIATED(State_Chm%Schm_k     ) ) DEALLOCATE(State_Chm%Schm_k     )
-    IF ( ASSOCIATED(State_Chm%Schm_BryId ) ) DEALLOCATE(State_Chm%Schm_BryId )
-    IF ( ASSOCIATED(State_Chm%Schm_BryNam) ) DEALLOCATE(State_Chm%Schm_BryNam)
-    IF ( ASSOCIATED(State_Chm%Schm_BryDay) ) DEALLOCATE(State_Chm%Schm_BryDay)
-    IF ( ASSOCIATED(State_Chm%Schm_BryNit) ) DEALLOCATE(State_Chm%Schm_BryNit)
+
+    ! NOTE: Comment out for now, leave for future expansion (bmy, 11/26/12)
+    !IF ( ASSOCIATED(State_Chm%Schm_Id    ) ) DEALLOCATE(State_Chm%Schm_Id    )
+    !IF ( ASSOCIATED(State_Chm%Schm_Name  ) ) DEALLOCATE(State_Chm%Schm_Name  )
+    !IF ( ASSOCIATED(State_Chm%Schm_P     ) ) DEALLOCATE(State_Chm%Schm_P     )
+    !IF ( ASSOCIATED(State_Chm%Schm_k     ) ) DEALLOCATE(State_Chm%Schm_k     )
+    !IF ( ASSOCIATED(State_Chm%Schm_BryId ) ) DEALLOCATE(State_Chm%Schm_BryId )
+    !IF ( ASSOCIATED(State_Chm%Schm_BryNam) ) DEALLOCATE(State_Chm%Schm_BryNam)
+    !IF ( ASSOCIATED(State_Chm%Schm_BryDay) ) DEALLOCATE(State_Chm%Schm_BryDay)
+    !IF ( ASSOCIATED(State_Chm%Schm_BryNit) ) DEALLOCATE(State_Chm%Schm_BryNit)
 
   END SUBROUTINE Cleanup_GIGC_State_Chm
 !EOC
 END MODULE GIGC_State_Chm_Mod
-#endif

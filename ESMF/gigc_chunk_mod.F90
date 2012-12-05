@@ -17,6 +17,8 @@ MODULE GIGC_Chunk_Mod
 !
 ! !USES:
 !      
+  USE Mapping_Mod, ONLY : MapWeight
+
   IMPLICIT NONE
   PRIVATE
 !
@@ -55,7 +57,10 @@ MODULE GIGC_Chunk_Mod
   END TYPE GC_DIAG
 
   ! Derived type object for saving concentration diagnostics
-  TYPE(GC_DIAG)      :: DIAG_COL
+  TYPE(GC_DIAG)                 :: DIAG_COL
+
+  ! Derived type objects
+  TYPE(MapWeight),      POINTER :: mapping(:,:) => NULL()
 
 CONTAINS
 !EOC
@@ -73,42 +78,51 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GIGC_Chunk_Init( am_I_Root, NI,        NJ,     NL,         &
-                              nymd,      nhms,      tsChem, Input_Opt,  &
-                              State_Chm, State_Met, lonCtr, latCtr,     &
-                              latEdg, RC                 )
+  SUBROUTINE GIGC_Chunk_Init( am_I_Root, I_LO,      J_LO,      I_HI,       &
+                              J_HI,      IM,        JM,        LM,         &
+                              IM_WORLD,  JM_WORLD,  LM_WORLD,  nymd,       &
+                              nhms,      tsChem,    lonCtr,    latCtr,     &
+                              latEdg,    Input_Opt, State_Chm, State_Met,  &
+                              RC                                          )
 !
 ! !USES:
 !
-    USE ESMF_Mod                                        ! ESMF library
-    USE GIGC_Initialization_Mod
+    USE ESMF_Mod,                ONLY : ESMF_KIND_R4
+    USE GIGC_Initialization_Mod, ONLY : GIGC_Init_Simulation
     USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod,    ONLY : OptInput
-    USE GIGC_State_Chm_Mod,    ONLY : ChmState
-    USE GIGC_State_Met_Mod,    ONLY : MetState
+    USE GIGC_Input_Opt_Mod,      ONLY : OptInput
+    USE GIGC_State_Chm_Mod,      ONLY : ChmState
+    USE GIGC_State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-    INTEGER,        INTENT(IN)    :: NI          ! # of longitudes
-    INTEGER,        INTENT(IN)    :: NJ          ! # of latitudes
-    INTEGER,        INTENT(IN)    :: NL          ! # of levels
-    INTEGER,        INTENT(IN)    :: nymd        ! GMT date (YYYY/MM/DD)
-    INTEGER,        INTENT(IN)    :: nhms        ! GMT time (hh:mm:ss)
-    REAL,           INTENT(IN)    :: tsChem      ! Chemistry timestep
-    REAL(ESMF_KIND_R4), INTENT(IN):: lonCtr(:,:) ! Lon centers [radians]
-    REAL(ESMF_KIND_R4), INTENT(IN):: latCtr(:,:) ! Lat centers [radians]
-    REAL(ESMF_KIND_R4), INTENT(IN):: latEdg(:,:) ! Lat centers [radians]
+    LOGICAL,            INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+    INTEGER,            INTENT(IN)    :: I_LO        ! Min lon index, this CPU
+    INTEGER,            INTENT(IN)    :: J_LO        ! Min lat index, this CPU
+    INTEGER,            INTENT(IN)    :: I_HI        ! Max lon index, this CPU
+    INTEGER,            INTENT(IN)    :: J_HI        ! Max lat index, this CPU
+    INTEGER,            INTENT(IN)    :: IM          ! # lons, this CPU
+    INTEGER,            INTENT(IN)    :: JM          ! # lats, this CPU
+    INTEGER,            INTENT(IN)    :: LM          ! # levs, this CPU
+    INTEGER,            INTENT(IN)    :: IM_WORLD    ! # lons, global grid
+    INTEGER,            INTENT(IN)    :: JM_WORLD    ! # lats, global grid
+    INTEGER,            INTENT(IN)    :: LM_WORLD    ! # levs, global grid
+    INTEGER,            INTENT(IN)    :: nymd        ! GMT date (YYYY/MM/DD)
+    INTEGER,            INTENT(IN)    :: nhms        ! GMT time (hh:mm:ss)
+    REAL,               INTENT(IN)    :: tsChem      ! Chemistry timestep
+    REAL(ESMF_KIND_R4), INTENT(IN)    :: lonCtr(:,:) ! Lon centers [radians]
+    REAL(ESMF_KIND_R4), INTENT(IN)    :: latCtr(:,:) ! Lat centers [radians]
+    REAL(ESMF_KIND_R4), INTENT(IN)    :: latEdg(:,:) ! Lat centers [radians]
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
-    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-    TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
+    TYPE(OptInput),     INTENT(INOUT) :: Input_Opt   ! Input Options object
+    TYPE(ChmState),     INTENT(INOUT) :: State_Chm   ! Chemistry State object
+    TYPE(MetState),     INTENT(INOUT) :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+    INTEGER,            INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  Need to add better error checking
@@ -123,7 +137,15 @@ CONTAINS
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
 !  22 Oct 2012 - R. Yantosca - Renamed to GIGC_Chunk_Init
 !  01 Nov 2012 - R. Yantosca - Now reference gigc_input_opt_mod.F90
-!  01 Nov 2012 - R. Yantosca - Reordered arguments for clarity
+!  01 Nov 2012 - R. Yantosca - Reordered arguments for clarit
+!  28 Nov 2012 - M. Long     - Now pass lonCtr, latCtr, latEdg as arguments
+!                              to routine GIGC_Init_Simulation
+!  03 Dec 2012 - R. Yantosca - Now call Init_CMN_SIZE (in CMN_SIZE_mod.F)
+!                              instead of GIGC_Init_Dimensions to initialize
+!                              the size parameters.
+!  03 Dec 2012 - R. Yantosca - Rename NI, NJ, NL to IM, JM, LM for clarity
+!  03 Dec 2012 - R. Yantosca - Now pass I_LO, J_LO, I_HI, J_HI, IM_WORLD, 
+!                              JM_WORLD, LM_WORLD via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -131,61 +153,24 @@ CONTAINS
     ! Assume success
     RC = GIGC_SUCCESS
 
-    ! Initialize GEOS-Chem dimensions w/ the dimensions on this PET
-    CALL GIGC_Init_Dimensions( NI, NJ, NL )
-
+    !======================================================================
     ! Initialize the G-C simulation and chemistry mechanism
-    write(*,*) 'XEDGE lonCtr: ', sum(lonctr)
-    CALL GIGC_Init_Simulation( am_I_Root = am_I_Root,   &   ! Root CPU?
-                               tsChem    = tsChem,      &   ! Chem timestep
-                               nymd      = nymd,        &   ! Date
-                               nhms      = nhms,        &   ! Time
-                               Input_Opt = Input_Opt,   &   ! Input Options
-                               State_Chm = State_Chm,   &   ! Chemistry State
-                               State_Met = State_Met,   &   ! Meteorology State
-                               LONCTR    = lonCtr,      &  ! Array of lon centers [radians]
-                               LATCTR    = latCtr,      &  ! Array of lat centers [radians]
-                               LATEDG    = latEdg,      &  ! Array of lat edges   [radians]
-                               RC        = RC          )
-
-  END SUBROUTINE GIGC_Chunk_Init
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: gigc_chunk_run
-!
-! !DESCRIPTION: Subroutine GIGC\_CHUNK\_RUN is the ESMF run method for
-!  the Grid-Independent GEOS-Chem (aka "GIGC").  This routine is the driver
-!  for the following operations:
-!
-! \begin{itemize}
-! \item Dry deposition
-! \item Chemistry
-! \end{itemize}
-!
-! !INTERFACE:
-!
-  SUBROUTINE GIGC_Chunk_Run( am_I_Root, NI,        NJ,        NL,  &
-                             Input_Opt, State_Chm, State_Met, RC  )
-!
-! !USES:
-!
-    USE GIGC_ChemDr
-    USE GIGC_DryDep_Mod
+    USE DAO_Mod,            ONLY : Convert_Units
+    USE GIGC_ChemDr,        ONLY : GIGC_Do_Chem
+    USE GIGC_DryDep_Mod,    ONLY : GIGC_Do_DryDep
+   !USE DryDep_Mod,         ONLY : Do_DryDep
     USE GIGC_ErrCode_Mod
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE GIGC_State_Met_Mod, ONLY : MetState
+    USE Pressure_Mod,       ONLY : EXTERNAL_PEDGE
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on root CPU?
-    INTEGER,        INTENT(IN)    :: NI          ! # of longitudes on this PET
-    INTEGER,        INTENT(IN)    :: NJ          ! # of latitudes on this PET
-    INTEGER,        INTENT(IN)    :: NL          ! # of levels on this PET
+    INTEGER,        INTENT(IN)    :: IM          ! # of lons on this CPU
+    INTEGER,        INTENT(IN)    :: JM          ! # of lats on this CPU
+    INTEGER,        INTENT(IN)    :: LM          ! # of levs on this CPU
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -217,6 +202,10 @@ CONTAINS
 !  01 Nov 2012 - R. Yantosca - Now reference gigc_input_opt_mod.F90
 !  08 Nov 2012 - R. Yantosca - Now pass Input_Opt to GIGC_Do_Chem
 !  13 Nov 2012 - M. Long     - Added Dry Deposition method
+!  29 Nov 2012 - R. Yantosca - Now block off calls to GIGC_DO_DRYDEP and
+!                              GIGC_DO_CHEM w/ the appropriate logical flags
+!  04 Dec 2012 - R. Yantosca - Now convert units of State_Chm%TRACERS here
+!                              instead of in lower-level routines
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -225,37 +214,81 @@ CONTAINS
 !
     INTEGER :: NC
 
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC             = GIGC_SUCCESS
 
-    ! Number of advected tracers
-    NC = SIZE( State_Chm%Tracers, 4 )
+    ! Exit if we are doing neither drydep nor chemistry
+    IF ( ( .not. Input_Opt%LDRYD ) .and. ( .not. Input_Opt%LCHEM ) ) THEN
+       RETURN
+    ENDIF
 
-!    WRITE(logLun,*) 'Root: ', am_I_root
-!    IF ( am_I_Root ) THEN
-!       WRITE(logLun,*) '##### GIGC_Chunk_Run'
-!    ENDIF
+    ! Pressure @ level edges [hPa]
+    EXTERNAL_PEDGE = State_Met%PEDGE     
 
-    ! Call the dry deposition run method
-    CALL GIGC_Do_DryDep( am_I_Root  = am_I_Root,  &   ! Are we on the root CPU?
-                         NI         = NI,         &   ! # lons on this PET
-                         NJ         = NJ,         &   ! # lats on this PET
-                         NL         = NL,         &   ! # levels on this PET
-                         Input_Opt  = Input_Opt,  &   ! Input Options object
-                         State_Chm  = State_Chm,  &   ! Chemistry State object
-                         State_Met  = State_Met,  &   ! Meteorology State object
-                         RC         = RC          )   ! Success or failure
+    ! # of tracers
+    NC             = Input_Opt%N_TRACERS
 
-    ! Call the chemistry run method
-    CALL GIGC_Do_Chem( am_I_Root  = am_I_Root,  &   ! Are we on the root CPU?
-                       NI         = NI,         &   ! # lons on this PET
-                       NJ         = NJ,         &   ! # lats on this PET
-                       NL         = NL,         &   ! # levels on this PET
-                       NCNST      = NC,         &   ! # of advected tracers
-                       Input_Opt  = Input_Opt,  &   ! Input Options object
-                       State_Chm  = State_Chm,  &   ! Chemistry State object
-                       State_Met  = State_Met,  &   ! Meteorology State object
-                       RC         = RC         )    ! Success or failure
+    !=======================================================================
+    ! The tracer concentrations in State_Chm%TRACERS state have units 
+    ! of [v/v] (since these come from the ESMF internal state).  We need
+    ! to convert these to [kg] before calling the GEOS-Chem drydep and
+    ! chemistry routines.
+    !=======================================================================
+    CALL Convert_Units    ( IFLAG      = 2,                    &
+                            N_TRACERS  = Input_Opt%N_TRACERS,  &
+                            TCVV       = Input_Opt%TCVV,       &
+                            AD         = State_Met%AD,         &
+                            STT        = State_Chm%Tracers    )
+
+    !=======================================================================
+    ! Call the run method of the GEOS-Chem dry deposition package
+    !
+    ! %%%% NOTE: Eventually we can call DO_DRYDEP directly from here
+    !=======================================================================
+
+    IF ( Input_Opt%LDRYD ) THEN
+       CALL GIGC_Do_DryDep( am_I_Root  = am_I_Root,  &   ! Are we on root CPU?
+                            NI         = IM,         &   ! # lons on this CPU
+                            NJ         = JM,         &   ! # lats on this CPU
+                            NL         = LM,         &   ! # levs on this CPU
+                            Input_Opt  = Input_Opt,  &   ! Input Options
+                            State_Chm  = State_Chm,  &   ! Chemistry State
+                            State_Met  = State_Met,  &   ! Meteorology State
+                            RC         = RC         )    ! Success or failure
+    ENDIF
+
+    !=======================================================================
+    ! Call the run method of the GEOS-Chem dry chemistry package
+    ! 
+    ! %%%% NOTE: Eventually we can call DO_CHEMISTRY directly from here
+    !=======================================================================
+    IF ( Input_Opt%LCHEM ) THEN
+       CALL GIGC_Do_Chem(   am_I_Root  = am_I_Root,  &   ! Are we on root CPU?
+                            NI         = IM,         &   ! # lons on this CPU
+                            NJ         = JM,         &   ! # lats on this CPU
+                            NL         = LM,         &   ! # levels on this CPU
+                            NCNST      = NC,         &   ! # of advected tracers
+                            Input_Opt  = Input_Opt,  &   ! Input Options
+                            State_Chm  = State_Chm,  &   ! Chemistry State
+                            State_Met  = State_Met,  &   ! Meteorology State
+                            RC         = RC         )    ! Success or failure
+    ENDIF
+
+
+    !=======================================================================
+    ! Convert the tracer concentrations in State_Chm%TRACERS back to
+    ! [v/v] so that they can be stored in the ESMF internal state
+    ! for the next chemistry timestep.
+    !=======================================================================
+    CALL Convert_Units    ( IFLAG     = 1,                    &
+                            N_TRACERS = Input_Opt%N_TRACERS,  &
+                            TCVV      = Input_Opt%TCVV,       &
+                            AD        = State_Met%AD,         &
+                            STT       = State_Chm%Tracers    )
 
   END SUBROUTINE GIGC_Chunk_Run
 !EOC

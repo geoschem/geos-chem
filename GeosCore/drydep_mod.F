@@ -22,10 +22,11 @@
       USE COMMSOIL_MOD                          ! Soil wetness variables
       USE COMODE_MOD                            ! Large arrays for SMVGEAR
       USE COMODE_LOOP_MOD                       ! Formerly "comode.h"
-      USE DAO_MOD                               ! Met field arrays
+      USE DAO_MOD                               ! Met field subroutines
       USE DIAG_MOD,       ONLY : AD44           ! Diagnostic arrays
       USE DIRECTORY_MOD                         ! Data directory paths
       USE ERROR_MOD                             ! Error handling routines
+      USE GET_POPSINFO_MOD                      ! For POPs simulation
       USE GRID_MOD,       ONLY : GET_AREA_CM2   ! Grid box surface areas [cm2]
       USE LOGICAL_MOD                           ! GEOS-Chem logical switches
       USE PBL_MIX_MOD                           ! Boundary layer quantities
@@ -59,6 +60,7 @@
       PUBLIC :: NUMDEP
       PUBLIC :: NTRAIND
       PUBLIC :: DRYHg0, DRYHg2, DryHgP    !CDH
+      PUBLIC :: DRYPOPG, DRYPOPP_OC, DRYPOPP_BC
       PUBLIC :: IDEP,   IRGSS,  IRAC, IRCLS
       PUBLIC :: IRGSO,  IRLU,   IRI,  IRCLO, DRYCOEFF
 !
@@ -160,7 +162,8 @@
 !  (30) Add new species. Some tracers give 2 deposition species: ISOPN-> ISOPNB
 !       and ISOPND. (fp)
 !  (31) Updates for mercury simulation (ccc, 5/17/10)
-!  (32) Increase MAXDEP to 51 for dicarbonyls simulation. (ccc, 10/8/10)
+!  (32) Add POPs (eck, 9/20/10)
+!  (33) Increase MAXDEP to 51 for dicarbonyls simulation. (ccc, 10/8/10)
 !  01 Aug 2011 - J. Fisher - Set aerosol dry deposition velocity to 0.03 cm/s
 !                            over snow and ice based on Nilsson & Rannik, 2001
 !  21 Dec 2011 - M. Payer  - Updates for sea salt (jaegle 5/11/11)
@@ -230,9 +233,13 @@
       !========================================================================
 
       ! Scalars
+      INTEGER              :: NUMDEP,   NWATER
       INTEGER              :: DRYDHNO3, DRYDNO2, DRYDPAN, DRYDH2O2
       INTEGER              :: DRYHg0,   DRYHg2,  DryHgP
-      INTEGER              :: NUMDEP,   NWATER
+      ! Additional variables for POPs sim (eck, 9/20/10)
+      INTEGER              :: DRYPOPP_OC
+      INTEGER              :: DRYPOPP_BC
+      INTEGER              :: DRYPOPG
 
       ! Arrays for Baldocchi drydep polynomial coefficients
       REAL*8               :: DRYCOEFF(NPOLY    )
@@ -259,6 +266,7 @@
       INTEGER              :: NDVZIND (MAXDEP   )
       INTEGER              :: NTRAIND (MAXDEP   )
       REAL*8               :: HSTAR   (MAXDEP   )
+      REAL*8               :: KOA     (MAXDEP   )
       REAL*8               :: F0      (MAXDEP   )
       REAL*8               :: XMW     (MAXDEP   )
       REAL*8               :: A_RADI  (MAXDEP   )
@@ -291,43 +299,36 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      SUBROUTINE DO_DRYDEP( am_I_Root, NI,        NJ,        NL, 
-     &                      Input_Opt, State_Met, State_Chm, RC   )
+      SUBROUTINE DO_DRYDEP( am_I_Root, NI,        NJ,        NL,
+     &                      Input_Opt, State_Met, State_Chm, RC )
 #else
-      SUBROUTINE DO_DRYDEP( am_I_Root )
+      SUBROUTINE DO_DRYDEP( am_I_Root, State_Met )
 #endif
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! We need to reference some modules particular to the Grid-
-      ! Independent GEOS-Chem implementation here.   In particular,
-      ! the settings from the Input Options object will replace
-      ! logical flags from logical_mod.F. (bmy, 11/8/12)
-      !-----------------------------------------------------------------
+!
+! !USES:
+!
       USE GIGC_ErrCode_Mod
-      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
-      USE GIGC_State_Chm_Mod,   ONLY : ChmState
-      USE GIGC_State_Met_Mod,   ONLY : MetState
-#endif
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       INTEGER,        INTENT(IN)    :: NI          ! # of lons on this CPU
       INTEGER,        INTENT(IN)    :: NJ          ! # of lats on this CPU
       INTEGER,        INTENT(IN)    :: NL          ! # of levs on this CPU
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt
 !
-! !INPUT/OUTPUT VARIABLES:
+! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+      INTEGER,        INTENT(OUT)   :: RC
 #endif
 !
 ! !REMARKS:
@@ -378,8 +379,10 @@
 !  26 Mar 2012 - R. Yantosca - Remove calls to obsolete MODIN, RDDRYCF routines
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
-!  14 Nov 2012 - M. Long     - Modifications for GIGC & ESMF. Including passing
-!                              of derived types in place of module 'USE' stmnts
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  28 Nov 2012 - R. Yantosca - Now make SUNCOS_MID a local array of size
+!                              MAXIJ, populated from State_Met%SUNCOSmid
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -405,6 +408,10 @@
       REAL*8        :: PRESSU(MAXIJ       )   ! Local surface pressure [Pa]
       REAL*8        :: W10   (MAXIJ       )   ! 10m windspeed [m/s]
 
+      ! Now make SUNCOS_MID a local array (bmy, 11/28/12)
+      REAL*8        :: SUNCOS_MID(MAXIJ   )   ! COS(SZA) @ midpoint of the
+                                              !  current chemistry timestep
+
       ! Dimension AZO for GCAP or GEOS met fields (swu, bmy, 5/25/05)
 #if   defined( GCAP )
       REAL*8        :: AZO   (NTYPE       )   ! Z0, per Olson land type
@@ -412,10 +419,30 @@
       REAL*8        :: AZO   (MAXIJ       )   ! Z0, per (I,J) square
 #endif
 
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      ! For ESMF, need to assign these from Input_Opt
+      LOGICAL       :: LNLPBL
+      LOGICAL       :: LPRT
+#endif
+
       !=================================================================
       ! DO_DRYDEP begins here!
       !=================================================================
+
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      ! Assume success
+      RC     = GIGC_SUCCESS
       
+      ! Copy values from the Input Options object to local variables
+      LNLPBL = Input_Opt%LNLPBL
+      LPRT   = Input_Opt%LPRT
+#endif
+
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      ! For ESMF, skip reading from netCDF (for now)
+      FIRST = .FALSE.
+#else
+
       ! Read drydep coeff's and land types on first call
 !      IF ( FIRST ) THEN
 
@@ -433,20 +460,15 @@
          ! sea salt aerosols (jaegle 5/11/11)
 !         CALL INIT_WEIGHTSS()
          FIRST = .FALSE.
-!      ENDIF
-!         if ( am_I_root ) then
-            write(6,*) 'DRYDEP PARAM TEST:::'
-            write(6,*) IRCLS
-            write(6,*) IZO
-            write(6,*) IRI
-            write(6,*) IRAC
-!         endif
+      ENDIF
+#endif
 
       ! Call METERO to obtain meterological fields (all 1-D arrays)
       ! Added sfc pressure as PRESSU and 10m windspeed as W10 
       !  (jaegle 5/11/11, mpayer 1/10/12)
-      CALL METERO( CZ1,   TC0, OBK,   CFRAC, RADIAT, AZO, 
-     &             USTAR, ZH,  LSNOW, RHB,   PRESSU, W10  )
+      CALL METERO( State_Met, CZ1,    TC0,   OBK,       CFRAC,  
+     &             RADIAT,    AZO,    USTAR, ZH,        LSNOW, 
+     &             RHB,       PRESSU, W10,   SUNCOS_MID        )
 
       !=================================================================
       ! Call DEPVEL to compute dry deposition velocities [m/s]
@@ -470,7 +492,7 @@
          IJLOOP  = ( (J-1) * IIPAR ) + I
 
          ! THIK = thickness of surface layer [m]
-         THIK    = BXHEIGHT(I,J,1)
+         THIK    = State_Met%BXHEIGHT(I,J,1)
          
          ! Now we calculate drydep throughout the entire PBL.  
          ! Make sure that the PBL depth is greater than or equal 
@@ -499,7 +521,7 @@
             ! and not over the oceans.
             IF ( NN == IDTACET ) THEN
 
-               IF ( IS_LAND( I, J ) ) THEN
+               IF ( IS_LAND( I, J, State_Met ) ) THEN
                   DVZ = 0.1 
                ELSE
                   DVZ = 0d0
@@ -620,8 +642,17 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE METERO( CZ1, TC0,  OBK, CFRAC, RADIAT, 
-     &                   AZO, USTR, ZH,  LSNOW, RHB, PRESSU, W10 )
+      SUBROUTINE METERO( State_Met, CZ1,    TC0,  OBK,       CFRAC,  
+     &                   RADIAT,    AZO,    USTR, ZH,        LSNOW, 
+     &                   RHB,       PRESSU, W10,  SUNCOS_MID        )
+!
+! !USES:
+!
+      USE GIGC_State_Met_Mod, ONLY : MetState
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -636,6 +667,8 @@
       REAL*8,  INTENT(OUT) :: ZH    (MAXIJ)  ! PBL height [m]
       REAL*8,  INTENT(OUT) :: PRESSU(MAXIJ)  ! Local surface pressure [Pa]
       REAL*8,  INTENT(OUT) :: W10   (MAXIJ)  ! 10 meter windspeed [m/s]
+      REAL*8,  INTENT(OUT) :: SUNCOS_MID(MAXIJ)  ! COS(SZA) @ midpt of current
+                                                 !  chemistry timestep
 
       ! Dimension AZO for GCAP or GEOS met fields (swu, bmy, 5/25/05)
 #if   defined( GCAP )
@@ -645,6 +678,9 @@
 #endif
 !
 ! !REMARKS:
+!  NOTE: We save into arrays of dimension MAXIJ=IIPAR*JJPAR for compatibility
+!  with the legacy drydep routine DEPVEL.
+!                                                                             .
 !  References (see full citations above):
 !  ============================================================================
 !  (1 ) Wesely, M. L., 1989. 
@@ -677,6 +713,10 @@
 !  (9 ) Add sea level pressure and 10m windspeed as arguments (jaegle 5/11/11)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  10 Jan 2012 - M. Payer    - Added local surface pressure
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  28 Nov 2012 - R. Yantosca - Add SUNCOS_MID to the argument list and 
+!                              populate that with State_Met%SUNCOSmid
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -712,7 +752,7 @@
          IJLOOP         = ( (J-1) * IIPAR ) + I
 
          ! THIK = thickness of layer 1 [m]
-         THIK           = BXHEIGHT(I,J,1)
+         THIK           = State_Met%BXHEIGHT(I,J,1)
 
          ! Midpoint height of first model level [m]
          CZ1(IJLOOP)    = THIK / 2.0d0
@@ -729,26 +769,26 @@
 
 #if   !defined( GCAP )
          ! For GEOS: Roughness height [m] is a function of lat/lon
-         AZO(IJLOOP)    = Z0(I,J)
+         AZO(IJLOOP)    = State_Met%Z0(I,J)
 #endif
 
          ! Column cloud fraction [unitless]
-         CFRAC(IJLOOP)  = CLDFRC(I,J)
+         CFRAC(IJLOOP)  = State_Met%CLDFRC(I,J)
 
          ! Set logical LSNOW if snow and sea ice (ALBEDO > 0.4)
-         LSNOW(IJLOOP)  = ( ALBD(I,J) > 0.4 )
+         LSNOW(IJLOOP)  = ( State_Met%ALBD(I,J) > 0.4 )
 
          ! Monin-Obhukov length [m]
-         OBK(IJLOOP)    = GET_OBK( I, J )
+         OBK(IJLOOP)    = GET_OBK( I, J, State_Met )
 
          ! Solar insolation @ ground [W/m2]
-         RADIAT(IJLOOP) = RADSWG(I,J) 
+         RADIAT(IJLOOP) = State_Met%RADSWG(I,J) 
 
          ! Surface temperature [K]
-         TC0(IJLOOP)    = TS(I,J)
-         
+         TC0(IJLOOP)    = State_Met%TS(I,J)
+
          ! Friction velocity [m/s]
-         USTR(IJLOOP)   = USTAR(I,J)
+         USTR(IJLOOP)   = State_Met%USTAR(I,J)
 
          ! Mixed layer depth [m]
          ZH(IJLOOP)     = GET_PBL_TOP_m( I, J )
@@ -758,10 +798,16 @@
          !  changed to 98% due to vapor pressure lowering above sea water
          !  (Lewis & Schwartz, 2004)
          !  jaegle (5/11/11)
-         RHB(IJLOOP)    = MIN( 0.98d0, RH(I,J,1) * 1.d-2 )
+         RHB(IJLOOP)    = MIN( 0.98d0, State_Met%RH(I,J,1) * 1.d-2 )
 
          ! 10m windspeed (jaegle 5/11/11)
-         W10(IJLOOP)    =  SQRT( SFCWINDSQR(I,J) )
+         W10(IJLOOP)    =  SQRT( SFCWINDSQR( I, J,
+     &                                       State_Met%U10M,
+     &                                       State_Met%V10M ) )
+
+         ! Cosine of solar zenith angle at midpoint 
+         ! of the current chemistry timestep.
+         SUNCOS_MID(IJLOOP) = State_Met%SUNCOSmid(I,J)
 
       ENDDO
       ENDDO
@@ -1074,26 +1120,30 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DRYFLXH2HD
+      SUBROUTINE DRYFLXH2HD( State_Met )
 !
 ! !USES:
 !
-      USE DIAG_MOD,     ONLY : AD44
-      USE ERROR_MOD,    ONLY : ERROR_STOP, GEOS_CHEM_STOP
-      USE TIME_MOD,     ONLY : GET_TS_CHEM
-      USE GRID_MOD,     ONLY : GET_AREA_CM2, GET_XOFFSET, GET_YOFFSET
-      USE DAO_MOD,      ONLY : T, TS, ALBD
-      USE TRACER_MOD,   ONLY : STT
-      USE LOGICAL_MOD,  ONLY : LDRYD
-      USE DAO_MOD,      ONLY : BXHEIGHT
-      USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_m
-      USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
-      USE MEGANUT_MOD,  ONLY : XLTMMP
+      USE DIAG_MOD,           ONLY : AD44
+      USE ERROR_MOD,          ONLY : ERROR_STOP, GEOS_CHEM_STOP
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET
+      USE LOGICAL_MOD,        ONLY : LDRYD
+      USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_m
+      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
+      USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+      USE TRACER_MOD,         ONLY : STT
       
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_DIAG_MOD       ! Diagnostic switches & arrays
-      USE CMN_DEP_MOD        ! Dry deposition variables
-      USE COMMSOIL_MOD       ! Soil wetness variables
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! Diagnostic switches & arrays
+      USE CMN_DEP_MOD              ! Dry deposition variables
+      USE COMMSOIL_MOD             ! Soil wetness variables
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 ! 
 ! !REMARKS:
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1114,6 +1164,8 @@
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  09 Apr 2012 - R. Yantosca - Replace IJLAND, IJUSE arrays w/ ILAND, IUSE
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1130,8 +1182,6 @@
       REAL*8      :: F_UNDER_TOP
 
       ! External functions, for calculating soil temperature
-!-- XLTMMP moved to meganut_mod.f (ccc, 11/20/09)
-!      REAL*8, EXTERNAL   :: SOILTEMP, XLTMMP
       REAL*8, EXTERNAL   :: SOILTEMP
 
       !=================================================================
@@ -1193,7 +1243,7 @@
 !               IJLOOP = JLOP(I,J,1)
 !
 !               ! Fraction of grid box that is ocean
-!               FSOIL = FRCLND(I,J)
+!               FSOIL = State_Met%FRCLND(I,J)
 ! 
 !
 !               ! Only apply dry deposition over land surfaces which
@@ -1201,7 +1251,8 @@
 !               ! and if we are in the window simulation.
 !               IF ( (I.GE.1)       .AND. (I.LE.IIPAR)  .AND.
 !     &              (J.GE.1)       .AND. (J.LE.JJPAR)  .AND.
-!     &              (FSOIL > 0.d0) .AND. (ALBD(I,J) < 0.4d0) ) THEN
+!     &              (FSOIL > 0.d0) .AND. 
+!     &              (State_Met%ALBD(I,J) < 0.4d0) ) THEN
 !
 !                  ! Grid box area in cm2
 !                  AREA_CM2 = GET_AREA_CM2( I, J, 1 )
@@ -1215,8 +1266,8 @@
 !                  ! by 1/2, and additional 1/2 below -15C(hup, 6/21/2005)
 !                  ! for now use surface temperature (TS) instead of
 !                  ! air temperature (T) jaegle, 12/12/2005
-!		  IF (TS(I,J) <= 273.15d0) SVEL = SVEL / 2.0d0
-!		  IF (TS(I,J) <= 258.15d0) SVEL =  SVEL / 2.0d0
+!		  IF (State_Met%TS(I,J) <= 273.15d0) SVEL = SVEL / 2.0d0
+!		  IF (State_Met%TS(I,J) <= 258.15d0) SVEL = SVEL / 2.0d0
 !                  
 !		  ! if desert, set deposition velocity to zero by multiplying
 !		  ! dep vel by the fraction covered by desert(hup, 5/1/2006)
@@ -1249,7 +1300,8 @@
 !                  MLD = GET_PBL_TOP_m( I, J )
 !      
 !                  ! THIK = thickness of surface layer [m]
-!                  THIK    = BXHEIGHT(I,J,1)
+!                  THIK    = State_Met%BXHEIGHT(I,J,1)
+!
 !                  ! Add option for non-local PBL mixing scheme: 
 !                  ! only the surface (Lin, 03/31/09) 
 !                  IF (.NOT. LNLPBL) THIK    = MAX( MLD, THIK ) 
@@ -1538,14 +1590,19 @@
       INTEGER IOLSON,II,IW
       INTEGER K,IJLOOP,LDT
       REAL*8  RCLX,RIXX,BIOFIT
-!
-! Logical for snow and sea ice
-!
 
+      ! Logical for snow and sea ice
       LOGICAL LSNOW(MAXIJ)
 
       ! Loop indices (bmy, 3/29/12)
       INTEGER :: I, J
+
+      ! Logical switch for POPS in order to use octanol-air partitioning instead
+      ! of Henry's Law for scaling of cuticular resitances (clf, 1/3/2011)
+      LOGICAL IS_POPS
+
+      ! Is this a POPs simmulation?
+      IS_POPS = ITS_A_POPS_SIM()  ! clf, 1/3/2011
 
 !***********************************************************************       
 !
@@ -1745,6 +1802,13 @@
                RLUXX = 1.D12
                IF (RLU(LDT).LT.9999.D0)
      C              RLUXX = RLU(LDT)/(HSTAR(K)/1.0D+05 + F0(K))
+
+        ! If a POPs simulation, scale cuticular resistances with octanol-air
+        ! partition coefficient (Koa) instead of HSTAR (clf, 1/3/2011)
+
+               IF (IS_POPS)
+     C              RLUXX = RLU(LDT)/(KOA(K)/1.0D+05 + F0(K))
+
 !*
 !* To prevent virtually zero resistance to species with huge HSTAR, such
 !* as HNO3, a minimum value of RLUXX needs to be set. The rationality
@@ -1754,6 +1818,7 @@
 !* corresponding minimum resistance is 50 s m-1.  This correction
 !* was introduced by J.Y. Liang on 7/9/95.
 !*
+
                !-----------------------------------------------------------
                ! Prior to 7/21/03:
                ! Remove the cap of surface resistance (rjp, bmy, 7/21/03)
@@ -4078,14 +4143,25 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL :: IS_Hg
+      LOGICAL :: IS_POPS
       INTEGER :: AS, N
+
+      REAL*8, SAVE :: POP_XMW, POP_KOA, POP_KBC, POP_K_POPG_OH
+      REAL*8, SAVE :: POP_K_POPP_O3A, POP_K_POPP_O3B
+      REAL*8, SAVE :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
+      REAL*8       :: DUM
 
       !=================================================================
       ! INIT_DRYDEP begins here!
       !=================================================================
 
+      DUM = 1.0
+
       ! Is this a mercury simulation?
       IS_Hg      = ITS_A_MERCURY_SIM()
+
+      ! Is this a pops simulation?
+      IS_POPS     = ITS_A_POPS_SIM()
 
       ! Zero variables
       DRYDNO2    = 0
@@ -5063,9 +5139,9 @@
          !----------------------------------
 
          ELSE IF ( IS_Hg ) THEN
-             ! add dry dep of Hg0 (eck, 19jul06)
-             ! Hg0 -- Elemental Mercury
-             IF ( N == ID_Hg0(ID_Hg_tot) ) THEN
+            ! add dry dep of Hg0 (eck, 19jul06)
+            ! Hg0 -- Elemental Mercury
+            IF ( N == ID_Hg0(ID_Hg_tot) ) THEN
                NUMDEP          = NUMDEP + 1
                NTRAIND(NUMDEP) = ID_Hg0(ID_Hg_tot)
                NDVZIND(NUMDEP) = NUMDEP
@@ -5102,9 +5178,128 @@
                XMW(NUMDEP)     = 201d-3
                AIROSOL(NUMDEP) = .TRUE. 
             ENDIF
+         
+         
+         !----------------------------------
+         ! POPS tracers
+         !----------------------------------
+
+         ELSE IF ( IS_POPS ) THEN
+            ! POPs gas phase
+            IF ( N == IDTPOPG) THEN
+               NUMDEP          = NUMDEP + 1
+               NTRAIND(NUMDEP) = IDTPOPG
+               NDVZIND(NUMDEP) = NUMDEP
+               DEPNAME(NUMDEP) = 'POPG'
+               ! HSTAR is Henry's Law in mol/L/atm. 
+               ! For PHENANTHRENE, log Kaw = -2.76  
+               ! so unitless Kaw = 1.73*10^-3 and Kwa = 1/Kaw
+               ! Divide by R (0.0821 atm/M/K) and T (298 K) and get HSTAR = 23.5 M/atm
+               ! For PYRENE, log Kaw = -3.27
+               ! Using the same conversion, HSTAR = 76.1 M/atm
+               ! For BENZO[a]PYRENE, log Kaw = -4.51
+               ! Using the same conversion, HSTAR = 1.32d3 M/atm
+               ! All log Kaws from Ma et al., J Chem Eng Data 2010, 55:819 
+               HSTAR(NUMDEP)   = GET_POP_HSTAR(DUM)
+               ! Adding Koa (octanol-ar partition coefficient) for POPs to
+               ! account for accumulation in leaf cuticles
+               ! Needs to be in units of mol/liter/atm as with HSTAR
+               ! Divide unitless Koa at 298 K by product of R (0.0821 atm/M/K)
+               ! and T (298 K)
+               ! For PHENANTHRENE, log Koa = 7.64  
+               ! use same conversion as for HSTAR to get 1.78d6 M/atm
+               ! For PYRENE, log Koa = 8.86
+               ! use same conversion to get 2.96d7 M/atm
+               ! For BENZO[a]PYRENE, log Koa = 11.48
+               ! use same conversion to get 1.23d10 M/atm 
+               ! All log Koas from Ma et al., J Chem Eng Data 2010, 55:819 
+               KOA(NUMDEP)     = GET_POP_KOA(DUM) *0.0409
+               F0(NUMDEP)      = 0.0d0
+               ! Need to change molecular weight for different POPs
+               ! For PHENANTHRENE, MW = 178d-3 (kg/mol)
+               ! For PYRENE, MW = 202d-3 (kg/mol)
+               ! for BENZO[a]PYRENE, MW = 252d-3 (kg/mol)
+               XMW(NUMDEP)     = GET_POP_XMW(DUM)
+               AIROSOL(NUMDEP) = .FALSE. 
+            ENDIF
+
+            ! POPs PARTICLES - OC 
+            IF ( N == IDTPOPPOC ) THEN
+               NUMDEP          = NUMDEP + 1
+               NTRAIND(NUMDEP) = IDTPOPPOC
+               NDVZIND(NUMDEP) = NUMDEP
+               DEPNAME(NUMDEP) = 'POPPOC'
+               HSTAR(NUMDEP)   = 0.0d0
+               ! Koa for particulate POPs is set to equivalent of Henry's Law
+               ! so cuticular accumulation is not considered
+               KOA(NUMDEP)     = 0.0d0
+               F0(NUMDEP)      = 0.0d0
+               ! Need to change molecular weight for different POPs
+               ! For PHENANTHRENE, MW = 178d-3 (kg/mol)
+               ! For PYRENE, MW = 202d-3 (kg/mol)
+               ! for BENZO[a]PYRENE, MW = 252d-3 (kg/mol)
+               XMW(NUMDEP)     = GET_POP_XMW(DUM)
+               AIROSOL(NUMDEP) = .TRUE. 
+            ENDIF
+
+            ! POPs PARTICLES - BC 
+            IF ( N == IDTPOPPBC ) THEN
+               NUMDEP          = NUMDEP + 1
+               NTRAIND(NUMDEP) = IDTPOPPBC
+               NDVZIND(NUMDEP) = NUMDEP
+               DEPNAME(NUMDEP) = 'POPPBC'
+               HSTAR(NUMDEP)   = 0.0d0
+               ! Koa for particulate POPs is set to equivalent of Henry's Law
+               ! so cuticular accumulation is not considered
+               KOA(NUMDEP)     = 0.0d0
+               F0(NUMDEP)      = 0.0d0
+               ! Need to change molecular weight for different POPs
+               ! For PHENANTHRENE, MW = 178d-3 (kg/mol)
+               ! For PYRENE, MW = 202d-3 (kg/mol)
+               ! for BENZO[a]PYRENE, MW = 252d-3 (kg/mol)
+               XMW(NUMDEP)     = GET_POP_XMW(DUM)
+               AIROSOL(NUMDEP) = .TRUE. 
+            ENDIF
          ENDIF
+
+         
       ENDDO
       
+      !=================================================================
+      ! Additional variables required for pops simultion (following hg)
+      ! Locate the drydep species w/in the DEPSAV array
+      !=================================================================
+      IF ( IS_POPS ) THEN
+
+         ! Initialize flags
+         ! add dry dep of Hg0
+         DRYPOPG = 0
+         DRYPOPP_OC = 0
+         DRYPOPP_BC = 0
+         
+         ! If drydep is turned on ...
+         IF ( LDRYD ) THEN
+         
+            ! Loop over drydep species
+            DO N = 1, NUMDEP
+
+               ! Locate by DEPNAME
+               SELECT CASE ( TRIM( DEPNAME(N) ) )
+                  CASE( 'POPG' )
+                     DRYPOPG = N
+                  CASE( 'POPPOC' )
+                     DRYPOPP_OC = N
+                  CASE( 'POPPBC' )
+                     DRYPOPP_BC = N
+                  CASE DEFAULT
+                     ! nothing
+                END SELECT
+             ENDDO
+
+          ENDIF
+
+       ENDIF
+       
       !=================================================================
       ! Additional variables required for mercury simultion
       ! Locate the drydep species w/in the DEPSAV array
@@ -5139,7 +5334,9 @@
 
           ENDIF
 
-       ENDIF
+      ENDIF
+
+
 
       !=================================================================
       ! Allocate arrays
@@ -5168,13 +5365,13 @@
       WRITE( 6, '(a)'   )
      & '            Number Index  Law Const  Factor   Weight  (T or F)'
       WRITE( 6, '(a)'   ) REPEAT( '-', 65 )
-      ENDIF
 
       DO N = 1, NUMDEP
          WRITE( 6, 100 ) N, TRIM( DEPNAME(N) ), NTRAIND(N), NDVZIND(N), 
      &                   HSTAR(N),  F0(N),      XMW(N),     AIROSOL(N)
       ENDDO
  100  FORMAT( i3, 3x, a4, 2(3x,i3), 4x, es8.1, 2(3x,f6.3), 3x, L3 )
+      ENDIF
 
          CALL READ_DRYDEP_INPUTS( am_I_Root,
      &                            DRYCOEFF, INDOLSON, IDEP,    

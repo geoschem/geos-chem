@@ -47,10 +47,9 @@
       USE CMN_SIZE_MOD         ! Size parameters
 
 #if defined( DEVEL )
-
+      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
       USE GC_TYPE2_MOD,   ONLY : EXT_STRATOH, EXT_SJVALUE
-      USE GC_TYPE2_MOD,   ONLY : EXT_COLOSS, EXT_COPROD
-
+      USE GC_TYPE2_MOD,   ONLY : EXT_COLOSS,  EXT_COPROD
 #endif
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -63,7 +62,6 @@
 
       IMPLICIT NONE
 #     include "define.h"
-
 ! 
 ! !REVISION HISTORY: 
 !  01 Oct 1995 - M. Prather  - Initial version

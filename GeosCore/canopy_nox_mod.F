@@ -101,17 +101,21 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_CANOPY_NOX
+      SUBROUTINE GET_CANOPY_NOX( State_Met )
 !
 ! !USES:
 !
-      ! Met fields: albedo, cloud frac, radiation, sun position, sfc tmp
-      USE DAO_MOD,      ONLY : ALBD, CLDFRC, RADSWG, SUNCOS, TS
-      USE DRYDEP_MOD,   ONLY : DRYCOEFF	!todo
+      USE DRYDEP_MOD,         ONLY : DRYCOEFF	!todo
+      USE GIGC_State_Met_Mod, ONLY : MetState
       USE MODIS_LAI_MOD
+
       USE COMMSOIL_MOD
       USE CMN_SIZE_MOD
       USE CMN_DEP_MOD
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !REMARKS:
 !     For backwards compatibility, the bulk surface resistance is stored
@@ -120,9 +124,11 @@
 !     NOx routines.
 !
 ! !REVISION HISTORY:
-!     22 Jun 2009 - R. Yantosca     - Split off from "drydep_mod.f"
-!     14 Jun 2012 - J.D. Maasakkers - Rewritten as a function of the
+!  22 Jun 2009 - R. Yantosca     - Split off from "drydep_mod.f"
+!  14 Jun 2012 - J.D. Maasakkers - Rewritten as a function of the
 !                                     MODIS/Koppen biometype
+!  09 Nov 2012 - M. Payer        - Replaced all met field arrays with State_Met
+!                                   derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -181,8 +187,8 @@
          IJLOOP = ( (J-1) * IIPAR ) + I
 
          ! Surface temperature [K] and [C]
-         TEMPK = TS(I,J)
-         TEMPC = TS(I,J) - 273.15d0
+         TEMPK = State_Met%TS(I,J)
+         TEMPC = State_Met%TS(I,J) - 273.15d0
 
          ! Compute bulk surface resistance for gases.    
          !                                  
@@ -215,7 +221,7 @@
 	    KK = K
 
             ! If the surface is snow or ice, then set K=3
-            IF ( ALBD(I,J) > 0.4 ) KK = 3
+            IF ( State_Met%ALBD(I,J) > 0.4 ) KK = 3
 
             ! USE new MODIS/KOPPEN Biometypes to read data
 
@@ -284,7 +290,7 @@
             !-------------------------------------------------------------
 
             ! Radiation @ sfc [W/m2]
-            RAD0 = RADSWG(I,J)
+            RAD0 = State_Met%RADSWG(I,J)
             
             ! Internal resistance
             RIX  = RI(K)
@@ -301,8 +307,10 @@
 
                IF ( RAD0 > 0d0 .AND. GC_LAI(I,J) > 0d0 ) THEN
                   GFACI= 1d0 / 
-     &                   BIOFIT( DRYCOEFF,       GC_LAI(I,J),
-     &                           SUNCOS(IJLOOP), CLDFRC(I,J)    )
+     &                   BIOFIT( DRYCOEFF,       
+     &                           GC_LAI(I,J),
+     &                           State_Met%SUNCOS(I,J), 
+     &                           State_Met%CLDFRC(I,J)  )
                ENDIF
             
                RIX = RIX * GFACT * GFACI

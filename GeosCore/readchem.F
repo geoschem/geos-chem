@@ -1,5 +1,4 @@
-! $Id: readchem.f,v 1.2 2010/03/15 19:33:21 ccarouge Exp $
-      SUBROUTINE READCHEM( am_I_Root )
+      SUBROUTINE READCHEM( am_I_Root, Input_Opt, RC )
 !
 !******************************************************************************
 !  Subroutine READCHEM reads species 2names, chemical rxns, and photolysis 
@@ -45,26 +44,31 @@
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !******************************************************************************
 !
-!
 ! !USES:
 !
 #     include "define.h"
 
       ! References to F90 modules
-      USE DRYDEP_MOD,  ONLY : MAXDEP
-      USE ERROR_MOD,   ONLY : GEOS_CHEM_STOP
-      USE DIAG_PL_MOD, ONLY : SETJFAM, SETPL
-      USE ERROR_MOD,   ONLY : DEBUG_MSG
-      USE LOGICAL_MOD, ONLY : LPRT
-      USE CMN_SIZE_MOD                         ! Size parameters
-      USE COMODE_LOOP_MOD                      ! SMVGEAR II arrays
-      USE inquireMod,  ONLY : findFreeLUN
+      USE DRYDEP_MOD,         ONLY : MAXDEP
+      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
+      USE DIAG_PL_MOD,        ONLY : SETJFAM, SETPL
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE CMN_SIZE_MOD
+      USE COMODE_LOOP_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE inquireMod,         ONLY : findFreeLUN
 
       IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root         ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! *********************************************************************
 ! ************        WRITTEN BY MARK JACOBSON (1990-4)    ************
@@ -152,13 +156,21 @@
 
       ! ININT used to be defined w/in "comode.h", but it is only ever used
       ! w/in "readchem.f".  Declare here as a local variable. (bmy, 7/16/03)
-      INTEGER :: ININT(10)  
+      INTEGER            :: ININT(10)  
 
       CHARACTER(LEN=255) :: FILENAME
+      LOGICAL            :: LPRT
 
       !=================================================================
       ! READCHEM begins here!
       !=================================================================
+
+      ! Assume success
+      RC             = GIGC_SUCCESS
+
+      ! Copy logical fields from INPUT_OPT to local variables for use below
+      LPRT           = Input_Opt%LPRT
+
       NINAC          = 0
       NACTIVE        = 0 
       NSDEAD         = 0 

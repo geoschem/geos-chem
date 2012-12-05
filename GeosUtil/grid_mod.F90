@@ -55,6 +55,7 @@ MODULE Grid_Mod
 !  23 Feb 2012 - R. Yantosca - Initial version, based on grid_mod.F
 !  01 Mar 2012 - R. Yantosca - Validated for nested grids
 !  03 Apr 2012 - M. Payer    - Added ySin for map_a2a regrid (M. Cooper)
+!  04 Dec 2012 - R. Yantosca - Modified for GIGC running in ESMF environment
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -121,22 +122,40 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Compute_Grid( am_I_Root, &
-                           I1, I2, J1, J2, JSP, JNP, L1, L2, DLON, DLAT )
+                           I1, I2, J1, J2, JSP, JNP, L1, L2, DLON, DLAT, RC )
+!
+! !USES:
+!
+    USE GIGC_ErrCode_Mod
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL, INTENT(IN) :: am_I_Root                ! Is this the root CPU?
-    INTEGER, INTENT(IN) :: I1,  I2                  ! Local CPU lon idx bounds
-    INTEGER, INTENT(IN) :: J1,  J2                  ! Local CPU lat idx bounds
-    INTEGER, INTENT(IN) :: JSP, JNP                 ! Polar lat indices
-    INTEGER, INTENT(IN) :: L1,  L2                  ! Local CPU lev idx bounds
-    REAL*8,  INTENT(IN) :: DLON(I1:I2,J1:J2,L1:L2)  ! Delta lon [degrees]
-    REAL*8,  INTENT(IN) :: DLAT(I1:I2,J1:J2,L1:L2)  ! Delta lat [degrees]
+    LOGICAL, INTENT(IN)  :: am_I_Root                     ! Root CPU?
+    INTEGER, INTENT(IN)  :: I1,  I2                       ! Local lon indices
+    INTEGER, INTENT(IN)  :: J1,  J2                       ! Local lat indices
+    INTEGER, INTENT(IN)  :: JSP, JNP                      ! Polar lat indices
+    INTEGER, INTENT(IN)  :: L1,  L2                       ! Local lev indices
+    REAL*8,  INTENT(IN)  :: DLON(I2-I1+1,J2-J1+1,L2-L1+1) ! Delta lon [deg]
+    REAL*8,  INTENT(IN)  :: DLAT(I2-I1+1,J2-J1+1,L2-L1+1) ! Delta lat [deg]
+!
+! !OUTPUT PARAMETERS:
+!  
+    INTEGER, INTENT(OUT) :: RC                            ! Success or failure?
+!
+! !REMARKS:
+!  (1) Lon/lat loop indices IG, JG are global indices.
+!  (2) Lon/lat loop indices I,  J  are local to each CPU.
+!  (3) We do not need to have global loop indices for vertical levels,
+!       because we will always decompose the grid for MPI parallelization
+!       in longitude and/or latitude.  All vertical levels must be present
+!       on each CPU for the grid-independent GEOS-Chem to function properly.
 !
 ! !REVISION HISTORY:
 !  23 Feb 2012 - R. Yantosca - Initial version, based on grid_mod.F
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  03 Dec 2012 - R. Yantosca - Add RC to argument list
+!  04 Dec 2012 - R. Yantosca - Now define arrays with local CPU lon/lat bounds
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -144,7 +163,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 ! 
     ! Scalars
-    INTEGER :: I, J, L
+    INTEGER :: I, J, L, IG, JG
 
     ! Arrays
     REAL*8  :: IND_X( I1:I2+1 )
@@ -155,13 +174,13 @@ CONTAINS
     !=================================================================
 
     ! Index array for longitudes
-    DO I = I1, I2+1
-       IND_X(I) = ( I + I0 - 1 ) * 1d0 
+    DO IG = I1, I2+1
+       IND_X(IG) = ( IG + I0 - 1 ) * 1d0 
     ENDDO
 
     ! Index array for latitudes
-    DO J = J1, J2+1
-       IND_Y(J) = ( J + J0 - 1 ) * 1d0
+    DO JG = J1, J2+1
+       IND_Y(JG) = ( JG + J0 - 1 ) * 1d0
     ENDDO
 
     !=================================================================
@@ -174,92 +193,110 @@ CONTAINS
        !--------------------------------------------------------------
        ! Longitude center and edge arrays
        !--------------------------------------------------------------
-       DO J = J1, J2
-       DO I = I1, I2
-             
-          ! Longitude centers
-          XMID(I,J,L)  = ( DLON(I,J,L) * IND_X(I) ) - 180d0
+       DO JG = J1, J2
+          J = JG - J1 + 1
           
-          ! Longitude edges
-          XEDGE(I,J,L) = XMID(I,J,L) - ( DLON(I,J,L) * 0.5d0 )
+          DO IG = I1, I2
+             I = IG - I1 + 1
 
-          ! Compute the last longitude edge
-          IF ( I == I2 ) THEN
-             XEDGE(I2+1,J,L) = XEDGE(I2,J,L) + DLON(I2,J,L)
-          ENDIF
+             ! Longitude centers
+             XMID(I,J,L)  = ( DLON(I,J,L) * IND_X(IG) ) - 180d0
+          
+             ! Longitude edges
+             XEDGE(I,J,L) = XMID(I,J,L) - ( DLON(I,J,L) * 0.5d0 )
 
-       ENDDO
+             ! Compute the last longitude edge
+             IF ( I == I2 ) THEN
+                XEDGE(I+1,J,L) = XEDGE(I,J,L) + DLON(I,J,L)
+             ENDIF
+             
+          ENDDO
        ENDDO
 
        !--------------------------------------------------------------
        ! Latitude center and edge arrays
        !---------------------------------------==---------------------
-       DO J = J1, J2
-       DO I = I1, I2
+       DO JG = J1, J2
+          J = JG - J1 + 1
 
-          !%%%%%% LATITUDE CENTERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+          DO IG = I1, I2
+             I = IG - I1 + 1
 
-          ! Lat centers (degrees)
-          YMID(I,J,L)     = ( DLAT(I,J,L) * IND_Y(J) ) - 90d0
+             !%%%%%% LATITUDE CENTERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+             ! Lat centers (degrees)
+             YMID(I,J,L)     = ( DLAT(I,J,L) * IND_Y(JG) ) - 90d0
           
-          ! Adjust for halfpolar boxes (global grids only)
-          IF ( J == JSP ) THEN
-             YMID(I,J,L)  = -90d0 + ( 0.5d0 * DLAT(I,J,L) )   ! S pole
-          ELSE IF ( J == JNP ) THEN
-             YMID(I,J,L)  = +90d0 - ( 0.5d0 * DLAT(I,J,L) )   ! N pole
-          ENDIF
+             ! Adjust for halfpolar boxes (global grids only)
+             IF ( JG == JSP ) THEN
+                YMID(I,J,L)  = -90d0 + ( 0.5d0 * DLAT(I,J,L) )   ! S pole
+             ELSE IF ( JG == JNP ) THEN
+                YMID(I,J,L)  = +90d0 - ( 0.5d0 * DLAT(I,J,L) )   ! N pole
+             ENDIF
 
-          ! Lat centers (radians)
-          YMID_R(I,J,L)   = ( PI_180 * YMID(I,J,L)  )
+             ! Lat centers (radians)
+             YMID_R(I,J,L)   = ( PI_180 * YMID(I,J,L)  )
 
 #if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA ) || defined( SEAC4RS )
 
-          ! Lat centers (radians), for nested grid window array
-          YMID_R_W(I,J,L) = YMID_R(I,J,L)
+             ! Lat centers (radians), for nested grid window array
+             YMID_R_W(I,J,L) = YMID_R(I,J,L)
 
-          ! Compute YMID_R_W at edges of nested region
-          IF ( J == J1 ) THEN
-             YMID_R_W(I,J1-1,1) = YMID_R(I,J1,L) - ( DLAT(I,J1,L) * PI_180 )
-          ELSE IF ( J == J2 ) THEN
-             YMID_R_W(I,J2+1,1) = YMID_R(I,J2,L) + ( DLAT(I,J2,L) * PI_180 )
-          ENDIF
+             ! Compute YMID_R_W at edges of nested region
+             IF ( J == J1 ) THEN
+                YMID_R_W(I,J1-1,1) = YMID_R(I,J1,L) - ( DLAT(I,J1,L) * PI_180 )
+             ELSE IF ( J == J2 ) THEN
+                YMID_R_W(I,J2+1,1) = YMID_R(I,J2,L) + ( DLAT(I,J2,L) * PI_180 )
+             ENDIF
                     
 #endif
 
-          !%%%%%% LATITUDE EDGES %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+             !%%%%%% LATITUDE EDGES %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-          ! Lat edges (degrees and radians)
-          YEDGE(I,J,L)    = YMID(I,J,L) - ( DLAT(I,J,L) * 0.5d0 )
+             ! Lat edges (degrees and radians)
+             YEDGE(I,J,L)    = YMID(I,J,L) - ( DLAT(I,J,L) * 0.5d0 )
             
-          ! Adjust for halfpolar boxes
-          IF ( J == JSP ) THEN
-             YEDGE(I,J,L) = -90d0                             ! S pole
-          ENDIF
+             ! Adjust for halfpolar boxes
+             IF ( JG == JSP ) THEN
+                YEDGE(I,J,L) = -90d0                             ! S pole
+             ENDIF
           
-          ! Lat edges (radians)
-          YEDGE_R(I,J,L)  = ( PI_180  * YEDGE(I,J,L) )
+             ! Lat edges (radians)
+             YEDGE_R(I,J,L)  = ( PI_180  * YEDGE(I,J,L) )
 
-          ! mjc - Compute sine of latitude edges (needed for map_a2a regrid)
-          YSIN(I,J,L) = SIN ( YEDGE_R(I,J,L) )
-
-       ENDDO
+             ! mjc - Compute sine of latitude edges (needed for map_a2a regrid)
+             YSIN(I,J,L) = SIN ( YEDGE_R(I,J,L) )
+             
+          ENDDO
        ENDDO
 
        !%%%%%% LATITUDE EDGES (the last edge) %%%%%%%%%%%%%%%%%%%%%%%%
        
        ! Test for North Pole
        IF ( J2 == JNP ) THEN
-
+          
           ! North pole case (global grids only)
-          DO I = I1, I2
-             YEDGE  (I,JNP+1,L) = +90d0
-             YEDGE_R(I,JNP+1,L) = YEDGE(I,JNP+1,L) * PI_180
+          DO IG = I1, I2
+             !--------------------------------------------------------------
+             ! Prior to 12/4/12:
+             ! NOTE: YEDGE, YEDGE_R are now dimensioned w/ local CPU
+             ! indices, but JNP is a global index.  This will cause an out
+             ! of bounds error when used in the ESMF environment.
+             ! (bmy, 12/4/12)
+             !YEDGE  (I,JNP+1,L) = +90d0
+             !YEDGE_R(I,JNP+1,L) = YEDGE(I,JNP+1,L) * PI_180
+             !--------------------------------------------------------------
+             I                  = IG - I1 + 1
+             YEDGE  (I,J+1,L)   = +90d0
+             YEDGE_R(I,J+1,L)   = YEDGE(I,J+1,L) * PI_180
+
           ENDDO
           
        ELSE
           
           ! No north pole (nested grids only)
-          DO I = I1, I2 
+          DO IG = I1, I2 
+             I                  = IG - I1 + 1
              YEDGE  (I,J2+1,L)  = YEDGE(I,J2,L  ) + DLAT(I,J2,L)
              YEDGE_R(I,J2+1,L)  = YEDGE(I,J2+1,L) * PI_180
           ENDDO
@@ -335,17 +372,24 @@ CONTAINS
        !
        ! (bmy, 4/20/06, 2/24/12)
        !=================================================================  
-       DO J = J1, J2
-       DO I = I1, I2
+       DO JG = J1, J2
+          J = JG - J1 + 1
+          
+          DO IG = I1, I2
+             I = IG - I1 + 1
 
-          ! Grid box surface areas [m2]
-          AREA_M2(I,J,L) = ( DLON(I,J,L) * PI_180 ) * Re**2                &
-                         * ( SIN( YEDGE_R(I,J+1,L) ) - SIN( YEDGE_R(I,J,L) ) )
+             ! Grid box surface areas [m2]
+             AREA_M2(I,J,L) = ( DLON(I,J,L) * PI_180 ) * Re**2   &
+                            * ( SIN( YEDGE_R(I,J+1,L) ) -        &
+                                SIN( YEDGE_R(I,J,L  ) ) )
 
-       ENDDO
+          ENDDO
        ENDDO
 
     ENDDO
+
+    ! Return successfully
+    RC = GIGC_SUCCESS
 
     !=================================================================
     ! Echo info to stdout
@@ -355,16 +399,16 @@ CONTAINS
        WRITE( 6, '(''Nested-Grid Y-offset [boxes]:'', i4 )' ) J0
        WRITE( 6, '(a)' )
        WRITE( 6, '(''Grid box longitude centers [degrees]: '')' )
-       WRITE( 6, '(8(f8.3,1x))' ) ( XMID(I,1,1),  I=I1,I2 )
+       WRITE( 6, '(8(f8.3,1x))' ) ( XMID(I,1,1),  I=1,I2-I1+1 )
        WRITE( 6, '(a)' )
        WRITE( 6, '(''Grid box longitude edges [degrees]: '')' )
-       WRITE( 6, '(8(f8.3,1x))' ) ( XEDGE(I,1,1), I=I1,I2+1 )
+       WRITE( 6, '(8(f8.3,1x))' ) ( XEDGE(I,1,1), I=1,I2+1-I1+1 )
        WRITE( 6, '(a)' )
        WRITE( 6, '(''Grid box latitude centers [degrees]: '')' )
-       WRITE( 6, '(8(f8.3,1x))' ) ( YMID(1,J,1),  J=J1,J2 )
+       WRITE( 6, '(8(f8.3,1x))' ) ( YMID(1,J,1),  J=1,J2-J1+1 )
        WRITE( 6, '(a)' )
        WRITE( 6, '(''Grid box latitude edges [degrees]: '')' )
-       WRITE( 6, '(8(f8.3,1x))' ) ( YEDGE(1,J,1), J=J1,J2+1 )
+       WRITE( 6, '(8(f8.3,1x))' ) ( YEDGE(1,J,1), J=1,J2+1-J1+1 )
     ENDIF
 
   END SUBROUTINE Compute_Grid
@@ -1012,6 +1056,114 @@ CONTAINS
     
   END FUNCTION ITS_A_NESTED_GRID
 !EOC
+!-------------------------------------------------------------------------------
+! Prior to 12/4/12:
+! Dimension arrays with 
+!!------------------------------------------------------------------------------
+!!          Harvard University Atmospheric Chemistry Modeling Group            !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: init_grid
+!!
+!! !DESCRIPTION: Subroutine INIT\_GRID initializes variables and allocates
+!!  module arrays.
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!  SUBROUTINE Init_Grid( am_I_Root, I1, I2, J1, J2, L1, L2, RC )
+!!
+!! !USES:
+!!
+!    USE GIGC_ErrCode_Mod
+!!
+!! !INPUT PARAMETERS:
+!!
+!    LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU 
+!    INTEGER, INTENT(IN)  :: I1, I2      ! Local CPU lon index bounds
+!    INTEGER, INTENT(IN)  :: J1, J2      ! Local CPU lat index bounds
+!    INTEGER, INTENT(IN)  :: L1, L2      ! Local CPU lev index bounds
+!!
+!! !OUTPUT PARAMETERS:
+!!
+!    INTEGER, INTENT(OUT) :: RC          ! Success or failure?
+!!
+!! !REVISION HISTORY:
+!!  24 Feb 2012 - R. Yantosca - Initial version, based on grid_mod.F
+!!  01 Mar 2012 - R. Yantosca - Now define IS_NESTED based on Cpp flags
+!!  03 Dec 2012 - R. Yantosca - Add am_I_Root, RC to argument list
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!! 
+!    INTEGER :: AS
+!
+!    !======================================================================
+!    ! Initialize module variables
+!    !======================================================================
+!
+!    ! First assume that we are doing a global simulation
+!    IS_NESTED = .FALSE.
+!
+!   !ALLOCATE( XMID( I1:I2, J1:J2, L1:L2 ), STAT=AS )
+!    ALLOCATE( XMID( I2-I1+1, J2-J1+1, L2-L1+1 ), STAT=AS )
+!    IF ( AS /= 0 ) CALL ALLOC_ERR( 'XMID' )
+!    XMID = 0
+!    
+!   !ALLOCATE( XEDGE( I1:I2+1, J1:J2, L1:L2 ), STAT=AS )
+!    ALLOCATE( XEDGE( I2-I1+2, J2-J1+1, L2-L1+1 ), STAT=AS )
+!    IF ( AS /= 0 ) CALL ALLOC_ERR( 'XEDGE' )
+!    XEDGE = 0d0
+!    
+!    ALLOCATE( YMID( I1:I2, J1:J2, L1:L2 ), STAT=AS )
+!    IF ( AS /= 0 ) CALL ALLOC_ERR( 'YMID' )
+!    YMID = 0d0
+!    
+!    ALLOCATE( YEDGE( I1:I2, J1:J2+1, L1:L2 ), STAT=AS )
+!    IF ( AS /= 0 ) CALL ALLOC_ERR( 'YEDGE' )
+!    YEDGE = 0d0
+!
+!    ALLOCATE( YSIN( I1:I2, J1:J2+1, L1:L2 ), STAT=AS )
+!    IF ( AS /= 0 ) CALL ALLOC_ERR( 'YSIN' )
+!    YSIN = 0d0
+!
+!    ALLOCATE( YMID_R( I1:I2, J1:J2, L1:L2 ), STAT=AS )               
+!    IF ( AS /= 0 ) CALL ALLOC_ERR( 'YMID_R' )
+!    YMID_R = 0d0
+!   
+!    ALLOCATE( YEDGE_R( I1:I2, J1:J2+1, L1:L2 ), STAT=AS )
+!    IF ( AS /= 0 ) CALL ALLOC_ERR( 'YEDGE_R' )
+!    YEDGE_R = 0d0
+!
+!    ALLOCATE( AREA_M2( I1:I2, J1:J2, L1:L2 ), STAT=AS )
+!    IF ( AS /= 0 ) CALL ALLOC_ERR( 'AREA_M2' )
+!    AREA_M2 = 0d0
+!
+!#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA ) || defined( SEAC4RS )
+!
+!    !======================================================================
+!    ! Special settings for nested-grid simulations only
+!    !======================================================================
+!
+!    ! Denote that this is a nested-grid simulation
+!    IS_NESTED = .TRUE.
+!    
+!    ! Allocate nested-grid window array of lat centers (radians)
+!    ALLOCATE( YMID_R_W( I1:I2, 0:J2+1, L1:L2 ), STAT=AS ) 
+!    IF ( AS /= 0 ) CALL ALLOC_ERR( 'YMID_R_W' )
+!    YMID_R_W = 0d0
+!
+!#endif
+!
+!    ! Return successfully
+!    RC = GIGC_SUCCESS
+!
+!  END SUBROUTINE Init_Grid
+!EOC
+!------------------------------------------------------------------------------
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -1025,62 +1177,73 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_Grid( I1, I2, J1, J2, L1, L2 )
+  SUBROUTINE Init_Grid( am_I_Root, IM, JM, LM, RC )
+!
+! !USES:
+!
+    USE GIGC_ErrCode_Mod
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER, INTENT(IN) :: I1, I2   ! Local CPU lon index bounds
-    INTEGER, INTENT(IN) :: J1, J2   ! Local CPU lat index bounds
-    INTEGER, INTENT(IN) :: L1, L2   ! Local CPU lev index bounds
+    LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU 
+    INTEGER, INTENT(IN)  :: IM          ! # of longitudes on this CPU
+    INTEGER, INTENT(IN)  :: JM          ! # of latitudes  on this CPU
+    INTEGER, INTENT(IN)  :: LM          ! # of levels     on this CPU
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER, INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  24 Feb 2012 - R. Yantosca - Initial version, based on grid_mod.F
 !  01 Mar 2012 - R. Yantosca - Now define IS_NESTED based on Cpp flags
+!  03 Dec 2012 - R. Yantosca - Add am_I_Root, RC to argument list
+!  04 Dec 2012 - R. Yantosca - Now dimension arrays with IM, JM, LM instead 
+!                              of I1, J1, L1, I2, J2, L2.  
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-! 
-    INTEGER :: AS
 
     !======================================================================
     ! Initialize module variables
     !======================================================================
 
+    ! Assume success
+    RC        = GIGC_SUCCESS
+
     ! First assume that we are doing a global simulation
     IS_NESTED = .FALSE.
 
-    ALLOCATE( XMID( I1:I2, J1:J2, L1:L2 ), STAT=AS )
-    IF ( AS /= 0 ) CALL ALLOC_ERR( 'XMID' )
-    XMID = 0
+    ALLOCATE( XMID   ( IM,   JM,   LM ), STAT=RC )
+    IF ( RC /= 0 ) CALL ALLOC_ERR( 'XMID' )
+    XMID    = 0d0
     
-    ALLOCATE( XEDGE( I1:I2+1, J1:J2, L1:L2 ), STAT=AS )
-    IF ( AS /= 0 ) CALL ALLOC_ERR( 'XEDGE' )
-    XEDGE = 0d0
+    ALLOCATE( XEDGE  ( IM+1, JM,   LM ), STAT=RC )
+    IF ( RC /= 0 ) CALL ALLOC_ERR( 'XEDGE' )
+    XEDGE   = 0d0
     
-    ALLOCATE( YMID( I1:I2, J1:J2, L1:L2 ), STAT=AS )
-    IF ( AS /= 0 ) CALL ALLOC_ERR( 'YMID' )
-    YMID = 0d0
+    ALLOCATE( YMID   ( IM,   JM,   LM ), STAT=RC )
+    IF ( RC /= 0 ) CALL ALLOC_ERR( 'YMID' )
+    YMID    = 0d0
     
-    ALLOCATE( YEDGE( I1:I2, J1:J2+1, L1:L2 ), STAT=AS )
-    IF ( AS /= 0 ) CALL ALLOC_ERR( 'YEDGE' )
-    YEDGE = 0d0
+    ALLOCATE( YEDGE  ( IM,   JM+1, LM ), STAT=RC )
+    IF ( RC /= 0 ) CALL ALLOC_ERR( 'YEDGE' )
+    YEDGE   = 0d0
 
-    ALLOCATE( YSIN( I1:I2, J1:J2+1, L1:L2 ), STAT=AS )
-    IF ( AS /= 0 ) CALL ALLOC_ERR( 'YSIN' )
-    YSIN = 0d0
+    ALLOCATE( YSIN   ( IM,   JM+1, LM ), STAT=RC )
+    IF ( RC /= 0 ) CALL ALLOC_ERR( 'YSIN' )
+    YSIN    = 0d0
 
-    ALLOCATE( YMID_R( I1:I2, J1:J2, L1:L2 ), STAT=AS )               
-    IF ( AS /= 0 ) CALL ALLOC_ERR( 'YMID_R' )
-    YMID_R = 0d0
+    ALLOCATE( YMID_R ( IM,   JM,   LM ), STAT=RC )               
+    IF ( RC /= 0 ) CALL ALLOC_ERR( 'YMID_R' )
+    YMID_R  = 0d0
    
-    ALLOCATE( YEDGE_R( I1:I2, J1:J2+1, L1:L2 ), STAT=AS )
-    IF ( AS /= 0 ) CALL ALLOC_ERR( 'YEDGE_R' )
+    ALLOCATE( YEDGE_R( IM,   JM+1, LM ), STAT=RC )
+    IF ( RC /= 0 ) CALL ALLOC_ERR( 'YEDGE_R' )
     YEDGE_R = 0d0
 
-    ALLOCATE( AREA_M2( I1:I2, J1:J2, L1:L2 ), STAT=AS )
-    IF ( AS /= 0 ) CALL ALLOC_ERR( 'AREA_M2' )
+    ALLOCATE( AREA_M2( IM,   JM,   LM ), STAT=RC )
+    IF ( RC /= 0 ) CALL ALLOC_ERR( 'AREA_M2' )
     AREA_M2 = 0d0
 
 #if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA ) || defined( SEAC4RS )
@@ -1093,8 +1256,8 @@ CONTAINS
     IS_NESTED = .TRUE.
     
     ! Allocate nested-grid window array of lat centers (radians)
-    ALLOCATE( YMID_R_W( I1:I2, 0:J2+1, L1:L2 ), STAT=AS ) 
-    IF ( AS /= 0 ) CALL ALLOC_ERR( 'YMID_R_W' )
+    ALLOCATE( YMID_R_W( IM, 0:JM+1, LM ), STAT=AS ) 
+    IF ( RC /= 0 ) CALL ALLOC_ERR( 'YMID_R_W' )
     YMID_R_W = 0d0
 
 #endif

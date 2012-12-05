@@ -22,7 +22,7 @@
       USE COMMSOIL_MOD                          ! Soil wetness variables
       USE COMODE_MOD                            ! Large arrays for SMVGEAR
       USE COMODE_LOOP_MOD                       ! Formerly "comode.h"
-      USE DAO_MOD                               ! Met field arrays
+      USE DAO_MOD                               ! Met field subroutines
       USE DIAG_MOD,       ONLY : AD44           ! Diagnostic arrays
       USE DIRECTORY_MOD                         ! Data directory paths
       USE ERROR_MOD                             ! Error handling routines
@@ -292,11 +292,16 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_DRYDEP( am_I_Root )
+      SUBROUTINE DO_DRYDEP( am_I_Root, State_Met )
+!
+! !USES:
+!
+      USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 !
 ! !REMARKS:
 !  NOTE: Modeled aerosol dry deposition velocities over snow and ice surfaces 
@@ -346,6 +351,8 @@
 !  26 Mar 2012 - R. Yantosca - Remove calls to obsolete MODIN, RDDRYCF routines
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -404,8 +411,8 @@
       ! Call METERO to obtain meterological fields (all 1-D arrays)
       ! Added sfc pressure as PRESSU and 10m windspeed as W10 
       !  (jaegle 5/11/11, mpayer 1/10/12)
-      CALL METERO( CZ1,   TC0, OBK,   CFRAC, RADIAT, AZO, 
-     &             USTAR, ZH,  LSNOW, RHB,   PRESSU, W10  )
+      CALL METERO( State_Met,  CZ1, TC0,   OBK, CFRAC,  RADIAT, 
+     &             AZO, USTAR, ZH,  LSNOW, RHB, PRESSU, W10 )
 
       !=================================================================
       ! Call DEPVEL to compute dry deposition velocities [m/s]
@@ -414,7 +421,7 @@
       CALL DEPVEL( MAXIJ,  RADIAT,  TC0,     SUNCOS_MID, F0,  
      &             HSTAR,  XMW,     AIROSOL, USTAR,      CZ1,
      &             OBK,    CFRAC,   ZH,      LSNOW,      DVEL,  
-     &             AZO,    RHB,     PRESSU,  W10               )
+     &             AZO,    RHB,     PRESSU,  W10,        State_Met )
 
       !=================================================================
       ! Compute dry deposition frequencies; archive diagnostics
@@ -429,7 +436,7 @@
          IJLOOP  = ( (J-1) * IIPAR ) + I
 
          ! THIK = thickness of surface layer [m]
-         THIK    = BXHEIGHT(I,J,1)
+         THIK    = State_Met%BXHEIGHT(I,J,1)
          
          ! Now we calculate drydep throughout the entire PBL.  
          ! Make sure that the PBL depth is greater than or equal 
@@ -458,7 +465,7 @@
             ! and not over the oceans.
             IF ( NN == IDTACET ) THEN
 
-               IF ( IS_LAND( I, J ) ) THEN
+               IF ( IS_LAND( I, J, State_Met ) ) THEN
                   DVZ = 0.1 
                ELSE
                   DVZ = 0d0
@@ -579,8 +586,16 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE METERO( CZ1, TC0,  OBK, CFRAC, RADIAT, 
+      SUBROUTINE METERO( State_Met, CZ1, TC0,  OBK,  CFRAC,  RADIAT, 
      &                   AZO, USTR, ZH,  LSNOW, RHB, PRESSU, W10 )
+!
+! !USES:
+!
+      USE GIGC_State_Met_Mod, ONLY : MetState
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -636,6 +651,8 @@
 !  (9 ) Add sea level pressure and 10m windspeed as arguments (jaegle 5/11/11)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  10 Jan 2012 - M. Payer    - Added local surface pressure
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -671,7 +688,7 @@
          IJLOOP         = ( (J-1) * IIPAR ) + I
 
          ! THIK = thickness of layer 1 [m]
-         THIK           = BXHEIGHT(I,J,1)
+         THIK           = State_Met%BXHEIGHT(I,J,1)
 
          ! Midpoint height of first model level [m]
          CZ1(IJLOOP)    = THIK / 2.0d0
@@ -688,26 +705,26 @@
 
 #if   !defined( GCAP )
          ! For GEOS: Roughness height [m] is a function of lat/lon
-         AZO(IJLOOP)    = Z0(I,J)
+         AZO(IJLOOP)    = State_Met%Z0(I,J)
 #endif
 
          ! Column cloud fraction [unitless]
-         CFRAC(IJLOOP)  = CLDFRC(I,J)
+         CFRAC(IJLOOP)  = State_Met%CLDFRC(I,J)
 
          ! Set logical LSNOW if snow and sea ice (ALBEDO > 0.4)
-         LSNOW(IJLOOP)  = ( ALBD(I,J) > 0.4 )
+         LSNOW(IJLOOP)  = ( State_Met%ALBD(I,J) > 0.4 )
 
          ! Monin-Obhukov length [m]
-         OBK(IJLOOP)    = GET_OBK( I, J )
+         OBK(IJLOOP)    = GET_OBK( I, J, State_Met )
 
          ! Solar insolation @ ground [W/m2]
-         RADIAT(IJLOOP) = RADSWG(I,J) 
+         RADIAT(IJLOOP) = State_Met%RADSWG(I,J) 
 
          ! Surface temperature [K]
-         TC0(IJLOOP)    = TS(I,J)
-         
+         TC0(IJLOOP)    = State_Met%TS(I,J)
+
          ! Friction velocity [m/s]
-         USTR(IJLOOP)   = USTAR(I,J)
+         USTR(IJLOOP)   = State_Met%USTAR(I,J)
 
          ! Mixed layer depth [m]
          ZH(IJLOOP)     = GET_PBL_TOP_m( I, J )
@@ -717,10 +734,12 @@
          !  changed to 98% due to vapor pressure lowering above sea water
          !  (Lewis & Schwartz, 2004)
          !  jaegle (5/11/11)
-         RHB(IJLOOP)    = MIN( 0.98d0, RH(I,J,1) * 1.d-2 )
+         RHB(IJLOOP)    = MIN( 0.98d0, State_Met%RH(I,J,1) * 1.d-2 )
 
          ! 10m windspeed (jaegle 5/11/11)
-         W10(IJLOOP)    =  SQRT( SFCWINDSQR(I,J) )
+         W10(IJLOOP)    =  SQRT( SFCWINDSQR( I, J,
+     &                                       State_Met%U10M,
+     &                                       State_Met%V10M ) )
 
       ENDDO
       ENDDO
@@ -1033,27 +1052,43 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DRYFLXH2HD
+      SUBROUTINE DRYFLXH2HD( State_Met )
 !
 ! !USES:
 !
-      USE DIAG_MOD,     ONLY : AD44
-      USE ERROR_MOD,    ONLY : ERROR_STOP, GEOS_CHEM_STOP
-      USE TIME_MOD,     ONLY : GET_TS_CHEM
-      USE GRID_MOD,     ONLY : GET_AREA_CM2, GET_XOFFSET, GET_YOFFSET
-      USE DAO_MOD,      ONLY : T, TS, ALBD
-      USE TRACER_MOD,   ONLY : STT
-      USE LOGICAL_MOD,  ONLY : LDRYD
-      USE DAO_MOD,      ONLY : BXHEIGHT
-      USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_m
-      USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
-      USE MEGANUT_MOD,  ONLY : XLTMMP
+      USE DIAG_MOD,           ONLY : AD44
+      USE ERROR_MOD,          ONLY : ERROR_STOP, GEOS_CHEM_STOP
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET
+      USE LOGICAL_MOD,        ONLY : LDRYD
+      USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_m
+      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
+      USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+      USE TRACER_MOD,         ONLY : STT
       
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_DIAG_MOD       ! Diagnostic switches & arrays
-      USE CMN_DEP_MOD        ! Dry deposition variables
-      USE COMMSOIL_MOD       ! Soil wetness variables
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! Diagnostic switches & arrays
+      USE CMN_DEP_MOD              ! Dry deposition variables
+      USE COMMSOIL_MOD             ! Soil wetness variables
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 ! 
+! !REMARKS:
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%% NOTE: THIS ROUTINE SHOULD BE REWRITTEN FOR THE NEW SOIL NOX SCHEME. %%%
+!  %%% We have commented out the obsolete INDEXSOIL and NLAND variables,   %%%
+!  %%% which were different depending on which horizontal grid was used.   %%%
+!  %%% The grid-independent GEOS-Chem cannot know a-priori what the size   %%%
+!  %%% of the horizontal grid is, since it will be told that by the        %%%
+!  %%% interface to the external GEOS-Chem.  Therefore, we cannot use      %%%
+!  %%% fixed parameters to define the horizontal (and vertical) grids that %%%
+!  %%% are used in GEOS-Chem.  (bmy, 10/30/12)                             %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!
 ! !REVISION HISTORY: 
 !  (1) Now deposit through the PBL. Commented but kept code related to soil
 !       temperature (phs, 5/16/07)
@@ -1061,6 +1096,8 @@
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  09 Apr 2012 - R. Yantosca - Replace IJLAND, IJUSE arrays w/ ILAND, IUSE
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1077,8 +1114,6 @@
       REAL*8      :: F_UNDER_TOP
 
       ! External functions, for calculating soil temperature
-!-- XLTMMP moved to meganut_mod.f (ccc, 11/20/09)
-!      REAL*8, EXTERNAL   :: SOILTEMP, XLTMMP
       REAL*8, EXTERNAL   :: SOILTEMP
 
       !=================================================================
@@ -1130,127 +1165,130 @@
            ! reset STEMP (could be a scalar -depends on future usage-)
            ! STEMP = 0  ! Not use yet
 
-           ! Loop over each land grid-box
-            DO M      = 1, NLAND
-               IREF   = INDEXSOIL(1,M)
-               JREF   = INDEXSOIL(2,M)
-               I      = IREF - I0
-               J      = JREF - J0
-               IJLOOP = JLOP(I,J,1)
-
-               ! Fraction of grid box that is ocean
-               FSOIL = FRCLND(I,J)
- 
-
-               ! Only apply dry deposition over land surfaces which
-                    ! are not covered with ice or desert (albedo < 0.4)
-               ! and if we are in the window simulation.
-               IF ( (I.GE.1)       .AND. (I.LE.IIPAR)  .AND.
-     &              (J.GE.1)       .AND. (J.LE.JJPAR)  .AND.
-     &              (FSOIL > 0.d0) .AND. (ALBD(I,J) < 0.4d0) ) THEN
-
-                  ! Grid box area in cm2
-                  AREA_CM2 = GET_AREA_CM2( I, J, 1 )
-
-                  ! SVEL [cm/s] is the air-to-soil transfer velocity
-                  ! Use uniform value of 3.94d-2 cm/s over land
-                  ! not covered by snow or desert.
-                  SVEL = 3.94d-2
-		  
-                  ! if soil temperature is below freezing reduce dep vel
-                  ! by 1/2, and additional 1/2 below -15C(hup, 6/21/2005)
-                  ! for now use surface temperature (TS) instead of
-                  ! air temperature (T) jaegle, 12/12/2005
-		  IF (TS(I,J) <= 273.15d0) SVEL = SVEL / 2.0d0
-		  IF (TS(I,J) <= 258.15d0) SVEL =  SVEL / 2.0d0
-                  
-		  ! if desert, set deposition velocity to zero by multiplying
-		  ! dep vel by the fraction covered by desert(hup, 5/1/2006)
-		  ! IJLAND+1 is the Olson Land type index 
-            	  ! 51: desert	52: desert set SVEL = 0
-		  ! IJUSE is the fraction of the grid square occupied by surface K
-		  ! in units of per mil (IJUSE=500 -> 50% of the grid square). 
-		  DO K = 1, IREG(IREF,JREF)
-	          
-                     NTYP(I,J) = ILAND(I,J,K) + 1
-                     
-                     IF (NTYP(I,J) .eq. 52 .or. NTYP(I,J) .eq. 51) THEN 
-		  	SVEL = SVEL*(1-(IUSE(I,J,K)/1.d3)) 
-                     ENDIF
-                     
-		  ENDDO
-		  
-		  ! For HD add soil fractionation with 
-                  ! an alpha coefficient of 0.943 Gerst & Quay, 2001
-		  IF (N .eq. 2) SVEL = SVEL * 0.943
-
-
-                  ! Get THIK  (cannot use ZH variable, since
-                  ! DO_DRYDEP, METERO, and DEPVEL are not called in H2/HD sims)
-
-                  ! Fraction of box (I,J,L) under PBL top [unitless]
-                  F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )
-      
-                  ! Mixed layer depth [m]
-                  MLD = GET_PBL_TOP_m( I, J )
-      
-                  ! THIK = thickness of surface layer [m]
-                  THIK    = BXHEIGHT(I,J,1)
-                  ! Add option for non-local PBL mixing scheme: 
-                  ! only the surface (Lin, 03/31/09) 
-                  IF (.NOT. LNLPBL) THIK    = MAX( MLD, THIK ) 
-                  
-                  ! Dry deposition frequency [1/s]
-                  DRYF    = ( SVEL / 100.d0 ) / THIK
-		  
-		  ! FRACLOST = Fraction of species lost to drydep [unitless]
-                  FRACLOST = DRYF * DTCHEM * F_UNDER_TOP
-                  ! Add option for non-local PBL mixing scheme:
-                  ! only the surface (Lin, 03/31/29)
-                  IF (LNLPBL) FRACLOST = DRYF * DTCHEM
-
-                  !========================================================
-                  ! Proceed as follows:
-                  ! -------
-                  ! (a) If FRACLOST < 0, then stop the run.
-                  !
-                  ! (b) If FRACLOST > 1, use an exponential loss to 
-                  !     avoid negative tracer
-                  !
-                  ! (c) If FRACLOST is in the range (0-1), then use the 
-                  !     regular formula (STT * FRACLOST) to compute
-                  !     the loss from dry deposition.
-                  !========================================================
-
-                  ! Stop the run on negative FRACLOST!
-                  IF ( FRACLOST < 0 ) THEN
-                     CALL ERROR_STOP( 'FRACLOST < 0', 'dryflxH2HD' )
-                  ENDIF
-
-
-                  ! AMT_LOST = amount of tracer lost to drydep [kg]
-                  IF ( FRACLOST > 1 ) THEN
-                     AMT_LOST = STT(I,J,L,NN) * ( 1d0 - EXP(-FRACLOST) )
-     &                    * FSOIL
-                  ELSE
-                     AMT_LOST = STT(I,J,L,NN) * FRACLOST * FSOIL
-                  ENDIF
-
-
-                  ! ND44 diagnostic: drydep flux [kg/s]
-                  ! ND44 diagnostic: drydep velocity [cm/s]
-                  IF ( ND44 > 0 ) THEN
-                     AD44(I,J,N,1) = AD44(I,J,N,1) + ( AMT_LOST/DTCHEM ) 
-                     AD44(I,J,N,2) = AD44(I,J,N,2) + SVEL * FSOIL
-                  ENDIF
-
-
-                  ! Subtract AMT_LOST from the STT array [kg]
-                  STT(I,J,L,NN)  = STT(I,J,L,NN) - AMT_LOST
-		
-                    
-            ENDIF               ! I and J within bounds, ALBD<0.4 and FSOIL>0
-         ENDDO                  ! M = LAND GRID BOXES
+!           ! Loop over each land grid-box
+!            DO M      = 1, NLAND
+!
+!               !IREF   = INDEXSOIL(1,M)
+!               !JREF   = INDEXSOIL(2,M)
+!               I      = IREF - I0
+!               J      = JREF - J0
+!               IJLOOP = JLOP(I,J,1)
+!
+!               ! Fraction of grid box that is ocean
+!               FSOIL = State_Met%FRCLND(I,J)
+! 
+!
+!               ! Only apply dry deposition over land surfaces which
+!                    ! are not covered with ice or desert (albedo < 0.4)
+!               ! and if we are in the window simulation.
+!               IF ( (I.GE.1)       .AND. (I.LE.IIPAR)  .AND.
+!     &              (J.GE.1)       .AND. (J.LE.JJPAR)  .AND.
+!     &              (FSOIL > 0.d0) .AND. 
+!     &              (State_Met%ALBD(I,J) < 0.4d0) ) THEN
+!
+!                  ! Grid box area in cm2
+!                  AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+!
+!                  ! SVEL [cm/s] is the air-to-soil transfer velocity
+!                  ! Use uniform value of 3.94d-2 cm/s over land
+!                  ! not covered by snow or desert.
+!                  SVEL = 3.94d-2
+!		  
+!                  ! if soil temperature is below freezing reduce dep vel
+!                  ! by 1/2, and additional 1/2 below -15C(hup, 6/21/2005)
+!                  ! for now use surface temperature (TS) instead of
+!                  ! air temperature (T) jaegle, 12/12/2005
+!		  IF (State_Met%TS(I,J) <= 273.15d0) SVEL = SVEL / 2.0d0
+!		  IF (State_Met%TS(I,J) <= 258.15d0) SVEL = SVEL / 2.0d0
+!                  
+!		  ! if desert, set deposition velocity to zero by multiplying
+!		  ! dep vel by the fraction covered by desert(hup, 5/1/2006)
+!		  ! IJLAND+1 is the Olson Land type index 
+!            	  ! 51: desert	52: desert set SVEL = 0
+!		  ! IJUSE is the fraction of the grid square occupied by surface K
+!		  ! in units of per mil (IJUSE=500 -> 50% of the grid square). 
+!		  DO K = 1, IREG(IREF,JREF)
+!	          
+!                     NTYP(I,J) = ILAND(I,J,K) + 1
+!                     
+!                     IF (NTYP(I,J) .eq. 52 .or. NTYP(I,J) .eq. 51) THEN 
+!		  	SVEL = SVEL*(1-(IUSE(I,J,K)/1.d3)) 
+!                     ENDIF
+!                     
+!		  ENDDO
+!		  
+!		  ! For HD add soil fractionation with 
+!                  ! an alpha coefficient of 0.943 Gerst & Quay, 2001
+!		  IF (N .eq. 2) SVEL = SVEL * 0.943
+!
+!
+!                  ! Get THIK  (cannot use ZH variable, since
+!                  ! DO_DRYDEP, METERO, and DEPVEL are not called in H2/HD sims)
+!
+!                  ! Fraction of box (I,J,L) under PBL top [unitless]
+!                  F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )
+!      
+!                  ! Mixed layer depth [m]
+!                  MLD = GET_PBL_TOP_m( I, J )
+!      
+!                  ! THIK = thickness of surface layer [m]
+!                  THIK    = State_Met%BXHEIGHT(I,J,1)
+!
+!                  ! Add option for non-local PBL mixing scheme: 
+!                  ! only the surface (Lin, 03/31/09) 
+!                  IF (.NOT. LNLPBL) THIK    = MAX( MLD, THIK ) 
+!                  
+!                  ! Dry deposition frequency [1/s]
+!                  DRYF    = ( SVEL / 100.d0 ) / THIK
+!		  
+!		  ! FRACLOST = Fraction of species lost to drydep [unitless]
+!                  FRACLOST = DRYF * DTCHEM * F_UNDER_TOP
+!                  ! Add option for non-local PBL mixing scheme:
+!                  ! only the surface (Lin, 03/31/29)
+!                  IF (LNLPBL) FRACLOST = DRYF * DTCHEM
+!
+!                  !========================================================
+!                  ! Proceed as follows:
+!                  ! -------
+!                  ! (a) If FRACLOST < 0, then stop the run.
+!                  !
+!                  ! (b) If FRACLOST > 1, use an exponential loss to 
+!                  !     avoid negative tracer
+!                  !
+!                  ! (c) If FRACLOST is in the range (0-1), then use the 
+!                  !     regular formula (STT * FRACLOST) to compute
+!                  !     the loss from dry deposition.
+!                  !========================================================
+!
+!                  ! Stop the run on negative FRACLOST!
+!                  IF ( FRACLOST < 0 ) THEN
+!                     CALL ERROR_STOP( 'FRACLOST < 0', 'dryflxH2HD' )
+!                  ENDIF
+!
+!
+!                  ! AMT_LOST = amount of tracer lost to drydep [kg]
+!                  IF ( FRACLOST > 1 ) THEN
+!                     AMT_LOST = STT(I,J,L,NN) * ( 1d0 - EXP(-FRACLOST) )
+!     &                    * FSOIL
+!                  ELSE
+!                     AMT_LOST = STT(I,J,L,NN) * FRACLOST * FSOIL
+!                  ENDIF
+!
+!
+!                  ! ND44 diagnostic: drydep flux [kg/s]
+!                  ! ND44 diagnostic: drydep velocity [cm/s]
+!                  IF ( ND44 > 0 ) THEN
+!                     AD44(I,J,N,1) = AD44(I,J,N,1) + ( AMT_LOST/DTCHEM ) 
+!                     AD44(I,J,N,2) = AD44(I,J,N,2) + SVEL * FSOIL
+!                  ENDIF
+!
+!
+!                  ! Subtract AMT_LOST from the STT array [kg]
+!                  STT(I,J,L,NN)  = STT(I,J,L,NN) - AMT_LOST
+!		
+!                    
+!            ENDIF               ! I and J within bounds, ALBD<0.4 and FSOIL>0
+!         ENDDO                  ! M = LAND GRID BOXES
          ENDDO                  ! PBL layers
       ENDDO                     ! NUMDEP = Number of species that drydep
 
@@ -1273,7 +1311,11 @@
       SUBROUTINE DEPVEL( NPTS,   RADIAT, TEMP,    SUNCOS, F0,  
      &                   HSTAR,  XMW,    AIROSOL, USTAR,  CZ1,    
      &                   OBK,    CFRAC,  ZH,      LSNOW,  DVEL,  
-     &                   ZO,     RHB,    PRESSU,  W10           )
+     &                   ZO,     RHB,    PRESSU,  W10,    State_Met )
+!
+! !USES:
+!
+      USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -1294,6 +1336,7 @@
       REAL*8,  INTENT(IN) :: RHB    (MAXIJ )  ! Relative humidity [%]
       REAL*8,  INTENT(IN) :: PRESSU (MAXIJ )  ! Surface pressure [hPa]
       REAL*8,  INTENT(IN) :: W10    (MAXIJ )  ! Wind speed @ 10m altitude [m/s]
+      TYPE(MetState), INTENT(IN) :: State_Met ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 ! 
@@ -1522,7 +1565,8 @@
       ! This is done differently than 2-bin seasalt and 4-bin dust
       ! because at each box the aerosol size&density is different
       ! depending on the internally-mixed composition (win, 7/15/09)
-      if (IDTNK1 > 0 ) CALL AERO_DIADEN( SIZ_DIA(:,:), SIZ_DEN(:,:),1 )
+      if (IDTNK1 > 0 )
+     &   CALL AERO_DIADEN( SIZ_DIA(:,:), SIZ_DEN(:,:), 1, State_Met )
 
       ! Add parallel DO-loop (bmy, 2/22/05)
 !$OMP PARALLEL DO
@@ -1799,7 +1843,7 @@
                   !=====================================================     
 
                   ! Get current aerosol diameter and density
-                  BIN = NTRAIND(K) - IDTNK1 + 1
+                  BIN       = NTRAIND(K) - IDTNK1 + 1
                   A_RADI(K) = SIZ_DIA( IJLOOP, BIN ) / 2.d0    !(m)
                   A_DEN(K)  = SIZ_DEN( IJLOOP, BIN )           !(kg/m3)
 
@@ -5014,6 +5058,355 @@
      &                          SALC_REDGE_um(2) ) * 0.5d-6
             A_DEN(NUMDEP)   = 2200.d0         
             AIROSOL(NUMDEP) = .TRUE. 
+
+         !----------------------------------
+         ! Sulfuric acid gas tracer   !(win, 7/14/09)
+         !----------------------------------
+         ! H2SO4
+         ELSE IF ( N == IDTH2SO4 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTH2SO4
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'H2SO4'
+            HSTAR(NUMDEP)   = 1.0d+5
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 98d-3
+            AIROSOL(NUMDEP) = .FALSE. 
+                     
+         !----------------------------------
+         ! Aerosol number tracers     !(win, 7/14/09)
+         !----------------------------------
+
+         ! NK1 (aerosol)
+         ELSE IF  ( N == IDTNK1) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK1
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK1'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE. 
+
+         ! NK2 (aerosol)
+         ELSE IF  ( N == IDTNK2) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK2
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK2'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE. 
+
+         ! NK3 (aerosol)
+         ELSE IF  ( N == IDTNK3) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK3
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK3'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK4 (aerosol)
+         ELSE IF  ( N == IDTNK4) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK4
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK4'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK5 (aerosol)
+         ELSE IF  ( N == IDTNK5) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK5
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK5'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK6 (aerosol)
+         ELSE IF  ( N == IDTNK6) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK6
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK6'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK7 (aerosol)
+         ELSE IF  ( N == IDTNK7) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK7
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK7'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK8 (aerosol)
+         ELSE IF  ( N == IDTNK8) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK8
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK8'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK9 (aerosol)
+         ELSE IF  ( N == IDTNK9) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK9
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK9'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK10 (aerosol)
+         ELSE IF  ( N == IDTNK10) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK10
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK10'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK11 (aerosol)
+         ELSE IF  ( N == IDTNK11) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK11
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK11'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE. 
+
+         ! NK12 (aerosol)
+         ELSE IF  ( N == IDTNK12) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK12
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK12'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE. 
+
+         ! NK13 (aerosol)
+         ELSE IF  ( N == IDTNK13) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK13
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK13'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK14 (aerosol)
+         ELSE IF  ( N == IDTNK14) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK14
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK14'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK15 (aerosol)
+         ELSE IF  ( N == IDTNK15) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK15
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK15'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+ 
+         ! NK16 (aerosol)
+         ELSE IF  ( N == IDTNK16) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK16
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK16'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK17 (aerosol)
+         ELSE IF  ( N == IDTNK17) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK17
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK17'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK18 (aerosol)
+         ELSE IF  ( N == IDTNK18) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK18
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK18'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK19 (aerosol)
+         ELSE IF  ( N == IDTNK19) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK19
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK19'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK20 (aerosol)
+         ELSE IF  ( N == IDTNK20) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK20
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK20'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK21 (aerosol)
+         ELSE IF  ( N == IDTNK21) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK21
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK21'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE. 
+
+         ! NK22 (aerosol)
+         ELSE IF  ( N == IDTNK22) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK22
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK22'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE. 
+
+         ! NK23 (aerosol)
+         ELSE IF  ( N == IDTNK23) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK23
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK23'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK24 (aerosol)
+         ELSE IF  ( N == IDTNK24) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK24
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK24'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK25 (aerosol)
+         ELSE IF  ( N == IDTNK25) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK25
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK25'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK26 (aerosol)
+         ELSE IF  ( N == IDTNK26) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK26
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK26'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK27 (aerosol)
+         ELSE IF  ( N == IDTNK27) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK27
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK27'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK28 (aerosol)
+         ELSE IF  ( N == IDTNK28) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK28
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK28'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK29 (aerosol)
+         ELSE IF  ( N == IDTNK29) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK29
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK29'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK30 (aerosol)
+         ELSE IF  ( N == IDTNK30) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK30
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK30'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
          !----------------------------------
 	 ! H2/HD tracers 
          ! (hup, jaegle, phs, 9/17/08)

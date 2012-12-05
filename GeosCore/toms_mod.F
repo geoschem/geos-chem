@@ -247,6 +247,7 @@
       YYYYMMDD = ( YEAR * 10000 ) + ( THISMONTH * 100 ) + 01
      
       ! Define filename (with replaceable tokens)
+#if   !defined( GCAP )
 #if   defined( GEOS_57 )
       !%%% KLUDGE FOR SEAC4RS
       !%%% Update to the latest TOMS data directory only for GEOS-5.7.2 met.
@@ -258,6 +259,10 @@
       !%%% Std GEOS-Chem: Read from the existing TOMS data directory
       !%%% for the time being (bmy, 7/2/12)
       FILENAME = 'TOMS_200906/TOMS_O3col_YYYY.' // GET_NAME_EXT_2D() //
+     &           '.'                            // GET_RES_EXT()
+#endif
+#else
+      FILENAME = 'TOMS_200701/TOMS_O3col_YYYY.' // GET_NAME_EXT_2D() //
      &           '.'                            // GET_RES_EXT()
 #endif
 

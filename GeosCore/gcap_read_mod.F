@@ -315,16 +315,22 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_GCAP_FIELDS
+      SUBROUTINE GET_GCAP_FIELDS( State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD, ONLY : PHIS, LWI_GISS
+      USE GIGC_State_Met_Mod, ONLY : MetState
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  01 Feb 2006 - S. Wu       - Initial version
 !  (1 ) Now also read LWI_GISS for GCAP met fields (swu, bmy, 5/25/05)
 !  06 Aug 2012 - R. Yantosca - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
+!                              object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -342,8 +348,12 @@
       NHMS = 000000
 
       ! For GCAP met fields: read PHIS and LWI_GISS
-      CALL READ_GCAP( NYMD=NYMD, NHMS=NHMS, PHIS=PHIS, LWI=LWI_GISS )
+      CALL READ_GCAP( NYMD = NYMD, 
+     &                NHMS = NHMS, 
+     &                PHIS = State_Met%PHIS, 
+     &                LWI  = State_Met%LWI_GISS )
 
+      ! Return to calling program
       END SUBROUTINE GET_GCAP_FIELDS
 !EOC
 !------------------------------------------------------------------------------
@@ -578,7 +588,6 @@
 ! !REVISION HISTORY: 
 !  15 Jun 1998 - R. Yantosca - Initial version
 !  (1 ) Adapted from DAO_CHECK from "dao_read_mod.f" (bmy, 6/16/03)
-
 !  06 Aug 2012 - R. Yantosca - Added ProTeX headers
 !EOP
 !------------------------------------------------------------------------------

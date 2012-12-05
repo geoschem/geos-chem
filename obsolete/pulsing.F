@@ -1,5 +1,9 @@
 ! $Id: pulsing.f,v 1.1 2009/09/16 14:06:14 bmy Exp $
+#if defined( DEVEL )
+      FUNCTION PULSING( I, J, M, LOCAL_MET ) RESULT( THE_PULSING )
+#else
       FUNCTION PULSING( I, J, M ) RESULT( THE_PULSING )
+#endif
 !
 !******************************************************************************
 !  Function PULSING calculates the increase (or "pulse") of soil NO emission 
@@ -28,6 +32,9 @@
 !
       ! References to F90 modules
       USE TIME_MOD, ONLY : GET_TS_EMIS
+#if defined( DEVEL )
+      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD   
       USE COMMSOIL_MOD
@@ -37,6 +44,9 @@
       
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, M
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 
       ! Local variables
       INTEGER             :: K
@@ -85,7 +95,11 @@
          ! adjusted so that it only applies to the fraction of the 
          ! grid box where it is actually raining.
          !==============================================================
+#if defined( DEVEL )
+         CALL PRECIPFRAC( I, J, RATE, FRAC, LOCAL_MET )
+#else
          CALL PRECIPFRAC( I, J, RATE, FRAC )
+#endif
 
          !==============================================================
          ! We now determine if a new pulse is to be applied to the grid

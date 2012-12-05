@@ -26,7 +26,7 @@ MODULE Modis_Lai_Mod
 ! !USES:
 !
   USE CMN_SIZE_Mod                                ! Size parameters
-  USE CMN_DEP_Mod                                 ! IREG, ILAND, IUSE, FRCLND
+  USE CMN_DEP_Mod                                 ! IREG, ILAND, IUSE
   USE Directory_Mod                               ! Disk directory paths   
   USE Error_Mod                                   ! Error checking routines
   USE Logical_Mod                                 ! Logical switches

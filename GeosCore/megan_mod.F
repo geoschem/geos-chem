@@ -2686,11 +2686,16 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE UPDATE_T_DAY
+      SUBROUTINE UPDATE_T_DAY( State_Met )
 !
 ! !USES:
 !
-      USE MEGANUT_MOD     ! We use all functions from the module
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE MEGANUT_MOD              ! We use all functions from the module
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  (1 ) All MEGAN biogenic emission are currently calculated using TS from DAO 
@@ -2699,6 +2704,8 @@
 !  (2 ) In GEOS4, TS are originally T2M in the A3 files, read in 
 !        'a3_read_mod.f'. 
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2725,9 +2732,9 @@
          ENDDO
             
          ! Store 
-         T_DAY(I,J,1)     = XLTMMP(I,J)
-         PARDF_DAY(I,J,1) = XLPARDF(I,J)
-         PARDR_DAY(I,J,1) = XLPARDR(I,J)
+         T_DAY(I,J,1)     = XLTMMP ( I, J, State_Met%TS    )
+         PARDF_DAY(I,J,1) = XLPARDF( I, J, State_Met%PARDF )
+         PARDR_DAY(I,J,1) = XLPARDR( I, J, State_Met%PARDR )
 
       ENDDO
       ENDDO
@@ -2842,21 +2849,26 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_MEGAN
+      SUBROUTINE INIT_MEGAN( State_Met )
 !
 ! !USES:
 !
       USE A3_READ_MOD
-      USE GEOS57_READ_MOD,  ONLY : GEOS57_READ_A1
-      USE inquireMod,       ONLY : findFreeLUN
+      USE GEOS57_READ_MOD,    ONLY : GEOS57_READ_A1
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE inquireMod,         ONLY : findFreeLUN
       USE MERRA_A1_MOD
-      USE JULDAY_MOD,       ONLY : CALDATE
-      USE ERROR_MOD,        ONLY : ALLOC_ERR
-      USE LOGICAL_MOD,      ONLY : LUNZIP
-      USE TIME_MOD,         ONLY : GET_FIRST_A3_TIME
-      USE TIME_MOD,         ONLY : GET_JD
-      USE TIME_MOD,         ONLY : ITS_A_LEAPYEAR
-      USE TIME_MOD,         ONLY : YMD_EXTRACT
+      USE JULDAY_MOD,         ONLY : CALDATE
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE LOGICAL_MOD,        ONLY : LUNZIP
+      USE TIME_MOD,           ONLY : GET_FIRST_A3_TIME
+      USE TIME_MOD,           ONLY : GET_JD
+      USE TIME_MOD,           ONLY : ITS_A_LEAPYEAR
+      USE TIME_MOD,           ONLY : YMD_EXTRACT
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  (1 ) Change the logic in the #if block for G4AHEAD. (bmy, 12/6/05)
@@ -3114,7 +3126,8 @@
             ! GEOS-5.7.x met fields
             ! Sfc temp is hourly data
             !-----------------------------
-            CALL GEOS57_READ_A1( NYMD_T15, 010000*J + G4AHEAD ) 
+            CALL GEOS57_READ_A1( NYMD_T15, 010000*J + G4AHEAD,
+     &                           State_Met ) 
 
 #elif   defined( MERRA )
 
@@ -3124,12 +3137,12 @@
             !-----------------------------
 
             ! Open A1 fields
-            CALL OPEN_MERRA_A1_FIELDS( NYMD_T15, 
-     &                                 010000*J + G4AHEAD, 
-     &                                 IUNIT=IUNIT                  )
+            CALL OPEN_MERRA_A1_FIELDS( NYMD_T15, 010000*J + G4AHEAD,
+     &                                 IUNIT=IUNIT )
 
             ! Read A1 fields from disk
-            CALL GET_MERRA_A1_FIELDS(  NYMD_T15, 010000*J + G4AHEAD ) 
+            CALL GET_MERRA_A1_FIELDS(  NYMD_T15, 010000*J + G4AHEAD,
+     &                                 State_Met ) 
 
 #else
             !-----------------------------
@@ -3138,17 +3151,17 @@
             !-----------------------------
 
             ! Open A3 fields
-            CALL OPEN_A3_FIELDS( NYMD_T15, 
-     &                           030000*J + G4AHEAD,  
-     &                           IUNIT=IUNIT                  )
+            CALL OPEN_A3_FIELDS( NYMD_T15, 030000*J + G4AHEAD, 
+     &                           IUNIT=IUNIT )
 
             ! Read A3 fields from disk
-            CALL GET_A3_FIELDS(  NYMD_T15, 030000*J + G4AHEAD ) 
+            CALL GET_A3_FIELDS(  NYMD_T15, 030000*J + G4AHEAD, 
+     &                           State_Met ) 
 
 #endif
 
             ! Update hourly temperatures
-            CALL UPDATE_T_DAY
+            CALL UPDATE_T_DAY( State_Met )
          ENDDO     
 
          ! Compute 15-day average temperatures

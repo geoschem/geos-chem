@@ -61,6 +61,7 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  03 Aug 2012 - R. Yantosca - Now make IU_A3 a private module variable
+!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -485,24 +486,21 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_A3_FIELDS( NYMD, NHMS )
+      SUBROUTINE GET_A3_FIELDS( NYMD, NHMS, State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD, ONLY : ALBD,    CLDFRC, EVAP,   GRN,      GWETROOT 
-      USE DAO_MOD, ONLY : GWETTOP, HFLUX,  LAI,    MOLENGTH, OICE    
-      USE DAO_MOD, ONLY : PARDF,   PARDR,  PBL,    PREACC,   PRECON
-      USE DAO_MOD, ONLY : PRECSNO, RADLWG, RADSWG, SNICE,    SNOMAS
-      USE DAO_MOD, ONLY : SNODP,   SNOW,   TROPP,  TS,       TSKIN
-      USE DAO_MOD, ONLY : U10M,    USTAR,  V10M,   Z0, EFLUX
-      USE DAO_MOD, ONLY : FRLAND,  FROCEAN,FRLAKE, FRLANDIC
-
-      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_SIZE_MOD
+      USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN) :: NYMD   ! YYYY/MM/DD
       INTEGER, INTENT(IN) :: NHMS   !  and hh:mm:ss of desired data
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  23 Jun 2003 - R. Yantosca - Initial version
@@ -522,6 +520,9 @@
 !        (kjw, 8/18/09)
 !  21 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
+!                              object
+!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -555,13 +556,26 @@
       ! (1 ) ALBEDO is an A-3 field in GEOS-4.
       ! (2 ) T2M is used as a proxy for TS in GEOS-4.
       !================================================================
-      CALL READ_A3( NYMD=NYMD,       NHMS=NHMS,     
-     &              ALBEDO=ALBD,     CLDFRC=CLDFRC, HFLUX=HFLUX,   
-     &              GWETTOP=GWETTOP, PARDF=PARDF,   PARDR=PARDR,  
-     &              PBL=PBL,         PREACC=PREACC, PRECON=PRECON, 
-     &              RADLWG=RADLWG,   RADSWG=RADSWG, SNOW=SNOW,  
-     &              TS=TS,           TSKIN=TSKIN,   U10M=U10M,       
-     &              USTAR=USTAR ,    V10M=V10M,     Z0=Z0 )
+      CALL READ_A3( NYMD    = NYMD,       
+     &              NHMS    = NHMS,     
+     &              ALBEDO  = State_Met%ALBD,     
+     &              CLDFRC  = State_Met%CLDFRC, 
+     &              HFLUX   = State_Met%HFLUX,   
+     &              GWETTOP = State_Met%GWETTOP, 
+     &              PARDF   = State_Met%PARDF,   
+     &              PARDR   = State_Met%PARDR,  
+     &              PBL     = State_Met%PBL,         
+     &              PREACC  = State_Met%PREACC, 
+     &              PRECON  = State_Met%PRECON, 
+     &              RADLWG  = State_Met%RADLWG,   
+     &              RADSWG  = State_Met%RADSWG, 
+     &              SNOW    = State_Met%SNOW,  
+     &              TS      = State_Met%TS,           
+     &              TSKIN   = State_Met%TSKIN,   
+     &              U10M    = State_Met%U10M,       
+     &              USTAR   = State_Met%USTAR,    
+     &              V10M    = State_Met%V10M,     
+     &              Z0      = State_Met%Z0 )
 
 #elif defined( GEOS_5 )
 
@@ -575,17 +589,38 @@
       !    FRLAND, FRLANDIC,      FROCEAN,          FRLAKE
       !
       !=================================================================
-      CALL READ_A3( NYMD=NYMD,         NHMS=NHMS,       ALBEDO=ALBD,   
-     &              CLDFRC=CLDFRC,     EVAP=EVAP,       GRN=GRN,       
-     &              GWETROOT=GWETROOT, GWETTOP=GWETTOP, HFLUX=HFLUX,   
-     &              LAI=LAI,           PARDF=PARDF,     PARDR=PARDR,       
-     &              PBL=PBL,           PREACC=PREACC,   PRECON=PRECON, 
-     &              PRECSNO=PRECSNO,   RADLWG=RADLWG,   RADSWG=RADSWG, 
-     &              SNODP=SNODP,       SNOMAS=SNOMAS,   TROPP=TROPP,   
-     &              TS=TS,             TSKIN=TSKIN,     U10M=U10M,     
-     &              USTAR=USTAR,       V10M=V10M,       Z0=Z0, 
-     &              EFLUX=EFLUX,       FRLAND=FRLAND,   FROCEAN=FROCEAN, 
-     &              FRLAKE=FRLAKE,     FRLANDIC=FRLANDIC )
+      CALL READ_A3( NYMD     = NYMD,         
+     &              NHMS     = NHMS,       
+     &              ALBEDO   = State_Met%ALBD,   
+     &              CLDFRC   = State_Met%CLDFRC,     
+     &              EVAP     = State_Met%EVAP,       
+     &              GRN      = State_Met%GRN,       
+     &              GWETROOT = State_Met%GWETROOT, 
+     &              GWETTOP  = State_Met%GWETTOP, 
+     &              HFLUX    = State_Met%HFLUX,   
+     &              LAI      = State_Met%LAI,           
+     &              PARDF    = State_Met%PARDF,     
+     &              PARDR    = State_Met%PARDR,       
+     &              PBL      = State_Met%PBLH,           
+     &              PREACC   = State_Met%PRECTOT,   
+     &              PRECON   = State_Met%PRECCON, 
+     &              PRECSNO  = State_Met%PRECSNO,   
+     &              RADLWG   = State_Met%RADLWG,   
+     &              RADSWG   = State_Met%RADSWG, 
+     &              SNODP    = State_Met%SNODP,       
+     &              SNOMAS   = State_Met%SNOMAS,   
+     &              TROPP    = State_Met%TROPP,   
+     &              TS       = State_Met%TS,             
+     &              TSKIN    = State_Met%TSKIN,     
+     &              U10M     = State_Met%U10M,     
+     &              USTAR    = State_Met%USTAR,       
+     &              V10M     = State_Met%V10M,       
+     &              Z0       = State_Met%Z0, 
+     &              EFLUX    = State_Met%EFLUX,       
+     &              FRLAND   = State_Met%FRLAND,   
+     &              FROCEAN  = State_Met%FROCEAN, 
+     &              FRLAKE   = State_Met%FRLAKE,     
+     &              FRLANDIC = State_Met%FRLANDIC )
 
 #elif defined( GCAP )
 
@@ -598,16 +633,27 @@
       !
       ! NOTES: 
       !================================================================
-      CALL READ_A3( NYMD=NYMD,     NHMS=NHMS,     
-     &              ALBEDO=ALBD,   GWETTOP=GWETTOP,   MOLENGTH=MOLENGTH,      
-     &              OICE=OICE,     PARDF=PARDF,       PARDR=PARDR,
-     &              PBL=PBL,       PREACC=PREACC,     PRECON=PRECON,
-     &              RADSWG=RADSWG, SNICE=SNICE,       SNOW=SNOW, 
-     &              TS=TS,         U10M=U10M,         USTAR=USTAR,
-     &              V10M=V10M  )
+      CALL READ_A3( NYMD     = NYMD,     
+     &              NHMS     = NHMS,     
+     &              ALBEDO   = State_Met%ALBD,   
+     &              GWETTOP  = State_Met%GWETTOP,   
+     &              MOLENGTH = State_Met%MOLENGTH,      
+     &              OICE     = State_Met%OICE,     
+     &              PARDF    = State_Met%PARDF,       
+     &              PARDR    = State_Met%PARDR,
+     &              PBL      = State_Met%PBL,       
+     &              PREACC   = State_Met%PREACC,     
+     &              PRECON   = State_Met%PRECON,
+     &              RADSWG   = State_Met%RADSWG, 
+     &              SNICE    = State_Met%SNICE,
+     &              SNOW     = State_Met%SNOW, 
+     &              TS       = State_Met%TS,
+     &              U10M     = State_Met%U10M,         
+     &              USTAR    = State_Met%USTAR,
+     &              V10M     = State_Met%V10M  )
 
       ! Convert [m] to [mm]
-      SNOW = SNOW*1000.D0
+      State_Met%SNOW = State_Met%SNOW*1000.D0
 
 #endif
 

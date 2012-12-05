@@ -37,7 +37,7 @@ MODULE GIGC_DryDep_Mod
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-  CONTAINS
+CONTAINS
 !EOC
 !------------------------------------------------------------------------------
 !     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
@@ -45,35 +45,32 @@ MODULE GIGC_DryDep_Mod
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: gigc_do_chem
+! !IROUTINE: gigc_do_drydep
 !
-! !DESCRIPTION: Routine GIGC\_DO\_CHEM is the chemistry driver for the
+! !DESCRIPTION: Routine GIGC\_DO\_DRYDEP is the chemistry driver for the
 !  Grid-Independent GEOS-Chem (aka "GIGC") model.  This routine is called by
 !  the Run method from the ESMF interface to the GEOS-5 GCM.
 !\\
 !\\
 ! !INTERFACE:
 !
-    SUBROUTINE GIGC_Do_DryDep( am_I_Root, NI,        NJ,         &
-                               NL,        Input_Opt,             &
-                               State_Chm, State_Met, RC            )
+  SUBROUTINE GIGC_Do_DryDep( am_I_Root, NI,        NJ,        NL, &
+                             Input_Opt, State_Chm, State_Met, RC )
 !
 ! !USES:
 !
-
-      USE LOGICAL_MOD
-      USE DRYDEP_MOD,         ONLY : DO_DRYDEP
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+    USE DryDep_Mod,         ONLY : Do_DryDep
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE GIGC_State_Met_Mod, ONLY : MetState
 
 ! !INPUT PARAMETERS:
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU
-    INTEGER,        INTENT(IN)    :: NI          ! # of longitudes
-    INTEGER,        INTENT(IN)    :: NJ          ! # of latitudes
-    INTEGER,        INTENT(IN)    :: NL          ! # of levels
-!>    INTEGER,        INTENT(IN)    :: NCNST       ! # of constituents
+    INTEGER,        INTENT(IN)    :: NI          ! # of lons on this CPU
+    INTEGER,        INTENT(IN)    :: NJ          ! # of lats on this CPU
+    INTEGER,        INTENT(IN)    :: NL          ! # of levs on this CPU
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -83,7 +80,7 @@ MODULE GIGC_DryDep_Mod
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 !
 ! !REMARKS:
 !
@@ -92,109 +89,40 @@ MODULE GIGC_DryDep_Mod
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
 
-! TESTING SECTION
-!<><><><><><><><><><><><><><><><><><><><><><>
-     !CALL GIGC_Dump_Config( am_I_Root )
+    ! Assume success
+    RC = GIGC_SUCCESS
 
+    !### Debug, print values in v/v before chem
+    IF ( am_I_Root ) THEN
+       WRITE(6,*) '##### GIGC_Do_DryDep, LDRYD'
+       WRITE(6,*) Input_Opt%LDRYD
+    ENDIF
+    
+    !=======================================================================
+    ! Set 3-D variables
+    !=======================================================================
 
-!<><><><><><><><><><><><><><><><><><><><><><>
-! TEMPORARY INITIALIZATION SECTION
-!>      IIPAR      = NI
-!>      JJPAR      = NJ
-!>      LLPAR      = NL
-!>      LLTROP     = NL
-!>      LLTROP_FIX = NL
+    !=======================================================================
+    ! Call the GEOS-Chem dry deposition routines
+    !=======================================================================
+    IF ( Input_Opt%LDRYD ) THEN
 
-      !======================================================================
-      ! Set 2-D variables
-      !
-      ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      ! %%% NOTE: This is a stopgap measure for testing.  Eventually we   %%%
-      ! %%% will carry the Meteorology State and Chemistry State objects  %%%
-      ! %%% down to all G-C routines.   In order to continue testing the  %%%
-      ! %%% GIGC without disrupting existing workflow, we must populate   %%%
-      ! %%% G-C module arays from the Meteorology and Chemistry States.   %%%
-      ! %%% (bmy, 10/25/12)                                               %%%
-      ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !======================================================================
-
-      ! Met fields
-
-      !======================================================================
-      ! Set 3-D variables
-      !
-      ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      ! %%% NOTE: This is a stopgap measure for testing.  Eventually we   %%%
-      ! %%% will carry the Meteorology State and Chemistry State objects  %%%
-      ! %%% down to all G-C routines.   In order to continue testing the  %%%
-      ! %%% GIGC without disrupting existing workflow, we must populate   %%%
-      ! %%% G-C module arays from the Meteorology and Chemistry States.   %%%
-      ! %%% (bmy, 10/25/12)                                               %%%
-      ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !======================================================================
-
-      ! Met fields
-
-      ! Constituents
-
-      !======================================================================
-      ! Call the GEOS-Chem Dry Deposition routines
-      !
-      ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      ! %%%                                                               %%%
-      ! %%%                                                               %%%
-      ! %%%                                                               %%%
-      ! %%%                                                               %%%
-      ! %%%                                                               %%%
-      ! %%%                                                               %%%
-      ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !======================================================================
-
-      !### Debug, print values in v/v before chem
-      IF ( am_I_Root ) THEN
-         WRITE(6,*) '##### GIGC_Do_DryDep, LDRYD'
-         WRITE(6,*) LDRYD
-      ENDIF
-
-      ! If we are doing chemistry
-      IF ( LDRYD ) THEN
-
-         ! Convert Units
-
-         ! Call the GEOS-Chem Dry Deposition routines
-         CALL Do_DryDep( am_I_Root, NI,        NJ,        NL,  &
-                         Input_Opt, State_Met, State_Chm, RC )
-         RC = 1
-
-         ! Convert Units
-           
-      ENDIF
-
-      !======================================================================
-      ! Reset 3-D variables
-      !
-      ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      ! %%% NOTE: This is a stopgap measure for testing.  Eventually we   %%%
-      ! %%% will carry the Meteorology State and Chemistry State objects  %%%
-      ! %%% down to all G-C routines.   In order to continue testing the  %%%
-      ! %%% GIGC without disrupting existing workflow, we must populate   %%%
-      ! %%% G-C module arays from the Meteorology and Chemistry States.   %%%
-      ! %%% (bmy, 10/25/12)                                               %%%
-      ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !======================================================================
-
-      ! Save chemistry output for next timestep
-      ! State_Chm%Species = CSPEC_FULL
-
-      !### Debug
-      !IF ( am_I_Root ) THEN
-      !   WRITE(6,*) '##### GIGC_Do_DryDep, TRC_OX after chem'
-      !   WRITE(6,*) State_Chm%Tracers(1,1,:,2)
-      !ENDIF
+       ! Call the GEOS-Chem Dry Deposition routines
+       CALL Do_DryDep( am_I_Root = am_I_Root,            &
+                       Input_Opt = Input_Opt,            &
+                       State_Met = State_Met,            &
+                       State_Chm = State_Chm,            &
+                       RC        = RC
+    ENDIF
+    !=======================================================================
+   ! Reset 3-D variables
+   !=======================================================================
+    !### Debug
+   !IF ( am_I_Root ) THEN
+   !   WRITE(6,*) '##### GIGC_Do_DryDep, TRC_OX after chem'
+   !   WRITE(6,*) State_Chm%Tracers(1,1,:,2)
+   !ENDIF
 
     END SUBROUTINE GIGC_Do_DryDep
 !EOC

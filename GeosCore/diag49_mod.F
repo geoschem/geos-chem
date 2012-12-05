@@ -177,42 +177,42 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG49
+      SUBROUTINE DIAG49( State_Met )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,     ONLY : BPCH2,   OPEN_BPCH2_FOR_WRITE
-      USE DAO_MOD,       ONLY : AD,      AIRDEN, BXHEIGHT, CLDF 
-      USE DAO_MOD,       ONLY : CLDTOPS, OPTD,   RH,       SLP     
-      USE DAO_MOD,       ONLY : T,       UWND,   VWND
-      USE DAO_MOD,       ONLY : TS
-      USE DAO_MOD,       ONLY : PARDF, PARDR
-      USE DAO_MOD,       ONLY : PREACC,   PRECON
-      USE MODIS_LAI_MOD, ONLY : ISOLAI => GC_LAI
-      USE LOGICAL_MOD,   ONLY : LSOILNOX 
-      USE GRID_MOD,      ONLY : GET_XOFFSET,        GET_YOFFSET
-      USE inquireMod,    ONLY : findFreeLun
-      USE TIME_MOD,      ONLY : EXPAND_DATE
-      USE TIME_MOD,      ONLY : GET_NYMD,           GET_NHMS
-      USE TIME_MOD,      ONLY : GET_NYMD_DIAG,      GET_TS_DIAG
-      USE TIME_MOD,      ONLY : GET_TAU,            GET_HOUR
-      USE TIME_MOD,      ONLY : ITS_A_NEW_DAY,      TIMESTAMP_STRING
-      USE PBL_MIX_MOD,   ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
-      USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM, N_TRACERS
-      USE TRACER_MOD,    ONLY : STT,                TCVV
-      USE TRACER_MOD,    ONLY : XNUMOLAIR
-      USE PRESSURE_MOD,  ONLY : GET_PEDGE
-      USE TRACERID_MOD,  ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNOX  
-      USE TRACERID_MOD,  ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
-      USE TRACERID_MOD,  ONLY : IDTR4N2, IDTSALA, IDTSALC 
-      USE LOGICAL_MOD,   ONLY : DO_DIAG_WRITE
+      USE BPCH2_MOD,          ONLY : BPCH2,   OPEN_BPCH2_FOR_WRITE
+      USE MODIS_LAI_MOD,      ONLY : ISOLAI => GC_LAI
+      USE LOGICAL_MOD,        ONLY : LSOILNOX 
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_XOFFSET,        GET_YOFFSET
+      USE inquireMod,         ONLY : findFreeLun
+      USE TIME_MOD,           ONLY : EXPAND_DATE
+      USE TIME_MOD,           ONLY : GET_NYMD,           GET_NHMS
+      USE TIME_MOD,           ONLY : GET_NYMD_DIAG,      GET_TS_DIAG
+      USE TIME_MOD,           ONLY : GET_TAU,            GET_HOUR
+      USE TIME_MOD,           ONLY : ITS_A_NEW_DAY
+      USE TIME_MOD,           ONLY : TIMESTAMP_STRING
+      USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
+      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM, N_TRACERS
+      USE TRACER_MOD,         ONLY : STT,                TCVV
+      USE TRACER_MOD,         ONLY : XNUMOLAIR
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE
+      USE TRACERID_MOD,       ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNOX  
+      USE TRACERID_MOD,       ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
+      USE TRACERID_MOD,       ONLY : IDTR4N2, IDTSALA, IDTSALC 
+      USE LOGICAL_MOD,        ONLY : DO_DIAG_WRITE
 
-      USE CMN_FJ_MOD,    ONLY : JPMAX,   JPPJ     ! FAST-J stuff
-      USE JV_CMN_MOD                              ! ODAER, QAA, QAA_AOD (clh)
-      USE CMN_O3_MOD	                          ! Pure O3, SAVENO2
-      USE CMN_GCTM_MOD                            ! XTRA2
+      USE CMN_FJ_MOD,         ONLY : JPMAX,   JPPJ     ! FAST-J stuff
+      USE JV_CMN_MOD               ! ODAER, QAA, QAA_AOD (clh)
+      USE CMN_O3_MOD	           ! Pure O3, SAVENO2
+      USE CMN_GCTM_MOD             ! XTRA2
       USE COMMSOIL_MOD
 
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !REVISION HISTORY: 
 !  09 Apr 1999 - I. Bey, R. Martin, R. Yantosca - Initial version
@@ -243,6 +243,8 @@
 !  11 Apr 2012 - R. Yantosca - Replace lai_mod.F with modis_lai_mod.F90
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -272,9 +274,9 @@
 
       ! Set logical flags on first timestep
       IF ( FIRST ) THEN
-         IS_CLDTOPS  = ALLOCATED( CLDTOPS )
-         IS_OPTD     = ALLOCATED( OPTD    )
-         IS_SLP      = ALLOCATED( SLP     )
+         IS_CLDTOPS  = ASSOCIATED( State_Met%CLDTOPS )
+         IS_SLP      = ASSOCIATED( State_Met%SLP     )
+         IS_OPTD     = ASSOCIATED( State_Met%OPTD    )
          IS_FULLCHEM = ITS_A_FULLCHEM_SIM()
          IS_SEASALT  = ( IDTSALA > 0 .and. IDTSALC > 0 )
          IS_Ox       = ( IS_FULLCHEM .and. IDTOX   > 0 )
@@ -362,7 +364,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = STT(I,J,L,N) * TCVV(N) / AD(I,J,L)
+               Q(X,Y,K) = STT(I,J,L,N) * TCVV(N) / State_Met%AD(I,J,L)
             ENDDO
             ENDDO
             ENDDO
@@ -387,8 +389,8 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = STT(I,J,L,IDTOX) * TCVV(IDTOX)  / 
-     &                    AD(I,J,L)        * FRACO3(I,J,L) 
+               Q(X,Y,K) = STT(I,J,L,IDTOX)    * TCVV(IDTOX)  / 
+     &                    State_Met%AD(I,J,L) * FRACO3(I,J,L) 
             ENDDO
             ENDDO
             ENDDO
@@ -412,9 +414,9 @@
             DO Y = 1, ND49_NJ
                J = JOFF + Y
             DO X = 1, ND49_NI
-               I = GET_I( X )   
+               I = GET_I( X )
                Q(X,Y,K) = STT(I,J,L,IDTNOX) * TCVV(IDTNOX) * 
-     &                    FRACNO(I,J,L)     / AD(I,J,L)
+     &                    FRACNO(I,J,L)     / State_Met%AD(I,J,L)
             ENDDO
             ENDDO
             ENDDO
@@ -445,37 +447,46 @@
             
                ! NOx
                TMP = TMP + ( TCVV(IDTNOX)        *
-     &                       STT(I,J,L,IDTNOX)   / AD(I,J,L) )
+     &                       STT(I,J,L,IDTNOX)   / 
+     &                       State_Met%AD(I,J,L) )
                ! PAN
                TMP = TMP + ( TCVV(IDTPAN)        * 
-     &                       STT(I,J,L,IDTPAN)   / AD(I,J,L) )
+     &                       STT(I,J,L,IDTPAN)   / 
+     &                       State_Met%AD(I,J,L) )
 
                ! HNO3
                TMP = TMP + ( TCVV(IDTHNO3)       *
-     &                       STT(I,J,L,IDTHNO3)  / AD(I,J,L) )
+     &                       STT(I,J,L,IDTHNO3)  / 
+     &                       State_Met%AD(I,J,L) )
             
                ! PMN
                TMP = TMP + ( TCVV(IDTPMN)        *
-     &                       STT(I,J,L,IDTPMN)   / AD(I,J,L) )
+     &                       STT(I,J,L,IDTPMN)   / 
+     &                       State_Met%AD(I,J,L) )
 
                ! PPN
                TMP = TMP + ( TCVV(IDTPPN)        * 
-     &                       STT(I,J,L,IDTPPN)   / AD(I,J,L) )
+     &                       STT(I,J,L,IDTPPN)   / 
+     &                       State_Met%AD(I,J,L) )
  
                ! R4N2
                TMP = TMP + ( TCVV(IDTR4N2)       *
-     &                       STT(I,J,L,IDTR4N2)  / AD(I,J,L) )
+     &                       STT(I,J,L,IDTR4N2)  / 
+     &                       State_Met%AD(I,J,L) )
             
                ! N2O5
                TMP = TMP + ( 2d0 * TCVV(IDTN2O5) *
-     &                       STT(I,J,L,IDTN2O5)  / AD(I,J,L) )
+     &                       STT(I,J,L,IDTN2O5)  / 
+     &                       State_Met%AD(I,J,L) )
                         
                ! HNO4
                TMP = TMP + ( TCVV(IDTHNO4)       *
-     &                       STT(I,J,L,IDTHNO4)  / AD(I,J,L) )
+     &                       STT(I,J,L,IDTHNO4)  / 
+     &                       State_Met%AD(I,J,L) )
 
                ! Save afternoon points
                Q(X,Y,K) = Q(X,Y,K) + TMP
+
             ENDDO
             ENDDO
             ENDDO
@@ -594,7 +605,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = AIRDEN(L,I,J) * XNUMOLAIR * 1d-6
+               Q(X,Y,K) = State_Met%AIRDEN(L,I,J) * XNUMOLAIR * 1d-6
             ENDDO
             ENDDO
             ENDDO
@@ -619,7 +630,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = CLDF(K,I,J)
+               Q(X,Y,K) = State_Met%CLDF(K,I,J)
             ENDDO
             ENDDO
             ENDDO
@@ -642,7 +653,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,1) = SUM( OPTD(:,I,J) )
+               Q(X,Y,1) = SUM( State_Met%OPTD(:,I,J) )
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
@@ -666,7 +677,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = GET_PEDGE( I, J, CLDTOPS(I,J) )
+               Q(X,Y,K) = GET_PEDGE( I, J, State_Met%CLDTOPS(I,J) )
             ENDDO
             ENDDO
             ENDDO
@@ -936,7 +947,7 @@
             DO X = 1, ND49_NI
                I = GET_I( X )
                Q(X,Y,K) = ( STT(I,J,L,IDTSALA) + STT(I,J,L,IDTSALC) ) *
-     &                      TCVV(IDTSALA)      / AD(I,J,L) 
+     &                      TCVV(IDTSALA)      / State_Met%AD(I,J,L) 
             ENDDO
             ENDDO
             ENDDO
@@ -961,7 +972,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = BXHEIGHT(I,J,L)
+               Q(X,Y,K) = State_Met%BXHEIGHT(I,J,L)
             ENDDO
             ENDDO
             ENDDO
@@ -986,7 +997,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = RH(I,J,L)
+               Q(X,Y,K) = State_Met%RH(I,J,L)
             ENDDO
             ENDDO
             ENDDO
@@ -1009,7 +1020,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,1) = SLP(I,J)
+               Q(X,Y,1) = State_Met%SLP(I,J)
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
@@ -1033,7 +1044,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = UWND(I,J,L)
+               Q(X,Y,K) = State_Met%U(I,J,L)
             ENDDO
             ENDDO
             ENDDO
@@ -1058,7 +1069,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = VWND(I,J,L)
+               Q(X,Y,K) = State_Met%V(I,J,L)
             ENDDO
             ENDDO
             ENDDO
@@ -1108,7 +1119,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = T(I,J,L)
+               Q(X,Y,K) = State_Met%T(I,J,L)
             ENDDO
             ENDDO
             ENDDO
@@ -1131,7 +1142,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,1) = PARDF(I,J)
+               Q(X,Y,1) = State_Met%PARDF(I,J)
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
@@ -1153,7 +1164,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,1) = PARDR(I,J)
+               Q(X,Y,1) = State_Met%PARDR(I,J)
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
@@ -1291,7 +1302,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,1) =  PREACC(I,J)
+               Q(X,Y,1) =  State_Met%PRECTOT(I,J)
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
@@ -1336,7 +1347,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,1) = TS( I , J )
+               Q(X,Y,1) = State_Met%TS( I , J )
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO

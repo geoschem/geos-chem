@@ -67,6 +67,7 @@
 #  23 Oct 2012 - R. Yantosca - Added modules in ESMF
 #  23 Oct 2012 - R. Yantosca - Added tagged_co_mod
 #  23 Oct 2012 - M. Payer    - Added soil NOx modules; Removed upbdflx_mod.F
+#  27 Nov 2012 - M. Payer    - Added modules for POPs simulation
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -116,6 +117,7 @@ $(CORE)/diag42_mod.F                  \
 $(CORE)/diag49_mod.F                  \
 $(CORE)/diag50_mod.F                  \
 $(CORE)/diag51b_mod.F                 \
+$(CORE)/diag53_mod.F                  \
 $(CORE)/diag56_mod.F                  \
 $(CORE)/diag63_mod.F                  \
 $(CORE)/diag_pl_mod.F                 \
@@ -132,13 +134,16 @@ $(CORE)/get_ndep_mod.F                \
 $(CORE)/gigc_environment_mod.F90      \
 $(CORE)/gc_type_mod.F                 \
 $(CORE)/geos57_read_mod.F90           \
+$(CORE)/get_popsinfo_mod.F            \
 $(CORE)/gfed3_biomass_mod.F           \
+$(CORE)/global_bc_mod.F               \
 $(CORE)/global_br_mod.F               \
 $(CORE)/global_ch4_mod.F              \
 $(CORE)/global_no3_mod.F              \
 $(CORE)/global_nox_mod.F              \
 $(CORE)/global_o1d_mod.F              \
 $(CORE)/global_o3_mod.F               \
+$(CORE)/global_oc_mod.F               \
 $(CORE)/global_oh_mod.F               \
 $(CORE)/h2_hd_mod.F                   \
 $(CORE)/icoads_ship_mod.F             \
@@ -163,6 +168,7 @@ $(CORE)/paranox_mod.F                 \
 $(CORE)/pbl_mix_mod.F                 \
 $(CORE)/pjc_pfix_mod.F                \
 $(CORE)/planeflight_mod.F             \
+$(CORE)/pops_mod.F                    \
 $(CORE)/retro_mod.F                   \
 $(CORE)/RnPbBe_mod.F                  \
 $(CORE)/scale_anthro_mod.F            \

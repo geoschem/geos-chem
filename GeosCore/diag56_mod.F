@@ -135,7 +135,7 @@
       ! WRITE_DIAG56 begins here!
       !=================================================================
 
-      ! Exit if ND03 is turned off
+      ! Exit if ND56 is turned off
       IF ( ND56 == 0 ) RETURN
 
       ! Initialize
@@ -162,7 +162,7 @@
       ! Write data to the bpch file
       !=================================================================
 
-      ! Loop over ND03 diagnostic tracers
+      ! Loop over ND56 diagnostic tracers
       DO M = 1, TMAX(56)
 
          ! Define quantities

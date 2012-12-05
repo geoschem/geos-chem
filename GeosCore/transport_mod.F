@@ -111,14 +111,19 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_TRANSPORT
+      SUBROUTINE DO_TRANSPORT( State_Met )
 !
 ! !USES:
 !
-      USE GRID_MOD,      ONLY : ITS_A_NESTED_GRID
-      USE TPCORE_BC_MOD, ONLY : INIT_TPCORE_BC
+      USE GRID_MOD,           ONLY : ITS_A_NESTED_GRID
+      USE TPCORE_BC_MOD,      ONLY : INIT_TPCORE_BC
+      USE GIGC_State_Met_Mod, ONLY : MetState
 
-      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  10 Mar 2003 - R. Yantosca - Initial version
@@ -160,24 +165,24 @@
       ! Choose the proper version of TPCORE for the nested-grid window 
       ! region (usually 1x1 grids) or for the entire globe
       IF ( ITS_A_NESTED_GRID() ) THEN
+
 #if   defined( GRID1x1 )
-         CALL DO_WINDOW_TRANSPORT
+         CALL DO_WINDOW_TRANSPORT( State_Met )
 #elif defined( GRID05x0666 )
-         CALL DO_GEOS5_WINDOW_TRANSPORT
-#elif defined( GRID025x03125 )
-         CALL DO_GEOS57_WINDOW_TRANSPORT
+         CALL DO_GEOS5_WINDOW_TRANSPORT( State_Met )
 #endif
+
       ELSE
 
 #if defined( GCAP )
 
          ! Call TPCORE w/ proper settings for GCAP met
-         CALL GCAP_GLOBAL_ADV
+         CALL GCAP_GLOBAL_ADV( State_Met )
 
 #else
 
          ! Call TPCORE w/ proper settings for GEOS-4/GEOS-5/MERRA/GEOS-5.7
-         CALL GEOS4_GEOS5_GLOBAL_ADV
+         CALL GEOS4_GEOS5_GLOBAL_ADV( State_Met )
 
 #endif
       ENDIF
@@ -198,27 +203,31 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GEOS4_GEOS5_GLOBAL_ADV
+      SUBROUTINE GEOS4_GEOS5_GLOBAL_ADV( State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD,          ONLY : PSC2, UWND, VWND
-      USE DIAG_MOD,         ONLY : MASSFLEW, MASSFLNS, MASSFLUP
-      USE ERROR_MOD,        ONLY : IT_IS_NAN, DEBUG_MSG, SAFE_DIV
-      USE LOGICAL_MOD,      ONLY : LFILL, LMFCT, LPRT, LWINDO
-      USE PJC_PFIX_MOD,     ONLY : DO_PJC_PFIX
-      USE PRESSURE_MOD,     ONLY : GET_PEDGE, SET_FLOATING_PRESSURE
-      USE TIME_MOD,         ONLY : GET_TS_DYN
-      USE TPCORE_BC_MOD,    ONLY : SAVE_GLOBAL_TPCORE_BC
-      USE TPCORE_FVDAS_MOD, ONLY : TPCORE_FVDAS
-      USE TRACER_MOD,       ONLY : N_TRACERS, STT, TCVV
+      USE DIAG_MOD,           ONLY : MASSFLEW, MASSFLNS, MASSFLUP
+      USE ERROR_MOD,          ONLY : IT_IS_NAN, DEBUG_MSG, SAFE_DIV
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE LOGICAL_MOD,        ONLY : LFILL, LMFCT, LPRT, LWINDO
+      USE PJC_PFIX_MOD,       ONLY : DO_PJC_PFIX
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE, SET_FLOATING_PRESSURE
+      USE TIME_MOD,           ONLY : GET_TS_DYN
+      USE TPCORE_BC_MOD,      ONLY : SAVE_GLOBAL_TPCORE_BC
+      USE TPCORE_FVDAS_MOD,   ONLY : TPCORE_FVDAS
+      USE TRACER_MOD,         ONLY : N_TRACERS, STT, TCVV
 #if   defined( APM )
-      USE TRACER_MOD,       ONLY : N_APMTRA
+      USE TRACER_MOD,         ONLY : N_APMTRA
 #endif
 
-      USE CMN_SIZE_MOD         ! Size parameters        
-      USE CMN_DIAG_MOD         ! NDxx flags
-      USE CMN_GCTM_MOD         ! Physical constants
+      USE CMN_SIZE_MOD             ! Size parameters        
+      USE CMN_DIAG_MOD             ! NDxx flags
+      USE CMN_GCTM_MOD             ! Physical constants
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  30 Oct 2007 - R. Yantosca - Initial version
@@ -231,6 +240,8 @@
 !  26 Feb 2010 - R. Yantosca - Added ProTeX headers
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !  21 Jun 2012 - R. Yantosca - Now use pointers to flip indices in vertical
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -300,7 +311,7 @@
          P_TP1(I,J) = GET_PEDGE(I,J,1)
 
          ! True surface pressure at end of dynamic timestep [hPa]
-         P_TP2(I,J) = PSC2(I,J)    
+         P_TP2(I,J) = State_Met%PSC2(I,J)    
    
       ENDDO
       ENDDO
@@ -345,16 +356,18 @@
       !=================================================================
 
       ! NOTE: P_TP1 and P_TP2 are the true surface pressures!
-      CALL DO_PJC_PFIX( D_DYN, P_TP1, P_TP2, 
-     &                  UWND,  VWND,  XMASS, YMASS )
+      CALL DO_PJC_PFIX( D_DYN,        
+     &                  P_TP1,        P_TP2,
+     &                  State_Met%U,  State_Met%V,
+     &                  XMASS,        YMASS )
 
       !=================================================================
       ! Call TPCORE_FVDAS to perform the advection
       !=================================================================
 
       ! Flip array indices in the vertical using pointer storage
-      p_UWND  => UWND (:,:,LLPAR:1:-1  )
-      p_VWND  => VWND (:,:,LLPAR:1:-1  )
+      p_UWND  => State_Met%U(:,:,LLPAR:1:-1  )
+      p_VWND  => State_Met%V(:,:,LLPAR:1:-1  )
       p_STT   => STT  (:,:,LLPAR:1:-1,:)
       p_XMASS => XMASS(:,:,LLPAR:1:-1  )
       p_YMASS => YMASS(:,:,LLPAR:1:-1  )
@@ -455,26 +468,30 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GCAP_GLOBAL_ADV
+      SUBROUTINE GCAP_GLOBAL_ADV( State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD,          ONLY : PSC2, UWND, VWND
-      USE DIAG_MOD,         ONLY : MASSFLEW, MASSFLNS, MASSFLUP
-      USE ERROR_MOD,        ONLY : IT_IS_NAN, DEBUG_MSG
-      USE LOGICAL_MOD,      ONLY : LFILL, LMFCT, LPRT, LWINDO
-      USE PJC_PFIX_MOD,     ONLY : DO_PJC_PFIX
-      USE PRESSURE_MOD,     ONLY : GET_PEDGE, SET_FLOATING_PRESSURE
-      USE TIME_MOD,         ONLY : GET_TS_DYN
-      USE TPCORE_FVDAS_MOD, ONLY : TPCORE_FVDAS
-      USE TRACER_MOD,       ONLY : N_TRACERS, STT, TCVV
+      USE DIAG_MOD,           ONLY : MASSFLEW, MASSFLNS, MASSFLUP
+      USE ERROR_MOD,          ONLY : IT_IS_NAN, DEBUG_MSG
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE LOGICAL_MOD,        ONLY : LFILL, LMFCT, LPRT, LWINDO
+      USE PJC_PFIX_MOD,       ONLY : DO_PJC_PFIX
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE, SET_FLOATING_PRESSURE
+      USE TIME_MOD,           ONLY : GET_TS_DYN
+      USE TPCORE_FVDAS_MOD,   ONLY : TPCORE_FVDAS
+      USE TRACER_MOD,         ONLY : N_TRACERS, STT, TCVV
 #if   defined( APM )
-      USE TRACER_MOD,       ONLY : N_APMTRA
+      USE TRACER_MOD,         ONLY : N_APMTRA
 #endif
 
-      USE CMN_SIZE_MOD         ! Size parameters
-      USE CMN_DIAG_MOD         ! NDxx flags
-      USE CMN_GCTM_MOD         ! Physical constants
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! NDxx flags
+      USE CMN_GCTM_MOD             ! Physical constants
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  30 Oct 2007 - R. Yantosca - Initial version
@@ -486,6 +503,8 @@
 !  26 Feb 2010 - R. Yantosca - Added ProTeX headers
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !  21 Jun 2012 - R. Yantosca - Now use pointers to flip arrays in the vertical
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -561,7 +580,7 @@
          P_TP1(I,J) = GET_PEDGE(I,J,1) - PTOP
 
          ! Psurface - PTOP at end of dynamic timestep [hPa]
-         P_TP2(I,J) = PSC2(I,J)        - PTOP
+         P_TP2(I,J) = State_Met%PSC2(I,J) - PTOP
 
       ENDDO
       ENDDO
@@ -606,16 +625,18 @@
       !=================================================================
 
       ! NOTE: P_TP1+PTOP & P_TP2+PTOP are the true surface pressures!
-      CALL DO_PJC_PFIX( D_DYN, P_TP1+PTOP, P_TP2+PTOP, 
-     &                  UWND,  VWND,       XMASS,     YMASS )
+      CALL DO_PJC_PFIX( D_DYN,
+     &                  P_TP1+PTOP,   P_TP2+PTOP, 
+     &                  State_Met%U,  State_Met%V,
+     &                  XMASS,        YMASS )
 
       !=================================================================
       ! Call TPCORE_FVDAS to perform the advection
       !=================================================================
 
       ! Flip array indices in the vertical using pointer storage
-      p_UWND  => UWND (:,:,LLPAR:1:-1  )
-      p_VWND  => VWND (:,:,LLPAR:1:-1  )
+      p_UWND  => State_Met%U(:,:,LLPAR:1:-1  )
+      p_VWND  => State_Met%V(:,:,LLPAR:1:-1  )
       p_STT   => STT  (:,:,LLPAR:1:-1,:)
       p_XMASS => XMASS(:,:,LLPAR:1:-1  )
       p_YMASS => YMASS(:,:,LLPAR:1:-1  )
@@ -716,14 +737,14 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_GEOS5_WINDOW_TRANSPORT 
+      SUBROUTINE DO_GEOS5_WINDOW_TRANSPORT( State_Met )
 !
 ! !USES:
 !
       ! References to F90 modules
-      USE DAO_MOD,                   ONLY : PSC2,     UWND,     VWND
       USE DIAG_MOD,                  ONLY : MASSFLEW, MASSFLNS, MASSFLUP
       USE ERROR_MOD,                 ONLY : IT_IS_NAN,     DEBUG_MSG
+      USE GIGC_State_Met_Mod,        ONLY : MetState
       USE GRID_MOD,                  ONLY : GET_XOFFSET,   GET_YOFFSET 
       USE LOGICAL_MOD,               ONLY : LFILL,  LMFCT
       USE LOGICAL_MOD,               ONLY : LPRT,   LWINDO
@@ -741,9 +762,13 @@
       USE TRACER_MOD,                ONLY : N_APMTRA
 #endif
 
-      USE CMN_SIZE_MOD                  ! Size parameters
-      USE CMN_DIAG_MOD                  ! NDxx flags
-      USE CMN_GCTM_MOD                  ! Physical constants
+      USE CMN_SIZE_MOD                    ! Size parameters
+      USE CMN_DIAG_MOD                    ! NDxx flags
+      USE CMN_GCTM_MOD                    ! Physical constants
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  10 Mar 2003 - R. Yantosca - Initial version
@@ -752,6 +777,8 @@
 !  26 Feb 2010 - R. Yantosca - Added ProTeX headers
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
 !  21 Jun 2012 - R. Yantosca - Now use pointers to flip arrays in the vertical
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -823,7 +850,7 @@
          P_TP1(I,J) = GET_PEDGE(I,J,1)
 
          ! True surface pressure at end of dynamic timestep [hPa]
-         P_TP2(I,J) = PSC2(I,J)
+         P_TP2(I,J) = State_Met%PSC2(I,J)
   
       ENDDO
       ENDDO
@@ -870,8 +897,10 @@
       YMASS = 0d0
 
       ! NOTE: P_TP1 and P_TP2 are the true surface pressures!
-      CALL DO_PJC_PFIX_GEOS5_WINDOW( D_DYN, P_TP1, P_TP2,
-     &                               UWND,  VWND,  XMASS, YMASS )
+      CALL DO_PJC_PFIX_GEOS5_WINDOW( D_DYN,
+     &                               P_TP1,        P_TP2,
+     &                               State_Met%U,  State_Met%V,
+     &                               XMASS,        YMASS )
 
       IF ( LPRT ) CALL DEBUG_MSG( '### GEOS5_NESTED: a GET_TRA_MASS' )
 
@@ -881,8 +910,8 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### GEOS5_NESTED: a DO_WIN_TP_BC' )
 
       ! Flip array indices in the vertical using pointer storage
-      p_UWND  => UWND (:,:,LLPAR:1:-1  )
-      p_VWND  => VWND (:,:,LLPAR:1:-1  )
+      p_UWND  => State_Met%U(:,:,LLPAR:1:-1  )
+      p_VWND  => State_Met%V(:,:,LLPAR:1:-1  )
       p_STT   => STT  (:,:,LLPAR:1:-1,:)
       p_XMASS => XMASS(:,:,LLPAR:1:-1  )
       p_YMASS => YMASS(:,:,LLPAR:1:-1  )
@@ -932,15 +961,15 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_GEOS57_WINDOW_TRANSPORT 
+      SUBROUTINE DO_GEOS57_WINDOW_TRANSPORT( State_Met )  
 !
 ! !USES:
 !
       ! References to F90 modules
-      USE DAO_MOD,                   ONLY : PSC2,     UWND,     VWND
       USE DIAG_MOD,                  ONLY : MASSFLEW, MASSFLNS, MASSFLUP
       USE ERROR_MOD,                 ONLY : IT_IS_NAN,     DEBUG_MSG
       USE GRID_MOD,                  ONLY : GET_XOFFSET,   GET_YOFFSET
+      USE GIGC_State_Met_Mod,        ONLY : MetState
       USE LOGICAL_MOD,               ONLY : LFILL,  LMFCT
       USE LOGICAL_MOD,               ONLY : LPRT,   LWINDO
       USE PJC_PFIX_GEOS57_WINDOW_MOD,ONLY : DO_PJC_PFIX_GEOS57_WINDOW
@@ -957,10 +986,14 @@
       USE TRACER_MOD,                ONLY : N_APMTRA
 #endif
 
-      USE CMN_SIZE_MOD                  ! Size parameters
-      USE CMN_DIAG_MOD                  ! NDxx flags
-      USE CMN_GCTM_MOD                  ! Physical constants
-! 
+      USE CMN_SIZE_MOD                    ! Size parameters
+      USE CMN_DIAG_MOD                    ! NDxx flags
+      USE CMN_GCTM_MOD                    ! Physical constants
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+!
 ! !REVISION HISTORY: 
 !  10 Mar 2003 - R. Yantosca - Initial version
 
@@ -1038,7 +1071,7 @@
          P_TP1(I,J) = GET_PEDGE(I,J,1)
 
          ! True surface pressure at end of dynamic timestep [hPa]
-         P_TP2(I,J) = PSC2(I,J)
+         P_TP2(I,J) = State_Met%PSC2(I,J)
 
       ENDDO
       ENDDO
@@ -1084,16 +1117,18 @@
       XMASS = 0d0 !(dan)
       YMASS = 0d0
       ! NOTE: P_TP1 and P_TP2 are the true surface pressures!  
-      CALL DO_PJC_PFIX_GEOS57_WINDOW( D_DYN, P_TP1, P_TP2,
-     &                               UWND,  VWND,  XMASS, YMASS )
+      CALL DO_PJC_PFIX_GEOS57_WINDOW( D_DYN,
+     &                                P_TP1,        P_TP2,
+     &                                State_Met%U,  State_Met%V,
+     &                                XMASS,        YMASS )
 
       IF ( LPRT ) CALL DEBUG_MSG( '### GEOS5_NESTED: a GET_TRA_MASS' )
       ! Impose TPCORE boundary conditions @ edges of 1x1 grid
       CALL DO_WINDOW_TPCORE_BC
 
       ! Flip array indices in the vertical using pointer storage
-      p_UWND  => UWND (:,:,LLPAR:1:-1  )
-      p_VWND  => VWND (:,:,LLPAR:1:-1  )
+      p_UWND  => State_Met%U(:,:,LLPAR:1:-1  )
+      p_VWND  => State_Met%V(:,:,LLPAR:1:-1  )
       p_STT   => STT  (:,:,LLPAR:1:-1,:)
       p_XMASS => XMASS(:,:,LLPAR:1:-1  )
       p_YMASS => YMASS(:,:,LLPAR:1:-1  )

@@ -455,7 +455,6 @@
       USE TRACER_MOD,  ONLY : ITS_A_TAGCO_SIM, ITS_A_MERCURY_SIM
       USE TRACER_MOD,  ONLY : ITS_A_H2HD_SIM
       USE TRACER_MOD,  ONLY : N_TRACERS,       TRACER_NAME
-      ! Error check for array dimensions (hotp 8/1/09)
       USE ERROR_MOD,   ONLY : ERROR_STOP
 
       USE CMN_SIZE_MOD                    ! Size parameters
@@ -2077,7 +2076,7 @@
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       TYPE(ChmState), INTENT(INOUT) :: State_Chm       ! Chemistry State obj
 #endif
-
+ 
       !=================================================================
       ! SETTRACE begins here!
       !=================================================================

@@ -1,4 +1,4 @@
-#if defined (ESMF_)
+#if defined( ESMF_ )
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -22,14 +22,9 @@ MODULE GIGC_Initialization_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !      
-  PUBLIC :: GIGC_Init_Chemistry
-  PUBLIC :: GIGC_Init_DryDep
-  PUBLIC :: GIGC_Emis_Inti
-  PUBLIC :: GIGC_Init_Simulation
   PUBLIC :: GIGC_Get_Options
+  PUBLIC :: GIGC_Init_Simulation
   PUBLIC :: GIGC_Init_Time_Interface
-  PUBLIC :: GIGC_Init_Dimensions
-  PUBLIC :: GIGC_Allocate_Interface
 !
 ! !REVISION HISTORY: 
 !  16 Oct 2012 - M. Long     - Initial version
@@ -37,6 +32,7 @@ MODULE GIGC_Initialization_Mod
 !  22 Oct 2012 - R. Yantosca - Renamed to gigc_initialization_mod.F90
 !  22 Oct 2012 - R. Yantosca - Renamed several routines for better consistency
 !  25 Oct 2012 - R. Yantosca - Remove routine GIGC_SetEnv
+!  03 Dec 2012 - R. Yantosca - Now pass extra arguments to GIGC_Init_Dimensions
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -47,163 +43,80 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: gigc_init_chemistry
+! !IROUTINE: gigc_get_options
 !
-! !DESCRIPTION: Routine GIGC\_Init\_Chemistry initializes the GEOS-Chem 
-!  chemistry module so that it can connect to the ESMF interface.
+! !DESCRIPTION: Routine GIGC\_GET\_OPTIONS reads options for a GEOS-Chem 
+!  simulation from the input.geos\_\_\_.rc input file.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GIGC_Init_Chemistry( PLON, PLAT, am_I_Root, RC )
+  SUBROUTINE GIGC_Get_Options( am_I_Root, lonCtr, latCtr, Input_Opt, RC )
 !
 ! !USES:
 !
-    USE LOGICAL_MOD,     ONLY : DO_DIAG_WRITE
-    USE CMN_SIZE_MOD,    ONLY : JJPAR, IIPAR
+    USE CMN_GCTM_Mod       
+    USE CMN_SIZE_Mod,       ONLY : dLat
+    USE CMN_SIZE_Mod,       ONLY : dLon
     USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE Input_Mod,          ONLY : Read_Input_File
 !
 ! !INPUT PARAMETERS: 
 !
-    INTEGER, INTENT(IN)  :: PLON        ! Number of
-    INTEGER, INTENT(IN)  :: PLAT
-    LOGICAL, INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+    REAL*4,         INTENT(IN)    :: lonCtr(:,:)
+    REAL*4,         INTENT(IN)    :: latCtr(:,:)
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER, INTENT(OUT) :: RC          ! Success or failure?  
-
-! 
-! !REVISION HISTORY: 
-!  15 Oct 2012 - M. Long     - Initial version
-!  15 Oct 2012 - R. Yantosca - Added ProTeX Headers, use F90 format/indents
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-    ! Assume success
-    RC = GIGC_SUCCESS
-
-    ! Don't write diagnostic files
-    DO_DIAG_WRITE = .FALSE. 
-
-    !### Debug
-    ! SET MODEL DIMENSIONS 
-    !IIPAR = 1
-    !JJPAR = PCOLS
-
-    !=======================================================================
-    ! Read GEOS-Chem emissions data ets
-    !=======================================================================
-   
-    ! For now comment this out
-    !CALL GC_EMIS_INTI( PLONL, PLATL, 1 )
-
-  END SUBROUTINE GIGC_Init_Chemistry
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: gigc_init_chemistry
-!
-! !DESCRIPTION: Routine GIGC\_Init\_Chemistry initializes the GEOS-Chem 
-!  chemistry module so that it can connect to the ESMF interface.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE GIGC_Init_DryDep( PLON, PLAT, am_I_Root, RC )
-!
-! !USES:
-!
-    USE LOGICAL_MOD,     ONLY : DO_DIAG_WRITE
-    USE CMN_SIZE_MOD,    ONLY : JJPAR, IIPAR
-    USE GIGC_ErrCode_Mod
-    USE DRYDEP_MOD,      ONLY : INIT_DRYDEP, INIT_WEIGHTSS
-    USE MAPL_Mod                                     ! MAPL framework
-
-!
-! !INPUT PARAMETERS: 
-!
-    INTEGER, INTENT(IN)  :: PLON        ! Number of
-    INTEGER, INTENT(IN)  :: PLAT
-    LOGICAL, INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER, INTENT(OUT) :: RC          ! Success or failure?  
-
-! 
-! !REVISION HISTORY: 
-!  15 Oct 2012 - M. Long     - Initial version
-!  15 Oct 2012 - R. Yantosca - Added ProTeX Headers, use F90 format/indents
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-    ! Assume success
-    RC = GIGC_SUCCESS
-
-    ! Don't write diagnostic files
-    DO_DIAG_WRITE = .FALSE. 
-
-    !### Debug
-    ! SET MODEL DIMENSIONS 
-    !IIPAR = 1
-    !JJPAR = PCOLS
-
-    IF ( am_I_Root ) THEN
-       WRITE(6,*) '##### GIGC_Init_DryDep'
-    ENDIF
-    
-!    CALL INIT_DRYDEP(am_I_root)
-    CALL INIT_WEIGHTSS()
-
-  END SUBROUTINE GIGC_Init_DryDep
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: gigc_emis_inti
-!
-! !DESCRIPTION: Routine GC\_EMIS\_INTI establishes the emissions fields for
-!  each set of geos-chem emissions used.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE GIGC_Emis_Inti( PLONL, PLATL, PPLON )
-!
-! !USES:
-!
-!    USE GC_EMIS_EDGAR, ONLY: GC_EDGAR_EMIS_INTI
-!
-! !INPUT PARAMETERS: 
-!
-    INTEGER, INTENT(IN) :: PLONL
-    INTEGER, INTENT(IN) :: PLATL
-    INTEGER, INTENT(IN) :: PPLON
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REMARKS:
-!  This is a stub routine for now.  Will eventually connect with the Emissions
-!  Component as being developed by Christoph Keller.
+!  NOTE: For now assume that GEOS_Chem will always accept a regular 
+!  Cartesian grid.  This is more or less dictated by the input data.
+!  The GEOS-5 data can be regridded via ESMF from whatever grid it uses.
+!  (bmy, 11/30/12)
 !
 ! !REVISION HISTORY: 
 !  15 Oct 2012 - M. Long     - Initial version
 !  15 Oct 2012 - R. Yantosca - Added ProTeX Headers, use F90 format/indents
-!  22 Oct 2012 - R. Yantosca - Renamed to GIGC_Emis_Inti
+!  22 Oct 2012 - R. Yantosca - Renamed to GIGC_Get_Options
+!  22 Oct 2012 - R. Yantosca - Added RC output argument
+!  01 Nov 2012 - R. Yantosca - Now pass the Input Options object via arg list
+!  03 Dec 2012 - R. Yantosca - Reorder subroutines for clarity
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    REAL*8 :: deltaLon, deltaLat
+  
+    ! Assume success
+    RC       = GIGC_SUCCESS
 
-    ! Comment out for now
-    !CALL GC_EDGAR_EMIS_INTI( PLONL, PLATL, PPLON )
+    ! Assume the longitude difference is the same for all grid boxes 
+    deltaLon = Roundoff( ( DBLE( lonCtr(2,1) ) / PI_180 ), 4 )  &
+             - Roundoff( ( DBLE( lonCtr(1,1) ) / PI_180 ), 4 )
 
-  END SUBROUTINE GIGC_Emis_Inti
+    ! Assume the latitude difference is the same for all grid boxes
+    deltaLat = Roundoff( ( DBLE( latCtr(1,2) ) / PI_180 ), 4 )  &
+             - Roundoff( ( DBLE( latCtr(1,1) ) / PI_180 ), 4 )
+
+    ! Save into arrays of CMN_SIZE
+    dLon     = deltaLon
+    dLat     = deltaLat
+
+    ! Read the GEOS-Chem input file here
+    CALL Read_Input_File( am_I_Root, Input_Opt, RC )
+
+  END SUBROUTINE GIGC_Get_Options
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -220,10 +133,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GIGC_Init_Simulation( Input_Opt,  State_Met, State_Chm,  &
-                                   tsChem,     nymd,      nhms,       &
-                                   am_I_Root, lonCtr, latCtr, latEdg, &
-                                   RC                                   )
+  SUBROUTINE GIGC_Init_Simulation( am_I_Root,       tsChem,          &
+                                   nymd,            nhms,            &
+                                   lonCtr,          latCtr,          &      
+                                   latEdg,          value_I_LO,      &
+                                   value_J_LO,      value_I_HI,      &
+                                   value_J_HI,      value_IM,        &
+                                   value_JM,        value_LM,        &
+                                   value_IM_WORLD,  value_JM_WORLD,  &
+                                   value_LM_WORLD,  Input_Opt,       &
+                                   State_Chm,       State_Met,       &
+                                   mapping,         RC              )      
 !
 ! !USES:
 !
@@ -232,15 +152,23 @@ CONTAINS
     USE GIGC_Input_Opt_Mod
     USE GIGC_State_Chm_Mod
     USE GIGC_State_Met_Mod
-    USE CMN_SIZE_MOD,         ONLY : IIPAR
-    USE CMN_SIZE_MOD,         ONLY : JJPAR
-    USE CMN_SIZE_MOD,         ONLY : LLTROP
+    USE CMN_GCTM_Mod
+    USE CMN_SIZE_MOD
     USE COMODE_MOD
     USE COMODE_LOOP_MOD       
     USE GCKPP_COMODE_MOD,     ONLY : INIT_GCKPP_COMODE
-    USE GRID_MOD,             ONLY : INIT_GRID, YMID, XMID, YEDGE, XEDGE, AREA_M2
-    USE DAO_MOD
-    USE LOGICAL_MOD
+    USE ERROR_MOD,            ONLY : DEBUG_MSG
+    USE GRID_MOD,             ONLY : AREA_M2
+    USE GRID_MOD,             ONLY : INIT_GRID
+    USE GRID_MOD,             ONLY : XEDGE
+    USE GRID_MOD,             ONLY : XMID
+    USE GRID_MOD,             ONLY : YEDGE
+    USE GRID_MOD,             ONLY : YMID
+    USE Mapping_Mod,          ONLY : MapWeight
+    USE Mapping_Mod,          ONLY : Init_Mapping
+    USE Olson_Landmap_Mod,    ONLY : Init_Olson_Landmap
+    USE Olson_Landmap_Mod,    ONLY : Compute_Olson_Landmap
+    USE Olson_Landmap_Mod,    ONLY : Cleanup_Olson_Landmap
     USE PBL_MIX_MOD,          ONLY : INIT_PBL_MIX
     USE PRESSURE_MOD,         ONLY : INIT_PRESSURE
     USE TRACER_MOD,           ONLY : ITS_A_FULLCHEM_SIM
@@ -248,37 +176,41 @@ CONTAINS
     USE TRACERID_MOD,         ONLY : SETTRACE
     USE TOMS_MOD,             ONLY : TO3_DAILY
     USE WETSCAV_MOD,          ONLY : INIT_WETSCAV
-    USE ERROR_MOD,            ONLY : DEBUG_MSG
-    USE MAPPING_MOD
-    USE OLSON_LANDMAP_MOD     ! Computes IREG, ILAND, IUSE from Olson map
-
-    ! Comment these out for now (bmy, 10/15/12)
-    !USE TIME_MANAGER,       ONLY : GET_STEP_SIZE
-    !USE GC_GRIDAREA
 !
 ! !INPUT PARAMETERS: 
 !
-    REAL,           INTENT(IN)    :: tsChem      ! Chemistry timestep [s]
-    INTEGER,        INTENT(IN)    :: nymd        ! GMT date (YYYY/MM/DD)
-    INTEGER,        INTENT(IN)    :: nhms        ! GMT time (hh:mm:ss)
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-    REAL*4, INTENT(IN), TARGET    :: lonCtr(:,:) ! Lon centers [radians]
-    REAL*4, INTENT(IN), TARGET    :: latCtr(:,:) ! Lat centers [radians]
-    REAL*4, INTENT(IN), TARGET    :: latEdg(:,:) ! Lat centers [radians]
+    LOGICAL,         INTENT(IN)    :: am_I_Root        ! Is this the root CPU?
+    REAL,            INTENT(IN)    :: tsChem           ! Chemistry timestep [s]
+    INTEGER,         INTENT(IN)    :: nymd             ! GMT date (YYYY/MM/DD)
+    INTEGER,         INTENT(IN)    :: nhms             ! GMT time (hh:mm:ss)
+    REAL*4,  TARGET, INTENT(IN)    :: lonCtr(:,:)      ! Lon centers [radians]
+    REAL*4,  TARGET, INTENT(IN)    :: latCtr(:,:)      ! Lat centers [radians]
+    REAL*4,  TARGET, INTENT(IN)    :: latEdg(:,:)      ! Lat centers [radians]
+    INTEGER,         INTENT(IN)    :: value_I_LO       ! Min local lon index
+    INTEGER,         INTENT(IN)    :: value_J_LO       ! Min local lat index
+    INTEGER,         INTENT(IN)    :: value_I_HI       ! Max local lon index
+    INTEGER,         INTENT(IN)    :: value_J_HI       ! Max local lat index
+    INTEGER,         INTENT(IN)    :: value_IM         ! Local # of lons
+    INTEGER,         INTENT(IN)    :: value_JM         ! Local # of lats
+    INTEGER,         INTENT(IN)    :: value_LM         ! Local # of levels
+    INTEGER,         INTENT(IN)    :: value_IM_WORLD   ! Global # of lons
+    INTEGER,         INTENT(IN)    :: value_JM_WORLD   ! Global # of lats
+    INTEGER,         INTENT(IN)    :: value_LM_WORLD   ! Global # of levels
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(OptInput),  INTENT(INOUT) :: Input_Opt   ! Input Options object
-    TYPE(ChmState),  INTENT(INOUT) :: State_Chm   ! Chemistry State object
-    TYPE(MetState),  INTENT(INOUT) :: State_Met   ! Meteorology State object
-    TYPE(MapWeight), POINTER       :: mapping(:,:) => NULL()
+    TYPE(OptInput),  INTENT(INOUT) :: Input_Opt        ! Input Options
+    TYPE(ChmState),  INTENT(INOUT) :: State_Chm        ! Chemistry State
+    TYPE(MetState),  INTENT(INOUT) :: State_Met        ! Meteorology State
+    TYPE(MapWeight), POINTER       :: mapping(:,:)     ! Olson mapping object
+!
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?  
+    INTEGER,         INTENT(OUT)   :: RC               ! Success or failure?  
 !
 ! !REMARKS
-!  Add other calls to GEOS-Chem init routines as necessary.
+!  Add other calls to G EOS-Chem init routines as necessary.
 !  NOTE: Later on maybe split these init calls among other routines.
 !  Also need to add better error trapping
 !
@@ -290,15 +222,22 @@ CONTAINS
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
 !  01 Nov 2012 - R. Yantosca - Now reference gigc_input_opt_mod.F90
 !  09 Nov 2012 - R. Yantosca - Now use fields from Input Options object
+!  13 Nov 2012 - R. Yantosca - Pass Input Options object to routines 
+!                              SETEMDEP, INIT_COMODE
+!  28 Nov 2012 - R. Yantosca - Remove reference to INIT_DAO, since there are
+!                              no more module arrays anymore in dao_mod.F
+!  29 Nov 2012 - R. Yantosca - Add lonCtr, latCtr, latEdg as arguments
+!  29 Nov 2012 - R. Yantosca - Now pass am_I_Root to Olson landmap routines
+!  03 Dec 2012 - R. Yantosca - Now pass value_* arguments to pass dimension
+!                              info from ESMF down to lower-level routines
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
-! 
-    LOGICAL :: PrtDebug
-    INTEGER :: DTIME, K, AS, N, PLON, PLAT
-
+!
+    LOGICAL :: prtDebug
+    INTEGER :: DTIME, K, AS, N, YEAR, I, J, L
 
     !=======================================================================
     ! Initialize key GEOS-Chem sections
@@ -311,14 +250,17 @@ CONTAINS
     ! Initialize the timing routines
     CALL GIGC_Init_Time_Interface( DTIME, nymd, nhms, am_I_Root, RC )
 
-    ! Allocate all
-    CALL GIGC_Allocate_All( am_I_Root, Input_Opt, RC )
-
-    ! Allocate
-    CALL GIGC_Allocate_Interface( am_I_Root, RC )
+    ! Allocate GEOS-Chem module arrays
+    CALL GIGC_Allocate_All( am_I_Root,       Input_Opt,       &
+                            RC,              value_I_LO,      &
+                            value_J_LO,      value_I_HI,      &
+                            value_J_HI,      value_IM,        &
+                            value_JM,        value_LM,        &
+                            value_IM_WORLD,  value_JM_WORLD,  &
+                            value_LM_WORLD                   )
 
     ! Read options from the GEOS-Chem input file "input.geos"
-    CALL GIGC_Get_Options( am_I_Root, Input_Opt, RC )
+    CALL GIGC_Get_Options( am_I_Root, lonCtr, latCtr, Input_Opt, RC )
 
     YMID(:,:,1)  = latCtr  
     XMID(:,:,1)  = lonCtr
@@ -338,24 +280,60 @@ CONTAINS
     ENDDO
        
     ! Allocate and zero GEOS-Chem diagnostic arrays
-    CALL NDXX_SETUP( am_I_Root, Input_Opt, RC )
-
-    ! Initialize 
-    CALL GIGC_Init_Chemistry( PLON, PLAT, am_I_Root, RC )
-
-    CALL GIGC_Init_DryDep( PLON, PLAT, am_I_Root, RC )
-
-    ! Allocate and initialize met field arrays
-    CALL INIT_DAO
 
     ! Initialize the GEOS-Chem pressure module (set Ap & Bp)
-    CALL INIT_PRESSURE( am_I_Root )
+    CALL Init_Pressure( am_I_Root )
 
     ! Initialize the PBL mixing module
-    CALL INIT_PBL_MIX
-!       
-!    ! Initialize the  
-!    CALL INIT_WETSCAV
+    CALL Init_PBL_Mix()
+
+    ! Initialize arrays SO2s, H2O2s in wetscav_mod.F for use in sulfate chem
+    CALL Init_WetScav( State_Met )
+
+    !=======================================================================
+    ! Initialize dry deposition 
+    !=======================================================================
+    IF ( Input_Opt%LDRYD )  THEN
+
+       ! Initialize the derived type object containing
+       ! mapping information for the MODIS LAI routines
+       IF ( Input_Opt%USE_OLSON_2001 ) THEN
+          CALL Init_Mapping( 1440, 720, IIPAR, JJPAR, mapping )
+       ELSE
+          CALL DEBUG_MSG( '### Init Mapping 05x05')
+          CALL Init_Mapping(  720, 360, IIPAR, JJPAR, mapping )
+       ENDIF
+
+       ! Compute the Olson land types that occur in each grid box
+       ! (i.e. this is a replacement for rdland.F and vegtype.global)
+       CALL Init_Olson_Landmap   ( am_I_Root                     )
+       CALL Compute_Olson_Landmap( am_I_Root, mapping, State_Met )
+       CALL Cleanup_Olson_Landmap( am_I_Root                     )
+
+       !### Debug
+       IF ( prtDebug ) THEN
+          CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after OLSON' )
+       ENDIF
+
+!-----------------------------------------------------------------------------
+! NOTE: Add this soon (bmy, 12/4/12)
+!      ! Read drydep inputs from the netCDF file
+!      ! Save Olson indices in INDOLSON array, in order to avoid
+!      ! confusion w/ previously-assinged variable name IOLSON
+!      CALL READ_DRYDEP_INPUTS( am_I_Root,                      &
+!     &                            DRYCOEFF, INDOLSON, IDEP,       &
+!     &                            IWATER,   NWATER,   IZO,        
+!     &                            IDRYDEP,  IRI,      IRLU,     
+!     &                            IRAC,     IRGSS,    IRGSO, 
+!     &                            IRCLS,    IRCLO,    IVSMAX )
+!
+!      ! Calls INIT_WEIGHTSS to calculate the volume distribution of 
+!      ! sea salt aerosols (jaegle 5/11/11)
+!      CALL INIT_WEIGHTSS()
+!      FIRST = .FALSE.
+!-----------------------------------------------------------------------------
+
+    ENDIF
 
     !=======================================================================
     ! Initialize chemistry mechanism
@@ -368,175 +346,103 @@ CONTAINS
     NPVERT = NVERT
     NPVERT = NVERT + IPLUME
 
-!    ! INITIALIZE ALLOCATABLE SMVGEAR/KPP ARRAYS
-!    IF ( LEMIS .OR. LCHEM ) THEN
+    ! If we are doing chemistry ...
+    IF ( Input_Opt%LCHEM ) THEN
 
        ! Initialize arrays in comode_mod.F
-       CALL INIT_COMODE( am_I_Root )
+       CALL INIT_COMODE( am_I_Root, Input_Opt, RC )
 
        ! Initialize KPP (if necessary)
-       IF ( LKPP ) THEN
+       IF ( Input_Opt%LKPP ) THEN
           CALL INIT_GCKPP_COMODE( am_I_Root, IIPAR,   JJPAR, LLTROP,  &
                                   ITLOOP,    NMTRATE, IGAS,  RC      )
        ENDIF
-!    ENDIF
+       
+       ! Read from data file mglob.dat
+       CALL READER( .TRUE., am_I_Root )
 
-    ! Read from data file mglob.dat
-    CALL READER( .TRUE., am_I_Root )
-
-    !### Debug
-    IF ( prtDebug ) THEN
-       CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after READER' )
-    ENDIF
-
-    ! Set NCS for urban chemistry only (since that is where we
-    ! have defined the GEOS-CHEM mechanism) (bdf, bmy, 4/21/03)
-    NCS = NCSURBAN
-
-    !### Debug
-    IF ( prtDebug ) THEN
-       CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after READER' )        
-    ENDIF
-
-    ! Redefine NTLOOP since READER defines it initially (bmy, 9/28/04)
-    NLOOP   = NLAT  * NLONG
-    NTLOOP  = NLOOP * NVERT
-    NTTLOOP = NTLOOP
-
-    ! Read "globchem.dat" chemistry mechanism
-    CALL READCHEM( am_I_Root )
-
-    !### Debug
-    IF ( prtDebug ) THEN
-       CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after READCHEM' )        
-    ENDIF
-
-    ! Save Chemical species names ID's into State_Chm
-    DO N = 1, IGAS
-       IF ( LEN_TRIM( NAMEGAS(N) ) > 0 ) THEN 
-          State_Chm%SPEC_NAME(N) = TRIM( NAMEGAS(N) )
-          State_Chm%SPEC_ID  (N) = N
+       !### Debug
+       IF ( prtDebug ) THEN
+          CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after READER' )
        ENDIF
-    ENDDO
 
-    ! Set NCS=NCSURBAN here since we have defined our tropospheric
-    ! chemistry mechanism in the urban slot of SMVGEAR II (bmy, 4/21/03)
-    NCS = NCSURBAN
+       ! Set NCS for urban chemistry only (since that is where we
+       ! have defined the GEOS-CHEM mechanism) (bdf, bmy, 4/21/03)
+       NCS = NCSURBAN
 
-    !%%%%% FOR NOW HARDWIRE CH4 to 2007 values %%%%%
-    ! Get CH4 [ppbv] in 4 latitude bins for each year
-    CALL GET_GLOBAL_CH4( 2007,   .TRUE., C3090S, &
-                         C0030S, C0030N, C3090N, am_I_Root )
+       !### Debug
+       IF ( prtDebug ) THEN
+          CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after READER' )        
+       ENDIF
+       
+       ! Redefine NTLOOP since READER defines it initially (bmy, 9/28/04)
+       NLOOP   = NLAT  * NLONG
+       NTLOOP  = NLOOP * NVERT
+       NTTLOOP = NTLOOP
+       
+       ! Read "globchem.dat" chemistry mechanism
+       CALL READCHEM( am_I_Root, Input_Opt, RC )
+       
+       !### Debug
+       IF ( prtDebug ) THEN
+          CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after READCHEM' )        
+       ENDIF
+       
+       ! Save Chemical species names ID's into State_Chm
+       DO N = 1, IGAS
+          IF ( LEN_TRIM( NAMEGAS(N) ) > 0 ) THEN 
+             State_Chm%SPEC_NAME(N) = TRIM( NAMEGAS(N) )
+             State_Chm%SPEC_ID  (N) = N
+          ENDIF
+       ENDDO
+       
+       ! Set NCS=NCSURBAN here since we have defined our tropospheric
+       ! chemistry mechanism in the urban slot of SMVGEAR II (bmy, 4/21/03)
+       NCS = NCSURBAN
 
-    !### Debug
-    IF ( prtDebug ) THEN
-       CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after GET_GLOBAL_CH4' )        
+       ! Get CH4 [ppbv] in 4 latitude bins for each year
+       YEAR = NYMD / 10000
+       CALL GET_GLOBAL_CH4( YEAR,   .TRUE., C3090S, &
+                            C0030S, C0030N, C3090N, am_I_Root )
+
+       !### Debug
+       IF ( prtDebug ) THEN
+          CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after GET_GLOBAL_CH4' )
+       ENDIF
+
+       ! Initialize FAST-J photolysis
+       CALL INPHOT( LLPAR, NPHOT, am_I_Root ) 
+       
+       !### Debug
+       IF ( prtDebug ) THEN
+          CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after INPHOT' )        
+       ENDIF
+       
+       ! Flag certain chemical species
+       CALL SETTRACE( am_I_Root, Input_Opt, State_Chm, RC )
+       
+       !### Debug
+       IF ( prtDebug ) THEN
+          CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after SETTRACE' )
+       ENDIF
+       
+       ! Flag emission & drydep rxns
+       CALL SETEMDEP( am_I_Root, Input_Opt, RC )
+       
+       !### Debug
+       IF ( prtDebug ) THEN
+          CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after SETEMDEP' )
+       ENDIF
+
+       ! Initialize dry deposition (work in progress), add here
+       ! Allocate array of overhead O3 columns for TOMS
+       ALLOCATE( TO3_DAILY( IIPAR, JJPAR ), STAT=AS )
+       TO3_DAILY = 0d0
+
     ENDIF
-
-    ! Initialize FAST-J photolysis
-    CALL INPHOT( LLPAR, NPHOT, am_I_Root ) 
-         
-    !### Debug
-    IF ( prtDebug ) THEN
-       CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after INPHOT' )        
-    ENDIF
-
-    ! Flag certain chemical species
-    CALL SETTRACE( State_Chm, am_I_Root )
-
-    !### Debug
-    IF ( prtDebug ) THEN
-       CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after SETTRACE' )
-    ENDIF
-
-    ! Flag emission & drydep rxns
-    CALL SETEMDEP( Input_Opt%N_TRACERS, am_I_Root )
-
-    !### Debug
-    IF ( prtDebug ) THEN
-       CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after SETEMDEP' )
-    ENDIF
-
-    ! Initialize the derived type object containing
-    ! mapping information for the MODIS LAI routines
-    IF ( USE_OLSON_2001 ) THEN
-       CALL Init_Mapping( 1440, 720, IIPAR, JJPAR, mapping )
-    ELSE
-       CALL Init_Mapping(  720, 360, IIPAR, JJPAR, mapping )
-    ENDIF
-    
-    ! Compute the Olson land types that occur in each grid box
-    ! (i.e. this is a replacement for rdland.F and vegtype.global)
-    CALL Init_Olson_Landmap()
-    CALL Compute_Olson_Landmap( mapping )
-    CALL Cleanup_Olson_Landmap()
-    
-    !### Debug
-    IF ( prtDebug ) THEN
-       CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after OLSON' )
-    ENDIF
-
-    ! Initialize dry deposition (work in progress), add here
-    ! Allocate array of overhead O3 columns for TOMS
-    ALLOCATE( TO3_DAILY( IIPAR, JJPAR ), STAT=AS )
-    TO3_DAILY = 0d0
 
   END SUBROUTINE GIGC_Init_Simulation
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: gigc_get_options
-!
-! !DESCRIPTION: Routine GIGC\_GET\_OPTIONS reads options for a GEOS-Chem 
-!  simulation from the input.geos\_\_\_.rc input file.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE GIGC_Get_Options( am_I_Root, Input_Opt, RC )
-!
-! !USES:
-!
-    USE GIGC_ErrCode_Mod
-    USE GIGC_Input_Opt_Mod, ONLY : OptInput
-    USE Input_Mod,          ONLY : Read_Input_File
-!
-! !INPUT PARAMETERS: 
-!
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-! 
-! !REMARKS:
-!  NOTE: We will probably convert the input file into an ESMF resource file
-!  in the near future.
-!
-! !REVISION HISTORY: 
-!  15 Oct 2012 - M. Long     - Initial version
-!  15 Oct 2012 - R. Yantosca - Added ProTeX Headers, use F90 format/indents
-!  22 Oct 2012 - R. Yantosca - Renamed to GIGC_Get_Options
-!  22 Oct 2012 - R. Yantosca - Added RC output argument
-!  01 Nov 2012 - R. Yantosca - Now pass the Input Options object via arg list
-!EOP
-!------------------------------------------------------------------------------
-!BOC
 
-    ! Assume succes
-    RC = GIGC_Success
-    
-    ! Read the GEOS-Chem input file here
-    CALL Read_Input_File( am_I_Root, Input_Opt, RC )
-
-  END SUBROUTINE GIGC_Get_Options
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -629,103 +535,116 @@ CONTAINS
     CALL INITIALIZE( 3, am_I_Root )
 
   END SUBROUTINE GIGC_Init_Time_Interface
+
 !EOC
 !------------------------------------------------------------------------------
+! Prior to 12/3/12:
+! NOTE: UVALBEDO is now contained in State_Met (bmy, 12/3/12)
+!!EOC
+!!------------------------------------------------------------------------------
+!!          Harvard University Atmospheric Chemistry Modeling Group            !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: gigc_allocate_interface
+!!
+!! !DESCRIPTION: Routine GIGC\_ALLOCATE\_INTERFACE allocates GEOS-Chem arrays
+!!  for a Grid-Independent GEOS-Chem (aka "GIGC") simulation.
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!  SUBROUTINE GIGC_Allocate_Interface( am_I_Root, RC )
+!!
+!! !USES:
+!!
+!    USE CMN_SIZE_MOD,     ONLY : IIPAR, JJPAR, LLPAR
+!    USE GIGC_ErrCode_Mod
+!    USE ERROR_MOD,        ONLY : ALLOC_ERR
+!    USE UVALBEDO_MOD,     ONLY : UVALBEDO
+!   !USE DAO_MOD,          ONLY : TO3
+!!
+!! !INPUT PARAMETERS: 
+!!
+!    LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+!!
+!! !OUTPUT PARAMETERS:
+!!
+!    INTEGER, INTENT(OUT) :: RC          ! Success or failure
+!! 
+!! !REVISION HISTORY: 
+!!  15 Oct 2012 - M. Long     - Initial version
+!!  15 Oct 2012 - R. Yantosca - Added ProTeX Headers, use F90 format/indents
+!!  22 Oct 2012 - R. Yantosca - Renamed to GIGC_Allocate_Interface
+!
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!    INTEGER :: AS
+!
+!    ! Assume success
+!    RC = GIGC_SUCCESS
+!
+!    ! UV albedo for photolysis
+!    ALLOCATE( UVALBEDO( IIPAR, JJPAR), STAT=RC  )
+!
+!  END SUBROUTINE GIGC_Allocate_Interface
+!EOC
+!------------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: gigc_init_dimensions
+! !IROUTINE: RoundOff
 !
-! !DESCRIPTION: Routine GIGC\_INIT\_DIMENSIONS initializes the geospatial
-!  dimensions for a Grid-Independent GEOS-Chem (aka "GIGC") simulation 
-!  directly from the ESMF interface.
+! !DESCRIPTION: Rounds a number X to N decimal places of precision.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GIGC_Init_Dimensions( NI, NJ, NL )
+  FUNCTION RoundOff( X, N ) RESULT( Y )
 !
-! !USES:
-!
-    USE CMN_SIZE_MOD, ONLY: IIPAR, JJPAR, LLPAR, IGLOB, JGLOB, LGLOB
-!
-! !INPUT PARAMETERS: 
-!
-    INTEGER, INTENT(IN) :: NI    ! Size of local I dimension
-    INTEGER, INTENT(IN) :: NJ    ! Size of local J dimension
-    INTEGER, INTENT(IN) :: NL    ! Number of levels
+! !INPUT PARAMETERS:
 ! 
-! !REVISION HISTORY: 
-!  15 Oct 2012 - M. Long     - Initial version
-!  15 Oct 2012 - R. Yantosca - Added ProTeX Headers, use F90 format/indents
-!  22 Oct 2012 - R. Yantosca - Renamed to GIGC_Init_Dimensions
-
+    REAL*8,  INTENT(IN) :: X   ! Number to be rounded
+    INTEGER, INTENT(IN) :: N   ! Number of decimal places to keep
+!
+! !RETURN VALUE:
+!
+    REAL*8              :: Y   ! Number rounded to N decimal places
+!
+! !REMARKS:
+!  The algorithm to round X to N decimal places is as follows:
+!  (1) Multiply X by 10**(N+1)
+!  (2) If X < 0, then add -5 to X; otherwise add 5 to X
+!  (3) Round X to nearest integer
+!  (4) Divide X by 10**(N+1)
+!  (5) Truncate X to N decimal places: INT( X * 10**N ) / 10**N
+!                                                                             .
+!  Rounding algorithm from: Hultquist, P.F, "Numerical Methods for Engineers 
+!   and Computer Scientists", Benjamin/Cummings, Menlo Park CA, 1988, p. 20.
+!                                                                             .
+!  Truncation algorithm from: http://en.wikipedia.org/wiki/Truncation
+!                                                                             .
+!  The two algorithms have been merged together for efficiency.
+!
+! !REVISION HISTORY:
+!  14 Jul 2010 - R. Yantosca - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    
-    ! Set GEOS-Chem size variables from the locally-defined 
-    ! dimensions returned by the ESMF framework
-    IGLOB = NI
-    JGLOB = NJ
-    LGLOB = NL
-    IIPAR = NI
-    JJPAR = NJ
-    LLPAR = NL
+!
+! !LOCAL VARIABLES
+!
+    ! Round and truncate X to N decimal places
+    Y = INT( NINT( X*(10d0**(N+1)) + SIGN( 5d0, X ) ) / 10d0 ) / (10d0**N)
 
-  END SUBROUTINE GIGC_Init_Dimensions
+  END FUNCTION RoundOff
 !EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: gigc_allocate_interface
-!
-! !DESCRIPTION: Routine GIGC\_ALLOCATE\_INTERFACE allocates GEOS-Chem arrays
-!  for a Grid-Independent GEOS-Chem (aka "GIGC") simulation.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE GIGC_Allocate_Interface( am_I_Root, RC )
-!
-! !USES:
-!
-    USE CMN_SIZE_MOD,     ONLY : IIPAR, JJPAR, LLPAR
-    USE GIGC_ErrCode_Mod
-    USE ERROR_MOD,        ONLY : ALLOC_ERR
-    USE UVALBEDO_MOD,     ONLY : UVALBEDO
-   !USE DAO_MOD,          ONLY : TO3
-!
-! !INPUT PARAMETERS: 
-!
-    LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER, INTENT(OUT) :: RC          ! Success or failure
-! 
-! !REVISION HISTORY: 
-!  15 Oct 2012 - M. Long     - Initial version
-!  15 Oct 2012 - R. Yantosca - Added ProTeX Headers, use F90 format/indents
-!  22 Oct 2012 - R. Yantosca - Renamed to GIGC_Allocate_Interface
-
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    INTEGER :: AS
-
-    ! Assume success
-    RC = GIGC_SUCCESS
-
-    ! UV albedo for photolysis
-    ALLOCATE( UVALBEDO( IIPAR, JJPAR), STAT=RC  )
-
-  END SUBROUTINE GIGC_Allocate_Interface
 END MODULE GIGC_Initialization_Mod
 #endif
