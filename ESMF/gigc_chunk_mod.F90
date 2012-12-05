@@ -75,10 +75,12 @@ CONTAINS
 !
   SUBROUTINE GIGC_Chunk_Init( am_I_Root, NI,        NJ,     NL,         &
                               nymd,      nhms,      tsChem, Input_Opt,  &
-                              State_Chm, State_Met, RC                 )
+                              State_Chm, State_Met, lonCtr, latCtr,     &
+                              latEdg, RC                 )
 !
 ! !USES:
 !
+    USE ESMF_Mod                                        ! ESMF library
     USE GIGC_Initialization_Mod
     USE GIGC_ErrCode_Mod
     USE GIGC_Input_Opt_Mod,    ONLY : OptInput
@@ -94,6 +96,9 @@ CONTAINS
     INTEGER,        INTENT(IN)    :: nymd        ! GMT date (YYYY/MM/DD)
     INTEGER,        INTENT(IN)    :: nhms        ! GMT time (hh:mm:ss)
     REAL,           INTENT(IN)    :: tsChem      ! Chemistry timestep
+    REAL(ESMF_KIND_R4), INTENT(IN):: lonCtr(:,:) ! Lon centers [radians]
+    REAL(ESMF_KIND_R4), INTENT(IN):: latCtr(:,:) ! Lat centers [radians]
+    REAL(ESMF_KIND_R4), INTENT(IN):: latEdg(:,:) ! Lat centers [radians]
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -130,6 +135,7 @@ CONTAINS
     CALL GIGC_Init_Dimensions( NI, NJ, NL )
 
     ! Initialize the G-C simulation and chemistry mechanism
+    write(*,*) 'XEDGE lonCtr: ', sum(lonctr)
     CALL GIGC_Init_Simulation( am_I_Root = am_I_Root,   &   ! Root CPU?
                                tsChem    = tsChem,      &   ! Chem timestep
                                nymd      = nymd,        &   ! Date
@@ -137,6 +143,9 @@ CONTAINS
                                Input_Opt = Input_Opt,   &   ! Input Options
                                State_Chm = State_Chm,   &   ! Chemistry State
                                State_Met = State_Met,   &   ! Meteorology State
+                               LONCTR    = lonCtr,      &  ! Array of lon centers [radians]
+                               LATCTR    = latCtr,      &  ! Array of lat centers [radians]
+                               LATEDG    = latEdg,      &  ! Array of lat edges   [radians]
                                RC        = RC          )
 
   END SUBROUTINE GIGC_Chunk_Init
@@ -165,6 +174,7 @@ CONTAINS
 ! !USES:
 !
     USE GIGC_ChemDr
+    USE GIGC_DryDep_Mod
     USE GIGC_ErrCode_Mod
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -206,6 +216,7 @@ CONTAINS
 !  25 Oct 2012 - R. Yantosca - Now pass RC to GIGC_DO_CHEM
 !  01 Nov 2012 - R. Yantosca - Now reference gigc_input_opt_mod.F90
 !  08 Nov 2012 - R. Yantosca - Now pass Input_Opt to GIGC_Do_Chem
+!  13 Nov 2012 - M. Long     - Added Dry Deposition method
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -219,6 +230,21 @@ CONTAINS
 
     ! Number of advected tracers
     NC = SIZE( State_Chm%Tracers, 4 )
+
+!    WRITE(logLun,*) 'Root: ', am_I_root
+!    IF ( am_I_Root ) THEN
+!       WRITE(logLun,*) '##### GIGC_Chunk_Run'
+!    ENDIF
+
+    ! Call the dry deposition run method
+    CALL GIGC_Do_DryDep( am_I_Root  = am_I_Root,  &   ! Are we on the root CPU?
+                         NI         = NI,         &   ! # lons on this PET
+                         NJ         = NJ,         &   ! # lats on this PET
+                         NL         = NL,         &   ! # levels on this PET
+                         Input_Opt  = Input_Opt,  &   ! Input Options object
+                         State_Chm  = State_Chm,  &   ! Chemistry State object
+                         State_Met  = State_Met,  &   ! Meteorology State object
+                         RC         = RC          )   ! Success or failure
 
     ! Call the chemistry run method
     CALL GIGC_Do_Chem( am_I_Root  = am_I_Root,  &   ! Are we on the root CPU?

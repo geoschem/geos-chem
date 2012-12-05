@@ -63,6 +63,10 @@ MODULE GIGC_State_Met_Mod
      REAL*8, POINTER :: V10M    (:,:  )   ! N/S wind speed @ 10m height [m/s]
      REAL*8, POINTER :: Z0      (:,:  )   ! Surface roughness height [m]
 
+     INTEGER, POINTER :: IREG(:,:)    ! Number of landtypes in grid square (I,J)
+     INTEGER, POINTER :: ILAND(:,:,:) ! Land type ID in grid square (I,J) for IREG landtypes
+     INTEGER, POINTER :: IUSE(:,:,:)  ! Fraction ((per mil) of gridbox area occupied by land type
+
      ! 3-D Fields
      REAL*8, POINTER :: AD      (:,:,:)   ! Air mass [kg]
      REAL*8, POINTER :: AIRDENS (:,:,:)   ! Air density [kg/m3]
@@ -116,6 +120,8 @@ CONTAINS
 ! !USES:
 !
     USE GIGC_ErrCode_Mod                         ! Error codes
+    USE CMN_SIZE_MOD,    ONLY : NTYPE
+
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -213,6 +219,19 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
     ALLOCATE( State_Met%Z0      ( IM, JM ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+
+    !=======================================================================
+    ! Allocate DRYDEP arrays
+    !=======================================================================
+
+    ALLOCATE( State_Met%IREG    ( IM, JM ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+
+    ALLOCATE( State_Met%ILAND   ( IM, JM, NTYPE ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+
+    ALLOCATE( State_Met%IUSE    ( IM, JM, NTYPE ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
     !=======================================================================

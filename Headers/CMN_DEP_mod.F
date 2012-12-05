@@ -23,13 +23,13 @@
 ! !PUBLIC DATA MEMBERS:
 !
       ! IREG   - Number of landtypes in grid square (I,J)
-      INTEGER, ALLOCATABLE :: IREG(:,:)                                
+!      INTEGER, ALLOCATABLE :: IREG(:,:)                                
 
       ! ILAND  - Land type ID in grid square (I,J) for IREG landtypes
-      INTEGER, ALLOCATABLE :: ILAND(:,:,:)
+!      INTEGER, ALLOCATABLE :: ILAND(:,:,:)
 
       ! IUSE   - Fraction ((per mil) of gridbox area occupied by land type
-      INTEGER, ALLOCATABLE :: IUSE(:,:,:)
+!      INTEGER, ALLOCATABLE :: IUSE(:,:,:)
 
       ! Fraction of land in grid box
       REAL*8,  ALLOCATABLE :: FRCLND(:,:)
@@ -61,9 +61,9 @@
       INTEGER AS
 
       ALLOCATE(
-     &     IREG(IIPAR,JJPAR),
-     &     ILAND(IIPAR,JJPAR,NTYPE),
-     &     IUSE(IIPAR,JJPAR,NTYPE),                        
+!     &     IREG(IIPAR,JJPAR),
+!     &     ILAND(IIPAR,JJPAR,NTYPE),
+!     &     IUSE(IIPAR,JJPAR,NTYPE),                        
      &     FRCLND(IIPAR,JJPAR),
      &     XLAI(IIPAR,JJPAR,NTYPE),
      &     XLAI2(IIPAR,JJPAR,NTYPE),

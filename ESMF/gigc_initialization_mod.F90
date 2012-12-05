@@ -23,6 +23,7 @@ MODULE GIGC_Initialization_Mod
 ! !PUBLIC MEMBER FUNCTIONS:
 !      
   PUBLIC :: GIGC_Init_Chemistry
+  PUBLIC :: GIGC_Init_DryDep
   PUBLIC :: GIGC_Emis_Inti
   PUBLIC :: GIGC_Init_Simulation
   PUBLIC :: GIGC_Get_Options
@@ -105,6 +106,68 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: gigc_init_chemistry
+!
+! !DESCRIPTION: Routine GIGC\_Init\_Chemistry initializes the GEOS-Chem 
+!  chemistry module so that it can connect to the ESMF interface.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE GIGC_Init_DryDep( PLON, PLAT, am_I_Root, RC )
+!
+! !USES:
+!
+    USE LOGICAL_MOD,     ONLY : DO_DIAG_WRITE
+    USE CMN_SIZE_MOD,    ONLY : JJPAR, IIPAR
+    USE GIGC_ErrCode_Mod
+    USE DRYDEP_MOD,      ONLY : INIT_DRYDEP, INIT_WEIGHTSS
+    USE MAPL_Mod                                     ! MAPL framework
+
+!
+! !INPUT PARAMETERS: 
+!
+    INTEGER, INTENT(IN)  :: PLON        ! Number of
+    INTEGER, INTENT(IN)  :: PLAT
+    LOGICAL, INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER, INTENT(OUT) :: RC          ! Success or failure?  
+
+! 
+! !REVISION HISTORY: 
+!  15 Oct 2012 - M. Long     - Initial version
+!  15 Oct 2012 - R. Yantosca - Added ProTeX Headers, use F90 format/indents
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    ! Assume success
+    RC = GIGC_SUCCESS
+
+    ! Don't write diagnostic files
+    DO_DIAG_WRITE = .FALSE. 
+
+    !### Debug
+    ! SET MODEL DIMENSIONS 
+    !IIPAR = 1
+    !JJPAR = PCOLS
+
+    IF ( am_I_Root ) THEN
+       WRITE(6,*) '##### GIGC_Init_DryDep'
+    ENDIF
+    
+!    CALL INIT_DRYDEP(am_I_root)
+    CALL INIT_WEIGHTSS()
+
+  END SUBROUTINE GIGC_Init_DryDep
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: gigc_emis_inti
 !
 ! !DESCRIPTION: Routine GC\_EMIS\_INTI establishes the emissions fields for
@@ -159,7 +222,8 @@ CONTAINS
 !
   SUBROUTINE GIGC_Init_Simulation( Input_Opt,  State_Met, State_Chm,  &
                                    tsChem,     nymd,      nhms,       &
-                                   am_I_Root,  RC                    )
+                                   am_I_Root, lonCtr, latCtr, latEdg, &
+                                   RC                                   )
 !
 ! !USES:
 !
@@ -174,7 +238,7 @@ CONTAINS
     USE COMODE_MOD
     USE COMODE_LOOP_MOD       
     USE GCKPP_COMODE_MOD,     ONLY : INIT_GCKPP_COMODE
-    USE GRID_MOD,             ONLY : INIT_GRID
+    USE GRID_MOD,             ONLY : INIT_GRID, YMID, XMID, YEDGE, XEDGE, AREA_M2
     USE DAO_MOD
     USE LOGICAL_MOD
     USE PBL_MIX_MOD,          ONLY : INIT_PBL_MIX
@@ -185,6 +249,8 @@ CONTAINS
     USE TOMS_MOD,             ONLY : TO3_DAILY
     USE WETSCAV_MOD,          ONLY : INIT_WETSCAV
     USE ERROR_MOD,            ONLY : DEBUG_MSG
+    USE MAPPING_MOD
+    USE OLSON_LANDMAP_MOD     ! Computes IREG, ILAND, IUSE from Olson map
 
     ! Comment these out for now (bmy, 10/15/12)
     !USE TIME_MANAGER,       ONLY : GET_STEP_SIZE
@@ -196,12 +262,16 @@ CONTAINS
     INTEGER,        INTENT(IN)    :: nymd        ! GMT date (YYYY/MM/DD)
     INTEGER,        INTENT(IN)    :: nhms        ! GMT time (hh:mm:ss)
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+    REAL*4, INTENT(IN), TARGET    :: lonCtr(:,:) ! Lon centers [radians]
+    REAL*4, INTENT(IN), TARGET    :: latCtr(:,:) ! Lat centers [radians]
+    REAL*4, INTENT(IN), TARGET    :: latEdg(:,:) ! Lat centers [radians]
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
-    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-    TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
+    TYPE(OptInput),  INTENT(INOUT) :: Input_Opt   ! Input Options object
+    TYPE(ChmState),  INTENT(INOUT) :: State_Chm   ! Chemistry State object
+    TYPE(MetState),  INTENT(INOUT) :: State_Met   ! Meteorology State object
+    TYPE(MapWeight), POINTER       :: mapping(:,:) => NULL()
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -237,7 +307,7 @@ CONTAINS
     ! Initialize
     RC    = GIGC_SUCCESS
     DTIME = tsChem
-       
+
     ! Initialize the timing routines
     CALL GIGC_Init_Time_Interface( DTIME, nymd, nhms, am_I_Root, RC )
 
@@ -249,6 +319,11 @@ CONTAINS
 
     ! Read options from the GEOS-Chem input file "input.geos"
     CALL GIGC_Get_Options( am_I_Root, Input_Opt, RC )
+
+    YMID(:,:,1)  = latCtr  
+    XMID(:,:,1)  = lonCtr
+    YEDGE(:,:,1) = abs(latEdg)*30
+    XEDGE(:,:,1) = (lonCtr)*30
 
     ! Determine if we have to print debug output
     prtDebug = ( Input_Opt%LPRT .and. am_I_Root )
@@ -267,6 +342,8 @@ CONTAINS
 
     ! Initialize 
     CALL GIGC_Init_Chemistry( PLON, PLAT, am_I_Root, RC )
+
+    CALL GIGC_Init_DryDep( PLON, PLAT, am_I_Root, RC )
 
     ! Allocate and initialize met field arrays
     CALL INIT_DAO
@@ -378,6 +455,25 @@ CONTAINS
     !### Debug
     IF ( prtDebug ) THEN
        CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after SETEMDEP' )
+    ENDIF
+
+    ! Initialize the derived type object containing
+    ! mapping information for the MODIS LAI routines
+    IF ( USE_OLSON_2001 ) THEN
+       CALL Init_Mapping( 1440, 720, IIPAR, JJPAR, mapping )
+    ELSE
+       CALL Init_Mapping(  720, 360, IIPAR, JJPAR, mapping )
+    ENDIF
+    
+    ! Compute the Olson land types that occur in each grid box
+    ! (i.e. this is a replacement for rdland.F and vegtype.global)
+    CALL Init_Olson_Landmap()
+    CALL Compute_Olson_Landmap( mapping )
+    CALL Cleanup_Olson_Landmap()
+    
+    !### Debug
+    IF ( prtDebug ) THEN
+       CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after OLSON' )
     ENDIF
 
     ! Initialize dry deposition (work in progress), add here

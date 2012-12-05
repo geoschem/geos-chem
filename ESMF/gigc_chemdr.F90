@@ -231,10 +231,11 @@ CONTAINS
       !======================================================================
 
       !### Debug, print values in v/v before chem
-      !IF ( am_I_Root ) THEN
-      !   WRITE(6,*) '##### GIGC_Do_Chem, TRC_OX before chem [v/v]'
-      !   WRITE(6,*) State_Chm%Tracers(1,1,:,2)
-      !ENDIF
+      IF ( am_I_Root ) THEN
+         WRITE(6,*) '##### GIGC_Do_Chem, TRC_OX before chem [v/v]'
+         WRITE(6,*) State_Chm%Tracers(1,1,:,2)
+         WRITE(6,*) LCHEM
+      ENDIF
 
       ! If we are doing chemistry
       IF ( LCHEM ) THEN

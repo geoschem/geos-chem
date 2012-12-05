@@ -37,7 +37,6 @@
       IMPLICIT NONE
 
 #     include "define.h"
-
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -49,6 +48,7 @@
       PUBLIC :: DRYFLXRnPbBe       
       PUBLIC :: DVZ_MINVAL         
       PUBLIC :: INIT_DRYDEP
+      PUBLIC :: INIT_WEIGHTSS
 
 !
 ! !PUBLIC DATA MEMBERS:
@@ -290,11 +290,45 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      SUBROUTINE DO_DRYDEP( am_I_Root, NI,        NJ,        NL, 
+     &                      Input_Opt, State_Met, State_Chm, RC   )
+#else
       SUBROUTINE DO_DRYDEP( am_I_Root )
+#endif
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! We need to reference some modules particular to the Grid-
+      ! Independent GEOS-Chem implementation here.   In particular,
+      ! the settings from the Input Options object will replace
+      ! logical flags from logical_mod.F. (bmy, 11/8/12)
+      !-----------------------------------------------------------------
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
+      USE GIGC_State_Chm_Mod,   ONLY : ChmState
+      USE GIGC_State_Met_Mod,   ONLY : MetState
+#endif
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      INTEGER,        INTENT(IN)    :: NI          ! # of lons on this CPU
+      INTEGER,        INTENT(IN)    :: NJ          ! # of lats on this CPU
+      INTEGER,        INTENT(IN)    :: NL          ! # of levs on this CPU
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT VARIABLES:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+#endif
 !
 ! !REMARKS:
 !  NOTE: Modeled aerosol dry deposition velocities over snow and ice surfaces 
@@ -344,6 +378,8 @@
 !  26 Mar 2012 - R. Yantosca - Remove calls to obsolete MODIN, RDDRYCF routines
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  14 Nov 2012 - M. Long     - Modifications for GIGC & ESMF. Including passing
+!                              of derived types in place of module 'USE' stmnts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -381,24 +417,31 @@
       !=================================================================
       
       ! Read drydep coeff's and land types on first call
-      IF ( FIRST ) THEN
+!      IF ( FIRST ) THEN
 
          ! Read drydep inputs from the netCDF file
          ! Save Olson indices in INDOLSON array, in order to avoid
          ! confusion w/ previously-assinged variable name IOLSON
-         CALL READ_DRYDEP_INPUTS( am_I_Root,
-     &                            DRYCOEFF, INDOLSON, IDEP,    
-     &                            IWATER,   NWATER,   IZO,      
-     &                            IDRYDEP,  IRI,      IRLU,     
-     &                            IRAC,     IRGSS,    IRGSO, 
-     &                            IRCLS,    IRCLO,    IVSMAX )
+!         CALL READ_DRYDEP_INPUTS( am_I_Root,
+!     &                            DRYCOEFF, INDOLSON, IDEP,    
+!     &                            IWATER,   NWATER,   IZO,      
+!     &                            IDRYDEP,  IRI,      IRLU,     
+!     &                            IRAC,     IRGSS,    IRGSO, 
+!     &                            IRCLS,    IRCLO,    IVSMAX )
 
          ! Calls INIT_WEIGHTSS to calculate the volume distribution of 
          ! sea salt aerosols (jaegle 5/11/11)
-         CALL INIT_WEIGHTSS()
+!         CALL INIT_WEIGHTSS()
          FIRST = .FALSE.
-      ENDIF
- 
+!      ENDIF
+!         if ( am_I_root ) then
+            write(6,*) 'DRYDEP PARAM TEST:::'
+            write(6,*) IRCLS
+            write(6,*) IZO
+            write(6,*) IRI
+            write(6,*) IRAC
+!         endif
+
       ! Call METERO to obtain meterological fields (all 1-D arrays)
       ! Added sfc pressure as PRESSU and 10m windspeed as W10 
       !  (jaegle 5/11/11, mpayer 1/10/12)
@@ -5132,6 +5175,14 @@
      &                   HSTAR(N),  F0(N),      XMW(N),     AIROSOL(N)
       ENDDO
  100  FORMAT( i3, 3x, a4, 2(3x,i3), 4x, es8.1, 2(3x,f6.3), 3x, L3 )
+
+         CALL READ_DRYDEP_INPUTS( am_I_Root,
+     &                            DRYCOEFF, INDOLSON, IDEP,    
+     &                            IWATER,   NWATER,   IZO,      
+     &                            IDRYDEP,  IRI,      IRLU,     
+     &                            IRAC,     IRGSS,    IRGSO, 
+     &                            IRCLS,    IRCLO,    IVSMAX )
+
 
       END SUBROUTINE INIT_DRYDEP
 !EOC
