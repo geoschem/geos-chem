@@ -134,6 +134,10 @@
 #if   defined( APM )
       PUBLIC  :: ITS_TIME_FOR_A6UPDATE
 #endif
+
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      PUBLIC  :: Accept_Date_Time_From_ESMF
+#endif
 !
 ! !REVISION HISTORY:
 !  21 Jun 2000 - R. Yantosca - Initial version
@@ -205,6 +209,7 @@
 !  03 Feb 2012 - R. Yantosca - Added I3 fields timestep variable & routines
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  01 Mar 2012 - R. Yantosca - GET_LOCALTIME now takes (I,J,L,GMT) as args
+!  05 Dec 2012 - R. Yantosca - Add 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4896,6 +4901,148 @@
 
       END FUNCTION GET_NYMD_DIAG
 !EOC
+#if defined( ESMF_ )
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: accept_date_time_from_esmf
+!
+! !DESCRIPTION: Subroutine ACCEPT\_DATE\_TIME\_FROM\_ESMF sets the date and
+!  time variables in time_mod.F with the values obtained from the ESMF 
+!  environment.  The various date & time values are passed as arguments.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Accept_Date_Time_From_ESMF( 
+     &   am_I_Root,    value_NYMDb,    value_NYMDe,   value_NYMD,
+     &   value_NHMSb,  value_NHMSe,    value_NHMS,    value_YEAR,
+     &   value_MONTH,  value_DAY,      value_DAYOFYR, value_HOUR,
+     &   value_MINUTE, value_SECOND,   value_UTC,     value_HELAPSED,
+     &   value_TS_CHEM, value_TS_CONV, value_TS_DYN,  value_TS_EMIS,
+     &   RC                                                           )
+!
+! !USES:
+!
+      USE GIGC_ErrCode_Mod
+      USE JULDAY_MOD,       ONLY : JULDAY
+      USE JULDAY_MOD,       ONLY : CALDATE
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL, INTENT(IN)  :: am_I_Root       ! Are we on the root CPU?
+      INTEGER, OPTIONAL    :: value_NYMDb     ! YYYY/MM/DD @ start of run
+      INTEGER, OPTIONAL    :: value_NYMDe     ! YYYY/MM/DD @ end of run
+      INTEGER, OPTIONAL    :: value_NYMD      ! YYYY/MM/DD @ current time
+      INTEGER, OPTIONAL    :: value_NHMSb     ! hh:mm:ss   @ start of run
+      INTEGER, OPTIONAL    :: value_NHMSe     ! hh:mm:ss   @ end of run
+      INTEGER, OPTIONAL    :: value_NHMS      ! hh:mm:ss   @ current time
+      INTEGER, OPTIONAL    :: value_YEAR      ! UTC year 
+      INTEGER, OPTIONAL    :: value_MONTH     ! UTC month
+      INTEGER, OPTIONAL    :: value_DAY       ! UTC day
+      INTEGER, OPTIONAL    :: value_DAYOFYR   ! UTC day of year
+      INTEGER, OPTIONAL    :: value_HOUR      ! UTC hour
+      INTEGER, OPTIONAL    :: value_MINUTE    ! UTC minute
+      INTEGER, OPTIONAL    :: value_SECOND    ! UTC second
+      REAL*4,  OPTIONAL    :: value_UTC       ! UTC time [hrs]
+      REAL*4,  OPTIONAL    :: value_HELAPSED  ! Elapsed hours
+      INTEGER, OPTIONAL    :: value_TS_CHEM   ! Chemistry  timestep [min]
+      INTEGER, OPTIONAL    :: value_TS_CONV   ! Convection timestep [min]
+      INTEGER, OPTIONAL    :: value_TS_DYN    ! Dynamic    timestep [min]
+      INTEGER, OPTIONAL    :: value_TS_EMIS   ! Emissions  timestep [min]
+!
+! !OUTPUT ARGUMENTS:
+!
+      INTEGER, INTENT(OUT) :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  The date and time values are obtained via the Extract_ subroutine in 
+!  module file GEOSCHEMchem_GridCompMod.F90.      
+! 
+! !REVISION HISTORY: 
+!  06 Dec 2012 - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      REAL*4 :: TMP
+
+      !=================================================================
+      ! Set time/date values of time_mod.F from the ESMF inputs 
+      !=================================================================
+      IF ( PRESENT( value_NYMDb    ) ) NYMDb       = value_NYMdb
+      IF ( PRESENT( value_NYMDe    ) ) NYMDe       = value_NYMDe
+      IF ( PRESENT( value_NYMD     ) ) NYMD        = value_NYMD
+      IF ( PRESENT( value_NHMSb    ) ) NHMSb       = value_NHMSb 
+      IF ( PRESENT( value_NHMSe    ) ) NHMSe       = value_NHMSe
+      IF ( PRESENT( value_NHMS     ) ) NHMS        = value_NHMS 
+      IF ( PRESENT( value_YEAR     ) ) YEAR        = value_YEAR 
+      IF ( PRESENT( value_MONTH    ) ) MONTH       = value_MONTH
+      IF ( PRESENT( value_DAY      ) ) DAY         = value_DAY 
+      IF ( PRESENT( value_DAYOFYR  ) ) DAY_OF_YEAR = value_DAYOFYR
+      IF ( PRESENT( value_HOUR     ) ) HOUR        = value_HOUR
+      IF ( PRESENT( value_MINUTE   ) ) MINUTE      = value_MINUTE
+      IF ( PRESENT( value_SECOND   ) ) SECOND      = value_SECOND
+      IF ( PRESENT( value_TS_CHEM  ) ) TS_CHEM     = value_TS_CHEM
+      IF ( PRESENT( value_TS_CONV  ) ) TS_CONV     = value_TS_CONV
+      IF ( PRESENT( value_TS_DYN   ) ) TS_DYN      = value_TS_DYN
+      IF ( PRESENT( value_TS_EMIS  ) ) TS_EMIS     = value_TS_EMIS
+
+      ! Special handling for GMT to avoid roundoff error
+      IF ( PRESENT( value_UTC  ) ) THEN 
+         TMP = value_UTC
+         GMT = TMP
+      ENDIF
+
+      !=================================================================
+      ! Compute various other derived time/date values
+      !=================================================================
+      
+      ! Elapsed minutes since the start of the run
+      IF ( PRESENT( value_HELAPSED ) ) THEN
+         ELAPSED_MIN = ( value_HELAPSED * 60 )
+      ENDIF
+
+      ! TAUb (hours since 0 UTC on 01 Jan 1985) @ start of simulation
+      IF ( PRESENT( value_NYMDb ) .and. PRESENT( value_NHMSb ) ) THEN
+         TMP  = ( GET_JD( NYMDb, NHMSb ) - JD85 ) * 24e0
+         TAUb = DBLE( TMP )
+      ENDIF
+
+      ! TAUe (hours since 0 UTC on 01 Jan 1985) @ end of simulation
+      IF ( PRESENT( value_NYMDe ) .and. PRESENT( value_NHMSe ) ) THEN
+         TMP  = ( GET_JD( NYMDe, NHMSe ) - JD85 ) * 24e0
+         TAUe = DBLE( TMP )
+      ENDIF
+
+      ! TAU value ( hours since 0 UTC on 01 Jan 1985)
+      IF ( PRESENT( value_NYMD ) .and. PRESENT( value_NHMS ) ) THEN
+         TMP  = ( GET_JD( NYMD, NHMS ) - JD85 ) * 24e0
+         TAU  = DBLE( TMP )
+      ENDIF
+
+      ! Season index (1=DJF, 2=MAM, 3=JJA, 4=SON)
+      SELECT CASE ( MONTH )
+         CASE ( 12, 1, 2 )
+            NSEASON = 1
+         CASE ( 3, 4, 5 )
+            NSEASON = 2
+         CASE ( 6, 7, 8 )
+            NSEASON = 3
+         CASE ( 9, 10, 11 )
+            NSEASON = 4
+      END SELECT
+
+      ! Return successfully
+      RC = GIGC_SUCCESS
+
+      END SUBROUTINE Accept_Date_Time_from_ESMF
+!EOC
+#endif
       END MODULE TIME_MOD
 
 

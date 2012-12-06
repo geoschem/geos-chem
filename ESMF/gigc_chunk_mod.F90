@@ -78,12 +78,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GIGC_Chunk_Init( am_I_Root, I_LO,      J_LO,      I_HI,       &
-                              J_HI,      IM,        JM,        LM,         &
-                              IM_WORLD,  JM_WORLD,  LM_WORLD,  nymd,       &
-                              nhms,      tsChem,    lonCtr,    latCtr,     &
-                              latEdg,    Input_Opt, State_Chm, State_Met,  &
-                              RC                                          )
+  SUBROUTINE GIGC_Chunk_Init( am_I_Root, I_LO,      J_LO,      I_HI,      &
+                              J_HI,      IM,        JM,        LM,        &
+                              IM_WORLD,  JM_WORLD,  LM_WORLD,  nymdB,     &
+                              nhmsB,     nymdE,     nhmsE,     tsChem,    &
+                              tsDyn,     lonCtr,    latCtr,    Input_Opt, &
+                              State_Chm, State_Met, RC      )
 !
 ! !USES:
 !
@@ -107,12 +107,14 @@ CONTAINS
     INTEGER,            INTENT(IN)    :: IM_WORLD    ! # lons, global grid
     INTEGER,            INTENT(IN)    :: JM_WORLD    ! # lats, global grid
     INTEGER,            INTENT(IN)    :: LM_WORLD    ! # levs, global grid
-    INTEGER,            INTENT(IN)    :: nymd        ! GMT date (YYYY/MM/DD)
-    INTEGER,            INTENT(IN)    :: nhms        ! GMT time (hh:mm:ss)
+    INTEGER,            INTENT(IN)    :: nymdB       ! YYYYMMDD @ start of run
+    INTEGER,            INTENT(IN)    :: nhmsB       ! hhmmss   @ start of run
+    INTEGER,            INTENT(IN)    :: nymdE       ! YYYYMMDD @ end of run
+    INTEGER,            INTENT(IN)    :: nhmsE       ! hhmmss   @ end of run
     REAL,               INTENT(IN)    :: tsChem      ! Chemistry timestep
+    REAL,               INTENT(IN)    :: tsDyn       ! Chemistry timestep
     REAL(ESMF_KIND_R4), INTENT(IN)    :: lonCtr(:,:) ! Lon centers [radians]
     REAL(ESMF_KIND_R4), INTENT(IN)    :: latCtr(:,:) ! Lat centers [radians]
-    REAL(ESMF_KIND_R4), INTENT(IN)    :: latEdg(:,:) ! Lat centers [radians]
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -146,6 +148,9 @@ CONTAINS
 !  03 Dec 2012 - R. Yantosca - Rename NI, NJ, NL to IM, JM, LM for clarity
 !  03 Dec 2012 - R. Yantosca - Now pass I_LO, J_LO, I_HI, J_HI, IM_WORLD, 
 !                              JM_WORLD, LM_WORLD via the arg list
+!  05 Dec 2012 - R. Yantosca - Remove latEdg argument
+!  06 Dec 2012 - R. Yantosca - Add nymdB, nhmsB, nymdB, nhmsB arguments,
+!                              and remove nymd, nhms
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -157,9 +162,12 @@ CONTAINS
     ! Initialize the G-C simulation and chemistry mechanism
     !=======================================================================
     CALL GIGC_Init_Simulation( am_I_Root      = am_I_Root,  & ! Root CPU?
-                               tsChem         = tsChem,     & ! Chem timestep
-                               nymd           = nymd,       & ! Date
-                               nhms           = nhms,       & ! Time
+                               nymdB          = nymdB,      & ! Date @ start
+                               nhmsB          = nhmsB,      & ! Time @ start
+                               nymdE          = nymdE,      & ! Date @ end
+                               nhmsE          = nhmsE,      & ! Time @ end
+                               tsChem         = tsChem,     & ! Chem step [min]
+                               tsDyn          = tsDyn,      & ! Dyn  step [min]
                                value_I_LO     = I_LO,       & ! Local min lon
                                value_J_LO     = J_LO,       & ! Local min lat
                                value_I_HI     = I_HI,       & ! Local max lon 
@@ -172,7 +180,6 @@ CONTAINS
                                value_LM_WORLD = LM_WORLD,   & ! Global # levs
                                lonCtr         = lonCtr,     & ! Lon ctrs [rad]
                                latCtr         = latCtr,     & ! Lat ctrs [rad]
-                               latEdg         = latEdg,     & ! lat edgs [rad]
                                Input_Opt      = Input_Opt,  & ! Input Options
                                State_Chm      = State_Chm,  & ! Chemistry State
                                State_Met      = State_Met,  & ! Met State
@@ -200,8 +207,11 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-  SUBROUTINE GIGC_Chunk_Run( am_I_Root, IM,        JM,        LM,  &
-                             Input_Opt, State_Chm, State_Met, RC  )
+  SUBROUTINE GIGC_Chunk_Run( am_I_Root, IM,        JM,        LM,         &
+                             nymd,      nhms,      year,      month,      &
+                             day,       dayOfYr,   hour,      minute,     &
+                             second,    utc,       hElapsed,  Input_Opt,  &
+                             State_Chm, State_Met, RC                    )
 !
 ! !USES:
 !
@@ -214,6 +224,8 @@ CONTAINS
     USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE Pressure_Mod,       ONLY : EXTERNAL_PEDGE
+    USE Time_Mod,           ONLY : Accept_Date_Time_From_ESMF
+    USE Time_Mod,           ONLY : ITS_TIME_FOR_CHEM
 !
 ! !INPUT PARAMETERS:
 !
@@ -221,6 +233,17 @@ CONTAINS
     INTEGER,        INTENT(IN)    :: IM          ! # of lons on this CPU
     INTEGER,        INTENT(IN)    :: JM          ! # of lats on this CPU
     INTEGER,        INTENT(IN)    :: LM          ! # of levs on this CPU
+    INTEGER,        INTENT(IN)    :: nymd        ! YYYY/MM/DD @ current time
+    INTEGER,        INTENT(IN)    :: nhms        ! hh:mm:ss   @ current time
+    INTEGER,        INTENT(IN)    :: year        ! UTC year 
+    INTEGER,        INTENT(IN)    :: month       ! UTC month
+    INTEGER,        INTENT(IN)    :: day         ! UTC day
+    INTEGER,        INTENT(IN)    :: dayOfYr     ! UTC day of year
+    INTEGER,        INTENT(IN)    :: hour        ! UTC hour
+    INTEGER,        INTENT(IN)    :: minute      ! UTC minute
+    INTEGER,        INTENT(IN)    :: second      ! UTC second
+    REAL*4,         INTENT(IN)    :: utc         ! UTC time [hrs]
+    REAL*4,         INTENT(IN)    :: hElapsed    ! Elapsed hours
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -228,7 +251,7 @@ CONTAINS
     TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
     TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 !
-! !OUTPUT PARAMETERS:
+! !OUTPUT PARAMETERS G:
 !
     INTEGER,        INTENT(OUT)   :: RC          ! Return code
 !
@@ -276,29 +299,47 @@ CONTAINS
        RETURN
     ENDIF
 
+    !=======================================================================
+    ! Decide if it's time to do chemistry or if we should skip this step
+    !=======================================================================
+
+    ! Pass time valus from ESMF to GEOS-Chem
+    CALL Accept_Date_Time_from_ESMF( am_I_Root      = am_I_Root,  &
+                                     value_NYMD     = nymd,       &  
+                                     value_NHMS     = nhms,       &  
+                                     value_YEAR     = year,       &  
+                                     value_MONTH    = month,      &  
+                                     value_DAY      = day,        &  
+                                     value_DAYOFYR  = dayOfYr,    &  
+                                     value_HOUR     = hour,       &  
+                                     value_MINUTE   = minute,     &  
+                                     value_HELAPSED = hElapsed,   &  
+                                     RC             = RC         )
+
+    ! If it is not a multiple of the chemistry timestep, return
+    IF ( .not. ITS_TIME_FOR_CHEM() ) RETURN
+    
+    !=======================================================================
+    ! Run
+    !=======================================================================
+
     ! Pressure @ level edges [hPa]
     EXTERNAL_PEDGE = State_Met%PEDGE     
 
     ! # of tracers
     NC             = Input_Opt%N_TRACERS
 
-    !=======================================================================
-    ! The tracer concentrations in State_Chm%TRACERS state have units 
-    ! of [v/v] (since these come from the ESMF internal state).  We need
-    ! to convert these to [kg] before calling the GEOS-Chem drydep and
-    ! chemistry routines.
-    !=======================================================================
+    ! ### For testing
+    RETURN
+
+    ! Convert State_Chm%TRACERS from [v/v] to [kg]
     CALL Convert_Units    ( IFLAG      = 2,                    &
                             N_TRACERS  = Input_Opt%N_TRACERS,  &
                             TCVV       = Input_Opt%TCVV,       &
                             AD         = State_Met%AD,         &
                             STT        = State_Chm%Tracers    )
 
-    !=======================================================================
-    ! Call the run method of the GEOS-Chem dry deposition package
-    !
-    ! %%%% NOTE: Eventually we can call DO_DRYDEP directly from here
-    !=======================================================================
+    ! Do dry deposition
 ! Shunt for testing
 !    IF ( Input_Opt%LDRYD ) THEN
 !       CALL GIGC_Do_DryDep( am_I_Root  = am_I_Root,  &   ! Are we on root CPU?
@@ -311,11 +352,7 @@ CONTAINS
 !                            RC         = RC         )    ! Success or failure
 !    ENDIF
 
-    !=======================================================================
-    ! Call the run method of the GEOS-Chem dry chemistry package
-    ! 
-    ! %%%% NOTE: Eventually we can call DO_CHEMISTRY directly from here
-    !=======================================================================
+    ! Do chemistry
     IF ( Input_Opt%LCHEM ) THEN
        CALL GIGC_Do_Chem(   am_I_Root  = am_I_Root,  &   ! Are we on root CPU?
                             NI         = IM,         &   ! # lons on this CPU
@@ -328,11 +365,7 @@ CONTAINS
                             RC         = RC         )    ! Success or failure
     ENDIF
 
-    !=======================================================================
-    ! Convert the tracer concentrations in State_Chm%TRACERS back to
-    ! [v/v] so that they can be stored in the ESMF internal state
-    ! for the next chemistry timestep.
-    !=======================================================================
+    ! Convert the units of State_Chm%TRACERS from [kg] to [v/v]
     CALL Convert_Units    ( IFLAG     = 1,                    &
                             N_TRACERS = Input_Opt%N_TRACERS,  &
                             TCVV      = Input_Opt%TCVV,       &

@@ -205,6 +205,8 @@
 !  16 Oct 2012 - R. Yantosca - Don't call CHECK_TIME_STEPS if we are calling
 !                              READ_INPUT_FILE from the ESMF interface
 !  09 Nov 2012 - R. Yantosca - Now pass Input_Opt to lower-level routines
+!  06 Dec 2012 - R. Yantosca - Now call CHECK_TIME_STEPS when we are connecting
+!                              to the GEOS-5 GCM via the ESMF environment,
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -395,9 +397,10 @@
       ! Make sure all directories are valid
       CALL VALIDATE_DIRECTORIES
 
+#endif
+
       ! Check GEOS-CHEM timesteps
       CALL CHECK_TIME_STEPS( am_I_Root )
-#endif
 
       ! Create "diaginfo.dat" and "tracerinfo.dat" files for GAMAP
       CALL DO_GAMAP( DIAGINFO, TRACERINFO )
@@ -602,21 +605,24 @@
 ! !USES:
 !     
       USE CMN_SIZE_MOD
-      USE DIRECTORY_MOD, ONLY : DATA_DIR,    DATA_DIR_1x1, GCAP_DIR
-      USE DIRECTORY_MOD, ONLY : GEOS_4_DIR,  GEOS_5_DIR
-      USE DIRECTORY_MOD, ONLY : MERRA_DIR,   GEOS_57_DIR
-      USE DIRECTORY_MOD, ONLY : RUN_DIR
-      USE DIRECTORY_MOD, ONLY : TEMP_DIR   
-      USE GRID_MOD,      ONLY : SET_XOFFSET, SET_YOFFSET
-      USE LOGICAL_MOD,   ONLY : LSVGLB,      LUNZIP,       LWAIT
-      USE LOGICAL_MOD,   ONLY : LVARTROP
-      USE RESTART_MOD,   ONLY : SET_RESTART
-      USE TIME_MOD,      ONLY : SET_BEGIN_TIME,   SET_END_TIME 
-      USE TIME_MOD,      ONLY : SET_CURRENT_TIME, SET_DIAGb
-      USE TIME_MOD,      ONLY : SET_NDIAGTIME,    GET_TAU
-      USE TRANSFER_MOD,  ONLY : INIT_TRANSFER
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR,    DATA_DIR_1x1, GCAP_DIR
+      USE DIRECTORY_MOD,      ONLY : GEOS_4_DIR,  GEOS_5_DIR
+      USE DIRECTORY_MOD,      ONLY : MERRA_DIR,   GEOS_57_DIR
+      USE DIRECTORY_MOD,      ONLY : RUN_DIR
+      USE DIRECTORY_MOD,      ONLY : TEMP_DIR   
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GRID_MOD,           ONLY : SET_XOFFSET, SET_YOFFSET
+      USE LOGICAL_MOD,        ONLY : LSVGLB,      LUNZIP,       LWAIT
+      USE LOGICAL_MOD,        ONLY : LVARTROP
+      USE RESTART_MOD,        ONLY : SET_RESTART
+      USE TIME_MOD,           ONLY : SET_BEGIN_TIME,   SET_END_TIME 
+      USE TIME_MOD,           ONLY : SET_CURRENT_TIME, SET_DIAGb
+      USE TIME_MOD,           ONLY : SET_NDIAGTIME,    GET_TAU
+      USE TRANSFER_MOD,       ONLY : INIT_TRANSFER
+#if defined( ESMF_ )
+      USE TIME_MOD,           ONLY : Accept_Date_Time_From_ESMF
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -654,6 +660,8 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!  06 Dec 2012 - R. Yantosca - Now get NYMDb, NHMSb, NYMDe, NHMSe from the ESMF
+!                              environment when connecting to the GEOS-5 GCM
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -758,10 +766,52 @@
       !=================================================================
       ! Set fields of Input Options object
       !=================================================================
+#if defined( ESMF_ ) 
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! If we are connecting to the ESMF interface, we need to take
+      ! the start & end dates as defined in the ESMF resource file.
+      ! (i.e. GEOSCHEMchem_GridComp_mod.rc) instead of those in 
+      ! input.geos.  This is because the ESMF Clock object needs to be
+      ! defined at the highest level (in the driver routine), before 
+      ! input.geos is ever read.
+      !
+      ! Therefore, we will assign the start & end date fields (i.e.
+      ! Input_Opt%NYMDb, Input_Opt%NYMDe, Input_Opt%NHMSb, and 
+      ! Input_Opt%NHMSe) in the Gridded Component module file
+      ! GEOSCHEMchem_GridComp_Mod.F90 (i.e. two levels higher
+      ! in the code).  We don'need to define those fields here, so
+      ! we have bracketed this with an #ifdef. 
+      !
+      ! Ideallly it would be good to have one single version of 
+      ! "input.geos" that can double as the GEOS-Chem input file as 
+      ! well as the ESMF resource.  We may be a way off from that.
+      ! One potential solution is to use a Perl script to generate
+      ! both the input.geos file and the ESMF resource file, so that
+      ! both files are consistent with each other. (bmy, 12/6/12)
+      !-----------------------------------------------------------------
+      
+      ! Save to local variables for printing below
+      NYMDb                   = Input_Opt%NYMDb
+      NHMSb                   = Input_Opt%NHMSb
+      NYMDe                   = Input_Opt%NYMDe
+      NHMSe                   = Input_Opt%NHMSe
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Current practice in the standard GEOS-Chem is to initialize 
+      ! the fields Input_Opt%NYMDb, Input_Opt%NYMDe, Input_Opt%NHMSb, 
+      ! and Input_Opt%NHMSe from the values read in from input.geos.
+      ! (bmy, 12/6/12)
+      !-----------------------------------------------------------------
+
       Input_Opt%NYMDb         = NYMDb 
       Input_Opt%NHMSb         = NHMSb
       Input_Opt%NYMDe         = NYMDe
       Input_Opt%NHMSe         = NHMSe
+#endif
       Input_Opt%RUN_DIR       = RUN_DIR
       Input_Opt%IN_RST_FILE   = IN_RST_FILE
       Input_Opt%LSVGLB        = LSVGLB
@@ -830,6 +880,35 @@
       ! Call setup routines from other GEOS-CHEM modules
       !=================================================================
 
+#if defined( ESMF_ )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! If we are connecting to the GEOS-5 GCM via ESMF, then pass the
+      ! values for the start & end times of the simulation directly to
+      ! GeosUtil/time_mod.F via subroutine ACCEPT_DATE_TIME_FROM_ESMF.
+      ! (bmy, 12/6/12)
+      !-----------------------------------------------------------------
+      CALL Accept_Date_Time_From_ESMF( am_I_Root   = am_I_Root, 
+     &                                 value_NYMDb = Input_Opt%NYMDb,
+     &                                 value_NHMSb = Input_Opt%NHMSb,
+     &                                 value_NYMDe = Input_Opt%NYMDe,
+     &                                 value_NHMSe = Input_Opt%NHMSe,
+     &                                 value_NYMD  = Input_Opt%NYMDb,
+     &                                 value_NHMS  = Input_Opt%NHMSb,
+     &                                 RC          = RC               )
+     &                                 
+
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! If we are not using ESMF, then call the traditional GEOS-Chem
+      ! timing routines (from GeosUtil/time_mod.F) to set the start &
+      ! end times of the simulation, as well as the current time.
+      ! (bmy, 12/6/12)
+      !-----------------------------------------------------------------
+
       ! Set start time of run in "time_mod.f"
       CALL SET_BEGIN_TIME( NYMDb, NHMSb )
 
@@ -838,6 +917,8 @@
 
       ! Set the current time
       CALL SET_CURRENT_TIME()
+
+#endif
 
       ! Set the time of day for writing bpch files
       NDIAGTIME = NHMSe !### test
@@ -3005,15 +3086,17 @@
 !
 ! !USES:
 !
-      USE ERROR_MOD,   ONLY : ERROR_STOP 
-      USE LOGICAL_MOD, ONLY : LCHEM, LSCHEM, LLINOZ
-      USE LOGICAL_MOD, ONLY : LSVCSPEC, LKPP
-      USE TIME_MOD,    ONLY : SET_CT_CHEM
-      USE TRACER_MOD,  ONLY : N_TRACERS
-
-      USE CMN_SIZE_MOD                   ! Size parameters
+      USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : ERROR_STOP 
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE LOGICAL_MOD,        ONLY : LCHEM, LSCHEM, LLINOZ
+      USE LOGICAL_MOD,        ONLY : LSVCSPEC, LKPP
+      USE TIME_MOD,           ONLY : SET_CT_CHEM
+      USE TRACER_MOD,         ONLY : N_TRACERS
+#if defined( ESMF_ )
+      USE TIME_MOD,           ONLY : Accept_Date_Time_From_ESMF
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -3037,6 +3120,8 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!  06 Dec 2012 - R. Yantosca - Now get TS_CHEM from the ESMF environment
+!                              when we are connecting to the GEOS-5 GCM
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3086,10 +3171,58 @@
       !=================================================================
       ! Set fields of Input Options object
       !=================================================================
+#if defined( ESMF_ ) 
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! If we are connecting to the ESMF interface, we need to take
+      ! the chemistry timestep as defined in the ESMF resource file.
+      ! (i.e. GEOSCHEMchem_GridComp_mod.rc) instead of those in 
+      ! input.geos.  This is because the ESMF Clock object needs to be
+      ! defined at the highest level (in the driver routine), before 
+      ! input.geos is ever read.
+      !
+      ! Therefore, we will assign the chemistry timestep field (i.e.
+      ! Input_Opt%TS_CHEM) in the Gridded Component module file
+      ! GEOSCHEMchem_GridComp_Mod.F90 (i.e. two levels higher
+      ! in the code).  We don'need to define those fields here, so
+      ! we have bracketed this with an #ifdef. 
+      !
+      ! Also pass the chemistry timestep value directly to module
+      ! GeosUtil/time_mod.F via subroutine ACCEPT_DATE_TIME_FROM_ESMF.
+      !
+      ! Ideallly it would be good to have one single version of 
+      ! "input.geos" that can double as the GEOS-Chem input file as 
+      ! well as the ESMF resource.  We may be a way off from that.
+      ! One potential solution is to use a Perl script to generate
+      ! both the input.geos file and the ESMF resource file, so that
+      ! both files are consistent with each other.
+      ! (bmy, 12/6/12)
+      !-----------------------------------------------------------------
+      
+      ! Save to local variables for printing below
+      TS_CHEM            = Input_Opt%TS_CHEM
+
+      ! Pass chemistry timestep to time_mod.F
+      CALL Accept_Date_Time_From_ESMF( am_I_Root     = am_I_Root, 
+     &                                 value_TS_CHEM = TS_CHEM,   
+     &                                 RC            = RC         )
+     &                                 
+
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Current practice in the standard GEOS-Chem is to initialize 
+      ! the field Input_OPt%TS_CHEM with the value read in from 
+      ! input.geos. (bmy, 12/6/12)
+      !-----------------------------------------------------------------
+      Input_Opt%TS_CHEM  = TS_CHEM
+
+#endif
       Input_Opt%LCHEM    = LCHEM
       Input_Opt%LSCHEM   = LSCHEM
       Input_Opt%LLINOZ   = LLINOZ
-      Input_Opt%TS_CHEM  = TS_CHEM
       Input_Opt%LSVCSPEC = LSVCSPEC
       Input_Opt%LKPP     = LKPP
 
@@ -3134,15 +3267,20 @@
 !
 ! !USES:
 !
-      USE ERROR_MOD,      ONLY : ERROR_STOP
-      USE LOGICAL_MOD,    ONLY : LTRAN
-      USE LOGICAL_MOD,    ONLY : LMFCT,              LFILL
-      USE TRACER_MOD,     ONLY : ITS_A_FULLCHEM_SIM, ITS_A_TAGOX_SIM
-#if ! defined( ESMF_ )
-      USE TRANSPORT_MOD, ONLY : SET_TRANSPORT
-#endif
+      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE LOGICAL_MOD,        ONLY : LFILL
+      USE LOGICAL_MOD,        ONLY : LMFCT
+      USE LOGICAL_MOD,        ONLY : LTRAN
+      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
+      USE TRACER_MOD,         ONLY : ITS_A_TAGOX_SIM
+#if defined( ESMF_ )
+      USE TIME_MOD,           ONLY : Accept_Date_Time_From_ESMF
+#else
+      USE TRANSPORT_MOD,      ONLY : SET_TRANSPORT
+#endif
+
 !
 ! !INPUT PARAMETERS:
 !
@@ -3169,6 +3307,8 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!  06 Dec 2012 - R. Yantosca - Now get TS_DYN from the ESMF environment, if
+!                              we are connecting to the GEOS-5 GCM
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3250,7 +3390,56 @@
       Input_Opt%TPCORE_IORD = IORD
       Input_Opt%TPCORE_JORD = JORD
       Input_Opt%TPCORE_KORD = KORD
+
+#if defined( ESMF_ ) 
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! If we are connecting to the ESMF interface, we need to take
+      ! the dynamic timestep as defined in the ESMF resource file.
+      ! (i.e. GEOSCHEMchem_GridComp_mod.rc) instead of that in 
+      ! input.geos.  This is because the ESMF Clock object needs to be
+      ! defined at the highest level (in the driver routine), before 
+      ! input.geos is ever read.
+      !
+      ! Therefore, we will assign the chemistry timestep field (i.e.
+      ! Input_Opt%TS_CHEM) in the Gridded Component module file
+      ! GEOSCHEMchem_GridComp_Mod.F90 (i.e. two levels higher
+      ! in the code).  We don'need to define those fields here, so
+      ! we have bracketed this with an #ifdef. 
+      !
+      ! Also pass the chemistry timestep value directly to module
+      ! GeosUtil/time_mod.F via subroutine ACCEPT_DATE_TIME_FROM_ESMF.
+      !
+      ! Ideallly it would be good to have one single version of 
+      ! "input.geos" that can double as the GEOS-Chem input file as 
+      ! well as the ESMF resource.  We may be a way off from that.
+      ! One potential solution is to use a Perl script to generate
+      ! both the input.geos file and the ESMF resource file, so that
+      ! both files are consistent with each other.
+      ! (bmy, 12/6/12)
+      !-----------------------------------------------------------------
+      
+      ! Save to local variables for printing below
+      TS_DYN                = Input_Opt%TS_DYN
+
+      ! Pass chemistry timestep to time_mod.F
+      CALL Accept_Date_Time_From_ESMF( am_I_Root    = am_I_Root, 
+     &                                 value_TS_DYN = TS_DYN,
+     &                                 RC           = RC         )
+     &                                 
+
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Current practice in the standard GEOS-Chem is to initialize 
+      ! the field Input_Optt%TS_DYN with the value read in from 
+      ! input.geos. (bmy, 12/6/12)
+      !-----------------------------------------------------------------
       Input_Opt%TS_DYN      = TS_DYN
+
+#endif
 
       ! Return success
       RC = GIGC_SUCCESS
