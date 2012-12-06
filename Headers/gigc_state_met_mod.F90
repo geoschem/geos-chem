@@ -164,7 +164,6 @@ MODULE GIGC_State_Met_Mod
      REAL*8,  POINTER :: ZMEU      (:,:,:)  ! Z/M updraft entrainment [Pa/s]
      REAL*8,  POINTER :: ZMMD      (:,:,:)  ! Z/M downdraft mass flux [Pa/s]
      REAL*8,  POINTER :: ZMMU      (:,:,:)  ! Z/M updraft   mass flux [Pa/s]
->>>>>>> 6e3b69f28cded071f1a3ed54749858df55d672bf
 
   END TYPE MetState
 !
@@ -547,14 +546,14 @@ CONTAINS
     ! Allocate DRYDEP arrays
     !=======================================================================
 
-    ALLOCATE( State_Met%IREG    ( IM, JM ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
+!    ALLOCATE( State_Met%IREG    ( IM, JM ), STAT=RC )
+!    IF ( RC /= GIGC_SUCCESS ) RETURN
 
-    ALLOCATE( State_Met%ILAND   ( IM, JM, NTYPE ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
+!    ALLOCATE( State_Met%ILAND   ( IM, JM, NTYPE ), STAT=RC )
+!    IF ( RC /= GIGC_SUCCESS ) RETURN
 
-    ALLOCATE( State_Met%IUSE    ( IM, JM, NTYPE ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
+!    ALLOCATE( State_Met%IUSE    ( IM, JM, NTYPE ), STAT=RC )
+!    IF ( RC /= GIGC_SUCCESS ) RETURN
 
     !=======================================================================
     ! Allocate 3-D Arrays

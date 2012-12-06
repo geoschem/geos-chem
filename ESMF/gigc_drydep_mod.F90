@@ -110,10 +110,14 @@ CONTAINS
 
        ! Call the GEOS-Chem Dry Deposition routines
        CALL Do_DryDep( am_I_Root = am_I_Root,            &
+                       NI        = NI,                   &
+                       NJ        = NJ,                   &
+                       NL        = NL,                   &
                        Input_Opt = Input_Opt,            &
                        State_Met = State_Met,            &
                        State_Chm = State_Chm,            &
-                       RC        = RC
+                       RC        = RC                    &
+                     )
     ENDIF
     !=======================================================================
    ! Reset 3-D variables

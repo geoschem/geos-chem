@@ -149,62 +149,10 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-
-    ! Assume success
     RC = GIGC_SUCCESS
 
     !======================================================================
     ! Initialize the G-C simulation and chemistry mechanism
-    !=======================================================================
-    CALL GIGC_Init_Simulation( am_I_Root      = am_I_Root,  & ! Root CPU?
-                               tsChem         = tsChem,     & ! Chem timestep
-                               nymd           = nymd,       & ! Date
-                               nhms           = nhms,       & ! Time
-                               value_I_LO     = I_LO,       & ! Local min lon
-                               value_J_LO     = J_LO,       & ! Local min lat
-                               value_I_HI     = I_HI,       & ! Local max lon 
-                               value_J_HI     = J_HI,       & ! Local max lat
-                               value_IM       = IM,         & ! Local # lons
-                               value_JM       = JM,         & ! Local # lats
-                               value_LM       = LM,         & ! Local # levs
-                               value_IM_WORLD = IM_WORLD,   & ! Global # lons
-                               value_JM_WORLD = JM_WORLD,   & ! Global # lats
-                               value_LM_WORLD = LM_WORLD,   & ! Global # levs
-                               lonCtr         = lonCtr,     & ! Lon ctrs [rad]
-                               latCtr         = latCtr,     & ! Lat ctrs [rad]
-                               latEdg         = latEdg,     & ! lat edgs [rad]
-                               Input_Opt      = Input_Opt,  & ! Input Options
-                               State_Chm      = State_Chm,  & ! Chemistry State
-                               State_Met      = State_Met,  & ! Met State
-                               mapping        = mapping,    & ! Olson map wts
-                               RC             = RC         )  ! Success?
-
-
-  END SUBROUTINE GIGC_Chunk_Init
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: gigc_chunk_run
-!
-! !DESCRIPTION: Subroutine GIGC\_CHUNK\_RUN is the ESMF run method for
-!  the Grid-Independent GEOS-Chem (aka "GIGC").  This routine is the driver
-!  for the following operations:
-!
-! \begin{itemize}
-! \item Dry deposition
-! \item Chemistry
-! \end{itemize}
-!
-! !INTERFACE:
-!
-  SUBROUTINE GIGC_Chunk_Run( am_I_Root, IM,        JM,        LM,  &
-                             Input_Opt, State_Chm, State_Met, RC  )
-!
-! !USES:
-!
     USE DAO_Mod,            ONLY : Convert_Units
     USE GIGC_ChemDr,        ONLY : GIGC_Do_Chem
     USE GIGC_DryDep_Mod,    ONLY : GIGC_Do_DryDep
@@ -299,17 +247,17 @@ CONTAINS
     !
     ! %%%% NOTE: Eventually we can call DO_DRYDEP directly from here
     !=======================================================================
-! Shunt for testing
-!    IF ( Input_Opt%LDRYD ) THEN
-!       CALL GIGC_Do_DryDep( am_I_Root  = am_I_Root,  &   ! Are we on root CPU?
-!                            NI         = IM,         &   ! # lons on this CPU
-!                            NJ         = JM,         &   ! # lats on this CPU
-!                            NL         = LM,         &   ! # levs on this CPU
-!                            Input_Opt  = Input_Opt,  &   ! Input Options
-!                            State_Chm  = State_Chm,  &   ! Chemistry State
-!                            State_Met  = State_Met,  &   ! Meteorology State
-!                            RC         = RC         )    ! Success or failure
-!    ENDIF
+
+    IF ( Input_Opt%LDRYD ) THEN
+       CALL GIGC_Do_DryDep( am_I_Root  = am_I_Root,  &   ! Are we on root CPU?
+                            NI         = IM,         &   ! # lons on this CPU
+                            NJ         = JM,         &   ! # lats on this CPU
+                            NL         = LM,         &   ! # levs on this CPU
+                            Input_Opt  = Input_Opt,  &   ! Input Options
+                            State_Chm  = State_Chm,  &   ! Chemistry State
+                            State_Met  = State_Met,  &   ! Meteorology State
+                            RC         = RC         )    ! Success or failure
+    ENDIF
 
     !=======================================================================
     ! Call the run method of the GEOS-Chem dry chemistry package
@@ -327,6 +275,7 @@ CONTAINS
                             State_Met  = State_Met,  &   ! Meteorology State
                             RC         = RC         )    ! Success or failure
     ENDIF
+
 
     !=======================================================================
     ! Convert the tracer concentrations in State_Chm%TRACERS back to

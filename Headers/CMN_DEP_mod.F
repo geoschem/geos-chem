@@ -102,12 +102,6 @@
 !------------------------------------------------------------------------------
 !BOC
 
-      SUBROUTINE SET_CMN_DEP_MOD
-
-      IMPLICIT NONE
-
-      INTEGER AS
-
       ALLOCATE( IREG( IIPAR, JJPAR ), STAT=RC )
       IF ( RC /= GIGC_SUCCESS ) THEN
          WRITE( 6, '(a)' ) 'Cannot allocate IREG (CMN_DEP_mod.F)'
