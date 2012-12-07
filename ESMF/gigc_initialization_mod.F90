@@ -205,6 +205,7 @@ CONTAINS
     USE TRACERID_MOD,         ONLY : SETTRACE
     USE TOMS_MOD,             ONLY : TO3_DAILY
     USE WETSCAV_MOD,          ONLY : INIT_WETSCAV
+    USE DRYDEP_MOD,           ONLY : INIT_WEIGHTSS
 !
 ! !INPUT PARAMETERS: 
 !
@@ -281,7 +282,7 @@ CONTAINS
     ! Initialize
     RC    = GIGC_SUCCESS
     DTIME = tsChem
-      
+
     ! Allocate GEOS-Chem module arrays
     CALL GIGC_Allocate_All( am_I_Root,       Input_Opt,       &
                             RC,              value_I_LO,      &
@@ -320,7 +321,6 @@ CONTAINS
     ENDDO
        
     ! Allocate and zero GEOS-Chem diagnostic arrays
-    CALL Ndxx_Setup( am_I_Root, Input_Opt, RC )
 
     ! Initialize the GEOS-Chem pressure module (set Ap & Bp)
     CALL Init_Pressure( am_I_Root )
@@ -369,7 +369,7 @@ CONTAINS
 !
 !      ! Calls INIT_WEIGHTSS to calculate the volume distribution of 
 !      ! sea salt aerosols (jaegle 5/11/11)
-!      CALL INIT_WEIGHTSS()
+       CALL INIT_WEIGHTSS()
 !      FIRST = .FALSE.
 !-----------------------------------------------------------------------------
 

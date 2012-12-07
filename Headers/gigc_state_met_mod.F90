@@ -194,6 +194,8 @@ CONTAINS
 ! !USES:
 !
     USE GIGC_ErrCode_Mod                         ! Error codes
+    USE CMN_SIZE_MOD,    ONLY : NTYPE
+
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -539,6 +541,19 @@ CONTAINS
     State_Met%SEAICE90 = 0d0
 
 #endif
+
+    !=======================================================================
+    ! Allocate DRYDEP arrays
+    !=======================================================================
+
+!    ALLOCATE( State_Met%IREG    ( IM, JM ), STAT=RC )
+!    IF ( RC /= GIGC_SUCCESS ) RETURN
+
+!    ALLOCATE( State_Met%ILAND   ( IM, JM, NTYPE ), STAT=RC )
+!    IF ( RC /= GIGC_SUCCESS ) RETURN
+
+!    ALLOCATE( State_Met%IUSE    ( IM, JM, NTYPE ), STAT=RC )
+!    IF ( RC /= GIGC_SUCCESS ) RETURN
 
     !=======================================================================
     ! Allocate 3-D Arrays

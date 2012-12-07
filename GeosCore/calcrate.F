@@ -297,6 +297,7 @@
 !   be sure to check out these values!!!
          KSUN=0
          DO 20 KLOOP        = 1, KTLOOP
+      
             JLOOP             = LREORDER(JLOOPLO+KLOOP)
 
             ! Add DENAIR here instead of in physproc.f, so that we
@@ -347,7 +348,7 @@
             ! Otherwise, compute QLIQ as a function of temperature ...
             IF ( State_Met%T(IX,IY,IZ) .LE. 248d0 ) THEN
                QLIQ(KLOOP)    = 0d0
-            ELSE IF ( T(IX,IY,IZ) .GE. 268d0 ) THEN
+            ELSE IF ( State_Met%T(IX,IY,IZ) .GE. 268d0 ) THEN
                QLIQ(KLOOP)    = 1d-6
             ELSE
                QLIQ(KLOOP)    = 1d-6 *
@@ -2409,7 +2410,7 @@ c new OH+CO rate from JPL2006.
 #if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
       IF ( State_Met%FRLAND(I,J) > State_Met%FROCEAN(I,J) ) THEN
 #else
-      IF ( IS_LAND(I,J) ) THEN
+      IF ( IS_LAND(I,J, State_Met) ) THEN
 #endif
          ! Continental cloud droplet radius [cm]
          RADIUS = XCLDR_CONT
@@ -2429,7 +2430,7 @@ c new OH+CO rate from JPL2006.
       Vc = State_Met%CLDF(L,I,J) * QL * State_Met%AD(I,J,L) / dens_h2o
 #else
       ! QL is [cm3/cm3]
-      Vc = State_Met%CLD(L,I,J)F * QL * XAIRM3
+      Vc = State_Met%CLDF(L,I,J) * QL * XAIRM3
 #endif
 
       ! now calculate the cloud droplet surface area

@@ -82,6 +82,18 @@ MODULE Grid_Mod
   INTEGER              :: J0
 
   ! Arrays
+#if defined( DEVEL )
+  REAL*4,  ALLOCATABLE :: XMID     (:,:,:)
+  REAL*4,  ALLOCATABLE :: XEDGE    (:,:,:)
+  REAL*4,  ALLOCATABLE :: YMID     (:,:,:)
+  REAL*4,  ALLOCATABLE :: YEDGE    (:,:,:)
+  REAL*4,  ALLOCATABLE :: YSIN     (:,:,:)
+  REAL*4,  ALLOCATABLE :: YMID_R   (:,:,:)
+  REAL*4,  ALLOCATABLE :: YEDGE_R  (:,:,:)
+  REAL*4,  ALLOCATABLE :: YMID_R_W (:,:,:)
+  REAL*4,  ALLOCATABLE :: YEDGE_R_W(:,:,:)
+  REAL*4,  ALLOCATABLE :: AREA_M2  (:,:,:)
+#else
   REAL*8,  ALLOCATABLE :: XMID     (:,:,:)
   REAL*8,  ALLOCATABLE :: XEDGE    (:,:,:)
   REAL*8,  ALLOCATABLE :: YMID     (:,:,:)
@@ -92,7 +104,8 @@ MODULE Grid_Mod
   REAL*8,  ALLOCATABLE :: YMID_R_W (:,:,:)
   REAL*8,  ALLOCATABLE :: YEDGE_R_W(:,:,:)
   REAL*8,  ALLOCATABLE :: AREA_M2  (:,:,:)
-  
+#endif
+
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -625,6 +638,7 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+
     X = XEDGE(I,J,L)
 
   END FUNCTION Get_xEdge

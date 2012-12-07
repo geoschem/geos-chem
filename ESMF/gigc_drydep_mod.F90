@@ -103,29 +103,30 @@ CONTAINS
     ! Set 3-D variables
     !=======================================================================
 
-! Shunt for testing
-!    !=======================================================================
-!    ! Call the GEOS-Chem dry deposition routines
-!    !=======================================================================
-!    IF ( Input_Opt%LDRYD ) THEN
-!
-!       ! Call the GEOS-Chem Dry Deposition routines
-!       CALL Do_DryDep( am_I_Root = am_I_Root,            &
-!                       Input_Opt = Input_Opt,            &
-!                       State_Met = State_Met,            &
-!                       State_Chm = State_Chm,            &
-!                       RC        = RC
-!    ENDIF
-
     !=======================================================================
-    ! Reset 3-D variables
+    ! Call the GEOS-Chem dry deposition routines
     !=======================================================================
+    IF ( Input_Opt%LDRYD ) THEN
 
+       ! Call the GEOS-Chem Dry Deposition routines
+       CALL Do_DryDep( am_I_Root = am_I_Root,            &
+                       NI        = NI,                   &
+                       NJ        = NJ,                   &
+                       NL        = NL,                   &
+                       Input_Opt = Input_Opt,            &
+                       State_Met = State_Met,            &
+                       State_Chm = State_Chm,            &
+                       RC        = RC                    &
+                     )
+    ENDIF
+    !=======================================================================
+   ! Reset 3-D variables
+   !=======================================================================
     !### Debug
-    !IF ( am_I_Root ) THEN
-    !   WRITE(6,*) '##### GIGC_Do_DryDep, TRC_OX after chem'
-    !   WRITE(6,*) State_Chm%Tracers(1,1,:,2)
-    !ENDIF
+   !IF ( am_I_Root ) THEN
+   !   WRITE(6,*) '##### GIGC_Do_DryDep, TRC_OX after chem'
+   !   WRITE(6,*) State_Chm%Tracers(1,1,:,2)
+   !ENDIF
 
     END SUBROUTINE GIGC_Do_DryDep
 !EOC

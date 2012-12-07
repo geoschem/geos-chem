@@ -307,8 +307,8 @@ CONTAINS
        ! Edges of this GEOS-CHEM GRID box
        xedgeC_w  = GET_XEDGE( I,   J,   1 )          ! W edge
        yedgeC_s  = GET_YEDGE( I,   J,   1 )          ! S edge
-       xedgeC_e  = GET_XEDGE( I+1, J,   1 )          ! E edge
-       yedgeC_n  = GET_YEDGE( I,   J+1, 1 )          ! N edge
+       xedgeC_e  = GET_XEDGE( I+1, J,   1 )+1          ! E edge
+       yedgeC_n  = GET_YEDGE( I,   J+1, 1 )+1          ! N edge
        
        ! "Area" of the GEOS-CHEM GRID box in degrees (DLON * DLAT)
        dxdy4     = ( xedgeC_e - xedgeC_w ) * ( yedgeC_n - yedgeC_s )
@@ -419,7 +419,7 @@ CONTAINS
           mapping(I,J)%sumarea  = sumarea
 
        ENDDO
-       ENDDO
+    ENDDO
 
        !===================================================================
        ! Construct GEOS-Chem type output arrays from the binning that we 
@@ -705,6 +705,7 @@ CONTAINS
     st3d   = (/ 1,       1,       1 /)
     ct3d   = (/ I_OLSON, J_OLSON, 1 /)
     CALL NcRd( A_CM2, fId, TRIM(v_name), st3d, ct3d )
+    write(6,*) 'READ A_CM2: ', sum(A_CM2), shape(A_CM2)
     
     ! Read the DXYP:units attribute
     a_name = "units"

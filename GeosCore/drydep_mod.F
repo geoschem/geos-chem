@@ -38,7 +38,6 @@
       IMPLICIT NONE
 
 #     include "define.h"
-
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -50,6 +49,7 @@
       PUBLIC :: DRYFLXRnPbBe       
       PUBLIC :: DVZ_MINVAL         
       PUBLIC :: INIT_DRYDEP
+      PUBLIC :: INIT_WEIGHTSS
 
 !
 ! !PUBLIC DATA MEMBERS:
@@ -444,21 +444,21 @@
 #else
 
       ! Read drydep coeff's and land types on first call
-      IF ( FIRST ) THEN
+!      IF ( FIRST ) THEN
 
          ! Read drydep inputs from the netCDF file
          ! Save Olson indices in INDOLSON array, in order to avoid
          ! confusion w/ previously-assinged variable name IOLSON
-         CALL READ_DRYDEP_INPUTS( am_I_Root,
-     &                            DRYCOEFF, INDOLSON, IDEP,    
-     &                            IWATER,   NWATER,   IZO,      
-     &                            IDRYDEP,  IRI,      IRLU,     
-     &                            IRAC,     IRGSS,    IRGSO, 
-     &                            IRCLS,    IRCLO,    IVSMAX )
+!         CALL READ_DRYDEP_INPUTS( am_I_Root,
+!     &                            DRYCOEFF, INDOLSON, IDEP,    
+!     &                            IWATER,   NWATER,   IZO,      
+!     &                            IDRYDEP,  IRI,      IRLU,     
+!     &                            IRAC,     IRGSS,    IRGSO, 
+!     &                            IRCLS,    IRCLO,    IVSMAX )
 
          ! Calls INIT_WEIGHTSS to calculate the volume distribution of 
          ! sea salt aerosols (jaegle 5/11/11)
-         CALL INIT_WEIGHTSS()
+!         CALL INIT_WEIGHTSS()
          FIRST = .FALSE.
       ENDIF
 #endif
@@ -5372,6 +5372,14 @@
       ENDDO
  100  FORMAT( i3, 3x, a4, 2(3x,i3), 4x, es8.1, 2(3x,f6.3), 3x, L3 )
       ENDIF
+
+         CALL READ_DRYDEP_INPUTS( am_I_Root,
+     &                            DRYCOEFF, INDOLSON, IDEP,    
+     &                            IWATER,   NWATER,   IZO,      
+     &                            IDRYDEP,  IRI,      IRLU,     
+     &                            IRAC,     IRGSS,    IRGSO, 
+     &                            IRCLS,    IRCLO,    IVSMAX )
+
 
       END SUBROUTINE INIT_DRYDEP
 !EOC
