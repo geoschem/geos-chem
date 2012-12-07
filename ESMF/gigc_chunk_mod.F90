@@ -279,6 +279,10 @@ CONTAINS
 !                              GIGC_DO_CHEM w/ the appropriate logical flags
 !  04 Dec 2012 - R. Yantosca - Now convert units of State_Chm%TRACERS here
 !                              instead of in lower-level routines
+!  07 Dec 2012 - R. Yantosca - Now call Accept_Date_Time_From_ESMF to pass the
+!                              date & time from ESMF to GeosUtil/time_mod.F
+!  07 Dec 2012 - R. Yantosca - Now pass UTC via Accept_Date_Time_From_ESMF;
+!                              this ensures proper localtime computation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -313,7 +317,8 @@ CONTAINS
                                      value_DAYOFYR  = dayOfYr,    &  
                                      value_HOUR     = hour,       &  
                                      value_MINUTE   = minute,     &  
-                                     value_HELAPSED = hElapsed,   &  
+                                     value_HELAPSED = hElapsed,   & 
+                                     value_UTC      = utc,        &
                                      RC             = RC         )
 
     ! If it is not a multiple of the chemistry timestep, return
@@ -328,9 +333,6 @@ CONTAINS
 
     ! # of tracers
     NC             = Input_Opt%N_TRACERS
-
-    ! ### For testing
-    RETURN
 
     ! Convert State_Chm%TRACERS from [v/v] to [kg]
     CALL Convert_Units    ( IFLAG      = 2,                    &

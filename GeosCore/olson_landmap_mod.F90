@@ -236,7 +236,7 @@ CONTAINS
     LOGICAL :: isGlobal
     INTEGER :: I,         J,         II,       III
     INTEGER :: JJ,        T,         N,        type
-    INTEGER :: uniqOlson, sumIuse,   C
+    INTEGER :: uniqOlson, sumIuse,   C,        IG
     REAL*4  :: xedge_w,   xedge_e,   yedge_s,  yedge_n
     REAL*4  :: xedgeC_w,  xedgeC_e,  yedgeC_s, yedgeC_n
     REAL*4  :: dxdy,      dxdy4,     mapWt,    area
@@ -297,9 +297,12 @@ CONTAINS
     !$OMP PRIVATE( yedgeC_n, dxdy4,   sumArea,  JJ,       III      ) &
     !$OMP PRIVATE( dxdy,     mapWt,   II,       xedge_w,  yedge_s  ) &
     !$OMP PRIVATE( xedge_e,  yedge_n, area,     type,     maxIuse  ) &
-    !$OMP PRIVATE( sumIUse,  uniqOlson, C                          )
+    !$OMP PRIVATE( sumIUse,  uniqOlson, C,      IG                 )
     DO J = 1, JJPAR
     DO I = 1, IIPAR
+
+       ! Global lon index (needed for when running in ESMF)
+       IG = I + I_LO - 1
 
        ! Edges of this GEOS-CHEM GRID box
        xedgeC_w  = GET_XEDGE( I,   J,   1 )          ! W edge
@@ -332,7 +335,13 @@ CONTAINS
        
           ! Find the NATIVE GRID longitude index for use below.  Account for 
           ! the first GEOS-CHEM GRID box, which straddles the date line.
-          IF ( isGlobal .and.  I == 1 ) THEN
+          !------------------------------------------------------------------
+          ! Prior to 12/7/12:
+          ! I==1 happens on each CPU (when running in the ESMF environment)
+          ! but IG==1 uniquely denotes the date line. (bmy, 12/7/12)
+          !IF ( isGlobal .and.  I == 1 ) THEN
+          !------------------------------------------------------------------
+          IF ( isGlobal .and.  IG == 1 ) THEN
              II      = shiftLon(III)
           ELSE
              II      = indLon(III)
@@ -348,7 +357,13 @@ CONTAINS
           ! we have to adjust the W and E edges of the NATIVE GRID BOX to
           ! be in monotonically increasing order.  This will prevent
           ! erronous results from being returned by GET_MAP_WT below.
-          IF ( isGlobal .and.  I == 1 .and. II >= shiftLon(1) ) THEN
+          !------------------------------------------------------------------
+          ! Prior to 12/7/12:
+          ! I==1 happens on each CPU (when running in the ESMF environment)
+          ! but IG==1 uniquely denotes the date line. (bmy, 12/7/12)
+          !IF ( isGlobal .and. I == 1 .and. II >= shiftLon(1) )  THEN
+          !------------------------------------------------------------------
+          IF ( isGlobal .and. IG == 1 .and. II >= shiftLon(1) )  THEN
              xedge_w = xedge_w - 360e0
              xedge_e = xedge_e - 360e0
           ENDIF

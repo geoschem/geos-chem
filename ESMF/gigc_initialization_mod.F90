@@ -61,25 +61,24 @@ CONTAINS
 ! !USES:
 !
     USE CMN_GCTM_Mod       
-    USE CMN_SIZE_Mod,       ONLY : dLat
-    USE CMN_SIZE_Mod,       ONLY : dLon
+    USE CMN_SIZE_Mod
     USE GIGC_ErrCode_Mod
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE Input_Mod,          ONLY : Read_Input_File
 !
 ! !INPUT PARAMETERS: 
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-    REAL*4,         INTENT(IN)    :: lonCtr(:,:)
-    REAL*4,         INTENT(IN)    :: latCtr(:,:)
+    LOGICAL,        INTENT(IN)    :: am_I_Root     ! Are we on the root CPU?
+    REAL*4,         INTENT(IN)    :: lonCtr(:,:)   ! Lon ctrs [deg] from ESMF
+    REAL*4,         INTENT(IN)    :: latCtr(:,:)   ! Lat ctrs [deg] from ESMF
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
+    TYPE(OptInput), INTENT(INOUT) :: Input_Opt     ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+    INTEGER,        INTENT(OUT)   :: RC            ! Success or failure
 ! 
 ! !REMARKS:
 !  NOTE: For now assume that GEOS_Chem will always accept a regular 
@@ -94,6 +93,7 @@ CONTAINS
 !  22 Oct 2012 - R. Yantosca - Added RC output argument
 !  01 Nov 2012 - R. Yantosca - Now pass the Input Options object via arg list
 !  03 Dec 2012 - R. Yantosca - Reorder subroutines for clarity
+!  07 Dec 2012 - R. Yantosca - Compute DLON, DLAT more rigorously
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -101,22 +101,44 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    REAL*8 :: deltaLon, deltaLat
+    INTEGER :: I, J, L
   
     ! Assume success
-    RC       = GIGC_SUCCESS
+    RC = GIGC_SUCCESS
 
-    ! Assume the longitude difference is the same for all grid boxes 
-    deltaLon = Roundoff( ( DBLE( lonCtr(2,1) ) / PI_180 ), 4 )  &
-             - Roundoff( ( DBLE( lonCtr(1,1) ) / PI_180 ), 4 )
+    !========================================================================
+    ! Compute the DLON and DLAT values.  NOTE, this is a kludge since to do
+    ! this truly rigorously, we should take the differences between the grid
+    ! box edges.  But because I can't seem to find a way to get the grid
+    ! box edge information, the next best thing is to take the differences
+    ! between the grid box centers.  They should all be the same given that
+    ! the GEOS-Chem grid is regular. (bmy, 12/7/12)
+    !========================================================================
+    DO L = 1, LLPAR
+    DO J = 1, JJPAR
+    DO I = 1, IIPAR
 
-    ! Assume the latitude difference is the same for all grid boxes
-    deltaLat = Roundoff( ( DBLE( latCtr(1,2) ) / PI_180 ), 4 )  &
-             - Roundoff( ( DBLE( latCtr(1,1) ) / PI_180 ), 4 )
+       ! Compute Delta-Longitudes [degrees]
+       IF ( I == IIPAR ) THEN
+          dLon(I,J,L) = RoundOff( ( DBLE( lonCtr(IIPAR,  J) ) / PI_180 ), 4 ) &
+                      - RoundOff( ( DBLE( lonCtr(IIPAR-1,J) ) / PI_180 ), 4 )
+       ELSE
+          dLon(I,J,L) = RoundOff( ( DBLE( lonCtr(I+1,    J) ) / PI_180 ), 4 ) &
+                      - RoundOff( ( DBLE( lonCtr(I,      J) ) / PI_180 ), 4 )
+       ENDIF
 
-    ! Save into arrays of CMN_SIZE
-    dLon     = deltaLon
-    dLat     = deltaLat
+       ! Compute Delta-Latitudes [degrees]
+       IF ( J == JJPAR ) THEN
+          dLat(I,J,L) = RoundOff( ( DBLE( latCtr(I,JJPAR  ) ) / PI_180 ), 4 ) &
+                      - RoundOff( ( DBLE( latCtr(I,JJPAR-1) ) / PI_180 ), 4 )
+       ELSE
+          dLat(I,J,L) = RoundOff( ( DBLE( latCtr(I,J+1    ) ) / PI_180 ), 4 ) &
+                      - RoundOff( ( DBLE( latCtr(I,J      ) ) / PI_180 ), 4 )
+       ENDIF
+
+    ENDDO
+    ENDDO
+    ENDDO
 
     ! Read the GEOS-Chem input file here
     CALL Read_Input_File( am_I_Root, Input_Opt, RC )
