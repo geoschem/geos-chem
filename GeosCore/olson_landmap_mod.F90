@@ -307,8 +307,6 @@ CONTAINS
        xedgeC_e  = GET_XEDGE( I+1, J,   1 )+1          ! E edge
        yedgeC_n  = GET_YEDGE( I,   J+1, 1 )+1          ! N edge
        
-       write(6,*) 'edgeCs: ', xedgeC_w, yedgeC_s, xedgeC_e, yedgeC_n
-
        ! "Area" of the GEOS-CHEM GRID box in degrees (DLON * DLAT)
        dxdy4     = ( xedgeC_e - xedgeC_w ) * ( yedgeC_n - yedgeC_s )
      
@@ -345,8 +343,6 @@ CONTAINS
           yedge_s    = latedge(JJ  )                ! S edge
           xedge_e    = lonedge(II+1)                ! E edge
           yedge_n    = latedge(JJ+1)                ! N edge
-
-!          write(6,*) 'edgeXs: ', xedge_w, yedge_s, xedge_e, yedge_n
 
           ! Because the first GEOS-CHEM GRID BOX straddles the date line,
           ! we have to adjust the W and E edges of the NATIVE GRID BOX to
@@ -427,7 +423,6 @@ CONTAINS
           mapping(I,J)%ordOlson(T) = ordOlson(I,J,T)
 
           ! Normalize the land type coverage 
-          if (sumArea .eq. 0.e0) write(6,*) 'SEGFAULT: ', I,J,T,frOlson(I,J,T), sumArea
           frOlson(I,J,T)                =  &
                INT( ( ( frOlson(I,J,T) / sumArea ) * 1e3 ) + 0.5e0 )
  

@@ -136,7 +136,8 @@ CONTAINS
   SUBROUTINE GIGC_Init_Simulation( am_I_Root,       tsChem,          &
                                    nymd,            nhms,            &
                                    lonCtr,          latCtr,          &      
-                                   latEdg,          value_I_LO,      &
+!                                   latEdg,
+                                   value_I_LO,      &
                                    value_J_LO,      value_I_HI,      &
                                    value_J_HI,      value_IM,        &
                                    value_JM,        value_LM,        &
@@ -176,6 +177,7 @@ CONTAINS
     USE TRACERID_MOD,         ONLY : SETTRACE
     USE TOMS_MOD,             ONLY : TO3_DAILY
     USE WETSCAV_MOD,          ONLY : INIT_WETSCAV
+    USE DRYDEP_MOD,           ONLY : INIT_WEIGHTSS
 !
 ! !INPUT PARAMETERS: 
 !
@@ -185,7 +187,7 @@ CONTAINS
     INTEGER,         INTENT(IN)    :: nhms             ! GMT time (hh:mm:ss)
     REAL*4,  TARGET, INTENT(IN)    :: lonCtr(:,:)      ! Lon centers [radians]
     REAL*4,  TARGET, INTENT(IN)    :: latCtr(:,:)      ! Lat centers [radians]
-    REAL*4,  TARGET, INTENT(IN)    :: latEdg(:,:)      ! Lat centers [radians]
+!    REAL*4,  TARGET, INTENT(IN)    :: latEdg(:,:)      ! Lat centers [radians]
     INTEGER,         INTENT(IN)    :: value_I_LO       ! Min local lon index
     INTEGER,         INTENT(IN)    :: value_J_LO       ! Min local lat index
     INTEGER,         INTENT(IN)    :: value_I_HI       ! Max local lon index
@@ -262,11 +264,6 @@ CONTAINS
     ! Read options from the GEOS-Chem input file "input.geos"
     CALL GIGC_Get_Options( am_I_Root, lonCtr, latCtr, Input_Opt, RC )
 
-    YMID(:,:,1)  = latCtr  
-    XMID(:,:,1)  = lonCtr
-    YEDGE(:,:,1) = abs(latEdg)*30
-    XEDGE(:,:,1) = (lonCtr)*30
-
     ! Determine if we have to print debug output
     prtDebug = ( Input_Opt%LPRT .and. am_I_Root )
 
@@ -329,7 +326,7 @@ CONTAINS
 !
 !      ! Calls INIT_WEIGHTSS to calculate the volume distribution of 
 !      ! sea salt aerosols (jaegle 5/11/11)
-!      CALL INIT_WEIGHTSS()
+       CALL INIT_WEIGHTSS()
 !      FIRST = .FALSE.
 !-----------------------------------------------------------------------------
 

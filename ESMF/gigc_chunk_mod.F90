@@ -81,8 +81,10 @@ CONTAINS
   SUBROUTINE GIGC_Chunk_Init( am_I_Root, I_LO,      J_LO,      I_HI,       &
                               J_HI,      IM,        JM,        LM,         &
                               IM_WORLD,  JM_WORLD,  LM_WORLD,  nymd,       &
-                              nhms,      tsChem,    lonCtr,    latCtr,     &
-                              latEdg,    Input_Opt, State_Chm, State_Met,  &
+                              nhms,      tsChem,    &
+                              lonCtr,    latCtr,     &
+!                              latEdg,    
+                              Input_Opt, State_Chm, State_Met,  &
                               RC                                          )
 !
 ! !USES:
@@ -112,7 +114,7 @@ CONTAINS
     REAL,               INTENT(IN)    :: tsChem      ! Chemistry timestep
     REAL(ESMF_KIND_R4), INTENT(IN)    :: lonCtr(:,:) ! Lon centers [radians]
     REAL(ESMF_KIND_R4), INTENT(IN)    :: latCtr(:,:) ! Lat centers [radians]
-    REAL(ESMF_KIND_R4), INTENT(IN)    :: latEdg(:,:) ! Lat centers [radians]
+!    REAL(ESMF_KIND_R4), INTENT(IN)    :: latEdg(:,:) ! Lat centers [radians]
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -160,6 +162,8 @@ CONTAINS
                                tsChem         = tsChem,     & ! Chem timestep
                                nymd           = nymd,       & ! Date
                                nhms           = nhms,       & ! Time
+                               lonCtr         = lonCtr,     &
+                               latCtr         = latCtr,     &
                                value_I_LO     = I_LO,       & ! Local min lon
                                value_J_LO     = J_LO,       & ! Local min lat
                                value_I_HI     = I_HI,       & ! Local max lon 
@@ -170,9 +174,6 @@ CONTAINS
                                value_IM_WORLD = IM_WORLD,   & ! Global # lons
                                value_JM_WORLD = JM_WORLD,   & ! Global # lats
                                value_LM_WORLD = LM_WORLD,   & ! Global # levs
-                               lonCtr         = lonCtr,     & ! Lon ctrs [rad]
-                               latCtr         = latCtr,     & ! Lat ctrs [rad]
-                               latEdg         = latEdg,     & ! lat edgs [rad]
                                Input_Opt      = Input_Opt,  & ! Input Options
                                State_Chm      = State_Chm,  & ! Chemistry State
                                State_Met      = State_Met,  & ! Met State
@@ -299,17 +300,17 @@ CONTAINS
     !
     ! %%%% NOTE: Eventually we can call DO_DRYDEP directly from here
     !=======================================================================
-! Shunt for testing
-!    IF ( Input_Opt%LDRYD ) THEN
-!       CALL GIGC_Do_DryDep( am_I_Root  = am_I_Root,  &   ! Are we on root CPU?
-!                            NI         = IM,         &   ! # lons on this CPU
-!                            NJ         = JM,         &   ! # lats on this CPU
-!                            NL         = LM,         &   ! # levs on this CPU
-!                            Input_Opt  = Input_Opt,  &   ! Input Options
-!                            State_Chm  = State_Chm,  &   ! Chemistry State
-!                            State_Met  = State_Met,  &   ! Meteorology State
-!                            RC         = RC         )    ! Success or failure
-!    ENDIF
+
+    IF ( Input_Opt%LDRYD ) THEN
+       CALL GIGC_Do_DryDep( am_I_Root  = am_I_Root,  &   ! Are we on root CPU?
+                            NI         = IM,         &   ! # lons on this CPU
+                            NJ         = JM,         &   ! # lats on this CPU
+                            NL         = LM,         &   ! # levs on this CPU
+                            Input_Opt  = Input_Opt,  &   ! Input Options
+                            State_Chm  = State_Chm,  &   ! Chemistry State
+                            State_Met  = State_Met,  &   ! Meteorology State
+                            RC         = RC         )    ! Success or failure
+    ENDIF
 
     !=======================================================================
     ! Call the run method of the GEOS-Chem dry chemistry package
