@@ -151,8 +151,8 @@
 !#define GRID1x1          'GRID1x1'
 !#define GRID1x125        'GRID1x125'
 !#define GRID2x25         'GRID2x25'
-!#define GRID4x5          'GRID4x5'
-!#define GRIDREDUCED      'GRIDREDUCED'
+#define GRID4x5          'GRID4x5'
+#define GRIDREDUCED      'GRIDREDUCED'
 
 !----- Compilers -----
 !#define IBM_AIX          'IBM_AIX'

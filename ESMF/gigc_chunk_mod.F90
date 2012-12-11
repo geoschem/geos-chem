@@ -217,8 +217,7 @@ CONTAINS
 !
     USE DAO_Mod,            ONLY : Convert_Units
     USE GIGC_ChemDr,        ONLY : GIGC_Do_Chem
-    USE GIGC_DryDep_Mod,    ONLY : GIGC_Do_DryDep
-   !USE DryDep_Mod,         ONLY : Do_DryDep
+    USE DryDep_Mod,         ONLY : Do_DryDep
     USE GIGC_ErrCode_Mod
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -283,6 +282,8 @@ CONTAINS
 !                              date & time from ESMF to GeosUtil/time_mod.F
 !  07 Dec 2012 - R. Yantosca - Now pass UTC via Accept_Date_Time_From_ESMF;
 !                              this ensures proper localtime computation
+!  11 Dec 2012 - R. Yantosca - Now call DO_DRYDEP directly; no longer call
+!                              GIGC_DO_DRYDEP, this is moved to obsolete dir.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -335,40 +336,36 @@ CONTAINS
     NC             = Input_Opt%N_TRACERS
 
     ! Convert State_Chm%TRACERS from [v/v] to [kg]
-    CALL Convert_Units    ( IFLAG      = 2,                    &
-                            N_TRACERS  = Input_Opt%N_TRACERS,  &
-                            TCVV       = Input_Opt%TCVV,       &
-                            AD         = State_Met%AD,         &
-                            STT        = State_Chm%Tracers    )
+    CALL Convert_Units    ( IFLAG     = 2,                    &
+                            N_TRACERS = Input_Opt%N_TRACERS,  &
+                            TCVV      = Input_Opt%TCVV,       &
+                            AD        = State_Met%AD,         &
+                            STT       = State_Chm%Tracers    )
 
     !=======================================================================
     ! Call the run method of the GEOS-Chem dry deposition package
-    !
-    ! %%%% NOTE: Eventually we can call DO_DRYDEP directly from here
     !=======================================================================
 
+    ! Do dry deposition
     IF ( Input_Opt%LDRYD ) THEN
-       CALL GIGC_Do_DryDep( am_I_Root  = am_I_Root,  &   ! Are we on root CPU?
-                            NI         = IM,         &   ! # lons on this CPU
-                            NJ         = JM,         &   ! # lats on this CPU
-                            NL         = LM,         &   ! # levs on this CPU
-                            Input_Opt  = Input_Opt,  &   ! Input Options
-                            State_Chm  = State_Chm,  &   ! Chemistry State
-                            State_Met  = State_Met,  &   ! Meteorology State
-                            RC         = RC         )    ! Success or failure
+       CALL Do_DryDep     ( am_I_Root = am_I_Root,  &   ! Are we on root CPU?
+                            Input_Opt = Input_Opt,  &   ! Input Options
+                            State_Chm = State_Chm,  &   ! Chemistry State
+                            State_Met = State_Met,  &   ! Meteorology State
+                            RC        = RC         )    ! Success or failure
     ENDIF
 
     ! Do chemistry
     IF ( Input_Opt%LCHEM ) THEN
-       CALL GIGC_Do_Chem(   am_I_Root  = am_I_Root,  &   ! Are we on root CPU?
-                            NI         = IM,         &   ! # lons on this CPU
-                            NJ         = JM,         &   ! # lats on this CPU
-                            NL         = LM,         &   ! # levels on this CPU
-                            NCNST      = NC,         &   ! # of advected tracers
-                            Input_Opt  = Input_Opt,  &   ! Input Options
-                            State_Chm  = State_Chm,  &   ! Chemistry State
-                            State_Met  = State_Met,  &   ! Meteorology State
-                            RC         = RC         )    ! Success or failure
+       CALL GIGC_Do_Chem(   am_I_Root = am_I_Root,  &   ! Are we on root CPU?
+                            NI        = IM,         &   ! # lons on this CPU
+                            NJ        = JM,         &   ! # lats on this CPU
+                            NL        = LM,         &   ! # levels on this CPU
+                            NCNST     = NC,         &   ! # of advected tracers
+                            Input_Opt = Input_Opt,  &   ! Input Options
+                            State_Chm = State_Chm,  &   ! Chemistry State
+                            State_Met = State_Met,  &   ! Meteorology State
+                            RC        = RC         )    ! Success or failure
     ENDIF
 
     ! Convert the units of State_Chm%TRACERS from [kg] to [v/v]

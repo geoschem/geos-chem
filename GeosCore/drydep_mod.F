@@ -179,6 +179,8 @@
 !  09 Apr 2012 - R. Yantosca - Now replace IJREG, IJLAND, IJUSE, XYLAI arrays
 !                              with IREG, ILAND, IUSE, XLAI.
 !  31 Jul 2012 - R. Yantosca - Modifications for grid-independence
+!  11 Dec 2012 - M. Long     - Now call READ_DRYDEP_INPUTS from INIT_DRYDEP
+!  11 Dec 2012 - R. Yantosca - Now call INIT_WEIGHTSS from INIT_DRYDEP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -298,12 +300,8 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      SUBROUTINE DO_DRYDEP( am_I_Root, NI,        NJ,        NL,
-     &                      Input_Opt, State_Met, State_Chm, RC )
-#else
-      SUBROUTINE DO_DRYDEP( am_I_Root, State_Met )
-#endif
+      SUBROUTINE DO_DRYDEP( am_I_Root, Input_Opt, 
+     &                      State_Met, State_Chm, RC )
 !
 ! !USES:
 !
@@ -315,21 +313,16 @@
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      INTEGER,        INTENT(IN)    :: NI          ! # of lons on this CPU
-      INTEGER,        INTENT(IN)    :: NJ          ! # of lats on this CPU
-      INTEGER,        INTENT(IN)    :: NL          ! # of levs on this CPU
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT)   :: RC
-#endif
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  NOTE: Modeled aerosol dry deposition velocities over snow and ice surfaces 
@@ -383,6 +376,10 @@
 !                              derived type object
 !  28 Nov 2012 - R. Yantosca - Now make SUNCOS_MID a local array of size
 !                              MAXIJ, populated from State_Met%SUNCOSmid
+!  11 Dec 2012 - R. Yantosca - Now do not call READ_DRYDEP_INPUTS and
+!                              INIT_WEIGHTSS when using the ESMF environment
+!  11 Dec 2012 - R. Yantosca - Remove FIRST variable, as we now read inputs
+!                              from disk in routine INIT_DRYDEP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -390,7 +387,6 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL, SAVE :: FIRST = .TRUE.
       INTEGER       :: I,   J,   L,  N, IJLOOP, NN, NDVZ
       REAL*8        :: DVZ, THIK
 
@@ -419,49 +415,20 @@
       REAL*8        :: AZO   (MAXIJ       )   ! Z0, per (I,J) square
 #endif
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       ! For ESMF, need to assign these from Input_Opt
       LOGICAL       :: LNLPBL
       LOGICAL       :: LPRT
-#endif
 
       !=================================================================
       ! DO_DRYDEP begins here!
       !=================================================================
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       ! Assume success
       RC     = GIGC_SUCCESS
       
       ! Copy values from the Input Options object to local variables
       LNLPBL = Input_Opt%LNLPBL
       LPRT   = Input_Opt%LPRT
-#endif
-
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      ! For ESMF, skip reading from netCDF (for now)
-      FIRST = .FALSE.
-#else
-
-      ! Read drydep coeff's and land types on first call
-!      IF ( FIRST ) THEN
-
-         ! Read drydep inputs from the netCDF file
-         ! Save Olson indices in INDOLSON array, in order to avoid
-         ! confusion w/ previously-assinged variable name IOLSON
-!         CALL READ_DRYDEP_INPUTS( am_I_Root,
-!     &                            DRYCOEFF, INDOLSON, IDEP,    
-!     &                            IWATER,   NWATER,   IZO,      
-!     &                            IDRYDEP,  IRI,      IRLU,     
-!     &                            IRAC,     IRGSS,    IRGSO, 
-!     &                            IRCLS,    IRCLO,    IVSMAX )
-
-         ! Calls INIT_WEIGHTSS to calculate the volume distribution of 
-         ! sea salt aerosols (jaegle 5/11/11)
-!         CALL INIT_WEIGHTSS()
-         FIRST = .FALSE.
-      ENDIF
-#endif
 
       ! Call METERO to obtain meterological fields (all 1-D arrays)
       ! Added sfc pressure as PRESSU and 10m windspeed as W10 
@@ -3287,7 +3254,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_WEIGHTSS
+      SUBROUTINE INIT_WEIGHTSS()
 ! 
 ! !REVISION HISTORY: 
 !  11 May 2011 - L. Jaegle   - Initial version
@@ -5373,13 +5340,31 @@
  100  FORMAT( i3, 3x, a4, 2(3x,i3), 4x, es8.1, 2(3x,f6.3), 3x, L3 )
       ENDIF
 
-         CALL READ_DRYDEP_INPUTS( am_I_Root,
-     &                            DRYCOEFF, INDOLSON, IDEP,    
-     &                            IWATER,   NWATER,   IZO,      
-     &                            IDRYDEP,  IRI,      IRLU,     
-     &                            IRAC,     IRGSS,    IRGSO, 
-     &                            IRCLS,    IRCLO,    IVSMAX )
+      !=================================================================
+      ! Get input information 
+      !=================================================================
 
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%% NOTE: Because READ_DRYDEP_INPUTS reads info from a netCDF %%%
+      !%%% file, we may have to broadcast these.  However, the file  %%%
+      !%%% dimensions are not very great (10 or 20 indices each)     %%%
+      !%%% (bmy, 12/11/12)                                           %%%
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+      ! Read drydep inputs from the netCDF file
+      ! Save Olson indices in INDOLSON array, in order to avoid
+      ! confusion w/ previously-assinged variable name IOLSON
+      CALL READ_DRYDEP_INPUTS( am_I_Root,
+     &                         DRYCOEFF, INDOLSON, IDEP,    
+     &                         IWATER,   NWATER,   IZO,      
+     &                         IDRYDEP,  IRI,      IRLU,     
+     &                         IRAC,     IRGSS,    IRGSO, 
+     &                         IRCLS,    IRCLO,    IVSMAX )
+
+
+      ! Calls INIT_WEIGHTSS to calculate the volume distribution of 
+      ! sea salt aerosols (jaegle 5/11/11)
+      CALL INIT_WEIGHTSS()
 
       END SUBROUTINE INIT_DRYDEP
 !EOC

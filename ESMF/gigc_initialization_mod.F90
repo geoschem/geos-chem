@@ -354,25 +354,6 @@ CONTAINS
        IF ( prtDebug ) THEN
           CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after OLSON' )
        ENDIF
-
-!-----------------------------------------------------------------------------
-! NOTE: Add this soon (bmy, 12/4/12)
-!      ! Read drydep inputs from the netCDF file
-!      ! Save Olson indices in INDOLSON array, in order to avoid
-!      ! confusion w/ previously-assinged variable name IOLSON
-!      CALL READ_DRYDEP_INPUTS( am_I_Root,                      &
-!     &                            DRYCOEFF, INDOLSON, IDEP,       &
-!     &                            IWATER,   NWATER,   IZO,        
-!     &                            IDRYDEP,  IRI,      IRLU,     
-!     &                            IRAC,     IRGSS,    IRGSO, 
-!     &                            IRCLS,    IRCLO,    IVSMAX )
-!
-!      ! Calls INIT_WEIGHTSS to calculate the volume distribution of 
-!      ! sea salt aerosols (jaegle 5/11/11)
-       CALL INIT_WEIGHTSS()
-!      FIRST = .FALSE.
-!-----------------------------------------------------------------------------
-
     ENDIF
 
     !=======================================================================
