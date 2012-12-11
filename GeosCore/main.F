@@ -1108,8 +1108,8 @@
      &                    STT( :, :, :, 1:N_TRACERS )
 
             ! Do GEOS-Chem chemistry
-            CALL DO_CHEMISTRY( am_I_Root, NI,        NJ,        NL,
-     &                         Input_Opt, State_Chm, State_Met, RC     ) 
+            CALL DO_CHEMISTRY( am_I_Root, Input_Opt, 
+     &                         State_Chm, State_Met, RC ) 
             !-----------------------------------------------------------
 
          ENDIF 

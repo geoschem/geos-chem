@@ -135,8 +135,8 @@
       PUBLIC  :: ITS_TIME_FOR_A6UPDATE
 #endif
 
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      PUBLIC  :: Accept_Date_Time_From_ESMF
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      PUBLIC  :: Accept_External_Date_Time
 #endif
 !
 ! !REVISION HISTORY:
@@ -4901,22 +4901,23 @@
 
       END FUNCTION GET_NYMD_DIAG
 !EOC
-#if defined( ESMF_ )
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: accept_date_time_from_esmf
+! !IROUTINE: accept_external_date_time
 !
-! !DESCRIPTION: Subroutine ACCEPT\_DATE\_TIME\_FROM\_ESMF sets the date and
-!  time variables in time_mod.F with the values obtained from the ESMF 
-!  environment.  The various date & time values are passed as arguments.
+! !DESCRIPTION: Subroutine ACCEPT\_EXTERNAL\_DATE\_TIME sets the date and
+!  time variables in time_mod.F with the values obtained from an external
+!  GCM (such as NASA's GEOS-5 GCM).  The various date & time values from 
+!  the GCM are passed as arguments.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE Accept_Date_Time_From_ESMF( 
+      SUBROUTINE Accept_External_Date_Time( 
      &   am_I_Root,    value_NYMDb,    value_NYMDe,   value_NYMD,
      &   value_NHMSb,  value_NHMSe,    value_NHMS,    value_YEAR,
      &   value_MONTH,  value_DAY,      value_DAYOFYR, value_HOUR,
@@ -4963,6 +4964,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  06 Dec 2012 - Initial version
+!  11 Dec 2012 - R. Yantosca - Renamed to ACCEPT_EXTERNAL_DATE_TIME
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5040,7 +5042,7 @@
       ! Return successfully
       RC = GIGC_SUCCESS
 
-      END SUBROUTINE Accept_Date_Time_from_ESMF
+      END SUBROUTINE Accept_External_Date_Time
 !EOC
 #endif
       END MODULE TIME_MOD

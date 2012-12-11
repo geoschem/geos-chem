@@ -187,12 +187,7 @@ CONTAINS
     USE COMODE_LOOP_MOD       
     USE GCKPP_COMODE_MOD,     ONLY : INIT_GCKPP_COMODE
     USE ERROR_MOD,            ONLY : DEBUG_MSG
-    USE GRID_MOD,             ONLY : AREA_M2
     USE GRID_MOD,             ONLY : INIT_GRID
-    USE GRID_MOD,             ONLY : XEDGE
-    USE GRID_MOD,             ONLY : XMID
-    USE GRID_MOD,             ONLY : YEDGE
-    USE GRID_MOD,             ONLY : YMID
     USE Mapping_Mod,          ONLY : MapWeight
     USE Mapping_Mod,          ONLY : Init_Mapping
     USE Olson_Landmap_Mod,    ONLY : Init_Olson_Landmap
@@ -320,8 +315,6 @@ CONTAINS
        State_Chm%TRAC_ID  (N) = Input_Opt%ID_TRACER(N)
     ENDDO
        
-    ! Allocate and zero GEOS-Chem diagnostic arrays
-
     ! Initialize the GEOS-Chem pressure module (set Ap & Bp)
     CALL Init_Pressure( am_I_Root )
 

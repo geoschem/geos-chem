@@ -46,10 +46,10 @@ MODULE Grid_Mod
   PUBLIC  :: Set_xOffSet
   PUBLIC  :: Set_yOffSet
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-!      PUBLIC  :: AREA_M2 ! Permit setting this externally
-      PUBLIC  :: YMID, XMID, YEDGE, XEDGE, AREA_M2
-#endif
+! Comment out for now (bmy, 12/11/12)
+!#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!      PUBLIC  :: YMID, XMID, YEDGE, XEDGE, AREA_M2
+!#endif
 !
 ! !REVISION HISTORY:
 !  23 Feb 2012 - R. Yantosca - Initial version, based on grid_mod.F
@@ -82,18 +82,6 @@ MODULE Grid_Mod
   INTEGER              :: J0
 
   ! Arrays
-#if defined( DEVEL )
-  REAL*4,  ALLOCATABLE :: XMID     (:,:,:)
-  REAL*4,  ALLOCATABLE :: XEDGE    (:,:,:)
-  REAL*4,  ALLOCATABLE :: YMID     (:,:,:)
-  REAL*4,  ALLOCATABLE :: YEDGE    (:,:,:)
-  REAL*4,  ALLOCATABLE :: YSIN     (:,:,:)
-  REAL*4,  ALLOCATABLE :: YMID_R   (:,:,:)
-  REAL*4,  ALLOCATABLE :: YEDGE_R  (:,:,:)
-  REAL*4,  ALLOCATABLE :: YMID_R_W (:,:,:)
-  REAL*4,  ALLOCATABLE :: YEDGE_R_W(:,:,:)
-  REAL*4,  ALLOCATABLE :: AREA_M2  (:,:,:)
-#else
   REAL*8,  ALLOCATABLE :: XMID     (:,:,:)
   REAL*8,  ALLOCATABLE :: XEDGE    (:,:,:)
   REAL*8,  ALLOCATABLE :: YMID     (:,:,:)
@@ -104,7 +92,6 @@ MODULE Grid_Mod
   REAL*8,  ALLOCATABLE :: YMID_R_W (:,:,:)
   REAL*8,  ALLOCATABLE :: YEDGE_R_W(:,:,:)
   REAL*8,  ALLOCATABLE :: AREA_M2  (:,:,:)
-#endif
 
 CONTAINS
 !EOC
@@ -231,7 +218,8 @@ CONTAINS
              ! Lat centers (degrees)
              YMID(I,J,L)     = ( DLAT(I,J,L) * IND_Y(JG) ) - 90d0
           
-#if !defined( ESMF_ )
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#else
              ! Adjust for halfpolar boxes (global grids only)
              IF ( JG == JSP ) THEN
                 YMID(I,J,L)  = -90d0 + ( 0.5d0 * DLAT(I,J,L) )   ! S pole
@@ -263,7 +251,8 @@ CONTAINS
              ! Lat edges (degrees and radians)
              YEDGE(I,J,L)    = YMID(I,J,L) - ( DLAT(I,J,L) * 0.5d0 )
             
-#if !defined( ESMF_ )
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#else
              ! Adjust for halfpolar boxes
              IF ( JG == JSP ) THEN
                 YEDGE(I,J,L) = -90d0                             ! S pole
@@ -296,7 +285,7 @@ CONTAINS
              !YEDGE_R(I,JNP+1,L) = YEDGE(I,JNP+1,L) * PI_180
              !--------------------------------------------------------------
              I                  = IG - I1 + 1
-#if defined( ESMF_ )
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
              YEDGE  (I,J2+1,L)   = YEDGE(I,J2,L)   + DLAT(I,J2,L)
 #else
              YEDGE  (I,J2+1,L)   = +90d0

@@ -620,8 +620,8 @@
       USE TIME_MOD,           ONLY : SET_CURRENT_TIME, SET_DIAGb
       USE TIME_MOD,           ONLY : SET_NDIAGTIME,    GET_TAU
       USE TRANSFER_MOD,       ONLY : INIT_TRANSFER
-#if defined( ESMF_ )
-      USE TIME_MOD,           ONLY : Accept_Date_Time_From_ESMF
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE TIME_MOD,           ONLY : Accept_External_Date_Time
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -662,6 +662,8 @@
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !  06 Dec 2012 - R. Yantosca - Now get NYMDb, NHMSb, NYMDe, NHMSe from the ESMF
 !                              environment when connecting to the GEOS-5 GCM
+!  11 Dec 2012 - R. Yantosca - ACCEPT_DATE_TIME_FROM_ESMF has now been renamed
+!                              to ACCEPT_EXTERNAL_DATE_TIME
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -880,23 +882,23 @@
       ! Call setup routines from other GEOS-CHEM modules
       !=================================================================
 
-#if defined( ESMF_ )
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
       !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
       !
       ! If we are connecting to the GEOS-5 GCM via ESMF, then pass the
       ! values for the start & end times of the simulation directly to
-      ! GeosUtil/time_mod.F via subroutine ACCEPT_DATE_TIME_FROM_ESMF.
+      ! GeosUtil/time_mod.F via subroutine ACCEPT_EXTERNAL_DATE_TIME.
       ! (bmy, 12/6/12)
       !-----------------------------------------------------------------
-      CALL Accept_Date_Time_From_ESMF( am_I_Root   = am_I_Root, 
-     &                                 value_NYMDb = Input_Opt%NYMDb,
-     &                                 value_NHMSb = Input_Opt%NHMSb,
-     &                                 value_NYMDe = Input_Opt%NYMDe,
-     &                                 value_NHMSe = Input_Opt%NHMSe,
-     &                                 value_NYMD  = Input_Opt%NYMDb,
-     &                                 value_NHMS  = Input_Opt%NHMSb,
-     &                                 RC          = RC               )
+      CALL Accept_External_Date_Time( am_I_Root   = am_I_Root, 
+     &                                value_NYMDb = Input_Opt%NYMDb,
+     &                                value_NHMSb = Input_Opt%NHMSb,
+     &                                value_NYMDe = Input_Opt%NYMDe,
+     &                                value_NHMSe = Input_Opt%NHMSe,
+     &                                value_NYMD  = Input_Opt%NYMDb,
+     &                                value_NHMS  = Input_Opt%NHMSb,
+     &                                RC          = RC               )
      &                                 
 
 #else
@@ -3094,8 +3096,8 @@
       USE LOGICAL_MOD,        ONLY : LSVCSPEC, LKPP
       USE TIME_MOD,           ONLY : SET_CT_CHEM
       USE TRACER_MOD,         ONLY : N_TRACERS
-#if defined( ESMF_ )
-      USE TIME_MOD,           ONLY : Accept_Date_Time_From_ESMF
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE TIME_MOD,           ONLY : Accept_External_Date_Time
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -3122,6 +3124,8 @@
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !  06 Dec 2012 - R. Yantosca - Now get TS_CHEM from the ESMF environment
 !                              when we are connecting to the GEOS-5 GCM
+!  11 Dec 2012 - R. Yantosca - ACCEPT_DATE_TIME_FROM_ESMF has now been renamed
+!                              to ACCEPT_EXTERNAL_DATE_TIME
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3189,7 +3193,7 @@
       ! we have bracketed this with an #ifdef. 
       !
       ! Also pass the chemistry timestep value directly to module
-      ! GeosUtil/time_mod.F via subroutine ACCEPT_DATE_TIME_FROM_ESMF.
+      ! GeosUtil/time_mod.F via subroutine ACCEPT_EXTERNAL_DATE_TIME.
       !
       ! Ideallly it would be good to have one single version of 
       ! "input.geos" that can double as the GEOS-Chem input file as 
@@ -3204,9 +3208,9 @@
       TS_CHEM            = Input_Opt%TS_CHEM
 
       ! Pass chemistry timestep to time_mod.F
-      CALL Accept_Date_Time_From_ESMF( am_I_Root     = am_I_Root, 
-     &                                 value_TS_CHEM = TS_CHEM,   
-     &                                 RC            = RC         )
+      CALL Accept_External_Date_Time( am_I_Root     = am_I_Root, 
+     &                                value_TS_CHEM = TS_CHEM,   
+     &                                RC            = RC         )
      &                                 
 
 #else
@@ -3275,9 +3279,10 @@
       USE LOGICAL_MOD,        ONLY : LTRAN
       USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
       USE TRACER_MOD,         ONLY : ITS_A_TAGOX_SIM
-#if defined( ESMF_ )
-      USE TIME_MOD,           ONLY : Accept_Date_Time_From_ESMF
-#else
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE TIME_MOD,           ONLY : Accept_External_Date_Time
+#endif
+#if !defined( ESMF_ )
       USE TRANSPORT_MOD,      ONLY : SET_TRANSPORT
 #endif
 
@@ -3309,6 +3314,8 @@
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !  06 Dec 2012 - R. Yantosca - Now get TS_DYN from the ESMF environment, if
 !                              we are connecting to the GEOS-5 GCM
+!  11 Dec 2012 - R. Yantosca - ACCEPT_DATE_TIME_FROM_ESMF has now been renamed
+!                              to ACCEPT_EXTERNAL_DATE_TIME
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3391,7 +3398,7 @@
       Input_Opt%TPCORE_JORD = JORD
       Input_Opt%TPCORE_KORD = KORD
 
-#if defined( ESMF_ ) 
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
       !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
       !
@@ -3409,7 +3416,7 @@
       ! we have bracketed this with an #ifdef. 
       !
       ! Also pass the chemistry timestep value directly to module
-      ! GeosUtil/time_mod.F via subroutine ACCEPT_DATE_TIME_FROM_ESMF.
+      ! GeosUtil/time_mod.F via subroutine ACCEPT_EXTERNAL_DATE_TIME.
       !
       ! Ideallly it would be good to have one single version of 
       ! "input.geos" that can double as the GEOS-Chem input file as 
@@ -3424,9 +3431,9 @@
       TS_DYN                = Input_Opt%TS_DYN
 
       ! Pass chemistry timestep to time_mod.F
-      CALL Accept_Date_Time_From_ESMF( am_I_Root    = am_I_Root, 
-     &                                 value_TS_DYN = TS_DYN,
-     &                                 RC           = RC         )
+      CALL Accept_External_Date_Time( am_I_Root    = am_I_Root, 
+     &                                value_TS_DYN = TS_DYN,
+     &                                RC           = RC         )
      &                                 
 
 #else

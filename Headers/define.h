@@ -189,4 +189,13 @@
  #error "SPARC must be defined in header file define.h"
 #endif
 
+!==============================================================================
+! Force a compile error if any of the grid definitions are selected
+! when either EXTERNAL_GRID or EXTERNAL_FORCING are used
+!==============================================================================
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( GRID025x03125 ) || defined( GRID_1x1 ) || defined( GRID1x125 ) || defined( GRID2x25 ) || defined( GRID4x5 ) || defined( GRIDREDUCED )
+#error: "ERROR: Invalid use of EXTERNAL_GRID or EXTERNAL_FORCING!"
+#endif
+#endif
 !EOC
