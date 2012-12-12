@@ -137,7 +137,7 @@
 !----- Model types -----
 !#define GCAP             'GCAP'
 !#define GEOS_4           'GEOS_4'
-!#define GEOS_5           'GEOS_5'
+#define GEOS_5           'GEOS_5'
 !#define MERRA            'MERRA'
 !#define GEOS_57          'GEOS_57'
 
@@ -190,12 +190,21 @@
 #endif
 
 !==============================================================================
-! Force a compile error if any of the grid definitions are selected
-! when either EXTERNAL_GRID or EXTERNAL_FORCING are used
+! If EXTERNAL_GRID or EXTERNAL_FORCING are used, undefine all other grids
+! when either EXTERNAL_GRID or EXTERNAL_FORCING are used.  This is to 
+! facilitate connecting to an external GCM such as the NASA GEOS-5 GCM.
 !==============================================================================
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-#if defined( GRID025x03125 ) || defined( GRID_1x1 ) || defined( GRID1x125 ) || defined( GRID2x25 ) || defined( GRID4x5 ) || defined( GRIDREDUCED )
-#error: "ERROR: Invalid use of EXTERNAL_GRID or EXTERNAL_FORCING!"
-#endif
+#undef GRIDREDUCED
+#undef GRID4x5
+#undef GRID2x25  
+#undef GRID1x125
+#undef GRID1x1
+#undef GRID025x03125
+#undef GRID05x0666
+#undef NESTED_NA
+#undef NESTED_CH
+#undef SEAC4RS
+#undef NESTED_EU
 #endif
 !EOC
