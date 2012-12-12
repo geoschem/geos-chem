@@ -165,12 +165,20 @@ MODULE GIGC_State_Met_Mod
      REAL*8,  POINTER :: ZMMD      (:,:,:)  ! Z/M downdraft mass flux [Pa/s]
      REAL*8,  POINTER :: ZMMU      (:,:,:)  ! Z/M updraft   mass flux [Pa/s]
 
+     ! Land fields for dry deposition
+     INTEGER, POINTER :: IREG      (:,:  )  ! # of landtypes in grid box (I,J) 
+     INTEGER, POINTER :: ILAND     (:,:,:)  ! Land type at (I,J); 1..IREG(I,J)
+     INTEGER, POINTER :: IUSE      (:,:,:)  ! Fraction (per mil) of grid box
+                                            !  (I,J) occupied by each land type
+
+
   END TYPE MetState
 !
 ! !REVISION HISTORY: 
 !  19 Oct 2012 - R. Yantosca - Initial version, split off from gc_type_mod.F90
 !  23 Oct 2012 - R. Yantosca - Added QI, QL met fields to the derived type
 !  15 Nov 2012 - M. Payer    - Added all remaining met fields
+!  12 Dec 2012 - R. Yantosca - Add IREG, ILAND, IUSE fields for dry deposition
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -194,7 +202,7 @@ CONTAINS
 ! !USES:
 !
     USE GIGC_ErrCode_Mod                         ! Error codes
-    USE CMN_SIZE_MOD,    ONLY : NTYPE
+    USE CMN_SIZE_MOD,    ONLY : NTYPE            ! # of land types
 
 !
 ! !INPUT PARAMETERS:
@@ -222,6 +230,7 @@ CONTAINS
 !  15 Nov 2012 - M. Payer    - Added all remaining met fields
 !  16 Nov 2012 - R. Yantosca - Now zero all fields after allocating
 !  27 Nov 2012 - R. Yantosca - Now allocate SUNCOS fields (IM,JM)
+!  12 Dec 2012 - R. Yantosca - Now allocate the IREG, ILAND, IUSE fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -410,10 +419,9 @@ CONTAINS
 
 #if defined( GCAP )
 
-    !---------------------------------------------------
+    !=======================================================================
     ! GCAP met fields
-    !---------------------------------------------------
-
+    !=======================================================================
     ALLOCATE( State_Met%LWI_GISS  ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%LWI_GISS = 0d0
@@ -444,10 +452,9 @@ CONTAINS
 
 #elif defined( GEOS_4 )
 
-    !---------------------------------------------------
+    !=======================================================================
     ! GEOS-4 met fields
-    !---------------------------------------------------
-
+    !=======================================================================
     ALLOCATE( State_Met%SNOW      ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%SNOW     = 0d0
@@ -462,10 +469,9 @@ CONTAINS
 
 #elif defined( GEOS_5 )
 
-    !---------------------------------------------------
+    !=======================================================================
     ! GEOS-5 met fields
-    !---------------------------------------------------
-
+    !=======================================================================
     ALLOCATE( State_Met%TO31      ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%TO31     = 0d0
@@ -480,10 +486,9 @@ CONTAINS
 
 #elif defined( GEOS_57 ) || defined( MERRA )
 
-    !---------------------------------------------------
+    !=======================================================================
     ! GEOS-5.7.x / MERRA met fields
-    !---------------------------------------------------
-
+    !=======================================================================
     ALLOCATE( State_Met%FRSEAICE  ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%FRSEAICE = 0d0
@@ -541,19 +546,6 @@ CONTAINS
     State_Met%SEAICE90 = 0d0
 
 #endif
-
-    !=======================================================================
-    ! Allocate DRYDEP arrays
-    !=======================================================================
-
-!    ALLOCATE( State_Met%IREG    ( IM, JM ), STAT=RC )
-!    IF ( RC /= GIGC_SUCCESS ) RETURN
-
-!    ALLOCATE( State_Met%ILAND   ( IM, JM, NTYPE ), STAT=RC )
-!    IF ( RC /= GIGC_SUCCESS ) RETURN
-
-!    ALLOCATE( State_Met%IUSE    ( IM, JM, NTYPE ), STAT=RC )
-!    IF ( RC /= GIGC_SUCCESS ) RETURN
 
     !=======================================================================
     ! Allocate 3-D Arrays
@@ -680,10 +672,9 @@ CONTAINS
 
 #if defined( GCAP )
 
-    !---------------------------------------------------
+    !=======================================================================
     ! GCAP met fields
-    !---------------------------------------------------
-
+    !=======================================================================
     ALLOCATE( State_Met%DETRAINE  ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%DETRAINE = 0d0
@@ -714,9 +705,9 @@ CONTAINS
 
 #elif defined( GEOS_4 )
 
-    !---------------------------------------------------
+    !=======================================================================
     ! GEOS-4 met fields
-    !---------------------------------------------------
+    !=======================================================================
 
     ALLOCATE( State_Met%HKBETA    ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
@@ -740,10 +731,9 @@ CONTAINS
 
 #elif defined( GEOS_57 ) || defined( MERRA )
 
-    !---------------------------------------------------
+    !=======================================================================
     ! GEOS-5.7.x / MERRA met fields
-    !---------------------------------------------------
-
+    !=======================================================================
     ALLOCATE( State_Met%PFICU     ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%PFICU    = 0d0
@@ -794,6 +784,21 @@ CONTAINS
 
 #endif
 
+    !=======================================================================
+    ! Allocate land type arrays for dry deposition
+    !=======================================================================
+    ALLOCATE( State_Met%IREG    ( IM, JM        ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%IREG = 0
+
+    ALLOCATE( State_Met%ILAND   ( IM, JM, NTYPE ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%ILAND = 0
+
+    ALLOCATE( State_Met%IUSE    ( IM, JM, NTYPE ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%IUSE  = 0
+
   END SUBROUTINE Init_GIGC_State_Met
 !EOC
 !------------------------------------------------------------------------------
@@ -834,6 +839,7 @@ CONTAINS
 !  19 Nov 2012 - R. Yantosca - Segregate DEALLOCATE statements w/ #ifdefs
 !                              for each met field data product type
 !  27 Nov 2012 - R. Yantosca - Now deallocate the SUNCOS fields
+!  12 Dec 2012 - R. Yantosca - Now deallocate the IREG, ILAND, IUSE fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1009,6 +1015,13 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%TMPU2      )) DEALLOCATE( State_Met%TMPU2      )
 
 #endif
+
+    !========================================================================
+    ! Fields specific to dry deposition
+    !========================================================================
+    IF ( ASSOCIATED( State_Met%IREG       )) DEALLOCATE( State_Met%IREG       )
+    IF ( ASSOCIATED( State_Met%ILAND      )) DEALLOCATE( State_Met%ILAND      )
+    IF ( ASSOCIATED( State_Met%IUSE       )) DEALLOCATE( State_Met%IUSE       )
 
 
    END SUBROUTINE Cleanup_GIGC_State_Met

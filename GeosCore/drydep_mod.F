@@ -380,6 +380,7 @@
 !                              INIT_WEIGHTSS when using the ESMF environment
 !  11 Dec 2012 - R. Yantosca - Remove FIRST variable, as we now read inputs
 !                              from disk in routine INIT_DRYDEP
+!  12 Dec 2012 - R. Yantosca - Now pass State_Met to DEPVEL
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -433,18 +434,15 @@
       ! Call METERO to obtain meterological fields (all 1-D arrays)
       ! Added sfc pressure as PRESSU and 10m windspeed as W10 
       !  (jaegle 5/11/11, mpayer 1/10/12)
-      CALL METERO( State_Met, CZ1,    TC0,   OBK,       CFRAC,  
-     &             RADIAT,    AZO,    USTAR, ZH,        LSNOW, 
-     &             RHB,       PRESSU, W10,   SUNCOS_MID        )
+      CALL METERO( State_Met, CZ1,    TC0,     OBK,       CFRAC,  
+     &             RADIAT,    AZO,    USTAR,   ZH,        LSNOW, 
+     &             RHB,       PRESSU, W10,     SUNCOS_MID             )
 
-      !=================================================================
       ! Call DEPVEL to compute dry deposition velocities [m/s]
-      ! Added  PRESSU, W10 as arguments (jaegle 5/11/11)
-      !=================================================================
-      CALL DEPVEL( MAXIJ,  RADIAT,  TC0,     SUNCOS_MID, F0,  
-     &             HSTAR,  XMW,     AIROSOL, USTAR,      CZ1,
-     &             OBK,    CFRAC,   ZH,      LSNOW,      DVEL,  
-     &             AZO,    RHB,     PRESSU,  W10               )
+      CALL DEPVEL( State_Met, MAXIJ,  RADIAT,  TC0,       SUNCOS_MID, 
+     &             F0,        HSTAR,  XMW,     AIROSOL,   USTAR,      
+     &             CZ1,       OBK,    CFRAC,   ZH,        LSNOW,      
+     &             DVEL,      AZO,    RHB,     PRESSU,    W10         )
 
       !=================================================================
       ! Compute dry deposition frequencies; archive diagnostics
@@ -1343,13 +1341,19 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DEPVEL( NPTS,   RADIAT, TEMP,    SUNCOS, F0,  
-     &                   HSTAR,  XMW,    AIROSOL, USTAR,  CZ1,    
-     &                   OBK,    CFRAC,  ZH,      LSNOW,  DVEL,  
-     &                   ZO,     RHB,    PRESSU,  W10           )
+      SUBROUTINE DEPVEL( State_Met, NPTS,   RADIAT, TEMP,    SUNCOS, 
+     &                   F0,        HSTAR,  XMW,    AIROSOL, USTAR,  
+     &                   CZ1,       OBK,    CFRAC,  ZH,      LSNOW,  
+     &                   DVEL,      ZO,     RHB,    PRESSU,  W10     )
+!
+! !USES:
+!
+      USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
+      TYPE(MetState), INTENT(IN) :: State_Met ! Meteorology state object
+
       INTEGER, INTENT(IN) :: NPTS             ! # of grid boxes = IIPAR*JJPAR
       REAL*8,  INTENT(IN) :: RADIAT (MAXIJ )  ! Solar radiation [W/m2]
       REAL*8,  INTENT(IN) :: TEMP   (MAXIJ )  ! Temperature [K]
@@ -1498,6 +1502,8 @@
 !  09 Apr 2012 - R. Yantosca - Now use INTENT(IN), INTENT(OUT) for arguments
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  12 Dec 2012 - R. Yantosca - Now get ILAND, IUSE, IREG from State_Met
+
 !
 !***********************************************************************
 !   Changes from Version 3.2 to Version 3.3:                         ***
@@ -1661,14 +1667,29 @@
 !****************************************************************************
 
          ! Loop over the # of Olson land types in this grid box (I,J)
-         DO 170 LDT = 1, IREG(I,J)
+!------------------------------------------------------------------------------
+! Prior to 12/12/12:
+! Now get IREG from State_Met (bmy, 12/12/12)
+!         DO 170 LDT = 1, IREG(I,J)
+!------------------------------------------------------------------------------
+         DO 170 LDT = 1, State_Met%IREG(I,J)
 
             ! If the land type is not represented in grid 
             ! box  (I,J), then skip to the next land type
-            IF ( IUSE(I,J,LDT) == 0 ) GOTO 170
+!------------------------------------------------------------------------------
+! Prior to 12/12/12:
+! Now get IREG from State_Met (bmy, 12/12/12)
+!            IF ( IUSE(I,J,LDT) == 0 ) GOTO 170
+!------------------------------------------------------------------------------
+            IF ( State_Met%IUSE(I,J,LDT) == 0 ) GOTO 170
 
             ! Olson land type index + 1
-            IOLSON = ILAND(I,J,LDT)+1
+!------------------------------------------------------------------------------
+! Prior to 12/12/12:
+! Now get IREG from State_Met (bmy, 12/12/12)
+!            IOLSON = ILAND(I,J,LDT)+1
+!------------------------------------------------------------------------------
+            IOLSON = State_Met%ILAND(I,J,LDT)+1
 
             ! Dry deposition land type index
             II     = IDEP(IOLSON)
@@ -1901,17 +1922,38 @@
 !*                                 
          DO 190 K = 1,NUMDEP 
             IF (.NOT.LDEP(K)) GOTO 190
-            DO 180 LDT = 1,IREG(I,J)
-               IF ( IUSE(I,J,LDT) == 0 ) GOTO 180
+!------------------------------------------------------------------------------
+! Prior to 12/12/12:
+! Now get IREG from State_Met (bmy, 12/12/12)
+!            DO 180 LDT = 1,IREG(I,J)
+!------------------------------------------------------------------------------
+            DO 180 LDT = 1, State_Met%IREG(I,J)
+!------------------------------------------------------------------------------
+! Prior to 12/12/12:
+! Now get IUSE from State_Met (bmy, 12/12/12)
+!               IF ( IUSE(I,J,LDT) == 0 ) GOTO 180
+!------------------------------------------------------------------------------
+               IF ( State_Met%IUSE(I,J,LDT) == 0 ) GOTO 180
                RSURFC(K,LDT)= MAX(1.D0, MIN(RSURFC(K,LDT), 9999.D0))
  180        CONTINUE
  190     CONTINUE
 !*                                 
 !*    Loop through the different landuse types present in the grid square     
-!*                                 
-         DO 500 LDT = 1, IREG(I,J)
-            IF ( IUSE(I,J,LDT) == 0 ) GOTO 500
-            IOLSON = ILAND(I,J,LDT) + 1
+!*           
+!------------------------------------------------------------------------------
+! Prior to 12/12/12:
+! Now get IREG from State_Met (bmy, 12/12/12)                      
+!         DO 500 LDT = 1, IREG(I,J)
+!------------------------------------------------------------------------------
+         DO 500 LDT = 1, State_Met%IREG(I,J)
+            !IF ( IUSE(I,J,LDT) == 0 ) GOTO 500
+            IF ( State_Met%IUSE(I,J,LDT) == 0 ) GOTO 500
+!------------------------------------------------------------------------------
+! Prior to 12/12/12:
+! Now get IREG from State_Met (bmy, 12/12/12)  
+!            IOLSON = ILAND(I,J,LDT) + 1
+!------------------------------------------------------------------------------
+            IOLSON = State_Met%ILAND(I,J,LDT) + 1
 
 #if   defined( GCAP )
 ! NOTE: This section only applies to the GCAP/GISS model (swu, bmy, 5/25/05)
@@ -2175,7 +2217,9 @@
             DO 400 K = 1,NUMDEP
                IF (.NOT.LDEP(K)) GOTO 400
                VK(K) = VD(K)
-               VD(K) = VK(K) +.001D0*DBLE( IUSE(I,J,LDT) )/C1X(K)
+               !VD(K) = VK(K) +.001D0*DBLE( IUSE(I,J,LDT) )/C1X(K)
+               VD(K) = VK(K) +.001D0*
+     &                        DBLE( State_Met%IUSE(I,J,LDT) )/C1X(K)
  400        CONTINUE
  500     CONTINUE
 
