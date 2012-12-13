@@ -785,6 +785,9 @@
             ! (1) At the present time, we have removed all references
             !     to the obsolete XYLAI array and its parent module
             !     CMN_VEL_mod.F.
+            ! (2) As of Dec 2012, the XLAI and XLAI2 arrays are now
+            !     carried in State_Met.  We can remove the obsolete
+            !     module Headers/CMN_DEP_mod.F.
             ! 
             !      -- Bob Yantosca (09 Apr 2012)
             !-----------------------------------------------------------
@@ -799,8 +802,9 @@
             CALL Read_Modis_Lai( laiYYYY, laiMM, wasModisRead )
 
             ! Interpolate LAI quantities from native grid to GEOS-Chem grid
-            CALL Compute_Modis_Lai( day_of_year, laiMM, 
-     &                              mapping,     wasModisRead )
+            CALL Compute_Modis_Lai( am_I_Root,    State_Met, 
+     &                              day_of_year,  laiMM,     
+     &                              mapping,      wasModisRead, RC )
 
             ! For MEGAN biogenics, compute 15-day average temperature
             IF ( LMEGAN ) THEN

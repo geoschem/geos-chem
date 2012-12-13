@@ -1212,7 +1212,6 @@
       USE VDIFF_PRE_MOD,      ONLY : EMIS_SAVE !cdh for LNLPBL
 
       USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_DEP_MOD              ! FRCLND
 !
 ! !INPUT PARAMETERS:
 !
@@ -1222,7 +1221,7 @@
 !  20 Sep 2010 - N.E. Selin  - Initial Version based on EMISSMERCURY
 !  29 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
-
+!  13 Dec 2012 - R. Yantosca - Remove reference to obsolete CMN_DEP_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC

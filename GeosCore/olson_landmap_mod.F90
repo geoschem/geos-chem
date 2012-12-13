@@ -19,11 +19,6 @@ MODULE Olson_LandMap_Mod
 ! !USES:
 !
   USE CMN_GCTM_MOD                      ! Physical constants
-  !---------------------------------------------------------------------------
-  ! Prior to 12/12/12:
-  ! These are now included in State_Met (bmy, 12/12/12)
-  !USE CMN_DEP_MOD                       ! IREG, ILAND, IUSE, FRCLND arrays
-  !---------------------------------------------------------------------------
   USE CMN_SIZE_MOD                      ! Size parameters
   USE DIRECTORY_MOD                     ! Disk directory paths   
   USE ERROR_MOD                         ! Error checking routines
@@ -413,8 +408,8 @@ CONTAINS
           ENDIF
 
           ! Save mapping information for later use in modis_lai_mod.F90
-          ! in order to prepare the XLAI array for use with the legacy 
-          ! dry-deposition and soil NOx emissions codes.
+          ! in order to prepare the State_Met%XLAI array for use with the 
+          ! legacy dry-deposition and soil NOx emissions codes.
           C                     = C + 1
           mapping(I,J)%count    = C
           mapping(I,J)%II(C)    = II

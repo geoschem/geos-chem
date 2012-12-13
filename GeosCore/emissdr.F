@@ -95,6 +95,7 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  27 Nov 2012 - R. Yantosca - Replace SUNCOS_MID with State_Met%SUNCOSmid
+!  13 Dec 2012 - R. Yantosca - Now remove reference to obsolete CMN_DEP_mod.F
 !******************************************************************************
 !
       ! References to F90 modules
@@ -146,7 +147,6 @@
       USE CMN_DIAG_MOD             ! Diagnostic arrays and switches
       USE CMN_NOX_MOD              ! GEMISNOX2
       USE COMMSOIL_MOD             ! Soil wetness variables
-      USE CMN_DEP_MOD
 
       IMPLICIT NONE
 #     include "define.h"

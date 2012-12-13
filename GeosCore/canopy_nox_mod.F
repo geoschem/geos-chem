@@ -111,7 +111,6 @@
 
       USE COMMSOIL_MOD
       USE CMN_SIZE_MOD
-      USE CMN_DEP_MOD
 !
 ! !INPUT PARAMETERS: 
 !
@@ -129,6 +128,7 @@
 !                                     MODIS/Koppen biometype
 !  09 Nov 2012 - M. Payer        - Replaced all met field arrays with State_Met
 !                                   derived type object
+!  13 Dec 2012 - R. Yantosca     - Removed ref to obsolete CMN_DEP_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -97,7 +97,6 @@
       USE TRANSPORT_MOD,           ONLY : CLEANUP_TRANSPORT
 #endif
       USE CMN_Mod,                 ONLY : Cleanup_CMN
-      USE CMN_DEP_Mod,             ONLY : Cleanup_CMN_DEP
       USE CMN_FJ_Mod,              ONLY : Cleanup_CMN_FJ
       USE CMN_NOX_Mod,             ONLY : Cleanup_CMN_NOX
       USE CMN_O3_Mod,              ONLY : Cleanup_CMN_O3
@@ -218,6 +217,7 @@
 !  28 Nov 2012 - R. Yantosca - Remove reference to CLEANUP_DAO; we have now
 !                              removed all allocatable arrays from dao_mod.F
 !  03 Dec 2012 - R. Yantosca - Now call Cleanup_CMN_SIZE
+!  13 Dec 2012 - R. Yantosca - Remove reference to obsolete CMN_DEP_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -321,7 +321,6 @@
 
       ! Call extra cleanup routines, mostly from modules in Headers/
       CALL Cleanup_CMN        ( am_I_Root, RC )
-      CALL Cleanup_CMN_DEP    ( am_I_Root, RC )
       CALL Cleanup_CMN_FJ     ( am_I_Root, RC )
       CALL Cleanup_CMN_NOX    ( am_I_Root, RC )
       CALL Cleanup_CMN_O3     ( am_I_Root, RC )

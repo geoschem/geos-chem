@@ -18,7 +18,6 @@
       USE CMN_SIZE_MOD                          ! Size parameters
       USE CMN_DIAG_MOD                          ! Diag counters & flags
       USE CMN_GCTM_MOD                          ! Physical constants
-      USE CMN_DEP_MOD                           ! IREG, ILAND, IUSE, FRCLND
       USE COMMSOIL_MOD                          ! Soil wetness variables
       USE COMODE_MOD                            ! Large arrays for SMVGEAR
       USE COMODE_LOOP_MOD                       ! Formerly "comode.h"
@@ -181,6 +180,7 @@
 !  31 Jul 2012 - R. Yantosca - Modifications for grid-independence
 !  11 Dec 2012 - M. Long     - Now call READ_DRYDEP_INPUTS from INIT_DRYDEP
 !  11 Dec 2012 - R. Yantosca - Now call INIT_WEIGHTSS from INIT_DRYDEP
+!  13 Dec 2012 - R. Yantosca - Remove reference to obsolete CMN_DEP_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -804,7 +804,6 @@
 
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_DIAG_MOD       ! Diagnostic switches & arrays
-      USE CMN_DEP_MOD        ! Dry deposition variables
       USE COMMSOIL_MOD       ! Soil wetness variables
       USE COMODE_MOD
 ! 
@@ -1103,7 +1102,6 @@
       
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! Diagnostic switches & arrays
-      USE CMN_DEP_MOD              ! Dry deposition variables
       USE COMMSOIL_MOD             ! Soil wetness variables
 !
 ! !INPUT PARAMETERS:
@@ -1503,7 +1501,7 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  12 Dec 2012 - R. Yantosca - Now get ILAND, IUSE, IREG from State_Met
-
+!  13 Dec 2012 - R. Yantosca - Now get XLAI from State_Met
 !
 !***********************************************************************
 !   Changes from Version 3.2 to Version 3.3:                         ***
@@ -1711,10 +1709,22 @@
 !** divide them by the leaf area index to get a cuticular resistance for the
 !** bulk canopy.  If IRLU is '9999' it means there are no cuticular
 !** surfaces on which to deposit so we impose a very large value for RLU.
-            IF ( IRLU(II) >= 9999 .or. XLAI(I,J,LDT) <= 0.D0 ) THEN
+!------------------------------------------------------------------------------
+! Prior to 12/12/12:
+! Now get XLAI from State_Met (bmy, 12/12/12)
+!            IF ( IRLU(II) >= 9999 .or. XLAI(I,J,LDT) <= 0.D0 ) THEN
+!------------------------------------------------------------------------------
+            IF ( IRLU(II) >= 9999 .or. 
+     &           State_Met%XLAI(I,J,LDT) <= 0.D0 ) THEN
                RLU(LDT) = 1.D6
             ELSE
-               RLU(LDT) = DBLE( IRLU(II) ) / XLAI(I,J,LDT) + RT
+!------------------------------------------------------------------------------
+! Prior to 12/12/12:
+! Now get XLAI from State_Met (bmy, 12/12/12)
+!               RLU(LDT) = DBLE( IRLU(II) ) / XLAI(I,J,LDT) + RT
+!------------------------------------------------------------------------------
+               RLU(LDT) = DBLE( IRLU(II) ) 
+     &                  / State_Met%XLAI(I,J,LDT) + RT
             ENDIF
 !** The following are the remaining resistances for the Wesely
 !** resistance-in-series model for a surface canopy
@@ -1763,9 +1773,19 @@
             IF (TEMPC .GT. 0.D0 .AND. TEMPC .LT. 40.D0)
      *           GFACT = 400.D0/TEMPC/(40.0D0-TEMPC)
             GFACI = 100.D0
-            IF ( RAD0 > 0.D0 .and. XLAI(I,J,LDT) > 0.D0 ) THEN
-               GFACI = 1.D0 / BIOFIT( DRYCOEFF,       XLAI(I,J,LDT),
-     &                                SUNCOS(IJLOOP), CFRAC(IJLOOP)  )
+!------------------------------------------------------------------------------
+! Prior to 12/12/12:
+! Now get XLAI from State_Met (bmy, 12/12/12)
+!            IF ( RAD0 > 0.D0 .and. XLAI(I,J,LDT) > 0.D0 ) THEN
+!               GFACI = 1.D0 / BIOFIT( DRYCOEFF,       XLAI(I,J,LDT),
+!     &                                SUNCOS(IJLOOP), CFRAC(IJLOOP)  )
+!            ENDIF
+!------------------------------------------------------------------------------
+            IF ( RAD0 > 0.D0 .and. State_Met%XLAI(I,J,LDT) > 0.D0 ) THEN
+               GFACI = 1.D0 / BIOFIT( DRYCOEFF,       
+     &                                State_Met%XLAI(I,J,LDT),
+     &                                SUNCOS(IJLOOP), 
+     &                                CFRAC(IJLOOP)            )
             ENDIF
             
             RIX = RIX*GFACT*GFACI
