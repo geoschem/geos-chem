@@ -289,7 +289,7 @@
 
 #if   defined( APM )
          ELSE IF ( INDEX( LINE, 'APM MENU'         ) > 0 ) THEN
-            CALL READ_APM_MENU( am_I_Root )
+            CALL READ_APM_MENU( am_I_Root, Input_Opt, RC )
 #endif
 
          ELSE IF ( INDEX( LINE, 'EMISSIONS MENU'   ) > 0 ) THEN
@@ -7264,11 +7264,21 @@
 !
 ! !USES:
 !
+      USE APM_INIT_MOD,       ONLY : APMTRACER_MW_G
+      USE APM_INIT_MOD,       ONLY : APMTRACER_MW_Kg
+      USE APM_INIT_MOD,       ONLY : IFNUCL
+      USE APM_INIT_MOD,       ONLY : FE0
+      USE APM_INIT_MOD,       ONLY : LAPM
       USE CHARPAK_MOD,        ONLY : STRREPL
+      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE FILE_MOD,           ONLY : IOERROR
       USE GAMAP_MOD,          ONLY : DO_GAMAP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TRACER_MOD,         ONLY : N_APMTRA
+      USE TRACER_MOD,         ONLY : N_TRACERS
+      USE TRACER_MOD,         ONLY : TCVV
+      USE TRACER_MOD,         ONLY : XNUMOL
 !
 ! !INPUT PARAMETERS:
 !
@@ -7281,23 +7291,6 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-!
-! !USES:
-!
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE APM_INIT_MOD,  ONLY : APMTRACER_MW_G
-      USE APM_INIT_MOD,  ONLY : APMTRACER_MW_Kg
-      USE APM_INIT_MOD,  ONLY : IFNUCL
-      USE APM_INIT_MOD,  ONLY : FE0
-      USE APM_INIT_MOD,  ONLY : LAPM
-      USE TRACER_MOD,    ONLY : N_APMTRA
-      USE TRACER_MOD,    ONLY : N_TRACERS
-      USE TRACER_MOD,    ONLY : TCVV
-      USE TRACER_MOD,    ONLY : XNUMOL
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 !
 ! !REMARKS:
 !  This subroutine is only compiled when you build GEOS-Chem with the

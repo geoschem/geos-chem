@@ -54,6 +54,7 @@
 !        (dan, ccc, 3/11/09)
 !  18 Dec 2009 - Aaron van D - Added emissions for nested grids @ 0.5 x 0.666
 !  26 Fev 2010 - Fabien P.   - Add scaling for isoprene and Nox emissions
+!  01 Feb 2011 - C Friedman  - Added POP emissions
 !  07 Feb 2011 - R. Yantosca - Now use EPA/NEI99 biofuel emissions when
 !                              EPA/NEI05 anthro emissions are selected.
 !EOP
@@ -80,22 +81,21 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      SUBROUTINE DO_EMISSIONS( State_Met, State_Chm )
-#else
-      SUBROUTINE DO_EMISSIONS( State_Met )
-#endif
+      SUBROUTINE DO_EMISSIONS( am_I_Root, Input_Opt, 
+     &                         State_Met, State_Chm, RC )
 !
 ! !USES:
 !
-      USE BIOMASS_MOD,            ONLY : COMPUTE_BIOMASS_EMISSIONS
       USE ARCTAS_SHIP_EMISS_MOD,  ONLY : EMISS_ARCTAS_SHIP
+      USE BIOMASS_MOD,            ONLY : COMPUTE_BIOMASS_EMISSIONS
       USE BRAVO_MOD,              ONLY : EMISS_BRAVO
       USE C2H6_MOD,               ONLY : EMISSC2H6
       USE CAC_ANTHRO_MOD,         ONLY : EMISS_CAC_ANTHRO
       USE CAC_ANTHRO_MOD,         ONLY : EMISS_CAC_ANTHRO_05x0666
       USE CARBON_MOD,             ONLY : EMISSCARBON
       USE CH3I_MOD,               ONLY : EMISSCH3I
+      USE CMN_O3_MOD
+      USE CMN_SIZE_MOD
       USE CO2_MOD,                ONLY : EMISSCO2
       USE DUST_MOD,               ONLY : EMISSDUST
       USE EDGAR_MOD,              ONLY : EMISS_EDGAR
@@ -103,29 +103,35 @@
       USE EMEP_MOD,               ONLY : EMISS_EMEP_05x0666
       USE EPA_NEI_MOD,            ONLY : EMISS_EPA_NEI
       USE ERROR_MOD,              ONLY : DEBUG_MSG
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod,     ONLY : OptInput
+      USE GIGC_State_Chm_Mod,     ONLY : ChmState
       USE GIGC_State_Met_Mod,     ONLY : MetState
       USE GLOBAL_CH4_MOD,         ONLY : EMISSCH4
       USE H2_HD_MOD,              ONLY : EMISS_H2_HD
       USE HCN_CH3CN_MOD,          ONLY : EMISS_HCN_CH3CN
-      USE ICOADS_SHIP_MOD,        ONLY : EMISS_ICOADS_SHIP !(cklee,7/09/09)
+      USE ICOADS_SHIP_MOD,        ONLY : EMISS_ICOADS_SHIP
       USE LOGICAL_MOD                
       USE MERCURY_MOD,            ONLY : EMISSMERCURY
       USE NEI2005_ANTHRO_MOD,     ONLY : EMISS_NEI2005_ANTHRO
       USE NEI2005_ANTHRO_MOD,     ONLY : EMISS_NEI2005_ANTHRO_05x0666
       USE PARANOX_MOD,            ONLY : READ_PARANOX_LUT
+      USE POPS_MOD,               ONLY : EMISSPOPS  !(clf, 2/1/2011)
       USE RETRO_MOD,              ONLY : EMISS_RETRO
       USE RnPbBe_MOD,             ONLY : EMISSRnPbBe
       USE SEASALT_MOD,            ONLY : EMISSSEASALT
-      USE SSA_BROMINE_MOD,        ONLY : EMIT_Br2          !jpp, 8/4/10
+      USE SSA_BROMINE_MOD,        ONLY : EMIT_Br2
       USE STREETS_ANTHRO_MOD,     ONLY : EMISS_STREETS_ANTHRO
       USE STREETS_ANTHRO_MOD,     ONLY : EMISS_STREETS_ANTHRO_05x0666
       USE SULFATE_MOD,            ONLY : EMISSSULFATE 
-      USE TIME_MOD,               ONLY : GET_MONTH,       GET_YEAR
-      USE TIME_MOD,               ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
-      USE TRACER_MOD                 
       USE TAGGED_CO_MOD,          ONLY : EMISS_TAGGED_CO
+      USE TIME_MOD,               ONLY : GET_MONTH
+      USE TIME_MOD,               ONLY : GET_YEAR
+      USE TIME_MOD,               ONLY : ITS_A_NEW_MONTH
+      USE TIME_MOD,               ONLY : ITS_A_NEW_YEAR
+      USE TRACER_MOD                 
+      USE TRACERID_MOD,           ONLY : IDTSO2, IDTC2H6
       USE VISTAS_ANTHRO_MOD,      ONLY : EMISS_VISTAS_ANTHRO
- 
       USE TRACERID_MOD,           ONLY : IDTSS1           ! (win, 1/25/10)
       USE TRACERID_MOD,           ONLY : IDTSF1           ! (win, 1/25/10)
       USE TRACERID_MOD,           ONLY : IDTECIL1         ! (win, 1/25/10)
@@ -133,22 +139,20 @@
       USE TRACERID_MOD,           ONLY : IDTECOB1         ! (win, 1/25/10)
       USE TRACERID_MOD,           ONLY : IDTOCOB1         ! (win, 1/25/10)
       USE TRACERID_MOD,           ONLY : IDTDUST1         ! (win, 1/25/10)
-
-      USE CMN_SIZE_MOD                 ! Size parameters
-      USE CMN_O3_MOD                   ! FSCLYR
-
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      USE GIGC_State_Chm_Mod,     ONLY : ChmState
-      USE TRACERID_MOD,           ONLY : IDTSO2, IDTC2H6
-#endif
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(MetState), INTENT(INOUT)   :: State_Met   ! Meteorology State object
-
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      TYPE(ChmState), INTENT(INOUT)   :: State_Chm   ! Chemistry State object
-#endif
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  (1 ) Now references DEBUG_MSG from "error_mod.f" (bmy, 8/7/03)
@@ -187,6 +191,7 @@
 !  (22) Reference to TRACERID_MOd for IDTDUST1 for calling EMISSDUST (Win, 7/17/09)
 !  18 Dec 2009 - Aaron van D - Added emissions for nested grids @ 0.5 x 0.666
 !  08 Feb 2010 - NBIOMAX is now in CMN_SIZE
+!  01 Feb 2011 - CFriedman   - Added emissions for POPs
 !  07 Feb 2011 - R. Yantosca - Use NEI99 biofuels when useing NEI05 anthro
 !  17 Aug 2011 - R. Yantosca - Added call to RETRO anthro emissions
 !  07 Feb 2012 - M. Payer    - Added call to read PARANOX look up tables
@@ -194,6 +199,8 @@
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
 !  19 Oct 2012 - R. Yantosca - Rename CHEM_STATE argument to State_Chm
+!  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
+!  15 Nov 2012 - M. Payer    - Now pass all met fields via State_Met object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -207,6 +214,9 @@
       !=================================================================
       ! DO_EMISSIONS begins here!
       !=================================================================
+
+      ! Assume success
+      RC    = GIGC_SUCCESS
 
       ! Get year and month
       MONTH = GET_MONTH()
@@ -418,8 +428,6 @@
          IF ( LCARB .or. ( IDTECIL1 > 0 .and.   IDTECOB1 > 0 .and. 
      &        IDTOCIL1 > 0 .and. IDTOCOB1 > 0 ) ) 
      &      CALL EMISSCARBON ( State_Met, State_Chm%TRAC_TEND(:,:,1,:))
-         IF ( LDUST .or. IDTDUST1 > 0 ) 
-     &      CALL EMISSDUST   ( State_Met, State_Chm%TRAC_TEND(:,:,:,:))
 #else
 !prior to TOMAS addition (win, 7/17/09)
 c$$$         IF ( LSSALT            ) CALL EMISSSEASALT( State_Met, ssa_br2)
@@ -433,9 +441,19 @@ c$$$         IF ( LDUST             ) CALL EMISSDUST( State_Met )
          IF ( LCARB  .or. ( IDTECIL1 > 0 .and.   IDTECOB1 > 0 .and. 
      &        IDTOCIL1 > 0 .and. IDTOCOB1 > 0 ) )
      &      CALL EMISSCARBON( State_Met )
-         IF ( LDUST  .or. IDTDUST1 > 0 )
-     &      CALL EMISSDUST( State_Met )
+         !---------------------------------------------------------------------
+         ! Prior to 11/26/12:
+         ! Now mainline new call for EMISSDUST w/ Input_Opt (bmy, 11/26/12)
+         !IF ( LDUST             ) CALL EMISSDUST( State_Met )
+         !---------------------------------------------------------------------
 #endif
+         IF ( LDUST  .or. IDTDUST1 > 0 ) THEN
+            CALL EMISSDUST( am_I_Root, 
+     &                      Input_Opt, 
+     &                      State_Met, 
+     &                      State_Chm%TRAC_TEND(:,:,:,:), 
+     &                      RC                             )
+         ENDIF
 
          ! jpp, 3/2/10:
          ! Now distribute the Br2 emitted from SSA, through
@@ -589,14 +607,23 @@ c$$$         IF ( LDUST             ) CALL EMISSDUST( State_Met )
      &   CALL EMISSSULFATE( State_Met, State_Chm%TRAC_TEND(:,:,:,:))
          IF ( LCARB             ) 
      &   CALL EMISSCARBON ( State_Met, State_Chm%TRAC_TEND(:,:,1,:))
-         IF ( LDUST             ) 
-     &   CALL EMISSDUST   ( State_Met, State_Chm%TRAC_TEND(:,:,:,:))
+
 #else
          IF ( LSSALT            ) CALL EMISSSEASALT( State_Met )
          IF ( LSULF .or. LCRYST ) CALL EMISSSULFATE( State_Met )
          IF ( LCARB             ) CALL EMISSCARBON( State_Met )
-         IF ( LDUST             ) CALL EMISSDUST( State_Met )
+         !-------------------------------------------------------------------
+         ! Now mainline new subroutine call to EMISSDUST (bmy, 11/26/12)
+         !IF ( LDUST             ) CALL EMISSDUST( State_Met )
+         !-------------------------------------------------------------------
 #endif
+         IF ( LDUST             ) THEN
+            CALL EMISSDUST( am_I_Root, 
+     &                      Input_Opt,
+     &                      State_Met,
+     &                      State_Chm%TRAC_TEND(:,:,:,:), 
+     &                      RC                            )
+         ENDIF
 
       ELSE IF ( ITS_A_RnPbBe_SIM() ) THEN
          
@@ -813,6 +840,13 @@ c$$$         IF ( LDUST             ) CALL EMISSDUST( State_Met )
          ! Mercury
          !--------------------
          CALL EMISSMERCURY( State_Met )
+
+      ELSE IF ( ITS_A_POPS_SIM() ) THEN
+
+         !--------------------
+         ! POPS
+         !--------------------
+         CALL EMISSPOPS( State_Met )
 
       ELSE IF ( ITS_A_CO2_SIM() ) THEN
 

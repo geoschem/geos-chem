@@ -1331,7 +1331,7 @@
       ENDIF    
 
       END SUBROUTINE CHEM_OCPI
-
+!EOC
 !-------------------------------------------------------------------------------
 
       SUBROUTINE SOAG_LIGGIO_DIFF( State_Met )
@@ -7493,6 +7493,9 @@ c
 
 #else
 
+      ! Definition of the N. American bounding box
+      ! with LL corner (10N,165W) and UR corner (90N,40W)
+      !            Lon_LL  Lat_LL  Lon_UR  Lat_UR
       COORDS = (/ -165d0,  10d0,  -40d0,   90d0  /)
       
       ! Get the indices corresponding to the lon/lat values in COORDS

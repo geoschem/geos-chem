@@ -14,13 +14,15 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE AERO_DRYDEP( State_Met )
+      SUBROUTINE AERO_DRYDEP( am_I_Root, Input_Opt, State_Met, RC )
 !
 ! !USES:
 !
       USE DIAG_MOD,           ONLY : AD44
       USE DRYDEP_MOD,         ONLY : DEPSAV, NUMDEP, NTRAIND 
       USE DUST_MOD,           ONLY : SETTLEDUST   
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE LOGICAL_MOD,        ONLY : LPRT  
@@ -39,7 +41,13 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  22 Jul 2007 - Win T.      - Initial version
@@ -50,6 +58,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  13 Dec 2012 - M. Payer    - Add am_I_Root, Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -84,6 +93,9 @@
       !=================================================================
       ! AERO_DRYDEP begins here!
       !=================================================================
+
+      ! Assume success
+      RC    = GIGC_SUCCESS
 
       ! DTCHEM is the chemistry timestep in seconds
       DTCHEM = GET_TS_CHEM() * 60d0
@@ -290,7 +302,8 @@ cdbg      print *, dryd(:)
       ENDIF  ! DOSETTLING 
 
       ! Dust gravitational settling 
-      IF (.not. DOSETTLING) CALL SETTLEDUST( State_Met )
+      IF (.not. DOSETTLING) CALL SETTLEDUST( am_I_Root, Input_Opt,
+     &                                       State_Met, RC )
 
 
       !---------- DRY DEPOSITION ----------

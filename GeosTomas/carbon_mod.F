@@ -176,6 +176,8 @@
 !  (28) Modified to include GFED3 (psk, 1/5/11)
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  30 Jul 2012 - R. Yantosca - Modifications for grid-independence
+!  28 Nov 2012 - R. Yantosca - Replace SUNCOS array with State_Met%SUNCOS and
+!                              SUNCOS_MID array with State_Met%SUNCOSmid
 !******************************************************************************
 !
       USE LOGICAL_MOD,    ONLY : LNLPBL ! (Lin,03/31/09)
@@ -272,18 +274,61 @@
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
       !=================================================================
       CONTAINS
-
+!EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE CHEMCARBON( am_I_Root, State_Met )
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine CHEMCARBON is the interface between the GEOS-CHEM main program 
-!  and the carbon aerosol chemistry routines that calculates dry deposition, 
-!  chemical conversion between hydrophilic and hydrophobic, and SOA production.
-!  (rjp, bmy, 4/1/04, 9/14/06)
+! !IROUTINE: chemcarbon
 !
-!  NOTES:
+! !DESCRIPTION: Subroutine CHEMCARBON is the interface between the GEOS-Chem 
+!  main program and the carbon aerosol chemistry routines that calculates dry 
+!  deposition, chemical conversion between hydrophilic and hydrophobic, and 
+!  SOA production.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE CHEMCARBON( am_I_Root, Input_Opt, State_Met, RC )
+!
+! !USES:
+!
+      USE CMN_SIZE_MOD 
+      USE DRYDEP_MOD,         ONLY : DEPNAME
+      USE DRYDEP_MOD,         ONLY : NUMDEP
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GLOBAL_OH_MOD,      ONLY : GET_GLOBAL_OH
+      USE GLOBAL_NO3_MOD,     ONLY : GET_GLOBAL_NO3
+      USE GLOBAL_O3_MOD,      ONLY : GET_GLOBAL_O3
+      USE TIME_MOD,           ONLY : GET_MONTH
+      USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
+      USE TRACER_MOD,         ONLY : STT
+      USE TRACERID_MOD,       ONLY : IDTBCPI, IDTBCPO, IDTOCPI
+      USE TRACERID_MOD,       ONLY : IDTOCPO, IDTSOG4, IDTSOA4
+      USE TRACERID_MOD,       ONLY : IDTSOG5, IDTSOA5
+      USE TRACERID_MOD,       ONLY : IDTSOAG, IDTSOAM
+      USE TRACERID_MOD,       ONLY : IDTECIL1, IDTECOB1          !(win, 1/25/10)
+      USE TRACERID_MOD,       ONLY : IDTOCIL1, IDTOCOB1, IDTNK1  !(win, 1/25/10)
+      USE TOMAS_MOD,          ONLY : IBINS                       !(win, 1/25/10)
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+!
+! !REMARKS:
+! 
+! !REVISION HISTORY: 
+!  01 Apr 1994 - R. Park - Initial version
 !  (1 ) Added code from the Caltech group for SOA chemistry.  Also now 
 !        reference "global_oh_mod.f", "global_o3_mod.f", "global_no3_mod.f".
 !        (rjp, bmy, 7/8/04)
@@ -298,43 +343,40 @@
 !        to H-philic EC or OC. (win, 1/25/10)
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
-!******************************************************************************
-!
-      ! References to F90 modules
-      USE DRYDEP_MOD,         ONLY : DEPNAME, NUMDEP
-      USE ERROR_MOD,          ONLY : DEBUG_MSG
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GLOBAL_OH_MOD,      ONLY : GET_GLOBAL_OH
-      USE GLOBAL_NO3_MOD,     ONLY : GET_GLOBAL_NO3
-      USE GLOBAL_O3_MOD,      ONLY : GET_GLOBAL_O3
-      USE LOGICAL_MOD,        ONLY : LSOA, LEMIS, LPRT
-      USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
-      USE TRACER_MOD,         ONLY : STT, ITS_AN_AEROSOL_SIM
-      USE TRACERID_MOD,       ONLY : IDTBCPI, IDTBCPO, IDTOCPI
-      USE TRACERID_MOD,       ONLY : IDTOCPO, IDTSOG4, IDTSOA4
-      USE TRACERID_MOD,       ONLY : IDTSOG5, IDTSOA5  ! (dkh, 03/24/07)  
-      USE TRACERID_MOD,       ONLY : IDTSOAG, IDTSOAM
-      USE TRACERID_MOD,       ONLY : IDTECIL1, IDTECOB1          !(win, 1/25/10)
-      USE TRACERID_MOD,       ONLY : IDTOCIL1, IDTOCOB1, IDTNK1  !(win, 1/25/10)
-      USE TOMAS_MOD,          ONLY : IBINS                       !(win, 1/25/10)
-
-      USE CMN_SIZE_MOD             ! Size parameters
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+!  15 Nov 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE :: FIRSTCHEM = .TRUE.
-      INTEGER       :: N, THISMONTH
+      LOGICAL       :: prtDebug
+      LOGICAL       :: IT_IS_AN_AEROSOL_SIM
+      LOGICAL       :: LSOA
+      LOGICAL       :: LEMIS
+      LOGICAL       :: LPRT
+      INTEGER       :: N
+      INTEGER       :: THISMONTH
 
       !=================================================================
       ! CHEMCARBON begins here!
       !=================================================================
+
+      ! Assume success
+      RC                   = GIGC_SUCCESS
+
+      ! Copy fields from INPUT_OPT to local variables for use below
+      LSOA                 = Input_Opt%LSOA
+      LEMIS                = Input_Opt%LEMIS
+      LPRT                 = Input_Opt%LPRT
+      IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
+
+      ! Do we have to print debug output?
+      prtDebug = ( LPRT .and. am_I_Root )
 
       ! First-time initialization
       IF ( FIRSTCHEM ) THEN
@@ -393,7 +435,7 @@
          ! archived isoprene oxidation fields available for offline
          ! simulations but for now we just set them to zero. 
          ! (dkh, bmy, 6/1/06)
-         IF ( ITS_AN_AEROSOL_SIM() ) THEN
+         IF ( IT_IS_AN_AEROSOL_SIM ) THEN
 
             ! temp fix for aerosol w/ 20 tracers simulation (phs)
             IF ( IDTSOG4 .NE. 0 ) THEN   
@@ -417,32 +459,32 @@
 
       ! Chemistry for hydrophobic BC
       IF ( IDTBCPO > 0 ) THEN
-         CALL CHEM_BCPO( STT(:,:,:,IDTBCPO) )
-         IF ( LPRT .and. am_I_Root ) THEN
+         CALL CHEM_BCPO( am_I_Root, Input_Opt, STT(:,:,:,IDTBCPO), RC )
+         IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPO' )
          ENDIF
       ENDIF
 
       ! Chemistry for hydrophilic BC
       IF ( IDTBCPI > 0 ) THEN
-         CALL CHEM_BCPI( STT(:,:,:,IDTBCPI) )
-         IF ( LPRT .and. am_I_Root ) THEN
+         CALL CHEM_BCPI( am_I_Root, Input_Opt, STT(:,:,:,IDTBCPI), RC )
+         IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPI' )
          ENDIF
       ENDIF
 
       ! Chemistry for hydrophobic OC
       IF ( IDTOCPO > 0 ) THEN
-         CALL CHEM_OCPO( STT(:,:,:,IDTOCPO) )
-         IF ( LPRT .and. am_I_Root ) THEN
+         CALL CHEM_OCPO( am_I_Root, Input_Opt, STT(:,:,:,IDTOCPO), RC )
+         IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPO' )
          ENDIF
       ENDIF
 
       ! Chemistry for hydrophilic OC
       IF ( IDTOCPI > 0 ) THEN 
-         CALL CHEM_OCPI( STT(:,:,:,IDTOCPI) )
-         IF ( LPRT .and. am_I_Root ) THEN
+         CALL CHEM_OCPI( am_I_Root, Input_Opt, STT(:,:,:,IDTOCPI), RC )
+         IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPI' )
          ENDIF
       ENDIF
@@ -451,25 +493,28 @@
       IF ( IDTECOB1 > 0 ) THEN
          CALL AGING_CARB( STT(:,:,:,IDTECIL1:IDTECIL1+IBINS-1), 
      &                     STT(:,:,:,IDTECOB1:IDTECOB1+IBINS-1) )
-         IF ( LPRT .and. am_I_Root ) THEN
+         IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMCARBO: AGING_CARB EC' )
          ENDIF
       ENDIF
       IF ( IDTOCOB1 > 0 ) THEN
          CALL AGING_CARB( STT(:,:,:,IDTOCIL1:IDTOCIL1+IBINS-1), 
      &                     STT(:,:,:,IDTOCOB1:IDTOCOB1+IBINS-1) )
-         IF ( LPRT .and. am_I_Root ) THEN
+         IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMCARBO: AGING_CARB OC' )
          ENDIF
       ENDIF
 
       !=================================================================
       ! Do chemistry for secondary organic aerosols 
+      !
+      ! %%% NOTE: We are not planning on using the SOA mechanism   %%%
+      ! %%% with the ESMF interface at this point. (bmy, 11/14/12) %%%
       !=================================================================
       IF ( LSOA ) THEN
 
          ! Read offline OH, NO3, O3 fields from disk
-         IF ( ITS_AN_AEROSOL_SIM() ) THEN
+         IF ( IT_IS_AN_AEROSOL_SIM ) THEN
 
             ! Current month
             THISMONTH = GET_MONTH()
@@ -484,7 +529,7 @@
             ! but only if it hasn't been done in EMISSCARBON
             IF ( LSOA .and. ( .not. LEMIS ) ) THEN
                CALL OHNO3TIME
-               IF ( LPRT .and. am_I_Root ) THEN
+               IF ( prtDebug ) THEN
                   CALL DEBUG_MSG( '### CHEMCARB: a OHNO3TIME' )
                ENDIF
             ENDIF
@@ -494,7 +539,7 @@
          ! NOTE: This is SOA production from the reversible mechanism only 
          ! (tmf, 12/07/07) 
          CALL SOA_CHEMISTRY( am_I_Root, State_Met )
-         IF ( LPRT .and. am_I_Root ) THEN
+         IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMCARBON: a SOA_CHEM' )
          ENDIF
 
@@ -508,14 +553,14 @@
 
             ! Cloud uptake
             CALL SOAG_CLOUD( State_Met )
-            IF ( LPRT .and. am_I_Root ) THEN
-               CALL DEBUG_MSG('### CHEMCARBON: a SOAG_CLOUD')
+            IF ( prtDebug ) THEN
+               CALL DEBUG_MSG('### CHEMCARBON: a SOAG_CLOUD')        
             ENDIF
 
             ! Aqueous aerosol uptake
             CALL SOAG_LIGGIO_DIFF( State_Met )
-            IF ( LPRT .and. am_I_Root ) THEN       
-               CALL DEBUG_MSG('### CHEMCARBON: a SOAG_LIGGIO_DIFF')
+            IF ( prtDebug ) THEN 
+               CALL DEBUG_MSG('### CHEMCARBON: a SOAG_LIGGIO_DIFF')        
             ENDIF
 
          ENDIF
@@ -528,13 +573,13 @@
 
             ! Cloud uptake
             CALL SOAM_CLOUD( State_Met )
-            IF ( LPRT .and. am_I_Root ) THEN
+            IF ( prtDebug ) THEN
                CALL DEBUG_MSG('### CHEMCARBON: a SOAM_CLOUD')
             ENDIF
 
             ! Aqueous aerosol uptake
             CALL SOAM_LIGGIO_DIFF( State_Met )
-            IF ( LPRT .and. am_I_Root ) THEN
+            IF ( prtDebug ) THEN
                CALL DEBUG_MSG( '### CHEMCARBON: a SOAM_LIGGIO_DIFF' )
             ENDIF
 
@@ -542,51 +587,79 @@
    
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE CHEMCARBON
-
-!-----------------------------------------------------------------------------
-
-      SUBROUTINE CHEM_BCPO( TC )
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine CHEM_BCPO converts hydrophobic BC to hydrophilic BC and
-!  calculates the dry deposition of hydrophobic BC. (rjp, bmy, 4/1/04,10/25/05)
+! !IROUTINE: chem_bcpo
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) TC (REAL*8) : Array of hydrophobic BC tracer 
+! !DESCRIPTION: Subroutine CHEM\_BCPO converts hydrophobic BC to hydrophilic 
+!  BC and calculates the dry deposition of hydrophobic BC. 
+!\\
+!\\
+! !INTERFACE:
 !
-!  NOTES:
+      SUBROUTINE CHEM_BCPO( am_I_Root, Input_Opt, TC, RC )
+!
+! !USES:
+!
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
+      USE DIAG_MOD,           ONLY : AD44, AD07_BC 
+      USE DRYDEP_MOD,         ONLY : DEPSAV
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
+      USE TRACERID_MOD,       ONLY : IDTBCPO
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root             ! Root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt             ! Input Options
+!
+! !INPUT/OUTPUT PARAMETERS:
+! 
+      REAL*8,         INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! H-phobic BC [kg]
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC                    ! Success?
+!
+! !REMARKS:
+! 
+! !REVISION HISTORY:
+!  01 Apr 2004 - R. Park - Initial version
 !  (1 ) Remove reference to "CMN", it's obsolete (bmy, 7/20/04)
 !  (2 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP 
 !        from "pbl_mix_mod.f" (bmy, 2/17/05)
 !  (3 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  (4 ) Add option for non-local PBL scheme (lin, 06/09/08)
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
-!******************************************************************************
+!  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
+!  26 Nov 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE DIAG_MOD,     ONLY : AD44, AD07_BC 
-      USE DRYDEP_MOD,   ONLY : DEPSAV
-      USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP
-      USE TRACER_MOD,   ONLY : XNUMOL
-      USE TRACERID_MOD, ONLY : IDTBCPO
-      USE TIME_MOD,     ONLY : GET_TS_CHEM
+! !LOCAL VARIABLES:
+!
+      ! Scalars
+      INTEGER            :: I,       J,   L
+      REAL*8             :: DTCHEM, FLUX, KBC, FREQ
+      REAL*8             :: TC0,    CNEW, RKT, AREA_CM2, BL_FRAC
 
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DIAG_MOD     ! ND44, ND07, LD07
-
-      ! Arguments
-      REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
-
-      ! Local variables
-      INTEGER                :: I,       J,   L
-      REAL*8                 :: ND44_TMP(IIPAR,JJPAR,LLPAR)     
-      REAL*8                 :: DTCHEM, FLUX, KBC, FREQ
-      REAL*8                 :: TC0,    CNEW, RKT, AREA_CM2, BL_FRAC
-      REAL*8,  PARAMETER     :: BC_LIFE = 1.15D0
+      ! Arrays
+      REAL*8             :: ND44_TMP(IIPAR,JJPAR,LLPAR)     
+      REAL*8             :: XNUMOL(Input_Opt%N_TRACERS)
+!
+! !DEFINED PARAMETERS:
+!
+      REAL*8,  PARAMETER :: BC_LIFE = 1.15D0
 
       !=================================================================
       ! CHEM_BCPO begins here!
@@ -595,24 +668,19 @@
       ! Return if BCPO isn't defined
       IF ( IDTBCPO == 0 .or. DRYBCPO == 0 ) RETURN
 
+      ! Assume success
+      RC     = GIGC_SUCCESS
+
+      ! Copy fields from INPUT_OPT to local variables for use below
+      XNUMOL = Input_Opt%XNUMOL
+
       ! Initialize
       KBC    = 1.D0 / ( 86400d0 * BC_LIFE )
       DTCHEM = GET_TS_CHEM() * 60d0
+      BCCONV = 0d0
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         BCCONV(I,J,L) = 0d0
-
-         ! Initialize for drydep diagnostic
-         IF ( ND44 > 0 ) ND44_TMP(I,J,L) = 0d0
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
+      ! Initialize for drydep diagnostic
+      IF ( ND44 > 0 ) ND44_TMP = 0d0
 
       !=================================================================
       ! For tracers with dry deposition, the loss rate of dry dep is 
@@ -715,49 +783,74 @@
 !$OMP END PARALLEL DO
       ENDIF      
 
-      ! Return to calling program
       END SUBROUTINE CHEM_BCPO
-
+!EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE CHEM_BCPI( TC )
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine CHEM_BCPI calculates dry deposition of hydrophilic BC.
-!  (rjp, bmy, 4/1/04, 10/25/05)
+! !IROUTINE: chem_bcpi
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) TC (REAL*8) : Array of hydrophilic BC tracer 
+! !DESCRIPTION: Subroutine CHEM\_BCPI calculates dry deposition of 
+!  hydrophilic BC.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE CHEM_BCPI( am_I_Root, Input_Opt, TC, RC )
+!
+! !USES:
+!
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
+      USE DIAG_MOD,           ONLY : AD44 
+      USE DRYDEP_MOD,         ONLY : DEPSAV
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
+      USE TRACERID_MOD,       ONLY : IDTBCPI
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root             ! Root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt             ! Input Options
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      REAL*8,         INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! H-philic BC [kg]
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC                    ! Success?
+!
+! !REMARKS:
 ! 
-!  NOTES:
+! !REVISION HISTORY: 
+!  01 Apr 2004 - R. Park - Initial version
 !  (1 ) Remove reference to "CMN", it's obsolete (bmy, 7/20/04)
 !  (2 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP from 
 !        "pbl_mix_mod.f" (bmy, 2/17/05)
 !  (3 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
-!******************************************************************************
+!  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
+!  26 Nov 2012 - R. Yantosca - Added ProTeX Headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE DIAG_MOD,     ONLY : AD44 
-      USE DRYDEP_MOD,   ONLY : DEPSAV
-      USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP
-      USE TRACER_MOD,   ONLY : XNUMOL
-      USE TRACERID_MOD, ONLY : IDTBCPI
-      USE TIME_MOD,     ONLY : GET_TS_CHEM
+! !LOCAL VARIABLES:
+!
+      ! Scalars
+      INTEGER :: I, J, L
+      REAL*8  :: DTCHEM, FLUX, BL_FRAC, AREA_CM2
+      REAL*8  :: TC0,    CNEW, CCV,     FREQ
 
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DIAG_MOD     ! ND44
-
-      ! Arguments
-      REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
-
-      ! Local variables
-      INTEGER                :: I, J, L
-      REAL*8                 :: DTCHEM, FLUX, BL_FRAC, AREA_CM2
-      REAL*8                 :: TC0,    CNEW, CCV,     FREQ
-      REAL*8                 :: ND44_TMP(IIPAR,JJPAR,LLPAR)
+      ! Arrays
+      REAL*8  :: ND44_TMP(IIPAR,JJPAR,LLPAR)
+      REAL*8  :: XNUMOL(Input_Opt%N_TRACERS)
 
       !=================================================================
       ! CHEM_BCPI begins here!
@@ -766,23 +859,17 @@
       ! Return if BCPI isn't defined
       IF ( IDTBCPI == 0 .or. DRYBCPI == 0 ) RETURN
 
+      ! Assume success
+      RC     = GIGC_SUCCESS
+
+      ! Copy fields from INPUT_OPT to local variables for use below
+      XNUMOL = Input_Opt%XNUMOL
+
       ! Chemistry timestep [s]
       DTCHEM = GET_TS_CHEM() * 60d0
 
       ! Initialize for ND44 diagnostic
-      IF ( ND44 > 0 ) THEN
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            ND44_TMP(I,J,L) = 0d0
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      ENDIF
+      IF ( ND44 > 0 ) ND44_TMP = 0d0
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -862,17 +949,7 @@
       !=================================================================
       ! Zero out the BCCONV array for the next iteration
       !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         BCCONV(I,J,L) = 0.d0
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
+      BCCONV = 0d0
 
       !=================================================================
       ! ND44: Sum drydep fluxes by level into the AD44 array in
@@ -892,50 +969,79 @@
 !$OMP END PARALLEL DO
       ENDIF      
 
-      ! Return to calling program
       END SUBROUTINE CHEM_BCPI
-
+!EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE CHEM_OCPO( TC )
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine CHEM_OCPO converts hydrophobic OC to hydrophilic OC and
-!  calculates the dry deposition of hydrophobic OC. (rjp, bmy, 4/1/04,10/25/05)
+! !IROUTINE: chem_ocpo
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) TC (REAL*8) : Array of hydrophobic OC tracer [kg]
+! !DESCRIPTION: Subroutine CHEM\_OCPO converts hydrophobic OC to hydrophilic
+!  OC and calculates the dry deposition of hydrophobic OC.
+!\\
+!\\
+! !INTERFACE:
 !
-!  NOTES:
+      SUBROUTINE CHEM_OCPO( am_I_Root, Input_Opt, TC, RC )
+!
+! !USES:
+!
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
+      USE DIAG_MOD,           ONLY : AD44
+      USE DIAG_MOD,           ONLY : AD07_OC 
+      USE DRYDEP_MOD,         ONLY : DEPSAV
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
+      USE TRACERID_MOD,       ONLY : IDTOCPO
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root             ! Root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt             ! Input Options
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      REAL*8,         INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! H-phobic OC [kg]
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC                    ! Success?
+!
+! !REMARKS:
+! 
+! !REVISION HISTORY: 
+!  01 Apr 2004 - R. Park - Initial version
 !  (1 ) Remove reference to "CMN", it's obsolete (bmy, 7/20/04)
 !  (2 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP from 
 !        "pbl_mix_mod.f" (bmy, 2/17/05)
 !  (3 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
-!******************************************************************************
+!  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
+!  26 Nov 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE DIAG_MOD,     ONLY : AD44, AD07_OC 
-      USE DRYDEP_MOD,   ONLY : DEPSAV
-      USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP
-      USE TRACER_MOD,   ONLY : XNUMOL
-      USE TRACERID_MOD, ONLY : IDTOCPO
-      USE TIME_MOD,     ONLY : GET_TS_CHEM
+! !LOCAL VARIABLES:
+!
+      ! Scalars
+      INTEGER            :: I, J, L
+      REAL*8             :: DTCHEM, FLUX, KOC,  BL_FRAC
+      REAL*8             :: TC0,    FREQ, CNEW, RKT, AREA_CM2
 
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DIAG_MOD     ! ND44, ND07, LD07
-
-      ! Arguments
-      REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
-
-      ! Local variable
-      INTEGER                :: I, J, L
-      REAL*8                 :: ND44_TMP(IIPAR,JJPAR,LLPAR)
-      REAL*8                 :: DTCHEM, FLUX, KOC,  BL_FRAC
-      REAL*8                 :: TC0,    FREQ, CNEW, RKT, AREA_CM2
-      REAL*8,  PARAMETER     :: OC_LIFE = 1.15D0
+      ! Arrays
+      REAL*8             :: ND44_TMP(IIPAR,JJPAR,LLPAR)
+      REAL*8             :: XNUMOL(Input_Opt%N_TRACERS)
+!
+! !DEFINED PARAMETERS:
+!
+      REAL*8,  PARAMETER :: OC_LIFE = 1.15D0
 
       !=================================================================
       ! CHEM_OCPO begins here!
@@ -944,24 +1050,19 @@
       ! Return if OCPO isn't defined
       IF ( IDTOCPO == 0 .or. DRYOCPO == 0 ) RETURN
 
+      ! Assume success
+      RC     = GIGC_SUCCESS
+
+      ! Copy fields from INPUT_OPT to local variables for use below
+      XNUMOL = Input_Opt%XNUMOL
+
       ! Initialize
       KOC    = 1.D0 / ( 86400d0 * OC_LIFE )
       DTCHEM = GET_TS_CHEM() * 60d0
+      OCCONV = 0d0
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         OCCONV(I,J,L) = 0d0
-
-         ! Initialize for drydep diagnostic
-         IF ( ND44 > 0 ) ND44_TMP(I,J,L) = 0d0
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
+      ! Initialize for drydep diagnostic
+      IF ( ND44 > 0 ) ND44_TMP = 0d0
 
       !=================================================================
       ! For tracers with dry deposition, the loss rate of dry dep is 
@@ -1064,73 +1165,93 @@
 !$OMP END PARALLEL DO
       ENDIF   
 
-      ! Return to calling program
       END SUBROUTINE CHEM_OCPO
-
+!EOC
 !------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: chem_ocpi
+!
+! !DESCRIPTION: Subroutine CHEM\_BCPI calculates dry deposition of 
+!  hydrophilic OC.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE CHEM_OCPI( am_I_Root, Input_Opt, TC, RC )
+!
+! !USES:
+!
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
+      USE DIAG_MOD,           ONLY : AD44 
+      USE DRYDEP_MOD,         ONLY : DEPSAV
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
+      USE TRACERID_MOD,       ONLY : IDTOCPI
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root             ! Root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt             ! Input Options
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      REAL*8,         INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! H-philic OC [kg]
 
-      SUBROUTINE CHEM_OCPI( TC )
 !
-!******************************************************************************
-!  Subroutine CHEM_BCPI calculates dry deposition of hydrophilic OC.
-!  (rjp, bmy, 4/1/04, 10/25/05)
+! !OUTPUT PARAMETERS:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) TC (REAL*8) : Array of hydrophilic BC tracer 
+      INTEGER,        INTENT(OUT)   :: RC                    ! Success?
+!
+! !REMARKS:
 ! 
-!  NOTES:
+! !REVISION HISTORY:
+!  01 Apr 2004 - R. Park - Initial version 
 !  (1 ) Remove reference to "CMN", it's obsolete (bmy, 7/20/04)
 !  (2 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP from 
 !        "pbl_mix_mod.f" (bmy, 2/17/05)
 !  (3 ) Bug fix: add BL_FRAC to the PRIVATE list (mak, bmy, 10/3/05)
 !  (4 ) Now refrerences XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
-!******************************************************************************
+!  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
+!  26 Nov 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE DIAG_MOD,     ONLY : AD44 
-      USE DRYDEP_MOD,   ONLY : DEPSAV
-      USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP
-      USE TRACER_MOD,   ONLY : XNUMOL
-      USE TRACERID_MOD, ONLY : IDTOCPI
-      USE TIME_MOD,     ONLY : GET_TS_CHEM
+! !LOCAL VARIABLES:
+!
+      ! Scalars
+      INTEGER :: I, J, L
+      REAL*8  :: DTCHEM, FLUX, BL_FRAC
+      REAL*8  :: TC0, CNEW, CCV, FREQ, AREA_CM2
 
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_DIAG_MOD       ! ND44
-
-      ! Arguments
-      REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
-
-      ! Local variable
-      INTEGER                :: I, J, L
-      REAL*8                 :: DTCHEM, FLUX, BL_FRAC
-      REAL*8                 :: TC0, CNEW, CCV, FREQ, AREA_CM2
-      REAL*8                 :: ND44_TMP(IIPAR,JJPAR,LLPAR)
+      ! Arrays
+      REAL*8  :: ND44_TMP(IIPAR,JJPAR,LLPAR)
+      REAL*8  :: XNUMOL(Input_Opt%N_TRACERS)
 
       !=================================================================
       ! CHEM_OCPI begins here!
       !=================================================================
       IF ( IDTOCPI == 0 .or. DRYOCPI == 0 ) RETURN
 
+      ! Assume success
+      RC     = GIGC_SUCCESS
+
+      ! Copy fields from INPUT_OPT to local variables for use below
+      XNUMOL = Input_Opt%XNUMOL
+
       ! Chemistry timestep [s]
       DTCHEM = GET_TS_CHEM() * 60d0
 
       ! Initialize for drydep diagnostic
-      IF ( ND44 > 0 ) THEN
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            ND44_TMP(I,J,L) = 0d0
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      ENDIF
+      IF ( ND44 > 0 ) ND44_TMP = 0d0
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -1211,18 +1332,7 @@
       !=================================================================
       ! Zero OCCONV array for next timestep
       !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         OCCONV(I,J,L) = 0d0
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
+      OCCONV = 0d0
 
       !=================================================================
       ! ND44: Sum drydep fluxes by level into the AD44 array in
@@ -1242,9 +1352,8 @@
 !$OMP END PARALLEL DO
       ENDIF    
 
-      ! Return to calling program
       END SUBROUTINE CHEM_OCPI
-
+!EOC
 !-------------------------------------------------------------------------------
 
       SUBROUTINE AGING_CARB( MIL, MOB )
@@ -3232,7 +3341,7 @@ c
       DTCHEM  = GET_TS_CHEM() * 60d0 
 
       ! Get offline OH, NO3, O3 concentrations [molec/cm3]
-      OHMC    = GET_OH(  I, J, L ) 
+      OHMC    = GET_OH(  I, J, L, State_Met ) 
       TTNO3   = GET_NO3( I, J, L, State_Met )
       TTO3    = GET_O3(  I, J, L, State_Met ) 
 
@@ -4125,19 +4234,16 @@ c
       USE LOGICAL_MOD,        ONLY : LSOA,      LPRT,  LCOOKE
       USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
       USE TRACER_MOD,         ONLY : STT
-      USE TRACERID_MOD,       ONLY : IDTECIL1, IDTECOB1          !(win, 1/25/10)
-      USE TRACERID_MOD,       ONLY : IDTOCIL1, IDTOCOB1, IDTNK1  !(win, 1/25/10)
-      USE TOMAS_MOD,          ONLY : IBINS                       !(win, 1/25/10)
-      USE DIAG_MOD,           ONLY : AD59_ECIL,   AD59_ECOB      !(win, 1/25/10)
-      USE DIAG_MOD,           ONLY : AD59_OCIL,   AD59_OCOB      !(win, 1/25/10)
+      USE DIAG_MOD,           ONLY : AD59_ECIL, AD59_ECOB        !(win, 1/25/10)
+      USE DIAG_MOD,           ONLY : AD59_OCIL, AD59_OCOB        !(win, 1/25/10)
       USE DIAG_MOD,           ONLY : AD59_NUMB                   !(win, 1/25/10)
-      USE TOMAS_MOD,          ONLY : IBINS, AVGMASS,  SOACOND    !(win, 1/25/10)
-      USE TOMAS_MOD,          ONLY : ICOMP, IDIAG                !(win, 1/25/10)
-      USE TRACERID_MOD,       ONLY : IDTECIL1, IDTECOB1, IDTNK1  !(win, 1/25/10)
-      USE TRACERID_MOD,       ONLY : IDTOCIL1, IDTOCOB1          !(win, 1/25/10)
+      USE TOMAS_MOD,          ONLY : IBINS,     AVGMASS, SOACOND !(win, 1/25/10)
+      USE TOMAS_MOD,          ONLY : ICOMP,     IDIAG            !(win, 1/25/10)
+      USE TRACERID_MOD,       ONLY : IDTECIL1,  IDTECOB1, IDTNK1 !(win, 1/25/10)
+      USE TRACERID_MOD,       ONLY : IDTOCIL1,  IDTOCOB1         !(win, 1/25/10)
 
-      USE CMN_SIZE_MOD    ! Size parameters
-      USE CMN_DIAG_MOD    ! ND07
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND07
 
 #if defined( DEVEL )
       USE TRACERID_MOD,       ONLY : IDTBCPI, IDTBCPO, IDTOCPI, IDTOCPO
@@ -4173,8 +4279,8 @@ c
       REAL*8               :: OC2OM = 1.8d0 ! Converting OC to OM mass 
                                             ! (win, 2/26/08)
       ! Debugging (win, 3/12/08)
-      integer                :: ii, jj, ll
-      logical                :: dbg = .false.
+      integer              :: ii, jj, ll
+      logical              :: dbg = .false.
       data ii, jj, ll /53, 29, 8 /
 
 
@@ -5014,12 +5120,12 @@ ccc
 !  08 Dec 2011 - M. Payer    - Remove GEIA biogenic emissions option
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  28 Nov 2012 - R. Yantosca - Replace SUNCOS_MID with State_Met%SUNCOSmid
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,          ONLY : GET_NAME_EXT_2D,  GET_RES_EXT
       USE BPCH2_MOD,          ONLY : GET_TAU0,         READ_BPCH2
-      USE DAO_MOD,            ONLY : SUNCOS_MID
       USE DIRECTORY_MOD,      ONLY : DATA_DIR
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE LOGICAL_MOD,        ONLY : LMEGANMONO,       LSOA
@@ -5084,7 +5190,7 @@ ccc
             ! ** MEGAN v2.1 **
             ! Cosine of solar zenith angle   (mpb,2009) 
             ! Diffuse and direct PAR         (mpb,2009)
-            SC   = SUNCOS_MID(IJLOOP)   
+            SC   = State_Met%SUNCOSmid(I,J)
             PDR  = State_Met%PARDR(I,J)
             PDF  = State_Met%PARDF(I,J)
             ! +++++++++++++++++++++++++++++++++++++++++
@@ -5163,7 +5269,7 @@ ccc
             ! ** MEGAN v2.1 **
             ! Cosine of solar zenith angle   (mpb,2009) 
             ! Diffuse and direct PAR         (mpb,2009)
-            SC   = SUNCOS_MID(IJLOOP)   
+            SC   = State_Met%SUNCOSmid(I,J)
             PDR  = State_Met%PARDR(I,J)
             PDF  = State_Met%PARDF(I,J)
             ! +++++++++++++++++++++++++++++++++++++++++
@@ -5177,10 +5283,11 @@ ccc
             !---------------------------------------------------
             ! Impose a diurnal variation on NVOC during the day
             !---------------------------------------------------
-            IF ( SUNCOS_MID(IJLOOP) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
+            IF ( State_Met%SUNCOSmid(I,J) > 0d0  .and. 
+     &           TCOSZ(I,J)               > 0d0 ) THEN
                DIUR_ORVC(I,J) = GEIA_ORVC(I,J)*
-     &                          ( SUNCOS_MID(IJLOOP) / TCOSZ(I,J) ) *
-     &                          ( 1440d0           / GET_TS_CHEM() )
+     &              ( State_Met%SUNCOSmid(I,J) / TCOSZ(I,J) ) *
+     &              ( 1440d0                   / GET_TS_CHEM() )
 
                ! Make sure ORVC is not negative
                DIUR_ORVC(I,J) = MAX( DIUR_ORVC(I,J), 0d0 )
@@ -6568,7 +6675,7 @@ ccc
 
 !------------------------------------------------------------------------------
 
-      FUNCTION GET_OH( I, J, L ) RESULT( OH_MOLEC_CM3 )
+      FUNCTION GET_OH( I, J, L, State_Met ) RESULT( OH_MOLEC_CM3 )
 !
 !******************************************************************************
 !  Function GET_OH returns OH from SMVGEAR's CSPEC array (for coupled runs)
@@ -6583,21 +6690,24 @@ ccc
 !  (1 ) We assume SETTRACE has been called to define IDOH (bmy, 11/1/02)
 !  (2 ) Now use function GET_TS_CHEM from "time_mod.f" (bmy, 3/27/03)
 !  (3 ) Now reference inquiry functions from "tracer_mod.f" (bmy, 7/20/04)
+!  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
+!  28 Nov 2012 - R. Yantosca - Add State_Met to the argument list
 !******************************************************************************
 !
       ! References to F90 modules
-      USE COMODE_MOD,    ONLY : CSPEC, JLOP
-      USE DAO_MOD,       ONLY : SUNCOS
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE GLOBAL_OH_MOD, ONLY : OH
-      USE TIME_MOD,      ONLY : GET_TS_CHEM
-      USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM
-      USE TRACERID_MOD,  ONLY : IDOH
-
-      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_SIZE_MOD
+      USE COMODE_MOD,         ONLY : CSPEC, JLOP
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GLOBAL_OH_MOD,      ONLY : OH
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
+      USE TRACER_MOD,         ONLY : ITS_AN_AEROSOL_SIM
+      USE TRACERID_MOD,       ONLY : IDOH
 
       ! Arguments
-      INTEGER, INTENT(IN) :: I, J, L
+      INTEGER,        INTENT(IN) :: I, J, L
+      TYPE(MetState), INTENT(IN) :: State_Met
 
       ! Local variables
       INTEGER             :: JLOOP
@@ -6633,12 +6743,12 @@ ccc
          JLOOP = ( (J-1) * IIPAR ) + I
 
          ! Test for sunlight...
-         IF ( SUNCOS(JLOOP) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
+         IF ( State_Met%SUNCOS(I,J) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
 
             ! Impose a diurnal variation on OH during the day
-            OH_MOLEC_CM3 = OH(I,J,L)                      *           
-     &                     ( SUNCOS(JLOOP) / TCOSZ(I,J) ) *
-     &                     ( 1440d0        / GET_TS_CHEM() )
+            OH_MOLEC_CM3 = OH(I,J,L)                                *           
+     &                     ( State_Met%SUNCOS(I,J) / TCOSZ(I,J) )   *
+     &                     ( 1440d0                / GET_TS_CHEM() )
 
             ! Make sure OH is not negative
             OH_MOLEC_CM3 = MAX( OH_MOLEC_CM3, 0d0 )
@@ -6683,11 +6793,11 @@ ccc
 !  (2 ) Now reference inquiry functions from "tracer_mod.f" (bmy, 7/20/04)
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
 !******************************************************************************
 !
       ! References to F90 modules
       USE COMODE_MOD,         ONLY : CSPEC, JLOP
-      USE DAO_MOD,            ONLY : SUNCOS
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GLOBAL_NO3_MOD,     ONLY : NO3
@@ -6760,7 +6870,7 @@ ccc
          JLOOP = ( (J-1) * IIPAR ) + I
 
          ! Test if daylight
-         IF ( SUNCOS(JLOOP) > 0d0 ) THEN
+         IF ( State_Met%SUNCOS(I,J) > 0d0 ) THEN
 
             ! NO3 goes to zero during the day
             NO3_MOLEC_CM3 = 0d0
@@ -6811,11 +6921,11 @@ ccc
 !  (3 ) Now reference XNUMOLAIR from "tracer_mod.f" (bmy, 10/20/05)
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
 !******************************************************************************
 !
       ! References to F90 modules
       USE COMODE_MOD,         ONLY : CSPEC, JLOP, VOLUME
-      USE DAO_MOD,            ONLY : SUNCOS
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GLOBAL_O3_MOD,      ONLY : O3
@@ -6884,12 +6994,12 @@ ccc
          JLOOP = ( (J-1) * IIPAR ) + I
 
          ! Test for sunlight...
-         IF ( SUNCOS(JLOOP) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
+         IF ( State_Met%SUNCOS(I,J) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
 
             ! Impose a diurnal variation on OH during the day
-            O3_MOLEC_CM3 = O3_MOLEC_CM3                     *        
-     &                     ( SUNCOS(JLOOP) / TCOSZ(I,J) )   *
-     &                     ( 1440d0        / GET_TS_CHEM() )
+            O3_MOLEC_CM3 = O3_MOLEC_CM3                             *        
+     &                     ( State_Met%SUNCOS(I,J) / TCOSZ(I,J) )   *
+     &                     ( 1440d0                / GET_TS_CHEM() )
 
             ! Make sure OH is not negative
             O3_MOLEC_CM3 = MAX( O3_MOLEC_CM3, 0d0 )

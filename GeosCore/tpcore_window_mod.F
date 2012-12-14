@@ -3640,10 +3640,6 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
       LOGICAL, SAVE :: FIRST = .TRUE.
       REAL*8, ALLOCATABLE, SAVE :: DXYP(:)
       REAL*8, ALLOCATABLE, SAVE :: DSIG(:)
-!else
-!      REAL*8,  SAVE :: DXYP(JJPAR)
-!      REAL*8,  SAVE :: DSIG(LLPAR)
-!#endif
 
       !=================================================================
       ! DYN0 begins here!

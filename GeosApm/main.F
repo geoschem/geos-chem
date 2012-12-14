@@ -26,7 +26,6 @@
       USE COMMSOIL_MOD          ! Soil NOx emissions header file
       USE ERROR_MOD             ! For error checking
       USE FILE_MOD              ! For file I/O
-      USE GIGC_ErrCode_Mod      ! Error codes for success or failure
       USE INPUT_MOD             ! For reading settings from "input.geos"
       USE LOGICAL_MOD           ! Logical flags to toggle G-C options
       USE MAPPING_MOD           ! For regridding MODIS LAI
@@ -128,16 +127,14 @@
       USE TRACER_MOD,        ONLY : N_APMTRA
 #endif
 
-#if defined( DEVEL )
       !-----------------------------------------------------------------
       ! Modules for the Grid-Independent GEOS-Chem (aka "GIGC")
       !-----------------------------------------------------------------
-      USE LOGICAL_MOD,          ONLY : Do_Diag_Write
-      USE GIGC_Environment_Mod, ONLY : GIGC_Allocate_All
-#endif
-      USE GIGC_Environment_Mod, ONLY : GIGC_Init_All
-      USE GIGC_State_Chm_Mod,   ONLY : ChmState
-      USE GIGC_State_Met_Mod,   ONLY : MetState
+      USE GIGC_ErrCode_Mod      ! Error codes for success or failure
+      USE GIGC_Environment_Mod  ! For allocating objects
+      USE GIGC_Input_Opt_Mod    ! Derived type for Input Options 
+      USE GIGC_State_Chm_Mod    ! Derived type for Chemistry State object    
+      USE GIGC_State_Met_Mod    ! Derived type for Meteorology State object
 
       IMPLICIT NONE
 
@@ -226,9 +223,15 @@
 !  25 Oct 2012 - R. Yantosca - Define logical doDebugPrt for ND70 output
 !  25 Oct 2012 - R. Yantosca - Add descriptive comments for DEVEL #ifdefs
 !  25 Oct 2012 - R. Yantosca - Now reference gigc_errcode_mod.F90
-!   1 Nov 2012 - R. Yantosca - Now read soil NOx restart file
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!  01 Nov 2012 - R. Yantosca - Now read soil NOx restart file
+!  01 Nov 2012 - R. Yantosca - Now reference gigc_input_opt_mod.F90
+!  08 Nov 2012 - R. Yantosca - Now pass Input_Opt as an arg to DO_CHEMISTRY
+!  01 Nov 2012 - R. Yantosca - Now read soil NOx restart file
+!  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
+!                              to various subroutines
+!  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  15 Nov 2012 - R. Yantosca - Bring Input_Opt out of the DEVEL tags
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -258,14 +261,25 @@
       ! Derived type objects
       TYPE(MapWeight), POINTER :: mapping(:,:) => NULL()
 
-      !--------------------------------------------------------------
-      ! We must declare the Chemistry State object (State_Chm) and
-      ! the Meteorology State object (State_Met) here for use with
-      ! the Grid-Independent GEOS-Chem code. (bmy, 10/25/12)
-      !--------------------------------------------------------------
+      !-----------------------------------------------------------------
+      ! %%%% REPLICATING GIGC FUNCTIONALITY IN EXISTING GEOS-CHEM %%%%
+      !
+      ! We must declare the Chemistry State (State_Chm), Meteorology
+      ! State (State_Met), and Input Options (Input_Opt) objects
+      ! for use with the Grid-Independent GEOS-Chem code. 
+      !
+      TYPE(OptInput)           :: Input_Opt   ! Input Options object
       TYPE(ChmState)           :: State_Chm   ! Chemistry State object
       TYPE(MetState)           :: State_Met   ! Meteorology State object
-
+      !
+      ! Also define NI, NJ, NL for more consistent naming w/r/t the 
+      ! ESMF interface.  Initialize these from IIPAR, JJPAR, JJPAR
+      ! (bmy, 11/9/12)
+      !
+      INTEGER                  :: NI          ! # of longitudes 
+      INTEGER                  :: NJ          ! # of latitudes
+      INTEGER                  :: NL          ! # of levels
+      !
       ! When connecting G-C to an external GCM, we need to only write 
       ! to stdout if we are on the root CPU.  Otherwise this will slow
       ! down the code.  This is why we introduced the am_I_Root logical
@@ -277,7 +291,9 @@
       ! all of the lower-level routines.  The main.F routine is not
       ! called when connecting G-C to an external GCM. 
       ! (mlong, bmy, 7/30/12)
+      !
       LOGICAL, PARAMETER       :: am_I_Root = .TRUE. 
+      !-----------------------------------------------------------------
 
       ! For APM
       INTEGER                  :: N_TRC_TOT
@@ -286,39 +302,39 @@
       ! GEOS-CHEM starts here!                                            
       !=================================================================
 
-      ! Assume success
-      RC = GIGC_SUCCESS
-
-#if defined( DEVEL )
       !-----------------------------------------------------------------
-      !   %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%%
+      ! %%%% REPLICATING GIGC FUNCTIONALITY IN EXISTING GEOS-CHEM %%%%
+      !
+      ! Assume a successful return until otherwise
+      !
+      RC                 = GIGC_SUCCESS
+      !
+      ! Define NI, NJ, NL dimensions for use below
+      !
+      NI                 = IIPAR
+      NJ                 = JJPAR
+      NL                 = LLPAR
+      !
+      ! Define dimensions for fields of the Input Options object
+      ! NOTE: At this point we have not yet read in the "input.geos"
+      ! file so these are just placeholder values (bmy, 11/7/12)
+      !
+      Input_Opt%MAX_DIAG = MAX_DIAG
+      Input_Opt%MAX_TRCS = NNPAR
+      Input_Opt%MAX_MEMB = N_MEMBERS
+      Input_Opt%MAX_FAMS = MAXFAM
       !
       ! Call the routine GIGC_Allocate_All (located in module file
       ! GeosCore/gigc_environment_mod.F90) to allocate all lat/lon
-      ! allocatable arrays used by GEOS-Chem.  
+      ! allocatable arrays used by GEOS-Chem, as well as the Input 
+      ! Options object.  The IIPAR and JJPAR dimensions are not 
+      ! declared as PARAMETERs, but are module variables that are 
+      ! initialized in this call.
       !
-      ! The IIPAR and JJPAR dimensions are not declared as PARAMETERs,
-      ! but are module variables that are initialized in this call.
-      !
-      ! If we were connecting to the GEOS-5 GCM, then IIPAR and JJPAR
-      ! would be defined with the # of lons and # of lats on each
-      ! CPU.  To simulate this behavior without ESMF, we set IIPAR
-      ! to IGLOB and JJPAR to JGLOB, where IGLOB, JGLOB depend on the
-      ! particular met fields being used. (bmy, 10/25/12)
+      CALL GIGC_Allocate_All( am_I_root, Input_Opt, RC )
+      IF ( RC /= GIGC_SUCCESS ) GOTO 9999
       !-----------------------------------------------------------------
-      CALL GIGC_Allocate_All( am_I_root, RC )
-#else
-      !--------------------------------------------------------------
-      !               %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! For the new Soil Nox algorithm, make sure to call routine
-      ! SET_COMMSOIL_MOD to zero all soil NOx arrays.  This was
-      ! added to routine RDSOIL by Bram Maasakkers, but RDSOIL is
-      ! now obsolete has been removed. (bmy, 10/25/12)
-      !--------------------------------------------------------------
-      CALL Set_CommSoil_Mod( am_I_Root, RC )
-#endif
-
+      
       ! Display current grid resolution and data set type
       CALL DISPLAY_GRID_AND_MODEL
 
@@ -327,7 +343,7 @@
       !=================================================================
 
       ! Read input file and call init routines from other modules
-      CALL READ_INPUT_FILE( am_I_Root ) 
+      CALL READ_INPUT_FILE( am_I_Root, Input_Opt, RC ) 
 
       ! Set a flag to denote if we should print ND70 debug output
       prtDebug = ( LPRT .and. am_I_Root )
@@ -335,12 +351,8 @@
       ! Debug output
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_INPUT_FILE' )
 
-      ! Initialize State_Met and CHEMSTATE objects
-      CALL GIGC_Init_All( State_Met, State_Chm, am_I_Root, RC )
-
-#if defined( DEVEL )
       !-----------------------------------------------------------------
-      !   %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%%
+      ! %%%% REPLICATING GIGC FUNCTIONALITY IN EXISTING GEOS-CHEM %%%%
       !
       ! To replicate the functionality of the ESMF interface, we must
       ! initialize the Meteorology State (i.e. State_Met) and the
@@ -358,18 +370,20 @@
       ! GEOS-Chem directly from the ESMF interface.  This is the main
       ! reason we are migrating towards used of these objects instead
       ! of the existing ALLOCATABLE module arrays. (bmy, 10/25/12)
-      !-----------------------------------------------------------------
+      !
+      ! Initialize Input_Opt, State_Chem, State_Met, objects
+      !
+      CALL GIGC_Init_All( am_I_Root, Input_Opt, 
+     &                    State_Chm, State_Met, RC )
 
+      !
       ! Assign values to the TRAC_NAME, TRAC_ID, SMVG_ID fields
       ! of the State_Chm object.  NOTE: This has to be done after
       ! the call to READ_INPUT_FILE, since we need the value of
       ! N_TRACERS, which is obtained by reading the input.geos file.
+      !
       CALL Fill_Chem_State_Name_IDs( am_I_Root, State_Chm )
-#endif
-
-      ! Initialize met field arrays from "dao_mod.f"
-      CALL INIT_DAO
-      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_DAO' )
+      !-----------------------------------------------------------------
 
 #if   defined( APM )
 
@@ -379,6 +393,10 @@
 
       ! Total # of tracers = G-C advected tracers + APM tracers
       N_TRC_TOT = N_TRACERS + N_APMTRA
+
+      ! Initialize met field arrays for APM
+      CALL INIT_DAO
+      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_DAO' )
 
 #else
 
@@ -405,8 +423,10 @@
 
       ! Initialize allocatable SMVGEAR/KPP arrays
       IF ( LEMIS .or. LCHEM ) THEN
-         IF ( ITS_A_FULLCHEM_SIM() ) CALL INIT_COMODE( am_I_Root )
-         IF ( ITS_AN_AEROSOL_SIM() ) CALL INIT_COMODE( am_I_Root )
+         IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or.
+     &        Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
+            CALL INIT_COMODE( am_I_Root, Input_Opt, RC )
+         ENDIF
          IF ( LKPP ) THEN
             CALL INIT_GCKPP_COMODE( am_I_Root, IIPAR,  JJPAR,   
      &                              LLTROP,    ITLOOP, NMTRATE, 
@@ -473,9 +493,9 @@
 
       ! Compute the Olson land types that occur in each grid box
       ! (i.e. this is a replacement for rdland.F and vegtype.global)
-      CALL Init_Olson_Landmap()
-      CALL Compute_Olson_Landmap( mapping, State_Met )
-      CALL Cleanup_Olson_Landmap()
+      CALL Init_Olson_Landmap   ( am_I_Root                     )
+      CALL Compute_Olson_Landmap( am_I_Root, mapping, State_Met )
+      CALL Cleanup_Olson_Landmap( am_I_Root                     )
 
       ! Initialize PBL quantities but do not do mixing
       ! Add option for non-local PBL (Lin, 03/31/09) 
@@ -483,6 +503,7 @@
          CALL DO_PBL_MIX  ( .FALSE., State_Met )
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:1' )
       ELSE
+         !### DEBUG
          CALL DO_PBL_MIX_2( .FALSE., State_Met )
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a NLPBL 1' )
       ENDIF
@@ -495,30 +516,10 @@
       CALL READ_RESTART_FILE( NYMDb, NHMSb, State_met )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_RESTART_FILE' )
 
-#if defined( DEVEL )
-      !-----------------------------------------------------------------
-      !   %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%%
-      ! 
-      ! We must pass the Chemistry Object (i.e. State_Chm) to routine
-      ! INIT_STRAT_CHEM.  This object contains several individual met fields
-      ! which are used by the GEOS-Chem chemistry routines.
-      !-----------------------------------------------------------------
-
       ! Capture initial state of atmosphere for STE flux calc (ltm, 06/10/12)
-      IF ( LSCHEM ) CALL INIT_STRAT_CHEM( am_I_Root, State_Chm, RC )
-
-#else
-      !--------------------------------------------------------------
-      !               %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Current practice is to call INIT_STRAT_CHEM without any 
-      ! arguments. (bmy, 10/25/12)
-      !--------------------------------------------------------------
-
-      ! Capture initial state of atmosphere for STE flux calc (ltm, 06/10/12)
-      IF ( LSCHEM ) CALL INIT_STRAT_CHEM( am_I_Root )
-
-#endif
+      IF ( LSCHEM ) THEN
+         CALL INIT_STRAT_CHEM( am_I_Root, Input_Opt, State_Chm, RC )
+      ENDIF
 
       ! Read soil NOx initial conditions
       IF ( LSOILNOX ) THEN
@@ -824,6 +825,9 @@
             ! (1) At the present time, we have removed all references
             !     to the obsolete XYLAI array and its parent module
             !     CMN_VEL_mod.F.
+            ! (2) As of Dec 2012, the XLAI and XLAI2 arrays are now
+            !     carried in State_Met.  We can remove the obsolete
+            !     module Headers/CMN_DEP_mod.F.
             ! 
             !      -- Bob Yantosca (09 Apr 2012)
             !-----------------------------------------------------------
@@ -838,8 +842,9 @@
             CALL Read_Modis_Lai( laiYYYY, laiMM, wasModisRead )
 
             ! Interpolate LAI quantities from native grid to GEOS-Chem grid
-            CALL Compute_Modis_Lai( day_of_year, laiMM, 
-     &                              mapping,     wasModisRead )
+            CALL Compute_Modis_Lai( am_I_Root,    State_Met, 
+     &                              day_of_year,  laiMM,     
+     &                              mapping,      wasModisRead, RC )
 
             ! For MEGAN biogenics, compute 15-day average temperature
             IF ( LMEGAN ) THEN
@@ -850,11 +855,6 @@
             ! To be revised later.
             ! Also read soil-type info for fullchem simulation
             IF ( ITS_A_FULLCHEM_SIM() .or. ITS_A_H2HD_SIM() ) THEN
-               !---------------------------------------------------------
-               ! Prior to 10/30/12:
-               ! Retire call to RDSOIL, it's obsolete (bmy 10/30/12)
-               !CALL RDSOIL 
-               !---------------------------------------------------------
 	       CALL READSOIL
 	       CALL READFERT
 	       CALL READCLIM
@@ -886,10 +886,10 @@
          CALL AIRQNT( State_Met )
 
          ! Compute the cosine of the solar zenith angle array
-         ! SUNCOS         = cos(SZA) at the current time
-         ! SUNCOS_MID     = cos(SZA) at the midpt of the chem timestep
-         ! SUNCOS_MID_5hr = cos(SZA) at the midpt of the chem timestep 5hrs ago
-         CALL GET_COSINE_SZA( SUNCOS, SUNCOS_MID, SUNCOS_MID_5hr )
+         ! State_Met%SUNCOS     = at the current time
+         ! State_Met%SUNCOSmid  = at the midpt of the chem timestep
+         ! State_Met%SUNCOSmid5 = at the midpt of the chem timestep 5hrs ago
+         CALL GET_COSINE_SZA( am_I_Root, Input_Opt, State_Met, RC )
 
          ! Compute tropopause height for ND55 diagnostic
          IF ( ND55 > 0 ) CALL DIAG_TROPOPAUSE( State_Met )
@@ -920,13 +920,6 @@
                CALL DEBUG_MSG( '### MAIN: a CONVERT_UNITS:1' )
             ENDIF
          ENDIF
-
-!%%%!    ltm: As of v9-01-03, UPBDFLX and SCHEM are depreciated. These
-!%%%!    subroutines and their children will be removed in the future.
-!%%%!    !==============================================================
-!%%%!    !     ***** S T R A T O S P H E R I C   F L U X E S *****
-!%%%!    !==============================================================
-!%%%!    IF ( LUPBD ) CALL DO_UPBDFLX
 
          !==============================================================
          !              ***** T R A N S P O R T *****
@@ -976,29 +969,17 @@
             !         ***** D R Y   D E P O S I T I O N *****
             !===========================================================
             IF ( LDRYD .and. ( .not. ITS_A_H2HD_SIM() ) ) THEN
-               CALL DO_DRYDEP( am_I_Root, State_Met )
+               CALL DO_DRYDEP( am_I_Root, Input_Opt, 
+     &                         State_Met, State_Chm, RC )
             ENDIF
 
             !===========================================================
             !             ***** E M I S S I O N S *****
             !===========================================================
-#if defined( DEVEL )
-            !-----------------------------------------------------------
-            ! %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%%
-            !
-            ! Pass the Chemistry State object (i.e. State_Chm) to 
-            ! routine DO_EMISSIONS. (bmy, 10/25/12)
-            !-----------------------------------------------------------
-            IF ( LEMIS ) CALL DO_EMISSIONS( State_Met, State_Chm )
-#else
-            !-----------------------------------------------------------
-            !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-            !
-            ! Current practice is to call routine DO_EMISSIONS without 
-            ! any arguments. (bmy, 10/25/12)
-            !-----------------------------------------------------------
-            IF ( LEMIS ) CALL DO_EMISSIONS( State_Met )
-#endif
+            IF ( LEMIS ) THEN
+               CALL DO_EMISSIONS( am_I_Root, Input_Opt, 
+     &                            State_Met, State_Chm, RC )
+            ENDIF
 
             IF ( ITS_TIME_FOR_UNIT() )
      &         CALL CONVERT_UNITS( 1, N_TRC_TOT, TCVV, 
@@ -1022,9 +1003,11 @@
                ! concentration of BrO equal to 1 pptv during daytime.
                ! ----------------------------------------------------
                IF ( LEMIS .and. ( IDTBrO > 0 ) )
-     &            CALL SET_BRO( N_TRACERS,           TCVV,
-     &                          SUNCOS,              STT,
-     &                          ITS_TIME_FOR_UNIT(), State_Met )
+     &            CALL SET_BRO( N_TRACERS,           
+     &                          TCVV,
+     &                          STT,
+     &                          ITS_TIME_FOR_UNIT(), 
+     &                          State_Met            )
             ENDIF
          ENDIF
 
@@ -1047,7 +1030,7 @@
                CALL DO_PBL_MIX_2( LTURB, State_Met )
                IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a NLPBL 2' )
             ENDIF
-            !### Debug
+
             IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:2' )
 
             !===========================================================
@@ -1099,29 +1082,17 @@
             !         ***** D R Y   D E P O S I T I O N *****
             !===========================================================
             IF ( LDRYD .and. ( .not. ITS_A_H2HD_SIM() ) ) THEN
-               CALL DO_DRYDEP( am_I_Root, State_Met )
+               CALL DO_DRYDEP( am_I_Root, Input_Opt, 
+     &                         State_Met, State_Chm, RC )
             ENDIF
 
             !===========================================================
             !             ***** E M I S S I O N S *****
             !===========================================================
-#if defined( DEVEL )
-            !-----------------------------------------------------------
-            ! %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%%
-            !
-            ! Pass the Chemistry State object (i.e. State_Chm) to 
-            ! routine DO_EMISSIONS (bmy, 10/25/12)
-            !-----------------------------------------------------------
-            IF ( LEMIS ) CALL DO_EMISSIONS( State_Met, State_Chm )
-#else
-            !-----------------------------------------------------------
-            !             %%%%% TRADITIONAL GEOS-Chem %%%%%
-            !
-            ! Current practice is to call DO_EMISSIONS without any
-            ! arguments. (bmy, 10/25/12)
-            !-----------------------------------------------------------
-            IF ( LEMIS ) CALL DO_EMISSIONS( State_Met )
-#endif
+            IF ( LEMIS ) THEN
+               CALL DO_EMISSIONS( am_I_Root, Input_Opt, 
+     &                            State_Met, State_Chm, RC )
+            ENDIF
 
             IF ( ITS_A_FULLCHEM_SIM() ) THEN
                !========================================================
@@ -1141,9 +1112,11 @@
                ! concentration of BrO equal to 1 pptv during daytime.
                ! ----------------------------------------------------
                IF ( LEMIS .and. ( IDTBrO > 0 ) )
-     &            CALL SET_BRO( N_TRACERS,           TCVV,
-     &                          SUNCOS,              STT,
-     &                          ITS_TIME_FOR_UNIT(), State_Met )
+     &            CALL SET_BRO( N_TRACERS,           
+     &                          TCVV,
+     &                          STT,
+     &                          ITS_TIME_FOR_UNIT(), 
+     &                          State_Met            )
 
             ENDIF
          ENDIF
@@ -1166,15 +1139,14 @@
             ! not number, do MOVEBIN when call APM_DRIV after DO_CHEMISTRY
             CALL AERONUM( State_Met )
 #endif
-            ! Call the appropriate chemistry routine
-#if defined( DEVEL )
+
             !-----------------------------------------------------------
-            ! %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%%
+            ! %% REPLICATING GIGC FUNCTIONALITY IN EXISTING GEOS-CHEM %%
             !
-            ! We must pass the Chemistry State (i.e. State_Chm) and 
-            ! Meteorology State (i.e. State_Met) objects, along with 
-            ! the global dimension sizes, to the GEOS-Chem chemistry 
-            ! driver DO_CHEMISTRY.
+            ! We must pass the Input Options (Input_Opt), Chemistry 
+            ! State (State_Chm) and Meteorology State (i.e. State_Met) 
+            ! objects, along with the global dimension sizes, to the 
+            ! GEOS-Chem chemistry driver DO_CHEMISTRY.
             !
             ! Eventually, the tracer fields in the Chemistry State 
             ! object (State_Chm%TRACERS) will replace current GEOS-Chem
@@ -1186,24 +1158,15 @@
             ! units of [kg].  Because STT is already in [kg] at this 
             ! point, no further unit conversion is necessary here.
             ! (bmy, 10/25/12)
-            !-----------------------------------------------------------
 
-            ! Initialize the tracer field
+            ! Initialize the tracer field in the Chemistry State object
             State_Chm%TRACERS( :, :, :, 1:N_TRACERS ) = 
      &                    STT( :, :, :, 1:N_TRACERS )
 
             ! Do GEOS-Chem chemistry
-            CALL DO_CHEMISTRY( am_I_Root, IIPAR,     JJPAR, LLPAR, 
-     &                         State_Chm, State_Met, RC            ) 
-#else
+            CALL DO_CHEMISTRY( am_I_Root, Input_Opt, 
+     &                         State_Chm, State_Met, RC ) 
             !-----------------------------------------------------------
-            !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-            !
-            ! Current practice is to call routine DO_CHEMISTRY with
-            ! am_I_Root as the only argument. (bmy, 10/25/12)
-            !-----------------------------------------------------------
-            CALL DO_CHEMISTRY( am_I_Root, State_Met )
-#endif
 
 #if   defined( APM )
             ! Call the main APM microphysics driver
@@ -1251,7 +1214,7 @@
          ! diagnostic and only on a chemistry timestep.
          ! (skim, 02/05/11)
          IF ( ITS_TIME_FOR_CHEM() ) THEN
-            CALL RECOMPUTE_OD( am_I_Root, State_Met )
+            CALL RECOMPUTE_OD( am_I_Root, Input_Opt, State_Met, RC )
          ENDIF
 
          !==============================================================
@@ -1430,8 +1393,20 @@
       CALL CLOSE_FILES
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a CLOSE_FILES' )
 
+      ! Deallocate fields of the Input Options object
+      CALL Cleanup_GIGC_Input_Opt( am_I_Root, Input_Opt, RC )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a cleanup Input_Opt' )
+
+      ! Deallocate fields of the Chemistry State object
+      CALL Cleanup_GIGC_State_Chm( am_I_Root, State_Chm, RC )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a cleanup State_Chm' )
+
+      ! Deallocate fields of the Meteorology State object
+      CALL Cleanup_GIGC_State_Met( am_I_Root, State_Met, RC )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a cleanup State_met' )
+
       ! Deallocate dynamic module arrays
-      CALL CLEANUP
+      CALL CLEANUP( am_I_Root, RC )
 
       ! Deallocate the derived type object w/ mapping info
       CALL CLEANUP_MAPPING( mapping )
@@ -1825,6 +1800,9 @@
       DATE = GET_FIRST_A6_TIME()
       CALL OPEN_A6_FIELDS( DATE(1), DATE(2) ) 
       CALL GET_A6_FIELDS(  DATE(1), DATE(2), State_Met )      
+#if   defined( APM )
+      CALL UPDATE_A6_FIELDS( State_Met )
+#endif
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st A6 TIME' )
 
       ! Open & read I-6 fields
@@ -1832,7 +1810,7 @@
       CALL OPEN_I6_FIELDS(  DATE(1), DATE(2) )
       CALL GET_I6_FIELDS_1( DATE(1), DATE(2), State_Met )
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st I6 TIME' )
-      
+    
 #if   defined( GCAP )
 
       !-----------------------------------------------------------------
@@ -2063,6 +2041,13 @@
          ! lightning NOx emissions [molec/box/6h]
          IF ( LLIGHTNOX ) CALL LIGHTNING( State_Met )
       ENDIF
+
+#if      defined( APM )
+      ! Update the A6 fields for APM microphysics
+      IF ( ITS_TIME_FOR_A6UPDATE() ) THEN
+         CALL UPDATE_A6_FIELDS( State_Met )
+      ENDIF
+#endif
 
       !==============================================================
       !          ***** R E A D   I - 6   F I E L D S *****   

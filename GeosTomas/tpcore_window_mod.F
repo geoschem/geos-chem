@@ -133,9 +133,7 @@
       ! and routines from being seen outside "tpcore_mod.f"
       !=================================================================
 
-#if defined( DEVEL )
       USE ERROR_MOD, ONLY : ALLOC_ERR
-#endif
 
       ! Make everything PRIVATE ...
       PRIVATE
@@ -413,15 +411,17 @@
 ! activated if the user set "fill" to be true.
 ! Alternatively, one can use the MFCT option to enforce monotonicity.
 
+
       ! References to F90 modules
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TOMAS_MOD
+      USE TOMAS_MOD,          ONLY : IBINS   !(win, 7/17/09)
 
       ! Added to pass C-preprocessor switches (bmy, 3/9/01)
 #     include "define.h"
 
 ! ****6***0*********0*********0*********0*********0*********0**********72
-      PARAMETER (Jmax = 721, kmax = 200 ) 
+!clb  PARAMETER (Jmax = 721, kmax = 200 ) 
+      PARAMETER (Jmax = 1200, kmax = 200 )
 !  add ghost zone depth here (yxw, 08/23/01)       
 ! ****6***0*********0*********0*********0*********0*********0**********72
  
@@ -510,7 +510,8 @@
 !DIR$ NOBOUNDS
 !============================================================================ 
       deform = .false.
-      JM1 = 181 -1
+!clb  JM1 = 181 -1
+      JM1 = JM - 1
 !%%%
 !%%% MODIFICATIONS FOR NESTED GRID (yxw, bmy, 3/10/03)
 !%%% Comment out variables below
@@ -3490,13 +3491,8 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
       REAL*8 :: VMFLX(1-IGZD:IM_W+IGZD,   1-IGZD:JM_W+IGZD+1, LLPAR   )
 
       ! Local SAVEd variables
-#if defined( DEVEL )
       LOGICAL, SAVE       :: FIRST = .TRUE.
       REAL*8, ALLOCATABLE, SAVE :: DXYP(:)
-#else
-      LOGICAL, SAVE :: FIRST = .TRUE.
-      REAL*8,  SAVE :: DXYP(JJPAR)
-#endif
 
       !=================================================================
       ! PRESS_FIX begins here!
@@ -3528,10 +3524,8 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 
       ! Save grid box surface areas [m2] into the local DXYP array
       IF ( FIRST ) THEN
-#if defined( DEVEL )
          ALLOCATE( DXYP(JJPAR), STAT=AS)
          IF ( AS /=0 ) CALL ALLOC_ERR( 'DXYP_DYN0')
-#endif
 
          DO J = 1, JJPAR
             DXYP(J) = GET_AREA_M2( 1, J, 1 )
@@ -3751,7 +3745,6 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,            ONLY : SPHU
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2
       USE PRESSURE_MOD,       ONLY : GET_BP
@@ -3816,13 +3809,8 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 
       ! Local saved variables
       LOGICAL, SAVE :: FIRST = .TRUE.
-#if defined( DEVEL )
       REAL*8, ALLOCATABLE, SAVE :: DXYP(:)
       REAL*8, ALLOCATABLE, SAVE :: DSIG(:)
-#else
-      REAL*8,  SAVE :: DXYP(JJPAR)
-      REAL*8,  SAVE :: DSIG(LLPAR)
-#endif
 
       !=================================================================
       ! DYN0 begins here!
@@ -3933,13 +3921,11 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
       IF ( FIRST ) THEN
          
          ! Surface area [m2]
-#if defined( DEVEL )
          ALLOCATE( DXYP(JJPAR), STAT=AS)
          IF ( AS /=0 ) CALL ALLOC_ERR( 'DXYP_DYN0')
 
          ALLOCATE( DSIG(LLPAR), STAT=AS)
          IF ( AS /=0 ) CALL ALLOC_ERR( 'DSIG_DYN0')
-#endif
 
          DO J = 1, JJPAR
             DXYP(J) = GET_AREA_M2( 1, J, 1 )
@@ -3984,7 +3970,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
          XYZB(I,J,L)    = DSIG(L) * DXYP(J) * 1.d2 / G0
          AD_L(I,J,L)    = State_Met%AIRDEN(L,I,J) *
      &                    State_Met%AIRVOL(I,J,L)
-         SPHU_KG(I,J,L) = SPHU(I,J,L) / 1000d0
+         SPHU_KG(I,J,L) = State_Met%SPHU(I,J,L) / 1000d0
       ENDDO
       ENDDO
       ENDDO
@@ -4871,11 +4857,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 
       ! Local SAVEd variables
       LOGICAL, SAVE       :: FIRST = .TRUE.
-#if defined( DEVEL )
       REAL*8, ALLOCATABLE :: DXYP(:)
-#else
-      REAL*8, SAVE        :: DXYP(JJPAR)
-#endif
 
       !=================================================================
       ! DIAG_FLUX begins here!
@@ -4908,10 +4890,8 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
       IF ( FIRST ) THEN
          
          ! Surface area [m2]
-#if defined( DEVEL )
          ALLOCATE( DXYP(JJPAR), STAT=AS)
          IF ( AS /=0 ) CALL ALLOC_ERR( 'DXYP_')
-#endif
 
          DO J = 1, JJPAR
             DXYP(J) = GET_AREA_M2( 1, J, 1 )

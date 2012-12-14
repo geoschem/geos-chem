@@ -98,9 +98,7 @@
       ! and routines from being seen outside "tpcore_mod.f"
       !=================================================================
 
-#if defined( DEVEL )
       USE ERROR_MOD, ONLY : ALLOC_ERR
-#endif
 
       ! Make everything PRIVATE ...
       PRIVATE
@@ -367,7 +365,7 @@
 ! These negatives are typically very small. A filling algorithm is
 ! activated if the user set "fill" to be true.
 ! Alternatively, one can use the MFCT option to enforce monotonicity.
- 
+
       ! References to F90 modules
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TOMAS_MOD,          ONLY : IBINS   !(win, 7/17/09)
@@ -377,7 +375,8 @@
 #     include "define.h"
 
 ! ****6***0*********0*********0*********0*********0*********0**********72
-      PARAMETER (Jmax = 721, kmax = 200)
+!clb  PARAMETER (Jmax = 721, kmax = 200)
+      PARAMETER (Jmax=1200, kmax=200)
 ! ****6***0*********0*********0*********0*********0*********0**********72
  
 ! Input-Output arrays
@@ -3059,13 +3058,13 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
       REAL*8                 :: VMFLX(IIPAR,JJPAR,LLPAR)
 
       ! Local SAVEd variables
-#if defined( DEVEL )
+!#if defined( DEVEL )
       LOGICAL, SAVE              :: FIRST = .TRUE.
       REAL*8,  ALLOCATABLE, SAVE :: DXYP(:)
-#else
-      LOGICAL, SAVE          :: FIRST = .TRUE.
-      REAL*8,  SAVE          :: DXYP(JJPAR)
-#endif
+!else
+!      LOGICAL, SAVE          :: FIRST = .TRUE.
+!      REAL*8,  SAVE          :: DXYP(JJPAR)
+!#endif
       !=================================================================
       ! PRESS_FIX begins here!
       !
@@ -3089,10 +3088,10 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 
       ! Save grid box surface areas [m2] into the local DXYP array
       IF ( FIRST ) THEN
-#if defined( DEVEL )
+!#if defined( DEVEL )
          ALLOCATE( DXYP(JJPAR), STAT=AS)
          IF ( AS /=0 ) CALL ALLOC_ERR( 'DXYP_PRESS_FIX')
-#endif
+!#endif
 
          DO J = 1, JJPAR
             DXYP(J) = GET_AREA_M2( 1, J, 1 )
@@ -3291,7 +3290,6 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,            ONLY : SPHU
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2, GET_YOFFSET
       USE PRESSURE_MOD,       ONLY : GET_BP
@@ -3338,13 +3336,13 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
       ! Local saved variables
       LOGICAL, SAVE          :: FIRST = .TRUE.
 
-#if defined( DEVEL )
+!#if defined( DEVEL )
       REAL*8,  ALLOCATABLE, SAVE :: DXYP(:)
       REAL*8,  ALLOCATABLE, SAVE :: DSIG(:)
-#else
-      REAL*8,  SAVE          :: DXYP(JJPAR)
-      REAL*8,  SAVE          :: DSIG(LLPAR)
-#endif
+!#else
+!      REAL*8,  SAVE          :: DXYP(JJPAR)
+!      REAL*8,  SAVE          :: DSIG(LLPAR)
+!#endif
 
       !=================================================================
       ! DYN0 begins here!
@@ -3504,7 +3502,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
          XYZB(I,J,L)    = DSIG(L) * DXYP(J) * 1.d2 / G0
          AD_L(I,J,L)    = State_Met%AIRDEN(L,I,J) *
      &                    State_Met%AIRVOL(I,J,L)
-         SPHU_KG(I,J,L) = SPHU(I,J,L) / 1000d0
+         SPHU_KG(I,J,L) = State_Met%SPHU(I,J,L) / 1000d0
       ENDDO
       ENDDO
       ENDDO

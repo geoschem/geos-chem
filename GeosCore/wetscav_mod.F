@@ -167,6 +167,8 @@
                                                 !  [cm3 H2O/cm3 air]
 
       REAL*8,  ALLOCATABLE :: PDOWN(:,:,:)      ! Precipitation thru the
+                                                !  bottom of the grid box 
+                                                !  [cm3 H2O/cm2 area/s]
       REAL*8,  ALLOCATABLE :: QQ(:,:,:)         ! Rate of new precip formation
                                                 !  [cm3 H2O/cm3 air/s]
       CONTAINS
@@ -4376,12 +4378,6 @@
 !  (1 ) WASHFRAC_AEROSOL used to be an internal function to subroutine WASHOUT.
 !        This caused NaN's in the parallel loop on Altix, so we moved it to
 !        the module and now pass Iall arguments explicitly (bmy, 7/20/04)
-!  21 Jan 2011 - J. Fisher & Q. Wang - Update to account for time-dependent
-!        shift in aerosol size distribution that slows washout as a rain
-!        event proceeds (see e.g. Feng et al., 2007, 2009). 
-!  16 Aug 2011 - H Amos - Remove K_WASH from input list, make a defined 
-!                         parameter.
-!
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  16 Aug 2011 - H Amos      - Remove K_WASH from input list, make a defined 
 !                              parameter.
@@ -4559,12 +4555,6 @@
          ! Washout fraction / F from Eq. 14, Jacob et al, 2000
          ! Note: WASHFRAC_F_14 should match what's used for HNO3 (hma, 13aug2011)
          WASHFRAC_F_14 = 1d0 - EXP( -K_WASH * ( PP / F ) * DT )
-
-         ! Prior to 05 Jun 2011 (H Amos)------------------------------
-         ! ! Do not let the Henry's law washout fraction exceed
-         ! ! ( washout fraction / F ) from Eq. 14 -- this is a cap
-         ! IF ( WASHFRAC > WASHFRAC_F_14 ) WASHFRAC = WASHFRAC_F_14
-         !------------------------------------------------------------
 
          ! Do not let the Henry's law washout fraction exceed
          ! that of HNO3 -- this is a cap
@@ -7608,45 +7598,6 @@
             ENDIF
          ENDIF
 
-         !-----------------------------------------------------------------
-         ! Old, standard values. Use these CLDLIQ and CLDICE values if you
-         ! are using the old, standard washout coefficients in 
-         ! WASHFRAC_AEROSOL.
-         !
-         ! Prior to 22 Jan 2011:
-         !!==============================================================
-         !! CLDLIQ, the cloud liquid water content [cm3 H2O/cm3 air], 
-         !! is a function of the local Kelvin temperature:
-         !!  
-         !!    CLDLIQ = 2e-6                    [     T >= 268 K    ]
-         !!    CLDLIQ = 2e-6 * ((T - 248) / 20) [ 248 K < T < 268 K ]
-         !!    CLDLIQ = 0                       [     T <= 248 K    ]
-         !!==============================================================
-         !IF ( TK >= 268d0 ) THEN
-         !   CLDLIQ(I,J,L) = 2d-6
-         !
-         !ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
-         !   CLDLIQ(I,J,L) = 2d-6 * ( ( TK - 248d0 ) / 20d0 )
-         !
-         !ELSE
-         !   CLDLIQ(I,J,L) = 0d0
-         !   
-         !ENDIF
-         !  
-         !!=============================================================
-         !! CLDICE, the cloud ice content [cm3 ice/cm3 air] is given by:
-         !!
-         !!    CLDICE = 2e-6 - CLDLIQ
-         !!=============================================================
-         !CLDICE(I,J,L) = 2d-6 - CLDLIQ(I,J,L)
-         !-----------------------------------------------------------------
-
-
-         !-----------------------------------------------------------------
-         ! Use these values of CLDLIQ and CLDICE if you are using Feng's 
-         ! (2007, 2009) updated washout coefficients in WASHFRAC_AEROSOL.
-         ! [Ref: Q. Wang et al., 2011 - submitted to ACP]
-         !
          !==============================================================
          ! CLDLIQ, the cloud liquid water content [cm3 H2O/cm3 air], 
          ! is a function of the local Kelvin temperature:

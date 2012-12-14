@@ -174,7 +174,7 @@ c$$$      INTEGER,           SAVE        :: SRTNH4
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE DO_TOMAS( State_Met )
+      SUBROUTINE DO_TOMAS( am_I_Root, Input_Opt, State_Met, RC )
 !
 !******************************************************************************
 !  Subroutine DO_TOMAS is the driver subroutine that calls the appropriate
@@ -184,21 +184,29 @@ c$$$      INTEGER,           SAVE        :: SRTNH4
 !******************************************************************************
 !
       ! References to F90 modules
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE LOGICAL_MOD,        ONLY : LDRYD,  LTOMAS
 
       ! Arguments
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 
       !=================================================================
       ! DO_TOMAS begins here
       !=================================================================
 
+      ! Assume success
+      RC    = GIGC_SUCCESS
+
       ! Do TOMAS aerosol microphysics
       IF( LTOMAS ) CALL AEROPHYS( State_Met )
 
       ! Do dry deposition
-      IF( LDRYD) CALL AERO_DRYDEP( State_Met )
+      IF( LDRYD) CALL AERO_DRYDEP( am_I_Root, Input_Opt, State_Met, RC )
 
       CALL CHECKMN( 0, 0, 0, State_Met, 'kg', 'Before exiting DO_TOMAS')
 

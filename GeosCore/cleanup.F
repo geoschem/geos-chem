@@ -92,6 +92,7 @@
       USE BROMOCARB_MOD,           ONLY : CLEANUP_BROMOCARB    ! jpp, 6/17/09
 #if   defined( APM )
       USE APM_WETS_MOD,            ONLY : CLEANUP_WETSCAVBIN
+      USE DAO_MOD,                 ONLY : CLEANUP_DAO
 #endif
 #if ! defined( ESMF_ )
       USE TRANSPORT_MOD,           ONLY : CLEANUP_TRANSPORT
@@ -308,6 +309,7 @@
 
 #if   defined( APM )
       CALL CLEANUP_WETSCAVBIN  ! Cleanup arrays for APM wet scavenging
+      CALL CLEANUP_DAO         ! Clean up met fields for APM
 #endif
 
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )

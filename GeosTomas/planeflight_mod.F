@@ -360,7 +360,9 @@
       ENDIF
 
       ! FORMAT string
- 110  FORMAT( A5,X,A5,X,A8,X,A4,X,A7,X,A7,X,A7,X,200(a10,x) )
+      ! Replace 95 by 250 (win)
+! 110  FORMAT( A5,X,A5,X,A8,X,A4,X,A7,X,A7,X,A7,X,95(a10,x) )
+ 110  FORMAT( A5,X,A5,X,A8,X,A4,X,A7,X,A7,X,A7,X,250(a10,x) )
 
       END SUBROUTINE SETUP_PLANEFLIGHT
 !EOC
@@ -412,6 +414,7 @@
 !  (10) We need to trim NAMEGAS before comparing to LINE so that comparisons 
 !        for species like "O3" will work.  Also set NCS=NCSURBAN at the top
 !        of the subroutine, to avoid out of bounds error. (dbm, bmy, 10/16/06)
+!  (11) Add tracer TMS_?? for TOMAS microphysics rate diagnostic (win, 7/28/09)
 !  29 Jul 2011 - R. Yantosca - Also search for MERRA SEAICExx met fields
 !  29 Jul 2011 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
@@ -569,7 +572,15 @@
                IF ( LINE == 'AODB_BLKC'  ) PVAR(N) = 3002
                IF ( LINE == 'AODB_ORGC'  ) PVAR(N) = 3003
                IF ( LINE == 'AODB_SALA'  ) PVAR(N) = 3004
-               IF ( LINE == 'AODB_SALC'  ) PVAR(N) = 3005 
+               IF ( LINE == 'AODB_SALC'  ) PVAR(N) = 3005
+ 
+            !===========================================================
+            ! Hg(II) Partitioning - eds 10/27/11  PVAR offset: 4000
+            !===========================================================
+            CASE ( 'HG2_' )
+
+               IF ( LINE == 'HG2_FRACG'  ) PVAR(N) = 4001
+               IF ( LINE == 'HG2_FRACP'  ) PVAR(N) = 4002
 
             !===========================================================
             ! SMVGEAR rxn rate: listed as "REA_001", etc.
@@ -1152,6 +1163,7 @@
       USE PRESSURE_MOD,       ONLY : GET_PEDGE
       USE TIME_MOD,           ONLY : GET_TAU,        GET_TS_DIAG
       USE TRACER_MOD,         ONLY : STT,            TCVV
+      USE OCEAN_MERCURY_MOD,  ONLY : Fp, Fg !eds 10/27/11
 
       USE JV_CMN_MOD               ! ODAER, QAA, QAA_AOD
       USE COMODE_LOOP_MOD          ! CSPEC, etc.
@@ -1195,6 +1207,7 @@
       LOGICAL, SAVE       :: FIRST = .TRUE.
       LOGICAL             :: PCHEM
       INTEGER             :: I, IP, IRHN, J, L, JLOOP, M, N, R, RH, V
+      INTEGER             :: LL     !eds
       INTEGER             :: LPLANE
       REAL*8              :: TK, PTAUS, PTAUE, CONSEXP, VPRESH2O, SAODnm
       REAL*8              :: VARI(NPVAR)
@@ -1510,6 +1523,15 @@
                      ENDIF
 
                   !--------------------------
+                  ! Hg(II) partitioning eds 10/27/11
+                  !--------------------------
+                  CASE ( 4001 )
+                     VARI(V) = FG(I,J,LL) !L+1 sample 4/24/12
+
+                  CASE ( 4002 )
+                     VARI(V) = FP(I,J,LL) !L+1 sample 4/24/12
+
+                  !--------------------------
                   ! SMVGEAR reaction rates
                   !--------------------------
                   CASE ( 10000:99999 )
@@ -1529,8 +1551,16 @@
                      N = PVAR(V) - 100000
                      
                      ! Convert from [kg] --> [v/v]
+!--------------------eds test sampling 1 level up----------------------------
+                     IF (L < LLPAR) THEN
+                        LL = L + 1
+                     ELSE
+                        LL = L
+                     ENDIF
+
                      VARI(V) = STT(I,J,L,N) * TCVV(N) /
      &                         State_Met%AD(I,J,L)
+!----------------------------------------------------------------------------
 
                      IF ( VARI(V) < TINY ) VARI(V) = 0.d0
 
@@ -1620,6 +1650,8 @@
 !	 for points near the date line.  (bmy, 4/23/04)
 !  (4 ) Now references ITS_A_FULLCHEM_SIM from "tracer_mod.f" (bmy, 7/20/04)
 !  (5 ) Now references ITS_IN_THE_TROP from "tropopause_mod.f" (bmy, 8/22/05)
+!  (6 ) Reference GET_XOFFSET and GET_YOFFSET from "grid_mod.f" and also 
+!        add for the case of nested-grid simulation (win, 7/28/09)
 !  29 Jul 2011 - R. Yantosca - Added ProTeX headers
 !  08 Sep 2011 - L. Schiferl - Added correct definitions for I and J 
 !                              based on nested regions
@@ -1980,7 +2012,7 @@
       ! Find a free file LUN
       IU_FILE = findFreeLUN()
 
-      ! Open file 
+      ! Open file
       OPEN( IU_FILE, FILE=TRIM( INF ), IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'init_planeflight:1' )
 

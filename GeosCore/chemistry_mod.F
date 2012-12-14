@@ -533,7 +533,7 @@
       ! (i.e. State_Chm) and Meteorology State (i.e. State_Met)
       ! objects.  In order to continue GIGC development without 
       ! disrupting the existing GEOS-Chem workflow, we shall copy the 
-      ! trac3er array STT back to State_Chm%TRACERS after chemistry. 
+      ! tracer array STT back to State_Chm%TRACERS after chemistry. 
       !
       ! Also note: State_Chm%TRACERS needs to leave this routine with
       ! units of [kg].  If we are calling this routine from the 

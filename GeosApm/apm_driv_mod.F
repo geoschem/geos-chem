@@ -622,29 +622,30 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_OH( I, J, L ) RESULT( OH_MOLEC_CM3 )
+      FUNCTION GET_OH( I, J, L, State_Met ) RESULT( OH_MOLEC_CM3 )
 !
 ! !USES:
 !
-      USE COMODE_MOD,   ONLY : CSPEC, JLOP
-      USE DAO_MOD,      ONLY : SUNCOS
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE TIME_MOD,     ONLY : GET_TS_CHEM
-      USE TRACER_MOD,   ONLY : ITS_A_FULLCHEM_SIM
-      USE TRACER_MOD,   ONLY : ITS_AN_AEROSOL_SIM
-      USE TRACERID_MOD, ONLY : IDOH
+      USE COMODE_MOD,         ONLY : CSPEC, JLOP
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
+      USE TRACER_MOD,         ONLY : ITS_AN_AEROSOL_SIM
+      USE TRACERID_MOD,       ONLY : IDOH
 
-      USE CMN_SIZE_MOD                      ! Size parameters
+      USE CMN_SIZE_MOD                          ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: I              ! Longitude index
-      INTEGER, INTENT(IN) :: J              ! Latitude index
-      INTEGER, INTENT(IN) :: L              ! Level index
+      INTEGER,        INTENT(IN)  :: I           ! Longitude index
+      INTEGER,        INTENT(IN)  :: J           ! Latitude index
+      INTEGER,        INTENT(IN)  :: L           ! Level index
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !RETURN VALUE:
 !
-      REAL*8              :: OH_MOLEC_CM3   ! OH [molec/cm3]
+      REAL*8                      :: OH_MOLEC_CM3 ! OH [molec/cm3]
 !
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version  
@@ -654,6 +655,7 @@
 !        "tracer_mod.f".  Also replace IJSURF w/ an analytic function.
 !        (bmy, 7/20/04)
 !  08 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  14 Dec 2012 - M. Payer    - Replace SUNCOS with State_Met%SUNCOS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -688,15 +690,12 @@
          ! Offline simulation
          !---------------------
 
-!         ! 1-D grid box index for SUNCOS
-!         JLOOP = ( (J-1) * IIPAR ) + I
-!
 !         ! Test for sunlight...
-!         IF ( SUNCOS(JLOOP) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
+!         IF ( State_Met%SUNCOS(I,J) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
 !
 !            ! Impose a diurnal variation on OH during the day
 !            OH_MOLEC_CM3 = OH(I,J,L)                      *
-!     &                     ( SUNCOS(JLOOP) / TCOSZ(I,J) ) *
+!     &                     ( State_Met%SUNCOS(I,J) / TCOSZ(I,J) ) *
 !     &                     ( 1440d0        / GET_TS_CHEM() )
 !
 !            ! Make sure OH is not negative
