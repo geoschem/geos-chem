@@ -96,7 +96,7 @@
 !
       ! References to F90 modules
       USE ACETONE_MOD,       ONLY : EMISS_BIOACET, OCEAN_SOURCE_ACET
-      USE AIRCRAFT_NOX_MOD,  ONLY : AIREMISS
+      USE AEIC_MOD,          ONLY : EMIT_AEIC
       USE BIOFUEL_MOD,       ONLY : BIOFUEL_BURN
       USE CANOPY_NOX_MOD,    ONLY : GET_CANOPY_NOX
       USE DAO_MOD,           ONLY : PARDF,         PARDR,     SUNCOS_MID       
@@ -112,7 +112,7 @@
       USE LOGICAL_MOD,       ONLY : LANTHRO,       LLIGHTNOX, LSOILNOX
       !FP_ISOP  (6/2009) add separate FERTILIZER NOX
       USE LOGICAL_MOD,       ONLY : LFERTILIZERNOX
-      USE LOGICAL_MOD,       ONLY : LAIRNOX,       LBIONOX,   LWOODCO   
+      USE LOGICAL_MOD,       ONLY : LAEIC,         LBIONOX,   LWOODCO   
       USE LOGICAL_MOD,       ONLY : LMEGAN, LMEGANMONO, LBIOGENIC
       USE MEGAN_MOD,         ONLY : GET_EMISOP_MEGAN
       USE MEGAN_MOD,         ONLY : GET_EMMBO_MEGAN
@@ -428,14 +428,9 @@
 !     &         CALL SOILNOXEMS( SUNCOS_MID )
 !#endif
 !-----------------------------------------------------------------------------
-! AIRCRAFT emissions NOx [molecules/cm3/s]
+! AIRCRAFT emissions [kg/box]
 !
-#if defined( DEVEL )
-            IF ( LAIRNOX .AND. I == 1 .AND. J == 1 ) 
-     &           CALL AIREMISS( EMISS_TEND(:,:,:,IDTNOX) )
-#else
-            IF ( LAIRNOX .AND. I == 1 .AND. J == 1 ) CALL AIREMISS
-#endif
+            IF ( LAEIC .AND. I == 1 .AND. J == 1 ) CALL EMIT_AEIC
 !-----------------------------------------------------------------------------
 ! NOx AND CO from biofuel combustion [kg/box]  
 !

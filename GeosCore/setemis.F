@@ -21,7 +21,6 @@
 !
 ! !USES:
 !
-      USE AIRCRAFT_NOX_MOD,  ONLY : EMIS_AC_NOx
       USE BIOFUEL_MOD,       ONLY : BIOFUEL,   BFTRACE, NBFTRACE
       USE BIOMASS_MOD,       ONLY : BIOMASS,   BIOTRCE
       ! Use this array to determine if emissions are handled here (hotp 8/3/09)
@@ -151,7 +150,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL :: IS_LI_NOx, IS_AC_NOx
+      LOGICAL :: IS_LI_NOx
       INTEGER :: I, J,  JLOOP, JLOOP1, LTROP
       INTEGER :: L, LL, N, NN,  NBB, NBF, TOP, TOPMIX
       REAL*8  :: COEF1,   TOTPRES, DELTPRES
@@ -171,9 +170,8 @@
          RETURN
       ENDIF
 
-      ! Test if the EMIS_LI_NOx and EMIS_AC_NOx arrays are allocated
+      ! Test if the EMIS_LI_NOx allocated
       IS_LI_NOx = ALLOCATED( EMIS_LI_NOx )
-      IS_AC_NOX = ALLOCATED( EMIS_AC_NOX )
 
       IF ( LPRT .and. am_I_Root ) THEN
          WRITE(*,*) 'SCALE NOx emissions by', NOx_SCALING
@@ -362,7 +360,7 @@
                ENDDO
 
                !========================================================
-               ! Aircraft and Lightning NOx [molec/cm3/s]
+               ! Lightning NOx [molec/cm3/s]
                ! Distribute emissions in the troposphere
                !========================================================
                DO L = 1, LLTROP
@@ -388,20 +386,6 @@
                         EMIS_BL        = EMIS_LI_NOx(I,J,L) / COEF1 
 
                         ! Save lightning NOx [molec NO/cm3/s] in REMIS
-                        REMIS(JLOOP,N) = REMIS(JLOOP,N) + EMIS_BL
-                     ENDIF
-
-                     !-----------------
-                     ! Aircraft NOx
-                     !-----------------
-                     IF ( IS_AC_NOx ) THEN
-
-                        ! Divide aircraft NOx by COEF1 to convert
-                        ! from [molec NOx/cm3/s] to [molec NO/cm3/s], since
-                        ! NO is the actual emission species for NOx.
-                        EMIS_BL        = EMIS_AC_NOx(I,J,L) / COEF1 
-
-                        ! Save aircraft NOx [molec NO/cm3/s] in REMIS
                         REMIS(JLOOP,N) = REMIS(JLOOP,N) + EMIS_BL
                      ENDIF
 
