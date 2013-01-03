@@ -6108,6 +6108,7 @@
       USE GRID_MOD,             ONLY : GET_AREA_CM2
       USE LOGICAL_MOD,          ONLY : LFUTURE,         LEDGARSOx
       USE LOGICAL_MOD,          ONLY : LSTREETS,        LEMEP
+      USE LOGICAL_MOD,          ONLY : LRCP
       USE STREETS_ANTHRO_MOD,   ONLY : GET_SE_ASIA_MASK
       USE STREETS_ANTHRO_MOD,   ONLY : GET_STREETS_ANTHRO
       USE TIME_MOD,             ONLY : GET_YEAR
@@ -6115,6 +6116,7 @@
       USE TRACERID_MOD,         ONLY : IDTSO2, IDTSO4
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
       USE SCALE_ANTHRO_MOD,     ONLY : GET_ANNUAL_SCALAR
+      USE RCP_MOD,              ONLY : GET_RCP_EMISSION
 
       USE CMN_SIZE_MOD               ! Size parameters
       USE CMN_O3_MOD                 ! FSCALYR
@@ -6144,7 +6146,7 @@
       ENDIF
 
 
-      IF ( LEDGARSOx ) THEN
+      IF ( LEDGARSOx .OR. LRCP ) THEN
 
          !==============================================================
          ! Use EDGAR SOx emissions
@@ -6164,10 +6166,13 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, X, Y, EDG_SO2, Fe, LL ) 
+!$OMP+PRIVATE( I, J, X, Y, AREA_CM2, EDG_SO2, Fe, LL ) 
 
          ! Loop over latitudes
          DO J = 1, JJPAR
+
+            ! Grid box surface area [cm2]
+            AREA_CM2 = GET_AREA_CM2( J )
 
             ! Latitude [degrees]
             Y = GET_YMID( J )
@@ -6181,6 +6186,25 @@
                ! Get EDGAR SO2 emissions [kg/s]
                ! NOTE: Future emissions are already applied!
                EDG_SO2 = GET_EDGAR_ANTH_SO2( I, J, KG_S=.TRUE. ) 
+
+               ! Use RCP SO2 emissions
+               IF ( LRCP ) THEN
+
+                  ! Get RCP SO2 emissions, molec/cm2/s
+                  ! NOTE: Future emissions assumed to already be included
+                  EDG_SO2 = GET_RCP_EMISSION( I, J, IDTSO2, 
+     &                 LAND=.TRUE., SHIP=.FALSE. )
+
+                  ! Convert molec/cm2/s -> kg/s
+                  EDG_SO2 = EDG_SO2 * AREA_CM2 / XNUMOL(IDTSO2) 
+
+                  ! RCP includes biofuels
+                  ! However, if regional inventories without biofuels 
+                  ! are used, then there will be no biofuel emissions 
+                  ! from that region
+                  ESO2_bf(I,J) = 0d0
+
+               ENDIF
 
                ! If we are using David Streets' emissions ...
                IF ( LSTREETS ) THEN
