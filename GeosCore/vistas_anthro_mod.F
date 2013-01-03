@@ -188,6 +188,7 @@
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fix minor bugs in map_a2a algorithm
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -324,7 +325,7 @@
       ! Regrid to current model resolution [molec/cm2/s]
       INGRID = GEOS_1x1(:,:,1) * ARRAY(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,          J1x1,
-     &                    INGRID,     VISTAS_WE_NOx, PERAREA=0,
+     &                    INGRID,     VISTAS_WE_NOx, IS_MASS=0,
      &                    netCDF=.TRUE.                         )
 
 
@@ -344,7 +345,7 @@
       ! Regrid to current model resolution [molec/cm2/s]
       INGRID = GEOS_1x1(:,:,1) * ARRAY(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,          J1x1,
-     &                    INGRID,     VISTAS_WD_NOx, PERAREA=0,
+     &                    INGRID,     VISTAS_WD_NOx, IS_MASS=0,
      &                    netCDF=.TRUE.                         )
 
       !--------------------------

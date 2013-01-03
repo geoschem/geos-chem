@@ -258,6 +258,7 @@
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bug in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -446,13 +447,13 @@
          IF ( SPECIES .eq. 1 ) THEN
 
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                          INGRID,     NOx,     PERAREA=1,
+     &                          INGRID,     NOx,     IS_MASS=1,
      &                          netCDF=.TRUE.                   )
 
          ELSEIF ( SPECIES .eq. 2 ) THEN
 
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                          INGRID,     CO,      PERAREA=1,
+     &                          INGRID,     CO,      IS_MASS=1,
      &                          netCDF=.TRUE.                   )
 
          ELSEIF ( SPECIES .eq. 3 ) THEN
@@ -464,13 +465,13 @@
             INGRID = INGRID * 0.986
 
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                          INGRID,     SO2,     PERAREA=1,
+     &                          INGRID,     SO2,     IS_MASS=1,
      &                          netCDF=.TRUE.                   )
 
          ELSEIF ( SPECIES .eq. 4 ) THEN
 
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                          INGRID,     NH3,     PERAREA=1,
+     &                          INGRID,     NH3,     IS_MASS=1,
      &                          netCDF=.TRUE.                   )
          ENDIF
 
@@ -919,6 +920,7 @@
 !  15 Aug 2012 - M. Payer    - Fixed minor bugs in regridding of mask; Also set
 !                              mask to 1 if greater than 0 (L. Murray)
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -964,7 +966,7 @@
       ! Regrid from GENERIC 1x1 to current model resolution [unitless]
       INGRID => GEOS_1x1(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,        J1x1, 
-     &                    INGRID,     MASK_CANADA, PERAREA=0,
+     &                    INGRID,     MASK_CANADA, IS_MASS=0,
      &                    netCDF=.TRUE.                       )
 
       ! Free pointer

@@ -199,6 +199,7 @@
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !******************************************************************************
 !
       ! References to F90 modules
@@ -374,7 +375,7 @@
                   ! Regrid to current model resolution
                   INGRID => GENERIC_8_1x1
                   CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-     &                                INGRID,     OUTGRID, PERAREA=1,
+     &                                INGRID,     OUTGRID, IS_MASS=1,
      &                                netCDF=.TRUE. )
                   BIOFUEL_KG(N,:,:) = OUTGRID  
                   

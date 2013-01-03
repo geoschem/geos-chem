@@ -378,6 +378,7 @@
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a impelementation
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !******************************************************************************
 !
       ! References to F90 modules
@@ -438,7 +439,7 @@
       ! Regrid anthro emissions to current resolution
       INGRID => E_NOx_1x1(:,:)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1, 
-     &                    INGRID,     TEMP_TOT, PERAREA=1,
+     &                    INGRID,     TEMP_TOT, IS_MASS=1,
      &                    netCDF=.TRUE.                    )
       NULLIFY( INGRID )
 
@@ -448,7 +449,7 @@
          ! Regrid hourly emissions to current resolution
          INGRID => E_NOx_HRLY_1x1(:,:,H)
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1-1, 
-     &                       INGRID,     TEMP_HRLY, PERAREA=1,
+     &                       INGRID,     TEMP_HRLY, IS_MASS=1,
      &                       netCDF=.TRUE.                     )
          NULLIFY( INGRID )
 
@@ -476,7 +477,7 @@
       ! Regrid NOx emissions to current model resolution [kg/yr]
       INGRID => E_NOx_1x1(:,:)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-     &                    INGRID,     OUTGRID, PERAREA=1,
+     &                    INGRID,     OUTGRID, IS_MASS=1,
      &                    netCDF=.TRUE.                   )
       NULLIFY( INGRID )
 
@@ -498,7 +499,7 @@
          ! Regrid NOX emissions to current model resolution [kg/yr]
          INGRID => E_NOX_SHIP_1x1(:,:)
          CALL DO_REGRID_A2A( LLFILENAME,  I1x1,    J1x1-1, 
-     &                       INGRID,      OUTGRID, PERAREA=1,
+     &                       INGRID,      OUTGRID, IS_MASS=1,
      &                       netCDF=.TRUE. )
 
          E_NOX_SHIP = OUTGRID * SC_NOX(:,:) 
@@ -949,6 +950,7 @@
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !******************************************************************************
 !
       ! References to F90 modules
@@ -999,7 +1001,7 @@
       ! Regrid CO emissions to current model resolution [kg/yr]
       INGRID => E_CO_1x1
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-     &                    INGRID,     OUTGRID, PERAREA=1,
+     &                    INGRID,     OUTGRID, IS_MASS=1,
      &                    netCDF=.TRUE.                   )
       E_CO = OUTGRID
 
@@ -1023,7 +1025,7 @@
          ! Regrid CO emissions to current model resolution [kg/yr]
          INGRID => E_CO_SHIP_1x1
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-     &                       INGRID,     OUTGRID, PERAREA=1,
+     &                       INGRID,     OUTGRID, IS_MASS=1,
      &                       netCDF=.TRUE.                   )
 
          ! Apply scale factors
@@ -1166,6 +1168,7 @@
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1217,7 +1220,7 @@
       ! Regrid SO2 emissions to current model resolution [kg/yr]
       INGRID => E_SO2_1x1
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-     &                    INGRID,     OUTGRID, PERAREA=1,
+     &                    INGRID,     OUTGRID, IS_MASS=1,
      &                    netCDF=.TRUE.                   )
 
       ! Free pointer
@@ -1250,7 +1253,7 @@
          ! Regrid SO2 emissions to current model resolution [kg/yr]
          INGRID => E_SO2_SHIP_1x1
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-     &                       INGRID,     OUTGRID, PERAREA=1,
+     &                       INGRID,     OUTGRID, IS_MASS=1,
      &                       netCDF=.TRUE.                   )
                 
          ! Apply scale factors
@@ -1556,6 +1559,7 @@
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !  03 Jan 2013 - M. Payer    - Bug fix for regridding. Changed to PERAREA=0
 !                              since data is unitless.
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1603,7 +1607,7 @@
       ! Regrid to current model resolution
       INGRID = ARRAY(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    INGRID,     OUTGRID, IS_MASS=0,
      &                    netCDF=.TRUE.                   )
 
       ! Apply monthly scale factors to ship SO2
@@ -2286,6 +2290,7 @@
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2342,7 +2347,7 @@
       ! [atoms C/cm2/s] (ccc, 3/9/09)
       INGRID = ARRAY
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                    INGRID,     OUTGRID, PERAREA=0, 
+     &                    INGRID,     OUTGRID, IS_MASS=0, 
      &                    netCDF=.TRUE.                   )
       E_BENZ = OUTGRID
 
@@ -2363,7 +2368,7 @@
       ! [atoms C/cm2/s] (ccc, 3/9/09)
       INGRID = ARRAY
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    INGRID,     OUTGRID, IS_MASS=0,
      &                    netCDF=.TRUE.                   )
       E_TOLU = OUTGRID
 
@@ -2384,7 +2389,7 @@
       ! [atoms C/cm2/s] (ccc, 3/9/09)
       INGRID = ARRAY
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    INGRID,     OUTGRID, IS_MASS=0,
      &                    netCDF=.TRUE.                   )
       E_XYLE = OUTGRID
 
@@ -2413,6 +2418,7 @@
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2465,7 +2471,7 @@
       ! [atoms C/cm2/s] (ccc, 3/9/09)
       INGRID = ARRAY
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    INGRID,     OUTGRID, IS_MASS=0,
      &                    netCDF=.TRUE.                   )
 
       E_C2H4 = OUTGRID
@@ -2492,6 +2498,7 @@
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a algorithm
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2544,7 +2551,7 @@
       ! [atoms C/cm2/s] (ccc, 3/9/09)
       INGRID = ARRAY
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    INGRID,     OUTGRID, IS_MASS=0,
      &                    netCDF=.TRUE.                   )
 
       E_C2H2 = OUTGRID

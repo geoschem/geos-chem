@@ -33,7 +33,10 @@
       
 ! !REVISION HISTORY:
 !  24 Aug 2012 - J.D. Maasakkers - Initial version
-
+!  03 Jan 2013 - M. Payer        - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
 ! !LOCAL VARIABLES:
 !
@@ -160,7 +163,7 @@
       OUTGRID = 0.
 
       CALL DO_REGRID_A2A( LLFILENAME, 720,     360,
-     &                    INGRID,     OUTGRID, PERAREA=0 )
+     &                    INGRID,     OUTGRID, IS_MASS=0 )
 
       CLIM(:,:,1) = OUTGRID 
 
@@ -169,7 +172,7 @@
       OUTGRID = 0.
 
       CALL DO_REGRID_A2A( LLFILENAME, 720,     360,
-     &                    INGRID,     OUTGRID, PERAREA=0 )
+     &                    INGRID,     OUTGRID, IS_MASS=0 )
 
       CLIM(:,:,2) = OUTGRID 
 
@@ -192,5 +195,5 @@
  140  FORMAT( '%% Successfully closed file!'                 )
 
       ENDIF
-
+!EOC
       END SUBROUTINE READCLIM

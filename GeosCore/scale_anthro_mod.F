@@ -84,6 +84,7 @@
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  07 Jun 2012 - M. Payer    - Fixed minor bugs in map_a2a calls (M. Cooper)
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -109,7 +110,7 @@
       ! Regrid emissions factors to current model resolution [unitless]
       INGRID => AS_1x1x1(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    INGRID,     OUTGRID, IS_MASS=0,
      &                    netCDF=.TRUE.                   )
 
       ! Cast to REAL*4
@@ -347,6 +348,7 @@
 !  (1) Scaling factors are for years between 1985 and 2005, on the GEOS-Chem
 !       0.5x0.666 grid for China domain (tmf, 3/5/09)
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -372,7 +374,7 @@
       ! Regrid emissions factors to current model resolution [unitless]
       INGRID => AS_1x1(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    INGRID,     OUTGRID, IS_MASS=0,
      &                    netCDF=.TRUE.                   )
 
       ! Cast to REAL*4

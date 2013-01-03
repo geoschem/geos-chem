@@ -345,6 +345,7 @@
 !  14 May 2012 - R. Yantosca - Bug fix: SC should be defined w/ IIPAR,JJPAR
 !  24 May 2012 - R. Yantosca - Fix minor bugs in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -380,7 +381,7 @@
       ! Regrid from GENERIC 1x1 --> Current Model Resolution
       INGRID => GEN_1x1(:,:)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-     &                    INGRID,     OUTGRID, PERAREA=1, 
+     &                    INGRID,     OUTGRID, IS_MASS=1, 
      &                    netCDF=.TRUE. )
 
       ! Get & apply scaling factor

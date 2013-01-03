@@ -766,6 +766,7 @@
 !  22 May 2012 - M. Payer    - Added ProTeX headers
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !  27 Aug 2012 - M. Payer    - Added parallel DO loop
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -838,7 +839,7 @@
       call NcRd( ARRAY2x25, fileID, 'CHBr3_emission', 
      &           (/ 1, 1 /),  (/ 144, 91 /) )
       CALL DO_REGRID_A2A( LLFILENAME, 144,         91, 
-     &                    ARRAY2x25,  CHBr3_EMISS, PERAREA=0,
+     &                    ARRAY2x25,  CHBr3_EMISS, IS_MASS=0,
      &                    netCDF=.TRUE.                       )
 
 
@@ -847,7 +848,7 @@
       call NcRd( ARRAY2x25, fileID, 'CH2Br2_emission',
      &           (/ 1, 1 /),  (/ 144, 91 /) )
       CALL DO_REGRID_A2A( LLFILENAME, 144,          91,
-     &                    ARRAY2x25,  CH2Br2_EMISS, PERAREA=0,
+     &                    ARRAY2x25,  CH2Br2_EMISS, IS_MASS=0,
      &                    netCDF=.TRUE.                        )
 
       ! Close emission file

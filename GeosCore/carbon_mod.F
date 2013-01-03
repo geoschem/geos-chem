@@ -4783,6 +4783,7 @@ c
 !  08 Mar 2012 - M. Payer    - Added modifications for historical emissions of
 !                              BC/POA (E. Leibensperger)
 !  03 Jan 2013 - M. Payer    - Use MAP_A2A regridding for historical emissions
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !******************************************************************************
 !
       ! References to F90 modules
@@ -4890,7 +4891,7 @@ c
             ! Regrid to current model resolution [kg/yr]
             INGRID  => GEN8_1x1(:,:)
             CALL DO_REGRID_A2A( LLFILENAME, I1x1, J1x1-1, 
-     &                          INGRID,     FD2D, PERAREA=1,
+     &                          INGRID,     FD2D, IS_MASS=1,
      &                          netCDF=.TRUE.                )
 
             ! Free pointer
@@ -4951,7 +4952,7 @@ c
             ! Regrid to current model resolution [kg/yr]
             INGRID  => GEN8_1x1(:,:)
             CALL DO_REGRID_A2A( LLFILENAME, I1x1, J1x1-1, 
-     &                          INGRID,     FD2D, PERAREA=1,
+     &                          INGRID,     FD2D, IS_MASS=1,
      &                          netCDF=.TRUE.                )
 
             ! Free pointer
@@ -5035,7 +5036,7 @@ c
             ! Regrid to current model resolution [kg/yr]
             INGRID  => GEN8_1x1(:,:)
             CALL DO_REGRID_A2A( LLFILENAME, I1x1, J1x1-1, 
-     &                          INGRID,     FD2D, PERAREA=1,
+     &                          INGRID,     FD2D, IS_MASS=1,
      &                          netCDF=.TRUE.                )
 
             ! Free pointer
@@ -5093,7 +5094,7 @@ c
             ! Regrid to current model resolution [kg/yr]
             INGRID  => GEN8_1x1(:,:)
             CALL DO_REGRID_A2A( LLFILENAME, I1x1, J1x1-1, 
-     &                          INGRID,     FD2D, PERAREA=1,
+     &                          INGRID,     FD2D, IS_MASS=1,
      &                          netCDF=.TRUE.                )
 
             ! Free pointer
