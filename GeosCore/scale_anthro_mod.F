@@ -106,7 +106,7 @@
       LLFILENAME = TRIM( DATA_DIR_1x1) //
      &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
   
-      ! Regrid emissions factors to current model resolution
+      ! Regrid emissions factors to current model resolution [unitless]
       INGRID => AS_1x1x1(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
      &                    INGRID,     OUTGRID, PERAREA=0,

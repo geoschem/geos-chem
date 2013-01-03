@@ -2257,6 +2257,8 @@
 !  13 Mar 2012 - M. Cooper        - Changed regrid algorithm to map_a2a
 !  07 Jun 2012 - M. Payer         - Fix minor bugs in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca      - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer         - Bug fix for regridding. Changed to
+!                                   PERAREA=0 since scale factors are unitless.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2285,7 +2287,7 @@
       DO L = 1, 5
          INGRID = ARRAY(:,:,L)
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                       INGRID,     OUTGRID, PERAREA=1,
+     &                       INGRID,     OUTGRID, PERAREA=0,
      &                       netCDF=.TRUE.                   )
          AS(:,:,L) = OUTGRID
       ENDDO

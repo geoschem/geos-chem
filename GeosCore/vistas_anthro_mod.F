@@ -272,7 +272,7 @@
       WRITE( 6, 100 ) TRIM( FILENAME )
  100        FORMAT( '     - EMISS_VISTAS_ANTHRO: Reading ', a )
 
-      ! Read data
+      ! Read data [molec/cm2/s]
       CALL READ_BPCH2( FILENAME, 'ANTHSRCE', SNo,
      &                    TAU2002,   I1x1,      J1x1,
      &                    1,         ARRAY,     QUIET=.TRUE. )
@@ -296,7 +296,7 @@
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
 
-      ! Read data
+      ! Read data [unitless]
       CALL READ_BPCH2( FILENAME, 'RATIO-2D', ScNo,
      &                    TAU2002,   I1x1,      J1x1,
      &                    1,         ARRAY,     QUIET=.TRUE. )
@@ -312,7 +312,7 @@
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
 
-      ! Read data
+      ! Read data [unitless]
       CALL READ_BPCH2( FILENAME, 'WD-WE-$', 2,
      &                 TAU,      I1x1,      J1x1,
      &                 1,        ARRAY,     QUIET=.TRUE. )
@@ -321,7 +321,7 @@
       LLFILENAME = TRIM( DATA_DIR_1x1) //
      &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
-      ! Regrid to current model resolution
+      ! Regrid to current model resolution [molec/cm2/s]
       INGRID = GEOS_1x1(:,:,1) * ARRAY(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,          J1x1,
      &                    INGRID,     VISTAS_WE_NOx, PERAREA=0,
@@ -335,13 +335,13 @@
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
 
-      ! Read data
+      ! Read data [unitless]
       CALL READ_BPCH2( FILENAME, 'WD-WE-$', 1,
      &                 TAU,      I1x1,      J1x1,
      &                 1,        ARRAY,     QUIET=.TRUE. )
 
  
-      ! Regrid from GEOS 1x1 --> current model resolution
+      ! Regrid to current model resolution [molec/cm2/s]
       INGRID = GEOS_1x1(:,:,1) * ARRAY(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,          J1x1,
      &                    INGRID,     VISTAS_WD_NOx, PERAREA=0,

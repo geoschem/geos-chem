@@ -2470,6 +2470,8 @@
 !  02 Jul 2012 - R. Yantosca - Rename the input file latlon_nested.txt to 
 !                              latlon_geos05x0666.txt to avoid confusion
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Bug fix for regridding. Changed to PERAREA=0
+!                              since data is in ug C/m2/hr.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2519,7 +2521,7 @@
       ! Regrid from 0.5 x 0.666 global to the current nested grid
       INGRID => GEOS_05x0666
       CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666,
-     &                    INGRID,     OUTGRID,  PERAREA=1,
+     &                    INGRID,     OUTGRID,  PERAREA=0,
      &                    netCDF=.TRUE.                    )
       AEF_ISOP = OUTGRID
       NULLIFY( INGRID )
@@ -2562,7 +2564,7 @@
       ! Regrid from 0.5 x 0.666 to the current nested grid
       INGRID => GEOS_05x0666
       CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666,
-     &                    INGRID,     OUTGRID,  PERAREA=1,
+     &                    INGRID,     OUTGRID,  PERAREA=0,
      &                    netCDF=.TRUE.                    )
       AEF_MONOT = OUTGRID
       NULLIFY( INGRID )
@@ -2606,7 +2608,7 @@
       ! Regrid from 0.5 x 0.666 global to the current nested grid
       INGRID => GEOS_05x0666
       CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666,
-     &                    INGRID,     OUTGRID,  PERAREA=1,
+     &                    INGRID,     OUTGRID,  PERAREA=0,
      &                    netCDF=.TRUE.                    )
       AEF_MBO = OUTGRID
       NULLIFY( INGRID )
@@ -2649,7 +2651,7 @@
       ! Regrid from 0.5 x 0.666 global to the current nested grid
       INGRID => GEOS_05x0666
       CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666,
-     &                    INGRID,     OUTGRID,  PERAREA=1,
+     &                    INGRID,     OUTGRID,  PERAREA=0,
      &                    netCDF=.TRUE.                    )
       AEF_OVOC = OUTGRID
       NULLIFY( INGRID )

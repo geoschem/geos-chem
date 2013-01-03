@@ -365,7 +365,7 @@
       ! Initialize
       SC = 1d0
 
-      ! Read data
+      ! Read data [kg/yr]
       CALL READ_BPCH2( FILENAME,  CATEGORY,  TRACERN, 
      &                 TAU2008,   I1x1,      J1x1-1,     
      &                 1,         ARRAY,     QUIET=.TRUE. ) 

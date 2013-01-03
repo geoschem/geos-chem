@@ -1826,7 +1826,6 @@
       USE DIRECTORY_MOD,  ONLY : DATA_DIR, DATA_DIR_1x1
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
       USE FILE_MOD,       ONLY : IOERROR
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_G2G_1x1, DO_REGRID_1x1 
       USE TIME_MOD,       ONLY : GET_YEAR, GET_MONTH
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A	
 
@@ -1902,7 +1901,7 @@
       ! TAU value for start of month in 2004
       TAU = GET_TAU0( MONTH, 1, 2004 )
 
-      ! Read CO2 shipping emissions
+      ! Read CO2 shipping emissions [molec/cm2/s]
       CALL READ_BPCH2( FILENAME, 'CO2-SRCE', 7, 
      &                 TAU,       360,       181,     
      &                 1,         ARRAY,     QUIET=.TRUE. )

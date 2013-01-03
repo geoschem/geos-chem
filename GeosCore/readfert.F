@@ -123,22 +123,21 @@
       ! Regrid
       !=================================================================
 
-	!0.5x0.5 regrid - FERT
-       ! File with lat/lon edges for regridding
+      ! 0.5x0.5 regrid - FERT
+      ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
      &             'MAP_A2A_Regrid_201203/latlon_generic05x05.txt'
 
-       ! Regrid to NOx [molec/cm2/s] current model resolution
-
-	do D = 1,366
-		INGRID = FERT(:,:,D)
-		OUTGRID = 0.
+      ! Regrid to NOx [molec/cm2/s] current model resolution
+      DO D = 1,366
+         INGRID = FERT(:,:,D)
+         OUTGRID = 0.
 		
-       CALL DO_REGRID_A2A( LLFILENAME, 720,    360,
-     &             INGRID,     OUTGRID, PERAREA=0 )
+         CALL DO_REGRID_A2A( LLFILENAME, 720,     360,
+     &                       INGRID,     OUTGRID, PERAREA=0 )
 
-		SOILFERT(:,:,D) = OUTGRID
-	enddo 
+         SOILFERT(:,:,D) = OUTGRID
+      ENDDO 
 
       !=================================================================
       ! Cleanup and quit

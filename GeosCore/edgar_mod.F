@@ -785,7 +785,7 @@
          ! Get TAU0 for this year
          TAU0 = GET_TAU0( 1, 1, GET_HISTYR() )
 
-         ! Read fossil fuel combustion NOx
+         ! Read fossil fuel combustion NOx [kg/yr]
          FILENAME = TRIM( DATA_DIR_1x1 )                       // 
      &              'historical_emissions_201203/NOx/'         //
      &              'EDGAR.FCNOX.' // CHISTYR // 'generic.1x1'
@@ -798,7 +798,7 @@
 
          CALL ADD_EDGAR_DATA( E_IN, T_1x1, SC, T_HRLY_1x1 )
 
-         ! Read industrial NOx
+         ! Read industrial NOx [kg/yr]
          FILENAME = TRIM( DATA_DIR_1x1 )                       // 
      &              'historical_emissions_201203/NOx/'         //
      &              'EDGAR.INNOX.' // CHISTYR // 'generic.1x1'
@@ -1554,6 +1554,8 @@
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Bug fix for regridding. Changed to PERAREA=0
+!                              since data is unitless.
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1601,7 +1603,7 @@
       ! Regrid to current model resolution
       INGRID = ARRAY(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=1,
+     &                    INGRID,     OUTGRID, PERAREA=0,
      &                    netCDF=.TRUE.                   )
 
       ! Apply monthly scale factors to ship SO2
@@ -1674,7 +1676,7 @@
       ! Use TAU0 for year 2000
       TAU0 = GET_TAU0( 1, 1, 2000 )
 
-      ! Read data
+      ! Read data [kg/yr]
       CALL READ_BPCH2( FILENAME, 'EDGAR-2D', TRACER, 
      &                 TAU0,      I1x1,      J1x1-1,     
      &                 1,         E_1x1,     QUIET=.TRUE. ) 
