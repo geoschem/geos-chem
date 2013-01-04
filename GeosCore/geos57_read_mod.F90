@@ -428,6 +428,8 @@ CONTAINS
 !  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
 !                              object
 !  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
+!   4 Jan 2013 - M. Payer    - Bug fix: Use State_Met%TSKIN for ND67 surface
+!                              skin temperature diagnostic, not State_MET%TS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -775,7 +777,7 @@ CONTAINS
        AD67(:,:,14) = AD67(:,:,14) + State_Met%ALBD     ! Sfc albedo [unitless]
        AD67(:,:,17) = AD67(:,:,17) + State_Met%TROPP    ! T'pause pressure [hPa]
        AD67(:,:,18) = AD67(:,:,18) + State_Met%SLP      ! Sea level prs [hPa]
-       AD67(:,:,19) = AD67(:,:,19) + State_Met%TS       ! Sfc skin temp [K]
+       AD67(:,:,19) = AD67(:,:,19) + State_Met%TSKIN    ! Sfc skin temp [K]
        AD67(:,:,20) = AD67(:,:,20) + State_Met%PARDF    ! Diffuse PAR [W/m2]
        AD67(:,:,21) = AD67(:,:,21) + State_Met%PARDR    ! Direct PAR [W/m2]
        AD67(:,:,22) = AD67(:,:,22) + State_Met%GWETTOP  ! Topsoil wetness [frac]
