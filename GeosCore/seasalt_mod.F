@@ -133,7 +133,12 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE CHEMSEASALT( am_I_Root, Input_Opt, State_Met,
+     &                        State_Chm, RC )
+#else
       SUBROUTINE CHEMSEASALT( am_I_Root, Input_Opt, State_Met, RC )
+#endif
 !
 ! !USES:
 !
@@ -145,7 +150,11 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
       USE TRACER_MOD,         ONLY : STT
+#endif
       USE TRACERID_MOD,       ONLY : IDTSALA
       USE TRACERID_MOD,       ONLY : IDTSALC
 !
@@ -154,6 +163,12 @@
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 !
 ! !OUTPUT PARAMETERS:
 !      
@@ -184,6 +199,13 @@
       LOGICAL        :: LPRT
       INTEGER        :: N
 
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
+
       !=================================================================
       ! CHEMSEASALT begins here!
       !=================================================================
@@ -195,6 +217,12 @@
       LDRYD    = Input_Opt%LDRYD
       LNLPBL   = Input_Opt%LNLPBL
       LPRT     = Input_Opt%LPRT
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
 
       ! Do we have to print debug output?
       prtDebug = ( LPRT .and. am_I_Root )
@@ -271,6 +299,11 @@
             CALL DEBUG_MSG( '### CHEMSEASALT: DRY_DEP, Coarse')
          ENDIF
       ENDIF
+
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
 
       END SUBROUTINE CHEMSEASALT
 !EOC
@@ -883,7 +916,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE EMISSSEASALT( State_Met, SFLX, SSA_Br2 )
+      SUBROUTINE EMISSSEASALT( State_Met, State_Chm, SFLX, SSA_Br2 )
 #else
       SUBROUTINE EMISSSEASALT( State_Met, SSA_Br2 )
 #endif
@@ -893,7 +926,11 @@
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE LOGICAL_MOD,        ONLY : LPRT
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
       USE TRACER_MOD,         ONLY : STT
+#endif
       USE TRACERID_MOD,       ONLY : IDTSALA, IDTSALC
       USE VDIFF_PRE_MOD,      ONLY : emis_save ! (Lin, 03/31/09)
 #if defined( DEVEL )
@@ -909,6 +946,7 @@
 ! !INPUT/OUTPUT PARAMETERS
 !
 #if defined( DEVEL )
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
       REAL*8, INTENT(INOUT) :: SFLX(IIPAR,JJPAR,LLPAR,N_TRACERS+1)
 #endif
 !
@@ -937,6 +975,13 @@
       ! jpp, 3/2/10
       REAL*8                :: tmpbr2(IIPAR, JJPAR)
 
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
+
       !=================================================================
       ! EMISSSEASALT begins here! 
       !=================================================================
@@ -944,6 +989,12 @@
       ! Initialize Br2 emission arrays
       tmpbr2(:,:) = 0.d0
       IF ( PRESENT ( SSA_Br2 ) ) SSA_Br2(:,:) = 0.d0
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### in EMISSEASALT' )
@@ -1015,6 +1066,11 @@
          ENDDO
 !$OMP END PARALLEL DO
       ENDIF
+
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
 
       END SUBROUTINE EMISSSEASALT
 !EOC

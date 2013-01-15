@@ -12,7 +12,12 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE PHYSPROC( am_I_Root, Input_Opt, State_Met, State_Chm,
+     &                     RC )
+#else
       SUBROUTINE PHYSPROC( am_I_Root, Input_Opt, State_Met, RC )
+#endif
 !
 ! !USES:
 !
@@ -33,6 +38,9 @@
       USE GCKPP_GLOBAL,       ONLY : NTT
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#endif
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING
 
@@ -43,6 +51,12 @@
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -341,7 +355,11 @@
 ! *              CALCULATE REACTION RATE COEFFICIENTS                 *
 ! *********************************************************************
 !
+#if defined( DEVEL )
+          CALL CALCRATE( State_Met, State_Chm )
+#else
           CALL CALCRATE( State_Met )
+#endif
 !
 ! *********************************************************************
 ! *                        SOLVE CHEMICAL ODES                        *

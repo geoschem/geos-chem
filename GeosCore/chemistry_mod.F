@@ -110,7 +110,9 @@
       USE TAGGED_OX_MOD,      ONLY : CHEM_TAGGED_OX
       USE TIME_MOD,           ONLY : GET_ELAPSED_MIN
       USE TIME_MOD,           ONLY : GET_TS_CHEM
+#if !defined( DEVEL )
       USE TRACER_MOD,         ONLY : STT  
+#endif
       USE TRACERID_MOD,       ONLY : IDTACET
       USE TRACERID_MOD,       ONLY : IDTISOP
 !
@@ -237,6 +239,13 @@
       ! SAVEd variables
       LOGICAL, SAVE :: FIRST = .TRUE.
 
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
+
       !=================================================================
       ! DO_CHEMISTRY begins here!
       !=================================================================
@@ -270,8 +279,14 @@
       IT_IS_AN_AEROSOL_SIM     = Input_Opt%ITS_AN_AEROSOL_SIM
       IT_IS_NOT_COPARAM_OR_CH4 = Input_Opt%ITS_NOT_COPARAM_OR_CH4
 
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT                      => State_Chm%Tracers
+#else
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       STT(:,:,:,1:N_TRACERS)   = State_Chm%TRACERS(:,:,:,1:N_TRACERS)
+#endif
 
       ! Compute optical depths (except for CH4 simulation)
       IF ( .not. IT_IS_A_CH4_SIM ) THEN
@@ -300,28 +315,48 @@
 
             ! Do seasalt aerosol chemistry
             IF ( LSSALT ) THEN
+#if defined( DEVEL )
+               CALL CHEMSEASALT( am_I_Root, Input_Opt, State_Met,
+     &                           State_Chm, RC )
+#else
                CALL CHEMSEASALT( am_I_Root, Input_Opt, State_Met, RC )
+#endif
             ENDIF
 
             ! Also do sulfate chemistry
             IF ( LSULF ) THEN
 
                ! Do sulfate chemistry
+#if defined( DEVEL )
+               CALL CHEMSULFATE( am_I_Root, Input_Opt, State_Met,
+     &                           State_Chm, RC )
+#else
                CALL CHEMSULFATE( am_I_Root, Input_Opt, State_Met, RC )
+#endif
 
                ! Do aerosol thermodynamic equilibrium
                IF ( LSSALT ) THEN
 
 #if   !defined( NO_ISORROPIA )
+#if defined( DEVEL )
+                  ! ISOROPIA takes Na+, Cl- into account
+                  CALL DO_ISOROPIAII( am_I_Root, Input_Opt, State_Met,
+     &                                State_Chm, RC )
+#else
                   ! ISOROPIA takes Na+, Cl- into account
                   CALL DO_ISOROPIAII( am_I_Root, Input_Opt, 
      &                                State_Met, RC         )
+#endif
 #endif
 
                ELSE
 
                   ! RPMARES does not take Na+, Cl- into account
+#if defined( DEVEL )
+                  CALL DO_RPMARES( am_I_Root, State_Met, State_Chm )
+#else
                   CALL DO_RPMARES( am_I_Root, State_Met )
+#endif
 
                ENDIF
 
@@ -329,12 +364,22 @@
 
             ! Do carbonaceous aerosol chemistry
             IF ( LCARB ) THEN
+#if defined( DEVEL )
+               CALL CHEMCARBON( am_I_Root, Input_Opt, State_Met,
+     &                          State_Chm, RC )
+#else
                CALL CHEMCARBON( am_I_Root, Input_Opt, State_Met, RC )
+#endif
             ENDIF
 
             ! Do dust aerosol chemistry
             IF ( LDUST ) THEN
+#if defined( DEVEL )
+               CALL CHEMDUST( am_I_Root, Input_Opt, State_Met,
+     &                        State_Chm, RC )
+#else
                CALL CHEMDUST( am_I_Root, Input_Opt, State_Met, RC )
+#endif
             ENDIF
  
             ! ND44 drydep fluxes
@@ -381,7 +426,12 @@
  
             ! Compute aerosol & dust concentrations [kg/m3]
             ! (NOTE: SOILDUST in "aerosol_mod.f" is computed here)
+#if defined( DEVEL )
+            CALL AEROSOL_CONC( am_I_Root, Input_Opt, State_Met,
+     &                         State_Chm, RC )
+#else
             CALL AEROSOL_CONC( am_I_Root, Input_Opt, State_Met, RC )
+#endif
 
             ! Compute AOD's and surface areas at 999 nm
             MONTH      = 0
@@ -395,7 +445,12 @@
 
 #if   !defined( NO_ISORROPIA )
                ! ISOROPIA takes Na+, Cl- into account
+#if defined( DEVEL )
+               CALL DO_ISOROPIAII( am_I_Root, Input_Opt, State_Met,
+     &                             State_Chm, RC )
+#else
                CALL DO_ISOROPIAII( am_I_Root, Input_Opt, State_Met, RC )
+#endif
 #endif
 
             ELSE
@@ -403,33 +458,57 @@
                ! RPMARES does not take Na+, Cl- into account
                ! (skip for crystalline & aqueous offline run)
                IF ( .not. LCRYST ) THEN
+#if defined( DEVEL )
+                  CALL DO_RPMARES( am_I_Root, State_Met, State_Chm )
+#else
                   CALL DO_RPMARES( am_I_Root, State_Met )
+#endif
                ENDIF
             ENDIF
 
             !*** SEASALT AEROSOLS ***
             IF ( LSSALT ) THEN
+#if defined( DEVEL )
+               CALL CHEMSEASALT( am_I_Root, Input_Opt, State_Met,
+     &                           State_Chm, RC )
+#else
                CALL CHEMSEASALT( am_I_Root, Input_Opt, State_Met, RC )
+#endif
             ENDIF
 
             !*** SULFATE AEROSOLS ***
             IF ( LSULF .or. LCRYST ) THEN
  
                ! Do sulfate chemistry
+#if defined( DEVEL )
+               CALL CHEMSULFATE( am_I_Root, Input_Opt, State_Met,
+     &                           State_Chm, RC ) 
+#else
                CALL CHEMSULFATE( am_I_Root, Input_Opt, State_Met, RC ) 
+#endif
 
             ENDIF
 
             !*** CARBON AND 2NDARY ORGANIC AEROSOLS ***
             IF ( LCARB ) THEN
+#if defined( DEVEL )
+               CALL CHEMCARBON( am_I_Root, Input_Opt, State_Met,
+     &                          State_Chm, RC )
+#else
                CALL CHEMCARBON( am_I_Root, Input_Opt, State_Met, RC )
+#endif
             ENDIF
 
             !*** MINERAL DUST AEROSOLS ***
             IF ( LDUST ) THEN 
  
                ! Do dust aerosol chemsitry
+#if defined( DEVEL )
+               CALL CHEMDUST( am_I_Root, Input_Opt, State_Met,
+     &                        State_Chm, RC )
+#else
                CALL CHEMDUST( am_I_Root, Input_Opt, State_Met, RC )
+#endif
 
                ! Compute dust OD's & surface areas
                WAVELENGTH = 0
@@ -440,26 +519,43 @@
          ! Rn-Pb-Be
          !---------------------------------                 
          ELSE IF ( IT_IS_A_RnPbBe_SIM ) THEN
+#if defined( DEVEL )
+            CALL CHEMRnPbBe( State_Met, State_Chm )
+            CALL DRYFLXRnPbBe( State_Chm )
+#else
             CALL CHEMRnPbBe( State_Met )
             CALL DRYFLXRnPbBe
+#endif
 
          !---------------------------------
          ! CH3I
          !---------------------------------
          ELSE IF ( IT_IS_A_CH3I_SIM ) THEN
+#if defined( DEVEL )
+            CALL CHEMCH3I( am_I_Root, State_Met, State_Chm )
+#else
             CALL CHEMCH3I( am_I_Root, State_Met )
+#endif
  
          !---------------------------------            
          ! HCN
          !---------------------------------
          ELSE IF ( IT_IS_A_HCN_SIM ) THEN
+#if defined( DEVEL )
+            CALL CHEM_HCN_CH3CN( State_Met, State_Chm )
+#else
             CALL CHEM_HCN_CH3CN( N_TRACERS, STT, State_Met )
+#endif
  
          !---------------------------------
          ! Tagged O3
          !---------------------------------
          ELSE IF ( IT_IS_A_TAGOX_SIM ) THEN 
+#if defined( DEVEL )
+            CALL CHEM_TAGGED_OX( State_Met, State_Chm )
+#else
             CALL CHEM_TAGGED_OX( State_Met )
+#endif
 
             ! Call linearized stratospheric scheme
             IF ( LSCHEM ) THEN 
@@ -471,13 +567,21 @@
          ! Tagged CO
          !---------------------------------
          ELSE IF ( IT_IS_A_TAGCO_SIM ) THEN
+#if defined( DEVEL )
+            CALL CHEM_TAGGED_CO( State_Met, State_Chm )
+#else
             CALL CHEM_TAGGED_CO( State_Met )
+#endif
  
          !---------------------------------
          ! C2H6
          !---------------------------------
          ELSE IF ( IT_IS_A_C2H6_SIM ) THEN
+#if defined( DEVEL )
+            CALL CHEMC2H6( State_Met, State_Chm )
+#else
             CALL CHEMC2H6( State_Met )
+#endif
  
          !---------------------------------
          ! CH4
@@ -486,7 +590,11 @@
  
             ! Only call after the first 24 hours
             IF ( GET_ELAPSED_MIN() >= GET_TS_CHEM() ) THEN
+#if defined( DEVEL )
+               CALL CHEMCH4( State_Met, State_Chm )
+#else
                CALL CHEMCH4( State_Met )
+#endif
             ENDIF
 
          !---------------------------------
@@ -495,7 +603,11 @@
          ELSE IF ( IT_IS_A_MERCURY_SIM ) THEN
  
             ! Do Hg chemistry
+#if defined( DEVEL )
+            CALL CHEMMERCURY( State_Met, State_Chm )
+#else
             CALL CHEMMERCURY( State_Met )
+#endif
 
          !---------------------------------
          ! POPs
@@ -503,14 +615,23 @@
          ELSE IF ( IT_IS_A_POPS_SIM ) THEN
  
             ! Do POPS chemistry
+#if defined( DEVEL )
+            CALL CHEMPOPS( State_Met, State_Chm )
+#else
             CALL CHEMPOPS( State_Met )
+#endif
                
          !---------------------------------
          ! Offline H2/HD
          !---------------------------------
          ELSE IF ( IT_IS_A_H2HD_SIM ) THEN
+#if defined( DEVEL )
+            CALL CHEM_H2_HD( State_Met, State_Chm )
+            CALL DRYFLXH2HD( State_Met, State_Chm )
+#else
             CALL CHEM_H2_HD( State_Met )
             CALL DRYFLXH2HD( State_Met )
+#endif
 
             ! Call linearized stratospheric scheme
             IF ( LSCHEM ) THEN 
@@ -545,8 +666,13 @@
       ! (bmy, 10/24/12) 
       !-----------------------------------------------------------------
 
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#else
       ! Reset Chemistry State tracers [kg] from GEOS-Chem tracer array
       State_Chm%TRACERS(:,:,:,1:N_TRACERS) = STT(:,:,:,1:N_TRACERS)
+#endif
 
       END SUBROUTINE DO_CHEMISTRY
 !EOC
@@ -855,7 +981,12 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE RECOMPUTE_OD( am_I_Root, Input_Opt, State_Met,
+     &                         State_Chm, RC )
+#else
       SUBROUTINE RECOMPUTE_OD( am_I_Root, Input_Opt, State_Met, RC )
+#endif
 !
 ! !USES:
 !
@@ -868,6 +999,9 @@
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#endif
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : GET_YEAR
@@ -877,6 +1011,12 @@
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -933,7 +1073,12 @@
             IF ( LSULF .or. LCARB .or. LDUST .or. LSSALT ) THEN
 
                ! Skip this section if all of these are turned off
+#if defined( DEVEL )
+               CALL AEROSOL_CONC( am_I_Root, Input_Opt, State_Met,
+     &                            State_Chm, RC )
+#else
                CALL AEROSOL_CONC( am_I_Root, Input_Opt, State_Met, RC )
+#endif
 
                !===============================================================
                ! Call RDAER -- computes aerosol optical depths

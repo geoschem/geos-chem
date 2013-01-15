@@ -11,7 +11,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE DIAG3( State_Chm )
+#else
       SUBROUTINE DIAG3                                                    
+#endif
 !
 ! !USES:
 !
@@ -40,7 +44,21 @@
       USE DEPO_MERCURY_MOD                   ! For offline Hg simulation
       USE DRYDEP_MOD                         ! For dry deposition
       USE LOGICAL_MOD                        ! For logical switches
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      ! For testing, remove later (mpayer, 12/6/12)
+      USE TRACER_MOD,         ONLY : N_TRACERS, TRACER_NAME,
+     &                               TRACER_MW_G,
+     &                               ITS_A_FULLCHEM_SIM,
+     &                               ITS_AN_AEROSOL_SIM,
+     &                               ITS_A_TAGOX_SIM,
+     &                               ITS_A_H2HD_SIM,
+     &                               ITS_A_CH3I_SIM,
+     &                               ITS_A_MERCURY_SIM,
+     &                               ITS_A_RnPbBe_SIM
+#else
       USE TRACER_MOD                         ! For tracer array
+#endif
       USE TRACERID_MOD                       ! For tracer flags
       USE WETSCAV_MOD                        ! For wet deposition
 
@@ -56,6 +74,12 @@
       IMPLICIT NONE
 #     include "define.h"
 
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  (40) Bug fix: Save levels 1:LD13 for ND13 diagnostic for diagnostic
@@ -209,6 +233,13 @@
       CHARACTER (LEN=20) :: MODELNAME 
       CHARACTER (LEN=40) :: UNIT
       CHARACTER (LEN=40) :: RESERVED = ''
+
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
 !
 !******************************************************************************
 !  DIAG3 begins here!
@@ -3320,6 +3351,12 @@
       IF ( ND62 > 0 ) THEN
          CATEGORY = 'INST-MAP'
 
+#if defined( DEVEL )
+         ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+         ! (mpayer, 12/6/12)
+         STT => State_Chm%Tracers
+#endif
+
          DO M = 1, TMAX(62)
             N  = TINDEX(62,M)
             IF ( N > N_TRACERS ) CYCLE
@@ -3350,6 +3387,12 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
 
          ENDDO
+
+#if defined( DEVEL )
+         ! Free pointer
+         NULLIFY( STT )
+#endif
+
       ENDIF
 !
 !******************************************************************************

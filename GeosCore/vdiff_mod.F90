@@ -2569,7 +2569,11 @@ contains
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+  SUBROUTINE DO_PBL_MIX_2( DO_TURBDAY, State_Met, State_Chm )
+#else
   SUBROUTINE DO_PBL_MIX_2( DO_TURBDAY, State_Met )
+#endif
 !
 ! !USES:
 !
@@ -2578,7 +2582,12 @@ contains
     USE LOGICAL_MOD,        ONLY : LTURB, LPRT
     USE PBL_MIX_MOD,        ONLY : INIT_PBL_MIX, COMPUTE_PBL_HEIGHT
     USE TIME_MOD,           ONLY : ITS_TIME_FOR_EMIS
-    USE TRACER_MOD,         ONLY : N_TRACERS, STT, TCVV, ITS_A_FULLCHEM_SIM
+#if defined( DEVEL )
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
+    USE TRACER_MOD,         ONLY : STT
+#endif
+    USE TRACER_MOD,         ONLY : N_TRACERS, TCVV, ITS_A_FULLCHEM_SIM
     USE VDIFF_PRE_MOD,      ONLY : EMISRR, EMISRRN
 
     IMPLICIT NONE
@@ -2588,7 +2597,14 @@ contains
 !
     LOGICAL,        INTENT(IN) :: DO_TURBDAY  ! Switch which turns on PBL
                                               !  mixing of tracers
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+
     TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 !
 ! !REVISION HISTORY: 
 !  11 Feb 2005 - R. Yantosca - Initial version
@@ -2602,11 +2618,24 @@ contains
 !
     LOGICAL, SAVE :: FIRST = .TRUE.
 
+      ! Pointers
+#if defined( DEVEL )
+    ! We need to define local arrays to hold corresponding values 
+    ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+    REAL*8, POINTER :: STT(:,:,:,:)
+#endif
+
     !=================================================================
     ! DO_PBL_MIX2 begins here!
     !=================================================================
     !call flush(6)
     
+#if defined( DEVEL )
+    ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+    ! (mpayer, 12/6/12)
+    STT => State_Chm%Tracers
+#endif
+
     ! First-time initialization
     IF ( FIRST ) THEN
        CALL INIT_PBL_MIX
@@ -2637,6 +2666,10 @@ contains
        IF( LPRT ) CALL DEBUG_MSG( '### DO_PBL_MIX_2: after VDIFFDR' )
     ENDIF
 
+#if defined( DEVEL )
+    ! Free pointer
+    NULLIFY( STT )
+#endif
 
   END SUBROUTINE DO_PBL_MIX_2
 !EOC  

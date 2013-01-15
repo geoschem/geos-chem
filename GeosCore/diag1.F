@@ -11,7 +11,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE DIAG1( State_Met, State_Chm )
+#else
       SUBROUTINE DIAG1( State_Met )
+#endif
 !
 ! !USES:
 !
@@ -25,7 +29,12 @@
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE PRESSURE_MOD,       ONLY : GET_PEDGE
       USE TIME_MOD,           ONLY : ITS_TIME_FOR_CHEM
-      USE TRACER_MOD,         ONLY : N_TRACERS, STT, TCVV
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
+      USE TRACER_MOD,         ONLY : STT
+#endif
+      USE TRACER_MOD,         ONLY : N_TRACERS, TCVV
       USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
       USE TRACER_MOD,         ONLY : XNUMOLAIR
       USE TRACERID_MOD,       ONLY : IDTOX
@@ -48,6 +57,12 @@
 ! !INPUT PARAMETERS:
 !
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
+#endif
 !
 ! !REVISION HISTORY:
 !  (1 ) This subroutine was reconstructed from gmg's version of (10/10/97)
@@ -129,6 +144,13 @@
       ! For FP potential temperature (hotp 7/31/09)
       REAL*8  :: P0
 
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
+
       !=================================================================
       ! DIAG1 begins here!
       !=================================================================
@@ -146,6 +168,13 @@
       
       ! Compute conc. in mixing ratio for ND35, ND45, ND47 diagnostics 
       IF ( ND35 > 0 .or. ND45 > 0 .or. ND47 > 0 ) THEN
+
+#if defined( DEVEL )
+         ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+         ! (mpayer, 12/6/12)
+         STT => State_Chm%Tracers
+#endif
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
@@ -160,6 +189,12 @@
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
+
+#if defined( DEVEL )
+         ! Free pointer
+         NULLIFY( STT )
+#endif
+
       ENDIF
 
 ! H Amos, 25 Oct 2011--------------------------------------------------
@@ -167,12 +202,17 @@
       !-----------------------------------------------!
       ! Write ND03 diagnostics for RGM and PBM (pptv) !
       !-----------------------------------------------!
-       IF(ND03 > 0) THEN
+      IF(ND03 > 0) THEN
+
+#if defined( DEVEL )
+        ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+        ! (mpayer, 12/6/12)
+        STT => State_Chm%Tracers
+#endif
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L)
-   
         DO L = 1, LLPAR
         DO J = 1, JJPAR
         DO I = 1, IIPAR
@@ -191,6 +231,12 @@
         ENDDO
         ENDDO
 !$OMP END PARALLEL DO 
+
+#if defined( DEVEL )
+        ! Free pointer
+        NULLIFY( STT )
+#endif
+
       ENDIF
 !-------------------------------------------------------------------------
 
@@ -235,6 +281,13 @@
       ! ND33: Atmospheric column sum of tracer [kg]
       !=================================================================  
       IF ( ND33 > 0 ) THEN   
+
+#if defined( DEVEL )
+         ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+         ! (mpayer, 12/6/12)
+         STT => State_Chm%Tracers
+#endif
+
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
@@ -248,6 +301,12 @@
          ENDDO
          ENDDO  
 !$OMP END PARALLEL DO
+
+#if defined( DEVEL )
+         ! Free pointer
+         NULLIFY( STT )
+#endif
+
       ENDIF
 
       !================================================================= 

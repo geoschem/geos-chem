@@ -477,7 +477,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE SAVE_GLOBAL_TPCORE_BC( State_Chm )
+#else
       SUBROUTINE SAVE_GLOBAL_TPCORE_BC
+#endif
 !
 ! !USES:
 !
@@ -486,12 +490,23 @@
       !USE FILE_MOD
       USE TIME_MOD,    ONLY : GET_NYMD,  GET_NHMS
       USE TIME_MOD,    ONLY : GET_TAU,   TIMESTAMP_STRING
-      USE TRACER_MOD,  ONLY : N_TRACERS, STT
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
+      USE TRACER_MOD,  ONLY : STT
+#endif
+      USE TRACER_MOD,  ONLY : N_TRACERS
       USE LOGICAL_MOD, ONLY : LWINDO_CU, LWINDO_NA
       USE LOGICAL_MOD, ONLY : LWINDO_CH, LWINDO_EU
       USE LOGICAL_MOD, ONLY : LWINDO_SE
 #if   defined( APM )
       USE TRACER_MOD,  ONLY : N_APMTRA
+#endif
+#if defined( DEVEL )
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
 #endif
 ! 
 ! !REVISION HISTORY: 
@@ -526,6 +541,13 @@
       CHARACTER(LEN=40)  :: UNIT      = 'v/v'
       CHARACTER(LEN=40)  :: RESERVED  = ''
 
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
+
       !=================================================================
       ! SAVE_GLOBAL_TPCORE_BC begins here!
       !=================================================================
@@ -550,6 +572,12 @@
       HALFPOLAR = GET_HALFPOLAR()
       MODELNAME = GET_MODELNAME()
       TAU       = GET_TAU()
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
 
       ! Loop over the possible combinations of nested grids
       DO IC = 1, 5
@@ -715,6 +743,11 @@
          ENDIF
       ENDDO
 
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
+
       ! FORMAT statements
  110  FORMAT( '     - SAVE_GLOBAL_TPCORE_BC: Wrote BC''s at ', a )
  111  FORMAT( '     - SAVE_GLOBAL_TPCORE_BC: Wrote NA BC''s at ', a )
@@ -738,15 +771,30 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE DO_WINDOW_TPCORE_BC( State_Chm )
+#else
       SUBROUTINE DO_WINDOW_TPCORE_BC
+#endif
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
       USE LOGICAL_MOD, ONLY : LWINDO2x25
-      USE TRACER_MOD,  ONLY : N_TRACERS, STT
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
+      USE TRACER_MOD,  ONLY : STT
+#endif
+      USE TRACER_MOD,  ONLY : N_TRACERS
 #if   defined( APM )
       USE TRACER_MOD,  ONLY : N_APMTRA
+#endif
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 #endif
 ! 
 ! !REVISION HISTORY: 
@@ -764,6 +812,13 @@
       LOGICAL, SAVE :: FIRST = .TRUE.
       INTEGER       :: I, J, L, N, N_TOT_TRC
 
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
+
       !=================================================================
       ! DO_WINDOW_TPCORE_BC begins here!
       !=================================================================
@@ -773,6 +828,12 @@
       N_TOT_TRC = N_TRACERS + N_APMTRA   ! G-C advected tracers + APM tracers
 #else
       N_TOT_TRC = N_TRACERS              ! G-C advected tracers only
+#endif
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 #endif
 
       ! Either zero BC's or read them from disk
@@ -869,6 +930,11 @@
 !$OMP END PARALLEL DO
 
       ENDIF
+
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
 
       END SUBROUTINE DO_WINDOW_TPCORE_BC
 !EOC

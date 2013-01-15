@@ -11,12 +11,20 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE LUMP( NTRACER, XNUMOL, State_Chm )
+#else
       SUBROUTINE LUMP( NTRACER, XNUMOL, STT )
+#endif
 !
 ! !USES:
 !
       USE COMODE_MOD,   ONLY : CSPEC,  JLOP,    VOLUME
       USE TRACERID_MOD, ONLY : IDTRMB, NMEMBER, CTRMB
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#endif
+
       USE CMN_SIZE_MOD                            ! Size parameters
       USE COMODE_LOOP_MOD                         ! SMVGEAR II arrays
 
@@ -30,8 +38,12 @@
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
+#if defined( DEVEL )
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#else
       ! Tracer concentrations [kg/box]
       REAL*8,  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,NTRACER)
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  01 Apr 2003 - R. Yantosca - Initial version
@@ -50,9 +62,23 @@
       INTEGER :: I, J, L, N, JLOOP, KK, JJ
       REAL*8  :: CONCTMP  
 
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
+
       !=================================================================
       ! LUMP begins here!
       !=================================================================
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N, JLOOP, CONCTMP, KK, JJ )
@@ -89,6 +115,11 @@
          ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
 
       END SUBROUTINE LUMP
 !EOC

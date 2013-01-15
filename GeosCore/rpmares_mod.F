@@ -76,7 +76,11 @@
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE DO_RPMARES( am_I_Root, State_Met, State_Chm )
+#else
       SUBROUTINE DO_RPMARES( am_I_Root, State_Met )
+#endif
 !
 !******************************************************************************
 !  Subroutine DO_RPMARES is the interface between the GEOS-CHEM model
@@ -109,7 +113,12 @@
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC,    GET_MONTH
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
       USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM 
-      USE TRACER_MOD,         ONLY : ITS_AN_AEROSOL_SIM, STT
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
+      USE TRACER_MOD,         ONLY : STT
+#endif
+      USE TRACER_MOD,         ONLY : ITS_AN_AEROSOL_SIM
       USE TRACERID_MOD,       ONLY : IDTSO4,             IDTNH3, IDTNH4 
       USE TRACERID_MOD,       ONLY : IDTNIT,             IDTHNO3 
       USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
@@ -139,11 +148,24 @@
 !
       LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 !
 ! !DEFINED PARAMETERS:
 !
       ! concentration lower limit [ug/m3 ]
       REAL*8,  PARAMETER     :: CONMIN = 1.0D-30
+
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
 
       !=================================================================
       ! DO_RPMARES begins here!
@@ -184,6 +206,12 @@
 
          ENDIF
       ENDIF
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
 
       !=================================================================
       ! Get equilibrium values of water, ammonium  and nitrate content
@@ -276,6 +304,11 @@
       ENDDO
 !$OMP END PARALLEL DO      
     
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
+
       ! Return to calling program
       END SUBROUTINE DO_RPMARES
 

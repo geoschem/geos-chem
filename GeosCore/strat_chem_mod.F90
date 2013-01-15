@@ -139,7 +139,9 @@ CONTAINS
     USE LINOZ_MOD,          ONLY : DO_LINOZ
     USE TIME_MOD,           ONLY : GET_MONTH
     USE TIME_MOD,           ONLY : TIMESTAMP_STRING
+#if !defined( DEVEL )
     USE TRACER_MOD,         ONLY : STT
+#endif
     USE TRACER_MOD,         ONLY : XNUMOLAIR
     USE TRACERID_MOD,       ONLY : IDTOX
     USE TRACERID_MOD,       ONLY : IDTCHBr3
@@ -214,6 +216,13 @@ CONTAINS
     REAL*8            :: BEFORE(IIPAR,JJPAR,LLPAR)
     REAL*8            :: TCVV(Input_Opt%N_TRACERS)
 
+    ! Pointers
+#if defined( DEVEL )
+    ! We need to define local arrays to hold corresponding values 
+    ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+    REAL*8, POINTER   :: STT(:,:,:,:)
+#endif
+
     ! External functions
     REAL*8, EXTERNAL  :: BOXVL
 
@@ -232,6 +241,12 @@ CONTAINS
     IT_IS_A_TAGOX_SIM    = Input_Opt%ITS_A_TAGOX_SIM  
     IT_IS_A_H2HD_SIM     = Input_Opt%ITS_A_H2HD_SIM
     TCVV                 = Input_Opt%TCVV
+
+#if defined( DEVEL )
+    ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+    ! (mpayer, 12/6/12)
+    STT => State_Chm%Tracers
+#endif
 
     ! Set a flag for debug printing
     prtDebug             = ( LPRT .and. am_I_Root )
@@ -345,10 +360,17 @@ CONTAINS
 
        ! Do Linoz or Synoz
        IF ( LLINOZ ) THEN
+#if defined( DEVEL )
+          CALL Do_Linoz( am_I_Root, State_Met, State_Chm )
+       ELSE
+          CALL Do_Synoz( am_I_Root, State_Met, State_Chm )
+       ENDIF
+#else
           CALL Do_Linoz( am_I_Root, State_Met )
        ELSE
           CALL Do_Synoz( am_I_Root, State_Met )
        ENDIF
+#endif
 
        ! Put ozone back to kg
        STT(:,:,:,IDTOX) = STT(:,:,:,IDTOX) * State_Met%AD / TCVV( IDTOX )
@@ -498,10 +520,17 @@ CONTAINS
 
        CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, State_Met%AD, STT ) ! kg -> v/v
        IF ( LLINOZ ) THEN
+#if defined( DEVEL )
+          CALL Do_Linoz( am_I_Root, State_Met, State_Chm )
+       ELSE 
+          CALL Do_Synoz( am_I_Root, State_Met, State_Chm )
+       ENDIF
+#else
           CALL Do_Linoz( am_I_Root, State_Met )
        ELSE 
           CALL Do_Synoz( am_I_Root, State_Met )
        ENDIF
+#endif
        CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, State_Met%AD, STT ) ! v/v -> kg
 
        ! Add to tropopause level aggregator for later determining STE flux
@@ -535,7 +564,11 @@ CONTAINS
        STT0(:,:,:,:) = STT(:,:,:,:)
 
        CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, State_Met%AD, STT ) ! kg -> v/v
+#if defined( DEVEL )
+       CALL UPBDFLX_HD( State_Met, State_Chm )
+#else
        CALL UPBDFLX_HD( State_Met )
+#endif
        CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, State_Met%AD, STT ) ! v/v -> kg
 
        ! Add to tropopause level aggregator for later determining STE flux
@@ -572,6 +605,11 @@ CONTAINS
        CALL GEOS_CHEM_STOP
        
     ENDIF
+
+#if defined( DEVEL )
+    ! Free pointer
+    NULLIFY( STT )
+#endif
 
   END SUBROUTINE DO_STRAT_CHEM
 !EOC
@@ -1124,11 +1162,20 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+  SUBROUTINE Calc_STE( am_I_Root, State_Chm )
+#else
   SUBROUTINE Calc_STE( am_I_Root )
+#endif
 !
 ! !USES:
 !
-    USE TRACER_MOD, ONLY : STT, TRACER_MW_KG, N_TRACERS, TRACER_NAME
+#if defined( DEVEL )
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
+    USE TRACER_MOD, ONLY : STT
+#endif
+    USE TRACER_MOD, ONLY : TRACER_MW_KG, N_TRACERS, TRACER_NAME
     USE TIME_MOD,   ONLY : GET_TAU, GET_NYMD, GET_NHMS, EXPAND_DATE
 
     USE CMN_SIZE_MOD
@@ -1140,6 +1187,9 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+#if defined( DEVEL )
+    TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
+#endif
 !
 ! !REVISION HISTORY: 
 !  28 Apr 2012 - L. Murray   - Initial version
@@ -1164,6 +1214,13 @@ CONTAINS
     REAL*8             :: M1 (IIPAR,JJPAR,LLPAR)
     REAL*8             :: M2 (IIPAR,JJPAR,LLPAR)
 
+    ! Pointers
+#if defined( DEVEL )
+    ! We need to define local arrays to hold corresponding values 
+    ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+    REAL*8, POINTER :: STT(:,:,:,:)
+#endif
+
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     ! By simple mass balance, dStrat/dt = P - L - STE,
     ! where STE is the net stratosphere-to-troposphere mass exchange. 
@@ -1182,6 +1239,11 @@ CONTAINS
     ! boundaries during the period is taken into account.
     RETURN
 #else
+#if defined( DEVEL )
+    ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+    ! (mpayer, 12/6/12)
+    STT => State_Chm%Tracers
+#endif
 
     ! Determine mean tropopause level for the period
     !$OMP PARALLEL DO                               &
@@ -1272,6 +1334,10 @@ CONTAINS
     SChem_tend(:,:,:,:)  = 0d0
     MInit(:,:,:,:)       = STT(:,:,:,:)
 
+#if defined( DEVEL )
+    ! Free pointer
+    NULLIFY( STT )
+#endif
 #endif
   END SUBROUTINE Calc_STE
 !EOC
@@ -1297,7 +1363,9 @@ CONTAINS
     USE GIGC_ErrCode_Mod
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Chm_Mod, ONLY : ChmState
+#if !defined( DEVEL )
     USE TRACER_MOD,         ONLY : STT
+#endif
     USE TRACERID_MOD,       ONLY : IDTCHBr3, IDTCH2Br2, IDTCH3Br
     USE TRACERID_MOD,       ONLY : IDTBr2,   IDTBr,     IDTBrO
     USE TRACERID_MOD,       ONLY : IDTHOBr,  IDTHBr,    IDTBrNO3
@@ -1344,6 +1412,13 @@ CONTAINS
     ! Arrays
     CHARACTER(LEN=14) :: TRACER_NAME(Input_Opt%N_TRACERS)
 
+    ! Pointers
+#if defined( DEVEL )
+    ! We need to define local arrays to hold corresponding values 
+    ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+    REAL*8, POINTER :: STT(:,:,:,:)
+#endif
+
     !=================================================================
     ! INIT_STRAT_CHEM begins here!
     !=================================================================
@@ -1357,6 +1432,12 @@ CONTAINS
     IT_IS_A_FULLCHEM_SIM     = Input_Opt%ITS_A_FULLCHEM_SIM
     IT_IS_A_TAGOX_SIM        = Input_Opt%ITS_A_TAGOX_SIM
     TRACER_NAME(1:N_TRACERS) = Input_Opt%TRACER_NAME(1:N_TRACERS)
+
+#if defined( DEVEL )
+    ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+    ! (mpayer, 12/6/12)
+    STT => State_Chm%Tracers
+#endif
 
     ! Initialize counters, initial times, mapping arrays
     TpauseL_Cnt              = 0.
@@ -1548,6 +1629,11 @@ CONTAINS
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'Bry_night' )
     Bry_night = 0.
 
+#if defined( DEVEL )
+    ! Free pointer
+    NULLIFY( STT )
+#endif
+
   END SUBROUTINE INIT_STRAT_CHEM
 !EOC
 !------------------------------------------------------------------------------
@@ -1598,7 +1684,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+  SUBROUTINE Do_Synoz( am_I_Root, State_Met, State_Chm )
+#else
   SUBROUTINE Do_Synoz( am_I_Root, State_Met )   
+#endif
 !
 ! !USES:
 !
@@ -1606,9 +1696,13 @@ CONTAINS
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE LOGICAL_MOD,        ONLY : LVARTROP 
     USE PRESSURE_MOD,       ONLY : GET_PEDGE, GET_PCENTER
-    USE TAGGED_OX_MOD,      ONLY : ADD_STRAT_POX
     USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_YEAR
-    USE TRACER_MOD,         ONLY : STT, ITS_A_TAGOX_SIM
+#if defined( DEVEL )
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
+    USE TRACER_MOD,         ONLY : STT
+#endif
+    USE TRACER_MOD,         ONLY : ITS_A_TAGOX_SIM
     USE TRACERID_MOD,       ONLY : IDTOX, IDTOxStrt
     USE TROPOPAUSE_MOD,     ONLY : GET_TPAUSE_LEVEL
 
@@ -1622,6 +1716,12 @@ CONTAINS
 !
     LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
     TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 !
 ! !REMARKS:
 !  Reference:
@@ -1751,6 +1851,13 @@ CONTAINS
     ! REAL*8,  PARAMETER   :: P70mb = 70d0 !PHS
     REAL*8  :: P70mb, PTP
 
+    ! Pointers
+#if defined( DEVEL )
+    ! We need to define local arrays to hold corresponding values 
+    ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+    REAL*8, POINTER :: STT(:,:,:,:)
+#endif
+
     !=================================================================
     ! Do_Synoz begins here!
     !=================================================================
@@ -1764,6 +1871,12 @@ CONTAINS
 
     ! lower pressure !PHS
     P70mb = 70d0
+
+#if defined( DEVEL )
+    ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+    ! (mpayer, 12/6/12)
+    STT => State_Chm%Tracers
+#endif
 
     !=================================================================
     ! Compute the proper release rate of O3 coming down from the 
@@ -1942,6 +2055,11 @@ CONTAINS
     ENDDO
     !$OMP END PARALLEL DO
 
+#if defined( DEVEL )
+    ! Free pointer
+    NULLIFY( STT )
+#endif
+
     !=================================================================
     ! Print amount of stratospheric O3 coming down
     !=================================================================
@@ -1969,14 +2087,22 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+  SUBROUTINE UPBDFLX_HD( State_Met, State_Chm )
+#else
   SUBROUTINE UPBDFLX_HD( State_Met )
+#endif
 !
 ! !USES:
 !
     USE ERROR_MOD,          ONLY : ERROR_STOP
     USE PRESSURE_MOD,       ONLY : GET_PEDGE, GET_PCENTER
     USE TIME_MOD,           ONLY : GET_TS_CHEM
+#if defined( DEVEL )
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
     USE TRACER_MOD,         ONLY : STT
+#endif
     USE TRACERID_MOD,       ONLY : IDTHD, IDTH2
     USE GIGC_State_Met_Mod, ONLY : MetState
     
@@ -1986,6 +2112,12 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 !
 ! !REMARKS:
 !  Instead of calculating the fractionation of H2 in the stratosphere 
@@ -2064,12 +2196,25 @@ CONTAINS
     ! Lower pressure bound for HD release (unit: mb)
     REAL*8,  PARAMETER   :: P70mb = 70d0
 
+    ! Pointers
+#if defined( DEVEL )
+    ! We need to define local arrays to hold corresponding values 
+    ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+    REAL*8, POINTER :: STT(:,:,:,:)
+#endif
+
     !=================================================================
     ! UPBDFLX_HD begins here!
     !=================================================================
 
     ! Chemistry timestep [s]
     DTCHEM = GET_TS_CHEM() * 60d0
+
+#if defined( DEVEL )
+    ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+    ! (mpayer, 12/6/12)
+    STT => State_Chm%Tracers
+#endif
 
     !=================================================================
     ! For now the only HD release rates are for GEOS-3. This will
@@ -2200,6 +2345,11 @@ CONTAINS
        ENDDO
     ENDDO
     !$OMP END PARALLEL DO
+
+#if defined( DEVEL )
+    ! Free pointer
+    NULLIFY( STT )
+#endif
 
   END SUBROUTINE UPBDFLX_HD
 !EOC

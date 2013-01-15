@@ -83,7 +83,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE DO_CONVECTION( State_Met, State_Chm )
+#else
       SUBROUTINE DO_CONVECTION( State_Met )
+#endif
 !
 ! !USES:
 !
@@ -98,7 +102,11 @@
       USE TRACER_MOD,         ONLY : N_TRACERS
       USE TRACER_MOD,         ONLY : TCVV
       USE TRACER_MOD,         ONLY : TRACER_MW_KG
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
       USE TRACER_MOD,         ONLY : STT
+#endif
       USE TRACERID_MOD,       ONLY : IDTHg2
       USE TRACERID_MOD,       ONLY : IDTHgP
       USE TIME_MOD,           ONLY : GET_TS_DYN
@@ -115,6 +123,12 @@
 ! !INPUT PARAMETERS:
 !
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  25 May 2005 - S. Wu       - Initial version
@@ -152,6 +166,13 @@
 !
       INTEGER :: N_TOT_TRC               ! # of tracers to convect
 
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
+
       !=================================================================
       ! DO_CONVECT begins here!
       !=================================================================
@@ -163,7 +184,11 @@
       !=================================================================
 
       ! Call GCAP driver routine
+#if defined( DEVEL )
+      CALL DO_GCAP_CONVECT( State_Met. State_Chm )
+#else
       CALL DO_GCAP_CONVECT( State_Met )
+#endif
 
 #elif defined( GEOS_4 )
 
@@ -172,7 +197,11 @@
       !=================================================================
 
       ! Call GEOS-4 driver routine
+#if defined( DEVEL )
+      CALL DO_GEOS4_CONVECT( State_Met, State_Chm )
+#else
       CALL DO_GEOS4_CONVECT( State_Met )
+#endif
 
 #elif defined( GEOS_5 )
 
@@ -187,6 +216,12 @@
       N_TOT_TRC = N_TRACERS              !  the APM aerosol tracers
 #endif
 
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
+
       ! Call the S-J Lin convection routine for GEOS-5
       CALL NFCLDMX( N_TOT_TRC,
      &              TCVV,
@@ -194,6 +229,11 @@
      &              State_Met%DTRAIN, 
      &              STT,
      &              State_Met )
+
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
 
 #elif defined( MERRA ) || defined( GEOS_57 )
 
@@ -347,8 +387,8 @@
          p_H2O2s           => State_Met%H2O2s   ( I, J,  :          )
          p_REEVAPCN        => State_Met%REEVAPCN( I, J,  :          )
          p_SO2s            => State_Met%SO2s    ( I, J,  :          )
-         p_STT             => State_Met%STT     ( I, J,  :,       : )
          p_T               => State_Met%T       ( I, J,  :          )
+         p_STT             => State_Chm%Tracers ( I, J,  :,       : )
          
          !--------------------------
          ! Do the cloud convection
@@ -444,7 +484,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE DO_GEOS4_CONVECT( State_Met, State_Chm )
+#else
       SUBROUTINE DO_GEOS4_CONVECT( State_Met )
+#endif
 !
 ! !USES:
 !
@@ -455,7 +499,12 @@
       USE LOGICAL_MOD,        ONLY : LPRT
       USE PRESSURE_MOD,       ONLY : GET_PEDGE
       USE TIME_MOD,           ONLY : GET_TS_CONV
-      USE TRACER_MOD,         ONLY : N_TRACERS, STT, TCVV
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
+      USE TRACER_MOD,         ONLY : STT
+#endif
+      USE TRACER_MOD,         ONLY : N_TRACERS, TCVV
       USE WETSCAV_MOD,        ONLY : COMPUTE_F
 #if   defined( APM ) 
       USE TRACER_MOD,         ONLY : N_APMTRA
@@ -467,6 +516,12 @@
 ! !INPUT PARAMETERS:
 !
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  25 May 2005 - S. Wu       - Initial version
@@ -499,6 +554,13 @@
 #else
       INTEGER        :: INDEXSOL(                  N_TRACERS)
       REAL*8         :: F       (IIPAR,JJPAR,LLPAR,N_TRACERS)
+#endif
+
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
 #endif
 
       !=================================================================
@@ -609,6 +671,12 @@
       ! Flip arrays in the vertical and call FVDAS_CONVECT
       !=================================================================
 
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
+
       ! Call the fvDAS convection routines (originally from NCAR!)
       CALL FVDAS_CONVECT( TDT,   
      &                    N_TOT_TRC, 
@@ -642,6 +710,11 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
+
       !### Debug! 
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_G4_CONV: a FVDAS_CONVECT' )
 
@@ -661,7 +734,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE DO_GCAP_CONVECT( State_Met, State_Chm )
+#else
       SUBROUTINE DO_GCAP_CONVECT( State_Met )
+#endif
 !
 ! !USES:
 !
@@ -672,7 +749,12 @@
       USE LOGICAL_MOD,        ONLY : LPRT
       USE PRESSURE_MOD,       ONLY : GET_PEDGE, GET_PCENTER
       USE TIME_MOD,           ONLY : GET_TS_CONV
-      USE TRACER_MOD,         ONLY : N_TRACERS, STT, TCVV
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
+      USE TRACER_MOD,         ONLY : STT
+#endif
+      USE TRACER_MOD,         ONLY : N_TRACERS, TCVV
       USE WETSCAV_MOD,        ONLY : COMPUTE_F
 #if   defined( APM )
       USE TRACER_MOD,         ONLY : N_APMTRA
@@ -684,6 +766,12 @@
 ! !INPUT PARAMETERS: 
 !
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 !
 ! !REVISION HISTORY: 
 !  25 May 2005 - S. Wu       - Initial version
@@ -717,6 +805,13 @@
 #else
       INTEGER       :: INDEXSOL(                  N_TRACERS) 
       REAL*8        :: F       (IIPAR,JJPAR,LLPAR,N_TRACERS)
+#endif
+
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
 #endif
 
       !=================================================================
@@ -825,6 +920,12 @@
       ! Flip arrays in the vertical and call FVDAS_CONVECT
       !=================================================================
 
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
+
       ! Call the GCAP convection routines 
       CALL GCAP_CONVECT( TDT, 
      &                   STT      (:,:,LLPAR:1:-1,:), 
@@ -857,6 +958,11 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
 
       !### Debug! 
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_GCAP_CONV: a GCAP_CONVECT' )

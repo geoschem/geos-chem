@@ -107,13 +107,22 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE DO_PBL_MIX( DO_TURBDAY, State_Met, State_Chm )
+#else
       SUBROUTINE DO_PBL_MIX( DO_TURBDAY, State_Met )
+#endif
 !
 ! !USES:
 !
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE LOGICAL_MOD,        ONLY : LTURB
-      USE TRACER_MOD,         ONLY : N_TRACERS, STT, TCVV 
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
+      USE TRACER_MOD,         ONLY : STT
+#endif
+      USE TRACER_MOD,         ONLY : N_TRACERS, TCVV 
 #if   defined( APM ) 
       USE TRACER_MOD,         ONLY : N_APMTRA
 #endif
@@ -123,6 +132,12 @@
       LOGICAL,        INTENT(IN) :: DO_TURBDAY  ! =T means call TURBDAY 
                                                 !    for full PBL mixing
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 !
 ! !REVISION HISTORY: 
 !  11 Feb 2005 - R. Yantosca - Initial version
@@ -137,6 +152,13 @@
       LOGICAL, SAVE :: FIRST = .TRUE.
       INTEGER       :: N_TOT_TRC
 
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
+
       !=================================================================
       ! DO_PBL_MIX begins here!
       !=================================================================
@@ -146,6 +168,12 @@
       N_TOT_TRC = N_TRACERS + N_APMTRA   ! If APM is used, then convect
 #else                                    !  the G-C advected tracers +
       N_TOT_TRC = N_TRACERS              !  the APM aerosol tracers
+#endif
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 #endif
 
       ! First-time initialization
@@ -159,6 +187,11 @@
 
       ! Do complete mixing of tracers in the PBL (if necessary)
       IF ( DO_TURBDAY ) CALL TURBDAY( N_TOT_TRC, STT, TCVV, State_Met )
+
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
 
       END SUBROUTINE DO_PBL_MIX
 !EOC

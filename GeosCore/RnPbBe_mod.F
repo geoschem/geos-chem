@@ -262,7 +262,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE EMISSRnPbBe( State_Met, State_Chm )
+#else
       SUBROUTINE EMISSRnPbBe( State_Met )
+#endif
 !
 ! !USES:
 !
@@ -273,7 +277,12 @@
       USE GRID_MOD,           ONLY : GET_YEDGE 
       USE LOGICAL_MOD,        ONLY : LEMIS
       USE TIME_MOD,           ONLY : GET_TS_EMIS
-      USE TRACER_MOD,         ONLY : STT, N_TRACERS
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
+      USE TRACER_MOD,         ONLY : STT
+#endif
+      USE TRACER_MOD,         ONLY : N_TRACERS
       USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
 
@@ -283,6 +292,12 @@
 ! !INPUT PARAMETERS: 
 !
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  28 May 1999 - I. Bey - Initial version
@@ -342,12 +357,25 @@
       REAL*8        :: LAT_H,      LAT_L,      F_LAND,    F_WATER
       REAL*8        :: F_BELOW_70, F_BELOW_60, F_ABOVE_60
 
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
+
       !=================================================================
       ! EMISSRnPbBe begins here!
       !=================================================================
 
       ! Return if we are not doing emissions!
       IF ( .not. LEMIS ) RETURN   
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
 
       ! Emission timestep [s]
       DTSRCE = GET_TS_EMIS() * 60d0
@@ -541,6 +569,11 @@
          ENDDO
 !$OMP END PARALLEL DO
       ENDIF
+
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
      
       ! Reset FIRSTEMISS
       FIRSTEMISS = .FALSE.
@@ -560,14 +593,23 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE CHEMRnPbBe( State_Met, State_Chm )
+#else
       SUBROUTINE CHEMRnPbBe( State_Met )
+#endif
 !
 ! !USES:
 !
       USE DIAG_MOD,           ONLY : AD01, AD02
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
+      USE TRACER_MOD,         ONLY : STT
+#endif
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACER_MOD,         ONLY : STT, N_TRACERS
+      USE TRACER_MOD,         ONLY : N_TRACERS
       USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
 
       USE CMN_SIZE_MOD             ! Size parameters
@@ -576,6 +618,12 @@
 ! !INPUT PARAMETERS: 
 !
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 ! 
 ! !REVISION HISTORY:
 !  31 Oct 1999 - H. Liu - Initial version
@@ -616,9 +664,22 @@
       ! Ratio of molecular weights of 210Pb/222Rn
       REAL*8, PARAMETER :: Pb_Rn_RATIO = 210d0 / 222d0
 
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
+
       !=================================================================
       ! CHEMRnPbBe begins here!
       !=================================================================
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
 
       ! Chemistry timestep [s]
       DTCHEM = GET_TS_CHEM() * 60d0
@@ -732,6 +793,11 @@
          ENDDO
 !$OMP END PARALLEL DO
       ENDIF
+
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
 
       END SUBROUTINE CHEMRnPbBe
 !EOC

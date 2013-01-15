@@ -354,7 +354,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE EMISS_TAGGED_CO( State_Met, State_Chm )
+#else
       SUBROUTINE EMISS_TAGGED_CO( State_Met )
+#endif
 !
 ! !USES:
 !
@@ -377,7 +381,11 @@
       USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L, GET_FRAC_OF_PBL
       USE TIME_MOD,           ONLY : GET_MONTH,     GET_TAU 
       USE TIME_MOD,           ONLY : GET_YEAR,      GET_TS_EMIS  
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
       USE TRACER_MOD,         ONLY : STT
+#endif
       USE TRACERID_MOD,       ONLY : IDBFCO, IDECO, IDBCO
 
       IMPLICIT NONE
@@ -387,6 +395,12 @@
 ! !INPUT PARAMETERS:
 !
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  21 Jul 2000 - I. Bey, B. Field, B. Duncan - Initial version
@@ -470,6 +484,13 @@
       ! Add variables needed for MEGAN biogenics (jaf, 3/10/09)
       REAL*8                 :: SC,   PDF,  PDR
       
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
+
       ! External functions
       REAL*8, EXTERNAL       :: BOXVL
       REAL*8, EXTERNAL       :: EMCH3OH
@@ -511,6 +532,12 @@
       ! Get nested-grid offsets
       I0 = GET_XOFFSET()
       J0 = GET_YOFFSET()
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
 
       !=================================================================
       ! Process Anthropogenic (Fossil Fuel) CO emissions
@@ -757,6 +784,11 @@
 !$OMP END PARALLEL DO
       ENDIF
 
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
+
       END SUBROUTINE EMISS_TAGGED_CO
 !EOC
 !------------------------------------------------------------------------------
@@ -772,7 +804,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE CHEM_TAGGED_CO( State_Met, State_Chm )
+#else
       SUBROUTINE CHEM_TAGGED_CO( State_Met )
+#endif
 !
 ! !USES:
 !
@@ -790,12 +826,23 @@
       USE TIME_MOD,           ONLY : GET_TS_CHEM,     GET_TS_EMIS
       USE TIME_MOD,           ONLY : GET_MONTH,       GET_YEAR
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
-      USE TRACER_MOD,         ONLY : N_TRACERS,       STT
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
+      USE TRACER_MOD,         ONLY : STT
+#endif
+      USE TRACER_MOD,         ONLY : N_TRACERS
       USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
 !
 ! !INPUT PARAMETERS:
 !
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  19 Oct 1999 - Q. Li, B. Duncan, B. Field - Initial version
@@ -886,6 +933,13 @@
       ! Switch to scale yield of isoprene from NOx concentration or not
       LOGICAL, PARAMETER     :: ALPHA_ISOP_FROM_NOX = .FALSE.
 
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
+
       !=================================================================
       ! CHEM_TAGGED_CO begins here!
       !
@@ -895,11 +949,14 @@
          FIRSTCHEM = .FALSE.
       ENDIF
 
-      ! DTCHEM is the chemistry timestep in seconds
-      DTCHEM = GET_TS_CHEM() * 60d0
-
       ! DTSRCE is the number of seconds per emission timestep
       DTSRCE = GET_TS_EMIS() * 60d0
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
 
       !=================================================================
       ! Read in OH, NOx, P(CO), and L(CO) fields for the current month
@@ -1407,6 +1464,11 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
 
       END SUBROUTINE CHEM_TAGGED_CO
 !EOC

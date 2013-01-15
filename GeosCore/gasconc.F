@@ -11,9 +11,15 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE GASCONC( am_I_Root, 
+     &                    FIRSTCHEM,  NTRACER,   XNUMOL,
+     &                    READ_CSPEC, State_Met, State_Chm )
+#else
       SUBROUTINE GASCONC( am_I_Root, 
      &                    FIRSTCHEM, NTRACER,    STT, 
      &                    XNUMOL,    READ_CSPEC, State_Met )
+#endif
 !
 ! !USES:
 !
@@ -31,6 +37,9 @@
       USE COMODE_MOD,         ONLY : T3
       USE DRYDEP_MOD,         ONLY : NUMDEP
       USE ERROR_MOD,          ONLY : ERROR_STOP
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#endif
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE LOGICAL_MOD,        ONLY : LSOA
       USE LOGICAL_MOD,        ONLY : LVARTROP
@@ -51,10 +60,14 @@
       LOGICAL,        INTENT(IN)    :: READ_CSPEC      ! Is 
       TYPE(MetState), INTENT(IN)    :: State_Met       ! Met State object
 !
-! !OUTPUT PARAMETERS:
+! !INPUT/OUTPUT PARAMETERS: 
 !
+#if defined( DEVEL )
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#else
       ! Tracer concentrations 
       REAL*8,         INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,NTRACER)
+#endif
 !
 ! !REMARKS:
 !
@@ -311,7 +324,11 @@
 !   should be added as needed to other chemistries.
 !      if (NCS .eq. 1) then
 !  maybe??
+#if defined( DEVEL )
+      CALL PARTITION( NTRACER, XNUMOL, am_I_Root, State_Chm ) 
+#else
       CALL PARTITION( NTRACER, STT, XNUMOL, am_I_Root ) 
+#endif
 !      endif
 
 ! 

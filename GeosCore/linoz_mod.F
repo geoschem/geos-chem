@@ -94,11 +94,18 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE DO_LINOZ( am_I_Root, State_Met, State_Chm )
+#else
       SUBROUTINE DO_LINOZ( am_I_Root, State_Met )
+#endif
 !
 ! !USES:
 !
       USE TIME_MOD
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#endif
       USE GIGC_State_Met_Mod, ONLY : MetState
 
       USE CMN_SIZE_MOD
@@ -107,6 +114,12 @@
 !
       LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 !
 ! !REVISION HISTORY: 
 !  24 Jun 2003 - B. Field & D. Jones - Further updates for GEOS-Chem
@@ -134,7 +147,11 @@
       NSCHEM = GET_TS_CHEM() * 60D0 
 
       ! Call the Linoz chemistry
+#if defined( DEVEL )
+      CALL LINOZ_CHEM3( NSCHEM, am_I_Root, State_Met, State_Chm )
+#else
       CALL LINOZ_CHEM3( NSCHEM, am_I_Root, State_Met )
+#endif
 
       END SUBROUTINE DO_LINOZ    
 !EOC
@@ -151,13 +168,24 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE LINOZ_CHEM3( DTCHEM, am_I_Root, State_Met, State_Chm )
+#else
       SUBROUTINE LINOZ_CHEM3( DTCHEM, am_I_Root, State_Met )
+#endif
 !
 ! !USES:
 !
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2   
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      ! For testing, remove later (mpayer, 12/6/12)
+      USE TRACER_MOD,         ONLY : N_TRACERS, TCVV,
+     &                               ITS_A_FULLCHEM_SIM, ITS_A_TAGOX_SIM
+#else
       USE TRACER_MOD
+#endif
       USE TRACERID_MOD                          
       USE TROPOPAUSE_MOD,     ONLY : GET_TPAUSE_LEVEL 
       USE TROPOPAUSE_MOD,     ONLY : GET_MAX_TPAUSE_LEVEL
@@ -172,6 +200,12 @@
       REAL*8,         INTENT(IN) :: DTCHEM      ! Time step [seconds]
       LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 !
 ! !REVISION HISTORY: 
 !  24 Jun 2003 - B. Field & D. Jones - Further updates for GEOS-Chem
@@ -203,6 +237,13 @@
       REAL*8  :: DCOLO3(IIPAR,JJPAR,LLPAR)
       REAL*8  :: COLO3(IIPAR,JJPAR,LLPAR)
       REAL*8  :: OUT_DATA(IIPAR,JJPAR,LLPAR)
+
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
       
       ! Assign values for local IM and JM   (dbj 6/24/03) 
       IM     = IIPAR
@@ -260,6 +301,12 @@
 
       ! **** note dbj: check STT(I,J,20:LLPAR,NTRACER) = with trop level
       ! ****         : check DMASS
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
 
       DO ITRC=1,NUM_TRACER     ! dbj loop for tagged
 
@@ -378,6 +425,11 @@
       !write(6,*) 'max of columns= ',maxval(out_data)
 
       ENDDO   ! loop over ntracers
+
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
 
       END SUBROUTINE LINOZ_CHEM3
 !EOC
@@ -1001,12 +1053,21 @@ c907  FORMAT(20X,6E10.3/(8E10.3))
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE STRAT_INIT( am_I_Root, State_Chm )
+#else
       SUBROUTINE STRAT_INIT( am_I_Root )
+#endif
 !
 ! !USES:
 !
-      USE TRACERID_MOD 
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE TRACER_MOD,         ONLY : TCVV
+#else
       USE TRACER_MOD   
+#endif
+      USE TRACERID_MOD 
 
       USE CMN_SIZE_MOD
       USE CMN_MOD
@@ -1014,6 +1075,12 @@ c907  FORMAT(20X,6E10.3/(8E10.3))
 ! !INPUT PARAMETERS:
 !
       LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 !
 ! !REVISION HISTORY: 
 !  24 Jun 2003 - B. Field & D. Jones - Further updates for GEOS-Chem
@@ -1028,7 +1095,20 @@ c907  FORMAT(20X,6E10.3/(8E10.3))
 !
       INTEGER I, J, L
 
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
+
       CALL LINOZ_STRATL( am_I_Root )
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
 
       DO J = 1,JJPAR
       DO I = 1,IIPAR
@@ -1038,6 +1118,11 @@ c907  FORMAT(20X,6E10.3/(8E10.3))
       ENDDO
       ENDDO
       ENDDO
+
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
 
 !      call write_fields2(7)
 !      call flush(12)

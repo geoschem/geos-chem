@@ -245,16 +245,26 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE DIAG51( State_Met, State_Chm )
+#else
       SUBROUTINE DIAG51( State_Met )
+#endif
 !
 ! !USES:
 !
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#endif
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE LOGICAL_MOD,        ONLY : DO_DIAG_WRITE
 !
 ! !INPUT PARAMETERS:
 !
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -277,7 +287,11 @@
       CALL GET_LOCAL_TIME
 
       ! Accumulate data in the Q array
+#if defined( DEVEL )
+      CALL ACCUMULATE_DIAG51( State_Met, State_Chm )
+#else
       CALL ACCUMULATE_DIAG51( State_Met )
+#endif
 
       ! Write data to disk at the proper time
       IF ( ITS_TIME_FOR_WRITE_DIAG51( TAU_W ) .and. DO_DIAG_WRITE ) THEN
@@ -371,7 +385,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE ACCUMULATE_DIAG51( State_Met, State_Chm )
+#else
       SUBROUTINE ACCUMULATE_DIAG51( State_Met )
+#endif
 !
 ! !USES:
 !
@@ -383,8 +401,13 @@
       USE TIME_MOD,           ONLY : GET_ELAPSED_MIN, GET_TS_CHEM 
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING, GET_TS_DYN
       USE TIME_MOD,           ONLY : GET_TS_DIAG, GET_TS_EMIS
-      USE TRACER_MOD,         ONLY : STT, TCVV, ITS_A_FULLCHEM_SIM
-      USE TRACER_MOD,         ONLY : N_TRACERS, XNUMOLAIR
+      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM, N_TRACERS
+      USE TRACER_MOD,         ONLY : TCVV,               XNUMOLAIR
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
+      USE TRACER_MOD,         ONLY : STT
+#endif
       USE TRACERID_MOD,       ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNOX  
       USE TRACERID_MOD,       ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
       USE TRACERID_MOD,       ONLY : IDTR4N2, IDTSALA, IDTSALC 
@@ -399,6 +422,9 @@
 ! !INPUT PARAMETERS:
 !
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -452,6 +478,13 @@
 
       ! Aerosol types (rvm, aad, bmy, 7/20/04)
       INTEGER           :: IND(6) = (/ 22, 29, 36, 43, 50, 15 /)
+
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER   :: STT(:,:,:,:)
+#endif
 
       !=================================================================
       ! ACCUMULATE_DIAG51 begins here!
@@ -558,11 +591,18 @@
       ! Accumulate quantities
       !------------------------
       IF ( IS_DIAG ) THEN
+
+#if defined( DEVEL )
+         ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+         ! (mpayer, 12/6/12)
+         STT => State_Chm%Tracers
+#endif
+
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
 !$OMP+PRIVATE( W, N, X, Y, K, I, J, L, TMP, H, R, SCALEAODnm ) 
 !$OMP+SCHEDULE( DYNAMIC )
-      DO W = 1, ND51_N_TRACERS
+         DO W = 1, ND51_N_TRACERS
 
          ! ND51 Tracer number
          N = ND51_TRACERS(W)
@@ -1140,9 +1180,15 @@
          ENDDO
          ENDDO
          ENDDO
-      ENDDO 
+         ENDDO 
 !$OMP END PARALLEL DO
-      GOOD(:) = 0
+         GOOD(:) = 0
+
+#if defined( DEVEL )
+         ! Free pointer
+         NULLIFY( STT )
+#endif
+
       ENDIF
 
       END SUBROUTINE ACCUMULATE_DIAG51

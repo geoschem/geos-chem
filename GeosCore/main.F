@@ -33,7 +33,17 @@
       USE PRESSURE_MOD          ! For computing pressure at grid boxes
       USE RESTART_MOD           ! For restart file I/O
       USE TIME_MOD              ! For computing date & time 
+#if !defined( DEVEL)
       USE TRACER_MOD            ! Tracer array (STT) + related functions
+#else
+      ! For testing, remove later (mpayer, 12/6/12)
+      USE TRACER_MOD, ONLY      : N_MEMBERS, N_TRACERS, TCVV,
+     &                            ITS_A_FULLCHEM_SIM, ITS_A_CH4_SIM,
+     &                            ITS_A_MERCURY_SIM,  ITS_A_TAGCO_SIM,
+     &                            ITS_AN_AEROSOL_SIM, ITS_A_CH3I_SIM,
+     &                            ITS_A_H2HD_SIM,     CHECK_STT,
+     &                            CHECK_STT_05x0666
+#endif
       USE TRACERID_MOD          ! Flags for G-C tracers & chemical species
 
       !-----------------------------------------------------------------
@@ -276,6 +286,13 @@
       ! (mlong, bmy, 7/30/12)
       !
       LOGICAL, PARAMETER       :: am_I_Root = .TRUE. 
+#if defined( DEVEL )
+      !
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      !
+      REAL*8, POINTER          :: STT(:,:,:,:)
+#endif
       !-----------------------------------------------------------------
 
       !=================================================================
@@ -363,6 +380,13 @@
       ! N_TRACERS, which is obtained by reading the input.geos file.
       !
       CALL Fill_Chem_State_Name_IDs( am_I_Root, State_Chm )
+      !
+#if defined( DEVEL )
+      ! Define STT array from Chemistry State object (mpayer, 12/6/12)
+      !
+      STT => State_Chm%Tracers
+      !
+#endif
       !-----------------------------------------------------------------
 
       ! Initialize diagnostic arrays and counters
@@ -460,11 +484,19 @@
       ! Initialize PBL quantities but do not do mixing
       ! Add option for non-local PBL (Lin, 03/31/09) 
       IF ( .NOT. LNLPBL ) THEN
+#if defined( DEVEL )
+         CALL DO_PBL_MIX  ( .FALSE., State_Met, State_Chm )
+#else
          CALL DO_PBL_MIX  ( .FALSE., State_Met )
+#endif
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:1' )
       ELSE
          !### DEBUG
+#if defined( DEVEL )
+         CALL DO_PBL_MIX_2( .FALSE., State_Met, State_Chm )
+#else
          CALL DO_PBL_MIX_2( .FALSE., State_Met )
+#endif
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a NLPBL 1' )
       ENDIF
 
@@ -473,7 +505,11 @@
       !=================================================================
 
       ! Read initial tracer conditions
+#if defined( DEVEL )
+      CALL READ_RESTART_FILE( NYMDb, NHMSb, State_Met, State_Chm )
+#else
       CALL READ_RESTART_FILE( NYMDb, NHMSb, State_met )
+#endif
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_RESTART_FILE' )
 
       ! Capture initial state of atmosphere for STE flux calc (ltm, 06/10/12)
@@ -512,7 +548,11 @@
       ENDIF
 
       ! Save initial tracer masses to disk for benchmark runs
+#if defined( DEVEL )
+      IF ( LSTDRUN ) CALL STDRUN( State_Chm, LBEGIN=.TRUE. )
+#else
       IF ( LSTDRUN ) CALL STDRUN( LBEGIN=.TRUE. )
+#endif
 
       !=================================================================
       !      ***** 6 - H O U R   T I M E S T E P   L O O P  *****
@@ -587,7 +627,11 @@
 
             ! Write bpch file
             IF ( DO_DIAG_WRITE ) THEN
+#if defined( DEVEL )
+               CALL DIAG3( State_Chm )
+#else
                CALL DIAG3  
+#endif
 
                ! Flush file units
                CALL CTM_FLUSH
@@ -598,10 +642,19 @@
             IF ( LSVGLB ) THEN
 
                ! Determine and print STE fluxes (ltm, 06/10/12)
+#if defined( DEVEL )
+               IF ( LSCHEM ) CALL CALC_STE( am_I_Root, State_Chm )
+#else
                IF ( LSCHEM ) CALL CALC_STE( am_I_Root )
+#endif
 
                ! Make atmospheric restart file
+#if defined( DEVEL )
+               CALL MAKE_RESTART_FILE( NYMD,      NHMS,     TAU,
+     &                                 State_Met, State_Chm )
+#else
                CALL MAKE_RESTART_FILE( NYMD, NHMS, TAU, State_Met )
+#endif
                   
                ! Make soil restart file
                IF ( LSOILNOX ) THEN
@@ -883,10 +936,18 @@
 
             ! Output BC's
             ! Save boundary conditions (global grid) for future nested run
+#if defined( DEVEL )
+            IF ( LWINDO ) CALL SAVE_GLOBAL_TPCORE_BC( State_Chm )
+#else
             IF ( LWINDO ) CALL SAVE_GLOBAL_TPCORE_BC
+#endif
 
             ! Call the appropritate version of TPCORE
+#if defined( DEVEL )
+            IF ( LTRAN ) CALL DO_TRANSPORT( State_Met, State_Chm )
+#else
             IF ( LTRAN ) CALL DO_TRANSPORT( State_Met )
+#endif
 
             ! Reset air mass quantities
             CALL AIRQNT( State_Met )
@@ -899,7 +960,12 @@
 
             ! Initialize wet scavenging and wetdep fields after
             ! the airmass quantities are reset after transport
+#if defined( DEVEL )
+            IF ( LCONV .or. LWETD )
+     &         CALL INIT_WETSCAV( State_Met, State_Chm )
+#else
             IF ( LCONV .or. LWETD ) CALL INIT_WETSCAV( State_Met )
+#endif
          ENDIF
 
 
@@ -978,10 +1044,18 @@
             !===========================================================
             ! Add option for non-local PBL. (Lin, 03/31/09)
             IF ( .NOT. LNLPBL ) THEN
+#if defined( DEVEL )
+               CALL DO_PBL_MIX  ( LTURB, State_Met, State_Chm )
+#else
                CALL DO_PBL_MIX  ( LTURB, State_Met )
+#endif
                IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:1' )
             ELSE
+#if defined( DEVEL )
+               CALL DO_PBL_MIX_2( LTURB, State_Met, State_Chm )
+#else
                CALL DO_PBL_MIX_2( LTURB, State_Met )
+#endif
                IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a NLPBL 2' )
             ENDIF
 
@@ -997,7 +1071,11 @@
                   CALL PARTITIONHG( 1, STT )
                ENDIF
       
+#if defined( DEVEL )
+               CALL DO_CONVECTION( State_Met, State_Chm )
+#else
                CALL DO_CONVECTION( State_Met )
+#endif
 
                ! Return all reactive particulate Hg(II) to total Hg(II) tracer
                IF ( ITS_A_MERCURY_SIM() ) THEN
@@ -1111,9 +1189,12 @@
             ! point, no further unit conversion is necessary here.
             ! (bmy, 10/25/12)
 
-            ! Initialize the tracer field in the Chemistry State object
-            State_Chm%TRACERS( :, :, :, 1:N_TRACERS ) = 
-     &                    STT( :, :, :, 1:N_TRACERS )
+!------------------------------------------------------------------------------
+! Prior to 1/15/13:
+!            ! Initialize the tracer field in the Chemistry State object
+!            State_Chm%TRACERS( :, :, :, 1:N_TRACERS ) = 
+!     &                    STT( :, :, :, 1:N_TRACERS )
+!------------------------------------------------------------------------------
 
             ! Do GEOS-Chem chemistry
             CALL DO_CHEMISTRY( am_I_Root, NI,        NJ,        NL,
@@ -1124,8 +1205,12 @@
 
          ! Check STT (yxw)   
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )
-         !CALL CHECK_STT_05x0666( 'after chemistry' )
+#if defined( DEVEL )
+         CALL CHECK_STT_05x0666( State_Chm, 
+     &                           'end of chem section, before wetdep' )
+#else
          CALL CHECK_STT_05x0666( 'end of chem section, before wetdep' )
+#endif
 #endif 
 
          !==============================================================
@@ -1139,7 +1224,11 @@
             ENDIF            
      
             ! Do wet deposition
+#if defined( DEVEL )
+            CALL DO_WETDEP( State_Met, State_Chm )
+#else
             CALL DO_WETDEP( State_Met )
+#endif
             
             ! Return all reactive particulate Hg(II) to total Hg(II) tracer
             IF ( ITS_A_MERCURY_SIM() ) THEN
@@ -1156,7 +1245,12 @@
          ! diagnostic and only on a chemistry timestep.
          ! (skim, 02/05/11)
          IF ( ITS_TIME_FOR_CHEM() ) THEN
+#if defined( DEVEL )
+            CALL RECOMPUTE_OD( am_I_Root, Input_Opt, State_Met,
+     &                         State_Chm, RC )
+#else
             CALL RECOMPUTE_OD( am_I_Root, Input_Opt, State_Met, RC )
+#endif
          ENDIF
 
          !==============================================================
@@ -1200,7 +1294,11 @@
             IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: b DIAGNOSTICS' )
 
             ! Accumulate several diagnostic quantities
+#if defined( DEVEL )
+            CALL DIAG1( State_Met, State_Chm )
+#else
             CALL DIAG1( State_Met )
+#endif
             IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG1' )
 
             ! ND41: save PBL height in 1200-1600 LT (amf)
@@ -1209,11 +1307,19 @@
             IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG41' )
 
             ! ND42: SOA concentrations [ug/m3]
+#if defined( DEVEL )
+            IF ( ND42 > 0 ) CALL DIAG42( State_Met, State_Chm )
+            IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG42' )
+
+            ! 24-hr timeseries
+            IF ( DO_SAVE_DIAG50 ) CALL DIAG50( State_Met, State_Chm )
+#else
             IF ( ND42 > 0 ) CALL DIAG42( State_Met )
             IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG42' )
 
             ! 24-hr timeseries
             IF ( DO_SAVE_DIAG50 ) CALL DIAG50( State_Met )
+#endif
 
             ! Increment diagnostic timestep counter. (ccc, 5/13/09)
             CALL SET_CT_DIAG( INCREMENT=.TRUE. )
@@ -1223,7 +1329,11 @@
                
                print*, 'Call planeflight'
                ! Archive data along the flight track
+#if defined( DEVEL )
+               CALL PLANEFLIGHT( State_Met, State_Chm )
+#else
                CALL PLANEFLIGHT( State_Met )
+#endif
             ENDIF
             IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG40' )
 
@@ -1242,6 +1352,25 @@
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: before TIMESERIES' )
 
          ! Station timeseries
+#if defined( DEVEL )
+         IF ( ITS_TIME_FOR_DIAG48() )
+     &      CALL DIAG48( State_Met, State_Chm )
+         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG48' )
+
+         ! 3-D timeseries
+         IF ( ITS_TIME_FOR_DIAG49() )
+     &      CALL DIAG49( State_Met, State_Chm )
+         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG49' )
+
+         ! Ship timeseries
+         IF ( ITS_TIME_FOR_DIAG63() ) CALL DIAG63
+         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG63' )
+
+         ! Morning or afternoon timeseries
+         IF ( DO_SAVE_DIAG51 ) CALL DIAG51( State_Met, State_Chm )
+         IF ( DO_SAVE_DIAG51b ) CALL DIAG51b( State_Met, State_Chm )
+         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG51' )
+#else
          IF ( ITS_TIME_FOR_DIAG48() ) CALL DIAG48( State_Met )
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG48' )
 
@@ -1257,6 +1386,7 @@
          IF ( DO_SAVE_DIAG51 ) CALL DIAG51( State_Met )
          IF ( DO_SAVE_DIAG51b ) CALL DIAG51b( State_Met )
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG51' )
+#endif
 
          ! Comment out for now 
          !! Column timeseries
@@ -1280,10 +1410,18 @@
          ! the nested-grid domain edges. Force them to be zero before
          ! CHECK_STT (yxw)
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )
+#if defined( DEVEL )
+            CALL CHECK_STT_05x0666( State_Chm, 'after dynamics step' )
+#else
             CALL CHECK_STT_05x0666( 'after dynamics step' )
 #endif
+#endif
 
+#if defined( DEVEL )
+            CALL CHECK_STT( State_Chm, 'End of Dynamic Loop' )
+#else
             CALL CHECK_STT( 'End of Dynamic Loop' )
+#endif
          ENDIF
           
       ENDDO
@@ -1329,11 +1467,20 @@
 
       ! For model benchmarking, save final masses of 
       ! Rn,Pb,Be or Ox to a binary punch file 
+#if defined( DEVEL )
+      IF ( LSTDRUN ) CALL STDRUN( State_Chm, LBEGIN=.FALSE. )
+#else
       IF ( LSTDRUN ) CALL STDRUN( LBEGIN=.FALSE. )
+#endif
 
       ! Close all files
       CALL CLOSE_FILES
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a CLOSE_FILES' )
+
+#if defined( DEVEL)
+      ! Free pointer (mpayer, 12/6/12)
+      NULLIFY( STT )
+#endif
 
       ! Deallocate fields of the Input Options object
       CALL Cleanup_GIGC_Input_Opt( am_I_Root, Input_Opt, RC )

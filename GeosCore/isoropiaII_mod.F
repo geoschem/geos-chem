@@ -106,7 +106,12 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE DO_ISOROPIAII( am_I_Root, Input_Opt, State_Met,
+     &                          State_Chm, RC )
+#else
       SUBROUTINE DO_ISOROPIAII( am_I_Root, Input_Opt, State_Met, RC )
+#endif
 !
 ! !USES:
 !
@@ -120,7 +125,11 @@
       USE GLOBAL_HNO3_MOD,    ONLY : GET_GLOBAL_HNO3
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
       USE TRACER_MOD,         ONLY : STT
+#endif
       USE TRACERID_MOD,       ONLY : IDTHNO3
       USE TRACERID_MOD,       ONLY : IDTNIT
       USE TRACERID_MOD,       ONLY : IDTNH4
@@ -142,6 +151,12 @@
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -215,6 +230,13 @@
       LOGICAL                  :: IT_IS_A_FULLCHEM_SIM
       LOGICAL                  :: LPRT
                   
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER          :: STT(:,:,:,:)
+#endif
+
       !=================================================================
       ! DO_ISOROPIAII begins here!
       !=================================================================
@@ -283,6 +305,12 @@
       SULRAT_SAV  = 0d0
       NARAT_SAV   = 0d0
       ACIDPUR_SAV = 0d0
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
 
       !=================================================================
       ! Loop over grid boxes and call ISOROPIA (see comments in the 
@@ -569,6 +597,11 @@
       ENDDO
       ENDDO 
 !$OMP END PARALLEL DO
+
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### ISOROPIAII: a AERO_THERMO' )

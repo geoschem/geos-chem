@@ -310,7 +310,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE EMISSCH4( State_Met, State_Chm )
+#else
       SUBROUTINE EMISSCH4( State_Met )
+#endif
 !
 ! !USES:
 !
@@ -319,7 +323,11 @@
       USE TIME_MOD,           ONLY : GET_TS_EMIS
       USE GRID_MOD,           ONLY : GET_AREA_CM2,    GET_XOFFSET
       USE GRID_MOD,           ONLY : GET_YOFFSET 
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
       USE TRACER_MOD,         ONLY : STT
+#endif
       USE LOGICAL_MOD,        ONLY : LSPLIT
       USE DIAG_MOD,           ONLY : AD58
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP, IT_IS_NAN
@@ -337,6 +345,12 @@
 ! !INPUT PARAMETERS:
 !
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 ! 
 ! !REMARKS:
 !  WARNING: Soil absorption has to be the 11th field in CH4_EMIS
@@ -378,6 +392,13 @@
 !
       INTEGER                :: I, I0, IREF, J, J0, JREF, N
       REAL*8                 :: DTSRCE,       AREA_CM2
+
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
 
       !=================================================================
       ! EMISSCH4 begins here!
@@ -507,6 +528,12 @@
 
       WRITE( 6, '(a)' ) '% EMISSCH4 --- Adding Emissions to STT array.'
 
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
+
       ! Emission timestep [s]
       DTSRCE = GET_TS_EMIS() * 60d0   !timestep in s.
 
@@ -554,6 +581,10 @@
       ENDDO
       ENDDO
 
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
 
       !===============================================================
       ! Sum up CH4 budgets
@@ -1574,7 +1605,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE CHEMCH4( State_Met, State_Chm )
+#else
       SUBROUTINE CHEMCH4( State_Met )
+#endif
 !
 ! !USES:
 !
@@ -1591,7 +1626,11 @@
       USE TIME_MOD,           ONLY : GET_NYMDb, GET_NYMDe
       USE TIME_MOD,           ONLY : GET_TAU,   GET_YEAR
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
       USE TRACER_MOD,         ONLY : STT
+#endif
       USE TRANSFER_MOD,       ONLY : TRANSFER_2D
 
       USE CMN_SIZE_MOD             ! Size parameters
@@ -1601,6 +1640,12 @@
 ! !INPUT PARAMETERS:
 !
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 ! 
 ! !REMARKS:
 !  CH4 SOURCES
@@ -1672,6 +1717,13 @@
       INTEGER                :: NODAYS(12) = (/ 31, 28, 31, 30, 
      &                                          31, 30, 31, 31, 
      &                                          30, 31, 30, 31 /)
+
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER        :: STT(:,:,:,:)
+#endif
 !
 ! !EXTERNAL FUNCTIONS:
 !
@@ -1716,8 +1768,19 @@
          CH4LOSS(:,:,:,:) = 0d0
          CALL READ_CH4LOSS
 
+#if defined( DEVEL )
+         ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+         ! (mpayer, 12/6/12)
+         STT => State_Chm%Tracers
+#endif
+
          ! Initialize the CH4 burden TCH4 [molec/box], (ccc, 7/23/09)
          TCH4(:,:,:,1) = STT(:,:,:,1) * XNUMOL_CH4 
+
+#if defined( DEVEL )
+         ! Free pointer
+         NULLIFY( STT )
+#endif
       ENDIF
 
       ! Initialize current month
@@ -1804,6 +1867,13 @@
       !     distribute the sink after the chemistry. (ccc, 2/10/09)
       !================================================================= 
       IF ( LSPLIT ) THEN
+
+#if defined( DEVEL )
+         ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+         ! (mpayer, 12/6/12)
+         STT => State_Chm%Tracers
+#endif
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
@@ -1815,8 +1885,32 @@
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
+
+#if defined( DEVEL )
+         ! Free pointer
+         NULLIFY( STT )
+#endif
       ENDIF
 
+#if defined( DEVEL )
+      !=================================================================
+      ! (6) calculate rate of decay of CH4 by OH oxidation.
+      !=================================================================
+      CALL CH4_DECAY( State_Met, State_Chm )
+
+      !=================================================================
+      ! (7) calculate CH4 chemistry in layers above tropopause.
+      !=================================================================
+      CALL CH4_STRAT( State_Met, State_Chm )
+
+      !=================================================================
+      ! (8) distribute the chemistry sink from total CH4 to other CH4 
+      !     tracers. (ccc, 2/10/09)
+      !=================================================================
+      IF ( LSPLIT ) THEN
+         CALL CH4_DISTRIB( PREVCH4, State_Chm )
+      ENDIF
+#else
       !=================================================================
       ! (6) calculate rate of decay of CH4 by OH oxidation.
       !=================================================================
@@ -1834,6 +1928,7 @@
       IF ( LSPLIT ) THEN
          CALL CH4_DISTRIB(PREVCH4)
       ENDIF
+#endif
 
       !=================================================================
       ! (9) write budget (i.e., monthly average fields).
@@ -1864,7 +1959,11 @@
          print*,'CALL CH4_BUDGET'
          CALL FLUSH ( 6 )
      
+#if defined( DEVEL )
+         CALL CH4_BUDGET( State_Chm )
+#else
          CALL CH4_BUDGET
+#endif
 
 	 NTALDT  = 0
          print*,'END CH4_BUDGET'
@@ -2105,7 +2204,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE CH4_DECAY( State_Met, State_Chm )
+#else
       SUBROUTINE CH4_DECAY( State_Met )
+#endif
 !
 ! !USES:
 !
@@ -2113,15 +2216,25 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM, ITS_A_NEW_YEAR
       USE TIME_MOD,           ONLY : GET_MONTH
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
       USE TRACER_MOD,         ONLY : STT
+#endif
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND19
-      USE CMN_MOD                  ! STT, LPAUSE
+      USE CMN_MOD                  ! LPAUSE
 !
 ! !INPUT PARAMETERS: 
 !
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 ! 
 ! !REMARKS:
 !  The annual mean tropopause is stored in the LPAUSE array 
@@ -2156,6 +2269,13 @@
       LOGICAL             :: FIRST_DECAY=.TRUE.
       INTEGER             :: I, J, L, M, N, MM, LMN
       REAL*8              :: DT, GCH4, STT2GCH4, KRATE
+
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
 !
 ! !EXTERNAL FUNCTIONS:   
 !
@@ -2181,6 +2301,11 @@
       ! This is from JPL '97.
       ! JPL '00 & '06 do not revise '97 value. (jsw, kjw)
       !=================================================================
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
 
       MM = MAXVAL( LPAUSE )
 !$OMP PARALLEL DO
@@ -2234,6 +2359,11 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
 
       print*,'% --- CHEMCH4: CH4_DECAY: TROP DECAY (Tg): ',TROPOCH4/1e9
       print*,'Trop decay should be over 1Tg per day globally'
@@ -2359,20 +2489,35 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE CH4_STRAT( State_Met, State_Chm )
+#else
       SUBROUTINE CH4_STRAT( State_Met )
+#endif
 !
 ! !USES:
 !
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH, GET_TS_CHEM
-      USE TRACER_MOD,         ONLY : STT, CHECK_STT
+      USE TRACER_MOD,         ONLY : CHECK_STT
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
+      USE TRACER_MOD,         ONLY : STT
+#endif
 
       USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_MOD                  ! STT, LPAUSE
+      USE CMN_MOD                  ! LPAUSE
 !
 ! !INPUT PARAMETERS:
 !
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 ! 
 ! !REMARKS:
 !  Production (mixing ratio/sec) rate provided by Dylan Jones.  
@@ -2406,6 +2551,13 @@
       REAL*8              :: DT, GCH4, STT2GCH4, LRATE
       CHARACTER*20        :: STT_TEST
       CHARACTER*20        :: STT2GCH4_CHAR
+
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
 !
 ! !EXTERNAL FUNCTIONS:   
 !
@@ -2420,6 +2572,12 @@
 
       ! Current month
       LMN = GET_MONTH()
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
 
       !=================================================================
       ! Loop over stratospheric boxes only
@@ -2469,8 +2627,16 @@
       ENDDO
       ENDDO
 
+#if defined( DEVEL )
+      ! Check STT for negatives and NaN
+      CALL CHECK_STT( State_Chm, 'IN global_ch4_mod.F: CH4_STRAT' )
+
+      ! Free pointer
+      NULLIFY( STT )
+#else
       ! Check STT for negatives and NaN
       CALL CHECK_STT( 'IN global_ch4_mod.F: CH4_STRAT' )
+#endif
 
       END SUBROUTINE CH4_STRAT
 !EOC
@@ -2489,7 +2655,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE CH4_BUDGET( State_Chm )
+#else
       SUBROUTINE CH4_BUDGET
+#endif
 !
 ! !USES:
 !
@@ -2497,10 +2667,20 @@
       USE GRID_MOD,   ONLY : GET_XOFFSET, GET_YOFFSET
       USE TIME_MOD,   ONLY : GET_MONTH,   GET_YEAR
       USE TIME_MOD,   ONLY : GET_DIAGb,   GET_CT_DYN
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
       USE TRACER_MOD, ONLY : STT
+#endif
 
       USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_MOD          ! STT, LPAUSE
+
+#if defined( DEVEL )
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
+#endif
 ! 
 ! !REMARKS:
 !  Store the sources/sinks of CH4 in TCH4 in total molecules
@@ -2564,6 +2744,13 @@
       CHARACTER (LEN=40)  :: CATEGORY 
       CHARACTER (LEN=80)  :: LABEL
 
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
+
       !=================================================================
       ! CH4_BUDGET begins here!
       !
@@ -2597,8 +2784,19 @@
       ! Store the final burden of CH4 in TCH4(2) 
       ! Convert kg CH4/box to molecules/box.
       !=================================================================
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
+
       TCH4(:,:,:,2) = 0d0
       TCH4(:,:,:,2) = STT(:,:,:,1) * XNUMOL_CH4
+
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
 
       !=================================================================
       ! Write GLOBAL AVERAGES for all layers to ASCII file
@@ -3137,11 +3335,20 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE CH4_DISTRIB( PREVCH4, State_Chm )
+#else
       SUBROUTINE CH4_DISTRIB(PREVCH4)
+#endif
 !
 ! !USES:
 !
-      USE TRACER_MOD,    ONLY : STT, N_TRACERS
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
+      USE TRACER_MOD,    ONLY : STT
+#endif
+      USE TRACER_MOD,    ONLY : N_TRACERS
       USE ERROR_MOD,     ONLY : SAFE_DIV
 
       USE CMN_SIZE_MOD        ! Size parameters
@@ -3152,6 +3359,12 @@
 ! !INPUT PARAMETERS: 
 !
       REAL*8                 :: PREVCH4(IIPAR, JJPAR, LLPAR) ! CH4 before chem
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 ! 
 ! !REVISION HISTORY:
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
@@ -3163,9 +3376,22 @@
 !
       INTEGER                :: N, I, J, L
 
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
+
       !========================================================================
       ! CH4_DISTRIB begins here
       !========================================================================
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
 
       DO N=2,N_TRACERS
 
@@ -3183,6 +3409,11 @@
 !$OMP END PARALLEL DO
 
       ENDDO
+
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
 
       END SUBROUTINE CH4_DISTRIB
 !EOC

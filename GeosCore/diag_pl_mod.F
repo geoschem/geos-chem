@@ -576,10 +576,17 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE DO_DIAG_PL( am_I_Root, State_Chm ) 
+#else
       SUBROUTINE DO_DIAG_PL( am_I_Root ) 
+#endif
 !
 ! !USES:
 !
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#endif
       USE COMODE_MOD, ONLY : CSPEC, JLOP
       USE CMN_SIZE_MOD                      ! Size parameters
       USE COMODE_LOOP_MOD                   ! SMVGEAR II arrays
@@ -588,6 +595,9 @@
 ! !INPUT PARAMETERS:
 !
       LOGICAL, INTENT(IN) :: am_I_Root      ! Is this the root CPU?
+#if defined( DEVEL )
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
+#endif
 ! 
 ! !REVISION HISTORY:
 !  16 Mar 2000 - I. Bey      - Initial version
@@ -662,7 +672,11 @@
       ! from the fullchem simulation for a future tagged Ox run
       !=================================================================
 
+#if defined( DEVEL )
+      IF ( DO_SAVE_O3 ) CALL DIAG20( am_I_Root, State_Chm )
+#else
       IF ( DO_SAVE_O3 ) CALL DIAG20( am_I_Root )
+#endif
 
       END SUBROUTINE DO_DIAG_PL
 !EOC
@@ -682,7 +696,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE DIAG20( am_I_Root, State_Chm )
+#else
       SUBROUTINE DIAG20( am_I_Root )
+#endif
 !
 ! !USES:
 !
@@ -692,7 +710,12 @@
       USE TIME_MOD,      ONLY : EXPAND_DATE,   GET_NYMD
       USE TIME_MOD,      ONLY : GET_TAU,       GET_TAUb 
       USE TIME_MOD,      ONLY : ITS_A_NEW_DAY, TIMESTAMP_STRING
-      USE TRACER_MOD,    ONLY : STT,           XNUMOL
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
+      USE TRACER_MOD,    ONLY : STT
+#endif
+      USE TRACER_MOD,    ONLY : XNUMOL
       USE TRACERID_MOD,  ONLY : IDTOX
       USE CMN_SIZE_MOD                      ! Size parameters
       USE CMN_DIAG_MOD                      ! LD65
@@ -700,6 +723,12 @@
 ! !INPUT PARAMETERS:
 !
       LOGICAL, INTENT(IN) :: am_I_Root      ! Is this the root CPU?
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
+#endif
 ! 
 ! !REMARKS:
 !  DIAG20 assumes that ND65 (P-L diagnostics) have been turned on.
@@ -734,6 +763,13 @@
       REAL*8            :: P_Ox, L_Ox
       CHARACTER(LEN=16) :: STAMP 
 
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
+
       !=================================================================
       ! DIAG20 begins here!
       !=================================================================
@@ -766,6 +802,11 @@
       IF ( am_I_Root ) WRITE( 6, 120 ) STAMP
  120  FORMAT( '     - DIAG20: Archiving P(Ox) & L(Ox) at ', a )
 
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -812,6 +853,11 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
 
       !=================================================================
       ! Write data to disk and zero counters for next timestep

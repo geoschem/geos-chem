@@ -72,14 +72,22 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE DIAG42( State_Met, State_Chm)
+#else
       SUBROUTINE DIAG42( State_Met )
+#endif
 !
 ! !USES:
 !
       ! References to F90 modules
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
       USE TRACER_MOD,         ONLY : STT
+#endif
       USE TRACERID_MOD,       ONLY : IDTSOA1, IDTSOA2, IDTSOA3, IDTSOA4
       USE TRACERID_MOD,       ONLY : IDTSOA5
       USE TRACERID_MOD,       ONLY : IDTOCPI, IDTOCPO
@@ -95,6 +103,12 @@
 ! !INPUT PARAMETERS:
 !
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  22 May 2006 - D. Henze, R. Yantosca - Initial version
@@ -116,6 +130,13 @@
       ! Factor for computing standard volume
       REAL*8, PARAMETER :: STD_VOL_FAC = 1013.25d0 / 273.15d0
      
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
+
       !================================================================= 
       ! DIAG42 begins here! 
       !================================================================= 
@@ -128,6 +149,12 @@
       IF ( IDTSOA5 == 0 ) RETURN
       IF ( IDTOCPO == 0 ) RETURN
       IF ( IDTOCPI == 0 ) RETURN
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
 
       ! Loop over grid boxes     
 !$OMP PARALLEL DO 
@@ -312,6 +339,11 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO 
+
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
 
       END SUBROUTINE DIAG42
 !EOC

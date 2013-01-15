@@ -1,5 +1,9 @@
 ! $Id: calcrate.f,v 1.6 2010/03/15 19:33:25 ccarouge Exp $
+#if defined( DEVEL )
+      SUBROUTINE CALCRATE( State_Met, State_Chm )
+#else
       SUBROUTINE CALCRATE( State_Met )
+#endif
 !
 !******************************************************************************
 !  Subroutine CALCRATE computes reaction rates before passing them to the
@@ -104,7 +108,11 @@
       ! jpp, add for use in    HOBr + HBr reaction
       USE TRACERID_MOD,       ONLY : IDTHBr, IDTHOBr
       USE ERROR_MOD,          ONLY : is_safe_div
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
       USE TRACER_MOD,         ONLY : STT
+#endif
 
       !UPDATE BY GVINKEN, USE FOR SHIPS EMISSIONS
       USE ICOADS_SHIP_MOD,    ONLY : GET_ICOADS_SHIP  !(cklee, 7/09/09)
@@ -133,7 +141,6 @@
       USE CMN_SIZE_MOD             ! Size parameters
       USE COMODE_LOOP_MOD          ! SMVGEAR II arrays
       USE CMN_DIAG_MOD             ! ND22, LD22, ND52, LD52
-      USE CMN_MOD                  ! STT, etc
       USE CMN_O3_MOD               ! for jvalues (gvinken, 6/09/10)
 
       IMPLICIT NONE
@@ -141,6 +148,9 @@
 
       ! Arguments
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
       
       ! jpp, rate constant for BrNO3 cloud recycling
       REAL*8 :: CLD_BrNO3_RC
@@ -223,6 +233,13 @@
       REAL*8  :: QLIQ(KBLOOP)
       REAL*8  :: QICE(KBLOOP)
 
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
+
       darea  = 0d0
 
       ! initialize the true/false selectors (jpp, 4/12/10)
@@ -243,6 +260,7 @@
       ! Zero QICE, QLIQ arrays for safety's sake (bmy, 9/24/12)
       QICE  = 0d0
       QLIQ  = 0d0
+
 !
 ! *********************************************************************
 ! ************        WRITTEN BY MARK JACOBSON (1993)      ************
@@ -1039,6 +1057,12 @@ c new OH+CO rate from JPL2006.
             ! both pseudo-rxns (rate limiting). (jpp, 4/12/10)
             ! -------------------------------------------------
 
+#if defined( DEVEL )
+            ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+            ! (mpayer, 12/6/12)
+            STT => State_Chm%Tracers
+#endif
+
             IF ( ( IDTHBr > 0) .and. ( IDTHOBr > 0 ) ) THEN
 
                ! select the min of the two rates
@@ -1126,6 +1150,11 @@ c new OH+CO rate from JPL2006.
                RRATE(KLOOP, NK2HBr)  = ki_hbr
                RRATE(KLOOP, NK2HOBr) = ki_hobr
             ENDIF
+
+#if defined( DEVEL )
+            ! Free pointer
+            NULLIFY( STT )
+#endif
 
          ELSE
 

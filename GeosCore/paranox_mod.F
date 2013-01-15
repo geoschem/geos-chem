@@ -158,13 +158,23 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE INTERPOLATE_LUT( I, J, fraction_nox, int_ope,
+     &                            State_Met, State_Chm ) 
+#else
       SUBROUTINE INTERPOLATE_LUT( I, J, fraction_nox, int_ope,
      &                            State_Met ) 
+#endif
 !
 ! !USES:
 !
       USE TRACERID_MOD,       ONLY : IDO3, IDTOX, IDTCO
-      USE TRACER_MOD,         ONLY : STT,  TCVV
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
+      USE TRACER_MOD,         ONLY : STT
+#endif
+      USE TRACER_MOD,         ONLY : TCVV
       USE TIME_MOD,           ONLY : GET_LOCALTIME
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -176,6 +186,12 @@
 !
       INTEGER,        INTENT(IN)  :: I, J
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 !
 ! !OUTPUT PARAMETERS: 
 !
@@ -241,6 +257,13 @@
       REAL,DIMENSION(7)          :: var_array
 
       CHARACTER(LEN=255)         :: MSG
+
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
 
       !=================================================================
       ! INTERPOLATE_LUT begins here!
