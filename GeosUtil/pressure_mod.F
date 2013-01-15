@@ -23,16 +23,16 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-      PUBLIC :: CLEANUP_PRESSURE           
-      PUBLIC :: GET_AP
-      PUBLIC :: GET_BP
-      PUBLIC :: GET_PCENTER           
-      PUBLIC :: GET_PEDGE
-      PUBLIC :: GET_PEDGE_FULLGRID             
-      PUBLIC :: INIT_PRESSURE         
-      PUBLIC :: SET_FLOATING_PRESSURE 
+      PUBLIC  :: CLEANUP_PRESSURE
+      PUBLIC  :: GET_AP
+      PUBLIC  :: GET_BP
+      PUBLIC  :: GET_PCENTER
+      PUBLIC  :: GET_PEDGE
+      PUBLIC  :: GET_PEDGE_FULLGRID
+      PUBLIC  :: INIT_PRESSURE
+      PUBLIC  :: SET_FLOATING_PRESSURE
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      PUBLIC :: EXTERNAL_PEDGE
+      PUBLIC  :: Accept_External_Pedge
 #endif
 !
 ! !REMARKS:
@@ -97,17 +97,23 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  31 Jul 2012 - R. Yantosca - Modifications for grid-independence
 !  10 Aug 2012 - R. Yantosca - Remove DEVEL from #ifdef for EXTERNAL_PEDGE
-!EOP
+!  11 Dec 2012 - R. Yantosca - Now make EXTERNAL_PEDGE private
+!  11 Dec 2012 - R. Yantosca - Add new routine ACCEPT_PEDGE_FROM_ESMF to set
+!                              EXTERNAL_PEDGE from the ESMF environment!EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !PRIVATE TYPES:
+!
       ! Module variables
-      REAL*8, ALLOCATABLE :: AP(:)      ! "A" term for hybrid ETA coordinate
-      REAL*8, ALLOCATABLE :: BP(:)      ! "B" term for hybrid ETA coordinate
-      REAL*8, ALLOCATABLE :: PFLT(:,:)  ! "Floating" surface pressure field
-      REAL*8, ALLOCATABLE :: AP_FULLGRID(:) ! "A" term for unreduced ETA
-      REAL*8, ALLOCATABLE :: BP_FULLGRID(:) ! "B" term for unreduced ETA
+      REAL*8, ALLOCATABLE :: AP(:)                  ! "A" term for hybrid grid
+      REAL*8, ALLOCATABLE :: BP(:)                  ! "B" term for hybrid grid
+      REAL*8, ALLOCATABLE :: PFLT(:,:)              ! "Floating" sfc pressure
+      REAL*8, ALLOCATABLE :: AP_FULLGRID(:)         ! "A" term for full grid
+      REAL*8, ALLOCATABLE :: BP_FULLGRID(:)         ! "B" term for full grid
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      REAL*8, ALLOCATABLE :: EXTERNAL_PEDGE(:,:,:)
+      REAL*8, ALLOCATABLE :: EXTERNAL_PEDGE(:,:,:)  ! Pressure edges from 
+                                                    !  external grid
 #endif
       CONTAINS
 !EOC
@@ -905,4 +911,57 @@
 
       END SUBROUTINE CLEANUP_PRESSURE
 !EOC
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: accept_external_pedge
+!
+! !DESCRIPTION: Subroutine ACCEPT\_EXTERNAL\_PEDGE sets the GEOS-Chem
+!  pressure edge variable with the values obtained from an external GCM
+!  (such as the NASA GEOS-5 GCM).
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Accept_External_Pedge( am_I_Root, State_Met, RC )
+!
+! !USES:
+!
+      USE GIGC_ErrCode_Mod
+      USE GIGC_State_Met_Mod, ONLY : MetState
+!     
+! !INPUT PARAMETERS: 
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on root CPU?
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology state object
+!
+! !OUTPUT ARGUMENTS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  This routine is a setter for EXTERNAL_PEDGE.  It allows us to keep the 
+!  EXTERNAL_PEDGE array PRIVATE to this module, which is good programming
+!  practice.
+! 
+! !REVISION HISTORY: 
+!  06 Dec 2012 - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+      ! Set EXTERNAL_PEDGE to the pressure edges [hPa] carried in the
+      ! State_Met object, which were obtained from the external GCM
+      EXTERNAL_PEDGE = State_Met%PEDGE
+
+      ! Return successfully
+      RC             = GIGC_SUCCESS
+      
+      END SUBROUTINE Accept_External_Pedge
+!EOC
+#endif
       END MODULE PRESSURE_MOD
+

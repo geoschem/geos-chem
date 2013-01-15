@@ -337,6 +337,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  13 Dec 2012 - R. Yantosca - Remove reference to obsolete CMN_DEP_mod.F
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -360,7 +361,6 @@
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! Diagnostic switches
-      USE CMN_DEP_MOD              ! RADIAT, FRCLND
 
       ! Arguments
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object

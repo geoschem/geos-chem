@@ -38,7 +38,9 @@ MODULE GIGC_State_Met_Mod
   !=========================================================================
   TYPE, PUBLIC :: MetState
 
+     !----------------------------------------------------------------------
      ! Surface fields
+     !----------------------------------------------------------------------
      REAL*8,  POINTER :: ALBD      (:,:  )  ! Visible surface albedo [1]
      REAL*8,  POINTER :: CLDFRC    (:,:  )  ! Column cloud fraction [1]
      INTEGER, POINTER :: CLDTOPS   (:,:  )  ! Max cloud top height [levels]
@@ -108,8 +110,10 @@ MODULE GIGC_State_Met_Mod
      REAL*8,  POINTER :: UVALBEDO  (:,:  )  ! UV surface albedo [1]
      REAL*8,  POINTER :: V10M      (:,:  )  ! N/S wind speed @ 10m height [m/s]
      REAL*8,  POINTER :: Z0        (:,:  )  ! Surface roughness height [m]
-                                   
+            
+     !----------------------------------------------------------------------
      ! 3-D Fields                  
+     !----------------------------------------------------------------------
      REAL*8,  POINTER :: AD        (:,:,:)  ! Air mass [kg]
      REAL*8,  POINTER :: AIRDEN    (:,:,:)  ! Air density [kg/m3]
      REAL*8,  POINTER :: AIRVOL    (:,:,:)  ! Grid box volume [m3]
@@ -165,12 +169,24 @@ MODULE GIGC_State_Met_Mod
      REAL*8,  POINTER :: ZMMD      (:,:,:)  ! Z/M downdraft mass flux [Pa/s]
      REAL*8,  POINTER :: ZMMU      (:,:,:)  ! Z/M updraft   mass flux [Pa/s]
 
+     !----------------------------------------------------------------------
+     ! Land type and leaf area index (LAI) fields for dry deposition
+     !----------------------------------------------------------------------
+     INTEGER, POINTER :: IREG      (:,:  )  ! # of landtypes in grid box (I,J) 
+     INTEGER, POINTER :: ILAND     (:,:,:)  ! Land type at (I,J); 1..IREG(I,J)
+     INTEGER, POINTER :: IUSE      (:,:,:)  ! Fraction (per mil) of grid box
+                                            !  (I,J) occupied by each land type
+     REAL*8,  POINTER :: XLAI      (:,:,:)  ! LAI per land type, this month
+     REAL*8,  POINTER :: XLAI2     (:,:,:)  ! LAI per land type, next month
+
   END TYPE MetState
 !
 ! !REVISION HISTORY: 
 !  19 Oct 2012 - R. Yantosca - Initial version, split off from gc_type_mod.F90
 !  23 Oct 2012 - R. Yantosca - Added QI, QL met fields to the derived type
 !  15 Nov 2012 - M. Payer    - Added all remaining met fields
+!  12 Dec 2012 - R. Yantosca - Add IREG, ILAND, IUSE fields for dry deposition
+!  13 Dec 2012 - R. Yantosca - Add XLAI, XLAI2 fields for dry deposition
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -194,6 +210,8 @@ CONTAINS
 ! !USES:
 !
     USE GIGC_ErrCode_Mod                         ! Error codes
+    USE CMN_SIZE_MOD,    ONLY : NTYPE            ! # of land types
+
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -220,6 +238,8 @@ CONTAINS
 !  15 Nov 2012 - M. Payer    - Added all remaining met fields
 !  16 Nov 2012 - R. Yantosca - Now zero all fields after allocating
 !  27 Nov 2012 - R. Yantosca - Now allocate SUNCOS fields (IM,JM)
+!  12 Dec 2012 - R. Yantosca - Now allocate the IREG, ILAND, IUSE fields
+!  13 Dec 2012 - R. Yantosca - Now allocate the XLAI, XLAI2 fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -408,10 +428,9 @@ CONTAINS
 
 #if defined( GCAP )
 
-    !---------------------------------------------------
+    !=======================================================================
     ! GCAP met fields
-    !---------------------------------------------------
-
+    !=======================================================================
     ALLOCATE( State_Met%LWI_GISS  ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%LWI_GISS = 0d0
@@ -442,10 +461,9 @@ CONTAINS
 
 #elif defined( GEOS_4 )
 
-    !---------------------------------------------------
+    !=======================================================================
     ! GEOS-4 met fields
-    !---------------------------------------------------
-
+    !=======================================================================
     ALLOCATE( State_Met%SNOW      ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%SNOW     = 0d0
@@ -460,10 +478,9 @@ CONTAINS
 
 #elif defined( GEOS_5 )
 
-    !---------------------------------------------------
+    !=======================================================================
     ! GEOS-5 met fields
-    !---------------------------------------------------
-
+    !=======================================================================
     ALLOCATE( State_Met%TO31      ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%TO31     = 0d0
@@ -478,10 +495,9 @@ CONTAINS
 
 #elif defined( GEOS_57 ) || defined( MERRA )
 
-    !---------------------------------------------------
+    !=======================================================================
     ! GEOS-5.7.x / MERRA met fields
-    !---------------------------------------------------
-
+    !=======================================================================
     ALLOCATE( State_Met%FRSEAICE  ( IM, JM ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%FRSEAICE = 0d0
@@ -665,10 +681,9 @@ CONTAINS
 
 #if defined( GCAP )
 
-    !---------------------------------------------------
+    !=======================================================================
     ! GCAP met fields
-    !---------------------------------------------------
-
+    !=======================================================================
     ALLOCATE( State_Met%DETRAINE  ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%DETRAINE = 0d0
@@ -699,9 +714,9 @@ CONTAINS
 
 #elif defined( GEOS_4 )
 
-    !---------------------------------------------------
+    !=======================================================================
     ! GEOS-4 met fields
-    !---------------------------------------------------
+    !=======================================================================
 
     ALLOCATE( State_Met%HKBETA    ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
@@ -725,10 +740,9 @@ CONTAINS
 
 #elif defined( GEOS_57 ) || defined( MERRA )
 
-    !---------------------------------------------------
+    !=======================================================================
     ! GEOS-5.7.x / MERRA met fields
-    !---------------------------------------------------
-
+    !=======================================================================
     ALLOCATE( State_Met%PFICU     ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%PFICU    = 0d0
@@ -779,6 +793,29 @@ CONTAINS
 
 #endif
 
+    !=======================================================================
+    ! Allocate land type and leaf area index fields for dry deposition
+    !=======================================================================
+    ALLOCATE( State_Met%IREG      ( IM, JM        ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%IREG     = 0
+
+    ALLOCATE( State_Met%ILAND     ( IM, JM, NTYPE ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%ILAND    = 0
+
+    ALLOCATE( State_Met%IUSE      ( IM, JM, NTYPE ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%IUSE     = 0
+
+    ALLOCATE( State_Met%XLAI      ( IM, JM, NTYPE ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%XLAI     = 0d0
+
+    ALLOCATE( State_Met%XLAI2     ( IM, JM, NTYPE ), STAT=RC )        
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+    State_Met%XLAI2    = 0d0
+
   END SUBROUTINE Init_GIGC_State_Met
 !EOC
 !------------------------------------------------------------------------------
@@ -819,6 +856,7 @@ CONTAINS
 !  19 Nov 2012 - R. Yantosca - Segregate DEALLOCATE statements w/ #ifdefs
 !                              for each met field data product type
 !  27 Nov 2012 - R. Yantosca - Now deallocate the SUNCOS fields
+!  12 Dec 2012 - R. Yantosca - Now deallocate the IREG, ILAND, IUSE fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -995,6 +1033,14 @@ CONTAINS
 
 #endif
 
+    !========================================================================
+    ! Land type and leaf area index (LAI) fields for dry deposition
+    !========================================================================
+    IF ( ASSOCIATED( State_Met%IREG       )) DEALLOCATE( State_Met%IREG       )
+    IF ( ASSOCIATED( State_Met%ILAND      )) DEALLOCATE( State_Met%ILAND      )
+    IF ( ASSOCIATED( State_Met%IUSE       )) DEALLOCATE( State_Met%IUSE       )
+    IF ( ASSOCIATED( State_Met%XLAI       )) DEALLOCATE( State_Met%XLAI       )
+    IF ( ASSOCIATED( State_Met%XLAI2      )) DEALLOCATE( State_Met%XLAI2      )
 
    END SUBROUTINE Cleanup_GIGC_State_Met
 !EOC

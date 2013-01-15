@@ -46,10 +46,10 @@ MODULE Grid_Mod
   PUBLIC  :: Set_xOffSet
   PUBLIC  :: Set_yOffSet
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-!      PUBLIC  :: AREA_M2 ! Permit setting this externally
-      PUBLIC  :: YMID, XMID, YEDGE, XEDGE, AREA_M2
-#endif
+! Comment out for now (bmy, 12/11/12)
+!#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!      PUBLIC  :: YMID, XMID, YEDGE, XEDGE, AREA_M2
+!#endif
 !
 ! !REVISION HISTORY:
 !  23 Feb 2012 - R. Yantosca - Initial version, based on grid_mod.F
@@ -92,7 +92,7 @@ MODULE Grid_Mod
   REAL*8,  ALLOCATABLE :: YMID_R_W (:,:,:)
   REAL*8,  ALLOCATABLE :: YEDGE_R_W(:,:,:)
   REAL*8,  ALLOCATABLE :: AREA_M2  (:,:,:)
-  
+
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -143,6 +143,10 @@ CONTAINS
 !                              running with the traditional driver main.F
 !  03 Dec 2012 - R. Yantosca - Add RC to argument list
 !  04 Dec 2012 - R. Yantosca - Now define arrays with local CPU lon/lat bounds
+!  07 Dec 2012 - R. Yantosca - Bug fix: make sure the last longitude edge is
+!                              computed properly.  Test for IG==I2, not I==I2.
+!  07 Dec 2012 - R. Yantosca - Also do not apply half-polar boxes when running
+!                              in ESMF environment
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -193,7 +197,7 @@ CONTAINS
              XEDGE(I,J,L) = XMID(I,J,L) - ( DLON(I,J,L) * 0.5d0 )
 
              ! Compute the last longitude edge
-             IF ( I == I2 ) THEN
+             IF ( IG == I2 ) THEN
                 XEDGE(I+1,J,L) = XEDGE(I,J,L) + DLON(I,J,L)
              ENDIF
              
@@ -214,13 +218,15 @@ CONTAINS
              ! Lat centers (degrees)
              YMID(I,J,L)     = ( DLAT(I,J,L) * IND_Y(JG) ) - 90d0
           
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#else
              ! Adjust for halfpolar boxes (global grids only)
              IF ( JG == JSP ) THEN
                 YMID(I,J,L)  = -90d0 + ( 0.5d0 * DLAT(I,J,L) )   ! S pole
              ELSE IF ( JG == JNP ) THEN
                 YMID(I,J,L)  = +90d0 - ( 0.5d0 * DLAT(I,J,L) )   ! N pole
              ENDIF
-
+#endif
              ! Lat centers (radians)
              YMID_R(I,J,L)   = ( PI_180 * YMID(I,J,L)  )
 
@@ -230,10 +236,12 @@ CONTAINS
              YMID_R_W(I,J,L) = YMID_R(I,J,L)
 
              ! Compute YMID_R_W at edges of nested region
-             IF ( J == J1 ) THEN
-                YMID_R_W(I,J1-1,1) = YMID_R(I,J1,L) - ( DLAT(I,J1,L) * PI_180 )
-             ELSE IF ( J == J2 ) THEN
-                YMID_R_W(I,J2+1,1) = YMID_R(I,J2,L) + ( DLAT(I,J2,L) * PI_180 )
+             IF ( JG == J1 ) THEN
+                !YMID_R_W(I,J1-1,1) = YMID_R(I,J1,L) - ( DLAT(I,J1,L) * PI_180 )
+                YMID_R_W(I,J-1,1) = YMID_R(I,J,L) - ( DLAT(I,J,L) * PI_180 )
+             ELSE IF ( JG == J2 ) THEN
+                !YMID_R_W(I,J2+1,1) = YMID_R(I,J2,L) + ( DLAT(I,J2,L) * PI_180 )
+                YMID_R_W(I,J+1,1) = YMID_R(I,J,L) + ( DLAT(I,J,L) * PI_180 )
              ENDIF
                     
 #endif
@@ -243,11 +251,14 @@ CONTAINS
              ! Lat edges (degrees and radians)
              YEDGE(I,J,L)    = YMID(I,J,L) - ( DLAT(I,J,L) * 0.5d0 )
             
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#else
              ! Adjust for halfpolar boxes
              IF ( JG == JSP ) THEN
                 YEDGE(I,J,L) = -90d0                             ! S pole
              ENDIF
-          
+#endif          
+
              ! Lat edges (radians)
              YEDGE_R(I,J,L)  = ( PI_180  * YEDGE(I,J,L) )
 
@@ -274,9 +285,12 @@ CONTAINS
              !YEDGE_R(I,JNP+1,L) = YEDGE(I,JNP+1,L) * PI_180
              !--------------------------------------------------------------
              I                  = IG - I1 + 1
-             YEDGE  (I,J+1,L)   = +90d0
-             YEDGE_R(I,J+1,L)   = YEDGE(I,J+1,L) * PI_180
-
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+             YEDGE  (I,J2+1,L)   = YEDGE(I,J2,L)   + DLAT(I,J2,L)
+#else
+             YEDGE  (I,J2+1,L)   = +90d0
+#endif
+             YEDGE_R(I,J2+1,L)   = YEDGE(I,J2+1,L) * PI_180
           ENDDO
           
        ELSE
@@ -613,6 +627,7 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+
     X = XEDGE(I,J,L)
 
   END FUNCTION Get_xEdge

@@ -11,8 +11,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEMDR( am_I_Root, NI,        NJ,        NL, 
-     &                   Input_Opt, State_Met, State_Chm, RC  )
+      SUBROUTINE CHEMDR( am_I_Root, Input_Opt, 
+     &                   State_Met, State_Chm, RC  )
 !
 ! !USES:
 !
@@ -65,9 +65,6 @@
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-      INTEGER,        INTENT(IN)    :: NI          ! # of lons on this CPU
-      INTEGER,        INTENT(IN)    :: NJ          ! # of lats on this CPU
-      INTEGER,        INTENT(IN)    :: NL          ! # of levs on this CPU
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -78,7 +75,6 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-!#endif
 !
 ! !REMARKS:
 !  Important input variables from "dao_mod.f" and "uvalbedo_mod.f":
@@ -240,6 +236,7 @@
 !  25 Oct 2012 - R. Yantosca - Document #ifdefs for the GIGC implementation
 !  25 Oct 2012 - R. Yantosca - Now add RC (success/failure) as an argument
 !  08 Nov 2012 - R. Yantosca - Now add Input_Opt (Input Options) as an argument
+!  11 Dec 2012 - R. Yantosca - Remove NI, NJ, NL arguments, they are not used
 !EOP
 !------------------------------------------------------------------------------
 !BOC

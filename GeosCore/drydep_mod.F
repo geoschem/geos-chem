@@ -18,7 +18,6 @@
       USE CMN_SIZE_MOD                          ! Size parameters
       USE CMN_DIAG_MOD                          ! Diag counters & flags
       USE CMN_GCTM_MOD                          ! Physical constants
-      USE CMN_DEP_MOD                           ! IREG, ILAND, IUSE, FRCLND
       USE COMMSOIL_MOD                          ! Soil wetness variables
       USE COMODE_MOD                            ! Large arrays for SMVGEAR
       USE COMODE_LOOP_MOD                       ! Formerly "comode.h"
@@ -46,7 +45,6 @@
       IMPLICIT NONE
 
 #     include "define.h"
-
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -58,6 +56,7 @@
       PUBLIC :: DRYFLXRnPbBe       
       PUBLIC :: DVZ_MINVAL         
       PUBLIC :: INIT_DRYDEP
+      PUBLIC :: INIT_WEIGHTSS
 
 !
 ! !PUBLIC DATA MEMBERS:
@@ -187,6 +186,9 @@
 !  09 Apr 2012 - R. Yantosca - Now replace IJREG, IJLAND, IJUSE, XYLAI arrays
 !                              with IREG, ILAND, IUSE, XLAI.
 !  31 Jul 2012 - R. Yantosca - Modifications for grid-independence
+!  11 Dec 2012 - M. Long     - Now call READ_DRYDEP_INPUTS from INIT_DRYDEP
+!  11 Dec 2012 - R. Yantosca - Now call INIT_WEIGHTSS from INIT_DRYDEP
+!  13 Dec 2012 - R. Yantosca - Remove reference to obsolete CMN_DEP_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -306,12 +308,8 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      SUBROUTINE DO_DRYDEP( am_I_Root, NI,        NJ,        NL,
-     &                      Input_Opt, State_Met, State_Chm, RC )
-#else
-      SUBROUTINE DO_DRYDEP( am_I_Root, State_Met )
-#endif
+      SUBROUTINE DO_DRYDEP( am_I_Root, Input_Opt, 
+     &                      State_Met, State_Chm, RC )
 !
 ! !USES:
 !
@@ -323,21 +321,16 @@
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      INTEGER,        INTENT(IN)    :: NI          ! # of lons on this CPU
-      INTEGER,        INTENT(IN)    :: NJ          ! # of lats on this CPU
-      INTEGER,        INTENT(IN)    :: NL          ! # of levs on this CPU
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT)   :: RC
-#endif
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  NOTE: Modeled aerosol dry deposition velocities over snow and ice surfaces 
@@ -391,6 +384,11 @@
 !                              derived type object
 !  28 Nov 2012 - R. Yantosca - Now make SUNCOS_MID a local array of size
 !                              MAXIJ, populated from State_Met%SUNCOSmid
+!  11 Dec 2012 - R. Yantosca - Now do not call READ_DRYDEP_INPUTS and
+!                              INIT_WEIGHTSS when using the ESMF environment
+!  11 Dec 2012 - R. Yantosca - Remove FIRST variable, as we now read inputs
+!                              from disk in routine INIT_DRYDEP
+!  12 Dec 2012 - R. Yantosca - Now pass State_Met to DEPVEL
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -398,7 +396,6 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL, SAVE :: FIRST = .TRUE.
       INTEGER       :: I,   J,   L,  N, IJLOOP, NN, NDVZ
       REAL*8        :: DVZ, THIK
 
@@ -427,65 +424,33 @@
       REAL*8        :: AZO   (MAXIJ       )   ! Z0, per (I,J) square
 #endif
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       ! For ESMF, need to assign these from Input_Opt
       LOGICAL       :: LNLPBL
       LOGICAL       :: LPRT
-#endif
 
       !=================================================================
       ! DO_DRYDEP begins here!
       !=================================================================
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       ! Assume success
       RC     = GIGC_SUCCESS
       
       ! Copy values from the Input Options object to local variables
       LNLPBL = Input_Opt%LNLPBL
       LPRT   = Input_Opt%LPRT
-#endif
-
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      ! For ESMF, skip reading from netCDF (for now)
-      FIRST = .FALSE.
-#else
-
-      ! Read drydep coeff's and land types on first call
-      IF ( FIRST ) THEN
-
-         ! Read drydep inputs from the netCDF file
-         ! Save Olson indices in INDOLSON array, in order to avoid
-         ! confusion w/ previously-assinged variable name IOLSON
-         CALL READ_DRYDEP_INPUTS( am_I_Root,
-     &                            DRYCOEFF, INDOLSON, IDEP,    
-     &                            IWATER,   NWATER,   IZO,      
-     &                            IDRYDEP,  IRI,      IRLU,     
-     &                            IRAC,     IRGSS,    IRGSO, 
-     &                            IRCLS,    IRCLO,    IVSMAX )
-
-         ! Calls INIT_WEIGHTSS to calculate the volume distribution of 
-         ! sea salt aerosols (jaegle 5/11/11)
-         CALL INIT_WEIGHTSS()
-         FIRST = .FALSE.
-      ENDIF
-#endif
 
       ! Call METERO to obtain meterological fields (all 1-D arrays)
       ! Added sfc pressure as PRESSU and 10m windspeed as W10 
       !  (jaegle 5/11/11, mpayer 1/10/12)
-      CALL METERO( State_Met, CZ1,    TC0,   OBK,       CFRAC,  
-     &             RADIAT,    AZO,    USTAR, ZH,        LSNOW, 
-     &             RHB,       PRESSU, W10,   SUNCOS_MID        )
+      CALL METERO( State_Met, CZ1,    TC0,     OBK,       CFRAC,  
+     &             RADIAT,    AZO,    USTAR,   ZH,        LSNOW, 
+     &             RHB,       PRESSU, W10,     SUNCOS_MID             )
 
-      !=================================================================
       ! Call DEPVEL to compute dry deposition velocities [m/s]
-      ! Added  PRESSU, W10 as arguments (jaegle 5/11/11)
-      !=================================================================
-      CALL DEPVEL( MAXIJ,  RADIAT,  TC0,     SUNCOS_MID, F0,  
-     &             HSTAR,  XMW,     AIROSOL, USTAR,      CZ1,
-     &             OBK,    CFRAC,   ZH,      LSNOW,      DVEL,  
-     &             AZO,    RHB,     PRESSU,  W10               )
+      CALL DEPVEL( State_Met, MAXIJ,  RADIAT,  TC0,       SUNCOS_MID, 
+     &             F0,        HSTAR,  XMW,     AIROSOL,   USTAR,      
+     &             CZ1,       OBK,    CFRAC,   ZH,        LSNOW,      
+     &             DVEL,      AZO,    RHB,     PRESSU,    W10         )
 
       !=================================================================
       ! Compute dry deposition frequencies; archive diagnostics
@@ -847,7 +812,6 @@
 
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_DIAG_MOD       ! Diagnostic switches & arrays
-      USE CMN_DEP_MOD        ! Dry deposition variables
       USE COMMSOIL_MOD       ! Soil wetness variables
       USE COMODE_MOD
 ! 
@@ -1186,7 +1150,6 @@
       
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! Diagnostic switches & arrays
-      USE CMN_DEP_MOD              ! Dry deposition variables
       USE COMMSOIL_MOD             ! Soil wetness variables
 !
 ! !INPUT PARAMETERS:
@@ -1446,13 +1409,19 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DEPVEL( NPTS,   RADIAT, TEMP,    SUNCOS, F0,  
-     &                   HSTAR,  XMW,    AIROSOL, USTAR,  CZ1,    
-     &                   OBK,    CFRAC,  ZH,      LSNOW,  DVEL,  
-     &                   ZO,     RHB,    PRESSU,  W10           )
+      SUBROUTINE DEPVEL( State_Met, NPTS,   RADIAT, TEMP,    SUNCOS, 
+     &                   F0,        HSTAR,  XMW,    AIROSOL, USTAR,  
+     &                   CZ1,       OBK,    CFRAC,  ZH,      LSNOW,  
+     &                   DVEL,      ZO,     RHB,    PRESSU,  W10     )
+!
+! !USES:
+!
+      USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
+      TYPE(MetState), INTENT(IN) :: State_Met ! Meteorology state object
+
       INTEGER, INTENT(IN) :: NPTS             ! # of grid boxes = IIPAR*JJPAR
       REAL*8,  INTENT(IN) :: RADIAT (MAXIJ )  ! Solar radiation [W/m2]
       REAL*8,  INTENT(IN) :: TEMP   (MAXIJ )  ! Temperature [K]
@@ -1601,6 +1570,8 @@
 !  09 Apr 2012 - R. Yantosca - Now use INTENT(IN), INTENT(OUT) for arguments
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  12 Dec 2012 - R. Yantosca - Now get ILAND, IUSE, IREG from State_Met
+!  13 Dec 2012 - R. Yantosca - Now get XLAI from State_Met
 !
 !***********************************************************************
 !   Changes from Version 3.2 to Version 3.3:                         ***
@@ -1764,14 +1735,29 @@
 !****************************************************************************
 
          ! Loop over the # of Olson land types in this grid box (I,J)
-         DO 170 LDT = 1, IREG(I,J)
+!------------------------------------------------------------------------------
+! Prior to 12/12/12:
+! Now get IREG from State_Met (bmy, 12/12/12)
+!         DO 170 LDT = 1, IREG(I,J)
+!------------------------------------------------------------------------------
+         DO 170 LDT = 1, State_Met%IREG(I,J)
 
             ! If the land type is not represented in grid 
             ! box  (I,J), then skip to the next land type
-            IF ( IUSE(I,J,LDT) == 0 ) GOTO 170
+!------------------------------------------------------------------------------
+! Prior to 12/12/12:
+! Now get IREG from State_Met (bmy, 12/12/12)
+!            IF ( IUSE(I,J,LDT) == 0 ) GOTO 170
+!------------------------------------------------------------------------------
+            IF ( State_Met%IUSE(I,J,LDT) == 0 ) GOTO 170
 
             ! Olson land type index + 1
-            IOLSON = ILAND(I,J,LDT)+1
+!------------------------------------------------------------------------------
+! Prior to 12/12/12:
+! Now get IREG from State_Met (bmy, 12/12/12)
+!            IOLSON = ILAND(I,J,LDT)+1
+!------------------------------------------------------------------------------
+            IOLSON = State_Met%ILAND(I,J,LDT)+1
 
             ! Dry deposition land type index
             II     = IDEP(IOLSON)
@@ -1793,10 +1779,22 @@
 !** divide them by the leaf area index to get a cuticular resistance for the
 !** bulk canopy.  If IRLU is '9999' it means there are no cuticular
 !** surfaces on which to deposit so we impose a very large value for RLU.
-            IF ( IRLU(II) >= 9999 .or. XLAI(I,J,LDT) <= 0.D0 ) THEN
+!------------------------------------------------------------------------------
+! Prior to 12/12/12:
+! Now get XLAI from State_Met (bmy, 12/12/12)
+!            IF ( IRLU(II) >= 9999 .or. XLAI(I,J,LDT) <= 0.D0 ) THEN
+!------------------------------------------------------------------------------
+            IF ( IRLU(II) >= 9999 .or. 
+     &           State_Met%XLAI(I,J,LDT) <= 0.D0 ) THEN
                RLU(LDT) = 1.D6
             ELSE
-               RLU(LDT) = DBLE( IRLU(II) ) / XLAI(I,J,LDT) + RT
+!------------------------------------------------------------------------------
+! Prior to 12/12/12:
+! Now get XLAI from State_Met (bmy, 12/12/12)
+!               RLU(LDT) = DBLE( IRLU(II) ) / XLAI(I,J,LDT) + RT
+!------------------------------------------------------------------------------
+               RLU(LDT) = DBLE( IRLU(II) ) 
+     &                  / State_Met%XLAI(I,J,LDT) + RT
             ENDIF
 !** The following are the remaining resistances for the Wesely
 !** resistance-in-series model for a surface canopy
@@ -1845,9 +1843,19 @@
             IF (TEMPC .GT. 0.D0 .AND. TEMPC .LT. 40.D0)
      *           GFACT = 400.D0/TEMPC/(40.0D0-TEMPC)
             GFACI = 100.D0
-            IF ( RAD0 > 0.D0 .and. XLAI(I,J,LDT) > 0.D0 ) THEN
-               GFACI = 1.D0 / BIOFIT( DRYCOEFF,       XLAI(I,J,LDT),
-     &                                SUNCOS(IJLOOP), CFRAC(IJLOOP)  )
+!------------------------------------------------------------------------------
+! Prior to 12/12/12:
+! Now get XLAI from State_Met (bmy, 12/12/12)
+!            IF ( RAD0 > 0.D0 .and. XLAI(I,J,LDT) > 0.D0 ) THEN
+!               GFACI = 1.D0 / BIOFIT( DRYCOEFF,       XLAI(I,J,LDT),
+!     &                                SUNCOS(IJLOOP), CFRAC(IJLOOP)  )
+!            ENDIF
+!------------------------------------------------------------------------------
+            IF ( RAD0 > 0.D0 .and. State_Met%XLAI(I,J,LDT) > 0.D0 ) THEN
+               GFACI = 1.D0 / BIOFIT( DRYCOEFF,       
+     &                                State_Met%XLAI(I,J,LDT),
+     &                                SUNCOS(IJLOOP), 
+     &                                CFRAC(IJLOOP)            )
             ENDIF
             
             RIX = RIX*GFACT*GFACI
@@ -2004,17 +2012,38 @@
 !*                                 
          DO 190 K = 1,NUMDEP 
             IF (.NOT.LDEP(K)) GOTO 190
-            DO 180 LDT = 1,IREG(I,J)
-               IF ( IUSE(I,J,LDT) == 0 ) GOTO 180
+!------------------------------------------------------------------------------
+! Prior to 12/12/12:
+! Now get IREG from State_Met (bmy, 12/12/12)
+!            DO 180 LDT = 1,IREG(I,J)
+!------------------------------------------------------------------------------
+            DO 180 LDT = 1, State_Met%IREG(I,J)
+!------------------------------------------------------------------------------
+! Prior to 12/12/12:
+! Now get IUSE from State_Met (bmy, 12/12/12)
+!               IF ( IUSE(I,J,LDT) == 0 ) GOTO 180
+!------------------------------------------------------------------------------
+               IF ( State_Met%IUSE(I,J,LDT) == 0 ) GOTO 180
                RSURFC(K,LDT)= MAX(1.D0, MIN(RSURFC(K,LDT), 9999.D0))
  180        CONTINUE
  190     CONTINUE
 !*                                 
 !*    Loop through the different landuse types present in the grid square     
-!*                                 
-         DO 500 LDT = 1, IREG(I,J)
-            IF ( IUSE(I,J,LDT) == 0 ) GOTO 500
-            IOLSON = ILAND(I,J,LDT) + 1
+!*           
+!------------------------------------------------------------------------------
+! Prior to 12/12/12:
+! Now get IREG from State_Met (bmy, 12/12/12)                      
+!         DO 500 LDT = 1, IREG(I,J)
+!------------------------------------------------------------------------------
+         DO 500 LDT = 1, State_Met%IREG(I,J)
+            !IF ( IUSE(I,J,LDT) == 0 ) GOTO 500
+            IF ( State_Met%IUSE(I,J,LDT) == 0 ) GOTO 500
+!------------------------------------------------------------------------------
+! Prior to 12/12/12:
+! Now get IREG from State_Met (bmy, 12/12/12)  
+!            IOLSON = ILAND(I,J,LDT) + 1
+!------------------------------------------------------------------------------
+            IOLSON = State_Met%ILAND(I,J,LDT) + 1
 
 #if   defined( GCAP )
 ! NOTE: This section only applies to the GCAP/GISS model (swu, bmy, 5/25/05)
@@ -2278,7 +2307,9 @@
             DO 400 K = 1,NUMDEP
                IF (.NOT.LDEP(K)) GOTO 400
                VK(K) = VD(K)
-               VD(K) = VK(K) +.001D0*DBLE( IUSE(I,J,LDT) )/C1X(K)
+               !VD(K) = VK(K) +.001D0*DBLE( IUSE(I,J,LDT) )/C1X(K)
+               VD(K) = VK(K) +.001D0*
+     &                        DBLE( State_Met%IUSE(I,J,LDT) )/C1X(K)
  400        CONTINUE
  500     CONTINUE
 
@@ -3357,7 +3388,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_WEIGHTSS
+      SUBROUTINE INIT_WEIGHTSS()
 ! 
 ! !REVISION HISTORY: 
 !  11 May 2011 - L. Jaegle   - Initial version
@@ -5442,6 +5473,32 @@
       ENDDO
  100  FORMAT( i3, 3x, a4, 2(3x,i3), 4x, es8.1, 2(3x,f6.3), 3x, L3 )
       ENDIF
+
+      !=================================================================
+      ! Get input information 
+      !=================================================================
+
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%% NOTE: Because READ_DRYDEP_INPUTS reads info from a netCDF %%%
+      !%%% file, we may have to broadcast these.  However, the file  %%%
+      !%%% dimensions are not very great (10 or 20 indices each)     %%%
+      !%%% (bmy, 12/11/12)                                           %%%
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+      ! Read drydep inputs from the netCDF file
+      ! Save Olson indices in INDOLSON array, in order to avoid
+      ! confusion w/ previously-assinged variable name IOLSON
+      CALL READ_DRYDEP_INPUTS( am_I_Root,
+     &                         DRYCOEFF, INDOLSON, IDEP,    
+     &                         IWATER,   NWATER,   IZO,      
+     &                         IDRYDEP,  IRI,      IRLU,     
+     &                         IRAC,     IRGSS,    IRGSO, 
+     &                         IRCLS,    IRCLO,    IVSMAX )
+
+
+      ! Calls INIT_WEIGHTSS to calculate the volume distribution of 
+      ! sea salt aerosols (jaegle 5/11/11)
+      CALL INIT_WEIGHTSS()
 
       END SUBROUTINE INIT_DRYDEP
 !EOC

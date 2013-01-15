@@ -21,14 +21,18 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !
-      ! IREG   - Number of landtypes in grid square (I,J)
-      INTEGER, PUBLIC, ALLOCATABLE :: IREG(:,:)                                
-
-      ! ILAND  - Land type ID in grid square (I,J) for IREG landtypes
-      INTEGER, PUBLIC, ALLOCATABLE :: ILAND(:,:,:)
-
-      ! IUSE   - Fraction ((per mil) of gridbox area occupied by land type
-      INTEGER, PUBLIC, ALLOCATABLE :: IUSE(:,:,:)
+      !----------------------------------------------------------------------
+      ! Prior to 12/12/12:
+      ! These are now included in State_Met (bmy, 12/12/12)
+      !! IREG   - Number of landtypes in grid square (I,J)
+      !INTEGER, PUBLIC, ALLOCATABLE :: IREG(:,:)                                
+      !
+      !! ILAND  - Land type ID in grid square (I,J) for IREG landtypes
+      !INTEGER, PUBLIC, ALLOCATABLE :: ILAND(:,:,:)
+      !
+      !! IUSE   - Fraction ((per mil) of gridbox area occupied by land type
+      !INTEGER, PUBLIC, ALLOCATABLE :: IUSE(:,:,:)
+      !----------------------------------------------------------------------
 
       !----------------------------------------------------------------------
       ! Prior to 12/4/12:
@@ -57,6 +61,7 @@
 !  23 Aug 2011 - M. Long     - Converted to Module from Header file
 !  25 Aug 2011 - R. Yantosca - Change IGLOB,JGLOB to IIPAR,JJPAR
 !  04 Dec 2012 - R. Yantosca - Remove FRCLND; it is now included in State_Met
+!  12 Dec 2012 - R. Yantosca - IREG, ILAND, IUSE are now included in State_Met
 !EOP
 !-----------------------------------------------------------------------------
 !BOC
@@ -98,27 +103,31 @@
 !  16 Nov 2012 - R. Yantosca - Added ProTeX headers
 !  19 Nov 2012 - R. Yantosca - Renamed to INIT_CMN_DEP, added error checks
 !  04 Dec 2012 - R. Yantosca - Remove FRCLND; it is now included in State_Met
+!  12 Dec 2012 - R. Yantosca - IREG, ILAND, IUSE are now included in State_Met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-
-      ALLOCATE( IREG( IIPAR, JJPAR ), STAT=RC )
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         WRITE( 6, '(a)' ) 'Cannot allocate IREG (CMN_DEP_mod.F)'
-         RETURN
-      ENDIF
-
-      ALLOCATE( ILAND ( IIPAR, JJPAR, NTYPE ), STAT=RC )
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         WRITE( 6, '(a)' ) 'Cannot allocate ILAND (CMN_DEP_mod.F)'
-         RETURN
-      ENDIF
-
-      ALLOCATE( IUSE( IIPAR, JJPAR, NTYPE ), STAT=RC )                    
-      IF ( RC /= GIGC_SUCCESS ) THEN
-         WRITE( 6, '(a)' ) 'Cannot allocate IUSE (CMN_DEP_mod.F)'
-         RETURN
-      ENDIF
+      !----------------------------------------------------------------------
+      ! Prior to 12/12/12:
+      ! These are now included in State_Met (bmy, 12/12/12)
+      !ALLOCATE( IREG( IIPAR, JJPAR ), STAT=RC )
+      !IF ( RC /= GIGC_SUCCESS ) THEN
+      !   WRITE( 6, '(a)' ) 'Cannot allocate IREG (CMN_DEP_mod.F)'
+      !   RETURN
+      !ENDIF
+      !
+      !ALLOCATE( ILAND ( IIPAR, JJPAR, NTYPE ), STAT=RC )
+      !IF ( RC /= GIGC_SUCCESS ) THEN
+      !   WRITE( 6, '(a)' ) 'Cannot allocate ILAND (CMN_DEP_mod.F)'
+      !   RETURN
+      !ENDIF
+      !
+      !ALLOCATE( IUSE( IIPAR, JJPAR, NTYPE ), STAT=RC )                    
+      !IF ( RC /= GIGC_SUCCESS ) THEN
+      !   WRITE( 6, '(a)' ) 'Cannot allocate IUSE (CMN_DEP_mod.F)'
+      !   RETURN
+      !ENDIF
+      !----------------------------------------------------------------------
       
       !------------------------------------------------------------------------
       ! Prior to 12/4/12:
@@ -174,6 +183,7 @@
 ! !REVISION HISTORY: 
 !  19 Nov 2012 - R. Yantosca - Initial version
 !  04 Dec 2012 - R. Yantosca - Remove FRCLND; it is now included in State_Met
+!  12 Dec 2012 - R. Yantosca - IREG, ILAND, IUSE are now included in State_Met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -181,9 +191,12 @@
       RC = GIGC_SUCCESS
       
       ! Deallocate arrays
-      IF ( ALLOCATED( IREG   ) ) DEALLOCATE( IREG   )
-      IF ( ALLOCATED( ILAND  ) ) DEALLOCATE( ILAND  )
-      IF ( ALLOCATED( IUSE   ) ) DEALLOCATE( IUSE   )
+      !----------------------------------------------------------------------
+      ! Prior to 12/12/12:
+      ! These are now included in State_Met (bmy, 12/12/12)
+      !IF ( ALLOCATED( IREG   ) ) DEALLOCATE( IREG   )
+      !IF ( ALLOCATED( ILAND  ) ) DEALLOCATE( ILAND  )
+      !IF ( ALLOCATED( IUSE   ) ) DEALLOCATE( IUSE   )
       !---------------------------------------------------------------------
       ! Prior to 12/4/12:
       ! This is now included in State_Met (bmy, 12/4/12)

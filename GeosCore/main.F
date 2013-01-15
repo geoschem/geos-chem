@@ -838,6 +838,9 @@
             ! (1) At the present time, we have removed all references
             !     to the obsolete XYLAI array and its parent module
             !     CMN_VEL_mod.F.
+            ! (2) As of Dec 2012, the XLAI and XLAI2 arrays are now
+            !     carried in State_Met.  We can remove the obsolete
+            !     module Headers/CMN_DEP_mod.F.
             ! 
             !      -- Bob Yantosca (09 Apr 2012)
             !-----------------------------------------------------------
@@ -852,8 +855,9 @@
             CALL Read_Modis_Lai( laiYYYY, laiMM, wasModisRead )
 
             ! Interpolate LAI quantities from native grid to GEOS-Chem grid
-            CALL Compute_Modis_Lai( day_of_year, laiMM, 
-     &                              mapping,     wasModisRead )
+            CALL Compute_Modis_Lai( am_I_Root,    State_Met, 
+     &                              day_of_year,  laiMM,     
+     &                              mapping,      wasModisRead, RC )
 
             ! For MEGAN biogenics, compute 15-day average temperature
             IF ( LMEGAN ) THEN
@@ -985,12 +989,8 @@
             !         ***** D R Y   D E P O S I T I O N *****
             !===========================================================
             IF ( LDRYD .and. ( .not. ITS_A_H2HD_SIM() ) ) THEN
-#if defined( DEVEL )
-               CALL DO_DRYDEP( am_I_Root, IIPAR,     JJPAR,     LLPAR,
-     &                         Input_Opt, State_Met, State_Chm, RC     )
-#else
-               CALL DO_DRYDEP( am_I_Root, State_Met )
-#endif
+               CALL DO_DRYDEP( am_I_Root, Input_Opt, 
+     &                         State_Met, State_Chm, RC )
             ENDIF
 
             !===========================================================
@@ -1114,12 +1114,8 @@
             !         ***** D R Y   D E P O S I T I O N *****
             !===========================================================
             IF ( LDRYD .and. ( .not. ITS_A_H2HD_SIM() ) ) THEN
-#if defined( DEVEL )
-               CALL DO_DRYDEP( am_I_Root, IIPAR,     JJPAR,     LLPAR,
-     &                         Input_Opt, State_Met, State_Chm, RC     )
-#else
-               CALL DO_DRYDEP( am_I_Root, State_Met )
-#endif
+               CALL DO_DRYDEP( am_I_Root, Input_Opt, 
+     &                         State_Met, State_Chm, RC )
             ENDIF
 
             !===========================================================
@@ -1197,8 +1193,8 @@
 !------------------------------------------------------------------------------
 
             ! Do GEOS-Chem chemistry
-            CALL DO_CHEMISTRY( am_I_Root, NI,        NJ,        NL,
-     &                         Input_Opt, State_Chm, State_Met, RC     ) 
+            CALL DO_CHEMISTRY( am_I_Root, Input_Opt, 
+     &                         State_Chm, State_Met, RC ) 
             !-----------------------------------------------------------
 
          ENDIF 
@@ -1940,6 +1936,7 @@
 ! !REVISION HISTORY: 
 !  07 Feb 2012 - R. Yantosca - Initial version
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  04 Jan 2013 - M. Payer    - Call UPDATE_T_DAY for MERRA and GEOS-5.7.2 (tmf)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1956,6 +1953,10 @@
       IF ( ITS_TIME_FOR_A1() ) THEN
          DATE = GET_A1_TIME()
          CALL GEOS57_READ_A1( DATE(1), DATE(2), State_Met )
+
+         ! Update daily mean temperature archive for MEGAN biogenics
+         ! (tmf, 1/4/2012) This should be turned on!
+         IF ( LMEGAN ) CALL UPDATE_T_DAY( State_Met )
       ENDIF
 
       !----------------------------------
@@ -2000,7 +2001,8 @@
 
          !%%% NEED TO UPDATE FOR MERRA %%%
          ! Update daily mean temperature archive for MEGAN biogenics
-         !IF ( LMEGAN ) CALL UPDATE_T_DAY( State_Met )
+         ! (tmf, 1/4/2012) This should be turned on!
+         IF ( LMEGAN ) CALL UPDATE_T_DAY( State_Met )
       ENDIf
 
       !==============================================================

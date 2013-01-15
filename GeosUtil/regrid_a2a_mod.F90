@@ -58,7 +58,7 @@ MODULE REGRID_A2A_MOD
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_REGRID_A2A( FILENAME, IM, JM, INGRID, OUTGRID, PERAREA, &
+  SUBROUTINE DO_REGRID_A2A( FILENAME, IM, JM, INGRID, OUTGRID, IS_MASS, &
                             netCDF )
 ! 
 ! !USES:
@@ -83,8 +83,10 @@ MODULE REGRID_A2A_MOD
     ! Data array on the input grid
     REAL*8,           INTENT(IN)    :: INGRID(IM,JM)
 
-    ! =1 if we need to convert INGRID to per unit area
-    INTEGER,          INTENT(IN)    :: PERAREA
+    ! IS_MASS=0 if data is units of concentration (molec/cm2/s, unitless, etc.)
+    ! IS_MASS=1 if data is units of mass (kg/yr, etc.); we will need to convert
+    !           INGRID to per unit area
+    INTEGER,          INTENT(IN)    :: IS_MASS
 
     ! Read from netCDF file?  (needed for debugging, will disappear later)
     LOGICAL, OPTIONAL,INTENT(IN)    :: netCDF  
@@ -107,6 +109,8 @@ MODULE REGRID_A2A_MOD
 !  23 Aug 2012 - R. Yantosca - Now use f10.4 format for hi-res grids
 !  23 Aug 2012 - R. Yantosca - Now can read grid info from netCDF files
 !  27 Aug 2012 - R. Yantosca - Add parallel DO loops
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS to describe parameter
+!                              more clearly
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -213,7 +217,7 @@ MODULE REGRID_A2A_MOD
     IN_GRID = INGRID
 
     ! Convert input to per area units if necessary
-    IF ( PERAREA == 1 ) THEN
+    IF ( IS_MASS == 1 ) THEN
 
        !$OMP PARALLEL DO                   &
        !$OMP DEFAULT( SHARED             ) &
@@ -234,7 +238,7 @@ MODULE REGRID_A2A_MOD
                   IIPAR, JJPAR, OUTLON, OUTSIN, OUTGRID, 0, 0 )
 
     ! Convert back from "per area" if necessary
-    IF ( PERAREA == 1 ) THEN
+    IF ( IS_MASS == 1 ) THEN
 
        !$OMP PARALLEL DO       &
        !$OMP DEFAULT( SHARED ) &

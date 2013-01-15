@@ -1332,6 +1332,7 @@
 !  06 Apr 2012 - M. Payer    - Changed regrid algorithm to map_a2a (M. Cooper)
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1421,7 +1422,7 @@
       INGRID  => GEOS_1x1 (:,:,1)
       OUTGRID => GEOS_GRID(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    INGRID,     OUTGRID, IS_MASS=0,
      &                    netCDF=.TRUE.                   )   
 
       ! Cast to REAL*4
@@ -1629,6 +1630,8 @@
 !                                      (M. Cooper)
 !  24 May 2012 - R. Yantosca         - Fixed minor bugs in map_a2a calls
 !  24 Aug 2012 - R. Yantosca         - DO_REGRID_A2A now reads netCDF input
+!  03 Jan 2013 - M. Payer            - Renamed PERAREA to IS_MASS in
+!                                      DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1679,7 +1682,7 @@
       INGRID  => GEOS_1x1(:,:,1)
       OUTGRID => GEOS_GRID(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    INGRID,     OUTGRID, IS_MASS=0,
      &                    netCDF=.TRUE.                   )   
 
       EMBIOFUELCO2(:,:) = GEOS_GRID(:,:,1)   !(lmw,05/16/11)
@@ -1724,6 +1727,7 @@
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a impelementation
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1789,7 +1793,7 @@
       INGRID  => GEN_1x1  (:,:,1)
       OUTGRID => GEOS_GRID(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-     &                    INGRID,     OUTGRID, PERAREA=1,
+     &                    INGRID,     OUTGRID, IS_MASS=1,
      &                    netCDF=.TRUE.                   )   
 
       ! Free pointers
@@ -1859,7 +1863,6 @@
       USE DIRECTORY_MOD,  ONLY : DATA_DIR, DATA_DIR_1x1
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
       USE FILE_MOD,       ONLY : IOERROR
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_G2G_1x1, DO_REGRID_1x1 
       USE TIME_MOD,       ONLY : GET_YEAR, GET_MONTH
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A	
 
@@ -1890,6 +1893,7 @@
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1935,7 +1939,7 @@
       ! TAU value for start of month in 2004
       TAU = GET_TAU0( MONTH, 1, 2004 )
 
-      ! Read CO2 shipping emissions
+      ! Read CO2 shipping emissions [molec/cm2/s]
       CALL READ_BPCH2( FILENAME, 'CO2-SRCE', 7, 
      &                 TAU,       360,       181,     
      &                 1,         ARRAY,     QUIET=.TRUE. )
@@ -1951,7 +1955,7 @@
       INGRID  => GEOS_1x1 (:,:,1)
       OUTGRID => GEOS_GRID(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    INGRID,     OUTGRID, IS_MASS=0,
      &                    netCDF=.TRUE.                   )
 
       ! Free pointers
@@ -2280,6 +2284,7 @@
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !   2 Oct 2012 - R. Yantosca - Bug fix, the terrestrial exchange file is
 !                              placed on the generic grid, not geos grid
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2380,7 +2385,7 @@
 !%%%         INGRID  => GEOS_1x1 (:,:,1)
 !%%%         OUTGRID => GEOS_GRID(:,:,1)
 !%%%         CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-!%%%     &                       INGRID,     OUTGRID, PERAREA=0,
+!%%%     &                       INGRID,     OUTGRID, IS_MASS=0,
 !%%%     &                       netCDF=.TRUE.                   )
 !-----------------------------------------------------------------------------
                   
@@ -2409,7 +2414,7 @@
          INGRID  => GEN_1x1  (:,:,1)
          OUTGRID => GEOS_GRID(:,:,1)
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-     &                       INGRID,     OUTGRID, PERAREA=0,
+     &                       INGRID,     OUTGRID, IS_MASS=0,
      &                       netCDF=.TRUE.                   )
 
          ! Free pointers

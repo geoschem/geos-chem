@@ -1384,7 +1384,7 @@
       ENDIF    
 
       END SUBROUTINE CHEM_OCPI
-
+!EOC
 !-------------------------------------------------------------------------------
 
 #if defined( DEVEL )
@@ -5032,6 +5032,8 @@ c
 !  (5 ) Now reads in monthly data from Bond et al [2007] (eml, 4/17/09)
 !  08 Mar 2012 - M. Payer    - Added modifications for historical emissions of
 !                              BC/POA (E. Leibensperger)
+!  03 Jan 2013 - M. Payer    - Use MAP_A2A regridding for historical emissions
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !******************************************************************************
 !
       ! References to F90 modules
@@ -5049,6 +5051,7 @@ c
       USE TIME_MOD,             ONLY : GET_HISTYR
 !eml]
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
+      USE REGRID_A2A_MOD,       ONLY : DO_REGRID_A2A
 
       USE CMN_SIZE_MOD             ! Size parameters
 
@@ -5062,11 +5065,12 @@ c
       REAL*8                        :: STEPS_PER_MON
       REAL*8                        :: FD2D(IIPAR,JJPAR)
       CHARACTER(LEN=255)            :: FILENAME
+      CHARACTER(LEN=255)            :: LLFILENAME
+      REAL*8, POINTER               :: INGRID (:,:) => NULL()
+      REAL*8, TARGET                :: GEN8_1x1(I1x1,J1x1-1)
 ![eml
       CHARACTER(LEN=  4)            :: CHISTYR
-!     REAL*4                        :: GENERIC_1x1(I1x1,J1x1-1,1)
-      REAL*4                        :: GENERIC_1x1(IIPAR,JJPAR,1)
-
+      REAL*4                        :: GENERIC_1x1(I1x1,J1x1-1)
 !eml]
 
       ! Hydrophilic fraction of BLACK CARBON (aka ELEMENTAL CARBON)
@@ -5131,8 +5135,17 @@ c
      &                       XTAU,      I1x1,        J1x1-1,     
      &                       1,         GENERIC_1x1, QUIET=.TRUE. ) 
 
-            ! Cast to REAL*8 and resize
-            CALL TRANSFER_2D( GENERIC_1x1(:,:,1), FD2D )
+            ! Cast from REAL*4 to REAL*8
+            GEN8_1x1 = GENERIC_1x1
+
+            ! Regrid to current model resolution [kg/yr]
+            INGRID  => GEN8_1x1(:,:)
+            CALL DO_REGRID_A2A( LLFILENAME, I1x1, J1x1-1, 
+     &                          INGRID,     FD2D, IS_MASS=1,
+     &                          netCDF=.TRUE.                )
+
+            ! Free pointer
+            NULLIFY( INGRID )
 
          ENDIF ! LHIST
 !eml]
@@ -5183,8 +5196,17 @@ c
      &                       XTAU,      I1x1,        J1x1-1,     
      &                       1,         GENERIC_1x1, QUIET=.TRUE. ) 
 
-            ! Cast to REAL*8 and resize
-            CALL TRANSFER_2D( GENERIC_1x1(:,:,1), FD2D )
+            ! Cast from REAL*4 to REAL*8
+            GEN8_1x1 = GENERIC_1x1
+
+            ! Regrid to current model resolution [kg/yr]
+            INGRID  => GEN8_1x1(:,:)
+            CALL DO_REGRID_A2A( LLFILENAME, I1x1, J1x1-1, 
+     &                          INGRID,     FD2D, IS_MASS=1,
+     &                          netCDF=.TRUE.                )
+
+            ! Free pointer
+            NULLIFY( INGRID )
 
          ENDIF ! LHIST
 
@@ -5258,8 +5280,17 @@ c
      &                       XTAU,      I1x1,        J1x1-1,
      &                       1,         GENERIC_1x1, QUIET=.TRUE. ) 
 
-            ! Cast to REAL*8 and resize
-            CALL TRANSFER_2D( GENERIC_1x1(:,:,1), FD2D )
+            ! Cast from REAL*4 to REAL*8
+            GEN8_1x1 = GENERIC_1x1
+
+            ! Regrid to current model resolution [kg/yr]
+            INGRID  => GEN8_1x1(:,:)
+            CALL DO_REGRID_A2A( LLFILENAME, I1x1, J1x1-1, 
+     &                          INGRID,     FD2D, IS_MASS=1,
+     &                          netCDF=.TRUE.                )
+
+            ! Free pointer
+            NULLIFY( INGRID )
 
          ENDIF
 !eml]
@@ -5307,8 +5338,17 @@ c
      &                       XTAU,      I1x1,        J1x1-1,     
      &                       1,         GENERIC_1x1, QUIET=.TRUE. )
 
-            ! Cast to REAL*8 and resize
-            CALL TRANSFER_2D( GENERIC_1x1(:,:,1), FD2D )
+            ! Cast from REAL*4 to REAL*8
+            GEN8_1x1 = GENERIC_1x1
+
+            ! Regrid to current model resolution [kg/yr]
+            INGRID  => GEN8_1x1(:,:)
+            CALL DO_REGRID_A2A( LLFILENAME, I1x1, J1x1-1, 
+     &                          INGRID,     FD2D, IS_MASS=1,
+     &                          netCDF=.TRUE.                )
+
+            ! Free pointer
+            NULLIFY( INGRID )
 
          ENDIF ! LHIST
 
@@ -7830,6 +7870,9 @@ c
 
 #else
 
+      ! Definition of the N. American bounding box
+      ! with LL corner (10N,165W) and UR corner (90N,40W)
+      !            Lon_LL  Lat_LL  Lon_UR  Lat_UR
       COORDS = (/ -165d0,  10d0,  -40d0,   90d0  /)
       
       ! Get the indices corresponding to the lon/lat values in COORDS

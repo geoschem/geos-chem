@@ -452,7 +452,7 @@
       ! For testing the ESMF interface to GEOS-Chem with a grid that 
       ! is smaller than the usual 72x46, increase NTYPE (bmy, 12/4/12)
       !-----------------------------------------------------------------
-      INTEGER, PARAMETER :: NTYPE    = 75
+      INTEGER, PARAMETER :: NTYPE    = 50
 #else
       !-----------------------------------------------------------------
       !              %%%%% TRADITIONAL GEOS-Chem %%%%%

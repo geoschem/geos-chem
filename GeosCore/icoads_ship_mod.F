@@ -231,6 +231,7 @@
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a algorithm
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -335,13 +336,13 @@
          IF ( SPECIES .eq. 1 ) THEN
 
             CALL DO_REGRID_A2A( LLFILENAME, I1x1, J1x1, 
-     &                          INGRID,     NOx,  PERAREA=1,
+     &                          INGRID,     NOx,  IS_MASS=1,
      &                          netCDF=.TRUE.                )
 
          ELSEIF ( SPECIES .eq. 2 ) THEN
 
             CALL DO_REGRID_A2A( LLFILENAME, I1x1, J1x1,
-     &                          INGRID,     CO,   PERAREA=1,
+     &                          INGRID,     CO,   IS_MASS=1,
      &                          netCDF=.TRUE.                )
 
          ELSEIF ( SPECIES .eq. 3 ) THEN
@@ -351,7 +352,7 @@
             ! utilized in sulfate_mod.f
             INGRID = INGRID * 0.986
             CALL DO_REGRID_A2A( LLFILENAME, I1x1, J1x1,
-     &                          INGRID,     SO2,  PERAREA=1,
+     &                          INGRID,     SO2,  IS_MASS=1,
      &                          netCDF=.TRUE.                )
 
          ENDIF

@@ -84,7 +84,6 @@ CONTAINS
 ! !USES:
 !
     USE CMN_Mod,            ONLY : Init_CMN
-    USE CMN_DEP_Mod,        ONLY : Init_CMN_DEP
     USE CMN_DIAG_Mod,       ONLY : Init_CMN_DIAG
     USE CMN_FJ_Mod,         ONLY : Init_CMN_FJ
     USE CMN_NOX_Mod,        ONLY : Init_CMN_NOX
@@ -137,6 +136,7 @@ CONTAINS
 !  03 Dec 2012 - R. Yantosca - Now pass am_I_Root, RC to INIT_CMN_SIZE
 !  03 Dec 2012 - R. Yantosca - Add optional arguments to accept dimension
 !                              size information from the ESMF interface
+!  13 Dec 2012 - R. Yantosca - Remove reference to obsolete CMN_DEP_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -194,9 +194,6 @@ CONTAINS
 
     ! Set dimensions in CMN_DEP_mod.F and allocate arrays
     CALL Init_CMN( am_I_Root, RC )  
-    IF ( RC /= GIGC_SUCCESS ) RETURN
-
-    CALL Init_CMN_DEP( am_I_Root, RC )  
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
     CALL Init_CMN_DIAG( am_I_Root, RC )

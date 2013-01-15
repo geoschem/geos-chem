@@ -19,7 +19,6 @@ MODULE Olson_LandMap_Mod
 ! !USES:
 !
   USE CMN_GCTM_MOD                      ! Physical constants
-  USE CMN_DEP_MOD                       ! IREG, ILAND, IUSE, FRCLND arrays
   USE CMN_SIZE_MOD                      ! Size parameters
   USE DIRECTORY_MOD                     ! Disk directory paths   
   USE ERROR_MOD                         ! Error checking routines
@@ -226,6 +225,7 @@ CONTAINS
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  29 Nov 2012 - R. Yantosca - Added am_I_Root argument
+!  12 Dec 2012 - R. Yantosca - Now get IREG, ILAND, IUSE from State_Met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -236,7 +236,7 @@ CONTAINS
     LOGICAL :: isGlobal
     INTEGER :: I,         J,         II,       III
     INTEGER :: JJ,        T,         N,        type
-    INTEGER :: uniqOlson, sumIuse,   C
+    INTEGER :: uniqOlson, sumIuse,   C,        IG
     REAL*4  :: xedge_w,   xedge_e,   yedge_s,  yedge_n
     REAL*4  :: xedgeC_w,  xedgeC_e,  yedgeC_s, yedgeC_n
     REAL*4  :: dxdy,      dxdy4,     mapWt,    area
@@ -282,24 +282,27 @@ CONTAINS
     ctOlson            = 0
     frOlson            = 0e0
     ordOlson           = -999
-    IREG               = 0
-    ILAND              = 0
-    IUSE               = 0
+    State_Met%IREG     = 0
+    State_Met%ILAND    = 0
+    State_Met%IUSE     = 0
     State_Met%FRCLND   = 1000e0
     isGlobal           = ( .not. ITS_A_NESTED_GRID() )
 
     !======================================================================
     ! Loop over all GEOS-CHEM GRID BOXES and initialize variables
     !======================================================================
-    !$OMP PARALLEL DO                                                &
-    !$OMP DEFAULT( SHARED )                                          &
-    !$OMP PRIVATE( I,        J,       xedgeC_w, yedgeC_s, xedgeC_e ) &
-    !$OMP PRIVATE( yedgeC_n, dxdy4,   sumArea,  JJ,       III      ) &
-    !$OMP PRIVATE( dxdy,     mapWt,   II,       xedge_w,  yedge_s  ) &
-    !$OMP PRIVATE( xedge_e,  yedge_n, area,     type,     maxIuse  ) &
-    !$OMP PRIVATE( sumIUse,  uniqOlson, C                          )
+    !$OMP PARALLEL DO                                                  &
+    !$OMP DEFAULT( SHARED )                                            &
+    !$OMP PRIVATE( I,        J,         xedgeC_w, yedgeC_s, xedgeC_e ) &
+    !$OMP PRIVATE( yedgeC_n, dxdy4,     sumArea,  JJ,       III      ) &
+    !$OMP PRIVATE( dxdy,     mapWt,     II,       xedge_w,  yedge_s  ) &
+    !$OMP PRIVATE( xedge_e,  yedge_n,   area,     type,     maxIuse  ) &
+    !$OMP PRIVATE( sumIUse,  uniqOlson, C,        IG                 )
     DO J = 1, JJPAR
     DO I = 1, IIPAR
+
+       ! Global lon index (needed for when running in ESMF)
+       IG = I + I_LO - 1
 
        ! Edges of this GEOS-CHEM GRID box
        xedgeC_w  = GET_XEDGE( I,   J,   1 )          ! W edge
@@ -332,7 +335,13 @@ CONTAINS
        
           ! Find the NATIVE GRID longitude index for use below.  Account for 
           ! the first GEOS-CHEM GRID box, which straddles the date line.
-          IF ( isGlobal .and.  I == 1 ) THEN
+          !------------------------------------------------------------------
+          ! Prior to 12/7/12:
+          ! I==1 happens on each CPU (when running in the ESMF environment)
+          ! but IG==1 uniquely denotes the date line. (bmy, 12/7/12)
+          !IF ( isGlobal .and.  I == 1 ) THEN
+          !------------------------------------------------------------------
+          IF ( isGlobal .and.  IG == 1 ) THEN
              II      = shiftLon(III)
           ELSE
              II      = indLon(III)
@@ -348,7 +357,13 @@ CONTAINS
           ! we have to adjust the W and E edges of the NATIVE GRID BOX to
           ! be in monotonically increasing order.  This will prevent
           ! erronous results from being returned by GET_MAP_WT below.
-          IF ( isGlobal .and.  I == 1 .and. II >= shiftLon(1) ) THEN
+          !------------------------------------------------------------------
+          ! Prior to 12/7/12:
+          ! I==1 happens on each CPU (when running in the ESMF environment)
+          ! but IG==1 uniquely denotes the date line. (bmy, 12/7/12)
+          !IF ( isGlobal .and. I == 1 .and. II >= shiftLon(1) )  THEN
+          !------------------------------------------------------------------
+          IF ( isGlobal .and. IG == 1 .and. II >= shiftLon(1) )  THEN
              xedge_w = xedge_w - 360e0
              xedge_e = xedge_e - 360e0
           ENDIF
@@ -393,8 +408,8 @@ CONTAINS
           ENDIF
 
           ! Save mapping information for later use in modis_lai_mod.F90
-          ! in order to prepare the XLAI array for use with the legacy 
-          ! dry-deposition and soil NOx emissions codes.
+          ! in order to prepare the State_Met%XLAI array for use with the 
+          ! legacy dry-deposition and soil NOx emissions codes.
           C                     = C + 1
           mapping(I,J)%count    = C
           mapping(I,J)%II(C)    = II
@@ -404,7 +419,7 @@ CONTAINS
           mapping(I,J)%sumarea  = sumarea
 
        ENDDO
-       ENDDO
+    ENDDO
 
        !===================================================================
        ! Construct GEOS-Chem type output arrays from the binning that we 
@@ -429,38 +444,40 @@ CONTAINS
           ! If land type T is represented in this box ...
           IF ( ctOlson(I,J,T) > 0 .and. ordOlson(I,J,T) > 0 ) THEN 
  
-             ! Increment the count of Olson types in the box
-             IREG(I,J)                  = IREG(I,J) + 1
+             ! Increment the count of Olson types in the box 
+             State_Met%IREG(I,J)                  = State_Met%IREG(I,J) + 1
              
              ! Save land type into ILAND
-             ILAND(I,J,ordOlson(I,J,T)) = T
+             State_Met%ILAND(I,J,ordOlson(I,J,T)) = T
              
              ! Save the fraction (in mils) of this land type
-             IUSE(I,J,ordOlson(I,J,T))  = frOlson(I,J,T)
+             State_Met%IUSE(I,J,ordOlson(I,J,T))  = frOlson(I,J,T)
 
           ENDIF
        ENDDO
 
        ! Land type with the largest coverage in the GEOS-CHEM GRID BOX
-       maxIuse              = MAXLOC( IUSE( I, J, 1:IREG(I,J) ) )
+       maxIuse = MAXLOC( State_Met%IUSE( I, J, 1:State_Met%IREG(I,J) ) )
 
        ! Sum of all land types in the GEOS-CHEM GRID BOX (should be 1000)
-       sumIUse              = SUM( IUSE( I, J, 1:IREG(I,J) ) )
+       sumIUse = SUM   ( State_Met%IUSE( I, J, 1:State_Met%IREG(I,J) ) )
 
        ! Make sure everything adds up to 1000.  If not, then adjust
        ! the land type w/ the largest coverage accordingly.
        ! This follows the algorithm from "regridh_lai.pro".
        IF ( sumIUse /= 1000 ) THEN
-          IUSE(I,J,maxIUse) = IUSE(I,J,maxIUse) + ( 1000 - sumIUse )
+          State_Met%IUSE(I,J,maxIUse) = State_Met%IUSE(I,J,maxIUse) &
+                                      + ( 1000 - sumIUse )
        ENDIF
       
        ! Loop over land types in the GEOS-CHEM GRID BOX
-       DO T = 1, IREG(I,J)
+       DO T = 1, State_Met%IREG(I,J)
 
           ! If the current Olson land type is water (type 0),
           ! subtract the coverage fraction (IUSE) from FRCLND.
-          IF ( ILAND(I,J,T) == 0 ) THEN
-             State_Met%FRCLND(I,J) = State_Met%FRCLND(I,J) - IUSE(I,J,T)
+          IF ( State_Met%ILAND(I,J,T) == 0 ) THEN
+             State_Met%FRCLND(I,J) = State_Met%FRCLND(I,J)  &
+                                   - State_Met%IUSE(I,J,T)
           ENDIF
        ENDDO
 

@@ -171,7 +171,7 @@
                                                 !  bottom of the grid box 
                                                 !  [cm3 H2O/cm2 area/s]
       REAL*8,  ALLOCATABLE :: QQ(:,:,:)         ! Rate of new precip formation
-                                                !   [cm3 H2O/cm3 air/s]
+                                                !  [cm3 H2O/cm3 air/s]
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -756,29 +756,32 @@
 !
 ! !USES:
 !
+      USE GET_POPSINFO_MOD,   ONLY : GET_POP_HSTAR
+      USE GET_POPSINFO_MOD,   ONLY : GET_POP_DEL_Hw
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACERID_MOD,       ONLY : IDTPB,    IDTBE7,   IDTHNO3 
-      USE TRACERID_MOD,       ONLY : IDTH2O2,  IDTCH2O,  IDTMP
-      USE TRACERID_MOD,       ONLY : IDTSO2,   IDTSO4,   IDTSO4s
-      USE TRACERID_MOD,       ONLY : IDTSO4aq, IDTMSA,   IDTNH3   
-      USE TRACERID_MOD,       ONLY : IDTNH4,   IDTNH4aq, IDTNIT  
-      USE TRACERID_MOD,       ONLY : IDTNITs,  IDTAS,    IDTAHS
-      USE TRACERID_MOD,       ONLY : IDTLET,   IDTBCPI,  IDTOCPI
-      USE TRACERID_MOD,       ONLY : IDTBCPO,  IDTOCPO,  IDTDST1 
-      USE TRACERID_MOD,       ONLY : IDTDST2,  IDTDST3,  IDTDST4 
-      USE TRACERID_MOD,       ONLY : IDTSALA,  IDTSALC,  IDTALPH
-      USE TRACERID_MOD,       ONLY : IDTLIMO,  IDTALCO,  IDTSOG1
-      USE TRACERID_MOD,       ONLY : IDTSOG2,  IDTSOG3,  IDTSOG4
-      USE TRACERID_MOD,       ONLY : IDTSOA1,  IDTSOA2,  IDTSOA3
-      USE TRACERID_MOD,       ONLY : IDTSOA4,  IS_Hg2,   IS_HgP
-      USE TRACERID_MOD,       ONLY : IDTGLYX,  IDTMGLY,  IDTGLYC      
-      USE TRACERID_MOD,       ONLY : IDTSOAG,  IDTSOAM
-      USE TRACERID_MOD,       ONLY : IDTSOA5,  IDTSOG5
-      USE TRACERID_MOD,       ONLY : IDTMOBA,  IDTPROPNN
-      USE TRACERID_MOD,       ONLY : IDTISOPN, IDTMMN
-      USE TRACERID_MOD,       ONLY : IDTIEPOX, IDTRIP
+      USE TRACERID_MOD,       ONLY : IDTPB,     IDTBE7,    IDTHNO3 
+      USE TRACERID_MOD,       ONLY : IDTH2O2,   IDTCH2O,   IDTMP
+      USE TRACERID_MOD,       ONLY : IDTSO2,    IDTSO4,    IDTSO4s
+      USE TRACERID_MOD,       ONLY : IDTSO4aq,  IDTMSA,    IDTNH3   
+      USE TRACERID_MOD,       ONLY : IDTNH4,    IDTNH4aq,  IDTNIT  
+      USE TRACERID_MOD,       ONLY : IDTNITs,   IDTAS,     IDTAHS
+      USE TRACERID_MOD,       ONLY : IDTLET,    IDTBCPI,   IDTOCPI
+      USE TRACERID_MOD,       ONLY : IDTBCPO,   IDTOCPO,   IDTDST1 
+      USE TRACERID_MOD,       ONLY : IDTDST2,   IDTDST3,   IDTDST4 
+      USE TRACERID_MOD,       ONLY : IDTSALA,   IDTSALC,   IDTALPH
+      USE TRACERID_MOD,       ONLY : IDTLIMO,   IDTALCO,   IDTSOG1
+      USE TRACERID_MOD,       ONLY : IDTSOG2,   IDTSOG3,   IDTSOG4
+      USE TRACERID_MOD,       ONLY : IDTSOA1,   IDTSOA2,   IDTSOA3
+      USE TRACERID_MOD,       ONLY : IDTSOA4,   IS_Hg2,    IS_HgP
+      USE TRACERID_MOD,       ONLY : IDTGLYX,   IDTMGLY,   IDTGLYC      
+      USE TRACERID_MOD,       ONLY : IDTSOAG,   IDTSOAM
+      USE TRACERID_MOD,       ONLY : IDTSOA5,   IDTSOG5
+      USE TRACERID_MOD,       ONLY : IDTMOBA,   IDTPROPNN
+      USE TRACERID_MOD,       ONLY : IDTISOPN,  IDTMMN
+      USE TRACERID_MOD,       ONLY : IDTIEPOX,  IDTRIP
       USE TRACERID_MOD,       ONLY : IDTMAP
-      USE TRACERID_MOD,       ONLY : IDTHOBr,  IDTHBr,   IDTBr2
+      USE TRACERID_MOD,       ONLY : IDTHOBr,   IDTHBr,    IDTBr2
+      USE TRACERID_MOD,       ONLY : IDTPOPPOC, IDTPOPPBC, IDTPOPG 
 #if   defined( APM )
       USE APM_INIT_MOD,       ONLY : NGCOND,    NSO4
       USE APM_INIT_MOD,       ONLY : NSEA,      NDSTB
@@ -862,12 +865,13 @@
 !  (21) Bug fix: now use separate conversion factors for H2O2 and NH3.
 !        (havala, bmy, 7/26/06)
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
-!  10-Jan-2011 - H.Amos - Changed Hg2 Henry's law constant from 1.0d14 (no 
-!                         citation) to 1.4d6 M/atm (HgCl2, Lindqvist & Rhode, 
-!                         1985). Henry's law constant in wetscav_mod.f is 
-!                         now consistent with what's used in mercury_mod.f
+!  10-Jan-2011 - H.Amos      - Changed Hg2 Henry's law constant from 1.0d14 (no 
+!                              citation) to 1.4d6 M/atm (HgCl2, Lindqvist &
+!                              Rhode, 1985). Henry's law constant in
+!                              wetscav_mod.f is now consistent with what's used
+!                              in mercury_mod.f
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM microphysics
-!  27 Sep 2011 - H. Amos - remove LHg_WETDasHNO3 logical, it's obsolete
+!  27 Sep 2011 - H. Amos     - remove LHg_WETDasHNO3 logical, it's obsolete
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !EOP
@@ -894,12 +898,18 @@
       ! 0.9 is ( molecular weight NH3 / molecular weight water )
       REAL*8, PARAMETER    :: CONV_NH3  = 5.69209978831d-1
 
+      REAL*8,   SAVE       :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
+      REAL*8               :: DUM
+
       !=================================================================
       ! COMPUTE_F begins here!
       !
       ! For aerosol tracers, compute F with internal routine F_AEROSOL.
       ! ISOL = tracer index for the ND38 diagnostic.
       !=================================================================
+
+      ! Initialize
+      DUM = 1.0
 
       !-------------------------------
       ! 210Pb and 7Be (aerosols)
@@ -1957,6 +1967,89 @@
          CALL F_AEROSOL( KC, N, F, State_Met ) 
          ISOL = GET_ISOL( N )
 
+      !-------------------------------
+      ! POPG (liquid phase only) (clf 11/16/10)
+      !-------------------------------
+      ELSE IF (N == IDTPOPG ) THEN
+
+         ! No scavenging at the surface
+         F(:,:,1) = 0d0
+
+         ! Apply scavenging in levels 2 and higher
+         DO L = 2, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+            ! Compute liquid to gas ratio for POPs using
+            ! the appropriate parameters for Henry's Law (M/atm, unitless Kaw
+            ! divided by R (in atm/M/K, or 8.21d-2) and T (T = 298 K)) as first
+            ! argument and negative enthalpy of water-air exchange (kJ/mol)
+            ! divided by R (in kJ/mol/K, or 8.32d-3) as second argument. 
+            ! For PHENANTHRENE, HSTAR = 2.35d1 and del_H = -5.65d3 (HSTAR from
+            ! Ma et al, 2010 J. Chem. Eng. Data, and del_H from Scharzenbach
+            ! 2003, p200)
+            ! For PYRENE, HSTAR = 7.61d1 and del_H = -5.17d3 (HSTAR from Ma et
+            ! al and del_H from Scharzenbach 2003, p200)
+            ! For BENZO[a]PYRENE, HSTAR = 1.32d3 and del_H = -5.65d3 (HSTAR from
+            ! Ma et al and Del_H the same as pyrene for now)
+            CALL COMPUTE_L2G( GET_POP_HSTAR(DUM), GET_POP_DEL_Hw(DUM), 
+     &                        State_Met%T(I,J,L), CLDLIQ(I,J,L), L2G )
+
+            ! Fraction of POP in liquid phase 
+            ! Assume (for now) that POP is not present in ice phase
+            ! (Eqs. 4, 5, 6, Jacob et al, 2000)
+            C_TOT = 1d0 + L2G
+            F_L   = L2G / C_TOT
+
+            ! Compute the rate constant K.  Assume retention efficiency  
+            ! for POPG in liquid is 0.0 for T <= 248 K and 0.02 for 
+            ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
+            IF ( State_Met%T(I,J,L) >= 268d0 ) THEN
+               K = KC * F_L  
+
+            ! ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
+            !   K = KC * ( 2d-2 * F_L )
+            ! clf, 1/7/11 - no retention below 268 K 
+                  
+            ELSE
+               K = 0d0
+
+            ENDIF
+               
+            ! Distance between grid box centers [m]
+            TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
+     &                      State_Met%BXHEIGHT(I,J,L) ) 
+
+            ! F is the fraction of POP scavenged out of the updraft
+            ! (Eq. 2, Jacob et al, 2000)
+            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+
+         ENDDO
+         ENDDO
+         ENDDO
+
+         ! ND38 index
+         ISOL = GET_ISOL( N )
+
+      !-------------------------------
+      ! POPPOC (treat like hydrophobic OC aerosol)
+      !-------------------------------
+      ELSE IF (N == IDTPOPPOC ) THEN
+
+         ! Force not to be lost in convective updraft for now
+         F    = 0d0
+         ISOL = GET_ISOL( N )
+
+      !-------------------------------
+      ! POPPBC (treat like hydrophobic BC aerosol)
+      !-------------------------------
+      ELSE IF (N == IDTPOPPBC ) THEN
+
+         ! Force not to be lost in convective updraft for now
+         F    = 0d0
+         ISOL = GET_ISOL( N )
+
+
       ! Additional tracers for isoprene
       ! (fp, 06/09)
       !Use temperature of limonene
@@ -2568,7 +2661,11 @@
 ! !USES:
 !
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      !POPs (eck, 9/21/10)
+      USE GET_POPSINFO_MOD,   ONLY : GET_POP_HSTAR
+      USE GET_POPSINFO_MOD,   ONLY : GET_POP_DEL_Hw
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TRACER_MOD,         ONLY : ITS_A_MERCURY_SIM 
       USE TRACERID_MOD,       ONLY : IDTPB,   IDTBE7,   IDTHNO3, IDTH2O2 
       USE TRACERID_MOD,       ONLY : IDTCH2O, IDTMP,    IDTSO2,  IDTSO4  
       USE TRACERID_MOD,       ONLY : IDTSO4s, IDTSO4aq, IDTMSA,  IDTNH3   
@@ -2581,14 +2678,15 @@
       USE TRACERID_MOD,       ONLY : IDTSOA1, IDTSOA2,  IDTSOA3, IDTSOA4
       USE TRACERID_MOD,       ONLY : IDTSOA5, IDTSOG5
       USE TRACERID_MOD,       ONLY : IS_Hg2,  IS_HgP
-      USE TRACERID_MOD,       ONLY : IDTGLYX, IDTMGLY,  IDTGLYC
-      USE TRACERID_MOD,       ONLY : IDTSOAG, IDTSOAM
-      USE TRACERID_MOD,       ONLY : IDTMOBA,  IDTPROPNN
-      USE TRACERID_MOD,       ONLY : IDTISOPN, IDTMMN
-      USE TRACERID_MOD,       ONLY : IDTIEPOX, IDTRIP, IDTMAP
-      ! jpp 4/27/09           
-      USE TRACERID_MOD,       ONLY : IDTHOBr, IDTHBr,   IDTBr2
-      USE TRACER_MOD,         ONLY : ITS_A_MERCURY_SIM 
+      USE TRACERID_MOD,       ONLY : IDTGLYX,   IDTMGLY,   IDTGLYC
+      USE TRACERID_MOD,       ONLY : IDTSOAG,   IDTSOAM
+      USE TRACERID_MOD,       ONLY : IDTMOBA,   IDTPROPNN
+      USE TRACERID_MOD,       ONLY : IDTISOPN,  IDTMMN
+      USE TRACERID_MOD,       ONLY : IDTIEPOX,  IDTRIP,    IDTMAP
+      ! jpp 4/27/09
+      USE TRACERID_MOD,       ONLY : IDTHOBr,   IDTHBr,    IDTBr2
+      !POPs (eck, 9/21/10)
+      USE TRACERID_MOD,       ONLY : IDTPOPPOC, IDTPOPPBC, IDTPOPG
 #if   defined( APM )
       USE APM_INIT_MOD,       ONLY : NDSTB, IDTDSTBIN1
 #endif
@@ -2672,12 +2770,18 @@
       ! 0.9 is ( molecular weight NH3 / molecular weight water )
       REAL*8, PARAMETER :: CONV_NH3  = 5.69209978831d-1
 
+      REAL*8,    SAVE     :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
+      REAL*8              :: DUM
+
       !==================================================================
       ! RAINOUT begins here!
       !
       ! For aerosols, set K = K_RAIN and compute RAINFRAC according
       ! to Eq. 10 of Jacob et al 2000.  Call function GET_RAINFRAC.
       !==================================================================
+
+      ! Initialize
+      DUM = 1.0
 
       ! Save the local temperature in TK for convenience
       TK = State_Met%T(I,J,L)
@@ -3586,7 +3690,67 @@
 
             ! CDH 9/28/2009
 !            IF ( TK < 248d0 ) RAINFRAC = 0d0
-  
+
+         !-------------------------------
+         ! POPG (liquid phase only) (clf 11/16/10)
+         !-------------------------------
+         ELSE IF (N == IDTPOPG ) THEN
+
+            ! Compute liquid to gas ratio for POPs using
+            ! the appropriate parameters for Henry's Law (M/atm, unitless Kaw
+            ! divided by R (in atm/M/K, or 8.21d-2) and T (T = 298 K)) as
+            ! first argument and negative enthalpy of water-air exchange
+            ! (kJ/mol) divided by R (in kJ/mol/K, or 8.32d-3) as second
+            ! argument.
+            ! For PHENANTHRENE, HSTAR = 2.35d1 and del_H = -5.65d3 (HSTAR from
+            ! Ma et al, 2010 J. Chem. Eng. Data, and del_H from Scharzenbach
+            ! 2003, p200)
+            ! For PYRENE, HSTAR = 7.61d1 and del_H = -5.17d3 (HSTAR from Ma et
+            ! al and del_H from Scharzenbach 2003, p200)
+            ! For BENZO[a]PYRENE, HSTAR = 1.32d3 and del_H = -5.17d3 (HSTAR from
+            ! Ma et al and Del_H the same as pyrene for now)
+            CALL COMPUTE_L2G( GET_POP_HSTAR(DUM), GET_POP_DEL_Hw(DUM), 
+     &                        State_Met%T(I,J,L), CLDLIQ(I,J,L), L2G )
+
+            ! Fraction of POP in liquid phase 
+            ! Assume (for now) that POP is not present in ice phase
+            ! (Eqs. 4, 5, 6, Jacob et al, 2000)
+            C_TOT = 1d0 + L2G
+            F_L   = L2G / C_TOT
+
+            ! Compute the rate constant K.  Assume that the retention factor
+            ! for liquid POP is 0.02 for 248 K < T < 268 K, and
+            ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
+            IF ( TK >= 268d0 ) THEN
+               K = K_RAIN * F_L
+
+            ! ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
+            ! K = K_RAIN * ( 2d-2 * F_L ) 
+            ! clf, 1/7/11 - no retention below 268 K     
+   
+            ELSE
+               K = 0d0
+
+            ENDIF
+               
+            ! Compute RAINFRAC, the fraction of rained-out POP
+            ! (Eq. 10, Jacob et al, 2000)
+            RAINFRAC = GET_RAINFRAC( K, F, DT )
+
+         !------------------------------
+         ! POPPOC (treat like hydrophobic OC aerosol)
+         !------------------------------
+         ELSE IF ( N == IDTPOPPOC ) THEN
+            ! No rainout 
+            RAINFRAC = 0.0D0
+         
+         !------------------------------
+         ! POPPBC (treat like hydrophobic BC aerosol)
+         !------------------------------
+         ELSE IF ( N == IDTPOPPBC ) THEN
+            ! No rainout 
+            RAINFRAC = 0.0D0  
+         
 #if   defined( APM )
 
          !---------------------------------------
@@ -3692,6 +3856,9 @@
       USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP, IDTMAP
       ! jpp 4/27/09
       USE TRACERID_MOD, ONLY : IDTHOBr,  IDTHBr,   IDTBr2
+      !POPs (eck, 9/21/10)
+      USE TRACERID_MOD, ONLY : IDTPOPPOC, IDTPOPPBC, IDTPOPG
+      USE GET_POPSINFO_MOD, ONLY : GET_POP_HSTAR, GET_POP_DEL_Hw
 #if   defined( APM )
       USE APM_INIT_MOD, ONLY : NDSTB,IDTDSTBIN1
 #endif
@@ -3783,6 +3950,9 @@
 !
       REAL*8            :: L2G, DZ, SO2LOSS
 
+      REAL*8, SAVE      :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
+      REAL*8            :: DUM
+
       !=================================================================
       ! WASHOUT begins here!
       !
@@ -3790,6 +3960,9 @@
       ! or WASHFRAC_LIQ_GAS to compute the fraction of tracer lost to 
       ! washout according to Jacob et al 2000
       !=================================================================
+
+      ! Initialize
+      DUM = 1.0
 
       ! DZ is the height of the grid box in cm
       DZ = BXHEIGHT * 1d2
@@ -4132,6 +4305,29 @@
          KIN      = .TRUE.
          WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
+      !------------------------------
+      ! POPG (liquid and gas phases) (clf, 11/17/2010)
+      !------------------------------
+      ELSE IF ( N == IDTPOPG ) THEN
+         KIN      = .FALSE.
+         CALL WASHFRAC_LIQ_GAS( GET_POP_HSTAR(DUM) , 
+     &                          GET_POP_DEL_Hw(DUM),
+     &                          PP, DT, F, DZ, TK, WASHFRAC, KIN )     
+
+      !------------------------------
+      ! POPPOC (treat like hydrophobic OC aerosol) 
+      !------------------------------
+      ELSE IF ( N == IDTPOPPOC ) THEN 
+         KIN      = .TRUE.
+         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
+
+      !------------------------------
+      ! POPPBC (treat like hydrophobic BC aerosol) 
+      !------------------------------
+      ELSE IF ( N == IDTPOPPBC ) THEN 
+         KIN      = .TRUE.
+         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
+
 #if   defined( APM )
 
       !-----------------------------------
@@ -4171,6 +4367,7 @@
 !
 ! !USES:
 !
+      USE TRACER_MOD, ONLY : ITS_A_POPS_SIM ! (eck, 10/15/10)
 !
 ! !INPUT PARAMETERS: 
 !
@@ -4214,7 +4411,7 @@
       !=================================================================
 
       ! Washout only happens at or above 268 K
-      IF ( ( TK >= 268d0 ) ) THEN
+      IF ( ( TK >= 268d0 ) .OR. ITS_A_POPS_SIM() ) THEN
          WASHFRAC = F *(1d0 - EXP( -K_WASH * 
      &                         (PP / F*3.6d4 )**0.61d0 * DT / 3.6d3 ))
       ELSE
@@ -6745,6 +6942,8 @@
       USE TRACERID_MOD, ONLY : IDTIEPOX,  IDTRIP,    IDTMAP
       ! jpp 4/27/09
       USE TRACERID_MOD, ONLY : IDTHOBr,   IDTHBr,    IDTBr2
+      ! POPS (10/2010)
+      USE TRACERID_MOD, ONLY : IDTPOPPOC, IDTPOPPBC,  IDTPOPG
 #if   defined( APM )
       USE APM_INIT_MOD, ONLY : NDSTB,IDTDSTBIN1
 #endif
@@ -7076,6 +7275,21 @@
             NSOL         = NSOL + 1
             IDWETD(NSOL) = N
 
+         !-----------------------------
+         ! POPs: Particulate and gas phase 
+         !-----------------------------
+         ELSE IF (N == IDTPOPPOC ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTPOPPOC
+
+         ELSE IF (N == IDTPOPPBC ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTPOPPBC
+
+         ELSE IF (N == IDTPOPG ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTPOPG
+        
          ENDIF
       ENDDO
 
@@ -7130,6 +7344,7 @@
       USE LOGICAL_MOD,  ONLY : LSSALT, LSULF, LSPLIT, LCRYST
       USE TRACER_MOD,   ONLY : ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM
       USE TRACER_MOD,   ONLY : ITS_A_RnPbBe_SIM,   ITS_A_MERCURY_SIM
+      USE TRACER_MOD,   ONLY : ITS_A_POPS_SIM
       USE TRACERID_MOD, ONLY : IDTSOAG,  IDTSOAM
 #if   defined( APM )
       USE APM_INIT_MOD, ONLY : NDSTB
@@ -7229,7 +7444,14 @@
          ! Mercury simulation
          !-----------------------
          NMAX = 2                               ! Hg2, HgP
-         IF ( LSPLIT ) NMAX = NMAX + 14         ! Tagged tracers
+         IF ( LSPLIT ) NMAX = 58                ! Tagged tracers (eds)
+
+      ELSE IF ( ITS_A_POPS_SIM() ) THEN
+
+         ! ------------------
+         ! POPs simulation
+         ! -----------------
+         NMAX = 3                               ! POPPOC, POPPBC, and POPG
 
       ELSE 
 

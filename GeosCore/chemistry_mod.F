@@ -68,8 +68,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_CHEMISTRY( am_I_Root, NI,        NJ,        NL,
-     &                         Input_Opt, State_Chm, State_Met, RC )
+      SUBROUTINE DO_CHEMISTRY( am_I_Root, Input_Opt, 
+     &                         State_Chm, State_Met, RC )
 !
 ! !USES:
 !
@@ -119,9 +119,6 @@
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-      INTEGER,        INTENT(IN)    :: NI          ! # of lons on this PET
-      INTEGER,        INTENT(IN)    :: NJ          ! # of lats on this PET 
-      INTEGER,        INTENT(IN)    :: NL          ! # of levels on this PET
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -201,6 +198,9 @@
 !                              derived type object
 !  26 Nov 2012 - R. Yantosca - Now pass Input_Opt, State_Chm, RC to routine
 !                              DO_STRAT_CHEM (in GeosCore/strat_chem_mod.F90)
+!  11 Dec 2012 - R. Yantosca - Remove NI, NJ, NL, NCNST arguments; these are
+!                              now obtained either from CMN_SIZE_mod.F or
+!                              from the Input_Opt object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -304,8 +304,8 @@
          IF ( IT_IS_A_FULLCHEM_SIM ) THEN 
 
             ! Call gas-phase chemistry
-            CALL CHEMDR( am_I_Root, NI,        NJ,        NL, 
-     &                   Input_Opt, State_Met, State_Chm, RC  )
+            CALL CHEMDR( am_I_Root, Input_Opt, 
+     &                   State_Met, State_Chm, RC )
 
             ! Call linearized stratospheric scheme
             IF ( LSCHEM ) THEN 
@@ -654,7 +654,7 @@
       ! (i.e. State_Chm) and Meteorology State (i.e. State_Met)
       ! objects.  In order to continue GIGC development without 
       ! disrupting the existing GEOS-Chem workflow, we shall copy the 
-      ! trac3er array STT back to State_Chm%TRACERS after chemistry. 
+      ! tracer array STT back to State_Chm%TRACERS after chemistry. 
       !
       ! Also note: State_Chm%TRACERS needs to leave this routine with
       ! units of [kg].  If we are calling this routine from the 

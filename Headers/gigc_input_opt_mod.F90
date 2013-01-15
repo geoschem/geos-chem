@@ -506,18 +506,18 @@ MODULE GIGC_Input_Opt_Mod
      !----------------------------------------
      ! POPS MENU fields
      !----------------------------------------
-      CHARACTER(LEN=3)           :: POP_TYPE
-      LOGICAL                    :: CHEM_PROCESS
-      CHARACTER(LEN=255)         :: POP_EMISFILE
-      REAL*8                     :: POP_XMW
-      REAL*8                     :: POP_KOA
-      REAL*8                     :: POP_KBC
-      REAL*8                     :: POP_K_POPG_OH
-      REAL*8                     :: POP_K_POPP_O3A
-      REAL*8                     :: POP_K_POPP_O3B
-      REAL*8                     :: POP_HSTAR
-      REAL*8                     :: POP_DEL_H
-      REAL*8                     :: POP_DEL_Hw
+     CHARACTER(LEN=3)           :: POP_TYPE
+     LOGICAL                    :: CHEM_PROCESS
+     CHARACTER(LEN=255)         :: POP_EMISFILE
+     REAL*8                     :: POP_XMW
+     REAL*8                     :: POP_KOA
+     REAL*8                     :: POP_KBC
+     REAL*8                     :: POP_K_POPG_OH
+     REAL*8                     :: POP_K_POPP_O3A
+     REAL*8                     :: POP_K_POPP_O3B
+     REAL*8                     :: POP_HSTAR
+     REAL*8                     :: POP_DEL_H
+     REAL*8                     :: POP_DEL_Hw
 
   END TYPE OptInput
 !

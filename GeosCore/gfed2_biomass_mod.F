@@ -332,6 +332,7 @@
 !  13 Mar 2012 - M. Cooper   - Change regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a algorithm
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !******************************************************************************
 !
       ! References to F90 modules
@@ -621,7 +622,7 @@
       ! is per unit area.)
       INGRID => BIOM_GEN_1X1(:,:,N)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,           J1x1-1,
-     &                    INGRID,     GFED_REGRIDDED, PERAREA=0,
+     &                    INGRID,     GFED_REGRIDDED, IS_MASS=0,
      &                    netCDF=.TRUE.                          )
       GFED2_BIOMASS(:,:,N) = GFED_REGRIDDED
 

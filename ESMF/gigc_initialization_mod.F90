@@ -22,9 +22,12 @@ MODULE GIGC_Initialization_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !      
-  PUBLIC :: GIGC_Get_Options
-  PUBLIC :: GIGC_Init_Simulation
-  PUBLIC :: GIGC_Init_Time_Interface
+  PUBLIC  :: GIGC_Get_Options
+  PUBLIC  :: GIGC_Init_Simulation
+!
+! !PRIVATE MEMBER FUNCTIONS:
+!
+  PRIVATE :: RoundOff
 !
 ! !REVISION HISTORY: 
 !  16 Oct 2012 - M. Long     - Initial version
@@ -33,6 +36,8 @@ MODULE GIGC_Initialization_Mod
 !  22 Oct 2012 - R. Yantosca - Renamed several routines for better consistency
 !  25 Oct 2012 - R. Yantosca - Remove routine GIGC_SetEnv
 !  03 Dec 2012 - R. Yantosca - Now pass extra arguments to GIGC_Init_Dimensions
+!  06 Dec 2012 - R. Yantosca - Now remove routine GIGC_Init_TimeInterface; this
+!                              is now superseded by Accept_Date_Time_From_ESMF
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -56,25 +61,24 @@ CONTAINS
 ! !USES:
 !
     USE CMN_GCTM_Mod       
-    USE CMN_SIZE_Mod,       ONLY : dLat
-    USE CMN_SIZE_Mod,       ONLY : dLon
+    USE CMN_SIZE_Mod
     USE GIGC_ErrCode_Mod
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE Input_Mod,          ONLY : Read_Input_File
 !
 ! !INPUT PARAMETERS: 
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-    REAL*4,         INTENT(IN)    :: lonCtr(:,:)
-    REAL*4,         INTENT(IN)    :: latCtr(:,:)
+    LOGICAL,        INTENT(IN)    :: am_I_Root     ! Are we on the root CPU?
+    REAL*4,         INTENT(IN)    :: lonCtr(:,:)   ! Lon ctrs [deg] from ESMF
+    REAL*4,         INTENT(IN)    :: latCtr(:,:)   ! Lat ctrs [deg] from ESMF
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
+    TYPE(OptInput), INTENT(INOUT) :: Input_Opt     ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+    INTEGER,        INTENT(OUT)   :: RC            ! Success or failure
 ! 
 ! !REMARKS:
 !  NOTE: For now assume that GEOS_Chem will always accept a regular 
@@ -89,6 +93,7 @@ CONTAINS
 !  22 Oct 2012 - R. Yantosca - Added RC output argument
 !  01 Nov 2012 - R. Yantosca - Now pass the Input Options object via arg list
 !  03 Dec 2012 - R. Yantosca - Reorder subroutines for clarity
+!  07 Dec 2012 - R. Yantosca - Compute DLON, DLAT more rigorously
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -96,22 +101,44 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    REAL*8 :: deltaLon, deltaLat
+    INTEGER :: I, J, L
   
     ! Assume success
-    RC       = GIGC_SUCCESS
+    RC = GIGC_SUCCESS
 
-    ! Assume the longitude difference is the same for all grid boxes 
-    deltaLon = Roundoff( ( DBLE( lonCtr(2,1) ) / PI_180 ), 4 )  &
-             - Roundoff( ( DBLE( lonCtr(1,1) ) / PI_180 ), 4 )
+    !========================================================================
+    ! Compute the DLON and DLAT values.  NOTE, this is a kludge since to do
+    ! this truly rigorously, we should take the differences between the grid
+    ! box edges.  But because I can't seem to find a way to get the grid
+    ! box edge information, the next best thing is to take the differences
+    ! between the grid box centers.  They should all be the same given that
+    ! the GEOS-Chem grid is regular. (bmy, 12/7/12)
+    !========================================================================
+    DO L = 1, LLPAR
+    DO J = 1, JJPAR
+    DO I = 1, IIPAR
 
-    ! Assume the latitude difference is the same for all grid boxes
-    deltaLat = Roundoff( ( DBLE( latCtr(1,2) ) / PI_180 ), 4 )  &
-             - Roundoff( ( DBLE( latCtr(1,1) ) / PI_180 ), 4 )
+       ! Compute Delta-Longitudes [degrees]
+       IF ( I == IIPAR ) THEN
+          dLon(I,J,L) = RoundOff( ( DBLE( lonCtr(IIPAR,  J) ) / PI_180 ), 4 ) &
+                      - RoundOff( ( DBLE( lonCtr(IIPAR-1,J) ) / PI_180 ), 4 )
+       ELSE
+          dLon(I,J,L) = RoundOff( ( DBLE( lonCtr(I+1,    J) ) / PI_180 ), 4 ) &
+                      - RoundOff( ( DBLE( lonCtr(I,      J) ) / PI_180 ), 4 )
+       ENDIF
 
-    ! Save into arrays of CMN_SIZE
-    dLon     = deltaLon
-    dLat     = deltaLat
+       ! Compute Delta-Latitudes [degrees]
+       IF ( J == JJPAR ) THEN
+          dLat(I,J,L) = RoundOff( ( DBLE( latCtr(I,JJPAR  ) ) / PI_180 ), 4 ) &
+                      - RoundOff( ( DBLE( latCtr(I,JJPAR-1) ) / PI_180 ), 4 )
+       ELSE
+          dLat(I,J,L) = RoundOff( ( DBLE( latCtr(I,J+1    ) ) / PI_180 ), 4 ) &
+                      - RoundOff( ( DBLE( latCtr(I,J      ) ) / PI_180 ), 4 )
+       ENDIF
+
+    ENDDO
+    ENDDO
+    ENDDO
 
     ! Read the GEOS-Chem input file here
     CALL Read_Input_File( am_I_Root, Input_Opt, RC )
@@ -133,17 +160,19 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GIGC_Init_Simulation( am_I_Root,       tsChem,          &
-                                   nymd,            nhms,            &
+  SUBROUTINE GIGC_Init_Simulation( am_I_Root,                        &
+                                   nymdB,           nhmsB,           &
+                                   nymdE,           nhmsE,           &
+                                   tsChem,          tsDyn,           &
                                    lonCtr,          latCtr,          &      
-                                   latEdg,          value_I_LO,      &
-                                   value_J_LO,      value_I_HI,      &
-                                   value_J_HI,      value_IM,        &
-                                   value_JM,        value_LM,        &
-                                   value_IM_WORLD,  value_JM_WORLD,  &
-                                   value_LM_WORLD,  Input_Opt,       &
-                                   State_Chm,       State_Met,       &
-                                   mapping,         RC              )      
+                                   value_I_LO,      value_J_LO,      &
+                                   value_I_HI,      value_J_HI,      &
+                                   value_IM,        value_JM,        &
+                                   value_LM,        value_IM_WORLD,  &
+                                   value_JM_WORLD,  value_LM_WORLD,  &
+                                   Input_Opt,       State_Chm,       &
+                                   State_Met,       mapping,         &
+                                   RC                               )      
 !
 ! !USES:
 !
@@ -158,12 +187,7 @@ CONTAINS
     USE COMODE_LOOP_MOD       
     USE GCKPP_COMODE_MOD,     ONLY : INIT_GCKPP_COMODE
     USE ERROR_MOD,            ONLY : DEBUG_MSG
-    USE GRID_MOD,             ONLY : AREA_M2
     USE GRID_MOD,             ONLY : INIT_GRID
-    USE GRID_MOD,             ONLY : XEDGE
-    USE GRID_MOD,             ONLY : XMID
-    USE GRID_MOD,             ONLY : YEDGE
-    USE GRID_MOD,             ONLY : YMID
     USE Mapping_Mod,          ONLY : MapWeight
     USE Mapping_Mod,          ONLY : Init_Mapping
     USE Olson_Landmap_Mod,    ONLY : Init_Olson_Landmap
@@ -176,38 +200,41 @@ CONTAINS
     USE TRACERID_MOD,         ONLY : SETTRACE
     USE TOMS_MOD,             ONLY : TO3_DAILY
     USE WETSCAV_MOD,          ONLY : INIT_WETSCAV
+    USE DRYDEP_MOD,           ONLY : INIT_WEIGHTSS
 !
 ! !INPUT PARAMETERS: 
 !
-    LOGICAL,         INTENT(IN)    :: am_I_Root        ! Is this the root CPU?
-    REAL,            INTENT(IN)    :: tsChem           ! Chemistry timestep [s]
-    INTEGER,         INTENT(IN)    :: nymd             ! GMT date (YYYY/MM/DD)
-    INTEGER,         INTENT(IN)    :: nhms             ! GMT time (hh:mm:ss)
-    REAL*4,  TARGET, INTENT(IN)    :: lonCtr(:,:)      ! Lon centers [radians]
-    REAL*4,  TARGET, INTENT(IN)    :: latCtr(:,:)      ! Lat centers [radians]
-    REAL*4,  TARGET, INTENT(IN)    :: latEdg(:,:)      ! Lat centers [radians]
-    INTEGER,         INTENT(IN)    :: value_I_LO       ! Min local lon index
-    INTEGER,         INTENT(IN)    :: value_J_LO       ! Min local lat index
-    INTEGER,         INTENT(IN)    :: value_I_HI       ! Max local lon index
-    INTEGER,         INTENT(IN)    :: value_J_HI       ! Max local lat index
-    INTEGER,         INTENT(IN)    :: value_IM         ! Local # of lons
-    INTEGER,         INTENT(IN)    :: value_JM         ! Local # of lats
-    INTEGER,         INTENT(IN)    :: value_LM         ! Local # of levels
-    INTEGER,         INTENT(IN)    :: value_IM_WORLD   ! Global # of lons
-    INTEGER,         INTENT(IN)    :: value_JM_WORLD   ! Global # of lats
-    INTEGER,         INTENT(IN)    :: value_LM_WORLD   ! Global # of levels
+    LOGICAL,         INTENT(IN)    :: am_I_Root       ! Is this the root CPU?
+    INTEGER,         INTENT(IN)    :: nymdB           ! GMT date (YYYY/MM/DD)
+    INTEGER,         INTENT(IN)    :: nhmsB           ! GMT time (hh:mm:ss)
+    INTEGER,         INTENT(IN)    :: nymdE           ! GMT date (YYYY/MM/DD)
+    INTEGER,         INTENT(IN)    :: nhmsE           ! GMT time (hh:mm:ss)
+    REAL,            INTENT(IN)    :: tsChem          ! Chem timestep [seconds]
+    REAL,            INTENT(IN)    :: tsDyn           ! Dyn  timestep [seconds]
+    REAL*4,  TARGET, INTENT(IN)    :: lonCtr(:,:)     ! Lon centers [radians]
+    REAL*4,  TARGET, INTENT(IN)    :: latCtr(:,:)     ! Lat centers [radians]
+    INTEGER,         INTENT(IN)    :: value_I_LO      ! Min local lon index
+    INTEGER,         INTENT(IN)    :: value_J_LO      ! Min local lat index
+    INTEGER,         INTENT(IN)    :: value_I_HI      ! Max local lon index
+    INTEGER,         INTENT(IN)    :: value_J_HI      ! Max local lat index
+    INTEGER,         INTENT(IN)    :: value_IM        ! # lons on this CPU
+    INTEGER,         INTENT(IN)    :: value_JM        ! # lats on this CPU
+    INTEGER,         INTENT(IN)    :: value_LM        ! # levs on this CPU
+    INTEGER,         INTENT(IN)    :: value_IM_WORLD  ! # lons in whole globe
+    INTEGER,         INTENT(IN)    :: value_JM_WORLD  ! # lats in whole globe
+    INTEGER,         INTENT(IN)    :: value_LM_WORLD  ! # levs in whole globe
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(OptInput),  INTENT(INOUT) :: Input_Opt        ! Input Options
-    TYPE(ChmState),  INTENT(INOUT) :: State_Chm        ! Chemistry State
-    TYPE(MetState),  INTENT(INOUT) :: State_Met        ! Meteorology State
-    TYPE(MapWeight), POINTER       :: mapping(:,:)     ! Olson mapping object
+    TYPE(OptInput),  INTENT(INOUT) :: Input_Opt       ! Input Options
+    TYPE(ChmState),  INTENT(INOUT) :: State_Chm       ! Chemistry State
+    TYPE(MetState),  INTENT(INOUT) :: State_Met       ! Meteorology State
+    TYPE(MapWeight), POINTER       :: mapping(:,:)    ! Olson mapping object
 !
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,         INTENT(OUT)   :: RC               ! Success or failure?  
+    INTEGER,         INTENT(OUT)   :: RC              ! Success or failure?  
 !
 ! !REMARKS
 !  Add other calls to G EOS-Chem init routines as necessary.
@@ -230,6 +257,10 @@ CONTAINS
 !  29 Nov 2012 - R. Yantosca - Now pass am_I_Root to Olson landmap routines
 !  03 Dec 2012 - R. Yantosca - Now pass value_* arguments to pass dimension
 !                              info from ESMF down to lower-level routines
+!  06 Dec 2012 - R. Yantosca - Now accept start & end dates & times via 
+!                              the nymdB, nymdE, nhmsB, nhmsE arguments
+!   6 Dec 2012 - R. Yantosca - Remove nymd, nhms arguments, these will be
+!                              the same as nymdB, nhmsB (start of run)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -246,9 +277,6 @@ CONTAINS
     ! Initialize
     RC    = GIGC_SUCCESS
     DTIME = tsChem
-       
-    ! Initialize the timing routines
-    CALL GIGC_Init_Time_Interface( DTIME, nymd, nhms, am_I_Root, RC )
 
     ! Allocate GEOS-Chem module arrays
     CALL GIGC_Allocate_All( am_I_Root,       Input_Opt,       &
@@ -259,8 +287,21 @@ CONTAINS
                             value_IM_WORLD,  value_JM_WORLD,  &
                             value_LM_WORLD                   )
 
+    ! Save timing fields in Input_Opt for passing down to module
+    ! GeosCore/input_mod.F via routine GIGC_Get_Options (bmy, 12/6/12)
+    Input_Opt%NYMDb   = nymdB
+    Input_Opt%NHMSb   = nhmsB
+    Input_Opt%NYMDe   = nymdE
+    Input_Opt%NHMSe   = nhmsE
+    Input_Opt%TS_CHEM = INT( tsChem ) / 60   ! Chemistry timestep [min]
+    Input_Opt%TS_DYN  = INT( tsDyn  ) / 60   ! Dynamic   timestep [mn]
+
     ! Read options from the GEOS-Chem input file "input.geos"
     CALL GIGC_Get_Options( am_I_Root, lonCtr, latCtr, Input_Opt, RC )
+
+    ! Initialize timetep counts
+    CALL Initialize( 2, am_I_Root )
+    CALL Initialize( 3, am_I_Root )
 
     ! Determine if we have to print debug output
     prtDebug = ( Input_Opt%LPRT .and. am_I_Root )
@@ -274,9 +315,6 @@ CONTAINS
        State_Chm%TRAC_ID  (N) = Input_Opt%ID_TRACER(N)
     ENDDO
        
-    ! Allocate and zero GEOS-Chem diagnostic arrays
-    CALL Ndxx_Setup( am_I_Root, Input_Opt, RC )
-
     ! Initialize the GEOS-Chem pressure module (set Ap & Bp)
     CALL Init_Pressure( am_I_Root )
 
@@ -296,7 +334,6 @@ CONTAINS
        IF ( Input_Opt%USE_OLSON_2001 ) THEN
           CALL Init_Mapping( 1440, 720, IIPAR, JJPAR, mapping )
        ELSE
-          CALL DEBUG_MSG( '### Init Mapping 05x05')
           CALL Init_Mapping(  720, 360, IIPAR, JJPAR, mapping )
        ENDIF
 
@@ -310,25 +347,6 @@ CONTAINS
        IF ( prtDebug ) THEN
           CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after OLSON' )
        ENDIF
-
-!-----------------------------------------------------------------------------
-! NOTE: Add this soon (bmy, 12/4/12)
-!      ! Read drydep inputs from the netCDF file
-!      ! Save Olson indices in INDOLSON array, in order to avoid
-!      ! confusion w/ previously-assinged variable name IOLSON
-!      CALL READ_DRYDEP_INPUTS( am_I_Root,                      &
-!     &                            DRYCOEFF, INDOLSON, IDEP,       &
-!     &                            IWATER,   NWATER,   IZO,        
-!     &                            IDRYDEP,  IRI,      IRLU,     
-!     &                            IRAC,     IRGSS,    IRGSO, 
-!     &                            IRCLS,    IRCLO,    IVSMAX )
-!
-!      ! Calls INIT_WEIGHTSS to calculate the volume distribution of 
-!      ! sea salt aerosols (jaegle 5/11/11)
-!      CALL INIT_WEIGHTSS()
-!      FIRST = .FALSE.
-!-----------------------------------------------------------------------------
-
     ENDIF
 
     !=======================================================================
@@ -397,7 +415,7 @@ CONTAINS
        NCS = NCSURBAN
 
        ! Get CH4 [ppbv] in 4 latitude bins for each year
-       YEAR = NYMD / 10000
+       YEAR = NYMDb / 10000
        CALL GET_GLOBAL_CH4( YEAR,   .TRUE., C3090S, &
                             C0030S, C0030N, C3090N, am_I_Root )
 
@@ -438,158 +456,7 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE GIGC_Init_Simulation
-
 !EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: gigc_init_time_interface
-!
-! !DESCRIPTION: Routine GIGC\_INIT\_TIME\_INTERFACE intializes the starting 
-!  date of the run as well as the dynamic timestep for the Grid-Independent
-!  GEOS-Chem (aka "GIGC") simulation.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE GIGC_Init_Time_Interface( DT, nymd, nhms, am_I_Root, RC )
-!
-! !USES:
-!
-    USE GIGC_ErrCode_Mod
-    USE JulDay_Mod
-    USE Time_Mod
-!
-! !INPUT PARAMETERS: 
-!
-    INTEGER, INTENT(IN)  :: DT          ! Timestep [seconds]
-    INTEGER, INTENT(IN)  :: nymd        ! GMT date (YYYY/MM/DD)
-    INTEGER, INTENT(IN)  :: nhms        ! GMT time (hh:mm:ss)
-    LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER, INTENT(OUT) :: RC          ! Success or failure
-! 
-! !REVISION HISTORY: 
-!  15 Oct 2012 - M. Long     - Initial version
-!  15 Oct 2012 - R. Yantosca - Added ProTeX Headers, use F90 format/indents
-!  15 Oct 2012 - R. Yantosca - Need to pass am_I_Root to INITIALIZE from here
-!  22 Oct 2012 - R. Yantosca - Renamed to GIGC_Init_Time_Interface
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    INTEGER :: NYMDB, NHMSB, Y, M, D, TOD, H, MN, S
-    INTEGER :: DTM
-    REAL*8  :: FRAC_DAY
-    
-    ! Assume success
-    RC = GIGC_SUCCESS
-
-    ! Convert timestep from seconds to minutes
-    DTM =  DT / 60
-
-    ! Set GEOS-Chem timesteps (for now, set all to the same value)
-    CALL SET_TIMESTEPS( am_I_Root, DTM, DTM, DTM, DTM, DTM, DTM )
-       
-    ! SET NYMDB & NHMSB
-    Y    = nymd / 10000                    ! Year
-    M    = ( nymd - Y*10000 ) /100         ! Month
-    D    = nymd - Y*10000 - M*100          ! Day
-                                           
-    H    = nhms/10000                      ! Hour
-    MN   = ( nhms - H*10000 ) /100         ! Minute
-    S    = nhms - H*10000 - MN*100         ! Seconds
-                                           
-    TOD = H*3600 + MN*60 + S               ! Seconds since start of day
-
-
-    ! Fraction of the day that has elapsed
-    IF ( TOD .GT. 0 ) THEN
-       FRAC_DAY = DBLE( D ) + DBLE( TOD ) / DBLE( 86400 )   
-    ELSE
-       FRAC_DAY = DBLE( D )
-    ENDIF
-    
-    ! Find the starting date
-    CALL CALDATE( JULDAY( Y, M, FRAC_DAY ), NYMDB, NHMSB )
-
-    ! Set the starting date & time of the GEOS-Chem simulation
-    CALL SET_BEGIN_TIME( NYMDB, NHMSB )
-
-    ! Set the current time to the starting time
-    CALL SET_CURRENT_TIME()
-
-    ! INITIALIZE AND SET TIMESTEP COUNTS USING
-    ! GEOS-CHEM'S INITIALIZE (SEE GEOS-CHEM'S MAIN.F)
-    CALL INITIALIZE( 2, am_I_Root )
-    CALL INITIALIZE( 3, am_I_Root )
-
-  END SUBROUTINE GIGC_Init_Time_Interface
-
-!EOC
-!------------------------------------------------------------------------------
-! Prior to 12/3/12:
-! NOTE: UVALBEDO is now contained in State_Met (bmy, 12/3/12)
-!!EOC
-!!------------------------------------------------------------------------------
-!!          Harvard University Atmospheric Chemistry Modeling Group            !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: gigc_allocate_interface
-!!
-!! !DESCRIPTION: Routine GIGC\_ALLOCATE\_INTERFACE allocates GEOS-Chem arrays
-!!  for a Grid-Independent GEOS-Chem (aka "GIGC") simulation.
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!  SUBROUTINE GIGC_Allocate_Interface( am_I_Root, RC )
-!!
-!! !USES:
-!!
-!    USE CMN_SIZE_MOD,     ONLY : IIPAR, JJPAR, LLPAR
-!    USE GIGC_ErrCode_Mod
-!    USE ERROR_MOD,        ONLY : ALLOC_ERR
-!    USE UVALBEDO_MOD,     ONLY : UVALBEDO
-!   !USE DAO_MOD,          ONLY : TO3
-!!
-!! !INPUT PARAMETERS: 
-!!
-!    LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-!!
-!! !OUTPUT PARAMETERS:
-!!
-!    INTEGER, INTENT(OUT) :: RC          ! Success or failure
-!! 
-!! !REVISION HISTORY: 
-!!  15 Oct 2012 - M. Long     - Initial version
-!!  15 Oct 2012 - R. Yantosca - Added ProTeX Headers, use F90 format/indents
-!!  22 Oct 2012 - R. Yantosca - Renamed to GIGC_Allocate_Interface
-!
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!    INTEGER :: AS
-!
-!    ! Assume success
-!    RC = GIGC_SUCCESS
-!
-!    ! UV albedo for photolysis
-!    ALLOCATE( UVALBEDO( IIPAR, JJPAR), STAT=RC  )
-!
-!  END SUBROUTINE GIGC_Allocate_Interface
-!EOC
-!------------------------------------------------------------------------------
 !------------------------------------------------------------------------------
 !     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
 !          Harvard University Atmospheric Chemistry Modeling Group            !
