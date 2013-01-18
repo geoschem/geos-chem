@@ -78,6 +78,9 @@
       USE SULFATE_MOD,             ONLY : CLEANUP_SULFATE
       USE STRAT_CHEM_MOD,          ONLY : CLEANUP_STRAT_CHEM
       USE TAGGED_CO_MOD,           ONLY : CLEANUP_TAGGED_CO
+#if   defined ( TOMAS )
+      USE TOMAS_MOD,               ONLY : CLEANUP_TOMAS  !scf, 1/16/13
+#endif
       USE TOMS_MOD,                ONLY : CLEANUP_TOMS
       USE TPCORE_FVDAS_MOD,        ONLY : EXIT_TPCORE
       USE TPCORE_GEOS5_WINDOW_MOD, ONLY : EXIT_GEOS5_TPCORE_WINDOW
@@ -92,8 +95,11 @@
       USE BROMOCARB_MOD,           ONLY : CLEANUP_BROMOCARB    ! jpp, 6/17/09
 #if   defined( APM )
       USE APM_WETS_MOD,            ONLY : CLEANUP_WETSCAVBIN
+# if !defined ( TOMAS )
       USE DAO_MOD,                 ONLY : CLEANUP_DAO
+# endif
 #endif
+
 #if ! defined( ESMF_ )
       USE TRANSPORT_MOD,           ONLY : CLEANUP_TRANSPORT
 #endif
@@ -309,9 +315,14 @@
 
 #if   defined( APM )
       CALL CLEANUP_WETSCAVBIN  ! Cleanup arrays for APM wet scavenging
+# if !defined( TOMAS )
       CALL CLEANUP_DAO         ! Clean up met fields for APM
+# endif
 #endif
 
+#if   defined( TOMAS )
+      CALL CLEANUP_TOMAS
+#endif
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )
       CALL EXIT_GEOS5_TPCORE_WINDOW 
 #elif defined( GEOS_57) && defined( GRID025x03125)

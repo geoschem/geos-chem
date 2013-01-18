@@ -118,7 +118,9 @@
 !  (44) Add initialization of counter for diag time steps. (ccc, 7/20/09)
 !  (45) Define new diagnostics, ND19, ND58, ND60 for methane 
 !       (kjw, 8/18/09)
-!  (46) Add potential temperature diagnostic. (fp, 06/09)
+!  (46) Add ND59 and ND60 for initialization (win, 7/28/09)
+!  (47) Add potential temperature diagnostic. (fp, 06/09)
+!  (48) Add TOMAS diags using ifdefs. (scf, 01/13)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  25 Aug 2010 - R. Yantosca - Now also reset the counter for A1 timesteps
 !  08 Feb 2012 - R. Yantosca - Rewrote USE statements, for clarity
@@ -281,6 +283,30 @@
          IF ( ND56 > 0 ) THEN
             CALL ZERO_DIAG56
          ENDIF
+
+#if   defined ( TOMAS )
+         ! For ND59 - size-resolved primary aerosol emissions (win, 7/28/09)
+         IF ( ND59 > 0 ) THEN 
+            AD59_NUMB = 0e0
+            AD59_SULF = 0e0
+            AD59_SALT = 0e0
+            AD59_ECIL = 0e0
+            AD59_ECOB = 0e0
+            AD59_OCIL = 0e0
+            AD59_OCOB = 0e0
+            AD59_DUST = 0e0
+         ENDIF
+
+         ! For ND60 - aerosol microphysics (win, 7/28/09)
+         IF ( ND60 > 0 ) THEN
+            AD60_COND = 0e0
+            AD60_COAG = 0e0
+            AD60_NUCL = 0e0
+            AD60_AQOX = 0e0
+            AD60_ERROR = 0e0
+            AD60_SOA   = 0e0
+         ENDIF
+#endif
 
          ! For ND65 -- Chemical production & loss (bmy, 12/5/00)
          IF ( ND65 > 0 ) THEN

@@ -2,6 +2,7 @@
 *.mod
 *.MOD
 *~*
+*.swp
 geos
 geostomas
 geosapm
