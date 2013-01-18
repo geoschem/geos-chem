@@ -1711,7 +1711,8 @@
 
          !%%% NEED TO UPDATE FOR MERRA %%%
          ! Update daily mean temperature archive for MEGAN biogenics
-         !IF ( LMEGAN ) CALL UPDATE_T_DAY 
+! (tmf, 1/4/2012) This should be turned on!
+        IF ( LMEGAN ) CALL UPDATE_T_DAY
       ENDIf
 
       !==============================================================
