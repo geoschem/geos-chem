@@ -4335,10 +4335,12 @@ c
       USE DAO_MOD,       ONLY : SUNCOS_MID
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE LOGICAL_MOD,   ONLY : LMEGANMONO,       LSOA
-      USE MEGAN_MOD,     ONLY : GET_EMMONOT_MEGAN
-      ! Speciated MEGAN monoterpenes (hotp 3/10/10)
-      USE MEGAN_MOD,     ONLY : GET_EMMONOG_MEGAN
-      ! ----
+! updated MEGAN (dbm, 11/2012) -->
+!      USE MEGAN_MOD,     ONLY : GET_EMMONOT_MEGAN
+!      ! Speciated MEGAN monoterpenes (hotp 3/10/10)
+!      USE MEGAN_MOD,     ONLY : GET_EMMONOG_MEGAN
+      USE MEGAN_MOD,     ONLY : GET_MEGAN_EMISSIONS
+      ! ----<
       USE TIME_MOD,      ONLY : GET_MONTH,        GET_TS_CHEM
       USE TIME_MOD,      ONLY : GET_TS_EMIS,      ITS_A_NEW_MONTH
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
@@ -4404,8 +4406,34 @@ c
 
             ! Get monoterpenes from MEGAN [kg C/box]
             IF ( LMEGANMONO ) THEN
-               EMMO = GET_EMMONOT_MEGAN( I, J, SC, TMMP,
-     &                                   PDR, PDF, 1d0 )
+               ! +++++++++++++++++++++++++++++++++++++++++
+
+               ! Update to MEGAN2.1 (dbm, 11/2012)
+!               EMMO = GET_EMMONOT_MEGAN( I, J, SC, TMMP,
+!     &                                   PDR, PDF, 1d0 )
+               ! Add up individual terpene emissions
+               EMMO = GET_MEGAN_EMISSIONS( I , J , SC , TMMP , 
+     &              PDR , PDF , 'APIN' ) +
+     &              GET_MEGAN_EMISSIONS( I , J , SC , TMMP , 
+     &              PDR , PDF , 'BPIN' ) +
+     &              GET_MEGAN_EMISSIONS( I , J , SC , TMMP , 
+     &              PDR , PDF , 'LIMO' ) +
+     &              GET_MEGAN_EMISSIONS( I , J , SC , TMMP , 
+     &              PDR , PDF , 'SABI' ) +
+     &              GET_MEGAN_EMISSIONS( I , J , SC , TMMP , 
+     &              PDR , PDF , 'MYRC' ) +
+     &              GET_MEGAN_EMISSIONS( I , J , SC , TMMP , 
+     &              PDR , PDF , 'CARE' ) +
+     &              GET_MEGAN_EMISSIONS( I , J , SC , TMMP ,  
+     &              PDR , PDF , 'OCIM' ) +
+     &              GET_MEGAN_EMISSIONS( I , J , SC , TMMP ,  
+     &              PDR , PDF , 'OMON' )
+
+               ! Now need to convert this from atomsC to kgC
+               ! dbm (11/2012)
+               EMMO = EMMO * 12d-3/6.02d23
+               ! ------------------------------------------
+
             ENDIF
 
             ! Fraction of EMMO that converts into OC [kg/box/timestep]
@@ -4483,8 +4511,35 @@ c
 
             ! Get monoterpenes from MEGAN [kg C/box]
             IF ( LMEGANMONO ) THEN
-               TERP_ORGC(I,J) = GET_EMMONOT_MEGAN( I, J, SC, TMMP,
-     &                                   PDR, PDF, 1d0 )               
+
+               ! dbm, update to MEGAN2.1 (dbm, 11/2012) -->
+!               TERP_ORGC(I,J) = GET_EMMONOT_MEGAN( I, J, SC, TMMP,
+!     &                                   PDR, PDF, 1d0 )               
+
+               ! Add up individual terpene emissions
+               TERP_ORGC(I,J) = GET_MEGAN_EMISSIONS( I , J , SC , TMMP , 
+     &              PDR , PDF , 'APIN' ) +
+     &              GET_MEGAN_EMISSIONS( I , J , SC , TMMP , 
+     &              PDR , PDF , 'BPIN' ) +
+     &              GET_MEGAN_EMISSIONS( I , J , SC , TMMP , 
+     &              PDR , PDF , 'LIMO' ) +
+     &              GET_MEGAN_EMISSIONS( I , J , SC , TMMP , 
+     &              PDR , PDF , 'SABI' ) +
+     &              GET_MEGAN_EMISSIONS( I , J , SC , TMMP , 
+     &              PDR , PDF , 'MYRC' ) +
+     &              GET_MEGAN_EMISSIONS( I , J , SC , TMMP , 
+     &              PDR , PDF , 'CARE' ) +
+     &              GET_MEGAN_EMISSIONS( I , J , SC , TMMP ,  
+     &              PDR , PDF , 'OCIM' ) +
+     &              GET_MEGAN_EMISSIONS( I , J , SC , TMMP ,  
+     &              PDR , PDF , 'OMON' )
+
+               ! Now need to convert this from atomsC to kgC
+               ! dbm (11/2012)
+               TERP_ORGC(I,J) = TERP_ORGC(I,J) * 12d-3/6.02d23
+               
+               ! <--
+
             ENDIF
 
             !---------------------------------------------------
@@ -4567,50 +4622,72 @@ c
             ! ------------------------------
             IF ( LMEGANMONO ) THEN
 
-               ! bug fix: swap TMMP and SC (hotp 3/10/10)
-               ! ALPH in kg compound
-               ! a-pinene
-               BIOG_ALPH(I,J) = GET_EMMONOG_MEGAN( I, J, SC, TMMP, 
-     &                                   PDR, PDF, 1d0, 'APINE') * FC1
-               ! b-pinene
+               ! Update these for new megan routine (dbm, 11/2012) -->
+!               ! bug fix: swap TMMP and SC (hotp 3/10/10)
+!               ! ALPH in kg compound
+!               ! a-pinene
+!               BIOG_ALPH(I,J) = GET_EMMONOG_MEGAN( I, J, SC, TMMP, 
+!     &                                   PDR, PDF, 1d0, 'APINE') * FC1
+               BIOG_ALPH(I,J) = GET_MEGAN_EMISSIONS( I, J, SC, TMMP, 
+     &                           PDR, PDF, 'APIN') * FC1 * 12d-3/6.02e23
+!               ! b-pinene
+!               BIOG_ALPH(I,J) = BIOG_ALPH(I,J) +
+!     &                          GET_EMMONOG_MEGAN( I, J, SC, TMMP, 
+!     &                                   PDR, PDF, 1d0, 'BPINE') * FC1
                BIOG_ALPH(I,J) = BIOG_ALPH(I,J) +
-     &                          GET_EMMONOG_MEGAN( I, J, SC, TMMP, 
-     &                                   PDR, PDF, 1d0, 'BPINE') * FC1
-               ! sabinene
+     &                          GET_MEGAN_EMISSIONS( I, J, SC, TMMP, 
+     &                           PDR, PDF, 'BPIN') * FC1 * 12d-3/6.02e23
+!               ! sabinene
+!               BIOG_ALPH(I,J) = BIOG_ALPH(I,J) +
+!     &                          GET_EMMONOG_MEGAN( I, J, SC, TMMP,
+!     &                                   PDR, PDF, 1d0, 'SABIN') * FC1
                BIOG_ALPH(I,J) = BIOG_ALPH(I,J) +
-     &                          GET_EMMONOG_MEGAN( I, J, SC, TMMP,
-     &                                   PDR, PDF, 1d0, 'SABIN') * FC1
-               ! d3-carene
+     &                          GET_MEGAN_EMISSIONS( I, J, SC, TMMP, 
+     &                           PDR, PDF, 'SABI') * FC1 * 12d-3/6.02e23
+!               ! d3-carene
+!               BIOG_ALPH(I,J) = BIOG_ALPH(I,J) +
+!     &                          GET_EMMONOG_MEGAN( I, J, SC, TMMP,
+!     &                                   PDR, PDF, 1d0, 'CAREN') * FC1
                BIOG_ALPH(I,J) = BIOG_ALPH(I,J) +
-     &                          GET_EMMONOG_MEGAN( I, J, SC, TMMP,
-     &                                   PDR, PDF, 1d0, 'CAREN') * FC1
+     &                          GET_MEGAN_EMISSIONS( I, J, SC, TMMP, 
+     &                           PDR, PDF, 'CARE') * FC1 * 12d-3/6.02e23
                ! terpenoid ketones (assumed to behave like sabinene)
                BIOG_ALPH(I,J) = BIOG_ALPH(I,J) + 
      &                          + ( DIUR_ORVC(I,J) * FC4 * 0.04D0 ) !using campher
-      
-               ! LIMO in kg compound
-               ! limonene
-               BIOG_LIMO(I,J) = GET_EMMONOG_MEGAN( I, J, SC, TMMP, 
-     &                                   PDR, PDF, 1d0, 'LIMON') * FC1 
-
-               ! TERP in kg compound
-               ! terpinene and terpinolene 
-               ! Use ratio to alpha-pinene from Griffin 1999 GRL:
-               ! 3% of monoterpenes are terpinene + terpinolene
-               ! 35% of monoterpenes are a-pinene.
-               ! Will be revised when other monoterpene emissions are
-               ! implemented in megan_mod.f.
-               BIOG_TERP(I,J) = GET_EMMONOG_MEGAN( I, J, SC, TMMP,
-     &                          PDR, PDF, 1d0, 'APINE') * FC1 * 3d0/35d0
-
-               ! ALCO in kg compound
-               ! myrcene
-               BIOG_ALCO(I,J) = GET_EMMONOG_MEGAN( I, J, SC, TMMP, 
-     &                                   PDR, PDF, 1d0, 'MYRCN') * FC1
-               ! ocimene
+!      
+!               ! LIMO in kg compound
+!               ! limonene
+!               BIOG_LIMO(I,J) = GET_EMMONOG_MEGAN( I, J, SC, TMMP, 
+!     &                                   PDR, PDF, 1d0, 'LIMON') * FC1 
+               BIOG_LIMO(I,J) = GET_MEGAN_EMISSIONS( I, J, SC, TMMP, 
+     &                           PDR, PDF, 'LIMO') * FC1 * 12d-3/6.02e23
+!
+!               ! TERP in kg compound
+!               ! terpinene and terpinolene 
+!               ! Use ratio to alpha-pinene from Griffin 1999 GRL:
+!              ! 3% of monoterpenes are terpinene + terpinolene
+!               ! 35% of monoterpenes are a-pinene.
+!               ! Will be revised when other monoterpene emissions are
+!               ! implemented in megan_mod.f.
+!               BIOG_TERP(I,J) = GET_EMMONOG_MEGAN( I, J, SC, TMMP,
+!     &                          PDR, PDF, 1d0, 'APINE') * FC1 * 3d0/35d0
+               BIOG_TERP(I,J) = GET_MEGAN_EMISSIONS( I, J, SC, TMMP,
+     &                          PDR, PDF, 'APIN') * FC1 * 3d0/35d0 *
+     &                          12d-3/6.02e23
+!
+!               ! ALCO in kg compound
+!               ! myrcene
+!              BIOG_ALCO(I,J) = GET_EMMONOG_MEGAN( I, J, SC, TMMP, 
+!     &                                   PDR, PDF, 1d0, 'MYRCN') * FC1
+              BIOG_ALCO(I,J) = GET_MEGAN_EMISSIONS( I, J, SC, TMMP, 
+     &                           PDR, PDF, 'MYRC') * FC1 * 12d-3/6.02d23
+!               ! ocimene
+!               BIOG_ALCO(I,J) = BIOG_ALCO(I,J) +
+!     &                          GET_EMMONOG_MEGAN( I, J, SC, TMMP, 
+!     &                                   PDR, PDF, 1d0, 'OCIMN') * FC1
                BIOG_ALCO(I,J) = BIOG_ALCO(I,J) +
-     &                          GET_EMMONOG_MEGAN( I, J, SC, TMMP, 
-     &                                   PDR, PDF, 1d0, 'OCIMN') * FC1
+     &                          GET_MEGAN_EMISSIONS( I, J, SC, TMMP, 
+     &                           PDR, PDF, 'OCIM') * FC1 * 12d-3/6.02d23
                ! Other reactive volatile organic carbon emissions
                ! (terpenoid alcohols)
                BIOG_ALCO(I,J) = BIOG_ALCO(I,J)

@@ -133,8 +133,10 @@
       USE LOGICAL_MOD,      ONLY : LSTREETS,    LEDGAR,        LBRAVO
       USE LOGICAL_MOD,      ONLY : LMEGAN
       USE MEGANUT_MOD,      ONLY : XLTMMP
-      USE MEGAN_MOD,        ONLY : GET_EMMONOT_MEGAN
-      USE MEGAN_MOD,        ONLY : GET_EMISOP_MEGAN
+      ! dbm, use updated MEGAN driver (12/2012)
+      USE MEGAN_MOD,        ONLY : GET_MEGAN_EMISSIONS
+      !USE MEGAN_MOD,        ONLY : GET_EMMONOT_MEGAN
+      !USE MEGAN_MOD,        ONLY : GET_EMISOP_MEGAN
       USE TRACERID_MOD,     ONLY : IDBCO
       USE TIME_MOD,         ONLY : GET_MONTH,   GET_TAU 
       USE TIME_MOD,         ONLY : GET_YEAR,    GET_TS_EMIS  
@@ -589,10 +591,35 @@
                PDF  = PARDF(I,J)
 
                ! ISOP and MONOTERPENE emissions in [atoms C/box/time step]
-               EMXX = GET_EMISOP_MEGAN(  I,   J,   SC,    TMMP, 
-     &                                   PDR, PDF, XNUMOL_ISOP )
-               EMMO = GET_EMMONOT_MEGAN( I,   J,   SC,    TMMP,
-     &                                   PDR, PDF, XNUMOL_MONO )
+               ! Updated to new MEGAN routine (dbm, 12/2012)
+!               EMXX = GET_EMISOP_MEGAN(  I,   J,   SC,    TMMP, 
+!     &                                   PDR, PDF, XNUMOL_ISOP )
+               EMXX = GET_MEGAN_EMISSIONS(  I, J,     SC, TMMP, 
+     &                 PDR, PDF, 'ISOP' )
+
+               ! Updated to new MEGAN routine (dbm, 12/2012)
+!               EMMO = GET_EMMONOT_MEGAN( I,   J,   SC,    TMMP,
+!     &                                   PDR, PDF, XNUMOL_MONO )
+               ! Now add up individual terpene emissions
+               EMMO = GET_MEGAN_EMISSIONS( I , J , SC , TMMP , 
+     &              PDR , PDF , 'APIN' ) +
+     &              GET_MEGAN_EMISSIONS( I , J , SC , TMMP , 
+     &              PDR , PDF , 'BPIN' ) +
+     &              GET_MEGAN_EMISSIONS( I , J , SC , TMMP , 
+     &              PDR , PDF , 'LIMO' ) +
+     &              GET_MEGAN_EMISSIONS( I , J , SC , TMMP , 
+     &              PDR , PDF , 'SABI' ) +
+     &              GET_MEGAN_EMISSIONS( I , J , SC , TMMP , 
+     &              PDR , PDF , 'MYRC' ) +
+     &              GET_MEGAN_EMISSIONS( I , J , SC , TMMP , 
+     &              PDR , PDF , 'CARE' ) +
+     &              GET_MEGAN_EMISSIONS( I , J , SC , TMMP ,  
+     &              PDR , PDF , 'OCIM' ) +
+     &              GET_MEGAN_EMISSIONS( I , J , SC , TMMP ,  
+     &              PDR , PDF , 'OMON' )
+
+               ! <--
+
 
             ENDIF
 

@@ -285,7 +285,8 @@
       ! zero'd for initialization... so just return.
       ! -----------------------------------------------
       IF ( .not. LSSABr2 ) THEN
-         AD46(:,:,16) = 0.d0
+         ! Now biogenic tracer 22 (dbm, 12/2012)
+         AD46(:,:,22) = 0.d0
          EMISRR(:,:,IDEBr2) = 0.d0
          RETURN
       ENDIF
@@ -310,7 +311,8 @@
          IF ( ND46 > 0 ) THEN
             ! store the emission in the AD46 Biogenic Emissions
             ! diagnostic array [kg/m2/s]
-            AD46(I,J,16) = AD46(I,J,16) + ( EMISRR(I,J,IDEBr2) /
+            ! Now tracer 22 (dbm, 12/2012)
+            AD46(I,J,22) = AD46(I,J,22) + ( EMISRR(I,J,IDEBr2) /
      &                     AREA_M2 )    * ( MWT_BR2 / AVG )
          ENDIF
 

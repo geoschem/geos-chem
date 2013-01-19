@@ -52,27 +52,37 @@
       !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
       !
       ! New biogenic VOC emissions (mpb,2009) 
+      ! Now 19 species (dbm, 12/2012)
       !
       !     ---------------------------
       !     Species            | Order 
       !     ---------------------------
       !     Isoprene           = 1
-      !     Total Monoterpenes = 2 
-      !     MBO                = 3 
-      !     Alpha-Pinene       = 4
-      !     Beta-Pinene        = 5
-      !     Limonene           = 6
-      !     Sabinene           = 7
-      !     Mycrene            = 8
-      !     3-Carene           = 9
-      !     Ocimene            = 10
+      !     Acetone            = 2
+      !     Propene            = 3
+      !     Total Monoterpenes = 4 
+      !     MBO                = 5 
+      !     Ethene             = 6
+      !     Alpha-Pinene       = 7
+      !     Beta-Pinene        = 8
+      !     Limonene           = 9
+      !     Sabinene           = 10
+      !     Mycrene            = 11
+      !     3-Carene           = 12
+      !     Ocimene            = 13
+      !     Formic acid        = 14
+      !     Acetic acid        = 15
+      !     Acetaldehyde       = 16          
+      !     Other monoterpenes = 17
+      !     Methanol           = 18
+      !     Ethanol            = 19
       !     ---------------------------	
 
       ! Define common block	
 #if defined( DEVEL )
       REAL*8, ALLOCATABLE  :: EMISS_BVOC(:,:,:)
 #else
-      REAL*8  :: EMISS_BVOC(IIPAR,JJPAR,10)
+      REAL*8  :: EMISS_BVOC(IIPAR,JJPAR,19)
 #endif
 
 

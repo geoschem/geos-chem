@@ -234,6 +234,7 @@
 !  11 Apr 2012 - R. Yantosca - Replace lai_mod.F with modis_lai_mod.F90
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  18 Jan 2013 - D. Millet   - Updated tracer numbers for EMISS_BVOC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1235,7 +1236,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,1) = EMISS_BVOC( I , J , 2 )
+               Q(X,Y,1) = EMISS_BVOC( I , J , 4 )
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
@@ -1258,7 +1259,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,1) = EMISS_BVOC( I , J , 3 )
+               Q(X,Y,1) = EMISS_BVOC( I , J , 5 )
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
@@ -1281,7 +1282,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,1) = EMISS_BVOC( I , J , 4 )
+               Q(X,Y,1) = EMISS_BVOC( I , J , 7 )
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
@@ -1304,7 +1305,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,1) = EMISS_BVOC( I , J , 5 )
+               Q(X,Y,1) = EMISS_BVOC( I , J , 8 )
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
@@ -1328,7 +1329,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,1) = EMISS_BVOC( I , J , 6 )
+               Q(X,Y,1) = EMISS_BVOC( I , J , 9 )
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
@@ -1352,7 +1353,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,1) = EMISS_BVOC( I , J , 7 )
+               Q(X,Y,1) = EMISS_BVOC( I , J , 10 )
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
@@ -1376,7 +1377,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,1) = EMISS_BVOC( I , J , 8 )
+               Q(X,Y,1) = EMISS_BVOC( I , J , 11 )
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
@@ -1400,7 +1401,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,1) = EMISS_BVOC( I , J , 9 )
+               Q(X,Y,1) = EMISS_BVOC( I , J , 12 )
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
@@ -1423,7 +1424,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,1) = EMISS_BVOC( I , J , 10 )
+               Q(X,Y,1) = EMISS_BVOC( I , J , 13 )
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO

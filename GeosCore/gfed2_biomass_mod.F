@@ -959,13 +959,13 @@
      &       NDUM, GFED2_SPEC_NAME(N), ( GFED2_EMFAC(N,M), M=1,N_EMFAC )
          IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'init_gfed2:3' )
       ENDDO
-      
+
       ! FORMAT string
  100  FORMAT( 1x, i2, 1x, a4, 3(3x,es14.6) )
 
       ! Close file
       CLOSE( IU_FILE )
-      
+
       !=================================================================
       ! Read GFED2 vegetation map from bpch file
       ! 
