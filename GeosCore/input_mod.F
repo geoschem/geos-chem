@@ -3468,7 +3468,9 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:5' )
       READ( SUBSTRS(1), * ) ND03
       IF ( .not. ITS_A_MERCURY_SIM() ) ND03 = 0
-      CALL SET_TINDEX( am_I_Root, 03, ND03, SUBSTRS(2:N), N-1, PD03_PL ) !eds 9/9/10
+      !CALL SET_TINDEX( am_I_Root, 03, ND03, SUBSTRS(2:N), N-1, PD03_PL ) !eds 9/9/10
+      CALL SET_TINDEX( am_I_Root, 03, ND03, SUBSTRS(2:N), N-1, PD03 ) !yzh 12/15/12
+	  
 
       !--------------------------
       ! ND04: CO2 emissions
