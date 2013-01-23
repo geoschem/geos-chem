@@ -1860,6 +1860,7 @@
 ! !REVISION HISTORY: 
 !  07 Feb 2012 - R. Yantosca - Initial version
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  04 Jan 2013 - M. Payer    - Call UPDATE_T_DAY for MERRA and GEOS-5.7.2 (tmf)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1876,6 +1877,10 @@
       IF ( ITS_TIME_FOR_A1() ) THEN
          DATE = GET_A1_TIME()
          CALL GEOS57_READ_A1( DATE(1), DATE(2), State_Met )
+
+         ! Update daily mean temperature archive for MEGAN biogenics
+         ! (tmf, 1/4/2012) This should be turned on!
+         IF ( LMEGAN ) CALL UPDATE_T_DAY( State_Met )
       ENDIF
 
       !----------------------------------
@@ -1920,7 +1925,8 @@
 
          !%%% NEED TO UPDATE FOR MERRA %%%
          ! Update daily mean temperature archive for MEGAN biogenics
-         !IF ( LMEGAN ) CALL UPDATE_T_DAY( State_Met )
+         ! (tmf, 1/4/2012) This should be turned on!
+         IF ( LMEGAN ) CALL UPDATE_T_DAY( State_Met )
       ENDIf
 
       !==============================================================

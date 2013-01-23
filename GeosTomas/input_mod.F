@@ -292,7 +292,7 @@
 
 #if   defined( APM )
          ELSE IF ( INDEX( LINE, 'APM MENU'         ) > 0 ) THEN
-            CALL READ_APM_MENU( am_I_Root )
+            CALL READ_APM_MENU( am_I_Root, Input_Opt, RC )
 #endif
 
          ELSE IF ( INDEX( LINE, 'EMISSIONS MENU'   ) > 0 ) THEN
@@ -4383,7 +4383,9 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:5' )
       READ( SUBSTRS(1), * ) ND03
       IF ( .not. ITS_A_MERCURY_SIM() ) ND03 = 0
-      CALL SET_TINDEX( am_I_Root, 03, ND03, SUBSTRS(2:N), N-1, PD03_PL ) !eds 9/9/10
+      !CALL SET_TINDEX( am_I_Root, 03, ND03, SUBSTRS(2:N), N-1, PD03_PL ) !eds 9/9/10
+      CALL SET_TINDEX( am_I_Root, 03, ND03, SUBSTRS(2:N), N-1, PD03 ) !yzh 12/15/12
+	  
 
       !--------------------------
       ! ND04: CO2 emissions
@@ -7595,11 +7597,21 @@ c$$$         IS_ALL = .FALSE.
 !
 ! !USES:
 !
+      USE APM_INIT_MOD,       ONLY : APMTRACER_MW_G
+      USE APM_INIT_MOD,       ONLY : APMTRACER_MW_Kg
+      USE APM_INIT_MOD,       ONLY : IFNUCL
+      USE APM_INIT_MOD,       ONLY : FE0
+      USE APM_INIT_MOD,       ONLY : LAPM
       USE CHARPAK_MOD,        ONLY : STRREPL
+      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE FILE_MOD,           ONLY : IOERROR
       USE GAMAP_MOD,          ONLY : DO_GAMAP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TRACER_MOD,         ONLY : N_APMTRA
+      USE TRACER_MOD,         ONLY : N_TRACERS
+      USE TRACER_MOD,         ONLY : TCVV
+      USE TRACER_MOD,         ONLY : XNUMOL
 !
 ! !INPUT PARAMETERS:
 !
@@ -7612,23 +7624,6 @@ c$$$         IS_ALL = .FALSE.
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-!
-! !USES:
-!
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE APM_INIT_MOD,  ONLY : APMTRACER_MW_G
-      USE APM_INIT_MOD,  ONLY : APMTRACER_MW_Kg
-      USE APM_INIT_MOD,  ONLY : IFNUCL
-      USE APM_INIT_MOD,  ONLY : FE0
-      USE APM_INIT_MOD,  ONLY : LAPM
-      USE TRACER_MOD,    ONLY : N_APMTRA
-      USE TRACER_MOD,    ONLY : N_TRACERS
-      USE TRACER_MOD,    ONLY : TCVV
-      USE TRACER_MOD,    ONLY : XNUMOL
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 !
 ! !REMARKS:
 !  This subroutine is only compiled when you build GEOS-Chem with the

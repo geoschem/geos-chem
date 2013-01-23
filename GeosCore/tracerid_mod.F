@@ -178,7 +178,7 @@
 !  07 Feb 2012 - E. Corbitt  - Add mercury tagged tracers
 !  13 Aug 2012 - R. Yantosca - Add routine FILL_State_Chm_NAME_IDs
 !  11 Jan 2013 - M. Payer    - Add methyl peroxy nitrate (MPN) as tracer
-!                              (E. Brown)
+!                              (E. Browne)
 !******************************************************************************
 !
 
