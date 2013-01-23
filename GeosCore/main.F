@@ -1185,12 +1185,11 @@
             ! point, no further unit conversion is necessary here.
             ! (bmy, 10/25/12)
 
-!------------------------------------------------------------------------------
-! Prior to 1/15/13:
-!            ! Initialize the tracer field in the Chemistry State object
-!            State_Chm%TRACERS( :, :, :, 1:N_TRACERS ) = 
-!     &                    STT( :, :, :, 1:N_TRACERS )
-!------------------------------------------------------------------------------
+#if !defined( DEVEL )
+            ! Initialize the tracer field in the Chemistry State object
+            State_Chm%TRACERS( :, :, :, 1:N_TRACERS ) = 
+     &                    STT( :, :, :, 1:N_TRACERS )
+#endif
 
             ! Do GEOS-Chem chemistry
             CALL DO_CHEMISTRY( am_I_Root, Input_Opt, 
