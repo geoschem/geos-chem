@@ -39,6 +39,9 @@
 #  19 Oct 2012 - R. Yantosca - Add modules for Grid-Independent GEOS-Chem
 #  01 Nov 2012 - R. Yantosca - Added gigc_input_opt_mod.F90
 #  16 Nov 2012 - R. Yantosca - Added more GIGC updates, removed obsolete 
+#  15 Jan 2013 - R. Yantosca - Removed CMN_DEP_mod.F, it's obsolete
+#  15 Jan 2013 - R. Yantosca - Added dependency for gigc_input_opt_mod.o
+#                              to comode_loop_mod.F, to make it compile
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -96,10 +99,6 @@ help:
 #      listed dependency.
 #=============================================================================
 
-CMN_DEP_mod.o        : CMN_DEP_mod.F            \
-                       CMN_SIZE_mod.o           \
-                       gigc_errcode_mod.o
-
 CMN_DIAG_mod.o       : CMN_DIAG_mod.F           \
                        CMN_SIZE_mod.o           \
                        gigc_errcode_mod.o
@@ -131,7 +130,8 @@ commsoil_mod.o       : commsoil_mod.F           \
 
 comode_loop_mod.o    : comode_loop_mod.F        \
                        CMN_SIZE_mod.o           \
-                       gigc_errcode_mod.o
+                       gigc_errcode_mod.o       \
+                       gigc_input_opt_mod.o
 
 gigc_errcode_mod.o   : gigc_errcode_mod.F90
 
