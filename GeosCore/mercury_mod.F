@@ -8036,11 +8036,7 @@
 
       ! Switch for using GEOS-Chem tropospheric bromine fields,
       ! ref. Parrella et al. 2012, instead of older TOMCAT fields
-#if defined( GRID05x0666 ) && defined( NESTED_NA )
-      LGCBROMINE = .FALSE. 
-#else
       LGCBROMINE = .TRUE. 
-#endif
 
       ! Switch specifies that Hg2 is 50% bound to aerosol and 50% in
       ! gas phase (TRUE). If FALSE, then use temperature dependent 
