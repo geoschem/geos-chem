@@ -3,9 +3,11 @@
 *.MOD
 *~*
 *.swp
+*.bak
 geos
 geostomas
 geosapm
+diffs
 bak
 misc
 test

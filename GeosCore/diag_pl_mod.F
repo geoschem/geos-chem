@@ -22,12 +22,16 @@
 ! !PUBLIC DATA MEMBERS:
 !
       ! Scalars
-      LOGICAL, PUBLIC              :: DO_SAVE_PL
-      INTEGER, PUBLIC              :: TAGO3_PL_YEAR
+      LOGICAL,           PUBLIC              :: DO_SAVE_PL
+      INTEGER,           PUBLIC              :: TAGO3_PL_YEAR
 
       ! Arrays
-      REAL*4,  PUBLIC, ALLOCATABLE :: AD65  (:,:,:,:)
-      REAL*8,  PUBLIC, ALLOCATABLE :: FAM_PL(:,:,:,:)
+      REAL*4,            PUBLIC, ALLOCATABLE :: AD65  (:,:,:,:)
+      REAL*8,            PUBLIC, ALLOCATABLE :: FAM_PL(:,:,:,:)
+      CHARACTER(LEN=14), PUBLIC, ALLOCATABLE :: FAM_NAME(:)
+#if   defined( TOMAS )
+      REAL*8,            PUBLIC, ALLOCATABLE :: H2SO4RATE(:,:,:) 
+#endif
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -60,6 +64,7 @@
 !        in DO_DIAG_PL, DIAG20, and WRITE20 (phs, bmy, 12/4/07)
 !  (8 ) Now make COUNT a 3-D array (phs, 11/18/08)
 !  (9 ) Minor fix in DIAG20 (dbj, bmy, 10/26/09)
+!  (10) Make public FAM_NAME and H2SO4RATE (win, 1/25/10)  
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  06 Aug 2012 - R. Yantosca - Make IU_ND20 a local module variable
 !EOP
@@ -80,7 +85,6 @@
       INTEGER,           ALLOCATABLE :: FAM_NMEM(:), COUNT(:,:,:)
       REAL*8,            ALLOCATABLE :: FAM_COEF(:,:)
       REAL*8,            ALLOCATABLE :: PL24H(:,:,:,:)
-      CHARACTER(LEN=14), ALLOCATABLE :: FAM_NAME(:)
       CHARACTER(LEN=14), ALLOCATABLE :: FAM_TYPE(:)
       CHARACTER(LEN=14), ALLOCATABLE :: FAM_MEMB(:,:)
 
@@ -576,27 +580,33 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_DIAG_PL( am_I_Root ) 
+      SUBROUTINE DO_DIAG_PL( am_I_Root, State_Met ) 
 !
 ! !USES:
 !
-      USE COMODE_MOD, ONLY : CSPEC, JLOP
-      USE CMN_SIZE_MOD                      ! Size parameters
-      USE COMODE_LOOP_MOD                   ! SMVGEAR II arrays
-      USE CMN_DIAG_MOD                      ! LD65
+      USE COMODE_MOD, ONLY         : CSPEC, JLOP
+      USE GIGC_State_Met_Mod, ONLY : MetState
+
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE COMODE_LOOP_MOD          ! SMVGEAR II arrays
+      USE CMN_DIAG_MOD             ! LD65
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root      ! Is this the root CPU?
+      LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY:
 !  16 Mar 2000 - I. Bey      - Initial version
 !  (1 ) Now bundled into "prod_loss_diag_mod.f" (bmy, 7/20/04)
 !  (2 ) Now only loop up thru LD65 levels (bmy, 12/4/07)
 !  (3 ) Set FAM_PL to zero in the stratosphere (phs, 11/17/08)
+!  (4 ) Add calcuation for H2SO4RATE (win, 8/4/09)
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -637,6 +647,29 @@
             ! (which have been appended to the SMVGEAR species list)
             ! to the FAM_PL diagnostic array.  Units are [molec/cm3/s].
             FAM_PL(I,J,L,N)      = CSPEC(JLOOP,IFAM(N)) / CHEMINTV
+
+#if   defined( TOMAS )
+            ! Overwrite FAM_PL with a unit [kg S] for tracing 
+            ! gas-phase sulfur species production (SO2, SO4, MSA)
+            ! (win, 8/4/09)
+            IF ( FAM_NAME(N) == 'PSO21' .or. FAM_NAME(N) == 'PSO22' .or.
+     &           FAM_NAME(N) == 'PSO4'  .or. FAM_NAME(N) == 'PMSA' ) 
+     &           FAM_PL(I,J,L,N)  = CSPEC(JLOOP,IFAM(N)) / 6.022d23  *
+     &                              32.d-3 * State_Met%AIRVOL(I,J,L) *
+     &                              1d6
+
+            ! Calculate H2SO4 production rate [kg s-1] in each time step 
+            ! (win, 8/4/09)
+            IF ( FAM_NAME(N) == 'PSO4' ) 
+     &           H2SO4RATE(I,J,L) = CSPEC(JLOOP,IFAM(N)) / 6.022d23  *
+     &                              98.d-3 * State_Met%AIRVOL(I,J,L) *
+     &                              1d6   / CHEMINTV
+
+            !Debug print (win, 8/4/09)
+c            if (fam_name(n) =='PSO4') 
+c     &          write(888,88)i,j,l,H2so4rate(i,j,l)
+c 88            format (3I3, 'H2SO4rate (kg/s)',e13.5)
+#endif
 
             ! Zero each "fake" ND65 prod/loss family for next iteration
             CSPEC(JLOOP,IFAM(N)) = 0.0d0
@@ -1261,8 +1294,9 @@
 !
 ! !USES:
 !
-      USE ERROR_MOD,  ONLY : ALLOC_ERR
-      USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM
+      USE ERROR_MOD,   ONLY : ALLOC_ERR
+      USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM
+      USE LOGICAL_MOD, ONLY : LTOMAS !sfarina, leave LTOMAS intact
 
       USE CMN_SIZE_MOD      ! Size parameters
       USE COMODE_LOOP_MOD   ! LFAMILY, NFAMILIES
@@ -1379,6 +1413,12 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'FAM_PL' )
       ENDIF
 
+      ! Only allocate H2SO4RATE for a TOMAS simulation !(win, 7/709)
+      IF ( LTOMAS ) THEN
+         ALLOCATE( H2SO4RATE( IIPAR, JJPAR, LLTROP ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'H2SO4RATE' )
+      ENDIF
+
       ! Allocate PL24H if we are also saving out the P(Ox)
       ! and L(Ox) 
       IF ( DO_SAVE_O3 ) THEN
@@ -1428,6 +1468,9 @@
       IF ( ALLOCATED( FAM_MEMB ) ) DEALLOCATE( FAM_MEMB )
       IF ( ALLOCATED( FAM_PL   ) ) DEALLOCATE( FAM_PL   )
       IF ( ALLOCATED( FAM_TYPE ) ) DEALLOCATE( FAM_TYPE )
+#if   defined( TOMAS )
+      IF ( ALLOCATED( H2SO4RATE) ) DEALLOCATE( H2SO4RATE)  !(win, 1/25/10)
+#endif
 
       END SUBROUTINE CLEANUP_DIAG_PL
 !EOC

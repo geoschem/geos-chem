@@ -120,7 +120,12 @@
       LOGICAL                        :: DO_PF
 
       ! Parameters
-      INTEGER,           PARAMETER   :: MAXVARS   = 200
+
+#if   defined( TOMAS )
+      INTEGER,           PARAMETER   :: MAXVARS   = 250  !(win, 7/28/09)
+#else
+      INTEGER,           PARAMETER   :: MAXVARS   = 200  !(sfarina, 1/28/13)
+#endif
       INTEGER,           PARAMETER   :: MAXPOINTS = 10000
       INTEGER,           PARAMETER   :: MAXREAC   = 50
       INTEGER,           PARAMETER   :: MAXRO2    = 45
@@ -360,7 +365,14 @@
       ENDIF
 
       ! FORMAT string
+      ! Replace 95 by 250 (win)
+      ! use 200 for non-Tomas sims (sfarina)
+
+#if   defined( TOMAS )
+ 110  FORMAT( A5,X,A5,X,A8,X,A4,X,A7,X,A7,X,A7,X,250(a10,x) )
+#else
  110  FORMAT( A5,X,A5,X,A8,X,A4,X,A7,X,A7,X,A7,X,200(a10,x) )
+#endif
 
       END SUBROUTINE SETUP_PLANEFLIGHT
 !EOC
@@ -412,6 +424,7 @@
 !  (10) We need to trim NAMEGAS before comparing to LINE so that comparisons 
 !        for species like "O3" will work.  Also set NCS=NCSURBAN at the top
 !        of the subroutine, to avoid out of bounds error. (dbm, bmy, 10/16/06)
+!  (11) Add tracer TMS_?? for TOMAS microphysics rate diagnostic (win, 7/28/09)
 !  29 Jul 2011 - R. Yantosca - Also search for MERRA SEAICExx met fields
 !  29 Jul 2011 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
@@ -499,6 +512,29 @@
 
                ! Save in PVAR -- add offset of 100000
                PVAR(N) = 100000 + NUM
+
+#if   defined( TOMAS )
+            ! Add case matching for TOMAS microphysics rates (win, 7/28/09)
+            !===========================================================
+            ! GEOS-CHEM tracer: listed as "TMS_001", etc.
+            ! PVAR offset: 200000
+            !===========================================================
+            CASE ( 'TMS_' )
+
+               ! Extract tracer # from the string
+               READ( LINE(5:14), '(i10)' ) NUM
+
+               ! Make sure the tracer # is valid!
+               IF ( NUM < 0 .or. NUM > N_TRACERS ) THEN                   
+                  WRITE( 6, 100 ) TRIM( LINE )
+                  WRITE( 6, '(a)' ) 'STOP in SETUP_PLANEFLIGHT!'
+                  WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+                  CALL GEOS_CHEM_STOP
+               ENDIF
+
+               ! Save in PVAR -- add offset of 200000
+               PVAR(N) = 200000 + NUM
+#endif
 
             !===========================================================
             ! GMAO met field: listed as "GMAO_TEMP", etc.
@@ -1133,6 +1169,9 @@
       USE COMODE_MOD,         ONLY : AIRDENS,        CSPEC,       JLOP
       USE COMODE_MOD,         ONLY : T3,             VOLUME,      ABSHUM
       USE COMODE_MOD,         ONLY : TAREA
+#if   defined( TOMAS )
+      USE DIAG_MOD,           ONLY : AD61_INST   ! (win, 7/28/09)
+#else
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP  
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PRESSURE_MOD,       ONLY : GET_PEDGE
@@ -1166,7 +1205,9 @@
 !  (9 ) Bug fix: exit if PTAU(M) == PTAUE, so that we write out on the next !
 !        planeflight timestep (cdh, bmy, 12/12/06)
 !  (10) Change planeflight output time step. (ccc, 8/27/09)
-!  (11) Now scale AOD's to jv_spec_aod.dat wavelength. (clh, 5/14/09)
+!  (11) Add case matching for TOMAS rates (win, 7/28/09)
+!  (12) Modify PTAUE calculation w/ ref to GET_TS_DYN  (win, 7/28/09)
+!  (13) Now scale AOD's to jv_spec_aod.dat wavelength. (clh, 5/14/09)
 !  29 Jul 2011 - R. Yantosca - Added ProTeX headers
 !  09 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
@@ -1537,6 +1578,23 @@
 
                      IF ( VARI(V) < TINY ) VARI(V) = 0.d0
 
+#if   defined( TOMAS )
+                  !-------------------------------
+                  ! TOMAS microphysics rate [kg/s] or [no./cm3/s]
+                  !-------------------------------
+                  CASE( 200000:299999 )
+
+                     ! Remove offset from PVAR
+                     N = PVAR(V) - 200000
+                     
+                     ! Archive the microphysics rate
+                     VARI(V) = AD61_INST(I,J,L,N)
+!debug
+                     write (6,*) 'ARCHIVE TO PLANEFLIGHT DIAG',
+     &                    'AD61_INST at',I,J,L,N,'=',AD61_INST(I,J,L,N)
+
+#endif
+
                   !--------------------------
                   ! Otherwise it's an error!
                   !--------------------------
@@ -1609,6 +1667,8 @@
 !	 for points near the date line.  (bmy, 4/23/04)
 !  (4 ) Now references ITS_A_FULLCHEM_SIM from "tracer_mod.f" (bmy, 7/20/04)
 !  (5 ) Now references ITS_IN_THE_TROP from "tropopause_mod.f" (bmy, 8/22/05)
+!  (6 ) Reference GET_XOFFSET and GET_YOFFSET from "grid_mod.f" and also 
+!        add for the case of nested-grid simulation (win, 7/28/09)
 !  29 Jul 2011 - R. Yantosca - Added ProTeX headers
 !  08 Sep 2011 - L. Schiferl - Added correct definitions for I and J 
 !                              based on nested regions
@@ -1730,8 +1790,13 @@
       ! FP replace 95 by 200
 ! 110  FORMAT( I5,   X, A5,   X, I8.8, X, I4.4, X, 
 !     &        F7.2, X, F7.2, X, F7.2, X, 95(es11.3e3,x) )
+#if   defined( TOMAS )
+ 110  FORMAT(I5,X,A5,X,I8.8,X,I4.4,X,F7.2,X,F7.2,X,F7.2,X,
+     &       250(es11.3e3,x))
  110  FORMAT(I5,X,A5,X,I8.8,X,I4.4,X,F7.2,X,F7.2,X,F7.2,X,
      &       200(es11.3e3,x))
+#else
+#endif
 
       ! Error check
       IF ( IOS /= 0 ) CALL IOERROR( IOS,IU_PLANE,'write_vars_to_file:1')

@@ -121,6 +121,10 @@
 !        this results in NaN's.  All other parallel loops may be left 
 !        activated.  Also, now place all parallel loops in all routines w/in 
 !        an #if defined block. (bmy, 11/5/08)
+!  (8 ) Add subroutine MASSFLUX, function IDFLUX, function NBIN_W, and use 
+!       TOMAS_MOD for IBINS.  Modify TPCORE_WINDOW for aerosol number and mass 
+!       advection by adding arrays for saving fluxes and tracer mixing ratio 
+!       fields arrays. (win, 7/17/09)
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !******************************************************************************
 !
@@ -410,6 +414,9 @@
 
       ! References to F90 modules
       USE GIGC_State_Met_Mod, ONLY : MetState
+#if   defined( TOMAS )
+      USE TOMAS_MOD,          ONLY : IBINS   !(win, 7/17/09)
+#endif
 
       ! Added to pass C-preprocessor switches (bmy, 3/9/01)
 #     include "define.h"
@@ -449,7 +456,7 @@
      &   FZ_W(IM_W,JM_W,NL+1),
      &   QZ_W(IM_W,JM_W,NL),QMAX_W(IM,JM,NL),QMIN_W(IM,JM,NL),
      &   U_W(1-IGZD:IM_W+IGZD,1-IGZD:JM_W+IGZD,NL), 
-     &   V_W(1-IGZD:IM_W+IGZD,1-IGZD:JM_W+IGZD,NL),
+      &   V_W(1-IGZD:IM_W+IGZD,1-IGZD:JM_W+IGZD,NL),
      &   W_W(IM_W,JM_W,NL) 
 !%%%
 !%%% MODIFICATIONS FOR NESTED GRID (yxw, bmy, 3/10/03)
@@ -457,6 +464,14 @@
 !%%%
       LOGICAL OUT       
  
+#if   defined( TOMAS )
+! win, 7/17/09. For size-resolved aerosol number and mass
+      REAL  FXNK(IM_W+1,JM_W,NL,IBINS), DQNKX(0:IM_W,0:JM_W+1,NL,IBINS)
+      REAL  FYNK(IM_W,JM_W+1,NL,IBINS), DQNKY(0:IM_W,0:JM_W,NL,IBINS)
+      REAL  FZNK(IM_W,JM_W,NL+1,IBINS), DQNKZ(0:IM_W+1,0:JM_W,NL,IBINS)
+      REAL  DQ_W_X(0:IM_W+1,0:JM_W+1,NL)
+#endif
+
 ! bey, 6/20/00. for mass-flux diagnostic
       REAL*8 fx1_tp_w(IM_w,JM_w,NL), fy1_tp_w(IM_w,JM_w,NL), 
      &     fz1_tp_w(IM_w,JM_w,NL) 
@@ -513,6 +528,16 @@
 ! Initialization
 !****6***0*********0*********0*********0*********0*********0**********72
  
+#if   defined( TOMAS )
+      ! For aerosol mass flux modification (win, 7/17/09)
+      FXNK(:,:,:,:) = 0d0
+      FYNK(:,:,:,:) = 0d0
+      FZNK(:,:,:,:) = 0d0
+      DQNKX(:,:,:,:) = 0d0
+      DQNKY(:,:,:,:) = 0d0
+      DQNKZ(:,:,:,:) = 0d0
+#endif
+
       ! For mass flux diagnostics (bey, 6/20/00)
       fx1_tp_w(:,:,:) = 0d0
       fy1_tp_w(:,:,:) = 0d0
@@ -622,7 +647,7 @@
       DO J=-IGZD,JM_W+IGZD+1
          ACOSP_W(J) = 1./COSP_W(J)
       ENDDO
-c15    write (6,*) 'cosp(',j+j0_w+j0,')=',cosp_w(j)
+!15    write (6,*) 'cosp(',j+j0_w+j0,')=',cosp_w(j)
  
 !%%%
 !%%% MODIFICATIONS FOR NESTED GRID (yxw, bmy, 3/10/03)
@@ -1396,14 +1421,163 @@ c15    write (6,*) 'cosp(',j+j0_w+j0,')=',cosp_w(j)
 
 ! Final update
 
-#if   defined( multitask  )
-#if   defined( CRAY       )
+
+#if   defined( TOMAS )
+!Modification for TOMAS aerosol (win, 7/17/09)
+!Split up the addition of fluxes to DQ array into separate directions;
+!E-W, N-S, then vertical.  Then add saving of aerosol number fluxes and 
+!aerosol number mixing ratio field and calculation of aerosol mass fluxes
+!in between each flux addition to the mixing ratio field.
+
+      ! FOR AEROSOL NUMBER:
+      ! Before the high-order fluxes are added to DQ array, save the 
+      ! current DQ and the fluxes arrays in all three direction
+      IF ( IDFLUX( IC ) == 1 ) THEN
+         DO K = 1, NL
+         DO J = 1, JM_W
+            DQNKZ(0,J,K,NBIN_W( IC )) = Q(I0_w,J+J0_W,K,IC) * 
+     &                                DELP2_W(0,J,K)
+            DO I = 1, IM_W
+               DQNKZ(I,J,K,NBIN_W( IC )) = DQ_w(I,J,K)
+               FXNK(I,J,K,NBIN_W( IC )) = fx_w(I,J,K)
+               FYNK(I,J,K,NBIN_W( IC )) = fy_w(I,J,K)
+               FZNK(I,J,K,NBIN_W( IC )) = fz_w(I,J,K)
+            ENDDO
+            DQNKZ(IM_W+1,J,K,NBIN_W( IC )) = Q(I0_W+IM_W+1,J+J0_W,K,IC)*
+     &                                     DELP2_W(IM_W+1,J,K)
+            FXNK(IM_W+1,J,K,NBIN_W( IC )) = fx_w(IM_W+1,J,K)
+         ENDDO
+         ENDDO
+      ENDIF
+
+
+      ! FOR AEROSOL MASS:
+      ! Compute the high-order flux 'fx' based on aerosol number
+      IF ( IDFLUX( IC ) == 2 ) THEN
+         DQ_W_X(:,:,:) = 0.e0
+         
+         DO K = 1, NL
+         DO J = 1, JM_W
+            DQ_W_X(0,     J,K) = Q(I0_W,       J+J0_W,K,IC) * 
+     &                           DELP2_W(0,J,K)
+            DQ_W_X(IM_W+1,J,K) = Q(I0_W+IM_W+1,J+J0_W,K,IC) * 
+     &                           DELP2_W(IM_W+1,J,K)
+         ENDDO
+         ENDDO
+         DQ_W_X(1:IM_W,1:JM_W,:) = DQ_W(:,:,:)
+            
+
+         CALL MASSFLUX(IC,IM_W+1,JM_W,NL,FXNK(:,:,:,NBIN_W( IC )),
+     &        DQNKZ( 0:IM_W+1,0:JM_W,:,NBIN_W( IC )),fx_w(:,:,:),  
+     &        DQ_w_x(0:IM_W+1,0:JM_W,:), 1      )
+
+      ENDIF
+
+! Update in E-W direction
+      do 425 k=1,NL
+      do 425 j=j1,j2
+      do 425 i=1,IM
+      DQ_W(i,j,k) = DQ_W(i,j,k) +  FX_W(i,j,k) - FX_W(i+1,j,k)
+ 425  continue
+
+      ! FOR AEROSOL NUMBER: 
+      ! Save the current DQ array which has been updated in E-W direction
+      IF ( IDFLUX( IC ) == 1 ) THEN
+         DO 440 K = 1, NL
+         DO 440 J = 1, JM_W
+         DO 440 I = 1, IM_W
+            DQNKX(I,J,K,NBIN_W( IC )) = DQ_W(I,J,K)
+ 440     CONTINUE
+
+         DO K = 1, NL
+         DO I = 1, IM_W
+            DQNKX(I,0,     K,NBIN_W( IC )) = Q(I,J0_W,       K,IC) * 
+     &                                     DELP2_W(I,0,K)
+            DQNKX(I,JM_W+1,K,NBIN_W( IC )) = Q(I,JM_W+J0_W+1,K,IC) *
+     &                                     DELP2_W(I,JM_W+1,K)
+         ENDDO
+         ENDDO 
+      ENDIF
+      
+
+
+      ! FOR AEROSOL MASS:
+      ! Compute the high-order flux 'fy' based on aerosol number
+      IF ( IDFLUX( IC ) == 2 )  THEN
+         DQ_W_X(:,:,:) = 0.e0         
+         DO K = 1, NL
+         DO I = 1, IM_W
+            DQ_W_X(I,0     ,K) = Q(I+I0_W,J0_W,       K,IC) * 
+     &                           DELP2_W(I,0,K)
+            DQ_W_X(I,JM_W+1,K) = Q(I+I0_W,J0_W+JM_W+1,K,IC) * 
+     &                           DELP2_W(I,JM_W+1,K)
+         ENDDO
+         ENDDO
+         DQ_W_X(1:IM_W,1:JM_W,:) = DQ_W(:,:,:)
+
+         CALL MASSFLUX(IC,IM_W,JM_W+1,NL,FYNK(:,:,:,NBIN_W( IC) ),
+     &              DQNKX(0:IM_W,0:JM_W+1,:,NBIN_W( IC )),fy_w(:,:,:),
+     &                 DQ_W_X(0:IM_W,0:JM_W+1,:), 2    ) 
+       ENDIF
+
+! Update in N-S direction
+      do 101 k=1,NL
+
+      do 426 j=1,JM_W
+      do 426 i=1,IM_W
+      DQ_W(i,j,k) = DQ_W(i,j,k) + (fy_w(i,j,k) - 
+     &                 fy_w(i,j+1,k))*acosp_w(j)
+426   continue
+
+ 101  continue
+
+      ! FOR AEROSOL NUMBER:
+      ! Save the current DQ array which has been updated in N-S direction
+      IF ( IDFLUX( IC ) == 1 ) THEN
+         DO 441 K= 1, NL
+         DO 441 J= 1, JM_W
+         DO 441 I= 1, IM_W
+            DQNKY(I,J,K,NBIN_W( IC )) = DQ_W(I,J,K)
+ 441     CONTINUE
+      ENDIF                  
+
+      ! FOR AEROSOL MASS:
+      ! Compute the high-order flux 'fz' based on aerosol number
+      IF ( IDFLUX( IC ) == 2 )  THEN
+
+         DQ_W_X(:,:,:) = 0.e0
+      
+         DQ_W_X(1:IM_W,1:JM_W,:) = DQ_W(:,:,:)
+
+
+         CALL MASSFLUX(IC,IM_W,JM_W,NL,FZNK(:,:,:,NBIN_W( IC )),
+     &               DQNKY(0:IM_W,0:JM_W,:,NBIN_W( IC )),fz_w(:,:,1:NL),
+     &               DQ_W_X(0:IM_W,0:JM_W,:),3)
+
+      ENDIF
+      
+! Update in the vertical direction
+      do 102 k=1,NL
+
+      do 427 j=1,JM_W
+      do 427 i=1,IM_W
+      DQ_W(i,j,k) = DQ_W(i,j,k) +  fz_w(i,j,k) - fz_w(i,j,k+1)
+ 427  continue
+
+
+ 102  continue
+
+!----ending section modified for size-resolved aerosols (win, 7/17/09)
+#else
+
+# if   defined( multitask  )
+#  if   defined( CRAY       )
 !MIC$ do all autoscope
 !MIC$* private(i,j,k,sum1,sum2)
-#else
+#  else
 !$OMP PARALLEL DO PRIVATE( I, J, K, SUM1, SUM2 )
-#endif
-#endif 
+#  endif
+# endif 
 
       DO 101 K = 1, NL
 
@@ -1416,27 +1590,11 @@ c15    write (6,*) 'cosp(',j+j0_w+j0,')=',cosp_w(j)
       ENDDO
       ENDDO
 
-!%%% 
-!%%% MODIFICATIONS FOR NESTED GRID (yxw, bmy, 3/10/03)
-!%%% Polar cap stuff, useless for nested simulation
-!%%%      sum1 = fy(IM,j1  ,k)
-!%%%      sum2 = fy(IM,J2+1,k)
-!%%%
-!%%%      do i=1,IM-1
-!%%%         sum1 = sum1 + fy(i,j1  ,k)
-!%%%         sum2 = sum2 + fy(i,J2+1,k)
-!%%%      enddo
-!%%% 
-!%%%      DQ(1, 1,k) = DQ(1, 1,k) - sum1*RCAP + fz(1, 1,k) - fz(1, 1,k+1)
-!%%%      DQ(1,JM,k) = DQ(1,JM,k) + sum2*RCAP + fz(1,JM,k) - fz(1,JM,k+1)
-!%%% 
-!%%%      do i=2,IM
-!%%%      DQ(i, 1,k) = DQ(1, 1,k)
-!%%%      DQ(i,JM,k) = DQ(1,JM,k)
-!%%%      enddo
-!%%%
-101   continue
-!****6***0*********0*********0*********0*********0*********0**********72
+
+#endif
+
+
+C****6***0*********0*********0*********0*********0*********0**********72
 !%%% 
 !%%% MODIFICATIONS FOR NESTED GRID (yxw, bmy, 3/10/03)
 !%%% Call QCKXYZ w/ window arrays, etc.
@@ -4884,4 +5042,212 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
        END SUBROUTINE POSITION_WINDOW
 
 !------------------------------------------------------------------------------
+
+      SUBROUTINE MASSFLUX ( IC, IM, JM, NL, FLUXNK, DQNK,
+     &                      FLUXM, DQ, DIR )
+
+!******************************************************************************
+!  SUBROUTINE MASSFLUX computes fluxes of aerosol mass based on the flux 
+!  of aerosol number in each direction and the ratio of DQ_mass/DQ_num.
+!  Flux of mass = Flux of number * DQ(aerosol mass)/DQ(aerosol number)
+!  Have to choose the DQ for this multiplication according to the upstream 
+!  direction of a flux.  (win, 6/8/05, 10/27/08)
+!   
+!  Argument as Input:
+!  =========================================================================
+!  (1 ) IC     (INTEGER) : Tracer index number
+!  (2 ) IM     (INTEGER) : Total number of E-W grid boxes
+!  (4 ) JM     (INTEGER) : Total number of N-S grid boxes
+!  (5 ) J1     (INTEGER) : N-S grid defining the edge of the South polar cap 
+!  (6 ) J2     (INTEGER) : N-S grid defining the edge of the North polar cap 
+!  (7 ) NL     (INTEGER) : Total number of vertical grid levels
+!  (8 ) FLUXNK (REAL)  : Saved flux of aerosol number
+!  (9 ) DQNK   (REAL)  : Saved DQ of aerosol number 
+!  (10) FLUXM  (REAL)  : Flux of aerosol mass to be calculated
+!  (11) DQ     (REAL)  : DQ of aerosol mass
+!  (12) DIR    (}INTEGER) : Direction chosen to calculate mass flux
+!
+!  NOTES: 
+!  (1 ) About the size of fluxes array, the high-order fluxes eventually I want 
+!       fx(im+1,jm,nl), fy(im,jm,nl) and fz(im,jm,nl+1). But here, let's just 
+!       use all fluxes array of(im,jm,nl).  I can add the extra strip later 
+!       fx(im+1,:,:)=fx(1,:,:)
+!       fz(:,:,nl+1)=0d0
+!       also fz(:,:,1)=0d0
+!  (2 ) dir = 1 for X-direction flux
+!                 = 2 for Y-direction flux
+!                 = 3 for Z-direction flux
+!                 = 0 for all direction (this is for hiord fluxes)
+!  (3 ) Introduce the courant number to massflux for accurate reference of 
+!       the upstream box. (win, 3/12/06)
+!  (4 ) Modify the subroutine to calculate only in one selected direction
+!       with only one set of input argument for the chosen direction (win, 3/16/06)
+!  (5 ) Import to new version of G-C and remove courant from the subroutine
+!       (win,10/27/08)
+!******************************************************************************
+!
+      ! Arguments
+      INTEGER  :: IC,IM,JM,NL
+      REAL   :: FLUXNK(IM,JM,NL), FLUXM(IM,JM,NL)
+      REAL   :: DQNK(0:IM,0:JM,NL)! the original DQ of aerosol number
+      REAL   :: DQ(0:IM,0:JM,NL)  ! DQ of aerosol mass tracers, i.e., SF1..SF30.
+      INTEGER  :: DIR  
+
+      ! Local variables
+      INTEGER  :: I, J, K
+
+      !=======================================================================
+      ! MASSFLUX begins here!
+      !=======================================================================
+
+      FLUXM(:,:,:) = 0e0          ! Initialize the output flux arrays as zeroes
+
+      ! overwrite J1 and J2 
+      J1 = 1
+      J2 = JM
+
+
+      ! ## PART 1 -- x-direction fluxes ##
+      IF ( DIR == 1 ) THEN
+         DO K = 1, NL
+         DO J = 1, JM
+         DO I = 1, IM
+            IF ( FLUXNK(I,J,K) >= 0e0 ) THEN
+               IF ( DQNK(I-1,J,K) == 0e0 ) GOTO 701
+               FLUXM(I,J,K) = FLUXNK(I,J,K)* 
+     &                        DQ(I-1,J,K)/ DQNK(I-1,J,K)
+            ELSE                  
+               IF ( DQNK(I,J,K) == 0e0 ) GOTO 701
+               FLUXM(I,J,K) = FLUXNK(I,J,K)* DQ(I,J,K)/ DQNK(I,J,K)
+            ENDIF
+ 701        CONTINUE
+         ENDDO               !I-loop
+         ENDDO                  !j-loop
+         ENDDO                  !k-loop
+      ENDIF                     !DIR = 1
+
+      ! ## PART 2 -- y-direction fluxes ##
+      IF ( DIR == 2 ) THEN
+         DO K = 1, NL
+         DO J = 1, JM
+         DO I = 1, IM
+            IF ( FLUXNK(I,J,K) >= 0e0 ) THEN
+               IF ( DQNK(I,J-1,K) == 0e0 ) GOTO 702
+               FLUXM(I,J,K) = FLUXNK(I,J,K)/ DQNK(I,J-1,K)* DQ(I,J-1,K)
+            ELSE
+               IF ( DQNK(I,J,K) == 0e0 ) GOTO 702
+               FLUXM(I,J,K) = FLUXNK(I,J,K)/ DQNK(I,J,K)* DQ(I,J,K) 
+            ENDIF
+ 702        CONTINUE
+         ENDDO                  !i-loop
+         ENDDO                  !j-loop
+         ENDDO                  !k-loop
+      ENDIF                     !DIR = 2
+
+      ! ## PART 3 -- z-direction fluxes ##
+      IF ( DIR == 3 ) THEN
+         DO K = 2, NL
+         DO J = 1, JM
+         DO I = 1, IM
+            IF ( FLUXNK(I,J,K) >= 0e0 ) THEN
+               IF ( DQNK(I,J,K-1) == 0e0 ) GOTO 703
+               FLUXM(I,J,K) = FLUXNK(I,J,K)/
+     &                        DQNK(I,J,K-1)* DQ(I,J,K-1)
+            ELSE
+               IF ( DQNK(I,J,K) == 0e0 ) GOTO 703
+               FLUXM(I,J,K) = FLUXNK(I,J,K)/
+     &                        DQNK(I,J,K)* DQ(I,J,K)
+            ENDIF
+ 703        CONTINUE
+         ENDDO                  !i-loop
+         ENDDO                  !j-loop
+         ENDDO                  !k-loop
+      ENDIF                     !DIR = 3
+
+      ! Return to calling subroutine
+      END SUBROUTINE MASSFLUX 
+      
+!------------------------------------------------------------------------------
+
+      FUNCTION IDFLUX ( IC ) 
+      
+!*****************************************************************************
+!  Function IDFLUX return an ID of 0, 1, or 2 which defines if the tracer 
+!  should be advected with the TPCORE's original flux computation or use
+!  flux calculated from subroutine MASSFLUX.  This works with the size-resolved
+!  aerosol number and mass. (win, 10/27/08)
+!
+!  More detail:
+!  TOMAS aerosol algorithm requires the ratio of aerosol mass over number 
+!  (mass per particle) for each size bin to be in size bin boundaries.
+!  With PPM advection scheme, if aerosol mass and number tracers are advected 
+!  individually, the mass per particle will not be restrained in the boundaries.
+!  Therefore, the aerosol number is chosen to use TPCORE advection fluxes, 
+!  the fluxing of aerosol mass tracers will then be computed according to the 
+!  number fluxes.
+!     IDFLUX = 0 is a non-aerosol tracers --> normal TPCORE calculation
+!     IDFLUX = 1 is an aerosol number     --> need TPCORE flux calculation 
+!                                             and save flux weight
+!     IDFLUX = 2 is an aerosol mass       --> skip flux calculation
+!
+!  NOTES:
+!  ( 1) Use IDIAG. Just skip normal flux calculation for aerosol mass tracer
+!        excluding the diagnostic species, that is aerosol water (win, 9/27/08)
+!*****************************************************************************
+!
+      ! References to F90 modules
+      USE TOMAS_MOD,    ONLY : IBINS, ICOMP, IDIAG
+      USE TRACERID_MOD, ONLY : IDTNK1
+
+      INTEGER                :: IC, IDFLUX
+
+      !=======================================================================
+      ! IDFLUX begins here!
+      !=======================================================================
+      
+      IDFLUX = 0
+
+      ! Exit if aerosol number is not at work
+      IF ( IDTNK1 > 0 ) THEN 
+         IF ( IC >= IDTNK1 .AND. IC < IDTNK1 + IBINS ) IDFLUX = 1
+         IF ( IC >= IDTNK1 + IBINS .AND. 
+     &        IC < IDTNK1 + (IBINS * (ICOMP-IDIAG+1)) ) 
+     &        IDFLUX = 2
+      ENDIF
+
+      ! Return to calling subroutine
+      END FUNCTION IDFLUX       
+
+!------------------------------------------------------------------------------      
+
+      FUNCTION NBIN_W ( N ) RESULT( NBIN )
+
+!*****************************************************************************
+!  Function NBIN_W returns the bin number of the size-resolved aerosol according
+!  to the current tracers list.  (win, 10/27/08)
+!*****************************************************************************
+!
+      ! Reference to F90 module
+      USE TOMAS_MOD,    ONLY : IBINS
+      USE TRACERID_MOD, ONLY : IDTNK1
+      
+      INTEGER               :: NBIN, N, M
+
+      !=======================================================================
+      ! NBIN begins here!
+      !=======================================================================
+
+      M = N - IDTNK1 + 1
+      
+      IF ( M > IBINS ) THEN 
+         NBIN = MOD( M, IBINS )
+         IF ( NBIN == 0 ) NBIN = IBINS
+      ELSE
+         NBIN = M
+      ENDIF
+
+      END FUNCTION NBIN_W
+
+!------------------------------------------------------------------------------
+
       END MODULE TPCORE_WINDOW_MOD
