@@ -120,7 +120,7 @@
 !       (kjw, 8/18/09)
 !  (46) Add ND59 and ND60 for initialization (win, 7/28/09)
 !  (47) Add potential temperature diagnostic. (fp, 06/09)
-!  (48) Add TOMAS diags using ifdefs. (scf, 01/13)
+!  (48) Add TOMAS diags using ifdefs. (sfarina, 01/13)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  25 Aug 2010 - R. Yantosca - Now also reset the counter for A1 timesteps
 !  08 Feb 2012 - R. Yantosca - Rewrote USE statements, for clarity
@@ -284,7 +284,7 @@
             CALL ZERO_DIAG56
          ENDIF
 
-#if   defined ( TOMAS )
+#if   defined( TOMAS )
          ! For ND59 - size-resolved primary aerosol emissions (win, 7/28/09)
          IF ( ND59 > 0 ) THEN 
             AD59_NUMB = 0e0

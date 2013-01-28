@@ -1506,7 +1506,7 @@
       USE LOGICAL_MOD,  ONLY : LSULF, LCARB, LSOA
       USE LOGICAL_MOD,  ONLY : LDUST, LDEAD, LSSALT, LCRYST
       USE LOGICAL_MOD,  ONLY : LDICARB
-      USE LOGICAL_MOD,  ONLY : LTOMAS       !scf - leave LTOMAS defined regardless of ifdef TOMAS, init here.
+      USE LOGICAL_MOD,  ONLY : LTOMAS       !sfarina - leave LTOMAS defined regardless of ifdef TOMAS, init here.
       USE TRACER_MOD,   ONLY : N_TRACERS
       USE TRACER_MOD,   ONLY : SALA_REDGE_um,      SALC_REDGE_um
       USE TRACER_MOD,   ONLY : ITS_AN_AEROSOL_SIM, ITS_A_FULLCHEM_SIM
@@ -1565,7 +1565,7 @@
       ! READ_AEROSOL_MENU begins here!
       !=================================================================
 
-!scf - set LTOMAS = false, unless TOMAS is defined, then let READ_MICROPHYS_MENU set LTOMAS
+!sfarina - set LTOMAS = false, unless TOMAS is defined, then let READ_MICROPHYS_MENU set LTOMAS
 #ifndef ( TOMAS )
       LTOMAS = .FALSE.
 #endif
@@ -1840,7 +1840,7 @@
 !
 
 
-#if   defined ( TOMAS )
+#if   defined( TOMAS )
 ! !IROUTINE: read_microphys_menu
 !
 ! !DESCRIPTION: Subroutine READ\_MICROPHYS\_MENU reads the AEROSOL 
@@ -2588,13 +2588,13 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
          WRITE( 6, '(a)' ) 'we also turn off LMEGANMONO ship emissions'
          WRITE( 6, '(a)' ) 'in order to avoid crashing GEOS-Chem!'
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-	 ENDIF
+         ENDIF
       ENDIF
 
       !=================================================================
       ! Enforce emissions options for Nested China on native GEOS-5 grid
       !=================================================================
-#if   defined ( NESTED_CH ) || defined ( SEAC4RS )
+#if   defined( NESTED_CH ) || defined( SEAC4RS )
 
       ! Turn off emissions options that are
       ! not appropriate for the Nested CH grid
@@ -5003,7 +5003,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !
 ! !USES:
 !
-#if   defined ( TOMAS )
+#if   defined( TOMAS )
       USE CHARPAK_MOD, ONLY : TXTEXT   ! (win, 7/14/09)
 #endif
 
@@ -5035,7 +5035,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       LOGICAL, SAVE       :: FIRST = .TRUE.
       LOGICAL             :: IS_ALL 
       INTEGER             :: M
-#if   defined ( TOMAS )
+#if   defined( TOMAS )
       INTEGER             :: NN,     COL,     IFLAG, TC     ! (win, 7/14/09)
       CHARACTER (LEN=255) :: WORD,   SUBWORD, TMP1,  TMP2   ! (win, 7/14/09)
       INTEGER             :: MINTMP, MAXTMP                 ! (win, 7/14/09)
@@ -5076,7 +5076,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 
       ELSE 
 
-#if   defined ( TOMAS )
+#if   defined( TOMAS )
 !(win, 7/14/09)  use TXTEXT and split the read in characters by -
 
          COL   = 1

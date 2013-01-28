@@ -43,7 +43,7 @@
       USE TRACER_MOD                         ! For tracer array
       USE TRACERID_MOD                       ! For tracer flags
       USE WETSCAV_MOD                        ! For wet deposition
-#if   defined ( TOMAS )
+#if   defined( TOMAS )
       USE TOMAS_MOD, ONLY : ICOMP, IDIAG, IBINS  !(win, 1/25/10)
 #endif
 
@@ -2772,7 +2772,7 @@
                ! Other simulations
                UNIT = 'molec/cm2/s'
 
-#if   defined ( TOMAS )
+#if   defined( TOMAS )
                ! For extended drydep tracers, assign tracer ID of the TOMAS
                ! aerosol mass (win, 7/14/09)
                IF ( N <= NUMDEP ) THEN 
@@ -2816,7 +2816,7 @@
             ARRAY(:,:,1) = ( AD44(:,:,N,1) / SCALECHEM )
 
             ! Write to file
-#if   defined ( TOMAS )
+#if   defined( TOMAS )
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN1,    
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   

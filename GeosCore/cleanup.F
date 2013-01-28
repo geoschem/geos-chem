@@ -78,8 +78,8 @@
       USE SULFATE_MOD,             ONLY : CLEANUP_SULFATE
       USE STRAT_CHEM_MOD,          ONLY : CLEANUP_STRAT_CHEM
       USE TAGGED_CO_MOD,           ONLY : CLEANUP_TAGGED_CO
-#if   defined ( TOMAS )
-      USE TOMAS_MOD,               ONLY : CLEANUP_TOMAS  !scf, 1/16/13
+#if   defined( TOMAS )
+      USE TOMAS_MOD,               ONLY : CLEANUP_TOMAS  !sfarina, 1/16/13
 #endif
       USE TOMS_MOD,                ONLY : CLEANUP_TOMS
       USE TPCORE_FVDAS_MOD,        ONLY : EXIT_TPCORE
@@ -95,7 +95,7 @@
       USE BROMOCARB_MOD,           ONLY : CLEANUP_BROMOCARB    ! jpp, 6/17/09
 #if   defined( APM )
       USE APM_WETS_MOD,            ONLY : CLEANUP_WETSCAVBIN
-# if !defined ( TOMAS )
+# if !defined( TOMAS )
       USE DAO_MOD,                 ONLY : CLEANUP_DAO
 # endif
 #endif
