@@ -683,7 +683,11 @@
 
                ! Save species concentrations (CSPEC_FULL). (dkh, 02/12/09)
                IF ( LCHEM .and. LSVCSPEC ) THEN 
+#if defined( DEVEL )
+                  CALL MAKE_CSPEC_FILE( NYMD, NHMS, State_Chm )
+#else
                   CALL MAKE_CSPEC_FILE( NYMD, NHMS )
+#endif
                ENDIF 
 
                !### Debug

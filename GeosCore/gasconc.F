@@ -28,7 +28,6 @@
       USE COMODE_MOD,         ONLY : ABSHUM
       USE COMODE_MOD,         ONLY : AIRDENS
       USE COMODE_MOD,         ONLY : CSPEC
-      USE COMODE_MOD,         ONLY : CSPEC_FULL
       USE COMODE_MOD,         ONLY : IXSAVE
       USE COMODE_MOD,         ONLY : IYSAVE
       USE COMODE_MOD,         ONLY : IZSAVE
@@ -39,6 +38,8 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP
 #if defined( DEVEL )
       USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
+      USE COMODE_MOD,         ONLY : CSPEC_FULL
 #endif
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE LOGICAL_MOD,        ONLY : LSOA
@@ -146,6 +147,13 @@
       REAL*8  :: QACC,FRACDIF,FRACABS,AVGERR,RMSCUR
       REAL*8  :: TK,CONSEXP,VPRESH2O,CONST
 
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 1/24/12)
+      REAL*8, POINTER :: CSPEC_FULL(:,:,:,:)
+#endif
+
       !=================================================================
       ! GASCONC begins here!
       !=================================================================
@@ -153,6 +161,12 @@
       ! Set NCS=NCSURBAN here since we have defined our tropospheric
       ! chemistry mechanism in the urban slot of SMVGEAR II
       NCS = NCSURBAN
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      CSPEC_FULL => State_Chm%Species
+#endif
 
       !=================================================================
       ! First time through here, copy initial conditions from QBKCHEM
@@ -294,7 +308,11 @@
       ! chemistry routines to function properly.  Therefore, call
       ! COPY_FULL_TROP from tropopause_mod.F every time.
       !-----------------------------------------------------------------
+#if defined( DEVEL )
+      CALL COPY_FULL_TROP( State_Chm )
+#else
       CALL COPY_FULL_TROP()
+#endif
 
 #else
       !-----------------------------------------------------------------
@@ -311,8 +329,17 @@
       !    (1 ) copy CSPEC_FULL to CSPEC depending on
       !         READ_CSPEC (hotp, 2/25/09)
       !-----------------------------------------------------------------
+#if defined( DEVEL )
+      IF ( FIRSTCHEM .or. READ_CSPEC ) CALL COPY_FULL_TROP( State_Chm )
+#else
       IF ( FIRSTCHEM .or. READ_CSPEC ) CALL COPY_FULL_TROP()
+#endif
 
+#endif
+
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( CSPEC_FULL )
 #endif
 
 !  ********************************************************************

@@ -83,15 +83,30 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE COPY_FULL_TROP( State_Chm )
+#else
       SUBROUTINE COPY_FULL_TROP()
+#endif
 !
 ! !USES:
 !
-      USE COMODE_MOD,     ONLY : CSPEC,  CSPEC_FULL
+      USE COMODE_MOD,     ONLY : CSPEC
       USE COMODE_MOD,     ONLY : IXSAVE, IYSAVE, IZSAVE
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
+      USE COMODE_MOD,     ONLY : CSPEC_FULL
+#endif
 
       USE CMN_SIZE_MOD
       USE COMODE_LOOP_MOD
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
+#endif
 !
 ! !REMARKS:
 !  ROUTINE NEEDED BECAUSE WITH VARIABLE TROPOPAUSE 
@@ -112,12 +127,25 @@
       INTEGER :: JGAS, JLOOP, IX, IY, IZ
       INTEGER :: LOCATION(4)
 
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 1/24/12)
+      REAL*8, POINTER :: CSPEC_FULL(:,:,:,:)
+#endif
+
       !=================================================================
       ! COPY_FULL_TROP begins here!
       !=================================================================
 
       ! Reset NCS to NCSURBAN for safety's sake (bmy, 4/25/07)
       NCS = NCSURBAN
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      CSPEC_FULL => State_Chm%Species
+#endif
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -141,6 +169,11 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( CSPEC_FULL )
+#endif
+
       END SUBROUTINE COPY_FULL_TROP
 !EOC
 !------------------------------------------------------------------------------
@@ -157,15 +190,30 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE SAVE_FULL_TROP( State_Chm )
+#else
       SUBROUTINE SAVE_FULL_TROP()
+#endif
 !
 ! !USES:
 !
-      USE COMODE_MOD,     ONLY : CSPEC,  CSPEC_FULL
+      USE COMODE_MOD,     ONLY : CSPEC
       USE COMODE_MOD,     ONLY : IXSAVE, IYSAVE, IZSAVE
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
+      USE COMODE_MOD,     ONLY : CSPEC_FULL
+#endif
 
       USE CMN_SIZE_MOD
       USE COMODE_LOOP_MOD
+#if defined( DEVEL )
+!
+! !OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(OUT) :: State_Chm   ! Chemistry State object
+#endif
 !
 ! !REMARKS:
 !  ROUTINE NEEDED BECAUSE WITH VARIABLE TROPOPAUSE 
@@ -185,12 +233,25 @@
 !
       INTEGER :: JGAS, JLOOP, IX, IY, IZ
 
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 1/24/12)
+      REAL*8, POINTER :: CSPEC_FULL(:,:,:,:)
+#endif
+
       !=================================================================
       ! SAVE_FULL_TROP begins here!
       !=================================================================
 
       ! Reset NCS to NCSURBAN for safety's sake (bmy, 4/25/07)
       NCS = NCSURBAN
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      CSPEC_FULL => State_Chm%Species
+#endif
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -213,6 +274,11 @@
          ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( CSPEC_FULL )
+#endif
 
       END SUBROUTINE SAVE_FULL_TROP
 !EOC

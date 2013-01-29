@@ -917,13 +917,20 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE MAKE_CSPEC_FILE( YYYYMMDD, HHMMSS, State_Chm )
+#else
       SUBROUTINE MAKE_CSPEC_FILE( YYYYMMDD, HHMMSS )
+#endif
 !
 ! !USES:
 !
       USE BPCH2_MOD
-      USE COMODE_MOD,  ONLY : CSPEC
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
       USE COMODE_MOD,  ONLY : CSPEC_FULL
+#endif
       USE COMODE_MOD,  ONLY : JLOP
       USE ERROR_MOD,   ONLY : DEBUG_MSG
       USE ERROR_MOD,   ONLY : ERROR_STOP
@@ -942,6 +949,9 @@
 !
       INTEGER, INTENT(IN)  :: YYYYMMDD   ! YYYY/MM/DD GMT date
       INTEGER, INTENT(IN)  :: HHMMSS     ! hh:mm:ss   GMT time
+#if defined( DEVEL )
+      TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  27 Aug 2004 - D. Henze    - Initial version, based on MAKE_RESTART
@@ -985,6 +995,12 @@
       CHARACTER(LEN=40)    :: RESERVED = ''
       CHARACTER(LEN=80)    :: TITLE 
 
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 1/24/12)
+      REAL*8, POINTER :: CSPEC_FULL(:,:,:,:)
+#endif
 
       !=================================================================
       ! MAKE_CSPEC_FILE begins here!
@@ -998,6 +1014,11 @@
       !TMP(:,:,:)   = 0e0
       TMP(:,:,:)   = 1e-30
 
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      CSPEC_FULL => State_Chm%Species
+#endif
 
       ! Define variables for BINARY PUNCH FILE OUTPUT
       TITLE    = 'GEOS-CHEM Checkpoint File: ' // 
@@ -1093,6 +1114,11 @@
       ! Close file
       CLOSE( IU_RST )
 
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( CSPEC_FULL )
+#endif
+
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### MAKE_CSPEC_FILE: wrote file' )
 
@@ -1113,13 +1139,22 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE READ_CSPEC_FILE( am_I_Root, YYYYMMDD, HHMMSS,
+     &                            IT_EXISTS, State_Chm )
+#else
       SUBROUTINE READ_CSPEC_FILE( am_I_Root, YYYYMMDD,  
      &                            HHMMSS,    IT_EXISTS ) 
+#endif
 !
 ! !USES:
 !
       USE BPCH2_MOD,   ONLY : OPEN_BPCH2_FOR_READ
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
       USE COMODE_MOD,  ONLY : CSPEC_FULL
+#endif
       USE COMODE_MOD,  ONLY : JLOP
       USE ERROR_MOD,   ONLY : DEBUG_MSG
       USE ERROR_MOD,   ONLY : ERROR_STOP
@@ -1137,6 +1172,13 @@
       LOGICAL, INTENT(IN) :: am_I_Root  ! Is this the root CPU?
       INTEGER, INTENT(IN) :: YYYYMMDD   ! YYYY/MM/DD GMT date
       INTEGER, INTENT(IN) :: HHMMSS     ! hh:mm:ss   GMT time
+!
+! !OUTPUT PARAMETERS: 
+!
+      LOGICAL,        INTENT(OUT) :: IT_EXISTS   ! Does CSPEC restart exist?
+#if defined( DEVEL )
+      TYPE(ChmState), INTENT(OUT) :: State_Chm   ! Chemistry State object
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  30 Aug 2004 - D. Henze    - Initial version, based on READ_RESTART  
@@ -1159,7 +1201,6 @@
       INTEGER             :: I, IOS, IU_RST, J, L, N, JLOOP, NN, NTL
       INTEGER             :: NCOUNT(NNPAR) 
       REAL*4		  :: TMP(ILONG,ILAT,IPVERT)
-      LOGICAL             :: IT_EXISTS 
 
       REAL*8              :: SUMTC
       CHARACTER(LEN=255)  :: FILENAME
@@ -1179,6 +1220,13 @@
       CHARACTER(LEN=40)   :: UNIT     
       CHARACTER(LEN=40)   :: RESERVED
 
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 1/24/12)
+      REAL*8, POINTER :: CSPEC_FULL(:,:,:,:)
+#endif
+
       !=================================================================
       ! READ_CSPEC_FILE begins here!
       !=================================================================
@@ -1190,6 +1238,12 @@
       !TMP(:,:,:) = 0e0
       ! use 1e-30 as min (hotp 2/25/09)
       TMP(:,:,:) = 1e-30
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      CSPEC_FULL => State_Chm%Species
+#endif
 
       !=================================================================
       ! Open checkpoint file and read top-of-file header
@@ -1297,6 +1351,11 @@
 
       ! Close file
       CLOSE( IU_RST )      
+
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( CSPEC_FULL )
+#endif
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### READ_CSPEC_FILE: read file' )

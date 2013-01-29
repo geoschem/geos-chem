@@ -617,8 +617,13 @@
 
          ! Read the CSPEC restart file.  If not found, then 
          ! return IT_EXISTS = .FALSE.
+#if defined( DEVEL )
+         CALL READ_CSPEC_FILE( am_I_Root, GET_NYMD(), GET_NHMS(),
+     &                         IT_EXISTS, State_Chm   )
+#else
          CALL READ_CSPEC_FILE( am_I_Root,  GET_NYMD(),
      &                         GET_NHMS(), IT_EXISTS ) 
+#endif
    
          IF ( .not. IT_EXISTS ) THEN 
 
@@ -865,7 +870,11 @@
       ! chemistry routines to function properly.  Therefore, call
       ! COPY_FULL_TROP from tropopause_mod.F every time.
       !-----------------------------------------------------------------
+#if defined( DEVEL )
+      CALL SAVE_FULL_TROP( State_Chm )
+#else
       CALL SAVE_FULL_TROP()
+#endif
 
       !###  Debug
       IF ( prtDebug ) THEN
@@ -890,7 +899,11 @@
       !        CSPEC_FULL restart file. (ccc, 2/26/09) 
       !-----------------------------------------------------------------
       IF ( LVARTROP .or. LSVCSPEC ) THEN
+#if defined( DEVEL )
+         CALL SAVE_FULL_TROP( State_Chm )
+#else
          CALL SAVE_FULL_TROP
+#endif
 
          !### Debug
          IF ( prtDebug ) THEN
