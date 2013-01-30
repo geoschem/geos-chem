@@ -240,8 +240,10 @@
       ! Assume success
       RC       = GIGC_SUCCESS
 
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       ! For ESMF interface to GEOS-5 GCM, we need to add "*___.rc"
       FILENAME = TRIM( FILENAME ) // '___.rc'
+#endif
 
       ! Open file
       OPEN( IU_GEOS, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
