@@ -735,7 +735,8 @@ input_mod.o                 : input_mod.F                                    \
                               restart_mod.o           tpcore_bc_mod.o        \
                               tracerid_mod.o          tracer_mod.o           \
                               transport_mod.o         wetscav_mod.o          \
-                              diag63_mod.o            bromocarb_mod.o
+                              diag63_mod.o            bromocarb_mod.o        \
+										megan_mod.o
 
 isoropiaII_mod.o            : isoropiaII_mod.F                               \
                               dao_mod.o               global_hno3_mod.o      \

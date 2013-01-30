@@ -1598,6 +1598,9 @@
       USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM
       USE CMN_SIZE_MOD      ! Size parameters
       USE CMN_O3_MOD        ! FSCALYR
+      
+      USE MEGAN_MOD,     ONLY : GLOBCO2   ! (Tai, Jan 2013)
+            
 !
 ! !INPUT PARAMETERS:
 !
@@ -1658,6 +1661,7 @@
 !  10 Apr 2012 - R. Yantosca - Bug fix: do not turn off LAVHRRLAI or LMODISLAI
 !                              when emissions are turned off.  LAI is used
 !                              in other areas of the code.
+!  05 Jun 2012 - A. Tai - Add CO2 inhibition effect on isoprene emissions
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !EOP
@@ -1764,145 +1768,155 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:20' )
       READ( SUBSTRS(1:N), * ) ISOP_SCALING
 
-      ! Include biomass emissions?
+
+      ! Include CO2 inhibition of isoprene emissions? (Tai, Jan 2013)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:21' )
+      READ( SUBSTRS(1:N), * ) LISOPCO2
+
+      ! Global atmospheric CO2 concentration [ppmv] (Tai, Jan 2013)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:22' )
+      READ( SUBSTRS(1:N), * ) GLOBCO2
+      
+      
+      ! Include biomass emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:23' )
       READ( SUBSTRS(1:N), * ) LBIOMASS
 
       ! Seasonal biomass?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:22' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:24' )
       READ( SUBSTRS(1:N), * ) LBBSEA
 
       ! Scaled to TOMSAI?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:23' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:25' )
       READ( SUBSTRS(1:N), * ) LTOMSAI
 
       ! Separator line (start of GFED2 biomass emissions)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:24' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:26' )
 
       ! Use monthly GFED2 biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:25' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:27' )
       READ( SUBSTRS(1:N), * ) LGFED2BB
 
       ! Use 8-day GFED2 biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:26' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:28' )
       READ( SUBSTRS(1:N), * ) L8DAYBB
 
       ! Use 3-hr GFED2 biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:27' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:29' )
       READ( SUBSTRS(1:N), * ) L3HRBB
 
       ! Use 3-hr synoptic GFED2 biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:28' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:30' )
       READ( SUBSTRS(1:N), * ) LSYNOPBB
 
       ! Separator line (start of GFED3 biomass emissions)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:29' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:31' )
 
       ! Use monthly GFED3 biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:30' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:32' )
       READ( SUBSTRS(1:N), * ) LGFED3BB
 
       ! Use daily GFED3 biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:31' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:33' )
       READ( SUBSTRS(1:N), * ) LDAYBB3
 
       ! Use 3-hr GFED3 biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:32' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:34' )
       READ( SUBSTRS(1:N), * ) L3HRBB3
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:33' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:35' )
 
       ! Use aircraft NOx
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:34' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:36' )
       READ( SUBSTRS(1:N), * ) LAIRNOX
 
       ! Use lightning NOx
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:35' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:37' )
       READ( SUBSTRS(1:N), * ) LLIGHTNOX
 
       ! Apply OTD-LIS local redistribution for lightning spatial and
       ! seasonal constraint
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:36' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:38' )
       READ( SUBSTRS(1:N), * ) LOTDLOC
 
       ! Use soil NOx
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:37' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:39' )
       READ( SUBSTRS(1:N), * ) LSOILNOX
 
       ! separate use fertilizer and soil NOx (fp, 06/09)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:38' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:40' )
       READ( SUBSTRS(1:N), * ) LFERTILIZERNOX
 
       !(FP, 15/12/09)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:39' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:41' )
       READ( SUBSTRS(1:N), * ) NOx_SCALING
 
       ! Separator line (start of ship emissions)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:40' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:42' )
 
       ! Use ship EDGAR ship emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:41' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:43' )
       READ( SUBSTRS(1:N), * ) LEDGARSHIP
 
       ! Use ICOADS (NOx, SO2, CO) ship  emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:42' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:44' )
       READ( SUBSTRS(1:N), * ) LICOADSSHIP
 
       ! Use ship EMEP emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:43' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:45' )
       READ( SUBSTRS(1:N), * ) LEMEPSHIP
 
       ! Use ship SO2 Corbett emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:44' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:46' )
       READ( SUBSTRS(1:N), * ) LSHIPSO2
 
       ! Use ship ARCTAS (SO2, CO2) emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:45' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:47' )
       READ( SUBSTRS(1:N), * ) LARCSHIP
 
       ! Use COOKE over North AMerica for BC/OC?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:46' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:48' )
       READ( SUBSTRS(1:N), * ) LCOOKE
 
       ! Use AVHRR-derived LAI fields?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:47' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:49' )
       READ( SUBSTRS(1:N), * ) LAVHRRLAI
 
       ! Use MODIS-derived LAI fields? (mpb,2009)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:48' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:50' )
       READ( SUBSTRS(1:N), * ) LMODISLAI
 
       ! Use historical emissions (EDGAR NOx/SO2 and Bond BC/OC) for 
       ! 1890-2000?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:49' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:51' )
       READ( SUBSTRS(1:N), * ) LHIST
       
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:50' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:52' )
       READ( SUBSTRS(1:N), * ) HISTYR
       CALL SET_HISTYR( HISTYR )
 
       ! Separator line (start of bromine emissions)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:52' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:53' )
 
       ! Use the Warwick(2006), scenario 3? (400Gg/yr of CHBr3)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:53' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:54' )
       READ( SUBSTRS(1:N), * ) LWARWICK_VSLS
 
       ! Use sea-salt Br2 emissions? Currently Monahan w/ Yang et al. 2005
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:54' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:55' )
       READ( SUBSTRS(1:N), * ) LSSABr2
 
       ! Set PBL BrO concentrations equal to 1ppt during the day?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:55' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:56' )
       READ( SUBSTRS(1:N), * ) LFIX_PBL_BRO
 
       ! Bromine Emissions scaling
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:56' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:57' )
       READ( SUBSTRS(1:N), * ) Br_SCALING
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:57' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:58' )
 
       !=================================================================
       ! Error check logical flags
@@ -2180,6 +2194,19 @@
      &         ' AVHRR LAI will not be used'
          ENDIF
       ENDIF
+      
+      ! (Tai, Jan 2013)
+      ! Check GLOBCO2 if CO2 inhibition is turned on (LISOPCO2 = .TRUE.)
+      ! GLOBCO2 should be between 150-1250 ppmv. Isoprene response to
+      ! CO2 outside this range has no empirical basis.
+      IF ( LISOPCO2 ) THEN
+         IF ( GLOBCO2 < 150.d0 .OR. GLOBCO2 > 1250.d0 ) THEN
+            CALL ERROR_STOP(
+     &         'Global CO2 outside valid range of 150-1250 ppmv!',
+     &         ' READ_EMISSIONS_MENU ("input_mod.f")' )
+         ENDIF
+      ENDIF
+      ! (Tai, Jan 2013)
 
       !=================================================================
       ! Error checks
@@ -2257,6 +2284,12 @@
         WRITE( 6, 100 ) 'Use PCEEA BVOC model        : ', LPECCA
         WRITE( 6, 100 ) 'Use MEGAN bio emissions MONO: ', LMEGANMONO
         WRITE( 6, 120 ) ' Use isop scaling factor    : ', ISOP_SCALING
+        
+        ! (Tai, Jan 2013)
+        WRITE( 6, 100 ) ' Use CO2 inhibition of ISOP : ', LISOPCO2
+        WRITE( 6, 120 ) ' Global CO2 conc (ppmv)     : ', GLOBCO2
+        ! (Tai, Jan 2013)
+        
         WRITE( 6, 100 ) 'Turn on BIOMASS EMISSIONS   : ', LBIOMASS
         WRITE( 6, 100 ) 'Use seasonal BIOMASS emiss? : ', LBBSEA
         WRITE( 6, 100 ) 'Scale BIOMASS to TOMS-AI?   : ', LTOMSAI
@@ -6631,6 +6664,9 @@
       LMEGAN         = .FALSE.
       LMEGANMONO     = .FALSE.
       LMONOT         = .FALSE.
+      
+      LISOPCO2       = .FALSE.   ! (Tai, Jan 2013)
+      
       LNEI99         = .FALSE.
       LNEI05         = .FALSE.
       LOTDLOC        = .FALSE.

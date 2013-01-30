@@ -113,6 +113,10 @@
       PUBLIC  :: INIT_MEGAN        
       PUBLIC  :: UPDATE_T_DAY      
       PUBLIC  :: UPDATE_T_15_AVG   
+      
+      ! CO2 inhibition of isoprene (Tai, Jan 2013):
+      REAL*8, PUBLIC      :: GLOBCO2   ! Global CO2 concentration [ppmv]
+      
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -123,6 +127,9 @@
       PRIVATE :: GET_GAMMA_T_NISOP
       PRIVATE :: GET_GAMMA_P_PECCA
       PRIVATE :: SOLAR_ANGLE
+      
+      PRIVATE :: GET_GAMMA_CO2   ! (Tai, Jan 2013)
+      
 ! 
 ! !REVISION HISTORY: 
 !  (1 ) Original code (biogen_em_mod.f) by Dorian Abbot (6/2003).  Updated to 
@@ -153,6 +160,7 @@
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Use updated GET_LOCALTIME from time_mod.F
 !  11 Apr 2012 - R. Yantosca - Replace lai_mod.F with modis_lai_mod.F90
+!  05 Jun 2012 - A. Tai - Add CO2 inhibition effect on isoprene emissions
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -178,6 +186,9 @@
 ! !USES:
 !
       USE LOGICAL_MOD,   ONLY : LPECCA                     ! Use PCEEA model?
+      
+      USE LOGICAL_MOD,   ONLY : LISOPCO2                   ! (Tai, Jan 2013)
+      
       USE MODIS_LAI_MOD, ONLY : ISOLAI     => GC_LAI       ! Daily LAI
       USE MODIS_LAI_MOD, ONLY : PMISOLAI   => GC_LAI_PM    ! Prev month's LAI
       USE MODIS_LAI_MOD, ONLY : MISOLAI    => GC_LAI_CM    ! Curr month's LAI
@@ -228,6 +239,8 @@
       REAL*8  :: GAMMA_T
       REAL*8  :: GAMMA_SM
       REAL*8  :: D_BTW_M, Q_DIR_2, Q_DIFF_2
+      
+      REAL*8  :: GAMMA_CO2    ! (Tai, Jan 2013)
             
       !=================================================================
       ! GET_EMISOP_MEGAN begins here!
@@ -240,6 +253,8 @@
       GAMMA_LEAF_AGE  = 0.d0
       GAMMA_P         = 0.d0
       GAMMA_SM        = 0.d0
+      
+      GAMMA_CO2       = 0.d0    ! (Tai, Jan 2013)
 
       ! Number of days between MISOLAI and PMISOLAI
       D_BTW_M  = DBLE( DAYS_BTW_M )
@@ -291,6 +306,14 @@
 
             ! Activity factor for soil moisture
             GAMMA_SM = 1.d0
+            
+            ! CO2 inhibition of isoprene (Tai, Jan 2013):
+            IF (LISOPCO2) THEN
+               GAMMA_CO2 = GET_GAMMA_CO2( GLOBCO2 )
+            ELSE
+               GAMMA_CO2 = 1.d0
+            ENDIF
+            ! (Tai, Jan 2013)
 
          ELSE
 
@@ -300,12 +323,23 @@
             GAMMA_LEAF_AGE  = 0.d0
             GAMMA_P         = 0.d0
             GAMMA_SM        = 0.d0
+            
+            GAMMA_CO2       = 0.d0  ! (Tai, Jan 2013)
 
          ENDIF
 
          ! Isoprene emission is the product of all these
-         EMISOP    = AEF_ISOP(I,J) * GAMMA_LAI * GAMMA_LEAF_AGE 
-     &                             * GAMMA_T   * GAMMA_P  * GAMMA_SM  
+
+         ! (original)
+         !EMISOP    = AEF_ISOP(I,J) * GAMMA_LAI * GAMMA_LEAF_AGE
+         !                          * GAMMA_T   * GAMMA_P  * GAMMA_SM
+         ! (original)
+
+         ! (Tai, Jan 2013):
+         EMISOP    = AEF_ISOP(I,J) * GAMMA_LAI * GAMMA_LEAF_AGE
+     &                             * GAMMA_T   * GAMMA_P  * GAMMA_SM
+     &                             * GAMMA_CO2
+         ! (Tai, Jan 2013)
 
          ! Convert from [kg/box] to [atoms C/box]
          EMISOP    = EMISOP * XNUMOL
@@ -958,11 +992,15 @@
      &                             SUNCOS,         Q_DIR,   Q_DIFF, 
      &                             XNUMOL,         SPECIES, GAMMA_LAI, 
      &                             GAMMA_LEAF_AGE, GAMMA_P, GAMMA_T, 
-     &                             GAMMA_SM )
+     &                             GAMMA_SM,       GAMMA_CO2 )
+     ! Add GAMMA_CO2 (Tai, Jan 2013)
 !
 ! !USES:
 !
       USE LOGICAL_MOD,   ONLY : LPECCA                     ! Use PCEEA model?
+      
+      USE LOGICAL_MOD,   ONLY : LISOPCO2                   ! (Tai, Jan 2013)
+      
       USE MODIS_LAI_MOD, ONLY : ISOLAI     => GC_LAI       ! Daily LAI
       USE MODIS_LAI_MOD, ONLY : PMISOLAI   => GC_LAI_PM    ! Prev month's LAI
       USE MODIS_LAI_MOD, ONLY : MISOLAI    => GC_LAI_CM    ! Curr month's LAI
@@ -987,6 +1025,9 @@
       REAL*8,           INTENT(OUT)  :: GAMMA_P         ! Light
       REAL*8,           INTENT(OUT)  :: GAMMA_T         ! Temperature
       REAL*8,           INTENT(OUT)  :: GAMMA_SM        ! Soil moisture
+      
+      REAL*8,           INTENT(OUT)  :: GAMMA_CO2       ! (Tai, Jan 2013)
+            
 !
 ! !REVISION HISTORY: 
 !  (1 ) Original code written by Michael Barkley (mpb,2009).
@@ -1012,6 +1053,8 @@
       GAMMA_LEAF_AGE  = 0.d0
       GAMMA_P         = 0.d0
       GAMMA_SM        = 0.d0
+      
+      GAMMA_CO2       = 0.d0  ! (Tai, Jan 2013)
 
       ! Number of days between MISOLAI and PMISOLAI
       D_BTW_M  = DBLE( DAYS_BTW_M )
@@ -1065,6 +1108,14 @@
 
             ! Activity factor for soil moisture
             GAMMA_SM = 1.d0
+            
+            ! CO2 inhibition of isoprene (Tai, Jan 2013):
+            IF (LISOPCO2) THEN
+               GAMMA_CO2 = GET_GAMMA_CO2( GLOBCO2 )
+            ELSE
+               GAMMA_CO2 = 1.d0
+            ENDIF
+            ! (Tai, Jan 2013)
 
          ELSE
 
@@ -1074,6 +1125,8 @@
             GAMMA_LEAF_AGE  = 0.d0
             GAMMA_P         = 0.d0
             GAMMA_SM        = 0.d0
+            
+            GAMMA_CO2       = 0.d0  ! (Tai, Jan 2013)
 
          ENDIF
 
@@ -1864,6 +1917,149 @@
 
       END FUNCTION GET_GAMMA_LAI 
 !EOC
+
+
+!-----------------------------------------------------------------------
+! New subroutine for CO2 inhibition of isoprene emissions (Tai, Jan 2013)
+!-----------------------------------------------------------------------
+!
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_gamma_co2
+!
+! !DESCRIPTION: Function GET\_GAMMA\_CO2 computes the CO2 activity factor  
+!  associated with CO2 inhibition of isoprene emission. Called from
+!  GET\_EMISOP\_MEGAN only.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_GAMMA_CO2( CO2a ) RESULT( GAMMA_CO2 )
+!
+! !INPUT PARAMETERS: 
+      REAL*8, INTENT(IN)   :: CO2a       ! Atmospheric CO2 conc [ppmv]
+!
+! !RETURN VALUE:
+      REAL*8               :: GAMMA_CO2  ! CO2 activity factor [unitless]
+!
+! !LOCAL VARIABLES:
+      REAL*8               :: CO2i       ! Intercellular CO2 conc [ppmv]
+      REAL*8               :: ISMAXi     ! Asymptote for intercellular CO2
+      REAL*8               :: HEXPi      ! Exponent for intercellular CO2
+      REAL*8               :: CSTARi     ! Scaling coef for intercellular CO2
+      REAL*8               :: ISMAXa     ! Asymptote for atmospheric CO2
+      REAL*8               :: HEXPa      ! Exponent for atmospheric CO2
+      REAL*8               :: CSTARa     ! Scaling coef for atmospheric CO2
+      LOGICAL              :: LPOSSELL   ! Use Possell & Hewitt (2011)?
+      LOGICAL              :: LWILKINSON ! Use Wilkinson et al. (2009)?
+
+!
+! !REMARKS:
+!  References (see full references below):
+!  ============================================================================
+!  (1 ) Heald et al. (2009) & Wilkinson et al. (2009)
+!  (2 ) Possell & Hewitt (2011)
+!
+!  Full references:
+!  (1 ) Heald, C. L., Wilkinson, M. J., Monson, R. K., Alo, C. A., 
+!       Wang, G. L., and Guenther, A.: Response of isoprene emission 
+!       to ambient co(2) changes and implications for global budgets, 
+!       Global Change Biology, 15, 1127-1140, 2009.
+!  (2 ) Wilkinson, M. J., Monson, R. K., Trahan, N., Lee, S., Brown, E.,
+!       Jackson, R. B., Polley, H. W., Fay, P. A., and Fall, R.: Leaf 
+!       isoprene emission rate as a function of atmospheric CO2 
+!       concentration, Global Change Biology, 15, 1189-1200, 2009.
+!  (3 ) Possell, M., and Hewitt, C. N.: Isoprene emissions from plants 
+!       are mediated by atmospheric co2 concentrations, Global Change 
+!       Biology, 17, 1595-1610, 2011.
+! 
+! !REVISION HISTORY: 
+!  (1 ) Implemented in the standard code by A. Tai (Jun 2012).
+! 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+      !----------------------------------------------------------
+      ! Choose between two alternative CO2 inhibition schemes
+      !----------------------------------------------------------
+      ! Empirical relationship of Possell & Hewitt (2011) based on nine
+      ! experimental studies including Wilkinson et al. (2009). This is
+      ! especially recommended for sub-ambient CO2 concentrations:
+      LPOSSELL    = .TRUE.   ! Default option
+      ! Semi-process-based parameterization of Wilkinson et al. (2009),
+      ! taking into account of sensitivity to intercellular CO2
+      ! fluctuation, which is here set as a constant fraction of 
+      ! atmospheric CO2:
+      LWILKINSON  = .FALSE.   ! Set .TRUE. only if LPOSSELL = .FALSE.
+
+      !-----------------------
+      ! Compute GAMMA_CO2
+      !-----------------------
+      
+      IF ( LPOSSELL ) THEN
+
+      ! Use empirical relationship of Possell & Hewitt (2011):
+         GAMMA_CO2 = 8.9406d0 / ( 1.d0 + 8.9406d0 * 0.0024d0 * CO2a )
+
+      ELSEIF ( LWILKINSON ) THEN
+
+      ! Use parameterization of Wilkinson et al. (2009):
+
+      ! Parameters for intercellular CO2 using linear interpolation:
+         IF ( CO2a <= 600.d0 ) THEN
+            ISMAXi = 1.036d0 - (1.036d0 - 1.072d0)/(600.d0 - 400.d0)
+     &              * (600.d0 - CO2a)
+            HEXPi = 2.0125d0 - (2.0125d0 - 1.7000d0)/(600.d0 - 400.d0)
+     &              * (600.d0 - CO2a)
+            CSTARi = 1150.d0 - (1150.d0 - 1218.d0)/(600.d0 - 400.d0)
+     &              * (600.d0 - CO2a)
+         ELSEIF ( CO2a > 600.d0 .AND. CO2a < 800.d0 ) THEN
+            ISMAXi = 1.046d0 - (1.046d0 - 1.036d0)/(800.d0 - 600.d0)
+     &              * (800.d0 - CO2a)
+            HEXPi = 1.5380d0 - (1.5380d0 - 2.0125d0)/(800.d0 - 600.d0)
+     &              * (800.d0 - CO2a)
+            CSTARi = 2025.d0 - (2025.d0 - 1150.d0)/(800.d0 - 600.d0)
+     &              * (800.d0 - CO2a)
+         ELSE
+            ISMAXi = 1.014d0 - (1.014d0 - 1.046d0)/(1200.d0 - 800.d0)
+     &              * (1200.d0 - CO2a)
+            HEXPi = 2.8610d0 - (2.8610d0 - 1.5380d0)/(1200.d0 - 800.d0)
+     &              * (1200.d0 - CO2a)
+            CSTARi = 1525.d0 - (1525.d0 - 2025.d0)/(1200.d0 - 800.d0)
+     &              * (1200.d0 - CO2a)
+         ENDIF
+      
+      ! Parameters for atmospheric CO2:
+      ISMAXa      = 1.344d0
+      HEXPa       = 1.4614d0
+      CSTARa      = 585.d0
+
+      ! For now, set CO2_Ci = 0.7d0 * CO2_Ca as recommended by Heald
+      ! et al. (2009):
+      CO2i        = 0.7d0 * CO2a
+
+      ! Compute GAMMA_CO2:
+      GAMMA_CO2   = ( ISMAXi -  ISMAXi * CO2i**HEXPi / 
+     &              ( CSTARi**HEXPi + CO2i**HEXPi ) ) 
+     &              * ( ISMAXa - ISMAXa * ( 0.7d0 * CO2a )**HEXPa / 
+     &              ( CSTARa**HEXPa + ( 0.7d0 * CO2a )**HEXPa ) )
+
+      ELSE
+
+      ! No CO2 inhibition scheme is used; GAMMA_CO2 set to unity:
+      GAMMA_CO2 = 1.d0
+
+      ENDIF
+
+      END FUNCTION GET_GAMMA_CO2
+
+! New subroutine ends here (Tai, Jan 2013)
+
+
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
