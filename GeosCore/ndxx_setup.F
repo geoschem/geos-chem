@@ -1177,6 +1177,7 @@
 
       ENDIF
 
+#if   defined ( TOMAS )
       !=================================================================
       ! ND59: Size-resolved primary aerosol emissions      !(win, 7/9/09)
       !         Emissions to number, sulfate, sea-salt, carb, dust
@@ -1214,7 +1215,6 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD66' )
       ENDIF
 
-#if   defined( TOMAS )
 
       !=================================================================
       ! ND60: TOMAS microphysical process rates (condensation, 

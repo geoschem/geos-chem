@@ -185,17 +185,19 @@
 !  13 Aug 2012 - R. Yantosca - Add routine FILL_State_Chm_NAME_IDs
 !******************************************************************************
 !
+
+      ! for CTM tracers
+
+#if   defined( TOMAS )
       IMPLICIT NONE
 #     include "define.h"
 
-      ! for CTM tracers
-! sfarina - this may need to be re-arranged. in the geoscore version
-!           the use cmn_size_mod statement comes before imlicit none
-
-#if   defined( TOMAS )
       INTEGER, PARAMETER :: NNNTRID  = 320
 #else
       USE CMN_SIZE_MOD, ONLY : NNNTRID=>NNPAR
+
+      IMPLICIT NONE
+#     include "define.h"
 #endif
       INTEGER, PARAMETER :: MMMEMBER = 15
       INTEGER            :: NMEMBER(NNNTRID) 

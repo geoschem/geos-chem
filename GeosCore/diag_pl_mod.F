@@ -1413,11 +1413,13 @@ c 88            format (3I3, 'H2SO4rate (kg/s)',e13.5)
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'FAM_PL' )
       ENDIF
 
+#if   defined ( TOMAS )
       ! Only allocate H2SO4RATE for a TOMAS simulation !(win, 7/709)
       IF ( LTOMAS ) THEN
          ALLOCATE( H2SO4RATE( IIPAR, JJPAR, LLTROP ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'H2SO4RATE' )
       ENDIF
+#endif
 
       ! Allocate PL24H if we are also saving out the P(Ox)
       ! and L(Ox) 

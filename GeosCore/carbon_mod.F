@@ -4240,6 +4240,7 @@ c
       USE LOGICAL_MOD,        ONLY : LSOA,      LPRT,  LCOOKE
       USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
       USE TRACER_MOD,         ONLY : STT
+#if   defined ( TOMAS )
       USE DIAG_MOD,           ONLY : AD59_ECIL, AD59_ECOB        !(win, 1/25/10)
       USE DIAG_MOD,           ONLY : AD59_OCIL, AD59_OCOB        !(win, 1/25/10)
       USE DIAG_MOD,           ONLY : AD59_NUMB                   !(win, 1/25/10)
@@ -4247,6 +4248,7 @@ c
       USE TOMAS_MOD,          ONLY : ICOMP,     IDIAG            !(win, 1/25/10)
       USE TRACERID_MOD,       ONLY : IDTECIL1,  IDTECOB1, IDTNK1 !(win, 1/25/10)
       USE TRACERID_MOD,       ONLY : IDTOCIL1,  IDTOCOB1         !(win, 1/25/10)
+#endif
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND07

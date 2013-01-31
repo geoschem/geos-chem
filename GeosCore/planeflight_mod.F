@@ -1171,7 +1171,7 @@
       USE COMODE_MOD,         ONLY : TAREA
 #if   defined( TOMAS )
       USE DIAG_MOD,           ONLY : AD61_INST   ! (win, 7/28/09)
-#else
+#endif
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP  
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PRESSURE_MOD,       ONLY : GET_PEDGE
@@ -1793,9 +1793,9 @@
 #if   defined( TOMAS )
  110  FORMAT(I5,X,A5,X,I8.8,X,I4.4,X,F7.2,X,F7.2,X,F7.2,X,
      &       250(es11.3e3,x))
+#else
  110  FORMAT(I5,X,A5,X,I8.8,X,I4.4,X,F7.2,X,F7.2,X,F7.2,X,
      &       200(es11.3e3,x))
-#else
 #endif
 
       ! Error check

@@ -1,3 +1,4 @@
+#if   defined ( TOMAS )
 ! $Id: tomas_tpcore_mod.f90,v 1.1 2010/02/02 16:57:48 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -369,3 +370,4 @@ CONTAINS
   END FUNCTION NBIN
 !EOC
 END MODULE tomas_tpcore_mod
+#endif

@@ -1566,7 +1566,7 @@
       !=================================================================
 
 !sfarina - set LTOMAS = false, unless TOMAS is defined, then let READ_MICROPHYS_MENU set LTOMAS
-#ifndef ( TOMAS )
+#if  !defined ( TOMAS )
       LTOMAS = .FALSE.
 #endif
 

@@ -1,3 +1,4 @@
+#if   defined ( TOMAS )
 ! $Id: tomas_mod.f,v 1.2 2010/03/15 19:33:19 ccarouge Exp $
       MODULE TOMAS_MOD
 !
@@ -7522,3 +7523,4 @@ cyhl Dick et al 2000 figure 5.(High organic,density=1400g/cm3)
 
       ! End of module
       END MODULE TOMAS_MOD
+#endif

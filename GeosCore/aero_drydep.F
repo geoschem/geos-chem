@@ -1,3 +1,4 @@
+#if   defined ( TOMAS )
 !------------------------------------------------------------------------------
 !                        Carnegie Mellon University                           !
 !------------------------------------------------------------------------------
@@ -439,3 +440,4 @@ c     &           AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1)
       ! Return to calling program
       END SUBROUTINE AERO_DRYDEP
 !EOC
+#endif

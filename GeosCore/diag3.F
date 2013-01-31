@@ -2742,14 +2742,16 @@
          IF ( ITS_A_TAGOX_SIM() .or. ITS_A_MERCURY_SIM() ) THEN
             M = N_TRACERS
          ELSE
-!Prior to 7/14/09 (win, 7/14/09)
-!            M = NUMDEP
             ! Extend dry dep tracers if 30-bin aerosol is turned on (win, 7/14/09)
+#if   defined ( TOMAS )
             IF ( IDTNK1 > 0 ) THEN
                M = NUMDEP + ( ( ICOMP - IDIAG )* IBINS )
             ELSE
                M = NUMDEP
             ENDIF
+#else
+            M = NUMDEP
+#endif
          ENDIF
 
          ! Loop over drydep tracers
@@ -3738,31 +3740,6 @@
      &                  IIPAR,     JJPAR,     LD61,     IFIRST,
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD61)  )
          ENDDO
-      ENDIF
-#else
-!
-!******************************************************************************
-!  ND60: Wetland fraction
-!
-!   # : Field    : Description                     : Units    : Scale factor
-!  --------------------------------------------------------------------------
-!  (1 ) WET-FRAC : WETLAND FRACTION                : unitless : 1
-!******************************************************************************
-!
-
-      IF ( ND60 > 0 ) THEN
-
-         UNIT = 'unitless'
-         CATEGORY     = 'WET-FRAC'
-         ARRAY(:,:,1) = AD60(:,:)
-         N            = 1
-
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, N,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     1,        IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
-
       ENDIF
 #else  
 ! ND60 s used for wetland fraction in non-tomas sim diagnostics

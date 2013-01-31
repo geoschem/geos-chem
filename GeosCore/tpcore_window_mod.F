@@ -456,7 +456,7 @@
      &   FZ_W(IM_W,JM_W,NL+1),
      &   QZ_W(IM_W,JM_W,NL),QMAX_W(IM,JM,NL),QMIN_W(IM,JM,NL),
      &   U_W(1-IGZD:IM_W+IGZD,1-IGZD:JM_W+IGZD,NL), 
-      &   V_W(1-IGZD:IM_W+IGZD,1-IGZD:JM_W+IGZD,NL),
+     &   V_W(1-IGZD:IM_W+IGZD,1-IGZD:JM_W+IGZD,NL),
      &   W_W(IM_W,JM_W,NL) 
 !%%%
 !%%% MODIFICATIONS FOR NESTED GRID (yxw, bmy, 3/10/03)
@@ -1589,8 +1589,7 @@
      &               +   FZ_W(I,J,K) - FZ_W(I,J,K+1)
       ENDDO
       ENDDO
-
-
+ 101  continue
 #endif
 
 
@@ -5043,6 +5042,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 
 !------------------------------------------------------------------------------
 
+#if   defined ( TOMAS )
       SUBROUTINE MASSFLUX ( IC, IM, JM, NL, FLUXNK, DQNK,
      &                      FLUXM, DQ, DIR )
 
@@ -5247,6 +5247,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
       ENDIF
 
       END FUNCTION NBIN_W
+#endif
 
 !------------------------------------------------------------------------------
 
