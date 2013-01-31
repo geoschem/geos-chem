@@ -117,11 +117,14 @@
 !  (48) Now accounts for NEI 2005 emissions, and multilevels SOxan emissions
 !        (amv, phs, 10/15/2009) 
 !  (49) Fixes in SRCSO2 for SunStudio compiler (bmy, 12/3/09)
-!  (50) Standardized patch in READ_ANTHRO_NH3 (dkh, bmy, 3/5/10)
-!  (51) Use LWC from GEOS-5 met fields (jaf, bmy, 6/30/10)
-!  (52) Add module parameters MNYEAR_VOLC and MXYEAR_VOLC to define the 1st 
+!  (50) Add new subroutine SRCSF30 for emission to 30bin sulfate (win, 1/25/10)
+!  (51) Add new array PSO4_SO2AQ for SO4 produced via aqueous chemistry of SO2 
+!        excluding that from heterogeous reaction on sea-salt. (win, 1/25/10)
+!  (52) Standardized patch in READ_ANTHRO_NH3 (dkh, bmy, 3/5/10)
+!  (53) Use LWC from GEOS-5 met fields (jaf, bmy, 6/30/10)
+!  (54) Add module parameters MNYEAR_VOLC and MXYEAR_VOLC to define the 1st 
 !       and last year with data for volcanic emissions. (ccc, 9/30/10)
-!  (53) Use updated volcanic emissions from 1979 to 2009
+!  (55) Use updated volcanic emissions from 1979 to 2009
 !  26 Aug 2010 - R. Yantosca   - Add modifications for MERRA
 !  12 Nov 2010 - R. Yantosca   - Avoid div-by-zero when computing L2S, L3S
 !  07 Sep 2011 - P. Kasibathla - Modified to include GFED3
@@ -232,6 +235,9 @@
       REAL*8,  ALLOCATABLE :: TTDAY(:,:)
       REAL*8,  ALLOCATABLE :: VCLDF(:,:,:)
       REAL*8,  ALLOCATABLE :: COSZM(:,:)
+#if   defined( TOMAS )
+      REAL*8,  ALLOCATABLE :: PSO4_SO2AQ(:,:,:)   ! (win, 1/25/10)
+#endif
 
       ! Volcanic emissions parameters (ccc, 9/30/10)
       INTEGER, PARAMETER   :: LVOLC=20            ! Volcano levels
@@ -450,7 +456,9 @@
       USE TRACER_MOD,         ONLY : STT
       USE TRACERID_MOD,       ONLY : IDTNITs
       USE TRACERID_MOD,       ONLY : IDTSO4s
-
+#if   defined( TOMAS )
+      USE LOGICAL_MOD,        ONLY : LTOMAS    !(win, 1/25/10)
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -485,6 +493,8 @@
 !  (6 ) Now handle gravitational settling of SO4s, NITs (bec, bmy, 4/13/05)
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (8 ) Remove reference to MAKE_RH, it's not needed here (bmy, 3/16/06)
+!  (9 ) Reference to LTOMAS and add call CHEM_SO4_AQ using aqueous oxidation
+!        which is one of the TOMAS microphysics subroutine  (win, 1/25/10)
 !  05 Oct 2011 - R. Yantosca - SUNCOS is no longer needed here
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
@@ -574,6 +584,9 @@
       PSO4_SO2 = 0d0
       PSO4_SS  = 0d0
       PNITs    = 0d0
+#if   defined( TOMAS )
+      PSO4_SO2AQ = 0d0 !(win, 8/10/09)
+#endif
                   
       !================================================================= 
       ! Call individual chemistry routines for sulfate/aerosol tracers
@@ -632,6 +645,19 @@
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO4' )
       ENDIF
+
+#if   defined( TOMAS )
+      ! SO4 from aqueous chemistry of SO2 (in-cloud oxidation)  !(win, 1/25/10)
+      ! 
+      ! SO4 produced via aqueous chemistry is distributed onto 30-bin aerosol
+      ! by TOMAS subroutine AQOXID  
+      ! NOTE: This may be moved to tomas_mod.f in the future, but for now
+      ! it still need to get the PSO4_SO2AQ value while CHEMSULFATE is called
+      IF ( LTOMAS ) THEN 
+         CALL CHEM_SO4_AQ( State_Met )
+         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO4_AQ' )
+      ENDIF
+#endif
 
       ! MSA
       CALL CHEM_MSA( am_I_Root, Input_Opt, State_Met, RC )
@@ -1657,8 +1683,10 @@
 !  (12) Updated to match JPL 2006 + full chem (jaf, bmy, 10/15/09)
 !  (13) Now prevent floating-point exceptions when taking the exponential
 !        terms. (win, bmy, 1/4/10)
-!  (14) Added extra error checks to prevent negative L2S, L3S (bmy, 4/28/10)
-!  (15) Use liq. water content from met fields in GEOS-5 (jaf, bmy, 6/30/10)
+!  (14) Save aqueous production rate to PSO4_SO2AQ for TOMAS microphyics
+!        (win, 1/25/10)
+!  (15) Added extra error checks to prevent negative L2S, L3S (bmy, 4/28/10)
+!  (16) Use liq. water content from met fields in GEOS-5 (jaf, bmy, 6/30/10)
 !  26 Aug 2010 - R. Yantosca - Use liquid water content from MERRA
 !  12 Nov 2010 - R. Yantosca - Prevent div-by-zero when computing L2S and L3S
 !  27 May 2011 - L. Zhang    - Divide LWC by cloud fraction for GEOS/MERRA
@@ -2085,6 +2113,10 @@
          ! SO2 chemical loss rate  = SO4 production rate [v/v/timestep]
          PSO4_SO2(I,J,L) = L1 + L2S + L3S + PSO4E
          PSO4_ss (I,J,L) = PSO4F
+
+#if   defined( TOMAS )
+         PSO4_SO2AQ(I,J,L) = L2S + L3S  !For microphysics (win, 1/25/10)
+#endif
 
          !=================================================================
          ! ND05 Diagnostics [kg S/timestep]
@@ -3257,6 +3289,94 @@
       !
       !END SUBROUTINE PHASE_RADIATIVE
 
+
+#if   defined( TOMAS )
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: chem_so4_aq
+!
+! !DESCRIPTION: Subroutine CHEM\_SO4\_AQ takes the SO4 produced via aqueous 
+!  chemistry of SO2 and distribute onto the size-resolved aerosol number and 
+!  sulfate mass as a part of the TOMAS aerosol microphysics module 
+!  (win, 1/25/10)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE CHEM_SO4_AQ( State_Met )
+!
+! !USES:
+!
+      USE DAO_MOD,            ONLY : CONVERT_UNITS 
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
+      USE TOMAS_MOD,          ONLY : AQOXID, GETACTBIN
+      USE TRACER_MOD,         ONLY : STT,    TCVV,     XNUMOL, N_TRACERS
+      USE TRACERID_MOD,       ONLY : IDTSO4, IDTNK10
+      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
+
+      USE CMN_SIZE_MOD             ! Size parameters
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+!
+! !REVISION HISTORY:
+!  (1 ) As of now the SO4 produced via heterogeneous reaction on the 2-mode
+!        seasalt is not include in this treatment (win, 7/23/07)
+!  (2 ) Change a fixed kmin = 8 (corresponding to the assumed activation dia. 
+!        of 55nm to be varying with current chemical composition.  Take average
+!        of the activating bin for LS and CONV rains. (win, 9/25/07)
+!  16 Feb 2012 - R. Yantosca - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: I, J, L
+      integer :: k, binact1, binact2
+      INTEGER :: KMIN
+      REAL*8  :: SO4OXID
+
+      !=================================================================
+      ! CHEM_SO4_AQ begins here!
+      !=================================================================
+
+      ! Convert STT from [v/v] -> [kg] 
+      CALL CONVERT_UNITS(2, N_TRACERS, TCVV, State_Met%AD, STT )
+
+      DO L = 1, LLTROP
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+                  
+         ! Skip stratospheric boxes
+         IF (ITS_IN_THE_STRAT( I, J, L, State_Met ) ) CYCLE
+
+         SO4OXID = PSO4_SO2AQ(I,J,L) * State_Met%AD(I,J,L)/ TCVV(IDTSO4)
+         IF ( SO4OXID > 0d0 ) THEN
+            ! The activating bin of the composition of BIN10
+            ! is, in most any case, the same as activating bin of other bins.
+            CALL GETACTBIN( I, J, L, IDTNK10, .TRUE. , BINACT1 )
+            CALL GETACTBIN( I, J, L, IDTNK10, .FALSE., BINACT2 )
+            KMIN = ( BINACT1 + BINACT2 )/ 2.
+            CALL AQOXID( SO4OXID, KMIN, I, J, L, State_Met )
+         ENDIF
+      ENDDO
+      ENDDO
+      ENDDO
+
+       ! Convert STT from [kg] -> [v/v] 
+      CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, State_Met%AD, STT )
+      
+      END SUBROUTINE CHEM_SO4_AQ
+!EOC
+#endif
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -4357,6 +4477,13 @@
       USE TRACERID_MOD,       ONLY : IDTNITs,    IDTSO4s
       USE TRACERID_MOD,       ONLY : IDTDMS,     IDTSO2 
       USE TRACERID_MOD,       ONLY : IDTSO4,     IDTNH3
+#if   defined( TOMAS )
+      USE TRACERID_MOD,       ONLY : IDTSF1,     IDTAW1,  IDTNH4 !(win, 1/25/10)
+      USE TRACERID_MOD,       ONLY : IDTNK1                      !(win, 1/25/10)
+      USE TOMAS_MOD,          ONLY : IBINS,      ICOMP,   IDIAG  !(win, 1/25/10)
+      USE TOMAS_MOD,          ONLY : NH4BULKTOBIN                !(win, 1/25/10)
+      USE TOMAS_MOD,          ONLY : SRTNH4                      !(win, 1/25/10)
+#endif
 #if defined( DEVEL )
       USE TRACER_MOD,         ONLY : N_TRACERS 
 #endif
@@ -4401,6 +4528,9 @@
 !  (13) Now read new volcanic SO2 emissions daily (jaf, bmy, 10/15/09)
 !  (14) Add LBIOFUEL switch to properly turn off the biofuel emissions,
 !       READ_BIOFUEL_SO2, READ_BIOFUEL_NH3. (ccc, 7/16/10)
+!  (14a) Now call SRCSF30 to emit sulfate mass and aerosol number into the 
+!        size-resolved TOMAS aerosol tracers. Reference to tracer IDs of 
+!        the TOMAS aerosol from tracerid_mod  (win, 1/25/10)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
@@ -4413,6 +4543,12 @@
 
 #if defined( DEVEL )
 !      REAL*8                     :: STT_TMP(IIPAR,JJPAR,
+#endif
+
+#if   defined( TOMAS )
+      REAL*8             :: BINMASS(IIPAR,JJPAR,LLPAR,IBINS*ICOMP) !(win, 1/25/10)
+      REAL*8             :: tempnh4(ibins) !(win, 1/25/10)
+      INTEGER            :: TID, I, J, L   !(win, 1/25/10)
 #endif
 
       !=================================================================
@@ -4524,6 +4660,55 @@
       IF ( IDTSO2 /= 0 ) CALL SRCSO2( STT(:,:,:,IDTSO2), NSEASON   )
       IF ( IDTSO4 /= 0 ) CALL SRCSO4( STT(:,:,:,IDTSO4)            )
       IF ( IDTNH3 /= 0 ) CALL SRCNH3( STT(:,:,:,IDTNH3)            )
+#endif
+
+#if   defined( TOMAS )
+      !=================================================================
+      ! For TOMAS microphysics
+      !
+      ! To emit size-resolved sulfate, need to bring the NH4 amount
+      ! as one of the aerosol mass component (win, 1/25/10)
+      !=================================================================
+      IF (IDTSF1 > 0 .and. IDTNK1 > 0 ) THEN
+
+      !!!  Get NH4 and aerosol water into the same array 
+         BINMASS(:,:,:,1:IBINS*(ICOMP-IDIAG)) = 
+     &        STT(:,:,:,IDTSF1:IDTSF1+IBINS*(ICOMP-IDIAG) - 1)
+
+         IF ( SRTNH4 > 0 ) THEN
+            TID = IBINS*(ICOMP-IDIAG) + 1
+c     print *, '============================================'
+            DO L=1,LLPAR
+            DO J=1,JJPAR
+            DO I=1,IIPAR
+         
+c         print *, I,J,L,'NH4',STT(I,J,L,IDTNH4)
+               CALL NH4BULKTOBIN( STT(I,J,L,IDTSF1:IDTSF1-1+IBINS), 
+     &              STT(I,J,L,IDTNH4), TEMPNH4(1:IBINS) )
+
+               BINMASS(I,J,L,TID:TID+IBINS-1) = TEMPNH4(1:IBINS)
+            ENDDO
+            ENDDO
+            ENDDO
+
+         ENDIF
+
+         TID = IBINS*(ICOMP-1) +1
+         BINMASS(:,:,:,TID:TID+IBINS-1) = 
+     &           STT(:,:,:,IDTAW1:IDTAW1+IBINS-1)
+
+
+c      print *,BINMASS(24,11,2,:)
+
+
+      !IF ( IDTSF1 > 0 ) THEN
+         CALL SRCSF30(  STT(:,:,:,IDTNK1:IDTNK1+IBINS-1), 
+     &                  BINMASS(:,:,:,:), State_Met       )
+         ! Return the aerosol mass after emission subroutine to STT
+         ! excluding the NH4 aerosol and aerosol water (win, 9/27/08) 
+         STT(:,:,:,IDTSF1:IDTSF1+IBINS*(ICOMP-IDIAG)-1) = 
+     &        BINMASS(:,:,:,1:IBINS*(ICOMP-IDIAG))
+      ENDIF
 #endif
 
       END SUBROUTINE EMISSSULFATE
@@ -5803,6 +5988,504 @@
 
       END SUBROUTINE SRCSO4
 !EOC
+
+#if   defined( TOMAS )
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: srcsf30
+!
+! !DESCRIPTION: !  Subroutine SRCSF30 handles 30bin sulfate SF1-SF30 and
+!  number NK1-NK30 emissions into the GEOS-CHEM tracer array.(win, 1/25/10)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE SRCSF30( TC1, TC2, State_Met )
+!
+! !USES:
+!
+      USE CAC_ANTHRO_MOD,     ONLY : GET_CANADA_MASK
+      USE CAC_ANTHRO_MOD,     ONLY : GET_CAC_ANTHRO
+      USE DIAG_MOD,           ONLY : AD59_SULF,     AD59_NUMB
+      USE EPA_NEI_MOD,        ONLY : GET_EPA_ANTHRO,  GET_EPA_BIOFUEL
+      USE EPA_NEI_MOD,        ONLY : GET_USA_MASK
+      USE ERROR_MOD,          ONLY : ERROR_STOP,  IT_IS_NAN
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE LOGICAL_MOD,        ONLY : LNEI99,  LPRT, LCAC
+      USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER
+      USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK, GET_TS_EMIS
+      USE TOMAS_MOD,          ONLY : IBINS, AVGMASS, ICOMP
+      USE TOMAS_MOD,          ONLY : Xk,  SUBGRIDCOAG, MNFIX
+      USE TOMAS_MOD,          ONLY : SRTSO4, SRTNH4,  DEBUGPRINT
+      USE TRACER_MOD,         ONLY : XNUMOL
+      USE TRACERID_MOD        
+
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND13 (for now)
+      USE CMN_GCTM_MOD             ! SCALE_HEIGHT
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+
+      ! TC1 (REAL*8 ) : Array for 30-bin NK1-NK30 tracer number [no.]
+      ! TC2 (REAL*8)  : Array for 30-bin SF1-SF30 tracer mass [kg] 
+      REAL*8,  INTENT(INOUT) :: TC1(IIPAR,JJPAR,LLPAR,IBINS)
+      REAL*8,  INTENT(INOUT) :: TC2(IIPAR,JJPAR,LLPAR,IBINS*ICOMP)
+!
+! !REMARKS:
+!  Variable comments
+!  ============================================================================
+!  NdistInit(IBINS)    : Initial size dist of emission
+!  NdistFinal(IBINS)   : Final size dist of emissions after subgrid coag 
+!  Ndist(IBINS)        : Number size dist of grid cell  
+!  Mdist(IBINS,ICOMP)  : Mass size dist of grid cell
+!  MaddFinal(NBINS)    : madd added to bins due to coagulation
+!  tscale              : mixing time (s) currently assumed 10 hr. (win, 10/4/07)
+!
+! !REVISION HISTORY:
+!  (1 ) For now use the call subroutine SRCSO4 as the source of bulk mass
+!        emitted (win, 7/17/07) ---> did not work.  I need the SO4an and SO4bf
+!  (2 ) Copy the subroutine SRCSO4 to use here. It may seem unwise to have the
+!        same code in two subroutine (if have to modify in the future, have to
+!        do at both places), but let's have it this way for now in case I can
+!        run the microphysics run without needing to have bulk SO4 tracer
+!        (win, 7/18/07)
+!  (3 ) Overwrite SO4 emission of EPA/NEI99 inventory with a calculation using
+!        an assumption that EPA/NEI99 SO2 emission is 99% of total S emission
+!        (by mole) then calculate SO4 to be 1% of the total (win, 10/4/07)
+!  (4 ) Add subgrid coagulation calculation (win, 10/4/07)
+!  (5 ) Import SRCSF30 from geoschem v.7-04-11 to v.8-02-02 and update the code
+!        for CAC emissions and Lin's PBL scheme (win, 1/25/10)
+!  16 Feb 2012 - R. Yantosca - Added ProTeX headers 
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL                :: WEEKDAY
+      INTEGER                :: I, J, K, L, DAY_NUM, NTOP, C
+      INTEGER                :: NB
+      REAL*8                 :: SO4(LLPAR), DTSRCE  , EFRAC(LLPAR)
+      REAL*8                 :: TSO4,       FEMIS
+      REAL*8                 :: AREA_CM2,   EPA_AN,  EPA_BF
+      REAL*8                 :: CAC_AN
+      REAL*8                 :: SO4an(IIPAR,JJPAR,2)
+      REAL*8                 :: SO4bf(IIPAR,JJPAR)
+      REAL*8                 :: SO4anbf(IIPAR,JJPAR,2)
+      REAL*8 BFRAC(30)     ! Mass fraction emitted to each bin
+      DATA BFRAC/1.728d-02, 2.648d-02, 3.190d-02, 3.024d-02, 2.277d-02,
+     &           1.422d-02, 9.029d-03, 9.241d-03, 1.531d-02, 2.741d-02,
+     &           4.529d-02, 6.722d-02, 8.932d-02, 1.062d-01, 1.130d-01,
+     &           1.076d-01, 9.168d-02, 6.990d-02, 4.769d-02, 2.912d-02,
+     &           1.591d-02, 7.776d-03, 3.401d-03, 1.331d-03, 4.664d-04,
+     &           1.462d-04, 4.100d-05, 1.029d-05, 2.311d-06, 4.645d-07/
+      REAL*8                 :: NDISTINIT(IBINS) 
+      REAL*8                 :: NDISTFINAL(IBINS) 
+      REAL*8                 :: MADDFINAL(IBINS) 
+      REAL*8                 :: NDIST(IBINS),  MDIST(IBINS,ICOMP)
+      REAL*8                 :: NDIST2(IBINS), MDIST2(IBINS,ICOMP)
+      REAL*8                 :: TSCALE, BOXVOL, TEMP, PRES
+
+      REAL*8                 :: N0(LLPAR,IBINS), M0(LLPAR,IBINS)
+
+      LOGICAL                :: ERRORSWITCH, SGCOAG = .TRUE.
+      logical                :: pdbug !(temporary) win, 10/24/07
+      integer   :: ii, jj, ll
+      data ii, jj, ll / 61, 1, 7 /
+
+      ! Ratio of molecular weights: S/SO4
+      REAL*8,  PARAMETER     :: S_SO4 = 32d0 / 96d0
+
+      ! debugging 
+      real*8   dummy
+
+      !=================================================================
+      ! SRCSF30 begins here!
+      !=================================================================
+
+      ! DTSRCE is the emission timestep in seconds
+      DTSRCE  = GET_TS_EMIS() * 60d0
+
+      ! Get current day of the week
+      DAY_NUM = GET_DAY_OF_WEEK()
+
+      ! Is it a weekday?
+      WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
+
+      !=================================================================
+      ! Overwrite USA w/ EPA/NEI99 SO4 emissions (if necessary)
+      ! Overwrite CANADA w/ CAC       SO2-fraction emiss. (if necessary)
+      ! Store emissions into local arrays SO4an, SO4bf
+      !=================================================================
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, AREA_CM2, EPA_AN, EPA_BF, CAC_AN )
+      DO J = 1, JJPAR
+         
+         DO I = 1, IIPAR
+
+            ! Grid box surface area [cm2]
+            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+
+            !-----------------------------------------------------------
+            ! Default SO4 from GEIA, or (as a fraction of SO2) from 
+            ! EDGAR w/ optional STREETS for S.E.-ASIA, and optional
+            ! EMEP for Europe
+            !-----------------------------------------------------------
+            SO4an(I,J,1) = ESO4_an(I,J,1)
+            SO4an(I,J,2) = ESO4_an(I,J,2)
+            SO4bf(I,J)   = 0d0
+
+            ! If we are using EPA/NEI99 emissions
+            IF ( LNEI99 ) THEN
+            IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
+
+               ! Calculate SO4 emissions from assuming the SO2 emitted
+               ! is 99% of total mass (win, 10/4/07)
+               EPA_AN = GET_EPA_ANTHRO(I,J,IDTSO2, WEEKDAY)/  
+     &                  0.99d0*0.01d0
+               EPA_BF = GET_EPA_BIOFUEL(I,J,IDTSO2, WEEKDAY)/
+     &                  0.990*0.01d0
+
+               ! Convert anthro SO4 from [molec/cm2/s] to [kg/box/s] 
+               ! Place all EPA/NEI99 anthro SO4 into surface layer
+               SO4an(I,J,1) = EPA_AN * AREA_CM2 / XNUMOL(IDTSO4)
+               SO4an(I,J,2) = 0d0
+               
+               ! Convert biofuel SO4 from [molec/cm2/s] to [kg/box/s]
+               SO4bf(I,J)   = EPA_BF * AREA_CM2 / XNUMOL(IDTSO4)
+
+            ENDIF
+            ENDIF
+
+            ! If we are using CAC emissions and over CANADA ...
+            IF ( LCAC ) THEN
+            IF ( GET_CANADA_MASK( I, J) < 0d0 ) THEN
+
+               ! Read SO4 emissions in [molec/cm2/s]
+               CAC_AN       = GET_CAC_ANTHRO( I, J, IDTSO2, 
+     &                                        MOLEC_CM2_S=.TRUE. )
+
+               ! Calculate SO4 emissions from assuming the SO2 emitted
+               ! is 99% of total mass
+               CAC_AN  = CAC_AN / 0.99d0*0.01d0
+
+               ! Convert anthro SO2 to SO4 and from [molec/cm2/s] to 
+               ! [kg/box/s]
+               ! Place all CAC anthro SO4 into surface layer
+               IF ( LNEI99 .and. GET_USA_MASK( I, J) > 0d0 ) THEN
+                  SO4an(I,J,1) = SO4an(I,J,1) + CAC_AN * 0.014/ 0.986 
+     &                           * AREA_CM2 / XNUMOL(IDTSO4)
+               ELSE
+                  SO4an(I,J,1) = CAC_AN * 0.014 / 0.986 * AREA_CM2 
+     &                           / XNUMOL(IDTSO4)
+                  SO4bf(I,J)   = 0d0
+               ENDIF
+
+               SO4an(I,J,2) = 0d0
+
+            ENDIF
+            ENDIF 
+
+         ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      !=================================================================
+      ! Compute SO4 emissions 
+      !=================================================================
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, NTOP, SO4, TSO4, L, FEMIS, EFRAC, N0, M0 )
+!!$OMP+PRIVATE( NDISTINIT, NDIST, NDISTFINAL, NADDFINAL )
+!!$OMP+SCHEDULE( DYNAMIC )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         ! Top level of boundary layer at (I,J)
+         NTOP = CEILING( GET_PBL_TOP_L( I, J ) )
+
+         ! Zero SO4 array at all levels 
+         DO L = 1, LLPAR
+            SO4(L) = 0.0
+         ENDDO
+
+         ! Compute total anthro SO4 (surface + 100m) plus biofuel SO4
+         TSO4 = 0.d0
+         TSO4 = SUM( SO4an(I,J,:) ) + SO4bf(I,J)
+         IF ( TSO4 == 0d0 ) CYCLE
+
+
+!debug         if(i==60.and.j==35) print *,'TSO4',TSO4
+         !=============================================================
+         ! First calculate emission distribution vertically within PBL
+         !=============================================================
+         ! EFRAC(30) = fraction of total emission splitted for each
+         !             level until reaching PBL top.
+         EFRAC = 0d0
+
+         !==============================================================
+         ! Partition the total anthro SO4 emissions thru the entire 
+         ! boundary layer (if PBL top is higher than level 2)
+         !==============================================================
+         ! Add option for non-local PBL (Lin, 03/31/09)
+         IF (.NOT. LNLPBL) THEN
+         IF ( NTOP > 2 ) THEN
+
+            ! Loop thru boundary layer
+            DO L = 1, NTOP
+                 
+               ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
+               EFRAC(L)  = GET_FRAC_OF_PBL( I, J, L )
+!               print *, 'L, EFRAC(L)',L, EFRAC(L)
+            
+            ENDDO
+         ELSE
+            EFRAC(1) = ( SO4an(I,J,1) + SO4bf(I,J) ) / TSO4
+            EFRAC(2) = SO4an(I,J,2) / TSO4
+         ENDIF
+
+         IF ( ABS( SUM( EFRAC(:)) - 1.d0 ) > 1.D-5 ) THEN
+            PRINT*, '### ERROR in SRCSF30!'
+            PRINT*, '### I, J : ', I, J
+            print*, 'EFRAC',EFRAC(:)
+            PRINT*, '### SUM(EFRAC) : ', SUM( EFRAC(:) )
+            PRINT*, '### This should exactly 1.00'
+            CALL ERROR_STOP( 'Check SO4 redistribution',
+     &                       'SRCSF30 (sulfate_mod.f)' )
+         ENDIF
+
+         ELSE 
+            ! stop the program for now since I don't totally implement
+            ! the subgrid coagulation option w/ Lin's new PBL scheme (win, 1/25/10)
+            print *,'If the program stops here, that means you are ',
+     &           'running TOMAS simulation with the new PBL scheme ',
+     &           'implemented since GEOS-Chem v.8-02-01.', 
+     &           '-----> Try not using the non-local PBL option'
+            CALL ERROR_STOP( 'Code does not support new PBL scheme',
+     &                       'SRCSF30 (sulfate_mod.f)')
+         
+         ENDIF  ! .not. LNLPBL
+
+         !=============================================================
+         ! Add the size-resolved SO4 emission to tracer array
+         ! Having the options to do sub-grid coagulation or simply 
+         ! emit.  
+         ! Sub-grid coagulation reduces the number being emitted
+         ! and modifies the mass size distribution of existing particle
+         ! as well as the size distribution being emitted.
+         ! (win, 10/4/07)
+         !=============================================================
+         IF ( SGCOAG ) THEN
+
+            N0(:,:) = TC1(I,J,:,:)
+            M0(:,:) = TC2(I,J,:,1:IBINS)
+
+          DO L = 1, LLPAR
+            SO4(L) = TSO4 * EFRAC(L) * DTSRCE
+            IF ( SO4(L) == 0.d0 ) CYCLE
+            DO K = 1, IBINS
+               NDISTINIT(K) = SO4(L) * BFRAC(K) /
+     &                                ( SQRT( XK(K)*XK(K+1) ) )
+               NDIST(K) = TC1(I,J,L,K)
+               DO C = 1, ICOMP
+                  MDIST(K,C) = TC2(I,J,L,K+(C-1)*IBINS)
+                  IF( IT_IS_NAN( MDIST(K,C) ) ) THEN
+                     PRINT *,'+++++++ Found NaN in SRCSF30  +++++++'
+                     PRINT *,'Location (I,J,L):',I,J,L,'Bin',K,'comp',C
+                     CALL  ERROR_STOP('SRCSF30 SGCCOAG','sulfate_mod.f')
+                  ENDIF
+               ENDDO
+               NDISTFINAL(K) = 0
+               MADDFINAL(K)  = 0
+            ENDDO  
+
+            CALL MNFIX( NDIST, MDIST, ERRORSWITCH )
+            IF( ERRORSWITCH ) PRINT *,'SRCSF30: MNFIX found error ',
+     &              'before SUBGRIDCOAG at ',I,J,L
+
+            ! Overwrite number and mass before emission for diagnostic 
+            ! just in case there was any change by MNFIX (win, 10/27/08)
+            N0(L,:) = NDIST(:)
+            M0(L,:) = MDIST(:,SRTSO4)
+
+!debug            if (I== ii .and. J==jj .and. L==ll)  
+!     &           CALL DEBUGPRINT(NDIST,MDIST,I,J,L,
+!     &           'SRCSF30 Before SUBGRIDCOAG ')
+
+
+      ! Define subgrid coagulation timescale (win, 10/28/08)
+#if   defined( GRID4x5   ) 
+            TSCALE = 10.*3600.  ! 10 hours
+#elif defined( GRID2x25  )
+            TSCALE = 5.*3600.    
+#elif defined( GRID1x125 )
+            TSCALE = 2.*3600.    
+#elif defined( GRID1x1   ) 
+            TSCALE = 2.*3600.    
+#elif defined( GRID05x0666 ) 
+            TSCALE = 1.*3600.    
+#elif defined( GRID025x03125 )
+            !%%% KLUDGE, just copied the 0.5 x 0.666 value
+            !%%% Someone needs to add the right value (bmy, 2/16/12)
+            TSCALE = 1.*3600.    
+#endif
+            !Prior to 10/28/08 (win)     
+            !TSCALE = 10.*3600.
+            BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3 
+            TEMP    = State_Met%T(I,J,L)
+            PRES    = GET_PCENTER(i,j,l)*100.0 ! in Pa
+
+!            print *, 'Now doing subgrid coag with timescale ',
+!     &           TSCALE/3600.,'hr'
+
+            pdbug=.false.
+!debug            if (I.eq.II.and.J.eq.JJ .and. L==LL) pdbug=.true.
+                             
+            CALL SUBGRIDCOAG( NDISTINIT, NDIST, MDIST, BOXVOL,TEMP,
+!     &                        PRES, TSCALE, NDISTFINAL, MADDFINAL   ) 
+     &                        PRES, TSCALE, NDISTFINAL, MADDFINAL,pdbug) 
+
+!debug            if (I== ii .and. J==jj .and. L==ll)then
+!               print*,'PS'
+!               print*,'SO4 emis',SO4(L)
+!               print*,'Mdistnit',SO4(L)*BFRAC(:)
+!               print*,'tscale=',tscale
+!               print*,'ndistinit=',ndistinit
+!               print*,'ndistfinal=',ndistfinal
+!               print*,'maddfinal=',maddfinal
+!            endif
+!debug---
+            DO K = 1, IBINS
+               NDIST(K) = NDIST(K) + NDISTFINAL(K)
+               MDIST(K,SRTSO4) = MDIST(K,SRTSO4) +
+     &                           NDISTFINAL(K) * (SQRT(XK(K)*XK(K+1)))+
+     &                           MADDFINAL(K)   
+
+!debug               if (I.eq.II.and.J.eq.JJ .and. L==ll) then
+!                  print *,(NDISTFINAL(K) * (SQRT(XK(K)*XK(K+1)))+
+!     &                 MADDFINAL(K) )
+!               endif
+!debug---
+            ENDDO
+            DO K= 1, IBINS
+               NDIST2(K) = NDIST(K)
+               DO C = 1, ICOMP
+                  MDIST2(K,C) = MDIST(K,C)
+               ENDDO
+            ENDDO
+!debug            if(i==ii.and.j==jj.and.l==ll  ) 
+!     &          CALL DEBUGPRINT(NDIST2,MDIST2,I,J,L, 
+!     &                         'SRCSF30 : After SUBGRIDCOAG')
+
+ 
+            ERRORSWITCH = .FALSE.
+!debug            if(i==ii.and.j==ii.and.l==ll) errorswitch=.true.
+
+            CALL MNFIX( NDIST2, MDIST2, ERRORSWITCH )
+
+            IF( ERRORSWITCH ) PRINT *,'SRCSF30: MNFIX found error ',
+     &           'after SUBGRIDCOAG at ',I,J,L
+
+!debug            if(i==ii .and.j==jj .and.l==ll) 
+!     &          CALL DEBUGPRINT(NDIST2,MDIST2,I,J,L, 
+!     &                         'SRCSF30 : After MNFIX')
+
+            DO K = 1, IBINS
+               TC1(I,J,L,K) = NDIST2(K)
+               DO C=1,ICOMP
+                  TC2(I,J,L,K+(C-1)*IBINS) = MDIST2(K,C)
+               ENDDO
+            ENDDO
+
+         ENDDO ! L loop
+
+
+           !==============================================================
+           ! ND59 Diagnostic: Size-resolved primary sulfate emission in 
+           !                 [kg S/box/timestep] and the corresponding
+           !                  number emission [no./box/timestep]
+           !==============================================================
+            IF ( ND59 > 0 ) THEN 
+               DO L = 1, LLPAR
+               DO NB = 1, IBINS
+                  if(TC2(I,J,L,NB)-M0(L,NB) < 0d0) 
+     &              print *,'Negative SF emis ',TC2(I,J,L,NB)-M0(L,NB),
+     &                 'at',I,J,L,NB
+                  if(TC1(I,J,L,NB)-N0(L,NB) < 0d0) 
+     &              print *,'Negative NK emis ',TC1(I,J,L,NB)-N0(L,NB),
+     &                 'at',I,J,L,NB
+                  AD59_SULF(I,J,1,NB) = AD59_SULF(I,J,1,NB) + 
+     &                                  (TC2(I,J,L,NB)-M0(L,NB))*S_SO4
+                  AD59_NUMB(I,J,1,NB) = AD59_NUMB(I,J,1,NB) + 
+     &                                  TC1(I,J,L,NB)-N0(L,NB)
+               ENDDO
+               ENDDO
+            ENDIF
+           
+         ELSE
+
+         ! Distributing primary emission without sub-grid coagulation
+         !=============================================================
+         ! Add SO4 emissions to tracer array 
+         ! For SF: Convert from [kg SO4/box/s] -> [kg SO4/box/timestep]
+         ! For NK: Convert from [kg SO4/box/s] -> [No.   /box/timestep]
+         !=============================================================
+            DO L = 1, LLPAR
+               SO4(L) = TSO4 * EFRAC(L)
+               DO NB = 1, IBINS
+                  TC1(I,J,L,NB) = TC1(I,J,L,NB) + 
+     &                    ( SO4(L) * DTSRCE * BFRAC(NB) / AVGMASS(NB) )
+                  TC2(I,J,L,NB) = TC2(I,J,L,NB) + 
+     &                    ( SO4(L) * DTSRCE * BFRAC(NB)               )
+               ENDDO
+            ENDDO
+
+           !==============================================================
+           ! ND59 Diagnostic: Size-resolved primary sulfate emission in 
+           !                 [kg S/box/timestep] and the corresponding
+           !                  number emission [no./box/timestep]
+           !==============================================================
+            IF ( ND59 > 0 ) THEN 
+               SO4anbf(:,:,1) = SO4an(:,:,1) + SO4bf(:,:)
+               SO4anbf(:,:,2) = SO4an(:,:,2)
+            
+               DO L = 1, 2
+               DO NB = 1, IBINS
+                  AD59_SULF(I,J,L,NB) = AD59_SULF(I,J,L,NB) + 
+     &                                ( SO4anbf(I,J,L) * BFRAC(NB) 
+     &                                    * S_SO4 * DTSRCE         )
+                  AD59_NUMB(I,J,L,NB) = AD59_NUMB(I,J,L,NB) + 
+     &                                ( SO4anbf(I,J,L) * BFRAC(NB) 
+     &                                    / AVGMASS(NB) * DTSRCE   )
+               ENDDO
+               ENDDO
+
+            ENDIF
+
+         ENDIF !SGCOAG
+
+      ENDDO
+      ENDDO
+!!$OMP END PARALLEL DO
+      IF ( LPRT ) print *,'   ### Finish SRCSF30'
+
+      END SUBROUTINE SRCSF30
+!EOC
+#endif
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -6851,6 +7534,9 @@
 ![eml
       USE LOGICAL_MOD,          ONLY : LHIST
 !eml]
+#if   defined( TOMAS )
+      USE TRACERID_MOD,         ONLY : IDTNK1           !(win, 1/25/10)
+#endif
 
       USE CMN_SIZE_MOD               ! Size parameters
       USE CMN_O3_MOD                 ! FSCALYR
@@ -6882,6 +7568,8 @@
 !        problems when adding or removing species.  Replace w/ IDTNH3.
 !        (dkh, 10/31/08)
 !  (10) Account for multilevels emissions (amv, 10/07/2009)
+!  (11 ) Use 1% SO4 fraction (out of total SOx) everywhere when running
+!         with TOMAS aerosols. (win, 1/25/10)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
@@ -6917,9 +7605,17 @@
 
          !==============================================================
          ! Use EDGAR SOx emissions
+
+         ! NOTE: When TOMAS is being used, then do this: 
+         !   Accoroding to a recent finding from GISS GCM-II', emitting 
+         !   3% of SOx as primary SO4 results in overprediction of 
+         !   aerosol number even in sulfate-seasalt simulation, which 
+         !   should be rather lower estimate in absence of carbonaceous
+         !   aerosols.  So try this 1% for now. (win, 1/25/10)
          !
-         ! Partition SOx into SO2 and SO4, according to the following
-         ! fractions (cf Chin et al, 2000):
+         ! Otherwise, if TOMAS is not used, then partition SOx into 
+         ! SO2 and SO4, according to the following fractions
+         ! (cf Chin et al, 2000):
          ! 
          ! Europe     [ 36N-78N,  12.5W-60.0E ]:  5.0% of SOx is SO4
          !                                       95.0% of SOx is SO2   
@@ -6980,6 +7676,13 @@
 
                ENDIF
 
+           
+#if   defined( TOMAS )
+                  !----------------------------------------------
+                  ! when TOMAS aerosol is in use, switch to use 
+                  ! 1% SO4 fraction (win, 1/25/10)
+                  Fe = 0.01d0 
+#else
                ! Compute SO4/SOx fraction for EUROPE
                IF ( ( X >= -12.5 .and. X <= 60.0 )  .and.
      &              ( Y >=  36.0 .and. Y <= 78.0 ) ) THEN
@@ -6995,6 +7698,7 @@
                   Fe = 0.03d0
 
                ENDIF
+#endif
 
                ! Store SO2 emission [kg SO2/s]
                ESO2_an(I,J,1) = EDG_SO2
@@ -7277,7 +7981,7 @@
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
-!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7329,9 +8033,15 @@
 
          ! Regrid from 1x1 and cast to REAL*8
          INGRID = ARRAY1(:,:,1)
-         CALL DO_REGRID_A2A( LLFILENAME, I1x1,   J1x1,
-     &                       INGRID,     SSTEMP, IS_MASS=0,
+#if   defined( TOMAS )
+         CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                       INGRID,     SSTEMP,  IS_MASS=0,
      &                       netCDF=.TRUE.                   )
+#else
+         CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                       INGRID,     SSTEMP,  IS_MASS=1,
+     &                       netCDF=.TRUE.                   )
+#endif
 
       ELSE
 
@@ -7437,9 +8147,6 @@
 !  06 Apr 2012 - M. Payer    - Changed regrid algorithm to map_a2a (M. Cooper)
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
-!  03 Jan 2013 - M. Payer    - Bug fix for regridding of historical emissions.
-!                              Changed to PERAREA=1 since units are kg/yr.
-!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7561,7 +8268,7 @@
 
          ! Regrid to current model resolution [kg/yr]
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-     &                       INGRID,     OUTGRID, IS_MASS=1,
+     &                       INGRID,     OUTGRID, IS_MASS=0,
      &                       netCDF=.TRUE.                   )
 
          ! Free pointers
@@ -8785,6 +9492,7 @@
 !  (10) Now redimension EEV & NEV arrays for new SO2 volcanic emissions
 !        inventory.  Deleted obsolete arrays from older SO2 volcanic
 !        emissions inventory. (jaf, bmy, 10/15/09)
+!  (11) Now alllocate PSO4_SO2AQ (win, 1/25/10)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
@@ -8897,6 +9605,12 @@
       ALLOCATE( VCLDF( IIPAR, JJPAR, LLTROP ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'VCLDF' )
       VCLDF = 0d0
+#endif
+
+#if   defined( TOMAS )
+      ALLOCATE( PSO4_SO2AQ( IIPAR, JJPAR, LLTROP ), STAT=AS ) !(win, 1/25/10)
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSO4_SO2AQ' )
+      PSO4_SO2AQ = 0d0
 #endif
 
       !=================================================================
@@ -9019,6 +9733,7 @@
 !  (6 ) Bug fix: now deallocate PSO4_ss, PNITs (bmy, 5/3/06)
 !  (7 ) Deleted obsolete arrays from older SO2 volcanic emissions 
 !        inventory (jaf, bmy, 10/15/09)
+!  (8 ) Deallocate PSO4_SO2AQ (win, 1/25/10)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
@@ -9029,35 +9744,38 @@
       ! CLEANUP_SULFATE begins here!
       !=================================================================
 
-      IF ( ALLOCATED( DMSo      ) ) DEALLOCATE( DMSo      )
-      IF ( ALLOCATED( EEV       ) ) DEALLOCATE( EEV       )
-      IF ( ALLOCATED( ENV       ) ) DEALLOCATE( ENV       )
-      IF ( ALLOCATED( ENH3_an   ) ) DEALLOCATE( ENH3_an   )
-      IF ( ALLOCATED( ENH3_bb   ) ) DEALLOCATE( ENH3_bb   )
-      IF ( ALLOCATED( ENH3_bf   ) ) DEALLOCATE( ENH3_bf   )
-      IF ( ALLOCATED( ENH3_na   ) ) DEALLOCATE( ENH3_na   )
-      IF ( ALLOCATED( ESO2_ac   ) ) DEALLOCATE( ESO2_ac   )
-      IF ( ALLOCATED( ESO2_an   ) ) DEALLOCATE( ESO2_an   )
-      IF ( ALLOCATED( ESO2_nv   ) ) DEALLOCATE( ESO2_nv   )
-      IF ( ALLOCATED( ESO2_ev   ) ) DEALLOCATE( ESO2_ev   )
-      IF ( ALLOCATED( ESO2_bb   ) ) DEALLOCATE( ESO2_bb   )
-      IF ( ALLOCATED( ESO2_bf   ) ) DEALLOCATE( ESO2_bf   )
-      IF ( ALLOCATED( ESO2_sh   ) ) DEALLOCATE( ESO2_sh   )
-      IF ( ALLOCATED( ESO4_an   ) ) DEALLOCATE( ESO4_an   )
-      IF ( ALLOCATED( JH2O2     ) ) DEALLOCATE( JH2O2     )
-      IF ( ALLOCATED( O3m       ) ) DEALLOCATE( O3m       )
-      IF ( ALLOCATED( PH2O2m    ) ) DEALLOCATE( PH2O2m    )
-      IF ( ALLOCATED( PMSA_DMS  ) ) DEALLOCATE( PMSA_DMS  )
-      IF ( ALLOCATED( PNITs     ) ) DEALLOCATE( PNITs     )
-      IF ( ALLOCATED( PSO2_DMS  ) ) DEALLOCATE( PSO2_DMS  )
-      IF ( ALLOCATED( PSO4_SO2  ) ) DEALLOCATE( PSO4_SO2  )
-      IF ( ALLOCATED( PSO4_ss   ) ) DEALLOCATE( PSO4_ss   )
-      IF ( ALLOCATED( SOx_SCALE ) ) DEALLOCATE( SOx_SCALE )
-      IF ( ALLOCATED( SSTEMP    ) ) DEALLOCATE( SSTEMP    )
-      IF ( ALLOCATED( TCOSZ     ) ) DEALLOCATE( TCOSZ     )
-      IF ( ALLOCATED( TTDAY     ) ) DEALLOCATE( TTDAY     )          
-      IF ( ALLOCATED( VCLDF     ) ) DEALLOCATE( VCLDF     )
-      IF ( ALLOCATED( COSZM     ) ) DEALLOCATE( COSZM     )
+      IF ( ALLOCATED( DMSo       ) ) DEALLOCATE( DMSo       )
+      IF ( ALLOCATED( EEV        ) ) DEALLOCATE( EEV        )
+      IF ( ALLOCATED( ENV        ) ) DEALLOCATE( ENV        )
+      IF ( ALLOCATED( ENH3_an    ) ) DEALLOCATE( ENH3_an    )
+      IF ( ALLOCATED( ENH3_bb    ) ) DEALLOCATE( ENH3_bb    )
+      IF ( ALLOCATED( ENH3_bf    ) ) DEALLOCATE( ENH3_bf    )
+      IF ( ALLOCATED( ENH3_na    ) ) DEALLOCATE( ENH3_na    )
+      IF ( ALLOCATED( ESO2_ac    ) ) DEALLOCATE( ESO2_ac    )
+      IF ( ALLOCATED( ESO2_an    ) ) DEALLOCATE( ESO2_an    )
+      IF ( ALLOCATED( ESO2_nv    ) ) DEALLOCATE( ESO2_nv    )
+      IF ( ALLOCATED( ESO2_ev    ) ) DEALLOCATE( ESO2_ev    )
+      IF ( ALLOCATED( ESO2_bb    ) ) DEALLOCATE( ESO2_bb    )
+      IF ( ALLOCATED( ESO2_bf    ) ) DEALLOCATE( ESO2_bf    )
+      IF ( ALLOCATED( ESO2_sh    ) ) DEALLOCATE( ESO2_sh    )
+      IF ( ALLOCATED( ESO4_an    ) ) DEALLOCATE( ESO4_an    )
+      IF ( ALLOCATED( JH2O2      ) ) DEALLOCATE( JH2O2      )
+      IF ( ALLOCATED( O3m        ) ) DEALLOCATE( O3m        )
+      IF ( ALLOCATED( PH2O2m     ) ) DEALLOCATE( PH2O2m     )
+      IF ( ALLOCATED( PMSA_DMS   ) ) DEALLOCATE( PMSA_DMS   )
+      IF ( ALLOCATED( PNITs      ) ) DEALLOCATE( PNITs      )
+      IF ( ALLOCATED( PSO2_DMS   ) ) DEALLOCATE( PSO2_DMS   )
+      IF ( ALLOCATED( PSO4_SO2   ) ) DEALLOCATE( PSO4_SO2   )
+#if   defined( TOMAS )
+      IF ( ALLOCATED( PSO4_SO2AQ ) ) DEALLOCATE( PSO4_SO2AQ ) !(win, 1/25/10)
+#endif
+      IF ( ALLOCATED( PSO4_ss    ) ) DEALLOCATE( PSO4_ss    )
+      IF ( ALLOCATED( SOx_SCALE  ) ) DEALLOCATE( SOx_SCALE  )
+      IF ( ALLOCATED( SSTEMP     ) ) DEALLOCATE( SSTEMP     )
+      IF ( ALLOCATED( TCOSZ      ) ) DEALLOCATE( TCOSZ      )
+      IF ( ALLOCATED( TTDAY      ) ) DEALLOCATE( TTDAY      )          
+      IF ( ALLOCATED( VCLDF      ) ) DEALLOCATE( VCLDF      )
+      IF ( ALLOCATED( COSZM      ) ) DEALLOCATE( COSZM      )
 
       END SUBROUTINE CLEANUP_SULFATE
 !EOC

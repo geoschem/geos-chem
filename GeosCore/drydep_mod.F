@@ -33,6 +33,9 @@
       USE TIME_MOD,       ONLY : GET_TS_CHEM    ! Chemistry timestep
       USE TRACER_MOD                            ! Tracer array STT etc.
       USE TRACERID_MOD                          ! Tracer ID flags
+#if   defined( TOMAS )
+      USE TOMAS_MOD                             ! For TOMAS microphysics
+#endif
 
       IMPLICIT NONE
 
@@ -156,7 +159,8 @@
 !  (26) Modify dry depostion to follow the non-local PBL scheme.
 !        (lin, ccc, 5/29/09)
 !  (27) Minor bug fix in mol wts for ALPH, LIMO (bmy, 10/19/09)
-!  (28) modified to use Zhang 2001 for all non-size resolved aerosols (hotp)
+!  (28) Change MAXDEP from 50 to 81 (win, 7/14/09)
+!  (28a) modified to use Zhang 2001 for all non-size resolved aerosols (hotp)
 !  (29) Add aromatics SOA (dkh)
 !  (30) Add new species. Some tracers give 2 deposition species: ISOPN-> ISOPNB
 !       and ISOPND. (fp)
@@ -187,7 +191,11 @@
 !
 ! !DEFINED PARAMETERS:
 !
+#if   defined( TOMAS )
+      INTEGER, PARAMETER :: MAXDEP    = 81      ! Max # of depositing species
+#else
       INTEGER, PARAMETER :: MAXDEP    = 55      ! Max # of depositing species
+#endif
       REAL*8,  PARAMETER :: XCKMAN    = 0.4d0   ! Von Karman's constant
       INTEGER, PARAMETER :: NR_MAX    = 200     ! # of seasalt bins 
       INTEGER, PARAMETER :: NDRYDTYPE = 11      ! # of drydep land types
@@ -1562,6 +1570,12 @@
       INTEGER K,IJLOOP,LDT
       REAL*8  RCLX,RIXX,BIOFIT
 
+#if   defined( TOMAS )
+      ! For TOMAS aerosol (win, 7/15/09)
+      INTEGER  BIN
+      REAL*8   SIZ_DIA(MAXIJ, IBINS), SIZ_DEN(MAXIJ, IBINS)
+#endif
+
       ! Logical for snow and sea ice
       LOGICAL LSNOW(MAXIJ)
 
@@ -1595,7 +1609,16 @@
 !*                                 
 !*    Begin section for computing deposition velocities           
 !*                                 
-!*                                 
+*                                 
+#if   defined( TOMAS )
+      ! Calculate 30-bin aerosol size and diameter at each grid box
+      ! This is done differently than 2-bin seasalt and 4-bin dust
+      ! because at each box the aerosol size&density is different
+      ! depending on the internally-mixed composition (win, 7/15/09)
+      if (IDTNK1 > 0 )
+     &   CALL AERO_DIADEN( SIZ_DIA(:,:), SIZ_DEN(:,:), 1, State_Met )
+#endif
+
       ! Add parallel DO-loop (bmy, 2/22/05)
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -1852,7 +1875,7 @@
               !===========================================================
               ! The difference between sea-salt and dust tracers below
               ! is whether or not we account for hygroscopic growth.
-	      ! Seasalt (yes), Dust (no)  (bec, bmy, 4/13/05 )
+              ! Seasalt (yes), Dust (no)  (bec, bmy, 4/13/05 )
               !===========================================================
 
                IF ( ( DEPNAME(K) == 'SALA' )  .OR. 
@@ -1899,8 +1922,33 @@
 
                   ! [Zhang et al., 2001]
                   RSURFC(K,LDT) = 
-     &             DUST_SFCRSII(K, II, PRESSU(IJLOOP)*1D-3, TEMPK, 
-     &             USTAR(IJLOOP))
+     &             DUST_SFCRSII(K, II, PRESSU(IJLOOP)*1D-3, 
+     &                                 TEMPK, USTAR(IJLOOP))
+
+#if   defined( TOMAS )
+               ! (win, 7/15/09)
+               ELSE IF ( ( NTRAIND(K) >= IDTNK1  )   .AND.
+     &                   ( NTRAIND(K) <  IDTNK1+IBINS ) ) THEN
+
+                  !=====================================================
+                  ! Use size-resolved dry deposition calculations for 
+                  ! size-resolved aerosols.  Choose to use DUST_SFCRSII
+                  ! because these aerosol have diameter and density 
+                  ! calculation that takes hygroscopic growth into 
+                  ! account already, thus no need for such calculation
+                  ! like in AERO_SFCRSII.  (win, 7/19/07)
+                  !=====================================================     
+
+                  ! Get current aerosol diameter and density
+                  BIN       = NTRAIND(K) - IDTNK1 + 1
+                  A_RADI(K) = SIZ_DIA( IJLOOP, BIN ) / 2.d0    !(m)
+                  A_DEN(K)  = SIZ_DEN( IJLOOP, BIN )           !(kg/m3)
+
+                  ! [Zhang et al., 2001]
+                  RSURFC(K,LDT) = 
+     &             DUST_SFCRSII(K, II, PRESSU(IJLOOP), 
+     &                                 TEMPK, USTAR(IJLOOP))
+#endif
 
                ELSE 
 
@@ -3369,13 +3417,13 @@
            ! Diameter of mid-point in microns
            DMID(ID)  = DEDGE + ( DR )
 
-	   ! Calculate the dry volume size distribution as the sum of two
+           ! Calculate the dry volume size distribution as the sum of two
            ! log-normal size distributions. The parameters for the size
            ! distribution are based on Reid et al. and Quinn et al.
-	   ! The scaling factors 13. and 0.8 for acc and coarse mode aerosols
-	   ! are chosen to obtain a realistic distribution  
-	   ! SALT_V (D) = dV/dln(D) [um3]
-	   SALT_V(ID) = PI / 6d0* (DMID(ID)**3) * (
+           ! The scaling factors 13. and 0.8 for acc and coarse mode aerosols
+           ! are chosen to obtain a realistic distribution  
+           ! SALT_V (D) = dV/dln(D) [um3]
+           SALT_V(ID) = PI / 6d0* (DMID(ID)**3) * (
      &         13d0*exp(-0.5*( LOG(DMID(ID))-LOG(RG_A*2d0) )**2d0/
      &                   LOG(SIG_A)**2d0 )
      &         /( sqrt(2d0 * PI) * LOG(SIG_A) )  +
@@ -4160,6 +4208,7 @@
 !  (14) Add dicarbonyl chemistry species (tmf, ccc, 3/6/09)
 !  (15) Minor bug fix: ALPH, LIMO should have molwt = 136.23, not 136 even
 !        (bmy, 10/19/09)
+!  (16) Add TOMAS aerosol NK1-NK30 and H2SO4 to drydep list (win, 7/14/09)
 !  15 Dec 2011 - M. Payer    - Update OVOC drydep according to Karl et al. 2010
 !                              and add drydep for MVK and MACR. (J. Mao)
 !  21 Dec 2011 - M. Payer    - Add allocation for size distribution of sea salt
@@ -5141,11 +5190,362 @@
      &                          SALC_REDGE_um(2) ) * 0.5d-6
             A_DEN(NUMDEP)   = 2200.d0         
             AIROSOL(NUMDEP) = .TRUE. 
+
+#if   defined( TOMAS )
          !----------------------------------
-	 ! H2/HD tracers 
+         ! Sulfuric acid gas tracer   !(win, 7/14/09)
+         !----------------------------------
+         ! H2SO4
+         ELSE IF ( N == IDTH2SO4 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTH2SO4
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'H2SO4'
+            HSTAR(NUMDEP)   = 1.0d+5
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 98d-3
+            AIROSOL(NUMDEP) = .FALSE. 
+                     
+         !----------------------------------
+         ! Aerosol number tracers     !(win, 7/14/09)
+         !----------------------------------
+
+         ! NK1 (aerosol)
+         ELSE IF  ( N == IDTNK1) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK1
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK1'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE. 
+
+         ! NK2 (aerosol)
+         ELSE IF  ( N == IDTNK2) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK2
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK2'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE. 
+
+         ! NK3 (aerosol)
+         ELSE IF  ( N == IDTNK3) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK3
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK3'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK4 (aerosol)
+         ELSE IF  ( N == IDTNK4) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK4
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK4'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK5 (aerosol)
+         ELSE IF  ( N == IDTNK5) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK5
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK5'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK6 (aerosol)
+         ELSE IF  ( N == IDTNK6) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK6
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK6'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK7 (aerosol)
+         ELSE IF  ( N == IDTNK7) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK7
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK7'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK8 (aerosol)
+         ELSE IF  ( N == IDTNK8) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK8
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK8'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK9 (aerosol)
+         ELSE IF  ( N == IDTNK9) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK9
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK9'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK10 (aerosol)
+         ELSE IF  ( N == IDTNK10) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK10
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK10'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK11 (aerosol)
+         ELSE IF  ( N == IDTNK11) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK11
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK11'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE. 
+
+         ! NK12 (aerosol)
+         ELSE IF  ( N == IDTNK12) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK12
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK12'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE. 
+
+         ! NK13 (aerosol)
+         ELSE IF  ( N == IDTNK13) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK13
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK13'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK14 (aerosol)
+         ELSE IF  ( N == IDTNK14) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK14
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK14'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK15 (aerosol)
+         ELSE IF  ( N == IDTNK15) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK15
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK15'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+ 
+         ! NK16 (aerosol)
+         ELSE IF  ( N == IDTNK16) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK16
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK16'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK17 (aerosol)
+         ELSE IF  ( N == IDTNK17) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK17
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK17'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK18 (aerosol)
+         ELSE IF  ( N == IDTNK18) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK18
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK18'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK19 (aerosol)
+         ELSE IF  ( N == IDTNK19) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK19
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK19'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK20 (aerosol)
+         ELSE IF  ( N == IDTNK20) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK20
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK20'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK21 (aerosol)
+         ELSE IF  ( N == IDTNK21) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK21
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK21'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE. 
+
+         ! NK22 (aerosol)
+         ELSE IF  ( N == IDTNK22) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK22
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK22'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE. 
+
+         ! NK23 (aerosol)
+         ELSE IF  ( N == IDTNK23) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK23
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK23'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK24 (aerosol)
+         ELSE IF  ( N == IDTNK24) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK24
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK24'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK25 (aerosol)
+         ELSE IF  ( N == IDTNK25) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK25
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK25'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK26 (aerosol)
+         ELSE IF  ( N == IDTNK26) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK26
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK26'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK27 (aerosol)
+         ELSE IF  ( N == IDTNK27) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK27
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK27'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK28 (aerosol)
+         ELSE IF  ( N == IDTNK28) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK28
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK28'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK29 (aerosol)
+         ELSE IF  ( N == IDTNK29) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK29
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK29'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK30 (aerosol)
+         ELSE IF  ( N == IDTNK30) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK30
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK30'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+#endif
+
+         !----------------------------------
+         ! H2/HD tracers 
          ! (hup, jaegle, phs, 9/17/08)
          !----------------------------------
-	 ELSE IF ( N == IDTH2 ) THEN
+         ELSE IF ( N == IDTH2 ) THEN
             NUMDEP          = NUMDEP + 1
             NTRAIND(NUMDEP) = IDTH2
             NDVZIND(NUMDEP) = NUMDEP
@@ -5155,7 +5555,7 @@
             XMW(NUMDEP)     = 0d-3
             AIROSOL(NUMDEP) = .FALSE.
 
-	 ELSE IF ( N == IDTHD ) THEN
+         ELSE IF ( N == IDTHD ) THEN
             NUMDEP          = NUMDEP + 1
             NTRAIND(NUMDEP) = IDTHD
             NDVZIND(NUMDEP) = NUMDEP
