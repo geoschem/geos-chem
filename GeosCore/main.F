@@ -1856,7 +1856,7 @@
          ! Update daily mean temperature archive for MEGAN biogenics
          ! (tmf, 1/4/2012) This should be turned on!
          IF ( LMEGAN ) CALL UPDATE_T_DAY( State_Met )
-      ENDIf
+      ENDIF
 
       !==============================================================
       !    ***** R E A D   M E R R A   A - 3   F I E L D S *****

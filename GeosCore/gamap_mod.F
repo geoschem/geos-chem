@@ -5697,10 +5697,19 @@
       IF ( ND46 > 0 ) THEN 
 
          ! Number of tracers
-         NTRAC(46) = 16 ! Increase for bromine (jpp, mpayer, 12/28/11)
+         NTRAC(46) = 22 ! Was 16 (dbm, 2012) 
+                        ! Increase for bromine (jpp, mpayer, 12/28/11)
 
          ! Loop over tracers
          DO T = 1, NTRAC(46)
+
+            ! Define quantities
+            ! In certain cases these are overwritten below as needed
+            INDEX(T,46) = T + ( SPACING * 21 )
+            FNAME(T,46) = TRIM( NAME(T,46) ) // ' emissions'
+            UNIT (T,46) = 'atoms C/cm2/s'
+            MWT  (T,46) = 12e-3
+            SCALE(T,46) = 1e0
 
             ! Get name and unit for each met field
             SELECT CASE( T )
@@ -5723,43 +5732,67 @@
                   NAME(T,46) = 'C2H4'
                   MOLC(T,46) = 2
                CASE( 7 )
-                  NAME(T,46) = 'APINE'
+                  NAME(T,46) = 'APIN'
                   MOLC(T,46) = 10
                CASE( 8 )
-                  NAME(T,46) = 'BPINE'
+                  NAME(T,46) = 'BPIN'
                   MOLC(T,46) = 10
                CASE( 9 )
-                  NAME(T,46) = 'LIMON'
+                  NAME(T,46) = 'LIMO'
                   MOLC(T,46) = 10
                CASE( 10)
-                  NAME(T,46) = 'SABIN'
+                  NAME(T,46) = 'SABI'
                   MOLC(T,46) = 10
                CASE( 11)
-                  NAME(T,46) = 'MYRCN'
+                  NAME(T,46) = 'MYRC'
                   MOLC(T,46) = 10
                CASE( 12)
-                  NAME(T,46) = 'CAREN'
+                  NAME(T,46) = 'CARE'
                   MOLC(T,46) = 10
                CASE( 13)
-                  NAME(T,46) = 'OCIMN'
+                  NAME(T,46) = 'OCIM'
                   MOLC(T,46) = 10
+              ! Formic acid carried in ppb and molec/cm2/s
+              CASE( 14)
+                  NAME(T,46) = 'HCOOH'
+                  MOLC(T,46) = 1      
+                  UNIT (T,46) = 'molec/cm2/s'
+                  MWT  (T,46) = 46d-3
+              ! Acetic acid carried in ppb and molec/cm2/s
+               CASE( 15)
+                  NAME(T,46) = 'ACTA'
+                  MOLC(T,46) = 2
+                  UNIT (T,46) = 'molec/cm2/s'
+                  MWT  (T,46) = 60d-3
+               CASE( 16)
+                  NAME(T,46) = 'ALD2'
+                  MOLC(T,46) = 2
+               CASE( 17)
+                  NAME(T,46) = 'OMON'
+                  MOLC(T,46) = 10
+               ! Methanol in ppb and molec/cm2/s
+               CASE( 18)
+                  NAME(T,46) = 'MOHX'
+                  MOLC(T,46) = 1
+                  UNIT (T,46) = 'molec/cm2/s'
+                  MWT  (T,46) = 32d-3
+               CASE( 19)
+                  NAME(T,46) = 'ETOH'
+                  MOLC(T,46) = 2
                !jpp, 9/6/07
-               CASE( 14 )
-                  INDEX(T,46)  = T + ( SPACING * 21 )
+               CASE( 20 )
                   NAME  (T,46) = 'CHBr3'
                   FNAME (T,46) = 'Ocean bromoform emissions'
                   UNIT  (T,46) = 'kg/m2/s'
                   MWT   (T,46) = 2.53e-1   !in [kg/mol]
                   SCALE(T,46) = 1e0
-               CASE( 15 )
-                  INDEX (T,46)  = T + ( SPACING * 21 )
+               CASE( 21 )
                   NAME  (T,46) = 'CH2Br2'
                   FNAME (T,46) = 'Ocean dibromomethane emissions'
                   UNIT  (T,46) = 'kg/m2/s'
                   MWT   (T,46) = 1.74e-1   !in [kg/mol]
                   SCALE (T,46) = 1e0
-               CASE( 16 )
-                  INDEX (T,46)  = T + ( SPACING * 21 )
+               CASE( 22 )
                   NAME  (T,46) = 'SSBr2'
                   FNAME (T,46) = 'sea-salt Br2 emissions'
                   UNIT  (T,46) = 'kg/m2/s'
@@ -5769,17 +5802,7 @@
                   ! Nothing
             END SELECT
 
-            !jpp, 9/6/07: preventing these default quantities
-            !             from overwriting CHBr3's info.
-            IF ( T < 14 ) THEN
-               ! Define the rest of the quantities
-               INDEX(T,46) = T + ( SPACING * 21 )
-               FNAME(T,46) = TRIM( NAME(T,46) ) // ' emissions'
-               UNIT (T,46) = 'atoms C/cm2/s'
-               MWT  (T,46) = 12e-3
-               SCALE(T,46) = 1e0
-            ENDIF
-         ENDDO
+          ENDDO
       ENDIF
 
       !-------------------------------------      

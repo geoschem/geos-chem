@@ -3002,22 +3002,28 @@
 !
 !   # : Field  : Description    : Units         : Scale Factor
 !  ---------------------------------------------------------------------------
-!  (1)  ISOP   : Isoprene       : atoms C/cm2/s : SCALE3
-!  (2)  ACET   : Acetone        : atoms C/cm2/s : SCALE3
-!  (3)  PRPE   : Propene        : atoms C/cm2/s : SCALE3
-!  (4)  MONOT  : Monoterpenes   : atoms C/cm2/s : SCALE3
-!  (5)  MBO    : Methyl Butenol : atoms C/cm2/s : SCALE3
-!  (6)  C2H4   : Ethene         : atoms C/cm2/s : SCALE3
-!  (7 ) APINE  : Alpha pinene   : atoms C/cm2/s : SCALE3
-!  (8 ) BPINE  : Beta pinene    : atoms C/cm2/s : SCALE3
-!  (9 ) LIMON  : Limonene       : atoms C/cm2/s : SCALE3
-!  (10) SABIN  : Sabinene       : atoms C/cm2/s : SCALE3
-!  (11) MYRCN  : Mycrene        : atoms C/cm2/s : SCALE3
-!  (12) CAREN  : 3-Carene       : atoms C/cm2/s : SCALE3
-!  (13) OCIMN  : Ocimene        : atoms C/cm2/s : SCALE3
-!  (14) CHBr3  : Bromoform      :      kg/m2/s  : SCALESRCE
-!  (15) CH2Br2 : Dibromomethane :      kg/m2/s  : SCALESRCE
-!  (16) Br2    : Molec. Bromine :      kg/m2/s  : SCALESRCE
+!  ( 1)  ISOP  : Isoprene       : atoms C/cm2/s : SCALE3
+!  ( 2)  ACET  : Acetone        : atoms C/cm2/s : SCALE3
+!  ( 3)  PRPE  : Propene        : atoms C/cm2/s : SCALE3
+!  ( 4)  MONOT : Monoterpenes   : atoms C/cm2/s : SCALE3
+!  ( 5)  MBO   : Methyl Butenol : atoms C/cm2/s : SCALE3
+!  ( 6)  C2H4  : Ethene         : atoms C/cm2/s : SCALE3
+!  ( 7)  APIN  : a-Pinene       : atoms C/cm2/s : SCALE3
+!  ( 8)  BPIN  : b-Pinene       : atoms C/cm2/s : SCALE3
+!  ( 9)  LIMO  : Limonene       : atoms C/cm2/s : SCALE3
+!  (10)  SABI  : Sabinene       : atoms C/cm2/s : SCALE3
+!  (11)  MYRC  : Myrcene        : atoms C/cm2/s : SCALE3
+!  (12)  CARE  : Carene         : atoms C/cm2/s : SCALE3
+!  (13)  OCIM  : Ocimene        : atoms C/cm2/s : SCALE3
+!  (14)  HCOOH : Formic acid    : molec  /cm2/s : SCALE3
+!  (15)  ACTA  : Acetic acid    : molec  /cm2/s : SCALE3
+!  (16)  ALD2  : Acetaldehyde   : atoms C/cm2/s : SCALE3
+!  (17)  OMON  : Other monoterp.: atoms C/cm2/s : SCALE3
+!  (18)  MOHX  : Methanol       : molec  /cm2/s : SCALE3
+!  (19)  ETOH  : Ethanol        : atomsC /cm2/s : SCALE3
+!  (20) CHBr3  : Bromoform      :      kg/m2/s  : SCALESRCE
+!  (21) CH2Br2 : Dibromomethane :      kg/m2/s  : SCALESRCE
+!  (22) Br2    : Molec. Bromine :      kg/m2/s  : SCALESRCE
 !
 !  NOTES:
 !  (1) ND46 now uses allocatable array AD46 instead of AIJ (bmy, 3/16/00)
@@ -3028,6 +3034,7 @@
 !       of "tracerinfo.dat" and "diaginfo.dat" for GAMAP. (bmy, 1/2/01)
 !  (4) Added MBO as tracer #5. (tmf, bmy, 10/20/05)
 !  (5) Added C2H4 as tracer #6. (tmf, 1/20/09)
+!  (6) Updated tracers (dbm, 11/2012)
 !******************************************************************************
 !
       IF ( ND46 > 0 ) THEN
@@ -3045,9 +3052,11 @@
             IF ( N == 3 .and. IDTPRPE == 0 ) CYCLE
             IF ( N == 6 .and. IDTC2H4 == 0 ) CYCLE
             ! jpp, 6/7/09
-            IF ( N == 14 .and. IDTCHBr3  == 0 ) CYCLE
-            IF ( N == 15 .and. IDTCH2Br2 == 0 ) CYCLE
-            IF ( N == 16 .and. IDTBr2    == 0 ) CYCLE
+            ! updated tracer numbers (dbm, 12/2012)
+            IF ( N == 20 .and. IDTCHBr3  == 0 ) CYCLE
+            IF ( N == 21 .and. IDTCH2Br2 == 0 ) CYCLE
+            IF ( N == 22 .and. IDTBr2    == 0 ) CYCLE
+            IF (.NOT. LBIOGENIC ) CYCLE ! dbm (11/2012)
 
             ARRAY(:,:,1) = AD46(:,:,N) / SCALESRCE
                

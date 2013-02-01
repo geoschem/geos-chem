@@ -585,7 +585,8 @@
       USE GRID_MOD, ONLY : GET_YMID
       USE TIME_MOD, ONLY : GET_TS_EMIS
  !(evf, 5/25/2011)
-      USE MEGAN_MOD, ONLY : GET_EMACET_MEGAN
+!      USE MEGAN_MOD, ONLY : GET_EMACET_MEGAN
+      USE MEGAN_MOD, ONLY : GET_MEGAN_EMISSIONS ! (dbm, 12/2012)
 
       USE CMN_SIZE_MOD                  ! Size parameters
       USE CMN_DIAG_MOD                  ! ND11
@@ -766,9 +767,13 @@
 
       !evf, edits to use MEGAN biogenic acetone emissions (5/25/2011)
       ! Acetone Emissions from MEGAN (atoms C / box / step)         
-      EMISS_MEGAN = GET_EMACET_MEGAN(I, J, SUNCOS, TMMP, 
-     &              Q_DIR, Q_DIFF, XNUMOL_C )
-     
+!      EMISS_MEGAN = GET_EMACET_MEGAN(I, J, SUNCOS, TMMP, 
+!     &              Q_DIR, Q_DIFF, XNUMOL_C )
+ 
+      ! Now use updated MEGAN driver routine (dbm, 12/2012)
+      EMISS_MEGAN = GET_MEGAN_EMISSIONS(   I, J, SUNCOS, TMMP,
+     &     Q_DIR, Q_DIFF, 'ACET' )
+
       !convert MEGAN Acetone Emissions to atoms C/box/s (evf, 5/25/2011)
       EMISS_MEGAN = EMISS_MEGAN / DTSRCE
 
