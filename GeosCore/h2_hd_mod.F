@@ -564,16 +564,13 @@
       !=================================================================
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, AREA_CM2, IJLOOP, TMMP, EMXX, EMMO, EMAC, EMOC )
+!$OMP+PRIVATE( I, J, AREA_CM2, EMXX, EMMO, EMAC, EMOC )
 !$OMP+PRIVATE( E_H2, E_HD )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
             ! Grid box surface area [cm2]
             AREA_CM2 = GET_AREA_CM2( I, J, 1 )
-
-            ! 1-D array index 
-            IJLOOP = ( (J-1) * IIPAR ) + I
 
             !===========================================================
             ! The CO and H2 yields from ISOP, MONOTERPENES, and CH3OH will be
@@ -582,49 +579,23 @@
             ! CHEM_H2_HD 
             !===========================================================
 
-            ! Surface air temperature [K]
-            TMMP = XLTMMP( I, J, State_Met%TS, IJLOOP )
-
             ! MEGAN biogenic emissions (mpayer,12/8/11)
             IF ( LMEGAN ) THEN
 
-               ! Cosine of solar zenith angle
-               SC   = State_Met%SUNCOSmid(I,J)
-
-               ! Diffuse and direct PAR
-               PDR  = State_Met%PARDR(I,J)
-               PDF  = State_Met%PARDF(I,J)
-
                ! ISOP and MONOTERPENE emissions in [atoms C/box/time step]
                ! Updated to new MEGAN routine (dbm, 12/2012)
-!               EMXX = GET_EMISOP_MEGAN(  I,   J,   SC,    TMMP, 
-!     &                                   PDR, PDF, XNUMOL_ISOP )
-               EMXX = GET_MEGAN_EMISSIONS(  I, J,     SC, TMMP, 
-     &                 PDR, PDF, 'ISOP' )
+               EMXX = GET_MEGAN_EMISSIONS( I, J, State_Met, 'ISOP' )
 
                ! Updated to new MEGAN routine (dbm, 12/2012)
-!               EMMO = GET_EMMONOT_MEGAN( I,   J,   SC,    TMMP,
-!     &                                   PDR, PDF, XNUMOL_MONO )
                ! Now add up individual terpene emissions
-               EMMO = GET_MEGAN_EMISSIONS( I , J , SC , TMMP , 
-     &              PDR , PDF , 'APIN' ) +
-     &              GET_MEGAN_EMISSIONS( I , J , SC , TMMP , 
-     &              PDR , PDF , 'BPIN' ) +
-     &              GET_MEGAN_EMISSIONS( I , J , SC , TMMP , 
-     &              PDR , PDF , 'LIMO' ) +
-     &              GET_MEGAN_EMISSIONS( I , J , SC , TMMP , 
-     &              PDR , PDF , 'SABI' ) +
-     &              GET_MEGAN_EMISSIONS( I , J , SC , TMMP , 
-     &              PDR , PDF , 'MYRC' ) +
-     &              GET_MEGAN_EMISSIONS( I , J , SC , TMMP , 
-     &              PDR , PDF , 'CARE' ) +
-     &              GET_MEGAN_EMISSIONS( I , J , SC , TMMP ,  
-     &              PDR , PDF , 'OCIM' ) +
-     &              GET_MEGAN_EMISSIONS( I , J , SC , TMMP ,  
-     &              PDR , PDF , 'OMON' )
-
-               ! <--
-
+               EMMO = GET_MEGAN_EMISSIONS( I, J, State_Met, 'APIN' )
+     &              + GET_MEGAN_EMISSIONS( I, J, State_Met, 'BPIN' )
+     &              + GET_MEGAN_EMISSIONS( I, J, State_Met, 'LIMO' )
+     &              + GET_MEGAN_EMISSIONS( I, J, State_Met, 'SABI' )
+     &              + GET_MEGAN_EMISSIONS( I, J, State_Met, 'MYRC' )
+     &              + GET_MEGAN_EMISSIONS( I, J, State_Met, 'CARE' )
+     &              + GET_MEGAN_EMISSIONS( I, J, State_Met, 'OCIM' )
+     &              + GET_MEGAN_EMISSIONS( I, J, State_Met, 'OMON' )
 
             ENDIF
 

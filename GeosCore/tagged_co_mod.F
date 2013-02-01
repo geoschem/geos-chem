@@ -451,6 +451,7 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  27 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
+!  01 Feb 2013 - R. Yantosca - Now use updated MEGAN 2.1 driver (D. Millet)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -673,9 +674,7 @@
       IF ( LBIOGENIC ) THEN
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, AREA_CM2, IJLOOP, TMMP, EMIS, EMMO, EMAC )
-! Add some private declarations for use with MEGAN
-!$OMP+PRIVATE( SC, PDR, PDF )
+!$OMP+PRIVATE( I, J, AREA_CM2, EMIS, EMMO, EMAC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -687,9 +686,6 @@
          EMMO = 0d0
          EMAC = 0d0
 
-         ! 1-D array index 
-         IJLOOP = ( (J-1) * IIPAR ) + I
-
          !===========================================================
          ! The CO yields from ISOP, MONOTERPENES, and CH3OH will be
          ! computed in subroutine CHEM_TAGGED_CO.  P(CO) from CH3OH
@@ -697,53 +693,25 @@
          ! CHEM_TAGGED_CO (bnd, bmy, 6/14/01)
          !===========================================================
 
-         ! Surface air temperature [K]
-         TMMP = XLTMMP( I, J, State_Met%TS, IJLOOP )
-      
          ! Add MEGAN biogenics (jaf, 3/10/09)
          IF ( LMEGAN ) THEN
+
             !------------------
             ! MEGAN biogenics
             !------------------
 
-            ! Cosine of solar zenith angle
-            SC  = State_Met%SUNCOS(I,J)
+            ! Isoprene [atoms C/box/timestep]
+            EMIS = GET_MEGAN_EMISSIONS( I, J, State_Met, 'ISOP')
 
-            ! Diffuse and direct PAR
-            PDR = State_Met%PARDR(I,J)
-            PDF = State_Met%PARDF(I,J)
-
-               ! Isoprene [atoms C/box/timestep]
-               ! (updated to MEGAN2.1 driver routine (dbm, 12/2012) -->
-!               EMIS = GET_EMISOP_MEGAN(  I, J,     SC, TMMP,
-!     &                                   PDR, PDF, XNUMOL_ISOP )
-               EMIS = GET_MEGAN_EMISSIONS(  I, J,     SC, TMMP,
-     &                                   PDR, PDF, 'ISOP')
-               ! <--
-
-               ! Monoterpene [atoms C/box/timestep]
-               ! Updated to MEGANv2.1 driver (dbm, 2012)  -->
-!               EMMO = GET_EMMONOT_MEGAN( I, J,  SC, TMMP, 
-!     &                                   PDR, PDF, XNUMOL_MONO )
-               ! Now add up individual terpene emissions
-               EMMO = GET_MEGAN_EMISSIONS( I , J , SC , TMMP , 
-     &              PDR , PDF , 'APIN' ) +
-     &              GET_MEGAN_EMISSIONS( I , J , SC , TMMP , 
-     &              PDR , PDF , 'BPIN' ) +
-     &              GET_MEGAN_EMISSIONS( I , J , SC , TMMP , 
-     &              PDR , PDF , 'LIMO' ) +
-     &              GET_MEGAN_EMISSIONS( I , J , SC , TMMP , 
-     &              PDR , PDF , 'SABI' ) +
-     &              GET_MEGAN_EMISSIONS( I , J , SC , TMMP , 
-     &              PDR , PDF , 'MYRC' ) +
-     &              GET_MEGAN_EMISSIONS( I , J , SC , TMMP , 
-     &              PDR , PDF , 'CARE' ) +
-     &              GET_MEGAN_EMISSIONS( I , J , SC , TMMP ,  
-     &              PDR , PDF , 'OCIM' ) +
-     &              GET_MEGAN_EMISSIONS( I , J , SC , TMMP ,  
-     &              PDR , PDF , 'OMON' )
-
-               ! <--
+            ! Monoterpene [atoms C/box/timestep]; add up individual terpenes
+            EMMO = GET_MEGAN_EMISSIONS( I, J, State_Met, 'APIN' )
+     &           + GET_MEGAN_EMISSIONS( I, J, State_Met, 'BPIN' )
+     &           + GET_MEGAN_EMISSIONS( I, J, State_Met, 'LIMO' )
+     &           + GET_MEGAN_EMISSIONS( I, J, State_Met, 'SABI' )
+     &           + GET_MEGAN_EMISSIONS( I, J, State_Met, 'MYRC' )
+     &           + GET_MEGAN_EMISSIONS( I, J, State_Met, 'CARE' )
+     &           + GET_MEGAN_EMISSIONS( I, J, State_Met, 'OCIM' )
+     &           + GET_MEGAN_EMISSIONS( I, J, State_Met, 'OMON' )
 
          ENDIF
 

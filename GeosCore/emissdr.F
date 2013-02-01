@@ -96,6 +96,7 @@
 !                              derived type object
 !  27 Nov 2012 - R. Yantosca - Replace SUNCOS_MID with State_Met%SUNCOSmid
 !  13 Dec 2012 - R. Yantosca - Now remove reference to obsolete CMN_DEP_mod.F
+!  01 Feb 2013 - R. Yantosca - Added updates to MEGAN 2.1 (D. Millet)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -134,9 +135,9 @@
       USE TRACER_MOD,         ONLY : ITS_A_TAGCO_SIM
       USE TRACERID_MOD,       ONLY : IDEACET,       IDTISOP,   IDEISOP   
       USE TRACERID_MOD,       ONLY : IDECO,         IDEPRPE,   NEMANTHRO 
-      USE TRACERID_MOD,       ONLY : IDEMONX, IDEC2H4
-      USE TRACERID_MOD,       ONLY : IDTMONX, IDTC2H4
-      USE TRACERID_MOD,       ONLY : IDECHBr3, IDECH2Br2
+      USE TRACERID_MOD,       ONLY : IDEMONX,       IDEC2H4,   IDEALD2
+      USE TRACERID_MOD,       ONLY : IDTMONX,       IDTC2H4
+      USE TRACERID_MOD,       ONLY : IDECHBr3,      IDECH2Br2
 
 #if defined( DEVEL )
       USE TRACERID_MOD,       ONLY : IDTNOX
@@ -470,9 +471,6 @@
 !
             IF ( LBIOGENIC ) THEN
 
-               ! Temperature
-               TMMP  = XLTMMP( I, J, State_Met%TS, IJLOOP )
-            
                ! Modified to choose MEGAN inventory indenpendantly 
                ! for ISOP and MONX/MBO. (ccc, 1/20/09)
                IF ( LMEGAN ) THEN
@@ -524,7 +522,7 @@
      &                                             State_Met, 'MYRC' )
                   ! ------------------------------------------
                   ! 3-Carene emissions 
-                  EMIS_CARE = GET_MEGAN_EMISSIONS( I,         J 
+                  EMIS_CARE = GET_MEGAN_EMISSIONS( I,         J,
      &                                             State_Met, 'CARE' )
                   ! ------------------------------------------
                   ! Ocimene emissions
@@ -573,32 +571,32 @@
                ! specialized simulations. (dbm, 12/2012)
                ! ----------------------------
 
-               !------------------
-               ! MEGAN Methanol
-               !------------------
-               ! Uncomment this to compute biogenic methanol emissions
-!              EMIS_MOHX = GET_MEGAN_EMISSIONS( I,         J,  
-!     &                                         State_Met, 'MOHX' )
-
-               !------------------
-               ! MEGAN Ethanol
-               !------------------
-               ! Uncomment this to compute biogenic ethanol emissions
-!               EMIS_ETOH = GET_MEGAN_EMISSIONS( I,         J,
+!               !------------------
+!               ! MEGAN Methanol
+!               !------------------
+!               ! Uncomment this to compute biogenic methanol emissions
+!               EMIS_MOHX = GET_MEGAN_EMISSIONS( I,          J,  
+!     &                                          State_Met, 'MOHX' )
+!
+!               !------------------
+!               ! MEGAN Ethanol
+!               !------------------
+!               ! Uncomment this to compute biogenic ethanol emissions
+!               EMIS_ETOH = GET_MEGAN_EMISSIONS( I,          J,
 !     &                                          State_Met, 'ETOH' )
-
-               !------------------
-               ! MEGAN Formic acid
-               !------------------
-               ! Uncomment this to compute biogenic formic acid emissions
-!               EMIS_FAXX = GET_MEGAN_EMISSIONS( I,         J,
+!
+!               !------------------
+!               ! MEGAN Formic acid
+!               !------------------
+!               ! Uncomment this to compute biogenic formic acid emissions
+!               EMIS_FAXX = GET_MEGAN_EMISSIONS( I,          J,
 !     &                                          State_Met, 'FAXX' ) 
-
-               !------------------
-               ! MEGAN Acetic acid
-               !------------------
-               ! Uncomment this to compute biogenic acetic acid emissions
-!               EMIS_AAXX = GET_MEGAN_EMISSIONS( I,         J,
+!
+!               !------------------
+!               ! MEGAN Acetic acid
+!               !------------------
+!               ! Uncomment this to compute biogenic acetic acid emissions
+!               EMIS_AAXX = GET_MEGAN_EMISSIONS( I,          J,
 !     &                                          State_Met, 'AAXX' )
 
 !-----------------------------------------------------------------------------
@@ -606,18 +604,11 @@
 !
                IF ( IDEACET /= 0 ) THEN
 
-!                  ! evf, edits to use MEGAN biogenic acetone emiss (5/25/2011)
-!                  ! Compute biogenic acetone emissions [atoms C/box/s]
-!                  CALL EMISS_BIOACET( I,    J,    TMMP,  EMMO, 
-!     &                                SC, PDR, PDF, XNUMOL_C,
-!     &                                EMIS, EMMB, GRASS, BIO_ACET )
-
-                  ! evf, edits to use MEGAN biogenic acetone emiss (5/25/2011)
                   ! Compute biogenic acetone emissions [atoms C/box/s]
-                  CALL EMISS_BIOACET( I,    J,    TMMP,  EMIS_MONO, 
-     &                                SC, PDR, PDF, XNUMOL_C,
-     &                                EMIS_ISOP, EMIS_MBOX, 
-     &                                GRASS, BIO_ACET )
+                  ! NOTE: GRASS is not used anymore (bmy, 2/1/13)
+                  CALL EMISS_BIOACET( I,         J,         State_Met, 
+     &                                XNUMOL_C,  EMIS_MONO, EMIS_ISOP, 
+     &                                EMIS_MBOX, BIO_ACET )
                
                   ! Also add ocean source of acetone [atoms C/box/s]
                   CALL OCEAN_SOURCE_ACET( I, J, BIO_ACET, State_Met )
@@ -719,8 +710,8 @@
 !
                IF ( IDEPRPE /= 0 ) THEN
                   
-                  EMIS_PRPE = GET_MEGAN_EMISSIONS(   I, J,     SC, TMMP,
-     &                 PDR, PDF, 'PRPE' )
+                  EMIS_PRPE = GET_MEGAN_EMISSIONS( I,          J,
+     &                                             State_Met, 'PRPE' )
 
                   ! NOTE: Don't save into EMISRR for the tagged 
                   ! CO simulation. (jaf, mak, bmy, 2/14/08)
@@ -737,8 +728,8 @@
 
                IF ( IDEC2H4 /= 0 ) THEN
 
-                  EMIS_C2H4 = GET_MEGAN_EMISSIONS(   I, J,     SC, TMMP,
-     &                 PDR, PDF, 'C2H4' )
+                  EMIS_C2H4 = GET_MEGAN_EMISSIONS( I,          J, 
+     &                                             State_Met, 'C2H4' )
 
                   EMISRR(I,J,IDEC2H4) = EMISRR(I,J,IDEC2H4) +
      &                 ( EMIS_C2H4 / DTSRCE ) 

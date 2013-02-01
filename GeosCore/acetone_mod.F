@@ -572,44 +572,34 @@
 !\\
 ! !INTERFACE:
 !
-!evf, edits to use MEGAN biogenic acetone emissions (5/25/2011)
-      SUBROUTINE EMISS_BIOACET( I,    J,    TMMP,  EMMO, SUNCOS, Q_DIR,
-     &                          Q_DIFF, XNUMOL_C, EMIS, EMMB, GRASS,
-     &                          ACETONE )
+      SUBROUTINE EMISS_BIOACET( I,    J,    State_Met, XNUMOL_C, 
+     &                          EMMO, EMIS, EMMB,      ACETONE   )
 !
 ! !USES:
 !
-      USE DIAG_MOD, ONLY : AD11
-      USE GRID_MOD, ONLY : GET_AREA_M2
-      USE GRID_MOD, ONLY : GET_XMID
-      USE GRID_MOD, ONLY : GET_YMID
-      USE TIME_MOD, ONLY : GET_TS_EMIS
- !(evf, 5/25/2011)
-!      USE MEGAN_MOD, ONLY : GET_EMACET_MEGAN
-      USE MEGAN_MOD, ONLY : GET_MEGAN_EMISSIONS ! (dbm, 12/2012)
-
-      USE CMN_SIZE_MOD                  ! Size parameters
-      USE CMN_DIAG_MOD                  ! ND11
+      USE CMN_SIZE_MOD
+      USE CMN_DIAG_MOD
+      USE DIAG_MOD,           ONLY : AD11
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_M2
+      USE GRID_MOD,           ONLY : GET_XMID
+      USE GRID_MOD,           ONLY : GET_YMID
+      USE TIME_MOD,           ONLY : GET_TS_EMIS
+      USE MEGAN_MOD,          ONLY : GET_MEGAN_EMISSIONS 
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)    :: I         ! Grid box longitude index
-      INTEGER, INTENT(IN)    :: J         ! Grid box latitude index
-      REAL*8,  INTENT(IN)    :: TMMP      ! Local Surface Air temperature [K]
-      REAL*8,  INTENT(IN)    :: EMMO      ! Monoterpene emission [atoms C]
-      REAL*8,  INTENT(IN)    :: EMIS      ! Isoprene emission [atoms C]
-      REAL*8,  INTENT(IN)    :: EMMB      ! Methylbutenol emission  [atoms C]
-      REAL*8,  INTENT(IN)    :: GRASS     ! Isoprene from grasslands [atoms C]
-!evf, edits to use MEGAN biogenic acetone emissions (5/25/2011)
-      REAL*8,  INTENT(IN)    :: SUNCOS    ! Cosine of Solar Zenith Angle
-      REAL*8,  INTENT(IN)    :: Q_DIR     ! Flux of direct PAR above canopy
-      REAL*8,  INTENT(IN)    :: Q_DIFF    ! Flux of diffuse PAR above canopy
-      REAL*8,  INTENT(IN)    :: XNUMOL_C  ! Number of atoms C / kg C
-
+      INTEGER,        INTENT(IN) :: I         ! Grid box longitude index
+      INTEGER,        INTENT(IN) :: J         ! Grid box latitude index
+      TYPE(MetState), INTENT(IN) :: State_Met ! Meterologoy State object
+      REAL*8,         INTENT(IN) :: XNUMOL_C  ! Molec C / kg C
+      REAL*8,         INTENT(IN) :: EMMO      ! Monoterpene emission [atoms C]
+      REAL*8,         INTENT(IN) :: EMIS      ! Isoprene emission    [atoms C]
+      REAL*8,         INTENT(IN) :: EMMB      ! Methylbutenol emiss  [atoms C]
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(INOUT) :: ACETONE   ! Biogenic acetone [atoms C/s]
+      REAL*8,      INTENT(INOUT) :: ACETONE   ! Biogenic acetone [atoms C/s]
 ! 
 ! !REVISION HISTORY: 
 !  18 Sep 2001 - B. Field    - Initial version
@@ -639,6 +629,8 @@
 !                              dependency on GEIA has been removed.
 !  08 Dec 2011 - M. Payer    - Remove use of obsolete CMN_MONOT_MOD
 !  01 Mar 2012 - R. Yantosca - Use new grid routines from grid_mod.F90
+!  01 Feb 2013 - R. Yantosca - GRASS is not used anymore, remove
+!  01 Feb 2013 - R. Yantosca - Now pass State_Met as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -649,14 +641,15 @@
       REAL*8                 :: ACET_MOL,    ACET_MB    
       REAL*8                 :: ACET_MO,     DTSRCE,      AREA_CM2 
       REAL*8                 :: YIELD_ISOP,  MB_MOL 
-      REAL*8                 :: ACET_C,      ACET_ISOP,   YIELD_GRASS 
+      REAL*8                 :: ACET_C,      ACET_ISOP
       REAL*8                 :: ACET_GRASS,  ACETSCAL,    AREA_M2
       REAL*8                 :: X,           Y
 
       ! Scale factors for a posteriori
       REAL*8                 :: MONO_SCALE, DIRECT_SCALE, MB_SCALE 
-      REAL*8                 :: DP_SCALE,   GRASS_SCALE
-!evf, edits to use MEGAN biogenic acetone emissions (5/25/2011)
+      REAL*8                 :: DP_SCALE
+
+      ! evf, edits to use MEGAN biogenic acetone emissions (5/25/2011)
       REAL*8                 :: EMISS_MEGAN
 
       !=================================================================
@@ -765,19 +758,14 @@
       ! 
       !=================================================================
 
-      !evf, edits to use MEGAN biogenic acetone emissions (5/25/2011)
-      ! Acetone Emissions from MEGAN (atoms C / box / step)         
-!      EMISS_MEGAN = GET_EMACET_MEGAN(I, J, SUNCOS, TMMP, 
-!     &              Q_DIR, Q_DIFF, XNUMOL_C )
- 
       ! Now use updated MEGAN driver routine (dbm, 12/2012)
-      EMISS_MEGAN = GET_MEGAN_EMISSIONS(   I, J, SUNCOS, TMMP,
-     &     Q_DIR, Q_DIFF, 'ACET' )
+      EMISS_MEGAN = GET_MEGAN_EMISSIONS(  I, J, State_Met, 'ACET' )
 
       !convert MEGAN Acetone Emissions to atoms C/box/s (evf, 5/25/2011)
       EMISS_MEGAN = EMISS_MEGAN / DTSRCE
 
-      ! Add MEGAN Acetone Emissions to total biogenic acetone emissions (evf, 5/25/2011)
+      ! Add MEGAN Acetone Emissions to total biogenic acetone 
+      ! emissions (evf, 5/25/2011)
       ACETONE     = ACETONE +  EMISS_MEGAN
 
       ! Save MEGAN Acetone Emissions to DIRECT EMISSIONS diag [atoms C/cm2/s]
