@@ -1874,7 +1874,7 @@
 
          ! Since CLDTOPS is an A-3 field, update the
          ! lightning NOx emissions [molec/box/6h]
-         IF ( LLIGHTNOX ) CALL LIGHTNING
+         IF ( LLIGHTNOX ) CALL LIGHTNING( State_Met )
       ENDIF
 
       !==============================================================

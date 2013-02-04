@@ -144,6 +144,7 @@
 !  21 Jun 2012 - R. Yantosca - Now use poiners to pass array slices to routines
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  04 Feb 2013 - S. Kim      - Bug fix: H2O2s, SO2s, STT are not in State_Met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -344,10 +345,10 @@
          p_CMFMC           => State_Met%CMFMC   ( I, J, 2:LLPAR+1   )
          p_DQRCU           => State_Met%DQRCU   ( I, J,  :          )
          p_DTRAIN          => State_Met%DTRAIN  ( I, J,  :          )
-         p_H2O2s           => State_Met%H2O2s   ( I, J,  :          )
+         p_H2O2s           =>           H2O2s   ( I, J,  :          )
          p_REEVAPCN        => State_Met%REEVAPCN( I, J,  :          )
-         p_SO2s            => State_Met%SO2s    ( I, J,  :          )
-         p_STT             => State_Met%STT     ( I, J,  :,       : )
+         p_SO2s            =>           SO2s    ( I, J,  :          )
+         p_STT             =>           STT     ( I, J,  :,       : )
          p_T               => State_Met%T       ( I, J,  :          )
          
          !--------------------------
