@@ -806,7 +806,7 @@
                ENDIF
 
                ! CH2Br2 emissions [kg/m2/s] -- tracer #15
-               IF ( IDECHBr3 > 0 ) THEN
+               IF ( IDECH2Br2 > 0 ) THEN
                   AD46(I,J,15) = AD46(I,J,15) 
      &                         + ( EMISRR(I,J,IDECH2Br2) / AREA_M2 ) 
      &                         * ( MWT_CH2Br2            / AVG     )
