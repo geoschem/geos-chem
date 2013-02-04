@@ -1315,34 +1315,34 @@ CONTAINS
        
     else
        
-!$$$       do ij = j1p, j2p
-!$$$          do il = i1, i2-1
-!$$$             
-!$$$             ua(il,ij) = 0.5d0 * (crx(il,ij) + crx(il+1,ij))
-!$$$             
-!$$$          end do
-!$$$          ua(i2,ij) = 0.5d0 * (crx(i2,ij) + crx(1,ij))
-!$$$       end do
-!$$$
-!$$$       do ij = ju1+1, j2-1
-!$$$          do il = i1, i2
-!$$$             
-!$$$             va(il,ij) = 0.5d0 * (cry(il,ij) + cry(il,ij+1))
-!$$$          end do
-!$$$       end do
-
        do ij = j1p, j2p
           do il = i1, i2-1
              
              ua(il,ij) = 0.5d0 * (crx(il,ij) + crx(il+1,ij))
-             va(il,ij) = 0.5d0 * (cry(il,ij) + cry(il,ij+1))
-!             print *, va(il,ij)
+             
           end do
           ua(i2,ij) = 0.5d0 * (crx(i2,ij) + crx(1,ij))
-          va(i2,ij) = 0.5d0 * (cry(i2,ij) + cry(i2,ij+1)) !sfarina - this line was missing in v9.02, restored from v8.02
-!          print *, va(i2,ij) 
-
        end do
+
+       do ij = ju1+1, j2-1
+          do il = i1, i2
+             
+             va(il,ij) = 0.5d0 * (cry(il,ij) + cry(il,ij+1))
+          end do
+       end do
+
+!       do ij = j1p, j2p
+!          do il = i1, i2-1
+!             
+!             ua(il,ij) = 0.5d0 * (crx(il,ij) + crx(il+1,ij))
+!             va(il,ij) = 0.5d0 * (cry(il,ij) + cry(il,ij+1))
+!!             print *, va(il,ij)
+!          end do
+!          ua(i2,ij) = 0.5d0 * (crx(i2,ij) + crx(1,ij))
+!          va(i2,ij) = 0.5d0 * (cry(i2,ij) + cry(i2,ij+1)) !sfarina - this line was missing in v9.02, restored from v8.02
+!!          print *, va(i2,ij) 
+!
+!       end do
 
 
 !      =============================

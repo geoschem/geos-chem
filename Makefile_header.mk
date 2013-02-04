@@ -202,6 +202,8 @@ endif
 #==============================================================================
 ifeq ($(COMPILER),ifort) 
 
+DEBUG     := DEBUG
+
 # Default optimization level for all routines (-O2)
 ifndef OPT
 OPT       := -O2

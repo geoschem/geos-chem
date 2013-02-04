@@ -1212,7 +1212,7 @@
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_tracer_menu:3' )
-      
+      print *,NNPAR 
       ! NTRACE cannot exceed NNPAR
       IF ( N_TRACERS > NNPAR ) THEN
          CALL ERROR_STOP( 'Error: N_TRACERS > NNPAR!', 
@@ -1865,6 +1865,7 @@ c$$$      USE LOGICAL_MOD,  ONLY : LDUST30,  LNUMB30
       USE TRACERID_MOD, ONLY : IDTECOB1, IDTECIL1, IDTOCOB1,IDTOCIL1
       USE TRACERID_MOD, ONLY : IDTH2SO4, IDTDUST1
       USE TOMAS_MOD,    ONLY : INIT_TOMAS
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !

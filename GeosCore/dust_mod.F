@@ -1279,6 +1279,7 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2
       USE TIME_MOD,           ONLY : GET_TS_EMIS
+      USE ERROR_MOD,          ONLY : ERROR_STOP
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND19, LD13 (for now)
