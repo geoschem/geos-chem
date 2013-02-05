@@ -420,7 +420,7 @@
       !=================================================================
       ! increase NNPAR and NEMPARA an extra amount (hotp 7/31/09)
 #if   defined( TOMAS )
-      INTEGER, PARAMETER :: NNPAR   = 400   ! For TOMAS (win, bmy, 1/25/10)
+      INTEGER, PARAMETER :: NNPAR   = 320   ! For TOMAS (win, bmy, 1/25/10)
 #elif defined( APM )
       INTEGER, PARAMETER :: NNPAR   = 154   ! For APM (G. Luo, 3/8/11)
 #else

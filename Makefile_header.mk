@@ -143,6 +143,11 @@ ifeq ($(TOMAS),yes)
 OMP       := no
 endif
 
+# TOMAS can't handle -O2 optimization, so using -O1 for now.
+ifeq ($(TOMAS),yes)
+OPT       := -O1
+endif
+
 #==============================================================================
 # Default values for variables
 #==============================================================================
@@ -202,7 +207,7 @@ endif
 #==============================================================================
 ifeq ($(COMPILER),ifort) 
 
-DEBUG     := DEBUG
+#DEBUG     := DEBUG
 
 # Default optimization level for all routines (-O2)
 ifndef OPT
