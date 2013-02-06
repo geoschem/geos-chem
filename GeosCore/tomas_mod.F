@@ -5138,6 +5138,7 @@ c         SRTNH4 = ICOMP
          IDIAG = IDIAG + 1
 c         SRTH2O = ICOMP
       ENDIF
+      print *, 'in init_TOMAS, ICOMP = ', ICOMP
 
       !=================================================================
       ! Allocate arrays 

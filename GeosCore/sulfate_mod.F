@@ -6103,7 +6103,7 @@ c      print *,BINMASS(24,11,2,:)
 
       LOGICAL                :: ERRORSWITCH, SGCOAG = .TRUE.
       logical                :: pdbug !(temporary) win, 10/24/07
-      integer   :: ii, jj, ll
+      integer                :: ii, jj, ll
       data ii, jj, ll / 61, 1, 7 /
 
       ! Ratio of molecular weights: S/SO4

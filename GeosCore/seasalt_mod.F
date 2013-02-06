@@ -1755,6 +1755,7 @@
       USE CMN_DIAG_MOD             ! ND59
       USE DIAG_MOD,           ONLY : AD59_NUMB, AD59_SALT
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE ERROR_MOD,          ONLY : IT_IS_NAN
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
@@ -1861,7 +1862,10 @@
          IF (FOCEAN > 0.5) THEN 
 
             ! Wind speed at 10 m altitude [m/s]
-            W10M = SQRT( SFCWINDSQR( I, J ) )
+!            W10M = SQRT( SFCWINDSQR( I, J ) )
+            W10M = SQRT( SFCWINDSQR( I, J ,
+     &                               State_Met%U10M,
+     &                               State_Met%V10M  ) )
 
             ! in ocean area - calc wind speed/eqm conc
             ! calculate the fraction of whitecap coverage
@@ -1883,25 +1887,37 @@
 
                ! Layer in which the PBL top occurs
                NTOP = CEILING( GET_PBL_TOP_L( I, J ) )
-              
+             
                ! Loop thru the boundary layer
                DO L = 1, NTOP
 
                   ! Fraction of the PBL spanned by box (I,J,L) [unitless]
                   FEMIS = GET_FRAC_OF_PBL( I, J, L )
 
-                  TC1(I,J,L,K) = TC1(I,J,L,K) + ( NUM * FEMIS )
-                  TC2(I,J,L,K) = TC2(I,J,L,K) + 
-     &                           NUM * SQRT( Xk(K) * Xk(K+1)) * FEMIS
-               ENDDO
-
                !================================================================
                ! Add sea-salt number to the tracer array
                !================================================================
-               
-!               TC1(I,J,1,K) = TC1(I,J,1,K) + NUM
-!               TC2(I,J,1,K) = TC2(I,J,1,K) + 
-!     &                        NUM * SQRT( Xk(K) * Xk(K+1))
+
+                  TC1(I,J,L,K) = TC1(I,J,L,K) + ( NUM * FEMIS )
+                  TC2(I,J,L,K) = TC2(I,J,L,K) + 
+     &                           NUM * SQRT( Xk(K) * Xk(K+1)) * FEMIS
+
+!                  TC1(I,J,1,K) = TC1(I,J,1,K) + NUM
+!                  TC2(I,J,1,K) = TC2(I,J,1,K) + 
+!     &                           NUM * SQRT( Xk(K) * Xk(K+1))
+
+               !===============================================================
+               ! debug - sfarina used for finding the source of a NaN
+               !===============================================================
+!
+!                  IF( IT_IS_NAN( TC1(I,J,L,K) ) .OR.
+!     &                IT_IS_NAN( TC2(I,J,L,K) )  ) THEN
+!                     PRINT *,'+++++++ Found NaN in SRCSALT30  +++++++'
+!                     PRINT *,'Location (I,J,L):',I,J,L,'Bin',K
+!                     CALL  ERROR_STOP('SRCSALT30 ','seasalt_mod.f')
+!                  ENDIF
+
+               ENDDO
 
                !==============================================================
                ! ND59 Diagnostic: Sea salt emission in [kg/box/timestep]       
