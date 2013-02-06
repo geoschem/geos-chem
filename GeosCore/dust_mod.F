@@ -2335,6 +2335,10 @@
       ALLOCATE( SRCE_FUNC(IIPAR,JJPAR,3), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SRCE_FUNC' )
       SRCE_FUNC = 0.d0
+#else if defined( TOMAS )
+      ALLOCATE( SRCE_FUNC(IIPAR,JJPAR,3), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SRCE_FUNC' )
+      SRCE_FUNC = 0.d0
 #endif
 
       ! Reset flag
