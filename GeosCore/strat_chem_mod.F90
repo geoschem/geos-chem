@@ -1699,6 +1699,8 @@ CONTAINS
 !                 GEOS-3.
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  04 Feb 2013 - M. Payer    - Replace all JJPAR with values for nested grids
+!                              since JJPAR is no longer a parameter
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1727,11 +1729,17 @@ CONTAINS
 #elif defined( GRID1x125 ) 
     INTEGER, PARAMETER   :: J30S = 61, J30N = 121
 
-#elif defined( GRID05x0666 )
-    INTEGER, PARAMETER   :: J30S = 1, J30N = JJPAR
+#elif defined( GRID05x0666 ) && defined( NESTED_CH )
+    INTEGER, PARAMETER   :: J30S = 1, J30N = 133
 
-#elif defined( GRID025x03125 )
-    INTEGER, PARAMETER   :: J30S = 1, J30N = JJPAR
+#elif defined( GRID05x0666 ) && defined( NESTED_NA )
+    INTEGER, PARAMETER   :: J30S = 1, J30N = 121
+
+#elif defined( GRID05x0666 ) && defined( NESTED_EU )
+    INTEGER, PARAMETER   :: J30S = 1, J30N = 81
+
+#elif defined( GRID025x03125 ) && defined( SEAC4RS )
+    INTEGER, PARAMETER   :: J30S = 1, J30N = 161
 
 #elif defined( GRID1x1 ) 
 
@@ -2014,6 +2022,8 @@ CONTAINS
 !  20 Jun 2012 - L. Murray   - Moved from upbdflx_mod.F to here.
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  04 Feb 2013 - M. Payer    - Replace all JJPAR with values for nested grids
+!                              since JJPAR is no longer a parameter
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2041,11 +2051,17 @@ CONTAINS
 #elif defined( GRID1x125 ) 
     INTEGER, PARAMETER   :: J30S = 61, J30N = 121
 
-#elif defined( GRID05x0666 )
-    INTEGER, PARAMETER   :: J30S = 1, J30N = JJPAR
+#elif defined( GRID05x0666 ) && defined( NESTED_CH )
+    INTEGER, PARAMETER   :: J30S = 1, J30N = 133
 
-#elif defined( GRID025x03125 )
-    INTEGER, PARAMETER   :: J30S = 1, J30N = JJPAR
+#elif defined( GRID05x0666 ) && defined( NESTED_NA )
+    INTEGER, PARAMETER   :: J30S = 1, J30N = 121
+
+#elif defined( GRID05x0666 ) && defined( NESTED_EU )
+    INTEGER, PARAMETER   :: J30S = 1, J30N = 81
+
+#elif defined( GRID025x03125 ) && defined( SEAC4RS )
+    INTEGER, PARAMETER   :: J30S = 1, J30N = 161
 
 #elif defined( GRID1x1 ) 
 
