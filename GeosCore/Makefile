@@ -164,7 +164,6 @@ tomas:
 	@$(MAKE) TOMAS=yes lib                               #  and the executable
 	@$(MAKE) TOMAS=yes tomexe
 
-
 lib:                                               # Build all G-C libraries
 	@$(MAKE) libnc
 	@$(MAKE) libheaders         		  

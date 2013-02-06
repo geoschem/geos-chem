@@ -1212,8 +1212,8 @@
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_tracer_menu:3' )
-      print *,NNPAR 
       ! NTRACE cannot exceed NNPAR
+
       IF ( N_TRACERS > NNPAR ) THEN
          CALL ERROR_STOP( 'Error: N_TRACERS > NNPAR!', 
      &                    'read_tracer_menu (input_mod.f)' )

@@ -146,6 +146,7 @@ endif
 # TOMAS can't handle -O2 optimization, so using -O1 for now.
 ifeq ($(TOMAS),yes)
 OPT       := -O1
+DEBUG     := DEBUG
 endif
 
 #==============================================================================
