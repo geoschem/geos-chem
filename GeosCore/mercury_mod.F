@@ -3639,6 +3639,7 @@
 !                              in the call to ERROR_STOP
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
+!  13 Jan 2013 - M. Payer    - Update soil Hg files for v9-02c (Y. Zhang)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -6206,14 +6207,21 @@
          ! Pre-industrial 
          !-----------------------
 #if   defined( GEOS_5 ) && defined( GRID4x5 )
-         FILENAME= TRIM( DATA_DIR )            //
-     &             'mercury_201110/soilHg.102311.preind.bpch'
+         FILENAME= TRIM( DATA_DIR )                       //
+     &             'mercury_201203/soilhg.preind.v9-02c.' //
+     &             GET_NAME_EXT() // '.' // GET_RES_EXT()
 #elif defined( GEOS_5 ) && defined( GRID2x25 )
          FILENAME= TRIM( DATA_DIR )            //
-     &             'mercury_201110/soilHg.102311.preind.bpch'
+     &             'mercury_201203/soilhg.preind.v9-02c.' //
+     &             GET_NAME_EXT() // '.' // GET_RES_EXT()
 #elif defined( MERRA ) && defined( GRID4x5 )
          FILENAME= TRIM( DATA_DIR )            //
      &             'mercury_201110/soilHg.merra.preind.bpch'
+#elif defined( GRID05x0666 ) && defined( NESTED_NA )
+         ! Need to read nested-grid files, yzh
+         FILENAME= TRIM( DATA_DIR )           //
+     &             'mercury_201203/soilhg.preind.v9-02c.' //
+     &             GET_NAME_EXT() // '.' // GET_RES_EXT()
 #else
          ! Include a location for the error message (skim, 6/28/12)
          CALL ERROR_STOP( "You need to make a Hg soil file. ", 
@@ -6225,18 +6233,20 @@
          ! Present day
          !-----------------------
 #if   defined( GEOS_5 ) && defined( GRID4x5 )
-         FILENAME= TRIM( DATA_DIR )            //
-     &             'mercury_201110/soilHg.102311.presentday.bpch'
+         FILENAME= TRIM( DATA_DIR )                           //
+     &             'mercury_201203/soilhg.presentday.v9-02c.' //
+     &             GET_NAME_EXT() // '.' // GET_RES_EXT()
 #elif defined( GEOS_5 ) && defined( GRID2x25 )
-         FILENAME= TRIM( DATA_DIR )            //
-     &             'mercury_201110/soilHg.102311.presentday.bpch'
+         FILENAME= TRIM( DATA_DIR )                           //
+     &             'mercury_201203/soilhg.presentday.v9-02c.' //
+     &             GET_NAME_EXT() // '.' // GET_RES_EXT()
 #elif defined( MERRA ) && defined( GRID4x5 )
          FILENAME= TRIM( DATA_DIR )            //
      &             'mercury_201110/soilHg.merra.presentday.bpch'
 #elif defined( GRID05x0666 ) && defined( NESTED_NA )
          ! Need to read nested-grid files, yzh
-         FILENAME= TRIM( DATA_DIR )           //
-     &             'mercury_201203/soilhg.presentday.' //
+         FILENAME= TRIM( DATA_DIR )                           //
+     &             'mercury_201203/soilhg.presentday.v9-02c.' //
      &             GET_NAME_EXT() // '.' // GET_RES_EXT()
 #else
          ! Include a location for the error message (skim, 6/28/12)

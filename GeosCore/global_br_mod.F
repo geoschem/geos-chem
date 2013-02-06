@@ -150,8 +150,14 @@
          !-----------------------------------------------------------------
          
          ! Filename
+#if defined( GRID05x0666 ) && defined( NESTED_NA )
+         ! Need to read emission file at nested-resolution
+         FILENAME = TRIM( DATA_DIR ) // 'mercury_201203/BrOx.GC.' //
+     &              GET_NAME_EXT()   // '.' // GET_RES_EXT()
+#else
          FILENAME = TRIM( BR_DIR ) // 'BrOx.GC.' //
      &              GET_NAME_EXT() // '.' // GET_RES_EXT()
+#endif
    
          ! Get the TAU0 value for the start of the given month
          XTAU = GET_TAU0( THISMONTH, 1, 2007 ) 
