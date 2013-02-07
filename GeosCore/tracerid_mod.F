@@ -192,7 +192,7 @@
       IMPLICIT NONE
 #     include "define.h"
 
-      INTEGER, PARAMETER :: NNNTRID  = 420  !sfarina - number of tracers hardcoded at compile time
+      INTEGER, PARAMETER :: NNNTRID  = 320
 #else
       USE CMN_SIZE_MOD, ONLY : NNNTRID=>NNPAR
 
