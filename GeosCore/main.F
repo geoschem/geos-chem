@@ -903,7 +903,8 @@
 
             ! Initialize wet scavenging and wetdep fields after
             ! the airmass quantities are reset after transport
-            IF ( LCONV .or. LWETD ) CALL INIT_WETSCAV( State_Met )
+            IF ( LCONV .or. LWETD .or. LTOMAS )
+     &          CALL INIT_WETSCAV( State_Met )
          ENDIF
 
 
