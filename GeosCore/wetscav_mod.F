@@ -2111,7 +2111,7 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-            CALL COMPUTE_L2G( 8.3d4, -7.4d3, T(I,J,L), !USE H2O2
+            CALL COMPUTE_L2G( 1.7d6, 0.0d0, T(I,J,L), !USE H2O2
      &                          CLDLIQ(I,J,L), L2G )
 
             ! Fraction of LIMO in liquid phase
@@ -2205,7 +2205,7 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-            CALL COMPUTE_L2G( 8.3d4,    -7.4d3, 
+            CALL COMPUTE_L2G( 1.3d8,    0.0d0, 
      &                        T(I,J,L), CLDLIQ(I,J,L), L2G )    !USE H2O2
 
             C_TOT = 1d0 + L2G
@@ -2892,7 +2892,7 @@
       ELSE IF ( N == IDTRIP ) THEN
 
          !USE H2O2 
-         CALL COMPUTE_L2G( 8.3d4, -7.4d3, T(I,J,L),CLDLIQ(I,J,L), L2G )
+         CALL COMPUTE_L2G( 1.7d6, 0.0d0, T(I,J,L),CLDLIQ(I,J,L), L2G )
 
          C_TOT = 1d0 + L2G
          F_L   = L2G / C_TOT
@@ -2949,7 +2949,7 @@
       ELSE IF ( N == IDTIEPOX ) THEN
 
          !USE H2O2 
-         CALL COMPUTE_L2G( 8.3d4, -7.4d3, TK, CLDLIQ(I,J,L), L2G )
+         CALL COMPUTE_L2G( 1.3d8, 0.0d0, TK, CLDLIQ(I,J,L), L2G )
 
 
          C_TOT = 1d0 + L2G
@@ -3784,7 +3784,7 @@
       ELSE IF ( N == IDTRIP ) THEN
          !USE H2O2 
          KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 8.3d4, -7.4d3, PP,       DT,  F,
+         CALL WASHFRAC_LIQ_GAS( 1.7d6, 0.0d0, PP,       DT,  F,
      &                          DZ,     TK,    WASHFRAC, KIN  )
 
       !------------------------------
@@ -3800,7 +3800,7 @@
       !------------------------------
       ELSE IF ( N == IDTIEPOX ) THEN
          KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 8.3d4, -7.4d3, PP,       DT,  F,
+         CALL WASHFRAC_LIQ_GAS( 1.3d8, 0.0d0, PP,       DT,  F,
      &                          DZ,     TK,    WASHFRAC, KIN  )
 
       !------------------------------
