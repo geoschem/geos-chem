@@ -981,6 +981,11 @@
                ENDIF
 !
 
+               IF (SPECL(1).EQ.'HR')  THEN    !modification of the rate for HO2+RO2
+                  NNRO2HO2(NCS)               = NNRO2HO2(NCS) + 1
+                  NKSPECRO2HO2( NNRO2HO2(NCS),NCS) = NK
+               ENDIF
+
                ! DA, DB, and DC are now in use by FP
                ! This part applies only to 'D' (hotp 8/1/09)
                IF (SPECL(1).EQ.'D' .AND. SPECL(2).NE.'A' .AND.
