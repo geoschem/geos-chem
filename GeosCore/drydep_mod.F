@@ -4090,7 +4090,7 @@
             NDVZIND(NUMDEP) = NUMDEP
             DEPNAME(NUMDEP) = 'PAN'
             HSTAR(NUMDEP)   = 3.6d0
-            F0(NUMDEP)      = 0.1d0
+            F0(NUMDEP)      = 1.0d0
             XMW(NUMDEP)     = 121d-3
             AIROSOL(NUMDEP) = .FALSE.
 
@@ -4398,8 +4398,8 @@
             NDVZIND(NUMDEP) = NUMDEP
             DEPNAME(NUMDEP) = 'ISOPND'
             HSTAR(NUMDEP)   = 17d3 !ITO 2007
-            F0(NUMDEP)      = 0d0  
-            XMW(NUMDEP)     = 147d-3
+            F0(NUMDEP)      = 1d0  !Karl et al. 2010(science)
+             XMW(NUMDEP)     = 147d-3
             AIROSOL(NUMDEP) = .FALSE.
 
             NUMDEP          = NUMDEP + 1
@@ -4407,7 +4407,7 @@
             NDVZIND(NUMDEP) = NUMDEP
             DEPNAME(NUMDEP) = 'ISOPNB'
             HSTAR(NUMDEP)   = 17d3 !ITO 2007
-            F0(NUMDEP)      = 0d0  
+            F0(NUMDEP)      = 1d0  !Karl et al. 2010(science)
             XMW(NUMDEP)     = 147d-3
             AIROSOL(NUMDEP) = .FALSE.
 
@@ -4418,7 +4418,7 @@
             NDVZIND(NUMDEP) = NUMDEP
             DEPNAME(NUMDEP) = 'MACRN'
             HSTAR(NUMDEP)   = 17d3 !ITO 2007
-            F0(NUMDEP)      = 0d0  !TO CHECK
+            F0(NUMDEP)      = 1d0  !Karl et al. 2010(science)
             XMW(NUMDEP)     = 149d-3
             AIROSOL(NUMDEP) = .FALSE.
        
@@ -4427,7 +4427,7 @@
             NDVZIND(NUMDEP) = NUMDEP
             DEPNAME(NUMDEP) = 'MVKN'
             HSTAR(NUMDEP)   = 17d3 !ITO 2007
-            F0(NUMDEP)      = 0d0  
+            F0(NUMDEP)      = 1d0  !Karl et al. 2010(science) 
             XMW(NUMDEP)     = 149d-3
             AIROSOL(NUMDEP) = .FALSE.   
 
@@ -4438,7 +4438,7 @@
             NDVZIND(NUMDEP) = NUMDEP
             DEPNAME(NUMDEP) = 'PROPNN'  !NITROOXYACETONE IN SANDER TABLE
             HSTAR(NUMDEP)   = 1d3       
-            F0(NUMDEP)      = 0d0
+            F0(NUMDEP)      = 1d0  !Karl et al. 2010(science)
             XMW(NUMDEP)     = 119d-3
             AIROSOL(NUMDEP) = .FALSE.   
 
@@ -4446,10 +4446,10 @@
          ELSE IF ( N == IDTRIP ) THEN
             NUMDEP          = NUMDEP + 1
             NTRAIND(NUMDEP) = IDTRIP
-            NDVZIND(NUMDEP) = DRYDH2O2 !USE H2O2
+            NDVZIND(NUMDEP) = NUMDEP
             DEPNAME(NUMDEP) = 'RIP'
-            HSTAR(NUMDEP)   = 0d0
-            F0(NUMDEP)      = 1.0d0 !Karl et al. 2010(science)
+            HSTAR(NUMDEP)   = 1.70d6
+            F0(NUMDEP)      = 1.0d0!Karl et al. 2010(science)
             XMW(NUMDEP)     = 0d0
             AIROSOL(NUMDEP) = .FALSE.
 
@@ -4457,9 +4457,9 @@
          ELSE IF ( N == IDTIEPOX ) THEN
             NUMDEP          = NUMDEP + 1
             NTRAIND(NUMDEP) = IDTIEPOX
-            NDVZIND(NUMDEP) = DRYDH2O2 !USE H2O2
+            NDVZIND(NUMDEP) = NUMDEP !USE H2O2
             DEPNAME(NUMDEP) = 'IEPOX'
-            HSTAR(NUMDEP)   = 0d0
+            HSTAR(NUMDEP)   = 1.30d8
             F0(NUMDEP)      = 1.0d0 !Karl et al. 2010(science)
             XMW(NUMDEP)     = 0d0
             AIROSOL(NUMDEP) = .FALSE.
@@ -4495,6 +4495,27 @@
             HSTAR(NUMDEP)   = 6.5d0 !from R. Sander
             F0(NUMDEP)      = 1.0d0 !Assume reactive
             XMW(NUMDEP)     = 70d-3
+            AIROSOL(NUMDEP) = .FALSE.
+
+         ELSE IF ( N == IDTHAC ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTHAC
+            NDVZIND(NUMDEP) = NUMDEP 
+            DEPNAME(NUMDEP) = 'HAC'
+            HSTAR(NUMDEP)   = 2.9d3 !from Ito et al. (2007, JGR)
+            F0(NUMDEP)      = 1.0d0 !Karl et al. 2010(science)
+            XMW(NUMDEP)     = 74d-3
+            AIROSOL(NUMDEP) = .FALSE.
+
+         !MACR
+         ELSE IF ( N == IDTALD2 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NDVZIND(NUMDEP) = NUMDEP
+            NTRAIND(NUMDEP) = IDTALD2
+            DEPNAME(NUMDEP) = 'ALD2'
+            HSTAR(NUMDEP)   = 1.5d1 !from R. Sander
+            F0(NUMDEP)      = 1.0d0 !Assume reactive
+            XMW(NUMDEP)     = 44d-3
             AIROSOL(NUMDEP) = .FALSE.
 
 

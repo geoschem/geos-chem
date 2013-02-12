@@ -294,7 +294,9 @@ biofuel_mod.o               : biofuel_mod.F                                  \
                               dao_mod.o               diag_mod.o             \
                               epa_nei_mod.o           future_emissions_mod.o \
                               logical_mod.o           streets_anthro_mod.o   \
-                              tracerid_mod.o          tracer_mod.o    
+                              tracerid_mod.o          tracer_mod.o           \
+                              bravo_mod.o             logical_mod.o          \
+                              emep_mod.o              cac_anthro_mod.o
 
 biofit.o                    : biofit.F
 
@@ -607,6 +609,8 @@ fvdas_convect_mod.o         : fvdas_convect_mod.F                            \
                               tracerid_mod.o          tracer_mod.o  
 
 fyhoro.o                    : fyhoro.F
+
+fcro2ho2.o                  : fcro2ho2.F
 
 fyrno3.o                    : fyrno3.F
 
