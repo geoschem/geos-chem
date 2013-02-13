@@ -345,6 +345,7 @@
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -469,48 +470,48 @@
             CASE( 1  )
                INGRID = ARRAY(:,:,1)
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
-     &                             INGRID,     EMEP_NOx,  PERAREA=0,
+     &                             INGRID,     EMEP_NOx,  IS_MASS=0,
      &                             netCDF=.TRUE.                     )
             ! CO [molec/cm2/s]
             CASE( 4  )
                INGRID = ARRAY(:,:,1)
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
-     &                             INGRID,     EMEP_CO,   PERAREA=0,
+     &                             INGRID,     EMEP_CO,   IS_MASS=0,
      &                             netCDF=.TRUE.                     )
                
             ! ALK4 [atoms C/cm2/s]
             CASE( 5  )
                INGRID = ARRAY(:,:,1)
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
-     &                             INGRID,     EMEP_ALK4, PERAREA=0,
+     &                             INGRID,     EMEP_ALK4, IS_MASS=0,
      &                             netCDF=.TRUE.                     )
 
             ! MEK [atoms C/cm2/s]
             CASE( 10 )
                INGRID = ARRAY(:,:,1)
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
-     &                             INGRID,     EMEP_MEK,  PERAREA=0,
+     &                             INGRID,     EMEP_MEK,  IS_MASS=0,
      &                             netCDF=.TRUE.                     )
 
             ! ALD2 [atoms C/cm2/s]
             CASE( 11 )
                INGRID = ARRAY(:,:,1)
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
-     &                             INGRID,     EMEP_ALD2, PERAREA=0,
+     &                             INGRID,     EMEP_ALD2, IS_MASS=0,
      &                             netCDF=.TRUE.                     )
 
             ! PRPE [atoms C/cm2/s]
             CASE( 18 )
                INGRID = ARRAY(:,:,1)
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
-     &                             INGRID,     EMEP_PRPE, PERAREA=0,
+     &                             INGRID,     EMEP_PRPE, IS_MASS=0,
      &                             netCDF=.TRUE.                     )
 
             ! C2H6 [atoms C/cm2/s]
             CASE( 21 )
                INGRID = ARRAY(:,:,1)
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
-     &                             INGRID,     EMEP_C2H6, PERAREA=0,
+     &                             INGRID,     EMEP_C2H6, IS_MASS=0,
      &                             netCDF=.TRUE.                     )
 
             CASE DEFAULT
@@ -1174,6 +1175,7 @@
 !  15 Aug 2012 - M. Payer    - Fixed minor bugs in regridding of mask; Also set
 !                              mask to 1 if greater than 0 (L. Murray)
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1210,7 +1212,7 @@
       ! Regrid from GEOS 1x1 GRID to current model resolution
       INGRID = ARRAY(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    INGRID,     OUTGRID, IS_MASS=0,
      &                    netCDF=.TRUE.                   )  
 
       EUROPE_MASK = OUTGRID 
@@ -1323,6 +1325,7 @@
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1454,7 +1457,7 @@
       ! Regrid to current model resolution [kg/yr]
       INGRID = ARRAY_1x1(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                    INGRID,     OUTGRID, PERAREA=1,
+     &                    INGRID,     OUTGRID, IS_MASS=1,
      &                    netCDF=.TRUE.                   )
       ARRAY  = OUTGRID
 

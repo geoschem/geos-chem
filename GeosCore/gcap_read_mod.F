@@ -54,13 +54,12 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: unzip_gcap_fields
 !
 ! !DESCRIPTION: Subroutine UNZIP\_GCAP\_FIELDS invokes a FORTRAN system call
 !  to uncompress GCAP PHIS met field files and store the uncompressed data in a 
 !  temporary directory, where GEOS-CHEM can read them.  The original data 
-!  files are not disturbed.
- 
+!  files are not disturbed. 
 !\\
 !\\
 ! !INTERFACE:
@@ -189,11 +188,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: open_gcap_fields
 !
-! !DESCRIPTION: Subroutine OPEN_GCAP_FIELDS opens the PHIS and LWI met fields 
-!  file.
-
+! !DESCRIPTION: Subroutine OPEN\_GCAP\_FIELDS opens the PHIS and LWI met 
+!  fields file.
 !\\
 !\\
 ! !INTERFACE:
@@ -309,7 +307,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: get_gcap_fields
 !
 ! !DESCRIPTION: Subroutine GET\_GCAP\_FIELDS calls READ\_GCAP to read GCAP
 !  fields from disk at the start of a GEOS-Chem run. 
@@ -317,16 +315,22 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_GCAP_FIELDS
+      SUBROUTINE GET_GCAP_FIELDS( State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD, ONLY : PHIS, LWI_GISS
+      USE GIGC_State_Met_Mod, ONLY : MetState
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  01 Feb 2006 - S. Wu       - Initial version
 !  (1 ) Now also read LWI_GISS for GCAP met fields (swu, bmy, 5/25/05)
 !  06 Aug 2012 - R. Yantosca - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
+!                              object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -344,8 +348,12 @@
       NHMS = 000000
 
       ! For GCAP met fields: read PHIS and LWI_GISS
-      CALL READ_GCAP( NYMD=NYMD, NHMS=NHMS, PHIS=PHIS, LWI=LWI_GISS )
+      CALL READ_GCAP( NYMD = NYMD, 
+     &                NHMS = NHMS, 
+     &                PHIS = State_Met%PHIS, 
+     &                LWI  = State_Met%LWI_GISS )
 
+      ! Return to calling program
       END SUBROUTINE GET_GCAP_FIELDS
 !EOC
 !------------------------------------------------------------------------------
@@ -353,12 +361,11 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: check_time
 !
 ! !DESCRIPTION: Function CHECK\_TIME checks to see if the timestamp of the 
 !  GCAP field just read from disk matches the current time.  If so, then it's 
 !  time to return the GCAP field to the calling program. (bmy, 6/16/03)
-
 !\\
 !\\
 ! !INTERFACE:
@@ -387,10 +394,6 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-
       !=================================================================
       ! GEOS-3, GEOS-4: XYMD and XHMS are integers
       !=================================================================
@@ -407,11 +410,11 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: read_gcap
 !
-! !DESCRIPTION: Subroutine READ\_PHIS reads DAO PHIS (surface geopotential 
+! !DESCRIPTION: Subroutine READ\_GCAP reads the PHIS (surface geopotential 
 !  heights) field from disk.  PHIS is an I-6 field, but is time-independent.  
-!  Thus READ_PHIS only needs to be called once at the beginning of the model 
+!  Thus READ\_GCAP only needs to be called once at the beginning of the model 
 !  run.
 !\\
 !\\
@@ -585,7 +588,6 @@
 ! !REVISION HISTORY: 
 !  15 Jun 1998 - R. Yantosca - Initial version
 !  (1 ) Adapted from DAO_CHECK from "dao_read_mod.f" (bmy, 6/16/03)
-
 !  06 Aug 2012 - R. Yantosca - Added ProTeX headers
 !EOP
 !------------------------------------------------------------------------------

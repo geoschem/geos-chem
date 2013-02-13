@@ -22,7 +22,7 @@
       USE CMN_DIAG_MOD                       ! Diagnostic switches & arrays
       USE COMODE_LOOP_MOD                    ! IDEMS
       USE FILE_MOD                           
-      USE GRID_MOD
+      USE GRID_MOD, ONLY : GET_AREA_M2, GET_YOFFSET, GET_XOFFSET
       USE TIME_MOD
 
       ! Modules from GeosCore directory
@@ -34,6 +34,7 @@
       USE DIAG04_MOD                         ! For CO2 diagnostics
       USE DIAG41_MOD                         ! For afternoon PBL diag
       USE DIAG42_MOD                         ! For SOA diag
+      USE DIAG53_MOD                         ! For POPs diag
       USE DIAG56_MOD                         ! For time in tropopause diag
       USE DIAG_PL_MOD                        ! For prod/loss diagnostic
       USE DEPO_MERCURY_MOD                   ! For offline Hg simulation
@@ -43,7 +44,7 @@
       USE TRACERID_MOD                       ! For tracer flags
       USE WETSCAV_MOD                        ! For wet deposition
 
-      USE TOMAS_MOD,    ONLY : ICOMP, IDIAG, IBINS  !(win, 1/25/10)
+      USE TOMAS_MOD, ONLY : ICOMP, IDIAG, IBINS  !(win, 1/25/10)
 
 #if   defined( APM )
       ! Modules from GeosApm directory
@@ -339,6 +340,8 @@
 !******************************************************************************
 !
       IF ( ND03 > 0 ) CALL WRITE_DIAG03
+! ADD ND53 (eck, 10/21/10)
+      IF ( ND53 > 0 ) CALL WRITE_DIAG53
 !
 !******************************************************************************
 !  ND04: Diagnostics from CO2 simulation (pns, bmy, 7/26/05)

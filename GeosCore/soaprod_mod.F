@@ -290,7 +290,6 @@
       ! References to F90 modules
       USE BPCH2_MOD,   ONLY : OPEN_BPCH2_FOR_READ
       USE CARBON_MOD,  ONLY : APROD, GPROD
-      USE DAO_MOD,     ONLY : AD
       USE ERROR_MOD,   ONLY : DEBUG_MSG, ERROR_STOP
       USE FILE_MOD,    ONLY : IOERROR
       USE inquireMod,  ONLY : findFreeLUN

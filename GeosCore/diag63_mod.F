@@ -111,11 +111,6 @@
 ! !USES:
 !
       USE BPCH2_MOD,    ONLY : BPCH2,   OPEN_BPCH2_FOR_WRITE
-      USE DAO_MOD,      ONLY : AD,      AIRDEN, BXHEIGHT, CLDF 
-      USE DAO_MOD,      ONLY : CLDTOPS, OPTD,   RH,       SLP     
-      USE DAO_MOD,      ONLY : T,       UWND,   VWND
-      USE DAO_MOD,      ONLY : TS
-      USE DAO_MOD,      ONLY : PARDF, PARDR
       USE GRID_MOD,     ONLY : GET_XOFFSET,        GET_YOFFSET
       USE inquireMod,   ONLY : findFreeLUN
       USE TIME_MOD,     ONLY : EXPAND_DATE
@@ -149,14 +144,10 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE            :: FIRST  = .TRUE.
-      LOGICAL, SAVE            :: IS_FULLCHEM, IS_NOx,     IS_Ox 
-      LOGICAL, SAVE            :: IS_NOy,      IS_CLDTOPS, IS_OPTD
-      LOGICAL, SAVE            :: IS_SEASALT,  IS_SLP
       INTEGER                  :: IOS,  GMTRC, GMNL, I, J, K, L 
       INTEGER                  :: N,    R,     H,    W, X, Y
       INTEGER                  :: NHMS, TS_DIAG
-      REAL*8                   :: TAU, TMP,   SCALEAODnm
+      REAL*8                   :: TAU
       REAL*8                   :: Q( ND63_NI, ND63_NJ, 1)
       CHARACTER(LEN=16)        :: STAMP
       CHARACTER(LEN=40)        :: CATEGORY
@@ -166,23 +157,6 @@
       !=================================================================
       ! DIAG63 begins here!
       !=================================================================
-
-      ! Set logical flags on first timestep
-      IF ( FIRST ) THEN
-         IS_CLDTOPS  = ALLOCATED( CLDTOPS )
-         IS_OPTD     = ALLOCATED( OPTD    )
-         IS_SLP      = ALLOCATED( SLP     )
-         IS_FULLCHEM = ITS_A_FULLCHEM_SIM()
-         IS_SEASALT  = ( IDTSALA > 0 .and. IDTSALC > 0 )
-         IS_Ox       = ( IS_FULLCHEM .and. IDTOX   > 0 )
-         IS_NOx      = ( IS_FULLCHEM .and. IDTNOX  > 0 )
-         IS_NOy      = ( IS_FULLCHEM .and. 
-     &                   IDTNOX  > 0 .and. IDTPAN  > 0 .and.
-     &                   IDTHNO3 > 0 .and. IDTPMN  > 0 .and.
-     &                   IDTPPN  > 0 .and. IDTR4N2 > 0 .and.
-     &                   IDTN2O5 > 0 .and. IDTHNO4 > 0 ) 
-         FIRST       = .FALSE.
-      ENDIF
 
       !=================================================================
       ! If it's a new day, open a new BPCH file and write file header

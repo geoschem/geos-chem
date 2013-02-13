@@ -542,7 +542,7 @@
 
       ! Open the BPCH file
       CALL OPEN_BPCH2_FOR_READ( IU_FILE, FILENAME )
-
+      
       !=================================================================
       ! Read data from the binary punch file 
       !
@@ -629,6 +629,7 @@
 
       ! Return to calling program
       END SUBROUTINE READ_BPCH2
+
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -667,6 +668,8 @@
 !  13 Aug 2010 - R. Yantosca - Added MERRA model names
 !  01 Feb 2012 - R. Yantosca - Added GEOS-5.7.x model names
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  11 Dec 2012 - R. Yantosca - Bug fix: Need to specify both EXTERNAL_GRID and
+!                              EXTERNAL_FORCING Cpp switches
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -698,7 +701,7 @@
 #elif defined( GEOS_57 )
       MODELNAME = 'GEOS57'
 
-#elif defined( EXTERNAL_FORCING  ) & defined ( EXTERNAL_GRID ) 
+#elif defined( EXTERNAL_FORCING ) || defined ( EXTERNAL_GRID ) 
       MODELNAME = 'EXTERNAL'
 
 #endif
@@ -744,7 +747,7 @@
       CHARACTER(LEN=5) :: NAME_EXT
       NAME_EXT = 'merra'
 
-#elif defined( EXTERNAL_FORCING )
+#elif defined( EXTERNAL_GRID ) || ( EXTERNAL_FORCING )
       CHARACTER(LEN=5) :: NAME_EXT
       NAME_EXT = 'ext'
 
@@ -760,6 +763,8 @@
 !                              grid is identical to GEOS-5.
 !  01 Feb 2012 - R. Yantosca - Now also define output for GEOS-5.7.x met
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  11 Dec 2012 - R. Yantosca - Bug fix: Need to specify both EXTERNAL_GRID and
+!                              EXTERNAL_FORCING Cpp switches
 !EOP
 !------------------------------------------------------------------------------
 !BOC

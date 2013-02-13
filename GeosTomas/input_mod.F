@@ -127,6 +127,8 @@
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  03 Aug 2012 - R. Yantosca - Now make IU_GEOS a global module variable
 !                              so that we can define it with findFreeLun
+!  02 Nov 2012 - R. Yantosca - Now pass the Input Options object to routines;
+!                              this will eventually replace logical_mod, etc.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -164,17 +166,28 @@
 !\\
 ! !INTERFACE:
 ! 
-      SUBROUTINE READ_INPUT_FILE( am_I_Root )
+      SUBROUTINE READ_INPUT_FILE( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE CHARPAK_MOD, ONLY : STRREPL
-      USE FILE_MOD,    ONLY : IOERROR
-      USE GAMAP_MOD,   ONLY : DO_GAMAP
+      USE CMN_SIZE_MOD
+      USE CHARPAK_MOD,        ONLY : STRREPL
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GAMAP_MOD,          ONLY : DO_GAMAP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -188,6 +201,12 @@
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  03 Aug 2012 - R. Yantosca - Now make IU_GEOS a global module variable
 !                              so that we can define it with findFreeLun
+!  15 Oct 2012 - R. Yantosca - Add EXTERNAL_GRID, XTERNAL_FORCING to #ifdef
+!  16 Oct 2012 - R. Yantosca - Don't call CHECK_TIME_STEPS if we are calling
+!                              READ_INPUT_FILE from the ESMF interface
+!  09 Nov 2012 - R. Yantosca - Now pass Input_Opt to lower-level routines
+!  06 Dec 2012 - R. Yantosca - Now call CHECK_TIME_STEPS when we are connecting
+!                              to the GEOS-5 GCM via the ESMF environment,
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -218,10 +237,11 @@
       ! Find a free file LUN
       IU_GEOS  = findFreeLUN()
 
-#if   defined( DEVEL )
+      ! Assume success
+      RC       = GIGC_SUCCESS
+
       ! For ESMF interface to GEOS-5 GCM, we need to add "*___.rc"
       FILENAME = TRIM( FILENAME ) // '___.rc'
-#endif
 
       ! Open file
       OPEN( IU_GEOS, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
@@ -260,97 +280,98 @@
          !      UNIX CMDS, ARCHIVED OH, and O3PL menus.
          !=============================================================
          IF      ( INDEX( LINE, 'SIMULATION MENU'  ) > 0 ) THEN
-            CALL READ_SIMULATION_MENU( am_I_Root )             
-                                     
+            CALL READ_SIMULATION_MENU( am_I_Root, Input_Opt, RC )             
          ELSE IF ( INDEX( LINE, 'TRACER MENU'      ) > 0 ) THEN
-            CALL READ_TRACER_MENU( am_I_Root )                 
+            CALL READ_TRACER_MENU( am_I_Root, Input_Opt, RC )                 
 
          ELSE IF ( INDEX( LINE, 'AEROSOL MENU'     ) > 0 ) THEN
-            CALL READ_AEROSOL_MENU( am_I_Root )              
+            CALL READ_AEROSOL_MENU( am_I_Root, Input_Opt, RC )              
 
          ELSE IF ( INDEX( LINE, 'MICROPHYS MENU'   ) > 0 ) THEN 
             CALL READ_MICROPHYS_MENU( am_I_Root )
 
 #if   defined( APM )
          ELSE IF ( INDEX( LINE, 'APM MENU'         ) > 0 ) THEN
-            CALL READ_APM_MENU( am_I_Root )
+            CALL READ_APM_MENU( am_I_Root, Input_Opt, RC )
 #endif
 
          ELSE IF ( INDEX( LINE, 'EMISSIONS MENU'   ) > 0 ) THEN
-            CALL READ_EMISSIONS_MENU( am_I_Root )             
+            CALL READ_EMISSIONS_MENU( am_I_Root, Input_Opt, RC )             
 
          ELSE IF ( INDEX( LINE, 'FUTURE MENU'      ) > 0 ) THEN
-            CALL READ_FUTURE_MENU( am_I_Root ) 
-                                                        
+            CALL READ_FUTURE_MENU( am_I_Root, Input_Opt, RC ) 
+                                                   
          ELSE IF ( INDEX( LINE, 'CHEMISTRY MENU'   ) > 0 ) THEN
-            CALL READ_CHEMISTRY_MENU( am_I_Root )              
-                                                  
+            CALL READ_CHEMISTRY_MENU( am_I_Root, Input_Opt, RC )              
+                                                 
          ELSE IF ( INDEX( LINE, 'TRANSPORT MENU'   ) > 0 ) THEN
-            CALL READ_TRANSPORT_MENU( am_I_Root )              
-                                                  
+            CALL READ_TRANSPORT_MENU( am_I_Root, Input_Opt, RC )              
+                                             
          ELSE IF ( INDEX( LINE, 'CONVECTION MENU'  ) > 0 ) THEN
-            CALL READ_CONVECTION_MENU( am_I_Root )            
-                                                  
+            CALL READ_CONVECTION_MENU( am_I_Root, Input_Opt, RC )            
+                                             
          ELSE IF ( INDEX( LINE, 'DEPOSITION MENU'  ) > 0 ) THEN
-            CALL READ_DEPOSITION_MENU( am_I_Root )             
+            CALL READ_DEPOSITION_MENU( am_I_Root, Input_Opt, RC )             
 
-         ELSE IF ( INDEX( LINE, 'CO2 SIM MENU'     ) > 0 ) THEN !Ray Nassar
-            CALL READ_CO2_SIM_MENU( am_I_Root )
+         ELSE IF ( INDEX( LINE, 'CO2 SIM MENU'     ) > 0 ) THEN
+            CALL READ_CO2_SIM_MENU( am_I_Root, Input_Opt, RC )
                                     
          ELSE IF ( INDEX( LINE, 'GAMAP MENU'       ) > 0 ) THEN
-            CALL READ_GAMAP_MENU( am_I_Root )                 
+            CALL READ_GAMAP_MENU( am_I_Root, Input_Opt, RC )                 
                                                   
          ELSE IF ( INDEX( LINE, 'OUTPUT MENU'      ) > 0 ) THEN
-            CALL READ_OUTPUT_MENU( am_I_Root )                 
+            CALL READ_OUTPUT_MENU( am_I_Root, Input_Opt, RC )                 
                                                   
          ELSE IF ( INDEX( LINE, 'DIAGNOSTIC MENU'  ) > 0 ) THEN
-            CALL READ_DIAGNOSTIC_MENU( am_I_Root )             
+            CALL READ_DIAGNOSTIC_MENU( am_I_Root, Input_Opt, RC )             
 
          ELSE IF ( INDEX( LINE, 'PLANEFLIGHT MENU' ) > 0 ) THEN
-            CALL READ_PLANEFLIGHT_MENU( am_I_Root )             
+            CALL READ_PLANEFLIGHT_MENU( am_I_Root, Input_Opt, RC )             
                                                   
          ELSE IF ( INDEX( LINE, 'ND48 MENU'        ) > 0 ) THEN
-            CALL READ_ND48_MENU( am_I_Root )                  
+            CALL READ_ND48_MENU( am_I_Root, Input_Opt, RC )                  
 
          ELSE IF ( INDEX( LINE, 'ND49 MENU'        ) > 0 ) THEN
-            CALL READ_ND49_MENU( am_I_Root )                   
+            CALL READ_ND49_MENU( am_I_Root, Input_Opt, RC )                   
                                                   
          ELSE IF ( INDEX( LINE, 'ND50 MENU'        ) > 0 ) THEN
-            CALL READ_ND50_MENU( am_I_Root )                   
+            CALL READ_ND50_MENU( am_I_Root, Input_Opt, RC )                   
                                                   
          ELSE IF ( INDEX( LINE, 'ND51 MENU'        ) > 0 ) THEN
-            CALL READ_ND51_MENU( am_I_Root )                   
+            CALL READ_ND51_MENU( am_I_Root, Input_Opt, RC )                   
                                                   
          ELSE IF ( INDEX( LINE, 'ND51b MENU'       ) > 0 ) THEN
-            CALL READ_ND51b_MENU( am_I_Root )  
+            CALL READ_ND51b_MENU( am_I_Root, Input_Opt, RC )  
 
          ELSE IF ( INDEX( LINE, 'ND63 MENU'        ) > 0 ) THEN
-            CALL READ_ND63_MENU( am_I_Root )                   
+            CALL READ_ND63_MENU( am_I_Root, Input_Opt, RC )                   
 
          ELSE IF ( INDEX( LINE, 'PROD & LOSS MENU' ) > 0 ) THEN
-            CALL READ_PROD_LOSS_MENU( am_I_Root )               
-                                                  
+            CALL READ_PROD_LOSS_MENU( am_I_Root, Input_Opt, RC )               
+                                             
          ELSE IF ( INDEX( LINE, 'UNIX CMDS MENU'   ) > 0 ) THEN 
-            CALL READ_UNIX_CMDS_MENU( am_I_Root )              
+            CALL READ_UNIX_CMDS_MENU( am_I_Root, Input_Opt, RC )              
 
          ELSE IF ( INDEX( LINE, 'NESTED GRID MENU' ) > 0 ) THEN 
-            CALL READ_NESTED_GRID_MENU( am_I_Root )
+            CALL READ_NESTED_GRID_MENU( am_I_Root, Input_Opt, RC )
 
          ELSE IF ( INDEX( LINE, 'ARCHIVED OH MENU' ) > 0 ) THEN 
-            CALL READ_ARCHIVED_OH_MENU( am_I_Root )
+            CALL READ_ARCHIVED_OH_MENU( am_I_Root, Input_Opt, RC  )
 
          ELSE IF ( INDEX( LINE, 'O3 P/L MENU'      ) > 0 ) THEN 
-            CALL READ_O3PL_MENU( am_I_Root )
+            CALL READ_O3PL_MENU( am_I_Root, Input_Opt, RC  )
 
          ELSE IF ( INDEX( LINE, 'BENCHMARK MENU'   ) > 0 ) THEN 
-            CALL READ_BENCHMARK_MENU( am_I_Root )
-              
+            CALL READ_BENCHMARK_MENU( am_I_Root, Input_Opt, RC  )
+         
+         ELSE IF ( INDEX( LINE, 'POPS MENU'        ) > 0 ) THEN
+            CALL READ_POPS_MENU( am_I_Root, Input_Opt, RC )
+           
          ELSE IF ( INDEX( LINE, 'MERCURY MENU'     ) > 0 ) THEN 
-            CALL READ_MERCURY_MENU( am_I_Root )
-                                    
+            CALL READ_MERCURY_MENU( am_I_Root, Input_Opt, RC  )
+                                   
          ELSE IF ( INDEX( LINE, 'CH4 MENU'         ) > 0 ) THEN 
-            CALL READ_CH4_MENU( am_I_Root )
-                                    
+            CALL READ_CH4_MENU( am_I_Root, Input_Opt, RC )
          ELSE IF ( INDEX( LINE, 'END OF FILE'      ) > 0 ) THEN 
             EXIT
 
@@ -360,10 +381,17 @@
       ! Close input file
       CLOSE( IU_GEOS )
 
-#if   !defined( ESMF_         ) 
-#if   !defined( EXTERNAL_GRID ) && !defined( EXTERNAL_FORCING )
-      ! Allocate diagnostic arrays (phs, 11/18/08)
-      CALL NDXX_SETUP
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Do not initialize diagnostics when we are connecting to
+      ! the GEOS-5 GCM via ESMF. (bmy, 11/2/12)
+      !-----------------------------------------------------------------
+#else
+
+      ! Define GEOS-Chem diagnostic info
+      CALL NDXX_SETUP( am_I_Root, Input_Opt, RC )
 
       !=================================================================
       ! Further error-checking and initialization
@@ -371,7 +399,7 @@
 
       ! Make sure all directories are valid
       CALL VALIDATE_DIRECTORIES
-#endif
+
 #endif
 
       ! Check GEOS-CHEM timesteps
@@ -575,27 +603,41 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_SIMULATION_MENU( am_I_Root )
+      SUBROUTINE READ_SIMULATION_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
-!
-      USE DIRECTORY_MOD, ONLY : DATA_DIR,    DATA_DIR_1x1, GCAP_DIR
-      USE DIRECTORY_MOD, ONLY : GEOS_4_DIR,  GEOS_5_DIR
-      USE DIRECTORY_MOD, ONLY : MERRA_DIR,   GEOS_57_DIR
-      USE DIRECTORY_MOD, ONLY : RUN_DIR
-      USE DIRECTORY_MOD, ONLY : TEMP_DIR   
-      USE GRID_MOD,      ONLY : SET_XOFFSET, SET_YOFFSET
-      USE LOGICAL_MOD,   ONLY : LSVGLB,      LUNZIP,       LWAIT
-      USE LOGICAL_MOD,   ONLY : LVARTROP
-      USE RESTART_MOD,   ONLY : SET_RESTART
-      USE TIME_MOD,      ONLY : SET_BEGIN_TIME,   SET_END_TIME 
-      USE TIME_MOD,      ONLY : SET_CURRENT_TIME, SET_DIAGb
-      USE TIME_MOD,      ONLY : SET_NDIAGTIME,    GET_TAU
-      USE TRANSFER_MOD,  ONLY : INIT_TRANSFER
+!     
+      USE CMN_SIZE_MOD
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR,    DATA_DIR_1x1, GCAP_DIR
+      USE DIRECTORY_MOD,      ONLY : GEOS_4_DIR,  GEOS_5_DIR
+      USE DIRECTORY_MOD,      ONLY : MERRA_DIR,   GEOS_57_DIR
+      USE DIRECTORY_MOD,      ONLY : RUN_DIR
+      USE DIRECTORY_MOD,      ONLY : TEMP_DIR   
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GRID_MOD,           ONLY : SET_XOFFSET, SET_YOFFSET
+      USE LOGICAL_MOD,        ONLY : LSVGLB,      LUNZIP,       LWAIT
+      USE LOGICAL_MOD,        ONLY : LVARTROP
+      USE RESTART_MOD,        ONLY : SET_RESTART
+      USE TIME_MOD,           ONLY : SET_BEGIN_TIME,   SET_END_TIME 
+      USE TIME_MOD,           ONLY : SET_CURRENT_TIME, SET_DIAGb
+      USE TIME_MOD,           ONLY : SET_NDIAGTIME,    GET_TAU
+      USE TRANSFER_MOD,       ONLY : INIT_TRANSFER
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE TIME_MOD,           ONLY : Accept_External_Date_Time
+#endif
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -620,6 +662,11 @@
 !  10 Jun 2012 - L. Murray   - Move Linoz to chemistry menu
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!  06 Dec 2012 - R. Yantosca - Now get NYMDb, NHMSb, NYMDe, NHMSe from the ESMF
+!                              environment when connecting to the GEOS-5 GCM
+!  11 Dec 2012 - R. Yantosca - ACCEPT_DATE_TIME_FROM_ESMF has now been renamed
+!                              to ACCEPT_EXTERNAL_DATE_TIME
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -722,6 +769,76 @@
 #endif
 
       !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+#if defined( ESMF_ ) 
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! If we are connecting to the ESMF interface, we need to take
+      ! the start & end dates as defined in the ESMF resource file.
+      ! (i.e. GEOSCHEMchem_GridComp_mod.rc) instead of those in 
+      ! input.geos.  This is because the ESMF Clock object needs to be
+      ! defined at the highest level (in the driver routine), before 
+      ! input.geos is ever read.
+      !
+      ! Therefore, we will assign the start & end date fields (i.e.
+      ! Input_Opt%NYMDb, Input_Opt%NYMDe, Input_Opt%NHMSb, and 
+      ! Input_Opt%NHMSe) in the Gridded Component module file
+      ! GEOSCHEMchem_GridComp_Mod.F90 (i.e. two levels higher
+      ! in the code).  We don'need to define those fields here, so
+      ! we have bracketed this with an #ifdef. 
+      !
+      ! Ideallly it would be good to have one single version of 
+      ! "input.geos" that can double as the GEOS-Chem input file as 
+      ! well as the ESMF resource.  We may be a way off from that.
+      ! One potential solution is to use a Perl script to generate
+      ! both the input.geos file and the ESMF resource file, so that
+      ! both files are consistent with each other. (bmy, 12/6/12)
+      !-----------------------------------------------------------------
+      
+      ! Save to local variables for printing below
+      NYMDb                   = Input_Opt%NYMDb
+      NHMSb                   = Input_Opt%NHMSb
+      NYMDe                   = Input_Opt%NYMDe
+      NHMSe                   = Input_Opt%NHMSe
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Current practice in the standard GEOS-Chem is to initialize 
+      ! the fields Input_Opt%NYMDb, Input_Opt%NYMDe, Input_Opt%NHMSb, 
+      ! and Input_Opt%NHMSe from the values read in from input.geos.
+      ! (bmy, 12/6/12)
+      !-----------------------------------------------------------------
+
+      Input_Opt%NYMDb         = NYMDb 
+      Input_Opt%NHMSb         = NHMSb
+      Input_Opt%NYMDe         = NYMDe
+      Input_Opt%NHMSe         = NHMSe
+#endif
+      Input_Opt%RUN_DIR       = RUN_DIR
+      Input_Opt%IN_RST_FILE   = IN_RST_FILE
+      Input_Opt%LSVGLB        = LSVGLB
+      Input_Opt%OUT_RST_FILE  = OUT_RST_FILE
+      Input_Opt%DATA_DIR      = DATA_DIR
+      Input_Opt%GCAP_DIR      = GCAP_DIR
+      Input_Opt%GEOS_4_DIR    = GEOS_4_DIR
+      Input_Opt%GEOS_5_DIR    = GEOS_5_DIR
+      Input_Opt%GEOS_57_DIR   = GEOS_57_DIR
+      Input_Opt%MERRA_DIR     = MERRA_DIR
+      Input_Opt%DATA_DIR_1x1  = DATA_DIR_1x1
+      Input_Opt%TEMP_DIR      = TEMP_DIR
+      Input_Opt%LUNZIP        = LUNZIP
+      Input_Opt%LWAIT         = LWAIT
+      Input_Opt%LVARTROP      = LVARTROP
+      Input_Opt%NESTED_I0     = I0
+      Input_Opt%NESTED_J0     = J0 
+
+      ! Return success
+      RC = GIGC_SUCCESS
+
+      !=================================================================
       ! Print to screen
       !=================================================================
       IF ( am_I_Root ) THEN
@@ -768,6 +885,35 @@
       ! Call setup routines from other GEOS-CHEM modules
       !=================================================================
 
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! If we are connecting to the GEOS-5 GCM via ESMF, then pass the
+      ! values for the start & end times of the simulation directly to
+      ! GeosUtil/time_mod.F via subroutine ACCEPT_EXTERNAL_DATE_TIME.
+      ! (bmy, 12/6/12)
+      !-----------------------------------------------------------------
+      CALL Accept_External_Date_Time( am_I_Root   = am_I_Root, 
+     &                                value_NYMDb = Input_Opt%NYMDb,
+     &                                value_NHMSb = Input_Opt%NHMSb,
+     &                                value_NYMDe = Input_Opt%NYMDe,
+     &                                value_NHMSe = Input_Opt%NHMSe,
+     &                                value_NYMD  = Input_Opt%NYMDb,
+     &                                value_NHMS  = Input_Opt%NHMSb,
+     &                                RC          = RC               )
+     &                                 
+
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! If we are not using ESMF, then call the traditional GEOS-Chem
+      ! timing routines (from GeosUtil/time_mod.F) to set the start &
+      ! end times of the simulation, as well as the current time.
+      ! (bmy, 12/6/12)
+      !-----------------------------------------------------------------
+
       ! Set start time of run in "time_mod.f"
       CALL SET_BEGIN_TIME( NYMDb, NHMSb )
 
@@ -776,6 +922,8 @@
 
       ! Set the current time
       CALL SET_CURRENT_TIME()
+
+#endif
 
       ! Set the time of day for writing bpch files
       NDIAGTIME = NHMSe !### test
@@ -792,7 +940,7 @@
       CALL SET_YOFFSET( J0 )
 
       ! Initialize GEOS-Chem horizontal grid structure
-      CALL INITIALIZE_GEOS_GRID( am_I_Root )
+      CALL INITIALIZE_GEOS_GRID( am_I_Root, RC )
 
       ! Initialze quantities for "transfer_mod.f"
       CALL INIT_TRANSFER( 0, 0 )
@@ -815,18 +963,23 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INITIALIZE_GEOS_GRID( am_I_Root )
+      SUBROUTINE INITIALIZE_GEOS_GRID( am_I_Root, RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
       USE GLOBAL_GRID_MOD, ONLY : COMPUTE_GLOBAL_GRID
-      USE GRID_MOD,        ONLY : INIT_GRID, COMPUTE_GRID
+      USE GRID_MOD,        ONLY : COMPUTE_GRID
+      USE GRID_MOD,        ONLY : INIT_GRID
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-! 
+      LOGICAL, INTENT(IN)  :: am_I_Root    ! Is this the root CPU?
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: RC           ! Success or failure?
+!
 ! !REMARKS:
 !  The module grid_mod.F90 has been modified to save grid parameters in 3D
 !  format, which will facilitate interfacing GEOS-Chem to a GCM.
@@ -836,76 +989,72 @@
 !  biomass emissions, which are available on a 0.5x0.5 global grid. The global
 !  arrays may need to be used in the future for regridding other emissions for
 !  nested grids.
-!
+!                                                                             .
 ! !REVISION HISTORY: 
 !  01 Mar 2012 - R. Yantosca - Initial version
 !  01 May 2012 - M. Payer    - Add call to COMPUTE_GLOBAL_GRID for nested grids
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!  30 Nov 2012 - R. Yantosca - Accept external DLON, DLAT from ESMF interface
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-
-      ! Scalars
       INTEGER :: JSP, JNP
-      
-      ! Arrays
-      REAL*8  :: DLON(IIPAR,JJPAR,LLPAR)   ! Delta-longitudes
-      REAL*8  :: DLAT(IIPAR,JJPAR,LLPAR)   ! Delta-latitudes
 
+      !=================================================================
+      ! Define inputs depending on the grid that is selected
+      !=================================================================
 #if   defined( GRID4x5 )
 
       !-----------------------------
       ! Global 4 x 5 grid
       !-----------------------------
-      JSP             = 1                  ! Lat index of S Pole
-      JNP             = JJPAR              ! Lat index of N pole
-      DLON            = 5.0d0              ! Delta-longitude array [degrees]
-      DLAT            = 4.0d0              ! Delta-latitude array [degrees]
-      DLAT(:,1,    :) = 2.0d0              !  Half-sized S Pole boxes
-      DLAT(:,JJPAR,:) = 2.0d0              !  Half-sized N Pole boxes
-
+      JSP           = 1                  ! Lat index of S Pole
+      JNP           = JM_WORLD           ! Lat index of N pole
+      DLON          = 5.0d0              ! Delta-longitude array [degrees]
+      DLAT          = 4.0d0              ! Delta-latitude array [degrees]
+      DLAT(:,JSP,:) = 2.0d0              !  Half-sized S Pole boxes
+      DLAT(:,JNP,:) = 2.0d0              !  Half-sized N Pole boxes
 
 #elif defined( GRID2x25 )
 
       !-----------------------------
       ! Global 2 x 2.5 grid
       !-----------------------------
-      JSP             = 1                  ! Lat index of S Pole
-      JNP             = JJPAR              ! Lat index of N pole
-      DLON            = 2.5d0              ! Delta-longitude array [degrees]
-      DLAT            = 2.0d0              ! Delta-latitude array [degrees]
-      DLAT(:,1,    :) = 1.0d0              !  Half-sized S Pole boxes
-      DLAT(:,JJPAR,:) = 1.0d0              !  Half-sized N Pole boxes
-  
+      JSP           = 1                  ! Lat index of S Pole
+      JNP           = JM_WORLD           ! Lat index of N pole
+      DLON          = 2.5d0              ! Delta-longitude array [degrees]
+      DLAT          = 2.0d0              ! Delta-latitude array [degrees]
+      DLAT(:,JSP,:) = 1.0d0              !  Half-sized S Pole boxes
+      DLAT(:,JNP,:) = 1.0d0              !  Half-sized N Pole boxes
 
 #elif defined( GRID1x125 )
 
       !-----------------------------
       ! Global 1 x 1.25 grid
       !-----------------------------
-      JSP             = 1                  ! Lat index of S Pole
-      JNP             = JJPAR              ! Lat index of N pole
-      DLON            = 1.25d0             ! Delta-longitude array [degrees]
-      DLAT            = 1.0d0              ! Delta-latitude array [degrees]
-      DLAT(:,1,    :) = 0.5d0              !  Half-sized S Pole boxes
-      DLAT(:,JJPAR,:) = 0.5d0              !  Half-sized N Pole boxes
-
+      JSP           = 1                  ! Lat index of S Pole
+      JNP           = JM_WORLD           ! Lat index of N pole
+      DLON          = 1.25d0             ! Delta-longitude array [degrees]
+      DLAT          = 1.0d0              ! Delta-latitude array [degrees]
+      DLAT(:,JSP,:) = 0.5d0              !  Half-sized S Pole boxes
+      DLAT(:,JNP,:) = 0.5d0              !  Half-sized N Pole boxes
 
 #elif defined( GRID1x1 )
 
       !-----------------------------
       ! Global 1 x 1 
       !-----------------------------
-      JSP             = 1                  ! Lat index of S Pole
-      JNP             = JJPAR              ! Lat index of N pole
-      DLON            = 1.0d0              ! Delta-longitude array [degrees]
-      DLAT            = 1.0d0              ! Delta-latitude array [degrees]
-      DLAT(:,1,    :) = 0.5d0              !  Half-sized S Pole boxes
-      DLAT(:,JJPAR,:) = 0.5d0              !  Half-sized N Pole boxes
+      JSP           = 1                  ! Lat index of S Pole
+      JNP           = JM_WORLD           ! Lat index of N pole
+      DLON          = 1.0d0              ! Delta-longitude array [degrees]
+      DLAT          = 1.0d0              ! Delta-latitude array [degrees]
+      DLAT(:,JSP,:) = 0.5d0              !  Half-sized S Pole boxes
+      DLAT(:,JNP,:) = 0.5d0              !  Half-sized N Pole boxes
 
 #elif defined( GRID05x0666 )
 
@@ -914,10 +1063,10 @@
       !-------------------=---------
       ! Nested 0.5 x 0.666 grids
       !-----------------------------
-      JSP             = 0                  ! Lat index of S Pole
-      JNP             = 0                  ! Lat index of N pole
-      DLON            = 2d0/3d0            ! Delta-longitude array [degrees]
-      DLAT            = 0.5d0              ! Delta-latitude array [degrees]
+      JSP           = 0                  ! Lat index of S Pole
+      JNP           = 0                  ! Lat index of N pole
+      DLON          = 2d0/3d0            ! Delta-longitude array [degrees]
+      DLAT          = 0.5d0              ! Delta-latitude array [degrees]
 
 #elif defined( GRID025x03125 )
 
@@ -926,29 +1075,50 @@
       !-----------------------------
       ! Nested 0.25 x 0.3125 grids
       !-----------------------------
-      JSP             = 0                  ! Lat index of S Pole
-      JNP             = 0                  ! Lat index of N pole
-      DLON            = 0.3125d0           ! Delta-longitude array [degrees]
-      DLAT            = 0.25d0             ! Delta-latitude array [degrees]
+      JSP           = 0                  ! Lat index of S Pole
+      JNP           = 0                  ! Lat index of N pole
+      DLON          = 0.3125d0           ! Delta-longitude array [degrees]
+      DLAT          = 0.25d0             ! Delta-latitude array [degrees]
+
+#elif defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+
+      !-----------------------------
+      ! Connecting to GCM via ESMF
+      !-----------------------------
+      JSP           = 1
+      JNP           = JM_WORLD
+
+      ! NOTE: DLON, DLAT are defined in routine GIGC_Get_Options in
+      ! ESMF/gigc_initialization_mod.F90, so no need to define them
+      ! here.  (bmy, 12/3/12)
 
 #endif
+
+      !=================================================================
+      ! Initialize the horizontal grid
+      !=================================================================
 
       ! Allocate module arrays in grid_mod.F90
-      CALL INIT_GRID   ( I1=1,      I2=IIPAR,  
-     &                   J1=1,      J2=JJPAR,  
-     &                   L1=1,      L2=LLPAR  )
+      CALL Init_Grid   ( am_I_Root = am_I_Root,     ! Are we on the root CPU?
+     &                   IM        = IIPAR,         ! # of lons on this CPU
+     &                   JM        = JJPAR,         ! # of lats on this CPU
+     &                   LM        = LLPAR,         ! # of levs on this CPU
+     &                   RC        = RC         )   ! Success or failure?
 
-      ! Compute grid parameters in grid_mod.F90
-#if ! defined( ESMF_ )
-#if ! defined( GCM   )
-      CALL COMPUTE_GRID( am_I_Root=am_I_Root,
-     &                   I1=1,      I2=IIPAR,  
-     &                   J1=1,      J2=JJPAR,  
-     &                   JSP=JSP,   JNP=JNP,   
-     &                   L1=1,      L2=LLPAR,  
-     &                   DLON=DLON, DLAT=DLAT )
-#endif
-#endif
+      ! Compute the horiziontal grid properties
+      CALL Compute_Grid( am_I_Root = am_I_Root,     ! Are we on the root CPU?
+     &                   I1        = I_LO,          ! Min lon index, this CPU
+     &                   J1        = J_LO,          ! Min lat index, this CPU
+     &                   L1        = 1,             ! Min lev index, this CPU
+     &                   I2        = I_HI,          ! Max lon index, this CPU
+     &                   J2        = J_HI,          ! Max lat index, this CPU
+     &                   L2        = LLPAR,         ! Max lev index, this CPU
+     &                   JSP       = JSP,           ! Lat index of South Pole
+     &                   JNP       = JNP,           ! Lat index of North Pole
+     &                   DLON      = DLON,          ! Delta-longitudes [deg]
+     &                   DLAT      = DLAT,          ! Delta-latitudes  [deg]
+     &                   RC        = RC         )   ! Success or failure?
+
 
       END SUBROUTINE INITIALIZE_GEOS_GRID
 !EOC
@@ -965,7 +1135,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_TRACER_MENU( am_I_Root )
+      SUBROUTINE READ_TRACER_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -986,15 +1156,21 @@
       USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM
       USE TRACERID_MOD, ONLY : TRACERID
 
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_SIZE_MOD                    ! Size parameters
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-
-#if defined ( ESMF_ ) && defined( DEVEL )
-!      USE GC_ENVIRONMENT_MOD, ONLY : TRACER_INDEX, TRACER_NAMES
-#endif
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -1007,6 +1183,9 @@
 !  (7 ) Now do not call SET_BIOTRCE anymore; it's obsolete (bmy, 4/5/06)
 !  (8 ) Add SET_BIOTRCE to initialize IDBxxxs. (fp, 2/26/10)
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  13 Aug 2012 - R. Yantosca - Now pass CHEM_STATE as an argument (DEVEL only)
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!  07 Nov 2012 - R. Yantosca - Now define Input_Opt%ITS_A_*_SIM fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1028,11 +1207,6 @@
       ! NTRACE
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_tracer_menu:2' )
       READ( SUBSTRS(1:N), * ) N_TRACERS
-
-!#if defined( ESMF_ ) && defined( DEVEL )
-!          ALLOCATE( TRACER_INDEX(N_TRACERS) )
-!          ALLOCATE( TRACER_NAMES(N_TRACERS) )
-!#endif      
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_tracer_menu:3' )
@@ -1266,6 +1440,47 @@
       ! Set counter
       CT1 = CT1 + 1
 
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%N_TRACERS              = N_TRACERS
+      Input_Opt%LSPLIT                 = LSPLIT
+      Input_Opt%ITS_A_RnPbBe_SIM       = ( SIM_TYPE == 1  )
+      Input_Opt%ITS_A_CH3I_SIM         = ( SIM_TYPE == 2  )
+      Input_Opt%ITS_A_FULLCHEM_SIM     = ( SIM_TYPE == 3  )
+      Input_Opt%ITS_A_HCN_SIM          = ( SIM_TYPE == 4  )
+      Input_Opt%ITS_A_TAGOX_SIM        = ( SIM_TYPE == 6  )
+      Input_Opt%ITS_A_TAGCO_SIM        = ( SIM_TYPE == 7  )
+      Input_Opt%ITS_A_C2H6_SIM         = ( SIM_TYPE == 8  )
+      Input_Opt%ITS_A_CH4_SIM          = ( SIM_TYPE == 9  )
+      Input_Opt%ITS_NOT_COPARAM_OR_CH4 = ( SIM_TYPE /= 9  )
+      Input_Opt%ITS_AN_AEROSOL_SIM     = ( SIM_TYPE == 10 )
+      Input_Opt%ITS_A_MERCURY_SIM      = ( SIM_TYPE == 11 )
+      Input_Opt%ITS_A_CO2_SIM          = ( SIM_TYPE == 12 )
+      Input_Opt%ITS_A_H2HD_SIM         = ( SIM_TYPE == 13 )
+      Input_Opt%ITS_A_POPS_SIM         = ( SIM_TYPE == 14 )
+      
+      ! Print info about each tracer
+      DO T = 1, N_TRACERS
+         Input_Opt%ID_EMITTED(T)       = ID_EMITTED(T)
+         Input_Opt%ID_TRACER(T)        = ID_TRACER(T)
+         Input_Opt%TRACER_NAME(T)      = TRIM( TRACER_NAME(T) )
+         Input_Opt%TRACER_N_CONST(T)   = TRACER_N_CONST(T)
+         Input_Opt%TRACER_MW_G(T)      = TRACER_MW_G(T)
+         Input_Opt%TRACER_MW_KG(T)     = TRACER_MW_KG(T)
+         Input_OPt%TCVV(T)             = TCVV(T)  
+         Input_Opt%XNUMOL(T)           = XNUMOL(T)
+
+         ! Loop over member species
+         DO C = 1, TRACER_N_CONST(T)
+            Input_Opt%TRACER_COEFF(T,C) = TRACER_COEFF(T,C)
+            Input_Opt%TRACER_CONST(T,C) = TRIM( TRACER_CONST(T,C) )
+         ENDDO
+      ENDDO
+
+      ! Return success
+      RC = GIGC_SUCCESS
+
       END SUBROUTINE READ_TRACER_MENU
 !EOC
 !------------------------------------------------------------------------------
@@ -1281,7 +1496,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_AEROSOL_MENU( am_I_Root )
+      SUBROUTINE READ_AEROSOL_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -1302,10 +1517,20 @@
       USE TRACERID_MOD, ONLY : IDTDST1,  IDTDST2,  IDTDST3, IDTDST4
       USE TRACERID_MOD, ONLY : IDTSALA,  IDTSALC 
       USE TRACERID_MOD, ONLY : IDTSOAG,  IDTSOAM,  IDTSOA5
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -1323,6 +1548,7 @@
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1557,6 +1783,23 @@
             CALL ERROR_STOP( MSG, LOCATION )
          ENDIF
       ENDIF
+
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%LSULF              = LSULF  
+      Input_Opt%LCRYST             = LCRYST
+      Input_Opt%LCARB              = LCARB
+      Input_Opt%LSOA               = LSOA 
+      Input_Opt%LDUST              = LDUST 
+      Input_Opt%LDEAD              = LDEAD
+      Input_Opt%LSSALT             = LSSALT
+      Input_Opt%LDICARB            = LDICARB  
+      Input_Opt%SALA_REDGE_um(1:2) = SALA_REDGE_um(1:2)
+      Input_Opt%SALC_REDGE_um(1:2) = SALC_REDGE_um(1:2)
+
+      ! Return success
+      RC = GIGC_SUCCESS
 
       !=================================================================
       ! Print to screen
@@ -1873,7 +2116,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_EMISSIONS_MENU( am_I_Root )
+      SUBROUTINE READ_EMISSIONS_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -1887,10 +2130,20 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM
       USE CMN_SIZE_MOD      ! Size parameters
       USE CMN_O3_MOD        ! FSCALYR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -1949,6 +2202,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !                              in other areas of the code.
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2459,6 +2713,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
          LGFED2BB = .FALSE.
       ENDIF
 
+#if   !defined( GCAP)
       ! Force to use MODIS LAI if we use MEGAN. (ccc, 2/23/10)
       IF ( LMEGAN .OR. LMEGANMONO ) THEN
          LMODISLAI = .TRUE.
@@ -2469,6 +2724,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
      &         ' AVHRR LAI will not be used'
          ENDIF
       ENDIF
+#endif
 
       !=================================================================
       ! Error checks
@@ -2511,6 +2767,64 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
          ENDIF
 
       ENDIF
+
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%LEMIS          = LEMIS
+      Input_Opt%TS_EMIS        = TS_EMIS
+      Input_Opt%LANTHRO        = LANTHRO
+      Input_Opt%FSCALYR        = FSCALYR
+      Input_Opt%LEMEP          = LEMEP 
+      Input_Opt%LBRAVO         = LBRAVO
+      Input_Opt%LEDGAR         = LEDGAR
+      Input_Opt%LSTREETS       = LSTREETS
+      Input_Opt%LCAC           = LCAC
+      Input_Opt%LNEI05         = LNEI05
+      Input_Opt%LRETRO         = LRETRO
+      Input_Opt%LNEI99         = LNEI99
+      Input_Opt%LICARTT        = LICARTT
+      Input_Opt%LVISTAS        = LVISTAS
+      Input_Opt%LBIOFUEL       = LBIOFUEL
+      Input_Opt%LBIOGENIC      = LBIOGENIC
+      Input_Opt%LMEGAN         = LMEGAN
+      Input_Opt%LPECCA         = LPECCA 
+      Input_Opt%LMEGANMONO     = LMEGANMONO
+      Input_Opt%ISOP_SCALING   = ISOP_SCALING 
+      Input_Opt%LBIOMASS       = LBIOMASS 
+      Input_Opt%LBBSEA         = LBBSEA
+      Input_Opt%LTOMSAI        = LTOMSAI
+      Input_Opt%LGFED2BB       = LGFED2BB
+      Input_Opt%L8DAYBB        = L8DAYBB
+      Input_Opt%L3HRBB         = L3HRBB
+      Input_Opt%LSYNOPBB       = LSYNOPBB 
+      Input_Opt%LGFED3BB       = LGFED3BB
+      Input_Opt%LDAYBB3        = LDAYBB3
+      Input_Opt%L3HRBB3        = L3HRBB3
+      Input_Opt%LAIRNOX        = LAIRNOX
+      Input_Opt%LLIGHTNOX      = LLIGHTNOX
+      Input_Opt%LOTDLOC        = LOTDLOC
+      Input_Opt%LSOILNOX       = LSOILNOX
+      Input_Opt%LFERTILIZERNOX = LFERTILIZERNOX
+      Input_Opt%NOx_SCALING    = NOx_SCALING
+      Input_Opt%LEDGARSHIP     = LEDGARSHIP
+      Input_Opt%LICOADSSHIP    = LICOADSSHIP
+      Input_Opt%LEMEPSHIP      = LEMEPSHIP
+      Input_Opt%LSHIPSO2       = LSHIPSO2
+      Input_Opt%LARCSHIP       = LARCSHIP
+      Input_Opt%LCOOKE         = LCOOKE
+      Input_Opt%LAVHRRLAI      = LAVHRRLAI
+      Input_Opt%LMODISLAI      = LMODISLAI
+      Input_Opt%LHIST          = LHIST
+      Input_Opt%HISTYR         = HISTYR
+      Input_Opt%LWARWICK_VSLS  = LWARWICK_VSLS
+      Input_Opt%LSSABr2        = LSSABr2
+      Input_Opt%LFIX_PBL_BRO   = LFIX_PBL_BRO
+      Input_Opt%Br_SCALING     = Br_SCALING
+
+
+      ! Return success
+      RC = GIGC_SUCCESS
 
       !=================================================================
       ! Initialization
@@ -2603,7 +2917,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_CO2_SIM_MENU( am_I_Root )
+      SUBROUTINE READ_CO2_SIM_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -2613,10 +2927,20 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 
       USE CMN_SIZE_MOD                   ! Size parameters
       USE CMN_O3_MOD                     ! FSCALYR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  02 Mar 2009 - R. Nassar   - Initial version
@@ -2624,6 +2948,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !  07 Sep 2011 - P. Kasibhatla - Modified for GFED3
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2832,6 +3157,33 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 	ENDIF
 
       !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%LGENFF      = LGENFF
+      Input_Opt%LANNFF      = LANNFF
+      Input_Opt%LMONFF      = LMONFF
+      Input_Opt%LCHEMCO2    = LCHEMCO2
+      Input_Opt%LSEASBB     = LSEASBB
+      Input_Opt%LGFED2BB    = LGFED2BB
+      Input_Opt%L8DAYBB     = L8DAYBB 
+      Input_Opt%LGFED3BB    = LGFED3BB
+      Input_Opt%LDAYBB3     = LDAYBB3
+      Input_Opt%LBIOFUEL    = LBIOFUEL
+      Input_Opt%LBIODAILY   = LBIODAILY
+      Input_Opt%LBIODIURNAL = LBIODIURNAL
+      Input_Opt%LBIONETORIG = LBIONETORIG
+      Input_Opt%LBIONETCLIM = LBIONETCLIM
+      Input_Opt%LOCN1997    = LOCN1997
+      Input_Opt%LOCN2009ANN = LOCN2009ANN
+      Input_Opt%LOCN2009MON = LOCN2009MON
+      Input_Opt%LSHIPEDG    = LSHIPEDG
+      Input_Opt%LSHIPICO    = LSHIPICO
+      Input_Opt%LPLANE      = LPLANE
+
+      ! Return success
+      RC = GIGC_SUCCESS
+
+      !=================================================================
       ! Print to screen
       !=================================================================
       IF (ITS_A_CO2_SIM() ) THEN
@@ -2894,24 +3246,36 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_FUTURE_MENU( am_I_Root )
+      SUBROUTINE READ_FUTURE_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
       USE FUTURE_EMISSIONS_MOD, ONLY : DO_FUTURE_EMISSIONS
       USE LOGICAL_MOD,          ONLY : LFUTURE
  
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+
 #     include "define.h"             ! C-preprocessor switches
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  01 Jun 2006 - S. Wu       - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2949,6 +3313,16 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       !### other met fields at a later date. (swu, bmy, 6/1/06)
       LFUTURE = .FALSE. 
 #endif
+
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%LFUTURE     = LFUTURE
+      Input_Opt%FUTURE_YEAR = FUTURE_YEAR
+      Input_Opt%FUTURE_SCEN = FUTURE_SCEN
+
+      ! Return success
+      RC = GIGC_SUCCESS
 
       !=================================================================
       ! Print to screen
@@ -2991,21 +3365,33 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_CHEMISTRY_MENU( am_I_Root )
+      SUBROUTINE READ_CHEMISTRY_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE ERROR_MOD,   ONLY : ERROR_STOP 
-      USE LOGICAL_MOD, ONLY : LCHEM, LSCHEM, LLINOZ
-      USE LOGICAL_MOD, ONLY : LSVCSPEC, LKPP
-      USE TIME_MOD,    ONLY : SET_CT_CHEM
-      USE TRACER_MOD,  ONLY : N_TRACERS
-
-      USE CMN_SIZE_MOD                   ! Size parameters
+      USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : ERROR_STOP 
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE LOGICAL_MOD,        ONLY : LCHEM, LSCHEM, LLINOZ
+      USE LOGICAL_MOD,        ONLY : LSVCSPEC, LKPP
+      USE TIME_MOD,           ONLY : SET_CT_CHEM
+      USE TRACER_MOD,         ONLY : N_TRACERS
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE TIME_MOD,           ONLY : Accept_External_Date_Time
+#endif
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -3016,6 +3402,11 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !  10 Jun 2012 - L. Murray   - Move all strat chemistry switches here
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!  06 Dec 2012 - R. Yantosca - Now get TS_CHEM from the ESMF environment
+!                              when we are connecting to the GEOS-5 GCM
+!  11 Dec 2012 - R. Yantosca - ACCEPT_DATE_TIME_FROM_ESMF has now been renamed
+!                              to ACCEPT_EXTERNAL_DATE_TIME
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3063,6 +3454,67 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:7' )
 
       !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+#if defined( ESMF_ ) 
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! If we are connecting to the ESMF interface, we need to take
+      ! the chemistry timestep as defined in the ESMF resource file.
+      ! (i.e. GEOSCHEMchem_GridComp_mod.rc) instead of those in 
+      ! input.geos.  This is because the ESMF Clock object needs to be
+      ! defined at the highest level (in the driver routine), before 
+      ! input.geos is ever read.
+      !
+      ! Therefore, we will assign the chemistry timestep field (i.e.
+      ! Input_Opt%TS_CHEM) in the Gridded Component module file
+      ! GEOSCHEMchem_GridComp_Mod.F90 (i.e. two levels higher
+      ! in the code).  We don'need to define those fields here, so
+      ! we have bracketed this with an #ifdef. 
+      !
+      ! Also pass the chemistry timestep value directly to module
+      ! GeosUtil/time_mod.F via subroutine ACCEPT_EXTERNAL_DATE_TIME.
+      !
+      ! Ideallly it would be good to have one single version of 
+      ! "input.geos" that can double as the GEOS-Chem input file as 
+      ! well as the ESMF resource.  We may be a way off from that.
+      ! One potential solution is to use a Perl script to generate
+      ! both the input.geos file and the ESMF resource file, so that
+      ! both files are consistent with each other.
+      ! (bmy, 12/6/12)
+      !-----------------------------------------------------------------
+      
+      ! Save to local variables for printing below
+      TS_CHEM            = Input_Opt%TS_CHEM
+
+      ! Pass chemistry timestep to time_mod.F
+      CALL Accept_External_Date_Time( am_I_Root     = am_I_Root, 
+     &                                value_TS_CHEM = TS_CHEM,   
+     &                                RC            = RC         )
+     &                                 
+
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Current practice in the standard GEOS-Chem is to initialize 
+      ! the field Input_OPt%TS_CHEM with the value read in from 
+      ! input.geos. (bmy, 12/6/12)
+      !-----------------------------------------------------------------
+      Input_Opt%TS_CHEM  = TS_CHEM
+
+#endif
+      Input_Opt%LCHEM    = LCHEM
+      Input_Opt%LSCHEM   = LSCHEM
+      Input_Opt%LLINOZ   = LLINOZ
+      Input_Opt%LSVCSPEC = LSVCSPEC
+      Input_Opt%LKPP     = LKPP
+
+      ! Return success
+      RC = GIGC_SUCCESS
+
+      !=================================================================
       ! Print to screen
       !=================================================================
       IF ( am_I_Root ) THEN
@@ -3096,21 +3548,37 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_TRANSPORT_MENU( am_I_Root )
+      SUBROUTINE READ_TRANSPORT_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE ERROR_MOD,      ONLY : ERROR_STOP
-      USE LOGICAL_MOD,    ONLY : LTRAN
-      USE LOGICAL_MOD,    ONLY : LMFCT,              LFILL
-      USE TRACER_MOD,     ONLY : ITS_A_FULLCHEM_SIM, ITS_A_TAGOX_SIM
-#if ! defined( ESMF_ )
-      USE TRANSPORT_MOD, ONLY : SET_TRANSPORT
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE LOGICAL_MOD,        ONLY : LFILL
+      USE LOGICAL_MOD,        ONLY : LMFCT
+      USE LOGICAL_MOD,        ONLY : LTRAN
+      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
+      USE TRACER_MOD,         ONLY : ITS_A_TAGOX_SIM
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE TIME_MOD,           ONLY : Accept_External_Date_Time
 #endif
+#if !defined( ESMF_ )
+      USE TRANSPORT_MOD,      ONLY : SET_TRANSPORT
+#endif
+
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -3124,6 +3592,11 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !  10 Jun 2012 - L. Murray - Move strat to chemistry menu
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!  06 Dec 2012 - R. Yantosca - Now get TS_DYN from the ESMF environment, if
+!                              we are connecting to the GEOS-5 GCM
+!  11 Dec 2012 - R. Yantosca - ACCEPT_DATE_TIME_FROM_ESMF has now been renamed
+!                              to ACCEPT_EXTERNAL_DATE_TIME
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3187,7 +3660,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 #elif defined( GRID025x03125 )
       MAX_DYN = 5
 #elif defined( EXTERNAL_FORCING )
-      MAX_DYN = 10
+      MAX_DYN = 60
 #endif
 
       ! If TS_DYN is greater than MAX_DYN, then stop w/ error
@@ -3195,6 +3668,69 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
          MSG = 'Transport timestep is too big!'
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
+
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%LTRAN       = LTRAN
+      Input_Opt%LMFCT       = LMFCT
+      Input_Opt%LFILL       = LFILL
+      Input_Opt%TPCORE_IORD = IORD
+      Input_Opt%TPCORE_JORD = JORD
+      Input_Opt%TPCORE_KORD = KORD
+
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! If we are connecting to the ESMF interface, we need to take
+      ! the dynamic timestep as defined in the ESMF resource file.
+      ! (i.e. GEOSCHEMchem_GridComp_mod.rc) instead of that in 
+      ! input.geos.  This is because the ESMF Clock object needs to be
+      ! defined at the highest level (in the driver routine), before 
+      ! input.geos is ever read.
+      !
+      ! Therefore, we will assign the chemistry timestep field (i.e.
+      ! Input_Opt%TS_CHEM) in the Gridded Component module file
+      ! GEOSCHEMchem_GridComp_Mod.F90 (i.e. two levels higher
+      ! in the code).  We don'need to define those fields here, so
+      ! we have bracketed this with an #ifdef. 
+      !
+      ! Also pass the chemistry timestep value directly to module
+      ! GeosUtil/time_mod.F via subroutine ACCEPT_EXTERNAL_DATE_TIME.
+      !
+      ! Ideallly it would be good to have one single version of 
+      ! "input.geos" that can double as the GEOS-Chem input file as 
+      ! well as the ESMF resource.  We may be a way off from that.
+      ! One potential solution is to use a Perl script to generate
+      ! both the input.geos file and the ESMF resource file, so that
+      ! both files are consistent with each other.
+      ! (bmy, 12/6/12)
+      !-----------------------------------------------------------------
+      
+      ! Save to local variables for printing below
+      TS_DYN                = Input_Opt%TS_DYN
+
+      ! Pass chemistry timestep to time_mod.F
+      CALL Accept_External_Date_Time( am_I_Root    = am_I_Root, 
+     &                                value_TS_DYN = TS_DYN,
+     &                                RC           = RC         )
+     &                                 
+
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Current practice in the standard GEOS-Chem is to initialize 
+      ! the field Input_Optt%TS_DYN with the value read in from 
+      ! input.geos. (bmy, 12/6/12)
+      !-----------------------------------------------------------------
+      Input_Opt%TS_DYN      = TS_DYN
+
+#endif
+
+      ! Return success
+      RC = GIGC_SUCCESS
 
       !=================================================================
       ! Print to screen
@@ -3238,17 +3774,27 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_CONVECTION_MENU( am_I_Root )
+      SUBROUTINE READ_CONVECTION_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
       USE ERROR_MOD,   ONLY : ERROR_STOP
       USE LOGICAL_MOD, ONLY : LCONV, LTURB
       USE LOGICAL_MOD, ONLY : LNLPBL        ! (Lin, 03/31/09)
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -3261,6 +3807,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !                              been !defined( GEOS_57 ) )
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3314,6 +3861,17 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 #endif
 
       !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%LCONV   = LCONV
+      Input_Opt%LTURB   = LTURB
+      Input_Opt%LNLPBL  = LNLPBL
+      Input_Opt%TS_CONV = TS_CONV
+
+      ! Return success
+      RC = GIGC_SUCCESS
+
+      !=================================================================
       ! Print to screen
       !=================================================================
       IF ( am_I_Root ) THEN
@@ -3344,7 +3902,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_DEPOSITION_MENU( am_I_Root )
+      SUBROUTINE READ_DEPOSITION_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -3361,10 +3919,20 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 #if   defined( APM )
       USE APM_WETS_MOD, ONLY : WETDEPBINID
 #endif
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -3378,6 +3946,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !  31 Jul 2012 - R. Yantosca - Now pass am_I_Root to INIT_DRYDEP
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3425,6 +3994,15 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       IF ( ITS_A_CH4_SIM()     ) LWETD = .FALSE.
 
       !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%LDRYD = LDRYD
+      Input_Opt%LWETD = LWETD
+
+      ! Return success
+      RC = GIGC_SUCCESS
+
+      !=================================================================
       ! Print to screen
       !=================================================================
       IF ( am_I_Root ) THEN
@@ -3458,7 +4036,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       ENDIF
 
       ! Initialize wet deposition tracers
-      IF ( LWETD .or. LCONV ) CALL WETDEPID !( am_I_Root )
+      IF ( LWETD .or. LCONV ) CALL WETDEPID( am_I_Root )
 
 #if   defined( APM )
       ! Initialize wet deposition tracers for APM
@@ -3486,17 +4064,31 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_GAMAP_MENU( am_I_Root )
+      SUBROUTINE READ_GAMAP_MENU( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  25 Apr 2005 - R. Yantosca - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3521,6 +4113,15 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_gamap_menu:3' )
+
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%GAMAP_DIAGINFO   = DIAGINFO
+      Input_Opt%GAMAP_TRACERINFO = TRACERINFO
+
+      ! Return success
+      RC = GIGC_SUCCESS
 
       !=================================================================
       ! Print to screen
@@ -3549,7 +4150,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_OUTPUT_MENU( am_I_Root )
+      SUBROUTINE READ_OUTPUT_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -3557,10 +4158,20 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       
       USE CMN_SIZE_MOD   ! Size parameters
       USE CMN_DIAG_MOD   ! NJDAY
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -3568,6 +4179,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  03 Aug 2012 - R. Yantosca - IU_GEOS is now a global module variable
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3586,6 +4198,14 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 
       ! Error check
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_GEOS, 'read_output_menu:1' )
+
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%NJDAY = NJDAY
+      
+      ! Return success
+      RC = GIGC_SUCCESS
 
       !=================================================================
       ! Print to screen
@@ -3626,16 +4246,18 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_DIAGNOSTIC_MENU( am_I_Root )
+      SUBROUTINE READ_DIAGNOSTIC_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
       USE BIOFUEL_MOD,  ONLY : NBFTRACE
       USE BPCH2_MOD,    ONLY : OPEN_BPCH2_FOR_WRITE
       USE DIAG03_MOD,   ONLY : ND03,      PD03,      INIT_DIAG03
+      USE DIAG03_MOD,   ONLY : PD03_PL    !eds 9/9/10
       USE DIAG04_MOD,   ONLY : ND04,      PD04,      INIT_DIAG04
       USE DIAG41_MOD,   ONLY : ND41,      PD41,      INIT_DIAG41
       USE DIAG42_MOD,   ONLY : ND42,      PD42,      INIT_DIAG42
+      USE DIAG53_MOD,   ONLY : ND53,      PD53,      INIT_DIAG53
       USE DIAG56_MOD,   ONLY : ND56,      PD56,      INIT_DIAG56
       USE DIAG_OH_MOD,  ONLY : INIT_DIAG_OH
       USE DRYDEP_MOD,   ONLY : NUMDEP
@@ -3651,15 +4273,29 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM,    ITS_A_RnPbBe_SIM
       USE TRACER_MOD,   ONLY : ITS_A_TAGOX_SIM,      ITS_A_CH3I_SIM
       USE TRACER_MOD,   ONLY : SALA_REDGE_um,        ITS_A_CH4_SIM
+      USE TRACER_MOD,   ONLY : ITS_A_POPS_SIM
       USE TRACERID_MOD, ONLY : NEMANTHRO
       USE WETSCAV_MOD,  ONLY : GET_WETDEP_NMAX
 
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_DIAG_MOD       ! NDxx flags
+      USE DIAG_MOD,           ONLY: TINDEX
+      USE DIAG_MOD,           ONLY: TCOUNT
+      USE DIAG_MOD,           ONLY: TMAX
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 !
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -3692,6 +4328,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !                              with indices higher than #32 won't print out.
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3746,7 +4383,9 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:5' )
       READ( SUBSTRS(1), * ) ND03
       IF ( .not. ITS_A_MERCURY_SIM() ) ND03 = 0
-      CALL SET_TINDEX( am_I_Root, 03, ND03, SUBSTRS(2:N), N-1, PD03 )
+      !CALL SET_TINDEX( am_I_Root, 03, ND03, SUBSTRS(2:N), N-1, PD03_PL ) !eds 9/9/10
+      CALL SET_TINDEX( am_I_Root, 03, ND03, SUBSTRS(2:N), N-1, PD03 ) !yzh 12/15/12
+	  
 
       !--------------------------
       ! ND04: CO2 emissions
@@ -4095,12 +4734,12 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       CALL SET_TINDEX( am_I_Root, 52, ND52, SUBSTRS(2:N), N-1, PD52 )
 
       !--------------------------
-      ! ND53: Free
+      ! ND53: POPS
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:52' )
       READ( SUBSTRS(1), * ) ND53
-      CALL SET_TINDEX( am_I_Root, 
-     &                 53, ND53, SUBSTRS(2:N), N-1, N_TRACERS )
+      IF ( .not. ITS_A_POPS_SIM() ) ND53 = 0
+      CALL SET_TINDEX( am_I_Root, 53, ND53, SUBSTRS(2:N), N-1, PD53 )
 
       !--------------------------
       ! ND54: Time in troposphere
@@ -4214,6 +4853,94 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 
       !=================================================================
       ! Call other setup routines
+      !=================================================================
+      Input_Opt%ND01               = ND01
+      Input_Opt%ND02               = ND02
+      Input_Opt%ND03               = ND03
+      Input_Opt%ND04               = ND04
+      Input_Opt%ND05               = ND05
+      Input_Opt%ND06               = ND06
+      Input_Opt%ND07               = ND07
+      Input_Opt%ND08               = ND08
+      Input_Opt%ND09               = ND09
+      Input_Opt%ND10               = ND10
+      Input_Opt%ND11               = ND11
+      Input_Opt%ND12               = ND12
+      Input_Opt%ND13               = ND13
+      Input_Opt%ND14               = ND14
+      Input_Opt%ND15               = ND15
+      Input_Opt%ND16               = ND16
+      Input_Opt%ND17               = ND17
+      Input_Opt%ND18               = ND18
+      Input_Opt%ND19               = ND19
+      Input_Opt%ND20               = ND20
+      Input_Opt%ND21               = ND21
+      Input_Opt%ND22               = ND22
+      Input_Opt%ND23               = ND23
+      Input_Opt%ND24               = ND24
+      Input_Opt%ND25               = ND25
+      Input_Opt%ND26               = ND26
+      Input_Opt%ND27               = ND27
+      Input_Opt%ND28               = ND28
+      Input_Opt%ND29               = ND29
+      Input_Opt%ND30               = ND30
+      Input_Opt%ND31               = ND31
+      Input_Opt%ND32               = ND32
+      Input_Opt%ND33               = ND33
+      Input_Opt%ND34               = ND34
+      Input_Opt%ND35               = ND35
+      Input_Opt%ND36               = ND36
+      Input_Opt%ND37               = ND37
+      Input_Opt%ND38               = ND38
+      Input_Opt%ND39               = ND39
+      Input_Opt%ND40               = ND40
+      Input_Opt%ND41               = ND41
+      Input_Opt%ND42               = ND42
+      Input_Opt%ND43               = ND43
+      Input_Opt%ND44               = ND44
+      Input_Opt%ND45               = ND45
+      Input_Opt%ND46               = ND46
+      Input_Opt%ND47               = ND47
+      Input_Opt%ND48               = ND48
+      Input_Opt%ND49               = ND49
+      Input_Opt%ND50               = ND50
+      Input_Opt%ND51               = ND51
+      Input_Opt%ND52               = ND52
+      Input_Opt%ND53               = ND53
+      Input_Opt%ND54               = ND54
+      Input_Opt%ND55               = ND55
+      Input_Opt%ND56               = ND56
+      Input_Opt%ND57               = ND57
+      Input_Opt%ND58               = ND58
+      Input_Opt%ND59               = ND59
+      Input_Opt%ND60               = ND60
+      Input_Opt%ND61               = ND61
+      Input_Opt%ND62               = ND62
+      Input_Opt%ND63               = ND63
+      Input_Opt%ND64               = ND64
+      Input_Opt%ND66               = ND66
+      Input_Opt%ND67               = ND67
+      Input_Opt%ND68               = ND68
+      Input_Opt%ND69               = ND69
+      Input_Opt%ND70               = ND70
+      Input_Opt%LPRT               = ( ND70 > 0 )
+
+      ! Loop over # of diagnostics
+      DO M = 1, Input_Opt%MAX_DIAG
+         Input_Opt%TCOUNT(M)       = TCOUNT(M)
+         Input_Opt%TMAX(M)         = TMAX(M)
+
+         ! Loop over tracers per diagnostic
+         DO N = 1, Input_Opt%MAX_TRCS
+            Input_Opt%TINDEX(M,N)  = TINDEX(M,N)
+         ENDDO
+      ENDDO
+
+      ! Return success
+      RC = GIGC_SUCCESS
+
+      !=================================================================
+      ! Call other setup routines
       !================================================================
 
       ! Allocate diagnostic arrays
@@ -4221,6 +4948,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       CALL INIT_DIAG04
       CALL INIT_DIAG41
       CALL INIT_DIAG42
+      CALL INIT_DIAG53
       CALL INIT_DIAG56
 
       ! Enable Mean OH (or CH3CCl3) diag for runs which need it
@@ -4255,6 +4983,8 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !
 ! !USES:
 !
+      USE CHARPAK_MOD, ONLY : TXTEXT   ! (win, 7/14/09)
+
       USE CMN_SIZE_MOD                              ! Size parameters
       USE CMN_DIAG_MOD                              ! TMAX, TINDEX
 !
@@ -4280,9 +5010,12 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE :: FIRST = .TRUE.
-      LOGICAL       :: IS_ALL 
-      INTEGER       :: M
+      LOGICAL, SAVE       :: FIRST = .TRUE.
+      LOGICAL             :: IS_ALL 
+      INTEGER             :: M
+      INTEGER             :: NN,     COL,     IFLAG, TC     ! (win, 7/14/09)
+      CHARACTER (LEN=255) :: WORD,   SUBWORD, TMP1,  TMP2   ! (win, 7/14/09)
+      INTEGER             :: MINTMP, MAXTMP                 ! (win, 7/14/09)
 
       !=================================================================
       ! SET_TINDEX begins here!
@@ -4319,17 +5052,62 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 
       ELSE 
 
-         ! Otherwise, set TMAX, TINDEX to the # of tracers
-         ! listed in "input.ctm" -- need some error checks too
-         TMAX(N_DIAG) = N
+!(win, 7/14/09)  use TXTEXT and split the read in characters by -
+
+         COL   = 1
+         NN    = 0
+         SUBWORD  = ''
+         IFLAG = 0
 
          ! Use explicit DO-loop
          DO M = 1, N
-            READ( SUBSTRS(M:M), * ) TINDEX(N_DIAG,M)
+            WORD = SUBSTRS(M)
+
+            ! Check if the characters are a range with - in the middle
+            CALL TXTEXT ( '-', WORD, COL, SUBWORD, IFLAG )
+
+            ! Found a dash!  Get the numbers on both sides of the dash
+            ! since these the min and max of the tracer range
+            IF ( IFLAG == 0 ) THEN
+               TMP1 = TRIM( WORD(      1:COL-1      ) )
+               TMP2 = TRIM( WORD( COL+1:LEN_TRIM( WORD ) ) )
+
+               READ( TMP1, * ) MINTMP
+               READ( TMP2, * ) MAXTMP
+               
+               DO TC = MINTMP, MAXTMP
+                  NN = NN + 1
+                  TINDEX( N_DIAG, NN ) = TC
+               ENDDO
+
+            ! If we haven't found a dash, then there is only one number,
+            ! so that number is both the min and max of the tracer range
+            ELSE IF ( IFLAG == -1 ) THEN
+               NN = NN + 1
+               TMP1 = TRIM( WORD )
+               READ( TMP1, * ) TINDEX( N_DIAG, NN )
+            ENDIF
+               
          ENDDO
+
+         ! Set TMAX to the counted # of tracers
+         TMAX( N_DIAG ) = NN
 
          ! Set flag
          IS_ALL = .FALSE.
+
+!prior to 7/14/09
+c$$$         ! Otherwise, set TMAX, TINDEX to the # of tracers
+c$$$         ! listed in "input.ctm" -- need some error checks too
+c$$$         TMAX(N_DIAG) = N
+c$$$
+c$$$         ! Use explicit DO-loop
+c$$$         DO M = 1, N
+c$$$            READ( SUBSTRS(M:M), * ) TINDEX(N_DIAG,M)
+c$$$         ENDDO
+c$$$
+c$$$         ! Set flag
+c$$$         IS_ALL = .FALSE.
 
       ENDIF
 
@@ -4388,7 +5166,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_PLANEFLIGHT_MENU( am_I_Root )
+      SUBROUTINE READ_PLANEFLIGHT_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -4397,16 +5175,27 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 
       USE CMN_SIZE_MOD                   ! MAXFAM
       USE CMN_DIAG_MOD                   ! ND40
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-! 
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+!
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4451,6 +5240,16 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       READ( SUBSTRS(1:N), '(a)' ) OFILE
 
       !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%DO_PF    = DO_PF
+      Input_Opt%PF_IFILE = IFILE
+      Input_Opt%PF_OFILE = OFILE
+
+      ! Return success
+      RC = GIGC_SUCCESS
+
+      !=================================================================
       ! Print to screen
       !=================================================================
       IF( am_I_Root ) THEN
@@ -4487,16 +5286,26 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_ND48_MENU( am_I_Root )
+      SUBROUTINE READ_ND48_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
       USE DIAG48_MOD, ONLY : INIT_DIAG48, ND48_MAX_STATIONS
       USE ERROR_MOD,  ONLY : ERROR_STOP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -4504,6 +5313,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4564,6 +5374,21 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       ENDDO
 
       !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%DO_ND48            = DO_ND48
+      Input_Opt%ND48_FILE          = FILE
+      Input_Opt%ND48_FREQ          = FREQ
+      Input_Opt%ND48_N_STA         = N_STA
+      Input_Opt%ND48_IARR(1:N_STA) = IARR(1:N_STA)
+      Input_Opt%ND48_JARR(1:N_STA) = JARR(1:N_STA)
+      Input_Opt%ND48_LARR(1:N_STA) = LARR(1:N_STA)
+      Input_Opt%ND48_NARR(1:N_STA) = NARR(1:N_STA)
+
+      ! Return success
+      RC = GIGC_SUCCESS
+
+      !=================================================================
       ! Print to screen
       !=================================================================
       IF( am_I_Root ) THEN
@@ -4607,7 +5432,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_ND49_MENU( am_I_Root )
+      SUBROUTINE READ_ND49_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -4615,16 +5440,27 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       USE ERROR_MOD,  ONLY : ERROR_STOP
 
       USE CMN_SIZE_MOD     ! Size parameters
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4689,6 +5525,23 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd49_menu:8' )
 
       !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%DO_ND49                = DO_ND49
+      Input_Opt%ND49_FILE              = FILE
+      Input_Opt%ND49_TRACERS(1:N_ND49) = TRACERS(1:N_ND49)
+      Input_Opt%ND49_FREQ              = FREQ
+      Input_Opt%ND49_IMIN              = IMIN
+      Input_Opt%ND49_IMAX              = IMAX
+      Input_Opt%ND49_JMIN              = JMIN
+      Input_Opt%ND49_JMAX              = JMAX
+      Input_Opt%ND49_LMIN              = LMIN
+      Input_Opt%ND49_LMAX              = LMAX
+
+      ! Return success
+      RC = GIGC_SUCCESS
+
+      !=================================================================
       ! Print to screen
       !=================================================================
       IF( am_I_Root ) THEN
@@ -4734,17 +5587,27 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_ND50_MENU( am_I_Root )
+      SUBROUTINE READ_ND50_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
       USE DIAG50_MOD,  ONLY : INIT_DIAG50
       USE ERROR_MOD,   ONLY : ERROR_STOP
       USE LOGICAL_MOD, ONLY : LND50_HDF
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -4754,6 +5617,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4821,6 +5685,23 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd50_menu:8' )
 
       !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%DO_ND50                = DO_ND50
+      Input_Opt%ND50_FILE              = FILE
+      Input_Opt%LND50_HDF              = LND50_HDF
+      Input_Opt%ND50_TRACERS(1:N_ND50) = TRACERS(1:N_ND50)
+      Input_Opt%ND50_IMIN              = IMIN
+      Input_Opt%ND50_IMAX              = IMAX
+      Input_Opt%ND50_JMIN              = JMIN
+      Input_Opt%ND50_JMAX              = JMAX
+      Input_Opt%ND50_LMIN              = LMIN
+      Input_Opt%ND50_LMAX              = LMAX
+
+      ! Return success
+      RC = GIGC_SUCCESS
+
+      !=================================================================
       ! Print to screen
       !=================================================================
       IF( am_I_Root ) THEN
@@ -4865,7 +5746,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_ND51_MENU( am_I_Root )
+      SUBROUTINE READ_ND51_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -4875,10 +5756,20 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 
       USE CMN_SIZE_MOD      ! Size parameters
       USE CMN_DIAG_MOD      ! NDxx flags
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -4888,6 +5779,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4965,6 +5857,26 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd51_menu:11' )
 
       !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%DO_ND51                = DO_ND51
+      Input_Opt%ND51_FILE              = FILE
+      Input_Opt%LND51_HDF              = LND51_HDF
+      Input_Opt%ND51_TRACERS(1:N_ND51) = TRACERS(1:N_ND51)
+      Input_Opt%ND51_HR_WRITE          = HR_WRITE
+      Input_Opt%ND51_HR1               = HR1 
+      Input_Opt%ND51_HR2               = HR2
+      Input_Opt%ND51_IMIN              = IMIN
+      Input_Opt%ND51_IMAX              = IMAX
+      Input_Opt%ND51_JMIN              = JMIN
+      Input_Opt%ND51_JMAX              = JMAX
+      Input_Opt%ND51_LMIN              = LMIN
+      Input_Opt%ND51_LMAX              = LMAX
+
+      ! Return success
+      RC = GIGC_SUCCESS
+
+      !=================================================================
       ! Print to screen
       !=================================================================
       IF ( am_I_Root ) THEN
@@ -5013,7 +5925,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_ND51b_MENU( am_I_Root )
+      SUBROUTINE READ_ND51b_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -5023,16 +5935,27 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 
       USE CMN_SIZE_MOD      ! Size parameters
       USE CMN_DIAG_MOD      ! NDxx flags
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-! 
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+!
 ! !REVISION HISTORY: 
 !  21 Dec 2009 - Aaron van D - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5110,6 +6033,26 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd51b_menu:10' )
 
       !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%DO_ND51b                 = DO_ND51
+      Input_Opt%ND51b_FILE               = FILE
+      Input_Opt%LND51b_HDF               = LND51b_HDF
+      Input_Opt%ND51b_TRACERS(1:N_ND51)  = TRACERS(1:N_ND51)
+      Input_Opt%ND51b_HR_WRITE           = HR_WRITE
+      Input_Opt%ND51b_HR1                = HR1 
+      Input_Opt%ND51b_HR2                = HR2
+      Input_Opt%ND51b_IMIN               = IMIN
+      Input_Opt%ND51b_IMAX               = IMAX
+      Input_Opt%ND51b_JMIN               = JMIN
+      Input_Opt%ND51b_JMAX               = JMAX
+      Input_Opt%ND51b_LMIN               = LMIN
+      Input_Opt%ND51b_LMAX               = LMAX
+
+      ! Return success
+      RC = GIGC_SUCCESS
+
+      !=================================================================
       ! Print to screen
       !=================================================================
       IF ( am_I_Root ) THEN
@@ -5158,7 +6101,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_ND63_MENU( am_I_Root )
+      SUBROUTINE READ_ND63_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -5166,10 +6109,20 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       USE ERROR_MOD,  ONLY : ERROR_STOP
 
       USE CMN_SIZE_MOD     ! Size parameters
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY:
 !  25 Feb 2011 - G. Vinken   - Initial version
@@ -5178,6 +6131,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !                              READ_ND63 MENU. ND59 is used by TOMAS.
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5236,6 +6190,21 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd63_menu:8' )
 
       !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%DO_ND63              = DO_ND63
+      Input_Opt%ND63_FILE            = FILE
+      Input_Opt%ND63_TRACERS(1:ND63) = TRACERS(1:N_ND63)
+      Input_Opt%ND63_FREQ            = FREQ
+      Input_Opt%ND63_IMIN            = IMIN
+      Input_Opt%ND63_IMAX            = IMAX
+      Input_Opt%ND63_JMIN            = JMIN
+      Input_Opt%ND63_JMAX            = JMAX
+
+      ! Return success
+      RC = GIGC_SUCCESS
+
+      !=================================================================
       ! Print to screen
       !=================================================================
       IF ( am_I_Root ) THEN
@@ -5279,7 +6248,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_PROD_LOSS_MENU( am_I_Root )
+      SUBROUTINE READ_PROD_LOSS_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -5292,10 +6261,20 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 
       USE CMN_SIZE_MOD      ! MAXFAM
       USE CMN_DIAG_MOD      ! ND65
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -5306,6 +6285,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  08 Nov 2012 - R. Yantosca - Now save fields to the Input_Opt object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5486,6 +6466,31 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
  130  FORMAT( I3, 1X, F4.1, 1X, A5 )
 
       !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%DO_SAVE_PL          = DO_SAVE_PL
+      Input_Opt%LFAMILY             = ( DO_SAVE_PL .and. NFAM > 0 )
+      Input_Opt%ND65                = ND65
+      Input_Opt%DO_SAVE_O3          = DO_SAVE_O3
+      Input_Opt%NFAM                = NFAM
+
+      ! Loop over # families
+      DO F = 1, NFAM
+         Input_Opt%FAM_NAME(F)      = FAM_NAME(F) 
+         Input_Opt%FAM_NMEM(F)      = FAM_NMEM(F)
+         Input_Opt%FAM_TYPE(F)      = FAM_TYPE(F)
+
+         ! Loop over # members/family
+         DO M = 1, FAM_NMEM(F)   
+            Input_Opt%FAM_COEF(M,F) = FAM_COEF(M,F)
+            Input_Opt%FAM_MEMB(M,F) = FAM_MEMB(M,F)
+         ENDDO
+      ENDDO
+
+      ! Return success
+      RC = GIGC_SUCCESS
+
+      !=================================================================
       ! Call setup routines from other F90 modules
       !=================================================================
 
@@ -5508,7 +6513,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_UNIX_CMDS_MENU( am_I_Root )
+      SUBROUTINE READ_UNIX_CMDS_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -5516,17 +6521,28 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       USE UNIX_CMDS_MOD, ONLY : BACKGROUND, REDIRECT,  REMOVE_CMD 
       USE UNIX_CMDS_MOD, ONLY : SEPARATOR,  SPACE,     UNZIP_CMD
       USE UNIX_CMDS_MOD, ONLY : WILD_CARD,  ZIP_SUFFIX 
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-! 
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+!
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5578,6 +6594,20 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       SPACE = ' '
 
       !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%BACKGROUND = BACKGROUND
+      Input_Opt%REDIRECT   = REDIRECT
+      Input_Opt%REMOVE_CMD = REMOVE_CMD
+      Input_Opt%SEPARATOR  = SEPARATOR
+      Input_Opt%WILD_CARD  = WILD_CARD
+      Input_Opt%UNZIP_CMD  = UNZIP_CMD
+      Input_Opt%ZIP_SUFFIX = ZIP_SUFFIX
+
+      ! Return success
+      RC = GIGC_SUCCESS
+
+      !=================================================================
       ! Print to screen
       !=================================================================
       IF( am_I_Root ) THEN
@@ -5617,7 +6647,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_NESTED_GRID_MENU( am_I_Root )
+      SUBROUTINE READ_NESTED_GRID_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -5628,10 +6658,20 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       USE LOGICAL_MOD,   ONLY : LWINDO_NA,   LWINDO_EU,   LWINDO_CH
       USE LOGICAL_MOD,   ONLY : LWINDO_SE
       USE TPCORE_BC_MOD, ONLY : INIT_TPCORE_BC
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -5640,6 +6680,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5721,6 +6762,32 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:15' )
 
       !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%LWINDO      = LWINDO
+      Input_Opt%LWINDO2x25  = LWINDO2x25
+      Input_Opt%LWINDO_NA   = LWINDO_NA
+      Input_Opt%TPBC_DIR_NA = TPBC_DIR_NA
+      Input_Opt%LWINDO_EU   = LWINDO_EU
+      Input_Opt%TPBC_DIR_EU = TPBC_DIR_EU
+      Input_Opt%LWINDO_CH   = LWINDO_CH
+      Input_Opt%TPBC_DIR_CH = TPBC_DIR_CH
+      Input_Opt%LWINDO_SE   = LWINDO_SE
+      Input_Opt%TPBC_DIR_SE = TPBC_DIR_SE
+      Input_Opt%LWINDO_CU   = LWINDO_CU
+      Input_Opt%TPBC_DIR    = TPBC_DIR
+      Input_Opt%NESTED_TS   = TS
+      Input_Opt%NESTED_I1   = I1
+      Input_Opt%NESTED_J1   = J1
+      Input_Opt%NESTED_I2   = I2
+      Input_Opt%NESTED_J2   = J2
+      Input_Opt%NESTED_I0W  = I0W
+      Input_Opt%NESTED_J0W  = J0W
+
+      ! Return success
+      RC = GIGC_SUCCESS
+
+      !=================================================================
       ! Print to screen
       !=================================================================
       IF( am_I_Root ) THEN
@@ -5762,22 +6829,33 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_BENCHMARK_MENU( am_I_Root )
+      SUBROUTINE READ_BENCHMARK_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
       USE BENCHMARK_MOD, ONLY : INITIAL_FILE, FINAL_FILE
       USE LOGICAL_MOD,   ONLY : LSTDRUN
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5805,6 +6883,16 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_benchmark_menu:4' )
+
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%LSTDRUN           = LSTDRUN
+      Input_Opt%STDRUN_INIT_FILE  = INITIAL_FILE
+      Input_Opt%STDRUN_FINAL_FILE = FINAL_FILE
+
+      ! Return success
+      RC = GIGC_SUCCESS
 
       !=================================================================
       ! Print to screen
@@ -5838,21 +6926,32 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_ARCHIVED_OH_MENU( am_I_Root )
+      SUBROUTINE READ_ARCHIVED_OH_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
       USE DIRECTORY_MOD, ONLY : OH_DIR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5872,6 +6971,14 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_archived_oh_menu:1' )
+
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%OH_DIR = OH_DIR
+
+      ! Return success
+      RC = GIGC_SUCCESS
 
       !=================================================================
       ! Print to screen
@@ -5900,20 +7007,30 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_O3PL_MENU( am_I_Root )
+      SUBROUTINE READ_O3PL_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
       USE DIRECTORY_MOD, ONLY : O3PL_DIR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
-!EOP
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -5932,6 +7049,14 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_archived_oh_menu:2' )
+
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%O3PL_DIR = O3PL_DIR
+
+      ! Return success
+      RC = GIGC_SUCCESS
 
       !=================================================================
       ! Print to screen
@@ -5961,7 +7086,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_MERCURY_MENU( am_I_Root )
+      SUBROUTINE READ_MERCURY_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -5972,10 +7097,20 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       USE DEPO_MERCURY_MOD,  ONLY : INIT_DEPO_MERCURY
       USE LAND_MERCURY_MOD,  ONLY : INIT_LAND_MERCURY
       USE TRACER_MOD,        ONLY : ITS_A_MERCURY_SIM
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  24 Feb 2006 - R. Yantosca - Initial version
@@ -5984,6 +7119,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5992,6 +7128,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !
       LOGICAL            :: USE_CHECKS
       INTEGER            :: ANTHRO_Hg_YEAR,  N 
+      CHARACTER(LEN=255) :: HG_SCENARIO  !eds 5/17/12
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), Hg_RST_FILE
       CHARACTER(LEN=255) :: GTMM_RST_FILE
 
@@ -6003,32 +7140,36 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:1' )
       READ( SUBSTRS(1:N), * ) ANTHRO_Hg_YEAR
 
-      ! Use error check for tag/tot Hg?
+      ! Use future emissions scenario?   !eds 5/17/12
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:2' )
+      READ( SUBSTRS(1:N), '(a)' ) HG_SCENARIO
+
+      ! Use error check for tag/tot Hg?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:3' )
       READ( SUBSTRS(1:N), * ) USE_CHECKS
 
       ! Use dynamic ocean model?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:3' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:4' )
       READ( SUBSTRS(1:N), * ) LDYNOCEAN
 
       ! Use preindustrial simulation?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read mercury_menu:4' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read mercury_menu:5' )
       READ( SUBSTRS(1:N), * ) LPREINDHG
 
       ! Name of ocean restart file
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:5' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:6' )
       READ( SUBSTRS(1:N), '(a)' ) Hg_RST_FILE
 
       ! Use GTMM ?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:6' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:7' )
       READ( SUBSTRS(1:N), * ) LGTMM
 
       ! Name of GTMM restart file
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:7' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:8' )
       READ( SUBSTRS(1:N), * ) GTMM_RST_FILE
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:8' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:9' )
 
       ! Check on logical
       IF (.NOT.( ITS_A_MERCURY_SIM() ) ) THEN
@@ -6044,6 +7185,8 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
          WRITE( 6, '(  a)' ) '------------'
          WRITE( 6, 100 ) 'Anthro Hg emissions year    : ', 
      &                    ANTHRO_Hg_YEAR
+         WRITE( 6, 120 ) 'Future emissions scenario   : ',  !eds 5/17/12
+     &                    TRIM( HG_SCENARIO )
          WRITE( 6, 110 ) 'Error check tag & total Hg? : ', USE_CHECKS
          WRITE( 6, 110 ) 'Use dynamic ocean Hg model? : ', LDYNOCEAN
          WRITE( 6, 110 ) 'Preindustrial simulation?   : ', LPREINDHG
@@ -6059,11 +7202,26 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
  110  FORMAT( A, L5  )
  120  FORMAT( A, A   )
     
+      !=================================================================
+      ! Copy to Input Options object
+      !=================================================================
+      Input_Opt%ANTHRO_Hg_YEAR = ANTHRO_Hg_YEAR
+      Input_Opt%HG_SCENARIO    = HG_SCENARIO
+      Input_Opt%USE_CHECKS     = USE_CHECKS
+      Input_Opt%LDYNOCEAN      = LDYNOCEAN
+      Input_Opt%LPREINDHG      = LPREINDHG
+      Input_Opt%Hg_RST_FILE    = Hg_RST_FILE
+      Input_Opt%LGTMM          = LGTMM
+      Input_Opt%GTMM_RST_FILE  = GTMM_RST_FILE
+
+      ! Return success
+      RC = GIGC_SUCCESS
+
       ! If we are performing a Hg simulation ...
       IF ( ITS_A_MERCURY_SIM() ) THEN 
 
          ! Initialize "mercury_mod.f"
-         CALL INIT_MERCURY( ANTHRO_Hg_YEAR )
+         CALL INIT_MERCURY( ANTHRO_Hg_YEAR, HG_SCENARIO ) !eds 5/17/12
          CALL INIT_LAND_MERCURY()
          CALL INIT_DEPO_MERCURY(TRIM( GTMM_RST_FILE ))
 
@@ -6090,7 +7248,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_CH4_MENU( am_I_Root )
+      SUBROUTINE READ_CH4_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -6104,18 +7262,29 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       USE LOGICAL_MOD, ONLY : LGFED3BB, LDAYBB3
       USE LOGICAL_MOD, ONLY : LGFED2BB, L8DAYBB
       USE ERROR_MOD,   ONLY : ERROR_STOP
- 
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+
 #     include "define.h"             ! C-preprocessor switches
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  03 Aug 2009 - K. Wecht, C. Pickett-Heaps - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6222,7 +7391,193 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       ! FORMAT statements
  100  FORMAT( A, L5  )
 
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%LCH4BUD = LCH4BUD
+      Input_Opt%LGAO    = LGAO
+      Input_Opt%LCOL    = LCOL         
+      Input_Opt%LLIV    = LLIV         
+      Input_Opt%LWAST   = LWAST         
+      Input_Opt%LBFCH4  = LBFCH4       
+      Input_Opt%LRICE   = LRICE         
+      Input_Opt%LOTANT  = LOTANT         
+      Input_Opt%LBMCH4  = LBMCH4       
+      Input_Opt%LWETL   = LWETL         
+      Input_Opt%LSOABS  = LSOABS          
+      Input_Opt%LOTNAT  = LOTNAT 
+
+      ! Return success
+      RC = GIGC_SUCCESS         
+
       END SUBROUTINE READ_CH4_MENU
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_pops_menu
+!
+! !DESCRIPTION: Subroutine READ\_POPS\_MENU reads the POPS MENU section of 
+!  the GEOS-Chem input file; this defines emissions options for POPs
+!  simulations.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE READ_POPS_MENU( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+      USE GET_POPSINFO_MOD,     ONLY : GET_POP_TYPE
+      USE POPS_MOD,             ONLY : INIT_POPS
+      USE DIRECTORY_MOD,        ONLY : POP_EMISDIR
+      USE TRACER_MOD,           ONLY : ITS_A_POPS_SIM
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN)           :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+! 
+! !REVISION HISTORY: 
+!  01 Oct 2012 - C. Friedman - Initial version
+!  26 Nov 2012 - M. Payer    - Added ProTeX headers
+!  29 Nov 2012 - M. Payer    - Now pass Input_Opt, RC as arguments
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER                    :: N
+      LOGICAL                    :: CHEM_PROCESS
+      CHARACTER(LEN=255)         :: SUBSTRS(MAXDIM)
+      CHARACTER(LEN=3)           :: POP_TYPE
+      REAL*8                     :: POP_XMW, POP_KOA, POP_KBC
+      REAL*8                     :: POP_K_POPG_OH
+      REAL*8                     :: POP_K_POPP_O3A, POP_K_POPP_O3B
+      REAL*8                     :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
+
+      !=================================================================
+      ! READ_POPS_MENU begins here!
+      !=================================================================
+
+      ! POP species
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:1' )
+      READ( SUBSTRS(1:N), * ) POP_TYPE
+
+      ! Dummy for future process logical switches
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:2' )
+      READ( SUBSTRS(1:N), * ) CHEM_PROCESS
+
+      ! Name of pops emissions file
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:3' )
+      READ( SUBSTRS(1:N), '(a)' ) POP_EMISDIR
+
+      ! Molecular weight
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:4' )
+      READ( SUBSTRS(1:N), * ) POP_XMW
+
+      ! KOA
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:5' )
+      READ( SUBSTRS(1:N), * ) POP_KOA
+
+      ! KBC
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:6' )
+      READ( SUBSTRS(1:N), * ) POP_KBC
+
+      ! OH oxidation
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:7' )
+      READ( SUBSTRS(1:N), * ) POP_K_POPG_OH
+
+      ! O3 oxidation 1
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:8' )
+      READ( SUBSTRS(1:N), * ) POP_K_POPP_O3A
+
+      ! O3 oxidation 2
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:9' )
+      READ( SUBSTRS(1:N), * ) POP_K_POPP_O3B
+
+      ! H*
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:10' )
+      READ( SUBSTRS(1:N), * ) POP_HSTAR
+
+      ! DEL_H
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:11' )
+      READ( SUBSTRS(1:N), * ) POP_DEL_H
+
+      ! DEL_Hw
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:12' )
+      READ( SUBSTRS(1:N), * ) POP_DEL_Hw
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:13' )
+
+      !=================================================================
+      ! Print to screen
+      !=================================================================
+      IF( am_I_Root ) THEN
+         WRITE( 6, '(/,a)' ) 'POPS MENU'
+         WRITE( 6, '(  a)' ) '------------'
+         WRITE( 6, 120     ) 'Species of POP    : ', 
+     &                        POP_TYPE
+         WRITE( 6, 110     ) 'Chemistry on? : ', CHEM_PROCESS
+         WRITE( 6, 120     ) '=> POP Emissions file       : ',
+     &                        TRIM( POP_EMISDIR )
+         WRITE( 6, 130     ) 'Param 1:', POP_XMW
+      ENDIF
+
+      ! FORMAT statements
+ 110  FORMAT( A, L5  )
+ 120  FORMAT( A, A   )
+ 130  FORMAT( A, f6.5 )
+
+      !=================================================================
+      ! Copy to Input Options object
+      !=================================================================
+      Input_Opt%POP_TYPE       = POP_TYPE
+      Input_Opt%CHEM_PROCESS   = CHEM_PROCESS
+      Input_Opt%POP_EMISFILE   = POP_EMISDIR
+      Input_Opt%POP_XMW        = POP_XMW
+      Input_Opt%POP_KOA        = POP_KOA
+      Input_Opt%POP_KBC        = POP_KBC
+      Input_Opt%POP_K_POPG_OH  = POP_K_POPG_OH
+      Input_Opt%POP_K_POPP_O3A = POP_K_POPP_O3A
+      Input_Opt%POP_K_POPP_O3B = POP_K_POPP_O3B
+      Input_Opt%POP_HSTAR      = POP_HSTAR
+      Input_Opt%POP_DEL_H      = POP_DEL_H 
+      Input_Opt%POP_DEL_Hw     = POP_DEL_Hw
+
+      ! Return success
+      RC = GIGC_SUCCESS
+
+      ! If we are performing a POPS simulation ...
+      IF ( ITS_A_POPS_SIM() ) THEN 
+
+         ! Initially set pop type
+         POP_TYPE = GET_POP_TYPE( POP_TYPE )
+
+         ! Set emissions file to use
+!         POP_EMISSFILE = GET_EMISSFILE( TRIM( POP_EMISSFILE ) )
+
+         ! Initialize "pops_mod.f"
+         CALL INIT_POPS(POP_XMW, POP_KOA, POP_KBC, POP_K_POPG_OH,
+     &                  POP_K_POPP_O3A, POP_K_POPP_O3B, 
+     &                  POP_HSTAR, POP_DEL_H, POP_DEL_Hw )
+
+      ENDIF
+
+      END SUBROUTINE READ_POPS_MENU
 !EOC
 #if   defined( APM ) 
 !------------------------------------------------------------------------------
@@ -6238,24 +7593,37 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_APM_MENU( am_I_Root )
+      SUBROUTINE READ_APM_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE APM_INIT_MOD,  ONLY : APMTRACER_MW_G
-      USE APM_INIT_MOD,  ONLY : APMTRACER_MW_Kg
-      USE APM_INIT_MOD,  ONLY : IFNUCL
-      USE APM_INIT_MOD,  ONLY : FE0
-      USE APM_INIT_MOD,  ONLY : LAPM
-      USE TRACER_MOD,    ONLY : N_APMTRA
-      USE TRACER_MOD,    ONLY : N_TRACERS
-      USE TRACER_MOD,    ONLY : TCVV
-      USE TRACER_MOD,    ONLY : XNUMOL
+      USE APM_INIT_MOD,       ONLY : APMTRACER_MW_G
+      USE APM_INIT_MOD,       ONLY : APMTRACER_MW_Kg
+      USE APM_INIT_MOD,       ONLY : IFNUCL
+      USE APM_INIT_MOD,       ONLY : FE0
+      USE APM_INIT_MOD,       ONLY : LAPM
+      USE CHARPAK_MOD,        ONLY : STRREPL
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GAMAP_MOD,          ONLY : DO_GAMAP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TRACER_MOD,         ONLY : N_APMTRA
+      USE TRACER_MOD,         ONLY : N_TRACERS
+      USE TRACER_MOD,         ONLY : TCVV
+      USE TRACER_MOD,         ONLY : XNUMOL
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 !
 ! !REMARKS:
 !  This subroutine is only compiled when you build GEOS-Chem with the
@@ -6303,9 +7671,23 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       ENDDO
 
       !=================================================================
+      ! Set fields of the Input Options object
+      !=================================================================
+      Input_Opt%IFNUCL = IFNUCL
+      Input_Opt%FE0    = FE0
+
+      DO T = 1, N_APMTRA
+         Input_Opt%TCVV  (N_TRACERS+T) = TCVV(T)
+         Input_Opt%XNUMOL(N_TRACERS+T) = XNUMOL(T)
+      ENDDO
+
+      ! Return success
+      RC = GIGC_SUCCESS
+
+      !=================================================================
       ! Print to screen
       !=================================================================
-      IF( am_I_Root ) THEN
+      IF ( am_I_Root ) THEN
          WRITE( 6, '(/,a)' ) 'APM MENU'
          WRITE( 6, '(  a)' ) '----------------'
          WRITE( 6, 100     ) 'Turn on APM and add tracers?: ', LAPM
@@ -6385,6 +7767,8 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       CALL CHECK_DIRECTORY( RUN_DIR      )
       CALL CHECK_DIRECTORY( OH_DIR       )
       CALL CHECK_DIRECTORY( O3PL_DIR     )
+!      CALL CHECK_DIRECTORY( OC_DIR       )  !(clf, 1/20/2011)
+!      CALL CHECK_DIRECTORY( BC_DIR       )  !(clf, 1/20/2011)
 
       ! Only validate the TEMP_DIR if we are unzipping met fields
       IF ( LUNZIP ) CALL CHECK_DIRECTORY( TEMP_DIR )

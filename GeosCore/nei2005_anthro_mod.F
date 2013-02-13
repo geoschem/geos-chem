@@ -412,6 +412,7 @@
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -459,6 +460,8 @@
 
 #if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
       SNAME = 'GEOS5'
+#elif defined( GCAP  )
+      SNAME = 'GEOS4'
 #elif defined( GEOS_4 )
       SNAME = 'GEOS4'
 #endif
@@ -556,7 +559,7 @@
 
 !               ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
 
@@ -574,7 +577,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -602,7 +605,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -619,7 +622,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -647,7 +650,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -663,7 +666,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -691,7 +694,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -708,7 +711,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -735,7 +738,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -752,7 +755,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -780,7 +783,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -797,7 +800,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -825,7 +828,7 @@
                
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -841,7 +844,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
 
@@ -868,7 +871,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -885,7 +888,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -913,7 +916,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -930,7 +933,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -958,7 +961,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -975,7 +978,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
 
@@ -1002,7 +1005,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -1019,7 +1022,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -1045,7 +1048,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -1062,7 +1065,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -1090,7 +1093,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -1107,7 +1110,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -1135,7 +1138,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -1152,7 +1155,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -1179,7 +1182,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -1196,7 +1199,7 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             INGRID,     OUTGRID, IS_MASS=1,
      &                             netCDF=.TRUE.                   )
 
                ! Free pointers
@@ -1364,6 +1367,8 @@
 
 #if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
       SNAME = 'GEOS5'
+#elif defined( GCAP   )
+      SNAME = 'GEOS4'
 #elif defined( GEOS_4 )
       SNAME = 'GEOS4'
 #endif
@@ -1819,6 +1824,7 @@
 !  13 Mar 2012 - M. Cooper        - Changed regrid algorithm to map_a2a
 !  07 Jun 2012 - M. Payer         - Fix minor bugs in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca      - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer         - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1847,7 +1853,7 @@
       DO L = 1, 5
          INGRID = ARRAY(:,:,L)
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                       INGRID,     OUTGRID, PERAREA=1,
+     &                       INGRID,     OUTGRID, IS_MASS=0,
      &                       netCDF=.TRUE.                   )
          AS(:,:,L) = OUTGRID
       ENDDO
@@ -1975,7 +1981,11 @@
   
       MONTHLY(:,:,1) = ARRAY(:,:,1)
       
+#if   !defined( GCAP)
       WRITE( SYEAR, '(i4)') THISYEAR
+#else
+      WRITE( SYEAR, '(i4)') 2002
+#endif
 
       ! Load ozone season regulation factors
       IF (THISMONTH .lt. 10) THEN
@@ -2061,6 +2071,7 @@
 !  13 Mar 2012 - M. Cooper        - Changed regrid algorithm to map_a2a
 !  07 Jun 2012 - M. Payer         - Fix minor bugs in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca      - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer         - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2089,7 +2100,7 @@
       DO L = 1, 5
          INGRID = ARRAY(:,:,L)
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                       INGRID,     OUTGRID, PERAREA=1,
+     &                       INGRID,     OUTGRID, IS_MASS=0,
      &                       netCDF=.TRUE.                   )
          AS(:,:,L) = OUTGRID
       ENDDO
@@ -2249,6 +2260,9 @@
 !  13 Mar 2012 - M. Cooper        - Changed regrid algorithm to map_a2a
 !  07 Jun 2012 - M. Payer         - Fix minor bugs in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca      - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer         - Bug fix for regridding. Changed to
+!                                   PERAREA=0 since scale factors are unitless.
+!  03 Jan 2013 - M. Payer         - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2277,7 +2291,7 @@
       DO L = 1, 5
          INGRID = ARRAY(:,:,L)
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                       INGRID,     OUTGRID, PERAREA=1,
+     &                       INGRID,     OUTGRID, IS_MASS=0,
      &                       netCDF=.TRUE.                   )
          AS(:,:,L) = OUTGRID
       ENDDO
@@ -2321,6 +2335,7 @@
 !  15 Aug 2012 - M. Payer    - Fixed minor bugs in regridding of mask; Also
 !                              set mask to 1 if greater than 0 (L. Murray)
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2370,7 +2385,7 @@
       ! Regrid from GEOS 1x1 --> current model resolution [unitless]
       INGRID => GEOS_1x1(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1,
-     &                    INGRID,     USA_MASK, PERAREA=0,
+     &                    INGRID,     USA_MASK, IS_MASS=0,
      &                    netCDF=.TRUE.                   )
 
       ! Free pointer

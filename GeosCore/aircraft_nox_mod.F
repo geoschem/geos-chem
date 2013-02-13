@@ -150,6 +150,7 @@
       INTEGER, SAVE      :: LASTMONTH = -99
       INTEGER            :: I, J, K, IOS
       INTEGER            :: IU_FILE
+      REAL*8             :: FUEL
 
       ! Conversion factor from [kg NO2/4h] to [molec NO2/s]
       REAL*8             :: CONV=9.0927d+20
@@ -202,12 +203,39 @@
 
          ! Read aircraft NOx
          DO 
-            READ( IU_FILE, *, IOSTAT=IOS ) I, J, K, AIR(I,J,K)
-            
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% KLUDGE FOR NORTH AMERICAN NESTED GRID (bmy, 7/2/12)
+!%%% For some reason there seems to be bad data within the N. American
+!%%% nested grid data files.  Some of the longitude indices are out of bounds
+!%%% for the grid.  Put in a simple kludge to just skip over these boxes.
+!%%% We are going to be reinventing how emissions get done in GEOS-Chem,
+!%%% so it's probably not worth recreating the the file at this time.
+!%%%
+!%%%            READ( IU_FILE, *, IOSTAT=IOS ) I, J, K, AIR(I,J,K)
+!%%%          
+!%%%            ! IOS < 0 is end of file
+!%%%            ! IOS > 0 is an I/O error
+!%%%            IF ( IOS < 0 ) EXIT
+!%%%            IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'readair:2' )
+  
+            ! Now read emissions into a scalar
+            READ( IU_FILE, *, IOSTAT=IOS ) I, J, K, FUEL
+
             ! IOS < 0 is end of file
             ! IOS > 0 is an I/O error
             IF ( IOS < 0 ) EXIT
             IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'readair:2' )
+
+#if   defined( NESTED_NA )        
+            ! Error check, cycle if out of bounds
+            IF ( I > IIPAR ) CYCLE
+            IF ( J > JJPAR ) CYCLE
+#endif   
+
+            ! Save emissions into the AIR array
+            AIR(I,J,K) = FUEL
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
          ENDDO
 
          ! Close file
@@ -228,9 +256,9 @@
 
 !------------------------------------------------------------------------------
 #if defined( DEVEL )
-      SUBROUTINE AIREMISS( EMISS )
+      SUBROUTINE AIREMISS( State_Met, EMISS )
 #else
-      SUBROUTINE AIREMISS
+      SUBROUTINE AIREMISS( State_Met )
 #endif
 !
 !******************************************************************************
@@ -255,17 +283,19 @@
 !        and GET_YOFFSET from "grid_mod.f" (bmy, 2/11/03)
 !  (8 ) Replace GEMISNOX (from "CMN_NOX") with module variable EMIS_AC_NOx
 !        in order to avoid common block errors. (ltm, bmy, 10/3/07)
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,      ONLY : BXHEIGHT
-      USE DIAG_MOD,     ONLY : AD32_ac
-      USE GRID_MOD,     ONLY : GET_XOFFSET, GET_YOFFSET
-      USE PRESSURE_MOD, ONLY : GET_PEDGE
+      USE DIAG_MOD,           ONLY : AD32_ac
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE
 
-      USE CMN_SIZE_MOD  ! Size parameters
-      USE CMN_DIAG_MOD  ! Diagnostic switches
-      USE CMN_MOD       ! PTOP, SIGE, AVP
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! Diagnostic switches
+      USE CMN_MOD                  ! PTOP, SIGE, AVP
 
       INTEGER             :: I,    J,     IREF, JREF,  L,     K
       INTEGER             :: I0,   J0
@@ -274,8 +304,10 @@
       ! External functions
       REAL*8, EXTERNAL    ::  BOXVL
 
+      ! Arguments
+      TYPE(MetState), INTENT(IN)    :: State_Met    ! Meteorology State object
 #if defined( DEVEL )
-      REAL*8, INTENT(INOUT) :: EMISS(:,:,:)
+      REAL*8,         INTENT(INOUT) :: EMISS(:,:,:)
 #endif
       
       !=================================================================
@@ -363,7 +395,7 @@
             IF ( AIREMIS(I,J,L) > 0.0 ) THEN
 
                ! Convert from [molec/s] to [molec/cm3/s]
-               TMP             = AIREMIS(I,J,L)  / BOXVL(I,J,L)
+               TMP = AIREMIS(I,J,L)  / BOXVL(I,J,L,State_Met)
 
                ! Store in GEMISNOX in [molec/cm3/s]
                EMIS_AC_NOx(I,J,L) = TMP
@@ -372,7 +404,7 @@
                ! [molec/cm2/s] in subroutine "diag3.f" (bmy, 3/16/00)
                IF ( ND32 > 0 ) THEN
                   AD32_ac(I,J,L) = AD32_ac(I,J,L) +
-     &                    ( TMP * BXHEIGHT(I,J,L) * 1d2 )
+     &                     ( TMP * State_Met%BXHEIGHT(I,J,L) * 1d2 )
                ENDIF
             ENDIF
 

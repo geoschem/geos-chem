@@ -11,7 +11,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CLEANUP
+      SUBROUTINE CLEANUP( am_I_Root, RC )
 !
 ! !USES:
 !
@@ -28,13 +28,13 @@
       USE CO2_MOD,                 ONLY : CLEANUP_CO2
       USE COMODE_MOD,              ONLY : CLEANUP_COMODE
       USE GCKPP_COMODE_MOD,        ONLY : CLEANUP_GCKPP_COMODE
-      USE DAO_MOD,                 ONLY : CLEANUP_DAO
       USE DIAG_MOD,                ONLY : CLEANUP_DIAG
       USE DIAG03_MOD,              ONLY : CLEANUP_DIAG03
       USE DIAG04_MOD,              ONLY : CLEANUP_DIAG04
       USE DIAG41_MOD,              ONLY : CLEANUP_DIAG41
       USE DIAG50_MOD,              ONLY : CLEANUP_DIAG50
       USE DIAG51_MOD,              ONLY : CLEANUP_DIAG51
+      USE DIAG53_MOD,              ONLY : CLEANUP_DIAG53 !(clf, 3/11/11)
       USE DIAG_OH_MOD,             ONLY : CLEANUP_DIAG_OH
       USE DIAG_PL_MOD,             ONLY : CLEANUP_DIAG_PL
       USE DRYDEP_MOD,              ONLY : CLEANUP_DRYDEP
@@ -53,6 +53,8 @@
       USE GLOBAL_NOX_MOD,          ONLY : CLEANUP_GLOBAL_NOX
       USE GLOBAL_O1D_MOD,          ONLY : CLEANUP_GLOBAL_O1D
       USE GLOBAL_OH_MOD,           ONLY : CLEANUP_GLOBAL_OH
+      USE GLOBAL_OC_MOD,           ONLY : CLEANUP_GLOBAL_OC
+      USE GLOBAL_BC_MOD,           ONLY : CLEANUP_GLOBAL_BC
       USE GLOBAL_GRID_MOD,         ONLY : CLEANUP_GLOBAL_GRID
       USE GRID_MOD,                ONLY : CLEANUP_GRID
       USE H2_HD_MOD,               ONLY : CLEANUP_H2_HD
@@ -82,7 +84,6 @@
       USE TPCORE_GEOS5_WINDOW_MOD, ONLY : EXIT_GEOS5_TPCORE_WINDOW
       USE TPCORE_GEOS57_WINDOW_MOD,ONLY : EXIT_GEOS57_TPCORE_WINDOW !clb
       USE TRACER_MOD,              ONLY : CLEANUP_TRACER
-      USE TRANSPORT_MOD,           ONLY : CLEANUP_TRANSPORT
       USE TROPOPAUSE_MOD,          ONLY : CLEANUP_TROPOPAUSE
       USE UVALBEDO_MOD,            ONLY : CLEANUP_UVALBEDO
       USE VISTAS_ANTHRO_MOD,       ONLY : CLEANUP_VISTAS_ANTHRO
@@ -93,10 +94,29 @@
 #if   defined( APM )
       USE APM_WETS_MOD,            ONLY : CLEANUP_WETSCAVBIN
 #endif
+#if ! defined( ESMF_ )
+      USE TRANSPORT_MOD,           ONLY : CLEANUP_TRANSPORT
+#endif
+      USE CMN_Mod,                 ONLY : Cleanup_CMN
+      USE CMN_FJ_Mod,              ONLY : Cleanup_CMN_FJ
+      USE CMN_NOX_Mod,             ONLY : Cleanup_CMN_NOX
+      USE CMN_O3_Mod,              ONLY : Cleanup_CMN_O3
+      USE CMN_SIZE_Mod,            ONLY : Cleanup_CMN_SIZE
+      USE COMODE_LOOP_Mod,         ONLY : Cleanup_COMODE_LOOP
+      USE COMMSOIL_Mod,            ONLY : Cleanup_COMMSOIL
+      USE JV_CMN_Mod,              ONLY : Cleanup_JV_CMN
+      USE VDIFF_PRE_Mod,           ONLY : Cleanup_VDIFF_PRE
 
       IMPLICIT NONE
 #     include "define.h"
-
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL, INTENT(IN)  :: am_I_Root    ! Are we on the root CPU?
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: RC           ! Success or failure
 !
 ! !REVISION HISTORY: 
 !  29 Nov 1999 - R. Yantosca - Initial version
@@ -177,9 +197,14 @@
 !  (41) Now references CLEANUP_VISTAS_ANTHRO (phs, 3/10/08)
 !  (41) Now references CLEANUP_LINOZ (phs, 10/16/09)
 !  (42) Now references CLEANUP_HDF (amv, bmy, 12/21/09)
-!  (43) Now references CLEANUP_ISOROPIAII (ccc, bmy, 1/29/09)
-!  (44) Now references CLEANUP_DEPO_MERCURY and CLEANUP_LAND_MERCURY
+!  (43) Now references CLEANUP_TOMAS (win, bmy, 1/25/10)
+!  (44) Now references CLEANUP_ISOROPIAII (ccc, bmy, 1/29/09)
+!  (45) Now references CLEANUP_DEPO_MERCURY and CLEANUP_LAND_MERCURY
 !       (ccc, 5/6/10)
+!  (46) Added call to CLEANUP_GLOBAL_OC, which deallocates arrays from
+!       "global_oc_mod.f"  (clf, 2/28/2011)
+!  (47) Added call to CLEANUP_GLOBAL_BC, which deallocates arrays from
+!       "global_bc_mod.f"  (clf, 2/28/2011) 
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  22 Aug 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !  07 Sep 2011 - P. Kasibhatla - Add modifications for GFED3
@@ -189,6 +214,12 @@
 !  11 Apr 2012 - R. Yantosca - Remove reference to obsolete lai_mod.F
 !  01 May 2012 - M. Payer    - Added calls for CLEANUP_GLOBAL_GRID and
 !                              CLEANUP_GRID
+!  19 Nov 2012 - R. Yantosca - Add cleanup calls for modules in Headers;
+!                              these were omitted during development
+!  28 Nov 2012 - R. Yantosca - Remove reference to CLEANUP_DAO; we have now
+!                              removed all allocatable arrays from dao_mod.F
+!  03 Dec 2012 - R. Yantosca - Now call Cleanup_CMN_SIZE
+!  13 Dec 2012 - R. Yantosca - Remove reference to obsolete CMN_DEP_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -215,13 +246,13 @@
       CALL CLEANUP_CO2
       CALL CLEANUP_COMODE
       CALL CLEANUP_GCKPP_COMODE
-      CALL CLEANUP_DAO
       CALL CLEANUP_DIAG
       CALL CLEANUP_DIAG03
       CALL CLEANUP_DIAG04
       CALL CLEANUP_DIAG41
       CALL CLEANUP_DIAG50
       CALL CLEANUP_DIAG51
+      CALL CLEANUP_DIAG53
       CALL CLEANUP_DIAG_OH
       CALL CLEANUP_DIAG_PL
       CALL CLEANUP_DRYDEP
@@ -240,6 +271,8 @@
       CALL CLEANUP_GLOBAL_NO3
       CALL CLEANUP_GLOBAL_O1D
       CALL CLEANUP_GLOBAL_OH
+      CALL CLEANUP_GLOBAL_OC
+      CALL CLEANUP_GLOBAL_BC
       CALL CLEANUP_GLOBAL_GRID
       CALL CLEANUP_GRID
       CALL CLEANUP_H2_HD
@@ -263,7 +296,9 @@
       CALL CLEANUP_SULFATE
       CALL CLEANUP_STRAT_CHEM
       CALL CLEANUP_TAGGED_CO
+#if ! defined( ESMF_ )
       CALL CLEANUP_TRANSPORT
+#endif
       CALL CLEANUP_TOMS
       CALL CLEANUP_TRACER
       CALL CLEANUP_TROPOPAUSE
@@ -272,6 +307,8 @@
       CALL CLEANUP_WETSCAV
       CALL CLEANUP_ICOADS_SHIP !(cklee,7/09/09)
       CALL CLEANUP_RETRO
+      !if ( IDTNK1 > 0 ) CALL CLEANUP_TOMAS !(win, 7/28/09)
+      CALL CLEANUP_TOMAS
 
 #if   defined( APM )
       CALL CLEANUP_WETSCAVBIN  ! Cleanup arrays for APM wet scavenging
@@ -285,6 +322,17 @@
 #else
       CALL EXIT_TPCORE
 #endif
+
+      ! Call extra cleanup routines, mostly from modules in Headers/
+      CALL Cleanup_CMN        ( am_I_Root, RC )
+      CALL Cleanup_CMN_FJ     ( am_I_Root, RC )
+      CALL Cleanup_CMN_NOX    ( am_I_Root, RC )
+      CALL Cleanup_CMN_O3     ( am_I_Root, RC )
+      CALL Cleanup_CMN_SIZE   ( am_I_Root, RC )
+      CALL Cleanup_COMMSOIL   ( am_I_Root, RC )
+      CALL Cleanup_COMODE_LOOP( am_I_Root, RC )
+      CALL Cleanup_JV_CMN     ( am_I_Root, RC )
+      CALL Cleanup_VDIFF_PRE  ( am_I_Root, RC )
 
       END SUBROUTINE CLEANUP
 !EOC

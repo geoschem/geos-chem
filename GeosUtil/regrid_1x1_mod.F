@@ -356,7 +356,7 @@
 
       ! Regrid data
       CALL DO_THE_REGRIDDING( 1, UNIT, DBLE( INDATA ), TMP_OUT )
-
+ 
       ! Save output data to a 2D array 
       OUTDATA(:,:) = TMP_OUT(:,:,1)
 
@@ -368,7 +368,7 @@
       SUBROUTINE DO_REGRID_1x1_R8_2D( UNIT, INDATA, OUTDATA )
 !
 !******************************************************************************
-!  Subroutine DO_REGRID_1x1_R8_2D is a wrapper routine for DO_THE_REGRIDDING.
+!  Subroutine DO_REGRID_1x1_R8_2D is a wrapper routine for DO_THE_REGRIDING.
 !  It takes a REAL*8 array as input and saves to a 2-D REAL*8 array as output.
 !  (bdf, bmy, 10/24/05)
 !
@@ -451,7 +451,7 @@
          CALL INIT_REGRID_1x1
          FIRST = .FALSE.
       ENDIF
-
+  
       ! Is this concentration data?
       IS_CONC = ITS_CONCENTRATION_DATA( UNIT )
 
@@ -553,7 +553,7 @@
       ! N. Am. nested grid has corners (10N,140W) and (60N,40W)
       ! which corresponds to 1x1 indices (41,101) and (141,151)
       OUTDATA = INDATA( 41:141, 101:151, : )
-
+      
 #elif defined( GRID1x1 )
 
       !--------------------------------------------
@@ -1593,6 +1593,7 @@
          ENDDO
 
       ENDDO
+
 !$OMP END PARALLEL DO
 
       ! Return to calling program

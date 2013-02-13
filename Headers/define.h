@@ -167,7 +167,7 @@
 !==============================================================================
 ! Force a compile error if a model type is undefined
 !==============================================================================
-#if !defined(GEOS_4) && !defined(GEOS_5) && !defined(MERRA) && !defined(GCAP) && !defined(GEOS_57) && !defined(EXTERNAL_FORCING)
+#if !defined(GEOS_4) && !defined(GEOS_5) && !defined(MERRA) && !defined(GCAP) && !defined(GEOS_57) && !defined(EXTERNAL_FORCING) && !defined( EXTERNAL_GRID )
 #error "ERROR: GEOS_4, GEOS_5, GEOS-5.7, MERRA, and GCAP"
 #error "are ALL undefined in header file define.h"
 #endif
@@ -189,4 +189,22 @@
  #error "SPARC must be defined in header file define.h"
 #endif
 
+!==============================================================================
+! If EXTERNAL_GRID or EXTERNAL_FORCING are used, undefine all other grids
+! when either EXTERNAL_GRID or EXTERNAL_FORCING are used.  This is to 
+! facilitate connecting to an external GCM such as the NASA GEOS-5 GCM.
+!==============================================================================
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#undef GRIDREDUCED
+#undef GRID4x5
+#undef GRID2x25  
+#undef GRID1x125
+#undef GRID1x1
+#undef GRID025x03125
+#undef GRID05x0666
+#undef NESTED_NA
+#undef NESTED_CH
+#undef SEAC4RS
+#undef NESTED_EU
+#endif
 !EOC

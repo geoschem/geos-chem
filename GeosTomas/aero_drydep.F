@@ -14,28 +14,40 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE AERO_DRYDEP
+      SUBROUTINE AERO_DRYDEP( am_I_Root, Input_Opt, State_Met, RC )
 !
 ! !USES:
 !
-      USE DAO_MOD,        ONLY : T, BXHEIGHT
-      USE DIAG_MOD,       ONLY : AD44
-      USE DRYDEP_MOD,     ONLY : DEPSAV, NUMDEP, NTRAIND 
-      USE DUST_MOD,       ONLY : SETTLEDUST   
-      USE GRID_MOD,       ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,    ONLY : LPRT  
-      USE PBL_MIX_MOD,    ONLY : GET_FRAC_UNDER_PBLTOP
-      USE PRESSURE_MOD,   ONLY : GET_PCENTER
-      USE TIME_MOD,       ONLY : GET_TS_CHEM
-      USE TRACER_MOD,     ONLY : STT, XNUMOL
-      USE TRACERID_MOD,   ONLY : IDTNK1, IDTH2SO4
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
+      USE DIAG_MOD,           ONLY : AD44
+      USE DRYDEP_MOD,         ONLY : DEPSAV, NUMDEP, NTRAIND 
+      USE DUST_MOD,           ONLY : SETTLEDUST   
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE LOGICAL_MOD,        ONLY : LPRT  
+      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+      USE TRACER_MOD,         ONLY : STT, XNUMOL
+      USE TRACERID_MOD,       ONLY : IDTNK1, IDTH2SO4
+      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
       USE TOMAS_MOD
 
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
 
       IMPLICIT NONE
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  22 Jul 2007 - Win T.      - Initial version
@@ -44,6 +56,9 @@
 !                              on the same manner implemented by Rokjin Park
 !  25 Jan 2010 - R. Yantosca - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  13 Dec 2012 - M. Payer    - Add am_I_Root, Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -78,6 +93,9 @@
       !=================================================================
       ! AERO_DRYDEP begins here!
       !=================================================================
+
+      ! Assume success
+      RC    = GIGC_SUCCESS
 
       ! DTCHEM is the chemistry timestep in seconds
       DTCHEM = GET_TS_CHEM() * 60d0
@@ -136,7 +154,7 @@ cdbg      print *, dryd(:)
       IF ( DOSETTLING ) THEN
 
       ! SIZ_DIA [=] m  and SIZ_DEN [=] kg/m3
-      CALL AERO_DIADEN( SIZ_DIA(:,:), SIZ_DEN(:,:), 1 )
+      CALL AERO_DIADEN( SIZ_DIA(:,:), SIZ_DEN(:,:), 1, State_Met )
       
       DO BIN = 1, IBINS
       DO J = 1, JJPAR
@@ -158,7 +176,7 @@ cdbg      print *, dryd(:)
             
             ! Get P [kPa], T [K], and P*DP
             P    = GET_PCENTER(I,J,L) * 0.1d0  ![=] kPa
-            TEMP = T(I,J,L)                    ![=] K
+            TEMP = State_Met%T(I,J,L)          ![=] K
             PDP  = P * DP
 
             !=====================================================
@@ -219,13 +237,13 @@ cdbg      print *, dryd(:)
 
             ! We know the boundary condition at the model top
             L           = LLTROP
-            DELZ        = BXHEIGHT(I,J,L)           ![=] meter
+            DELZ        = State_Met%BXHEIGHT(I,J,L)           ![=] meter
             TC(L) = TC(L) / 
      &                   ( 1.d0 + DTCHEM * VTS(L) / DELZ )
 
             DO L = LLTROP-1, 1, -1
-               DELZ        = BXHEIGHT(I,J,L)
-               DELZ1       = BXHEIGHT(I,J,L+1)
+               DELZ        = State_Met%BXHEIGHT(I,J,L)
+               DELZ1       = State_Met%BXHEIGHT(I,J,L+1)
                TC(L) = 1.d0 / 
      &                       ( 1.d0 + DTCHEM * VTS(L) / DELZ )
      &                     * ( TC(L)  + DTCHEM * VTS(L+1) /
@@ -284,7 +302,8 @@ cdbg      print *, dryd(:)
       ENDIF  ! DOSETTLING 
 
       ! Dust gravitational settling 
-      IF (.not. DOSETTLING) CALL SETTLEDUST
+      IF (.not. DOSETTLING) CALL SETTLEDUST( am_I_Root, Input_Opt,
+     &                                       State_Met, RC )
 
 
       !---------- DRY DEPOSITION ----------
@@ -306,7 +325,7 @@ cdbg      print *, dryd(:)
          flux   = 0d0
 
          ! Skip stratospheric boxes
-         IF (ITS_IN_THE_STRAT( I, J, L ) ) CYCLE
+         IF (ITS_IN_THE_STRAT( I, J, L, State_Met ) ) CYCLE
 
          ! Save the initial 30-bin number and icomp-1 mass component
          DO JC = 1, ICOMP-IDIAG+1

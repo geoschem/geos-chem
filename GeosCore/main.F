@@ -23,6 +23,7 @@
       !-----------------------------------------------------------------
       USE CMN_SIZE_MOD          ! Size parameters
       USE CMN_GCTM_MOD          ! Physical constants
+      USE COMMSOIL_MOD          ! Soil NOx emissions header file
       USE ERROR_MOD             ! For error checking
       USE FILE_MOD              ! For file I/O
       USE INPUT_MOD             ! For reading settings from "input.geos"
@@ -92,6 +93,7 @@
       USE MODIS_LAI_MOD         ! For MODIS leaf area indices (replacement)
       USE LIGHTNING_NOX_MOD     ! For lightning NOx emissions  
       USE MEGAN_MOD             ! For biogenic emissions
+      USE SOILNOX_RESTART_MOD   ! For reading and writing soil NOx restart
       USE BROMOCARB_MOD         ! For setting CH3Br concentrations in PBL, jpp
 
       !-----------------------------------------------------------------
@@ -108,13 +110,14 @@
       USE A6_READ_MOD           ! For reading A6 data (all other met)
       USE I6_READ_MOD           ! For reading I6 data (all other met)
 
-#if defined( DEVEL )
-      USE LOGICAL_MOD,        ONLY : DO_DIAG_WRITE
-      USE GC_ENVIRONMENT_MOD, ONLY : ALLOCATE_ALL
-      USE GC_ENVIRONMENT_MOD, ONLY : INIT_ALL
-      USE GC_TYPE2_MOD,       ONLY : CHEMSTATE
-      USE GC_TYPE_MOD,        ONLY : GC_MET_LOCAL
-#endif
+      !-----------------------------------------------------------------
+      ! Modules for the Grid-Independent GEOS-Chem (aka "GIGC")
+      !-----------------------------------------------------------------
+      USE GIGC_ErrCode_Mod      ! Error codes for success or failure
+      USE GIGC_Environment_Mod  ! For allocating objects
+      USE GIGC_Input_Opt_Mod    ! Derived type for Input Options 
+      USE GIGC_State_Chm_Mod    ! Derived type for Chemistry State object    
+      USE GIGC_State_Met_Mod    ! Derived type for Meteorology State object
 
       IMPLICIT NONE
 
@@ -194,6 +197,24 @@
 !                              is needed for compatibility w/ the GEOS-5 GCM.
 !  13 Aug 2012 - R. Yantosca - Now call FILL_CHEM_STATE_IDs to populate
 !                              the CHEM_STATE object ID and name fields
+!  18 Oct 2012 - R. Yantosca - Rename LOCAL_MET object to State_Met
+!  18 Oct 2012 - R. Yantosca - Rename CHEM_STATE object to State_Chm
+!  18 Oct 2012 - R. Yantosca - Now pass am_I_Root, RC arguments to routines
+!                              ALLOCATE_ALL, INIT_ALL when using -DDEVEL
+!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
+!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
+!  25 Oct 2012 - R. Yantosca - Define logical doDebugPrt for ND70 output
+!  25 Oct 2012 - R. Yantosca - Add descriptive comments for DEVEL #ifdefs
+!  25 Oct 2012 - R. Yantosca - Now reference gigc_errcode_mod.F90
+!  01 Nov 2012 - R. Yantosca - Now read soil NOx restart file
+!  01 Nov 2012 - R. Yantosca - Now reference gigc_input_opt_mod.F90
+!  08 Nov 2012 - R. Yantosca - Now pass Input_Opt as an arg to DO_CHEMISTRY
+!  01 Nov 2012 - R. Yantosca - Now read soil NOx restart file
+!  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
+!                              to various subroutines
+!  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  15 Nov 2012 - R. Yantosca - Bring Input_Opt out of the DEVEL tags
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -203,6 +224,7 @@
       ! Scalars
       LOGICAL                  :: FIRST = .TRUE.
       LOGICAL                  :: wasModisRead
+      LOGICAL                  :: prtDebug
       INTEGER                  :: I,             IOS,         J
       INTEGER                  :: K,             L,           N
       INTEGER                  :: JDAY,          NDIAGTIME,   N_DYN
@@ -222,11 +244,25 @@
       ! Derived type objects
       TYPE(MapWeight), POINTER :: mapping(:,:) => NULL()
 
-#if defined( DEVEL )
-      TYPE(CHEMSTATE)          :: CHEM_STATE
-      TYPE(GC_MET_LOCAL)       :: LOCAL_MET
-#endif
-
+      !-----------------------------------------------------------------
+      ! %%%% REPLICATING GIGC FUNCTIONALITY IN EXISTING GEOS-CHEM %%%%
+      !
+      ! We must declare the Chemistry State (State_Chm), Meteorology
+      ! State (State_Met), and Input Options (Input_Opt) objects
+      ! for use with the Grid-Independent GEOS-Chem code. 
+      !
+      TYPE(OptInput)           :: Input_Opt   ! Input Options object
+      TYPE(ChmState)           :: State_Chm   ! Chemistry State object
+      TYPE(MetState)           :: State_Met   ! Meteorology State object
+      !
+      ! Also define NI, NJ, NL for more consistent naming w/r/t the 
+      ! ESMF interface.  Initialize these from IIPAR, JJPAR, JJPAR
+      ! (bmy, 11/9/12)
+      !
+      INTEGER                  :: NI          ! # of longitudes 
+      INTEGER                  :: NJ          ! # of latitudes
+      INTEGER                  :: NL          ! # of levels
+      !
       ! When connecting G-C to an external GCM, we need to only write 
       ! to stdout if we are on the root CPU.  Otherwise this will slow
       ! down the code.  This is why we introduced the am_I_Root logical
@@ -238,19 +274,47 @@
       ! all of the lower-level routines.  The main.F routine is not
       ! called when connecting G-C to an external GCM. 
       ! (mlong, bmy, 7/30/12)
+      !
       LOGICAL, PARAMETER       :: am_I_Root = .TRUE. 
+      !-----------------------------------------------------------------
 
       !=================================================================
       ! GEOS-CHEM starts here!                                            
       !=================================================================
 
-      RC=0 ! Error flag. Default 0 is "no error"
-
-#if defined( DEVEL )
-      ! Allocate all lon/lat arrays for global use by GEOS-Chem
-      CALL ALLOCATE_ALL
-#endif
-
+      !-----------------------------------------------------------------
+      ! %%%% REPLICATING GIGC FUNCTIONALITY IN EXISTING GEOS-CHEM %%%%
+      !
+      ! Assume a successful return until otherwise
+      !
+      RC                 = GIGC_SUCCESS
+      !
+      ! Define NI, NJ, NL dimensions for use below
+      !
+      NI                 = IIPAR
+      NJ                 = JJPAR
+      NL                 = LLPAR
+      !
+      ! Define dimensions for fields of the Input Options object
+      ! NOTE: At this point we have not yet read in the "input.geos"
+      ! file so these are just placeholder values (bmy, 11/7/12)
+      !
+      Input_Opt%MAX_DIAG = MAX_DIAG
+      Input_Opt%MAX_TRCS = NNPAR
+      Input_Opt%MAX_MEMB = N_MEMBERS
+      Input_Opt%MAX_FAMS = MAXFAM
+      !
+      ! Call the routine GIGC_Allocate_All (located in module file
+      ! GeosCore/gigc_environment_mod.F90) to allocate all lat/lon
+      ! allocatable arrays used by GEOS-Chem, as well as the Input 
+      ! Options object.  The IIPAR and JJPAR dimensions are not 
+      ! declared as PARAMETERs, but are module variables that are 
+      ! initialized in this call.
+      !
+      CALL GIGC_Allocate_All( am_I_root, Input_Opt, RC )
+      IF ( RC /= GIGC_SUCCESS ) GOTO 9999
+      !-----------------------------------------------------------------
+      
       ! Display current grid resolution and data set type
       CALL DISPLAY_GRID_AND_MODEL
 
@@ -259,44 +323,70 @@
       !=================================================================
 
       ! Read input file and call init routines from other modules
-      CALL READ_INPUT_FILE( am_I_Root ) 
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a READ_INPUT_FILE' )
+      CALL READ_INPUT_FILE( am_I_Root, Input_Opt, RC ) 
 
-#if defined( DEVEL )
-      ! Initialize LOCAL_MET and CHEMSTATE objects
-      CALL INIT_ALL( LOCAL_MET, CHEM_STATE )
+      ! Set a flag to denote if we should print ND70 debug output
+      prtDebug = ( LPRT .and. am_I_Root )
+      
+      ! Debug output
+      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_INPUT_FILE' )
 
+      !-----------------------------------------------------------------
+      ! %%%% REPLICATING GIGC FUNCTIONALITY IN EXISTING GEOS-CHEM %%%%
+      !
+      ! To replicate the functionality of the ESMF interface, we must
+      ! initialize the Meteorology State (i.e. State_Met) and the
+      ! Chemistry State (i.e. State_Chm) objects.  These objects hold
+      ! several individual data fields that need to be passed as 
+      ! inputs to the chemistry routines.
+      !
+      ! Eventually, the Meteorology State will replace all of the 
+      ! individual met field arrays contained in module dao_mod.F.
+      ! Likewise, the Chemistry State will replace the STT tracer array
+      ! and CSPEC chemical species array.  At present (25 Oct 2012),
+      ! we have not yet completed this conversion.
+      !
+      ! The Chemistry and Meteorology State objects facilitate using
+      ! GEOS-Chem directly from the ESMF interface.  This is the main
+      ! reason we are migrating towards used of these objects instead
+      ! of the existing ALLOCATABLE module arrays. (bmy, 10/25/12)
+      !
+      ! Initialize Input_Opt, State_Chem, State_Met, objects
+      !
+      CALL GIGC_Init_All( am_I_Root, Input_Opt, 
+     &                    State_Chm, State_Met, RC )
+
+      !
       ! Assign values to the TRAC_NAME, TRAC_ID, SMVG_ID fields
-      ! of the CHEM_STATE object.  NOTE: This has to be done after
+      ! of the State_Chm object.  NOTE: This has to be done after
       ! the call to READ_INPUT_FILE, since we need the value of
       ! N_TRACERS, which is obtained by reading the input.geos file.
-      CALL FILL_CHEM_STATE_NAME_IDs( am_I_Root, CHEM_STATE )
-#endif
-
-      ! Initialize met field arrays from "dao_mod.f"
-      CALL INIT_DAO
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INIT_DAO' )
+      !
+      CALL Fill_Chem_State_Name_IDs( am_I_Root, State_Chm )
+      !-----------------------------------------------------------------
 
       ! Initialize diagnostic arrays and counters
       CALL INITIALIZE( 2, am_I_Root )
       CALL INITIALIZE( 3, am_I_Root )
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INITIALIZE' )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INITIALIZE' )
 
       ! Initialize the new hybrid pressure module.  Define Ap and Bp.
       CALL INIT_PRESSURE( am_I_Root )
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INIT_PRESSURE' )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_PRESSURE' )
 
       ! Read annual mean tropopause if not a variable tropopause
       ! read_tropopause is obsolete with variable tropopause
       IF ( .not. LVARTROP ) THEN
          CALL READ_TROPOPAUSE
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a READ_TROPOPAUSE' )
+         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_TROPOPAUSE' )
       ENDIF
 
       ! Initialize allocatable SMVGEAR/KPP arrays
       IF ( LEMIS .or. LCHEM ) THEN
-         IF ( ITS_A_FULLCHEM_SIM() ) CALL INIT_COMODE( am_I_Root )
-         IF ( ITS_AN_AEROSOL_SIM() ) CALL INIT_COMODE( am_I_Root )
+         IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or.
+     &        Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
+            CALL INIT_COMODE( am_I_Root, Input_Opt, RC )
+         ENDIF
          IF ( LKPP ) THEN
             CALL INIT_GCKPP_COMODE( am_I_Root, IIPAR,  JJPAR,   
      &                              LLTROP,    ITLOOP, NMTRATE, 
@@ -304,7 +394,7 @@
          ENDIF
          IF ( RC == 1 )
      $        CALL ERROR_STOP( "Alloc error", "INIT_GCKPP_COMODE" )
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INIT_COMODE' )
+         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_COMODE' )
       ENDIF
          
       ! Added to read input file for linoz strat (dbj, jliu, bmy, 10/16/09)
@@ -315,10 +405,10 @@
 
       ! Initialize MEGAN arrays, get 15-day avg temperatures
       IF ( LMEGAN ) THEN
-         CALL INIT_MEGAN
+         CALL INIT_MEGAN( State_Met )
          CALL INITIALIZE( 2, am_I_Root )
          CALL INITIALIZE( 3, am_I_Root )
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INIT_MEGAN' )
+         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_MEGAN' )
       ENDIF
 
       ! Define time variables for use below
@@ -337,24 +427,20 @@
       CALL READ_INITIAL_MET_FIELDS()
 
       ! Compute avg surface pressure near polar caps
-      CALL AVGPOLE( PS1 )
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a AVGPOLE' )
+      CALL AVGPOLE( State_Met%PS1 )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a AVGPOLE' )
 
       ! Call AIRQNT to compute air mass quantities from PS1
-      CALL SET_FLOATING_PRESSURE( PS1 )
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a SET_FLT_PRS' )
+      CALL SET_FLOATING_PRESSURE( State_Met%PS1 )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a SET_FLT_PRS' )
 
-#if defined( DEVEL )
-      CALL AIRQNT(LOCAL_MET)
-#else
-      CALL AIRQNT
-#endif
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a AIRQNT' )
+      CALL AIRQNT( State_Met )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a AIRQNT' )
 
       ! Compute lightning NOx emissions [molec/box/6h]
       IF ( LLIGHTNOX ) THEN
-         CALL LIGHTNING
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a LIGHTNING' )
+         CALL LIGHTNING( State_Met )
+         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a LIGHTNING' )
       ENDIF
 
       ! Initialize the derived type object containing
@@ -367,18 +453,19 @@
 
       ! Compute the Olson land types that occur in each grid box
       ! (i.e. this is a replacement for rdland.F and vegtype.global)
-      CALL Init_Olson_Landmap()
-      CALL Compute_Olson_Landmap( mapping )
-      CALL Cleanup_Olson_Landmap()
+      CALL Init_Olson_Landmap   ( am_I_Root                     )
+      CALL Compute_Olson_Landmap( am_I_Root, mapping, State_Met )
+      CALL Cleanup_Olson_Landmap( am_I_Root                     )
 
       ! Initialize PBL quantities but do not do mixing
       ! Add option for non-local PBL (Lin, 03/31/09) 
       IF ( .NOT. LNLPBL ) THEN
-        CALL DO_PBL_MIX( .FALSE. )
-        IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:1' )
+         CALL DO_PBL_MIX  ( .FALSE., State_Met )
+         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:1' )
       ELSE
-        CALL DO_PBL_MIX_2( .FALSE. )
-        IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a NLPBL 1' )
+         !### DEBUG
+         CALL DO_PBL_MIX_2( .FALSE., State_Met )
+         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a NLPBL 1' )
       ENDIF
 
       !=================================================================
@@ -386,13 +473,22 @@
       !=================================================================
 
       ! Read initial tracer conditions
-      CALL READ_RESTART_FILE( NYMDb, NHMSb )
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a READ_RESTART_FILE' )
+      CALL READ_RESTART_FILE( NYMDb, NHMSb, State_met )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_RESTART_FILE' )
 
       ! Capture initial state of atmosphere for STE flux calc (ltm, 06/10/12)
-      IF ( LSCHEM ) CALL INIT_STRAT_CHEM( am_I_Root )
+      IF ( LSCHEM ) THEN
+         CALL INIT_STRAT_CHEM( am_I_Root, Input_Opt, State_Chm, RC )
+      ENDIF
 
-      ! add support for making restart files of APROD and GPROD (dkh, 11/09/06)  
+      ! Read soil NOx initial conditions
+      IF ( LSOILNOX ) THEN
+         CALL READ_SOIL_RESTART( NYMDb , NHMSb )
+         IF ( prtDebug ) 
+     &      CALL DEBUG_MSG( '### MAIN: a READ_SOIL_RESTART' )
+      ENDIF
+
+      ! add support for making restart files of APROD and GPROD (dkh, 11/09/06) 
       IF ( LSOA ) THEN
 
          !! use this to make initial soaprod files  
@@ -410,7 +506,9 @@
       ! Read ocean Hg initial conditions (if necessary)
       IF ( ITS_A_MERCURY_SIM() .and. LDYNOCEAN ) THEN
          CALL READ_OCEAN_Hg_RESTART( NYMDb, NHMSb )
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a READ_OCEAN_RESTART' )
+         IF ( prtDebug ) THEN 
+            CALL DEBUG_MSG( '### MAIN: a READ_OCEAN_RESTART' )
+         ENDIF
       ENDIF
 
       ! Save initial tracer masses to disk for benchmark runs
@@ -475,7 +573,9 @@
          ELAPSED_TODAY = ( HOUR * 3600 ) + ( MINUTE * 60 )
 
          !### Debug
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a SET_CURRENT_TIME' )
+         IF ( prtDebug ) THEN
+            CALL DEBUG_MSG( '### MAIN: a SET_CURRENT_TIME' )
+         ENDIf
 
          !==============================================================
          !   ***** W R I T E   D I A G N O S T I C   F I L E S *****
@@ -489,7 +589,7 @@
             IF ( DO_DIAG_WRITE ) THEN
                CALL DIAG3  
 
-            ! Flush file units
+               ! Flush file units
                CALL CTM_FLUSH
             ENDIF
             !===========================================================
@@ -501,8 +601,13 @@
                IF ( LSCHEM ) CALL CALC_STE( am_I_Root )
 
                ! Make atmospheric restart file
-               CALL MAKE_RESTART_FILE( NYMD, NHMS, TAU )
+               CALL MAKE_RESTART_FILE( NYMD, NHMS, TAU, State_Met )
                   
+               ! Make soil restart file
+               IF ( LSOILNOX ) THEN
+                  CALL MAKE_SOILNOx_RESTART( NYMD, NHMS, TAU )
+               ENDIF
+
                ! Make ocean mercury restart file
                IF ( ITS_A_MERCURY_SIM() .and. LDYNOCEAN ) THEN
                   CALL MAKE_OCEAN_Hg_RESTART( NYMD, NHMS, TAU )
@@ -518,7 +623,7 @@
                   CALL MAKE_SOAPROD_FILE( GET_NYMD(), GET_NHMS() )
 
                   !### Debug
-                  IF ( LPRT ) THEN
+                  IF ( prtDebug ) THEN
                      CALL DEBUG_MSG( '### MAIN: a MAKE_SOAPROD_FILE' )
                   ENDIF
                ENDIF
@@ -529,7 +634,7 @@
                ENDIF 
 
                !### Debug
-               IF ( LPRT ) THEN
+               IF ( prtDebug ) THEN
                   CALL DEBUG_MSG( '### MAIN: a MAKE_RESTART_FILE' )
                ENDIF
             ENDIF
@@ -593,7 +698,7 @@
      &           ITS_A_CH3I_SIM()     ) THEN
 
                ! Read UV albedoes for FAST-J
-               CALL READ_UVALBEDO( MONTH )
+               CALL READ_UVALBEDO( MONTH, State_Met )
 
                ! Read TOMS overhead O3 columns for FAST-J
                CALL READ_TOMS( MONTH, YEAR )
@@ -614,8 +719,8 @@
 
          ! Hg2 gas-particle partitioning (H Amos, 25 Oct 2011)
          IF ( ITS_A_MERCURY_SIM() .and. ITS_A_NEW_MONTH() ) THEN
-            CALL PARTITION_Hg2( MONTH )
-            IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a PARTITION_Hg2' )
+            CALL PARTITION_Hg2( MONTH, State_Met )
+            IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a PARTITION_Hg2')
          ENDIF
 
          !==============================================================
@@ -680,6 +785,9 @@
             ! (1) At the present time, we have removed all references
             !     to the obsolete XYLAI array and its parent module
             !     CMN_VEL_mod.F.
+            ! (2) As of Dec 2012, the XLAI and XLAI2 arrays are now
+            !     carried in State_Met.  We can remove the obsolete
+            !     module Headers/CMN_DEP_mod.F.
             ! 
             !      -- Bob Yantosca (09 Apr 2012)
             !-----------------------------------------------------------
@@ -694,21 +802,26 @@
             CALL Read_Modis_Lai( laiYYYY, laiMM, wasModisRead )
 
             ! Interpolate LAI quantities from native grid to GEOS-Chem grid
-            CALL Compute_Modis_Lai( day_of_year, laiMM, 
-     &                              mapping,     wasModisRead )
+            CALL Compute_Modis_Lai( am_I_Root,    State_Met, 
+     &                              day_of_year,  laiMM,     
+     &                              mapping,      wasModisRead, RC )
 
             ! For MEGAN biogenics, compute 15-day average temperature
             IF ( LMEGAN ) THEN
                CALL UPDATE_T_15_AVG
             ENDIF
 
+            ! Note: this daily call to rdsoil left for backward compatibility.
+            ! To be revised later.
             ! Also read soil-type info for fullchem simulation
             IF ( ITS_A_FULLCHEM_SIM() .or. ITS_A_H2HD_SIM() ) THEN
-               CALL RDSOIL 
+	       CALL READSOIL
+	       CALL READFERT
+	       CALL READCLIM
             ENDIF
 
             !### Debug
-            IF ( LPRT ) CALL DEBUG_MSG ( '### MAIN: a DAILY DATA' )
+            IF ( prtDebug ) CALL DEBUG_MSG ( '### MAIN: a DAILY DATA' )
          ENDIF
 
          !==============================================================
@@ -717,45 +830,41 @@
          
          ! Interpolate I-6 fields to current dynamic timestep, 
          ! based on their values at NSEC and NSEC+N_DYN
-         CALL INTERP( NSECb, ELAPSED_TODAY, N_DYN )
+         CALL INTERP( NSECb, ELAPSED_TODAY, N_DYN, State_Met )
 
          ! Case of variable tropopause:
          ! Check LLTROP and set LMIN, LMAX, and LPAUSE
          ! since this is not done with READ_TROPOPAUSE anymore.
          ! (Need to double-check that LMIN, Lmax are not used before-phs) 
-         IF ( LVARTROP ) CALL CHECK_VAR_TROP
-         
+         IF ( LVARTROP ) CALL CHECK_VAR_TROP( State_Met )
+
          ! If we are not doing transport, then make sure that
          ! the floating pressure is set to PSC2 (bdf, bmy, 8/22/02)
-         IF ( .not. LTRAN ) CALL SET_FLOATING_PRESSURE( PSC2 )
+         IF ( .not. LTRAN ) CALL SET_FLOATING_PRESSURE( State_Met%PSC2 )
 
          ! Compute airmass quantities at each grid box 
-#if defined( DEVEL )
-         CALL AIRQNT(LOCAL_MET)
-#else
-         CALL AIRQNT
-#endif
+         CALL AIRQNT( State_Met )
 
          ! Compute the cosine of the solar zenith angle array
-         ! SUNCOS         = cos(SZA) at the current time
-         ! SUNCOS_MID     = cos(SZA) at the midpt of the chem timestep
-         ! SUNCOS_MID_5hr = cos(SZA) at the midpt of the chem timestep 5hrs ago
-         CALL GET_COSINE_SZA( SUNCOS, SUNCOS_MID, SUNCOS_MID_5hr )
+         ! State_Met%SUNCOS     = at the current time
+         ! State_Met%SUNCOSmid  = at the midpt of the chem timestep
+         ! State_Met%SUNCOSmid5 = at the midpt of the chem timestep 5hrs ago
+         CALL GET_COSINE_SZA( am_I_Root, Input_Opt, State_Met, RC )
 
          ! Compute tropopause height for ND55 diagnostic
-         IF ( ND55 > 0 ) CALL DIAG_TROPOPAUSE
+         IF ( ND55 > 0 ) CALL DIAG_TROPOPAUSE( State_Met )
 
          ! Update dynamic timestep
          CALL SET_CT_DYN( INCREMENT=.TRUE. )
 
          !### Debug
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INTERP, etc' )
+         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INTERP, etc' )
 
          ! Get averaging intervals for local-time diagnostics
          ! (NOTE: maybe improve this later on)
          ! Placed after interpolation to get correct value of TROPP. 
          ! (ccc, 12/9/08)
-         CALL DIAG_2PM
+         CALL DIAG_2PM( State_Met )
 
          ! Get the overhead column O3 for use with FAST-J
          CALL GET_OVERHEAD_O3_FOR_FASTJ()
@@ -764,18 +873,12 @@
          !   ***** U N I T   C O N V E R S I O N  ( kg -> v/v ) *****
          !==============================================================
          IF ( ITS_TIME_FOR_UNIT() ) THEN
-            CALL CONVERT_UNITS( 1,  N_TRACERS, TCVV, AD, STT )
-
+            CALL CONVERT_UNITS( 1,  N_TRACERS, TCVV, State_Met%AD, STT )
             !### Debug
-            IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a CONVERT_UNITS:1' )
+            IF ( prtDebug ) THEN 
+               CALL DEBUG_MSG( '### MAIN: a CONVERT_UNITS:1' )
+            ENDIF
          ENDIF
-
-!%%%!    ltm: As of v9-01-03, UPBDFLX and SCHEM are depreciated. These
-!%%%!    subroutines and their children will be removed in the future.
-!%%%!    !==============================================================
-!%%%!    !     ***** S T R A T O S P H E R I C   F L U X E S *****
-!%%%!    !==============================================================
-!%%%!    IF ( LUPBD ) CALL DO_UPBDFLX
 
          !==============================================================
          !              ***** T R A N S P O R T *****
@@ -787,31 +890,20 @@
             IF ( LWINDO ) CALL SAVE_GLOBAL_TPCORE_BC
 
             ! Call the appropritate version of TPCORE
-            IF ( LTRAN ) CALL DO_TRANSPORT               
+            IF ( LTRAN ) CALL DO_TRANSPORT( State_Met )
 
             ! Reset air mass quantities
-#if defined( DEVEL )
-      CALL AIRQNT(LOCAL_MET)
-#else
-      CALL AIRQNT
-#endif
-
-!%%%!    ltm: As of v9-01-03, UPBDFLX and SCHEM are depreciated. These
-!%%%!    subroutines and their children will be removed in the future.
-!%%%!    ! Repartition [NOy] species after transport
-!%%%!       IF ( LUPBD .and. ITS_A_FULLCHEM_SIM() ) THEN
-!%%%!            CALL UPBDFLX_NOY( 2 )
-!%%%!       ENDIF   
+            CALL AIRQNT( State_Met )
 
 #if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_57 )
             ! Get relative humidity (after recomputing pressures)
             ! NOTE: for GEOS-5 we'll read this from disk instead
-            CALL MAKE_RH
+            CALL MAKE_RH( State_Met )
 #endif
 
             ! Initialize wet scavenging and wetdep fields after
             ! the airmass quantities are reset after transport
-            IF ( LCONV .or. LWETD ) CALL INIT_WETSCAV
+            IF ( LCONV .or. LWETD ) CALL INIT_WETSCAV( State_Met )
          ENDIF
 
 
@@ -821,49 +913,55 @@
          IF ( LNLPBL .AND. ITS_TIME_FOR_EMIS() ) THEN
 
             IF ( ITS_TIME_FOR_UNIT() )
-     &         CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, AD, STT ) ! v/v -> kg
+     &         CALL CONVERT_UNITS( 2, N_TRACERS, TCVV,
+     &                             State_Met%AD, STT ) ! v/v -> kg
 
             ! Increment emission counter
             CALL SET_CT_EMIS( INCREMENT=.TRUE. )
 
-            !========================================================
+            !===========================================================
             !         ***** D R Y   D E P O S I T I O N *****
-            !========================================================
+            !===========================================================
             IF ( LDRYD .and. ( .not. ITS_A_H2HD_SIM() ) ) THEN
-               CALL DO_DRYDEP( am_I_Root )
+               CALL DO_DRYDEP( am_I_Root, Input_Opt, 
+     &                         State_Met, State_Chm, RC )
             ENDIF
 
-            !========================================================
+            !===========================================================
             !             ***** E M I S S I O N S *****
-            !========================================================
-#if defined( DEVEL )
-            IF ( LEMIS ) CALL DO_EMISSIONS(CHEM_STATE)
-#else
-            IF ( LEMIS ) CALL DO_EMISSIONS
-#endif
+            !===========================================================
+            IF ( LEMIS ) THEN
+               CALL DO_EMISSIONS( am_I_Root, Input_Opt, 
+     &                            State_Met, State_Chm, RC )
+            ENDIF
 
             IF ( ITS_TIME_FOR_UNIT() )
-     &         CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, AD, STT ) ! kg -> v/v
-
+     &         CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, 
+     &                             State_Met%AD, STT ) ! kg -> v/v
 
             IF ( ITS_A_FULLCHEM_SIM() ) THEN
                !========================================================
                !jpp, 2/12/08: putting a call to SET_CH3Br
                !              which is in bromocarb_mod.f
                !       ***** Fix CH3Br Concentration in PBL *****
+               ! Kludge: eventually I want to keep the concentration
+               !         entirely fixed! Ask around on how to...
                !========================================================
                IF ( LEMIS .and. ( IDTCH3Br > 0 ) )
-     &            CALL SET_CH3Br( N_TRACERS, TCVV, AD, STT, 
-     &                            ITS_TIME_FOR_UNIT() )
+     &            CALL SET_CH3Br( N_TRACERS, TCVV,
+     &                            STT,       ITS_TIME_FOR_UNIT(),
+     &                            State_Met  )
 
                ! ----------------------------------------------------
                ! If selected in input.geos, then set the MBL
                ! concentration of BrO equal to 1 pptv during daytime.
                ! ----------------------------------------------------
                IF ( LEMIS .and. ( IDTBrO > 0 ) )
-     &            CALL SET_BRO( N_TRACERS, TCVV, AD, SUNCOS,
-     &                          STT, ITS_TIME_FOR_UNIT() )
-
+     &            CALL SET_BRO( N_TRACERS,           
+     &                          TCVV,
+     &                          STT,
+     &                          ITS_TIME_FOR_UNIT(), 
+     &                          State_Met            )
             ENDIF
          ENDIF
 
@@ -880,15 +978,14 @@
             !===========================================================
             ! Add option for non-local PBL. (Lin, 03/31/09)
             IF ( .NOT. LNLPBL ) THEN
-               CALL DO_PBL_MIX( LTURB )
-               IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:1' )
+               CALL DO_PBL_MIX  ( LTURB, State_Met )
+               IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:1' )
             ELSE
-               CALL DO_PBL_MIX_2( LTURB )
-               IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a NLPBL 2' )
+               CALL DO_PBL_MIX_2( LTURB, State_Met )
+               IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a NLPBL 2' )
             ENDIF
 
-            !### Debug
-            IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:2' )
+            IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:2' )
 
             !===========================================================
             !        ***** C L O U D   C O N V E C T I O N *****
@@ -900,7 +997,7 @@
                   CALL PARTITIONHG( 1, STT )
                ENDIF
       
-               CALL DO_CONVECTION
+               CALL DO_CONVECTION( State_Met )
 
                ! Return all reactive particulate Hg(II) to total Hg(II) tracer
                IF ( ITS_A_MERCURY_SIM() ) THEN
@@ -908,7 +1005,9 @@
                ENDIF
       
                !### Debug
-               IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a CONVECTION' )
+               IF ( prtDebug ) THEN
+                  CALL DEBUG_MSG( '### MAIN: a CONVECTION' )
+               ENDIF
             ENDIF 
          ENDIF 
 
@@ -917,10 +1016,12 @@
          !    ***** U N I T   C O N V E R S I O N  ( v/v -> kg ) *****
          !==============================================================
          IF ( ITS_TIME_FOR_UNIT() ) THEN 
-            CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, AD, STT )
+            CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, State_Met%AD, STT )
 
             !### Debug
-            IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a CONVERT_UNITS:2' )
+            IF ( prtDebug ) THEN 
+               CALL DEBUG_MSG( '### MAIN: a CONVERT_UNITS:2' )
+            ENDIF
          ENDIF
 
          !-------------------------------
@@ -931,21 +1032,21 @@
             ! Increment emission counter
             CALL SET_CT_EMIS( INCREMENT=.TRUE. )
 
-            !========================================================
+            !===========================================================
             !         ***** D R Y   D E P O S I T I O N *****
-            !========================================================
+            !===========================================================
             IF ( LDRYD .and. ( .not. ITS_A_H2HD_SIM() ) ) THEN
-               CALL DO_DRYDEP( am_I_Root )
+               CALL DO_DRYDEP( am_I_Root, Input_Opt, 
+     &                         State_Met, State_Chm, RC )
             ENDIF
 
-            !========================================================
+            !===========================================================
             !             ***** E M I S S I O N S *****
-            !========================================================
-#if defined( DEVEL )
-            IF ( LEMIS ) CALL DO_EMISSIONS(CHEM_STATE)
-#else
-            IF ( LEMIS ) CALL DO_EMISSIONS
-#endif
+            !===========================================================
+            IF ( LEMIS ) THEN
+               CALL DO_EMISSIONS( am_I_Root, Input_Opt, 
+     &                            State_Met, State_Chm, RC )
+            ENDIF
 
             IF ( ITS_A_FULLCHEM_SIM() ) THEN
                !========================================================
@@ -955,28 +1056,31 @@
                ! Kludge: eventually I want to keep the concentration
                !         entirely fixed! Ask around on how to...
                !========================================================
-               IF ( LEMIS  .and. ( IDTCH3Br > 0 ) )
-     &            CALL SET_CH3Br( N_TRACERS, TCVV, AD, STT,
-     &                            ITS_TIME_FOR_UNIT() )
+               IF ( LEMIS .and. ( IDTCH3Br > 0 ) )
+     &            CALL SET_CH3Br( N_TRACERS, TCVV,
+     &                            STT,       ITS_TIME_FOR_UNIT(),
+     &                            State_Met  )
 
                ! ----------------------------------------------------
                ! If selected in input.geos, then set the MBL
                ! concentration of BrO equal to 1 pptv during daytime.
                ! ----------------------------------------------------
                IF ( LEMIS .and. ( IDTBrO > 0 ) )
-     &            CALL SET_BRO( N_TRACERS, TCVV, AD, SUNCOS,
-     &                          STT, ITS_TIME_FOR_UNIT() )
+     &            CALL SET_BRO( N_TRACERS,           
+     &                          TCVV,
+     &                          STT,
+     &                          ITS_TIME_FOR_UNIT(), 
+     &                          State_Met            )
 
             ENDIF
-         ENDIF    
+         ENDIF
 
-
-         !===========================================================
+         !==============================================================
          !               ***** C H E M I S T R Y *****
-         !===========================================================    
+         !============================================================== 
 
          ! Also need to compute avg P, T for CH4 chemistry (bmy, 1/16/01)
-         IF ( ITS_A_CH4_SIM() ) CALL CH4_AVGTP
+         IF ( ITS_A_CH4_SIM() ) CALL CH4_AVGTP( State_Met )
 
          ! Every chemistry timestep...
          IF ( ITS_TIME_FOR_CHEM() ) THEN
@@ -984,24 +1088,33 @@
             ! Increment chemistry timestep counter
             CALL SET_CT_CHEM( INCREMENT=.TRUE. )
 
-            ! Call the appropriate chemistry routine
-#if defined( DEVEL )
-! vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv!
-! BELOW IS A TMP KLUGE TO TEST PASSING STT !
-! TO "DO_CHEMISTRY" VIA THE "CHEM_STATE"   !
-! DERIVED TYPE                             !
-!
-!    >-- STT SHOULD BE IN KG HERE --<
-!
-!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^!
-            CHEM_STATE%TRACERS( :, :, :, 1:N_TRACERS ) = 
-     &                     STT( :, :, :, 1:N_TRACERS )
-! FIN DE KLUGE
-            CALL DO_CHEMISTRY( am_I_Root, IIPAR,      JJPAR, 
-     &                         LLPAR,     CHEM_STATE, LOCAL_MET )
-#else
-            CALL DO_CHEMISTRY( am_I_Root )
-#endif
+            !-----------------------------------------------------------
+            ! %% REPLICATING GIGC FUNCTIONALITY IN EXISTING GEOS-CHEM %%
+            !
+            ! We must pass the Input Options (Input_Opt), Chemistry 
+            ! State (State_Chm) and Meteorology State (i.e. State_Met) 
+            ! objects, along with the global dimension sizes, to the 
+            ! GEOS-Chem chemistry driver DO_CHEMISTRY.
+            !
+            ! Eventually, the tracer fields in the Chemistry State 
+            ! object (State_Chm%TRACERS) will replace current GEOS-Chem
+            ! tracer array STT.  At present (25 Oct 2012), we have yet
+            ! to complete this transition.  For now, we shall set the
+            ! State_Chm%TRACERS field directly from the STT array.
+            !
+            ! Also note: State_Chm%TRACERS must enter DO_CHEMISTRY with
+            ! units of [kg].  Because STT is already in [kg] at this 
+            ! point, no further unit conversion is necessary here.
+            ! (bmy, 10/25/12)
+
+            ! Initialize the tracer field in the Chemistry State object
+            State_Chm%TRACERS( :, :, :, 1:N_TRACERS ) = 
+     &                    STT( :, :, :, 1:N_TRACERS )
+
+            ! Do GEOS-Chem chemistry
+            CALL DO_CHEMISTRY( am_I_Root, Input_Opt, 
+     &                         State_Chm, State_Met, RC ) 
+            !-----------------------------------------------------------
 
          ENDIF 
 
@@ -1022,7 +1135,7 @@
             ENDIF            
      
             ! Do wet deposition
-            CALL DO_WETDEP
+            CALL DO_WETDEP( State_Met )
             
             ! Return all reactive particulate Hg(II) to total Hg(II) tracer
             IF ( ITS_A_MERCURY_SIM() ) THEN
@@ -1039,7 +1152,7 @@
          ! diagnostic and only on a chemistry timestep.
          ! (skim, 02/05/11)
          IF ( ITS_TIME_FOR_CHEM() ) THEN
-            CALL RECOMPUTE_OD( am_I_Root )
+            CALL RECOMPUTE_OD( am_I_Root, Input_Opt, State_Met, RC )
          ENDIF
 
          !==============================================================
@@ -1070,7 +1183,9 @@
          CALL TIMESTAMP_DIAG
          CALL SET_ELAPSED_MIN
          CALL SET_CURRENT_TIME
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after SET_ELAPSED_MIN' )
+         IF ( prtDebug ) THEN
+            CALL DEBUG_MSG( '### MAIN: after SET_ELAPSED_MIN' )
+         ENDIF
 
          !==============================================================
          !       ***** A R C H I V E   D I A G N O S T I C S *****
@@ -1078,23 +1193,23 @@
          IF ( ITS_TIME_FOR_DIAG() ) THEN
 
             !### Debug
-            IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: b DIAGNOSTICS' )
+            IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: b DIAGNOSTICS' )
 
             ! Accumulate several diagnostic quantities
-            CALL DIAG1
-            IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG1' )
+            CALL DIAG1( State_Met )
+            IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG1' )
 
             ! ND41: save PBL height in 1200-1600 LT (amf)
             ! (for comparison w/ Holzworth, 1967)
             IF ( ND41 > 0 ) CALL DIAG41
-            IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG41' )
+            IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG41' )
 
             ! ND42: SOA concentrations [ug/m3]
-            IF ( ND42 > 0 ) CALL DIAG42
-            IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG42' )
+            IF ( ND42 > 0 ) CALL DIAG42( State_Met )
+            IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG42' )
 
             ! 24-hr timeseries
-            IF ( DO_SAVE_DIAG50 ) CALL DIAG50
+            IF ( DO_SAVE_DIAG50 ) CALL DIAG50( State_Met )
 
             ! Increment diagnostic timestep counter. (ccc, 5/13/09)
             CALL SET_CT_DIAG( INCREMENT=.TRUE. )
@@ -1104,12 +1219,12 @@
                
                print*, 'Call planeflight'
                ! Archive data along the flight track
-               CALL PLANEFLIGHT
+               CALL PLANEFLIGHT( State_Met )
             ENDIF
-            IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG40' )
+            IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG40' )
 
             !### Debug
-            IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a DIAGNOSTICS' )
+            IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a DIAGNOSTICS' )
          ENDIF
 
          !==============================================================
@@ -1120,34 +1235,34 @@
          !       to after the call to DO_WETDEP (bmy, 4/22/04)
          !============================================================== 
 
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: before TIMESERIES' )
+         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: before TIMESERIES' )
 
          ! Station timeseries
-         IF ( ITS_TIME_FOR_DIAG48() ) CALL DIAG48
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG48' )
+         IF ( ITS_TIME_FOR_DIAG48() ) CALL DIAG48( State_Met )
+         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG48' )
 
          ! 3-D timeseries
-         IF ( ITS_TIME_FOR_DIAG49() ) CALL DIAG49
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG49' )
+         IF ( ITS_TIME_FOR_DIAG49() ) CALL DIAG49( State_Met )
+         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG49' )
 
          ! Ship timeseries
          IF ( ITS_TIME_FOR_DIAG63() ) CALL DIAG63
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG63' )
+         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG63' )
 
          ! Morning or afternoon timeseries
-         IF ( DO_SAVE_DIAG51 ) CALL DIAG51 
-         IF ( DO_SAVE_DIAG51b ) CALL DIAG51b 
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG51' )
+         IF ( DO_SAVE_DIAG51 ) CALL DIAG51( State_Met )
+         IF ( DO_SAVE_DIAG51b ) CALL DIAG51b( State_Met )
+         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG51' )
 
          ! Comment out for now 
          !! Column timeseries
          !IF ( ND52 > 0 .and. ITS_TIME_FOR_ND52() ) THEN
          !   CALL DIAG52
-         !   IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a ND52' )
+         !   IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a ND52' )
          !ENDIF
 
          !### After diagnostics
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after TIMESERIES' )
+         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after TIMESERIES' )
 
          !==============================================================
          !  ***** E N D   O F   D Y N A M I C   T I M E S T E P *****
@@ -1175,8 +1290,10 @@
       !     The I-3 or I-6 fields at the end of this outer timestep 
       !     become the fields at the beginning of the next timestep
       !=================================================================
-      CALL COPY_I3_I6_FIELDS
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after COPY_I3_I6_FIELDS' )
+      CALL COPY_I3_I6_FIELDS( State_Met )
+      IF ( prtDebug ) THEN 
+         CALL DEBUG_MSG( '### MAIN: after COPY_I3_I6_FIELDS' )
+      ENDIF
 
       ENDDO
 
@@ -1212,10 +1329,22 @@
 
       ! Close all files
       CALL CLOSE_FILES
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a CLOSE_FILES' )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a CLOSE_FILES' )
+
+      ! Deallocate fields of the Input Options object
+      CALL Cleanup_GIGC_Input_Opt( am_I_Root, Input_Opt, RC )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a cleanup Input_Opt' )
+
+      ! Deallocate fields of the Chemistry State object
+      CALL Cleanup_GIGC_State_Chm( am_I_Root, State_Chm, RC )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a cleanup State_Chm' )
+
+      ! Deallocate fields of the Meteorology State object
+      CALL Cleanup_GIGC_State_Met( am_I_Root, State_Met, RC )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a cleanup State_met' )
 
       ! Deallocate dynamic module arrays
-      CALL CLEANUP
+      CALL CLEANUP( am_I_Root, RC )
 
       ! Deallocate the derived type object w/ mapping info
       CALL CLEANUP_MAPPING( mapping )
@@ -1225,7 +1354,7 @@
       IF ( LGTMM ) CALL CleanupCASAarrays
 #endif
 
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a CLEANUP' )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a CLEANUP' )
 
       ! Print ending time of simulation
       CALL DISPLAY_END_TIME
@@ -1256,6 +1385,8 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  19 Mar 2012 - R. Yantosca - Now echo info for 0.25 x 0.3125 runs
 !  19 Mar 2012 - R. Yantosca - Now echo info if ISORROPIA is turned off
+!  22 Oct 2012 - R. Yantosca - Now echo info if -DDEVEL is used
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1349,6 +1480,16 @@
       WRITE( 6, '(a)' ) '# ISORROPIA TURNED OFF FOR TESTING!!! #'
       WRITE( 6, '(a)' ) REPEAT( '#', 39 )
 #endif
+
+      !-------------------------------------------------
+      ! Print msg if ISORROPIA is turned off for debug
+      !-------------------------------------------------
+#if   defined( DEVEL ) 
+      WRITE( 6, '(a)' ) REPEAT( '#', 39 )
+      WRITE( 6, '(a)' ) '# USING -DDEVEL FOR TESTING THE GIGC  #'
+      WRITE( 6, '(a)' ) REPEAT( '#', 39 )
+#endif
+
       
       !-------------------------------------------------
       ! System time stamp
@@ -1473,19 +1614,19 @@
 #if   defined( GEOS_57 )
 
       ! Read time-invariant data
-      CALL GEOS57_READ_CN()
+      CALL GEOS57_READ_CN( State_Met )
 
       ! Read 1-hr time-averaged data
       DATE = GET_FIRST_A1_TIME()
-      CALL GEOS57_READ_A1( DATE(1), DATE(2) )
-      
+      CALL GEOS57_READ_A1( DATE(1), DATE(2), State_Met )
+
       ! Read 3-hr time averaged data
       DATE = GET_FIRST_A3_TIME()
-      CALL GEOS57_READ_A3( DATE(1), DATE(2) )
+      CALL GEOS57_READ_A3( DATE(1), DATE(2), State_Met )
 
       ! Read 3-hr time averaged data
       DATE = GET_FIRST_I3_TIME()
-      CALL GEOS57_READ_I3_1( DATE(1), DATE(2) )
+      CALL GEOS57_READ_I3_1( DATE(1), DATE(2), State_Met )
 
 #elif defined( MERRA )
 
@@ -1499,25 +1640,25 @@
       ! Open constant fields
       DATE = (/ 20000101, 000000 /)
       CALL OPEN_MERRA_CN_FIELDS( DATE(1), DATE(2) )
-      CALL GET_MERRA_CN_FIELDS(  DATE(1), DATE(2) )
+      CALL GET_MERRA_CN_FIELDS(  DATE(1), DATE(2), State_Met )
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st MERRA CN TIME' )
 
       ! Open and read A-1 fields
       DATE = GET_FIRST_A1_TIME()
       CALL OPEN_MERRA_A1_FIELDS( DATE(1), DATE(2), RESET=.TRUE. )
-      CALL GET_MERRA_A1_FIELDS(  DATE(1), DATE(2) )
+      CALL GET_MERRA_A1_FIELDS(  DATE(1), DATE(2), State_Met )
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st MERRA A1 TIME' )
 
       ! Open and read A-3 fields
       DATE = GET_FIRST_A3_TIME()
       CALL OPEN_MERRA_A3_FIELDS( DATE(1), DATE(2) )
-      CALL GET_MERRA_A3_FIELDS(  DATE(1), DATE(2) )
+      CALL GET_MERRA_A3_FIELDS(  DATE(1), DATE(2), State_Met )
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st MERRA A3 TIME' )
 
       ! Open & read I-6 fields
       DATE = GET_FIRST_I6_TIME()
       CALL OPEN_MERRA_I6_FIELDS(  DATE(1), DATE(2) )
-      CALL GET_MERRA_I6_FIELDS_1( DATE(1), DATE(2) )
+      CALL GET_MERRA_I6_FIELDS_1( DATE(1), DATE(2), State_Met )
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st I6 TIME' )
 
 #else
@@ -1578,31 +1719,27 @@
       ! Open and read A-3 fields
       DATE = GET_FIRST_A3_TIME()
       CALL OPEN_A3_FIELDS( DATE(1), DATE(2), RESET=.TRUE. )
-      CALL GET_A3_FIELDS(  DATE(1), DATE(2) )
+      CALL GET_A3_FIELDS(  DATE(1), DATE(2), State_Met )
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st A3 TIME' )
 
       ! For MEGAN biogenics, update hourly temps w/in 15-day window
       IF ( LMEGAN ) THEN
-         CALL UPDATE_T_DAY
+         CALL UPDATE_T_DAY( State_Met )
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: UPDATE T_DAY' )
       ENDIF
 
       ! Open & read A-6 fields
       DATE = GET_FIRST_A6_TIME()
       CALL OPEN_A6_FIELDS( DATE(1), DATE(2) ) 
-#if defined( DEVEL )
-      CALL GET_A6_FIELDS(  DATE(1), DATE(2), LOCAL_MET )      
-#else
-      CALL GET_A6_FIELDS(  DATE(1), DATE(2) )      
-#endif
+      CALL GET_A6_FIELDS(  DATE(1), DATE(2), State_Met )      
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st A6 TIME' )
 
       ! Open & read I-6 fields
       DATE = GET_FIRST_I6_TIME()
       CALL OPEN_I6_FIELDS(  DATE(1), DATE(2) )
-      CALL GET_I6_FIELDS_1( DATE(1), DATE(2) )
+      CALL GET_I6_FIELDS_1( DATE(1), DATE(2), State_Met )
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st I6 TIME' )
-      
+    
 #if   defined( GCAP )
 
       !-----------------------------------------------------------------
@@ -1611,7 +1748,7 @@
 
       ! Read GCAP PHIS and LWI fields (if necessary)
       CALL OPEN_GCAP_FIELDS
-      CALL GET_GCAP_FIELDS
+      CALL GET_GCAP_FIELDS( State_Met )
 
       ! Remove temporary file (if necessary)
       IF ( LUNZIP ) THEN
@@ -1652,6 +1789,7 @@
 ! !REVISION HISTORY: 
 !  07 Feb 2012 - R. Yantosca - Initial version
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  04 Jan 2013 - M. Payer    - Call UPDATE_T_DAY for MERRA and GEOS-5.7.2 (tmf)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1667,7 +1805,11 @@
       !---------------------------------
       IF ( ITS_TIME_FOR_A1() ) THEN
          DATE = GET_A1_TIME()
-         CALL GEOS57_READ_A1( DATE(1), DATE(2) )
+         CALL GEOS57_READ_A1( DATE(1), DATE(2), State_Met )
+
+         ! Update daily mean temperature archive for MEGAN biogenics
+         ! (tmf, 1/4/2012) This should be turned on!
+         IF ( LMEGAN ) CALL UPDATE_T_DAY( State_Met )
       ENDIF
 
       !----------------------------------
@@ -1675,11 +1817,11 @@
       !----------------------------------
       IF ( ITS_TIME_FOR_A3() ) THEN
          DATE = GET_A3_TIME()
-         CALL GEOS57_READ_A3( DATE(1), DATE(2) )
+         CALL GEOS57_READ_A3( DATE(1), DATE(2), State_Met )
 
          ! Since CLDTOPS is an A-3 field, update the
          ! lightning NOx emissions [molec/box/6h]
-         IF ( LLIGHTNOX ) CALL LIGHTNING
+         IF ( LLIGHTNOX ) CALL LIGHTNING( State_Met )
       ENDIF
 
       !----------------------------------
@@ -1687,10 +1829,11 @@
       !----------------------------------
       IF ( ITS_TIME_ FOR_I3() ) THEN
          DATE = GET_I3_TIME()
-         CALL GEOS57_READ_I3_2( DATE(1), DATE(2) )
+         CALL GEOS57_READ_I3_2( DATE(1), DATE(2), State_Met )
 
          ! Compute avg pressure at polar caps 
-         CALL AVGPOLE( PS2 )
+         CALL AVGPOLE( State_Met%PS2 )
+
       ENDIF
 
 #elif defined( MERRA )
@@ -1707,11 +1850,12 @@
 
          ! Open & read A-3 fields
          CALL OPEN_MERRA_A1_FIELDS( DATE(1), DATE(2) )
-         CALL GET_MERRA_A1_FIELDS ( DATE(1), DATE(2) )
+         CALL GET_MERRA_A1_FIELDS ( DATE(1), DATE(2), State_Met )
 
          !%%% NEED TO UPDATE FOR MERRA %%%
          ! Update daily mean temperature archive for MEGAN biogenics
-         !IF ( LMEGAN ) CALL UPDATE_T_DAY 
+         ! (tmf, 1/4/2012) This should be turned on!
+         IF ( LMEGAN ) CALL UPDATE_T_DAY( State_Met )
       ENDIf
 
       !==============================================================
@@ -1726,11 +1870,11 @@
 
          ! Open and read A-6 fields
          CALL OPEN_MERRA_A3_FIELDS( DATE(1), DATE(2) )
-         CALL GET_MERRA_A3_FIELDS ( DATE(1), DATE(2) )
+         CALL GET_MERRA_A3_FIELDS ( DATE(1), DATE(2), State_Met )
 
          ! Since CLDTOPS is an A-3 field, update the
          ! lightning NOx emissions [molec/box/6h]
-         IF ( LLIGHTNOX ) CALL LIGHTNING
+         IF ( LLIGHTNOX ) CALL LIGHTNING( State_Met )
       ENDIF
 
       !==============================================================
@@ -1745,10 +1889,11 @@
 
          ! Open and read files
          CALL OPEN_MERRA_I6_FIELDS ( DATE(1), DATE(2) )
-         CALL GET_MERRA_I6_FIELDS_2( DATE(1), DATE(2) )
+         CALL GET_MERRA_I6_FIELDS_2( DATE(1), DATE(2), State_Met )
 
          ! Compute avg pressure at polar caps 
-         CALL AVGPOLE( PS2 )
+         CALL AVGPOLE( State_Met%PS2 )
+
       ENDIF
 
 #else
@@ -1806,10 +1951,10 @@
 
          ! Open & read A-3 fields
          CALL OPEN_A3_FIELDS( DATE(1), DATE(2) )
-         CALL GET_A3_FIELDS(  DATE(1), DATE(2) )
+         CALL GET_A3_FIELDS(  DATE(1), DATE(2), State_Met )
 
          ! Update daily mean temperature archive for MEGAN biogenics
-         IF ( LMEGAN ) CALL UPDATE_T_DAY 
+         IF ( LMEGAN ) CALL UPDATE_T_DAY( State_Met )
 
       ENDIF
 
@@ -1825,15 +1970,11 @@
 
          ! Open and read A-6 fields
          CALL OPEN_A6_FIELDS( DATE(1), DATE(2) )
-#if defined( DEVEL )
-         CALL GET_A6_FIELDS(  DATE(1), DATE(2), LOCAL_MET )      
-#else
-         CALL GET_A6_FIELDS(  DATE(1), DATE(2) )
-#endif
+         CALL GET_A6_FIELDS(  DATE(1), DATE(2), State_Met )      
 
          ! Since CLDTOPS is an A-6 field, update the
          ! lightning NOx emissions [molec/box/6h]
-         IF ( LLIGHTNOX ) CALL LIGHTNING
+         IF ( LLIGHTNOX ) CALL LIGHTNING( State_Met )
       ENDIF
 
       !==============================================================
@@ -1846,10 +1987,11 @@
 
          ! Open and read files
          CALL OPEN_I6_FIELDS(  DATE(1), DATE(2) )
-         CALL GET_I6_FIELDS_2( DATE(1), DATE(2) )
+         CALL GET_I6_FIELDS_2( DATE(1), DATE(2), State_Met )
 
          ! Compute avg pressure at polar caps 
-         CALL AVGPOLE( PS2 )
+         CALL AVGPOLE( State_Met%PS2 )
+
       ENDIF
 
 #endif
@@ -1918,7 +2060,8 @@
 
             ! Get the overhead O3 column for FAST-J.  Take either the
             ! TOMS O3 data or the column O3 directly from the met fields
-            CALL COMPUTE_OVERHEAD_O3( DAY, USE_O3_FROM_MET, TO3 )
+            CALL COMPUTE_OVERHEAD_O3( DAY, USE_O3_FROM_MET, 
+     &                                State_Met%TO3 )
          ENDIF
       ENDIF
 

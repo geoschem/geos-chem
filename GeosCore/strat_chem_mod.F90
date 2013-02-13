@@ -123,23 +123,31 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_STRAT_CHEM( am_I_Root )
+  SUBROUTINE DO_STRAT_CHEM( am_I_Root, Input_Opt,          &
+                            State_Met, State_Chm, errCode )
 !
 ! !USES:
 !
-    USE DAO_MOD,        ONLY : AD, CONVERT_UNITS, T, SUNCOS
-    USE ERROR_MOD,      ONLY : DEBUG_MSG, GEOS_CHEM_STOP
-    USE LOGICAL_MOD,    ONLY : LLINOZ, LPRT
-    USE LINOZ_MOD,      ONLY : DO_LINOZ
-    USE TIME_MOD,       ONLY : GET_MONTH, TIMESTAMP_STRING
-    USE TRACER_MOD,     ONLY : ITS_A_FULLCHEM_SIM, ITS_A_TAGOX_SIM
-    USE TRACER_MOD,     ONLY : ITS_A_H2HD_SIM
-    USE TRACER_MOD,     ONLY : N_TRACERS, STT, TCVV, TRACER_MW_KG, XNUMOLAIR
-    USE TRACERID_MOD,   ONLY : IDTOX, IDTCHBr3, IDTCH2Br2, IDTCH3Br
-    USE TROPOPAUSE_MOD, ONLY : GET_MIN_TPAUSE_LEVEL, GET_TPAUSE_LEVEL
-    USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
-
     USE CMN_SIZE_MOD
+    USE DAO_MOD,            ONLY : CONVERT_UNITS
+    USE ERROR_MOD,          ONLY : DEBUG_MSG
+    USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE LINOZ_MOD,          ONLY : DO_LINOZ
+    USE TIME_MOD,           ONLY : GET_MONTH
+    USE TIME_MOD,           ONLY : TIMESTAMP_STRING
+    USE TRACER_MOD,         ONLY : STT
+    USE TRACER_MOD,         ONLY : XNUMOLAIR
+    USE TRACERID_MOD,       ONLY : IDTOX
+    USE TRACERID_MOD,       ONLY : IDTCHBr3
+    USE TRACERID_MOD,       ONLY : IDTCH2Br2
+    USE TRACERID_MOD,       ONLY : IDTCH3Br
+    USE TROPOPAUSE_MOD,     ONLY : GET_MIN_TPAUSE_LEVEL
+    USE TROPOPAUSE_MOD,     ONLY : GET_TPAUSE_LEVEL
+    USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_TROP
 
     IMPLICIT NONE
 
@@ -147,8 +155,18 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object 
+    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: errCode     ! Success or failure
+!f
 ! !REMARKS:
 ! 
 ! !REVISION HISTORY: 
@@ -161,6 +179,11 @@ CONTAINS
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  07 Aug 2012 - R. Yantosca - Make BEFORE a local variable for parallel loop
+!  26 Oct 2012 - R. Yantosca - Now pass the Chemistry State object for GIGC
+!  09 Nov 2012 - R. Yantosca - Now pass the Input Options object for GIGC
+!  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  27 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -168,25 +191,50 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! SAVEd quantities
-    LOGICAL, SAVE             :: FIRST      = .TRUE.
-    INTEGER, SAVE             :: LASTMONTH  = -99
+    LOGICAL, SAVE     :: FIRST      = .TRUE.
+    INTEGER, SAVE     :: LASTMONTH  = -99
+
+    ! Flags for simulation types
+    LOGICAL           :: IT_IS_A_FULLCHEM_SIM
+    LOGICAL           :: IT_IS_A_TAGOX_SIM
+    LOGICAL           :: IT_IS_A_H2HD_SIM
 
     ! Scalars
-    CHARACTER(LEN=16)         :: STAMP
-    INTEGER                   :: I,    IJWINDOW, J,   L,   N,      NN
-    REAL*8                    :: dt,   P,        k,   M0,  RC,     M
-    REAL*8                    :: TK,   RDLOSS,   T1L, mOH, BryDay, BryNight
+    LOGICAL           :: prtDebug
+    CHARACTER(LEN=16) :: STAMP
+    INTEGER           :: I,    J,      L,   N,   NN
+    REAL*8            :: dt,   P,      k,   M0,  RC,     M
+    REAL*8            :: TK,   RDLOSS, T1L, mOH, BryDay, BryNight
+    LOGICAL           :: LLINOZ
+    LOGICAL           :: LPRT
+    INTEGER           :: N_TRACERS
 
     ! Arrays
-    REAL*8                    :: STT0(IIPAR,JJPAR,LLPAR,N_TRACERS)
-    REAL*8                    :: BEFORE(IIPAR,JJPAR,LLPAR)
+    REAL*8            :: STT0  (IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS)
+    REAL*8            :: BEFORE(IIPAR,JJPAR,LLPAR)
+    REAL*8            :: TCVV(Input_Opt%N_TRACERS)
 
     ! External functions
-    REAL*8, EXTERNAL          :: BOXVL
+    REAL*8, EXTERNAL  :: BOXVL
 
     !===============================
     ! DO_STRAT_CHEM begins here!
     !===============================
+
+    ! Assume Success
+    errCode              = GIGC_SUCCESS
+
+    ! Save values from the Input Options object to local variables
+    N_TRACERS            = Input_Opt%N_TRACERS
+    LLINOZ               = Input_Opt%LLINOZ
+    LPRT                 = Input_Opt%LPRT
+    IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
+    IT_IS_A_TAGOX_SIM    = Input_Opt%ITS_A_TAGOX_SIM  
+    IT_IS_A_H2HD_SIM     = Input_Opt%ITS_A_H2HD_SIM
+    TCVV                 = Input_Opt%TCVV
+
+    ! Set a flag for debug printing
+    prtDebug             = ( LPRT .and. am_I_Root )
 
     STAMP = TIMESTAMP_STRING()
     IF ( am_I_Root ) THEN
@@ -196,14 +244,15 @@ CONTAINS
     
     IF ( GET_MONTH() /= LASTMONTH ) THEN
 
-       IF ( LPRT .and. am_I_Root ) THEN 
+       IF ( prtDebug ) THEN 
           CALL DEBUG_MSG( '### STRAT_CHEM: at GET_RATES' )
        ENDIF
 
        ! Read rates for this month
-       IF ( ITS_A_FULLCHEM_SIM() ) THEN
+       IF ( IT_IS_A_FULLCHEM_SIM ) THEN
 #if defined( GRID4x5 ) || defined( GRID2x25 )
-          CALL GET_RATES( GET_MONTH(), am_I_Root )
+          CALL GET_RATES( GET_MONTH(), Input_Opt, State_Chm,  &
+                                       am_I_Root, errCode    )
 #else
           ! For resolutions finer than 2x2.5, nested, 
           ! or otherwise exotic domains and resolutions
@@ -218,14 +267,14 @@ CONTAINS
     ! Set first-time flag to false
     FIRST = .FALSE.    
 
-    IF ( LPRT .and. am_I_Root ) THEN
+    IF ( prtDebug ) THEN
        CALL DEBUG_MSG( '### STRAT_CHEM: at DO_STRAT_CHEM' )
     ENDIF
 
     !================================================================
     ! Full chemistry simulations
     !================================================================
-    IF ( ITS_A_FULLCHEM_SIM() ) THEN
+    IF ( IT_IS_A_FULLCHEM_SIM ) THEN
 
        ! Advance counter for number of times we've sampled the tropopause level
        TpauseL_CNT = TpauseL_CNT + 1d0
@@ -242,24 +291,25 @@ CONTAINS
           DO I=1,IIPAR
 
              ! Add to tropopause level aggregator for later determining STE flux
-             TpauseL(I,J) = TpauseL(I,J) + GET_TPAUSE_LEVEL(I,J)
+             TpauseL(I,J) = TpauseL(I,J) + GET_TPAUSE_LEVEL( I, J, State_Met )
 
              ! NOTE: For compatibility w/ the GEOS-5 GCM, we can no longer
              ! assume a minimum tropopause level.  Loop from 1,LLPAR instead.
              ! (bmy, 7/18/12)
              DO L = 1, LLPAR
 
-                IF ( ITS_IN_THE_TROP( I, J, L ) ) CYCLE
+                IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) CYCLE
 
                 DO N=1,NSCHEM ! Tracer index of active strat chem species
                    NN = Strat_TrID_GC(N) ! Tracer index in STT
 
                    ! Skip Ox; we'll always use either Linoz or Synoz
-                   IF ( ITS_A_FULLCHEM_SIM() .and. NN .eq. IDTOx ) CYCLE
+                   IF ( IT_IS_A_FULLCHEM_SIM .and. NN .eq. IDTOx ) CYCLE
 
                    dt = DTCHEM                              ! timestep [s]
                    k = LOSS(I,J,L,N)                        ! loss freq [s-1]
-                   P = PROD(I,J,L,N) * AD(I,J,L) / TCVV(NN) ! prod term [kg s-1]
+                   P = PROD(I,J,L,N) * State_Met%AD(I,J,L) &! prod term [kg s-1]
+                     / TCVV(NN)
                    M0 = STT(I,J,L,NN)                       ! initial mass [kg]
 
                    ! No prod or loss at all
@@ -290,17 +340,18 @@ CONTAINS
        BEFORE = STT(:,:,:,IDTOX )
 
        ! Put ozone in v/v
-       STT(:,:,:,IDTOX ) = STT(:,:,:,IDTOX) * TCVV( IDTOX ) / AD
+       STT(:,:,:,IDTOX ) = STT(:,:,:,IDTOX) * TCVV( IDTOX ) / &
+                           State_Met%AD
 
        ! Do Linoz or Synoz
        IF ( LLINOZ ) THEN
-          CALL Do_Linoz( am_I_Root )
+          CALL Do_Linoz( am_I_Root, State_Met )
        ELSE
-          CALL Do_Synoz( am_I_Root )
+          CALL Do_Synoz( am_I_Root, State_Met )
        ENDIF
 
        ! Put ozone back to kg
-       STT(:,:,:,IDTOX) = STT(:,:,:,IDTOX) * AD / TCVV( IDTOX )
+       STT(:,:,:,IDTOX) = STT(:,:,:,IDTOX) * State_Met%AD / TCVV( IDTOX )
 
        ! Put tendency into diagnostic array [kg box-1]
        SCHEM_TEND(:,:,:,IDTOX) = SCHEM_TEND(:,:,:,IDTOX) + &
@@ -325,16 +376,16 @@ CONTAINS
              ! (bmy, 7/18/12)
              DO L = 1, LLPAR
 
-                IF ( ITS_IN_THE_TROP(I,J,L) ) CYCLE
+                IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) CYCLE
 
                 ! Density of air at grid box (I,J,L) in [molec cm-3]
-                M = AD(I,J,L) / BOXVL(I,J,L) * XNUMOLAIR
+                M = State_Met%AD(I,J,L) / BOXVL(I,J,L,State_Met) * XNUMOLAIR
 
                 ! OH number density [molec cm-3]
                 mOH = M * STRAT_OH(I,J,L)
 
                 ! Temperature at grid box (I,J,L) in K
-                TK = T(I,J,L)
+                TK = State_Met%T(I,J,L)
 
                 !============!
                 ! CH3Br + OH !
@@ -384,7 +435,7 @@ CONTAINS
 
        !$OMP PARALLEL DO &
        !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( NN, BEFORE, I, J, L, BryDay, BryNight, IJWINDOW )
+       !$OMP PRIVATE( NN, BEFORE, I, J, L, BryDay, BryNight )
        DO NN=1,6
 
           IF ( GC_Bry_TrID(NN) > 0 ) THEN
@@ -402,24 +453,21 @@ CONTAINS
              DO J = 1, JJPAR
              DO I = 1, IIPAR  
                   
-                IF ( ITS_IN_THE_TROP(I,J,L) ) CYCLE
+                IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) CYCLE
                    
-                ! Set the Bry boundary conditions. Simulated
-                ! output from the GEOS5 CCM stratosphere.
-                ! (jpp, 6/27/2011)
-                IJWINDOW   = (J-1)*IIPAR + I
-                   
-                IF (SUNCOS(IJWINDOW) > 0.d0) THEN
+                IF ( State_Met%SUNCOS(I,J) > 0.d0 ) THEN
                    ! daytime [ppt] -> [kg]
-                   BryDay = bry_day(I,J,L,NN) &
-                          * 1.d-12 & ! convert from [ppt]
-                          * AD(I,J,L) / TCVV(GC_Bry_TrID(NN))
+                   BryDay = bry_day(I,J,L,NN)     &
+                          * 1.d-12                & ! convert from [ppt]
+                          * State_Met%AD(I,J,L)   &
+                          / TCVV(GC_Bry_TrID(NN))
                    STT(I,J,L, GC_Bry_TrID(NN) ) = BryDay
                 ELSE
                    ! nighttime [ppt] -> [kg]
-                   BryNight = bry_night(I,J,L,NN) &
-                            * 1.d-12 & ! convert from [ppt]
-                            * AD(I,J,L) / TCVV(GC_Bry_TrID(NN))
+                   BryNight = bry_night(I,J,L,NN)   &
+                            * 1.d-12                & ! convert from [ppt]
+                            * State_Met%AD(I,J,L)   &
+                            / TCVV(GC_Bry_TrID(NN))
                    STT(I,J,L, GC_Bry_TrID(NN) ) = BryNight
                 ENDIF
                    
@@ -440,7 +488,7 @@ CONTAINS
     !======================================================================
     ! Tagged Ox simulation
     !======================================================================
-    ELSE IF ( ITS_A_TAGOX_SIM() ) THEN
+    ELSE IF ( IT_IS_A_TAGOX_SIM ) THEN
 
        ! Tagged Ox only makes use of Synoz or Linoz. We apply either to
        ! the total Ox tracer, and the stratospheric Ox tracer.
@@ -448,14 +496,13 @@ CONTAINS
        ! Intial conditions
        STT0(:,:,:,:) = STT(:,:,:,:)
 
-       CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, AD, STT ) ! kg -> v/v
+       CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, State_Met%AD, STT ) ! kg -> v/v
        IF ( LLINOZ ) THEN
-          CALL Do_Linoz( am_I_Root )
+          CALL Do_Linoz( am_I_Root, State_Met )
        ELSE 
-          CALL Do_Synoz( am_I_Root )
+          CALL Do_Synoz( am_I_Root, State_Met )
        ENDIF
-       CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, AD, STT ) ! v/v -> kg
-
+       CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, State_Met%AD, STT ) ! v/v -> kg
 
        ! Add to tropopause level aggregator for later determining STE flux
        TpauseL_CNT = TpauseL_CNT + 1d0
@@ -465,7 +512,7 @@ CONTAINS
        !$OMP PRIVATE( I, J )
        DO J = 1, JJPAR
        DO I = 1, IIPAR
-          TpauseL(I,J) = TpauseL(I,J) + GET_TPAUSE_LEVEL(I,J)
+          TpauseL(I,J) = TpauseL(I,J) + GET_TPAUSE_LEVEL( I, J, State_Met )
        ENDDO
        ENDDO
        !$OMP END PARALLEL DO
@@ -480,16 +527,16 @@ CONTAINS
     !======================================================================
     ! H2-HD Simulation
     !======================================================================
-    ELSE IF ( ITS_A_H2HD_SIM() ) THEN
+    ELSE IF ( IT_IS_A_H2HD_SIM ) THEN
 
        ! H2/HD uses upbdflx_H2, which is a modified Synoz.
 
        ! Intial conditions
        STT0(:,:,:,:) = STT(:,:,:,:)
 
-       CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, AD, STT ) ! kg -> v/v
-       CALL UPBDFLX_HD
-       CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, AD, STT ) ! v/v -> kg
+       CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, State_Met%AD, STT ) ! kg -> v/v
+       CALL UPBDFLX_HD( State_Met )
+       CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, State_Met%AD, STT ) ! v/v -> kg
 
        ! Add to tropopause level aggregator for later determining STE flux
        TpauseL_CNT = TpauseL_CNT + 1d0
@@ -498,7 +545,7 @@ CONTAINS
        !$OMP PRIVATE( I, J )
        DO J = 1, JJPAR
        DO I = 1, IIPAR
-          TpauseL(I,J) = TpauseL(I,J) + GET_TPAUSE_LEVEL(I,J)
+          TpauseL(I,J) = TpauseL(I,J) + GET_TPAUSE_LEVEL( I, J, State_Met )
        ENDDO
        ENDDO
        !$OMP END PARALLEL DO
@@ -541,35 +588,51 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GET_RATES( THISMONTH, am_I_Root )
+  SUBROUTINE GET_RATES( THISMONTH, Input_Opt, State_Chm, am_I_Root, RC )
 !
 ! !USES:
 !
-    USE BPCH2_MOD,       ONLY : GET_NAME_EXT, GET_RES_EXT, GET_TAU0, READ_BPCH2
-    USE DIRECTORY_MOD,   ONLY : DATA_DIR
-    USE LOGICAL_MOD,     ONLY : LLINOZ
-    USE TIME_MOD,        ONLY : GET_MONTH
-    USE TRACER_MOD,      ONLY : N_TRACERS, TRACER_NAME
-    USE TRANSFER_MOD,    ONLY : TRANSFER_3D
+    ! GEOS-Chem routines
+    USE BPCH2_MOD,          ONLY : GET_NAME_EXT
+    USE BPCH2_MOD,          ONLY : GET_RES_EXT
+    USE BPCH2_MOD,          ONLY : GET_TAU0
+    USE BPCH2_MOD,          ONLY : READ_BPCH2
+    USE CMN_SIZE_MOD
+    USE DIRECTORY_MOD,      ONLY : DATA_DIR
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE TIME_MOD,           ONLY : GET_MONTH
+    USE TRANSFER_MOD,       ONLY : TRANSFER_3D
 
+    ! netCDF routines
     USE m_netcdf_io_open
     USE m_netcdf_io_read
     USE m_netcdf_io_close
-
-    USE CMN_SIZE_MOD
 
     IMPLICIT NONE
 !
 ! !INPUT PARAMETERS: 
 !
-    INTEGER, INTENT(IN) :: THISMONTH   ! Current month
-    LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+    INTEGER,        INTENT(IN)    :: THISMONTH   ! Current month
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 !
 ! !REVISION HISTORY: 
 !  01 Feb 2011 - L. Murray   - Initial version
 !  20 Jul 2012 - R. Yantosca - Reorganized declarations for clarity
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  26 Oct 2012 - R. Yantosca - Now pass Chemistry State object for GIGC
+!   9 Nov 2012 - R. Yantosca - Now pass Input Options object for GIGC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -581,10 +644,12 @@ CONTAINS
     INTEGER            :: N,        M,       S
     INTEGER            :: F,        NN,      fileID
     REAL*8             :: XTAU
+    INTEGER            :: N_TRACERS
 
     ! Arrays
     REAL*4             :: ARRAY ( IIPAR, JJPAR, LGLOB )  ! Full vertical res
     REAL*8             :: ARRAY2( IIPAR, JJPAR, LLPAR )  ! Actual vertical res
+    CHARACTER(LEN=14)  :: TRACER_NAME(Input_Opt%N_TRACERS)
 
     !=================================================================
     ! GET_RATES begins here
@@ -593,6 +658,31 @@ CONTAINS
     ! Intialize arrays
     LOSS = 0d0
     PROD = 0d0
+
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+
+    !-----------------------------------------------------------------------
+    !         %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+    !
+    ! Do nothing, since we would not be reading in data here when using
+    ! the ESMF interface.  The strat-chem data would have to come in
+    ! via the ESMF Import State. (bmy, 11/7/12)
+    !-----------------------------------------------------------------------
+
+    ! Assume success
+    RC                       = GIGC_SUCCESS
+
+#else
+    !----------------------------------------------------------------------
+    !                %%%%% TRADITIONAL GEOS-Chem %%%%%
+    !
+    ! Current practice in the standard GEOS-Chem is to read strat chem
+    ! prod/loss data from netCDF files. (bmy, 10/26/12)
+    !----------------------------------------------------------------------
+
+    ! Copy fields from Input_Opt to Llocal variables
+    N_TRACERS                = Input_Opt%N_TRACERS
+    TRACER_NAME(1:N_TRACERS) = Input_Opt%TRACER_NAME(1:N_TRACERS)
 
     IF ( am_I_Root ) THEN
        WRITE( 6, 11 ) &
@@ -678,6 +768,19 @@ CONTAINS
 
        call NcCl( fileID )
 
+!#if defined( DEVEL ) 
+! NOTE: Comment out the strat chem fields of State_Chem for now (bmy, 11/26/12)
+!       !-----------------------------------------------------------------
+!       !   %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%%
+!       !
+!       ! Call the routine GIGC_Allocate_All (located in module file
+!       ! GeosCore/gigc_environment_mod.F90) to allocate all lat/lon
+!       ! allocatable arrays used by GEOS-Chem.  
+!       !-----------------------------------------------------------------
+!       State_Chm%Schm_P(:,:,:,N) = PROD(:,:,:,N)
+!       State_Chm%Schm_k(:,:,:,N) = LOSS(:,:,:,N)
+!#endif
+
     ENDDO
 
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -721,6 +824,7 @@ CONTAINS
        CALL TRANSFER_3D( Bry_temp(:,:,:), Bry_night(:,:,:,NN) )
        
     ENDDO
+#endif
 
   END SUBROUTINE GET_RATES
 !EOC
@@ -743,10 +847,12 @@ CONTAINS
 !
 ! !USES:
 !
+    ! GEOS-Chem routines
     USE BPCH2_MOD,       ONLY : GET_NAME_EXT
     USE BPCH2_MOD,       ONLY : GET_RES_EXT
     USE BPCH2_MOD,       ONLY : GET_TAU0
     USE BPCH2_MOD,       ONLY : READ_BPCH2
+    USE CMN_SIZE_MOD
     USE DIRECTORY_MOD,   ONLY : DATA_DIR_1x1
     USE GRID_MOD,        ONLY : GET_XMID
     USE GRID_MOD,        ONLY : GET_YMID
@@ -756,11 +862,10 @@ CONTAINS
     USE TRANSFER_MOD,    ONLY : TRANSFER_3D
     USE TRANSFER_MOD,    ONLY : TRANSFER_3D_Bry
 
+    ! netCDF routines
     USE m_netcdf_io_open
     USE m_netcdf_io_read
     USE m_netcdf_io_close
-
-    USE CMN_SIZE_MOD
 
     IMPLICIT NONE
 !
@@ -877,11 +982,6 @@ CONTAINS
     ENDDO
     ENDDO
     call NcCl( fileID )
-!############################################
-!### Prior to 9/6/12:
-!###    call transfer_3D( array, array2 )
-!###    STRAT_OH(:,:,:) = ARRAY2
-!############################################
     ptr_3D => STRAT_OH
     call transfer_3D( array, ptr_3D )
     NULLIFY( ptr_3D )
@@ -971,11 +1071,6 @@ CONTAINS
        ENDDO
 
        ! Cast from REAL*4 to REAL*8 and resize to 1:LLPAR if necessary
-!##############################################################################
-!###       call transfer_3D( array, array2 )
-!###
-!###       PROD(:,:,:,N) = ARRAY2
-!##############################################################################
        ptr_3D => PROD(:,:,:,N)
        call transfer_3D( array, ptr_3D )
        NULLIFY( ptr_3D )
@@ -1001,11 +1096,6 @@ CONTAINS
        ENDDO
 
        ! Cast from REAL*4 to REAL*8 and resize to 1:LLPAR if necessary
-!##############################################################################
-!###       call transfer_3D( array, array2 )
-!###
-!###       LOSS(:,:,:,N) = ARRAY2
-!##############################################################################
        ptr_3d => LOSS(:,:,:,N)
        call transfer_3D( array, array2 )
        NULLIFY( ptr_3D )
@@ -1091,13 +1181,6 @@ CONTAINS
     ! It could be modified for nested domains if the total mass flux across the
     ! boundaries during the period is taken into account.
     RETURN
-!------------------------------------------------------------------------------
-! Prior to 10/5/12:
-! Since the rest of this code isn't needed for the nested grid, wrap it
-! in an #else statement.  This gets code to compile for IFORT 12, and avoids
-! an "catastrophic error: internal compiler error". (bmy, 10/5/12)
-!#endif
-!------------------------------------------------------------------------------
 #else
 
     ! Determine mean tropopause level for the period
@@ -1205,55 +1288,84 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !      
-  SUBROUTINE INIT_STRAT_CHEM( am_I_Root )
+  SUBROUTINE INIT_STRAT_CHEM( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
-    USE ERROR_MOD,     ONLY : ALLOC_ERR
-    USE LOGICAL_MOD,   ONLY : LLINOZ
-    USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM, ITS_A_TAGOX_SIM
-    USE TRACER_MOD,    ONLY : N_TRACERS, TRACER_NAME, STT
-    USE TRACERID_MOD,  ONLY : IDTCHBr3, IDTCH2Br2, IDTCH3Br
-    USE TRACERID_MOD,  ONLY : IDTBr2,IDTBr,IDTBrO,IDTHOBr,IDTHBr,IDTBrNO3
-    USE TIME_MOD,      ONLY : GET_TAU, GET_NYMD, GET_NHMS, GET_TS_CHEM
-
-    USE m_netcdf_io_open
-    USE m_netcdf_io_read
-    USE m_netcdf_io_close
-
     USE CMN_SIZE_MOD
+    USE ERROR_MOD,          ONLY : ALLOC_ERR
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE TRACER_MOD,         ONLY : STT
+    USE TRACERID_MOD,       ONLY : IDTCHBr3, IDTCH2Br2, IDTCH3Br
+    USE TRACERID_MOD,       ONLY : IDTBr2,   IDTBr,     IDTBrO
+    USE TRACERID_MOD,       ONLY : IDTHOBr,  IDTHBr,    IDTBrNO3
+    USE TIME_MOD,           ONLY : GET_TAU
+    USE TIME_MOD,           ONLY : GET_NYMD
+    USE TIME_MOD,           ONLY : GET_NHMS
+    USE TIME_MOD,           ONLY : GET_TS_CHEM
 
     IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY:
 !  01 Feb 2011 - L. Murray   - Initial version
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  26 Oct 2012 - R. Yantosca - Now pass Chemistry State object for GIGC
+!  09 Nov 2012 - R. Yantosca - Now pass Input Options object for GIGC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=16)     :: sname
-    INTEGER               :: AS, N, NN
+    ! Scalars
+    CHARACTER(LEN=16) :: sname
+    INTEGER           :: AS, N, NN
+    LOGICAL           :: IT_IS_A_FULLCHEM_SIM
+    LOGICAL           :: IT_IS_A_TAGOX_SIM
+    LOGICAL           :: LLINOZ
+    INTEGER           :: N_TRACERS
+
+    ! Arrays
+    CHARACTER(LEN=14) :: TRACER_NAME(Input_Opt%N_TRACERS)
 
     !=================================================================
     ! INIT_STRAT_CHEM begins here!
     !=================================================================
 
+    ! Assume success
+    RC                       = GIGC_SUCCESS
+
+    ! Save fields from the Input_Opt object to local variables
+    LLINOZ                   = Input_Opt%LLINOZ
+    N_TRACERS                = Input_Opt%N_TRACERS
+    IT_IS_A_FULLCHEM_SIM     = Input_Opt%ITS_A_FULLCHEM_SIM
+    IT_IS_A_TAGOX_SIM        = Input_Opt%ITS_A_TAGOX_SIM
+    TRACER_NAME(1:N_TRACERS) = Input_Opt%TRACER_NAME(1:N_TRACERS)
+
     ! Initialize counters, initial times, mapping arrays
-    TpauseL_Cnt       = 0.
-    NSCHEM            = 0
-    TauInit           = GET_TAU()
-    NymdInit          = GET_NYMD()
-    NhmsInit          = GET_NHMS()
-    strat_trID_GC(:)  = 0
-    strat_trID_GMI(:) = 0
+    TpauseL_Cnt              = 0.
+    NSCHEM                   = 0
+    TauInit                  = GET_TAU()
+    NymdInit                 = GET_NYMD()
+    NhmsInit                 = GET_NHMS()
+    strat_trID_GC(:)         = 0
+    strat_trID_GMI(:)        = 0
 
     ! Initialize timestep for chemistry [s]
     dTchem = GET_TS_CHEM() * 60d0
@@ -1291,7 +1403,7 @@ CONTAINS
     !===========================!
     ! Full chemistry simulation !
     !===========================!
-    IF ( ITS_A_FULLCHEM_SIM() ) THEN
+    IF ( IT_IS_A_FULLCHEM_SIM ) THEN
 
        DO NN = 1, NTR_GMI       
 
@@ -1335,6 +1447,16 @@ CONTAINS
                 Strat_TrID_GC(NSCHEM)  = N  ! Maps 1:NSCHEM to STT index
                 Strat_TrID_GMI(NSCHEM) = NN ! Maps 1:NSCHEM to GMI_TrName index
 
+! NOTE: Comment out strat-chem fields of State_Chm for now (bmy, 11/26/12)
+!#if defined( DEVEL ) 
+!                !---------------------------------------------------------
+!                ! %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+!                !
+!                !---------------------------------------------------------
+!                State_Chm%Schm_Id(NSCHEM)   = Strat_TrID_GC(NSCHEM)
+!                State_Chm%Schm_Name(NSCHEM) = TRIM( TRACER_NAME(N) )
+!#endif
+
              ENDIF
 
           ENDDO
@@ -1356,7 +1478,7 @@ CONTAINS
        !===========!
        ! Tagged Ox !
        !===========!
-    ELSE IF ( ITS_A_TAGOX_SIM() ) THEN
+    ELSE IF ( IT_IS_A_TAGOX_SIM ) THEN
        IF ( LLINOZ ) THEN
           IF ( am_I_Root ) THEN
              WRITE(6,*) 'Linoz ozone performed on: '
@@ -1476,29 +1598,30 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Do_Synoz( am_I_Root )   
+  SUBROUTINE Do_Synoz( am_I_Root, State_Met )   
 !
 ! !USES:
 !
-    USE DAO_MOD,        ONLY : AD, BXHEIGHT, T, TROPP
-    USE ERROR_MOD,      ONLY : ERROR_STOP
-    USE LOGICAL_MOD,    ONLY : LVARTROP 
-    USE PRESSURE_MOD,   ONLY : GET_PEDGE, GET_PCENTER
-    USE TAGGED_OX_MOD,  ONLY : ADD_STRAT_POX
-    USE TIME_MOD,       ONLY : GET_TS_CHEM, GET_YEAR
-    USE TRACER_MOD,     ONLY : STT, ITS_A_TAGOX_SIM
-    USE TRACERID_MOD,   ONLY : IDTOX, IDTOxStrt
-    USE TROPOPAUSE_MOD, ONLY : GET_TPAUSE_LEVEL
+    USE ERROR_MOD,          ONLY : ERROR_STOP
+    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE LOGICAL_MOD,        ONLY : LVARTROP 
+    USE PRESSURE_MOD,       ONLY : GET_PEDGE, GET_PCENTER
+    USE TAGGED_OX_MOD,      ONLY : ADD_STRAT_POX
+    USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_YEAR
+    USE TRACER_MOD,         ONLY : STT, ITS_A_TAGOX_SIM
+    USE TRACERID_MOD,       ONLY : IDTOX, IDTOxStrt
+    USE TROPOPAUSE_MOD,     ONLY : GET_TPAUSE_LEVEL
 
-    USE CMN_SIZE_MOD       ! Size parameters
-    USE CMN_GCTM_MOD       ! Rdg0
+    USE CMN_SIZE_MOD             ! Size parameters
+    USE CMN_GCTM_MOD             ! Rdg0
 
     IMPLICIT NONE
 #include "define.h"
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+    LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
+    TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !REMARKS:
 !  Reference:
@@ -1574,6 +1697,10 @@ CONTAINS
 !                 F90, renamed from UPBDFLX_O3 to DO_SYNOZ. Use chem timestep
 !                 now. Also, removed INIT_UPBDFLX, which was last used for 
 !                 GEOS-3.
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  04 Feb 2013 - M. Payer    - Replace all JJPAR with values for nested grids
+!                              since JJPAR is no longer a parameter
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1602,11 +1729,17 @@ CONTAINS
 #elif defined( GRID1x125 ) 
     INTEGER, PARAMETER   :: J30S = 61, J30N = 121
 
-#elif defined( GRID05x0666 )
-    INTEGER, PARAMETER   :: J30S = 1, J30N = JJPAR
+#elif defined( GRID05x0666 ) && defined( NESTED_CH )
+    INTEGER, PARAMETER   :: J30S = 1, J30N = 133
 
-#elif defined( GRID025x03125 )
-    INTEGER, PARAMETER   :: J30S = 1, J30N = JJPAR
+#elif defined( GRID05x0666 ) && defined( NESTED_NA )
+    INTEGER, PARAMETER   :: J30S = 1, J30N = 121
+
+#elif defined( GRID05x0666 ) && defined( NESTED_EU )
+    INTEGER, PARAMETER   :: J30S = 1, J30N = 81
+
+#elif defined( GRID025x03125 ) && defined( SEAC4RS )
+    INTEGER, PARAMETER   :: J30S = 1, J30N = 161
 
 #elif defined( GRID1x1 ) 
 
@@ -1715,7 +1848,7 @@ CONTAINS
           ! replace L70mb with Tropopause pressure if the later is 
           ! lower -PHS #### still Beta testing ####
           !IF ( LVARTROP ) THEN
-          !   PTP = TROPP(I,J)
+          !   PTP = State_Met%TROPP(I,J)
           !   IF ( PTP < P70mb ) THEN
           !      P70mb = PTP
           !      !#### TESTING ####
@@ -1754,8 +1887,8 @@ CONTAINS
           ! ZUP is the height from the sigma center of the 
           ! (L70mb-1)th layer
           !============================================================== 
-          T2   = T(I,J,L70mb  )
-          T1   = T(I,J,L70mb-1)        
+          T2   = State_Met%T(I,J,L70mb  )
+          T1   = State_Met%T(I,J,L70mb-1)
 
           DZ   = Rdg0 * ( (T1 + T2) / 2d0 ) * LOG( P1 / P70mb ) 
           ZUP  = Rdg0 * T1 * LOG( P1 /P3 )
@@ -1768,7 +1901,7 @@ CONTAINS
           ! If DZ <  ZUP then DZ is in level L70mb-1.
           !==============================================================       
           IF ( DZ >= ZUP ) THEN
-             H70mb = BXHEIGHT(I,J,L70mb) - ( DZ - ZUP )
+             H70mb = State_Met%BXHEIGHT(I,J,L70mb) - ( DZ - ZUP )
           ELSE
              L70mb = L70mb - 1
              H70mb = ZUP - DZ
@@ -1795,7 +1928,7 @@ CONTAINS
              ! of this level that lies above 70 mb, and scale 
              ! the O3 flux accordingly.
              IF ( L == L70mb ) THEN
-                PO3 = PO3 * H70mb / BXHEIGHT(I,J,L) 
+                PO3 = PO3 * H70mb / State_Met%BXHEIGHT(I,J,L) 
              ENDIF
 
              ! Store O3 flux in the proper tracer number
@@ -1809,7 +1942,7 @@ CONTAINS
              ! Archive stratospheric O3 for printout in [Tg/yr]
              IF ( FIRST ) THEN
                 STFLUX(I,J,L) = STFLUX(I,J,L) + &
-                     PO3 * AD(I,J,L) * 1000.d0 / 28.8d0 / &
+                     PO3 * State_Met%AD(I,J,L) * 1000.d0 / 28.8d0 / &
                      DTCHEM * 48.d0 * 365.25d0 * 86400d0 / 1e12
              ENDIF
           ENDDO
@@ -1844,19 +1977,23 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE UPBDFLX_HD
+  SUBROUTINE UPBDFLX_HD( State_Met )
 !
 ! !USES:
 !
-    USE DAO_MOD,      ONLY : AD, BXHEIGHT, T
-    USE ERROR_MOD,    ONLY : ERROR_STOP
-    USE PRESSURE_MOD, ONLY : GET_PEDGE, GET_PCENTER
-    USE TIME_MOD,     ONLY : GET_TS_CHEM
-    USE TRACER_MOD,   ONLY : STT
-    USE TRACERID_MOD, ONLY : IDTHD, IDTH2
+    USE ERROR_MOD,          ONLY : ERROR_STOP
+    USE PRESSURE_MOD,       ONLY : GET_PEDGE, GET_PCENTER
+    USE TIME_MOD,           ONLY : GET_TS_CHEM
+    USE TRACER_MOD,         ONLY : STT
+    USE TRACERID_MOD,       ONLY : IDTHD, IDTH2
+    USE GIGC_State_Met_Mod, ONLY : MetState
     
-    USE CMN_SIZE_MOD     ! Size parameters
-    USE CMN_GCTM_MOD     ! Rdg0
+    USE CMN_SIZE_MOD             ! Size parameters
+    USE CMN_GCTM_MOD             ! Rdg0
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !REMARKS:
 !  Instead of calculating the fractionation of H2 in the stratosphere 
@@ -1882,7 +2019,11 @@ CONTAINS
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.2 in the same way as MERRA
 !  10 Feb 2012 - R. Yantosca - Modified for 0.25 x 0.3125 grids
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
-!  20 Jun 2012 - L. Murray - Moved from upbdflx_mod.F to here.
+!  20 Jun 2012 - L. Murray   - Moved from upbdflx_mod.F to here.
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  04 Feb 2013 - M. Payer    - Replace all JJPAR with values for nested grids
+!                              since JJPAR is no longer a parameter
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1910,11 +2051,17 @@ CONTAINS
 #elif defined( GRID1x125 ) 
     INTEGER, PARAMETER   :: J30S = 61, J30N = 121
 
-#elif defined( GRID05x0666 )
-    INTEGER, PARAMETER   :: J30S = 1, J30N = JJPAR
+#elif defined( GRID05x0666 ) && defined( NESTED_CH )
+    INTEGER, PARAMETER   :: J30S = 1, J30N = 133
 
-#elif defined( GRID025x03125 )
-    INTEGER, PARAMETER   :: J30S = 1, J30N = JJPAR
+#elif defined( GRID05x0666 ) && defined( NESTED_NA )
+    INTEGER, PARAMETER   :: J30S = 1, J30N = 121
+
+#elif defined( GRID05x0666 ) && defined( NESTED_EU )
+    INTEGER, PARAMETER   :: J30S = 1, J30N = 81
+
+#elif defined( GRID025x03125 ) && defined( SEAC4RS )
+    INTEGER, PARAMETER   :: J30S = 1, J30N = 161
 
 #elif defined( GRID1x1 ) 
 
@@ -2018,8 +2165,8 @@ CONTAINS
           ! ZUP is the height from the sigma center of the 
           ! (L70mb-1)th layer
           !=========================================================== 
-          T2   = T(I,J,L70mb  )
-          T1   = T(I,J,L70mb-1)        
+          T2   = State_Met%T(I,J,L70mb  )
+          T1   = State_Met%T(I,J,L70mb-1)
 
           DZ   = Rdg0 * ( (T1 + T2) / 2d0 ) * LOG( P1 / P70mb ) 
           ZUP  = Rdg0 * T1 * LOG( P1 /P3 )
@@ -2032,7 +2179,7 @@ CONTAINS
           ! If DZ <  ZUP then DZ is in level L70mb-1.
           !===========================================================       
           IF ( DZ >= ZUP ) THEN
-             H70mb = BXHEIGHT(I,J,L70mb) - ( DZ - ZUP )
+             H70mb = State_Met%BXHEIGHT(I,J,L70mb) - ( DZ - ZUP )
           ELSE
              L70mb = L70mb - 1
              H70mb = ZUP - DZ
@@ -2059,7 +2206,7 @@ CONTAINS
              ! of this level that lies above 70 mb, and scale 
              ! the HD flux accordingly.
              IF ( L == L70mb ) THEN
-                PHD = PHD * H70mb / BXHEIGHT(I,J,L) 
+                PHD = PHD * H70mb / State_Met%BXHEIGHT(I,J,L) 
              ENDIF
 
              ! Store HD flux in the proper tracer number

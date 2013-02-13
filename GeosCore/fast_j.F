@@ -24,49 +24,51 @@
 !
 ! !INTERFACE:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      SUBROUTINE FAST_J( SUNCOS, OD, ALBD, PEDGE, am_I_Root )  
-#else
-      SUBROUTINE FAST_J( SUNCOS, OD, ALBD, am_I_Root )  
-#endif
+      SUBROUTINE FAST_J( am_I_Root, State_Met, RC )
 !
 ! !USES:
 !
 #     include "define.h"
 
-      USE DAO_MOD,      ONLY : T, CLDF
-      USE ERROR_MOD,    ONLY : ERROR_STOP, ALLOC_ERR
-      USE GRID_MOD,     ONLY : GET_YMID
-      USE PRESSURE_MOD, ONLY : GET_PEDGE
-      USE TIME_MOD,     ONLY : GET_MONTH, GET_DAY, GET_DAY_OF_YEAR
-      USE TIME_MOD,     ONLY : GET_TAU,   GET_YEAR
-      USE TOMS_MOD,     ONLY : GET_OVERHEAD_O3
-
-      USE CMN_SIZE_MOD, ONLY : IIPAR,   JJPAR, LLPAR
-      USE CMN_SIZE_MOD, ONLY : NDUST,   MAXIJ, NAER,  NRH
-      USE CMN_FJ_MOD,   ONLY : JPMAX,   JPPJ
-      USE JV_CMN_MOD,   ONLY : ODMDUST, PJ,    NB,    ODAER
+      USE CMN_SIZE_MOD,       ONLY : IIPAR
+      USE CMN_SIZE_MOD,       ONLY : JJPAR
+      USE CMN_SIZE_MOD,       ONLY : LLPAR
+      USE CMN_SIZE_MOD,       ONLY : NDUST
+      USE CMN_SIZE_MOD,       ONLY : MAXIJ
+      USE CMN_SIZE_MOD,       ONLY : NAER
+      USE CMN_SIZE_MOD,       ONLY : NRH
+      USE CMN_FJ_MOD,         ONLY : JPMAX
+      USE CMN_FJ_MOD,         ONLY : JPPJ
+      USE JV_CMN_MOD,         ONLY : NB
+      USE JV_CMN_MOD,         ONLY : ODAER
+      USE JV_CMN_MOD,         ONLY : ODMDUST
+      USE JV_CMN_MOD,         ONLY : PJ
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_YMID
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE
+      USE TIME_MOD,           ONLY : GET_MONTH
+      USE TIME_MOD,           ONLY : GET_DAY
+      USE TIME_MOD,           ONLY : GET_DAY_OF_YEAR
+      USE TIME_MOD,           ONLY : GET_TAU
+      USE TIME_MOD,           ONLY : GET_YEAR
+      USE TOMS_MOD,           ONLY : GET_OVERHEAD_O3
 
       IMPLICIT NONE
 !
 ! !INPUT PARAMETERS: 
 !
       ! Is this the root CPU?
-      LOGICAL, INTENT(IN) :: am_I_Root
+      LOGICAL,        INTENT(IN)  :: am_I_Root
 
-      ! Cosine of solar zenith angle [unitless]
-      REAL*8,  INTENT(IN) :: SUNCOS(MAXIJ)   
-
-      ! Cloud optical depth [unitless]
-      REAL*8,  INTENT(IN) :: OD(LLPAR,IIPAR,JJPAR) 
-
-      ! UV albedo [unitless]
-      REAL*8,  INTENT(IN) :: ALBD(IIPAR,JJPAR)    
-
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      ! Pressure at gridbox interfaces
-      REAL*8,  INTENT(IN) :: PEDGE(IIPAR, JJPAR, LLPAR+1)
-#endif
+      ! Meteorology State object
+      TYPE(MetState), INTENT(IN)  :: State_Met
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC
 !
 ! !REMARKS:
 !
@@ -130,6 +132,10 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  10 Aug 2012 - R. Yantosca - Replace IPAR, JPAR, LPAR w/ IIPAR, JJPAR, LLPAR
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  27 Nov 2012 - R. Yantosca - Cosmetic changes
+!  27 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOSmid field
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -144,14 +150,9 @@
       REAL*8             :: OPTAER(LLPAR,NAER*NRH)
 
       ! Local variables for cloud overlap (hyl, phs)
-      INTEGER           :: NUMB, KK, I
+      INTEGER            :: NUMB, KK, I
       INTEGER            :: INDIC(LLPAR+1)
-!#if defined( DEVEL )
-!      INTEGER, ALLOCATABLE :: INDGEN(:)
-!      INTEGER              :: AS
-!#else
-      INTEGER            :: INDGEN(LLPAR+1)! = (/ (i,i=1,LLPAR+1) /)
-!#endif
+      INTEGER            :: INDGEN(LLPAR+1)
       INTEGER            :: KBOT(LLPAR)
       INTEGER            :: KTOP(LLPAR)
       INTEGER            :: INDICATOR(LLPAR+2)
@@ -174,14 +175,14 @@
       ! FAST_J begins here!
       !=================================================================
 
+      ! Assume success
+      RC = GIGC_SUCCESS
+
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       IF ( FIRST ) THEN
 
-!         ALLOCATE ( INDGEN(LLPAR+1), STAT=AS)
-!         IF ( AS /=0 ) CALL ALLOC_ERR( 'INDGEN' )
-
          DO i = 1,LLPAR+1
-            INDGEN(i) = i       !(/(i,i=1,LLPAR+1)/)
+            INDGEN(i) = i
          ENDDO
          FIRST = .FALSE.
 
@@ -222,12 +223,12 @@
             YLAT         = GET_YMID( NLON, NLAT, 1 )
 
             ! Cosine of solar zenith angle [unitless] at (NLON,NLAT)
-            CSZA         = SUNCOS( (NLAT-1)*IIPAR + NLON ) 
+            CSZA         = State_Met%SUNCOSmid(NLON,NLAT)
 
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
             ! Define the PJ array here, using GCM pressures
             DO L = 1, LLPAR+1
-               PJ(L)     = PEDGE( NLON, NLAT, L )
+               PJ(L)     = State_Met%PEDGE( NLON, NLAT, L )
             ENDDO
 #else
             ! Define the PJ array here, using Ap and Bp from GEOS-Chem
@@ -240,10 +241,10 @@
             PJ(NB+1)     = 0d0
 
             ! Temperature profile [K] at (NLON,NLAT)
-            TEMP         = T(NLON,NLAT,1:LLPAR)
+            TEMP         = State_Met%T(NLON,NLAT,1:LLPAR)
 
             ! Surface albedo [unitless] at (NLON,NLAT)
-            SFCA         = ALBD(NLON,NLAT)
+            SFCA         = State_Met%UVALBEDO(NLON,NLAT)
 
             ! Overhead ozone column [DU] at (NLON, NLAT)
             O3COL        = GET_OVERHEAD_O3( NLON, NLAT )
@@ -255,7 +256,7 @@
             OPTDUST(:,:) = ODMDUST(NLON,NLAT,:,:)
 
             ! Cloud OD profile [unitless] at (NLON,NLAT)
-            OPTD         = OD(1:LLPAR,NLON,NLAT)
+            OPTD         = State_Met%OPTD(1:LLPAR,NLON,NLAT)
 
             !-----------------------------------------------------------
             !### If you want to exclude aerosol OD, mineral dust OD,
@@ -277,7 +278,7 @@
 #if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
                ! Column cloud fraction (not less than zero)
-               CLDF1D = CLDF(1:LLPAR,NLON,NLAT)
+               CLDF1D = State_Met%CLDF(1:LLPAR,NLON,NLAT)
                WHERE ( CLDF1D < 0d0 ) CLDF1D = 0d0
                
                ! NOTE: for the reprocessed GEOS-5 met fields (i.e. with
@@ -302,7 +303,7 @@
             ELSE IF ( OVERLAP == 2 ) THEN
 
                ! Column cloud fraction (not less than zero)
-               CLDF1D = CLDF(1:LLPAR,NLON,NLAT)
+               CLDF1D = State_Met%CLDF(1:LLPAR,NLON,NLAT)
                WHERE ( CLDF1D < 0d0 ) CLDF1D = 0d0
                
 #if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
@@ -370,7 +371,7 @@
                ! Initialize
                FMAX(:)   = 0d0  ! max cloud fraction in each cloud block
                ODNEW(:)  = 0d0  ! in-cloud optical depth
-               CLDF1D    = CLDF(1:LLPAR,NLON,NLAT)
+               CLDF1D    = State_Met%CLDF(1:LLPAR,NLON,NLAT)
                INDICATOR = 0
 
                ! set small negative CLDF or OPTD to zero. 

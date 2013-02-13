@@ -181,6 +181,10 @@
 !        IDTOCIL1-IDTOCIL30, IDTOCOB1-IDTOCOB30, and IDTAW1-IDTAW30 (win, 6/23/09)
 !  (23) Updates for mercury simulation (ccc, 5/17/10)
 !  17 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
+!  07 Feb 2012 - E. Corbitt  - Add mercury tagged tracers
+!  13 Aug 2012 - R. Yantosca - Add routine FILL_State_Chm_NAME_IDs
+!  11 Jan 2013 - M. Payer    - Add methyl peroxy nitrate (MPN) as tracer
+!                              (E. Browne)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -214,6 +218,7 @@
       INTEGER            :: IDAPAN, IDENPAN, IDMPAN, IDNIPAN
       INTEGER            :: IDDRYAPAN, IDDRYENPAN, IDDRYGLPAN
       INTEGER            :: IDDRYGPAN, IDDRYMPAN, IDDRYNIPAN
+      INTEGER            :: IDMPN
       ! jpp, 6/5/09, adding IDDRY__ id's for dry deposition
       INTEGER            :: IDDRYHOBr, IDDRYHBr, IDDRYBrNO3
 
@@ -258,11 +263,15 @@
       INTEGER            :: IDTIEPOX
       INTEGER            :: IDTPYPAN,IDTMAP
       INTEGER            :: IDTAP
+      INTEGER            :: IDTMPN
 
       ! For tagged Ox simulation
       INTEGER            :: IDTOxStrt
 
       INTEGER		 :: IDTHCOOH, IDTACTA  ! (mjc, 4/13/11)
+
+      ! For POPs simulation (clf, 2/11/2011)
+      INTEGER              :: IDTPOPPOC,  IDTPOPPBC,   IDTPOPG
 
       ! TOMAS tracer ID's  !(win, 6/23/09)
       INTEGER            :: IDTH2SO4
@@ -345,9 +354,23 @@
       ! For tagged Hg simulation
       INTEGER              :: N_Hg_CATS
       INTEGER, ALLOCATABLE :: ID_Hg0(:),  ID_Hg2(:), ID_HgP(:)
-      INTEGER              :: ID_Hg_tot,  ID_Hg_na,  ID_Hg_eu 
-      INTEGER              :: ID_Hg_as,   ID_Hg_rw,  ID_Hg_oc
-      INTEGER              :: ID_Hg_ln,   ID_Hg_nt
+!- eds 8/31/10 ------------------------------------------------------
+!      INTEGER              :: ID_Hg_tot,  ID_Hg_na,  ID_Hg_eu 
+!      INTEGER              :: ID_Hg_as,   ID_Hg_rw,  ID_Hg_oc
+!      INTEGER              :: ID_Hg_ln,   ID_Hg_nt
+
+      INTEGER              :: ID_Hg_tot,  ID_Hg_can,  ID_Hg_usa
+      INTEGER              :: ID_Hg_cam,  ID_Hg_sam,  ID_Hg_waf
+      INTEGER              :: ID_Hg_eaf,  ID_Hg_saf,  ID_Hg_naf
+      INTEGER              :: ID_Hg_eur,  ID_Hg_eeu,  ID_Hg_sov
+      INTEGER              :: ID_Hg_mde,  ID_Hg_sas,  ID_Hg_eas
+      INTEGER              :: ID_Hg_sea,  ID_Hg_jpn,  ID_Hg_oce
+      INTEGER              :: ID_Hg_so,   ID_Hg_bb,   ID_Hg_geo
+      INTEGER              :: ID_Hg_atl,  ID_Hg_nat,  ID_Hg_sat
+      INTEGER              :: ID_Hg_npa,  ID_Hg_arc,  ID_Hg_ant
+      INTEGER              :: ID_Hg_ocn,  ID_Hg_str
+!------------------------------------------------------------------------
+
 
       ! GEOS-CHEM emission ID's
       INTEGER            :: IDENOX,  IDEOX,    IDECO,   IDEPRPE, IDEC3H8
@@ -439,6 +462,7 @@
 !  (20) Change hard-wired IDEs to dynamically defined IDEs. (fp, hotp, 01/10)
 !  (21) Add IDEMS definitions for new species (fp, hotp, 01/10)
 !  (22) Add writing check on IDs. (hotp, 01/10)
+!  (23) Added IDTPOPG, IDTPOPPOC, and IDTPOPPBC for POPs simulation (eck, 9/20/10)
 !  17 Aug 2011 - R. Yantosca - Print values of 3 extra emission IDExxx flags
 !  22 Aug 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !  16 Feb 2012 - M. Payer    - Account for alternate spellings of the Rn and Pb
@@ -452,21 +476,17 @@
       USE LOGICAL_MOD, ONLY : LSPLIT
       USE TRACER_MOD,  ONLY : ITS_A_C2H6_SIM,  ITS_A_FULLCHEM_SIM
       USE TRACER_MOD,  ONLY : ITS_A_TAGCO_SIM, ITS_A_MERCURY_SIM
+      USE TRACER_MOD,  ONLY : ITS_A_POPS_SIM
       USE TRACER_MOD,  ONLY : ITS_A_H2HD_SIM
       USE TRACER_MOD,  ONLY : N_TRACERS,       TRACER_NAME
-      ! Error check for array dimensions (hotp 8/1/09)
       USE ERROR_MOD,   ONLY : ERROR_STOP
 
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE COMODE_LOOP_MOD   ! IDEMS
-
-! !INPUT VARIABLES:
-
-      LOGICAL, INTENT(IN) :: am_I_Root
-
-#if defined(DEVEL)
-!      USE GC_ENVIRONMENT_MOD, ONLY : TRACER_INDEX, TRACER_NAMES
-#endif
+      USE CMN_SIZE_MOD                    ! Size parameters
+      USE COMODE_LOOP_MOD                 ! IDEMS
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
 
       ! Local variables
       INTEGER              :: N, COUNT, COUNT_Hg0, COUNT_Hg2, COUNT_HgP
@@ -517,14 +537,10 @@
       !=================================================================
       DO N = 1, N_TRACERS
 
-#if defined (DEVEL)
-!         CHEM_STATE%TRAC_ID(N) = N
-!         CHEM_STATE%TRAC_NAME(N)  = TRIM( TRACER_NAME(N) )
-!         TRACER_INDEX(N) = N
-#endif
-         ! Convert tracer name to upper case.  TCNAME is in the "CMN" header
-         ! file -- we might use something better later on (bmy, 11/12/02)
+         ! Save TRACER_NAME into a CHARACTER*14 variable
          NAME = TRACER_NAME(N)
+
+         ! Convert name to uppercase
          CALL TRANUC( NAME )
 
          ! Find each tracer
@@ -706,6 +722,9 @@
 
             CASE ( 'HNO4' )
                IDTHNO4  = N
+
+            CASE ( 'MPN' )
+               IDTMPN  = N
 
             CASE ( 'MP' )
                IDTMP    = N
@@ -1114,97 +1133,479 @@
                COUNT_HgP         = COUNT_HgP + 1
                ID_HgP(COUNT_HgP) = N
 
-            CASE ( 'HG0_AN_NA', 'HG0_AN' )
+!- eds 8/31/10----------------------------------------------------
+!            CASE ( 'HG0_AN_NA', 'HG0_AN' )
+!               COUNT_Hg0         = COUNT_Hg0 + 1
+!               ID_Hg_na          = COUNT_Hg0
+!               ID_Hg0(COUNT_Hg0) = N
+!
+!            CASE ( 'HG0_AN_EU', 'HG0_AE' )
+!               COUNT_Hg0         = COUNT_Hg0 + 1
+!               ID_Hg_eu          = COUNT_Hg0
+!               ID_Hg0(COUNT_Hg0) = N
+!
+!            CASE ( 'HG0_AN_AS', 'HG0_AA' )
+!               COUNT_Hg0         = COUNT_Hg0 + 1
+!               ID_Hg_as          = COUNT_Hg0
+!               ID_Hg0(COUNT_Hg0) = N
+!
+!            CASE ( 'HG0_AN_RW', 'HG0_AR' )
+!               COUNT_Hg0         = COUNT_Hg0 + 1
+!               ID_Hg_rw          = COUNT_Hg0
+!               ID_Hg0(COUNT_Hg0) = N
+!
+!            CASE ( 'HG0_OC' )
+!               COUNT_Hg0         = COUNT_Hg0 + 1
+!               ID_Hg_oc          = COUNT_Hg0
+!               ID_Hg0(COUNT_Hg0) = N
+!
+!            CASE ( 'HG0_LN' )
+!               COUNT_Hg0         = COUNT_Hg0 + 1
+!               ID_Hg_ln          = COUNT_Hg0
+!               ID_Hg0(COUNT_Hg0) = N
+!
+!            CASE ( 'HG0_NT' )
+!               COUNT_Hg0         = COUNT_Hg0 + 1
+!               ID_Hg_nt          = COUNT_Hg0
+!               ID_Hg0(COUNT_Hg0) = N
+!
+!            CASE ( 'HG2_AN_NA', 'HG2_AN' )
+!               COUNT_Hg2         = COUNT_Hg2 + 1
+!               ID_Hg2(COUNT_Hg2) = N
+!
+!            CASE ( 'HG2_AN_EU', 'HG2_AE' )
+!               COUNT_Hg2         = COUNT_Hg2 + 1
+!               ID_Hg2(COUNT_Hg2) = N
+!
+!            CASE ( 'HG2_AN_AS', 'HG2_AA' )
+!               COUNT_Hg2         = COUNT_Hg2 + 1
+!               ID_Hg2(COUNT_Hg2) = N
+!
+!            CASE ( 'HG2_AN_RW', 'HG2_AR' )
+!               COUNT_Hg2         = COUNT_Hg2 + 1
+!               ID_Hg2(COUNT_Hg2) = N
+!
+!            CASE ( 'HG2_OC' )
+!               COUNT_Hg2         = COUNT_Hg2 + 1
+!               ID_Hg2(COUNT_Hg2) = N
+!
+!            CASE ( 'HG2_LN' )
+!               COUNT_Hg2         = COUNT_Hg2 + 1
+!               ID_Hg2(COUNT_Hg2) = N
+!
+!            CASE ( 'HG2_NT' )
+!               COUNT_Hg2         = COUNT_Hg2 + 1
+!               ID_Hg2(COUNT_Hg2) = N
+!
+!            CASE ( 'HGP_AN_NA', 'HGP_AN' )
+!               COUNT_HgP         = COUNT_HgP + 1
+!               ID_HgP(COUNT_HgP) = N
+!
+!            CASE ( 'HGP_AN_EU', 'HGP_AE' )
+!               COUNT_HgP         = COUNT_HgP + 1
+!               ID_HgP(COUNT_HgP) = N
+!
+!            CASE ( 'HGP_AN_AS', 'HGP_AA' )
+!               COUNT_HgP         = COUNT_HgP + 1
+!               ID_HgP(COUNT_HgP) = N
+!
+!            CASE ( 'HGP_AN_RW', 'HGP_AR' )
+!               COUNT_HgP         = COUNT_HgP + 1
+!               ID_HgP(COUNT_HgP) = N
+!
+!            CASE ( 'HGP_OC' )
+!               COUNT_HgP         = COUNT_HgP + 1
+!               ID_HgP(COUNT_HgP) = N
+!
+!            CASE ( 'HGP_LN' )
+!               COUNT_HgP         = COUNT_HgP + 1
+!               ID_HgP(COUNT_HgP) = N
+!
+!            CASE ( 'HGP_NT' )
+!               COUNT_HgP         = COUNT_HgP + 1
+!               ID_HgP(COUNT_HgP) = N
+
+            ! New Tagged Hg Simulation (eds 8/31/10)
+            CASE ( 'HG0_AN_CAN', 'HG0_CAN' )
                COUNT_Hg0         = COUNT_Hg0 + 1
-               ID_Hg_na          = COUNT_Hg0
+               ID_Hg_can          = COUNT_Hg0
                ID_Hg0(COUNT_Hg0) = N
 
-            CASE ( 'HG0_AN_EU', 'HG0_AE' )
+            CASE ( 'HG0_AN_USA', 'HG0_USA' )
                COUNT_Hg0         = COUNT_Hg0 + 1
-               ID_Hg_eu          = COUNT_Hg0
+               ID_Hg_usa          = COUNT_Hg0
                ID_Hg0(COUNT_Hg0) = N
 
-            CASE ( 'HG0_AN_AS', 'HG0_AA' )
+            CASE ( 'HG0_AN_CAM', 'HG0_CAM' )
                COUNT_Hg0         = COUNT_Hg0 + 1
-               ID_Hg_as          = COUNT_Hg0
+               ID_Hg_cam          = COUNT_Hg0
                ID_Hg0(COUNT_Hg0) = N
 
-            CASE ( 'HG0_AN_RW', 'HG0_AR' )
+            CASE ( 'HG0_AN_SAM', 'HG0_SAM' )
                COUNT_Hg0         = COUNT_Hg0 + 1
-               ID_Hg_rw          = COUNT_Hg0
+               ID_Hg_sam          = COUNT_Hg0
                ID_Hg0(COUNT_Hg0) = N
 
-            CASE ( 'HG0_OC' )
+            CASE ( 'HG0_AN_WAF', 'HG0_WAF' )
                COUNT_Hg0         = COUNT_Hg0 + 1
-               ID_Hg_oc          = COUNT_Hg0
+               ID_Hg_waf          = COUNT_Hg0
                ID_Hg0(COUNT_Hg0) = N
 
-            CASE ( 'HG0_LN' )
+            CASE ( 'HG0_AN_EAF', 'HG0_EAF' )
                COUNT_Hg0         = COUNT_Hg0 + 1
-               ID_Hg_ln          = COUNT_Hg0
+               ID_Hg_eaf          = COUNT_Hg0
                ID_Hg0(COUNT_Hg0) = N
 
-            CASE ( 'HG0_NT' )
+            CASE ( 'HG0_AN_SAF', 'HG0_SAF' )
                COUNT_Hg0         = COUNT_Hg0 + 1
-               ID_Hg_nt          = COUNT_Hg0
+               ID_Hg_saf          = COUNT_Hg0
                ID_Hg0(COUNT_Hg0) = N
 
-            CASE ( 'HG2_AN_NA', 'HG2_AN' )
+            CASE ( 'HG0_AN_NAF', 'HG0_NAF' )
+               COUNT_Hg0         = COUNT_Hg0 + 1
+               ID_Hg_naf          = COUNT_Hg0
+               ID_Hg0(COUNT_Hg0) = N
+
+            CASE ( 'HG0_AN_EUR', 'HG0_EUR' )
+               COUNT_Hg0         = COUNT_Hg0 + 1
+               ID_Hg_eur          = COUNT_Hg0
+               ID_Hg0(COUNT_Hg0) = N
+
+            CASE ( 'HG0_AN_EEU', 'HG0_EEU' )
+               COUNT_Hg0         = COUNT_Hg0 + 1
+               ID_Hg_eeu          = COUNT_Hg0
+               ID_Hg0(COUNT_Hg0) = N
+
+            CASE ( 'HG0_AN_MDE', 'HG0_MDE' )
+               COUNT_Hg0         = COUNT_Hg0 + 1
+               ID_Hg_mde          = COUNT_Hg0
+               ID_Hg0(COUNT_Hg0) = N
+
+            CASE ( 'HG0_AN_SOV', 'HG0_SOV' )
+               COUNT_Hg0         = COUNT_Hg0 + 1
+               ID_Hg_sov          = COUNT_Hg0
+               ID_Hg0(COUNT_Hg0) = N
+
+            CASE ( 'HG0_AN_SAS', 'HG0_SAS' )
+               COUNT_Hg0         = COUNT_Hg0 + 1
+               ID_Hg_sas          = COUNT_Hg0
+               ID_Hg0(COUNT_Hg0) = N
+
+            CASE ( 'HG0_AN_EAS', 'HG0_EAS' )
+               COUNT_Hg0         = COUNT_Hg0 + 1
+               ID_Hg_eas          = COUNT_Hg0
+               ID_Hg0(COUNT_Hg0) = N
+
+            CASE ( 'HG0_AN_SEA', 'HG0_SEA' )
+               COUNT_Hg0         = COUNT_Hg0 + 1
+               ID_Hg_sea          = COUNT_Hg0
+               ID_Hg0(COUNT_Hg0) = N
+
+            CASE ( 'HG0_AN_JPN', 'HG0_JPN' )
+               COUNT_Hg0         = COUNT_Hg0 + 1
+               ID_Hg_jpn          = COUNT_Hg0
+               ID_Hg0(COUNT_Hg0) = N
+
+            CASE ( 'HG0_AN_OCE', 'HG0_OCE' )
+               COUNT_Hg0         = COUNT_Hg0 + 1
+               ID_Hg_oce          = COUNT_Hg0
+               ID_Hg0(COUNT_Hg0) = N
+
+            CASE ( 'HG0_SO' )
+               COUNT_Hg0         = COUNT_Hg0 + 1
+               ID_Hg_so          = COUNT_Hg0
+               ID_Hg0(COUNT_Hg0) = N
+
+            CASE ( 'HG0_BB' )
+               COUNT_Hg0         = COUNT_Hg0 + 1
+               ID_Hg_bb          = COUNT_Hg0
+               ID_Hg0(COUNT_Hg0) = N
+
+            CASE ( 'HG0_GEO' )
+               COUNT_Hg0          = COUNT_Hg0 + 1
+               ID_Hg_geo          = COUNT_Hg0
+               ID_Hg0(COUNT_Hg0) = N
+
+            CASE ( 'HG0_ATL' )
+               COUNT_Hg0         = COUNT_Hg0 + 1
+               ID_Hg_atl         = COUNT_Hg0
+               ID_Hg0(COUNT_Hg0) = N
+
+            CASE ( 'HG0_NAT' )
+               COUNT_Hg0         = COUNT_Hg0 + 1
+               ID_Hg_nat         = COUNT_Hg0
+               ID_Hg0(COUNT_Hg0) = N
+
+            CASE ( 'HG0_SAT' )
+               COUNT_Hg0         = COUNT_Hg0 + 1
+               ID_Hg_sat         = COUNT_Hg0
+               ID_Hg0(COUNT_Hg0) = N
+
+            CASE ( 'HG0_NPA' )
+               COUNT_Hg0         = COUNT_Hg0 + 1
+               ID_Hg_npa         = COUNT_Hg0
+               ID_Hg0(COUNT_Hg0) = N
+
+            CASE ( 'HG0_ARC' )
+               COUNT_Hg0         = COUNT_Hg0 + 1
+               ID_Hg_arc         = COUNT_Hg0
+               ID_Hg0(COUNT_Hg0) = N
+
+            CASE ( 'HG0_ANT' )
+               COUNT_Hg0         = COUNT_Hg0 + 1
+               ID_Hg_ant         = COUNT_Hg0
+               ID_Hg0(COUNT_Hg0) = N
+
+            CASE ( 'HG0_OCN' )
+               COUNT_Hg0         = COUNT_Hg0 + 1
+               ID_Hg_ocn         = COUNT_Hg0
+               ID_Hg0(COUNT_Hg0) = N
+
+            CASE ( 'HG0_STR' )
+               COUNT_Hg0         = COUNT_Hg0 + 1
+               ID_Hg_str         = COUNT_Hg0
+               ID_Hg0(COUNT_Hg0) = N
+
+            CASE ( 'HG2_AN_CAN', 'HG2_CAN' )
                COUNT_Hg2         = COUNT_Hg2 + 1
                ID_Hg2(COUNT_Hg2) = N
 
-            CASE ( 'HG2_AN_EU', 'HG2_AE' )
+            CASE ( 'HG2_AN_USA', 'HG2_USA' )
                COUNT_Hg2         = COUNT_Hg2 + 1
                ID_Hg2(COUNT_Hg2) = N
 
-            CASE ( 'HG2_AN_AS', 'HG2_AA' )
+            CASE ( 'HG2_AN_CAM', 'HG2_CAM' )
                COUNT_Hg2         = COUNT_Hg2 + 1
                ID_Hg2(COUNT_Hg2) = N
 
-            CASE ( 'HG2_AN_RW', 'HG2_AR' )
+            CASE ( 'HG2_AN_SAM', 'HG2_SAM' )
                COUNT_Hg2         = COUNT_Hg2 + 1
                ID_Hg2(COUNT_Hg2) = N
 
-            CASE ( 'HG2_OC' )
+            CASE ( 'HG2_AN_WAF', 'HG2_WAF' )
                COUNT_Hg2         = COUNT_Hg2 + 1
                ID_Hg2(COUNT_Hg2) = N
 
-            CASE ( 'HG2_LN' )
+            CASE ( 'HG2_AN_EAF', 'HG2_EAF' )
                COUNT_Hg2         = COUNT_Hg2 + 1
                ID_Hg2(COUNT_Hg2) = N
 
-            CASE ( 'HG2_NT' )
+            CASE ( 'HG2_AN_SAF', 'HG2_SAF' )
                COUNT_Hg2         = COUNT_Hg2 + 1
                ID_Hg2(COUNT_Hg2) = N
 
-            CASE ( 'HGP_AN_NA', 'HGP_AN' )
+            CASE ( 'HG2_AN_NAF', 'HG2_NAF' )
+               COUNT_Hg2         = COUNT_Hg2 + 1
+               ID_Hg2(COUNT_Hg2) = N
+
+            CASE ( 'HG2_AN_EUR', 'HG2_EUR' )
+               COUNT_Hg2         = COUNT_Hg2 + 1
+               ID_Hg2(COUNT_Hg2) = N
+
+            CASE ( 'HG2_AN_EEU', 'HG2_EEU' )
+               COUNT_Hg2         = COUNT_Hg2 + 1
+               ID_Hg2(COUNT_Hg2) = N
+
+            CASE ( 'HG2_AN_MDE', 'HG2_MDE' )
+               COUNT_Hg2         = COUNT_Hg2 + 1
+               ID_Hg2(COUNT_Hg2) = N
+
+            CASE ( 'HG2_AN_SOV', 'HG2_SOV' )
+               COUNT_Hg2         = COUNT_Hg2 + 1
+               ID_Hg2(COUNT_Hg2) = N
+
+            CASE ( 'HG2_AN_SAS', 'HG2_SAS' )
+               COUNT_Hg2         = COUNT_Hg2 + 1
+               ID_Hg2(COUNT_Hg2) = N
+
+            CASE ( 'HG2_AN_EAS', 'HG2_EAS' )
+               COUNT_Hg2         = COUNT_Hg2 + 1
+               ID_Hg2(COUNT_Hg2) = N
+
+            CASE ( 'HG2_AN_SEA', 'HG2_SEA' )
+               COUNT_Hg2         = COUNT_Hg2 + 1
+               ID_Hg2(COUNT_Hg2) = N
+
+            CASE ( 'HG2_AN_JPN', 'HG2_JPN' )
+               COUNT_Hg2         = COUNT_Hg2 + 1
+               ID_Hg2(COUNT_Hg2) = N
+
+            CASE ( 'HG2_AN_OCE', 'HG2_OCE' )
+               COUNT_Hg2         = COUNT_Hg2 + 1
+               ID_Hg2(COUNT_Hg2) = N
+
+            CASE ( 'HG2_SO' )
+               COUNT_Hg2         = COUNT_Hg2 + 1
+               ID_Hg2(COUNT_Hg2) = N
+
+            CASE ( 'HG2_BB' )
+               COUNT_Hg2         = COUNT_Hg2 + 1
+               ID_Hg2(COUNT_Hg2) = N
+
+            CASE ( 'HG2_GEO' )
+               COUNT_Hg2          = COUNT_Hg2 + 1
+               ID_Hg2(COUNT_Hg2) = N
+
+            CASE ( 'HG2_ATL' )
+               COUNT_Hg2         = COUNT_Hg2 + 1
+               ID_Hg2(COUNT_Hg2) = N
+
+            CASE ( 'HG2_NAT' )
+               COUNT_Hg2         = COUNT_Hg2 + 1
+               ID_Hg2(COUNT_Hg2) = N
+
+            CASE ( 'HG2_SAT' )
+               COUNT_Hg2         = COUNT_Hg2 + 1
+               ID_Hg2(COUNT_Hg2) = N
+
+            CASE ( 'HG2_NPA' )
+               COUNT_Hg2         = COUNT_Hg2 + 1
+               ID_Hg2(COUNT_Hg2) = N
+
+            CASE ( 'HG2_ARC' )
+               COUNT_Hg2         = COUNT_Hg2 + 1
+               ID_Hg2(COUNT_Hg2) = N
+
+            CASE ( 'HG2_ANT' )
+               COUNT_Hg2         = COUNT_Hg2 + 1
+               ID_Hg2(COUNT_Hg2) = N
+
+            CASE ( 'HG2_OCN' )
+               COUNT_Hg2         = COUNT_Hg2 + 1
+               ID_Hg2(COUNT_Hg2) = N
+
+            CASE ( 'HG2_STR' )
+               COUNT_Hg2         = COUNT_Hg2 + 1
+               ID_Hg2(COUNT_Hg2) = N
+
+            CASE ( 'HGP_AN_CAN', 'HGP_CAN' )
                COUNT_HgP         = COUNT_HgP + 1
                ID_HgP(COUNT_HgP) = N
 
-            CASE ( 'HGP_AN_EU', 'HGP_AE' )
+            CASE ( 'HGP_AN_USA', 'HGP_USA' )
                COUNT_HgP         = COUNT_HgP + 1
                ID_HgP(COUNT_HgP) = N
 
-            CASE ( 'HGP_AN_AS', 'HGP_AA' )
+            CASE ( 'HGP_AN_CAM', 'HGP_CAM' )
                COUNT_HgP         = COUNT_HgP + 1
                ID_HgP(COUNT_HgP) = N
 
-            CASE ( 'HGP_AN_RW', 'HGP_AR' )
+            CASE ( 'HGP_AN_SAM', 'HGP_SAM' )
                COUNT_HgP         = COUNT_HgP + 1
                ID_HgP(COUNT_HgP) = N
 
-            CASE ( 'HGP_OC' )
+            CASE ( 'HGP_AN_WAF', 'HGP_WAF' )
                COUNT_HgP         = COUNT_HgP + 1
                ID_HgP(COUNT_HgP) = N
 
-            CASE ( 'HGP_LN' )
+            CASE ( 'HGP_AN_EAF', 'HGP_EAF' )
                COUNT_HgP         = COUNT_HgP + 1
                ID_HgP(COUNT_HgP) = N
 
-            CASE ( 'HGP_NT' )
+            CASE ( 'HGP_AN_SAF', 'HGP_SAF' )
                COUNT_HgP         = COUNT_HgP + 1
                ID_HgP(COUNT_HgP) = N
 
+            CASE ( 'HGP_AN_NAF', 'HGP_NAF' )
+               COUNT_HgP         = COUNT_HgP + 1
+               ID_HgP(COUNT_HgP) = N
+
+            CASE ( 'HGP_AN_EUR', 'HGP_EUR' )
+               COUNT_HgP         = COUNT_HgP + 1
+               ID_HgP(COUNT_HgP) = N
+
+            CASE ( 'HGP_AN_EEU', 'HGP_EEU' )
+               COUNT_HgP         = COUNT_HgP + 1
+               ID_HgP(COUNT_HgP) = N
+
+            CASE ( 'HGP_AN_MDE', 'HGP_MDE' )
+               COUNT_HgP         = COUNT_HgP + 1
+               ID_HgP(COUNT_HgP) = N
+
+            CASE ( 'HGP_AN_SOV', 'HGP_SOV' )
+               COUNT_HgP         = COUNT_HgP + 1
+               ID_HgP(COUNT_HgP) = N
+
+            CASE ( 'HGP_AN_SAS', 'HGP_SAS' )
+               COUNT_HgP         = COUNT_HgP + 1
+               ID_HgP(COUNT_HgP) = N
+
+            CASE ( 'HGP_AN_EAS', 'HGP_EAS' )
+               COUNT_HgP         = COUNT_HgP + 1
+               ID_HgP(COUNT_HgP) = N
+
+            CASE ( 'HGP_AN_SEA', 'HGP_SEA' )
+               COUNT_HgP         = COUNT_HgP + 1
+               ID_HgP(COUNT_HgP) = N
+
+            CASE ( 'HGP_AN_JPN', 'HGP_JPN' )
+               COUNT_HgP         = COUNT_HgP + 1
+               ID_HgP(COUNT_HgP) = N
+
+            CASE ( 'HGP_AN_OCE', 'HGP_OCE' )
+               COUNT_HgP         = COUNT_HgP + 1
+               ID_HgP(COUNT_HgP) = N
+
+            CASE ( 'HGP_SO' )
+               COUNT_HgP         = COUNT_HgP + 1
+               ID_HgP(COUNT_HgP) = N
+
+            CASE ( 'HGP_BB' )
+               COUNT_HgP         = COUNT_HgP + 1
+               ID_HgP(COUNT_HgP) = N
+
+            CASE ( 'HGP_GEO' )
+               COUNT_HgP          = COUNT_HgP + 1
+               ID_HgP(COUNT_HgP) = N
+
+            CASE ( 'HGP_ATL' )
+               COUNT_HgP         = COUNT_HgP + 1
+               ID_HgP(COUNT_HgP) = N
+
+            CASE ( 'HGP_NAT' )
+               COUNT_HgP         = COUNT_HgP + 1
+               ID_HgP(COUNT_HgP) = N
+
+            CASE ( 'HGP_SAT' )
+               COUNT_HgP         = COUNT_HgP + 1
+               ID_HgP(COUNT_HgP) = N
+
+            CASE ( 'HGP_NPA' )
+               COUNT_HgP         = COUNT_HgP + 1
+               ID_HgP(COUNT_HgP) = N
+
+            CASE ( 'HGP_ARC' )
+               COUNT_HgP         = COUNT_HgP + 1
+               ID_HgP(COUNT_HgP) = N
+
+            CASE ( 'HGP_ANT' )
+               COUNT_HgP         = COUNT_HgP + 1
+               ID_HgP(COUNT_HgP) = N
+
+            CASE ( 'HGP_OCN' )
+               COUNT_HgP         = COUNT_HgP + 1
+               ID_HgP(COUNT_HgP) = N
+
+            CASE ( 'HGP_STR' )
+               COUNT_HgP         = COUNT_HgP + 1
+               ID_HgP(COUNT_HgP) = N
+!--------------------------------------------------------------------------------
+
+            !--------------------------------
+            ! POPs
+            ! (eck, 9/20/10); (clf, 2/11/2011)
+            !--------------------------------
+            CASE ( 'POPG' )
+               COUNT     = COUNT+1              
+               IDTPOPG         = N
+               
+            CASE ( 'POPPOC' )
+               COUNT     = COUNT+1
+               IDTPOPPOC       = N
+
+            CASE ( 'POPPBC' )
+               COUNT     = COUNT+1
+               IDTPOPPBC       = N
 
             !-----------------------------------
             ! TOMAS Aerosol microphysics tracers (win, 6/23/09)
@@ -2021,11 +2422,7 @@
 
 !------------------------------------------------------------------------------
 
-#if defined( DEVEL )
-      SUBROUTINE SETTRACE( GC_STATE, am_I_Root )
-#else
-      SUBROUTINE SETTRACE( am_I_Root )
-#endif
+      SUBROUTINE SETTRACE( am_I_Root, Input_Opt, State_Chm, RC )
 !
 !******************************************************************************
 !  Subroutine SETTRACE flags certain chemical species w/in the SMVGEAR full
@@ -2054,34 +2451,68 @@
 !  (9 ) Add debug print. (hotp, 01/10)
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  16 Oct 2012 - R. Yantosca - Renamed chem state object to State_Chm
+!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
+!  13 Nov 2012 - R. Yantosca - Now pass Input Options object as an argument
+
 !******************************************************************************
 !
-      ! References to F90 modules
-      USE ERROR_MOD,  ONLY : ERROR_STOP
-      USE TRACER_MOD, ONLY : ID_EMITTED,     N_TRACERS
-      USE TRACER_MOD, ONLY : TRACER_COEFF,   TRACER_CONST
-      USE TRACER_MOD, ONLY : TRACER_N_CONST, TRACER_NAME
-      ! for Debug (hotp 8/5/09)
-      USE LOGICAL_MOD, ONLY : LPRT
-
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE COMODE_LOOP_MOD   ! NAMEGAS
-
-#if defined(DEVEL)
-      USE GC_TYPE2_MOD,  ONLY : CHEMSTATE, REGISTER_CSPEC
-
-      TYPE(CHEMSTATE), INTENT(INOUT) :: GC_STATE
+! !USES:
+!
+      USE CMN_SIZE_MOD
+      USE COMODE_LOOP_MOD
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY: OptInput          
+      USE GIGC_State_Chm_Mod, ONLY: ChmState          
+#if defined( ESMF_ )
+      USE GIGC_State_Chm_Mod, ONLY: Register_Species   ! Used w/ ESMF
 #endif
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!     
+! !INPUT/OUTPUT PARAMETERS
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State obj
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !LOCAL VARIABLES:
+!
+      ! Scalars
+      LOGICAL            :: LPRT
+      INTEGER            :: N_TRACERS
+      INTEGER            :: I, J, T, C, STAT
 
-      ! Arguments
-      LOGICAL, INTENT(IN) :: am_I_Root
-
-      ! Local variabales
-      INTEGER             :: I, J, T, C
+      ! Arrays
+      INTEGER            :: ID_EMITTED    ( Input_Opt%MAX_TRCS )
+      REAL*8             :: TRACER_COEFF  ( Input_Opt%MAX_TRCS, 
+     &                                      Input_Opt%MAX_MEMB )
+      CHARACTER(LEN=255) :: TRACER_CONST  ( Input_Opt%MAX_TRCS, 
+     &                                      Input_Opt%MAX_MEMB )
+      INTEGER            :: TRACER_N_CONST( Input_Opt%MAX_TRCS )
+      CHARACTER(LEN=255) :: TRACER_NAME   ( Input_Opt%MAX_TRCS )
  
       !=================================================================
       ! SETTRACE begins here!
       !=================================================================
+
+      ! Assume success
+      RC             = GIGC_SUCCESS
+
+      ! Copy values from Input_Opt to local variables
+      LPRT           = Input_Opt%LPRT
+      N_TRACERS      = Input_Opt%N_TRACERS
+      ID_EMITTED     = Input_Opt%ID_EMITTED
+      TRACER_COEFF   = Input_Opt%TRACER_COEFF
+      TRACER_CONST   = Input_Opt%TRACER_CONST 
+      TRACER_N_CONST = Input_Opt%TRACER_N_CONST
+      TRACER_NAME    = Input_Opt%TRACER_NAME
 
       ! Reset NCS = NCSURBAN, since we have defined our GEOS-CHEM
       ! mechanism in the urban slot of SMVGEAR II (bmy, 4/21/03)
@@ -2144,6 +2575,7 @@
          IF ( NAMEGAS(I) == 'ENPAN'  ) IDENPAN   = I
          IF ( NAMEGAS(I) == 'MPAN'   ) IDMPAN    = I
          IF ( NAMEGAS(I) == 'NIPAN'  ) IDNIPAN   = I
+         IF ( NAMEGAS(I) == 'MPN'    ) IDMPN     = I
          ! ++++++++++++++++++++++++++++++++++++++++++++++++++++++
          !jpp: for bromine
          IF ( NAMEGAS(I) == 'Br2'     ) IDBr2     = I
@@ -2177,13 +2609,17 @@
 
          IF ( NAMEGAS(I) == 'H2SO4'  ) IDH2SO4  = I !(win, 6/23/09)
 
-#if defined( DEVEL )
-         CALL REGISTER_CSPEC(NAMEGAS(I),I,GC_STATE,STAT)
-         IF (STAT .lt. 0) THEN
+#if defined( ESMF_ )
+         ! Add the species name & Id to the chemistry state object
+         ! (this only needs to be done if we are using the ESMF interface)
+         CALL Register_Species( NAMEGAS(I), I, State_Chm, STAT )
+
+         ! Error check
+         IF ( STAT .lt. 0 ) THEN
             CALL ERROR_STOP('FAIL','REGISTER_CSPEC')
          ELSE
             IF ( am_I_Root ) THEN
-               WRITE(6,*) 'Registered ', NAMEGAS(I), STAT ELSE
+               WRITE(6,*) 'Registered ', NAMEGAS(I), STAT
             ENDIF
          ENDIF
 #endif
@@ -2255,6 +2691,7 @@
                ENDIF
             ENDDO
 
+#if !defined( ESMF_ )
             ! Print when Debug output selected (hotp 8/5/09)
             IF ( LPRT .and. am_I_Root ) THEN
                PRINT*, '###--------------------'
@@ -2266,13 +2703,64 @@
                PRINT*, '### IDEMIS(T)  : ', IDEMIS(T)
                PRINT*, '### IDTRMB(T,C): ', IDTRMB(T,C)
             ENDIF
-
+#endif
          ENDDO
       ENDDO
 
       ! Return to calling program
       END SUBROUTINE SETTRACE
-    
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: fill_chem_state_name_ids
+!
+! !DESCRIPTION: Subroutine FILL_State_Chm_NAME_IDs populates the trac_name,
+!  trac_id, and smvg_id fields of an object based on the CHEMSTATE derived
+!  type.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE FILL_CHEM_STATE_NAME_IDs( am_I_Root, State_Chm )
+!
+! !USES:
+!
+      ! References to F90 modules
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE TRACER_MOD,         ONLY : N_TRACERS
+      USE TRACER_MOD,         ONLY : TRACER_NAME
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root    ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm    ! Obj for chemical state
+! 
+! !REVISION HISTORY: 
+!  13 Aug 2012 - R. Yantosca - Initial version
+!  16 Oct 2012 - R. Yantosca - Renamed chem state object to State_Chm
+!  19 Oct 2012 - R. Yantosca - Now references gigc_state_chm_mod.F90
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: N
+
+      ! Loop over defined tracers
+      DO N = 1, N_TRACERS
+         State_Chm%TRAC_ID(N)   = N
+         State_Chm%TRAC_NAME(N) = TRIM( TRACER_NAME(N) )
+      ENDDO
+
+      END SUBROUTINE FILL_CHEM_STATE_NAME_IDs
+!EOC 
 !------------------------------------------------------------------------------
 
       FUNCTION IS_Hg0( N ) RESULT( IT_IS_Hg0 )
@@ -2424,49 +2912,192 @@
       INTEGER             :: NN
 
       !=================================================================
-      ! GET_Hg2_CAT begins here!
+      ! GET_Hg0_CAT begins here!
       !=================================================================
 
-      ! Pick the Hg2 category number from the tracer number
+      ! Pick the Hg0 category number from the tracer number
       IF ( N == ID_Hg0(ID_Hg_tot) ) THEN 
 
          ! Total
          NN = ID_Hg_tot
 
-      ELSE IF ( N == ID_Hg0(ID_Hg_na) ) THEN 
+!- eds 8/31/10 -----------------------------------------------
+!      ELSE IF ( N == ID_Hg0(ID_Hg_na) ) THEN 
+!
+!         ! Anthro North America
+!         NN = ID_Hg_na
+!
+!      ELSE IF ( N == ID_Hg0(ID_Hg_eu) ) THEN 
+!
+!         ! Anthro Europe
+!         NN = ID_Hg_eu
+!
+!      ELSE IF ( N == ID_Hg0(ID_Hg_as) ) THEN 
+!
+!         ! Anthro Asia
+!         NN = ID_Hg_as
+!
+!      ELSE IF ( N == ID_Hg0(ID_Hg_rw) ) THEN 
+!
+!         ! Anthro Rest of World
+!         NN = ID_Hg_rw
+!
+!      ELSE IF ( N == ID_Hg0(ID_Hg_oc) ) THEN 
+!
+!         ! Oceans
+!         NN = ID_Hg_oc
+!
+!      ELSE IF ( N == ID_Hg0(ID_Hg_ln) ) THEN 
+!
+!         ! Land re-emission
+!         NN = ID_Hg_ln
+!
+!      ELSE IF ( N == ID_Hg0(ID_Hg_nt) ) THEN 
+!
+!         ! Natural source
+!         NN = ID_Hg_nt
 
-         ! Anthro North America
-         NN = ID_Hg_na
+      ELSE IF ( N == ID_Hg0(ID_Hg_can) ) THEN  
 
-      ELSE IF ( N == ID_Hg0(ID_Hg_eu) ) THEN 
+         ! Anthro Canada
+         NN = ID_Hg_can
 
-         ! Anthro Europe
-         NN = ID_Hg_eu
+      ELSE IF ( N == ID_Hg0(ID_Hg_usa) ) THEN
 
-      ELSE IF ( N == ID_Hg0(ID_Hg_as) ) THEN 
+         ! Anthro United States
+         NN = ID_Hg_usa
 
-         ! Anthro Asia
-         NN = ID_Hg_as
+      ELSE IF ( N == ID_Hg0(ID_Hg_cam) ) THEN
 
-      ELSE IF ( N == ID_Hg0(ID_Hg_rw) ) THEN 
+         ! Anthro Central America
+         NN = ID_Hg_cam
 
-         ! Anthro Rest of World
-         NN = ID_Hg_rw
+      ELSE IF ( N == ID_Hg0(ID_Hg_sam) ) THEN
 
-      ELSE IF ( N == ID_Hg0(ID_Hg_oc) ) THEN 
+         ! Anthro South America
+         NN = ID_Hg_sam
 
-         ! Oceans
-         NN = ID_Hg_oc
+      ELSE IF ( N == ID_Hg0(ID_Hg_waf) ) THEN
 
-      ELSE IF ( N == ID_Hg0(ID_Hg_ln) ) THEN 
+         ! Anthro West Africa
+         NN = ID_Hg_waf
 
-         ! Land re-emission
-         NN = ID_Hg_ln
+      ELSE IF ( N == ID_Hg0(ID_Hg_eaf) ) THEN
 
-      ELSE IF ( N == ID_Hg0(ID_Hg_nt) ) THEN 
+         ! Anthro East Africa
+         NN = ID_Hg_eaf
 
-         ! Natural source
-         NN = ID_Hg_nt
+      ELSE IF ( N == ID_Hg0(ID_Hg_saf) ) THEN
+
+         ! Anthro South Africa
+         NN = ID_Hg_saf
+
+      ELSE IF ( N == ID_Hg0(ID_Hg_naf) ) THEN
+
+         ! Anthro North Africa
+         NN = ID_Hg_naf
+
+      ELSE IF ( N == ID_Hg0(ID_Hg_eur) ) THEN
+
+         ! Anthro OECD Europe
+         NN = ID_Hg_eur
+
+      ELSE IF ( N == ID_Hg0(ID_Hg_eeu) ) THEN
+
+         ! Anthro Eastern Europe
+         NN = ID_Hg_eeu
+
+      ELSE IF ( N == ID_Hg0(ID_Hg_mde) ) THEN
+
+         ! Anthro Middle East
+         NN = ID_Hg_mde
+
+      ELSE IF ( N == ID_Hg0(ID_Hg_sov) ) THEN
+
+         ! Anthro Former Soviet Union
+         NN = ID_Hg_sov
+
+      ELSE IF ( N == ID_Hg0(ID_Hg_sas) ) THEN
+
+         ! Anthro South Asia
+         NN = ID_Hg_sas
+
+      ELSE IF ( N == ID_Hg0(ID_Hg_eas) ) THEN
+
+         ! Anthro East Asia
+         NN = ID_Hg_eas
+
+      ELSE IF ( N == ID_Hg0(ID_Hg_sea) ) THEN
+
+         ! Anthro Southeast Asia
+         NN = ID_Hg_sea
+
+      ELSE IF ( N == ID_Hg0(ID_Hg_jpn) ) THEN
+
+         ! Anthro Japan
+         NN = ID_Hg_jpn
+
+      ELSE IF ( N == ID_Hg0(ID_Hg_oce) ) THEN
+
+         ! Anthro Oceania
+         NN = ID_Hg_oce
+
+      ELSE IF ( N == ID_Hg0(ID_Hg_so) ) THEN
+
+         ! Soil
+         NN = ID_Hg_so
+
+      ELSE IF ( N == ID_Hg0(ID_Hg_bb) ) THEN
+
+         ! Biomass burning
+         NN = ID_Hg_bb
+
+      ELSE IF ( N == ID_Hg0(ID_Hg_geo) ) THEN
+
+         ! Geogenic
+         NN = ID_Hg_geo
+
+      ELSE IF ( N == ID_Hg0(ID_Hg_atl) ) THEN
+
+         ! Below Mixed Layer Mid-Atlantic Ocean
+         NN = ID_Hg_atl
+
+      ELSE IF ( N == ID_Hg0(ID_Hg_nat) ) THEN
+
+         ! Below Mixed Layer North Atlantic Ocean
+         NN = ID_Hg_nat
+
+      ELSE IF ( N == ID_Hg0(ID_Hg_sat) ) THEN
+
+         ! Below Mixed Layer South Atlantic Ocean
+         NN = ID_Hg_sat
+
+      ELSE IF ( N == ID_Hg0(ID_Hg_npa) ) THEN
+
+         ! Below Mixed Layer North Pacific Ocean
+         NN = ID_Hg_npa
+
+      ELSE IF ( N == ID_Hg0(ID_Hg_arc) ) THEN
+
+         ! Below Mixed Layer Arctic Ocean
+         NN = ID_Hg_arc
+
+      ELSE IF ( N == ID_Hg0(ID_Hg_ant) ) THEN
+
+         ! Below Mixed Layer Antarctic Ocean
+         NN = ID_Hg_ant
+
+      ELSE IF ( N == ID_Hg0(ID_Hg_ocn) ) THEN
+
+         ! Below Mixed Layer All Other Ocean
+         NN = ID_Hg_ocn
+
+      ELSE IF ( N == ID_Hg0(ID_Hg_str) ) THEN
+
+         ! Residual Stratosphere from Spin-up
+         NN = ID_Hg_str
+
+!-------------------------------------------------------
 
       ELSE
 
@@ -2509,40 +3140,184 @@
          ! Total
          NN = ID_Hg_tot
 
-      ELSE IF ( N == ID_Hg2(ID_Hg_na) ) THEN 
+!- eds 8/31/10 --------------------------------------------------------------
+!      ELSE IF ( N == ID_Hg2(ID_Hg_na) ) THEN 
+!
+!         ! Anthro North America
+!         NN = ID_Hg_na
+!
+!      ELSE IF ( N == ID_Hg2(ID_Hg_eu) ) THEN 
+!
+!         ! Anthro Europe
+!         NN = ID_Hg_eu
+!
+!      ELSE IF ( N == ID_Hg2(ID_Hg_as) ) THEN 
+!
+!         ! Anthro Asia
+!         NN = ID_Hg_as
+!
+!      ELSE IF ( N == ID_Hg2(ID_Hg_rw) ) THEN 
+!
+!         ! Anthro Rest of World
+!         NN = ID_Hg_rw
+!
+!      ELSE IF ( N == ID_Hg2(ID_Hg_oc) ) THEN 
+!
+!         ! Oceans
+!         NN = ID_Hg_oc
+!
+!      ELSE IF ( N == ID_Hg2(ID_Hg_ln) ) THEN 
+!
+!         ! Land re-emission
+!         NN = ID_Hg_ln
+!
+!      ELSE IF ( N == ID_Hg2(ID_Hg_nt) ) THEN 
+!
+!         ! Natural source
+!         NN = ID_Hg_nt
 
-         ! Anthro North America
-         NN = ID_Hg_na
+      ! New Tagged Hg Simulation (eds 8/31/10)
+      ELSE IF ( N == ID_Hg2(ID_Hg_can) ) THEN  
 
-      ELSE IF ( N == ID_Hg2(ID_Hg_eu) ) THEN 
+         ! Anthro Canada
+         NN = ID_Hg_can
 
-         ! Anthro Europe
-         NN = ID_Hg_eu
+      ELSE IF ( N == ID_Hg2(ID_Hg_usa) ) THEN
 
-      ELSE IF ( N == ID_Hg2(ID_Hg_as) ) THEN 
+         ! Anthro United States
+         NN = ID_Hg_usa
 
-         ! Anthro Asia
-         NN = ID_Hg_as
+      ELSE IF ( N == ID_Hg2(ID_Hg_cam) ) THEN
 
-      ELSE IF ( N == ID_Hg2(ID_Hg_rw) ) THEN 
+         ! Anthro Central America
+         NN = ID_Hg_cam
 
-         ! Anthro Rest of World
-         NN = ID_Hg_rw
+      ELSE IF ( N == ID_Hg2(ID_Hg_sam) ) THEN
 
-      ELSE IF ( N == ID_Hg2(ID_Hg_oc) ) THEN 
+         ! Anthro South America
+         NN = ID_Hg_sam
 
-         ! Oceans
-         NN = ID_Hg_oc
+      ELSE IF ( N == ID_Hg2(ID_Hg_waf) ) THEN
 
-      ELSE IF ( N == ID_Hg2(ID_Hg_ln) ) THEN 
+         ! Anthro West Africa
+         NN = ID_Hg_waf
 
-         ! Land re-emission
-         NN = ID_Hg_ln
+      ELSE IF ( N == ID_Hg2(ID_Hg_eaf) ) THEN
 
-      ELSE IF ( N == ID_Hg2(ID_Hg_nt) ) THEN 
+         ! Anthro East Africa
+         NN = ID_Hg_eaf
 
-         ! Natural source
-         NN = ID_Hg_nt
+      ELSE IF ( N == ID_Hg2(ID_Hg_saf) ) THEN
+
+         ! Anthro South Africa
+         NN = ID_Hg_saf
+
+      ELSE IF ( N == ID_Hg2(ID_Hg_naf) ) THEN
+
+         ! Anthro North Africa
+         NN = ID_Hg_naf
+
+      ELSE IF ( N == ID_Hg2(ID_Hg_eur) ) THEN
+
+         ! Anthro OECD Europe
+         NN = ID_Hg_eur
+
+      ELSE IF ( N == ID_Hg2(ID_Hg_eeu) ) THEN
+
+         ! Anthro Eastern Europe
+         NN = ID_Hg_eeu
+
+      ELSE IF ( N == ID_Hg2(ID_Hg_mde) ) THEN
+
+         ! Anthro Middle East
+         NN = ID_Hg_mde
+
+      ELSE IF ( N == ID_Hg2(ID_Hg_sov) ) THEN
+
+         ! Anthro Former Soviet Union
+         NN = ID_Hg_sov
+
+      ELSE IF ( N == ID_Hg2(ID_Hg_sas) ) THEN
+
+         ! Anthro South Asia
+         NN = ID_Hg_sas
+
+      ELSE IF ( N == ID_Hg2(ID_Hg_eas) ) THEN
+
+         ! Anthro East Asia
+         NN = ID_Hg_eas
+
+      ELSE IF ( N == ID_Hg2(ID_Hg_sea) ) THEN
+
+         ! Anthro Southeast Asia
+         NN = ID_Hg_sea
+
+      ELSE IF ( N == ID_Hg2(ID_Hg_jpn) ) THEN
+
+         ! Anthro Japan
+         NN = ID_Hg_jpn
+
+      ELSE IF ( N == ID_Hg2(ID_Hg_oce) ) THEN
+
+         ! Anthro Oceania
+         NN = ID_Hg_oce
+
+      ELSE IF ( N == ID_Hg2(ID_Hg_so) ) THEN
+
+         ! Soil
+         NN = ID_Hg_so
+
+      ELSE IF ( N == ID_Hg2(ID_Hg_bb) ) THEN
+
+         ! Biomass burning
+         NN = ID_Hg_bb
+
+      ELSE IF ( N == ID_Hg2(ID_Hg_geo) ) THEN
+
+         ! Geogenic
+         NN = ID_Hg_geo
+
+      ELSE IF ( N == ID_Hg2(ID_Hg_atl) ) THEN
+
+         ! Below Mixed Layer Mid-Atlantic Ocean
+         NN = ID_Hg_atl
+
+      ELSE IF ( N == ID_Hg2(ID_Hg_nat) ) THEN
+
+         ! Below Mixed Layer North Atlantic Ocean
+         NN = ID_Hg_nat
+
+      ELSE IF ( N == ID_Hg2(ID_Hg_sat) ) THEN
+
+         ! Below Mixed Layer South Atlantic Ocean
+         NN = ID_Hg_sat
+
+      ELSE IF ( N == ID_Hg2(ID_Hg_npa) ) THEN
+
+         ! Below Mixed Layer North Pacific Ocean
+         NN = ID_Hg_npa
+
+      ELSE IF ( N == ID_Hg2(ID_Hg_arc) ) THEN
+
+         ! Below Mixed Layer Arctic Ocean
+         NN = ID_Hg_arc
+
+      ELSE IF ( N == ID_Hg2(ID_Hg_ant) ) THEN
+
+         ! Below Mixed Layer Antarctic Ocean
+         NN = ID_Hg_ant
+
+      ELSE IF ( N == ID_Hg2(ID_Hg_ocn) ) THEN
+
+         ! Below Mixed Layer All Other Ocean
+         NN = ID_Hg_ocn
+
+      ELSE IF ( N == ID_Hg2(ID_Hg_str) ) THEN
+
+         ! Residual Stratosphere from Spin-up
+         NN = ID_Hg_str
+
+!-------------------------------------------------------
 
       ELSE
 
@@ -2586,40 +3361,183 @@
          ! Total
          NN = ID_Hg_tot
 
-      ELSE IF ( N == ID_HgP(ID_Hg_na) ) THEN 
+!- eds 8/31/10 ---------------------------------------------------------
+!      ELSE IF ( N == ID_HgP(ID_Hg_na) ) THEN 
+!
+!         ! Anthro North America
+!         NN = ID_Hg_na
+!
+!      ELSE IF ( N == ID_HgP(ID_Hg_eu) ) THEN 
+!
+!         ! Anthro Europe
+!         NN = ID_Hg_eu
+!
+!      ELSE IF ( N == ID_HgP(ID_Hg_as) ) THEN 
+!
+!         ! Anthro Asia
+!         NN = ID_Hg_as
+!
+!      ELSE IF ( N == ID_HgP(ID_Hg_rw) ) THEN 
+!
+!         ! Anthro Rest of World
+!         NN = ID_Hg_rw
+!
+!      ELSE IF ( N == ID_HgP(ID_Hg_oc) ) THEN 
+!
+!         ! Oceans
+!         NN = ID_Hg_oc
+!
+!      ELSE IF ( N == ID_HgP(ID_Hg_ln) ) THEN 
+!
+!         ! Land re-emission
+!         NN = ID_Hg_ln
+!
+!      ELSE IF ( N == ID_HgP(ID_Hg_nt) ) THEN 
+!
+!         ! Natural source
+!         NN = ID_Hg_nt
 
-         ! Anthro North America
-         NN = ID_Hg_na
+      ELSE IF ( N == ID_HgP(ID_Hg_can) ) THEN  
 
-      ELSE IF ( N == ID_HgP(ID_Hg_eu) ) THEN 
+         ! Anthro Canada
+         NN = ID_Hg_can
 
-         ! Anthro Europe
-         NN = ID_Hg_eu
+      ELSE IF ( N == ID_HgP(ID_Hg_usa) ) THEN
 
-      ELSE IF ( N == ID_HgP(ID_Hg_as) ) THEN 
+         ! Anthro United States
+         NN = ID_Hg_usa
 
-         ! Anthro Asia
-         NN = ID_Hg_as
+      ELSE IF ( N == ID_HgP(ID_Hg_cam) ) THEN
 
-      ELSE IF ( N == ID_HgP(ID_Hg_rw) ) THEN 
+         ! Anthro Central America
+         NN = ID_Hg_cam
 
-         ! Anthro Rest of World
-         NN = ID_Hg_rw
+      ELSE IF ( N == ID_HgP(ID_Hg_sam) ) THEN
 
-      ELSE IF ( N == ID_HgP(ID_Hg_oc) ) THEN 
+         ! Anthro South America
+         NN = ID_Hg_sam
 
-         ! Oceans
-         NN = ID_Hg_oc
+      ELSE IF ( N == ID_HgP(ID_Hg_waf) ) THEN
 
-      ELSE IF ( N == ID_HgP(ID_Hg_ln) ) THEN 
+         ! Anthro West Africa
+         NN = ID_Hg_waf
 
-         ! Land re-emission
-         NN = ID_Hg_ln
+      ELSE IF ( N == ID_HgP(ID_Hg_eaf) ) THEN
 
-      ELSE IF ( N == ID_HgP(ID_Hg_nt) ) THEN 
+         ! Anthro East Africa
+         NN = ID_Hg_eaf
 
-         ! Natural source
-         NN = ID_Hg_nt
+      ELSE IF ( N == ID_HgP(ID_Hg_saf) ) THEN
+
+         ! Anthro South Africa
+         NN = ID_Hg_saf
+
+      ELSE IF ( N == ID_HgP(ID_Hg_naf) ) THEN
+
+         ! Anthro North Africa
+         NN = ID_Hg_naf
+
+      ELSE IF ( N == ID_HgP(ID_Hg_eur) ) THEN
+
+         ! Anthro OECD Europe
+         NN = ID_Hg_eur
+
+      ELSE IF ( N == ID_HgP(ID_Hg_eeu) ) THEN
+
+         ! Anthro Eastern Europe
+         NN = ID_Hg_eeu
+
+      ELSE IF ( N == ID_HgP(ID_Hg_mde) ) THEN
+
+         ! Anthro Middle East
+         NN = ID_Hg_mde
+
+      ELSE IF ( N == ID_HgP(ID_Hg_sov) ) THEN
+
+         ! Anthro Former Soviet Union
+         NN = ID_Hg_sov
+
+      ELSE IF ( N == ID_HgP(ID_Hg_sas) ) THEN
+
+         ! Anthro South Asia
+         NN = ID_Hg_sas
+
+      ELSE IF ( N == ID_HgP(ID_Hg_eas) ) THEN
+
+         ! Anthro East Asia
+         NN = ID_Hg_eas
+
+      ELSE IF ( N == ID_HgP(ID_Hg_sea) ) THEN
+
+         ! Anthro Southeast Asia
+         NN = ID_Hg_sea
+
+      ELSE IF ( N == ID_HgP(ID_Hg_jpn) ) THEN
+
+         ! Anthro Japan
+         NN = ID_Hg_jpn
+
+      ELSE IF ( N == ID_HgP(ID_Hg_oce) ) THEN
+
+         ! Anthro Oceania
+         NN = ID_Hg_oce
+
+      ELSE IF ( N == ID_HgP(ID_Hg_so) ) THEN
+
+         ! Soil
+         NN = ID_Hg_so
+
+      ELSE IF ( N == ID_HgP(ID_Hg_bb) ) THEN
+
+         ! Biomass burning
+         NN = ID_Hg_bb
+
+      ELSE IF ( N == ID_HgP(ID_Hg_geo) ) THEN
+
+         ! Geogenic
+         NN = ID_Hg_geo
+
+      ELSE IF ( N == ID_HgP(ID_Hg_atl) ) THEN
+
+         ! Below Mixed Layer Mid-Atlantic Ocean
+         NN = ID_Hg_atl
+
+      ELSE IF ( N == ID_HgP(ID_Hg_nat) ) THEN
+
+         ! Below Mixed Layer North Atlantic Ocean
+         NN = ID_Hg_nat
+
+      ELSE IF ( N == ID_HgP(ID_Hg_sat) ) THEN
+
+         ! Below Mixed Layer South Atlantic Ocean
+         NN = ID_Hg_sat
+
+      ELSE IF ( N == ID_HgP(ID_Hg_npa) ) THEN
+
+         ! Below Mixed Layer North Pacific Ocean
+         NN = ID_Hg_npa
+
+      ELSE IF ( N == ID_HgP(ID_Hg_arc) ) THEN
+
+         ! Below Mixed Layer Arctic Ocean
+         NN = ID_Hg_arc
+
+      ELSE IF ( N == ID_HgP(ID_Hg_ant) ) THEN
+
+         ! Below Mixed Layer Antarctic Ocean
+         NN = ID_Hg_ant
+
+      ELSE IF ( N == ID_HgP(ID_Hg_ocn) ) THEN
+
+         ! Below Mixed Layer All Other Ocean
+         NN = ID_Hg_ocn
+
+      ELSE IF ( N == ID_HgP(ID_Hg_str) ) THEN
+
+         ! Residual Stratosphere from Spin-up
+         NN = ID_Hg_str
+
+!-------------------------------------------------------
 
       ELSE
 
@@ -2725,6 +3643,7 @@
       IDMBO     = 0
       IDGLYC    = 0
       IDHAC     = 0
+      IDMPN     = 0
 
       IDAPAN    = 0
       IDENPAN   = 0
@@ -2854,6 +3773,7 @@
       IDTGPAN   = 0
       IDTMPAN   = 0
       IDTNIPAN  = 0
+      IDTMPN    = 0
       ! +++++++++++++++++
       ! jpp for bromine
       ! 6/5/09
@@ -3240,18 +4160,53 @@
       IF ( ITS_A_MERCURY_SIM() ) THEN
 
          ! Initialize category flags
+!- eds 8/31/10 -------------------------------------------------------
          ID_Hg_tot = 0
-         ID_Hg_na  = 0
-         ID_Hg_eu  = 0
-         ID_Hg_as  = 0
-         ID_Hg_rw  = 0
-         ID_Hg_oc  = 0
-         ID_Hg_ln  = 0
-         ID_Hg_nt  = 0
+!         ID_Hg_na  = 0
+!         ID_Hg_eu  = 0
+!         ID_Hg_as  = 0
+!         ID_Hg_rw  = 0
+!         ID_Hg_oc  = 0
+!         ID_Hg_ln  = 0
+!         ID_Hg_nt  = 0
+
+         ID_Hg_can = 0
+         ID_Hg_usa = 0
+         ID_Hg_cam = 0
+         ID_Hg_sam = 0
+         ID_Hg_waf = 0
+         ID_Hg_eaf = 0
+         ID_Hg_saf = 0
+         ID_Hg_naf = 0
+         ID_Hg_eur = 0
+         ID_Hg_eeu = 0
+         ID_Hg_mde = 0
+         ID_Hg_sov = 0
+         ID_Hg_sas = 0
+         ID_Hg_eas = 0
+         ID_Hg_sea = 0
+         ID_Hg_jpn = 0
+         ID_Hg_oce = 0
+         ID_Hg_so  = 0
+         ID_Hg_bb  = 0
+         ID_Hg_geo = 0
+         ID_Hg_atl = 0
+         ID_Hg_nat = 0
+         ID_Hg_sat = 0
+         ID_Hg_npa = 0
+         ID_Hg_arc = 0
+         ID_Hg_ant = 0
+         ID_Hg_ocn = 0
+         ID_Hg_str = 0
+!------------------------------------------------------------------------
+
 
          ! Number of Hg categories
          IF ( LSPLIT ) THEN
-            N_Hg_CATS = 8
+!- eds 8/31/10 ----------------------------------------------------------
+!            N_Hg_CATS = 8
+            N_Hg_CATS = 29 ! New Tagged
+!------------------------------------------------------------------------
          ELSE
             N_Hg_CATS = 1
          ENDIF

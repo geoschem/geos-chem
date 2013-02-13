@@ -202,6 +202,7 @@
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -274,7 +275,7 @@
       ! Regrid to NOx [molec/cm2/s] current model resolution
       INGRID => GEN_1x1
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    INGRID,     OUTGRID, IS_MASS=0,
      &                    netCDF=.TRUE.                   )
 
       ! Get & apply scaling factor
@@ -306,7 +307,7 @@
       ! Regrid CO [molec/cm2/s] to current model resolution
       INGRID => GEN_1x1
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-     &                    INGRID,     OUTGRID, PERAREA=0, 
+     &                    INGRID,     OUTGRID, IS_MASS=0, 
      &                    netCDF=.TRUE.                   )
 
 
@@ -339,7 +340,7 @@
       ! Regrid SO2 [molec/cm2/s] to current model resolution
       INGRID => GEN_1x1
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    INGRID,     OUTGRID, IS_MASS=0,
      &                    netCDF=.TRUE.                   )
 
       ! Get & apply scaling factor
@@ -568,6 +569,7 @@
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !  15 Aug 2012 - M. Payer    - Set mask to 1 if greater than 0 (L. Murray)
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -609,7 +611,7 @@
 
       ! Regrid to current model resolution [unitless]
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,       J1x1-1, 
-     &                    GEN_1x1,    BRAVO_MASK, PERAREA=0,
+     &                    GEN_1x1,    BRAVO_MASK, IS_MASS=0,
      &                    netCDF=.TRUE.                      )
 
       WHERE ( BRAVO_MASK > 0D0 ) BRAVO_MASK = 1D0

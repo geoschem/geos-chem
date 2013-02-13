@@ -38,6 +38,7 @@
 ! !REVISION HISTORY:
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
 !  03 Aug 2012 - R. Yantosca - Now make IU_A3 a private module variable
+!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -249,27 +250,27 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_MERRA_A3_FIELDS( NYMD, NHMS )
+      SUBROUTINE GET_MERRA_A3_FIELDS( NYMD, NHMS, State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD, ONLY : CLDF,    CLDTOPS,  CMFMC,    DQRCU
-      USE DAO_MOD, ONLY : DQRLSAN, DQIDTMST, DQLDTMST, DQVDTMST
-      USE DAO_MOD, ONLY : DTRAIN,  MOISTQ,   OPTDEP,   PFICU
-      USE DAO_MOD, ONLY : PFILSAN, PFLCU,    PFLLSAN,  QI
-      USE DAO_MOD, ONLY : QL,      SPHU,     REEVAPCN, REEVAPLS
-      USE DAO_MOD, ONLY : T,       TAUCLI,   TAUCLW,   UWND
-      USE DAO_MOD, ONLY : VWND
-
-      USE CMN_SIZE_MOD            ! Size parameters
+      USE CMN_SIZE_MOD
+      USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: NYMD   ! YYYYMMDD and
-      INTEGER, INTENT(IN) :: NHMS   !  hhmmss of desired data fields
+      INTEGER,        INTENT(IN)    :: NYMD   ! YYYYMMDD and
+      INTEGER,        INTENT(IN)    :: NHMS   !  hhmmss of desired data fields
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  20 Aug 2010 - R. Yantosca - Initial version, based on a3_read_mod.f
+!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
+!                              object
+!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -296,31 +297,31 @@
       !=================================================================
       CALL READ_A3( NYMD     = NYMD,          
      &              NHMS     = NHMS,       
-     &              CLOUD    = CLDF,          
-     &              CLDTOPS  = CLDTOPS, 
-     &              CMFMC    = CMFMC, 
-     &              DQRCU    = DQRCU, 
-     &              DQRLSAN  = DQRLSAN,       
-     &              DQIDTMST = DQIDTMST, 
-     &              DQLDTMST = DQLDTMST,  
-     &              DQVDTMST = DQVDTMST,  
-     &              DTRAIN   = DTRAIN,     
-     &              MOISTQ   = MOISTQ,     
-     &              OPTDEPTH = OPTDEP, 
-     &              PFICU    = PFICU,             
-     &              PFILSAN  = PFILSAN,             
-     &              PFLCU    = PFLCU,
-     &              PFLLSAN  = PFLLSAN,
-     &              QI       = QI,             
-     &              QL       = QL,             
-     &              QV       = SPHU,
-     &              REEVAPCN = REEVAPCN,
-     &              REEVAPLS = REEVAPLS,
-     &              T        = T,               
-     &              TAUCLI   = TAUCLI,     
-     &              TAUCLW   = TAUCLW,     
-     &              U        = UWND,            
-     &              V        = VWND      )   
+     &              CLOUD    = State_Met%CLDF,          
+     &              CLDTOPS  = State_Met%CLDTOPS, 
+     &              CMFMC    = State_Met%CMFMC, 
+     &              DQRCU    = State_Met%DQRCU, 
+     &              DQRLSAN  = State_Met%DQRLSAN,       
+     &              DQIDTMST = State_Met%DQIDTMST, 
+     &              DQLDTMST = State_Met%DQLDTMST,  
+     &              DQVDTMST = State_Met%DQVDTMST,  
+     &              DTRAIN   = State_Met%DTRAIN,     
+     &              MOISTQ   = State_Met%MOISTQ,     
+     &              OPTDEPTH = State_Met%OPTDEP, 
+     &              PFICU    = State_Met%PFICU,             
+     &              PFILSAN  = State_Met%PFILSAN,             
+     &              PFLCU    = State_Met%PFLCU,
+     &              PFLLSAN  = State_Met%PFLLSAN,
+     &              QI       = State_Met%QI,             
+     &              QL       = State_Met%QL,             
+     &              QV       = State_Met%SPHU,
+     &              REEVAPCN = State_Met%REEVAPCN,
+     &              REEVAPLS = State_Met%REEVAPLS,
+     &              T        = State_Met%T,               
+     &              TAUCLI   = State_Met%TAUCLI,     
+     &              TAUCLW   = State_Met%TAUCLW,     
+     &              U        = State_Met%U,            
+     &              V        = State_Met%V        )   
 
       ! Save NYMD and NHMS for next call
       LASTNYMD = NYMD

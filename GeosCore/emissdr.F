@@ -1,8 +1,8 @@
 ! $Id: emissdr.f,v 1.6 2010/03/15 19:33:24 ccarouge Exp $
 #if defined( DEVEL )
-      SUBROUTINE EMISSDR( EMISS_TEND, BIOEMISS_TEND )
+      SUBROUTINE EMISSDR( State_Met, EMISS_TEND, BIOEMISS_TEND )
 #else
-      SUBROUTINE EMISSDR
+      SUBROUTINE EMISSDR( State_Met )
 #endif
 !
 !******************************************************************************
@@ -90,55 +90,75 @@
 !  08 Dec 2011 - M. Payer    - Remove GEIA biogenic emissions option
 !  01 Mar 2012 - R. Yantosca - Now use GET_LOCALTIME(I,J,L) from time_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  22 Oct 2012 - R. Yantosca - Prevent out-of-bounds errors in ND46 if bromine
+!                              emissions are turned off (e.g. for tagged CO)
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  27 Nov 2012 - R. Yantosca - Replace SUNCOS_MID with State_Met%SUNCOSmid
+!  13 Dec 2012 - R. Yantosca - Now remove reference to obsolete CMN_DEP_mod.F
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ACETONE_MOD,       ONLY : EMISS_BIOACET, OCEAN_SOURCE_ACET
-      USE AIRCRAFT_NOX_MOD,  ONLY : AIREMISS
-      USE BIOFUEL_MOD,       ONLY : BIOFUEL_BURN
-      USE DAO_MOD,           ONLY : PARDF,         PARDR,     SUNCOS_MID       
-      USE DIAG_MOD,          ONLY : AD29,          AD46
-      USE GRID_MOD,          ONLY : GET_AREA_CM2
-      USE GRID_MOD,          ONLY : GET_XOFFSET,   GET_YOFFSET
-      USE LIGHTNING_NOX_MOD, ONLY : EMLIGHTNING
-      USE LOGICAL_MOD,       ONLY : LANTHRO,       LLIGHTNOX, LSOILNOX
-      !FP_ISOP  (6/2009) add separate FERTILIZER NOX
-      USE LOGICAL_MOD,       ONLY : LFERTILIZERNOX
-      USE LOGICAL_MOD,       ONLY : LAIRNOX,       LBIONOX,   LWOODCO   
-      USE LOGICAL_MOD,       ONLY : LMEGAN, LMEGANMONO, LBIOGENIC
-      USE MEGAN_MOD,         ONLY : GET_EMISOP_MEGAN
-      USE MEGAN_MOD,         ONLY : GET_EMMBO_MEGAN
-      USE MEGAN_MOD,         ONLY : GET_EMMONOT_MEGAN
-      USE TIME_MOD,          ONLY : GET_MONTH,     GET_TAU
-      USE TIME_MOD,          ONLY : GET_TS_EMIS,   GET_LOCALTIME
-      USE TRACER_MOD,        ONLY : ITS_A_TAGCO_SIM
-      USE TRACERID_MOD,      ONLY : IDEACET,       IDTISOP,   IDEISOP   
-      USE TRACERID_MOD,      ONLY : IDECO,         IDEPRPE,   NEMANTHRO 
-      USE TRACERID_MOD,      ONLY : IDEMONX, IDEC2H4
-      USE TRACERID_MOD,      ONLY : IDTMONX, IDTC2H4
-      USE MEGAN_MOD,         ONLY : GET_EMMONOG_MEGAN !(mpb,2009) 
-      USE MEGAN_MOD,         ONLY : ACTIVITY_FACTORS  !(mpb,2009)
-      USE MEGANUT_MOD,       ONLY : XLTMMP
-      !FP_ISOP (6/2009)
-      USE EMISSIONS_MOD,     ONLY : ISOP_SCALING
-      !jpp, 8/24/07
-      USE TRACERID_MOD,      ONLY : IDECHBr3, IDECH2Br2
-      USE BROMOCARB_MOD,     ONLY : EMIS_CHBr3, EMIS_CH2Br2
-      USE BROMOCARB_MOD,     ONLY : Br_SCALING
- 
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE COMODE_LOOP_MOD     ! IVERT?
-      USE CMN_O3_MOD       ! Emissions arrays
-      USE CMN_DIAG_MOD     ! Diagnostic arrays and switches
-      USE CMN_NOX_MOD      ! GEMISNOX2
-
+      USE ACETONE_MOD,        ONLY : EMISS_BIOACET, OCEAN_SOURCE_ACET
+      USE AIRCRAFT_NOX_MOD,   ONLY : AIREMISS
+      USE BIOFUEL_MOD,        ONLY : BIOFUEL_BURN
+      USE BROMOCARB_MOD,      ONLY : EMIS_CHBr3, EMIS_CH2Br2
+      USE BROMOCARB_MOD,      ONLY : Br_SCALING
+      USE CANOPY_NOX_MOD,     ONLY : GET_CANOPY_NOX
+      USE DIAG_MOD,           ONLY : AD29,          AD46
+      USE DIAG_MOD,           ONLY : AD32_fe,       AD32_so
+      USE EMISSIONS_MOD,      ONLY : ISOP_SCALING
+      USE GET_NDEP_MOD,       ONLY : GET_DEP_N 
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE GRID_MOD,           ONLY : GET_YMID
+      USE GRID_MOD,           ONLY : GET_XMID
+      USE GRID_MOD,           ONLY : GET_XOFFSET,   GET_YOFFSET
+      USE LIGHTNING_NOX_MOD,  ONLY : EMLIGHTNING
+      USE LOGICAL_MOD,        ONLY : LANTHRO,       LLIGHTNOX, LSOILNOX
+      USE LOGICAL_MOD,        ONLY : LFERTILIZERNOX
+      USE LOGICAL_MOD,        ONLY : LAIRNOX,       LBIONOX,   LWOODCO   
+      USE LOGICAL_MOD,        ONLY : LMEGAN, LMEGANMONO, LBIOGENIC
+      USE MEGAN_MOD,          ONLY : GET_EMISOP_MEGAN
+      USE MEGAN_MOD,          ONLY : GET_EMMBO_MEGAN
+      USE MEGAN_MOD,          ONLY : GET_EMMONOT_MEGAN
+      USE MEGAN_MOD,          ONLY : GET_EMMONOG_MEGAN
+      USE MEGAN_MOD,          ONLY : ACTIVITY_FACTORS
+      USE MEGANUT_MOD,        ONLY : XLTMMP
+      USE MODIS_LAI_MOD
+      USE SOIL_NOX_MOD,       ONLY : SOIL_NOX_EMISSION   
+      USE TIME_MOD,           ONLY : GET_MONTH,     GET_TAU
+      USE TIME_MOD,           ONLY : GET_TS_EMIS,   GET_LOCALTIME
+      USE TIME_MOD,           ONLY : GET_DAY_OF_YEAR
+      USE TRACER_MOD,         ONLY : ITS_A_TAGCO_SIM
+      USE TRACERID_MOD,       ONLY : IDEACET,       IDTISOP,   IDEISOP   
+      USE TRACERID_MOD,       ONLY : IDECO,         IDEPRPE,   NEMANTHRO 
+      USE TRACERID_MOD,       ONLY : IDEMONX, IDEC2H4
+      USE TRACERID_MOD,       ONLY : IDTMONX, IDTC2H4
+      USE TRACERID_MOD,       ONLY : IDECHBr3, IDECH2Br2
 #if defined( DEVEL )
-      USE TRACERID_MOD,      ONLY : IDTNOX
-      USE TRACER_MOD,        ONLY : N_TRACERS
+      USE TRACERID_MOD,       ONLY : IDTNOX
+      USE TRACER_MOD,         ONLY : N_TRACERS
 #endif
+ 
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE COMODE_LOOP_MOD          ! IVERT?
+      USE CMN_O3_MOD               ! Emissions arrays
+      USE CMN_DIAG_MOD             ! Diagnostic arrays and switches
+      USE CMN_NOX_MOD              ! GEMISNOX2
+      USE COMMSOIL_MOD             ! Soil wetness variables
 
       IMPLICIT NONE
 #     include "define.h"
+
+      !Arguments
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+
+#if defined( DEVEL )
+      REAL*8,         INTENT(INOUT) :: 
+     &     EMISS_TEND(IIPAR,JJPAR,LLPAR,N_TRACERS+1),
+     &     BIOEMISS_TEND(IIPAR,JJPAR,LLPAR,N_TRACERS+1)
+#endif
 
       ! Local variables
       LOGICAL, SAVE          :: FIRSTEMISS = .TRUE. 
@@ -152,6 +172,13 @@
       REAL*8                 :: TMPVAL,  EMMB,     GRASS, BIO_ACET
       REAL*8                 :: CONVERT(NVEGTYPE), GMONOT(NVEGTYPE)
       REAL*8                 :: SC, PDF, PDR
+      INTEGER                :: DOY, MONTH, RC, M
+      REAL*8                 :: FERTDIAG
+      REAL*8                 :: TS_EMIS
+      REAL*8                 :: TOTALPULSE
+      REAL*8                 :: SOILFRT
+      REAL*8                 :: DEP_FERT, TEMP_FERT
+
 
       ! Add biogenic emission scale factor for ethene (tmf, 1/13/06)
       REAL*8                 :: BIOSCALEC2H4
@@ -167,9 +194,6 @@
       ! Molecular weight of CH2Br2 [kg/mol], (jpp, 9/16/07)
       REAL*8,  PARAMETER     :: MWT_CH2Br2 = 1.74d-1
 
-      ! External functions
-      REAL*8, EXTERNAL       :: BOXVL
-
       ! Add in new monoterpene species (mpb,2009)
       REAL*8                 :: APINE  , BPINE , LIMON , SABIN 
       REAL*8                 :: MYRCN  , CAREN , OCIMN
@@ -179,12 +203,6 @@
       REAL*8                 :: GAMMA_P
       REAL*8                 :: GAMMA_T
       REAL*8                 :: GAMMA_SM
-
-#if defined( DEVEL )
-      REAL*8, INTENT(INOUT)  :: 
-     &     EMISS_TEND(IIPAR,JJPAR,LLPAR,N_TRACERS+1),
-     &     BIOEMISS_TEND(IIPAR,JJPAR,LLPAR,N_TRACERS+1)
-#endif
 
 !
 !******************************************************************************
@@ -204,6 +222,111 @@
       ! Get nested-grid offsets
       I0 = GET_XOFFSET()
       J0 = GET_YOFFSET()
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! SOIL EMISSIONS NOX [molecules/cm3/s]
+
+      IF ( LSOILNOX ) THEN           
+
+	 !Zero the Diag49 arrays
+         IF ( FIRSTEMISS ) THEN
+            INST_SOIL(:,:) = 0.0
+            INST_FERT(:,:) = 0.0
+
+            FIRSTEMISS = .FALSE.
+
+         ENDIF
+
+         !***************************************************************
+         !First zero the arrays in which emissions will be stored
+         !GEMISNOX2(I,J)   = Array which stores NOx emissions from soils.
+         !                   Units are [molec NOx/cm3/s].
+         GEMISNOX2   = 0d0
+         !***************************************************************
+
+         ! Now need to call GET_CANOPY_NOX to break ugly dependency between
+         ! drydep and soil NOx emissions. (bmy, 6/22/09) 
+         ! Now a function of the new MODIS/Koppen biome map (J.D. Maasakkers)
+         CALL GET_CANOPY_NOX( State_Met )
+               
+         ! Get day of year/month and timestep information
+         DOY     = GET_DAY_OF_YEAR() 
+         TS_EMIS = GET_TS_EMIS()           
+         MONTH   = GET_MONTH()
+
+         ! Loop over each land grid-box, removed loop over landpoints
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, DEP_FERT, SOILFRT, FERTDIAG, RC, IJLOOP)
+ 	 DO J = 1, JJPAR 
+	 DO I = 1, IIPAR
+
+ 	    ! Do not calculate soil NOx emissions if there is no soil in
+            ! the gridbox
+ 	    IF (LAND2(I,J,1) .EQ. 1) CYCLE
+
+            IJLOOP = ( (J-1) * IIPAR ) + I 
+
+            ! Get Deposited Fertilizer
+            CALL GET_DEP_N( I, J, TS_EMIS, DEP_FERT )
+            CALL FLUSH(6)
+
+            ! Get N fertilizer reservoir associated with chemical and
+            ! manure fertilizer
+            SOILFRT =  SOILFERT(I,J,GET_DAY_OF_YEAR())  
+
+            ! Put in constraint if dry period gt 1 yr, keep at 1yr to
+            ! avoid unrealistic pulse
+            IF ( DRYPERIOD(I,J) .GT. 8760.) DRYPERIOD(I,J) = 8760.
+ 
+            ! Return NOx emission from soils [molec/cm2/s]
+            CALL SOIL_NOX_EMISSION( TS_EMIS,        
+     &                              State_Met%TS(I,J),
+     &                              State_Met%GWETTOP(I,J),
+     &                              SOILFRT,  
+     &                              GWET_PREV(I,J), DRYPERIOD(I,J),
+     &                              PFACTOR(I,J),   GEMISNOX2(I,J),
+     &                              DEP_FERT,       FERTDIAG, 
+     &                              CLIM(I,J,:),    LAND2(I,J,:),
+     &                              RC,             
+     &                              State_Met%SUNCOSmid(I,J),
+     &				    State_Met%U10M(I,J),
+     &                              State_Met%V10M(I,J), 
+     &                              CANOPYNOX(IJLOOP,:), 
+     &                              GC_LAI(I,J) )
+
+            ! Archive emissions
+            IF ( ND32 > 0 ) THEN
+               AD32_so(I,J) = AD32_so(I,J) + GEMISNOX2(I,J)
+               AD32_fe(I,J) = AD32_fe(I,J) + FERTDIAG
+            ENDIF
+            
+            INST_SOIL(I,J) = GEMISNOX2(I,J)
+            INST_FERT(I,J) = FERTDIAG
+
+            GEMISNOX2(I,J) = GEMISNOX2(I,J)  / 
+     &                     ( State_Met%BXHEIGHT(I,J,1) * 100d0 )
+
+         ENDDO            
+         ENDDO
+!$OMP END PARALLEL DO
+
+         !Zero arrays. This code assumes that ts_chem = ts_emiss
+         DRY_HNO3 = 0.d0
+         DRY_NH4  = 0.d0
+         DRY_NH3  = 0.d0
+         DRY_NIT  = 0.d0
+         DRY_NO2  = 0.d0
+         DRY_PAN  = 0.d0
+
+         WET_HNO3 = 0.d0
+         WET_NH4  = 0.d0
+         WET_NH3  = 0.d0
+         WET_NIT  = 0.d0
+
+      ENDIF
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 !******************************************************************************
 !  BE CAREFUL WITH USING A WINDOW RELATIVE TO THE EMISSIONS WINDOW
@@ -229,7 +352,7 @@
       ! These need to be initialized on every call
       EMISRRN     = 0d0
       EMISRR      = 0d0
-      GEMISNOX2   = 0d0
+      !GEMISNOX2   = 0d0
       EMISS_BVOC  = 0d0  ! Add BVOC emissions (mpb,2009)
       
       ! Loop over latitudes
@@ -291,37 +414,29 @@
 !
 #if defined( DEVEL )
             IF ( LLIGHTNOX .AND. I == 1 .AND. J == 1 ) 
-     &           CALL EMLIGHTNING( EMISS_TEND(:,:,:,IDTNOX) )
+     &           CALL EMLIGHTNING( State_Met, EMISS_TEND(:,:,:,IDTNOX) )
 #else
-            IF ( LLIGHTNOX ) CALL EMLIGHTNING( I, J )
-#endif
-!-----------------------------------------------------------------------------
-! SOIL EMISSIONS NOX [molecules/cm3/s]
-!
-            IF ( ( LSOILNOX .OR. LFERTILIZERNOX )
-     &             .AND. I == 1 .AND. J == 1 ) 
-#if defined( DEVEL )
-     &         CALL SOILNOXEMS( SUNCOS_MID, EMISS_TEND(:,:,1,IDTNOX) )
-#else
-     &         CALL SOILNOXEMS( SUNCOS_MID )
+            IF ( LLIGHTNOX ) CALL EMLIGHTNING( I, J, State_Met )
 #endif
 !-----------------------------------------------------------------------------
 ! AIRCRAFT emissions NOx [molecules/cm3/s]
 !
 #if defined( DEVEL )
             IF ( LAIRNOX .AND. I == 1 .AND. J == 1 ) 
-     &           CALL AIREMISS( EMISS_TEND(:,:,:,IDTNOX) )
+     &           CALL AIREMISS( State_Met, EMISS_TEND(:,:,:,IDTNOX) )
 #else
-            IF ( LAIRNOX .AND. I == 1 .AND. J == 1 ) CALL AIREMISS
+            IF ( LAIRNOX .AND. I == 1 .AND. J == 1 ) 
+     &           CALL AIREMISS( State_Met )
 #endif
 !-----------------------------------------------------------------------------
 ! NOx AND CO from biofuel combustion [kg/box]  
 !
 #if defined( DEVEL )
             IF ( LWOODCO .AND. I == 1 .AND. J == 1 ) 
-     &           CALL BIOFUEL_BURN( BIOEMISS_TEND(:,:,1,:) )
+     &           CALL BIOFUEL_BURN( State_Met, BIOEMISS_TEND(:,:,1,:) )
 #else
-            IF ( LWOODCO .AND. I == 1 .AND. J == 1 ) CALL BIOFUEL_BURN
+            IF ( LWOODCO .AND. I == 1 .AND. J == 1 ) 
+     &           CALL BIOFUEL_BURN( State_Met )
 #endif
 !----------------------------------------------------------------------------
 ! BIOGENIC EMISSIONS OF VARIOUS QUANTITIES [Atoms C/box/time step]
@@ -329,7 +444,7 @@
             IF ( LBIOGENIC ) THEN
 
                ! Temperature
-               TMMP  = XLTMMP(I,J,IJLOOP)
+               TMMP  = XLTMMP( I, J, State_Met%TS, IJLOOP )
             
                ! Modified to choose MEGAN inventory indenpendantly 
                ! for ISOP and MONX/MBO. (ccc, 1/20/09)
@@ -340,11 +455,11 @@
                   !------------------
 
                   ! Cosine of solar zenith angle
-                  SC   = SUNCOS_MID(IJLOOP)
-               
+                  SC   = State_Met%SUNCOSmid(I,J)
+
                   ! Diffuse and direct PAR
-                  PDR  = PARDR(I,J)
-                  PDF  = PARDF(I,J)
+                  PDR  = State_Met%PARDR(I,J)
+                  PDF  = State_Met%PARDF(I,J)
 
                   ! Isoprene         
                   EMIS = GET_EMISOP_MEGAN(  I, J,     SC, TMMP, 
@@ -441,7 +556,7 @@
 
                
                   ! Also add ocean source of acetone [atoms C/box/s]
-                  CALL OCEAN_SOURCE_ACET( I, J, BIO_ACET )
+                  CALL OCEAN_SOURCE_ACET( I, J, BIO_ACET, State_Met )
 
                   ! Add biogenic acetone to anthro source [atoms C/box/s]
                   ! NOTE: Don't save into EMISRR for the tagged CO 
@@ -589,7 +704,7 @@
 !
 
             IF ( IDECHBr3 /= 0 ) THEN
-               EMISRR(I,J,IDECHBr3) = EMIS_CHBr3(I,J)
+               EMISRR(I,J,IDECHBr3) = EMIS_CHBr3( I, J, State_Met )
 
                ! Scale emissions
                EMISRR(I,J,IDECHBr3) = EMISRR(I,J,IDECHBr3) * Br_SCALING
@@ -630,6 +745,8 @@
 !  (1 ) Now make ACET tracer #2 and PRPE tracer #3 (bmy, 9/13/01)
 !  (2 ) Now archive ND46 as [atoms C/cm2/s] here (bmy, 9/13/01)
 !  (3 ) Added MBO emission diagnostics [atoms C/cm2/s] (bmy, tmf, 10/20/05)
+!  22 Oct 2012 - R. Yantosca - Prevent out-of-bounds errors in ND46 if bromine
+!                              emissions are turned off (e.g. for tagged CO)
 !******************************************************************************
 !
                IF ( ND46 > 0 ) THEN
@@ -682,12 +799,18 @@
                ! ++++++++++++++++++++++++++++++++++++++++++++++++++++
 
                ! CHBr3 emissions [kg/m2/s] -- tracer #14
-               AD46(I,J,14) = AD46(I,J,14) + ( EMISRR(I,J,IDECHBr3) / 
-     &                        AREA_M2) * ( MWT_CHBr3 / AVG )
+               IF ( IDECHBr3 > 0 ) THEN
+                  AD46(I,J,14) = AD46(I,J,14) 
+     &                         + ( EMISRR(I,J,IDECHBr3)  / AREA_M2 ) 
+     &                         * ( MWT_CHBr3             / AVG     )
+               ENDIF
 
                ! CH2Br2 emissions [kg/m2/s] -- tracer #15
-               AD46(I,J,15) = AD46(I,J,15) + ( EMISRR(I,J,IDECH2Br2) / 
-     &                        AREA_M2) * ( MWT_CH2Br2 / AVG )
+               IF ( IDECH2Br2 > 0 ) THEN
+                  AD46(I,J,15) = AD46(I,J,15) 
+     &                         + ( EMISRR(I,J,IDECH2Br2) / AREA_M2 ) 
+     &                         * ( MWT_CH2Br2            / AVG     )
+               ENDIF
 
                ! Note: IDEBr2 is added to AD46(I,J,16) in ssa_bromine_mod.F
                

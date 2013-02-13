@@ -26,31 +26,37 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG_2PM
+      SUBROUTINE DIAG_2PM( State_Met )
 !
 ! !USES:
 !
-      USE DIAG_MOD,       ONLY : LTJV,  CTJV,  LTNO,  CTNO,  CTO3
-      USE DIAG_MOD,       ONLY : LTOH,  CTOH,  LTOTH, CTOTH, LTNO2
-      USE DIAG_MOD,       ONLY : CTNO2, LTHO2, CTHO2, LTNO3, CTNO3
-      USE DIAG_MOD,       ONLY : CTO3_24h, LTO3
-      USE DIAG_MOD,       ONLY : LTLBRO2H, LTLBRO2N
-      USE DIAG_MOD,       ONLY : LTLTRO2H, LTLTRO2N
-      USE DIAG_MOD,       ONLY : LTLXRO2H, LTLXRO2N
-      USE DIAG_MOD,       ONLY : CTLBRO2H, CTLBRO2N
-      USE DIAG_MOD,       ONLY : CTLTRO2H, CTLTRO2N
-      USE DIAG_MOD,       ONLY : CTLXRO2H, CTLXRO2N
-      USE TIME_MOD,       ONLY : GET_LOCALTIME
-      USE TIME_MOD,       ONLY : ITS_TIME_FOR_DIAG, ITS_TIME_FOR_CHEM
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
-      USE TIME_MOD,       ONLY : GET_ELAPSED_MIN
-      USE TIME_MOD,       ONLY : GET_TS_DIAG
+      USE DIAG_MOD,           ONLY : LTJV,  CTJV,  LTNO,  CTNO,  CTO3
+      USE DIAG_MOD,           ONLY : LTOH,  CTOH,  LTOTH, CTOTH, LTNO2
+      USE DIAG_MOD,           ONLY : CTNO2, LTHO2, CTHO2, LTNO3, CTNO3
+      USE DIAG_MOD,           ONLY : CTO3_24h, LTO3
+      USE DIAG_MOD,           ONLY : LTLBRO2H, LTLBRO2N
+      USE DIAG_MOD,           ONLY : LTLTRO2H, LTLTRO2N
+      USE DIAG_MOD,           ONLY : LTLXRO2H, LTLXRO2N
+      USE DIAG_MOD,           ONLY : CTLBRO2H, CTLBRO2N
+      USE DIAG_MOD,           ONLY : CTLTRO2H, CTLTRO2N
+      USE DIAG_MOD,           ONLY : CTLXRO2H, CTLXRO2N
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_LOCALTIME
+      USE TIME_MOD,           ONLY : ITS_TIME_FOR_DIAG
+      USE TIME_MOD,           ONLY : ITS_TIME_FOR_CHEM
+      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_TROP
+      USE TIME_MOD,           ONLY : GET_ELAPSED_MIN
+      USE TIME_MOD,           ONLY : GET_TS_DIAG
 
-      USE CMN_SIZE_MOD   ! Size parameters
-      USE CMN_DIAG_MOD   ! HR_OH1, HR_OH2, etc.
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! HR_OH1, HR_OH2, etc.
 
       IMPLICIT NONE
 #     include "define.h"
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !REMARKS:
 !  For now use GET_LOCALTIME( I, 1, 1 ) which will be independent of J and L
@@ -150,7 +156,7 @@
                IF ( IS_CHEM ) THEN
                   LTO3(I,J) = 1
                   DO L = 1, LD45
-                     IF ( ITS_IN_THE_TROP( I, J, L ) ) THEN
+                     IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) THEN
                         CTO3(I,J,L) = CTO3(I,J,L) + 1
                      ENDIF
                   ENDDO
@@ -165,7 +171,8 @@
 
                ! Counter for # of O3 boxes in the troposphere (phs, 11/17/08)
                DO L = 1, MAX( LD47, LD65 )
-                  IF ( IS_CHEM .and. ITS_IN_THE_TROP( I, J, L )) THEN
+                  IF ( IS_CHEM .and.
+     &                 ITS_IN_THE_TROP( I, J, L, State_Met )) THEN
                      CTO3_24h(I,J,L) = CTO3_24h(I,J,L) + 1
                   ENDIF
                ENDDO
@@ -205,7 +212,7 @@
 
                ! Counters for # of NO, NO2 boxes in the trop (phs, 1/24/07)
                DO L = 1, LD43
-                  IF ( ITS_IN_THE_TROP( I, J, L ) ) THEN
+                  IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) THEN
                      CTNO(I,J,L)  = CTNO(I,J,L)  + 1
                      CTNO2(I,J,L) = CTNO2(I,J,L) + 1
                      ! update for arom (dkh, 06/22/07)  
@@ -238,7 +245,7 @@
 
                ! Counters for # of OH,HO2,NO3 boxes in the trop (phs, 1/24/07)
                DO L = 1, LD43 
-                  IF ( ITS_IN_THE_TROP( I, J, L ) ) THEN
+                  IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) THEN
                      CTOH(I,J,L)  = CTOH(I,J,L)  + 1
                      CTHO2(I,J,L) = CTHO2(I,J,L) + 1
                      CTNO3(I,J,L) = CTNO3(I,J,L) + 1

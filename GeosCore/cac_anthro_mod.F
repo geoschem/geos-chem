@@ -258,6 +258,7 @@
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bug in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -333,15 +334,16 @@
 !%%%            WRITE( SYEAR, '(i4)' ) MIN( MAX( THISYEAR, 2002 ), 2010 )
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
 
-         IF ( ( THISYEAR .le. 2002 ) .OR. 
-     &        ( THISYEAR .ge. 2008 ) ) THEN
- 
+         IF ( ( ( THISYEAR .le. 2002 ) .OR.
+     &        ( THISYEAR .ge. 2005 ) ) .and.
+     &          ( THISYEAR .ne. 2006 ) ) THEN
+
             ! TAU values for 2002/2005
             TAU = GET_TAU0( 1, 1, MIN( MAX( THISYEAR, 2002 ), 2008 ) )
             WRITE( SYEAR, '(i4)' ) MIN( MAX( THISYEAR, 2002 ), 2008 )
 
             ! File name
-            FILENAME  = TRIM( DATA_DIR_1x1 ) // 'CAC_200801/CAC' // 
+            FILENAME  = TRIM( DATA_DIR_1x1 ) // 'CAC_200801/CAC' //
      &                  SYEAR // '-' // TRIM( SNAME ) // '.geos.1x1'
 
             ! Echo info
@@ -349,9 +351,10 @@
  100        FORMAT( '     - EMISS_CAC_ANTHRO: Reading ', a )
 
             ! Read data
-            CALL READ_BPCH2( FILENAME, 'ANTHSRCE', SNo, 
-     &                       TAU,      I1x1,       J1x1,     
-     &                       1,        ARRAY,      QUIET=.TRUE. ) 
+            CALL READ_BPCH2( FILENAME, 'ANTHSRCE', SNo,
+!phs     &                       TAU,      I1x1,       J1x1-1,     
+     &                       TAU,      I1x1,       J1x1,
+     &                       1,        ARRAY,      QUIET=.TRUE. )
 
             ! Cast to REAL*8 before regridding
             GEOS_1x1(:,:,1) = ARRAY(:,:,1)
@@ -360,14 +363,14 @@
             ! and NOx, CO and SO2 only.
             IF ( ( THISYEAR .lt. 2002 ) .and. SPECIES .ne. 4 ) THEN
 
-               CALL GET_ANNUAL_SCALAR_1x1( ScNo,     2002, 
+               CALL GET_ANNUAL_SCALAR_1x1( ScNo,     2002,
      &                                     THISYEAR, SC_1x1 )
 
                GEOS_1x1(:,:,1) = GEOS_1x1(:,:,1) * SC_1x1(:,:)
 
             ELSE IF ((THISYEAR .gt. 2005) .and. SPECIES .ne. 4) THEN
 
-               CALL GET_ANNUAL_SCALAR_1x1( ScNo,     2005,
+               CALL GET_ANNUAL_SCALAR_1x1( ScNo, MIN(THISYEAR, 2008),
      &                                     THISYEAR, SC_1x1 )
 
                GEOS_1x1(:,:,1) = GEOS_1x1(:,:,1) * SC_1x1(:,:)
@@ -376,18 +379,29 @@
 
          ELSE
 
-            TAU2002 = GET_TAU0( 1, 1, 2002)
-            TAU2005 = GET_TAU0( 1, 1, 2005)
+            IF ( THISYEAR .ne. 2006 ) THEN
+               TAU2002 = GET_TAU0( 1, 1, 2002)
+               TAU2005 = GET_TAU0( 1, 1, 2005)
+            ELSE
+               TAU2002 = GET_TAU0( 1, 1, 2005)
+               TAU2005 = GET_TAU0( 1, 1, 2007)
+            ENDIF
 
             ! File name for 2002 data
-            FILENAME  = TRIM( DATA_DIR_1x1 ) // 'CAC_200801/CAC2002-'
-     &                 // TRIM(SNAME) // '.geos.1x1'
+            IF ( THISYEAR .ne. 2006 ) THEN
+               FILENAME  = TRIM( DATA_DIR_1x1 ) // 'CAC_200801/CAC2002-'
+     &                    // TRIM(SNAME) // '.geos.1x1'
+            ELSE
+               FILENAME  = TRIM( DATA_DIR_1x1 ) // 'CAC_200801/CAC2005-'
+     &                    // TRIM(SNAME) // '.geos.1x1'
+            ENDIF
 
             ! Echo info
             WRITE( 6, 100 ) TRIM( FILENAME )
 
             ! Read data
             CALL READ_BPCH2( FILENAME, 'ANTHSRCE', SNo,
+!phs     &                       TAU2002,   I1x1,      J1x1-1,
      &                       TAU2002,   I1x1,      J1x1,
      &                       1,         ARRAY,     QUIET=.TRUE. )
 
@@ -395,25 +409,36 @@
             GEOS_1x1_2002(:,:,1) = ARRAY(:,:,1)
 
             ! File name for 2005 data
-            FILENAME  = TRIM( DATA_DIR_1x1 ) // 'CAC_200801/CAC2005-'
-     &                  // TRIM(SNAME) // '.geos.1x1'
+            IF ( THISYEAR .ne. 2006 ) THEN
+               FILENAME  = TRIM( DATA_DIR_1x1 ) // 'CAC_200801/CAC2005-'
+     &                     // TRIM(SNAME) // '.geos.1x1'
+            ELSE
+               FILENAME  = TRIM( DATA_DIR_1x1 ) // 'CAC_200801/CAC2007-'
+     &                     // TRIM(SNAME) // '.geos.1x1'
+            ENDIF
 
             ! Echo info
             WRITE( 6, 100 ) TRIM( FILENAME )
 
             ! Read data
             CALL READ_BPCH2( FILENAME, 'ANTHSRCE', SNo,
+!phs     &                       TAU2005,   I1x1,      J1x1-1,
      &                       TAU2005,   I1x1,      J1x1,
      &                       1,         ARRAY,     QUIET=.TRUE. )
 
             ! Cast to REAL*8 before regridding
             GEOS_1x1_2005(:,:,1) = ARRAY(:,:,1)
 
-            ! Scale b/w 2002-2005
-            GEOS_1x1(:,:,1) = GEOS_1x1_2002(:,:,1) + ( THISYEAR - 2002.)
-     &           / 3. * 
+            ! Scale b/w years
+            IF ( THISYEAR .ne. 2006 ) THEN
+               GEOS_1x1(:,:,1) = GEOS_1x1_2002(:,:,1)
+     &                   + ( THISYEAR - 2002.) / 3. *
      &                   ( GEOS_1x1_2005(:,:,1) - GEOS_1x1_2002(:,:,1) )
-
+            ELSE
+               GEOS_1x1(:,:,1) = GEOS_1x1_2002(:,:,1)
+     &                   + ( THISYEAR - 2005.) / 2. *
+     &                   ( GEOS_1x1_2005(:,:,1) - GEOS_1x1_2002(:,:,1) )
+            ENDIF
          ENDIF
 
          ! Regrid from GEOS 1x1 --> current model resolution [kg/yr]
@@ -422,13 +447,13 @@
          IF ( SPECIES .eq. 1 ) THEN
 
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                          INGRID,     NOx,     PERAREA=1,
+     &                          INGRID,     NOx,     IS_MASS=1,
      &                          netCDF=.TRUE.                   )
 
          ELSEIF ( SPECIES .eq. 2 ) THEN
 
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                          INGRID,     CO,      PERAREA=1,
+     &                          INGRID,     CO,      IS_MASS=1,
      &                          netCDF=.TRUE.                   )
 
          ELSEIF ( SPECIES .eq. 3 ) THEN
@@ -440,13 +465,13 @@
             INGRID = INGRID * 0.986
 
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                          INGRID,     SO2,     PERAREA=1,
+     &                          INGRID,     SO2,     IS_MASS=1,
      &                          netCDF=.TRUE.                   )
 
          ELSEIF ( SPECIES .eq. 4 ) THEN
 
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                          INGRID,     NH3,     PERAREA=1,
+     &                          INGRID,     NH3,     IS_MASS=1,
      &                          netCDF=.TRUE.                   )
          ENDIF
 
@@ -576,16 +601,17 @@
             ScNo = 0
          ENDIF
 
-         IF ( ( THISYEAR .le. 2002 ) .OR.
-     &        ( THISYEAR .ge. 2005 ) ) THEN
+         IF ( ( ( THISYEAR .le. 2002 ) .OR.
+     &        ( THISYEAR .ge. 2005 ) ) .and.
+     &        ( THISYEAR .ne. 2006 ) ) THEN
 
             ! TAU values for 2002/2005
-            TAU = GET_TAU0( 1, 1, MIN( MAX( THISYEAR, 2002 ), 2005 ) )
-            WRITE( SYEAR, '(i4)' ) MIN( MAX( THISYEAR, 2002 ), 2005 )
+            TAU = GET_TAU0( 1, 1, MIN( MAX( THISYEAR, 2002 ), 2008 ) )
+            WRITE( SYEAR, '(i4)' ) MIN( MAX( THISYEAR, 2002 ), 2008 )
 
             ! File name
             FILENAME  = TRIM( DATA_DIR ) // 'CAC_200911/CAC' //
-     &                  SYEAR // '-' // TRIM( SNAME ) // 
+     &                  SYEAR // '-' // TRIM( SNAME ) //
      &                  '.geos.na.1t2x2t3'
 
             ! Echo info
@@ -607,27 +633,37 @@
                CALL GET_ANNUAL_SCALAR_05x0666_NESTED( ScNo, 2002,
      &                                     THISYEAR, SC_05x0666 )
 
-               GEOS_05x0666(:,:,1) = GEOS_05x0666(:,:,1) 
+               GEOS_05x0666(:,:,1) = GEOS_05x0666(:,:,1)
      &                               * SC_05x0666(:,:)
 
             ELSE IF ((THISYEAR .gt. 2005) .and. SPECIES .ne. 4) THEN
 
-               CALL GET_ANNUAL_SCALAR_05x0666_NESTED( ScNo, 2005,
-     &                                     THISYEAR, SC_05x0666 )
+               CALL GET_ANNUAL_SCALAR_05x0666_NESTED( ScNo,
+     &                    MIN(THISYEAR,2008), THISYEAR, SC_05x0666 )
 
-              GEOS_05x0666(:,:,1) = GEOS_05x0666(:,:,1) 
+              GEOS_05x0666(:,:,1) = GEOS_05x0666(:,:,1)
      &                               * SC_05x0666(:,:)
 
             ENDIF
 
          ELSE
 
-            TAU2002 = GET_TAU0( 1, 1, 2002)
-            TAU2005 = GET_TAU0( 1, 1, 2005)
+            IF ( THISYEAR .ne. 2006 ) THEN
+               TAU2002 = GET_TAU0( 1, 1, 2002)
+               TAU2005 = GET_TAU0( 1, 1, 2005)
+            ELSE
+               TAU2002 = GET_TAU0( 1, 1, 2005)
+               TAU2005 = GET_TAU0( 1, 1, 2007)
+            ENDIF
 
             ! File name for 2002 data
-            FILENAME  = TRIM( DATA_DIR ) // 'CAC_200911/CAC2002-'
-     &                 // TRIM(SNAME) // '.geos.na.1t2x2t3'
+            IF ( THISYEAR .ne. 2006 ) THEN
+               FILENAME  = TRIM( DATA_DIR ) // 'CAC_200911/CAC2002-'
+     &                    // TRIM(SNAME) // '.geos.na.1t2x2t3'
+            ELSE
+               FILENAME  = TRIM( DATA_DIR ) // 'CAC_200911/CAC2005-'
+     &                    // TRIM(SNAME) // '.geos.na.1t2x2t3'
+            ENDIF
 
             ! Echo info
             WRITE( 6, 100 ) TRIM( FILENAME )
@@ -641,8 +677,13 @@
             GEOS_05x0666_2002(:,:,1) = ARRAY(:,:,1)
 
             ! File name for 2005 data
-            FILENAME  = TRIM( DATA_DIR ) // 'CAC_200911/CAC2005-'
-     &                  // TRIM(SNAME) // '.geos.na.1t2x2t3'
+            IF ( THISYEAR .ne. 2006 ) THEN
+               FILENAME  = TRIM( DATA_DIR ) // 'CAC_200911/CAC2005-'
+     &                     // TRIM(SNAME) // '.geos.na.1t2x2t3'
+            ELSE
+               FILENAME  = TRIM( DATA_DIR ) // 'CAC_200911/CAC2007-'
+     &                     // TRIM(SNAME) // '.geos.na.1t2x2t3'
+            ENDIF
 
             ! Echo info
             WRITE( 6, 100 ) TRIM( FILENAME )
@@ -656,10 +697,17 @@
             GEOS_05x0666_2005(:,:,1) = ARRAY(:,:,1)
 
             ! Scale b/w 2002-2005
-            GEOS_05x0666(:,:,1) = GEOS_05x0666_2002(:,:,1) + 
+            IF ( THISYEAR .ne. 2006 ) THEN
+               GEOS_05x0666(:,:,1) = GEOS_05x0666_2002(:,:,1) +
      &              ( THISYEAR - 2002.) / 3. *
-     &              ( GEOS_05x0666_2005(:,:,1) 
+     &              ( GEOS_05x0666_2005(:,:,1)
      &                - GEOS_05x0666_2002(:,:,1) )
+            ELSE
+               GEOS_05x0666(:,:,1) = GEOS_05x0666_2002(:,:,1) +
+     &              ( THISYEAR - 2005.) / 2. *
+     &              ( GEOS_05x0666_2005(:,:,1)
+     &                - GEOS_05x0666_2002(:,:,1) )
+            ENDIF
 
          ENDIF
 
@@ -872,6 +920,7 @@
 !  15 Aug 2012 - M. Payer    - Fixed minor bugs in regridding of mask; Also set
 !                              mask to 1 if greater than 0 (L. Murray)
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -917,7 +966,7 @@
       ! Regrid from GENERIC 1x1 to current model resolution [unitless]
       INGRID => GEOS_1x1(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,        J1x1, 
-     &                    INGRID,     MASK_CANADA, PERAREA=0,
+     &                    INGRID,     MASK_CANADA, IS_MASS=0,
      &                    netCDF=.TRUE.                       )
 
       ! Free pointer

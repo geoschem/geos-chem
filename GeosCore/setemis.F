@@ -17,35 +17,33 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SETEMIS( EMISRR, EMISRRN, am_I_Root )
+      SUBROUTINE SETEMIS( EMISRR, EMISRRN, am_I_Root, State_Met )
 !
 ! !USES:
 !
-      USE AIRCRAFT_NOX_MOD,  ONLY : EMIS_AC_NOx
-      USE BIOFUEL_MOD,       ONLY : BIOFUEL,   BFTRACE, NBFTRACE
-      USE BIOMASS_MOD,       ONLY : BIOMASS,   BIOTRCE
-      ! Use this array to determine if emissions are handled here (hotp 8/3/09)
-      USE BIOMASS_MOD,       ONLY : BIOBGAS
-      USE COMODE_MOD,        ONLY : JLOP,      REMIS,   VOLUME
-      USE COMODE_MOD,        ONLY : IXSAVE,    IYSAVE,  IZSAVE
-      USE DIAG_MOD,          ONLY : AD12
-      USE GRID_MOD,          ONLY : GET_AREA_CM2
-      USE LIGHTNING_NOX_MOD, ONLY : EMIS_LI_NOx
-      USE PBL_MIX_MOD,       ONLY : GET_PBL_TOP_L
-      USE PRESSURE_MOD,      ONLY : GET_PEDGE
-      USE TRACERID_MOD,      ONLY : CTRMB,     IDEMIS,  IDENOX
-      USE TROPOPAUSE_MOD,    ONLY : ITS_IN_THE_STRAT
-      USE LOGICAL_MOD,       ONLY : LNLPBL ! (Lin, 03/31/09)
-      USE LOGICAL_MOD, ONLY : LPRT
-
-      ! NOx emissions scaling FP 15/12/09
-      USE EMISSIONS_MOD,     ONLY : NOx_SCALING
+      USE AIRCRAFT_NOX_MOD,   ONLY : EMIS_AC_NOx
+      USE BIOFUEL_MOD,        ONLY : BIOFUEL,   BFTRACE, NBFTRACE
+      USE BIOMASS_MOD,        ONLY : BIOMASS,   BIOTRCE
+      USE BIOMASS_MOD,        ONLY : BIOBGAS
+      USE COMODE_MOD,         ONLY : JLOP,      REMIS,   VOLUME
+      USE COMODE_MOD,         ONLY : IXSAVE,    IYSAVE,  IZSAVE
+      USE DIAG_MOD,           ONLY : AD12
+      USE EMISSIONS_MOD,      ONLY : NOx_SCALING
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE LIGHTNING_NOX_MOD,  ONLY : EMIS_LI_NOx
+      USE LOGICAL_MOD,        ONLY : LNLPBL ! (Lin, 03/31/09)
+      USE LOGICAL_MOD,        ONLY : LPRT
+      USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE
+      USE TRACERID_MOD,       ONLY : CTRMB,     IDEMIS,  IDENOX
+      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
 
 #     include "define.h"
-      USE CMN_SIZE_MOD  ! Size parameters
-      USE COMODE_LOOP_MOD  ! IDEMS, NEMIS
-      USE CMN_DIAG_MOD  ! Diagnostic flags
-      USE CMN_NOX_MOD   ! GEMISNOX2
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE COMODE_LOOP_MOD          ! IDEMS, NEMIS
+      USE CMN_DIAG_MOD             ! Diagnostic flags
+      USE CMN_NOX_MOD              ! GEMISNOX2
 
       IMPLICIT NONE
 
@@ -53,13 +51,16 @@
 ! !INPUT PARAMETERS:
 !
       ! CO, hydrocarbon emission   [molec tracer/box/s]
-      REAL*8,  INTENT(IN) :: EMISRR(IIPAR,JJPAR,NEMPARA+NEMPARB)
+      REAL*8,         INTENT(IN) :: EMISRR(IIPAR,JJPAR,NEMPARA+NEMPARB)
 
       ! Multi-level NOx emissions  [molec NOx/box/s]
-      REAL*8,  INTENT(IN) :: EMISRRN(IIPAR,JJPAR,NOXEXTENT)  
+      REAL*8,         INTENT(IN) :: EMISRRN(IIPAR,JJPAR,NOXEXTENT)  
 
       ! Is this the root CPU?
-      LOGICAL, INTENT(IN) :: am_I_Root
+      LOGICAL,        INTENT(IN) :: am_I_Root
+
+      ! Meteorology State object
+      TYPE(MetState), INTENT(IN) :: State_Met
 !
 ! !REMARKS:
 !  Developers: lwh, jyl, gmg, djj, bdf, bmy, 6/8/98, 6/11/08
@@ -176,7 +177,7 @@
       IS_AC_NOX = ALLOCATED( EMIS_AC_NOX )
 
       IF ( LPRT .and. am_I_Root ) THEN
-         WRITE(*,*) 'SCALE NOx emissions by', NOx_SCALING
+         WRITE(6,*) 'SCALE NOx emissions by', NOx_SCALING
       ENDIF
 
 !$OMP PARALLEL DO 
@@ -370,7 +371,7 @@
                   ! Now use ITS_IN_THE_STRAT to test if we have passed from
                   ! the trop into the strat.  We only want to partition
                   ! emissions in the troposphere. (bmy, 9/10/10)
-                  IF ( ITS_IN_THE_STRAT(I,J,L) ) EXIT
+                  IF ( ITS_IN_THE_STRAT( I, J, L, State_Met ) ) EXIT
                   
                   JLOOP   = JLOP(I,J,L)
                   EMIS_BL = 0d0

@@ -143,9 +143,7 @@
       REAL*8,  ALLOCATABLE :: CHEMCO2(:,:,:)
       REAL*8,  ALLOCATABLE :: EMIS_SUB(:,:)
 
-#if defined( DEVEL )
       REAL*8,  ALLOCATABLE, SAVE :: CHEMSRC(:,:,:) !dbj, msl
-#endif
 !
 ! !DEFINED PARAMETERS:
 !
@@ -170,33 +168,29 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE EMISSCO2
+      SUBROUTINE EMISSCO2( State_Met )
 !
 ! !USES:
 !
-      USE BIOMASS_MOD,  ONLY : BIOMASS
-      USE DIAG04_MOD,   ONLY : AD04, ND04
-      USE DIAG04_MOD,   ONLY : AD04_plane,    AD04_chem
-      USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE TIME_MOD,     ONLY : GET_DAY,       GET_DAY_OF_YEAR
-      USE TIME_MOD,     ONLY : GET_HOUR,      GET_MONTH
-      USE TIME_MOD,     ONLY : GET_YEAR,      GET_TS_CHEM, GET_TS_EMIS 
-      USE TIME_MOD,     ONLY : ITS_A_NEW_DAY, ITS_A_NEW_MONTH
-      USE TRACER_MOD,   ONLY : N_TRACERS,     STT
-      USE TRACERID_MOD, ONLY : IDBCO2
-      USE LOGICAL_MOD,  ONLY : LGENFF,      LANNFF,   LMONFF, LSTREETS
-      USE LOGICAL_MOD,  ONLY : LSEASBB,     LGFED2BB, L8DAYBB, LBIOFUEL
-      USE LOGICAL_MOD,  ONLY : LGFED3BB
-      USE LOGICAL_MOD,  ONLY : LBIODAILY,   LBIODIURNAL
-      USE LOGICAL_MOD,  ONLY : LBIONETORIG, LBIONETCLIM
-      USE LOGICAL_MOD,  ONLY : LOCN1997,    LOCN2009ANN, LOCN2009MON
-      USE LOGICAL_MOD,  ONLY : LSHIPEDG,    LSHIPICO,    LPLANE
-      USE LOGICAL_MOD,  ONLY : LBIOSPHTAG,  LFOSSILTAG,  LFFBKGRD
-      USE LOGICAL_MOD,  ONLY : LSHIPTAG,    LPLANETAG
-      USE LOGICAL_MOD,  ONLY : LSHIPSCALE,  LPLANESCALE
-      USE LOGICAL_MOD,  ONLY : LCHEMCO2
+      USE BIOMASS_MOD,        ONLY : BIOMASS
+      USE DIAG04_MOD,         ONLY : AD04, ND04
+      USE DIAG04_MOD,         ONLY : AD04_plane,    AD04_chem
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE LOGICAL_MOD
+      USE TIME_MOD,           ONLY : GET_DAY,       GET_DAY_OF_YEAR
+      USE TIME_MOD,           ONLY : GET_HOUR,      GET_MONTH
+      USE TIME_MOD,           ONLY : GET_YEAR,      GET_TS_CHEM
+      USE TIME_MOD,           ONLY : GET_TS_EMIS 
+      USE TIME_MOD,           ONLY : ITS_A_NEW_DAY, ITS_A_NEW_MONTH
+      USE TRACER_MOD,         ONLY : N_TRACERS,     STT
+      USE TRACERID_MOD,       ONLY : IDBCO2
 
-      USE CMN_SIZE_MOD    ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !REMARKS:
 !  The initial condition for CO2 has to be at least 50 ppm or higher or else
@@ -216,6 +210,8 @@
 !        international and domestic aviation, and the chemical CO2 source
 !        from the oxidation of CO, CH4, and other organics (rnassar,dbj, 2009)
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -229,9 +225,6 @@
       INTEGER                :: DAY,   DOY,    HOUR, MONTH, YEAR   
       REAL*8                 :: A_CM2, DTSRCE, E_CO2
       REAL*8                 :: biomass_sum, bionet_sum
-#if   !defined( DEVEL )
-      REAL*8, SAVE           :: CHEMSRC(IIPAR,JJPAR,LLPAR)  ! dbj
-#endif
 
       ! External functions     
       REAL*8, EXTERNAL       :: BOXVL    ! dbj
@@ -348,7 +341,7 @@
          IF ( LSHIPICO ) CALL READ_SHIPCO2_ICOADS
  
          ! Aircraft CO2 emissions
-         IF ( LPLANE   ) CALL READ_AVIATION_CO2
+         IF ( LPLANE   ) CALL READ_AVIATION_CO2( State_Met )
 		
          ! Get chemical source   ! dbj
          IF ( LCHEMCO2 ) THEN
@@ -627,7 +620,8 @@
                ENDIF
 
                ! Convert E_CO2 from [molec CO2/cm3/s] to [kg]
-               E_CO2    = E_CO2 * BOXVL(I,J,L) * DTSRCE / XNUMOL_CO2
+               E_CO2    = E_CO2  * BOXVL(I,J,L,State_Met) *
+     &                    DTSRCE / XNUMOL_CO2
 
                ! Add to Tracer #1: Total CO2 [kg CO2]
                STT(I,J,L,1)   = STT(I,J,L,1) + E_CO2
@@ -667,7 +661,8 @@
                ENDIF
 
                !  Convert from [molec/cm3/s] to [kg]
-               E_CO2  = E_CO2 * BOXVL(I,J,L) * DTSRCE / XNUMOL_CO2
+               E_CO2  = E_CO2  * BOXVL(I,J,L,State_Met) *
+     &                  DTSRCE / XNUMOL_CO2
 
                ! Add to Tracer #1: Total CO2 [kg CO2]
                STT(I,J,L,1)   = STT(I,J,L,1) + E_CO2
@@ -1304,6 +1299,7 @@
 !  06 Apr 2012 - M. Payer    - Changed regrid algorithm to map_a2a (M. Cooper)
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1393,7 +1389,7 @@
       INGRID  => GEOS_1x1 (:,:,1)
       OUTGRID => GEOS_GRID(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    INGRID,     OUTGRID, IS_MASS=0,
      &                    netCDF=.TRUE.                   )   
 
       ! Cast to REAL*4
@@ -1601,6 +1597,8 @@
 !                                      (M. Cooper)
 !  24 May 2012 - R. Yantosca         - Fixed minor bugs in map_a2a calls
 !  24 Aug 2012 - R. Yantosca         - DO_REGRID_A2A now reads netCDF input
+!  03 Jan 2013 - M. Payer            - Renamed PERAREA to IS_MASS in
+!                                      DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1651,7 +1649,7 @@
       INGRID  => GEOS_1x1(:,:,1)
       OUTGRID => GEOS_GRID(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    INGRID,     OUTGRID, IS_MASS=0,
      &                    netCDF=.TRUE.                   )   
 
       EMBIOFUELCO2(:,:) = GEOS_GRID(:,:,1)   !(lmw,05/16/11)
@@ -1696,6 +1694,7 @@
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a impelementation
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1761,7 +1760,7 @@
       INGRID  => GEN_1x1  (:,:,1)
       OUTGRID => GEOS_GRID(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-     &                    INGRID,     OUTGRID, PERAREA=1,
+     &                    INGRID,     OUTGRID, IS_MASS=1,
      &                    netCDF=.TRUE.                   )   
 
       ! Free pointers
@@ -1831,7 +1830,6 @@
       USE DIRECTORY_MOD,  ONLY : DATA_DIR, DATA_DIR_1x1
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
       USE FILE_MOD,       ONLY : IOERROR
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_G2G_1x1, DO_REGRID_1x1 
       USE TIME_MOD,       ONLY : GET_YEAR, GET_MONTH
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A	
 
@@ -1862,6 +1860,7 @@
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1907,7 +1906,7 @@
       ! TAU value for start of month in 2004
       TAU = GET_TAU0( MONTH, 1, 2004 )
 
-      ! Read CO2 shipping emissions
+      ! Read CO2 shipping emissions [molec/cm2/s]
       CALL READ_BPCH2( FILENAME, 'CO2-SRCE', 7, 
      &                 TAU,       360,       181,     
      &                 1,         ARRAY,     QUIET=.TRUE. )
@@ -1923,7 +1922,7 @@
       INGRID  => GEOS_1x1 (:,:,1)
       OUTGRID => GEOS_GRID(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    INGRID,     OUTGRID, IS_MASS=0,
      &                    netCDF=.TRUE.                   )
 
       ! Free pointers
@@ -1980,17 +1979,22 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_AVIATION_CO2
+      SUBROUTINE READ_AVIATION_CO2( State_Met )
 !
 ! !USES:
 !
       ! Reference to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT, GET_TAU0, READ_BPCH2
-      USE DAO_MOD,       ONLY : BXHEIGHT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR 
-      USE FILE_MOD,      ONLY : IOERROR
-      USE TIME_MOD,      ONLY : GET_MONTH, GET_YEAR
-      USE CMN_SIZE_MOD        ! Size parameters
+      USE BPCH2_MOD,          ONLY : GET_RES_EXT, GET_TAU0, READ_BPCH2
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR 
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_MONTH, GET_YEAR
+
+      USE CMN_SIZE_MOD             ! Size parameters
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !REMARKS:
 !  This is a modified version of READ_AIRCRAFT_SO2 from:
@@ -2017,6 +2021,8 @@
 !  18 May 2010 - R. Nassar, D. Jones - Initial version
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2121,7 +2127,7 @@
             DO L = 1, LLPAR
 
                ! Altitude of top edge of level L, from ground [km]
-               ZH(L) = ZH(L-1) + ( BXHEIGHT(I,J,L) * 1d-3 )
+               ZH(L) = ZH(L-1) + ( State_Met%BXHEIGHT(I,J,L) * 1d-3 )
                
                IF ( ZH(L-1) > DBLE(K)   ) EXIT
                IF ( ZH(L  ) < DBLE(K-1) ) CYCLE
@@ -2181,7 +2187,7 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
       DO L = 1, LLPAR
-         EMPLANECO2(I,J,L) = EMPLANECO2(I,J,L) / BOXVL(I,J,L)
+         EMPLANECO2(I,J,L) = EMPLANECO2(I,J,L) / BOXVL(I,J,L,State_Met)
      &                     * 6.022d23 / 44.01d-3
 
 	 ! Apply scaling to obtain a specified global Total
@@ -2245,6 +2251,7 @@
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !   2 Oct 2012 - R. Yantosca - Bug fix, the terrestrial exchange file is
 !                              placed on the generic grid, not geos grid
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2345,7 +2352,7 @@
 !%%%         INGRID  => GEOS_1x1 (:,:,1)
 !%%%         OUTGRID => GEOS_GRID(:,:,1)
 !%%%         CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-!%%%     &                       INGRID,     OUTGRID, PERAREA=0,
+!%%%     &                       INGRID,     OUTGRID, IS_MASS=0,
 !%%%     &                       netCDF=.TRUE.                   )
 !-----------------------------------------------------------------------------
                   
@@ -2374,7 +2381,7 @@
          INGRID  => GEN_1x1  (:,:,1)
          OUTGRID => GEOS_GRID(:,:,1)
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-     &                       INGRID,     OUTGRID, PERAREA=0,
+     &                       INGRID,     OUTGRID, IS_MASS=0,
      &                       netCDF=.TRUE.                   )
 
          ! Free pointers

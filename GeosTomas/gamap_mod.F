@@ -16,8 +16,9 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD              ! Dimensions of arrays
-      USE CMN_DIAG_MOD              ! Diagnostic parameters
+      USE CMN_SIZE_MOD                    ! Dimensions of arrays
+      USE CMN_DIAG_MOD                    ! Diagnostic parameters
+      USE inquireMod, ONLY : findFreeLUN
 
       IMPLICIT NONE
 #     include "define.h"
@@ -80,7 +81,9 @@
 !  21 Sep 2010 - R. Yantosca - Removed duplicates in INIT_DIAGINFO
 !  21 Oct 2010 - R. Yantosca - Bug fix in INIT_DIAGINFO
 !  09 Dec 2010 - C. Carouge  - Modify MAXTRACER definition to account for 
-!   8 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x
+!  07 Feb 2012 - E. Corbitt  - Added diagnostic info for tagged Hg simulation.
+!  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -187,11 +190,13 @@
 !
 ! !USES:
 !
-      USE FILE_MOD, ONLY : IOERROR, IU_FILE
+      USE FILE_MOD, ONLY : IOERROR
 ! 
 ! !REVISION HISTORY: 
 !  03 May 2005 - R. Yantosca - Initial version
 !  03 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -199,10 +204,14 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: IOS, N
+      INTEGER :: IU_FILE
 
       !=================================================================
       ! CREATE_DINFO begins here!
       !=================================================================
+
+      ! Find a free file LUN
+      IU_FILE = findFreeLUN()
 
       ! Open "diaginfo.dat" file for output
       OPEN( IU_FILE, FILE=TRIM( DFILE ), STATUS='UNKNOWN', IOSTAT=IOS )
@@ -279,8 +288,9 @@
 !
 ! !USES:
 !
-      USE FILE_MOD,    ONLY : IOERROR, IU_FILE
+      USE FILE_MOD,    ONLY : IOERROR
       USE LOGICAL_MOD, ONLY : LSOA
+      USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM
       USE LOGICAL_MOD, ONLY : LTOMAS    !(win, 7/9/09)
 ! 
 ! !REVISION HISTORY: 
@@ -288,6 +298,9 @@
 !  (1 ) Now write out tracers in ug/m3 (dkh, bmy, 5/22/06)
 !  (2 ) Now write out GPROD & APROD info (tmf, havala, bmy, 2/6/07)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  31 Oct 2012 - R. Yantosca - Now save out info about soil NOx restart file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -295,6 +308,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER           :: D, IOS, N, T
+      INTEGER           :: IU_FILE
       REAL*4            :: SCALE_NEW
       CHARACTER(LEN=2)  :: C
       CHARACTER(LEN=40) :: UNIT_NEW, NAME_NEW
@@ -302,6 +316,9 @@
       !=================================================================
       ! CREATE_TINFO begins here!
       !=================================================================
+
+      ! Find a free file LUN
+      IU_FILE = findFreeLUN()
 
       ! Open "tracerinfo.dat" file for output
       OPEN( IU_FILE, FILE=TRIM( TFILE ), STATUS='UNKNOWN', IOSTAT=IOS )
@@ -343,12 +360,12 @@
      &        ' to unit given below'                                   )
  155  FORMAT( '# UNIT     (A40  )  Unit string',                 /,'#' )
 
-      !-----------------------------------
+      !-------------------------------------
       ! 0: Tracers [ppbv]
-      !-----------------------------------
+      !-------------------------------------
 
       ! Write separator line
-      CALL WRITE_SEPARATOR( 0 )
+      CALL WRITE_SEPARATOR( IU_FILE, 0 )
 
       ! Loop over tracers
       DO T = 1, NTRAC(45)
@@ -357,16 +374,16 @@
          N = ( SPACING * 0 ) + T
 
          ! Write tracers [ppbv] to "tracerinfo.dat" file
-         CALL WRITE_TINFO( NAME(T,45), FNAME(T,45), MWT(T,45), 
+         CALL WRITE_TINFO( IU_FILE, NAME(T,45), FNAME(T,45), MWT(T,45), 
      &                     MOLC(T,45), SCALE(T,45), UNIT(T,45), N )
       ENDDO
 
-      !-----------------------------------
+      !-------------------------------------
       ! SPACING*1: Tracers [molec/cm2/s]
-      !-----------------------------------
+      !-------------------------------------
 
       ! Write separator line
-      CALL WRITE_SEPARATOR( 100 )
+      CALL WRITE_SEPARATOR( IU_FILE, 100 )
 
       ! Loop over tracers
       DO T = 1, NTRAC(45)
@@ -385,16 +402,16 @@
          ENDIF
 
          ! Write tracers [molec/cm2/s] to "tracerinfo.dat"
-         CALL WRITE_TINFO( NAME(T,45), FNAME(T,45), MWT(T,45), 
+         CALL WRITE_TINFO( IU_FILE, NAME(T,45), FNAME(T,45), MWT(T,45), 
      &                     MOLC(T,45), SCALE_NEW,   UNIT_NEW, N )
       ENDDO
 
-      !-----------------------------------
+      !-------------------------------------
       ! SPACING*2: Tracers [molec/cm2]
-      !-----------------------------------
+      !-------------------------------------
 
       ! Write separator line
-      CALL WRITE_SEPARATOR( 200 )
+      CALL WRITE_SEPARATOR( IU_FILE, 200 )
 
       ! Loop over tracers
       DO T = 1, NTRAC(45)
@@ -413,16 +430,16 @@
          ENDIF
 
          ! Write tracers [molec/cm2] to "tracerinfo.dat"
-         CALL WRITE_TINFO( NAME(T,45), FNAME(T,45), MWT(T,45), 
+         CALL WRITE_TINFO( IU_FILE, NAME(T,45), FNAME(T,45), MWT(T,45), 
      &                     MOLC(T,45), SCALE_NEW,   UNIT_NEW, N )
       ENDDO
 
-      !-----------------------------------
+      !-------------------------------------
       ! SPACING*3: Tracers [kg/s]
-      !-----------------------------------
+      !-------------------------------------
 
       ! Write separator line
-      CALL WRITE_SEPARATOR( 300 )
+      CALL WRITE_SEPARATOR( IU_FILE, 300 )
 
       ! Loop over tracers
       DO T = 1, NTRAC(45)
@@ -441,16 +458,16 @@
          ENDIF
 
          ! Write tracers [kg/s] to "tracerinfo.dat"
-         CALL WRITE_TINFO( NAME(T,45), FNAME(T,45), MWT(T,45), 
+         CALL WRITE_TINFO( IU_FILE, NAME(T,45), FNAME(T,45), MWT(T,45), 
      &                     MOLC(T,45), SCALE_NEW,   UNIT_NEW, N )
       ENDDO
 
-      !-----------------------------------
+      !-------------------------------------
       ! SPACING*4: Tracers [kg]
-      !-----------------------------------
+      !-------------------------------------
 
       ! Write separator line
-      CALL WRITE_SEPARATOR( 400 )
+      CALL WRITE_SEPARATOR( IU_FILE, 400 )
 
       ! Loop over tracers
       DO T = 1, NTRAC(45)
@@ -469,7 +486,7 @@
          ENDIF
 
          ! Write tracers [kg] to "tracerinfo.dat"
-         CALL WRITE_TINFO( NAME(T,45), FNAME(T,45), MWT(T,45), 
+         CALL WRITE_TINFO( IU_FILE, NAME(T,45), FNAME(T,45), MWT(T,45), 
      &                     MOLC(T,45), SCALE_NEW,   UNIT_NEW, N )
       ENDDO
 
@@ -479,7 +496,7 @@
 !      !-----------------------------------
 !
 !      ! Write separator line
-!      CALL WRITE_SEPARATOR( 500 )
+!      CALL WRITE_SEPARATOR( IU_FILE, 500 )
 !
 !      ! Loop over tracers
 !      DO T = 1, NTRAC(45)
@@ -498,17 +515,17 @@
 !         ENDIF
 !
 !         ! Write tracers [kg] to "tracerinfo.dat"
-!         CALL WRITE_TINFO( NAME(T,45), FNAME(T,45), MWT(T,45), 
+!         CALL WRITE_TINFO( IU_FILE, NAME(T,45), FNAME(T,45), MWT(T,45), 
 !     &                     MOLC(T,45), SCALE_NEW,   UNIT_NEW, N )
 !      ENDDO
 
-      !-----------------------------------
+      !-------------------------------------
       ! SPACING*6: GPROD & APROD [kg/kg]
-      !-----------------------------------
+      !-------------------------------------
       IF ( LSOA ) THEN
 
          ! Write separator line
-         CALL WRITE_SEPARATOR( 600 )
+         CALL WRITE_SEPARATOR( IU_FILE, 600 )
 
          ! Loop over tracers
          ! New tracers for SOA simulation
@@ -526,15 +543,58 @@
             NAME_NEW = 'PROD' // C
             
             ! Write tracers [kg] to "tracerinfo.dat"
-            CALL WRITE_TINFO( NAME_NEW, NAME_NEW,  1e0, 
+#if defined( DEVEL )
+            CALL WRITE_TINFO( IU_FILE, NAME_NEW, NAME_NEW,
+     &           REAL(1e0,4), 1, REAL(1e0,4), 'kg/kg', N )
+#else
+            CALL WRITE_TINFO( IU_FILE, NAME_NEW, NAME_NEW,  1e0,
      &                        1,        1e0,      'kg/kg', N )
+#endif
          ENDDO
 
       ENDIF
 
-      !------------------------------
+      !-------------------------------------      
+      ! SPACING*60: Soil NOx restart file
+      !-------------------------------------   
+      IF ( ITS_A_FULLCHEM_SIM() ) THEN
+         
+         ! Write separator line
+         CALL WRITE_SEPARATOR( IU_FILE, 999 )
+
+         ! Dry period [h]
+         NAME_NEW = 'P_DRY'
+         UNIT_NEW = 'hours'
+         CALL WRITE_TINFO(  IU_FILE,     NAME_NEW, 
+     &                      NAME_NEW,    REAL(1e0,4), 1,            
+     &                      REAL(1e0,4), UNIT_NEW,    60001  )
+
+         ! Pulse factor [unitless]
+         NAME_NEW = 'PFACTOR'
+         UNIT_NEW = 'unitless'
+         CALL WRITE_TINFO(  IU_FILE,     NAME_NEW, 
+     &                      NAME_NEW,    REAL(1e0,4), 1,            
+     &                      REAL(1e0,4), UNIT_NEW,    60002  )
+
+         ! GWET from previous timestep [unitless]
+         NAME_NEW = 'GWET_PRV'
+         UNIT_NEW = 'unitless'
+         CALL WRITE_TINFO(  IU_FILE,     NAME_NEW, 
+     &                      NAME_NEW,    REAL(1e0,4), 1,            
+     &                      REAL(1e0,4), UNIT_NEW,    60003  )
+
+         ! Reservoir of deposited N [ng N/m2]
+         NAME_NEW = 'N_RESVR'
+         UNIT_NEW = 'ng N/m2'
+         CALL WRITE_TINFO(  IU_FILE,     NAME_NEW, 
+     &                      NAME_NEW,    REAL(1e0,4), 1,            
+     &                      REAL(1e0,4), UNIT_NEW,    60004  )
+
+      ENDIF
+
+      !-------------------------------------
       ! All other diagnostics 
-      !------------------------------
+      !-------------------------------------
       DO D = 1, MAXDIAG
 
          ! If tracers are defined then...
@@ -544,11 +604,11 @@
             IF ( D == 45 ) CYCLE
 
             ! Write separator
-            CALL WRITE_SEPARATOR( D )
+            CALL WRITE_SEPARATOR( IU_FILE, D )
 
             ! Write tracers to file
             DO T = 1, NTRAC(D)
-               CALL WRITE_TINFO( NAME(T,D), FNAME(T,D), MWT(T,D), 
+            CALL WRITE_TINFO( IU_FILE, NAME(T,D), FNAME(T,D), MWT(T,D), 
      &                           MOLC(T,D), SCALE(T,D), UNIT(T,D),
      &                           INDEX(T,D) )
             ENDDO
@@ -570,14 +630,16 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WRITE_TINFO( NAME, FNAME, MWT, MOLC, SCALE, UNIT, N )
+      SUBROUTINE WRITE_TINFO( IU_FILE, NAME, FNAME, 
+     &                        MWT, MOLC, SCALE, UNIT, N )
 !
 ! !USES:
 !
-      USE FILE_MOD, ONLY : IU_FILE, IOERROR
+      USE FILE_MOD, ONLY : IOERROR
 !
 ! !INPUT PARAMETERS: 
 !
+      INTEGER,          INTENT(IN) :: IU_FILE ! Logical unit number
       CHARACTER(LEN=*), INTENT(IN) :: NAME    ! GAMAP short tracer name
       CHARACTER(LEN=*), INTENT(IN) :: FNAME   ! GAMAP long tracer name
       REAL*4,           INTENT(IN) :: MWT     ! Molecular weight [kg/mole]
@@ -628,20 +690,22 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WRITE_SEPARATOR( DIAG )
+      SUBROUTINE WRITE_SEPARATOR( IU_FILE, DIAG )
 !
 ! !USES:
 !
-      USE FILE_MOD, ONLY : IU_FILE, IOERROR
+      USE FILE_MOD, ONLY : IOERROR
 !
 ! !INPUT PARAMETERS: 
 !
+      INTEGER, INTENT(IN) :: IU_FILE
       INTEGER, INTENT(IN) :: DIAG   ! GEOS-Chem diagnostic number
 ! 
 ! !REVISION HISTORY: 
 !  03 May 2005 - R. Yantosca - Initial version
 !  06 Feb 2007 - R. Yantosca - Added new header for GPROD & APROD info
 !  03 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  31 Oct 2012 - R. Yantosca - Add write statement for soil NOx restart file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -679,9 +743,11 @@
          CASE( 600 ) 
             WRITE( IU_FILE, 160, IOSTAT=IOS )
          CASE( 700 )          !(win, 7/9/09)
-            WRITE( IU_FILE, 180, IOSTAT=IOS )
+            WRITE( IU_FILE, 190, IOSTAT=IOS )
+         CASE( 999 ) 
+            WRITE( IU_FILE, 170, IOSTAT=IOS )
          CASE DEFAULT
-            WRITE( IU_FILE, 170, IOSTAT=IOS ) DIAG
+            WRITE( IU_FILE, 180, IOSTAT=IOS ) DIAG
       END SELECT
 
       ! Error check
@@ -692,16 +758,17 @@
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'write_separator:3' )
 
       ! FORMAT strings
- 100  FORMAT( '# GEOS-CHEM tracers [ppbv]'           )
- 110  FORMAT( '# GEOS-CHEM tracers [molec/cm2/s]'    )
- 120  FORMAT( '# GEOS-CHEM tracers [molec/cm2]'      )
- 130  FORMAT( '# GEOS-CHEM tracers [kg/s]'           )
- 140  FORMAT( '# GEOS-CHEM tracers [kg]'             )
- 150  FORMAT( '# GEOS-CHEM tracers [ug/m3]'          )
- 160  FORMAT( '# SOA GPROD & APROD [kg/kg]'          )
- 170  FORMAT( '# ND', i2.2, ' diagnostic quantities' )
- 180  FORMAT( '# TOMAS aerosol rate [cm-3 s-1]'      )   !(win, 7/9/09)
-     
+ 100  FORMAT( '# GEOS-CHEM tracers [ppbv]'             )
+ 110  FORMAT( '# GEOS-CHEM tracers [molec/cm2/s]'      )
+ 120  FORMAT( '# GEOS-CHEM tracers [molec/cm2]'        )
+ 130  FORMAT( '# GEOS-CHEM tracers [kg/s]'             )
+ 140  FORMAT( '# GEOS-CHEM tracers [kg]'               )
+ 150  FORMAT( '# GEOS-CHEM tracers [ug/m3]'            )
+ 160  FORMAT( '# SOA GPROD & APROD [kg/kg]'            )
+ 170  FORMAT( '# Quantities for Soil NOx restart file' )
+ 180  FORMAT( '# ND', i2.2, ' diagnostic quantities'   )
+ 190  FORMAT( '# TOMAS aerosol rate [cm-3 s-1]'      )   !(win, 7/9/09)
+      
       END SUBROUTINE WRITE_SEPARATOR
 !EOC
 !------------------------------------------------------------------------------
@@ -739,6 +806,7 @@
 !                              TURBMC-$, EW-FLX-$, NS-FLX-$, UP-FLX-$
 !  21 Oct 2010 - R. Yantosca - Bug fix: MC-FRC-$ should have an offset of 
 !                              SPACING*3 since it has units of kg/s.
+!  31 Oct 2012 - R. Yantosca - Save soil NOx restart quantities as SPACING*60
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1241,10 +1309,133 @@
       DESCRIPT(N) = 'Dicarbonyl SOA production'
       OFFSET(N)   = SPACING * 33
 
+!- eds 9/1/10 ----------------------------------------------
       N           = N + 1
       CATEGORY(N) = 'HG-SRCE'
       DESCRIPT(N) = 'Hg emissions'
       OFFSET(N)   = SPACING * 34
+
+      N           = N + 1
+      CATEGORY(N) = 'HG0-ANTH'
+      DESCRIPT(N) = 'Hg(0) Anthro Emissions'
+      OFFSET(N)   = SPACING * 61
+
+      N           = N + 1
+      CATEGORY(N) = 'HG0-AQUA'
+      DESCRIPT(N) = 'Hg(0) Ocean Mass'
+      OFFSET(N)   = SPACING * 62
+
+      N           = N + 1
+      CATEGORY(N) = 'HG0-RECY'
+      DESCRIPT(N) = 'Hg(0) Land Prompt Recycling'
+      OFFSET(N)   = SPACING * 63
+
+      N           = N + 1
+      CATEGORY(N) = 'HGNET-OC'
+      DESCRIPT(N) = 'Hg(0) Net Ocean Emissions'
+      OFFSET(N)   = SPACING * 64
+
+      N           = N + 1
+      CATEGORY(N) = 'HG0-GEOG'
+      DESCRIPT(N) = 'Hg(0) Geogenic Emissions'
+      OFFSET(N)   = SPACING * 65
+
+      N           = N + 1
+      CATEGORY(N) = 'HG2-ANTH'
+      DESCRIPT(N) = 'Hg(II) Anthro Emissions'
+      OFFSET(N)   = SPACING * 66
+
+      N           = N + 1
+      CATEGORY(N) = 'HG2-AQUA'
+      DESCRIPT(N) = 'Hg(II) Ocean Mass'
+      OFFSET(N)   = SPACING * 67
+
+      N           = N + 1
+      CATEGORY(N) = 'HG2-SINK'
+      DESCRIPT(N) = 'Hg(II) Sinking'
+      OFFSET(N)   = SPACING * 68
+
+      N           = N + 1
+      CATEGORY(N) = 'HGP-ANTH'
+      DESCRIPT(N) = 'Hg(P) Anthro Emissions'
+      OFFSET(N)   = SPACING * 69
+
+      N           = N + 1
+      CATEGORY(N) = 'HGT-AQUA'
+      DESCRIPT(N) = 'Hg Total Ocean Mass'
+      OFFSET(N)   = SPACING * 70
+
+      N           = N + 1
+      CATEGORY(N) = 'HGP-AQUA'
+      DESCRIPT(N) = 'Hg(P) Ocean Mass'
+      OFFSET(N)   = SPACING * 71
+
+      N           = N + 1
+      CATEGORY(N) = 'HGP-CONV'
+      DESCRIPT(N) = 'Hg(II) Aqeous Conversion to Particle'
+      OFFSET(N)   = SPACING * 72
+
+      N           = N + 1
+      CATEGORY(N) = 'HG0-BURN'
+      DESCRIPT(N) = 'Hg(0) Biomass Burning Emissions'
+      OFFSET(N)   = SPACING * 73
+
+      N           = N + 1
+      CATEGORY(N) = 'HG0-VEGT'
+      DESCRIPT(N) = 'Hg(0) Veg Transp. Emissions'
+      OFFSET(N)   = SPACING * 74
+
+      N           = N + 1
+      CATEGORY(N) = 'HG0-SOIL'
+      DESCRIPT(N) = 'Hg(0) Soil Emissions'
+      OFFSET(N)   = SPACING * 75
+
+      N           = N + 1
+      CATEGORY(N) = 'HG0-FXUP'
+      DESCRIPT(N) = 'Hg(0) Gross Ocean Up Flux'
+      OFFSET(N)   = SPACING * 76
+
+      N           = N + 1
+      CATEGORY(N) = 'HG0-FXDN'
+      DESCRIPT(N) = 'Hg(0) Gross Ocean Down Flux'
+      OFFSET(N)   = SPACING * 77
+
+      N           = N + 1
+      CATEGORY(N) = 'HG0-SNOW'
+      DESCRIPT(N) = 'Hg(0) Snow Emissions'
+      OFFSET(N)   = SPACING * 78
+
+      N           = N + 1
+      CATEGORY(N) = 'HG-NETOX'
+      DESCRIPT(N) = 'Hg(0) to Hg(II) Net Oxidation'
+      OFFSET(N)   = SPACING * 79
+
+      N           = N + 1
+      CATEGORY(N) = 'HG2-OXOH'
+      DESCRIPT(N) = 'Hg(0) Oxidation to Hg(II) by OH'
+      OFFSET(N)   = SPACING * 80
+
+      N           = N + 1
+      CATEGORY(N) = 'HG2-OXO3'
+      DESCRIPT(N) = 'Hg(0) Oxidation to Hg(II) by O3'
+      OFFSET(N)   = SPACING * 81
+
+      N           = N + 1
+      CATEGORY(N) = 'HG2-SALT'
+      DESCRIPT(N) = 'Hg(II) Loss by Sea Salt'
+      OFFSET(N)   = SPACING * 82
+
+      N           = N + 1
+      CATEGORY(N) = 'HG2-SSRX'
+      DESCRIPT(N) = 'Hg(0) Sea Salt Reaction Rate'
+      OFFSET(N)   = SPACING * 83
+
+      N           = N + 1
+      CATEGORY(N) = 'HG2-OXBR'
+      DESCRIPT(N) = 'Hg(0) Oxidation to Hg(II) by Br'
+      OFFSET(N)   = SPACING * 84
+
+!---------------------------------------------------------
 
       N           = N + 1
       CATEGORY(N) = 'PL-HG2-$'
@@ -1349,6 +1540,21 @@
       DESCRIPT(N) = 'Ship diagnostics'
       OFFSET(N)   = SPACING * 59
 
+      N           = N + 1
+      CATEGORY(N) = 'RST-SOIL'
+      DESCRIPT(N) = 'Soil NOx restart file'
+      OFFSET(N)   = SPACING * 60
+
+      ! Added for POPs (clf, 3/2/2011)
+      N           = N + 1
+      CATEGORY(N) = 'PG-SRCE'
+      DESCRIPT(N) = 'POPs Emissions'
+      OFFSET(N)   = SPACING * 52
+
+      N           = N + 1
+      CATEGORY(N) = 'PG-PP-$'
+      DESCRIPT(N) = 'POP partitioning/oxidation'
+      OFFSET(N)   = SPACING * 53
 
 ! NEED TO DO THAT AT ONE POINT      
 !      ! New for CSPEC
@@ -1389,6 +1595,7 @@
       USE DIAG50_MOD,   ONLY : DO_SAVE_DIAG50
       USE DIAG51_MOD,   ONLY : DO_SAVE_DIAG51
       USE DIAG51b_MOD,  ONLY : DO_SAVE_DIAG51b
+      USE DIAG53_MOD,   ONLY : ND53, PD53
       USE DIAG56_MOD,   ONLY : ND56
       USE DIAG63_MOD,   ONLY:  DO_SAVE_DIAG63
       USE DIAG_PL_MOD,  ONLY : DO_SAVE_PL,  GET_NFAM
@@ -1424,8 +1631,10 @@
       USE TRACERID_MOD, ONLY : IDTBCPI,   IDTOCPI
       USE TRACERID_MOD, ONLY : IDTXYLE, IDTBENZ, IDTTOLU
       USE TOMAS_MOD,    ONLY : IBINS, ICOMP,   IDIAG  !(win, 7/14/09)
-      USE TRACERID_MOD, ONLY : IDTNK1     !(win, 7/14/09)
+      USE TRACERID_MOD, ONLY : IDTNK1                 !(win, 7/14/09)
       USE TRACERID_MOD, ONLY : N_Hg_CATS  !CDH for snowpack
+      USE LOGICAL_MOD,  ONLY : LSPLIT
+      USE GET_POPSINFO_MOD, ONLY : GET_POP_XMW
 ! 
 ! !REVISION HISTORY: 
 !  17 Oct 1996 - R. Yantosca & P. Le Sager - Initial version
@@ -1458,6 +1667,7 @@
 !  09-Dec-2010 - H. Amos     - fix spacing and #s for PL-HG2-$ diagnostics
 !  12 Nov 2010 - R. Yantosca - Need to save out surface pressure line to 
 !                              tracerinfo.dat for the timeseries diagnostics
+!  22 Mar 2011 - C. Friedman - Added POPs
 !  24 Jan 2012 - M. Payer    - Change scale factors for Rn-Pb-Be simulation so
 !                              units are in mBq/SCM
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
@@ -1471,13 +1681,17 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: N, NN, NYMDb, NHMSb, T
+      INTEGER :: N, NN, NYMDb, NHMSb, T, NUM_TRACERS
       LOGICAL :: DO_TIMESERIES
 
+
+      REAL*8,     SAVE      :: POP_XMW
+      REAL*8                :: DUM
 
       !=================================================================
       ! INIT_TRACERINFO begins here!
       !=================================================================
+      DUM = 1.0
 
       ! Set a flag if any timeseries diagnostics are turned on
       DO_TIMESERIES = ( DO_SAVE_DIAG48 .or. DO_SAVE_DIAG49 .or.
@@ -1493,10 +1707,12 @@
       !HgP is now emitted and treated as Hg2, so all HgP IJ-AVG-$
       !  fields are just zeroes
       IF ( ITS_A_MERCURY_SIM() ) THEN
-         N_TRACERS = N_TRACERS - 1
+         NUM_TRACERS = N_TRACERS - 1
+      ELSE
+         NUM_TRACERS = N_TRACERS
       ENDIF
 
-      DO T = 1, N_TRACERS
+      DO T = 1, NUM_TRACERS
 
          ! Store quantities for each tracer
          NAME (T,45) = TRACER_NAME(T)
@@ -1571,7 +1787,11 @@
       ! Modified to avoid over-sized arrays.
       ! (ccc, 7/20/10)
       !-------------------------------------
-      IF ( ND03 > 0 ) THEN
+
+      !=====================================
+      ! Standard Hg simulation
+      !=====================================
+      IF ( (ND03 > 0) .AND. .NOT. (LSPLIT) ) THEN !eds 9/7/10
          
          ! Number of tracers:
          ! PD03     = max # of tracers for HG-SRCE
@@ -1780,6 +2000,2309 @@
          NTRAC(03) = T
          
       ENDIF
+
+      !=====================================
+      ! Tagged Hg simulation
+      !=====================================
+      IF ( (ND03 > 0) .AND. (LSPLIT) ) THEN !eds 9/7/10
+
+         ! Define quantities
+         UNIT (T,03) = 'kg'
+         MOLC (T,03) = 1
+         MWT  (T,03) = 201e-3
+         SCALE(T,03) = 1e0
+
+       	 !-------------! 
+         ! HG0-ANTH    !
+       	 !-------------! 
+
+         T = 1
+         SELECT CASE( T )
+           CASE( 1 )
+               NAME (T,03) = 'Hg0'
+               FNAME(T,03) = 'Hg0'
+               INDEX(T,03) = T + ( SPACING * 61 )  !eds 9/4/10
+         END SELECT  
+
+
+         ! Number of tracers
+!         NTRAC(03) = N_Hg_CATS
+         NTRAC(03) =  480
+
+       	 !-------------! 
+         ! HG0-AQUA    !
+       	 !-------------! 
+
+         ! Loop over tracers
+!         DO N = 1, NTRAC(03)
+         DO N = 1, N_Hg_CATS
+
+         T = N + 1
+
+            ! Get name and long name for each tracer
+            SELECT CASE( T )
+              CASE( 2 )
+                  NAME (T,03) = 'Hg0'
+                  FNAME(T,03) = 'Hg0'
+                  INDEX(T,03) = N + ( SPACING * 62 )  !eds 9/3/10 
+              CASE( 3 )
+                  NAME (T,03) = 'Hg_can'
+                  FNAME(T,03) = 'Hg Canada'
+       	       	  INDEX(T,03) =	N + ( SPACING *	62 )  
+              CASE( 4 )
+                  NAME (T,03) = 'Hg_usa'
+                  FNAME(T,03) = 'Hg USA'
+                  INDEX(T,03) = N + ( SPACING * 62 ) 
+              CASE( 5 )
+                  NAME (T,03) = 'Hg_cam'
+                  FNAME(T,03) = 'Hg Central America'
+                  INDEX(T,03) = N + ( SPACING * 62 )  
+              CASE( 6 )
+                  NAME (T,03) = 'Hg_sam'
+                  FNAME(T,03) = 'Hg South American'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 7 )
+                  NAME (T,03) = 'Hg_waf'
+                  FNAME(T,03) = 'Hg West Africa'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 8 )
+                  NAME (T,03) = 'Hg_eaf'
+                  FNAME(T,03) = 'Hg East Africa'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 9 )
+                  NAME (T,03) = 'Hg_saf'
+                  FNAME(T,03) = 'Hg South Africa'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 10 )
+                  NAME (T,03) = 'Hg_naf'
+                  FNAME(T,03) = 'Hg North Africa'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 11 )
+                  NAME (T,03) = 'Hg_eur'
+                  FNAME(T,03) = 'Hg OECD Europe'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 12 )
+                  NAME (T,03) = 'Hg_eeu'
+                  FNAME(T,03) = 'Hg Eastern Europe'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 13 )
+                  NAME (T,03) = 'Hg_sov'
+                  FNAME(T,03) = 'Hg Former USSR'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 14 )
+                  NAME (T,03) = 'Hg_mde'
+                  FNAME(T,03) = 'Hg Middle East'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 15 )
+                  NAME (T,03) = 'Hg_sas'
+                  FNAME(T,03) = 'Hg South Asia'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 16 )
+                  NAME (T,03) = 'Hg_eas'
+                  FNAME(T,03) = 'Hg East Asia'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 17 )
+                  NAME (T,03) = 'Hg_sea'
+                  FNAME(T,03) = 'Hg Southeast Asia'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 18 )
+                  NAME (T,03) = 'Hg_jpn'
+                  FNAME(T,03) = 'Hg Japan'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 19 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Oceania'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 20 )
+                  NAME (T,03) = 'Hg_so'
+                  FNAME(T,03) = 'Hg Soil'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 21 )
+                  NAME (T,03) = 'Hg_bb'
+                  FNAME(T,03) = 'Hg Biomass Burning'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 22 )
+                  NAME (T,03) = 'Hg_geo'
+                  FNAME(T,03) = 'Hg Geogenic'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 23 )
+                  NAME (T,03) = 'Hg_atl'
+                  FNAME(T,03) = 'Hg Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 24 )
+                  NAME (T,03) = 'Hg_nat'
+                  FNAME(T,03) = 'Hg North Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 25 )
+                  NAME (T,03) = 'Hg_sat'
+                  FNAME(T,03) = 'Hg South Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 26 )
+                  NAME (T,03) = 'Hg_npa'
+                  FNAME(T,03) = 'Hg North Pacific'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 27 )
+                  NAME (T,03) = 'Hg_arc'
+                  FNAME(T,03) = 'Hg Arctic'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 28 )
+                  NAME (T,03) = 'Hg_ant'
+                  FNAME(T,03) = 'Hg Antarctica'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 29 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Other Ocean'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE( 30 )
+                  NAME (T,03) = 'Hg_str'
+                  FNAME(T,03) = 'Hg Residual Stratosphere'
+                  INDEX(T,03) = N + ( SPACING * 62 )
+              CASE DEFAULT
+            END SELECT
+         ENDDO
+
+         !-------------!
+         ! HG0-RECY    !
+         !-------------!
+
+         ! Loop over tracers
+!         DO N = 1, NTRAC(03)
+         DO N = 1, N_Hg_CATS
+
+         T = N + 1 + N_Hg_CATS
+
+            ! Get name and long name for each tracer
+            SELECT CASE( T )
+              CASE( 31 )
+                  NAME (T,03) = 'Hg0'
+                  FNAME(T,03) = 'Hg0'
+                  INDEX(T,03) = N + ( SPACING * 63 ) 
+              CASE( 32 )
+                  NAME (T,03) = 'Hg_can'
+                  FNAME(T,03) = 'Hg Canada'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 33 )
+                  NAME (T,03) = 'Hg_usa'
+                  FNAME(T,03) = 'Hg USA'
+                  INDEX(T,03) = N + ( SPACING * 63 ) 
+              CASE( 34 )
+                  NAME (T,03) = 'Hg_cam'
+                  FNAME(T,03) = 'Hg Central America'
+                  INDEX(T,03) = N + ( SPACING * 63 )  
+              CASE( 35 )
+                  NAME (T,03) = 'Hg_sam'
+                  FNAME(T,03) = 'Hg South American'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 36 )
+                  NAME (T,03) = 'Hg_waf'
+                  FNAME(T,03) = 'Hg West Africa'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 37 )
+                  NAME (T,03) = 'Hg_eaf'
+                  FNAME(T,03) = 'Hg East Africa'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 38 )
+                  NAME (T,03) = 'Hg_saf'
+                  FNAME(T,03) = 'Hg South Africa'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 39 )
+                  NAME (T,03) = 'Hg_naf'
+                  FNAME(T,03) = 'Hg North Africa'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 40 )
+                  NAME (T,03) = 'Hg_eur'
+                  FNAME(T,03) = 'Hg OECD Europe'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 41 )
+                  NAME (T,03) = 'Hg_eeu'
+                  FNAME(T,03) = 'Hg Eastern Europe'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 42 )
+                  NAME (T,03) = 'Hg_sov'
+                  FNAME(T,03) = 'Hg Former USSR'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 43 )
+                  NAME (T,03) = 'Hg_mde'
+                  FNAME(T,03) = 'Hg Middle East'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 44 )
+                  NAME (T,03) = 'Hg_sas'
+                  FNAME(T,03) = 'Hg South Asia'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 45 )
+                  NAME (T,03) = 'Hg_eas'
+                  FNAME(T,03) = 'Hg East Asia'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 46 )
+                  NAME (T,03) = 'Hg_sea'
+                  FNAME(T,03) = 'Hg Southeast Asia'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 47 )
+                  NAME (T,03) = 'Hg_jpn'
+                  FNAME(T,03) = 'Hg Japan'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 48 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Oceania'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 49 )
+                  NAME (T,03) = 'Hg_so'
+                  FNAME(T,03) = 'Hg Soil'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 50 )
+                  NAME (T,03) = 'Hg_bb'
+                  FNAME(T,03) = 'Hg Biomass Burning'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 51 )
+                  NAME (T,03) = 'Hg_geo'
+                  FNAME(T,03) = 'Hg Geogenic'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 52 )
+                  NAME (T,03) = 'Hg_atl'
+                  FNAME(T,03) = 'Hg Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 53 )
+                  NAME (T,03) = 'Hg_nat'
+                  FNAME(T,03) = 'Hg North Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 54 )
+                  NAME (T,03) = 'Hg_sat'
+                  FNAME(T,03) = 'Hg South Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 55 )
+                  NAME (T,03) = 'Hg_npa'
+                  FNAME(T,03) = 'Hg North Pacific'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 56 )
+                  NAME (T,03) = 'Hg_arc'
+                  FNAME(T,03) = 'Hg Arctic'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 57 )
+                  NAME (T,03) = 'Hg_ant'
+                  FNAME(T,03) = 'Hg Antarctica'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 58 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Other Ocean'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE( 59 )
+                  NAME (T,03) = 'Hg_str'
+                  FNAME(T,03) = 'Hg Residual Stratosphere'
+                  INDEX(T,03) = N + ( SPACING * 63 )
+              CASE DEFAULT
+            END SELECT
+         ENDDO
+
+         !-------------!
+         ! HGNET-OC    !
+         !-------------!
+
+         ! Loop over tracers
+         DO N = 1, N_Hg_CATS
+
+         T = N + 1 + (2d0 * N_Hg_CATS)
+
+            ! Get name and long name for each tracer
+            SELECT CASE( T )
+              CASE( 60 )
+                  NAME (T,03) = 'Hg0'
+                  FNAME(T,03) = 'Hg0'
+                  INDEX(T,03) = N + ( SPACING * 64 ) 
+              CASE( 61 )
+                  NAME (T,03) = 'Hg_can'
+                  FNAME(T,03) = 'Hg Canada'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 62 )
+                  NAME (T,03) = 'Hg_usa'
+                  FNAME(T,03) = 'Hg USA'
+                  INDEX(T,03) = N + ( SPACING * 64 ) 
+              CASE( 63 )
+                  NAME (T,03) = 'Hg_cam'
+                  FNAME(T,03) = 'Hg Central America'
+                  INDEX(T,03) = N + ( SPACING * 64 )  
+              CASE( 64 )
+                  NAME (T,03) = 'Hg_sam'
+                  FNAME(T,03) = 'Hg South American'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 65 )
+                  NAME (T,03) = 'Hg_waf'
+                  FNAME(T,03) = 'Hg West Africa'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 66 )
+                  NAME (T,03) = 'Hg_eaf'
+                  FNAME(T,03) = 'Hg East Africa'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 67 )
+                  NAME (T,03) = 'Hg_saf'
+                  FNAME(T,03) = 'Hg South Africa'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 68 )
+                  NAME (T,03) = 'Hg_naf'
+                  FNAME(T,03) = 'Hg North Africa'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 69 )
+                  NAME (T,03) = 'Hg_eur'
+                  FNAME(T,03) = 'Hg OECD Europe'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 70 )
+                  NAME (T,03) = 'Hg_eeu'
+                  FNAME(T,03) = 'Hg Eastern Europe'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 71 )
+                  NAME (T,03) = 'Hg_sov'
+                  FNAME(T,03) = 'Hg Former USSR'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 72 )
+                  NAME (T,03) = 'Hg_mde'
+                  FNAME(T,03) = 'Hg Middle East'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 73 )
+                  NAME (T,03) = 'Hg_sas'
+                  FNAME(T,03) = 'Hg South Asia'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 74 )
+                  NAME (T,03) = 'Hg_eas'
+                  FNAME(T,03) = 'Hg East Asia'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 75 )
+                  NAME (T,03) = 'Hg_sea'
+                  FNAME(T,03) = 'Hg Southeast Asia'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 76 )
+                  NAME (T,03) = 'Hg_jpn'
+                  FNAME(T,03) = 'Hg Japan'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 77 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Oceania'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 78 )
+                  NAME (T,03) = 'Hg_so'
+                  FNAME(T,03) = 'Hg Soil'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 79 )
+                  NAME (T,03) = 'Hg_bb'
+                  FNAME(T,03) = 'Hg Biomass Burning'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 80 )
+                  NAME (T,03) = 'Hg_geo'
+                  FNAME(T,03) = 'Hg Geogenic'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 81 )
+                  NAME (T,03) = 'Hg_atl'
+                  FNAME(T,03) = 'Hg Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 82 )
+                  NAME (T,03) = 'Hg_nat'
+                  FNAME(T,03) = 'Hg North Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 83 )
+                  NAME (T,03) = 'Hg_sat'
+                  FNAME(T,03) = 'Hg South Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 84 )
+                  NAME (T,03) = 'Hg_npa'
+                  FNAME(T,03) = 'Hg North Pacific'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 85 )
+                  NAME (T,03) = 'Hg_arc'
+                  FNAME(T,03) = 'Hg Arctic'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 86 )
+                  NAME (T,03) = 'Hg_ant'
+                  FNAME(T,03) = 'Hg Antarctica'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 87 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Other Ocean'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE( 88 )
+                  NAME (T,03) = 'Hg_str'
+                  FNAME(T,03) = 'Hg Residual Stratosphere'
+                  INDEX(T,03) = N + ( SPACING * 64 )
+              CASE DEFAULT
+            END SELECT
+         ENDDO
+
+        
+
+         !-------------!
+         ! HG0-GEOG    !
+         !-------------!
+
+         T = 89
+         SELECT CASE( T )
+           CASE( 89 )
+               NAME (T,03) = 'Hg0'
+               FNAME(T,03) = 'Hg0'
+               INDEX(T,03) = 1 + ( SPACING * 65 )          
+         END SELECT
+
+
+         !-------------!
+         ! HG2-ANTH    !
+         !-------------!
+
+         T = 90
+         N = 1
+         SELECT CASE( T )
+           CASE( 90 )
+               NAME (T,03) = 'Hg2'
+               FNAME(T,03) = 'Hg2'
+               INDEX(T,03) = N + ( SPACING * 66 )    
+         END SELECT
+
+
+         !-------------!
+         ! HG2-AQUA    !
+         !-------------!
+
+         ! Loop over tracers
+         DO N = 1, N_Hg_CATS
+
+         T = N + 3 + (3D0 * N_Hg_CATS)
+
+            ! Get name and long name for each tracer
+            SELECT CASE( T )
+              CASE( 91 )
+                  NAME (T,03) = 'Hg2'
+                  FNAME(T,03) = 'Hg2'
+                  INDEX(T,03) = N + ( SPACING * 67 ) 
+              CASE( 92 )
+                  NAME (T,03) = 'Hg_can'
+                  FNAME(T,03) = 'Hg Canada'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 93 )
+                  NAME (T,03) = 'Hg_usa'
+                  FNAME(T,03) = 'Hg USA'
+                  INDEX(T,03) = N + ( SPACING * 67 ) 
+              CASE( 94 )
+                  NAME (T,03) = 'Hg_cam'
+                  FNAME(T,03) = 'Hg Central America'
+                  INDEX(T,03) = N + ( SPACING * 67 )  
+              CASE( 95 )
+                  NAME (T,03) = 'Hg_sam'
+                  FNAME(T,03) = 'Hg South American'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 96 )
+                  NAME (T,03) = 'Hg_waf'
+                  FNAME(T,03) = 'Hg West Africa'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 97 )
+                  NAME (T,03) = 'Hg_eaf'
+                  FNAME(T,03) = 'Hg East Africa'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 98 )
+                  NAME (T,03) = 'Hg_saf'
+                  FNAME(T,03) = 'Hg South Africa'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 99 )
+                  NAME (T,03) = 'Hg_naf'
+                  FNAME(T,03) = 'Hg North Africa'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 100 )
+                  NAME (T,03) = 'Hg_eur'
+                  FNAME(T,03) = 'Hg OECD Europe'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 101 )
+                  NAME (T,03) = 'Hg_eeu'
+                  FNAME(T,03) = 'Hg Eastern Europe'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 102 )
+                  NAME (T,03) = 'Hg_sov'
+                  FNAME(T,03) = 'Hg Former USSR'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 103 )
+                  NAME (T,03) = 'Hg_mde'
+                  FNAME(T,03) = 'Hg Middle East'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 104 )
+                  NAME (T,03) = 'Hg_sas'
+                  FNAME(T,03) = 'Hg South Asia'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 105 )
+                  NAME (T,03) = 'Hg_eas'
+                  FNAME(T,03) = 'Hg East Asia'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 106 )
+                  NAME (T,03) = 'Hg_sea'
+                  FNAME(T,03) = 'Hg Southeast Asia'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 107 )
+                  NAME (T,03) = 'Hg_jpn'
+                  FNAME(T,03) = 'Hg Japan'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 108 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Oceania'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 109 )
+                  NAME (T,03) = 'Hg_so'
+                  FNAME(T,03) = 'Hg Soil'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 110 )
+                  NAME (T,03) = 'Hg_bb'
+                  FNAME(T,03) = 'Hg Biomass Burning'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 111 )
+                  NAME (T,03) = 'Hg_geo'
+                  FNAME(T,03) = 'Hg Geogenic'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 112 )
+                  NAME (T,03) = 'Hg_atl'
+                  FNAME(T,03) = 'Hg Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 113 )
+                  NAME (T,03) = 'Hg_nat'
+                  FNAME(T,03) = 'Hg North Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 114 )
+                  NAME (T,03) = 'Hg_sat'
+                  FNAME(T,03) = 'Hg South Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 115 )
+                  NAME (T,03) = 'Hg_npa'
+                  FNAME(T,03) = 'Hg North Pacific'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 116 )
+                  NAME (T,03) = 'Hg_arc'
+                  FNAME(T,03) = 'Hg Arctic'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 117 )
+                  NAME (T,03) = 'Hg_ant'
+                  FNAME(T,03) = 'Hg Antarctica'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 118 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Other Ocean'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE( 119 )
+                  NAME (T,03) = 'Hg_str'
+                  FNAME(T,03) = 'Hg Residual Stratosphere'
+                  INDEX(T,03) = N + ( SPACING * 67 )
+              CASE DEFAULT
+            END SELECT
+         ENDDO
+
+
+         !-------------!
+         ! HG2-SINK    !
+         !-------------!
+
+         T = 120
+         N = 1
+         SELECT CASE( T )
+           CASE( 120 )
+               NAME (T,03) = 'Hg2'
+               FNAME(T,03) = 'Hg2'
+               INDEX(T,03) = N + ( SPACING * 68 )          
+         END SELECT
+
+
+         !-------------!
+         ! HGP-ANTH    !
+         !-------------!
+
+         T = 121
+         N = 1
+         SELECT CASE( T )
+           CASE( 121 )
+               NAME (T,03) = 'HgP'
+               FNAME(T,03) = 'HgP'
+               INDEX(T,03) = N + ( SPACING * 69 )          
+         END SELECT
+
+
+         !-------------!
+         ! HGT-AQUA    !
+         !-------------!
+
+         T = 122
+         N = 1
+         SELECT CASE( T )
+           CASE( 122 )
+               NAME (T,03) = 'HgTOT'
+               FNAME(T,03) = 'Hg Total'
+               INDEX(T,03) = N + ( SPACING * 70 )          
+         END SELECT
+
+
+
+         !-------------!
+         ! HGP-AQUA    !
+         !-------------!
+
+         ! Loop over tracers
+         DO N = 1, N_Hg_CATS
+
+         T = N + 6 + (4D0 * N_Hg_CATS)
+
+            ! Get name and long name for each tracer
+            SELECT CASE( T )
+              CASE( 123 )
+                  NAME (T,03) = 'HgP'
+                  FNAME(T,03) = 'HgP'
+                  INDEX(T,03) = N + ( SPACING * 71 ) 
+              CASE( 124 )
+                  NAME (T,03) = 'Hg_can'
+                  FNAME(T,03) = 'Hg Canada'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 125 )
+                  NAME (T,03) = 'Hg_usa'
+                  FNAME(T,03) = 'Hg USA'
+                  INDEX(T,03) = N + ( SPACING * 71 ) 
+              CASE( 126 )
+                  NAME (T,03) = 'Hg_cam'
+                  FNAME(T,03) = 'Hg Central America'
+                  INDEX(T,03) = N + ( SPACING * 71 )  
+              CASE( 127 )
+                  NAME (T,03) = 'Hg_sam'
+                  FNAME(T,03) = 'Hg South American'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 128 )
+                  NAME (T,03) = 'Hg_waf'
+                  FNAME(T,03) = 'Hg West Africa'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 129 )
+                  NAME (T,03) = 'Hg_eaf'
+                  FNAME(T,03) = 'Hg East Africa'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 130 )
+                  NAME (T,03) = 'Hg_saf'
+                  FNAME(T,03) = 'Hg South Africa'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 131 )
+                  NAME (T,03) = 'Hg_naf'
+                  FNAME(T,03) = 'Hg North Africa'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 132 )
+                  NAME (T,03) = 'Hg_eur'
+                  FNAME(T,03) = 'Hg OECD Europe'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 133 )
+                  NAME (T,03) = 'Hg_eeu'
+                  FNAME(T,03) = 'Hg Eastern Europe'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 134 )
+                  NAME (T,03) = 'Hg_sov'
+                  FNAME(T,03) = 'Hg Former USSR'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 135 )
+                  NAME (T,03) = 'Hg_mde'
+                  FNAME(T,03) = 'Hg Middle East'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 136 )
+                  NAME (T,03) = 'Hg_sas'
+                  FNAME(T,03) = 'Hg South Asia'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 137 )
+                  NAME (T,03) = 'Hg_eas'
+                  FNAME(T,03) = 'Hg East Asia'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 138 )
+                  NAME (T,03) = 'Hg_sea'
+                  FNAME(T,03) = 'Hg Southeast Asia'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 139 )
+                  NAME (T,03) = 'Hg_jpn'
+                  FNAME(T,03) = 'Hg Japan'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 140 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Oceania'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 141 )
+                  NAME (T,03) = 'Hg_so'
+                  FNAME(T,03) = 'Hg Soil'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 142 )
+                  NAME (T,03) = 'Hg_bb'
+                  FNAME(T,03) = 'Hg Biomass Burning'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 143 )
+                  NAME (T,03) = 'Hg_geo'
+                  FNAME(T,03) = 'Hg Geogenic'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 144 )
+                  NAME (T,03) = 'Hg_atl'
+                  FNAME(T,03) = 'Hg Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 145 )
+                  NAME (T,03) = 'Hg_nat'
+                  FNAME(T,03) = 'Hg North Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 146 )
+                  NAME (T,03) = 'Hg_sat'
+                  FNAME(T,03) = 'Hg South Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 147 )
+                  NAME (T,03) = 'Hg_npa'
+                  FNAME(T,03) = 'Hg North Pacific'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 148 )
+                  NAME (T,03) = 'Hg_arc'
+                  FNAME(T,03) = 'Hg Arctic'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 149 )
+                  NAME (T,03) = 'Hg_ant'
+                  FNAME(T,03) = 'Hg Antarctica'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 150 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Other Ocean'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE( 151 )
+                  NAME (T,03) = 'Hg_str'
+                  FNAME(T,03) = 'Hg Residual Stratosphere'
+                  INDEX(T,03) = N + ( SPACING * 71 )
+              CASE DEFAULT
+            END SELECT
+         ENDDO
+
+
+         !-------------!
+         ! HGP-CONV    !
+         !-------------!
+
+         T = 152
+         N = 1
+         SELECT CASE( T )
+           CASE( 152 )
+               NAME (T,03) = 'HgP'
+               FNAME(T,03) = 'HgP'
+               INDEX(T,03) = N + ( SPACING * 72 )          
+         END SELECT
+
+
+         !-------------!
+         ! HG0-BURN    !
+         !-------------!
+
+         T = 153
+         N = 1
+         SELECT CASE( T )
+           CASE( 153 )
+               NAME (T,03) = 'Hg0'
+               FNAME(T,03) = 'Hg0'
+               INDEX(T,03) = N + ( SPACING * 73 )          
+         END SELECT
+
+
+         !-------------!
+         ! HG0-VEGT    !
+         !-------------!
+
+         T = 154
+         N = 1
+         SELECT CASE( T )
+           CASE( 154 )
+               NAME (T,03) = 'Hg0'
+               FNAME(T,03) = 'Hg0'
+               INDEX(T,03) = N + ( SPACING * 74 )          
+         END SELECT
+
+
+         !-------------!
+         ! HG0-SOIL    !
+         !-------------!
+
+         T = 155
+         N = 1
+         SELECT CASE( T )
+           CASE( 155 )
+               NAME (T,03) = 'Hg0'
+               FNAME(T,03) = 'Hg0'
+               INDEX(T,03) = N + ( SPACING * 75 )          
+         END SELECT
+
+
+         !-------------!
+         ! HG0-FXUP    !
+         !-------------!
+
+         ! Loop over tracers
+         DO N = 1, N_Hg_CATS
+
+         T = N + 10 + (5D0 * N_Hg_CATS)
+
+            ! Get name and long name for each tracer
+            SELECT CASE( T )
+              CASE( 156 )
+                  NAME (T,03) = 'Hg0'
+                  FNAME(T,03) = 'Hg0'
+                  INDEX(T,03) = N + ( SPACING * 76 ) 
+              CASE( 157 )
+                  NAME (T,03) = 'Hg_can'
+                  FNAME(T,03) = 'Hg Canada'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 158 )
+                  NAME (T,03) = 'Hg_usa'
+                  FNAME(T,03) = 'Hg USA'
+                  INDEX(T,03) = N + ( SPACING * 76 ) 
+              CASE( 159 )
+                  NAME (T,03) = 'Hg_cam'
+                  FNAME(T,03) = 'Hg Central America'
+                  INDEX(T,03) = N + ( SPACING * 76 )  
+              CASE( 160 )
+                  NAME (T,03) = 'Hg_sam'
+                  FNAME(T,03) = 'Hg South American'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 161 )
+                  NAME (T,03) = 'Hg_waf'
+                  FNAME(T,03) = 'Hg West Africa'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 162 )
+                  NAME (T,03) = 'Hg_eaf'
+                  FNAME(T,03) = 'Hg East Africa'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 163 )
+                  NAME (T,03) = 'Hg_saf'
+                  FNAME(T,03) = 'Hg South Africa'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 164 )
+                  NAME (T,03) = 'Hg_naf'
+                  FNAME(T,03) = 'Hg North Africa'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 165 )
+                  NAME (T,03) = 'Hg_eur'
+                  FNAME(T,03) = 'Hg OECD Europe'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 166 )
+                  NAME (T,03) = 'Hg_eeu'
+                  FNAME(T,03) = 'Hg Eastern Europe'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 167 )
+                  NAME (T,03) = 'Hg_sov'
+                  FNAME(T,03) = 'Hg Former USSR'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 168 )
+                  NAME (T,03) = 'Hg_mde'
+                  FNAME(T,03) = 'Hg Middle East'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 169 )
+                  NAME (T,03) = 'Hg_sas'
+                  FNAME(T,03) = 'Hg South Asia'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 170 )
+                  NAME (T,03) = 'Hg_eas'
+                  FNAME(T,03) = 'Hg East Asia'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 171 )
+                  NAME (T,03) = 'Hg_sea'
+                  FNAME(T,03) = 'Hg Southeast Asia'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 172 )
+                  NAME (T,03) = 'Hg_jpn'
+                  FNAME(T,03) = 'Hg Japan'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 173 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Oceania'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 174 )
+                  NAME (T,03) = 'Hg_so'
+                  FNAME(T,03) = 'Hg Soil'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 175 )
+                  NAME (T,03) = 'Hg_bb'
+                  FNAME(T,03) = 'Hg Biomass Burning'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 176 )
+                  NAME (T,03) = 'Hg_geo'
+                  FNAME(T,03) = 'Hg Geogenic'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 177 )
+                  NAME (T,03) = 'Hg_atl'
+                  FNAME(T,03) = 'Hg Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 178 )
+                  NAME (T,03) = 'Hg_nat'
+                  FNAME(T,03) = 'Hg North Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 179 )
+                  NAME (T,03) = 'Hg_sat'
+                  FNAME(T,03) = 'Hg South Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 180 )
+                  NAME (T,03) = 'Hg_npa'
+                  FNAME(T,03) = 'Hg North Pacific'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 181 )
+                  NAME (T,03) = 'Hg_arc'
+                  FNAME(T,03) = 'Hg Arctic'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 182 )
+                  NAME (T,03) = 'Hg_ant'
+                  FNAME(T,03) = 'Hg Antarctica'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 183 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Other Ocean'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE( 184 )
+                  NAME (T,03) = 'Hg_str'
+                  FNAME(T,03) = 'Hg Residual Stratosphere'
+                  INDEX(T,03) = N + ( SPACING * 76 )
+              CASE DEFAULT
+            END SELECT
+         ENDDO
+
+
+         !-------------!
+         ! HG0-FXDN    !
+         !-------------!
+
+         ! Loop over tracers
+         DO N = 1, N_Hg_CATS
+
+         T = N + 10 + (6D0 * N_Hg_CATS)
+
+            ! Get name and long name for each tracer
+            SELECT CASE( T )
+              CASE( 185 )
+                  NAME (T,03) = 'Hg0'
+                  FNAME(T,03) = 'Hg0'
+                  INDEX(T,03) = N + ( SPACING * 77 ) 
+              CASE( 186 )
+                  NAME (T,03) = 'Hg_can'
+                  FNAME(T,03) = 'Hg Canada'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 187 )
+                  NAME (T,03) = 'Hg_usa'
+                  FNAME(T,03) = 'Hg USA'
+                  INDEX(T,03) = N + ( SPACING * 77 ) 
+              CASE( 188 )
+                  NAME (T,03) = 'Hg_cam'
+                  FNAME(T,03) = 'Hg Central America'
+                  INDEX(T,03) = N + ( SPACING * 77 )  
+              CASE( 189 )
+                  NAME (T,03) = 'Hg_sam'
+                  FNAME(T,03) = 'Hg South American'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 190 )
+                  NAME (T,03) = 'Hg_waf'
+                  FNAME(T,03) = 'Hg West Africa'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 191 )
+                  NAME (T,03) = 'Hg_eaf'
+                  FNAME(T,03) = 'Hg East Africa'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 192 )
+                  NAME (T,03) = 'Hg_saf'
+                  FNAME(T,03) = 'Hg South Africa'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 193 )
+                  NAME (T,03) = 'Hg_naf'
+                  FNAME(T,03) = 'Hg North Africa'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 194 )
+                  NAME (T,03) = 'Hg_eur'
+                  FNAME(T,03) = 'Hg OECD Europe'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 195 )
+                  NAME (T,03) = 'Hg_eeu'
+                  FNAME(T,03) = 'Hg Eastern Europe'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 196 )
+                  NAME (T,03) = 'Hg_sov'
+                  FNAME(T,03) = 'Hg Former USSR'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 197 )
+                  NAME (T,03) = 'Hg_mde'
+                  FNAME(T,03) = 'Hg Middle East'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 198 )
+                  NAME (T,03) = 'Hg_sas'
+                  FNAME(T,03) = 'Hg South Asia'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 199 )
+                  NAME (T,03) = 'Hg_eas'
+                  FNAME(T,03) = 'Hg East Asia'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 200 )
+                  NAME (T,03) = 'Hg_sea'
+                  FNAME(T,03) = 'Hg Southeast Asia'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 201 )
+                  NAME (T,03) = 'Hg_jpn'
+                  FNAME(T,03) = 'Hg Japan'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 202 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Oceania'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 203 )
+                  NAME (T,03) = 'Hg_so'
+                  FNAME(T,03) = 'Hg Soil'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 204 )
+                  NAME (T,03) = 'Hg_bb'
+                  FNAME(T,03) = 'Hg Biomass Burning'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 205 )
+                  NAME (T,03) = 'Hg_geo'
+                  FNAME(T,03) = 'Hg Geogenic'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 206 )
+                  NAME (T,03) = 'Hg_atl'
+                  FNAME(T,03) = 'Hg Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 207 )
+                  NAME (T,03) = 'Hg_nat'
+                  FNAME(T,03) = 'Hg North Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 208 )
+                  NAME (T,03) = 'Hg_sat'
+                  FNAME(T,03) = 'Hg South Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 209 )
+                  NAME (T,03) = 'Hg_npa'
+                  FNAME(T,03) = 'Hg North Pacific'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 210 )
+                  NAME (T,03) = 'Hg_arc'
+                  FNAME(T,03) = 'Hg Arctic'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 211 )
+                  NAME (T,03) = 'Hg_ant'
+                  FNAME(T,03) = 'Hg Antarctica'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 212 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Other Ocean'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE( 213 )
+                  NAME (T,03) = 'Hg_str'
+                  FNAME(T,03) = 'Hg Residual Stratosphere'
+                  INDEX(T,03) = N + ( SPACING * 77 )
+              CASE DEFAULT
+            END SELECT
+         ENDDO
+
+
+         !-------------!
+         ! HG0-SNOW    !
+         !-------------!
+
+         ! Loop over tracers
+         DO N = 1, N_Hg_CATS
+
+         T = N + 10 + (7D0 * N_Hg_CATS)
+
+            ! Get name and long name for each tracer
+            SELECT CASE( T )
+              CASE( 214 )
+                  NAME (T,03) = 'Hg0'
+                  FNAME(T,03) = 'Hg0'
+                  INDEX(T,03) = N + ( SPACING * 78 ) 
+              CASE( 215 )
+                  NAME (T,03) = 'Hg_can'
+                  FNAME(T,03) = 'Hg Canada'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 216 )
+                  NAME (T,03) = 'Hg_usa'
+                  FNAME(T,03) = 'Hg USA'
+                  INDEX(T,03) = N + ( SPACING * 78 ) 
+              CASE( 217 )
+                  NAME (T,03) = 'Hg_cam'
+                  FNAME(T,03) = 'Hg Central America'
+                  INDEX(T,03) = N + ( SPACING * 78 )  
+              CASE( 218 )
+                  NAME (T,03) = 'Hg_sam'
+                  FNAME(T,03) = 'Hg South American'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 219 )
+                  NAME (T,03) = 'Hg_waf'
+                  FNAME(T,03) = 'Hg West Africa'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 220 )
+                  NAME (T,03) = 'Hg_eaf'
+                  FNAME(T,03) = 'Hg East Africa'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 221 )
+                  NAME (T,03) = 'Hg_saf'
+                  FNAME(T,03) = 'Hg South Africa'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 222 )
+                  NAME (T,03) = 'Hg_naf'
+                  FNAME(T,03) = 'Hg North Africa'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 223 )
+                  NAME (T,03) = 'Hg_eur'
+                  FNAME(T,03) = 'Hg OECD Europe'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 224 )
+                  NAME (T,03) = 'Hg_eeu'
+                  FNAME(T,03) = 'Hg Eastern Europe'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 225 )
+                  NAME (T,03) = 'Hg_sov'
+                  FNAME(T,03) = 'Hg Former USSR'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 226 )
+                  NAME (T,03) = 'Hg_mde'
+                  FNAME(T,03) = 'Hg Middle East'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 227 )
+                  NAME (T,03) = 'Hg_sas'
+                  FNAME(T,03) = 'Hg South Asia'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 228 )
+                  NAME (T,03) = 'Hg_eas'
+                  FNAME(T,03) = 'Hg East Asia'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 229 )
+                  NAME (T,03) = 'Hg_sea'
+                  FNAME(T,03) = 'Hg Southeast Asia'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 230 )
+                  NAME (T,03) = 'Hg_jpn'
+                  FNAME(T,03) = 'Hg Japan'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 231 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Oceania'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 232 )
+                  NAME (T,03) = 'Hg_so'
+                  FNAME(T,03) = 'Hg Soil'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 233 )
+                  NAME (T,03) = 'Hg_bb'
+                  FNAME(T,03) = 'Hg Biomass Burning'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 234 )
+                  NAME (T,03) = 'Hg_geo'
+                  FNAME(T,03) = 'Hg Geogenic'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 235 )
+                  NAME (T,03) = 'Hg_atl'
+                  FNAME(T,03) = 'Hg Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 236 )
+                  NAME (T,03) = 'Hg_nat'
+                  FNAME(T,03) = 'Hg North Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 237 )
+                  NAME (T,03) = 'Hg_sat'
+                  FNAME(T,03) = 'Hg South Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 238 )
+                  NAME (T,03) = 'Hg_npa'
+                  FNAME(T,03) = 'Hg North Pacific'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 239 )
+                  NAME (T,03) = 'Hg_arc'
+                  FNAME(T,03) = 'Hg Arctic'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 240 )
+                  NAME (T,03) = 'Hg_ant'
+                  FNAME(T,03) = 'Hg Antarctica'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 241 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Other Ocean'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE( 242 )
+                  NAME (T,03) = 'Hg_str'
+                  FNAME(T,03) = 'Hg Residual Stratosphere'
+                  INDEX(T,03) = N + ( SPACING * 78 )
+              CASE DEFAULT
+            END SELECT
+         ENDDO
+
+
+         !-------------!
+         ! HG-NETOX    !
+         !-------------!
+
+         ! Loop over tracers
+         DO N = 1, N_Hg_CATS
+
+         T = N + 10 + (8D0 * N_Hg_CATS)
+
+            ! Get name and long name for each tracer
+            SELECT CASE( T )
+              CASE( 243 )
+                  NAME (T,03) = 'Hg0'
+                  FNAME(T,03) = 'Hg0'
+                  INDEX(T,03) = N + ( SPACING * 79 ) 
+              CASE( 244 )
+                  NAME (T,03) = 'Hg_can'
+                  FNAME(T,03) = 'Hg Canada'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 245 )
+                  NAME (T,03) = 'Hg_usa'
+                  FNAME(T,03) = 'Hg USA'
+                  INDEX(T,03) = N + ( SPACING * 79 ) 
+              CASE( 246 )
+                  NAME (T,03) = 'Hg_cam'
+                  FNAME(T,03) = 'Hg Central America'
+                  INDEX(T,03) = N + ( SPACING * 79 )  
+              CASE( 247 )
+                  NAME (T,03) = 'Hg_sam'
+                  FNAME(T,03) = 'Hg South American'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 248 )
+                  NAME (T,03) = 'Hg_waf'
+                  FNAME(T,03) = 'Hg West Africa'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 249 )
+                  NAME (T,03) = 'Hg_eaf'
+                  FNAME(T,03) = 'Hg East Africa'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 250 )
+                  NAME (T,03) = 'Hg_saf'
+                  FNAME(T,03) = 'Hg South Africa'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 251 )
+                  NAME (T,03) = 'Hg_naf'
+                  FNAME(T,03) = 'Hg North Africa'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 252 )
+                  NAME (T,03) = 'Hg_eur'
+                  FNAME(T,03) = 'Hg OECD Europe'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 253 )
+                  NAME (T,03) = 'Hg_eeu'
+                  FNAME(T,03) = 'Hg Eastern Europe'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 254 )
+                  NAME (T,03) = 'Hg_sov'
+                  FNAME(T,03) = 'Hg Former USSR'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 255 )
+                  NAME (T,03) = 'Hg_mde'
+                  FNAME(T,03) = 'Hg Middle East'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 256 )
+                  NAME (T,03) = 'Hg_sas'
+                  FNAME(T,03) = 'Hg South Asia'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 257 )
+                  NAME (T,03) = 'Hg_eas'
+                  FNAME(T,03) = 'Hg East Asia'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 258 )
+                  NAME (T,03) = 'Hg_sea'
+                  FNAME(T,03) = 'Hg Southeast Asia'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 259 )
+                  NAME (T,03) = 'Hg_jpn'
+                  FNAME(T,03) = 'Hg Japan'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 260 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Oceania'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 261 )
+                  NAME (T,03) = 'Hg_so'
+                  FNAME(T,03) = 'Hg Soil'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 262 )
+                  NAME (T,03) = 'Hg_bb'
+                  FNAME(T,03) = 'Hg Biomass Burning'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 263 )
+                  NAME (T,03) = 'Hg_geo'
+                  FNAME(T,03) = 'Hg Geogenic'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 264 )
+                  NAME (T,03) = 'Hg_atl'
+                  FNAME(T,03) = 'Hg Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 265 )
+                  NAME (T,03) = 'Hg_nat'
+                  FNAME(T,03) = 'Hg North Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 266 )
+                  NAME (T,03) = 'Hg_sat'
+                  FNAME(T,03) = 'Hg South Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 267 )
+                  NAME (T,03) = 'Hg_npa'
+                  FNAME(T,03) = 'Hg North Pacific'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 268 )
+                  NAME (T,03) = 'Hg_arc'
+                  FNAME(T,03) = 'Hg Arctic'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 269 )
+                  NAME (T,03) = 'Hg_ant'
+                  FNAME(T,03) = 'Hg Antarctica'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 270 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Other Ocean'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE( 271 )
+                  NAME (T,03) = 'Hg_str'
+                  FNAME(T,03) = 'Hg Residual Stratosphere'
+                  INDEX(T,03) = N + ( SPACING * 79 )
+              CASE DEFAULT
+            END SELECT
+         ENDDO
+
+
+         !-------------!
+         ! HG2-OXOH    !
+         !-------------!
+
+         T = 272
+         N = 1
+         SELECT CASE( T )
+           CASE( 272 )
+               NAME (T,03) = 'Hg2'
+               FNAME(T,03) = 'Hg2'
+               INDEX(T,03) = N + ( SPACING * 80 )          
+         END SELECT
+
+
+
+         !-------------!
+         ! HG2-OXO3    !
+         !-------------!
+
+         T = 273
+         N = 1
+         SELECT CASE( T )
+           CASE( 273 )
+               NAME (T,03) = 'Hg2'
+               FNAME(T,03) = 'Hg2'
+               INDEX(T,03) = N + ( SPACING * 81 )          
+         END SELECT
+
+
+
+         !-------------!
+         ! HG2-SALT    !
+         !-------------!
+
+         ! Loop over tracers
+         DO N = 1, N_Hg_CATS
+
+         T = N + 12 + (9D0 * N_Hg_CATS)
+
+            ! Get name and long name for each tracer
+            SELECT CASE( T )
+              CASE( 274 )
+                  NAME (T,03) = 'Hg2'
+                  FNAME(T,03) = 'Hg2'
+                  INDEX(T,03) = N + ( SPACING * 82 ) 
+              CASE( 275 )
+                  NAME (T,03) = 'Hg_can'
+                  FNAME(T,03) = 'Hg Canada'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 276 )
+                  NAME (T,03) = 'Hg_usa'
+                  FNAME(T,03) = 'Hg USA'
+                  INDEX(T,03) = N + ( SPACING * 82 ) 
+              CASE( 277 )
+                  NAME (T,03) = 'Hg_cam'
+                  FNAME(T,03) = 'Hg Central America'
+                  INDEX(T,03) = N + ( SPACING * 82 )  
+              CASE( 278 )
+                  NAME (T,03) = 'Hg_sam'
+                  FNAME(T,03) = 'Hg South American'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 279 )
+                  NAME (T,03) = 'Hg_waf'
+                  FNAME(T,03) = 'Hg West Africa'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 280 )
+                  NAME (T,03) = 'Hg_eaf'
+                  FNAME(T,03) = 'Hg East Africa'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 281 )
+                  NAME (T,03) = 'Hg_saf'
+                  FNAME(T,03) = 'Hg South Africa'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 282 )
+                  NAME (T,03) = 'Hg_naf'
+                  FNAME(T,03) = 'Hg North Africa'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 283 )
+                  NAME (T,03) = 'Hg_eur'
+                  FNAME(T,03) = 'Hg OECD Europe'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 284 )
+                  NAME (T,03) = 'Hg_eeu'
+                  FNAME(T,03) = 'Hg Eastern Europe'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 285 )
+                  NAME (T,03) = 'Hg_sov'
+                  FNAME(T,03) = 'Hg Former USSR'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 286 )
+                  NAME (T,03) = 'Hg_mde'
+                  FNAME(T,03) = 'Hg Middle East'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 287 )
+                  NAME (T,03) = 'Hg_sas'
+                  FNAME(T,03) = 'Hg South Asia'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 288 )
+                  NAME (T,03) = 'Hg_eas'
+                  FNAME(T,03) = 'Hg East Asia'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 289 )
+                  NAME (T,03) = 'Hg_sea'
+                  FNAME(T,03) = 'Hg Southeast Asia'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 290 )
+                  NAME (T,03) = 'Hg_jpn'
+                  FNAME(T,03) = 'Hg Japan'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 291 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Oceania'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 292 )
+                  NAME (T,03) = 'Hg_so'
+                  FNAME(T,03) = 'Hg Soil'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 293 )
+                  NAME (T,03) = 'Hg_bb'
+                  FNAME(T,03) = 'Hg Biomass Burning'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 294 )
+                  NAME (T,03) = 'Hg_geo'
+                  FNAME(T,03) = 'Hg Geogenic'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 295 )
+                  NAME (T,03) = 'Hg_atl'
+                  FNAME(T,03) = 'Hg Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 296 )
+                  NAME (T,03) = 'Hg_nat'
+                  FNAME(T,03) = 'Hg North Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 297 )
+                  NAME (T,03) = 'Hg_sat'
+                  FNAME(T,03) = 'Hg South Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 298 )
+                  NAME (T,03) = 'Hg_npa'
+                  FNAME(T,03) = 'Hg North Pacific'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 299 )
+                  NAME (T,03) = 'Hg_arc'
+                  FNAME(T,03) = 'Hg Arctic'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 300 )
+                  NAME (T,03) = 'Hg_ant'
+                  FNAME(T,03) = 'Hg Antarctica'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 301 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Other Ocean'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE( 302 )
+                  NAME (T,03) = 'Hg_str'
+                  FNAME(T,03) = 'Hg Residual Stratosphere'
+                  INDEX(T,03) = N + ( SPACING * 82 )
+              CASE DEFAULT
+            END SELECT
+         ENDDO
+
+
+         !-------------!
+         ! HG2-SSRX    !
+         !-------------!
+
+         ! Loop over tracers
+         DO N = 1, N_Hg_CATS
+
+         T = N + 12 + (10D0 * N_Hg_CATS)
+
+            ! Get name and long name for each tracer
+            SELECT CASE( T )
+              CASE( 303 )
+                  NAME (T,03) = 'Hg2'
+                  FNAME(T,03) = 'Hg2'
+                  INDEX(T,03) = N + ( SPACING * 83 ) 
+              CASE( 304 )
+                  NAME (T,03) = 'Hg_can'
+                  FNAME(T,03) = 'Hg Canada'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 305 )
+                  NAME (T,03) = 'Hg_usa'
+                  FNAME(T,03) = 'Hg USA'
+                  INDEX(T,03) = N + ( SPACING * 83 ) 
+              CASE( 306 )
+                  NAME (T,03) = 'Hg_cam'
+                  FNAME(T,03) = 'Hg Central America'
+                  INDEX(T,03) = N + ( SPACING * 83 )  
+              CASE( 307 )
+                  NAME (T,03) = 'Hg_sam'
+                  FNAME(T,03) = 'Hg South American'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 308 )
+                  NAME (T,03) = 'Hg_waf'
+                  FNAME(T,03) = 'Hg West Africa'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 309 )
+                  NAME (T,03) = 'Hg_eaf'
+                  FNAME(T,03) = 'Hg East Africa'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 310 )
+                  NAME (T,03) = 'Hg_saf'
+                  FNAME(T,03) = 'Hg South Africa'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 311 )
+                  NAME (T,03) = 'Hg_naf'
+                  FNAME(T,03) = 'Hg North Africa'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 312 )
+                  NAME (T,03) = 'Hg_eur'
+                  FNAME(T,03) = 'Hg OECD Europe'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 313 )
+                  NAME (T,03) = 'Hg_eeu'
+                  FNAME(T,03) = 'Hg Eastern Europe'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 314 )
+                  NAME (T,03) = 'Hg_sov'
+                  FNAME(T,03) = 'Hg Former USSR'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 315 )
+                  NAME (T,03) = 'Hg_mde'
+                  FNAME(T,03) = 'Hg Middle East'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 316 )
+                  NAME (T,03) = 'Hg_sas'
+                  FNAME(T,03) = 'Hg South Asia'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 317 )
+                  NAME (T,03) = 'Hg_eas'
+                  FNAME(T,03) = 'Hg East Asia'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 318 )
+                  NAME (T,03) = 'Hg_sea'
+                  FNAME(T,03) = 'Hg Southeast Asia'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 319 )
+                  NAME (T,03) = 'Hg_jpn'
+                  FNAME(T,03) = 'Hg Japan'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 320 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Oceania'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 321 )
+                  NAME (T,03) = 'Hg_so'
+                  FNAME(T,03) = 'Hg Soil'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 322 )
+                  NAME (T,03) = 'Hg_bb'
+                  FNAME(T,03) = 'Hg Biomass Burning'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 323 )
+                  NAME (T,03) = 'Hg_geo'
+                  FNAME(T,03) = 'Hg Geogenic'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 324 )
+                  NAME (T,03) = 'Hg_atl'
+                  FNAME(T,03) = 'Hg Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 325 )
+                  NAME (T,03) = 'Hg_nat'
+                  FNAME(T,03) = 'Hg North Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 326 )
+                  NAME (T,03) = 'Hg_sat'
+                  FNAME(T,03) = 'Hg South Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 327 )
+                  NAME (T,03) = 'Hg_npa'
+                  FNAME(T,03) = 'Hg North Pacific'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 328 )
+                  NAME (T,03) = 'Hg_arc'
+                  FNAME(T,03) = 'Hg Arctic'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 329 )
+                  NAME (T,03) = 'Hg_ant'
+                  FNAME(T,03) = 'Hg Antarctica'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 330 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Other Ocean'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE( 331 )
+                  NAME (T,03) = 'Hg_str'
+                  FNAME(T,03) = 'Hg Residual Stratosphere'
+                  INDEX(T,03) = N + ( SPACING * 83 )
+              CASE DEFAULT
+            END SELECT
+         ENDDO
+
+
+         !-------------!
+         ! HG2-OXBR    !
+         !-------------!
+
+         ! Loop over tracers
+         DO N = 1, N_Hg_CATS
+
+         T = N + 12 + (11D0 * N_Hg_CATS)
+
+            ! Get name and long name for each tracer
+            SELECT CASE( T )
+              CASE( 332 )
+                  NAME (T,03) = 'Hg2'
+                  FNAME(T,03) = 'Hg2'
+                  INDEX(T,03) = N + ( SPACING * 84 ) 
+              CASE( 333 )
+                  NAME (T,03) = 'Hg_can'
+                  FNAME(T,03) = 'Hg Canada'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 334 )
+                  NAME (T,03) = 'Hg_usa'
+                  FNAME(T,03) = 'Hg USA'
+                  INDEX(T,03) = N + ( SPACING * 84 ) 
+              CASE( 335 )
+                  NAME (T,03) = 'Hg_cam'
+                  FNAME(T,03) = 'Hg Central America'
+                  INDEX(T,03) = N + ( SPACING * 84 )  
+              CASE( 336 )
+                  NAME (T,03) = 'Hg_sam'
+                  FNAME(T,03) = 'Hg South American'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 337 )
+                  NAME (T,03) = 'Hg_waf'
+                  FNAME(T,03) = 'Hg West Africa'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 338 )
+                  NAME (T,03) = 'Hg_eaf'
+                  FNAME(T,03) = 'Hg East Africa'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 339 )
+                  NAME (T,03) = 'Hg_saf'
+                  FNAME(T,03) = 'Hg South Africa'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 340 )
+                  NAME (T,03) = 'Hg_naf'
+                  FNAME(T,03) = 'Hg North Africa'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 341 )
+                  NAME (T,03) = 'Hg_eur'
+                  FNAME(T,03) = 'Hg OECD Europe'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 342 )
+                  NAME (T,03) = 'Hg_eeu'
+                  FNAME(T,03) = 'Hg Eastern Europe'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 343 )
+                  NAME (T,03) = 'Hg_sov'
+                  FNAME(T,03) = 'Hg Former USSR'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 344 )
+                  NAME (T,03) = 'Hg_mde'
+                  FNAME(T,03) = 'Hg Middle East'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 345 )
+                  NAME (T,03) = 'Hg_sas'
+                  FNAME(T,03) = 'Hg South Asia'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 346 )
+                  NAME (T,03) = 'Hg_eas'
+                  FNAME(T,03) = 'Hg East Asia'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 347 )
+                  NAME (T,03) = 'Hg_sea'
+                  FNAME(T,03) = 'Hg Southeast Asia'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 348 )
+                  NAME (T,03) = 'Hg_jpn'
+                  FNAME(T,03) = 'Hg Japan'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 349 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Oceania'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 350 )
+                  NAME (T,03) = 'Hg_so'
+                  FNAME(T,03) = 'Hg Soil'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 351 )
+                  NAME (T,03) = 'Hg_bb'
+                  FNAME(T,03) = 'Hg Biomass Burning'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 352 )
+                  NAME (T,03) = 'Hg_geo'
+                  FNAME(T,03) = 'Hg Geogenic'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 353 )
+                  NAME (T,03) = 'Hg_atl'
+                  FNAME(T,03) = 'Hg Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 354 )
+                  NAME (T,03) = 'Hg_nat'
+                  FNAME(T,03) = 'Hg North Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 355 )
+                  NAME (T,03) = 'Hg_sat'
+                  FNAME(T,03) = 'Hg South Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 356 )
+                  NAME (T,03) = 'Hg_npa'
+                  FNAME(T,03) = 'Hg North Pacific'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 357 )
+                  NAME (T,03) = 'Hg_arc'
+                  FNAME(T,03) = 'Hg Arctic'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 358 )
+                  NAME (T,03) = 'Hg_ant'
+                  FNAME(T,03) = 'Hg Antarctica'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 359 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Other Ocean'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE( 360 )
+                  NAME (T,03) = 'Hg_str'
+                  FNAME(T,03) = 'Hg Residual Stratosphere'
+                  INDEX(T,03) = N + ( SPACING * 84 )
+              CASE DEFAULT
+            END SELECT
+         ENDDO
+
+
+         !-------------!
+         ! PL-HG2-$    !
+         !-------------!
+
+         T = 361
+         N = 1
+         SELECT CASE( T )
+           CASE( 361 )
+               NAME (T,03) = 'Br'
+               FNAME(T,03) = 'Br Concentration'
+               INDEX(T,03) = N + ( SPACING * 35 )
+         END SELECT
+
+
+         !-------------!
+         ! PL-HG2-$    !
+         !-------------!
+
+         T = 362
+         N = 2
+         SELECT CASE( T )
+           CASE( 362 )
+               NAME (T,03) = 'BrO'
+               FNAME(T,03) = 'BrO Concentration'
+               INDEX(T,03) = N + ( SPACING * 35 )
+         END SELECT
+
+
+       	 !-------------! 
+         ! OCEAN-HG    !
+       	 !-------------! 
+
+         ! Loop over tracers
+         DO N = 1, 87
+
+         T = N + 14 + (12D0 * N_HG_CATS)
+
+            ! Get name and long name for each tracer
+            SELECT CASE( T )
+              CASE( 363 )
+                  NAME (T,03) = 'Hg0'
+                  FNAME(T,03) = 'Hg0'
+                  INDEX(T,03) = N + ( SPACING * 41 )  !eds 9/9/10 
+              CASE( 364 )
+                  NAME (T,03) = 'Hg2'
+                  FNAME(T,03) = 'Hg2'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 365 )
+                  NAME (T,03) = 'HgP'
+                  FNAME(T,03) = 'HgP'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 366 )
+                  NAME (T,03) = 'Hg0_can'
+                  FNAME(T,03) = 'Hg0 Canada'
+       	       	  INDEX(T,03) =	N + ( SPACING *	41 )  
+              CASE( 367 )
+                  NAME (T,03) = 'Hg0_usa'
+                  FNAME(T,03) = 'Hg0 USA'
+                  INDEX(T,03) = N + ( SPACING * 41 ) 
+              CASE( 368 )
+                  NAME (T,03) = 'Hg0_cam'
+                  FNAME(T,03) = 'Hg0 Central America'
+                  INDEX(T,03) = N + ( SPACING * 41 )  
+              CASE( 369 )
+                  NAME (T,03) = 'Hg0_sam'
+                  FNAME(T,03) = 'Hg0 South American'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 370 )
+                  NAME (T,03) = 'Hg0_waf'
+                  FNAME(T,03) = 'Hg0 West Africa'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 371 )
+                  NAME (T,03) = 'Hg0_eaf'
+                  FNAME(T,03) = 'Hg0 East Africa'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 372 )
+                  NAME (T,03) = 'Hg0_saf'
+                  FNAME(T,03) = 'Hg0 South Africa'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 373 )
+                  NAME (T,03) = 'Hg0_naf'
+                  FNAME(T,03) = 'Hg0 North Africa'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 374 )
+                  NAME (T,03) = 'Hg0_eur'
+                  FNAME(T,03) = 'Hg0 OECD Europe'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 375 )
+                  NAME (T,03) = 'Hg0_eeu'
+                  FNAME(T,03) = 'Hg0 Eastern Europe'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 376 )
+                  NAME (T,03) = 'Hg0_sov'
+                  FNAME(T,03) = 'Hg0 Former USSR'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 377 )
+                  NAME (T,03) = 'Hg0_mde'
+                  FNAME(T,03) = 'Hg0 Middle East'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 378 )
+                  NAME (T,03) = 'Hg0_sas'
+                  FNAME(T,03) = 'Hg0 South Asia'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 379 )
+                  NAME (T,03) = 'Hg0_eas'
+                  FNAME(T,03) = 'Hg0 East Asia'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 380 )
+                  NAME (T,03) = 'Hg0_sea'
+                  FNAME(T,03) = 'Hg0 Southeast Asia'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 381 )
+                  NAME (T,03) = 'Hg0_jpn'
+                  FNAME(T,03) = 'Hg0 Japan'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 382 )
+                  NAME (T,03) = 'Hg0_ocn'
+                  FNAME(T,03) = 'Hg0 Oceania'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 383 )
+                  NAME (T,03) = 'Hg0_so'
+                  FNAME(T,03) = 'Hg0 Soil'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 384 )
+                  NAME (T,03) = 'Hg0_bb'
+                  FNAME(T,03) = 'Hg0 Biomass Burning'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 385 )
+                  NAME (T,03) = 'Hg0_geo'
+                  FNAME(T,03) = 'Hg0 Geogenic'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 386 )
+                  NAME (T,03) = 'Hg0_atl'
+                  FNAME(T,03) = 'Hg0 Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 387 )
+                  NAME (T,03) = 'Hg0_nat'
+                  FNAME(T,03) = 'Hg0 North Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 388 )
+                  NAME (T,03) = 'Hg0_sat'
+                  FNAME(T,03) = 'Hg0 South Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 389 )
+                  NAME (T,03) = 'Hg0_npa'
+                  FNAME(T,03) = 'Hg0 North Pacific'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 390 )
+                  NAME (T,03) = 'Hg0_arc'
+                  FNAME(T,03) = 'Hg0 Arctic'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 391 )
+                  NAME (T,03) = 'Hg0_ant'
+                  FNAME(T,03) = 'Hg0 Antarctica'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 392 )
+                  NAME (T,03) = 'Hg0_ocn'
+                  FNAME(T,03) = 'Hg0 Other Ocean'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 393 )
+                  NAME (T,03) = 'Hg0_str'
+                  FNAME(T,03) = 'Hg0 Residual Stratosphere'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 394 )
+                  NAME (T,03) = 'Hg2_can'
+                  FNAME(T,03) = 'Hg2 Canada'
+       	       	  INDEX(T,03) =	N + ( SPACING *	41 )  
+              CASE( 395 )
+                  NAME (T,03) = 'Hg2_usa'
+                  FNAME(T,03) = 'Hg2 USA'
+                  INDEX(T,03) = N + ( SPACING * 41 ) 
+              CASE( 396 )
+                  NAME (T,03) = 'Hg2_cam'
+                  FNAME(T,03) = 'Hg2 Central America'
+                  INDEX(T,03) = N + ( SPACING * 41 )  
+              CASE( 397 )
+                  NAME (T,03) = 'Hg2_sam'
+                  FNAME(T,03) = 'Hg2 South American'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 398 )
+                  NAME (T,03) = 'Hg2_waf'
+                  FNAME(T,03) = 'Hg2 West Africa'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 399 )
+                  NAME (T,03) = 'Hg2_eaf'
+                  FNAME(T,03) = 'Hg2 East Africa'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 400 )
+                  NAME (T,03) = 'Hg2_saf'
+                  FNAME(T,03) = 'Hg2 South Africa'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 401 )
+                  NAME (T,03) = 'Hg2_naf'
+                  FNAME(T,03) = 'Hg2 North Africa'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 402 )
+                  NAME (T,03) = 'Hg2_eur'
+                  FNAME(T,03) = 'Hg2 OECD Europe'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 403 )
+                  NAME (T,03) = 'Hg2_eeu'
+                  FNAME(T,03) = 'Hg2 Eastern Europe'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 404 )
+                  NAME (T,03) = 'Hg2_sov'
+                  FNAME(T,03) = 'Hg2 Former USSR'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 405 )
+                  NAME (T,03) = 'Hg2_mde'
+                  FNAME(T,03) = 'Hg2 Middle East'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 406 )
+                  NAME (T,03) = 'Hg2_sas'
+                  FNAME(T,03) = 'Hg2 South Asia'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 407 )
+                  NAME (T,03) = 'Hg2_eas'
+                  FNAME(T,03) = 'Hg2 East Asia'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 408 )
+                  NAME (T,03) = 'Hg2_sea'
+                  FNAME(T,03) = 'Hg2 Southeast Asia'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 409 )
+                  NAME (T,03) = 'Hg2_jpn'
+                  FNAME(T,03) = 'Hg2 Japan'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 410 )
+                  NAME (T,03) = 'Hg2_ocn'
+                  FNAME(T,03) = 'Hg2 Oceania'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 411 )
+                  NAME (T,03) = 'Hg2_so'
+                  FNAME(T,03) = 'Hg2 Soil'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 412 )
+                  NAME (T,03) = 'Hg2_bb'
+                  FNAME(T,03) = 'Hg2 Biomass Burning'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 413 )
+                  NAME (T,03) = 'Hg2_geo'
+                  FNAME(T,03) = 'Hg2 Geogenic'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 414 )
+                  NAME (T,03) = 'Hg2_atl'
+                  FNAME(T,03) = 'Hg2 Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 415 )
+                  NAME (T,03) = 'Hg2_nat'
+                  FNAME(T,03) = 'Hg2 North Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 416 )
+                  NAME (T,03) = 'Hg2_sat'
+                  FNAME(T,03) = 'Hg2 South Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 417 )
+                  NAME (T,03) = 'Hg2_npa'
+                  FNAME(T,03) = 'Hg2 North Pacific'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 418 )
+                  NAME (T,03) = 'Hg2_arc'
+                  FNAME(T,03) = 'Hg2 Arctic'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 419 )
+                  NAME (T,03) = 'Hg2_ant'
+                  FNAME(T,03) = 'Hg2 Antarctica'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 420 )
+                  NAME (T,03) = 'Hg2_ocn'
+                  FNAME(T,03) = 'Hg2 Other Ocean'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 421 )
+                  NAME (T,03) = 'Hg2_str'
+                  FNAME(T,03) = 'Hg2 Residual Stratosphere'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 422 )
+                  NAME (T,03) = 'HgP_can'
+                  FNAME(T,03) = 'HgP Canada'
+       	       	  INDEX(T,03) =	N + ( SPACING *	41 )  
+              CASE( 423 )
+                  NAME (T,03) = 'HgP_usa'
+                  FNAME(T,03) = 'HgP USA'
+                  INDEX(T,03) = N + ( SPACING * 41 ) 
+              CASE( 424 )
+                  NAME (T,03) = 'HgP_cam'
+                  FNAME(T,03) = 'HgP Central America'
+                  INDEX(T,03) = N + ( SPACING * 41 )  
+              CASE( 425 )
+                  NAME (T,03) = 'HgP_sam'
+                  FNAME(T,03) = 'HgP South American'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 426 )
+                  NAME (T,03) = 'HgP_waf'
+                  FNAME(T,03) = 'HgP West Africa'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 427 )
+                  NAME (T,03) = 'HgP_eaf'
+                  FNAME(T,03) = 'HgP East Africa'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 428 )
+                  NAME (T,03) = 'HgP_saf'
+                  FNAME(T,03) = 'HgP South Africa'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 429 )
+                  NAME (T,03) = 'HgP_naf'
+                  FNAME(T,03) = 'HgP North Africa'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 430 )
+                  NAME (T,03) = 'HgP_eur'
+                  FNAME(T,03) = 'HgP OECD Europe'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 431 )
+                  NAME (T,03) = 'HgP_eeu'
+                  FNAME(T,03) = 'HgP Eastern Europe'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 432 )
+                  NAME (T,03) = 'HgP_sov'
+                  FNAME(T,03) = 'HgP Former USSR'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 433 )
+                  NAME (T,03) = 'HgP_mde'
+                  FNAME(T,03) = 'HgP Middle East'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 434 )
+                  NAME (T,03) = 'HgP_sas'
+                  FNAME(T,03) = 'HgP South Asia'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 435 )
+                  NAME (T,03) = 'HgP_eas'
+                  FNAME(T,03) = 'HgP East Asia'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 436 )
+                  NAME (T,03) = 'HgP_sea'
+                  FNAME(T,03) = 'HgP Southeast Asia'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 437 )
+                  NAME (T,03) = 'HgP_jpn'
+                  FNAME(T,03) = 'HgP Japan'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 438 )
+                  NAME (T,03) = 'HgP_ocn'
+                  FNAME(T,03) = 'HgP Oceania'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 439 )
+                  NAME (T,03) = 'HgP_so'
+                  FNAME(T,03) = 'HgP Soil'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 440 )
+                  NAME (T,03) = 'HgP_bb'
+                  FNAME(T,03) = 'HgP Biomass Burning'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 441 )
+                  NAME (T,03) = 'HgP_geo'
+                  FNAME(T,03) = 'HgP Geogenic'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 442 )
+                  NAME (T,03) = 'HgP_atl'
+                  FNAME(T,03) = 'HgP Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 443 )
+                  NAME (T,03) = 'HgP_nat'
+                  FNAME(T,03) = 'HgP North Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 444 )
+                  NAME (T,03) = 'HgP_sat'
+                  FNAME(T,03) = 'HgP South Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 445 )
+                  NAME (T,03) = 'HgP_npa'
+                  FNAME(T,03) = 'HgP North Pacific'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 446 )
+                  NAME (T,03) = 'HgP_arc'
+                  FNAME(T,03) = 'HgP Arctic'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 447 )
+                  NAME (T,03) = 'HgP_ant'
+                  FNAME(T,03) = 'HgP Antarctica'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 448 )
+                  NAME (T,03) = 'HgP_ocn'
+                  FNAME(T,03) = 'HgP Other Ocean'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE( 449 )
+                  NAME (T,03) = 'HgP_str'
+                  FNAME(T,03) = 'HgP Residual Stratosphere'
+                  INDEX(T,03) = N + ( SPACING * 41 )
+              CASE DEFAULT
+            END SELECT
+         ENDDO
+
+
+       	 !-------------! 
+         ! SNOW-HG     !
+       	 !-------------! 
+
+         ! Loop over tracers
+         DO N = 1, 31
+
+         T = N + 14 + (15D0 * N_HG_CATS)
+
+            ! Get name and long name for each tracer
+            SELECT CASE( T )
+              CASE( 450 )
+                  NAME (T,03) = 'Hg0'
+                  FNAME(T,03) = 'Hg0'
+                  INDEX(T,03) = N + ( SPACING * 49 )  !eds 9/9/10 
+              CASE( 451 )
+                  NAME (T,03) = 'Hg2'
+                  FNAME(T,03) = 'Hg2'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 452 )
+                  NAME (T,03) = 'HgP'
+                  FNAME(T,03) = 'HgP'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 453 )
+                  NAME (T,03) = 'Hg_can'
+                  FNAME(T,03) = 'Hg Canada'
+       	       	  INDEX(T,03) =	N + ( SPACING *	49 )  
+              CASE( 454 )
+                  NAME (T,03) = 'Hg_usa'
+                  FNAME(T,03) = 'Hg USA'
+                  INDEX(T,03) = N + ( SPACING * 49 ) 
+              CASE( 455 )
+                  NAME (T,03) = 'Hg_cam'
+                  FNAME(T,03) = 'Hg Central America'
+                  INDEX(T,03) = N + ( SPACING * 49 )  
+              CASE( 456 )
+                  NAME (T,03) = 'Hg_sam'
+                  FNAME(T,03) = 'Hg South American'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 457 )
+                  NAME (T,03) = 'Hg_waf'
+                  FNAME(T,03) = 'Hg West Africa'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 458 )
+                  NAME (T,03) = 'Hg_eaf'
+                  FNAME(T,03) = 'Hg East Africa'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 459 )
+                  NAME (T,03) = 'Hg_saf'
+                  FNAME(T,03) = 'Hg South Africa'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 460 )
+                  NAME (T,03) = 'Hg_naf'
+                  FNAME(T,03) = 'Hg North Africa'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 461 )
+                  NAME (T,03) = 'Hg_eur'
+                  FNAME(T,03) = 'Hg OECD Europe'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 462 )
+                  NAME (T,03) = 'Hg_eeu'
+                  FNAME(T,03) = 'Hg Eastern Europe'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 463 )
+                  NAME (T,03) = 'Hg_sov'
+                  FNAME(T,03) = 'Hg Former USSR'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 464 )
+                  NAME (T,03) = 'Hg_mde'
+                  FNAME(T,03) = 'Hg Middle East'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 465 )
+                  NAME (T,03) = 'Hg_sas'
+                  FNAME(T,03) = 'Hg South Asia'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 466 )
+                  NAME (T,03) = 'Hg_eas'
+                  FNAME(T,03) = 'Hg East Asia'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 467 )
+                  NAME (T,03) = 'Hg_sea'
+                  FNAME(T,03) = 'Hg Southeast Asia'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 468 )
+                  NAME (T,03) = 'Hg_jpn'
+                  FNAME(T,03) = 'Hg Japan'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 469 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Oceania'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 470 )
+                  NAME (T,03) = 'Hg_so'
+                  FNAME(T,03) = 'Hg Soil'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 471 )
+                  NAME (T,03) = 'Hg_bb'
+                  FNAME(T,03) = 'Hg Biomass Burning'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 472 )
+                  NAME (T,03) = 'Hg_geo'
+                  FNAME(T,03) = 'Hg Geogenic'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 473 )
+                  NAME (T,03) = 'Hg_atl'
+                  FNAME(T,03) = 'Hg Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 474 )
+                  NAME (T,03) = 'Hg_nat'
+                  FNAME(T,03) = 'Hg North Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 475 )
+                  NAME (T,03) = 'Hg_sat'
+                  FNAME(T,03) = 'Hg South Atlantic'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 476 )
+                  NAME (T,03) = 'Hg_npa'
+                  FNAME(T,03) = 'Hg North Pacific'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 477 )
+                  NAME (T,03) = 'Hg_arc'
+                  FNAME(T,03) = 'Hg Arctic'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 478 )
+                  NAME (T,03) = 'Hg_ant'
+                  FNAME(T,03) = 'Hg Antarctica'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 479 )
+                  NAME (T,03) = 'Hg_ocn'
+                  FNAME(T,03) = 'Hg Other Ocean'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE( 480 )
+                  NAME (T,03) = 'Hg_str'
+                  FNAME(T,03) = 'Hg Residual Stratosphere'
+                  INDEX(T,03) = N + ( SPACING * 49 )
+              CASE DEFAULT
+            END SELECT
+         ENDDO
+
+      ENDIF ! LSPLIT
+
 
       !-------------------------------------
       ! CO2 sources & fluxes
@@ -3550,6 +6073,72 @@ c$$$            ENDDO
          MOLC (T,52) = 1
          MWT  (T,52) = 0e0
          SCALE(T,52) = 1e0
+      ENDIF
+
+
+      !-----------------------------------
+      ! POPS (ND53) clf (03/22/11)
+      !-----------------------------------
+      IF ( ND53 > 0 ) THEN
+         NTRAC(53)  = PD53
+
+         ! Loop over tracers
+         DO T = 1, PD53
+
+            ! Define quantities
+            UNIT (T,53) = 'kg'
+            MOLC (T,53) = 1
+            MWT  (T,53) = GET_POP_XMW(DUM)
+            SCALE(T,53) = 1e0
+
+            ! Get name, long-name, index, and new units
+            SELECT CASE( T )
+               CASE( 1  )
+                  NAME (T,53) = 'POPT'
+                  FNAME(T,53) = 'POP total emissions'
+                  INDEX(T,53) = T + ( SPACING * 52 )
+               CASE( 2  )
+                  NAME (T,53) = 'POPPOC'
+                  FNAME(T,53) = 'POPPOC emissions'
+                  INDEX(T,53) = T + ( SPACING * 52 )
+               CASE( 3  )
+                  NAME (T,53) = 'POPPBC'
+                  FNAME(T,53) = 'POPPBC emissions'
+                  INDEX(T,53) = T + ( SPACING * 52 )
+               CASE( 4  )
+                  NAME (T,53) = 'POPG'
+                  FNAME(T,53) = 'POPG emissions'
+                  INDEX(T,53) = T + ( SPACING * 52 )
+               CASE( 5  )
+                  NAME (T,53) = 'POPPOC'
+                  FNAME(T,53) = 'Gross POPPOC lost to gas'
+                  INDEX(T,53) = T + ( SPACING * 53 )
+               CASE( 6  )
+                  NAME (T,53) = 'POPPOC'
+                  FNAME(T,53) = 'Gross POPPOC formed from gas'
+                  INDEX(T,53) = T + ( SPACING * 53 )
+               CASE( 7  )
+                  NAME (T,53) = 'POPPBC'
+                  FNAME(T,53) = 'Gross POPPBC lost to gas'
+                  INDEX(T,53) = T + ( SPACING * 53 )
+               CASE( 8  )
+                  NAME (T,53) = 'POPPBC'
+                  FNAME(T,53) = 'Gross POPPBC formed from gas'
+                  INDEX(T,53) = T + ( SPACING * 53 )
+               CASE( 9  )
+                  NAME (T,53) = 'POPG'
+                  FNAME(T,53) = 'POPG oxidized by OH'
+                  INDEX(T,53) = T + ( SPACING * 53 )
+               CASE( 10  )
+                  NAME (T,53) = 'POPPOC'
+                  FNAME(T,53) = 'POPPOC oxidized by O3'
+                  INDEX(T,53) = T + ( SPACING * 53 )
+               CASE( 11  )
+                  NAME (T,53) = 'POPPBC'
+                  FNAME(T,53) = 'POPPBC oxidized by O3'
+                  INDEX(T,53) = T + ( SPACING * 53 )
+            END SELECT
+         ENDDO
       ENDIF
 
       !-------------------------------------      

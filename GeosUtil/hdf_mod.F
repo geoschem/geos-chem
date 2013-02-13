@@ -123,6 +123,9 @@
 !  21 Dec 2009 - R. Yantosca      - Updated comments
 !  01 Mar 2012 - R. Yantosca      - Now use GET_XMID(I,J,L), GET_YMID(I,J,L)
 !                                   from the new grid_mod.F90
+!  17 Oct 2012 - M. Payer         - Bug fix: Reorder indices for GET_YMID,
+!                                   otherwise LAT variable in HDF files will
+!                                   be wrong (S. Philip)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -152,7 +155,7 @@
       ENDDO
 
       DO J = 0, NJ-1
-         LAT(J+1) = GET_YMID(J+JMIN,1,1)
+         LAT(J+1) = GET_YMID(1,J+JMIN,1)
       ENDDO
 
       DO I = 1,2
@@ -306,6 +309,8 @@
 !                                   so that users w/o HDF5 library can still
 !                                   compile & run GEOS-Chem
 !  21 Dec 2009 - R. Yantosca      - Updated comments
+!  17 Oct 2012 - M. Payer         - Add PBLDEPTH to fix bad HDF category error
+!                                   (S. Philip, A. van Donkelaar)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -359,6 +364,21 @@
          GAMAPI2 = 68
       ELSEIF ( NDCATEGORY .eq. 'DAO-3D-$' ) THEN
          GAMAPI2 = 66
+      ELSEIF ( NDCATEGORY .eq. 'PBLDEPTH' ) THEN
+         GAMAPI2 = 32
+         HDFNAME(1,GAMAPI2) = 'PBL-HGHT-M'
+         HDFFNAME(1,GAMAPI2) = 'Planetary Boundary Layer Height [m]'
+         HDFUNIT(1,GAMAPI2) = 'm'
+         HDFMOLC(1,GAMAPI2) = 1
+         HDFMWT(1,GAMAPI2) = 0
+         HDFSCALE(1,GAMAPI2) = 1
+
+         HDFNAME(2,GAMAPI2) = 'PBL-HGHT-L'
+         HDFFNAME(2,GAMAPI2) = 'Planetary Boundary Layer Height [lvl]'
+         HDFUNIT(2,GAMAPI2) = 'level'
+         HDFMOLC(2,GAMAPI2) = 1
+         HDFMWT(2,GAMAPI2) = 0
+         HDFSCALE(2,GAMAPI2) = 1
       ELSEIF ( NDCATEGORY .eq. 'OD-MAP-$' ) THEN
          GAMAPI2 = 21
       ELSEIF ( NDCATEGORY .eq. 'PEDGE-$' ) THEN
@@ -376,7 +396,7 @@
       ENDIF
 
       IF (GAMAPI2 .eq. 0) THEN
-         PRINT*, 'BAD HDF CATEGORY 2'
+         PRINT*, 'BAD HDF CATEGORY 2:', NDCATEGORY
          CALL FLUSH(6)
       ENDIF
 

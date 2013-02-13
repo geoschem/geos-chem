@@ -31,37 +31,9 @@
 ! !PUBLIC TYPES:
 ! 
       !-----------------------------------------------------------------
-      ! ID flags for SMVGEAR species
-      !-----------------------------------------------------------------
-      TYPE :: ID_SPEC
-         INTEGER          :: A3O2,    ACET,    ACTA,    ALD2,    ALK4
-         INTEGER          :: ATO2,    B3O2,    C2H6,    C3H8,    CH2O
-         INTEGER          :: CH4,     CO,      CO2,     DMS,     DRYCH2O
-         INTEGER          :: DRYDEP,  DRYH2O2, DRYHNO3, DRYN2O5, DRYNO2
-         INTEGER          :: DRYO3,   DRYPAN,  DRYPMN,  DRYPPN,  DRYR4N2
-         INTEGER          :: EMISSION,EOH,     ETO2,    ETP,     GCO3
-         INTEGER          :: GLCO3,   GLP,     GLPAN,   GLYC,    GLYX
-         INTEGER          :: GP,      GPAN,    H,       H2,      H2O
-         INTEGER          :: H2O2,    HAC,     HCOOH,   HNO2,    HNO3
-         INTEGER          :: HNO4,    HO2,     IALD,    IAO2,    IAP
-         INTEGER          :: INO2,    INPN,    ISN1,    ISNO3,   ISNP
-         INTEGER          :: ISOP,    KO2,     LISOPOH, M,       MACR
-         INTEGER          :: MAN2,    MAO3,    MAOP,    MAP,     MCO3
-         INTEGER          :: MEK,     MGLY,    MNO3,    MO2,     MOH
-         INTEGER          :: MP,      MRO2,    MRP,     MSA,     MVK
-         INTEGER          :: MVN2,    N2,      N2O,     N2O5,    NH2
-         INTEGER          :: NH3,     NO,      NO2,     NO3,     O       
-         INTEGER          :: O1D,     O2,      O2CH2OH, O3,      OH
-         INTEGER          :: PAN,     PMN,     PO2,     PP,      PPN
-         INTEGER          :: PRN1,    PRPE,    PRPN,    R4N1,    R4N2    
-         INTEGER          :: R4O2,    R4P,     RA3P,    RB3P,    RCHO
-         INTEGER          :: RCO3,    RCOOH,   RIO1,    RIO2,    RIP
-         INTEGER          :: ROH,     RP,      SO2,     SO4,     VRO2
-         INTEGER          :: VRP
-      END TYPE ID_SPEC
-
-      !-----------------------------------------------------------------
       ! ID flags for advected tracers
+      ! NOTE: This is a holdover from the column code and is presently
+      ! only used in convection_mod.F (bmy, 10/22/12)
       !-----------------------------------------------------------------
       TYPE :: ID_TRAC
          INTEGER          :: NOx,     Ox,      PAN,     CO,      ALK4  
@@ -90,33 +62,6 @@
          REAL*8,  POINTER :: MOLWT_KG(:)
          REAL*8,  POINTER :: XNUMOL(:)
       END TYPE SPEC_2_TRAC
-
-      !-----------------------------------------------------------------
-      ! ID flags for advected tracers that dry deposit
-      !-----------------------------------------------------------------
-      TYPE :: ID_DRYD
-         INTEGER          :: NOx,     Ox,      PAN,     HNO3,    H2O2
-         INTEGER          :: PMN,     PPN,     R4N2,    CH2O,    N2O5
-         INTEGER          :: SO2,     SO4,     SO4s,    MSA,     NH3
-         INTEGER          :: NH4,     NIT,     NITs,    BCPI,    BCPO
-         INTEGER          :: OCPI,    OCPO,    ALPH,    LIMO,    ALCO
-         INTEGER          :: SOG1,    SOG2,    SOG3,    SOG4,    SOA1
-         INTEGER          :: SOA2,    SOA3,    SOA4,    DST1,    DST2
-         INTEGER          :: DST3,    DST4,    SALA,    SALC
-      END TYPE ID_DRYD
-
-      !-----------------------------------------------------------------
-      ! ID flags for advected tracers that wet deposit
-      !-----------------------------------------------------------------
-      TYPE :: ID_WETD
-         INTEGER          :: HNO3,    H2O2,    CH2O,    MP  
-         INTEGER          :: SO2,     SO4,     SO4s,    MSA,     NH3
-         INTEGER          :: NH4,     NIT,     NITs,    BCPI,    OCPI
-         INTEGER          :: BCPO,    OCPO,    ALPH,    LIMO,    ALCO
-         INTEGER          :: SOG1,    SOG2,    SOG3,    SOG4,    SOA1
-         INTEGER          :: SOA2,    SOA3,    SOA4,    DST1,    DST2
-         INTEGER          :: DST3,    DST4,    SALA,    SALC
-      END TYPE ID_WETD
 
       !-----------------------------------------------------------------
       ! Logical flags that turn various options on/off
@@ -202,57 +147,6 @@
       END TYPE GC_DIMS
 
       !-----------------------------------------------------------------
-      ! Column met fields
-      !-----------------------------------------------------------------
-      TYPE :: GC_MET_LOCAL
-! 2-D Arrays
-         REAL*8, POINTER :: ALBD(:,:)   ! Visible surface albedo [unitless]
-         REAL*8, POINTER :: CLDFRC(:,:) ! Column cloud fraction [unitless]
-         REAL*8, POINTER :: FRCLND(:,:) ! Olson land fraction [unitless]
-         REAL*8, POINTER :: GWETTOP(:,:)! Top soil moisture [unitless]
-         REAL*8, POINTER :: HFLUX(:,:)  ! Sensible heat flux [W/m2]
-         REAL*8, POINTER :: LWI(:,:)    ! Land/water indices [unitless]
-         REAL*8, POINTER :: PARDR(:,:)  ! Direct  photsyn active rad [W/m2]
-         REAL*8, POINTER :: PARDF(:,:)  ! Diffuse photsyn active rad [W/m2]
-         REAL*8, POINTER :: PBLH(:,:)   ! PBL height [m]
-         REAL*8, POINTER :: PRECCON(:,:)! Conv  precip @ ground [kg/m2/s]
-         REAL*8, POINTER :: PRECTOT(:,:)! Total precip @ ground [kg/m2/s]
-         REAL*8, POINTER :: RADSWG(:,:) ! Solar radiation @ ground [W/m2]
-         REAL*8, POINTER :: SST(:,:)    ! Sea surface temperature [K]
-         REAL*8, POINTER :: SUNCOS(:)   ! Cosine of solar zenith angle
-         REAL*8, POINTER :: TO3(:,:)    ! Total overhead O3 column [DU]
-         REAL*8, POINTER :: TROPP(:,:)  ! Tropopause pressure [hPa]
-         REAL*8, POINTER :: TS(:,:)     ! Surface temperature [K]
-         REAL*8, POINTER :: U10M(:,:)   ! E/W wind speed @ 10m height [m/s]
-         REAL*8, POINTER :: USTAR(:,:)  ! Friction velocity [m/s]
-         REAL*8, POINTER :: UVALBEDO(:,:)! UV surface albedo [unitless]
-         REAL*8, POINTER :: V10M(:,:)   ! N/S wind speed @ 10m height [m/s]
-         REAL*8, POINTER :: Z0(:,:)     ! Surface roughness height [m]
-! 3-D Arrays
-         REAL*8, POINTER :: AD(:,:,:)        ! Air mass [kg]
-         REAL*8, POINTER :: AIRDENS(:,:,:)   ! Air density [kg/m3]
-         REAL*8, POINTER :: AIRVOL(:,:,:)    ! Grid box volume [m3]
-         REAL*8, POINTER :: AREA_M2(:,:,:)   ! Grid box surface area [cm2]
-         REAL*8, POINTER :: BXHEIGHT(:,:,:)  ! Grid box height [m]
-         REAL*8, POINTER :: CLDF(:,:,:)      ! 3-D cloud fraction [unitless]
-         REAL*8, POINTER :: CMFMC(:,:,:)     ! Cloud mass flux [kg/m2/s]
-         REAL*8, POINTER :: DQIDTMST(:,:,:)  ! Ice tendency, mst proc [kg/kg/s]
-         REAL*8, POINTER :: DQLDTMST(:,:,:)  ! H2O tendency, mst proc [kg/kg/s]
-         REAL*8, POINTER :: DQVDTMST(:,:,:)  ! Vapor tendency, mst proc [kg/kg/s]
-         REAL*8, POINTER :: DTRAIN(:,:,:)    ! Detrainment flux [kg/m2/s]
-         REAL*8, POINTER :: MOISTQ(:,:,:)    ! Tendency in sp. humidity [kg/kg/s]
-         REAL*8, POINTER :: OPTD(:,:,:)      ! Visible optical depth [unitless]
-         REAL*8, POINTER :: PEDGE(:,:,:)     ! Pressure @ level edges [Pa]
-         REAL*8, POINTER :: PMID(:,:,:)      ! Pressure @ level centers [Pa]
-         REAL*8, POINTER :: DELP(:,:,:)      ! Delta-P extent  of a grid box [mb]
-         REAL*8, POINTER :: RH(:,:,:)        ! Relative humidity [unitless]
-         REAL*8, POINTER :: SPHU(:,:,:)      ! Specific humidity [kg/kg]
-         REAL*8, POINTER :: T(:,:,:)         ! Temperature [K]
-         REAL*8, POINTER :: TAUCLI(:,:,:)    ! Opt depth of ice clouds [unitless]
-         REAL*8, POINTER :: TAUCLW(:,:,:)    ! Opt depth of H2O clouds [unitless]
-      END TYPE GC_MET_LOCAL
-
-      !-----------------------------------------------------------------
       ! Derived type to pass ID information to GEOS-Chem routines
       !-----------------------------------------------------------------
       TYPE :: GC_IDENT
@@ -264,17 +158,6 @@
          CHARACTER(LEN=999) :: ERRMSG       ! Error message to display
          LOGICAL            :: VERBOSE      ! Should we print out debug info?
       END TYPE GC_IDENT
-
-      !-----------------------------------------------------------------
-      ! Type for column oxidant fields used by SCHEM
-      !%%% NOTE: THIS IS NOW OBSOLETE
-      !-----------------------------------------------------------------
-      TYPE :: SCOX_1d
-         REAL*8, POINTER    :: OH(:)        ! Monthly archived OH [molec/cm3]
-         REAL*8, POINTER    :: JVALUE(:,:)  ! Monthly archived J-values [1/s]
-         REAL*8, POINTER    :: PCO(:)       ! CO production rate [mol/mol/s]
-         REAL*8, POINTER    :: LCO(:)       ! CO loss rate [1/s]
-      END TYPE SCOx_1d
 !
 ! !REVISION HISTORY: 
 !  24 Mar 2009 - R. Yantosca - Initial version
@@ -299,6 +182,7 @@
 !  02 Jun 2010 - R. Yantosca - Added TAUCLI, TAUCLW to GC_MET_LOCAL
 !  02 Jun 2010 - R. Yantosca - Added DQ*DTMST fields to GC_MET_LOCAL
 !  02 Jun 2010 - R. Yantosca - Moved type SCOX_1d here from schem_mod.F
+!  22 Oct 2012 - R. Yantosca - Comment out obsolete type definitions
 !EOP
 !------------------------------------------------------------------------------
 !BOC

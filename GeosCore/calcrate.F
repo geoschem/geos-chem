@@ -1,5 +1,5 @@
 ! $Id: calcrate.f,v 1.6 2010/03/15 19:33:25 ccarouge Exp $
-      SUBROUTINE CALCRATE( SUNCOS )
+      SUBROUTINE CALCRATE( State_Met )
 !
 !******************************************************************************
 !  Subroutine CALCRATE computes reaction rates before passing them to the
@@ -63,6 +63,9 @@
 !       574nm, so we don't need to add the 1e-5 to the JHNO4 rate anymore.
 !       (jmao, bmy, 10/27/09)
 !  (18) Add change yield for HAC. Make CONSTC a parameter. (fp, 2/2/10)
+!  (19) Updated O3 photolysis reaction rate and DMS oxidation reaction rates. 
+!       See http://wiki.seas.harvard.edu/geos-chem/index.php/
+!       Updating_standard_chemistry_with_JPL_10-6. (bhh, jmao, eam, 7/18/11)
 !  01 Mar 2012 - R. Yantosca - Now use new functions from grid_mod.F90:
 !                              GET_YMID(I,J,L) and GET_AREA_CM2(I,J,L)
 !  20 Jun 2012 - R. Yantosca - Under some circumstances it seems that INT_OPE
@@ -72,81 +75,83 @@
 !  24 Sep 2012 - R. Yantosca - Bug fix: Dimension QICE and QLIQ with KBLOOP
 !                              instead of (IIPAR,JJPAR,LLPAR).  This should
 !                              lead to better scalability.
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  27 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOSmid
+
 !******************************************************************************
 !
       ! References to F90 modules 
       ! Add CSPEC to extract HO2 concentration (jaegle 2/26/09)
-      USE COMODE_MOD,      ONLY : ABSHUM, AIRDENS, ERADIUS, IXSAVE, 
-     &                            IYSAVE, IZSAVE,  JLOP,    PRESS3,  
-     &                            REMIS,  T3,      TAREA,    CSPEC
+      USE COMODE_MOD,         ONLY : ABSHUM, AIRDENS, ERADIUS, IXSAVE, 
+     &                               IYSAVE, IZSAVE,  JLOP,    PRESS3,  
+     &                               REMIS,  T3,      TAREA,    CSPEC
       ! Add AD52 for gamma_ho2 diagnostic (jaegle 02/26/09)
-      USE DIAG_MOD,        ONLY : AD22,   LTJV, AD52
-      USE DRYDEP_MOD,      ONLY : DEPSAV, NUMDEP, DEPNAME
+      USE DIAG_MOD,           ONLY : AD22,   LTJV, AD52
+      USE DRYDEP_MOD,         ONLY : DEPSAV, NUMDEP, DEPNAME
       ! Add CHECK_VALUE (jaegle 2/26/09)
-      USE ERROR_MOD,       ONLY : ERROR_STOP, GEOS_CHEM_STOP,CHECK_VALUE
-      USE GRID_MOD,        ONLY : GET_YMID
-      ! Add GET_PBL_TOP_L (jaegle 02/26/09)
-      USE PBL_MIX_MOD,     ONLY : GET_FRAC_UNDER_PBLTOP,GET_PBL_TOP_L
-      USE PLANEFLIGHT_MOD, ONLY : ARCHIVE_RXNS_FOR_PF
+      USE ERROR_MOD,          ONLY : ERROR_STOP, GEOS_CHEM_STOP
+      USE ERROR_MOD,          ONLY : CHECK_VALUE, DEBUG_MSG
+      USE GRID_MOD,           ONLY : GET_YMID
+      ! Add GET_PBL_TOP_L (   jaegle 02/26/09)
+      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP,GET_PBL_TOP_L
+      USE PLANEFLIGHT_MOD,    ONLY : ARCHIVE_RXNS_FOR_PF
       ! Add IDHO2 for HO2 concentration and IS_ICE (jaegle 02/26/09)
-      USE TRACERID_MOD,    ONLY : IDHO2
-      USE DAO_MOD,         ONLY : IS_ICE
-      ! KPP interface (phs,ks,dhk, 09/15/09)
-      USE GCKPP_GLOBAL,    ONLY : IND
-      USE LOGICAL_MOD,     ONLY : LNLPBL, LKPP ! (Lin, 03/31/09)
-      ! jpp, testing
-      USE LOGICAL_MOD,     ONLY : LWARWICK_VSLS
-      ! jpp, added the following for BrNO3 recycling off of clouds (3/17/2011)
-      USE DAO_MOD,         ONLY : T, AIRVOL, FRLAND, FROCEAN
-      USE DAO_MOD,         ONLY : QL   ! cloud liq water mixing ratio [kg/kg]
-      USE DAO_MOD,         ONLY : QI   ! cloud ice mixing ratio [kg/kg]
-      USE DAO_MOD,         ONLY : CLDF ! 3D cloud fraction of the box
-      USE DAO_MOD,         ONLY : AD   ! dry air mass [kg]
+      USE TRACERID_MOD,       ONLY : IDHO2
+      USE DAO_MOD,            ONLY : IS_ICE
+      ! KPP interface (phs,   ks,dhk, 09/15/09)
+      USE GCKPP_GLOBAL,       ONLY : IND
+      USE LOGICAL_MOD,        ONLY : LNLPBL, LKPP, LPRT ! (Lin, 03/31/09)
+      ! jpp, testing          
+      USE LOGICAL_MOD,        ONLY : LWARWICK_VSLS
       ! jpp, add for use in HOBr + HBr reaction
-      USE TRACERID_MOD,    ONLY : IDTHBr, IDTHOBr
-      USE ERROR_MOD,       ONLY : is_safe_div
-      USE TRACER_MOD,      ONLY : STT
+      USE TRACERID_MOD,       ONLY : IDTHBr, IDTHOBr
+      USE ERROR_MOD,          ONLY : is_safe_div
+      USE TRACER_MOD,         ONLY : STT
 
       !UPDATE BY GVINKEN, USE FOR SHIPS EMISSIONS
-      USE ICOADS_SHIP_MOD, ONLY : GET_ICOADS_SHIP  !(cklee, 7/09/09)
-      USE LOGICAL_MOD,     ONLY : LICOADSSHIP      !(cklee, 6/30/09)
-      USE LOGICAL_MOD,     ONLY : LEDGARSHIP
-      USE LOGICAL_MOD,     ONLY : LEMEPSHIP,       LVISTAS
-      USE EDGAR_MOD,       ONLY : GET_EDGAR_NOx
-      USE EMEP_MOD,        ONLY : GET_EMEP_ANTHRO, GET_EUROPE_MASK
-      USE TRACER_MOD,      ONLY : XNUMOL
-      USE TIME_MOD,        ONLY : GET_TS_EMIS
-      USE GRID_MOD,        ONLY : GET_AREA_CM2
-      USE TRACERID_MOD,    ONLY : IDTNOX,  IDO3,   IDNO,  IDNO2, IDTOX
-      USE TRACERID_MOD,    ONLY : IDHNO3,  IDOX
-      USE TRACERID_MOD,    ONLY : CTRMB,   IDENOX, IDEOX, IDEHNO3
-      USE TRACERID_MOD,    ONLY : IDTHNO3, IDEMIS
-      USE PBL_MIX_MOD,     ONLY : GET_PBL_TOP_L
-      USE PRESSURE_MOD,    ONLY : GET_PEDGE     
-      USE COMODE_MOD,      ONLY : VOLUME
-      USE DIAG_MOD,        ONLY : AD32_an, AD36,   AD63
-      USE DIAG63_MOD,      ONLY : DO_SAVE_DIAG63
-      USE EMISSIONS_MOD,   ONLY : NOx_SCALING      
-      USE PARANOX_MOD,     ONLY : INTERPOLATE_LUT2 !(mpayer, 2/7/12)
+      USE ICOADS_SHIP_MOD,    ONLY : GET_ICOADS_SHIP  !(cklee, 7/09/09)
+      USE LOGICAL_MOD,        ONLY : LICOADSSHIP      !(cklee, 6/30/09)
+      USE LOGICAL_MOD,        ONLY : LEDGARSHIP
+      USE LOGICAL_MOD,        ONLY : LEMEPSHIP,       LVISTAS
+      USE EDGAR_MOD,          ONLY : GET_EDGAR_NOx
+      USE EMEP_MOD,           ONLY : GET_EMEP_ANTHRO, GET_EUROPE_MASK
+      USE TRACER_MOD,         ONLY : XNUMOL
+      USE TIME_MOD,           ONLY : GET_TS_EMIS
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE TRACERID_MOD,       ONLY : IDTNOX,  IDO3,   IDNO,  IDNO2
+      USE TRACERID_MOD,       ONLY : IDHNO3,  IDOX,   IDTOX
+      USE TRACERID_MOD,       ONLY : CTRMB,   IDENOX, IDEOX, IDEHNO3
+      USE TRACERID_MOD,       ONLY : IDTHNO3, IDEMIS
+      USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE     
+      USE COMODE_MOD,         ONLY : VOLUME
+      USE DIAG_MOD,           ONLY : AD32_an, AD36,   AD63
+      USE DIAG63_MOD,         ONLY : DO_SAVE_DIAG63
+      USE EMISSIONS_MOD,      ONLY : NOx_SCALING      
+      USE PARANOX_MOD,        ONLY : INTERPOLATE_LUT2 !(mpayer, 2/7/12)
 
-      USE CMN_SIZE_MOD          ! Size parameters
-      USE COMODE_LOOP_MOD       ! SMVGEAR II arrays
-      USE CMN_DIAG_MOD          ! ND22, LD22, ND52, LD52
-      USE CMN_MOD               ! STT, etc
-      USE CMN_DEP_MOD           ! FRCLND
-      USE CMN_O3_MOD            ! for jvalues (gvinken, 6/09/10)
+      USE GIGC_State_Met_Mod, ONLY : MetState
+
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE COMODE_LOOP_MOD          ! SMVGEAR II arrays
+      USE CMN_DIAG_MOD             ! ND22, LD22, ND52, LD52
+      USE CMN_MOD                  ! STT, etc
+      USE CMN_O3_MOD               ! for jvalues (gvinken, 6/09/10)
 
       IMPLICIT NONE
 #     include "define.h"
 
-      ! added LD52 and ND52 (jaegle 2/26/09)
-      ! added FRCLND (jaegle 02/26/09)
+      ! Arguments
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
       
       ! jpp, rate constant for BrNO3 cloud recycling
       REAL*8 :: CLD_BrNO3_RC
 
       ! Local variables
       INTEGER :: KLOOP,JLOOP,I,NK,JOLD2,JOLD,NK1,NKN,NH,MLOOP,J
+      INTEGER :: NKNH2O, NKNH2               ! (bhh, jmao, eam, 7/18/11)
+      LOGICAL :: LJO1DH2, LJO1DH2O, LPCELL   ! (bhh, jmao, eam, 7/18/11)
       INTEGER :: NP,K,IFNC,IBRCH,IX,IY,IZ,IJWINDOW,INDEX,NN,ii,jj
       INTEGER :: PHOTVAL,KSUN
 
@@ -158,12 +163,13 @@
       REAL*8  :: EMIS_BL, COEF1,   TOTPRES, DELTPRES
 
       REAL*8  :: ARRNK,FCVNK,FCT1,FCT2,FCT,XYRAT,BLOG,FEXP,RATE3M
+      REAL*8  :: RO1D, RO1DplH2O, RO1DplH2   ! (bhh, jmao, eam, 7/18/11)
 !      REAL*8  :: CONSTC,RATE2AIR,RATE3H2O,RIS,RST,TBEGIN,TFINISH
       ! CONSTC declared as a parameter by FP (hotp 7/31/09)
       REAL*8  :: RATE2AIR,RATE3H2O,RIS,RST,TBEGIN,TFINISH
       REAL*8  :: PBEG,PFIN,PBEGNEW,PFINNEW,TOFDAYB,TOFDAYE,HOURANGB
       REAL*8  :: HOURANGE,SINFUNCB,SINFUNCE,XAREA,XRADIUS,XSQM,RRATE2
-      REAL*8  :: XSTKCF,GMU,SUNCOS(MAXIJ),DUMMY(KBLOOP),XDENA,XSTK
+      REAL*8  :: XSTKCF,GMU,DUMMY(KBLOOP),XDENA,XSTK
       REAL*8  :: TK,     CONSEXP, VPRESH2O
       ! New variables for new reations (jmao, 4/20/09)
       REAL*8  :: KHI1,KLO1,XYRAT1,BLOG1,FEXP1,KHI2,KLO2,XYRAT2,BLOG2
@@ -196,6 +202,7 @@
       ! (bmy, 7/28/03) 
       REAL*8           :: ABSHUMK(KBLOOP), DENAIR(KBLOOP)
       REAL*8           :: CONCO2(KBLOOP),  CONCN2(KBLOOP)
+      REAL*8           :: CONCH2(KBLOOP)     ! (bhh, jmao, eam, 7/18/11)
       REAL*8           :: T3I(KBLOOP),     TEMP1(KBLOOP)
       REAL*8           :: T3K(KBLOOP),     PRESSK(KBLOOP) 
 
@@ -223,37 +230,6 @@
       ! Local variables for ice and water mixing ratios
       REAL*8  :: QLIQ(KBLOOP)
       REAL*8  :: QICE(KBLOOP)
-
-!-------------------------------------------------------------------------------
-! Prior to 9/24/12:
-! CALCRATE is already called within a parallel loop from routine PHYSPROC,
-! and therefore only processes KTLOOP grid boxes at a time.  There is no need
-! to loop over all IIPAR*JJPAR*LLPAR boxes here.  Rewrite code to remove this
-! bottleneck and improve scalability. (bmy, 9/24/12)
-!      REAL*8  :: QLIQ(IIPAR,JJPAR,LLPAR), QICE(IIPAR,JJPAR,LLPAR)
-!      darea  = 0d0
-!#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
-!      QICE      = QI
-!      QLIQ      = QL
-!#else
-!      ! GEOS-4 and GCAP do not have QI or QL variables. Make same assumption
-!      ! as we do in wetscav_mod.F.
-!      DO I=1,IIPAR
-!      DO J=1,JJPAR
-!      DO L=1,LLPAR
-!         IF ( T(I,J,L) .LE. 248d0 ) THEN
-!            QLIQ(I,J,L) = 0d0
-!         ELSE IF ( T(I,J,L) .GE. 268d0 ) THEN
-!            QLIQ(I,J,L) = 1d-6
-!         ELSE
-!            QLIQ(I,J,L) = 1d-6 * ( ( T(I,J,L) - 248d0 ) / 20d0 )
-!         ENDIF
-!      ENDDO
-!      ENDDO
-!      ENDDO
-!      QICE = 1d-6 - QLIQ
-!#endif
-!-------------------------------------------------------------------------------
 
       darea  = 0d0
 
@@ -329,6 +305,7 @@
 !   be sure to check out these values!!!
          KSUN=0
          DO 20 KLOOP        = 1, KTLOOP
+      
             JLOOP             = LREORDER(JLOOPLO+KLOOP)
 
             ! Add DENAIR here instead of in physproc.f, so that we
@@ -342,6 +319,10 @@
             TEMP1(KLOOP)      = 300.d0    / T3K(KLOOP)
             CONCO2(KLOOP)     = 0.2095d0  * DENAIR(KLOOP)
             CONCN2(KLOOP)     = 0.7808d0  * DENAIR(KLOOP)
+            ! Added H2 concentration (bhh, jmao, eam, 7/18/11)
+            ! Seasonal variability of H2 may be important, 
+            ! but not included in this update (bhh, jmao, eam, 7/18/11)
+            CONCH2(KLOOP)     = 0.5000d-6 * DENAIR(KLOOP)
 
             ! Check if sun is up anywhere in this block of grid-boxes.
             ! IFSUN gets used in CALCRATE
@@ -350,7 +331,8 @@
             IX                = IXSAVE(JLOOP)
             IY                = IYSAVE(JLOOP)
             IJWINDOW          = (IY-1)*IIPAR + IX
-            GMU               = SUNCOS(IJWINDOW)
+            !GMU               = SUNCOS(IJWINDOW)
+            GMU               = State_Met%SUNCOSmid(IX,IY)
             IF(GMU .GT. 0.D0) KSUN = 1
 
             !==========================================================
@@ -370,18 +352,19 @@
             ! so use these to define the QICE, QLIQ arrays.  Also, QICE and
             ! QLIQ only need to be dimensioned with KBLOOP instead of
             ! IIPAR,JJPAR,LLPAR. (bmy, 9/24/12)
-            QICE(KLOOP)       = QI(IX,IY,IZ)
-            QLIQ(KLOOP)       = QL(IX,IY,IZ)
+            QICE(KLOOP)       = State_Met%QI(IX,IY,IZ)
+            QLIQ(KLOOP)       = State_Met%QL(IX,IY,IZ)
 
 #else
 
             ! Otherwise, compute QLIQ as a function of temperature ...
-            IF ( T(IX,IY,IZ) .LE. 248d0 ) THEN
+            IF ( State_Met%T(IX,IY,IZ) .LE. 248d0 ) THEN
                QLIQ(KLOOP)    = 0d0
-            ELSE IF ( T(IX,IY,IZ) .GE. 268d0 ) THEN
+            ELSE IF ( State_Met%T(IX,IY,IZ) .GE. 268d0 ) THEN
                QLIQ(KLOOP)    = 1d-6
             ELSE
-               QLIQ(KLOOP)    = 1d-6 * ( ( T(IX,IY,IZ) - 248d0 ) / 20d0)
+               QLIQ(KLOOP)    = 1d-6 *
+     &                      ( ( State_Met%T(IX,IY,IZ) - 248d0 ) / 20d0)
             ENDIF
 
             ! ... and compute QICE from QLIQ (bmy, 9/24/12)
@@ -828,8 +811,10 @@ c new OH+CO rate from JPL2006.
          DO I          = 1,NNADDG(NCS)
             NK         = NKSPECG( I,NCS )
             DO KLOOP   = 1, KTLOOP
+               ! Changed reaction rate calculation from concO2 to 0.2095d0
+               ! (bhh, jmao, eam, 7/18/11)
                RRATE(KLOOP,NK)=RRATE(KLOOP,NK)/
-     &              (1.d0+RRATE(KLOOP,NK+1)*CONCO2(KLOOP))
+     &              (1.d0+RRATE(KLOOP,NK+1)*0.2095d0)
             ! SMVGEARII doesn't have structure to multiply rate(nk+1) by [O2]
             ENDDO
          ENDDO
@@ -997,8 +982,9 @@ c new OH+CO rate from JPL2006.
                      ! boundary layer and set the CONTINENTAL_PBL
                      ! flag to 1 (also assume that there is no ice/snow)
                      IF (  IZ <= GET_PBL_TOP_L( IX , IY ) .and.
-     &                     FRCLND(IX,IY) >= 0.5 .and.
-     &                     (.not. IS_ICE(IX,IY) ) ) THEN 
+     &                     State_Met%FRCLND(IX,IY) >= 0.5 .and.
+     &                     (.not. IS_ICE( IX,IY,State_Met) ) ) THEN 
+
                         CONTINENTAL_PBL=1 
                      ELSE
                         CONTINENTAL_PBL=0
@@ -1141,19 +1127,9 @@ c new OH+CO rate from JPL2006.
             !  to RRATE(KLOOP, NKBrNO3). (jpp, 2/28/2011)
             ! ----------------------------------------------
             IF ( NKBrNO3 > 0 ) THEN
-               cld_brno3_rc = CLD1K_BrNO3(IX,            IY,
-     &                                 IZ,               XDENA,
-     &                                 AIRVOL(IX,IY,IZ), T(IX,IY,IZ),
-#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
-     &                                 FRLAND(IX,IY),    FROCEAN(IX,IY),
-#endif
-!------------------------------------------------------------------------------
-! Prior to 9/24/12:
-! Use redefined QLIQ to avoid parallelization bottleneck (bmy, 9/24/12)
-!     &                                 QLIQ(IX,IY,IZ),   CLDF(IZ,IX,IY),
-!------------------------------------------------------------------------------
-     &                                 QLIQ(KLOOP),      CLDF(IZ,IX,IY),
-     &                                 AD(IX,IY,IZ) )
+               cld_brno3_rc = CLD1K_BrNO3(IX,          IY,
+     &                                    IZ,          XDENA,
+     &                                    QLIQ(KLOOP), State_Met )
 
                RRATE(KLOOP, NKBrNO3) = RRATE(KLOOP, NKBrNO3) + 
      &                                 cld_brno3_rc
@@ -1164,22 +1140,15 @@ c new OH+CO rate from JPL2006.
             !  for cold and mixed clouds. (jpp, 6/16/2011)
             ! ----------------------------------------------
             IF ( ( IDTHBr > 0 ) .and. ( IDTHOBr > 0 ) ) THEN
-               CALL cldice_hbrhobr_rxn( XDENA,
-     &                                  AIRVOL(IX,IY,IZ),
-     &                                  T(IX,IY,IZ),
-!------------------------------------------------------------------------------
-! Prior to 9/24/12:
-! Use redefined QICE to avoid parallelization bottleneck (bmy, 9/24/12)
-!     &                                  QICE(IX,IY,IZ),
-!------------------------------------------------------------------------------
+               CALL cldice_hbrhobr_rxn( IX, IY, IZ, 
+     &                                  XDENA,
      &                                  QICE(KLOOP),
-     &                                  CLDF(IZ,IX,IY),
-     &                                  AD(IX,IY,IZ),
      &                                  STT(IX,IY,IZ,IDTHBr),
      &                                  STT(IX,IY,IZ,IDTHOBr),
      &                                  ki_hbr,
      &                                  ki_hobr,
-     &                                  DAREA )
+     &                                  DAREA,
+     &                                  State_Met )
 
                RRATE(KLOOP, NK2HBr)  = ki_hbr
                RRATE(KLOOP, NK2HOBr) = ki_hobr
@@ -1233,7 +1202,8 @@ c new OH+CO rate from JPL2006.
 
                ! Get cosine( SZA ) using 1-D array index
                IJWINDOW         = (IY-1)*IIPAR + IX
-               GMU              = SUNCOS(IJWINDOW)
+               !GMU              = SUNCOS(IJWINDOW)
+               GMU              = State_Met%SUNCOSmid(IX,IY)
 
                ! For daylight boxes...
                IF(GMU.GT. 0.D0) THEN
@@ -1298,17 +1268,27 @@ c new OH+CO rate from JPL2006.
          !
          ! Add NCS index to NKHNO4 for SMVGEAR II (gcc, bmy, 4/1/03)
          !==============================================================
-         IF ( NKO3PHOT(NCS) > 0 ) THEN
-
+         ! Now also consider O3 + hv --> HO2 + OH (bhh, jmao, eam, 7/18/11)
+         IF ( (NKO3PHOT(NCS) > 0)  .OR. (NKO3PHOTH2(NCS) > 0) ) THEN
             ! Put J(O3) in correct spot for SMVGEAR II
-            PHOTVAL = NKO3PHOT(NCS) - NRATES(NCS)
-            NKN     = NKNPHOTRT(PHOTVAL,NCS)
+            LJO1DH2     = .false.
+            LJO1DH2O    = .false.
+            IF ( NKO3PHOT(NCS) > 0 ) THEN
+               PHOTVAL  = NKO3PHOT(NCS) - NRATES(NCS)
+               NKNH2O   = NKNPHOTRT(PHOTVAL,NCS)
+               LJO1DH2O = .true.
+            ENDIF
+            IF ( NKO3PHOTH2(NCS) > 0 ) THEN
+               PHOTVAL  = NKO3PHOTH2(NCS) - NRATES(NCS)
+               NKNH2    = NKNPHOTRT(PHOTVAL,NCS)
+               LJO1DH2  = .true.
+            ENDIF
 
             DO KLOOP = 1, KTLOOP
 
                ! Save old value of J-O3 in a diagnostic array 
                ! (gcc, bmy, 4/1/03)
-               DUMMY(KLOOP) = RRATE(KLOOP,NKN)
+               DUMMY(KLOOP) = RRATE(KLOOP,NKNH2O)
 
                !========================================================
                ! Change rate of O(1D)+ N2 to be 3.1e-11 at 298K rather
@@ -1323,12 +1303,31 @@ c new OH+CO rate from JPL2006.
                ! OH Production Rate'.  One of the RSC Journals
                ! (mje 4/5/04)
                !========================================================
-! Updated from JPL2006, the difference is pretty small.(jmao,02/26/2009)
-               RRATE(KLOOP,NKN) = RRATE(KLOOP,NKN) *
-     $            1.63d-10 * EXP( 60.d0*T3I(KLOOP)) * CBLK(KLOOP,IH2O) /
-     $          ( 1.63d-10 * EXP( 60.d0*T3I(KLOOP)) * CBLK(KLOOP,IH2O) +
-     $            2.15d-11 * EXP(110.d0*T3I(KLOOP)) * CONCN2(KLOOP)    +
-     $            3.30d-11 * EXP( 55.d0*T3I(KLOOP)) * CONCO2(KLOOP)    )
+               ! Updated from JPL2006, the difference is pretty small.
+               ! (jmao,02/26/2009)
+               !========================================================
+               ! Additional update from JPL 10-6 for reaction of
+               ! O3 + hv --> HO2 + OH and O1D + H2:
+               ! Includes calculation of k[O3], where
+               ! k[O3]  = J[O3]*1.2e-10/k[O1D], where
+               ! k[O1D] = ([O1D]*[H2]+[O1D]*[H2O])/
+               !          ([O1D]*[H2]+[O1D]*[H2O]+[O1D][N2]+[O1D][O2])
+               ! (bhh, jmao, eam, 7/18/11)
+               !========================================================
+               RO1DplH2O = 1.63d-10 * EXP( 60.d0*T3I(KLOOP)) *
+     $                     CBLK(KLOOP,IH2O)
+               RO1DplH2  = 1.2e-10 * CONCH2(KLOOP)
+               RO1D      = (RO1DplH2O + RO1DplH2 +
+     $             2.15d-11 * EXP(110.d0*T3I(KLOOP)) * CONCN2(KLOOP)   +
+     $             3.30d-11 * EXP( 55.d0*T3I(KLOOP)) * CONCO2(KLOOP))
+               IF (LJO1DH2O) THEN
+                  RRATE(KLOOP,NKNH2O) = RRATE(KLOOP,NKNH2O) *
+     $                                  RO1DplH2O / RO1D
+               ENDIF
+               IF (LJO1DH2) THEN
+                  RRATE(KLOOP,NKNH2)  = RRATE(KLOOP,NKNH2) *
+     $                                  RO1DplH2 / RO1D
+               ENDIF
 !               RRATE(KLOOP,NKN) = RRATE(KLOOP,NKN) *
 !     $            1.45d-10 * EXP( 89.d0*T3I(KLOOP)) * CBLK(KLOOP,IH2O) /
 !     $          ( 1.45d-10 * EXP( 89.d0*T3I(KLOOP)) * CBLK(KLOOP,IH2O) +
@@ -1442,6 +1441,25 @@ c new OH+CO rate from JPL2006.
          ENDDO
       ENDDO
 
+
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Skip the following section where we compute the time-evolution
+      ! of ship emissions with the PARANOX model.  This will have to be
+      ! computed within the context of the new Emissions Component.
+      ! (bmy, 10/23/12)
+      !-----------------------------------------------------------------
+
+#else
+      !-----------------------------------------------------------------
+      !               %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Include the time-evolution of ship emissions with the PARANOX
+      ! model as written.  This is current practice in the standard
+      ! GEOS-Chem. (bmy, 10/23/12)
+      !-----------------------------------------------------------------
 !      
 !**********************************************************************
 !             UPDATE SHIP EMISSIONS NOW THAT J-VALUES ARE KNOWN         
@@ -1532,10 +1550,11 @@ c new OH+CO rate from JPL2006.
 
                ! Determine fraction of NOx remaining and integrated Ozone
                ! Production Efficiency for ship emiss (gvinken,mpayer,2/7/12)
-               CALL INTERPOLATE_LUT2( IX,                IY,           
+               CALL INTERPOLATE_LUT2( IX,             IY,           
      &                             CBLK(KLOOP,IDO3),  CBLK(KLOOP,IDNO),
      &                             CBLK(KLOOP,IDNO2), DENAIR(KLOOP),
-     &                             fraction_nox,      int_ope )
+     &                             fraction_nox,      int_ope,
+     &                             State_Met          )
 
                !===========================================================
                ! STORE EMISSIONS DIRECTLY IN REMIS ARRAY, based on setemis.f
@@ -1763,7 +1782,7 @@ c new OH+CO rate from JPL2006.
             ENDIF
          ENDDO
       ENDIF
-
+#endif
 !
 ! *********************************************************************
 ! ******                   SET EMISSION RATES                    ******
@@ -2269,34 +2288,24 @@ c new OH+CO rate from JPL2006.
 !\\
 ! !INTERFACE:
 !
-      FUNCTION CLD1K_BrNO3( I,      J,    L,      DENAIR, 
-     &                      AIRVOL, TEMP, 
-#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
-     &                      FRLAND, FROCEAN,
-#endif
-     &                      QL,     CLDF, AD )    RESULT( cld1k )
+      FUNCTION CLD1K_BrNO3( I,      J,        L,   DENAIR, 
+     &                      QL,     State_Met )    RESULT( cld1k )
 
 !
 ! !USES:
 !
-      USE DAO_MOD, ONLY    : IS_LAND, IS_ICE
+      USE DAO_MOD,            ONLY : IS_LAND, IS_ICE
+      USE GIGC_State_Met_Mod, ONLY : MetState
       IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN) :: I        ! Longitude index
-      INTEGER, INTENT(IN) :: J        ! Latitude  index
-      INTEGER, INTENT(IN) :: L        ! Altitude  index
-      REAL*8,  INTENT(IN) :: DENAIR   ! Density of air             [#/cm3]
-      REAL*8,  INTENT(IN) :: AIRVOL   ! Volume of air in a box     [m3]
-      REAL*8,  INTENT(IN) :: temp     ! Temperature in a given box [K]
-#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
-      REAL*8,  INTENT(IN) :: FRLAND   ! Fraction of land           [unitless]
-      REAL*8,  INTENT(IN) :: FROCEAN  ! Fraction of ocean          [unitless]
-#endif
-      REAL*8,  INTENT(IN) :: QL       ! Cloud water mixing ratio   [kg/kg]
-      REAL*8,  INTENT(IN) :: CLDF     ! 3D cloud fraction          [unitless]
-      REAL*8,  INTENT(IN) :: AD       ! Dry air mass               [kg]
+      INTEGER,        INTENT(IN) :: I         ! Longitude index
+      INTEGER,        INTENT(IN) :: J         ! Latitude  index
+      INTEGER,        INTENT(IN) :: L         ! Altitude  index
+      REAL*8,         INTENT(IN) :: DENAIR    ! Density of air [#/cm3]
+      REAL*8,         INTENT(IN) :: QL        ! Cloud water mixing ratio [kg/kg]
+      TYPE(MetState), INTENT(IN) :: State_Met ! Meteorology State object
 !
 ! !RETURN VALUE:
 !
@@ -2327,6 +2336,8 @@ c new OH+CO rate from JPL2006.
 ! !REVISION HISTORY:
 !  27 Feb 2011 - J. Parrella - Initial version
 !  22 May 2012 - M. Payer    - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2355,7 +2366,6 @@ c new OH+CO rate from JPL2006.
       REAL*8            :: DFKG       ! Gas diffusion coefficient    [cm2/s]
       REAL*8            :: Vc         ! Volume of the cloud          [cm3]
       REAL*8            :: XAIRM3     ! Volume of air                [m3]
-      !REAL*8            :: calc_vcldf
       LOGICAL           :: yn_continue
    
       !=================================================================
@@ -2367,8 +2377,7 @@ c new OH+CO rate from JPL2006.
       !   calculate the mean molecular speed of the
       !   molecules given the temperature.
       ! ----------------------------------------------
-      nu   = sqrt( 8.d0 * R * temp / (mw_brno3 * pi) )
-
+      nu   = sqrt( 8.d0 * R * State_Met%T(I,J,L) / (mw_brno3 * pi) )
 
       ! ----------------------------------------------
       ! Test conditions to see if we want to continue
@@ -2377,14 +2386,17 @@ c new OH+CO rate from JPL2006.
 
       ! continental or marine clouds only...
 #if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
-      IF ( (FRLAND > 0) .or. (FROCEAN > 0) ) THEN
+      IF ( (State_Met%FRLAND (I,J) > 0)   .or. 
+     &     (State_Met%FROCEAN(I,J) > 0) ) THEN
 #else
-      ! Above line is to skip over land ice (Greenland and Antartica). This should
-      ! do the same (and also work for GEOS-5, but leave above for now).
-      IF ( IS_LAND(I,J) .and. .not.(IS_ICE(I,J)) ) THEN
+      ! Above line is to skip over land ice (Greenland and Antartica). This
+      ! should do the same (and also work for GEOS-5, but leave above for now).
+      IF ( IS_LAND( I, J, State_Met )    .and. .not.
+     &   ( IS_ICE ( I, J, State_Met )) ) THEN
 #endif
          ! do we have clouds? and do we have warm temperatures?
-         IF ( (CLDF > 0) .and. (temp > 258.0) ) THEN
+         IF ( (State_Met%CLDF(L,I,J) > 0    )   .and.
+     &        (State_Met%T(I,J,L)    > 258.0) ) THEN
             yn_continue = .TRUE.
          ELSE
             yn_continue = .FALSE.
@@ -2452,9 +2464,9 @@ c new OH+CO rate from JPL2006.
       !              AIRVOL x RADIUS      (in cm)
       ! ----------------------------------------------
 #if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
-      IF ( FRLAND > FROCEAN ) THEN
+      IF ( State_Met%FRLAND(I,J) > State_Met%FROCEAN(I,J) ) THEN
 #else
-      IF ( IS_LAND(I,J) ) THEN
+      IF ( IS_LAND(I,J, State_Met) ) THEN
 #endif
          ! Continental cloud droplet radius [cm]
          RADIUS = XCLDR_CONT
@@ -2464,17 +2476,17 @@ c new OH+CO rate from JPL2006.
       ENDIF
 
       ! store the volume of air [m3]
-      XAIRM3 = AIRVOL
+      XAIRM3 = State_Met%AIRVOL(I,J,L)
       ! convert to [cm3]
       XAIRM3 = XAIRM3 * (100.d0)**3
 
       ! get the volume of cloud [cm3]
 #if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
       ! QL is [g/g]
-      Vc = CLDF * QL * AD / dens_h2o
+      Vc = State_Met%CLDF(L,I,J) * QL * State_Met%AD(I,J,L) / dens_h2o
 #else
       ! QL is [cm3/cm3]
-      Vc = CLDF * QL * XAIRM3
+      Vc = State_Met%CLDF(L,I,J) * QL * XAIRM3
 #endif
 
       ! now calculate the cloud droplet surface area
@@ -2489,8 +2501,8 @@ c new OH+CO rate from JPL2006.
       !
       !   (b) calculate the hydrolysis rxn rate.
       ! ----------------------------------------------------
-      SQM = sqrt(mw_brno3 * 1.d3) ! square root of molar mass [g/mole]
-      STK = sqrt(temp)            ! square root of temperature [K]
+      SQM = sqrt(mw_brno3 * 1.d3)    ! square root of molar mass [g/mole]
+      STK = sqrt(State_Met%T(I,J,L)) ! square root of temperature [K]
 
       ! DFKG = Gas phase diffusion coeff [cm2/s] (order of 0.1)
       DFKG  = 9.45D17/DENAIR * STK * SQRT(3.472D-2 + 1.D0/(SQM*SQM))
