@@ -4784,6 +4784,8 @@ c
 !                              BC/POA (E. Leibensperger)
 !  03 Jan 2013 - M. Payer    - Use MAP_A2A regridding for historical emissions
 !  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
+!  19 Feb 2013 - M. Payer    - Add calculation of XTAU under LBIOFUEL. Otherwise
+!                              XTAU will not be set if LANTHRO=F (C.L. Heald)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -4835,6 +4837,10 @@ c
 
       ! Number of emission timesteps per month
       STEPS_PER_MON = ( ( 1440 * NDAYS ( THISMONTH ) ) / GET_TS_EMIS() )
+
+      ! File with lat/lon edges for regridding
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc'
 
 ![eml Only if LANTHRO
       IF( LANTHRO ) THEN
@@ -4998,6 +5004,11 @@ c
       IF( LBIOFUEL ) THEN
 
          IF( .not. LHIST ) THEN
+            ! clh: add this in (otherwise read fails when LANTHRO is F)
+            ! Get TAU0 value to index the punch file
+            XTAU          = GET_TAU0( THISMONTH, 1, 2000 )
+
+
             ! Filename
             FILENAME = TRIM( DATA_DIR )                         // 
      &                 'carbon_200909/BCOC_TBond_biofuel.2000.' // 
@@ -5015,6 +5026,10 @@ c
             CALL TRANSFER_2D( ARRAY(:,:,1), FD2D )
 
          ELSE
+            ! clh: add this in (otherwise read fails when LANTHRO is F)
+            XTAU = GET_TAU0( THISMONTH, 1, GET_HISTYR() )
+            WRITE( CHISTYR, '(I4)' ) GET_HISTYR()
+
             ! Read historical emissions of BC
             FILENAME = TRIM( DATA_DIR_1x1 )                 // 
      &                 'historical_emissions_201203/BCOC/'  //
