@@ -5895,7 +5895,7 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
 
 !-----------------------------------------------------------------------------
       
-      SUBROUTINE MNFIX ( NKX, MKX, ERRORSWITCH )
+      SUBROUTINE MNFIX_deprecated ( NKX, MKX, ERRORSWITCH )
 !
 !*****************************************************************************
 !  Subroutine MNFIX examines the mass and number distrubution and determine if
@@ -6318,6 +6318,649 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
             ENDDO
             MKX(K,ICOMP) = 0.d0 !Set aerosol water to zero too
          ENDIF                  ! If tiny number
+      ENDDO
+
+ 300  CONTINUE
+          
+      IF (ERRORSWITCH) THEN
+555   FORMAT (3E15.5E2)
+       WRITE(6,*)'END OF MNFIX ( WHERE? )'
+       WRITE(6,*)'DRYMAS-excl-NH4  NK      DRYMASS/NK'
+       DO K = 1,30
+            TOTMAS = SUM(MKX(K,1:ICOMP-1))
+!            PRINT *, TOTMAS,NKX(K), TOTMAS/NKX(K)
+        WRITE(6,555)
+     &          TOTMAS, NKX(K),
+     &          TOTMAS/ NKX(K) 
+        print*,'-----------'
+        call debugprint( Nkx, Mkx, 0,0,0,'End of MNFIX')
+       ENDDO
+
+!       write(*,*)'Nk'
+!       write(*,*) Nkx(1:30)
+!       write(*,*)'Mk(srtso4)'
+!       write(*,*) Mkx(1:30,srtso4)
+!       write(*,*)'Mk(srth2o)'
+!       write(*,*) Mkx(1:30,srth2o)
+       !STOP 'Negative Nk or Mk at after mnfix'  !comment out this to make it stop outside mnfix so that I can print out the i,j,l (location) of the error (win, 9/1/05)
+      ENDIF
+
+       ! Return to call subroutine
+      END SUBROUTINE MNFIX_deprecated 
+
+!-----------------------------------------------------------------------------
+
+      SUBROUTINE MNFIX ( NKX, MKX, ERRORSWITCH )
+!
+!*****************************************************************************
+!  Subroutine MNFIX examines the mass and number distrubution and determine if
+!  any bins have an average mass outside their normal range.  This can happen 
+!  because some process, e.g. advection, seems to treat the mass and number
+!  tracers inconsistently.  If any bins are out of range, I shift some mass 
+!  and number to a new bin in a way that conserves both. 
+!  (win, 7/23/07)
+!  ORiginally written by Peter Adams, September 2000
+!  Modified for GEOS-CHEM by Win Trivitayanurak (win@cmu.edu)
+!
+!  NOTES: 
+!  (1 ) Getting rid of eps which was added to the denominator to 
+!       avoid a division by zero when calculating avg mass/number
+!       and calculating multicomponent mass species fj=Mkx(k,j)/drymass.
+!  (2 ) Introduce this code from a previous version of GEOSCHEM -- so this 
+!       may need cleaning up later since this version is full of debugging
+!       print statements (Win, 7/23/07)
+!  (3 ) Bug fix - now when shifting mass or number, it can't try to go beyond
+!       the max or min bin. (win, 8/1/07)
+!*****************************************************************************
+!
+      ! References to F90 modules
+      USE ERROR_MOD,    ONLY : ERROR_STOP, IT_IS_NAN
+
+      ! Arguments
+      REAL*8,  INTENT(INOUT) :: NKX(IBINS),  MKX(IBINS, ICOMP)
+      LOGICAL, INTENT(INOUT) :: ERRORSWITCH
+
+      ! Local variables
+      integer             :: K,J,KK !counters
+      integer             :: NEWBIN !bin number into which mass is shifted
+      REAL*8              :: XOLD, XNEW !average masses of old and new bins
+      REAL*8              :: DRYMASS !dry mass of in a bin
+      REAL*8              :: AVG !average dry mass of particles in bin
+      REAL*8              :: NUMBER !number of particles initially in problem bin
+      REAL*8              :: NSHIFT  !number to shift to new bin
+      REAL*8              :: MSHIFT !mass to shift to new bin
+      REAL*8              :: FJ !fraction of mass that is component j
+      REAL*8              :: save1,save2,save3,save4,save5
+!      REAL*8,   PARAMETER :: EPS = 1.D-20 !small number for Nk
+!      REAL*8,   PARAMETER :: EPS2= 1.D-32 !small number for Mk 
+      REAL*8,   PARAMETER :: EPS = 1.D-2 !small number for Nk 
+      REAL*8,   PARAMETER :: EPS2= 1.D-28 !small number for Mk
+      REAL*8,   PARAMETER :: TINY= 1.D-36 !very small number
+
+      LOGICAL             :: FIXERROR
+      LOGICAL             :: PRT
+      REAL*8              :: TOTMAS, TOTNUM !for print debug 
+
+      !=================================================================
+      ! MNFIX begins here!
+      !=================================================================
+
+      FIXERROR = .TRUE.
+      PRT = .FALSE.
+      PRT = ERRORSWITCH !just carrying a signal to print out value at the observed box - since mnfix does not have any information about I,J,L location. (Win, 9/27/05)
+      ERRORSWITCH = .FALSE.
+
+!      xk(1)=xk(2)/2.d0  ! jrp for some reason xk(1) is changing?!
+      save1=xk(1)
+
+      ! Check for any incoming negative values or NaN
+      !--------------------------------------------------------------------------
+      DO K = 1, IBINS
+        IF ( IT_IS_NAN(NKX(K)) ) THEN
+           PRINT *,'11 Found Nan in Nk at bin',K
+           ERRORSWITCH = .TRUE.
+           print *,'11 MNFIX(0): Found NaN in Nk(,',k,')'
+           GOTO 300
+        ENDIF
+        DO J = 1, ICOMP
+           IF ( IT_IS_NAN(MKX(K,J)) ) THEN
+              PRINT *,'11 Found Nan in Mk at bin',K,'component',J
+              ERRORSWITCH = .TRUE.
+              GOTO 300
+           ENDIF
+        ENDDO
+        IF ( NKX(K) < 0D0 ) THEN
+           IF ( PRT ) THEN 
+              PRINT *,'MNFIX[0]: FOUND NEGATIVE N'
+              PRINT *, 'Bin, N', K, NKX(K)
+           ENDIF
+           IF ( ABS(NKX(K)) < 1D0 .and. FIXERROR ) THEN
+              NKX(K) = 0D0
+              IF ( PRT ) PRINT *,'Negative N > -1.0 Reset to zero'
+           ELSE
+              ERRORSWITCH = .TRUE.
+              print *,'MNFIX(0): Found negative Nk(',k,') <-1d0'
+              GOTO 300          !exit mnfix if found negative error (win, 4/18/06)
+           ENDIF
+        ENDIF
+        IF ( IT_IS_NAN(NKX(K)) ) THEN 
+           PRINT *,'Found Nan in Nk at bin',K
+           ERRORSWITCH = .TRUE.
+           print *,'MNFIX(0): Found NaN in Nk(,',k,')'
+           GOTO 300
+        ENDIF
+        DO J = 1, ICOMP
+           IF ( MKX(K,J) < 0D0 ) THEN
+              IF ( PRT ) THEN 
+                 PRINT *,'MNFIX[0]: FOUND NEGATIVE M'
+                 PRINT *,'Bin, Comp, Mk', K, J, MKX(K,J)
+              ENDIF
+              IF( ABS(MKX(K,J)) < 1D-5 .and. FIXERROR ) THEN
+                 MKX(K,J) = 0D0
+                 IF ( PRT ) PRINT *,'Negative M > -1.d-5 Reset to zero'
+              ELSE
+                 ERRORSWITCH =.TRUE.
+                 print *,'MNFIX(0): Found negative Mk(',k,',comp',j,')'
+                 GOTO 300       !exit mnfix if found negative error (win, 4/18/06)
+              ENDIF
+           ENDIF
+           IF ( IT_IS_NAN(MKX(K,J)) ) THEN 
+              PRINT *,'Found Nan in Mk at bin',K,'component',J
+              ERRORSWITCH = .TRUE.
+              GOTO 300
+           ENDIF
+        ENDDO                   !icomp
+      ENDDO                     !ibins
+      save2=xk(1)
+
+      ! JRP check for neg numbers
+      DO K = 1,IBINS
+	IF (NKX(K) < 0.d0) THEN
+           print*,'1 NKX < 0 in MNFIX',K,NKX(K)
+        ENDIF
+        DO J=1,ICOMP
+           IF (MKX(K,J) < 0.d0) THEN
+              print*,'1 MKX < 0 in MNFIX',K,J,MKX(K,J)
+           ENDIF
+        ENDDO
+        IF ( IT_IS_NAN(NKX(K)) ) THEN
+           PRINT *,'11 Found Nan in Nk at bin',K
+           ERRORSWITCH = .TRUE.
+           print *,'11 MNFIX(0): Found NaN in Nk(,',k,')'
+           GOTO 300
+        ENDIF
+        DO J = 1, ICOMP
+           IF ( IT_IS_NAN(MKX(K,J)) ) THEN
+              PRINT *,'11 Found Nan in Mk at bin',K,'component',J
+              ERRORSWITCH = .TRUE.
+              GOTO 300
+           ENDIF
+        ENDDO
+      ENDDO
+
+      ! Check if both number and mass are zero, if yes then exit mnfix.
+      !----------------------------------------------------------------
+      TOTNUM = 0d0 
+      TOTMAS = 0D0
+      DO K = 1,IBINS
+         TOTNUM = TOTNUM + NKX(K)
+         DO J=1,ICOMP-IDIAG
+            TOTMAS = TOTMAS + MKX(K,J)
+         ENDDO
+      ENDDO
+      IF ( TOTNUM == 0D0 .AND. TOTMAS == 0D0 ) THEN
+          IF ( PRT ) PRINT *,'MNFIX: Nk=Mk=0. Exit now'
+         GOTO 300
+      ENDIF
+
+      ! If number is tiny ( < EPS) then set it to zero
+!      DO K = 1,IBINS
+!         IF ( NKX(K) <= EPS ) THEN
+!            NKX(K) = 0D0
+!            DO J= 1, ICOMP-1
+!               MKX(K,J) = 0d0
+!            ENDDO               !STOP  !original (win, 9/1/05)
+
+!         ENDIF
+!      ENDDO
+
+      ! If N is tiny and M is tiny, set both to zeroes
+      !--------------------------------------------------------
+      DO K = 1, IBINS
+        IF ( IT_IS_NAN(NKX(K)) ) THEN
+           PRINT *,'22 Found Nan in Nk at bin',K
+           ERRORSWITCH = .TRUE.
+           print *,'22 MNFIX(0): Found NaN in Nk(,',k,')'
+           GOTO 300
+        ENDIF
+        DO J = 1, ICOMP
+           IF ( IT_IS_NAN(MKX(K,J)) ) THEN
+              PRINT *,'22 Found Nan in Mk at bin',K,'component',J
+              ERRORSWITCH = .TRUE.
+              GOTO 300
+           ENDIF
+        ENDDO
+       IF ( NKX(K) <= EPS .AND. NKX(K)>= 0D0 ) THEN
+         !print*,'1111'
+         !print*,k,EPS,xk(K),xk(K+1)
+         !print*,'word up'
+         NKX(K) = EPS
+         !NKX(K) = 0.d0
+         !DO J = 1, ICOMP-IDIAG
+         DO J = 1, ICOMP
+            if (J .eq. 1) then
+               !MKX(K,J) = EPS*sqrt(xk(K)*xk(K+1))
+               MKX(K,J) = EPS*AVGMASS(k)
+               !MKX(K,J) = 0.d0
+            else
+               MKX(K,J) = TINY
+            endif
+         enddo
+         !print*,'allbins',MKX(:,1)
+       ENDIF ! If tiny number
+         TOTMAS = SUM(MKX(K,1:ICOMP-IDIAG))
+         if (TOTMAS.lt.eps2) then
+            !print*,'2222'
+            NKX(K) = EPS
+            !NKX(K) = 0.d0
+            DO J = 1, ICOMP
+            !DO J = 1, ICOMP-IDIAG
+               if (J .eq. 1) then
+                  !MKX(K,J) = EPS*sqrt(xk(K)*xk(K+1))
+                  MKX(K,J) = EPS*AVGMASS(k)
+                  !MKX(K,J) = 0.d0
+               else
+                  MKX(K,J) = TINY
+               endif
+            enddo
+         endif
+      ENDDO
+      save3=xk(1)
+
+      ! JRP check for neg numbers
+      DO K = 1,IBINS
+	IF (NKX(K) < 0.d0) THEN
+           print*,'2 NKX < 0 in MNFIX',K,NKX(K)
+        ENDIF
+        DO J=1,ICOMP
+           IF (MKX(K,J) < 0.d0) THEN
+              print*,'2 MKX < 0 in MNFIX',K,J,MKX(K,J)
+           ENDIF
+        ENDDO
+        IF ( IT_IS_NAN(NKX(K)) ) THEN
+           PRINT *,'2 Found Nan in Nk at bin',K
+           ERRORSWITCH = .TRUE.
+           print *,'2 MNFIX(0): Found NaN in Nk(,',k,')'
+           GOTO 300
+        ENDIF
+        DO J = 1, ICOMP
+           IF ( IT_IS_NAN(MKX(K,J)) ) THEN
+              PRINT *,'2 Found Nan in Mk at bin',K,'component',J
+              ERRORSWITCH = .TRUE.
+              GOTO 300
+           ENDIF
+        ENDDO
+      ENDDO
+
+      ! Check to see if any bins are completely out of bounds for min or max bin
+      !-------------------------------------------------------------------------
+      DO K = 1, IBINS
+         DRYMASS = 0.d0
+         DO J = 1, ICOMP-IDIAG
+            DRYMASS = DRYMASS + MKX(K,J)
+         ENDDO
+
+         IF ( Nkx(k) == 0d0 ) THEN
+            !AVG = SQRT( xk(K)* xk(K+1) )
+            AVG = SQRT( AVGMASS(k) )
+         ELSE
+            AVG = DRYMASS/ NKX(K)
+         ENDIF
+
+         IF ( AVG >  xk(IBINS+1) ) THEN
+            IF ( PRT ) PRINT *, 'MNFIX [1]: AVG > Xk(31) at bin',K
+            IF ( FIXERROR ) THEN 
+               !out of bin range - remove some mass
+               MSHIFT = NKX(k)* xk(IBINS+1)/ 1.2
+               DO J= 1, ICOMP
+                  MKX(K,J) = MKX(K,J)* MSHIFT/ (DRYMASS+EPS2)
+               ENDDO
+            ELSE
+               ERRORSWITCH = .TRUE.
+               print *,'MNFIX(1): AVG>Xk(31) at bin',K
+               GOTO 300
+            ENDIF
+         ENDIF
+         IF ( AVG < xk(1)) THEN
+            IF( PRT ) PRINT *,'MNFIX [2]: AVG < Xk(1)'
+            IF( FIXERROR ) THEN 
+               !out of bin range - remove some number
+               NKX(K) = DRYMASS/ ( xk(1)* 1.2 )
+            ELSE
+               ERRORSWITCH = .TRUE.
+               print *,'MNFIX(1): AVG < Xk(1) at bin',K
+               GOTO 300
+            ENDIF
+         ENDIF
+      ENDDO
+
+      ! JRP check for neg numbers
+      DO K = 1,IBINS
+	IF (NKX(K) < 0.d0) THEN
+           print*,'3 NKX < 0 in MNFIX',K,NKX(K)
+        ENDIF
+        DO J=1,ICOMP
+           IF (MKX(K,J) < 0.d0) THEN
+              print*,'3 MKX < 0 in MNFIX',K,J,MKX(K,J)
+           ENDIF
+        ENDDO
+        IF ( IT_IS_NAN(NKX(K)) ) THEN
+           PRINT *,'3 Found Nan in Nk at bin',K
+           ERRORSWITCH = .TRUE.
+           print *,'3 MNFIX(0): Found NaN in Nk(,',k,')'
+           GOTO 300
+        ENDIF
+        DO J = 1, ICOMP
+           IF ( IT_IS_NAN(MKX(K,J)) ) THEN
+              PRINT *,'3 Found Nan in Mk at bin',K,'component',J
+              ERRORSWITCH = .TRUE.
+              GOTO 300
+           ENDIF
+        ENDDO
+      ENDDO
+      save4=xk(1)
+
+!      if (PRT) then !<step5.1-temp>
+!         print *,'After_Check2 ---------------------'
+!         do k=1,ibins
+!            totmas = sum(mkx(k,1:icomp-1))
+!            print *, totmas,nkx(k), totmas/nkx(k)
+!         enddo
+!      endif
+
+      !print*,1,Nkx(1),Nkx(2)
+      !print*,1,Mkx(1,:)
+      !print*,1,Mkx(2,:)
+
+      ! Check to see if any bins are out of bounds
+      !-------------------------------------------------------------------
+      DO K = 1, IBINS
+!         if (PRT) print *,'Now at bin',k !<step4.4>tmp (win, 9/28/05)
+
+         DRYMASS = 0.d0
+         DO J = 1, ICOMP-IDIAG
+            DRYMASS = DRYMASS + MKX(K,J)
+         ENDDO
+
+         IF ( NKX(K) == 0d0 ) THEN
+            !AVG = SQRT(xk(K)*xk(K+1)) !set to mid-range value
+            AVG = AVGMASS(k) !set to mid-range value
+         ELSE
+            AVG = DRYMASS/NKX(K)
+         ENDIF
+
+!         if (PRT) then     !<step5.1-temp>
+!            print *,'After_Check3---------------------'
+!            totmas = sum(mkx(k,1:icomp-1))
+!            print *, totmas,nkx(k), totmas/nkx(k)
+!         endif
+
+         ! If over boundary of the current bin
+         IF ( AVG >  xk(K+1) ) THEN
+           IF ( PRT ) PRINT *, 'MNFIX [3]: AVG>Xk(',K+1,')'
+           IF ( FIXERROR ) THEN 
+            !Average mass is too high - shift to higher bin
+            !KK = K + 1 ! jrp, this was causing errors
+            KK = K
+            XNEW = xk(KK+1)/ 1.1
+            if ( PRT ) PRINT *, 'k',k,'AVG',AVG,' XNEW ',XNEW
+ 100        IF ( XNEW <= AVG ) THEN
+               IF ( KK < IBINS ) THEN
+                  KK = KK + 1
+                  XNEW = xk(KK+1)/ 1.1
+                  if (PRT) PRINT *, '..move up to bin ',KK,' XNEW ',XNEW
+                  GOTO 100
+               ELSE
+                  ! Already reach highest bin - must remove some mass (win, 8/1/07)
+                  ! Updated by jrp 3/1/2012
+                  MSHIFT = NKX(k)* xk(k+1)/ 1.1
+                  if( PRT ) PRINT*,' Mass being discarded: '
+                  DO J= 1, ICOMP
+                     !if (PRT) 
+!                     print*,'Removing mass in MNFIX',
+!     &                    MSHIFT, DRYMASS
+                     MKX(K,J) = MKX(K,J)* MSHIFT/ (DRYMASS)
+                  ENDDO 
+                  ! and recalculate dry mass (win, 8/1/07)
+                  DRYMASS = 0.d0 ! jrp fix 2/29/12
+                  DO J = 1, ICOMP-IDIAG
+                     DRYMASS = DRYMASS + MKX(K,J)
+                  ENDDO
+                  GOTO 111
+               ENDIF         
+            ENDIF
+
+            if(PRT)print*,'Old NK',Nkx(k),'Old DRYMASS',DRYMASS,'bin',k
+
+            !XOLD = SQRT( xk(K)* xk(K+1) )
+            XOLD = AVGMASS(k)
+            NUMBER = NKX(K)
+            NSHIFT = ( DRYMASS - XOLD * NUMBER )/ ( XNEW - XOLD )
+            MSHIFT = XNEW * NSHIFT
+            NKX(K) = NKX(K) - NSHIFT
+            NKX(KK) =NKX(KK) + NSHIFT
+
+            if(prt) then
+               print*,'NSHIFT',NSHIFT, 'MSHIFT',MSHIFT
+               print*,'New NK',k,Nkx(k),' Nk(kk)',kk,Nkx(kk)
+               print*,'Total mass bin',k,sum(Mkx(k,1:icomp-idiag))
+               print*,'SO4 mass bin  ',k,(Mkx(k,srtso4))
+               print*,'Total mass bin',kk,sum(Mkx(kk,1:icomp-idiag))
+               print*,'SO4 mass bin  ' ,kk,(Mkx(kk,srtso4))
+            endif            
+
+            DO J = 1, ICOMP-IDIAG
+              FJ = MKX(K,J)/ DRYMASS 
+              MKX(K,J) = XOLD * NKX(K) * FJ
+              MKX(KK,J) = MKX(KK,J) + MSHIFT * FJ
+            ENDDO
+
+            if(prt) then
+               print*,'After shift mass'
+               print*,'Total mass bin',k,sum(Mkx(k,1:icomp-idiag))
+               print*,'SO4 mass bin  ',k,(Mkx(k,srtso4))
+               print*,'Total mass bin',kk,sum(Mkx(kk,1:icomp-idiag))
+               print*,'SO4 mass bin  ',kk,(Mkx(kk,srtso4))
+            endif            
+
+
+
+           ELSE
+            ERRORSWITCH = .TRUE.
+            PRINT *, 'MNFIX(3) : AVG>Xk(',K+1,')'
+            GOTO 300
+           ENDIF    ! Fixerror             
+         ENDIF       ! AVG > Xk(k+1)
+
+!         if (PRT) then     !<step5.1-temp>
+!            print *,'After_Check4---------------------'
+!            totmas = sum(mkx(k,1:icomp-1))
+!            print *, totmas,nkx(k), totmas/nkx(k)
+!         endif
+
+         ! If under boundary of the current bin
+ 111     IF ( AVG <  xk(K) ) THEN
+            IF ( PRT ) PRINT *,'MNFIX [4]: AVG<Xk(',K,')'
+            IF ( FIXERROR ) THEN
+               !average mass is too low - shift number to lower bin
+               !KK = K - 1 ! jrp potential for errors here
+               KK = K
+               XNEW = xk(KK)* 1.1
+ 200           IF ( XNEW >= AVG ) THEN
+                  IF ( KK > 1 ) THEN 
+                     KK = KK - 1
+                     XNEW = xk(KK)* 1.1
+                     GOTO 200
+                  ELSE
+                     ! Already reach lowest bin - must remove some number (win, 8/1/07)
+                     NKX(K) = DRYMASS/ ( xk(1)* 1.2 )
+                     GOTO 222
+                  ENDIF                     
+               ENDIF
+               !XOLD = SQRT(xk(K)* xk(K+1))
+               XOLD = AVGMASS(k)
+               NUMBER = NKX(K)
+               NSHIFT = NUMBER - DRYMASS/XOLD !(win, 10/20/08)
+               !Prior to 10/20/08 (win)
+               !NSHIFT = (DRYMASS - XOLD * NUMBER)/ ( XNEW - XOLD )
+               MSHIFT = XNEW * NSHIFT
+               NKX(K) = NKX(K) - NSHIFT
+               NKX(KK) = NKX(KK) + NSHIFT
+               DO J=1,ICOMP
+                  FJ = MKX(K,J)/ DRYMASS   
+                  MKX(K,J) = XOLD * NKX(K) * FJ
+                  MKX(KK,J) = MKX(KK,J) + MSHIFT * FJ
+               ENDDO
+
+            ELSE
+               ERRORSWITCH = .TRUE.
+               PRINT *, 'MNFIX(4): AVG < Xk(',k,')'
+               GOTO 300
+            ENDIF       
+ 222      ENDIF
+         
+!         if (PRT) then     !<step5.1-temp>
+!            print *,'After_Check5---------------------'
+!            totmas = sum(mkx(k,1:icomp-1))
+!            print *, totmas,nkx(k), totmas/nkx(k)
+!         endif
+!c         if (PRT) print *,mkx(k,1),nkx(k), mkx(k,1)/nkx(k),'Check5'!<step4.4>tmp (win, 9/28/05)
+
+
+      ENDDO ! loop bin
+      save5=xk(1)
+
+      !print*,2,Nkx(1),Nkx(2)
+      !print*,2,Mkx(1,:)
+      !print*,2,Mkx(2,:)
+
+      ! JRP check for neg numbers
+      DO K = 1,IBINS
+	IF (NKX(K) < 0.d0) THEN
+           print*,'4 NKX < 0 in MNFIX',K,NKX(K)
+        ENDIF
+        DO J=1,ICOMP
+           IF (MKX(K,J) < 0.d0) THEN
+              print*,'4 MKX < 0 in MNFIX',K,J,MKX(K,J)
+              print*,'saved xk1s',save1,save2,save3,save4,save5
+              print*,'xk',xk
+           ENDIF
+        ENDDO
+        IF ( IT_IS_NAN(NKX(K)) ) THEN
+           PRINT *,'4 Found Nan in Nk at bin',K
+           ERRORSWITCH = .TRUE.
+           print *,'4 MNFIX(0): Found NaN in Nk(,',k,')'
+           GOTO 300
+        ENDIF
+        DO J = 1, ICOMP
+           IF ( IT_IS_NAN(MKX(K,J)) ) THEN
+              PRINT *,'4 Found Nan in Mk at bin',K,'component',J
+              ERRORSWITCH = .TRUE.
+              GOTO 300
+           ENDIF
+        ENDDO
+      ENDDO
+
+!      if (PRT) then !<step5.1-temp>
+      ! Catch any small negative values resulting from fixing
+      !--------------------------------------------------------------------------
+      DO K = 1, IBINS
+        IF ( NKX(K) < 0D0 ) THEN
+           IF ( PRT ) THEN 
+              PRINT *,'MNFIX[5]: FOUND NEGATIVE N'
+              PRINT *, 'Bin, N', K, NKX(K)
+           ENDIF
+           IF ( ABS(NKX(K)) < 1D0 .and. FIXERROR ) THEN
+              NKX(K) = 0D0
+              IF ( PRT ) PRINT *,'Negative N > -1.0 Reset to zero'
+           ELSE
+              ERRORSWITCH = .TRUE.
+              PRINT *, 'MNFIX(5): Negative N after fixing at bin',k
+              GOTO 300          !exit mnfix if found negative error (win, 4/18/06)
+           ENDIF
+        ENDIF
+        DO J = 1, ICOMP
+           IF ( MKX(K,J) < 0D0 ) THEN
+              IF ( PRT ) THEN 
+                 PRINT *,'MNFIX[6]: FOUND NEGATIVE M'
+                 PRINT *,'Bin, Comp, Mk', K, J, MKX(K,J)
+              ENDIF
+              IF( ABS(MKX(K,J)) < 1D-5 .and. FIXERROR ) THEN
+                 MKX(K,J) = 0D0
+                 IF ( PRT ) PRINT *,'Negative M > -1.d-5 Reset to zero'
+              ELSE
+                 ERRORSWITCH =.TRUE.
+                 PRINT *, 'MNFIX(6): Negative M after fixing at bin',k
+                 GOTO 300       !exit mnfix if found negative error (win, 4/18/06)
+              ENDIF
+           ENDIF
+        ENDDO                   !icomp
+      ENDDO                     !ibins
+
+      ! JRP check for neg numbers
+      DO K = 1,IBINS
+	IF (NKX(K) < 0.d0) THEN
+           print*,'5 NKX < 0 in MNFIX',K,NKX(K)
+        ENDIF
+        DO J=1,ICOMP
+           IF (MKX(K,J) < 0.d0) THEN
+              print*,'5 MKX < 0 in MNFIX',K,J,MKX(K,J)
+           ENDIF
+        ENDDO
+        IF ( IT_IS_NAN(NKX(K)) ) THEN
+           PRINT *,'5 Found Nan in Nk at bin',K
+           ERRORSWITCH = .TRUE.
+           print *,'5 MNFIX(0): Found NaN in Nk(,',k,')'
+           GOTO 300
+        ENDIF
+        DO J = 1, ICOMP
+           IF ( IT_IS_NAN(MKX(K,J)) ) THEN
+              PRINT *,'5 Found Nan in Mk at bin',K,'component',J
+              ERRORSWITCH = .TRUE.
+              GOTO 300
+           ENDIF
+        ENDDO
+      ENDDO
+
+      ! Check any last inconsistent M=0 or N=0 
+      !--------------------------------------------------------
+      DO K = 1, IBINS
+         DRYMASS = 0.d0
+         DO J = 1, ICOMP-IDIAG
+            DRYMASS = DRYMASS + MKX(K,J)
+         ENDDO
+         IF ( NKX(K) /= 0D0 .AND. DRYMASS == 0D0 .or.
+     &        NKX(K) == 0D0 .AND. DRYMASS /= 0D0     ) THEN   
+            DO J = 1, ICOMP
+               MKX(K,J)=0.D0
+               NKX(K) = 0.D0
+            ENDDO
+            MKX(K,ICOMP) = 0.d0 !Set aerosol water to zero too
+         ENDIF                  ! If tiny number
+      ENDDO
+
+      ! JRP check for neg numbers
+      DO K = 1,IBINS
+	IF (NKX(K) < 0.d0) THEN
+           print*,'6 NKX < 0 in MNFIX',K,NKX(K)
+           STOP
+        ENDIF
+        DO J=1,ICOMP
+           IF (MKX(K,J) < 0.d0) THEN
+              print*,'6 MKX < 0 in MNFIX',K,J,MKX(K,J)
+              STOP
+           ENDIF
+        ENDDO
       ENDDO
 
  300  CONTINUE

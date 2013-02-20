@@ -4,6 +4,8 @@
 *~*
 *.swp
 *.bak
+*.patch
+*.diff
 geos
 geostomas
 geosapm

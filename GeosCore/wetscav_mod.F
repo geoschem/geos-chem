@@ -781,6 +781,11 @@
       USE TRACERID_MOD,       ONLY : IDTMAP
       USE TRACERID_MOD,       ONLY : IDTHOBr,   IDTHBr,    IDTBr2
       USE TRACERID_MOD,       ONLY : IDTPOPPOC, IDTPOPPBC, IDTPOPG 
+#if defined( TOMAS )
+      USE TRACERID_MOD, ONLY : IDTH2SO4, IDTNK1,   IDTSF1,  IDTSS1  !(win, 7/16/09)
+      USE TRACERID_MOD, ONLY : IDTECIL1, IDTOCIL1, IDTOCOB1,IDTDUST1  !(win, 7/16/09)
+      USE TOMAS_MOD,    ONLY : IBINS,    GETFRACTION  !(win, 7/16/09)
+#endif
 
       USE CMN_SIZE_MOD             ! Size parameters
 !
@@ -881,6 +886,12 @@
 
       REAL*8,   SAVE       :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
       REAL*8               :: DUM
+
+#if defined( TOMAS )
+      ! Scavenging fraction of TOMAS aerosols (win, 7/16/09)
+      REAL*8               :: TOM_SC_FRACTION(IIPAR, JJPAR, LLPAR, IBINS)
+      REAL*8               :: SOLFRAC, XFRAC
+#endif
 
       !=================================================================
       ! COMPUTE_F begins here!
@@ -1947,6 +1958,134 @@
 
          CALL F_AEROSOL( KC, N, F, State_Met ) 
          ISOL = GET_ISOL( N )
+#if defined( TOMAS )
+
+      ! Added for size-resolved aerosol (win, 7/16/09)
+      !-------------------------------
+      ! H2SO4 (treat as aerosol)
+      !-------------------------------
+      ELSE IF ( N == IDTH2SO4 ) THEN
+         CALL F_AEROSOL( KC, N, F, State_Met )
+         ISOL = GET_ISOL( N )
+
+      ! Added for size-resolved aerosol (win, 7/16/09)
+      !-------------------------------
+      ! Aerosol number NK1-NK30
+      !-------------------------------
+      ELSE IF ( IDTNK1 > 0 .and. N >= IDTNK1 .and. 
+     &          N <  IDTNK1 +  IBINS ) THEN
+         CALL F_AEROSOL( KC, N, F, State_Met )
+         DO L = 2, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            CALL GETFRACTION( I, J, L, N, .FALSE., 
+     &                        XFRAC, SOLFRAC       )
+            F(I,J,L) = XFRAC * SOLFRAC * F(I,J,L)                 
+            TOM_SC_FRACTION(I,J,L,N-IDTNK1+1) = XFRAC
+!            F(I,J,L) = ACTIV_F( N, .FALSE. ) * F(I,J,L)
+         ENDDO
+         ENDDO
+         ENDDO
+        ISOL = GET_ISOL( N )
+         
+      !-------------------------------
+      ! Sulfate SF1-SF30
+      !-------------------------------
+      ELSE IF ( IDTSF1 > 0 .and. N >= IDTSF1 .and. 
+     &          N <  IDTSF1 +  IBINS ) THEN
+         CALL F_AEROSOL( KC, N, F, State_Met )
+         DO L = 2, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            F(I,J,L) = TOM_SC_FRACTION(I,J,L,N-IDTSF1+1) * F(I,J,L)
+!            F(I,J,L) = ACTIV_F( N, .FALSE. ) * F(I,J,L)
+         ENDDO
+         ENDDO
+         ENDDO
+         ISOL = GET_ISOL( N )
+         
+      !-------------------------------
+      ! Sea-salt SS1-SS30
+      !-------------------------------
+      ELSE IF ( IDTSS1 > 0 .and. N >= IDTSS1 .and. 
+     &          N <  IDTSS1 +  IBINS ) THEN
+         CALL F_AEROSOL( KC, N, F, State_Met )
+         DO L = 2, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            F(I,J,L) = TOM_SC_FRACTION(I,J,L,N-IDTSS1+1) * F(I,J,L)
+!            F(I,J,L) = ACTIV_F( N, .FALSE. ) * F(I,J,L)
+         ENDDO
+         ENDDO
+         ENDDO
+         ISOL = GET_ISOL( N )
+         
+      !-------------------------------
+      ! Hydrophilic EC ECIL1-ECIL30 
+      !-------------------------------
+      ELSE IF ( IDTECIL1 > 0 .and. N >= IDTECIL1 .and. 
+     &          N <  IDTECIL1 +  IBINS ) THEN
+         CALL F_AEROSOL( KC, N, F, State_Met )
+         DO L = 2, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            F(I,J,L) = TOM_SC_FRACTION(I,J,L,N-IDTECIL1+1) * F(I,J,L)
+!            F(I,J,L) = ACTIV_F( N, .FALSE. ) * F(I,J,L)
+         ENDDO
+         ENDDO
+         ENDDO
+         ISOL = GET_ISOL( N )
+         
+      !-------------------------------
+      ! Hydrophilic OC OCIL1-OCIL30 
+      !-------------------------------
+      ELSE IF ( IDTOCIL1 > 0 .and. N >= IDTOCIL1 .and. 
+     &          N <  IDTOCIL1 +  IBINS ) THEN
+         CALL F_AEROSOL( KC, N, F, State_Met )
+         DO L = 2, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            F(I,J,L) = TOM_SC_FRACTION(I,J,L,N-IDTOCIL1+1) * F(I,J,L)
+!            F(I,J,L) = ACTIV_F( N, .FALSE. ) * F(I,J,L)
+         ENDDO
+         ENDDO
+         ENDDO
+         ISOL = GET_ISOL( N )
+         
+      !-------------------------------
+      ! Hydrophobic OC OCOB1-OCOB30 
+      !-------------------------------
+      ELSE IF ( IDTOCOB1 > 0 .and. N >= IDTOCOB1 .and. 
+     &          N <  IDTOCOB1 +  IBINS ) THEN
+         CALL F_AEROSOL( KC, N, F, State_Met )
+         DO L = 2, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            F(I,J,L) = TOM_SC_FRACTION(I,J,L,N-IDTOCOB1+1) * F(I,J,L)
+!            F(I,J,L) = ACTIV_F( N, .FALSE. ) * F(I,J,L)
+         ENDDO
+         ENDDO
+         ENDDO
+         ISOL = GET_ISOL( N )
+         
+      !-------------------------------
+      ! Dust DUST1-DUST30 
+      !-------------------------------
+      ELSE IF ( IDTDUST1 > 0 .and. N >= IDTDUST1 .and. 
+     &          N <  IDTDUST1 +  IBINS ) THEN
+         CALL F_AEROSOL( KC, N, F, State_Met )
+         DO L = 2, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            F(I,J,L) = TOM_SC_FRACTION(I,J,L,N-IDTDUST1+1) * F(I,J,L)
+         ENDDO
+         ENDDO
+         ENDDO
+         ISOL = GET_ISOL( N )
+         
+      !(end part) Added for size-resolved aerosol (win, 7/16/09)
+
+#endif
 
       !-------------------------------
       ! POPG (liquid phase only) (clf 11/16/10)
@@ -2634,6 +2773,11 @@
       USE TRACERID_MOD,       ONLY : IDTHOBr,   IDTHBr,    IDTBr2
       !POPs (eck, 9/21/10)
       USE TRACERID_MOD,       ONLY : IDTPOPPOC, IDTPOPPBC, IDTPOPG
+#if defined( TOMAS )
+      USE TRACERID_MOD, ONLY : IDTH2SO4,IDTNK1,   IDTSF1,  IDTSS1 !(win, 7/16/09)
+      USE TRACERID_MOD, ONLY : IDTECIL1,IDTOCIL1, IDTOCOB1,IDTDUST1 !(win, 7/16/09)
+      USE TOMAS_MOD,    ONLY : ICOMP,   IBINS !(win, 7/16/09)
+#endif
 
       USE CMN_SIZE_MOD             ! Size parameters
 !
@@ -3634,6 +3778,69 @@
             ! CDH 9/28/2009
 !            IF ( TK < 248d0 ) RAINFRAC = 0d0
 
+
+#if defined( TOMAS )
+      ! Added for size-resolved aerosol (win, 7/16/09)
+      !------------------------------
+      ! H2SO4 (treat as aerosol)
+      !------------------------------
+      ELSE IF ( N == IDTH2SO4 ) THEN
+         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+
+      ! Added for size-resolved aerosol (win, 7/16/09)
+      !------------------------------
+      ! Aerosol number NK1-NK30
+      !------------------------------
+      ELSE IF ( IDTNK1 > 0 .and. N >= IDTNK1 .and. 
+     &          N <  IDTNK1 + IBINS ) THEN
+         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+
+      !------------------------------
+      ! Sulfate SF1-SF30
+      !------------------------------
+      ELSE IF ( IDTSF1 > 0 .and. N >= IDTSF1 .and. 
+     &          N <  IDTSF1 + IBINS ) THEN
+         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+
+      !------------------------------
+      ! Sea-salt SS1-SS30
+      !------------------------------
+      ELSE IF ( IDTSS1 > 0 .and. N >= IDTSS1 .and. 
+     &          N <  IDTSS1 + IBINS ) THEN
+         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+
+      !------------------------------
+      ! Hydrophilic EC ECIL1-ECIL30
+      !------------------------------
+      ELSE IF ( IDTECIL1 > 0 .and. N >= IDTECIL1 .and. 
+     &          N <  IDTECIL1 + IBINS ) THEN
+         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+
+      !------------------------------
+      ! Hydrophilic OC OCIL1-OCIL30
+      !------------------------------
+      ELSE IF ( IDTOCIL1 > 0 .and. N >= IDTOCIL1 .and. 
+     &          N <  IDTOCIL1 + IBINS ) THEN
+         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+
+      !------------------------------
+      ! Hydrophobic OC OCOB1-OCOB30
+      !------------------------------
+      ELSE IF ( IDTOCOB1 > 0 .and. N >= IDTOCOB1 .and. 
+     &          N <  IDTOCOB1 + IBINS ) THEN
+         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+
+      !------------------------------
+      ! Dust DUST1-DUST30
+      !------------------------------
+      ELSE IF ( IDTDUST1 > 0 .and. N >= IDTDUST1 .and. 
+     &          N <  IDTDUST1 + IBINS ) THEN
+         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+
+      ! (end part) Added for size-resolved aerosol (win, 7/16/09)
+
+#endif
+
          !-------------------------------
          ! POPG (liquid phase only) (clf 11/16/10)
          !-------------------------------
@@ -3791,6 +3998,12 @@
       !POPs (eck, 9/21/10)
       USE TRACERID_MOD, ONLY : IDTPOPPOC, IDTPOPPBC, IDTPOPG
       USE GET_POPSINFO_MOD, ONLY : GET_POP_HSTAR, GET_POP_DEL_Hw
+
+#if defined( TOMAS )
+      USE TRACERID_MOD, ONLY : IDTH2SO4, IDTNK1,   IDTSF1,  IDTSS1 ! (win, 7/16/09)
+      USE TRACERID_MOD, ONLY : IDTECIL1, IDTOCIL1, IDTOCOB1,IDTDUST1 ! (win, 7/16/09) 
+      USE TOMAS_MOD,    ONLY : IBINS,    ICOMP ! (win, 7/16/09)
+#endif
 
       USE CMN_SIZE_MOD                     ! Size parameters
 !
@@ -4234,6 +4447,75 @@
          KIN      = .TRUE.
          WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
+#if defined( TOMAS )
+      ! Added for size-resolved aerosol (win, 7/16/09)
+      !-------------------------------
+      ! H2SO4 (treat as aerosol)
+      !-------------------------------
+      ELSE IF ( N == IDTH2SO4 ) THEN
+         KIN      = .TRUE.
+         WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
+
+      ! Added for size-resolved aerosol (win, 7/16/09)
+      !-------------------------------
+      ! Aerosol number NK1-NK30
+      !-------------------------------
+      ELSE IF ( IDTNK1 > 0 .and. N >= IDTNK1 .and. 
+     &          N <  IDTNK1 + IBINS ) THEN
+         KIN      = .TRUE.
+         WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L )
+         
+      !-------------------------------
+      ! Sulfate SF1-SF30
+      !-------------------------------
+      ELSE IF ( IDTSF1 > 0 .and. N >= IDTSF1 .and. 
+     &          N <  IDTSF1 + IBINS ) THEN
+         KIN      = .TRUE.
+         WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L )
+         
+      !-------------------------------
+      ! Sea-salt SS1-SS30
+      !-------------------------------
+      ELSE IF ( IDTSS1 > 0 .and. N >= IDTSS1 .and. 
+     &          N <  IDTSS1 + IBINS ) THEN
+         KIN      = .TRUE.
+         WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L )
+         
+      !-------------------------------
+      ! Hydrophilic EC ECIL1-ECIL30
+      !-------------------------------
+      ELSE IF ( IDTECIL1 > 0 .and. N >= IDTECIL1 .and. 
+     &          N <  IDTECIL1 + IBINS ) THEN
+         KIN      = .TRUE.
+         WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L )
+         
+      !-------------------------------
+      ! Hydrophilic OC OCIL1-OCIL30
+      !-------------------------------
+      ELSE IF ( IDTOCIL1 > 0 .and. N >= IDTOCIL1 .and. 
+     &          N <  IDTOCIL1 + IBINS ) THEN
+         KIN      = .TRUE.
+         WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L )
+         
+      !-------------------------------
+      ! Hydrophobic OC OCOB1-OCOB30
+      !-------------------------------
+      ELSE IF ( IDTOCOB1 > 0 .and. N >= IDTOCOB1 .and. 
+     &          N <  IDTOCOB1 + IBINS ) THEN
+         KIN      = .TRUE.
+         WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L )
+         
+      !-------------------------------
+      ! Dust DUST1-DUST30
+      !-------------------------------
+      ELSE IF ( IDTDUST1 > 0 .and. N >= IDTDUST1 .and. 
+     &          N <  IDTDUST1 + IBINS ) THEN
+         KIN      = .TRUE.
+         WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L )
+
+      ! (end part) Added for size-resolved aerosol (win, 7/16/09)
+#endif
+
       !------------------------------
       ! POPG (liquid and gas phases) (clf, 11/17/2010)
       !------------------------------
@@ -4402,6 +4684,88 @@
       ENDIF   
 
       END FUNCTION WASHFRAC_COARSE_AEROSOL
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: washfrac_size_aerosol
+!
+! !DESCRIPTION: Function WASHFRAC\_SIZE\_AEROSOL returns the fraction of soluble 
+!  aerosol tracer lost to washout. Size resolved version for TOMAS
+!\\
+!\\
+! !INTERFACE:
+!
+
+#if defined( TOMAS )
+      FUNCTION WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L ) 
+     &         RESULT( WASHFRAC )
+!
+!******************************************************************************
+!  Function WASHFRAC_SIZE_AEROSOL returns the fraction of soluble size-resolved
+!  aerosol tracer lost to washout.  This applies different washout coefficient 
+!  for each size. (win, 7/16/ 09)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) DT       (REAL*8 ) : Dynamic timestep                   [s]
+!  (2 ) F        (REAL*8 ) : Fraction of grid box 
+!                             that is precipitating             [unitless]
+!  (3 ) PP       (REAL*8 ) : Precip rate thru at bottom    
+!                             of grid box (I,J,L)           [cm3 H2O/cm2 air/s]
+!  (4 ) TK       (REAL*8 ) : Temperature in grid box            [K]
+!  (5 ) N        (INTEGER) : Tracer number                      [unitless]
+!  (6 ) I,J,L    (INTEGER) : Grid box location
+!
+!  NOTES:
+!******************************************************************************
+!   
+      ! Reference to F90 modules
+      USE TRACERID_MOD,ONLY : IDTNK1
+      USE TOMAS_MOD,  ONLY : IBINS, GETDP, STRATSCAV
+      ! Arguments
+      REAL*8, INTENT(IN) :: DT, F, PP, TK
+      INTEGER,INTENT(IN) :: N,  I, J,  L
+
+      ! Function value
+      REAL*8             :: WASHFRAC
+
+      ! Local variables
+      REAL*8             :: DPAERO          ! Average diameter of particle 
+      REAL*8             :: SCAVR !Below-cloud scavenging coefficient (per cm rain)
+      REAL*8, SAVE       :: SCAVRSAVE(IBINS)
+      INTEGER            :: BIN 
+      
+
+      !=================================================================
+      ! WASHFRAC_SIZE_AEROSOL begins here!
+      !=================================================================
+
+      ! Washout only happens at or above 268 K
+      IF ( TK >= 268d0 ) THEN
+         ! For aerosol number, get Dp and calculate scavr 
+         IF ( N < IDTNK1 + IBINS ) THEN
+            DPAERO = GETDP( I, J, L, N )
+            ! External function stratscav returns the scavenging rate (mm^-1)
+            ! Let scavr has a unit of cm^-1
+            SCAVR = 10.d0* STRATSCAV( DPAERO )
+            SCAVRSAVE(N-IDTNK1+1) = scavr
+         ELSE
+            BIN = MOD( N - IDTNK1 + 1, IBINS )
+            IF( BIN == 0 ) BIN = IBINS
+            SCAVR = SCAVRSAVE(BIN)
+         ENDIF
+         WASHFRAC = F * ( 1d0 - EXP( -SCAVR * ( PP / F ) * DT ) )
+      ELSE
+         WASHFRAC = 0d0
+      ENDIF
+
+      ! Return to calling program
+      END FUNCTION WASHFRAC_SIZE_AEROSOL
+#endif
+
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -4785,7 +5149,10 @@
 !
       LOGICAL, SAVE      :: FIRST = .TRUE.
       LOGICAL            :: IS_Hg
-      LOGICAL            :: KIN
+      LOGICAL            :: KIN !sfarina - formerly AER
+                                !KIN true for kinetic process, vs 
+                                !AER true if tracer is an aerosol
+                                !I think this is effectively the same variable
                          
       INTEGER            :: I, IDX, J, L, N, NN
                          
@@ -4799,6 +5166,7 @@
       ! DSTT is the accumulator array of rained-out 
       ! soluble tracer for a given (I,J) column
       REAL*8             :: DSTT(NSOL,LLPAR,IIPAR,JJPAR)
+
  
       CHARACTER(LEN=255) :: ERRMSG
 
@@ -5159,8 +5527,8 @@
             
          ENDIF
 
-      ENDDO	
-      ENDDO	
+      ENDDO
+      ENDDO
 !$OMP END PARALLEL DO
 
       END SUBROUTINE WETDEP
@@ -5841,6 +6209,15 @@
       USE GIGC_State_Met_Mod, ONLY : MetState          ! Met State object
       USE LOGICAL_MOD,        ONLY : LGTMM             ! Use GTMM for Hg sim?
       USE LOGICAL_MOD,        ONLY : LSOILNOX          ! Use soil NOx?
+#if defined( TOMAS )
+      USE TRACERID_MOD,       ONLY : IDTNK1, IDTSF1, IDTSS1  !(win, 7/16/09)
+      USE TRACERID_MOD,       ONLY : IDTECIL1, IDTOCIL1, IDTOCOB1 !(win, 7/16/09)
+      USE TRACERID_MOD,       ONLY : IDTDUST1 !(win, 7/16/09)
+      USE TOMAS_MOD,          ONLY : IBINS, ICOMP, AQOXID !(win, 7/16/09)
+      USE TOMAS_MOD,          ONLY : GETFRACTION !(win, 7/16/09)
+      USE DIAG_MOD,           ONLY : AD05  !(win, 7/16/09)
+      USE LOGICAL_MOD,        ONLY : LTOMAS ! (win, 7/16/09)
+#endif
  
       USE CMN_SIZE_MOD                                 ! Size parameters
       USE CMN_DIAG_MOD                                 ! Diagnostic flags
@@ -5895,6 +6272,12 @@
       INTEGER :: N,        NN
       REAL*8  :: RAINFRAC, WETLOSS
 
+#if defined( TOMAS )
+      ! Scavenging fraction of 30-bin aerosols (win, 7/16/09)
+      REAL*8              :: TOM_SC_FRACTION(IBINS)
+      REAL*8              :: SOLFRAC, XFRAC
+#endif
+
       !=================================================================
       ! DO_RAINOUT_ONLY begins here!
       !=================================================================
@@ -5923,6 +6306,46 @@
          CALL RAINOUT( I, J, L, N, K_RAIN, DT, F_RAINOUT, RAINFRAC,
      &                 State_Met )
 
+
+#if defined( TOMAS )
+
+!========================================================================
+!= sfarina                                                              =
+!= this section was optimized to remove the large array                 =
+!= TOM_SC_FRACTION which is used to reduce the number of                =
+!= calls to getfraction by assuming that all species behave             =
+!= the same and rainfrac only depends on the size bin.                  =
+!========================================================================
+         IF ( IDTNK1 > 0 ) THEN
+            IF ( N >= IDTNK1 .and. N < IDTNK1 + IBINS ) THEN  
+               CALL GETFRACTION( I, J, L, N, LS, XFRAC, SOLFRAC ) 
+               RAINFRAC = RAINFRAC * XFRAC * SOLFRAC
+               TOM_SC_FRACTION(N-IDTNK1+1) = XFRAC
+             ELSE IF ( N >= IDTSF1 .and. N < IDTSF1 + IBINS ) THEN
+                RAINFRAC = RAINFRAC *
+     &                     TOM_SC_FRACTION(N-IDTSF1+1) 
+             ELSE IF ( N >= IDTSS1 .and. N < IDTSS1 + IBINS ) THEN
+                RAINFRAC = RAINFRAC *
+     &                     TOM_SC_FRACTION(N-IDTSS1+1) 
+             ELSE IF ( N >= IDTECIL1 .and. 
+     &                 N < IDTECIL1 + IBINS ) THEN 
+                RAINFRAC = RAINFRAC *
+     &                     TOM_SC_FRACTION(N-IDTECIL1+1) 
+             ELSE IF ( N >= IDTOCIL1 .and. 
+     &                 N < IDTOCIL1 + IBINS ) THEN 
+                RAINFRAC = RAINFRAC *
+     &                     TOM_SC_FRACTION(N-IDTOCIL1+1) 
+             ELSE IF ( N >= IDTOCOB1 .and. 
+     &                 N < IDTOCOB1 + IBINS ) THEN 
+                RAINFRAC = RAINFRAC *
+     &                     TOM_SC_FRACTION(N-IDTOCOB1+1) 
+             ELSE IF ( N >= IDTDUST1 .and. 
+     &                 N < IDTDUST1 + IBINS ) THEN 
+                RAINFRAC = RAINFRAC *
+     &                     TOM_SC_FRACTION(N-IDTDUST1+1) 
+             ENDIF
+          ENDIF
+#endif
          ! WETLOSS is the amount of tracer in grid box 
          ! (I,J,L) that is lost to rainout.
          WETLOSS = STT(I,J,L,N) * RAINFRAC
@@ -6039,6 +6462,15 @@
       USE LOGICAL_MOD,        ONLY : LSOILNOX          ! Use soil NOx?
       USE TRACERID_MOD,       ONLY : IDTSO2            ! ID flag for SO2
       USE TRACERID_MOD,       ONLY : IDTSO4            ! ID flag for SO4
+#if defined( TOMAS )
+      USE TRACERID_MOD,       ONLY : IDTNK1, IDTSF1, IDTSS1       !(win, 7/16/09)
+      USE TRACERID_MOD,       ONLY : IDTECIL1, IDTOCIL1, IDTOCOB1 !(win, 7/16/09)
+      USE TRACERID_MOD,       ONLY : IDTDUST1                     !(win, 7/16/09)
+      USE TOMAS_MOD,          ONLY : IBINS, ICOMP, AQOXID         !(win, 7/16/09)
+      USE TOMAS_MOD,          ONLY : GETFRACTION                  !(win, 7/16/09)
+      USE DIAG_MOD,           ONLY : AD05                         !(win, 7/16/09)
+      USE LOGICAL_MOD,        ONLY : LTOMAS                       !(win, 7/16/09)
+#endif
 
       USE CMN_SIZE_MOD                                 ! Size parameters
       USE CMN_DIAG_MOD                                 ! Diagnostic flags
@@ -6151,6 +6583,11 @@
       REAL*8  :: ALPHA,     ALPHA2,      GAINED,   LOST
       REAL*8  :: MASS_WASH, MASS_NOWASH, WASHFRAC, WETLOSS
       REAL*8  :: TK,        TF  
+
+#if defined( TOMAS )
+      REAL*8  :: REEVAPSO2  !(win, 7/16/09)
+      INTEGER :: KMIN       !(win, 7/16/09)
+#endif
 
       !=================================================================
       ! DO_WASHOUT_ONLY begins here!
@@ -6267,6 +6704,32 @@
 
                STT(I,J,L,N)      = STT(I,J,L,N) *
      &                                          ( 1d0 - WASHFRAC )
+
+
+#if defined( TOMAS )
+!added for TOMAS (win, 7/16/09)
+            ! Save the amout of SO4 [kg S] added via aqueous 
+            ! chem to ND05(6) diagnostic assuming it's all 
+            ! by reacting with H2O2 (win, 7/16/09)
+            IF ( ND05 > 0 .and. L <= LD05 ) 
+     &         AD05(I,J,L,6) = AD05(I,J,L,6) +
+     &         ( GAINED * 32D0 / 64D0 )
+                            
+            ! Re-evaporated portion get distributed onto
+            ! size-resolved sulfate by AQOXID (win, 7/16/09)
+            IF ( LTOMAS .and. GAINED > 0d0 ) THEN 
+               IF ( LS ) THEN
+                  KMIN = 10
+               ELSE
+                  KMIN = 6
+               ENDIF
+
+               REEVAPSO2 = GAINED * 96D0 / 64D0
+               CALL AQOXID( REEVAPSO2, KMIN, I, J, L )
+            ENDIF
+!end -added for TOMAS  (win, 7/16/09)
+#endif
+
             ELSE
                STT(I,J,L,N)      = STT(I,J,L,N) - WETLOSS
             ENDIF
@@ -6406,6 +6869,15 @@
       USE LOGICAL_MOD,  ONLY : LSOILNOX                ! Use soil NOx?
       USE TRACERID_MOD, ONLY : IDTSO2                  ! ID flag for SO2
       USE TRACERID_MOD, ONLY : IDTSO4                  ! ID flag for SO4
+#if defined( TOMAS )
+      USE TRACERID_MOD,       ONLY : IDTNK1, IDTSF1, IDTSS1       !(win, 7/16/09)
+      USE TRACERID_MOD,       ONLY : IDTECIL1, IDTOCIL1, IDTOCOB1 !(win, 7/16/09)
+      USE TRACERID_MOD,       ONLY : IDTDUST1                     !(win, 7/16/09)
+      USE TOMAS_MOD,          ONLY : IBINS, ICOMP, AQOXID         !(win, 7/16/09)
+      USE TOMAS_MOD,          ONLY : GETFRACTION                  !(win, 7/16/09)
+      USE DIAG_MOD,           ONLY : AD05                         !(win, 7/16/09)
+      USE LOGICAL_MOD,        ONLY : LTOMAS                       !(win, 7/16/09)
+#endif
 
       USE CMN_SIZE_MOD                                 ! Size parameters
       USE CMN_DIAG_MOD                                 ! Diagnostic flags
@@ -6461,13 +6933,39 @@
          IF ( N == IDTSO2 ) THEN
             STT(I,J,L,IDTSO4) = STT(I,J,L,IDTSO4) 
      &                        - ( WETLOSS * 96d0 / 64d0 )
+
+
+#if defined( TOMAS )
+!added for TOMAS (win, 7/16/09)
+                     ! Save the amout of SO4 [kg S] added via aqueous 
+                     ! chem to ND05(6) diagnostic assuming it's all 
+                     ! by reacting with H2O2 (win, 7/16/09)
+                     IF ( ND05 > 0 .and. L <= LD05 ) 
+     &                    AD05(I,J,L,6) = AD05(I,J,L,6) +
+     &                                    ( GAINED * 32D0 / 64D0 )
+                            
+                       ! Re-evaporated portion get distributed onto
+                     ! size-resolved sulfate by AQOXID (win, 7/16/09)
+                     IF ( LTOMAS .and. ABS(WETLOSS) > 0d0 ) THEN 
+                        IF ( LS ) THEN
+                           KMIN = 10
+                        ELSE
+                           KMIN = 6
+                        ENDIF
+                        REEVAPSO2 =  - ( WETLOSS * 96d0 / 64d0 )
+                        CALL AQOXID( REEVAPSO2, KMIN, I, J, L )
+                     ENDIF
+!end- added for TOMAS (win, 7/16/09)
+#endif
+
+
          ELSE
             STT(I,J,L,N)      = STT(I,J,L,N) - WETLOSS
          ENDIF
 
          ! There is nothing rained out/washed out in grid box
          ! (I,J,L), so set DSTT at grid box (I,J,L) to zero.
-	 DSTT(NN,L,I,J) = 0d0
+         DSTT(NN,L,I,J) = 0d0
          
          !--------------------------------------------------------------
          ! Diagnostics
@@ -6850,6 +7348,11 @@
       USE TRACERID_MOD, ONLY : IDTHOBr,   IDTHBr,    IDTBr2
       ! POPS (10/2010)
       USE TRACERID_MOD, ONLY : IDTPOPPOC, IDTPOPPBC,  IDTPOPG
+#if defined( TOMAS )
+      USE TRACERID_MOD, ONLY : IDTH2SO4,  IDTNK1,    IDTSF1,  IDTSS1 !(win, 7/16/09)
+      USE TRACERID_MOD, ONLY : IDTECIL1,  IDTOCIL1,  IDTOCOB1,IDTDUST1 !(win, 7/16/09)
+      USE TOMAS_MOD,    ONLY : IBINS  !(win, 7/16/09)
+#endif
 
       USE CMN_SIZE_MOD       ! Size parameters
 !
@@ -7177,6 +7680,80 @@
          ELSE IF (N == IDTPOPG ) THEN
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTPOPG
+
+#if defined( TOMAS )
+         ! Added for size-resolved aerosol tracers (win, 7/16/09)
+         !-----------------------------
+         ! H2SO4
+         !-----------------------------
+         ELSE IF ( N == IDTH2SO4 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTH2SO4
+
+         ! Added for size-resolved aerosol tracers (win, 7/16/09)
+         !--------------------------------------
+         ! Size-resolved aerosol number 
+         !--------------------------------------
+         ELSE IF ( IDTNK1 >  0 .and. N >= IDTNK1  .and. 
+     &             N <  IDTNK1 + IBINS  ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = N
+
+         ! Added for size-resolved aerosol tracers (win, 7/16/09)
+         !--------------------------------------
+         ! Size-resolved sulfate aerosol  
+         !--------------------------------------
+         ELSE IF ( IDTSF1 >  0 .and. N >= IDTSF1  .and. 
+     &             N <  IDTSF1 + IBINS  ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = N
+
+         ! Added for size-resolved aerosol tracers (win, 7/16/09)
+         !--------------------------------------
+         ! Size-resolved sea salt aerosol
+         !--------------------------------------
+         ELSE IF ( IDTSS1 >  0 .and. N >= IDTSS1  .and. 
+     &             N <  IDTSS1 + IBINS  ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = N
+
+         ! Added for size-resolved aerosol tracers (win, 7/16/09)
+         !--------------------------------------
+         ! Size-resolved internally-mixed EC aerosol
+         !--------------------------------------
+         ELSE IF ( IDTECIL1 >  0 .and. N >= IDTECIL1  .and. 
+     &             N <  IDTECIL1 + IBINS  ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = N
+
+         ! Added for size-resolved aerosol tracers (win, 7/16/09)
+         !--------------------------------------
+         ! Size-resolved hydrophilic OC aerosol
+         !--------------------------------------
+         ELSE IF ( IDTOCIL1 >  0 .and. N >= IDTOCIL1  .and. 
+     &             N <  IDTOCIL1 + IBINS  ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = N
+
+         ! Added for size-resolved aerosol tracers (win, 7/16/09)
+         !--------------------------------------
+         ! Size-resolved hydrophobic OC aerosol
+         !--------------------------------------
+         ELSE IF ( IDTOCOB1 >  0 .and. N >= IDTOCOB1  .and. 
+     &             N <  IDTOCOB1 + IBINS  ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = N
+
+         ! Added for size-resolved aerosol tracers (win, 7/16/09)
+         !--------------------------------------
+         ! Size-resolved dust aerosol
+         !--------------------------------------
+         ELSE IF ( IDTDUST1 >  0 .and. N >= IDTDUST1  .and. 
+     &             N <  IDTDUST1 + IBINS  ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = N
+
+#endif
         
          ENDIF
       ENDDO
@@ -7234,6 +7811,10 @@
       USE TRACER_MOD,   ONLY : ITS_A_RnPbBe_SIM,   ITS_A_MERCURY_SIM
       USE TRACER_MOD,   ONLY : ITS_A_POPS_SIM
       USE TRACERID_MOD, ONLY : IDTSOAG,  IDTSOAM
+#if defined( TOMAS )
+      USE TRACERID_MOD, ONLY : IDTNK1    !(win, 7/16/09)
+      USE TOMAS_MOD,    ONLY : IBINS, IDIAG, ICOMP  !(win, 7/16/09)
+#endif
 
       USE CMN_SIZE_MOD       ! Size parameters
 !
@@ -7295,6 +7876,15 @@
             IF ( LCARB ) NMAX = NMAX + 4        ! just carbon aerosols
          ENDIF
 
+#if defined( TOMAS )
+         ! For TOMAS microphysics     (win, 7/16/09)
+         IF ( IDTNK1 > 0 ) THEN 
+            NMAX = NMAX + IBINS                      ! Aerosol numbers
+            NMAX = NMAX + ( ICOMP - IDIAG ) * IBINS  !Aerosol mass species
+            NMAX = NMAX + 1                          ! H2SO4
+         ENDIF
+#endif
+
       ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
 
          !-----------------------
@@ -7311,6 +7901,15 @@
          ELSE
             IF ( LCARB ) NMAX = NMAX + 4        ! just carbon aerosols
          ENDIF
+
+#if defined( TOMAS )
+         ! For TOMAS microphysics     (win, 7/16/09)
+         IF ( IDTNK1 > 0 ) THEN 
+            NMAX = NMAX + IBINS                      ! Aerosol numbers
+            NMAX = NMAX + ( ICOMP - IDIAG ) * IBINS  !Aerosol mass species
+            NMAX = NMAX + 1                          ! H2SO4
+         ENDIF
+#endif
                
       ELSE IF ( ITS_A_RnPbBe_SIM() ) THEN
 
