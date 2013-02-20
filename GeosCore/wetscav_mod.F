@@ -889,8 +889,8 @@
 
 #if defined( TOMAS )
       ! Scavenging fraction of TOMAS aerosols (win, 7/16/09)
-      REAL*8               :: TOM_SC_FRACTION(IIPAR, JJPAR, LLPAR, IBINS)
-      REAL*8               :: SOLFRAC, XFRAC
+      REAL*8         :: TOM_SC_FRACTION(IIPAR, JJPAR, LLPAR, IBINS)
+      REAL*8         :: SOLFRAC, XFRAC
 #endif
 
       !=================================================================
@@ -3970,8 +3970,9 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WASHOUT( L,  N, BXHEIGHT, TK,   PP, 
-     &                    DT, F, H2O2s,    SO2s, WASHFRAC, KIN )
+      SUBROUTINE WASHOUT( I, J, L,  N, BXHEIGHT, TK,   PP, 
+     &                    DT, F, H2O2s,    SO2s, WASHFRAC, KIN,
+     &                    State_Met)
 !
 ! !USES:
 !
@@ -3993,6 +3994,7 @@
       USE TRACERID_MOD, ONLY : IDTMOBA,  IDTPROPNN
       USE TRACERID_MOD, ONLY : IDTISOPN, IDTMMN
       USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP, IDTMAP
+      USE GIGC_State_Met_Mod, ONLY : MetState !(sfarina 2/20/13)
       ! jpp 4/27/09
       USE TRACERID_MOD, ONLY : IDTHOBr,  IDTHBr,   IDTBr2
       !POPs (eck, 9/21/10)
@@ -4009,6 +4011,8 @@
 !
 ! !INPUT PARAMETERS: 
 !
+      INTEGER, INTENT(IN)    :: I          ! Longitude index
+      INTEGER, INTENT(IN)    :: J          ! Latitude index
       INTEGER, INTENT(IN)    :: L          ! Level index
       INTEGER, INTENT(IN)    :: N          ! Tracer number
       REAL*8,  INTENT(IN)    :: BXHEIGHT   ! Grid box height [m]
@@ -4018,6 +4022,9 @@
       REAL*8,  INTENT(IN)    :: DT         ! Timestep for rainout event [s]
       REAL*8,  INTENT(IN)    :: F          ! Fraction of grid box that is 
                                            !   precipitating [unitless]
+
+      TYPE(MetState),INTENT(IN) :: State_Met !sfarina - required for TOMAS routines
+
 ! !INPUT/OUTPUT PARAMETERS:
 !
       REAL*8,  INTENT(INOUT) :: H2O2s      ! H2O2 [v/v] and SO2 [v/v] 
@@ -4454,7 +4461,7 @@
       !-------------------------------
       ELSE IF ( N == IDTH2SO4 ) THEN
          KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
+         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
       ! Added for size-resolved aerosol (win, 7/16/09)
       !-------------------------------
@@ -4463,7 +4470,8 @@
       ELSE IF ( IDTNK1 > 0 .and. N >= IDTNK1 .and. 
      &          N <  IDTNK1 + IBINS ) THEN
          KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L )
+         WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L,
+     &                                     State_Met )
          
       !-------------------------------
       ! Sulfate SF1-SF30
@@ -4471,7 +4479,8 @@
       ELSE IF ( IDTSF1 > 0 .and. N >= IDTSF1 .and. 
      &          N <  IDTSF1 + IBINS ) THEN
          KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L )
+         WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L,
+     &                                     State_Met )
          
       !-------------------------------
       ! Sea-salt SS1-SS30
@@ -4479,7 +4488,8 @@
       ELSE IF ( IDTSS1 > 0 .and. N >= IDTSS1 .and. 
      &          N <  IDTSS1 + IBINS ) THEN
          KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L )
+         WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L,
+     &                                     State_Met )
          
       !-------------------------------
       ! Hydrophilic EC ECIL1-ECIL30
@@ -4487,7 +4497,8 @@
       ELSE IF ( IDTECIL1 > 0 .and. N >= IDTECIL1 .and. 
      &          N <  IDTECIL1 + IBINS ) THEN
          KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L )
+         WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L,
+     &                                     State_Met )
          
       !-------------------------------
       ! Hydrophilic OC OCIL1-OCIL30
@@ -4495,7 +4506,8 @@
       ELSE IF ( IDTOCIL1 > 0 .and. N >= IDTOCIL1 .and. 
      &          N <  IDTOCIL1 + IBINS ) THEN
          KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L )
+         WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L,
+     &                                     State_Met )
          
       !-------------------------------
       ! Hydrophobic OC OCOB1-OCOB30
@@ -4503,7 +4515,8 @@
       ELSE IF ( IDTOCOB1 > 0 .and. N >= IDTOCOB1 .and. 
      &          N <  IDTOCOB1 + IBINS ) THEN
          KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L )
+         WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L,
+     &                                     State_Met )
          
       !-------------------------------
       ! Dust DUST1-DUST30
@@ -4511,7 +4524,8 @@
       ELSE IF ( IDTDUST1 > 0 .and. N >= IDTDUST1 .and. 
      &          N <  IDTDUST1 + IBINS ) THEN
          KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L )
+         WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L,
+     &                                     State_Met )
 
       ! (end part) Added for size-resolved aerosol (win, 7/16/09)
 #endif
@@ -4700,7 +4714,8 @@
 !
 
 #if defined( TOMAS )
-      FUNCTION WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L ) 
+      FUNCTION WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L,
+     &            State_Met) 
      &         RESULT( WASHFRAC )
 !
 !******************************************************************************
@@ -4723,11 +4738,17 @@
 !******************************************************************************
 !   
       ! Reference to F90 modules
+      
+      USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRACERID_MOD,ONLY : IDTNK1
       USE TOMAS_MOD,  ONLY : IBINS, GETDP, STRATSCAV
       ! Arguments
-      REAL*8, INTENT(IN) :: DT, F, PP, TK
-      INTEGER,INTENT(IN) :: N,  I, J,  L
+      REAL*8, INTENT(IN)    :: DT, F, PP, TK
+      INTEGER,INTENT(IN)    :: I             ! Longitude index
+      INTEGER,INTENT(IN)    :: J             ! Latitude index
+      INTEGER,INTENT(IN)    :: N, L
+
+      TYPE(MetState),INTENT(IN) :: State_Met
 
       ! Function value
       REAL*8             :: WASHFRAC
@@ -4747,7 +4768,7 @@
       IF ( TK >= 268d0 ) THEN
          ! For aerosol number, get Dp and calculate scavr 
          IF ( N < IDTNK1 + IBINS ) THEN
-            DPAERO = GETDP( I, J, L, N )
+            DPAERO = GETDP( I, J, L, N, State_Met)
             ! External function stratscav returns the scavenging rate (mm^-1)
             ! Let scavr has a unit of cm^-1
             SCAVR = 10.d0* STRATSCAV( DPAERO )
@@ -5442,7 +5463,8 @@
 
                ! Re-evaporate all of the rain
                CALL DO_COMPLETE_REEVAP( LS,  I,      J,  L,  
-     &                                  IDX, ERRMSG, DT, STT, DSTT  )
+     &                                  IDX, ERRMSG, DT, STT, DSTT, 
+     &                                  State_Met )
             ENDIF 
 
             ! Save FTOP for next level
@@ -5943,7 +5965,8 @@
 
                ! Re-evaporate all of the rain
                CALL DO_COMPLETE_REEVAP( LS,  I,      J,  L,  
-     &                                  IDX, ERRMSG, DT, STT, DSTT  )
+     &                                  IDX, ERRMSG, DT, STT, DSTT, 
+     &                                  State_Met )
             ENDIF 
 
             ! Save FTOP for next level
@@ -6630,11 +6653,11 @@
 
          ! Call WASHOUT to compute the fraction of 
          ! tracer lost to washout in grid box (I,J,L)
-         CALL WASHOUT( L,         N,
+         CALL WASHOUT( I, J, L, N,
      &                 State_Met%BXHEIGHT(I,J,L), 
      &                 TK,        QDOWN,        DT,   
      &                 TF,        H2O2s(I,J,L), SO2s(I,J,L), 
-     &                 WASHFRAC,  KIN )
+     &                 WASHFRAC,  KIN, State_Met )
 
 #if    defined( MERRA ) || defined( GEOS_57 )
          !%%% BUG FIX: Only apply this section of when running
@@ -6725,7 +6748,7 @@
                ENDIF
 
                REEVAPSO2 = GAINED * 96D0 / 64D0
-               CALL AQOXID( REEVAPSO2, KMIN, I, J, L )
+               CALL AQOXID( REEVAPSO2, KMIN, I, J, L, State_Met )
             ENDIF
 !end -added for TOMAS  (win, 7/16/09)
 #endif
@@ -6852,10 +6875,11 @@
 !
       SUBROUTINE DO_COMPLETE_REEVAP( LS, I,   J, 
      &                               L,  IDX, ERRMSG, 
-     &                               DT, STT, DSTT  )
+     &                               DT, STT, DSTT  , State_Met)
 !
 ! !USES:
 !
+      USE GIGC_State_Met_Mod, ONLY : MetState
       USE DIAG_MOD,     ONLY : AD16                    ! ND16 diag array
       USE DIAG_MOD,     ONLY : AD17                    ! ND17 diag array
       USE DIAG_MOD,     ONLY : AD18                    ! ND18 diag array
@@ -6891,6 +6915,7 @@
       INTEGER,          INTENT(IN)    :: IDX           ! ND38 index
       CHARACTER(LEN=*), INTENT(IN)    :: ERRMSG        ! Error message
       REAL*8,           INTENT(IN)    :: DT            ! Rainout timestep [s]
+      TYPE(MetState),   INTENT(IN)    :: State_Met     ! sfarina Required for TOMAS routines
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -6912,6 +6937,12 @@
 !
       INTEGER :: N, NN
       REAL*8  :: WETLOSS
+
+
+#if defined( TOMAS )
+      REAL*8  :: REEVAPSO2  !(win, 7/16/09)
+      INTEGER :: KMIN       !(win, 7/16/09)
+#endif
 
       !=================================================================
       ! DO_COMPLETE_REEVAP begins here!
@@ -6940,9 +6971,15 @@
                      ! Save the amout of SO4 [kg S] added via aqueous 
                      ! chem to ND05(6) diagnostic assuming it's all 
                      ! by reacting with H2O2 (win, 7/16/09)
-                     IF ( ND05 > 0 .and. L <= LD05 ) 
-     &                    AD05(I,J,L,6) = AD05(I,J,L,6) +
-     &                                    ( GAINED * 32D0 / 64D0 )
+
+      !=================================================================
+      ! sfarina - commenting out this DIAG for now... unclear if this 
+      !           was even correct in the older verions because of an
+      !           error in the calculation of GAINED
+      !=================================================================
+!                     IF ( ND05 > 0 .and. L <= LD05 ) 
+!     &                    AD05(I,J,L,6) = AD05(I,J,L,6) +
+!     &                                    ( GAINED * 32D0 / 64D0 )
                             
                        ! Re-evaporated portion get distributed onto
                      ! size-resolved sulfate by AQOXID (win, 7/16/09)
@@ -6953,7 +6990,8 @@
                            KMIN = 6
                         ENDIF
                         REEVAPSO2 =  - ( WETLOSS * 96d0 / 64d0 )
-                        CALL AQOXID( REEVAPSO2, KMIN, I, J, L )
+                        CALL AQOXID( REEVAPSO2, KMIN, I, J, L,
+     &                               State_Met )
                      ENDIF
 !end- added for TOMAS (win, 7/16/09)
 #endif
@@ -7119,11 +7157,11 @@
 
          ! Call WASHOUT to compute the fraction of tracer 
          ! in grid box (I,J,L) that is lost to washout.  
-         CALL WASHOUT( L,        N,
+         CALL WASHOUT( I, J, L, N,
      &                 State_Met%BXHEIGHT(I,J,L), 
      &                 TK ,      QDOWN,        DT,   
      &                 F,        H2O2s(I,J,L), SO2s(I,J,L), 
-     &                 WASHFRAC, KIN )
+     &                 WASHFRAC, KIN, State_Met )
 
          ! NOTE: for HNO3 and aerosols, there is an F factor
          ! already present in WASHFRAC.  For other soluble

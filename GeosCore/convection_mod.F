@@ -2315,10 +2315,10 @@
                   
                   ! Call WASHOUT to compute the fraction of tracer lost
                   ! to washout in grid box (I,J,K)
-                  CALL WASHOUT( K,         IC,       BXHEIGHT(K), 
+                  CALL WASHOUT( I, J, K,   IC,       BXHEIGHT(K), 
      &                          T(K),      QDOWN,    DT,   
      &                          F_WASHOUT, H2O2s(K), SO2s(K), 
-     &                          WASHFRAC,  AER )
+     &                          WASHFRAC,  AER, State_Met)
 
                   ! Check if the tracer is an aerosol or not
                   IF ( AER == .TRUE. ) THEN
