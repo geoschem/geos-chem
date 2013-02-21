@@ -149,7 +149,11 @@
 ! Increased from 53 to 60 for tagged Hg sim (eds, mpayer, 10/22/12)
 !      INTEGER, PARAMETER   :: NSOLMAX = 53      ! Max # of soluble tracers
 !------------------------------------------------------------------------------
+#if   defined ( TOMAS )
+      INTEGER, PARAMETER   :: NSOLMAX = 262     ! Max # of soluble tracers for TOMAS
+#else
       INTEGER, PARAMETER   :: NSOLMAX = 60      ! Max # of soluble tracers
+#endif
       REAL*8,  PARAMETER   :: EPSILON = 1d-32   ! A very small positive #
 !
 ! !LOCAL VARIABLES:
