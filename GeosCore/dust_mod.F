@@ -1280,6 +1280,9 @@
       USE GRID_MOD,           ONLY : GET_AREA_M2
       USE TIME_MOD,           ONLY : GET_TS_EMIS
       USE ERROR_MOD,          ONLY : ERROR_STOP
+#if   defined ( TOMAS )
+      USE TOMAS_MOD,          ONLY : IBINS
+#endif
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND19, LD13 (for now)
@@ -1352,6 +1355,7 @@
       INTEGER                :: I, J, N, M, IOS
 #if   defined( TOMAS )
       INTEGER                :: IPOINT(NDSTBIN)        !(win, 8/4/09)
+      INTEGER                :: ACTMODEBINS
 #else
       INTEGER                :: IPOINT(NDSTBIN) = (/3, 2, 2, 2/)
 #endif
@@ -1394,6 +1398,14 @@
       ! SRC_DUST_GINOUX begins here!
       !=================================================================
 
+#if   defined ( TOMAS )
+# if   defined ( TOMAS40 )
+      ACTMODEBINS=10
+#else
+      ACTMODEBINS=0
+# endif
+#endif
+
       ! Emission timestep [s]
       DTSRCE = GET_TS_EMIS() * 60d0
 
@@ -1404,9 +1416,9 @@
          IPOINT(2) = 2
          IPOINT(3) = 2
          IPOINT(4) = 2
-      ELSEIF ( NDSTBIN == 30 ) THEN
+      ELSEIF ( NDSTBIN == IBINS ) THEN
          IPOINT(1:3) = 3
-         IPOINT(4:30) = 2
+         IPOINT(4:(ACTMODEBINS + 30)) = 2 ! scf for TOMAS40
       ELSE
          PRINT *,' SRC_DUST_GINOUX: not support ',NDSTBIN,' bin yet'
          CALL ERROR_STOP('Need to change hard-wired array IPOINT',
@@ -2190,6 +2202,15 @@
 #if   defined( TOMAS )
       INTEGER            :: I                  !(win, 7/17/09) 
       REAL*8,  PARAMETER :: PI = 3.14159265d0  !(win, 7/17/09)
+
+      INTEGER            :: ACTMODEBINS        !(scf, 2/27/13)
+
+# if  defined( TOMAS40 )
+      ACTMODEBINS = 10  !10 activation mode size bins
+# else
+      ACTMODEBINS = 0   !no bins < 10nm
+# endif
+
 #endif
 
       !=================================================================
@@ -2213,49 +2234,33 @@
       ! Dust density
       ALLOCATE( DUSTDEN( NDSTBIN ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'DUSTDEN' )
+!set dust density for different scenarios
 #if   defined( TOMAS )
+
       IF ( NDSTBIN == 4 ) THEN
-         DUSTDEN(1) = 2500.d0
-         DUSTDEN(2) = 2650.d0
-         DUSTDEN(3) = 2650.d0
-         DUSTDEN(4) = 2650.d0
+         DUSTDEN(1:4) = (/ 2500.d0, 2650.d0, 2650.d0, 2650.d0 /)
       ELSEIF ( NDSTBIN == IBINS ) THEN
-         DUSTDEN(1)  = 2500.d0 
-         DUSTDEN(2)  = 2500.d0 
-         DUSTDEN(3)  = 2500.d0 
-         DUSTDEN(4)  = 2650.d0
-         DUSTDEN(5)  = 2650.d0
-         DUSTDEN(6)  = 2650.d0
-         DUSTDEN(7)  = 2650.d0
-         DUSTDEN(8)  = 2650.d0
-         DUSTDEN(9)  = 2650.d0
-         DUSTDEN(10) = 2650.d0
-         DUSTDEN(11) = 2650.d0
-         DUSTDEN(12) = 2650.d0
-         DUSTDEN(13) = 2650.d0
-         DUSTDEN(14) = 2650.d0
-         DUSTDEN(15) = 2650.d0
-         DUSTDEN(16) = 2650.d0
-         DUSTDEN(17) = 2650.d0
-         DUSTDEN(18) = 2650.d0
-         DUSTDEN(19) = 2650.d0
-         DUSTDEN(20) = 2650.d0
-         DUSTDEN(21) = 2650.d0
-         DUSTDEN(22) = 2650.d0
-         DUSTDEN(23) = 2650.d0
-         DUSTDEN(24) = 2650.d0
-         DUSTDEN(25) = 2650.d0
-         DUSTDEN(26) = 2650.d0
-         DUSTDEN(27) = 2650.d0
-         DUSTDEN(28) = 2650.d0
-         DUSTDEN(29) = 2650.d0
-         DUSTDEN(30) = 2650.d0
+         DO I = 1, 3 + ACTMODEBINS
+            DUSTDEN(I)  = 2500.d0
+         END DO
+         DO I = ACTMODEBINS + 4, IBINS
+            DUSTDEN(I)  = 2650.d0
+         END DO
+# if  defined( TOMAS40 )
+         IF ( IBINS /= 40 ) 
+     &        CALL ERROR_STOP('Current code compatible with 40-bin',
+     &                         'INIT_DUST ("dust_mod.f")')
+# else
          IF ( IBINS /= 30 ) 
      &        CALL ERROR_STOP('Current code compatible with 30-bin',
      &                         'INIT_DUST ("dust_mod.f")')
+# endif
       ENDIF
 #else
+
+      !Normal GeosChem Dust Simulation
       DUSTDEN(1:NDSTBIN) = (/ 2500.d0, 2650.d0, 2650.d0, 2650.d0 /)
+
 #endif
 
       ! Dust radii
@@ -2276,6 +2281,8 @@
          ENDDO         
       ENDIF
 #else
+
+      !Normal GeosChem Dust Simulation
       DUSTREFF(1:NDSTBIN) = (/ 0.73d-6, 1.4d-6,  2.4d-6,  4.5d-6  /)
 
 #endif
@@ -2292,39 +2299,55 @@
             FRAC_S(3) =   0.3d0
             FRAC_S(4) =   0.3d0
          ELSEIF ( NDSTBIN == IBINS ) THEN
-            FRAC_S(1)  = 1.05d-10
-            FRAC_S(2)  = 6.28d-10
-            FRAC_S(3)  = 3.42d-09
-            FRAC_S(4)  = 1.69d-08
-            FRAC_S(5)  = 7.59d-08
-            FRAC_S(6)  = 3.09d-07
-            FRAC_S(7)  = 1.15d-06
-            FRAC_S(8)  = 3.86d-06
-            FRAC_S(9)  = 1.18d-05
-            FRAC_S(10)  = 3.27d-05
-            FRAC_S(11)  = 8.24d-05
-            FRAC_S(12)  = 1.89d-04
-            FRAC_S(13)  = 3.92d-04
-            FRAC_S(14)  = 7.41d-04
-            FRAC_S(15)  = 1.27d-03
-            FRAC_S(16)  = 2.00d-03
-            FRAC_S(17)  = 2.89d-03
-            FRAC_S(18)  = 3.92d-03
-            FRAC_S(19)  = 5.26d-03
-            FRAC_S(20)  = 7.50d-03
-            FRAC_S(21)  = 1.20d-02
-            FRAC_S(22)  = 2.08d-02
-            FRAC_S(23)  = 3.62d-02
-            FRAC_S(24)  = 5.91d-02
-            FRAC_S(25)  = 8.74d-02
-            FRAC_S(26)  = 1.15d-01
-            FRAC_S(27)  = 1.34d-01
-            FRAC_S(28)  = 1.37d-01
-            FRAC_S(29)  = 1.24d-01
-            FRAC_S(30)  = 9.85d-02
-            IF ( IBINS /= 30 ) 
-     &           CALL ERROR_STOP('Current code compatible with 30-bin',
-     &                           'INIT_DUST ("dust_mod.f")')
+            DO I=1,10
+               FRAC_S( I )  = 0.00d-00 !scf for TOMAS40
+                                       !first 10 bins frac_s = 0.0d0
+            END DO
+            FRAC_S( ACTMODEBINS +  1 )  = 1.05d-10
+            FRAC_S( ACTMODEBINS +  2 )  = 6.28d-10
+            FRAC_S( ACTMODEBINS +  3 )  = 3.42d-09
+            FRAC_S( ACTMODEBINS +  4 )  = 1.69d-08
+            FRAC_S( ACTMODEBINS +  5 )  = 7.59d-08
+            FRAC_S( ACTMODEBINS +  6 )  = 3.09d-07
+            FRAC_S( ACTMODEBINS +  7 )  = 1.15d-06
+            FRAC_S( ACTMODEBINS +  8 )  = 3.86d-06
+            FRAC_S( ACTMODEBINS +  9 )  = 1.18d-05
+            FRAC_S( ACTMODEBINS + 10 )  = 3.27d-05
+            FRAC_S( ACTMODEBINS + 11 )  = 8.24d-05
+            FRAC_S( ACTMODEBINS + 12 )  = 1.89d-04
+            FRAC_S( ACTMODEBINS + 13 )  = 3.92d-04
+            FRAC_S( ACTMODEBINS + 14 )  = 7.41d-04
+            FRAC_S( ACTMODEBINS + 15 )  = 1.27d-03
+            FRAC_S( ACTMODEBINS + 16 )  = 2.00d-03
+            FRAC_S( ACTMODEBINS + 17 )  = 2.89d-03
+            FRAC_S( ACTMODEBINS + 18 )  = 3.92d-03
+            FRAC_S( ACTMODEBINS + 19 )  = 5.26d-03
+            FRAC_S( ACTMODEBINS + 20 )  = 7.50d-03
+            FRAC_S( ACTMODEBINS + 21 )  = 1.20d-02
+            FRAC_S( ACTMODEBINS + 22 )  = 2.08d-02
+            FRAC_S( ACTMODEBINS + 23 )  = 3.62d-02
+            FRAC_S( ACTMODEBINS + 24 )  = 5.91d-02
+            FRAC_S( ACTMODEBINS + 25 )  = 8.74d-02
+            FRAC_S( ACTMODEBINS + 26 )  = 1.15d-01
+            FRAC_S( ACTMODEBINS + 27 )  = 1.34d-01
+            FRAC_S( ACTMODEBINS + 28 )  = 1.37d-01
+            FRAC_S( ACTMODEBINS + 29 )  = 1.24d-01
+            FRAC_S( ACTMODEBINS + 30 )  = 9.85d-02
+
+# if  defined( TOMAS40 )
+         IF ( IBINS /= 40 ) 
+     &        CALL ERROR_STOP('Current code compatible with 40-bin',
+     &                         'INIT_DUST ("dust_mod.f")')
+# else
+         IF ( IBINS /= 30 ) 
+     &        CALL ERROR_STOP('Current code compatible with 30-bin',
+     &                         'INIT_DUST ("dust_mod.f")')
+# endif
+      
+
+
+
+
          ENDIF
 #else
          FRAC_S(1:NDSTBIN)   = (/ 0.095d0, 0.3d0, 0.3d0, 0.3d0 /)

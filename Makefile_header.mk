@@ -105,6 +105,7 @@
 #  11 May 2012 - R. Yantosca - Now export NCL (netCDF linking sequence)
 #  07 Sep 2012 - R. Yantosca - Now add OPT variable to set global opt levels
 #  07 Sep 2012 - R. Yantosca - Also set TRACEBACK for PGI compiler
+#  25 Feb 2013 - S. Farina   - Add flag for TOMAS40
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -251,6 +252,10 @@ ifeq ($(TOMAS),yes)
 FFLAGS    += -DTOMAS
 endif
 
+ifeq ($(TOMAS40),yes) 
+FFLAGS    += -DTOMAS40
+endif
+
 # Also add APM aerosol microphysics option
 ifeq ($(APM),yes) 
 FFLAGS    += -DAPM
@@ -352,6 +357,10 @@ endif
 # Also add TOMAS aerosol microphysics option
 ifeq ($(TOMAS),yes) 
 FFLAGS    += -DTOMAS
+endif
+
+ifeq ($(TOMAS40),yes) 
+FFLAGS    += -DTOMAS40
 endif
 
 # Also add APM aerosol microphysics option

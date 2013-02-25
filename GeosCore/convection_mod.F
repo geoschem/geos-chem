@@ -1098,7 +1098,8 @@
       REAL*8                 :: QC(IIPAR,JJPAR) 
 
       ! TINY = a very small number
-      REAL*8, PARAMETER      :: TINY = 1d-14 
+!      REAL*8, PARAMETER      :: TINY = 1d-14 
+      REAL*8, PARAMETER      :: TINY = 1d-60  !jrp/scf 2/27/2013
       REAL*8, PARAMETER      :: TINY2 = 1d-30 
 
       ! ISOL is an index for the diagnostic arrays

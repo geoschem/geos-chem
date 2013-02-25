@@ -2796,12 +2796,14 @@
 
             ! To output only the species asked in input.geos 
             ! (ccc, 5/15/09)
+#if !defined( TOMAS )
             MM  = 1
             MMB = 0
             DO WHILE ( MMB /= NN .AND. MM <= TMAX(44) )
                MMB = TINDEX(44,MM)
                MM  = MM + 1
             ENDDO
+#endif
           
             IF ( ITS_A_FULLCHEM_SIM() ) THEN
                ! Special case for tracers with several dry dep. tracers

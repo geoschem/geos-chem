@@ -5539,6 +5539,118 @@
             F0(NUMDEP)      = 0.0d0
             XMW(NUMDEP)     = 1.d0
             AIROSOL(NUMDEP) = .TRUE.
+
+# if  defined( TOMAS40 )
+         ! NK31 (aerosol)
+         ELSE IF  ( N == IDTNK31) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK31
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK31'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK32 (aerosol)
+         ELSE IF  ( N == IDTNK32) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK32
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK32'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK33 (aerosol)
+         ELSE IF  ( N == IDTNK33) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK33
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK33'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK34 (aerosol)
+         ELSE IF  ( N == IDTNK34) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK34
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK34'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK35 (aerosol)
+         ELSE IF  ( N == IDTNK35) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK35
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK35'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK36 (aerosol)
+         ELSE IF  ( N == IDTNK36) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK36
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK36'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK37 (aerosol)
+         ELSE IF  ( N == IDTNK37) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK37
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK37'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK38 (aerosol)
+         ELSE IF  ( N == IDTNK38) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK38
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK38'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK39 (aerosol)
+         ELSE IF  ( N == IDTNK39) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK39
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK39'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! NK40 (aerosol)
+         ELSE IF  ( N == IDTNK40) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNK40
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'NK40'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 1.d0
+            AIROSOL(NUMDEP) = .TRUE.
+# endif
 #endif
 
          !----------------------------------

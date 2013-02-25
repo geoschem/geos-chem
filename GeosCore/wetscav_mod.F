@@ -150,7 +150,11 @@
 !      INTEGER, PARAMETER   :: NSOLMAX = 53      ! Max # of soluble tracers
 !------------------------------------------------------------------------------
 #if   defined ( TOMAS )
-      INTEGER, PARAMETER   :: NSOLMAX = 262     ! Max # of soluble tracers for TOMAS
+# if  defined ( TOMAS40 )
+      INTEGER, PARAMETER   :: NSOLMAX = 370     ! Max # of soluble tracers for TOMAS40
+# else
+      INTEGER, PARAMETER   :: NSOLMAX = 262     ! Max # of soluble tracers for TOMAS30
+# endif
 #else
       INTEGER, PARAMETER   :: NSOLMAX = 60      ! Max # of soluble tracers
 #endif

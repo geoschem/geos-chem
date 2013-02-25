@@ -20,35 +20,35 @@
 !     conserves aerosol number and mass using the schemes developed
 !     by Graham Feingold and others.
 !
-!	Tzivion, S., Feingold, G., and Levin, Z., An Efficient
-!	   Numerical Solution to the Stochastic Collection Equation,
-!	   J. Atmos. Sci., 44, 3139-3149, 1987.
-!	Feingold, G., Tzivion, S., and Levin, Z., Evolution of
-!	   Raindrop Spectra. Part I: Solution to the Stochastic
-!	   Collection/Breakup Equation Using the Method of Moments,
-!	   J. Atmos. Sci., 45, 3387-3399, 1988.
-!	Tzivion, S., Feingold, G., and Levin, Z., The Evolution of
-!	   Raindrop Spectra. Part II: Collisional Collection/Breakup
-!	   and Evaporation in a Rainshaft, J. Atmos. Sci., 46, 3312-
-!	   3327, 1989.
-!	Feingold, G., Levin, Z., and Tzivion, S., The Evolution of
-!	   Raindrop Spectra. Part III: Downdraft Generation in an
-!	   Axisymmetrical Rainshaft Model, J. Atmos. Sci., 48, 315-
-!	   330, 1991.
+!  Tzivion, S., Feingold, G., and Levin, Z., An Efficient
+!   Numerical Solution to the Stochastic Collection Equation,
+!   J. Atmos. Sci., 44, 3139-3149, 1987.
+!  Feingold, G., Tzivion, S., and Levin, Z., Evolution of
+!   Raindrop Spectra. Part I: Solution to the Stochastic
+!   Collection/Breakup Equation Using the Method of Moments,
+!   J. Atmos. Sci., 45, 3387-3399, 1988.
+!  Tzivion, S., Feingold, G., and Levin, Z., The Evolution of
+!   Raindrop Spectra. Part II: Collisional Collection/Breakup
+!   and Evaporation in a Rainshaft, J. Atmos. Sci., 46, 3312-
+!   3327, 1989.
+!  Feingold, G., Levin, Z., and Tzivion, S., The Evolution of
+!   Raindrop Spectra. Part III: Downdraft Generation in an
+!   Axisymmetrical Rainshaft Model, J. Atmos. Sci., 48, 315-
+!   330, 1991.
 !
-!	The algorithms described in these papers have been extended
-!	to include multicomponent aerosols and modified for a moving
-!	sectional approach.  Using this approach, the boundaries
-!	between size bins are defined in terms of dry aerosol mass
-!	such that the actual sizes of the sections move as water
-!	is added to or lost from the aerosol.
+!  The algorithms described in these papers have been extended
+!  to include multicomponent aerosols and modified for a moving
+!  sectional approach.  Using this approach, the boundaries
+!  between size bins are defined in terms of dry aerosol mass
+!  such that the actual sizes of the sections move as water
+!  is added to or lost from the aerosol.
 !
-!	All of the subroutines needed for this aerosol microphysics
-!	algorithm use only their own internal variables or the ones
-!	listed here.  GISS GCM II' variables are not used (a driver
-!	subroutine performs the necessary swapping between the GCM
-!	and the microphysics code).  The microphysics code is,
-!	therefore, completely modular.
+!  All of the subroutines needed for this aerosol microphysics
+!  algorithm use only their own internal variables or the ones
+!  listed here.  GISS GCM II' variables are not used (a driver
+!  subroutine performs the necessary swapping between the GCM
+!  and the microphysics code).  The microphysics code is,
+!  therefore, completely modular.
 !
 !  Module Variables:
 !  ============================================================================
@@ -128,21 +128,23 @@
 
       ! Scalars
       INTEGER                        :: ICOMP,   IDIAG         
-      INTEGER,           PARAMETER   :: IBINS = 30     ! Note that there is a parameter declared in CMN_SIZE called TOMASBIN --> which defines how many size bins (win, 7/7/09)
-c$$$      INTEGER,           SAVE        :: SRTSO4,  SRTNACL, SRTH2O
-c$$$      INTEGER,           SAVE        :: SRTECOB, SRTECIL
-c$$$      INTEGER,           SAVE        :: SRTOCOB, SRTOCIL, SRTDUST
-c$$$      INTEGER,           SAVE        :: SRTNH4
 
-      INTEGER,           PARAMETER    :: SRTSO4 = 1
-      INTEGER,           PARAMETER    :: SRTNACL = 2
-      INTEGER,           PARAMETER    :: SRTECIL = 3
-      INTEGER,           PARAMETER    :: SRTECOB = 4
-      INTEGER,           PARAMETER    :: SRTOCIL = 5
-      INTEGER,           PARAMETER    :: SRTOCOB = 6
-      INTEGER,           PARAMETER    :: SRTDUST = 7
-      INTEGER,           PARAMETER    :: SRTNH4 = 8
-      INTEGER,           PARAMETER    :: SRTH2O = 9
+      ! Note that there is a parameter declared in CMN_SIZE called TOMASBIN --> which defines how many size bins (win, 7/7/09)
+#if   defined ( TOMAS40 )
+      INTEGER,           PARAMETER   :: IBINS = 40     
+#else
+      INTEGER,           PARAMETER   :: IBINS = 30     
+#endif
+
+      INTEGER,           PARAMETER   :: SRTSO4 = 1
+      INTEGER,           PARAMETER   :: SRTNACL = 2
+      INTEGER,           PARAMETER   :: SRTECIL = 3
+      INTEGER,           PARAMETER   :: SRTECOB = 4
+      INTEGER,           PARAMETER   :: SRTOCIL = 5
+      INTEGER,           PARAMETER   :: SRTOCOB = 6
+      INTEGER,           PARAMETER   :: SRTDUST = 7
+      INTEGER,           PARAMETER   :: SRTNH4 = 8
+      INTEGER,           PARAMETER   :: SRTH2O = 9
      
 
       REAL*4                         :: BOXVOL,  BOXMASS, TEMPTMS
@@ -158,19 +160,32 @@ c$$$      INTEGER,           SAVE        :: SRTNH4
       REAL*8,            SAVE        :: FRACTION1(101,101,101)
       INTEGER,           SAVE        :: BINACT2(101,101,101)
       REAL*8,            SAVE        :: FRACTION2(101,101,101)
-      REAL*8                            AVGMASS(30) ! Average mass per particle
-                                                    ! mid-range of size bin
-                                                    ! [kg/no.]
-      DATA AVGMASS/ 1.4142d-21, 
-     &              2.8284d-21, 5.6569d-21, 1.1314d-20, 2.2627d-20,
-     &  4.5255d-20, 9.0510d-20, 1.8102d-19, 3.6204d-19, 7.2408d-19,
-     &  1.4482d-18, 2.8963d-18, 5.7926d-18, 1.1585d-17, 2.3170d-17,
-     &  4.6341d-17, 9.2682d-17, 1.8536d-16, 3.7073d-16, 7.4146d-16,
-     &  1.4829d-15, 2.9658d-15, 5.9316d-15, 1.1863d-14, 2.3727d-14,
-     &  4.7453d-14, 9.4906d-14, 1.8981d-13, 3.7963d-13, 7.5925d-13 /
+      REAL*8                            AVGMASS(IBINS) ! Average mass per particle
+                                                       ! mid-range of size bin
+                                                       ! [kg/no.]
+      REAL*8                         ::  ionrate       ! ion pair formation 
+                                                       ! rate [ion pairs cm^-3 s^-1]
+      REAL*8                         ::  surf_area     ! aerosol surface area [micon^2 cm^-3]
+      REAL*8                         ::  cosmic_ions(72,46,9) !careful, this is not GIGC safe!
+                                                       ! [ion pairs kg^-1 s^-1]
 
-      INTEGER                        :: bin_nuc =1, tern_nuc = 0  !Switches for nucleation type. Default is Binary (Vehkami)
-                                                                  !D-West, 1/19/10    
+!      DATA AVGMASS/ 1.4142d-21, 
+!     &              2.8284d-21, 5.6569d-21, 1.1314d-20, 2.2627d-20,
+!     &  4.5255d-20, 9.0510d-20, 1.8102d-19, 3.6204d-19, 7.2408d-19,
+!     &  1.4482d-18, 2.8963d-18, 5.7926d-18, 1.1585d-17, 2.3170d-17,
+!     &  4.6341d-17, 9.2682d-17, 1.8536d-16, 3.7073d-16, 7.4146d-16,
+!     &  1.4829d-15, 2.9658d-15, 5.9316d-15, 1.1863d-14, 2.3727d-14,
+!     &  4.7453d-14, 9.4906d-14, 1.8981d-13, 3.7963d-13, 7.5925d-13 /
+
+      INTEGER                        :: bin_nuc = 1, tern_nuc = 0  !Switches for nucleation type.
+      INTEGER                        :: act_nuc =0 ! in BL
+      INTEGER                        :: ion_nuc =0 ! 1 for modgil, 2 for Yu
+      INTEGER                        :: absall = 1 ! 1 for soa absorb to all spec
+
+      REAL*8                         :: soaareafrac=1.0d0 ! fraction of SOA that goes
+                                                          ! to SA rather than into mass
+      
+
       CONTAINS
 
 !------------------------------------------------------------------------------
@@ -301,6 +316,15 @@ c$$$      INTEGER,           SAVE        :: SRTNH4
       logical, save     :: firsttime = .true.
       integer           :: num_iter
 
+      real*8      cplevels(9) ! cosmic ray pressure levels (for interp)
+      data        cplevels  / 959., 894., 786., 634., 468.,
+     &                        321., 201., 103., 27. /
+
+      integer     lev
+      real*8      weight
+
+      double precision soil_ions(9) ! ion pairs cm-3 s-1 from radioactive elements in soil
+      data             soil_ions / 5.,3.3,1.8,0.7,0.,0.,0.,0.,0./
 
       !=================================================================
       ! AEROPHYS begins here
@@ -384,6 +408,39 @@ cvbn         write(890,89)I,J,L,STT(i,j,l,IDTH2SO4)
          BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3 
          
          printneg = .FALSE.
+
+
+         ! determine ion rate
+c         ionrate = 10. ! set as constant now !!jrp
+
+         if( (pres / 100.) .lt. cplevels(9) ) then
+            ionrate = cosmic_ions(i,j,9) * boxmass / boxvol
+            if(State_Met%FRCLND(I,J) .gt. 0.2) then
+               ionrate = ionrate + soil_ions(9)
+            endif
+         elseif((pres/100.) .gt. cplevels(1)) then
+            ionrate = cosmic_ions(i,j,1) * boxmass / boxvol
+            if( State_Met%FRCLND(I,J) .gt. 0.2 ) then
+               ionrate = ionrate + soil_ions(1)
+            endif
+         else
+            lev=2
+            do while (pres / 100. .lt. cplevels(lev))
+               lev=lev+1
+            enddo
+            weight=( cplevels( lev - 1 ) - pres / 100. ) /
+     &             ( cplevels( lev - 1 ) - cplevels(lev) )
+            ionrate=( cosmic_ions(i, j, lev    ) * weight +
+     &                cosmic_ions(i, j, lev - 1) * (1.d0 - weight) )
+     &              * boxmass / boxvol
+            if( State_Met%FRCLND(I,J) .gt. 0.2) then
+               ionrate=ionrate + ( soil_ions( lev   ) * weight +
+     &                             soil_ions( lev-1 ) * (1.d0-weight) )
+            endif
+         endif
+         if(ionrate .le. 1.501) ionrate = 1.501
+
+c         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
 
          ! Initialize all condensible gas values to zero  
          ! Gc(srtso4) will remain zero until within cond_nuc where the
@@ -497,7 +554,7 @@ cvbn         write(890,89)I,J,L,STT(i,j,l,IDTH2SO4)
 
             CALL COND_NUC(Nk,Mk,Gc,Nkout,Mkout,Gcout,fn,fn1,
      &             H2SO4rate_o,adt,num_iter,Nknuc,Mknuc,Nkcond,Mkcond, 
-     &           ERRORSWITCH)
+     &           ERRORSWITCH, l)
 !            print*,'After COND_NUC Gcout(srtso4)=',Gcout(srtso4)
             
             IF ( ERRORSWITCH ) THEN
@@ -726,7 +783,8 @@ cvbn         write(889,89)I,J,L,STT(i,j,l,IDTH2SO4)
 !------------------------------------------------------------------------------
 
       SUBROUTINE COND_NUC(Nki,Mki,Gci,Nkf,Mkf,Gcf,fnavg,fn1avg,
-     &     H2SO4rate,dti,num_iter,Nknuc,Mknuc,Nkcond,Mkcond, errswitch)
+     &     H2SO4rate,dti,num_iter,Nknuc,Mknuc,Nkcond,Mkcond, errswitch,
+     &     lev)
 !
 !******************************************************************************
 C     This subroutine calculates the change in the aerosol size distribution
@@ -762,44 +820,45 @@ C     fn, fn1
       double precision Nknuc(ibins), Mknuc(ibins, icomp)
       double precision Nkcond(ibins),Mkcond(ibins,icomp)
       double precision H2SO4rate
-      real dti
-      double precision fnavg    ! nucleation rate of clusters cm-3 s-1
-      double precision fn1avg   ! formation rate of particles to first size bin cm-3 s-1
-      logical          errswitch ! signal for error 
+      real             dti
+      double precision fnavg        ! nucleation rate of clusters cm-3 s-1
+      double precision fn1avg       ! formation rate of particles to first size bin cm-3 s-1
+      logical          errswitch    ! signal for error 
+      integer          lev          ! layer of the model
 
 C-----VARIABLE DECLARATIONS---------------------------------------------
 
       double precision dt
-      integer i,j,k,c           ! counters
-      double precision fn       ! nucleation rate of clusters cm-3 s-1
-      double precision fn1      ! formation rate of particles to first size bin cm-3 s-1
-      double precision pi, R    ! pi and gas constant (J/mol K)
-      double precision CSi,CSa   ! intial and average condensation sinks
-      double precision CS1,CS2       ! guesses for condensation sink [s^-1]
-      double precision CStest   !guess for condensation sink
+      integer          i,j,k,c      ! counters
+      double precision fn           ! nucleation rate of clusters cm-3 s-1
+      double precision fn1          ! formation rate of particles to first size bin cm-3 s-1
+      double precision pi, R        ! pi and gas constant (J/mol K)
+      double precision CSi,CSa      ! intial and average condensation sinks
+      double precision CS1,CS2      ! guesses for condensation sink [s^-1]
+      double precision CStest       ! guess for condensation sink
       double precision Nk1(ibins), Mk1(ibins, icomp), Gc1(icomp-1)
       double precision Nk2(ibins), Mk2(ibins, icomp), Gc2(icomp-1)
       double precision Nk3(ibins), Mk3(ibins, icomp), Gc3(icomp-1)
-      logical nflg ! returned from nucleation, says whether nucleation occurred or not
-      double precision mcond,mcond1    !mass to condense [kg]
-      double precision tol      !tolerance
-      double precision eps      !small number
-      double precision sinkfrac(ibins) !fraction of condensation sink coming from bin k
-      double precision totmass  !the total mass of H2SO4 generated during the timestep
+      logical          nflg         ! returned from nucleation, says whether nucleation occurred or not
+      double precision mcond,mcond1 ! mass to condense [kg]
+      double precision tol          ! tolerance
+      double precision eps          ! small number
+      double precision sinkfrac(ibins) ! fraction of condensation sink coming from bin k
+      double precision totmass      ! the total mass of H2SO4 generated during the timestep
       double precision tmass
-      double precision CSch     !fractional change in condensation sink
-      double precision CSch_tol !tolerance in change in condensation sink
-      double precision addt     !adaptive timestep time
-      double precision time_rem !time remaining
-      integer num_iter !number of iteration
-      double precision sumH2SO4 !used for finding average H2SO4 conc over timestep
-      integer iter ! number of iteration
-      double precision rnuc !critical radius [nm]
-      double precision gasConc  !gas concentration [kg]
-      double precision mass_change !change in mass during nucleation.f
+      double precision CSch         ! fractional change in condensation sink
+      double precision CSch_tol     ! tolerance in change in condensation sink
+      double precision addt         ! adaptive timestep time
+      double precision time_rem     ! time remaining
+      integer          num_iter     ! number of iteration
+      double precision sumH2SO4     ! used for finding average H2SO4 conc over timestep
+      integer          iter         ! number of iteration
+      double precision rnuc         ! critical radius [nm]
+      double precision gasConc      ! gas concentration [kg]
+      double precision mass_change  ! change in mass during nucleation.f
       double precision total_nh4_1,total_nh4_2
-      double precision min_tstep !minimum timestep [s]
-      integer nuc_bin           ! the nucleation bin
+      double precision min_tstep    ! minimum timestep [s]
+      integer          nuc_bin      ! the nucleation bin
       double precision sumfn, sumfn1 ! used for getting average nucleation rates
       logical          tempvar,  pdbg
       real*8           tnumb
@@ -845,7 +904,7 @@ C     Make sure that H2SO4 concentration doesn't exceed the amount generated
 C     during that timestep (this will happen when the condensation sink is very low)
 
 C     get the steady state H2SO4 concentration
-      call getH2SO4conc(H2SO4rate,CS1,Gc1(srtnh4),gasConc)
+      call getH2SO4conc(H2SO4rate, CS1, Gc1(srtnh4), gasConc, lev)
       if( pdbg) print*,'gasConc',gasConc
       Gc1(srtso4) = gasConc
       addt = min_tstep
@@ -858,7 +917,7 @@ C     Get change size distribution due to nucleation with initial guess
 c      call nucleation(Nk1,Mk1,Gc1,Nnuc1,Mnuc1,totmass,addt,Nk2,Mk2,Gc2,
 c     &     Nnuc2,Mnuc2,nflg)    
       call nucleation(Nk1,Mk1,Gc1,Nk2,Mk2,Gc2,fn,fn1,totmass,nuc_bin,
-     &     addt, PDBG)          
+     &     addt, PDBG, lev)
       
       if(pdbg) then
          print*,'COND_NUC: Found an error at nucleation --> TERMINATE'
@@ -971,7 +1030,7 @@ c      if (CSch.gt.CSch_tol) then ! condensation sink didn't change much use who
          ! to change that much
          addt = addt*CSch_tol/CSch/2
          addt = min(addt,dt)
-		addt = max(addt,min_tstep)
+         addt = max(addt,min_tstep)
 
                 
          time_rem = dt ! time remaining
@@ -987,7 +1046,7 @@ c      if (CSch.gt.CSch_tol) then ! condensation sink didn't change much use who
      &           'time_rem', time_rem
 C     get the steady state H2SO4 concentration
             if (num_iter.gt.1)then ! no need to recalculate for first step
-               call getH2SO4conc(H2SO4rate,CS1,Gc1(srtnh4),gasConc)
+               call getH2SO4conc(H2SO4rate,CS1,Gc1(srtnh4),gasConc,lev)
                Gc1(srtso4) = gasConc
             endif
             if( pdbg)    print*,'gasConc',gasConc
@@ -995,7 +1054,7 @@ C     get the steady state H2SO4 concentration
             sumH2SO4 = sumH2SO4 + Gc1(srtso4)*addt
             totmass = H2SO4rate*addt*96.d0/98.d0
 c            call nucleation(Nk1,Mk1,Gc1,Nnuc1,Mnuc1,totmass,addt,Nk2,
-c     &           Mk2,Gc2,Nnuc2,Mnuc2,nflg) 
+c     &           Mk2,Gc2,Nnuc2,Mnuc2,nflg,lev) 
 
             !Debug to see what goes in nucleation (win, 10/3/08)
             if(pdbg) then 
@@ -1007,7 +1066,7 @@ c     &           Mk2,Gc2,Nnuc2,Mnuc2,nflg)
 
             tempvar = pdbg
             call nucleation(Nk1,Mk1,Gc1,Nk2,Mk2,Gc2,fn,fn1,totmass,
-     &           nuc_bin,addt, PDBG) 
+     &           nuc_bin,addt, PDBG, lev) 
 
             if(pdbg) then
                print*,'COND_NUC: Error at nucleation[2] --> TERMINATE'
@@ -1198,7 +1257,7 @@ Cjrp         Gcf(srtso4)=Gc1(srtso4)
 Cjrp      endif
       
          if( pdbg)    print*, 'cond_nuc num_iter =', num_iter
-	!T0M(1,1,1,3) = double(num_iter) ! store iterations here
+!T0M(1,1,1,3) = double(num_iter) ! store iterations here
 
          if(pdbg) call debugprint(Nk3, Mk3, 0,0,0,'End of COND_NUC')
 
@@ -1280,19 +1339,20 @@ C-----CODE--------------------------------------------------------------
       ! The problem is I declare the array with ICOMP - its value will be 
       ! determined at time of run, so I can't use DATA statement
       DO J=1,ICOMP
-         IF ( J == SRTSO4 ) THEN
+!         IF ( J == SRTSO4 ) THEN
             alpha(J) = 0.65
-         ELSE
-            alpha(J) = 0.
-         ENDIF
+!         ELSE
+!            alpha(J) = 0.
+!         ENDIF
          Sv(J) = 42.88
       ENDDO
 
 
 C     get some parameters
 
-      mu=2.5277e-7*TEMPTMS**0.75302
-      mfp=2.0*mu/(pres*sqrt(8.0*0.6589/(pi*R*TEMPTMS)))  !S&P eqn 8.6
+      mu=2.5277e-7 * TEMPTMS**0.75302
+!      mfp=2.0*mu / ( pres*sqrt( 8.0 * 0.6589 / (pi*R*TEMPTMS) ) )  !S&P eqn 8.6
+      mfp=2.0*mu / ( pres*sqrt( 8.0 * 0.0289 / (pi*R*TEMPTMS) ) )  !S&P eqn 8.6
       Di=gasdiff(TEMPTMS,pres,98.0,Sv(spec))
 
 C     get size dependent values
@@ -1317,23 +1377,26 @@ Ckpc  Density should be changed due to more species involed.
          Kn=2.0*mfp/Dpk(k)                             !S&P eqn 11.35 (text)
          beta(k)=(1.+Kn)/(1.+2.*Kn*(1.+Kn)/alpha(spec)) !S&P eqn 11.35
       enddo      
-        
+
 C     get condensation sink
       CS = 0.d0
+!      surf_area = 0.d0
       do k=1,ibins
          CS = CS + Dpk(k)*Nko(k)*beta(k)
+!         surf_area = surf_area+Nko(k)*pi*(Dpk(k)*1.0D6)**2
       enddo
       do k=1,ibins
          sinkfrac(k) = Dpk(k)*Nko(k)*beta(k)/CS
       enddo     
       CS = 2.d0*pi*dble(Di)*CS/(dble(boxvol)*1D-6)  
+!      surf_area = surf_area/(dble(boxvol))
 
       return
       end subroutine getcondsink
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE getH2SO4conc(H2SO4rate,CS,NH3conc,gasConc)
+      SUBROUTINE getH2SO4conc(H2SO4rate,CS,NH3conc,gasConc,lev)
 !
 !******************************************************************************
 C     This subroutine uses newtons method to solve for the steady state 
@@ -1371,8 +1434,9 @@ C-----ARGUMENT DECLARATIONS---------------------------------------------
       double precision CS
       double precision NH3conc
       double precision gasConc
-      logical prev
+      logical          prev
       double precision gasConc_prev
+      integer          lev
 
 C-----VARIABLE DECLARATIONS---------------------------------------------
 
@@ -1404,7 +1468,7 @@ C-----EXTERNAL FUNCTIONS------------------------------------------------
 C-----ADJUSTABLE PARAMETERS---------------------------------------------
 
       parameter(pi=3.141592654)
-      parameter(H2SO4min=1.D4) !molecules cm-3
+!      parameter(H2SO4min=1.D4) !molecules cm-3
       parameter(CSeps=1.0d-20)
         
 C-----CODE--------------------------------------------------------------
@@ -1414,13 +1478,26 @@ C-----CODE--------------------------------------------------------------
       enddo
       Gci(srtnh4)=NH3conc
       
-                                ! make sure CS doesn't equal zero
+      ! make sure CS doesn't equal zero
 c     CS = max(CS,CSeps)
       
-                                ! some specific stuff for napari vs. vehk
-      if ((bin_nuc.eq.1).or.(tern_nuc.eq.1))then
-         nh3ppt = Gci(srtnh4)/17.d0/(boxmass/29.d0)*1d12
-         if ((nh3ppt.gt.1.0d0).and.(tern_nuc.eq.1))then
+      ! some specific stuff for napari vs. vehk
+      if (ion_nuc.eq.1) then
+         H2SO4min=1.0D5
+      elseif (ion_nuc.eq.2) then
+         H2SO4min=5.0D5
+      else
+         H2SO4min=1.0D4
+      endif
+
+      if ((bin_nuc.eq.1).or.(tern_nuc.eq.1).or.(ion_nuc.le.2))then
+         nh3ppt = Gci(srtnh4)/17.d0/(boxmass/29.d0)*1d12*
+     &             PRES/101325.*273./TEMPTMS ! corrected for pressure (because this should be concentration)
+         if (ion_nuc.eq.1)then
+            max_H2SO4conc=1.0D8*boxvol/1000.d0*98.d0/6.022d23
+         elseif (ion_nuc.eq.2)then
+            max_H2SO4conc=5.0D8*boxvol/1000.d0*98.d0/6.022d23
+         elseif ((nh3ppt.gt.1.0d0).and.(tern_nuc.eq.1))then
             max_H2SO4conc=1.0D9*boxvol/1000.d0*98.d0/6.022d23
          elseif (bin_nuc.eq.1)then
             max_H2SO4conc=1.0D11*boxvol/1000.d0*98.d0/6.022d23
@@ -1429,33 +1506,32 @@ c     CS = max(CS,CSeps)
          endif
       else
          max_H2SO4conc = 1.0D100
-      endif	
+      endif
+
       
 C     Checks for when condensation sink is very small
       if (CS.gt.CSeps) then
          gasConc = H2SO4rate/CS
       else
-         if ((bin_nuc.eq.1).or.(tern_nuc.eq.1)) then
+         if((bin_nuc.gt.0).or.(tern_nuc.gt.0).or.
+     &                           (ion_nuc.gt.0))then
             gasConc = max_H2SO4conc
          else
             print*,'condesation sink too small in getH2SO4conc.f'
             STOP
          endif
       endif
+
       gasConc = min(gasConc,max_H2SO4conc)
       Gci(srtso4) = gasConc
+      call getNucRate(Gci,fn,mnuc,nflg,lev)
 
-cc      print *,'[1] Gci',Gci
-      call getNucRate(Gci,fn,mnuc,nflg)
-c      print *, 'mnuc',mnuc, 'fn', fn
-      
       if (fn.gt.0.d0) then      ! nucleation occured
          gasConc_lo = H2SO4min*boxvol/(1000.d0/98.d0*6.022d23) !convert to kg/box
          
 C     Test to see if gasConc_lo gives a res < 0 (this means ANY nucleation is too high)
          Gci(srtso4) = gasConc_lo*1.000001d0
-cc         print *,'[2] Gci',Gci
-         call getNucRate(Gci,fn1,mnuc1,nflg)
+         call getNucRate(Gci,fn1,mnuc1,nflg,lev)
          if (fn1.gt.0.d0) then
             massnuc = mnuc1*fn1*boxvol*98.d0/96.d0
 c     massnuc = 4.d0/3.d0*pi*(rnuc1*1.d-9)**3*1350.*fn1*boxvol*
@@ -1482,8 +1558,8 @@ c     &        'mnuc',mnuc
          
                                 ! check to make sure that we can get solution
          if (res.gt.H2SO4rate*1.d-10) then
-c            print*,'gas production rate too high in getH2SO4conc.f'
-c            print*,H2SO4rate,CS,gasConc,massnuc,res
+            print*,'gas production rate too high in getH2SO4conc.f'
+            print*,H2SO4rate,CS,gasConc,massnuc,res
             return
 c     STOP
          endif
@@ -1503,17 +1579,17 @@ c            print*, 'iter',iter
 c            print*,'gasConc_lo',gasConc_lo,'gasConc_hi',gasConc_hi
             gasConc = sqrt(gasConc_hi*gasConc_lo) ! take new guess as logmean
             Gci(srtso4) = gasConc
-
-cc            print *,'[3] Gci',Gci
-            call getNucRate(Gci,fn,mnuc,nflg)
+            call getNucRate(Gci,fn,mnuc,nflg,lev)
             massnuc = mnuc*fn*boxvol*98.d0/96.d0
             res = H2SO4rate - CS*gasConc - massnuc
 c            print*,'res',res
 c            print*,'H2SO4rate',H2SO4rate,'CS',CS,'gasConc',gasConc
-            if (iter.eq.30.and.CS.gt.1.0D-5)then
+            if (iter.eq.40.and.CS.gt.1.0D-4)then
                print*,'getH2SO4conc iter break'
                print*,'H2SO4rate',H2SO4rate,'CS',CS
                print*,'gasConc',gasConc,'massnuc',massnuc
+               print*,'max_H2SO4conc',max_H2SO4conc
+               print*,'fn',fn
                print*,'res/H2SO4rate',res/H2SO4rate
             endif
          enddo
@@ -1531,7 +1607,7 @@ c     print*,'massnuc',massnuc,'CS*gasConc',CS*gasConc
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE getNucRate(Gci,fn,mnuc,nflg)
+      SUBROUTINE getNucRate(Gci,fn,mnuc,nflg,lev)
 !
 !******************************************************************************
 C     This subroutine calls the Vehkamaki 2002 and Napari 2002 nucleation
@@ -1565,6 +1641,7 @@ C-----ARGUMENT DECLARATIONS---------------------------------------------
       double precision fn       ! nucleation rate to first bin cm-3 s-1
       double precision mnuc     !mass of nucleating particle [kg]
       logical nflg
+      integer lev
 
 C-----VARIABLE DECLARATIONS---------------------------------------------
 
@@ -1591,6 +1668,10 @@ C-----VARIABLE DECLARATIONS---------------------------------------------
       double precision GR       ! growth rate [nm hr-1]
       double precision gamma,eta ! used in kerminen 2004 parameterzation
       double precision drymass,wetmass,WR
+      double precision fn_c     ! barrierless nucleation rate
+      double precision h1,h2,h3,h4,h5,h6
+      double precision dum1,dum2,dum3,dum4   ! dummy variables
+      double precision rhin,tempin ! rel hum in
 
       real*8    mydummy
 C-----ADJUSTABLE PARAMETERS---------------------------------------------
@@ -1601,7 +1682,8 @@ C-----ADJUSTABLE PARAMETERS---------------------------------------------
 C-----CODE--------------------------------------------------------------
 
       h2so4 = Gci(srtso4)/boxvol*1000.d0/98.d0*6.022d23
-      nh3ppt = Gci(srtnh4)/17.d0/(boxmass/29.d0)*1d12
+      nh3ppt = Gci(srtnh4)/17.d0/(boxmass/29.d0)*1d12*
+     &             PRES/101325.*273./TEMPTMS ! corrected for pressure (because this should be concentration)
 
       fn = 0.d0
       rnuc = 0.d0
@@ -1610,25 +1692,80 @@ c      print*,'h2so4',h2so4,'nh3ppt',nh3ppt
 
 C     if requirements for nucleation are met, call nucleation subroutines
 C     and get the nucleation rate and critical cluster size
-      if (h2so4.gt.1.d4) then
-         if ((nh3ppt.gt.0.1).and.(tern_nuc.eq.1)) then
+      if (h2so4.gt.1.d4) then   
+         if ((nh3ppt.gt.0.1).and.(tern_nuc.eq.1)) then 
 c            print*, 'napari'
-            call napa_nucl(TEMPTMS,RHTOMAS,h2so4,nh3ppt,fn,rnuc) !ternary nuc
+            call napa_nucl(TEMPTMS,RHTOMAS,h2so4,nh3ppt,fn,rnuc) !ternary nuc 
+            if (ion_nuc.eq.1.and.ionrate.ge.1.d0) then
+               call ion_nucl(h2so4,surf_area,TEMPTMS,ionrate,RHTOMAS,
+     &              h1,h2,h3,h4,h5,h6)
+            else
+               h1=0.d0
+            endif
+            if (h1.gt.fn)then
+               fn=h1
+               rnuc=h5
+            endif
             nflg=.true.
-c            print*,'fn initial',fn, 'h2so4',h2so4
          elseif (bin_nuc.eq.1) then
 c            print*, 'vehk'
             call vehk_nucl(TEMPTMS,RHTOMAS,h2so4,fn,rnuc) !binary nuc
-c            print*,'fn initial',fn, 'h2so4',h2so4
+            if ((ion_nuc.eq.1).and.(ionrate.ge.1.d0)) then
+               call ion_nucl(h2so4,surf_area,TEMPTMS,ionrate,RHTOMAS,
+     &              h1,h2,h3,h4,h5,h6)
+            else
+               h1=0.d0
+            endif
+            if (h1.gt.fn)then
+               fn=h1
+               rnuc=h5
+            endif
             if (fn.gt.1.0d-6)then
                nflg=.true.
             else
                fn = 0.d0
                nflg=.false.
             endif
+         elseif ((ion_nuc.eq.1).and.(ionrate.ge.1.d0)) then
+            call ion_nucl(h2so4,surf_area,TEMPTMS,ionrate,RHTOMAS,
+     &              h1,h2,h3,h4,h5,h6)
+            fn=h1
+            rnuc=h5
+            nflg=.true.
+         elseif(ion_nuc.eq.2) then
+            ! Yu Ion nucleation
+c            ! first we need to calculate the available surface area
+c            surf_area = 0.D0
+c            do k=1, ibins
+c               if (Nki(k) .gt. Neps) then
+c                  Mktot=0.d0
+c                  do j=1,icomp
+c                     Mktot=Mktot+Mki(k,j)
+c                  enddo
+c                  mp=Mktot/Nki(k)
+c                  density=aerodens(Mki(k,srtso4),0.d0,
+c     &                    Mki(k,srtnh4),0.d0,Mki(k,srth2o))  ! assume bisulfate
+c                  ! diameter = ((mass/density)*(6/pi))**(1/3)
+c                  d2 = 1.D6*((mp/density)*(6.D0/pi))**(1.D0/3.D0) ! (micrometers)
+c                  ! surface area per particle = pi*diameter**2
+c                  surf_area = surf_area + 1.D-6*(Nki(k)/boxvol)*
+c     &                        pi*(d2**2.D0) ! (um2 cm-2)
+c               endif
+c            enddo
+            rhin=dble(RHTOMAS*100.d0)
+            tempin=dble(TEMPTMS)
+            call YUJIMN(h2so4, rhin, tempin, ionrate, surf_area,
+     &               fn, dum1, rnuc, dum2)
+            nflg=.true.
          else
             nflg=.false.
+         endif         
+         if((act_nuc.eq.1).and.(lev.le.7))then
+            call bl_nucl(h2so4,fn,rnuc)
+            nflg=.true.
          endif
+         call cf_nucl(TEMPTMS,RHTOMAS,h2so4,nh3ppt,fn_c) ! use barrierless nucleation as a max for ternary
+         fn = min(fn,fn_c)
       else
          nflg=.false.
       endif
@@ -1665,7 +1802,9 @@ cc         print*,'WR',WR, 'drymass',drymass, 'wetmass',wetmass
      &        (-0.33d0)*(TEMPTMS/293.d0) ! equation 5 in kerminen
          eta = gamma*CS/GR
 c         print*,'fn1',fn
-         fn = fn*exp(eta/(Dp1*1.0D9)-eta/(d1*1.0D9))
+         if (Dp1.gt.d1)then
+            fn = fn*exp(eta/(Dp1*1.0D9)-eta/(d1*1.0D9))
+         endif
 c         print*,'fn2',fn
          if( IT_IS_NAN( fn ) ) then
             print*, '---------------->>> Found NAN in GETNUCRATE'
@@ -1821,6 +1960,55 @@ c     cluster radius
 
 !------------------------------------------------------------------------------
 
+C     **************************************************
+C     *  bl_nucl                                     *
+C     **************************************************
+
+C     WRITTEN BY Jeff Pierce, April 2007
+
+C     This subroutine calculates a simple binary nucleation rate of 1 nm
+C     particles.
+
+C      j_1nm = A * [H2SO4]
+
+      SUBROUTINE bl_nucl(cnai,fn,rnuc)
+
+      IMPLICIT NONE
+
+C-----INPUTS------------------------------------------------------------
+
+      double precision cnai                 ! concentration of gas phase sulfuric acid [molec cm-3]
+
+C-----OUTPUTS-----------------------------------------------------------
+
+      double precision fn                   ! nucleation rate [cm-3 s-1]
+      double precision rnuc                 ! critical cluster radius [nm]
+
+C-----INCLUDE FILES-----------------------------------------------------
+
+C-----ARGUMENT DECLARATIONS---------------------------------------------
+
+C-----VARIABLE DECLARATIONS---------------------------------------------
+
+      double precision cna                  ! concentration of gas phase sulfuric acid [molec cm-3]
+      double precision A   ! prefactor... empirical
+
+C-----ADJUSTABLE PARAMETERS---------------------------------------------
+
+      parameter(A=2.0D-6)
+
+C-----CODE--------------------------------------------------------------
+
+      cna=cnai
+
+      fn=A*cna
+      rnuc=0.5d0 ! particle diameter of 1 nm
+
+ 10   return
+      end SUBROUTINE bl_nucl
+
+!------------------------------------------------------------------------------
+
       SUBROUTINE napa_nucl(tempi,rhi,cnai,nh3ppti,fn,rnuc)
 !
 !*****************************************************************************
@@ -1921,8 +2109,8 @@ c
 
       ! Try scaling down the rate by 1e-5 to see how the param is 
       ! doing on the false positive nucleation (win, 12/18/08)
-!      fn = fn * 1.e-4
-
+      !sensitivity simulation, change scaling factor down to 1e-4
+      fn = fn * 1.e-5
 
 c   Cap at 10^6 particles/cm3-s, limit for parameterization
       if (fn.gt.1.0d6) then
@@ -1994,7 +2182,8 @@ C     sinkfrac(ibins) - fraction of condensation sink from a bin
 
 C     get some parameters
       mu=2.5277e-7*TEMPTMS**0.75302
-      mfp=2.0*mu/(pres*sqrt(8.0*0.6589/(pi*R*TEMPTMS)))  !S&P eqn 8.6
+!      mfp=2.0*mu / ( pres*sqrt( 8.0 * 0.6589 / (pi*R*TEMPTMS) ) )  !S&P eqn 8.6
+      mfp=2.0*mu / ( pres*sqrt( 8.0 * 0.0289 / (pi*R*TEMPTMS) ) )  !S&P eqn 8.6
 c      Di=gasdiff(temp,pres,98.0,Sv(srtso4))
 c      print*,'Di',Di
 
@@ -2123,7 +2312,7 @@ Cjrp
 !------------------------------------------------------------------------------
 
       SUBROUTINE NUCLEATION (Nki,Mki,Gci,Nkf,Mkf,Gcf,fn,fn1,totsulf,
-     &                      nuc_bin,dt, pdbg)
+     &                      nuc_bin,dt, pdbg,lev)
 !
 !******************************************************************************
 C     This subroutine calls the Vehkamaki 2002 and Napari 2002 nucleation
@@ -2168,6 +2357,7 @@ C-----ARGUMENT DECLARATIONS---------------------------------------------
       double precision fn       ! nucleation rate of clusters cm-3 s-1
       double precision fn1      ! formation rate of particles to first size bin cm-3 s-1
       LOGICAL  PDBG             ! Signal print for debug
+      integer lev ! layer of model
 
 C-----VARIABLE DECLARATIONS---------------------------------------------
 
@@ -2195,6 +2385,10 @@ C-----VARIABLE DECLARATIONS---------------------------------------------
       double precision GR       ! growth rate [nm hr-1]
       double precision gamma,eta ! used in kerminen 2004 parameterzation
       double precision drymass,wetmass,WR
+      double precision fn_c     ! barrierless nucleation rate
+      double precision h1,h2,h3,h4,h5,h6
+      double precision dum1,dum2,dum3,dum4   ! dummy variables
+      double precision rhin,tempin ! rel hum in
 
       LOGICAL ERRORSWITCH
 
@@ -2208,7 +2402,8 @@ C-----CODE--------------------------------------------------------------
       errorswitch = .false.
 
       h2so4 = Gci(srtso4)/boxvol*1000.d0/98.d0*6.022d23
-      nh3ppt = Gci(srtnh4)/17.d0/(boxmass/29.d0)*1d12
+      nh3ppt = Gci(srtnh4)/17.d0/(boxmass/29.d0)*1d12*
+     &             PRES/101325.*273./TEMPTMS ! corrected for pressure (because this should be concentration)
 
       fn = 0.d0
       fn1 = 0.d0
@@ -2218,19 +2413,77 @@ C-----CODE--------------------------------------------------------------
 C     if requirements for nucleation are met, call nucleation subroutines
 C     and get the nucleation rate and critical cluster size
       if (h2so4.gt.1.d4) then
-         if (nh3ppt.gt.1.d-1 .and. tern_nuc.eq.1) then
-
+         if (nh3ppt.gt.0.1.and.tern_nuc.eq.1) then
             call napa_nucl(TEMPTMS,RHTOMAS,h2so4,nh3ppt,fn,rnuc) !ternary nuc
+            if (ion_nuc.eq.1.and.ionrate.ge.1.d0) then
+               call ion_nucl(h2so4,surf_area,TEMPTMS,ionrate,RHTOMAS,
+     &              h1,h2,h3,h4,h5,h6)
+            else
+               h1=0.d0
+            endif
+            if (h1.gt.fn)then
+               fn=h1
+               rnuc=h5
+            endif
          elseif (bin_nuc.eq.1) then
-
             call vehk_nucl(TEMPTMS,RHTOMAS,h2so4,fn,rnuc) !binary nuc
-
+            if ((ion_nuc.eq.1).and.(ionrate.ge.1.d0)) then
+               call ion_nucl(h2so4,surf_area,TEMPTMS,ionrate,RHTOMAS,
+     &              h1,h2,h3,h4,h5,h6)
+            else
+               h1=0.d0
+            endif
+            if (h1.gt.fn)then
+               fn=h1
+               rnuc=h5
+            endif
             if (fn.lt.1.0d-6)then
                fn = 0.d0
             endif
-
-         endif    
+         elseif ((ion_nuc.eq.1).and.(ionrate.ge.1.d0)) then
+            call ion_nucl(h2so4,surf_area,TEMPTMS,ionrate,RHTOMAS,,
+     &              h1,h2,h3,h4,h5,h6)
+            fn=h1
+            rnuc=h5
+         elseif(ion_nuc.eq.2) then
+            ! Yu Ion nucleation
+c            ! first we need to calculate the available surface area
+c            surf_area = 0.D0
+c            do k=1, ibins
+c               if (Nki(k) .gt. Neps) then
+c                  Mktot=0.d0
+c                  do j=1,icomp
+c                     Mktot=Mktot+Mki(k,j)
+c                  enddo
+c                  mp=Mktot/Nki(k)
+c                  density=aerodens(Mki(k,srtso4),0.d0,
+c     &                    Mki(k,srtnh4),0.d0,Mki(k,srth2o))  ! assume bisulfate
+c                  ! diameter = ((mass/density)*(6/pi))**(1/3)
+c                  d2 = 1.D6*((mp/density)*(6.D0/pi))**(1.D0/3.D0) ! (micrometers)
+c                  ! surface area per particle = pi*diameter**2
+c                  surf_area = surf_area + 1.D-6*(Nki(k)/boxvol)*
+c     &                        pi*(d2**2.D0) ! (um2 cm-2)
+c               endif
+c            enddo
+            rhin=dble(RHTOMAS*100.d0)
+            tempin=dble(TEMPTMS)
+            
+            call YUJIMN(h2so4, rhin, tempin, ionrate, surf_area,
+     &               fn, dum1, rnuc, dum2)
+         endif
+         if((act_nuc.eq.1).and.(lev.le.7))then
+            call bl_nucl(h2so4,fn,rnuc)
+         endif
+         call cf_nucl(TEMPTMS,RHTOMAS,h2so4,nh3ppt,fn_c) ! use barrierless nucleation as a max
+         fn = min(fn,fn_c)
+c         if (fn.gt.1.0)then
+c            print*, 'fn',fn
+c            print*, 'Yu Yes!'
+c            print*, 'ionrate',ionrate
+c            print*, 'surf_area',surf_area
+c         endif
       endif
+
 
       if (pdbg) then
          if( bin_nuc == 1 ) then
@@ -2290,7 +2543,11 @@ cc         print*,'[nucleation] Gci',Gci
      &        (-0.33d0)*(TEMPTMS/293.d0) ! equation 5 in kerminen
          eta = gamma*CS/GR
 
-         fn1 = fn*exp(eta/(Dp1*1.0D9)-eta/(d1*1.0D9))
+         if (Dp1.gt.d1)then
+            fn1 = fn*exp(eta/(Dp1*1.0D9)-eta/(d1*1.0D9))
+         else
+            fn1 = fn
+         endif
 
          if (pdbg) print*,'eta',eta,'Dp1',Dp1,'d1',d1,'fn1',fn1
 
@@ -2414,7 +2671,7 @@ C-----VARIABLE DECLARATIONS---------------------------------------------
       double precision maddp(ibins)    ! mass to add per particle [kg]
       double precision mconds ! mass to add per step [kg]
       integer nsteps            ! number of condensation steps necessary
-      integer floor, ceil       ! the floor and ceiling (temporary)
+      integer my_floor, my_ceil       ! the floor and ceiling (temporary)
       double precision eps     ! small number
       double precision tdt      !the value 2/3
       double precision mpo,mpw  !dry and "wet" mass of particle
@@ -2440,7 +2697,7 @@ C-----ADJUSTABLE PARAMETERS---------------------------------------------
 
       parameter(pi=3.141592654, R=8.314) !pi and gas constant (J/mol K)
       parameter(eps=1.d-40)
-	parameter(CSeps=1.d-20)
+      parameter(CSeps=1.d-20)
 
 C-----CODE--------------------------------------------------------------
 
@@ -2470,7 +2727,7 @@ C-----CODE--------------------------------------------------------------
       ! get the sink fractions
       call getCondSink(Nk1,Mk1,spec,CS,sinkfrac) ! set Nnuc to zero for this calc
 
-	! make sure that condensation sink isn't too small
+      ! make sure that condensation sink isn't too small
       if (CS.lt.CSeps) then     ! just make particles in first bin
          Mkf(1,spec) = Mk1(1,spec) + mcond
          Nkf(1) = Nk1(1) + mcond/sqrt(xk(1)*xk(2))
@@ -2486,7 +2743,7 @@ C-----CODE--------------------------------------------------------------
             enddo
          enddo
          return
-      endif	
+      endif
 
       if (pdbg) then
          print*,'CS',CS
@@ -2496,10 +2753,10 @@ C-----CODE--------------------------------------------------------------
 
       ! determine how much mass to add to each size bin
       ! also determine how many condensation steps we need
-	totsinkfrac = 0.d0
+      totsinkfrac = 0.d0
       do k=1,ibins
-	   totsinkfrac = totsinkfrac + sinkfrac(k) ! get sink frac total not including nuc bin
-	enddo
+      totsinkfrac = totsinkfrac + sinkfrac(k) ! get sink frac total not including nuc bin
+      enddo
       nsteps = 1
       do k=1,ibins
          if (sinkfrac(k).lt.1.0D-20)then
@@ -2512,12 +2769,12 @@ C-----CODE--------------------------------------------------------------
             mpo=mpo + Mk1(k,j)
          enddo
          if(mpo == 0.0 ) then  ! prevent division by zero (win, 10/16/08)
-            floor = 0
+            my_floor = 0
          else
-            floor = int(madd*0.00001/mpo)
+            my_floor = int(madd*0.00001/mpo)
          endif
-          ceil = floor + 1
-         nsteps = max(nsteps,ceil) ! don't let the mass increase by more than 10%
+          my_ceil = my_floor + 1
+         nsteps = max(nsteps,my_ceil) ! don't let the mass increase by more than 10%
       enddo
 
       if(pdbg) print*,'nsteps',nsteps
@@ -2532,8 +2789,8 @@ C-----CODE--------------------------------------------------------------
      &        CS,sinkfrac)      ! set Nnuc to zero for this calculation
             totsinkfrac = 0.d0
             do k=1,ibins
-	         totsinkfrac = totsinkfrac + sinkfrac(k) ! get sink frac total not including nuc bin
-	      enddo
+             totsinkfrac = totsinkfrac + sinkfrac(k) ! get sink frac total not including nuc bin
+            enddo
          endif      
          
          tot_m=0.d0
@@ -2768,9 +3025,11 @@ Cjrp      endif
          tot_f=tot_f+Mkf(k,srtnh4)
       enddo
       if (abs(tot_f-tot_i)/tot_i.gt.1.0D-8)then
-         print*,'No N conservation in ezcond.f'
-         print*,'initial',tot_i
-         print*,'final',tot_f
+         if ( tot_i > 1.0d-20 ) then
+            print*,'No N conservation in ezcond.f'
+            print*,'initial',tot_i
+            print*,'final',tot_f
+         endif
       endif
 
 
@@ -2899,10 +3158,10 @@ Cjrp      endif
             !WRITE(*,*) 'Location: ',I,J,L
             !WRITE(*,*) 'Kmin/Nact: ',KMIN,NACT
             !WRITE(*,*) 'MOXID/Mact: ',MOXID,Mact
-            DO K = 1, IBINS
-              ! WRITE(*,*) 'K, N, MSO4, MH2O: ',K,Nk(k),
-  !   &              MK(K,SRTSO4),MK(K,SRTH2O)
-            ENDDO
+!            DO K = 1, IBINS
+!               WRITE(*,*) 'K, N, MSO4, MH2O: ',K,Nk(k),
+!     &              MK(K,SRTSO4),MK(K,SRTH2O)
+!            ENDDO
             IF ( MOXID > 5D0 .and.
      &           ITS_IN_THE_STRAT( I, J, L, State_Met ) ) THEN
                CALL ERROR_STOP( 'Too few number for condensing mass',
@@ -3060,6 +3319,8 @@ Cjrp      endif
       REAL*8                 :: MEDTOT, MED(IBINS), MABS(IBINS)
       REAL*8                 :: MKTOT(IBINS), DENSITY, PI
       REAL*8                 :: M_NH4
+      REAL*8                 :: CS, sinkfrac(IBINS)
+      REAL*8                 :: partfrac(IBINS),avgfrac(IBINS)
       INTEGER                :: K, MPNUM, JC, TRACNUM
       LOGICAL                :: PDBG
       PARAMETER   (PI = 3.141592654D0)
@@ -3103,38 +3364,37 @@ Cjrp      endif
       ! Accumulate the total absorbing media
       DO K = 1, IBINS
 
-         ! Option 1: Organic mass         
-!         MED(K) = MK(K,SRTOCIL)
-!         MEDTOT = MEDTOT + MK(K,SRTOCIL)
-
-         IF ( SRTNH4 > 0 ) THEN 
-            M_NH4 = Mk(k,SRTNH4) 
-         ELSE
-            M_NH4 = 0.1875d0*Mk(k,srtso4)  !assume bisulfate
-         ENDIF
-         
-         ! Option 2: Surface area
-
-         density=aerodens(Mk(k,srtso4),0.d0, M_NH4,
-     &           Mk(k,srtnacl), Mk(k,srtecil), Mk(k,srtecob),
-     &           Mk(k,srtocil), Mk(k,srtocob), Mk(k,srtdust),
-     &           Mk(k,srth2o))     
-
-         Mktot(k)= M_NH4 !start with NH4 mass
-         Mktot(k)= Mktot(k) + Mk(k,srth2o)  ! incl water
-
-         DO JC = 1, ICOMP-IDIAG
+         DO JC = 1, ICOMP
             Mktot(k) = Mktot(k) + Mk(k,jc)
          ENDDO
          mtot = mtot + Mktot(k)
-
-         MED(K) = ( Nk(K) * pi )**(0.333d0)*(6.d0/density*Mktot(K))**TDT
-         MEDTOT = MEDTOT + MED(K)
+         
+         if (absall.eq.1)then ! partition to all mass
+            MED(K) = Mktot(k)
+            MEDTOT = MEDTOT + Mktot(k)
+         else
+            MED(K) = Mk(k,srtocil) ! partition to just hydrophilic organic
+            MEDTOT = MEDTOT + Mk(k,srtocil)
+         endif   
 
       ENDDO
+      
+      ! Fraction to each bin for mass partitioning
+      do k = 1,IBINS
+         partfrac(k) = MED(K) / MEDTOT ! MSOA (kg SOA) become (kg SOA per 
+                                   ! total absorbing media)
+      enddo
+
+      ! Fraction to each bin for surface condensation
+      call getCondSink(Nk,Mk,srtocil,CS,sinkfrac) ! sinkfrac
+
+      do k = 1,IBINS
+         avgfrac(k)=soaareafrac*sinkfrac(k)+
+     &              (1.d0-soaareafrac)*partfrac(k)
+      enddo 
 
       !temporary
-      Ntot = 0.d0
+      ntot = 0.d0
       do k = 1, ibins
          ntot = ntot + Nk(k)
       enddo
@@ -3150,36 +3410,19 @@ Cjrp      endif
             GOTO 30
          ENDIF
       ENDIF
-            
-
-!dbg
-!      print *,'=================================================='
-!      print *,' MSOA [kg] at',i,j,MSOA
-
-      ! Calculate Tau (driving force) for each size bin
-      MSOA = MSOA / MEDTOT        ! MSOA (kg SOA) become (kg SOA per 
-                                   ! total absorbing media)
 
       DO K = 1, IBINS
          MPO = 0.d0
          DO JC = 1, ICOMP-IDIAG
             MPO = MPO + MK(K,JC)  ! Accumulate dry mass
          ENDDO
-         MABS(K) = MSOA * MED(K)
-!x            ! Accumulate soluble organic mass  (win, 3/5/08)
-!x            IF ( JC == SRTOCIL  ) 
-!x     &           MPO = MPO + MK(K,JC)   
-!x         ENDDO
+         MABS(K) = MSOA * avgfrac(K)
          
          IF ( Nk(K) > 0.d0 ) THEN
             MPO = MPO / Nk(K)
             OCTAU(K) = 1.5d0 * ( ( ( MPO + MABS(K)/Nk(K) ) ** TDT ) - 
      &                           (   MPO                   ** TDT )   )
 
-!x         IF ( Nk(K) > 0.d0 ) THEN
-!x            MPO = MPO / Nk(K)
-!x            OCTAU(K) = 1.5d0 * ( ( ( MPO * (1.d0 + MSOA) ) ** TDT ) - 
-!x     &                           (   MPO                   ** TDT )    )
             ! Error checking for negative Tau
             IF ( OCTAU(K) < 0.d0 ) THEN
             IF ( ABS(OCTAU(K)) < 1.d0 ) THEN
@@ -3196,13 +3439,6 @@ Cjrp      endif
             OCTAU(K) = 0.d0
          ENDIF
       ENDDO
-!temp
-!      print *,'=================================================='
-!      print *,' BIN  OCTAU'
-!      do k = 1, ibins
-!         print *, k, octau(k)
-!      enddo
-
 
       ! Call condensation algorithm
       ! Swap into Nko, Mko
@@ -3216,7 +3452,6 @@ Cjrp      endif
 !debug      if(i==24.and.j==13)       pdbg = .true.
       CALL TMCOND( OCTAU, XK, Mko, Nko, Mkf, Nkf, SRTOCIL, PDBG, MABS )
 
-!x      CALL TMCOND( OCTAU, XK, Mko, Nko, Mkf, Nkf, SRTOCIL, PDBG, MSOA )
       IF( PDBG ) THEN
 !         print 12, I,J,L
  12      FORMAT( 'Error in SOAcond at ', 3I4 )
@@ -3660,43 +3895,6 @@ cdbg
 
 !------------------------------------------------------------------------------
 
-c      SUBROUTINE NUCLEATION()
-!
-!******************************************************************************
-!  Subroutine NUCLEATION perform simple nucleation parameterization for size-
-!  resolved aerosol simulation.  If H2SO4(g) concentration is greater than the
-!  critical amount, it puts the extra in the lowest size bin.
-!  First implemented in GISS GCM-II' by Peter Adams, August 2000
-!  Introduced to GEOS-CHEM by Win Trivitayanurak (win@cmu.edu) July 2007
-!
-!  NOTES:
-!******************************************************************************
-!
-      ! Local variables
-!      INTEGER             :: I, J, L
-c      REAL*8              :: MCRIT    !critical mass for nucleation (kg/box)
-c      REAL*8              :: MNUCL    !mass nucleated in burst      (kg/box)
-
-      !=================================================================
-      ! NUCLEATION begins here!
-      !=================================================================
-
-      !Seinfeld and Pandis, section 10.6, eqn 10.102
-c      MCRIT = 0.16 * EXP( 1D-1* TEMPTMS- 3.5D0* RHTOMAS- 27.7D0 )* 
-c     &        BOXVOL* 1.D-15
-c      IF ( Gc(srtso4) > MCRIT ) THEN
-         !write(6,*)'+++++++ Nucleation happens!!'
-c         MNUCL       = Gc(srtso4) - MCRIT
-c         Gc(srtso4)  = Gc(srtso4) - MNUCL
-c         Mk(1,srtso4)= Mk(1,srtso4) + MNUCL
-c         Nk(1)       = Nk(1) + MNUCL/ ( xk(1)*1.414D0 )
-
-c      ENDIF
-
-c      END SUBROUTINE NUCLEATION
-
-!------------------------------------------------------------------------------
-
       SUBROUTINE SO4COND(Nki,Mki,Gci,Nkf,Mkf,Gcf,dt,errspot)
 !
 !******************************************************************************
@@ -3774,7 +3972,7 @@ cdbg      character*12 limit        !description of what limits time step
       REAL*8      :: tdt      !the value 2/3
       REAL*8      :: Ntotf, Ntoto, dNerr  !used to track number cons.
 cdbg      integer numcalls          !number of times cond routine is called
-	  REAL*8      :: Mktot        ! total mass (win, 4/14/06)
+      REAL*8      :: Mktot        ! total mass (win, 4/14/06)
       REAL*8      :: zeros(IBINS)
 
       LOGICAL      :: negvalue  ! negative check variable
@@ -3829,7 +4027,7 @@ cdbg      integer numcalls          !number of times cond routine is called
             
 cdbg      numcalls=0
       printdebug = errspot !taking the signal to printdebug from aerophys (win, 4/8/06)
-      errspot = .false. !<step4.4> Flag for showing error location outside this subroutine (win,9/21/05)
+      errspot = .true. !<step4.4> Flag for showing error location outside this subroutine (win,9/21/05)
 
       dNerr=0.0
       tdt=2.d0/3.d0
@@ -4162,7 +4360,6 @@ cdbg      write(*,*) 'Number cons. error was ', dNerr
 
  100  continue   !skip to here if there is no gas phase to condense
 
-
       END SUBROUTINE SO4COND
 
 !------------------------------------------------------------------------------
@@ -4249,6 +4446,7 @@ Cpja End of my additional notes
       REAL*8       :: AMKDRYSOL(ibins)
       PARAMETER (TEPS=1.0d-40,NEPS=1.0d-20)
       PARAMETER (EX2=2.d0/3.d0,ZERO=0.0d0)
+      PARAMETER       NEPS2=1.0d-10
       LOGICAL      :: pdbug !(win, 4/10/06)
       LOGICAL      :: errspot !(win, 4/12/06)
 !x      REAL*8       :: moxd !moxid/Nact (win, 5/25/06)
@@ -4307,7 +4505,7 @@ Cpja Sometimes, after repeated condensation calls, the average bin mass
 Cpja can be just above the bin boundary - in that case, transfer a some
 Cpja to the next highest bin
       do k=1,ibins-1
-         if ( ANKD(k) .eq. 0.d0) goto 300 !<step4.5> (win, 10/18/05)
+         if ( ANKD(k) .lt. NEPS2) goto 300 !<step4.5> (win, 10/18/05)
          ! Modify the check to include all dry mass (win, 10/3/08)
          AMKD_tot = 0.d0
          do kk=1,icomp-idiag
@@ -4441,7 +4639,7 @@ c
 c identify tophats and do lagrangian growth
 c
          DO L=1,ibins
-            IF(ANKD(L).EQ.0.)GOTO 200
+            IF(ANKD(L) .LT. NEPS2)GOTO 200 !skip if Number is effectively zero
 
             !if tau is zero, leave everything in same bin
             IF (TAU(L) .EQ. 0.) THEN
@@ -4455,16 +4653,16 @@ c
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             !<step5.1> Add print for debugging (win, 4/10/06)
             if (pdbug) then
-            	print *, 'Identify_tophat_and_grow-BIN',L
-         		print *,'Starting_Nk(1:30)'
-         		print *, ANK(1:30)
-         		print *,'Starting_Mk(1:30,comp)'
-         		do j=1,icomp-1
-         			print *,'comp',j
-        			print *, AMK(1:30,j)
-         		enddo
-      		endif
-      		!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+               print *, 'Identify_tophat_and_grow-BIN',L
+               print *,'Starting_Nk(1:30)'
+               print *, ANK(1:30)
+               print *,'Starting_Mk(1:30,comp)'
+               do j=1,icomp-1
+                  print *,'comp',j
+                  print *, AMK(1:30,j)
+               enddo
+            endif
+            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 Cpja Limiting AVG, the average particle size to lie within the size
 Cpja bounds causes particles to grow or shrink arbitrarily and is
@@ -4481,8 +4679,8 @@ c            AVG=MAX(X(L),MIN(X(L+1),AMKDRY(L)/(NEPS+ANKD(L))))
                !W1 will have sqrt of negative number
                write(*,*)'ERROR: tmcond - XI<1 for bin: ',L
                write(*,*)'AVG is ',AVG
-               write(*,*)'Nk is ', ANKD(k)
-               write(*,*)'Mk are ', (AMKD(k,j),j=1,icomp)
+               write(*,*)'Nk is ', ANKD(L)
+               write(*,*)'Mk are ', (AMKD(L,j),j=1,icomp)
                write(*,*)'Initial N and M are: ',ANKD(L),AMKDRY(L)
 !original 4/12/06               STOP
                !Not stopping here, let the run stop in aerophys (win, 4/12/06)
@@ -4557,8 +4755,8 @@ ccc            IF(TAU_L > 0.d0) YL = max( YL*C2, XL )
             !<step5.2> Debug why there is extra mass added when called
             ! by aqoxid. (win, 5/10/06)
             if (pdbug) then
-            	print *, 'XU',XU,'YU',YU,'YUC',YUC,'c2',c2
-            	print *, 'XL',XL,'YL',YL,'YLC',YLC
+               print *, 'XU',XU,'YU',YU,'YUC',YUC,'c2',c2
+               print *, 'XL',XL,'YL',YL,'YLC',YLC
             endif
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             
@@ -4619,15 +4817,15 @@ c
             IMN=1
             IF(TAU(l).GT.0.)IMN=L
             DO I=IMN,ibins
-            	!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            	!<step5.2> Debug step-by-step (win, 5/10/06)
-            	if(pdbug) print *,'Now_remapping_in_bin',I
-            	!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-               IF(YL.LT.X(I+1))THEN 						
+               !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+               !<step5.2> Debug step-by-step (win, 5/10/06)
+               if(pdbug) print *,'Now_remapping_in_bin',I
+               !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+               IF(YL.LT.X(I+1))THEN 
                   ![1] lower bound of new tophat in the current I bin
-                  IF(YU.LE.X(I+1))THEN						
+                  IF(YU.LE.X(I+1))THEN
                      ![2] upper bound of new tophat also in the current I bin
-                     DN=ANKD(L)	! DN = number from the bin L being remapped
+                     DN=ANKD(L)      ! DN = number from the bin L being remapped
                      do j=1,icomp
                         DM=AMKD(L,J)   
                         IF (J.EQ.CSPECIES) THEN
@@ -4675,7 +4873,7 @@ c
                      !<step5.2> (win, 5/10/06)
                      if(pdbug) print*,'Migrating_number',DN
                      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                  ELSE  									
+                  ELSE  
                     ![3] upper bound of new tophat grow beyond the upper bound of bin I
                      DN=ANKD(L)*(X(I+1)-YL)*DYI !DN= proportion of the number from tophat that still stays in the bin I
                      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -4697,7 +4895,7 @@ c
                            XP=DMDT_INT(X(I+1),-1.0d0*TAU_L,WR(L)) 
                            YM=XP*AMKD(L,J)/AMKDRY(L)+X(I+1)-XP
                            !add the condensing mass to the existing sulfate of bin I
-                           AMK(I,J)=DN*(YM+YLC)*0.5d0+AMK(I,J)	
+                           AMK(I,J)=DN*(YM+YLC)*0.5d0+AMK(I,J)
                            !<step5.3>Accumulating the condensing mass for error check (win, 7/24/06)
                            macc = macc + DN*(YM+YLC)*0.5d0
                            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -4709,7 +4907,7 @@ c
                            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                         ELSE
                            !Add DM to AMK (which is blank for the first loop of bin I)
-                           AMK(I,J)=AMK(I,J)+DM	
+                           AMK(I,J)=AMK(I,J)+DM
                            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                            if(pdbug) print*,'Other___in_low_end',DM
                            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -4742,7 +4940,7 @@ c
                            IF (J.EQ.CSPECIES) THEN
                               XP=DMDT_INT(X(K),-1.0d0*TAU_L,WR(L)) !what would have grown to be X(k)
                               YM=XP*AMKD(L,J)/AMKDRY(L)+X(K)-XP !what would have grown to be X(k) but just for sulfate
-                              AMK(K,J)=DN*1.5d0*YM+AMK(K,J)	! A factor of 1.5 is from averaging (YM+2*YM)
+                              AMK(K,J)=DN*1.5d0*YM+AMK(K,J)    ! A factor of 1.5 is from averaging (YM+2*YM)
                               !<step5.3> Accumulating condensing mass for error check (win, 7/24/06)
                               macc = macc+DN*1.5d0*YM
                               !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -4762,11 +4960,11 @@ c
                         ANK(K)=ANK(K)+DN  !Add migrating number to the exising number of bin K
                      ENDDO
                      !This STOP is for when there's excessive growth over bin30
-                     STOP 'Trying to put stuff in bin ibins+1'	
+                     STOP 'Trying to put stuff in bin ibins+1'
                     
  100                 CONTINUE
                      ![5.2] Final section that the tophat grows to.
-                     DN=ANKD(L)*(YU-X(K))*DYI  	
+                     DN=ANKD(L)*(YU-X(K))*DYI  
                      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                      if(pdbug) then
                         print *,'Found_right_edge_for_tophat'
@@ -4776,7 +4974,7 @@ c
                      do j=1,icomp
                         DM=AMKD(L,J)*(YU-X(K))*DYI  ! proportion of old mass that gets to this furthest bin.
                         IF (J.EQ.CSPECIES) THEN
-                           XP=DMDT_INT(X(K),-1.0d0*TAU_L,WR(L))	!what would have grown to be X(k)
+                           XP=DMDT_INT(X(K),-1.0d0*TAU_L,WR(L))   !what would have grown to be X(k)
                            YM=XP*AMKD(L,J)/AMKDRY(L)+X(K)-XP !=XP for just sulfate
                            AMK(K,J)=DN*(YUC+YM)*0.5d0+AMK(K,J) !add condensing mass to existing sulfate of bin K
                            !<step5.3>Accumulating condensing mass for error check (win, 7/24/06)
@@ -4796,7 +4994,7 @@ c
                            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                         ENDIF
                      enddo
-                     ANK(K)=ANK(K)+DN 	!This adds the migrating number to the existing number of bin K
+                     ANK(K)=ANK(K)+DN   !This adds the migrating number to the existing number of bin K
 
                      !<step5.3> Check mass conservation (win, 7/24/06)
                      if(MAXVAL(moxd(:)).gt.0d0)then
@@ -4850,7 +5048,7 @@ c
                         write(117,*) madd(L)  !for accumulating mass loss
 !                     PRINT *,'Tophat > Xk(31): growth over bin30,Loss%'
 !                     if(moxd >0d0)print *,madd(L),(madd(L)/maddtot)*1.d2
-                        errspot = .true.
+!jrp                        errspot = .true.
                      endif
                   ENDIF
                ENDIF   !YL.LT.X(I+1)
@@ -5088,14 +5286,19 @@ c
       USE TRACERID_MOD, ONLY : IDTOCIL1, IDTOCOB1, IDTDUST1
 
       ! Local variables
-      INTEGER              :: AS, K, J
-      REAL*8,    PARAMETER :: Mo = 1.0d-21 
+      INTEGER              :: AS, K, I,J,L, dum1, dum2, dum3
+      REAL*8               :: Mo
       character*80         :: filename
-
 
       !=================================================================
       ! INIT_TOMAS begins here!
       !=================================================================
+
+#if   defined( TOMAS40 )
+      Mo = 1.0d-21*2.d0**(-10)     
+#else
+      Mo = 1.0d-21
+#endif
       
       ICOMP = 0 
       IDIAG = 0
@@ -5169,6 +5372,9 @@ c         SRTH2O = ICOMP
       DO K = 1, IBINS + 1
          Xk( k ) = Mo * 2.d0 ** ( K-1 )
       ENDDO
+      DO K = 1, IBINS
+         AVGMASS( k ) = sqrt(Xk(k)*Xk(k+1))
+      ENDDO
 
       DO J = 1, ICOMP
          IF ( J == SRTSO4 ) THEN
@@ -5216,11 +5422,28 @@ c         SRTH2O = ICOMP
      &     'fraction10.dat'
       CALL READFRACTION(FILENAME, FRACTION2)
 
+      !initialize yu lookup table
+      call READJIMN5D ! yu nucleation inputs
+
+      !read cosmic ray ion input file
+      open(unit=79,file="IonPairs1GV.4x5",FORM='FORMATTED',
+     &     STATUS='OLD')
+      !do L=1,20
+      do L=1,9
+         do J=1,46
+            do I=1,72
+               READ(79,'(I5,I5,I5,E10.3)') dum1,dum2,dum3,
+     &                                      cosmic_ions(I,J,L)
+               if (I.eq.50.and.J.eq.20.and.L.eq.5)then
+                  print*,'ion test',cosmic_ions(I,J,L)
+               endif
+            enddo
+         enddo
+      enddo
       
 
       ! Return to calling program
       END SUBROUTINE INIT_TOMAS
-
 
 !------------------------------------------------------------------------------
 
@@ -5236,7 +5459,7 @@ c         SRTH2O = ICOMP
       DO JJ=1,101
       DO KK=1,101
          READ(INNUM,1) BINACT(KK,JJ,II)
-         IF (BINACT(KK,JJ,II).eq.0) BINACT(KK,JJ,II)=31
+         IF (BINACT(KK,JJ,II).eq.0) BINACT(KK,JJ,II)=IBINS + 1
       ENDDO
       ENDDO
       ENDDO
@@ -5307,6 +5530,7 @@ c      USE LOGICAL_MOD, ONLY  : LCARB30, LDUST30
       INTEGER                ::  ISO4, INACL, IOCIL
       INTEGER                ::  GETBINACT
       INTEGER                ::  BIN
+      INTEGER                ::  OFFSET
 
       !=================================================================
       ! GETFRACTION begins here
@@ -5344,12 +5568,27 @@ c      IF (LSALT30) MNACL = STT(I,J,L,IDTSS1-1+BIN)
       ISO4  = MIN(101, INT(XSO4*100)+1)
       INACL = MIN(101, INT(XNACL*100)+1)
       IOCIL = MIN(101, INT(XOCIL*100)+1)
+
+      !==========================================================
+      ! subroutine was written considering bin 1 is 10nm
+      ! in TOMAS-40, bin 1 is 1nm and bin 11 is 10nm
+      !==========================================================
+#if  defined( TOMAS40 )
+      OFFSET = 10
+#else
+      OFFSET = 0
+#endif
+
       IF ( LS ) THEN 
-         GETBINACT = BINACT1(ISO4, INACL, IOCIL) 
+         GETBINACT = BINACT1(ISO4, INACL, IOCIL) + OFFSET
       ELSE 
-         GETBINACT = BINACT2(ISO4, INACL, IOCIL) 
+         GETBINACT = BINACT2(ISO4, INACL, IOCIL) + OFFSET
       ENDIF
 
+      if((GETBINACT.lt.0).or.(GETBINACT.gt.50))then
+         print*,'BINACT ERROR GETBINACT=',GETBINACT
+         stop
+      endif
       
       IF ( GETBINACT > BIN ) THEN
          FRACTION = 0. !NOT ACTIVATED
@@ -5413,6 +5652,7 @@ c      USE LOGICAL_MOD, ONLY  : LCARB30, LDUST30
       REAL*4                 ::  XOCIL, XSO4, XNACL
       INTEGER                ::  ISO4, INACL, IOCIL
       INTEGER                ::  BIN
+      INTEGER                ::  OFFSET
 
       !=================================================================
       ! GETACTBIN begins here
@@ -5448,10 +5688,21 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
       ISO4  = MIN(101, INT(XSO4*100)+1)
       INACL = MIN(101, INT(XNACL*100)+1)
       IOCIL = MIN(101, INT(XOCIL*100)+1)
+
+      !==========================================================
+      ! subroutine was written considering bin 1 is 10nm
+      ! in TOMAS-40, bin 1 is 1nm and bin 11 is 10nm
+      !==========================================================
+#if  defined( TOMAS40 )
+      OFFSET = 10
+#else
+      OFFSET = 0
+#endif
+
       IF ( LS ) THEN 
-         BINACT = BINACT1(ISO4, INACL, IOCIL) 
+         BINACT = BINACT1(ISO4, INACL, IOCIL) + OFFSET
       ELSE 
-         BINACT = BINACT2(ISO4, INACL, IOCIL) 
+         BINACT = BINACT2(ISO4, INACL, IOCIL) + OFFSET
       ENDIF
 
       END SUBROUTINE GETACTBIN
@@ -5724,7 +5975,7 @@ c      USE LOGICAL_MOD,    ONLY : LSULF30, LSALT30, LCARB30, LDUST30
 
          TRACID = IDTNK1 + BIN - 1
 c         print *,"TRACID=",TRACID,"IDTNK1=",IDTNK1, "BIN=", BIN
-        WID    = IDTNK1 + (ICOMP-1) * IBINS - 1 + BIN  !(fixed WID to 281-310. dmw 10/3/09)
+         WID    = IDTNK1 + (ICOMP - 1)*IBINS - 1 + BIN  !(fixed WID to 281-310. dmw 10/3/09)
 c         print *, "wid=", WID, "ICOMP=", ICOMP, "IBINS=", IBINS
          ! Get the diameter from an external function
          DIA(IJLOOP,BIN) = GETDP( I, J, LEV, TRACID, State_Met )
@@ -5856,11 +6107,11 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
          CALL MNFIX( NK, MK, ERRORSWITCH )
          IF ( ERRORSWITCH ) THEN
             PRINT *, 'CHECKMN is going to terminate at grid',I,J,L
-            IF( .not. SPINUP(14.0) ) THEN
+!            IF( .not. SPINUP(14.0) ) THEN
                CALL ERROR_STOP( 'MNFIX found error', LOCATION )
-            ELSE
-               PRINT *,'Let error go during spin up'
-            ENDIF
+!            ELSE
+!               PRINT *,'Let error go during spin up'
+!            ENDIF
          ENDIF
          
          ! Save the error fixing to diagnostic AERO-FIX
@@ -6475,7 +6726,7 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
 
       ! JRP check for neg numbers
       DO K = 1,IBINS
-	IF (NKX(K) < 0.d0) THEN
+        IF (NKX(K) < 0.d0) THEN
            print*,'1 NKX < 0 in MNFIX',K,NKX(K)
         ENDIF
         DO J=1,ICOMP
@@ -6579,7 +6830,7 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
 
       ! JRP check for neg numbers
       DO K = 1,IBINS
-	IF (NKX(K) < 0.d0) THEN
+        IF (NKX(K) < 0.d0) THEN
            print*,'2 NKX < 0 in MNFIX',K,NKX(K)
         ENDIF
         DO J=1,ICOMP
@@ -6646,7 +6897,7 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
 
       ! JRP check for neg numbers
       DO K = 1,IBINS
-	IF (NKX(K) < 0.d0) THEN
+        IF (NKX(K) < 0.d0) THEN
            print*,'3 NKX < 0 in MNFIX',K,NKX(K)
         ENDIF
         DO J=1,ICOMP
@@ -6846,7 +7097,7 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
 
       ! JRP check for neg numbers
       DO K = 1,IBINS
-	IF (NKX(K) < 0.d0) THEN
+        IF (NKX(K) < 0.d0) THEN
            print*,'4 NKX < 0 in MNFIX',K,NKX(K)
         ENDIF
         DO J=1,ICOMP
@@ -6909,7 +7160,7 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
 
       ! JRP check for neg numbers
       DO K = 1,IBINS
-	IF (NKX(K) < 0.d0) THEN
+        IF (NKX(K) < 0.d0) THEN
            print*,'5 NKX < 0 in MNFIX',K,NKX(K)
         ENDIF
         DO J=1,ICOMP
@@ -6951,7 +7202,7 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
 
       ! JRP check for neg numbers
       DO K = 1,IBINS
-	IF (NKX(K) < 0.d0) THEN
+        IF (NKX(K) < 0.d0) THEN
            print*,'6 NKX < 0 in MNFIX',K,NKX(K)
            STOP
         ENDIF
@@ -7080,7 +7331,7 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
      &                           'SUBDGRIDCOAG: after MNFIX_1')
 
       mu=2.5277e-7*temp**0.75302
-      mfp=2.0*mu/(pres*sqrt(8.0*0.0289/(pi*R*temp)))  !S&P eqn 8.6
+      mfp=2.0*mu / ( pres*sqrt( 8.0 * 0.0289 / (pi*R*temp) ) )  !S&P eqn 9.6
 C Calculate particle sizes and diffusivities
       do k=1,ibins
          Mktot=0.2*mdist(k,srtso4)
@@ -7862,7 +8113,8 @@ Cpja Perform some numerical checks on dmdt_int
       HOURS = DAYS * 24.0     ! Period allow error to pass (hrs)
       
       ! Criteria to let error go or to terminate the run
-      IF ( TIMENOW > MIN( TIMEBEGIN, TIMEINIT ) + HOURS  ) THEN
+!      IF ( TIMENOW > MIN( TIMEBEGIN, TIMEINIT ) + HOURS  ) THEN
+      IF ( TIMENOW > TIMEBEGIN + HOURS  ) THEN
          VALUE = .FALSE.
       ELSE
          VALUE = .TRUE.

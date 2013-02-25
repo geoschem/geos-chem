@@ -152,6 +152,8 @@
       REAL*8,  PARAMETER   :: XNUMOL_NO3 = 6.022d23 / 62d-3
       REAL*8,  PARAMETER   :: TCVV_S     = 28.97d0  / 32d0 
       REAL*8,  PARAMETER   :: SMALLNUM   = 1d-20
+      REAL*8,  PARAMETER   :: scaleanthso2 = 1.0d0
+
 !
 ! !PRIVATE TYPES:
 !
@@ -1462,7 +1464,7 @@
 
          ! Get TAU0 value for this month in "generic" year 1985
          XTAU = GET_TAU0( GET_MONTH(), 1, 1985 )
-	
+
          ! Read J(H2O2) [s-1]  from disk (only up to tropopause)
          ! limit array 3d dimension to LLTROP_FIX, i.e, case of annual mean
          ! tropopause. This is backward compatibility with 
@@ -4614,6 +4616,8 @@
          !(ccc, 7/16/10)
          IF ( LBIOFUEL ) THEN
             CALL READ_BIOFUEL_SO2( MONTH )
+            ! jeff pierce scale anth so2 emissions
+            ESO2_bf(:,:) = ESO2_bf(:,:)*scaleanthso2
             CALL READ_BIOFUEL_NH3( MONTH )
          ENDIF
 
@@ -4621,12 +4625,16 @@
          ! (ccc, 4/15/09)
          IF ( LANTHRO ) THEN
             CALL READ_AIRCRAFT_SO2( MONTH, State_Met )
+            ESO2_ac(:,:,:) = ESO2_ac(:,:,:)*scaleanthso2
             CALL READ_ANTHRO_SOx( MONTH, NSEASON )
+            ESO2_an(:,:,:) = ESO2_an(:,:,:)*scaleanthso2
+            ESO4_an(:,:,:) = ESO4_an(:,:,:)*scaleanthso2
             CALL READ_ANTHRO_NH3( MONTH )
          ENDIF
 
          ! Also read ship exhaust SO2 if necessary 
          CALL READ_SHIP_SO2( MONTH )
+         ESO2_sh(:,:) = ESO2_sh(:,:)*scaleanthso2
 
          ! Read oxidants for the offline simulation only
          IF ( ITS_AN_AEROSOL_SIM() ) CALL READ_OXIDANT( MONTH )
@@ -5468,12 +5476,14 @@ c      print *,BINMASS(24,11,2,:)
                ! Convert anthro SO2 from [molec/cm2/s] to [kg/box/s] 
                ! Place all anthro SO2 into surface layer
                SO2an(I,J,1) = AN * AREA_CM2 / XNUMOL(IDTSO2)
+     &                           *scaleanthso2
                DO L = 2, NOXLEVELS
                   SO2an(I,J,L) = 0d0
                ENDDO
                
                ! Convert biofuel SO2 from [molec/cm2/s] to [kg/box/s] 
                SO2bf(I,J)   = BF * AREA_CM2 / XNUMOL(IDTSO2)
+     &                           *scaleanthso2
 
             ENDIF
             ENDIF
@@ -5497,9 +5507,11 @@ c      print *,BINMASS(24,11,2,:)
 
                   SO2an(I,J,1) = SO2an(I,J,1) + 
      &                           AN * AREA_CM2 / XNUMOL(IDTSO2)
+     &                           *scaleanthso2
                  ENDIF 
                ELSE
                   SO2an(I,J,1) = AN * AREA_CM2 / XNUMOL(IDTSO2)
+     &                           *scaleanthso2
                ENDIF
 
                DO L = 2, NOXLEVELS
@@ -5530,9 +5542,11 @@ c      print *,BINMASS(24,11,2,:)
 
                      SO2an(I,J,1) = SO2an(I,J,1) + 
      &                    AN * AREA_CM2 / XNUMOL(IDTSO2)
+     &                           *scaleanthso2
                   endif
                ELSE
                   SO2an(I,J,1) = AN * AREA_CM2 / XNUMOL(IDTSO2)
+     &                           *scaleanthso2
                ENDIF
 
                DO L = 2, NOXLEVELS
@@ -5845,12 +5859,14 @@ c      print *,BINMASS(24,11,2,:)
                   ! Convert anthro SO4 from [molec/cm2/s] to [kg/box/s] 
                   ! Place all EPA/NEI99 anthro SO4 into surface layer
                   SO4an(I,J,1) = EPA_AN * AREA_CM2 / XNUMOL(IDTSO4)
+     &                           *scaleanthso2
                   DO L = 2,NOXLEVELS
                      SO4an(I,J,L) = 0d0
                   ENDDO
                
                   ! Convert biofuel SO4 from [molec/cm2/s] to [kg/box/s]
                   SO4bf(I,J)   = EPA_BF * AREA_CM2 / XNUMOL(IDTSO4)
+     &                           *scaleanthso2
 
             ENDIF
             ENDIF
@@ -5872,10 +5888,12 @@ c      print *,BINMASS(24,11,2,:)
                   if (GET_USA_MASK( I, J) > 0d0 ) THEN
                      SO4an(I,J,1) = SO4an(I,J,1) + AN * 0.014/ 0.986 
      &                    * AREA_CM2 / XNUMOL(IDTSO4)
+     &                           *scaleanthso2
                   endif
                ELSE
                   SO4an(I,J,1) = AN * 0.014 / 0.986 * AREA_CM2 
      &                           / XNUMOL(IDTSO4)
+     &                           *scaleanthso2
                   SO4bf(I,J)   = 0d0
                ENDIF
 
@@ -6085,8 +6103,13 @@ c      print *,BINMASS(24,11,2,:)
       REAL*8                 :: SO4an(IIPAR,JJPAR,2)
       REAL*8                 :: SO4bf(IIPAR,JJPAR)
       REAL*8                 :: SO4anbf(IIPAR,JJPAR,2)
-      REAL*8 BFRAC(30)     ! Mass fraction emitted to each bin
-      DATA BFRAC/1.728d-02, 2.648d-02, 3.190d-02, 3.024d-02, 2.277d-02,
+      REAL*8 BFRAC(IBINS)     ! Mass fraction emitted to each bin
+      DATA BFRAC/
+#if  defined( TOMAS40)
+     &           0.000d-00, 0.000d-00, 0.000d-00, 0.000d-00, 0.000d-00,
+     &           0.000d-00, 0.000d-00, 0.000d-00, 0.000d-00, 0.000d-00,
+#endif
+     &           1.728d-02, 2.648d-02, 3.190d-02, 3.024d-02, 2.277d-02,
      &           1.422d-02, 9.029d-03, 9.241d-03, 1.531d-02, 2.741d-02,
      &           4.529d-02, 6.722d-02, 8.932d-02, 1.062d-01, 1.130d-01,
      &           1.076d-01, 9.168d-02, 6.990d-02, 4.769d-02, 2.912d-02,

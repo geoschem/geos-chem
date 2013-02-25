@@ -161,8 +161,12 @@ endif
 	@$(MAKE) exe
 
 tomas:
-	@$(MAKE) TOMAS=yes lib                               #  and the executable
+	@$(MAKE) TOMAS=yes lib                          #  and the executable
 	@$(MAKE) TOMAS=yes tomexe
+
+tomas40:
+	@$(MAKE) TOMAS=yes TOMAS40=yes lib              #  and the executable
+	@$(MAKE) TOMAS=yes TOMAS40=yes tomexe
 
 lib:                                               # Build all G-C libraries
 	@$(MAKE) libnc
@@ -793,7 +797,7 @@ ksparse.o                   : ksparse.F
 land_mercury_mod.o          : land_mercury_mod.F                             \
                               biomass_mod.o           dao_mod.o              \
                               depo_mercury_mod.o      modis_lai_mod.o        \
-                              logical_mod.o           tracerid_mod.o         \
+                              logical_mod.o           tracerid_mod.o         
 
 LEGND0.o                    : LEGND0.F
 
@@ -1176,10 +1180,12 @@ XSECO3.o                    : XSECO3.F
 #------------------------------------------------------------------------------
 
 tomas_mod.o                 : tomas_mod.F                                    \
-	                      dao_mod.o               diag_mod.o             \
+                              dao_mod.o               diag_mod.o             \
                               diag_pl_mod.o           logical_mod.o          \
                               tropopause_mod.o        tracer_mod.o           \
-                              tracerid_mod.o
+                              ion_nucl.o              YuIMN_Code.o           \
+                              cf_nucl.o                                      \
+                              tracerid_mod.o                                 
 
 tomas_tpcore_mod.o          : tomas_tpcore_mod.F90                           \
                               tomas_mod.o             tracerid_mod.o
@@ -1192,6 +1198,8 @@ aero_drydep.o               : aero_drydep.F                                  \
                               tracer_mod.o            tracerid_mod.o         \
                               tropopause_mod.o        tomas_mod.o
 
-
+ion_nucl.o                  : ion_nucl.f
+YuIMN_Code.o                : YuIMN_Code.f
+cf_nucl.o                   : cf_nucl.f
 
 #EOC

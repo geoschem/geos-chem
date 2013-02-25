@@ -652,11 +652,13 @@
             ! Overwrite FAM_PL with a unit [kg S] for tracing 
             ! gas-phase sulfur species production (SO2, SO4, MSA)
             ! (win, 8/4/09)
-            IF ( FAM_NAME(N) == 'PSO21' .or. FAM_NAME(N) == 'PSO22' .or.
-     &           FAM_NAME(N) == 'PSO4'  .or. FAM_NAME(N) == 'PMSA' ) 
-     &           FAM_PL(I,J,L,N)  = CSPEC(JLOOP,IFAM(N)) / 6.022d23  *
-     &                              32.d-3 * State_Met%AIRVOL(I,J,L) *
-     &                              1d6
+!====scf/jrp 2/27/13 comment out section===
+!            IF ( FAM_NAME(N) == 'PSO21' .or. FAM_NAME(N) == 'PSO22' .or.
+!     &           FAM_NAME(N) == 'PSO4'  .or. FAM_NAME(N) == 'PMSA' ) 
+!     &           FAM_PL(I,J,L,N)  = CSPEC(JLOOP,IFAM(N)) / 6.022d23  *
+!     &                              32.d-3 * State_Met%AIRVOL(I,J,L) *
+!     &                              1d6
+!==========================================
 
             ! Calculate H2SO4 production rate [kg s-1] in each time step 
             ! (win, 8/4/09)

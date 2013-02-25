@@ -1210,9 +1210,6 @@
 
          ALLOCATE( AD59_DUST( IIPAR, JJPAR, 2, IBINS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD59_DUST' )
-
-         ALLOCATE( AD66( IIPAR, JJPAR, LD66, PD66 ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD66' )
       ENDIF
 
 

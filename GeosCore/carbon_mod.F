@@ -4622,7 +4622,7 @@ c
          print *,'Mk'
          do k=1,icomp-idiag
             print *,'comp',k
-            print *,STT(ii,jj,ll,IDTNK1+k*30:IDTNK1+IBINS-1+k*30)
+            print *,STT(ii,jj,ll,IDTNK1+k*IBINS:IDTNK1+IBINS-1+k*IBINS)
          enddo
       endif
 !temp debug --------
@@ -4636,7 +4636,7 @@ c
          print *,'Mk'
          do k=1,icomp -idiag
             print *,'comp',k
-            print *,STT(ii,jj,ll,IDTNK1+k*30:IDTNK1+IBINS-1+k*30)
+            print *,STT(ii,jj,ll,IDTNK1+k*IBINS:IDTNK1+IBINS-1+k*IBINS)
          enddo
       endif
 !temp debug --------
@@ -4650,7 +4650,7 @@ c
          print *,'Mk'
          do k=1,icomp -idiag
             print *,'comp',k
-            print *,STT(ii,jj,ll,IDTNK1+k*30:IDTNK1+IBINS-1+k*30)
+            print *,STT(ii,jj,ll,IDTNK1+k*IBINS:IDTNK1+IBINS-1+k*IBINS)
          enddo
       endif
 !temp debug --------
@@ -4824,7 +4824,7 @@ c
          print *,'Mk'
          do k=1,icomp-idiag
             print *,'comp',k
-            print *,STT(ii,jj,ll,IDTNK1+k*30:IDTNK1+IBINS-1+k*30)
+            print *,STT(ii,jj,ll,IDTNK1+k*IBINS:IDTNK1+IBINS-1+k*IBINS)
          enddo
          print *,'EMISSION'
          print *,emismass(ii,jj,:)
@@ -4904,13 +4904,13 @@ c
 
          CALL SUBGRIDCOAG( NDISTINIT, NDIST, MDIST, BOXVOL,TEMP,
 !     &                     PRES, TSCALE, NDISTFINAL, MADDFINAL   ) 
-     &                     PRES, TSCALE, NDISTFINAL, MADDFINAL,pdbug)          
+     &                     PRES, TSCALE, NDISTFINAL, MADDFINAL,pdbug)
          IF ( PDBUG ) THEN
             PRINT *,'Found error in SUBGRIDCOAG at', I,J,L
             PRINT *,'Nk',STT(I,J,L,IDTNK1:IDTNK1+ibins-1)
             do k=1,8 
                print *,'Mk comp',k
-               print *,STT(I,J,L,IDTNK1+k*30:IDTNK1+IBINS-1+k*30)
+               print *,STT(I,J,L,IDTNK1+k*IBINS:IDTNK1+IBINS-1+k*IBINS)
             enddo
          ENDIF
 ccc            
@@ -5056,28 +5056,52 @@ ccc
       INTEGER             :: I, J, K
       REAL*8              :: ECSCALE30(IBINS), ECSCALE100(IBINS) 
       REAL*8              :: OCSCALE30(IBINS), OCSCALE100(IBINS) 
-      DATA OCSCALE30/1.04E-03,2.77E-03,6.60E-03,1.41E-02,2.69E-02,
-     & 4.60E-02,7.06E-02,9.69E-02,1.19E-01,1.31E-01,1.30E-01,1.15E-01,
-     & 9.07E-02,6.44E-02,4.09E-02,2.33E-02,1.19E-02,5.42E-03,2.22E-03,
-     & 8.12E-04,2.66E-04,7.83E-05,2.06E-05,4.86E-06,1.03E-06,1.94E-07,
-     & 3.29E-08,4.99E-09,6.79E-10,8.26E-11/ ! use for fossil fuel
-      DATA OCSCALE100/3.2224e-007,1.6605e-006,7.6565e-006,3.1592e-005,
-     & 0.00011664,0.00038538,0.0011394,0.0030144,0.0071362,0.015117,
-     & 0.028657,0.048612,0.073789,0.10023,0.12182,0.1325,0.12895,
-     & 0.11231,0.087525,0.061037,0.038089,0.02127,0.010628,0.0047523,
-     & 0.0019015,0.00068081,0.00021813,6.2536e-005,1.6044e-005,
-     & 3.6831e-006/ ! use for biomass burning
-      DATA ECSCALE30/1.04E-03,2.77E-03,6.60E-03,1.41E-02,2.69E-02,
-     & 4.60E-02,7.06E-02,9.69E-02,1.19E-01,1.31E-01,1.30E-01,1.15E-01,
-     & 9.07E-02,6.44E-02,4.09E-02,2.33E-02,1.19E-02,5.42E-03,2.22E-03,
-     & 8.12E-04,2.66E-04,7.83E-05,2.06E-05,4.86E-06,1.03E-06,1.94E-07,
-     & 3.29E-08,4.99E-09,6.79E-10,8.26E-11/ ! use for fossil fuel
-      DATA ECSCALE100/3.2224e-007,1.6605e-006,7.6565e-006,3.1592e-005,
-     & 0.00011664,0.00038538,0.0011394,0.0030144,0.0071362,0.015117,
-     & 0.028657,0.048612,0.073789,0.10023,0.12182,0.1325,0.12895,
-     & 0.11231,0.087525,0.061037,0.038089,0.02127,0.010628,0.0047523,
-     & 0.0019015,0.00068081,0.00021813,6.2536e-005,1.6044e-005,
-     & 3.6831e-006/ ! use for biomass burning
+
+      DATA OCSCALE30/      ! use for fossil fuel
+#if  defined( TOMAS40)
+     &   0.0     , 0.0     , 0.0     , 0.0     , 0.0     , 
+     &   0.0     , 0.0     , 0.0     , 0.0     , 0.0     , 
+#endif
+     &   1.04E-03, 2.77E-03, 6.60E-03, 1.41E-02, 2.69E-02,
+     &   4.60E-02, 7.06E-02, 9.69E-02, 1.19E-01, 1.31E-01,
+     &   1.30E-01, 1.15E-01, 9.07E-02, 6.44E-02, 4.09E-02,
+     &   2.33E-02, 1.19E-02, 5.42E-03, 2.22E-03, 8.12E-04,
+     &   2.66E-04, 7.83E-05, 2.06E-05, 4.86E-06, 1.03E-06,
+     &   1.94E-07, 3.29E-08, 4.99E-09, 6.79E-10, 8.26E-11/
+      DATA OCSCALE100/     ! use for biomass burning
+#if  defined( TOMAS40)
+     &   0.0        , 0.0        , 0.0        , 0.0        , 0.0       ,
+     &   0.0        , 0.0        , 0.0        , 0.0        , 0.0       ,
+#endif
+     &   3.2224e-07 , 1.6605e-06 , 7.6565e-06 , 3.1592e-05 , 0.00011664,
+     &   0.00038538 , 0.0011394  , 0.0030144  , 0.0071362  , 0.015117  ,
+     &   0.028657   , 0.048612   , 0.073789   , 0.10023    , 0.12182   ,
+     &   0.1325     , 0.12895    , 0.11231    , 0.087525   , 0.061037  ,
+     &   0.038089   , 0.02127    , 0.010628   , 0.0047523  , 0.0019015 ,
+     &   0.00068081 , 0.00021813 , 6.2536e-05 , 1.6044e-05 , 3.6831e-06/
+      DATA ECSCALE30/      ! use for fossil fuel
+#if  defined( TOMAS40)
+     &   0.0     , 0.0     , 0.0     , 0.0     , 0.0     , 
+     &   0.0     , 0.0     , 0.0     , 0.0     , 0.0     , 
+#endif
+     &   1.04E-03, 2.77E-03, 6.60E-03, 1.41E-02, 2.69E-02,
+     &   4.60E-02, 7.06E-02, 9.69E-02, 1.19E-01, 1.31E-01,
+     &   1.30E-01, 1.15E-01, 9.07E-02, 6.44E-02, 4.09E-02,
+     &   2.33E-02, 1.19E-02, 5.42E-03, 2.22E-03, 8.12E-04,
+     &   2.66E-04, 7.83E-05, 2.06E-05, 4.86E-06, 1.03E-06,
+     &   1.94E-07, 3.29E-08, 4.99E-09, 6.79E-10, 8.26E-11/
+      DATA ECSCALE100/     ! use for biomass burning
+#if  defined( TOMAS40)
+     &   0.0        , 0.0        , 0.0        , 0.0        , 0.0       ,
+     &   0.0        , 0.0        , 0.0        , 0.0        , 0.0       ,
+#endif
+     &   3.2224e-07 , 1.6605e-06 , 7.6565e-06 , 3.1592e-05 , 0.00011664,
+     &   0.00038538 , 0.0011394  , 0.0030144  , 0.0071362  , 0.015117  ,
+     &   0.028657   , 0.048612   , 0.073789   , 0.10023    , 0.12182   ,
+     &   0.1325     , 0.12895    , 0.11231    , 0.087525   , 0.061037  ,
+     &   0.038089   , 0.02127    , 0.010628   , 0.0047523  , 0.0019015 ,
+     &   0.00068081 , 0.00021813 , 6.2536e-05 , 1.6044e-05 , 3.6831e-06/
+
  
       DO K = 1, IBINS
       DO J = 1, JJPAR
