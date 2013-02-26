@@ -52,6 +52,9 @@ MODULE GIGC_State_Chm_Mod
      CHARACTER(LEN=14), POINTER :: Spec_Name  (:      )  ! Species names
      REAL*8,            POINTER :: Species    (:,:,:,:)  ! Species [molec/cm3]
 
+     ! Chemical rates & rate parameters
+     REAL*8,            POINTER :: DepSav     (:,:,:  )  ! Drydep freq [1/s]
+
      ! Stratospheric chemistry 
      INTEGER,           POINTER :: Schm_Id    (:      )  ! Strat Chem ID #'s
      CHARACTER(LEN=14), POINTER :: Schm_Name  (:      )  ! Strat Chem Names
@@ -146,6 +149,7 @@ MODULE GIGC_State_Chm_Mod
 ! !REVISION HISTORY:
 !  19 Oct 2012 - R. Yantosca - Initial version, based on "gc_type2_mod.F90"
 !  26 Oct 2012 - R. Yantosca - Add fields for stratospheric chemistry
+!  26 Feb 2013 - M. Long     - Add DEPSAV to derived type ChmState
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -270,13 +274,14 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_GIGC_State_Chm( am_I_Root, IM,        JM,       LM,     &  
-                                  nTracers,  nBioMax,   nSpecies, nSchm,  &    
-                                  nSchmBry,  State_Chm, RC               )
+  SUBROUTINE Init_GIGC_State_Chm( am_I_Root, IM,        JM,        LM,     &  
+                                  nTracers,  nBioMax,   nSpecies,  nSchm,  &    
+                                  nSchmBry,  Input_Opt, State_Chm, RC      )
 !
 ! !USES:
 !
     USE GIGC_ErrCode_Mod                         ! Error codes
+    USE GIGC_Input_Opt_Mod, ONLY   : OptInput    ! Derived type
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -289,6 +294,7 @@ CONTAINS
     INTEGER,        INTENT(IN)    :: nSpecies    ! # chemical species  
     INTEGER,        INTENT(IN)    :: nSchm       ! # of strat chem species
     INTEGER,        INTENT(IN)    :: nSchmBry    ! # of Bry species, strat chm
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -309,12 +315,18 @@ CONTAINS
 !  26 Oct 2012 - R. Yantosca - Add nSchem, nSchemBry as arguments
 !  01 Nov 2012 - R. Yantosca - Don't allocate strat chem fields if nSchm=0
 !                              and nSchmBry=0 (i.e. strat chem is turned off)
+!  26 Feb 2013 - M. Long     - Now pass Input_Opt via the argument list
+!  26 Feb 2013 - M. Long     - Now allocate the State_Chm%DEPSAV field
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+    INTEGER                       :: MAX_DEP
 
     ! Assume success until otherwise
     RC = GIGC_SUCCESS
+
+    ! Maximum # of drydep species
+    MAX_DEP = Input_Opt%MAX_DEP
 
     !=====================================================================
     ! Allocate advected tracer fields
@@ -346,6 +358,14 @@ CONTAINS
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
     ALLOCATE( State_Chm%Species       ( IM, JM, LM, nSpecies   ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+
+    !=====================================================================
+    ! Allocate chemical rate fields
+    !=====================================================================
+
+    ! DEPSAV is allocated in drydep_mod
+    ALLOCATE( State_Chm%DEPSAV        ( IM, JM,     Max_Dep    ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
 ! NOTE: Comment out for now, leave for future expansion (bmy, 11/20/12)
@@ -397,6 +417,9 @@ CONTAINS
     State_Chm%Tracers     = 0d0
     State_Chm%Trac_Tend   = 0d0
     State_Chm%Trac_Btend  = 0d0
+
+    ! Dry deposition
+    State_Chm%DepSav      = 0d0
 
     ! Chemical species
     State_Chm%Spec_Id     = 0
@@ -458,6 +481,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  15 Oct 2012 - R. Yantosca - Initial version
 !  26 Oct 2012 - R. Yantosca - Now deallocate Strat_P, Strat_k fields
+!  26 Feb 2013 - M. Long     - Now deallocate State_Chm%DEPSAV
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -474,6 +498,7 @@ CONTAINS
     IF ( ASSOCIATED(State_Chm%Trac_Btend ) ) DEALLOCATE(State_Chm%Trac_Btend )
     IF ( ASSOCIATED(State_Chm%Tracers    ) ) DEALLOCATE(State_Chm%Tracers    )
     IF ( ASSOCIATED(State_Chm%Species    ) ) DEALLOCATE(State_Chm%Species    )
+    IF ( ASSOCIATED(State_Chm%DepSav     ) ) DEALLOCATE(State_Chm%DepSav     )
 
     ! NOTE: Comment out for now, leave for future expansion (bmy, 11/26/12)
     !IF ( ASSOCIATED(State_Chm%Schm_Id    ) ) DEALLOCATE(State_Chm%Schm_Id    )

@@ -56,7 +56,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GIGC_Get_Options( am_I_Root, lonCtr, latCtr, Input_Opt, RC )
+  SUBROUTINE GIGC_Get_Options( am_I_Root, lonCtr,    latCtr,  &
+                               Input_Opt, State_Chm, RC      )
 !
 ! !USES:
 !
@@ -64,7 +65,9 @@ CONTAINS
     USE CMN_SIZE_Mod
     USE GIGC_ErrCode_Mod
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE Input_Mod,          ONLY : Read_Input_File
+    USE Input_Mod,          ONLY : Initialize_Geos_Grid
 !
 ! !INPUT PARAMETERS: 
 !
@@ -74,7 +77,8 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(OptInput), INTENT(INOUT) :: Input_Opt     ! Input Options object
+    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -94,6 +98,8 @@ CONTAINS
 !  01 Nov 2012 - R. Yantosca - Now pass the Input Options object via arg list
 !  03 Dec 2012 - R. Yantosca - Reorder subroutines for clarity
 !  07 Dec 2012 - R. Yantosca - Compute DLON, DLAT more rigorously
+!  26 Feb 2013 - M. Long     - Now pass State_Chm as an argument
+!  26 Feb 2013 - M. Long     - Read "input.geos" on root CPU only
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -141,7 +147,14 @@ CONTAINS
     ENDDO
 
     ! Read the GEOS-Chem input file here
-    CALL Read_Input_File( am_I_Root, Input_Opt, RC )
+    ! NOTE: For now only read on the root CPU so that we can broadcast
+    ! to other CPUs below.  We still need to call Initialize_Geos_Grid
+    ! on all CPUs though. (mlong, bmy, 2/26/13)
+    IF ( am_I_Root ) THEN
+       CALL Read_Input_File( am_I_Root, Input_Opt, State_Chm, RC )
+    ELSE
+       CALL Initialize_Geos_Grid( am_I_Root, RC )
+    ENDIF
 
   END SUBROUTINE GIGC_Get_Options
 !EOC
@@ -197,10 +210,16 @@ CONTAINS
     USE PRESSURE_MOD,         ONLY : INIT_PRESSURE
     USE TRACER_MOD,           ONLY : ITS_A_FULLCHEM_SIM
     USE TRACER_MOD,           ONLY : ITS_AN_AEROSOL_SIM
+    USE TRACER_MOD,           ONLY : INIT_TRACER
     USE TRACERID_MOD,         ONLY : SETTRACE
     USE TOMS_MOD,             ONLY : TO3_DAILY
     USE WETSCAV_MOD,          ONLY : INIT_WETSCAV
-    USE DRYDEP_MOD,           ONLY : INIT_WEIGHTSS
+    USE DRYDEP_MOD,           ONLY : INIT_WEIGHTSS, INIT_DRYDEP
+    USE DUST_MOD,             ONLY : INIT_DUST
+    USE GIGC_MPI_WRAP
+    ! KLUGE - MSL 04 Jan 2013
+    USE LOGICAL_MOD,          ONLY : LVARTROP
+    USE TIME_MOD,             ONLY : SET_TIMESTEPS
 !
 ! !INPUT PARAMETERS: 
 !
@@ -259,8 +278,11 @@ CONTAINS
 !                              info from ESMF down to lower-level routines
 !  06 Dec 2012 - R. Yantosca - Now accept start & end dates & times via 
 !                              the nymdB, nymdE, nhmsB, nhmsE arguments
-!   6 Dec 2012 - R. Yantosca - Remove nymd, nhms arguments, these will be
+!  06 Dec 2012 - R. Yantosca - Remove nymd, nhms arguments, these will be
 !                              the same as nymdB, nhmsB (start of run)
+!  26 Feb 2013 - M. Long     - Now read ASCII input files on root CPU and 
+!                              broadcast to other CPUs.
+!  26 Feb 2013 - R. Yantosca - Cosmetic changes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -268,7 +290,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     LOGICAL :: prtDebug
-    INTEGER :: DTIME, K, AS, N, YEAR, I, J, L
+    INTEGER :: DTIME, K, AS, N, YEAR, I, J, L, TMP
 
     !=======================================================================
     ! Initialize key GEOS-Chem sections
@@ -277,6 +299,9 @@ CONTAINS
     ! Initialize
     RC    = GIGC_SUCCESS
     DTIME = tsChem
+
+    if (am_I_Root) write(*,*) 'GRID :: JM_WORLD :: ', value_JM_WORLD
+    if (am_I_Root) write(*,*) 'GRID :: IM_WORLD :: ', value_IM_WORLD
 
     ! Allocate GEOS-Chem module arrays
     CALL GIGC_Allocate_All( am_I_Root,       Input_Opt,       &
@@ -297,10 +322,90 @@ CONTAINS
     Input_Opt%TS_DYN  = INT( tsDyn  ) / 60   ! Dynamic   timestep [mn]
 
     ! Read options from the GEOS-Chem input file "input.geos"
-    CALL GIGC_Get_Options( am_I_Root, lonCtr, latCtr, Input_Opt, RC )
+    ! And initialize grid
+    CALL GIGC_Get_Options( am_I_Root, lonCtr, latCtr, Input_Opt, &
+                           State_Chm, RC                         )
 
-    ! Initialize timetep counts
+    !-----------------------------------------------------------------------
+    ! Read "input.geos" on the root CPU and broadcast to other CPUs
+    !-----------------------------------------------------------------------
+
+    ! Broadcast "input.geos" options values to all threads with MPI
+    CALL GIGC_Input_Bcast( Input_Opt, RC )
+    CALL GIGC_IDT_Bcast(   Input_Opt, RC )
+
+    IF ( .not. am_I_Root ) THEN ! Complete initialization ops on all threads
+       CALL INIT_DRYDEP( am_I_Root, Input_Opt )
+       CALL INIT_TRACER( am_I_Root, Input_Opt )
+
+       ! Working Kluge - MSL; Break this & Fix the result...
+       LVARTROP = Input_Opt%LVARTROP 
+
+       CALL SET_TIMESTEPS( am_I_Root,                                  &
+                           Input_Opt%TS_CHEM,                          &
+                           Input_Opt%TS_CONV,                          &
+                           Input_Opt%TS_DYN,                           &
+                           Input_Opt%TS_EMIS,                          &
+                           MAX( Input_Opt%TS_DYN, Input_Opt%TS_CONV ), &
+                           Input_Opt%TS_DIAG )
+       
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Read other ASCII files on the root CPU and broadcast to other CPUs
+    !-----------------------------------------------------------------------
+
+    ! Read "mglob.dat"
+    IF ( am_I_Root ) THEN
+
+       ! Read from data file mglob.dat
+       CALL READER( .TRUE., am_I_Root )
+
+       !### Debug
+       IF ( prtDebug ) THEN
+          CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after READER' )
+       ENDIF
+    ENDIF
+
+    ! Broadcast "mglob.dat"
+    CALL GIGC_Reader_Bcast( RC )
+
+    ! Read "globchem.dat" chemistry mechanism
+    ! NOTE: for now, read on all CPUs and fix later (bmy, mlong, 2/26/13)
+!    IF ( am_I_Root ) THEN
+       CALL READCHEM( am_I_Root, Input_Opt, RC )
+       
+       !### Debug
+       IF ( prtDebug ) THEN
+          CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after READCHEM' )        
+       ENDIF
+!    ENDIF
+!
+!    ! Broadcast "globchem.dat" to other CPUs
+!    CALL GIGC_ReadChem_Bcast( RC )
+
+    ! Initialize FAST-J photolysis
+    ! NOTE: for now, read on all CPUs and fix later (bmy, mlong, 2/26/13)   
+!    IF ( am_I_Root ) THEN
+       CALL INPHOT( LLPAR, NPHOT, Input_Opt, am_I_Root ) 
+       
+       !### Debug
+       IF ( prtDebug ) THEN
+          CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after INPHOT' )        
+       ENDIF
+!    ENDIF
+!
+!    Broadcast FAST-J inputs to other CPUs
+!    CALL GIGC_Inphot_Bcast(  Input_Opt, RC )
+
+    !-----------------------------------------------------------------------
+    ! Continue with GEOS-Chem setup
+    !-----------------------------------------------------------------------
+
+    ! Zero diagnostic arrays
     CALL Initialize( 2, am_I_Root )
+
+    ! Zero diagnostic counters
     CALL Initialize( 3, am_I_Root )
 
     ! Determine if we have to print debug output
@@ -339,9 +444,9 @@ CONTAINS
 
        ! Compute the Olson land types that occur in each grid box
        ! (i.e. this is a replacement for rdland.F and vegtype.global)
-       CALL Init_Olson_Landmap   ( am_I_Root                     )
-       CALL Compute_Olson_Landmap( am_I_Root, mapping, State_Met )
-       CALL Cleanup_Olson_Landmap( am_I_Root                     )
+       CALL Init_Olson_Landmap   ( am_I_Root, Input_Opt%DATA_DIR_1x1 )
+       CALL Compute_Olson_Landmap( am_I_Root, mapping, State_Met     )
+       CALL Cleanup_Olson_Landmap( am_I_Root                         )
 
        !### Debug
        IF ( prtDebug ) THEN
@@ -372,18 +477,10 @@ CONTAINS
                                   ITLOOP,    NMTRATE, IGAS,  RC      )
        ENDIF
        
-       ! Read from data file mglob.dat
-       CALL READER( .TRUE., am_I_Root )
-
-       !### Debug
-       IF ( prtDebug ) THEN
-          CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after READER' )
-       ENDIF
-
        ! Set NCS for urban chemistry only (since that is where we
        ! have defined the GEOS-CHEM mechanism) (bdf, bmy, 4/21/03)
        NCS = NCSURBAN
-
+ 
        !### Debug
        IF ( prtDebug ) THEN
           CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after READER' )        
@@ -393,14 +490,6 @@ CONTAINS
        NLOOP   = NLAT  * NLONG
        NTLOOP  = NLOOP * NVERT
        NTTLOOP = NTLOOP
-       
-       ! Read "globchem.dat" chemistry mechanism
-       CALL READCHEM( am_I_Root, Input_Opt, RC )
-       
-       !### Debug
-       IF ( prtDebug ) THEN
-          CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after READCHEM' )        
-       ENDIF
        
        ! Save Chemical species names ID's into State_Chm
        DO N = 1, IGAS
@@ -422,14 +511,6 @@ CONTAINS
        !### Debug
        IF ( prtDebug ) THEN
           CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after GET_GLOBAL_CH4' )
-       ENDIF
-
-       ! Initialize FAST-J photolysis
-       CALL INPHOT( LLPAR, NPHOT, am_I_Root ) 
-       
-       !### Debug
-       IF ( prtDebug ) THEN
-          CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after INPHOT' )        
        ENDIF
        
        ! Flag certain chemical species

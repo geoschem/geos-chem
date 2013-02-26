@@ -56,6 +56,8 @@ MODULE Grid_Mod
 !  01 Mar 2012 - R. Yantosca - Validated for nested grids
 !  03 Apr 2012 - M. Payer    - Added ySin for map_a2a regrid (M. Cooper)
 !  04 Dec 2012 - R. Yantosca - Modified for GIGC running in ESMF environment
+!  26 Feb 2013 - R. Yantosca - Fixed bug in computation of lons & lats when
+!                              connecting GEOS-Chem to the GEOS-5 GCM
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -108,8 +110,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Compute_Grid( am_I_Root, &
-                           I1, I2, J1, J2, JSP, JNP, L1, L2, DLON, DLAT, RC )
+  SUBROUTINE Compute_Grid( am_I_Root,                          &
+                           I1, I2, J1,   J2,   JSP,  JNP,      &
+                           L1, L2, DLON, DLAT, I_LO, J_LO, RC )
 !
 ! !USES:
 !
@@ -118,12 +121,18 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL, INTENT(IN)  :: am_I_Root                     ! Root CPU?
-    INTEGER, INTENT(IN)  :: I1,  I2                       ! Local lon indices
+
+    ! Variables with local CPU indices
+    INTEGER, INTENT(IN)  :: I1,  I2                       ! Min lon index
     INTEGER, INTENT(IN)  :: J1,  J2                       ! Local lat indices
     INTEGER, INTENT(IN)  :: JSP, JNP                      ! Polar lat indices
     INTEGER, INTENT(IN)  :: L1,  L2                       ! Local lev indices
     REAL*8,  INTENT(IN)  :: DLON(I2-I1+1,J2-J1+1,L2-L1+1) ! Delta lon [deg]
     REAL*8,  INTENT(IN)  :: DLAT(I2-I1+1,J2-J1+1,L2-L1+1) ! Delta lat [deg]
+
+    ! Variables with global CPU indices
+    INTEGER, INTENT(IN)  :: I_LO                          ! Min global lon
+    INTEGER, INTENT(IN)  :: J_LO                          ! Min global lat
 !
 ! !OUTPUT PARAMETERS:
 !  
@@ -147,6 +156,8 @@ CONTAINS
 !                              computed properly.  Test for IG==I2, not I==I2.
 !  07 Dec 2012 - R. Yantosca - Also do not apply half-polar boxes when running
 !                              in ESMF environment
+!  26 Feb 2013 - R. Yantosca - Bug fix: now compute IND_X and IND_Y properly
+!                              when connecting GEOS-Chem to the GEOS-5 GCM
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -166,12 +177,12 @@ CONTAINS
 
     ! Index array for longitudes
     DO IG = I1, I2+1
-       IND_X(IG) = ( IG + I0 - 1 ) * 1d0 
+       IND_X(IG) = ( ( IG + I0 - 1 ) * 1d0 ) + ( I_LO - 1 )
     ENDDO
 
     ! Index array for latitudes
     DO JG = J1, J2+1
-       IND_Y(JG) = ( JG + J0 - 1 ) * 1d0
+       IND_Y(JG) = ( ( JG + J0 - 1 ) * 1d0 ) + ( J_LO - 1 )
     ENDDO
 
     !=================================================================
@@ -416,7 +427,7 @@ CONTAINS
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
-!-----------------------------<------------------------------------------------
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: set_xoffset

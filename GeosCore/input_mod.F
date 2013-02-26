@@ -24,6 +24,7 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !  
+      PUBLIC  :: INITIALIZE_GEOS_GRID
       PUBLIC  :: READ_INPUT_FILE
 !
 ! !PRIVATE MEMBER FUNCTIONS:
@@ -129,6 +130,7 @@
 !                              so that we can define it with findFreeLun
 !  02 Nov 2012 - R. Yantosca - Now pass the Input Options object to routines;
 !                              this will eventually replace logical_mod, etc.
+!  26 Feb 2013 - M. Long     - Now make INITIALIZE_GEOS_GRID a public routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -994,6 +996,7 @@
 !                              running with the traditional driver main.F
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !  30 Nov 2012 - R. Yantosca - Accept external DLON, DLAT from ESMF interface
+!  26 Feb 2013 - R. Yantosca - Now pass I_LO, J_LO to COMPUTE_GRID
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1114,6 +1117,8 @@
      &                   JNP       = JNP,           ! Lat index of North Pole
      &                   DLON      = DLON,          ! Delta-longitudes [deg]
      &                   DLAT      = DLAT,          ! Delta-latitudes  [deg]
+     &                   I_LO      = I_LO,          ! Min global lon index
+     &                   J_LO      = J_LO,          ! Min global lat index
      &                   RC        = RC         )   ! Success or failure?
 
 

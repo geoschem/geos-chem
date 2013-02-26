@@ -111,7 +111,7 @@ MODULE GIGC_Input_Opt_Mod
      ! EMISSIONS MENU fields
      !----------------------------------------
      LOGICAL                     :: LEMIS
-     LOGICAL                     :: TS_EMIS
+     INTEGER                     :: TS_EMIS
      LOGICAL                     :: LANTHRO
      LOGICAL                     :: FSCALYR
      LOGICAL                     :: LEMEP 
@@ -193,7 +193,7 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LCHEM
      LOGICAL                     :: LSCHEM
      LOGICAL                     :: LLINOZ
-     LOGICAL                     :: TS_CHEM
+     INTEGER                     :: TS_CHEM
      LOGICAL                     :: LSVCSPEC
      LOGICAL                     :: LKPP
 
@@ -206,7 +206,7 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: TPCORE_IORD
      LOGICAL                     :: TPCORE_JORD
      LOGICAL                     :: TPCORE_KORD
-     LOGICAL                     :: TS_DYN
+     INTEGER                     :: TS_DYN
 
      !----------------------------------------
      ! CONVECTION MENU fields
@@ -214,7 +214,7 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LCONV
      LOGICAL                     :: LTURB
      LOGICAL                     :: LNLPBL
-     LOGICAL                     :: TS_CONV
+     INTEGER                     :: TS_CONV
 
      !----------------------------------------
      ! DEPOSITION MENU fields
@@ -306,6 +306,7 @@ MODULE GIGC_Input_Opt_Mod
      INTEGER                     :: ND68, LD68
      INTEGER                     :: ND69, LD69
      INTEGER                     :: ND70, LD70
+     INTEGER                     :: TS_DIAG
      LOGICAL                     :: LPRT
      INTEGER,            POINTER :: TINDEX(:,:)
      INTEGER,            POINTER :: TCOUNT(:) 				  
@@ -519,6 +520,19 @@ MODULE GIGC_Input_Opt_Mod
      REAL*8                     :: POP_DEL_H
      REAL*8                     :: POP_DEL_Hw
 
+     !----------------------------------------
+     ! Fields for drydep and dust.  These get
+     ! set in the init stage based on info 
+     ! from file "input.geos". (mlong, 1/5/13)
+     !----------------------------------------
+     INTEGER                    :: MAX_DEP
+     INTEGER                    :: NUMDEP
+     INTEGER,           POINTER :: NDVZIND(:)
+     INTEGER,           POINTER :: IDDEP(:)
+     REAL*8,            POINTER :: DUSTREFF(:)
+     REAL*8,            POINTER :: DUSTDEN(:)
+     CHARACTER(LEN=14), POINTER :: DEPNAME(:)
+
   END TYPE OptInput
 !
 ! !REMARKS:
@@ -531,6 +545,8 @@ MODULE GIGC_Input_Opt_Mod
 !  08 Nov 2012 - R. Yantosca - Added APM MENU fields
 !  09 Nov 2012 - R. Yantosca - Added LD* variables for diagnostic levels
 !  28 Nov 2012 - R. Yantosca - Add USE_OLSON_2001 logical flag
+!  26 Feb 2013 - M. Long     - Add extra fields from input.geos
+!  26 Feb 2013 - M. Long     - Bug fix: timesteps are now INTEGER, not LOGICAL
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -554,6 +570,7 @@ CONTAINS
 ! !USES:
 !
     USE GIGC_ErrCode_Mod
+    USE CMN_SIZE_Mod,     ONLY : NDSTBIN
 !
 ! !INPUT PARAMETERS: 
 !
@@ -581,13 +598,14 @@ CONTAINS
 !  09 Nov 2012 - R. Yantosca - Now zero LD* fields for diagnostic levels
 !  28 Nov 2012 - R. Yantosca - Now set USE_OLSON_2001 logical flag
 !  29 Nov 2012 - M. Payer    - Add Input_Opt%ITS_A_POPS_SIM
+!  26 Feb 2013 - M. Long     - Add extra fields from input.geos
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: MAX_DIAG, MAX_TRCS, MAX_MEMB, MAX_FAMS
+    INTEGER :: MAX_DIAG, MAX_TRCS, MAX_MEMB, MAX_FAMS, MAX_DEP
 
     ! Assume success
     RC                               = GIGC_SUCCESS
@@ -599,6 +617,7 @@ CONTAINS
     MAX_TRCS                         = Input_Opt%MAX_TRCS
     MAX_MEMB                         = Input_Opt%MAX_MEMB
     MAX_FAMS                         = Input_Opt%MAX_FAMS
+    MAX_DEP                          = Input_Opt%MAX_DEP
 
     !----------------------------------------
     ! SIMULATION MENU fields 
@@ -687,7 +706,7 @@ CONTAINS
     ! EMISSIONS MENU fields
     !----------------------------------------
     Input_Opt%LEMIS                  = .FALSE.
-    Input_Opt%TS_EMIS                = .FALSE.
+    Input_Opt%TS_EMIS                = 0
     Input_Opt%LANTHRO                = .FALSE.
     Input_Opt%FSCALYR                = .FALSE.
     Input_Opt%LEMEP                  = .FALSE.
@@ -783,7 +802,7 @@ CONTAINS
     Input_Opt%TPCORE_IORD            = .FALSE.
     Input_Opt%TPCORE_JORD            = .FALSE.
     Input_Opt%TPCORE_KORD            = .FALSE.
-    Input_Opt%TS_DYN                 = .FALSE.
+    Input_Opt%TS_DYN                 = 0
 
     !----------------------------------------
     ! CONVECTION MENU fields
@@ -816,6 +835,7 @@ CONTAINS
     !----------------------------------------
     ! DIAGNOSTIC MENU fields
     !----------------------------------------
+    Input_Opt%TS_DIAG                = 0
     ALLOCATE( Input_Opt%TINDEX( MAX_DIAG, MAX_TRCS ), STAT=RC )
     ALLOCATE( Input_Opt%TCOUNT( MAX_DIAG           ), STAT=RC )
     ALLOCATE( Input_Opt%TMAX  ( MAX_DIAG           ), STAT=RC )
@@ -1190,6 +1210,23 @@ CONTAINS
     Input_Opt%POP_DEL_H              = 0d0
     Input_Opt%POP_DEL_Hw             = 0d0
 
+    !----------------------------------------
+    ! Fields for DRYDEP and DUST based on
+    ! input from the file "input.geos"
+    !----------------------------------------
+    ALLOCATE( Input_Opt%NDVZIND( MAX_DEP ), STAT=RC ) ! Drydep
+    ALLOCATE( Input_Opt%DEPNAME( MAX_DEP ), STAT=RC ) ! Drydep
+    ALLOCATE( Input_Opt%IDDEP(   NDSTBIN ), STAT=RC ) ! Dust_mod
+    ALLOCATE( Input_Opt%DUSTREFF(NDSTBIN ), STAT=RC ) ! Dust_mod
+    ALLOCATE( Input_Opt%DUSTDEN( NDSTBIN ), STAT=RC ) ! Dust_mod
+
+    Input_Opt%MAX_DEP                = 0
+    Input_Opt%NUMDEP                 = 0
+    Input_Opt%NDVZIND                = 0
+    Input_Opt%IDDEP                  = 0
+    Input_Opt%DUSTREFF               = 0d0
+    Input_Opt%DUSTDEN                = 0d0
+    Input_Opt%DEPNAME                = ''
 
   END SUBROUTINE Set_GIGC_Input_Opt
 !EOC
@@ -1227,6 +1264,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  02 Nov 2012 - R. Yantosca - Initial version
 !  07 Nov 2012 - R. Yantosca - Now deallocate fields from prod/loss menu
+!  26 Feb 2013 - M. Long     - Now deallocate extra fields from input.geos
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1339,6 +1377,26 @@ CONTAINS
 
     IF ( ASSOCIATED( Input_Opt%FAM_TYPE ) ) THEN
        DEALLOCATE( Input_Opt%FAM_TYPE )
+    ENDIF
+
+    IF ( ASSOCIATED( Input_Opt%NDVZIND ) ) THEN
+       DEALLOCATE( Input_Opt%NDVZIND )
+    ENDIF
+    
+    IF ( ASSOCIATED( Input_Opt%DEPNAME ) ) THEN
+       DEALLOCATE( Input_Opt%DEPNAME )
+    ENDIF
+
+    IF ( ASSOCIATED( Input_Opt%IDDEP ) ) THEN
+       DEALLOCATE( Input_Opt%IDDEP )
+    ENDIF
+
+    IF ( ASSOCIATED( Input_Opt%DUSTREFF ) ) THEN
+       DEALLOCATE( Input_Opt%DUSTREFF )
+    ENDIF
+
+    IF ( ASSOCIATED( Input_Opt%DUSTDEN ) ) THEN
+       DEALLOCATE( Input_Opt%DUSTDEN )
     ENDIF
     
   END SUBROUTINE Cleanup_GIGC_Input_Opt
