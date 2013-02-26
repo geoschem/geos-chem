@@ -215,6 +215,7 @@
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  15 Nov 2012 - R. Yantosca - Bring Input_Opt out of the DEVEL tags
+!  26 Feb 2013 - R. Yantosca - Add placeholder tag for Input_Opt%MAX_DEP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -269,10 +270,12 @@
       ! variable.
       !
       ! However, if we are using the "traditional" G-C, then we don't
-      ! need to restrict I/O to the root CPU.  Therefore, we can just
-      ! set am_I_Root = .true. here and then have it propagate down to
-      ! all of the lower-level routines.  The main.F routine is not
-      ! called when connecting G-C to an external GCM. 
+      ! need to restrict I/O to the root CPU.  (This is because each
+      ! GEOS-Chem simulation starts out on a single CPU, with other
+      ! CPUs joining only within parallel DO loops).  Therefore, we
+      ! can just set am_I_Root = .true. here and then have it propagate
+      ! down to all of the lower-level routines.  The main.F routine
+      ! is not called when connecting G-C to an external GCM.
       ! (mlong, bmy, 7/30/12)
       !
       LOGICAL, PARAMETER       :: am_I_Root = .TRUE. 
@@ -303,6 +306,7 @@
       Input_Opt%MAX_TRCS = NNPAR
       Input_Opt%MAX_MEMB = N_MEMBERS
       Input_Opt%MAX_FAMS = MAXFAM
+      Input_Opt%MAX_DEP  = MAXDEP
       !
       ! Call the routine GIGC_Allocate_All (located in module file
       ! GeosCore/gigc_environment_mod.F90) to allocate all lat/lon
@@ -453,9 +457,9 @@
 
       ! Compute the Olson land types that occur in each grid box
       ! (i.e. this is a replacement for rdland.F and vegtype.global)
-      CALL Init_Olson_Landmap   ( am_I_Root                     )
-      CALL Compute_Olson_Landmap( am_I_Root, mapping, State_Met )
-      CALL Cleanup_Olson_Landmap( am_I_Root                     )
+      CALL Init_Olson_Landmap   ( am_I_Root, Input_Opt%DATA_DIR_1x1 )
+      CALL Compute_Olson_Landmap( am_I_Root, mapping, State_Met     )
+      CALL Cleanup_Olson_Landmap( am_I_Root                         )
 
       ! Initialize PBL quantities but do not do mixing
       ! Add option for non-local PBL (Lin, 03/31/09) 

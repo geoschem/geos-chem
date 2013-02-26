@@ -146,13 +146,16 @@ CONTAINS
     ENDDO
     ENDDO
 
-    ! Read the GEOS-Chem input file here
-    ! NOTE: For now only read on the root CPU so that we can broadcast
-    ! to other CPUs below.  We still need to call Initialize_Geos_Grid
-    ! on all CPUs though. (mlong, bmy, 2/26/13)
+    ! Read the GEOS-Chem input file here.  For now only read on the root
+    ! CPU so that we can broadcast to other CPUs in GIGC_Init_Simulation
+    ! (mlong, bmy, 2/26/13)
     IF ( am_I_Root ) THEN
        CALL Read_Input_File( am_I_Root, Input_Opt, State_Chm, RC )
-    ELSE
+    ENDIF
+
+    ! We still need to call Initialize_Geos_Grid on all CPUs though.
+    ! without having to read the "input.geos" file. (mlong, bmy, 2/26/13)
+    IF ( .not. am_I_Root ) THEN
        CALL Initialize_Geos_Grid( am_I_Root, RC )
     ENDIF
 

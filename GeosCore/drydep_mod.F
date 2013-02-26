@@ -62,6 +62,7 @@
       PUBLIC :: DRYPOPG, DRYPOPP_OC, DRYPOPP_BC
       PUBLIC :: IDEP,   IRGSS,  IRAC, IRCLS
       PUBLIC :: IRGSO,  IRLU,   IRI,  IRCLO, DRYCOEFF
+      PUBLIC :: NDVZIND ! MSL -> For MPI broadcasting in GIGC
 !
 ! !REMARKS:
 !  References:
@@ -428,8 +429,9 @@
       RC     = GIGC_SUCCESS
       
       ! Copy values from the Input Options object to local variables
-      LNLPBL = Input_Opt%LNLPBL
-      LPRT   = Input_Opt%LPRT
+      LNLPBL  = Input_Opt%LNLPBL
+      LPRT    = Input_Opt%LPRT
+      NDVZIND = Input_Opt%NDVZIND(1:Input_Opt%NUMDEP)
 
       ! Call METERO to obtain meterological fields (all 1-D arrays)
       ! Added sfc pressure as PRESSU and 10m windspeed as W10 
@@ -475,7 +477,7 @@
             ! Index of drydep species in the DVEL array 
             ! as passed back from subroutine DEPVEL
             NDVZ = NDVZIND(N)
-                  
+
             ! Dry deposition velocity [cm/s]
             DVZ  = DVEL(IJLOOP,NDVZ) * 100.d0
 
@@ -514,6 +516,8 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+!      State_Chm%DEPSAV(:,:,Input_Opt%NUMDEP)         = DEPSAV
 
       !### Debug
       IF ( LPRT .and. am_I_Root ) THEN
@@ -2400,7 +2404,7 @@
      &                               IZO,       IDRYDEP,  IRI,    
      &                               IRLU,      IRAC,     IRGSS,  
      &                               IRGSO,     IRCLS,    IRCLO,  
-     &                               IVSMAX                       )
+     &                               IVSMAX,    Data_Dir_1x1      )
 !
 ! !USES:
 !
@@ -2416,6 +2420,7 @@
 ! !INPUT PARAMETERS:
 !
       LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      CHARACTER(LEN=255), INTENT(IN) :: Data_Dir_1x1
 !
 ! !OUTPUT PARAMETERS:
 !  
@@ -4128,11 +4133,24 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_DRYDEP( am_I_Root )
+      SUBROUTINE INIT_DRYDEP( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  (1 ) Added N2O5 as a drydep tracer, w/ the same drydep velocity as
@@ -4185,7 +4203,12 @@
       !=================================================================
       ! INIT_DRYDEP begins here!
       !=================================================================
-
+      
+      ! Assume success
+      RC = GIGC_SUCCESS
+     
+      ! For GEOS-5, we need to do this only on the root CPU
+      IF ( am_I_Root ) THEN
       DUM = 1.0
 
       ! Is this a mercury simulation?
@@ -5366,8 +5389,9 @@
           ENDIF
 
       ENDIF
-
-
+      ELSE
+         NUMDEP  = Input_Opt%NUMDEP
+      ENDIF
 
       !=================================================================
       ! Allocate arrays
@@ -5385,6 +5409,11 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'DMID' )
       DMID = 0d0
 
+      IF ( am_I_Root ) THEN
+         Input_Opt%NUMDEP  = NUMDEP
+         Input_Opt%NDVZIND = NDVZIND
+         Input_Opt%DEPNAME = DEPNAME
+      ENDIF
 
       !=================================================================
       ! Echo information to stdout
@@ -5423,7 +5452,8 @@
      &                         IWATER,   NWATER,   IZO,      
      &                         IDRYDEP,  IRI,      IRLU,     
      &                         IRAC,     IRGSS,    IRGSO, 
-     &                         IRCLS,    IRCLO,    IVSMAX )
+     &                         IRCLS,    IRCLO,    IVSMAX, 
+     &                         Input_Opt%Data_Dir_1x1    )
 
 
       ! Calls INIT_WEIGHTSS to calculate the volume distribution of 

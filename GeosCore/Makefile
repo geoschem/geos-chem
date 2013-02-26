@@ -759,7 +759,8 @@ input_mod.o                 : input_mod.F                                    \
                               tracerid_mod.o          tracer_mod.o           \
                               transport_mod.o         wetscav_mod.o          \
                               diag63_mod.o            bromocarb_mod.o        \
-                              get_popsinfo_mod.o      pops_mod.o
+                              get_popsinfo_mod.o      pops_mod.o             \
+                              dust_mod.o
 
 isoropiaII_mod.o            : isoropiaII_mod.F                               \
                               dao_mod.o               global_hno3_mod.o      \

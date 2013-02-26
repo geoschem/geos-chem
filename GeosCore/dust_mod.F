@@ -69,10 +69,18 @@
 ! !PRIVATE TYPES:
 !
       INTEGER              :: DRYDST1, DRYDST2, DRYDST3, DRYDST4
-      INTEGER, ALLOCATABLE :: IDDEP(:)
+!-----------------------------------------------------------------------------
+! Prior to 2/26/13:
+! Now use fields in Input_Opt (mlong, bmy, 2/6/13)
+!      INTEGER, ALLOCATABLE :: IDDEP(:)
+!-----------------------------------------------------------------------------
       REAL*8,  ALLOCATABLE :: FRAC_S(:)
-      REAL*8,  ALLOCATABLE :: DUSTREFF(:)
-      REAL*8,  ALLOCATABLE :: DUSTDEN(:)
+!-----------------------------------------------------------------------------
+! Prior to 2/26/13:
+! Now use fields in Input_Opt (mlong, bmy, 2/6/13)
+!      REAL*8,  ALLOCATABLE :: DUSTREFF(:)
+!      REAL*8,  ALLOCATABLE :: DUSTDEN(:)
+!-----------------------------------------------------------------------------
       REAL*8,  ALLOCATABLE :: SRCE_FUNC(:,:,:)
 
       CONTAINS
@@ -166,30 +174,35 @@
             ENDIF
          ENDIF
 
-         ! Allocate arrays (if necessary)
-         CALL INIT_DUST( am_I_Root, Input_Opt, RC )
-
-         ! Find drydep species in DEPSAV
-         DO N = 1, NUMDEP
-            SELECT CASE ( TRIM( DEPNAME(N) ) )
-               CASE ( 'DST1' )
-                  DRYDST1 = N
-               CASE ( 'DST2' )
-                  DRYDST2 = N
-               CASE ( 'DST3' )
-                  DRYDST3 = N
-               CASE ( 'DST4' )
-                  DRYDST4 = N
-               CASE DEFAULT
-                  ! Nothing
-            END SELECT        
-         ENDDO
-
-         ! This may lead to out of bounds errors
-         IDDEP(1) = DRYDST1
-         IDDEP(2) = DRYDST2
-         IDDEP(3) = DRYDST3
-         IDDEP(4) = DRYDST4
+!------------------------------------------------------------------------------
+! Prior to 2/26/13:
+! NOTE: This now has to be done in the init phase for the GIGC connection
+! to the GEOS-5 GCM. (mlong, bmy, 2/26/13)
+!         ! Allocate arrays (if necessary)
+!         CALL INIT_DUST( am_I_Root, Input_Opt, RC )
+!
+!         ! Find drydep species in DEPSAV
+!         DO N = 1, NUMDEP
+!            SELECT CASE ( TRIM( DEPNAME(N) ) )
+!               CASE ( 'DST1' )
+!                  DRYDST1 = N
+!               CASE ( 'DST2' )
+!                  DRYDST2 = N
+!               CASE ( 'DST3' )
+!                  DRYDST3 = N
+!               CASE ( 'DST4' )
+!                  DRYDST4 = N
+!               CASE DEFAULT
+!                  ! Nothing
+!            END SELECT        
+!         ENDDO
+!
+!         ! This may lead to out of bounds errors
+!         IDDEP(1) = DRYDST1
+!         IDDEP(2) = DRYDST2
+!         IDDEP(3) = DRYDST3
+!         IDDEP(4) = DRYDST4
+!------------------------------------------------------------------------------
  
          ! Reset first-time flag
          FIRST = .FALSE.
@@ -331,8 +344,8 @@
       DO N = 1, NDSTBIN
 
          ! Initialize
-         DEN   = DUSTDEN(N)
-         REFF  = DUSTREFF(N)
+         DEN   = Input_Opt%DUSTDEN(N)
+         REFF  = Input_Opt%DUSTREFF(N)
          DP    = 2D0 * REFF * 1.D6              ! Dp [um] = particle diameter
          CONST = 2D0 * DEN * REFF**2 * G0 / 9D0
 
@@ -434,7 +447,8 @@
                   FLUX = FLUX * XNUMOL(IDTDST1) / AREA_CM2 
 
                   ! Save in AD44
-                  AD44(I,J,IDDEP(N),1) = AD44(I,J,IDDEP(N),1) + FLUX
+                  AD44(I,J,Input_Opt%IDDEP(N),1) = 
+     &            AD44(I,J,Input_OPt%IDDEP(N),1) + FLUX
                ENDIF
             ENDDO
          ENDDO
@@ -513,7 +527,7 @@
       XNUMOL = Input_Opt%XNUMOL
 
       ! DTCHEM is the chemistry timestep in seconds
-      DTCHEM = GET_TS_CHEM() * 60d0
+      DTCHEM = Input_Opt%TS_CHEM * 60d0
 
       ! Loop over dust bins
 !$OMP PARALLEL DO
@@ -537,7 +551,8 @@
                OLD = TC(I,J,1,N)
 
                ! Dust left after dry deposition
-               NEW = OLD * EXP( -DEPSAV(I,J,IDDEP(N)) * DTCHEM  )
+               NEW = OLD * 
+     &               EXP( -DEPSAV(I,J,Input_Opt%IDDEP(N)) * DTCHEM  )
 
                !========================================================
                ! ND44 diagnostic: dust drydep loss [#/cm2/s]
@@ -549,7 +564,8 @@
                   FLUX     = FLUX * XNUMOL(IDTDST1) / AREA_CM2 
                
                   ! Store in AD44
-                  AD44(I,J,IDDEP(N),1) = AD44(I,J,IDDEP(N),1) + FLUX
+                  AD44(I,J,Input_Opt%IDDEP(N),1) = 
+     &            AD44(I,J,Input_Opt%IDDEP(N),1) + FLUX
                ENDIF
 
                ! Save back into STT
@@ -614,6 +630,10 @@
 !  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  26 Nov 2012 - R. Yantosca - Now pass am_I_Root, Input_Opt, State_Met as args
+!  26 Feb 2013 - R. Yantosca - Now pass Input_Opt to SRC_DUST_GINOUX
+!  26 Feb 2013 - R. Yantosca - Changed INPUT_OPT to INTENT(IN), since we are
+!                              now no longer calling INIT_DUST from here,
+!                              it is now called in the init stage
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -656,10 +676,15 @@
      &              'EMISSDUST ("dust_mod.f")' )
             ENDIF
          ENDIF
-          
-         ! Allocate module arrays
-         CALL INIT_DUST( am_I_Root, Input_Opt, RC )
-         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSDUST: a INIT_DUST' )
+ 
+!-------------------------------------------------------------------------
+! Prior to 2/26/13:
+! INIT_DUST is now called in the init stage.  This is necessary
+! in order to run with the GEOS-5 GCM. (mlong, bmy, 2/26/13)
+!         ! Allocate module arrays
+!         CALL INIT_DUST( am_I_Root, Input_Opt, RC )
+!         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSDUST: a INIT_DUST' )
+!-------------------------------------------------------------------------
 
          ! Reset first-time flag
          FIRST = .FALSE.
@@ -682,7 +707,9 @@
       ELSE
 
          ! Use Paul Ginoux's dust source function
-         CALL SRC_DUST_GINOUX( STT(:,:,:,IDTDST1:IDTDST4 ), State_Met )
+         CALL SRC_DUST_GINOUX( STT(:,:,:,IDTDST1:IDTDST4 ), 
+     &                         State_Met,
+     &                         Input_Opt )
 
          !### Debug
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSDUST: a SRC_DUST_GINOUX')
@@ -983,7 +1010,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SRC_DUST_GINOUX( TC, State_Met )
+      SUBROUTINE SRC_DUST_GINOUX( TC, State_Met, Input_Opt )
 !
 ! !USES:
 !
@@ -991,6 +1018,7 @@
       USE DIAG_MOD,           ONLY : AD06
       USE DIRECTORY_MOD,      ONLY : DATA_DIR
       USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2
       USE TIME_MOD,           ONLY : GET_TS_EMIS
@@ -1003,6 +1031,7 @@
 !
       ! Meteorology State object
       TYPE(MetState), INTENT(IN)    :: State_Met
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 ! 
@@ -1056,6 +1085,7 @@
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  26 Feb 2013 - R. Yantosca - Now accept Input_Opt via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1153,9 +1183,9 @@
          ! Threshold velocity from Marticorena and Bergametti
          ! Convert units to fit dimensional parameters
          !==============================================================
-         DEN    = DUSTDEN(N) * 1.d-3                 ! [g/cm3]
-         DIAM   = 2d0 * DUSTREFF(N) * 1.d2           ! [cm in diameter]
-         REYNOL = 1331.d0 * DIAM**(1.56d0) + 0.38d0  ! [Reynolds number]
+         DEN    = Input_Opt%DUSTDEN(N) * 1.d-3         ! [g/cm3]
+         DIAM   = 2d0 * Input_Opt%DUSTREFF(N) * 1.d2   ! [cm in diameter]
+         REYNOL = 1331.d0 * DIAM**(1.56d0) + 0.38d0    ! [Reynolds number]
          ALPHA  = DEN * G * DIAM / RHOA
          BETA   = 1d0 + ( 6.d-3 / ( DEN * G * DIAM**(2.5d0) ) )
          GAMMA  = ( 1.928d0 * REYNOL**(0.092d0) ) - 1.d0
@@ -1825,24 +1855,26 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE DRYDEP_MOD,         ONLY : DEPNAME, NUMDEP
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  30 Mar 2004 - R. Yantosca - Initial version
 !  (1 ) Now references LDEAD from "logical_mod.f" (bmy, 7/20/04)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
+!  26 Feb 2013 - M. Long     - Now use fields from Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1854,7 +1886,9 @@
 
       ! Non-SAVEd scalars
       LOGICAL       :: LDEAD
-      INTEGER       :: AS
+      INTEGER       :: AS, N
+
+      NUMDEP = Input_Opt%NUMDEP
 
       !=================================================================
       ! INIT_DUST begins here!
@@ -1863,6 +1897,8 @@
       ! Return if we have already allocated arrays
       IF ( IS_INIT ) RETURN
 
+      print*, '### in INIT_DUST!!!'
+
       ! Assume success
       RC     = GIGC_SUCCESS
 
@@ -1870,19 +1906,35 @@
       LDEAD = Input_Opt%LDEAD
 
       ! Drydep flags
-      ALLOCATE( IDDEP( NDSTBIN ), STAT=AS )      
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'IDDEP' )
-      IDDEP = 0
+!------------------------------------------------------------------------------
+! Prior to 2/26/13:
+! Now use fields in Input_Opt (mlong, bmy, 2/26/13)
+!      ALLOCATE( IDDEP( NDSTBIN ), STAT=AS )      
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'IDDEP' )
+!      IDDEP = 0
+!------------------------------------------------------------------------------
 
       ! Dust radii
-      ALLOCATE( DUSTREFF( NDSTBIN ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DUSTREFF' )
-      DUSTREFF(1:NDSTBIN) = (/ 0.73d-6, 1.4d-6,  2.4d-6,  4.5d-6  /)
+!------------------------------------------------------------------------------
+! Prior to 2/26/13:
+! Now use fields in Input_Opt (mlong, bmy, 2/26/13)
+!      ALLOCATE( DUSTREFF( NDSTBIN ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DUSTREFF' )
+!      DUSTREFF(1:NDSTBIN) = (/ 0.73d-6, 1.4d-6,  2.4d-6,  4.5d-6  /)
+!------------------------------------------------------------------------------
+      Input_Opt%DUSTREFF(1:NDSTBIN) = (/ 0.73d-6, 1.4d-6,  
+     &                                   2.4d-6,  4.5d-6  /)
 
       ! Dust density
-      ALLOCATE( DUSTDEN( NDSTBIN ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DUSTREFF' )
-      DUSTDEN(1:NDSTBIN) = (/ 2500.d0, 2650.d0, 2650.d0, 2650.d0 /)
+!------------------------------------------------------------------------------
+! Prior to 2/26/13:
+! Now use fields in Input_Opt (mlong, bmy, 2/26/13)
+!      ALLOCATE( DUSTDEN( NDSTBIN ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DUSTREFF' )
+!      DUSTDEN(1:NDSTBIN) = (/ 2500.d0, 2650.d0, 2650.d0, 2650.d0 /)
+!------------------------------------------------------------------------------
+      Input_Opt%DUSTDEN(1:NDSTBIN) = (/ 2500.d0, 2650.d0, 
+     &                                  2650.d0, 2650.d0 /)
 
       ! These only have to be allocated for the Ginoux source function
       IF ( .not. LDEAD ) THEN
@@ -1896,6 +1948,28 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SRCE_FUNC' )
       SRCE_FUNC = 0.d0
 #endif
+
+      ! Find drydep species in DEPSAV
+      DO N = 1, Input_Opt%NUMDEP
+         SELECT CASE ( TRIM( DEPNAME(N) ) )
+            CASE ( 'DST1' )
+               DRYDST1 = N
+            CASE ( 'DST2' )
+               DRYDST2 = N
+            CASE ( 'DST3' )
+               DRYDST3 = N
+            CASE ( 'DST4' )
+               DRYDST4 = N
+            CASE DEFAULT
+               ! Nothing
+         END SELECT        
+      ENDDO
+
+      ! This may lead to out of bounds errors
+      Input_Opt%IDDEP(1) = DRYDST1
+      Input_Opt%IDDEP(2) = DRYDST2
+      Input_Opt%IDDEP(3) = DRYDST3
+      Input_Opt%IDDEP(4) = DRYDST4
 
       ! Reset flag
       IS_INIT = .TRUE.
@@ -1919,16 +1993,25 @@
 ! !REVISION HISTORY: 
 !  30 Mar 2004 - R. Yantosca - Initial version
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  26 Feb 2013 - R. Yantosca - Now use Input_Opt instead of local arrays
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       !=================================================================
       ! CLEANUP_DUST begins here!
       !=================================================================
-      IF ( ALLOCATED( IDDEP    ) ) DEALLOCATE( IDDEP    )      
+!------------------------------------------------------------------------------
+! Prior to 2/26/13:
+! Now use fields in Input_Opt (mlong, bmy, 2/26/13)
+!      IF ( ALLOCATED( IDDEP    ) ) DEALLOCATE( IDDEP    )      
+!------------------------------------------------------------------------------
       IF ( ALLOCATED( FRAC_S   ) ) DEALLOCATE( FRAC_S   )
-      IF ( ALLOCATED( DUSTREFF ) ) DEALLOCATE( DUSTREFF )
-      IF ( ALLOCATED( DUSTDEN  ) ) DEALLOCATE( DUSTDEN  )
+!------------------------------------------------------------------------------
+! Prior to 2/26/13:
+! Now use fields in Input_Opt (mlong, bmy, 2/26/13)
+!      IF ( ALLOCATED( DUSTREFF ) ) DEALLOCATE( DUSTREFF )
+!      IF ( ALLOCATED( DUSTDEN  ) ) DEALLOCATE( DUSTDEN  )
+!------------------------------------------------------------------------------
 
       END SUBROUTINE CLEANUP_DUST
 !EOC

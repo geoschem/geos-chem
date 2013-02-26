@@ -3630,6 +3630,7 @@
 !
 ! !USES:
 !
+      USE DUST_MOD,    ONLY : INIT_DUST
       USE ERROR_MOD,   ONLY : ERROR_STOP
       USE DRYDEP_MOD,  ONLY : INIT_DRYDEP
       USE LOGICAL_MOD, ONLY : LCONV,             LDRYD
@@ -3671,6 +3672,8 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!  26 Feb 2013 - R. Yantosca - Now call INIT_DUST jere to facilitate 
+!                              connecting to the GEOS-5 GCM
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3747,10 +3750,10 @@
       !=================================================================
 
       ! Initialize dry deposition arrays
-      IF ( LDRYD ) THEN
+      IF ( Input_Opt%LDRYD ) THEN
 
          ! Setup for dry deposition
-         CALL INIT_DRYDEP( am_I_Root )
+         CALL INIT_DRYDEP( am_I_Root, Input_Opt, RC )
       
          ! Print extra info message for Hg simulation
          IF ( ITS_A_MERCURY_SIM() .and. LSPLIT ) THEN
@@ -3761,6 +3764,13 @@
 
       ! Initialize wet deposition tracers
       IF ( LWETD .or. LCONV ) CALL WETDEPID( am_I_Root )
+
+      ! NOTE: Call INIT_DUST here so as to make sure this gets
+      ! called in the init stage when connecting to the GEOS-5 GCM
+      ! (mlong, bmy, 2/26/13)
+      IF ( Input_Opt%LDUST ) then
+         CALL INIT_DUST( am_I_Root, Input_Opt, RC )
+      endif
 
 #if   defined( APM )
       ! Initialize wet deposition tracers for APM
