@@ -59,6 +59,10 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE inquireMod,         ONLY : findFreeLUN
 
+#if defined( DEVEL ) || defined ( ESMF_ )
+      USE GIGC_MPI_WRAP
+#endif
+
       IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
@@ -161,6 +165,12 @@
       CHARACTER(LEN=255) :: FILENAME
       LOGICAL            :: LPRT
 
+      INTEGER             :: IU_CHEMDAT ! GLOBCHEM.DAT LUN
+
+#if defined( DEVEL )
+      INTEGER, ALLOCATABLE :: INTVAL(:)
+#endif
+
       !=================================================================
       ! READCHEM begins here!
       !=================================================================
@@ -216,8 +226,34 @@
        DEFPRAT(I,:)        = 0.d0
  49   CONTINUE
 !
+!
+! *********************************************************************
+!                            OPEN GLOBCHEM
+!      MSL - 01-Feb-13 : Transferred from READER.F
+! *********************************************************************
+!
       !IF ( am_I_Root ) PRINT *,"READCHEM: KGLC=",KGLC
       !IF ( am_I_Root ) PRINT *,"READCHEM: IO93=",IO93
+      ! Find a free file LUN
+      IU_CHEMDAT = findFreeLUN()
+
+      ! Name of file to open
+      FILENAME   ='globchem.dat' 
+
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      ! When connecting to GEOS-5 via ESMF, we need to append '___.rc'
+      FILENAME   = TRIM( FILENAME ) // '___.rc'
+#endif
+      KGLC       = IU_CHEMDAT
+
+      IF ( am_I_Root ) THEN 
+         WRITE( 6, 301 ) TRIM( FILENAME ), KGLC
+ 301     FORMAT( 'GEOSCHEM::READER: Opening ', a, ' on unit ', i4  )
+      ENDIF
+
+      ! Open chemistry mechanism file
+      OPEN( KGLC, FILE=TRIM( FILENAME ) )
+
       READ(KGLC,21)  HEADING 
       !WRITE(6,21) HEADING 
  13   READ(KGLC,21)  HEADING 
@@ -232,6 +268,20 @@
       READ(KGLC,59) (RINP(I), I = 1, NMBGAS)  
       READ(KGLC,61) (SINP(I), I = 1, NMBGAS)   
 !
+#if defined( ESMF_ )
+
+      ALLOCATE(INTVAL(1))
+      INTVAL(1)  = NMASBAL
+      CALL GIGC_BCAST_CHAR( RINP,   14*NMBGAS,  RC )
+      CALL GIGC_BCAST_CHAR( NAMEMB, 14*IMASBAL, RC )
+      CALL GIGC_BCAST_INT( INTVAL, 1, RC )
+      NMASBAL = INTVAL(1)
+      INTVAL(1)  = NCSURBAN
+      CALL GIGC_BCAST_INT( INTVAL, 1, RC )
+      NCSURBAN = INTVAL(1)
+      DEALLOCATE(INTVAL)
+#endif
+
       DO 36 I         = 1, NMBGAS
        MBTRACE(I)     = 0 
        IF (SINP(I).EQ.'A') THEN 
@@ -652,6 +702,11 @@
       ELSEIF (DINP.EQ.'D') THEN
        GOTO 310 
       ENDIF
+
+#if defined( DEVEL ) || defined ( ESMF_ ) 
+      CALL GIGC_READCHEM_BCAST( C1,    CSTRAT, CTROPL, CTROPS, CURBAN, 
+     &                       ININT, IORD,   NCOF,   RC              )
+#endif
 !
 ! *********************************************************************
 ! *      UPDATE REACTION NUMBER FOR REACTIONS THAT ARE USED           *
@@ -1230,6 +1285,11 @@
  700   CONTINUE 
  702  CONTINUE 
 
+#if defined( ESMF_ )
+      CALL GIGC_BCAST_INT(NSPEC, ICS, RC)
+      CALL GIGC_BCAST_INT(NTSPEC, ICS, RC)
+!      CALL GIGC_BCAST_REAL8(NTSPEC, ICS, RC)
+#endif
 !---smv2-s
 ! Update (gcc)
 ! bdf smv2, put this in here for now.

@@ -150,7 +150,7 @@ CONTAINS
     ! CPU so that we can broadcast to other CPUs in GIGC_Init_Simulation
     ! (mlong, bmy, 2/26/13)
     IF ( am_I_Root ) THEN
-       CALL Read_Input_File( am_I_Root, Input_Opt, State_Chm, RC )
+       CALL Read_Input_File( am_I_Root, Input_Opt, RC )
     ENDIF
 
     ! We still need to call Initialize_Geos_Grid on all CPUs though.
@@ -337,13 +337,19 @@ CONTAINS
     CALL GIGC_Input_Bcast( Input_Opt, RC )
     CALL GIGC_IDT_Bcast(   Input_Opt, RC )
 
-    IF ( .not. am_I_Root ) THEN ! Complete initialization ops on all threads
-       CALL INIT_DRYDEP( am_I_Root, Input_Opt )
-       CALL INIT_TRACER( am_I_Root, Input_Opt )
+    ! Complete initialization ops on all threads
+    IF ( .not. am_I_Root ) THEN 
+
+       ! Initialize dry deposition
+       CALL INIT_DRYDEP( am_I_Root, Input_Opt, RC )
+
+       ! Initialize tracer quantities
+       CALL INIT_TRACER( am_I_Root, Input_Opt, RC )
 
        ! Working Kluge - MSL; Break this & Fix the result...
        LVARTROP = Input_Opt%LVARTROP 
 
+       ! Set GEOS-Chem timesteps
        CALL SET_TIMESTEPS( am_I_Root,                                  &
                            Input_Opt%TS_CHEM,                          &
                            Input_Opt%TS_CONV,                          &

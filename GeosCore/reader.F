@@ -90,7 +90,7 @@
       INTEGER             :: JLOOP,   IAVBLOK, IAVGSIZE, IREMAIN, JADD
       INTEGER             :: IFCHEM,  I,       NALLREAC, NMPROD,  I1
       INTEGER             :: J,      NK
-      INTEGER             :: IU_CHEMDAT
+!      INTEGER             :: IU_CHEMDAT
       INTEGER             :: IU_FILE
       INTEGER             :: IU_SMV2LOG
 
@@ -249,26 +249,27 @@
 !                            OPEN MORE FILES 
 ! *********************************************************************
 !
-
-      ! Find a free file LUN
-      IU_CHEMDAT = findFreeLUN()
-
-      ! Name of file to open
-      FILENAME   ='globchem.dat' 
-
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      ! When connecting to GEOS-5 via ESMF, we need to append '___.rc'
-      FILENAME   = TRIM( FILENAME ) // '___.rc'
-#endif
-      KGLC       = IU_CHEMDAT
-
-      IF ( am_I_Root ) THEN 
-         WRITE( 6, 310 ) TRIM( FILENAME ), KGLC
- 310     FORMAT( 'GEOSCHEM::READER: Opening ', a, ' on unit ', i4  )
-      ENDIF
-
-      ! Open chemistry mechanism file
-      OPEN( KGLC, FILE=TRIM( FILENAME ) )
+!----> Transferred to READCHEM.F
+!      ! Find a free file LUN
+!      IU_CHEMDAT = findFreeLUN()
+!
+!      ! Name of file to open
+!      FILENAME   ='globchem.dat' 
+!
+!#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!      ! When connecting to GEOS-5 via ESMF, we need to append '___.rc'
+!      FILENAME   = TRIM( FILENAME ) // '___.rc'
+!#endif
+!      KGLC       = IU_CHEMDAT
+!
+!      IF ( am_I_Root ) THEN 
+!         WRITE( 6, 310 ) TRIM( FILENAME ), KGLC
+! 310     FORMAT( 'GEOSCHEM::READER: Opening ', a, ' on unit ', i4  )
+!      ENDIF
+!
+!      ! Open chemistry mechanism file
+!      OPEN( KGLC, FILE=TRIM( FILENAME ) )
+!------------------------------------------------------------------
 
       ! Open "smv2.log" for echoback output as unit #93
       IF ( am_I_Root ) THEN

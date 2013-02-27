@@ -36,7 +36,7 @@ MODULE GIGC_MPI_WRAP
 !BOC
   INTEGER, SAVE :: mpiComm
 
-  CONTAINS
+CONTAINS
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -52,7 +52,7 @@ MODULE GIGC_MPI_WRAP
 !\\
 ! !INTERFACE:
 !
-    SUBROUTINE GIGC_INPUT_BCAST( Input_Opt, RC )
+  SUBROUTINE GIGC_INPUT_BCAST( Input_Opt, RC )
 !
 ! !USES:
 !
@@ -93,7 +93,7 @@ MODULE GIGC_MPI_WRAP
 !
 ! mpi_bcast (buffer, count, datatype, root, comm, ier)
 
-     RC = GIGC_SUCCESS
+    RC = GIGC_SUCCESS
 
     !----------------------------------------
     ! SIZE PARAMETER fields
@@ -102,11 +102,11 @@ MODULE GIGC_MPI_WRAP
     call mpi_bcast( INPUT_OPT%MAX_TRCS, 1, mpi_integer, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%MAX_MEMB, 1, mpi_integer, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%MAX_FAMS, 1, mpi_integer, 0, mpiComm, RC )
+    call mpi_bcast( INPUT_OPT%MAX_DEP,  1, mpi_integer, 0, mpiComm, RC )
 
-
-     !----------------------------------------
-     ! SIMULATION MENU fields
-     !----------------------------------------
+    !----------------------------------------
+    ! SIMULATION MENU fields
+    !----------------------------------------
     call mpi_bcast( INPUT_OPT%NYMDb, 1, mpi_integer, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%NHMSb, 1, mpi_integer, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%NYMDe, 1, mpi_integer, 0, mpiComm, RC )
@@ -129,9 +129,9 @@ MODULE GIGC_MPI_WRAP
     call mpi_bcast( INPUT_OPT%NESTED_I0, 1, mpi_integer, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%NESTED_J0, 1, mpi_integer, 0, mpiComm, RC )
 
-     !----------------------------------------
-     ! TRACER MENU fields
-     !----------------------------------------
+    !----------------------------------------
+    ! TRACER MENU fields
+    !----------------------------------------
     call mpi_bcast( INPUT_OPT%N_TRACERS, 1, mpi_integer, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%ID_TRACER(:), INPUT_OPT%MAX_TRCS, mpi_integer, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%TRACER_NAME(:), (255)*INPUT_OPT%MAX_TRCS, mpi_character, 0, mpiComm, RC )
@@ -159,9 +159,9 @@ MODULE GIGC_MPI_WRAP
     call mpi_bcast( INPUT_OPT%ITS_A_POPS_SIM, 1, mpi_logical, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%ITS_NOT_COPARAM_OR_CH4, 1, mpi_logical, 0, mpiComm, RC )
 
-     !----------------------------------------
-     ! AEROSOL MENU fields
-     !----------------------------------------
+    !----------------------------------------
+    ! AEROSOL MENU fields
+    !----------------------------------------
     call mpi_bcast( INPUT_OPT%LSULF, 1, mpi_logical, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%LCRYST, 1, mpi_logical, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%LCARB, 1, mpi_logical, 0, mpiComm, RC )
@@ -173,9 +173,9 @@ MODULE GIGC_MPI_WRAP
     call mpi_bcast( INPUT_OPT%SALA_REDGE_um(:), 2, mpi_real8, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%SALC_REDGE_um(:), 2, mpi_real8, 0, mpiComm, RC )
 
-     !----------------------------------------
-     ! EMISSIONS MENU fields
-     !----------------------------------------
+    !----------------------------------------
+    ! EMISSIONS MENU fields
+    !----------------------------------------
     call mpi_bcast( INPUT_OPT%LEMIS, 1, mpi_logical, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%TS_EMIS, 1, mpi_integer, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%LANTHRO, 1, mpi_logical, 0, mpiComm, RC )
@@ -227,9 +227,9 @@ MODULE GIGC_MPI_WRAP
     call mpi_bcast( INPUT_OPT%LFIX_PBL_BRO, 1, mpi_logical, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%Br_SCALING, 1, mpi_real8, 0, mpiComm, RC )
 
-     !----------------------------------------
-     ! CO2 MENU fields
-     !----------------------------------------
+    !----------------------------------------
+    ! CO2 MENU fields
+    !----------------------------------------
     call mpi_bcast( INPUT_OPT%LGENFF, 1, mpi_logical, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%LANNFF, 1, mpi_logical, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%LMONFF, 1, mpi_logical, 0, mpiComm, RC )
@@ -246,16 +246,16 @@ MODULE GIGC_MPI_WRAP
     call mpi_bcast( INPUT_OPT%LSHIPICO, 1, mpi_logical, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%LPLANE, 1, mpi_logical, 0, mpiComm, RC )
 
-     !----------------------------------------
-     ! FUTURE MENU fields
-     !----------------------------------------
+    !----------------------------------------
+    ! FUTURE MENU fields
+    !----------------------------------------
     call mpi_bcast( INPUT_OPT%LFUTURE, 1, mpi_logical, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%FUTURE_YEAR, 1, mpi_integer, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%FUTURE_SCEN, len(INPUT_OPT%FUTURE_SCEN), mpi_character, 0, mpiComm, RC )
 
-     !----------------------------------------
-     ! CHEMISTRY MENU fields
-     !----------------------------------------
+    !----------------------------------------
+    ! CHEMISTRY MENU fields
+    !----------------------------------------
     call mpi_bcast( INPUT_OPT%LCHEM, 1, mpi_logical, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%LSCHEM, 1, mpi_logical, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%LLINOZ, 1, mpi_logical, 0, mpiComm, RC )
@@ -263,9 +263,9 @@ MODULE GIGC_MPI_WRAP
     call mpi_bcast( INPUT_OPT%LSVCSPEC, 1, mpi_logical, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%LKPP, 1, mpi_logical, 0, mpiComm, RC )
 
-     !----------------------------------------
-     ! CHEMISTRY MENU fields
-     !----------------------------------------
+    !----------------------------------------
+    ! CHEMISTRY MENU fields
+    !----------------------------------------
     call mpi_bcast( INPUT_OPT%LTRAN, 1, mpi_logical, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%LMFCT, 1, mpi_logical, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%LFILL, 1, mpi_logical, 0, mpiComm, RC )
@@ -274,35 +274,35 @@ MODULE GIGC_MPI_WRAP
     call mpi_bcast( INPUT_OPT%TPCORE_KORD, 1, mpi_logical, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%TS_DYN, 1, mpi_integer, 0, mpiComm, RC )
 
-     !----------------------------------------
-     ! CONVECTION MENU fields
-     !----------------------------------------
+    !----------------------------------------
+    ! CONVECTION MENU fields
+    !----------------------------------------
     call mpi_bcast( INPUT_OPT%LCONV, 1, mpi_logical, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%LTURB, 1, mpi_logical, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%LNLPBL, 1, mpi_logical, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%TS_CONV, 1, mpi_integer, 0, mpiComm, RC )
 
-     !----------------------------------------
-     ! DEPOSITION MENU fields
-     !----------------------------------------
+    !----------------------------------------
+    ! DEPOSITION MENU fields
+    !----------------------------------------
     call mpi_bcast( INPUT_OPT%LDRYD, 1, mpi_logical, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%LWETD, 1, mpi_logical, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%USE_OLSON_2001, 1, mpi_logical, 0, mpiComm, RC )
 
-     !----------------------------------------
-     ! GAMAP MENU fields
-     !----------------------------------------
+    !----------------------------------------
+    ! GAMAP MENU fields
+    !----------------------------------------
     call mpi_bcast( INPUT_OPT%GAMAP_DIAGINFO, len(INPUT_OPT%GAMAP_DIAGINFO), mpi_character, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%GAMAP_TRACERINFO, len(INPUT_OPT%GAMAP_TRACERINFO), mpi_character, 0, mpiComm, RC )
 
-     !----------------------------------------
-     ! OUTPUT MENU fields
-     !----------------------------------------
+    !----------------------------------------
+    ! OUTPUT MENU fields
+    !----------------------------------------
     call mpi_bcast( INPUT_OPT%NJDAY(:), 366, mpi_integer, 0, mpiComm, RC )
-
-     !----------------------------------------
-     ! DIAGNOSTIC MENU fields
-     !----------------------------------------
+    
+    !----------------------------------------
+    ! DIAGNOSTIC MENU fields
+    !----------------------------------------
     call mpi_bcast( INPUT_OPT%ND01, 1, mpi_integer, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%LD01, 1, mpi_integer, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%ND02, 1, mpi_integer, 0, mpiComm, RC )
@@ -446,16 +446,16 @@ MODULE GIGC_MPI_WRAP
     call mpi_bcast( INPUT_OPT%TCOUNT(:)  , INPUT_OPT%MAX_DIAG, mpi_integer, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%TMAX(:)    , INPUT_OPT%MAX_DIAG, mpi_integer, 0, mpiComm, RC )
 
-     !----------------------------------------
-     ! PLANEFLIGHT MENU fields
-     !----------------------------------------
+    !----------------------------------------
+    ! PLANEFLIGHT MENU fields
+    !----------------------------------------
     call mpi_bcast( INPUT_OPT%DO_PF, 1, mpi_logical, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%PF_IFILE, len(INPUT_OPT%PF_IFILE), mpi_character, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%PF_OFILE, len(INPUT_OPT%PF_OFILE), mpi_character, 0, mpiComm, RC )
 
-     !----------------------------------------
-     ! ND48 MENU fields
-     !----------------------------------------
+    !----------------------------------------
+    ! ND48 MENU fields
+    !----------------------------------------
     call mpi_bcast( INPUT_OPT%DO_ND48, 1, mpi_logical, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%ND48_FILE, len(INPUT_OPT%ND48_FILE), mpi_character, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%ND48_FREQ, 1, mpi_integer, 0, mpiComm, RC )
@@ -465,9 +465,9 @@ MODULE GIGC_MPI_WRAP
     call mpi_bcast( INPUT_OPT%ND48_LARR(:), INPUT_OPT%MAX_TRCS, mpi_integer, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%ND48_NARR(:), INPUT_OPT%MAX_TRCS, mpi_integer, 0, mpiComm, RC )
 
-     !----------------------------------------
-     ! ND49 MENU fields
-     !----------------------------------------
+    !----------------------------------------
+    ! ND49 MENU fields
+    !----------------------------------------
     call mpi_bcast( INPUT_OPT%DO_ND49, 1, mpi_logical, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%ND49_FILE, len(INPUT_OPT%ND49_FILE), mpi_character, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%ND49_TRACERS(:), INPUT_OPT%MAX_TRCS, mpi_integer, 0, mpiComm, RC )
@@ -479,9 +479,9 @@ MODULE GIGC_MPI_WRAP
     call mpi_bcast( INPUT_OPT%ND49_LMIN, 1, mpi_integer, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%ND49_LMAX, 1, mpi_integer, 0, mpiComm, RC )
 
-     !----------------------------------------
-     ! ND50 MENU fields
-     !----------------------------------------
+    !----------------------------------------
+    ! ND50 MENU fields
+    !----------------------------------------
     call mpi_bcast( INPUT_OPT%DO_ND50, 1, mpi_logical, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%ND50_FILE, len(INPUT_OPT%ND50_FILE), mpi_character, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%LND50_HDF, 1, mpi_logical, 0, mpiComm, RC )
@@ -493,8 +493,8 @@ MODULE GIGC_MPI_WRAP
     call mpi_bcast( INPUT_OPT%ND50_LMIN, 1, mpi_integer, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%ND50_LMAX, 1, mpi_integer, 0, mpiComm, RC )
 
-     !----------------------------------------
-     ! ND51 MENU fields
+    !----------------------------------------
+    ! ND51 MENU fields
      !----------------------------------------
     call mpi_bcast( INPUT_OPT%DO_ND51, 1, mpi_logical, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%ND51_FILE, len(INPUT_OPT%ND51_FILE), mpi_character, 0, mpiComm, RC )
@@ -510,9 +510,9 @@ MODULE GIGC_MPI_WRAP
     call mpi_bcast( INPUT_OPT%ND51_LMIN, 1, mpi_integer, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%ND51_LMAX, 1, mpi_integer, 0, mpiComm, RC )
 
-     !----------------------------------------
-     ! ND51b MENU fields
-     !----------------------------------------
+    !----------------------------------------
+    ! ND51b MENU fields
+    !----------------------------------------
     call mpi_bcast( INPUT_OPT%DO_ND51b, 1, mpi_logical, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%ND51b_FILE, len(INPUT_OPT%ND51b_FILE), mpi_character, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%LND51b_HDF, 1, mpi_integer, 0, mpiComm, RC )
@@ -527,9 +527,9 @@ MODULE GIGC_MPI_WRAP
     call mpi_bcast( INPUT_OPT%ND51b_LMIN, 1, mpi_integer, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%ND51b_LMAX, 1, mpi_integer, 0, mpiComm, RC )
 
-     !----------------------------------------
-     ! ND63 MENU fields
-     !----------------------------------------
+    !----------------------------------------
+    ! ND63 MENU fields
+    !----------------------------------------
     call mpi_bcast( INPUT_OPT%DO_ND63, 1, mpi_logical, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%ND63_FILE, len(INPUT_OPT%ND63_FILE), mpi_character, 0, mpiComm, RC )
 !    call mpi_bcast( INPUT_OPT%ND63_TRACERS(:), INPUT_OPT%MAX_TRCS, mpi_integer, 0, mpiComm, RC )
@@ -539,9 +539,9 @@ MODULE GIGC_MPI_WRAP
     call mpi_bcast( INPUT_OPT%ND63_JMIN, 1, mpi_integer, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%ND63_JMAX, 1, mpi_integer, 0, mpiComm, RC )
 
-     !----------------------------------------
-     ! PROD LOSS MENU fields
-     !----------------------------------------
+    !----------------------------------------
+    ! PROD LOSS MENU fields
+    !----------------------------------------
     call mpi_bcast( INPUT_OPT%DO_SAVE_PL, 1, mpi_logical, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%LFAMILY, 1, mpi_logical, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%ND65, 1, mpi_integer, 0, mpiComm, RC )
@@ -554,9 +554,9 @@ MODULE GIGC_MPI_WRAP
     call mpi_bcast( INPUT_OPT%FAM_NMEM, INPUT_OPT%MAX_FAMS, mpi_integer, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%FAM_TYPE, len(INPUT_OPT%FAM_TYPE)*INPUT_OPT%MAX_FAMS, mpi_character, 0, mpiComm, RC )
 
-     !----------------------------------------
-     ! UNIX CMDS fields
-     !----------------------------------------
+    !----------------------------------------
+    ! UNIX CMDS fields
+    !----------------------------------------
     call mpi_bcast( INPUT_OPT%BACKGROUND, len(INPUT_OPT%BACKGROUND), mpi_character, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%REDIRECT, len(INPUT_OPT%REDIRECT), mpi_character, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%REMOVE_CMD, len(INPUT_OPT%REMOVE_CMD), mpi_character, 0, mpiComm, RC )
@@ -565,9 +565,9 @@ MODULE GIGC_MPI_WRAP
     call mpi_bcast( INPUT_OPT%UNZIP_CMD, len(INPUT_OPT%UNZIP_CMD), mpi_character, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%ZIP_SUFFIX, len(INPUT_OPT%ZIP_SUFFIX), mpi_character, 0, mpiComm, RC )
 
-     !----------------------------------------
-     ! NESTED GRID MENU fields
-     !----------------------------------------
+    !----------------------------------------
+    ! NESTED GRID MENU fields
+    !----------------------------------------
     call mpi_bcast( INPUT_OPT%LWINDO, 1, mpi_logical, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%LWINDO2x25, 1, mpi_logical, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%LWINDO_NA, 1, mpi_logical, 0, mpiComm, RC )
@@ -588,26 +588,26 @@ MODULE GIGC_MPI_WRAP
     call mpi_bcast( INPUT_OPT%NESTED_I0W, 1, mpi_integer, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%NESTED_J0W, 1, mpi_integer, 0, mpiComm, RC )
 
-     !----------------------------------------
-     ! BENCHMARK MENU fields
-     !----------------------------------------
+    !----------------------------------------
+    ! BENCHMARK MENU fields
+    !----------------------------------------
     call mpi_bcast( INPUT_OPT%LSTDRUN, 1, mpi_logical, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%STDRUN_INIT_FILE, len(INPUT_OPT%STDRUN_INIT_FILE), mpi_character, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%STDRUN_FINAL_FILE, len(INPUT_OPT%STDRUN_FINAL_FILE), mpi_character, 0, mpiComm, RC )
 
-     !----------------------------------------
-     ! ARCHIVED OH MENU fields
-     !----------------------------------------
+    !----------------------------------------
+    ! ARCHIVED OH MENU fields
+    !----------------------------------------
     call mpi_bcast( INPUT_OPT%OH_DIR, len(INPUT_OPT%OH_DIR), mpi_character, 0, mpiComm, RC )
 
-     !----------------------------------------
-     ! O3PL MENU fields
-     !----------------------------------------
+    !----------------------------------------
+    ! O3PL MENU fields
+    !----------------------------------------
     call mpi_bcast( INPUT_OPT%O3PL_DIR, len(INPUT_OPT%O3PL_DIR), mpi_character, 0, mpiComm, RC )
 
-     !----------------------------------------
-     ! MERCURY MENU fields
-     !----------------------------------------
+    !----------------------------------------
+    ! MERCURY MENU fields
+    !----------------------------------------
     call mpi_bcast( INPUT_OPT%ANTHRO_Hg_YEAR, 1, mpi_integer, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%HG_SCENARIO, len(INPUT_OPT%Hg_SCENARIO), mpi_character, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%USE_CHECKS, 1, mpi_logical, 0, mpiComm, RC )
@@ -617,9 +617,9 @@ MODULE GIGC_MPI_WRAP
     call mpi_bcast( INPUT_OPT%LGTMM, 1, mpi_logical, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%GTMM_RST_FILE, len(INPUT_OPT%GTMM_RST_FILE), mpi_character, 0, mpiComm, RC )
 
-     !----------------------------------------
-     ! CH4 MENU fields
-     !----------------------------------------
+    !----------------------------------------
+    ! CH4 MENU fields
+    !----------------------------------------
     call mpi_bcast( INPUT_OPT%LCH4BUD, 1, mpi_logical, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%LGAO, 1, mpi_logical, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%LCOL, 1, mpi_logical, 0, mpiComm, RC )
@@ -633,15 +633,15 @@ MODULE GIGC_MPI_WRAP
     call mpi_bcast( INPUT_OPT%LSOABS, 1, mpi_logical, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%LOTNAT, 1, mpi_logical, 0, mpiComm, RC )
 
-     !----------------------------------------
-     ! APM MENU fields
-     !----------------------------------------
+    !----------------------------------------
+    ! APM MENU fields
+    !----------------------------------------
     call mpi_bcast( INPUT_OPT%IFNUCL, 1, mpi_logical, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%FE0, 1, mpi_real8, 0, mpiComm, RC )
 
-     !----------------------------------------
-     ! POPS MENU fields
-     !----------------------------------------
+    !----------------------------------------
+    ! POPS MENU fields
+    !----------------------------------------
     call mpi_bcast( INPUT_OPT%POP_TYPE, 3, mpi_character, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%CHEM_PROCESS, 1, mpi_logical, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%POP_EMISFILE, 255, mpi_character, 0, mpiComm, RC )
@@ -656,7 +656,6 @@ MODULE GIGC_MPI_WRAP
     call mpi_bcast( INPUT_OPT%POP_DEL_Hw, 1, mpi_real8, 0, mpiComm, RC )
 
     ! MSL
-    call mpi_bcast( INPUT_OPT%MAX_DEP,  1,         mpi_integer,   0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%NUMDEP,   1,         mpi_integer,   0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%NDVZIND,  Input_Opt%MAX_DEP,    mpi_integer,   0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%IDDEP,    NDSTBIN,   mpi_integer,   0, mpiComm, RC )

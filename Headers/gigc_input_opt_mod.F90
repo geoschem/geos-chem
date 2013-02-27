@@ -37,6 +37,8 @@ MODULE GIGC_Input_Opt_Mod
      INTEGER                     :: MAX_TRCS
      INTEGER                     :: MAX_MEMB
      INTEGER                     :: MAX_FAMS
+     INTEGER                     :: MAX_DEP
+
 
      !----------------------------------------
      ! SIMULATION MENU fields 
@@ -525,7 +527,6 @@ MODULE GIGC_Input_Opt_Mod
      ! set in the init stage based on info 
      ! from file "input.geos". (mlong, 1/5/13)
      !----------------------------------------
-     INTEGER                    :: MAX_DEP
      INTEGER                    :: NUMDEP
      INTEGER,           POINTER :: NDVZIND(:)
      INTEGER,           POINTER :: IDDEP(:)
@@ -1214,13 +1215,12 @@ CONTAINS
     ! Fields for DRYDEP and DUST based on
     ! input from the file "input.geos"
     !----------------------------------------
-    ALLOCATE( Input_Opt%NDVZIND( MAX_DEP ), STAT=RC ) ! Drydep
-    ALLOCATE( Input_Opt%DEPNAME( MAX_DEP ), STAT=RC ) ! Drydep
-    ALLOCATE( Input_Opt%IDDEP(   NDSTBIN ), STAT=RC ) ! Dust_mod
-    ALLOCATE( Input_Opt%DUSTREFF(NDSTBIN ), STAT=RC ) ! Dust_mod
-    ALLOCATE( Input_Opt%DUSTDEN( NDSTBIN ), STAT=RC ) ! Dust_mod
+    ALLOCATE( Input_Opt%NDVZIND ( MAX_DEP ), STAT=RC ) ! Drydep
+    ALLOCATE( Input_Opt%DEPNAME ( MAX_DEP ), STAT=RC ) ! Drydep
+    ALLOCATE( Input_Opt%IDDEP   ( NDSTBIN ), STAT=RC ) ! Dust_mod
+    ALLOCATE( Input_Opt%DUSTREFF( NDSTBIN ), STAT=RC ) ! Dust_mod
+    ALLOCATE( Input_Opt%DUSTDEN ( NDSTBIN ), STAT=RC ) ! Dust_mod
 
-    Input_Opt%MAX_DEP                = 0
     Input_Opt%NUMDEP                 = 0
     Input_Opt%NDVZIND                = 0
     Input_Opt%IDDEP                  = 0

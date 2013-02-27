@@ -1219,8 +1219,11 @@
      &                    'read_tracer_menu (input_mod.f)' )
       ENDIF
      
+      ! Save N_TRACERS to Input_Opt
+      Input_Opt%N_TRACERS = N_TRACERS
+
       ! Initialize tracer arrays in tracer_mod.f
-      CALL INIT_TRACER
+      CALL INIT_TRACER( am_I_Root, Input_Opt, RC )
 
       !=================================================================
       ! Read tracer ID, emission ID, biomass ID, biofuel ID, & mol wt

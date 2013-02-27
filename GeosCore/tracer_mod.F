@@ -876,23 +876,34 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_TRACER
+      SUBROUTINE INIT_TRACER( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE ERROR_MOD,     ONLY : ALLOC_ERR
 #if   defined( APM ) 
-      USE APM_INIT_MOD,  ONLY : APM_NTRACERS
-      USE APM_INIT_MOD,  ONLY : LAPM
+      USE APM_INIT_MOD,       ONLY : APM_NTRACERS
+      USE APM_INIT_MOD,       ONLY : LAPM
 #endif
-
       USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY:
 !  15 Jul 2004 - R. Yantosca - Initial version
 !  25 Oct 2005 - R. Yantosca - Now allocate XNUMOL
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
 !  05 Mar 2012 - M. Payer    - Added ProTeX headers
+!  26 Feb 2013 - R. Yantosca - Now pass am_I_Root, Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -908,6 +919,9 @@
       ! We are using APM microphysics!
       !=================================================================
 
+      ! Assume success
+      RC        = GIGC_SUCCESS
+
       ! Force LAPM=T if we compile with APM=yes makefile option
       ! NOTE: LAPM is somewhat superfluous, since we now can use the
       ! C-preprocessor switch to activate the code for APM simulations
@@ -915,11 +929,11 @@
       LAPM      = .TRUE.
 
       ! Add additional tracers for APM
-      CALL APM_NTRACERS( N_TRACERS, N_APMTRAC1 )
+      CALL APM_NTRACERS( Input_Opt%N_TRACERS, N_APMTRAC1 )
       N_APMTRA  = N_APMTRAC1  
  
       ! N_TOT_TRC is the total # of G-C advected tracers + APM tracers
-      N_TOT_TRC = N_TRACERS + N_APMTRA 
+      N_TOT_TRC = Input_Opt%N_TRACERS + N_APMTRA 
       
 #else
 
@@ -928,18 +942,18 @@
       !=================================================================
 
       ! N_TOT_TRC is the total # of G-C advected tracers only
-      N_TOT_TRC = N_TRACERS
+      N_TOT_TRC = Input_Opt%N_TRACERS
 
 #endif
 
       !=================================================================
       ! Allocate arrays 
       !=================================================================
-      ALLOCATE( ID_TRACER( N_TRACERS ), STAT=AS )
+      ALLOCATE( ID_TRACER( Input_Opt%N_TRACERS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ID_TRACER' )
       ID_TRACER = 0
 
-      ALLOCATE( ID_EMITTED( N_TRACERS ), STAT=AS )
+      ALLOCATE( ID_EMITTED( Input_Opt%N_TRACERS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ID_EMITTED' )
       ID_EMITTED = 0
 
@@ -947,27 +961,27 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TCVV' )
       TCVV = 0d0
 
-      ALLOCATE( TRACER_NAME( N_TRACERS ), STAT=AS )
+      ALLOCATE( TRACER_NAME( Input_Opt%N_TRACERS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TRACER_NAME' )
       TRACER_NAME = ''
 
-      ALLOCATE( TRACER_MW_G( N_TRACERS ), STAT=AS )
+      ALLOCATE( TRACER_MW_G( Input_Opt%N_TRACERS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TRACER_MW_G' )
       TRACER_MW_G = 0d0
 
-      ALLOCATE( TRACER_MW_KG( N_TRACERS ), STAT=AS )
+      ALLOCATE( TRACER_MW_KG( Input_Opt%N_TRACERS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TRACER_MW_KG' )
       TRACER_MW_KG = 0d0
 
-      ALLOCATE( TRACER_COEFF( N_TRACERS, N_MEMBERS ), STAT=AS )
+      ALLOCATE( TRACER_COEFF( Input_Opt%N_TRACERS, N_MEMBERS ), STAT=AS)
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TRACER_COEFF' )
       TRACER_COEFF = 0d0
 
-      ALLOCATE( TRACER_CONST( N_TRACERS, N_MEMBERS ), STAT=AS )
+      ALLOCATE( TRACER_CONST( Input_Opt%N_TRACERS, N_MEMBERS ), STAT=AS)
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TRACER_CONST' )
       TRACER_CONST = ''
 
-      ALLOCATE( TRACER_N_CONST( N_TRACERS ), STAT=AS )
+      ALLOCATE( TRACER_N_CONST( Input_Opt%N_TRACERS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TRACER_N_CONST' )
       TRACER_N_CONST = 0
 

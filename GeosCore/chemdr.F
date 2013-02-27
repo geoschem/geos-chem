@@ -233,6 +233,7 @@
 !  25 Oct 2012 - R. Yantosca - Now add RC (success/failure) as an argument
 !  08 Nov 2012 - R. Yantosca - Now add Input_Opt (Input Options) as an argument
 !  11 Dec 2012 - R. Yantosca - Remove NI, NJ, NL arguments, they are not used
+!  26 Feb 2013 - M. Long     - Now pass Input_Opt to INPHOT as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -457,7 +458,7 @@
          !-------------------------------
          ! Initialize FAST-J photolysis
          !-------------------------------
-         CALL INPHOT( LLTROP, NPHOT, am_I_Root ) 
+         CALL INPHOT( LLTROP, NPHOT, Input_Opt, am_I_Root ) 
          
          !### Debug
          IF ( prtDebug ) THEN

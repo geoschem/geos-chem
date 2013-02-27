@@ -182,6 +182,7 @@
 !  11 Dec 2012 - M. Long     - Now call READ_DRYDEP_INPUTS from INIT_DRYDEP
 !  11 Dec 2012 - R. Yantosca - Now call INIT_WEIGHTSS from INIT_DRYDEP
 !  13 Dec 2012 - R. Yantosca - Remove reference to obsolete CMN_DEP_mod.F
+!  26 Feb 2013 - R. Yantosca - Now use Input_Opt fields where possible
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -382,6 +383,8 @@
 !  11 Dec 2012 - R. Yantosca - Remove FIRST variable, as we now read inputs
 !                              from disk in routine INIT_DRYDEP
 !  12 Dec 2012 - R. Yantosca - Now pass State_Met to DEPVEL
+!  26 Feb 2013 - R. Yantosca - Now use Input_Opt fields where possible.  This
+!                              facilitates connection to the GEOS-5 GCM.   
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -431,7 +434,12 @@
       ! Copy values from the Input Options object to local variables
       LNLPBL  = Input_Opt%LNLPBL
       LPRT    = Input_Opt%LPRT
-      NDVZIND = Input_Opt%NDVZIND(1:Input_Opt%NUMDEP)
+
+      ! Be careful only to copy NUMDEP values from Input_Opt%NDVZIND
+      ! to the NDVZIND local array.  This will prevent an OOB error.
+      DO N = 1, Input_Opt%NUMDEP
+         NDVZIND(N) = Input_Opt%NDVZIND(N)
+      ENDDO
 
       ! Call METERO to obtain meterological fields (all 1-D arrays)
       ! Added sfc pressure as PRESSU and 10m windspeed as W10 
@@ -4185,6 +4193,8 @@
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  27 Feb 2013 - R. Yantosca - Bug fix: now only copy NUMDEP values from
+!                              Input_Opt%NDVZIND to NDVZIND array.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5391,6 +5401,7 @@
       ENDIF
       ELSE
          NUMDEP  = Input_Opt%NUMDEP
+         print*, '### NOT ROOT: ', numdep
       ENDIF
 
       !=================================================================
@@ -5459,6 +5470,9 @@
       ! Calls INIT_WEIGHTSS to calculate the volume distribution of 
       ! sea salt aerosols (jaegle 5/11/11)
       CALL INIT_WEIGHTSS()
+      
+      ! Need to save NUMDEP into Input_Opt
+      Input_Opt%NUMDEP = NUMDEP
 
       END SUBROUTINE INIT_DRYDEP
 !EOC
