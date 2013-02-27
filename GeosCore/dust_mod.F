@@ -1897,8 +1897,6 @@
       ! Return if we have already allocated arrays
       IF ( IS_INIT ) RETURN
 
-      print*, '### in INIT_DUST!!!'
-
       ! Assume success
       RC     = GIGC_SUCCESS
 
