@@ -997,6 +997,8 @@
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !  30 Nov 2012 - R. Yantosca - Accept external DLON, DLAT from ESMF interface
 !  26 Feb 2013 - R. Yantosca - Now pass I_LO, J_LO to COMPUTE_GRID
+!  28 Feb 2013 - R. Yantosca - Bug fix for GEOS-5 interface: Now call 
+!                              Compute_Grid with 1..IIPAR, I..JJPAR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1107,11 +1109,11 @@
 
       ! Compute the horiziontal grid properties
       CALL Compute_Grid( am_I_Root = am_I_Root,     ! Are we on the root CPU?
-     &                   I1        = I_LO,          ! Min lon index, this CPU
-     &                   J1        = J_LO,          ! Min lat index, this CPU
+     &                   I1        = 1,             ! Min lon index, this CPU
+     &                   J1        = 1,             ! Min lat index, this CPU
      &                   L1        = 1,             ! Min lev index, this CPU
-     &                   I2        = I_HI,          ! Max lon index, this CPU
-     &                   J2        = J_HI,          ! Max lat index, this CPU
+     &                   I2        = IIPAR,         ! Max lon index, this CPU
+     &                   J2        = JJPAR,         ! Max lat index, this CPU
      &                   L2        = LLPAR,         ! Max lev index, this CPU
      &                   JSP       = JSP,           ! Lat index of South Pole
      &                   JNP       = JNP,           ! Lat index of North Pole
