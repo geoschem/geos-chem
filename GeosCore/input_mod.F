@@ -3919,6 +3919,7 @@
 !                              running with the traditional driver main.F
 !  03 Aug 2012 - R. Yantosca - IU_GEOS is now a global module variable
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!  28 Feb 2013 - R. Yantosca - Don't call IS_LAST_DAY_GOOD when using ESMF
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3967,8 +3968,28 @@
      &        'JUL--', 31i1, /, 'AUG--', 31i1, /, 'SEP--', 30i1, /,
      &        'OCT--', 31i1, /, 'NOV--', 30i1, /, 'DEC--', 31i1 )
 
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! When we connect to the GEOS-5 GCM via ESMF, we let the GCM
+      ! handle all timing and diagnostic output via the GEOS-5 History
+      ! Component.  Therefore we do not need to make sure that we have 
+      ! scheduled output for the last day of the run.  This can cause
+      ! a premature exit. (bmy, 2/28/13)
+      !-----------------------------------------------------------------
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Current practice in the std GEOS-Chem is to not let the run
+      ! proceed unless the user has scheduled output for the last day.
+      ! (bmy, 2/28/13)
+      !-----------------------------------------------------------------
+
       ! Make sure we have output at end of run
       CALL IS_LAST_DAY_GOOD
+#endif
 
       END SUBROUTINE READ_OUTPUT_MENU
 !EOC
