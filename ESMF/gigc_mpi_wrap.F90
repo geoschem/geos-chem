@@ -85,6 +85,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  04 Jan 2013 - M. Long     - Initial version
+!  28 Feb 2013 - R. Yantosca - Now MPI BCast the Input_Opt%haveImpRst field
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -655,13 +656,20 @@ CONTAINS
     call mpi_bcast( INPUT_OPT%POP_DEL_H, 1, mpi_real8, 0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%POP_DEL_Hw, 1, mpi_real8, 0, mpiComm, RC )
 
-    ! MSL
+    !----------------------------------------
+    ! DRYDEP and DUST fields from input.geos
+    !----------------------------------------
     call mpi_bcast( INPUT_OPT%NUMDEP,   1,         mpi_integer,   0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%NDVZIND,  Input_Opt%MAX_DEP,    mpi_integer,   0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%IDDEP,    NDSTBIN,   mpi_integer,   0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%DUSTREFF, NDSTBIN,   mpi_real8,     0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%DUSTDEN,  NDSTBIN,   mpi_integer,   0, mpiComm, RC )
     call mpi_bcast( INPUT_OPT%DEPNAME,  14*Input_Opt%MAX_DEP, mpi_character, 0, mpiComm, RC )
+
+    !----------------------------------------
+    ! GEOS-5 GCM INTERFACE fields
+    !----------------------------------------
+    call mpi_bcast( INPUT_OPT%haveImpRst, 1, mpi_logical, 0, mpiComm, RC )
 
   END SUBROUTINE GIGC_INPUT_BCAST
 !EOC

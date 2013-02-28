@@ -534,6 +534,12 @@ MODULE GIGC_Input_Opt_Mod
      REAL*8,            POINTER :: DUSTDEN(:)
      CHARACTER(LEN=14), POINTER :: DEPNAME(:)
 
+     !----------------------------------------
+     ! Fields for interface to GEOS-5 GCM
+     !----------------------------------------
+     LOGICAL                    :: haveImpRst
+
+
   END TYPE OptInput
 !
 ! !REMARKS:
@@ -548,6 +554,8 @@ MODULE GIGC_Input_Opt_Mod
 !  28 Nov 2012 - R. Yantosca - Add USE_OLSON_2001 logical flag
 !  26 Feb 2013 - M. Long     - Add extra fields from input.geos
 !  26 Feb 2013 - M. Long     - Bug fix: timesteps are now INTEGER, not LOGICAL
+!  28 Feb 2013 - R. Yantosca - Add haveImpRst field for GEOS-5 GCM interface
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -600,6 +608,7 @@ CONTAINS
 !  28 Nov 2012 - R. Yantosca - Now set USE_OLSON_2001 logical flag
 !  29 Nov 2012 - M. Payer    - Add Input_Opt%ITS_A_POPS_SIM
 !  26 Feb 2013 - M. Long     - Add extra fields from input.geos
+!  28 Feb 2013 - R. Yantosca - Add haveImpRst field for GEOS-5 GCM interface
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1227,6 +1236,11 @@ CONTAINS
     Input_Opt%DUSTREFF               = 0d0
     Input_Opt%DUSTDEN                = 0d0
     Input_Opt%DEPNAME                = ''
+
+    !----------------------------------------
+    ! Fields for interface to GEOS-5 GCM
+    !----------------------------------------
+    Input_Opt%haveImpRst             = .FALSE.
 
   END SUBROUTINE Set_GIGC_Input_Opt
 !EOC
