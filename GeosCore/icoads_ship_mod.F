@@ -231,6 +231,7 @@
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a algorithm
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  28 Feb 2013 - C. Holmes & G. Vinken - Bug fix for molecular weight of NOx
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -317,6 +318,13 @@
 
          ! Cast to REAL*8 before regridding
          GEOS_1x1(:,:,1) = ARRAY(:,:,1)
+
+         ! Convert kg(N)/month -> kg(NO2)/month
+         ! NOx has molecular weight 46 g/mol in GEOS-Chem 
+         ! (cdh, gvinken, 2/28/13)
+         IF (SPECIES .eq. 1 ) THEN
+            GEOS_1x1 = GEOS_1x1 * 46d0 / 14d0
+         ENDIF
 
          ! Convert [kg S/month] to [kg SO2/month]
          IF ( SPECIES .eq. 3 ) THEN
