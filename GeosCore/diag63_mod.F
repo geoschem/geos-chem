@@ -131,7 +131,8 @@
       USE TRACERID_MOD, ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNOX  
       USE TRACERID_MOD, ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
       USE TRACERID_MOD, ONLY : IDTR4N2, IDTSALA, IDTSALC 
-      USE DIAG_MOD,     ONLY : AD63     
+      USE DIAG_MOD,     ONLY : AD63,    AD63_COUNT     
+      USE ERROR_MOD,    ONLY : SAFE_DIV
 
       USE CMN_FJ_MOD         ! FAST-J stuff, includes CMN_SIZE
       USE JV_CMN_MOD         ! ODAER, QAA, QAA_AOD (clh)
@@ -156,7 +157,7 @@
       INTEGER                  :: IOS,  GMTRC, GMNL, I, J, K, L 
       INTEGER                  :: N,    R,     H,    W, X, Y
       INTEGER                  :: NHMS, TS_DIAG
-      REAL*8                   :: TAU, TMP,   SCALEAODnm
+      REAL*8                   :: TAU1, TAU0, TMP,   SCALEAODnm
       REAL*8                   :: Q( ND63_NI, ND63_NJ, 1)
       CHARACTER(LEN=16)        :: STAMP
       CHARACTER(LEN=40)        :: CATEGORY
@@ -223,7 +224,10 @@
  110  FORMAT( '     - DIAG63: Saving timeseries at ', a )
 
       ! Time for BPCH file
-      TAU  = GET_TAU()
+      TAU1  = GET_TAU()
+      
+      ! Time for start of averaging period
+      TAU0  = TAU1 - (ND63_FREQ / 60d0) 
 
       ! Loop over tracers
       DO W = 1, ND63_N_TRACERS
@@ -246,7 +250,10 @@
                J = JOFF + Y
             DO X = 1, ND63_NI
                I = GET_I( X )
-               Q(X,Y,1) = AD63(I,J,W)
+               ! Normalize by AD63_COUNT, 
+               ! the number of times diagnostics are summed
+               Q(X,Y,1) = SAFE_DIV( DBLE(AD63(I,J,W)), DBLE(AD63_COUNT),
+     &                              0d0 )
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
@@ -257,12 +264,22 @@
          CALL BPCH2( IU_ND63,      MODELNAME,    LONRES,   
      &               LATRES,       HALFPOLAR,    CENTER180, 
      &               CATEGORY,     GMTRC,        UNIT,      
-     &               TAU,          TAU,          RESERVED,  
+     &               TAU0,         TAU1,         RESERVED,  
      &               ND63_NI,      ND63_NJ,      1,  
      &               ND63_IMIN+I0, ND63_JMIN+J0, 1, 
      &               REAL( Q(1:ND63_NI, 1:ND63_NJ, 1) ) )
       ENDDO
             
+      !=================================================================
+      ! Reset the AD63 to zero
+      !=================================================================
+
+      ! Zero all elements
+      AD63(:,:,:) = 0d0
+
+      ! Reset the counter
+      AD63_COUNT = 0d0
+
       !=================================================================
       ! Close the file at the proper time
       !=================================================================

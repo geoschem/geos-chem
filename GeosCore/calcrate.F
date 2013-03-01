@@ -121,7 +121,7 @@
       USE PBL_MIX_MOD,     ONLY : GET_PBL_TOP_L
       USE PRESSURE_MOD,    ONLY : GET_PEDGE     
       USE COMODE_MOD,      ONLY : VOLUME
-      USE DIAG_MOD,        ONLY : AD32_an, AD36,   AD63
+      USE DIAG_MOD,        ONLY : AD32_an, AD36,   AD63,  AD63_COUNT
       USE DIAG63_MOD,      ONLY : DO_SAVE_DIAG63
       USE EMISSIONS_MOD,   ONLY : NOx_SCALING      
       USE PARANOX_MOD,     ONLY : INTERPOLATE_LUT2 !(mpayer, 2/7/12)
@@ -1388,8 +1388,6 @@ c new OH+CO rate from JPL2006.
                ! Surface area of grid box
                AREA_CM2 = GET_AREA_CM2( IX, IY, IZ )
    
-               NN = IDTNOX
-
                ! Reset
                SHIP = 0D0
 
@@ -1634,18 +1632,35 @@ c new OH+CO rate from JPL2006.
      &                                ( SHIP * FRACTION_NOx )
                ENDIF
 
-               ! ND63 = save the fraction of NOx remaining and integrated OPE +
-               ! extra stuff
-               ! Unit for 3-5 is kg/box/timestep
+               ! ND63 = save the fraction of NOx remaining, integrated OPE
+               ! and total emissions of NOx and O3
                IF ( DO_SAVE_DIAG63 ) THEN
-                  AD63(IX,IY,1) = fraction_nox
-                  AD63(IX,IY,2) = int_ope
-                  AD63(IX,IY,3) = SHIP * FRACTION_NOx / XNUMOL(IDTNOX) * 
-     &                 AREA_CM2 * DTSRCE
-                  AD63(IX,IY,4) = SHIP * (1D0 - FRACTION_NOx) * INT_OPE
-     &                 / XNUMOL(IDTOX) * AREA_CM2 * DTSRCE
-                  AD63(IX,IY,5) = SHIP / XNUMOL(IDTNOX) * 
-     &                 AREA_CM2 * DTSRCE
+
+                  ! Surviving fraction of emitted NOx, mol/mol
+                  AD63(IX,IY,1) = AD63(IX,IY,1) + FRACTION_NOx
+
+                  ! Integraed OPE, mol/mol
+                  AD63(IX,IY,2) = AD63(IX,IY,2) + INT_OPE
+
+                  ! Surviving NOx, molec/cm2 
+                  ! (converted to molec/cm2/s in diag63_mod)
+                  AD63(IX,IY,3) = AD63(IX,IY,3) + 
+     &                 SHIP * FRACTION_NOx 
+
+                  ! Ozone produced, molec/cm2
+                  ! (converted to molec/cm2/s in diag63_mod)
+                  AD63(IX,IY,4) = AD63(IX,IY,4) + 
+     &                 SHIP * (1D0 - FRACTION_NOx) * INT_OPE
+
+                  ! NOx emitted at ship stack, molec/cm2
+                  ! (converted to molec/cm2/s in diag63_mod)
+                  AD63(IX,IY,5) = AD63(IX,IY,5) + SHIP 
+
+                  ! Increment counter, only once per time step
+                  IF ( (IX == 1) .and. (IY==1) .and. (IZ == 1)) THEN
+                     AD63_COUNT = AD63_COUNT + 1d0
+                  ENDIF
+
                ENDIF
 
 !               JLOOP   = JLOP(IX,IY,1)

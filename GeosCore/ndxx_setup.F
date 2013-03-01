@@ -62,6 +62,7 @@
       USE DIAG_MOD,        ONLY : AD44,        AD45,        LTOTH
       USE DIAG_MOD,        ONLY : CTOTH,       AD46,        AD47
       USE DIAG_MOD,        ONLY : AD52,        AD54,        AD63
+      USE DIAG_MOD,        ONLY : AD63_COUNT
       USE DIAG_MOD,        ONLY : AD19,        AD58,        AD60
       USE DIAG_MOD,        ONLY : AD55,        AD66,        AD67
       USE DIAG_MOD,        ONLY : AD68,        AD69,        CTO3
@@ -1141,6 +1142,11 @@
 
          ALLOCATE( AD63( IIPAR, JJPAR, 5), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD63' )
+         AD63 = 0d0
+
+         ALLOCATE( AD63_COUNT, STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD63_COUNT' )
+         AD63_COUNT = 0d0
 
       ENDIF
 
