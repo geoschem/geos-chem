@@ -3326,6 +3326,8 @@
 !                              we are connecting to the GEOS-5 GCM
 !  11 Dec 2012 - R. Yantosca - ACCEPT_DATE_TIME_FROM_ESMF has now been renamed
 !                              to ACCEPT_EXTERNAL_DATE_TIME
+!  01 Mar 2013 - R. Yantosca - Now set TS_CONV to the same value as TS_DYN
+!                              when connecting to the GEOS-5 GCM.         
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3435,15 +3437,20 @@
       ! both the input.geos file and the ESMF resource file, so that
       ! both files are consistent with each other.
       ! (bmy, 12/6/12)
+      !
+      ! NOTE: We also need to set TS_CONV to the same value as TS_DYN 
+      ! in order to avoid triggering an error in CHECK_TIMESTEPS
+      ! when connecting GEOS-Chem to the GEOS-5 GCM. (bmy, 3/1/13)
       !-----------------------------------------------------------------
       
       ! Save to local variables for printing below
       TS_DYN                = Input_Opt%TS_DYN
 
       ! Pass chemistry timestep to time_mod.F
-      CALL Accept_External_Date_Time( am_I_Root    = am_I_Root, 
-     &                                value_TS_DYN = TS_DYN,
-     &                                RC           = RC         )
+      CALL Accept_External_Date_Time( am_I_Root     = am_I_Root, 
+     &                                value_TS_DYN  = TS_DYN,
+     &                                value_TS_CONV = TS_DYN,
+     &                                RC            = RC         )
      &                                 
 
 #else
