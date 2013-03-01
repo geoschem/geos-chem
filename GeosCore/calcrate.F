@@ -1413,7 +1413,7 @@ c new OH+CO rate from JPL2006.
                ELSE IF ( LICOADSSHIP ) THEN
 
                   ! Get ICOADS  emissions for NOx [molec/cm2/s]
-                  SHIP = GET_ICOADS_SHIP( IX, IY, NN, 
+                  SHIP = GET_ICOADS_SHIP( IX, IY, IDTNOX, 
      &                        MOLEC_CM2_S=.TRUE. )
                   
                ENDIF
@@ -1432,7 +1432,7 @@ c new OH+CO rate from JPL2006.
                   IF (GET_EUROPE_MASK( IX, IY ) > 0d0) THEN
            
                      ! Get SHIP EMEP emissions for NOx [molec/cm2/s]
-                     SHIP = GET_EMEP_ANTHRO( IX, IY, NN, SHIP=.TRUE.)
+                     SHIP = GET_EMEP_ANTHRO( IX, IY, IDTNOX,SHIP=.TRUE.)
                   ENDIF
                ENDIF
 
@@ -1443,10 +1443,6 @@ c new OH+CO rate from JPL2006.
 !     &                     SHIP
 !               ENDIF  
                   
-               ! Convert molec/cm2/s to kg/box/timestep to get same
-               ! units as EMISRN, ie default GEIA emiss (phs, 7/9/09)
-               SHIP = SHIP * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
-         
                ! Add possible scaling of NOx emissions
                SHIP = SHIP * NOx_SCALING
 
@@ -1455,7 +1451,7 @@ c new OH+CO rate from JPL2006.
                CALL INTERPOLATE_LUT2( IX,                IY,           
      &                             CBLK(KLOOP,IDO3),  CBLK(KLOOP,IDNO),
      &                             CBLK(KLOOP,IDNO2), DENAIR(KLOOP),
-     &                             fraction_nox,      int_ope )
+     &                             FRACTION_NOx,      INT_OPE )
 
                !===========================================================
                ! STORE EMISSIONS DIRECTLY IN REMIS ARRAY, based on setemis.f
@@ -1488,15 +1484,14 @@ c new OH+CO rate from JPL2006.
                !========================================================
 
                ! COEF1 = molecules of emission species / molecules of tracer
-           
-               COEF1 = 1.0 + CTRMB(NN, IDEMIS(NN))   !NN is IDTNOX
+               COEF1 = 1.0 + CTRMB(IDTNOX, IDEMIS(IDTNOX))
 
 
                ! Loop over the boundary layer
                DO L = 1, TOP
                   JLOOP   = JLOP(IX,IY,L)
                   EMIS_BL = 0d0
-                  
+
                   IF ( JLOOP /= 0 ) THEN
                      
                      ! Thickness of level L [mb]
@@ -1505,25 +1500,23 @@ c new OH+CO rate from JPL2006.
                      
                      ! Add option for non-local PBL (Lin, 03/31/09)
                      IF (LNLPBL) DELTPRES = TOTPRES
-                     
-                     ! Of the total anthro NOx, the fraction DELTPRES/TOTPRES
-                     ! goes into level L, since that is the fraction of the
-                     ! boundary layer occupied by level L.  Also divide NOx 
-                     ! by COEF1 to convert from [molec NOx/box/s] to 
-                     ! [molec NO/box/s], which is really what gets emitted.
-                     !
-                     ! Convert SHIP (kg/box/timestep) to the REMIS format 
-                     ! (molec NO/box/s) and multiply by the fraction of NOx
-                     ! remaining
-                    
-                     EMIS_BL = ( (SHIP * fraction_nox * XNUMOL(NN)
-     &                             / DTSRCE )    
-     &                             / COEF1  ) * ( DELTPRES / TOTPRES )
-                    
-                     ! Convert anthro NOx emissions from [molec NO/box/s]
-                     ! to [molec NO/cm3/s] and add to the REMIS array
-                     REMIS(JLOOP,IDENOX) = REMIS(JLOOP,IDENOX) + 
-     &                                     EMIS_BL / VOLUME(JLOOP)
+
+                     ! Of the total ship NOx, the fraction FRACTION_NOX
+                     ! survives after plume dilution and chemistry. 
+                     ! The fraction DELTPRES/TOTPRES goes into level L,
+                     ! since that is the fraction of the boundary layer
+                     ! mass occupied by level L. Also,  
+                     ! since NOx is a lumped species, divide NOx 
+                     ! by COEF1 to convert from molec NOx to molec NO, 
+                     ! which is really what gets emitted.
+                     ! Final units: molec(NO)/cm2/s
+                     EMIS_BL =  SHIP * FRACTION_NOX * 
+     &                    ( DELTPRES / TOTPRES ) / COEF1
+
+                     ! Convert anthro NOx emissions from [molec NO/cm2/s]
+                     ! to [molec NO/cm3/s] and store in the REMIS array                     
+                     REMIS(JLOOP,IDENOX) = REMIS(JLOOP,IDENOX) +
+     &                    EMIS_BL * AREA_CM2 / VOLUME(JLOOP)
                   ENDIF
                ENDDO
 
@@ -1532,10 +1525,8 @@ c new OH+CO rate from JPL2006.
                ! Distribute emissions thru the entire boundary layer
                !========================================================
 
-               NN = IDTHNO3
-
                ! COEF1 = molecules of emission species / molecules of tracer
-               COEF1 = 1.0 + CTRMB(NN, IDEMIS(NN))   
+               COEF1 = 1.0 + CTRMB(IDTHNO3, IDEMIS(IDTHNO3))   
 
                ! Loop over the boundary layer
                DO L = 1, TOP
@@ -1551,24 +1542,22 @@ c new OH+CO rate from JPL2006.
                      ! Add option for non-local PBL (Lin, 03/31/09)
                      IF (LNLPBL) DELTPRES = TOTPRES
                      
-                     ! Of the total ship HNO3, the fraction DELTPRES/TOTPRES
-                     ! goes into level L, since that is the fraction of the
-                     ! boundary layer occupied by level L.  Also divide HNO3 
-                     ! by COEF1 to convert from [molec NOx/box/s] to 
-                     ! [molec NO/box/s], which is really what gets emitted.
-                     !
-                     ! Convert SHIP (kg/box/timestep) to the REMIS format 
-                     ! (molec NO/box/s) and multiply by the 1 - fraction of 
-                     ! NOx remaining
-                    
-                     EMIS_BL = ( (SHIP*(1D0 - fraction_nox)* XNUMOL(NN) 
-     &                           / DTSRCE )    
-     &                           / COEF1   ) * ( DELTPRES / TOTPRES )
-                    
-                     ! Convert ship HNO3 emissions from [molec NO/box/s]
-                     ! to [molec NO/cm3/s] and store in the REMIS array
+                     ! Of the total ship NOx, the fraction (1d0-FRACTION_NOX)
+                     ! is converted to HNO3 during plume dilution and chemistry. 
+                     ! The fraction DELTPRES/TOTPRES goes into level L,
+                     ! since that is the fraction of the boundary layer
+                     ! mass occupied by level L. Also, divide by COEF1 
+                     ! to convert from [molec tracer/cm2/s] to 
+                     ! [molec chem species/cm2/s].
+                     ! Final units: molec(HNO3)/cm2/s
+                     EMIS_BL = SHIP * (1D0 - FRACTION_NOX) * 
+     &                    ( DELTPRES / TOTPRES ) / COEF1 
+
+                     ! Convert ship HNO3 emissions from [molec HNO3/cm2/s]
+                     ! to [molec HNO3/cm3/s] and store in the REMIS array
                      REMIS(JLOOP,IDEHNO3) = REMIS(JLOOP,IDEHNO3) + 
-     &                                      EMIS_BL / VOLUME(JLOOP)
+     &                    EMIS_BL * AREA_CM2 / VOLUME(JLOOP)
+
                   ENDIF
                ENDDO
    
@@ -1577,10 +1566,8 @@ c new OH+CO rate from JPL2006.
                ! Distribute emissions thru the entire boundary layer
                !========================================================
 
-               NN = IDTOX
-
                ! COEF1 = molecules of emission species / molecules of tracer
-               COEF1 = 1.0 + CTRMB(NN, IDEMIS(NN))   
+               COEF1 = 1.0 + CTRMB(IDTOX, IDEMIS(IDTOX))   
 
                ! Loop over the boundary layer
                DO L = 1, TOP
@@ -1596,23 +1583,21 @@ c new OH+CO rate from JPL2006.
                      ! Add option for non-local PBL (Lin, 03/31/09)
                      IF (LNLPBL) DELTPRES = TOTPRES
                      
-                     ! Of the total ship O3, the fraction DELTPRES/TOTPRES
-                     ! goes into level L, since that is the fraction of the
-                     ! boundary layer occupied by level L.  Also divide O3 
-                     ! by COEF1 to convert from [molec NOx/box/s] to 
-                     ! [molec NO/box/s], which is really what gets emitted.
-                     !
-                     ! Convert SHIP (kg/box/timestep) to the REMIS format 
-                     ! (molec NO/box/s)
-!                     EMIS_BL = ( (int_ope * fraction_nox * SHIP    
-                     EMIS_BL = ( (int_ope * (1D0 - fraction_nox) * SHIP  
-     &                           * XNUMOL(NN) / DTSRCE )    
-     &                           / COEF1   ) * ( DELTPRES / TOTPRES )
-                    
-                     ! Convert ship O3 emissions from [molec NO/box/s]
-                     ! to [molec NO/cm3/s] and store in the REMIS array
+                     ! Of the total ship NOx, the fraction (1d0-FRACTION_NOX)*INT_OPE
+                     ! is converted to Ox during plume dilution and chemistry. 
+                     ! The fraction DELTPRES/TOTPRES goes into level L,
+                     ! since that is the fraction of the boundary layer
+                     ! mass occupied by level L. Also, divide by COEF1 
+                     ! to convert from [molec tracer/cm2/s] to 
+                     ! [molec chem species/cm2/s].
+                     ! Final units: molec(HNO3)/cm2/s
+                     EMIS_BL = SHIP * (1D0 - FRACTION_NOX) * INT_OPE *
+     &                    ( DELTPRES / TOTPRES ) / COEF1 
+
+                     ! Convert ship Ox emissions from [molec Ox/cm2/s]
+                     ! to [molec Ox/cm3/s] and store in the REMIS array
                      REMIS(JLOOP,IDEOX) = REMIS(JLOOP,IDEOX) + 
-     &                                    EMIS_BL / VOLUME(JLOOP)
+     &                    EMIS_BL * AREA_CM2 / VOLUME(JLOOP)
 
                      !%%% DO NOT LET NEGATIVE SHIP EMISSIONS GET  
                      !%%% ARCHIVED INTO REMIS (bmy, mpayer, 6/20/12)
@@ -1629,24 +1614,24 @@ c new OH+CO rate from JPL2006.
                !and convert to [molec/cm2/s] in DIAG3.F
                IF ( ND36 > 0 ) THEN
 
-                  AD36(IX,IY,IDEHNO3) = AD36(IX,IY,IDEHNO3) + SHIP * 
-     &                                  (1D0 - fraction_nox) *
-     &                                  XNUMOL(IDTHNO3) / AREA_CM2
+                  AD36(IX,IY,IDEHNO3) = AD36(IX,IY,IDEHNO3) + 
+     &                                  SHIP * (1D0 - FRACTION_NOx) * 
+     &                                  DTSRCE
 
-                  AD36(IX,IY,IDEOX)  = AD36(IX,IY,IDEOX) + SHIP * 
-     &                                 int_ope * (1D0 - fraction_nox)* 
-     &                                 XNUMOL(IDTOX) / AREA_CM2
+                  AD36(IX,IY,IDEOX)  = AD36(IX,IY,IDEOX) + 
+     &                          SHIP * (1D0 - FRACTION_NOx) * INT_OPE * 
+     &                                  DTSRCE 
     
-                  AD36(IX,IY,IDENOX) = AD36(IX,IY,IDENOX) + SHIP * 
-     &                                 fraction_nox * 
-     &                                 XNUMOL(IDTNOX) / AREA_CM2
+                  AD36(IX,IY,IDENOX) = AD36(IX,IY,IDENOX) + 
+     &                                 SHIP * FRACTION_NOx * 
+     &                                 DTSRCE
+
                ENDIF
 
                ! ND32 = save anthro NOx for levels L=1,NOXEXTENT [molec/cm2/s]
                IF ( ND32 > 0 ) THEN
                   AD32_an(IX,IY,IZ) = AD32_an(IX,IY,IZ) + 
-     &                 ( SHIP * fraction_nox * XNUMOL(NN) / 
-     &                                 ( DTSRCE * AREA_CM2 ) )   
+     &                                ( SHIP * FRACTION_NOx )
                ENDIF
 
                ! ND63 = save the fraction of NOx remaining and integrated OPE +
@@ -1655,9 +1640,12 @@ c new OH+CO rate from JPL2006.
                IF ( DO_SAVE_DIAG63 ) THEN
                   AD63(IX,IY,1) = fraction_nox
                   AD63(IX,IY,2) = int_ope
-                  AD63(IX,IY,3) = fraction_nox * SHIP
-                  AD63(IX,IY,4) = int_ope * (1D0 - fraction_nox) * SHIP
-                  AD63(IX,IY,5) = SHIP
+                  AD63(IX,IY,3) = SHIP * FRACTION_NOx / XNUMOL(IDTNOX) * 
+     &                 AREA_CM2 * DTSRCE
+                  AD63(IX,IY,4) = SHIP * (1D0 - FRACTION_NOx) * INT_OPE
+     &                 / XNUMOL(IDTOX) * AREA_CM2 * DTSRCE
+                  AD63(IX,IY,5) = SHIP / XNUMOL(IDTNOX) * 
+     &                 AREA_CM2 * DTSRCE
                ENDIF
 
 !               JLOOP   = JLOP(IX,IY,1)
