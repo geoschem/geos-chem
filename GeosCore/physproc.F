@@ -104,6 +104,7 @@
 !                              running with the traditional driver main.F
 !  30 Jul 2012 - R. Yantosca - Added ProTeX headers
 !  27 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOSmid
+!  01 Mar 2013 - R. Yantosca - Now set RC to GIGC_SUCCESS for default
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -136,6 +137,9 @@
       !=================================================================
       ! PHYSPROC begins here!
       !=================================================================
+
+      ! Assume success
+      RC      = GIGC_SUCCESS
 
       ! Copy values from Input_Opt to local variables
       LKPP    = Input_Opt%LKPP

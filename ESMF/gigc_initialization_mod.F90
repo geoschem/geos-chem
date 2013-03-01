@@ -286,6 +286,7 @@ CONTAINS
 !  26 Feb 2013 - M. Long     - Now read ASCII input files on root CPU and 
 !                              broadcast to other CPUs.
 !  26 Feb 2013 - R. Yantosca - Cosmetic changes
+!  01 Mar 2013 - R. Yantosca - Need to move the definition of prtDebug higher
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -300,8 +301,11 @@ CONTAINS
     !=======================================================================
 
     ! Initialize
-    RC    = GIGC_SUCCESS
-    DTIME = tsChem
+    RC       = GIGC_SUCCESS
+    DTIME    = tsChem
+
+    ! Determine if we have to print debug output
+    prtDebug = ( Input_Opt%LPRT .and. am_I_Root )
 
     if (am_I_Root) write(*,*) 'GRID :: JM_WORLD :: ', value_JM_WORLD
     if (am_I_Root) write(*,*) 'GRID :: IM_WORLD :: ', value_IM_WORLD
@@ -416,9 +420,6 @@ CONTAINS
 
     ! Zero diagnostic counters
     CALL Initialize( 3, am_I_Root )
-
-    ! Determine if we have to print debug output
-    prtDebug = ( Input_Opt%LPRT .and. am_I_Root )
 
     ! Initialize derived-type objects for meteorology & chemistry states
     CALL GIGC_Init_All( am_I_Root, Input_Opt, State_Chm, State_Met, RC )

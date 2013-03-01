@@ -3326,8 +3326,6 @@
 !                              we are connecting to the GEOS-5 GCM
 !  11 Dec 2012 - R. Yantosca - ACCEPT_DATE_TIME_FROM_ESMF has now been renamed
 !                              to ACCEPT_EXTERNAL_DATE_TIME
-!  01 Mar 2013 - R. Yantosca - Now set TS_CONV to the same value as TS_DYN
-!                              when connecting to the GEOS-5 GCM.         
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3437,10 +3435,6 @@
       ! both the input.geos file and the ESMF resource file, so that
       ! both files are consistent with each other.
       ! (bmy, 12/6/12)
-      !
-      ! NOTE: We also need to set TS_CONV to the same value as TS_DYN 
-      ! in order to avoid triggering an error in CHECK_TIMESTEPS
-      ! when connecting GEOS-Chem to the GEOS-5 GCM. (bmy, 3/1/13)
       !-----------------------------------------------------------------
       
       ! Save to local variables for printing below
@@ -3449,7 +3443,6 @@
       ! Pass chemistry timestep to time_mod.F
       CALL Accept_External_Date_Time( am_I_Root     = am_I_Root, 
      &                                value_TS_DYN  = TS_DYN,
-     &                                value_TS_CONV = TS_DYN,
      &                                RC            = RC         )
      &                                 
 
@@ -3514,11 +3507,14 @@
 !
 ! !USES:
 !
-      USE ERROR_MOD,   ONLY : ERROR_STOP
-      USE LOGICAL_MOD, ONLY : LCONV, LTURB
-      USE LOGICAL_MOD, ONLY : LNLPBL        ! (Lin, 03/31/09)
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE LOGICAL_MOD,        ONLY : LCONV, LTURB
+      USE LOGICAL_MOD,        ONLY : LNLPBL        ! (Lin, 03/31/09)
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE TIME_MOD,           ONLY : Accept_External_Date_Time
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -3544,6 +3540,8 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!  01 Mar 2013 - R. Yantosca - Now set TS_CONV to the same value as TS_DYN
+!                              when connecting to the GEOS-5 GCM.         
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3602,6 +3600,27 @@
       Input_Opt%LCONV   = LCONV
       Input_Opt%LTURB   = LTURB
       Input_Opt%LNLPBL  = LNLPBL
+
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! If we are connecting to the ESMF interface, we need to set
+      ! the convection timestep equal to the dynamic timestep in
+      ! order to avoid tripping an error message in the routine
+      ! CHECK_TIMESTEPS. (bmy, 3/1/13)
+      !-----------------------------------------------------------------
+      
+      ! Set TS_CONV from Input_Opt%TS_DYN
+      TS_CONV           = Input_Opt%TS_DYN
+
+      ! Pass chemistry timestep to time_mod.F
+      CALL Accept_External_Date_Time( am_I_Root     = am_I_Root, 
+     &                                value_TS_CONV = TS_CONV,
+     &                                RC            = RC         )
+     &                                 
+#endif
+
       Input_Opt%TS_CONV = TS_CONV
 
       ! Return success
