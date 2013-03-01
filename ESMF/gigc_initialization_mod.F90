@@ -345,7 +345,9 @@ CONTAINS
     IF ( .not. am_I_Root ) THEN 
 
        ! Initialize dry deposition
-       CALL INIT_DRYDEP( am_I_Root, Input_Opt, RC )
+       IF ( Input_Opt%LDRYD ) THEN
+          CALL INIT_DRYDEP( am_I_Root, Input_Opt, RC )
+       ENDIF
 
        ! Initialize tracer quantities
        CALL INIT_TRACER( am_I_Root, Input_Opt, RC )
