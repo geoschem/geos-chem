@@ -345,6 +345,7 @@
 !                              derived type object
 !  15 Nov 2012 - R. Yantosca - Added ProTeX headers
 !  04 Mar 2013 - R. Yantosca - Remove call to INIT_CARBON
+!   4 Mar 2013 - R. Yantosca - Now pass Input_Opt to SOA_CHEMISTRY
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -524,7 +525,7 @@
          ! Compute SOA chemistry
          ! NOTE: This is SOA production from the reversible mechanism only 
          ! (tmf, 12/07/07) 
-         CALL SOA_CHEMISTRY( am_I_Root, State_Met )
+         CALL SOA_CHEMISTRY( am_I_Root, Input_Opt, State_Met )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMCARBON: a SOA_CHEM' )
          ENDIF
@@ -1765,7 +1766,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE SOA_CHEMISTRY( am_I_Root, State_Met )
+      SUBROUTINE SOA_CHEMISTRY( am_I_Root, Input_Opt, State_Met )
 !
 !******************************************************************************
 !  Subroutine SOA_CHEMISTRY performs SOA formation.  This code is from the
@@ -1844,6 +1845,7 @@
       ! References to F90 modules
       USE DIAG_MOD,           ONLY : AD07_HC
       USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE LOGICAL_MOD,        ONLY : LPRT   !(bmy, 4/21/10)
       USE TRACER_MOD,         ONLY : STT 
@@ -1862,6 +1864,7 @@
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !LOCAL VARIABLES:
@@ -1946,7 +1949,9 @@
 
          ! Compute oxidation of hydrocarbons by O3, OH, NO3
          ! ALPHA is a module variable now (ccc, 2/2/10)
-         CALL CHEM_NVOC( I, J, L, KO3, KOH, KNO3, GM0, State_Met )
+         CALL CHEM_NVOC( I,   J,         L, 
+     &                   KO3, KOH,       KNO3, 
+     &                   GM0, Input_Opt, State_Met )
 
          !==============================================================
          ! Equilibrium calculation between GAS (SOG) and Aerosol (SOA)
@@ -3222,7 +3227,9 @@ c
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE CHEM_NVOC( I, J, L, KO3, KOH, KNO3, GM0, State_Met )
+      SUBROUTINE CHEM_NVOC( I,   J,         L, 
+     &                      KO3, KOH,       KNO3, 
+     &                      GM0, Input_Opt, State_Met )
 !
 !******************************************************************************
 !  Subroutine CHEM_NVOC computes the oxidation of Hydrocarbon by O3, OH, and 
@@ -3253,6 +3260,7 @@ c
 !******************************************************************************
 !
       ! References to F90 kmodules
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_MONTH
       USE TRACER_MOD,         ONLY : STT
@@ -3264,6 +3272,7 @@ c
       INTEGER,        INTENT(IN)    :: I, J, L
       REAL*8,         INTENT(IN)    :: KO3(MHC), KOH(MHC), KNO3(MHC)
       REAL*8,         INTENT(INOUT) :: GM0(MNOX,MPROD,MHC)
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 
       ! Local variables
@@ -3280,9 +3289,9 @@ c
       DTCHEM  = GET_TS_CHEM() * 60d0 
 
       ! Get offline OH, NO3, O3 concentrations [molec/cm3]
-      OHMC    = GET_OH(  I, J, L, State_Met ) 
-      TTNO3   = GET_NO3( I, J, L, State_Met )
-      TTO3    = GET_O3(  I, J, L, State_Met ) 
+      OHMC    = GET_OH(  I, J, L, Input_Opt, State_Met ) 
+      TTNO3   = GET_NO3( I, J, L, Input_Opt, State_Met )
+      TTO3    = GET_O3(  I, J, L, Input_Opt, State_Met ) 
 
       ! 6 classes NVOC concentrations followed by 4 primary species
       NMVOC(1) = STT(I,J,L,IDTALPH)
@@ -3374,7 +3383,7 @@ c
 
 
             ! Get ISOP lost to rxn with OH [kg]
-            DOH = GET_DOH( I, J, L )
+            DOH = GET_DOH( I, J, L, Input_Opt )
 
             ! Consider only OH oxidation for isoprene.  Also convert 
             ! from mass of carbon to mass of isoprene. (dkh, bmy, 5/22/06)
@@ -3398,11 +3407,12 @@ c
             ! with online chemistry. 
             DO IPR = 1, NPROD(JHC)
             DO NOX = 1, NNOX(JHC)
-               DELHC(IPR) = GET_DARO2(I,J,L,NOX,JHC)
+               DELHC(IPR) = GET_DARO2(I,J,L,NOX,JHC,Input_Opt)
                GM0(NOX,IPR,JHC) = GM0(NOX,IPR,JHC)
      &                       + ALPHA(NOX,IPR,JHC) * DELHC(IPR)
 
-               GLOB_DARO2(I,J,L,NOX,JHC-6) = GET_DARO2(I,J,L,NOX,JHC)
+               GLOB_DARO2(I,J,L,NOX,JHC-6) = 
+     &              GET_DARO2(I,J,L,NOX,JHC,Input_Opt)
             ENDDO
             ENDDO
 
@@ -5952,7 +5962,8 @@ c
 
 !------------------------------------------------------------------------------
 
-      FUNCTION GET_OH( I, J, L, State_Met ) RESULT( OH_MOLEC_CM3 )
+      FUNCTION GET_OH( I, J, L, Input_Opt, State_Met ) 
+     &         RESULT( OH_MOLEC_CM3 )
 !
 !******************************************************************************
 !  Function GET_OH returns OH from SMVGEAR's CSPEC array (for coupled runs)
@@ -5969,21 +5980,22 @@ c
 !  (3 ) Now reference inquiry functions from "tracer_mod.f" (bmy, 7/20/04)
 !  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
 !  28 Nov 2012 - R. Yantosca - Add State_Met to the argument list
+!   4 Mar 2013 - R. Yantosca - Add Input_Opt to the argument list
 !******************************************************************************
 !
       ! References to F90 modules
       USE CMN_SIZE_MOD
       USE COMODE_MOD,         ONLY : CSPEC, JLOP
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GLOBAL_OH_MOD,      ONLY : OH
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
-      USE TRACER_MOD,         ONLY : ITS_AN_AEROSOL_SIM
       USE TRACERID_MOD,       ONLY : IDOH
 
       ! Arguments
       INTEGER,        INTENT(IN) :: I, J, L
+      TYPE(OptInput), INTENT(IN) :: Input_Opt
       TYPE(MetState), INTENT(IN) :: State_Met
 
       ! Local variables
@@ -5993,7 +6005,7 @@ c
       !=================================================================
       ! GET_OH begins here!
       !=================================================================
-      IF ( ITS_A_FULLCHEM_SIM() ) THEN
+      IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
          !---------------------
          ! Coupled simulation
@@ -6010,7 +6022,7 @@ c
             OH_MOLEC_CM3 = 0d0
          ENDIF
 
-      ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
+      ELSE IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
          !---------------------
          ! Offline simulation
@@ -6052,7 +6064,8 @@ c
 
 !------------------------------------------------------------------------------
 
-      FUNCTION GET_NO3( I, J, L, State_Met ) RESULT( NO3_MOLEC_CM3 ) 
+      FUNCTION GET_NO3( I, J, L, Input_Opt, State_Met ) 
+     &         RESULT( NO3_MOLEC_CM3 ) 
 !
 !******************************************************************************
 !  Function GET_NO3 returns NO3 from SMVGEAR's CSPEC array (for coupled runs)
@@ -6071,15 +6084,15 @@ c
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
+!  04 Mar 2013 - R. Yantosca - Add Input_Opt to the argument list
 !******************************************************************************
 !
       ! References to F90 modules
       USE COMODE_MOD,         ONLY : CSPEC, JLOP
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GLOBAL_NO3_MOD,     ONLY : NO3
-      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
-      USE TRACER_MOD,         ONLY : ITS_AN_AEROSOL_SIM
       USE TRACERID_MOD,       ONLY : IDNO3
 
       USE CMN_SIZE_MOD             ! Size parameters
@@ -6087,6 +6100,7 @@ c
 
       ! Arguments
       INTEGER,        INTENT(IN)  :: I, J, L
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 
       ! Local variables
@@ -6100,7 +6114,7 @@ c
       !=================================================================
       ! GET_NO3 begins here!
       !=================================================================
-      IF ( ITS_A_FULLCHEM_SIM() ) THEN
+      IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
          !----------------------
          ! Fullchem simulation
@@ -6117,7 +6131,7 @@ c
             NO3_MOLEC_CM3 = 0d0
          ENDIF
 
-      ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
+      ELSE IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
          !==============================================================  
          ! Offline simulation: Read monthly mean GEOS-CHEM NO3 fields
@@ -6182,7 +6196,8 @@ c
 
 !------------------------------------------------------------------------------
 
-      FUNCTION GET_O3( I, J, L, State_Met ) RESULT( O3_MOLEC_CM3 )
+      FUNCTION GET_O3( I, J, L, Input_Opt, State_Met ) 
+     &         RESULT( O3_MOLEC_CM3 )
 !
 !******************************************************************************
 !  Function GET_O3 returns monthly mean O3 for offline sulfate aerosol
@@ -6199,16 +6214,16 @@ c
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
+!  04 Mar 2013 - R. Yantosca - Add Input_Opt to the argument list
 !******************************************************************************
 !
       ! References to F90 modules
       USE COMODE_MOD,         ONLY : CSPEC, JLOP, VOLUME
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GLOBAL_O3_MOD,      ONLY : O3
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
-      USE TRACER_MOD,         ONLY : ITS_AN_AEROSOL_SIM
       USE TRACER_MOD,         ONLY : XNUMOLAIR
       USE TRACERID_MOD,       ONLY : IDO3
 
@@ -6216,6 +6231,7 @@ c
 
       ! Arguments
       INTEGER,        INTENT(IN) :: I, J, L
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 
       ! Local variables
@@ -6229,7 +6245,7 @@ c
       !=================================================================
       ! GET_O3 begins here!
       !=================================================================
-      IF ( ITS_A_FULLCHEM_SIM() ) THEN
+      IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
          !--------------------
          ! Coupled simulation
@@ -6246,7 +6262,7 @@ c
             O3_MOLEC_CM3 = 0d0
          ENDIF
          
-      ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
+      ELSE IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
          !--------------------
          ! Offline simulation
@@ -6300,7 +6316,7 @@ c
 
 !------------------------------------------------------------------------------
 
-      FUNCTION GET_DARO2( I, J, L, NOX, JHC ) RESULT( DARO2 )
+      FUNCTION GET_DARO2( I, J, L, NOX, JHC, Input_Opt ) RESULT( DARO2 )
 !
 !******************************************************************************
 !  Function GET_DARO2 returns the amount of aromatic peroxy radical that 
@@ -6312,29 +6328,29 @@ c
 !
 !
 !  NOTES:
+!  04 Mar 2013 - R. Yantosca - Add Input_Opt to the argument list
 !******************************************************************************
 !
       ! References to F90 modules
-      USE COMODE_MOD,    ONLY : CSPEC, JLOP, VOLUME
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM
-      USE TRACER_MOD,    ONLY : TRACER_COEFF
-      USE TRACER_MOD,    ONLY : XNUMOL
-      USE TRACERID_MOD,  ONLY : IDTBENZ, IDTTOLU, IDTXYLE
-
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE COMODE_LOOP_MOD      ! ILx
-      USE CMN_O3_MOD        ! XNUMOL
+      USE CMN_SIZE_MOD
+      USE COMODE_LOOP_MOD
+      USE CMN_O3_MOD
+      USE COMODE_MOD,         ONLY : CSPEC, JLOP, VOLUME
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TRACER_MOD,         ONLY : XNUMOL
+      USE TRACERID_MOD,       ONLY : IDTBENZ, IDTTOLU, IDTXYLE
 
       ! Arguments
-      INTEGER, INTENT(IN)    :: I, J, L, NOX, JHC
+      INTEGER,        INTENT(IN) :: I, J, L, NOX, JHC
+      TYPE(OptInput), INTENT(IN) :: Input_Opt
 
       ! Function returns 
-      REAL*8                 :: DARO2
+      REAL*8                     :: DARO2
 
       ! Local variables
-      INTEGER                :: JLOOP, ILARO2, IDTAROM
-      REAL*8                 :: ARO2CARB
+      INTEGER                    :: JLOOP, ILARO2, IDTAROM
+      REAL*8                     :: ARO2CARB
 
       !=================================================================
       ! GET_DARO2 begins here!
@@ -6342,7 +6358,7 @@ c
       !print*, ' get DARO2'
       DARO2 = 0d0
 
-      IF ( ITS_A_FULLCHEM_SIM() ) THEN
+      IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
          !--------------------
          ! Coupled simulation
@@ -6446,8 +6462,8 @@ c
 
             DARO2 = CSPEC(JLOOP,ILARO2)
      &            * VOLUME(JLOOP)
-     &            * TRACER_COEFF(IDTAROM,1)
-     &            / ( XNUMOL(IDTAROM) * ARO2CARB )
+     &            * Input_Opt%TRACER_COEFF(IDTAROM,1)
+     &            / ( Input_Opt%XNUMOL(IDTAROM) * ARO2CARB )
 
          ELSE
 
@@ -6456,7 +6472,7 @@ c
 
          ENDIF
 
-      ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
+      ELSE IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
          !--------------------
          ! Offline simulation
@@ -6481,7 +6497,7 @@ c
 
 !------------------------------------------------------------------------------
 
-      FUNCTION GET_DOH( I, J, L ) RESULT( DOH )
+      FUNCTION GET_DOH( I, J, L, Input_Opt ) RESULT( DOH )
 !
 !******************************************************************************
 !  Function GET_DOH returns the amount of isoprene [kg] that has reacted with 
@@ -6493,32 +6509,32 @@ c
 !
 !
 !  NOTES:
+!  04 Mar 2013 - R. Yantosca - Now use fields from Input_Opt object
 !******************************************************************************
 !
       ! References to F90 modules
-      USE COMODE_MOD,    ONLY : CSPEC, JLOP, VOLUME
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM
-      USE TRACER_MOD,    ONLY : XNUMOL,             TRACER_COEFF
-      USE TRACERID_MOD,  ONLY : IDTISOP
-
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE COMODE_LOOP_MOD      ! ILISOPOH   (dkh, 05/29/06)  
+      USE CMN_SIZE_MOD
+      USE COMODE_MOD,         ONLY : CSPEC, JLOP, VOLUME
+      USE COMODE_LOOP_MOD
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TRACERID_MOD,       ONLY : IDTISOP
 
       ! Arguments
-      INTEGER, INTENT(IN)    :: I, J, L
+      INTEGER,        INTENT(IN) :: I, J, L
+      TYPE(OptInput), INTENT(IN) :: Input_Opt
 
       ! Function returns 
-      REAL*8                 :: DOH
+      REAL*8                     :: DOH
 
       ! Local variables
-      INTEGER                :: JLOOP
+      INTEGER                    :: JLOOP
 
       !=================================================================
       ! GET_DOH begins here!
       !=================================================================
 
-      IF ( ITS_A_FULLCHEM_SIM() ) THEN
+      IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
          !--------------------
          ! Coupled simulation
@@ -6539,10 +6555,10 @@ c
             !  TRACER_COEFF(IDTISOP,1) : atom C / molec isop
             !  VOLUME                  : cm3 / box
             !-----------------------------------------------------------
-            DOH = CSPEC(JLOOP,ILISOPOH)   * 
-     &            VOLUME(JLOOP)           * 
-     &            TRACER_COEFF(IDTISOP,1) / 
-     &            XNUMOL(IDTISOP) 
+            DOH = CSPEC(JLOOP,ILISOPOH)             * 
+     &            VOLUME(JLOOP)                     * 
+     &            Input_Opt%TRACER_COEFF(IDTISOP,1) / 
+     &            Input_Opt%XNUMOL(IDTISOP) 
  
          ELSE
 
@@ -6551,7 +6567,7 @@ c
  
          ENDIF
 
-      ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
+      ELSE IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
          !--------------------
          ! Offline simulation
@@ -7581,51 +7597,77 @@ c
       !=================================================================
       ! Find drydep species in DEPSAV
       !=================================================================
-      DO N = 1, Input_Opt%NUMDEP
-         SELECT CASE ( TRIM( Input_Opt%DEPNAME(N) ) )
-            CASE ( 'BCPI' )
-               DRYBCPI = N
-            CASE ( 'OCPI' )
-               DRYOCPI = N
-            CASE ( 'BCPO' )
-               DRYBCPO = N
-            CASE ( 'OCPO' )
-               DRYOCPO = N
-            CASE ( 'ALPH' )
-               DRYALPH = N
-            CASE ( 'LIMO' )
-               DRYLIMO = N
-            CASE ( 'ALCO' )
-               DRYALCO = N
-            CASE ( 'SOG1' )
-               DRYSOG1 = N
-            CASE ( 'SOG2' )
-               DRYSOG2 = N
-            CASE ( 'SOG3' )
-               DRYSOG3 = N
-            CASE ( 'SOG4' )
-               DRYSOG4 = N
-            CASE ( 'SOG5' )     ! (dkh, 03/24/07)  
-               DRYSOG5 = N
-            CASE ( 'SOA1' )
-               DRYSOA1 = N
-            CASE ( 'SOA2' )
-               DRYSOA2 = N
-            CASE ( 'SOA3' )
-               DRYSOA3 = N
-            CASE ( 'SOA4' )
-               DRYSOA4 = N
-            CASE ( 'SOA5' )     ! (dkh, 03/24/07)  
-               DRYSOA5 = N
-            CASE ( 'SOAG' )
-               DRYSOAG = N
-            CASE ( 'SOAM' )
-               DRYSOAM = N
-            CASE DEFAULT
-               ! Nothing
-         END SELECT        
-      ENDDO
-    
+
+      ! Initialize flags
+      DRYBCPI = 0
+      DRYOCPI = 0
+      DRYBCPO = 0
+      DRYOCPO = 0
+      DRYALPH = 0
+      DRYLIMO = 0
+      DRYALCO = 0
+      DRYSOG1 = 0
+      DRYSOG2 = 0
+      DRYSOG3 = 0
+      DRYSOG4 = 0
+      DRYSOG5 = 0
+      DRYSOA1 = 0
+      DRYSOA2 = 0
+      DRYSOA3 = 0
+      DRYSOA4 = 0
+      DRYSOA5 = 0
+      DRYSOAG = 0
+      DRYSOAM = 0
+
+      ! Locate drydep indices for each carbon or SOA aerosol 
+      ! in the list of dry depositing species.
+      IF ( Input_Opt%LDRYD ) THEN
+         DO N = 1, Input_Opt%NUMDEP
+            SELECT CASE ( TRIM( Input_Opt%DEPNAME(N) ) )
+               CASE ( 'BCPI' )
+                  DRYBCPI = N
+               CASE ( 'OCPI' )
+                  DRYOCPI = N
+               CASE ( 'BCPO' )
+                  DRYBCPO = N
+               CASE ( 'OCPO' )
+                  DRYOCPO = N
+               CASE ( 'ALPH' )
+                  DRYALPH = N
+               CASE ( 'LIMO' )
+                  DRYLIMO = N
+               CASE ( 'ALCO' )
+                  DRYALCO = N
+               CASE ( 'SOG1' )
+                  DRYSOG1 = N
+               CASE ( 'SOG2' )
+                  DRYSOG2 = N
+               CASE ( 'SOG3' )
+                  DRYSOG3 = N
+               CASE ( 'SOG4' )
+                  DRYSOG4 = N
+               CASE ( 'SOG5' )
+                  DRYSOG5 = N
+               CASE ( 'SOA1' )
+                  DRYSOA1 = N
+               CASE ( 'SOA2' )
+                  DRYSOA2 = N
+               CASE ( 'SOA3' )
+                  DRYSOA3 = N
+               CASE ( 'SOA4' )
+                  DRYSOA4 = N
+               CASE ( 'SOA5' ) 
+                  DRYSOA5 = N
+               CASE ( 'SOAG' )
+                  DRYSOAG = N
+               CASE ( 'SOAM' )
+                  DRYSOAM = N
+               CASE DEFAULT
+                  ! Nothing
+            END SELECT        
+         ENDDO
+      ENDIF
+
       ! Reset IS_INIT before exiting
       IS_INIT = .TRUE.
 

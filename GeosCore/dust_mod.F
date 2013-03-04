@@ -1905,34 +1905,11 @@
       ! Copy fields from INPUT_OPT to local variables for use below
       LDEAD = Input_Opt%LDEAD
 
-      ! Drydep flags
-!------------------------------------------------------------------------------
-! Prior to 2/26/13:
-! Now use fields in Input_Opt (mlong, bmy, 2/26/13)
-!      ALLOCATE( IDDEP( NDSTBIN ), STAT=AS )      
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'IDDEP' )
-!      IDDEP = 0
-!------------------------------------------------------------------------------
-
       ! Dust radii
-!------------------------------------------------------------------------------
-! Prior to 2/26/13:
-! Now use fields in Input_Opt (mlong, bmy, 2/26/13)
-!      ALLOCATE( DUSTREFF( NDSTBIN ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DUSTREFF' )
-!      DUSTREFF(1:NDSTBIN) = (/ 0.73d-6, 1.4d-6,  2.4d-6,  4.5d-6  /)
-!------------------------------------------------------------------------------
       Input_Opt%DUSTREFF(1:NDSTBIN) = (/ 0.73d-6, 1.4d-6,  
      &                                   2.4d-6,  4.5d-6  /)
 
       ! Dust density
-!------------------------------------------------------------------------------
-! Prior to 2/26/13:
-! Now use fields in Input_Opt (mlong, bmy, 2/26/13)
-!      ALLOCATE( DUSTDEN( NDSTBIN ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DUSTREFF' )
-!      DUSTDEN(1:NDSTBIN) = (/ 2500.d0, 2650.d0, 2650.d0, 2650.d0 /)
-!------------------------------------------------------------------------------
       Input_Opt%DUSTDEN(1:NDSTBIN) = (/ 2500.d0, 2650.d0, 
      &                                  2650.d0, 2650.d0 /)
 
@@ -1950,26 +1927,28 @@
 #endif
 
       ! Find drydep species in DEPSAV
-      DO N = 1, Input_Opt%NUMDEP
-         SELECT CASE ( TRIM( DEPNAME(N) ) )
-            CASE ( 'DST1' )
-               DRYDST1 = N
-            CASE ( 'DST2' )
-               DRYDST2 = N
-            CASE ( 'DST3' )
-               DRYDST3 = N
-            CASE ( 'DST4' )
-               DRYDST4 = N
-            CASE DEFAULT
-               ! Nothing
-         END SELECT        
-      ENDDO
+      IF( Input_Opt%LDRYD ) THEN
+         DO N = 1, Input_Opt%NUMDEP
+            SELECT CASE ( TRIM( Input_Opt%DEPNAME(N) ) )
+               CASE ( 'DST1' )
+                  DRYDST1 = N
+               CASE ( 'DST2' )
+                  DRYDST2 = N
+               CASE ( 'DST3' )
+                  DRYDST3 = N
+               CASE ( 'DST4' )
+                  DRYDST4 = N
+               CASE DEFAULT
+                  ! Nothing
+            END SELECT        
+         ENDDO
 
-      ! This may lead to out of bounds errors
-      Input_Opt%IDDEP(1) = DRYDST1
-      Input_Opt%IDDEP(2) = DRYDST2
-      Input_Opt%IDDEP(3) = DRYDST3
-      Input_Opt%IDDEP(4) = DRYDST4
+         ! This may lead to out of bounds errors
+         Input_Opt%IDDEP(1) = DRYDST1
+         Input_Opt%IDDEP(2) = DRYDST2
+         Input_Opt%IDDEP(3) = DRYDST3
+         Input_Opt%IDDEP(4) = DRYDST4
+      ENDIF
 
       ! Reset flag
       IS_INIT = .TRUE.

@@ -205,6 +205,7 @@ CONTAINS
     USE GCKPP_COMODE_MOD,     ONLY : INIT_GCKPP_COMODE
     USE ERROR_MOD,            ONLY : DEBUG_MSG
     USE GRID_MOD,             ONLY : INIT_GRID
+    USE Input_Mod,            ONLY : GIGC_Init_Extra
     USE Mapping_Mod,          ONLY : MapWeight
     USE Mapping_Mod,          ONLY : Init_Mapping
     USE Olson_Landmap_Mod,    ONLY : Init_Olson_Landmap
@@ -345,25 +346,13 @@ CONTAINS
     CALL GIGC_Input_Bcast( Input_Opt, RC )
     CALL GIGC_IDT_Bcast  ( Input_Opt, RC )
 
-    ! After broadcasting Input_Opt to other CPUs, call GIGC_Init_Extra
-    ! to initialize other modules (e.g. drydep_mod.F, carbon_mod.F, 
-    ! dust_mod.F, seasalt_mod.F,  sulfate_mod.F).  We needed to move 
-    ! these init calls out of the run stage and into the init stage. 
-    ! (bmy, 3/4/13)
-    CALL GIGC_Init_Extra( am_I_Root, Input_Opt, RC )
-
     ! Complete initialization ops on all threads
     IF ( .not. am_I_Root ) THEN 
 
-       !----------------------------------------------------------------------
-       ! Prior to 3/4/13:
-       ! NOTE: This is now initialized in the call to GIGC_Init_Extra
-       ! so we can comment it out here. (bmy, 3/4/13)
-       !! Initialize dry deposition
-       !IF ( Input_Opt%LDRYD ) THEN
-       !   CALL INIT_DRYDEP( am_I_Root, Input_Opt, RC )
-       !ENDIF
-       !----------------------------------------------------------------------
+       ! Initialize dry deposition
+       IF ( Input_Opt%LDRYD ) THEN
+          CALL INIT_DRYDEP( am_I_Root, Input_Opt, RC )
+       ENDIF
 
        ! Initialize tracer quantities
        CALL INIT_TRACER( am_I_Root, Input_Opt, RC )
@@ -381,6 +370,12 @@ CONTAINS
                            Input_Opt%TS_DIAG )
        
     ENDIF
+
+    ! After broadcasting Input_Opt to other CPUs, call GIGC_Init_Extra
+    ! to initialize other modules (e.g. carbon_mod.F, dust_mod.F, 
+    ! seasalt_mod.F,  sulfate_mod.F).  We needed to move these init 
+    ! calls out of the run stage and into the init stage. (bmy, 3/4/13)
+    CALL GIGC_Init_Extra( am_I_Root, Input_Opt, RC )
 
     !-----------------------------------------------------------------------
     ! Read other ASCII files on the root CPU and broadcast to other CPUs

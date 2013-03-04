@@ -1150,8 +1150,8 @@
          ! Get O2 [molec/cm3], DMS [v/v], OH [molec/cm3], NO3 [molec/cm3]
          O2     = State_Met%AIRDEN(L,I,J) * f * 0.21d0
          DMS0   = STT(I,J,L,IDTDMS)
-         OH     = GET_OH(  I, J, L, State_Met )
-         XNO3   = GET_NO3( I, J, L, State_Met )
+         OH     = GET_OH(  I, J, L, Input_Opt, State_Met )
+         XNO3   = GET_NO3( I, J, L, Input_Opt, State_Met )
 
          !==============================================================
          ! (1) DMS + OH:  RK1 - addition channel  
@@ -1491,7 +1491,7 @@
 
          ! Loss frequenty due to OH oxidation [s-1]
          KOH   = A * EXP( -160.d0 / State_Met%T(I,J,L) ) * 
-     &           GET_OH( I, J, L, State_Met )
+     &           GET_OH( I, J, L, Input_Opt, State_Met )
 
          ! H2O2 drydep frequency [1/s].  Account for the fraction
          ! of grid box (I,J,L) that is located beneath the PBL top.
@@ -1764,7 +1764,7 @@
          ! Initial SO2, H2O2 and O3 [v/v]
          SO20   = STT(I,J,L,IDTSO2)         
          H2O20  = STT(I,J,L,IDTH2O2)
-         O3     = GET_O3( I, J, L, State_Met )
+         O3     = GET_O3( I, J, L, Input_Opt, State_Met )
 
          ! PATM  : Atmospheric pressure in atm
          PATM   = GET_PCENTER( I, J, L ) / 1013.25d0
@@ -1782,7 +1782,7 @@
             KK  = K0 * M / Ki
             F1  = ( 1.d0 + ( LOG10( KK ) )**2 )**( -1 )
             RK1 = ( K0 * M / ( 1.d0 + KK ) ) * 0.6d0**F1 * 
-     &            GET_OH( I, J, L, State_Met )
+     &            GET_OH( I, J, L, Input_Opt, State_Met )
 
          ELSE 
 
@@ -6111,13 +6111,15 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_OH( I, J, L, State_Met ) RESULT( OH_MOLEC_CM3 )
+      FUNCTION GET_OH( I, J, L, Input_Opt, State_Met ) 
+     &         RESULT( OH_MOLEC_CM3 )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
       USE COMODE_MOD,         ONLY : CSPEC, JLOP
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GLOBAL_OH_MOD,      ONLY : OH
       USE TIME_MOD,           ONLY : GET_TS_CHEM
@@ -6128,6 +6130,7 @@
 ! !INPUT PARAMETERS: 
 !
       INTEGER,        INTENT(IN) :: I, J, L     ! Lon, lat, level indices
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !REVISION HISTORY: 
@@ -6139,6 +6142,8 @@
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
 !  28 Nov 2012 - R. Yantosca - Add State_Met to argument list
+!  04 Mar 2013 - R. Yantosca - Now pass Input_Opt%ITS_A_FULLCHEM_SIM and
+!                              Input_Opt%ITS_AN_AEROSOL_SIM
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6152,7 +6157,7 @@
       ! GET_OH begins here!
       !=================================================================
 
-      IF ( ITS_A_FULLCHEM_SIM() ) THEN
+      IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
          !---------------------
          ! Coupled simulation
@@ -6169,7 +6174,7 @@
             OH_MOLEC_CM3 = 0d0
          ENDIF
 
-      ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
+      ELSE IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
          !---------------------
          ! Offline simulation
@@ -6275,16 +6280,16 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_NO3( I, J, L, State_Met ) RESULT( NO3_MOLEC_CM3 ) 
+      FUNCTION GET_NO3( I, J, L, Input_Opt, State_Met ) 
+     &         RESULT( NO3_MOLEC_CM3 ) 
 !
 ! !USES:
 !
       USE COMODE_MOD,         ONLY : CSPEC, JLOP
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GLOBAL_NO3_MOD,     ONLY : NO3
-      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
-      USE TRACER_MOD,         ONLY : ITS_AN_AEROSOL_SIM
       USE TRACERID_MOD,       ONLY : IDNO3
 
       USE CMN_SIZE_MOD             ! Size parameters
@@ -6292,6 +6297,7 @@
 ! !INPUT PARAMETERS: 
 !
       INTEGER,        INTENT(IN)  :: I, J, L     ! Lon, lat, vertical level
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !REVISION HISTORY:
@@ -6305,6 +6311,8 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
+!  04 Mar 2013 - R. Yantosca - Now pass Input_Opt%ITS_A_FULLCHEM_SIM and
+!                              Input_Opt%ITS_AN_AEROSOL_SIM
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6322,7 +6330,7 @@
       ! GET_NO3 begins here!
       !=================================================================
 
-      IF ( ITS_A_FULLCHEM_SIM() ) THEN
+      IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
          !--------------------
          ! Coupled simulation
@@ -6339,7 +6347,7 @@
             NO3_MOLEC_CM3 = 0d0
          ENDIF
 
-      ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
+      ELSE IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
          !==============================================================  
          ! Offline simulation: Read monthly mean GEOS-CHEM NO3 fields
@@ -6468,15 +6476,14 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_O3( I, J, L, State_Met ) RESULT( O3_VV )
+      FUNCTION GET_O3( I, J, L, Input_Opt, State_Met ) RESULT( O3_VV )
 !
 ! !USES:
 !
       USE COMODE_MOD,         ONLY : CSPEC, JLOP, VOLUME
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_Input_Opt_MOd, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
-      USE TRACER_MOD,         ONLY : ITS_AN_AEROSOL_SIM  
       USE TRACER_MOD,         ONLY : XNUMOLAIR
       USE TRACERID_MOD,       ONLY : IDO3
 
@@ -6485,6 +6492,7 @@
 ! !INPUT PARAMETERS: 
 !
       INTEGER,        INTENT(IN)  :: I, J, L     ! Lon, lat, vertical level
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt  
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !REVISION HISTORY: 
@@ -6495,6 +6503,8 @@
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  04 Mar 2013 - R. Yantosca - Now pass Input_Opt%ITS_A_FULLCHEM_SIM and
+!                              Input_Opt%ITS_AN_AEROSOL_SIM
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6508,7 +6518,7 @@
       ! GET_O3 begins here!
       !=================================================================
 
-      IF ( ITS_A_FULLCHEM_SIM() ) THEN
+      IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
          !--------------------
          ! Coupled simulation
@@ -6526,7 +6536,7 @@
             O3_VV = 0d0
          ENDIF
 
-      ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
+      ELSE IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
          
          !--------------------
          ! Offline simulation
@@ -6545,7 +6555,7 @@
          !--------------------
          ! Invalid simulation
          !--------------------         
-         CALL ERROR_STOP( 'Invalid NSRCX!', 'GET_OH (sulfate_mod.f)')
+         CALL ERROR_STOP( 'Invalid NSRCX!', 'GET_O3 (sulfate_mod.f)')
 
       ENDIF
 
@@ -8823,6 +8833,9 @@
       ! INIT_SULFATE begins here!
       !=================================================================
 
+      ! Assume success
+      RC = GIGC_SUCCESS
+
       ! Return if we have already initialized
       IF ( IS_INIT ) RETURN
       
@@ -8973,11 +8986,10 @@
       DRYSO4aq = 0
       DRYNH4aq = 0  
 
-      IF ( LDRYD ) THEN
-         
-         ! Locate position of each tracer in DEPSAV
-         DO N = 1, NUMDEP
-            SELECT CASE ( TRIM( DEPNAME(N) ) )
+      ! Locate position of each tracer in DEPSAV
+      IF ( Input_Opt%LDRYD ) THEN
+         DO N = 1, Input_Opt%NUMDEP
+            SELECT CASE ( TRIM( Input_Opt%DEPNAME(N) ) )
                CASE ( 'H2O2'   )
                   DRYH2O2  = N
                CASE ( 'SO2'   )
@@ -9010,7 +9022,6 @@
                   ! Nothing
             END SELECT        
          ENDDO
-
       ENDIF
 
       ! Reset IS_INIT so we do not allocate arrays again

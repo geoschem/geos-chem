@@ -5401,7 +5401,6 @@
       ENDIF
       ELSE
          NUMDEP  = Input_Opt%NUMDEP
-         print*, '### NOT ROOT: ', numdep
       ENDIF
 
       !=================================================================
@@ -5504,6 +5503,8 @@
       IF ( ALLOCATED( DEPSAV   ) ) DEALLOCATE( DEPSAV   )
       IF ( ALLOCATED( SALT_V   ) ) DEALLOCATE( SALT_V   )
       IF ( ALLOCATED( DMID     ) ) DEALLOCATE( DMID     )
+
+      print*, '### size depsav: ', size( depsav )
 
       END SUBROUTINE CLEANUP_DRYDEP
 !EOC

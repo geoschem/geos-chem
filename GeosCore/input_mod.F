@@ -7978,6 +7978,15 @@
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
+! !REMARKS:
+!  Several of the INIT routines now called within GIGC_Init_Extra had 
+!  originally been called from the Run method.  We now gather these INIT
+!  routines here so that they may be called from the Initialization method.
+!  This is necessary when connecting GEOS-Chem to the GEOS-5 GCM via ESMF.
+!                                                                             .
+!  GIGC_Init_Extra should be called after the call to DO_DRYDEP, since
+!  these routines depend on dry deposition parameters being set up first.
+!
 ! !REVISION HISTORY: 
 !  04 Mar 2013 - R. Yantosca - Initial revision
 !EOP
@@ -7994,13 +8003,6 @@
 
       ! Set a flag for debugging
       prtDebug = ( am_I_Root .and. Input_Opt%LPRT )
-
-      ! Initialize "carbon_mod.F"
-      IF ( Input_Opt%LCARB ) THEN
-         CALL Init_Drydep( am_I_Root, Input_Opt, RC )
-         IF ( RC /= GIGC_SUCCESS ) RETURN
-         IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_DRYDEP' )
-      ENDIF
 
       ! Initialize "carbon_mod.F"
       IF ( Input_Opt%LCARB ) THEN
