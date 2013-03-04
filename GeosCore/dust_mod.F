@@ -62,6 +62,8 @@
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  14 Nov 2012 - R. Yantosca - Add modifications for GIGC
+!  04 Mar 2013 - R. Yantosca - Now call INIT_SULFATE from the init stage
+!                              which facilitates connection to GEOS-5 GCM
 !EOP
 !------------------------------------------------------------------------------
 !BOC

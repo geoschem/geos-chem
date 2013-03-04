@@ -26,6 +26,7 @@
 !  
       PUBLIC  :: INITIALIZE_GEOS_GRID
       PUBLIC  :: READ_INPUT_FILE
+      PUBLIC  :: GIGC_Init_Extra
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -131,6 +132,8 @@
 !  02 Nov 2012 - R. Yantosca - Now pass the Input Options object to routines;
 !                              this will eventually replace logical_mod, etc.
 !  26 Feb 2013 - M. Long     - Now make INITIALIZE_GEOS_GRID a public routine
+!  04 Mar 2013 - R. Yantosca - Add routine GIGC_Init_Extra to move some init
+!                              calls out of the run stage when using ESMF
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -178,6 +181,7 @@
       USE GAMAP_MOD,          ONLY : DO_GAMAP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE SEASALT_MOD,        ONLY : INIT_SEASALT
 !
 ! !INPUT PARAMETERS:
 !
@@ -209,6 +213,8 @@
 !  09 Nov 2012 - R. Yantosca - Now pass Input_Opt to lower-level routines
 !  06 Dec 2012 - R. Yantosca - Now call CHECK_TIME_STEPS when we are connecting
 !                              to the GEOS-5 GCM via the ESMF environment,
+!   4 Mar 2013 - R. Yantosca - Add routine do
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -380,6 +386,10 @@
       ! Close input file
       CLOSE( IU_GEOS )
 
+      !=================================================================
+      ! Further error-checking and initialization
+      !=================================================================
+
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
       !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
@@ -389,12 +399,16 @@
       !-----------------------------------------------------------------
 #else
 
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! We only need to initialize GEOS-5 diagnostics if we are not
+      ! using ESMF.  The GEOS-5 GCM has its own History component
+      ! for diagnostic output (bmy, 3/4/13)
+      !-----------------------------------------------------------------
+
       ! Define GEOS-Chem diagnostic info
       CALL NDXX_SETUP( am_I_Root, Input_Opt, RC )
-
-      !=================================================================
-      ! Further error-checking and initialization
-      !=================================================================
 
       ! Make sure all directories are valid
       CALL VALIDATE_DIRECTORIES
@@ -3661,7 +3675,6 @@
 !
 ! !USES:
 !
-      USE DUST_MOD,    ONLY : INIT_DUST
       USE ERROR_MOD,   ONLY : ERROR_STOP
       USE DRYDEP_MOD,  ONLY : INIT_DRYDEP
       USE LOGICAL_MOD, ONLY : LCONV,             LDRYD
@@ -3795,13 +3808,6 @@
 
       ! Initialize wet deposition tracers
       IF ( LWETD .or. LCONV ) CALL WETDEPID( am_I_Root )
-
-      ! NOTE: Call INIT_DUST here so as to make sure this gets
-      ! called in the init stage when connecting to the GEOS-5 GCM
-      ! (mlong, bmy, 2/26/13)
-      IF ( Input_Opt%LDUST ) then
-         CALL INIT_DUST( am_I_Root, Input_Opt, RC )
-      endif
 
 #if   defined( APM )
       ! Initialize wet deposition tracers for APM
@@ -7932,6 +7938,92 @@
       ENDIF
      
       END SUBROUTINE IS_LAST_DAY_GOOD
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: gigc_init_extra
+!
+! !DESCRIPTION: Suborutine GIGC\_INIT\_EXTRA initializes other GEOS-Chem 
+!  modules that have not been initialized in either GIGC_Allocate_All or
+!  GIGC_Init_all.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE GIGC_Init_Extra( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+      USE Carbon_Mod,         ONLY : Init_Carbon
+      USE Dust_Mod,           ONLY : Init_Dust
+      USE Error_Mod,          ONLY : Debug_Msg
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Seasalt_Mod,        ONLY : Init_SeaSalt
+      USE Sulfate_Mod,        ONLY : Init_Sulfate
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !REVISION HISTORY: 
+!  04 Mar 2013 - R. Yantosca - Initial revision
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL :: prtDebug
+
+      !=================================================================
+      ! GIGC_Init_Extra begins here!
+      !=================================================================
+
+      ! Set a flag for debugging
+      prtDebug = ( am_I_Root .and. Input_Opt%LPRT )
+
+      ! Initialize "carbon_mod.F"
+      IF ( Input_Opt%LCARB ) THEN
+         CALL Init_Carbon( am_I_Root, Input_Opt, RC )
+         IF ( RC /= GIGC_SUCCESS ) RETURN
+         IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_CARBON' )
+      ENDIF
+    
+      ! Initialize "dust_mod.F"
+      IF ( Input_Opt%LDUST ) then
+         CALL Init_Dust( am_I_Root, Input_Opt, RC )
+         IF ( RC /= GIGC_SUCCESS ) RETURN
+         IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_DUST' )
+
+      ENDIF
+
+      ! Initialize "seasalt_mod.F
+      IF ( Input_Opt%LSSALT ) THEN
+         CALL Init_Seasalt( am_I_Root, Input_Opt, RC )
+         IF ( RC /= GIGC_SUCCESS ) RETURN
+         IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_SEASALT' )
+      ENDIF
+
+      ! Initialize "sulfate_mod.F"
+      IF ( Input_Opt%LSULF ) THEN
+         CALL Init_Sulfate( am_I_Root, Input_Opt, RC )
+         IF ( RC /= GIGC_SUCCESS ) RETURN
+         IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_SULFATE' )
+      ENDIF
+
+      END SUBROUTINE GIGC_Init_Extra
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !

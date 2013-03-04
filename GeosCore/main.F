@@ -355,11 +355,18 @@
       ! reason we are migrating towards used of these objects instead
       ! of the existing ALLOCATABLE module arrays. (bmy, 10/25/12)
       !
-      ! Initialize Input_Opt, State_Chem, State_Met, objects
+      ! Initialize Input_Opt, State_Chem, State_Met, objects. 
+      ! (bmy, 3/4/13)
       !
       CALL GIGC_Init_All( am_I_Root, Input_Opt, 
      &                    State_Chm, State_Met, RC )
-
+      !
+      ! Also allocate arrays in GEOS-Chem modules that have not yet
+      ! been initialized (i.e. SEASALT_MOD, CARBON_MOD,  DUST_MOD, 
+      ! SULFATE_MOD).  This removes the init calls from the run stage,
+      ! which is required when connecting to the GEOS-5 GCM w/ ESMF.
+      ! (bmy, 3/4/13)
+      CALL GIGC_Init_Extra( am_I_Root, Input_Opt, RC )
       !
       ! Assign values to the TRAC_NAME, TRAC_ID, SMVG_ID fields
       ! of the State_Chm object.  NOTE: This has to be done after

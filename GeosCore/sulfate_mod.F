@@ -30,6 +30,7 @@
       PUBLIC :: CHEMSULFATE       
       PUBLIC :: EMISSSULFATE      
       PUBLIC :: CLEANUP_SULFATE   
+      PUBLIC :: INIT_SULFATE
 !
 ! 
 ! !REMARKS:
@@ -130,6 +131,8 @@
 !  01 Mar 2012 - R. Yantosca   - Now reference new grid_mod.F90
 !  13 Mar 2012 - M. Cooper     - Changed regrid algorithm to map_a2a
 !  28 Nov 2012 - R. Yantosca   - Use SUNCOS fields from the State_Met object
+!  04 Mar 2013 - R. Yantosca   - Now call INIT_SULFATE from the init stage
+!                                which facilitates connection to GEOS-5 GCM
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -492,6 +495,7 @@
 !  14 Nov 2012 - R. Yantosca - Add Input_Opt, RC as arguments
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  04 Mar 2013 - R. Yantosca - Remove call to INIT_SULFATE
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -538,15 +542,19 @@
       ! Get current month
       MONTH                = GET_MONTH()
 
-      ! Establish indices w/in DEPSAV array
-      IF ( FIRSTCHEM ) THEN
-
-         ! Initialize arrays (if not already done before)
-         CALL INIT_SULFATE
-
-         ! Reset first-time flag
-         FIRSTCHEM = .FALSE.
-      ENDIF
+!------------------------------------------------------------------------------
+! Prior to 3/4/13:
+! NOTE: this needs to be moved to the init stage for ESMF (bmy, 3/4/13)
+!      ! Establish indices w/in DEPSAV array
+!      IF ( FIRSTCHEM ) THEN
+!
+!         ! Initialize arrays (if not already done before)
+!         CALL INIT_SULFATE
+!
+!         ! Reset first-time flag
+!         FIRSTCHEM = .FALSE.
+!      ENDIF
+!------------------------------------------------------------------------------
 
       ! If it's an offline simulation ...
       IF ( IT_IS_AN_AEROSOL_SIM ) THEN
@@ -4402,6 +4410,7 @@
 !  (14) Add LBIOFUEL switch to properly turn off the biofuel emissions,
 !       READ_BIOFUEL_SO2, READ_BIOFUEL_NH3. (ccc, 7/16/10)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  04 Mar 2013 - R. Yantosca - Remove call to INIT_SULFATE
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4436,8 +4445,12 @@
  120     FORMAT( 'Modified for GEOS-CHEM by R. Park and R. Yantosca'   ) 
  130     FORMAT( 'Last Modification Date: 4/6/04'                      )
 
-         ! Initialize arrays
-         CALL INIT_SULFATE
+!-----------------------------------------------------------------------------
+! Prior to 3/4/13:
+! NOTE: This needs to be moved to the init stage, for ESMF (bmy, 3/4/13)
+!         ! Initialize arrays
+!         CALL INIT_SULFATE
+!-----------------------------------------------------------------------------
 
          ! We have now gone thru the first timestep
          FIRSTEMISS  = .FALSE.
@@ -8754,16 +8767,26 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_SULFATE
+      SUBROUTINE INIT_SULFATE( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE DRYDEP_MOD,    ONLY : DEPNAME, NUMDEP
-      USE ERROR_MOD,     ONLY : ALLOC_ERR
-      USE LOGICAL_MOD,   ONLY : LDRYD
-      USE TRACER_MOD,    ONLY : ITS_AN_AEROSOL_SIM
-
       USE CMN_SIZE_MOD        ! Size parameters 
+      USE DRYDEP_MOD,         ONLY : DEPNAME, NUMDEP
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE LOGICAL_MOD,        ONLY : LDRYD
+      USE TRACER_MOD,         ONLY : ITS_AN_AEROSOL_SIM
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  (1 ) Only allocate some arrays for the standalone simulation (NSRCX==10).
@@ -8786,6 +8809,7 @@
 !        inventory.  Deleted obsolete arrays from older SO2 volcanic
 !        emissions inventory. (jaf, bmy, 10/15/09)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  04 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC

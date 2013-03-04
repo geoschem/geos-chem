@@ -177,6 +177,8 @@
 !  30 Jul 2012 - R. Yantosca - Modifications for grid-independence
 !  28 Nov 2012 - R. Yantosca - Replace SUNCOS array with State_Met%SUNCOS and
 !                              SUNCOS_MID array with State_Met%SUNCOSmid
+!  04 Mar 2013 - R. Yantosca - Now call INIT_SULFATE from the init stage
+!                              which facilitates connection to GEOS-5 GCM
 !******************************************************************************
 !
       USE LOGICAL_MOD,    ONLY : LNLPBL ! (Lin,03/31/09)
@@ -200,6 +202,7 @@
       ! ... and this other stuff (dkh, 11/09/06)  
       PUBLIC :: APROD, GPROD, MNOX, NPROD, MHC, NNOX, MPROD
       PUBLIC :: PRODPERCOFSTT
+      PUBLIC :: INIT_CARBON
 
       !=================================================================
       ! MODULE VARIABLES
@@ -341,6 +344,7 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  15 Nov 2012 - R. Yantosca - Added ProTeX headers
+!  04 Mar 2013 - R. Yantosca - Remove call to INIT_CARBON
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -375,54 +379,58 @@
       ! First-time initialization
       IF ( FIRSTCHEM ) THEN
 
-         ! Initialize arrays (if not already done before)
-         CALL INIT_CARBON
-
-         ! Find drydep species in DEPSAV
-         DO N = 1, NUMDEP
-            SELECT CASE ( TRIM( DEPNAME(N) ) )
-               CASE ( 'BCPI' )
-                  DRYBCPI = N
-               CASE ( 'OCPI' )
-                  DRYOCPI = N
-               CASE ( 'BCPO' )
-                  DRYBCPO = N
-               CASE ( 'OCPO' )
-                  DRYOCPO = N
-               CASE ( 'ALPH' )
-                  DRYALPH = N
-               CASE ( 'LIMO' )
-                  DRYLIMO = N
-               CASE ( 'ALCO' )
-                  DRYALCO = N
-               CASE ( 'SOG1' )
-                  DRYSOG1 = N
-               CASE ( 'SOG2' )
-                  DRYSOG2 = N
-               CASE ( 'SOG3' )
-                  DRYSOG3 = N
-               CASE ( 'SOG4' )
-                  DRYSOG4 = N
-               CASE ( 'SOG5' )   ! (dkh, 03/24/07)  
-                  DRYSOG5 = N
-               CASE ( 'SOA1' )
-                  DRYSOA1 = N
-               CASE ( 'SOA2' )
-                  DRYSOA2 = N
-               CASE ( 'SOA3' )
-                  DRYSOA3 = N
-               CASE ( 'SOA4' )
-                  DRYSOA4 = N
-               CASE ( 'SOA5' )   ! (dkh, 03/24/07)  
-                  DRYSOA5 = N
-               CASE ( 'SOAG' )
-                  DRYSOAG = N
-               CASE ( 'SOAM' )
-                  DRYSOAM = N
-               CASE DEFAULT
-                  ! Nothing
-            END SELECT        
-         ENDDO
+!-----------------------------------------------------------------------------
+! Prior to 3/4/13:
+! NOTE: For ESMF, this has to be moved to the init stage (bmy, 3/4/13)
+!         ! Initialize arrays (if not already done before)
+!         CALL INIT_CARBON
+!
+!         ! Find drydep species in DEPSAV
+!         DO N = 1, NUMDEP
+!            SELECT CASE ( TRIM( DEPNAME(N) ) )
+!               CASE ( 'BCPI' )
+!                  DRYBCPI = N
+!               CASE ( 'OCPI' )
+!                  DRYOCPI = N
+!               CASE ( 'BCPO' )
+!                  DRYBCPO = N
+!               CASE ( 'OCPO' )
+!                  DRYOCPO = N
+!               CASE ( 'ALPH' )
+!                  DRYALPH = N
+!               CASE ( 'LIMO' )
+!                  DRYLIMO = N
+!               CASE ( 'ALCO' )
+!                  DRYALCO = N
+!               CASE ( 'SOG1' )
+!                  DRYSOG1 = N
+!               CASE ( 'SOG2' )
+!                  DRYSOG2 = N
+!               CASE ( 'SOG3' )
+!                  DRYSOG3 = N
+!               CASE ( 'SOG4' )
+!                  DRYSOG4 = N
+!               CASE ( 'SOG5' )   ! (dkh, 03/24/07)  
+!                  DRYSOG5 = N
+!               CASE ( 'SOA1' )
+!                  DRYSOA1 = N
+!               CASE ( 'SOA2' )
+!                  DRYSOA2 = N
+!               CASE ( 'SOA3' )
+!                  DRYSOA3 = N
+!               CASE ( 'SOA4' )
+!                  DRYSOA4 = N
+!               CASE ( 'SOA5' )   ! (dkh, 03/24/07)  
+!                  DRYSOA5 = N
+!               CASE ( 'SOAG' )
+!                  DRYSOAG = N
+!               CASE ( 'SOAM' )
+!                  DRYSOAM = N
+!               CASE DEFAULT
+!                  ! Nothing
+!            END SELECT        
+!         ENDDO
+!-----------------------------------------------------------------------------
 
          ! Zero SOG4 and SOA4 (SOA from ISOP in gas & aerosol form)
          ! for offline aerosol simulations.  Eventually we should have
@@ -4145,6 +4153,7 @@ c
 !  (7 ) Now reads monthly (eml, phs, 5/18/09)
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  04 Mar 2013 - R. Yantosca - Remove call to INIT_CARBON
 !******************************************************************************
 !
       ! References to F90 modules
@@ -4218,8 +4227,12 @@ c
  120     FORMAT( 'w/ BIOMASS emissions from Bond et al [2004]'        )
  130     FORMAT( 'w/ BIOMASS emissions from GEOS-CHEM inventory'      )
         
-         ! Initialize arrays
-         CALL INIT_CARBON       
+!-----------------------------------------------------------------------------
+! Prior to 3/4/13:
+! NOTE: For ESMF, this has to be moved to the init stage (bmy, 3/4/13)
+!         ! Initialize arrays
+!         CALL INIT_CARBON       
+!-----------------------------------------------------------------------------
 
          ! Read annual mean biomass emissions if necessary
          IF ( USE_BOND_BIOBURN ) THEN
@@ -7302,7 +7315,7 @@ c
 !
 !------------------------------------------------------------------------------
 
-      SUBROUTINE INIT_CARBON
+      SUBROUTINE INIT_CARBON( am_I_Root, Input_Opt, RC )
 !
 !******************************************************************************
 !  Subroutine INIT_CARBON initializes all module arrays. 
@@ -7322,27 +7335,42 @@ c
 !  14 Jan 2011 - R. Yantosca - If we are using GEOS-5 or MERRA met, then get
 !                              the cloud fraction directly from the met fields.
 !  01 Mar 2012 - R. Yantosca - Now use GET_BOUNDING_BOX from grid_mod.F90
+!  04 Mar 2013 - R. Yantosca - Now take am_I_Root, Input_Opt, RC as arguments
+!  04 Mar 2013 - R. Yantosca - Now search for drydep flags here
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD,    ONLY : ALLOC_ERR, ERROR_STOP
-      USE GRID_MOD,     ONLY : GET_BOUNDING_BOX
-      USE LOGICAL_MOD,  ONLY : LCHEM,     LSOA 
-      USE TIME_MOD,     ONLY : GET_NYMDb, GET_NHMSb, GET_TAUb
-      USE TRACERID_MOD, ONLY : IDTSOA5
-
-      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : ALLOC_ERR, ERROR_STOP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GRID_MOD,           ONLY : GET_BOUNDING_BOX
+      USE LOGICAL_MOD,        ONLY : LCHEM,     LSOA 
+      USE TIME_MOD,           ONLY : GET_NYMDb, GET_NHMSb, GET_TAUb
+      USE TRACERID_MOD,       ONLY : IDTSOA5
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root 
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC
 !
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE :: IS_INIT = .FALSE.
-      INTEGER       :: AS, INDICES(4), YYYYMMDD, HHMMSS
+      INTEGER       :: AS, INDICES(4), YYYYMMDD, HHMMSS, N
       REAL*8        :: COORDS(4), TAU
 
       !=================================================================
       ! INIT_CARBON begins here!
       !=================================================================
       
+      ! Assume success
+      RC = GIGC_SUCCESS
+
       ! Return if we already allocated arrays
       IF ( IS_INIT ) RETURN
 
@@ -7549,7 +7577,55 @@ c
 
 #endif
 #endif
-              
+          
+      !=================================================================
+      ! Find drydep species in DEPSAV
+      !=================================================================
+      DO N = 1, Input_Opt%NUMDEP
+         SELECT CASE ( TRIM( Input_Opt%DEPNAME(N) ) )
+            CASE ( 'BCPI' )
+               DRYBCPI = N
+            CASE ( 'OCPI' )
+               DRYOCPI = N
+            CASE ( 'BCPO' )
+               DRYBCPO = N
+            CASE ( 'OCPO' )
+               DRYOCPO = N
+            CASE ( 'ALPH' )
+               DRYALPH = N
+            CASE ( 'LIMO' )
+               DRYLIMO = N
+            CASE ( 'ALCO' )
+               DRYALCO = N
+            CASE ( 'SOG1' )
+               DRYSOG1 = N
+            CASE ( 'SOG2' )
+               DRYSOG2 = N
+            CASE ( 'SOG3' )
+               DRYSOG3 = N
+            CASE ( 'SOG4' )
+               DRYSOG4 = N
+            CASE ( 'SOG5' )     ! (dkh, 03/24/07)  
+               DRYSOG5 = N
+            CASE ( 'SOA1' )
+               DRYSOA1 = N
+            CASE ( 'SOA2' )
+               DRYSOA2 = N
+            CASE ( 'SOA3' )
+               DRYSOA3 = N
+            CASE ( 'SOA4' )
+               DRYSOA4 = N
+            CASE ( 'SOA5' )     ! (dkh, 03/24/07)  
+               DRYSOA5 = N
+            CASE ( 'SOAG' )
+               DRYSOAG = N
+            CASE ( 'SOAM' )
+               DRYSOAM = N
+            CASE DEFAULT
+               ! Nothing
+         END SELECT        
+      ENDDO
+    
       ! Reset IS_INIT before exiting
       IS_INIT = .TRUE.
 

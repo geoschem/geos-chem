@@ -66,6 +66,7 @@ CONTAINS
     USE GIGC_ErrCode_Mod
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE Input_Mod,          ONLY : GIGC_Init_Extra
     USE Input_Mod,          ONLY : Read_Input_File
     USE Input_Mod,          ONLY : Initialize_Geos_Grid
 !
@@ -100,6 +101,9 @@ CONTAINS
 !  07 Dec 2012 - R. Yantosca - Compute DLON, DLAT more rigorously
 !  26 Feb 2013 - M. Long     - Now pass State_Chm as an argument
 !  26 Feb 2013 - M. Long     - Read "input.geos" on root CPU only
+!  04 Mar 2013 - R. Yantosca - Now call GIGC_Init_Extra, which moves some init
+!                              calls out of the run stage.  This is necessary
+!                              for connecting to the GEOS-5 GCM via ESMF.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -159,6 +163,11 @@ CONTAINS
        CALL Initialize_Geos_Grid( am_I_Root, RC )
     ENDIF
 
+    ! Initialize other modules (e.g. carbon_mod.F, dust_mod.F, seasalt_mod.F, 
+    ! sulfate_mod.F).  We needed to move the init calls for these modules
+    ! out of the run stage and into the init stage. (bmy, 3/4/13)
+    CALL GIGC_Init_Extra( am_I_Root, Input_Opt, RC )
+
   END SUBROUTINE GIGC_Get_Options
 !EOC
 !------------------------------------------------------------------------------
@@ -192,6 +201,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE MAPL_Mod
     USE GIGC_Environment_Mod
     USE GIGC_ErrCode_Mod  
     USE GIGC_Input_Opt_Mod
@@ -204,6 +214,7 @@ CONTAINS
     USE GCKPP_COMODE_MOD,     ONLY : INIT_GCKPP_COMODE
     USE ERROR_MOD,            ONLY : DEBUG_MSG
     USE GRID_MOD,             ONLY : INIT_GRID
+    USE Input_Mod,            ONLY : Do_Extra_Init
     USE Mapping_Mod,          ONLY : MapWeight
     USE Mapping_Mod,          ONLY : Init_Mapping
     USE Olson_Landmap_Mod,    ONLY : Init_Olson_Landmap
@@ -220,9 +231,9 @@ CONTAINS
     USE DRYDEP_MOD,           ONLY : INIT_WEIGHTSS, INIT_DRYDEP
     USE DUST_MOD,             ONLY : INIT_DUST
     USE GIGC_MPI_WRAP
-    ! KLUGE - MSL 04 Jan 2013
     USE LOGICAL_MOD,          ONLY : LVARTROP
     USE TIME_MOD,             ONLY : SET_TIMESTEPS
+    USE SEASALT_MOD,          ONLY : INIT_SEASALT
 !
 ! !INPUT PARAMETERS: 
 !
@@ -287,6 +298,8 @@ CONTAINS
 !                              broadcast to other CPUs.
 !  26 Feb 2013 - R. Yantosca - Cosmetic changes
 !  01 Mar 2013 - R. Yantosca - Need to move the definition of prtDebug higher
+!  04 Mar 2013 - R. Yantosca - Now use MAPL traceback macros __RC__ or
+!                              VERIFY_(STATUS) to force better error output
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -330,27 +343,32 @@ CONTAINS
 
     ! Read options from the GEOS-Chem input file "input.geos"
     ! And initialize grid
-    CALL GIGC_Get_Options( am_I_Root, lonCtr, latCtr, Input_Opt, &
-                           State_Chm, RC                         )
+    CALL GIGC_Get_Options( am_I_Root, lonCtr,    latCtr, &
+                           Input_Opt, State_Chm, __RC__ )
 
     !-----------------------------------------------------------------------
     ! Read "input.geos" on the root CPU and broadcast to other CPUs
     !-----------------------------------------------------------------------
 
     ! Broadcast "input.geos" options values to all threads with MPI
-    CALL GIGC_Input_Bcast( Input_Opt, RC )
-    CALL GIGC_IDT_Bcast(   Input_Opt, RC )
+    CALL GIGC_Input_Bcast( Input_Opt, __RC__ )
+    CALL GIGC_IDT_Bcast(   Input_Opt, __RC__ )
 
     ! Complete initialization ops on all threads
     IF ( .not. am_I_Root ) THEN 
 
-       ! Initialize dry deposition
-       IF ( Input_Opt%LDRYD ) THEN
-          CALL INIT_DRYDEP( am_I_Root, Input_Opt, RC )
-       ENDIF
+       !----------------------------------------------------------------------
+       ! Prior to 3/4/13:
+       ! NOTE: This is now initialized in the call to GIGC_Init_Extra
+       ! so we can comment it out here. (bmy, 3/4/13)
+       !! Initialize dry deposition
+       !IF ( Input_Opt%LDRYD ) THEN
+       !   CALL INIT_DRYDEP( am_I_Root, Input_Opt, __RC__ )
+       !ENDIF
+       !----------------------------------------------------------------------
 
        ! Initialize tracer quantities
-       CALL INIT_TRACER( am_I_Root, Input_Opt, RC )
+       CALL INIT_TRACER( am_I_Root, Input_Opt, __RC__ )
 
        ! Working Kluge - MSL; Break this & Fix the result...
        LVARTROP = Input_Opt%LVARTROP 
@@ -383,12 +401,12 @@ CONTAINS
     ENDIF
 
     ! Broadcast "mglob.dat"
-    CALL GIGC_Reader_Bcast( RC )
+    CALL GIGC_Reader_Bcast( __RC__ )
 
     ! Read "globchem.dat" chemistry mechanism
     ! NOTE: for now, read on all CPUs and fix later (bmy, mlong, 2/26/13)
 !    IF ( am_I_Root ) THEN
-       CALL READCHEM( am_I_Root, Input_Opt, RC )
+       CALL READCHEM( am_I_Root, Input_Opt, __RC__ )
        
        !### Debug
        IF ( prtDebug ) THEN
@@ -424,7 +442,7 @@ CONTAINS
     CALL Initialize( 3, am_I_Root )
 
     ! Initialize derived-type objects for meteorology & chemistry states
-    CALL GIGC_Init_All( am_I_Root, Input_Opt, State_Chm, State_Met, RC )
+    CALL GIGC_Init_All( am_I_Root, Input_Opt, State_Chm, State_Met, __RC__ )
 
     ! Save tracer names and ID's into State_Chm
     DO N = 1, Input_Opt%N_TRACERS
@@ -481,12 +499,12 @@ CONTAINS
     IF ( Input_Opt%LCHEM ) THEN
 
        ! Initialize arrays in comode_mod.F
-       CALL INIT_COMODE( am_I_Root, Input_Opt, RC )
+       CALL INIT_COMODE( am_I_Root, Input_Opt, __RC__ )
 
        ! Initialize KPP (if necessary)
        IF ( Input_Opt%LKPP ) THEN
           CALL INIT_GCKPP_COMODE( am_I_Root, IIPAR,   JJPAR, LLTROP,  &
-                                  ITLOOP,    NMTRATE, IGAS,  RC      )
+                                  ITLOOP,    NMTRATE, IGAS,  __RC__  )
        ENDIF
        
        ! Set NCS for urban chemistry only (since that is where we
@@ -526,7 +544,7 @@ CONTAINS
        ENDIF
        
        ! Flag certain chemical species
-       CALL SETTRACE( am_I_Root, Input_Opt, State_Chm, RC )
+       CALL SETTRACE( am_I_Root, Input_Opt, State_Chm, __RC__ )
        
        !### Debug
        IF ( prtDebug ) THEN
@@ -534,7 +552,7 @@ CONTAINS
        ENDIF
        
        ! Flag emission & drydep rxns
-       CALL SETEMDEP( am_I_Root, Input_Opt, RC )
+       CALL SETEMDEP( am_I_Root, Input_Opt, __RC__ )
        
        !### Debug
        IF ( prtDebug ) THEN

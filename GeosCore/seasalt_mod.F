@@ -29,6 +29,7 @@
       PUBLIC :: EMISSSEASALT
       PUBLIC :: CLEANUP_SEASALT
       PUBLIC :: GET_ALK
+      PUBLIC :: INIT_SEASALT
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -70,6 +71,8 @@
 !  (11) Bug fixes in GET_ALK and SRCSALT (bec, lyj, bmy, 11/23/09)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!  04 Mar 2013 - R. Yantosca - Now call INIT_SULFATE from the init stage
+!                              which facilitates connection to GEOS-5 GCM
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -175,7 +178,7 @@
 ! !LOCAL VARIABLES:
 !
       ! SAVEd variables
-      LOGICAL, SAVE  :: FIRST = .TRUE.
+!      LOGICAL, SAVE  :: FIRST = .TRUE.
 
       ! Non-SAVEd variables
       LOGICAL        :: prtDebug
@@ -198,32 +201,36 @@
 
       ! Do we have to print debug output?
       prtDebug = ( LPRT .and. am_I_Root )
-      
-      ! First-time initialization
-      IF ( FIRST ) THEN
 
-         ! Initialize (if necessary)
-         CALL INIT_SEASALT
-
-         ! Find drydep species in DEPSAV
-         DO N = 1, NUMDEP
-            SELECT CASE ( TRIM( DEPNAME(N) ) )
-               CASE ( 'SALA' )
-                  DRYSALA = N
-               CASE ( 'SALC' )
-                  DRYSALC = N
-               CASE DEFAULT
-                  ! Nothing
-            END SELECT        
-         ENDDO
-
-         ! Store in IDDEP array
-         IDDEP(1) = DRYSALA
-         IDDEP(2) = DRYSALC
-
-         ! Reset first-time flag
-         FIRST = .FALSE.
-      ENDIF
+!----------------------------------------------------------------------------- 
+! Prior to 3/4/13:
+! This needs to be moved to the init stage, for ESMF (bmy, 3/4/13)
+!      ! First-time initialization
+!      IF ( FIRST ) THEN
+!
+!         ! Initialize (if necessary)
+!         CALL INIT_SEASALT
+!
+!         ! Find drydep species in DEPSAV
+!         DO N = 1, NUMDEP
+!            SELECT CASE ( TRIM( DEPNAME(N) ) )
+!               CASE ( 'SALA' )
+!                  DRYSALA = N
+!               CASE ( 'SALC' )
+!                  DRYSALC = N
+!               CASE DEFAULT
+!                  ! Nothing
+!            END SELECT        
+!         ENDDO
+!
+!         ! Store in IDDEP array
+!         IDDEP(1) = DRYSALA
+!         IDDEP(2) = DRYSALC
+!
+!         ! Reset first-time flag
+!         FIRST = .FALSE.
+!      ENDIF
+!----------------------------------------------------------------------------- 
 
       !=================================================================
       ! Maybe someday we should merge these two separate calculations
@@ -948,11 +955,15 @@
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### in EMISSEASALT' )
 
-      ! Allocate all module arrays (bec, bmy, 4/13/05)
-      IF ( FIRST ) THEN  
-         CALL INIT_SEASALT
-         FIRST = .FALSE.
-      ENDIF
+!----------------------------------------------------------------------------- 
+! Prior to 3/4/13:
+! This needs to be moved to the init stage, for ESMF (bmy, 3/4/13)
+!      ! Allocate all module arrays (bec, bmy, 4/13/05)
+!      IF ( FIRST ) THEN  
+!         CALL INIT_SEASALT
+!         FIRST = .FALSE.
+!      ENDIF
+!----------------------------------------------------------------------------- 
 
       ! Initialize for each timestep (bec, bmy, 4/13/05)
 !$OMP PARALLEL DO
@@ -1597,19 +1608,32 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_SEASALT
+      SUBROUTINE INIT_SEASALT( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE ERROR_MOD, ONLY : ALLOC_ERR
-
       USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC
 !
 ! !REVISION HISTORY:
 !  (1 ) Now exit if we have allocated arrays before.  Now also allocate 
 !        ALK_EMIS & N_DENS.  Now reference CMN_SIZE. (bec, bmy, 4/13/05)
 !  (2 ) Added SALT_V and DMID (jaegle 5/11/11)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  04 Mar 2013 - R. Yantosca - Now pass am_I_Root, Input_Opt, RC as arguments
+!   4 Mar 2013 - R. Yantosca - Now test for DEPSALA, DEPSALC here
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1617,11 +1641,14 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE :: IS_INIT = .FALSE.
-      INTEGER       :: AS
+      INTEGER       :: AS, N
 
       !=================================================================
       ! INIT_SEASALT begins here!
       !=================================================================
+
+      ! Assume success
+      RC = GIGC_SUCCESS
 
       ! Return if we have already allocated arrays
       IF ( IS_INIT ) RETURN
@@ -1658,6 +1685,27 @@
       ALLOCATE( DMID( NR_MAX ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'DMID' )
       DMID = 0d0
+
+      ! Zero the IDDEP array
+      IDDEP = 0
+
+      ! Find drydep species in DEPSAV
+      IF ( Input_Opt%LDRYD ) THEN 
+         DO N = 1, Input_Opt%NUMDEP
+            SELECT CASE ( TRIM( Input_Opt%DEPNAME(N) ) )
+               CASE ( 'SALA' )
+                  DRYSALA = N
+               CASE ( 'SALC' )
+                  DRYSALC = N
+               CASE DEFAULT
+                  ! Nothing
+            END SELECT        
+         ENDDO
+
+         ! Store in IDDEP array
+         IDDEP(1) = DRYSALA
+         IDDEP(2) = DRYSALC
+      ENDIF
 
       ! Reset IS_INIT
       IS_INIT = .TRUE.

@@ -760,7 +760,8 @@ input_mod.o                 : input_mod.F                                    \
                               transport_mod.o         wetscav_mod.o          \
                               diag63_mod.o            bromocarb_mod.o        \
                               get_popsinfo_mod.o      pops_mod.o             \
-                              dust_mod.o
+                              carbon_mod.o            dust_mod.o             \
+                              seasalt_mod.o           sulfate_mod.o
 
 isoropiaII_mod.o            : isoropiaII_mod.F                               \
                               dao_mod.o               global_hno3_mod.o      \

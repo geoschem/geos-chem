@@ -277,7 +277,6 @@ CONTAINS
 !  01 Nov 2012 - R. Yantosca - Now use LSCHEM from logical_mod.F
 !  09 Nov 2012 - R. Yantosca - Now pass Input Options object for GIGC
 !  26 Feb 2013 - R. Yantosca - Now pass Input_Opt to Init_GIGC_State_Chm
-
 !EOP
 !------------------------------------------------------------------------------
 !BOC
