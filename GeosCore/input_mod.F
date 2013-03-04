@@ -7958,6 +7958,7 @@
 ! !USES:
 !
       USE Carbon_Mod,         ONLY : Init_Carbon
+      USE Drydep_Mod,         ONLY : Init_Drydep
       USE Dust_Mod,           ONLY : Init_Dust
       USE Error_Mod,          ONLY : Debug_Msg
       USE GIGC_ErrCode_Mod
@@ -7996,6 +7997,13 @@
 
       ! Initialize "carbon_mod.F"
       IF ( Input_Opt%LCARB ) THEN
+         CALL Init_Drydep( am_I_Root, Input_Opt, RC )
+         IF ( RC /= GIGC_SUCCESS ) RETURN
+         IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_DRYDEP' )
+      ENDIF
+
+      ! Initialize "carbon_mod.F"
+      IF ( Input_Opt%LCARB ) THEN
          CALL Init_Carbon( am_I_Root, Input_Opt, RC )
          IF ( RC /= GIGC_SUCCESS ) RETURN
          IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_CARBON' )
@@ -8006,7 +8014,6 @@
          CALL Init_Dust( am_I_Root, Input_Opt, RC )
          IF ( RC /= GIGC_SUCCESS ) RETURN
          IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_DUST' )
-
       ENDIF
 
       ! Initialize "seasalt_mod.F

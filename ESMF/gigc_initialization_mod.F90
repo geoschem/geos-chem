@@ -101,9 +101,6 @@ CONTAINS
 !  07 Dec 2012 - R. Yantosca - Compute DLON, DLAT more rigorously
 !  26 Feb 2013 - M. Long     - Now pass State_Chm as an argument
 !  26 Feb 2013 - M. Long     - Read "input.geos" on root CPU only
-!  04 Mar 2013 - R. Yantosca - Now call GIGC_Init_Extra, which moves some init
-!                              calls out of the run stage.  This is necessary
-!                              for connecting to the GEOS-5 GCM via ESMF.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -162,11 +159,6 @@ CONTAINS
     IF ( .not. am_I_Root ) THEN
        CALL Initialize_Geos_Grid( am_I_Root, RC )
     ENDIF
-
-    ! Initialize other modules (e.g. carbon_mod.F, dust_mod.F, seasalt_mod.F, 
-    ! sulfate_mod.F).  We needed to move the init calls for these modules
-    ! out of the run stage and into the init stage. (bmy, 3/4/13)
-    CALL GIGC_Init_Extra( am_I_Root, Input_Opt, RC )
 
   END SUBROUTINE GIGC_Get_Options
 !EOC
@@ -296,8 +288,9 @@ CONTAINS
 !                              broadcast to other CPUs.
 !  26 Feb 2013 - R. Yantosca - Cosmetic changes
 !  01 Mar 2013 - R. Yantosca - Need to move the definition of prtDebug higher
-!  04 Mar 2013 - R. Yantosca - Now use MAPL traceback macros __RC__ or
-!                              VERIFY_(STATUS) to force better error output
+!  04 Mar 2013 - R. Yantosca - Now call GIGC_Init_Extra, which moves some init
+!                              calls out of the run stage.  This has to be done
+!                              after we broadcast Input_Opt to non-root CPUs.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -350,7 +343,14 @@ CONTAINS
 
     ! Broadcast "input.geos" options values to all threads with MPI
     CALL GIGC_Input_Bcast( Input_Opt, RC )
-    CALL GIGC_IDT_Bcast(   Input_Opt, RC )
+    CALL GIGC_IDT_Bcast  ( Input_Opt, RC )
+
+    ! After broadcasting Input_Opt to other CPUs, call GIGC_Init_Extra
+    ! to initialize other modules (e.g. drydep_mod.F, carbon_mod.F, 
+    ! dust_mod.F, seasalt_mod.F,  sulfate_mod.F).  We needed to move 
+    ! these init calls out of the run stage and into the init stage. 
+    ! (bmy, 3/4/13)
+    CALL GIGC_Init_Extra( am_I_Root, Input_Opt, RC )
 
     ! Complete initialization ops on all threads
     IF ( .not. am_I_Root ) THEN 
