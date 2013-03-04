@@ -201,7 +201,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE MAPL_Mod
     USE GIGC_Environment_Mod
     USE GIGC_ErrCode_Mod  
     USE GIGC_Input_Opt_Mod
@@ -214,7 +213,6 @@ CONTAINS
     USE GCKPP_COMODE_MOD,     ONLY : INIT_GCKPP_COMODE
     USE ERROR_MOD,            ONLY : DEBUG_MSG
     USE GRID_MOD,             ONLY : INIT_GRID
-    USE Input_Mod,            ONLY : Do_Extra_Init
     USE Mapping_Mod,          ONLY : MapWeight
     USE Mapping_Mod,          ONLY : Init_Mapping
     USE Olson_Landmap_Mod,    ONLY : Init_Olson_Landmap
@@ -344,15 +342,15 @@ CONTAINS
     ! Read options from the GEOS-Chem input file "input.geos"
     ! And initialize grid
     CALL GIGC_Get_Options( am_I_Root, lonCtr,    latCtr, &
-                           Input_Opt, State_Chm, __RC__ )
+                           Input_Opt, State_Chm, RC )
 
     !-----------------------------------------------------------------------
     ! Read "input.geos" on the root CPU and broadcast to other CPUs
     !-----------------------------------------------------------------------
 
     ! Broadcast "input.geos" options values to all threads with MPI
-    CALL GIGC_Input_Bcast( Input_Opt, __RC__ )
-    CALL GIGC_IDT_Bcast(   Input_Opt, __RC__ )
+    CALL GIGC_Input_Bcast( Input_Opt, RC )
+    CALL GIGC_IDT_Bcast(   Input_Opt, RC )
 
     ! Complete initialization ops on all threads
     IF ( .not. am_I_Root ) THEN 
@@ -363,12 +361,12 @@ CONTAINS
        ! so we can comment it out here. (bmy, 3/4/13)
        !! Initialize dry deposition
        !IF ( Input_Opt%LDRYD ) THEN
-       !   CALL INIT_DRYDEP( am_I_Root, Input_Opt, __RC__ )
+       !   CALL INIT_DRYDEP( am_I_Root, Input_Opt, RC )
        !ENDIF
        !----------------------------------------------------------------------
 
        ! Initialize tracer quantities
-       CALL INIT_TRACER( am_I_Root, Input_Opt, __RC__ )
+       CALL INIT_TRACER( am_I_Root, Input_Opt, RC )
 
        ! Working Kluge - MSL; Break this & Fix the result...
        LVARTROP = Input_Opt%LVARTROP 
@@ -401,12 +399,12 @@ CONTAINS
     ENDIF
 
     ! Broadcast "mglob.dat"
-    CALL GIGC_Reader_Bcast( __RC__ )
+    CALL GIGC_Reader_Bcast( RC )
 
     ! Read "globchem.dat" chemistry mechanism
     ! NOTE: for now, read on all CPUs and fix later (bmy, mlong, 2/26/13)
 !    IF ( am_I_Root ) THEN
-       CALL READCHEM( am_I_Root, Input_Opt, __RC__ )
+       CALL READCHEM( am_I_Root, Input_Opt, RC )
        
        !### Debug
        IF ( prtDebug ) THEN
@@ -442,7 +440,7 @@ CONTAINS
     CALL Initialize( 3, am_I_Root )
 
     ! Initialize derived-type objects for meteorology & chemistry states
-    CALL GIGC_Init_All( am_I_Root, Input_Opt, State_Chm, State_Met, __RC__ )
+    CALL GIGC_Init_All( am_I_Root, Input_Opt, State_Chm, State_Met, RC )
 
     ! Save tracer names and ID's into State_Chm
     DO N = 1, Input_Opt%N_TRACERS
@@ -499,12 +497,12 @@ CONTAINS
     IF ( Input_Opt%LCHEM ) THEN
 
        ! Initialize arrays in comode_mod.F
-       CALL INIT_COMODE( am_I_Root, Input_Opt, __RC__ )
+       CALL INIT_COMODE( am_I_Root, Input_Opt, RC )
 
        ! Initialize KPP (if necessary)
        IF ( Input_Opt%LKPP ) THEN
           CALL INIT_GCKPP_COMODE( am_I_Root, IIPAR,   JJPAR, LLTROP,  &
-                                  ITLOOP,    NMTRATE, IGAS,  __RC__  )
+                                  ITLOOP,    NMTRATE, IGAS,  RC      )
        ENDIF
        
        ! Set NCS for urban chemistry only (since that is where we
@@ -544,7 +542,7 @@ CONTAINS
        ENDIF
        
        ! Flag certain chemical species
-       CALL SETTRACE( am_I_Root, Input_Opt, State_Chm, __RC__ )
+       CALL SETTRACE( am_I_Root, Input_Opt, State_Chm, RC )
        
        !### Debug
        IF ( prtDebug ) THEN
@@ -552,7 +550,7 @@ CONTAINS
        ENDIF
        
        ! Flag emission & drydep rxns
-       CALL SETEMDEP( am_I_Root, Input_Opt, __RC__ )
+       CALL SETEMDEP( am_I_Root, Input_Opt, RC )
        
        !### Debug
        IF ( prtDebug ) THEN
