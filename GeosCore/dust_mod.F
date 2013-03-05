@@ -95,6 +95,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -126,6 +127,7 @@
 !                              running with the traditional driver main.F
 !  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
 !  15 Nov 2012 - M. Payer    - Now pass State_Met as an argument
+!  05 Mar 2013 - R. Yantosca - Add ND70 debug print output 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -138,6 +140,7 @@
       ! Non-SAVEd scalars
       LOGICAL       :: LDRYD
       LOGICAL       :: LDUST
+      LOGICAL       :: prtDebug
       INTEGER       :: N
 
       !=================================================================
@@ -150,6 +153,9 @@
       ! Copy fields from INPUT_OPT to local variables for use below
       LDRYD = Input_Opt%LDRYD
       LDUST = Input_Opt%LDUST
+
+      ! Set a flag for debug output
+      prtDebug = ( Input_Opt%LPrt .and. am_I_Root )
 
       ! Execute on first call only
       IF ( FIRST ) THEN
@@ -171,14 +177,28 @@
       ! Do dust settling & deposition
       !=================================================================
 
+      !----------------------
       ! Dust settling
+      !----------------------
       CALL DRY_SETTLING(  am_I_Root, Input_Opt,  
      &                    State_Met, STT(:,:,:,IDTDST1:IDTDST4), RC )
 
+      ! Debug print
+      IF ( prtDebug ) THEN
+         CALL DEBUG_MSG( '### CHEMDUST: a DRY_SETTLING' )
+      ENDIF
+
+      !----------------------
       ! Dust deposition
+      !----------------------
       IF ( LDRYD ) THEN
          CALL DRY_DEPOSITION( am_I_Root,                  Input_Opt, 
      &                        STT(:,:,:,IDTDST1:IDTDST4), RC         )
+
+         ! Debug print
+         IF ( prtDebug ) THEN
+            CALL DEBUG_MSG( '### CHEMDUST: a DRY_DEPOSITION' )
+         ENDIF
       ENDIF
 
       END SUBROUTINE CHEMDUST
