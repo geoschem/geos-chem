@@ -3564,6 +3564,7 @@
       RC       = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
+      LNLPBL   = Input_Opt%LNLPBL
       LSOILNOX = Input_Opt%LSOILNOX
       TCVV     = Input_Opt%TCVV
       XNUMOL   = Input_Opt%XNUMOL
