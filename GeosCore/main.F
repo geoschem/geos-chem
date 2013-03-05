@@ -216,6 +216,8 @@
 !                              derived type object
 !  15 Nov 2012 - R. Yantosca - Bring Input_Opt out of the DEVEL tags
 !  26 Feb 2013 - R. Yantosca - Add placeholder tag for Input_Opt%MAX_DEP
+!  05 Mar 2013 - R. Yantosca - Now pass am_I_Root, Input_Opt, RC to routine
+!                              DO_PBL_MIX_2 (for non-local PBL mixing)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -474,8 +476,8 @@
          CALL DO_PBL_MIX  ( .FALSE., State_Met )
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:1' )
       ELSE
-         !### DEBUG
-         CALL DO_PBL_MIX_2( .FALSE., State_Met )
+         CALL DO_PBL_MIX_2( am_I_Root, .FALSE., 
+     &                      Input_Opt, State_Met, RC )
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a NLPBL 1' )
       ENDIF
 
@@ -992,7 +994,8 @@
                CALL DO_PBL_MIX  ( LTURB, State_Met )
                IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:1' )
             ELSE
-               CALL DO_PBL_MIX_2( LTURB, State_Met )
+               CALL DO_PBL_MIX_2( am_I_Root, LTURB, 
+     &                            Input_Opt, State_Met, RC )
                IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a NLPBL 2' )
             ENDIF
 
