@@ -451,8 +451,9 @@
             ENDIF
 
             ! Get CH4 [ppbv] in 4 latitude bins for each year
-            CALL GET_GLOBAL_CH4( CH4_YEAR, .TRUE., C3090S,
-     &                           C0030S,   C0030N, C3090N, am_I_Root )
+            CALL GET_GLOBAL_CH4( CH4_YEAR,  .TRUE.,  C3090S,
+     &                           C0030S,    C0030N,  C3090N, 
+     &                           am_I_Root, Input_Opt        )
          ENDIF
 
          !-------------------------------
@@ -554,7 +555,8 @@
       CALL GASCONC(  am_I_Root,
      &               .FALSE.,                N_TRACERS, 
      &               STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),  
-     &               .FALSE.,                State_Met             )
+     &               .FALSE.,                Input_Opt,  
+     &               State_Met                                    )
 #else
       !-----------------------------------------------------------------
       !              %%%%% TRADITIONAL GEOS-Chem %%%%%
@@ -606,7 +608,8 @@
             CALL GASCONC( am_I_Root,
      &                    FIRSTCHEM,              N_TRACERS, 
      &                    STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),    
-     &                    IT_EXISTS,              State_Met )
+     &                    IT_EXISTS,              Input_Opt,
+     &                    State_Met                                    )
          ELSE 
 
             !-----------------------------------------------------------
@@ -621,7 +624,8 @@
             CALL GASCONC( am_I_Root,
      &                    .FALSE.,                N_TRACERS, 
      &                    STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),    
-     &                    IT_EXISTS,              State_Met )
+     &                    IT_EXISTS,              Input_Opt,
+     &                    State_Met                                    )
 
          ENDIF 
 
@@ -634,7 +638,8 @@
          CALL GASCONC(  am_I_Root,
      &                  FIRSTCHEM,              N_TRACERS, 
      &                  STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),  
-     &                  IT_EXISTS,              State_Met )
+     &                  IT_EXISTS,              Input_Opt,             
+     &                  State_Met                                      )
 
       ENDIF 
 
@@ -649,7 +654,8 @@
       !=================================================================  
       ! Call SETEMIS which sets emission rates REMIS 
       !=================================================================
-      CALL SETEMIS( EMISRR, EMISRRN, am_I_Root, State_Met )
+      CALL SETEMIS( EMISRR,    EMISRRN,   am_I_Root, 
+     &              Input_Opt, State_Met, RC         )
       
       !### Debug
       IF ( prtDebug ) THEN
@@ -780,7 +786,7 @@
       ! This is current practice in the std GEOS-Chem. (bmy, 10/24/12)
       !-----------------------------------------------------------------
       IF ( Input_Opt%LFAMILY ) THEN
-         CALL DO_DIAG_PL( am_I_Root )
+         CALL DO_DIAG_PL( am_I_Root, Input_Opt, RC )
 
          !### Debug
          IF ( prtDebug ) THEN
@@ -828,7 +834,7 @@
       !        CSPEC_FULL restart file. (ccc, 2/26/09) 
       !-----------------------------------------------------------------
       IF ( LVARTROP .or. LSVCSPEC ) THEN
-         CALL SAVE_FULL_TROP
+         CALL SAVE_FULL_TROP()
 
          !### Debug
          IF ( prtDebug ) THEN

@@ -321,7 +321,7 @@
                ELSE
 
                   ! RPMARES does not take Na+, Cl- into account
-                  CALL DO_RPMARES( am_I_Root, State_Met )
+                  CALL DO_RPMARES( am_I_Root, Input_Opt, State_Met )
 
                ENDIF
 
@@ -403,7 +403,7 @@
                ! RPMARES does not take Na+, Cl- into account
                ! (skip for crystalline & aqueous offline run)
                IF ( .not. LCRYST ) THEN
-                  CALL DO_RPMARES( am_I_Root, State_Met )
+                  CALL DO_RPMARES( am_I_Root, Input_Opt, State_Met )
                ENDIF
             ENDIF
 

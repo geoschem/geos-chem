@@ -177,12 +177,12 @@
 !  30 Jul 2012 - R. Yantosca - Modifications for grid-independence
 !  28 Nov 2012 - R. Yantosca - Replace SUNCOS array with State_Met%SUNCOS and
 !                              SUNCOS_MID array with State_Met%SUNCOSmid
-!  04 Mar 2013 - R. Yantosca - Now call INIT_SULFATE from the init stage
+!  04 Mar 2013 - R. Yantosca - Now call INIT_CARBON from the init stage
 !                              which facilitates connection to GEOS-5 GCM
+!  05 Mar 2013 - R. Yantosca - Remove reference to LNLPBL from logical_mod.F
+!                              and replace with Input_Opt%LNLPBL
 !******************************************************************************
 !
-      USE LOGICAL_MOD,    ONLY : LNLPBL ! (Lin,03/31/09)
-
       IMPLICIT NONE
 #     include "define.h"
 
@@ -297,8 +297,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD 
-      USE DRYDEP_MOD,         ONLY : DEPNAME
-      USE DRYDEP_MOD,         ONLY : NUMDEP
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -379,59 +377,6 @@
 
       ! First-time initialization
       IF ( FIRSTCHEM ) THEN
-
-!-----------------------------------------------------------------------------
-! Prior to 3/4/13:
-! NOTE: For ESMF, this has to be moved to the init stage (bmy, 3/4/13)
-!         ! Initialize arrays (if not already done before)
-!         CALL INIT_CARBON
-!
-!         ! Find drydep species in DEPSAV
-!         DO N = 1, NUMDEP
-!            SELECT CASE ( TRIM( DEPNAME(N) ) )
-!               CASE ( 'BCPI' )
-!                  DRYBCPI = N
-!               CASE ( 'OCPI' )
-!                  DRYOCPI = N
-!               CASE ( 'BCPO' )
-!                  DRYBCPO = N
-!               CASE ( 'OCPO' )
-!                  DRYOCPO = N
-!               CASE ( 'ALPH' )
-!                  DRYALPH = N
-!               CASE ( 'LIMO' )
-!                  DRYLIMO = N
-!               CASE ( 'ALCO' )
-!                  DRYALCO = N
-!               CASE ( 'SOG1' )
-!                  DRYSOG1 = N
-!               CASE ( 'SOG2' )
-!                  DRYSOG2 = N
-!               CASE ( 'SOG3' )
-!                  DRYSOG3 = N
-!               CASE ( 'SOG4' )
-!                  DRYSOG4 = N
-!               CASE ( 'SOG5' )   ! (dkh, 03/24/07)  
-!                  DRYSOG5 = N
-!               CASE ( 'SOA1' )
-!                  DRYSOA1 = N
-!               CASE ( 'SOA2' )
-!                  DRYSOA2 = N
-!               CASE ( 'SOA3' )
-!                  DRYSOA3 = N
-!               CASE ( 'SOA4' )
-!                  DRYSOA4 = N
-!               CASE ( 'SOA5' )   ! (dkh, 03/24/07)  
-!                  DRYSOA5 = N
-!               CASE ( 'SOAG' )
-!                  DRYSOAG = N
-!               CASE ( 'SOAM' )
-!                  DRYSOAM = N
-!               CASE DEFAULT
-!                  ! Nothing
-!            END SELECT        
-!         ENDDO
-!-----------------------------------------------------------------------------
 
          ! Zero SOG4 and SOA4 (SOA from ISOP in gas & aerosol form)
          ! for offline aerosol simulations.  Eventually we should have
@@ -545,7 +490,7 @@
             ENDIF
 
             ! Aqueous aerosol uptake
-            CALL SOAG_LIGGIO_DIFF( State_Met )
+            CALL SOAG_LIGGIO_DIFF( am_I_Root, Input_Opt, State_Met )
             IF ( prtDebug ) THEN 
                CALL DEBUG_MSG('### CHEMCARBON: a SOAG_LIGGIO_DIFF')        
             ENDIF
@@ -565,7 +510,7 @@
             ENDIF
 
             ! Aqueous aerosol uptake
-            CALL SOAM_LIGGIO_DIFF( State_Met )
+            CALL SOAM_LIGGIO_DIFF( am_I_Root, Input_Opt, State_Met )
             IF ( prtDebug ) THEN
                CALL DEBUG_MSG( '### CHEMCARBON: a SOAM_LIGGIO_DIFF' )
             ENDIF
@@ -629,6 +574,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
 !  26 Nov 2012 - R. Yantosca - Added ProTeX headers
+!   5 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -636,6 +582,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
+      LOGICAL            :: LNLPBL
       INTEGER            :: I,       J,   L
       REAL*8             :: DTCHEM, FLUX, KBC, FREQ
       REAL*8             :: TC0,    CNEW, RKT, AREA_CM2, BL_FRAC
@@ -660,6 +607,7 @@
 
       ! Copy fields from INPUT_OPT to local variables for use below
       XNUMOL = Input_Opt%XNUMOL
+      LNLPBL = Input_Opt%LNLPBL
 
       ! Initialize
       KBC    = 1.D0 / ( 86400d0 * BC_LIFE )
@@ -700,7 +648,7 @@
          BL_FRAC = GET_FRAC_UNDER_PBLTOP( I, J, L )
 
          ! Move drydep to vdiff_mod.f for non-local PBL mixing (Lin, 06/09/08)
-         IF (LNLPBL) BL_FRAC = 0.D0
+         IF ( LNLPBL ) BL_FRAC = 0.D0
 
          ! Only apply drydep to boxes w/in the PBL
          IF ( BL_FRAC > 0d0 ) THEN
@@ -824,6 +772,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
 !  26 Nov 2012 - R. Yantosca - Added ProTeX Headers
+!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -831,6 +780,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
+      LOGICAL :: LNLPBL
       INTEGER :: I, J, L
       REAL*8  :: DTCHEM, FLUX, BL_FRAC, AREA_CM2
       REAL*8  :: TC0,    CNEW, CCV,     FREQ
@@ -851,6 +801,7 @@
 
       ! Copy fields from INPUT_OPT to local variables for use below
       XNUMOL = Input_Opt%XNUMOL
+      LNLPBL = Input_Opt%LNLPBL
 
       ! Chemistry timestep [s]
       DTCHEM = GET_TS_CHEM() * 60d0
@@ -876,7 +827,7 @@
          BL_FRAC = GET_FRAC_UNDER_PBLTOP( I, J, L ) 
 
          ! Move drydep to vdiff_mod.f for non-local PBL mixing (Lin, 06/09/08)
-         IF (LNLPBL) BL_FRAC = 0.D0
+         IF ( LNLPBL ) BL_FRAC = 0.D0
 
          ! Only apply drydep to boxes w/in the PBL
          IF ( BL_FRAC > 0d0 ) THEN
@@ -1011,6 +962,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
 !  26 Nov 2012 - R. Yantosca - Added ProTeX headers
+!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1018,6 +970,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
+      LOGICAL            :: LNLPBL
       INTEGER            :: I, J, L
       REAL*8             :: DTCHEM, FLUX, KOC,  BL_FRAC
       REAL*8             :: TC0,    FREQ, CNEW, RKT, AREA_CM2
@@ -1042,6 +995,7 @@
 
       ! Copy fields from INPUT_OPT to local variables for use below
       XNUMOL = Input_Opt%XNUMOL
+      LNLPBL = Input_Opt%LNLPBL
 
       ! Initialize
       KOC    = 1.D0 / ( 86400d0 * OC_LIFE )
@@ -1081,7 +1035,7 @@
          BL_FRAC = GET_FRAC_UNDER_PBLTOP( I, J, L )
 
          ! Move drydep to vdiff_mod.f for non-local PBL mixing (Lin, 06/09/08) 
-         IF (LNLPBL) BL_FRAC = 0.D0
+         IF ( LNLPBL ) BL_FRAC = 0.D0
 
          ! Only apply drydep to boxes w/in the PBL
          IF ( BL_FRAC > 0d0 ) THEN
@@ -1208,6 +1162,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
 !  26 Nov 2012 - R. Yantosca - Added ProTeX headers
+!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1215,6 +1170,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
+      LOGICAL :: LNLPBL
       INTEGER :: I, J, L
       REAL*8  :: DTCHEM, FLUX, BL_FRAC
       REAL*8  :: TC0, CNEW, CCV, FREQ, AREA_CM2
@@ -1233,6 +1189,7 @@
 
       ! Copy fields from INPUT_OPT to local variables for use below
       XNUMOL = Input_Opt%XNUMOL
+      LNLPBL = Input_Opt%LNLPBL
 
       ! Chemistry timestep [s]
       DTCHEM = GET_TS_CHEM() * 60d0
@@ -1258,8 +1215,7 @@
          BL_FRAC = GET_FRAC_UNDER_PBLTOP( I, J, L )
 
          ! Move drydep to vdiff_mod.f for non-local PBL mixing (Lin, 06/09/08) 
-         IF (LNLPBL) BL_FRAC = 0.D0
-
+         IF ( LNLPBL ) BL_FRAC = 0.D0
 
          ! Only apply drydep to boxes w/in the PBL
          IF ( BL_FRAC > 0d0 ) THEN
@@ -1343,7 +1299,7 @@
 !EOC
 !-------------------------------------------------------------------------------
 
-      SUBROUTINE SOAG_LIGGIO_DIFF( State_Met )
+      SUBROUTINE SOAG_LIGGIO_DIFF( am_I_Root, Input_Opt, State_Met )
 !
 !******************************************************************************
 !  Subroutine SOAG_LIGGIO_DIFF produces SOA on aqueous aerosol surfaces
@@ -1361,25 +1317,30 @@
 !                              derived type object
 !******************************************************************************
 !
-      ! References to F90 modules
+! !USES:
+!
+      USE CMN_SIZE_MOD
+      USE CMN_O3_MOD
+      USE CMN_DIAG_MOD
       USE COMODE_MOD,         ONLY : WTAREA, WERADIUS 
       USE COMODE_MOD,         ONLY : AIRDENS, JLOP
+      USE COMODE_LOOP_MOD
       USE DIAG_MOD,           ONLY : AD07_SOAGM
       USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_MONTH
       USE TRACER_MOD,         ONLY : STT 
       USE TRACERID_MOD,       ONLY : IDTGLYX, IDTSOAG
-
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE COMODE_LOOP_MOD          ! AD, WTAIR, other SMVGEAR variables
-      USE CMN_O3_MOD               ! XNUMOL
-      USE CMN_DIAG_MOD             ! ND44, ND07, LD07
-
-      ! Input parameters
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-
-      ! Local variables
+!
+! !LOCAL VARIABLES:
+!
       INTEGER :: I, J, L, JLOOP, N
       REAL*8  :: XTEMP       ! Temperature [K]
       REAL*8  :: XSQTEMP     ! SQRT of Temperature
@@ -1547,14 +1508,14 @@
       !=================================================================       
       ! Calculate dry-deposition
       !=================================================================
-      CALL SOA_DEPO( STT(:,:,:,IDTSOAG), DRYSOAG, IDTSOAG )
+      CALL SOA_DEPO( STT(:,:,:,IDTSOAG), DRYSOAG, IDTSOAG, Input_Opt )
 
       ! Return to calling program 
       END SUBROUTINE SOAG_LIGGIO_DIFF
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE SOAM_LIGGIO_DIFF( State_Met )
+      SUBROUTINE SOAM_LIGGIO_DIFF( am_I_Root, Input_Opt, State_Met )
 !
 !******************************************************************************
 !  Subroutine SOAG_LIGGIO_DIFF produces SOA on aqueous aerosol surfaces
@@ -1570,27 +1531,33 @@
 !        surface.
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!   5 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt arguments
 !******************************************************************************
 !
-      ! References to F90 modules
+! !USES:
+!
+      USE CMN_SIZE_MOD
+      USE CMN_O3_MOD
+      USE CMN_DIAG_MOD
       USE COMODE_MOD,         ONLY : WTAREA, WERADIUS
       USE COMODE_MOD,         ONLY : AIRDENS, JLOP
+      USE COMODE_LOOP_MOD
       USE DIAG_MOD,           ONLY : AD07_SOAGM
       USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_MONTH
       USE TRACER_MOD,         ONLY : STT 
       USE TRACERID_MOD,       ONLY : IDTMGLY, IDTSOAM
-
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE COMODE_LOOP_MOD          ! AD, WTAIR, other SMVGEAR variables
-      USE CMN_O3_MOD               ! XNUMOL
-      USE CMN_DIAG_MOD             ! ND44, ND07, LD07
-
-      ! Input parameters
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN) :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-
-      ! Local variables
+!
+! !LOCAL VARIABLES:
+!
       INTEGER :: I, J, L, JLOOP, N
       REAL*8  :: XTEMP       ! Temperature [K]
       REAL*8  :: XSQTEMP     ! SQRT of Temperature
@@ -1758,7 +1725,7 @@
       !=================================================================       
       ! Calculate dry-deposition
       !=================================================================
-      CALL SOA_DEPO( STT(:,:,:,IDTSOAM), DRYSOAM, IDTSOAM )
+      CALL SOA_DEPO( STT(:,:,:,IDTSOAM), DRYSOAM, IDTSOAM, Input_Opt )
 
       ! Return to calling program 
       END SUBROUTINE SOAM_LIGGIO_DIFF
@@ -1840,6 +1807,8 @@
 !                              running with the traditional driver main.F
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  05 Mar 2013 - R. Yantosca - Now pass Input_Opt to SOA_DEPO
+!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LPRT
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1847,7 +1816,6 @@
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE LOGICAL_MOD,        ONLY : LPRT   !(bmy, 4/21/10)
       USE TRACER_MOD,         ONLY : STT 
       USE TRACERID_MOD,       ONLY : IDTALCO, IDTALPH, IDTLIMO, IDTOCPI
       USE TRACERID_MOD,       ONLY : IDTOCPO, IDTSOA1, IDTSOA2, IDTSOA3
@@ -1870,6 +1838,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE   :: FIRST = .TRUE.
+      LOGICAL         :: LPRT
       INTEGER         :: I,        J,        L,        N    
       INTEGER         :: JHC,      IPR,      NOX ! (dkh, 10/30/06)  
       REAL*8          :: RTEMP,    VOL,      FAC,      MPOC 
@@ -1895,6 +1864,9 @@
       !=================================================================
       ! SOA_CHEMISTRY begins here!
       !=================================================================
+
+      ! Save fields from Input_Opt to local variables
+      LPRT = Input_Opt%LPRT
 
       !this section is need to initialize the equalibirum constants and
       !yield parameters, (jje 06/22/10)
@@ -2250,21 +2222,19 @@
       !=================================================================       
       ! Calculate dry-deposition
       !=================================================================
-      CALL SOA_DEPO( STT(:,:,:,IDTALPH), DRYALPH, IDTALPH )
-      CALL SOA_DEPO( STT(:,:,:,IDTLIMO), DRYLIMO, IDTLIMO )
-      CALL SOA_DEPO( STT(:,:,:,IDTALCO), DRYALCO, IDTALCO )
-      CALL SOA_DEPO( STT(:,:,:,IDTSOG1), DRYSOG1, IDTSOG1 )
-      CALL SOA_DEPO( STT(:,:,:,IDTSOG2), DRYSOG2, IDTSOG2 )
-      CALL SOA_DEPO( STT(:,:,:,IDTSOG3), DRYSOG3, IDTSOG3 )
-      CALL SOA_DEPO( STT(:,:,:,IDTSOG4), DRYSOG4, IDTSOG4 )
-      CALL SOA_DEPO( STT(:,:,:,IDTSOA1), DRYSOA1, IDTSOA1 )
-      CALL SOA_DEPO( STT(:,:,:,IDTSOA2), DRYSOA2, IDTSOA2 )
-      CALL SOA_DEPO( STT(:,:,:,IDTSOA3), DRYSOA3, IDTSOA3 )
-      CALL SOA_DEPO( STT(:,:,:,IDTSOA4), DRYSOA4, IDTSOA4 )
-
-      ! (dkh, 10/29/06)  
-      CALL SOA_DEPO( STT(:,:,:,IDTSOG5), DRYSOG5, IDTSOG5 )
-      CALL SOA_DEPO( STT(:,:,:,IDTSOA5), DRYSOA5, IDTSOA5 )
+      CALL SOA_DEPO( STT(:,:,:,IDTALPH), DRYALPH, IDTALPH, Input_Opt )
+      CALL SOA_DEPO( STT(:,:,:,IDTLIMO), DRYLIMO, IDTLIMO, Input_Opt )
+      CALL SOA_DEPO( STT(:,:,:,IDTALCO), DRYALCO, IDTALCO, Input_Opt )
+      CALL SOA_DEPO( STT(:,:,:,IDTSOG1), DRYSOG1, IDTSOG1, Input_Opt )
+      CALL SOA_DEPO( STT(:,:,:,IDTSOG2), DRYSOG2, IDTSOG2, Input_Opt )
+      CALL SOA_DEPO( STT(:,:,:,IDTSOG3), DRYSOG3, IDTSOG3, Input_Opt )
+      CALL SOA_DEPO( STT(:,:,:,IDTSOG4), DRYSOG4, IDTSOG4, Input_Opt )
+      CALL SOA_DEPO( STT(:,:,:,IDTSOA1), DRYSOA1, IDTSOA1, Input_Opt )
+      CALL SOA_DEPO( STT(:,:,:,IDTSOA2), DRYSOA2, IDTSOA2, Input_Opt )
+      CALL SOA_DEPO( STT(:,:,:,IDTSOA3), DRYSOA3, IDTSOA3, Input_Opt )
+      CALL SOA_DEPO( STT(:,:,:,IDTSOA4), DRYSOA4, IDTSOA4, Input_Opt )
+      CALL SOA_DEPO( STT(:,:,:,IDTSOG5), DRYSOG5, IDTSOG5, Input_Opt )
+      CALL SOA_DEPO( STT(:,:,:,IDTSOA5), DRYSOA5, IDTSOA5, Input_Opt )
 
       ! Return to calling program
       END SUBROUTINE SOA_CHEMISTRY
@@ -3983,7 +3953,7 @@ c
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE SOA_DEPO( TC, DEPID, TRID )
+      SUBROUTINE SOA_DEPO( TC, DEPID, TRID, Input_Opt )
 !
 !******************************************************************************
 !  Subroutine SOA_DEPO computes dry-deposition of a particular SOA species.
@@ -4003,28 +3973,38 @@ c
 !  (4 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  (5 ) Add non-local PBL scheme option for dry deposition (lin, 06/09/08)
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
 !******************************************************************************
 !
-      ! References to F90 modules
-      USE DIAG_MOD,     ONLY : AD44 
-      USE DRYDEP_MOD,   ONLY : DEPSAV
-      USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP
-      USE TIME_MOD,     ONLY : GET_TS_CHEM
-      USE TRACER_MOD,   ONLY : XNUMOL
-
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DIAG_MOD     ! ND44
-
-      ! Arguments
-      REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
-      INTEGER, INTENT(IN)    :: DEPID, TRID
-
-      ! Local variable
-      INTEGER                :: I, J, L
-      REAL*8                 :: DTCHEM, FLUX, BL_FRAC
-      REAL*8                 :: TC0, CNEW, FREQ, AREA_CM2
-      REAL*8                 :: ND44_TMP(IIPAR,JJPAR,LLPAR)
+! !USES:
+!
+      USE CMN_SIZE_MOD
+      USE CMN_DIAG_MOD
+      USE DIAG_MOD,           ONLY : AD44 
+      USE DRYDEP_MOD,         ONLY : DEPSAV
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+      USE TRACER_MOD,         ONLY : XNUMOL
+!
+! !INPUT PARAMTERS:
+!
+      INTEGER,        INTENT(IN)    :: DEPID                 ! Drydep ID #
+      INTEGER,        INTENT(IN)    :: TRID                  ! Tracer ID #
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt             ! Input Options
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      REAL*8,         INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! Tracer [kg]
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL :: LNLPBL
+      INTEGER :: I, J, L
+      REAL*8  :: DTCHEM, FLUX, BL_FRAC
+      REAL*8  :: TC0, CNEW, FREQ, AREA_CM2
+      REAL*8  :: ND44_TMP(IIPAR,JJPAR,LLPAR)
 
       !=================================================================
       ! SOA_DEPO begins here!
@@ -4032,6 +4012,9 @@ c
 
       ! Return if tracer ID or tracer ID is undefined
       IF ( TRID == 0 .OR. DEPID == 0 ) RETURN
+
+      ! Use fields from Input_Opt
+      LNLPBL = Input_Opt%LNLPBL
 
       ! Chemistry timestep [s]
       DTCHEM = GET_TS_CHEM() * 60d0
@@ -4066,7 +4049,7 @@ c
          BL_FRAC = GET_FRAC_UNDER_PBLTOP( I, J, L )
 
          ! Move drydep to vdiff_mod.f for non-local PBL mixing (Lin, 06/09/08) 
-         IF (LNLPBL) BL_FRAC = 0.D0
+         IF ( LNLPBL ) BL_FRAC = 0.D0
 
          ! Only apply drydep to boxes w/in the PBL
          IF ( BL_FRAC > 0d0 ) THEN
@@ -4237,13 +4220,6 @@ c
  120     FORMAT( 'w/ BIOMASS emissions from Bond et al [2004]'        )
  130     FORMAT( 'w/ BIOMASS emissions from GEOS-CHEM inventory'      )
         
-!-----------------------------------------------------------------------------
-! Prior to 3/4/13:
-! NOTE: For ESMF, this has to be moved to the init stage (bmy, 3/4/13)
-!         ! Initialize arrays
-!         CALL INIT_CARBON       
-!-----------------------------------------------------------------------------
-
          ! Read annual mean biomass emissions if necessary
          IF ( USE_BOND_BIOBURN ) THEN
             CALL BIOMASS_CARB_TBOND
@@ -5690,6 +5666,10 @@ c
       USE VDIFF_PRE_MOD, ONLY : EMIS_SAVE ! (Lin, 03/31/09)
 
       USE CMN_SIZE_MOD  ! Size parameters
+      
+      ! NOTE: We should replace this by Input_Opt%LNLPBL
+      ! For now we will put this here as a placekeeper (bmy, 3/5/13)
+      USE LOGICAL_MOD, ONLY : LNLPBL
 
       ! Arguments
       REAL*8, INTENT(IN) :: BCSRC(IIPAR,JJPAR,2)
@@ -5717,7 +5697,7 @@ c
       ! Save surface emis for non-local PBL mixing (vdiff_mod.f) 
       ! (units: kg) (Lin, 06/09/08) 
 
-      IF (LNLPBL) THEN
+      IF ( LNLPBL ) THEN
 
 !$OMP PARALLEL DO DEFAULT( SHARED ) PRIVATE( I, J )
          DO J = 1, JJPAR
@@ -6610,10 +6590,9 @@ c
 !******************************************************************************
 !
       ! References to F90 modules 
+      USE CMN_SIZE_MOD
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PRESSURE_MOD,       ONLY : GET_PCENTER, GET_PEDGE
-
-      USE CMN_SIZE_MOD             ! Size parameters
 
       ! Arguments
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
@@ -6737,17 +6716,17 @@ c
 !                              derived type object
 !******************************************************************************
 !
-      ! Reference to diagnostic arrays
-      USE DAO_MOD,            ONLY : IS_LAND     ! True if sfc grid box is land
+! !USES:
+!
+      USE CMN_SIZE_MOD
+      USE CMN_DIAG_MOD
+      USE DAO_MOD,            ONLY : IS_LAND 
       USE DIAG_MOD,           ONLY : AD07_SOAGM
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
       USE TRACER_MOD,         ONLY : STT
       USE TRACERID_MOD,       ONLY : IDTGLYX, IDTSOAG
-
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_DIAG_MOD             ! ND44, ND07, LD07
 
       ! Arguments
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
@@ -7140,197 +7119,6 @@ c
 
 !------------------------------------------------------------------------------
 
-
-! use soaprod_mod.f
-!      SUBROUTINE WRITE_GPROD_APROD( YYYYMMDD, HHMMSS, TAU )
-!!
-!!******************************************************************************
-!!  Subroutine WRITE_GPROD_APROD writes the SOA quantities GPROD and APROD to 
-!!  disk at the start of a new diagnostic interval. (tmf, havala, bmy, 2/6/07)
-!!
-!!  Arguments as Input:
-!!  ============================================================================
-!!  (1 ) YYYYMMDD (INTEGER) : YYYY/MM/DD value at which to write file
-!!  (2 ) HHMMSS   (INTEGER) : hh:mm:ss value at which to write file
-!!  (3 ) TAU      (REAL*8 ) : TAU value corresponding to YYYYMMDD, HHMMSS
-!!
-!!  NOTES:
-!!******************************************************************************
-!!
-!      ! References to F90 modules
-!      USE BPCH2_MOD,  ONLY : BPCH2,         GET_MODELNAME
-!      USE BPCH2_MOD,  ONLY : GET_HALFPOLAR, OPEN_BPCH2_FOR_WRITE
-!      USE GRID_MOD,   ONLY : GET_XOFFSET,   GET_YOFFSET
-!      USE TIME_MOD,   ONLY : EXPAND_DATE
-!
-!      USE CMN_SIZE_MOD   ! Size parameters
-!
-!      ! Arguments
-!      INTEGER, INTENT(IN) :: YYYYMMDD, HHMMSS
-!      REAL*8,  INTENT(IN) :: TAU
-!
-!      ! Local variables
-!      INTEGER             :: HALFPOLAR
-!      INTEGER, PARAMETER  :: CENTER180 = 1
-!      INTEGER             :: I0, IPR, IU_FILE, J0, JHC, N
-!      REAL*4              :: LONRES,   LATRES
-!      REAL*4              :: ARRAY(IIPAR,JJPAR,LLPAR)
-!      CHARACTER(LEN=20)   :: MODELNAME
-!      CHARACTER(LEN=40)   :: CATEGORY
-!      CHARACTER(LEN=40)   :: UNIT     
-!      CHARACTER(LEN=40)   :: RESERVED = ''
-!      CHARACTER(LEN=80)   :: TITLE 
-!      CHARACTER(LEN=255)  :: FILENAME
-!
-!      !=================================================================
-!      ! WRITE_GPROD_APROD begins here
-!      !=================================================================
-!      
-!      ! Define variables for binary punch file
-!      FILENAME  = 'restart_gprod_aprod.YYYYMMDDhh'
-!      TITLE     = 'GEOS-Chem SOA restart file: GPROD & APROD'
-!      UNIT      = 'kg/kg'
-!      LONRES    = DISIZE
-!      LATRES    = DJSIZE
-!      MODELNAME = GET_MODELNAME()
-!      HALFPOLAR = GET_HALFPOLAR()
-!      I0        = GET_XOFFSET( GLOBAL=.TRUE. )
-!      J0        = GET_YOFFSET( GLOBAL=.TRUE. )
-!      
-!      ! Replace date & time tokens in FILENAME
-!      CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
-!
-!      ! Open restart file for output
-!      CALL OPEN_BPCH2_FOR_WRITE( IU_FILE, FILENAME, TITLE )
-!
-!      ! Loop over VOC classes and products
-!      DO JHC = 1, MHC 
-!      DO IPR = 1, NPROD
-!
-!         ! Tracer number
-!         N = ( JHC - 1 ) * NPROD + IPR
-!
-!         !----------------------
-!         ! Write GPROD to file
-!         !----------------------
-!         
-!         ! Initialize
-!         CATEGORY = 'IJ-GPROD'
-!         ARRAY    = GPROD(:,:,:,IPR,JHC)
-!
-!         ! Write to disk
-!         CALL BPCH2( IU_FILE,   MODELNAME, LONRES,   LATRES,    
-!     &               HALFPOLAR, CENTER180, CATEGORY, N,
-!     &               UNIT,      TAU,       TAU,      RESERVED,   
-!     &               IIPAR,     JJPAR,     LLPAR,    I0+1,            
-!     &               J0+1,      1,         ARRAY )
-!
-!         !----------------------
-!         ! Write APROD to file 
-!         !----------------------
-!
-!         ! Initialize
-!         CATEGORY = 'IJ-APROD'
-!         ARRAY    = APROD(:,:,:,IPR,JHC)
-!
-!         ! Write to disk
-!         CALL BPCH2( IU_FILE,   MODELNAME, LONRES,   LATRES,    
-!     &               HALFPOLAR, CENTER180, CATEGORY, N,
-!     &               UNIT,      TAU,       TAU,      RESERVED,   
-!     &               IIPAR,     JJPAR,     LLPAR,    I0+1,            
-!     &               J0+1,      1,         ARRAY )
-!
-!      ENDDO
-!      ENDDO
-!
-!      ! Close file
-!      CLOSE( IU_FILE )
-!
-!      ! Return to calling program
-!      END SUBROUTINE WRITE_GPROD_APROD
-!
-!!------------------------------------------------------------------------------!
-!
-!      SUBROUTINE READ_GPROD_APROD( YYYYMMDD, HHMMSS, TAU )
-!!
-!!******************************************************************************
-!!  Subroutine READ_GPROD_APROD writes the SOA quantities GPROD and APROD from 
-!!  disk at the start of a new diagnostic interval. (tmf, havala, bmy, 2/6/07)
-!!
-!!  Arguments as Input:
-!!  ============================================================================
-!!  (1 ) YYYYMMDD (INTEGER) : YYYY/MM/DD value at which to write file
-!!  (2 ) HHMMSS   (INTEGER) : hh:mm:ss value at which to write file
-!!  (3 ) TAU      (REAL*8 ) : TAU value corresponding to YYYYMMDD, HHMMSS
-!!
-!!  NOTES:
-!!******************************************************************************
-!!
-!      ! References to F90 modules
-!      USE BPCH2_MOD,  ONLY : READ_BPCH2
-!      USE FILE_MOD,   ONLY : IU_FILE
-!      USE TIME_MOD,   ONLY : EXPAND_DATE
-!
-!      USE CMN_SIZE_MOD   ! Size parameters      
-!
-!      ! Arguments
-!      INTEGER, INTENT(IN) :: YYYYMMDD, HHMMSS
-!      REAL*8,  INTENT(IN) :: TAU
-!
-!      ! Local variables
-!      INTEGER             :: IPR, JHC, N
-!      REAL*4              :: ARRAY(IIPAR,JJPAR,LLPAR)
-!      CHARACTER(LEN=255)  :: FILENAME
-!
-!      !=================================================================
-!      ! READ_GPROD_APROD begins here!
-!      !=================================================================
-!
-!      ! File name
-!      FILENAME = 'restart_gprod_aprod.YYYYMMDDhh'
-!
-!      ! Replace date & time tokens in FILENAME
-!      CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
-!
-!      ! Loop over VOC classes and products
-!      DO JHC = 1, MHC 
-!      DO IPR = 1, NPROD
-!
-!         ! Tracer number
-!         N = ( JHC - 1 ) * NPROD + IPR
-!
-!         !-----------------------
-!         ! Read GPROD from file
-!         !-----------------------
-!
-!         ! Read data
-!         CALL READ_BPCH2( FILENAME, 'IJ-GPROD', N, 
-!     &                    TAU,       IIPAR,     JJPAR,     
-!     &                    LLPAR,     ARRAY,     QUIET=.TRUE. ) 
-!
-!         ! Cast to REAL*8
-!         GPROD(:,:,:,IPR,JHC) = ARRAY
-!
-!         !-----------------------
-!         ! Read APROD from file
-!         !-----------------------
-!
-!         ! Read data
-!         CALL READ_BPCH2( FILENAME, 'IJ-APROD', N, 
-!     &                    TAU,       IIPAR,     JJPAR,     
-!     &                    LLPAR,     ARRAY,     QUIET=.TRUE. ) 
-!
-!         ! Cast to REAL*8
-!         APROD(:,:,:,IPR,JHC) = ARRAY
-!
-!      ENDDO
-!      ENDDO
-!
-!      ! Return to calling program
-!      END SUBROUTINE READ_GPROD_APROD
-!
-!------------------------------------------------------------------------------
-
       SUBROUTINE INIT_CARBON( am_I_Root, Input_Opt, RC )
 !
 !******************************************************************************
@@ -7353,15 +7141,16 @@ c
 !  01 Mar 2012 - R. Yantosca - Now use GET_BOUNDING_BOX from grid_mod.F90
 !  04 Mar 2013 - R. Yantosca - Now take am_I_Root, Input_Opt, RC as arguments
 !  04 Mar 2013 - R. Yantosca - Now search for drydep flags here
+!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LSOA
 !******************************************************************************
 !
-      ! References to F90 modules
+! !USES:
+!
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ALLOC_ERR, ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GRID_MOD,           ONLY : GET_BOUNDING_BOX
-      USE LOGICAL_MOD,        ONLY : LCHEM,     LSOA 
       USE TIME_MOD,           ONLY : GET_NYMDb, GET_NHMSb, GET_TAUb
       USE TRACERID_MOD,       ONLY : IDTSOA5
 !
@@ -7376,9 +7165,8 @@ c
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE :: IS_INIT = .FALSE.
-      INTEGER       :: AS, INDICES(4), YYYYMMDD, HHMMSS, N
-      REAL*8        :: COORDS(4), TAU
+      INTEGER                     :: AS, INDICES(4), YYYYMMDD, HHMMSS, N
+      REAL*8                      :: COORDS(4), TAU
 
       !=================================================================
       ! INIT_CARBON begins here!
@@ -7386,9 +7174,6 @@ c
       
       ! Assume success
       RC = GIGC_SUCCESS
-
-      ! Return if we already allocated arrays
-      IF ( IS_INIT ) RETURN
 
       ALLOCATE( ANTH_BLKC( IIPAR, JJPAR, 2 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ANTH_BLKC' )
@@ -7445,7 +7230,7 @@ c
       !=================================================================
       ! SOA arrays only have to be allocated if LSOA = T
       !=================================================================
-      IF ( LSOA ) THEN
+      IF ( Input_Opt%LSOA ) THEN
 
          ALLOCATE( BIOG_ALPH( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOG_ALPH' )
@@ -7496,35 +7281,11 @@ c
          VCLDF = 0d0
 #endif
 
-! move to soaprod_mod.f (dkh, 11/09/06)  
-!         ALLOCATE( GPROD( IIPAR, JJPAR, LLPAR, NPROD, MHC ), STAT=AS )
-!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'GPROD' )
-!         GPROD = 0D0
-!
-!         ALLOCATE( APROD( IIPAR, JJPAR, LLPAR, NPROD, MHC ), STAT=AS )
-!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'APROD' )
-!         APROD = 0D0
-
          ! diagnostic  (dkh, 11/11/06) 
          ALLOCATE( GLOB_DARO2( IIPAR, JJPAR, LLPAR,2,3), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'GLOB_DARO2' )
          GLOB_DARO2 = 0d0
 
-         !--------------------------------------------------------------
-         ! Read GPROD and APROD from disk from the last simulation
-         ! NOTE: do this here after GPROD, APROD are allocated!
-         !--------------------------------------------------------------
-
-!         IF ( LCHEM ) THEN 
-!
-!            ! Get time values at start of the run
-!            YYYYMMDD = GET_NYMDb()
-!            HHMMSS   = GET_NHMSb()
-!            TAU      = GET_TAUb()
-!
-!            ! Read GPROD, APROD from restart file
-!            CALL READ_GPROD_APROD( YYYYMMDD, HHMMSS, TAU )
-!         ENDIF
       ENDIF
 
       !=================================================================
@@ -7668,9 +7429,6 @@ c
          ENDDO
       ENDIF
 
-      ! Reset IS_INIT before exiting
-      IS_INIT = .TRUE.
-
       ! Return to calling program
       END SUBROUTINE INIT_CARBON
 
@@ -7708,9 +7466,6 @@ c
       IF ( ALLOCATED( DIUR_ORVC ) ) DEALLOCATE( DIUR_ORVC )
       IF ( ALLOCATED( GEIA_ORVC ) ) DEALLOCATE( GEIA_ORVC )
       IF ( ALLOCATED( TCOSZ     ) ) DEALLOCATE( TCOSZ     )
-      ! Move to soaprod_mod.f
-      !IF ( ALLOCATED( GPROD     ) ) DEALLOCATE( GPROD     )
-      !IF ( ALLOCATED( APROD     ) ) DEALLOCATE( APROD     )
       IF ( ALLOCATED( ORVC_TERP ) ) DEALLOCATE( ORVC_TERP )
       IF ( ALLOCATED( ORVC_SESQ ) ) DEALLOCATE( ORVC_SESQ )
 

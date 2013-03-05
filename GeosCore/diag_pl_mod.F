@@ -196,20 +196,25 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SETPL( am_I_Root )
+      SUBROUTINE SETPL( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE ERROR_MOD,   ONLY : ERROR_STOP, GEOS_CHEM_STOP
-      USE ERROR_MOD,   ONLY : DEBUG_MSG
-      USE LOGICAL_MOD, ONLY : LPRT
-
       USE CMN_SIZE_MOD
       USE COMODE_LOOP_MOD
+      USE ERROR_MOD,          ONLY : ERROR_STOP, GEOS_CHEM_STOP
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_MOd, ONLY : OptInput
 !
-! !INPUT VARIABLES:
+! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 ! 
 ! !REMARKS:
 !  At present, the ND65 diagnostic works only with SMVGEAR and not with
@@ -227,12 +232,14 @@
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers 
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument, even when
 !                              called from the traditional driver main.F
+!  05 Mar 2013 - R. Yantosca - Now accept Input_Opt, RC arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      LOGICAL          :: LPRT
       INTEGER          :: F, ICOUNT, I, J, INDEX, IOS
       INTEGER          :: K, M, N, NK, NREAC, NPROD, NPOS
       INTEGER          :: IREAC1, IREAC2, IREAC3
@@ -254,8 +261,11 @@
 
       ! Set NCS = NCSURBAN for now, since we have defined our GEOS-CHEM
       ! mechanism in the urban slot of SMVGEAR II. (bmy, 4/21/03)
-      NCS = NCSURBAN
+      NCS    = NCSURBAN
       
+      ! Copy fields from Input_Opt to local variables
+      LPRT   = Input_Opt%LPRT
+
       ! Initialize
       ICOUNT = 0
 
@@ -576,18 +586,25 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_DIAG_PL( am_I_Root ) 
+      SUBROUTINE DO_DIAG_PL( am_I_Root, Input_Opt, RC ) 
 !
 ! !USES:
 !
-      USE COMODE_MOD, ONLY : CSPEC, JLOP
-      USE CMN_SIZE_MOD                      ! Size parameters
-      USE COMODE_LOOP_MOD                   ! SMVGEAR II arrays
-      USE CMN_DIAG_MOD                      ! LD65
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
+      USE COMODE_MOD,         ONLY : CSPEC, JLOP
+      USE COMODE_LOOP_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root      ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY:
 !  16 Mar 2000 - I. Bey      - Initial version
@@ -614,6 +631,9 @@
       ! Make sure that memory has already been allocated to arrays
       ! FAMPL, JLOP, and CSPEC.
       !=================================================================
+
+      ! Assume success
+      RC = GIGC_SUCCESS
 
       ! If we are not saving 
       IF ( .not. DO_SAVE_PL ) RETURN

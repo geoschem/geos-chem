@@ -11,9 +11,9 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GASCONC( am_I_Root, 
-     &                    FIRSTCHEM, NTRACER,    STT, 
-     &                    XNUMOL,    READ_CSPEC, State_Met )
+      SUBROUTINE GASCONC( am_I_Root, FIRSTCHEM, NTRACER,
+     &                    STT,       XNUMOL,    READ_CSPEC,
+     &                    Input_Opt, State_Met              )
 !
 ! !USES:
 !
@@ -31,9 +31,8 @@
       USE COMODE_MOD,         ONLY : T3
       USE DRYDEP_MOD,         ONLY : NUMDEP
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE LOGICAL_MOD,        ONLY : LSOA
-      USE LOGICAL_MOD,        ONLY : LVARTROP
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TROPOPAUSE_MOD,     ONLY : COPY_FULL_TROP
       USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_TROP
@@ -49,6 +48,7 @@
       INTEGER,        INTENT(IN)    :: NTRACER         ! # of tracers
       REAL*8,         INTENT(IN)    :: XNUMOL(NTRACER) ! Molec tracer/kg tracer
       LOGICAL,        INTENT(IN)    :: READ_CSPEC      ! Is 
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt       ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met       ! Met State object
 !
 ! !OUTPUT PARAMETERS:
@@ -119,12 +119,15 @@
 !  30 Jul 2012 - R. Yantosca - Added ProTeX headers
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LSOA and Input_Opt%LVARTROP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES
 !
+      LOGICAL :: LSOA
+      LOGICAL :: LVARTROP
       INTEGER :: IX, IY, IZ, N, NK, JJ
       INTEGER :: JGAS,JLOOP,NGASMIX,JALTS,K,J,NM,L,JN,MLOOP,I
       INTEGER :: IPCOMPAR,JRUN,JNEW,JOLD,NGCOUNT,IAVG,KN,SUM,SUM1
@@ -139,7 +142,11 @@
 
       ! Set NCS=NCSURBAN here since we have defined our tropospheric
       ! chemistry mechanism in the urban slot of SMVGEAR II
-      NCS = NCSURBAN
+      NCS      = NCSURBAN
+
+      ! Now use logical fields from the Input_Opt object
+      LSOA     = Input_Opt%LSOA
+      LVARTROP = Input_Opt%LVARTROP
 
       !=================================================================
       ! First time through here, copy initial conditions from QBKCHEM

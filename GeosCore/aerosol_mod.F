@@ -25,8 +25,9 @@
 !
       PUBLIC :: AEROSOL_CONC
       PUBLIC :: AEROSOL_RURALBOX
-      PUBLIC :: RDAER
       PUBLIC :: CLEANUP_AEROSOL
+      PUBLIC :: INIT_AEROSOL
+      PUBLIC :: RDAER
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -52,6 +53,7 @@
 !  (10) Modify AOD output to wavelength specified in jv_spec_aod.dat 
 !       (clh, 05/07/10)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  05 Mar 2013 - R. Yantosca - Now make INIT_AEROSOL a public routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -351,6 +353,8 @@
 !  13 Nov 2012 - R. Yantosca - Now pass am_I_Root, Input_Opt, RC as arguments
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  05 Mar 2013 - R. Yantosca - Remove call to INIT_AEROSOL, this is now done
+!                              in the initialization stage
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -397,11 +401,15 @@
       LSSALT = Input_Opt%LSSALT
       LSULF  = Input_Opt%LSULF
 
-      ! First-time initialization
-      IF ( FIRST ) THEN
-         CALL INIT_AEROSOL()
-         FIRST = .FALSE.
-      ENDIF
+!-----------------------------------------------------------------------------
+! Prior to 3/5/13:
+! This needs to be moved to the init stage for ESMF (bmy, 3/5/13)
+!      ! First-time initialization
+!      IF ( FIRST ) THEN
+!         CALL INIT_AEROSOL()
+!         FIRST = .FALSE.
+!      ENDIF
+!-----------------------------------------------------------------------------
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -1507,21 +1515,32 @@
 ! !IROUTINE: init_aerosol
 !
 ! !DESCRIPTION: Subroutine INIT\_AEROSOL allocates and zeroes module arrays
-!  (bmy, 7/20/04)
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_AEROSOL
+      SUBROUTINE INIT_AEROSOL( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE ERROR_MOD, ONLY : ALLOC_ERR
-
       USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY:
+!  20 Jul 2004 - R. Yantosca - Initial version
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  05 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1534,6 +1553,10 @@
       ! INIT_AEROSOL begins here!
       !=================================================================
 
+      ! Assume success
+      RC = GIGC_SUCCESS
+
+      ! Allocate arrays
       ALLOCATE( BCPI( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCPI' )
       BCPI = 0d0

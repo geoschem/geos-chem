@@ -1342,7 +1342,7 @@
 !
       ! Call SETPL to setup ND65 prod/loss diagnostic
       ! SETPL must be called before JSPARSE (ljm, bmy, 5/9/03)
-      IF ( LFAMILY ) CALL SETPL( am_I_Root )
+      IF ( LFAMILY ) CALL SETPL( am_I_Root, Input_Opt, RC )
 
       ! IFSOLVE = 1 means we are calling the chemistry solver
       IF ( IFSOLVE .EQ. 1 ) THEN

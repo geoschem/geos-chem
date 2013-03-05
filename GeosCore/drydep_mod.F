@@ -525,7 +525,12 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-!      State_Chm%DEPSAV(:,:,Input_Opt%NUMDEP)         = DEPSAV
+! Activate this shortly (bmy, 3/5/13)
+!      IF ( Input_Opt%LDRYD ) THEN
+!         DO N = 1, Input_Opt%NUMDEP
+!            State_Chm%DEPSAV(:,:,N) = DEPSAV(:,:,N)
+!         ENDDO
+!      ENDIF
 
       !### Debug
       IF ( LPRT .and. am_I_Root ) THEN
@@ -5503,8 +5508,6 @@
       IF ( ALLOCATED( DEPSAV   ) ) DEALLOCATE( DEPSAV   )
       IF ( ALLOCATED( SALT_V   ) ) DEALLOCATE( SALT_V   )
       IF ( ALLOCATED( DMID     ) ) DEALLOCATE( DMID     )
-
-      print*, '### size depsav: ', size( depsav )
 
       END SUBROUTINE CLEANUP_DRYDEP
 !EOC

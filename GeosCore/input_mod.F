@@ -7957,6 +7957,7 @@
 !
 ! !USES:
 !
+      USE Aerosol_Mod,        ONLY : Init_Aerosol
       USE Carbon_Mod,         ONLY : Init_Carbon
       USE Drydep_Mod,         ONLY : Init_Drydep
       USE Dust_Mod,           ONLY : Init_Dust
@@ -7989,6 +7990,7 @@
 !
 ! !REVISION HISTORY: 
 !  04 Mar 2013 - R. Yantosca - Initial revision
+!  05 Mar 2013 - R. Yantosca - Now call INIT_AEROSOL (aerosol_mod.F)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8000,6 +8002,9 @@
       !=================================================================
       ! GIGC_Init_Extra begins here!
       !=================================================================
+
+      ! Assume success
+      RC       = GIGC_SUCCESS
 
       ! Set a flag for debugging
       prtDebug = ( am_I_Root .and. Input_Opt%LPRT )
@@ -8030,6 +8035,14 @@
          CALL Init_Sulfate( am_I_Root, Input_Opt, RC )
          IF ( RC /= GIGC_SUCCESS ) RETURN
          IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_SULFATE' )
+      ENDIF
+
+      ! Initialize "aerosol_mod.F"
+      IF ( Input_Opt%LSULF .or. Input_Opt%LCARB   .or. 
+     &     Input_Opt%LDUST .or. Input_Opt%LSSALT ) THEN
+         CALL Init_Aerosol( am_I_Root, Input_Opt, RC )
+         IF ( RC /= GIGC_SUCCESS ) RETURN
+         IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_AEROSOL' )
       ENDIF
 
       END SUBROUTINE GIGC_Init_Extra

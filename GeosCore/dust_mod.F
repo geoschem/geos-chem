@@ -62,7 +62,7 @@
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  14 Nov 2012 - R. Yantosca - Add modifications for GIGC
-!  04 Mar 2013 - R. Yantosca - Now call INIT_SULFATE from the init stage
+!  04 Mar 2013 - R. Yantosca - Now call INIT_DUST from the init stage
 !                              which facilitates connection to GEOS-5 GCM
 !EOP
 !------------------------------------------------------------------------------
@@ -71,18 +71,7 @@
 ! !PRIVATE TYPES:
 !
       INTEGER              :: DRYDST1, DRYDST2, DRYDST3, DRYDST4
-!-----------------------------------------------------------------------------
-! Prior to 2/26/13:
-! Now use fields in Input_Opt (mlong, bmy, 2/6/13)
-!      INTEGER, ALLOCATABLE :: IDDEP(:)
-!-----------------------------------------------------------------------------
       REAL*8,  ALLOCATABLE :: FRAC_S(:)
-!-----------------------------------------------------------------------------
-! Prior to 2/26/13:
-! Now use fields in Input_Opt (mlong, bmy, 2/6/13)
-!      REAL*8,  ALLOCATABLE :: DUSTREFF(:)
-!      REAL*8,  ALLOCATABLE :: DUSTDEN(:)
-!-----------------------------------------------------------------------------
       REAL*8,  ALLOCATABLE :: SRCE_FUNC(:,:,:)
 
       CONTAINS
@@ -107,8 +96,6 @@
 !
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE DRYDEP_MOD,         ONLY : DEPNAME
-      USE DRYDEP_MOD,         ONLY : NUMDEP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -176,36 +163,6 @@
             ENDIF
          ENDIF
 
-!------------------------------------------------------------------------------
-! Prior to 2/26/13:
-! NOTE: This now has to be done in the init phase for the GIGC connection
-! to the GEOS-5 GCM. (mlong, bmy, 2/26/13)
-!         ! Allocate arrays (if necessary)
-!         CALL INIT_DUST( am_I_Root, Input_Opt, RC )
-!
-!         ! Find drydep species in DEPSAV
-!         DO N = 1, NUMDEP
-!            SELECT CASE ( TRIM( DEPNAME(N) ) )
-!               CASE ( 'DST1' )
-!                  DRYDST1 = N
-!               CASE ( 'DST2' )
-!                  DRYDST2 = N
-!               CASE ( 'DST3' )
-!                  DRYDST3 = N
-!               CASE ( 'DST4' )
-!                  DRYDST4 = N
-!               CASE DEFAULT
-!                  ! Nothing
-!            END SELECT        
-!         ENDDO
-!
-!         ! This may lead to out of bounds errors
-!         IDDEP(1) = DRYDST1
-!         IDDEP(2) = DRYDST2
-!         IDDEP(3) = DRYDST3
-!         IDDEP(4) = DRYDST4
-!------------------------------------------------------------------------------
- 
          ! Reset first-time flag
          FIRST = .FALSE.
       ENDIF
@@ -679,15 +636,6 @@
             ENDIF
          ENDIF
  
-!-------------------------------------------------------------------------
-! Prior to 2/26/13:
-! INIT_DUST is now called in the init stage.  This is necessary
-! in order to run with the GEOS-5 GCM. (mlong, bmy, 2/26/13)
-!         ! Allocate module arrays
-!         CALL INIT_DUST( am_I_Root, Input_Opt, RC )
-!         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSDUST: a INIT_DUST' )
-!-------------------------------------------------------------------------
-
          ! Reset first-time flag
          FIRST = .FALSE.
       ENDIF
@@ -1280,18 +1228,18 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
+      USE CMN_DIAG_MOD
       USE COMODE_MOD,         ONLY : ERADIUS, IXSAVE, IYSAVE 
       USE COMODE_MOD,         ONLY : IZSAVE,  JLOP,   TAREA
       USE COMODE_MOD,         ONLY : WTAREA, WERADIUS
+      USE COMODE_LOOP_MOD
       USE DIAG_MOD,           ONLY : AD21
       USE DIRECTORY_MOD,      ONLY : DATA_DIR
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE JV_CMN_MOD
       USE TRANSFER_MOD,       ONLY : TRANSFER_3D
-
-      USE JV_CMN_MOD               ! ODMDUST, QAA, RAA, QAA_AOD (clh)
-      USE COMODE_LOOP_MOD          ! NTTLOOP
-      USE CMN_DIAG_MOD             ! ND21, LD21
 !
 ! !INPUT PARAMETERS: 
 ! 
@@ -1521,21 +1469,20 @@
 !
       USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_RES_EXT
       USE BPCH2_MOD,          ONLY : GET_TAU0,     READ_BPCH2
+      USE CMN_FJ_MOD,         ONLY : JPMAX, JPPJ
       USE COMODE_MOD,         ONLY : ERADIUS, IXSAVE, IYSAVE
       USE COMODE_MOD,         ONLY : IZSAVE,  JLOP,   TAREA
       USE COMODE_MOD,         ONLY : WTAREA, WERADIUS
+      USE COMODE_LOOP_MOD
+      USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD21
       USE DIRECTORY_MOD,      ONLY : DATA_DIR
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE JV_CMN_MOD,         ONLY : ODMDUST, QAA, RAA, RAA_AOD, QAA_AOD
       USE TRANSFER_MOD,       ONLY : TRANSFER_3D
 
 #     include "define.h"
-
-      USE CMN_FJ_MOD,         ONLY : JPMAX, JPPJ
-      USE JV_CMN_MOD,         ONLY : ODMDUST, QAA, RAA, RAA_AOD, QAA_AOD
-      USE COMODE_LOOP_MOD          ! NTTLOOP
-      USE CMN_DIAG_MOD             ! ND21, LD21
 
       IMPLICIT NONE
 !
@@ -1857,7 +1804,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE DRYDEP_MOD,         ONLY : DEPNAME, NUMDEP
+      !USE DRYDEP_MOD,         ONLY : DEPNAME, NUMDEP
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -1883,24 +1830,15 @@
 !
 ! !LOCAL VARIABLES:
 !
-      ! SAVEd scalars
-      LOGICAL, SAVE :: IS_INIT = .FALSE.
-
-      ! Non-SAVEd scalars
-      LOGICAL       :: LDEAD
-      INTEGER       :: AS, N
-
-      NUMDEP = Input_Opt%NUMDEP
+      LOGICAL :: LDEAD
+      INTEGER :: AS, N
 
       !=================================================================
       ! INIT_DUST begins here!
       !=================================================================
 
-      ! Return if we have already allocated arrays
-      IF ( IS_INIT ) RETURN
-
       ! Assume success
-      RC     = GIGC_SUCCESS
+      RC    = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
       LDEAD = Input_Opt%LDEAD
@@ -1949,9 +1887,6 @@
          Input_Opt%IDDEP(3) = DRYDST3
          Input_Opt%IDDEP(4) = DRYDST4
       ENDIF
-
-      ! Reset flag
-      IS_INIT = .TRUE.
 
       END SUBROUTINE INIT_DUST
 !EOC

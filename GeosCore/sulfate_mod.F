@@ -17,7 +17,6 @@
 !
 ! !USES:
 !
-      USE LOGICAL_MOD,   ONLY : LNLPBL ! (Lin, 03/31/09)
       USE VDIFF_PRE_MOD, ONLY : emis_save ! (Lin, 03/31/09)
       USE inquireMod,    ONLY : findFreeLUN
 
@@ -133,6 +132,8 @@
 !  28 Nov 2012 - R. Yantosca   - Use SUNCOS fields from the State_Met object
 !  04 Mar 2013 - R. Yantosca   - Now call INIT_SULFATE from the init stage
 !                                which facilitates connection to GEOS-5 GCM
+!  05 Mar 2013 - R. Yantosca   - Now use Input_Opt%LNLPBL instead of LNLPBL
+!                                from logical_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -541,20 +542,6 @@
 
       ! Get current month
       MONTH                = GET_MONTH()
-
-!------------------------------------------------------------------------------
-! Prior to 3/4/13:
-! NOTE: this needs to be moved to the init stage for ESMF (bmy, 3/4/13)
-!      ! Establish indices w/in DEPSAV array
-!      IF ( FIRSTCHEM ) THEN
-!
-!         ! Initialize arrays (if not already done before)
-!         CALL INIT_SULFATE
-!
-!         ! Reset first-time flag
-!         FIRSTCHEM = .FALSE.
-!      ENDIF
-!------------------------------------------------------------------------------
 
       ! If it's an offline simulation ...
       IF ( IT_IS_AN_AEROSOL_SIM ) THEN
@@ -1379,6 +1366,7 @@
 !                              derived type object
 !  26 Nov 2012 - R. Yantosca - Dimension ND44_TMP array with LLPAR, not LLTROP
 !  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
+!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1390,6 +1378,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
+      LOGICAL            :: LNLPBL
       LOGICAL            :: FIRST     = .TRUE.
       INTEGER, SAVE      :: LASTMONTH = -99
       INTEGER            :: I, J, L, JLOOP
@@ -1414,6 +1403,7 @@
       ! Copy fields from INPUT_OPT to local variables for use below
       TCVV   = Input_Opt%TCVV
       XNUMOL = Input_Opt%XNUMOL
+      LNLPBL = Input_Opt%LNLPBL
 
       ! Chemistry timestep [s]
       DT     = GET_TS_CHEM() * 60d0
@@ -1452,10 +1442,6 @@
          CALL READ_BPCH2( FILENAME, 'JV-MAP-$', 3,      
      &     XTAU,        IIPAR,                    JJPAR,      
      &     LLTROP_FIX,  ARRAY(:,:,1:LLTROP_FIX),  QUIET=.TRUE. )
-!     &                    XTAU,      IIPAR,     JJPAR,      
-!     &                    LLTROP,    ARRAY,     QUIET=.TRUE. )
-
-
 
          ! Cast to REAL*8 and resize if necessary
          CALL TRANSFER_3D_TROP( ARRAY, JH2O2 )
@@ -1498,7 +1484,7 @@
          FREQ  = DEPSAV(I,J,DRYH2O2) * GET_FRAC_UNDER_PBLTOP( I, J, L ) 
 
          ! Add option for non-local PBL (Lin, 03/31/09)
-         IF (LNLPBL) FREQ = 0.D0
+         IF ( LNLPBL ) FREQ = 0.D0
 
          ! 1-D grid box index for SUNCOS
          JLOOP = ( (J-1) * IIPAR ) + I
@@ -1679,6 +1665,7 @@
 !  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1691,6 +1678,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
+      LOGICAL               :: LNLPBL
       LOGICAL               :: IS_OFFLINE
       INTEGER               :: I,      J,       L       !,      I1,   I2
       INTEGER               :: II,     NSTEP
@@ -1723,6 +1711,7 @@
       IS_OFFLINE = Input_Opt%ITS_AN_AEROSOL_SIM
       TCVV       = Input_Opt%TCVV
       XNUMOL     = Input_Opt%XNUMOL
+      LNLPBL     = Input_Opt%LNLPBL
 
       ! Read HNO3 for offline simulation
       IF ( IS_OFFLINE ) THEN
@@ -1801,7 +1790,7 @@
          RK2    = DEPSAV(I,J,DRYSO2) * GET_FRAC_UNDER_PBLTOP( I, J, L )
 
          ! Add option for non-local PBL (Lin, 03/31/09)
-         IF (LNLPBL) RK2 = 0.D0
+         IF ( LNLPBL ) RK2 = 0.D0
 
          ! RK: total reaction rate [1/s]
          RK     = ( RK1 + RK2 )
@@ -2882,13 +2871,14 @@
 !  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL               :: LCRYST, LSSALT
+      LOGICAL               :: LNLPBL, LCRYST, LSSALT
       INTEGER               :: I,      J,      L,        N,     N_ND44
       REAL*8                :: AS,     AS0,    AHS,      AHS0,  LET   
       REAL*8                :: LET0,   SO4,    SO40,     SO4aq, SO4aq0
@@ -2913,6 +2903,7 @@
 
       ! Copy fields from INPUT_OPT to local variables for use below
       LCRYST = Input_Opt%LCRYST
+      LNLPBL = Input_Opt%LNLPBL
       LSSALT = Input_Opt%LSSALT
       TCVV   = Input_Opt%TCVV 
       XNUMOL = Input_Opt%XNUMOL
@@ -3013,7 +3004,7 @@
          RKT  = DEPSAV(I,J,DRYSO4)  * GET_FRAC_UNDER_PBLTOP( I, J, L )
 
          ! Add option for non-local PBL (Lin, 03/31/09) 
-         IF (LNLPBL) RKT = 0.D0
+         IF ( LNLPBL ) RKT = 0.D0
 
          ! RKT > 0 denotes that we have SO4 drydep occurring
          IF ( RKT > 0d0 ) THEN
@@ -3094,7 +3085,7 @@
          RKTs = DEPSAV(I,J,DRYSO4s) * GET_FRAC_UNDER_PBLTOP( I, J, L )
 
          ! Add option for non-local PBL (Lin, 03/31/09)
-         IF (LNLPBL) RKTs = 0.D0
+         IF ( LNLPBL ) RKTs = 0.D0
         
          ! RKTs > 0 indicates that SO4s drydep occurs
          IF ( RKTs > 0d0 ) THEN
@@ -3346,6 +3337,7 @@
 !  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3353,6 +3345,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
+      LOGICAL               :: LNLPBL
       INTEGER               :: I,      J,    L,        PBL_MAX
       REAL*8                :: DTCHEM, MSA0, MSA,      RK       
       REAL*8                :: RKT,    FLUX, AREA_CM2, F_UNDER_TOP
@@ -3373,6 +3366,7 @@
       ! Copy fields from INPUT_OPT to local variables for use below
       TCVV    = Input_Opt%TCVV
       XNUMOL  = Input_Opt%XNUMOL
+      LNLPBL  = Input_Opt%LNLPBL
 
       ! DTCHEM is the chemistry interval in seconds
       DTCHEM  = GET_TS_CHEM() * 60d0 
@@ -3543,6 +3537,7 @@
 !  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3550,10 +3545,10 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL :: LSOILNOX
-      INTEGER :: I,        J,        L
-      REAL*8  :: DTCHEM,   NH30,     NH3
-      REAL*8  :: FREQ,     AREA_CM2, FLUX, F_UNDER_TOP
+      LOGICAL :: LNLPBL, LSOILNOX
+      INTEGER :: I,      J,        L
+      REAL*8  :: DTCHEM, NH30,     NH3
+      REAL*8  :: FREQ,   AREA_CM2, FLUX, F_UNDER_TOP
 
       ! Arrays
       REAL*8  :: ND44_TMP(IIPAR,JJPAR,LLPAR)
@@ -3740,6 +3735,7 @@
 !  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3747,10 +3743,10 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL :: LSOILNOX
-      INTEGER :: I,        J,    L
-      REAL*8  :: DTCHEM,   NH4,  NH40
-      REAL*8  :: FREQ,     FLUX, AREA_CM2, F_UNDER_TOP
+      LOGICAL :: LNLPBL, LSOILNOX
+      INTEGER :: I,      J,    L
+      REAL*8  :: DTCHEM, NH4,  NH40
+      REAL*8  :: FREQ,   FLUX, AREA_CM2, F_UNDER_TOP
 
       ! Arrays
       REAL*8  :: ND44_TMP(IIPAR,JJPAR,LLPAR)
@@ -3766,6 +3762,7 @@
       RC       = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
+      LNLPBL   = Input_Opt%LNLPBL
       LSOILNOX = Input_Opt%LSOILNOX
       TCVV     = Input_Opt%TCVV
       XNUMOL   = Input_Opt%XNUMOL
@@ -3877,13 +3874,16 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_NH4aq( State_Met )
+      SUBROUTINE CHEM_NH4aq( Input_Opt, State_Met )
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
+      USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD44
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE LOGICAL_MOD,        ONLY : LSOILNOX  
@@ -3892,12 +3892,10 @@
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TRACER_MOD,         ONLY : STT, TCVV, XNUMOL
       USE TRACERID_MOD,       ONLY : IDTNH4aq
-
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_DIAG_MOD             ! ND44
 !
 ! !INPUT PARAMETERS: 
 !
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !   
 ! !REMARKS:
@@ -3968,7 +3966,7 @@
             FREQ = DEPSAV(I,J,DRYNH4aq) * F_UNDER_TOP
 
             ! Add option for non-local PBL (Lin, 03/31/09)
-            IF ( LNLPBL ) FREQ = 0.D0
+            IF ( Input_Opt%LNLPBL ) FREQ = 0.D0
 
             ! Only apply drydep loss if FREQ is nonzero
             IF ( FREQ > 0d0 ) THEN
@@ -4109,6 +4107,7 @@
 !  31 Jul 2012 - R. Yantosca - Declare temp drydep arrays w/ LLPAR (not LLTROP)
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4116,7 +4115,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL :: LSOILNOX, LSSALT
+      LOGICAL :: LNLPBL,   LSOILNOX,     LSSALT
       INTEGER :: I,        J,      L,    N,     N_ND44
       REAL*8  :: DTCHEM,   NIT,    NITs, NIT0,  NIT0s,  E_RKT
       REAL*8  :: E_RKTs,   FLUX,   FREQ, FREQs, RKT,    RKTs   
@@ -4139,6 +4138,7 @@
       RC       = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
+      LNLPBL   = Input_Opt%LNLPBL
       LSOILNOX = Input_Opt%LSOILNOX
       LSSALT   = Input_Opt%LSSALT
       TCVV     = Input_Opt%TCVV
@@ -4445,13 +4445,6 @@
  120     FORMAT( 'Modified for GEOS-CHEM by R. Park and R. Yantosca'   ) 
  130     FORMAT( 'Last Modification Date: 4/6/04'                      )
 
-!-----------------------------------------------------------------------------
-! Prior to 3/4/13:
-! NOTE: This needs to be moved to the init stage, for ESMF (bmy, 3/4/13)
-!         ! Initialize arrays
-!         CALL INIT_SULFATE
-!-----------------------------------------------------------------------------
-
          ! We have now gone thru the first timestep
          FIRSTEMISS  = .FALSE.
       ENDIF
@@ -4662,6 +4655,10 @@
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND13 (for now)
       USE CMN_GCTM_MOD             ! SCALE_HEIGHT
+
+      !%%% NOTE: Keep this here as a placeholder, but we should
+      !%%% eventually replace this with Input_Opt%LNLPBL
+      USE LOGICAL_MOD,         ONLY : LNLPBL
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -4841,7 +4838,7 @@
                FEMIS     = GET_FRAC_OF_PBL( I, J, L )
 
                ! Add option for non-local PBL (Lin, 03/31/09)
-               IF (LNLPBL) FEMIS = 0.D0
+               IF ( LNLPBL ) FEMIS = 0.D0
 
                ! DMS in box (I,J,L) plus emissions [kg]
                TC(I,J,L) = TC(I,J,L) + ( FEMIS * DMSSRC )
@@ -4922,6 +4919,10 @@
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND13, LD13 (for now)
       USE CMN_GCTM_MOD             ! SCALE_HEIGHT
+
+      !%%% NOTE: Keep this here as a placeholder, but we should
+      !%%% eventually replace this with Input_Opt%LNLPBL
+      USE LOGICAL_MOD,         ONLY : LNLPBL
 !
 ! !INPUT PARAMETERS: 
 !
@@ -5551,6 +5552,10 @@
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND13 (for now)
       USE CMN_GCTM_MOD             ! SCALE_HEIGHT
+
+      !%%% NOTE: Keep this here as a placeholder, but we should
+      !%%% eventually replace this with Input_Opt%LNLPBL
+      USE LOGICAL_MOD,         ONLY : LNLPBL
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -5856,6 +5861,10 @@
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND13
       USE CMN_GCTM_MOD             ! SCALE_HEIGHT
+
+      !%%% NOTE: Keep this here as a placeholder, but we should
+      !%%% eventually replace this with Input_Opt%LNLPBL
+      USE LOGICAL_MOD,         ONLY : LNLPBL
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -6230,16 +6239,14 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
       USE COMODE_MOD,   ONLY : CSPEC, JLOP
       USE TRACERID_MOD, ONLY : IDOH
- 
-      USE CMN_SIZE_MOD       ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN) :: I, J, L ! Indices for lon, lat, vertical level
       REAL*8,  INTENT(IN) :: OH      ! OH at (I,J,L) to be saved into CSPEC
-
 !
 ! !REVISION HISTORY:
 !  (1 ) We assume SETTRACE has been called to define IDOH (bmy, 12/16/02)
@@ -6285,14 +6292,14 @@
 !
 ! !USES:
 !
+
+      USE CMN_SIZE_MOD
       USE COMODE_MOD,         ONLY : CSPEC, JLOP
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GLOBAL_NO3_MOD,     ONLY : NO3
       USE TRACERID_MOD,       ONLY : IDNO3
-
-      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -6426,16 +6433,14 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
       USE COMODE_MOD,   ONLY : CSPEC, JLOP
       USE TRACERID_MOD, ONLY : IDNO3
-      
-      USE CMN_SIZE_MOD       ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN) :: I, J, L ! Indices for lon, lat, vertical level
       REAL*8,  INTENT(IN) :: NO3     ! NO3 at (I,J,L) to be saved into CSPEC
-
 !
 ! !REVISION HISTORY:
 !  (1 ) We assume SETTRACE has been called to define IDNO3. (bmy, 12/16/02)
@@ -6480,14 +6485,13 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
       USE COMODE_MOD,         ONLY : CSPEC, JLOP, VOLUME
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_MOd, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRACER_MOD,         ONLY : XNUMOLAIR
       USE TRACERID_MOD,       ONLY : IDO3
-
-      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -6579,18 +6583,16 @@
 ! !USES:
 !
       USE BPCH2_MOD,      ONLY : GET_TAU0, READ_BPCH2
+      USE CMN_SIZE_MOD
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
       USE TIME_MOD,       ONLY : EXPAND_DATE
-
-      USE CMN_SIZE_MOD         ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN)     :: INDAY   ! Current 2-digit day 
       INTEGER, INTENT(IN)     :: INMONTH ! Current month number (1-12)
       INTEGER, INTENT(IN)     :: INYEAR  ! Current 4-digit year
-
 !
 ! !REVISION HISTORY: 
 !  (1 ) Split off from old module routine "sulfate_readyr" (bmy, 9/19/02)
@@ -6622,7 +6624,6 @@
       CHARACTER(LEN=255)   :: LLFILENAME
       REAL*8, POINTER      :: OUTGRID(:,:) => NULL()
       REAL*8, POINTER      :: INGRID(:,:)  => NULL()
-
 
       !=================================================================
       ! READ_NONERUP_VOLC begins here!
@@ -6710,18 +6711,16 @@
 ! !USES:
 !
       USE BPCH2_MOD,      ONLY : GET_TAU0, READ_BPCH2
+      USE CMN_SIZE_MOD
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
       USE TIME_MOD,       ONLY : EXPAND_DATE
-      
-      USE CMN_SIZE_MOD         ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN)     :: INDAY   ! Current 2-digit day
       INTEGER, INTENT(IN)     :: INMONTH ! Current month number (1-12)
       INTEGER, INTENT(IN)     :: INYEAR  ! Current 4-digit year
-
 !
 ! !REVISION HISTORY: 
 !  (1 ) Split off from old module routine "sulfate_readyr" (bmy, 9/19/02)
@@ -7195,17 +7194,15 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-
-      USE CMN_SIZE_MOD        ! Size parameters 
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN) :: THISMONTH ! Current month number (1-12)
-
 !
 ! !REVISION HISTORY:
 !  (1 ) Extracted from old module routine SULFATE_READMON (bmy, 9/18/02)
@@ -7270,12 +7267,11 @@
 !
       USE BPCH2_MOD,          ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,          ONLY : GET_TAU0,        READ_BPCH2
+      USE CMN_SIZE_MOD
       USE DIRECTORY_MOD,      ONLY : DATA_DIR,        DATA_DIR_1x1
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE REGRID_A2A_MOD,     ONLY : DO_REGRID_A2A
       USE TRANSFER_MOD,       ONLY : TRANSFER_2D
-
-      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -7615,16 +7611,13 @@
 !
 ! !USES:
 !
-      !IDBSO2 now in tracerid_mod (fp, 6/2009)
-      !USE BIOMASS_MOD,          ONLY : BIOMASS,         IDBSO2
       USE BIOMASS_MOD,          ONLY : BIOMASS
+      USE CMN_SIZE_MOD
       USE TRACERID_MOD,         ONLY : IDBSO2
       USE GRID_MOD,             ONLY : GET_AREA_CM2
       USE TRACER_MOD,           ONLY : XNUMOL
       USE TRACERID_MOD,         ONLY : IDTSO2
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
-      
-      USE CMN_SIZE_MOD               ! Size parameters
 ! 
 ! !REVISION HISTORY:
 !  (1 ) Extracted from old module subroutine READ_BIOMASS_SO2
@@ -7687,11 +7680,10 @@
 ! !USES:
 !
       USE BPCH2_MOD,          ONLY : GET_RES_EXT, GET_TAU0, READ_BPCH2
+      USE CMN_SIZE_MOD
       USE DIRECTORY_MOD,      ONLY : DATA_DIR 
       USE FILE_MOD,           ONLY : IOERROR
       USE GIGC_State_Met_Mod, ONLY : MetState
-
-      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -7861,6 +7853,7 @@
       USE ICOADS_SHIP_MOD,      ONLY : GET_ICOADS_SHIP   !(cklee, 7/09/09)
       USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,            ONLY : GET_TAU0,        READ_BPCH2
+      USE CMN_SIZE_MOD
       USE DIRECTORY_MOD,        ONLY : DATA_DIR 
       USE EDGAR_MOD,            ONLY : GET_EDGAR_SHIP_SO2
       USE EMEP_MOD,             ONLY : GET_EMEP_ANTHRO, GET_EUROPE_MASK
@@ -7873,13 +7866,10 @@
       USE TRACER_MOD,           ONLY : XNUMOL
       USE TRACERID_MOD,         ONLY : IDTSO2
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
-
-      USE CMN_SIZE_MOD               ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN)           :: THISMONTH ! Current month (1-12)
-
 !
 ! !REVISION HISTORY:
 !  (1 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
@@ -8074,6 +8064,7 @@
 !
       USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,            ONLY : GET_TAU0,        READ_BPCH2
+      USE CMN_SIZE_MOD
       USE DIRECTORY_MOD,        ONLY : DATA_DIR
       USE EMEP_MOD,             ONLY : GET_EMEP_ANTHRO
       USE EMEP_MOD,             ONLY : GET_EUROPE_MASK
@@ -8084,13 +8075,10 @@
       USE STREETS_ANTHRO_MOD,   ONLY : GET_STREETS_ANTHRO
       USE TRACERID_MOD,         ONLY : IDTNH3
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
-
-      USE CMN_SIZE_MOD               ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN)           :: THISMONTH ! Current month number (1-12)
-
 !
 ! !REVISION HISTORY:
 !  (1 ) Renamed from NH3_READ to READ_ANTHRO_NH3.  Also updated comments,
@@ -8219,15 +8207,13 @@
 !
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
+      USE CMN_SIZE_MOD
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-
-      USE CMN_SIZE_MOD        ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN) :: THISMONTH ! Current month number (1-12)
-
 !
 ! !REVISION HISTORY: 
 !  (1 ) Updated FORMAT string.  Now also call READ_BPCH2 with QUIET=.TRUE.
@@ -8298,10 +8284,10 @@
 !
 ! !USES:
 !
-      !USE BIOMASS_MOD,          ONLY : BIOMASS,         IDBNH3
       USE BIOMASS_MOD,          ONLY : BIOMASS
       USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,            ONLY : GET_TAU0,        READ_BPCH2
+      USE CMN_SIZE_MOD
       USE DIRECTORY_MOD,        ONLY : DATA_DIR
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NH3bf
       USE LOGICAL_MOD,          ONLY : LBIOMASS,        LFUTURE
@@ -8310,7 +8296,6 @@
       USE TRACERID_MOD,         ONLY : IDTNH3
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
 
-      USE CMN_SIZE_MOD               ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -8438,15 +8423,11 @@
 !
 ! !USES:
 !
-      ! IDBNH3 now in tracerid_mod (fp, 6/2009)
-      !USE BIOMASS_MOD,          ONLY : BIOMASS,         IDBNH3
       USE BIOMASS_MOD,          ONLY : BIOMASS
+      USE CMN_SIZE_MOD
       USE GRID_MOD,             ONLY : GET_AREA_CM2
       USE TRACER_MOD,           ONLY : XNUMOL
       USE TRACERID_MOD,         ONLY : IDTNH3, IDBNH3
-
-      USE CMN_SIZE_MOD               ! Size parameters
-
 !
 ! !REVISION HISTORY: 
 !  (1 ) Extracted from old module subroutine READ_BIOMASS_NH3
@@ -8507,15 +8488,13 @@
 !
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
       USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
+      USE CMN_SIZE_MOD
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D_TROP
-
-      USE CMN_SIZE_MOD        ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN)    :: MONTH ! Emission timestep in minutes
-
 !
 ! !REVISION HISTORY: 
 !  (1 ) Now call READ_BPCH2 with QUIET=.TRUE. (bmy, 3/27/03)
@@ -8615,12 +8594,11 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
+      USE CMN_GCTM_MOD
       USE GRID_MOD, ONLY : GET_XMID,    GET_YMID_R
       USE TIME_MOD, ONLY : GET_NHMSb,   GET_ELAPSED_SEC
       USE TIME_MOD, ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
-
-      USE CMN_SIZE_MOD   ! Size parameters
-      USE CMN_GCTM_MOD
 !
 ! !REVISION HISTORY: 
 !  (1 ) Copy code from COSSZA directly for now, so that we don't get NaN
@@ -8781,12 +8759,11 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD        ! Size parameters 
+      USE CMN_SIZE_MOD
       USE DRYDEP_MOD,         ONLY : DEPNAME, NUMDEP
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE LOGICAL_MOD,        ONLY : LDRYD
       USE TRACER_MOD,         ONLY : ITS_AN_AEROSOL_SIM
 !
 ! !INPUT PARAMETERS:
@@ -8820,13 +8797,13 @@
 !        emissions inventory. (jaf, bmy, 10/15/09)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  04 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
+!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%ITS_AN_AEROSOL_SIM
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE      :: IS_INIT = .FALSE.
       INTEGER            :: AS, I, J, N
 
       !=================================================================
@@ -8836,9 +8813,6 @@
       ! Assume success
       RC = GIGC_SUCCESS
 
-      ! Return if we have already initialized
-      IF ( IS_INIT ) RETURN
-      
       ! Allocate arrays
       ALLOCATE( SSTEMP( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SSTEMP' )
@@ -8939,7 +8913,7 @@
       !=================================================================
       ! Only initialize the following for offline aerosol simulations
       !=================================================================
-      IF ( ITS_AN_AEROSOL_SIM() ) THEN
+      IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
          ALLOCATE( PH2O2m( IIPAR, JJPAR, LLTROP ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'PH2O2m' )
@@ -9024,9 +8998,6 @@
          ENDDO
       ENDIF
 
-      ! Reset IS_INIT so we do not allocate arrays again
-      IS_INIT = .TRUE.
-
       END SUBROUTINE INIT_SULFATE
 !EOC
 !------------------------------------------------------------------------------
@@ -9063,7 +9034,6 @@
       !=================================================================
       ! CLEANUP_SULFATE begins here!
       !=================================================================
-
       IF ( ALLOCATED( DMSo      ) ) DEALLOCATE( DMSo      )
       IF ( ALLOCATED( EEV       ) ) DEALLOCATE( EEV       )
       IF ( ALLOCATED( ENV       ) ) DEALLOCATE( ENV       )

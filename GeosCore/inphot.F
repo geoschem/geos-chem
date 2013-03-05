@@ -19,12 +19,12 @@
 !
 #     include "define.h"
 
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE CMN_FJ_MOD,   ONLY : JPMAX, JPPJ, JPNL
-      USE CMN_SIZE_MOD, ONLY : LLPAR
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE CMN_FJ_MOD,         ONLY : JPMAX, JPPJ, JPNL
+      USE CMN_SIZE_MOD,       ONLY : LLPAR
       USE JV_CMN_MOD
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE inquireMod,   ONLY : findFreeLUN
+      USE inquireMod,         ONLY : findFreeLUN
 
       IMPLICIT NONE
 !

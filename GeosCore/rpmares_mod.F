@@ -76,7 +76,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE DO_RPMARES( am_I_Root, State_Met )
+      SUBROUTINE DO_RPMARES( am_I_Root, Input_Opt, State_Met )
 !
 !******************************************************************************
 !  Subroutine DO_RPMARES is the interface between the GEOS-CHEM model
@@ -100,16 +100,19 @@
 !  31 Jul 2012 - R. Yantosca - Now loop from 1..LLPAR for GIGC compatibility
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  05 Mar 2013 - R. Yantosca - Now accept Input_Opt as an argument
 !******************************************************************************
 !
-      ! References to F90 modules
+! !USES:
+!      
+      USE CMN_SIZE_MOD
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GLOBAL_HNO3_MOD,    ONLY : GET_GLOBAL_HNO3
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC,    GET_MONTH
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
-      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM 
-      USE TRACER_MOD,         ONLY : ITS_AN_AEROSOL_SIM, STT
+      USE TRACER_MOD,         ONLY : STT
       USE TRACERID_MOD,       ONLY : IDTSO4,             IDTNH3, IDTNH4 
       USE TRACERID_MOD,       ONLY : IDTNIT,             IDTHNO3 
       USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
@@ -120,10 +123,9 @@
       USE APM_INIT_MOD,       ONLY : IDTCTSO4,IDTSO4BIN1,IDTCTSEA
       USE APM_INIT_MOD,       ONLY : IDTCTBCOC, IDTCTDST
 #endif
-
-      USE CMN_SIZE_MOD             ! Size parameters
-
-      ! Local variables
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE          :: FIRST     = .TRUE.
       INTEGER, SAVE          :: LASTMONTH = -99
       INTEGER                :: I,    J,     L
@@ -138,6 +140,7 @@
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !DEFINED PARAMETERS:
@@ -165,12 +168,12 @@
       ! Check to see if we have to read in monthly mean HNO3
       IF ( IDTHNO3 == 0 ) THEN
 
-         IF ( ITS_A_FULLCHEM_SIM() ) THEN
+         IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
             ! Coupled simulation: stop w/ error since we need HNO3
             CALL ERROR_STOP( 'IDTHNO3 is not defined!', X )
 
-         ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
+         ELSE IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
             ! Offline simulation: read monthly mean HNO3
             IF ( ITS_A_NEW_MONTH() ) THEN

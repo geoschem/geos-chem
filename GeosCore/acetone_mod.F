@@ -341,13 +341,12 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
+      USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD11
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-
-      USE CMN_SIZE_MOD             ! Size parameters 
-      USE CMN_DIAG_MOD             ! ND11
 !
 ! !INPUT PARAMETERS:
 !

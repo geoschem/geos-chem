@@ -17,7 +17,6 @@
 !
 ! !USES:
 !
-      USE LOGICAL_MOD,     ONLY : LNLPBL ! (Lin, 03/31/09)
 
       IMPLICIT NONE
 #     include "define.h"
@@ -112,7 +111,6 @@
       REAL*8,  ALLOCATABLE :: SRC_N(:,:)   
       REAL*8,  ALLOCATABLE :: ALK_EMIS(:,:,:,:)
       REAL*8,  ALLOCATABLE :: N_DENS(:,:,:,:)    
-      ! Add SALT_V and DMID (jaegle 5/11/11)
       REAL*8,  ALLOCATABLE :: SALT_V(:)
       REAL*8,  ALLOCATABLE :: DMID(:)
       REAL*8               :: SS_DEN(NSALT)    = (/ 2200.d0, 2200.d0 /)
@@ -201,36 +199,6 @@
 
       ! Do we have to print debug output?
       prtDebug = ( LPRT .and. am_I_Root )
-
-!----------------------------------------------------------------------------- 
-! Prior to 3/4/13:
-! This needs to be moved to the init stage, for ESMF (bmy, 3/4/13)
-!      ! First-time initialization
-!      IF ( FIRST ) THEN
-!
-!         ! Initialize (if necessary)
-!         CALL INIT_SEASALT
-!
-!         ! Find drydep species in DEPSAV
-!         DO N = 1, NUMDEP
-!            SELECT CASE ( TRIM( DEPNAME(N) ) )
-!               CASE ( 'SALA' )
-!                  DRYSALA = N
-!               CASE ( 'SALC' )
-!                  DRYSALC = N
-!               CASE DEFAULT
-!                  ! Nothing
-!            END SELECT        
-!         ENDDO
-!
-!         ! Store in IDDEP array
-!         IDDEP(1) = DRYSALA
-!         IDDEP(2) = DRYSALC
-!
-!         ! Reset first-time flag
-!         FIRST = .FALSE.
-!      ENDIF
-!----------------------------------------------------------------------------- 
 
       !=================================================================
       ! Maybe someday we should merge these two separate calculations
@@ -908,6 +876,10 @@
 #endif
 
       USE CMN_SIZE_MOD             ! Size parameters
+
+      !%%% NOTE: Keep this here as a placeholder, but we should
+      !%%% eventually replace this with Input_Opt%LNLPBL
+      USE LOGICAL_MOD,         ONLY : LNLPBL
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -954,16 +926,6 @@
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### in EMISSEASALT' )
-
-!----------------------------------------------------------------------------- 
-! Prior to 3/4/13:
-! This needs to be moved to the init stage, for ESMF (bmy, 3/4/13)
-!      ! Allocate all module arrays (bec, bmy, 4/13/05)
-!      IF ( FIRST ) THEN  
-!         CALL INIT_SEASALT
-!         FIRST = .FALSE.
-!      ENDIF
-!----------------------------------------------------------------------------- 
 
       ! Initialize for each timestep (bec, bmy, 4/13/05)
 !$OMP PARALLEL DO
@@ -1015,7 +977,7 @@
 
       ! save surface emis for non-local PBL mixing (vdiff_mod.f) (units: kg)
       ! (Lin, 06/09/08) 
-      IF (LNLPBL) THEN
+      IF ( LNLPBL ) THEN
 !$OMP PARALLEL DO
 !$OMP+PRIVATE( I, J )
          DO J = 1, JJPAR
@@ -1064,6 +1026,10 @@
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND44, ND08
       USE CMN_GCTM_MOD             ! PI
+
+      !%%% NOTE: Keep this here as a placeholder, but we should
+      !%%% eventually replace this with Input_Opt%LNLPBL
+      USE LOGICAL_MOD,         ONLY : LNLPBL
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1377,7 +1343,7 @@
             ! Move surface emis to vdiff_mod.f for non-local PBL mixing
             ! --- emis is saved in emis_save(:,:,:) in SUBROUTINE EMISSSEASALT 
             ! (Lin, 06/09/08) 
-            IF (LNLPBL) FEMIS = 0.D0
+            IF ( LNLPBL ) FEMIS = 0.D0
 
             ! Add seasalt emissions into box (I,J,L) [kg]
             TC(I,J,L)         = TC(I,J,L) + ( FEMIS * SALT(I,J) )
