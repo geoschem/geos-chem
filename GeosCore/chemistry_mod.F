@@ -199,6 +199,7 @@
 !  11 Dec 2012 - R. Yantosca - Remove NI, NJ, NL, NCNST arguments; these are
 !                              now obtained either from CMN_SIZE_mod.F or
 !                              from the Input_Opt object
+!  05 Mar 2013 - R. Yantosca - Now pass am_I_Root, Input_Opt, RC to DRYFLX
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -340,7 +341,9 @@
             ! ND44 drydep fluxes
             ! The drydep fluxes diag. is done in vdiff_mod.f when non-local 
             ! PBL is used ( Lin, 03/31/09) 
-            IF ( .NOT. LNLPBL ) CALL DRYFLX 
+            IF ( .not. LNLPBL ) THEN
+               CALL DRYFLX( am_I_Root, Input_Opt, RC )
+            ENDIF
 
             ! ND43 chemical production
             CALL DIAGOH

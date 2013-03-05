@@ -1816,7 +1816,7 @@
 !  16 Oct 2012 - R. Yantosca - Renamed chem state object to State_Chm
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
 !  13 Nov 2012 - R. Yantosca - Now pass Input Options object as an argument
-
+!  05 Mar 2013 - R. Yantosca - Now TRIM the TRACER_NAME in the ND70 debug print
 !******************************************************************************
 !
 ! !USES:
@@ -2055,9 +2055,9 @@
             IF ( LPRT .and. am_I_Root ) THEN
                PRINT*, '###--------------------'
                PRINT*, '### T, C       : ', T, C
-               PRINT*, '### NAME       : ', TRACER_NAME(T)
+               PRINT*, '### NAME       : ', TRIM( TRACER_NAME(T) )
                PRINT*, '### NMEMBER    : ', NMEMBER(T)
-               PRINT*, '### CONST(T,C) : ', TRACER_CONST(T,C)
+               PRINT*, '### CONST(T,C) : ', TRIM( TRACER_CONST(T,C) )
                PRINT*, '### CTRMB(T,C) : ', CTRMB(T,C)
                PRINT*, '### IDEMIS(T)  : ', IDEMIS(T)
                PRINT*, '### IDTRMB(T,C): ', IDTRMB(T,C)

@@ -811,18 +811,27 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DRYFLX
+      SUBROUTINE DRYFLX( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE LOGICAL_MOD,  ONLY : LSOILNOX
-      USE GET_NDEP_MOD, ONLY : SOIL_DRYDEP
-      USE TRACERID_MOD, ONLY : IDTHNO3
-
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_DIAG_MOD       ! Diagnostic switches & arrays
-      USE COMMSOIL_MOD       ! Soil wetness variables
+      USE CMN_SIZE_MOD
+      USE CMN_DIAG_MOD
+      USE COMMSOIL_MOD
       USE COMODE_MOD
+      USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TRACERID_MOD,       ONLY : IDTHNO3
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  (1 ) Bug fix -- now skip tracers for which NTDEP(N) is zero, in order
@@ -850,6 +859,8 @@
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !  31 Jul 2012 - R. Yantosca - Now loop from 1..LLPAR for GIGC compatibility
+!  05 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
+!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LSOILNOX and Input_Opt%NUMDEP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -884,7 +895,7 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N, NN, NK, JJ, JLOOP, TDRYFX )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO N = 1, NUMDEP
+      DO N = 1, Input_Opt%NUMDEP
 
          ! Index for drydep species #N, from SMVGEAR
          NK = NTDEP(N)
@@ -934,8 +945,8 @@
                ENDIF 
 
                ! Archive dry deposited N species for use in soil_nox_mod
-               IF (LSOILNOX ) THEN
-                  CALL SOIL_DRYDEP ( I, J, L, NN, TDRYFX)
+               IF ( Input_Opt%LSOILNOX ) THEN
+                  CALL SOIL_DRYDEP( I, J, L, NN, TDRYFX )
                ENDIF
 
 
