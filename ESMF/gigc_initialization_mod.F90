@@ -63,12 +63,11 @@ CONTAINS
 !
     USE CMN_GCTM_Mod       
     USE CMN_SIZE_Mod
+    USE Error_Mod,          ONLY : Debug_Msg
     USE GIGC_ErrCode_Mod
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE Input_Mod,          ONLY : GIGC_Init_Extra
     USE Input_Mod,          ONLY : Read_Input_File
-    USE Input_Mod,          ONLY : Initialize_Geos_Grid
 !
 ! !INPUT PARAMETERS: 
 !
@@ -101,6 +100,7 @@ CONTAINS
 !  07 Dec 2012 - R. Yantosca - Compute DLON, DLAT more rigorously
 !  26 Feb 2013 - M. Long     - Now pass State_Chm as an argument
 !  26 Feb 2013 - M. Long     - Read "input.geos" on root CPU only
+!  06 Mar 2013 - R. Yantosca - Now move non-root CPU setup out of this routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -147,17 +147,20 @@ CONTAINS
     ENDDO
     ENDDO
 
-    ! Read the GEOS-Chem input file here.  For now only read on the root
-    ! CPU so that we can broadcast to other CPUs in GIGC_Init_Simulation
-    ! (mlong, bmy, 2/26/13)
+    !========================================================================
+    ! Root CPU setup
+    !========================================================================
     IF ( am_I_Root ) THEN
-       CALL Read_Input_File( am_I_Root, Input_Opt, RC )
-    ENDIF
 
-    ! We still need to call Initialize_Geos_Grid on all CPUs though.
-    ! without having to read the "input.geos" file. (mlong, bmy, 2/26/13)
-    IF ( .not. am_I_Root ) THEN
-       CALL Initialize_Geos_Grid( am_I_Root, RC )
+       ! Read the GEOS-Chem input file here.  For now only read on the root
+       ! CPU so that we can broadcast to other CPUs in GIGC_Init_Simulation
+       ! (mlong, bmy, 2/26/13)
+       CALL Read_Input_File( am_I_Root, Input_Opt, RC )
+
+       ! Display informational msg
+       IF ( Input_Opt%LPRT ) THEN
+          CALL Debug_Msg( '### Root CPU, after READ_INPUT_FILE' )
+       ENDIF
     ENDIF
 
   END SUBROUTINE GIGC_Get_Options
@@ -204,8 +207,11 @@ CONTAINS
     USE COMODE_LOOP_MOD       
     USE GCKPP_COMODE_MOD,     ONLY : INIT_GCKPP_COMODE
     USE ERROR_MOD,            ONLY : DEBUG_MSG
-    USE GRID_MOD,             ONLY : INIT_GRID
+    USE Grid_Mod,             ONLY : INIT_GRID
+    USE Grid_Mod,             ONLY : Set_xOffSet
+    USE Grid_Mod,             ONLY : Set_yOffSet
     USE Input_Mod,            ONLY : GIGC_Init_Extra
+    USE Input_Mod,            ONLY : Initialize_Geos_Grid
     USE Mapping_Mod,          ONLY : MapWeight
     USE Mapping_Mod,          ONLY : Init_Mapping
     USE Olson_Landmap_Mod,    ONLY : Init_Olson_Landmap
@@ -333,29 +339,41 @@ CONTAINS
     Input_Opt%TS_CHEM = INT( tsChem ) / 60   ! Chemistry timestep [min]
     Input_Opt%TS_DYN  = INT( tsDyn  ) / 60   ! Dynamic   timestep [mn]
 
-    ! Read options from the GEOS-Chem input file "input.geos"
-    ! And initialize grid
+    !-----------------------------------------------------------------------
+    ! Read info from the "input.geos" file into the Input_Opt object
+    ! on the root CPU.  MPI broadcast Input_Opt to non-root CPUs.
+    ! Continue with non-root CPU setup.
+    !-----------------------------------------------------------------------
+
+    ! Read options from the "input.geos" file into Input_Opt
     CALL GIGC_Get_Options( am_I_Root, lonCtr,    latCtr, &
                            Input_Opt, State_Chm, RC )
 
-    !-----------------------------------------------------------------------
-    ! Read "input.geos" on the root CPU and broadcast to other CPUs
-    !-----------------------------------------------------------------------
-
-    ! Broadcast "input.geos" options values to all threads with MPI
+    ! Broadcast fields of Input_Opt from root to all other CPUs
     CALL GIGC_Input_Bcast( Input_Opt, RC )
-    CALL GIGC_IDT_Bcast  ( Input_Opt, RC )
+
+    ! Broadcast IDTxxx etc. tracer flags from root to all other CPUs
+    CALL GIGC_IDT_Bcast( Input_Opt, RC )
 
     ! Complete initialization ops on all threads
     IF ( .not. am_I_Root ) THEN 
 
-       ! Initialize dry deposition
-       IF ( Input_Opt%LDRYD ) THEN
-          CALL INIT_DRYDEP( am_I_Root, Input_Opt, RC )
-       ENDIF
+       ! Make sure to reset I0 and J0 in grid_mod.F90 with
+       ! the values carried in the Input Options object
+       CALL Set_xOffSet( Input_Opt%Nested_I0 )
+       CALL Set_yOffSet( Input_Opt%Nested_J0 )
+
+       ! We still need to call Initialize_Geos_Grid on all CPUs though.
+       ! without having to read the "input.geos" file. (mlong, bmy, 2/26/13)
+       CALL Initialize_Geos_Grid( am_I_Root, RC )
 
        ! Initialize tracer quantities
-       CALL INIT_TRACER( am_I_Root, Input_Opt, RC )
+       CALL Init_Tracer( am_I_Root, Input_Opt, RC )
+
+       ! Initialize dry deposition
+       IF ( Input_Opt%LDRYD ) THEN
+          CALL Init_Drydep( am_I_Root, Input_Opt, RC )
+       ENDIF
 
        ! Working Kluge - MSL; Break this & Fix the result...
        LVARTROP = Input_Opt%LVARTROP 
@@ -375,7 +393,7 @@ CONTAINS
     ! to initialize other modules (e.g. carbon_mod.F, dust_mod.F, 
     ! seasalt_mod.F,  sulfate_mod.F).  We needed to move these init 
     ! calls out of the run stage and into the init stage. (bmy, 3/4/13)
-    CALL GIGC_Init_Extra( am_I_Root, Input_Opt, RC )
+    CALL GIGC_Init_Extra( am_I_Root, Input_Opt, RC ) 
 
     !-----------------------------------------------------------------------
     ! Read other ASCII files on the root CPU and broadcast to other CPUs

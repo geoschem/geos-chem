@@ -874,6 +874,9 @@
       ! DRYFLX begins here!
       !=================================================================
 
+      ! Assume success
+      RC      = GIGC_SUCCESS
+
       ! Return unless we have turned on ND44 drydep diagnostic
       !IF ( ND44 == 0 ) RETURN
 

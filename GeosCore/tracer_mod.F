@@ -886,6 +886,7 @@
 #endif
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
@@ -992,6 +993,11 @@
       ALLOCATE( XNUMOL( N_TOT_TRC ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'XNUMOL' )
       XNUMOL = 0
+
+      ! Print a debug msg
+      IF ( Input_Opt%LPRT .and. am_I_Root ) THEN
+         CALL Debug_Msg( '### a INIT_TRACER' )
+      ENDIF
 
       END SUBROUTINE INIT_TRACER
 !EOC

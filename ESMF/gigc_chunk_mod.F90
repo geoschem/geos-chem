@@ -300,6 +300,7 @@ CONTAINS
 
     ! Exit if we are doing neither drydep nor chemistry
     IF ( ( .not. Input_Opt%LDRYD ) .and. ( .not. Input_Opt%LCHEM ) ) THEN
+       print*, '### LDRYD=F and LCHEM=F, so skipping!'
        RETURN
     ENDIF
 

@@ -259,6 +259,9 @@
       ! SETPL begins here!
       !=================================================================
 
+      ! Assume success
+      RC     = GIGC_SUCCESS
+
       ! Set NCS = NCSURBAN for now, since we have defined our GEOS-CHEM
       ! mechanism in the urban slot of SMVGEAR II. (bmy, 4/21/03)
       NCS    = NCSURBAN
