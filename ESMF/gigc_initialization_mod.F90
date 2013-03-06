@@ -205,9 +205,9 @@ CONTAINS
     USE CMN_SIZE_MOD
     USE COMODE_MOD
     USE COMODE_LOOP_MOD       
-    USE GCKPP_COMODE_MOD,     ONLY : INIT_GCKPP_COMODE
-    USE ERROR_MOD,            ONLY : DEBUG_MSG
-    USE Grid_Mod,             ONLY : INIT_GRID
+    USE GCKPP_COMODE_MOD,     ONLY : Init_GCKPP_Comode
+    USE ERROR_MOD,            ONLY : Debug_Msg
+    USE Grid_Mod,             ONLY : Init_Grid
     USE Grid_Mod,             ONLY : Set_xOffSet
     USE Grid_Mod,             ONLY : Set_yOffSet
     USE Input_Mod,            ONLY : GIGC_Init_Extra
@@ -305,7 +305,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     LOGICAL :: prtDebug
-    INTEGER :: DTIME, K, AS, N, YEAR, I, J, L, TMP
+    INTEGER :: DTIME, K, AS, N, YEAR, I, J, L, TMP, STAT
 
     !=======================================================================
     ! Initialize key GEOS-Chem sections
@@ -459,6 +459,8 @@ CONTAINS
     DO N = 1, Input_Opt%N_TRACERS
        State_Chm%TRAC_NAME(N) = 'TRC_' // TRIM( Input_Opt%TRACER_NAME(N) )
        State_Chm%TRAC_ID  (N) = Input_Opt%ID_TRACER(N)
+       WRITE(6,*), '##### CHK_TRC ', N, TRIM( State_Chm%Trac_Name(N) ), &
+                                              State_Chm%Trac_ID(N)
     ENDDO
        
     ! Initialize the GEOS-Chem pressure module (set Ap & Bp)
@@ -532,17 +534,9 @@ CONTAINS
        NTLOOP  = NLOOP * NVERT
        NTTLOOP = NTLOOP
        
-       ! Save Chemical species names ID's into State_Chm
-       DO N = 1, IGAS
-          IF ( LEN_TRIM( NAMEGAS(N) ) > 0 ) THEN 
-             State_Chm%SPEC_NAME(N) = TRIM( NAMEGAS(N) )
-             State_Chm%SPEC_ID  (N) = N
-          ENDIF
-       ENDDO
-       
        ! Set NCS=NCSURBAN here since we have defined our tropospheric
        ! chemistry mechanism in the urban slot of SMVGEAR II (bmy, 4/21/03)
-       NCS = NCSURBAN
+       NCS     = NCSURBAN
 
        ! Get CH4 [ppbv] in 4 latitude bins for each year
        YEAR = NYMDb / 10000
@@ -556,7 +550,16 @@ CONTAINS
        
        ! Flag certain chemical species
        CALL SETTRACE( am_I_Root, Input_Opt, State_Chm, RC )
-       
+       NCS = NCSURBAN
+
+       ! Register species (active + inactive) in the State_Chm object     
+       DO I = 1, NTSPEC(NCS)
+          CALL Register_Species( NAMEGAS(I), I, State_Chm, STAT )
+          IF ( STAT >=1 ) THEN
+             WRITE(6,*) 'Registered Species ', NAMEGAS(I), STAT
+          ENDIF
+       ENDDO
+
        !### Debug
        IF ( prtDebug ) THEN
           CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after SETTRACE' )

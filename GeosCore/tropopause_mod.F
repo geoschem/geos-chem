@@ -123,7 +123,7 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( JGAS, JLOOP, IX, IY, IZ )
 
-      ! Loop over species
+      ! Loop over species (active + inactive)
       DO JGAS  = 1, NTSPEC(NCS)
 
          ! Loop over 1-D grid boxes
@@ -196,7 +196,7 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( JGAS, JLOOP, IX, IY, IZ )
 
-      ! Loop over species
+      ! Loop over species (active + inactive)
       DO JGAS = 1, NTSPEC(NCS)
 
          ! Loop over 1-D grid boxes
