@@ -30,6 +30,7 @@ MODULE GIGC_State_Chm_Mod
 !
   PUBLIC :: Get_Indx
   PUBLIC :: Register_Species
+  PUBLIC :: Register_Tracer
   PUBLIC :: Init_GIGC_State_Chm
   PUBLIC :: Cleanup_GIGC_State_Chm
 !
@@ -66,13 +67,6 @@ MODULE GIGC_State_Chm_Mod
      REAL*8,            POINTER :: Schm_BryNit(:,:,:,:)  ! Bry, Night
  
   END TYPE ChmState
-
-  !=========================================================================
-  ! Other variables
-  !=========================================================================
-
-  ! Position value used for registering CSPEC parameters in the chemical state
-  INTEGER,  SAVE :: POSITION = 1 
 !
 ! !REMARKS:
 !  -----------------------------------------------------------------------
@@ -150,6 +144,8 @@ MODULE GIGC_State_Chm_Mod
 !  19 Oct 2012 - R. Yantosca - Initial version, based on "gc_type2_mod.F90"
 !  26 Oct 2012 - R. Yantosca - Add fields for stratospheric chemistry
 !  26 Feb 2013 - M. Long     - Add DEPSAV to derived type ChmState
+!  07 Mar 2013 - R. Yantosca - Add Register_Tracer subroutine
+!  07 Mar 2013 - R. Yantosca - Now make POSITION a locally SAVEd variable
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -211,9 +207,10 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Register_Species
+! !IROUTINE: register_species
 !
-! !DESCRIPTION: Routine REGISTER\_SPECIES registers the 
+! !DESCRIPTION: Routine REGISTER\_SPECIES stores the names of GEOS-Chem 
+!  chemical species in fields of the Chemistry State (aka State_Chm) object.
 !\\
 !\\
 ! !INTERFACE:
@@ -238,20 +235,26 @@ CONTAINS
 ! 
 ! !REVISION HISTORY: 
 !  15 Oct 2012 - M. Long     - Initial version, based on gc_esmf_type_mod.F90
+!  07 Mar 2013 - R. Yantosca - Now make POSITION a locally saved variable
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
-! 
-    !write(*,*) 'POSITION:', POSITION
+!
+    ! Position index
+    INTEGER,  SAVE :: POSITION = 1
     
+    !======================================================================
+    ! REGISTER_SPECIES begins here!
+    !======================================================================
+
     ! We have not found the desired species yet
     Status                          = -1
     
-    ! Locate the species name and ID 
-    State_Chm%Spec_Name( POSITION ) = Name
-    State_Chm%Spec_Id  ( POSITION ) = ID
+    ! Locate the species name and ID
+    State_Chm%Spec_Name( POSITION ) = TRIM( Name )
+    State_Chm%Spec_Id  ( POSITION ) = Id
     
     ! Return status
     Status                          = POSITION
@@ -260,6 +263,64 @@ CONTAINS
     POSITION                        = POSITION + 1
    
   END SUBROUTINE Register_Species
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Register_Tracer
+!
+! !DESCRIPTION: Routine REGISTER\_TRACER stores the names of GEOS-Chem
+!  advected tracers in fields of the Chemistry State (aka State_Chm) object.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Register_Tracer( Name, Id, State_Chm, Status )
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*), INTENT(IN)    :: Name       ! Name of desired tracer
+    INTEGER,          INTENT(IN)    :: Id         ! ID flag of desired tracer
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState),   INTENT(INOUT) :: State_Chm  ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(OUT)   :: Status     ! Success or failure
+!
+! !REVISION HISTORY:
+!   7 Mar 2013 - R. Yantosca - Initial version, based on Register_SPecies
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Position index
+    INTEGER, SAVE :: POSITION = 1
+
+    !======================================================================
+    ! REGISTER_TRACER begins here!
+    !======================================================================
+
+    ! We have not found the desired species yet
+    Status                          = -1
+
+    ! Locate the tracer name and ID
+    State_Chm%Trac_Name( POSITION ) = TRIM( Name )
+    State_Chm%Trac_Id  ( POSITION ) = ID
+
+    ! Return status
+    Status                          = POSITION
+
+    ! Increment for next species
+    POSITION                        = POSITION + 1
+
+  END SUBROUTINE Register_Tracer
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !

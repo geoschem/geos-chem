@@ -298,14 +298,17 @@ CONTAINS
 !  04 Mar 2013 - R. Yantosca - Now call GIGC_Init_Extra, which moves some init
 !                              calls out of the run stage.  This has to be done
 !                              after we broadcast Input_Opt to non-root CPUs.
+!  07 Mar 2013 - R. Yantosca - Call READER on all CPUs until further notice
+!  07 Mar 2013 - R. Yantosca - Now use keyword arguments for clarity
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    LOGICAL :: prtDebug
-    INTEGER :: DTIME, K, AS, N, YEAR, I, J, L, TMP, STAT
+    LOGICAL            :: prtDebug
+    INTEGER            :: DTIME, K, AS, N, YEAR, I, J, L, TMP, STAT
+    CHARACTER(LEN=255) :: NAME
 
     !=======================================================================
     ! Initialize key GEOS-Chem sections
@@ -318,17 +321,21 @@ CONTAINS
     ! Determine if we have to print debug output
     prtDebug = ( Input_Opt%LPRT .and. am_I_Root )
 
-    if (am_I_Root) write(*,*) 'GRID :: JM_WORLD :: ', value_JM_WORLD
-    if (am_I_Root) write(*,*) 'GRID :: IM_WORLD :: ', value_IM_WORLD
-
     ! Allocate GEOS-Chem module arrays
-    CALL GIGC_Allocate_All( am_I_Root,       Input_Opt,       &
-                            RC,              value_I_LO,      &
-                            value_J_LO,      value_I_HI,      &
-                            value_J_HI,      value_IM,        &
-                            value_JM,        value_LM,        &
-                            value_IM_WORLD,  value_JM_WORLD,  &
-                            value_LM_WORLD                   )
+    CALL GIGC_Allocate_All( am_I_Root      = am_I_Root,                     &
+                            Input_Opt      = Input_Opt,                     &
+                            value_I_LO     = value_I_LO,                    &
+                            value_J_LO     = value_J_LO,                    &
+                            value_I_HI     = value_I_HI,                    &
+                            value_J_HI     = value_J_HI,                    &
+                            value_IM       = value_IM,                      &
+                            value_JM       = value_JM,                      &
+                            value_LM       = value_LM,                      &
+                            value_IM_WORLD = value_IM_WORLD,                &
+                            value_JM_WORLD = value_JM_WORLD,                &
+                            value_LM_WORLD = value_LM_WORLD,                &
+                            RC             = RC              )            
+
 
     ! Save timing fields in Input_Opt for passing down to module
     ! GeosCore/input_mod.F via routine GIGC_Get_Options (bmy, 12/6/12)
@@ -346,14 +353,22 @@ CONTAINS
     !-----------------------------------------------------------------------
 
     ! Read options from the "input.geos" file into Input_Opt
-    CALL GIGC_Get_Options( am_I_Root, lonCtr,    latCtr, &
-                           Input_Opt, State_Chm, RC )
+    CALL GIGC_Get_Options( am_I_Root = am_I_Root,                           &
+                           lonCtr    = lonCtr,                              &
+                           latCtr    = latCtr,                              &
+                           Input_Opt = Input_Opt,                           &
+                           State_Chm = State_Chm,                           &
+                           RC        = RC           )
 
     ! Broadcast fields of Input_Opt from root to all other CPUs
-    CALL GIGC_Input_Bcast( Input_Opt, RC )
+    CALL GIGC_Input_Bcast( am_I_Root = am_I_Root,                           &
+                           Input_Opt = Input_Opt,                           &
+                           RC        = RC           )
 
     ! Broadcast IDTxxx etc. tracer flags from root to all other CPUs
-    CALL GIGC_IDT_Bcast( Input_Opt, RC )
+    CALL GIGC_IDT_Bcast  ( am_I_Root = am_I_Root,                           &  
+                           Input_Opt = Input_Opt,                           &  
+                           RC        = RC           )
 
     ! Complete initialization ops on all threads
     IF ( .not. am_I_Root ) THEN 
@@ -365,27 +380,33 @@ CONTAINS
 
        ! We still need to call Initialize_Geos_Grid on all CPUs though.
        ! without having to read the "input.geos" file. (mlong, bmy, 2/26/13)
-       CALL Initialize_Geos_Grid( am_I_Root, RC )
+       CALL Initialize_Geos_Grid( am_I_Root = am_I_Root,                    &
+                                  RC        =  RC )
 
-       ! Initialize tracer quantities
-       CALL Init_Tracer( am_I_Root, Input_Opt, RC )
+       ! Initialize tracer quantities (in GeosCore/tracer_mod.F)
+       CALL Init_Tracer( am_I_Root = am_I_Root,                             &
+                         Input_Opt = Input_Opt,                             &
+                         RC        = RC           )
 
-       ! Initialize dry deposition
+       ! Initialize dry deposition (in GeosCore/drydep_mod.F)
        IF ( Input_Opt%LDRYD ) THEN
-          CALL Init_Drydep( am_I_Root, Input_Opt, RC )
+          CALL Init_Drydep( am_I_Root = am_I_Root,                          &
+                            Input_Opt = Input_Opt,                          &
+                            RC        = RC         )
        ENDIF
 
        ! Working Kluge - MSL; Break this & Fix the result...
        LVARTROP = Input_Opt%LVARTROP 
 
        ! Set GEOS-Chem timesteps
-       CALL SET_TIMESTEPS( am_I_Root,                                  &
-                           Input_Opt%TS_CHEM,                          &
-                           Input_Opt%TS_CONV,                          &
-                           Input_Opt%TS_DYN,                           &
-                           Input_Opt%TS_EMIS,                          &
-                           MAX( Input_Opt%TS_DYN, Input_Opt%TS_CONV ), &
-                           Input_Opt%TS_DIAG )
+       CALL SET_TIMESTEPS( am_I_Root  = am_I_Root,                          &
+                           Chemistry  = Input_Opt%TS_CHEM,                  &
+                           Convection = Input_Opt%TS_CONV,                  &
+                           Dynamics   = Input_Opt%TS_DYN,                   &
+                           Emission   = Input_Opt%TS_EMIS,                  &
+                           Unit_Conv  = MAX( Input_Opt%TS_DYN,              &
+                                             Input_Opt%TS_CONV ),           &
+                           Diagnos    = Input_Opt%TS_DIAG         )
        
     ENDIF
 
@@ -399,48 +420,79 @@ CONTAINS
     ! Read other ASCII files on the root CPU and broadcast to other CPUs
     !-----------------------------------------------------------------------
 
-    ! Read "mglob.dat"
-    IF ( am_I_Root ) THEN
-
+!------------------------------------------------------------------------------
+! Prior to 3/7/13:
+! For now, just call READER on all CPUs.  It may be difficult to try to MPI
+! broadcast all of the fields that READER touches (bmy, 3/7/13)
+!    ! Read "mglob.dat"
+!    IF ( am_I_Root ) THEN
+!------------------------------------------------------------------------------
        ! Read from data file mglob.dat
-       CALL READER( .TRUE., am_I_Root )
+       CALL READER( .TRUE.,  am_I_Root )
 
        !### Debug
        IF ( prtDebug ) THEN
           CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after READER' )
        ENDIF
-    ENDIF
-
-    ! Broadcast "mglob.dat"
-    CALL GIGC_Reader_Bcast( RC )
+!------------------------------------------------------------------------------
+! Prior to 3/7/13:
+! For now, just call READER on all CPUs.  It may be difficult to try to MPI
+! broadcast all of the fields that READER touches (bmy, 3/7/13)
+!    ENDIF
+!
+!    ! Broadcast "mglob.dat"
+!    CALL GIGC_Reader_Bcast( RC )
+!    CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after GIGC_Bcast_READER' )
+!------------------------------------------------------------------------------
 
     ! Read "globchem.dat" chemistry mechanism
-    ! NOTE: for now, read on all CPUs and fix later (bmy, mlong, 2/26/13)
+!------------------------------------------------------------------------------
+! Prior to 3/7/13:
+! NOTE: for now, just call READCHEM on all CPUs.  Try to figure out how
+! to MPI broadcast later.  This could be very difficult. (bmy, mlong, 3/7/13)
 !    IF ( am_I_Root ) THEN
+!------------------------------------------------------------------------------
        CALL READCHEM( am_I_Root, Input_Opt, RC )
        
        !### Debug
        IF ( prtDebug ) THEN
           CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after READCHEM' )        
        ENDIF
+!------------------------------------------------------------------------------
+! Prior to 3/7/13:
+! NOTE: for now, just call READCHEM on all CPUs.  Try to figure out how
+! to MPI broadcast later.  This could be very difficult. (bmy, mlong, 3/7/13)
 !    ENDIF
 !
 !    ! Broadcast "globchem.dat" to other CPUs
 !    CALL GIGC_ReadChem_Bcast( RC )
+!------------------------------------------------------------------------------
 
     ! Initialize FAST-J photolysis
-    ! NOTE: for now, read on all CPUs and fix later (bmy, mlong, 2/26/13)   
+!------------------------------------------------------------------------------
+! Prior to 3/7/13:
+! NOTE: for now, just call INPHOT on all CPUs.  Try to figure out how
+! to MPI broadcast later.  This could be very difficult. (bmy, mlong, 3/7/13)
 !    IF ( am_I_Root ) THEN
-       CALL INPHOT( LLPAR, NPHOT, Input_Opt, am_I_Root ) 
-       
+!------------------------------------------------------------------------------
+       CALL INPHOT( LLPAR,       & ! # of layers for FAST-J photolysis
+                    NPHOT,       & ! # of rxns   for FAST-J photolysis
+                    Input_Opt,   & ! Input Options object
+                    am_I_Root  )  ! Are we on the root CPU?
+
        !### Debug
        IF ( prtDebug ) THEN
           CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after INPHOT' )        
        ENDIF
+!------------------------------------------------------------------------------
+! Prior to 3/7/13:
+! NOTE: for now, just call INPHOT on all CPUs.  Try to figure out how
+! to MPI broadcast later.  This could be very difficult. (bmy, mlong, 3/7/13)
 !    ENDIF
 !
 !    Broadcast FAST-J inputs to other CPUs
 !    CALL GIGC_Inphot_Bcast(  Input_Opt, RC )
+!------------------------------------------------------------------------------
 
     !-----------------------------------------------------------------------
     ! Continue with GEOS-Chem setup
@@ -450,17 +502,31 @@ CONTAINS
     CALL Initialize( 2, am_I_Root )
 
     ! Zero diagnostic counters
-    CALL Initialize( 3, am_I_Root )
+    CALL Initialize( 3, am_I_root )
 
     ! Initialize derived-type objects for meteorology & chemistry states
-    CALL GIGC_Init_All( am_I_Root, Input_Opt, State_Chm, State_Met, RC )
+    CALL GIGC_Init_All( am_I_Root = am_I_Root,                              &
+                        Input_Opt = Input_Opt,                              &
+                        State_Chm = State_Chm,                              &
+                        State_Met = State_Met,                              &
+                        RC        = RC         )
 
     ! Save tracer names and ID's into State_Chm
     DO N = 1, Input_Opt%N_TRACERS
-       State_Chm%TRAC_NAME(N) = 'TRC_' // TRIM( Input_Opt%TRACER_NAME(N) )
-       State_Chm%TRAC_ID  (N) = Input_Opt%ID_TRACER(N)
-       WRITE(6,*), '##### CHK_TRC ', N, TRIM( State_Chm%Trac_Name(N) ), &
-                                              State_Chm%Trac_ID(N)
+       
+       ! Preface TRC_ to advected tracer names
+       Name = 'TRC_' // TRIM( Input_Opt%TRACER_NAME(N) )
+
+       ! Call REGISTER_TRACER routine to 
+       CALL Register_Tracer( Name      = Name,                              &
+                             ID        = Input_Opt%ID_TRACER(N),            &
+                             State_Chm = State_Chm,                         &
+                             Status    = STAT                    )
+
+       IF ( am_I_Root .and. STAT > 0 ) THEN
+          WRITE( 6, 200 ) Input_Opt%TRACER_NAME(N), STAT
+ 200      FORMAT( 'Registered Tracer : ', a14, i5 )
+       ENDIF
     ENDDO
        
     ! Initialize the GEOS-Chem pressure module (set Ap & Bp)
@@ -512,11 +578,13 @@ CONTAINS
     IF ( Input_Opt%LCHEM ) THEN
 
        ! Initialize arrays in comode_mod.F
-       CALL INIT_COMODE( am_I_Root, Input_Opt, RC )
+       CALL INIT_COMODE( am_I_Root = am_I_Root,                             &
+                         Input_Opt = Input_Opt,                             &
+                         RC        = RC         )
 
        ! Initialize KPP (if necessary)
        IF ( Input_Opt%LKPP ) THEN
-          CALL INIT_GCKPP_COMODE( am_I_Root, IIPAR,   JJPAR, LLTROP,  &
+          CALL INIT_GCKPP_COMODE( am_I_Root, IIPAR,   JJPAR, LLTROP,        &
                                   ITLOOP,    NMTRATE, IGAS,  RC      )
        ENDIF
        
@@ -540,23 +608,38 @@ CONTAINS
 
        ! Get CH4 [ppbv] in 4 latitude bins for each year
        YEAR = NYMDb / 10000
-       CALL GET_GLOBAL_CH4( YEAR,   .TRUE., C3090S, &
-                            C0030S, C0030N, C3090N, am_I_Root )
+       CALL GET_GLOBAL_CH4( YEAR,         & ! Year
+                            .TRUE.,       & ! Let CH4 vary by year?
+                            C3090S,       & ! CH4 90S -30S
+                            C0030S,       & ! CH4 30S - 00
+                            C0030N,       & ! CH4 00  - 30N
+                            C3090N,       & ! CH4 30N - 90N
+                            am_I_Root,    & ! Are we on root CPU?
+                            Input_Opt  )    ! Input Options object
 
        !### Debug
        IF ( prtDebug ) THEN
           CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after GET_GLOBAL_CH4' )
        ENDIF
        
-       ! Flag certain chemical species
-       CALL SETTRACE( am_I_Root, Input_Opt, State_Chm, RC )
+       ! Call SETTRACE to set up chemical species flags
+       CALL SETTRACE( am_I_Root = am_I_Root,                                &
+                      Input_Opt = Input_Opt,                                &
+                      State_Chm = State_Chm,                                &
+                      RC        = RC         )
+
+       ! Reset NCS
        NCS = NCSURBAN
 
        ! Register species (active + inactive) in the State_Chm object     
        DO I = 1, NTSPEC(NCS)
-          CALL Register_Species( NAMEGAS(I), I, State_Chm, STAT )
-          IF ( STAT >=1 ) THEN
-             WRITE(6,*) 'Registered Species ', NAMEGAS(I), STAT
+          CALL Register_Species( NAME      = NAMEGAS(I),                    &
+                                 ID        = I,                             &
+                                 State_Chm = State_Chm,                     &
+                                 Status    = STAT        )
+          IF ( am_I_Root .and. STAT > 0 ) THEN
+             WRITE( 6, 205 ) NAMEGAS(I), STAT
+ 205         FORMAT( 'Registered Species : ', a14, i5 )
           ENDIF
        ENDDO
 

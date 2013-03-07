@@ -905,6 +905,7 @@
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
 !  05 Mar 2012 - M. Payer    - Added ProTeX headers
 !  26 Feb 2013 - R. Yantosca - Now pass am_I_Root, Input_Opt, RC as arguments
+!  07 Mar 2013 - R. Yantosca - Now assign RC=GIGC_SUCCESS outside of APM block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -919,9 +920,6 @@
       !=================================================================
       ! We are using APM microphysics!
       !=================================================================
-
-      ! Assume success
-      RC        = GIGC_SUCCESS
 
       ! Force LAPM=T if we compile with APM=yes makefile option
       ! NOTE: LAPM is somewhat superfluous, since we now can use the
@@ -946,6 +944,9 @@
       N_TOT_TRC = Input_Opt%N_TRACERS
 
 #endif
+
+      ! Assume success
+      RC        = GIGC_SUCCESS
 
       !=================================================================
       ! Allocate arrays 
