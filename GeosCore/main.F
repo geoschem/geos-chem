@@ -715,6 +715,10 @@
                   CALL ANTHROEMS( SEASON )              
                ENDIF
             ENDIF
+
+            !PRINT*, 'EMISSIONS FIRST'
+            !PRINT*, STT(37, 37, :, 1)
+
          ENDIF
 
          ! Hg2 gas-particle partitioning (H Amos, 25 Oct 2011)
@@ -878,6 +882,10 @@
             IF ( prtDebug ) THEN 
                CALL DEBUG_MSG( '### MAIN: a CONVERT_UNITS:1' )
             ENDIF
+            
+            !PRINT*, 'UNIT FIRST'
+            !PRINT*, STT(37, 37, :, 1)
+
          ENDIF
 
          !==============================================================
@@ -895,11 +903,17 @@
             ! Reset air mass quantities
             CALL AIRQNT( State_Met )
 
+            !PRINT*, 'TRANSPORT'
+            !PRINT*, STT(37, 37, :, 1)
+
 #if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_57 )
             ! Get relative humidity (after recomputing pressures)
             ! NOTE: for GEOS-5 we'll read this from disk instead
             CALL MAKE_RH( State_Met )
 #endif
+
+            !PRINT*, 'RH'
+            !PRINT*, STT(37, 37, :, 1)
 
             ! Initialize wet scavenging and wetdep fields after
             ! the airmass quantities are reset after transport
@@ -911,6 +925,9 @@
          ! Test for emission timestep
          !-------------------------------
          IF ( LNLPBL .AND. ITS_TIME_FOR_EMIS() ) THEN
+
+            !PRINT*, 'EMISSIONS'
+            !PRINT*, STT(37, 37, :, 1)
 
             IF ( ITS_TIME_FOR_UNIT() )
      &         CALL CONVERT_UNITS( 2, N_TRACERS, TCVV,
@@ -926,6 +943,9 @@
                CALL DO_DRYDEP( am_I_Root, Input_Opt, 
      &                         State_Met, State_Chm, RC )
             ENDIF
+
+            !PRINT*, 'DEPOSITION'
+            !PRINT*, STT(37, 37, :, 1)
 
             !===========================================================
             !             ***** E M I S S I O N S *****
@@ -981,7 +1001,11 @@
                CALL DO_PBL_MIX  ( LTURB, State_Met )
                IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:1' )
             ELSE
+               !PRINT*, 'BEFORE PBL'
+               !PRINT*, STT(43, 37, :, 1)
                CALL DO_PBL_MIX_2( LTURB, State_Met )
+               !PRINT*, 'AFTER PBL'
+               !PRINT*, STT(43, 37, :, 1)
                IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a NLPBL 2' )
             ENDIF
 
@@ -997,6 +1021,9 @@
                   CALL PARTITIONHG( 1, STT )
                ENDIF
       
+               !PRINT*, 'BEFORE CONVECTION'
+               !PRINT*, STT(43, 37, :, 1)
+
                CALL DO_CONVECTION( State_Met )
 
                ! Return all reactive particulate Hg(II) to total Hg(II) tracer
@@ -1874,7 +1901,7 @@
 
          ! Since CLDTOPS is an A-3 field, update the
          ! lightning NOx emissions [molec/box/6h]
-         IF ( LLIGHTNOX ) CALL LIGHTNING
+         IF ( LLIGHTNOX ) CALL LIGHTNING( State_Met )
       ENDIF
 
       !==============================================================

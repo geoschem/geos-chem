@@ -1999,6 +1999,9 @@ contains
     enddo
 !$OMP END PARALLEL DO
 
+    !PRINT*, 'WITHIN PBL #1'
+    !PRINT*, as2(43, 37, :, 1)
+
     !!! calculate surface flux = emissions - dry deposition !!!
 
     ! Define slice of AS2, so as not to blow up the parallelization
@@ -2342,6 +2345,9 @@ contains
     enddo
 !$OMP END PARALLEL DO
 
+    !PRINT*, 'WITHIN PBL #2'
+    !PRINT*, as2(43, 37, :, 1)
+
     ! drydep fluxes diag. for SMVGEAR mechanism 
     ! for gases -- moved from DRYFLX in drydep_mod.f to here
     ! for aerosols -- 
@@ -2401,6 +2407,9 @@ contains
 
     endif
 
+    !PRINT*, 'WITHIN PBL #2.1'
+    !PRINT*, as2(43, 37, :, 1)
+
 	!Maasa, Add SoilNOx deposition to allow SN code to work with NLPBL on.
 
     !### Debug
@@ -2453,6 +2462,9 @@ contains
        !### Debug
        IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: before vdiff' )
 
+       !PRINT*, 'WITHIN PBL #2.21'
+       !PRINT*, as2(43, 37, :, 1)
+
 !$OMP PARALLEL DO DEFAULT( SHARED )      &
 !$OMP PRIVATE( J )     
        do J = 1, JJPAR
@@ -2465,6 +2477,9 @@ contains
                       State_Met,        ustar_arg=p_ustar )
        enddo
 !$OMP END PARALLEL DO
+
+       !PRINT*, 'WITHIN PBL #2.22'
+       !PRINT*, as2(43, 37, :, 1)
 
        !### Debug
        IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: after vdiff' )
@@ -2481,6 +2496,9 @@ contains
        NULLIFY( p_um1,   p_vm1,    p_tadv, p_pmid, p_pint )
        NULLIFY( p_rpdel, p_rpdeli, p_zm,   p_thp,  p_cgs  )
        NULLIFY( p_kvh,   p_kvm,    p_shp,  p_as2,  p_hflux)
+
+       !PRINT*, 'WITHIN PBL #2.3'
+       !PRINT*, as2(43, 37, :, 1)
 
     else if( arvdiff ) then
 !-----------------------------------------------------------------------
@@ -2538,6 +2556,9 @@ contains
 
     end if
 
+    !PRINT*, 'WITHIN PBL #3'
+    !PRINT*, as2(43, 37, :, 1)
+
     !-------------------------------------------------------------------
     ! re-compute PBL variables wrt derived pblh (in m)
     !-------------------------------------------------------------------
@@ -2548,6 +2569,8 @@ contains
 
        CALL COMPUTE_PBL_HEIGHT( State_Met )
     endif
+
+
 
 !      !### Debug
     IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: VDIFFDR finished' )
@@ -2614,6 +2637,9 @@ contains
        FIRST = .FALSE.
     ENDIF
 
+    !PRINT*, 'BEFORE HEIGHT'
+    !PRINT*, STT(43, 37, :, 1)
+
     ! Compute PBL height and related quantities
     CALL COMPUTE_PBL_HEIGHT( State_Met )
 
@@ -2625,6 +2651,8 @@ contains
 
        ! If it's time to do emissions, call SETEMIS
        IF ( ITS_TIME_FOR_EMIS() ) THEN 
+          !PRINT*, 'BEFORE SETEMIS'
+          !PRINT*, STT(43, 37, :, 1)
           CALL SETEMIS( EMISRR, EMISRRN, .TRUE., State_Met )
           IF ( LPRT ) CALL DEBUG_MSG( '### DO_PBL_MIX_2: aft SETEMIS' )
        ENDIF
@@ -2632,11 +2660,15 @@ contains
     ENDIF
 
     ! Do mixing of tracers in the PBL (if necessary)
-    IF ( DO_TURBDAY ) THEN 
+    IF ( DO_TURBDAY ) THEN
+       !PRINT*, 'BEFORE VDIFF'
+       !PRINT*, STT(43, 37, :, 1) 
        CALL VDIFFDR( STT, State_Met )
        IF( LPRT ) CALL DEBUG_MSG( '### DO_PBL_MIX_2: after VDIFFDR' )
     ENDIF
 
+    !PRINT*, 'AFTER VDIFF'
+    !PRINT*, STT(43, 37, :, 1)
 
   END SUBROUTINE DO_PBL_MIX_2
 !EOC  
