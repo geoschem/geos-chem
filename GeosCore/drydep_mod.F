@@ -58,6 +58,9 @@
       PUBLIC :: NUMDEP
       PUBLIC :: NTRAIND
       PUBLIC :: DRYHg0, DRYHg2, DryHgP    !CDH
+      PUBLIC :: DRYPOPG, DRYPOPP_OCPO, DRYPOPP_BCPO ! H. Amos, 6 Mar 2013
+      PUBLIC :: DRYPOPP_OCPI, DRYPOPP_BCPI          ! H. Amos, 6 Mar 2013
+
 !
 ! !REMARKS:
 !  References:
@@ -230,6 +233,11 @@
       INTEGER              :: DRYDHNO3, DRYDNO2, DRYDPAN, DRYDH2O2
       INTEGER              :: DRYHg0,   DRYHg2,  DryHgP
       INTEGER              :: NUMDEP,   NWATER
+
+      ! Additional variables for POPs sim (eck, 9/20/10)
+      ! (H. Amos, 6 March 2013)
+      INTEGER              :: DRYPOPP_OCPO, DRYPOPP_BCPO, DRYPOPG
+      INTEGER              :: DRYPOPP_OCPI, DRYPOPP_BCPI
 
       ! Arrays for Baldocchi drydep polynomial coefficients
       REAL*8               :: DRYCOEFF(NPOLY    )
@@ -1245,6 +1253,10 @@
      &                   HSTAR,  XMW,    AIROSOL, USTAR,  CZ1,    
      &                   OBK,    CFRAC,  ZH,      LSNOW,  DVEL,  
      &                   ZO,     RHB,    PRESSU,  W10           )
+
+      ! References to F90 modules (bmy, 3/8/01)
+      USE TRACER_MOD, ONLY: ITS_A_POPS_SIM  !(clf, 1/3/2011)
+
 !
 ! !INPUT PARAMETERS:
 !
@@ -1396,6 +1408,7 @@
 !  09 Apr 2012 - R. Yantosca - Now use INTENT(IN), INTENT(OUT) for arguments
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  06 Mar 2013 - H. Amos     - Merge C. Friedman's PAH code
 !
 !***********************************************************************
 !   Changes from Version 3.2 to Version 3.3:                         ***
@@ -1460,6 +1473,14 @@
 !
 
       LOGICAL LSNOW(MAXIJ)
+
+      LOGICAL IS_POPS ! Logical switch for POPS in order to use octanol-air
+                      ! partitioning instead of Henry's Law for scaling of 
+                      ! cuticular resitances (clf, 1/3/2011)
+
+      ! Is this a POPs simmulation?
+      IS_POPS = ITS_A_POPS_SIM()  ! clf, 1/3/2011     
+
 
       ! Loop indices (bmy, 3/29/12)
       INTEGER :: I, J
@@ -1662,6 +1683,13 @@
                RLUXX = 1.D12
                IF (RLU(LDT).LT.9999.D0)
      C              RLUXX = RLU(LDT)/(HSTAR(K)/1.0D+05 + F0(K))
+
+        ! If a POPs simulation, scale cuticular resistances with octanol-air
+        ! partition coefficient (Koa) instead of HSTAR (clf, 1/3/2011)
+
+               IF (IS_POPS)
+     C              RLUXX = RLU(LDT)/(KOA(K)/1.0D+05 + F0(K))
+
 !*
 !* To prevent virtually zero resistance to species with huge HSTAR, such
 !* as HNO3, a minimum value of RLUXX needs to be set. The rationality
@@ -3956,6 +3984,14 @@
 ! !INTERFACE:
 !
       SUBROUTINE INIT_DRYDEP( am_I_Root )
+! 
+! For POPs code (H. Amos, 7 Mar 2013)
+      USE TRACER_MOD,   ONLY : ITS_A_POPS_SIM
+      USE TRACERID_MOD, ONLY : IDTPOPG
+      USE TRACERID_MOD, ONLY : IDTPOPPOCPO,               IDTPOPPBCPO
+      USE TRACERID_MOD, ONLY : IDTPOPPOCPI,             IDTPOPPBCPI
+      USE GET_POPSINFO_MOD, ONLY : GET_POP_XMW, GET_POP_HSTAR 
+      USE GET_POPSINFO_MOD, ONLY : GET_POP_KOA
 !
 ! !INPUT PARAMETERS:
 !
@@ -4001,14 +4037,27 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL :: IS_Hg
+      LOGICAL :: IS_POPS ! H. Amos, 6 Mar 2013
       INTEGER :: AS, N
+
+!begin: H. Amos, 6 Mar 2013---------------------------------------------------
+      REAL*8,     SAVE      :: POP_XMW, POP_KOA, POP_KBC, POP_K_POPG_OH
+      REAL*8,     SAVE      :: POP_K_POPP_O3A, POP_K_POPP_O3B
+      REAL*8,     SAVE      :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
+      REAL*8                :: DUM
+!end: H. Amos, 6 March 2013---------------------------------------------------
 
       !=================================================================
       ! INIT_DRYDEP begins here!
       !=================================================================
 
+      DUM = 1.0 ! H. Amos 6 March 2013
+
       ! Is this a mercury simulation?
       IS_Hg      = ITS_A_MERCURY_SIM()
+
+      ! Is this a pops simulation?
+      IS_POPS     = ITS_A_POPS_SIM() ! H. Amos, 6 Mar 2013
 
       ! Zero variables
       DRYDNO2    = 0
@@ -5025,8 +5074,175 @@
                XMW(NUMDEP)     = 201d-3
                AIROSOL(NUMDEP) = .TRUE. 
             ENDIF
+
+!begin: H. Amos, 6 Mar 2013----------------------------------------------
+         !----------------------------------
+         ! POPS tracers
+         !----------------------------------
+
+          ELSE IF ( IS_POPS ) THEN
+             ! POPs gas phase
+             IF ( N == IDTPOPG) THEN
+               NUMDEP          = NUMDEP + 1
+               NTRAIND(NUMDEP) = IDTPOPG
+               NDVZIND(NUMDEP) = NUMDEP
+               DEPNAME(NUMDEP) = 'POPG'
+               ! HSTAR is Henry's Law in mol/L/atm. 
+               ! For PHENANTHRENE, log Kaw = -2.76  
+               ! so unitless Kaw = 1.73*10^-3 and Kwa = 1/Kaw
+               ! Divide by R (0.0821 atm/M/K) and T (298 K) and get HSTAR = 23.5 M/atm
+               ! For PYRENE, log Kaw = -3.27
+               ! Using the same conversion, HSTAR = 76.1 M/atm
+               ! For BENZO[a]PYRENE, log Kaw = -4.51
+               ! Using the same conversion, HSTAR = 1.32d3 M/atm
+               ! All log Kaws from Ma et al., J Chem Eng Data 2010, 55:819 
+               HSTAR(NUMDEP)   = 1d0 / GET_POP_HSTAR(DUM) *0.0409
+               ! Adding Koa (octanol-ar partition coefficient) for POPs to
+               ! account for accumulation in leaf cuticles
+               ! Needs to be in units of mol/liter/atm as with HSTAR
+               ! Divide unitless Koa at 298 K by product of R (0.0821 atm/M/K)
+               ! and T (298 K)
+               ! For PHENANTHRENE, log Koa = 7.64  
+               ! use same conversion as for HSTAR to get 1.78d6 M/atm
+               ! For PYRENE, log Koa = 8.86
+               ! use same conversion to get 2.96d7 M/atm
+               ! For BENZO[a]PYRENE, log Koa = 11.48
+               ! use same conversion to get 1.23d10 M/atm 
+               ! All log Koas from Ma et al., J Chem Eng Data 2010, 55:819
+               ! Now add factor of 0.8 to account for 80% vol content of octanol equivalent
+               ! in leaf surface
+               KOA(NUMDEP)     = GET_POP_KOA(DUM) *0.0409 *0.8d0
+               F0(NUMDEP)      = 0.0d0
+               ! Need to change molecular weight for different POPs
+               ! For PHENANTHRENE, MW = 178d-3 (kg/mol)
+               ! For PYRENE, MW = 202d-3 (kg/mol)
+               ! for BENZO[a]PYRENE, MW = 252d-3 (kg/mol)
+               XMW(NUMDEP)     = GET_POP_XMW(DUM)
+               AIROSOL(NUMDEP) = .FALSE. 
+            ENDIF
+
+             ! POPs PARTICLES - OCPO 
+            IF ( N == IDTPOPPOCPO ) THEN
+               NUMDEP          = NUMDEP + 1
+               NTRAIND(NUMDEP) = IDTPOPPOCPO
+               NDVZIND(NUMDEP) = NUMDEP
+               DEPNAME(NUMDEP) = 'POPPOCPO'
+               HSTAR(NUMDEP)   = 0.0d0
+               ! Koa for particulate POPs is set to equivalent of Henry's Law
+               ! so cuticular accumulation is not considered
+               KOA(NUMDEP)     = 0.0d0
+               F0(NUMDEP)      = 0.0d0
+               ! Need to change molecular weight for different POPs
+               ! For PHENANTHRENE, MW = 178d-3 (kg/mol)
+               ! For PYRENE, MW = 202d-3 (kg/mol)
+               ! for BENZO[a]PYRENE, MW = 252d-3 (kg/mol)
+               XMW(NUMDEP)     = GET_POP_XMW(DUM)
+               AIROSOL(NUMDEP) = .TRUE. 
+            ENDIF
+
+            ! POPs PARTICLES - BCPO 
+            IF ( N == IDTPOPPBCPO ) THEN
+               NUMDEP          = NUMDEP + 1
+               NTRAIND(NUMDEP) = IDTPOPPBCPO
+               NDVZIND(NUMDEP) = NUMDEP
+               DEPNAME(NUMDEP) = 'POPPBCPO'
+               HSTAR(NUMDEP)   = 0.0d0
+               ! Koa for particulate POPs is set to equivalent of Henry's Law
+               ! so cuticular accumulation is not considered
+               KOA(NUMDEP)     = 0.0d0
+               F0(NUMDEP)      = 0.0d0
+               ! Need to change molecular weight for different POPs
+               ! For PHENANTHRENE, MW = 178d-3 (kg/mol)
+               ! For PYRENE, MW = 202d-3 (kg/mol)
+               ! for BENZO[a]PYRENE, MW = 252d-3 (kg/mol)
+               XMW(NUMDEP)     = GET_POP_XMW(DUM)
+               AIROSOL(NUMDEP) = .TRUE. 
+            ENDIF
+
+             ! POPs PARTICLES - OCPI 
+            IF ( N == IDTPOPPOCPI ) THEN
+               NUMDEP          = NUMDEP + 1
+               NTRAIND(NUMDEP) = IDTPOPPOCPI
+               NDVZIND(NUMDEP) = NUMDEP
+               DEPNAME(NUMDEP) = 'POPPOCPI'
+               HSTAR(NUMDEP)   = 0.0d0
+               ! Koa for particulate POPs is set to equivalent of Henry's Law
+               ! so cuticular accumulation is not considered
+               KOA(NUMDEP)     = 0.0d0
+               F0(NUMDEP)      = 0.0d0
+               ! Need to change molecular weight for different POPs
+               ! For PHENANTHRENE, MW = 178d-3 (kg/mol)
+               ! For PYRENE, MW = 202d-3 (kg/mol)
+               ! for BENZO[a]PYRENE, MW = 252d-3 (kg/mol)
+               XMW(NUMDEP)     = GET_POP_XMW(DUM)
+               AIROSOL(NUMDEP) = .TRUE. 
+            ENDIF
+
+            ! POPs PARTICLES - BCPI 
+            IF ( N == IDTPOPPBCPI ) THEN
+               NUMDEP          = NUMDEP + 1
+               NTRAIND(NUMDEP) = IDTPOPPBCPI
+               NDVZIND(NUMDEP) = NUMDEP
+               DEPNAME(NUMDEP) = 'POPPBCPI'
+               HSTAR(NUMDEP)   = 0.0d0
+               ! Koa for particulate POPs is set to equivalent of Henry's Law
+               ! so cuticular accumulation is not considered
+               KOA(NUMDEP)     = 0.0d0
+               F0(NUMDEP)      = 0.0d0
+               ! Need to change molecular weight for different POPs
+               ! For PHENANTHRENE, MW = 178d-3 (kg/mol)
+               ! For PYRENE, MW = 202d-3 (kg/mol)
+               ! for BENZO[a]PYRENE, MW = 252d-3 (kg/mol)
+               XMW(NUMDEP)     = GET_POP_XMW(DUM)
+               AIROSOL(NUMDEP) = .TRUE. 
+            ENDIF
+!end: H. Amos, 6 March 2013 ---------------------------------------------
          ENDIF
       ENDDO
+
+!begin: H. Amos 6 Mar 2013-----------------------------------------------
+      !=================================================================
+      ! Additional variables required for pops simultion (following hg)
+      ! Locate the drydep species w/in the DEPSAV array
+      !=================================================================
+      IF ( IS_POPS ) THEN
+
+         ! Initialize flags
+         ! add dry dep of Hg0
+         DRYPOPG = 0
+         DRYPOPP_OCPO = 0
+         DRYPOPP_BCPO = 0
+         DRYPOPP_OCPI = 0
+         DRYPOPP_BCPI = 0
+         
+         ! If drydep is turned on ...
+         IF ( LDRYD ) THEN
+         
+            ! Loop over drydep species
+            DO N = 1, NUMDEP
+
+               ! Locate by DEPNAME
+               SELECT CASE ( TRIM( DEPNAME(N) ) )
+                  CASE( 'POPG' )
+                     DRYPOPG = N
+                  CASE( 'POPPOCPO' )
+                     DRYPOPP_OCPO = N
+                  CASE( 'POPPBCPO' )
+                     DRYPOPP_BCPO = N
+                  CASE( 'POPPOCPI' )
+                     DRYPOPP_OCPI = N
+                  CASE( 'POPPBCPI' )
+                     DRYPOPP_BCPI = N
+                  CASE DEFAULT
+                     ! nothing
+                END SELECT
+
+             ENDDO
+
+          ENDIF
+
+       ENDIF
+!end: H. Amos 6 Mar 2013-------------------------------------------------
       
       !=================================================================
       ! Additional variables required for mercury simultion

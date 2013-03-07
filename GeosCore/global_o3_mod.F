@@ -99,6 +99,7 @@
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  19 Aug 2010 - R. Yantosca - Removed hardwiring of data directory
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
+!  05 Mar 2013 - H. Amos     - merge Carey Friedman's PAH code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -169,6 +170,22 @@
 
 #endif
 
+!begin, H. Amos 05 Mar 2013-------------------------------------------------
+      !----------------------------------------------------------------
+      ! GCAP future simulations for PAHs
+      !----------------------------------------------------------------
+#if defined( GCAP)
+
+      THISYEAR = GET_YEAR()
+
+      ! O3 generated under future climate, future anthropogenic emissions:
+      FILENAME = '/net/fs03/d0/geosdata/data/GCAP_4x5/PAHs_2004/' //
+     &              'O3/O3_PCPE'
+
+      ! Get month for general year 2050
+      XTAU = GET_TAU0( THISMONTH, 1, THISYEAR )
+#endif
+!end, H. Amos 05 Mar 2013----------------------------------------------------
 
       ! Echo some information to the standard output
       WRITE( 6, 110 ) TRIM( FILENAME )

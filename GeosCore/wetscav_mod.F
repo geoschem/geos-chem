@@ -755,6 +755,9 @@
       USE TRACERID_MOD, ONLY : IDTMAP
       ! jpp 4/27/09
       USE TRACERID_MOD, ONLY : IDTHOBr,  IDTHBr,   IDTBr2
+      USE TRACERID_MOD, ONLY : IDTPOPPOCPO,  IDTPOPPBCPO,  IDTPOPG ! H. Amos 
+      USE TRACERID_MOD, ONLY : IDTPOPPOCPI,  IDTPOPPBCPI           ! H. Amos
+      USE GET_POPSINFO_MOD, ONLY : GET_POP_HSTAR, GET_POP_DEL_Hw   ! H. Amos
 
       USE CMN_SIZE_MOD                               ! Size parameters
 !
@@ -825,6 +828,7 @@
 !                         1985). Henry's law constant in wetscav_mod.f is 
 !                         now consistent with what's used in mercury_mod.f
 !  27 Sep 2011 - H. Amos - remove LHg_WETDasHNO3 logical, it's obsolete
+!  06 Mar 2013 - H. Amos - merge C. Friedman's POP code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -849,12 +853,17 @@
       ! 0.9 is ( molecular weight NH3 / molecular weight water )
       REAL*8, PARAMETER    :: CONV_NH3  = 5.69209978831d-1
 
+      REAL*8,   SAVE       :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw  ! H. Amos
+      REAL*8               :: DUM                               ! H. Amos
+
       !=================================================================
       ! COMPUTE_F begins here!
       !
       ! For aerosol tracers, compute F with internal routine F_AEROSOL.
       ! ISOL = tracer index for the ND38 diagnostic.
       !=================================================================
+
+      DUM = 1.0 ! H. Amos
 
       !-------------------------------
       ! 210Pb and 7Be (aerosols)
@@ -1877,6 +1886,104 @@
          CALL F_AEROSOL( KC,N, F ) 
          ISOL = GET_ISOL( N )
 
+      !-------------------------------
+      ! POPG (liquid phase only) (clf 11/16/10)
+      !-------------------------------
+      ELSE IF (N == IDTPOPG ) THEN
+
+         ! No scavenging at the surface
+         F(:,:,1) = 0d0
+
+         ! Apply scavenging in levels 2 and higher
+         DO L = 2, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+            ! Compute liquid to gas ratio for POPs using
+            ! the appropriate parameters for Henry's Law (M/atm, unitless Kaw
+            ! divided by R (in atm/M/K, or 8.21d-2) and T (T = 298 K)) as first argument
+            ! and negative enthalpy of water-air exchange (kJ/mol)
+            ! divided by R (in kJ/mol/K, or 8.32d-3) as second argument. 
+            ! For PHENANTHRENE, HSTAR = 2.35d1 and del_H = -5.65d3 (HSTAR from Ma et al,
+            ! 2010 J. Chem. Eng. Data, and del_H from Scharzenbach 2003, p200)
+            ! For PYRENE, HSTAR = 7.61d1 and del_H = -5.17d3 (HSTAR from Ma et al
+            ! and del_H from Scharzenbach 2003, p200)
+            ! For BENZO[a]PYRENE, HSTAR = 1.32d3 and del_H = -5.17d3 (HSTAR from
+            ! Ma et al and Del_H the same as pyrene for now)
+            CALL COMPUTE_L2G( 1d0/GET_POP_HSTAR(DUM)/ 8.21d-2 / 298d0, 
+     &                           -GET_POP_DEL_Hw(DUM) /8.32d-3 ,
+     &                           T(I,J,L), CLDLIQ(I,J,L), L2G )
+
+            ! Fraction of POP in liquid phase 
+            ! Assume (for now) that POP is not present in ice phase
+            ! (Eqs. 4, 5, 6, Jacob et al, 2000)
+            C_TOT = 1d0 + L2G
+            F_L   = L2G / C_TOT
+
+            ! Compute the rate constant K.  Assume retention efficiency  
+            ! for POPG in liquid is 0.0 for T <= 248 K and 0.02 for 
+            ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
+            IF ( T(I,J,L) >= 268d0 ) THEN
+               K = KC * F_L  
+
+            ! ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
+            !   K = KC * ( 2d-2 * F_L )
+            ! clf, 1/7/11 - no retention below 268 K 
+                  
+            ELSE
+               K = 0d0
+
+            ENDIF
+               
+            ! Distance between grid box centers [m]
+            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+
+            ! F is the fraction of POP scavenged out of the updraft
+            ! (Eq. 2, Jacob et al, 2000)
+            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+
+         ENDDO
+         ENDDO
+         ENDDO
+
+         ! ND38 index
+         ISOL = GET_ISOL( N )
+
+      !-------------------------------
+      ! POPPOCPO (treat like hydrophobic OC aerosol)
+      !-------------------------------
+      ELSE IF (N == IDTPOPPOCPO ) THEN
+
+         ! Force not to be lost in convective updraft for now
+         F    = 0d0
+         ISOL = GET_ISOL( N )
+
+      !-------------------------------
+      ! POPPBC (treat like hydrophobic BC aerosol)
+      !-------------------------------
+      ELSE IF (N == IDTPOPPBCPO ) THEN
+
+         ! Force not to be lost in convective updraft for now
+         F    = 0d0
+         ISOL = GET_ISOL( N )
+
+      !-------------------------------
+      ! POPPOCPI (treat like hydrophilic OC aerosol)
+      !-------------------------------
+      ELSE IF (N == IDTPOPPOCPI ) THEN
+
+         CALL F_AEROSOL( KC, F ) 
+         ISOL = GET_ISOL( N )
+
+      !-------------------------------
+      ! POPPBCPI (treat like hydrophilic BC aerosol)
+      !-------------------------------
+      ELSE IF (N == IDTPOPPBCPI ) THEN
+
+         CALL F_AEROSOL( KC, F ) 
+         ISOL = GET_ISOL( N )
+
+
       ! Additional tracers for isoprene
       ! (fp, 06/09)
       !Use temperature of limonene
@@ -2452,6 +2559,11 @@
       ! jpp 4/27/09
       USE TRACERID_MOD, ONLY : IDTHOBr, IDTHBr,   IDTBr2
       USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM 
+      !POPs (eck, 9/21/10)
+      USE TRACERID_MOD, ONLY : IDTPOPPOCPO, IDTPOPPBCPO, IDTPOPG
+      USE TRACERID_MOD, ONLY : IDTPOPPOCPI, IDTPOPPBCPI
+      USE GET_POPSINFO_MOD,   ONLY : GET_POP_HSTAR, GET_POP_DEL_Hw
+
 
       USE CMN_SIZE_MOD                   ! Size parameters
 !
@@ -2528,12 +2640,18 @@
       ! 0.9 is ( molecular weight NH3 / molecular weight water )
       REAL*8, PARAMETER :: CONV_NH3  = 5.69209978831d-1
 
+      ! For POPs (H. Amos, 6 Mar 2013)
+      REAL*8,    SAVE     :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
+      REAL*8              :: DUM
+
       !==================================================================
       ! RAINOUT begins here!
       !
       ! For aerosols, set K = K_RAIN and compute RAINFRAC according
       ! to Eq. 10 of Jacob et al 2000.  Call function GET_RAINFRAC.
       !==================================================================
+
+      DUM = 1.0 !H. Amos, 6 Mar 2013
 
       ! Save the local temperature in TK for convenience
       TK = T(I,J,L)
@@ -3452,6 +3570,77 @@
             ! CDH 9/28/2009
 !            IF ( TK < 248d0 ) RAINFRAC = 0d0
 
+      !-------------------------------
+      ! POPG (liquid phase only) (clf 11/16/10)
+      !-------------------------------
+      ELSE IF (N == IDTPOPG ) THEN
+
+               ! Compute liquid to gas ratio for POPs using
+               ! the appropriate parameters for Henry's Law (M/atm, unitless Kaw
+               ! divided by R (in atm/M/K, or 8.21d-2) and T (T = 298 K)) as first argument
+               ! and negative enthalpy of water-air exchange (kJ/mol)
+               ! divided by R (in kJ/mol/K, or 8.32d-3) as second argument. 
+            ! For PHENANTHRENE, HSTAR = 2.35d1 and del_H = -5.65d3 (HSTAR from Ma et al,
+            ! 2010 J. Chem. Eng. Data, and del_H from Scharzenbach 2003, p200)
+            ! For PYRENE, HSTAR = 7.61d1 and del_H = -5.17d3 (HSTAR from Ma et al
+            ! and del_H from Scharzenbach 2003, p200)
+            ! For BENZO[a]PYRENE, HSTAR = 1.32d3 and del_H = -5.17d3 (HSTAR from
+            ! Ma et al and Del_H the same as pyrene for now)
+               CALL COMPUTE_L2G( 1d0/GET_POP_HSTAR(DUM) / 8.21d-2 / 298d0,
+     &                           -GET_POP_DEL_Hw(DUM) / 8.32d-3,  
+     &                           T(I,J,L), CLDLIQ(I,J,L), L2G )
+
+               ! Fraction of POP in liquid phase 
+               ! Assume (for now) that POP is not present in ice phase
+               ! (Eqs. 4, 5, 6, Jacob et al, 2000)
+               C_TOT = 1d0 + L2G
+               F_L   = L2G / C_TOT
+
+           ! Compute the rate constant K.  Assume that the retention factor
+           ! for liquid POP is 0.02 for 248 K < T < 268 K, and
+           ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
+           IF ( TK >= 268d0 ) THEN
+             K = K_RAIN * F_L
+
+           ! ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
+           ! K = K_RAIN * ( 2d-2 * F_L ) 
+           ! clf, 1/7/11 - no retention below 268 K     
+   
+            ELSE
+               K = 0d0
+
+            ENDIF
+               
+         ! Compute RAINFRAC, the fraction of rained-out POP
+         ! (Eq. 10, Jacob et al, 2000)
+         RAINFRAC = GET_RAINFRAC( K, F, DT )
+
+      !------------------------------
+      ! POPPOCPO (treat like hydrophobic OC aerosol)
+      !------------------------------
+      ELSE IF ( N == IDTPOPPOCPO ) THEN
+         ! No rainout 
+         RAINFRAC = 0.0D0
+
+      !------------------------------
+      ! POPPBCPO (treat like hydrophobic BC aerosol)
+      !------------------------------
+      ELSE IF ( N == IDTPOPPBCPO ) THEN
+         ! No rainout 
+         RAINFRAC = 0.0D0  
+
+      !------------------------------
+      ! POPPOCPI (treat like hydrophilic OC aerosol)
+      !------------------------------
+      ELSE IF ( N == IDTPOPPOCPI ) THEN
+         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )   
+
+      !------------------------------
+      ! POPPBCPI (treat like hydrophilic BC aerosol)
+      !------------------------------
+      ELSE IF ( N == IDTPOPPBCPI ) THEN
+         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )  
+
          !------------------------------
          ! ERROR: insoluble tracer!
          !------------------------------
@@ -3546,6 +3735,11 @@
       USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP, IDTMAP
       ! jpp 4/27/09
       USE TRACERID_MOD, ONLY : IDTHOBr,  IDTHBr,   IDTBr2
+      !POPs (eck, 9/21/10)
+      USE TRACERID_MOD, ONLY : IDTPOPPOCPO, IDTPOPPBCPO, IDTPOPG
+      USE TRACERID_MOD, ONLY : IDTPOPPOCPI, IDTPOPPBCPI
+      USE GET_POPSINFO_MOD, ONLY : GET_POP_HSTAR, GET_POP_DEL_Hw
+
 
       USE CMN_SIZE_MOD                     ! Size parameters
 !
@@ -3633,6 +3827,12 @@
 ! !LOCAL VARIABLES:
 !
       REAL*8            :: L2G, DZ, SO2LOSS
+
+      ! For POPs (H. Amos, 6 Mar 2013)
+      REAL*8,    SAVE      :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
+      REAL*8               :: DUM
+
+      DUM = 1.0
 
       !=================================================================
       ! WASHOUT begins here!
@@ -3984,6 +4184,48 @@
          WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
       !------------------------------
+      ! POPG (liquid and gas phases) (clf, 11/17/2010)
+      !------------------------------
+      ELSE IF ( N == IDTPOPG ) THEN
+         AER      = .FALSE.
+! Bug fix in WASHFRAC_LIQ_GAS (H. Amos, 05 June 2011)
+!         WASHFRAC = WASHFRAC_LIQ_GAS( 7.61d1, -5.17d3, PP, DT, 
+!     &                                F,      DZ,   TK, K_WASH ) 
+            CALL WASHFRAC_LIQ_GAS( 1d0/GET_POP_HSTAR(DUM) / 8.21d-2 / 298d0, 
+     &                               -GET_POP_DEL_Hw(DUM) / 8.32d-3,
+     &                                   PP, DT    , 
+     &                                   F    ,     DZ, TK, K_WASH,
+     &                                WASHFRAC, AER                 )       
+
+      !------------------------------
+      ! POPPOCPO (treat like hydrophobic OC aerosol) 
+      !------------------------------
+      ELSE IF ( N == IDTPOPPOCPO ) THEN 
+         AER      = .TRUE.
+         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
+
+      !------------------------------
+      ! POPPBCPO (treat like hydrophobic BC aerosol) 
+      !------------------------------
+      ELSE IF ( N == IDTPOPPBCPO ) THEN 
+         AER      = .TRUE.
+         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
+
+      !------------------------------
+      ! POPPOCPI (treat like hydrophilic OC aerosol) 
+      !------------------------------
+      ELSE IF ( N == IDTPOPPOCPI ) THEN 
+         AER      = .TRUE.
+         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
+
+      !------------------------------
+      ! POPPBCPI (treat like hydrophilic BC aerosol) 
+      !------------------------------
+      ELSE IF ( N == IDTPOPPBCPI ) THEN 
+         AER      = .TRUE.
+         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
+
+      !------------------------------
       ! ERROR: Insoluble tracer
       !------------------------------
       ELSE 
@@ -4010,7 +4252,7 @@
      &         RESULT( WASHFRAC )
 !
 ! !USES:
-!
+      USE TRACER_MOD, ONLY : ITS_A_POPS_SIM ! (eck, 10/15/10)
 !
 ! !INPUT PARAMETERS: 
 !
@@ -4054,7 +4296,7 @@
       !=================================================================
 
       ! Washout only happens at or above 268 K
-      IF ( ( TK >= 268d0 ) ) THEN
+      IF ( ( TK >= 268d0 ).OR. ITS_A_POPS_SIM() ) THEN
          WASHFRAC = F *(1d0 - EXP( -K_WASH * 
      &                         (PP / F*3.6d4 )**0.61d0 * DT / 3.6d3 ))
       ELSE
@@ -4082,6 +4324,7 @@
      &         RESULT( WASHFRAC )
 !
 ! !USES:
+      USE TRACER_MOD, ONLY : ITS_A_POPS_SIM ! (eck, 10/15/10)
 !
 !
 ! !INPUT PARAMETERS: 
@@ -4118,7 +4361,7 @@
       !=================================================================
 
       ! Washout only happens at or above 268 K
-      IF ( TK >= 268d0 ) THEN
+      IF ( TK >= 268d0 .OR. ITS_A_POPS_SIM() ) THEN
            WASHFRAC = F *(1d0 - EXP( -0.92d0 * ( PP / F*3.6d4 )**0.79d0 
      &                             * DT / 3.6d3 ))
       ELSE
@@ -6531,6 +6774,10 @@
       USE TRACERID_MOD, ONLY : IDTIEPOX,  IDTRIP,    IDTMAP
       ! jpp 4/27/09
       USE TRACERID_MOD, ONLY : IDTHOBr,   IDTHBr,    IDTBr2
+      ! POPS (10/2010)
+      USE TRACERID_MOD, ONLY : IDTPOPPOCPO, IDTPOPPBCPO,  IDTPOPG
+      USE TRACERID_MOD, ONLY : IDTPOPPOCPI, IDTPOPPBCPI
+
 
       USE CMN_SIZE_MOD       ! Size parameters
 !
@@ -6843,6 +7090,30 @@
          ELSE IF ( IS_HgP( N ) ) THEN
             NSOL         = NSOL + 1
             IDWETD(NSOL) = N
+         !-----------------------------
+         ! POPs: Particulate and gas phase 
+         !-----------------------------
+            
+         ELSE IF (N == IDTPOPPOCPO ) THEN
+            NSOL = NSOL + 1
+            IDWETD(NSOL) = IDTPOPPOCPO
+
+         ELSE IF (N == IDTPOPPBCPO ) THEN
+            NSOL = NSOL + 1
+            IDWETD(NSOL) = IDTPOPPBCPO
+
+         ELSE IF (N == IDTPOPPOCPI ) THEN
+            NSOL = NSOL + 1
+            IDWETD(NSOL) = IDTPOPPOCPI
+
+         ELSE IF (N == IDTPOPPBCPI ) THEN
+            NSOL = NSOL + 1
+            IDWETD(NSOL) = IDTPOPPBCPI
+
+         ELSE IF (N == IDTPOPG ) THEN
+            NSOL = NSOL + 1
+            IDWETD(NSOL) = IDTPOPG
+
 
          ENDIF
       ENDDO
@@ -6898,6 +7169,7 @@
       USE LOGICAL_MOD,  ONLY : LSSALT, LSULF, LSPLIT, LCRYST
       USE TRACER_MOD,   ONLY : ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM
       USE TRACER_MOD,   ONLY : ITS_A_RnPbBe_SIM,   ITS_A_MERCURY_SIM
+      USE TRACER_MOD,  ONLY : ITS_A_POPS_SIM ! H. Amos, 6 Mar 2013
       USE TRACERID_MOD, ONLY : IDTSOAG,  IDTSOAM
 
       USE CMN_SIZE_MOD       ! Size parameters
@@ -6924,6 +7196,7 @@
 !  (9 ) Added 9 new tracers for ISOPRENE species (fp, 6/2009)
 !  (10) Added SOA5 and SOG5 (hotp, 6/15/09)
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  06 Mar 2013 - H. Amos     - merge C. Friedman's POPs code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6991,6 +7264,13 @@
          !-----------------------
          NMAX = 2                               ! Hg2, HgP
          IF ( LSPLIT ) NMAX = NMAX + 14         ! Tagged tracers
+
+      ELSE IF (ITS_A_POPS_SIM()) THEN
+         ! ------------------
+         ! POPs simulation
+         ! -----------------
+         NMAX=5                                 ! POPPOCPO, POPPBCPO, POPG
+                                                ! POPPOCPI, POPPBCPI
 
       ELSE 
 

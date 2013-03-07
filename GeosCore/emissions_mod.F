@@ -110,6 +110,7 @@
       USE MERCURY_MOD,            ONLY : EMISSMERCURY
       USE NEI2005_ANTHRO_MOD,     ONLY : EMISS_NEI2005_ANTHRO
       USE NEI2005_ANTHRO_MOD,     ONLY : EMISS_NEI2005_ANTHRO_05x0666
+      USE POPS_MOD,               ONLY : EMISSPOPS  !(clf, 2/1/2011)
       USE RETRO_MOD,              ONLY : EMISS_RETRO
       USE RnPbBe_MOD,             ONLY : EMISSRnPbBe
       USE SEASALT_MOD,            ONLY : EMISSSEASALT
@@ -175,6 +176,7 @@
 !  17 Aug 2011 - R. Yantosca - Added call to RETRO anthro emissions
 !  07 Feb 2012 - M. Payer    - Added call to read PARANOX look up tables
 !  22 Mar 2012 - M. Payer    - Added call to EMISSC2H6
+!  01 Feb 2011 - C Friedman  - Added POP emissions  
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -788,6 +790,14 @@
          ! Mercury
          !--------------------
          CALL EMISSMERCURY
+!begin: H. Amos, 6 Mar 2013---------------------------------------
+      ELSE IF ( ITS_A_POPS_SIM() ) THEN
+
+         !--------------------
+         ! POPS
+         !--------------------
+         CALL EMISSPOPS
+!end: H. Amos, 6 Mar 2013------------------------------------------
 
       ELSE IF ( ITS_A_CO2_SIM() ) THEN
 

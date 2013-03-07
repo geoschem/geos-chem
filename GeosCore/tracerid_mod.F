@@ -255,6 +255,10 @@
       INTEGER            :: IDTPYPAN,IDTMAP
       INTEGER            :: IDTAP
 
+      ! For POPs simulation (clf, 2/11/2011)
+      INTEGER              :: IDTPOPPOCPO,  IDTPOPPBCPO,   IDTPOPG
+      INTEGER              :: IDTPOPPOCPI,  IDTPOPPBCPI
+
       ! For tagged Ox simulation
       INTEGER            :: IDTOxStrt
 
@@ -367,6 +371,9 @@
 !  (20) Change hard-wired IDEs to dynamically defined IDEs. (fp, hotp, 01/10)
 !  (21) Add IDEMS definitions for new species (fp, hotp, 01/10)
 !  (22) Add writing check on IDs. (hotp, 01/10)
+!  (23) Added IDTPOPG, IDTPOPPOC, and IDTPOPPBC for POPs simulation (eck, 9/20/10)
+!  (24) Changed IDTPOPPOC and IDTPOPPBC to IDTPOPPOCPO and IDTPOPPBCPO, 
+!        added IDTPOPPOCPI and IDTPOPPBCPI for POPs (CLF, 2/11/2012)
 !  17 Aug 2011 - R. Yantosca - Print values of 3 extra emission IDExxx flags
 !  22 Aug 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !  16 Feb 2012 - M. Payer    - Account for alternate spellings of the Rn and Pb
@@ -380,6 +387,7 @@
       USE LOGICAL_MOD, ONLY : LSPLIT
       USE TRACER_MOD,  ONLY : ITS_A_C2H6_SIM,  ITS_A_FULLCHEM_SIM
       USE TRACER_MOD,  ONLY : ITS_A_TAGCO_SIM, ITS_A_MERCURY_SIM
+      USE TRACER_MOD,  ONLY : ITS_A_POPS_SIM ! H. Amos, 7 Mar 2013
       USE TRACER_MOD,  ONLY : ITS_A_H2HD_SIM
       USE TRACER_MOD,  ONLY : N_TRACERS,       TRACER_NAME
       USE ERROR_MOD,   ONLY : ERROR_STOP
@@ -1123,6 +1131,30 @@
             CASE ( 'HGP_NT' )
                COUNT_HgP         = COUNT_HgP + 1
                ID_HgP(COUNT_HgP) = N
+
+            !--------------------------------
+            ! POPs
+            ! (eck, 9/20/10); (clf, 2/11/2011)
+            !--------------------------------
+            CASE ( 'POPG' )
+               COUNT     = COUNT+1              
+               IDTPOPG         = N
+               
+            CASE ( 'POPPOCPO' )
+               COUNT     = COUNT+1
+               IDTPOPPOCPO     = N
+
+            CASE ( 'POPPOCPI' )
+               COUNT     = COUNT+1
+               IDTPOPPOCPI     = N
+
+            CASE ( 'POPPBCPO' )
+               COUNT     = COUNT+1
+               IDTPOPPBCPO       = N
+
+            CASE ( 'POPPBCPI' )
+               COUNT     = COUNT+1
+               IDTPOPPBCPI       = N
 
             CASE DEFAULT
                ! Nothing

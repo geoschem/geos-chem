@@ -99,6 +99,7 @@
 !  (8 ) Now use OH_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (9 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  01 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  05 Mar 2012 - H. Amos     - merge Carey Friedman's PAH code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -123,27 +124,69 @@
          FIRST = .FALSE.
       ENDIF
 
+!begin, H Amos, 05 Mar 2013------------------------------------------------------
+c$$$      ! Filename
+c$$$      FILENAME = TRIM( OH_DIR ) // 'OH_3Dglobal.' // GET_NAME_EXT() // 
+c$$$     &                              '.'           // GET_RES_EXT()
+c$$$
+c$$$      ! Echo some information to the standard output
+c$$$      WRITE( 6, 110 ) TRIM( FILENAME )
+c$$$ 110  FORMAT( '     - GET_GLOBAL_OH: Reading OH from: ', a )
+c$$$
+c$$$      ! Get the TAU0 value for the start of the given month
+c$$$      ! Assume "generic" year 1985 (TAU0 = [0, 744, ... 8016])
+c$$$      XTAU = GET_TAU0( THISMONTH, 1, 1985 )
+c$$$
+c$$$      ! Read OH data from the binary punch file
+c$$$      CALL READ_BPCH2( FILENAME, 'CHEM-L=$', 1,     
+c$$$     &                 XTAU,      IIPAR,     JJPAR,      
+c$$$     &                 LGLOB,     ARRAY,     QUIET=.TRUE. )
+c$$$
+c$$$      ! Assign data from ARRAY to the module variable OH
+c$$$      CALL TRANSFER_3D( ARRAY, OH )
+c$$$
+c$$$      END SUBROUTINE GET_GLOBAL_OH
+
+      ! If GCAP:
+#if defined( GCAP)
+
+      THISYEAR = GET_YEAR()
+
+         ! OH generated under future climate, future anthropogenic emissions:
+         FILENAME = '/net/fs03/d0/geosdata/data/GCAP_4x5/PAHs_2004/' //
+     &              'OH/OH_PCPE'
+
+         ! Get month for general year 2050
+         XTAU = GET_TAU0( THISMONTH, 1, THISYEAR )
+
+#elif defined ( GRIDREDUCED ) && defined( GEOS_5 )
+      
       ! Filename
       FILENAME = TRIM( OH_DIR ) // 'OH_3Dglobal.' // GET_NAME_EXT() // 
      &                              '.'           // GET_RES_EXT()
-
-      ! Echo some information to the standard output
-      WRITE( 6, 110 ) TRIM( FILENAME )
- 110  FORMAT( '     - GET_GLOBAL_OH: Reading OH from: ', a )
 
       ! Get the TAU0 value for the start of the given month
       ! Assume "generic" year 1985 (TAU0 = [0, 744, ... 8016])
       XTAU = GET_TAU0( THISMONTH, 1, 1985 )
 
+#endif
+
+      ! Echo some information to the standard output
+      WRITE( 6, 110 ) TRIM( FILENAME )
+ 110  FORMAT( '     - GET_GLOBAL_OH: Reading OH from: ', a )
+
       ! Read OH data from the binary punch file
       CALL READ_BPCH2( FILENAME, 'CHEM-L=$', 1,     
-     &                 XTAU,      IIPAR,     JJPAR,      
+     &                 XTAU,      IGLOB,     JGLOB,      
      &                 LGLOB,     ARRAY,     QUIET=.TRUE. )
 
       ! Assign data from ARRAY to the module variable OH
       CALL TRANSFER_3D( ARRAY, OH )
 
+      ! Return to calling program
       END SUBROUTINE GET_GLOBAL_OH
+!end, H Amos, 05 Mar 2013------------------------------------------------------
+
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !

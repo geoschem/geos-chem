@@ -35,6 +35,7 @@
       USE DIAG41_MOD,              ONLY : CLEANUP_DIAG41
       USE DIAG50_MOD,              ONLY : CLEANUP_DIAG50
       USE DIAG51_MOD,              ONLY : CLEANUP_DIAG51
+      USE DIAG53_MOD,              ONLY : CLEANUP_DIAG53 !(clf, 3/11/11)
       USE DIAG_OH_MOD,             ONLY : CLEANUP_DIAG_OH
       USE DIAG_PL_MOD,             ONLY : CLEANUP_DIAG_PL
       USE DRYDEP_MOD,              ONLY : CLEANUP_DRYDEP
@@ -53,6 +54,8 @@
       USE GLOBAL_NOX_MOD,          ONLY : CLEANUP_GLOBAL_NOX
       USE GLOBAL_O1D_MOD,          ONLY : CLEANUP_GLOBAL_O1D
       USE GLOBAL_OH_MOD,           ONLY : CLEANUP_GLOBAL_OH
+      USE GLOBAL_OC_MOD,           ONLY : CLEANUP_GLOBAL_OC ! H. Amos, 6 Mar 2013
+      USE GLOBAL_BC_MOD,           ONLY : CLEANUP_GLOBAL_BC ! H. Amos, 6 Mar 2013
       USE GLOBAL_GRID_MOD,         ONLY : CLEANUP_GLOBAL_GRID
       USE GRID_MOD,                ONLY : CLEANUP_GRID
       USE H2_HD_MOD,               ONLY : CLEANUP_H2_HD
@@ -182,6 +185,10 @@
 !  (44) Now references CLEANUP_DEPO_MERCURY and CLEANUP_LAND_MERCURY
 !       (ccc, 5/6/10)
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  28 Feb 2011 - C. Friedman - Added call to CLEANUP_GLOBAL_OC, which 
+!                              deallocates arrays from "global_oc_mod.f"
+!  28 Feb 2011 - C. Friedman - Added call to CLEANUP_GLOBAL_BC, which 
+!                              deallocates arrays from "global_bc_mod.f"
 !  22 Aug 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !  07 Sep 2011 - P. Kasibhatla - Add modifications for GFED3
 !  19 Mar 2012 - M. Payer    - Remove call to CLEANUP_ACETONE. It is no longer
@@ -190,9 +197,11 @@
 !  11 Apr 2012 - R. Yantosca - Remove reference to obsolete lai_mod.F
 !  01 May 2012 - M. Payer    - Added calls for CLEANUP_GLOBAL_GRID and
 !                              CLEANUP_GRID
+!  06 Mar 2013 - H. Amos     - Merge C. Friedman's PAH code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+
       !=================================================================
       ! CLEANUP begins here!
       !=================================================================
@@ -223,6 +232,7 @@
       CALL CLEANUP_DIAG41
       CALL CLEANUP_DIAG50
       CALL CLEANUP_DIAG51
+      CALL CLEANUP_DIAG53 ! H. Amos, 06 Mar 2013
       CALL CLEANUP_DIAG_OH
       CALL CLEANUP_DIAG_PL
       CALL CLEANUP_DRYDEP
@@ -241,6 +251,8 @@
       CALL CLEANUP_GLOBAL_NO3
       CALL CLEANUP_GLOBAL_O1D
       CALL CLEANUP_GLOBAL_OH
+      CALL CLEANUP_GLOBAL_OC ! H. Amos, 6 Mar 2013
+      CALL CLEANUP_GLOBAL_BC ! H. Amos, 6 March 2013
       CALL CLEANUP_GLOBAL_GRID
       CALL CLEANUP_GRID
       CALL CLEANUP_H2_HD

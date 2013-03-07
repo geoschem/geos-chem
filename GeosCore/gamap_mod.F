@@ -1316,6 +1316,17 @@
       DESCRIPT(N) = 'Wetland Fraction'
       OFFSET(N)   = SPACING * 51
 
+! Added for POPs (clf, 3/2/2011)
+      N           = N + 1
+      CATEGORY(N) = 'PG-SRCE'
+      DESCRIPT(N) = 'POPs Emissions'
+      OFFSET(N)   = SPACING * 52
+
+      N           = N + 1
+      CATEGORY(N) = 'PG-PP-$'
+      DESCRIPT(N) = 'POP partitioning/oxidation'
+      OFFSET(N)   = SPACING * 53
+
       N           = N + 1
       CATEGORY(N) = 'SHIP-$$$'
       DESCRIPT(N) = 'Ship diagnostics'
@@ -1366,6 +1377,7 @@
       USE DIAG_PL_MOD,  ONLY : DO_SAVE_PL,  GET_NFAM
       USE DIAG_PL_MOD,  ONLY : GET_FAM_MWT, GET_FAM_NAME
       USE DRYDEP_MOD,   ONLY : DEPNAME,     NUMDEP,    NTRAIND
+      USE GET_POPSINFO_MOD, ONLY : GET_POP_XMW ! H. Amos, 6 Mar 2013
       USE LOGICAL_MOD,  ONLY : LSOA
       USE TRACER_MOD,   ONLY : ITS_A_CO2_SIM,    ITS_A_H2HD_SIM
       USE TRACER_MOD,   ONLY : ITS_A_CH3I_SIM,   ITS_A_FULLCHEM_SIM
@@ -1421,6 +1433,7 @@
 !  09-Dec-2010 - H. Amos     - Added RGM and PBM  tracers for the
 !                              mercury simulation
 !  09-Dec-2010 - H. Amos     - fix spacing and #s for PL-HG2-$ diagnostics
+!  22 Mar 2011 - C. Friedman - Added POPs
 !  12 Nov 2010 - R. Yantosca - Need to save out surface pressure line to 
 !                              tracerinfo.dat for the timeseries diagnostics
 !  24 Jan 2012 - M. Payer    - Change scale factors for Rn-Pb-Be simulation so
@@ -1439,10 +1452,13 @@
       INTEGER :: N, NN, NYMDb, NHMSb, T
       LOGICAL :: DO_TIMESERIES
 
+      REAL*8,     SAVE      :: POP_XMW  ! H. Amos, 6 Mar 2013
+      REAL*8                :: DUM      ! H. Amos, 6 Mar 2013
 
       !=================================================================
       ! INIT_TRACERINFO begins here!
       !=================================================================
+      DUM = 1.0 ! H. Amos, 6 Mar 2013
 
       ! Set a flag if any timeseries diagnostics are turned on
       DO_TIMESERIES = ( DO_SAVE_DIAG48 .or. DO_SAVE_DIAG49 .or.
@@ -3467,6 +3483,143 @@
          MOLC (T,52) = 1
          MWT  (T,52) = 0e0
          SCALE(T,52) = 1e0
+      ENDIF
+
+      !-----------------------------------
+      ! POPS (ND53) clf (03/22/11)
+      !-----------------------------------
+      IF ( ND53 > 0 ) THEN
+         NTRAC(53)  = PD53
+
+         ! Loop over tracers
+         DO T = 1, PD53
+
+            ! Define quantities
+            UNIT (T,53) = 'kg'
+            MOLC (T,53) = 1
+            MWT  (T,53) = GET_POP_XMW(DUM)
+            SCALE(T,53) = 1e0
+
+            ! Get name, long-name, index, and new units
+            SELECT CASE( T )
+               CASE( 1  )
+                  NAME (T,53) = 'POPT'
+                  FNAME(T,53) = 'POP total emissions'
+                  INDEX(T,53) = T + ( SPACING * 52 )
+               CASE( 2  )
+                  NAME (T,53) = 'OCPO em'
+                  FNAME(T,53) = 'POPPOCPO emissions'
+                  INDEX(T,53) = T + ( SPACING * 52 )
+               CASE( 3  )
+                  NAME (T,53) = 'BCPO em'
+                  FNAME(T,53) = 'POPPBCPO emissions'
+                  INDEX(T,53) = T + ( SPACING * 52 )
+               CASE( 4  )
+                  NAME (T,53) = 'G em'
+                  FNAME(T,53) = 'POPG emissions'
+                  INDEX(T,53) = T + ( SPACING * 52 )
+               CASE( 5  )
+                  NAME (T,53) = 'kgGsoil'
+                  FNAME(T,53) = '2nd em from soil'
+                  INDEX(T,53) = T + ( SPACING * 52 )
+               CASE( 6  )
+                  NAME (T,53) = 'kgGlake'
+                  FNAME(T,53) = '2nd em from lakes'
+                  INDEX(T,53) = T + ( SPACING * 52 )
+               CASE( 7  )
+                  NAME (T,53) = 'kgGleaf'
+                  FNAME(T,53) = '2nd em from leaves'
+                  INDEX(T,53) = T + ( SPACING * 52 )
+               CASE( 8  )
+                  NAME (T,53) = 'soi2air'
+                  FNAME(T,53) = 'Diff flux from soil'
+                  INDEX(T,53) = T + ( SPACING * 52 )
+               CASE( 9  )
+                  NAME (T,53) = 'air2soi'
+                  FNAME(T,53) = 'Diff flux to soil'
+                  INDEX(T,53) = T + ( SPACING * 52 )
+               CASE( 10  )
+                  NAME (T,53) = 'lak2air'
+                  FNAME(T,53) = 'Diff flux from lakes'
+                  INDEX(T,53) = T + ( SPACING * 52 )
+               CASE( 11  )
+                  NAME (T,53) = 'air2lak'
+                  FNAME(T,53) = 'Diff flux to lakes'
+                  INDEX(T,53) = T + ( SPACING * 52 )
+               CASE( 12  )
+                  NAME (T,53) = 'lea2air'
+                  FNAME(T,53) = 'Diff flux from vegetation'
+                  INDEX(T,53) = T + ( SPACING * 52 )
+               CASE( 13  )
+                  NAME (T,53) = 'air2lea'
+                  FNAME(T,53) = 'Diff flux to vegetation'
+                  INDEX(T,53) = T + ( SPACING * 52 )
+               CASE( 14  )
+                  NAME (T,53) = 'soi/air'
+                  FNAME(T,53) = 'Soil fug/air fug'
+                  INDEX(T,53) = T + ( SPACING * 52 )
+               CASE( 15  )
+                  NAME (T,53) = 'lak/air'
+                  FNAME(T,53) = 'Lake fug/air fug'
+                  INDEX(T,53) = T + ( SPACING * 52 )
+               CASE( 16  )
+                  NAME (T,53) = 'lae/air'
+                  FNAME(T,53) = 'Leaf fug/air fug'
+                  INDEX(T,53) = T + ( SPACING * 52 )
+               CASE( 17  )
+                  NAME (T,53) = 'OCPO2G'
+                  FNAME(T,53) = 'Gross POPPOCPO lost to gas'
+                  INDEX(T,53) = T - 16 + ( SPACING * 53 )
+               CASE( 18  )
+                  NAME (T,53) = 'G2OCPO'
+                  FNAME(T,53) = 'Gross POPPOCPO formed from gas'
+                  INDEX(T,53) = T - 16+ ( SPACING * 53 )
+               CASE( 19  )
+                  NAME (T,53) = 'BCPO2G'
+                  FNAME(T,53) = 'Gross POPPBCPO lost to gas'
+                  INDEX(T,53) = T - 16 + ( SPACING * 53 )
+               CASE( 20  )
+                  NAME (T,53) = 'G2BCPO'
+                  FNAME(T,53) = 'Gross POPPBC formed from gas'
+                  INDEX(T,53) = T - 16 + ( SPACING * 53 )
+               CASE( 21  )
+                  NAME (T,53) = 'OHoxG'
+                  FNAME(T,53) = 'POPG oxidized by OH'
+                  INDEX(T,53) = T - 16 + ( SPACING * 53 )
+               CASE( 22  )
+                  NAME (T,53) = 'O3oxOCPO'
+                  FNAME(T,53) = 'POPOCPO oxidized by O3'
+                  INDEX(T,53) = T - 16 + ( SPACING * 53 )
+               CASE( 23  )
+                  NAME (T,53) = 'O3oxOCPI'
+                  FNAME(T,53) = 'POPOCPI oxidized by O3'
+                  INDEX(T,53) = T - 16 + ( SPACING * 53 )
+               CASE( 24  )
+                  NAME (T,53) = 'O3oxBCPO'
+                  FNAME(T,53) = 'POPBCPO oxidized by O3'
+                  INDEX(T,53) = T - 16 + ( SPACING * 53 )
+               CASE( 25  )
+                  NAME (T,53) = 'O3oxBCPI'
+                  FNAME(T,53) = 'POPBCPI oxidized by O3'
+                  INDEX(T,53) = T - 16 + ( SPACING * 53 )
+               CASE( 26  )
+                  NAME (T,53) = 'NO3xOCPO'
+                  FNAME(T,53) = 'POPOCPO oxidized by NO3'
+                  INDEX(T,53) = T - 16 + ( SPACING * 53 )
+               CASE( 27  )
+                  NAME (T,53) = 'NO3xOCPI'
+                  FNAME(T,53) = 'POPOCPI oxidized by NO3'
+                  INDEX(T,53) = T - 16 + ( SPACING * 53 )
+               CASE( 28  )
+                  NAME (T,53) = 'NO3xBCPO'
+                  FNAME(T,53) = 'POPBCPO oxidized by NO3'
+                  INDEX(T,53) = T - 16 + ( SPACING * 53 )
+               CASE( 29  )
+                  NAME (T,53) = 'NO3xBCPI'
+                  FNAME(T,53) = 'POPBCPI oxidized by NO3'
+                  INDEX(T,53) = T - 16 + ( SPACING * 53 )
+            END SELECT
+         ENDDO
       ENDIF
 
       !-------------------------------------      
