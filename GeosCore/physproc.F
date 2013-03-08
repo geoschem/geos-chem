@@ -360,7 +360,7 @@
              CALL GCKPP_DRIVER(KTLOOP, JLOOPLO, RRATE_FOR_KPP, NSPEC(1))
 
           ELSE
-             CALL SMVGEAR
+             CALL SMVGEAR( am_I_Root, Input_Opt, RC )
           call CPU_TIME(finish)
 
 !
