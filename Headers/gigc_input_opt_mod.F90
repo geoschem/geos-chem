@@ -538,7 +538,7 @@ MODULE GIGC_Input_Opt_Mod
      ! Fields for interface to GEOS-5 GCM
      !----------------------------------------
      LOGICAL                    :: haveImpRst
-
+     INTEGER                    :: myCpu
 
   END TYPE OptInput
 !
@@ -555,7 +555,7 @@ MODULE GIGC_Input_Opt_Mod
 !  26 Feb 2013 - M. Long     - Add extra fields from input.geos
 !  26 Feb 2013 - M. Long     - Bug fix: timesteps are now INTEGER, not LOGICAL
 !  28 Feb 2013 - R. Yantosca - Add haveImpRst field for GEOS-5 GCM interface
-
+!  08 Mar 2013 - R. Yantosca - Add myCpu field to pass CPU # to GEOS-Chem
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -609,6 +609,7 @@ CONTAINS
 !  29 Nov 2012 - M. Payer    - Add Input_Opt%ITS_A_POPS_SIM
 !  26 Feb 2013 - M. Long     - Add extra fields from input.geos
 !  28 Feb 2013 - R. Yantosca - Add haveImpRst field for GEOS-5 GCM interface
+!  08 Mar 2013 - R. Yantosca - Now initialize the myCpu field
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1241,6 +1242,7 @@ CONTAINS
     ! Fields for interface to GEOS-5 GCM
     !----------------------------------------
     Input_Opt%haveImpRst             = .FALSE.
+    Input_Opt%myCpu                  = -1
 
   END SUBROUTINE Set_GIGC_Input_Opt
 !EOC

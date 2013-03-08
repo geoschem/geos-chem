@@ -99,6 +99,10 @@ CONTAINS
 !  be self-evident without reference to MPI dicumentation.
 !  MSL - 04 Jan 2013
 !
+!  NOTE: Don't do an MPI Broadcast on Input_Opt%myCpu, as this will be
+!  set directly from the GEOSCHEMchem_GridCompMod.F90 Initialize, Run
+!  and Finalize routines.
+!
 ! !REVISION HISTORY:
 !  04 Jan 2013 - M. Long     - Initial version
 !  28 Feb 2013 - R. Yantosca - Now MPI BCast the Input_Opt%haveImpRst field
