@@ -59,9 +59,9 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE inquireMod,         ONLY : findFreeLUN
 
-#if defined( DEVEL ) || defined ( ESMF_ )
-      USE GIGC_MPI_WRAP
-#endif
+!#if defined( DEVEL ) || defined ( ESMF_ )
+!      USE GIGC_MPI_WRAP
+!endif
 
       IMPLICIT NONE
 !
@@ -167,9 +167,9 @@
 
       INTEGER             :: IU_CHEMDAT ! GLOBCHEM.DAT LUN
 
-#if defined( DEVEL )
-      INTEGER, ALLOCATABLE :: INTVAL(:)
-#endif
+!#if defined( DEVEL )
+!      INTEGER, ALLOCATABLE :: INTVAL(:)
+!#endif
 
       !=================================================================
       ! READCHEM begins here!
@@ -268,19 +268,19 @@
       READ(KGLC,59) (RINP(I), I = 1, NMBGAS)  
       READ(KGLC,61) (SINP(I), I = 1, NMBGAS)   
 !
-#if defined( ESMF_ )
-
-      ALLOCATE(INTVAL(1))
-      INTVAL(1)  = NMASBAL
-      CALL GIGC_BCAST_CHAR( RINP,   14*NMBGAS,  RC )
-      CALL GIGC_BCAST_CHAR( NAMEMB, 14*IMASBAL, RC )
-      CALL GIGC_BCAST_INT( INTVAL, 1, RC )
-      NMASBAL = INTVAL(1)
-      INTVAL(1)  = NCSURBAN
-      CALL GIGC_BCAST_INT( INTVAL, 1, RC )
-      NCSURBAN = INTVAL(1)
-      DEALLOCATE(INTVAL)
-#endif
+!#if defined( ESMF_ )
+!
+!      ALLOCATE(INTVAL(1))
+!      INTVAL(1)  = NMASBAL
+!      CALL GIGC_BCAST_CHAR( RINP,   14*NMBGAS,  RC )
+!      CALL GIGC_BCAST_CHAR( NAMEMB, 14*IMASBAL, RC )
+!      CALL GIGC_BCAST_INT( INTVAL, 1, RC )
+!      NMASBAL = INTVAL(1)
+!      INTVAL(1)  = NCSURBAN
+!      CALL GIGC_BCAST_INT( INTVAL, 1, RC )
+!      NCSURBAN = INTVAL(1)
+!      DEALLOCATE(INTVAL)
+!#endif
 
       DO 36 I         = 1, NMBGAS
        MBTRACE(I)     = 0 
@@ -649,12 +649,12 @@
 
 !FP_ISOP - for debug (6/2009)
 
-#if !defined( ESMF_ )
-      IF ( LPRT .and. am_I_Root ) THEN
-         WRITE(*,*) DINP,IORD,ARRT(1),BRRT(1),KCRRT(1),NCOF,SPECL(1),
-     &              FCVT(1),FCT1T(1),FCT2T(1),COMMENT
-      ENDIF
-#endif
+!#if !defined( ESMF_ )
+!     IF ( LPRT .and. am_I_Root ) THEN
+!         WRITE(*,*) DINP,IORD,ARRT(1),BRRT(1),KCRRT(1),NCOF,SPECL(1),
+!     &              FCVT(1),FCT1T(1),FCT2T(1),COMMENT
+!      ENDIF
+!#endif
 
       IF (NCOF+1.GT.MXCOF) THEN
        IF ( am_I_Root ) WRITE(6,155) NCOF+1, MXCOF, IORD
@@ -703,10 +703,10 @@
        GOTO 310 
       ENDIF
 
-#if defined( DEVEL ) || defined ( ESMF_ ) 
-      CALL GIGC_READCHEM_BCAST( C1,    CSTRAT, CTROPL, CTROPS, CURBAN, 
-     &                       ININT, IORD,   NCOF,   RC              )
-#endif
+!#if defined( DEVEL ) || defined ( ESMF_ ) 
+!      CALL GIGC_READCHEM_BCAST( C1,    CSTRAT, CTROPL, CTROPS, CURBAN, 
+!    &                       ININT, IORD,   NCOF,   RC              )
+!#endif
 !
 ! *********************************************************************
 ! *      UPDATE REACTION NUMBER FOR REACTIONS THAT ARE USED           *
@@ -1285,11 +1285,11 @@
  700   CONTINUE 
  702  CONTINUE 
 
-#if defined( ESMF_ )
-      CALL GIGC_BCAST_INT(NSPEC, ICS, RC)
-      CALL GIGC_BCAST_INT(NTSPEC, ICS, RC)
-!      CALL GIGC_BCAST_REAL8(NTSPEC, ICS, RC)
-#endif
+!#if defined( ESMF_ )
+!      CALL GIGC_BCAST_INT(NSPEC, ICS, RC)
+!      CALL GIGC_BCAST_INT(NTSPEC, ICS, RC)
+!!      CALL GIGC_BCAST_REAL8(NTSPEC, ICS, RC)
+!#endif
 !---smv2-s
 ! Update (gcc)
 ! bdf smv2, put this in here for now.
