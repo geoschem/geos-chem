@@ -653,7 +653,7 @@
       IF (DELT.LT.HMIN) THEN
 ! Add CPU # to output (bmy, 3/8/13)
 !       WRITE(6,233)DELT,KBLK,KTLOOP,NCS,TIME,TIMREMAIN,YFAC,ERRMAX(NCS)
-       WRITE(6,233) Input_Opt%myCpu,DELT,KBLK,KTLOOP,NCS,TIME,
+       WRITE(6,233) DELT,Input_Opt%myCpu,KBLK,KTLOOP,NCS,TIME,
      &             TIMREMAIN,YFAC,ERRMAX(NCS)
        NYLOWDEC  = NYLOWDEC + 1
        YFAC      = YFAC  * 0.01d0
@@ -1769,7 +1769,7 @@
      1       'EXCESSIVE ERRORS')
  680  FORMAT('SMVGEAR: STOP BECAUSE OF EXCESSIVE ERRORS.')
  685  FORMAT('CPU,M1,M2,K,ERR = ',4(I4),2X,1PE10.4)
- 690  FORMAT('CONC WHEN STOP = ',3(I4,1X),A14,2(1X,1PE10.2))
+ 690  FORMAT('CPU,CONC WHEN STOP = ',3(I4,1X),A14,2(1X,1PE10.2))
 !
 ! *********************************************************************
 ! ***************     END OF SUBROUTINE SMVGEAR     *******************
