@@ -145,6 +145,8 @@
       INTEGER,           PARAMETER   :: SRTDUST = 7
       INTEGER,           PARAMETER   :: SRTNH4 = 8
       INTEGER,           PARAMETER   :: SRTH2O = 9
+
+      INTEGER,           PARAMETER   :: ICOMPMAX = 10
      
 
       REAL*4                         :: BOXVOL,  BOXMASS, TEMPTMS
@@ -152,8 +154,10 @@
 
       ! Arrays
       REAL*8                         :: Nk(IBINS), Nkd(IBINS)
-      REAL*8,            ALLOCATABLE :: Mk(:,:),   Mkd(:,:) 
-      REAL*8,            ALLOCATABLE :: Gc(:),     Gcd(:) 
+      REAL*8                         :: Mk(IBINS, ICOMPMAX)
+      REAL*8                         :: Mkd(IBINS,ICOMPMAX)
+      REAL*8                         :: Gc(ICOMPMAX)
+      REAL*8                         :: Gcd(ICOMPMAX)
       REAL*8,            SAVE        :: Xk(IBINS+1)
       REAL*4,   save,    ALLOCATABLE :: MOLWT(:)
       INTEGER,           SAVE        :: BINACT1(101,101,101)
@@ -397,29 +401,6 @@
 !$OMP+PRIVATE( num_iter,Nknuc,Mknuc,Nkcond )
 !$OMP+PRIVATE( Mkcond, ERRORSWITCH, tot_s_1a, tot_n_1a )
 !$OMP+SCHEDULE( DYNAMIC )
-
-      !=================================================================
-      ! Allocate arrays 
-      ! These arrays were formerly allocated in INIT_TOMAS, but were
-      ! inside the PARALLEL DO to accomodate openmp restrictions
-      ! - sfarina 3/12/13
-      !=================================================================
-
-      ALLOCATE( Mk( IBINS, ICOMP ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Mk [TOMAS]' )
-      Mk(:,:) = 0d0
-
-      ALLOCATE( Mkd( IBINS, ICOMP ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Mkd [TOMAS]' )
-      Mkd(:,:) = 0d0
-
-      ALLOCATE( Gc( ICOMP - 1 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Gc [TOMAS]' )
-      Gc(:) = 0d0
-
-      ALLOCATE( Gcd( ICOMP - 1 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Gcd [TOMAS]' )
-      Gcd(:) = 0d0
       !Loop over all grid cells
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -810,17 +791,6 @@ cvbn         write(889,89)I,J,L,STT(i,j,l,IDTH2SO4)
       ENDDO                     !I loop
       ENDDO                     !J loop
       ENDDO                     !L loop
-
-      
-      !=================================================================
-      ! Deallocate arrays 
-      ! sfarina - openmp requires allocateable arrays are allocated 
-      ! AND deallocated within the parallel do
-      !=================================================================
-      IF ( ALLOCATED( Mk     ) ) DEALLOCATE( Mk    )
-      IF ( ALLOCATED( Mkd    ) ) DEALLOCATE( Mkd   )
-      IF ( ALLOCATED( Gc     ) ) DEALLOCATE( Gc     )
-      IF ( ALLOCATED( Gcd    ) ) DEALLOCATE( Gcd    )
 
 !$OMP END PARALLEL DO
 
@@ -8444,10 +8414,6 @@ cyhl Dick et al 2000 figure 5.(High organic,density=1400g/cm3)
       !=================================================================
       ! CLEANUP_TRACER begins here!
       !=================================================================
-      IF ( ALLOCATED( MK          ) ) DEALLOCATE( MK    )
-      IF ( ALLOCATED( Mkd         ) ) DEALLOCATE( Mkd   )
-      IF ( ALLOCATED( Gc          ) ) DEALLOCATE( Gc    )
-      IF ( ALLOCATED( Gcd         ) ) DEALLOCATE( Gcd   )
       IF ( ALLOCATED( MOLWT       ) ) DEALLOCATE( MOLWT )
 
       ! Return to calling program
