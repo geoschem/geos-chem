@@ -527,8 +527,7 @@ c         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
          CALL EZWATEREQM( MK )
 
          !Fix any inconsistencies in M/N distribution (because of advection)
-         CALL STORENM() !sfarina - this routine may need adjusted for parallel (Nkd, Mkd)
-                        !        - arrays should be passed in/out rather than shared in the module
+         CALL STORENM(Nk, Nkd, Mk, Mkd) 
 
          if(printdebug .and. 
      &        i==iob.and.j==job.and.l==lob) ERRORSWITCH =.TRUE. 
@@ -569,7 +568,7 @@ c         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
             if(printdebug .and. 
      &           i==iob.and.j==job.and.l==lob) ERRORSWITCH =.TRUE. 
 
-            CALL STORENM()  
+         CALL STORENM(Nk, Nkd, Mk, Mkd) 
 
 !            print*,'Before COND_NUC Gc(srtso4)=',Gc(srtso4)
 
@@ -668,7 +667,7 @@ c         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
             tot_s_1a = tot_s_1a + Mk(k,srtso4)*32.d0/96.d0
          enddo
 
-         CALL STORENM()
+         CALL STORENM(Nk, Nkd, Mk, Mkd) 
          CALL MNFIX( Nk, Mk, ERRORSWITCH )
          IF ( ERRORSWITCH ) THEN
             PRINT *,'Aerophys: MNFIX found error at',I,J,L
@@ -692,7 +691,7 @@ c         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
      &           i==iob.and.j==job.and.l==lob) ERRORSWITCH =.TRUE. 
          
          IF( COAG )  THEN
-            CALL STORENM()
+            CALL STORENM(Nk, Nkd, Mk, Mkd) 
             CALL MULTICOAG( ADT, errorswitch )
 
             if (printdebug.and.i==iob .and. j==job .and. l==lob ) 
@@ -702,7 +701,7 @@ c         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
             IF ( ND60 > 0 ) CALL AERODIAG( MPNUM, I, J, L )
 
          !Fix any inconsistency after coagulation (win, 4/18/06)
-            CALL STORENM()
+         CALL STORENM(Nk, Nkd, Mk, Mkd) 
             if(printdebug .and. i==iob.and.j==job.and.l==lob) 
      &           ERRORSWITCH=.true. !4/18/06 win
 
@@ -732,7 +731,7 @@ c         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
          !****************************
 
          !Fix any inconsistencies in M/N distribution (because of advection)
-         CALL STORENM()
+         CALL STORENM(Nk, Nkd, Mk, Mkd) 
 
          ! Make sure anything that leaves AEROPHYS is free of any error
          ! This MNFIX call could be temporary (?) or just leave it here and
@@ -3134,7 +3133,7 @@ Cjrp      endif
      &                        MK(1:IBINS,SRTNH4) )
       
       ! Fix any inconsistencies in M/N distribution 
-      CALL STORENM()
+         CALL STORENM(Nk, Nkd, Mk, Mkd) 
 !debug      IF ( I == 46 .AND. J == 59 .AND. L == 9) PDBG = .TRUE.
       CALL MNFIX( NK, MK, PDBG )
       IF( PDBG ) THEN
@@ -3144,7 +3143,7 @@ Cjrp      endif
       ENDIF
       MPNUM = 5
       IF ( ND60 > 0 ) CALL AERODIAG( MPNUM, I, J, L )
-      CALL STORENM()
+         CALL STORENM(Nk, Nkd, Mk, Mkd) 
 
 !debug      IF ( I == 46 .AND. J == 59 .AND. L == 9) 
 !     &     call debugprint(Nk,Mk,I,J,L,'AQOXID after MNFIX_1')
@@ -3276,7 +3275,7 @@ Cjrp      endif
       IF ( ND60 > 0 ) CALL AERODIAG( MPNUM, I, J, L )
 
       ! Fix any inconsistencies in M/N distribution 
-      CALL STORENM()
+      CALL STORENM(Nk, Nkd, Mk, Mkd) 
       CALL MNFIX( NK, MK, PDBG )
       IF( PDBG ) THEN
          PRINT *,'AQOXID: MNFIX found error at',I,J,L
@@ -3374,7 +3373,7 @@ Cjrp      endif
      &     CALL NH4BULKTOBIN( MK(1:IBINS,SRTSO4), STT(I,J,L,IDTNH4), 
      &                        MK(1:IBINS,SRTNH4) )
 
-      CALL STORENM()
+      CALL STORENM(Nk, Nkd, Mk, Mkd) 
 
       ! Establish an 30-bin array and accculate the total
       ! of the absorbing media.  The choices can be:
@@ -6110,7 +6109,7 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
 !         if ( i==26 .and. j==57 .and. l==13 ) 
 !     &        call debugprint(Nk,Mk,i,j,l,'In CHECKMN')
 
-         CALL STORENM()
+         CALL STORENM(Nk, Nkd, Mk, Mkd) 
          !if(i==47.and.j==10.and.l==7) ERRORSWITCH = .TRUE.
          CALL MNFIX( NK, MK, ERRORSWITCH )
          IF ( ERRORSWITCH ) THEN
@@ -7440,7 +7439,7 @@ C     determine the mass added to each bin coagulation
       
 !-----------------------------------------------------------------------------
       
-      SUBROUTINE STORENM( )
+      SUBROUTINE STORENM(Numk, Numkd, Massk, Masskd )
 !
 !*****************************************************************************
 !  Subroutine STORENM stores values of Nk and Mk into Nkd and Mkd for 
@@ -7449,6 +7448,11 @@ C     determine the mass added to each bin coagulation
 
       ! Local variables
       INTEGER             :: J, K
+
+      REAL*8,INTENT(IN)    :: Numk(IBINS)
+      REAL*8,INTENT(IN)    :: Massk(IBINS, ICOMPMAX)
+      REAL*8,INTENT(OUT)   :: Numkd(IBINS)
+      REAL*8,INTENT(OUT)   :: Masskd(IBINS,ICOMPMAX)
 
       DO J= 1, ICOMP-1
          Gcd(J)=Gc(J)
