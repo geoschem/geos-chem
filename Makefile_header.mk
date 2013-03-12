@@ -140,9 +140,9 @@ PRECISE   := yes
 endif 
 
 # TOMAS runs on single processor (at least for now!)
-ifeq ($(TOMAS),yes)
-OMP       := no
-endif
+#ifeq ($(TOMAS),yes)
+#OMP       := no
+#endif
 
 #==============================================================================
 # Default values for variables

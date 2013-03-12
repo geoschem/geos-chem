@@ -3353,6 +3353,11 @@
       ! Convert STT from [v/v] -> [kg] 
       CALL CONVERT_UNITS(2, N_TRACERS, TCVV, State_Met%AD, STT )
 
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+!$OMP+PRIVATE( KMIN, SO4OXID, BINACT1, BINACT2 )
+!$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLTROP
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -3372,6 +3377,7 @@
       ENDDO
       ENDDO
       ENDDO
+!$OMP END PARALLEL DO
 
        ! Convert STT from [kg] -> [v/v] 
       CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, State_Met%AD, STT )

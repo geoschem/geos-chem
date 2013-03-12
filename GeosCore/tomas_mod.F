@@ -341,13 +341,18 @@
       COAG = .TRUE.
       NUCL = .TRUE.
 
+!$OMP PARALLEL DO
+!$OMP+SHARED( nucrate, nucrate1)
+!$OMP+PRIVATE( J, L )
+!$OMP+SCHEDULE( DYNAMIC )
       ! Initialize nucleation rate arrays
-      do j=1,JJPAR
-      do l=1,LLPAR
-         nucrate(j,l)=0.d0
-         nucrate1(j,l)=0.d0
-      enddo
-      enddo
+      DO J=1,JJPAR
+      DO L=1,LLPAR
+         nucrate(J,L)=0.d0
+         nucrate1(J,L)=0.d0
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
 
       ! Make sure there is access to the H2SO4 production rate array
       ! H2SO4RATE, which saves the H2SO4 production rate for EACH chemistry
@@ -381,6 +386,17 @@
       endif
 
 
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+!$OMP+PRIVATE( ADT, PRES, TEMPTMS, BOXMASS, RHTOMAS, BOXVOL )
+!$OMP+PRIVATE( printneg, ionrate, lev, weight, GC, N, NK, JC )
+!$OMP+PRIVATE( MK, H2SO4rate_o, tot_n_1, k, tot_s_1, MPNUM )
+!$OMP+PRIVATE( Nkd, Mkd, TOT_NK, TOT_MK )
+!$OMP+PRIVATE( Nkout,Mkout,Gcout,fn,fn1 )
+!$OMP+PRIVATE( num_iter,Nknuc,Mknuc,Nkcond )
+!$OMP+PRIVATE( Mkcond, ERRORSWITCH, tot_s_1a, tot_n_1a )
+!$OMP+SCHEDULE( DYNAMIC )
       !Loop over all grid cells
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -507,7 +523,8 @@ c         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
          CALL EZWATEREQM( MK )
 
          !Fix any inconsistencies in M/N distribution (because of advection)
-         CALL STORENM()
+         CALL STORENM() !sfarina - this routine may need adjusted for parallel (Nkd, Mkd)
+                        !        - arrays should be passed in/out rather than shared in the module
 
          if(printdebug .and. 
      &        i==iob.and.j==job.and.l==lob) ERRORSWITCH =.TRUE. 
@@ -770,6 +787,7 @@ cvbn         write(889,89)I,J,L,STT(i,j,l,IDTH2SO4)
       ENDDO                     !I loop
       ENDDO                     !J loop
       ENDDO                     !L loop
+!$OMP END PARALLEL DO
 
 !      WRITE(777,*) '---------------------------'
  77   FORMAT(3I4, '  STT(IDTNH3),'E13.5,'  Used', E13.5 ) 
