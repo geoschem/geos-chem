@@ -674,7 +674,6 @@
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
 !  11 Mar 2013 - R. Yantosca - Don't call CLEANUP if we are connecting to the
 !                              GEOS-5 GCM w/ ESMF; This facilitates debugging.
-
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -691,7 +690,6 @@
 
 !$OMP END CRITICAL
 
-#endif
       ! End of program
       END SUBROUTINE GEOS_CHEM_STOP
 !EOC
