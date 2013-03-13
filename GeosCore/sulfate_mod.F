@@ -130,6 +130,8 @@
 !  01 Mar 2012 - R. Yantosca   - Now reference new grid_mod.F90
 !  13 Mar 2012 - M. Cooper     - Changed regrid algorithm to map_a2a
 !  28 Nov 2012 - R. Yantosca   - Use SUNCOS fields from the State_Met object
+!  13 Mar 2013 - R. Yantosca   - Bug fix: make sure we pass values to the
+!                                SOIL_DRYDEP routine even when ND44 is off
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3506,6 +3508,12 @@
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !                                                                          
 ! !REMARKS:
+!  If you are using the non-local PBL mixing scheme (VDIFF), then routine
+!  SOIL_DRYDEP and the ND44 diagnostic updating will be done there.  
+!                                                                             .
+!  If you are using the full TURBDAY PBL mixing scheme, then we have to 
+!  call the SOIL_DRYDEP and archive the ND44 diagnostics here.
+!                                                                             .
 !  Reaction List:
 !  ============================================================================
 !  (1 ) NH3 = NH3_0 * EXP( -dt )  where d = dry deposition rate [s-1]
@@ -3535,6 +3543,9 @@
 !  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  13 Mar 2013 - R. Yantosca - Bug fix: make sure we pass values to the
+!                              SOIL_DRYDEP routine even when ND44 is off
+!                              (this happens when LNLPBL = F)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3548,7 +3559,7 @@
       REAL*8  :: FREQ,     AREA_CM2, FLUX, F_UNDER_TOP
 
       ! Arrays
-      REAL*8  :: ND44_TMP(IIPAR,JJPAR,LLPAR)
+      REAL*8  :: DRYD_FLX(IIPAR,JJPAR,LLPAR)
       REAL*8  :: TCVV  (Input_Opt%N_TRACERS)
       REAL*8  :: XNUMOL(Input_Opt%N_TRACERS)
 
@@ -3566,12 +3577,11 @@
       XNUMOL   = Input_Opt%XNUMOL
 
       ! DTCHEM is the chemistry interval in seconds
-      DTCHEM  = GET_TS_CHEM() * 60d0
+      DTCHEM   = GET_TS_CHEM() * 60d0
 
-      ! Zero ND44_TMP array
-      IF ( ND44 > 0 ) THEN
-         ND44_TMP = 0d0
-      ENDIF
+      ! Zero DRYD_FLX array.  This will store drydep values even if 
+      ! the ND44 diagnostic has been turned off (bmy, 3/13/13)
+      DRYD_FLX = 0d0
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -3610,10 +3620,10 @@
                STT(I,J,L,IDTNH3) = NH30 - NH3
 
                !========================================================
-               ! ND44 diagnostic: Drydep flux of NH3 [molec/cm2/s]
+               ! Archive drydep flux of NH3 [molec/cm2/s]
+               ! This is needed for SOIL_DRYDEP and the ND44 diagnostic
                !========================================================
-               IF ( ND44 > 0 .and. NH3 > 0d0 ) THEN
-               !IF ( NH3 > 0d0 ) THEN
+               IF ( NH3 > 0d0 ) THEN
 
                   ! Surface area [cm2]
                   AREA_CM2 = GET_AREA_CM2( I, J, L )
@@ -3622,8 +3632,8 @@
                   FLUX = NH3  * State_Met%AD(I,J,L) / TCVV(IDTNH3)
                   FLUX = FLUX * XNUMOL(IDTNH3) / AREA_CM2 / DTCHEM
 
-                  ! Store dryd flx in ND44_TMP as a placeholder
-                  ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
+                  ! Store dryd flx in DRYD_TMP for use below                  
+                  DRYD_FLX(I,J,L) = DRYD_FLX(I,J,L) + FLUX
                ENDIF
             ENDIF
          ENDIF
@@ -3633,29 +3643,43 @@
 !$OMP END PARALLEL DO
 
       !===============================================================
-      ! ND44: Sum drydep fluxes by level into the AD44 array in
-      ! order to ensure that  we get the same results w/ sp or mp 
+      ! If we are not using the non-local PBL scheme, then:
       !===============================================================
-      IF ( ND44 > 0 .or. LSOILNOX) THEN 
+      IF ( .not. LNLPBL ) THEN 
+
+         !------------------------------------------------------------
+         ! (1) Call SOIL_DRYDEP to archive the NH3 drydep fluxes.
+         !------------------------------------------------------------
+         IF ( LSOILNOX ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-         DO L = 1, LLPAR
-
-            IF (ND44 > 0) THEN            
-               AD44(I,J,DRYNH3,1) = AD44(I,J,DRYNH3,1) + ND44_TMP(I,J,L)
-            ENDIF
-
-            IF (LSOILNOX) THEN
-               CALL SOIL_DRYDEP ( I, J, L, IDTNH3, ND44_TMP(I,J,L) )
-            ENDIF
-
-         ENDDO
-         ENDDO
-         ENDDO
+            DO L = 1, LLPAR
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+               CALL SOIL_DRYDEP( I, J, L, IDTNH3, DRYD_FLX(I,J,L) )
+            ENDDO
+            ENDDO
+            ENDDO
 !$OMP END PARALLEL DO
+         ENDIF
+
+         !------------------------------------------------------------
+         ! (2) Save archived NH3 drydep fluxes into the AD44 array
+         !------------------------------------------------------------
+         IF ( ND44 > 0 ) THEN 
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+            DO L = 1, LLPAR
+               AD44(I,J,DRYNH3,1) = AD44(I,J,DRYNH3,1) + DRYD_FLX(I,J,L)
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+         ENDIF
       ENDIF
 
       END SUBROUTINE CHEM_NH3
@@ -3703,6 +3727,12 @@
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !   
 ! !REMARKS:
+!  If you are using the non-local PBL mixing scheme (VDIFF), then routine
+!  SOIL_DRYDEP and the ND44 diagnostic updating will be done there.  
+!                                                                             .
+!  If you are using the full TURBDAY PBL mixing scheme, then we have to 
+!  call the SOIL_DRYDEP and archive the ND44 diagnostics here.
+!                                                                             .
 !  Reaction List:
 !  ============================================================================
 !  (1 ) NH4 = NH4_0 * EXP( -dt )  where d = dry deposition rate [s-1]
@@ -3732,6 +3762,9 @@
 !  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  13 Mar 2013 - R. Yantosca - Bug fix: make sure we pass values to the
+!                              SOIL_DRYDEP routine even when ND44 is off
+!                              (this happens when LNLPBL = F)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3745,7 +3778,7 @@
       REAL*8  :: FREQ,     FLUX, AREA_CM2, F_UNDER_TOP
 
       ! Arrays
-      REAL*8  :: ND44_TMP(IIPAR,JJPAR,LLPAR)
+      REAL*8  :: DRYD_FLX(IIPAR,JJPAR,LLPAR)
       REAL*8  :: TCVV  (Input_Opt%N_TRACERS)
       REAL*8  :: XNUMOL(Input_Opt%N_TRACERS)
 
@@ -3765,10 +3798,9 @@
       ! DTCHEM is the chemistry interval in seconds
       DTCHEM   = GET_TS_CHEM() * 60d0 
 
-      ! Zero ND44_TMP array
-      IF ( ND44 > 0 ) THEN
-         ND44_TMP = 0d0
-      ENDIF
+      ! Zero DRYD_FLX array.  This will store drydep values even if 
+      ! the ND44 diagnostic has been turned off (bmy, 3/13/13)
+      DRYD_FLX = 0d0
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -3807,9 +3839,9 @@
                STT(I,J,L,IDTNH4) = NH40 - NH4
 
                !========================================================
-               ! ND44 diagnostic: Drydep flux of NH4 [molec/cm2/s]
+               ! Archive drydep flux of NH4 [molec/cm2/s]
                !========================================================
-               IF ( ND44 > 0 .and. NH4 > 0d0 ) THEN
+               IF ( NH4 > 0d0 ) THEN
          
                   ! Surface area [cm2]
                   AREA_CM2 = GET_AREA_CM2( I, J, L )
@@ -3818,8 +3850,8 @@
                   FLUX = NH4  * State_Met%AD(I,J,L) / TCVV(IDTNH4)
                   FLUX = FLUX * XNUMOL(IDTNH4) / AREA_CM2 / DTCHEM
 
-                  ! Store dryd flx in ND44_TMP as a placeholder
-                  ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
+                  ! Store dryd flx in DRYD_FLX as a placeholder
+                  DRYD_FLX(I,J,L) = DRYD_FLX(I,J,L) + FLUX
                ENDIF
             ENDIF
          ENDIF
@@ -3829,29 +3861,44 @@
 !$OMP END PARALLEL DO
 
       !===============================================================
-      ! ND44: Sum drydep fluxes by level into the AD44 array in
-      ! order to ensure that  we get the same results w/ sp or mp 
+      ! If we are not using the non-local PBL scheme, then:
       !===============================================================
-      IF ( ND44 > 0 .or. LSOILNOX) THEN 
+      IF ( .not. LNLPBL ) THEN 
+
+         !------------------------------------------------------------
+         ! (1) Call SOIL_DRYDEP to archive the NH4 drydep fluxes.
+         !------------------------------------------------------------
+         IF ( LSOILNOX ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-         DO L = 1, LLPAR
-
-            IF (ND44 > 0 ) THEN
-            AD44(I,J,DRYNH4,1) = AD44(I,J,DRYNH4,1) + ND44_TMP(I,J,L)
-            ENDIF
-
-            IF (LSOILNOX) THEN
-            CALL SOIL_DRYDEP ( I, J, L, IDTNH4, ND44_TMP(I,J,L) )
-            ENDIF
-
-         ENDDO
-         ENDDO
-         ENDDO
+            DO L = 1, LLPAR
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+               CALL SOIL_DRYDEP( I, J, L, IDTNH4, DRYD_FLX(I,J,L) )
+            ENDDO
+            ENDDO
+            ENDDO
 !$OMP END PARALLEL DO
+         ENDIF
+
+         !------------------------------------------------------------
+         ! (2) Save archived NH4 drydep fluxes into the AD44 array
+         !------------------------------------------------------------
+         IF ( ND44 > 0 ) THEN 
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+            DO L = 1, LLPAR
+               AD44(I,J,DRYNH4,1) = 
+     &         AD44(I,J,DRYNH4,1) + DRYD_FLX(I,J,L)
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+         ENDIF
       ENDIF
 
       END SUBROUTINE CHEM_NH4
@@ -3898,6 +3945,12 @@
 !  %%%       WITHIN SULFATE MOD (bmy, 11/14/12)                     %%%
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !                                                                             .
+!  If you are using the non-local PBL mixing scheme (VDIFF), then routine
+!  SOIL_DRYDEP and the ND44 diagnostic updating will be done there.  
+!                                                                             .
+!  If you are using the full TURBDAY PBL mixing scheme, then we have to 
+!  call the SOIL_DRYDEP and archive the ND44 diagnostics here.
+!                                                                             .
 !  Reaction List:
 !  ============================================================================
 !  (1 ) NH4aq = NH4_0aq * EXP( -dt )  where d = dry deposition rate [s-1]
@@ -3913,16 +3966,22 @@
 !  31 Jul 2012 - R. Yantosca - Declare temp drydep arrays w/ LLPAR (not LLTROP)
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  13 Mar 2013 - R. Yantosca - Bug fix: make sure we pass values to the
+!                              SOIL_DRYDEP routine even when ND44 is off
+!                              (this happens when LNLPBL = F)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      ! Scalars
       INTEGER :: I,      J,     L,        PBL_MAX
       REAL*8  :: DTCHEM, NH4aq, NH4aq0
       REAL*8  :: FREQ,   FLUX,  AREA_CM2, F_UNDER_TOP
-      REAL*8  :: T44(IIPAR,JJPAR,LLPAR)
+
+      ! Arrays
+      REAL*8  :: DRYD_FLX(IIPAR,JJPAR,LLPAR)
 
       !=================================================================
       ! CHEM_NH4 begins here!
@@ -3935,10 +3994,9 @@
       ! Model level where maximum PBL height occurs 
       PBL_MAX = GET_PBL_MAX_L()      
 
-      ! Zero T44 array
-      IF ( ND44 > 0 ) THEN
-         T44 = 0d0
-      ENDIF
+      ! Zero DRYD_FLX array.  This will store drydep values even if 
+      ! the ND44 diagnostic has been turned off (bmy, 3/13/13)
+      DRYD_FLX = 0d0
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -3980,7 +4038,7 @@
                !========================================================
                ! ND44 diagnostic: Drydep flux of NH4 [molec/cm2/s]
                !========================================================
-               IF ( ND44 > 0 .and. NH4aq > 0d0 ) THEN
+               IF ( NH4aq > 0d0 ) THEN
          
                   ! Surface area [cm2]
                   AREA_CM2 = GET_AREA_CM2( I, J, L )
@@ -3989,8 +4047,8 @@
                   FLUX = NH4aq * State_Met%AD(I,J,L) / TCVV(IDTNH4aq)
                   FLUX = FLUX  * XNUMOL(IDTNH4aq) / AREA_CM2 / DTCHEM
 
-                  ! Store dryd flx in ND44_TMP as a placeholder
-                  T44(I,J,L) = T44(I,J,L) + FLUX
+                  ! Store dryd flx for use below
+                  DRYD_FLX(I,J,L) = DRYD_FLX(I,J,L) + FLUX
                ENDIF
             ENDIF
          ENDIF
@@ -4000,29 +4058,44 @@
 !$OMP END PARALLEL DO
 
       !===============================================================
-      ! ND44: Sum drydep fluxes by level into the AD44 array in
-      ! order to ensure that  we get the same results w/ sp or mp 
+      ! If we are not using the non-local PBL scheme, then:
       !===============================================================
-      IF ( ND44 > 0 .or. LSOILNOX ) THEN 
+      IF ( .not. LNLPBL ) THEN 
+
+         !------------------------------------------------------------
+         ! (1) Call SOIL_DRYDEP to archive the NH4aq drydep fluxes.
+         !------------------------------------------------------------
+         IF ( LSOILNOX  ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-         DO L = 1, LLPAR
-
-            IF ( ND44 > 0 ) THEN
-            AD44(I,J,DRYNH4aq,1) = AD44(I,J,DRYNH4aq,1) + T44(I,J,L)
-            ENDIF
-
-            IF (LSOILNOX) THEN
-            CALL SOIL_DRYDEP ( I, J, L, IDTNH4aq, T44(I,J,L) )
-            ENDIF
-
-         ENDDO
-         ENDDO
-         ENDDO
+            DO L = 1, LLPAR
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+               CALL SOIL_DRYDEP( I, J, L, IDTNH4aq, DRYD_FLX(I,J,L) )
+            ENDDO
+            ENDDO
+            ENDDO
 !$OMP END PARALLEL DO
+         ENDIF
+
+         !------------------------------------------------------------
+         ! (2) Save archived NH4aq drydep fluxes into the AD44 array
+         !------------------------------------------------------------
+         IF ( ND44 > 0 ) THEN 
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+            DO L = 1, LLPAR
+               AD44(I,J,DRYNH4aq,1) = 
+     &         AD44(I,J,DRYNH4aq,1) + DRYD_FLX(I,J,L)
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+         ENDIF
       ENDIF
 
       END SUBROUTINE CHEM_NH4aq
@@ -4071,6 +4144,12 @@
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !#endif
 !  
+!  If you are using the non-local PBL mixing scheme (VDIFF), then routine
+!  SOIL_DRYDEP and the ND44 diagnostic updating will be done there.  
+!                                                                             .
+!  If you are using the full TURBDAY PBL mixing scheme, then we have to 
+!  call the SOIL_DRYDEP and archive the ND44 diagnostics here.
+!                                                                             .
 ! !REMARKS:
 !  Reaction List:
 !  ============================================================================
@@ -4101,6 +4180,9 @@
 !  31 Jul 2012 - R. Yantosca - Declare temp drydep arrays w/ LLPAR (not LLTROP)
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  13 Mar 2013 - R. Yantosca - Bug fix: make sure we pass values to the
+!                              SOIL_DRYDEP routine even when ND44 is off
+!                              (this happens when LNLPBL = F)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4109,13 +4191,13 @@
 !
       ! Scalars
       LOGICAL :: LSOILNOX, LSSALT
-      INTEGER :: I,        J,      L,    N,     N_ND44
+      INTEGER :: I,        J,      L,    N
       REAL*8  :: DTCHEM,   NIT,    NITs, NIT0,  NIT0s,  E_RKT
       REAL*8  :: E_RKTs,   FLUX,   FREQ, FREQs, RKT,    RKTs   
       REAL*8  :: AREA_CM2, F_UNDER_TOP
 
       ! Arrays
-      REAL*8  :: T44(IIPAR,JJPAR,LLPAR,2)
+      REAL*8  :: DRYD_FLX(IIPAR,JJPAR,LLPAR,2)
       REAL*8  :: TCVV  (Input_Opt%N_TRACERS)
       REAL*8  :: XNUMOL(Input_Opt%N_TRACERS)
 
@@ -4139,13 +4221,9 @@
       ! DTCHEM is the chemistry interval in seconds
       DTCHEM   = GET_TS_CHEM() * 60d0 
 
-      ! Number of tracers for ND44
-      N_ND44   = 2 
-
-      ! Zero ND44 array
-      IF ( ND44 > 0 ) THEN
-         T44 = 0d0
-      ENDIF
+      ! Zero DRYD_FLX array.  This will store drydep values even if 
+      ! the ND44 diagnostic has been turned off (bmy, 3/13/13)
+      DRYD_FLX = 0d0
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -4218,7 +4296,7 @@
             ! NITs drydep frequency [1/s].  Also accounts for the fraction
             ! of each vertical level that is located below the PBL top
             FREQs = DEPSAV(I,J,DRYNITs) * F_UNDER_TOP
-
+               
             ! Add option for non-local PBL (Lin, 03/31/09)
             IF ( LNLPBL ) FREQs = 0.D0
 
@@ -4247,45 +4325,43 @@
             STT(I,J,L,IDTNITs) = NITs
             
             !========================================================
-            ! ND44 Diagnostic: Drydep flux of NIT [molec/cm2/s]
+            ! Archive drydep flux of NIT and NITs [molec/cm2/s]
             !========================================================
-            IF ( ND44 > 0 ) THEN
          
-               ! Surface area [cm2]
-               AREA_CM2 = GET_AREA_CM2( I, J, L )
-                  
-               !-------------
-               ! NIT drydep
-               !-------------
-               
-               ! If NIT drydep occurs ...
-               IF ( FREQ > 0d0 ) THEN
-
-                  ! Convert from [v/v/timestep] to [molec/cm2/s]
-                  FLUX = NIT * State_Met%AD(I,J,L) / TCVV(IDTNIT)
-                  FLUX = FLUX * XNUMOL(IDTNIT) / AREA_CM2 / DTCHEM
- 
-                  ! Store dryd flx in ND44_TMP as a placeholder
-                  T44(I,J,L,1) = T44(I,J,L,1) + FLUX
-
-               ENDIF
-                  
-               !-------------
-               ! NITs drydep
-               !-------------
-
-               ! NOTE: if drydep doesn't occur then we still have
-               ! production from seasalt (bec, bmy, 4/13/05)
+            ! Surface area [cm2]
+            AREA_CM2 = GET_AREA_CM2( I, J, L )
+            
+            !-------------------
+            ! NIT drydep flux
+            !-------------------
+             
+            ! If NIT drydep occurs ...
+            IF ( FREQ > 0d0 ) THEN
 
                ! Convert from [v/v/timestep] to [molec/cm2/s]
-               FLUX = NIT0s - NITs + PNITs(I,J,L) 
-               FLUX = FLUX * State_Met%AD(I,J,L) / TCVV(IDTNITs)
-               FLUX = FLUX * XNUMOL(IDTNITs) / AREA_CM2 / DTCHEM
-
-               ! Store dryd flx in ND44_TMP as a placeholder
-               T44(I,J,L,2) = T44(I,J,L,2) + FLUX
+               FLUX = NIT * State_Met%AD(I,J,L) / TCVV(IDTNIT)
+               FLUX = FLUX * XNUMOL(IDTNIT) / AREA_CM2 / DTCHEM
+ 
+               ! Store NITs drydep flx [molec/cm2/s] for use below
+               DRYD_FLX(I,J,L,1) = DRYD_FLX(I,J,L,1) + FLUX
 
             ENDIF
+                  
+            !-------------------
+            ! NITs drydep flux
+            !-------------------
+            
+            ! NOTE: if drydep doesn't occur then we still have
+            ! production from seasalt (bec, bmy, 4/13/05)
+
+            ! Convert from [v/v/timestep] to [molec/cm2/s]
+            FLUX = NIT0s - NITs + PNITs(I,J,L) 
+            FLUX = FLUX * State_Met%AD(I,J,L) / TCVV(IDTNITs)
+            FLUX = FLUX * XNUMOL(IDTNITs) / AREA_CM2 / DTCHEM
+
+            ! Store NITs drydep flx [molec/cm2/s] for use below
+            DRYD_FLX(I,J,L,2) = DRYD_FLX(I,J,L,2) + FLUX
+
          ENDIF
       ENDDO
       ENDDO
@@ -4293,31 +4369,48 @@
 !$OMP END PARALLEL DO
 
       !===============================================================
-      ! ND44: Sum drydep fluxes by level into the AD44 array in
-      ! order to ensure that  we get the same results w/ sp or mp 
+      ! If we are not using the non-local PBL scheme, then:
       !===============================================================
-      IF ( ND44 > 0 .or. LSOILNOX ) THEN 
+      IF ( .not. LNLPBL ) THEN 
+
+         !------------------------------------------------------------
+         ! (1) Call SOIL_DRYDEP to archive NIT & NITs drydep fluxes
+         !------------------------------------------------------------
+         IF ( LSOILNOX ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-         DO L = 1, LLPAR
-
-            IF ( ND44 > 0) THEN
-            AD44(I,J,DRYNIT, 1) = AD44(I,J,DRYNIT, 1) + T44(I,J,L,1)
-            AD44(I,J,DRYNITs,1) = AD44(I,J,DRYNITs,1) + T44(I,J,L,2)
-            ENDIF
-
-            IF (LSOILNOX) THEN
-            CALL SOIL_DRYDEP ( I, J, L, IDTNIT,  T44(I,J,L,1) )
-            CALL SOIL_DRYDEP ( I, J, L, IDTNITs, T44(I,J,L,2) )
-            ENDIF
-
-         ENDDO
-         ENDDO
-         ENDDO
+            DO L = 1, LLPAR
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+               CALL SOIL_DRYDEP( I, J, L, IDTNIT,  DRYD_FLX(I,J,L,1) )
+               CALL SOIL_DRYDEP( I, J, L, IDTNITs, DRYD_FLX(I,J,L,2) )
+            ENDDO
+            ENDDO
+            ENDDO
 !$OMP END PARALLEL DO
+         ENDIF
+
+         !------------------------------------------------------------
+         ! (2) Save archived NIT & NITs drydep fluxes into AD44 array
+         !------------------------------------------------------------
+         IF ( ND44 > 0 ) THEN 
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+            DO L = 1, LLPAR
+               AD44(I,J,DRYNIT, 1) = 
+     &         AD44(I,J,DRYNIT, 1) + DRYD_FLX(I,J,L,1)
+
+               AD44(I,J,DRYNITs,1) = 
+     &         AD44(I,J,DRYNITs,1) + DRYD_FLX(I,J,L,2)
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+         ENDIF         
       ENDIF
 
       END SUBROUTINE CHEM_NIT
