@@ -121,6 +121,7 @@
 !  (16) Increase IGAS, MAXGL, MAXGL2, NMRATE, IPHOT (tmf, 3/6/09)
 !  (17) Add RRATE_FOR_KPP variable to DKBLOOP2 common block (phs,ks,dhk, 09/15/09)
 !  (18) PINP(20) increased to PINP(IMISC) (FP 2/10)
+!  (19) Added NKO3PHOTH2 (bhh, jmao, eam, 7/18/11)
 !
 !  !REVISION HISTORY:
 !  23 Aug 2011 - M. Long     - Converted to Module from Header file
@@ -401,9 +402,12 @@
       !      pseudo reactions (in place of HBr + HOBr --het-->) (jpp, 3/22/11)
       ! Added NK2HOBr and NK2HBR to /CHEM4/ to flag the two HOBr + HBr
       !      pseudo reactions (in place of HBr + HOBr --ice-->) (jpp, 6/16/11)
+      ! Add NKO3PHOTH2 to account for the H2 reaction of O1D (bhh, jmao,
+      !  eam, 7/18/11)
       INTEGER            NNADD1,        NNADDA(ICS),  NNADDB(  ICS), 
      &                   NNADDC(ICS),   NNADDD(ICS),  NNADDK(  ICS), 
-     &                   NNADDV(ICS),   NNADDZ,       NKO3PHOT(ICS),
+     &                   NNADDV(ICS),   NNADDZ,       
+     &                   NKO3PHOT(ICS), NKO3PHOTH2(ICS),
      &                   NNADDG(ICS),   NEMIS( ICS),  NDRYDEP( ICS),
      &                   NNADDF(ICS),   NNADDH(ICS), 
      &                   NKHOROI(ICS),  NKHOROJ(ICS),

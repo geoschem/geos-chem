@@ -183,6 +183,8 @@
 !  17 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !  07 Feb 2012 - E. Corbitt  - Add mercury tagged tracers
 !  13 Aug 2012 - R. Yantosca - Add routine FILL_State_Chm_NAME_IDs
+!  11 Jan 2013 - M. Payer    - Add methyl peroxy nitrate (MPN) as tracer
+!                              (E. Browne)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -216,6 +218,7 @@
       INTEGER            :: IDAPAN, IDENPAN, IDMPAN, IDNIPAN
       INTEGER            :: IDDRYAPAN, IDDRYENPAN, IDDRYGLPAN
       INTEGER            :: IDDRYGPAN, IDDRYMPAN, IDDRYNIPAN
+      INTEGER            :: IDMPN
       ! jpp, 6/5/09, adding IDDRY__ id's for dry deposition
       INTEGER            :: IDDRYHOBr, IDDRYHBr, IDDRYBrNO3
 
@@ -260,6 +263,7 @@
       INTEGER            :: IDTIEPOX
       INTEGER            :: IDTPYPAN,IDTMAP
       INTEGER            :: IDTAP
+      INTEGER            :: IDTMPN
 
       ! For tagged Ox simulation
       INTEGER            :: IDTOxStrt
@@ -718,6 +722,9 @@
 
             CASE ( 'HNO4' )
                IDTHNO4  = N
+
+            CASE ( 'MPN' )
+               IDTMPN  = N
 
             CASE ( 'MP' )
                IDTMP    = N
@@ -2568,6 +2575,7 @@
          IF ( NAMEGAS(I) == 'ENPAN'  ) IDENPAN   = I
          IF ( NAMEGAS(I) == 'MPAN'   ) IDMPAN    = I
          IF ( NAMEGAS(I) == 'NIPAN'  ) IDNIPAN   = I
+         IF ( NAMEGAS(I) == 'MPN'    ) IDMPN     = I
          ! ++++++++++++++++++++++++++++++++++++++++++++++++++++++
          !jpp: for bromine
          IF ( NAMEGAS(I) == 'Br2'     ) IDBr2     = I
@@ -3635,6 +3643,7 @@
       IDMBO     = 0
       IDGLYC    = 0
       IDHAC     = 0
+      IDMPN     = 0
 
       IDAPAN    = 0
       IDENPAN   = 0
@@ -3764,6 +3773,7 @@
       IDTGPAN   = 0
       IDTMPAN   = 0
       IDTNIPAN  = 0
+      IDTMPN    = 0
       ! +++++++++++++++++
       ! jpp for bromine
       ! 6/5/09

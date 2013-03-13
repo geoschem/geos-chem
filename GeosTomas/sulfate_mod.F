@@ -7980,7 +7980,7 @@ c      print *,BINMASS(24,11,2,:)
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
-!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A 
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8032,8 +8032,8 @@ c      print *,BINMASS(24,11,2,:)
 
          ! Regrid from 1x1 and cast to REAL*8
          INGRID = ARRAY1(:,:,1)
-         CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                       INGRID,     SSTEMP,  IS_MASS=0,
+         CALL DO_REGRID_A2A( LLFILENAME, I1x1,   J1x1,
+     &                       INGRID,     SSTEMP, IS_MASS=0,
      &                       netCDF=.TRUE.                   )
 
       ELSE
@@ -8140,6 +8140,9 @@ c      print *,BINMASS(24,11,2,:)
 !  06 Apr 2012 - M. Payer    - Changed regrid algorithm to map_a2a (M. Cooper)
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Bug fix for regridding of historical emissions.
+!                              Changed to PERAREA=1 since units are kg/yr.
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8261,7 +8264,7 @@ c      print *,BINMASS(24,11,2,:)
 
          ! Regrid to current model resolution [kg/yr]
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-     &                       INGRID,     OUTGRID, IS_MASS=0,
+     &                       INGRID,     OUTGRID, IS_MASS=1,
      &                       netCDF=.TRUE.                   )
 
          ! Free pointers

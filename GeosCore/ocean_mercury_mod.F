@@ -492,7 +492,8 @@
         !       4x5 gets read in as mol/mol and 2x2.5 gets read in
         !       as ppb, so only 4x5 needs to be scaled by 1d9.
         !       (hma, 20120104)
-#if defined( GRID4x5 )
+        ! 0..5x0.666 file is regridded from 4x5 file, yzh, 12/15/12
+#if defined( GRID4x5 ) || defined( GRID05x0666 )
         BULK_CONC(I,J,L) = 1d9 * ( BULK_CONC(I,J,L) *
      &                     State_Met%AIRDEN(L,I,J)  )
 #elif defined( GRID2x25 )
@@ -961,7 +962,7 @@
          FRAC_O       = MAX( State_Met%FROCEAN(I,J) -
      &                       State_Met%FRSEAICE(I,J), 0d0 )
          IS_OCEAN_BOX = (( FRAC_O > 0d0 ) .and. 
-                         ( State_Met%SEAICE00(I,J)  > 0.5d0 ))
+     &                   ( State_Met%SEAICE00(I,J)  > 0.5d0 ))
 #else
          FRAC_L       = State_Met%FRCLND(I,J)
          FRAC_O       = 1d0 - FRAC_L
