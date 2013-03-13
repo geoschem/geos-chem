@@ -3983,6 +3983,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
+      LOGICAL :: LNLPBL
       INTEGER :: I,      J,     L,        PBL_MAX
       REAL*8  :: DTCHEM, NH4aq, NH4aq0
       REAL*8  :: FREQ,   FLUX,  AREA_CM2, F_UNDER_TOP
@@ -3994,6 +3995,9 @@
       ! CHEM_NH4 begins here!
       !=================================================================
       IF ( IDTNH4aq == 0 .or. DRYNH4aq == 0 ) RETURN
+
+      ! Initialize
+      LNLPBL  = Input_Opt%LNLPBL
 
       ! DTCHEM is the chemistry interval in seconds
       DTCHEM  = GET_TS_CHEM() * 60d0 
