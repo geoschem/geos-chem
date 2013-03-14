@@ -74,6 +74,19 @@
       USE BPCH2_MOD,     ONLY : READ_BPCH2
       USE DIRECTORY_MOD, ONLY : OH_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Do not use routine AIRQNT_FULLGRID when we are connecting to
+      ! the GEOS-5 GCM via ESMF. (mpayer, 3/14/13)
+      !-----------------------------------------------------------------
+#else
+      !-----------------------------------------------------------------
+      !                %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !-----------------------------------------------------------------
+      USE DAO_MOD,       ONLY : AIRDEN_FULLGRID, AIRQNT_FULLGRID
+#endif
 
       USE CMN_SIZE_MOD                  ! Size parameters
 !
@@ -123,9 +136,15 @@
          FIRST = .FALSE.
       ENDIF
 
+#if defined( NESTED_NA )
+      ! Filename
+      FILENAME = TRIM( OH_DIR ) // 'OH_3Dglobal.' // GET_NAME_EXT() // 
+     &           '.'            // GET_RES_EXT()  // '_NA'
+#else
       ! Filename
       FILENAME = TRIM( OH_DIR ) // 'OH_3Dglobal.' // GET_NAME_EXT() // 
      &                              '.'           // GET_RES_EXT()
+#endif
 
       ! Echo some information to the standard output
       WRITE( 6, 110 ) TRIM( FILENAME )
@@ -140,8 +159,52 @@
      &                 XTAU,      IIPAR,     JJPAR,      
      &                 LGLOB,     ARRAY,     QUIET=.TRUE. )
 
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Do not use routines AIRQNT_FULLGRID or TRANSFER_3D_NO_LUMP when
+      ! we are connecting to the GEOS-5 GCM via ESMF. (mpayer, 3/14/13)
+      !-----------------------------------------------------------------
+
       ! Assign data from ARRAY to the module variable OH
       CALL TRANSFER_3D( ARRAY, OH )
+
+#else
+      !-----------------------------------------------------------------
+      !                %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Include fix for vertical regridding of OH for offline simulations
+      ! provided by Chris Holmes (mpayer, 3/14/13)
+      !-----------------------------------------------------------------
+#if defined( GRIDREDUCED )
+
+      ! Calculate the number density of air on the full vertical grid
+      CALL AIRQNT_FULLGRID
+
+      ! Convert molec/cm3 -> mixing ratio (molec m3 kg-1 cm-3)
+      ! because regridding requires mixing ratio quantity
+      ! Note that peculiar units don't matter because we immediately
+      ! convert back after regridding
+      DO L=1, LGLOB
+         ARRAY(:,:,L) = ARRAY(:,:,L) / AIRDEN_FULLGRID(L,:,:)
+      ENDDO
+         
+      ! Assign data from ARRAY to the module variable OH
+      CALL TRANSFER_3D( ARRAY, OH )
+      
+      ! convert mixing ratio (molec m3 kg-1 cm-3) -> molec/cm3
+      DO L=1, LLPAR
+         OH(:,:,L) = OH(:,:,L) * AIRDEN(L,:,:)
+      ENDDO
+
+#else
+
+      ! Assign data from ARRAY to the module variable OH
+      CALL TRANSFER_3D_NOLUMP( ARRAY, OH )
+
+#endif
+#endif
 
       END SUBROUTINE GET_GLOBAL_OH
 !EOC
