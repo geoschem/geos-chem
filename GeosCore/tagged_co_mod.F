@@ -910,7 +910,7 @@
          MONTH = GET_MONTH()
 
          ! Global OH 
-         CALL GET_GLOBAL_OH( MONTH )
+         CALL GET_GLOBAL_OH( MONTH, State_Met )
 
          ! Global NOx -- need this to determine 
          ! ALPHA_ISOP which is a function of NOx

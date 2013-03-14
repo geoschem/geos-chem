@@ -498,7 +498,7 @@
             THISMONTH = GET_MONTH()
 
             IF ( ITS_A_NEW_MONTH() ) THEN
-               CALL GET_GLOBAL_OH(  THISMONTH )
+               CALL GET_GLOBAL_OH(  THISMONTH, State_Met )
                CALL GET_GLOBAL_NO3( THISMONTH )
                CALL GET_GLOBAL_O3(  THISMONTH )
             ENDIF

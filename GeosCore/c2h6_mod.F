@@ -414,7 +414,7 @@
       ! OH data will be saved into the OH array of "global_oh_mod.f" 
       !=================================================================
       IF ( GET_MONTH() /= LASTMONTH ) THEN
-         CALL GET_GLOBAL_OH( GET_MONTH() )
+         CALL GET_GLOBAL_OH( GET_MONTH(), State_Met )
          LASTMONTH = GET_MONTH()
       ENDIF
 

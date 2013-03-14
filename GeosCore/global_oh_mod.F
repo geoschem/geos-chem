@@ -64,16 +64,17 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_GLOBAL_OH( THISMONTH )
+      SUBROUTINE GET_GLOBAL_OH( THISMONTH, State_Met )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0
-      USE BPCH2_MOD,     ONLY : READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : OH_DIR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_3D
+      USE BPCH2_MOD,            ONLY : GET_NAME_EXT
+      USE BPCH2_MOD,            ONLY : GET_RES_EXT
+      USE BPCH2_MOD,            ONLY : GET_TAU0
+      USE BPCH2_MOD,            ONLY : READ_BPCH2
+      USE DIRECTORY_MOD,        ONLY : OH_DIR
+      USE GIGC_State_Met_Mod,   ONLY : MetState
+      USE TRANSFER_MOD,         ONLY : TRANSFER_3D
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
       !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
@@ -85,14 +86,15 @@
       !-----------------------------------------------------------------
       !                %%%%% TRADITIONAL GEOS-Chem %%%%%
       !-----------------------------------------------------------------
-      USE DAO_MOD,       ONLY : AIRDEN_FULLGRID, AIRQNT_FULLGRID
+      USE DAO_MOD,              ONLY : AIRDEN_FULLGRID, AIRQNT_FULLGRID
 #endif
 
-      USE CMN_SIZE_MOD                  ! Size parameters
+      USE CMN_SIZE_MOD               ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)  :: THISMONTH   ! Current month
+      INTEGER,        INTENT(IN)    :: THISMONTH   ! Current month
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Obj for met fields
 ! 
 ! !REVISION HISTORY: 
 !  28 Jul 2000 - R. Yantosca - Initial version
@@ -195,7 +197,7 @@
       
       ! convert mixing ratio (molec m3 kg-1 cm-3) -> molec/cm3
       DO L=1, LLPAR
-         OH(:,:,L) = OH(:,:,L) * AIRDEN(L,:,:)
+         OH(:,:,L) = OH(:,:,L) * State_Met%AIRDEN(L,:,:)
       ENDDO
 
 #else
