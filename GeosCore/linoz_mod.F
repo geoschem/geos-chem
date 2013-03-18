@@ -15,41 +15,50 @@
 !
 ! !USES:
 !
-      USE inquireMod, ONLY : findFreeLUN
-
       IMPLICIT NONE
 #     include "define.h"
       PRIVATE
 !
-! !DEFINED PARAMETERS:
-!
-      INTEGER, PARAMETER  :: NFIELDS_LINOZ = 7   ! # of Linoz fields
-      INTEGER, PARAMETER  :: NLEVELS_LINOZ = 25  ! # of levels in Linoz fields
-      INTEGER, PARAMETER  :: NLAT_LINOZ    = 18  ! # latitudes in Linoz fields
-      INTEGER, PARAMETER  :: NMONTHS_LINOZ = 12  ! # of months in Linoz fields
-!
 ! !PRIVATE DATA MEMBERS:
 !
-      REAL*8, ALLOCATABLE :: TPARM(:,:,:,:)
       REAL*8, ALLOCATABLE :: TLSTT(:,:,:)
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
       PUBLIC  :: CLEANUP_LINOZ
       PUBLIC  :: DO_LINOZ    
+      PUBLIC  :: INIT_LINOZ
       PUBLIC  :: LINOZ_READ
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 ! 
-      PRIVATE :: INIT_LINOZ
       PRIVATE :: LINOZ_CHEM3
       PRIVATE :: LINOZ_STRATL
       PRIVATE :: LINOZ_STRT2M
       PRIVATE :: LINOZ_SOMLFQ
       PRIVATE :: LINOZ_INTPL
-      PRIVATE :: STRAT_INIT
 !
 ! !REMARKS:
+!  LINOZ Climatology:
+!  ============================================================================
+!  The LINOZ stratospheric chemistry tables for ozone consist of:
+!                                                                             .
+!  7 tables, each a function of:
+!    12 months,
+!    18 latitudes (-85 to 85 in 10 deg. increments)
+!    25 altitudes ( z*=10-58 km in 2 km increments)
+!                                                                             .
+!  The 7 data fields are:
+!    1- ozone (Logan climatology), v/v
+!    2- Temperature climatology, K
+!    3- Column ozone climatology, Logan ozone integrated above box, DU
+!    4- ozone (P-L) for climatological ozone, v/v/s
+!    5- d(P-L) / dO3, 1/s
+!    6- d(P-L) / dT, v/v/s/K
+!    7- d(P-L) / d(column O3), v/v/s/DU
+!                                                                             .
+!  Implementation notes:
+!  ============================================================================
 !  Dylan Jones (dbj@atmosp.physics.utoronto.ca) wrote:
 !                                                                             .
 !    Testing this code [in v8-02-04] was more difficult that I thought. 
@@ -66,7 +75,16 @@
 !    I think that it is safe to release [Linoz in v8-02-04].  However, we 
 !    should acknowledge that it was [only] tested in v8-02-01, since I was 
 !    not able to assess the quality of the output in v8-02-04. 
-!
+!                                                                             .
+!  Bob Yantosca (yantosca@seas.harvard.edu) wrote:
+!                                                                             .
+!     We have also modified the code for use within the GEOS-5 GCM.  We now
+!     declare the TPARM array as part of the Input_Opt object.  The LINOZ
+!     climatology ASCII file is now read on the root CPU and MPI-broadcasted
+!     to the non-root CPUs.  Also, the INIT_LINOZ routine is now called
+!     not on the first chemistry timestep but rather in the initialization
+!     phase at the start of the run. (bmy, 3/18/13)
+
 ! REVISION HISTORY:
 !  23 Mar 2000 - P. Cameron-Smith    - Initial version adapted heavily 
 !                                      from McLinden's original file.
@@ -75,6 +93,9 @@
 !  18 Nov 2009 - D. Jones            - Further modifications
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  15 Mar 2013 - R. Yantosca - Now use fields from Input_Opt and made other
+!                              modifications for GIGC interface to GEOS-5 GCM
+!  18 Mar 2013 - R. Yantosca - Comment out STRAT_INIT, it's not called
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -94,19 +115,26 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_LINOZ( am_I_Root, State_Met )
+      SUBROUTINE DO_LINOZ( am_I_Root, Input_Opt, State_Met, RC )
 !
 ! !USES:
 !
-      USE TIME_MOD
-      USE GIGC_State_Met_Mod, ONLY : MetState
-
       USE CMN_SIZE_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_MONTH
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  24 Jun 2003 - B. Field & D. Jones - Further updates for GEOS-Chem
@@ -114,27 +142,41 @@
 !                chemistry code, so the use of DT_TS_CHEM is now correct.
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  18 Mar 2013 - R. Yantosca - Now accept Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE :: FIRST     = .TRUE.
+      ! SAVEd scalars
       INTEGER, SAVE :: LASTMONTH = -99
+
+      ! Non-SAVEd sclars
+      INTEGER       :: MONTH
       REAL*8        :: NSCHEM
 
+      !=================================================================
+      ! DO_LINOZ begins here!
+      !=================================================================
+
+      ! Assume success
+      RC    = GIGC_SUCCESS
+
+      ! Current month
+      MONTH = GET_MONTH()
+
       ! if new month, get new parameters?
-      IF ( GET_MONTH() /= LASTMONTH ) THEN
-         CALL LINOZ_STRATL( am_I_Root )
-         LASTMONTH =  GET_MONTH()
+      IF ( MONTH /= LASTMONTH ) THEN
+         CALL LINOZ_STRATL( am_I_Root, Input_Opt, RC )
+         LASTMONTH =  MONTH
       ENDIF
 
       ! Linoz needs time step in seconds
       NSCHEM = GET_TS_CHEM() * 60D0 
 
       ! Call the Linoz chemistry
-      CALL LINOZ_CHEM3( NSCHEM, am_I_Root, State_Met )
+      CALL LINOZ_CHEM3( NSCHEM, am_I_Root, Input_Opt, State_Met, RC )
 
       END SUBROUTINE DO_LINOZ    
 !EOC
@@ -151,27 +193,38 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE LINOZ_CHEM3( DTCHEM, am_I_Root, State_Met )
+      SUBROUTINE LINOZ_CHEM3( DTCHEM,    am_I_Root,
+     &                        Input_Opt, State_Met, RC )
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2   
-      USE TRACER_MOD
+      USE TRACER_MOD,         ONLY : STT
       USE TRACERID_MOD                          
       USE TROPOPAUSE_MOD,     ONLY : GET_TPAUSE_LEVEL 
       USE TROPOPAUSE_MOD,     ONLY : GET_MAX_TPAUSE_LEVEL
       USE PRESSURE_MOD,       ONLY : GET_PEDGE
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
-  
-      USE CMN_SIZE_MOD
-      USE CMN_MOD
 !
 ! !INPUT PARAMETERS:
 !
-      REAL*8,         INTENT(IN) :: DTCHEM      ! Time step [seconds]
-      LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+      REAL*8,         INTENT(IN)  :: DTCHEM      ! Time step [seconds]
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+!
+! !OUTPUT PARAMETERS
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  Replace fields from tracer_mod.f with fields from Input_Opt.  When we
+!  use GEOS-Chem within the GEOS-5 GCM, the fields within Input_Opt will
+!  be read on the root CPU and MPI-broadcasted to all other CPUs.
 !
 ! !REVISION HISTORY: 
 !  24 Jun 2003 - B. Field & D. Jones - Further updates for GEOS-Chem
@@ -185,6 +238,7 @@
 !                              running with the traditional driver main.F
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  18 Mar 2013 - R. Yantosca - Now accept Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -192,7 +246,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER :: IM,      JM,         LM
+      INTEGER :: IM,      JM,         LM,   N_TRACERS
       INTEGER :: I,       J,          L,    N
       INTEGER :: K,       M,          LBOT, L_OVERWRLD
       INTEGER :: NTRACER, NUM_TRACER, LPOS, ITRC
@@ -200,48 +254,61 @@
       REAL*8  :: DERCO3,  DMASS,      DTMP, SSO3
 
       ! Arrays
-      REAL*8  :: DCOLO3(IIPAR,JJPAR,LLPAR)
-      REAL*8  :: COLO3(IIPAR,JJPAR,LLPAR)
-      REAL*8  :: OUT_DATA(IIPAR,JJPAR,LLPAR)
+      REAL*8  :: DCOLO3  (IIPAR,JJPAR,LLPAR                    )
+      REAL*8  :: COLO3   (IIPAR,JJPAR,LLPAR                    )
+      REAL*8  :: OUT_DATA(IIPAR,JJPAR,LLPAR                    )
+      REAL*8  :: TCVV    (                  Input_Opt%N_TRACERS)
       
-      ! Assign values for local IM and JM   (dbj 6/24/03) 
-      IM     = IIPAR
-      JM     = JJPAR
-      LM     = LLPAR   
-      L_OVERWRLD = GET_MAX_TPAUSE_LEVEL()
+      !=================================================================
+      ! LINOZ_CHEM3 begins here!
+      !=================================================================
 
-      ! Stratospheric Chemistry Tables for O3:
-      ! ======================================
-      !   7 tables, each a function of month (12), latitude 
-      !   (18, -85 to 85 in 10 deg. increments) and altitude 
-      !   (25, z*=10-58 km in 2 km increments).
-      !  1- ozone (Logan climatology), v/v
-      !  2- Temperature climatology, K
-      !  3- Column ozone climatology, Logan ozone integrated above box, DU
-      !  4- ozone (P-L) for climatological ozone, v/v/s
-      !  5- d(P-L) / dO3, 1/s
-      !  6- d(P-L) / dT, v/v/s/K      
-      !  7- d(P-L) / d(column O3), v/v/s/DU
+      ! Assume success
+      RC         = GIGC_SUCCESS
+
+      ! Dimensions
+      IM         = IIPAR
+      JM         = JJPAR
+      LM         = LLPAR
+      N_TRACERS  = Input_Opt%N_TRACERS
+      TCVV       = Input_Opt%TCVV
+
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ) 
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
       !
-      ! zero storage arrays
-      !      do n=1,ntrace
-      !         sttold(n)=0.d0
-      !      enddo
+      ! When we are connecting to the GEOS-5 GCM, we don't define
+      ! L_OVERWRLD.  We cannot know the maximum extent of the
+      ! tropopause in the GCM; we instead have to diagnose it at
+      ! every timestep by comparing the pressure at a grid box to
+      ! the tropopause pressure.  (bmy, 3/18/13)
+      !-----------------------------------------------------------------
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Current practice in the std GEOS-Chem is to call function
+      ! GET_MAX_TPAUSE_LEVEL (from tropopause_mod.F) to return the
+      ! highest possible tropopause level.  This is only required
+      ! when doing a tagged Ox simulation. (bmy, 3/18/13)
+      !-----------------------------------------------------------------
+      L_OVERWRLD = GET_MAX_TPAUSE_LEVEL()
+#endif
 
       !=================================================================
       ! Select the proper tracer number to store O3 into, depending on
       ! whether this is a full chemistry run or a tagged Ox run.
       ! If tagged Ox, tracer 2 should be the stratospheric tracer.  (dbj)
       !=================================================================
-      IF ( ITS_A_FULLCHEM_SIM() ) THEN
-          NUM_TRACER = 1
+      IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+         NUM_TRACER = 1
       ELSE
-         IF ( ITS_A_TAGOX_SIM() ) THEN
-           IF (N_TRACERS > 1) THEN
-             NUM_TRACER = 2
-           ELSE
-             NUM_TRACER = 1
-           ENDIF
+         IF ( Input_Opt%ITS_A_TAGOX_SIM ) THEN
+            IF ( N_TRACERS > 1 ) THEN
+               NUM_TRACER = 2
+            ELSE
+               NUM_TRACER = 1
+            ENDIF
          ELSE
             ! All other simulations don't use O3...print error message
             IF ( am_I_Root ) THEN
@@ -255,15 +322,18 @@
       ! Echo info
       IF ( am_I_Root ) THEN
          WRITE( 6, 100 ) 
+ 100     FORMAT( '     - LINOZ_CHEM3: Doing LINOZ' )
       ENDIF
- 100  FORMAT( '     - LINOZ_CHEM3: Doing LINOZ' )
+
+      !=================================================================
+      ! Perform stratospheric chemistry
+      !=================================================================
 
       ! **** note dbj: check STT(I,J,20:LLPAR,NTRACER) = with trop level
       ! ****         : check DMASS
+      DO ITRC = 1, NUM_TRACER
 
-      DO ITRC=1,NUM_TRACER     ! dbj loop for tagged
-
-         IF ( ITS_A_FULLCHEM_SIM() ) THEN
+         IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
             NTRACER = IDTOX
          ELSE
             NTRACER = ITRC
@@ -283,28 +353,47 @@
 !------------------------------------------------------------------------------
          DO J = 1, JM
          DO I = 1, IM
+
             LBOT = GET_TPAUSE_LEVEL( I, J, State_Met ) + 1
             LPOS = 1
             DO WHILE (GET_PEDGE(I,J,LPOS+1) .GE. 0.3D0)
-              LPOS = LPOS +1
+               LPOS = LPOS +1
             ENDDO
             LPOS = LPOS-1
 
-            !---------------------------------------------------------
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+            !-----------------------------------------------------------
+            !  %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+            !
+            ! When we are connecting to the GEOS-5 GCM, we don't define
+            ! L_OVERWRLD.  We cannot know the maximum extent of the
+            ! tropopause in the GCM; we instead have to diagnose it at
+            ! every timestep by comparing the pressure at a grid box to
+            ! the tropopause pressure.  (bmy, 3/18/13)
+            !-----------------------------------------------------------
+#else
+            !-----------------------------------------------------------
+            !           %%%%% TRADITIONAL GEOS-Chem %%%%%
+            !
+            ! Current practice in the std GEOS-Chem is to call function
+            ! GET_MAX_TPAUSE_LEVEL (from tropopause_mod.F) to return the
+            ! highest possible tropopause level.  This is only required
+            ! when doing a tagged Ox simulation. (bmy, 3/18/13)
+            !-----------------------------------------------------------
+
             ! dbj: for now, set tagged stratospheric tracer to total 
             ! O3 in the overworld to avoid issues with spin ups
-            !---------------------------------------------------------
-            IF ( ITS_A_TAGOX_SIM() ) THEN
+            IF ( Input_Opt%ITS_A_TAGOX_SIM ) THEN
               STT(I,J,(L_OVERWRLD+1):LLPAR,NTRACER) =
      &                STT(I,J,(L_OVERWRLD+1):LLPAR,1)
             ENDIF
+#endif
 
+            ! Loop over levels
+            DO L = LM, LBOT, -1
 
-            DO L = LM,LBOT,-1        
-
-               !IF (L .LT. LPAUSE(I,J)) GOTO 31
-
-               IF (STT(I,J,L,NTRACER) .LE. 0.D0) CYCLE     
+               ! Skip if tracer is negative
+               IF ( STT(I,J,L,NTRACER) .LE. 0.D0 ) CYCLE
 
                ! calculate ozone column above box (and save)
                ! dcolo3 = ozone column (in DU) in given layer
@@ -377,7 +466,7 @@
       !write our calculated column o3 maximum
       !write(6,*) 'max of columns= ',maxval(out_data)
 
-      ENDDO   ! loop over ntracers
+      ENDDO
 
       END SUBROUTINE LINOZ_CHEM3
 !EOC
@@ -394,68 +483,107 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE LINOZ_STRATL( am_I_Root )
+      SUBROUTINE LINOZ_STRATL( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE GRID_MOD,       ONLY : GET_YMID 
-      USE TIME_MOD,       ONLY : GET_MONTH
-      USE PRESSURE_MOD                   
-
       USE CMN_SIZE_MOD
-      USE CMN_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GRID_MOD,           ONLY : GET_YMID 
+      USE TIME_MOD,           ONLY : GET_MONTH
+      USE PRESSURE_MOD
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  Replace size fields NLAT_LINOZ etc. with fields from Input_Opt.  When we
+!  use GEOS-Chem within the GEOS-5 GCM, the fields within Input_Opt will
+!  be read on the root CPU and MPI-broadcasted to all other CPUs.
+!                                                                             .
+!  The LINOZ climatology array is Input_Opt%LINOZ_TPARM(25,18,12,N),
+!  which has the following dimensions
+!    * 25 layers from 58 km to 10 km by 2 km intervals
+!    * 18 latitudes (85S, 75S, ...85N)
+!    * 12 months
+!    *  N fields (currently N=7)
 !
 ! !REVISION HISTORY: 
 !  24 Jun 2003 - B. Field & D. Jones - Further updates for GEOS-Chem
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  18 Mar 2013 - R. Yantosca - Accept Input_Opt, RC arguments.  Use fields
+!                              from Input_Opt to facilitate GC/GEOS-5 interface
+!  18 Mar 2013 - R. Yantosca - Cosmetic changes, updated comments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      integer J,K,L,N,JLATMD(jjpar),JXXX,LR,JJ,i,im1,im2 !,je
-!         integer jdofm(nmonths_linoz+1),jdmc(nmonths_linoz)
-!      parameter (je=18) !number of latitudes in look-up table
+      ! Scalars
+      INTEGER           :: I, IM, IM1, IM2
+      INTEGER           :: J, JM, JJ,  JXXX
+      INTEGER           :: K, L,  LR,  MONTH, N
 
-      ! Now declare IM, JM as local variables
-      ! since we have removed them from the common block (dbj 6/24/03)
-      INTEGER IM, JM, MONTH
+      ! Dimension sizes
+      INTEGER           :: NFIELDS_LINOZ
+      INTEGER           :: NLAT_LINOZ
+      INTEGER           :: NLEVELS_LINOZ
+      INTEGER           :: NMONTHS_LINOZ
 
-      real*8 STRTX(nlevels_linoz),YSTRT(nlat_linoz)
-      real*8 P0L(llpar+1)
-      real*8 STRT0L(llpar+1),STRT1L(llpar+1),STRT2L(llpar+1)
-      real*8, PARAMETER :: PSF=1010D0
+      ! Arrays
+      INTEGER           :: JLATMD(JJPAR                  )
+      REAL*8            :: P0L   (LLPAR+1                )
+      REAL*8            :: STRT0L(LLPAR+1                )
+      REAL*8            :: STRT1L(LLPAR+1                )
+      REAL*8            :: STRT2L(LLPAR+1                )
+      REAL*8            :: STRTX (Input_Opt%LINOZ_NLEVELS)
+      REAL*8            :: YSTRT (Input_Opt%LINOZ_NLAT   )
 
-      !Define Month names locally      (dbj 6/25/03)
-      CHARACTER(LEN=3)    :: CMONTH(12) = (/'jan', 'feb', 'mar', 'apr',
-     &                                      'may', 'jun', 'jul', 'aug',
-     &                                      'sep', 'oct', 'nov', 'dec'/)
+      ! Month names
+      CHARACTER(LEN=3)  :: CMONTH(12) = (/'jan', 'feb', 'mar', 'apr',
+     &                                    'may', 'jun', 'jul', 'aug',
+     &                                    'sep', 'oct', 'nov', 'dec'/)
+!
+! !DEFINED PARAMETERS:
+!
+      REAL*8, PARAMETER :: PSF = 1010D0   ! Surface pressure [hPa]
 
-!      data JDOFM/0,31,59,90,120,151,181,212,243,273,304,334,365/
-c-----------------------------------------------------------------------
+      !=================================================================
+      ! LINOZ_STRATL begins here!
+      !=================================================================
 
-      ! Assign values for local IM and JM   (dbj 6/24/03)
-      IM     = IIPAR
-      JM     = JJPAR
+      ! Initialization
+      IM             = IIPAR
+      JM             = JJPAR
+      MONTH          = GET_MONTH()
+      NFIELDS_LINOZ  = Input_Opt%LINOZ_NFIELDS
+      NLAT_LINOZ     = Input_Opt%LINOZ_NLAT
+      NLEVELS_LINOZ  = Input_Opt%LINOZ_NLEVELS
+      NMONTHS_LINOZ  = Input_Opt%LINOZ_NMONTHS
 
-      ! added call to GET_MONTH (dbj 6/25/03) 
+      ! Echo info to stdout
       IF ( am_I_Root ) THEN
-      WRITE(6,*)'#####################################################'
-      WRITE(6,*)'#    Interpolating Linoz fields for ',
-     &                CMONTH( GET_MONTH() ),
-     &                                                 '             #'
-      WRITE(6,*)'#####################################################'
+         WRITE( 6, '(a)' ) REPEAT( '#', 79 )
+         WRITE( 6,  50   ) CMONTH(MONTH)
+         WRITE( 6, '(a)' ) REPEAT( '#', 79 )
+ 50      FORMAT( '# Interpolating Linoz fields for ', a )
       ENDIF
 
-! ***** Linear interpolation between months is not currently used {PJC} *****
-!c get weights for month interpolation
+!------------------------------------------------------------------------------
+! THE FOLLOWING LINEAR INTERPOLATION OPTION IS NOT USED, BUT CAN BE RESTORED
+! BY UNCOMMENTING THE APPROPRIATE LINES OF CODE BELOW (bmy, 3/18/13)
+!
+!      ! get weights for month interpolation
 !      do i=1,nmonths_linoz
 !        jdmc(i) = jdofm(i+1) - (jdofm(i+1)-jdofm(i))/2
 !      enddo
@@ -479,37 +607,43 @@ c-----------------------------------------------------------------------
 !      endif
 !      wm2=1.0-wm1
 !
-!c      write(6,*)iday,jday,' weights: ',wm1,wm2
-!c      write(6,*)'months: ',im1,im2,month
-!c      write(6,*)'between: ',jdmc(im1),jdmc(im2)
-! ***************************************************************************
+!!      write(6,*)iday,jday,' weights: ',wm1,wm2
+!!      write(6,*)'months: ',im1,im2,month
+!!      write(6,*)'between: ',jdmc(im1),jdmc(im2)
+!------------------------------------------------------------------------------
 
-c latitude interpolation   
 
-      YSTRT(1) = -85.d0   !Latitudes = -85, -75, -65, .... +75, +85.
-      do J = 2,NLAT_LINOZ
+      ! YSTRT(J) are the latitudes (-85, -75, -65, ... +65, +75, +85)
+      ! contained in the LINOZ climatology
+      YSTRT(1) = -85.d0   
+      do J = 2, NLAT_LINOZ
         YSTRT(J) = YSTRT(J-1) + 10.d0
       enddo
 
-
-      DO J = 1,JJPAR
-        JXXX     = int(0.1d0 * GET_YMID(1,J,1) +10.d0)   ! (dbj 6/25/03)
-        JLATMD(J) = MIN(18,MAX(1,JXXX)) !index of nearest Linoz data column
+      ! JLATMD(J) is the nearest-neighbor LINOZ data column corresponding
+      ! to each GEOS-Chem latitude index J. (dbj, 6/25/03)
+      DO J = 1, JJPAR
+         JXXX      = INT( 0.1d0 * GET_YMID(1,J,1) + 10.d0 )
+         JLATMD(J) = MIN( 18,     MAX( 1, JXXX )          )
       ENDDO
 
-      DO L = 1,LLPAR+1
-         P0L(L) = GET_AP(LLPAR+2-L) + (GET_BP(LLPAR+2-L)*PSF)  ! dbj
+      ! P0L are the pressure at the level edges of each GEOS-Chem
+      ! grid box, assuming a surface pressure of 1010 hPa (dbj, 6/25/03)
+      DO L = 1, LLPAR+1
+         P0L(L) = GET_AP(LLPAR+2-L) + ( GET_BP(LLPAR+2-L) * PSF )
       ENDDO
 
-c-------- TPARM(25,18,12,N) defined for --------------------------------
-c            25 layers from 58 km to 10 km by 2 km intervals
-c            18 LATS (85S, 75S, ...85N) 
-c            12 months
-c            N tables = NTBLS
-c-------- skip interpolating, pick nearest latitude --------------------
+      !=================================================================
+      ! Lookup data in the LINOZ climatology 
+      !=================================================================
 
-      DO N = 1,nfields_linoz
+      ! Loop over the # of fields in the LINOZ climatology
+      DO N = 1, NFIELDS_LINOZ
 
+!------------------------------------------------------------------------------
+! INTERPOLATION BETWEEN LATITUDES IS CURRENTLY NOT USED, BUT CAN BE RESTORED
+! BY UNCOMMENTING THE APPROPRIATE LINES OF CODE BELOW (bmy, 3/18/13)
+!
 ! ***** Interpolation between latitudes is not currently used {PJC} *****
 !c----- interpolating along latitude, from TPAR2 to STRTXY
 !        do K = 1,nlevels_linoz
@@ -527,25 +661,45 @@ c-------- skip interpolating, pick nearest latitude --------------------
 !        enddo
 !        call LINOZ_INTPL(nlevels_linoz,NLAT_LINOZ,JPAR,JM,YSTRT,YDGRD,
 !     &       TPAR2,STRTXY2)
-! ***********************************************************************
+!------------------------------------------------------------------------------
 
-         DO J = 1,JM
-            JJ         = JLATMD(J)
-            DO K = 1,nlevels_linoz
-! linearly interpolate in latitude and month
-!            STRTX(K) = STRTXY1(K,J)*wm1 + STRTXY2(K,J)*wm2
-! linearly interpolate in latitude, single month
-!            STRTX(K) = STRTXY2(K,J)
-! nearest latitude, linearly interpolate in month
-!            STRTX(K) = TPARM(K,JJ,im1,N)*wm1 + TPARM(K,JJ,im2,N)*wm2
-! nearest latitude, single month
-               STRTX(K) = TPARM(K,JJ,GET_MONTH(),N) ! (dbj 6/25/03)
-            ENDDO   ! loop over K
+         ! Loop over GEOS-Chem latitudes
+         DO J = 1, JM
 
+            ! JJ is the index of the nearest LINOZ data column
+            ! corresponding to GEOS-Chem latitude index J
+            JJ = JLATMD(J)
+
+            ! Loop over the # of levels in the LINOZ climatology
+            DO K = 1, NLEVELS_LINOZ
+
+               ! STRTX(K) is the column of data from the LINOZ climatology
+               ! for the given month, latitude (JJ), level (K), and species
+               ! (N).  One of the following interpolation options may be used.
+
+!------------------------------------------------------------------------------
+! THE FOLLOWING OPTIONS ARE CURRENTLY NOT USED, BUT CAN BE RESTORED BY
+! UNCOMMENTING THE APPROPRIATE LINES OF CODE BELOW (bmy, 3/18/13)
+!
+!               ! linearly interpolate in latitude and month
+!               STRTX(K) = STRTXY1(K,J)*wm1 + STRTXY2(K,J)*wm2
+!
+!               ! linearly interpolate in latitude, single month
+!               STRTX(K) = STRTXY2(K,J)
+!
+!               ! nearest latitude, linearly interpolate in month
+!               !STRTX(K) = Input_Opt%LINOZ_TPARM(K,JJ,im1,N)*wm1
+!     &                   + Input_Opt%LINOZ_TPARM(K,JJ,im2,N)*wm2
+!------------------------------------------------------------------------------
+
+               ! Nearest neighbor, no interpolation
+               STRTX(K) = Input_Opt%LINOZ_TPARM(K,JJ,MONTH,N)
+            ENDDO
 
             ! *PJC* Interpolate and calculate moments of column distribution 
-            CALL LINOZ_STRT2M(STRTX,nlevels_linoz,STRT0L,STRT1L,STRT2L,
-     &           P0L,LLPAR)
+            CALL LINOZ_STRT2M( am_I_Root, Input_Opt, LLPAR,
+     &                         STRTX,     P0L,       STRT0L,
+     &                         STRT1L,    STRT2L,    RC      )
 
             ! Store loss freq/yields & moments in TLSTT/SWT/SWW 
             ! for exact CTM layers LM down
@@ -565,73 +719,70 @@ c-------- skip interpolating, pick nearest latitude --------------------
 !
 ! !IROUTINE: linoz_strt2m
 !
-! !DESCRIPTION: Subroutine LINOZ\_STRT2M sets up a std z* atmosphere: 
-!  p = 1000 * 10**(-z*/16 km).
+! !DESCRIPTION: Subroutine LINOZ\_STRT2M interpolates quantities from the
+!  LINOZ vertical grid to the GEOS-Chem vertical grid.  It also computes
+!  the 1st & 2nd moments of the distribution.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE LINOZ_STRT2M(STRTX,NX,STRT0L,STRT1L,STRT2L,P0L,NSTRT)
+      SUBROUTINE LINOZ_STRT2M( am_I_Root, Input_Opt, NSTRT,
+     &                         STRTX,     P0L,       STRT0L,
+     &                         STRT1L,    STRT2L,    RC      )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
-!
-! !DEFINED PARAMETERS:
-!
-      ! Parameter (ncbox=25)  
-      ! Now use nlevels_linoz for all routines. {PJC}
-      INTEGER, PARAMETER   :: NL = NLEVELS_LINOZ+5
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN)  :: NX
-      INTEGER, INTENT(IN)  :: NSTRT
-      REAL*8,  INTENT(IN)  :: STRTX(NLEVELS_LINOZ)
-      REAL*8,  INTENT(IN)  :: P0L(LLPAR+1)
+      !--------------------------------------------------------------------
+      ! am_I_Root : Are we on the root CPU?
+      ! Input_Opt : Input Options object
+      ! NSTRT     : # of levels in the GEOS-Chem grid (= LLPAR)
+      ! STRTX     : Quantity on the LINOZ vertical grid
+      !             (i.e. fields #1-7 of the LINOZ climatology)
+      ! P0L       : Pressure edges on the GEOS-Chem grid
+      !--------------------------------------------------------------------
+      LOGICAL,        INTENT(IN)  :: am_I_Root
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt
+      INTEGER,        INTENT(IN)  :: NSTRT
+      REAL*8,         INTENT(IN)  :: STRTX(Input_Opt%LINOZ_NLEVELS)
+      REAL*8,         INTENT(IN)  :: P0L(LLPAR+1)
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(OUT) :: STRT0L(LLPAR+1)
-      REAL*8,  INTENT(OUT) :: STRT1L(LLPAR+1)
-      REAL*8,  INTENT(OUT) :: STRT2L(LLPAR+1)
+      !--------------------------------------------------------------------
+      ! STRT0L    : 0th moment of distribution, on GEOS-Chem grid edges
+      ! STRT1L    : 1st moment of distribution, on GEOS-Chem grid edges
+      ! STRT2L    : 2nd moment of distribution, on GEOS-Chem grid edges
+      ! RC        : Success or failure?
+      !--------------------------------------------------------------------
+      REAL*8,         INTENT(OUT) :: STRT0L(LLPAR+1)
+      REAL*8,         INTENT(OUT) :: STRT1L(LLPAR+1)
+      REAL*8,         INTENT(OUT) :: STRT2L(LLPAR+1)
+      INTEGER,        INTENT(OUT) :: RC
 !
-! !REVISION HISTORY: 
-!  24 Jun 2003 - B. Field & D. Jones - Further updates for GEOS-Chem
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      integer ncbox,l,k
-
-      real*8  P1,P2,F0,F1,F2,PS(NL+1),F(NL)
-      real*8  XPSD,XPSLM1,XPSL
-c-----------------------------------------------------------------------
-c         set up std z* atmosphere: p = 1000 * 10**(-z*/16 km)
-c         assume that stratospheric chemical parameters always start at
-cc         52 km (N=27) scan downward from 52 km to 14 km (NX=20) by 2 km
-c         58 km (N=30) scan downward from 58 km to 10 km (NX=25) by 2 km      
-c         intervals, constant >58km
-c-------- N.B. F(@30km) assumed to be constant from 29-31 km (by mass) 
-c
-!======== Comments from Chris McLinden by Email ={PJC}==================
-!     CALL SOMLFQ(P1,P2,F0,F1,F2,PS,F,NL)
-!   - P1,P2 are the pressure EDGES for the CTM layer onto which the
-!     coefficients will be mapped. [P1>P2 I believe {PJC}]
-!   - F0,F1,F2 are the CTM layer vertical moments determined in SOMLFQ
-!   - PS are the pressure layer edges of the original [ie Linox] grid
-!   - F is the column of coefficients (on the original grid); note
-!     F is flipped relative to STRTX and since the coefficients begin
-!     at z*=10, F(1)=F(2)=...=F(5)=0
-!   - NL is 30; size of F()
-!      
-!     The box model calculations were performed at z*=10km, 12km, ... and
-!     so these would represent the centres with the corresponding edges at
-!     9,11km ; 11,13km; ...
-!     PS() represents the edges (although PS(1) is set to 1000mb).
-!     The first few values are:
+! !REMARKS:
+!  Comments from Chris McLinden to Peter Cameron-Smith:
+!  ===========================================================================
+!  CALL SOMLFQ(P1,P2,F0,F1,F2,PS,F,NL)
+!  - P1,P2 are the pressure EDGES for the CTM layer onto which the
+!    coefficients will be mapped. [P1>P2 I believe {PJC}]
+!  - F0,F1,F2 are the CTM layer vertical moments determined in SOMLFQ
+!  - PS are the pressure layer edges of the original [ie Linox] grid
+!  - F is the column of coefficients (on the original grid); note
+!    F is flipped relative to STRTX and since the coefficients begin
+!    at z*=10, F(1)=F(2)=...=F(5)=0
+!  - NL is 30; size of F()
+!                                                                             .
+!   The box model calculations were performed at z*=10km, 12km, ... and
+!   so these would represent the centres with the corresponding edges at
+!   9,11km ; 11,13km; ...
+!   PS() represents the edges (although PS(1) is set to 1000mb).
+!   The first few values are:
 !     PS(1)=1000
 !     PS(2)=874.947105    (note PS(2) is not quite 1000 exp(-1/16) as the
 !     PS(3)=656.117767     the average pressure is used - not the pressure
@@ -642,37 +793,87 @@ c
 !     ...
 !     PS(30)=0.276682568
 !     PS(31)=0.0
-!     
+!                                                                             .
 !     F(1) spans PS(1)-PS(2)
 !     F(2) spans PS(2)-PS(3)
 !     ...
 !     F(30) spans PS(30)-PS(31)
-!=======================================================================
 
+! !REVISION HISTORY:
+!  24 Jun 2003 - B. Field & D. Jones - Further updates for GEOS-Chem
+!  18 Mar 2013 - R. Yantosca - Now pass am_I_root, Input_Opt, RC arguments
+!  18 Mar 2013 - R. Yantosca - Rearrange argument list so that inputs are
+!                              all listed before outputs
+!  18 Mar 2013 - R. Yantosca - Now make NL a local varable and set its
+!                              value from Input_Opt%LINOZ_NLEVELS
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Scalars
+      INTEGER :: NL,  NCBOX, L,      K,    NX
+      REAL*8  :: P1,  P2,    F0,     F1
+      REAL*8  :: F2,  XPSD,  XPSLM1, XPSL
+
+      ! Arrays
+      REAL*8  :: PS(Input_Opt%LINOZ_NLEVELS+6)  ! Old code: PS(NL+1)
+      REAL*8  :: F (Input_Opt%LINOZ_NLEVELS+5)  ! Old code: PS(NL)
+
+      !=================================================================
+      ! Initialization
+      !=================================================================
+
+      ! Assume success
+      RC         = GIGC_SUCCESS
+
+      ! Now make NX a local variable, since we already pass
+      ! its value via the Input_Opt object (bmy, 3/13/18)
+      NX         = Input_Opt%LINOZ_NLEVELS
+
+      ! Now make NL a local variable instead of a parameter, because
+      ! we need to construct its value usign Input_Opt (bmy, 3/18/13)
+      NL         = Input_Opt%LINOZ_NLEVELS + 5
+
+      !=================================================================
+      ! Set up std z* atmosphere: p = 1000 * 10**(-z*/16 km)
+      !
+      ! Assume that stratospheric chemical parameters always start at
+      ! 52 km (N=27).  Scan downward from 52 km to 14 km (NX=20) by
+      ! 2 km.
+      !
+      ! 58 km (N=30) scan downward from 58 km to 10 km (NX=25) by 2 km
+      ! intervals, constant >58km
+      !
+      !  N.B. F(@30km) assumed to be constant from 29-31 km (by mass)
+      !=================================================================
 
       XPSD       = 10.D0 **(-0.125D0)
       XPSLM1     = 1000.D0
       PS(1)      = 1000.D0
       DO L = 2,NL
-        XPSL     = XPSLM1 *XPSD
-        PS(L)    = 0.5D0 *(XPSLM1 +XPSL)
-        XPSLM1   = XPSL
+         XPSL    = XPSLM1 *XPSD
+         PS(L)   = 0.5D0 *(XPSLM1 +XPSL)
+         XPSLM1  = XPSL
       ENDDO
       PS(NL+1)   = 0.D0
       DO L = 1,NL-NX
-        F(L)     = 0.D0
+         F(L)     = 0.D0
       ENDDO
-c-------- K=1 is at the top of atmosphere ------------------------------
+
+      ! K=1 is at the top of atmosphere
       DO K = 1,NX
         F(NL+1-K)= STRTX(K) !STRTX has increasing preasure. {PJC}
       ENDDO
+
       DO K = 1,NSTRT
-        P1       = P0L(K+1)
-        P2       = P0L(K)
-        CALL LINOZ_SOMLFQ(P1,P2,F0,F1,F2,PS,F,NL)
-        STRT0L(K)= F0
-        STRT1L(K)= F1
-        STRT2L(K)= F2
+         P1       = P0L(K+1)
+         P2       = P0L(K)
+         CALL LINOZ_SOMLFQ(P1,P2,F0,F1,F2,PS,F,NL)
+         STRT0L(K)= F0
+         STRT1L(K)= F1
+         STRT2L(K)= F2
       ENDDO
 
       END SUBROUTINE LINOZ_STRT2M
@@ -804,17 +1005,27 @@ c-------- K=1 is at the top of atmosphere ------------------------------
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE LINOZ_READ( am_I_Root )
+      SUBROUTINE LINOZ_READ( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE FILE_MOD,      ONLY : IOERROR        ! I/O error subroutine
-      USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1   ! Data directory path
       USE CMN_SIZE_MOD
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE InquireMod,         ONLY : findFreeLun
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root         ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  LINOZ_READ is called from "main.f" at the start of the simulation.
@@ -826,37 +1037,57 @@ c-------- K=1 is at the top of atmosphere ------------------------------
 !  16 Oct 2009 - R. Yantosca         - Read file from DATA_DIR_1x1
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  15 Mar 2013 - R. Yantosca - Now call INIT_LINOZ from GIGC_Init_Extra
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 ! 
-      LOGICAL, SAVE      :: FIRST = .TRUE.
-      INTEGER            :: IU_FILE
-      INTEGER            :: K, J, M, NTBLS, IOS
+      ! Scalars
+      INTEGER            :: IU_FILE, K,     J
+      INTEGER            :: M,       NTBLS, IOS
       REAL*8             :: TMAX,    TMIN
+
+      ! Dimension sizes
+      INTEGER            :: NFIELDS_LINOZ
+      INTEGER            :: NLAT_LINOZ
+      INTEGER            :: NLEVELS_LINOZ
+      INTEGER            :: NMONTHS_LINOZ
+
+      ! Strings
       CHARACTER(LEN=80)  :: HEADING, TITL1
+      CHARACTER(LEN=255) :: ERRMSG
       CHARACTER(LEN=255) :: FILENAME
 
-      ! Only initialize arrays on first timestep
-      IF ( FIRST ) THEN 
-         CALL INIT_LINOZ
-         FIRST = .FALSE.
-      ENDIF
+      !=================================================================
+      ! LINOZ_READ begins here!
+      !=================================================================
+
+      ! Assume success
+      RC             = GIGC_SUCCESS
+
+      ! Get fields from Input_Opt
+      NFIELDS_LINOZ  = Input_Opt%LINOZ_NFIELDS
+      NLAT_LINOZ     = Input_Opt%LINOZ_NLAT
+      NLEVELS_LINOZ  = Input_Opt%LINOZ_NLEVELS
+      NMONTHS_LINOZ  = Input_Opt%LINOZ_NMONTHS
 
       ! Filename
-      FILENAME = TRIM( DATA_DIR_1x1 ) // 
-     &           'Linoz_200910/Linoz_March2007.dat'
+      FILENAME       = TRIM( Input_Opt%DATA_DIR_1x1 ) //
+     &                 'Linoz_200910/Linoz_March2007.dat'
 
       ! Echo info
       IF ( am_I_Root ) THEN
          WRITE( 6, 100 ) TRIM( FILENAME )
+ 100     FORMAT( '     - LINOZ_READ: Reading ', a )
       ENDIF
- 100  FORMAT( '     - LINOZ_READ: Reading ', a )
 
       ! Find a free file LUN
       IU_FILE = findFreeLUN()
+
+      ! Define error message
+      ERRMSG  = 'LINOZ_READ (in GeosCore/linoz_mod.F)'
 
       ! new std z*=2km levels from model:  z*=10,12,...(25*2)+8 km
       OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', 
@@ -864,56 +1095,79 @@ c-------- K=1 is at the top of atmosphere ------------------------------
 
       ! Stop on error
       IF ( IOS /= 0 ) THEN
-         CALL IOERROR( IOS, IU_FILE, 'read_linoz_coeff_file' )
+         CALL IOERROR( IOS, IU_FILE, ERRMSG )
       ENDIF
 
-      ! Reade header
-      READ ( IU_FILE, 901 ) HEADING
+      ! Read header
+      READ ( IU_FILE, '(a)' ) HEADING
       IF ( am_I_Root ) THEN
          WRITE(6,*) TRIM( HEADING )
       ENDIF
 
-      ! Loop thru file
-      DO NTBLS = 1,nfields_linoz
+      ! Loop over # of fields in the LINOZ climatology
+      DO NTBLS = 1, NFIELDS_LINOZ
+
+         ! Zero min & max values
          TMIN = +1.d30
          TMAX = -1.d30
-         READ (IU_FILE,901) TITL1
-         do M = 1,nmonths_linoz !Month
-            do J = 1,nlat_linoz !Latitudes
-               READ (IU_FILE,907)  
-     &               (TPARM(K,J,M,NTBLS),K=nlevels_linoz,1,-1)
-               do K=1,nlevels_linoz
-                  TMAX = max (TMAX, TPARM(K,J,M,ntbls))
-                  TMIN = min (TMIN, TPARM(K,J,M,ntbls))
+
+         ! Skip header line
+         READ( IU_FILE, '(a)' ) TITL1
+
+         ! Loop over # of months in the LINOZ climatology
+         do M = 1, NMONTHS_LINOZ
+
+            ! Loop over # of latitudes in the LINOZ climatology
+            do J = 1, NLAT_LINOZ
+
+               ! Read data into Input_Opt%LINOZ_TPARM
+               READ( IU_FILE, '(20X,6E11.4/(8E11.4))', IOSTAT=IOS )
+     &               ( Input_Opt%LINOZ_TPARM(K,J,M,NTBLS),
+     &                 K=NLEVELS_LINOZ,1,-1                 )
+
+               ! Stop on error
+               IF ( IOS > 0 ) THEN
+                  CALL IOERROR( IOS, IU_FILE, ERRMSG )
+               ENDIF
+
+               ! Loop over # of levels in the LINOZ climatology
+               ! and compute the overall min & max
+               do K = 1, NLEVELS_LINOZ
+                  TMAX = MAX( TMAX, Input_Opt%LINOZ_TPARM(K,J,M,ntbls) )
+                  TMIN = MIN( TMIN, Input_Opt%LINOZ_TPARM(K,J,M,ntbls) )
                enddo
             enddo
          enddo
+
+         ! Write overall min & max
          write (6,912) TITL1,TMIN,TMAX
+ 912     FORMAT('  Linoz Data:  ',a80,1p,2e10.3)
+
       enddo
 
+      ! Echo info
       IF ( am_I_Root ) THEN
          WRITE( 6, '(a)' ) '$$ Finished Reading Linoz Data $$'
          WRITE( 6, '(a)' )
       ENDIF
 
-      GOTO 999
-
-      ! If error has occurred
- 101  CONTINUE
-      IF ( am_I_Root ) THEN
-      WRITE(6,*)'**** STOP: Error reading Linoz Coefficients {PJC} ****'
-      write(6,*)'NTBLS =',ntbls,',  M =',m,',  J =',j,',  K =',k
-      write(6,*)'TPARM(K,J,M,NTBLS) =',TPARM(K,J,M,NTBLS)
-      ENDIF
-      STOP
-
-      ! Format strings
- 901  FORMAT(A)
- 907  FORMAT(20X,6E11.4/(8E11.4))
-c907  FORMAT(20X,6E10.3/(8E10.3))
- 912  FORMAT('  Linoz Data:  ',a80,1p,2e10.3)
-      
- 999  CONTINUE
+!-----------------------------------------------------------------------------
+! Prior to 3/18/13:
+! This block does not get executed, we stop the read with IOERROR now
+! (bmy, 3/18/13)
+!      GOTO 999
+!
+!      ! If error has occurred
+! 101  CONTINUE
+!      IF ( am_I_Root ) THEN
+!      WRITE(6,*)'**** STOP: Error reading Linoz Coefficients {PJC} ****'
+!      write(6,*)'NTBLS =',ntbls,',  M =',m,',  J =',j,',  K =',k
+!      write(6,*)'TPARM(K,J,M,NTBLS) =',TPARM(K,J,M,NTBLS)
+!      ENDIF
+!      STOP
+!
+! 999  CONTINUE
+!-----------------------------------------------------------------------------
 
       ! Close the files
       CLOSE( IU_FILE ) 
@@ -986,65 +1240,71 @@ c907  FORMAT(20X,6E10.3/(8E10.3))
       enddo
 
       END SUBROUTINE LINOZ_INTPL
+
 !EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% NOTE: This routine is not called, so comment it out (bmy, 3/18/13)
+!!------------------------------------------------------------------------------
+!!          Harvard University Atmospheric Chemistry Modeling Group            !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: strat_init
+!!
+!! !DESCRIPTION: Subroutine STRAT\_INIT copies the ozone computed by the
+!!  Linoz stratospheric chemistry algorithm back into the GEOS-Chem
+!!  tracer array.
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE STRAT_INIT( am_I_Root )
+!!
+!! !USES:
+!!
+!      USE TRACERID_MOD 
+!      USE TRACER_MOD  
 !
-! !IROUTINE: strat_init
+!      USE CMN_SIZE_MOD   
+!      USE CMN_MOD
+!!
+!! !INPUT PARAMETERS:
+!!
+!      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+!!
+!! !REVISION HISTORY: 
+!!  24 Jun 2003 - B. Field & D. Jones - Further updates for GEOS-Chem
+!!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!!                              running with the traditional driver main.F
+!!  31 Jul 2012 - R. Yantosca - Now loop over 1..LLPAR for GIGC compatibility
+!!  18 Mar 2013 - R. Yantosca - Now use ITS_IN_THE_TROP to test if we are
+!!                              in the troposphere
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      INTEGER I, J, L
 !
-! !DESCRIPTION: Subroutine STRAT\_INIT copies the ozone computed by the
-!  Linoz stratospheric chemistry algorithm back into the GEOS-Chem
-!  tracer array.
-!\\
-!\\
-! !INTERFACE:
+!      CALL LINOZ_STRATL( am_I_Root )
 !
-      SUBROUTINE STRAT_INIT( am_I_Root )
+!      DO J = 1,JJPAR
+!      DO I = 1,IIPAR
+!      DO L = 1, LLPAR
+!         IF (L .LT. LPAUSE(I,J)) CYCLE
+!         STT(I,J,L,IDTOX) = TLSTT(J,L,1) / TCVV(IDTOX)
+!      ENDDO
+!      ENDDO
+!      ENDDO
 !
-! !USES:
+!!      call write_fields2(7)
+!!      call flush(12)
 !
-      USE TRACERID_MOD 
-      USE TRACER_MOD   
-
-      USE CMN_SIZE_MOD
-      USE CMN_MOD
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-!
-! !REVISION HISTORY: 
-!  24 Jun 2003 - B. Field & D. Jones - Further updates for GEOS-Chem
-!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
-!                              running with the traditional driver main.F
-!  31 Jul 2012 - R. Yantosca - Now loop over 1..LLPAR for GIGC compatibility
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER I, J, L
-
-      CALL LINOZ_STRATL( am_I_Root )
-
-      DO J = 1,JJPAR
-      DO I = 1,IIPAR
-      DO L = 1, LLPAR
-         IF (L .LT. LPAUSE(I,J)) CYCLE
-         STT(I,J,L,IDTOX) = TLSTT(J,L,1) / TCVV(IDTOX)
-      ENDDO
-      ENDDO
-      ENDDO
-
-!      call write_fields2(7)
-!      call flush(12)
-
-      END SUBROUTINE STRAT_INIT
-!EOC
-!------------------------------------------------------------------------------
+!      END SUBROUTINE STRAT_INIT
+!!EOC
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!----------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
@@ -1057,42 +1317,47 @@ c907  FORMAT(20X,6E10.3/(8E10.3))
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_LINOZ
+      SUBROUTINE INIT_LINOZ( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE ERROR_MOD, ONLY : ALLOC_ERR
-
       USE CMN_SIZE_MOD 
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  16 Oct 2009 - R. Yantosca - Initial version
+!  18 Mar 2013 - R. Yantosca - Remove TPARM array since that is now carried
+!                              within the Input_Opt object.
+!  18 Mar 2013 - R. Yantosca - Accept am_I_Root, Input_Opt, RC arguments
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE :: FIRST = .TRUE.
       INTEGER       :: AS
 
-      ! For safety's sake, only allocate arrays on first call
-      IF ( FIRST ) THEN 
-
-         ! Allocate TPARM array
-         ALLOCATE( TPARM( NLEVELS_LINOZ, NLAT_LINOZ,
-     &                    NMONTHS_LINOZ, NFIELDS_LINOZ ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'TPARM' )
-         TPARM = 0d0
-
-         ! Allocate TLSTT array
-         ALLOCATE( TLSTT( JJPAR, LLPAR, NFIELDS_LINOZ ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'TPARM' )
-         TLSTT = 0d0
-
-         ! Reset FIRST
-         FIRST = .FALSE.
-      ENDIF
+      ! Allocate TLSTT array
+      ALLOCATE( TLSTT( JJPAR, 
+     &                 LLPAR, 
+     &                 Input_Opt%LINOZ_NFIELDS ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TPARM' )
+      TLSTT = 0d0
 
       END SUBROUTINE INIT_LINOZ
 !EOC
@@ -1116,11 +1381,8 @@ c907  FORMAT(20X,6E10.3/(8E10.3))
 !------------------------------------------------------------------------------
 !BOC
       ! Deallocate arrays
-      IF ( ALLOCATED( TPARM ) ) DEALLOCATE( TPARM )
       IF ( ALLOCATED( TLSTT ) ) DEALLOCATE( TLSTT )
       
       END SUBROUTINE CLEANUP_LINOZ
 !EOC
-
-      ! End of module
       END MODULE LINOZ_MOD

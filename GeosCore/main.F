@@ -218,6 +218,7 @@
 !  26 Feb 2013 - R. Yantosca - Add placeholder tag for Input_Opt%MAX_DEP
 !  05 Mar 2013 - R. Yantosca - Now pass am_I_Root, Input_Opt, RC to routine
 !                              DO_PBL_MIX_2 (for non-local PBL mixing)
+!  15 Mar 2013 - R. Yantosca - Now set Input_Opt%LINOZ_N* fields here
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -292,23 +293,27 @@
       !
       ! Assume a successful return until otherwise
       !
-      RC                 = GIGC_SUCCESS
+      RC                      = GIGC_SUCCESS
       !
       ! Define NI, NJ, NL dimensions for use below
       !
-      NI                 = IIPAR
-      NJ                 = JJPAR
-      NL                 = LLPAR
+      NI                      = IIPAR
+      NJ                      = JJPAR
+      NL                      = LLPAR
       !
       ! Define dimensions for fields of the Input Options object
       ! NOTE: At this point we have not yet read in the "input.geos"
       ! file so these are just placeholder values (bmy, 11/7/12)
       !
-      Input_Opt%MAX_DIAG = MAX_DIAG
-      Input_Opt%MAX_TRCS = NNPAR
-      Input_Opt%MAX_MEMB = N_MEMBERS
-      Input_Opt%MAX_FAMS = MAXFAM
-      Input_Opt%MAX_DEP  = MAXDEP
+      Input_Opt%MAX_DIAG      = MAX_DIAG
+      Input_Opt%MAX_TRCS      = NNPAR
+      Input_Opt%MAX_MEMB      = N_MEMBERS
+      Input_Opt%MAX_FAMS      = MAXFAM
+      Input_Opt%MAX_DEP       = MAXDEP
+      Input_Opt%LINOZ_NLEVELS = 25
+      Input_Opt%LINOZ_NLAT    = 18
+      Input_Opt%LINOZ_NMONTHS = 12
+      Input_Opt%LINOZ_NFIELDS = 7
       !
       ! Call the routine GIGC_Allocate_All (located in module file
       ! GeosCore/gigc_environment_mod.F90) to allocate all lat/lon
@@ -411,7 +416,9 @@
       ENDIF
          
       ! Added to read input file for linoz strat (dbj, jliu, bmy, 10/16/09)
-      IF ( LLINOZ ) CALL LINOZ_READ( am_I_Root )
+      IF ( LLINOZ ) THEN
+         CALL LINOZ_READ( am_I_Root, Input_Opt, RC )
+      ENDIF
 
       ! Allocate arrays from "global_ch4_mod.f" for CH4 run 
       IF ( ITS_A_CH4_SIM() ) CALL INIT_GLOBAL_CH4

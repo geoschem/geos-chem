@@ -7964,6 +7964,7 @@
       USE Error_Mod,          ONLY : Debug_Msg
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Linoz_Mod,          ONLY : Init_Linoz
       USE Seasalt_Mod,        ONLY : Init_SeaSalt
       USE Sulfate_Mod,        ONLY : Init_Sulfate
 !
@@ -7990,7 +7991,8 @@
 !
 ! !REVISION HISTORY: 
 !  04 Mar 2013 - R. Yantosca - Initial revision
-!  05 Mar 2013 - R. Yantosca - Now call INIT_AEROSOL (aerosol_mod.F)
+!  05 Mar 2013 - R. Yantosca - Now call INIT_AEROSOL (GeosCore/aerosol_mod.F)
+!  15 Mar 2013 - R. Yantosca - Now call INIT_LINOZ (GeosCore/linoz_mod.F)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8042,6 +8044,12 @@
      &     Input_Opt%LDUST .or. Input_Opt%LSSALT ) THEN
          CALL Init_Aerosol( am_I_Root, Input_Opt, RC )
          IF ( RC /= GIGC_SUCCESS ) RETURN
+         IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_AEROSOL' )
+      ENDIF
+
+      ! Initialize "linoz_mod.F"
+      IF ( Input_Opt%LLINOZ ) THEN
+         CALL INIT_LINOZ( am_I_Root, Input_Opt, RC )
          IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_AEROSOL' )
       ENDIF
 

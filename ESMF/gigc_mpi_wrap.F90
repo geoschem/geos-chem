@@ -106,14 +106,17 @@ CONTAINS
 ! !REVISION HISTORY:
 !  04 Jan 2013 - M. Long     - Initial version
 !  28 Feb 2013 - R. Yantosca - Now MPI BCast the Input_Opt%haveImpRst field
+!  18 Mar 2013 - R. Yantosca - Mow MPI Bcast the Input_Opt%LINOZ_* fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+    INTEGER :: COUNT
+!
 ! mpi_bcast (buffer, count, datatype, root, comm, ier)
-
+!
     RC = GIGC_SUCCESS
 
     !----------------------------------------
@@ -690,6 +693,24 @@ CONTAINS
     ! GEOS-5 GCM INTERFACE fields
     !----------------------------------------
     CALL MPI_Bcast( INPUT_OPT%haveImpRst, 1, mpi_logical, 0, mpiComm, RC )
+
+    !----------------------------------------
+    ! LINOZ fields
+    !----------------------------------------
+   
+    ! LINOZ array dimensions
+    CALL MPI_Bcast( INPUT_OPT%LINOZ_NLEVELS, 1, mpi_integer, 0, mpiComm, RC )
+    CALL MPI_Bcast( INPUT_OPT%LINOZ_NLAT,    1, mpi_integer, 0, mpiComm, RC )
+    CALL MPI_Bcast( INPUT_OPT%LINOZ_NMONTHS, 1, mpi_integer, 0, mpiComm, RC )
+    CALL MPI_Bcast( INPUT_OPT%LINOZ_NFIELDS, 1, mpi_integer, 0, mpiComm, RC )
+
+    ! LINOZ_TPARM array
+    COUNT = INPUT_OPT%LINOZ_NLEVELS &
+          * INPUT_OPT%LINOZ_NLAT    &
+          * INPUT_OPT%LINOZ_NMONTHS & 
+          * INPUT_OPT%LINOZ_NFIELDS
+
+    CALL MPI_Bcast( INPUT_OPT%LINOZ_TPARM, COUNT, mpi_real8, 0, mpiComm, RC )
 
   END SUBROUTINE GIGC_Input_Bcast
 !EOC

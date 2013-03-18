@@ -540,6 +540,15 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                    :: haveImpRst
      INTEGER                    :: myCpu
 
+     !----------------------------------------
+     ! Fields for LINOZ strat chem
+     !----------------------------------------
+     INTEGER                    :: LINOZ_NLEVELS
+     INTEGER                    :: LINOZ_NLAT
+     INTEGER                    :: LINOZ_NMONTHS
+     INTEGER                    :: LINOZ_NFIELDS
+     REAL*8,            POINTER :: LINOZ_TPARM(:,:,:,:)
+
   END TYPE OptInput
 !
 ! !REMARKS:
@@ -556,6 +565,7 @@ MODULE GIGC_Input_Opt_Mod
 !  26 Feb 2013 - M. Long     - Bug fix: timesteps are now INTEGER, not LOGICAL
 !  28 Feb 2013 - R. Yantosca - Add haveImpRst field for GEOS-5 GCM interface
 !  08 Mar 2013 - R. Yantosca - Add myCpu field to pass CPU # to GEOS-Chem
+!  15 Mar 2013 - R. Yantosca - Add fields for LINOZ strat chemistry
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -594,11 +604,18 @@ CONTAINS
     INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
-!  NOTE: Set Input_Opt%MAX_TRCS and Input_Opt%MAX_MEMB outside of this
-!  routine to define the max # of tracers and species per family tracer
-!  for input quantities.  
-!                                                                              .
-!  Probably need to implement better error checking.
+!  Set the following fields of Input_Opt outside of this routine:
+!  (1 ) Input_Opt%MAX_DIAG      : Max # of diagnostics
+!  (2 ) Input_Opt%MAX_TRCS      : Max # of tracers
+!  (3 ) Input_Opt%MAX_MEMB      : Max # of members per family tracer
+!  (4 ) Input_Opt%MAX_FAMS      : Max # of P/L diagnostic families
+!  (5 ) Input_Opt%MAX_DEP       : Max # of dry depositing species
+!  (6 ) Input_Opt%LINOZ_NLEVELS : Number of levels    in LINOZ climatology
+!  (7 ) Input_Opt%LINOZ_NLAT    : Number of latitudes in LINOZ climatology
+!  (8 ) Input_Opt%LINOZ_NMONTHS : Number of months    in LINOZ climatology
+!  (9 ) Input_Opt%LINOZ_NFIELDS : Number of species   in LINOZ climatology
+!                                                                             .
+!  We also need to implement better error checking.
 !
 ! !REVISION HISTORY: 
 !  01 Nov 2012 - R. Yantosca - Initial version
@@ -610,6 +627,7 @@ CONTAINS
 !  26 Feb 2013 - M. Long     - Add extra fields from input.geos
 !  28 Feb 2013 - R. Yantosca - Add haveImpRst field for GEOS-5 GCM interface
 !  08 Mar 2013 - R. Yantosca - Now initialize the myCpu field
+!  15 Mar 2013 - R. Yantosca - Now initialize the LINOZ_TPARM field
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -629,7 +647,7 @@ CONTAINS
     MAX_MEMB                         = Input_Opt%MAX_MEMB
     MAX_FAMS                         = Input_Opt%MAX_FAMS
     MAX_DEP                          = Input_Opt%MAX_DEP
-
+  
     !----------------------------------------
     ! SIMULATION MENU fields 
     !----------------------------------------
@@ -1244,6 +1262,17 @@ CONTAINS
     Input_Opt%haveImpRst             = .FALSE.
     Input_Opt%myCpu                  = -1
 
+
+    !----------------------------------------
+    ! Fields for LINOZ strat chem
+    !----------------------------------------
+    ALLOCATE( Input_Opt%LINOZ_TPARM( Input_Opt%LINOZ_NLEVELS,            &
+                                     Input_Opt%LINOZ_NLAT,               &
+                                     Input_Opt%LINOZ_NMONTHS,            &
+                                     Input_Opt%LINOZ_NFIELDS ), STAT=RC )
+
+    Input_Opt%LINOZ_TPARM            = 0d0
+
   END SUBROUTINE Set_GIGC_Input_Opt
 !EOC
 !------------------------------------------------------------------------------
@@ -1281,6 +1310,7 @@ CONTAINS
 !  02 Nov 2012 - R. Yantosca - Initial version
 !  07 Nov 2012 - R. Yantosca - Now deallocate fields from prod/loss menu
 !  26 Feb 2013 - M. Long     - Now deallocate extra fields from input.geos
+!  15 Mar 2013 - R. Yantosca - Now deallocate the LINOZ_TPARM field
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1414,7 +1444,11 @@ CONTAINS
     IF ( ASSOCIATED( Input_Opt%DUSTDEN ) ) THEN
        DEALLOCATE( Input_Opt%DUSTDEN )
     ENDIF
-    
+
+    IF ( ASSOCIATED( Input_Opt%LINOZ_TPARM ) ) THEN
+       DEALLOCATE( Input_Opt%LINOZ_TPARM )
+    ENDIF
+
   END SUBROUTINE Cleanup_GIGC_Input_Opt
 !EOC
 END MODULE GIGC_Input_Opt_Mod

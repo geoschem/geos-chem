@@ -68,6 +68,7 @@ CONTAINS
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE Input_Mod,          ONLY : Read_Input_File
+    USE Linoz_Mod,          ONLY : Linoz_Read
 !
 ! !INPUT PARAMETERS: 
 !
@@ -101,6 +102,7 @@ CONTAINS
 !  26 Feb 2013 - M. Long     - Now pass State_Chm as an argument
 !  26 Feb 2013 - M. Long     - Read "input.geos" on root CPU only
 !  06 Mar 2013 - R. Yantosca - Now move non-root CPU setup out of this routine
+!  18 Mar 2013 - R. Yantosca - Now call LINOZ_READ on the root CPU
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -157,10 +159,23 @@ CONTAINS
        ! (mlong, bmy, 2/26/13)
        CALL Read_Input_File( am_I_Root, Input_Opt, RC )
 
-       ! Display informational msg
+       ! Echo info
        IF ( Input_Opt%LPRT ) THEN
           CALL Debug_Msg( '### Root CPU, after READ_INPUT_FILE' )
        ENDIF
+
+       ! Read the LINOZ climatology file on the root CPU, so that we can
+       ! MPI broadcast the data to the other CPUs in GIGC_Init_Simulation
+       ! (bmy, 3/18/13)
+       IF ( Input_Opt%LLINOZ ) THEN
+          CALL Linoz_Read( am_I_Root, Input_Opt, RC ) 
+
+          ! Echo info
+          IF ( Input_Opt%LPRT ) THEN
+             CALL Debug_Msg( '### Root CPU, after LINOZ_READ' )
+          ENDIF
+       ENDIF
+
     ENDIF
 
   END SUBROUTINE GIGC_Get_Options

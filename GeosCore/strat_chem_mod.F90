@@ -109,6 +109,51 @@ MODULE STRAT_CHEM_MOD
   ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
   !=================================================================
 CONTAINS
+#if defined( ESMF_ )
+  !----------------------------------------------------------------------
+  ! TEMPORARY VERSION OF DO_STRAT_CHEM -- only invoked with ESMF!
+  !
+  ! This temporary version of DO_STRAT_CHEM is only called when we are
+  ! connecting to the GEOS-5 GCM via the ESMF interface.  This temporary
+  ! version skips the normal GMI strat chem routine and calls LINOZ.
+  !
+  ! This is just a temporary situation, and is intended only for testing.
+  ! It is simpler to bring in the LINOZ chemistry to the GEOS-5 GCM
+  ! first.  The GMI strat chem package is more complicated due to the
+  ! large # of netCDF files that it has to read.  Those files all have
+  ! to be read in via ESMF/MAPL and passed as inputs to the GEOS-Chem
+  ! Chemistry Component via the Import State. (bmy, 3/18/13)
+  !----------------------------------------------------------------------
+  SUBROUTINE Do_Strat_Chem( am_I_Root, Input_Opt, State_Met, RC )
+!
+! !USES:
+!
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE GIGC_State_Met_Mod, ONLY : MetState 
+    USE Linoz_Mod,          ONLY : Do_Linoz
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+    TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+    TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+
+    ! Assume succes
+    RC = GIGC_SUCCESS
+
+    ! Do Linoz or Synoz
+    IF ( Input_Opt%LLINOZ ) THEN
+       write(6,*) '### Shunting GMI strat chem, doing LINOZ instead'
+       CALL Do_Linoz( am_I_Root, Input_Opt, State_Met, RC )
+    ENDIF
+
+  END SUBROUTINE DO_STRAT_CHEM
+#else
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -184,6 +229,8 @@ CONTAINS
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  27 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
+!  18 Mar 2013 - R. Yantosca - Now pass Input_Oppt
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -345,7 +392,7 @@ CONTAINS
 
        ! Do Linoz or Synoz
        IF ( LLINOZ ) THEN
-          CALL Do_Linoz( am_I_Root, State_Met )
+          CALL Do_Linoz( am_I_Root, Input_Opt, State_Met, RC=errCode )
        ELSE
           CALL Do_Synoz( am_I_Root, State_Met )
        ENDIF
@@ -498,7 +545,7 @@ CONTAINS
 
        CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, State_Met%AD, STT ) ! kg -> v/v
        IF ( LLINOZ ) THEN
-          CALL Do_Linoz( am_I_Root, State_Met )
+          CALL Do_Linoz( am_I_Root, Input_Opt, State_Met, RC=errCode )
        ELSE 
           CALL Do_Synoz( am_I_Root, State_Met )
        ENDIF
@@ -574,6 +621,7 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE DO_STRAT_CHEM
+#endif
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
