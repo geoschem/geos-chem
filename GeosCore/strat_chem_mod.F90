@@ -124,13 +124,15 @@ CONTAINS
   ! to be read in via ESMF/MAPL and passed as inputs to the GEOS-Chem
   ! Chemistry Component via the Import State. (bmy, 3/18/13)
   !----------------------------------------------------------------------
-  SUBROUTINE Do_Strat_Chem( am_I_Root, Input_Opt, State_Met, RC )
+  SUBROUTINE Do_Strat_Chem( am_I_Root, Input_Opt,     &
+                            State_Met, State_Chm, RC )
 !
 ! !USES:
 !
     USE GIGC_ErrCode_Mod
     USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState 
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE Linoz_Mod,          ONLY : Do_Linoz
 !
 ! !INPUT PARAMETERS:
@@ -138,6 +140,7 @@ CONTAINS
     LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
     TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
     TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+    TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
