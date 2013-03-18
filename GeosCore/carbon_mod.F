@@ -4241,6 +4241,7 @@ c
       USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
       USE TRACER_MOD,         ONLY : STT
 #if   defined ( TOMAS )
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE DIAG_MOD,           ONLY : AD59_ECIL, AD59_ECOB        !(win, 1/25/10)
       USE DIAG_MOD,           ONLY : AD59_OCIL, AD59_OCOB        !(win, 1/25/10)
       USE DIAG_MOD,           ONLY : AD59_NUMB                   !(win, 1/25/10)
@@ -4291,6 +4292,10 @@ c
       integer              :: ii, jj, ll
       logical              :: dbg = .false.
       data ii, jj, ll /53, 29, 8 /
+
+      REAL*4               :: BOXVOL  ! calculated from State_Met
+      REAL*4               :: TEMPTMS ! calculated from State_Met
+      REAL*4               :: PRES    ! calculated from State_Met
 #endif
 
 
@@ -4665,7 +4670,7 @@ c
            ! Convert the total mass emission to number emisison [No.]
            DO K = 1, IBINS
               NUMBSRC(:,:,K) = ( EC30SRC(:,:,K,1) + EC30SRC(:,:,K,2) +
-     &                          OC30SRC(:,:,K,1) + OC30SRC(:,:,K,2)   )/ 
+     &                          OC30SRC(:,:,K,1) + OC30SRC(:,:,K,2) )/
      &                          AVGMASS(K) 
            ENDDO
 
@@ -4675,6 +4680,7 @@ c
            !=================================================================
            ! ND59 diagnostic: Size-resolved aerosol emissions [kg/timestep]
            !=================================================================
+!FUTUREOMP
            IF ( ND59 > 0 ) THEN
               DO K = 1, IBINS
               DO J = 1, JJPAR
@@ -4716,8 +4722,12 @@ c
          IF ( PSTEST ) THEN 
             DO J = 1, JJPAR
             DO I = 1, IIPAR  
+               BOXVOL  = State_Met%AIRVOL(I,J,1) * 1.e6 !convert from m3 -> cm3 
+               TEMPTMS = State_Met%T(I,J,1)
+               PRES    = GET_PCENTER(i,j,1)*100.0 ! in Pa       
                IF ( SOASRC(I,J) > 0.d0 ) 
-     &              CALL SOACOND( SOASRC(I,J), I, J, 1 )
+     &            CALL SOACOND( SOASRC(I,J), I, J, 1,
+     &               BOXVOL, TEMPTMS, PRES )
             ENDDO
             ENDDO
             IF ( LPRT ) 
@@ -4726,8 +4736,12 @@ c
 
             DO J = 1, JJPAR
             DO I = 1, IIPAR  
+               BOXVOL  = State_Met%AIRVOL(I,J,1) * 1.e6 !convert from m3 -> cm3 
+               TEMPTMS = State_Met%T(I,J,1)
+               PRES    = GET_PCENTER(i,j,1)*100.0 ! in Pa       
                IF ( TERP_ORGC(I,J) > 0.d0 ) 
-     &              CALL SOACOND( OC2OM * TERP_ORGC(I,J), I, J, 1 )
+     &            CALL SOACOND( OC2OM * TERP_ORGC(I,J), I, J, 1,
+     &               BOXVOL, TEMPTMS, PRES )
             ENDDO
             ENDDO
             IF ( LPRT ) 

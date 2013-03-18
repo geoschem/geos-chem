@@ -1198,8 +1198,8 @@ aero_drydep.o               : aero_drydep.F                                  \
                               tracer_mod.o            tracerid_mod.o         \
                               tropopause_mod.o        tomas_mod.o
 
-ion_nucl.o                  : ion_nucl.f
-YuIMN_Code.o                : YuIMN_Code.f
-cf_nucl.o                   : cf_nucl.f
+ion_nucl.o                  : ion_nucl.F
+YuIMN_Code.o                : YuIMN_Code.F
+cf_nucl.o                   : cf_nucl.F
 
 #EOC

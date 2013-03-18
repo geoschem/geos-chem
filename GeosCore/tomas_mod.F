@@ -146,18 +146,11 @@
       INTEGER,           PARAMETER   :: SRTNH4 = 8
       INTEGER,           PARAMETER   :: SRTH2O = 9
 
-      INTEGER,           PARAMETER   :: ICOMPMAX = 10
+      INTEGER,           PARAMETER   :: ICOMPHARD = 9
      
 
-      REAL*4                         :: BOXVOL,  BOXMASS, TEMPTMS
-      REAL*4                         :: PRES,    RHTOMAS
 
       ! Arrays
-      REAL*8                         :: Nk(IBINS), Nkd(IBINS)
-      REAL*8                         :: Mk(IBINS, ICOMPMAX)
-      REAL*8                         :: Mkd(IBINS,ICOMPMAX)
-      REAL*8                         :: Gc(ICOMPMAX)
-      REAL*8                         :: Gcd(ICOMPMAX)
       REAL*8,            SAVE        :: Xk(IBINS+1)
       REAL*4,   save,    ALLOCATABLE :: MOLWT(:)
       INTEGER,           SAVE        :: BINACT1(101,101,101)
@@ -182,9 +175,9 @@
 !     &  4.7453d-14, 9.4906d-14, 1.8981d-13, 3.7963d-13, 7.5925d-13 /
 
       INTEGER                        :: bin_nuc = 1, tern_nuc = 0  !Switches for nucleation type.
-      INTEGER                        :: act_nuc =0 ! in BL
-      INTEGER                        :: ion_nuc =0 ! 1 for modgil, 2 for Yu
-      INTEGER                        :: absall = 1 ! 1 for soa absorb to all spec
+      INTEGER                        :: act_nuc = 1 ! in BL
+      INTEGER                        :: ion_nuc = 0 ! 1 for modgil, 2 for Yu
+      INTEGER                        :: absall  = 1 ! 1 for soa absorb to all spec
 
       REAL*8                         :: soaareafrac=1.0d0 ! fraction of SOA that goes
                                                           ! to SA rather than into mass
@@ -283,6 +276,19 @@
       REAL*8            :: QSAT         !used in RH calculation
       INTEGER           :: TRACNUM
       REAL*8            :: FRAC
+
+!---------
+!sfarina - move definitions of these from module common
+!to within each sub and pass them around for openmp
+      REAL*8                         :: Nk(IBINS), Nkd(IBINS)
+      REAL*8                         :: Mk(IBINS, ICOMP)
+      REAL*8                         :: Mkd(IBINS,ICOMP)
+      REAL*8                         :: Gc(ICOMP - 1)
+      REAL*8                         :: Gcd(ICOMP - 1)
+
+      REAL*4                         :: BOXVOL,  BOXMASS, TEMPTMS
+      REAL*4                         :: PRES,    RHTOMAS
+!---------
 
       REAL*8            :: Nkout(ibins), Mkout(ibins,icomp)
       REAL*8            :: Gcout(icomp-1)
@@ -524,10 +530,10 @@ c         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
          !*********************
 
          !Do water eqm at appropriate times
-         CALL EZWATEREQM( MK )
+         CALL EZWATEREQM( MK, RHTOMAS )
 
          !Fix any inconsistencies in M/N distribution (because of advection)
-         CALL STORENM(Nk, Nkd, Mk, Mkd) 
+         CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd) 
 
          if(printdebug .and. 
      &        i==iob.and.j==job.and.l==lob) ERRORSWITCH =.TRUE. 
@@ -539,7 +545,8 @@ c         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
          ENDIF
 
          MPNUM = 5    
-         IF ( ND60 > 0 ) CALL AERODIAG( MPNUM, I, J, L) 
+         IF ( ND60 > 0 ) 
+     &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
 
          if (printdebug.and.i==iob .and. j==job .and. l==lob ) 
      &        CALL DEBUGPRINT( Nk, Mk, I, J, L,
@@ -568,13 +575,14 @@ c         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
             if(printdebug .and. 
      &           i==iob.and.j==job.and.l==lob) ERRORSWITCH =.TRUE. 
 
-         CALL STORENM(Nk, Nkd, Mk, Mkd) 
+         CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd) 
 
 !            print*,'Before COND_NUC Gc(srtso4)=',Gc(srtso4)
 
             CALL COND_NUC(Nk,Mk,Gc,Nkout,Mkout,Gcout,fn,fn1,
      &             H2SO4rate_o,adt,num_iter,Nknuc,Mknuc,Nkcond,Mkcond, 
-     &           ERRORSWITCH, l)
+     &             BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS,
+     &             ERRORSWITCH, l)
 !            print*,'After COND_NUC Gcout(srtso4)=',Gcout(srtso4)
             
             IF ( ERRORSWITCH ) THEN
@@ -603,10 +611,12 @@ c         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
             ENDDO
 
             MPNUM = 3
-            IF ( ND60 > 0 ) CALL AERODIAG( MPNUM, I, J, L )
+            IF ( ND60 > 0 ) 
+     &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
 
             MPNUM = 7
-            IF ( ND61 > 0 ) CALL AERODIAG( MPNUM, I, J, L )
+            IF ( ND61 > 0 ) 
+     &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
          
             if (printdebug.and.i==iob .and. j==job .and. l==lob ) 
      &           CALL DEBUGPRINT( Nk, Mk, I, J, L,'After nucleation' )
@@ -623,9 +633,10 @@ c         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
             Gc(srtso4)=Gcout(srtso4)
 
             MPNUM = 1
-            IF ( ND60 > 0 ) CALL AERODIAG( MPNUM, I, J, L )
+            IF ( ND60 > 0 ) 
+     &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
 
-            if (printdebug.and.i==iob .and. j==job .and. l==lob )            
+            if (printdebug.and.i==iob .and. j==job .and. l==lob )
      &           CALL DEBUGPRINT( Nk, Mk, I, J, L,'After condensation' )
 
 
@@ -667,7 +678,7 @@ c         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
             tot_s_1a = tot_s_1a + Mk(k,srtso4)*32.d0/96.d0
          enddo
 
-         CALL STORENM(Nk, Nkd, Mk, Mkd) 
+         CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd) 
          CALL MNFIX( Nk, Mk, ERRORSWITCH )
          IF ( ERRORSWITCH ) THEN
             PRINT *,'Aerophys: MNFIX found error at',I,J,L
@@ -679,8 +690,8 @@ c         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
          ENDIF
 
          MPNUM = 5    
-         IF ( ND60 > 0 ) CALL AERODIAG( MPNUM, I, J, L) 
-
+         IF ( ND60 > 0 ) 
+     &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
 
 
          !-----------------------------
@@ -691,17 +702,19 @@ c         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
      &           i==iob.and.j==job.and.l==lob) ERRORSWITCH =.TRUE. 
          
          IF( COAG )  THEN
-            CALL STORENM(Nk, Nkd, Mk, Mkd) 
-            CALL MULTICOAG( ADT, errorswitch )
+            CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd) 
+            CALL MULTICOAG( ADT, Nk, Mk, BOXVOL, PRES, TEMPTMS,
+     &             errorswitch )
 
             if (printdebug.and.i==iob .and. j==job .and. l==lob ) 
      &           CALL DEBUGPRINT( Nk, Mk, I, J, L,'After coagulation' )
 
             MPNUM = 2
-            IF ( ND60 > 0 ) CALL AERODIAG( MPNUM, I, J, L )
+            IF ( ND60 > 0 ) 
+     &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
 
          !Fix any inconsistency after coagulation (win, 4/18/06)
-         CALL STORENM(Nk, Nkd, Mk, Mkd) 
+         CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd) 
             if(printdebug .and. i==iob.and.j==job.and.l==lob) 
      &           ERRORSWITCH=.true. !4/18/06 win
 
@@ -718,20 +731,21 @@ c         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
             ENDIF
 
             MPNUM = 5
-            IF ( ND60 > 0 ) CALL AERODIAG( MPNUM, I, J, L )
+            IF ( ND60 > 0 ) 
+     &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
          ENDIF  ! Coagulation
 
 
          ! Do water eqm at appropriate times
          CALL EZNH3EQM( Gc, Mk )
-         CALL EZWATEREQM ( MK )
+         CALL EZWATEREQM ( MK, RHTOMAS )
 
          !****************************
          ! End of aerosol dynamics
          !****************************
 
          !Fix any inconsistencies in M/N distribution (because of advection)
-         CALL STORENM(Nk, Nkd, Mk, Mkd) 
+         CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd) 
 
          ! Make sure anything that leaves AEROPHYS is free of any error
          ! This MNFIX call could be temporary (?) or just leave it here and
@@ -752,7 +766,8 @@ c         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
          ENDIF
 
          MPNUM = 5
-         IF ( ND60 > 0 ) CALL AERODIAG( MPNUM, I, J, L) ! Accumulate changes by mnfix to diagnostic (win, 9/8/05)
+         IF ( ND60 > 0 ) ! Accumulate changes by mnfix to diagnostic (win, 9/8/05)
+     &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
 
          ! Swap Nk, Mk, and Gc arrays back to STT
          DO N = 1, IBINS
@@ -805,8 +820,9 @@ cvbn         write(889,89)I,J,L,STT(i,j,l,IDTH2SO4)
 !------------------------------------------------------------------------------
 
       SUBROUTINE COND_NUC(Nki,Mki,Gci,Nkf,Mkf,Gcf,fnavg,fn1avg,
-     &     H2SO4rate,dti,num_iter,Nknuc,Mknuc,Nkcond,Mkcond, errswitch,
-     &     lev)
+     &      H2SO4rate,dti,num_iter,Nknuc,Mknuc,Nkcond,Mkcond,
+     &      BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS,
+     &      errswitch, lev)
 !
 !******************************************************************************
 C     This subroutine calculates the change in the aerosol size distribution
@@ -845,6 +861,7 @@ C     fn, fn1
       real             dti
       double precision fnavg        ! nucleation rate of clusters cm-3 s-1
       double precision fn1avg       ! formation rate of particles to first size bin cm-3 s-1
+      REAL*4           BOXVOL, BOXMASS, TEMPTMS, RHTOMAS, PRES
       logical          errswitch    ! signal for error 
       integer          lev          ! layer of the model
 
@@ -917,7 +934,8 @@ C Initialize values of Nkf, Mkf, Gcf, and time
 
 C     Get initial condensation sink
       CS1 = 0.d0
-      call getCondSink(Nk1,Mk1,srtso4,CS1,sinkfrac)
+      call getCondSink(Nk1,Mk1,srtso4,CS1,sinkfrac,
+     &               BOXVOL,TEMPTMS, PRES)  
       if( pdbg) print*,'CS1', CS1
 c      CS1 = max(CS1,eps)
 
@@ -926,7 +944,8 @@ C     Make sure that H2SO4 concentration doesn't exceed the amount generated
 C     during that timestep (this will happen when the condensation sink is very low)
 
 C     get the steady state H2SO4 concentration
-      call getH2SO4conc(H2SO4rate, CS1, Gc1(srtnh4), gasConc, lev)
+      call getH2SO4conc(Nk1, Mk1, H2SO4rate, CS1, Gc1(srtnh4),
+     &    gasConc, BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, lev)
       if( pdbg) print*,'gasConc',gasConc
       Gc1(srtso4) = gasConc
       addt = min_tstep
@@ -938,8 +957,10 @@ c      addt = 3600.d0
 C     Get change size distribution due to nucleation with initial guess
 c      call nucleation(Nk1,Mk1,Gc1,Nnuc1,Mnuc1,totmass,addt,Nk2,Mk2,Gc2,
 c     &     Nnuc2,Mnuc2,nflg)    
+!      call nucleation(Nk1,Mk1,Gc1,Nk2,Mk2,Gc2,fn,fn1,totmass,nuc_bin,
+!     &     addt, PDBG, lev)
       call nucleation(Nk1,Mk1,Gc1,Nk2,Mk2,Gc2,fn,fn1,totmass,nuc_bin,
-     &     addt, PDBG, lev)
+     &     addt, BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, PDBG, lev)
       
       if(pdbg) then
          print*,'COND_NUC: Found an error at nucleation --> TERMINATE'
@@ -1020,7 +1041,8 @@ c      endif
       tempvar = pdbg
       
 C     Get guess for condensation
-      call ezcond(Nk2,Mk2,mcond,srtso4,Nk3,Mk3, pdbg )
+      call ezcond(Nk2,Mk2,mcond,srtso4,Nk3,Mk3,
+     &      BOXVOL, TEMPTMS, PRES, pdbg )
 
       if(pdbg) then
          print*,'COND_NUC: Found an error at EZCOND --> TERMINATE'
@@ -1041,10 +1063,11 @@ c      print*,'mcond',mcond,'mcond1',mcond1
       Gc3(srtnh4) = Gc1(srtnh4)   
 
       call eznh3eqm(Gc3,Mk3)
-      call ezwatereqm(Mk3)
+      call ezwatereqm(Mk3, RHTOMAS)
 
       ! check to see how much condensation sink changed
-      call getCondSink(Nk3,Mk3,srtso4,CS2,sinkfrac)
+      call getCondSink(Nk3,Mk3,srtso4,CS2,sinkfrac,
+     &               BOXVOL,TEMPTMS, PRES)  
       CSch = abs(CS2 - CS1)/CS1    
        
 c      if (CSch.gt.CSch_tol) then ! condensation sink didn't change much use whole timesteps
@@ -1068,7 +1091,8 @@ c      if (CSch.gt.CSch_tol) then ! condensation sink didn't change much use who
      &           'time_rem', time_rem
 C     get the steady state H2SO4 concentration
             if (num_iter.gt.1)then ! no need to recalculate for first step
-               call getH2SO4conc(H2SO4rate,CS1,Gc1(srtnh4),gasConc,lev)
+      call getH2SO4conc(Nk1, Mk1, H2SO4rate, CS1, Gc1(srtnh4),
+     &    gasConc, BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, lev)
                Gc1(srtso4) = gasConc
             endif
             if( pdbg)    print*,'gasConc',gasConc
@@ -1087,8 +1111,11 @@ c     &           Mk2,Gc2,Nnuc2,Mnuc2,nflg,lev)
 
 
             tempvar = pdbg
+!            call nucleation(Nk1,Mk1,Gc1,Nk2,Mk2,Gc2,fn,fn1,totmass,
+!     &           nuc_bin,addt, PDBG, lev) 
             call nucleation(Nk1,Mk1,Gc1,Nk2,Mk2,Gc2,fn,fn1,totmass,
-     &           nuc_bin,addt, PDBG, lev) 
+     &           nuc_bin,addt, BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS,
+     &           PDBG, lev)
 
             if(pdbg) then
                print*,'COND_NUC: Error at nucleation[2] --> TERMINATE'
@@ -1214,7 +1241,8 @@ c            call getCondSink(Nk2,Mk2,Nnuc2,Mnuc2,srtso4,CStest,sinkfrac)
             
             tempvar = pdbg
 
-            call ezcond(Nk2,Mk2,mcond,srtso4,Nk3,Mk3, pdbg)
+            call ezcond(Nk2,Mk2,mcond,srtso4,Nk3,Mk3,
+     &      BOXVOL, TEMPTMS, PRES, pdbg)
             do k=1,ibins
                Nkcond(k) = Nkcond(k)+Nk3(k)-Nk2(k)
                do j=1,icomp-idiag
@@ -1234,10 +1262,11 @@ c            call getCondSink(Nk2,Mk2,Nnuc2,Mnuc2,srtso4,CStest,sinkfrac)
 
             if( pdbg)    print*,'after ezcond iter'
             call eznh3eqm(Gc3,Mk3)
-            call ezwatereqm(Mk3)
+            call ezwatereqm(Mk3, RHTOMAS)
             
                                 ! check to see how much condensation sink changed
-            call getCondSink(Nk3,Mk3,srtso4,CS2,sinkfrac)  
+            call getCondSink(Nk3,Mk3,srtso4,CS2,sinkfrac,
+     &               BOXVOL,TEMPTMS, PRES)  
 
             time_rem = time_rem - addt
             if (time_rem .gt. 0.d0) then
@@ -1295,8 +1324,10 @@ Cjrp      endif
       END SUBROUTINE COND_NUC
 
 !------------------------------------------------------------------------------
+!........10........20........30........40........50........60........70........80
 
-      SUBROUTINE getCondSink(Nko,Mko,spec,CS,sinkfrac)
+      SUBROUTINE getCondSink(Nko,Mko,spec,CS,sinkfrac,
+     &       BOXVOL, TEMPTMS, PRES)
 !
 !******************************************************************************
 C     This subroutine calculates the condensation sink (first order loss
@@ -1328,6 +1359,7 @@ C-----ARGUMENT DECLARATIONS---------------------------------------------
 
       double precision Nko(ibins), Mko(ibins, icomp)
       double precision CS, sinkfrac(ibins)
+      REAL*4, INTENT(IN)       :: BOXVOL, TEMPTMS, PRES
       integer spec
 
 C-----VARIABLE DECLARATIONS---------------------------------------------
@@ -1418,7 +1450,8 @@ C     get condensation sink
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE getH2SO4conc(H2SO4rate,CS,NH3conc,gasConc,lev)
+      SUBROUTINE getH2SO4conc(Nk, Mk, H2SO4rate, CS, NH3conc, gasConc, 
+     &              BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, lev)
 !
 !******************************************************************************
 C     This subroutine uses newtons method to solve for the steady state 
@@ -1452,12 +1485,16 @@ C     gasConc - gas H2SO4 [kg/box]
       IMPLICIT NONE
 C-----ARGUMENT DECLARATIONS---------------------------------------------
 
+      REAL*8                         :: Nk(IBINS)
+      REAL*8                         :: Mk(IBINS, ICOMP)
       double precision H2SO4rate
       double precision CS
       double precision NH3conc
       double precision gasConc
       logical          prev
       double precision gasConc_prev
+      REAL*4, INTENT(IN)       :: BOXVOL,  BOXMASS, TEMPTMS
+      REAL*4, INTENT(IN)       :: PRES,    RHTOMAS
       integer          lev
 
 C-----VARIABLE DECLARATIONS---------------------------------------------
@@ -1498,7 +1535,7 @@ C-----CODE--------------------------------------------------------------
       do i=1,icomp-1
          Gci(i)=0.d0
       enddo
-      Gci(srtnh4)=NH3conc
+      Gci(srtnh4)=NH3conc 
       
       ! make sure CS doesn't equal zero
 c     CS = max(CS,CSeps)
@@ -1546,14 +1583,16 @@ C     Checks for when condensation sink is very small
 
       gasConc = min(gasConc,max_H2SO4conc)
       Gci(srtso4) = gasConc
-      call getNucRate(Gci,fn,mnuc,nflg,lev)
+      call getNucRate(Nk, Mk, Gci,fn,mnuc,nflg,
+     & BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, lev)
 
       if (fn.gt.0.d0) then      ! nucleation occured
          gasConc_lo = H2SO4min*boxvol/(1000.d0/98.d0*6.022d23) !convert to kg/box
          
 C     Test to see if gasConc_lo gives a res < 0 (this means ANY nucleation is too high)
          Gci(srtso4) = gasConc_lo*1.000001d0
-         call getNucRate(Gci,fn1,mnuc1,nflg,lev)
+         call getNucRate(Nk,Mk,Gci,fn1,mnuc1,nflg,
+     &     BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, lev)
          if (fn1.gt.0.d0) then
             massnuc = mnuc1*fn1*boxvol*98.d0/96.d0
 c     massnuc = 4.d0/3.d0*pi*(rnuc1*1.d-9)**3*1350.*fn1*boxvol*
@@ -1601,7 +1640,8 @@ c            print*, 'iter',iter
 c            print*,'gasConc_lo',gasConc_lo,'gasConc_hi',gasConc_hi
             gasConc = sqrt(gasConc_hi*gasConc_lo) ! take new guess as logmean
             Gci(srtso4) = gasConc
-            call getNucRate(Gci,fn,mnuc,nflg,lev)
+            call getNucRate(Nk, Mk,Gci,fn,mnuc,nflg,
+     &        BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, lev)
             massnuc = mnuc*fn*boxvol*98.d0/96.d0
             res = H2SO4rate - CS*gasConc - massnuc
 c            print*,'res',res
@@ -1629,7 +1669,8 @@ c     print*,'massnuc',massnuc,'CS*gasConc',CS*gasConc
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE getNucRate(Gci,fn,mnuc,nflg,lev)
+      SUBROUTINE getNucRate(Nk, Mk, Gci,fn,mnuc,nflg,
+     &            BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, lev)
 !
 !******************************************************************************
 C     This subroutine calls the Vehkamaki 2002 and Napari 2002 nucleation
@@ -1657,6 +1698,11 @@ C     nflg - says if nucleation happend
 
       IMPLICIT NONE
 C-----ARGUMENT DECLARATIONS---------------------------------------------
+
+      REAL*8, INTENT(INOUT)          :: Nk(IBINS)
+      REAL*8, INTENT(INOUT)          :: Mk(IBINS, ICOMP)
+      REAL*4, INTENT(IN)       :: BOXVOL,  BOXMASS, TEMPTMS
+      REAL*4, INTENT(IN)       :: PRES,    RHTOMAS
 
       integer j,i,k
       double precision Gci(icomp-1)
@@ -1793,7 +1839,8 @@ c            enddo
       endif
 
       if (fn.gt.0.d0) then
-         call getCondSink_kerm(Nk,Mk,CS,Dpmean,Dp1,dens1)
+         call getCondSink_kerm(Nk,Mk,CS,Dpmean,Dp1,dens1,
+     &         BOXVOL, TEMPTMS, PRES)
          d1 = rnuc*2.d0*1D-9
          drymass = 0.d0
          do j=1,icomp-idiag
@@ -2149,7 +2196,8 @@ c   Cap at 10^6 particles/cm3-s, limit for parameterization
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE getCondSink_kerm(Nko,Mko,CS,Dpmean,Dp1,dens1)
+      SUBROUTINE getCondSink_kerm(Nko,Mko,CS,Dpmean,Dp1,dens1,
+     &         BOXVOL, TEMPTMS, PRES)
 !
 !*****************************************************************************
 !  Subroutine GETCONDSINK_KERM calculates the condensation sink (first order 
@@ -2178,6 +2226,7 @@ C     sinkfrac(ibins) - fraction of condensation sink from a bin
       REAL*8, INTENT(OUT)       :: Dpmean   ! the number mean diameter [m]
       REAL*8, INTENT(OUT)       :: Dp1      ! the size of the first size bin [m]
       REAL*8, INTENT(OUT)       :: dens1    ! the density of the first size bin [kg/m3]
+      REAL*4, INTENT(IN)        :: BOXVOL, TEMPTMS, PRES 
 
       ! Local variables
       integer        :: i,j,k,c           ! counters
@@ -2253,7 +2302,7 @@ C     kpc  Density should be changed due to more species involed.
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE getGrowthTime (d1,d2,h2so4,temp,boxvolm,density,gtime)
+      SUBROUTINE getGrowthTime (d1,d2,h2so4,temp,boxvol,density,gtime)
 !
 !*****************************************************************************
 C     This subroutine calculates the time it takes for a particle to grow
@@ -2285,7 +2334,7 @@ C     gtime: the time it takes the particle to grow to first size bin [s]
       REAL*8, INTENT(IN)     ::  d1,d2    ! initial and final diameters [m]
       REAL*8, INTENT(IN)     ::  h2so4    ! h2so4 ammount [kg]
       real*4, INTENT(IN)     ::  temp     ! temperature [K]
-      real*4, INTENT(IN)     ::  boxvolm  ! box volume [cm3]
+      real*4, INTENT(IN)     ::  boxvol  ! box volume [cm3]
       REAL*8, INTENT(IN)     ::  density  ! density of particles in first bin [kg/m3]
       REAL*8, INTENT(OUT)    ::  gtime    ! the time it will take the particle to grow 
                                           ! to first size bin [s]
@@ -2303,9 +2352,9 @@ C     gtime: the time it takes the particle to grow to first size bin [s]
       !=================================================================
       ! GETGROWTHTIME begins here!
       !=================================================================
-cc      print *,'h2so4',h2so4,'MW',MW,'boxvolm',boxvolm,dble(boxvolm)
+cc      print *,'h2so4',h2so4,'MW',MW,'boxvol',boxvol,dble(boxvol)
 
-      csulf = h2so4/MW/(dble(boxvolm)*1d-6) ! SA conc. [kmol/m3]
+      csulf = h2so4/MW/(dble(boxvol)*1d-6) ! SA conc. [kmol/m3]
       mspeed = sqrt(8.d0*R*dble(temp)*1000.d0/(pi*MW))
 
 C     Kinetic regime expression (S&P 11.25) solved for T
@@ -2334,7 +2383,8 @@ Cjrp
 !------------------------------------------------------------------------------
 
       SUBROUTINE NUCLEATION (Nki,Mki,Gci,Nkf,Mkf,Gcf,fn,fn1,totsulf,
-     &                      nuc_bin,dt, pdbg,lev)
+     &              nuc_bin,dt,BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS,
+     &              pdbg,lev)
 !
 !******************************************************************************
 C     This subroutine calls the Vehkamaki 2002 and Napari 2002 nucleation
@@ -2378,6 +2428,8 @@ C-----ARGUMENT DECLARATIONS---------------------------------------------
       double precision dt
       double precision fn       ! nucleation rate of clusters cm-3 s-1
       double precision fn1      ! formation rate of particles to first size bin cm-3 s-1
+      REAL*4, INTENT(IN)       :: BOXVOL,  BOXMASS, TEMPTMS
+      REAL*4, INTENT(IN)       :: PRES,    RHTOMAS
       LOGICAL  PDBG             ! Signal print for debug
       integer lev ! layer of model
 
@@ -2519,10 +2571,11 @@ C     if nucleation occured, see how many particles grow to join the first size
 C     section
       if (fn.gt.0.d0) then
 
-         if(pdbg) print*,'Nk',Nk
-         if(pdbg) print*,'Mk',Mk
+         if(pdbg) print*,'Nki',Nki
+         if(pdbg) print*,'Mki',Mki
 
-         call getCondSink_kerm(Nk,Mk,CS,Dpmean,Dp1,dens1)
+         call getCondSink_kerm(Nki,Mki,CS,Dpmean,Dp1,dens1,
+     &            BOXVOL, TEMPTMS,PRES)
          
          if(pdbg) print*,'CS',CS,'Dpmean',Dpmean,'Dp1',Dp1,'dens1',dens1
 
@@ -2530,11 +2583,11 @@ C     section
          d1 = rnuc*2.d0*1D-9
          drymass = 0.d0
          do j=1,icomp-idiag
-            drymass = drymass + Mk(1,j)
+            drymass = drymass + Mki(1,j)
          enddo
          wetmass = 0.d0
          do j=1,icomp
-            wetmass = wetmass + Mk(1,j)
+            wetmass = wetmass + Mki(1,j)
          enddo
          
          ! to prevent division by zero (win, 10/1/08)
@@ -2645,7 +2698,8 @@ C     particles into the first size bin.  don't let it go less than zero.
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE EZCOND (Nki,Mki,mcondi,spec,Nkf,Mkf, errswitch)
+      SUBROUTINE EZCOND (Nki,Mki,mcondi,spec,Nkf,Mkf,
+     &      BOXVOL, TEMPTMS, PRES, errswitch)
 !
 !******************************************************************************
 C     This subroutine takes a given amount of mass and condenses it
@@ -2678,6 +2732,7 @@ C-----ARGUMENT DECLARATIONS---------------------------------------------
       double precision Nkf(ibins), Mkf(ibins, icomp)
       double precision mcondi
       integer spec
+      REAL*4, INTENT(IN)       :: BOXVOL, TEMPTMS, PRES
       LOGICAL ERRSWITCH   ! signal error to outside
 
 C-----VARIABLE DECLARATIONS---------------------------------------------
@@ -2747,7 +2802,8 @@ C-----CODE--------------------------------------------------------------
       endif
 
       ! get the sink fractions
-      call getCondSink(Nk1,Mk1,spec,CS,sinkfrac) ! set Nnuc to zero for this calc
+      call getCondSink(Nk1,Mk1,spec,CS,sinkfrac, ! set Nnuc to zero for this calc
+     &               BOXVOL,TEMPTMS, PRES)  
 
       ! make sure that condensation sink isn't too small
       if (CS.lt.CSeps) then     ! just make particles in first bin
@@ -2807,8 +2863,8 @@ C-----CODE--------------------------------------------------------------
       ! do steps of condensation
       do i=1,nsteps
          if (i.ne.1) then
-            call getCondSink(Nk1,Mk1,spec,
-     &        CS,sinkfrac)      ! set Nnuc to zero for this calculation
+            call getCondSink(Nk1,Mk1,spec,CS,sinkfrac,      ! set Nnuc to zero for this calculation
+     &               BOXVOL,TEMPTMS, PRES)  
             totsinkfrac = 0.d0
             do k=1,ibins
              totsinkfrac = totsinkfrac + sinkfrac(k) ! get sink frac total not including nuc bin
@@ -3104,6 +3160,13 @@ Cjrp      endif
       INTEGER                :: K, MPNUM, JC, TRACNUM
       INTEGER                :: NKID
       LOGICAL                :: PDBG
+
+      REAL*8                 :: Nk(IBINS), Nkd(IBINS)
+      REAL*8                 :: Mk(IBINS, ICOMP)
+      REAL*8                 :: Mkd(IBINS,ICOMP)
+      REAL*8                 :: Gc(ICOMP - 1)
+      REAL*8                 :: Gcd(ICOMP - 1)
+      REAL*4                 :: BOXVOL
       
       !=================================================================
       ! AQOXID begins here
@@ -3112,6 +3175,7 @@ Cjrp      endif
       PDBG = .FALSE.            !For print debugging 
 !debug     IF ( I == 46 .AND. J == 59 .AND. L == 9) PDBG = .TRUE.
 
+      BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3 
       ! Update aerosol water from the current RH
       DO K = 1, IBINS
          CALL EZWATEREQM2( I, J, L, K, State_Met )
@@ -3126,6 +3190,10 @@ Cjrp      endif
          ENDDO
          MK(K,SRTH2O) = STT(I,J,L,IDTAW1-1+K)
       ENDDO
+      !sfarina - initialize Gc to ensure storenm doesn't go NaN on us.
+      DO JC=1, ICOMP-1
+         Gc(JC) = 0.d0
+      ENDDO
 
       ! Take the bulk NH4 and allocate to size-resolved NH4
       IF ( SRTNH4 > 0 ) 
@@ -3133,7 +3201,7 @@ Cjrp      endif
      &                        MK(1:IBINS,SRTNH4) )
       
       ! Fix any inconsistencies in M/N distribution 
-         CALL STORENM(Nk, Nkd, Mk, Mkd) 
+         CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd) 
 !debug      IF ( I == 46 .AND. J == 59 .AND. L == 9) PDBG = .TRUE.
       CALL MNFIX( NK, MK, PDBG )
       IF( PDBG ) THEN
@@ -3142,8 +3210,9 @@ Cjrp      endif
      &                   'Beginning AQOXID after MNFIX' )
       ENDIF
       MPNUM = 5
-      IF ( ND60 > 0 ) CALL AERODIAG( MPNUM, I, J, L )
-         CALL STORENM(Nk, Nkd, Mk, Mkd) 
+      IF ( ND60 > 0 ) 
+     &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+         CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd) 
 
 !debug      IF ( I == 46 .AND. J == 59 .AND. L == 9) 
 !     &     call debugprint(Nk,Mk,I,J,L,'AQOXID after MNFIX_1')
@@ -3272,10 +3341,11 @@ Cjrp      endif
 
       ! Save changes to diagnostic
       MPNUM = 4
-      IF ( ND60 > 0 ) CALL AERODIAG( MPNUM, I, J, L )
+      IF ( ND60 > 0 ) 
+     &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
 
       ! Fix any inconsistencies in M/N distribution 
-      CALL STORENM(Nk, Nkd, Mk, Mkd) 
+      CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd) 
       CALL MNFIX( NK, MK, PDBG )
       IF( PDBG ) THEN
          PRINT *,'AQOXID: MNFIX found error at',I,J,L
@@ -3283,7 +3353,8 @@ Cjrp      endif
      &                   'End of AQOXID after MNFIX' )
       ENDIF
       MPNUM = 5
-      IF ( ND60 > 0 ) CALL AERODIAG( MPNUM, I, J, L )
+      IF ( ND60 > 0 ) 
+     &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
 
       ! Swap Nk and Mk arrays back to STT 
       DO K = 1, IBINS
@@ -3301,7 +3372,7 @@ Cjrp      endif
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE SOACOND ( MSOA, I, J, L )
+      SUBROUTINE SOACOND ( MSOA, I, J, L, BOXVOL, TEMPTMS, PRES)
 !
 !******************************************************************************
 !  Subroutine SOACOND takes the SOA calculated via 10% yeild assumption and 
@@ -3331,7 +3402,8 @@ Cjrp      endif
 
       ! Arguments
       REAL*8                 :: MSOA
-      INTEGER                :: I, J, L
+      INTEGER,INTENT(IN)     :: I, J, L
+      REAL*4, INTENT(IN)     :: BOXVOL, TEMPTMS, PRES
 
       ! Local variables
       REAL*8                 :: MPO, OCTAU(IBINS), ntot, mtot
@@ -3346,6 +3418,13 @@ Cjrp      endif
       INTEGER                :: K, MPNUM, JC, TRACNUM
       LOGICAL                :: PDBG
       PARAMETER   (PI = 3.141592654D0)
+
+!sfarina
+      REAL*8                         :: Nk(IBINS), Nkd(IBINS)
+      REAL*8                         :: Mk(IBINS, ICOMP)
+      REAL*8                         :: Mkd(IBINS,ICOMP)
+      REAL*8                         :: Gc(ICOMP - 1)
+      REAL*8                         :: Gcd(ICOMP - 1)
        
       !=================================================================
       ! SOACOND begins here
@@ -3373,7 +3452,7 @@ Cjrp      endif
      &     CALL NH4BULKTOBIN( MK(1:IBINS,SRTSO4), STT(I,J,L,IDTNH4), 
      &                        MK(1:IBINS,SRTNH4) )
 
-      CALL STORENM(Nk, Nkd, Mk, Mkd) 
+      CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd) 
 
       ! Establish an 30-bin array and accculate the total
       ! of the absorbing media.  The choices can be:
@@ -3408,7 +3487,8 @@ Cjrp      endif
       enddo
 
       ! Fraction to each bin for surface condensation
-      call getCondSink(Nk,Mk,srtocil,CS,sinkfrac) ! sinkfrac
+      call getCondSink(Nk,Mk,srtocil,CS,sinkfrac,
+     &               BOXVOL,TEMPTMS, PRES)  
 
       do k = 1,IBINS
          avgfrac(k)=soaareafrac*sinkfrac(k)+
@@ -3494,7 +3574,8 @@ Cjrp      endif
 
       ! Save changes to diagnostic
       MPNUM = 6
-      IF ( ND60 > 0 ) CALL AERODIAG( MPNUM, I, J, L )
+      IF ( ND60 > 0 ) 
+     &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
 
 
       ! Fix any inconsistencies in M/N distribution
@@ -3516,7 +3597,9 @@ Cjrp      endif
       
 !------------------------------------------------------------------------------
 
-      SUBROUTINE MULTICOAG( DT, PDBG )
+       SUBROUTINE MULTICOAG( DT, Nk, Mk, BOXVOL, PRES, TEMPTMS,
+     &             PDBG )
+      
 !
 !******************************************************************************
 !  Subroutine MULTICOAG performs coagulation on the aerosol size distribution
@@ -3557,24 +3640,29 @@ Cjrp      endif
 !******************************************************************************
 !
       ! Arguments
-      REAL*4,    INTENT(IN)  :: DT  
+      REAL*4,    INTENT(IN)     :: DT  
+      REAL*4,    INTENT(IN)     :: PRES  
+      REAL*4,    INTENT(IN)     :: TEMPTMS  
+      REAL*4,    INTENT(IN)     :: BOXVOL  
+      REAL*8,    INTENT(INOUT)  :: Nk(IBINS)
+      REAL*8,    INTENT(INOUT)  :: Mk(IBINS, ICOMP)
       LOGICAL,   INTENT(INOUT)  :: PDBG
 
       ! Local variables
-      INTEGER                :: K, J, I, JJ
-      REAL*8                 :: dNdt(ibins), dMdt(ibins,icomp-idiag)
-      REAL*8                 :: xbar(ibins), phi(ibins), eff(ibins)
-      REAL*4      ::kij(ibins,ibins)
-      REAL*4      ::Dpk(ibins)             !diameter (m) of particles in bin k
-      REAL*4      ::Dk(ibins)              !Diffusivity (m2/s) of bin k particles
-      REAL*4      ::ck(ibins)              !Mean velocity (m/2) of bin k particles
-      REAL*4      ::olddiff                !used to iterate to find diffusivity
-      REAL*4      ::density                !density (kg/m3) of particles
-      REAL*4      ::mu                     !viscosity of air (kg/m s)
-      REAL*4      ::mfp                    !mean free path of air molecule (m)
-      REAL*4      ::Kn                     !Knudsen number of particle
-      REAL*8      :: mp                    !particle mass (kg)
-      REAL*4      ::beta                   !correction for coagulation coeff.
+      INTEGER     :: K, J, I, JJ
+      REAL*8      :: dNdt(ibins), dMdt(ibins,icomp-idiag)
+      REAL*8      :: xbar(ibins), phi(ibins), eff(ibins)
+      REAL*4      :: kij(ibins,ibins)
+      REAL*4      :: Dpk(ibins)             !diameter (m) of particles in bin k
+      REAL*4      :: Dk(ibins)              !Diffusivity (m2/s) of bin k particles
+      REAL*4      :: ck(ibins)              !Mean velocity (m/2) of bin k particles
+      REAL*4      :: olddiff                !used to iterate to find diffusivity
+      REAL*4      :: density                !density (kg/m3) of particles
+      REAL*4      :: mu                     !viscosity of air (kg/m s)
+      REAL*4      :: mfp                    !mean free path of air molecule (m)
+      REAL*4      :: Kn                     !Knudsen number of particle
+      REAL*8      :: mp                     !particle mass (kg)
+      REAL*4      :: beta                   !correction for coagulation coeff.
 !      real*8, external ::   aerodens  !<tmp> try change to double precision (win, 1/4/06)
 
       !temporary summation variables
@@ -3584,7 +3672,7 @@ Cjrp      endif
       REAL*8       :: sk2mtot, sk2mxtot
       REAL*8       :: sk2m(icomp-idiag), sk2mx(icomp-idiag)
       REAL*8       :: sk2mx2(icomp-idiag)
-      REAL*8       :: in
+      REAL*8       :: i_n
       REAL*8       :: mtotal, mktot
 
       REAL*4      ::zeta                      !see reference, eqn 6
@@ -3606,6 +3694,8 @@ cdbg
       REAL*8      :: M_NH4  
 
       LOGICAL     :: ERRSPOT
+
+!sfarina
 
  1    format(16E15.3)
 
@@ -3722,7 +3812,7 @@ C Calculate rates of change for Nk and Mk
             k1mx(j)=0.0
             k1mx2(j)=0.0
          enddo
-         in=0.0
+         i_n=0.0
          k1mtot=0.0
          k1mxtot=0.0
 
@@ -3740,7 +3830,7 @@ C Calculate rates of change for Nk and Mk
          enddo
          if (k .lt. ibins) then
             do i=k+1,ibins
-               in=in+Nk(i)*kij(k,i)
+               i_n=i_n+Nk(i)*kij(k,i)
             enddo
          endif
 
@@ -3749,7 +3839,7 @@ C Calculate rates of change for Nk and Mk
      &           -kij(k,k)*Nk(k)**2
      &           -phi(k)*k1mtot
      &           -zeta*(eff(k)-phi(k))/(2*xk(k))*k1mxtot
-     &           -Nk(k)*in
+     &           -Nk(k)*i_n
          if (k .gt. 1) then
          dNdt(k)=dNdt(k)+
      &           0.5*kij(k-1,k-1)*Nk(k-1)**2
@@ -3761,7 +3851,7 @@ C Calculate rates of change for Nk and Mk
             dMdt(k,j)= 
      &           +Nk(k)*k1m(j)
      &           -kij(k,k)*Nk(k)*Mk(k,j)
-     &           -Mk(k,j)*in
+     &           -Mk(k,j)*i_n
      &           -phi(k)*xk(k+1)*k1m(j)
      &           -0.5*zeta*eff(k)*k1mx(j)
      &           +zeta**3*(phi(k)-eff(k))/(2*xk(k))*k1mx2(j)
@@ -3917,7 +4007,8 @@ cdbg
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE SO4COND(Nki,Mki,Gci,Nkf,Mkf,Gcf,dt,errspot)
+      SUBROUTINE SO4COND(Nki,Mki,Gci,Nkf,Mkf,Gcf,dt,
+     &       BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, errspot)
 !
 !******************************************************************************
 !  Subroutine SO4COND determines the condensational driving force for mass 
@@ -3959,6 +4050,9 @@ cdbg
       REAL*8      :: Nkf(ibins), Mkf(ibins, icomp), Gcf(icomp-1)
       REAL*4      :: dt
       LOGICAL     :: errspot  
+
+      REAL*4, INTENT(IN)       :: BOXVOL,  BOXMASS, TEMPTMS
+      REAL*4, INTENT(IN)       :: PRES, RHTOMAS
 
 C-----VARIABLE DECLARATIONS---------------------------------------------
 
@@ -4043,7 +4137,7 @@ cdbg      integer numcalls          !number of times cond routine is called
             alpha(J)= 0.
          ELSE 
             PRINT *, 'Modify SO4cond for the new species'
-            CALL ERROR_STOP('SO4COND','Need values for Gmw, Sv, alpha')            
+            CALL ERROR_STOP('SO4COND','Need values for Gmw, Sv, alpha')
          ENDIF
       ENDDO
             
@@ -4100,11 +4194,17 @@ C Calculate tj and tk factors needed to calculate tau values
       sK=0.0d0
       do k=1,ibins
          if (Nkf(k) .gt. Neps) then
+!            density=aerodens(Mkf(k,srtso4),0.d0,
+!     &            0.1875d0*Mkf(k,srtso4),Mkf(k,srtnacl), 
+!     &            Mk(k,srtecil), Mk(k,srtecob), 
+!     &            Mk(k,srtocil), Mk(k,srtocob),
+!     &            Mk(k,srtdust),
+!     &            Mkf(k,srth2o)) 
             density=aerodens(Mkf(k,srtso4),0.d0,
      &            0.1875d0*Mkf(k,srtso4),Mkf(k,srtnacl), 
-     &            Mk(k,srtecil), Mk(k,srtecob), 
-     &            Mk(k,srtocil), Mk(k,srtocob),
-     &            Mk(k,srtdust),
+     &            Mkf(k,srtecil), Mkf(k,srtecob), 
+     &            Mkf(k,srtocil), Mkf(k,srtocob),
+     &            Mkf(k,srtdust),
      &            Mkf(k,srth2o)) 
              !factor of 1.2 assumes ammonium bisulfate
              !(NH4)H has MW of 19 which is = 0.2*96
@@ -4218,7 +4318,7 @@ cdbg                        write(limit(7:11),'(I2,X,I2)') k,j
                   endif
                else
                   !species is new to particle - set max time step
-                if ((cdt/tr .gt. 1.d-1) .and. (atau(k,j).gt. 0.d0)) then 
+                if ((cdt/tr .gt. 1.d-1) .and. (atau(k,j).gt. 0.d0)) then
 !                     tr=cdt/0.1 
                      tr=cdt/1.d-1 !Make sure tr is double precision (win,3/20/05)
 cdbg                     limit='nspec'
@@ -4351,7 +4451,7 @@ cdbg         write(*,*) 'Ntotf=', Ntotf
          enddo
 
          !Update water concentrations
-         call ezwatereqm(Mkf)
+         call ezwatereqm(Mkf, RHTOMAS)
 
       enddo
 
@@ -5087,7 +5187,7 @@ c
 
 !------------------------------------------------------------------------------
       
-      SUBROUTINE AERODIAG( PTYPE, I, J, L )
+      SUBROUTINE AERODIAG( PTYPE, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
 !
 !******************************************************************************
 !  Subroutine AERODIAG saves changes to the appropriate diagnostic arrays
@@ -5128,6 +5228,11 @@ c
       real*4                :: tempsum
       REAL*4                :: DTCHEM
 
+!sfarina
+      REAL*8                :: Nk(IBINS), Nkd(IBINS)
+      REAL*8                :: Mk(IBINS, ICOMP)
+      REAL*8                :: Mkd(IBINS,ICOMP)
+      REAL*4,INTENT(IN)     :: BOXVOL
       !=================================================================
       ! AERODIAG begins here!
       !=================================================================
@@ -5716,7 +5821,7 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE EZWATEREQM( Mke )
+      SUBROUTINE EZWATEREQM( Mke, RHTOMAS )
 !
 !******************************************************************************
 !     WRITTEN BY Peter Adams, March 2000
@@ -5756,6 +5861,7 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
       INTEGER           :: k, j
       REAL*8            :: so4mass, naclmass, ocilmass
       REAL*8            :: wrso4, wrnacl, wrocil
+      REAL*4            :: RHTOMAS
       REAL*8            :: rhe
 
       !========================================================================
@@ -5876,7 +5982,8 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
       IMPLICIT NONE
 
       ! Arguments
-      REAL*8,  INTENT(INOUT)  :: Gce(icomp)
+!      REAL*8,  INTENT(INOUT)  :: Gce(icomp)
+      REAL*8,  INTENT(INOUT)  :: Gce(icomp - 1) !sfarina - fixed incorrect definition of Gc array
       REAL*8,  INTENT(INOUT)  :: Mke(ibins,icomp)
 
       ! Local variables
@@ -6056,6 +6163,14 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
       LOGICAL                :: ERRORSWITCH
                                ! Make ERRORSWITCH = .TRUE. to get full print 
                                ! for debugging
+
+!sfarina
+      REAL*8                         :: Nk(IBINS), Nkd(IBINS)
+      REAL*8                         :: Mk(IBINS, ICOMP)
+      REAL*8                         :: Mkd(IBINS,ICOMP)
+      REAL*8                         :: Gc(ICOMP - 1)
+      REAL*8                         :: Gcd(ICOMP - 1)
+      REAL*4                         :: BOXVOL
     
       !=================================================================
       ! CHECKMN begins here!
@@ -6085,10 +6200,17 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
          L2 = LL
       ENDIF
 
+!........10........20........30........40........50........60........70........80
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+!$OMP+PRIVATE( Nk, Nkd, Mk, Mkd, K, TRACNUM, JC, MPNUM, BOXVOL )
+!$OMP+SCHEDULE( DYNAMIC )
       DO L = L1, L2
       DO J = J1, J2
       DO I = I1, I2
          
+         BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3 
 
          ! Swap GEOSCHEM variables into aerosol algorithm variables
          DO K = 1, IBINS
@@ -6106,10 +6228,14 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
             MK(K,SRTH2O) = STT(I,J,L,IDTAW1-1+K)
          ENDDO
 
+         DO JC = 1, ICOMP - 1
+            Gc(JC) = 0.0   !sfarina - init Gc so storenm doesn't go NaN on us.
+         END DO
+
 !         if ( i==26 .and. j==57 .and. l==13 ) 
 !     &        call debugprint(Nk,Mk,i,j,l,'In CHECKMN')
 
-         CALL STORENM(Nk, Nkd, Mk, Mkd) 
+         CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd) 
          !if(i==47.and.j==10.and.l==7) ERRORSWITCH = .TRUE.
          CALL MNFIX( NK, MK, ERRORSWITCH )
          IF ( ERRORSWITCH ) THEN
@@ -6123,7 +6249,8 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
          
          ! Save the error fixing to diagnostic AERO-FIX
          MPNUM = 5
-         IF ( ND60 > 0 ) CALL AERODIAG( MPNUM, I, J, L )
+         IF ( ND60 > 0 )
+     &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
          
 
          ! Swap Nk and Mk arrays back to STT 
@@ -6140,6 +6267,7 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
       ENDDO
       ENDDO
       ENDDO
+!$OMP END PARALLEL DO
       
       ! In the input unit is [v/v], then convert [kg] back to [v/v]
       IF ( TRIM( UNIT ) == 'V/V' .or. TRIM( UNIT ) == 'v/v' ) 
@@ -7439,7 +7567,7 @@ C     determine the mass added to each bin coagulation
       
 !-----------------------------------------------------------------------------
       
-      SUBROUTINE STORENM(Numk, Numkd, Massk, Masskd )
+      SUBROUTINE STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd )
 !
 !*****************************************************************************
 !  Subroutine STORENM stores values of Nk and Mk into Nkd and Mkd for 
@@ -7449,10 +7577,14 @@ C     determine the mass added to each bin coagulation
       ! Local variables
       INTEGER             :: J, K
 
-      REAL*8,INTENT(IN)    :: Numk(IBINS)
-      REAL*8,INTENT(IN)    :: Massk(IBINS, ICOMPMAX)
-      REAL*8,INTENT(OUT)   :: Numkd(IBINS)
-      REAL*8,INTENT(OUT)   :: Masskd(IBINS,ICOMPMAX)
+      REAL*8,INTENT(IN)    :: Nk(IBINS)
+      REAL*8,INTENT(IN)    :: Mk(IBINS, ICOMP)
+      REAL*8,INTENT(IN)    :: Gc(ICOMP - 1)
+      REAL*8,INTENT(OUT)   :: Nkd(IBINS)
+      REAL*8,INTENT(OUT)   :: Mkd(IBINS,ICOMP)
+      REAL*8,INTENT(OUT)   :: Gcd(ICOMP - 1)
+
+!sfarina 
 
       DO J= 1, ICOMP-1
          Gcd(J)=Gc(J)
