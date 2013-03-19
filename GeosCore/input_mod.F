@@ -213,8 +213,8 @@
 !  09 Nov 2012 - R. Yantosca - Now pass Input_Opt to lower-level routines
 !  06 Dec 2012 - R. Yantosca - Now call CHECK_TIME_STEPS when we are connecting
 !                              to the GEOS-5 GCM via the ESMF environment,
-!   4 Mar 2013 - R. Yantosca - Add routine do
-
+!  19 Mar 2013 - R. Yantosca - When using ESMF interface to GEOS-5, append
+!                              ".rc" to input.geos (instead of ___.rc)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -248,8 +248,11 @@
       ! Assume success
       RC       = GIGC_SUCCESS
 
-      ! For ESMF interface to GEOS-5 GCM, we need to add "*___.rc"
-      FILENAME = TRIM( FILENAME ) // '___.rc'
+#if defined( ESMF_ )
+      ! We need to add the ".rc" extension to the "input.geos" file
+      ! so that GEOS-5 will copy it to the proper run directory.
+      FILENAME = TRIM( FILENAME ) // '.rc'
+#endif
 
       ! Open file
       OPEN( IU_GEOS, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )

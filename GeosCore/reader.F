@@ -31,6 +31,8 @@
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  19 Mar 2013 - R. Yantosca - When using ESMF interface to GEOS-5, append
+!                              ".rc" to input.geos (instead of ___.rc)
 !******************************************************************************
 !
 #     include "define.h"
@@ -179,9 +181,11 @@
       ! Name of file to open
       FILENAME = "mglob.dat"
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      ! When connecting to GEOS-5 via ESMF, we need to append '___.rc'
-      FILENAME = TRIM( FILENAME ) // "___.rc"
+#if defined( ESMF_ )
+      ! When connecting to GEOS-5 via ESMF, we need to append '.rc'
+      ! to "mglob.dat" so that GEOS-5 will copy the file to the proper
+      ! run directory (bmy, 3/19/13)
+      FILENAME = TRIM( FILENAME ) // ".rc"
 #endif
 
       OPEN( UNIT=IU_FILE, FILE=TRIM( FILENAME ), ACTION="read",
@@ -256,9 +260,10 @@
 !      ! Name of file to open
 !      FILENAME   ='globchem.dat' 
 !
-!#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-!      ! When connecting to GEOS-5 via ESMF, we need to append '___.rc'
-!      FILENAME   = TRIM( FILENAME ) // '___.rc'
+!#if defined( ESMF_ )
+!      ! We need to add the ".rc" extension to the "globchem.dat" file
+!      ! so that GEOS-5 will copy it to the proper run directory.
+!      FILENAME   = TRIM( FILENAME ) // 'rc'
 !#endif
 !      KGLC       = IU_CHEMDAT
 !
@@ -290,7 +295,7 @@
          IF ( IPREADER.EQ. 1 .AND. FIRSTCHEM .and. am_I_Root ) THEN
             WRITE( IO93, '(a)'   ) REPEAT( '=', 79 )
             WRITE( IO93, '(a,/)' ) 'SMV2.LOG -- SMVGEAR II information' 
-            WRITE( IO93, '(a)'   ) 'Switches in mglob.dat___.rc'
+            WRITE( IO93, '(a)'   ) 'Switches in mglob.dat'
             WRITE( IO93, '(a)'   ) REPEAT( '=', 79 )
             WRITE( IO93, *       ) 'IFSOLVE   = ', IFSOLVE
             WRITE( IO93, *       ) 'ITESTGEAR = ', ITESTGEAR

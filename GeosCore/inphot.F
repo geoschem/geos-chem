@@ -57,6 +57,8 @@
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !  26 Feb 2013 - M. Long     - Now accept Input_Opt as an argument
+!  19 Mar 2013 - R. Yantosca - When using ESMF interface to GEOS-5, append
+!                              ".rc" to filenames (instead of ___.rc)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -96,9 +98,10 @@
       ! Name of file to read
       FILENAME = 'ratj.d'
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      ! For the ESMF interface to GEOS-5 GCM, we need to append *___.rc
-      FILENAME = TRIM( FILENAME ) // '___.rc'
+#if defined( ESMF_ )
+      ! We need to add the ".rc" extension to the "ratj.d" file
+      ! so that GEOS-5 will copy it to the proper run directory.
+      FILENAME = TRIM( FILENAME ) // '.rc'
 #endif
 
       ! Echo info
@@ -126,9 +129,10 @@
       ! Name of file to read
       FILENAME = 'jv_spec.dat'
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      ! For the ESMF interface to GEOS-5 GCM, we need to append *___.rc
-      FILENAME = TRIM( FILENAME ) // '___.rc'
+#if defined( ESMF_ )
+      ! We need to add the ".rc" extension to the "jv_spec.dat" file
+      ! so that GEOS-5 will copy it to the proper run directory.
+      FILENAME = TRIM( FILENAME ) // '.rc'
 #endif
 
       ! Echo info
@@ -148,9 +152,11 @@
 
       ! Name of file to read
       FILENAME = 'jv_spec_aod.dat'
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      ! For the ESMF interface to GEOS-5 GCM, we need to append *___.rc
-      FILENAME = TRIM( FILENAME ) // '___.rc'
+
+#if defined( ESMF_ )
+      ! We need to add the ".rc" extension to the "jv_spec_aod.dat"
+      ! file so that GEOS-5 will copy it to the proper run directory.
+      FILENAME = TRIM( FILENAME ) // '.rc'
 #endif
 
       ! Echo info

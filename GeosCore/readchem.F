@@ -42,6 +42,8 @@
 !                              called from the traditional driver "main.F"
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  19 Mar 2013 - R. Yantosca - When using ESMF interface to GEOS-5, append
+!                              ".rc" to input.geos (instead of ___.rc)
 !******************************************************************************
 !
 ! !USES:
@@ -240,9 +242,10 @@
       ! Name of file to open
       FILENAME   ='globchem.dat' 
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      ! When connecting to GEOS-5 via ESMF, we need to append '___.rc'
-      FILENAME   = TRIM( FILENAME ) // '___.rc'
+#if defined( ESMF_ ) 
+      ! We need to add the ".rc" extension to the "globchem.dat" file
+      ! so that GEOS-5 will copy it to the proper run directory.
+      FILENAME   = TRIM( FILENAME ) // 'rc'
 #endif
       KGLC       = IU_CHEMDAT
 
@@ -1311,9 +1314,10 @@
       ! Name of file to open
       FILENAME = 'chemga.dat'
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      ! When connecting to GEOS-5 GCM via ESMF, add '___.rc' extension
-      FILENAME = TRIM( FILENAME ) // '___.rc'
+#if defined( ESMF_)
+      ! We need to add the ".rc" extension to the "chemga.dat" file
+      ! so that GEOS-5 will copy it to the proper run directory.
+      FILENAME = TRIM( FILENAME ) // '.rc'
 #endif
 
       IF ( am_I_Root ) THEN
