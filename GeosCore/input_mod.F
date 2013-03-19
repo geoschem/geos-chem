@@ -8053,7 +8053,7 @@
       ! Initialize "linoz_mod.F"
       IF ( Input_Opt%LLINOZ ) THEN
          CALL INIT_LINOZ( am_I_Root, Input_Opt, RC )
-         IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_AEROSOL' )
+         IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_LINOZ' )
       ENDIF
 
       END SUBROUTINE GIGC_Init_Extra

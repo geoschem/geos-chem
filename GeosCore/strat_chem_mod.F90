@@ -232,8 +232,8 @@ CONTAINS
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  27 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
-!  18 Mar 2013 - R. Yantosca - Now pass Input_Oppt
-
+!  18 Mar 2013 - R. Yantosca - Now pass Input_Opt via the arg list
+!  19 Mar 2013 - R. Yantosca - Now only copy Input_Opt%TCVV(1:N_TRACERS)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -281,7 +281,7 @@ CONTAINS
     IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
     IT_IS_A_TAGOX_SIM    = Input_Opt%ITS_A_TAGOX_SIM  
     IT_IS_A_H2HD_SIM     = Input_Opt%ITS_A_H2HD_SIM
-    TCVV                 = Input_Opt%TCVV
+    TCVV                 = Input_Opt%TCVV(1:N_TRACERS)
 
     ! Set a flag for debug printing
     prtDebug             = ( LPRT .and. am_I_Root )

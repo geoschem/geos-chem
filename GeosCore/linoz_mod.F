@@ -239,6 +239,7 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  18 Mar 2013 - R. Yantosca - Now accept Input_Opt, RC as arguments
+!  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%TCVV(1:N_TRACERS)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -271,7 +272,7 @@
       JM         = JJPAR
       LM         = LLPAR
       N_TRACERS  = Input_Opt%N_TRACERS
-      TCVV       = Input_Opt%TCVV
+      TCVV       = Input_Opt%TCVV(1:N_TRACERS)
 
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ) 
       !-----------------------------------------------------------------

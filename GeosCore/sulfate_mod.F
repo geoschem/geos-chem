@@ -499,6 +499,7 @@
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  04 Mar 2013 - R. Yantosca - Remove call to INIT_SULFATE
+!  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%TCVV(1:N_TRACERS)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -536,7 +537,7 @@
       LCRYST               = Input_Opt%LCRYST
       LPRT                 = Input_Opt%LPRT
       N_TRACERS            = Input_Opt%N_TRACERS
-      TCVV                 = Input_Opt%TCVV
+      TCVV                 = Input_Opt%TCVV(1:N_TRACERS)
       IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
 
       ! Should we print debug output?
@@ -1369,6 +1370,8 @@
 !  26 Nov 2012 - R. Yantosca - Dimension ND44_TMP array with LLPAR, not LLTROP
 !  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
+!  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%TCVV(1:N_TRACERS) and
+!                              Input_Opt%XNUMOL(1:N_TRACERS) -- avoid OOB errs
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1383,7 +1386,7 @@
       LOGICAL            :: LNLPBL
       LOGICAL            :: FIRST     = .TRUE.
       INTEGER, SAVE      :: LASTMONTH = -99
-      INTEGER            :: I, J, L, JLOOP
+      INTEGER            :: I, J, L, JLOOP, N_TRACERS
       REAL*4             :: ARRAY(IIPAR,JJPAR,LLTROP)
       REAL*8             :: DT,    Koh,  DH2O2, M,    F ,   XTAU   
       REAL*8             :: H2O20, H2O2, ALPHA, FLUX, FREQ, PHOTJ
@@ -1400,18 +1403,19 @@
       IF ( IDTH2O2 == 0 .or. DRYH2O2 == 0 ) RETURN 
 
       ! Assume success
-      RC     = GIGC_SUCCESS
+      RC        = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      TCVV   = Input_Opt%TCVV
-      XNUMOL = Input_Opt%XNUMOL
-      LNLPBL = Input_Opt%LNLPBL
+      N_TRACERS = Input_Opt%N_TRACERS
+      TCVV      = Input_Opt%TCVV  (1:N_TRACERS)
+      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
+      LNLPBL    = Input_Opt%LNLPBL
 
       ! Chemistry timestep [s]
-      DT     = GET_TS_CHEM() * 60d0
+      DT        = GET_TS_CHEM() * 60d0
 
       ! Factor to convert AIRDEN from kgair/m3 to molecules/cm3:
-      F      = 1000.d0 / AIRMW * 6.022d23 * 1.d-6
+      F         = 1000.d0 / AIRMW * 6.022d23 * 1.d-6
       
       ! Zero ND44_TMP array
       IF ( ND44 > 0 ) THEN
@@ -1668,6 +1672,8 @@
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
+!  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%TCVV(1:N_TRACERS) and
+!                              Input_Opt%XNUMOL(1:N_TRACERS) -- avoid OOB errs
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1683,7 +1689,7 @@
       LOGICAL               :: LNLPBL
       LOGICAL               :: IS_OFFLINE
       INTEGER               :: I,      J,       L       !,      I1,   I2
-      INTEGER               :: II,     NSTEP
+      INTEGER               :: II,     NSTEP,   N_TRACERS
       REAL*8                :: K0,     Ki,      KK,     M,    L1
       REAL*8                :: L2,     L3,      Ld,     F,    Fc
       REAL*8                :: RK,     RKT,     DTCHEM, DT_T, TK
@@ -1711,8 +1717,9 @@
 
       ! Copy fields from INPUT_OPT to local variables for use below
       IS_OFFLINE = Input_Opt%ITS_AN_AEROSOL_SIM
-      TCVV       = Input_Opt%TCVV
-      XNUMOL     = Input_Opt%XNUMOL
+      N_TRACERS  = Input_Opt%N_TRACERS
+      TCVV       = Input_Opt%TCVV  (1:N_TRACERS)
+      XNUMOL     = Input_Opt%XNUMOL(1:N_TRACERS)
       LNLPBL     = Input_Opt%LNLPBL
 
       ! Read HNO3 for offline simulation
@@ -2260,7 +2267,7 @@
 !
       ! Scalars
       LOGICAL            :: IT_IS_A_FULLCHEM_SIM
-      INTEGER            :: JLOOP
+      INTEGER            :: JLOOP,       N_TRACERS
       REAL*8             :: SO2_chem,    DTCHEM
       REAL*8             :: O3_cspec,    O3_lost
       REAL*8             :: EQ_1_C,      EQ_2_C
@@ -2293,7 +2300,8 @@
       RC                   = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      TCVV                 = Input_Opt%TCVV
+      N_TRACERS            = Input_Opt%N_TRACERS
+      TCVV                 = Input_Opt%TCVV(1:N_TRACERS)
       IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
 
       ! DTCHEM is the chemistry timestep in seconds
@@ -2874,6 +2882,8 @@
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
+!  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%TCVV(1:N_TRACERS) and
+!                              Input_Opt%XNUMOL(1:N_TRACERS) -- avoid OOB errs
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2881,6 +2891,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL               :: LNLPBL, LCRYST, LSSALT
+      INTEGER               :: N_TRACERS
       INTEGER               :: I,      J,      L,        N,     N_ND44
       REAL*8                :: AS,     AS0,    AHS,      AHS0,  LET   
       REAL*8                :: LET0,   SO4,    SO40,     SO4aq, SO4aq0
@@ -2901,20 +2912,21 @@
       IF ( DRYSO4 == 0 .or. DRYSO4s == 0 ) RETURN
 
       ! Assume success
-      RC     = GIGC_SUCCESS
+      RC        = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      LCRYST = Input_Opt%LCRYST
-      LNLPBL = Input_Opt%LNLPBL
-      LSSALT = Input_Opt%LSSALT
-      TCVV   = Input_Opt%TCVV 
-      XNUMOL = Input_Opt%XNUMOL
+      LCRYST    = Input_Opt%LCRYST
+      LNLPBL    = Input_Opt%LNLPBL
+      LSSALT    = Input_Opt%LSSALT
+      N_TRACERS = Input_Opt%N_TRACERS
+      TCVV      = Input_Opt%TCVV  (1:N_TRACERS) 
+      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
 
       ! DTCHEM is the chemistry timestep in seconds
-      DTCHEM = GET_TS_CHEM() * 60d0
+      DTCHEM    = GET_TS_CHEM() * 60d0
 
       ! Number of drydep tracers to save
-      N_ND44 = 2
+      N_ND44    = 2
 
 !------------------------------------------------------------------------------
 !%%% Currently under development (rjp, bmy, 4/13/05)
@@ -3340,6 +3352,8 @@
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
+!  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%TCVV(1:N_TRACERS) and
+!                              Input_Opt%XNUMOL(1:N_TRACERS) -- avoid OOB errs
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3348,6 +3362,7 @@
 !
       ! Scalars
       LOGICAL               :: LNLPBL
+      INTEGER               :: N_TRACERS
       INTEGER               :: I,      J,    L,        PBL_MAX
       REAL*8                :: DTCHEM, MSA0, MSA,      RK       
       REAL*8                :: RKT,    FLUX, AREA_CM2, F_UNDER_TOP
@@ -3363,12 +3378,13 @@
       IF ( IDTMSA == 0 .or. DRYMSA == 0 ) RETURN
 
       ! Assume success
-      RC      = GIGC_SUCCESS
+      RC        = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      TCVV    = Input_Opt%TCVV
-      XNUMOL  = Input_Opt%XNUMOL
-      LNLPBL  = Input_Opt%LNLPBL
+      N_TRACERS = Input_Opt%N_TRACERS
+      TCVV      = Input_Opt%TCVV  (1:N_TRACERS)
+      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
+      LNLPBL    = Input_Opt%LNLPBL
 
       ! DTCHEM is the chemistry interval in seconds
       DTCHEM  = GET_TS_CHEM() * 60d0 
@@ -3549,6 +3565,8 @@
 !  13 Mar 2013 - R. Yantosca - Bug fix: make sure we pass values to the
 !                              SOIL_DRYDEP routine even when ND44 is off
 !                              (this happens when LNLPBL = F)
+!  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%TCVV(1:N_TRACERS) and
+!                              Input_Opt%XNUMOL(1:N_TRACERS) -- avoid OOB errs
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3557,7 +3575,7 @@
 !
       ! Scalars
       LOGICAL :: LNLPBL, LSOILNOX
-      INTEGER :: I,      J,        L
+      INTEGER :: I,      J,        L,    N_TRACERS
       REAL*8  :: DTCHEM, NH30,     NH3
       REAL*8  :: FREQ,   AREA_CM2, FLUX, F_UNDER_TOP
 
@@ -3572,20 +3590,21 @@
       IF ( IDTNH3 == 0 .or. DRYNH3 == 0 ) RETURN
 
       ! Assume success
-      RC       = GIGC_SUCCESS
+      RC        = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      LNLPBL   = Input_Opt%LNLPBL
-      LSOILNOX = Input_Opt%LSOILNOX
-      TCVV     = Input_Opt%TCVV
-      XNUMOL   = Input_Opt%XNUMOL
+      LNLPBL    = Input_Opt%LNLPBL
+      LSOILNOX  = Input_Opt%LSOILNOX
+      N_TRACERS = Input_Opt%N_TRACERS
+      TCVV      = Input_Opt%TCVV  (1:N_TRACERS)
+      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
 
       ! DTCHEM is the chemistry interval in seconds
-      DTCHEM   = GET_TS_CHEM() * 60d0
+      DTCHEM    = GET_TS_CHEM() * 60d0
 
       ! Zero DRYD_FLX array.  This will store drydep values even if 
       ! the ND44 diagnostic has been turned off (bmy, 3/13/13)
-      DRYD_FLX = 0d0
+      DRYD_FLX  = 0d0
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -3770,6 +3789,8 @@
 !  13 Mar 2013 - R. Yantosca - Bug fix: make sure we pass values to the
 !                              SOIL_DRYDEP routine even when ND44 is off
 !                              (this happens when LNLPBL = F)
+!  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%TCVV(1:N_TRACERS) and
+!                              Input_Opt%XNUMOL(1:N_TRACERS) -- avoid OOB errs
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3778,7 +3799,7 @@
 !
       ! Scalars
       LOGICAL :: LNLPBL, LSOILNOX
-      INTEGER :: I,      J,    L
+      INTEGER :: I,      J,    L,        N_TRACERS
       REAL*8  :: DTCHEM, NH4,  NH40
       REAL*8  :: FREQ,   FLUX, AREA_CM2, F_UNDER_TOP
 
@@ -3793,16 +3814,17 @@
       IF ( IDTNH4 == 0 .or. DRYNH4 == 0 ) RETURN
 
       ! Assume success
-      RC       = GIGC_SUCCESS
+      RC        = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      LNLPBL   = Input_Opt%LNLPBL
-      LSOILNOX = Input_Opt%LSOILNOX
-      TCVV     = Input_Opt%TCVV
-      XNUMOL   = Input_Opt%XNUMOL
+      LNLPBL    = Input_Opt%LNLPBL
+      LSOILNOX  = Input_Opt%LSOILNOX
+      N_TRACERS = Input_Opt%N_TRACERS
+      TCVV      = Input_Opt%TCVV  (1:N_TRACERS)
+      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
 
       ! DTCHEM is the chemistry interval in seconds
-      DTCHEM   = GET_TS_CHEM() * 60d0 
+      DTCHEM    = GET_TS_CHEM() * 60d0 
 
       ! Zero DRYD_FLX array.  This will store drydep values even if 
       ! the ND44 diagnostic has been turned off (bmy, 3/13/13)
@@ -3909,208 +3931,212 @@
 
       END SUBROUTINE CHEM_NH4
 !EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% Prior to 3/19/13
+!%%% This routine isn't called, so comment it out for now (bmy, 3/19/13)
+!!------------------------------------------------------------------------------
+!!          Harvard University Atmospheric Chemistry Modeling Group            !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: chem_nh4aq
+!!
+!! !DESCRIPTION: Subroutine CHEM\_NH4aq removes NH4aq from the surface via dry
+!!  deposition. (cas, bmy, 1/6/05, 10/25/05) 
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE CHEM_NH4aq( Input_Opt, State_Met )
+!!
+!! !USES:
+!!
+!      USE CMN_SIZE_MOD
+!      USE CMN_DIAG_MOD
+!      USE DIAG_MOD,           ONLY : AD44
+!      USE DRYDEP_MOD,         ONLY : DEPSAV
+!      USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
+!      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!      USE GIGC_State_Met_Mod, ONLY : MetState
+!      USE GRID_MOD,           ONLY : GET_AREA_CM2
+!      USE LOGICAL_MOD,        ONLY : LSOILNOX  
+!      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
+!      USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L
+!      USE TIME_MOD,           ONLY : GET_TS_CHEM
+!      USE TRACER_MOD,         ONLY : STT, TCVV, XNUMOL
+!      USE TRACERID_MOD,       ONLY : IDTNH4aq
+!!
+!! !INPUT PARAMETERS: 
+!!
+!      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+!!   
+!! !REMARKS:
+!!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!!  %%% NOTE: THIS ROUTINE DOES NOT SEEM TO GET CALLED FROM ANYWHERE %%%
+!!  %%%       WITHIN SULFATE MOD (bmy, 11/14/12)                     %%%
+!!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!!                                                                             .
+!!  If you are using the non-local PBL mixing scheme (VDIFF), then routine
+!!  SOIL_DRYDEP and the ND44 diagnostic updating will be done there.  
+!!                                                                             .
+!!  If you are using the full TURBDAY PBL mixing scheme, then we have to 
+!!  call the SOIL_DRYDEP and archive the ND44 diagnostics here.
+!!                                                                             .
+!!  Reaction List:
+!!  ============================================================================
+!!  (1 ) NH4aq = NH4_0aq * EXP( -dt )  where d = dry deposition rate [s-1]
+!!        
+!! !REVISION HISTORY:
+!!  (1 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP from 
+!!        "pbl_mix_mod.f".  Also reference GET_PBL_MAX_L from "pbl_mix_mod.f"
+!!        Vertical DO-loops can run up to PBL_MAX and not LLTROP. (bmy, 2/22/05)
+!!  (2 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
+!!  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!!  31 Jul 2012 - R. Yantosca - Now loop from 1..LLPAR for GIGC compatibility
+!!  31 Jul 2012 - R. Yantosca - Declare temp drydep arrays w/ LLPAR (not LLTROP)
+!!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!!                              derived type object
+!!  13 Mar 2013 - R. Yantosca - Bug fix: make sure we pass values to the
+!!                              SOIL_DRYDEP routine even when ND44 is off
+!!                              (this happens when LNLPBL = F)
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      ! Scalars
+!      LOGICAL :: LNLPBL
+!      INTEGER :: I,      J,     L,        PBL_MAX
+!      REAL*8  :: DTCHEM, NH4aq, NH4aq0
+!      REAL*8  :: FREQ,   FLUX,  AREA_CM2, F_UNDER_TOP
 !
-! !IROUTINE: chem_nh4aq
+!      ! Arrays
+!      REAL*8  :: DRYD_FLX(IIPAR,JJPAR,LLPAR)
 !
-! !DESCRIPTION: Subroutine CHEM\_NH4aq removes NH4aq from the surface via dry
-!  deposition. (cas, bmy, 1/6/05, 10/25/05) 
-!\\
-!\\
-! !INTERFACE:
+!      !=================================================================
+!      ! CHEM_NH4 begins here!
+!      !=================================================================
+!      IF ( IDTNH4aq == 0 .or. DRYNH4aq == 0 ) RETURN
 !
-      SUBROUTINE CHEM_NH4aq( Input_Opt, State_Met )
+!      ! Initialize
+!      LNLPBL  = Input_Opt%LNLPBL
 !
-! !USES:
+!      ! DTCHEM is the chemistry interval in seconds
+!      DTCHEM  = GET_TS_CHEM() * 60d0 
 !
-      USE CMN_SIZE_MOD
-      USE CMN_DIAG_MOD
-      USE DIAG_MOD,           ONLY : AD44
-      USE DRYDEP_MOD,         ONLY : DEPSAV
-      USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,        ONLY : LSOILNOX  
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
-      USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L
-      USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACER_MOD,         ONLY : STT, TCVV, XNUMOL
-      USE TRACERID_MOD,       ONLY : IDTNH4aq
+!      ! Model level where maximum PBL height occurs 
+!      PBL_MAX = GET_PBL_MAX_L()      
 !
-! !INPUT PARAMETERS: 
+!      ! Zero DRYD_FLX array.  This will store drydep values even if 
+!      ! the ND44 diagnostic has been turned off (bmy, 3/13/13)
+!      DRYD_FLX = 0d0
 !
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-!   
-! !REMARKS:
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%% NOTE: THIS ROUTINE DOES NOT SEEM TO GET CALLED FROM ANYWHERE %%%
-!  %%%       WITHIN SULFATE MOD (bmy, 11/14/12)                     %%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!                                                                             .
-!  If you are using the non-local PBL mixing scheme (VDIFF), then routine
-!  SOIL_DRYDEP and the ND44 diagnostic updating will be done there.  
-!                                                                             .
-!  If you are using the full TURBDAY PBL mixing scheme, then we have to 
-!  call the SOIL_DRYDEP and archive the ND44 diagnostics here.
-!                                                                             .
-!  Reaction List:
-!  ============================================================================
-!  (1 ) NH4aq = NH4_0aq * EXP( -dt )  where d = dry deposition rate [s-1]
-!        
-! !REVISION HISTORY:
-!  (1 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP from 
-!        "pbl_mix_mod.f".  Also reference GET_PBL_MAX_L from "pbl_mix_mod.f"
-!        Vertical DO-loops can run up to PBL_MAX and not LLTROP. (bmy, 2/22/05)
-!  (2 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
-!  22 Dec 2011 - M. Payer    - Added ProTeX headers
-!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
-!  31 Jul 2012 - R. Yantosca - Now loop from 1..LLPAR for GIGC compatibility
-!  31 Jul 2012 - R. Yantosca - Declare temp drydep arrays w/ LLPAR (not LLTROP)
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  13 Mar 2013 - R. Yantosca - Bug fix: make sure we pass values to the
-!                              SOIL_DRYDEP routine even when ND44 is off
-!                              (this happens when LNLPBL = F)
-!EOP
-!------------------------------------------------------------------------------
-!BOC
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I,      J,     L,        F_UNDER_TOP, FREQ  )
+!!$OMP+PRIVATE( NH4aq0, NH4aq, AREA_CM2, FLUX               )
+!!$OMP+SCHEDULE( DYNAMIC )
+!      DO L = 1, LLPAR
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
 !
-! !LOCAL VARIABLES:
+!         ! Fraction of box (I,J,L) underneath the PBL top [unitless]
+!         F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )     
 !
-      ! Scalars
-      LOGICAL :: LNLPBL
-      INTEGER :: I,      J,     L,        PBL_MAX
-      REAL*8  :: DTCHEM, NH4aq, NH4aq0
-      REAL*8  :: FREQ,   FLUX,  AREA_CM2, F_UNDER_TOP
-
-      ! Arrays
-      REAL*8  :: DRYD_FLX(IIPAR,JJPAR,LLPAR)
-
-      !=================================================================
-      ! CHEM_NH4 begins here!
-      !=================================================================
-      IF ( IDTNH4aq == 0 .or. DRYNH4aq == 0 ) RETURN
-
-      ! Initialize
-      LNLPBL  = Input_Opt%LNLPBL
-
-      ! DTCHEM is the chemistry interval in seconds
-      DTCHEM  = GET_TS_CHEM() * 60d0 
-
-      ! Model level where maximum PBL height occurs 
-      PBL_MAX = GET_PBL_MAX_L()      
-
-      ! Zero DRYD_FLX array.  This will store drydep values even if 
-      ! the ND44 diagnostic has been turned off (bmy, 3/13/13)
-      DRYD_FLX = 0d0
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,      J,     L,        F_UNDER_TOP, FREQ  )
-!$OMP+PRIVATE( NH4aq0, NH4aq, AREA_CM2, FLUX               )
-!$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! Fraction of box (I,J,L) underneath the PBL top [unitless]
-         F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )     
-
-         ! Only apply drydep to boxes w/in the PBL
-         IF ( F_UNDER_TOP > 0d0 ) THEN
-
-            ! NH4 drydep frequency [1/s] -- PBLFRAC accounts for the fraction
-            ! of each grid box (I,J,L) that is located beneath the PBL top
-            FREQ = DEPSAV(I,J,DRYNH4aq) * F_UNDER_TOP
-
-            ! Add option for non-local PBL (Lin, 03/31/09)
-            IF ( Input_Opt%LNLPBL ) FREQ = 0.D0
-
-            ! Only apply drydep loss if FREQ is nonzero
-            IF ( FREQ > 0d0 ) THEN
-
-               ! Initial NH4 [v/v]
-               NH4aq0 = STT(I,J,L,IDTNH4aq)
-         
-               ! Amount of NH4 lost to drydep [v/v]
-               NH4aq = NH4aq0 * ( 1d0 - EXP( -FREQ * DTCHEM ) )
-
-               ! Prevent underflow condition
-               IF ( NH4aq < SMALLNUM ) NH4aq = 0d0
-
-               ! Subtract NH4 lost to drydep from initial NH4 [v/v]
-               STT(I,J,L,IDTNH4aq) = NH4aq0 - NH4aq
-
-               !========================================================
-               ! ND44 diagnostic: Drydep flux of NH4 [molec/cm2/s]
-               !========================================================
-               IF ( NH4aq > 0d0 ) THEN
-         
-                  ! Surface area [cm2]
-                  AREA_CM2 = GET_AREA_CM2( I, J, L )
-                  
-                  ! Convert drydep loss from [v/v/timestep] to [molec/cm2/s]
-                  FLUX = NH4aq * State_Met%AD(I,J,L) / TCVV(IDTNH4aq)
-                  FLUX = FLUX  * XNUMOL(IDTNH4aq) / AREA_CM2 / DTCHEM
-
-                  ! Store dryd flx for use below
-                  DRYD_FLX(I,J,L) = DRYD_FLX(I,J,L) + FLUX
-               ENDIF
-            ENDIF
-         ENDIF
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      !===============================================================
-      ! If we are not using the non-local PBL scheme, then:
-      !===============================================================
-      IF ( .not. LNLPBL ) THEN 
-
-         !------------------------------------------------------------
-         ! (1) Call SOIL_DRYDEP to archive the NH4aq drydep fluxes.
-         !------------------------------------------------------------
-         IF ( LSOILNOX  ) THEN
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-            DO L = 1, LLPAR
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-               CALL SOIL_DRYDEP( I, J, L, IDTNH4aq, DRYD_FLX(I,J,L) )
-            ENDDO
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-         ENDIF
-
-         !------------------------------------------------------------
-         ! (2) Save archived NH4aq drydep fluxes into the AD44 array
-         !------------------------------------------------------------
-         IF ( ND44 > 0 ) THEN 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-            DO L = 1, LLPAR
-               AD44(I,J,DRYNH4aq,1) = 
-     &         AD44(I,J,DRYNH4aq,1) + DRYD_FLX(I,J,L)
-            ENDDO
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-         ENDIF
-      ENDIF
-
-      END SUBROUTINE CHEM_NH4aq
+!         ! Only apply drydep to boxes w/in the PBL
+!         IF ( F_UNDER_TOP > 0d0 ) THEN
+!
+!            ! NH4 drydep frequency [1/s] -- PBLFRAC accounts for the fraction
+!            ! of each grid box (I,J,L) that is located beneath the PBL top
+!            FREQ = DEPSAV(I,J,DRYNH4aq) * F_UNDER_TOP
+!
+!            ! Add option for non-local PBL (Lin, 03/31/09)
+!            IF ( Input_Opt%LNLPBL ) FREQ = 0.D0
+!
+!            ! Only apply drydep loss if FREQ is nonzero
+!            IF ( FREQ > 0d0 ) THEN
+!
+!               ! Initial NH4 [v/v]
+!               NH4aq0 = STT(I,J,L,IDTNH4aq)
+!         
+!               ! Amount of NH4 lost to drydep [v/v]
+!               NH4aq = NH4aq0 * ( 1d0 - EXP( -FREQ * DTCHEM ) )
+!
+!               ! Prevent underflow condition
+!               IF ( NH4aq < SMALLNUM ) NH4aq = 0d0
+!
+!               ! Subtract NH4 lost to drydep from initial NH4 [v/v]
+!               STT(I,J,L,IDTNH4aq) = NH4aq0 - NH4aq
+!
+!               !========================================================
+!               ! ND44 diagnostic: Drydep flux of NH4 [molec/cm2/s]
+!               !========================================================
+!               IF ( NH4aq > 0d0 ) THEN
+!         
+!                  ! Surface area [cm2]
+!                  AREA_CM2 = GET_AREA_CM2( I, J, L )
+!                  
+!                  ! Convert drydep loss from [v/v/timestep] to [molec/cm2/s]
+!                  FLUX = NH4aq * State_Met%AD(I,J,L) / TCVV(IDTNH4aq)
+!                  FLUX = FLUX  * XNUMOL(IDTNH4aq) / AREA_CM2 / DTCHEM
+!
+!                  ! Store dryd flx for use below
+!                  DRYD_FLX(I,J,L) = DRYD_FLX(I,J,L) + FLUX
+!               ENDIF
+!            ENDIF
+!         ENDIF
+!      ENDDO
+!      ENDDO
+!      ENDDO
+!!$OMP END PARALLEL DO
+!
+!      !===============================================================
+!      ! If we are not using the non-local PBL scheme, then:
+!      !===============================================================
+!      IF ( .not. LNLPBL ) THEN 
+!
+!         !------------------------------------------------------------
+!         ! (1) Call SOIL_DRYDEP to archive the NH4aq drydep fluxes.
+!         !------------------------------------------------------------
+!         IF ( LSOILNOX  ) THEN
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L )
+!            DO L = 1, LLPAR
+!            DO J = 1, JJPAR
+!            DO I = 1, IIPAR
+!               CALL SOIL_DRYDEP( I, J, L, IDTNH4aq, DRYD_FLX(I,J,L) )
+!            ENDDO
+!            ENDDO
+!            ENDDO
+!!$OMP END PARALLEL DO
+!         ENDIF
+!
+!         !------------------------------------------------------------
+!         ! (2) Save archived NH4aq drydep fluxes into the AD44 array
+!         !------------------------------------------------------------
+!         IF ( ND44 > 0 ) THEN 
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L )
+!            DO J = 1, JJPAR
+!            DO I = 1, IIPAR
+!            DO L = 1, LLPAR
+!               AD44(I,J,DRYNH4aq,1) = 
+!     &         AD44(I,J,DRYNH4aq,1) + DRYD_FLX(I,J,L)
+!            ENDDO
+!            ENDDO
+!            ENDDO
+!!$OMP END PARALLEL DO
+!         ENDIF
+!      ENDIF
+!
+!      END SUBROUTINE CHEM_NH4aq
 !EOC
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -4195,6 +4221,8 @@
 !  13 Mar 2013 - R. Yantosca - Bug fix: make sure we pass values to the
 !                              SOIL_DRYDEP routine even when ND44 is off
 !                              (this happens when LNLPBL = F)
+!  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%TCVV(1:N_TRACERS) and
+!                              Input_Opt%XNUMOL(1:N_TRACERS) -- avoid OOB errs
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4203,7 +4231,7 @@
 !
       ! Scalars
       LOGICAL :: LNLPBL,   LSOILNOX,     LSSALT
-      INTEGER :: I,        J,      L,    N
+      INTEGER :: I,        J,      L,    N,     N_TRACERS
       REAL*8  :: DTCHEM,   NIT,    NITs, NIT0,  NIT0s,  E_RKT
       REAL*8  :: E_RKTs,   FLUX,   FREQ, FREQs, RKT,    RKTs   
       REAL*8  :: AREA_CM2, F_UNDER_TOP
@@ -4222,21 +4250,22 @@
       IF ( DRYNIT == 0 .or. DRYNITs == 0 ) RETURN
 
       ! Assume success
-      RC       = GIGC_SUCCESS
+      RC        = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      LNLPBL   = Input_Opt%LNLPBL
-      LSOILNOX = Input_Opt%LSOILNOX
-      LSSALT   = Input_Opt%LSSALT
-      TCVV     = Input_Opt%TCVV
-      XNUMOL   = Input_Opt%XNUMOL
+      LNLPBL    = Input_Opt%LNLPBL
+      LSOILNOX  = Input_Opt%LSOILNOX
+      LSSALT    = Input_Opt%LSSALT
+      N_TRACERS = Input_Opt%N_TRACERS
+      TCVV      = Input_Opt%TCVV  (1:N_TRACERS)
+      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
 
       ! DTCHEM is the chemistry interval in seconds
-      DTCHEM   = GET_TS_CHEM() * 60d0 
+      DTCHEM    = GET_TS_CHEM() * 60d0 
 
       ! Zero DRYD_FLX array.  This will store drydep values even if 
       ! the ND44 diagnostic has been turned off (bmy, 3/13/13)
-      DRYD_FLX = 0d0
+      DRYD_FLX  = 0d0
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )

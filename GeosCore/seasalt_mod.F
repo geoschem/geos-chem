@@ -318,13 +318,14 @@
 !  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%XNUMOL(1:N_TRACERS)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                :: I,      J,     L
+      INTEGER                :: I,      J,     L,        N_TRACERS
       REAL*8                 :: DELZ,   DELZ1, REFF,     DEN
       REAL*8                 :: P,      DP,    PDP,      TEMP        
       REAL*8                 :: CONST,  SLIP,  VISC,     FAC1
@@ -382,7 +383,8 @@
       ! Copy fields from INPUT_OPT to local variables for use below
       SALA_REDGE_um = Input_Opt%SALA_REDGE_um 
       SALC_REDGE_um = Input_Opt%SALC_REDGE_um
-      XNUMOL        = Input_Opt%XNUMOL
+      N_TRACERS     = Input_Opt%N_TRACERS
+      XNUMOL        = Input_Opt%XNUMOL(1:N_TRACERS)
 
       ! Chemistry timestep [s]
       DTCHEM        = GET_TS_CHEM() * 60d0
@@ -725,6 +727,7 @@
 !                              then save back to AD44 outside parallel loop
 !  20 Nov 2012 - R. Yantosca - Now loop from 1..LLPAR for GIGC.  Remove
 !                              references to GET_PBL_MAX_L.
+!  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%XNUMOL(1:N_TRACERS)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -732,6 +735,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
+      INTEGER            :: N_TRACERS
       INTEGER            :: I,        J,     L,      DTCHEM
       REAL*8             :: OLD,      NEW,   G,      REFF
       REAL*8             :: DIAM,     U_TS0, REYNOL, ALPHA 
@@ -752,13 +756,14 @@
       !=================================================================
 
       ! Assume success
-      RC     = GIGC_SUCCESS
+      RC        = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      XNUMOL = Input_Opt%XNUMOL
+      N_TRACERS = Input_Opt%N_TRACERS
+      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
 
       ! Chemistry timestep [s]
-      DTCHEM = GET_TS_CHEM() * 60d0
+      DTCHEM    = GET_TS_CHEM() * 60d0
 
       ! Zero temporary array for drydep diagnostic
       IF ( ND44 > 0 ) ND44_TMP = 0d0

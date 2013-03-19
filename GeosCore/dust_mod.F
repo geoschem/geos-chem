@@ -256,6 +256,7 @@
 !  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%XNUMOL(1:N_TRACERS)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -308,7 +309,8 @@
       RC        = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      XNUMOL    = Input_Opt%XNUMOL
+      N_TRACERS = Input_Opt%N_TRACERS
+      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
 
       ! Dust settling timestep [s]
       DT_SETTL  = GET_TS_CHEM() * 60d0
@@ -482,6 +484,7 @@
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
+!  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%XNUMOL(1:N_TRACERS)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -489,7 +492,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER :: I,   J,   L,      N
+      INTEGER :: I,   J,   L,      N,    N_TRACERS
       REAL*8  :: OLD, NEW, DTCHEM, FLUX, AREA_CM2
 
       ! Arrays
@@ -500,13 +503,14 @@
       !=================================================================
 
       ! Assume success
-      RC     = GIGC_SUCCESS
+      RC        = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      XNUMOL = Input_Opt%XNUMOL
+      N_TRACERS = Input_Opt%N_TRACERS
+      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
 
       ! DTCHEM is the chemistry timestep in seconds
-      DTCHEM = Input_Opt%TS_CHEM * 60d0
+      DTCHEM    = Input_Opt%TS_CHEM * 60d0
 
       ! Loop over dust bins
 !$OMP PARALLEL DO

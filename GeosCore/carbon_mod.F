@@ -574,7 +574,8 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
 !  26 Nov 2012 - R. Yantosca - Added ProTeX headers
-!   5 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
+!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
+!  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%XNUMOL(1:N_TRACERS)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -583,7 +584,7 @@
 !
       ! Scalars
       LOGICAL            :: LNLPBL
-      INTEGER            :: I,       J,   L
+      INTEGER            :: I,       J,   L,   N_TRACERS
       REAL*8             :: DTCHEM, FLUX, KBC, FREQ
       REAL*8             :: TC0,    CNEW, RKT, AREA_CM2, BL_FRAC
 
@@ -603,16 +604,17 @@
       IF ( IDTBCPO == 0 .or. DRYBCPO == 0 ) RETURN
 
       ! Assume success
-      RC     = GIGC_SUCCESS
+      RC        = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      XNUMOL = Input_Opt%XNUMOL
-      LNLPBL = Input_Opt%LNLPBL
+      N_TRACERS = Input_Opt%N_TRACERS
+      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
+      LNLPBL    = Input_Opt%LNLPBL
 
       ! Initialize
-      KBC    = 1.D0 / ( 86400d0 * BC_LIFE )
-      DTCHEM = GET_TS_CHEM() * 60d0
-      BCCONV = 0d0
+      KBC       = 1.D0 / ( 86400d0 * BC_LIFE )
+      DTCHEM    = GET_TS_CHEM() * 60d0
+      BCCONV    = 0d0
 
       ! Initialize for drydep diagnostic
       IF ( ND44 > 0 ) ND44_TMP = 0d0
@@ -773,6 +775,7 @@
 !  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
 !  26 Nov 2012 - R. Yantosca - Added ProTeX Headers
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
+!  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%XNUMOL(1:N_TRACERS)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -781,7 +784,7 @@
 !
       ! Scalars
       LOGICAL :: LNLPBL
-      INTEGER :: I, J, L
+      INTEGER :: I,      J,    L,       N_TRACERS
       REAL*8  :: DTCHEM, FLUX, BL_FRAC, AREA_CM2
       REAL*8  :: TC0,    CNEW, CCV,     FREQ
 
@@ -797,14 +800,15 @@
       IF ( IDTBCPI == 0 .or. DRYBCPI == 0 ) RETURN
 
       ! Assume success
-      RC     = GIGC_SUCCESS
+      RC        = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      XNUMOL = Input_Opt%XNUMOL
-      LNLPBL = Input_Opt%LNLPBL
+      N_TRACERS = Input_Opt%N_TRACERS
+      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
+      LNLPBL    = Input_Opt%LNLPBL
 
       ! Chemistry timestep [s]
-      DTCHEM = GET_TS_CHEM() * 60d0
+      DTCHEM    = GET_TS_CHEM() * 60d0
 
       ! Initialize for ND44 diagnostic
       IF ( ND44 > 0 ) ND44_TMP = 0d0
@@ -963,6 +967,7 @@
 !  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
 !  26 Nov 2012 - R. Yantosca - Added ProTeX headers
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
+!  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%XNUMOL(1:N_TRACERS)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -971,7 +976,7 @@
 !
       ! Scalars
       LOGICAL            :: LNLPBL
-      INTEGER            :: I, J, L
+      INTEGER            :: I,      J,    L,    N_TRACERS
       REAL*8             :: DTCHEM, FLUX, KOC,  BL_FRAC
       REAL*8             :: TC0,    FREQ, CNEW, RKT, AREA_CM2
 
@@ -991,16 +996,17 @@
       IF ( IDTOCPO == 0 .or. DRYOCPO == 0 ) RETURN
 
       ! Assume success
-      RC     = GIGC_SUCCESS
+      RC        = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      XNUMOL = Input_Opt%XNUMOL
-      LNLPBL = Input_Opt%LNLPBL
+      N_TRACERS = Input_Opt%N_TRACERS
+      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
+      LNLPBL    = Input_Opt%LNLPBL
 
       ! Initialize
-      KOC    = 1.D0 / ( 86400d0 * OC_LIFE )
-      DTCHEM = GET_TS_CHEM() * 60d0
-      OCCONV = 0d0
+      KOC       = 1.D0 / ( 86400d0 * OC_LIFE )
+      DTCHEM    = GET_TS_CHEM() * 60d0
+      OCCONV    = 0d0
 
       ! Initialize for drydep diagnostic
       IF ( ND44 > 0 ) ND44_TMP = 0d0
@@ -1163,6 +1169,7 @@
 !  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
 !  26 Nov 2012 - R. Yantosca - Added ProTeX headers
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
+!  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%XNUMOL(1:N_TRACERS)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1171,9 +1178,9 @@
 !
       ! Scalars
       LOGICAL :: LNLPBL
-      INTEGER :: I, J, L
+      INTEGER :: I,      J,    L,       N_TRACERS 
       REAL*8  :: DTCHEM, FLUX, BL_FRAC
-      REAL*8  :: TC0, CNEW, CCV, FREQ, AREA_CM2
+      REAL*8  :: TC0,    CNEW, CCV,     FREQ,      AREA_CM2
 
       ! Arrays
       REAL*8  :: ND44_TMP(IIPAR,JJPAR,LLPAR)
@@ -1185,14 +1192,15 @@
       IF ( IDTOCPI == 0 .or. DRYOCPI == 0 ) RETURN
 
       ! Assume success
-      RC     = GIGC_SUCCESS
+      RC        = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      XNUMOL = Input_Opt%XNUMOL
-      LNLPBL = Input_Opt%LNLPBL
+      N_TRACERS = Input_Opt%N_TRACERS
+      XNUMOL    = Input_Opt%XNUMOL
+      LNLPBL    = Input_Opt%LNLPBL
 
       ! Chemistry timestep [s]
-      DTCHEM = GET_TS_CHEM() * 60d0
+      DTCHEM    = GET_TS_CHEM() * 60d0
 
       ! Initialize for drydep diagnostic
       IF ( ND44 > 0 ) ND44_TMP = 0d0

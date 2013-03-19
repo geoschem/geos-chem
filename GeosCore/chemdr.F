@@ -234,6 +234,7 @@
 !  08 Nov 2012 - R. Yantosca - Now add Input_Opt (Input Options) as an argument
 !  11 Dec 2012 - R. Yantosca - Remove NI, NJ, NL arguments, they are not used
 !  26 Feb 2013 - M. Long     - Now pass Input_Opt to INPHOT as an argument
+!  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%XNUMOL(1:N_TRACERS)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -279,7 +280,7 @@
 
       ! Copy logical fields from INPUT_OPT to local variables for use below
       N_TRACERS = Input_Opt%N_TRACERS
-      XNUMOL    = Input_Opt%XNUMOL
+      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
       LCARB     = Input_Opt%LCARB
       LDUST     = Input_Opt%LDUST
       LPRT      = Input_Opt%LPRT
