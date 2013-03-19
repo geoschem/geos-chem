@@ -123,6 +123,9 @@ CONTAINS
   ! large # of netCDF files that it has to read.  Those files all have
   ! to be read in via ESMF/MAPL and passed as inputs to the GEOS-Chem
   ! Chemistry Component via the Import State. (bmy, 3/18/13)
+  !
+  ! 19 Mar 2013 - R. Yantosca - Need to convert Ox to v/v before
+  !                             call to LINOZ, and then back again
   !----------------------------------------------------------------------
   SUBROUTINE Do_Strat_Chem( am_I_Root, Input_Opt,     &
                             State_Met, State_Chm, RC )
@@ -134,6 +137,8 @@ CONTAINS
     USE GIGC_State_Met_Mod, ONLY : MetState 
     USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE Linoz_Mod,          ONLY : Do_Linoz
+    USE Tracer_Mod,         ONLY : STT
+    USE TracerId_Mod,       ONLY : IDTOx
 !
 ! !INPUT PARAMETERS:
 !
@@ -149,10 +154,27 @@ CONTAINS
     ! Assume succes
     RC = GIGC_SUCCESS
 
-    ! Do Linoz or Synoz
-    IF ( Input_Opt%LLINOZ ) THEN
-       write(6,*) '### Shunting GMI strat chem, doing LINOZ instead'
+    ! Do Linoz only if Ox tracer is defined
+    IF ( Input_Opt%LLINOZ .and. IDTOX > 0 ) THEN
+
+       ! Echo info
+       IF ( am_I_Root ) THEN
+          write(6,*) '    ### Shunting GMI strat chem, doing LINOZ instead'
+       ENDIF
+
+       ! Convert Ox tracer from [kg] to [v/v] before LINOZ
+       STT(:,:,:,IDTOX) = STT           (:,:,:,IDTOX) &
+                        * Input_Opt%TCVV(      IDTOX) &
+                        / State_Met%AD  (:,:,:      )
+
+       ! Do LINOZ simplified stratospheric Ox chemistry
        CALL Do_Linoz( am_I_Root, Input_Opt, State_Met, RC )
+
+       ! Convert ozone from [v/v] back to [kg] after LINOZ
+       STT(:,:,:,IDTOX) = STT           (:,:,:,IDTOX) &
+                        * State_Met%AD  (:,:,:      ) & 
+                        / Input_Opt%TCVV(      IDTOX)
+
     ENDIF
 
   END SUBROUTINE DO_STRAT_CHEM
