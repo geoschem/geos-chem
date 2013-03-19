@@ -900,8 +900,14 @@
       INTEGER, INTENT(IN)  :: NL
       REAL*8,  INTENT(IN)  :: F(NL)
       REAL*8,  INTENT(IN)  :: PS(NL+1)
-      REAL*8,  INTENT(OUT) :: P1
-      REAL*8,  INTENT(OUT) :: P2
+!------------------------------------------------------------------------------
+! Prior to 3/19/13:
+! These need to be made INTENT(IN), since they aren't modified (bmy, 3/19/13)
+!      REAL*8,  INTENT(OUT) :: P1
+!      REAL*8,  INTENT(OUT) :: P2
+!------------------------------------------------------------------------------
+      REAL*8,  INTENT(IN)  :: P1
+      REAL*8,  INTENT(IN)  :: P2
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -924,6 +930,7 @@
 !
 ! !REVISION HISTORY: 
 !  24 Jun 2003 - B. Field & D. Jones - Further updates for GEOS-Chem
+!  19 Mar 2013 - R. Yantosca - P1, P2 are now declared as INTENT(IN)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
