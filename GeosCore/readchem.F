@@ -245,7 +245,7 @@
 #if defined( ESMF_ ) 
       ! We need to add the ".rc" extension to the "globchem.dat" file
       ! so that GEOS-5 will copy it to the proper run directory.
-      FILENAME   = TRIM( FILENAME ) // 'rc'
+      FILENAME   = TRIM( FILENAME ) // '.rc'
 #endif
       KGLC       = IU_CHEMDAT
 
