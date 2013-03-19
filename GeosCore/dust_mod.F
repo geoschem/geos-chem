@@ -263,7 +263,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER               :: I, J, L, N
+      INTEGER               :: I, J, L, N, N_TRACERS
       REAL*8                :: DT_SETTL, DELZ,  DELZ1
       REAL*8                :: REFF,     DEN,   CONST   
       REAL*8                :: NUM,      LAMDA, FLUX
