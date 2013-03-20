@@ -449,78 +449,6 @@
 
 !
 ! *********************************************************************
-! ******                SET DRY DEPOSITION RATES                 ******
-! ******                                                         ******
-! ******   NOTE: Now compute drydep throughout the mixed layer   ******
-! ******   (a.k.a. PBL) in order to prevent short-lived species  ******
-! ******   such as HNO3 from being depleted in the shallow       ******
-! ******   surface layer. (rjp, bmy, 7/30/03)                    ******   
-! *********************************************************************
-!
-! Add option for non-local PBL mixing (Lin, 03/31/09)
-      IF (LNLPBL) THEN      
-
-         DO I = 1,NUMDEP
-            NK = NTDEP(I)
-            IF (NK.NE.0) THEN
-               DO KLOOP = 1,KTLOOP
-
-                  ! 1-D grid box index (accounts for reordering)
-                  JLOOP = LREORDER(KLOOP+JLOOPLO)
-
-                  ! 3-D grid box index
-                  IX    = IXSAVE(JLOOP)
-                  IY    = IYSAVE(JLOOP)
-                  IZ    = IZSAVE(JLOOP)
-               
-                  ! constrain the dry deposition to the lowest model layer
-                  ! (Lin, 04/28/08)
-                  if (IZ .NE. 1) then
-                     RRATE(KLOOP,NK) = 0.D0 
-                  else
-                     SELECT CASE ( DEPNAME(I) )
-                        CASE ( 'DST1', 'DST2', 'DST3', 'DST4', 'SALA', 
-     &                         'SALC' )
-                           ! dusts and sea salts
-                           RRATE(KLOOP,NK) = DEPSAV(IX,IY,I)
-                        CASE DEFAULT
-                           ! gases + aerosols for full chemistry
-                           RRATE(KLOOP,NK) = 0.D0
-                     END SELECT
-                  endif
-               ENDDO
-            ENDIF
-         ENDDO
-
-      ELSE
-  
-         DO I = 1,NUMDEP
-            NK = NTDEP(I)
-            IF (NK.NE.0) THEN
-               DO KLOOP = 1,KTLOOP
-
-                  ! 1-D grid box index (accounts for reordering)
-                  JLOOP = LREORDER(KLOOP+JLOOPLO)
-
-                  ! 3-D grid box index
-                  IX    = IXSAVE(JLOOP)
-                  IY    = IYSAVE(JLOOP)
-                  IZ    = IZSAVE(JLOOP)
-
-                  ! Now compute drydep throughout the entire PBL
-                  ! GET_FRAC_UNDER_PBLTOP returns the fraction of layer
-                  ! (IX, IY, IZ) that is beneath the PBL top
-                  RRATE(KLOOP,NK) = DEPSAV(IX,IY,I) * 
-     &                              GET_FRAC_UNDER_PBLTOP( IX, IY, IZ )
-
-               ENDDO
-            ENDIF
-         ENDDO
-
-      ENDIF
-
-!
-! *********************************************************************
 ! ********  MULTIPLY RATES BY CONSTANT SPECIES CONCENTRATIONS  ********
 ! *       (EITHER M, O2, N2, OR ANY ACTIVE OR INACTIVE SPECIES)       *   
 ! *********************************************************************
@@ -1512,7 +1440,7 @@ c new OH+CO rate from JPL2006.
      &                    ( DELTPRES / TOTPRES ) / COEF1
 
                      ! Convert anthro NOx emissions from [molec NO/cm2/s]
-                     ! to [molec NO/cm3/s] and store in the REMIS array                     
+                     ! to [molec NO/cm3/s] and store in the REMIS array
                      REMIS(JLOOP,IDENOX) = REMIS(JLOOP,IDENOX) +
      &                    EMIS_BL * AREA_CM2 / VOLUME(JLOOP)
                   ENDIF
@@ -1687,6 +1615,7 @@ c new OH+CO rate from JPL2006.
          ENDDO
       ENDIF
 
+
 !
 ! *********************************************************************
 ! ******                   SET EMISSION RATES                    ******
@@ -1740,6 +1669,77 @@ c new OH+CO rate from JPL2006.
                      RRATE(KLOOP,NK) = REMIS(JLOOP,I)
                   ENDDO
                ENDIF
+            ENDIF
+         ENDDO
+
+      ENDIF
+!
+! *********************************************************************
+! ******                SET DRY DEPOSITION RATES                 ******
+! ******                                                         ******
+! ******   NOTE: Now compute drydep throughout the mixed layer   ******
+! ******   (a.k.a. PBL) in order to prevent short-lived species  ******
+! ******   such as HNO3 from being depleted in the shallow       ******
+! ******   surface layer. (rjp, bmy, 7/30/03)                    ******   
+! *********************************************************************
+!
+! Add option for non-local PBL mixing (Lin, 03/31/09)
+      IF (LNLPBL) THEN      
+
+         DO I = 1,NUMDEP
+            NK = NTDEP(I)
+            IF (NK.NE.0) THEN
+               DO KLOOP = 1,KTLOOP
+
+                  ! 1-D grid box index (accounts for reordering)
+                  JLOOP = LREORDER(KLOOP+JLOOPLO)
+
+                  ! 3-D grid box index
+                  IX    = IXSAVE(JLOOP)
+                  IY    = IYSAVE(JLOOP)
+                  IZ    = IZSAVE(JLOOP)
+               
+                  ! constrain the dry deposition to the lowest model layer
+                  ! (Lin, 04/28/08)
+                  if (IZ .NE. 1) then
+                     RRATE(KLOOP,NK) = 0.D0 
+                  else
+                     SELECT CASE ( DEPNAME(I) )
+                        CASE ( 'DST1', 'DST2', 'DST3', 'DST4', 'SALA', 
+     &                         'SALC' )
+                           ! dusts and sea salts
+                           RRATE(KLOOP,NK) = DEPSAV(IX,IY,I)
+                        CASE DEFAULT
+                           ! gases + aerosols for full chemistry
+                           RRATE(KLOOP,NK) = 0.D0
+                     END SELECT
+                  endif
+               ENDDO
+            ENDIF
+         ENDDO
+
+      ELSE
+  
+         DO I = 1,NUMDEP
+            NK = NTDEP(I)
+            IF (NK.NE.0) THEN
+               DO KLOOP = 1,KTLOOP
+
+                  ! 1-D grid box index (accounts for reordering)
+                  JLOOP = LREORDER(KLOOP+JLOOPLO)
+
+                  ! 3-D grid box index
+                  IX    = IXSAVE(JLOOP)
+                  IY    = IYSAVE(JLOOP)
+                  IZ    = IZSAVE(JLOOP)
+
+                  ! Now compute drydep throughout the entire PBL
+                  ! GET_FRAC_UNDER_PBLTOP returns the fraction of layer
+                  ! (IX, IY, IZ) that is beneath the PBL top
+                  RRATE(KLOOP,NK) = DEPSAV(IX,IY,I) * 
+     &                              GET_FRAC_UNDER_PBLTOP( IX, IY, IZ )
+
+               ENDDO
             ENDIF
          ENDDO
 
