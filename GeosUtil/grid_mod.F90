@@ -159,6 +159,7 @@ CONTAINS
 !  26 Feb 2013 - R. Yantosca - Bug fix: now compute IND_X and IND_Y properly
 !                              when connecting GEOS-Chem to the GEOS-5 GCM
 !  21 Mar 2013 - R. Yantosca - Add fix to prevent zero surface area at poles
+!  21 Mar 2013 - R. Yantosca - Rename loop indices to prevent confusion
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -173,79 +174,86 @@ CONTAINS
     REAL*8  :: IND_X( I1:I2+1 )
     REAL*8  :: IND_Y( J1:J2+1 )
 
-    !=================================================================
+    !======================================================================
     ! Initialization
-    !=================================================================
+    !======================================================================
 
     ! Index array for longitudes
-    DO IG = I1, I2+1
-       IND_X(IG) = ( ( IG + I0 - 1 ) * 1d0 ) + ( I_LO - 1 )
+    DO I = I1, I2+1
+       IND_X(I) = ( ( I + I0 - 1 ) * 1d0 ) + ( I_LO - 1 )
     ENDDO
 
     ! Index array for latitudes
-    DO JG = J1, J2+1
-       IND_Y(JG) = ( ( JG + J0 - 1 ) * 1d0 ) + ( J_LO - 1 )
+    DO J = J1, J2+1
+       IND_Y(J) = ( ( J + J0 - 1 ) * 1d0 ) + ( J_LO - 1 )
     ENDDO
 
-    !=================================================================
+    !======================================================================
     ! Compute longitude and latitude arrays
-    !=================================================================
+    !======================================================================
     
     ! Loop over levels
     DO L = L1, L2
        
-       !--------------------------------------------------------------
+       !-------------------------------------------------------------------
        ! Longitude center and edge arrays
-       !--------------------------------------------------------------
-       DO JG = J1, J2
-          J = JG - J1 + 1
-          
-          DO IG = I1, I2
-             I = IG - I1 + 1
+       !-------------------------------------------------------------------
+
+       ! Loop over local latitudes
+       DO J = J1, J2
+
+          ! Loop over local longitudes
+          DO I = I1, I2
 
              ! Longitude centers
-             XMID(I,J,L)  = ( DLON(I,J,L) * IND_X(IG) ) - 180d0
+             XMID(I,J,L)  = ( DLON(I,J,L) * IND_X(I) ) - 180d0
           
              ! Longitude edges
              XEDGE(I,J,L) = XMID(I,J,L) - ( DLON(I,J,L) * 0.5d0 )
 
              ! Compute the last longitude edge
-             IF ( IG == I2 ) THEN
+             IF ( I == I2 ) THEN
                 XEDGE(I+1,J,L) = XEDGE(I,J,L) + DLON(I,J,L)
              ENDIF
              
           ENDDO
        ENDDO
 
-       !--------------------------------------------------------------
+       !-------------------------------------------------------------------
        ! Latitude center and edge arrays
-       !---------------------------------------==---------------------
-       DO JG = J1, J2
-          J = JG - J1 + 1
+       !-------------------------------------------------------------------
 
-          DO IG = I1, I2
-             I = IG - I1 + 1
+       ! Loop over local latitudes
+       DO J = J1, J2
 
-             !%%%%%% LATITUDE CENTERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+          ! Global latitude index
+          JG = J + ( J_LO - 1 )
+
+          ! Loop over local longitudes
+          DO I = I1, I2
+
+             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+             !%%%%%%   LATITUDE CENTERS   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
              ! Lat centers (degrees)
-             YMID(I,J,L)     = ( DLAT(I,J,L) * IND_Y(JG) ) - 90d0
+             YMID(I,J,L)     = ( DLAT(I,J,L) * IND_Y(J) ) - 90d0
           
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-             !-----------------------------------------------------------
+             !-------------------------------------------------------------
              !  %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
              !
              ! Do not define half-sized polar boxes (bmy, 3/21/13)
-             !-----------------------------------------------------------
+             !-------------------------------------------------------------
 #else
-             !-----------------------------------------------------------
-             !            %%%%% TRADITIONAL GEOS-Chem %%%%%
+             !-------------------------------------------------------------
+             !             %%%%% TRADITIONAL GEOS-Chem %%%%%
              !
              ! Current practice in the standard GEOS-Chem is to make
              ! the polar grid boxes (for global grids only) be half the
              ! size of other grid boxes.  This lets us make +90 degrees
              ! and -90 degrees be the edges of the grid. (bmy, 3/21/13)
-             !-----------------------------------------------------------
+             !-------------------------------------------------------------
              IF ( JG == JSP ) THEN
                 YMID(I,J,L)  = -90d0 + ( 0.5d0 * DLAT(I,J,L) )   ! S pole
              ELSE IF ( JG == JNP ) THEN
@@ -257,21 +265,27 @@ CONTAINS
 
 #if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA ) || defined( SEAC4RS )
 
+             !-------------------------------------------------------------
+             !              %%%%% FOR NESTED GRIDS ONLY %%%%%
+             !-------------------------------------------------------------
+
              ! Lat centers (radians), for nested grid window array
              YMID_R_W(I,J,L) = YMID_R(I,J,L)
 
              ! Compute YMID_R_W at edges of nested region
-             IF ( JG == J1 ) THEN
+             IF ( J == J1 ) THEN
                 !YMID_R_W(I,J1-1,1) = YMID_R(I,J1,L) - ( DLAT(I,J1,L) * PI_180 )
                 YMID_R_W(I,J-1,1) = YMID_R(I,J,L) - ( DLAT(I,J,L) * PI_180 )
-             ELSE IF ( JG == J2 ) THEN
+             ELSE IF ( J == J2 ) THEN
                 !YMID_R_W(I,J2+1,1) = YMID_R(I,J2,L) + ( DLAT(I,J2,L) * PI_180 )
                 YMID_R_W(I,J+1,1) = YMID_R(I,J,L) + ( DLAT(I,J,L) * PI_180 )
              ENDIF
                     
 #endif
 
-             !%%%%%% LATITUDE EDGES %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+             !%%%%%%   LATITUDE EDGES   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
              ! Lat edges (degrees and radians)
              YEDGE(I,J,L)    = YMID(I,J,L) - ( DLAT(I,J,L) * 0.5d0 )
@@ -304,14 +318,15 @@ CONTAINS
           ENDDO
        ENDDO
 
-       !%%%%%% LATITUDE EDGES (the last edge) %%%%%%%%%%%%%%%%%%%%%%%%
+       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       !%%%%%%   LATITUDE EDGES (the last edge)   %%%%%%%%%%%%%%%%%%%%%%%%%
+       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
        
        ! Test for North Pole
        IF ( J2 == JNP ) THEN
           
           ! North pole case (global grids only)
-          DO IG = I1, I2
-             I                  = IG - I1 + 1
+          DO I = I1, I2
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
              !-----------------------------------------------------------
              !  %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
@@ -334,9 +349,12 @@ CONTAINS
           
        ELSE
           
+         !---------------------------------------------------------------
+         !                %%%%% FOR NESTED GRIDS ONLY %%%%%
+         !---------------------------------------------------------------
+
           ! No north pole (nested grids only)
-          DO IG = I1, I2 
-             I                  = IG - I1 + 1
+          DO I = I1, I2
              YEDGE  (I,J2+1,L)  = YEDGE(I,J2,L  ) + DLAT(I,J2,L)
              YEDGE_R(I,J2+1,L)  = YEDGE(I,J2+1,L) * PI_180
           ENDDO
@@ -412,11 +430,15 @@ CONTAINS
        !
        ! (bmy, 4/20/06, 2/24/12)
        !=================================================================  
-       DO JG = J1, J2
-          J = JG - J1 + 1
+
+       ! Loop over local latitudes
+       DO J = J1, J2
+
+          ! Global latitude index
+          JG  = J + ( J_LO - 1 )
           
-          DO IG = I1, I2
-             I = IG - I1 + 1
+          ! Loop over local longitudes
+          DO I = I1, I2
 
              ! Sine of latitudes at N and S edges of grid box (I,J,L)
              SIN_N       = SIN( YEDGE_R(I,J+1,L) )
@@ -476,25 +498,17 @@ CONTAINS
              !-----------------------------------------------------------
 
              ! South pole kludge
-             IF ( J == JSP ) THEN
+             IF ( JG == JSP ) THEN
                 SIN_DIFF = 2d0 * ( SIN_N - ( -1d0 ) )
              ENDIF
 
              ! North pole kludge
-             IF ( J == JNP ) THEN
+             IF ( JG == JNP ) THEN
                 SIN_DIFF = 2d0 * ( 1d0 - SIN_S )
              ENDIF
 #endif
 
-!             ! Grid box surface areas [m2]
-!------------------------------------------------------------------------------
-! Prior to 3/19/12:
-! Now use SIN_DIFF instead of subtracting the sines directly, in order
-! to implement the fix for the GEOS-5 GCM described above. (bmy, 3/21/13)
-!             AREA_M2(I,J,L) = ( DLON(I,J,L) * PI_180 ) * Re**2   &
-!                            * ( SIN( YEDGE_R(I,J+1,L) ) -        &
-!                                SIN( YEDGE_R(I,J,L  ) ) )
-!------------------------------------------------------------------------------
+             ! Grid box surface areas [m2]
              AREA_M2(I,J,L) = ( DLON(I,J,L) * PI_180 ) * ( Re**2 ) * SIN_DIFF
 
           ENDDO
