@@ -158,6 +158,7 @@ CONTAINS
 !                              in ESMF environment
 !  26 Feb 2013 - R. Yantosca - Bug fix: now compute IND_X and IND_Y properly
 !                              when connecting GEOS-Chem to the GEOS-5 GCM
+!  21 Mar 2013 - R. Yantosca - Add fix to prevent zero surface area at poles
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -165,11 +166,12 @@ CONTAINS
 ! !LOCAL VARIABLES:
 ! 
     ! Scalars
-    INTEGER :: I, J, L, IG, JG
+    INTEGER :: I,     J,     L,        IG, JG
+    REAL*8  :: SIN_N, SIN_S, SIN_DIFF, TMP
 
     ! Arrays
     REAL*8  :: IND_X( I1:I2+1 )
-    REAL*8  :: IND_Y( J1:J2+1 ),  TMP
+    REAL*8  :: IND_Y( J1:J2+1 )
 
     !=================================================================
     ! Initialization
@@ -230,8 +232,20 @@ CONTAINS
              YMID(I,J,L)     = ( DLAT(I,J,L) * IND_Y(JG) ) - 90d0
           
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+             !-----------------------------------------------------------
+             !  %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+             !
+             ! Do not define half-sized polar boxes (bmy, 3/21/13)
+             !-----------------------------------------------------------
 #else
-             ! Adjust for halfpolar boxes (global grids only)
+             !-----------------------------------------------------------
+             !            %%%%% TRADITIONAL GEOS-Chem %%%%%
+             !
+             ! Current practice in the standard GEOS-Chem is to make
+             ! the polar grid boxes (for global grids only) be half the
+             ! size of other grid boxes.  This lets us make +90 degrees
+             ! and -90 degrees be the edges of the grid. (bmy, 3/21/13)
+             !-----------------------------------------------------------
              IF ( JG == JSP ) THEN
                 YMID(I,J,L)  = -90d0 + ( 0.5d0 * DLAT(I,J,L) )   ! S pole
              ELSE IF ( JG == JNP ) THEN
@@ -263,8 +277,19 @@ CONTAINS
              YEDGE(I,J,L)    = YMID(I,J,L) - ( DLAT(I,J,L) * 0.5d0 )
             
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+             !-----------------------------------------------------------
+             !  %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+             !
+             ! Do not define half-sized polar boxes (bmy, 3/21/13)
+             !-----------------------------------------------------------
 #else
-             ! Adjust for halfpolar boxes
+             !-----------------------------------------------------------
+             !            %%%%% TRADITIONAL GEOS-Chem %%%%%
+             !
+             ! Current practice in the standard GEOS-Chem is to force
+             ! the northern edge of grid boxes along the SOUTH POLE to
+             ! be -90 degrees latitude. (bmy, 3/21/13)
+             !-----------------------------------------------------------
              IF ( JG == JSP ) THEN
                 YEDGE(I,J,L) = -90d0                             ! S pole
              ENDIF
@@ -286,19 +311,22 @@ CONTAINS
           
           ! North pole case (global grids only)
           DO IG = I1, I2
-             !--------------------------------------------------------------
-             ! Prior to 12/4/12:
-             ! NOTE: YEDGE, YEDGE_R are now dimensioned w/ local CPU
-             ! indices, but JNP is a global index.  This will cause an out
-             ! of bounds error when used in the ESMF environment.
-             ! (bmy, 12/4/12)
-             !YEDGE  (I,JNP+1,L) = +90d0
-             !YEDGE_R(I,JNP+1,L) = YEDGE(I,JNP+1,L) * PI_180
-             !--------------------------------------------------------------
              I                  = IG - I1 + 1
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+             !-----------------------------------------------------------
+             !  %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+             !
+             ! Do not define half-sized polar boxes (bmy, 3/21/13)
+             !-----------------------------------------------------------
              YEDGE  (I,J2+1,L)   = YEDGE(I,J2,L)   + DLAT(I,J2,L)
 #else
+             !-----------------------------------------------------------
+             !            %%%%% TRADITIONAL GEOS-Chem %%%%%
+             !
+             ! Current practice in the standard GEOS-Chem is to force
+             ! the northern edge of grid boxes along the NORTH POLE to
+             ! be +90 degrees latitude. (bmy, 3/21/13)
+             !-----------------------------------------------------------
              YEDGE  (I,J2+1,L)   = +90d0
 #endif
              YEDGE_R(I,J2+1,L)   = YEDGE(I,J2+1,L) * PI_180
@@ -390,10 +418,84 @@ CONTAINS
           DO IG = I1, I2
              I = IG - I1 + 1
 
-             ! Grid box surface areas [m2]
-             AREA_M2(I,J,L) = ( DLON(I,J,L) * PI_180 ) * Re**2   &
-                            * ( SIN( YEDGE_R(I,J+1,L) ) -        &
-                                SIN( YEDGE_R(I,J,L  ) ) )
+             ! Sine of latitudes at N and S edges of grid box (I,J,L)
+             SIN_N       = SIN( YEDGE_R(I,J+1,L) )
+             SIN_S       = SIN( YEDGE_R(I,J,  L) )
+
+             ! Difference of sin(latitude) at N and S edges of grid box
+             SIN_DIFF    = SIN_N - SIN_S
+
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+             !-----------------------------------------------------------
+             !  %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+             !
+             ! The GEOS-5 GCM is a grid-point model, with the polar
+             ! boxes (+90 & -90 degrees latitude) being grid box
+             ! centers.  But since GEOS-Chem also needs to know the
+             ! latitudes at the north & south edges of each grid box,
+             ! we have to make a kludge.
+             !
+             ! For all grid boxes along the NORTH POLE (+90 lat), we
+             ! let the northern edge be greater than 90 degrees.  For
+             ! example, if the grid spacing is 1 degree in latitude,
+             ! then for all longitudes at the North Pole:
+             !
+             !   * The N. EDGE of each grid box is +90.5 degrees
+             !   * The CENTER  of each grid box is +90   degrees
+             !   * The S. EDGE of each grid box is +89.5 degrees.
+             !
+             ! Similarly, at for all grid boxes along the SOUTH POLE,
+             ! we have this condition (also assuming a grid spacing
+             ! of 1 degree in latitude):
+             !
+             !   * The N. EDGE of each grid box is -89.5 degrees
+             !   * The CENTER  of each grid box is -90   degrees
+             !   * The S. EDGE of each grid box is -90.5 degrees.
+             !
+             ! Therefore, at the poles, the latitudes at the northern
+             ! and southern edges of each grid box are symmetric around
+             ! either +90 degrees or -90 degrees.  When you take the
+             ! difference of the sine of the latitudes at the north and
+             ! south edges of a polar grid box, the terms will cancel
+             ! each other out, resulting in a grid box surface area
+             ! that is zero.
+             !
+             ! We can take advantage of this symmetry around +90 and
+             ! -90 degrees to make a simple fix:
+             !
+             ! (1) AT THE SOUTH POLE: Subtract the sine of the latitude
+             !     at the north edge of the grid box from the sine
+             !     of -90 degrees (which is -1) and then multiply by 2.
+             !
+             ! (2) AT THE NORTH POLE: Subtract the sine of +90 degrees
+             !     (which is 1) from the sine of the latitude at the
+             !     south edge of the grid box, and then multiply by 2.
+             !
+             ! This fix avoids having polar grid boxes with zero area.
+             !    -- Bob Yantosca (21 Mar 2013)
+             !-----------------------------------------------------------
+
+             ! South pole kludge
+             IF ( J == JSP ) THEN
+                SIN_DIFF = 2d0 * ( SIN_N - ( -1d0 ) )
+             ENDIF
+
+             ! North pole kludge
+             IF ( J == JNP ) THEN
+                SIN_DIFF = 2d0 * ( 1d0 - SIN_S )
+             ENDIF
+#endif
+
+!             ! Grid box surface areas [m2]
+!------------------------------------------------------------------------------
+! Prior to 3/19/12:
+! Now use SIN_DIFF instead of subtracting the sines directly, in order
+! to implement the fix for the GEOS-5 GCM described above. (bmy, 3/21/13)
+!             AREA_M2(I,J,L) = ( DLON(I,J,L) * PI_180 ) * Re**2   &
+!                            * ( SIN( YEDGE_R(I,J+1,L) ) -        &
+!                                SIN( YEDGE_R(I,J,L  ) ) )
+!------------------------------------------------------------------------------
+             AREA_M2(I,J,L) = ( DLON(I,J,L) * PI_180 ) * ( Re**2 ) * SIN_DIFF
 
           ENDDO
        ENDDO
