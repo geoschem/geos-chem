@@ -16,6 +16,8 @@
       MODULE DIAG53_MOD
 ! 
 ! !USES:
+      USE CMN_DIAG_MOD                          ! Diag counters & flags
+
 !
       IMPLICIT NONE
 ! Make everything Public ...
@@ -71,9 +73,10 @@
       ! MODULE VARIABLES 
       !=================================================================
 
+      !Declared in CMN_DIAG_mod.F (hma, 8mar2013)
       ! Scalars
-      INTEGER              :: ND53, LD53
-      INTEGER, PARAMETER   :: PD53 = 29  ! Number of diagnostics for AD53
+      !INTEGER              :: ND53, LD53
+      !INTEGER, PARAMETER   :: PD53 = 29  ! Number of diagnostics for AD53
 
       ! Arrays
       REAL*4,  ALLOCATABLE :: AD53(:,:,:)
@@ -110,9 +113,9 @@
 !******************************************************************************
 !
       ! References to F90 modules
-  
+      USE CMN_SIZE_MOD        ! Size parameters ! H. Amos, 7 Mar 2013
 
-#     include "CMN_SIZE"  ! Size parameters
+!#     include "CMN_SIZE"  ! Size parameters
 
       ! Local variables
       INTEGER :: I, J, L, N
@@ -166,10 +169,13 @@
       USE GRID_MOD,     ONLY : GET_XOFFSET, GET_YOFFSET
       USE TIME_MOD,     ONLY : GET_CT_EMIS, GET_DIAGb,  GET_DIAGe
       USE TIME_MOD,     ONLY : GET_CT_CHEM ! CDH for sea salt loss rate
+      
+      ! Replace 'include' statements (H. Amos, 7 Mar 2013)
+      USE CMN_SIZE_MOD       ! Size parameters 
+      USE CMN_DIAG_MOD       ! TINDEX
 
-
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! TINDEX
+!#     include "CMN_SIZE"     ! Size parameters
+!#     include "CMN_DIAG"     ! TINDEX
 
       ! Local variables
       INTEGER               :: CENTER180, HALFPOLAR,   IFIRST
@@ -507,8 +513,10 @@
       ! References to F90 modules
       USE ERROR_MOD,    ONLY : ALLOC_ERR
 
+      ! Replace 'include' statement (H. Amos, 7 Mar 2013)
+      USE CMN_SIZE_MOD       ! Size parameters
    
-#     include "CMN_SIZE" 
+!#     include "CMN_SIZE" 
 
       ! Local variables
       INTEGER :: AS

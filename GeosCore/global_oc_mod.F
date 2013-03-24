@@ -109,10 +109,11 @@
       USE DIRECTORY_MOD, ONLY : OC_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D
       USE LOGICAL_MOD,   ONLY : LFUTURE
+      USE CMN_SIZE_MOD        ! Size parameters ! H. Amos, 7 Mar 2013
 
       IMPLICIT NONE
 
-#     include "CMN_SIZE"    ! Size parameters
+!#     include "CMN_SIZE"    ! Size parameters
 
 !
 ! !REVISION HISTORY: 
@@ -170,6 +171,10 @@
          CALL INIT_GLOBAL_OC
          FIRST = .FALSE.
       ENDIF
+
+! Default: GEOS-5 @ 4x5 reduced vertical layers (H. Amos, 15Mar2013)
+      FILENAME = '/home/hamos/GC/input_files/POPs/PAHs_2004_GEOS' //
+     &           '/4x5/CLF_fullchem/OCPO_FC_4x5.bpch'
 
       ! If GCAP:
 #if defined( GCAP )
@@ -248,8 +253,9 @@
 
       ! References to F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
+      USE CMN_SIZE_MOD        ! Size parameters ! H. Amos, 7 Mar 2013
 
-#     include "CMN_SIZE" 
+!#     include "CMN_SIZE" 
 !
 !
 ! !REVISION HISTORY: 

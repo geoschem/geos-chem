@@ -117,7 +117,7 @@
       INTEGER, PARAMETER :: PD50=0            
       INTEGER, PARAMETER :: PD51=0           
       INTEGER, PARAMETER :: PD52=1 
-      INTEGER, PARAMETER :: PD53=0            
+      INTEGER, PARAMETER :: PD53=29 ! was 0, replaced w/ 29 (hma, 8mar2013)            
       INTEGER, PARAMETER :: PD54=0           
       INTEGER, PARAMETER :: PD55=3
       ! Potential temperature diagnostic (hotp 7/31/09)
@@ -178,12 +178,13 @@
       ! Added LD52 (jaegle, 02/26/09)
       ! Added LD59, LD60, LD61 (bmy, 1/22/10)
       ! Added LD57 (hotp 7/31/09)
+      ! Added LD53 (hma, 8 Mar 2013)
       !=================================================================
       INTEGER :: LD12, LD13, LD14, LD15, LD16, LD17, LD18, LD21, LD22
       INTEGER :: LD24, LD25, LD26, LD37, LD38, LD39, LD43, LD45, LD47
       INTEGER :: LD54, LD64, LD65, LD66, LD68, LD01, LD02, LD05, LD07
       INTEGER :: LD09, LD10, LD31, LD52, LD19, LD57, LD58, LD59, LD60
-      INTEGER :: LD61, LD62
+      INTEGER :: LD61, LD62, LD53
 
       !=================================================================
       ! NDxx diagnostic flags

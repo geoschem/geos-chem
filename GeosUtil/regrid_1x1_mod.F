@@ -1065,6 +1065,8 @@
             IS_CONC = .TRUE.
          CASE ( 'ug C/m2/hr'   )
             IS_CONC = .TRUE.
+         CASE ( 'g soil C/m2'  )
+            IS_CONC = .TRUE.     ! For POPs (H. Amos, 15Mar2013)
 
          ! Mass units
          CASE ( 'kg'           )

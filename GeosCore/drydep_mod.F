@@ -26,6 +26,7 @@
       USE DIAG_MOD,       ONLY : AD44           ! Diagnostic arrays
       USE DIRECTORY_MOD                         ! Data directory paths
       USE ERROR_MOD                             ! Error handling routines
+      USE GET_POPSINFO_MOD                      ! For POPs simulation
       USE GRID_MOD,       ONLY : GET_AREA_CM2   ! Grid box surface areas [cm2]
       USE LOGICAL_MOD                           ! GEOS-Chem logical switches
       USE PBL_MIX_MOD                           ! Boundary layer quantities
@@ -33,6 +34,14 @@
       USE TIME_MOD,       ONLY : GET_TS_CHEM    ! Chemistry timestep
       USE TRACER_MOD                            ! Tracer array STT etc.
       USE TRACERID_MOD                          ! Tracer ID flags
+
+c$$$      ! For POPs (H. Amos, 7 Mar 2013)
+c$$$      USE TRACER_MOD,   ONLY : ITS_A_POPS_SIM
+c$$$      USE TRACERID_MOD, ONLY : IDTPOPG
+c$$$      USE TRACERID_MOD, ONLY : IDTPOPPOCPO,               IDTPOPPBCPO
+c$$$      USE TRACERID_MOD, ONLY : IDTPOPPOCPI,             IDTPOPPBCPI
+c$$$      USE GET_POPSINFO_MOD, ONLY : GET_POP_XMW, GET_POP_HSTAR 
+c$$$      USE GET_POPSINFO_MOD, ONLY : GET_POP_KOA
 
       IMPLICIT NONE
 
@@ -264,6 +273,7 @@
       INTEGER              :: NDVZIND (MAXDEP   )
       INTEGER              :: NTRAIND (MAXDEP   )
       REAL*8               :: HSTAR   (MAXDEP   )
+      REAL*8               :: KOA     (MAXDEP   ) ! H. Amos, 7 Mar 2013
       REAL*8               :: F0      (MAXDEP   )
       REAL*8               :: XMW     (MAXDEP   )
       REAL*8               :: A_RADI  (MAXDEP   )
@@ -1468,6 +1478,9 @@
       INTEGER IOLSON,II,IW
       INTEGER K,IJLOOP,LDT
       REAL*8  RCLX,RIXX,BIOFIT
+
+      ! Loop indices (bmy, 3/29/12)
+      INTEGER :: I, J
 !
 ! Logical for snow and sea ice
 !
@@ -1481,9 +1494,9 @@
       ! Is this a POPs simmulation?
       IS_POPS = ITS_A_POPS_SIM()  ! clf, 1/3/2011     
 
-
-      ! Loop indices (bmy, 3/29/12)
-      INTEGER :: I, J
+!Moved up a few lines. (H. Amos, 7 Mar 2013)
+!      ! Loop indices (bmy, 3/29/12)
+!      INTEGER :: I, J
 
 !***********************************************************************       
 !
@@ -3985,14 +3998,6 @@
 !
       SUBROUTINE INIT_DRYDEP( am_I_Root )
 ! 
-! For POPs code (H. Amos, 7 Mar 2013)
-      USE TRACER_MOD,   ONLY : ITS_A_POPS_SIM
-      USE TRACERID_MOD, ONLY : IDTPOPG
-      USE TRACERID_MOD, ONLY : IDTPOPPOCPO,               IDTPOPPBCPO
-      USE TRACERID_MOD, ONLY : IDTPOPPOCPI,             IDTPOPPBCPI
-      USE GET_POPSINFO_MOD, ONLY : GET_POP_XMW, GET_POP_HSTAR 
-      USE GET_POPSINFO_MOD, ONLY : GET_POP_KOA
-!
 ! !INPUT PARAMETERS:
 !
       LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?

@@ -3350,6 +3350,9 @@
       USE DIAG04_MOD,   ONLY : ND04,      PD04,      INIT_DIAG04
       USE DIAG41_MOD,   ONLY : ND41,      PD41,      INIT_DIAG41
       USE DIAG42_MOD,   ONLY : ND42,      PD42,      INIT_DIAG42
+! ND53 and PD53 declared in CMN_DIAG_MOD.F (hma, 8mar2013)
+!      USE DIAG53_MOD,   ONLY : ND53,      PD53,      INIT_DIAG53
+      USE DIAG53_MOD,   ONLY : INIT_DIAG53  
       USE DIAG56_MOD,   ONLY : ND56,      PD56,      INIT_DIAG56
       USE DIAG_OH_MOD,  ONLY : INIT_DIAG_OH
       USE DRYDEP_MOD,   ONLY : NUMDEP
@@ -3822,10 +3825,17 @@ c$$$     &                 53, ND53, SUBSTRS(2:N), N-1, N_TRACERS )
       !--------------------------
       ! ND53: POPS
       !--------------------------
+! Here's how Carey did it in v8-03-02:
+c$$$      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:52' )
+c$$$      READ( SUBSTRS(1), * ) ND53
+c$$$      IF ( .not. ITS_A_POPS_SIM() ) ND53 = 0
+c$$$      CALL SET_TINDEX( 53, ND53, SUBSTRS(2:N), N-1, PD53 )
+
+! Here's how Melissa does it in v9-02:
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:52' )
       READ( SUBSTRS(1), * ) ND53
       IF ( .not. ITS_A_POPS_SIM() ) ND53 = 0
-      CALL SET_TINDEX( 53, ND53, SUBSTRS(2:N), N-1, PD53 )
+      CALL SET_TINDEX( am_I_Root, 53, ND53, SUBSTRS(2:N), N-1, PD53 )
 !end:. H. Amos, 6 Mar 2013--------------------------------------------------
 
       !--------------------------
@@ -3947,6 +3957,7 @@ c$$$     &                 53, ND53, SUBSTRS(2:N), N-1, N_TRACERS )
       CALL INIT_DIAG04
       CALL INIT_DIAG41
       CALL INIT_DIAG42
+      CALL INIT_DIAG53 ! H. Amos, 8Mar2013
       CALL INIT_DIAG56
 
       ! Enable Mean OH (or CH3CCl3) diag for runs which need it

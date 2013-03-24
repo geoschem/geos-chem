@@ -1,3 +1,4 @@
+
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -158,8 +159,7 @@
 !
 !
 ! !OUTPUT PARAMETERS:
-!
- 
+! 
       ! References to F90 modules
       USE DRYDEP_MOD,    ONLY : DEPSAV
       USE ERROR_MOD,     ONLY : DEBUG_MSG
@@ -175,7 +175,9 @@
       USE DRYDEP_MOD,    ONLY : DRYPOPG, DRYPOPP_OCPO, DRYPOPP_BCPO
       USE DRYDEP_MOD,    ONLY : DRYPOPP_OCPI, DRYPOPP_BCPI  !clf, 2/13/2012
 
-#     include "CMN_SIZE"      ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters ! hma, 07Mar2013
+
+!#     include "CMN_SIZE"      ! Size parameters
 
 !
 ! !REVISION HISTORY: 
@@ -375,7 +377,8 @@
       USE DIAG53_MOD,   ONLY : AD53_POPP_BCPO_O3, AD53_POPP_BCPI_O3
       USE DIAG53_MOD,   ONLY : AD53_POPP_OCPO_NO3, AD53_POPP_OCPI_NO3
       USE DIAG53_MOD,   ONLY : AD53_POPP_BCPO_NO3, AD53_POPP_BCPI_NO3
-      USE DIAG53_MOD,   ONLY : ND53,       LD53,       AD53_POPG_OH
+      !USE DIAG53_MOD,   ONLY : ND53,       LD53,       AD53_POPG_OH
+      USE DIAG53_MOD,   ONLY :  AD53_POPG_OH !hma, 8mar2013
       USE TIME_MOD,     ONLY : GET_TS_CHEM
       USE DIAG_MOD,     ONLY : AD44
       USE LOGICAL_MOD,  ONLY : LNLPBL,     LGTMM
@@ -388,8 +391,11 @@
       USE GET_POPSINFO_MOD, ONLY: GET_POP_K_POPP_O3A
       USE GET_POPSINFO_MOD, ONLY: GET_POP_K_POPP_O3B
 
-#     include "CMN_SIZE" ! Size parameters
-#     include "CMN_DIAG" ! ND44
+      ! H. Amos, 7Mar2013
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND44
+!#     include "CMN_SIZE" ! Size parameters
+!#     include "CMN_DIAG" ! ND44
 
 !
 ! !INPUT PARAMETERS: 
@@ -878,29 +884,24 @@
             IF ( ND53 > 0 .AND. L <= LD53 ) THEN ! LD53 is max level
 
                IF (DIFF_OC .lt. 0) THEN
- 
                AD53_PG_OC_NEG(I,J,L) = AD53_PG_OC_NEG(I,J,L)  + 
      &              DIFF_OC
 
                ELSE IF (DIFF_OC .eq. 0 .or. DIFF_OC .gt. 0) THEN
-
                AD53_PG_OC_POS(I,J,L) = AD53_PG_OC_POS(I,J,L)  + 
      &              DIFF_OC
 
                ENDIF
 
                IF (DIFF_BC .lt. 0) THEN
-
                AD53_PG_BC_NEG(I,J,L) = AD53_PG_BC_NEG(I,J,L)  + 
      &              DIFF_BC
                
                ELSE IF (DIFF_BC .eq. 0 .or. DIFF_BC .gt. 0) THEN
-
                AD53_PG_BC_POS(I,J,L) = AD53_PG_BC_POS(I,J,L)  + 
      &              DIFF_BC
 
                ENDIF
-
             ENDIF
 
          !==============================================================
@@ -1281,7 +1282,8 @@
             ! Also not using non-local PBL mode yet (clf, 1/27/2011)
 
                ! Grid box surface area [cm2]
-               AREA_CM2 = GET_AREA_CM2( J )
+               !AREA_CM2 = GET_AREA_CM2( J )      ! bug fix
+               AREA_CM2 = GET_AREA_CM2( I, J, 1 ) ! hma, 8mar2013
 
                ! Amt of POPG lost to drydep [molec/cm2/s]
                DEP_DRY_FLXG  = DEP_POPG_DRY * XNUMOL(IDTPOPG) / 
@@ -1759,12 +1761,17 @@
       USE DAO_MOD,           ONLY : T, AIRVOL, SNOMAS
       USE DAO_MOD,           ONLY : IS_ICE, IS_LAND, IS_WATER
       USE DAO_MOD,           ONLY : FRLAKE
-      USE LAI_MOD,           ONLY : ISOLAI, MISOLAI, PMISOLAI
-      USE LAI_MOD,           ONLY : INIT_LAI, DAYS_BTW_M
+!LAI calls obsolete?
+! Update to new LAI naming convention. (H.Amos, 7Mar2013)
+!      USE MODIS_LAI_MOD,     ONLY : GC_LAI, GC_LAI_PM, GC_LAI_CM !hma, 7Mar2013
+!      USE LAI_MOD,           ONLY : INIT_LAI, DAYS_BTW_MON !hma, 7Mar2013
+!      USE LAI_MOD,           ONLY : ISOLAI, MISOLAI, PMISOLAI
+!      USE LAI_MOD,           ONLY : INIT_LAI, DAYS_BTW_M
       USE GLOBAL_OC_MOD,     ONLY : GET_GLOBAL_OC
       USE GLOBAL_BC_MOD,     ONLY : GET_GLOBAL_BC
       ! Reference to diagnostic arrays
-      USE DIAG53_MOD,   ONLY : AD53, ND53
+      !USE DIAG53_MOD,   ONLY : AD53, ND53
+      USE DIAG53_MOD,   ONLY : AD53 !hma, 8mar2013
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
       USE TIME_MOD,     ONLY : GET_TS_EMIS
       USE TRACERID_MOD, ONLY : IDTPOPG, IDTPOPPOCPO,  IDTPOPPBCPO
@@ -1773,9 +1780,13 @@
       USE GET_POPSINFO_MOD, ONLY: GET_POP_KBC, GET_POP_K_POPG_OH
       USE GET_POPSINFO_MOD, ONLY: GET_POP_K_POPP_O3A
       USE GET_POPSINFO_MOD, ONLY: GET_POP_K_POPP_O3B
-      
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DEP"      ! FRCLND
+
+      ! Replace include statements. I also think CMN_DEP is
+      ! obsolete (H. Amos, 7 Mar 2013)
+      USE CMN_SIZE_MOD        ! Size parameters  
+      USE CMN_DIAG_MOD        ! Diagnostic flags    
+!#     include "CMN_SIZE"     ! Size parameters
+!#     include "CMN_DEP"      ! FRCLND
 
       ! Local variables
       INTEGER               :: I,   J,    L,    N,    PBL_MAX
@@ -2341,6 +2352,7 @@
          ! ND53 diagnostic: POP emissions [kg]
          ! 1 = total;  2 = OC;  3 = BC;  4 = gas phase
          !==============================================================
+
          IF ( ND53 > 0 ) THEN
             AD53(I,J,1) = AD53(I,J,1) + (T_POP * DTSRCE)
             AD53(I,J,2) = AD53(I,J,2) + (SUM_OC_EM(I,J) * DTSRCE)
@@ -2497,7 +2509,8 @@
 
 !------------------------------------------------------------------------------
 !BOC
-#     include "CMN_SIZE"       ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters ! hma 7Mar2013
+!#     include "CMN_SIZE"       ! Size parameters
 
       ! Local variables
       REAL*4               :: ARRAY(I1x1,J1x1,1) 
@@ -2605,14 +2618,15 @@
 
 !------------------------------------------------------------------------------
 !BOC
-#     include "CMN_SIZE"       ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters ! hma 7Mar2013
+!#     include "CMN_SIZE"       ! Size parameters
 
       ! Local variables
       REAL*4               :: ARRAY(IGLOB,JGLOB,1) 
       REAL*8               :: XTAU, MAX_A, MIN_A
       REAL*8               :: MAX_B, MIN_B
       REAL*8, PARAMETER    :: SEC_PER_YR = 365.35d0 * 86400d0  
-      CHARACTER(LEN=225)   :: FILENAME 
+      CHARACTER(LEN=255)   :: FILENAME 
       INTEGER              :: NYMD
 
       !=================================================================
@@ -2625,15 +2639,37 @@
       ! Read in file which contains 1-yr worth of deposition based on
       ! annual average deposition rates [kg]
       ! Filename for PAHs:
+!Default: GEOS 5 @ 4x5
+      FILENAME = '/home/hamos/GC/input_files/POPs/PAHs_2004_GEOS/4x5' //
+     &           '/soil_conc/pyr_soil_conc_ann.bpch'
 
-#if defined ( GCAP )
-         FILENAME = '/net/fs03/d0/geosdata/data/GCAP_4x5/PAHs_2004' //
-     &              '/soil_conc/pyr_soil_conc_ann_GCAP.bpch'
-
-#elif defined ( GRIDREDUCED ) && defined ( GEOS_5 )
-         FILENAME = '/net/fs03/d0/geosdata/data/GEOS_4x5/PAHs_2004' //
-     &              '/4x5/soil_conc/pyr_soil_conc_ann.bpch'
+#if defined ( GEOS_5 ) && defined ( GRID4x5 )
+      PRINT*,'DEBUG 00'
+      FILENAME = '/home/hamos/GC/input_files/POPs/PAHs_2004_GEOS/4x5' //
+     &           '/soil_conc/pyr_soil_conc_ann.bpch'
+#elif defined ( GEOS_5 ) && defined ( GRID2x25 )
+      FILENAME = 'empty ' ! not available yet (H. Amos, 14Mar2013)
+#elif defined ( GCAP ) && defined ( GRID4X5 )
+      FILENAME = '/home/hamos/GC/input_files/POPs/PAHs_2004_GCAP' //
+     &           '/soil_conc/pyr_soil_conc_ann_GCAP.bpch'
+#elif defined ( GCAP ) && defined ( GRID2x25 )
+      FILENAME = 'empty ' ! not available yet (H. Amos, 14Mar2013)
 #endif
+
+c$$$#if defined ( GCAP )
+c$$$         FILENAME = '/net/fs03/d0/geosdata/data/GCAP_4x5/PAHs_2004' //
+c$$$     &              '/soil_conc/pyr_soil_conc_ann_GCAP.bpch'
+c$$$
+c$$$#elif defined ( GEOS_5 )
+c$$$!Point to local copy of .bpch file (H. Amos, 11 Mar 2013)
+c$$$!
+c$$$         FILENAME = '/net/fs03/d0/geosdata/data/GEOS_4x5/PAHs_2004' //
+c$$$     &              '/4x5/soil_conc/pyr_soil_conc_ann.bpch'
+c$$$!         FILENAME = '/home/hamos/GC/input_files/POPs/soil' //
+c$$$!     &              '/pyr_soil_conc_ann.bpch'
+c$$$                  FILENAME='test'
+c$$$
+c$$$#endif
      
          ! Timestamp for emissions
          ! All PAH soil conc are for the year 2009 (change to 2004 for consistency?)
@@ -2643,11 +2679,14 @@
          WRITE( 6, 100 )
 100        FORMAT( '     - POPS_READSURFCONC: Reading ', a )
 
+          PRINT*,'DEBUG 01'
+          PRINT*,'FILENAME = ', FILENAME
           ! Read data in [kg in surface layer]
            CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 1, 
      &           XTAU,      IGLOB,     JGLOB,    
      &           1,         ARRAY,   QUIET=.FALSE. )
-
+          PRINT*,'DEBUG 02' 
+          
            ! Cast to REAL*8 and resize       
            CALL TRANSFER_2D( ARRAY(:,:,1), POP_SURF )
 
@@ -2717,14 +2756,15 @@
 
 !------------------------------------------------------------------------------
 !BOC
-#     include "CMN_SIZE"       ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters ! hma 7Mar2013
+!#     include "CMN_SIZE"       ! Size parameters
 
       ! Local variables
       REAL*4               :: ARRAY(I1x1,J1x1,1) 
       REAL*8               :: XTAU, MAX_A, MIN_A
       REAL*8               :: MAX_B, MIN_B!, F_OC_SOIL
       REAL*8, PARAMETER    :: SEC_PER_YR = 365.35d0 * 86400d0  
-      CHARACTER(LEN=225)   :: FILENAME 
+      CHARACTER(LEN=255)   :: FILENAME 
       INTEGER              :: NYMD, I, J
 
       !=================================================================
@@ -2733,10 +2773,12 @@
 
       ! Read in 1x1 file which contains sum of all soil carbon pools calculated
       ! by CASA/GTTM in g/m2
-      ! Filename for PAHs:
-         FILENAME = '/net/fs03/d0/geosdata/data/GEOS_4x5/PAHs_2004' //
-     &              '/1x1/soil_carbon/from_GTMM_09102012.bpch'
-     
+      ! Filename for PAHs
+!         FILENAME = '/net/fs03/d0/geosdata/data/GEOS_4x5/PAHs_2004' //
+!     &              '/1x1/soil_carbon/from_GTMM_09102012.bpch'
+      FILENAME = '/home/hamos/GC/input_files/POPs/PAHs_2004_GEOS' //
+     &           '/1x1/soil_carbon/from_GTMM_09102012.bpch'
+
          ! Timestamp for emissions
          ! All PAH soil conc are for the generic year 1985
          XTAU = GET_TAU0( 1, 1, 1985) 
@@ -2799,8 +2841,11 @@
       USE GLOBAL_NO3_MOD, ONLY : NO3
       USE TRACERID_MOD,   ONLY : IDNO3
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! NSRCX
+      ! Replace include statements (H. Amos, 7 Mar 2013)
+      USE CMN_SIZE_MOD   ! Size parameters
+      USE CMN_MOD        ! NSRCX 
+!#     include "CMN_SIZE"  ! Size parameters
+!#     include "CMN"       ! NSRCX
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
@@ -2920,7 +2965,9 @@ c$$$      ENDIF
       USE DAO_MOD,       ONLY : AD
       USE GLOBAL_O3_MOD, ONLY : O3
 
-#     include "CMN_SIZE"  ! Size parameters
+      ! Replace include statement (H. Amos, 7Mar2013)
+      USE CMN_SIZE_MOD ! Size parameters
+!#     include "CMN_SIZE"  ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
@@ -2964,7 +3011,9 @@ c$$$      ENDIF
       USE GLOBAL_OH_MOD, ONLY : OH
       USE TIME_MOD,      ONLY : GET_TS_CHEM
 
-#     include "CMN_SIZE"  ! Size parameters
+      ! Replace include statement (H. Amos, 7Mar2013)
+      USE CMN_SIZE_MOD ! Size parameters
+!#     include "CMN_SIZE"  ! Size parameters
 
 ! !INPUT PARAMETERS: 
 
@@ -3141,9 +3190,12 @@ c$$$      ENDIF
       USE TIME_MOD, ONLY : GET_NHMSb,   GET_ELAPSED_SEC
       USE TIME_MOD, ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
 
+      ! Replace include statements (H. Amos, 7Mar2013)
+      USE CMN_SIZE_MOD ! Size parameters
+      USE CMN_GCTM_MOD ! Physical constants
+!#     include "CMN_SIZE"  ! Size parameters
+!#     include "CMN_GCTM"  ! Physical constants
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_GCTM"  ! Physical constants
 ! !INPUT PARAMETERS: 
 !
 !
@@ -3227,13 +3279,16 @@ c$$$      ENDIF
             DO J = 1, JJPAR
 
                ! Grid box latitude center [radians]
-               YMID_R = GET_YMID_R( J )
+               !YMID_R = GET_YMID_R( J )
+               YMID_R = GET_YMID_R( I, J, 1 ) ! hma, 8mar2013
 
             DO I = 1, IIPAR
 
                ! Increment IJLOOP
                IJLOOP = ( (J-1) * IIPAR ) + I
-               TIMLOC = real(LHR0) + real(NT)/3600.0 + GET_XMID(I)/15.0
+               !TIMLOC = real(LHR0) + real(NT)/3600.0 + GET_XMID(I)/15.0
+               TIMLOC = real(LHR0) + real(NT)/3600.0 +
+     &                  GET_XMID( I, J, 1 )/15.0   ! bug fix (hma, 8mar2013)
          
                DO WHILE (TIMLOC .lt. 0)
                   TIMLOC = TIMLOC + 24.0
@@ -3313,11 +3368,15 @@ c$$$      ENDIF
       USE LOGICAL_MOD,  ONLY : LSPLIT,    LDRYD,     LNLPBL
       USE TRACER_MOD,   ONLY : N_TRACERS
       USE PBL_MIX_MOD,  ONLY : GET_PBL_MAX_L
-      USE LAI_MOD,      ONLY : INIT_LAI
+      ! Call to INIT_LAI obsolete (H. Amos, 7Mar2013)
+!      USE LAI_MOD,      ONLY : INIT_LAI
       USE GET_POPSINFO_MOD, ONLY : INIT_POP_PARAMS
-c$$$
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! ND44
+
+      ! Replace include statements (H. Amos, 7Mar2013)
+      USE CMN_SIZE_MOD ! Size parameters
+      USE CMN_DIAG_MOD ! ND44
+!#     include "CMN_SIZE"     ! Size parameters
+!#     include "CMN_DIAG"     ! ND44
 
 ! !INPUT PARAMETERS: 
 !

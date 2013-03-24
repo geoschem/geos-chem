@@ -1972,7 +1972,8 @@
       !-------------------------------
       ELSE IF (N == IDTPOPPOCPI ) THEN
 
-         CALL F_AEROSOL( KC, F ) 
+!         CALL F_AEROSOL( KC, F ) 
+         CALL F_AEROSOL( KC, N, F ) ! H. Amos, 7 Mar 2013 
          ISOL = GET_ISOL( N )
 
       !-------------------------------
@@ -1980,7 +1981,8 @@
       !-------------------------------
       ELSE IF (N == IDTPOPPBCPI ) THEN
 
-         CALL F_AEROSOL( KC, F ) 
+!         CALL F_AEROSOL( KC, F ) 
+         CALL F_AEROSOL( KC, N, F ) ! H. Amos, 7 Mar 2013
          ISOL = GET_ISOL( N )
 
 
@@ -3586,7 +3588,7 @@
             ! and del_H from Scharzenbach 2003, p200)
             ! For BENZO[a]PYRENE, HSTAR = 1.32d3 and del_H = -5.17d3 (HSTAR from
             ! Ma et al and Del_H the same as pyrene for now)
-               CALL COMPUTE_L2G( 1d0/GET_POP_HSTAR(DUM) / 8.21d-2 / 298d0,
+            CALL COMPUTE_L2G( 1d0/GET_POP_HSTAR(DUM) / 8.21d-2 / 298d0,
      &                           -GET_POP_DEL_Hw(DUM) / 8.32d-3,  
      &                           T(I,J,L), CLDLIQ(I,J,L), L2G )
 
@@ -4187,42 +4189,43 @@
       ! POPG (liquid and gas phases) (clf, 11/17/2010)
       !------------------------------
       ELSE IF ( N == IDTPOPG ) THEN
-         AER      = .FALSE.
-! Bug fix in WASHFRAC_LIQ_GAS (H. Amos, 05 June 2011)
-!         WASHFRAC = WASHFRAC_LIQ_GAS( 7.61d1, -5.17d3, PP, DT, 
-!     &                                F,      DZ,   TK, K_WASH ) 
-            CALL WASHFRAC_LIQ_GAS( 1d0/GET_POP_HSTAR(DUM) / 8.21d-2 / 298d0, 
-     &                               -GET_POP_DEL_Hw(DUM) / 8.32d-3,
-     &                                   PP, DT    , 
-     &                                   F    ,     DZ, TK, K_WASH,
-     &                                WASHFRAC, AER                 )       
+         KIN      = .FALSE.
+!H.Amos, 7 Mar 2013
+c$$$        CALL WASHFRAC_LIQ_GAS( 1d0/GET_POP_HSTAR(DUM) / 8.21d-2 / 298d0, 
+c$$$     &                               -GET_POP_DEL_Hw(DUM) / 8.32d-3,
+c$$$     &                                   PP, DT    , 
+c$$$     &                                   F    ,     DZ, TK, K_WASH,
+c$$$     &                                WASHFRAC, AER                 )
+        CALL WASHFRAC_LIQ_GAS( 1d0/GET_POP_HSTAR(DUM) / 8.21d-2 / 298d0, 
+     &                         -GET_POP_DEL_Hw(DUM) / 8.32d-3,
+     &                         PP, DT, F, DZ, TK, WASHFRAC, KIN       ) 
 
       !------------------------------
       ! POPPOCPO (treat like hydrophobic OC aerosol) 
       !------------------------------
       ELSE IF ( N == IDTPOPPOCPO ) THEN 
-         AER      = .TRUE.
+         KIN      = .TRUE.
          WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
       !------------------------------
       ! POPPBCPO (treat like hydrophobic BC aerosol) 
       !------------------------------
       ELSE IF ( N == IDTPOPPBCPO ) THEN 
-         AER      = .TRUE.
+         KIN      = .TRUE.
          WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
       !------------------------------
       ! POPPOCPI (treat like hydrophilic OC aerosol) 
       !------------------------------
       ELSE IF ( N == IDTPOPPOCPI ) THEN 
-         AER      = .TRUE.
+         KIN      = .TRUE.
          WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
       !------------------------------
       ! POPPBCPI (treat like hydrophilic BC aerosol) 
       !------------------------------
       ELSE IF ( N == IDTPOPPBCPI ) THEN 
-         AER      = .TRUE.
+         KIN      = .TRUE.
          WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
       !------------------------------

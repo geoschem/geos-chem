@@ -24,10 +24,12 @@
 
 ! !PUBLIC MEMBER FUNCTIONS:
 !
+      PUBLIC :: GET_GLOBAL_BC
+      PUBLIC :: CLEANUP_GLOBAL_BC
 !
 ! !PUBLIC DATA MEMBERS:
 !
- 
+      PUBLIC :: BC
 !
 ! !REVISION HISTORY:
 !  19 January 2011 - C.L. Friedman - Initial Version
@@ -111,9 +113,11 @@
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D
       USE LOGICAL_MOD,   ONLY : LFUTURE
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD        ! Size parameters ! H. Amos, 7 Mar 2013
 
-#     include "CMN_SIZE"    ! Size parameters
+      IMPLICIT NONE
+!H. Amos, 7 Mar 2013
+!#     include "CMN_SIZE"    ! Size parameters
 
 !
 ! !REVISION HISTORY: 
@@ -171,6 +175,10 @@
          CALL INIT_GLOBAL_BC
          FIRST = .FALSE.
       ENDIF
+
+! Default: GEOS-5 @ 4x5 reduced vertical layers (H. Amos, 15Mar2013)
+      FILENAME = '/home/hamos/GC/input_files/POPs/PAHs_2004_GEOS' //
+     &           '/4x5/CLF_fullchem/BCPO_FC_4x5.bpch'
 
       ! If GCAP:
 #if defined( GCAP)
@@ -249,8 +257,9 @@
 
       ! References to F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
+      USE CMN_SIZE_MOD        ! Size parameters ! H. Amos, 7 Mar 2013
 
-#     include "CMN_SIZE" 
+!#     include "CMN_SIZE" 
 !
 !
 ! !REVISION HISTORY: 
