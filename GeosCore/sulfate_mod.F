@@ -4034,7 +4034,7 @@
       USE TRACERID_MOD,      ONLY : IDTSO4,     IDTNH3
       USE GFED2_BIOMASS_MOD, ONLY : GFED2_IS_NEW
       USE GFED3_BIOMASS_MOD, ONLY : GFED3_IS_NEW
-      USE LOGICAL_MOD,       ONLY : LANTHRO, LBIOFUEL
+      USE LOGICAL_MOD,       ONLY : LANTHRO, LBIOFUEL, LAEIC
 
       USE CMN_SIZE_MOD            ! Size parameters
 
@@ -4156,7 +4156,11 @@
          ! Add LANTHRO switch to turn off anthropogenic emissions.
          ! (ccc, 4/15/09)
          IF ( LANTHRO ) THEN
-            CALL READ_AIRCRAFT_SO2( MONTH )
+            IF ( LAEIC) THEN
+               ESO2_ac = 0d0
+            ELSE
+               CALL READ_AIRCRAFT_SO2( MONTH )
+            ENDIF
             CALL READ_ANTHRO_SOx( MONTH, NSEASON )
             CALL READ_ANTHRO_NH3( MONTH )
          ENDIF
