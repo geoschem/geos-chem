@@ -924,7 +924,7 @@
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, 1,
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     LLTROP,   IFIRST,     
+     &               IIPAR,     JJPAR,     LLCHEM,   IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD12) )
       ENDIF
 !
@@ -2031,7 +2031,7 @@
 !
 !  Levels        : Field                  : Units       : Scale Factor
 !  -------------------------------------------------------------------------
-!  1 - LLTROP    : Aircraft NOx           : molec/cm2/s : SCALESRCE
+!  1 - LLCHEM    : Aircraft NOx           : molec/cm2/s : SCALESRCE
 !  1 - NOXEXTENT : Anthropogenic NOx      : molec/cm2/s : SCALESRCE
 !  Surface       : Biomass Burning NOx    : molec/cm2/s : SCALESRCE
 !  Surface       : Biofuel Burning NOx    : molec/cm2/s : SCALESRCE
@@ -2059,15 +2059,15 @@
          !==============================================================
          CATEGORY = 'NOX-AC-$'
             
-         DO L = 1, LLTROP
+         DO L = 1, LLCHEM
             ARRAY(:,:,L) = AD32_ac(:,:,L) / SCALESRCE               
          ENDDO
 
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, IDTNOX,    
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     LLTROP,   IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LLTROP) )
+     &               IIPAR,     JJPAR,     LLCHEM,   IFIRST,     
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LLCHEM) )
 
          !==============================================================
          ! Anthropogenic NOx

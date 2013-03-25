@@ -167,8 +167,8 @@
             !===========================================================
             IF ( NAMEGAS(JGAS) == 'MOH' ) THEN
 
-               ! Loop over all potential tropospheric boxes
-               DO IZ = 1, LLTROP
+               ! Loop over all potential chemistry boxes
+               DO IZ = 1, LLCHEM
                DO IY = 1, JJPAR
                DO IX = 1, IIPAR
 
@@ -234,7 +234,7 @@
                ! Methanol (MOH) in mixing ratios units
                !========================================================
 
-               DO IZ = 1, LLTROP         
+               DO IZ = 1, LLCHEM 
                DO IY = 1, JJPAR
                DO IX = 1, IIPAR
 

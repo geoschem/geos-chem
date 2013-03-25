@@ -1485,7 +1485,7 @@
                            ! the stratosphere, the AOD below plane will be
                            ! the same as the trop column at that point.
                            ! (bmy, 10/24/05)
-                           LPLANE  = MIN( L, LLTROP )
+                           LPLANE  = MIN( L, LLCHEM )
 
                            ! Sum AOD over all RH bins and store in VARI(V)
                            ! Sum from surface to level where the plane is

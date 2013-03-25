@@ -311,8 +311,8 @@
       ! lifetime or just mean mass-weighted OH concentration
       IF ( ITS_A_FULLCHEM_SIM() ) THEN
 
-         ! Fullchem: tropopshere only
-         LMAX       = LLTROP
+         ! Fullchem: chemistry grid only
+         LMAX       = LLCHEM
          DO_SAVE_OH = .TRUE.
 
       ELSE IF ( ITS_A_CH4_SIM() ) THEN

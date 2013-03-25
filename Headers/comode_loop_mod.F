@@ -137,8 +137,8 @@
       PARAMETER (ILONG   = IIPAR                   )  
 #endif
 
-      ! LLTROP is the max number of tropospheric levels 
-      PARAMETER (IVERT   = LLTROP                  )  
+      ! LLCHEM is the max number of chemically-active levels 
+      PARAMETER (IVERT   = LLCHEM                  )  
 
       ! GEOS-CHEM does not use plumes...set IPLUME=0 
       PARAMETER (IPLUME  = 0                       )

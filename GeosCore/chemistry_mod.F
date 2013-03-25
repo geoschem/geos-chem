@@ -299,7 +299,7 @@
                ! Init chem mechanism and photolysis
                CALL READER  ( FIRST,         am_I_Root )
                CALL READCHEM(                am_I_Root )
-               CALL INPHOT  ( LLTROP, NPHOT, am_I_Root )
+               CALL INPHOT  ( LLCHEM, NPHOT, am_I_Root )
  
                ! Reset NCS with NCSURBAN
                NCS     = NCSURBAN

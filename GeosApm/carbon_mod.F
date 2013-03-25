@@ -1816,7 +1816,7 @@
       !=================================================================
       ! Loop over grid boxes
       !=================================================================
-      DO L = 1, LLTROP
+      DO L = 1, LLCHEM
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -2022,7 +2022,7 @@
       !=================================================================
       ! Loop over grid boxes
       !=================================================================
-      DO L = 1, LLTROP
+      DO L = 1, LLCHEM
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -2303,7 +2303,7 @@
 #if   defined( APM )
 !$OMP+PRIVATE( N, NTEMP)
 #endif
-      DO L = 1, LLTROP
+      DO L = 1, LLCHEM
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -6897,7 +6897,7 @@ c
 
          ! Get O3 [v/v] for this gridbox & month
          ! O3 data will only be defined below the tropopause
-         IF ( L <= LLTROP ) THEN
+         IF ( L <= LLCHEM ) THEN
 
             ! Get O3 [v/v] and convert it to [kg]
             O3_MOLEC_CM3 = O3(I,J,L) * AD(I,J,L) * ( 48d0/28.97d0 )
@@ -7256,7 +7256,7 @@ c
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, PSFC, PRES, RH2, R0, B0 )
-      DO L = 1, LLTROP
+      DO L = 1, LLCHEM
       DO J = 1, JJPAR 
       DO I = 1, IIPAR
 	
@@ -7404,8 +7404,8 @@ c
       ! DTCHEM is the chemistry timestep in seconds
       DTCHEM = GET_TS_CHEM() * 60d0
 
-      ! Loop over tropospheric grid boxes
-      DO L = 1, LLTROP  
+      ! Loop over cehmically-active grid boxes
+      DO L = 1, LLCHEM  
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -7606,8 +7606,8 @@ c
       ! DTCHEM is the chemistry timestep in seconds
       DTCHEM = GET_TS_CHEM() * 60d0
 
-      ! Loop over tropospheric grid boxes
-      DO L = 1, LLTROP  
+      ! Loop over chemically-active grid boxes
+      DO L = 1, LLCHEM 
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -8086,7 +8086,7 @@ c
 #if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_57 )
          ! If we are using GEOS-5 or MERRA met, then get the cloud fraction 
          ! directly from the met fields.  (skim, bmy, 1/14/10)
-         ALLOCATE( VCLDF( IIPAR, JJPAR, LLTROP ), STAT=AS )
+         ALLOCATE( VCLDF( IIPAR, JJPAR, LLCHEM ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'VCLDF' )
 
          VCLDF = 0d0

@@ -61,6 +61,9 @@
       ! LLTROP     = maximum number of tropospheric levels for variable
       !              tropopause
       ! LLTROP_FIX = number of tropospheric levels for offline simulations
+      ! LLSTRAT    = maximum number of levels below stratopause
+      ! LLCHEM     = maximum number of levels included in chemistry grid
+      ! LLCHEM_FIX = number of chemgrid levels for offline simulations
       ! PTOP       = model top pressure (mb)
       !
       ! Most of the time, GEOS-CHEM is used for global simulations.
@@ -68,6 +71,7 @@
       !
       ! For nested grids, then IIPAR<IGLOB, JJPAR<JGLOB, LLPAR<LGLOB.
       !=================================================================
+
 #if   defined( GCAP ) && defined( GRID4x5 )
 
       !-----------------------------------------------------------------
@@ -81,6 +85,7 @@
       INTEGER            :: LLPAR
       INTEGER, PARAMETER :: LLTROP     = 12   
       INTEGER, PARAMETER :: LLTROP_FIX = LLTROP     
+      INTEGER, PARAMETER :: LLSTRAT    = 20
       REAL*8,  PARAMETER :: PTOP       = 0.002d0
 
 #elif defined( GEOS_4 ) && defined( GRID4x5 )
@@ -96,9 +101,11 @@
 #if   defined( GRIDREDUCED ) 
       INTEGER            :: LLPAR      = 30        ! Reduced vertical grid
       INTEGER, PARAMETER :: LLTROP     = 22        !  -- 30 levels
+      INTEGER, PARAMETER :: LLSTRAT    = 27
 #else
       INTEGER            :: LLPAR                  ! Full vertical grid
       INTEGER, PARAMETER :: LLTROP     = 23        !  -- 55 levels
+      INTEGER, PARAMETER :: LLSTRAT    = 42
 #endif
       INTEGER, PARAMETER :: LLTROP_FIX = 17
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
@@ -116,9 +123,11 @@
 #if   defined( GRIDREDUCED )
       INTEGER            :: LLPAR      = 30        ! Reduced vertical grid
       INTEGER, PARAMETER :: LLTROP     = 22        !  -- 30 levels
+      INTEGER, PARAMETER :: LLSTRAT    = 27
 #else 
       INTEGER            :: LLPAR                  ! Full vertical grid
       INTEGER, PARAMETER :: LLTROP     = 23        !  -- 55 levels
+      INTEGER, PARAMETER :: LLSTRAT    = 42
 #endif
       INTEGER, PARAMETER :: LLTROP_FIX = 17
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
@@ -136,9 +145,11 @@
 #if   defined( GRIDREDUCED )
       INTEGER            :: LLPAR      = 30        ! Reduced vertical grid
       INTEGER, PARAMETER :: LLTROP     = 22        !  -- 30 levels
+      INTEGER, PARAMETER :: LLSTRAT    = 27
 #else 
       INTEGER            :: LLPAR                  ! Full vertical grid
       INTEGER, PARAMETER :: LLTROP     = 23        !  -- 55 levels
+      INTEGER, PARAMETER :: LLSTRAT    = 42
 #endif
       INTEGER, PARAMETER :: LLTROP_FIX = 17
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
@@ -157,10 +168,12 @@
       INTEGER            :: LLPAR      = 47        ! Reduced vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
       INTEGER, PARAMETER :: LLTROP     = 38  
+      INTEGER, PARAMETER :: LLSTRAT    = 44
 #else
       INTEGER            :: LLPAR                  ! Full vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels
       INTEGER, PARAMETER :: LLTROP     = 40  
+      INTEGER, PARAMETER :: LLSTRAT    = 59
 #endif
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
@@ -178,10 +191,12 @@
       INTEGER            :: LLPAR      = 47        ! Reduced vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
       INTEGER, PARAMETER :: LLTROP     = 38  
+      INTEGER, PARAMETER :: LLSTRAT    = 44
 #else 
       INTEGER            :: LLPAR                  ! Full vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels
       INTEGER, PARAMETER :: LLTROP     = 40  
+      INTEGER, PARAMETER :: LLSTRAT    = 59
 #endif
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
@@ -198,10 +213,12 @@
       INTEGER            :: LLPAR      = 47        ! Reduced vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
       INTEGER, PARAMETER :: LLTROP     = 38
+      INTEGER, PARAMETER :: LLSTRAT    = 44
 #else 
       INTEGER            :: LLPAR                  ! Full vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels    
       INTEGER, PARAMETER :: LLTROP     = 40
+      INTEGER, PARAMETER :: LLSTRAT    = 59
 #endif
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
@@ -229,10 +246,12 @@
       INTEGER            :: LLPAR      = 47        ! Reduced vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
       INTEGER, PARAMETER :: LLTROP     = 38
+      INTEGER, PARAMETER :: LLSTRAT    = 44
 #else
       INTEGER            :: LLPAR                  ! Full vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels
       INTEGER, PARAMETER :: LLTROP     = 40
+      INTEGER, PARAMETER :: LLSTRAT    = 59
 #endif
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
@@ -250,10 +269,12 @@
       INTEGER            :: LLPAR      = 47        ! Reduced vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
       INTEGER, PARAMETER :: LLTROP     = 38  
+      INTEGER, PARAMETER :: LLSTRAT    = 44
 #else 
       INTEGER            :: LLPAR                  ! Full vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels
       INTEGER, PARAMETER :: LLTROP     = 40  
+      INTEGER, PARAMETER :: LLSTRAT    = 59
 #endif
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
@@ -271,10 +292,12 @@
       INTEGER            :: LLPAR      = 47        ! Reduced vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
       INTEGER, PARAMETER :: LLTROP     = 38  
+      INTEGER, PARAMETER :: LLSTRAT    = 44
 #else
       INTEGER            :: LLPAR                  ! Full vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels 
       INTEGER, PARAMETER :: LLTROP     = 40  
+      INTEGER, PARAMETER :: LLSTRAT    = 59
 #endif
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
@@ -292,10 +315,12 @@
       INTEGER            :: LLPAR      = 47        ! Reduced vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
       INTEGER, PARAMETER :: LLTROP     = 38  
+      INTEGER, PARAMETER :: LLSTRAT    = 44
 #else 
       INTEGER            :: LLPAR                  ! Full vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels
       INTEGER, PARAMETER :: LLTROP     = 40  
+      INTEGER, PARAMETER :: LLSTRAT    = 59
 #endif
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
@@ -313,10 +338,12 @@
       INTEGER            :: LLPAR      = 47        ! Reduced vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
       INTEGER, PARAMETER :: LLTROP     = 38  
+      INTEGER, PARAMETER :: LLSTRAT    = 44
 #else 
       INTEGER            :: LLPAR                  ! Full vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels
       INTEGER, PARAMETER :: LLTROP     = 40  
+      INTEGER, PARAMETER :: LLSTRAT    = 59
 #endif
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
@@ -334,10 +361,12 @@
       INTEGER            :: LLPAR      = 47        ! Reduced vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
       INTEGER, PARAMETER :: LLTROP     = 38  
+      INTEGER, PARAMETER :: LLSTRAT    = 44
 #else 
       INTEGER            :: LLPAR                  ! Full vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels
       INTEGER, PARAMETER :: LLTROP     = 40  
+      INTEGER, PARAMETER :: LLSTRAT    = 59
 #endif
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
@@ -355,10 +384,12 @@
       INTEGER            :: LLPAR      = 47        ! Reduced vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
       INTEGER, PARAMETER :: LLTROP     = 38  
+      INTEGER, PARAMETER :: LLSTRAT    = 44
 #else
       INTEGER            :: LLPAR                  ! Full vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels 
       INTEGER, PARAMETER :: LLTROP     = 40  
+      INTEGER, PARAMETER :: LLSTRAT    = 59
 #endif
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
@@ -372,6 +403,7 @@
 
       INTEGER, PARAMETER :: LLTROP_FIX = 22
       INTEGER, PARAMETER :: LLTROP     = 22
+      INTEGER, PARAMETER :: LLSTRAT    = 27
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 #endif
 
@@ -392,6 +424,12 @@
       !-----------------------------------------------------------------
       INTEGER, PARAMETER :: IGFED3     = 720 
       INTEGER, PARAMETER :: JGFED3     = 360
+
+      !-----------------------------------------------------------------
+      ! For stratospheric chemistry
+      !-----------------------------------------------------------------
+      INTEGER            :: LLCHEM
+      INTEGER            :: LLCHEM_FIX
 
       !=================================================================
       ! TRACER & EMISSION SPECIES PARAMETERS
@@ -590,6 +628,14 @@
       SUBROUTINE SET_CMN_SIZE_MOD
       
       IMPLICIT NONE
+
+#if defined( GMISTRAT )
+      LLCHEM     = LLSTRAT
+      LLCHEM_FIX = LLSTRAT
+#else
+      LLCHEM     = LLTROP
+      LLCHEM_FIX = LLTROP_FIX
+#endif
 
 #if   defined( GCAP ) && defined( GRID4x5 )
 
@@ -838,6 +884,8 @@
       ! LLTROP     = maximum number of tropospheric levels for variable
       !              tropopause
       ! LLTROP_FIX = number of tropospheric levels for offline simulations
+      ! LLSTRAT    = maximum number of levels below stratopause
+      ! LLCHEM     = maximum number of levels included in chemistry grid
       ! PTOP       = model top pressure (mb)
       !
       ! Most of the time, GEOS-CHEM is used for global simulations.
@@ -858,6 +906,7 @@
       INTEGER, PARAMETER :: LLPAR      = LGLOB
       INTEGER, PARAMETER :: LLTROP     = 12   
       INTEGER, PARAMETER :: LLTROP_FIX = LLTROP     
+      INTEGER, PARAMETER :: LLSTRAT    = 20
       REAL*8,  PARAMETER :: PTOP       = 0.002d0
 
 #elif defined( GEOS_4 ) && defined( GRID4x5 )
@@ -873,9 +922,11 @@
 #if   defined( GRIDREDUCED ) 
       INTEGER, PARAMETER :: LLPAR      = 30        ! Reduced vertical grid
       INTEGER, PARAMETER :: LLTROP     = 22        !  -- 30 levels
+      INTEGER, PARAMETER :: LLSTRAT    = 27
 #else
       INTEGER, PARAMETER :: LLPAR      = LGLOB     ! Full vertical grid
       INTEGER, PARAMETER :: LLTROP     = 23        !  -- 55 levels
+      INTEGER, PARAMETER :: LLSTRAT    = 42
 #endif
       INTEGER, PARAMETER :: LLTROP_FIX = 17
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
@@ -893,9 +944,11 @@
 #if   defined( GRIDREDUCED )
       INTEGER, PARAMETER :: LLPAR      = 30        ! Reduced vertical grid
       INTEGER, PARAMETER :: LLTROP     = 22        !  -- 30 levels
+      INTEGER, PARAMETER :: LLSTRAT    = 27
 #else 
       INTEGER, PARAMETER :: LLPAR      = LGLOB     ! Full vertical grid
       INTEGER, PARAMETER :: LLTROP     = 23        !  -- 55 levels
+      INTEGER, PARAMETER :: LLSTRAT    = 42
 #endif
       INTEGER, PARAMETER :: LLTROP_FIX = 17
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
@@ -913,9 +966,11 @@
 #if   defined( GRIDREDUCED )
       INTEGER, PARAMETER :: LLPAR      = 30        ! Reduced vertical grid
       INTEGER, PARAMETER :: LLTROP     = 22        !  -- 30 levels
+      INTEGER, PARAMETER :: LLSTRAT    = 27
 #else 
       INTEGER, PARAMETER :: LLPAR      = LGLOB     ! Full vertical grid
       INTEGER, PARAMETER :: LLTROP     = 23        !  -- 55 levels
+      INTEGER, PARAMETER :: LLSTRAT    = 42
 #endif
       INTEGER, PARAMETER :: LLTROP_FIX = 17
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
@@ -934,10 +989,12 @@
       INTEGER, PARAMETER :: LLPAR      = 47        ! Reduced vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
       INTEGER, PARAMETER :: LLTROP     = 38  
+      INTEGER, PARAMETER :: LLSTRAT    = 44
 #else
       INTEGER, PARAMETER :: LLPAR      = LGLOB     ! Full vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels
       INTEGER, PARAMETER :: LLTROP     = 40  
+      INTEGER, PARAMETER :: LLSTRAT    = 59
 #endif
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
@@ -955,10 +1012,12 @@
       INTEGER, PARAMETER :: LLPAR      = 47        ! Reduced vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
       INTEGER, PARAMETER :: LLTROP     = 38  
+      INTEGER, PARAMETER :: LLSTRAT    = 44
 #else 
       INTEGER, PARAMETER :: LLPAR      = LGLOB     ! Full vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels
       INTEGER, PARAMETER :: LLTROP     = 40  
+      INTEGER, PARAMETER :: LLSTRAT    = 59
 #endif
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
@@ -976,10 +1035,12 @@
       INTEGER, PARAMETER :: LLPAR      = 47        ! Reduced vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
       INTEGER, PARAMETER :: LLTROP     = 38
+      INTEGER, PARAMETER :: LLSTRAT    = 44
 #else 
       INTEGER, PARAMETER :: LLPAR      = LGLOB     ! Full vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels    
       INTEGER, PARAMETER :: LLTROP     = 40
+      INTEGER, PARAMETER :: LLSTRAT    = 59
 #endif
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
@@ -1007,10 +1068,12 @@
       INTEGER, PARAMETER :: LLPAR      = 47        ! Reduced vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
       INTEGER, PARAMETER :: LLTROP     = 38
+      INTEGER, PARAMETER :: LLSTRAT    = 44
 #else
       INTEGER, PARAMETER :: LLPAR      = LGLOB     ! Full vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels
       INTEGER, PARAMETER :: LLTROP     = 40
+      INTEGER, PARAMETER :: LLSTRAT    = 59
 #endif
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
@@ -1028,10 +1091,12 @@
       INTEGER, PARAMETER :: LLPAR      = 47        ! Reduced vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
       INTEGER, PARAMETER :: LLTROP     = 38  
+      INTEGER, PARAMETER :: LLSTRAT    = 44
 #else 
       INTEGER, PARAMETER :: LLPAR      = LGLOB     ! Full vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels
       INTEGER, PARAMETER :: LLTROP     = 40  
+      INTEGER, PARAMETER :: LLSTRAT    = 59
 #endif
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
@@ -1049,10 +1114,12 @@
       INTEGER, PARAMETER :: LLPAR      = 47        ! Reduced vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
       INTEGER, PARAMETER :: LLTROP     = 38  
+      INTEGER, PARAMETER :: LLSTRAT    = 44
 #else
       INTEGER, PARAMETER :: LLPAR      = LGLOB     ! Full vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels 
       INTEGER, PARAMETER :: LLTROP     = 40  
+      INTEGER, PARAMETER :: LLSTRAT    = 59
 #endif
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
@@ -1070,10 +1137,12 @@
       INTEGER, PARAMETER :: LLPAR      = 47        ! Reduced vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
       INTEGER, PARAMETER :: LLTROP     = 38  
+      INTEGER, PARAMETER :: LLSTRAT    = 44
 #else 
       INTEGER, PARAMETER :: LLPAR      = LGLOB     ! Full vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels
       INTEGER, PARAMETER :: LLTROP     = 40  
+      INTEGER, PARAMETER :: LLSTRAT    = 59
 #endif
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
@@ -1091,10 +1160,12 @@
       INTEGER, PARAMETER :: LLPAR      = 47        ! Reduced vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
       INTEGER, PARAMETER :: LLTROP     = 38  
+      INTEGER, PARAMETER :: LLSTRAT    = 44
 #else 
       INTEGER, PARAMETER :: LLPAR      = LGLOB     ! Full vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels
       INTEGER, PARAMETER :: LLTROP     = 40  
+      INTEGER, PARAMETER :: LLSTRAT    = 59
 #endif
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
@@ -1112,10 +1183,12 @@
       INTEGER, PARAMETER :: LLPAR      = 47        ! Reduced vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
       INTEGER, PARAMETER :: LLTROP     = 38  
+      INTEGER, PARAMETER :: LLSTRAT    = 44
 #else 
       INTEGER, PARAMETER :: LLPAR      = LGLOB     ! Full vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels
       INTEGER, PARAMETER :: LLTROP     = 40  
+      INTEGER, PARAMETER :: LLSTRAT    = 59
 #endif
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
@@ -1133,14 +1206,27 @@
       INTEGER, PARAMETER :: LLPAR      = 47        ! Reduced vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
       INTEGER, PARAMETER :: LLTROP     = 38  
+      INTEGER, PARAMETER :: LLSTRAT    = 44
 #else
       INTEGER, PARAMETER :: LLPAR      = LGLOB     ! Full vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels 
       INTEGER, PARAMETER :: LLTROP     = 40  
+      INTEGER, PARAMETER :: LLSTRAT    = 59
 #endif
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
 #endif
+      !-----------------------------------------------------------------
+      ! For stratospheric chemistry
+      !-----------------------------------------------------------------
+#if defined( GMISTRAT )
+      INTEGER, PARAMETER :: LLCHEM     = LLSTRAT
+      INTEGER, PARAMETER :: LLCHEM_FIX = LLSTRAT
+#else
+      INTEGER, PARAMETER :: LLCHEM     = LLTROP
+      INTEGER, PARAMETER :: LLCHEM_FIX = LLTROP_FIX
+#endif
+
 
       !-----------------------------------------------------------------
       ! For GEOS 1x1 files

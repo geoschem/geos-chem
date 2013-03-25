@@ -843,12 +843,12 @@
      &              -0.1796822548d0, -0.1798187047d0, -0.1798536479d0 /)
 
       ! Convert SIGMA to AP and BP coordinates
-      DO  L = 1, LLTROP
+      DO  L = 1, LLCHEM
          AP(L) = 150d0 + ( SIGE_GCAP(L) * ( PTOP - 150d0 ) )
          BP(L) = SIGE_GCAP(L)
       ENDDO
 
-      DO L = LLTROP+1, LLPAR+1  
+      DO L = LLCHEM+1, LLPAR+1  
          AP(L) = 150d0 + ( SIGE_GCAP(L) * ( 984d0 - 150d0 ) )
          BP(L) = 0d0
       ENDDO

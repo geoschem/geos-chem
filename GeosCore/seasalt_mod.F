@@ -587,12 +587,12 @@
          ENDDO
 
          ! We know the boundary condition at the model top
-         L    = LLTROP
+         L    = LLCHEM
          DELZ = BXHEIGHT(I,J,L)
 
          TC(I,J,L) = TC(I,J,L) / ( 1.d0 + DTCHEM * VTS(L) / DELZ )
 
-         DO L = LLTROP-1, 1, -1
+         DO L = LLCHEM-1, 1, -1
             DELZ  = BXHEIGHT(I,J,L)
             DELZ1 = BXHEIGHT(I,J,L+1)
             TC(I,J,L) = 1.d0 / ( 1.d0 + DTCHEM * VTS(L) / DELZ )
@@ -860,7 +860,7 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
       DO N = 1, NSALT
-      DO L = 1, LLTROP
+      DO L = 1, LLCHEM
       DO J = 1, JJPAR
       DO I = 1, IIPAR
          ALK_EMIS(I,J,L,N) = 0d0
@@ -1534,11 +1534,11 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SRC_N' )
       SRC_N = 0d0
 
-      ALLOCATE( ALK_EMIS( IIPAR, JJPAR, LLTROP, NSALT ), STAT=AS )
+      ALLOCATE( ALK_EMIS( IIPAR, JJPAR, LLCHEM, NSALT ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALK_EMIS' )
       ALK_EMIS = 0d0
 
-      ALLOCATE( N_DENS( IIPAR, JJPAR, LLTROP, NSALT ), STAT=AS )
+      ALLOCATE( N_DENS( IIPAR, JJPAR, LLCHEM, NSALT ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'N_DENS' )
       N_DENS = 0d0
 

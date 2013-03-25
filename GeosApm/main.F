@@ -341,7 +341,7 @@
          IF ( ITS_AN_AEROSOL_SIM() ) CALL INIT_COMODE( am_I_Root )
          IF ( LKPP ) THEN
             CALL INIT_GCKPP_COMODE( am_I_Root, IIPAR,  JJPAR,   
-     &                              LLTROP,    ITLOOP, NMTRATE, 
+     &                              LLCHEM,    ITLOOP, NMTRATE, 
      &                              IGAS,      RC )
          ENDIF
          IF ( RC == 1 )
@@ -778,7 +778,7 @@
          CALL INTERP( NSECb, ELAPSED_TODAY, N_DYN )
 
          ! Case of variable tropopause:
-         ! Check LLTROP and set LMIN, LMAX, and LPAUSE
+         ! Check LLCHEM and set LMIN, LMAX, and LPAUSE
          ! since this is not done with READ_TROPOPAUSE anymore.
          ! (Need to double-check that LMIN, Lmax are not used before-phs) 
          IF ( LVARTROP ) CALL CHECK_VAR_TROP

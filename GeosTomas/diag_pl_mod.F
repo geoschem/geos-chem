@@ -934,7 +934,7 @@ c 88            format (3I3, 'H2SO4rate (kg/s)',e13.5)
       INTEGER            :: HALFPOLAR 
       INTEGER, PARAMETER :: CENTER180 = 1 
       REAL*4             :: LONRES, LATRES
-      REAL*4             :: ARRAY(IIPAR,JJPAR,LLTROP)
+      REAL*4             :: ARRAY(IIPAR,JJPAR,LLCHEM)
       CHARACTER(LEN=20)  :: MODELNAME
       CHARACTER(LEN=40)  :: CATEGORY
       CHARACTER(LEN=40)  :: UNIT
@@ -1364,7 +1364,7 @@ c 88            format (3I3, 'H2SO4rate (kg/s)',e13.5)
 
       ! Define number of vertical levels to save
       IF ( ITS_A_FULLCHEM_SIM() ) THEN
-         LD65 = MIN( ND65, LLTROP )
+         LD65 = MIN( ND65, LLCHEM )
       ELSE
          LD65 = MIN( ND65, LLPAR  )
       ENDIF
@@ -1407,7 +1407,7 @@ c 88            format (3I3, 'H2SO4rate (kg/s)',e13.5)
 
       ! Only allocate H2SO4RATE for a TOMAS simulation !(win, 7/709)
       IF ( LTOMAS ) THEN
-         ALLOCATE( H2SO4RATE( IIPAR, JJPAR, LLTROP ), STAT=AS )
+         ALLOCATE( H2SO4RATE( IIPAR, JJPAR, LLCHEM ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'H2SO4RATE' )
       ENDIF
 

@@ -269,7 +269,7 @@
       ! tropopause. This is backward compatibility with offline data set.
       CALL READ_BPCH2( FILENAME,  'PORL-L=$', 1,      
      &                 XTAU,       IIPAR,     JJPAR,      
-     &                 LLTROP_FIX, ARRAY,     QUIET=.false.)
+     &                 LLCHEM_FIX, ARRAY,     QUIET=.false.)
 
       ! Cast from REAL*4 to REAL*8
       CALL TRANSFER_3D_TROP( ARRAY, P24H )
@@ -284,7 +284,7 @@
       ! read data
       CALL READ_BPCH2( FILENAME,  'PORL-L=$', 2,      
      &                 XTAU,       IIPAR,     JJPAR,      
-     &                 LLTROP_FIX, ARRAY,     QUIET=.false.)
+     &                 LLCHEM_FIX, ARRAY,     QUIET=.false.)
 
       ! Cast from REAL*4 to REAL*8 
       CALL TRANSFER_3D_TROP( ARRAY, L24H )

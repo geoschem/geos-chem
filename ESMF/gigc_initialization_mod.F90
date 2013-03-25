@@ -166,7 +166,7 @@ CONTAINS
     USE GIGC_State_Met_Mod
     USE CMN_SIZE_MOD,         ONLY : IIPAR
     USE CMN_SIZE_MOD,         ONLY : JJPAR
-    USE CMN_SIZE_MOD,         ONLY : LLTROP
+    USE CMN_SIZE_MOD,         ONLY : LLCHEM
     USE COMODE_MOD,           ONLY : INIT_COMODE
     USE COMODE_LOOP_MOD       
     USE GCKPP_COMODE_MOD,     ONLY : INIT_GCKPP_COMODE
@@ -286,7 +286,7 @@ CONTAINS
 
        ! Initialize KPP (if necessary)
        IF ( LKPP ) THEN
-          CALL INIT_GCKPP_COMODE( am_I_Root, IIPAR,   JJPAR, LLTROP,  &
+          CALL INIT_GCKPP_COMODE( am_I_Root, IIPAR,   JJPAR, LLCHEM,  &
                                   ITLOOP,    NMTRATE, IGAS,  RC      )
        ENDIF
     ENDIF

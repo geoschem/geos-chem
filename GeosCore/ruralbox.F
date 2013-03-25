@@ -98,7 +98,7 @@
       JLOOP     = 0
       NTLOOPNCS = 0
 
-      ! Loop over vertical levels (max = LLTROP) 
+      ! Loop over vertical levels (max = LLCHEM) 
 #if defined( DEVEL )
       IF (NVERT .gt. LLPAR) THEN
          TMP_LEV = LLPAR

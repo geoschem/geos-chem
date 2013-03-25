@@ -311,7 +311,7 @@
       ! ND05: Sulfate Prod/loss
       !=================================================================
       IF ( ND05 > 0 ) THEN
-         LD05 = MIN( ND05, LLTROP )
+         LD05 = MIN( ND05, LLCHEM )
 
          ALLOCATE( AD05( IIPAR, JJPAR, LD05, PD05 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD05' )
@@ -405,7 +405,7 @@
       ! ND12: Distribution of emissions in boundary layer [fraction]
       !       --> uses AD12 array (allocatable)
       !=================================================================
-      LD12 = MIN( ND12, LLTROP )
+      LD12 = MIN( ND12, LLCHEM )
 
       IF ( ND12 > 0 ) THEN 
          ALLOCATE( AD12( IIPAR, JJPAR, LD12 ), STAT=AS )
@@ -568,7 +568,7 @@
       !       --> uses AD21 array (allocatable) 
       !=================================================================
       IF ( ND21 > 0 ) THEN
-         LD21 = MIN( ND21, LLTROP )
+         LD21 = MIN( ND21, LLCHEM )
 
          ! For regular 
          ALLOCATE( AD21( IIPAR, JJPAR, LD21, PD21 ), STAT=AS )
@@ -588,10 +588,11 @@
       !=================================================================
       IF ( ND22 > 0 ) THEN
 
-         ! For full chemistry, we only consider boxes below the
-         ! tropopause.  Cap LD22 at LLTROP (bmy, 4/2/01)
+         ! For full chemistry, mesospheric boxes (and stratospheric, in
+         ! the non-stratchem run) are ignored. We therefore cap LD22
+         ! at LLCHEM (bmy, 4/2/01)
          IF ( ITS_A_FULLCHEM_SIM() ) THEN
-            LD22 = MIN( ND22, LLTROP )
+            LD22 = MIN( ND22, LLCHEM )
          ELSE
             LD22 = MIN( ND22, LLPAR  )
          ENDIF
@@ -710,7 +711,7 @@
       IF ( ND32 > 0 ) THEN
 
          ! For aircraft NOx
-         ALLOCATE( AD32_ac( IIPAR, JJPAR, LLTROP ), STAT=AS )
+         ALLOCATE( AD32_ac( IIPAR, JJPAR, LLCHEM ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD32_ac' )
          
          ! For anthropogenic NOx
@@ -854,7 +855,7 @@
          ! For full chemistry, only save OH up to the tropopause.  
          ! For tagged CO or CO-OH, save OH everywhere (bmy, 2/12/01)
          IF ( ITS_A_FULLCHEM_SIM() ) THEN
-            LD43 = MIN( ND43, LLTROP )
+            LD43 = MIN( ND43, LLCHEM )
          ELSE
             LD43 = MIN( ND43, LLPAR  )
          ENDIF
@@ -1079,7 +1080,7 @@
       !        --> uses AD54 array (allocatable)
       !=================================================================
       IF ( ND54 > 0 ) THEN
-         LD54 = MIN( ND54, LLTROP)
+         LD54 = MIN( ND54, LLCHEM)
 
          ALLOCATE( AD54( IIPAR, JJPAR, LD54 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD54' )

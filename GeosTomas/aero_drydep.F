@@ -218,12 +218,12 @@ cdbg      print *, dryd(:)
             ENDDO
 
             ! We know the boundary condition at the model top
-            L           = LLTROP
+            L           = LLCHEM
             DELZ        = BXHEIGHT(I,J,L)           ![=] meter
             TC(L) = TC(L) / 
      &                   ( 1.d0 + DTCHEM * VTS(L) / DELZ )
 
-            DO L = LLTROP-1, 1, -1
+            DO L = LLCHEM-1, 1, -1
                DELZ        = BXHEIGHT(I,J,L)
                DELZ1       = BXHEIGHT(I,J,L+1)
                TC(L) = 1.d0 / 
@@ -295,8 +295,8 @@ cdbg      print *, dryd(:)
       X = 0d0
       X0 = 0d0
 
-      ! Loop over tropospheric grid boxes
-      DO L = 1, LLTROP 
+      ! Loop over chemically-active grid boxes
+      DO L = 1, LLCHEM 
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 

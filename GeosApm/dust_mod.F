@@ -367,12 +367,12 @@
                ENDDO
 
                ! We know the boundary condition at the model top
-               L           = LLTROP
+               L           = LLCHEM
                DELZ        = BXHEIGHT(I,J,L)
                TC(I,J,L,N) = TC(I,J,L,N) / 
      &                       ( 1.d0 + DT_SETTL * VTS(L) / DELZ )
 
-               DO L = LLTROP-1, 1, -1
+               DO L = LLCHEM-1, 1, -1
                   DELZ        = BXHEIGHT(I,J,L)
                   DELZ1       = BXHEIGHT(I,J,L+1)
                   TC(I,J,L,N) = 1.d0 / 
@@ -1378,7 +1378,7 @@
                !--------------------------------------
                ! ND21 tracer #5: Dust surface areas
                !--------------------------------------
-               IF ( L <= LLTROP ) THEN
+               IF ( L <= LLCHEM ) THEN
                
                   ! Convert 3-D indices to 1-D index
                   ! JLOP is only defined in the tropopause
@@ -1713,7 +1713,7 @@
                   !--------------------------------------
                   ! ND21 tracer #5: Dust surface areas
                   !--------------------------------------
-                  IF ( L <= LLTROP ) THEN
+                  IF ( L <= LLCHEM ) THEN
 
                      ! Convert 3-D indices to 1-D index
                      ! JLOP is only defined in the tropopause
@@ -1893,7 +1893,7 @@
                ENDDO
 
                ! We know the boundary condition at the model top
-               DO L = LLTROP, 2, -1
+               DO L = LLCHEM, 2, -1
                   DELZ        = BXHEIGHT(I,J,L)
                   STT(I,J,L,IDTEMP) = TC0(L) /
      &            ( 1.D0 + DT_SETTL * VTS(L) / DELZ )
@@ -1907,7 +1907,7 @@
                  ENDDO
                ENDIF
 
-               DO L = LLTROP, 1, -1
+               DO L = LLCHEM, 1, -1
                  STT(I,J,L,IDTEMP) = STT(I,J,L,IDTEMP) + MASS(I,J,L,N)
                ENDDO
 
@@ -1947,7 +1947,7 @@
       DO J=1,JJPAR
       DO I=1,IIPAR
 
-      DO L=1,LLTROP-1
+      DO L=1,LLCHEM-1
       IF(MASS0(I,J,L)>1.D-30)THEN
         STT(I,J,L,IDTEMP)=STT(I,J,L,IDTEMP)*MASS1(I,J,L)/MASS0(I,J,L)
       ENDIF
@@ -1958,7 +1958,7 @@
       ENDIF
       ENDDO
 
-      L=LLTROP
+      L=LLCHEM
       IF(MASS0(I,J,L)>1.D-30)THEN
         STT(I,J,L,IDTEMP)=STT(I,J,L,IDTEMP)*MASS1(I,J,L)/MASS0(I,J,L)
       ENDIF

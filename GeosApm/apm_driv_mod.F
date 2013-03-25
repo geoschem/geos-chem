@@ -309,7 +309,7 @@
 !$OMP+PRIVATE( KKOUT)
 !$OMP+SCHEDULE( DYNAMIC )
 
-      DO L = 1, LLTROP
+      DO L = 1, LLCHEM
       DO J = 1, JJPAR
       DO I = 1, IIPAR
         PRESS = GET_PCENTER(I,J,L) * 1.d2 ! P at level center [Pa]
@@ -508,7 +508,7 @@
 !$OMP+PRIVATE( XMATEMP )
 !$OMP+SCHEDULE( DYNAMIC )
 
-      DO L = 1, LLTROP
+      DO L = 1, LLCHEM
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 

@@ -1309,10 +1309,10 @@
       !=================================================================
       ! Loop over grid boxes
       !
-      !%%% NOTE: NEED TO REPLACE LLTROP WITH LLPAR FOR GIGC
+      !%%% NOTE: NEED TO REPLACE LLCHEM WITH LLPAR FOR GIGC
       !%%% DO THIS LATER SINCE WE ARE NOT USING THE SOA MECHANISM YET
       !=================================================================
-      DO L = 1, LLTROP
+      DO L = 1, LLCHEM
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -1518,10 +1518,10 @@
       !=================================================================
       ! Loop over grid boxes
       !
-      !%%% NOTE: NEED TO REPLACE LLTROP WITH LLPAR FOR GIGC
+      !%%% NOTE: NEED TO REPLACE LLCHEM WITH LLPAR FOR GIGC
       !%%% DO THIS LATER SINCE WE ARE NOT USING THE SOA MECHANISM YET
       !=================================================================
-      DO L = 1, LLTROP
+      DO L = 1, LLCHEM
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -1775,7 +1775,7 @@
          FIRST = .FALSE.
       ENDIF
 
-      !%%% NOTE: NEED TO REPLACE LLTROP WITH LLPAR FOR GIGC
+      !%%% NOTE: NEED TO REPLACE LLCHEM WITH LLPAR FOR GIGC
       !%%% DO THIS LATER SINCE WE ARE NOT USING THE SOA MECHANISM YET
 
 !$OMP PARALLEL DO
@@ -1786,7 +1786,7 @@
 !!$OMP+PRIVATE( ORG_AER,  ORG_GAS,  ALPHA, KOM,   MPOC              )
 !$OMP+PRIVATE( ORG_AER,  ORG_GAS,  KOM,   MPOC              )
 !$OMP+PRIVATE( NOX                                                 )   ! (dkh, 10/30/06) 
-      DO L = 1, LLTROP
+      DO L = 1, LLCHEM
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -6064,7 +6064,7 @@ c
 
          ! Get O3 [v/v] for this gridbox & month
          ! O3 data will only be defined below the tropopause
-         IF ( L <= LLTROP ) THEN
+         IF ( L <= LLCHEM ) THEN
 
             ! Get O3 [v/v] and convert it to [kg]
             O3_MOLEC_CM3 = O3(I,J,L) * AD(I,J,L) * ( 48d0/28.97d0 )
@@ -6423,7 +6423,7 @@ c
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, PSFC, PRES, RH2, R0, B0 )
-      DO L = 1, LLTROP
+      DO L = 1, LLCHEM
       DO J = 1, JJPAR 
       DO I = 1, IIPAR
 	
@@ -6572,7 +6572,7 @@ c
       DTCHEM = GET_TS_CHEM() * 60d0
 
       ! Loop over tropospheric grid boxes
-      DO L = 1, LLTROP  
+      DO L = 1, LLCHEM 
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -6774,7 +6774,7 @@ c
       DTCHEM = GET_TS_CHEM() * 60d0
 
       ! Loop over tropospheric grid boxes
-      DO L = 1, LLTROP  
+      DO L = 1, LLCHEM
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -7242,7 +7242,7 @@ c
 #if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_57 )
          ! If we are using GEOS-5 or MERRA met, then get the cloud fraction 
          ! directly from the met fields.  (skim, bmy, 1/14/10)
-         ALLOCATE( VCLDF( IIPAR, JJPAR, LLTROP ), STAT=AS )
+         ALLOCATE( VCLDF( IIPAR, JJPAR, LLCHEM ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'VCLDF' )
 
          VCLDF = 0d0

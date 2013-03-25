@@ -30,6 +30,7 @@
 !  LINUX_IFORT : Enables code for Linux v8 or v9 "IFORT" compiler
 !  SPARC       : Enables code for Sun w/ SPARC or Sun Studio compiler
 !  GTMM_Hg     : Enables code for Hg simulation with GTMM
+!  GMISTRAT    : Enables code for full stratospheric chemistry
 !                                                                            .
 !  NOTES:
 !  (1 ) "define.h" is #include'd at the top of CMN_SIZE.  All subroutines
@@ -98,6 +99,7 @@
 !  10 Jun 2012 - L. Murray   - GRIDREDUCED no longer required for GEOS5.
 !  07 Sep 2012 - R. Yantosca - Removed EXTERNAL_GRID, EXTERNAL_FORCING, these
 !                              will now be set in the Makefile_header.mk
+!  24 Mar 2013 - S. D. Eastham - Added GMISTRAT switch
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -127,6 +129,7 @@
 #undef LINUX_IFORT
 #undef SPARC
 #undef GTMM_Hg
+#undef GMISTRAT
 
 !==============================================================================
 ! Define the necessary "switches" for GEOS-CHEM. 
@@ -152,7 +155,7 @@
 !#define GRID1x125        'GRID1x125'
 !#define GRID2x25         'GRID2x25'
 #define GRID4x5          'GRID4x5'
-#define GRIDREDUCED      'GRIDREDUCED'
+!#define GRIDREDUCED      'GRIDREDUCED'
 
 !----- Compilers -----
 !#define IBM_AIX          'IBM_AIX'
@@ -163,6 +166,7 @@
 
 !----- Simulation type -----
 !#define GTMM_Hg
+#define GMISTRAT
 
 !==============================================================================
 ! Force a compile error if a model type is undefined

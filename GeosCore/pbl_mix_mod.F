@@ -277,9 +277,9 @@
          PBL_THICK(I,J)   = BLTHIK
 
          !==============================================================
-         ! Loop up to the maximum tropopause level
+         ! Loop up to edge of chemically-active grid
          !==============================================================
-         DO L = 1, LLTROP
+         DO L = 1, LLCHEM
 
             ! Thickness of grid box (I,J,L) [hPa]
             DELP = P(L-1) - P(L)
@@ -644,7 +644,7 @@
       !=================================================================
       ! GET_FRAC_OF_PBL begins here!
       !=================================================================
-      IF ( L <= LLTROP ) THEN
+      IF ( L <= LLCHEM ) THEN
          FRAC = F_OF_PBL(I,J,L)
       ELSE
          FRAC = 0d0
@@ -652,7 +652,7 @@
 
       ! Return to calling program
       END FUNCTION GET_FRAC_OF_PBL
-   !EOC
+!EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -686,7 +686,7 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      IF ( L <= LLTROP ) THEN
+      IF ( L <= LLCHEM ) THEN
          FRAC = F_UNDER_TOP(I,J,L)
       ELSE
          FRAC = 0d0
@@ -905,11 +905,11 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'FPBL' )
       FPBL = 0d0
 
-      ALLOCATE( F_OF_PBL( IIPAR, JJPAR, LLTROP ), STAT=AS )
+      ALLOCATE( F_OF_PBL( IIPAR, JJPAR, LLCHEM ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'F_OF_PBL' )
       F_OF_PBL = 0d0
 
-      ALLOCATE( F_UNDER_TOP( IIPAR, JJPAR, LLTROP ), STAT=AS )
+      ALLOCATE( F_UNDER_TOP( IIPAR, JJPAR, LLCHEM ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'F_UNDER_TOP' )
       F_UNDER_TOP = 0d0
 

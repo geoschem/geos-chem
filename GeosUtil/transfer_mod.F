@@ -738,15 +738,15 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*4,  INTENT(IN)  :: IN(IIPAR,JJPAR,LLTROP_FIX)     ! Input data
+      REAL*4,  INTENT(IN)  :: IN(IIPAR,JJPAR,LLCHEM_FIX)     ! Input data
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(OUT) :: OUT(IIPAR,JJPAR,LLTROP_FIX)    ! Output data
+      REAL*8,  INTENT(OUT) :: OUT(IIPAR,JJPAR,LLCHEM_FIX)    ! Output data
 ! 
 ! !REVISION HISTORY: 
 !  19 Sep 2001 - M. Evans    - Initial version
-!  08 Feb 2007 - R. Yantosca - Now use LLTROP_FIX instead of LLTROP, since 
+!  08 Feb 2007 - R. Yantosca - Now use LLCHEM_FIX instead of LLCHEM, since 
 !                              most of the offline simulations use the annual 
 !                              mean tropopause
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
@@ -763,7 +763,7 @@
       !=================================================================
 
       ! Cast to REAL*8 and resize up to LLTROP
-      DO L = 1, LLTROP_FIX
+      DO L = 1, LLCHEM_FIX
          CALL TRANSFER_2D( IN(:,:,L), OUT(:,:,L) )
       ENDDO
       

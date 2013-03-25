@@ -909,7 +909,7 @@
       INTEGER            :: HALFPOLAR 
       INTEGER, PARAMETER :: CENTER180 = 1 
       REAL*4             :: LONRES, LATRES
-      REAL*4             :: ARRAY(IIPAR,JJPAR,LLTROP)
+      REAL*4             :: ARRAY(IIPAR,JJPAR,LLCHEM)
       CHARACTER(LEN=20)  :: MODELNAME
       CHARACTER(LEN=40)  :: CATEGORY
       CHARACTER(LEN=40)  :: UNIT
@@ -1338,7 +1338,7 @@
 
       ! Define number of vertical levels to save
       IF ( ITS_A_FULLCHEM_SIM() ) THEN
-         LD65 = MIN( ND65, LLTROP )
+         LD65 = MIN( ND65, LLCHEM )
       ELSE
          LD65 = MIN( ND65, LLPAR  )
       ENDIF

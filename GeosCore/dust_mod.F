@@ -352,12 +352,12 @@
                ENDDO
 
                ! We know the boundary condition at the model top
-               L           = LLTROP
+               L           = LLCHEM
                DELZ        = BXHEIGHT(I,J,L)
                TC(I,J,L,N) = TC(I,J,L,N) / 
      &                       ( 1.d0 + DT_SETTL * VTS(L) / DELZ )
 
-               DO L = LLTROP-1, 1, -1
+               DO L = LLCHEM-1, 1, -1
                   DELZ        = BXHEIGHT(I,J,L)
                   DELZ1       = BXHEIGHT(I,J,L+1)
                   TC(I,J,L,N) = 1.d0 / 
@@ -1336,7 +1336,7 @@
                !--------------------------------------
                ! ND21 tracer #5: Dust surface areas
                !--------------------------------------
-               IF ( L <= LLTROP ) THEN
+               IF ( L <= LLCHEM ) THEN
                
                   ! Convert 3-D indices to 1-D index
                   ! JLOP is only defined in the tropopause
@@ -1671,7 +1671,7 @@
                   !--------------------------------------
                   ! ND21 tracer #5: Dust surface areas
                   !--------------------------------------
-                  IF ( L <= LLTROP ) THEN
+                  IF ( L <= LLCHEM ) THEN
 
                      ! Convert 3-D indices to 1-D index
                      ! JLOP is only defined in the tropopause

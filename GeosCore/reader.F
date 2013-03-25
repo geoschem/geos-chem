@@ -240,7 +240,7 @@
       ! needed in reader.f for kuloop (bdf, 4/1/03)
       NTLOOP    = IIPAR*JJPAR*NVERT  
 !
-      NLAYER    = LLTROP
+      NLAYER    = LLCHEM
       LXOUT     = MIN0(LXOUT,NLONG)
       LYOUT     = MIN0(LYOUT,NLAT)
       LZOUT     = MIN0(LZOUT,NVERT)

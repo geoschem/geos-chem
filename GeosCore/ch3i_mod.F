@@ -1027,7 +1027,7 @@
             CALL READCHEM
             
             ! Call INPHOT to initialize the fast-J variables. 
-            CALL INPHOT( LLTROP, NPHOT )
+            CALL INPHOT( LLCHEM, NPHOT )
             
             ! Echo output
             WRITE( 6,'(a)' ) 'Using U.C.I Fast-J Photolysis'
@@ -1076,7 +1076,7 @@
             SPECNAME = NAMEGAS(IRM(1,NK,NCS))            
 
             ! Maybe later can replace this w/ the ann mean tropopause...
-            DO L = 1, LLTROP
+            DO L = 1, LLCHEM
             DO J = 1, JJPAR
             DO I = 1, IIPAR
 

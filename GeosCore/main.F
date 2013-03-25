@@ -309,7 +309,7 @@
          IF ( ITS_AN_AEROSOL_SIM() ) CALL INIT_COMODE( am_I_Root )
          IF ( LKPP ) THEN
             CALL INIT_GCKPP_COMODE( am_I_Root, IIPAR,  JJPAR,   
-     &                              LLTROP,    ITLOOP, NMTRATE, 
+     &                              LLCHEM,    ITLOOP, NMTRATE, 
      &                              IGAS,      RC )
          ENDIF
          IF ( RC == 1 )

@@ -99,7 +99,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*4             :: ARRAY(IIPAR,JJPAR,LLTROP)
+      REAL*4             :: ARRAY(IIPAR,JJPAR,LLCHEM)
       REAL*8             :: XTAU
       CHARACTER(LEN=255) :: FILENAME
 
@@ -130,17 +130,17 @@
       XTAU = GET_TAU0( THISMONTH, 1, 1985 )
 
       ! Zero ARRAY so that we avoid random data between 
-      ! levels LLTROP_FIX and LLTROP (phs, 1/22/07)
+      ! levels LLCHEM_FIX and LLCHEM (phs, 1/22/07)
       ARRAY = 0e0
  
       ! Read NO3 data from the binary punch file (tracer #5)
       ! NOTE: NO3 data is only defined w/in the tropopause, so set the 3rd
-      ! dim of ARRAY to LLTROP_FIX (i.e, case of annual mean tropopause). 
+      ! dim of ARRAY to LLCHEM_FIX (i.e, case of annual mean tropopause). 
       ! This is backward compatibility with offline data set. (phs, 1/22/07)
       CALL READ_BPCH2( 
      &         FILENAME,   'CHEM-L=$',                5,     
      &         XTAU,        IIPAR,                    JJPAR,      
-     &         LLTROP_FIX,  ARRAY(:,:,1:LLTROP_FIX),  QUIET=.TRUE. )
+     &         LLCHEM_FIX,  ARRAY(:,:,1:LLCHEM_FIX),  QUIET=.TRUE. )
 
       ! Assign data from ARRAY to the module variable H2O2
       ! Levels between LLTROP_FIX and LLROP are 0
@@ -185,7 +185,7 @@
       !=================================================================
       ! INIT_GLOBAL_NO3 begins here!
       !=================================================================
-      ALLOCATE( NO3( IIPAR, JJPAR, LLTROP ), STAT=AS )
+      ALLOCATE( NO3( IIPAR, JJPAR, LLCHEM ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'NO3' )
       NO3 = 0d0
 

@@ -385,7 +385,7 @@
          !-------------------------------
          ! Initialize FAST-J photolysis
          !-------------------------------
-         CALL INPHOT( LLTROP, NPHOT, am_I_Root ) 
+         CALL INPHOT( LLCHEM, NPHOT, am_I_Root ) 
          
          !### Debug
          IF ( LPRT .and. am_I_Root ) THEN

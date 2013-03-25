@@ -309,7 +309,7 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, PSFC, PRES, RH2, R0, B0 )
-      DO L = 1, LLTROP
+      DO L = 1, LLCHEM
       DO J = 1, JJPAR 
       DO I = 1, IIPAR
 	
@@ -884,12 +884,12 @@
          ENDDO
 
          ! We know the boundary condition at the model top
-         L    = LLTROP
+         L    = LLCHEM
          DELZ = BXHEIGHT(I,J,L)
 
          TC(I,J,L) = TC(I,J,L) / ( 1.d0 + DTCHEM * VTS(L) / DELZ )
 
-         DO L = LLTROP-1, 1, -1
+         DO L = LLCHEM-1, 1, -1
             DELZ  = BXHEIGHT(I,J,L)
             DELZ1 = BXHEIGHT(I,J,L+1)
             TC(I,J,L) = 1.d0 / ( 1.d0 + DTCHEM * VTS(L) / DELZ )
@@ -1291,8 +1291,8 @@
       LOGICAL                 :: FIRST     = .TRUE.
       INTEGER, SAVE           :: LASTMONTH = -99
       INTEGER                 :: I, J, L, JLOOP
-      REAL*4                  :: ARRAY(IIPAR,JJPAR,LLTROP)
-      REAL*8                  :: ND44_TMP(IIPAR,JJPAR,LLTROP)
+      REAL*4                  :: ARRAY(IIPAR,JJPAR,LLCHEM)
+      REAL*8                  :: ND44_TMP(IIPAR,JJPAR,LLCHEM)
       REAL*8                  :: DT,    Koh,  DH2O2, M,    F ,   XTAU   
       REAL*8                  :: H2O20, H2O2, ALPHA, FLUX, FREQ, PHOTJ
       CHARACTER(LEN=255)      :: FILENAME
@@ -1338,7 +1338,7 @@
          ! offline data set.
          CALL READ_BPCH2( FILENAME, 'JV-MAP-$', 3,      
      &     XTAU,        IIPAR,                    JJPAR,      
-     &     LLTROP_FIX,  ARRAY(:,:,1:LLTROP_FIX),  QUIET=.TRUE. )
+     &     LLCHEM_FIX,  ARRAY(:,:,1:LLCHEM_FIX),  QUIET=.TRUE. )
 !     &                    XTAU,      IIPAR,     JJPAR,      
 !     &                    LLTROP,    ARRAY,     QUIET=.TRUE. )
 
@@ -4710,9 +4710,9 @@
       DO I = 1, IIPAR
     
          !==============================================================
-         ! Loop over tropospheric GEOS-CHEM levels 
+         ! Loop over chemically-active GEOS-CHEM levels 
          !==============================================================
-         DO L = 1, LLTROP
+         DO L = 1, LLCHEM
 
             ! PLOW  is the pressure at the bottom edge of sigma level L
             ! PHIGH is the pressure at the top    edge of sigma level L 
@@ -6178,8 +6178,8 @@
          !--------------------
 
          ! Get O3 [v/v] for this gridbox & month
-         ! O3 data will only be defined below the tropopause
-         IF ( L <= LLTROP ) THEN
+         ! O3 data will only be defined within the chemistry grid
+         IF ( L <= LLCHEM ) THEN
             O3_VV = O3m(I,J,L)
          ELSE
             O3_VV = 0d0
@@ -8150,7 +8150,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER             :: I, J, L, K      
-      REAL*4              :: ARRAY(IIPAR,JJPAR,LLTROP)
+      REAL*4              :: ARRAY(IIPAR,JJPAR,LLCHEM)
       REAL*8              :: XTAU
       CHARACTER(LEN=255)  :: FILENAME
 
@@ -8183,7 +8183,7 @@
       ! tropopause. This is backward compatibility with 
       ! offline data set.
      &     XTAU,        IIPAR,                    JJPAR,      
-     &     LLTROP_FIX,  ARRAY(:,:,1:LLTROP_FIX),  QUIET=.TRUE. )
+     &     LLCHEM_FIX,  ARRAY(:,:,1:LLCHEM_FIX),  QUIET=.TRUE. )
 !     &                 XTAU,      IIPAR,     JJPAR,     
 !     &                 LLTROP,    ARRAY,     QUIET=.TRUE. )
 
@@ -8206,7 +8206,7 @@
       ! offline data set.
       CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 51,     
      &     XTAU,        IIPAR,                    JJPAR,      
-     &     LLTROP_FIX,  ARRAY(:,:,1:LLTROP_FIX),  QUIET=.TRUE. )
+     &     LLCHEM_FIX,  ARRAY(:,:,1:LLCHEM_FIX),  QUIET=.TRUE. )
 !     &                 XTAU,      IIPAR,     JJPAR,     
 !     &                 LLTROP,    ARRAY,     QUIET=.TRUE. )
 
@@ -8509,23 +8509,23 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ESO4_an' )
       ESO4_an = 0d0
 
-      ALLOCATE( PMSA_DMS( IIPAR, JJPAR, LLTROP ), STAT=AS ) 
+      ALLOCATE( PMSA_DMS( IIPAR, JJPAR, LLCHEM ), STAT=AS ) 
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PMSA_DMS' )
       PMSA_DMS = 0d0
 
-      ALLOCATE( PSO2_DMS( IIPAR, JJPAR, LLTROP ), STAT=AS )
+      ALLOCATE( PSO2_DMS( IIPAR, JJPAR, LLCHEM ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSO2_DMS' )
       PSO2_DMS = 0d0
 
-      ALLOCATE( PSO4_SO2( IIPAR, JJPAR, LLTROP ), STAT=AS )
+      ALLOCATE( PSO4_SO2( IIPAR, JJPAR, LLCHEM ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSO4_SO2' )
       PSO4_SO2 = 0d0
 
-      ALLOCATE( PSO4_ss( IIPAR, JJPAR, LLTROP ), STAT=AS )
+      ALLOCATE( PSO4_ss( IIPAR, JJPAR, LLCHEM ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSO4_ss' )
       PSO4_ss = 0d0
 
-      ALLOCATE( PNITs( IIPAR, JJPAR, LLTROP ), STAT=AS )
+      ALLOCATE( PNITs( IIPAR, JJPAR, LLCHEM ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PNITs' )
       PNITs = 0d0
 
@@ -8536,7 +8536,7 @@
 #if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_57 )
       ! If we are using GEOS-5 or MERRA met, then get the cloud fraction 
       ! directly from the met fields.  (skim, bmy, 1/14/10)
-      ALLOCATE( VCLDF( IIPAR, JJPAR, LLTROP ), STAT=AS )
+      ALLOCATE( VCLDF( IIPAR, JJPAR, LLCHEM ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'VCLDF' )
       VCLDF = 0d0
 #endif
@@ -8546,15 +8546,15 @@
       !=================================================================
       IF ( ITS_AN_AEROSOL_SIM() ) THEN
 
-         ALLOCATE( PH2O2m( IIPAR, JJPAR, LLTROP ), STAT=AS )
+         ALLOCATE( PH2O2m( IIPAR, JJPAR, LLCHEM ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'PH2O2m' )
          PH2O2m = 0d0
 
-         ALLOCATE( O3m( IIPAR, JJPAR, LLTROP ), STAT=AS )
+         ALLOCATE( O3m( IIPAR, JJPAR, LLCHEM ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'O3m' )
          O3m = 0d0
 
-         ALLOCATE( JH2O2( IIPAR, JJPAR, LLTROP ), STAT=AS )
+         ALLOCATE( JH2O2( IIPAR, JJPAR, LLCHEM ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'JH2O' )
          JH2O2 = 0d0
 

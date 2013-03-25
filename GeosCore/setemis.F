@@ -363,7 +363,7 @@
                ! Lightning NOx [molec/cm3/s]
                ! Distribute emissions in the troposphere
                !========================================================
-               DO L = 1, LLTROP
+               DO L = 1, LLCHEM
 
                   ! Now use ITS_IN_THE_STRAT to test if we have passed from
                   ! the trop into the strat.  We only want to partition

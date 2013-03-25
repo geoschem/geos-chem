@@ -114,7 +114,7 @@
 !
       INTEGER                      :: I, J, L
       REAL*4                       :: ARRAY(IIPAR,JJPAR,LGLOB)
-      REAL*4                       :: ARRAY2(IIPAR,JJPAR,LLTROP)
+      REAL*4                       :: ARRAY2(IIPAR,JJPAR,LLCHEM)
       REAL*8                       :: XTAU
 !      REAL*4                       :: TPAUSE(IIPAR,JJPAR)
       CHARACTER(LEN=255)           :: FILENAME
@@ -375,7 +375,7 @@
       ! Read BR data from the binary punch file
       CALL READ_BPCH2( FILENAME, 'LIFE-T=$', 19,     
      &                 XTAU,      IIPAR,     JJPAR,      
-     &                 LLTROP,    ARRAY2,    QUIET=.TRUE. )
+     &                 LLCHEM,    ARRAY2,    QUIET=.TRUE. )
 
       ! Assign data from ARRAY2 to the module variable BR
       CALL TRANSFER_3D_TROP( ARRAY2, J_BrO )
@@ -530,7 +530,7 @@
       !-------------------------------------
 
       ! Allocate J_BrO array
-      ALLOCATE( J_BrO( IIPAR, JJPAR, LLTROP ), STAT=AS )
+      ALLOCATE( J_BrO( IIPAR, JJPAR, LLCHEM ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'J_BrO' )
       J_BrO = 0d0
 
