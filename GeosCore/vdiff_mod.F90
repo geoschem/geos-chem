@@ -1808,7 +1808,7 @@ contains
     USE PRESSURE_MOD, ONLY : GET_PEDGE, GET_PCENTER
     USE TIME_MOD,     ONLY : GET_TS_CONV, GET_TS_EMIS
     USE COMODE_MOD,   ONLY : JLOP,      REMIS,   VOLUME
-    USE DRYDEP_MOD,   ONLY : DEPNAME, NUMDEP, NTRAIND, DEPSAV
+    USE DRYDEP_MOD,   ONLY : DEPNAME, NUMDEP, NTRAIND, DEPSAV, SHIPO3DEP
     USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_m, COMPUTE_PBL_HEIGHT, &
                              GET_PBL_MAX_L, GET_FRAC_UNDER_PBLTOP
 
@@ -2138,7 +2138,17 @@ contains
              ! first (lowest) model layer
              ! given that as2 is in v/v
              dflx(I,J,NN) = DEPSAV(I,J,N) * (wk1/(wk2+1.d-30)) / TCVV(NN)
-             
+
+             ! Special case for O3. Increase the deposition frequency (SHIPO3DEP)
+             ! when there is O3 destruction in subgrid ship plume 
+             ! parameterization. This is roughly equivalent to negative
+             ! emissions, which were used previously by PARANOX,
+             ! but caused instability in the chemical solver
+             ! (cdh, 3/21/2013)
+             IF (TRIM( DEPNAME(N) ) == 'O3') THEN
+                dflx(I,J,NN) = dflx(I,J,NN) + SHIPO3DEP(I,J) * (wk1/(wk2+1.d-30)) / TCVV(NN)
+             ENDIF
+
              ! consistency with the standard GEOS-Chem setup (Lin, 07/14/08)
              if (drydep_back_cons) then 
                 dflx(I,J,NN) = dflx(I,J,NN) * (wk2+1.d-30) / AD(I,J,1) * &
@@ -2151,6 +2161,16 @@ contains
              ! NOTE: Now use as2_scal(I,J,NN), instead of as2(I,J,1,NN) to 
              ! avoid seg faults in parallelization (ccarouge, bmy, 12/20/10)
              dflx(I,J,NN) = DEPSAV(I,J,N) * as2_scal(I,J,NN) / TCVV(NN)
+
+             ! Special case for O3. Increase the deposition frequency (SHIPO3DEP)
+             ! when there is O3 destruction in subgrid ship plume 
+             ! parameterization. This is roughly equivalent to negative
+             ! emissions, which were used previously by PARANOX,
+             ! but caused instability in the chemical solver
+             ! (cdh, 3/21/2013)
+             IF ( (TRIM( DEPNAME(N) ) == 'O3') .and. (SHIPO3DEP(I,J) > 0d0) ) THEN
+                dflx(I,J,NN) = dflx(I,J,NN) + SHIPO3DEP(I,J) * as2_scal(I,J,NN) / TCVV(NN)
+             ENDIF
 
              !------------------------------------------------------------------
              !Prior to 25 Oct 2011, H Amos

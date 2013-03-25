@@ -69,6 +69,12 @@
 !                              computed by PARANOX can be negative.  This
 !                              would make EMIS_BL and REMIS negative.  If any
 !                              negative emissions occur, reset to zero.
+!  21 Mar 2013 - C. Holmes - Treat O3 destruction in the PARANOX ship plume 
+!                            parameterization as dry deposition. These 
+!                            "negative emissions" were previously set to zero. 
+!                            Now we calculate an effective dry deposition 
+!                            frequency that will remove O3 at the same rate 
+!                            that the plume parameterization calculates.
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -78,7 +84,7 @@
      &                            REMIS,  T3,      TAREA,    CSPEC
       ! Add AD52 for gamma_ho2 diagnostic (jaegle 02/26/09)
       USE DIAG_MOD,        ONLY : AD22,   LTJV, AD52
-      USE DRYDEP_MOD,      ONLY : DEPSAV, NUMDEP, DEPNAME
+      USE DRYDEP_MOD,      ONLY : DEPSAV, NUMDEP, DEPNAME, SHIPO3DEP
       ! Add CHECK_VALUE (jaegle 2/26/09)
       USE ERROR_MOD,       ONLY : ERROR_STOP, GEOS_CHEM_STOP,CHECK_VALUE
       USE GRID_MOD,        ONLY : GET_YMID
@@ -125,6 +131,7 @@
       USE DIAG63_MOD,      ONLY : DO_SAVE_DIAG63
       USE EMISSIONS_MOD,   ONLY : NOx_SCALING      
       USE PARANOX_MOD,     ONLY : INTERPOLATE_LUT2 !(mpayer, 2/7/12)
+      USE DAO_MOD,         ONLY : BXHEIGHT
 
       USE CMN_SIZE_MOD          ! Size parameters
       USE COMODE_LOOP_MOD       ! SMVGEAR II arrays
@@ -153,6 +160,8 @@
       REAL    :: fraction_nox, int_ope 
       INTEGER :: L, TOP
       REAL*8  :: EMIS_BL, COEF1,   TOTPRES, DELTPRES
+
+      REAL*8 :: TOTO3 !cdh
 
       REAL*8  :: ARRNK,FCVNK,FCT1,FCT2,FCT,XYRAT,BLOG,FEXP,RATE3M
 !      REAL*8  :: CONSTC,RATE2AIR,RATE3H2O,RIS,RST,TBEGIN,TFINISH
@@ -1495,12 +1504,29 @@ c new OH+CO rate from JPL2006.
                ! COEF1 = molecules of emission species / molecules of tracer
                COEF1 = 1.0 + CTRMB(IDTOX, IDEMIS(IDTOX))   
 
-               ! Loop over the boundary layer
-               DO L = 1, TOP
-                  JLOOP   = JLOP(IX,IY,L)
-                  EMIS_BL = 0d0
+               ! Total emissions over the boundary layer
+               ! Of the total ship NOx, the fraction (1d0-FRACTION_NOX)*INT_OPE
+               ! is converted to O3 during plume dilution and chemistry. 
+               ! Divide by COEF1 to convert from [molec tracer/cm2/s] to 
+               ! [molec chem species/cm2/s].
+               ! Final units: molec(O3)/cm2/s
+               EMIS_BL = SHIP * (1D0 - FRACTION_NOX) * INT_OPE / COEF1
+
+               ! Ship plume chemistry can create or destroy net O3
+               ! Treat positive O3 production as emissions 
+               ! Treat O3 *destruction* in plume as dry deposition
+               ! (cdh, 3/21/2013)
+               IF (EMIS_BL >= 0d0) THEN
+
+                  ! No need for deposition when net O3 production from 
+                  ! ships is positive
+                  SHIPO3DEP(IX,IY) = 0d0
+
+                  ! Loop over the boundary layer
+                  DO L = 1, TOP
+                     JLOOP   = JLOP(IX,IY,L)
                   
-                  IF ( JLOOP /= 0 ) THEN
+                     IF ( JLOOP == 0 ) CYCLE
                         
                      ! Thickness of level L [mb]
                      DELTPRES = GET_PEDGE(IX,IY,L) - 
@@ -1508,31 +1534,48 @@ c new OH+CO rate from JPL2006.
                      
                      ! Add option for non-local PBL (Lin, 03/31/09)
                      IF (LNLPBL) DELTPRES = TOTPRES
-                     
-                     ! Of the total ship NOx, the fraction (1d0-FRACTION_NOX)*INT_OPE
-                     ! is converted to Ox during plume dilution and chemistry. 
+
                      ! The fraction DELTPRES/TOTPRES goes into level L,
                      ! since that is the fraction of the boundary layer
-                     ! mass occupied by level L. Also, divide by COEF1 
-                     ! to convert from [molec tracer/cm2/s] to 
-                     ! [molec chem species/cm2/s].
-                     ! Final units: molec(HNO3)/cm2/s
-                     EMIS_BL = SHIP * (1D0 - FRACTION_NOX) * INT_OPE *
-     &                    ( DELTPRES / TOTPRES ) / COEF1 
+                     ! mass occupied by level L. 
+                     ! The ratio ( AREA_CM2 / VOLUME(JLOOP) ) converts
+                     ! molec/cm2 to molec/cm3
+                     ! Final units: molec(O3)/cm3/s
+                     REMIS(JLOOP,IDEOX) = REMIS(JLOOP,IDEOX) +
+     &                    EMIS_BL * ( DELTPRES / TOTPRES ) *
+     &                    AREA_CM2 / VOLUME(JLOOP) 
+         
+                  ENDDO
 
-                     ! Convert ship Ox emissions from [molec Ox/cm2/s]
-                     ! to [molec Ox/cm3/s] and store in the REMIS array
-                     REMIS(JLOOP,IDEOX) = REMIS(JLOOP,IDEOX) + 
-     &                    EMIS_BL * AREA_CM2 / VOLUME(JLOOP)
+               ELSE
 
-                     !%%% DO NOT LET NEGATIVE SHIP EMISSIONS GET  
-                     !%%% ARCHIVED INTO REMIS (bmy, mpayer, 6/20/12)
-                     IF ( REMIS(JLOOP,IDEOX) < 0d0 ) THEN
-                        REMIS(JLOOP,IDEOX) = 0d0
-                     ENDIF
-                  ENDIF
-               ENDDO
-           
+                  ! No change in REMIS
+
+                  ! Initialize
+                  TOTO3 = 0d0
+
+                  ! Loop over the boundary layer
+                  ! If LNLPBL, then TOP=1
+                  DO L = 1, TOP
+                     JLOOP   = JLOP(IX,IY,L)
+
+                     IF ( JLOOP == 0 ) CYCLE
+
+                     ! Cumulative O3 in the PBL, molec(O3)/cm2
+                     TOTO3 = TOTO3 + ( BXHEIGHT(IX,IY,L) * 1d2 ) *
+     &                    CSPEC(JLOOP,IDO3)
+                        
+                  ENDDO
+
+                  ! Effective O3 deposition frequency
+                  ! EMIS_BL (negative) is total O3 destruction in the 
+                  ! column, molec(O3)/cm2/s
+                  ! TOTO3 is the total O3 content of the PBL, molec(O3)/cm2
+                  ! Final units: 1/s
+                  SHIPO3DEP(IX,IY) = ABS( EMIS_BL / TOTO3 )
+
+               ENDIF
+
                !===================================================
                ! Update diagnostics
                !===================================================
@@ -1739,6 +1782,19 @@ c new OH+CO rate from JPL2006.
                   RRATE(KLOOP,NK) = DEPSAV(IX,IY,I) * 
      &                              GET_FRAC_UNDER_PBLTOP( IX, IY, IZ )
 
+                  ! Special case for O3. Increase the deposition frequency (SHIPO3DEP)
+                  ! when there is O3 destruction in subgrid ship plume 
+                  ! parameterization. This is roughly equivalent to negative
+                  ! emissions, which were used previously by PARANOX,
+                  ! but caused instability in the chemical solver
+                  ! (cdh, 3/21/2013)
+                  SELECT CASE ( TRIM(DEPNAME(I)) )
+                     CASE ( 'O3' )
+                        RRATE(KLOOP,NK) = RRATE(KLOOP,NK) + 
+     &                              SHIPO3DEP(IX,IY) * 
+     &                              GET_FRAC_UNDER_PBLTOP( IX, IY, IZ )
+                     CASE DEFAULT  ! Do nothing
+                  END SELECT
                ENDDO
             ENDIF
          ENDDO
