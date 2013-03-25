@@ -29,7 +29,7 @@
       USE TIME_MOD,       ONLY : GET_TS_CHEM
       USE TRACER_MOD,     ONLY : STT, XNUMOL
       USE TRACERID_MOD,   ONLY : IDTNK1, IDTH2SO4
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
+      USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_NOCHEMGRID
       USE TOMAS_MOD
 
       USE CMN_SIZE_MOD
@@ -305,8 +305,8 @@ cdbg      print *, dryd(:)
          RKT    = 0d0  
          flux   = 0d0
 
-         ! Skip stratospheric boxes
-         IF (ITS_IN_THE_STRAT( I, J, L ) ) CYCLE
+         ! Skip non-chemsitry boxes
+         IF (ITS_IN_THE_NOCHEMGRID( I, J, L ) ) CYCLE
 
          ! Save the initial 30-bin number and icomp-1 mass component
          DO JC = 1, ICOMP-IDIAG+1

@@ -38,7 +38,7 @@
       USE TIME_MOD,             ONLY : ITS_A_NEW_DAY
       USE TRACER_MOD,           ONLY : STT,          N_TRACERS, XNUMOL
       USE TRACERID_MOD,         ONLY : IDTNOX,       IDTOX,     SETTRACE
-      USE TROPOPAUSE_MOD,       ONLY : SAVE_FULL_TROP
+      USE CHEMGRID_MOD,         ONLY : SAVE_FULL_CHEMGRID
       USE UVALBEDO_MOD,         ONLY : UVALBEDO
       USE RESTART_MOD,          ONLY : READ_CSPEC_FILE 
       USE TIME_MOD,             ONLY : GET_NYMD,     GET_NHMS
@@ -667,11 +667,11 @@
       !     CSPEC_FULL restart file. (ccc, 2/26/09) 
       !=================================================================
       IF ( LVARTROP .or. LSVCSPEC ) THEN
-         CALL SAVE_FULL_TROP
+         CALL SAVE_FULL_CHEMGRID
 
          !### Debug
          IF ( LPRT .and. am_I_Root ) THEN
-            CALL DEBUG_MSG( '### CHEMDR: after SAVE_FULL_TROP' )
+            CALL DEBUG_MSG( '### CHEMDR: after SAVE_FULL_CHEMGRID' )
          ENDIF
       ENDIF
 

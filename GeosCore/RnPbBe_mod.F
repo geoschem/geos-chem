@@ -274,7 +274,7 @@
       USE LOGICAL_MOD,    ONLY : LEMIS
       USE TIME_MOD,       ONLY : GET_TS_EMIS
       USE TRACER_MOD,     ONLY : STT, N_TRACERS
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
+      USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_STRATMESO
       USE PRESSURE_MOD,   ONLY : GET_PCENTER
 
       USE CMN_SIZE_MOD       ! Size parameters
@@ -520,7 +520,7 @@
             ADD_Be  = Be_TMP * DTSRCE / XNUMOL_Be 
 
             ! Correct the strat-trop exchange of 7Be
-            IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN
+            IF ( ITS_IN_THE_STRATMESO( I, J, L ) ) THEN
                CALL CORRECT_STE( ADD_Be )
             ENDIF
 
@@ -562,7 +562,7 @@
       USE DIAG_MOD,       ONLY : AD01, AD02
       USE TIME_MOD,       ONLY : GET_TS_CHEM
       USE TRACER_MOD,     ONLY : STT, N_TRACERS
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
+      USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_STRATMESO
 
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_DIAG_MOD       ! ND01, ND02
@@ -664,7 +664,7 @@
             ADD_Pb = Rn_LOST(I,J,L) * Pb_Rn_RATIO 
 
             ! Correct strat-trop exchange of 210Pb in stratosphere
-            IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN
+            IF ( ITS_IN_THE_STRATMESO( I, J, L ) ) THEN
                CALL CORRECT_STE( ADD_Pb )
             ENDIF
 

@@ -82,7 +82,7 @@
       USE PBL_MIX_MOD           ! For full PBL mixing (TURBDAY)
       USE TPCORE_BC_MOD         ! For nested-grid boundary conditions
       USE TRANSPORT_MOD         ! Driver routines for advection
-      USE TROPOPAUSE_MOD        ! For the dynamic tropopause
+      USE CHEMGRID_MOD          ! For the dynamic tropopause
       USE VDIFF_MOD             ! For non-local PBL mixing (J. Lin)
 
       !-----------------------------------------------------------------

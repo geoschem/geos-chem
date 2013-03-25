@@ -2808,7 +2808,7 @@
 !
       USE ERROR_MOD,   ONLY : ERROR_STOP 
       USE LOGICAL_MOD, ONLY : LCHEM, LSCHEM, LLINOZ
-      USE LOGICAL_MOD, ONLY : LSVCSPEC, LKPP
+      USE LOGICAL_MOD, ONLY : LSVCSPEC, LKPP, LGMISTRAT
       USE TIME_MOD,    ONLY : SET_CT_CHEM
       USE TRACER_MOD,  ONLY : N_TRACERS
 
@@ -2834,16 +2834,19 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER            :: N
-      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG
+      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG, LOCATION
 
       !=================================================================
       ! READ_CHEMISTRY_MENU begins here!
       !=================================================================
 
+      ! Location for err msg
+      LOCATION = 'READ_CHEMISTRY_MENU ("input_mod.f")'
+
       ! Error check
       IF ( CT1 /= 2 ) THEN 
          MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
-         CALL ERROR_STOP( MSG, 'READ_CHEMISTRY_MENU ("input_mod.f")' )
+         CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
 
       ! Turn on chemistry?
@@ -2858,20 +2861,41 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:3' )
       READ( SUBSTRS(1:N), * ) LLINOZ
 
-      ! Chemistry timestep
+      ! Turn on unified strat-trop chemistry?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:4' )
+      READ( SUBSTRS(1:N), * ) LGMISTRAT
+
+      ! Chemistry timestep
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:5' )
       READ( SUBSTRS(1:N), * ) TS_CHEM
 
       ! Read and save CSPEC ?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:5' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:6' )
       READ( SUBSTRS(1:N), * ) LSVCSPEC
 
       ! Use KPP solver ?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:6' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:7' )
       READ( SUBSTRS(1:N), * ) LKPP
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:7' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:8' )
+
+      !=================================================================
+      ! Error check settings
+      !=================================================================       
+
+      ! Use of GMI stratospheric chemistry necessitates recompilation 
+#if !defined( GMISTRAT )
+      IF ( LGMISTRAT ) THEN
+         MSG = 'LGMISTRAT=T but GMISTRAT not defined at compile time!'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+#endif
+      ! Full GMI stratospheric chemistry incompatible with other settings
+      IF ( LGMISTRAT .and. LSCHEM ) THEN
+         MSG = 'Cannot have both unified and linearized strat chem!'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
 
       !=================================================================
       ! Print to screen
@@ -2882,6 +2906,7 @@
          WRITE( 6, 100     ) 'Turn on chemistry?          : ', LCHEM
          WRITE( 6, 100     ) 'Use linear. strat. chem?    : ', LSCHEM
          WRITE( 6, 100     ) ' => Use Linoz for O3?       : ', LLINOZ
+         WRITE( 6, 100     ) 'Use GMI strat. chem?        : ', LGMISTRAT
          WRITE( 6, 110     ) 'Chemistry timestep [min]    : ', TS_CHEM
          WRITE( 6, 100     ) 'Use CSPEC restart?          : ', LSVCSPEC
          WRITE( 6, 100     ) 'Use solver coded by KPP?    : ', LKPP
@@ -6897,6 +6922,7 @@
       LWAIT          = .FALSE.
       LTURB          = .FALSE.
       LSCHEM         = .FALSE.
+      LGMISTRAT      = .FALSE.
       LSVGLB         = .FALSE.
       LSVCSPEC       = .FALSE.
       LSPLIT         = .FALSE.

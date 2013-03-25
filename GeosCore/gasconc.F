@@ -21,8 +21,7 @@
       USE COMODE_MOD,     ONLY : IYSAVE, IZSAVE,  PRESS3, T3
       USE COMODE_MOD,     ONLY : CSPEC_FULL, JLOP
       USE DRYDEP_MOD,     ONLY : NUMDEP
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP, COPY_FULL_TROP
-      USE TROPOPAUSE_MOD, ONLY : SAVE_FULL_TROP
+      USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_TROP, COPY_FULL_CHEMGRID
       USE LOGICAL_MOD,    ONLY : LVARTROP
       USE DAO_MOD,        ONLY : T
       USE PRESSURE_MOD,   ONLY : GET_PCENTER
@@ -219,7 +218,7 @@
 
                      ELSE
 
-                        ! Stratosphere: set MOH conc. to SMAL2 = 1d-99
+                        ! Strat/mesosphere: set MOH conc. to SMAL2 = 1d-99
                         CSPEC_FULL(IX,IY,IZ,JGAS) = SMAL2
                      ENDIF
                   ENDIF
@@ -266,7 +265,7 @@
       ! NOTE : 
       ! (1 ) copy CSPEC_FULL to CSPEC depending on READ_CSPEC (hotp, 2/25/09)
 
-      IF ( FIRSTCHEM .or. READ_CSPEC ) CALL COPY_FULL_TROP
+      IF ( FIRSTCHEM .or. READ_CSPEC ) CALL COPY_FULL_CHEMGRID
 
 !  ********************************************************************
 !  *            Update starting concentrations for plumes             *

@@ -229,7 +229,6 @@
       USE TRACERID_MOD,   ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNOX  
       USE TRACERID_MOD,   ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
       USE TRACERID_MOD,   ONLY : IDTR4N2, IDTSALA, IDTSALC 
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
 
       USE CMN_FJ_MOD,     ONLY : JPMAX, JPPJ  ! includes F77_CMN_SIZE
       USE JV_CMN_MOD  ! ODAER, QAA, QAA_OUT
@@ -339,8 +338,8 @@
             ! Only increment if we were in the trop at the previous chemistry
             ! time step. We can't use ITS_IN_THE_TROP because it might not
             ! be a chemistry time step. Use JLOP instead:
-            ! JLOP  = 0 if in stratosphere
-            ! JLOP /= 0 if in troposphere
+            ! JLOP  = 0 if outside chemistry grid
+            ! JLOP /= 0 if in chemistry grid
             IF ( JLOP( I, J, L ) > 0 ) THEN
                COUNT_CHEM3D(X,Y,K) = COUNT_CHEM3D(X,Y,K) + 1
             ENDIF

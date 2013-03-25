@@ -967,7 +967,7 @@
       USE TIME_MOD,       ONLY : GET_TS_CHEM
       USE TRACER_MOD,     ONLY : STT, ITS_A_FULLCHEM_SIM, XNUMOL
       USE TRACERID_MOD,   ONLY : IDTDMS
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
+      USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_NOCHEMGRID
 
       USE CMN_SIZE_MOD         ! Size parameters
       USE CMN_DIAG_MOD         ! ND05, LD05
@@ -1012,7 +1012,7 @@
 !  (5 ) Shift rows 8,9 in AD05 to 9,10 in to make room for P(SO4) from O3 
 !        oxidation in sea-salt aerosols (bec, bmy, 4/13/05)
 !  (6 ) Now remove reference to CMN, it's obsolete.  Now reference 
-!        ITS_IN_THE_STRAT from "tropopause_mod.f". (bmy, 8/22/05)
+!        ITS_IN_THE_NOCHEMGRID from "tropopause_mod.f". (bmy, 8/22/05)
 !  (7 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  (8 ) Now correctly records P(SO2) from OH in AD05 (pjh)
 !  (9 ) Update reaction rate to match JPL06 and full chem (jaf, bmy, 10/15/09)
@@ -1072,8 +1072,8 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         ! Skip stratospheric boxes
-         IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE
+         ! Skip nonchem boxes
+         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L ) ) CYCLE
 
          ! IJLOOP is the 1-D grid box index for SUNCOS
          IJLOOP = ( (J-1) * IIPAR ) + I
@@ -1251,7 +1251,7 @@
       USE TRACERID_MOD,   ONLY : IDTH2O2
       USE TRANSFER_MOD,   ONLY : TRANSFER_3D_TROP
       USE UVALBEDO_MOD,   ONLY : UVALBEDO
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
+      USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_NOCHEMGRID
  
       USE CMN_SIZE_MOD
       USE CMN_FJ_MOD, ONLY     : JPMAX, JPPJ
@@ -1283,7 +1283,7 @@
 !  (9 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP
 !        from "pbl_mix_mod.f" (bmy, 2/22/05)
 !  (10) Now read offline files from "sulfate_sim_200508/offline".  Now remove 
-!        reference to CMN, it's obsolete.  Now reference ITS_IN_THE_STRAT from 
+!        reference to CMN, it's obsolete.  Now reference ITS_IN_THE_NOCHEMGRID from 
 !        "tropopause_mod.f". (bmy, 8/22/05)
 !  (11) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (12) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
@@ -1382,8 +1382,8 @@
          FLUX = 0d0
          FREQ = 0d0
 
-         ! Skip stratospheric boxes
-         IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE
+         ! Skip nonchem boxes
+         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L ) ) CYCLE
 
          ! Density of air [molec/cm3]
          M     = AIRDEN(L,I,J) * f  
@@ -1500,7 +1500,7 @@
       USE TRACERID_MOD,    ONLY : IDTH2O2, IDTSO2
       USE SEASALT_MOD,     ONLY : GET_ALK
       USE WETSCAV_MOD,     ONLY : H2O2s,   SO2s
-      USE TROPOPAUSE_MOD,  ONLY : ITS_IN_THE_STRAT
+      USE CHEMGRID_MOD,    ONLY : ITS_IN_THE_NOCHEMGRID
 
       ! For LWC from met fields in GEOS-5 (jaf, 6/30/10)
       USE DAO_MOD,         ONLY : AIRDEN, QL, CLDF 
@@ -1559,7 +1559,7 @@
 !  (9 ) Modified for SO4s, NITs.  Also modified for alkalinity w/in the
 !        seasalt chemistry. (bec, bmy, 4/13/05)
 !  (10) Now remove reference to CMN, it's obsolete.  Now reference 
-!        ITS_IN_THE_STRAT from "tropopause_mod.f" (bmy, 8/22/05)
+!        ITS_IN_THE_NOCHEMGRID from "tropopause_mod.f" (bmy, 8/22/05)
 !  (11) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  (12) Updated to match JPL 2006 + full chem (jaf, bmy, 10/15/09)
 !  (13) Now prevent floating-point exceptions when taking the exponential
@@ -1627,7 +1627,7 @@
       ! Zero ND44_TMP array
       ND44_TMP = 0d0
       
-      ! Loop over tropospheric grid boxes
+      ! Loop over chemistry grid boxes
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, SO20, H2O20, O3, PATM, TK, K0, M, KK, F1, RK1  )
@@ -1645,8 +1645,8 @@
          FLUX     = 0d0
          Ld       = 0d0
 
-         ! Skip stratospheric boxes
-         IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE
+         ! Skip nonchem boxes
+         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L ) ) CYCLE
 
          ! Initial SO2, H2O2 and O3 [v/v]
          SO20   = STT(I,J,L,IDTSO2)         
@@ -2678,7 +2678,7 @@
       USE TRACER_MOD,     ONLY : STT,    TCVV,     XNUMOL
       USE TRACERID_MOD,   ONLY : IDTSO4, IDTSO4s,  IDTAS,   IDTAHS 
       USE TRACERID_MOD,   ONLY : IDTLET, IDTSO4aq, IDTNH4aq
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
+      USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_NOCHEMGRID
 
       USE CMN_SIZE_MOD                   ! Size parameters
       USE CMN_DIAG_MOD                   ! ND44
@@ -2728,7 +2728,7 @@
 !  (8 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP from 
 !        "pbl_mix_mod.f" (bmy, 2/22/05)
 !  (9 )  Now remove reference to CMN, it's obsolete.  Now reference 
-!         ITS_IN_THE_STRAT from "tropopause_mod.f" (bmy, 8/22/05)
+!         ITS_IN_THE_NOCHEMGRID from "tropopause_mod.f" (bmy, 8/22/05)
 !  (10) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  (11) Rearrange error check to avoid SEG FAULTS (bmy, 5/23/06)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
@@ -2782,7 +2782,7 @@
          T44 = 0d0
       ENDIF
 
-      ! Loop over tropospheric grid boxes
+      ! Loop over chemistry grid boxes
 !------------------------------------------------------------------------------
 !%%% Currently under development (rjp, bmy, 3/15/05)
 !%%% $OMP PARALLEL DO
@@ -2822,8 +2822,8 @@
 !%%%         LET      = 0d0
 !------------------------------------------------------------------------------
 
-         ! Skip stratospheric boxes
-         IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE
+         ! Skip nonchem boxes
+         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L ) ) CYCLE
 
          !==============================================================
          ! Initial concentrations before chemistry
@@ -3319,7 +3319,7 @@
       USE TIME_MOD,       ONLY : GET_TS_CHEM
       USE TRACER_MOD,     ONLY : STT, TCVV, XNUMOL
       USE TRACERID_MOD,   ONLY : IDTMSA
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
+      USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_NOCHEMGRID
 
       USE CMN_SIZE_MOD         ! Size parameters
       USE CMN_DIAG_MOD         ! ND44
@@ -3353,7 +3353,7 @@
 !  (8 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  (9 ) Change loop back to over entire troposphere to correctly add production
 !        of MSA (PMSA_dms) to the MSA tracer array.
-!       Added reference USE_TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
+!       Added reference USE_CHEMGRID_MOD,   ONLY : ITS_IN_THE_NOCHEMGRID
 !        as a precaution.  (pjh, 8/19/2009)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
@@ -3383,7 +3383,7 @@
          ND44_TMP = 0d0
       ENDIF
 
-      ! Loop over tropospheric grid boxes
+      ! Loop over chemistry grid boxes
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, F_UNDER_TOP, MSA0, RKT, MSA, AREA_CM2, FLUX )
@@ -3392,8 +3392,8 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         ! Skip stratospheric boxes
-         IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE      
+         ! Skip nonchem boxes
+         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L ) ) CYCLE      
 
          ! Fraction of box (I,J,L) underneath the PBL top [unitless]
          F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )

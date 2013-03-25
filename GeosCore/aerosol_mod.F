@@ -105,14 +105,14 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE AEROSOL_RURALBOX( N_TROP, am_I_Root )
+      SUBROUTINE AEROSOL_RURALBOX( N_CHEM, am_I_Root )
 !
 ! !USES:
 !
       USE COMODE_MOD,     ONLY : ABSHUM, AIRDENS, IXSAVE   
       USE COMODE_MOD,     ONLY : IYSAVE, IZSAVE,  JLOP       
       USE DAO_MOD,        ONLY : AD,     AVGW,    MAKE_AVGW, T
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
+      USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_CHEMGRID
       USE LOGICAL_MOD,    ONLY : LVARTROP
 
       USE CMN_SIZE_MOD                    ! Size parameters
@@ -124,7 +124,7 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER, INTENT(OUT) :: N_TROP      ! Number of tropospheric boxes
+      INTEGER, INTENT(OUT) :: N_CHEM      ! Number of tropospheric boxes
 !
 ! !REVISION HISTORY: 
 !  (1 ) Now convert ABSHUM from absolute humidity to relative humidity in
@@ -144,7 +144,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE        :: FIRST = .TRUE.
-      INTEGER, SAVE        :: N_TROP_BOXES
+      INTEGER, SAVE        :: N_CHEM_BOXES
       INTEGER              :: I, J, L, JLOOP
       REAL*8               :: CONSEXP, TK, VPRESH2O
       REAL*8,  EXTERNAL    :: BOXVL
@@ -181,9 +181,9 @@
             JLOP(I,J,L) = 0
 
             !----------------------------------
-            ! Boxes w/in ann mean tropopause
+            ! Boxes w/in chemistry grid
             !----------------------------------
-            IF ( ITS_IN_THE_TROP( I, J, L ) ) THEN
+            IF ( ITS_IN_THE_CHEMGRID( I, J, L ) ) THEN
 
                ! Increment JLOOP for trop boxes
                JLOOP          = JLOOP + 1
@@ -202,13 +202,13 @@
          ENDDO
 
          ! JLOOP is now the number of boxes w/in GEOS-CHEM's annual mean 
-         ! tropopause.  Copy to SAVEd variable N_TROP_BOXES.
+         ! tropopause.  Copy to SAVEd variable N_CHEM_BOXES.
          IF ( am_I_Root ) THEN
             WRITE( 6, 100 ) jloop
- 100        FORMAT( '  in aerosol ruralbox, val of trop boxes: ', I10)
+ 100        FORMAT( '  in aerosol ruralbox, val of chem boxes: ', I10)
          ENDIF
 
-         N_TROP_BOXES = JLOOP
+         N_CHEM_BOXES = JLOOP
 
          ! Set NTLOOP, NTTLOOP here.  Howeve, we will have to reset these
          ! after the call to READER, since READER redefines these. 
@@ -219,8 +219,8 @@
          FIRST        = .FALSE.
       ENDIF
 
-      ! Copy N_TROP_BOXES to NTROP for passing back to calling program
-      N_TROP = N_TROP_BOXES
+      ! Copy N_CHEM_BOXES to NTROP for passing back to calling program
+      N_CHEM = N_CHEM_BOXES
       
       !=================================================================
       ! Compute AIRDENS and ABSHUM at every timestep

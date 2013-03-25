@@ -1250,7 +1250,6 @@
       USE TIME_MOD,     ONLY : GET_TS_CHEM, GET_MONTH
       USE TRACER_MOD,   ONLY : STT 
       USE TRACERID_MOD, ONLY : IDTGLYX, IDTSOAG
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
 
       USE CMN_SIZE_MOD         ! Size parameters
       USE COMODE_LOOP_MOD      ! AD, WTAIR, other SMVGEAR variables
@@ -1456,7 +1455,6 @@
       USE TIME_MOD,     ONLY : GET_TS_CHEM, GET_MONTH
       USE TRACER_MOD,   ONLY : STT 
       USE TRACERID_MOD, ONLY : IDTMGLY, IDTSOAM
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
 
       USE CMN_SIZE_MOD         ! Size parameters
       USE COMODE_LOOP_MOD      ! AD, WTAIR, other SMVGEAR variables
@@ -2515,10 +2513,12 @@ c
 !  (3 ) Corrected confusing documentation. (clh, bmy, 6/30/08)
 !  (4 ) Add paramters for aromtics. Add high NOx low NOx index to every 
 !        parameter, NNOX (dkh, 10/29/06) 
+!  (5 ) Now using chemistry grid to determine whether to run, not trop
+!        (SDE 03/24/13)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
+      USE CHEMGRID_MOD, ONLY : ITS_IN_THE_CHEMGRID
 
       ! Arguments
       INTEGER, INTENT(IN)  :: II, JJ, LL
@@ -2596,10 +2596,10 @@ c
          KNO3(JHC) = KNO3_REF(JHC) * TMP3
       ENDDO
 
-      ! If we are in the troposphere, then calculate ISOP oxidation rates
-      ! If we are in the stratosphere, set ISOP oxidation rates to zero
-      ! (dkh, bmy, 5/22/06)
-      IF ( ITS_IN_THE_TROP( II, JJ, LL ) ) THEN
+      ! If we are in the chemistry gird, then calculate ISOP oxidation rates
+      ! Otherwise, set ISOP oxidation rates to zero
+      ! (dkh, bmy, 5/22/06) (SDE 03/24/13)
+      IF ( ITS_IN_THE_CHEMGRID( II, JJ, LL ) ) THEN
          KO3(6)  = 1.05d-14 * EXP(-2000.d0 / TEMP )
          KOH(6)  = 2.70d-11 * EXP( 390.d0 / TEMP )
          KNO3(6) = 3.03d-12 * EXP(-446.d0 / TEMP )
@@ -6528,7 +6528,7 @@ c
       USE DAO_MOD,         ONLY : AIRDEN, CLDF, QL
       USE DIAG_MOD,        ONLY : AD07_SOAGM
       USE TIME_MOD,        ONLY : GET_TS_CHEM
-      USE TROPOPAUSE_MOD,  ONLY : ITS_IN_THE_STRAT
+      USE CHEMGRID_MOD,    ONLY : ITS_IN_THE_NOCHEMGRID
       USE TRACER_MOD,      ONLY : STT
       USE TRACERID_MOD,    ONLY : IDTGLYX, IDTSOAG
 
@@ -6576,8 +6576,8 @@ c
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         ! Skip stratospheric boxes
-         IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE
+         ! Skip non-chemistry boxes
+         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L ) ) CYCLE
 
          ! initialize for safety
          XUPTKMAX = 0d0
@@ -6730,7 +6730,7 @@ c
       USE DAO_MOD,         ONLY : CLDF, QL, AIRDEN
       USE DIAG_MOD,        ONLY : AD07_SOAGM
       USE TIME_MOD,        ONLY : GET_TS_CHEM
-      USE TROPOPAUSE_MOD,  ONLY : ITS_IN_THE_STRAT
+      USE CHEMGRID_MOD,    ONLY : ITS_IN_THE_NOCHEMGRID
       USE TRACER_MOD,      ONLY : STT
       USE TRACERID_MOD,    ONLY : IDTMGLY, IDTSOAM
 
@@ -6773,13 +6773,13 @@ c
       ! DTCHEM is the chemistry timestep in seconds
       DTCHEM = GET_TS_CHEM() * 60d0
 
-      ! Loop over tropospheric grid boxes
+      ! Loop over chemistry grid boxes
       DO L = 1, LLCHEM
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         ! Skip stratospheric boxes
-         IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE
+         ! Skip non-chemgrid boxes
+         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L ) ) CYCLE
 
          ! initialize for safety
          XUPTKMAX = 0d0

@@ -84,7 +84,7 @@
       USE TPCORE_GEOS5_WINDOW_MOD, ONLY : EXIT_GEOS5_TPCORE_WINDOW
       USE TPCORE_GEOS57_WINDOW_MOD,ONLY : EXIT_GEOS57_TPCORE_WINDOW !clb
       USE TRACER_MOD,              ONLY : CLEANUP_TRACER
-      USE TROPOPAUSE_MOD,          ONLY : CLEANUP_TROPOPAUSE
+      USE CHEMGRID_MOD,            ONLY : CLEANUP_CHEMGRID
       USE UVALBEDO_MOD,            ONLY : CLEANUP_UVALBEDO
       USE VISTAS_ANTHRO_MOD,       ONLY : CLEANUP_VISTAS_ANTHRO
       USE WETSCAV_MOD,             ONLY : CLEANUP_WETSCAV
@@ -197,6 +197,7 @@
 !  11 Apr 2012 - R. Yantosca - Remove reference to obsolete lai_mod.F
 !  01 May 2012 - M. Payer    - Added calls for CLEANUP_GLOBAL_GRID and
 !                              CLEANUP_GRID
+!  24 Mar 2013 - S. D. Eastham - Switched TROPOPAUSE_MOD to CHEMGRID_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -279,7 +280,7 @@
 #endif
       CALL CLEANUP_TOMS
       CALL CLEANUP_TRACER
-      CALL CLEANUP_TROPOPAUSE
+      CALL CLEANUP_CHEMGRID
       CALL CLEANUP_UVALBEDO
       CALL CLEANUP_VISTAS_ANTHRO
       CALL CLEANUP_WETSCAV

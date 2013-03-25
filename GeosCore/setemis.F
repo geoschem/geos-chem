@@ -33,7 +33,7 @@
       USE PBL_MIX_MOD,       ONLY : GET_PBL_TOP_L
       USE PRESSURE_MOD,      ONLY : GET_PEDGE
       USE TRACERID_MOD,      ONLY : CTRMB,     IDEMIS,  IDENOX
-      USE TROPOPAUSE_MOD,    ONLY : ITS_IN_THE_STRAT
+      USE CHEMGRID_MOD,      ONLY : ITS_IN_THE_NOCHEMGRID
       USE LOGICAL_MOD,       ONLY : LNLPBL ! (Lin, 03/31/09)
       USE LOGICAL_MOD, ONLY : LPRT
 
@@ -277,6 +277,9 @@
                   NOXTOT = NOXTOT + EMISRRN(I,J,L)
                ENDDO
 
+               ! SDE DEBUG
+               WRITE(6,*) 'MAX JLOP: ', MAXVAL(JLOP)
+
                ! Loop over the boundary layer
                DO L = 1, TOP
                   JLOOP   = JLOP(I,J,L)
@@ -361,14 +364,14 @@
 
                !========================================================
                ! Lightning NOx [molec/cm3/s]
-               ! Distribute emissions in the troposphere
+               ! Distribute emissions in the chemistry grid
                !========================================================
                DO L = 1, LLCHEM
 
-                  ! Now use ITS_IN_THE_STRAT to test if we have passed from
-                  ! the trop into the strat.  We only want to partition
-                  ! emissions in the troposphere. (bmy, 9/10/10)
-                  IF ( ITS_IN_THE_STRAT(I,J,L) ) EXIT
+                  ! Now use ITS_IN_THE_NOCHEMGRID to check whether
+                  ! we are in a region where partitioning is valid
+                  ! (SDE 03/24/13)
+                  IF ( ITS_IN_THE_NOCHEMGRID(I,J,L) ) EXIT
                   
                   JLOOP   = JLOP(I,J,L)
                   EMIS_BL = 0d0

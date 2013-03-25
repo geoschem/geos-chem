@@ -232,7 +232,7 @@ c$$$      INTEGER,           SAVE        :: SRTNH4
       USE TRACERID_MOD,   ONLY : IDTNK1, IDTH2SO4
       USE TRACERID_MOD,   ONLY : IDTAW1, IDTSF1,  IDTSO4
       USE TRACERID_MOD,   ONLY : IDTNH3, IDTNH4
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
+      USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_NOCHEMGRID
       USE ERROR_MOD,      ONLY : ERROR_STOP
      
       USE CMN_SIZE_MOD         ! Size parameters
@@ -348,8 +348,8 @@ c$$$      INTEGER,           SAVE        :: SRTNH4
          ! certain rates.  As of now, tracking nucleation (win, 10/7/08)
          AD61_INST(I,J,L,:) = 0e0
 
-         ! Skip stratospheric boxes
-         IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE
+         ! Skip non-chemgrid boxes
+         IF ( ITS_N_THE_NOCHEMGRID( I, J, L ) ) CYCLE
 
 cvbn         write(890,89)I,J,L,STT(i,j,l,IDTH2SO4)
 
@@ -2784,7 +2784,7 @@ Cjrp      endif
       USE ERROR_MOD,      ONLY : ERROR_STOP
       USE TRACER_MOD,     ONLY : STT
       USE TRACERID_MOD,   ONLY : IDTNK1, IDTAW1, IDTNH4
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
+      USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_NOCHEMGRID
 
       USE CMN_SIZE_MOD         ! Size parameters
       USE CMN_DIAG_MOD         ! ND60
@@ -2883,7 +2883,7 @@ Cjrp      endif
               ! WRITE(*,*) 'K, N, MSO4, MH2O: ',K,Nk(k),
   !   &              MK(K,SRTSO4),MK(K,SRTH2O)
             ENDDO
-            IF ( MOXID > 5D0 .and. ITS_IN_THE_STRAT( I, J, L ) ) THEN
+            IF ( MOXID > 5D0 .and. ITS_IN_THE_NOCHEMGRID( I, J, L ) ) THEN
                CALL ERROR_STOP( 'Too few number for condensing mass',
      &                          'AQOXID:1'                           )
             ELSE

@@ -110,7 +110,7 @@
       USE TRACER_MOD,      ONLY : ITS_AN_AEROSOL_SIM, STT
       USE TRACERID_MOD,    ONLY : IDTSO4,             IDTNH3, IDTNH4 
       USE TRACERID_MOD,    ONLY : IDTNIT,             IDTHNO3 
-      USE TROPOPAUSE_MOD,  ONLY : ITS_IN_THE_STRAT
+      USE CHEMGRID_MOD,    ONLY : ITS_IN_THE_STRATMESO
 #if   defined( APM )
       USE TRACER_MOD,      ONLY : N_TRACERS, N_APMTRA
       USE TRACERID_MOD
@@ -200,8 +200,8 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
          
-         ! Skip if we are in the stratosphere (bmy, 4/3/08)
-         IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE
+         ! Skip if we are outside the troposphere (bmy, 4/3/08)
+         IF ( ITS_IN_THE_STRATMESO( I, J, L ) ) CYCLE
 
          ! Temperature [K], RH [unitless], and volume [m3]
          ATEMP = T(I,J,L)

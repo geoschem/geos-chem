@@ -781,7 +781,7 @@
       USE TIME_MOD,       ONLY : GET_MONTH,       GET_YEAR
       USE TIME_MOD,       ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
       USE TRACER_MOD,     ONLY : N_TRACERS,       STT
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
+      USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_STRAT
 ! 
 ! !REVISION HISTORY: 
 !  19 Oct 1999 - Q. Li, B. Duncan, B. Field - Initial version

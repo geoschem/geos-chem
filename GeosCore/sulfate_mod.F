@@ -952,7 +952,7 @@
       USE TIME_MOD,       ONLY : GET_TS_CHEM
       USE TRACER_MOD,     ONLY : STT, ITS_A_FULLCHEM_SIM, XNUMOL
       USE TRACERID_MOD,   ONLY : IDTDMS
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
+      USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_NOCHEMGRID
 
       USE CMN_SIZE_MOD         ! Size parameters
       USE CMN_DIAG_MOD         ! ND05, LD05
@@ -1046,7 +1046,7 @@
       f  = 1000.d0 / AIRMW * 6.022d23 * 1.d-6
       
       !=================================================================
-      ! Do the chemistry over all tropospheric grid boxes!
+      ! Do the chemistry over all chemically-active grid boxes!
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -1057,8 +1057,8 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         ! Skip stratospheric boxes
-         IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE
+         ! Skip non-chemistry boxes
+         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L ) ) CYCLE
 
          ! IJLOOP is the 1-D grid box index for SUNCOS
          IJLOOP = ( (J-1) * IIPAR ) + I
@@ -1236,7 +1236,7 @@
       USE TRACERID_MOD,   ONLY : IDTH2O2
       USE TRANSFER_MOD,   ONLY : TRANSFER_3D_TROP
       USE UVALBEDO_MOD,   ONLY : UVALBEDO
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
+      USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_NOCHEMGRID
  
       USE CMN_SIZE_MOD
       USE CMN_FJ_MOD, ONLY     : JPMAX, JPPJ
@@ -1367,8 +1367,8 @@
          FLUX = 0d0
          FREQ = 0d0
 
-         ! Skip stratospheric boxes
-         IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE
+         ! Skip non-chemistry boxes
+         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L ) ) CYCLE
 
          ! Density of air [molec/cm3]
          M     = AIRDEN(L,I,J) * f  
@@ -1485,7 +1485,7 @@
       USE TRACERID_MOD,    ONLY : IDTH2O2, IDTSO2
       USE SEASALT_MOD,     ONLY : GET_ALK
       USE WETSCAV_MOD,     ONLY : H2O2s,   SO2s
-      USE TROPOPAUSE_MOD,  ONLY : ITS_IN_THE_STRAT
+      USE CHEMGRID_MOD,    ONLY : ITS_IN_THE_NOCHEMGRID
 
       ! For LWC from met fields in GEOS-5 (jaf, 6/30/10)
       USE DAO_MOD,         ONLY : AIRDEN, QL, CLDF 
@@ -1625,8 +1625,8 @@
          FLUX     = 0d0
          Ld       = 0d0
 
-         ! Skip stratospheric boxes
-         IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE
+         ! Skip non-chemistry boxes
+         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L ) ) CYCLE
 
          ! Initial SO2, H2O2 and O3 [v/v]
          SO20   = STT(I,J,L,IDTSO2)         
@@ -2646,7 +2646,7 @@
       USE TRACER_MOD,     ONLY : STT,    TCVV,     XNUMOL
       USE TRACERID_MOD,   ONLY : IDTSO4, IDTSO4s,  IDTAS,   IDTAHS 
       USE TRACERID_MOD,   ONLY : IDTLET, IDTSO4aq, IDTNH4aq
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
+      USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_NOCHEMGRID
 
       USE CMN_SIZE_MOD                   ! Size parameters
       USE CMN_DIAG_MOD                   ! ND44
@@ -2770,8 +2770,8 @@
 !%%%         LET      = 0d0
 !------------------------------------------------------------------------------
 
-         ! Skip stratospheric boxes
-         IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE
+         ! Skip non-chemistry boxes
+         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L ) ) CYCLE
 
          !==============================================================
          ! Initial concentrations before chemistry
@@ -3086,7 +3086,7 @@
       USE TIME_MOD,       ONLY : GET_TS_CHEM
       USE TRACER_MOD,     ONLY : STT, TCVV, XNUMOL
       USE TRACERID_MOD,   ONLY : IDTMSA
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
+      USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_NOCHEMGRID
 
       USE CMN_SIZE_MOD         ! Size parameters
       USE CMN_DIAG_MOD         ! ND44
@@ -3159,8 +3159,8 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         ! Skip stratospheric boxes
-         IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE      
+         ! Skip non-chemistry boxes
+         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L ) ) CYCLE      
 
          ! Fraction of box (I,J,L) underneath the PBL top [unitless]
          F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )

@@ -698,7 +698,7 @@
       USE TIME_MOD,       ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
       USE DRYDEP_MOD,     ONLY : DEPSAV
       USE TRACER_MOD,     ONLY : N_TRACERS,       STT
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
+      USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_STRATMESO
       USE TRACERID_MOD,   ONLY : IDTH2, IDTHD
       USE TAGGED_CO_MOD,  ONLY : GET_ALPHA_ISOP,    READ_PCO_LCO_STRAT
       USE TAGGED_CO_MOD,  ONLY : GET_PCO_LCO_STRAT
@@ -838,7 +838,7 @@
          H2_CH4 = 0d0
 
          ! Test level for stratosphere or troposphere
-         IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN
+         IF ( ITS_IN_THE_STRATMESO( I, J, L ) ) THEN
 
             !===========================================================
             ! (1a-1) Production of H2 from CH4 in the stratosphere
@@ -1111,7 +1111,7 @@
          HD_O1D = 0.d0
 
          ! Select out tropospheric or stratospheric boxes
-         IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN
+         IF ( ITS_IN_THE_STRATMESO( I, J, L ) ) THEN
 
             !===========================================================
             ! (2a-1) Stratospheric loss H2 HD due to chem rxn w/OH & O1D

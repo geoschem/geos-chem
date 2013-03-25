@@ -33,7 +33,8 @@
       USE TIME_MOD,       ONLY : GET_TS_CHEM
       USE TRACER_MOD,     ONLY : STT,   XNUMOL,   XNUMOLAIR
       USE TRACERID_MOD,   ONLY : IDTCO,           IDTCH2O
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP, GET_MIN_TPAUSE_LEVEL
+      USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_CHEMGRID
+      USE CHEMGRID_MOD,   ONLY : GET_MIN_CHEMGRID_LEVEL
 
       USE CMN_SIZE_MOD   ! Size parameters
 
@@ -77,15 +78,15 @@
       !       cm3
       !=================================================================
 
-      ! Get the minimum extent of the tropopause
-      LMIN = GET_MIN_TPAUSE_LEVEL()
+      ! Get the lowest possible chemistry grid level
+      LMIN = GET_MIN_CHEMGRID_LEVEL()
 
       DO L = LMIN, LLPAR
       DO J = 1,    JJPAR
       DO I = 1,    IIPAR
 
-         ! Skip tropospheric grid boxes
-         IF ( ITS_IN_THE_TROP(I,J,L) ) CYCLE
+         ! Skip chemically-active grid boxes
+         IF ( ITS_IN_THE_CHEMGRID(I,J,L) ) CYCLE
 
          ! conversion factor from [kg/box] to [molec/cm3]
          STTTOGCO = 6.022d23 / ( 28d-3 * BOXVL(I,J,L) )

@@ -38,7 +38,7 @@
       USE TIME_MOD,             ONLY : ITS_A_NEW_DAY
       USE TRACER_MOD,           ONLY : STT,          N_TRACERS, XNUMOL
       USE TRACERID_MOD,         ONLY : IDTNOX,       IDTOX,     SETTRACE
-      USE TROPOPAUSE_MOD,       ONLY : SAVE_FULL_TROP
+      USE CHEMGRID_MOD,         ONLY : SAVE_FULL_CHEMGRID
       USE UVALBEDO_MOD,         ONLY : UVALBEDO
       USE RESTART_MOD,          ONLY : READ_CSPEC_FILE 
       USE TIME_MOD,             ONLY : GET_NYMD,     GET_NHMS
@@ -654,23 +654,25 @@
       ENDIF
       
       !=================================================================
-      ! Copy the chemical species from CSPEC (actual troposphere) to
-      ! CSPEC_FULL (potential troposphere) array.  We only need to do 
-      ! this if the variable troposphere is turned on. 
-      ! (bdf, phs, bmy, 10/3/06)
+      ! Copy the chemical species from CSPEC (actual chemgrid) to
+      ! CSPEC_FULL (potential chemgrid) array.  We only need to do 
+      ! this if the top of the chemgrid is likely to vary.
+      ! (bdf, phs, bmy 10/3/06)
       !
       ! NOTE: 
       ! (1) This has to be placed at the end of CHEMDR, after the
       !     call to the ND65 diagnostic DO_DIAG_PL. (phs, 6/3/08)
       ! (2) We also copy CSPEC to CSPEC_FULL if we want to write a 
       !     CSPEC_FULL restart file. (ccc, 2/26/09) 
+      ! (3) Modified in line with stratospheric chemistry upgrade
+      !     (SDE 03/24/13)
       !=================================================================
       IF ( LVARTROP .or. LSVCSPEC ) THEN
-         CALL SAVE_FULL_TROP
+         CALL SAVE_FULL_CHEMGRID
 
          !### Debug
          IF ( LPRT .and. am_I_Root ) THEN
-            CALL DEBUG_MSG( '### CHEMDR: after SAVE_FULL_TROP' )
+            CALL DEBUG_MSG( '### CHEMDR: after SAVE_FULL_CHEMGRID' )
          ENDIF
       ENDIF
 

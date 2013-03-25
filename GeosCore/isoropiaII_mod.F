@@ -119,7 +119,7 @@
       USE TRACER_MOD             
       USE TRACERID_MOD,    ONLY : IDTHNO3, IDTNIT, IDTNH4, IDTNH3
       USE TRACERID_MOD,    ONLY : IDTSALA, IDTSO4
-      USE TROPOPAUSE_MOD,  ONLY : ITS_IN_THE_STRAT
+      USE CHEMGRID_MOD,    ONLY : ITS_IN_THE_STRATMESO
 #if   defined( APM )
       USE APM_INIT_MOD,    ONLY : NSO4
       USE APM_INIT_MOD,    ONLY : IDTSO4BIN1,IDTCTSEA
@@ -276,8 +276,8 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         ! Skip strat boxes 
-         IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE
+         ! Only applying ISORROPIA II in troposphere
+         IF ( ITS_IN_THE_STRATMESO( I, J, L ) ) CYCLE
 
          ! Initialize WI, WT
          DO N = 1, NCOMPA

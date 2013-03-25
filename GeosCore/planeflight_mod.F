@@ -1579,7 +1579,6 @@
       USE COMODE_MOD,     ONLY : JLOP
       USE PRESSURE_MOD,   ONLY : GET_PEDGE
       USE TRACER_MOD,     ONLY : ITS_A_FULLCHEM_SIM
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
       USE GRID_MOD,       ONLY : GET_XOFFSET
       USE GRID_MOD,       ONLY : GET_YOFFSET
 
@@ -1660,14 +1659,14 @@
       !=================================================================
       IF ( ITS_A_FULLCHEM_SIM() ) THEN
   
-         ! JLOOP indicates if a box is in tropo (/=0) or not. 
+         ! JLOOP indicates if a box is in chemgrid (/=0) or not. 
          JLOOP = JLOP(I,J,L)
          PCHEM = .TRUE.
 
       ELSE
 
          ! For non-SMVGEAR runs, JLOOP has no meaning so we give the
-         ! stratospheric value
+         ! false value
          JLOOP = 0
          PCHEM = .FALSE.
 

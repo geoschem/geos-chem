@@ -444,8 +444,7 @@
       USE TRACER_MOD,   ONLY : STT, XNUMOL
       USE PRESSURE_MOD, ONLY : GET_AP, GET_BP
       USE TRACERID_MOD
-      USE TROPOPAUSE_MOD,ONLY : GET_TPAUSE_LEVEL
-      USE LOGICAL_MOD,  ONLY : LVARTROP
+      USE CHEMGRID_MOD, ONLY : GET_CHEMGRID_LEVEL
       USE TIME_MOD,     ONLY : GET_MONTH,GET_TS_EMIS
       USE DAO_MOD,      ONLY : T
 
@@ -454,7 +453,7 @@
       USE CMN_MOD       ! PTOP, SIGE, AVP
 
       INTEGER             :: I,    J,     IREF, JREF,  L
-      INTEGER             :: I0,   J0, TPL
+      INTEGER             :: I0,   J0, MAXLEV
       REAL*8              :: DTSRCE,TMPMULT,TEMP
       INTEGER, SAVE       :: LAST_MONTH = 0
       LOGICAL, SAVE       :: FIRST = .TRUE.
@@ -559,11 +558,7 @@
          !==============================================================
          ! Loop over GEOS-CHEM levels 
          !==============================================================
-         IF ( LVARTROP ) THEN
-            TPL = GET_TPAUSE_LEVEL(I,J)
-         ELSE
-            TPL = GET_TPAUSE_LEVEL(I,J) - 1
-         END IF
+         MAXLEV = GET_CHEMGRID_LEVEL(I,J)
          DO L = 1, LLPAR
              ! First handle fuelburn-multiplied emissinos
              TMPMULT = (OPTIONS_AEIC%FSC*DTSRCE/32.0d0)
@@ -581,8 +576,8 @@
      &           (AEIC_EMIT(I,J,L,OC_INDEX)*DTSRCE)
              STT(I,J,L,IDTBCPI) = STT(I,J,L,IDTBCPI) +
      &           (AEIC_EMIT(I,J,L,BC_INDEX)*DTSRCE)
-             IF (L.le.TPL) THEN
-                ! Only emit HC in trop, as can build up in strat
+             IF (L.le.MAXLEV) THEN
+                ! Only emit HC within chemgrid to avoid buildup
                 TMPMULT = THC2TOG*DTSRCE*AEIC_EMIT(I,J,L,HC_INDEX)
                 STT(I,J,L,IDTMACR) = STT(I,J,L,IDTMACR) +
      &               (TMPMULT*ACF_MACR)

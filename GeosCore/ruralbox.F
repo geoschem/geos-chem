@@ -19,7 +19,8 @@
       USE COMODE_MOD,     ONLY : ABSHUM, AIRDENS,  IXSAVE, IYSAVE
       USE COMODE_MOD,     ONLY : IZSAVE, JLOP,     PRESS3, T3,  VOLUME 
       USE PRESSURE_MOD,   ONLY : GET_PCENTER,      GET_PEDGE
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT, ITS_IN_THE_TROP
+      USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_NOCHEMGRID
+      USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_CHEMGRID
 
 #     include "define.h"
 
@@ -120,9 +121,9 @@
             IF ( IGLOBCHEM <= 0 ) THEN
 
                !=======================================================
-               ! Skip over strat boxes
+               ! Skip over non-chemgrid boxes
                !=======================================================
-               IF ( ITS_IN_THE_STRAT( I, J, L ) ) GOTO 40
+               IF ( ITS_IN_THE_NOCHEMGRID( I, J, L ) ) GOTO 40
 
                ! Increment JLOOP for trop boxes
                JLOOP          = JLOOP + 1
@@ -149,9 +150,9 @@
                JLOOP          = JLOOP + 1
                JLOP(I,J,L)    = JLOOP
 
-               IF ( ITS_IN_THE_TROP( I, J, L ) ) THEN
+               IF ( ITS_IN_THE_CHEMGRID( I, J, L ) ) THEN
 
-                  ! Tropospheric boxes go into the SMVGEAR II "URBAN" slot
+                  ! Chemgrid boxes go into the SMVGEAR II "URBAN" slot
                   NTLOOPNCS(NCSURBAN) = NTLOOPNCS(NCSURBAN) + 1
                   NCSLOOP(NTLOOPNCS(NCSURBAN),NCSURBAN) = JLOOP
 

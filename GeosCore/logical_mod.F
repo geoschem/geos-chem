@@ -247,5 +247,9 @@
       LOGICAL :: DO_DIAG_WRITE = .TRUE.  ! TURN ON/OFF DIAGNOSTIC WRITING
 
       LOGICAL :: LUPBD           ! Use stratospheric O3, NOY bdry conditions
+
+      !%%% For unified trop-strat chemistry (SDE 03/24/13)
+      LOGICAL :: LGMISTRAT       ! Use stratospheric chemistry options?
+
       END MODULE LOGICAL_MOD
 !EOC

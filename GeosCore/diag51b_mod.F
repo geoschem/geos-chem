@@ -386,7 +386,7 @@
       USE TRACERID_MOD,   ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNOX  
       USE TRACERID_MOD,   ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
       USE TRACERID_MOD,   ONLY : IDTR4N2, IDTSALA, IDTSALC 
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
+      USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_CHEMGRID
 
       USE CMN_FJ_MOD,     ONLY : JPMAX, JPPJ  ! includes F77_CMN_SIZE
       USE JV_CMN_MOD  ! ODAER, QAA, QAA_AOD
@@ -537,7 +537,7 @@
             I = GET_I( X )
 
             ! Only increment if we are in the trop
-            IF ( ITS_IN_THE_TROP( I, J, L ) ) THEN
+            IF ( ITS_IN_THE_CHEMGRID( I, J, L ) ) THEN
                COUNT_CHEM3D(X,Y,K) = COUNT_CHEM3D(X,Y,K) + GOOD(I)
             ENDIF
          ENDDO
