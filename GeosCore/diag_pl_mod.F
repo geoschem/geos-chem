@@ -589,7 +589,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_DIAG_PL( am_I_Root, Input_Opt, RC ) 
+      SUBROUTINE DO_DIAG_PL( am_I_Root, Input_Opt, State_Chm, RC ) 
 !
 ! !USES:
 !
@@ -599,15 +599,20 @@
       USE COMODE_LOOP_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY:
 !  16 Mar 2000 - I. Bey      - Initial version
@@ -684,8 +689,7 @@
       ! Also call DIAG20, which will save out the P(Ox) and L(Ox)
       ! from the fullchem simulation for a future tagged Ox run
       !=================================================================
-
-      IF ( DO_SAVE_O3 ) CALL DIAG20( am_I_Root )
+      IF ( DO_SAVE_O3 ) CALL DIAG20( am_I_Root, State_Chm, RC )
 
       END SUBROUTINE DO_DIAG_PL
 !EOC
@@ -705,24 +709,33 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG20( am_I_Root )
+      SUBROUTINE DIAG20( am_I_Root, State_Chm, RC )
 !
 ! !USES:
 !
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
       USE COMODE_MOD,    ONLY : JLOP
       USE DIRECTORY_MOD, ONLY : O3PL_DIR
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE TIME_MOD,      ONLY : EXPAND_DATE,   GET_NYMD
       USE TIME_MOD,      ONLY : GET_TAU,       GET_TAUb 
       USE TIME_MOD,      ONLY : ITS_A_NEW_DAY, TIMESTAMP_STRING
-      USE TRACER_MOD,    ONLY : STT,           XNUMOL
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE TRACER_MOD,    ONLY : XNUMOL
       USE TRACERID_MOD,  ONLY : IDTOX
-      USE CMN_SIZE_MOD                      ! Size parameters
-      USE CMN_DIAG_MOD                      ! LD65
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root      ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root    ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REMARKS:
 !  DIAG20 assumes that ND65 (P-L diagnostics) have been turned on.
@@ -745,6 +758,7 @@
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers 
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object + RC via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -757,9 +771,17 @@
       REAL*8            :: P_Ox, L_Ox
       CHARACTER(LEN=16) :: STAMP 
 
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! DIAG20 begins here!
       !=================================================================
+
+      ! Assume success
+      RC = GIGC_SUCCESS
 
       ! Error check
       IF ( IDTOX == 0 ) THEN 
@@ -789,6 +811,9 @@
       IF ( am_I_Root ) WRITE( 6, 120 ) STAMP
  120  FORMAT( '     - DIAG20: Archiving P(Ox) & L(Ox) at ', a )
 
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -835,6 +860,9 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+      ! Free pointer
+      NULLIFY( STT )
 
       !=================================================================
       ! Write data to disk and zero counters for next timestep

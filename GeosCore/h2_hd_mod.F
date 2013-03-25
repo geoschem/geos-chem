@@ -111,7 +111,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE EMISS_H2_HD( State_Met, BIO_EMISS )
+      SUBROUTINE EMISS_H2_HD( State_Met, State_Chm, BIO_EMISS )
 #else
       SUBROUTINE EMISS_H2_HD( State_Met )
 #endif
@@ -137,7 +137,11 @@
       USE TRACERID_MOD,       ONLY : IDBCO
       USE TIME_MOD,           ONLY : GET_MONTH,   GET_TAU 
       USE TIME_MOD,           ONLY : GET_YEAR,    GET_TS_EMIS  
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
       USE TRACER_MOD,         ONLY : STT
+#endif
       USE TRACERID_MOD,       ONLY : IDBFCO,      IDTH2,        IDTHD
       USE TAGGED_CO_MOD,      ONLY : INIT_TAGGED_CO
       USE TAGGED_CO_MOD,      ONLY : READ_ACETONE,  EMACET
@@ -155,6 +159,7 @@
 ! !INPUT/OUTPUT PARAMETERS: 
 !
 #if defined( DEVEL )
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
       REAL*8,         INTENT(INOUT) :: BIO_EMISS(:,:,:)
 #endif
 ! 
@@ -196,6 +201,13 @@
 
       ! Cosine SZA & PAR (for calculation of monoterpenes)
       REAL*8                 :: SC, PDF, PDR
+
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
 
       ! External functions
       REAL*8, EXTERNAL       :: BOXVL
@@ -268,6 +280,12 @@
          LASTYEAR = SCALEYEAR
       ENDIF
 
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
+
       ! DTSRCE is the number of seconds per emission timestep
       DTSRCE = GET_TS_EMIS() * 60d0
 
@@ -304,7 +322,6 @@
 
          ! SFAC89 is the Weekday/Saturday/Sunday scale factor
          SFAC89 = SCNR89( 2, GET_DAY_INDEX( NTAU ) ) 
-
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
@@ -673,6 +690,11 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
+
       END SUBROUTINE EMISS_H2_HD
 !EOC
 !------------------------------------------------------------------------------
@@ -691,7 +713,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE CHEM_H2_HD( State_Met, State_Chm )
+#else
       SUBROUTINE CHEM_H2_HD( State_Met )
+#endif
 !
 ! !USES:
 !
@@ -707,7 +733,12 @@
       USE TIME_MOD,           ONLY : GET_YEAR
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
       USE DRYDEP_MOD,         ONLY : DEPSAV
-      USE TRACER_MOD,         ONLY : N_TRACERS,       STT
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
+      USE TRACER_MOD,         ONLY : STT
+#endif
+      USE TRACER_MOD,         ONLY : N_TRACERS
       USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
       USE TRACERID_MOD,       ONLY : IDTH2, IDTHD
       USE TAGGED_CO_MOD,      ONLY : GET_ALPHA_ISOP
@@ -720,6 +751,12 @@
 ! !INPUT PARAMETERS: 
 !
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  18 Sep 2007 - L. Jaegle, H. U. Price, P. Le Sager -- Initial version
@@ -750,6 +787,13 @@
       REAL*8                 :: AREA_CM2, SVEL, FLUX
       REAL*8                 :: THIK, P2, DRYF, TESTVAR
       REAL*8                 :: FRACLOST, H2_RATE
+
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
 
       ! For saving CH4 latitudinal gradient
       REAL*8,  SAVE          :: A3090S, A0030S, A0030N, A3090N
@@ -811,6 +855,13 @@
       !=================================================================
       ! Do H2 and HD chemistry 
       !=================================================================
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
+
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED                                             ) 
 !$OMP+PRIVATE( I, J, L, N, STTH2, GH2, DENS, CH4RATE, H2_CH4, CH4 )
@@ -1309,6 +1360,11 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
 
       END SUBROUTINE CHEM_H2_HD
 !EOC

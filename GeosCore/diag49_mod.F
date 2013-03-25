@@ -177,7 +177,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE DIAG49( State_Met, State_Chm )
+#else
       SUBROUTINE DIAG49( State_Met )
+#endif
 !
 ! !USES:
 !
@@ -195,8 +199,12 @@
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
       USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM, N_TRACERS
-      USE TRACER_MOD,         ONLY : STT,                TCVV
-      USE TRACER_MOD,         ONLY : XNUMOLAIR
+      USE TRACER_MOD,         ONLY : TCVV,               XNUMOLAIR
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
+      USE TRACER_MOD,         ONLY : STT
+#endif
       USE PRESSURE_MOD,       ONLY : GET_PEDGE
       USE TRACERID_MOD,       ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNOX  
       USE TRACERID_MOD,       ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
@@ -213,6 +221,12 @@
 ! !INPUT PARAMETERS:
 !
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
+#endif
 !
 ! !REVISION HISTORY: 
 !  09 Apr 1999 - I. Bey, R. Martin, R. Yantosca - Initial version
@@ -267,6 +281,13 @@
 
       ! Aerosol types (rvm, aad, bmy, 7/20/04)
       INTEGER                  :: IND(6) = (/ 22, 29, 36, 43, 50, 15 /)
+
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
 
       !=================================================================
       ! DIAG49 begins here!
@@ -355,6 +376,12 @@
             GMNL     = ND49_NL
             GMTRC    = N
       
+#if defined( DEVEL )
+            ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+            ! (mpayer, 12/6/12)
+            STT => State_Chm%Tracers
+#endif
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, X, Y, K )
@@ -370,6 +397,11 @@
             ENDDO
 !$OMP END PARALLEL DO
 
+#if defined( DEVEL )
+            ! Free pointer
+            NULLIFY( STT )
+#endif
+
          ELSE IF ( N == 91 .and. IS_Ox ) THEN
 
             !-------------------------------------
@@ -379,6 +411,12 @@
             UNIT     = ''           ! Let GAMAP pick the unit
             GMNL     = ND49_NL
             GMTRC    = N_TRACERS + 1
+
+#if defined( DEVEL )
+            ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+            ! (mpayer, 12/6/12)
+            STT => State_Chm%Tracers
+#endif
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -396,6 +434,11 @@
             ENDDO
 !$OMP END PARALLEL DO
 
+#if defined( DEVEL )
+            ! Free pointer
+            NULLIFY( STT )
+#endif
+
          ELSE IF ( N == 92 .and. IS_NOx ) THEN
             
             !-------------------------------------
@@ -406,6 +449,12 @@
             GMNL     = ND49_NL
             GMTRC    = 9
                
+#if defined( DEVEL )
+            ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+            ! (mpayer, 12/6/12)
+            STT => State_Chm%Tracers
+#endif
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, X, Y, K )
@@ -422,6 +471,11 @@
             ENDDO
 !$OMP END PARALLEL DO
 
+#if defined( DEVEL )
+            ! Free pointer
+            NULLIFY( STT )
+#endif
+
          ELSE IF ( N == 93 .and. IS_NOy ) THEN
 
             !--------------------------------------
@@ -431,6 +485,12 @@
             UNIT     = ''              ! Let GAMAP pick unit
             GMNL     = ND49_NL
             GMTRC    = 3
+
+#if defined( DEVEL )
+            ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+            ! (mpayer, 12/6/12)
+            STT => State_Chm%Tracers
+#endif
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -491,6 +551,11 @@
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
+
+#if defined( DEVEL )
+            ! Free pointer
+            NULLIFY( STT )
+#endif
 
          ELSE IF ( N == 76 .and. IS_FULLCHEM ) THEN
 
@@ -937,6 +1002,12 @@
             GMNL     = ND49_NL
             GMTRC    = 24
 
+#if defined( DEVEL )
+            ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+            ! (mpayer, 12/6/12)
+            STT => State_Chm%Tracers
+#endif
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, X, Y, K )
@@ -952,6 +1023,11 @@
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
+
+#if defined( DEVEL )
+            ! Free pointer
+            NULLIFY( STT )
+#endif
 
          ELSE IF ( N == 94 ) THEN
 

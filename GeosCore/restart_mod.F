@@ -91,7 +91,12 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE MAKE_RESTART_FILE( YYYYMMDD,  HHMMSS,   TAU,
+     &                              State_Met, State_Chm )
+#else
       SUBROUTINE MAKE_RESTART_FILE( YYYYMMDD, HHMMSS, TAU, State_Met )
+#endif
 !
 ! !USES:
 !
@@ -103,7 +108,12 @@
       USE GRID_MOD,           ONLY : GET_XOFFSET,   GET_YOFFSET
       USE LOGICAL_MOD,        ONLY : LPRT
       USE TIME_MOD,           ONLY : EXPAND_DATE
-      USE TRACER_MOD,         ONLY : STT,           N_TRACERS,  TCVV
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
+      USE TRACER_MOD,         ONLY : STT
+#endif
+      USE TRACER_MOD,         ONLY : N_TRACERS,     TCVV
 
       USE CMN_SIZE_MOD             ! Size parameters
 !
@@ -113,6 +123,9 @@
       INTEGER,        INTENT(IN)  :: HHMMSS     ! hh:mm:ss GMT time
       REAL*8,         INTENT(IN)  :: TAU        ! TAU value (hrs from 1/1/1985)
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  27 May 1999 - R. Yantosca - Initial version
@@ -170,6 +183,13 @@
       CHARACTER(LEN=40)    :: RESERVED = ''
       CHARACTER(LEN=80)    :: TITLE 
 
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
+
       !=================================================================
       ! MAKE_RESTART_FILE begins here!
       !=================================================================
@@ -193,6 +213,12 @@
       ! Get the nested-grid offsets
       I0 = GET_XOFFSET( GLOBAL=.TRUE. )
       J0 = GET_YOFFSET( GLOBAL=.TRUE. )
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
 
       !=================================================================
       ! Open the restart file for output -- binary punch format
@@ -243,6 +269,11 @@
       ! Close file
       CLOSE( IU_RST )
 
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
+
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### MAKE_RESTART_FILE: wrote file' )
 
@@ -261,29 +292,33 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_RESTART_FILE( YYYYMMDD, HHMMSS, State_Met ) 
+      SUBROUTINE READ_RESTART_FILE( YYYYMMDD,  HHMMSS,
+     &                              Input_Opt, State_Met, State_Chm ) 
 !
 ! !USES:
 !
       USE BPCH2_MOD,          ONLY : OPEN_BPCH2_FOR_READ
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE LOGICAL_MOD,        ONLY : LSPLIT
       USE LOGICAL_MOD,        ONLY : LPRT
       USE TIME_MOD,           ONLY : EXPAND_DATE
-      USE TRACER_MOD,         ONLY : N_TRACERS
-      USE TRACER_MOD,         ONLY : STT
-      USE TRACER_MOD,         ONLY : TRACER_NAME
-      USE TRACER_MOD,         ONLY : TRACER_MW_G
 
       USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER,        INTENT(IN) :: YYYYMMDD   ! YYYY/MM/DD GMT date
-      INTEGER,        INTENT(IN) :: HHMMSS     ! hh:mm:ss   GMT time
-      TYPE(MetState), INTENT(IN) :: State_Met  ! Meteorology State object
+      INTEGER,        INTENT(IN)    :: YYYYMMDD   ! YYYY/MM/DD GMT date
+      INTEGER,        INTENT(IN)    :: HHMMSS     ! hh:mm:ss   GMT time
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met  ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm  ! Chemistry State object
 ! 
 ! !REVISION HISTORY: 
 !  27 May 1999 - R. Yantosca - Initial version
@@ -344,6 +379,11 @@
       CHARACTER(LEN=40)   :: UNIT     
       CHARACTER(LEN=40)   :: RESERVED
 
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! READ_RESTART_FILE begins here!
       !=================================================================
@@ -351,6 +391,10 @@
       ! Initialize some variables
       NCOUNT(:)     = 0
       TRACER(:,:,:) = 0e0
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       !=================================================================
       ! Open restart file and read top-of-file header
@@ -419,7 +463,8 @@
             CALL CONVERT_TRACER_TO_VV( NTRACER, TRACER, UNIT )
 
             ! Convert TRACER from [v/v] to [kg] and copy into STT array
-            CALL COPY_STT( NTRACER, TRACER, NCOUNT, State_Met )
+            CALL COPY_STT( NTRACER,   TRACER,   NCOUNT,
+     &                     State_Met, State_Chm )
 
          ENDIF
       ENDDO
@@ -438,23 +483,26 @@
       WRITE( 6, 120 )
  120  FORMAT( /, 'Total atmospheric masses for each tracer: ' ) 
 
-      DO N = 1, N_TRACERS
+      DO N = 1, Input_Opt%N_TRACERS
 
          ! For tracers in kg C, be sure to use correct unit string
-         IF ( INT( TRACER_MW_G(N) + 0.5 ) == 12 ) THEN
+         IF ( INT( Input_Opt%TRACER_MW_G(N) + 0.5 ) == 12 ) THEN
             UNIT = 'kg C'
          ELSE
             UNIT = 'kg  '
          ENDIF
 
          ! Print totals
-         WRITE( 6, 130 ) N,                   TRACER_NAME(N), 
+         WRITE( 6, 130 ) N,                   Input_Opt%TRACER_NAME(N), 
      &                   SUM( STT(:,:,:,N) ), ADJUSTL( UNIT )
  130     FORMAT( 'Tracer ', i3, ' (', a10, ') ', es12.5, 1x, a4)
       ENDDO
 
       ! Fancy output
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+
+      ! Free pointer
+      NULLIFY( STT )
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### READ_RESTART_FILE: read file' )
@@ -625,12 +673,13 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE COPY_STT( NTRACER, TRACER, NCOUNT, State_Met )
+      SUBROUTINE COPY_STT( NTRACER,   TRACER,   NCOUNT,
+     &                     State_Met, State_Chm )
 !
 ! !USES:
 !
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACER_MOD,         ONLY : N_TRACERS, STT, TCVV
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       
       USE CMN_SIZE_MOD             ! Size parameters
 !
@@ -643,8 +692,9 @@
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      INTEGER,        INTENT(INOUT) :: NCOUNT(NNPAR)      ! # of data blocks
+      INTEGER,        INTENT(INOUT) :: NCOUNT(NNPAR)       ! # of data blocks
 !                                                          !  for each tracer
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 ! 
 ! !REVISION HISTORY: 
 !  (1 ) Added to "restart_mod.f".  Also added parallel loops. (bmy, 6/25/02)
@@ -664,12 +714,21 @@
 !
       INTEGER :: I, J, L, N
       
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! COPY_STT begins here!
       !=================================================================
 
       ! Tracer number
       N = NTRACER
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       ! Exit if N is out of range
       IF ( N < 1 .or. N > N_TRACERS ) RETURN
@@ -686,6 +745,9 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+      ! Free pointer
+      NULLIFY( STT )
 
       ! Increment the # of records found for tracer N
       NCOUNT(N) = NCOUNT(N) + 1
@@ -817,13 +879,20 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE MAKE_CSPEC_FILE( YYYYMMDD, HHMMSS, State_Chm )
+#else
       SUBROUTINE MAKE_CSPEC_FILE( YYYYMMDD, HHMMSS )
+#endif
 !
 ! !USES:
 !
       USE BPCH2_MOD
-      USE COMODE_MOD,  ONLY : CSPEC
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
       USE COMODE_MOD,  ONLY : CSPEC_FULL
+#endif
       USE COMODE_MOD,  ONLY : JLOP
       USE ERROR_MOD,   ONLY : DEBUG_MSG
       USE ERROR_MOD,   ONLY : ERROR_STOP
@@ -842,6 +911,9 @@
 !
       INTEGER, INTENT(IN)  :: YYYYMMDD   ! YYYY/MM/DD GMT date
       INTEGER, INTENT(IN)  :: HHMMSS     ! hh:mm:ss   GMT time
+#if defined( DEVEL )
+      TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  27 Aug 2004 - D. Henze    - Initial version, based on MAKE_RESTART
@@ -885,6 +957,12 @@
       CHARACTER(LEN=40)    :: RESERVED = ''
       CHARACTER(LEN=80)    :: TITLE 
 
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 1/24/12)
+      REAL*8, POINTER :: CSPEC_FULL(:,:,:,:)
+#endif
 
       !=================================================================
       ! MAKE_CSPEC_FILE begins here!
@@ -898,6 +976,11 @@
       !TMP(:,:,:)   = 0e0
       TMP(:,:,:)   = 1e-30
 
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      CSPEC_FULL => State_Chm%Species
+#endif
 
       ! Define variables for BINARY PUNCH FILE OUTPUT
       TITLE    = 'GEOS-CHEM Checkpoint File: ' // 
@@ -993,6 +1076,11 @@
       ! Close file
       CLOSE( IU_RST )
 
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( CSPEC_FULL )
+#endif
+
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### MAKE_CSPEC_FILE: wrote file' )
 
@@ -1013,13 +1101,22 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE READ_CSPEC_FILE( am_I_Root, YYYYMMDD, HHMMSS,
+     &                            IT_EXISTS, State_Chm )
+#else
       SUBROUTINE READ_CSPEC_FILE( am_I_Root, YYYYMMDD,  
      &                            HHMMSS,    IT_EXISTS ) 
+#endif
 !
 ! !USES:
 !
       USE BPCH2_MOD,   ONLY : OPEN_BPCH2_FOR_READ
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
       USE COMODE_MOD,  ONLY : CSPEC_FULL
+#endif
       USE COMODE_MOD,  ONLY : JLOP
       USE ERROR_MOD,   ONLY : DEBUG_MSG
       USE ERROR_MOD,   ONLY : ERROR_STOP
@@ -1037,6 +1134,13 @@
       LOGICAL, INTENT(IN) :: am_I_Root  ! Is this the root CPU?
       INTEGER, INTENT(IN) :: YYYYMMDD   ! YYYY/MM/DD GMT date
       INTEGER, INTENT(IN) :: HHMMSS     ! hh:mm:ss   GMT time
+!
+! !OUTPUT PARAMETERS: 
+!
+      LOGICAL,        INTENT(OUT) :: IT_EXISTS   ! Does CSPEC restart exist?
+#if defined( DEVEL )
+      TYPE(ChmState), INTENT(OUT) :: State_Chm   ! Chemistry State object
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  30 Aug 2004 - D. Henze    - Initial version, based on READ_RESTART  
@@ -1059,7 +1163,6 @@
       INTEGER             :: I, IOS, IU_RST, J, L, N, JLOOP, NN, NTL
       INTEGER             :: NCOUNT(NNPAR) 
       REAL*4		  :: TMP(ILONG,ILAT,IPVERT)
-      LOGICAL             :: IT_EXISTS 
 
       REAL*8              :: SUMTC
       CHARACTER(LEN=255)  :: FILENAME
@@ -1079,6 +1182,13 @@
       CHARACTER(LEN=40)   :: UNIT     
       CHARACTER(LEN=40)   :: RESERVED
 
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 1/24/12)
+      REAL*8, POINTER :: CSPEC_FULL(:,:,:,:)
+#endif
+
       !=================================================================
       ! READ_CSPEC_FILE begins here!
       !=================================================================
@@ -1090,6 +1200,12 @@
       !TMP(:,:,:) = 0e0
       ! use 1e-30 as min (hotp 2/25/09)
       TMP(:,:,:) = 1e-30
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      CSPEC_FULL => State_Chm%Species
+#endif
 
       !=================================================================
       ! Open checkpoint file and read top-of-file header
@@ -1197,6 +1313,11 @@
 
       ! Close file
       CLOSE( IU_RST )      
+
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( CSPEC_FULL )
+#endif
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### READ_CSPEC_FILE: read file' )

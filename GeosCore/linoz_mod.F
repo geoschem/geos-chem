@@ -99,7 +99,6 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -115,10 +114,14 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_LINOZ( am_I_Root, Input_Opt, State_Met, RC )
+      SUBROUTINE DO_LINOZ( am_I_Root, Input_Opt, 
+     &                     State_Met, State_Chm, RC )
 !
 ! !USES:
 !
+      USE TIME_MOD
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
       USE CMN_SIZE_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
@@ -128,13 +131,17 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  24 Jun 2003 - B. Field & D. Jones - Further updates for GEOS-Chem
@@ -143,6 +150,7 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  18 Mar 2013 - R. Yantosca - Now accept Input_Opt, RC as arguments
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -176,7 +184,8 @@
       NSCHEM = GET_TS_CHEM() * 60D0 
 
       ! Call the Linoz chemistry
-      CALL LINOZ_CHEM3( NSCHEM, am_I_Root, Input_Opt, State_Met, RC )
+      CALL LINOZ_CHEM3( NSCHEM,    am_I_Root, Input_Opt, 
+     &                  State_Met, State_Chm, RC )
 
       END SUBROUTINE DO_LINOZ    
 !EOC
@@ -193,17 +202,17 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE LINOZ_CHEM3( DTCHEM,    am_I_Root,
-     &                        Input_Opt, State_Met, RC )
+      SUBROUTINE LINOZ_CHEM3( DTCHEM,    am_I_Root, Input_Opt, 
+     &                        State_Met, State_Chm, RC         )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2   
-      USE TRACER_MOD,         ONLY : STT
       USE TRACERID_MOD                          
       USE TROPOPAUSE_MOD,     ONLY : GET_TPAUSE_LEVEL 
       USE TROPOPAUSE_MOD,     ONLY : GET_MAX_TPAUSE_LEVEL
@@ -212,14 +221,18 @@
 !
 ! !INPUT PARAMETERS:
 !
-      REAL*8,         INTENT(IN)  :: DTCHEM      ! Time step [seconds]
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      REAL*8,         INTENT(IN)    :: DTCHEM      ! Time step [seconds]
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS
 !
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  Replace fields from tracer_mod.f with fields from Input_Opt.  When we
@@ -240,6 +253,7 @@
 !                              derived type object
 !  18 Mar 2013 - R. Yantosca - Now accept Input_Opt, RC as arguments
 !  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%TCVV(1:N_TRACERS)
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -259,6 +273,10 @@
       REAL*8  :: COLO3   (IIPAR,JJPAR,LLPAR                    )
       REAL*8  :: OUT_DATA(IIPAR,JJPAR,LLPAR                    )
       REAL*8  :: TCVV    (                  Input_Opt%N_TRACERS)
+
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
       
       !=================================================================
       ! LINOZ_CHEM3 begins here!
@@ -273,6 +291,10 @@
       LM         = LLPAR
       N_TRACERS  = Input_Opt%N_TRACERS
       TCVV       = Input_Opt%TCVV(1:N_TRACERS)
+
+      ! Initialize GEOS-Chem tracer array [kg] from State_Chm object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ) 
       !-----------------------------------------------------------------
@@ -334,7 +356,7 @@
       ! ****         : check DMASS
       DO ITRC = 1, NUM_TRACER
 
-         IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+         IF ( ITS_A_FULLCHEM_SIM() ) THEN
             NTRACER = IDTOX
          ELSE
             NTRACER = ITRC
@@ -468,6 +490,9 @@
       !write(6,*) 'max of columns= ',maxval(out_data)
 
       ENDDO
+
+      ! Free pointer
+      NULLIFY( STT )
 
       END SUBROUTINE LINOZ_CHEM3
 !EOC
@@ -900,12 +925,6 @@
       INTEGER, INTENT(IN)  :: NL
       REAL*8,  INTENT(IN)  :: F(NL)
       REAL*8,  INTENT(IN)  :: PS(NL+1)
-!------------------------------------------------------------------------------
-! Prior to 3/19/13:
-! These need to be made INTENT(IN), since they aren't modified (bmy, 3/19/13)
-!      REAL*8,  INTENT(OUT) :: P1
-!      REAL*8,  INTENT(OUT) :: P2
-!------------------------------------------------------------------------------
       REAL*8,  INTENT(IN)  :: P1
       REAL*8,  INTENT(IN)  :: P2
 !
@@ -1159,24 +1178,6 @@
          WRITE( 6, '(a)' )
       ENDIF
 
-!-----------------------------------------------------------------------------
-! Prior to 3/18/13:
-! This block does not get executed, we stop the read with IOERROR now
-! (bmy, 3/18/13)
-!      GOTO 999
-!
-!      ! If error has occurred
-! 101  CONTINUE
-!      IF ( am_I_Root ) THEN
-!      WRITE(6,*)'**** STOP: Error reading Linoz Coefficients {PJC} ****'
-!      write(6,*)'NTBLS =',ntbls,',  M =',m,',  J =',j,',  K =',k
-!      write(6,*)'TPARM(K,J,M,NTBLS) =',TPARM(K,J,M,NTBLS)
-!      ENDIF
-!      STOP
-!
-! 999  CONTINUE
-!-----------------------------------------------------------------------------
-
       ! Close the files
       CLOSE( IU_FILE ) 
 
@@ -1248,70 +1249,7 @@
       enddo
 
       END SUBROUTINE LINOZ_INTPL
-
 !EOC
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% NOTE: This routine is not called, so comment it out (bmy, 3/18/13)
-!!------------------------------------------------------------------------------
-!!          Harvard University Atmospheric Chemistry Modeling Group            !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: strat_init
-!!
-!! !DESCRIPTION: Subroutine STRAT\_INIT copies the ozone computed by the
-!!  Linoz stratospheric chemistry algorithm back into the GEOS-Chem
-!!  tracer array.
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!      SUBROUTINE STRAT_INIT( am_I_Root )
-!!
-!! !USES:
-!!
-!      USE TRACERID_MOD 
-!      USE TRACER_MOD  
-!
-!      USE CMN_SIZE_MOD   
-!      USE CMN_MOD
-!!
-!! !INPUT PARAMETERS:
-!!
-!      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-!!
-!! !REVISION HISTORY: 
-!!  24 Jun 2003 - B. Field & D. Jones - Further updates for GEOS-Chem
-!!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
-!!                              running with the traditional driver main.F
-!!  31 Jul 2012 - R. Yantosca - Now loop over 1..LLPAR for GIGC compatibility
-!!  18 Mar 2013 - R. Yantosca - Now use ITS_IN_THE_TROP to test if we are
-!!                              in the troposphere
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!      INTEGER I, J, L
-!
-!      CALL LINOZ_STRATL( am_I_Root )
-!
-!      DO J = 1,JJPAR
-!      DO I = 1,IIPAR
-!      DO L = 1, LLPAR
-!         IF (L .LT. LPAUSE(I,J)) CYCLE
-!         STT(I,J,L,IDTOX) = TLSTT(J,L,1) / TCVV(IDTOX)
-!      ENDDO
-!      ENDDO
-!      ENDDO
-!
-!!      call write_fields2(7)
-!!      call flush(12)
-!
-!      END SUBROUTINE STRAT_INIT
-!!EOC
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !----------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -1351,20 +1289,17 @@
 !  18 Mar 2013 - R. Yantosca - Remove TPARM array since that is now carried
 !                              within the Input_Opt object.
 !  18 Mar 2013 - R. Yantosca - Accept am_I_Root, Input_Opt, RC arguments
-
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER       :: AS
+      ! Assume success
+      RC = GIGC_SUCCESS
 
       ! Allocate TLSTT array
       ALLOCATE( TLSTT( JJPAR, 
      &                 LLPAR, 
-     &                 Input_Opt%LINOZ_NFIELDS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TPARM' )
+     &                 Input_Opt%LINOZ_NFIELDS ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'TPARM' )
       TLSTT = 0d0
 
       END SUBROUTINE INIT_LINOZ

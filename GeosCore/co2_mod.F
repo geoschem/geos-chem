@@ -168,7 +168,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE EMISSCO2( State_Met, State_Chm )
+#else
       SUBROUTINE EMISSCO2( State_Met )
+#endif
 !
 ! !USES:
 !
@@ -183,7 +187,12 @@
       USE TIME_MOD,           ONLY : GET_YEAR,      GET_TS_CHEM
       USE TIME_MOD,           ONLY : GET_TS_EMIS 
       USE TIME_MOD,           ONLY : ITS_A_NEW_DAY, ITS_A_NEW_MONTH
-      USE TRACER_MOD,         ONLY : N_TRACERS,     STT
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
+      USE TRACER_MOD,         ONLY : STT
+#endif
+      USE TRACER_MOD,         ONLY : N_TRACERS
       USE TRACERID_MOD,       ONLY : IDBCO2
 
       USE CMN_SIZE_MOD             ! Size parameters
@@ -191,6 +200,12 @@
 ! !INPUT PARAMETERS:
 !
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 !
 ! !REMARKS:
 !  The initial condition for CO2 has to be at least 50 ppm or higher or else
@@ -226,6 +241,13 @@
       REAL*8                 :: A_CM2, DTSRCE, E_CO2
       REAL*8                 :: biomass_sum, bionet_sum
 
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER        :: STT(:,:,:,:)
+#endif
+
       ! External functions     
       REAL*8, EXTERNAL       :: BOXVL    ! dbj
 
@@ -257,6 +279,12 @@
       !=================================================================
       ! Read in monthly, daily or variable emissions fields
       !=================================================================      
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
 
       ! Emission timestep
 !      DTSRCE = 60d0 * GET_TS_CHEM() !Line from the orginal code
@@ -712,6 +740,11 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
 
       END SUBROUTINE EMISSCO2 
 !EOC

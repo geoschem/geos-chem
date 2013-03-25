@@ -1,5 +1,6 @@
 ! $Id: calcrate.f,v 1.6 2010/03/15 19:33:25 ccarouge Exp $
-      SUBROUTINE CALCRATE( am_I_Root, Input_Opt, State_Met, RC )
+      SUBROUTINE CALCRATE( am_I_Root, Input_Opt, 
+     &                     State_Met, State_Chm, RC )
 !
 !******************************************************************************
 !  Subroutine CALCRATE computes reaction rates before passing them to the
@@ -77,12 +78,12 @@
 !  27 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOSmid
 !  05 Mar 2013 - R. Yantosca - Now get logical, XNMOL fields from Input_Opt
 !  05 Mar 2013 - R. Yantosca - Pass am_I_Root, Input_Opt, RC arguments
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm via the argument list
 !******************************************************************************
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE COMODE_MOD,         ONLY : VOLUME
       USE COMODE_LOOP_MOD
       USE CMN_DIAG_MOD
       USE CMN_MOD
@@ -90,6 +91,7 @@
       USE COMODE_MOD,         ONLY : ABSHUM, AIRDENS, ERADIUS, IXSAVE, 
      &                               IYSAVE, IZSAVE,  JLOP,    PRESS3,  
      &                               REMIS,  T3,      TAREA,    CSPEC
+      USE COMODE_MOD,         ONLY : VOLUME
       USE DAO_MOD,            ONLY : IS_ICE
       USE DIAG_MOD,           ONLY : AD22,   LTJV, AD52
       USE DIAG_MOD,           ONLY : AD32_an, AD36,   AD63
@@ -105,6 +107,7 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE GRID_MOD,           ONLY : GET_YMID
       USE ICOADS_SHIP_MOD,    ONLY : GET_ICOADS_SHIP
@@ -127,16 +130,18 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 !
 ! !LOCAL VARIABLES:
 !
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+
       ! jpp, rate constant for BrNO3 cloud recycling
       REAL*8 :: CLD_BrNO3_RC
 
@@ -232,6 +237,11 @@
       LOGICAL :: LWARWICK_VSLS
       REAL*8  :: XNUMOL(Input_Opt%N_TRACERS)
 
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! CALCRATE begins here!
       !=================================================================
@@ -249,6 +259,7 @@
       LWARWICK_VSLS = Input_Opt%LWARWICK_VSLS
       XNUMOL        = Input_Opt%XNUMOL
 
+      ! Initialize
       darea         = 0d0
 
       ! initialize the true/false selectors (jpp, 4/12/10)
@@ -1066,6 +1077,12 @@ c new OH+CO rate from JPL2006.
             ! both pseudo-rxns (rate limiting). (jpp, 4/12/10)
             ! -------------------------------------------------
 
+#if defined( DEVEL )
+            ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+            ! (mpayer, 12/6/12)
+            STT => State_Chm%Tracers
+#endif
+
             IF ( ( IDTHBr > 0) .and. ( IDTHOBr > 0 ) ) THEN
 
                ! select the min of the two rates
@@ -1153,6 +1170,11 @@ c new OH+CO rate from JPL2006.
                RRATE(KLOOP, NK2HBr)  = ki_hbr
                RRATE(KLOOP, NK2HOBr) = ki_hobr
             ENDIF
+
+#if defined( DEVEL )
+            ! Free pointer
+            NULLIFY( STT )
+#endif
 
          ELSE
 

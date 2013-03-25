@@ -43,7 +43,9 @@
       REAL*8,  ALLOCATABLE, PUBLIC :: ABSHUM(:) 
       REAL*8,  ALLOCATABLE, PUBLIC :: AIRDENS(:) 
       REAL*8,  ALLOCATABLE, PUBLIC :: CSPEC(:,:)
+#if !defined( DEVEL )
       REAL*8,  ALLOCATABLE, PUBLIC :: CSPEC_FULL(:,:,:,:)
+#endif
       REAL*8,  ALLOCATABLE, PUBLIC :: CSUMA(:) 
       REAL*8,  ALLOCATABLE, PUBLIC :: CSUMC(:) 
       REAL*8,  ALLOCATABLE, PUBLIC :: ERADIUS(:,:)
@@ -180,9 +182,11 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CSPEC' )
          CSPEC = 0d0
 
+#if !defined( DEVEL )
          ALLOCATE( CSPEC_FULL( ILONG, ILAT, IPVERT, IGAS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CSPEC_FULL' )
          CSPEC_FULL = 0d0
+#endif
 
          ALLOCATE( CSUMA( ITLOOP ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CSUMA' )
@@ -334,7 +338,9 @@
       IF ( ALLOCATED( ABSHUM        ) ) DEALLOCATE( ABSHUM        )
       IF ( ALLOCATED( AIRDENS       ) ) DEALLOCATE( AIRDENS       )
       IF ( ALLOCATED( CSPEC         ) ) DEALLOCATE( CSPEC         )
+#if !defined( DEVEL )
       IF ( ALLOCATED( CSPEC_FULL    ) ) DEALLOCATE( CSPEC_FULL    )
+#endif
       IF ( ALLOCATED( CSUMA         ) ) DEALLOCATE( CSUMA         )
       IF ( ALLOCATED( CSUMC         ) ) DEALLOCATE( CSUMC         )
       IF ( ALLOCATED( ERADIUS       ) ) DEALLOCATE( ERADIUS       )

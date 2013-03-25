@@ -49,7 +49,6 @@
       USE TIME_MOD,             ONLY : GET_NYMD
       USE TIME_MOD,             ONLY : GET_YEAR
       USE TIME_MOD,             ONLY : ITS_A_NEW_DAY
-      USE TRACER_MOD,           ONLY : STT
       USE TRACERID_MOD,         ONLY : IDTNOX
       USE TRACERID_MOD,         ONLY : IDTOX
       USE TRACERID_MOD,         ONLY : SETTRACE
@@ -271,6 +270,11 @@
       LOGICAL       :: LFUTURE
       LOGICAL       :: LSVCSPEC
 
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! CHEMDR begins here!
       !=================================================================
@@ -304,6 +308,10 @@
       ! Get month and year
       MONTH     = GET_MONTH()
       YEAR      = GET_YEAR()
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT       => State_Chm%Tracers
 
       !=================================================================
       ! Compute AVGW, the mixing ratio of water vapor
@@ -530,7 +538,12 @@
       IF ( LSULF .or. LCARB .or. LDUST .or. LSSALT ) THEN
 
          ! Skip this section if all these are turned off
+#if defined( DEVEL )
+         CALL AEROSOL_CONC( am_I_Root, Input_Opt, State_Met,
+     &                      State_Chm, RC )
+#else
          CALL AEROSOL_CONC( am_I_Root, Input_Opt, State_Met, RC )
+#endif
 
       ENDIF
 
@@ -553,11 +566,8 @@
       ! the CSPEC_FULL array gets copied to the CSPEC array.
       ! (bmy, 10/24/12)
       !-----------------------------------------------------------------
-      CALL GASCONC(  am_I_Root,
-     &               .FALSE.,                N_TRACERS, 
-     &               STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),  
-     &               .FALSE.,                Input_Opt,  
-     &               State_Met                                    )
+      CALL GASCONC(  am_I_Root, .FALSE.,   .FALSE.,   
+     &               Input_Opt, State_Met, State_Chm, RC )
 #else
       !-----------------------------------------------------------------
       !              %%%%% TRADITIONAL GEOS-Chem %%%%%
@@ -592,8 +602,8 @@
 
          ! Read the CSPEC restart file.  If not found, then 
          ! return IT_EXISTS = .FALSE.
-         CALL READ_CSPEC_FILE( am_I_Root,  GET_NYMD(),
-     &                         GET_NHMS(), IT_EXISTS ) 
+         CALL READ_CSPEC_FILE( am_I_Root, GET_NYMD(), GET_NHMS(),
+     &                         IT_EXISTS, State_Chm   )
    
          IF ( .not. IT_EXISTS ) THEN 
 
@@ -606,15 +616,12 @@
      &  '    - CHEMDR: CSPEC restart not found, use background values'
             ENDIF
 
-            CALL GASCONC( am_I_Root,
-     &                    FIRSTCHEM,              N_TRACERS, 
-     &                    STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),    
-     &                    IT_EXISTS,              Input_Opt,
-     &                    State_Met                                    )
+            CALL GASCONC( am_I_Root, FIRSTCHEM, IT_EXISTS, 
+     &                    Input_Opt, State_Met, State_Chm, RC )
          ELSE 
 
             !-----------------------------------------------------------
-            ! (1) First chemistry timestep, Call GASCONC to initialize 
+            ! (1) First chemistry OK timestep, Call GASCONC to initialize 
             !     CSPEC with values from the CSPEC restart file
             !-----------------------------------------------------------
             IF ( am_I_Root ) THEN
@@ -622,11 +629,8 @@
      &        '    - CHEMDR: using CSPEC values from restart file'
             ENDIF
 
-            CALL GASCONC( am_I_Root,
-     &                    .FALSE.,                N_TRACERS, 
-     &                    STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),    
-     &                    IT_EXISTS,              Input_Opt,
-     &                    State_Met                                    )
+            CALL GASCONC( am_I_Root, .FALSE.,    IT_EXISTS, 
+     &                    Input_Opt,  State_Met, State_Chm  RC )
 
          ENDIF 
 
@@ -636,11 +640,8 @@
          ! (3) All other chemistry timesteps, call GASCONC with
          !     the current CSPEC values.  Do not re-initialize.
          !--------------------------------------------------------------
-         CALL GASCONC(  am_I_Root,
-     &                  FIRSTCHEM,              N_TRACERS, 
-     &                  STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),  
-     &                  IT_EXISTS,              Input_Opt,             
-     &                  State_Met                                      )
+         CALL GASCONC(  am_I_Root, FIRSTCHEM, IT_EXISTS,
+     &                  Input_Opt, State_Met, State_Chm, RC )
 
       ENDIF 
 
@@ -721,7 +722,7 @@
       ! PHYSPROC calls both CALCRATE, which computes rxn rates 
       ! and SMVGEAR (if we do not use the solver coded by kpp), which
       ! is the chemistry solver
-      CALL PHYSPROC( am_I_Root, Input_Opt, State_Met, RC )
+      CALL PHYSPROC( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
       !### Debug
       IF ( prtDebug ) THEN
@@ -731,9 +732,7 @@
       !=================================================================
       ! Call LUMP which lumps the species together after chemistry
       !=================================================================
-      CALL LUMP( N_TRACERS, 
-     &           XNUMOL(1:N_TRACERS),
-     &           STT(:,:,:,1:N_TRACERS) )
+      CALL LUMP( N_TRACERS, XNUMOL(1:N_TRACERS), State_Chm )
 
       !### Debug
       IF ( prtDebug ) THEN
@@ -787,7 +786,7 @@
       ! This is current practice in the std GEOS-Chem. (bmy, 10/24/12)
       !-----------------------------------------------------------------
       IF ( Input_Opt%LFAMILY ) THEN
-         CALL DO_DIAG_PL( am_I_Root, Input_Opt, RC )
+         CALL DO_DIAG_PL( am_I_Root, Input_Opt, State_Chm, RC )
 
          !### Debug
          IF ( prtDebug ) THEN
@@ -810,7 +809,7 @@
       ! chemistry routines to function properly.  Therefore, call
       ! COPY_FULL_TROP from tropopause_mod.F every time.
       !-----------------------------------------------------------------
-      CALL SAVE_FULL_TROP()
+      CALL SAVE_FULL_TROP( State_Chm )
 
       !###  Debug
       IF ( prtDebug ) THEN
@@ -835,7 +834,7 @@
       !        CSPEC_FULL restart file. (ccc, 2/26/09) 
       !-----------------------------------------------------------------
       IF ( LVARTROP .or. LSVCSPEC ) THEN
-         CALL SAVE_FULL_TROP()
+         CALL SAVE_FULL_TROP( State_Chm )
 
          !### Debug
          IF ( prtDebug ) THEN
@@ -843,6 +842,9 @@
          ENDIF
       ENDIF
 #endif
+
+      ! Free pointer
+      NULLIFY( STT )
 
       !=================================================================
       ! Set FIRSTCHEM = .FALSE. -- we have gone thru one chem step

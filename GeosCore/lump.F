@@ -11,14 +11,15 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE LUMP( NTRACER, XNUMOL, STT )
+      SUBROUTINE LUMP( NTRACER, XNUMOL, State_Chm )
 !
 ! !USES:
 !
-      USE COMODE_MOD,   ONLY : CSPEC,  JLOP,    VOLUME
-      USE TRACERID_MOD, ONLY : IDTRMB, NMEMBER, CTRMB
-      USE CMN_SIZE_MOD                            ! Size parameters
-      USE COMODE_LOOP_MOD                         ! SMVGEAR II arrays
+      USE CMN_SIZE_MOD
+      USE COMODE_MOD,         ONLY : CSPEC,  JLOP,    VOLUME
+      USE COMODE_LOOP_MOD
+      USE TRACERID_MOD,       ONLY : IDTRMB, NMEMBER, CTRMB
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
 
       IMPLICIT NONE
 #     include "define.h"
@@ -30,8 +31,7 @@
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      ! Tracer concentrations [kg/box]
-      REAL*8,  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,NTRACER)
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 ! 
 ! !REVISION HISTORY: 
 !  01 Apr 2003 - R. Yantosca - Initial version
@@ -41,6 +41,7 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  30 Jul 2012 - R. Yantosca - Added ProTeX headers
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -50,9 +51,19 @@
       INTEGER :: I, J, L, N, JLOOP, KK, JJ
       REAL*8  :: CONCTMP  
 
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! LUMP begins here!
       !=================================================================
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N, JLOOP, CONCTMP, KK, JJ )
@@ -89,6 +100,9 @@
          ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+      ! Free pointer
+      NULLIFY( STT )
 
       END SUBROUTINE LUMP
 !EOC

@@ -292,7 +292,12 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE CHEMCARBON( am_I_Root, Input_Opt, State_Met, State_Chm,
+     &                       RC )
+#else
       SUBROUTINE CHEMCARBON( am_I_Root, Input_Opt, State_Met, RC )
+#endif
 !
 ! !USES:
 !
@@ -306,7 +311,11 @@
       USE GLOBAL_O3_MOD,      ONLY : GET_GLOBAL_O3
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
       USE TRACER_MOD,         ONLY : STT
+#endif
       USE TRACERID_MOD,       ONLY : IDTBCPI, IDTBCPO, IDTOCPI
       USE TRACERID_MOD,       ONLY : IDTOCPO, IDTSOG4, IDTSOA4
       USE TRACERID_MOD,       ONLY : IDTSOG5, IDTSOA5
@@ -317,6 +326,12 @@
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -359,6 +374,11 @@
       INTEGER       :: N
       INTEGER       :: THISMONTH
 
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! CHEMCARBON begins here!
       !=================================================================
@@ -374,6 +394,10 @@
 
       ! Do we have to print debug output?
       prtDebug = ( LPRT .and. am_I_Root )
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       ! First-time initialization
       IF ( FIRSTCHEM ) THEN
@@ -437,6 +461,9 @@
          ENDIF
       ENDIF
 
+      ! Free pointer
+      NULLIFY( STT )
+
       !=================================================================
       ! Do chemistry for secondary organic aerosols 
       !
@@ -470,7 +497,9 @@
          ! Compute SOA chemistry
          ! NOTE: This is SOA production from the reversible mechanism only 
          ! (tmf, 12/07/07) 
-         CALL SOA_CHEMISTRY( am_I_Root, Input_Opt, State_Met )
+         CALL SOA_CHEMISTRY( am_I_Root, Input_Opt, 
+     &                       State_Met, State_Chm, RC )
+
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMCARBON: a SOA_CHEM' )
          ENDIF
@@ -484,13 +513,14 @@
             CALL GET_VCLDF( State_Met )
 
             ! Cloud uptake
-            CALL SOAG_CLOUD( State_Met )
+            CALL SOAG_CLOUD( State_Met, State_Chm )
             IF ( prtDebug ) THEN
                CALL DEBUG_MSG('### CHEMCARBON: a SOAG_CLOUD')        
             ENDIF
 
             ! Aqueous aerosol uptake
-            CALL SOAG_LIGGIO_DIFF( am_I_Root, Input_Opt, State_Met )
+            CALL SOAG_LIGGIO_DIFF( am_I_Root, Input_Opt, 
+     &                             State_Met, State_Chm, RC )
             IF ( prtDebug ) THEN 
                CALL DEBUG_MSG('### CHEMCARBON: a SOAG_LIGGIO_DIFF')        
             ENDIF
@@ -504,13 +534,14 @@
             CALL GET_VCLDF( State_Met )
 
             ! Cloud uptake
-            CALL SOAM_CLOUD( State_Met )
+            CALL SOAM_CLOUD( State_Met, State_Chm )
             IF ( prtDebug ) THEN
                CALL DEBUG_MSG('### CHEMCARBON: a SOAM_CLOUD')
             ENDIF
 
             ! Aqueous aerosol uptake
-            CALL SOAM_LIGGIO_DIFF( am_I_Root, Input_Opt, State_Met )
+            CALL SOAM_LIGGIO_DIFF( am_I_Root, Input_Opt, 
+     &                             State_Met, State_Chm, RC )
             IF ( prtDebug ) THEN
                CALL DEBUG_MSG( '### CHEMCARBON: a SOAM_LIGGIO_DIFF' )
             ENDIF
@@ -1307,7 +1338,8 @@
 !EOC
 !-------------------------------------------------------------------------------
 
-      SUBROUTINE SOAG_LIGGIO_DIFF( am_I_Root, Input_Opt, State_Met )
+      SUBROUTINE SOAG_LIGGIO_DIFF( am_I_Root, Input_Opt, 
+     &                             State_Met, State_Chm, RC )
 !
 !******************************************************************************
 !  Subroutine SOAG_LIGGIO_DIFF produces SOA on aqueous aerosol surfaces
@@ -1323,6 +1355,7 @@
 !        surface.
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !******************************************************************************
 !
 ! !USES:
@@ -1335,17 +1368,27 @@
       USE COMODE_LOOP_MOD
       USE DIAG_MOD,           ONLY : AD07_SOAGM
       USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_MONTH
-      USE TRACER_MOD,         ONLY : STT 
       USE TRACERID_MOD,       ONLY : IDTGLYX, IDTSOAG
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER<        INTENT(OUT)   :: RC          ! Success or failure?
+
 !
 ! !LOCAL VARIABLES:
 !
@@ -1379,9 +1422,21 @@
                              !  heteorogeneous chem takes place
       REAL*8  :: XNAVO       ! Avogadro number
 
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! SOAG_LIGGIO_DIFF begins here!
       !=================================================================
+
+      ! Assume success
+      RC = GIGC_SUCCESS
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       ! Get chemistry time step
       DTCHEM = GET_TS_CHEM() * 60d0
@@ -1518,12 +1573,16 @@
       !=================================================================
       CALL SOA_DEPO( STT(:,:,:,IDTSOAG), DRYSOAG, IDTSOAG, Input_Opt )
 
+      ! Free pointer
+      NULLIFY( STT )
+
       ! Return to calling program 
       END SUBROUTINE SOAG_LIGGIO_DIFF
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE SOAM_LIGGIO_DIFF( am_I_Root, Input_Opt, State_Met )
+      SUBROUTINE SOAM_LIGGIO_DIFF( am_I_Root, Input_Opt, 
+     &                             State_Met, State_Chm, RC )
 !
 !******************************************************************************
 !  Subroutine SOAG_LIGGIO_DIFF produces SOA on aqueous aerosol surfaces
@@ -1540,6 +1599,7 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !   5 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt arguments
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !******************************************************************************
 !
 ! !USES:
@@ -1552,17 +1612,26 @@
       USE COMODE_LOOP_MOD
       USE DIAG_MOD,           ONLY : AD07_SOAGM
       USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_MONTH
-      USE TRACER_MOD,         ONLY : STT 
       USE TRACERID_MOD,       ONLY : IDTMGLY, IDTSOAM
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN) :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !LOCAL VARIABLES:
 !
@@ -1596,9 +1665,21 @@
                              !  heteorogeneous chem takes place
       REAL*8  :: XNAVO       ! Avogadro number
 
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! SOAG_LIGGIO_DIFF begins here!
       !=================================================================
+
+      ! Assume success
+      RC = GIGC_SUCCESS
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       ! Get chemistry time step
       DTCHEM = GET_TS_CHEM() * 60d0
@@ -1735,13 +1816,17 @@
       !=================================================================
       CALL SOA_DEPO( STT(:,:,:,IDTSOAM), DRYSOAM, IDTSOAM, Input_Opt )
 
+      ! Free pointer
+      NULLIFY( STT )
+
       ! Return to calling program 
       END SUBROUTINE SOAM_LIGGIO_DIFF
 
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE SOA_CHEMISTRY( am_I_Root, Input_Opt, State_Met )
+      SUBROUTINE SOA_CHEMISTRY( am_I_Root, Input_Opt, 
+     &                          State_Met, State_Chm, RC )
 !
 !******************************************************************************
 !  Subroutine SOA_CHEMISTRY performs SOA formation.  This code is from the
@@ -1819,29 +1904,37 @@
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LPRT
 !******************************************************************************
 !
-      ! References to F90 modules
+      USE CMN_O3_MOD
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD07_HC
       USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACER_MOD,         ONLY : STT 
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TRACERID_MOD,       ONLY : IDTALCO, IDTALPH, IDTLIMO, IDTOCPI
       USE TRACERID_MOD,       ONLY : IDTOCPO, IDTSOA1, IDTSOA2, IDTSOA3
       USE TRACERID_MOD,       ONLY : IDTSOA4, IDTSOG1, IDTSOG2, IDTSOG3
       USE TRACERID_MOD,       ONLY : IDTSOG4, IDTSO4,  IDTNH4,  IDTNIT
-      USE TRACERID_MOD,       ONLY : IDTSOG5, IDTSOA5  ! (dkh, 03/24/07)  
+      USE TRACERID_MOD,       ONLY : IDTSOG5, IDTSOA5
       USE TIME_MOD,           ONLY : GET_TS_CHEM,      GET_MONTH
       USE TIME_MOD,           ONLY : ITS_TIME_FOR_BPCH
 
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_O3_MOD               ! XNUMOL
-      USE CMN_DIAG_MOD             ! ND44
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !LOCAL VARIABLES:
 !
@@ -1869,6 +1962,11 @@
       REAL*8, SAVE    :: SOA_PROD         = 0d0
       REAL*8, SAVE    :: AM0_AROM_PROD(6) = 0d0
 
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! SOA_CHEMISTRY begins here!
       !=================================================================
@@ -1885,6 +1983,12 @@
 
          FIRST = .FALSE.
       ENDIF
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
 
       !%%% NOTE: NEED TO REPLACE LLTROP WITH LLPAR FOR GIGC
       !%%% DO THIS LATER SINCE WE ARE NOT USING THE SOA MECHANISM YET
@@ -1920,7 +2024,7 @@
 
          ! Partition mass of gas & aerosol tracers 
          ! according to 5 VOC classes & 3 oxidants
-         CALL SOA_PARTITION( I, J, L, GM0, AM0 )
+         CALL SOA_PARTITION( I, J, L, GM0, AM0, State_Chm )
 
          IF ( IDTSOA5 /= 0 ) THEN
             ! dkh diagnostic
@@ -1929,9 +2033,10 @@
 
          ! Compute oxidation of hydrocarbons by O3, OH, NO3
          ! ALPHA is a module variable now (ccc, 2/2/10)
-         CALL CHEM_NVOC( I,   J,         L, 
-     &                   KO3, KOH,       KNO3, 
-     &                   GM0, Input_Opt, State_Met )
+         CALL CHEM_NVOC( I,         J,         L, 
+     &                   KO3,       KOH,       KNO3, 
+     &                   GM0,       Input_Opt, State_Met, 
+     &                   State_Chm, RC                    )
 
          !==============================================================
          ! Equilibrium calculation between GAS (SOG) and Aerosol (SOA)
@@ -2130,7 +2235,7 @@
          ENDDO
             
          ! Lump SOA
-         CALL SOA_LUMP( I, J, L, GM0, AM0 )
+         CALL SOA_LUMP( I, J, L, GM0, AM0, State_Chm )
 
          GLOB_AM0_AROM = GLOB_AM0_AROM + SUM(AM0(:,:,7:9),2)
 
@@ -2243,6 +2348,9 @@
       CALL SOA_DEPO( STT(:,:,:,IDTSOA4), DRYSOA4, IDTSOA4, Input_Opt )
       CALL SOA_DEPO( STT(:,:,:,IDTSOG5), DRYSOG5, IDTSOG5, Input_Opt )
       CALL SOA_DEPO( STT(:,:,:,IDTSOA5), DRYSOA5, IDTSOA5, Input_Opt )
+
+      ! Free pointer
+      NULLIFY( STT )
 
       ! Return to calling program
       END SUBROUTINE SOA_CHEMISTRY
@@ -3205,9 +3313,10 @@ c
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE CHEM_NVOC( I,   J,         L, 
-     &                      KO3, KOH,       KNO3, 
-     &                      GM0, Input_Opt, State_Met )
+      SUBROUTINE CHEM_NVOC( I,         J,         L, 
+     &                      KO3,       KOH,       KNO3, 
+     &                      GM0,       Input_Opt, State_Met,
+     &                      State_Chm, RC                    )
 !
 !******************************************************************************
 !  Subroutine CHEM_NVOC computes the oxidation of Hydrocarbon by O3, OH, and 
@@ -3238,13 +3347,14 @@ c
 !******************************************************************************
 !
       ! References to F90 kmodules
+      USE CMN_SIZE_MOD
+      USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_MONTH
-      USE TRACER_MOD,         ONLY : STT
       USE TRACERID_MOD,       ONLY : IDTALCO,     IDTALPH,  IDTLIMO
 
-      USE CMN_SIZE_MOD             ! Size parameters
 
       ! Arguments
       INTEGER,        INTENT(IN)    :: I, J, L
@@ -3252,6 +3362,8 @@ c
       REAL*8,         INTENT(INOUT) :: GM0(MNOX,MPROD,MHC)
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      INTEGER         INTENT(OUT)   :: RC          ! Success or failure?
 
       ! Local variables
       INTEGER  :: JHC, IPR, NOX
@@ -3259,9 +3371,21 @@ c
       REAL*8   :: OHMC, TTNO3, TTO3, DTCHEM, RK
       REAL*8   :: OVER, DO3, DOH, DNO3
 
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! CHEM_NVOC begins here!
       !=================================================================
+
+      ! Assume success
+      RC = GIGC_SUCCESS
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       ! Chemistry timestep [s]
       DTCHEM  = GET_TS_CHEM() * 60d0 
@@ -3409,12 +3533,15 @@ c
       ! Nothing to do for isoprene or aromatics here, 
       ! as their oxidation is treated online. 
 
+      ! Free pointer
+      NULLIFY( STT )
+
       ! Return to calling program
       END SUBROUTINE CHEM_NVOC
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE SOA_PARTITION( I, J, L, GM0, AM0 )
+      SUBROUTINE SOA_PARTITION( I, J, L, GM0, AM0, State_Chm )
 !
 !******************************************************************************
 !  Subroutine SOA_PARTITION partitions the mass of gas and aerosol 
@@ -3442,25 +3569,33 @@ c
 !******************************************************************************
 !
       ! Refrences to F90 modules
-      USE TRACER_MOD,   ONLY : STT
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TRACERID_MOD, ONLY : IDTSOA1, IDTSOA2, IDTSOA3, IDTSOA4
       USE TRACERID_MOD, ONLY : IDTSOG1, IDTSOG2, IDTSOG3, IDTSOG4
       USE TRACERID_MOD, ONLY : IDTSOG5, IDTSOA5
 
-      USE CMN_SIZE_MOD     ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)  :: I, J, L
-      !REAL*8,  INTENT(OUT) :: GM0(NPROD,MHC), AM0(NPROD,MHC)
       REAL*8,  INTENT(OUT) :: GM0(MNOX,MPROD,MHC), AM0(MNOX,MPROD,MHC)
-
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 
       ! Local variables
       INTEGER              :: JHC, IPR, NOX
 
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! SOA_PARTITION begins here!
       !=================================================================
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       ! Initialize
       ! initialize all, up to MPROD and MNOX (dkh, 11/10/06)  
@@ -3546,12 +3681,15 @@ c
       ENDDO
       ENDDO
       
+      ! Free pointer
+      NULLIFY( STT )
+
       ! Return to calling program
       END SUBROUTINE SOA_PARTITION
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE SOA_LUMP( I, J, L, GM0, AM0 )
+      SUBROUTINE SOA_LUMP( I, J, L, GM0, AM0, State_Chm )
 !
 !******************************************************************************
 !  Subroutine SOA_LUMP returns the organic gas and aerosol back to the
@@ -3577,28 +3715,35 @@ c
 !******************************************************************************
 !
       ! References to F90 modules
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
       USE DIAG_MOD,     ONLY : AD07_HC 
-      USE TRACER_MOD,   ONLY : STT
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TRACERID_MOD, ONLY : IDTSOA1, IDTSOA2, IDTSOA3, IDTSOA4
       USE TRACERID_MOD, ONLY : IDTSOG1, IDTSOG2, IDTSOG3, IDTSOG4
       USE TRACERID_MOD, ONLY : IDTSOG5, IDTSOA5
-
-
-      USE CMN_SIZE_MOD    ! Size parameters
-      USE CMN_DIAG_MOD    ! ND44, ND07, LD07
       
       ! Arguments
       INTEGER, INTENT(IN)  :: I, J, L
-      !REAL*8,  INTENT(IN)  :: GM0(NPROD,MHC), AM0(NPROD,MHC)
       REAL*8,  INTENT(IN)  :: GM0(MNOX,MPROD,MHC), AM0(MNOX,MPROD,MHC)
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 
       ! Local variables
       INTEGER              :: JHC, IPR, NOX
       REAL*8               :: GASMASS, AERMASS
 
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! SOA_LUMP begins here!
       !=================================================================
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       ! Initialize
       GASMASS = 0D0
@@ -3956,6 +4101,9 @@ c
          ENDDO
       ENDIF
 
+      ! Free pointer
+      NULLIFY( STT )
+
       ! Return to calling program
       END SUBROUTINE SOA_LUMP
 
@@ -4127,7 +4275,7 @@ c
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      SUBROUTINE EMISSCARBON( State_Met, EMISSIONS )
+      SUBROUTINE EMISSCARBON( State_Met, State_Chm, EMISSIONS )
 #else
       SUBROUTINE EMISSCARBON( State_Met )
 #endif
@@ -4162,10 +4310,12 @@ c
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE GFED2_BIOMASS_MOD,  ONLY : GFED2_IS_NEW
       USE GFED3_BIOMASS_MOD,  ONLY : GFED3_IS_NEW
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#endif
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE LOGICAL_MOD,        ONLY : LSOA,      LPRT,  LCOOKE
       USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
-      USE TRACER_MOD,         ONLY : STT
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND07
@@ -4184,6 +4334,7 @@ c
       ! Arguments
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #if defined( DEVEL )
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
       REAL*8,      INTENT(INOUT) :: EMISSIONS(IIPAR,JJPAR,N_TRACERS+1)
 #endif
       !=================================================================
@@ -4345,7 +4496,11 @@ c
 !$OMP END PARALLEL DO
 
       ! Sum up all carbon tracers throughout the boundary layer
+#if defined( DEVEL )
+      CALL EMITHIGH( BCSRC, OCSRC, State_Chm )
+#else
       CALL EMITHIGH( BCSRC, OCSRC )
+#endif
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISCARB: after EMITHIGH' )
 
 #if defined( DEVEL )
@@ -5643,7 +5798,11 @@ c
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE EMITHIGH( BCSRC, OCSRC, State_Chm )
+#else
       SUBROUTINE EMITHIGH( BCSRC, OCSRC )
+#endif
 !
 !******************************************************************************
 !  Subroutine EMITHIGH mixes tracer completely from the surface to the PBL
@@ -5668,7 +5827,11 @@ c
 !
       ! References to F90 modules
       USE PBL_MIX_MOD,  ONLY  : GET_FRAC_OF_PBL,  GET_PBL_MAX_L
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
       USE TRACER_MOD,   ONLY  : STT
+#endif
       USE TRACERID_MOD, ONLY  : IDTBCPI, IDTBCPO, IDTOCPI, IDTOCPO
       USE TRACERID_MOD, ONLY  : IDTALPH, IDTLIMO, IDTALCO
       USE VDIFF_PRE_MOD, ONLY : EMIS_SAVE ! (Lin, 03/31/09)
@@ -5682,12 +5845,22 @@ c
       ! Arguments
       REAL*8, INTENT(IN) :: BCSRC(IIPAR,JJPAR,2)
       REAL*8, INTENT(IN) :: OCSRC(IIPAR,JJPAR,2)
+#if defined( DEVEL )
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 
       ! Local variables
       LOGICAL            :: IS_BCPO, IS_OCPO, IS_BCPI, IS_OCPI
       LOGICAL            :: IS_ALPH, IS_LIMO, IS_ALCO
       INTEGER            :: I,       J,       L,       PBL_MAX
       REAL*8             :: F_OF_PBL
+
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
 
       !=================================================================
       ! EMITHIGH begins here!
@@ -5701,6 +5874,12 @@ c
       IS_ALPH = ( IDTALPH > 0 )
       IS_LIMO = ( IDTLIMO > 0 )
       IS_ALCO = ( IDTALCO > 0 )
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
 
       ! Save surface emis for non-local PBL mixing (vdiff_mod.f) 
       ! (units: kg) (Lin, 06/09/08) 
@@ -5805,6 +5984,11 @@ c
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
 
       ! Return to calling program
       END SUBROUTINE EMITHIGH
@@ -6704,7 +6888,7 @@ c
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE SOAG_CLOUD( State_Met )
+      SUBROUTINE SOAG_CLOUD( State_Met, State_Chm )
 !
 !******************************************************************************
 !  Subroutine SOAG_CLOUD produces SOAG from GLYX during a cloud event.
@@ -6731,13 +6915,14 @@ c
       USE DAO_MOD,            ONLY : IS_LAND 
       USE DIAG_MOD,           ONLY : AD07_SOAGM
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
-      USE TRACER_MOD,         ONLY : STT
       USE TRACERID_MOD,       ONLY : IDTGLYX, IDTSOAG
 
       ! Arguments
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 
       ! Local variables
       INTEGER           :: I, J, L
@@ -6773,9 +6958,18 @@ c
                                                !  XGAMMA = 2.9d-3 following
                                                ! Liggio et al., 2005)
 
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! SOAG_CLOUD
       !=================================================================
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       ! DTCHEM is the chemistry timestep in seconds
       DTCHEM = GET_TS_CHEM() * 60d0
@@ -6912,12 +7106,15 @@ c
       ENDDO
       ENDDO
 
+      ! Free pointer
+      NULLIFY( STT )
+
       ! Return to calling program 
       END SUBROUTINE SOAG_CLOUD
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE SOAM_CLOUD( State_Met )
+      SUBROUTINE SOAM_CLOUD( State_Met, State_Chm )
 !
 !******************************************************************************
 !  Subroutine SOAM_CLOUD produces SOAM from MGLY during a cloud event.
@@ -6936,19 +7133,20 @@ c
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
-      USE DAO_MOD,            ONLY : IS_LAND     ! True if sfc grid box is land
+      USE CMN_SIZE_MOD
+      USE CMN_DIAG_MOD
+      USE DAO_MOD,            ONLY : IS_LAND
       USE DIAG_MOD,           ONLY : AD07_SOAGM
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
-      USE TRACER_MOD,         ONLY : STT
       USE TRACERID_MOD,       ONLY : IDTMGLY, IDTSOAM
 
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_DIAG_MOD             ! ND44, ND07, LD07
 
       !Arguments
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 
       ! Local variables
       INTEGER           :: I, J, L
@@ -6985,9 +7183,18 @@ c
                                                !  XGAMMA = 2.9d-3 following
                                                !  Liggio et al., 2005)
 
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! SOAG_CLOUD
       !=================================================================
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       ! DTCHEM is the chemistry timestep in seconds
       DTCHEM = GET_TS_CHEM() * 60d0
@@ -7121,6 +7328,9 @@ c
       ENDDO
       ENDDO
       ENDDO
+
+      ! Free pointer
+      NULLIFY( STT )
 
       ! Return to calling program 
       END SUBROUTINE SOAM_CLOUD

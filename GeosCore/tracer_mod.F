@@ -79,7 +79,9 @@
       INTEGER,           PUBLIC, ALLOCATABLE :: ID_TRACER(:)
       INTEGER,           PUBLIC, ALLOCATABLE :: ID_EMITTED(:)
       INTEGER,           PUBLIC, ALLOCATABLE :: TRACER_N_CONST(:)
+#if !defined( DEVEL )
       REAL*8,    TARGET, PUBLIC, ALLOCATABLE :: STT(:,:,:,:)
+#endif
       REAL*8,            PUBLIC, ALLOCATABLE :: TCVV(:)
       REAL*8,            PUBLIC, ALLOCATABLE :: TRACER_COEFF(:,:)
       REAL*8,            PUBLIC, ALLOCATABLE :: TRACER_MW_G(:)
@@ -658,19 +660,32 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE CHECK_STT( State_Chm, LOCATION )
+#else
       SUBROUTINE CHECK_STT( LOCATION )
+#endif
 !
 ! !USES:
 !
       USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
       USE ERROR_MOD, ONLY : IT_IS_NAN
       USE ERROR_MOD, ONLY : IT_IS_FINITE
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#endif
 
       USE CMN_SIZE_MOD    ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
       CHARACTER(LEN=*), INTENT(IN) :: LOCATION
+#if defined( DEVEL )
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(ChmState),   INTENT(IN) :: State_Chm   ! Chemistry State object
+#endif
 ! 
 ! !REVISION HISTORY:
 !  (1 ) CHECK_STT uses the interfaces defined above -- these will do the
@@ -692,6 +707,13 @@
       LOGICAL                      :: LNEG, LNAN, LINF
       INTEGER                      :: I,    J,    L,   N, N_TOT_TRC
       
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
+
       !=================================================================
       ! CHECK_STT begins here!
       !=================================================================
@@ -701,6 +723,12 @@
       N_TOT_TRC = N_TRACERS + N_APMTRA   ! G-C advected tracers + APM tracers
 #else
       N_TOT_TRC = N_TRACERS              ! G-C advected tracers only
+#endif
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 #endif
 
       ! Initialize
@@ -752,6 +780,11 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
+
       !=================================================================
       ! Stop the run if any of LNEG, LNAN, LINF is true
       !=================================================================
@@ -782,18 +815,31 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE CHECK_STT_05x0666( State_Chm, LOCATION )
+#else
       SUBROUTINE CHECK_STT_05x0666( LOCATION )
+#endif
 !
 ! !USES:
 !
       USE ERROR_MOD, ONLY : IT_IS_NAN
       USE ERROR_MOD, ONLY : IT_IS_FINITE
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#endif
 
       USE CMN_SIZE_MOD    ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
       CHARACTER(LEN=*), INTENT(IN) :: LOCATION
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState),   INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 ! 
 ! !REVISION HISTORY:
 !  05 Mar 2012 - M. Payer    - Initial version based on CHECK_STT and updates
@@ -807,9 +853,22 @@
 !
       INTEGER                      :: I,    J,    L,   N
       
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
+
       !=================================================================
       ! CHECK_STT_05x0666 begins here!
       !=================================================================
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
 
       ! Loop over grid boxes
 !$OMP PARALLEL DO 
@@ -859,6 +918,11 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
 
  100  FORMAT( ' STT(',i3,',',i3,',',i3,',',i3,') = ', f13.6 )
 
@@ -987,9 +1051,11 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TRACER_N_CONST' )
       TRACER_N_CONST = 0
 
+#if !defined( DEVEL )
       ALLOCATE( STT( IIPAR, JJPAR, LLPAR, N_TOT_TRC ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'STT' )
       STT = 0d0      
+#endif
 
       ALLOCATE( XNUMOL( N_TOT_TRC ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'XNUMOL' )
@@ -1036,7 +1102,9 @@
       IF ( ALLOCATED( TRACER_N_CONST ) ) DEALLOCATE( TRACER_N_CONST )
       IF ( ALLOCATED( TRACER_MW_G    ) ) DEALLOCATE( TRACER_MW_G    )
       IF ( ALLOCATED( TRACER_MW_KG   ) ) DEALLOCATE( TRACER_MW_KG   )
+#if !defined( DEVEL )
       IF ( ALLOCATED( STT            ) ) DEALLOCATE( STT            )
+#endif
       IF ( ALLOCATED( XNUMOL         ) ) DEALLOCATE( XNUMOL         )
 
       END SUBROUTINE CLEANUP_TRACER

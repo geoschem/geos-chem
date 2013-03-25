@@ -11,9 +11,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GASCONC( am_I_Root, FIRSTCHEM, NTRACER,
-     &                    STT,       XNUMOL,    READ_CSPEC,
-     &                    Input_Opt, State_Met              )
+      SUBROUTINE GASCONC( am_I_Root, FIRSTCHEM, READ_CSPEC, 
+     &                    Input_Opt, State_Met, State_Chm,  RC )
 !
 ! !USES:
 !
@@ -22,7 +21,6 @@
       USE COMODE_MOD,         ONLY : ABSHUM
       USE COMODE_MOD,         ONLY : AIRDENS
       USE COMODE_MOD,         ONLY : CSPEC
-      USE COMODE_MOD,         ONLY : CSPEC_FULL
       USE COMODE_MOD,         ONLY : IXSAVE
       USE COMODE_MOD,         ONLY : IYSAVE
       USE COMODE_MOD,         ONLY : IZSAVE
@@ -31,7 +29,9 @@
       USE COMODE_MOD,         ONLY : T3
       USE DRYDEP_MOD,         ONLY : NUMDEP
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TROPOPAUSE_MOD,     ONLY : COPY_FULL_TROP
@@ -45,16 +45,17 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root       ! Is this the root CPU?
       LOGICAL,        INTENT(IN)    :: FIRSTCHEM       ! First-time flag
-      INTEGER,        INTENT(IN)    :: NTRACER         ! # of tracers
-      REAL*8,         INTENT(IN)    :: XNUMOL(NTRACER) ! Molec tracer/kg tracer
       LOGICAL,        INTENT(IN)    :: READ_CSPEC      ! Is 
       TYPE(OptInput), INTENT(IN)    :: Input_Opt       ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met       ! Met State object
 !
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm       ! Chemistry State object
+!
 ! !OUTPUT PARAMETERS:
 !
-      ! Tracer concentrations 
-      REAL*8,         INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,NTRACER)
+      INTEGER,        INTENT(OUT)   :: RC              ! Success or failure?
 !
 ! !REMARKS:
 !
@@ -120,6 +121,8 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LSOA and Input_Opt%LVARTROP
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
+!  25 Mar 2013 - R. Yantosca - Now get XNUMOL, N_TRACERS from Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -136,17 +139,36 @@
       REAL*8  :: QACC,FRACDIF,FRACABS,AVGERR,RMSCUR
       REAL*8  :: TK,CONSEXP,VPRESH2O,CONST
 
+      ! For fields from Input_Opt
+      INTEGER         :: N_TRACERS
+      REAL*8          :: XNUMOL(Input_Opt%N_TRACERS)
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 1/24/12)
+      REAL*8, POINTER :: CSPEC_FULL(:,:,:,:)
+
       !=================================================================
       ! GASCONC begins here!
       !=================================================================
 
+      ! Assume success
+      RC         =  GIGC_SUCCESS
+
       ! Set NCS=NCSURBAN here since we have defined our tropospheric
       ! chemistry mechanism in the urban slot of SMVGEAR II
-      NCS      = NCSURBAN
+      NCS        =  NCSURBAN
 
-      ! Now use logical fields from the Input_Opt object
-      LSOA     = Input_Opt%LSOA
-      LVARTROP = Input_Opt%LVARTROP
+      ! Now use l ogical fields from the Input_Opt object
+      LSOA       =  Input_Opt%LSOA
+      LVARTROP   =  Input_Opt%LVARTROP
+      NTRACER    =  Input_Opt%N_TRACERS
+      XNUMOL     =  Input_Opt%XNUMOL(1:NTRACER)
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      ! NOTE: May only need to do this for traditional G-C runs
+      CSPEC_FULL => State_Chm%Species
 
       !=================================================================
       ! First time through here, copy initial conditions from QBKCHEM
@@ -288,7 +310,7 @@
       ! chemistry routines to function properly.  Therefore, call
       ! COPY_FULL_TROP from tropopause_mod.F every time.
       !-----------------------------------------------------------------
-      CALL COPY_FULL_TROP()
+      CALL COPY_FULL_TROP( State_Chm )
 
 #else
       !-----------------------------------------------------------------
@@ -305,8 +327,13 @@
       !    (1 ) copy CSPEC_FULL to CSPEC depending on
       !         READ_CSPEC (hotp, 2/25/09)
       !-----------------------------------------------------------------
-      IF ( FIRSTCHEM .or. READ_CSPEC ) CALL COPY_FULL_TROP()
+      IF ( FIRSTCHEM .or. READ_CSPEC ) CALL COPY_FULL_TROP( State_Chm )
 
+#endif
+
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( CSPEC_FULL )
 #endif
 
 !  ********************************************************************
@@ -318,7 +345,7 @@
 !   should be added as needed to other chemistries.
 !      if (NCS .eq. 1) then
 !  maybe??
-      CALL PARTITION( NTRACER, STT, XNUMOL, am_I_Root ) 
+      CALL PARTITION( NTRACER, XNUMOL, am_I_Root, State_Chm ) 
 !      endif
 
 ! 

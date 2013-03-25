@@ -294,7 +294,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD  ! Size parameters
-      USE CMN_MOD       ! STT, NTRACE, LPRT, LWINDO
+      USE CMN_MOD       ! NTRACE, LPRT, LWINDO
 !
 ! !INPUT PARAMETERS: 
 !

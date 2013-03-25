@@ -2574,7 +2574,8 @@ contains
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_PBL_MIX_2( am_I_Root, DO_TURBDAY, Input_Opt, State_Met, RC )
+  SUBROUTINE DO_PBL_MIX_2( am_I_Root, DO_TURBDAY, Input_Opt,  &
+                           State_Met, State_Chm,  RC         )
 !
 ! !USES:
 !
@@ -2585,7 +2586,8 @@ contains
     USE LOGICAL_MOD,        ONLY : LTURB, LPRT
     USE PBL_MIX_MOD,        ONLY : INIT_PBL_MIX, COMPUTE_PBL_HEIGHT
     USE TIME_MOD,           ONLY : ITS_TIME_FOR_EMIS
-    USE TRACER_MOD,         ONLY : N_TRACERS, STT, TCVV, ITS_A_FULLCHEM_SIM
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE TRACER_MOD,         ONLY : N_TRACERS, TCVV, ITS_A_FULLCHEM_SIM
     USE VDIFF_PRE_MOD,      ONLY : EMISRR, EMISRRN
 
     IMPLICIT NONE
@@ -2601,6 +2603,7 @@ contains
 ! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(MetState), INTENT(INOUT) :: State_Met    ! Meteorology State object
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm    ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -2613,6 +2616,7 @@ contains
 !  05 Mar 2013 - R. Yantosca - Add am_I_root, Input_Opt, RC arguments
 !  05 Mar 2013 - R. Yantosca - Now call SETEMIS with am_I_Root, Input_Opt, RC
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%ITS_A_FULLCHEM_SIM
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2621,12 +2625,21 @@ contains
 !
     LOGICAL, SAVE :: FIRST = .TRUE.
 
+      ! Pointers
+    ! We need to define local arrays to hold corresponding values 
+    ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+    REAL*8, POINTER :: STT(:,:,:,:)
+
     !=================================================================
     ! DO_PBL_MIX_2 begins here!
     !=================================================================
     
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC  =  GIGC_SUCCESS
+
+    ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+    ! (mpayer, 12/6/12)
+    STT => State_Chm%Tracers
 
     ! First-time initialization
     ! NOTE: Should really move this into the init stage
@@ -2667,6 +2680,9 @@ contains
           CALL DEBUG_MSG( '### DO_PBL_MIX_2: after VDIFFDR' )
        ENDIF
     ENDIF
+
+    ! Free pointer
+    NULLIFY( STT )
 
   END SUBROUTINE DO_PBL_MIX_2
 !EOC  

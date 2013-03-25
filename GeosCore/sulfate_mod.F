@@ -436,7 +436,12 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE CHEMSULFATE( am_I_Root, Input_Opt, State_Met,
+     &                        State_Chm, RC )
+#else
       SUBROUTINE CHEMSULFATE( am_I_Root, Input_Opt, State_Met, RC )
+#endif
 !
 ! !USES:
 !
@@ -453,7 +458,11 @@
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
       USE TRACER_MOD,         ONLY : STT
+#endif
       USE TRACERID_MOD,       ONLY : IDTNITs
       USE TRACERID_MOD,       ONLY : IDTSO4s
 
@@ -463,6 +472,12 @@
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -521,6 +536,13 @@
 
       ! Arrays
       REAL*8            :: TCVV(Input_Opt%N_TRACERS)
+
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
 !
 ! !EXTERNAL FUNCTIONS:   
 !
@@ -539,6 +561,12 @@
       N_TRACERS            = Input_Opt%N_TRACERS
       TCVV                 = Input_Opt%TCVV(1:N_TRACERS)
       IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
 
       ! Should we print debug output?
       prtDebug             = ( LPRT .and. am_I_Root )
@@ -601,19 +629,70 @@
       IF ( IT_IS_AN_AEROSOL_SIM ) THEN
 
          ! DMS (offline only)
+#if defined( DEVEL )
+         CALL CHEM_DMS( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+#else
          CALL CHEM_DMS( am_I_Root, Input_Opt, State_Met, RC )
+#endif
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_DMS' )
          ENDIF
 
          ! H2O2 (offline only)
+#if defined( DEVEL )
+         CALL CHEM_H2O2( am_I_Root, Input_Opt, State_Met, State_Chm,
+     &                   RC )
+#else
          CALL CHEM_H2O2( am_I_Root, Input_Opt, State_Met, RC )
+#endif
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_H2O2' )
          ENDIF
 
       ENDIF
 
+#if defined( DEVEL )
+      ! SO2
+      CALL GET_VCLDF( am_I_Root, State_Met, RC )
+      IF ( prtDebug ) THEN
+         CALL DEBUG_MSG( '### CHEMSULFATE: a get VCLDF' )
+      ENDIF
+
+      CALL CHEM_SO2( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+      IF ( prtDebug ) THEN
+         CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO2' )
+      ENDIF
+
+      ! SO4
+      CALL CHEM_SO4( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+      IF ( prtDebug ) THEN
+         CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO4' )
+      ENDIF
+
+      ! MSA
+      CALL CHEM_MSA( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+      IF ( prtDebug ) THEN
+         CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_MSA' )
+      ENDIF
+
+      ! NH3
+      CALL CHEM_NH3( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+      IF ( prtDebug ) THEN
+         CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NH3' )
+      ENDIF
+
+      ! NH4 (gas-phase)
+      CALL CHEM_NH4( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+      IF ( prtDebug ) THEN
+         CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NH4' )
+      ENDIF
+
+      ! Sulfur Nitrate
+      CALL CHEM_NIT( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+      IF ( prtDebug ) THEN
+         CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NIT' )
+      ENDIF
+#else
       ! SO2
       CALL GET_VCLDF( am_I_Root, State_Met, RC )
       IF ( prtDebug ) THEN
@@ -654,9 +733,15 @@
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NIT' )
       ENDIF
+#endif
 
       ! Convert STT from [v/v] -> [kg]
       CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, State_Met%AD, STT )
+
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
 
       ! We have already gone thru one chemistry iteration
       FIRSTCHEM = .FALSE. 
@@ -993,7 +1078,12 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE CHEM_DMS( am_I_Root, Input_Opt, State_Met, State_Chm,
+     &                     RC )
+#else
       SUBROUTINE CHEM_DMS( am_I_Root, Input_Opt, State_Met, RC )
+#endif
 !
 ! !USES:
 !
@@ -1006,7 +1096,11 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
       USE TRACER_MOD,         ONLY : STT
+#endif
       USE TRACERID_MOD,       ONLY : IDTDMS
       USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
 !
@@ -1015,6 +1109,12 @@
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1096,6 +1196,13 @@
                         
       ! Arrays          
       REAL*8            :: XNUMOL(Input_Opt%N_TRACERS)
+
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
 !
 ! !EXTERNAL FUNCTIONS:   
 !
@@ -1112,6 +1219,12 @@
       ! Copy fields from INPUT_OPT to local variables for use below
       IS_FULLCHEM = Input_Opt%ITS_A_FULLCHEM_SIM
       XNUMOL      = Input_Opt%XNUMOL
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
 
       ! DTCHEM is the chemistry timestep in seconds
       DTCHEM      = GET_TS_CHEM() * 60d0
@@ -1279,6 +1392,11 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
+
       END SUBROUTINE CHEM_DMS
 !EOC
 !------------------------------------------------------------------------------
@@ -1295,7 +1413,12 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE CHEM_H2O2( am_I_Root, Input_Opt, State_Met, State_Chm,
+     &                      RC )
+#else
       SUBROUTINE CHEM_H2O2( am_I_Root, Input_Opt, State_Met, RC )
+#endif
 !
 ! !USES:
 !
@@ -1318,7 +1441,11 @@
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
       USE TRACER_MOD,         ONLY : STT
+#endif
       USE TRACERID_MOD,       ONLY : IDTH2O2
       USE TRANSFER_MOD,       ONLY : TRANSFER_3D_TROP
       USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
@@ -1328,6 +1455,12 @@
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1397,6 +1530,13 @@
       REAL*8             :: XNUMOL(Input_Opt%N_TRACERS)
       REAL*8             :: ND44_TMP(IIPAR,JJPAR,LLPAR)
 
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
+
       !=================================================================
       ! CHEM_H2O2 begins here!
       !=================================================================
@@ -1410,6 +1550,12 @@
       TCVV      = Input_Opt%TCVV  (1:N_TRACERS)
       XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
       LNLPBL    = Input_Opt%LNLPBL
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT    => State_Chm%Tracers
+#endif
 
       ! Chemistry timestep [s]
       DT        = GET_TS_CHEM() * 60d0
@@ -1555,6 +1701,11 @@
 !$OMP END PARALLEL DO
       ENDIF
 
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
+
       END SUBROUTINE CHEM_H2O2
 !EOC
 !------------------------------------------------------------------------------
@@ -1570,7 +1721,12 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE CHEM_SO2( am_I_Root, Input_Opt, State_Met, State_Chm,
+     &                     RC )
+#else
       SUBROUTINE CHEM_SO2( am_I_Root, Input_Opt, State_Met, RC )
+#endif
 !
 ! !USES:
 !
@@ -1592,7 +1748,11 @@
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_MONTH
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
       USE TRACER_MOD,         ONLY : STT
+#endif
       USE TRACERID_MOD,       ONLY : IDTH2O2
       USE TRACERID_MOD,       ONLY : IDTSO2
       USE SEASALT_MOD,        ONLY : GET_ALK
@@ -1605,6 +1765,12 @@
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1706,6 +1872,13 @@
       REAL*8                :: TCVV  (Input_Opt%N_TRACERS)
       REAL*8                :: XNUMOL(Input_Opt%N_TRACERS)
 
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
+
       !=================================================================
       ! CHEM_SO2 begins here!
       !=================================================================
@@ -1721,6 +1894,12 @@
       TCVV       = Input_Opt%TCVV  (1:N_TRACERS)
       XNUMOL     = Input_Opt%XNUMOL(1:N_TRACERS)
       LNLPBL     = Input_Opt%LNLPBL
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
 
       ! Read HNO3 for offline simulation
       IF ( IS_OFFLINE ) THEN
@@ -1842,11 +2021,19 @@
 
             ! Compute oxidation of SO2 -> SO4 and condensation of
             ! HNO3 -> nitrate within the seasalt aerosol
+#if defined( DEVEL )
+            CALL SEASALT_CHEM( I,         J,         L,        ALK1, 
+     &                         ALK2,      SO2_cd,    Kt1,      Kt2,   
+     &                         Kt1N,      Kt2N,      SO2_ss,   PSO4E,     
+     &                         PSO4F,     am_I_Root, Input_Opt, 
+     &                         State_Met, State_Chm, RC               )
+#else
             CALL SEASALT_CHEM( I,         J,         L,        ALK1, 
      &                         ALK2,      SO2_cd,    Kt1,      Kt2,   
      &                         Kt1N,      Kt2N,      SO2_ss,   PSO4E,     
      &                         PSO4F,     am_I_Root, Input_Opt, 
      &                         State_Met, RC                          )
+#endif
 
          ELSE
 
@@ -2154,6 +2341,11 @@
 !$OMP END PARALLEL DO
       ENDIF
 
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
+
       END SUBROUTINE CHEM_SO2
 !EOC
 !------------------------------------------------------------------------------
@@ -2170,11 +2362,20 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE SEASALT_CHEM ( I,         J,         L,
+     &                          ALK1,      ALK2,      SO2_cd,
+     &                          Kt1,       Kt2,       Kt1N,
+     &                          Kt2N,      SO2_ss,    PSO4E,
+     &                          PSO4F,     am_I_Root, Input_Opt,
+     &                          State_Met, State_Chm, RC )
+#else
       SUBROUTINE SEASALT_CHEM ( I,     J,         L,         ALK1, 
      &                          ALK2,  SO2_cd,    Kt1,       Kt2, 
      &                          Kt1N,  Kt2N,      SO2_ss,    PSO4E, 
      &                          PSO4F, am_I_Root, Input_Opt, State_Met, 
      &                          RC )
+#endif
 !
 ! !USES:
 !
@@ -2198,7 +2399,11 @@
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
       USE TIME_MOD,           ONLY : GET_MONTH 
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
       USE TRACER_MOD,         ONLY : STT
+#endif
       USE TRACER_MOD,         ONLY : XNUMOLAIR
       USE TRACERID_MOD,       ONLY : IDTHNO3
       USE TRACERID_MOD,       ONLY : IDTNITs
@@ -2223,6 +2428,12 @@
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 !
 ! !OUTPUT PARAMETERS: 
 !
@@ -2292,6 +2503,13 @@
       ! Arrays
       REAL*8             :: TCVV(Input_Opt%N_TRACERS)
 
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
+
       !=================================================================
       ! SEASALT_CHEM begins here!
       !=================================================================
@@ -2303,6 +2521,12 @@
       N_TRACERS            = Input_Opt%N_TRACERS
       TCVV                 = Input_Opt%TCVV(1:N_TRACERS)
       IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
 
       ! DTCHEM is the chemistry timestep in seconds
       DTCHEM = GET_TS_CHEM() * 60d0
@@ -2577,6 +2801,11 @@
       !IF ( ND09 > 0 ) AD09(I,J,L,4) = AD09(I,J,L,4) + END_ALK
       !------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
+
       END SUBROUTINE SEASALT_CHEM
 !EOC
 !------------------------------------------------------------------------------
@@ -2808,7 +3037,12 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE CHEM_SO4( am_I_Root, Input_Opt, State_Met, State_Chm,
+     &                     RC )
+#else
       SUBROUTINE CHEM_SO4( am_I_Root, Input_Opt, State_Met, RC )
+#endif
 !
 ! !USES:
 !
@@ -2822,7 +3056,11 @@
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE TIME_MOD,           ONLY : GET_TS_CHEM
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
       USE TRACER_MOD,         ONLY : STT
+#endif
       USE TRACERID_MOD,       ONLY : IDTSO4
       USE TRACERID_MOD,       ONLY : IDTSO4s
       USE TRACERID_MOD,       ONLY : IDTAS
@@ -2837,6 +3075,12 @@
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -2903,6 +3147,13 @@
       REAL*8                :: XNUMOL(Input_Opt%N_TRACERS)
       REAL*8                :: T44(IIPAR,JJPAR,LLPAR,6) 
 
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
+
       !=================================================================
       ! CHEM_SO4 begins here!
       !=================================================================
@@ -2921,6 +3172,12 @@
       N_TRACERS = Input_Opt%N_TRACERS
       TCVV      = Input_Opt%TCVV  (1:N_TRACERS) 
       XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
 
       ! DTCHEM is the chemistry timestep in seconds
       DTCHEM    = GET_TS_CHEM() * 60d0
@@ -3252,6 +3509,11 @@
 !$OMP END PARALLEL DO
       ENDIF
 
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
+
       END SUBROUTINE CHEM_SO4
 !EOC
 !------------------------------------------------------------------------------
@@ -3284,7 +3546,12 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE CHEM_MSA( am_I_Root, Input_Opt, State_Met, State_Chm,
+     &                     RC )
+#else
       SUBROUTINE CHEM_MSA( am_I_Root, Input_Opt, State_Met, RC )
+#endif
 !
 ! !USES:
 !
@@ -3300,7 +3567,11 @@
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L
       USE TIME_MOD,           ONLY : GET_TS_CHEM
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
       USE TRACER_MOD,         ONLY : STT
+#endif
       USE TRACERID_MOD,       ONLY : IDTMSA
       USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
 !
@@ -3309,6 +3580,12 @@
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -3372,6 +3649,13 @@
       REAL*8                :: TCVV  (Input_Opt%N_TRACERS)
       REAL*8                :: XNUMOL(Input_Opt%N_TRACERS)
 
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
+
       !=================================================================
       ! CHEM_MSA begins here!
       !=================================================================
@@ -3385,6 +3669,12 @@
       TCVV      = Input_Opt%TCVV  (1:N_TRACERS)
       XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
       LNLPBL    = Input_Opt%LNLPBL
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
 
       ! DTCHEM is the chemistry interval in seconds
       DTCHEM  = GET_TS_CHEM() * 60d0 
@@ -3461,7 +3751,6 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
       
       !===============================================================
       ! ND44: Sum drydep fluxes by level into the AD44 array in
@@ -3481,6 +3770,11 @@
 !$OMP END PARALLEL DO
       ENDIF
 
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
+
       END SUBROUTINE CHEM_MSA
 !EOC
 !------------------------------------------------------------------------------
@@ -3496,7 +3790,12 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE CHEM_NH3( am_I_Root, Input_Opt, State_Met, State_Chm,
+     &                     RC )
+#else
       SUBROUTINE CHEM_NH3( am_I_Root, Input_Opt, State_Met, RC )
+#endif
 !
 ! !USES:
 !
@@ -3512,7 +3811,11 @@
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L
       USE TIME_MOD,           ONLY : GET_TS_CHEM
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
       USE TRACER_MOD,         ONLY : STT
+#endif
       USE TRACERID_MOD,       ONLY : IDTNH3
 !
 ! !INPUT PARAMETERS:
@@ -3520,6 +3823,12 @@
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -3584,6 +3893,13 @@
       REAL*8  :: TCVV  (Input_Opt%N_TRACERS)
       REAL*8  :: XNUMOL(Input_Opt%N_TRACERS)
 
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
+
       !=================================================================
       ! CHEM_NH3 begins here!
       !=================================================================
@@ -3598,6 +3914,12 @@
       N_TRACERS = Input_Opt%N_TRACERS
       TCVV      = Input_Opt%TCVV  (1:N_TRACERS)
       XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
 
       ! DTCHEM is the chemistry interval in seconds
       DTCHEM    = GET_TS_CHEM() * 60d0
@@ -3705,6 +4027,11 @@
          ENDIF
       ENDIF
 
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
+
       END SUBROUTINE CHEM_NH3
 !EOC
 !------------------------------------------------------------------------------
@@ -3720,7 +4047,12 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE CHEM_NH4( am_I_Root, Input_Opt, State_Met, State_Chm,
+     &                     RC )
+#else
       SUBROUTINE CHEM_NH4( am_I_Root, Input_Opt, State_Met, RC )
+#endif
 !
 ! !USES:
 !
@@ -3735,7 +4067,11 @@
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L
       USE TIME_MOD,           ONLY : GET_TS_CHEM
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
       USE TRACER_MOD,         ONLY : STT
+#endif
       USE TRACERID_MOD,       ONLY : IDTNH4
       USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
 !
@@ -3744,6 +4080,12 @@
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -3808,6 +4150,13 @@
       REAL*8  :: TCVV  (Input_Opt%N_TRACERS)
       REAL*8  :: XNUMOL(Input_Opt%N_TRACERS)
 
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
+
       !=================================================================
       ! CHEM_NH4 begins here!
       !=================================================================
@@ -3822,6 +4171,12 @@
       N_TRACERS = Input_Opt%N_TRACERS
       TCVV      = Input_Opt%TCVV  (1:N_TRACERS)
       XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
 
       ! DTCHEM is the chemistry interval in seconds
       DTCHEM    = GET_TS_CHEM() * 60d0 
@@ -3928,6 +4283,11 @@
 !$OMP END PARALLEL DO
          ENDIF
       ENDIF
+
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
 
       END SUBROUTINE CHEM_NH4
 !EOC
@@ -4150,7 +4510,12 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE CHEM_NIT( am_I_Root, Input_Opt, State_Met, State_Chm,
+     &                     RC )
+#else
       SUBROUTINE CHEM_NIT( am_I_Root, Input_Opt, State_Met, RC )
+#endif
 !
 ! !USES:
 !
@@ -4166,7 +4531,11 @@
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L
       USE TIME_MOD,           ONLY : GET_TS_CHEM
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
       USE TRACER_MOD,         ONLY : STT
+#endif
       USE TRACERID_MOD,       ONLY : IDTNIT
       USE TRACERID_MOD,       ONLY : IDTNITs
 !
@@ -4175,6 +4544,12 @@
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -4241,6 +4616,13 @@
       REAL*8  :: TCVV  (Input_Opt%N_TRACERS)
       REAL*8  :: XNUMOL(Input_Opt%N_TRACERS)
 
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
+
       !=================================================================
       ! CHEM_NIT begins here!
       !=================================================================
@@ -4259,6 +4641,12 @@
       N_TRACERS = Input_Opt%N_TRACERS
       TCVV      = Input_Opt%TCVV  (1:N_TRACERS)
       XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
 
       ! DTCHEM is the chemistry interval in seconds
       DTCHEM    = GET_TS_CHEM() * 60d0 
@@ -4455,6 +4843,11 @@
          ENDIF         
       ENDIF
 
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
+
       END SUBROUTINE CHEM_NIT
 !EOC
 !------------------------------------------------------------------------------
@@ -4472,7 +4865,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE EMISSSULFATE( State_Met, EMISSIONS )
+      SUBROUTINE EMISSSULFATE( State_Met, State_Chm, EMISSIONS )
 #else
       SUBROUTINE EMISSSULFATE( State_Met )
 #endif
@@ -4488,7 +4881,12 @@
       USE TIME_MOD,           ONLY : GET_SEASON, GET_MONTH
       USE TIME_MOD,           ONLY : GET_YEAR,   ITS_A_NEW_MONTH
       USE TIME_MOD,           ONLY : GET_DAY,    ITS_A_NEW_DAY
-      USE TRACER_MOD,         ONLY : STT,        ITS_AN_AEROSOL_SIM
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
+      USE TRACER_MOD,         ONLY : STT
+#endif
+      USE TRACER_MOD,         ONLY : ITS_AN_AEROSOL_SIM
       USE TRACERID_MOD,       ONLY : IDTNITs,    IDTSO4s
       USE TRACERID_MOD,       ONLY : IDTDMS,     IDTSO2 
       USE TRACERID_MOD,       ONLY : IDTSO4,     IDTNH3
@@ -4503,6 +4901,10 @@
 !
       TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 #if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
       REAL*8,         INTENT(INOUT) :: 
      &            EMISSIONS(IIPAR,JJPAR,LLPAR,N_TRACERS+1)
 #endif
@@ -4547,6 +4949,13 @@
       LOGICAL, SAVE      :: FIRSTEMISS = .TRUE. 
       INTEGER            :: NSEASON, DAY, MONTH, YEAR   
 
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
+
 #if defined( DEVEL )
 !      REAL*8                     :: STT_TMP(IIPAR,JJPAR,
 #endif
@@ -4554,6 +4963,12 @@
       !=================================================================
       ! EMISSSULFATE begins here!
       !=================================================================
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
 
       ! Do only on the first timestep
       IF ( FIRSTEMISS ) THEN
@@ -4657,6 +5072,11 @@
       IF ( IDTSO2 /= 0 ) CALL SRCSO2( STT(:,:,:,IDTSO2), NSEASON   )
       IF ( IDTSO4 /= 0 ) CALL SRCSO4( STT(:,:,:,IDTSO4)            )
       IF ( IDTNH3 /= 0 ) CALL SRCNH3( STT(:,:,:,IDTNH3)            )
+#endif
+
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
 #endif
 
       END SUBROUTINE EMISSSULFATE

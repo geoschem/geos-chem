@@ -266,7 +266,11 @@
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE EMISS_HCN_CH3CN( State_Chm )
+#else
       SUBROUTINE EMISS_HCN_CH3CN( N_TRACERS, STT )
+#endif
 !
 !******************************************************************************
 !  Subroutine EMISS_HCN_CH3CN reads in CO emissions and scale them to get
@@ -291,6 +295,9 @@
       USE BIOMASS_MOD,   ONLY : BIOMASS!,         IDBCO
       USE TRACERID_MOD,  ONLY : IDBCO
       USE GEIA_MOD,      ONLY : GET_DAY_INDEX,   GET_IHOUR
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#endif
       USE GRID_MOD,      ONLY : GET_AREA_CM2
       USE DIAG_MOD,      ONLY : AD09_em
       USE LOGICAL_MOD,   ONLY : LSPLIT
@@ -301,8 +308,12 @@
       USE CMN_DIAG_MOD      ! ND09
 
       ! Arguments
+#if defined( DEVEL )
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#else
       INTEGER, INTENT(IN)    :: N_TRACERS
       REAL*8,  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
+#endif
 
       ! Local variables
       LOGICAL, SAVE          :: FIRST = .TRUE.
@@ -318,6 +329,13 @@
       REAL*8,  PARAMETER     :: EHCN_df   = 1.60d-2
       REAL*8,  PARAMETER     :: ECH3CN_bb = 0.20d-2
       REAL*8,  PARAMETER     :: ECH3CN_df = 0.25d-2
+
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
 
       !=================================================================
       ! EMISS_TAGGED_HCN_CH3CN begins here!
@@ -344,6 +362,12 @@
       !=================================================================
       ! Process biomass burning/domestic fossil fuel HCN/CH3CN emissions
       !=================================================================
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -465,12 +489,21 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
+
       ! Return to calling program
       END SUBROUTINE EMISS_HCN_CH3CN
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE CHEM_HCN_CH3CN( State_Met, State_Chm )
+#else
       SUBROUTINE CHEM_HCN_CH3CN( N_TRACERS, STT, State_Met )
+#endif
 !
 !******************************************************************************
 !  Subroutine CHEM_HCN_CH3CN computes the loss of HCN and CH3CN due to 
@@ -489,6 +522,9 @@
 ! 
       ! References to F90 modules
       USE DIAG_MOD,           ONLY : AD09, AD09_em
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#endif
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GLOBAL_OH_MOD,      ONLY : OH, GET_GLOBAL_OH
       USE GRID_MOD,           ONLY : GET_AREA_CM2
@@ -500,9 +536,13 @@
       USE CMN_DIAG_MOD             ! ND09
 
       ! Arguments
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#else
       INTEGER,        INTENT(IN)    :: N_TRACERS
       REAL*8,         INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+#endif
       
       ! Local variables
       LOGICAL, SAVE          :: FIRST = .TRUE.
@@ -528,6 +568,13 @@
       REAL*8, PARAMETER      :: B1          = -113.763d0
       REAL*8, PARAMETER      :: B2          =    1.843d0
       REAL*8, PARAMETER      :: B3          =   -0.012d0
+
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER        :: STT(:,:,:,:)
+#endif
 
       ! External functions
       REAL*8, EXTERNAL       :: BOXVL
@@ -560,6 +607,12 @@
 
       ! Chemistry timestep in seconds
       DTCHEM = GET_TS_CHEM() * 60d0
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
 
       ! Loop over grid boxes
 !$OMP PARALLEL DO
@@ -773,6 +826,11 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
 
       ! Return to calling program
       END SUBROUTINE CHEM_HCN_CH3CN

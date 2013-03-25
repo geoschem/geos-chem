@@ -186,11 +186,18 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE DO_WETDEP( State_Met, State_Chm )
+#else
       SUBROUTINE DO_WETDEP( State_Met )
+#endif
 !
 ! !USES:
 !
       USE ERROR_MOD,          ONLY : DEBUG_MSG
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#endif
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE LOGICAL_MOD,        ONLY : LPRT
 
@@ -199,6 +206,12 @@
 ! !INPUT PARAMETERS:
 !
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 ! 
 ! !REMARKS:
 !  NOTE FROM HONGYU LIU (hyl@nianet.org) -- 3/5/08
@@ -234,7 +247,11 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: before LS wetdep' )
 
       ! Do wet deposition
+#if defined( DEVEL )
+      CALL WETDEP_MERRA( State_Met, State_Chm, LS=.TRUE. )
+#else
       CALL WETDEP_MERRA( State_Met, LS=.TRUE. )
+#endif
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
 
 #elif defined( GEOS_5 )
@@ -248,7 +265,11 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: before LS wetdep' )
 
       ! Do wet deposition
+#if defined( DEVEL )
+      CALL WETDEP(  State_Met, State_Chm, LS=.TRUE. )
+#else
       CALL WETDEP(  State_Met, LS=.TRUE. )
+#endif
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
 
 #else
@@ -4584,7 +4605,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE WETDEP( State_Met, State_Chm, LS )
+#else
       SUBROUTINE WETDEP( State_Met, LS )
+#endif
 !
 ! !USES:
 !
@@ -4598,7 +4623,11 @@
       USE LOGICAL_MOD,        ONLY : LDYNOCEAN
       USE TIME_MOD,           ONLY : GET_TS_DYN
       USE TRACER_MOD,         ONLY : ITS_A_MERCURY_SIM
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
       USE TRACER_MOD,         ONLY : STT
+#endif
       USE TRACERID_MOD,       ONLY : IDTSO2
       USE TRACERID_MOD,       ONLY : IDTSO4
       USE TRACERID_MOD,       ONLY : IS_Hg2
@@ -4613,6 +4642,12 @@
       LOGICAL,        INTENT(IN)  :: LS         ! =T denotes large-scale precip
                                                 ! =F denotes convective precip
       TYPE(MetState), INTENT(IN)  :: State_Met  ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 !
 ! !REMARKS:
 !  Precipitation fields:
@@ -4802,12 +4837,25 @@
  
       CHARACTER(LEN=255) :: ERRMSG
 
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
+
       !=================================================================
       ! (1)  I n i t i a l i z e   V a r i a b l e s
       !=================================================================
 
       ! Is this a mercury simulation with dynamic online ocean?
       IS_Hg = ( ITS_A_MERCURY_SIM() .and. LDYNOCEAN )
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
 
       ! Dynamic timestep [s]
       DT    = GET_TS_DYN() * 60d0
@@ -5163,6 +5211,11 @@
       ENDDO	
 !$OMP END PARALLEL DO
 
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
+
       END SUBROUTINE WETDEP
 !EOC
 !------------------------------------------------------------------------------
@@ -5180,7 +5233,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE WETDEP_MERRA( State_Met, State_Chm, LS )
+#else
       SUBROUTINE WETDEP_MERRA( LS, State_Met )
+#endif
 !
 ! !USES:
 !
@@ -5192,7 +5249,11 @@
       USE LOGICAL_MOD,        ONLY : LGTMM
       USE TIME_MOD,           ONLY : GET_TS_DYN
       USE TRACER_MOD,         ONLY : ITS_A_MERCURY_SIM
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
       USE TRACER_MOD,         ONLY : STT
+#endif
       USE TRACERID_MOD,       ONLY : IDTSO2
       USE TRACERID_MOD,       ONLY : IDTSO4
       USE TRACERID_MOD,       ONLY : IS_Hg2
@@ -5206,6 +5267,12 @@
       LOGICAL,        INTENT(IN)  :: LS         ! =T denotes large-scale precip
                                                 ! =F denotes convective precip
       TYPE(MetState), INTENT(IN)  :: State_Met  ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 !
 ! !REMARKS:
 !  Precipitation fields:
@@ -5346,12 +5413,25 @@
  
       CHARACTER(LEN=255) :: ERRMSG
 
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
+
       !=================================================================
       ! (1)  I n i t i a l i z e   V a r i a b l e s
       !=================================================================
 
       ! Is this a mercury simulation with dynamic online ocean?
       IS_Hg = ( ITS_A_MERCURY_SIM() .and. LDYNOCEAN )
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
 
       ! Dynamic timestep [s]
       DT    = GET_TS_DYN() * 60d0
@@ -5660,6 +5740,11 @@
       ENDDO	
       ENDDO	
 !$OMP END PARALLEL DO
+
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
 
       END SUBROUTINE WETDEP_MERRA
 !EOC
@@ -7443,7 +7528,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE INIT_WETSCAV( State_Met, State_Chm )
+#else
       SUBROUTINE INIT_WETSCAV( State_Met )
+#endif
 !
 ! !USES:
 !
@@ -7451,7 +7540,11 @@
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
       USE TRACER_MOD,         ONLY : STT
+#endif
       USE TRACERID_MOD,       ONLY : IDTH2O2, IDTSO2
 
       USE CMN_SIZE_MOD             ! Size parameters
@@ -7460,6 +7553,9 @@
 ! !INPUT PARAMETERS:
 !
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  23 Feb 2000 - R. Yantosca - Initial version
@@ -7502,10 +7598,23 @@
       REAL*8        :: PL, TK
       LOGICAL, SAVE :: FIRST = .TRUE.      
             
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
+
       !=================================================================
       ! INIT_WETSCAV begins here!
       !=================================================================
       IF ( FIRST ) THEN
+
+#if defined( DEVEL )
+         ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+         ! (mpayer, 12/6/12)
+         STT => State_Chm%Tracers
+#endif
 
          ! Allocate Vud on first call
          ALLOCATE( Vud( IIPAR, JJPAR ), STAT=AS )
@@ -7553,6 +7662,11 @@
 
          ! Reset flag
          FIRST = .FALSE. 
+
+#if defined( DEVEL )
+         ! Free pointer
+         NULLIFY( STT )
+#endif
       ENDIF
 
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )

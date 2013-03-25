@@ -92,7 +92,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )      
-      SUBROUTINE EMISSC2H6( State_Met, EMISS, BIO_EMISS)
+      SUBROUTINE EMISSC2H6( State_Met, State_Chm, EMISS, BIO_EMISS)
 #else
       SUBROUTINE EMISSC2H6( State_Met )
 #endif
@@ -109,7 +109,11 @@
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE LOGICAL_MOD,        ONLY : LSPLIT, LBIOMASS, LBIOFUEL, LANTHRO
       USE TIME_MOD,           ONLY : GET_MONTH, GET_TS_EMIS
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
       USE TRACER_MOD,         ONLY : STT
+#endif
       USE TRACER_MOD,         ONLY : ITS_A_C2H6_SIM
       USE TRACERID_MOD,       ONLY : IDBC2H6      
       USE TRACERID_MOD,       ONLY : IDBFC2H6, IDEC2H6, IDTC2H6
@@ -118,7 +122,6 @@
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_O3_MOD               ! EMISTC2H6
       USE CMN_DIAG_MOD             ! Diagnostic arrays & switches
-      USE CMN_MOD                  ! STT, etc.
 !
 ! !INPUT PARAMETERS:
 !
@@ -127,6 +130,7 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
 #if defined( DEVEL )
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
       REAL*8,         INTENT(INOUT) :: EMISS(IIPAR,JJPAR)
       REAL*8,         INTENT(INOUT) :: BIO_EMISS(:,:,:)
 #endif
@@ -169,6 +173,13 @@
       REAL*8                 :: E_C2H6_BB,   E_C2H6_BF
       REAL*8                 :: E_C2H6_NGAS, DTSRCE
       CHARACTER(LEN=255)     :: FILENAME
+
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
 !
 ! !EXTERNAL FUNCTIONS:
 !
@@ -185,6 +196,12 @@
          ! Set first-time flag to false
          FIRSTEMISS = .FALSE.
       ENDIF
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
 
       ! DTSRCE is the number of seconds per emission timestep
       DTSRCE = GET_TS_EMIS() * 60d0
@@ -341,6 +358,9 @@
       ENDIF
          
 #if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+
       EMISS(:,:) = EMISS(:,:) + NGASC2H6(:,:)
 #endif
 
@@ -359,7 +379,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE CHEMC2H6( State_Met, State_Chm )
+#else
       SUBROUTINE CHEMC2H6( State_Met )
+#endif
 !
 ! !USES:
 !
@@ -367,13 +391,24 @@
       USE GLOBAL_OH_MOD,      ONLY : OH,        GET_GLOBAL_OH
       USE LOGICAL_MOD,        ONLY : LSPLIT 
       USE TIME_MOD,           ONLY : GET_MONTH, GET_TS_CHEM
-      USE TRACER_MOD,         ONLY : N_TRACERS, STT
+      USE TRACER_MOD,         ONLY : N_TRACERS
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
+      USE TRACER_MOD,         ONLY : STT
+#endif
 
       USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 ! 
 ! !REVISION HISTORY:
 !  (1 ) Now do chemistry all the way to the model top. 
@@ -399,6 +434,13 @@
       INTEGER                :: I, J, L, N
       REAL*8                 :: DTCHEM, KRATE
 
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
+
       !=================================================================
       ! CHEMC2H6 begins here! 
       !=================================================================
@@ -408,6 +450,12 @@
 
       ! DTCHEM is the chemistry timestep in seconds
       DTCHEM = GET_TS_CHEM() * 60d0
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
 
       !=================================================================
       ! Read in the tropospheric OH fields of the (LMN)th month
@@ -458,6 +506,11 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
 
       END SUBROUTINE CHEMC2H6
 !EOC

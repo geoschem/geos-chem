@@ -107,27 +107,34 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_PBL_MIX( DO_TURBDAY, State_Met )
+      SUBROUTINE DO_PBL_MIX( DO_TURBDAY, Input_Opt, 
+     &                       State_Met,  State_Chm  )
 !
 ! !USES:
 !
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE LOGICAL_MOD,        ONLY : LTURB
-      USE TRACER_MOD,         ONLY : N_TRACERS, STT, TCVV 
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE TRACER_MOD,         ONLY : N_TRACERS, TCVV 
 #if   defined( APM ) 
       USE TRACER_MOD,         ONLY : N_APMTRA
 #endif
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL,        INTENT(IN) :: DO_TURBDAY  ! =T means call TURBDAY 
-                                                !    for full PBL mixing
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: DO_TURBDAY  ! =T means call TURBDAY 
+                                                   !    for full PBL mixing
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !REVISION HISTORY: 
 !  11 Feb 2005 - R. Yantosca - Initial version
-!  07 Sep 2011 - G. Luo    - Add modifications for APM
+!  07 Sep 2011 - G. Luo      - Add modifications for APM
 !  28 Feb 2012 - R. Yantosca - Added ProTeX headers
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -137,16 +144,25 @@
       LOGICAL, SAVE :: FIRST = .TRUE.
       INTEGER       :: N_TOT_TRC
 
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! DO_PBL_MIX begins here!
       !=================================================================
 
       ! Pick the proper # of tracers
 #if   defined( APM )  
-      N_TOT_TRC = N_TRACERS + N_APMTRA   ! If APM is used, then convect
-#else                                    !  the G-C advected tracers +
-      N_TOT_TRC = N_TRACERS              !  the APM aerosol tracers
+      N_TOT_TRC = Input_Opt%N_TRACERS + N_APMTRA   ! If APM is used, then convect
+#else                                              !  the G-C advected tracers +
+      N_TOT_TRC = Input_Opt%N_TRACERS              !  the APM aerosol tracers
 #endif
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       ! First-time initialization
       IF ( FIRST ) THEN
@@ -159,6 +175,9 @@
 
       ! Do complete mixing of tracers in the PBL (if necessary)
       IF ( DO_TURBDAY ) CALL TURBDAY( N_TOT_TRC, STT, TCVV, State_Met )
+
+      ! Free pointer
+      NULLIFY( STT )
 
       END SUBROUTINE DO_PBL_MIX
 !EOC

@@ -83,15 +83,19 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE COPY_FULL_TROP()
+      SUBROUTINE COPY_FULL_TROP( State_Chm )
 !
 ! !USES:
 !
-      USE COMODE_MOD,     ONLY : CSPEC,  CSPEC_FULL
-      USE COMODE_MOD,     ONLY : IXSAVE, IYSAVE, IZSAVE
-
       USE CMN_SIZE_MOD
+      USE COMODE_MOD,         ONLY : CSPEC
+      USE COMODE_MOD,         ONLY : IXSAVE, IYSAVE, IZSAVE
       USE COMODE_LOOP_MOD
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
 !
 ! !REMARKS:
 !  ROUTINE NEEDED BECAUSE WITH VARIABLE TROPOPAUSE 
@@ -103,6 +107,7 @@
 !        be in COMODE_MOD.F, and called GET_SPECIES_CONCENTRATION (phs)
 !  (2 ) Bug fix: set NCS=NCSURBAN for safety's sake (bmy, 4/25/07)
 !  09 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -112,12 +117,21 @@
       INTEGER :: JGAS, JLOOP, IX, IY, IZ
       INTEGER :: LOCATION(4)
 
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 1/24/12)
+      REAL*8, POINTER :: CSPEC_FULL(:,:,:,:)
+
       !=================================================================
       ! COPY_FULL_TROP begins here!
       !=================================================================
 
       ! Reset NCS to NCSURBAN for safety's sake (bmy, 4/25/07)
       NCS = NCSURBAN
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      CSPEC_FULL => State_Chm%Species
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -141,6 +155,9 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+      ! Free pointer
+      NULLIFY( CSPEC_FULL )
+
       END SUBROUTINE COPY_FULL_TROP
 !EOC
 !------------------------------------------------------------------------------
@@ -157,15 +174,19 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SAVE_FULL_TROP()
+      SUBROUTINE SAVE_FULL_TROP( State_Chm )
 !
 ! !USES:
 !
-      USE COMODE_MOD,     ONLY : CSPEC,  CSPEC_FULL
-      USE COMODE_MOD,     ONLY : IXSAVE, IYSAVE, IZSAVE
-
       USE CMN_SIZE_MOD
+      USE COMODE_MOD,         ONLY : CSPEC
+      USE COMODE_MOD,         ONLY : IXSAVE, IYSAVE, IZSAVE
       USE COMODE_LOOP_MOD
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+!
+! !OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(OUT) :: State_Chm   ! Chemistry State object
 !
 ! !REMARKS:
 !  ROUTINE NEEDED BECAUSE WITH VARIABLE TROPOPAUSE 
@@ -177,6 +198,7 @@
 !        be in COMODE_MOD.F, and called SAVE_SPECIES_CONCENTRATION (phs)
 !  (2 ) Bug fix: set NCS=NCSURBAN for safety's sake! (bmy, 4/25/07)
 !  09 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -185,12 +207,21 @@
 !
       INTEGER :: JGAS, JLOOP, IX, IY, IZ
 
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 1/24/12)
+      REAL*8, POINTER :: CSPEC_FULL(:,:,:,:)
+
       !=================================================================
       ! SAVE_FULL_TROP begins here!
       !=================================================================
 
       ! Reset NCS to NCSURBAN for safety's sake (bmy, 4/25/07)
       NCS = NCSURBAN
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      CSPEC_FULL => State_Chm%Species
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -213,6 +244,9 @@
          ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+      ! Free pointer
+      NULLIFY( CSPEC_FULL )
 
       END SUBROUTINE SAVE_FULL_TROP
 !EOC

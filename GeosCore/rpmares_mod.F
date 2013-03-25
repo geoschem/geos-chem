@@ -76,7 +76,8 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE DO_RPMARES( am_I_Root, Input_Opt, State_Met )
+      SUBROUTINE DO_RPMARES( am_I_Root, Input_Opt, 
+     &                       State_Met, State_Chm, RC )
 !
 !******************************************************************************
 !  Subroutine DO_RPMARES is the interface between the GEOS-CHEM model
@@ -101,18 +102,20 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  05 Mar 2013 - R. Yantosca - Now accept Input_Opt as an argument
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !******************************************************************************
 !
 ! !USES:
 !      
       USE CMN_SIZE_MOD
+      USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GLOBAL_HNO3_MOD,    ONLY : GET_GLOBAL_HNO3
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC,    GET_MONTH
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
-      USE TRACER_MOD,         ONLY : STT
       USE TRACERID_MOD,       ONLY : IDTSO4,             IDTNH3, IDTNH4 
       USE TRACERID_MOD,       ONLY : IDTNIT,             IDTHNO3 
       USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
@@ -139,18 +142,34 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !DEFINED PARAMETERS:
 !
       ! concentration lower limit [ug/m3 ]
       REAL*8,  PARAMETER     :: CONMIN = 1.0D-30
 
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! DO_RPMARES begins here!
       !=================================================================
+
+      ! Assume success
+      RC = GIGC_SUCCESS
 
       ! Initialize on first call
       IF ( FIRST ) THEN
@@ -187,6 +206,10 @@
 
          ENDIF
       ENDIF
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       !=================================================================
       ! Get equilibrium values of water, ammonium  and nitrate content
@@ -279,6 +302,9 @@
       ENDDO
 !$OMP END PARALLEL DO      
     
+      ! Free pointer
+      NULLIFY( STT )
+
       ! Return to calling program
       END SUBROUTINE DO_RPMARES
 

@@ -111,12 +111,19 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE DO_TRANSPORT( State_Met, State_Chm )
+#else
       SUBROUTINE DO_TRANSPORT( State_Met )
+#endif
 !
 ! !USES:
 !
       USE GRID_MOD,           ONLY : ITS_A_NESTED_GRID
       USE TPCORE_BC_MOD,      ONLY : INIT_TPCORE_BC
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#endif
       USE GIGC_State_Met_Mod, ONLY : MetState
 
       USE CMN_SIZE_MOD             ! Size parameters
@@ -124,6 +131,12 @@
 ! !INPUT PARAMETERS: 
 !
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  10 Mar 2003 - R. Yantosca - Initial version
@@ -169,7 +182,11 @@
 #if   defined( GRID1x1 )
          CALL DO_WINDOW_TRANSPORT( State_Met )
 #elif defined( GRID05x0666 )
+#if defined( DEVEL )
+         CALL DO_GEOS5_WINDOW_TRANSPORT( State_Met, State_Chm )
+#else
          CALL DO_GEOS5_WINDOW_TRANSPORT( State_Met )
+#endif
 #endif
 
       ELSE
@@ -177,12 +194,20 @@
 #if defined( GCAP )
 
          ! Call TPCORE w/ proper settings for GCAP met
+#if defined( DEVEL )
+         CALL GCAP_GLOBAL_ADV( State_Met, State_Chm )
+#else
          CALL GCAP_GLOBAL_ADV( State_Met )
+#endif
 
 #else
 
          ! Call TPCORE w/ proper settings for GEOS-4/GEOS-5/MERRA/GEOS-5.7
+#if defined( DEVEL )
+         CALL GEOS4_GEOS5_GLOBAL_ADV( State_Met, State_Chm )
+#else
          CALL GEOS4_GEOS5_GLOBAL_ADV( State_Met )
+#endif
 
 #endif
       ENDIF
@@ -203,7 +228,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE GEOS4_GEOS5_GLOBAL_ADV( State_Met, State_Chm )
+#else
       SUBROUTINE GEOS4_GEOS5_GLOBAL_ADV( State_Met )
+#endif
 !
 ! !USES:
 !
@@ -216,7 +245,12 @@
       USE TIME_MOD,           ONLY : GET_TS_DYN
       USE TPCORE_BC_MOD,      ONLY : SAVE_GLOBAL_TPCORE_BC
       USE TPCORE_FVDAS_MOD,   ONLY : TPCORE_FVDAS
-      USE TRACER_MOD,         ONLY : N_TRACERS, STT, TCVV
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
+      USE TRACER_MOD,         ONLY : STT
+#endif
+      USE TRACER_MOD,         ONLY : N_TRACERS, TCVV
 #if   defined( APM )
       USE TRACER_MOD,         ONLY : N_APMTRA
 #endif
@@ -228,6 +262,12 @@
 ! !INPUT PARAMETERS: 
 !
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  30 Oct 2007 - R. Yantosca - Initial version
@@ -270,6 +310,11 @@
       REAL*8,  POINTER :: p_XMASS(:,:,:  )
       REAL*8,  POINTER :: p_YMASS(:,:,:  )
       REAL*8,  POINTER :: p_STT  (:,:,:,:)
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8,  POINTER :: STT(:,:,:,:)
+#endif
 
       ! Variable to ensure mass conservation (ccc, 2/17/09)
       REAL*8           :: SUMADA
@@ -283,6 +328,12 @@
       N_TOT_TRC = N_TRACERS + N_APMTRA   ! G-C advected tracers + APM tracers
 #else
       N_TOT_TRC = N_TRACERS              ! G-C advected tracers only
+#endif
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 #endif
 
       ! Dynamic timestep [s]
@@ -450,6 +501,11 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
+
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### G4_G5_GLOB_ADV: a TPCORE' ) 
 
@@ -468,7 +524,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE GCAP_GLOBAL_ADV( State_Met, State_Chm )
+#else
       SUBROUTINE GCAP_GLOBAL_ADV( State_Met )
+#endif
 !
 ! !USES:
 !
@@ -480,7 +540,12 @@
       USE PRESSURE_MOD,       ONLY : GET_PEDGE, SET_FLOATING_PRESSURE
       USE TIME_MOD,           ONLY : GET_TS_DYN
       USE TPCORE_FVDAS_MOD,   ONLY : TPCORE_FVDAS
-      USE TRACER_MOD,         ONLY : N_TRACERS, STT, TCVV
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
+      USE TRACER_MOD,         ONLY : STT
+#endif
+      USE TRACER_MOD,         ONLY : N_TRACERS, TCVV
 #if   defined( APM )
       USE TRACER_MOD,         ONLY : N_APMTRA
 #endif
@@ -492,6 +557,12 @@
 ! !INPUT PARAMETERS: 
 !
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  30 Oct 2007 - R. Yantosca - Initial version
@@ -534,6 +605,11 @@
       REAL*8,  POINTER :: p_XMASS(:,:,:  )
       REAL*8,  POINTER :: p_YMASS(:,:,:  )
       REAL*8,  POINTER :: p_STT  (:,:,:,:)
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8,  POINTER :: STT(:,:,:,:)
+#endif
 
       ! Variable to ensure mass conservation (ccc, 20/11/08)
       REAL*8           :: SUMADA
@@ -547,6 +623,12 @@
       N_TOT_TRC = N_TRACERS + N_APMTRA   ! G-C advected tracers + APM tracers
 #else
       N_TOT_TRC = N_TRACERS              ! G-C advected tracers only
+#endif
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 #endif
 
       ! Dynamic timestep [s]
@@ -719,6 +801,11 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
+
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### GCAP_GLOB_ADV: a TPCORE' ) 
       
@@ -737,7 +824,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE DO_GEOS5_WINDOW_TRANSPORT( State_Met, State_Chm )
+#else
       SUBROUTINE DO_GEOS5_WINDOW_TRANSPORT( State_Met )
+#endif
 !
 ! !USES:
 !
@@ -757,7 +848,12 @@
       USE TPCORE_BC_MOD,             ONLY : DO_WINDOW_TPCORE_BC
       USE TPCORE_WINDOW_MOD,         ONLY : TPCORE_WINDOW
       USE TPCORE_GEOS5_WINDOW_MOD,   ONLY : TPCORE_GEOS5_WINDOW
-      USE TRACER_MOD,                ONLY : N_TRACERS, STT, TCVV
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod,        ONLY : ChmState
+#else
+      USE TRACER_MOD,                ONLY : STT
+#endif
+      USE TRACER_MOD,                ONLY : N_TRACERS, TCVV
 #if   defined( APM )
       USE TRACER_MOD,                ONLY : N_APMTRA
 #endif
@@ -769,6 +865,12 @@
 ! !INPUT PARAMETERS: 
 !
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  10 Mar 2003 - R. Yantosca - Initial version
@@ -808,6 +910,11 @@
       REAL*8,  POINTER :: p_XMASS(:,:,:  )
       REAL*8,  POINTER :: p_YMASS(:,:,:  )
       REAL*8,  POINTER :: p_STT  (:,:,:,:)
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8,  POINTER :: STT(:,:,:,:)
+#endif
 
       !=================================================================
       ! DO_GEOS5_FVDAS_WINDOW_TRANSPORT begins here!
@@ -823,6 +930,12 @@
       ! Get nested-grid lon/lat offsets [# boxes]
       I0    = GET_XOFFSET( GLOBAL=.TRUE. )
       J0    = GET_YOFFSET( GLOBAL=.TRUE. )
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
 
       ! Dynamic timestep [s]
       N_DYN = GET_TS_DYN() * 60
@@ -905,7 +1018,11 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### GEOS5_NESTED: a GET_TRA_MASS' )
 
       ! Impose TPCORE boundary conditions @ edges of 1x1 grid
+#if defined( DEVEL )
+      CALL DO_WINDOW_TPCORE_BC( State_Chm )
+#else
       CALL DO_WINDOW_TPCORE_BC
+#endif
 
       IF ( LPRT ) CALL DEBUG_MSG( '### GEOS5_NESTED: a DO_WIN_TP_BC' )
 
@@ -934,6 +1051,9 @@
 
       ! Free pointer memory
       NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS )
+#if defined( DEVEL )
+      NULLIFY( STT )
+#endif
 
       !=================================================================
       ! Reset surface pressure and ensure mass conservation
@@ -961,7 +1081,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE DO_GEOS57_WINDOW_TRANSPORT( State_Met, State_Chm )  
+#else
       SUBROUTINE DO_GEOS57_WINDOW_TRANSPORT( State_Met )  
+#endif
 !
 ! !USES:
 !
@@ -981,7 +1105,12 @@
       USE TPCORE_BC_MOD,             ONLY : DO_WINDOW_TPCORE_BC 
       USE TPCORE_WINDOW_MOD,         ONLY : TPCORE_WINDOW
       USE TPCORE_GEOS57_WINDOW_MOD,  ONLY : TPCORE_GEOS57_WINDOW
-      USE TRACER_MOD,                ONLY : N_TRACERS, STT, TCVV
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod,        ONLY : ChmState
+#else
+      USE TRACER_MOD,                ONLY : STT
+#endif
+      USE TRACER_MOD,                ONLY : N_TRACERS, TCVV
 #if   defined( APM )
       USE TRACER_MOD,                ONLY : N_APMTRA
 #endif
@@ -993,6 +1122,12 @@
 ! !INPUT PARAMETERS:
 !
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 !
 ! !REVISION HISTORY: 
 !  10 Mar 2003 - R. Yantosca - Initial version
@@ -1030,6 +1165,11 @@
       REAL*8,  POINTER :: p_XMASS(:,:,:  )
       REAL*8,  POINTER :: p_YMASS(:,:,:  )
       REAL*8,  POINTER :: p_STT  (:,:,:,:)
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8,  POINTER :: STT(:,:,:,:)
+#endif
 
       !=================================================================
       ! DO_GEOS57_FVDAS_WINDOW_TRANSPORT begins here!
@@ -1045,6 +1185,13 @@
       ! Get nested-grid lon/lat offsets [# boxes]
       I0    = GET_XOFFSET( GLOBAL=.TRUE. )
       J0    = GET_YOFFSET( GLOBAL=.TRUE. )
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
+
       ! Dynamic timestep [s]
       N_DYN = GET_TS_DYN() * 60
       D_DYN = DBLE( N_DYN )
@@ -1124,7 +1271,11 @@
 
       IF ( LPRT ) CALL DEBUG_MSG( '### GEOS5_NESTED: a GET_TRA_MASS' )
       ! Impose TPCORE boundary conditions @ edges of 1x1 grid
+#if defined( DEVEL )
+      CALL DO_WINDOW_TPCORE_BC( State_Chm )
+#else
       CALL DO_WINDOW_TPCORE_BC
+#endif
 
       ! Flip array indices in the vertical using pointer storage
       p_UWND  => State_Met%U(:,:,LLPAR:1:-1  )
@@ -1149,6 +1300,9 @@
 
       ! Free pointer memory
       NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS )
+#if defined( DEVEL )
+      NULLIFY( STT )
+#endif
 
       !=================================================================
       ! Reset surface pressure and ensure mass conservation

@@ -91,11 +91,19 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE ADD_STRAT_POX( I, J, L, POx, State_Chm )
+#else
       SUBROUTINE ADD_STRAT_POX( I, J, L, POx )
+#endif
 !
 ! !USES:
 !
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
       USE TRACER_MOD,   ONLY : STT
+#endif
       USE TRACERID_MOD, ONLY : IDTOxStrt
 
       USE CMN_SIZE_MOD           ! Size parameters
@@ -106,6 +114,12 @@
       INTEGER, INTENT(IN) :: J     ! GEOS-Chem grid box lat index
       INTEGER, INTENT(IN) :: L     ! GEOS-Chem grid box level index
       REAL*8,  INTENT(IN) :: POx   ! P(Ox) in the stratosphere [v/v]
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 ! 
 ! !REVISION HISTORY:
 !  19 Aug 2003 - R. Yantosca - Initial version
@@ -115,10 +129,31 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
+
       !=================================================================
       ! GET_STRAT_POX begins here!
       !=================================================================
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
+
       STT(I,J,L,IDTOxStrt) = STT(I,J,L,IDTOxStrt) + POx
+
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
 
       END SUBROUTINE ADD_STRAT_POX
 !EOC
@@ -505,7 +540,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE CHEM_TAGGED_OX( State_Met, State_Chm )
+#else
       SUBROUTINE CHEM_TAGGED_OX( State_Met )
+#endif
 !
 ! !USES:
 !
@@ -521,7 +560,11 @@
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TIME_MOD,           ONLY : ITS_A_NEW_DAY 
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
       USE TRACER_MOD,         ONLY : STT
+#endif
       USE TRACER_MOD,         ONLY : N_TRACERS
       USE TRACER_MOD,         ONLY : XNUMOL
       USE TRACERID_MOD,       ONLY : IDTOX
@@ -538,6 +581,12 @@
 ! !INPUT PARAMETERS: 
 !
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 ! 
 ! !REVISION HISTORY:
 !  20 Aug 2003 - R. Hudman   - Initial version
@@ -578,12 +627,25 @@
       REAL*8            :: Ox_LOST, PBL_MAX, F_UNDER_TOP
       CHARACTER(LEN=16) :: STAMP
 
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
+
       ! External routines
       REAL*8, EXTERNAL :: BOXVL
 
       !=================================================================
       ! CHEM_TAGGED_OX begins here!
       !=================================================================
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
 
       ! Chemistry timestep [s]
       DTCHEM = GET_TS_CHEM() * 60d0
@@ -758,6 +820,11 @@
 !$OMP END PARALLEL DO
          ENDIF
       ENDDO
+
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
 
       END SUBROUTINE CHEM_TAGGED_OX
 !EOC

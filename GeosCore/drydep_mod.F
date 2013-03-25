@@ -31,7 +31,15 @@
       USE PBL_MIX_MOD                           ! Boundary layer quantities
       USE PRESSURE_MOD,   ONLY : GET_PEDGE      ! Pressure @ level edges
       USE TIME_MOD,       ONLY : GET_TS_CHEM    ! Chemistry timestep
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      ! For testing, remove later (mpayer 12/6/12)
+      USE TRACER_MOD,         ONLY : N_TRACERS, 
+     &                               SALC_REDGE_um,  SALA_REDGE_um,
+     &                               ITS_A_POPS_SIM, ITS_A_MERCURY_SIM
+#else
       USE TRACER_MOD                            ! Tracer array STT etc.
+#endif
       USE TRACERID_MOD                          ! Tracer ID flags
 
       IMPLICIT NONE
@@ -981,7 +989,21 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE DRYFLXRnPbBe( State_Chm )
+#else
       SUBROUTINE DRYFLXRnPbBe
+#endif
+!
+! !USES:
+!
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 ! 
 ! !REVISION HISTORY:
 !  (1 ) Now eliminate DEPFLUX from CMN_SAV, in order to save memory.
@@ -1017,12 +1039,25 @@
       INTEGER             :: I, J, L, PBL_MAX, N, NN
       REAL*8              :: DTCHEM, FRACLOST, F_UNDER_TOP, AMT_LOST
 
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
+
       !=================================================================
       ! DRYFLXRnPbBe begins here!!
       !=================================================================
 
       ! Return if drydep is turned off
       IF ( .not. LDRYD ) RETURN
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
 
       ! Chemistry timestep in seconds
       DTCHEM  = GET_TS_CHEM() * 60d0
@@ -1102,6 +1137,11 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
+
       END SUBROUTINE DRYFLXRnPbBe
 !EOC
 !------------------------------------------------------------------------------
@@ -1118,7 +1158,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE DRYFLXH2HD( State_Met, State_Chm )
+#else
       SUBROUTINE DRYFLXH2HD( State_Met )
+#endif
 !
 ! !USES:
 !
@@ -1132,7 +1176,11 @@
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L
       USE TIME_MOD,           ONLY : GET_TS_CHEM
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
       USE TRACER_MOD,         ONLY : STT
+#endif
       
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! Diagnostic switches & arrays
@@ -1141,6 +1189,12 @@
 ! !INPUT PARAMETERS:
 !
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 ! 
 ! !REMARKS:
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1177,6 +1231,13 @@
       REAL*8      :: SOIL_H2, SOIL_HD, TMMP, STEMP(IIPAR,JJPAR)
       REAL*8      :: MLD
       REAL*8      :: F_UNDER_TOP
+
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
 
       ! External functions, for calculating soil temperature
       REAL*8, EXTERNAL   :: SOILTEMP
@@ -1215,6 +1276,11 @@
          ENDDO
       ENDDO
 
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
 
       ! Loop over drydep species
       DO N = 1, NUMDEP
@@ -1357,6 +1423,10 @@
          ENDDO                  ! PBL layers
       ENDDO                     ! NUMDEP = Number of species that drydep
 
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
 
       END SUBROUTINE DRYFLXH2HD
 !EOC

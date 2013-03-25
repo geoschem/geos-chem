@@ -1126,7 +1126,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE PLANEFLIGHT( State_Met, State_Chm )
+#else
       SUBROUTINE PLANEFLIGHT( State_Met )
+#endif
 !
 ! !USES:
 !
@@ -1137,7 +1141,12 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PRESSURE_MOD,       ONLY : GET_PEDGE
       USE TIME_MOD,           ONLY : GET_TAU,        GET_TS_DIAG
-      USE TRACER_MOD,         ONLY : STT,            TCVV
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
+      USE TRACER_MOD,         ONLY : STT
+#endif
+      USE TRACER_MOD,         ONLY : TCVV
       USE OCEAN_MERCURY_MOD,  ONLY : Fp, Fg !eds 10/27/11
 
       USE JV_CMN_MOD               ! ODAER, QAA, QAA_AOD
@@ -1146,6 +1155,12 @@
 ! !INPUT PARAMETERS: 
 !
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  08 Jul 2002 - M. Evans    - Initial version
@@ -1193,6 +1208,13 @@
       REAL*8,  PARAMETER  :: MISSING = -999.99999999d0  ! Missing data value
       REAL*8,  PARAMETER  :: TINY    = 1.d-36           ! arbitary small # to 
                                                         !  avoid faulty output
+
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
 
       !=================================================================
       ! PLANEFLIGHT begins here!
@@ -1522,6 +1544,12 @@
 
                      ! Remove offset from PVAR
                      N = PVAR(V) - 100000
+
+#if defined( DEVEL )
+                     ! Initialize GEOS-Chem tracer array [kg] from
+                     ! Chemistry State object (mpayer, 12/6/12)
+                     STT => State_Chm%Tracers
+#endif
                      
                      ! Convert from [kg] --> [v/v]
 !--------------------eds test sampling 1 level up----------------------------
@@ -1536,6 +1564,11 @@
 !----------------------------------------------------------------------------
 
                      IF ( VARI(V) < TINY ) VARI(V) = 0.d0
+
+#if defined( DEVEL )
+                     ! Free pointer
+                     NULLIFY( STT )
+#endif
 
                   !--------------------------
                   ! Otherwise it's an error!

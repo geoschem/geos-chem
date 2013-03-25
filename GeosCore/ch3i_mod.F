@@ -234,7 +234,7 @@
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      SUBROUTINE EMISSCH3I( State_Met, BIO_EMISS )
+      SUBROUTINE EMISSCH3I( State_Met, State_Chm, BIO_EMISS )
 #else
       SUBROUTINE EMISSCH3I( State_Met )
 #endif
@@ -350,7 +350,12 @@
       USE LOGICAL_MOD,        ONLY : LEMIS
       USE TIME_MOD,           ONLY : GET_DAY,   GET_GMT,
      &                               GET_MONTH, GET_TS_EMIS
-      USE TRACER_MOD,         ONLY : STT,       N_TRACERS
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
+      USE TRACER_MOD,         ONLY : STT
+#endif
+      USE TRACER_MOD,         ONLY : N_TRACERS
       USE TRACERID_MOD,       ONLY : IDBCO
       USE TRACERID_MOD,       ONLY : IDBFCO
 
@@ -360,6 +365,7 @@
       ! Arguments
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 #if defined( DEVEL )
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
       REAL*8,         INTENT(INOUT) :: BIO_EMISS(:,:,:)
 #endif
 
@@ -429,6 +435,13 @@
       ! output flag
       LOGICAL, PARAMETER :: OUTLOG = .FALSE.
 
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
+
       !=================================================================
       ! EMISSCH3I begins here!
       !
@@ -468,6 +481,12 @@
 !            ENDDO
 !         ENDIF
 !      ENDIF
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
 
       ! DTSRCE = the number of seconds between emissions
       DTSRCE = GET_TS_EMIS() * 60d0
@@ -880,6 +899,11 @@
 !          WRITE( 97, * )
 !       ENDIF
 
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
+
       ! Make sure the next time is not the first emission time step ;-)
       FIRSTEMISS = .FALSE.
 
@@ -888,7 +912,11 @@
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE CHEMCH3I( am_I_Root, State_Met, State_Chm )
+#else
       SUBROUTINE CHEMCH3I( am_I_Root, State_Met )
+#endif
 !
 !******************************************************************************
 !  Subroutine CHEMCH3I performs loss chemistry for methyl iodide (CH3I).  
@@ -954,7 +982,12 @@
       USE DIAG_PL_MOD,        ONLY : AD65
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACER_MOD,         ONLY : STT, N_TRACERS
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
+      USE TRACER_MOD,         ONLY : STT
+#endif
+      USE TRACER_MOD,         ONLY : N_TRACERS
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE COMODE_LOOP_MOD          ! SPECNAME
@@ -963,6 +996,9 @@
       ! Arguments
       LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
 
       ! Local variables
       LOGICAL, SAVE          :: FIRSTCHEM = .TRUE.
@@ -982,9 +1018,22 @@
       ! External functions
       REAL*8, EXTERNAL       :: FJFUNC 
 
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
+
       !=================================================================
       ! CHEMCH3I begins here!
       !=================================================================
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
 
       ! convert DTCHEM from mn to sec.
       DTCHEM = GET_TS_CHEM() * 60d0
@@ -1114,6 +1163,11 @@
 !          ENDDO
 !       ENDIF
 !-----------------------------------------------------------------------------
+
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
 
       ! Return to calling program
       END SUBROUTINE CHEMCH3I
