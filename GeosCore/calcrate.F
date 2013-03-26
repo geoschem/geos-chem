@@ -1438,6 +1438,10 @@ c new OH+CO rate from JPL2006.
 
                      ! Of the total ship NOx, the fraction FRACTION_NOX
                      ! survives after plume dilution and chemistry. 
+                     ! (Most ship NOx is NO2 after 5h plume aging, according
+                     ! to the PARANOX plume model. GEOS-Chem emits NOx as NO,
+                     ! when using instant PBL mixing, but as NOx when using 
+                     ! non-local PBL mixing. cdh, 3/26/2013)
                      ! The fraction DELTPRES/TOTPRES goes into level L,
                      ! since that is the fraction of the boundary layer
                      ! mass occupied by level L. Also,  
@@ -1511,6 +1515,16 @@ c new OH+CO rate from JPL2006.
                ! [molec chem species/cm2/s].
                ! Final units: molec(O3)/cm2/s
                EMIS_BL = SHIP * (1D0 - FRACTION_NOX) * INT_OPE / COEF1
+
+               ! If we are using the non-local PBL mixing, then emissions
+               ! occur when O3 and NO2 concentrations are lumped into the 
+               ! Ox family, so we add the ship NO2 emissions to the O3
+               ! emissions here. (Most ship NOx is NO2 after 5h plume aging) 
+               ! units: molec(Ox)/cm2/s
+               ! (cdh, 3/26/2013)
+               IF (LNLPBL) THEN
+                  EMIS_BL = EMIS_BL + SHIP * FRACTION_NOX / COEF1
+               ENDIF
 
                ! Ship plume chemistry can create or destroy net O3
                ! Treat positive O3 production as emissions 
