@@ -436,7 +436,7 @@ CONTAINS
           CALL Do_Linoz( am_I_Root, Input_Opt,             &
                          State_Met, State_Chm, RC=errCode )
        ELSE
-          CALL Do_Synoz( am_I_Root, State_Met )
+          CALL Do_Synoz( am_I_Root, State_Met, State_Chm )
        ENDIF
 
        ! Put ozone back to kg
@@ -586,13 +586,14 @@ CONTAINS
        STT0(:,:,:,:) = STT(:,:,:,:)
 
        CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, State_Met%AD, STT ) ! kg -> v/v
+
        IF ( LLINOZ ) THEN
           CALL Do_Linoz( am_I_Root, Input_Opt,             &
                          State_Met, State_Chm, RC=errCode )
        ELSE 
-          CALL Do_Synoz( am_I_Root, State_Met )
+          CALL Do_Synoz( am_I_Root, State_Met, State_Chm )
        ENDIF
-#endif
+
        CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, State_Met%AD, STT ) ! v/v -> kg
 
        ! Add to tropopause level aggregator for later determining STE flux
@@ -1747,24 +1748,16 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
   SUBROUTINE Do_Synoz( am_I_Root, State_Met, State_Chm )
-#else
-  SUBROUTINE Do_Synoz( am_I_Root, State_Met )   
-#endif
 !
 ! !USES:
 !
     USE ERROR_MOD,          ONLY : ERROR_STOP
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE GIGC_State_Met_Mod, ONLY : MetState
     USE LOGICAL_MOD,        ONLY : LVARTROP 
     USE PRESSURE_MOD,       ONLY : GET_PEDGE, GET_PCENTER
     USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_YEAR
-#if defined( DEVEL )
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
-#else
-    USE TRACER_MOD,         ONLY : STT
-#endif
     USE TRACER_MOD,         ONLY : ITS_A_TAGOX_SIM
     USE TRACERID_MOD,       ONLY : IDTOX, IDTOxStrt
     USE TROPOPAUSE_MOD,     ONLY : GET_TPAUSE_LEVEL
@@ -1777,14 +1770,12 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
-    TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-#if defined( DEVEL )
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
     TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-#endif
 !
 ! !REMARKS:
 !  Reference:

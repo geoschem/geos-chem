@@ -87,56 +87,70 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE CHEMPOPS( State_Met, State_Chm )
-#else
-      SUBROUTINE CHEMPOPS( State_Met )
-#endif
+      SUBROUTINE CHEMPOPS( am_I_Root, Input_Opt,
+     &                     State_Met, State_Chm, RC )
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
       USE DRYDEP_MOD,         ONLY : DEPSAV
+      USE DRYDEP_MOD,         ONLY : DRYPOPG, DRYPOPP_OC, DRYPOPP_BC
       USE ERROR_MOD,          ONLY : DEBUG_MSG
-#if defined( DEVEL )
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-#endif
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GLOBAL_OH_MOD,      ONLY : GET_GLOBAL_OH
-      USE GLOBAL_O3_MOD,      ONLY : GET_GLOBAL_O3 !clf, 6/27/2010
-      USE GLOBAL_OC_MOD,      ONLY : GET_GLOBAL_OC !clf, 1/20/2011
-      USE GLOBAL_BC_MOD,      ONLY : GET_GLOBAL_BC !clf, 1/20/2011
+      USE GLOBAL_O3_MOD,      ONLY : GET_GLOBAL_O3
+      USE GLOBAL_OC_MOD,      ONLY : GET_GLOBAL_OC
+      USE GLOBAL_BC_MOD,      ONLY : GET_GLOBAL_BC
       USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L
-      USE LOGICAL_MOD,        ONLY : LPRT, LGTMM, LNLPBL !CDH added LNLPBL
       USE TIME_MOD,           ONLY : GET_MONTH, GET_YEAR
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
-      USE TRACER_MOD,         ONLY : N_TRACERS
-      USE DRYDEP_MOD,         ONLY : DRYPOPG, DRYPOPP_OC, DRYPOPP_BC
-
-      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-#if defined( DEVEL )
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-#endif
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  20 September 2010 - N.E. Selin - Initial Version based on CHEMMERCURY
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                :: I, J, L, MONTH, YEAR, N, PBL_MAX
+      INTEGER :: I, J, L, MONTH, YEAR, N, PBL_MAX
+
+      ! For fields from Input_Opt
+      INTEGER :: N_TRACERS
+      LOGICAL :: LGTMM
+      LOGICAL :: LNLPBL
+      LOGICAL :: LPRT  
 
       !=================================================================
       ! CHEMPOPS begins here!
       !=================================================================
+
+      ! Assume success
+      RC        = GIGC_SUCCESS
+      
+      ! Get fields from Input_Opt
+      N_TRACERS = Input_Opt%N_TRACERS
+      LPRT      = Input_Opt%LPRT
+      LGTMM     = Input_Opt%LGTMM
+      LNLPBL    = Input_Opt%LNLPBL
 
       ! Read monthly mean OH fields for oxidation and monthly OC and BC
       ! fields for gas-particle partioning
@@ -184,14 +198,13 @@
       IF ( LPRT ) CALL DEBUG_MSG( 'CHEMPOPS: b CHEM_GASPART' )
       
 
-#if defined( DEVEL )
       ! Add option for non-local PBL (cdh, 08/27/09)
       IF ( LNLPBL ) THEN
 
          ! Dry deposition occurs with PBL mixing,
          ! pass zero deposition frequency
          CALL CHEM_POPGP( ZERO_DVEL, ZERO_DVEL, ZERO_DVEL,
-     &                    State_Met, State_Chm  )
+     &                    Input_Opt, State_Met, State_Chm  )
          
       ELSE
 
@@ -203,6 +216,7 @@
             CALL CHEM_POPGP(DEPSAV(:,:,DRYPOPG),   
      &                      DEPSAV(:,:,DRYPOPP_OC),
      &                      DEPSAV(:,:,DRYPOPP_BC),
+     &                      Input_Opt, 
      &                      State_Met,
      &                      State_Chm               )
 
@@ -213,6 +227,7 @@
             CALL CHEM_POPGP(DEPSAV(:,:,DRYPOPG),
      &                      DEPSAV(:,:,DRYPOPP_OC), 
      &                      ZERO_DVEL,
+     &                      Input_Opt,
      &                      State_Met,
      &                      State_Chm               )
 
@@ -223,6 +238,7 @@
             CALL CHEM_POPGP(DEPSAV(:,:,DRYPOPG),
      &                      ZERO_DVEL, 
      &                      DEPSAV(:,:,DRYPOPP_BC),
+     &                      Input_Opt,
      &                      State_Met,
      &                      State_Chm               )
          
@@ -233,6 +249,7 @@
             CALL CHEM_POPGP( DEPSAV(:,:,DRYPOPG),
      &                       ZERO_DVEL,
      &                       ZERO_DVEL,
+     &                       Input_Opt,
      &                       State_Met,
      &                       State_Chm               )
             
@@ -243,6 +260,7 @@
             CALL CHEM_POPGP( ZERO_DVEL,
      &                       DEPSAV(:,:,DRYPOPP_OC), 
      &                       DEPSAV(:,:,DRYPOPP_BC),
+     &                       Input_Opt,
      &                       State_Met,
      &                       State_Chm               )
 
@@ -253,6 +271,7 @@
             CALL CHEM_POPGP( ZERO_DVEL,
      &                       DEPSAV(:,:,DRYPOPP_OC), 
      &                       ZERO_DVEL,
+     &                       Input_Opt,
      &                       State_Met,
      &                       State_Chm               )
 
@@ -263,99 +282,18 @@
             CALL CHEM_POPGP( ZERO_DVEL,
      &                       ZERO_DVEL, 
      &                       DEPSAV(:,:,DRYPOPP_BC),
+     &                       Input_Opt,
      &                       State_Met,
      &                       State_Chm               )
          ELSE
 
             ! No dry deposition, pass zero deposition frequency
             CALL CHEM_POPGP( ZERO_DVEL, ZERO_DVEL, ZERO_DVEL,
-     &                       State_Met, State_Chm  )
+     &                       Input_Opt, State_Met, State_Chm  )
 
          ENDIF
 
       ENDIF
-#else
-      ! Add option for non-local PBL (cdh, 08/27/09)
-      IF ( LNLPBL ) THEN
-
-         ! Dry deposition occurs with PBL mixing,
-         ! pass zero deposition frequency
-         CALL CHEM_POPGP( ZERO_DVEL, ZERO_DVEL, ZERO_DVEL, State_Met )
-         
-      ELSE
-
-         IF ( DRYPOPG > 0 .and. DRYPOPP_OC > 0 .and. DRYPOPP_BC > 0 )
-     &      THEN
-         
-            ! Dry deposition active for both POP-Gas and POP-Particle; 
-            ! pass drydep frequency to CHEM_POPGP (NOTE: DEPSAV has units 1/s)
-            CALL CHEM_POPGP(DEPSAV(:,:,DRYPOPG),   
-     &                      DEPSAV(:,:,DRYPOPP_OC),
-     &                      DEPSAV(:,:,DRYPOPP_BC),
-     &                      State_Met )
-
-           ELSEIF (DRYPOPG > 0 .and. DRYPOPP_OC > 0 .and. 
-     &          DRYPOPP_BC .le. 0 ) THEN
-
-            ! Only POPG and POPP_OC dry deposition are active
-            CALL CHEM_POPGP(DEPSAV(:,:,DRYPOPG),
-     &                      DEPSAV(:,:,DRYPOPP_OC), 
-     &                      ZERO_DVEL,
-     &                      State_Met ) 
-
-           ELSEIF (DRYPOPG > 0 .and. DRYPOPP_OC .le. 0 .and. 
-     &          DRYPOPP_BC > 0 ) THEN
-
-            ! Only POPG and POPP_BC dry deposition are active
-            CALL CHEM_POPGP(DEPSAV(:,:,DRYPOPG),
-     &                      ZERO_DVEL, 
-     &                      DEPSAV(:,:,DRYPOPP_BC),
-     &                      State_Met ) 
-         
-           ELSEIF (DRYPOPG > 0 .and. DRYPOPP_OC .le. 0 .and. 
-     &          DRYPOPP_BC .le. 0 ) THEN
-
-            ! Only POPG dry deposition is active
-            CALL CHEM_POPGP( DEPSAV(:,:,DRYPOPG),
-     &                       ZERO_DVEL,
-     &                       ZERO_DVEL,
-     &                       State_Met ) 
-            
-           ELSEIF (DRYPOPG <= 0 .and. DRYPOPP_OC > 0 .and. 
-     &          DRYPOPP_BC > 0) THEN
-
-            ! Only POPP dry deposition is active
-            CALL CHEM_POPGP( ZERO_DVEL,
-     &                       DEPSAV(:,:,DRYPOPP_OC), 
-     &                       DEPSAV(:,:,DRYPOPP_BC),
-     &                       State_Met )
-
-           ELSEIF (DRYPOPG <= 0 .and. DRYPOPP_OC > 0 .and. 
-     &          DRYPOPP_BC <= 0) THEN
-
-            ! Only POPP_OC dry deposition is active
-            CALL CHEM_POPGP( ZERO_DVEL,
-     &                       DEPSAV(:,:,DRYPOPP_OC), 
-     &                       ZERO_DVEL,
-     &                       State_Met )
-
-           ELSEIF (DRYPOPG <= 0 .and. DRYPOPP_OC <= 0 .and. 
-     &          DRYPOPP_BC > 0) THEN
-
-            ! Only POPP_OC dry deposition is active
-            CALL CHEM_POPGP( ZERO_DVEL,
-     &                       ZERO_DVEL, 
-     &                       DEPSAV(:,:,DRYPOPP_BC),
-     &                       State_Met )            
-         ELSE
-
-            ! No dry deposition, pass zero deposition frequency
-            CALL CHEM_POPGP( ZERO_DVEL, ZERO_DVEL, ZERO_DVEL, State_Met)
-
-         ENDIF
-
-      ENDIF      
-#endif
 
       IF ( LPRT ) CALL DEBUG_MSG( 'CHEMPOPS: a CHEM_GASPART' )
    
@@ -375,16 +313,13 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE CHEM_POPGP ( V_DEP_G,   V_DEP_P_OC, V_DEP_P_BC,
-     &                        State_Met, State_Chm   )
-#else
-      SUBROUTINE CHEM_POPGP ( V_DEP_G,  V_DEP_P_OC, V_DEP_P_BC,
-     &                        State_Met )
-#endif
+     &                        Input_Opt, State_Met, State_Chm   )
 !
 ! !USES:
 !
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD44
       USE DIAG53_MOD,         ONLY : AD53_PG_OC_NEG
       USE DIAG53_MOD,         ONLY : AD53_PG_BC_NEG
@@ -401,41 +336,34 @@
       USE GET_POPSINFO_MOD,   ONLY : GET_POP_K_POPG_OH
       USE GET_POPSINFO_MOD,   ONLY : GET_POP_K_POPP_O3A
       USE GET_POPSINFO_MOD,   ONLY : GET_POP_K_POPP_O3B
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,        ONLY : LNLPBL,     LGTMM
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-#if defined( DEVEL )
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-#else
-      USE TRACER_MOD,         ONLY : STT
-#endif
-      USE TRACER_MOD,         ONLY : XNUMOL
       USE TRACERID_MOD,       ONLY : IDTPOPG,    IDTPOPPOC,  IDTPOPPBC
-
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_DIAG_MOD             ! ND44
 !
 ! !INPUT PARAMETERS: 
 !
       ! Dry deposition frequency for gaseous POP [/s]
-      REAL*8, INTENT(IN)          :: V_DEP_G(IIPAR,JJPAR)
+      REAL*8, INTENT(IN)            :: V_DEP_G(IIPAR,JJPAR)
 
       !  Dry deposition frequency for OC-POP [/s]
-      REAL*8, INTENT(IN)          :: V_DEP_P_OC(IIPAR,JJPAR)
+      REAL*8, INTENT(IN)            :: V_DEP_P_OC(IIPAR,JJPAR)
 
       ! Dry deposition frequency for BC-POP [/s]
-      REAL*8, INTENT(IN)          :: V_DEP_P_BC(IIPAR,JJPAR)   
+      REAL*8, INTENT(IN)            :: V_DEP_P_BC(IIPAR,JJPAR)   
+
+      ! Input Options object
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt
 
       ! Meteorology State object
-      TYPE(MetState), INTENT(IN)  :: State_Met
-#if defined( DEVEL )
+      TYPE(MetState), INTENT(IN)    :: State_Met
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-#endif
 !
 ! !REMARKS:
 !  References:
@@ -581,12 +509,16 @@
 
       REAL*8            :: DUM
 
+      ! For fields from Input_Opt
+      INTEGER         :: N_TRACERS
+      LOGICAL         :: LNLPBL
+      LOGICAL         :: LGTMM
+      REAL*8          :: XNUMOL(Input_Opt%N_TRACERS)
+
       ! Pointers
-#if defined( DEVEL )
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER :: STT(:,:,:,:)
-#endif
 
       !=================================================================
       ! CHEM_POPGP begins here!
@@ -599,11 +531,15 @@
       AK        = GET_POP_K_POPP_O3A(DUM)
       BK        = GET_POP_K_POPP_O3B(DUM)
 
-#if defined( DEVEL )
+      ! Copy values from Input_Opt
+      N_TRACERS = Input_Opt%N_TRACERS
+      LNLPBL    = Input_Opt%LNLPBL
+      LGTMM     = Input_Opt%LGTMM
+      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
+
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
-#endif
 
       ! Chemistry timestep [s]
       DTCHEM = GET_TS_CHEM() * 60d0
@@ -1097,10 +1033,8 @@
       ENDDO
       ENDDO
 
-#if defined( DEVEL )
       ! Free pointer
       NULLIFY( STT )
-#endif
 
       END SUBROUTINE CHEM_POPGP 
 !EOC
@@ -1326,14 +1260,12 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE EMISSPOPS( State_Met, State_Chm )
-#else
-      SUBROUTINE EMISSPOPS( State_Met )
-#endif
+      SUBROUTINE EMISSPOPS( am_I_Root, Input_Opt,
+     &                      State_Met, State_Chm, RC )
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
       USE DIAG53_MOD,         ONLY : AD53, ND53
       USE ERROR_MOD,          ONLY : DEBUG_MSG, ERROR_STOP
       USE GET_POPSINFO_MOD,   ONLY : GET_POP_DEL_H
@@ -1342,13 +1274,12 @@
       USE GET_POPSINFO_MOD,   ONLY : GET_POP_K_POPG_OH
       USE GET_POPSINFO_MOD,   ONLY : GET_POP_K_POPP_O3A
       USE GET_POPSINFO_MOD,   ONLY : GET_POP_K_POPP_O3B
-#if defined( DEVEL )
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-#endif
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GLOBAL_BC_MOD,      ONLY : GET_GLOBAL_BC
       USE GLOBAL_OC_MOD,      ONLY : GET_GLOBAL_OC
-      USE LOGICAL_MOD,        ONLY : LPRT, LNLPBL !CDH added LNLPBL
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
       USE TIME_MOD,           ONLY : GET_MONTH, GET_YEAR
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
@@ -1356,23 +1287,27 @@
       USE TRACERID_MOD,       ONLY : IDTPOPG, IDTPOPPOC,  IDTPOPPBC
       USE VDIFF_PRE_MOD,      ONLY : EMIS_SAVE !cdh for LNLPBL
 
-      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-#if defined( DEVEL )
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-#endif
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  20 Sep 2010 - N.E. Selin  - Initial Version based on EMISSMERCURY
 !  29 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  13 Dec 2012 - R. Yantosca - Remove reference to obsolete CMN_DEP_mod.F
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1464,9 +1399,17 @@
 
       REAL*8            :: DUM
 
+      ! For fields from Input_Opt
+      LOGICAL           :: LPRT, LNLPBL
+
       !=================================================================
       ! EMISSPOPS begins here!
       !=================================================================
+
+      ! Assume success
+      RC     = GIGC_SUCCESS
+      LPRT   = Input_Opt%LPRT 
+      LNLPBL = Input_Opt%LNLPBL
 
       DUM = 1.0
       DEL_H = GET_POP_DEL_H(DUM)
@@ -1474,7 +1417,7 @@
       KBC_298 = GET_POP_KBC(DUM)
 
 
-      CALL INIT_POPS(DUM,DUM,DUM,DUM,DUM,DUM,DUM,DUM,DUM)
+      CALL INIT_POPS(DUM,DUM,DUM,DUM,DUM,DUM,DUM,DUM,DUM, Input_Opt)
 
       ! First-time initialization
       IF ( FIRST ) THEN
@@ -1644,33 +1587,21 @@
             !-----------------
             N           = IDTPOPPOC
             E_POP       = EPOP_OC(I,J,L) * DTSRCE
-#if defined( DEVEL )
-            CALL EMITPOP( I, J, L, N, E_POP, State_Chm )
-#else
-            CALL EMITPOP( I, J, L, N, E_POP )
-#endif
+            CALL EMITPOP( I, J, L, N, E_POP, Input_Opt, State_Chm )
 
             !-----------------
             ! BC-PHASE EMISSIONS
             !-----------------
             N           = IDTPOPPBC
             E_POP       = EPOP_BC(I,J,L) * DTSRCE
-#if defined( DEVEL )
-            CALL EMITPOP( I, J, L, N, E_POP, State_Chm )
-#else
-            CALL EMITPOP( I, J, L, N, E_POP )
-#endif
+            CALL EMITPOP( I, J, L, N, E_POP, Input_Opt, State_Chm )
 
             !-----------------
             ! GASEOUS EMISSIONS
             !-----------------
             N           = IDTPOPG
             E_POP       = EPOP_G(I,J,L) * DTSRCE
-#if defined( DEVEL )
-            CALL EMITPOP( I, J, L, N, E_POP, State_Chm )
-#else
-            CALL EMITPOP( I, J, L, N, E_POP )
-#endif
+            CALL EMITPOP( I, J, L, N, E_POP, Input_Opt, State_Chm )
              
          ENDDO
 
@@ -1712,7 +1643,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE:  emitpop
+! !IROUTINE: emitpop
 !
 ! !DESCRIPTION: This routine directs emission either to STT directly or to
 !  EMIS\_SAVE for use by the non-local PBL mixing. This is a programming
@@ -1721,73 +1652,66 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE EMITPOP( I, J, L, ID, E_POP, State_Chm )
-#else
-      SUBROUTINE EMITPOP( I, J, L, ID, E_POP )
-#endif
+      SUBROUTINE EMITPOP( I, J, L, ID, E_POP, Input_Opt, State_Chm )
 !
 ! !USES:
 !
-#if defined( DEVEL )
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-#else
-      USE TRACER_MOD,   ONLY : STT
-#endif
-      USE LOGICAL_MOD,  ONLY : LNLPBL
       USE VDIFF_PRE_MOD,ONLY : EMIS_SAVE
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)   :: I, J, L   ! Grid box dimensions
-      INTEGER, INTENT(IN)   :: ID        ! Tracer ID
-      REAL*8,  INTENT(IN)   :: E_POP     ! POP emissions [kg/s]
-#if defined( DEVEL )
+      INTEGER,        INTENT(IN)    :: I, J, L     ! Grid box dimensions
+      INTEGER,        INTENT(IN)    :: ID          ! Tracer ID
+      REAL*8,         INTENT(IN)    :: E_POP       ! POP emissions [kg/s]
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-#endif
 !
 ! !REVISION HISTORY: 
 !  20 September 2010 - N.E. Selin - Initial Version based initially on EMITHG
 !
 ! !REMARKS:
 ! (1) Based initially on EMITHG from MERCURY_MOD (eck, 9/20/10)
+!  25 Mar 2013 - R. Yantosca - Now accept Input_Opt, State_Chm arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+
+      ! For fields from Input_Opt
+      LOGICAL         :: LNLPBL
+
       ! Pointers
-#if defined( DEVEL )
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER :: STT(:,:,:,:)
-#endif
 
       !=================================================================
       ! EMITPOP begins here!
       !=================================================================
 
-#if defined( DEVEL )
+      ! Copy values from Input_Opt
+      LNLPBL    = Input_Opt%LNLPBL
+
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
-#endif
 
       ! Save emissions [kg/s] for non-local PBL mixing or emit directly.
       ! Make sure that emitted mass is non-negative
       ! This is here only for consistency with old code which warned of
       ! underflow error (cdh, 08/27/09, modified for POPs 9/20/10)
-      IF (LNLPBL) THEN
+      IF ( LNLPBL ) THEN
          EMIS_SAVE(I,J,ID) = EMIS_SAVE(I,J,ID) + MAX( E_POP, 0D0 )
       ELSE
-          STT(I,J,L,ID) = STT(I,J,L,ID) + E_POP
+         STT(I,J,L,ID) = STT(I,J,L,ID) + E_POP
       ENDIF
 
-#if defined( DEVEL )
       ! Free pointer
       NULLIFY( STT )
-#endif
 
       END SUBROUTINE EMITPOP
 !EOC
@@ -2245,37 +2169,45 @@
 !
       SUBROUTINE INIT_POPS(POP_XMW, POP_KOA, POP_KBC, POP_K_POPG_OH,
      &                     POP_K_POPP_O3A, POP_K_POPP_O3B, 
-     &                     POP_HSTAR, POP_DEL_H, POP_DEL_Hw )
+     &                     POP_HSTAR, POP_DEL_H, POP_DEL_Hw, Input_Opt )
 !
 ! !USES:
 !
-      USE DRYDEP_MOD,       ONLY : DEPNAME,   NUMDEP
-      USE ERROR_MOD,        ONLY : ALLOC_ERR, ERROR_STOP
-      USE LOGICAL_MOD,      ONLY : LSPLIT,    LDRYD,     LNLPBL
-      USE TRACER_MOD,       ONLY : N_TRACERS
-      USE PBL_MIX_MOD,      ONLY : GET_PBL_MAX_L
-      USE GET_POPSINFO_MOD, ONLY : INIT_POP_PARAMS
+      USE DRYDEP_MOD,         ONLY : DEPNAME,   NUMDEP
+      USE ERROR_MOD,          ONLY : ALLOC_ERR, ERROR_STOP
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L
+      USE GET_POPSINFO_MOD,   ONLY : INIT_POP_PARAMS
 
       USE CMN_SIZE_MOD           ! Size parameters
       USE CMN_DIAG_MOD           ! ND44
 !
 ! !REVISION HISTORY: 
-!  20 September 2010 - N.E. Selin - Initial Version based on INIT_MERCURY
+!  20 Sep 2010 - N.E. Selin  - Initial Version based on INIT_MERCURY
+!  25 Mar 2013 - R. Yantosca - Now accept Input_Opt argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE         :: IS_INIT = .FALSE. 
-      INTEGER               :: AS, N!, PBL_MAX
-      REAL*8                :: MAX_A, MIN_A
-
-      REAL*8                :: POP_XMW, POP_KOA, POP_KBC, POP_K_POPG_OH
-      REAL*8                :: POP_K_POPP_O3A, POP_K_POPP_O3B
-      REAL*8                :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
-      CHARACTER             :: POP_TYPE
-
+      LOGICAL, SAVE :: IS_INIT = .FALSE. 
+      INTEGER       :: AS, N!, PBL_MAX
+      REAL*8        :: MAX_A, MIN_A
+!
+! !INPUT PARAMETERS:
+!
+      REAL*8        :: POP_XMW, POP_KOA, POP_KBC, POP_K_POPG_OH
+      REAL*8        :: POP_K_POPP_O3A, POP_K_POPP_O3B
+      REAL*8        :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
+      CHARACTER     :: POP_TYPE
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !LOCAL VARIABLES:
+!
+      ! For fields from Input_Opt
+      INTEGER       :: N_TRACERS
+      LOGICAL       :: LSPLIT, LDRYD, LNLPBL
 
       !=================================================================
       ! INIT_POPS begins here!
@@ -2286,6 +2218,12 @@
 
       ! Return if we have already allocated arrays
       IF ( IS_INIT ) RETURN
+
+      ! Copy values from Input_Opt
+      N_TRACERS = Input_Opt%N_TRACERS
+      LSPLIT    = Input_Opt%LSPLIT
+      LDRYD     = Input_Opt%LDRYD
+      LNLPBL    = Input_Opt%LNLPBL
 
       CALL INIT_POP_PARAMS( POP_XMW, POP_KOA, POP_KBC, POP_K_POPG_OH,
      &                      POP_K_POPP_O3A, POP_K_POPP_O3B, 

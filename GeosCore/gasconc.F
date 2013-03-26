@@ -140,7 +140,7 @@
       REAL*8  :: TK,CONSEXP,VPRESH2O,CONST
 
       ! For fields from Input_Opt
-      INTEGER         :: N_TRACERS
+      INTEGER         :: NTRACER
       REAL*8          :: XNUMOL(Input_Opt%N_TRACERS)
 
       ! Pointers

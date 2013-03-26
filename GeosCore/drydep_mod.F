@@ -989,21 +989,26 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE DRYFLXRnPbBe( State_Chm )
-#else
-      SUBROUTINE DRYFLXRnPbBe
-#endif
+      SUBROUTINE DRYFLXRnPbBe( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
-#if defined( DEVEL )
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-#endif
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY:
 !  (1 ) Now eliminate DEPFLUX from CMN_SAV, in order to save memory.
@@ -1030,6 +1035,8 @@
 !        (bmy, 7/20/04)
 !  (14) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1040,24 +1047,23 @@
       REAL*8              :: DTCHEM, FRACLOST, F_UNDER_TOP, AMT_LOST
 
       ! Pointers
-#if defined( DEVEL )
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER :: STT(:,:,:,:)
-#endif
 
       !=================================================================
       ! DRYFLXRnPbBe begins here!!
       !=================================================================
 
-      ! Return if drydep is turned off
-      IF ( .not. LDRYD ) RETURN
+      ! Assume success
+      RC = GIGC_SUCCESS
 
-#if defined( DEVEL )
+      ! Return if drydep is turned off
+      IF ( .not. Input_Opt%LDRYD ) RETURN
+
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
-#endif
 
       ! Chemistry timestep in seconds
       DTCHEM  = GET_TS_CHEM() * 60d0
@@ -1067,7 +1073,7 @@
 
       ! Add option for non-local PBL mixing scheme: only done at the surface
       ! (Lin, 03/31/09) 
-      IF (LNLPBL) PBL_MAX = 1
+      IF ( Input_Opt%LNLPBL ) PBL_MAX = 1
 
       ! Loop over drydep species
 !$OMP PARALLEL DO
@@ -1137,10 +1143,8 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-#if defined( DEVEL )
       ! Free pointer
       NULLIFY( STT )
-#endif
 
       END SUBROUTINE DRYFLXRnPbBe
 !EOC

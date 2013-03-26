@@ -112,10 +112,9 @@
 !
 ! !USES:
 !
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE LOGICAL_MOD,        ONLY : LTURB
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE TRACER_MOD,         ONLY : N_TRACERS, TCVV 
 #if   defined( APM ) 
       USE TRACER_MOD,         ONLY : N_APMTRA
 #endif
@@ -124,6 +123,7 @@
 !
       LOGICAL,        INTENT(IN)    :: DO_TURBDAY  ! =T means call TURBDAY 
                                                    !    for full PBL mixing
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -141,8 +141,13 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE :: FIRST = .TRUE.
-      INTEGER       :: N_TOT_TRC
+      ! Scalars
+      LOGICAL, SAVE  :: FIRST = .TRUE.
+      INTEGER        :: N_TOT_TRC
+      INTEGER        :: N_TRACERS
+
+      ! Arrays
+      REAL*8         :: TCVV(Input_Opt%N_TRACERS)
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -153,11 +158,15 @@
       ! DO_PBL_MIX begins here!
       !=================================================================
 
+      ! Get fields from the Input_OPt object
+      N_TRACERS = Input_Opt%N_TRACERS
+      TCVV      = Input_Opt%TCVV(1:N_TRACERS)
+
       ! Pick the proper # of tracers
 #if   defined( APM )  
-      N_TOT_TRC = Input_Opt%N_TRACERS + N_APMTRA   ! If APM is used, then convect
-#else                                              !  the G-C advected tracers +
-      N_TOT_TRC = Input_Opt%N_TRACERS              !  the APM aerosol tracers
+      N_TOT_TRC = N_TRACERS + N_APMTRA   ! If APM is used, then convect
+#else                                    !  the G-C advected tracers +
+      N_TOT_TRC = N_TRACERS              !  the APM aerosol tracers
 #endif
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object

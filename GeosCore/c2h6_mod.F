@@ -379,36 +379,32 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE CHEMC2H6( State_Met, State_Chm )
-#else
-      SUBROUTINE CHEMC2H6( State_Met )
-#endif
+      SUBROUTINE CHEMC2H6( am_I_Root, Input_Opt,
+     &                     State_Met, State_Chm, RC )
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GLOBAL_OH_MOD,      ONLY : OH,        GET_GLOBAL_OH
-      USE LOGICAL_MOD,        ONLY : LSPLIT 
       USE TIME_MOD,           ONLY : GET_MONTH, GET_TS_CHEM
-      USE TRACER_MOD,         ONLY : N_TRACERS
-#if defined( DEVEL )
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-#else
-      USE TRACER_MOD,         ONLY : STT
-#endif
 
-      USE CMN_SIZE_MOD             ! Size parameters
-!
 ! !INPUT PARAMETERS:
 !
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#if defined( DEVEL )
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-#endif
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY:
 !  (1 ) Now do chemistry all the way to the model top. 
@@ -423,27 +419,40 @@
 !  22 Mar 2012 - M. Payer    - Added ProTeX headers
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      ! SAVEd scalars
       LOGICAL, SAVE          :: FIRSTCHEM = .TRUE.
       INTEGER, SAVE          :: LASTMONTH = -99
+
+      ! Scalars
+      LOGICAL                :: LSPLIT
+      INTEGER                :: N_TRACERS
       INTEGER                :: I, J, L, N
       REAL*8                 :: DTCHEM, KRATE
 
       ! Pointers
-#if defined( DEVEL )
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER :: STT(:,:,:,:)
-#endif
 
       !=================================================================
       ! CHEMC2H6 begins here! 
       !=================================================================
+
+      ! Assume success
+      RC        = GIGC_SUCCESS
+
+      ! Get fields from Input_Opt
+      LSPLIT    = Input_Opt%LSPLIT
+      N_TRACERS = Input_Opt%N_TRACERS
+
+
       IF ( FIRSTCHEM ) THEN
          FIRSTCHEM = .FALSE.  ! save for future use?
       ENDIF
@@ -451,11 +460,9 @@
       ! DTCHEM is the chemistry timestep in seconds
       DTCHEM = GET_TS_CHEM() * 60d0
 
-#if defined( DEVEL )
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
-#endif
 
       !=================================================================
       ! Read in the tropospheric OH fields of the (LMN)th month
@@ -507,10 +514,8 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-#if defined( DEVEL )
       ! Free pointer
       NULLIFY( STT )
-#endif
 
       END SUBROUTINE CHEMC2H6
 !EOC

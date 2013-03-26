@@ -630,7 +630,7 @@
             ENDIF
 
             CALL GASCONC( am_I_Root, .FALSE.,    IT_EXISTS, 
-     &                    Input_Opt,  State_Met, State_Chm  RC )
+     &                    Input_Opt,  State_Met, State_Chm, RC )
 
          ENDIF 
 

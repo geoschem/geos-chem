@@ -547,11 +547,8 @@
 
 !------------------------------------------------------------------------------
 
-#if defined( DEVEL )
-      SUBROUTINE OCEAN_MERCURY_FLUX( FLUX, State_Met, State_Chm )
-#else
-      SUBROUTINE OCEAN_MERCURY_FLUX( FLUX, State_Met )
-#endif
+      SUBROUTINE OCEAN_MERCURY_FLUX( FLUX,      Input_Opt, 
+     &                               State_Met, State_Chm )
 !
 !******************************************************************************
 !  Subroutine OCEAN_MERCURY_FLUX calculates emissions of Hg(0) from 
@@ -717,18 +714,13 @@
       USE DEPO_MERCURY_MOD,   ONLY : DD_Hg2, WD_Hg2, DD_HgP, WD_HgP
       USE DIAG03_MOD,         ONLY : AD03, ND03
       USE DIRECTORY_MOD,      ONLY : DATA_DIR
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2, GET_XMID, GET_YMID 
-      USE LOGICAL_MOD,        ONLY : LSPLIT
       USE TIME_MOD,           ONLY : GET_TS_EMIS,     GET_MONTH 
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH, ITS_MIDMONTH
       USE TIME_MOD,           ONLY : GET_YEAR 
-#if defined( DEVEL )
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-#else
-      USE TRACER_MOD,         ONLY : STT
-#endif
-      USE TRACER_MOD,         ONLY : TRACER_MW_KG
 !- eds 8/31/10 -------------------------------------------------------------
 !      USE TRACERID_MOD,  ONLY : ID_Hg_tot,       ID_Hg_oc
       USE TRACERID_MOD,       ONLY : ID_Hg_tot
@@ -740,14 +732,23 @@
       USE TRANSFER_MOD,       ONLY : TRANSFER_2D
 
       USE CMN_SIZE_MOD             ! Size parameters
+!
+! !INPUT PARAMETERS:
+!
 
-      ! Arguments 
-      REAL*8,         INTENT(OUT) :: FLUX(IIPAR,JJPAR,N_Hg_CATS)
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-#if defined( DEVEL )
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-#endif
-
+!
+! !OUTPUT PARAMETERS:
+!
+      REAL*8,         INTENT(OUT) :: FLUX(IIPAR,JJPAR,N_Hg_CATS)
+!
+! !LOCAL VARIABLES:
+!
       ! Local variables
       LOGICAL, SAVE         :: FIRST = .TRUE.
       LOGICAL               :: IS_OCEAN_BOX ! jaf
@@ -806,16 +807,24 @@
       ! External functions
       REAL*8,  EXTERNAL     :: SFCWINDSQR 
      
+      ! For values from Input_Opt
+      LOGICAL         :: LSPLIT
+      INTEGER         :: N_TRACERS
+      REAL*8          :: TRACER_MW_KG(Input_Opt%N_TRACERS)
+
       ! Pointers
-#if defined( DEVEL )
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER :: STT(:,:,:,:)
-#endif
 
       !=================================================================
       ! OCEAN_MERCURY_FLUX begins here!
       !=================================================================
+
+      ! Copy values from Input_Opt
+      LSPLIT       = Input_Opt%LSPLIT
+      N_TRACERS    = Input_Opt%N_TRACERS
+      TRACER_MW_KG = Input_Opt%TRACER_MW_KG(1:N_TRACERS)
 
       ! Loop limit for use below
       IF ( LSPLIT ) THEN
@@ -831,12 +840,8 @@
       ! Check tagged & total sums (if necessary)
       !-----------------------------------------------
       IF ( USE_CHECKS .and. LSPLIT ) THEN
-#if defined( DEVEL )
          CALL CHECK_ATMOS_MERCURY( State_Chm,
      &                             'start of OCEAN_MERCURY_FLUX' )
-#else
-         CALL CHECK_ATMOS_MERCURY( 'start of OCEAN_MERCURY_FLUX' )
-#endif
          CALL CHECK_OCEAN_MERCURY( 'start of OCEAN_MERCURY_FLUX' )
          CALL CHECK_OCEAN_FLUXES ( 'start of OCEAN_MERCURY_FLUX' )
       ENDIF
@@ -918,11 +923,9 @@
 
       NPP_avg = NPP_tot / A_ocean
 
-#if defined( DEVEL )
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
-#endif
 
       ! Loop over surface boxes  
 !$OMP PARALLEL DO
@@ -1711,21 +1714,15 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-#if defined( DEVEL )
       ! Free pointer
       NULLIFY( STT )
-#endif
 
       !=================================================================
       ! Check tagged & total sums (if necessary)
       !=================================================================
       IF ( USE_CHECKS .and. LSPLIT ) THEN
-#if defined( DEVEL )
          CALL CHECK_ATMOS_MERCURY(  State_Chm, 
      &                              'end of OCEAN_MERCURY_FLUX' )
-#else
-         CALL CHECK_ATMOS_MERCURY(  'end of OCEAN_MERCURY_FLUX' )
-#endif
          CALL CHECK_OCEAN_MERCURY(  'end of OCEAN_MERCURY_FLUX' )
          CALL CHECK_OCEAN_FLUXES (  'end of OCEAN_MERCURY_FLUX' )
          CALL CHECK_FLUX_OUT( FLUX, 'end of OCEAN_MERCURY_FLUX' )
@@ -2992,11 +2989,7 @@
 
 !------------------------------------------------------------------------------
 
-#if defined( DEVEL )
       SUBROUTINE CHECK_ATMOS_MERCURY( State_Chm, LOC )
-#else
-      SUBROUTINE CHECK_ATMOS_MERCURY( LOC )
-#endif
 !
 !******************************************************************************
 !  Subroutine CHECK_ATMOS_MERCURY tests whether the total and tagged tracers 
@@ -3011,11 +3004,7 @@
 !******************************************************************************
 !
       ! References to F90 modules
-#if defined( DEVEL )
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-#else
-      USE TRACER_MOD,          ONLY : STT
-#endif
+      USE GIGC_State_Chm_Mod,  ONLY : ChmState
       USE ERROR_MOD,           ONLY : ERROR_STOP
       USE TRACERID_MOD,        ONLY : ID_Hg0,    ID_Hg2,   ID_HgP
       USE TRACERID_MOD,        ONLY : ID_Hg_tot, N_Hg_CATS
@@ -3024,9 +3013,7 @@
 
       ! Arguments as Input
       CHARACTER(LEN=*), INTENT(IN) :: LOC
-#if defined( DEVEL )
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-#endif
 
       ! Local variables
       LOGICAL                      :: FLAG
@@ -3037,11 +3024,9 @@
       REAL*8                       :: HgP_tot, HgP_tag, RELERRP, ABSERRP
 
       ! Pointers
-#if defined( DEVEL )
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER :: STT(:,:,:,:)
-#endif
 
       !=================================================================
       ! CHECK_ATMOS_MERCURY begins here!
@@ -3050,11 +3035,9 @@
       ! Set error flags
       FLAG = .FALSE.
 
-#if defined( DEVEL )
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
-#endif
 
       ! Loop over grid boxes
 ! OMP PARALLEL DO
@@ -3188,10 +3171,8 @@
       ENDDO
 ! OMP END PARALLEL DO
 
-#if defined( DEVEL )
       ! Free pointer
       NULLIFY( STT )
-#endif
 
       ! FORMAT strings
  100  FORMAT( 'Hg0 error: ', 3i5, 4es13.6 )

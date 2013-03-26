@@ -912,11 +912,8 @@
 
 !------------------------------------------------------------------------------
 
-#if defined( DEVEL )
-      SUBROUTINE CHEMCH3I( am_I_Root, State_Met, State_Chm )
-#else
-      SUBROUTINE CHEMCH3I( am_I_Root, State_Met )
-#endif
+      SUBROUTINE CHEMCH3I( am_I_Root, Input_Opt, 
+     &                     State_Met, State_Chm, STATUS )
 !
 !******************************************************************************
 !  Subroutine CHEMCH3I performs loss chemistry for methyl iodide (CH3I).  
@@ -975,32 +972,40 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  27 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !******************************************************************************
 !
-      ! References to F90 modules
+!
+! !USES:
+!
       USE DIAG_MOD,           ONLY : AD22, LTJV
       USE DIAG_PL_MOD,        ONLY : AD65
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TIME_MOD,           ONLY : GET_TS_CHEM
-#if defined( DEVEL )
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-#else
-      USE TRACER_MOD,         ONLY : STT
-#endif
-      USE TRACER_MOD,         ONLY : N_TRACERS
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE COMODE_LOOP_MOD          ! SPECNAME
       USE CMN_DIAG_MOD             ! ND36
-
-      ! Arguments
-      LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#if defined( DEVEL )
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-#endif
-
-      ! Local variables
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: STATUS      ! Success or failure?
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE          :: FIRSTCHEM = .TRUE.
       REAL*8                 :: DTCHEM, RLRAD, RDLOSS, T1L
       REAL*8                 :: TCHEMA, JVALUE
@@ -1018,22 +1023,27 @@
       ! External functions
       REAL*8, EXTERNAL       :: FJFUNC 
 
+      ! For fields from Input_Opt
+      INTEGER               :: N_TRACERS
+
       ! Pointers
-#if defined( DEVEL )
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER :: STT(:,:,:,:)
-#endif
 
       !=================================================================
       ! CHEMCH3I begins here!
       !=================================================================
 
-#if defined( DEVEL )
+      ! Assume success
+      STATUS = GIGC_SUCCESS
+      
+      ! Get N_TRACERS field from Input_Opt
+      N_TRACERS = Input_Opt%N_TRACERS
+
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
-#endif
 
       ! convert DTCHEM from mn to sec.
       DTCHEM = GET_TS_CHEM() * 60d0
@@ -1164,10 +1174,8 @@
 !       ENDIF
 !-----------------------------------------------------------------------------
 
-#if defined( DEVEL )
       ! Free pointer
       NULLIFY( STT )
-#endif
 
       ! Return to calling program
       END SUBROUTINE CHEMCH3I

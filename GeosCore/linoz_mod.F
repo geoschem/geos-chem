@@ -119,12 +119,10 @@
 !
 ! !USES:
 !
-      USE TIME_MOD
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE CMN_SIZE_MOD
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : GET_TS_CHEM
@@ -356,7 +354,7 @@
       ! ****         : check DMASS
       DO ITRC = 1, NUM_TRACER
 
-         IF ( ITS_A_FULLCHEM_SIM() ) THEN
+         IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
             NTRACER = IDTOX
          ELSE
             NTRACER = ITRC

@@ -303,8 +303,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE LOGICAL_MOD,        ONLY : LSPLIT
-      USE LOGICAL_MOD,        ONLY : LPRT
       USE TIME_MOD,           ONLY : EXPAND_DATE
 
       USE CMN_SIZE_MOD             ! Size parameters
@@ -355,12 +353,14 @@
 !  21 Jul 2011 - M. Long     - Now include F77_CMN_SIZE instead of CMN_SIZE
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  25 Mar 2013 - R. Yantosca - Now accept Input_Opt, State_Chm arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      LOGICAL             :: LSPLIT, LPRT
       INTEGER             :: I, IOS, IU_RST, J, L, N
       INTEGER             :: NCOUNT(NNPAR) 
       REAL*4              :: TRACER(IIPAR,JJPAR,LLPAR)
@@ -387,6 +387,10 @@
       !=================================================================
       ! READ_RESTART_FILE begins here!
       !=================================================================
+
+      ! Get fields from Input_Opt
+      LSPLIT    = Input_Opt%LSPLIT
+      LPRT      = Input_Opt%LPRT
 
       ! Initialize some variables
       NCOUNT(:)     = 0
@@ -464,7 +468,7 @@
 
             ! Convert TRACER from [v/v] to [kg] and copy into STT array
             CALL COPY_STT( NTRACER,   TRACER,   NCOUNT,
-     &                     State_Met, State_Chm )
+     &                     Input_Opt, State_Met, State_Chm )
 
          ENDIF
       ENDDO
@@ -474,7 +478,7 @@
       !=================================================================
 
       ! Check for missing or duplicate data blocks
-      CALL CHECK_DATA_BLOCKS( N_TRACERS, NCOUNT )
+      CALL CHECK_DATA_BLOCKS( Input_Opt%N_TRACERS, NCOUNT )
 
       ! Close file
       CLOSE( IU_RST )      
@@ -673,21 +677,22 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE COPY_STT( NTRACER,   TRACER,   NCOUNT,
-     &                     State_Met, State_Chm )
+      SUBROUTINE COPY_STT( NTRACER,   TRACER,    NCOUNT,
+     &                     Input_Opt, State_Met, State_Chm )
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-      
-      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER,        INTENT(IN)    :: NTRACER                   ! Tracer #
       REAL*4,         INTENT(IN)    :: TRACER(IIPAR,JJPAR,LLPAR) ! Tracers from 
                                                                  !rst file [v/v]
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -706,6 +711,7 @@
 !  21 Jul 2011 - M. Long     - Now include F77_CMN_SIZE instead of CMN_SIZE
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  25 Mar 2013 - R. Yantosca - Now pass State_Chm, Input_Opt as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -713,11 +719,6 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: I, J, L, N
-      
-      ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! COPY_STT begins here!
@@ -726,12 +727,8 @@
       ! Tracer number
       N = NTRACER
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
-
       ! Exit if N is out of range
-      IF ( N < 1 .or. N > N_TRACERS ) RETURN
+      IF ( N < 1 .or. N > Input_Opt%N_TRACERS ) RETURN
 
       ! Convert from [v/v] to [kg] and store in STT
 !$OMP PARALLEL DO
@@ -740,14 +737,13 @@
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         STT(I,J,L,N) = TRACER(I,J,L) * State_Met%AD(I,J,L) / TCVV(N) 
+         State_Chm%Tracers(I,J,L,N) = TRACER(I,J,L) 
+     &                              * State_Met%AD(I,J,L) 
+     &                              / Input_Opt%TCVV(N) 
       ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
-      ! Free pointer
-      NULLIFY( STT )
 
       ! Increment the # of records found for tracer N
       NCOUNT(N) = NCOUNT(N) + 1

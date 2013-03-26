@@ -431,10 +431,6 @@ co2_mod.o                   : co2_mod.F               biomass_mod.o          \
                               diag04_mod.o            tracer_mod.o           \
 	                      tracerid_mod.o          
 
-CO_strat_pl.o               : CO_strat_pl.F                                  \
-                              dao_mod.o               tracer_mod.o           \
-                              tracerid_mod.o          tropopause_mod.o 
-
 comode_mod.o                : comode_mod.F            tracer_mod.o
 
 convection_mod.o            : convection_mod.F                               \
@@ -1089,16 +1085,6 @@ tpcore_geos5_window_mod.o   : tpcore_geos5_window_mod.F90
 tpcore_geos57_window_mod.o  : tpcore_geos57_window_mod.F90
 	$(F90) -c $(FREEFORM) $(R8) $<
 
-tpcore_mod.o                : tpcore_mod.F            dao_mod.o              \
-                              diag_mod.o              global_ch4_mod.o       \
-                              tracer_mod.o
-	$(F90) -c $(R8) $<
-
-tpcore_window_mod.o         : tpcore_window_mod.F     dao_mod.o              \
-                              diag_mod.o              global_ch4_mod.o       \
-                              tracer_mod.o
-	$(F90) -c $(R8) $<
-
 tracer_mod.o                : tracer_mod.F
 
 tracerid_mod.o              : tracerid_mod.F                                 \
@@ -1108,9 +1094,8 @@ tracerid_mod.o              : tracerid_mod.F                                 \
 transport_mod.o             : transport_mod.F                                \
                               dao_mod.o               diag_mod.o             \
                               logical_mod.o           pjc_pfix_mod.o         \
-                              tpcore_mod.o            tpcore_bc_mod.o        \
-                              tpcore_fvdas_mod.o      tpcore_window_mod.o    \
-                              tracer_mod.o                                   \
+                              tpcore_bc_mod.o         tpcore_fvdas_mod.o     \
+                              tpcore_window_mod.o     tracer_mod.o           \
                               tpcore_geos5_window_mod.o                      \
                               tpcore_geos57_window_mod.o                     \
                               pjc_pfix_geos5_window_mod.o                    \

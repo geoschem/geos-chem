@@ -134,12 +134,8 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE CHEMSEASALT( am_I_Root, Input_Opt, State_Met,
-     &                        State_Chm, RC )
-#else
-      SUBROUTINE CHEMSEASALT( am_I_Root, Input_Opt, State_Met, RC )
-#endif
+      SUBROUTINE CHEMSEASALT( am_I_Root, Input_Opt, 
+     &                        State_Met, State_Chm, RC )
 !
 ! !USES:
 !
@@ -151,29 +147,23 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
-#if defined( DEVEL )
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-#else
-      USE TRACER_MOD,         ONLY : STT
-#endif
       USE TRACERID_MOD,       ONLY : IDTSALA
       USE TRACERID_MOD,       ONLY : IDTSALC
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-#if defined( DEVEL )
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-#endif
 !
 ! !OUTPUT PARAMETERS:
 !      
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY:
 !  (1 ) Now reference STT from "tracer_mod.f".  Now references LPRT from
@@ -184,15 +174,13 @@
 !                              running with the traditional driver main.F
 !  13 Nov 2012 - R. Yantosca - Now add Input_Opt, RC arguments for GIGC
 !  15 Nov 2012 - M. Payer    - Now pass met fields via State_Met object
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      ! SAVEd variables
-!      LOGICAL, SAVE  :: FIRST = .TRUE.
-
       ! Non-SAVEd variables
       LOGICAL        :: prtDebug
       LOGICAL        :: LDRYD
@@ -201,11 +189,9 @@
       INTEGER        :: N
 
       ! Pointers
-#if defined( DEVEL )
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER :: STT(:,:,:,:)
-#endif
 
       !=================================================================
       ! CHEMSEASALT begins here!
@@ -219,11 +205,9 @@
       LNLPBL   = Input_Opt%LNLPBL
       LPRT     = Input_Opt%LPRT
 
-#if defined( DEVEL )
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
-#endif
+      STT      => State_Chm%Tracers
 
       ! Do we have to print debug output?
       prtDebug = ( LPRT .and. am_I_Root )
@@ -275,10 +259,8 @@
          ENDIF
       ENDIF
 
-#if defined( DEVEL )
       ! Free pointer
       NULLIFY( STT )
-#endif
 
       END SUBROUTINE CHEMSEASALT
 !EOC
@@ -895,48 +877,34 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE EMISSSEASALT( State_Met, State_Chm, SFLX, SSA_Br2 )
-#else
-      SUBROUTINE EMISSSEASALT( State_Met, SSA_Br2 )
-#endif
+      SUBROUTINE EMISSSEASALT( am_I_Root, Input_Opt, State_Met, 
+     &                         State_Chm, RC,        SSA_Br2    )
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : DEBUG_MSG
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE LOGICAL_MOD,        ONLY : LPRT
-#if defined( DEVEL )
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-#else
-      USE TRACER_MOD,         ONLY : STT
-#endif
+      USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRACERID_MOD,       ONLY : IDTSALA, IDTSALC
-      USE VDIFF_PRE_MOD,      ONLY : emis_save ! (Lin, 03/31/09)
-#if defined( DEVEL )
-      USE TRACER_MOD,         ONLY : N_TRACERS
-#endif
-
-      USE CMN_SIZE_MOD             ! Size parameters
-
-      !%%% NOTE: Keep this here as a placeholder, but we should
-      !%%% eventually replace this with Input_Opt%LNLPBL
-      USE LOGICAL_MOD,         ONLY : LNLPBL
-!
-! !OUTPUT PARAMETERS:
-!
-      REAL*8, INTENT(OUT), OPTIONAL :: SSA_Br2(IIPAR, JJPAR)
-!
-! !INPUT/OUTPUT PARAMETERS
-!
-#if defined( DEVEL )
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-      REAL*8, INTENT(INOUT) :: SFLX(IIPAR,JJPAR,LLPAR,N_TRACERS+1)
-#endif
+      USE VDIFF_PRE_MOD,      ONLY : emis_save 
 !
 ! !INPUT PARAMETERS:
 !
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+      LOGICAL,           INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput),    INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState),    INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState),    INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,           INTENT(OUT)   :: RC          ! Success or failure?
+      REAL*8,  OPTIONAL, INTENT(OUT)   :: SSA_Br2(IIPAR, JJPAR)
 !
 ! !REVISION HISTORY: 
 !  (1 ) Now references LPRT from "logical_mod.f" and STT from "tracer_mod.f".
@@ -953,32 +921,39 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE         :: FIRST = .TRUE.
-      INTEGER               :: I, J, L, N
+      LOGICAL, SAVE   :: FIRST = .TRUE.
+      INTEGER         :: I, J, L, N
 
       ! jpp, 3/2/10
-      REAL*8                :: tmpbr2(IIPAR, JJPAR)
+      REAL*8          :: tmpbr2(IIPAR, JJPAR)
+
+      ! For fields from Input_Opt
+      LOGICAL         :: LNLPBL
+      LOGICAL         :: LPRT
 
       ! Pointers
-#if defined( DEVEL )
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER :: STT(:,:,:,:)
-#endif
 
       !=================================================================
       ! EMISSSEASALT begins here! 
       !=================================================================
 
+      ! Assume success
+      RC          =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LNLPBL      = Input_Opt%LNLPBL
+      LPRT        = Input_Opt%LPRT
+
       ! Initialize Br2 emission arrays
       tmpbr2(:,:) = 0.d0
       IF ( PRESENT ( SSA_Br2 ) ) SSA_Br2(:,:) = 0.d0
 
-#if defined( DEVEL )
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
-#endif
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### in EMISSEASALT' )
@@ -1021,8 +996,10 @@
       ENDIF
 
 #if defined( DEVEL )
-      SFLX(:,:,1,IDTSALA) = SFLX(:,:,1,IDTSALA) + ALK_EMIS(:,:,1,1)
-      SFLX(:,:,1,IDTSALC) = SFLX(:,:,1,IDTSALC) + ALK_EMIS(:,:,1,2)
+      State_Chm%TRAC_TEND(:,:,1,IDTSALA) = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTSALA) + ALK_EMIS(:,:,1,1)
+      State_Chm%TRAC_TEND(:,:,1,IDTSALC) = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTSALC) + ALK_EMIS(:,:,1,2)
 #endif
 
       IF ( PRESENT ( SSA_Br2 ) ) THEN
@@ -1045,10 +1022,8 @@
 !$OMP END PARALLEL DO
       ENDIF
 
-#if defined( DEVEL )
       ! Free pointer
       NULLIFY( STT )
-#endif
 
       END SUBROUTINE EMISSSEASALT
 !EOC

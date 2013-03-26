@@ -292,12 +292,8 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE CHEMCARBON( am_I_Root, Input_Opt, State_Met, State_Chm,
-     &                       RC )
-#else
-      SUBROUTINE CHEMCARBON( am_I_Root, Input_Opt, State_Met, RC )
-#endif
+      SUBROUTINE CHEMCARBON( am_I_Root, Input_Opt, 
+     &                       State_Met, State_Chm, RC )
 !
 ! !USES:
 !
@@ -305,17 +301,13 @@
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GLOBAL_OH_MOD,      ONLY : GET_GLOBAL_OH
       USE GLOBAL_NO3_MOD,     ONLY : GET_GLOBAL_NO3
       USE GLOBAL_O3_MOD,      ONLY : GET_GLOBAL_O3
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
-#if defined( DEVEL )
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-#else
-      USE TRACER_MOD,         ONLY : STT
-#endif
       USE TRACERID_MOD,       ONLY : IDTBCPI, IDTBCPO, IDTOCPI
       USE TRACERID_MOD,       ONLY : IDTOCPO, IDTSOG4, IDTSOA4
       USE TRACERID_MOD,       ONLY : IDTSOG5, IDTSOA5
@@ -323,19 +315,17 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-#if defined( DEVEL )
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-#endif
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
 ! 
@@ -358,7 +348,8 @@
 !                              derived type object
 !  15 Nov 2012 - R. Yantosca - Added ProTeX headers
 !  04 Mar 2013 - R. Yantosca - Remove call to INIT_CARBON
-!   4 Mar 2013 - R. Yantosca - Now pass Input_Opt to SOA_CHEMISTRY
+!  04 Mar 2013 - R. Yantosca - Now pass Input_Opt to SOA_CHEMISTRY
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1387,7 +1378,7 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER<        INTENT(OUT)   :: RC          ! Success or failure?
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 
 !
 ! !LOCAL VARIABLES:
@@ -1902,6 +1893,7 @@
 !                              derived type object
 !  05 Mar 2013 - R. Yantosca - Now pass Input_Opt to SOA_DEPO
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LPRT
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !******************************************************************************
 !
       USE CMN_O3_MOD
@@ -1984,11 +1976,9 @@
          FIRST = .FALSE.
       ENDIF
 
-#if defined( DEVEL )
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
-#endif
 
       !%%% NOTE: NEED TO REPLACE LLTROP WITH LLPAR FOR GIGC
       !%%% DO THIS LATER SINCE WE ARE NOT USING THE SOA MECHANISM YET
@@ -3363,7 +3353,7 @@ c
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-      INTEGER         INTENT(OUT)   :: RC          ! Success or failure?
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 
       ! Local variables
       INTEGER  :: JHC, IPR, NOX
@@ -4274,11 +4264,8 @@ c
 
 !------------------------------------------------------------------------------
 
-#if defined( DEVEL )
-      SUBROUTINE EMISSCARBON( State_Met, State_Chm, EMISSIONS )
-#else
-      SUBROUTINE EMISSCARBON( State_Met )
-#endif
+      SUBROUTINE EMISSCARBON( am_I_Root, Input_Opt,
+     &                        State_Met, State_Chm, RC )
 !
 !******************************************************************************
 !  Subroutine EMISSCARBON is the interface between the GEOS-CHEM model
@@ -4306,37 +4293,47 @@ c
 !******************************************************************************
 !
       ! References to F90 modules
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD07
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE GFED2_BIOMASS_MOD,  ONLY : GFED2_IS_NEW
       USE GFED3_BIOMASS_MOD,  ONLY : GFED3_IS_NEW
-#if defined( DEVEL )
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-#endif
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE LOGICAL_MOD,        ONLY : LSOA,      LPRT,  LCOOKE
       USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
-
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_DIAG_MOD             ! ND07
-
-#if defined( DEVEL )
       USE TRACERID_MOD,       ONLY : IDTBCPI, IDTBCPO, IDTOCPI, IDTOCPO
-      USE TRACER_MOD,         ONLY : N_TRACERS 
-#endif
-
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !LOCAL VARIABLES:
+!
       ! Local variables
       LOGICAL, SAVE        :: FIRST = .TRUE.
       INTEGER              :: I, J, MONTH, N
       REAL*8               :: BCSRC(IIPAR,JJPAR,2)
       REAL*8               :: OCSRC(IIPAR,JJPAR,2)
 
-      ! Arguments
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#if defined( DEVEL )
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-      REAL*8,      INTENT(INOUT) :: EMISSIONS(IIPAR,JJPAR,N_TRACERS+1)
-#endif
+      ! For fields from Input_Opt
+      INTEGER         :: N_TRACERS
+      LOGICAL         :: LCOOKE
+      LOGICAL         :: LPRT
+      LOGICAL         :: LSOA
+
       !=================================================================
       ! EMISSCARBON begins here!
       !
@@ -4344,6 +4341,12 @@ c
       ! and hydrophobic fractions. NOTE, CARBON AEROSOLS HAVE TO BE 
       ! ORDERED AS Hydrophilic(BC[1], OC[2]) Hydrophobic(BC[3], OC[4]).
       !=================================================================      
+
+      ! Copy values from Input_Opt
+      N_TRACERS = Input_Opt%N_TRACERS
+      LCOOKE    = Input_Opt%LCOOKE
+      LPRT      = Input_Opt%LPRT
+      LSOA      = Input_Opt%LSOA
 
       !--------------------------
       ! Read time-invariant data
@@ -4496,22 +4499,29 @@ c
 !$OMP END PARALLEL DO
 
       ! Sum up all carbon tracers throughout the boundary layer
-#if defined( DEVEL )
       CALL EMITHIGH( BCSRC, OCSRC, State_Chm )
-#else
-      CALL EMITHIGH( BCSRC, OCSRC )
-#endif
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISCARB: after EMITHIGH' )
 
 #if defined( DEVEL )
-      IF (IDTBCPI /= 0) EMISSIONS(:,:,IDTBCPI) = 
-     &                    EMISSIONS(:,:,IDTBCPI) + BCSRC(:,:,1) ! Hydrophylic BC
-      IF (IDTBCPI /= 0) EMISSIONS(:,:,IDTBCPO) = 
-     &                    EMISSIONS(:,:,IDTBCPO) + BCSRC(:,:,2) ! Hydrophobic BC
-      IF (IDTBCPI /= 0) EMISSIONS(:,:,IDTOCPI) = 
-     &                    EMISSIONS(:,:,IDTOCPI) + OCSRC(:,:,1) ! Hydrophylic OC
-      IF (IDTBCPI /= 0) EMISSIONS(:,:,IDTOCPO) = 
-     &                    EMISSIONS(:,:,IDTOCPO) + OCSRC(:,:,2) ! Hydrophylic OC
+      IF ( IDTBCPI /= 0 ) THEN
+         State_Chm%TRAC_TEND(:,:,IDTBCPI) = 
+     &   State_Chm%TRAC_TEND(:,:,IDTBCPI) + BCSRC(:,:,1) ! Hydrophylic BC
+      ENDIF
+
+      IF ( IDTBCPI /= 0 ) THEN
+         State_Chm%TRAC_TEND(:,:,IDTBCPO) = 
+     &   State_Chm%TRAC_TEND(:,:,IDTBCPO) + BCSRC(:,:,2) ! Hydrophobic BC
+      ENDIF
+
+      IF ( IDTBCPI /= 0 ) THEN
+         State_Chm%TRAC_TEND(:,:,IDTOCPI) = 
+     &   State_Chm%TRAC_TEND(:,:,IDTOCPI) + OCSRC(:,:,1) ! Hydrophylic OC
+      ENDIF
+
+      IF ( IDTBCPI /= 0 ) THEN
+         State_Chm%TRAC_TEND(:,:,IDTOCPO) = 
+     &   State_Chm%TRAC_TEND(:,:,IDTOCPO) + OCSRC(:,:,2) ! Hydrophylic OC
+      ENDIF
 #endif
 
       !=================================================================

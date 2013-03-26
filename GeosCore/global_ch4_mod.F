@@ -310,47 +310,39 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE EMISSCH4( State_Met, State_Chm )
-#else
-      SUBROUTINE EMISSCH4( State_Met )
-#endif
+      SUBROUTINE EMISSCH4( am_I_Root, Input_Opt,
+     &                     State_Met, State_Chm, RC )
 !
 ! !USES:
 !
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR 
       USE TIME_MOD,           ONLY : GET_MONTH,       GET_YEAR
       USE TIME_MOD,           ONLY : GET_TS_EMIS
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2,    GET_XOFFSET
       USE GRID_MOD,           ONLY : GET_YOFFSET 
-#if defined( DEVEL )
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-#else
-      USE TRACER_MOD,         ONLY : STT
-#endif
-      USE LOGICAL_MOD,        ONLY : LSPLIT
       USE DIAG_MOD,           ONLY : AD58
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP, IT_IS_NAN
-      USE TRACER_MOD,         ONLY : N_TRACERS,      ID_TRACER
-      USE LOGICAL_MOD,        ONLY : LWETL,          LBMCH4,       LRICE
-      USE LOGICAL_MOD,        ONLY : LBFCH4
       USE VDIFF_PRE_MOD,      ONLY : EMIS_SAVE ! (ccc, 08/31/09)
-      USE LOGICAL_MOD,        ONLY : LNLPBL    ! (ccc, 08/31/09)
-      USE GIGC_State_Met_Mod, ONLY : MetState
-
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_DIAG_MOD             ! Diagnostic switches
-
 !
 ! !INPUT PARAMETERS:
 !
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-#if defined( DEVEL )
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-#endif
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REMARKS:
 !  WARNING: Soil absorption has to be the 11th field in CH4_EMIS
@@ -384,30 +376,51 @@
 !  (13) Add non-local PBL capability (ccc, 8/31/09)
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                :: I, I0, IREF, J, J0, JREF, N
-      REAL*8                 :: DTSRCE,       AREA_CM2
+      INTEGER          :: I, I0, IREF, J, J0, JREF, N
+      REAL*8           :: DTSRCE,       AREA_CM2
+
+      ! For fields from Input_Opt
+      LOGICAL          :: LBFCH4
+      LOGICAL          :: LBMCH4
+      LOGICAL          :: LNLPBL
+      LOGICAL          :: LRICE
+      LOGICAL          :: LSPLIT
+      LOGICAL          :: LWETL
+      INTEGER          :: N_TRACERS
+      INTEGER          :: ID_TRACER(Input_Opt%N_TRACERS)
 
       ! Pointers
-#if defined( DEVEL )
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER :: STT(:,:,:,:)
-#endif
 
       !=================================================================
       ! EMISSCH4 begins here!
       !=================================================================
 
-      ! Get nested-grid offsets
-      I0  = GET_XOFFSET()
-      J0  = GET_YOFFSET()
+      ! Assume success
+      RC        = GIGC_SUCCESS
 
+      ! Get nested-grid offsets
+      I0        = GET_XOFFSET()
+      J0        = GET_YOFFSET()
+
+      ! Copy values from Input_Opt
+      LBFCH4    = Input_Opt%LBFCH4
+      LBMCH4    = Input_Opt%LBMCH4
+      LNLPBL    = Input_Opt%LNLPBL
+      LRICE     = Input_Opt%LRICE
+      LSPLIT    = Input_Opt%LSPLIT
+      LWETL     = Input_Opt%LWETL
+      N_TRACERS = Input_Opt%N_TRACERS
+      ID_TRACER = Input_Opt%ID_TRACER(1:N_TRACERS)
 
       !===================================================================
       ! Emissions are read or calculated at the first of every:
@@ -468,12 +481,12 @@
 
          !4.2 Biomass Burning emissions (CH4_BBN, #9)
          IF ( LBMCH4 ) THEN
-            CALL BIOBURN_EMIS
+            CALL BIOBURN_EMIS( am_I_Root, Input_Opt, RC )
          ENDIF
 
          !4.3 Rice emissions (CH4_RIC, #7)
          IF ( LRICE ) THEN
-            CALL RICE_EMIS
+            CALL RICE_EMIS( am_I_Root, Input_Opt, RC )
          ENDIF
       ENDIF
 
@@ -493,10 +506,10 @@
         !4.5 Aseasonal Anthropogenic emissions
         ! (CH4_OAG, #2; CH4_COL, #3; CH4_LIV, #4; CH4_WST, #5; 
         !  CH4_BFL, #6; CH4_OTA, #8)
-        CALL ASEASONAL_ANTHRO_EMIS
+        CALL ASEASONAL_ANTHRO_EMIS( am_I_Root, Input_Opt, RC )
 
         !4.6 Aseasonal Natural emissions (CH4_SAB, #11; CH4_OTN, #12)
-        CALL ASEASONAL_NATURAL_EMIS
+        CALL ASEASONAL_NATURAL_EMIS( am_I_Root, Input_Opt, RC )
 
       ENDIF
 
@@ -528,11 +541,9 @@
 
       WRITE( 6, '(a)' ) '% EMISSCH4 --- Adding Emissions to STT array.'
 
-#if defined( DEVEL )
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
-#endif
 
       ! Emission timestep [s]
       DTSRCE = GET_TS_EMIS() * 60d0   !timestep in s.
@@ -581,10 +592,8 @@
       ENDDO
       ENDDO
 
-#if defined( DEVEL )
       ! Free pointer
       NULLIFY( STT )
-#endif
 
       !===============================================================
       ! Sum up CH4 budgets
@@ -1091,14 +1100,24 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE BIOBURN_EMIS
+      SUBROUTINE BIOBURN_EMIS( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE BIOMASS_MOD,      ONLY : BIOMASS
-      USE LOGICAL_MOD,      ONLY : LGFED2BB,      LGFED3BB
-      USE TRACERID_MOD,     ONLY : IDBCH4
-      USE CMN_SIZE_MOD,     ONLY : IIPAR, JJPAR
+      USE BIOMASS_MOD,        ONLY : BIOMASS
+      USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TRACERID_MOD,       ONLY : IDBCH4
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY:
 !  03 Jun 2009 - K. Wecht    - The code used to read, scale & regrid emissions
@@ -1107,6 +1126,7 @@
 !  14 Feb 2012 - M. Payer    - Now obtain emissions from BIOMASS array. Also
 !                              update for GFED3 (K. Wecht)
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1122,9 +1142,12 @@
       ! BIOBURN_EMIS begins here!
       !=================================================================
 
+      ! Assume success
+      RC = GIGC_SUCCESS
+
       !4.9 Biomass Burning emissions. Calculate emissions from monthly 
       !     GFED-2 or GFED-3.
-      IF ( LGFED2BB .OR. LGFED3BB ) THEN
+      IF ( Input_Opt%LGFED2BB .OR. Input_Opt%LGFED3BB ) THEN
          DO I=1,IIPAR
          DO J=1,JJPAR
             ! Biomass burning emissions [molec/cm2/s]
@@ -1152,21 +1175,33 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RICE_EMIS
+      SUBROUTINE RICE_EMIS( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT,  GET_MODELNAME
-      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_NAME_EXT_2D
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE GRID_MOD,      ONLY : GET_AREA_CM2
-      USE TIME_MOD,      ONLY : GET_MONTH,    GET_YEAR
-      USE LOGICAL_MOD,   ONLY : LSPLIT
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-
-      USE CMN_SIZE_MOD        ! Size parameters
-      USE CMN_DIAG_MOD        ! Diagnostic switches
+      USE BPCH2_MOD,          ONLY : GET_RES_EXT,  GET_MODELNAME
+      USE BPCH2_MOD,          ONLY : GET_TAU0,     READ_BPCH2
+      USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_NAME_EXT_2D
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE TIME_MOD,           ONLY : GET_MONTH,    GET_YEAR
+      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !LOCAL VARIABLES:
+!
 ! 
 ! !REMARKS:
 !  Rice Emissions are scaled to GEOS soil wetness.  Scaling sceme developed
@@ -1179,12 +1214,14 @@
 !       Drevet.  Adapted as its own subroutine by Kevin Wecht (6/03/09)
 !  (2 ) Corrected ordering of DO loops (bmy, 10/1/09)
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      LOGICAL                :: LSPLIT
       INTEGER                :: I,J,YEAR
       REAL*4                 :: ARRAY(IIPAR,JJPAR)      
       REAL*8                 :: DTSRCE,       AREA_CM2
@@ -1200,6 +1237,12 @@
       !=================================================================
       ! RICE_EMIS begins here!
       !=================================================================
+
+      ! Assume success
+      RC     = GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LSPLIT = Input_Opt%LSPLIT
 
       !4.7 Rice Emissions
       ! For now, we only have emissions from 2004 in DATA_DIR.
@@ -1319,21 +1362,29 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE ASEASONAL_ANTHRO_EMIS
+      SUBROUTINE ASEASONAL_ANTHRO_EMIS( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT,  GET_MODELNAME
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D
-      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE TIME_MOD,      ONLY : GET_YEAR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-      USE LOGICAL_MOD,   ONLY : LGAO,         LCOL,         LLIV
-      USE LOGICAL_MOD,   ONLY : LWAST,        LOTANT, LBFCH4
-
-      USE CMN_SIZE_MOD        ! Size parameters
-      USE CMN_DIAG_MOD        ! Diagnostic switches
+      USE BPCH2_MOD,          ONLY : GET_RES_EXT,  GET_MODELNAME
+      USE BPCH2_MOD,          ONLY : GET_NAME_EXT_2D
+      USE BPCH2_MOD,          ONLY : GET_TAU0,     READ_BPCH2
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : GET_YEAR
+      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REMARKS:
 !  Aseasonal anthropogenic emissions currently include EDGAR v4 categories
@@ -1343,23 +1394,42 @@
 !
 ! !REVISION HISTORY:
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*4                 :: ARRAY(IIPAR,JJPAR)      
-      REAL*8                 :: XTAU
-      CHARACTER(LEN=255)     :: FILENAME
-      CHARACTER(LEN=4  )     :: CYEAR
+      REAL*4             :: ARRAY(IIPAR,JJPAR)      
+      REAL*8             :: XTAU
+      CHARACTER(LEN=255) :: FILENAME
+      CHARACTER(LEN=4  ) :: CYEAR
 
-
-      WRITE( 6, '(a)' ) '% EMISSCH4 --- BEGIN ASEASONAL_ANTHRO_EMIS'
+      ! For values from Input_Opt
+      LOGICAL            :: LGAO
+      LOGICAL            :: LCOL
+      LOGICAL            :: LLIV
+      LOGICAL            :: LWAST
+      LOGICAL            :: LOTANT
+      LOGICAL            :: LBFCH4
 
       !=================================================================
       ! ASEASONAL_ANTHRO_EMIS begins here!
       !=================================================================
+
+      WRITE( 6, '(a)' ) '% EMISSCH4 --- BEGIN ASEASONAL_ANTHRO_EMIS'
+
+      ! Assume success
+      RC     = GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LGAO   = Input_Opt%LGAO    
+      LCOL   = Input_Opt%LCOL     
+      LLIV   = Input_Opt%LLIV
+      LWAST  = Input_Opt%LWAST       
+      LOTANT = Input_Opt%LOTANT
+      LBFCH4 = Input_Opt%LBFCH4
 
 
       ! For now, we only have emissions from 2004 in DATA_DIR.
@@ -1507,20 +1577,29 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE ASEASONAL_NATURAL_EMIS
+      SUBROUTINE ASEASONAL_NATURAL_EMIS( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT,    GET_MODELNAME
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D
-      USE BPCH2_MOD,     ONLY : GET_TAU0,       READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE TIME_MOD,      ONLY : GET_YEAR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-      USE LOGICAL_MOD,   ONLY : LSOABS,         LOTNAT
-
-      USE CMN_SIZE_MOD        ! Size parameters
-      USE CMN_DIAG_MOD        ! Diagnostic switches
+      USE BPCH2_MOD,          ONLY : GET_RES_EXT,    GET_MODELNAME
+      USE BPCH2_MOD,          ONLY : GET_NAME_EXT_2D
+      USE BPCH2_MOD,          ONLY : GET_TAU0,       READ_BPCH2
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : GET_YEAR
+      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REMARKS:
 !  Aseasonal natural emissions currently include termites (Fung et. al. 1991)
@@ -1530,16 +1609,21 @@
 ! 
 ! !REVISION HISTORY:
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*4                 :: ARRAY(IIPAR,JJPAR)      
-      REAL*8                 :: XTAU
-      CHARACTER(LEN=255)     :: FILENAME
-      CHARACTER(LEN=4  )     :: CYEAR
+      REAL*4             :: ARRAY(IIPAR,JJPAR)      
+      REAL*8             :: XTAU
+      CHARACTER(LEN=255) :: FILENAME
+      CHARACTER(LEN=4  ) :: CYEAR
+
+      ! For fields from Input_Opt
+      LOGICAL            :: LSOABS
+      LOGICAL            :: LOTNAT
 
       WRITE( 6, '(a)' ) '% EMISSCH4 --- BEGIN ASEASONAL_NATURAL_EMIS'
 
@@ -1547,6 +1631,12 @@
       ! ASEASONAL_NATURAL_EMIS begins here!
       !=================================================================
 
+      ! Assume success
+      RC     = GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LSOABS = Input_Opt%LSOABS
+      LOTNAT = Input_Opt%LOTNAT
 
       ! We only have one year of soil absorption and other natural
       ! CH4 emissions.  These have the date Jan . 1, 1985
@@ -1605,47 +1695,44 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE CHEMCH4( State_Met, State_Chm )
-#else
-      SUBROUTINE CHEMCH4( State_Met )
-#endif
+      SUBROUTINE CHEMCH4( am_I_Root, Input_Opt,
+     &                    State_Met, State_Chm, RC )
 !
 ! !USES:
 !
       USE BPCH2_MOD,          ONLY : GET_TAU0, READ_BPCH2, GET_MODELNAME
       USE BPCH2_MOD,          ONLY : GET_NAME_EXT, GET_RES_EXT
+      USE CMN_MOD
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD43
       USE DIRECTORY_MOD,      ONLY : DATA_DIR, OH_DIR
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
       USE ERROR_MOD,          ONLY : IT_IS_NAN, IT_IS_FINITE
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GLOBAL_OH_MOD,      ONLY : GET_GLOBAL_OH, OH
-      USE LOGICAL_MOD,        ONLY : LSPLIT, LCH4BUD
       USE TIME_MOD,           ONLY : GET_DAY,   GET_MONTH
       USE TIME_MOD,           ONLY : GET_NYMDb, GET_NYMDe
       USE TIME_MOD,           ONLY : GET_TAU,   GET_YEAR
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
-#if defined( DEVEL )
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-#else
-      USE TRACER_MOD,         ONLY : STT
-#endif
       USE TRANSFER_MOD,       ONLY : TRANSFER_2D
-
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_DIAG_MOD             ! ND43, AD43
-      USE CMN_MOD                  ! LPAUSE
 !
 ! !INPUT PARAMETERS:
 !
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-#if defined( DEVEL )
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-#endif
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REMARKS:
 !  CH4 SOURCES
@@ -1688,6 +1775,7 @@
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1718,12 +1806,15 @@
      &                                          31, 30, 31, 31, 
      &                                          30, 31, 30, 31 /)
 
+      ! For fields from Input_Opt
+      INTEGER                :: N_TRACERS
+      LOGICAL                :: LSPLIT
+      LOGICAL                :: LCH4BUD
+
       ! Pointers
-#if defined( DEVEL )
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER        :: STT(:,:,:,:)
-#endif
 !
 ! !EXTERNAL FUNCTIONS:
 !
@@ -1733,6 +1824,14 @@
       ! CHEMCH4 begins here!
       !=================================================================
       WRITE( 6, '(a)' ) '% --- ENTERING CHEMCH4! ---'
+
+      ! Assume success
+      RC        = GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      N_TRACERS = Input_Opt%N_TRACERS
+      LSPLIT    = Input_Opt%LSPLIT
+      LCH4BUD   = Input_Opt%LCH4BUD
 
       !=================================================================
       ! (0) Calculate each box's air density [molec/cm3]
@@ -1768,19 +1867,15 @@
          CH4LOSS(:,:,:,:) = 0d0
          CALL READ_CH4LOSS
 
-#if defined( DEVEL )
          ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
          ! (mpayer, 12/6/12)
          STT => State_Chm%Tracers
-#endif
 
          ! Initialize the CH4 burden TCH4 [molec/box], (ccc, 7/23/09)
          TCH4(:,:,:,1) = STT(:,:,:,1) * XNUMOL_CH4 
 
-#if defined( DEVEL )
          ! Free pointer
          NULLIFY( STT )
-#endif
       ENDIF
 
       ! Initialize current month
@@ -1868,11 +1963,9 @@
       !================================================================= 
       IF ( LSPLIT ) THEN
 
-#if defined( DEVEL )
          ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
          ! (mpayer, 12/6/12)
          STT => State_Chm%Tracers
-#endif
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -1886,13 +1979,10 @@
          ENDDO
 !$OMP END PARALLEL DO
 
-#if defined( DEVEL )
          ! Free pointer
          NULLIFY( STT )
-#endif
       ENDIF
 
-#if defined( DEVEL )
       !=================================================================
       ! (6) calculate rate of decay of CH4 by OH oxidation.
       !=================================================================
@@ -1908,27 +1998,8 @@
       !     tracers. (ccc, 2/10/09)
       !=================================================================
       IF ( LSPLIT ) THEN
-         CALL CH4_DISTRIB( PREVCH4, State_Chm )
+         CALL CH4_DISTRIB( PREVCH4, Input_Opt, State_Chm )
       ENDIF
-#else
-      !=================================================================
-      ! (6) calculate rate of decay of CH4 by OH oxidation.
-      !=================================================================
-      CALL CH4_DECAY( State_Met )
-
-      !=================================================================
-      ! (7) calculate CH4 chemistry in layers above tropopause.
-      !=================================================================
-      CALL CH4_STRAT( State_Met )
-
-      !=================================================================
-      ! (8) distribute the chemistry sink from total CH4 to other CH4 
-      !     tracers. (ccc, 2/10/09)
-      !=================================================================
-      IF ( LSPLIT ) THEN
-         CALL CH4_DISTRIB(PREVCH4)
-      ENDIF
-#endif
 
       !=================================================================
       ! (9) write budget (i.e., monthly average fields).
@@ -1959,11 +2030,7 @@
          print*,'CALL CH4_BUDGET'
          CALL FLUSH ( 6 )
      
-#if defined( DEVEL )
          CALL CH4_BUDGET( State_Chm )
-#else
-         CALL CH4_BUDGET
-#endif
 
 	 NTALDT  = 0
          print*,'END CH4_BUDGET'
@@ -2204,11 +2271,7 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE CH4_DECAY( State_Met, State_Chm )
-#else
-      SUBROUTINE CH4_DECAY( State_Met )
-#endif
 !
 ! !USES:
 !
@@ -2216,11 +2279,7 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM, ITS_A_NEW_YEAR
       USE TIME_MOD,           ONLY : GET_MONTH
-#if defined( DEVEL )
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-#else
-      USE TRACER_MOD,         ONLY : STT
-#endif
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND19
@@ -2229,12 +2288,10 @@
 ! !INPUT PARAMETERS: 
 !
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-#if defined( DEVEL )
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-#endif
 ! 
 ! !REMARKS:
 !  The annual mean tropopause is stored in the LPAUSE array 
@@ -2271,11 +2328,9 @@
       REAL*8              :: DT, GCH4, STT2GCH4, KRATE
 
       ! Pointers
-#if defined( DEVEL )
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER :: STT(:,:,:,:)
-#endif
 !
 ! !EXTERNAL FUNCTIONS:   
 !
@@ -2301,11 +2356,9 @@
       ! This is from JPL '97.
       ! JPL '00 & '06 do not revise '97 value. (jsw, kjw)
       !=================================================================
-#if defined( DEVEL )
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
-#endif
 
       MM = MAXVAL( LPAUSE )
 !$OMP PARALLEL DO
@@ -2360,10 +2413,8 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-#if defined( DEVEL )
       ! Free pointer
       NULLIFY( STT )
-#endif
 
       print*,'% --- CHEMCH4: CH4_DECAY: TROP DECAY (Tg): ',TROPOCH4/1e9
       print*,'Trop decay should be over 1Tg per day globally'
@@ -2489,22 +2540,14 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE CH4_STRAT( State_Met, State_Chm )
-#else
-      SUBROUTINE CH4_STRAT( State_Met )
-#endif
 !
 ! !USES:
 !
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH, GET_TS_CHEM
       USE TRACER_MOD,         ONLY : CHECK_STT
-#if defined( DEVEL )
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-#else
-      USE TRACER_MOD,         ONLY : STT
-#endif
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_MOD                  ! LPAUSE
@@ -2512,12 +2555,10 @@
 ! !INPUT PARAMETERS:
 !
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-#if defined( DEVEL )
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-#endif
 ! 
 ! !REMARKS:
 !  Production (mixing ratio/sec) rate provided by Dylan Jones.  
@@ -2553,11 +2594,9 @@
       CHARACTER*20        :: STT2GCH4_CHAR
 
       ! Pointers
-#if defined( DEVEL )
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER :: STT(:,:,:,:)
-#endif
 !
 ! !EXTERNAL FUNCTIONS:   
 !
@@ -2573,11 +2612,9 @@
       ! Current month
       LMN = GET_MONTH()
 
-#if defined( DEVEL )
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
-#endif
 
       !=================================================================
       ! Loop over stratospheric boxes only
@@ -2627,16 +2664,11 @@
       ENDDO
       ENDDO
 
-#if defined( DEVEL )
       ! Check STT for negatives and NaN
       CALL CHECK_STT( State_Chm, 'IN global_ch4_mod.F: CH4_STRAT' )
 
       ! Free pointer
       NULLIFY( STT )
-#else
-      ! Check STT for negatives and NaN
-      CALL CHECK_STT( 'IN global_ch4_mod.F: CH4_STRAT' )
-#endif
 
       END SUBROUTINE CH4_STRAT
 !EOC
@@ -2655,11 +2687,7 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE CH4_BUDGET( State_Chm )
-#else
-      SUBROUTINE CH4_BUDGET
-#endif
 !
 ! !USES:
 !
@@ -2667,20 +2695,13 @@
       USE GRID_MOD,   ONLY : GET_XOFFSET, GET_YOFFSET
       USE TIME_MOD,   ONLY : GET_MONTH,   GET_YEAR
       USE TIME_MOD,   ONLY : GET_DIAGb,   GET_CT_DYN
-#if defined( DEVEL )
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-#else
-      USE TRACER_MOD, ONLY : STT
-#endif
 
       USE CMN_SIZE_MOD     ! Size parameters
-
-#if defined( DEVEL )
 !
 ! !INPUT PARAMETERS: 
 !
       TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
-#endif
 ! 
 ! !REMARKS:
 !  Store the sources/sinks of CH4 in TCH4 in total molecules
@@ -2745,11 +2766,9 @@
       CHARACTER (LEN=80)  :: LABEL
 
       ! Pointers
-#if defined( DEVEL )
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER :: STT(:,:,:,:)
-#endif
 
       !=================================================================
       ! CH4_BUDGET begins here!
@@ -2784,19 +2803,15 @@
       ! Store the final burden of CH4 in TCH4(2) 
       ! Convert kg CH4/box to molecules/box.
       !=================================================================
-#if defined( DEVEL )
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
-#endif
 
       TCH4(:,:,:,2) = 0d0
       TCH4(:,:,:,2) = STT(:,:,:,1) * XNUMOL_CH4
 
-#if defined( DEVEL )
       ! Free pointer
       NULLIFY( STT )
-#endif
 
       !=================================================================
       ! Write GLOBAL AVERAGES for all layers to ASCII file
@@ -3335,63 +3350,55 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE CH4_DISTRIB( PREVCH4, State_Chm )
-#else
-      SUBROUTINE CH4_DISTRIB(PREVCH4)
-#endif
+      SUBROUTINE CH4_DISTRIB( PREVCH4, Input_Opt, State_Chm )
 !
 ! !USES:
 !
-#if defined( DEVEL )
+      USE CMN_SIZE_MOD
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-#else
-      USE TRACER_MOD,    ONLY : STT
-#endif
-      USE TRACER_MOD,    ONLY : N_TRACERS
-      USE ERROR_MOD,     ONLY : SAFE_DIV
-
-      USE CMN_SIZE_MOD        ! Size parameters
+      USE ERROR_MOD,          ONLY : SAFE_DIV
    
       IMPLICIT NONE
 #     include "define.h"
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8                 :: PREVCH4(IIPAR, JJPAR, LLPAR) ! CH4 before chem
-#if defined( DEVEL )
+      REAL*8                        :: PREVCH4(IIPAR,JJPAR,LLPAR)! CH4 bef chem
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-#endif
 ! 
 ! !REVISION HISTORY:
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!  25 Mar 2013 - R. Yantosca - Now accept Input_Opt, State_Chm args
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                :: N, I, J, L
+      ! Scalars
+      INTEGER         :: N_TRACERS
+      INTEGER         :: N, I, J, L
 
       ! Pointers
-#if defined( DEVEL )
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER :: STT(:,:,:,:)
-#endif
 
       !========================================================================
       ! CH4_DISTRIB begins here
       !========================================================================
 
-#if defined( DEVEL )
+      ! Copy values from Input_Opt
+      N_TRACERS = Input_Opt%N_TRACERS
+
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
-#endif
 
       DO N=2,N_TRACERS
 
@@ -3410,10 +3417,8 @@
 
       ENDDO
 
-#if defined( DEVEL )
       ! Free pointer
       NULLIFY( STT )
-#endif
 
       END SUBROUTINE CH4_DISTRIB
 !EOC

@@ -220,7 +220,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE COMODE_MOD,         ONLY : CSPEC_FULL
+!    USE COMODE_MOD,         ONLY : CSPEC_FULL
     USE COMODE_LOOP_MOD
     USE Dao_Mod,            ONLY : Convert_Units
     USE Chemistry_Mod,      ONLY : Do_Chemistry
@@ -343,10 +343,15 @@ CONTAINS
                                     State_Met      = State_Met,  &
                                     RC             = RC         )
 
-    ! CSPEC_FULL is the array of species [molec/cm3] in the chemical mechanism.
-    ! Initialize this with the value from obtained from the the ESMF internal 
-    ! state, which has been saved into the State_Chm%SPECIES field.
-    CSPEC_FULL = State_Chm%Species   
+    !-------------------------------------------------------------------------
+    ! Prior to 3/25/13
+    ! NOTE: CSPEC_FULL Is now removed from comode_loop_mod.F (bmy, 3/25/13)
+    !! CSPEC_FULL is the array of species [molec/cm3] in the chemical mechanism.
+    !! Initialize this with the value from obtained from the the ESMF internal 
+    !! state, which has been saved into the State_Chm%SPECIES field.
+    !CSPEC_FULL = State_Chm%Species   
+    !!-------------------------------------------------------------------------
+
 
     ! Zero Rate arrays  
     RRATE      = 0.E0
@@ -404,10 +409,14 @@ CONTAINS
     ! Cleanup after dry deposition & chemistry
     !=======================================================================
 
+    !-------------------------------------------------------------------------
+    ! Prior to 3/25/13
+    ! NOTE: CSPEC_FULL Is now removed from comode_loop_mod.F (bmy, 3/25/13)
     ! Set the modified chemical species concentrations [molec/cm3] back 
     ! into State_Chm%SPECIES.  They will be passed back into the ESMF
     ! internal state to be preserved for the next chemistry timestep.
-    State_Chm%Species = CSPEC_FULL
+    !State_Chm%Species = CSPEC_FULL
+    !-------------------------------------------------------------------------
 
   END SUBROUTINE GIGC_Chunk_Run
 !EOC

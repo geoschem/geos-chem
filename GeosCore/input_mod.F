@@ -7196,6 +7196,7 @@
 !  01 Oct 2012 - C. Friedman - Initial version
 !  26 Nov 2012 - M. Payer    - Added ProTeX headers
 !  29 Nov 2012 - M. Payer    - Now pass Input_Opt, RC as arguments
+!  26 Mar 2013 - R. Yantosca - Now pass Input_Opt to INIT_POPS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7316,7 +7317,7 @@
          ! Initialize "pops_mod.f"
          CALL INIT_POPS(POP_XMW, POP_KOA, POP_KBC, POP_K_POPG_OH,
      &                  POP_K_POPP_O3A, POP_K_POPP_O3B, 
-     &                  POP_HSTAR, POP_DEL_H, POP_DEL_Hw )
+     &                  POP_HSTAR, POP_DEL_H, POP_DEL_Hw, Input_Opt )
 
       ENDIF
 

@@ -262,42 +262,38 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE EMISSRnPbBe( State_Met, State_Chm )
-#else
-      SUBROUTINE EMISSRnPbBe( State_Met )
-#endif
+      SUBROUTINE EMISSRnPbBe( am_I_Root, Input_Opt,
+     &                        State_Met, State_Chm, RC )
 !
 ! !USES:
 !
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD01 
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE GRID_MOD,           ONLY : GET_YMID
       USE GRID_MOD,           ONLY : GET_YEDGE 
-      USE LOGICAL_MOD,        ONLY : LEMIS
       USE TIME_MOD,           ONLY : GET_TS_EMIS
-#if defined( DEVEL )
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-#else
-      USE TRACER_MOD,         ONLY : STT
-#endif
-      USE TRACER_MOD,         ONLY : N_TRACERS
       USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
-
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_DIAG_MOD             ! ND02 
 !
 ! !INPUT PARAMETERS: 
 !
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#if defined( DEVEL )
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-#endif
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  28 May 1999 - I. Bey - Initial version
@@ -343,6 +339,8 @@
 !                              GET_YEDGE(I,J,L) from the new grid_mod.F90
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
+!  25 Mar 2013 - R. Yantosca - Now use fields from Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -358,24 +356,20 @@
       REAL*8        :: F_BELOW_70, F_BELOW_60, F_ABOVE_60
 
       ! Pointers
-#if defined( DEVEL )
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER :: STT(:,:,:,:)
-#endif
 
       !=================================================================
       ! EMISSRnPbBe begins here!
       !=================================================================
 
       ! Return if we are not doing emissions!
-      IF ( .not. LEMIS ) RETURN   
+      IF ( .not. Input_Opt%LEMIS ) RETURN   
 
-#if defined( DEVEL )
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
-#endif
 
       ! Emission timestep [s]
       DTSRCE = GET_TS_EMIS() * 60d0
@@ -519,7 +513,7 @@
       ! Original units of 7Be emissions are [stars/g air/sec],
       ! where "stars" = # of nuclear disintegrations of cosmic rays
       !=================================================================
-      IF ( N_TRACERS >= 3 ) THEN
+      IF ( Input_Opt%N_TRACERS >= 3 ) THEN
 
          ! Read 7Be emissions on the first timestep only
          IF ( FIRSTEMISS ) CALL READ_7BE
@@ -570,10 +564,8 @@
 !$OMP END PARALLEL DO
       ENDIF
 
-#if defined( DEVEL )
       ! Free pointer
       NULLIFY( STT )
-#endif
      
       ! Reset FIRSTEMISS
       FIRSTEMISS = .FALSE.
@@ -593,37 +585,34 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE CHEMRnPbBe( State_Met, State_Chm )
-#else
-      SUBROUTINE CHEMRnPbBe( State_Met )
-#endif
+      SUBROUTINE CHEMRnPbBe( am_I_Root, Input_Opt, 
+     &                       State_Met, State_Chm, RC )
 !
 ! !USES:
 !
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD01, AD02
-#if defined( DEVEL )
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-#else
-      USE TRACER_MOD,         ONLY : STT
-#endif
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACER_MOD,         ONLY : N_TRACERS
       USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
-
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_DIAG_MOD             ! ND01, ND02
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-#if defined( DEVEL )
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-#endif
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY:
 !  31 Oct 1999 - H. Liu - Initial version
@@ -647,6 +636,7 @@
 !  08 Nov 2011 - R. Yantosca - Prevent out-of-bounds errors in diagnostics
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -664,25 +654,30 @@
       ! Ratio of molecular weights of 210Pb/222Rn
       REAL*8, PARAMETER :: Pb_Rn_RATIO = 210d0 / 222d0
 
+      ! For fields from Input_Opt
+      INTEGER         :: N_TRACERS
+
       ! Pointers
-#if defined( DEVEL )
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER :: STT(:,:,:,:)
-#endif
 
       !=================================================================
       ! CHEMRnPbBe begins here!
       !=================================================================
 
-#if defined( DEVEL )
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      N_TRACERS =  Input_Opt%N_TRACERS
+
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
-#endif
+      STT       => State_Chm%Tracers
 
       ! Chemistry timestep [s]
-      DTCHEM = GET_TS_CHEM() * 60d0
+      DTCHEM    =  GET_TS_CHEM() * 60d0
 
       ! Pre-compute exponential terms only on first timestep
       IF ( FIRSTCHEM ) THEN 

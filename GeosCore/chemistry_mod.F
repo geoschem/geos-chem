@@ -307,24 +307,16 @@
 
             ! Do seasalt aerosol chemistry
             IF ( LSSALT ) THEN
-#if defined( DEVEL )
-               CALL CHEMSEASALT( am_I_Root, Input_Opt, State_Met,
-     &                           State_Chm, RC )
-#else
-               CALL CHEMSEASALT( am_I_Root, Input_Opt, State_Met, RC )
-#endif
+               CALL CHEMSEASALT( am_I_Root, Input_Opt, 
+     &                           State_Met, State_Chm, RC )
             ENDIF
 
             ! Also do sulfate chemistry
             IF ( LSULF ) THEN
 
                ! Do sulfate chemistry
-#if defined( DEVEL )
-               CALL CHEMSULFATE( am_I_Root, Input_Opt, State_Met,
-     &                           State_Chm, RC )
-#else
-               CALL CHEMSULFATE( am_I_Root, Input_Opt, State_Met, RC )
-#endif
+               CALL CHEMSULFATE( am_I_Root, Input_Opt, 
+     &                           State_Met, State_Chm, RC )
 
                ! Do aerosol thermodynamic equilibrium
                IF ( LSSALT ) THEN
@@ -353,12 +345,8 @@
 
             ! Do carbonaceous aerosol chemistry
             IF ( LCARB ) THEN
-#if defined( DEVEL )
-               CALL CHEMCARBON( am_I_Root, Input_Opt, State_Met,
-     &                          State_Chm, RC )
-#else
-               CALL CHEMCARBON( am_I_Root, Input_Opt, State_Met, RC )
-#endif
+               CALL CHEMCARBON( am_I_Root, Input_Opt, 
+     &                          State_Met, State_Chm, RC )
             ENDIF
 
             ! Do dust aerosol chemistry
@@ -468,12 +456,8 @@
             IF ( LSULF .or. LCRYST ) THEN
  
                ! Do sulfate chemistry
-#if defined( DEVEL )
-               CALL CHEMSULFATE( am_I_Root, Input_Opt, State_Met,
-     &                           State_Chm, RC ) 
-#else
-               CALL CHEMSULFATE( am_I_Root, Input_Opt, State_Met, RC ) 
-#endif
+               CALL CHEMSULFATE( am_I_Root, Input_Opt, 
+     &                           State_Met, State_Chm, RC )
 
             ENDIF
 
@@ -507,43 +491,31 @@
          ! Rn-Pb-Be
          !---------------------------------                 
          ELSE IF ( IT_IS_A_RnPbBe_SIM ) THEN
-#if defined( DEVEL )
-            CALL CHEMRnPbBe( State_Met, State_Chm )
-            CALL DRYFLXRnPbBe( State_Chm )
-#else
-            CALL CHEMRnPbBe( State_Met )
-            CALL DRYFLXRnPbBe
-#endif
+            CALL CHEMRnPbBe (  am_I_Root, Input_Opt, 
+     &                         State_Met, State_Chm, RC )
+            CALL DRYFLXRnPbBe( am_I_Root, Input_Opt, 
+     &                                    State_Chm, RC )
 
          !---------------------------------
          ! CH3I
          !---------------------------------
          ELSE IF ( IT_IS_A_CH3I_SIM ) THEN
-#if defined( DEVEL )
-            CALL CHEMCH3I( am_I_Root, State_Met, State_Chm )
-#else
-            CALL CHEMCH3I( am_I_Root, State_Met )
-#endif
+            CALL CHEMCH3I( am_I_Root, Input_Opt, 
+     &                     State_Met, State_Chm, RC )
  
          !---------------------------------            
          ! HCN
          !---------------------------------
          ELSE IF ( IT_IS_A_HCN_SIM ) THEN
-#if defined( DEVEL )
-            CALL CHEM_HCN_CH3CN( State_Met, State_Chm )
-#else
-            CALL CHEM_HCN_CH3CN( N_TRACERS, STT, State_Met )
-#endif
+            CALL CHEM_HCN_CH3CN( am_I_Root, Input_Opt,
+     &                           State_Met, State_Chm, RC )
  
          !---------------------------------
          ! Tagged O3
          !---------------------------------
          ELSE IF ( IT_IS_A_TAGOX_SIM ) THEN 
-#if defined( DEVEL )
-            CALL CHEM_TAGGED_OX( State_Met, State_Chm )
-#else
-            CALL CHEM_TAGGED_OX( State_Met )
-#endif
+            CALL CHEM_TAGGED_OX( am_I_Root, Input_Opt,
+     &                           State_Met, State_Chm, RC )
 
             ! Call linearized stratospheric scheme
             IF ( LSCHEM ) THEN 
@@ -555,21 +527,15 @@
          ! Tagged CO
          !---------------------------------
          ELSE IF ( IT_IS_A_TAGCO_SIM ) THEN
-#if defined( DEVEL )
-            CALL CHEM_TAGGED_CO( State_Met, State_Chm )
-#else
-            CALL CHEM_TAGGED_CO( State_Met )
-#endif
+            CALL CHEM_TAGGED_CO( am_I_Root, Input_Opt,
+     &                           State_Met, State_Chm, RC )
  
          !---------------------------------
          ! C2H6
          !---------------------------------
          ELSE IF ( IT_IS_A_C2H6_SIM ) THEN
-#if defined( DEVEL )
-            CALL CHEMC2H6( State_Met, State_Chm )
-#else
-            CALL CHEMC2H6( State_Met )
-#endif
+            CALL CHEMC2H6( am_I_Root, Input_Opt,
+     &                     State_Met, State_Chm, RC )
  
          !---------------------------------
          ! CH4
@@ -578,11 +544,8 @@
  
             ! Only call after the first 24 hours
             IF ( GET_ELAPSED_MIN() >= GET_TS_CHEM() ) THEN
-#if defined( DEVEL )
-               CALL CHEMCH4( State_Met, State_Chm )
-#else
-               CALL CHEMCH4( State_Met )
-#endif
+               CALL CHEMCH4( am_I_Root, Input_Opt,
+     &                       State_Met, State_Chm, RC )
             ENDIF
 
          !---------------------------------
@@ -591,11 +554,8 @@
          ELSE IF ( IT_IS_A_MERCURY_SIM ) THEN
  
             ! Do Hg chemistry
-#if defined( DEVEL )
-            CALL CHEMMERCURY( State_Met, State_Chm )
-#else
-            CALL CHEMMERCURY( State_Met )
-#endif
+            CALL CHEMMERCURY( am_I_Root, Input_Opt,
+     &                        State_Met, State_Chm, RC )
 
          !---------------------------------
          ! POPs
@@ -603,23 +563,16 @@
          ELSE IF ( IT_IS_A_POPS_SIM ) THEN
  
             ! Do POPS chemistry
-#if defined( DEVEL )
-            CALL CHEMPOPS( State_Met, State_Chm )
-#else
-            CALL CHEMPOPS( State_Met )
-#endif
+            CALL CHEMPOPS( am_I_Root, Input_Opt,
+     &                     State_Met, State_Chm, RC )
                
          !---------------------------------
          ! Offline H2/HD
          !---------------------------------
          ELSE IF ( IT_IS_A_H2HD_SIM ) THEN
-#if defined( DEVEL )
-            CALL CHEM_H2_HD( State_Met, State_Chm )
+            CALL CHEM_H2_HD( am_I_Root, Input_Opt,
+     &                       State_Met, State_Chm, RC )
             CALL DRYFLXH2HD( State_Met, State_Chm )
-#else
-            CALL CHEM_H2_HD( State_Met )
-            CALL DRYFLXH2HD( State_Met )
-#endif
 
             ! Call linearized stratospheric scheme
             IF ( LSCHEM ) THEN 
@@ -654,13 +607,8 @@
       ! (bmy, 10/24/12) 
       !-----------------------------------------------------------------
 
-#if defined( DEVEL )
       ! Free pointer
       NULLIFY( STT )
-#else
-      ! Reset Chemistry State tracers [kg] from GEOS-Chem tracer array
-      State_Chm%TRACERS(:,:,:,1:N_TRACERS) = STT(:,:,:,1:N_TRACERS)
-#endif
 
       END SUBROUTINE DO_CHEMISTRY
 !EOC

@@ -266,11 +266,8 @@
 
 !------------------------------------------------------------------------------
 
-#if defined( DEVEL )
-      SUBROUTINE EMISS_HCN_CH3CN( State_Chm )
-#else
-      SUBROUTINE EMISS_HCN_CH3CN( N_TRACERS, STT )
-#endif
+      SUBROUTINE EMISS_HCN_CH3CN( am_I_Root, Input_Opt,
+     &                            State_Met, State_Chm, RC )
 !
 !******************************************************************************
 !  Subroutine EMISS_HCN_CH3CN reads in CO emissions and scale them to get
@@ -288,34 +285,41 @@
 !        [molec CO/cm2/s].  Adjust unit conversion accordingly. (bmy, 9/27/06)
 !  (4 ) IDBCO is now defined in TRACERID_MOD. (fp, 6/2009)
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !******************************************************************************
 !
-      ! References to F90 modules
-      ! IDBCO moved to tracerid_mod (6/2009)
+! !USES:
+!
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
       USE BIOMASS_MOD,   ONLY : BIOMASS!,         IDBCO
       USE TRACERID_MOD,  ONLY : IDBCO
       USE GEIA_MOD,      ONLY : GET_DAY_INDEX,   GET_IHOUR
-#if defined( DEVEL )
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-#endif
+      USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,      ONLY : GET_AREA_CM2
       USE DIAG_MOD,      ONLY : AD09_em
-      USE LOGICAL_MOD,   ONLY : LSPLIT
       USE PBL_MIX_MOD,   ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
-      USE TIME_MOD,      ONLY : GET_MONTH,       GET_TS_CHEM,  GET_TAU
-      
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE CMN_DIAG_MOD      ! ND09
-
-      ! Arguments
-#if defined( DEVEL )
+      USE TIME_MOD,      ONLY : GET_MONTH,       GET_TS_CHEM,  GET_TAU 
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-#else
-      INTEGER, INTENT(IN)    :: N_TRACERS
-      REAL*8,  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
-#endif
-
-      ! Local variables
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE          :: FIRST = .TRUE.
       INTEGER                :: I,      J,      L,        N, NTAU
       INTEGER                :: IHOUR,  INDEX,  MONTH,    PBL_MAX 
@@ -330,16 +334,23 @@
       REAL*8,  PARAMETER     :: ECH3CN_bb = 0.20d-2
       REAL*8,  PARAMETER     :: ECH3CN_df = 0.25d-2
 
+      ! For fields from Input_Opt
+      LOGICAL                :: LSPLIT
+
       ! Pointers
-#if defined( DEVEL )
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER :: STT(:,:,:,:)
-#endif
 
       !=================================================================
       ! EMISS_TAGGED_HCN_CH3CN begins here!
       !=================================================================
+
+      ! Assume success
+      RC      = GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LSPLIT  = Input_Opt%LSPLIT
 
       ! DTSRCE is the number of seconds per emission timestep
       DTSRCE  = GET_TS_CHEM() * 60d0
@@ -363,11 +374,9 @@
       ! Process biomass burning/domestic fossil fuel HCN/CH3CN emissions
       !=================================================================
 
-#if defined( DEVEL )
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
-#endif
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -489,21 +498,16 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-#if defined( DEVEL )
       ! Free pointer
       NULLIFY( STT )
-#endif
 
       ! Return to calling program
       END SUBROUTINE EMISS_HCN_CH3CN
 
 !------------------------------------------------------------------------------
 
-#if defined( DEVEL )
-      SUBROUTINE CHEM_HCN_CH3CN( State_Met, State_Chm )
-#else
-      SUBROUTINE CHEM_HCN_CH3CN( N_TRACERS, STT, State_Met )
-#endif
+      SUBROUTINE CHEM_HCN_CH3CN( am_I_Root, Input_Opt,
+     &                           State_Met, State_Chm, RC )
 !
 !******************************************************************************
 !  Subroutine CHEM_HCN_CH3CN computes the loss of HCN and CH3CN due to 
@@ -518,33 +522,39 @@
 !  (2 ) Bug fix: remove duplicate declaration of KTMP (bmy, 11/2/05)
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !******************************************************************************
 ! 
-      ! References to F90 modules
+! !USES:
+!
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD09, AD09_em
-#if defined( DEVEL )
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-#endif
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GLOBAL_OH_MOD,      ONLY : OH, GET_GLOBAL_OH
       USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,        ONLY : LSPLIT
       USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_MONTH
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
-
-      USE CMN_SIZE_MOD             ! Size parameters 
-      USE CMN_DIAG_MOD             ! ND09
-
-      ! Arguments
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-#else
-      INTEGER,        INTENT(IN)    :: N_TRACERS
-      REAL*8,         INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
-#endif
-      
-      ! Local variables
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !LOCAL VARIABLES:
+!      
       LOGICAL, SAVE          :: FIRST = .TRUE.
       INTEGER                :: I,      J,    L,    N,     NN,  N_MAX
       REAL*8                 :: K0,     K1,   KTMP, KRATE, TMP, DTCHEM
@@ -570,11 +580,9 @@
       REAL*8, PARAMETER      :: B3          =   -0.012d0
 
       ! Pointers
-#if defined( DEVEL )
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER        :: STT(:,:,:,:)
-#endif
 
       ! External functions
       REAL*8, EXTERNAL       :: BOXVL
@@ -582,6 +590,9 @@
       !=================================================================
       ! CHEM_HCN_CH3CN begins here! 
       !=================================================================
+
+      ! Assume success
+      RC = GIGC_SUCCESS
 
       ! First-time initialization (if not already done)
       IF ( FIRST ) THEN
@@ -595,7 +606,7 @@
       ENDIF
      
       ! Compute number of tracers to process
-      IF ( LSPLIT ) THEN
+      IF ( Input_Opt%LSPLIT ) THEN
          N_MAX = 5
       ELSE
          N_MAX = 1
@@ -608,11 +619,9 @@
       ! Chemistry timestep in seconds
       DTCHEM = GET_TS_CHEM() * 60d0
 
-#if defined( DEVEL )
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
-#endif
 
       ! Loop over grid boxes
 !$OMP PARALLEL DO
@@ -827,10 +836,8 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-#if defined( DEVEL )
       ! Free pointer
       NULLIFY( STT )
-#endif
 
       ! Return to calling program
       END SUBROUTINE CHEM_HCN_CH3CN
