@@ -390,6 +390,11 @@
          CALL EMISSC2H6
 #endif
 
+         ! CH4 emissions
+         IF (LCH4EMIS) THEN
+            CALL EMISSCH4
+         ENDIF
+
          ! NOx-Ox-HC (w/ or w/o aerosols)
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !         write(*,*) 'TRAC_TEND:', shape(State_Chm%TRAC_TEND)

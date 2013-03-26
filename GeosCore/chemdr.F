@@ -43,6 +43,7 @@
       USE RESTART_MOD,          ONLY : READ_CSPEC_FILE 
       USE TIME_MOD,             ONLY : GET_NYMD,     GET_NHMS
       USE LOGICAL_MOD,          ONLY : LSVCSPEC,     LLINOZ
+      USE TRACERID_MOD,         ONLY : IDTCH4 ! SDE 03/25/13
 
       USE CMN_SIZE_MOD               ! Size parameters
       USE COMODE_LOOP_MOD            ! SMVGEAR variables
@@ -359,7 +360,9 @@
          !---------------------------------
          ! Set global concentration of CH4
          !---------------------------------
-         IF ( ICH4 > 0 .and. ( CH4_YEAR /= GET_YEAR() ) ) THEN
+         ! Check that CH4 is not a defined tracer
+         IF ( IDTCH4 == 0 .and. ICH4 > 0 .and. 
+     &                       ( CH4_YEAR /= GET_YEAR() ) ) THEN
 
             ! If CH4 is a SMVGEAR II species, then call GET_GLOBAL_CH4
             ! to return the globally-varying CH4 conc. as a function of

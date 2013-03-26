@@ -459,7 +459,7 @@
       !INTEGER, PARAMETER :: NEMPARA = 21 
       !  Add RCHO, HCOOH, ACTA
       !INTEGER, PARAMETER :: NEMPARA = 26 
-      INTEGER, PARAMETER :: NEMPARA = 29
+      INTEGER, PARAMETER :: NEMPARA = 30 ! SDE 03/25/13: Added CH4
 
 !------------------------------------------------------------------------------
 ! Prior to 12/27/11:
@@ -469,7 +469,7 @@
 !!      INTEGER, PARAMETER :: NEMPARB = 3
 !      INTEGER, PARAMETER :: NEMPARB = 17
 !------------------------------------------------------------------------------
-      INTEGER, PARAMETER :: NEMPARB = 20
+      INTEGER, PARAMETER :: NEMPARB = 21 ! SDE 03/25/13: Added CH4
 
       !=================================================================
       ! OTHER PARAMETERS 

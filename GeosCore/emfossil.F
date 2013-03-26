@@ -48,6 +48,9 @@
       USE TRACERID_MOD,       ONLY : IDTC2H6
       USE VISTAS_ANTHRO_MOD,  ONLY : GET_VISTAS_ANTHRO
       USE ICOADS_SHIP_MOD,    ONLY : GET_ICOADS_SHIP !(cklee, 7/09/09)
+      ! Online CH4 simulation
+      USE TRACERID_MOD,       ONLY : IDTCH4
+      USE GLOBAL_CH4_MOD,     ONLY : GET_CH4_ANTHRO
 ![eml
       USE LOGICAL_MOD,        ONLY : LHIST
 !eml]
@@ -162,6 +165,7 @@
       REAL*8  :: BRAVO, EPA_NEI, EMEP,   EDGAR, STREETS
       REAL*8  :: CAC,   SHIP,    VISTAS, NEI05
       REAL*8  :: RETRO
+      REAL*8  :: CH4_ANTHRO
       REAL*8  :: C2H6_ANTHRO
 
       !=================================================================
@@ -871,7 +875,6 @@
             IF ( NN == IDTCO ) EMX(1) = EMX(1) * 1.02d0
          ENDIF
 
-
          !--------------------------------------------------------------
          ! Add ship emissions for CO (phs, 7/9/09)
          !--------------------------------------------------------------
@@ -902,6 +905,19 @@
             
          ENDIF
      
+         !--------------------------------------------------------------
+         ! Get CH4 emissions (SDE 03/25/13, taken from mpayer 01/24/12)
+         !--------------------------------------------------------------
+         IF ( NN == IDTCH4 ) THEN
+
+            CH4_ANTHRO = GET_CH4_ANTHRO( I, J, NN )
+
+            ! Convert from molec/cm2/s to kg/box/timestep in order to be
+            ! in the proper units for EMISRR array
+            EMX(1) = CH4_ANTHRO * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)
+
+         ENDIF
+
          !--------------------------------------------------------------
          ! Store in EMISRR array and archive diagnostics
          !--------------------------------------------------------------

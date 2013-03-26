@@ -87,8 +87,10 @@
       !%%%% Chemistry %%%%
       LOGICAL :: LCHEM           ! Use chemistry?
       LOGICAL :: LKPP            ! Use KPP solver instead of SMVGEAR?
-      LOGICAL :: LSCHEM          ! Use linear strat chem? (vs. no strat schem)
+      LOGICAL :: LSCHEM          ! Use linear strat chem?
       LOGICAL :: LLINOZ          ! T = Linoz O3; F = Synoz O3
+      LOGICAL :: LCH4CHEM        ! Online CH4 chemistry
+      LOGICAL :: LGMISTRAT       ! GMI stratopsheric chemistry
 
       !%%%% Cloud convection %%%%
       LOGICAL :: LCONV           ! Use cloud convection?
@@ -160,6 +162,7 @@
       LOGICAL :: LWARWICK_VSLS   ! Use Warwick_s3 R(Br)n? (jpp 8/23/07)
       LOGICAL :: LSSABr2         ! Use sea salt Br2 emiss? (jpp, 3/28/2010)
       LOGICAL :: LFIX_PBL_BrO    ! Run 1ppt MBL BRO Sim.? (jpp 5/10/10)
+      LOGICAL :: LCH4EMIS        ! Use methane emissions? (SDE 03/25/13)
 
       !%%%% Transport and strat BC's %%%%
       LOGICAL :: LFILL           ! Fill negative values in TPCORE?
@@ -247,9 +250,6 @@
       LOGICAL :: DO_DIAG_WRITE = .TRUE.  ! TURN ON/OFF DIAGNOSTIC WRITING
 
       LOGICAL :: LUPBD           ! Use stratospheric O3, NOY bdry conditions
-
-      !%%% For unified trop-strat chemistry (SDE 03/24/13)
-      LOGICAL :: LGMISTRAT       ! Use stratospheric chemistry options?
 
       END MODULE LOGICAL_MOD
 !EOC

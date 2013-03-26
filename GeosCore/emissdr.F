@@ -127,6 +127,7 @@
       USE TRACERID_MOD,      ONLY : IDECO,         IDEPRPE,   NEMANTHRO 
       USE TRACERID_MOD,      ONLY : IDEMONX, IDEC2H4
       USE TRACERID_MOD,      ONLY : IDTMONX, IDTC2H4
+      USE TRACERID_MOD,      ONLY : IDECH4,  IDTCH4
       USE MEGAN_MOD,         ONLY : GET_EMMONOG_MEGAN !(mpb,2009) 
       USE MEGAN_MOD,         ONLY : ACTIVITY_FACTORS  !(mpb,2009)
       USE MEGANUT_MOD,       ONLY : XLTMMP
@@ -137,6 +138,7 @@
       USE BROMOCARB_MOD,     ONLY : EMIS_CHBr3, EMIS_CH2Br2
       USE BROMOCARB_MOD,     ONLY : Br_SCALING
       USE MODIS_LAI_MOD
+      USE GLOBAL_CH4_MOD,    ONLY : GET_CH4_BIOG
  
       USE CMN_SIZE_MOD            ! Size parameters
       USE COMODE_LOOP_MOD         ! IVERT?
@@ -200,6 +202,9 @@
       REAL*8                 :: GAMMA_P
       REAL*8                 :: GAMMA_T
       REAL*8                 :: GAMMA_SM
+
+      ! CH4 biogenic emissions (SDE 03/25/13 -- mpayer 01/24/12)
+      REAL*8                 :: CH4_BIOG
 
 #if defined( DEVEL )
       REAL*8, INTENT(INOUT)  :: 
@@ -721,6 +726,16 @@
      &                                 Br_SCALING
 
             ENDIF
+!-----------------------------------------------------------------------------
+! Biogenic emissions of methane [molec CH4/cm2/s] (mpayer, 1/24/12)
+            IF ( IDECH4 > 0 ) THEN
+
+               CH4_BIOG = GET_CH4_BIOG(I, J, IDTCH4)
+
+               ! Store in EMISRR [molec/box/s]
+               EMISRR(I,J,IDECH4) = EMISRR(I,J,IDECH4)
+     &                                  + CH4_BIOG * AREA_CM2
+            ENDIF
 
 !
 !******************************************************************************
@@ -742,6 +757,7 @@
 !     AD46(:,:,14) = Total biogenic CHBr3    emissions [kg/m2/s]
 !     AD46(:,:,15) = Total biogenic CH2Br2   emissions [kg/m2/s]
 !     AD46(:,:,16) = Total biogenic SSBr2    emissions [kg/m2/s]
+!     AD46(:,:,17) = Total biogenic CH4      emissions [molec/cm2/s]
 !
 !  NOTES: 
 !  (1 ) Now make ACET tracer #2 and PRPE tracer #3 (bmy, 9/13/01)
@@ -749,6 +765,7 @@
 !  (3 ) Added MBO emission diagnostics [atoms C/cm2/s] (bmy, tmf, 10/20/05)
 !  22 Oct 2012 - R. Yantosca - Prevent out-of-bounds errors in ND46 if bromine
 !                              emissions are turned off (e.g. for tagged CO)
+!  25 Mar 2013 - S. D. Eastham - Added CH4 emissions
 !******************************************************************************
 !
                IF ( ND46 > 0 ) THEN
@@ -815,6 +832,11 @@
                ENDIF
 
                ! Note: IDEBr2 is added to AD46(I,J,16) in ssa_bromine_mod.F
+
+               ! CH4 emissions [molec CH4/cm2/s]
+               IF ( IDECH4 > 0 ) THEN
+                  AD46(I,J,17) = AD46(I,J,17) + CH4_BIOG
+               ENDIF
                
                ENDIF  
             ENDIF

@@ -866,9 +866,10 @@
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1
+      USE DIRECTORY_MOD, ONLY : RUN_DIR
       USE ERROR_MOD,     ONLY : ALLOC_ERR
       USE FILE_MOD,      ONLY : IOERROR
-      USE LOGICAL_MOD,   ONLY : LDICARB
+      USE LOGICAL_MOD,   ONLY : LDICARB, LCH4EMIS
       USE TRACERID_MOD,  ONLY : IDBNOx,  IDBCO,   IDBALK4
       USE TRACERID_MOD,  ONLY : IDBACET, IDBMEK,  IDBALD2
       USE TRACERID_MOD,  ONLY : IDBPRPE, IDBC3H8, IDBCH2O
@@ -937,8 +938,14 @@
       !=================================================================
      
       ! File name
-      FILENAME = TRIM( DATA_DIR_1x1) // 
-     &           'GFED2_200601/GFED2_emission_factors_73t.txt'
+      IF (LCH4EMIS) THEN
+         ! Need CH4 emissions factors
+         FILENAME = TRIM( DATA_DIR_1x1) // 
+     &              'GFED2_201202/GFED2_emission_factors_73t.txt'
+      ELSE
+         FILENAME = TRIM( DATA_DIR_1x1) // 
+     &              'GFED2_200601/GFED2_emission_factors_73t.txt'
+      ENDIF
 
       ! Find a free file LUN
       IU_FILE = findFreeLUN()

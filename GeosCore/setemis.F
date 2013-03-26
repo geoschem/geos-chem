@@ -277,9 +277,6 @@
                   NOXTOT = NOXTOT + EMISRRN(I,J,L)
                ENDDO
 
-               ! SDE DEBUG
-               WRITE(6,*) 'MAX JLOP: ', MAXVAL(JLOP)
-
                ! Loop over the boundary layer
                DO L = 1, TOP
                   JLOOP   = JLOP(I,J,L)

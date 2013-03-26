@@ -166,7 +166,7 @@
 
 !----- Simulation type -----
 !#define GTMM_Hg
-!#define GMISTRAT
+#define GMISTRAT
 
 !==============================================================================
 ! Force a compile error if a model type is undefined

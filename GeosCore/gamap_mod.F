@@ -1531,6 +1531,7 @@
       USE TRACERID_MOD, ONLY : IDTBCPI,   IDTOCPI
       USE TRACERID_MOD, ONLY : IDTXYLE, IDTBENZ, IDTTOLU
       USE TRACERID_MOD, ONLY : N_Hg_CATS  !CDH for snowpack
+      USE TRACERID_MOD, ONLY : IDBCH4, IDTCH4
       USE LOGICAL_MOD,  ONLY : LSPLIT
       USE GET_POPSINFO_MOD, ONLY : GET_POP_XMW
 ! 
@@ -5011,7 +5012,11 @@
             IF ( LSOA ) THEN
                NTRAC(28) = 23    ! SOA simulation
             ELSE
-               NTRAC(28) = 14    ! Standard simulation
+               IF (IDBCH4 == 0) THEN
+                  NTRAC(28) = 14
+               ELSE
+                  NTRAC(28) = 15    ! Standard simulation (with CH4)
+               ENDIF
             ENDIF
 
             ! Loop over tracers
@@ -5116,6 +5121,13 @@
                   MWT  (T,28) = 12e-3
                   MOLC (T,28) = 1
                   UNIT (T,28) = 'atoms C/cm2/s'
+
+               ELSE IF ( T == IDBCH4 ) THEN
+                  NAME (T,28) = 'CH4'
+                  INDEX(T,28) = IDTCH4 + ( SPACING * 45 )
+                  MWT  (T,28) = 16e-3
+                  MOLC (T,28) = 1
+                  UNIT (T,28) = 'molec/cm2/s'
 
                ELSE IF ( T == IDBGLYX ) THEN
                   NAME (T,28) = 'GLYX'
@@ -5647,7 +5659,11 @@
       IF ( ND46 > 0 ) THEN 
 
          ! Number of tracers
-         NTRAC(46) = 16 ! Increase for bromine (jpp, mpayer, 12/28/11)
+         IF ( IDBCH4 == 0 ) THEN
+            NTRAC(46) = 16 ! Increase for bromine (jpp, mpayer, 12/28/11)
+         ELSE
+            NTRAC(46) = 17 ! Also CH4 (SDE 03/25/13)
+         ENDIF
 
          ! Loop over tracers
          DO T = 1, NTRAC(46)
@@ -5714,6 +5730,14 @@
                   FNAME (T,46) = 'sea-salt Br2 emissions'
                   UNIT  (T,46) = 'kg/m2/s'
                   MWT   (T,46) = 1.60e-1   !in [kg/mol]
+                  SCALE (T,46) = 1e0
+               CASE( 17 )
+                  INDEX (T,46) = T + ( SPACING * 21 )
+                  NAME  (T,46) = 'CH4'
+                  FNAME (T,46) = 'CH4 emissions'
+                  UNIT  (T,46) = 'molec/cm2/s'
+                  MWT   (T,46) = 16e-3
+                  MOLC  (T,46) = 1
                   SCALE (T,46) = 1e0
                CASE DEFAULT
                   ! Nothing

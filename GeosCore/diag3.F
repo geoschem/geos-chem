@@ -1905,6 +1905,7 @@
 !  (30) NH3   : Ammonia        : molec NH3 /cm2/s : SCALESRCE
 !  (34) BCPO  : Black carbon   : atoms C   /cm2/s : SCALESRCE
 !  (35) OCPO  : Organic carbon : atoms C   /cm2/s : SCALESRCE
+!  (54) CH4   : Methane        : molec CH4 /cm2/s : SCALESRCE
 !
 !  NOTES:
 !  (1) Use the F90 intrinsic "ANY" function to make sure that N 
@@ -2294,6 +2295,7 @@
 !  (18) PRPE   : Propene                         : atoms C/cm2/s : SCALE3 
 !  (19) C3H8   : Propane                         : atoms C/cm2/s : SCALE3 
 !  (21) C2H6   : Ethane                          : atoms C/cm2/s : SCALE3
+!  (44) CH4    : Methane                         : molec/cm2/s   : SCALE3
 !  (71) CH3Ioc : Methyl Iodide (oceanic source)  : ng/m2/s       : SCALE3
 !  (72) CH3Ibb : Methyl Iodide (biomass burning) : ng/m2/s       : SCALE3
 !  (73) CH3Iwb : Methyl Iodide (wood burning)    : ng/m2/s       : SCALE3
@@ -3018,6 +3020,7 @@
 !  (14) CHBr3  : Bromoform      :      kg/m2/s  : SCALESRCE
 !  (15) CH2Br2 : Dibromomethane :      kg/m2/s  : SCALESRCE
 !  (16) Br2    : Molec. Bromine :      kg/m2/s  : SCALESRCE
+!  (17) CH4    : Methane        : molec/cm2/s   : SCALE3
 !
 !  NOTES:
 !  (1) ND46 now uses allocatable array AD46 instead of AIJ (bmy, 3/16/00)
@@ -3048,6 +3051,7 @@
             IF ( N == 14 .and. IDTCHBr3  == 0 ) CYCLE
             IF ( N == 15 .and. IDTCH2Br2 == 0 ) CYCLE
             IF ( N == 16 .and. IDTBr2    == 0 ) CYCLE
+            IF ( N == 17 .and. IDTCH4    == 0 ) CYCLE
 
             ARRAY(:,:,1) = AD46(:,:,N) / SCALESRCE
                

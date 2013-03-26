@@ -110,7 +110,7 @@
       INTEGER, PARAMETER :: PD43=5  
       INTEGER, PARAMETER :: PD44=53      !jpp replaced 41
       INTEGER, PARAMETER :: PD45=NNPAR+1      
-      INTEGER, PARAMETER :: PD46=16      !jpp replaced 13
+      INTEGER, PARAMETER :: PD46=17      !jpp replaced 13
       INTEGER, PARAMETER :: PD47=NNPAR+1
       INTEGER, PARAMETER :: PD48=2            
       INTEGER, PARAMETER :: PD49=0                

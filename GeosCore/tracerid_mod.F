@@ -225,6 +225,9 @@
       INTEGER            :: IDLTRO2H, IDLTRO2N  
       INTEGER            :: IDLXRO2H, IDLXRO2N  
 
+      ! Online CH4 chemistry (mpayer, 1/24/12)
+      INTEGER            :: IDCH4
+
       ! GEOS-CHEM tracer ID's
       INTEGER            :: IDTNOX,  IDTOX,    IDTPAN,  IDTCO,   IDTALK4
       INTEGER            :: IDTISOP, IDTHNO3,  IDTH2O2, IDTACET, IDTMEK
@@ -260,6 +263,9 @@
       INTEGER            :: IDTOxStrt
 
       INTEGER		 :: IDTHCOOH, IDTACTA  ! (mjc, 4/13/11)
+
+      ! Online CH4 simulation (mpayer, 1/24/12)
+      INTEGER            :: IDTCH4
 
       ! For POPs simulation (clf, 2/11/2011)
       INTEGER              :: IDTPOPPOC,  IDTPOPPBC,   IDTPOPG
@@ -311,6 +317,9 @@
       INTEGER            :: IDERCHO, IDEHCOOH, IDEACTA       
       !jpp, 8/24/07: emission ID's for Br biogenic emissions in fullchem runs
       INTEGER            :: IDECHBr3, IDECH2Br2, IDEBr2      
+
+      ! Online CH4 simulation (mpayer, 1/24/12)
+      INTEGER            :: IDECH4
 
       ! GEOS-CHEM biofuel ID's
       INTEGER            :: IDBFNOX,  IDBFCO,   IDBFALK4, IDBFACET 
@@ -824,6 +833,15 @@
 
             CASE ( 'CH3BR' )
                IDTCH3Br   = N
+
+            !--------------------------------
+            ! CH4 (mpayer, 1/24/12)
+            !--------------------------------
+            CASE ( 'CH4' )
+               IDTCH4   = N
+
+               COUNT_BB = COUNT_BB + 1
+               IDBCH4   = COUNT_BB
 
             !--------------------------------
             ! Dicarbonyls GLYX & MGLY
@@ -1597,6 +1615,13 @@
             NEMANTHRO = NEMANTHRO + 1
             IDEHNO3   = NEMANTHRO
          ENDIF
+
+         ! Add CH4 (mpayer, 1/24/12)
+         IF ( IDTCH4  > 0 ) THEN
+            NEMANTHRO = NEMANTHRO + 1
+            IDECH4    = NEMANTHRO
+         ENDIF
+
          ! Aromatics for SOA5 simulation
          IF ( IDTBENZ > 0 ) THEN
             NEMANTHRO = NEMANTHRO + 1
@@ -1705,6 +1730,7 @@
       IF ( IDECH2O /= 0 ) IDEMS(IDECH2O) = IDTCH2O
       IF ( IDEOX   /= 0 ) IDEMS(IDEOX  ) = IDTOX    ! PHS
       IF ( IDEHNO3 /= 0 ) IDEMS(IDEHNO3) = IDTHNO3  ! PHS
+      IF ( IDECH4  /= 0 ) IDEMS(IDECH4 ) = IDTCH4   ! (mpayer, 1/24/12)
       IF ( IDEGLYX /= 0 ) IDEMS(IDEGLYX) = IDTGLYX
       IF ( IDEMGLY /= 0 ) IDEMS(IDEMGLY) = IDTMGLY
       IF ( IDEBENZ /= 0 ) IDEMS(IDEBENZ) = IDTBENZ
@@ -1737,7 +1763,8 @@
          WRITE( 6, 115 ) 'NEMANTHRO: 10 for standard sims b4 v811'
          WRITE( 6, 115 ) '          + 2 for HNO3 and Ox'
          WRITE( 6, 115 ) '          + 5 for aromatics (B,T,X,C2H2,C2H4)'
-         WRITE( 6, 115 ) 'NEMANTHRO: 17 max'
+         WRITE( 6, 115 ) '          + 1 for CH4'
+         WRITE( 6, 115 ) 'NEMANTHRO: 18 max'
          WRITE( 6, 120 ) 'THIS NEMANTHRO: ', NEMANTHRO
          WRITE( 6, 115 ) '---------------------------------------------'
          WRITE( 6, 115 ) 'NEMBIOG:    1 for isoprene'
@@ -1758,6 +1785,7 @@
          WRITE( 6, 120 ) 'IDECH2O ', IDECH2O
          WRITE( 6, 120 ) 'IDEOX   ', IDEOX
          WRITE( 6, 120 ) 'IDEHNO3 ', IDEHNO3
+         WRITE( 6, 120 ) 'IDECH4  ', IDECH4
          WRITE( 6, 120 ) 'IDEISOP ', IDEISOP
          WRITE( 6, 120 ) 'IDEGLYX ', IDEGLYX
          WRITE( 6, 120 ) 'IDEMGLY ', IDEMGLY
@@ -1943,6 +1971,8 @@
          IF ( NAMEGAS(I) == 'LTRO2N'   ) IDLTRO2N   = I
          IF ( NAMEGAS(I) == 'LXRO2H'   ) IDLXRO2H   = I
          IF ( NAMEGAS(I) == 'LXRO2N'   ) IDLXRO2N   = I
+         ! Online CH4 chemistry (mpayer, 1/24/12)
+         IF ( NAMEGAS(I) == 'CH4'      ) IDCH4      = I
 
 #if defined( ESMF_ )
          ! Add the species name & Id to the chemistry state object
@@ -2960,6 +2990,7 @@
       IDSO2     = 0
       IDSO4     = 0
       IDMSA     = 0
+      IDCH4     = 0 ! (mpayer, 1/24/12)
       IDDRYO3   = 0
       IDDRYPAN  = 0
       IDDRYNO2  = 0       
@@ -3131,6 +3162,10 @@
       IDTIEPOX   = 0
       IDTMAP     = 0
       IDTPYPAN   = 0
+
+      ! Online CH4 emissions
+      ! (mpayer 1/24/12)
+      IDTCH4     = 0
  
       ! GEOS-CHEM Emission ID #'s
       NEMANTHRO = 0
@@ -3162,6 +3197,7 @@
       IDECHBr3  = 0 ! jpp, 8/30/07
       IDECH2Br2 = 0 ! jpp, 9/16/07
       IDEBr2    = 0 ! jpp, 3/2/10
+      IDECH4    = 0 ! mpayer, 1/24/12
 
       ! GEOS-CHEM Biofuel ID #'s
       IDBFNOX   = 0

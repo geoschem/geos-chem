@@ -1605,6 +1605,7 @@
       USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM
       USE CMN_SIZE_MOD      ! Size parameters
       USE CMN_O3_MOD        ! FSCALYR
+      USE TRACERID_MOD,  ONLY : IDTCH4
 !
 ! !INPUT PARAMETERS:
 !
@@ -1999,8 +2000,12 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:76' )
       READ( SUBSTRS(1:N), * ) Br_SCALING
 
-      ! Separator line
+      ! Use methane emissions?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:77' )
+      READ( SUBSTRS(1:N), * ) LCH4EMIS
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:78' )
 
       !=================================================================
       ! Error check logical flags
@@ -2290,6 +2295,18 @@
      &         ' READ_EMISSIONS_MENU ("input_mod.f")' )
       ENDIF
 
+      !=================================================================
+      ! Error check methane emissions
+      !=================================================================
+      IF ( LCH4EMIS ) THEN
+         IF ( IDTCH4 == 0 ) THEN
+            LCH4EMIS = .FALSE.
+            WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
+     &            // 'LCH4EMIS=T but CH4 tracer is undefined'
+            WRITE( 6, '(a)' ) 'Turning off methane emissions.'
+         ENDIF
+      ENDIF
+
 #if    defined( GCAP )
 
       !--------------------------------
@@ -2391,6 +2408,7 @@
         WRITE( 6, 100 ) 'Use seasalt Br2 emissions?  : ', LSSABr2
         WRITE( 6, 100 ) 'Set day PBL BrO conc to 1ppt: ', LFIX_PBL_BRO
         WRITE( 6, 100 ) 'Bromine emiss scale factor  : ', Br_SCALING
+        WRITE( 6, 100 ) 'Turn on methane emissions?  : ', LCH4EMIS
       ENDIF
 
       ! FORMAT statements
@@ -2811,6 +2829,8 @@
       USE LOGICAL_MOD, ONLY : LSVCSPEC, LKPP, LGMISTRAT
       USE TIME_MOD,    ONLY : SET_CT_CHEM
       USE TRACER_MOD,  ONLY : N_TRACERS
+      USE LOGICAL_MOD, ONLY : LCH4CHEM, LGMISTRAT
+      USE TRACERID_MOD,ONLY : IDTCH4
 
       USE CMN_SIZE_MOD                   ! Size parameters
 !
@@ -2865,20 +2885,24 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:4' )
       READ( SUBSTRS(1:N), * ) LGMISTRAT
 
-      ! Chemistry timestep
+      ! Turn on online methane chemistry?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:5' )
+      READ( SUBSTRS(1:N), * ) LCH4CHEM
+
+      ! Chemistry timestep
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:6' )
       READ( SUBSTRS(1:N), * ) TS_CHEM
 
       ! Read and save CSPEC ?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:6' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:7' )
       READ( SUBSTRS(1:N), * ) LSVCSPEC
 
       ! Use KPP solver ?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:7' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:8' )
       READ( SUBSTRS(1:N), * ) LKPP
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:8' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:9' )
 
       !=================================================================
       ! Error check settings
@@ -2907,6 +2931,7 @@
          WRITE( 6, 100     ) 'Use linear. strat. chem?    : ', LSCHEM
          WRITE( 6, 100     ) ' => Use Linoz for O3?       : ', LLINOZ
          WRITE( 6, 100     ) 'Use GMI strat. chem?        : ', LGMISTRAT
+         WRITE( 6, 100     ) 'Online CH4 chemistry?       : ', LCH4CHEM
          WRITE( 6, 110     ) 'Chemistry timestep [min]    : ', TS_CHEM
          WRITE( 6, 100     ) 'Use CSPEC restart?          : ', LSVCSPEC
          WRITE( 6, 100     ) 'Use solver coded by KPP?    : ', LKPP

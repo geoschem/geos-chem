@@ -498,8 +498,10 @@
       USE TRACERID_MOD, ONLY : IDTBENZ, IDTTOLU, IDTXYLE
       USE TRACERID_MOD, ONLY : IDTHAC, IDTGLYC, IDTMGLY, IDTGLYX
       USE TRACERID_MOD, ONLY : IDTC2H2, IDTC2H4
+      USE TRACERID_MOD, ONLY : IDTCH4 ! Online CH4
 
       USE TRACER_MOD,   ONLY : ITS_A_CH4_SIM ! (mpayer, 2/14/12)
+      USE LOGICAL_MOD,  ONLY : LGMISTRAT
 
       LOGICAL, INTENT(IN) :: am_I_Root
 
@@ -527,7 +529,6 @@
       IF ( IDBBC    /= 0 ) NBIOTRCE = NBIOTRCE + 1 
       IF ( IDBOC    /= 0 ) NBIOTRCE = NBIOTRCE + 1 
       !
-
       IF ( IDBXYLE  /= 0 ) NBIOTRCE = NBIOTRCE + 1 
       IF ( IDBBENZ  /= 0 ) NBIOTRCE = NBIOTRCE + 1 
       IF ( IDBTOLU  /= 0 ) NBIOTRCE = NBIOTRCE + 1
@@ -620,7 +621,17 @@
 
       ! For CH4 (kjw)
       !  IDBCH4 is placed at end after all full chem tracers and CO2
+#if defined( GMISTRAT )
+      IF (LGMISTRAT) THEN
+         IF ( IDBCH4 /= 0 ) THEN
+            NBIOTRCE = NBIOTRCE + 1
+            BIOTRCE(IDBCH4)  = IDTCH4
+            BIOBGAS(IDBCH4)  = .TRUE. ! Handled in setemis
+         ENDIF
+      ELSEIF ( ITS_A_CH4_SIM() ) THEN
+#else
       IF ( ITS_A_CH4_SIM() ) THEN
+#endif
          IDBCH4            = NBIOTRCE + 1
          BIOTRCE( IDBCH4 ) = 1
          BIOBGAS( IDBCH4 ) = .FALSE.  ! not treated in setemis

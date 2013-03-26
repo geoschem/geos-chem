@@ -107,6 +107,10 @@
       USE ERROR_MOD,       ONLY : is_safe_div
       USE TRACER_MOD,      ONLY : STT
 
+      ! Online CH4 (SDE 03/25/13, derived from mpayer 01/24/12)
+      USE LOGICAL_MOD,     ONLY : LGMISTRAT
+      USE TRACERID_MOD,    ONLY : IDTCH4
+
       !UPDATE BY GVINKEN, USE FOR SHIPS EMISSIONS
       USE ICOADS_SHIP_MOD, ONLY : GET_ICOADS_SHIP  !(cklee, 7/09/09)
       USE LOGICAL_MOD,     ONLY : LICOADSSHIP      !(cklee, 6/30/09)
@@ -415,7 +419,7 @@
 ! *********************************************************************
 !
       ! Test if CH4 is defined as an inert SMVGEAR II species
-      IF ( ICH4 > NGAS ) THEN
+      IF ( ( IDTCH4 == 0) .and. ( ICH4 > NGAS ) ) THEN
 
          ! Loop over boxes per grid block
          DO KLOOP = 1, KTLOOP 
