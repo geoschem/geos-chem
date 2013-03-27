@@ -411,7 +411,9 @@
       !===================================================================
 
 
-      print*,'BEGIN SUBROUTINE: EMISSCH4'
+      IF ( ITS_A_CH4_SIM() ) THEN
+         print*,'BEGIN SUBROUTINE: EMISSCH4' 
+      ENDIF
 
       ! Initialization - only necessary for online simulations
       IF ( ITS_A_FULLCHEM_SIM() .and. FIRST ) THEN
@@ -433,8 +435,10 @@
       !        See subroutine WETLAND_EMIS for more information
       ! ==================================================================
 
-      print*, '% EMISSCH4 --- Calculating wetland emissions'
-      CALL FLUSH(6)
+      IF (ITS_A_CH4_SIM() ) THEN
+         print*, '% EMISSCH4 --- Calculating wetland emissions'
+         CALL FLUSH(6)
+      ENDIF
 
       !4.1 Wetland emissions
       IF ( LWETL ) THEN
@@ -636,7 +640,9 @@
       ENDDO
       ENDDO
 
-      print*,'END SUBROUTINE: EMISSCH4'
+      IF ( ITS_A_CH4_SIM() ) THEN
+         print*,'END SUBROUTINE: EMISSCH4'
+      ENDIF
 
       END SUBROUTINE EMISSCH4
 !EOC

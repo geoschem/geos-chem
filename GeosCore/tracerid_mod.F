@@ -281,6 +281,18 @@
       INTEGER            :: IDTBrNO2, IDTBrNO3, IDTCHBr3, IDTCH2Br2
       INTEGER            :: IDTCH3Br
 
+      ! SDE 03/26/13: Strat-chem tracers
+      ! Chlorine species (non-CFC/HCFC/HFC)
+      INTEGER            :: IDTCl2,   IDTClOx,  IDTHCl,   IDTHOCl
+      INTEGER            :: IDTCl2O2, IDTOClO,  IDTClNO3, IDTClNO2
+      INTEGER            :: IDTCCl4
+      ! Reservoirs
+      INTEGER            :: IDTN2O, IDTOCS
+      ! CFCs
+      INTEGER            :: IDTCFC,   IDTHCFC,  IDTCH3Cl, IDTCF2Cl2
+      INTEGER            :: IDTCH3CCl3,IDTCFCl3,IDTCBrF3, IDTC2Br2F4
+      INTEGER            :: IDTCBrClF2
+
       ! For tagged Hg simulation
       INTEGER              :: N_Hg_CATS
       INTEGER, ALLOCATABLE :: ID_Hg0(:),  ID_Hg2(:), ID_HgP(:)
@@ -833,6 +845,69 @@
 
             CASE ( 'CH3BR' )
                IDTCH3Br   = N
+
+            !--------------------------------
+            ! Strat-chem (SDE 07/11/12)
+            !--------------------------------
+            CASE ( 'HOCL' )
+               IDTHOCl = N
+             
+            CASE ( 'CLONO2' )
+               IDTClNO3 = N
+
+            CASE ( 'CLNO2' )
+               IDTClNO2 = N
+
+            CASE ( 'HCL' )
+               IDTHCl = N
+
+            CASE ( 'CLOX' )
+               IDTClOx = N
+
+            CASE ( 'CH3CL' )
+               IDTCH3Cl = N
+
+            CASE ( 'CCL4' )
+               IDTCCl4 = N
+
+            CASE ( 'CF2CL2' )
+               IDTCF2Cl2 = N
+
+            CASE ( 'CH3CCL3' )
+               IDTCH3CCl3 = N
+
+            CASE ( 'CL2' )
+               IDTCl2 = N
+
+            CASE ( 'CL2O2' )
+               IDTCL2O2 = N
+
+            CASE ( 'OCLO' )
+               IDTOClO = N
+
+            CASE ( 'CFCL3' )
+               IDTCFCl3 = N
+
+            CASE ( 'C2BR2F4' )
+               IDTC2Br2F4 = N
+
+            CASE ( 'CBRF3' )
+               IDTCBrF3 = N
+
+            CASE ( 'CBRCLF2' )
+               IDTCBrClF2 = N
+
+            CASE ( 'CFC'  )
+               IDTCFC = N
+
+            CASE ( 'HCFC'  )
+               IDTHCFC = N
+
+            CASE ( 'N2O' )
+               IDTN2O = N
+
+            CASE ( 'OCS' )
+               IDTOCS = N
 
             !--------------------------------
             ! CH4 (mpayer, 1/24/12)
@@ -3150,8 +3225,30 @@
       IDTCH2Br2  = 0
       IDTCH3Br   = 0
       ! +++++++++++++++++
-
-
+      ! SDE 07/24/12
+      ! Strat-Chem
+      IDTHCl     = 0
+      IDTClOx    = 0
+      IDTHOCl    = 0
+      IDTCH3CCl3 = 0
+      IDTCF2Cl2  = 0
+      IDTCCl4    = 0
+      IDTCH3Cl   = 0
+      IDTClNO3   = 0
+      IDTClNO2   = 0
+      IDTHCl     = 0
+      IDTCl2     = 0
+      IDTCl2O2   = 0
+      IDTOClO    = 0
+      IDTCFCl3   = 0
+      IDTCFC     = 0
+      IDTHCFC    = 0
+      IDTN2O     = 0
+      IDTOCS     = 0
+      IDTCBrF3   = 0
+      IDTCBrClF2 = 0
+      IDTC2Br2F4 = 0
+      ! +++++++++++++++++
       !(fp, 6/09)
       IDTISOPN   = 0
       IDTAP      = 0

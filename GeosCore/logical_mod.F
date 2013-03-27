@@ -163,6 +163,18 @@
       LOGICAL :: LSSABr2         ! Use sea salt Br2 emiss? (jpp, 3/28/2010)
       LOGICAL :: LFIX_PBL_BrO    ! Run 1ppt MBL BRO Sim.? (jpp 5/10/10)
       LOGICAL :: LCH4EMIS        ! Use methane emissions? (SDE 03/25/13)
+      LOGICAL :: LN2OEMIS        ! N2O emissions?
+      LOGICAL :: LCFCEMIS        ! CFC emissions?
+      LOGICAL :: LCLEMIS         ! Chlorine emissions?
+      LOGICAL :: LBREMIS         ! Bromine emissions?
+      LOGICAL :: LOCSEMIS        ! OCS emissions?
+      LOGICAL :: LSETCH4         ! Initialize CH4 to generic conditions?
+      LOGICAL :: LSETN2O         ! Initialize N2O to generic conditions?
+      LOGICAL :: LSETCFC         ! Initialize CFCs to generic conditions?
+      LOGICAL :: LSETCL          ! Initialize chlorine species to generic conditions?
+      LOGICAL :: LSETBR          ! Initialize bromine species to generic conditions?
+      LOGICAL :: LSETOCS         ! Initialize OCS to generic conditions?
+      LOGICAL :: LSETH2SO4       ! Initialize H2SO4 to generic conditions?
 
       !%%%% Transport and strat BC's %%%%
       LOGICAL :: LFILL           ! Fill negative values in TPCORE?

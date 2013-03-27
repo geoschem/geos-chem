@@ -822,7 +822,7 @@ main.o                      : main.F                                         \
                               gigc_environment_mod.o  geos57_read_mod.o      \
                               diag63_mod.o            olson_landmap_mod.o    \
                               mapping_mod.o           toms_mod.o             \
-                              soilnox_restart_mod.o 
+                              soilnox_restart_mod.o   set_init_mod.o
 
 mapping_mod.o               : mapping_mod.F90                                \
                               logical_mod.o
@@ -1004,6 +1004,10 @@ setemis.o                   : setemis.F                                      \
                               lightning_nox_mod.o     logical_mod.o          \
                               pbl_mix_mod.o           tracerid_mod.o         \
                               chemgrid_mod.o      
+
+set_init_mod.o              : set_init_mod.F          logical_mod.o          \
+                              tracer_mod.o            tracerid_mod.o         \
+                              global_ch4_mod.o        chemgrid_mod.o
 
 setmodel.o                  : setmodel.F
 

@@ -1605,7 +1605,9 @@
       USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM
       USE CMN_SIZE_MOD      ! Size parameters
       USE CMN_O3_MOD        ! FSCALYR
-      USE TRACERID_MOD,  ONLY : IDTCH4
+      USE TRACERID_MOD,  ONLY : IDTCH4, IDTOCS, IDTCFC
+      USE TRACERID_MOD,  ONLY : IDTCl2, IDTN2O, IDTBr2
+      USE SET_INIT_MOD,  ONLY : TRAC_FILE_ROOT
 !
 ! !INPUT PARAMETERS:
 !
@@ -2004,8 +2006,60 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:77' )
       READ( SUBSTRS(1:N), * ) LCH4EMIS
 
-      ! Separator line
+      ! Use fixed OCS surface mixing ratio?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:78' )
+      READ( SUBSTRS(1:N), * ) LOCSEMIS
+
+      ! Use Montreal CFC emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:79' )
+      READ( SUBSTRS(1:N), * ) LCFCEMIS
+
+      ! Use chlorine emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:80' )
+      READ( SUBSTRS(1:N), * ) LCLEMIS
+
+      ! Use bromine emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:81' )
+      READ( SUBSTRS(1:N), * ) LBREMIS
+
+      ! Use fixed N2O surface mixing ratio?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:82' )
+      READ( SUBSTRS(1:N), * ) LN2OEMIS
+
+      ! Initialize CH4 to GEOS-Chem baseline?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:83' )
+      READ( SUBSTRS(1:N), * ) LSETCH4
+
+      ! Initialize OCS to 2D baseline?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:84' )
+      READ( SUBSTRS(1:N), * ) LSETOCS
+
+      ! Initialize CFCs to 2D baseline?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:85' )
+      READ( SUBSTRS(1:N), * ) LSETCFC
+
+      ! Initialize chlorine species to 2D baseline?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:86' )
+      READ( SUBSTRS(1:N), * ) LSETCL
+
+      ! Initialize bromine species to 2D baseline?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:87' )
+      READ( SUBSTRS(1:N), * ) LSETBR
+
+      ! Initialize N2O to GEOS-Chem baseline?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:88' )
+      READ( SUBSTRS(1:N), * ) LSETN2O
+
+      ! Initialize stratospheric sulfates to GEOS-Chem baseline?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:89' )
+      READ( SUBSTRS(1:N), * ) LSETH2SO4
+
+      ! Directory containing 2D data
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:90' )
+      READ( SUBSTRS(1:N), '(a)' ) TRAC_FILE_ROOT 
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:91' )
 
       !=================================================================
       ! Error check logical flags
@@ -2075,7 +2129,14 @@
          LLIGHTNOX      = .FALSE.
          LAEIC          = .FALSE.
          LSOILNOX       = .FALSE.
-         LFERTILIZERNOX = .FALSE.  
+         LFERTILIZERNOX = .FALSE. 
+         LSETCH4        = .FALSE.
+         LCH4CHEM       = .FALSE.
+         LSETOCS        = .FALSE.
+         LSETH2SO4      = .FALSE.
+         LSETCL         = .FALSE.
+         LSETBR         = .FALSE.
+         LSETCFC        = .FALSE. 
       ENDIF
       
       ! Set other EDGAR switches (for now set all together)
@@ -2296,13 +2357,76 @@
       ENDIF
 
       !=================================================================
+      ! Error check CFC emissions
+      !=================================================================
+      IF ( LCFCEMIS .or. LSETCFC ) THEN
+         IF ( IDTCFC == 0 ) THEN
+            LCFCEMIS = .FALSE.
+            LSETCFC = .FALSE.
+            WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
+     &            // 'CFCs are emitted but CFC tracer is undefined.'
+            WRITE( 6, '(a)' ) 'Turning off CFC emissions.'
+         ENDIF
+      ENDIF
+
+      !=================================================================
+      ! Error check N2O emissions
+      !=================================================================
+      IF ( LN2OEMIS .or. LSETN2O ) THEN
+         IF ( IDTN2O == 0 ) THEN
+            LN2OEMIS = .FALSE.
+            LSETN2O = .FALSE.
+            WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
+     &            // 'N2O is emitted but N2O tracer is undefined.'
+            WRITE( 6, '(a)' ) 'Turning off nitrous oxide emissions.'
+         ENDIF
+      ENDIF
+
+      !=================================================================
+      ! Error check halogen emissions
+      !=================================================================
+      IF ( LCLEMIS .or. LSETCL) THEN
+         IF ( IDTCL2 == 0 ) THEN
+            LCLEMIS = .FALSE.
+            LSETCL = .FALSE.
+            WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
+     &            // 'Cl species emitted but Cl2 tracer is undefined.'
+            WRITE( 6, '(a)' ) 'Turning off chlorine emissions.'
+         ENDIF
+      ENDIF
+
+      IF ( LBREMIS .or. LSETBR) THEN
+         IF ( IDTBR2 == 0 ) THEN
+            LBREMIS = .FALSE.
+            LSETBR = .FALSE.
+            WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
+     &            // 'Br species emitted but Br2 tracer is undefined.'
+            WRITE( 6, '(a)' ) 'Turning off bromine emissions.'
+         ENDIF
+      ENDIF
+
+      !=================================================================
+      ! Error check OCS emissions
+      !=================================================================
+      IF ( LOCSEMIS .or. LSETOCS ) THEN
+         IF ( IDTOCS == 0 ) THEN
+            LOCSEMIS = .FALSE.
+            LSETOCS = .FALSE.
+            WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
+     &            // 'OCS is emitted but OCS tracer is undefined.'
+            WRITE( 6, '(a)' ) 'Turning off OCS emissions.'
+         ENDIF
+      ENDIF
+
+      !=================================================================
       ! Error check methane emissions
       !=================================================================
-      IF ( LCH4EMIS ) THEN
+      IF ( LCH4EMIS .or. LSETCH4 ) THEN
          IF ( IDTCH4 == 0 ) THEN
             LCH4EMIS = .FALSE.
+            LSETCH4 = .FALSE.
             WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
-     &            // 'LCH4EMIS=T but CH4 tracer is undefined'
+     &            // 'CH4 is emitted but CH4 tracer is undefined.'
             WRITE( 6, '(a)' ) 'Turning off methane emissions.'
          ENDIF
       ENDIF
@@ -2408,7 +2532,23 @@
         WRITE( 6, 100 ) 'Use seasalt Br2 emissions?  : ', LSSABr2
         WRITE( 6, 100 ) 'Set day PBL BrO conc to 1ppt: ', LFIX_PBL_BRO
         WRITE( 6, 100 ) 'Bromine emiss scale factor  : ', Br_SCALING
-        WRITE( 6, 100 ) 'Turn on methane emissions?  : ', LCH4EMIS
+        WRITE( 6, 100 ) 'Turn on basic emissions for : '
+        WRITE( 6, 100 ) '      --> methane?          : ', LCH4EMIS
+        WRITE( 6, 100 ) '      --> OCS?              : ', LOCSEMIS
+        WRITE( 6, 100 ) '      --> CFCs/HCFCs/halon? : ', LCFCEMIS
+        WRITE( 6, 100 ) '      --> chlorine species? : ', LCLEMIS
+        WRITE( 6, 100 ) '      --> bromine species?  : ', LBREMIS
+        WRITE( 6, 100 ) '      --> N2O?              : ', LN2OEMIS
+        WRITE( 6, 100 ) 'Set initial global MRs for  : '
+        WRITE( 6, 100 ) '      --> methane?          : ', LSETCH4
+        WRITE( 6, 100 ) '      --> OCS?              : ', LSETOCS
+        WRITE( 6, 100 ) '      --> CFCs/HCFCs/halon? : ', LSETCFC
+        WRITE( 6, 100 ) '      --> chlorine species? : ', LSETCL
+        WRITE( 6, 100 ) '      --> bromine species?  : ', LSETBR
+        WRITE( 6, 100 ) '      --> N2O?              : ', LSETN2O
+        WRITE( 6, 100 ) '      --> strat. H2SO4?     : ', LSETH2SO4
+        WRITE( 6, 130 ) ' Directory for 2D data      : ',
+     &                                        TRIM(TRAC_FILE_ROOT)
       ENDIF
 
       ! FORMAT statements
@@ -2416,6 +2556,7 @@
  110  FORMAT( A, I5 )
       ! add formatting for ISOP_SCALING and NOx_scaling (hotp 8/4/09)
  120  FORMAT( A, f6.2 )
+ 130  FORMAT( A, A  )
 
       END SUBROUTINE READ_EMISSIONS_MENU
 !EOC
@@ -2830,6 +2971,7 @@
       USE TIME_MOD,    ONLY : SET_CT_CHEM
       USE TRACER_MOD,  ONLY : N_TRACERS
       USE LOGICAL_MOD, ONLY : LCH4CHEM, LGMISTRAT
+      USE LOGICAL_MOD, ONLY : LSETH2SO4
       USE TRACERID_MOD,ONLY : IDTCH4
 
       USE CMN_SIZE_MOD                   ! Size parameters
@@ -2918,6 +3060,9 @@
       ! Full GMI stratospheric chemistry incompatible with other settings
       IF ( LGMISTRAT .and. LSCHEM ) THEN
          MSG = 'Cannot have both unified and linearized strat chem!'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ELSEIF ( (.not. LGMISTRAT) .and. LSETH2SO4 ) THEN 
+         MSG = 'Stratospheric H2SO4 is set but full strat-chem is off!'
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
 
@@ -6947,7 +7092,6 @@
       LWAIT          = .FALSE.
       LTURB          = .FALSE.
       LSCHEM         = .FALSE.
-      LGMISTRAT      = .FALSE.
       LSVGLB         = .FALSE.
       LSVCSPEC       = .FALSE.
       LSPLIT         = .FALSE.
@@ -6956,6 +7100,25 @@
       LLINOZ         = .FALSE.
       LPREINDHG      = .FALSE.
       USE_OLSON_2001 = .FALSE.
+
+      !Online CH4 (SDE 03/26/13)
+      LCH4EMIS       = .FALSE.
+      LCH4CHEM       = .FALSE.
+      LSETCH4        = .FALSE.
+
+      !Full strat-chem (SDE 03/26/13)
+      LGMISTRAT      = .FALSE.
+      LSETCFC        = .FALSE.
+      LSETCL         = .FALSE.
+      LSETBR         = .FALSE.
+      LSETOCS        = .FALSE.
+      LSETN2O        = .FALSE.
+      LSETH2SO4      = .FALSE.
+      LCFCEMIS       = .FALSE.
+      LCLEMIS        = .FALSE.
+      LBREMIS        = .FALSE.
+      LOCSEMIS       = .FALSE.
+      LN2OEMIS       = .FALSE.
 
       !Specifically for CO2 simulation (R Nassar, 2009-03-02)
       LGENFF         = .FALSE.

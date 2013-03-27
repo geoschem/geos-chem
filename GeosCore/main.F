@@ -109,6 +109,11 @@
       USE A6_READ_MOD           ! For reading A6 data (all other met)
       USE I6_READ_MOD           ! For reading I6 data (all other met)
 
+      !-----------------------------------------------------------------
+      ! Modules added in the stratospheric chemistry update (SDE)
+      !-----------------------------------------------------------------
+      USE SET_INIT_MOD          ! For initalizing rare tracer fields
+
 #if defined( DEVEL )
       !-----------------------------------------------------------------
       ! Modules for the Grid-Independent GEOS-Chem (aka "GIGC")
@@ -204,6 +209,7 @@
 !                              ALLOCATE_ALL, INIT_ALL when using -DDEVEL
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
+!  26 Mar 2013 - S. D. Eastham - Added initialization of rare tracers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -398,6 +404,12 @@
       ! Read initial tracer conditions
       CALL READ_RESTART_FILE( NYMDb, NHMSb )
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a READ_RESTART_FILE' )
+
+      ! Set simple initial tracer conditions
+      CALL CONVERT_UNITS( 1,  N_TRACERS, TCVV, AD, STT )
+      CALL SET_INITIAL_MIXRATIOS
+      CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, AD, STT )
+      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a SET_INITIAL_MIXRATIOS' )
 
       ! Read soil NOx initial conditions
       IF ( LSOILNOX ) THEN

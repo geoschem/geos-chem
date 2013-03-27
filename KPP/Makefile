@@ -129,6 +129,7 @@ realclean:
 	@$(MAKE) -C standard clean
 	@$(MAKE) -C SOA clean
 	@$(MAKE) -C isoprene clean
+	@$(MAKE) -C ch4chem clean
 
 help:
 	@$(MAKE) -C $(HELP) 
