@@ -1095,7 +1095,7 @@ transport_mod.o             : transport_mod.F                                \
                               dao_mod.o               diag_mod.o             \
                               logical_mod.o           pjc_pfix_mod.o         \
                               tpcore_bc_mod.o         tpcore_fvdas_mod.o     \
-                              tpcore_window_mod.o     tracer_mod.o           \
+                              tracer_mod.o                                   \
                               tpcore_geos5_window_mod.o                      \
                               tpcore_geos57_window_mod.o                     \
                               pjc_pfix_geos5_window_mod.o                    \

@@ -122,6 +122,14 @@
       REAL*8,  ALLOCATABLE :: EDGAR_CO_SHIP(:,:)
       REAL*8,  ALLOCATABLE :: EDGAR_TODN(:,:,:)
 
+      ! To shadow logical values from Input_Opt
+      LOGICAL              :: LEDGARCO
+      LOGICAL              :: LEDGARNOx
+      LOGICAL              :: LEDGARSHIP
+      LOGICAL              :: LEDGARSOx
+      LOGICAL              :: LFUTURE
+      LOGICAL              :: LHIST
+
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
       !=================================================================
@@ -129,11 +137,8 @@
 
 !------------------------------------------------------------------------------
 
-#if defined( DEVEL )
-      SUBROUTINE EMISS_EDGAR( YEAR, MONTH, EMISSIONS )
-#else
-      SUBROUTINE EMISS_EDGAR( YEAR, MONTH )
-#endif
+      SUBROUTINE EMISS_EDGAR( am_I_Root, YEAR,      MONTH,
+     &                        Input_Opt, State_Chm, RC     )
 !
 !******************************************************************************
 !  Subroutine EMISS_EDGAR fills emission arrays with emissions based upon 
@@ -147,25 +152,38 @@
 !  NOTES:
 !******************************************************************************
 !
-      ! Reference to F90 modules
-      USE BPCH2_MOD,      ONLY : GET_TAU0
-      USE LOGICAL_MOD,    ONLY : LEDGARCO,        LEDGARNOx
-      USE LOGICAL_MOD,    ONLY : LEDGARSHIP,      LEDGARSOx
-
-      USE CMN_SIZE_MOD       ! Size parameters
+! !USES:
+!
+      USE CMN_SIZE_MOD
+      USE BPCH2_MOD,          ONLY : GET_TAU0
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
 
 #if defined( DEVEL )
       USE TRACERID_MOD,   ONLY : IDTCO, IDTSO2, IDTNOX
-      USE TRACER_MOD,     ONLY : N_TRACERS
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2ff
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NOxff
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_COff
-      USE LOGICAL_MOD,          ONLY : LFUTURE
 #endif 
-      ! Arguments
-      INTEGER, INTENT(IN)     :: YEAR, MONTH
-
-      ! Local variables
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      INTEGER,        INTENT(IN)    :: YEAR        ! Year to read
+      INTEGER,        INTENT(IN)    :: MONTH       ! Month to read
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE           :: FIRST      = .TRUE.
       INTEGER, SAVE           :: YEAR_SAVE  = -1
       INTEGER, SAVE           :: MONTH_SAVE = -1
@@ -185,15 +203,29 @@
      &                                        'OCT', 'NOV', 'DEC' /)
 
 #if defined( DEVEL )
-      REAL*8, INTENT(INOUT)  :: EMISSIONS(IIPAR,JJPAR,N_TRACERS)
       REAL*8  :: SO2_FUTURE_SCALE(IIPAR,JJPAR)
       REAL*8  :: NOX_FUTURE_SCALE(IIPAR,JJPAR)
       REAL*8  :: CO_FUTURE_SCALE(IIPAR,JJPAR)
       INTEGER :: I, J
 #endif
+
+      ! For fields from Input_Opt
+      INTEGER :: N_TRACERS
+
       !=================================================================
       ! EMISS_EDGAR begins here!
       !=================================================================
+
+      ! Assume success
+      RC         =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt to module vars for use in other routines
+      LEDGARCO   = Input_Opt%LEDGARCO
+      LEDGARNOx  = Input_Opt%LEDGARNOx
+      LEDGARSHIP = Input_Opt%LEDGARSHIP
+      LEDGARSOx  = Input_Opt%LEDGARSOx
+      LHIST      = Input_Opt%LHIST
+      N_TRACERS  = Input_Opt%N_TRACERS
 
       ! First-time initialization
       IF ( FIRST ) THEN
@@ -254,20 +286,20 @@
          ! Now always read NOX to get TODN (amv, phs, 3/10/08)
          IF ( LEDGARSHIP ) THEN
             CALL COMPUTE_EDGAR_NOX( YEAR,      MONTH, 
-     &           EDGAR_NOx, EDGAR_NOx_SHIP )
+     &                              EDGAR_NOx, EDGAR_NOx_SHIP    )
          ELSE
             CALL COMPUTE_EDGAR_NOX( YEAR,      MONTH, 
-     &           EDGAR_NOx )
+     &                              EDGAR_NOx                    )
          ENDIF
          
          ! SO2
          IF ( LEDGARSOx ) THEN
             IF ( LEDGARSHIP ) THEN
                CALL COMPUTE_EDGAR_SO2( YEAR,      MONTH, 
-     &              EDGAR_SO2, EDGAR_SO2_SHIP )
+     &                                 EDGAR_SO2, EDGAR_SO2_SHIP )
             ELSE
                CALL COMPUTE_EDGAR_SO2( YEAR,      MONTH, 
-     &              EDGAR_SO2 )
+     &                                 EDGAR_SO2                 )
             ENDIF
          ENDIF
          
@@ -303,45 +335,57 @@
       ! Result is emission tendency in kg/gridbox/s
       IF (LEDGARSHIP) THEN
          IF ( LFUTURE ) THEN
-            EMISSIONS(:,:,IDTSO2) = EMISSIONS(:,:,IDTSO2) +
+            State_Chm%TRAC_TEND(:,:,1,IDTSO2) = 
+     &      State_Chm%TRAC_TEND(:,:,1,IDTSO2) +
      &    (((EDGAR_SO2/SEC_IN_SEASON)+(EDGAR_SO2_SHIP/SEC_IN_MONTH)) *
      &      SO2_FUTURE_SCALE )
 
-            EMISSIONS(:,:,IDTCO) = EMISSIONS(:,:,IDTCO) +
+            State_Chm%TRAC_TEND(:,:,1,IDTCO) = 
+     &      State_Chm%TRAC_TEND(:,:,1,IDTCO) +
      &    ((EDGAR_CO+EDGAR_CO_SHIP)   * (1.d0/SEC_IN_2000) *
      &      CO_FUTURE_SCALE )
 
-            EMISSIONS(:,:,IDTNOX) = EMISSIONS(:,:,IDTNOX) +
+            State_Chm%TRAC_TEND(:,:,1,IDTNOX) = 
+     &      State_Chm%TRAC_TEND(:,:,1,IDTNOX) +
      &    ((EDGAR_NOX+EDGAR_NOX_SHIP) * (1.d0/SEC_IN_SEASON) *
      &      NOX_FUTURE_SCALE )
          ELSE
-            EMISSIONS(:,:,IDTSO2) = EMISSIONS(:,:,IDTSO2) +
+            State_Chm%TRAC_TEND(:,:,1,IDTSO2) = 
+     &      State_Chm%TRAC_TEND(:,:,1,IDTSO2) +
      &    (((EDGAR_SO2/SEC_IN_SEASON)+(EDGAR_SO2_SHIP/SEC_IN_MONTH)) )
 
-            EMISSIONS(:,:,IDTCO) = EMISSIONS(:,:,IDTCO) +
+            State_Chm%TRAC_TEND(:,:,1,IDTCO) = 
+     &      State_Chm%TRAC_TEND(:,:,1,IDTCO) +
      &    ((EDGAR_CO+EDGAR_CO_SHIP)   * (1.d0/SEC_IN_2000) )
 
-            EMISSIONS(:,:,IDTNOX) = EMISSIONS(:,:,IDTNOX) +
+            State_Chm%TRAC_TEND(:,:,1,IDTNOX) = 
+     &      State_Chm%TRAC_TEND(:,:,1,IDTNOX) +
      &    ((EDGAR_NOX+EDGAR_NOX_SHIP) * (1.d0/SEC_IN_SEASON) )
          ENDIF
       ELSE
          IF ( LFUTURE ) THEN
-            EMISSIONS(:,:,IDTSO2) = EMISSIONS(:,:,IDTSO2) +
+            State_Chm%TRAC_TEND(:,:,1,IDTSO2) = 
+     &      State_Chm%TRAC_TEND(:,:,1,IDTSO2) +
      &    ((EDGAR_SO2/SEC_IN_SEASON) * SO2_FUTURE_SCALE )
 
-            EMISSIONS(:,:,IDTCO) = EMISSIONS(:,:,IDTCO) +
+            State_Chm%TRAC_TEND(:,:,1,IDTCO) = 
+     &      State_Chm%TRAC_TEND(:,:,1,IDTCO) +
      &    (EDGAR_CO*(1.d0/SEC_IN_2000) * CO_FUTURE_SCALE )
 
-            EMISSIONS(:,:,IDTNOX) = EMISSIONS(:,:,IDTNOX) +
+            State_Chm%TRAC_TEND(:,:,1,IDTNOX) = 
+     &      State_Chm%TRAC_TEND(:,:,1,IDTNOX) +
      &    (EDGAR_NOX*(1.d0/SEC_IN_SEASON) * NOX_FUTURE_SCALE )
          ELSE
-            EMISSIONS(:,:,IDTSO2) = EMISSIONS(:,:,IDTSO2) +
+            State_Chm%TRAC_TEND(:,:,1,IDTSO2) = 
+     &      State_Chm%TRAC_TEND(:,:,1,IDTSO2) +
      &    (EDGAR_SO2/SEC_IN_SEASON)
 
-            EMISSIONS(:,:,IDTCO) = EMISSIONS(:,:,IDTCO) +
+            State_Chm%TRAC_TEND(:,:,1,IDTCO) = 
+     &      State_Chm%TRAC_TEND(:,:,1,IDTCO) +
      &    (EDGAR_CO * (1.d0/SEC_IN_2000) )
 
-            EMISSIONS(:,:,IDTNOX) = EMISSIONS(:,:,IDTNOX) +
+            State_Chm%TRAC_TEND(:,:,1,IDTNOX) = 
+     &      State_Chm%TRAC_TEND(:,:,1,IDTNOX) +
      &    (EDGAR_NOX * (1.d0/SEC_IN_SEASON) )
          ENDIF
       ENDIF
@@ -352,7 +396,8 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE COMPUTE_EDGAR_NOx( YEAR, MONTH, E_NOx, E_NOx_SHIP )
+      SUBROUTINE COMPUTE_EDGAR_NOx( YEAR,  MONTH, 
+     &                              E_NOx, E_NOx_SHIP )
 !
 !******************************************************************************
 !  Subroutine COMPUTE_EDGAR_NOx computes the total EDGAR NOx emissions 
@@ -382,21 +427,16 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIRECTORY_MOD,     ONLY : DATA_DIR_1x1
-      USE LOGICAL_MOD,       ONLY : LEDGARSHIP
-      USE TIME_MOD,          ONLY : EXPAND_DATE
-      USE REGRID_A2A_MOD,    ONLY : DO_REGRID_A2A
-      USE SCALE_ANTHRO_MOD,  ONLY : GET_ANNUAL_SCALAR
-![eml
-      USE LOGICAL_MOD,       ONLY : LHIST
-!eml]
-
-      USE CMN_SIZE_MOD            ! Size parameters
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR_1x1
+      USE TIME_MOD,           ONLY : EXPAND_DATE
+      USE REGRID_A2A_MOD,     ONLY : DO_REGRID_A2A
+      USE SCALE_ANTHRO_MOD,   ONLY : GET_ANNUAL_SCALAR
+      USE CMN_SIZE_MOD
 
       ! Arguments
-      INTEGER, INTENT(IN)            :: YEAR, MONTH
-      REAL*8,  INTENT(OUT)           :: E_NOX(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: E_NOX_SHIP(IIPAR,JJPAR)
+      INTEGER,        INTENT(IN)            :: YEAR, MONTH
+      REAL*8,         INTENT(OUT)           :: E_NOX(IIPAR,JJPAR)
+      REAL*8,         INTENT(OUT), OPTIONAL :: E_NOX_SHIP(IIPAR,JJPAR)
 
       ! Local variables
       INTEGER                    :: I, J, H, YYYYMMDD
@@ -536,11 +576,9 @@
 !
       ! References to F90 modules
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
-      USE LOGICAL_MOD,    ONLY : LEDGARSHIP
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
 ![eml
       USE TIME_MOD,       ONLY : GET_HISTYR
-      USE LOGICAL_MOD,    ONLY : LHIST
       USE BPCH2_MOD,      ONLY : GET_TAU0, READ_BPCH2
 !eml]
 
@@ -955,7 +993,6 @@
 !
       ! References to F90 modules
       USE DIRECTORY_MOD,    ONLY : DATA_DIR_1x1
-      USE LOGICAL_MOD,      ONLY : LEDGARSHIP
       USE TIME_MOD,         ONLY : EXPAND_DATE
       USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
       USE REGRID_A2A_MOD,   ONLY : DO_REGRID_A2A
@@ -1058,8 +1095,6 @@
 !******************************************************************************
 !
       ! Reference to F90 modules
-      USE LOGICAL_MOD, ONLY : LEDGARSHIP
-
       USE CMN_SIZE_MOD      ! Size parameters
 
       ! Arguments
@@ -1169,19 +1204,15 @@
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
+!  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIRECTORY_MOD,     ONLY : DATA_DIR_1x1
-      USE LOGICAL_MOD,       ONLY : LEDGARSHIP
-      USE TIME_MOD,          ONLY : EXPAND_DATE
-      USE SCALE_ANTHRO_MOD,  ONLY : GET_ANNUAL_SCALAR
-      USE REGRID_A2A_MOD,    ONLY : DO_REGRID_A2A      
-![eml
-      USE LOGICAL_MOD,       ONLY : LHIST
-      USE BPCH2_MOD,         ONLY : READ_BPCH2
-!eml]
-
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR_1x1
+      USE TIME_MOD,           ONLY : EXPAND_DATE
+      USE SCALE_ANTHRO_MOD,   ONLY : GET_ANNUAL_SCALAR
+      USE REGRID_A2A_MOD,     ONLY : DO_REGRID_A2A      
+      USE BPCH2_MOD,          ONLY : READ_BPCH2
       USE CMN_SIZE_MOD            ! Size parameters
 
       ! Arguments
@@ -1198,6 +1229,9 @@
       CHARACTER(LEN=255)               :: LLFILENAME
       REAL*8                           :: OUTGRID(IIPAR,JJPAR)
       REAL*8,  POINTER                 :: INGRID(:,:) => NULL()
+
+      ! For fields from Input_Opt
+      LOGICAL                          :: LEDGARSHIP, LHIST
 
       !=================================================================
       ! COMPUTE_EDGAR_SO2 begins here!
@@ -1293,9 +1327,7 @@
 !
       ! Reference to F90 modules
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
-      USE LOGICAL_MOD,    ONLY : LEDGARSHIP
 ![eml
-      USE LOGICAL_MOD,    ONLY : LHIST
       USE TIME_MOD,       ONLY : GET_HISTYR
       USE BPCH2_MOD,      ONLY : GET_TAU0, READ_BPCH2
 !eml]
@@ -1853,7 +1885,6 @@
       ! References to F90 modules
       USE GRID_MOD,             ONLY : GET_AREA_CM2
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NOxff
-      USE LOGICAL_MOD,          ONLY : LFUTURE
 
       ! Arguments
       INTEGER, INTENT(IN)           :: I,      J
@@ -1942,7 +1973,6 @@
       ! References to F90 modules
       USE GRID_MOD,             ONLY : GET_AREA_CM2
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_COff
-      USE LOGICAL_MOD,          ONLY : LFUTURE
 
       ! Arguments
       INTEGER, INTENT(IN)           :: I,      J
@@ -2019,7 +2049,6 @@
       ! References to F90 modules
       USE GRID_MOD,             ONLY : GET_AREA_CM2
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2ff
-      USE LOGICAL_MOD,          ONLY : LFUTURE
 
       ! Arguments
       INTEGER, INTENT(IN)           :: I,      J
@@ -2089,7 +2118,6 @@
       ! References to F90 modules
       USE GRID_MOD,             ONLY : GET_AREA_CM2
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2ff
-      USE LOGICAL_MOD,          ONLY : LFUTURE
 
       ! Arguments
       INTEGER, INTENT(IN)           :: I,      J
@@ -2194,9 +2222,7 @@
 !                              NOx and SO2 (E. Leibensperger)
 !******************************************************************************
 !
-      USE LOGICAL_MOD, ONLY : LEDGARSHIP
 ![eml
-      USE LOGICAL_MOD, ONLY : LHIST
       USE TIME_MOD,    ONLY : GET_HISTYR
 !eml]
 
@@ -2933,8 +2959,6 @@
 !
       ! Reference to F90 modules
       USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE LOGICAL_MOD, ONLY : LEDGARSHIP
-
       USE CMN_SIZE_MOD  ! Size parameters
 
       ! Local Variables

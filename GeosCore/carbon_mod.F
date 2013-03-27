@@ -4290,6 +4290,7 @@ c
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  04 Mar 2013 - R. Yantosca - Remove call to INIT_CARBON
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !******************************************************************************
 !
       ! References to F90 modules
@@ -4384,7 +4385,7 @@ c
         
          ! Read annual mean biomass emissions if necessary
          IF ( USE_BOND_BIOBURN ) THEN
-            CALL BIOMASS_CARB_TBOND
+            CALL BIOMASS_CARB_TBOND( Input_Opt )
             IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a B_CRB_TBOND' )
          ENDIF
 
@@ -4409,14 +4410,14 @@ c
 
          ! Read in monthly emissions from T Bond [2007], with imposed
          ! seasonality over North America by R. Park [2003]
-         CALL ANTHRO_CARB_TBOND( MONTH )
+         CALL ANTHRO_CARB_TBOND( MONTH, Input_Opt )
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a A_CRB_TBOND' )
 
          IF ( LCOOKE ) THEN
          ! Overwrite the T. Bond [2004] emissions over North America
          ! with monthly mean anthro emissions from Cooke et al [1999] 
          ! having imposed seasonality by R. Park [2003]
-            CALL ANTHRO_CARB_COOKE( MONTH )
+            CALL ANTHRO_CARB_COOKE( MONTH, Input_Opt )
             IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a A_CRB_COOKE' )
          ENDIF
 
@@ -4429,7 +4430,7 @@ c
 
          IF ( GFED2_IS_NEW() .or. GFED3_IS_NEW() .or. 
      &        ITS_A_NEW_MONTH() ) THEN 
-            CALL BIOMASS_CARB_GEOS
+            CALL BIOMASS_CARB_GEOS( Input_Opt )
             IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a BB_CRB_GEOS' )
          ENDIF
             
@@ -4439,7 +4440,7 @@ c
       !--------------------------
       ! Compute biogenic OC
       !--------------------------
-      CALL BIOGENIC_OC( State_Met )
+      CALL BIOGENIC_OC( Input_Opt, State_Met )
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: after BIOGENIC_OC' )
 
       !=================================================================
@@ -4499,28 +4500,28 @@ c
 !$OMP END PARALLEL DO
 
       ! Sum up all carbon tracers throughout the boundary layer
-      CALL EMITHIGH( BCSRC, OCSRC, State_Chm )
+      CALL EMITHIGH( BCSRC, OCSRC, Input_Opt, State_Chm )
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISCARB: after EMITHIGH' )
 
 #if defined( DEVEL )
       IF ( IDTBCPI /= 0 ) THEN
-         State_Chm%TRAC_TEND(:,:,IDTBCPI) = 
-     &   State_Chm%TRAC_TEND(:,:,IDTBCPI) + BCSRC(:,:,1) ! Hydrophylic BC
+         State_Chm%TRAC_TEND(:,:,1,IDTBCPI) = 
+     &   State_Chm%TRAC_TEND(:,:,1,IDTBCPI) + BCSRC(:,:,1) ! Hydrophylic BC
       ENDIF
 
       IF ( IDTBCPI /= 0 ) THEN
-         State_Chm%TRAC_TEND(:,:,IDTBCPO) = 
-     &   State_Chm%TRAC_TEND(:,:,IDTBCPO) + BCSRC(:,:,2) ! Hydrophobic BC
+         State_Chm%TRAC_TEND(:,:,1,IDTBCPO) = 
+     &   State_Chm%TRAC_TEND(:,:,1,IDTBCPO) + BCSRC(:,:,2) ! Hydrophobic BC
       ENDIF
 
       IF ( IDTBCPI /= 0 ) THEN
-         State_Chm%TRAC_TEND(:,:,IDTOCPI) = 
-     &   State_Chm%TRAC_TEND(:,:,IDTOCPI) + OCSRC(:,:,1) ! Hydrophylic OC
+         State_Chm%TRAC_TEND(:,:,1,IDTOCPI) = 
+     &   State_Chm%TRAC_TEND(:,:,1,IDTOCPI) + OCSRC(:,:,1) ! Hydrophylic OC
       ENDIF
 
       IF ( IDTBCPI /= 0 ) THEN
-         State_Chm%TRAC_TEND(:,:,IDTOCPO) = 
-     &   State_Chm%TRAC_TEND(:,:,IDTOCPO) + OCSRC(:,:,2) ! Hydrophylic OC
+         State_Chm%TRAC_TEND(:,:,1,IDTOCPO) = 
+     &   State_Chm%TRAC_TEND(:,:,1,IDTOCPO) + OCSRC(:,:,2) ! Hydrophylic OC
       ENDIF
 #endif
 
@@ -4592,7 +4593,7 @@ c
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE BIOGENIC_OC( State_Met )
+      SUBROUTINE BIOGENIC_OC( Input_Opt, State_Met )
 !
 !******************************************************************************
 !  Subroutine BIOGENIC_OC emits secondary organic carbon aerosols.
@@ -4626,9 +4627,10 @@ c
       ! References to F90 modules
       USE BPCH2_MOD,          ONLY : GET_NAME_EXT_2D,  GET_RES_EXT
       USE BPCH2_MOD,          ONLY : GET_TAU0,         READ_BPCH2
+      USE CMN_SIZE_MOD
       USE DIRECTORY_MOD,      ONLY : DATA_DIR
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE LOGICAL_MOD,        ONLY : LMEGANMONO,       LSOA
       USE MEGAN_MOD,          ONLY : GET_EMMONOT_MEGAN
       USE MEGAN_MOD,          ONLY : GET_EMMONOG_MEGAN
       USE MEGANUT_MOD,        ONLY : XLTMMP
@@ -4636,9 +4638,9 @@ c
       USE TIME_MOD,           ONLY : GET_TS_EMIS,      ITS_A_NEW_MONTH
       USE TRANSFER_MOD,       ONLY : TRANSFER_2D
 
-      USE CMN_SIZE_MOD             ! Size parameters
 
       ! Arguments
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 
       ! Local variables
@@ -4662,11 +4664,17 @@ c
       ! Cosine SZA & PAR (for calculation of monoterpenes) (mpb,2009)
       REAL*8                      :: SC, PDF, PDR
 
-      ! External functions
+      ! For fields from Input_Opt
+      LOGICAL         :: LMEGANMONO
+      LOGICAL         :: LSOA
 
       !=================================================================
       ! BIOGENIC_OC begins here!
       !=================================================================
+
+      ! Copy values from Input_Opt
+      LMEGANMONO = Input_Opt%LMEGANMONO
+      LSOA       = Input_Opt%LSOA
 
       !=================================================================
       ! If secondary organic aerosols are turned off ...
@@ -4931,7 +4939,7 @@ c
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE ANTHRO_CARB_TBOND( THISMONTH )
+      SUBROUTINE ANTHRO_CARB_TBOND( THISMONTH, Input_Opt )
 !
 !******************************************************************************
 !  Subroutine ANTHRO_CARB_TBOND reads monthly mean anthropogenic and biofuel
@@ -4956,9 +4964,11 @@ c
 !                              BC/POA (E. Leibensperger)
 !  03 Jan 2013 - M. Payer    - Use MAP_A2A regridding for historical emissions
 !  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
+!  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
 !******************************************************************************
 !
-      ! References to F90 modules
+! !USES:
+!
       USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,            ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD,        ONLY : DATA_DIR,        DATA_DIR_1x1
@@ -4966,21 +4976,23 @@ c
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_BCff
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_OCbf
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_OCff
-      USE LOGICAL_MOD,          ONLY : LFUTURE
+      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
       USE TIME_MOD,             ONLY : GET_TS_EMIS
 ![eml
-      USE LOGICAL_MOD,          ONLY : LHIST, LBIOFUEL, LANTHRO
       USE TIME_MOD,             ONLY : GET_HISTYR
 !eml]
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
       USE REGRID_A2A_MOD,       ONLY : DO_REGRID_A2A
 
-      USE CMN_SIZE_MOD             ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN)           :: THISMONTH
-
-      ! Local variables
+      USE CMN_SIZE_MOD
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER,        INTENT(IN)    :: THISMONTH
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !LOCAL VARIABLES:
+!
       INTEGER                       :: I, J
       REAL*4                        :: ARRAY(IIPAR,JJPAR,1)
       REAL*8                        :: XTAU, STEPS_PER_YR, FUT_SCL
@@ -4995,6 +5007,12 @@ c
       REAL*4                        :: GENERIC_1x1(I1x1,J1x1-1)
 !eml]
 
+      ! For fields from Input_Opt
+      LOGICAL                       :: LFUTURE
+      LOGICAL                       :: LHIST
+      LOGICAL                       :: LBIOFUEL
+      LOGICAL                       :: LANTHRO
+
       ! Hydrophilic fraction of BLACK CARBON (aka ELEMENTAL CARBON)
       REAL*8, PARAMETER             :: FHB = 0.2d0
 
@@ -5004,6 +5022,12 @@ c
       !=================================================================
       ! ANTHRO_CARB_TBOND begins here!
       !=================================================================
+
+      ! Copy values from Input_Opt
+      LFUTURE       = Input_Opt%LFUTURE
+      LHIST         = Input_Opt%LHIST
+      LBIOFUEL      = Input_Opt%LBIOFUEL
+      LANTHRO       = Input_Opt%LANTHRO
 
       ! Number of emission timesteps per month
       STEPS_PER_MON = ( ( 1440 * NDAYS ( THISMONTH ) ) / GET_TS_EMIS() )
@@ -5307,7 +5331,7 @@ c
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE ANTHRO_CARB_COOKE( THISMONTH )
+      SUBROUTINE ANTHRO_CARB_COOKE( THISMONTH, Input_Opt )
 !
 !******************************************************************************
 !  Subroutine ANTHRO_CARB_COOKE computes monthly mean anthropogenic and 
@@ -5329,6 +5353,7 @@ c
 !        bounded by indices I1_NA, J1_NA, I2_NA, J2_NA).  (rjp, bmy, 12/1/04)
 !  (3 ) Now can read data from both GEOS and GCAP grids (bmy, 8/16/05)
 !  (4 ) Now compute future emissions of BC,OC if necessary. (swu, bmy, 5/30/06)
+!  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
 !******************************************************************************
 !
       ! References to F90 modules
@@ -5339,21 +5364,27 @@ c
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_BCff
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_OCbf
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_OCff
-      USE LOGICAL_MOD,          ONLY : LFUTURE
+      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
       USE TIME_MOD,             ONLY : GET_TS_EMIS
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
 
       USE CMN_SIZE_MOD             ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN)           :: THISMONTH
-
-      ! Local variables
+!
+! !INPUT PARAMETERS
+!
+      INTEGER,        INTENT(IN)    :: THISMONTH
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !LOCAL VARIABLES:
+!
       INTEGER                       :: I, J
       REAL*4                        :: ARRAY(IIPAR,JJPAR,1)
       REAL*8                        :: XTAU, STEPS_PER_MON, FUT_SCL
       REAL*8                        :: FD2D(IIPAR,JJPAR)
       CHARACTER(LEN=255)            :: FILENAME
+
+      ! For fields from Input_Opt
+      LOGICAL                       :: LFUTURE
 
       ! Hydrophilic fraction of BLACK CARBON aerosol
       REAL*8, PARAMETER             :: FHB = 0.2d0
@@ -5364,6 +5395,9 @@ c
       !=================================================================
       ! ANTHRO_CARB_COOKE begins here!
       !=================================================================
+
+      ! Copy values from Input_Opt
+      LFUTURE = Input_Opt%LFUTURE
 
       ! Return if we are running on a nested grid (e.g. China) which
       ! does not cover the North America region (rjp, bmy, 12/1/04)
@@ -5543,7 +5577,7 @@ c
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE BIOMASS_CARB_TBOND
+      SUBROUTINE BIOMASS_CARB_TBOND( Input_Opt )
 !
 !******************************************************************************
 !  Subroutine BIOMASS_CARB_TBOND computes annual mean biomass burning 
@@ -5562,26 +5596,36 @@ c
 !  (2 ) Now read data from "carbon_200411" subdir of DATA_DIR (bmy, 11/15/04)
 !  (3 ) Now can read from both GEOS and GCAP grids (bmy, 8/16/05)
 !  (4 ) Now compute future emissions of BC,OC if necessary (swu, bmy, 5/30/06)
+!  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
 !******************************************************************************
 !
-      ! References to F90 modules
+! !USES:
+!
       USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,            ONLY : GET_TAU0,        READ_BPCH2
+      USE CMN_SIZE_MOD
       USE DIRECTORY_MOD,        ONLY : DATA_DIR
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_BCbb
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_OCbb
-      USE LOGICAL_MOD,          ONLY : LFUTURE
+      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
       USE TIME_MOD,             ONLY : GET_TS_EMIS
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
-
-      USE CMN_SIZE_MOD             ! Size parameters 
-
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !LOCAL VARIABLES:
+!
       ! Local variables
       INTEGER                       :: I, J
       REAL*4                        :: ARRAY(IIPAR,JJPAR,1)
       REAL*8                        :: XTAU, STEPS_PER_YR, FUT_SCL
       REAL*8                        :: FD2D(IIPAR,JJPAR)
       CHARACTER(LEN=255)            :: FILENAME
+
+      ! For fields from Input_Opt
+      LOGICAL                       :: LFUTURE
 
       ! Hydrophilic fraction of carbonaceous aerosols
       REAL*8, PARAMETER             :: FHB = 0.2d0
@@ -5590,6 +5634,9 @@ c
       !=================================================================
       ! BIOMASS_CARB_TBOND begins here!
       !=================================================================
+
+      ! Copy values from Input_Opt
+      LFUTURE = Input_Opt%LFUTURE
 
       ! Number of emission timesteps per year
       STEPS_PER_YR = ( ( 1440 * 365 ) / GET_TS_EMIS() )
@@ -5680,7 +5727,7 @@ c
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE BIOMASS_CARB_GEOS
+      SUBROUTINE BIOMASS_CARB_GEOS( Input_Opt )
 !
 !******************************************************************************
 !  Subroutine BIOMASS_CARB_GEOS computes monthly mean biomass burning 
@@ -5711,27 +5758,29 @@ c
 !  (7 ) Prevent seg fault error when LBIOMASS=F (bmy, 11/3/06)
 !  (8 ) Now apply future emissions if necessary (hotp, swu, bmy, 2/19/09)
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
 !******************************************************************************
 !
-      ! References to F90 modules
-      ! FP: IDBBC and IDBOC are now in tracerid_mod (hotp 7/31/09)
-      USE BIOMASS_MOD,  ONLY : BIOMASS!, IDBBC, IDBOC
-      USE TRACERID_MOD, ONLY : IDBBC, IDBOC
-
+!
+! !USES:
+!
+      USE BIOMASS_MOD,          ONLY : BIOMASS
+      USE CMN_SIZE_MOD
+      USE TRACERID_MOD,         ONLY : IDBBC, IDBOC
       USE GRID_MOD,             ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,          ONLY : LBIOMASS, LFUTURE
+      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
       USE TIME_MOD,             ONLY : GET_TS_EMIS
-      USE TRACER_MOD,           ONLY : XNUMOL
       USE TRACERID_MOD,         ONLY : IDTBCPO,  IDTOCPO
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_OCbb
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_BCbb
 
-      USE CMN_SIZE_MOD             ! Size parameters
-
-      !-------------------
-      ! Local variables
-      !-------------------
-
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !LOCAL VARIABLES:
+!
       ! Hydrophilic fraction of BLACK CARBON
       REAL*8, PARAMETER     :: FHB = 0.2d0
 
@@ -5743,9 +5792,21 @@ c
       REAL*8                :: CONV_BC, CONV_OC, DTSRCE, FUT_SCL
       CHARACTER(LEN=255)    :: BC_FILE, OC_FILE
 
+      ! For fields from Input_Opt
+      LOGICAL         :: LBIOMASS
+      LOGICAL         :: LFUTURE
+      INTEGER         :: N_TRACERS
+      REAL*8          :: XNUMOL(Input_Opt%N_TRACERS)
+
       !=================================================================
       ! BIOMASS_CARB_GEOS begins here!
       !=================================================================
+
+      ! Copy values from Input_Opt
+      LBIOMASS  = Input_Opt%LBIOMASS
+      LFUTURE   = Input_Opt%LFUTURE
+      N_TRACERS = Input_Opt%N_TRACERS
+      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
 
       ! Emission timestep [s]
       DTSRCE  = 60d0 * GET_TS_EMIS()
@@ -5808,11 +5869,7 @@ c
 
 !------------------------------------------------------------------------------
 
-#if defined( DEVEL )
-      SUBROUTINE EMITHIGH( BCSRC, OCSRC, State_Chm )
-#else
-      SUBROUTINE EMITHIGH( BCSRC, OCSRC )
-#endif
+      SUBROUTINE EMITHIGH( BCSRC, OCSRC, Input_Opt, State_Chm )
 !
 !******************************************************************************
 !  Subroutine EMITHIGH mixes tracer completely from the surface to the PBL
@@ -5833,48 +5890,48 @@ c
 !        (lin, 5/29/09)
 !  (5 ) Bug fix: EMIS_SAVE should be EMIS_SAVE(I,J,...) instead of
 !        EMIS_SAVE(:,:,...) since we are in a parallel loop (bmy, 1/11/10)
+!  25 Mar 2013 - R. Yantosca - Now accept Input_Opt, State_Chm, args
 !******************************************************************************
 !
-      ! References to F90 modules
-      USE PBL_MIX_MOD,  ONLY  : GET_FRAC_OF_PBL,  GET_PBL_MAX_L
-#if defined( DEVEL )
+      USE CMN_SIZE_MOD
+      USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL,  GET_PBL_MAX_L
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-#else
-      USE TRACER_MOD,   ONLY  : STT
-#endif
-      USE TRACERID_MOD, ONLY  : IDTBCPI, IDTBCPO, IDTOCPI, IDTOCPO
-      USE TRACERID_MOD, ONLY  : IDTALPH, IDTLIMO, IDTALCO
-      USE VDIFF_PRE_MOD, ONLY : EMIS_SAVE ! (Lin, 03/31/09)
-
-      USE CMN_SIZE_MOD  ! Size parameters
-      
-      ! NOTE: We should replace this by Input_Opt%LNLPBL
-      ! For now we will put this here as a placekeeper (bmy, 3/5/13)
-      USE LOGICAL_MOD, ONLY : LNLPBL
-
-      ! Arguments
-      REAL*8, INTENT(IN) :: BCSRC(IIPAR,JJPAR,2)
-      REAL*8, INTENT(IN) :: OCSRC(IIPAR,JJPAR,2)
-#if defined( DEVEL )
+      USE TRACERID_MOD,       ONLY : IDTBCPI, IDTBCPO, IDTOCPI, IDTOCPO
+      USE TRACERID_MOD,       ONLY : IDTALPH, IDTLIMO, IDTALCO
+      USE VDIFF_PRE_MOD,      ONLY : EMIS_SAVE ! (Lin, 03/31/09)
+!
+! !INPUT PARAMETERS:
+!      
+      REAL*8,         INTENT(IN)    :: BCSRC(IIPAR,JJPAR,2)
+      REAL*8,         INTENT(IN)    :: OCSRC(IIPAR,JJPAR,2)
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-#endif
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL         :: IS_BCPO, IS_OCPO, IS_BCPI, IS_OCPI
+      LOGICAL         :: IS_ALPH, IS_LIMO, IS_ALCO
+      INTEGER         :: I,       J,       L,       PBL_MAX
+      REAL*8          :: F_OF_PBL
 
-      ! Local variables
-      LOGICAL            :: IS_BCPO, IS_OCPO, IS_BCPI, IS_OCPI
-      LOGICAL            :: IS_ALPH, IS_LIMO, IS_ALCO
-      INTEGER            :: I,       J,       L,       PBL_MAX
-      REAL*8             :: F_OF_PBL
+      ! For fields from Input_Opt
+      LOGICAL         :: LNLPBL
 
       ! Pointers
-#if defined( DEVEL )
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER :: STT(:,:,:,:)
-#endif
 
       !=================================================================
       ! EMITHIGH begins here!
       !=================================================================
+
+      ! Copy values from Input_Opt
+      LNLPBL  = Input_Opt%LNLPBL
 
       ! Define logical flags for expediency
       IS_BCPI = ( IDTBCPI > 0 )
@@ -5885,11 +5942,9 @@ c
       IS_LIMO = ( IDTLIMO > 0 )
       IS_ALCO = ( IDTALCO > 0 )
 
-#if defined( DEVEL )
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
-#endif
 
       ! Save surface emis for non-local PBL mixing (vdiff_mod.f) 
       ! (units: kg) (Lin, 06/09/08) 
@@ -5995,10 +6050,8 @@ c
       ENDDO
 !$OMP END PARALLEL DO
 
-#if defined( DEVEL )
       ! Free pointer
       NULLIFY( STT )
-#endif
 
       ! Return to calling program
       END SUBROUTINE EMITHIGH

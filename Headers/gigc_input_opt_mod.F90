@@ -162,6 +162,9 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LSSABr2
      LOGICAL                     :: LFIX_PBL_BRO
      REAL*8                      :: Br_SCALING
+     LOGICAL                     :: LEDGARNOx
+     LOGICAL                     :: LEDGARCO
+     LOGICAL                     :: LEDGARSOx
 
      !----------------------------------------
      ! CO2 MENU fields
@@ -181,6 +184,11 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LSHIPEDG
      LOGICAL                     :: LSHIPICO
      LOGICAL                     :: LPLANE
+     LOGICAL                     :: LFFBKGRD
+     LOGICAL                     :: LBIOSPHTAG
+     LOGICAL                     :: LFOSSILTAG
+     LOGICAL                     :: LSHIPTAG
+     LOGICAL                     :: LPLANETAG
 
      !----------------------------------------
      ! FUTURE MENU fields
@@ -566,6 +574,8 @@ MODULE GIGC_Input_Opt_Mod
 !  28 Feb 2013 - R. Yantosca - Add haveImpRst field for GEOS-5 GCM interface
 !  08 Mar 2013 - R. Yantosca - Add myCpu field to pass CPU # to GEOS-Chem
 !  15 Mar 2013 - R. Yantosca - Add fields for LINOZ strat chemistry
+!  27 Mar 2013 - R. Yantosca - Add extra fields for tagged CO2
+!  27 Mar 2013 - R. Yantosca - Add extra fields for tagged EDGAR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -628,6 +638,8 @@ CONTAINS
 !  28 Feb 2013 - R. Yantosca - Add haveImpRst field for GEOS-5 GCM interface
 !  08 Mar 2013 - R. Yantosca - Now initialize the myCpu field
 !  15 Mar 2013 - R. Yantosca - Now initialize the LINOZ_TPARM field
+!  27 Mar 2013 - R. Yantosca - Add extra fields for tagged CO2
+!  27 Mar 2013 - R. Yantosca - Add extra fields for EDGAR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -784,6 +796,9 @@ CONTAINS
     Input_Opt%LSSABr2                = .FALSE.
     Input_Opt%LFIX_PBL_BRO           = .FALSE.
     Input_Opt%Br_SCALING             = 0d0    
+    Input_Opt%LEDGARNOx              = .FALSE.
+    Input_Opt%LEDGARCO               = .FALSE. 
+    Input_Opt%LEDGARSOX              = .FALSE.
 
     !----------------------------------------
     ! CO2 MENU fields
@@ -804,6 +819,11 @@ CONTAINS
     Input_Opt%LSHIPEDG               = .FALSE.
     Input_Opt%LSHIPICO               = .FALSE.
     Input_Opt%LPLANE                 = .FALSE.
+    Input_Opt%LFFBKGRD               = .FALSE.
+    Input_Opt%LBIOSPHTAG             = .FALSE.
+    Input_Opt%LFOSSILTAG             = .FALSE.
+    Input_Opt%LSHIPTAG               = .FALSE.
+    Input_Opt%LPLANETAG              = .FALSE.
 
     !----------------------------------------
     ! FUTURE MENU fields

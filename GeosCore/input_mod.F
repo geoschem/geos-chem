@@ -2567,7 +2567,9 @@
       Input_Opt%LSSABr2        = LSSABr2
       Input_Opt%LFIX_PBL_BRO   = LFIX_PBL_BRO
       Input_Opt%Br_SCALING     = Br_SCALING
-
+      Input_Opt%LEDGARNOx      = LEDGARNOx
+      Input_Opt%LEDGARCO       = LEDGARCO
+      Input_Opt%LEDGARSOx      = LEDGARSOx
 
       ! Return success
       RC = GIGC_SUCCESS
@@ -2925,6 +2927,11 @@
       Input_Opt%LSHIPEDG    = LSHIPEDG
       Input_Opt%LSHIPICO    = LSHIPICO
       Input_Opt%LPLANE      = LPLANE
+      Input_Opt%LFFBKGRD    = LFFBKGRD
+      Input_Opt%LBIOSPHTAG  = LBIOSPHTAG
+      Input_Opt%LFOSSILTAG  = LFOSSILTAG
+      Input_Opt%LSHIPTAG    = LSHIPTAG
+      Input_Opt%LPLANETAG   = LPLANETAG
 
       ! Return success
       RC = GIGC_SUCCESS

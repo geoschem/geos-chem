@@ -203,28 +203,37 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE EMISS_ICOADS_SHIP( EMISS )
-#else
-      SUBROUTINE EMISS_ICOADS_SHIP
-#endif
+      SUBROUTINE EMISS_ICOADS_SHIP( am_I_Root, Input_Opt,
+     &                              State_Chm, RC         )
 !
 ! !USES:
 ! 
-      USE BPCH2_MOD,         ONLY : GET_TAU0,      READ_BPCH2
-      USE DIRECTORY_MOD,     ONLY : DATA_DIR_1x1 
-      USE LOGICAL_MOD,       ONLY : LFUTURE
-      USE TIME_MOD,          ONLY : GET_YEAR,      GET_MONTH
-      USE SCALE_ANTHRO_MOD,  ONLY : GET_ANNUAL_SCALAR_1x1
-      USE REGRID_A2A_MOD,    ONLY : DO_REGRID_A2A
-
-      USE CMN_SIZE_MOD            ! Size parameters
-      USE CMN_O3_MOD              ! FSCALYR
-
+      USE BPCH2_MOD,          ONLY : GET_TAU0,      READ_BPCH2
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR_1x1 
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE TIME_MOD,           ONLY : GET_YEAR,      GET_MONTH
+      USE SCALE_ANTHRO_MOD,   ONLY : GET_ANNUAL_SCALAR_1x1
+      USE REGRID_A2A_MOD,     ONLY : DO_REGRID_A2A
+      USE CMN_SIZE_MOD
+      USE CMN_O3_MOD
 #if defined( DEVEL )
-      USE TRACER_MOD,   ONLY : XNUMOL, N_TRACERS
       USE TRACERID_MOD, ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
 #endif
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  21 Jul 2009 - Chulkyu Lee & P. Le Sager - Initial Version
@@ -232,38 +241,51 @@
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a algorithm
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE              :: FIRST = .TRUE.
-      INTEGER                    :: I, J, THISYEAR, SPECIES, SNo, ScNo
-      INTEGER                    :: THISMONTH
-      REAL*4                     :: ARRAY(I1x1,J1x1,1)
-      REAL*8, TARGET             :: GEOS_1x1(I1x1,J1x1,1)
-      REAL*8                     :: SC_1x1(I1x1,J1x1)
-      REAL*8                     :: TAU
-      CHARACTER(LEN=255)         :: FILENAME
-      CHARACTER(LEN=4)           :: SYEAR, SNAME
-      CHARACTER (LEN=2)          :: SMONTH
-      CHARACTER(LEN=255)         :: LLFILENAME
-      REAL*8, POINTER            :: INGRID(:,:) => NULL()
+      LOGICAL, SAVE      :: FIRST = .TRUE.
+      INTEGER            :: I, J, THISYEAR, SPECIES, SNo, ScNo
+      INTEGER            :: THISMONTH
+      REAL*4             :: ARRAY(I1x1,J1x1,1)
+      REAL*8, TARGET     :: GEOS_1x1(I1x1,J1x1,1)
+      REAL*8             :: SC_1x1(I1x1,J1x1)
+      REAL*8             :: TAU
+      CHARACTER(LEN=255) :: FILENAME
+      CHARACTER(LEN=4)   :: SYEAR, SNAME
+      CHARACTER (LEN=2)  :: SMONTH
+      CHARACTER(LEN=255) :: LLFILENAME
+      REAL*8, POINTER    :: INGRID(:,:) => NULL()
 
 #if defined( DEVEL )
-      REAL*8, INTENT(INOUT)      :: EMISS(IIPAR, JJPAR, N_TRACERS)
-      INTEGER                    :: YEAR, MONTH
-      REAL*8                     :: SEC_IN_MONTH
+      INTEGER            :: YEAR, MONTH
+      REAL*8             :: SEC_IN_MONTH
 #endif
+
+      ! For fields from Input_Opt
+      LOGICAL            :: LFUTURE
+      INTEGER            :: N_TRACERS
+      REAL*8             :: XNUMOL(Input_Opt%N_TRACERS)
 
       !=================================================================
       ! EMISS_ICOADS_SHIP begins here!
       !=================================================================
 
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LFUTURE   = Input_Opt%LFUTURE
+      N_TRACERS = Input_Opt%N_TRACERS
+      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
+
       ! First-time initialization
       IF ( FIRST ) THEN
-         CALL INIT_ICOADS_SHIP
+         CALL INIT_ICOADS_SHIP( am_I_Root, Input_Opt, RC )
          FIRST = .FALSE.
       ENDIF
 
@@ -390,9 +412,9 @@
       ENDIF
 
       ! Convert from Kg/Month -> Kg/S
-      EMISS(:,:,IDTNOx) = NOx / SEC_IN_MONTH
-      EMISS(:,:,IDTCO)  = CO  / SEC_IN_MONTH
-      EMISS(:,:,IDTSO2) = SO2 / SEC_IN_MONTH
+      State_Chm%TRAC_TEND(:,:,1,IDTNOx) = NOx / SEC_IN_MONTH
+      State_Chm%TRAC_TEND(:,:,1,IDTCO ) = CO  / SEC_IN_MONTH
+      State_Chm%TRAC_TEND(:,:,1,IDTSO2) = SO2 / SEC_IN_MONTH
 #endif
 
       !--------------------------
@@ -542,47 +564,56 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_ICOADS_SHIP
+      SUBROUTINE INIT_ICOADS_SHIP( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 ! 
-      USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE LOGICAL_MOD, ONLY : LICOADSSHIP
-
-      USE CMN_SIZE_MOD    ! Size parameters
+      USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  21 Jul 2009 - Chulkyu Lee & P. Le Sager - Initial Version
 !  02 Mar 2012 - R. Yantosca - Remove A_CM2 array
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER              :: AS, J
 
       !=================================================================
       ! INIT_ICOADS_SHIP begins here!
       !=================================================================
 
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
       ! Return if LICOADSSHIP is false
-      IF ( .not. LICOADSSHIP ) RETURN
+      IF ( .not. Input_Opt%LICOADSSHIP ) RETURN
       
       !--------------------------------------------------
       ! Allocate and zero arrays for emissions
       !--------------------------------------------------
 
-      ALLOCATE( NOx( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'NOx' )
+      ALLOCATE( NOx( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'NOx' )
       NOx = 0d0
 
-      ALLOCATE( CO( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CO' )
+      ALLOCATE( CO( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'CO' )
       CO = 0d0
 
-      ALLOCATE( SO2( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SO2' )
+      ALLOCATE( SO2( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'SO2' )
       SO2 = 0d0
 
       END SUBROUTINE INIT_ICOADS_SHIP

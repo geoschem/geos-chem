@@ -846,7 +846,6 @@
       USE TPCORE_BC_MOD,             ONLY : I0_W, J0_W, I1_W, J1_W
       USE TPCORE_BC_MOD,             ONLY : I2_W, J2_W, IM_W, JM_W, IGZD
       USE TPCORE_BC_MOD,             ONLY : DO_WINDOW_TPCORE_BC
-      USE TPCORE_WINDOW_MOD,         ONLY : TPCORE_WINDOW
       USE TPCORE_GEOS5_WINDOW_MOD,   ONLY : TPCORE_GEOS5_WINDOW
 #if defined( DEVEL )
       USE GIGC_State_Chm_Mod,        ONLY : ChmState
@@ -1103,7 +1102,6 @@
       USE TPCORE_BC_MOD,             ONLY : I0_W, J0_W, I1_W, J1_W
       USE TPCORE_BC_MOD,             ONLY : I2_W, J2_W, IM_W, JM_W, IGZD
       USE TPCORE_BC_MOD,             ONLY : DO_WINDOW_TPCORE_BC 
-      USE TPCORE_WINDOW_MOD,         ONLY : TPCORE_WINDOW
       USE TPCORE_GEOS57_WINDOW_MOD,  ONLY : TPCORE_GEOS57_WINDOW
 #if defined( DEVEL )
       USE GIGC_State_Chm_Mod,        ONLY : ChmState

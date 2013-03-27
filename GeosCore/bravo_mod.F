@@ -173,28 +173,38 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE EMISS_BRAVO(EMISSIONS)
-#else
-      SUBROUTINE EMISS_BRAVO
-#endif
+      SUBROUTINE EMISS_BRAVO( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 ! 
-      USE BPCH2_MOD,        ONLY : GET_TAU0,      READ_BPCH2
-      USE DIRECTORY_MOD,    ONLY : DATA_DIR_1x1 
-      USE LOGICAL_MOD,      ONLY : LFUTURE
-      USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
-      USE TIME_MOD,         ONLY : GET_YEAR
-      USE REGRID_A2A_MOD,   ONLY : DO_REGRID_A2A
+      USE BPCH2_MOD,          ONLY : GET_TAU0,      READ_BPCH2
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR_1x1 
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE SCALE_ANTHRO_MOD,   ONLY : GET_ANNUAL_SCALAR
+      USE TIME_MOD,           ONLY : GET_YEAR
+      USE REGRID_A2A_MOD,     ONLY : DO_REGRID_A2A
 
       USE CMN_SIZE_MOD           ! Size parameters
       USE CMN_O3_MOD             ! 
 
 #if defined( DEVEL )
-      USE TRACER_MOD,   ONLY : N_TRACERS
       USE TRACERID_MOD, ONLY : IDTNOX, IDTCO, IDTSO2
 #endif
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  22 Jun 2006 - R. Park, F. Boersma, R. Yantosca - Initial version
@@ -203,6 +213,7 @@
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -220,17 +231,21 @@
       REAL*8, POINTER         :: INGRID(:,:) => NULL()
       REAL*8                  :: OUTGRID(IIPAR,JJPAR)
 
-#if defined( DEVEL )
-      REAL*8, INTENT(INOUT)   :: EMISSIONS(IIPAR,JJPAR,N_TRACERS)
-#endif
-      
+      ! For fields from Input_Opt
+      LOGICAL                 :: LFUTURE
+      INTEGER                 :: N_TRACERS
+
       !=================================================================
       ! EMISS_BRAVO begins here!
       !=================================================================
 
+      ! Copy values from Input_Opt
+      LFUTURE   = Input_Opt%LFUTURE
+      N_TRACERS = Input_Opt%N_TRACERS
+
       ! First-time initialization
       IF ( FIRST ) THEN
-         CALL INIT_BRAVO
+         CALL INIT_BRAVO( am_I_Root, Input_Opt, RC )
          FIRST = .FALSE.
       ENDIF
 
@@ -363,14 +378,14 @@
       CALL TOTAL_ANTHRO_TG( SCALEYEAR )
 
 #if defined( DEVEL )
-      EMISSIONS(:,:,IDTNOX) = EMISSIONS(:,:,IDTNOX) +
-     &                        BRAVO_NOx
+      State_Chm%TRAC_TEND(:,:,1,IDTNOX) =
+     &State_Chm%TRAC_TEND(:,:,1,IDTNOX) + BRAVO_NOx
 
-      EMISSIONS(:,:,IDTCO)  = EMISSIONS(:,:,IDTCO) +
-     &                        BRAVO_CO
+      State_Chm%TRAC_TEND(:,:,1,IDTCO)  = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTCO)  + BRAVO_CO
 
-      EMISSIONS(:,:,IDTSO2) = EMISSIONS(:,:,IDTSO2) +
-     &                        BRAVO_SO2
+      State_Chm%TRAC_TEND(:,:,1,IDTSO2) = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTSO2) + BRAVO_SO2
 #endif      
 
       END SUBROUTINE EMISS_BRAVO
@@ -631,18 +646,28 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_BRAVO
+      SUBROUTINE INIT_BRAVO( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 ! 
-      USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE GRID_MOD,    ONLY : GET_XMID, GET_YMID
-      USE LOGICAL_MOD, ONLY : LBRAVO
-
-      USE CMN_SIZE_MOD    ! Size parameters
+      USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GRID_MOD,           ONLY : GET_XMID, GET_YMID
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  22 Jun 2006 - R. Park, F. Boersma, R. Yantosca - Initial version
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -655,8 +680,11 @@
       ! INIT_BRAVO begins here!
       !=================================================================
 
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
       ! Return if LBRAVO is false
-      IF ( .not. LBRAVO ) RETURN
+      IF ( .not. Input_Opt%LBRAVO ) RETURN
       
       !--------------------------
       ! Allocate and zero arrays
