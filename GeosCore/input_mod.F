@@ -3056,6 +3056,11 @@
          MSG = 'LGMISTRAT=T but GMISTRAT not defined at compile time!'
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
+#else
+      IF ( .not. LGMISTRAT ) THEN
+         MSG = 'LGMISTRAT=F but GMISTRAT defined at compile time!'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
 #endif
       ! Full GMI stratospheric chemistry incompatible with other settings
       IF ( LGMISTRAT .and. LSCHEM ) THEN
