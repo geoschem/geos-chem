@@ -156,7 +156,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_INITIAL_MIXRATIOS
+      SUBROUTINE SET_INITIAL_MIXRATIOS( am_I_Root )
 !
 ! !USES:
 !
@@ -164,7 +164,8 @@
       USE LOGICAL_MOD,          ONLY : LSETCL,   LSETBR,   LSETN2O
       USE LOGICAL_MOD,          ONLY : LSETH2SO4,LGMISTRAT
       USE TRACERID_MOD
-      USE TRACER_MOD,           ONLY : N_TRACERS, STT
+      USE TRACER_MOD,           ONLY : N_TRACERS, STT,TCVV
+      USE DAO_MOD,              ONLY : AD
       USE TIME_MOD,             ONLY : GET_MONTH
       USE ERROR_MOD,            ONLY : ALLOC_ERR,ERROR_STOP
       USE GRID_MOD,             ONLY : GET_YMID
@@ -180,13 +181,15 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER            :: AS, N, J
+      INTEGER            :: AS, N, I, J, L
       REAL*8             :: PLAST, PCURR, PNEXT
       REAL*8             :: YLAT
       CHARACTER(LEN=255) :: MSG
       LOGICAL            :: USE2DDATA
       REAL*8             :: C3090S, C0030S, C0030N, C3090N
       INTEGER            :: CH4_YEAR
+      LOGICAL,INTENT(IN) :: am_I_Root
+      LOGICAL,PARAMETER  :: STRAT2DCH4=.TRUE.
 
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
       WRITE( 6, 100   )
@@ -204,9 +207,12 @@
 
       ! Are we using 2D data?
       USE2DDATA = (LSETOCS.or.LSETCFC.or.LSETCL.or.LSETBR.or.LSETH2SO4)
+      USE2DDATA = (USE2DDATA.or.STRAT2DCH4)
 
       ! Retrieval from GC data fields not yet implemented
-      WRITE(6,*) '<<<<2D data read still necessary for N2O>>>>'
+      IF ( am_I_Root ) THEN
+         WRITE(6,*) '<<<<2D data read still necessary for N2O>>>>'
+      ENDIF
       USE2DDATA = (USE2DDATA.or.LSETN2O)
 
 #if !defined(GRID4x5) && !defined(GRID2x25)
@@ -248,16 +254,20 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AER_MR' )
          AER_MR = 0d0
 
-         WRITE(6,*) 'Setting initial values for:'
+         IF ( am_I_Root ) THEN
+            WRITE(6,*) 'Setting initial values for:'
             WRITE(6,*) '|---------|---------|---------|'
+         ENDIF
 
          ! Bromine species (except Halons)
          IF (LSETBR) THEN
-            WRITE(6,*) '|Br2      |Br       |BrO      |'
-            WRITE(6,*) '|HOBr     |HBr      |BrNO2    |'
-            WRITE(6,*) '|BrONO2   |CHBr3    |CH2Br2   |'
-            WRITE(6,*) '|CH3Br    |         |         |'
-            WRITE(6,*) '|---------|---------|---------|'
+            IF ( am_I_Root ) THEN
+               WRITE(6,*) '|Br2      |Br       |BrO      |'
+               WRITE(6,*) '|HOBr     |HBr      |BrNO2    |'
+               WRITE(6,*) '|BrONO2   |CHBr3    |CH2Br2   |'
+               WRITE(6,*) '|CH3Br    |         |         |'
+               WRITE(6,*) '|---------|---------|---------|'
+            ENDIF
             TRAC_IDX = IDTBr2
             TRAC_NAME = 'BR2'
             CALL APPLY_2DTRAC(.FALSE.,.FALSE.)
@@ -301,11 +311,13 @@
 
          ! Chlorine species (except CFCS, HCFCs and Halons)
          IF (LSETCL) THEN
-            WRITE(6,*) '|Cl2      |ClOx     |Cl2O2    |'
-            WRITE(6,*) '|ClNO2    |ClONO2   |HCl      |'
-            WRITE(6,*) '|HOCl     |OClO     |CH3Cl    |'
-            WRITE(6,*) '|CH3CCl3  |CCl4     |         |'
-            WRITE(6,*) '|---------|---------|---------|'
+            IF ( am_I_Root ) THEN
+               WRITE(6,*) '|Cl2      |ClOx     |Cl2O2    |'
+               WRITE(6,*) '|ClNO2    |ClONO2   |HCl      |'
+               WRITE(6,*) '|HOCl     |OClO     |CH3Cl    |'
+               WRITE(6,*) '|CH3CCl3  |CCl4     |         |'
+               WRITE(6,*) '|---------|---------|---------|'
+            ENDIF
             TRAC_IDX = IDTClOx
             TRAC_NAME = 'CL'
             CALL APPLY_2DTRAC(.FALSE.,.FALSE.)
@@ -356,10 +368,12 @@
          
          ! CFCs, HCFCs and Halons
          IF (LSETCFC) THEN
-            WRITE(6,*) '|H-1201   |H-1311   |H-2402   |'
-            WRITE(6,*) '|CFC-11   |CFC-12   |CFC-X    |'
-            WRITE(6,*) '|HCFC-X   |         |         |'
-            WRITE(6,*) '|---------|---------|---------|'
+            IF ( am_I_Root ) THEN
+               WRITE(6,*) '|H-1201   |H-1311   |H-2402   |'
+               WRITE(6,*) '|CFC-11   |CFC-12   |CFC-X    |'
+               WRITE(6,*) '|HCFC-X   |         |         |'
+               WRITE(6,*) '|---------|---------|---------|'
+            ENDIF
             ! H1201, 1311 and 2402
             TRAC_IDX = IDTCBrClF2
             TRAC_NAME = 'CBRCLF2'
@@ -401,16 +415,20 @@
          ENDIF
 
          IF (LSETOCS) THEN
-            WRITE(6,*) '|OCS      |         |         |'
-            WRITE(6,*) '|---------|---------|---------|'
+            IF ( am_I_Root ) THEN
+               WRITE(6,*) '|OCS      |         |         |'
+               WRITE(6,*) '|---------|---------|---------|'
+            ENDIF
             TRAC_IDX = IDTOCS
             TRAC_NAME = 'OCS'
             CALL APPLY_2DTRAC(.FALSE.,.FALSE.)
          ENDIF
 
          IF (LSETH2SO4) THEN
-            WRITE(6,*) '|H2SO4    |         |         |'
-            WRITE(6,*) '|---------|---------|---------|'
+            IF ( am_I_Root ) THEN
+               WRITE(6,*) '|H2SO4    |         |         |'
+               WRITE(6,*) '|---------|---------|---------|'
+            ENDIF
             TRAC_IDX = IDTSO4
             ! Actually H2SO4 aerosol
             TRAC_NAME = 'SO4'
@@ -423,13 +441,13 @@
       ! rather than from 2D data
 
       IF (LSETN2O) THEN
-         WRITE(6,*) '|N2O      |         |         |'
-         WRITE(6,*) '|---------|---------|---------|'
-
-         ! SDE DEBUG
-         WRITE(6,*) 'SDE DEBUG: N2O STILL BEING SET IN 2D!'
-
-         IF ( LPRT ) CALL DEBUG_MSG( '### SET_INIT: Forcing 2D N2O' )
+         IF ( am_I_Root ) THEN
+            WRITE(6,*) '|N2O      |         |         |'
+            WRITE(6,*) '|---------|---------|---------|'
+            ! SDE DEBUG
+            WRITE(6,*) 'SDE DEBUG: N2O STILL BEING SET IN 2D!'
+            IF ( LPRT ) CALL DEBUG_MSG( '### SET_INIT: Forcing 2D N2O' )
+         ENDIF
 
          TRAC_IDX = IDTN2O
          TRAC_NAME = 'N2O'
@@ -437,45 +455,63 @@
       ENDIF
 
       IF (LSETCH4) THEN
-         WRITE(6,*) '|CH4      |         |         |'
-         WRITE(6,*) '|---------|---------|---------|'
+         IF ( am_I_Root ) THEN
+            WRITE(6,*) '|CH4      |         |         |'
+            WRITE(6,*) '|---------|---------|---------|'
+         ENDIF
 
-         ! Loop over boxes per grid block
-         DO J=1,JJPAR
+         ! Adapted from GEOS-Chem routine
 
+         ! Pick the CH4 concentration [ppbv] for the proper lat bin
+         ! CH4 values are read in "chemdr.f"
+         IF ( LFUTURE ) THEN
+            CH4_YEAR = GET_FUTURE_YEAR()
+         ELSE
+            CH4_YEAR = GET_YEAR()
+         ENDIF
+
+         ! Get CH4 [ppbv] in 4 latitude bins for each year
+         CALL GET_GLOBAL_CH4( CH4_YEAR, .TRUE., C3090S,
+     &                        C0030S,   C0030N, C3090N, .FALSE. )
+
+         ! Convert from [ppbv] to [kg CH4/mol air]
+         C3090S = C3090S * (1.d-9) / TCVV(IDTCH4)
+         C0030S = C0030S * (1.d-9) / TCVV(IDTCH4)
+         C0030N = C0030N * (1.d-9) / TCVV(IDTCH4)
+         C3090N = C3090N * (1.d-9) / TCVV(IDTCH4)
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, YLAT )
+         DO I=1,IIPAR   
+         DO J=1,JJPAR   
+         DO L=1,LLPAR   
             ! Grid-box latitude index
-            YLAT  = GET_YMID( 1,J,1 )
-            
-            ! Pick the CH4 concentration [ppbv] for the proper lat bin
-            ! CH4 values are read in "chemdr.f"
-            IF ( LFUTURE ) THEN
-               CH4_YEAR = GET_FUTURE_YEAR()
-            ELSE
-               CH4_YEAR = GET_YEAR()
-            ENDIF
-
-            ! Get CH4 [ppbv] in 4 latitude bins for each year
-            CALL GET_GLOBAL_CH4( CH4_YEAR, .TRUE., C3090S,
-     &                           C0030S,   C0030N, C3090N, .FALSE. )
-
+            YLAT  = GET_YMID( I,J,L )
             IF ( YLAT < -30d0 ) THEN
-               STT(:,J,:,IDTCH4) = C3090S*1.d-9
+               STT(I,J,L,IDTCH4) = C3090S*AD(I,J,L)
             ELSE IF ( YLAT >= -30d0 .and. YLAT < 0d0  ) THEN
-               STT(:,J,:,IDTCH4) = C0030S*1.d-9
+               STT(I,J,L,IDTCH4) = C0030S*AD(I,J,L)
             ELSE IF ( YLAT >=   0d0 .and. YLAT < 30d0 ) THEN
-               STT(:,J,:,IDTCH4) = C0030N*1.d-9
+               STT(I,J,L,IDTCH4) = C0030N*AD(I,J,L)
             ELSE
-               STT(:,J,:,IDTCH4) = C3090N*1.d-9
+               STT(I,J,L,IDTCH4) = C3090N*AD(I,J,L)
             ENDIF
-
-!            ! Convert from [ppbv CH4] to [molec CH4/cm3]
-!            CBLK(KLOOP,ICH4) = CBLK(KLOOP,ICH4) *1d-9 * AIRDENS(JLOOP)
          ENDDO
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
 
-         ! Code to set using AER 2D data
-!         TRAC_IDX = IDTCH4
-!         TRAC_NAME = 'CH4'
-!         CALL APPLY_2DTRAC(.FALSE.,.FALSE.)
+         ! Set stratospheric CH4 from AER data?
+         IF ( STRAT2DCH4 ) THEN
+            IF ( am_I_Root ) THEN
+               WRITE(6,*) 'Setting stratospheric CH4 from 2D data.'
+            ENDIF
+            ! Code to set strat using AER 2D data
+            TRAC_IDX = IDTCH4
+            TRAC_NAME = 'CH4'
+            CALL APPLY_2DTRAC(.FALSE.,.TRUE.)
+         ENDIF
       ENDIF
 
       ! Clean up
@@ -504,9 +540,10 @@
 !
       USE FILE_MOD,      ONLY : IOERROR
       USE PRESSURE_MOD,  ONLY : GET_PCENTER
-      USE TRACER_MOD,    ONLY : STT ! v/v
+      USE TRACER_MOD,    ONLY : STT, TCVV
       USE CMN_SIZE_MOD,  ONLY : IIPAR, JJPAR, LLPAR
-      USE CHEMGRID_MOD,  ONLY : ITS_IN_THE_STRAT
+      USE CHEMGRID_MOD,  ONLY : ITS_IN_THE_STRATMESO
+      USE DAO_MOD,       ONLY : AD
 !
 ! !INPUT PARAMETERS: 
 !
@@ -525,7 +562,7 @@
       INTEGER :: ILEV
       INTEGER :: I, J, L
       REAL*8  :: PCENTER
-      REAL*8  :: TRACMR
+      REAL*8  :: TRACMR,TRACMASS
       INTEGER :: VERTCOUNT
       LOGICAL :: FOUNDLEV,EXTRAP
       REAL*8  :: TRACMULT
@@ -571,8 +608,8 @@
             EXTRAP = .TRUE.
             DO L = 1, LLPAR
                IF (STRAT_ONLY) THEN
-                  ! Only want to set strat cells
-                  SET_CELL = ITS_IN_THE_STRAT(I,J,L)
+                  ! Only want to set non-trop cells
+                  SET_CELL = ITS_IN_THE_STRATMESO(I,J,L)
                ELSE
                   SET_CELL = .TRUE.
                ENDIF
@@ -604,12 +641,14 @@
      &               (AER_MR(J,VERTCOUNT+1)-AER_MR(J,VERTCOUNT))
                   TRACMR = AER_MR(J,VERTCOUNT+1) - TRACMR
                ENDIF
-               ! Send to STT (currently v/v)
+               ! Send to STT (currently kg/box)
                IF (SET_CELL) THEN
+                  ! Convert from [ppbv] to [kg]
+                  TRACMASS = TRACMR * AD(I,J,L) / TCVV(TRAC_IDX)
                   IF (TRAC_ADD) THEN
-                     STT(I,J,L,TRAC_IDX) = STT(I,J,L,TRAC_IDX)+TRACMR
+                     STT(I,J,L,TRAC_IDX) = STT(I,J,L,TRAC_IDX)+TRACMASS
                   ELSE
-                     STT(I,J,L,TRAC_IDX) = TRACMR
+                     STT(I,J,L,TRAC_IDX) = TRACMASS
                   ENDIF
                 ENDIF
             ENDDO

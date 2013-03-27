@@ -406,9 +406,7 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a READ_RESTART_FILE' )
 
       ! Set simple initial tracer conditions
-      CALL CONVERT_UNITS( 1,  N_TRACERS, TCVV, AD, STT )
-      CALL SET_INITIAL_MIXRATIOS
-      CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, AD, STT )
+      CALL SET_INITIAL_MIXRATIOS( am_I_Root )
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a SET_INITIAL_MIXRATIOS' )
 
       ! Read soil NOx initial conditions
