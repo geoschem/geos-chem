@@ -807,6 +807,11 @@
       USE COMMSOIL_MOD       ! Soil wetness variables
       USE COMODE_MOD
 ! 
+! !REMARKS:
+!  DRYFLX is not called if non-local PBL mixing is done (i.e. when LNLPBL=F).
+!  If using non-local PBL mixing, the drydep fluxes are archived in routine
+!  VDIFF (GeosCore/vdiff_mod.F90).
+!
 ! !REVISION HISTORY: 
 !  (1 ) Bug fix -- now skip tracers for which NTDEP(N) is zero, in order
 !        to avoid array-out-of-bounds errors. (bmy, 5/2/00)
@@ -911,18 +916,16 @@
                TDRYFX        = TDRYFX / ( AREA_CM2 * DTCHEM ) 
                     
 !$OMP CRITICAL
-               IF ( ND44 /= 0 ) THEN 
-                  ! Save into AD44 diagnostic array
+               ! Save into AD44 diagnostic array
+               IF ( ND44 > 0 ) THEN 
                   AD44(I,J,N,1) = AD44(I,J,N,1) + TDRYFX
                ENDIF 
+!$OMP END CRITICAL
 
                ! Archive dry deposited N species for use in soil_nox_mod
-               IF (LSOILNOX ) THEN
-                  CALL SOIL_DRYDEP ( I, J, L, NN, TDRYFX)
+               IF ( LSOILNOX ) THEN
+                  CALL SOIL_DRYDEP( I, J, L, NN, TDRYFX )
                ENDIF
-
-
-!$OMP END CRITICAL
 
             ENDIF
          ENDDO           
