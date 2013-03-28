@@ -169,7 +169,7 @@
       USE TIME_MOD,     ONLY : GET_LOCALTIME
       USE ERROR_MOD,    ONLY : ERROR_STOP
 
-      USE CMN_FJ_MOD         ! Photolysis parameters
+      USE CMN_SIZE_MOD, ONLY : IIPAR
       USE CMN_O3_MOD         ! fracnox, intope, jvalues
 !
 ! !INPUT PARAMETERS: 
@@ -560,7 +560,7 @@
       USE TIME_MOD,  ONLY : GET_LOCALTIME
       USE ERROR_MOD, ONLY : ERROR_STOP
 
-      USE CMN_FJ_MOD      ! Photolysis parameters
+      USE CMN_FJX_MOD
       USE CMN_O3_MOD      ! fracnox, intope, jvalues
 !
 ! !INPUT PARAMETERS: 

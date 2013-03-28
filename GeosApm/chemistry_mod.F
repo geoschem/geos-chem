@@ -126,6 +126,7 @@
       USE CMN_SIZE_MOD          ! Size parameters
       USE COMODE_LOOP_MOD       ! NPHOT
       USE CMN_DIAG_MOD          ! NDxx flags
+      USE FAST_JX_MOD,     ONLY : INPHOT
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -190,6 +191,7 @@
 !  18 Oct 2012 - R. Yantosca - Rename CHEM_STATE argument to State_Chem
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
+!  28 Mar 2013 - S. D. Eastham - Updated to use FAST_JX_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -64,8 +64,7 @@
 !
 ! !USES
 !
-      USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ
-      USE JV_CMN_MOD
+      USE CMN_FJX_MOD, ONLY : TQQ
 !
 ! !INPUT PARAMETERS:
 !
@@ -107,8 +106,7 @@
 !
 ! !USES:
 !
-      USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ
-      USE JV_CMN_MOD
+      USE CMN_FJX_MOD, ONLY : TQQ
 !
 ! !INPUT PARAMETERS: 
 !
@@ -152,8 +150,7 @@
 !
 ! !USES:
 !
-      USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ
-      USE JV_CMN_MOD
+      USE CMN_FJX_MOD, ONLY : TQQ 
 !
 ! !INPUT PARAMETERS: 
 !
@@ -199,8 +196,7 @@
 !
 ! !USES:
 !
-      USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ
-      USE JV_CMN_MOD
+      USE CMN_FJX_MOD, ONLY : QQQ
 !
 ! !INPUT PARAMETERS: 
 !
@@ -253,8 +249,7 @@
 !
 ! !USES:
 !
-      USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ
-      USE JV_CMN_MOD
+      USE CMN_FJX_MOD, ONLY : QQQ
 !
 ! !INPUT PARAMETERS: 
 !

@@ -29,6 +29,7 @@
       USE DIAG_PL_MOD,          ONLY : DO_DIAG_PL
       USE DUST_MOD,             ONLY : RDUST_ONLINE, RDUST_OFFLINE
       USE ERROR_MOD,            ONLY : DEBUG_MSG,    ERROR_STOP
+      USE FAST_JX_MOD,          ONLY : INPHOT
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_YEAR
       USE LOGICAL_MOD,          ONLY : LCARB,        LDUST
       USE LOGICAL_MOD,          ONLY : LPRT,         LSSALT,    LSULF  

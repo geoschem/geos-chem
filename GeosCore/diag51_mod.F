@@ -389,8 +389,8 @@
       USE TRACERID_MOD,   ONLY : IDTR4N2, IDTSALA, IDTSALC 
       USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_CHEMGRID
 
-      USE CMN_FJ_MOD,     ONLY : JPMAX, JPPJ  ! includes F77_CMN_SIZE
-      USE JV_CMN_MOD  ! ODAER, QAA, QAA_AOD
+      USE CMN_FJX_MOD,    ONLY : JPMAX, JPPJ, ODAER, ODMDUST, QAA
+      USE CMN_FJX_MOD,    ONLY : NRH, NDUST
       USE CMN_O3_MOD    ! FRACO3, FRACNO, SAVEO3, SAVENO2, SAVEHO2, FRACNO2
       USE CMN_GCTM_MOD  ! SCALE_HEIGHT
 ! 
@@ -733,7 +733,7 @@
                DO H = 1, NRH
                   
                   ! Scaling factor to AOD wavelength (clh, 05/09)
-                  ! SCALEAODnm = QAA_AOD(IND(1)+H-1) / QAA(4,IND(1)+H-1) 
+                  ! SCALEAODnm = QAA_AOD(IND(1)+H-1) / QAA(IND999,IND(1)+H-1) 
                   ! We no longer need to scale by wavelength (skim, 02/03/11)
                   SCALEAODnm = 1.0
 
@@ -754,7 +754,7 @@
                   H          = NRH    + R
 
                   ! Scaling factor to AOD wavelength (clh, 05/09)
-                  ! SCALEAODnm = QAA_AOD(IND(2)+R-1) / QAA(4,IND(2)+R-1)
+                  ! SCALEAODnm = QAA_AOD(IND(2)+R-1) / QAA(IND999,IND(2)+R-1)
                   ! We no longer need to scale by wavelength (skim, 02/03/11)
                   SCALEAODnm = 1.0
 
@@ -775,7 +775,7 @@
                   H          = 2*NRH  + R
 
                   ! Scaling factor to AOD wavelength (clh, 05/09)
-                  ! SCALEAODnm = QAA_AOD(IND(3)+R-1) / QAA(4,IND(3)+R-1)
+                  ! SCALEAODnm = QAA_AOD(IND(3)+R-1) / QAA(IND999,IND(3)+R-1)
                   ! We no longer need to scale by wavelength (skim, 02/03/11)
                   SCALEAODnm = 1.0
 
@@ -796,7 +796,7 @@
                   H          = 3*NRH  + R
 
                   ! Scaling factor to AOD wavelength (clh, 05/09)
-                  ! SCALEAODnm = QAA_AOD(IND(4)+R-1) / QAA(4,IND(4)+R-1)
+                  ! SCALEAODnm = QAA_AOD(IND(4)+R-1) / QAA(IND999,IND(4)+R-1)
                   ! We no longer need to scale by wavelength (skim, 02/03/11)
                   SCALEAODnm = 1.0
 
@@ -817,7 +817,7 @@
                   H          = 4*NRH + R
 
                   ! Scaling factor to AOD wavelength (clh, 05/09)
-                  ! SCALEAODnm = QAA_AOD(IND(5)+R-1) / QAA(4,IND(5)+R-1)
+                  ! SCALEAODnm = QAA_AOD(IND(5)+R-1) / QAA(IND999,IND(5)+R-1)
                   ! We no longer need to scale by wavelength (skim, 02/03/11)
                   SCALEAODnm = 1.0
 
@@ -835,7 +835,7 @@
                DO R = 1, NDUST 
 
                   ! Scaling factor to AOD wavelength (clh, 05/09)
-                  ! SCALEAODnm = QAA_AOD(IND(6)+R-1) / QAA(4,IND(6)+R-1)
+                  ! SCALEAODnm = QAA_AOD(IND(6)+R-1) / QAA(IND999,IND(6)+R-1)
                   ! We no longer need to scale by wavelength (skim, 02/03/11)
                   SCALEAODnm = 1.0
 
@@ -853,7 +853,7 @@
                R = N - 114 
 
                ! Scaling factor to AOD wavelength (clh, 05/09)
-               ! SCALEAODnm = QAA_AOD(IND(6)+R-1) / QAA(4,IND(6)+R-1)
+               ! SCALEAODnm = QAA_AOD(IND(6)+R-1) / QAA(IND999,IND(6)+R-1)
                ! We no longer need to scale by wavelength (skim, 02/03/11)
                SCALEAODnm = 1.0
 

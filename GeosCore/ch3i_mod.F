@@ -906,7 +906,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE CHEMCH3I
+      SUBROUTINE CHEMCH3I(am_I_Root)
 !
 !******************************************************************************
 !  Subroutine CHEMCH3I performs loss chemistry for methyl iodide (CH3I).  
@@ -962,6 +962,7 @@
 !        switch any more (bmy, 6/23/05)
 !  (24) Now use Nightingale et al [2000b] formulation for piston velocity
 !        (swu, bmy, 8/16/05)
+!  27 Mar 2013 - S. D. Eastham - Added am_I_Root argument
 !******************************************************************************
 !
       ! References to F90 modules
@@ -972,9 +973,13 @@
       USE TIME_MOD,     ONLY : GET_TS_CHEM
       USE TRACER_MOD,   ONLY : STT, N_TRACERS
 
+      USE FAST_JX_MOD,  ONLY : FAST_J, INPHOT, FJFUNC
       USE CMN_SIZE_MOD     ! Size parameters
       USE COMODE_LOOP_MOD     ! SPECNAME
       USE CMN_DIAG_MOD     ! ND36
+
+      ! Input parameters
+      LOGICAL, INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
 
       ! Local variables
       LOGICAL, SAVE          :: FIRSTCHEM = .TRUE.
@@ -990,8 +995,8 @@
       ! Hardwired Logical flag for FAST-J
       LOGICAL, PARAMETER     :: DO_FASTJ = .TRUE. 
 
-      ! External functions
-      REAL*8, EXTERNAL       :: FJFUNC 
+!      ! External functions
+!      REAL*8, EXTERNAL       :: FJFUNC 
 
       !=================================================================
       ! CHEMCH3I begins here!
@@ -1027,10 +1032,12 @@
             CALL READCHEM
             
             ! Call INPHOT to initialize the fast-J variables. 
-            CALL INPHOT( LLCHEM, NPHOT )
+            CALL INPHOT( LLCHEM, NPHOT, am_I_Root )
             
             ! Echo output
-            WRITE( 6,'(a)' ) 'Using U.C.I Fast-J Photolysis'
+            IF (am_I_Root) THEN
+               WRITE( 6,'(a)' ) 'Using U.C.I Fast-J Photolysis'
+            ENDIF
 
             ! Reset FIRSTCHEM
             FIRSTCHEM = .FALSE.
@@ -1041,7 +1048,7 @@
          ! them in an internal array.  SUNCOS, OPTD, and UVALBEDO are 
          ! needed for FAST-J.
          !==============================================================
-         CALL FAST_J( SUNCOS, OPTD, UVALBEDO )
+         CALL FAST_J( SUNCOS, OPTD, UVALBEDO, am_I_Root )
         
          !==============================================================
          ! NR is the loop over the number of reactions (NR=1 for now!)

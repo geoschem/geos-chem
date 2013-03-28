@@ -25,8 +25,8 @@
 #     include "define.h"
 
       USE CMN_SIZE_MOD
-      USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ
-      USE CMN_FJ_MOD, ONLY : ZPJ, RINDEX
+      USE CMN_FJX_MOD,  ONLY : JPMAX, JPPJ, ZPJ, RINDEX
+      USE FAST_JX_MOD,  ONLY : PHOTOJ
 
       IMPLICIT NONE
 

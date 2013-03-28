@@ -1144,7 +1144,7 @@
       USE TRACER_MOD,   ONLY : STT,            TCVV
       USE OCEAN_MERCURY_MOD, ONLY : Fp, Fg !eds 10/27/11
 
-      USE JV_CMN_MOD         ! ODAER, QAA, QAA_AOD
+      USE CMN_FJX_MOD,  ONLY : ODAER, QAA, QAA_AOD
       USE COMODE_LOOP_MOD    ! CSPEC, etc.
 
 ! 
@@ -1192,6 +1192,8 @@
       REAL*8,  PARAMETER  :: MISSING = -999.99999999d0  ! Missing data value
       REAL*8,  PARAMETER  :: TINY    = 1.d-36           ! arbitary small # to 
                                                         !  avoid faulty output
+      ! Expand from 4 to 5 for Fast-JX
+      INTEGER, PARAMETER  :: IND999=4
 
       !=================================================================
       ! PLANEFLIGHT begins here!
@@ -1438,7 +1440,7 @@
                            ! Scaling factor for wavelength specified in
                            ! jv_spec_aod.dat
     !                       SAODnm  = QAA_AOD(IND(N)+RH-1) / 
-    ! &                               QAA(4,IND(N)+RH-1)
+    ! &                               QAA(IND999,IND(N)+RH-1)
                            ! We no longer need to scale by wavelength
                            ! (skim, 02/03/11)
                            SAODnm = 1.0
@@ -1472,7 +1474,7 @@
                            ! Scaling factor for wavelength specified in
                            ! jv_spec_aod.dat
     !                       SAODnm  = QAA_AOD(IND(N)+RH-1) / 
-    ! &                               QAA(4,IND(N)+RH-1)
+    ! &                               QAA(IND999,IND(N)+RH-1)
                            ! We no longer need to scale by wavelength
                            ! (skim, 02/03/11)
                            SAODnm = 1.0 

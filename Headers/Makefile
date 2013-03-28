@@ -112,7 +112,7 @@ CMN_SIZE_mod.o       : CMN_SIZE_mod.F
 
 CMN_mod.o            : CMN_mod.F               CMN_SIZE_mod.o
 
-cmn_fj_mod.o         : cmn_fj_mod.F            CMN_SIZE_mod.o
+CMN_FJX_MOD.o        : CMN_FJX_MOD.F           CMN_SIZE_mod.o
 
 commsoil_mod.o       : commsoil_mod.F          CMN_SIZE_mod.o
 
@@ -125,11 +125,6 @@ gigc_state_chm_mod.o : gigc_state_chm_mod.F90  gigc_errcode_mod.o
 gigc_state_met_mod.o : gigc_state_met_mod.F90  gigc_errcode_mod.o
 
 gigc_state_phy_mod.o : gigc_state_phy_mod.F90  gigc_errcode_mod.o
-
-jv_cmn_mod.o         : jv_cmn_mod.F            CMN_SIZE_mod.o  \
-                                               cmn_fj_mod.o
-
-jv_mie_mod.o         : jv_mie_mod.F
 
 smv_dimension_mod.o  : smv_dimension_mod.F
 

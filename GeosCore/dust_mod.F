@@ -1146,8 +1146,8 @@
       USE COMODE_MOD,    ONLY : WTAREA, WERADIUS
       USE DAO_MOD,       ONLY : RH
 
-!      USE CMN_FJ_MOD,    ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ      
-      USE JV_CMN_MOD          ! ODMDUST, QAA, RAA, QAA_AOD (clh)
+      USE CMN_FJX_MOD,   ONLY : ODMDUST, IND999
+      USE CMN_FJX_MOD,   ONLY : QAA, QAA_AOD, RAA, RAA_AOD
       USE COMODE_LOOP_MOD     ! NTTLOOP
 
       USE CMN_DIAG_MOD        ! ND21, LD21
@@ -1216,7 +1216,7 @@
       !            ODMDUST  [ unitless ]
       !
       ! NOTES: 
-      ! (1) Do the calculation at QAA(4,:) (i.e. 999 nm).          
+      ! (1) Do the calculation at QAA(IND999,:) (i.e. 999 nm).          
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -1235,8 +1235,8 @@
          ELSE
 
             ODMDUST(I,J,L,N) = 0.75d0        * BXHEIGHT(I,J,L) * 
-     &                         DUST(I,J,L,N) * QAA(4,14+N)     / 
-     &                        ( MSDENS(N) * RAA(4,14+N) * 1.0D-6 )
+     &                         DUST(I,J,L,N) * QAA(IND999,14+N)     / 
+     &                        ( MSDENS(N) * RAA(IND999,14+N) * 1.0D-6 )
 
          ENDIF
 
@@ -1278,7 +1278,7 @@
 
          ELSE
 
-            ERADIUS(JLOOP,N) = RAA(4,14+N) * 1.0D-4
+            ERADIUS(JLOOP,N) = RAA(IND999,14+N) * 1.0D-4
 
          ENDIF
 
@@ -1389,8 +1389,8 @@
 
 #     include "define.h"
 
-      USE CMN_FJ_MOD,    ONLY : JPMAX, JPPJ
-      USE JV_CMN_MOD,    ONLY : ODMDUST, QAA, RAA, RAA_AOD, QAA_AOD
+      USE CMN_FJX_MOD,   ONLY : JPMAX, JPPJ, IND999
+      USE CMN_FJX_MOD,   ONLY : ODMDUST, QAA, RAA, RAA_AOD, QAA_AOD
       USE COMODE_LOOP_MOD     ! NTTLOOP
       USE CMN_DIAG_MOD        ! ND21, LD21
 
@@ -1532,7 +1532,7 @@
          !            ODMDUST  [ unitless ]
          !
          ! NOTES: 
-         ! (1) Do the calculation at QAA(4,:) (i.e. 999 nm).          
+         ! (1) Do the calculation at QAA(IND999,:) (i.e. 999 nm).          
          !==============================================================
          MSDENS(1) = 2500.0d0
          MSDENS(2) = 2500.0d0
@@ -1562,8 +1562,8 @@
             ELSE
 
                ODMDUST(I,J,L,N) = 0.75d0        * BXHEIGHT(I,J,L) * 
-     &                            DUST(I,J,L,N) * QAA(4,14+N)     / 
-     &                           ( MSDENS(N) * RAA(4,14+N) * 1.0D-6 )
+     &                         DUST(I,J,L,N) * QAA(IND999,14+N)     / 
+     &                        ( MSDENS(N) * RAA(IND999,14+N) * 1.0D-6 )
 
             ENDIF
 
@@ -1611,7 +1611,7 @@
 
             ELSE
 
-               ERADIUS(JLOOP,N) = RAA(4,14+N) * 1.0D-4
+               ERADIUS(JLOOP,N) = RAA(IND999,14+N) * 1.0D-4
 
             ENDIF
 

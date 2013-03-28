@@ -57,6 +57,8 @@
       USE GIGC_State_Met_Mod,   ONLY : MetState
 #endif
 
+      USE FAST_JX_MOD,  ONLY : INPHOT, FAST_J
+
       IMPLICIT NONE
 #     include "define.h"
 !

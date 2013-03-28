@@ -139,6 +139,7 @@
       USE CMN_MOD               ! STT, etc
       USE CMN_DEP_MOD           ! FRCLND
       USE CMN_O3_MOD            ! for jvalues (gvinken, 6/09/10)
+      USE FAST_JX_MOD,     ONLY : FJFUNC
 
       IMPLICIT NONE
 #     include "define.h"
@@ -178,7 +179,7 @@
       REAL*8   :: GLYC_FRAC   
 
       ! External functions
-      REAL*8, EXTERNAL :: RTFUNC, FYRNO3,  ARSL1K,  FJFUNC, FYHORO
+      REAL*8, EXTERNAL :: RTFUNC, FYRNO3,  ARSL1K,  FYHORO
 
       CHARACTER*8      :: SPECNAME
 

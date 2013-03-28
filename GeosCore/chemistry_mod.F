@@ -129,6 +129,9 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
+
+      USE FAST_JX_MOD,     ONLY : INPHOT
+
 !
 ! !INPUT VARIABLES:
 !
@@ -376,7 +379,7 @@
          ! CH3I
          !---------------------------------
          ELSE IF ( ITS_A_CH3I_SIM() ) THEN
-            CALL CHEMCH3I
+            CALL CHEMCH3I(am_I_Root)
  
          !---------------------------------            
          ! HCN

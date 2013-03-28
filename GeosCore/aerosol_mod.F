@@ -560,16 +560,12 @@
  
       USE CMN_SIZE_MOD,  ONLY : NNPAR, NDSTBIN, IIPAR,   JJPAR
       USE CMN_SIZE_MOD,  ONLY : LLPAR, MAXFAM,  NEMPARA, NEMPARB, LGLOB
-      USE JV_CMN_MOD          ! }ODAER, QAA, RAA, QAA_AOD (clh)
       USE COMODE_LOOP_MOD     ! NTLOOP
       USE CMN_DIAG_MOD        ! ND21, LD21
 
-!#if defined( DEVEL )
-      USE CMN_FJ_MOD,    ONLY : JPMAX, JPPJ   
-!#else
-!      USE CMN_FJ_MOD,    ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ   
-!#endif
-      USE JV_CMN_MOD   ! ODAER, QAA, RAA, QAA_AOD (clh)
+      USE CMN_FJX_MOD,   ONLY : JPMAX, JPPJ, ODAER
+      USE CMN_FJX_MOD,   ONLY : QAA, RAA, QAA_AOD, RAA_AOD
+      USE CMN_FJX_MOD,   ONLY : IND999
       USE COMODE_LOOP_MOD   ! NTLOOP
       USE CMN_DIAG_MOD   ! ND21, LD21
 
@@ -625,6 +621,7 @@
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  27 Mar 2013 - S. D. Eastham - Upgraded from Fast-J to Fast-JX
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1037,10 +1034,10 @@
             ELSE 
 
                ! Wet radius in "jv_spec.dat"
-               RW(R) = RAA(4,IND(N)+R-1)	
+               RW(R) = RAA(IND999,IND(N)+R-1)	
 
                ! Extinction efficiency Q for each RH bin
-               QW(R) = QAA(4,IND(N)+R-1)
+               QW(R) = QAA(IND999,IND(N)+R-1)
 
             ENDIF
 
@@ -1126,7 +1123,7 @@
          !           ODAER    [ unitless ]
          !
          ! NOTES: 
-         ! (1 ) Do the calculation at QAA(4,:) (i.e. 999 nm).          
+         ! (1 ) Do the calculation at QAA(IND999,:) (i.e. 999 nm).          
          ! (2 ) RAA is the 'effective radius', Hansen and Travis, 1974
          ! (3 ) Report at the more relevant QAA(2,:) (i.e. 400 nm)   
          !       Although SCALEOD would be slightly different at 400nm 
@@ -1166,9 +1163,9 @@
             ! of aerosol type and relative humidity into ODAER, 
             ! which will get passed to the FAST-J routines
             ODAER(I,J,L,IRHN) = SCALEOD(I,J,L,R) 
-     &                        * 0.75d0 * BXHEIGHT(I,J,L) 
-     &                        * WAERSL(I,J,L,N) * QAA(4,IND(N)) / 
-     &                        ( MSDENS(N) * RAA(4,IND(N)) * 1.0D-6 )
+     &                     * 0.75d0 * BXHEIGHT(I,J,L) 
+     &                     * WAERSL(I,J,L,N) * QAA(IND999,IND(N)) / 
+     &                     ( MSDENS(N) * RAA(IND999,IND(N)) * 1.0D-6 )
 
             ENDIF
 
@@ -1265,8 +1262,8 @@
             ! Aerosol optical depth
             ODAER(I,J,L,IRHN) = ODAER(I,J,L,IRHN) + 
      &                          0.75d0            * BXHEIGHT(I,J,L) * 
-     &                          DAERSL(I,J,L,N-1) * QAA(4,IND(N))   / 
-     &                          ( MSDENS(N) * RAA(4,IND(N)) * 1.0D-6 )
+     &                       DAERSL(I,J,L,N-1) * QAA(IND999,IND(N))  / 
+     &                       ( MSDENS(N) * RAA(IND999,IND(N)) * 1.0D-6 )
 
             ENDIF
 
@@ -1279,7 +1276,7 @@
          IF ( WAVELENGTH > 0 ) THEN
             REFF = 1.0D-4 * RAA_AOD(IND(N))
          ELSE
-            REFF = 1.0D-4 * RAA(4,IND(N))
+            REFF = 1.0D-4 * RAA(IND999,IND(N))
          ENDIF
 
          ! Loop over grid boxes

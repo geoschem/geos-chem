@@ -133,8 +133,8 @@
       USE TRACERID_MOD, ONLY : IDTR4N2, IDTSALA, IDTSALC 
       USE DIAG_MOD,     ONLY : AD63     
 
-      USE CMN_FJ_MOD         ! FAST-J stuff, includes CMN_SIZE
-      USE JV_CMN_MOD         ! ODAER, QAA, QAA_AOD (clh)
+      USE CMN_FJX_MOD,  ONLY : ODAER, QAA, QAA_AOD
+      USE CMN_SIZE_MOD, ONLY : IIPAR, JJPAR, LLPAR
       USE CMN_O3_MOD	     ! Pure O3, SAVENO2
       USE CMN_GCTM_MOD       ! XTRA2
 !
