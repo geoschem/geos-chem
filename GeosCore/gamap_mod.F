@@ -1704,7 +1704,7 @@
       ENDDO
 
       ! Number of ND45 tracers 
-      NTRAC(45) = N_TRACERS
+      NTRAC(45) = NUM_TRACERS
 
       !-------------------------------------
       ! FULL-CHEMISTRY RUNS ONLY: 
