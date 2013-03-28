@@ -46,6 +46,8 @@
 !  (3 ) Now accounts for FSCLYR (phs, 3/17/08)
 !  (4 ) Added ProTeX headers (bmy, 1/30/09)
 !  31 Aug 2010 - R. Yantosca - Updated comments
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -114,7 +116,11 @@
 !
 ! !USES:
 ! 
-      USE TRACERID_MOD, ONLY : IDTNOX, IDTCO, IDTSO2
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      USE TRACERID_MOD, ONLY : IDTNOX, IDTCO, IDTSO2
+!------------------------------------------------------------------------------
+      USE TRACERID_MOD, ONLY : IDTNO, IDTCO, IDTSO2
 !
 ! !INPUT PARAMETERS:
 !
@@ -132,6 +138,8 @@
 !       (amv, 06/2008)
 !  (2 ) Now returns ship emissions if requested (phs, 6/08)
 !  (3 ) Added checks to avoid calling unavailable ship emissions (phs, 6/08)
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -140,7 +148,11 @@
       !=================================================================
 
       ! NOx
-      IF ( N  == IDTNOX ) THEN
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      IF ( N  == IDTNOX ) THEN
+!------------------------------------------------------------------------------
+      IF ( N  == IDTNO ) THEN
          BRAVO = BRAVO_NOx(I,J)
 
       ! CO
@@ -193,7 +205,11 @@
 
 #if defined( DEVEL )
       USE TRACER_MOD,   ONLY : N_TRACERS
-      USE TRACERID_MOD, ONLY : IDTNOX, IDTCO, IDTSO2
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      USE TRACERID_MOD, ONLY : IDTNOX, IDTCO, IDTSO2
+!------------------------------------------------------------------------------
+      USE TRACERID_MOD, ONLY : IDTNO, IDTCO, IDTSO2
 #endif
 !
 ! !REVISION HISTORY: 
@@ -363,7 +379,12 @@
       CALL TOTAL_ANTHRO_TG( SCALEYEAR )
 
 #if defined( DEVEL )
-      EMISSIONS(:,:,IDTNOX) = EMISSIONS(:,:,IDTNOX) +
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      EMISSIONS(:,:,IDTNOX) = EMISSIONS(:,:,IDTNOX) +
+!     &                        BRAVO_NOx
+!------------------------------------------------------------------------------
+      EMISSIONS(:,:,IDTNO)  = EMISSIONS(:,:,IDTNO) +
      &                        BRAVO_NOx
 
       EMISSIONS(:,:,IDTCO)  = EMISSIONS(:,:,IDTCO) +
@@ -455,7 +476,11 @@
 ! 
       ! References to F90 modules
       USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE TRACERID_MOD, ONLY : IDTNOX, IDTCO, IDTSO2
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      USE TRACERID_MOD, ONLY : IDTNOX, IDTCO, IDTSO2
+!------------------------------------------------------------------------------
+      USE TRACERID_MOD, ONLY : IDTNO, IDTCO, IDTSO2
 
       USE CMN_SIZE_MOD     ! Size parameters
 !
@@ -467,6 +492,8 @@
 !  22 Jun 2006 - R. Park, F. Boersma, R. Yantosca - Initial version
 !  (1 ) Now YEAR is input to reflect scaling factors applied (phs, 3/17/08)
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90 
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -494,7 +521,11 @@
       ! Define conversion factors for kg/molec
       ! (Undefined tracers will be zero)
       B(:) = 0d0
-      IF ( IDTNOx > 0 ) B(1) = 1d0 / ( 6.0225d23 / 14d-3 )  ! Tg N
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      IF ( IDTNOx > 0 ) B(1) = 1d0 / ( 6.0225d23 / 14d-3 )  ! Tg N
+!------------------------------------------------------------------------------
+      IF ( IDTNO  > 0 ) B(1) = 1d0 / ( 6.0225d23 / 14d-3 )  ! Tg N
       IF ( IDTCO  > 0 ) B(2) = 1d0 / ( 6.0225d23 / 28d-3 )  ! Tg CO
       IF ( IDTSO2 > 0 ) B(3) = 1d0 / ( 6.0225d23 / 32d-3 )  ! Tg S
 
@@ -523,7 +554,11 @@
       !----------------
 
       ! Print totals in [kg]
-      WRITE( 6, 110   ) 'NOx ', YEAR, NOx, ' N'
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      WRITE( 6, 110   ) 'NOx ', YEAR, NOx, ' N'
+!------------------------------------------------------------------------------
+      WRITE( 6, 110   ) 'NO  ', YEAR, NOx, ' N'
       WRITE( 6, 110   ) 'CO  ', YEAR, CO,  '  '
       WRITE( 6, 110   ) 'SO2 ', YEAR, SO2, ' S'
 

@@ -185,6 +185,8 @@
 !                              running with the traditional driver main.F
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  14 Mar 2013 - M. Payer    - Replace Ox with O3 as part of removal of NOx-Ox
+!                              partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -264,7 +266,12 @@
       DO ITRC=1,NUM_TRACER     ! dbj loop for tagged
 
          IF ( ITS_A_FULLCHEM_SIM() ) THEN
-            NTRACER = IDTOX
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace Ox with O3 (mpayer, 3/14/13)
+!            NTRACER = IDTOX
+!------------------------------------------------------------------------------
+            NTRACER = IDTO3
          ELSE
             NTRACER = ITRC
          ENDIF
@@ -1020,6 +1027,8 @@ c907  FORMAT(20X,6E10.3/(8E10.3))
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  31 Jul 2012 - R. Yantosca - Now loop over 1..LLPAR for GIGC compatibility
+!  14 Mar 2013 - M. Payer    - Replace Ox with O3 as part of removal of NOx-Ox
+!                              partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1034,7 +1043,12 @@ c907  FORMAT(20X,6E10.3/(8E10.3))
       DO I = 1,IIPAR
       DO L = 1, LLPAR
          IF (L .LT. LPAUSE(I,J)) CYCLE
-         STT(I,J,L,IDTOX) = TLSTT(J,L,1) / TCVV(IDTOX)
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace Ox with O3 (mpayer, 3/14/13)
+!         STT(I,J,L,IDTOX) = TLSTT(J,L,1) / TCVV(IDTOX)
+!------------------------------------------------------------------------------
+         STT(I,J,L,IDTO3) = TLSTT(J,L,1) / TCVV(IDTO3)
       ENDDO
       ENDDO
       ENDDO

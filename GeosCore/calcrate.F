@@ -78,7 +78,9 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  27 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOSmid
-
+!  14 Mar 2013 - M. Payer    - Replace NOx and Ox emissions with NO and O3
+!                              emissions as part of removal of NOx-Ox
+!                              partitioning
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -119,10 +121,16 @@
       USE TRACER_MOD,         ONLY : XNUMOL
       USE TIME_MOD,           ONLY : GET_TS_EMIS
       USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE TRACERID_MOD,       ONLY : IDTNOX,  IDO3,   IDNO,  IDNO2
-      USE TRACERID_MOD,       ONLY : IDHNO3,  IDOX,   IDTOX
-      USE TRACERID_MOD,       ONLY : CTRMB,   IDENOX, IDEOX, IDEHNO3
-      USE TRACERID_MOD,       ONLY : IDTHNO3, IDEMIS
+!-----------------------------------------------------------------------
+! Prior to 3/14/13:
+!      USE TRACERID_MOD,       ONLY : IDTNOX,  IDO3,   IDNO,  IDNO2
+!      USE TRACERID_MOD,       ONLY : IDHNO3,  IDOX,   IDTOX
+!      USE TRACERID_MOD,       ONLY : CTRMB,   IDENOX, IDEOX, IDEHNO3
+!-----------------------------------------------------------------------
+      USE TRACERID_MOD,       ONLY : IDTNO,  IDTO3,  IDTHNO3
+      USE TRACERID_MOD,       ONLY : IDNO,   IDO3,   IDHNO3,  IDNO2
+      USE TRACERID_MOD,       ONLY : IDENO,  IDEO3,  IDEHNO3
+      USE TRACERID_MOD,       ONLY : CTRMB,  IDEMIS
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L
       USE PRESSURE_MOD,       ONLY : GET_PEDGE     
       USE COMODE_MOD,         ONLY : VOLUME
@@ -1473,7 +1481,11 @@ c new OH+CO rate from JPL2006.
                ! Surface area of grid box
                AREA_CM2 = GET_AREA_CM2( IX, IY, IZ )
    
-               NN = IDTNOX
+!-----------------------------------------------------------------------
+! Prior to 3/14/13:
+!               NN = IDTNOX
+!-----------------------------------------------------------------------
+               NN = IDTNO
 
                ! Reset
                SHIP = 0D0
@@ -1608,7 +1620,12 @@ c new OH+CO rate from JPL2006.
                     
                      ! Convert anthro NOx emissions from [molec NO/box/s]
                      ! to [molec NO/cm3/s] and add to the REMIS array
-                     REMIS(JLOOP,IDENOX) = REMIS(JLOOP,IDENOX) + 
+!-----------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace NOX emissions with NO emissions (mpayer, 3/14/13)
+!                     REMIS(JLOOP,IDENOX) = REMIS(JLOOP,IDENOX) + 
+!-----------------------------------------------------------------------
+                     REMIS(JLOOP,IDENO) = REMIS(JLOOP,IDENO) + 
      &                                     EMIS_BL / VOLUME(JLOOP)
                   ENDIF
                ENDDO
@@ -1663,7 +1680,11 @@ c new OH+CO rate from JPL2006.
                ! Distribute emissions thru the entire boundary layer
                !========================================================
 
-               NN = IDTOX
+!-----------------------------------------------------------------------
+! Prior to 3/14/13:
+!               NN = IDTOX
+!-----------------------------------------------------------------------
+               NN = IDTO3
 
                ! COEF1 = molecules of emission species / molecules of tracer
                COEF1 = 1.0 + CTRMB(NN, IDEMIS(NN))   
@@ -1697,13 +1718,25 @@ c new OH+CO rate from JPL2006.
                     
                      ! Convert ship O3 emissions from [molec NO/box/s]
                      ! to [molec NO/cm3/s] and store in the REMIS array
-                     REMIS(JLOOP,IDEOX) = REMIS(JLOOP,IDEOX) + 
-     &                                    EMIS_BL / VOLUME(JLOOP)
+!-----------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace Ox emissions with O3 emissions (mpayer, 3/14/13)
+!                     REMIS(JLOOP,IDEOX) = REMIS(JLOOP,IDEOX) + 
+!     &                                    EMIS_BL / VOLUME(JLOOP)
+!
+!                     !%%% DO NOT LET NEGATIVE SHIP EMISSIONS GET  
+!                     !%%% ARCHIVED INTO REMIS (bmy, mpayer, 6/20/12)
+!                     IF ( REMIS(JLOOP,IDEOX) < 0d0 ) THEN
+!                        REMIS(JLOOP,IDEOX) = 0d0
+!                     ENDIF
+!-----------------------------------------------------------------------
+                     REMIS(JLOOP,IDEO3) = REMIS(JLOOP,IDEO3) + 
+     &                                     EMIS_BL / VOLUME(JLOOP)
 
                      !%%% DO NOT LET NEGATIVE SHIP EMISSIONS GET  
                      !%%% ARCHIVED INTO REMIS (bmy, mpayer, 6/20/12)
-                     IF ( REMIS(JLOOP,IDEOX) < 0d0 ) THEN
-                        REMIS(JLOOP,IDEOX) = 0d0
+                     IF ( REMIS(JLOOP,IDEO3) < 0d0 ) THEN
+                        REMIS(JLOOP,IDEO3) = 0d0
                      ENDIF
                   ENDIF
                ENDDO
@@ -1719,13 +1752,24 @@ c new OH+CO rate from JPL2006.
      &                                  (1D0 - fraction_nox) *
      &                                  XNUMOL(IDTHNO3) / AREA_CM2
 
-                  AD36(IX,IY,IDEOX)  = AD36(IX,IY,IDEOX) + SHIP * 
+!-----------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace NOx and Ox with NO and O3 (mpayer, 3/14/13)
+!                  AD36(IX,IY,IDEOX)  = AD36(IX,IY,IDEOX) + SHIP * 
+!     &                                 int_ope * (1D0 - fraction_nox)* 
+!     &                                 XNUMOL(IDTOX) / AREA_CM2
+!    
+!                  AD36(IX,IY,IDENOX) = AD36(IX,IY,IDENOX) + SHIP * 
+!     &                                 fraction_nox * 
+!     &                                 XNUMOL(IDTNOX) / AREA_CM2
+!-----------------------------------------------------------------------
+                  AD36(IX,IY,IDEO3)  = AD36(IX,IY,IDEO3) + SHIP * 
      &                                 int_ope * (1D0 - fraction_nox)* 
-     &                                 XNUMOL(IDTOX) / AREA_CM2
+     &                                 XNUMOL(IDTO3) / AREA_CM2
     
-                  AD36(IX,IY,IDENOX) = AD36(IX,IY,IDENOX) + SHIP * 
+                  AD36(IX,IY,IDENO)  = AD36(IX,IY,IDENO)  + SHIP * 
      &                                 fraction_nox * 
-     &                                 XNUMOL(IDTNOX) / AREA_CM2
+     &                                 XNUMOL(IDTNO) / AREA_CM2
                ENDIF
 
                ! ND32 = save anthro NOx for levels L=1,NOXEXTENT [molec/cm2/s]
@@ -1746,13 +1790,14 @@ c new OH+CO rate from JPL2006.
                   AD63(IX,IY,5) = SHIP
                ENDIF
 
+               ! Debug
 !               JLOOP   = JLOP(IX,IY,1)
 !              IF ((IX .eq. 108) .and. (IY .eq. 49)) THEN
 !                  PRINT*,"In calcrate.f: ",fraction_nox, int_ope
 !                  PRINT*,"NOx scaling: ",NOx_SCALING
 !                  PRINT*,"In calcrate.f: remis(ox),(hno3),(nox) after: ",
-!     &                    REMIS(JLOOP,IDEOX), REMIS(JLOOP,IDEHNO3),
-!     &                          REMIS(JLOOP,IDENOX)
+!     &                    REMIS(JLOOP,IDEO3), REMIS(JLOOP,IDEHNO3),
+!     &                          REMIS(JLOOP,IDENO)
 !                  PRINT*,"This is values for emisison of ship after jval"
 !                  PRINT*,"------------END CALCRATE.F-----------------"
 !               ENDIF    
@@ -1762,8 +1807,8 @@ c new OH+CO rate from JPL2006.
 !     &                     fraction_nox,int_ope
 !                  PRINT*,"In calcrate.f, north sea: remis(ox),(hno3),",
 !     &                   "(nox) after: ",
-!     &                    REMIS(JLOOP,IDEOX), REMIS(JLOOP,IDEHNO3),
-!     &                          REMIS(JLOOP,IDENOX)
+!     &                    REMIS(JLOOP,IDEO3), REMIS(JLOOP,IDEHNO3),
+!     &                          REMIS(JLOOP,IDENO)
 !               ENDIF                    
                
             ENDIF

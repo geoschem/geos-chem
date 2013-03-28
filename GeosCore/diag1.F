@@ -28,7 +28,11 @@
       USE TRACER_MOD,         ONLY : N_TRACERS, STT, TCVV
       USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
       USE TRACER_MOD,         ONLY : XNUMOLAIR
-      USE TRACERID_MOD,       ONLY : IDTOX
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      USE TRACERID_MOD,       ONLY : IDTOX
+!------------------------------------------------------------------------------
+      USE TRACERID_MOD,       ONLY : IDTO3
       USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_TROP
       USE DIAG03_MOD,         ONLY : AD03_RGM, AD03_PBM, ND03   
       USE OCEAN_MERCURY_MOD,  ONLY : Fg, Fp, PARTITION_Hg2
@@ -106,6 +110,8 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  14 Mar 2013 - M. Payer    - Replace Ox with O3 as part of removal of
+!                              NOx-Ox partitioning
 !
 ! !REMARKS:
 !  For a complete list of GEOS-Chem diagnostics, please see this web page:
@@ -302,8 +308,12 @@
 
             ! With TS_DIAG, the diags are automatically calculated at the
             ! right time (= same time done for all processes). (ccc, 5/21/09)
-!            IF ( N == IDTOX .and. IS_FULLCHEM .and. IS_CHEM ) THEN
-            IF ( N == IDTOX .and. IS_FULLCHEM ) THEN
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!!            IF ( N == IDTOX .and. IS_FULLCHEM .and. IS_CHEM ) THEN
+!            IF ( N == IDTOX .and. IS_FULLCHEM ) THEN
+!------------------------------------------------------------------------------
+            IF ( N == IDTO3 .and. IS_FULLCHEM ) THEN
                DO L = 1, LD45
                DO J = 1, JJPAR
                DO I = 1, IIPAR
@@ -344,8 +354,12 @@
             
             ! With TS_DIAG, the diags are automatically calculated at the
             ! right time (= same time done for all processes). (ccc, 5/21/09)
-!            IF ( N == IDTOX .and. IS_FULLCHEM .and. IS_CHEM ) THEN
-            IF ( N == IDTOX .and. IS_FULLCHEM ) THEN
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!!            IF ( N == IDTOX .and. IS_FULLCHEM .and. IS_CHEM ) THEN
+!            IF ( N == IDTOX .and. IS_FULLCHEM ) THEN
+!------------------------------------------------------------------------------
+            IF ( N == IDTO3 .and. IS_FULLCHEM ) THEN
                DO L = 1, LD47
                DO J = 1, JJPAR
                DO I = 1, IIPAR

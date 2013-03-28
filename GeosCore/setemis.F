@@ -36,7 +36,11 @@
       USE LOGICAL_MOD,        ONLY : LPRT
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L
       USE PRESSURE_MOD,       ONLY : GET_PEDGE
-      USE TRACERID_MOD,       ONLY : CTRMB,     IDEMIS,  IDENOX
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      USE TRACERID_MOD,       ONLY : CTRMB,     IDEMIS,  IDENOX
+!------------------------------------------------------------------------------
+      USE TRACERID_MOD,       ONLY : CTRMB,     IDEMIS,  IDENO
       USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
 
 #     include "define.h"
@@ -145,6 +149,8 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  02 Aug 2012 - R. Yantosca - Add error trap for JLOOP=0 under DEVEL tag
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -267,7 +273,12 @@
             TOTPRES = GET_PEDGE(I,J,1) - GET_PEDGE(I,J,TOP+1)
 
             ! For NOx only....
-            IF ( N == IDENOX ) THEN
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
+!            IF ( N == IDENOX ) THEN
+!------------------------------------------------------------------------------
+            IF ( N == IDENO ) THEN
 
                !========================================================
                ! Anthropogenic NOx emissions [molec/box/s]

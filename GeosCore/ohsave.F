@@ -12,19 +12,29 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE OHSAVE( N_TRACERS, XNUMOL,  STT,    FRACO3,  
-     &                   FRACNO,    FRACNO2, SAVEOH, SAVEHO2, 
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      SUBROUTINE OHSAVE( N_TRACERS, XNUMOL,  STT,    FRACO3,  
+!     &                   FRACNO,    FRACNO2, SAVEOH, SAVEHO2, 
+!     &                   SAVENO,    SAVENO2, SAVENO3 )
+!------------------------------------------------------------------------------
+      SUBROUTINE OHSAVE( N_TRACERS, XNUMOL,  STT,
+     &                   SAVEOH,    SAVEHO2,
      &                   SAVENO,    SAVENO2, SAVENO3 )
 !
 ! !USES:
 !
       USE COMODE_MOD,   ONLY : AIRDENS, CSPEC, JLOP, T3, VOLUME
       USE DIAG_MOD,     ONLY : DIAGCHLORO
-      USE TRACERID_MOD, ONLY : IDTOX, IDTNOX, IDO3,  IDNO
-      USE TRACERID_MOD, ONLY : IDNO2, IDOH,   IDHO2, IDNO3  
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      USE TRACERID_MOD, ONLY : IDTOX, IDTNOX, IDO3,  IDNO
+!      USE TRACERID_MOD, ONLY : IDNO2, IDOH,   IDHO2, IDNO3  
+!------------------------------------------------------------------------------
+      USE TRACERID_MOD, ONLY : IDNO, IDNO2, IDOH, IDHO2, IDNO3  
 
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE COMODE_LOOP_MOD     ! VOLUME, CSPEC, NPVERT, NLAT, NLONG
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE COMODE_LOOP_MOD    ! VOLUME, CSPEC, NPVERT, NLAT, NLONG
 
       IMPLICIT NONE
 #     include "define.h"
@@ -43,14 +53,18 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      ! Array of O3/Ox fractions 
-      REAL*8, INTENT(OUT) :: FRACO3(IIPAR,JJPAR,LLPAR)
-
-      ! Array of NO/NOx fractions 
-      REAL*8, INTENT(OUT) :: FRACNO(IIPAR,JJPAR,LLPAR)
-
-      ! Array of NO2/NOx fractions
-      REAL*8, INTENT(OUT) :: FRACNO2(IIPAR,JJPAR,LLPAR)
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! No longer need these because O3, NO, and NO2 are now tracers (mpayer, 3/14/13)
+!      ! Array of O3/Ox fractions 
+!      REAL*8, INTENT(OUT) :: FRACO3(IIPAR,JJPAR,LLPAR)
+!
+!      ! Array of NO/NOx fractions 
+!      REAL*8, INTENT(OUT) :: FRACNO(IIPAR,JJPAR,LLPAR)
+!
+!      ! Array of NO2/NOx fractions
+!      REAL*8, INTENT(OUT) :: FRACNO2(IIPAR,JJPAR,LLPAR)
+!------------------------------------------------------------------------------
 
       ! Array of OH  concentrations [molec/cm3]
       REAL*8, INTENT(OUT) :: SAVEOH(IIPAR,JJPAR,LLPAR)
@@ -88,6 +102,8 @@
 !        over from boxes that used to be in the tropopause but aren't anymore.
 !        (phs, 1/19/07)
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  14 Mar 2013 - M. Payer    - FRACO3, FRACNO, and FRACNO2 are no longer needed
+!                              because O3, NO, and NO2 are now tracers.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -95,7 +111,10 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: I, J, L, JLOOP   ! (bmy, 7/20/04)
-      REAL*8  :: TEMPOX, TEMPNOX  !, KCLO, XLOSS, XOHMASS
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      REAL*8  :: TEMPOX, TEMPNOX  !, KCLO, XLOSS, XOHMASS
+!------------------------------------------------------------------------------
 
       !=================================================================
       ! OHSAVE begins here!
@@ -108,9 +127,12 @@
       ! Reset because of variable tropopause.  Ensure that data for boxes 
       ! that once were in the troposphere, and are not anymore, do not
       ! carry dubious data over. (phs, 1/19/07)
-      FRACO3  = 0d0
-      FRACNO  = 0d0
-      FRACNO2 = 0d0
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      FRACO3  = 0d0
+!      FRACNO  = 0d0
+!      FRACNO2 = 0d0
+!------------------------------------------------------------------------------
       SAVEOH  = 0d0
       SAVEHO2 = 0d0
       SAVENO  = 0d0
@@ -119,7 +141,11 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, JLOOP, TEMPOX, TEMPNOX )
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!!$OMP+PRIVATE( I, J, L, JLOOP, TEMPOX, TEMPNOX )
+!------------------------------------------------------------------------------
+!$OMP+PRIVATE( I, J, L, JLOOP )
 !$OMP+SCHEDULE( DYNAMIC )
       DO 370 L = 1, NPVERT
       DO 360 J = 1, NLAT
@@ -131,22 +157,26 @@
          ! Cycle if this isn't a valid SMVGEAR gridbox
          IF ( JLOOP == 0 ) GOTO 350
 
-         ! Total Ox concentration, convert from [kg] to [molec/cm3]
-         TEMPOX         = STT(I,J,L,IDTOX)
-         TEMPOX         = TEMPOX  * XNUMOL(IDTOX) /VOLUME(JLOOP)
-
-         ! Total NOx concentration, convert from [kg] to [molec/cm3]
-         TEMPNOX        = STT(I,J,L,IDTNOX)
-         TEMPNOX        = TEMPNOX * XNUMOL(IDTNOX)/VOLUME(JLOOP)
-
-         ! Ox/O3 fraction [unitless]
-         FRACO3(I,J,L)  = CSPEC(JLOOP,IDO3)  / TEMPOX
-
-         ! NO/NOx fraction [unitless]
-         FRACNO(I,J,L)  = CSPEC(JLOOP,IDNO)  / TEMPNOX
-
-         ! NO2/NOx fraction [unitless]
-         FRACNO2(I,J,L) = CSPEC(JLOOP,IDNO2) / TEMPNOX    
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! No longer need these because O3, NO, and NO2 are now tracers (mpayer, 3/14/13)
+!         ! Total Ox concentration, convert from [kg] to [molec/cm3]
+!         TEMPOX         = STT(I,J,L,IDTOX)
+!         TEMPOX         = TEMPOX  * XNUMOL(IDTOX) /VOLUME(JLOOP)
+!
+!         ! Total NOx concentration, convert from [kg] to [molec/cm3]
+!         TEMPNOX        = STT(I,J,L,IDTNOX)
+!         TEMPNOX        = TEMPNOX * XNUMOL(IDTNOX)/VOLUME(JLOOP)
+!
+!         ! Ox/O3 fraction [unitless]
+!         FRACO3(I,J,L)  = CSPEC(JLOOP,IDO3)  / TEMPOX
+!
+!         ! NO/NOx fraction [unitless]
+!         FRACNO(I,J,L)  = CSPEC(JLOOP,IDNO)  / TEMPNOX
+!
+!         ! NO2/NOx fraction [unitless]
+!         FRACNO2(I,J,L) = CSPEC(JLOOP,IDNO2) / TEMPNOX    
+!------------------------------------------------------------------------------
 
          ! OH concentration [molec/cm3]
          SAVEOH(I,J,L)  = CSPEC(JLOOP,IDOH)

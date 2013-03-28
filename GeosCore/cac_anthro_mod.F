@@ -42,6 +42,8 @@
 !  18 Dec 2009 - Aaron van D - Added READ_CANADA_MASK_05x0666 routine
 !  01 Mar 2012 - R. Yantosca - Remove A_CM2 array, use the new function
 !                              GET_AREA_CM2( I, J, L ) from grid_mod.F90 
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -124,7 +126,11 @@
 !
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TRACER_MOD,   ONLY : XNUMOL
-      USE TRACERID_MOD, ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      USE TRACERID_MOD, ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
+!------------------------------------------------------------------------------
+      USE TRACERID_MOD, ONLY : IDTNO, IDTCO, IDTSO2, IDTNH3
 !
 ! !INPUT PARAMETERS: 
 !
@@ -144,6 +150,8 @@
 !
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - P. Le Sager - Initial Version
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -164,7 +172,11 @@
       IF ( PRESENT( KG_S        ) ) DO_KGS = KG_S
       IF ( PRESENT( MOLEC_CM2_S ) ) DO_MCS = MOLEC_CM2_S
 
-      IF ( N == IDTNOx ) THEN
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      IF ( N == IDTNOx ) THEN
+!------------------------------------------------------------------------------
+      IF ( N == IDTNO ) THEN
 
          ! NOx [kg/yr]
          VALUE = NOx(I,J)
@@ -243,7 +255,11 @@
       USE CMN_O3_MOD              ! FSCALYR
 
 #if defined( DEVEL )
-      USE TRACERID_MOD, ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      USE TRACERID_MOD, ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
+!------------------------------------------------------------------------------
+      USE TRACERID_MOD, ONLY : IDTNO, IDTCO, IDTSO2, IDTNH3
       USE TRACER_MOD, ONLY   : N_TRACERS 
 #endif
 !
@@ -495,7 +511,11 @@
 #if defined( DEVEL )
       EMISSIONS(:,:,IDTNH3) = EMISSIONS(:,:,IDTNH3)+NH3
       EMISSIONS(:,:,IDTSO2) = EMISSIONS(:,:,IDTSO2)+SO2
-      EMISSIONS(:,:,IDTNOx) = EMISSIONS(:,:,IDTNOx)+NOx
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      EMISSIONS(:,:,IDTNOx) = EMISSIONS(:,:,IDTNOx)+NOx
+!------------------------------------------------------------------------------
+      EMISSIONS(:,:,IDTNO) = EMISSIONS(:,:,IDTNO)+NOx
       EMISSIONS(:,:,IDTCO)  = EMISSIONS(:,:,IDTCO) +CO
 #endif
 
@@ -532,7 +552,11 @@
       USE CMN_SIZE_MOD          ! Size parameters
       USE CMN_O3_MOD            ! FSCALYR
 #if defined( DEVEL )
-      USE TRACERID_MOD, ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      USE TRACERID_MOD, ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
+!------------------------------------------------------------------------------
+      USE TRACERID_MOD, ONLY : IDTNO, IDTCO, IDTSO2, IDTNH3
       USE TRACER_MOD,   ONLY : N_TRACERS 
 #endif
 !
@@ -749,7 +773,11 @@
 #if defined( DEVEL )
       EMISSIONS(:,:,IDTNH3) = EMISSIONS(:,:,IDTNH3)+NH3
       EMISSIONS(:,:,IDTSO2) = EMISSIONS(:,:,IDTSO2)+SO2
-      EMISSIONS(:,:,IDTNOx) = EMISSIONS(:,:,IDTNOx)+NOx
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      EMISSIONS(:,:,IDTNOx) = EMISSIONS(:,:,IDTNOx)+NOx
+!------------------------------------------------------------------------------
+      EMISSIONS(:,:,IDTNO)  = EMISSIONS(:,:,IDTNO) +NOx
       EMISSIONS(:,:,IDTCO)  = EMISSIONS(:,:,IDTCO) +CO
 #endif
 
@@ -843,6 +871,8 @@
 !
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - P. Le Sager - Initial Version
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -864,7 +894,12 @@
 
 
       ! Total NOx [Tg N]
-      T_NOX = SUM( NOx ) * 1d-9 * ( 14d0 / 46d0 )
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Molecular weight of NO is 30 g/mol (mpayer 3/14/13)
+!      T_NOX = SUM( NOx ) * 1d-9 * ( 14d0 / 46d0 )
+!------------------------------------------------------------------------------
+      T_NOX = SUM( NOx ) * 1d-9 * ( 14d0 / 30d0 )
 
       ! Total CO  [Tg CO]
       T_CO  = SUM( CO  ) * 1d-9
@@ -876,7 +911,11 @@
       T_NH3 = SUM( NH3 ) * 1d-9
 
       ! Print totals in [kg]
-      WRITE( 6, 110 ) 'NOx ', YEAR, T_NOx,  '[Tg N  ]'
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      WRITE( 6, 110 ) 'NOx ', YEAR, T_NOx,  '[Tg N  ]'
+!------------------------------------------------------------------------------
+      WRITE( 6, 110 ) 'NO  ', YEAR, T_NOx,  '[Tg N  ]'
       WRITE( 6, 110 ) 'CO  ', YEAR, T_CO,   '[Tg CO ]'
       WRITE( 6, 110 ) 'SO2 ', YEAR, T_SO2,  '[Tg S  ]'
       WRITE( 6, 110 ) 'NH3 ', YEAR, T_NH3,  '[Tg NH3]'

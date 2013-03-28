@@ -4167,6 +4167,8 @@
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  14 Mar 2013 - M. Payer    - Replace NOx and Ox with NO2 and O3 as part
+!                              of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4243,11 +4245,20 @@
             XMW(NUMDEP)     = 7d-3
             AIROSOL(NUMDEP) = .TRUE. 
 
-         ! NO2 (as part of NOx)
-         ELSE IF ( N == IDTNOX ) THEN
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace NOx with NO2 (mpayer, 3/14/13)
+!         ! NO2 (as part of NOx)
+!         ELSE IF ( N == IDTNOX ) THEN
+!            NUMDEP          = NUMDEP + 1
+!            DRYDNO2         = NUMDEP
+!            NTRAIND(NUMDEP) = IDTNOX
+!------------------------------------------------------------------------------
+         ! NO2
+         ELSE IF ( N == IDTNO2 ) THEN
             NUMDEP          = NUMDEP + 1
             DRYDNO2         = NUMDEP
-            NTRAIND(NUMDEP) = IDTNOX
+            NTRAIND(NUMDEP) = IDTNO2
             NDVZIND(NUMDEP) = NUMDEP
             DEPNAME(NUMDEP) = 'NO2'
             HSTAR(NUMDEP)   = 0.01d0
@@ -4255,10 +4266,18 @@
             XMW(NUMDEP)     = 46d-3
             AIROSOL(NUMDEP) = .FALSE.
             
-         ! O3 (as part of Ox)
-         ELSE IF ( N == IDTOX ) THEN
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace Ox with NO3 (mpayer, 3/14/13)
+!         ! O3 (as part of Ox)
+!         ELSE IF ( N == IDTOX ) THEN
+!            NUMDEP          = NUMDEP + 1
+!            NTRAIND(NUMDEP) = IDTOX
+!------------------------------------------------------------------------------
+         ! O3
+         ELSE IF ( N == IDTO3 ) THEN
             NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTOX
+            NTRAIND(NUMDEP) = IDTO3
             NDVZIND(NUMDEP) = NUMDEP
             DEPNAME(NUMDEP) = 'O3'
             HSTAR(NUMDEP)   = 0.01d0

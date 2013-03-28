@@ -162,6 +162,8 @@
 !                              than PSURFACE - PTOP.
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  14 Mar 2013 - M. Payer    - Replace NOx and Ox with NO, NO2, and O3 as part
+!                              of removal of NOx-Ox partitioning
 !******************************************************************************
 !
       ! References to F90 modules
@@ -178,13 +180,18 @@
       USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM, N_TRACERS
       USE TRACER_MOD,         ONLY : STT,                TCVV  
       USE TRACER_MOD,         ONLY : XNUMOLAIR
-      USE TRACERID_MOD,       ONLY : IDTHNO3, IDTN2O5, IDTHNO4, IDTNOX
-      USE TRACERID_MOD,       ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
-      USE TRACERID_MOD,       ONLY : IDTR4N2, IDTSALA, IDTSALC 
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      USE TRACERID_MOD,       ONLY : IDTHNO3, IDTN2O5, IDTHNO4, IDTNOX
+!      USE TRACERID_MOD,       ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
+!------------------------------------------------------------------------------
+      USE TRACERID_MOD,       ONLY : IDTHNO3, IDTN2O5, IDTHNO4, IDTNO
+      USE TRACERID_MOD,       ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTO3
+      USE TRACERID_MOD,       ONLY : IDTR4N2, IDTSALA, IDTSALC, IDTNO2
 
       USE CMN_FJ_MOD,         ONLY : JPMAX, JPPJ  ! Size parameters + FAST-J
       USE JV_CMN_MOD               ! ODAER, ODMDUST, QAA, QAA_OUT
-      USE CMN_O3_MOD               ! XNUMOLAIR
+      USE CMN_O3_MOD               ! SAVEOH, XNUMOLAIR
       USE CMN_GCTM_MOD             ! SCALE_HEIGHT
 
       ! Arguments
@@ -192,7 +199,11 @@
 
       ! Local variables
       LOGICAL, SAVE      :: IS_CLDTOPS,  IS_OPTD, IS_SEASALT, IS_SLP
-      LOGICAL, SAVE      :: IS_FULLCHEM, IS_Ox,   IS_NOx,     IS_NOy
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      LOGICAL, SAVE      :: IS_FULLCHEM, IS_Ox,   IS_NOx,     IS_NOy
+!------------------------------------------------------------------------------
+      LOGICAL, SAVE      :: IS_FULLCHEM, IS_O3,   IS_NO,      IS_NOy
       LOGICAL, SAVE      :: FIRST = .TRUE.
       INTEGER            :: GMTRC, I, I0, J, J0, L, N, K, R, TMP, W
       REAL*8             :: LT, TAU, Q(LLPAR), SCALEAODnm
@@ -220,10 +231,17 @@
          IS_OPTD     = ASSOCIATED( State_Met%OPTD    )
          IS_FULLCHEM = ITS_A_FULLCHEM_SIM()
          IS_SEASALT  = ( IDTSALA > 0 .and. IDTSALC > 0 )
-         IS_Ox       = ( IS_FULLCHEM .and. IDTOX   > 0 )
-         IS_NOx      = ( IS_FULLCHEM .and. IDTNOX  > 0 )
-         IS_NOy      = ( IS_FULLCHEM .and. 
-     &                   IDTNOX  > 0 .and. IDTPAN  > 0 .and.
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!         IS_Ox       = ( IS_FULLCHEM .and. IDTOX   > 0 )
+!         IS_NOx      = ( IS_FULLCHEM .and. IDTNOX  > 0 )
+!         IS_NOy      = ( IS_FULLCHEM .and. 
+!     &                   IDTNOX  > 0 .and. IDTPAN  > 0 .and.
+!------------------------------------------------------------------------------
+         IS_O3       = ( IS_FULLCHEM .and. IDTO3   > 0 )
+         IS_NO       = ( IS_FULLCHEM .and. IDTNO   > 0 )
+         IS_NOy      = ( IS_FULLCHEM .and. IDTNO   > 0 .and.
+     &                   IDTNO2  > 0 .and. IDTPAN  > 0 .and.
      &                   IDTHNO3 > 0 .and. IDTPMN  > 0 .and.
      &                   IDTPPN  > 0 .and. IDTR4N2 > 0 .and.
      &                   IDTN2O5 > 0 .and. IDTHNO4 > 0 ) 
@@ -278,7 +296,11 @@
                Q(L) = STT(I,J,L,N) * TCVV(N) / State_Met%AD(I,J,L)
             ENDDO
 
-         ELSE IF ( N == 91 .and. IS_Ox ) THEN
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!         ELSE IF ( N == 91 .and. IS_Ox ) THEN
+!------------------------------------------------------------------------------
+         ELSE IF ( N == 91 .and. IS_O3 ) THEN
  
             !------------------------------------
             ! PURE O3 CONCENTRATION [v/v]
@@ -288,11 +310,21 @@
             GMTRC    = N_TRACERS + 1
 
             DO L = 1, K
-               Q(L) = STT(I,J,L,IDTOX)    * TCVV(IDTOX)  / 
-     &                State_Met%AD(I,J,L) * FRACO3(I,J,L)
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace Ox with O3. FRACO3 is no longer needed (mpayer, 3/14/13)
+!               Q(L) = STT(I,J,L,IDTOX)    * TCVV(IDTOX)  / 
+!     &                State_Met%AD(I,J,L) * FRACO3(I,J,L)
+!------------------------------------------------------------------------------
+               Q(L) = STT(I,J,L,IDTO3)    * TCVV(IDTO3)  / 
+     &                State_Met%AD(I,J,L)
             ENDDO
-               
-         ELSE IF ( N == 92 .and. IS_NOx ) THEN
+
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:               
+!         ELSE IF ( N == 92 .and. IS_NO ) THEN
+!------------------------------------------------------------------------------
+         ELSE IF ( N == 92 .and. IS_NO ) THEN
 
             !------------------------------------
             ! NO CONCENTRATION [v/v]
@@ -302,8 +334,14 @@
             GMTRC    = 9
 
             DO L = 1, K
-               Q(L) = STT(I,J,L,IDTNOX) * TCVV(IDTNOX) * 
-     &                FRACNO(I,J,L)     / State_Met%AD(I,J,L)
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace NOx with NO. FRACNO is no longer needed (mpayer, 3/14/13)
+!               Q(L) = STT(I,J,L,IDTNOX) * TCVV(IDTNOX) * 
+!     &                FRACNO(I,J,L)     / State_Met%AD(I,J,L)
+!------------------------------------------------------------------------------
+               Q(L) = STT(I,J,L,IDTNO)  * TCVV(IDTNO) /
+     &                State_Met%AD(I,J,L)
             ENDDO
 
          ELSE IF ( N == 93 .and. IS_NOy ) THEN
@@ -320,9 +358,22 @@
                ! Initialize
                Q(L) = 0d0
 
-               ! NOx
-               Q(L) = Q(L) + ( TCVV(IDTNOX)        * 
-     &                         STT(I,J,L,IDTNOX)   / 
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace NOx with NO and NO2 (mpayer 3/14/13)
+!               ! NOx
+!               Q(L) = Q(L) + ( TCVV(IDTNOX)        * 
+!     &                         STT(I,J,L,IDTNOX)   / 
+!     &                         State_Met%AD(I,J,L) )
+!------------------------------------------------------------------------------
+               ! NO
+               Q(L) = Q(L) + ( TCVV(IDTNO)         * 
+     &                         STT(I,J,L,IDTNO)    / 
+     &                         State_Met%AD(I,J,L) )
+
+               ! NO2
+               Q(L) = Q(L) + ( TCVV(IDTNO2)        * 
+     &                         STT(I,J,L,IDTNO2)   / 
      &                         State_Met%AD(I,J,L) )
 
                ! PAN
@@ -385,7 +436,13 @@
             GMTRC    = 19
 
             DO L = 1, K
-               Q(L) = SAVENO2(I,J,L)
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace SAVENO2 with concentrations from STT (mpayer 3/14/13)
+!               Q(L) = SAVENO2(I,J,L)
+!------------------------------------------------------------------------------
+               Q(L) = STT(I,J,L,IDTNO2)  * TCVV(IDTNO2) /
+     &                State_Met%AD(I,J,L)
             ENDDO
 
          ELSE IF ( N == 78 ) THEN

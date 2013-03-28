@@ -50,6 +50,8 @@
 !  19 Nov 2010 - R. Yantosca - Added ProTeX headers
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!  14 Mar 2013 - M. Payer    - Replace Ox with O3 as part of removal of NOx-Ox
+!                              partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -524,7 +526,11 @@
       USE TRACER_MOD,         ONLY : STT
       USE TRACER_MOD,         ONLY : N_TRACERS
       USE TRACER_MOD,         ONLY : XNUMOL
-      USE TRACERID_MOD,       ONLY : IDTOX
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      USE TRACERID_MOD,       ONLY : IDTOX
+!------------------------------------------------------------------------------
+      USE TRACERID_MOD,       ONLY : IDTO3
       USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_TROP
       USE LOGICAL_MOD,        ONLY : LNLPBL
 
@@ -562,6 +568,8 @@
 !  (10) Now only compute loss rate in troposphere (dbj, bmy, 10/26/09)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  14 Mar 2013 - M. Payer    - Replace Ox with O3 as part of removal of NOx-Ox
+!                              partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -720,7 +728,12 @@
                      IF ( ND44 > 0 .and. Ox_LOST > 0d0 ) THEN
 
                         ! Convert from [kg] to [molec/cm2/s]
-                        FLUX = Ox_LOST             * XNUMOL(IDTOX) / 
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace Ox with O3 (mpayer, 3/14/13)
+!                        FLUX = Ox_LOST             * XNUMOL(IDTOX) / 
+!------------------------------------------------------------------------------
+                        FLUX = Ox_LOST             * XNUMOL(IDTO3) / 
      &                         GET_AREA_CM2(I,J,L) / DTCHEM 
                      
                         ! Store dryd flx in ND44_TMP as a placeholder

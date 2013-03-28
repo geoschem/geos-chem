@@ -594,6 +594,8 @@
 !  (16) Treat all species with emissions dependant on CO emissions after
 !       the main loop on biomass species. To make sure CO emissions are already
 !       read. (ccc, 01/29/10)
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !******************************************************************************
 !
       ! References to F90 modules
@@ -601,7 +603,11 @@
       USE LOGICAL_MOD,          ONLY : LFUTURE
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
       ! Add IDBs of all species handled here (hotp 8/3/09)
-      USE TRACERID_MOD, ONLY : IDBNOX,  IDBCO,   IDBALK4, IDBACET 
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      USE TRACERID_MOD, ONLY : IDBNOX,  IDBCO,   IDBALK4, IDBACET 
+!------------------------------------------------------------------------------
+      USE TRACERID_MOD, ONLY : IDBNO,   IDBCO,   IDBALK4, IDBACET 
       USE TRACERID_MOD, ONLY : IDBMEK,  IDBALD2, IDBPRPE, IDBC3H8
       USE TRACERID_MOD, ONLY : IDBCH2O, IDBC2H6
       USE TRACERID_MOD, ONLY : IDBGLYX, IDBMGLY, IDBBENZ, IDBTOLU
@@ -638,7 +644,13 @@
       ! (ccc, 01/29/10)
           
          ! Do scaling if necessary and print totals in Tg
-         IF  ( IDBNOX > 0 ) THEN
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
+!         ! Do scaling if necessary and print totals in Tg
+!         IF  ( IDBNOX > 0 ) THEN
+!------------------------------------------------------------------------------
+         IF  ( IDBNO > 0 ) THEN
 
             !----------
             ! NOx
@@ -649,16 +661,30 @@
      &                       TAU0,      IIPAR,     JJPAR,     
      &                       1,         ARRAY,     QUIET=.TRUE. )  
 
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!            ! Cast from REAL*4 to REAL*8 and resize to (IIPAR,JJPAR)
+!            CALL TRANSFER_2D( ARRAY(:,:,1), BIOMASS(:,:,IDBNOX) )
+!
+!            ! Compute future NOx emissions (if necessary)
+!            IF ( LFUTURE ) THEN
+!               CALL SCALE_FUTURE( 'NOxbb', BIOMASS(:,:,IDBNOX) )
+!            ENDIF
+!
+!            ! NOX -- print totals in [Tg/month]
+!            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBNOX), 14d-3, 'NOx' )
+!         ENDIF
+!------------------------------------------------------------------------------
             ! Cast from REAL*4 to REAL*8 and resize to (IIPAR,JJPAR)
-            CALL TRANSFER_2D( ARRAY(:,:,1), BIOMASS(:,:,IDBNOX) )
+            CALL TRANSFER_2D( ARRAY(:,:,1), BIOMASS(:,:,IDBNO) )
 
             ! Compute future NOx emissions (if necessary)
             IF ( LFUTURE ) THEN
-               CALL SCALE_FUTURE( 'NOxbb', BIOMASS(:,:,IDBNOX) )
+               CALL SCALE_FUTURE( 'NObb', BIOMASS(:,:,IDBNO) )
             ENDIF
 
-            ! NOX -- print totals in [Tg/month]
-            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBNOX), 14d-3, 'NOx' )
+            ! NO -- print totals in [Tg/month]
+            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBNO), 14d-3, 'NO' )
          ENDIF
 
          !FP_ISOP (6/2009) removed hardwired IDBs
@@ -680,7 +706,7 @@
             ! for new gaseous emissions (tmf, 1/7/09)
             CALL TRANSFER_2D( ARRAY(:,:,1), COEMIS(:,:) )
 
-            ! Compute future NOx emissions (if necessary)
+            ! Compute future CO emissions (if necessary)
             IF ( LFUTURE ) THEN
                CALL SCALE_FUTURE( 'CObb', BIOMASS(:,:,IDBCO) )
             ENDIF
@@ -1126,6 +1152,8 @@
 !  (2 ) BB   (REAL*8   ) : Array w/ biomass burning emissions [molec/cm2]
 !
 !  NOTES:
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1146,7 +1174,12 @@
       ! SCALE_FUTURE begins here!
       !=================================================================
 
-      IF ( NAME == 'NOxbb' ) THEN
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
+!      IF ( NAME == 'NOxbb' ) THEN
+!------------------------------------------------------------------------------
+      IF ( NAME == 'NObb' ) THEN
 
          ! Compute future NOx emissions
 !$OMP PARALLEL DO
@@ -1212,6 +1245,8 @@
 !  (4 ) Now report sums of NOx as Tg N instead of Tg NOx (bmy, 4/5/06)
 !  (5 ) Add unit choice for GLYX, MGLY, GLYC, HAC (tmf, 1/7/09)
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1250,7 +1285,11 @@
      
       ! Define unit string
       SELECT CASE( NAME )
-         CASE( 'NOx' )
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!         CASE( 'NOx' )
+!------------------------------------------------------------------------------
+         CASE( 'NO' )
             UNIT = '[Tg N]'
          CASE( 'CO', 'CH2O', 'GLYX', 'MGLY', 'GLYC', 'HAC' )
             UNIT = '[Tg  ]'

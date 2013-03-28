@@ -46,7 +46,7 @@
 !
 ! !ROUTINE: stdrun
 !
-! !DESCRIPTION: Subroutine STDRUN dumps the mass of either Ox [kg] or 222Rn, 
+! !DESCRIPTION: Subroutine STDRUN dumps the mass of either O3 [kg] or 222Rn, 
 !  210Pb, and 7Be [kg] at the start \& end of each run.  This is necessary
 !  for GEOS-CHEM benchmarking.
 !\\
@@ -64,7 +64,11 @@
       USE TIME_MOD,     ONLY : GET_NHMS,             GET_TAU
       USE TRACER_MOD,   ONLY : ITS_A_FULLCHEM_SIM,   ITS_A_RnPbBe_SIM
       USE TRACER_MOD,   ONLY : STT,                  N_TRACERS
-      USE TRACERID_MOD, ONLY : IDTOX
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      USE TRACERID_MOD, ONLY : IDTOX
+!------------------------------------------------------------------------------
+      USE TRACERID_MOD, ONLY : IDTO3
       USE CMN_SIZE_MOD       ! Size parameters
       USE inquireMod,   ONLY : findFreeLUN
 !
@@ -88,6 +92,8 @@
 !        and TRCOFFSET. (bmy, 6/28/05)
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  03 Aug 2012 - R. Yantosca - Now use findFreeLUN to obtain file unit #'s
+!  14 Mar 2013 - M. Payer    - Replace Ox with O3 as part of removal of 
+!                              NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -165,22 +171,43 @@
 
          ENDDO
 
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace Ox with O3 (mpayer, 3/14/13)
+!      !=================================================================
+!      ! Save the mass of Ox to a file
+!      !=================================================================
+!      ELSE IF ( ITS_A_FULLCHEM_SIM() .and. IDTOX > 0 ) THEN
+!
+!         ! Open binary punch file for writing
+!         CALL OPEN_BPCH2_FOR_WRITE( IU_FILE, FILENAME, TITLE )
+!        
+!         ! Save Ox as REAL*4
+!         ARRAY(:,:,:) = STT(:,:,:,IDTOX)
+!
+!         ! Write Ox to binary punch file
+!         CALL BPCH2( IU_FILE,   MODELNAME, LONRES,    LATRES,
+!     &               HALFPOLAR, CENTER180, CATEGORY,  IDTOX,    
+!     &               UNIT,      GET_TAU(), GET_TAU(), RESERVED,   
+!     &               IIPAR,     JJPAR,     LLPAR,     IFIRST,     
+!     &               JFIRST,    LFIRST,    ARRAY(:,:,:) )
+!------------------------------------------------------------------------------
       !=================================================================
-      ! Save the mass of Ox to a file
+      ! Save the mass of O3 to a file
       !=================================================================
-      ELSE IF ( ITS_A_FULLCHEM_SIM() .and. IDTOX > 0 ) THEN
+      ELSE IF ( ITS_A_FULLCHEM_SIM() .and. IDTO3 > 0 ) THEN
 
          ! Open binary punch file for writing
          CALL OPEN_BPCH2_FOR_WRITE( IU_FILE, FILENAME, TITLE )
         
-         ! Save Ox as REAL*4
-         ARRAY(:,:,:) = STT(:,:,:,IDTOX)
+         ! Save O3 as REAL*4
+         ARRAY(:,:,:) = STT(:,:,:,IDTO3)
 
-         ! Write Ox to binary punch file
+         ! Write O3 to binary punch file
          CALL BPCH2( IU_FILE,   MODELNAME, LONRES,    LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY,  IDTOX,    
-     &               UNIT,      GET_TAU(), GET_TAU(), RESERVED,   
-     &               IIPAR,     JJPAR,     LLPAR,     IFIRST,     
+     &               HALFPOLAR, CENTER180, CATEGORY,  IDTO3,
+     &               UNIT,      GET_TAU(), GET_TAU(), RESERVED,
+     &               IIPAR,     JJPAR,     LLPAR,     IFIRST,
      &               JFIRST,    LFIRST,    ARRAY(:,:,:) )
                
       ENDIF

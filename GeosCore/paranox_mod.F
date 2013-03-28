@@ -163,7 +163,11 @@
 !
 ! !USES:
 !
-      USE TRACERID_MOD,       ONLY : IDO3, IDTOX, IDTCO
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      USE TRACERID_MOD,       ONLY : IDO3, IDTOX, IDTCO
+!------------------------------------------------------------------------------
+      USE TRACERID_MOD,       ONLY : IDO3, IDTO3, IDTCO
       USE TRACER_MOD,         ONLY : STT,  TCVV
       USE TIME_MOD,           ONLY : GET_LOCALTIME
       USE ERROR_MOD,          ONLY : ERROR_STOP
@@ -190,6 +194,8 @@
 !                                derived type object
 !  28 Nov 2012 - R. Yantosca   - Replace SUNCOS_MID w/ State_Met%SUNCOSmid
 !  28 Nov 2012 - R. Yantosca   - Replace SUNCOS_MID_5hr w/ State_Met%SUNCOSmid5
+!  14 Mar 2013 - M. Payer      - Replace Ox with O3 as part of removal of
+!                                NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -267,11 +273,11 @@
 !      PRINT*,"USA: ", State_Met%TS(32,64)
 
       ! Tracer concentrations in v/v
-!      PRINT*,"[O3] is: ",STT(I,J,1,IDTOX)/ State_Met%AD(I,J,1) * TCVV(IDTOX)
+!      PRINT*,"[O3] is: ",STT(I,J,1,IDTOX3)/ State_Met%AD(I,J,1) * TCVV(IDTO3)
 !      PRINT*,"[CO] is: ",STT(I,J,1,IDTCO)/ State_Met%AD(I,J,1) * TCVV(IDTCO)
-!      PRINT*,"IDTOX is: ", IDTOX
+!      PRINT*,"IDTO3 is: ", IDTO3
 !      PRINT*,"IDO3 is: ", IDO3
-!      PRINT*,"In USA: ",STT(32,64,1,IDTOX)/State_Met%AD(32,64,1) * TCVV(IDTOX)
+!      PRINT*,"In USA: ",STT(32,64,1,IDTO3)/State_Met%AD(32,64,1) * TCVV(IDTO3)
 
       ! SOLAR ZENITH ANGLES IN DEGREES
 !      IJLOOP = ( (J-1) * IIPAR ) + I
@@ -289,9 +295,15 @@
       IJLOOP       = ( (J-1) * IIPAR ) + I 
       var_array(1) = State_Met%TS(I,J)                ! Temperature
       var_array(2) = jvalues(I,J,1)                   ! J(NO2)
-      var_array(3) = STT(I,J,1,IDTOX)    /            ! [O3] in ppbv 
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      var_array(3) = STT(I,J,1,IDTOX)    /            ! [O3] in ppbv 
+!     $               State_Met%AD(I,J,1) *
+!     $               TCVV(IDTOX)         * 1.E9   
+!------------------------------------------------------------------------------
+      var_array(3) = STT(I,J,1,IDTO3)    /            ! [O3] in ppbv 
      $               State_Met%AD(I,J,1) *
-     $               TCVV(IDTOX)         * 1.E9   
+     $               TCVV(IDTO3)         * 1.E9
       var_array(4) = ASIND(State_Met%SUNCOSmid5(I,J)) ! alfa0
       var_array(5) = ASIND(State_Met%SUNCOSmid(I,J))  ! alfa5
       var_array(6) = jvalues(I,J,2) / jvalues(I,J,1)  ! J(O1D)/J(NO2)
@@ -674,11 +686,11 @@
 !      PRINT*,"USA: ",State_Met%TS(32,64)
 
       ! Tracer concentrations in v/v
-!      PRINT*,"[O3] is: ",STT(I,J,1,IDTOX)/ State_Met%AD(I,J,1) * TCVV(IDTOX)
+!      PRINT*,"[O3] is: ",STT(I,J,1,IDTO3)/ State_Met%AD(I,J,1) * TCVV(IDTO3)
 !      PRINT*,"[CO] is: ",STT(I,J,1,IDTCO)/ State_Met%AD(I,J,1) * TCVV(IDTCO)
-!      PRINT*,"IDTOX is: ", IDTOX
+!      PRINT*,"IDTO3 is: ", IDTO3
 !      PRINT*,"IDO3 is: ", IDO3
-!      PRINT*,"In USA: ",STT(32,64,1,IDTOX)/State_Met%AD(32,64,1) * TCVV(IDTOX)
+!      PRINT*,"In USA: ",STT(32,64,1,IDTO3)/State_Met%AD(32,64,1) * TCVV(IDTO3)
       
       ! SOLAR ZENITH ANGLES IN DEGREES
 !      IJLOOP = ( (J-1) * IIPAR ) + I

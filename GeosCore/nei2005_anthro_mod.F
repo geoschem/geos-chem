@@ -72,6 +72,8 @@
 !  22 Mar 2012 - M. Payer    - C2H6 emissions are too low. Use Yaping
 !                              Xiao's C2H6 emissions instead.
 !  24 May 2012 - R. Yantosca - Make all module arrays targets for pointers
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -141,7 +143,11 @@
       USE TRACER_MOD,   ONLY : XNUMOL
       USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
       USE TRACERID_MOD, ONLY : IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
-      USE TRACERID_MOD, ONLY : IDTNOx,  IDTCO,   IDTSO2,  IDTNH3
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      USE TRACERID_MOD, ONLY : IDTNOx,  IDTCO,   IDTSO2,  IDTNH3
+!------------------------------------------------------------------------------
+      USE TRACERID_MOD, ONLY : IDTNO,   IDTCO,   IDTSO2,  IDTNH3
       USE TRACERID_MOD, ONLY : IDTSO4
 !
 ! !INPUT PARAMETERS: 
@@ -166,6 +172,8 @@
 !  01 Mar 2012 - R. Yantosca - Remove A_CM2 array, use GET_AREA_CM2 instead
 !  22 Mar 2012 - M. Payer    - C2H6 emissions are too low. Use Yaping
 !                              Xiao's C2H6 emissions instead.  
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -187,7 +195,12 @@
       IF ( PRESENT( MOLEC_CM2_S ) ) DO_MCS = MOLEC_CM2_S
 
       IF ( WEEKDAY ) THEN
-         IF ( N == IDTNOx ) THEN
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
+!         IF ( N == IDTNOx ) THEN
+!------------------------------------------------------------------------------
+         IF ( N == IDTNO ) THEN
 
             ! NOx [kg/yr]
             VALUE = NOx(I,J,L)
@@ -260,7 +273,12 @@
          ENDIF
 
       ELSE
-         IF ( N == IDTNOx ) THEN
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
+!         IF ( N == IDTNOx ) THEN
+!------------------------------------------------------------------------------
+         IF ( N == IDTNO ) THEN
 
             ! NOx [kg/yr]
             VALUE = NOx_WKEND(I,J,L)
@@ -385,17 +403,17 @@
       USE TRACER_MOD,        ONLY : ITS_A_FULLCHEM_SIM
       USE TRACERID_MOD,      ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
       USE TRACERID_MOD,      ONLY : IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
-      USE TRACERID_MOD,      ONLY : IDTNOx,  IDTCO,   IDTSO2,  IDTNH3
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      USE TRACERID_MOD,      ONLY : IDTNOx,  IDTCO,   IDTSO2,  IDTNH3
+!------------------------------------------------------------------------------
+      USE TRACERID_MOD,      ONLY : IDTNO,   IDTCO,   IDTSO2,  IDTNH3
       USE TRACERID_MOD,      ONLY : IDTSO4,  IDTOCPI, IDTBCPI
 
       USE CMN_SIZE_MOD            ! Size parameters
       USE CMN_O3_MOD              ! FSCALYR
 
 #if defined( DEVEL )
-      USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
-      USE TRACERID_MOD, ONLY : IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
-      USE TRACERID_MOD, ONLY : IDTNOx,  IDTCO,   IDTSO2,  IDTNH3
-      USE TRACERID_MOD, ONLY : IDTSO4,  IDTOCPI, IDTBCPI
       USE TRACER_MOD,   ONLY : N_TRACERS
       USE TIME_MOD,     ONLY : GET_DAY_OF_WEEK
 #endif
@@ -413,6 +431,8 @@
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -467,7 +487,11 @@
 #endif
 
       ! list of ID of available species
-      SPECIES_ID = (/ IDTNOX,  IDTCO,   IDTSO2,  IDTSO4, IDTNH3,
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      SPECIES_ID = (/ IDTNOX,  IDTCO,   IDTSO2,  IDTSO4, IDTNH3,
+!------------------------------------------------------------------------------
+      SPECIES_ID = (/ IDTNO,   IDTCO,   IDTSO2,  IDTSO4, IDTNH3,
      &                IDTACET, IDTALK4, IDTC2H6, IDTC3H8,
      &                IDTOCPI, IDTBCPI,
      &                IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
@@ -1229,7 +1253,11 @@
       WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
 
       IF ( WEEKDAY ) THEN       !Kg/Yr
-         EMISS(:,:,1:5,IDTNOx)  = NOx
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!         EMISS(:,:,1:5,IDTNOx)  = NOx
+!------------------------------------------------------------------------------
+         EMISS(:,:,1:5,IDTNO)   = NOx
          EMISS(:,:,1:5,IDTCO)   = CO
          EMISS(:,:,1:5,IDTSO2)  = SO2
          EMISS(:,:,1:5,IDTSO4)  = SO4
@@ -1243,7 +1271,11 @@
          EMISS(:,:,1:5,IDTC2H6) = C2H6
          EMISS(:,:,1:5,IDTALD2) = ALD2
       ELSE
-         EMISS(:,:,1:5,IDTNOx)  = NOx_WKEND
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!         EMISS(:,:,1:5,IDTNOx)  = NOx_WKEND
+!------------------------------------------------------------------------------
+         EMISS(:,:,1:5,IDTNO)   = NOx_WKEND
          EMISS(:,:,1:5,IDTCO)   = CO_WKEND
          EMISS(:,:,1:5,IDTSO2)  = SO2_WKEND
          EMISS(:,:,1:5,IDTSO4)  = SO4_WKEND
@@ -1293,21 +1325,21 @@
       USE TIME_MOD,          ONLY : GET_YEAR, GET_MONTH
       USE SCALE_ANTHRO_MOD,  ONLY : GET_ANNUAL_SCALAR_05x0666_NESTED
       USE TRACER_MOD,        ONLY : ITS_A_FULLCHEM_SIM
-      USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
-      USE TRACERID_MOD, ONLY : IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
-      USE TRACERID_MOD, ONLY : IDTNOx,  IDTCO,   IDTSO2,  IDTNH3
-      USE TRACERID_MOD, ONLY : IDTSO4,  IDTOCPI, IDTBCPI
+      USE TRACERID_MOD,      ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
+      USE TRACERID_MOD,      ONLY : IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      USE TRACERID_MOD, ONLY : IDTNOx,  IDTCO,   IDTSO2,  IDTNH3
+!------------------------------------------------------------------------------
+      USE TRACERID_MOD,      ONLY : IDTNO,   IDTCO,   IDTSO2,  IDTNH3
+      USE TRACERID_MOD,      ONLY : IDTSO4,  IDTOCPI, IDTBCPI
 
-      USE CMN_SIZE_MOD          ! Size parameters
-      USE CMN_O3_MOD            ! FSCALYR
+      USE CMN_SIZE_MOD            ! Size parameters
+      USE CMN_O3_MOD              ! FSCALYR
 
 #if defined( DEVEL )
-      USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
-      USE TRACERID_MOD, ONLY : IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
-      USE TRACERID_MOD, ONLY : IDTNOx,  IDTCO,   IDTSO2,  IDTNH3
-      USE TRACERID_MOD, ONLY : IDTSO4,  IDTOCPI, IDTBCPI
-      USE TRACER_MOD,   ONLY : N_TRACERS
-      USE TIME_MOD,     ONLY : GET_DAY_OF_WEEK
+      USE TRACER_MOD,        ONLY : N_TRACERS
+      USE TIME_MOD,          ONLY : GET_DAY_OF_WEEK
 #endif
 
 !
@@ -1374,7 +1406,11 @@
 #endif
 
       ! list of ID of available species
-      SPECIES_ID = (/ IDTNOX,  IDTCO,   IDTSO2,  IDTSO4, IDTNH3,
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      SPECIES_ID = (/ IDTNOX,  IDTCO,   IDTSO2,  IDTSO4, IDTNH3,
+!------------------------------------------------------------------------------
+      SPECIES_ID = (/ IDTNO,   IDTCO,   IDTSO2,  IDTSO4, IDTNH3,
      &                IDTACET, IDTALK4, IDTC2H6, IDTC3H8,
      &                IDTOCPI, IDTBCPI,
      &                IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
@@ -1614,7 +1650,11 @@
       WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
 
       IF ( WEEKDAY ) THEN       !Kg/Yr
-         EMISS(:,:,:,IDTNOx)  = NOx
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!         EMISS(:,:,:,IDTNOx)  = NOx
+!------------------------------------------------------------------------------
+         EMISS(:,:,:,IDTNO)   = NOx
          EMISS(:,:,:,IDTCO)   = CO
          EMISS(:,:,:,IDTSO2)  = SO2
          EMISS(:,:,:,IDTSO4)  = SO4
@@ -1628,7 +1668,11 @@
          EMISS(:,:,:,IDTC2H6) = C2H6
          EMISS(:,:,:,IDTALD2) = ALD2
       ELSE
-         EMISS(:,:,:,IDTNOx)  = NOx_WKEND
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!         EMISS(:,:,:,IDTNOx)  = NOx_WKEND
+!------------------------------------------------------------------------------
+         EMISS(:,:,:,IDTNO)   = NOx_WKEND
          EMISS(:,:,:,IDTCO)   = CO_WKEND
          EMISS(:,:,:,IDTSO2)  = SO2_WKEND
          EMISS(:,:,:,IDTSO4)  = SO4_WKEND
@@ -1672,10 +1716,6 @@
       USE BPCH2_MOD,     ONLY : GET_TAU0,    READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1
       USE TIME_MOD,      ONLY : GET_MONTH
-      USE TRACERID_MOD,  ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
-      USE TRACERID_MOD,  ONLY : IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
-      USE TRACERID_MOD,  ONLY : IDTNOx,  IDTCO,   IDTSO2,  IDTNH3
-      USE TRACERID_MOD,  ONLY : IDTSO4
 
       USE CMN_SIZE_MOD                         ! Size parameters
 !
@@ -2128,10 +2168,6 @@
       USE BPCH2_MOD,         ONLY : GET_TAU0,      READ_BPCH2
       USE DIRECTORY_MOD,     ONLY : DATA_DIR_1x1
       USE TIME_MOD,          ONLY : GET_MONTH
-      USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
-      USE TRACERID_MOD, ONLY : IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
-      USE TRACERID_MOD, ONLY : IDTNOx,  IDTCO,   IDTSO2,  IDTNH3
-      USE TRACERID_MOD, ONLY : IDTSO4
 
       USE CMN_SIZE_MOD                         ! Size parameters
 !
@@ -2546,6 +2582,8 @@
 ! !REVISION HISTORY: 
 !   7 Oct 2009 - A. van Donkelaar - initial version
 !  22 Mar 2012 - M. Payer         - Remove print for C2H6 emissions.
+!  14 Mar 2013 - M. Payer         - Replace NOx emissions with NO emissions as
+!                                   part of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2570,7 +2608,12 @@
 
 
       ! Total NOx [Tg N]
-      T_NOX = SUM( NOx ) * 1d-9 * ( 14d0 / 46d0 )
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Molecular weight of NO is 30 g/mol (mpayer 3/14/13)
+!      T_NOX = SUM( NOx ) * 1d-9 * ( 14d0 / 46d0 )
+!------------------------------------------------------------------------------
+      T_NOX = SUM( NOx ) * 1d-9 * ( 14d0 / 30d0 )
 
       ! Total CO  [Tg CO]
       T_CO  = SUM( CO  ) * 1d-9
@@ -2617,7 +2660,11 @@
 
       
       ! Print totals in [Tg]
-      WRITE( 6, 110 ) 'NOx ',  YEAR, T_NOx,  '[Tg N  ]'
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      WRITE( 6, 110 ) 'NOx ',  YEAR, T_NOx,  '[Tg N  ]'
+!------------------------------------------------------------------------------
+      WRITE( 6, 110 ) 'NO  ',  YEAR, T_NOx,  '[Tg N  ]'
       WRITE( 6, 110 ) 'CO  ',  YEAR, T_CO,   '[Tg CO ]'
       WRITE( 6, 110 ) 'SO2 ',  YEAR, T_SO2,  '[Tg S  ]'
       WRITE( 6, 110 ) 'SO4 ',  YEAR, T_SO4,  '[Tg S  ]'

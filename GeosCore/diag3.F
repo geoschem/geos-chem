@@ -181,6 +181,8 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !  05 Apr 2012 - R. Yantosca - Bug fix: use hourly scale for SLP in the
 !                              ND67 diagnostic for GEOS-5.7.x met fields
+!  14 Mar 2013 - M. Payer    - Replace NOx and Ox with NO, NO2, and O3 as part
+!                              of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1620,7 +1622,11 @@
                MM = 5    ! Write 'O3' and 'OH'
             ELSE
                SELECT CASE ( TRIM( TRACER_NAME(NN) ) )
-                  CASE ( 'NOx', 'HCN', 'CH3I' )
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!                  CASE ( 'NOx', 'HCN', 'CH3I' )
+!------------------------------------------------------------------------------
+                  CASE ( 'NO2', 'HCN', 'CH3I' )
                      MM = 1
                   CASE ( 'HNO3' )
                      MM = 2
@@ -1800,8 +1806,13 @@
 !******************************************************************************
 !
 #if   !defined( GEOS_4 ) 
-      IF ( ND27 > 0 .and. IDTOX > 0 ) then
-         IF ( ( IDTOX > 0 .and. 
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      IF ( ND27 > 0 .and. IDTOX > 0 ) then
+!         IF ( ( IDTOX > 0 .and. 
+!------------------------------------------------------------------------------
+      IF ( ND27 > 0 .and. IDTO3 > 0 ) then
+         IF ( ( IDTO3 > 0 .and. 
      &        ( ITS_A_FULLCHEM_SIM() .or. ITS_A_TAGOX_SIM() ) ) .OR. 
      &        ( ITS_A_H2HD_SIM()                              ) ) THEN
 
@@ -1813,7 +1824,12 @@
             ! Single tracer Ox -- compute Ox flux only, hardwire
             !                     to tracer = 1 (bmy, 2/7/00)
             IF ( ITS_A_FULLCHEM_SIM() ) THEN
-               ITEMP = (/ IDTNOX, IDTOX, IDTHNO3 /)
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace NOx and Ox with NO and O3 (mpayer, 3/14/13)
+!               ITEMP = (/ IDTNOX, IDTOX, IDTHNO3 /)
+!------------------------------------------------------------------------------
+               ITEMP = (/ IDTNO, IDTO3, IDTHNO3 /)
             ELSE IF ( ITS_A_H2HD_SIM() ) THEN
                ITEMP = (/ IDTH2, IDTHD, 0 /)
             ELSE
@@ -2055,7 +2071,12 @@
 !  (3) Added biofuel burning to ND32 diagnostic (bmy, 9/12/00)
 !******************************************************************************
 !
-      IF ( ND32 > 0 .and. IDTNOX > 0 .and. ITS_A_FULLCHEM_SIM() ) THEN
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
+!      IF ( ND32 > 0 .and. IDTNOX > 0 .and. ITS_A_FULLCHEM_SIM() ) THEN
+!------------------------------------------------------------------------------
+      IF ( ND32 > 0 .and. IDTNO > 0 .and. ITS_A_FULLCHEM_SIM() ) THEN
 
          ! All categories of NOx are in molec/cm2/s
          UNIT = 'molec/cm2/s'
@@ -2063,14 +2084,22 @@
          !==============================================================
          ! Aircraft NOx
          !==============================================================
-         CATEGORY = 'NOX-AC-$'
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!         CATEGORY = 'NOX-AC-$'
+!------------------------------------------------------------------------------
+         CATEGORY = 'NO-AC-$'
             
          DO L = 1, LLTROP
             ARRAY(:,:,L) = AD32_ac(:,:,L) / SCALESRCE               
          ENDDO
 
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, IDTNOX,    
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!     &               HALFPOLAR, CENTER180, CATEGORY, IDTNOX,    
+!------------------------------------------------------------------------------
+     &               HALFPOLAR, CENTER180, CATEGORY, IDTNO,
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &               IIPAR,     JJPAR,     LLTROP,   IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LLTROP) )
@@ -2078,14 +2107,22 @@
          !==============================================================
          ! Anthropogenic NOx
          !==============================================================
-         CATEGORY = 'NOX-AN-$'
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!         CATEGORY = 'NOX-AN-$'
+!------------------------------------------------------------------------------
+         CATEGORY = 'NO-AN-$'
 
          DO L = 1, NOXEXTENT 
             ARRAY(:,:,L) = AD32_an(:,:,L) / SCALESRCE
          ENDDO
             
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,     
-     &               HALFPOLAR, CENTER180, CATEGORY,  IDTNOX,    
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!     &               HALFPOLAR, CENTER180, CATEGORY,  IDTNOX,    
+!------------------------------------------------------------------------------
+     &               HALFPOLAR, CENTER180, CATEGORY,  IDTNO,
      &               UNIT,      DIAGb,     DIAGe,     RESERVED,   
      &               IIPAR,     JJPAR,     NOXEXTENT, IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:NOXEXTENT) )
@@ -2093,11 +2130,20 @@
          !==============================================================
          ! Biomass Burning NOx
          !==============================================================
-         CATEGORY     = 'NOX-BIOB'
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!         CATEGORY     = 'NOX-BIOB'
+!------------------------------------------------------------------------------
+         CATEGORY     = 'NO-BIOB'
+
          ARRAY(:,:,1) = AD32_bb(:,:) / SCALESRCE
 
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,     
-     &               HALFPOLAR, CENTER180, CATEGORY, IDTNOX,    
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!     &               HALFPOLAR, CENTER180, CATEGORY, IDTNOX,    
+!------------------------------------------------------------------------------
+     &               HALFPOLAR, CENTER180, CATEGORY, IDTNO,
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &               IIPAR,     JJPAR,     1,        IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
@@ -2105,11 +2151,20 @@
          !==============================================================
          ! Binary punch file: NOx from Biofuel
          !==============================================================
-         CATEGORY     = 'NOX-BIOF'
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!         CATEGORY     = 'NOX-BIOF'
+!------------------------------------------------------------------------------
+         CATEGORY     = 'NO-BIOF'
+
          ARRAY(:,:,1) = AD32_bf(:,:) / SCALESRCE
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,     
-     &                  HALFPOLAR, CENTER180, CATEGORY, IDTNOX,    
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!     &                  HALFPOLAR, CENTER180, CATEGORY, IDTNOX,    
+!------------------------------------------------------------------------------
+     &                  HALFPOLAR, CENTER180, CATEGORY, IDTNO,
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &                  IIPAR,     JJPAR,     1,        IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
@@ -2117,11 +2172,20 @@
          !==============================================================
          ! Fertilizer NOx
          !==============================================================
-         CATEGORY     = 'NOX-FERT'
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!         CATEGORY     = 'NOX-FERT'
+!------------------------------------------------------------------------------
+         CATEGORY     = 'NO-FERT'
+
          ARRAY(:,:,1) = AD32_fe(:,:) / SCALESRCE
             
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,     
-     &               HALFPOLAR, CENTER180, CATEGORY, IDTNOX,    
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!     &               HALFPOLAR, CENTER180, CATEGORY, IDTNOX,    
+!------------------------------------------------------------------------------
+     &               HALFPOLAR, CENTER180, CATEGORY, IDTNO,
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &               IIPAR,     JJPAR,     1,        IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
@@ -2129,14 +2193,22 @@
          !==============================================================
          ! Lightning NOx
          !==============================================================
-         CATEGORY = 'NOX-LI-$'
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!         CATEGORY = 'NOX-LI-$'
+!------------------------------------------------------------------------------
+         CATEGORY = 'NO-LI-$'
 
          DO L = 1, LLCONVM 
             ARRAY(:,:,L) = AD32_li(:,:,L) / SCALESRCE
          ENDDO
                
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,     
-     &               HALFPOLAR, CENTER180, CATEGORY, IDTNOX, 
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!    &               HALFPOLAR, CENTER180, CATEGORY, IDTNOX, 
+!------------------------------------------------------------------------------
+     &               HALFPOLAR, CENTER180, CATEGORY, IDTNO,
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &               IIPAR,     JJPAR,     LLCONVM,  IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LLCONVM) )
@@ -2144,11 +2216,20 @@
          !==============================================================
          ! Soil NOx
          !==============================================================
-         CATEGORY     = 'NOX-SOIL'
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!         CATEGORY     = 'NOX-SOIL'
+!------------------------------------------------------------------------------
+         CATEGORY     = 'NO-SOIL'
+
          ARRAY(:,:,1) = AD32_so(:,:) / SCALESRCE
             
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,     
-     &               HALFPOLAR, CENTER180, CATEGORY, IDTNOX,    
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!    &               HALFPOLAR, CENTER180, CATEGORY, IDTNOX,    
+!------------------------------------------------------------------------------
+     &               HALFPOLAR, CENTER180, CATEGORY, IDTNO ,
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &               IIPAR,     JJPAR,     1,        IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
@@ -2156,11 +2237,20 @@
          !==============================================================
          ! Stratospheric NOx (boundary condition)
          !==============================================================
-         CATEGORY     = 'NOX-STRT'
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!         CATEGORY     = 'NOX-STRT'
+!------------------------------------------------------------------------------
+         CATEGORY     = 'NO-STRT'
+
          ARRAY(:,:,1) = AD32_ub(:,:) / SCALEDYN
             
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,     
-     &               HALFPOLAR, CENTER180, CATEGORY, IDTNOX,    
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!    &               HALFPOLAR, CENTER180, CATEGORY, IDTNOX,    
+!------------------------------------------------------------------------------
+     &               HALFPOLAR, CENTER180, CATEGORY, IDTNO ,
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &               IIPAR,     JJPAR,     1,        IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
@@ -2946,24 +3036,28 @@
      &                  IIPAR,     JJPAR,     LD45,     IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD45) )
 
-            ! Store pure O3 as NNPAR+1 (bmy, 1/10/03)
-            IF ( ITS_A_FULLCHEM_SIM() .and. NN == IDTOX ) THEN 
-
-                  WHERE( CTO3 /= 0 )
-                     ARRAY(:,:,1:LD45) = AD45(:,:,1:LD45,N_TOT_TRC+1) /
-     $                    FLOAT( CTO3 )
-                  ELSEWHERE
-                     ARRAY(:,:,1:LD45) = 0.
-                  ENDWHERE
-                  
-               NN = N_TOT_TRC + 1
-
-               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                     HALFPOLAR, CENTER180, CATEGORY, NN,    
-     &                     UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                     IIPAR,     JJPAR,     LD45,     IFIRST,     
-     &                     JFIRST,    LFIRST,    ARRAY(:,:,1:LD45) )
-            ENDIF
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! No longer need this because O3 is now a tracer (mpayer, 3/14/13)
+!            ! Store pure O3 as NNPAR+1 (bmy, 1/10/03)
+!            IF ( ITS_A_FULLCHEM_SIM() .and. NN == IDTOX ) THEN 
+!
+!                  WHERE( CTO3 /= 0 )
+!                     ARRAY(:,:,1:LD45) = AD45(:,:,1:LD45,N_TOT_TRC+1) /
+!     $                    FLOAT( CTO3 )
+!                  ELSEWHERE
+!                     ARRAY(:,:,1:LD45) = 0.
+!                  ENDWHERE
+!                  
+!               NN = N_TOT_TRC + 1
+!
+!               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+!     &                     HALFPOLAR, CENTER180, CATEGORY, NN,    
+!     &                     UNIT,      DIAGb,     DIAGe,    RESERVED,   
+!     &                     IIPAR,     JJPAR,     LD45,     IFIRST,     
+!     &                     JFIRST,    LFIRST,    ARRAY(:,:,1:LD45) )
+!            ENDIF
+!------------------------------------------------------------------------------
          ENDDO
       ENDIF
 
@@ -3096,24 +3190,28 @@
      &                  IIPAR,     JJPAR,     LD47,     IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD47) )
 
-            ! Store pure O3 as NNPAR+1 (bmy, 1/10/03)
-            IF ( ITS_A_FULLCHEM_SIM() .and. NN == IDTOX ) THEN 
-
-               WHERE( CTO3_24h(:,:,1:LD47) /= 0 )
-                  ARRAY(:,:,1:LD47) = AD47(:,:,1:LD47,N_TRACERS+1) /
-     $                                FLOAT( CTO3_24h(:,:,1:LD47) )
-               ELSEWHERE
-                  ARRAY(:,:,1:LD47) = 0.
-               ENDWHERE
-               
-               NN = N_TRACERS + 1
-
-               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                     HALFPOLAR, CENTER180, CATEGORY, NN,    
-     &                     UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                     IIPAR,     JJPAR,     LD47,     IFIRST,     
-     &                     JFIRST,    LFIRST,    ARRAY(:,:,1:LD47) )
-            ENDIF
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! No longer need this because O3 is now a tracer (mpayer, 3/14/13)
+!            ! Store pure O3 as NNPAR+1 (bmy, 1/10/03)
+!            IF ( ITS_A_FULLCHEM_SIM() .and. NN == IDTOX ) THEN 
+!
+!               WHERE( CTO3_24h(:,:,1:LD47) /= 0 )
+!                  ARRAY(:,:,1:LD47) = AD47(:,:,1:LD47,N_TRACERS+1) /
+!     $                                FLOAT( CTO3_24h(:,:,1:LD47) )
+!               ELSEWHERE
+!                  ARRAY(:,:,1:LD47) = 0.
+!               ENDWHERE
+!               
+!               NN = N_TRACERS + 1
+!
+!               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+!     &                     HALFPOLAR, CENTER180, CATEGORY, NN,    
+!     &                     UNIT,      DIAGb,     DIAGe,    RESERVED,   
+!     &                     IIPAR,     JJPAR,     LD47,     IFIRST,     
+!     &                     JFIRST,    LFIRST,    ARRAY(:,:,1:LD47) )
+!            ENDIF
+!------------------------------------------------------------------------------
          ENDDO
       ENDIF
 

@@ -43,8 +43,12 @@
       USE TIME_MOD,           ONLY : GET_HOUR
       USE TRACER_MOD,         ONLY : ITS_A_TAGCO_SIM
       USE TRACER_MOD,         ONLY : XNUMOL
-      USE TRACERID_MOD,       ONLY : IDENOX, IDEOX,    IDEHNO3
-      USE TRACERID_MOD,       ONLY : IDTOX,  IDTCO,    IDTHNO3
+!-----------------------------------------------------------------------
+! Prior to 3/14/13:
+!      USE TRACERID_MOD,       ONLY : IDENOX, IDEOX,    IDEHNO3
+!-----------------------------------------------------------------------
+      USE TRACERID_MOD,       ONLY : IDENO,    IDEO3,    IDEHNO3
+      USE TRACERID_MOD,       ONLY : IDTCO,    IDTHNO3
       USE TRACERID_MOD,       ONLY : IDTC2H6
       USE VISTAS_ANTHRO_MOD,  ONLY : GET_VISTAS_ANTHRO
       USE ICOADS_SHIP_MOD,    ONLY : GET_ICOADS_SHIP !(cklee, 7/09/09)
@@ -147,6 +151,9 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  22 Mar 2012 - M. Payer    - Update for C2H6. RETRO ethane emissions are too
 !                              low so we will use Yaping Xiao's offline emiss.
+!  14 Mar 2013 - M. Payer    - Replace NOx and Ox emissions with NO and O3
+!                              emissions as part of removal of NOx-Ox
+!                              partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -198,7 +205,12 @@
       !
       ! NOx only: account for all NOx levels (LL=1,NOXLEVELS)
       !=================================================================    
-      IF ( N == IDENOX ) THEN
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
+!      IF ( N == IDENOX ) THEN
+!------------------------------------------------------------------------------
+      IF ( N == IDENO ) THEN
 
          ! Initialize work variables
          EMX(:)  = 0d0
@@ -580,7 +592,12 @@
          EMX(:)  = 0d0
 
          ! Use appropriate scale factor for time of day
-         IF ( N == IDEOX ) THEN
+!-----------------------------------------------------------------------
+! Prior to 3/13/13:
+! Replace IDEOx with IDEO3 (mpayer, 2/7/13)
+!         IF ( N == IDEOX ) THEN
+!-----------------------------------------------------------------------
+         IF ( N == IDEO3 ) THEN
             TODX = TODN(IHOUR)
          ELSE
             TODX = TODH(IHOUR)
@@ -926,7 +943,12 @@
       !=================================================================
       ! Restore EMISR, EMISRN to original values
       !=================================================================
-      IF ( N == IDENOX ) THEN
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
+!      IF ( N == IDENOX ) THEN
+!------------------------------------------------------------------------------
+      IF ( N == IDENO ) THEN
          EMISRN(IREF,JREF,1:NOXLEVELS) = XEMISRN(1:NOXLEVELS)
       ELSE
          EMISR(IREF,JREF,N) = XEMISR

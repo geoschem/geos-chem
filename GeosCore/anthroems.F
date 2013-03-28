@@ -35,7 +35,11 @@
       USE TRACERID_MOD,        ONLY : IDEACET,      IDEALK4
       USE TRACERID_MOD,        ONLY : IDEC2H6,      IDEC3H8
       USE TRACERID_MOD,        ONLY : IDECO,        IDEMEK
-      USE TRACERID_MOD,        ONLY : IDENOX,       IDEPRPE
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      USE TRACERID_MOD,        ONLY : IDENOX,       IDEPRPE
+!------------------------------------------------------------------------------
+      USE TRACERID_MOD,        ONLY : IDENO,       IDEPRPE
       USE TRACERID_MOD,        ONLY : NEMANTHRO
       USE TRACERID_MOD,        ONLY : IDEBENZ,     IDETOLU,    IDEXYLE
       USE TRACERID_MOD,        ONLY : IDEC2H4,      IDEC2H2
@@ -142,6 +146,8 @@
 !  (32) GET_ANNUAL_SCALAR_05x0666_NESTED_CH renamed to 
 !        GET_ANNUAL_SCALAR_05x0666_NESTED (amv, bmy, 12/18/09)
 !  19 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -588,7 +594,11 @@
             NN = IDEMS(N)
 
             ! Skip NOx
-            IF ( N == IDENOX ) CYCLE
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!            IF ( N == IDENOX ) CYCLE
+!------------------------------------------------------------------------------
+            IF ( N == IDENO ) CYCLE
 
             ! Skip if some tracer is not present because there are more 
             ! anthro. tracers for dicarbonyl chemistry. (ccc, 4/16/09)
@@ -626,7 +636,12 @@
 
       ! NOX: scale by total CO2 scale factors
       ! Now loop over 2 levels only (phs, 10/19/09)
-      IF ( IDENOX > 0 ) THEN
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
+!      IF ( IDENOX > 0 ) THEN
+!------------------------------------------------------------------------------
+      IF ( IDENO > 0 ) THEN
          DO LL = 1, 2 !NOXLEVELS
             DO J = 1, JJPAR
                JREF = J + J0
@@ -659,7 +674,12 @@
 
          ! Do unit conversion for NOx separately, since it is multi-level
          ! Now loop over 2 levels only (phs, 10/19/09)
-         IF ( N == IDENOX ) THEN
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
+!         IF ( N == IDENOX ) THEN
+!------------------------------------------------------------------------------
+         IF ( N == IDENO ) THEN
             DO LL = 1, 2 !NOXLEVELS
                DO J = 1, JJPAR
                   JREF = J + J0

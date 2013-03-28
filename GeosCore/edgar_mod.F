@@ -109,7 +109,10 @@
       INTEGER, PARAMETER   :: N_HOURS     = 24
       REAL*8,  PARAMETER   :: SEC_IN_DAY  = 86400d0
       REAL*8,  PARAMETER   :: SEC_IN_2000 = SEC_IN_DAY * 366d0  ! leapyear
-      REAL*8,  PARAMETER   :: XNUMOL_NO2  = 6.0225d23  / 46d-3
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      REAL*8,  PARAMETER   :: XNUMOL_NO2  = 6.0225d23  / 46d-3
+!------------------------------------------------------------------------------
       REAL*8,  PARAMETER   :: XNUMOL_CO   = 6.0225d23  / 28d-3
       REAL*8,  PARAMETER   :: XNUMOL_SO2  = 6.0225d23  / 64d-3
 
@@ -145,6 +148,8 @@
 !  (2 ) MONTH (INTEGER) :  ... and for this month
 !
 !  NOTES:
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -155,7 +160,11 @@
       USE CMN_SIZE_MOD       ! Size parameters
 
 #if defined( DEVEL )
-      USE TRACERID_MOD,   ONLY : IDTCO, IDTSO2, IDTNOX
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      USE TRACERID_MOD,   ONLY : IDTCO, IDTSO2, IDTNOX
+!------------------------------------------------------------------------------
+      USE TRACERID_MOD,   ONLY : IDTCO, IDTSO2, IDTNO
       USE TRACER_MOD,     ONLY : N_TRACERS
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2ff
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NOxff
@@ -311,7 +320,12 @@
      &    ((EDGAR_CO+EDGAR_CO_SHIP)   * (1.d0/SEC_IN_2000) *
      &      CO_FUTURE_SCALE )
 
-            EMISSIONS(:,:,IDTNOX) = EMISSIONS(:,:,IDTNOX) +
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
+!            EMISSIONS(:,:,IDTNOX) = EMISSIONS(:,:,IDTNOX) +
+!------------------------------------------------------------------------------
+            EMISSIONS(:,:,IDTNO) = EMISSIONS(:,:,IDTNO) +
      &    ((EDGAR_NOX+EDGAR_NOX_SHIP) * (1.d0/SEC_IN_SEASON) *
      &      NOX_FUTURE_SCALE )
          ELSE
@@ -321,7 +335,12 @@
             EMISSIONS(:,:,IDTCO) = EMISSIONS(:,:,IDTCO) +
      &    ((EDGAR_CO+EDGAR_CO_SHIP)   * (1.d0/SEC_IN_2000) )
 
-            EMISSIONS(:,:,IDTNOX) = EMISSIONS(:,:,IDTNOX) +
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
+!            EMISSIONS(:,:,IDTNOX) = EMISSIONS(:,:,IDTNOX) +
+!------------------------------------------------------------------------------
+            EMISSIONS(:,:,IDTNO) = EMISSIONS(:,:,IDTNO) +
      &    ((EDGAR_NOX+EDGAR_NOX_SHIP) * (1.d0/SEC_IN_SEASON) )
          ENDIF
       ELSE
@@ -332,7 +351,12 @@
             EMISSIONS(:,:,IDTCO) = EMISSIONS(:,:,IDTCO) +
      &    (EDGAR_CO*(1.d0/SEC_IN_2000) * CO_FUTURE_SCALE )
 
-            EMISSIONS(:,:,IDTNOX) = EMISSIONS(:,:,IDTNOX) +
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
+!            EMISSIONS(:,:,IDTNOX) = EMISSIONS(:,:,IDTNOX) +
+!------------------------------------------------------------------------------
+            EMISSIONS(:,:,IDTNO) = EMISSIONS(:,:,IDTNO) +
      &    (EDGAR_NOX*(1.d0/SEC_IN_SEASON) * NOX_FUTURE_SCALE )
          ELSE
             EMISSIONS(:,:,IDTSO2) = EMISSIONS(:,:,IDTSO2) +
@@ -341,7 +365,12 @@
             EMISSIONS(:,:,IDTCO) = EMISSIONS(:,:,IDTCO) +
      &    (EDGAR_CO * (1.d0/SEC_IN_2000) )
 
-            EMISSIONS(:,:,IDTNOX) = EMISSIONS(:,:,IDTNOX) +
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
+!            EMISSIONS(:,:,IDTNOX) = EMISSIONS(:,:,IDTNOX) +
+!------------------------------------------------------------------------------
+            EMISSIONS(:,:,IDTNO) = EMISSIONS(:,:,IDTNO) +
      &    (EDGAR_NOX * (1.d0/SEC_IN_SEASON) )
          ENDIF
       ENDIF
@@ -1854,6 +1883,8 @@
       USE GRID_MOD,             ONLY : GET_AREA_CM2
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NOxff
       USE LOGICAL_MOD,          ONLY : LFUTURE
+      USE TRACER_MOD,           ONLY : XNUMOL
+      USE TRACERID_MOD,         ONLY : IDTNO
 
       ! Arguments
       INTEGER, INTENT(IN)           :: I,      J
@@ -1910,7 +1941,12 @@
       ELSE IF ( DO_MCS ) THEN
 
          ! Convert to [molec/cm2/s]
-         NOx = NOx * XNUMOL_NO2 
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Convert using molec/kg ratio for NO, not NO2 (mpayer, 3/14/13)
+!         NOx = NOx * XNUMOL_NO2 
+!------------------------------------------------------------------------------
+         NOx = NOx * XNUMOL(IDTNO)
      &       / ( GET_AREA_CM2( I, J, 1 ) * SEC_IN_SEASON )
 
       ENDIF
@@ -2192,6 +2228,8 @@
 !       (jensberg, bmy, 8/4/10)
 !  08 Mar 2012 - M. Payer    - Added modifications for historical emissions of
 !                              NOx and SO2 (E. Leibensperger)
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !******************************************************************************
 !
       USE LOGICAL_MOD, ONLY : LEDGARSHIP
@@ -2212,12 +2250,22 @@
       !=================================================================
 
       ! Compute totals [Tg/yr]
-      T_NOx      = SUM( EDGAR_NOx      ) * ( 14d0/46d0 ) / 1d9 ! Tg N
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Molecular weight of NO is 30 g/mol (mpayer 3/14/13)
+!      T_NOx      = SUM( EDGAR_NOx      ) * ( 14d0/46d0 ) / 1d9 ! Tg N
+!------------------------------------------------------------------------------
+      T_NOx      = SUM( EDGAR_NOx      ) * ( 14d0/30d0 ) / 1d9 ! Tg N
       T_CO       = SUM( EDGAR_CO       )                 / 1d9 ! Tg CO
       T_SO2an    = SUM( EDGAR_SO2      ) * ( 32d0/64d0 ) / 1d9 ! Tg S
 
       IF ( LEDGARSHIP ) THEN
-         T_NOxSh = SUM( EDGAR_NOx_SHIP ) * ( 14d0/46d0 ) / 1d9 ! Tg N
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Molecular weight of NO is 30 g/mol (mpayer 3/14/13)
+!         T_NOxSh = SUM( EDGAR_NOx_SHIP ) * ( 14d0/46d0 ) / 1d9 ! Tg N
+!------------------------------------------------------------------------------
+         T_NOxSh = SUM( EDGAR_NOx_SHIP ) * ( 14d0/30d0 ) / 1d9 ! Tg N
          T_COSh  = SUM( EDGAR_CO_SHIP  )                 / 1d9 ! Tg CO
          T_SO2sh = SUM( EDGAR_SO2_SHIP ) * ( 32d0/64d0 ) / 1d9 ! Tg S
       ELSE
@@ -2251,7 +2299,11 @@
       WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
 
       ! FORMAT statements
- 100  FORMAT( 'NOx        for year ', i4, ' and season ', a3, 
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! 100  FORMAT( 'NOx        for year ', i4, ' and season ', a3, 
+!------------------------------------------------------------------------------
+ 100  FORMAT( 'NO         for year ', i4, ' and season ', a3, 
      &         ' : ', f10.4, ' [Tg N    ]' )
  105  FORMAT( 'NOx Ship   for year ', i4, ' and season ', a3, 
      &         ' : ', f10.4, ' [Tg N    ]' )

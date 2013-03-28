@@ -89,6 +89,8 @@
 !  (7 ) Updates to remove all hard-wired order. (fp, 2/2/10)
 !  (8)  Updates to include GFED3 (psk, 1/5/11)
 !  14 Feb 2012 - M. Payer    - Add modifications for CH4 simulation (K. Wecht)
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !******************************************************************************
 !
       USE CMN_SIZE_MOD               ! Size parameters
@@ -208,6 +210,8 @@
 !        chemistry mechanisms. This used to be done in gc_biomass_mod.f but 
 !        then is not used for GFED2, FLAMBE, etc. (jaf, mak, 11/6/09)
 !  27 Jul 2011 - R. Yantosca - Make sure that IDBCO > 0 before using it
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !******************************************************************************
 !
       ! References to F90 modules
@@ -231,7 +235,12 @@
       !FP_ISOP
       ! FP: IDBxxxs will need to used here (hotp 7/30/09)
       USE TRACERID_MOD,      ONLY : IDBBC, IDBNH3, IDBOC, IDBSO2
-      USE TRACERID_MOD,      ONLY : IDBCO, IDBNOx
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      USE TRACERID_MOD,      ONLY : IDBCO, IDBNOx
+!------------------------------------------------------------------------------
+      USE TRACERID_MOD,      ONLY : IDBNO
+      USE TRACERID_MOD,      ONLY : IDBCO
       USE TRACERID_MOD,      ONLY : IDBCO2
 
 
@@ -443,8 +452,14 @@
             ENDIF
             
             ! ND32: NOx biomass emissions in [molec/cm2/s]
-            IF ( DO_ND32 .and. N == IDBNOx ) THEN
-               AD32_bb(I,J) = AD32_bb(I,J) + BIOMASS(I,J,IDBNOx)
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
+!            IF ( DO_ND32 .and. N == IDBNOx ) THEN
+!               AD32_bb(I,J) = AD32_bb(I,J) + BIOMASS(I,J,IDBNOx)
+!------------------------------------------------------------------------------
+            IF ( DO_ND32 .and. N == IDBNO ) THEN
+               AD32_bb(I,J) = AD32_bb(I,J) + BIOMASS(I,J,IDBNO)
             ENDIF
 
          ENDDO
@@ -468,6 +483,8 @@
 !  NOTES:
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !******************************************************************************
 
 !FP_ISOP
@@ -478,7 +495,11 @@
       USE ERROR_MOD, ONLY    : ERROR_STOP
 
       ! need both IDBxxss and IDTxxxs
-      USE TRACERID_MOD, ONLY : IDBNOX,  IDBCO,   IDBALK4, IDBACET 
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      USE TRACERID_MOD, ONLY : IDBNOX,  IDBCO,   IDBALK4, IDBACET 
+!------------------------------------------------------------------------------
+      USE TRACERID_MOD, ONLY : IDBNO,   IDBCO,   IDBALK4, IDBACET 
       USE TRACERID_MOD, ONLY : IDBMEK,  IDBALD2, IDBPRPE, IDBC3H8
       USE TRACERID_MOD, ONLY : IDBCH2O, IDBC2H6
       USE TRACERID_MOD, ONLY : IDBSO2,  IDBNH3
@@ -490,7 +511,11 @@
       USE TRACERID_MOD, ONLY : IDBGLYX, IDBMGLY, IDBC2H4
       USE TRACERID_MOD, ONLY : IDBC2H2, IDBGLYC, IDBHAC
 
-      USE TRACERID_MOD, ONLY : IDTNOX,  IDTCO,   IDTALK4, IDTACET 
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      USE TRACERID_MOD, ONLY : IDTNOX,  IDTCO,   IDTALK4, IDTACET 
+!------------------------------------------------------------------------------
+      USE TRACERID_MOD, ONLY : IDTNO,   IDTCO,   IDTALK4, IDTACET 
       USE TRACERID_MOD, ONLY : IDTMEK,  IDTALD2, IDTPRPE, IDTC3H8
       USE TRACERID_MOD, ONLY : IDTCH2O, IDTC2H6
       USE TRACERID_MOD, ONLY : IDTSO2,  IDTNH3
@@ -511,7 +536,11 @@
       NBIOTRCE = 0
       
       ! Increment NBIOTRCE for each turned on biomass burning tracer
-      IF ( IDBNOX   /= 0 ) NBIOTRCE = NBIOTRCE + 1
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      IF ( IDBNOX   /= 0 ) NBIOTRCE = NBIOTRCE + 1
+!------------------------------------------------------------------------------
+      IF ( IDBNO    /= 0 ) NBIOTRCE = NBIOTRCE + 1
       IF ( IDBCO    /= 0 ) NBIOTRCE = NBIOTRCE + 1 
       IF ( IDBALK4  /= 0 ) NBIOTRCE = NBIOTRCE + 1 
       IF ( IDBACET  /= 0 ) NBIOTRCE = NBIOTRCE + 1 
@@ -540,7 +569,11 @@
       IF ( IDBHAC   /= 0 ) NBIOTRCE = NBIOTRCE + 1 
 
       ! Fill BIOTRCE w/ appropriate TRACER ID #'s
-      IF ( IDBNOX   /= 0 ) BIOTRCE(IDBNOX ) = IDTNOX
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      IF ( IDBNOX   /= 0 ) BIOTRCE(IDBNOX ) = IDTNOX
+!------------------------------------------------------------------------------
+      IF ( IDBNO    /= 0 ) BIOTRCE(IDBNO  ) = IDTNO
       IF ( IDBCO    /= 0 ) BIOTRCE(IDBCO  ) = IDTCO
       IF ( IDBALK4  /= 0 ) BIOTRCE(IDBALK4) = IDTALK4
       IF ( IDBACET  /= 0 ) BIOTRCE(IDBACET) = IDTACET
@@ -580,7 +613,11 @@
       ! Initialize to false
       BIOBGAS = .FALSE.
       ! Original gas phase emissions handled in setemis
-      IF ( IDBNOX   /= 0 ) BIOBGAS(IDBNOX ) = .TRUE.
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      IF ( IDBNOX   /= 0 ) BIOBGAS(IDBNOX ) = .TRUE.
+!------------------------------------------------------------------------------
+      IF ( IDBNO    /= 0 ) BIOBGAS(IDBNO  ) = .TRUE.
       IF ( IDBCO    /= 0 ) BIOBGAS(IDBCO  ) = .TRUE.
       IF ( IDBALK4  /= 0 ) BIOBGAS(IDBALK4) = .TRUE.
       IF ( IDBACET  /= 0 ) BIOBGAS(IDBACET) = .TRUE.

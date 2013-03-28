@@ -107,6 +107,8 @@
 !  13 Mar 2012 - M. Cooper   - Change regrid algorithm to map_a2a
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !******************************************************************************
 !
       USE inquireMod, ONLY : findFreeLUN
@@ -676,6 +678,8 @@
 !  (1 ) Now scale to IPCC future scenario for BC, OC, SO2, NH3 (bmy, 9/25/03)
 !  (2 ) IDBs are now defined in TRACERID_MOD. Use BIO_SAVE for correspondance
 !       of species order. (fp, ccc, 01/29/10)
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !******************************************************************************
 !
       ! References to F90 modules
@@ -690,7 +694,11 @@
       USE TRACER_MOD,             ONLY : ITS_A_CH4_SIM
 
       !Need IDBs from TRACERID_MOD now.
-      USE TRACERID_MOD, ONLY : IDBNOx,  IDBCO,   IDBSO2 
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      USE TRACERID_MOD, ONLY : IDBNOx,  IDBCO,   IDBSO2 
+!------------------------------------------------------------------------------
+      USE TRACERID_MOD, ONLY : IDBNO,  IDBCO,   IDBSO2 
       USE TRACERID_MOD, ONLY : IDBNH3,  IDBBC,   IDBOC 
 
       USE CMN_SIZE_MOD               ! Size parameters
@@ -724,8 +732,13 @@
          ! Scale each species to IPCC future scenario
 ! Now use BIO_SAVE to have the correspondance GFED order -> tracers order.
 ! (ccc, 01/27/10)
-!         IF ( N == IDBNOx ) THEN
-         IF ( BIO_SAVE(N) == IDBNOx ) THEN
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
+!!         IF ( N == IDBNOx ) THEN
+!         IF ( BIO_SAVE(N) == IDBNOx ) THEN
+!------------------------------------------------------------------------------
+         IF ( BIO_SAVE(N) == IDBNO ) THEN
 
             ! Future biomass NOx [molec/cm2]
             BB(I,J,N) = BB(I,J,N) * GET_FUTURE_SCALE_NOxbb( I, J )
@@ -862,6 +875,8 @@
 !  (4 ) Add IDBs from TRACERID_MOD. Initialize BIO_SAVE (fp, 01/29/10)
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !******************************************************************************
 !
       ! References to F90 modules
@@ -870,7 +885,11 @@
       USE ERROR_MOD,     ONLY : ALLOC_ERR
       USE FILE_MOD,      ONLY : IOERROR
       USE LOGICAL_MOD,   ONLY : LDICARB
-      USE TRACERID_MOD,  ONLY : IDBNOx,  IDBCO,   IDBALK4
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      USE TRACERID_MOD,  ONLY : IDBNOx,  IDBCO,   IDBALK4
+!------------------------------------------------------------------------------
+      USE TRACERID_MOD,  ONLY : IDBNO,   IDBCO,   IDBALK4
       USE TRACERID_MOD,  ONLY : IDBACET, IDBMEK,  IDBALD2
       USE TRACERID_MOD,  ONLY : IDBPRPE, IDBC3H8, IDBCH2O
       USE TRACERID_MOD,  ONLY : IDBC2H6, IDBBC,   IDBOC
@@ -1026,8 +1045,13 @@
       DO N = 1, N_SPEC
          SELECT CASE ( TRIM( GFED2_SPEC_NAME(N) ) ) 
             CASE( 'NOx'  )
-!               IDBNOx              = N
-               BIO_SAVE(N)         = IDBNOX
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
+!!               IDBNOx              = N
+!               BIO_SAVE(N)         = IDBNOX
+!------------------------------------------------------------------------------
+               BIO_SAVE(N)         = IDBNO
                GFED2_SPEC_MOLWT(N) = 14d-3
                GFED2_SPEC_UNIT(N)  = '[Tg N]'
             CASE( 'CO'   )

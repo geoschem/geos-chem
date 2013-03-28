@@ -66,6 +66,8 @@
 !  (8 ) Now can read 0.5 x 0.667 nested grid emissions (amv, bmy, 12/18/09)
 !  22 Mar 2012 - M. Payer    - C2H6 emissions are too low. Use Yaping Xiao's
 !                              C2H6 emissions instead.
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -531,6 +533,11 @@
       USE TRACER_MOD,   ONLY : N_TRACERS
       USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
       USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNOX
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNOX
+!------------------------------------------------------------------------------
+      USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNO
       USE TRACERID_MOD, ONLY : IDTNH3,  IDTPRPE, IDTSO2,  IDTSO4  
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TRACER_MOD,   ONLY : TRACER_MW_KG
@@ -547,6 +554,8 @@
 !  07 Feb 2011 - R. Yantosca - Now reads anthro & biofuel emissions separately
 !   7 Feb 2011 - R. Yantosca - Now reads biofuel only when LNEI05=T
 !  07 Feb 2011 - R. Yantosca - Added ProTeX headers
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -636,9 +645,16 @@
       DO J=1,JJPAR
          IF ( WEEKDAY ) THEN
             IF (.not. LNEI05) THEN
-               IF ( IDTNOX > 0) EMISS(:,J,IDTNOX) = 
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
+!               IF ( IDTNOX > 0) EMISS(:,J,IDTNOX) = 
+!     &              EPA_WD_AN_NOX(:,J) * A(:,J) *
+!     &              6.0225d-23 * TRACER_MW_KG(IDTNOX) 
+!------------------------------------------------------------------------------
+               IF ( IDTNO > 0) EMISS(:,J,IDTNO) = 
      &              EPA_WD_AN_NOX(:,J) * A(:,J) *
-     &              6.0225d-23 * TRACER_MW_KG(IDTNOX) 
+     &              6.0225d-23 * TRACER_MW_KG(IDTNO) 
                IF ( IDTCO  > 0) EMISS(:,J,IDTCO)  = 
      &              EPA_WD_AN_CO(:,J) * A(:,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTCO) 
@@ -674,9 +690,16 @@
      &              6.0225d-23 * TRACER_MW_KG(IDTNH3) 
             ENDIF
 
-            IF ( IDTNOX > 0 ) EMISS(:,J,IDTNOX) = 
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
+!            IF ( IDTNOX > 0 ) EMISS(:,J,IDTNOX) = 
+!     &           EPA_WD_BF_NOX(:,J) * A(:,J) *
+!     &           6.0225d-23 * TRACER_MW_KG(IDTNOX) 
+!------------------------------------------------------------------------------
+            IF ( IDTNO > 0 ) EMISS(:,J,IDTNO) = 
      &           EPA_WD_BF_NOX(:,J) * A(:,J) *
-     &           6.0225d-23 * TRACER_MW_KG(IDTNOX) 
+     &           6.0225d-23 * TRACER_MW_KG(IDTNO) 
             IF ( IDTCO > 0 ) EMISS(:,J,IDTCO)  = 
      &           EPA_WD_BF_CO(:,J) * A(:,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTCO) 
@@ -713,9 +736,16 @@
 
          ELSE ! ITS a WEEKEND...
             IF (.not. LNEI05) THEN
-               IF ( IDTNOX > 0) EMISS(:,J,IDTNOX) = 
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
+!               IF ( IDTNOX > 0) EMISS(:,J,IDTNOX) = 
+!     &              EPA_WE_AN_NOX(:,J) * A(:,J) *
+!     &              6.0225d-23 * TRACER_MW_KG(IDTNOX) 
+!------------------------------------------------------------------------------
+               IF ( IDTNO > 0) EMISS(:,J,IDTNO) = 
      &              EPA_WE_AN_NOX(:,J) * A(:,J) *
-     &              6.0225d-23 * TRACER_MW_KG(IDTNOX) 
+     &              6.0225d-23 * TRACER_MW_KG(IDTNO) 
                IF ( IDTCO  > 0) EMISS(:,J,IDTCO)  = 
      &              EPA_WE_AN_CO(:,J) * A(:,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTCO) 
@@ -751,9 +781,16 @@
      &              6.0225d-23 * TRACER_MW_KG(IDTNH3) 
             ENDIF
             
-            IF ( IDTNOX > 0 ) EMISS(:,J,IDTNOX) = 
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
+!            IF ( IDTNOX > 0 ) EMISS(:,J,IDTNOX) = 
+!     &           EPA_WE_BF_NOX(:,J) * A(:,J) *
+!     &           6.0225d-23 * TRACER_MW_KG(IDTNOX) 
+!------------------------------------------------------------------------------
+            IF ( IDTNO > 0 ) EMISS(:,J,IDTNO) = 
      &           EPA_WE_BF_NOX(:,J) * A(:,J) *
-     &           6.0225d-23 * TRACER_MW_KG(IDTNOX) 
+     &           6.0225d-23 * TRACER_MW_KG(IDTNO) 
             IF ( IDTCO  > 0 ) EMISS(:,J,IDTCO)  = 
      &           EPA_WE_BF_CO(:,J) * A(:,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTCO) 
@@ -1803,7 +1840,11 @@
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TRACER_MOD,   ONLY : TRACER_MW_KG
       USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
-      USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNOX
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNOX
+!------------------------------------------------------------------------------
+      USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNO
       USE TRACERID_MOD, ONLY : IDTNH3,  IDTPRPE, IDTSO2,  IDTSO4  
 
       USE CMN_SIZE_MOD                 ! Size parameters
@@ -1825,6 +1866,8 @@
 !  07 Feb 2011 - R. Yantosca - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  22 Mar 2012 - M. Payer    - Remove print for C2H6 emissions.
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1893,7 +1936,11 @@
       F_NH3   = 0d0 
 
       ! Prevent array out of bounds error for undefined tracers
-      IF ( IDTNOX  > 0 ) F_NOX  = TRACER_MW_KG(IDTNOX )
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      IF ( IDTNOX  > 0 ) F_NOX  = TRACER_MW_KG(IDTNOX )
+!------------------------------------------------------------------------------
+      IF ( IDTNO   > 0 ) F_NOX  = TRACER_MW_KG(IDTNO  )
       IF ( IDTCO   > 0 ) F_CO   = TRACER_MW_KG(IDTCO  )
       IF ( IDTALK4 > 0 ) F_ALK4 = TRACER_MW_KG(IDTALK4)
       IF ( IDTACET > 0 ) F_ACET = TRACER_MW_KG(IDTACET)
@@ -1956,7 +2003,11 @@
       
       ! Weekday avg anthro
       WRITE( 6, '(a)' )
-      WRITE( 6, 100   ) 'NOx ', THISMONTH, WD_NOX,  '  '
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      WRITE( 6, 100   ) 'NOx ', THISMONTH, WD_NOX,  '  '
+!------------------------------------------------------------------------------
+      WRITE( 6, 100   ) 'NO  ', THISMONTH, WD_NOX,  '  '
       WRITE( 6, 100   ) 'CO  ', THISMONTH, WD_CO,   '  '
       WRITE( 6, 100   ) 'ALK4', THISMONTH, WD_ALK4, ' C'
       WRITE( 6, 100   ) 'ACET', THISMONTH, WD_ACET, ' C'
@@ -1972,7 +2023,11 @@
 
       ! Weekend avg anthro
       WRITE( 6, '(a)' )
-      WRITE( 6, 110   ) 'NOx ', THISMONTH, WE_NOX,  '  '
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      WRITE( 6, 110   ) 'NOx ', THISMONTH, WE_NOX,  '  '
+!------------------------------------------------------------------------------
+      WRITE( 6, 110   ) 'NO  ', THISMONTH, WE_NOX,  '  '
       WRITE( 6, 110   ) 'CO  ', THISMONTH, WE_CO,   '  '
       WRITE( 6, 110   ) 'ALK4', THISMONTH, WE_ALK4, ' C'
       WRITE( 6, 110   ) 'ACET', THISMONTH, WE_ACET, ' C'
@@ -2012,7 +2067,11 @@
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TRACER_MOD,   ONLY : TRACER_MW_KG
       USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
-      USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNOX
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNOX
+!------------------------------------------------------------------------------
+      USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNO
       USE TRACERID_MOD, ONLY : IDTNH3,  IDTPRPE, IDTSO2,  IDTSO4  
 
       USE CMN_SIZE_MOD  ! Size parameters
@@ -2027,6 +2086,8 @@
 !  (2 ) Now replace FMOL with TRACER_MW_KG
 !  07 Feb 2011 - R. Yantosca - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2096,7 +2157,11 @@
       F_NH3   = 0d0 
 
       ! Prevent array out of bounds error for undefined tracers
-      IF ( IDTNOX  > 0 ) F_NOX  = TRACER_MW_KG(IDTNOX )
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      IF ( IDTNOX  > 0 ) F_NOX  = TRACER_MW_KG(IDTNOX )
+!------------------------------------------------------------------------------
+      IF ( IDTNO   > 0 ) F_NOX  = TRACER_MW_KG(IDTNO  )
       IF ( IDTCO   > 0 ) F_CO   = TRACER_MW_KG(IDTCO  )
       IF ( IDTALK4 > 0 ) F_ALK4 = TRACER_MW_KG(IDTALK4)
       IF ( IDTACET > 0 ) F_ACET = TRACER_MW_KG(IDTACET)
@@ -2160,7 +2225,11 @@
       
       ! Weekday avg biofuel
       WRITE( 6, '(a)' )
-      WRITE( 6, 100   ) 'NOx ', THISMONTH, WD_NOX,  '  '
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      WRITE( 6, 100   ) 'NOx ', THISMONTH, WD_NOX,  '  '
+!------------------------------------------------------------------------------
+      WRITE( 6, 100   ) 'NO  ', THISMONTH, WD_NOX,  '  '
       WRITE( 6, 100   ) 'CO  ', THISMONTH, WD_CO,   '  '
       WRITE( 6, 100   ) 'ALK4', THISMONTH, WD_ALK4, ' C'
       WRITE( 6, 100   ) 'ACET', THISMONTH, WD_ACET, ' C'
@@ -2177,7 +2246,11 @@
 
       ! Weekend avg biofuel
       WRITE( 6, '(a)' )
-      WRITE( 6, 110   ) 'NOx ', THISMONTH, WE_NOX,  '  '
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      WRITE( 6, 110   ) 'NOx ', THISMONTH, WE_NOX,  '  '
+!------------------------------------------------------------------------------
+      WRITE( 6, 110   ) 'NO  ', THISMONTH, WE_NOX,  '  '
       WRITE( 6, 110   ) 'CO  ', THISMONTH, WE_CO,   '  '
       WRITE( 6, 110   ) 'ALK4', THISMONTH, WE_ALK4, ' C'
       WRITE( 6, 110   ) 'ACET', THISMONTH, WE_ACET, ' C'
@@ -2251,7 +2324,11 @@
 ! !USES:
 !
       USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
-      USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNOX
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNOX
+!------------------------------------------------------------------------------
+      USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNO
       USE TRACERID_MOD, ONLY : IDTNH3,  IDTPRPE, IDTSO2,  IDTSO4  
 
       USE CMN_SIZE_MOD               ! Size parameters
@@ -2278,6 +2355,8 @@
 !  07 Feb 2011 - R. Yantosca - Added ProTeX headers
 !  22 Mar 2012 - M. Payer    - C2H6 emissions are too low. Use Yaping Xiao's
 !                              C2H6 emissions instead.
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2291,7 +2370,12 @@
          !--------------------
          ! Weekday avg anthro
          !--------------------
-         IF ( N == IDTNOX ) THEN
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
+!         IF ( N == IDTNOX ) THEN
+!------------------------------------------------------------------------------
+         IF ( N == IDTNO ) THEN
             EPA_NEI = EPA_WD_AN_NOX(I,J)
 
          ELSE IF ( N == IDTCO ) THEN 
@@ -2339,7 +2423,12 @@
          !--------------------
          ! Weekend avg anthro
          !--------------------
-         IF (  N == IDTNOX  ) THEN
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
+!         IF (  N == IDTNOX  ) THEN
+!------------------------------------------------------------------------------
+         IF (  N == IDTNO ) THEN
             EPA_NEI = EPA_WE_AN_NOX(I,J)
 
          ELSE IF ( N == IDTCO ) THEN 
@@ -2404,7 +2493,11 @@
 ! !USES:
 !
       USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
-      USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNOX
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNOX
+!------------------------------------------------------------------------------
+      USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNO
       USE TRACERID_MOD, ONLY : IDTNH3,  IDTPRPE, IDTSO2,  IDTSO4  
 
       USE CMN_SIZE_MOD               ! Size parameters
@@ -2425,6 +2518,8 @@
 !  (1 ) Now make sure all USE statements are USE, ONLY.  Also remove reference
 !        to BPCH2_MOD and TRACERID_MOD, they're not needed.  (bmy, 10/3/05)
 !  07 Feb 2011 - R. Yantosca - Added ProTeX headers
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2438,7 +2533,12 @@
          !---------------------
          ! Weekday avg biofuel
          !---------------------
-         IF ( N == IDTNOX ) THEN
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
+!         IF ( N == IDTNOX ) THEN
+!------------------------------------------------------------------------------
+         IF ( N == IDTNO ) THEN
             EPA_NEI = EPA_WD_BF_NOX(I,J)
 
          ELSE IF ( N == IDTCO ) THEN 
@@ -2484,7 +2584,12 @@
          !---------------------
          ! Weekend avg biofuel
          !---------------------
-         IF (  N == IDTNOX  ) THEN
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
+!         IF (  N == IDTNOX  ) THEN
+!------------------------------------------------------------------------------
+         IF (  N == IDTNO ) THEN
             EPA_NEI = EPA_WE_BF_NOX(I,J)
 
          ELSE IF ( N == IDTCO ) THEN 

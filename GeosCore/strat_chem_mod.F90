@@ -59,6 +59,8 @@ MODULE STRAT_CHEM_MOD
 !  20 Jul 2012 - R. Yantosca - Correct compilation error in GET_RATES_INTERP
 !  07 Aug 2012 - R. Yantosca - Fix parallelization problem in Bry do loop
 !  05 Oct 2012 - R. Yantosca - Add bug fix for IFORT 12 compiler in CALC_STE
+!  14 Mar 2013 - M. Payer    - Replace Ox with O3 as part of removal of NOx-Ox
+!                              partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -141,7 +143,11 @@ CONTAINS
     USE TIME_MOD,           ONLY : TIMESTAMP_STRING
     USE TRACER_MOD,         ONLY : STT
     USE TRACER_MOD,         ONLY : XNUMOLAIR
-    USE TRACERID_MOD,       ONLY : IDTOX
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!    USE TRACERID_MOD,       ONLY : IDTOX
+!------------------------------------------------------------------------------
+    USE TRACERID_MOD,       ONLY : IDTO3
     USE TRACERID_MOD,       ONLY : IDTCHBr3
     USE TRACERID_MOD,       ONLY : IDTCH2Br2
     USE TRACERID_MOD,       ONLY : IDTCH3Br
@@ -184,6 +190,8 @@ CONTAINS
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  27 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
+!  14 Mar 2013 - M. Payer    - Replace Ox with O3 as part of removal of NOx-Ox
+!                              partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -304,7 +312,11 @@ CONTAINS
                    NN = Strat_TrID_GC(N) ! Tracer index in STT
 
                    ! Skip Ox; we'll always use either Linoz or Synoz
-                   IF ( IT_IS_A_FULLCHEM_SIM .and. NN .eq. IDTOx ) CYCLE
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!                   IF ( IT_IS_A_FULLCHEM_SIM .and. NN .eq. IDTOx ) CYCLE
+!------------------------------------------------------------------------------
+                   IF ( IT_IS_A_FULLCHEM_SIM .and. NN .eq. IDTO3 ) CYCLE
 
                    dt = DTCHEM                              ! timestep [s]
                    k = LOSS(I,J,L,N)                        ! loss freq [s-1]
@@ -336,12 +348,36 @@ CONTAINS
        ! Ozone
        !===================================
 
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace Ox with O3 (mpayer, 3/14/13)
+!       ! Make note of inital state for determining tendency later
+!       BEFORE = STT(:,:,:,IDTOX )
+!
+!       ! Put ozone in v/v
+!       STT(:,:,:,IDTOX ) = STT(:,:,:,IDTOX) * TCVV( IDTOX ) / &
+!                           State_Met%AD
+!
+!       ! Do Linoz or Synoz
+!       IF ( LLINOZ ) THEN
+!          CALL Do_Linoz( am_I_Root, State_Met )
+!       ELSE
+!          CALL Do_Synoz( am_I_Root, State_Met )
+!       ENDIF
+!
+!       ! Put ozone back to kg
+!       STT(:,:,:,IDTOX) = STT(:,:,:,IDTOX) * State_Met%AD / TCVV( IDTOX )
+!
+!       ! Put tendency into diagnostic array [kg box-1]
+!       SCHEM_TEND(:,:,:,IDTOX) = SCHEM_TEND(:,:,:,IDTOX) + &
+!                                                  ( STT(:,:,:,IDTOX) - BEFORE )
+!------------------------------------------------------------------------------
        ! Make note of inital state for determining tendency later
-       BEFORE = STT(:,:,:,IDTOX )
+       BEFORE = STT(:,:,:,IDTO3 )
 
        ! Put ozone in v/v
-       STT(:,:,:,IDTOX ) = STT(:,:,:,IDTOX) * TCVV( IDTOX ) / &
-                           State_Met%AD
+       STT(:,:,:,IDTO3) = STT(:,:,:,IDTO3) * TCVV( IDTO3 ) / &
+                          State_Met%AD
 
        ! Do Linoz or Synoz
        IF ( LLINOZ ) THEN
@@ -351,11 +387,11 @@ CONTAINS
        ENDIF
 
        ! Put ozone back to kg
-       STT(:,:,:,IDTOX) = STT(:,:,:,IDTOX) * State_Met%AD / TCVV( IDTOX )
+       STT(:,:,:,IDTO3) = STT(:,:,:,IDTO3) * State_Met%AD / TCVV( IDTO3 )
 
        ! Put tendency into diagnostic array [kg box-1]
-       SCHEM_TEND(:,:,:,IDTOX) = SCHEM_TEND(:,:,:,IDTOX) + &
-                                                  ( STT(:,:,:,IDTOX) - BEFORE )
+       SCHEM_TEND(:,:,:,IDTO3) = SCHEM_TEND(:,:,:,IDTO3) + &
+                                                  ( STT(:,:,:,IDTO3) - BEFORE )
 
        !========================================
        ! Reactions with OH
@@ -1429,11 +1465,19 @@ CONTAINS
 
              IF ( TRIM(TRACER_NAME(N)) .eq. TRIM(sname) ) THEN
                 
-                IF ( LLINOZ .and. TRIM(TRACER_NAME(N)) .eq. 'Ox' ) THEN
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!                IF ( LLINOZ .and. TRIM(TRACER_NAME(N)) .eq. 'Ox' ) THEN
+!------------------------------------------------------------------------------
+                IF ( LLINOZ .and. TRIM(TRACER_NAME(N)) .eq. 'O3' ) THEN
                    IF ( am_I_Root ) THEN
                       WRITE( 6, '(a)' ) TRIM(TRACER_NAME(N)) // ' (via Linoz)'
                    ENDIF
-                ELSE IF ( TRIM(TRACER_NAME(N)) .eq. 'Ox' ) THEN
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!                ELSE IF ( TRIM(TRACER_NAME(N)) .eq. 'Ox' ) THEN
+!------------------------------------------------------------------------------
+                ELSE IF ( TRIM(TRACER_NAME(N)) .eq. 'O3' ) THEN
                    IF ( am_I_Root ) THEN
                       WRITE( 6, '(a)' ) TRIM(TRACER_NAME(N)) // ' (via Synoz)'
                    ENDIF
@@ -1489,7 +1533,11 @@ CONTAINS
           ENDIF
        ENDIF
        DO N = 1, N_TRACERS
-          IF ( TRIM(TRACER_NAME(N)) .eq. 'Ox' .or. &
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!          IF ( TRIM(TRACER_NAME(N)) .eq. 'Ox' .or. &
+!------------------------------------------------------------------------------
+          IF ( TRIM(TRACER_NAME(N)) .eq. 'O3' .or. &
                TRIM(TRACER_NAME(N)) .eq. 'OxStrt' ) THEN
              NSCHEM = NSCHEM + 1
              Strat_TrID_GC(NSCHEM) = N
@@ -1609,7 +1657,11 @@ CONTAINS
     USE TAGGED_OX_MOD,      ONLY : ADD_STRAT_POX
     USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_YEAR
     USE TRACER_MOD,         ONLY : STT, ITS_A_TAGOX_SIM
-    USE TRACERID_MOD,       ONLY : IDTOX, IDTOxStrt
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!    USE TRACERID_MOD,       ONLY : IDTOX, IDTOxStrt
+!------------------------------------------------------------------------------
+    USE TRACERID_MOD,       ONLY : IDTO3, IDTOxStrt
     USE TROPOPAUSE_MOD,     ONLY : GET_TPAUSE_LEVEL
 
     USE CMN_SIZE_MOD             ! Size parameters
@@ -1701,6 +1753,8 @@ CONTAINS
 !                              derived type object
 !  04 Feb 2013 - M. Payer    - Replace all JJPAR with values for nested grids
 !                              since JJPAR is no longer a parameter
+!  14 Mar 2013 - M. Payer    - Replace Ox with O3 as part of removal of NOx-Ox
+!                              partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1825,7 +1879,11 @@ CONTAINS
 #endif
 
     ! Store in the proper Ox tracer #
-    NTRACER = IDTOX
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!    NTRACER = IDTOX
+!------------------------------------------------------------------------------
+    NTRACER = IDTO3
 
     ! Only initialize on first time step
     IF ( FIRST ) STFLUX = 0d0
@@ -1932,7 +1990,11 @@ CONTAINS
              ENDIF
 
              ! Store O3 flux in the proper tracer number
-             STT(I,J,L,IDTOX) = STT(I,J,L,IDTOX) + PO3 
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!             STT(I,J,L,IDTOX) = STT(I,J,L,IDTOX) + PO3 
+!------------------------------------------------------------------------------
+             STT(I,J,L,IDTO3) = STT(I,J,L,IDTO3) + PO3 
 
              ! Store O3 flux for strat Ox tracer (Tagged Ox only)
              IF ( ITS_A_TAGOX_SIM() ) THEN

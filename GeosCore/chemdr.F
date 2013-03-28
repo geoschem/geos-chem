@@ -50,8 +50,13 @@
       USE TIME_MOD,             ONLY : GET_YEAR
       USE TIME_MOD,             ONLY : ITS_A_NEW_DAY
       USE TRACER_MOD,           ONLY : STT
-      USE TRACERID_MOD,         ONLY : IDTNOX
-      USE TRACERID_MOD,         ONLY : IDTOX
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      USE TRACERID_MOD,         ONLY : IDTNOX
+!      USE TRACERID_MOD,         ONLY : IDTOX
+!------------------------------------------------------------------------------
+      USE TRACERID_MOD,         ONLY : IDTNO
+      USE TRACERID_MOD,         ONLY : IDTO3
       USE TRACERID_MOD,         ONLY : SETTRACE
       USE TROPOPAUSE_MOD,       ONLY : SAVE_FULL_TROP
 
@@ -233,6 +238,8 @@
 !  25 Oct 2012 - R. Yantosca - Now add RC (success/failure) as an argument
 !  08 Nov 2012 - R. Yantosca - Now add Input_Opt (Input Options) as an argument
 !  11 Dec 2012 - R. Yantosca - Remove NI, NJ, NL arguments, they are not used
+!  14 Mar 2013 - M. Payer    - Replace NOx and Ox with NO and O3 as part
+!                              of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -735,10 +742,19 @@
       !=================================================================
       ! Call OHSAVE which saves info on OZONE, OH, AND NO concentrations 
       !=================================================================
-      IF ( IDTNOX /= 0 .AND. IDTOX /= 0 ) THEN
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      IF ( IDTNOX /= 0 .AND. IDTOX /= 0 ) THEN
+!         CALL OHSAVE( N_TRACERS,              XNUMOL(1:N_TRACERS),
+!     &                STT(:,:,:,1:N_TRACERS), FRACO3, 
+!     &                FRACNO,                 FRACNO2, 
+!     &                SAVEOH,                 SAVEHO2, 
+!     &                SAVENO,                 SAVENO2, 
+!     &                SAVENO3 )
+!------------------------------------------------------------------------------
+      IF ( IDTNO /= 0 .AND. IDTO3 /= 0 ) THEN
          CALL OHSAVE( N_TRACERS,              XNUMOL(1:N_TRACERS),
-     &                STT(:,:,:,1:N_TRACERS), FRACO3, 
-     &                FRACNO,                 FRACNO2, 
+     &                STT(:,:,:,1:N_TRACERS), 
      &                SAVEOH,                 SAVEHO2, 
      &                SAVENO,                 SAVENO2, 
      &                SAVENO3 )

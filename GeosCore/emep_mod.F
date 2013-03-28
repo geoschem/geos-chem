@@ -78,6 +78,8 @@
 !  13 Mar 2012 - M. Cooper   - Changed gridding algorithm to map_a2a
 !  22 Mar 2012 - M. Payer    - C2H6 emissions are too low. Use Yaping
 !                              Xiao's C2H6 emissions instead.
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -161,7 +163,11 @@
 !
 ! !USES:
 ! 
-      USE TRACERID_MOD, ONLY : IDTNOX,  IDTCO,   IDTALK4, IDTMEK
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      USE TRACERID_MOD, ONLY : IDTNOX,  IDTCO,   IDTALK4, IDTMEK
+!------------------------------------------------------------------------------
+      USE TRACERID_MOD, ONLY : IDTNO,   IDTCO,   IDTALK4, IDTMEK
       USE TRACERID_MOD, ONLY : IDTALD2, IDTPRPE, IDTC2H6, IDTSO2
       USE TRACERID_MOD, ONLY : IDTNH3
       USE TRACER_MOD,   ONLY : XNUMOL
@@ -188,6 +194,8 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  22 Mar 2012 - M. Payer    - C2H6 emissions are too low. Use Yaping
 !                              Xiao's C2H6 emissions instead.
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -210,7 +218,11 @@
       IF ( PRESENT( SHIP ) ) IS_SHIP = SHIP
 
       ! check SHIP availability
-      HAS_SHIP = (/ IDTNOX, IDTCO, IDTSO2 /)
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      HAS_SHIP = (/ IDTNOX, IDTCO, IDTSO2 /)
+!------------------------------------------------------------------------------
+      HAS_SHIP = (/ IDTNO, IDTCO, IDTSO2 /)
 
       IF ( IS_SHIP .AND. .NOT. ANY( HAS_SHIP == N) ) THEN
          WRITE(6,*)'WARNING: EMEP SHIP emissions not available for'//
@@ -220,7 +232,12 @@
       ENDIF
 
       ! NOx
-      IF ( N  == IDTNOX ) THEN
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
+!      IF ( N  == IDTNOX ) THEN
+!------------------------------------------------------------------------------
+      IF ( N  == IDTNO ) THEN
          IF ( IS_SHIP ) THEN
             EMEP = EMEP_NOx_SHIP(I,J)
          ELSE 
@@ -327,7 +344,11 @@
       USE CMN_O3_MOD             ! SCALEYEAR
 
 #if defined( DEVEL )
-      USE TRACERID_MOD, ONLY : IDTNOX,  IDTCO,   IDTALK4, IDTMEK
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      USE TRACERID_MOD, ONLY : IDTNOX,  IDTCO,   IDTALK4, IDTMEK
+!------------------------------------------------------------------------------
+      USE TRACERID_MOD, ONLY : IDTNO,   IDTCO,   IDTALK4, IDTMEK
       USE TRACERID_MOD, ONLY : IDTALD2, IDTPRPE, IDTC2H6, IDTSO2
       USE TRACERID_MOD, ONLY : IDTNH3
       USE TRACER_MOD,   ONLY : XNUMOL
@@ -346,6 +367,8 @@
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -581,12 +604,23 @@
       ENDDO
       ENDDO
 
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
+!      IF ( LEMEPSHIP ) THEN
+!         EMISS(:,:,IDTNOx) = EMEP_NOx_SHIP(:,:)
+!     &        * A / XNUMOL(IDTNOx)
+!      ELSE 
+!         EMISS(:,:,IDTNOx) = EMEP_NOx(:,:)
+!     &        * A / XNUMOL(IDTNOx)
+!      ENDIF
+!------------------------------------------------------------------------------
       IF ( LEMEPSHIP ) THEN
-         EMISS(:,:,IDTNOx) = EMEP_NOx_SHIP(:,:)
-     &        * A / XNUMOL(IDTNOx)
+         EMISS(:,:,IDTNO) = EMEP_NOx_SHIP(:,:)
+     &        * A / XNUMOL(IDTNO)
       ELSE 
-         EMISS(:,:,IDTNOx) = EMEP_NOx(:,:)
-     &        * A / XNUMOL(IDTNOx)
+         EMISS(:,:,IDTNO) = EMEP_NOx(:,:)
+     &        * A / XNUMOL(IDTNO)
       ENDIF
       IF ( LEMEPSHIP ) THEN
          EMISS(:,:,IDTCO) = EMEP_CO_SHIP(:,:)
@@ -671,7 +705,11 @@
       USE CMN_O3_MOD         ! SCALEYEAR
 
 #if defined( DEVEL )
-      USE TRACERID_MOD, ONLY : IDTNOX,  IDTCO,   IDTALK4, IDTMEK
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      USE TRACERID_MOD, ONLY : IDTNOX,  IDTCO,   IDTALK4, IDTMEK
+!------------------------------------------------------------------------------
+      USE TRACERID_MOD, ONLY : IDTNO,   IDTCO,   IDTALK4, IDTMEK
       USE TRACERID_MOD, ONLY : IDTALD2, IDTPRPE, IDTC2H6, IDTSO2
       USE TRACERID_MOD, ONLY : IDTNH3
       USE TRACER_MOD,   ONLY : XNUMOL
@@ -683,6 +721,8 @@
 !
 ! !REVISION HISTORY:
 !  23 Oct 2006 - A. v. Donkelaar - Initial version, modified from EMISS_EMEP
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -840,12 +880,23 @@
       ENDDO
       ENDDO
 
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
+!      IF ( LEMEPSHIP ) THEN
+!         EMISS(:,:,IDTNOx) = EMEP_NOx_SHIP(:,:)
+!     &        * A / XNUMOL(IDTNOx)
+!      ELSE 
+!         EMISS(:,:,IDTNOx) = EMEP_NOx(:,:)
+!     &        * A / XNUMOL(IDTNOx)
+!      ENDIF
+!------------------------------------------------------------------------------
       IF ( LEMEPSHIP ) THEN
-         EMISS(:,:,IDTNOx) = EMEP_NOx_SHIP(:,:)
-     &        * A / XNUMOL(IDTNOx)
+         EMISS(:,:,IDTNO) = EMEP_NOx_SHIP(:,:)
+     &        * A / XNUMOL(IDTNO)
       ELSE 
-         EMISS(:,:,IDTNOx) = EMEP_NOx(:,:)
-     &        * A / XNUMOL(IDTNOx)
+         EMISS(:,:,IDTNO) = EMEP_NOx(:,:)
+     &        * A / XNUMOL(IDTNO)
       ENDIF
       IF ( LEMEPSHIP ) THEN
          EMISS(:,:,IDTCO) = EMEP_CO_SHIP(:,:)
@@ -999,7 +1050,11 @@
       USE LOGICAL_MOD,  ONLY : LEMEPSHIP
       USE TIME_MOD,     ONLY : ITS_A_LEAPYEAR
       USE TRACER_MOD,   ONLY : XNUMOL
-      USE TRACERID_MOD, ONLY : IDTNOX,  IDTCO,   IDTALK4, IDTMEK
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      USE TRACERID_MOD, ONLY : IDTNOX,  IDTCO,   IDTALK4, IDTMEK
+!------------------------------------------------------------------------------
+      USE TRACERID_MOD, ONLY : IDTNO,   IDTCO,   IDTALK4, IDTMEK
       USE TRACERID_MOD, ONLY : IDTALD2, IDTPRPE, IDTC2H6, IDTSO2
       USE TRACERID_MOD, ONLY : IDTNH3
 
@@ -1022,6 +1077,8 @@
 !  (5 ) Bug fix, now print out correct monthly EMEP totals (bmy, 1/30/09)
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !  22 Mar 2012 - M. Payer    - Remove print for C2H6 emissions.
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1071,7 +1128,11 @@
       ! Define conversion factors for kg/molec
       ! (Undefined tracers will be zero)
       B(:) = 0d0
-      IF ( IDTNOx  > 0 ) B(1) = 14d-3 / 6.0225d23        ! Tg N
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      IF ( IDTNOx  > 0 ) B(1) = 14d-3 / 6.0225d23        ! Tg N
+!------------------------------------------------------------------------------
+      IF ( IDTNO   > 0 ) B(1) = 14d-3 / 6.0225d23        ! Tg N
       IF ( IDTCO   > 0 ) B(2) = 1d0   / XNUMOL(IDTCO  )
       IF ( IDTALK4 > 0 ) B(3) = 1d0   / XNUMOL(IDTALK4)
       IF ( IDTMEK  > 0 ) B(4) = 1d0   / XNUMOL(IDTMEK )
@@ -1122,7 +1183,11 @@
       !----------------
 
       ! Print totals in [kg/month]
-      WRITE( 6, 110   ) 'NOx ', EMISS_YEAR, EMEP_MONTH, NOx,  ' N'
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      WRITE( 6, 110   ) 'NOx ', EMISS_YEAR, EMEP_MONTH, NOx,  ' N'
+!------------------------------------------------------------------------------
+      WRITE( 6, 110   ) 'NO  ', EMISS_YEAR, EMEP_MONTH, NOx,  ' N'
       WRITE( 6, 110   ) 'CO  ', EMISS_YEAR, EMEP_MONTH, CO,   '  '
       WRITE( 6, 110   ) 'SO2 ', EMISS_YEAR, EMEP_MONTH, SO2,  ' S'
       WRITE( 6, 110   ) 'NH3 ', EMISS_YEAR, EMEP_MONTH, NH3,  '  '
@@ -1300,7 +1365,6 @@
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1 
       USE LOGICAL_MOD,    ONLY : LEMEPSHIP
       USE GRID_MOD,       ONLY : GET_AREA_CM2
-      USE TRACERID_MOD,   ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
 
       USE CMN_SIZE_MOD         ! Size parameters
@@ -1468,7 +1532,12 @@
       ! convert to molec/cm2 for consistency with previous
       ! emissions
       B = 0d0
-      IF ( TRACER .eq.  1 ) B = 1.d3 / 46d0 * 6.0225d23
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Molecular weight of NO is 30 g/mol (mpayer 3/14/13)
+!      IF ( TRACER .eq.  1 ) B = 1.d3 / 46d0 * 6.0225d23
+!------------------------------------------------------------------------------
+      IF ( TRACER .eq.  1 ) B = 1.d3 / 30d0 * 6.0225d23
       IF ( TRACER .eq.  4 ) B = 1.d3 / 28d0 * 6.0225d23
       IF ( TRACER .eq. 26 ) B = 1.d3 / 64d0 * 6.0225d23
       IF ( TRACER .eq. 30 ) B = 1.d3 / 17d0 * 6.0225d23
@@ -1511,7 +1580,6 @@
       USE TIME_MOD,       ONLY : EXPAND_DATE, GET_MONTH
       USE DIRECTORY_MOD,  ONLY : DATA_DIR
       USE LOGICAL_MOD,    ONLY : LEMEPSHIP
-      USE TRACERID_MOD,   ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
       USE GRID_MOD,       ONLY : GET_AREA_CM2
 
       USE CMN_SIZE_MOD       ! Size parameters
@@ -1673,7 +1741,12 @@
       ! convert to molec/cm2 for consistency with previous
       ! emissions
       B = 0d0
-      IF ( TRACER .eq.  1 ) B = 1.d3 / 46d0 * 6.0225d23
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Molecular weight of NO is 30 g/mol (mpayer 3/14/13)
+!      IF ( TRACER .eq.  1 ) B = 1.d3 / 46d0 * 6.0225d23
+!------------------------------------------------------------------------------
+      IF ( TRACER .eq.  1 ) B = 1.d3 / 30d0 * 6.0225d23
       IF ( TRACER .eq.  4 ) B = 1.d3 / 28d0 * 6.0225d23
       IF ( TRACER .eq. 26 ) B = 1.d3 / 64d0 * 6.0225d23
       IF ( TRACER .eq. 30 ) B = 1.d3 / 17d0 * 6.0225d23

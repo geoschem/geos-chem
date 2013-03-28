@@ -37,6 +37,8 @@
 !  24 Nov 2008 - A. v. Donkelaar - Initial version  
 !  28 Jan 2009 - P. Le Sager     - Initial Version in GEOS-Chem
 !  01 Mar 2012 - R. Yantosca     - Now reference new grid_mod.F90
+!  14 Mar 2013 - M. Payer        - Replace NOx emissions with NO emissions as
+!                                  part of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -71,7 +73,11 @@
 !
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TRACER_MOD,   ONLY : XNUMOL
-      USE TRACERID_MOD, ONLY : IDTNOx
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      USE TRACERID_MOD, ONLY : IDTNOx
+!------------------------------------------------------------------------------
+      USE TRACERID_MOD, ONLY : IDTNO
 !
 ! !INPUT PARAMETERS: 
 !
@@ -113,7 +119,12 @@
       ! Return data in [kg/s] or [molec/cm2/s]?
       IF ( PRESENT( KG_S        ) ) DO_KGS = KG_S
 
-      IF ( N == IDTNOx ) THEN
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
+!      IF ( N == IDTNOx ) THEN
+!------------------------------------------------------------------------------
+      IF ( N == IDTNO ) THEN
 
          ! NOx [molec/cm2/s]
          IF ( WEEKDAY ) THEN
@@ -178,7 +189,11 @@
       USE TIME_MOD,     ONLY : GET_DAY_OF_WEEK
       USE TRACER_MOD,   ONLY : N_TRACERS
       USE TRACER_MOD,   ONLY : XNUMOL
-      USE TRACERID_MOD, ONLY : IDTNOx
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      USE TRACERID_MOD, ONLY : IDTNOx
+!------------------------------------------------------------------------------
+      USE TRACERID_MOD, ONLY : IDTNO
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE ERROR_MOD,    ONLY : ALLOC_ERR
 #endif
@@ -189,6 +204,8 @@
 !  24 May 2012 - R. Yantosca - Fix minor bugs in map_a2a algorithm
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -368,12 +385,23 @@
       ENDDO
       ENDDO
 
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
+!      IF ( WEEKDAY ) THEN
+!         IF ( IDTNOX > 0) EMISS(:,:,IDTNOX) = 
+!     &        VISTAS_WD_NOx(:,:) * A / XNUMOL(IDTNOX)
+!      ELSE
+!         IF ( IDTNOX > 0) EMISS(:,:,IDTNOX) = 
+!     &        VISTAS_WE_NOx(:,:) * A / XNUMOL(IDTNOX)
+!      ENDIF
+!------------------------------------------------------------------------------
       IF ( WEEKDAY ) THEN
-         IF ( IDTNOX > 0) EMISS(:,:,IDTNOX) = 
-     &        VISTAS_WD_NOx(:,:) * A / XNUMOL(IDTNOX)
+         IF ( IDTNO > 0) EMISS(:,:,IDTNO) = 
+     &        VISTAS_WD_NOx(:,:) * A / XNUMOL(IDTNO)
       ELSE
-         IF ( IDTNOX > 0) EMISS(:,:,IDTNOX) = 
-     &        VISTAS_WE_NOx(:,:) * A / XNUMOL(IDTNOX)
+         IF ( IDTNO > 0) EMISS(:,:,IDTNO) = 
+     &        VISTAS_WE_NOx(:,:) * A / XNUMOL(IDTNO)
       ENDIF
 #endif
 
@@ -456,7 +484,11 @@
 ! 
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TRACER_MOD,   ONLY : TRACER_MW_KG
-      USE TRACERID_MOD, ONLY : IDTNOX
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      USE TRACERID_MOD, ONLY : IDTNOX
+!------------------------------------------------------------------------------
+      USE TRACERID_MOD, ONLY : IDTNO
 
       USE CMN_SIZE_MOD   ! Size parameters
 !
@@ -468,6 +500,8 @@
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - P. Le Sager - Initial Version
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -488,7 +522,11 @@
 
       WD_NOX  = 0d0
       WE_NOX  = 0d0
-      F_NOX   = TRACER_MW_KG(IDTNOX )
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      F_NOX   = TRACER_MW_KG(IDTNOX )
+!------------------------------------------------------------------------------
+      F_NOX   = TRACER_MW_KG(IDTNO)
 
       ! Loop over latitudes
       DO J = 1, JJPAR
@@ -515,13 +553,21 @@
 
       ! Weekday avg anthro
       WRITE( 6, '(a)' )
-      WRITE( 6, 110   ) 'NOx ', THISMONTH, WD_NOX,  '  '
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      WRITE( 6, 110   ) 'NOx ', THISMONTH, WD_NOX,  '  '
+!------------------------------------------------------------------------------
+      WRITE( 6, 110   ) 'NO ', THISMONTH, WD_NOX,  '  '
  110  FORMAT( 'Total weekday avg anthro ', a4, ' for 1999/',
      &         i2.2, ': ', f13.6, ' Tg', a2 )
 
       ! Weekend avg anthro
       WRITE( 6, '(a)' )
-      WRITE( 6, 120   ) 'NOx ', THISMONTH, WE_NOX,  '  '
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      WRITE( 6, 120   ) 'NOx ', THISMONTH, WE_NOX,  '  '
+!------------------------------------------------------------------------------
+      WRITE( 6, 120   ) 'NO ', THISMONTH, WE_NOX,  '  '
  120  FORMAT( 'Total weekend avg anthro ', a4, ' for 1999/',
      &         i2.2, ': ', f13.6, ' Tg', a2 )
 

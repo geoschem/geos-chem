@@ -76,6 +76,8 @@
 !  (20) Added 9 gaseous biofuel emissions: GLYX, MGLY, BENZ, 
 !        TOLU, XYLE, C2H4, C2H2, GLYC, HAC. (tmf, 1/7/09)
 !  (21) Emissions for these 9 tracers are scaled from CO emissions. (tmf, 1/7/09)
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -200,6 +202,8 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !******************************************************************************
 !
       ! References to F90 modules
@@ -215,10 +219,18 @@
       USE STREETS_ANTHRO_MOD,   ONLY : GET_SE_ASIA_MASK
       USE TIME_MOD,             ONLY : GET_DAY_OF_WEEK,  GET_YEAR
       USE TRACER_MOD,           ONLY : ITS_A_H2HD_SIM
-      USE TRACERID_MOD,         ONLY : IDBFCO,  IDBFNOX, IDTACET
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      USE TRACERID_MOD,         ONLY : IDBFCO,  IDBFNOX, IDTACET
+!------------------------------------------------------------------------------
+      USE TRACERID_MOD,         ONLY : IDBFCO,  IDBFNO,  IDTACET
       USE TRACERID_MOD,         ONLY : IDTALD2, IDTALK4, IDTC2H6
       USE TRACERID_MOD,         ONLY : IDTC3H8, IDTCH2O, IDTCO
-      USE TRACERID_MOD,         ONLY : IDTMEK,  IDTNOX,  IDTPRPE 
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      USE TRACERID_MOD,         ONLY : IDTMEK,  IDTNOX,  IDTPRPE 
+!------------------------------------------------------------------------------
+      USE TRACERID_MOD,         ONLY : IDTMEK,  IDTNO,   IDTPRPE 
       USE TRACERID_MOD,         ONLY : IDTGLYX, IDTMGLY, IDTBENZ
       USE TRACERID_MOD,         ONLY : IDTTOLU, IDTXYLE, IDTC2H4
       USE TRACERID_MOD,         ONLY : IDTC2H2, IDTGLYC, IDTHAC
@@ -284,7 +296,11 @@
 
          ! Flags for whether or not to archive diagnostics
          DO_ND29 = ( ND29 > 0 .and. IDBFCO  /= 0 ) 
-         DO_ND32 = ( ND32 > 0 .and. IDBFNOX /= 0 ) 
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!         DO_ND32 = ( ND32 > 0 .and. IDBFNOX /= 0 ) 
+!------------------------------------------------------------------------------
+         DO_ND32 = ( ND32 > 0 .and. IDBFNO /= 0  ) 
          DO_ND34 = ( ND34 > 0                    ) 
 
          ! Fancy output..
@@ -339,7 +355,12 @@
             NN = BFTRACE(N)
 
             ! Test for each tracer
-            IF ( NN == IDTNOX ) THEN
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
+!            IF ( NN == IDTNOX ) THEN
+!------------------------------------------------------------------------------
+            IF ( NN == IDTNO ) THEN
 
                !----------------
                ! Biofuel NOx
@@ -404,7 +425,12 @@
                WRITE( 6, 120 ) 'NOx ', TOTAL, '[Tg  /yr]'
                
                ! Define MOLWT for use below
-               MOLWT(N) = 46d-3
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Molecular weight of NO is 30 g/mol (mpayer 3/14/13)
+!               MOLWT(N) = 46d-3
+!------------------------------------------------------------------------------
+               MOLWT(N) = 30d-3
 
             ELSE IF ( NN == IDTCO ) THEN
 
@@ -888,7 +914,11 @@
             ! USA from the NEI99 inventory.  (bmy, 2/7/11)
             !-----------------------------------------------------------
 ![eml Not if historical or not NOx
-            IF( .not. LHIST .or. BFTRACE(N) .ne. IDTNOX ) THEN
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!            IF( .not. LHIST .or. BFTRACE(N) .ne. IDTNOX ) THEN
+!------------------------------------------------------------------------------
+            IF( .not. LHIST .or. BFTRACE(N) .ne. IDTNO ) THEN
                ! If EPA/NEI99 emissions are turned on....
                IF ( LNEI99 .or. LNEI05 ) THEN
 
@@ -957,7 +987,13 @@
 
          ! ND32 -- NOx source diagnostics [molec/cm2/s]
          IF ( DO_ND32 ) THEN 
-            AD32_bf(I,J) = AD32_bf(I,J) + ( BIOFUEL(IDBFNOX,I,J) * 
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
+!            AD32_bf(I,J) = AD32_bf(I,J) + ( BIOFUEL(IDBFNOX,I,J) * 
+!     &                                      BXHEIGHT_CM )
+!------------------------------------------------------------------------------
+            AD32_bf(I,J) = AD32_bf(I,J) + ( BIOFUEL(IDBFNO,I,J) * 
      &                                      BXHEIGHT_CM )
          ENDIF
       ENDDO  
@@ -1263,14 +1299,24 @@
 !  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !******************************************************************************
 !
       ! References to F90 modules
       USE TRACERID_MOD, ONLY : IDBFACET, IDBFALD2, IDBFALK4, IDBFC2H6 
       USE TRACERID_MOD, ONLY : IDBFC3H8, IDBFCH2O, IDBFCO,   IDBFMEK  
-      USE TRACERID_MOD, ONLY : IDBFNOX,  IDBFPRPE, IDTACET,  IDTALD2 
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      USE TRACERID_MOD, ONLY : IDBFNOX,  IDBFPRPE, IDTACET,  IDTALD2 
+!------------------------------------------------------------------------------
+      USE TRACERID_MOD, ONLY : IDBFNO,   IDBFPRPE, IDTACET,  IDTALD2 
       USE TRACERID_MOD, ONLY : IDTALK4,  IDTC2H6,  IDTC3H8,  IDTCH2O
-      USE TRACERID_MOD, ONLY : IDTCO,    IDTMEK,   IDTNOX,   IDTPRPE 
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      USE TRACERID_MOD, ONLY : IDTCO,    IDTMEK,   IDTNOX,   IDTPRPE 
+!------------------------------------------------------------------------------
+      USE TRACERID_MOD, ONLY : IDTCO,    IDTMEK,   IDTNO,    IDTPRPE 
 
       USE TRACERID_MOD, ONLY : IDBFGLYX, IDBFMGLY, IDBFBENZ, IDBFTOLU
       USE TRACERID_MOD, ONLY : IDBFXYLE, IDBFC2H4, IDBFC2H2, IDBFGLYC
@@ -1289,7 +1335,11 @@
       NBFTRACE = 0
       
       ! Increment NBFTRACE for each turned on biofuel tracer
-      IF ( IDBFNOX  /= 0 ) NBFTRACE = NBFTRACE + 1
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      IF ( IDBFNOX  /= 0 ) NBFTRACE = NBFTRACE + 1
+!------------------------------------------------------------------------------
+      IF ( IDBFNO   /= 0 ) NBFTRACE = NBFTRACE + 1
       IF ( IDBFCO   /= 0 ) NBFTRACE = NBFTRACE + 1 
       IF ( IDBFALK4 /= 0 ) NBFTRACE = NBFTRACE + 1 
       IF ( IDBFACET /= 0 ) NBFTRACE = NBFTRACE + 1 
@@ -1310,7 +1360,11 @@
       IF ( IDBFHAC  /= 0 ) NBFTRACE = NBFTRACE + 1 
 
       ! Fill BFTRACE w/ appropriate TRACER ID #'s
-      IF ( IDBFNOX  /= 0 ) BFTRACE(IDBFNOX ) = IDTNOX
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      IF ( IDBFNOX  /= 0 ) BFTRACE(IDBFNOX ) = IDTNOX
+!------------------------------------------------------------------------------
+      IF ( IDBFNO   /= 0 ) BFTRACE(IDBFNO  ) = IDTNO
       IF ( IDBFCO   /= 0 ) BFTRACE(IDBFCO  ) = IDTCO
       IF ( IDBFALK4 /= 0 ) BFTRACE(IDBFALK4) = IDTALK4
       IF ( IDBFACET /= 0 ) BFTRACE(IDBFACET) = IDTACET
