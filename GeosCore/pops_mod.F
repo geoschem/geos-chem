@@ -280,7 +280,6 @@
          ! For addition of hydrophilic OC/BC POP tracers: for now, assume that 
          ! if dry deposition of hydrophoblic tracers is active, then dry deposition
          ! of hydrophilic tracers is also active (ie., they're coupled). clf, 2/12/2012
-
          IF ( DRYPOPG > 0 .and. DRYPOPP_OCPO > 0 .and.
      &      DRYPOPP_BCPO > 0) THEN
          
@@ -614,7 +613,6 @@
       K_POPG_OH = GET_POP_K_POPG_OH(DUM)
       AK = GET_POP_K_POPP_O3A(DUM)
       BK = GET_POP_K_POPP_O3B(DUM)
-
 
       ! Chemistry timestep [s]
       DTCHEM = GET_TS_CHEM() * 60d0
@@ -1277,6 +1275,7 @@
             !=================================================================
             ! ND44 diagnostic: drydep flux of POPG and POPP [molec/cm2/s]
             !=================================================================
+
             IF ( ( ND44 > 0 .OR. LGTMM ) .AND. (.NOT. LNLPBL) ) THEN
             ! Not using LGTMM right now (logical switch for using GTMM soil model)
             ! Also not using non-local PBL mode yet (clf, 1/27/2011)
@@ -2679,13 +2678,11 @@ c$$$#endif
          WRITE( 6, 100 )
 100        FORMAT( '     - POPS_READSURFCONC: Reading ', a )
 
-          PRINT*,'DEBUG 01'
           PRINT*,'FILENAME = ', FILENAME
           ! Read data in [kg in surface layer]
            CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 1, 
      &           XTAU,      IGLOB,     JGLOB,    
      &           1,         ARRAY,   QUIET=.FALSE. )
-          PRINT*,'DEBUG 02' 
           
            ! Cast to REAL*8 and resize       
            CALL TRANSFER_2D( ARRAY(:,:,1), POP_SURF )

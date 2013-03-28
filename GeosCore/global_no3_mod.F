@@ -116,10 +116,13 @@
          FIRST = .FALSE.
       ENDIF
 
-      ! File name
-      FILENAME = TRIM( DATA_DIR )                       // 
-     &           'sulfate_sim_200508/offline/NO3.'      //
-     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
+!      ! File name
+!      FILENAME = TRIM( DATA_DIR )                       // 
+!     &           'sulfate_sim_200508/offline/NO3.'      //
+!     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
+      !kludge until I can't NO3 for GEOS-5 (H. Amos, 25Mar2013)
+      FILENAME = '/as/data/geos/GEOS_4x5/sulfate_sim_200508' // 
+     &           '/offline/NO3.geos4.4x5'
 
       ! Echo some information to the standard output
       WRITE( 6, 110 ) TRIM( FILENAME )
