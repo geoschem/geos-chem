@@ -131,6 +131,14 @@
       REAL*4,  ALLOCATABLE :: EPA_WE_BF_SO2(:,:)  
       REAL*4,  ALLOCATABLE :: EPA_WE_BF_SO4(:,:)  
 
+      ! Shadow logial variables from Input_Opt
+      LOGICAL              :: LBRAVO
+      LOGICAL              :: LCAC
+      LOGICAL              :: LFUTURE
+      LOGICAL              :: LICARTT
+      LOGICAL              :: LNEI99
+      LOGICAL              :: LNEI05
+
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
       !=================================================================
@@ -516,27 +524,36 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE EMISS_EPA_NEI(EMISS, BEMISS)
-#else
-      SUBROUTINE EMISS_EPA_NEI
-#endif
+      SUBROUTINE EMISS_EPA_NEI( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
-      USE LOGICAL_MOD, ONLY : LNEI05 
-      USE LOGICAL_MOD, ONLY : LNEI99
-#if defined( DEVEL )
       USE CMN_SIZE_MOD
-      USE TRACER_MOD,   ONLY : N_TRACERS
-      USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
-      USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNOX
-      USE TRACERID_MOD, ONLY : IDTNH3,  IDTPRPE, IDTSO2,  IDTSO4  
-      USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE TRACER_MOD,   ONLY : TRACER_MW_KG
-      USE TIME_MOD,     ONLY : GET_DAY_OF_WEEK
-      USE ERROR_MOD,    ONLY : ALLOC_ERR
-#endif
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE TRACERID_MOD,       ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
+      USE TRACERID_MOD,       ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNOX
+      USE TRACERID_MOD,       ONLY : IDTNH3,  IDTPRPE, IDTSO2,  IDTSO4  
+      USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !LOCAL VARIABLES:
+!
 !
 ! !REMARKS:
 !  Read EPA/NEI99 anthro + EPA/NEI99 biofuel if LNEI99=T, or
@@ -556,12 +573,31 @@
       LOGICAL, SAVE :: FIRST = .TRUE.
       
 #if defined( DEVEL )
-      INTEGER               :: I,J,DAY_NUM, AS
-      LOGICAL               :: WEEKDAY
-      REAL*8, INTENT(INOUT) :: EMISS(IIPAR, JJPAR, N_TRACERS)
-      REAL*8, INTENT(INOUT) :: BEMISS(IIPAR, JJPAR, NBIOMAX)
-      REAL*8, ALLOCATABLE   :: A(:,:)
+      INTEGER             :: I,J,DAY_NUM, AS
+      LOGICAL             :: WEEKDAY
+      REAL*8, ALLOCATABLE :: A(:,:)
 #endif
+
+      ! For fields from Input_Opt
+      INTEGER             :: N_TRACERS
+      REAL*8              :: TRACER_MW_KG(Input_Opt%N_TRACERS)
+
+      !=================================================================
+      ! EMISS_EPA_NEI begins here!First-time initialization
+      !=================================================================
+ 
+      ! Assume success
+      RC           =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LBRAVO       = Input_Opt%LBRAVO
+      LCAC         = Input_Opt%LCAC
+      LFUTURE      = Input_Opt%LFUTURE
+      LICARTT      = Input_Opt%LICARTT
+      LNEI99       = Input_Opt%LNEI99 
+      LNEI05       = Input_Opt%LNEI05 
+      N_TRACERS    = Input_Opt%N_TRACERS
+      TRACER_MW_KG = Input_Opt%TRACER_MW_KG(1:N_TRACERS)
 
       !=================================================================
       ! First-time initialization
@@ -575,7 +611,7 @@
          A = 0d0
 #endif
 
-         CALL INIT_EPA_NEI
+         CALL INIT_EPA_NEI( am_I_Root, Input_Opt, RC )
 
 #if   defined( GRID05_0666 )
          ! Read mask over the USA, nested-grid resolution
@@ -636,155 +672,155 @@
       DO J=1,JJPAR
          IF ( WEEKDAY ) THEN
             IF (.not. LNEI05) THEN
-               IF ( IDTNOX > 0) EMISS(:,J,IDTNOX) = 
+               IF ( IDTNOX > 0) State_Chm%TRAC_TEND(:,J,1,IDTNOX) = 
      &              EPA_WD_AN_NOX(:,J) * A(:,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTNOX) 
-               IF ( IDTCO  > 0) EMISS(:,J,IDTCO)  = 
+               IF ( IDTCO  > 0) State_Chm%TRAC_TEND(:,J,1,IDTCO)  = 
      &              EPA_WD_AN_CO(:,J) * A(:,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTCO) 
-               IF ( IDTALK4> 0) EMISS(:,J,IDTALK4) = 
+               IF ( IDTALK4> 0) State_Chm%TRAC_TEND(:,J,1,IDTALK4) = 
      &              EPA_WD_AN_ALK4(:,J) * A(:,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTALK4) 
-               IF ( IDTACET > 0) EMISS(:,J,IDTACET) = 
+               IF ( IDTACET > 0) State_Chm%TRAC_TEND(:,J,1,IDTACET) = 
      &              EPA_WD_AN_ACET(:,J) * A(:,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTACET) 
-               IF ( IDTMEK > 0) EMISS(:,J,IDTMEK)  = 
+               IF ( IDTMEK > 0) State_Chm%TRAC_TEND(:,J,1,IDTMEK)  = 
      &              EPA_WD_AN_MEK(:,J) * A(:,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTMEK) 
-               IF ( IDTPRPE > 0) EMISS(:,J,IDTPRPE) = 
+               IF ( IDTPRPE > 0) State_Chm%TRAC_TEND(:,J,1,IDTPRPE) = 
      &              EPA_WD_AN_PRPE(:,J) * A(:,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTPRPE) 
-               IF ( IDTC3H8> 0) EMISS(:,J,IDTC3H8) = 
+               IF ( IDTC3H8> 0) State_Chm%TRAC_TEND(:,J,1,IDTC3H8) = 
      &              EPA_WD_AN_C3H8(:,J) * A(:,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTC3H8) 
-               IF ( IDTCH2O> 0) EMISS(:,J,IDTCH2O) = 
+               IF ( IDTCH2O> 0) State_Chm%TRAC_TEND(:,J,1,IDTCH2O) = 
      &              EPA_WD_AN_CH2O(:,J) * A(:,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTCH2O) 
-               IF ( IDTC2H6> 0) EMISS(:,J,IDTC2H6) = 
+               IF ( IDTC2H6> 0) State_Chm%TRAC_TEND(:,J,1,IDTC2H6) = 
      &              EPA_WD_AN_C2H6(:,J) * A(:,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTC2H6) 
-               IF ( IDTSO2 > 0) EMISS(:,J,IDTSO2)  = 
+               IF ( IDTSO2 > 0) State_Chm%TRAC_TEND(:,J,1,IDTSO2)  = 
      &              EPA_WD_AN_SO2(:,J) * A(:,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTSO2) 
-               IF ( IDTSO4 > 0) EMISS(:,J,IDTSO4)  = 
+               IF ( IDTSO4 > 0) State_Chm%TRAC_TEND(:,J,1,IDTSO4)  = 
      &              EPA_WD_AN_SO4(:,J) * A(:,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTSO4) 
-               IF ( IDTNH3 > 0) EMISS(:,J,IDTNH3)  = 
+               IF ( IDTNH3 > 0) State_Chm%TRAC_TEND(:,J,1,IDTNH3)  = 
      &              EPA_WD_AN_NH3(:,J) * A(:,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTNH3) 
             ENDIF
 
-            IF ( IDTNOX > 0 ) EMISS(:,J,IDTNOX) = 
+            IF ( IDTNOX > 0 ) State_Chm%TRAC_TEND(:,J,1,IDTNOX) = 
      &           EPA_WD_BF_NOX(:,J) * A(:,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTNOX) 
-            IF ( IDTCO > 0 ) EMISS(:,J,IDTCO)  = 
+            IF ( IDTCO > 0 ) State_Chm%TRAC_TEND(:,J,1,IDTCO)  = 
      &           EPA_WD_BF_CO(:,J) * A(:,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTCO) 
-            IF ( IDTALK4> 0 ) EMISS(:,J,IDTALK4) = 
+            IF ( IDTALK4> 0 ) State_Chm%TRAC_TEND(:,J,1,IDTALK4) = 
      &           EPA_WD_BF_ALK4(:,J) * A(:,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTALK4) 
-            IF ( IDTACET> 0 ) EMISS(:,J,IDTACET) = 
+            IF ( IDTACET> 0 ) State_Chm%TRAC_TEND(:,J,1,IDTACET) = 
      &           EPA_WD_BF_ACET(:,J) * A(:,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTACET) 
-            IF ( IDTMEK > 0 ) EMISS(:,J,IDTMEK)  = 
+            IF ( IDTMEK > 0 ) State_Chm%TRAC_TEND(:,J,1,IDTMEK)  = 
      &           EPA_WD_BF_MEK(:,J) * A(:,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTMEK) 
-            IF ( IDTPRPE> 0 ) EMISS(:,J,IDTPRPE) = 
+            IF ( IDTPRPE> 0 ) State_Chm%TRAC_TEND(:,J,1,IDTPRPE) = 
      &           EPA_WD_BF_PRPE(:,J) * A(:,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTPRPE) 
-            IF ( IDTC3H8> 0 ) EMISS(:,J,IDTC3H8) = 
+            IF ( IDTC3H8> 0 ) State_Chm%TRAC_TEND(:,J,1,IDTC3H8) = 
      &           EPA_WD_BF_C3H8(:,J) * A(:,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTC3H8) 
-            IF ( IDTCH2O> 0 ) EMISS(:,J,IDTCH2O) = 
+            IF ( IDTCH2O> 0 ) State_Chm%TRAC_TEND(:,J,1,IDTCH2O) = 
      &           EPA_WD_BF_CH2O(:,J) * A(:,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTCH2O) 
-            IF ( IDTC2H6> 0 ) EMISS(:,J,IDTC2H6) = 
+            IF ( IDTC2H6> 0 ) State_Chm%TRAC_TEND(:,J,1,IDTC2H6) = 
      &           EPA_WD_BF_C2H6(:,J) * A(:,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTC2H6) 
-            IF ( IDTSO2 > 0 ) EMISS(:,J,IDTSO2)  = 
+            IF ( IDTSO2 > 0 ) State_Chm%TRAC_TEND(:,J,1,IDTSO2)  = 
      &           EPA_WD_BF_SO2(:,J) * A(:,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTSO2) 
-            IF ( IDTSO4 > 0 ) EMISS(:,J,IDTSO4)  = 
+            IF ( IDTSO4 > 0 ) State_Chm%TRAC_TEND(:,J,1,IDTSO4)  = 
      &           EPA_WD_BF_SO4(:,J) * A(:,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTSO4) 
-            IF ( IDTNH3 > 0 ) EMISS(:,J,IDTNH3)  = 
+            IF ( IDTNH3 > 0 ) State_Chm%TRAC_TEND(:,J,1,IDTNH3)  = 
      &           EPA_WD_BF_NH3(:,J) * A(:,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTNH3) 
 
          ELSE ! ITS a WEEKEND...
             IF (.not. LNEI05) THEN
-               IF ( IDTNOX > 0) EMISS(:,J,IDTNOX) = 
+               IF ( IDTNOX > 0) State_Chm%TRAC_TEND(:,J,1,IDTNOX) = 
      &              EPA_WE_AN_NOX(:,J) * A(:,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTNOX) 
-               IF ( IDTCO  > 0) EMISS(:,J,IDTCO)  = 
+               IF ( IDTCO  > 0) State_Chm%TRAC_TEND(:,J,1,IDTCO)  = 
      &              EPA_WE_AN_CO(:,J) * A(:,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTCO) 
-               IF ( IDTALK4> 0) EMISS(:,J,IDTALK4) = 
+               IF ( IDTALK4> 0) State_Chm%TRAC_TEND(:,J,1,IDTALK4) = 
      &              EPA_WE_AN_ALK4(:,J) * A(:,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTALK4) 
-               IF ( IDTACET> 0) EMISS(:,J,IDTACET) = 
+               IF ( IDTACET> 0) State_Chm%TRAC_TEND(:,J,1,IDTACET) = 
      &              EPA_WE_AN_ACET(:,J) * A(:,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTACET) 
-               IF ( IDTMEK > 0) EMISS(:,J,IDTMEK)  = 
+               IF ( IDTMEK > 0) State_Chm%TRAC_TEND(:,J,1,IDTMEK)  = 
      &              EPA_WE_AN_MEK(:,J) * A(:,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTMEK) 
-               IF ( IDTPRPE> 0) EMISS(:,J,IDTPRPE) = 
+               IF ( IDTPRPE> 0) State_Chm%TRAC_TEND(:,J,1,IDTPRPE) = 
      &              EPA_WE_AN_PRPE(:,J) * A(:,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTPRPE) 
-               IF ( IDTC3H8> 0) EMISS(:,J,IDTC3H8) = 
+               IF ( IDTC3H8> 0) State_Chm%TRAC_TEND(:,J,1,IDTC3H8) = 
      &              EPA_WE_AN_C3H8(:,J) * A(:,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTC3H8) 
-               IF ( IDTCH2O> 0) EMISS(:,J,IDTCH2O) = 
+               IF ( IDTCH2O> 0) State_Chm%TRAC_TEND(:,J,1,IDTCH2O) = 
      &              EPA_WE_AN_CH2O(:,J) * A(:,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTCH2O) 
-               IF ( IDTC2H6> 0) EMISS(:,J,IDTC2H6) = 
+               IF ( IDTC2H6> 0) State_Chm%TRAC_TEND(:,J,1,IDTC2H6) = 
      &              EPA_WE_AN_C2H6(:,J) * A(:,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTC2H6) 
-               IF ( IDTSO2 > 0) EMISS(:,J,IDTSO2)  = 
+               IF ( IDTSO2 > 0) State_Chm%TRAC_TEND(:,J,1,IDTSO2)  = 
      &              EPA_WE_AN_SO2(:,J) * A(:,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTSO2) 
-               IF ( IDTSO4 > 0) EMISS(:,J,IDTSO4)  = 
+               IF ( IDTSO4 > 0) State_Chm%TRAC_TEND(:,J,1,IDTSO4)  = 
      &              EPA_WE_AN_SO4(:,J) * A(:,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTSO4) 
-               IF ( IDTNH3 > 0) EMISS(:,J,IDTNH3)  = 
+               IF ( IDTNH3 > 0) State_Chm%TRAC_TEND(:,J,1,IDTNH3)  = 
      &              EPA_WE_AN_NH3(:,J) * A(:,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTNH3) 
             ENDIF
             
-            IF ( IDTNOX > 0 ) EMISS(:,J,IDTNOX) = 
+            IF ( IDTNOX > 0 ) State_Chm%TRAC_TEND(:,J,1,IDTNOX) = 
      &           EPA_WE_BF_NOX(:,J) * A(:,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTNOX) 
-            IF ( IDTCO  > 0 ) EMISS(:,J,IDTCO)  = 
+            IF ( IDTCO  > 0 ) State_Chm%TRAC_TEND(:,J,1,IDTCO)  = 
      &           EPA_WE_BF_CO(:,J) * A(:,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTCO) 
-            IF ( IDTALK4> 0 ) EMISS(:,J,IDTALK4) = 
+            IF ( IDTALK4> 0 ) State_Chm%TRAC_TEND(:,J,1,IDTALK4) = 
      &           EPA_WE_BF_ALK4(:,J) * A(:,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTALK4) 
-            IF ( IDTACET> 0 ) EMISS(:,J,IDTACET) = 
+            IF ( IDTACET> 0 ) State_Chm%TRAC_TEND(:,J,1,IDTACET) = 
      &           EPA_WE_BF_ACET(:,J) * A(:,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTACET) 
-            IF ( IDTMEK > 0 ) EMISS(:,J,IDTMEK)  = 
+            IF ( IDTMEK > 0 ) State_Chm%TRAC_TEND(:,J,1,IDTMEK)  = 
      &           EPA_WE_BF_MEK(:,J) * A(:,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTMEK) 
-            IF ( IDTPRPE> 0 ) EMISS(:,J,IDTPRPE) = 
+            IF ( IDTPRPE> 0 ) State_Chm%TRAC_TEND(:,J,1,IDTPRPE) = 
      &           EPA_WE_BF_PRPE(:,J) * A(:,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTPRPE) 
-            IF ( IDTC3H8> 0 ) EMISS(:,J,IDTC3H8) = 
+            IF ( IDTC3H8> 0 ) State_Chm%TRAC_TEND(:,J,1,IDTC3H8) = 
      &           EPA_WE_BF_C3H8(:,J) * A(:,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTC3H8) 
-            IF ( IDTCH2O> 0 ) EMISS(:,J,IDTCH2O) = 
+            IF ( IDTCH2O> 0 ) State_Chm%TRAC_TEND(:,J,1,IDTCH2O) = 
      &           EPA_WE_BF_CH2O(:,J) * A(:,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTCH2O) 
-            IF ( IDTC2H6> 0 ) EMISS(:,J,IDTC2H6) = 
+            IF ( IDTC2H6> 0 ) State_Chm%TRAC_TEND(:,J,1,IDTC2H6) = 
      &           EPA_WE_BF_C2H6(:,J) * A(:,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTC2H6) 
-            IF ( IDTSO2 > 0 ) EMISS(:,J,IDTSO2)  = 
+            IF ( IDTSO2 > 0 ) State_Chm%TRAC_TEND(:,J,1,IDTSO2)  = 
      &           EPA_WE_BF_SO2(:,J) * A(:,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTSO2) 
-            IF ( IDTSO4 > 0 ) EMISS(:,J,IDTSO4)  = 
+            IF ( IDTSO4 > 0 ) State_Chm%TRAC_TEND(:,J,1,IDTSO4)  = 
      &           EPA_WE_BF_SO4(:,J) * A(:,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTSO4) 
-            IF ( IDTNH3 > 0 ) EMISS(:,J,IDTNH3)  = 
+            IF ( IDTNH3 > 0 ) State_Chm%TRAC_TEND(:,J,1,IDTNH3)  = 
      &           EPA_WE_BF_NH3(:,J) * A(:,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTNH3) 
 
@@ -831,8 +867,6 @@
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2ff
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_TONEff  
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_VOCff
-      USE LOGICAL_MOD,          ONLY : LFUTURE
-      USE LOGICAL_MOD,          ONLY : LICARTT
       USE TIME_MOD,             ONLY : EXPAND_DATE
       USE TIME_MOD,             ONLY : GET_MONTH
 
@@ -1065,8 +1099,6 @@
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NOxbf
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2bf
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_VOCbf
-      USE LOGICAL_MOD,          ONLY : LFUTURE
-      USE LOGICAL_MOD,          ONLY : LICARTT
       USE TIME_MOD,             ONLY : EXPAND_DATE
       USE TIME_MOD,             ONLY : GET_MONTH
 
@@ -1276,7 +1308,6 @@
       USE BPCH2_MOD,        ONLY : OPEN_BPCH2_FOR_READ
       USE FILE_MOD,         ONLY : IOERROR
       USE inquireMod,       ONLY : findFreeLUN
-      USE LOGICAL_MOD,      ONLY : LICARTT
       USE TRANSFER_MOD,     ONLY : TRANSFER_2D
       USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
       USE TIME_MOD,         ONLY : GET_YEAR   
@@ -1454,7 +1485,6 @@
 ! !USES:
 !
       USE BPCH2_MOD,        ONLY : READ_BPCH2, GET_TAU0
-      USE LOGICAL_MOD,      ONLY : LICARTT
       USE TRANSFER_MOD,     ONLY : TRANSFER_2D
       USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
       USE TIME_MOD,         ONLY : GET_YEAR, GET_MONTH
@@ -1610,7 +1640,6 @@
 !
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
-      USE LOGICAL_MOD,   ONLY : LCAC,            LBRAVO
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
@@ -1707,7 +1736,6 @@
 !
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
-      USE LOGICAL_MOD,   ONLY : LCAC,            LBRAVO
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
@@ -2542,15 +2570,23 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_EPA_NEI
+      SUBROUTINE INIT_EPA_NEI( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE LOGICAL_MOD, ONLY : LNEI99
-      USE LOGICAL_MOD, ONLY : LNEI05
-
-      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  Read EPA/NEI99 anthro + EPA/NEI99 biofuel if LNEI99=T, or
@@ -2565,11 +2601,19 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: AS
+      ! For values from Input_Opt
+      LOGICAL :: LNEI99, LNEI05
       
       !=================================================================
       ! INIT_EPA_NEI begins here!
       !=================================================================
+
+      ! Assume success
+      RC     =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LNEI99 = Input_Opt%LNEI99
+      LNEI05 = Input_Opt%LNEI05
 
       ! Return if we have not selected LNEI99 (or LNEI05, since we
       ! must read the EPA/NEI99 biofuels when using EPA/NEI05 anthro)
@@ -2579,8 +2623,8 @@
       ENDIF
 
       ! USA Mask
-      ALLOCATE( USA_MASK( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'USA_MASK' )
+      ALLOCATE( USA_MASK( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'USA_MASK' )
       USA_MASK = 0d0
 
       !-----------------------
@@ -2588,52 +2632,52 @@
       !-----------------------
       IF ( .not. LNEI05 ) THEN 
    
-         ALLOCATE( EPA_WD_AN_NOX( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_NOX' )
+         ALLOCATE( EPA_WD_AN_NOX( IIPAR, JJPAR ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_NOX' )
          EPA_WD_AN_NOX = 0e0
    
-         ALLOCATE( EPA_WD_AN_CO( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_CO' )
+         ALLOCATE( EPA_WD_AN_CO( IIPAR, JJPAR ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_CO' )
          EPA_WD_AN_CO = 0e0
    
-         ALLOCATE( EPA_WD_AN_ALK4( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_ALK4' )
+         ALLOCATE( EPA_WD_AN_ALK4( IIPAR, JJPAR ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_ALK4' )
          EPA_WD_AN_ALK4 = 0e0
    
-         ALLOCATE( EPA_WD_AN_ACET( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_ACET' )
+         ALLOCATE( EPA_WD_AN_ACET( IIPAR, JJPAR ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_ACET' )
          EPA_WD_AN_ACET = 0e0
    
-         ALLOCATE( EPA_WD_AN_MEK( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_MEK' )
+         ALLOCATE( EPA_WD_AN_MEK( IIPAR, JJPAR ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_MEK' )
          EPA_WD_AN_MEK = 0e0
    
-         ALLOCATE( EPA_WD_AN_PRPE( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_PRPE' )
+         ALLOCATE( EPA_WD_AN_PRPE( IIPAR, JJPAR ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_PRPE' )
          EPA_WD_AN_PRPE = 0e0
    
-         ALLOCATE( EPA_WD_AN_C2H6( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_C2H6' )
+         ALLOCATE( EPA_WD_AN_C2H6( IIPAR, JJPAR ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_C2H6' )
          EPA_WD_AN_C2H6 = 0e0
    
-         ALLOCATE( EPA_WD_AN_C3H8( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_C3H8' )
+         ALLOCATE( EPA_WD_AN_C3H8( IIPAR, JJPAR ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_C3H8' )
          EPA_WD_AN_C3H8 = 0e0
    
-         ALLOCATE( EPA_WD_AN_CH2O( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_CH2O' )
+         ALLOCATE( EPA_WD_AN_CH2O( IIPAR, JJPAR ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_CH2O' )
          EPA_WD_AN_CH2O = 0e0
    
-         ALLOCATE( EPA_WD_AN_NH3( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_NH3' )
+         ALLOCATE( EPA_WD_AN_NH3( IIPAR, JJPAR ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_NH3' )
          EPA_WD_AN_NH3 = 0e0
    
-         ALLOCATE( EPA_WD_AN_SO2( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_SO2' )
+         ALLOCATE( EPA_WD_AN_SO2( IIPAR, JJPAR ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_SO2' )
          EPA_WD_AN_SO2 = 0e0
    
-         ALLOCATE( EPA_WD_AN_SO4( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_SO4' )
+         ALLOCATE( EPA_WD_AN_SO4( IIPAR, JJPAR ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_SO4' )
          EPA_WD_AN_SO4 = 0e0
 
       ENDIF
@@ -2643,52 +2687,52 @@
       !-----------------------
       IF ( .not. LNEI05 ) THEN
 
-         ALLOCATE( EPA_WE_AN_NOX( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_NOX' )
+         ALLOCATE( EPA_WE_AN_NOX( IIPAR, JJPAR ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_NOX' )
          EPA_WE_AN_NOX = 0e0
    
-         ALLOCATE( EPA_WE_AN_CO( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_CO' )
+         ALLOCATE( EPA_WE_AN_CO( IIPAR, JJPAR ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_CO' )
          EPA_WE_AN_CO = 0e0
    
-         ALLOCATE( EPA_WE_AN_ALK4( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_ALK4' )
+         ALLOCATE( EPA_WE_AN_ALK4( IIPAR, JJPAR ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_ALK4' )
          EPA_WE_AN_ALK4 = 0e0
    
-         ALLOCATE( EPA_WE_AN_ACET( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_ACET' )
+         ALLOCATE( EPA_WE_AN_ACET( IIPAR, JJPAR ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_ACET' )
          EPA_WE_AN_ACET = 0e0
    
-         ALLOCATE( EPA_WE_AN_MEK( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_MEK' )
+         ALLOCATE( EPA_WE_AN_MEK( IIPAR, JJPAR ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_MEK' )
          EPA_WE_AN_MEK = 0e0
    
-         ALLOCATE( EPA_WE_AN_PRPE( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_PRPE' )
+         ALLOCATE( EPA_WE_AN_PRPE( IIPAR, JJPAR ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_PRPE' )
          EPA_WE_AN_PRPE = 0e0
    
-         ALLOCATE( EPA_WE_AN_C2H6( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_C2H6' )
+         ALLOCATE( EPA_WE_AN_C2H6( IIPAR, JJPAR ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_C2H6' )
          EPA_WE_AN_C2H6 = 0e0
    
-         ALLOCATE( EPA_WE_AN_C3H8( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_C3H8' )
+         ALLOCATE( EPA_WE_AN_C3H8( IIPAR, JJPAR ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_C3H8' )
          EPA_WE_AN_C3H8 = 0e0
    
-         ALLOCATE( EPA_WE_AN_CH2O( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_CH2O' )
+         ALLOCATE( EPA_WE_AN_CH2O( IIPAR, JJPAR ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_CH2O' )
          EPA_WE_AN_CH2O = 0e0
    
-         ALLOCATE( EPA_WE_AN_NH3( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_NH3' )
+         ALLOCATE( EPA_WE_AN_NH3( IIPAR, JJPAR ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_NH3' )
          EPA_WE_AN_NH3 = 0e0
    
-         ALLOCATE( EPA_WE_AN_SO2( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_SO2' )
+         ALLOCATE( EPA_WE_AN_SO2( IIPAR, JJPAR ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_SO2' )
          EPA_WE_AN_SO2 = 0e0
    
-         ALLOCATE( EPA_WE_AN_SO4( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_SO4' )
+         ALLOCATE( EPA_WE_AN_SO4( IIPAR, JJPAR ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_SO4' )
          EPA_WE_AN_SO4 = 0e0
 
       ENDIF
@@ -2696,103 +2740,103 @@
       !-----------------------
       ! Biofuel - weekday avg
       !-----------------------
-      ALLOCATE( EPA_WD_BF_NOX(  IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_BF_NOX' )
+      ALLOCATE( EPA_WD_BF_NOX(  IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WD_BF_NOX' )
       EPA_WD_BF_NOX = 0e0
 
-      ALLOCATE( EPA_WD_BF_CO( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_BF_CO' )
+      ALLOCATE( EPA_WD_BF_CO( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WD_BF_CO' )
       EPA_WD_BF_CO = 0e0
 
-      ALLOCATE( EPA_WD_BF_ALK4( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_BF_ALK4' )
+      ALLOCATE( EPA_WD_BF_ALK4( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WD_BF_ALK4' )
       EPA_WD_BF_ALK4 = 0e0
 
-      ALLOCATE( EPA_WD_BF_ACET( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_BF_ACET' )
+      ALLOCATE( EPA_WD_BF_ACET( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WD_BF_ACET' )
       EPA_WD_BF_ACET = 0e0
 
-      ALLOCATE( EPA_WD_BF_MEK(  IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_BF_MEK' )
+      ALLOCATE( EPA_WD_BF_MEK(  IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WD_BF_MEK' )
       EPA_WD_BF_MEK = 0e0
 
-      ALLOCATE( EPA_WD_BF_PRPE( IIPAR, JJPAR ), STAT=AS )     
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_BF_PRPE' )
+      ALLOCATE( EPA_WD_BF_PRPE( IIPAR, JJPAR ), STAT=RC )     
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WD_BF_PRPE' )
       EPA_WD_BF_PRPE = 0e0
 
-      ALLOCATE( EPA_WD_BF_C2H6( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_BF_C2H6' )
+      ALLOCATE( EPA_WD_BF_C2H6( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WD_BF_C2H6' )
       EPA_WD_BF_C2H6 = 0e0
 
-      ALLOCATE( EPA_WD_BF_C3H8( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_BF_C3H8' )
+      ALLOCATE( EPA_WD_BF_C3H8( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WD_BF_C3H8' )
       EPA_WD_BF_C3H8 = 0e0
 
-      ALLOCATE( EPA_WD_BF_CH2O( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_BF_CH2O' )
+      ALLOCATE( EPA_WD_BF_CH2O( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WD_BF_CH2O' )
       EPA_WD_BF_CH2O = 0e0
 
-      ALLOCATE( EPA_WD_BF_NH3( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_BF_NH3' )
+      ALLOCATE( EPA_WD_BF_NH3( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WD_BF_NH3' )
       EPA_WD_BF_NH3 = 0e0
 
-      ALLOCATE( EPA_WD_BF_SO2( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_BF_SO2' )
+      ALLOCATE( EPA_WD_BF_SO2( IIPAR, JJPAR ), STAT=RC ) 
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WD_BF_SO2' )
       EPA_WD_BF_SO2 = 0e0
 
-      ALLOCATE( EPA_WD_BF_SO4( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_BF_SO4' )
+      ALLOCATE( EPA_WD_BF_SO4( IIPAR, JJPAR ), STAT=RC ) 
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WD_BF_SO4' )
       EPA_WD_BF_SO4 = 0e0
 
       !-----------------------
       ! Biofuel - weekend avg
       !-----------------------
-      ALLOCATE( EPA_WE_BF_NOX(  IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_BF_NOX' )
+      ALLOCATE( EPA_WE_BF_NOX(  IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WE_BF_NOX' )
       EPA_WE_BF_NOX = 0e0
 
-      ALLOCATE( EPA_WE_BF_CO( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_BF_CO' )
+      ALLOCATE( EPA_WE_BF_CO( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WE_BF_CO' )
       EPA_WE_BF_CO = 0e0
 
-      ALLOCATE( EPA_WE_BF_ALK4( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_BF_ALK4' )
+      ALLOCATE( EPA_WE_BF_ALK4( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WE_BF_ALK4' )
       EPA_WE_BF_ALK4 = 0e0
 
-      ALLOCATE( EPA_WE_BF_ACET( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_BF_ACET' )
+      ALLOCATE( EPA_WE_BF_ACET( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WE_BF_ACET' )
       EPA_WE_BF_ACET = 0e0
 
-      ALLOCATE( EPA_WE_BF_MEK(  IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_BF_MEK' )
+      ALLOCATE( EPA_WE_BF_MEK(  IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WE_BF_MEK' )
       EPA_WE_BF_MEK = 0e0
 
-      ALLOCATE( EPA_WE_BF_PRPE( IIPAR, JJPAR ), STAT=AS )     
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_BF_PRPE' )
+      ALLOCATE( EPA_WE_BF_PRPE( IIPAR, JJPAR ), STAT=RC )     
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WE_BF_PRPE' )
       EPA_WE_BF_PRPE = 0e0
 
-      ALLOCATE( EPA_WE_BF_C2H6( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_BF_C2H6' )
+      ALLOCATE( EPA_WE_BF_C2H6( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WE_BF_C2H6' )
       EPA_WE_BF_C2H6 = 0e0
 
-      ALLOCATE( EPA_WE_BF_C3H8( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_BF_C3H8' )
+      ALLOCATE( EPA_WE_BF_C3H8( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WE_BF_C3H8' )
       EPA_WE_BF_C3H8 = 0e0
 
-      ALLOCATE( EPA_WE_BF_CH2O( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_BF_CH2O' )
+      ALLOCATE( EPA_WE_BF_CH2O( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WE_BF_CH2O' )
       EPA_WE_BF_CH2O = 0e0
 
-      ALLOCATE( EPA_WE_BF_NH3( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_BF_NH3' )
+      ALLOCATE( EPA_WE_BF_NH3( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WE_BF_NH3' )
       EPA_WE_BF_NH3 = 0e0
 
-      ALLOCATE( EPA_WE_BF_SO2( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_BF_SO2' )
+      ALLOCATE( EPA_WE_BF_SO2( IIPAR, JJPAR ), STAT=RC ) 
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WE_BF_SO2' )
       EPA_WE_BF_SO2 = 0e0
 
-      ALLOCATE( EPA_WE_BF_SO4( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_BF_SO4' )
+      ALLOCATE( EPA_WE_BF_SO4( IIPAR, JJPAR ), STAT=RC ) 
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'EPA_WE_BF_SO4' )
       EPA_WE_BF_SO4 = 0e0
 
       END SUBROUTINE INIT_EPA_NEI

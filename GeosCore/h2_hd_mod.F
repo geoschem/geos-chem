@@ -110,58 +110,50 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE EMISS_H2_HD( State_Met, State_Chm, BIO_EMISS )
-#else
-      SUBROUTINE EMISS_H2_HD( State_Met )
-#endif
+      SUBROUTINE EMISS_H2_HD( am_I_Root, Input_Opt,
+     &                        State_Met, State_Chm, RC )
 !
 ! !USES:
 !
       USE BIOFUEL_MOD,        ONLY : BIOFUEL,     BIOFUEL_BURN
       USE BIOMASS_MOD,        ONLY : BIOMASS
+      USE CMN_DIAG_MOD
+      USE CMN_O3_MOD
+      USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD29,        AD46,         AD10em
       USE GEIA_MOD,           ONLY : GET_IHOUR,   GET_DAY_INDEX
       USE GEIA_MOD,           ONLY : READ_GEIA,   READ_TODX
       USE GEIA_MOD,           ONLY : READ_LIQCO2, READ_TOTCO2
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET  
       USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,        ONLY : LANTHRO,     LGFED2BB,     LGFED3BB
-      USE LOGICAL_MOD,        ONLY : LBIOMASS,    LBIOFUEL,     LNEI99
-      USE LOGICAL_MOD,        ONLY : LSTREETS,    LEDGAR,       LBRAVO
-      USE LOGICAL_MOD,        ONLY : LMEGAN
       USE MEGANUT_MOD,        ONLY : XLTMMP
       USE MEGAN_MOD,          ONLY : GET_EMMONOT_MEGAN
       USE MEGAN_MOD,          ONLY : GET_EMISOP_MEGAN
       USE TRACERID_MOD,       ONLY : IDBCO
       USE TIME_MOD,           ONLY : GET_MONTH,   GET_TAU 
       USE TIME_MOD,           ONLY : GET_YEAR,    GET_TS_EMIS  
-#if defined( DEVEL )
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-#else
-      USE TRACER_MOD,         ONLY : STT
-#endif
       USE TRACERID_MOD,       ONLY : IDBFCO,      IDTH2,        IDTHD
       USE TAGGED_CO_MOD,      ONLY : INIT_TAGGED_CO
       USE TAGGED_CO_MOD,      ONLY : READ_ACETONE,  EMACET
       USE SCALE_ANTHRO_MOD,   ONLY : GET_ANNUAL_SCALAR
-      
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_O3_MOD               ! FSCALYR, SCNR89, TODH, EMISTCO
-      USE CMN_DIAG_MOD             ! Diagnostic arrays & switches
-
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
-#if defined( DEVEL )
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-      REAL*8,         INTENT(INOUT) :: BIO_EMISS(:,:,:)
-#endif
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  18 Sep 2007 - L. Jaegle, H. U. Price, P. Le Sager -- Initial version
@@ -202,12 +194,16 @@
       ! Cosine SZA & PAR (for calculation of monoterpenes)
       REAL*8                 :: SC, PDF, PDR
 
+      ! For fields from Input_Opt
+      LOGICAL                :: LANTHRO,     LGFED2BB,     LGFED3BB
+      LOGICAL                :: LBIOMASS,    LBIOFUEL,     LNEI99
+      LOGICAL                :: LSTREETS,    LEDGAR,       LBRAVO
+      LOGICAL                :: LMEGAN
+
       ! Pointers
-#if defined( DEVEL )
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
-#endif
+      REAL*8, POINTER        :: STT(:,:,:,:)
 
       ! External functions
       REAL*8, EXTERNAL       :: BOXVL
@@ -215,7 +211,24 @@
 
       !=================================================================
       ! EMISS_H2_HD begins here!
-      !
+      !=================================================================
+
+      ! Assume success
+      RC       =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LANTHRO  = Input_Opt%LANTHRO
+      LGFED2BB = Input_Opt%LGFED2BB
+      LGFED3BB = Input_Opt%LGFED3BB
+      LBIOMASS = Input_Opt%LBIOMASS
+      LBIOFUEL = Input_Opt%LBIOFUEL
+      LNEI99   = Input_Opt%LNEI99 
+      LSTREETS = Input_Opt%LSTREETS
+      LEDGAR   = Input_Opt%LEDGAR
+      LBRAVO   = Input_Opt%LBRAVO
+      LMEGAN   = Input_Opt%LMEGAN
+
+      !=================================================================
       ! Do the following only on the first call to EMISS_H2_HD...
       !=================================================================
       IF ( FIRSTEMISS ) THEN
@@ -280,11 +293,9 @@
          LASTYEAR = SCALEYEAR
       ENDIF
 
-#if defined( DEVEL )
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
-#endif
 
       ! DTSRCE is the number of seconds per emission timestep
       DTSRCE = GET_TS_EMIS() * 60d0
@@ -528,11 +539,8 @@
       !       biofuel burning array (bmy, 6/8/01).
       !=================================================================
       IF ( LBIOFUEL ) THEN
-#if defined( DEVEL )
-         CALL BIOFUEL_BURN( State_Met, BIO_EMISS )
-#else
-         CALL BIOFUEL_BURN( State_Met )
-#endif
+         CALL BIOFUEL_BURN
+     &      ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -690,10 +698,8 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-#if defined( DEVEL )
       ! Free pointer
       NULLIFY( STT )
-#endif
 
       END SUBROUTINE EMISS_H2_HD
 !EOC
@@ -1565,7 +1571,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: AS, I, J, IJLOOP
+      INTEGER :: AS
       
       !=================================================================
       ! INIT_H2_HD begins here!

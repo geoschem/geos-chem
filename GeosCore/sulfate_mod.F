@@ -4443,50 +4443,39 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE EMISSSULFATE( State_Met, State_Chm, EMISSIONS )
-#else
-      SUBROUTINE EMISSSULFATE( State_Met )
-#endif
+      SUBROUTINE EMISSSULFATE( am_I_Root, Input_Opt, 
+     &                         State_Met, State_Chm, RC ) 
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE GFED2_BIOMASS_MOD,  ONLY : GFED2_IS_NEW
       USE GFED3_BIOMASS_MOD,  ONLY : GFED3_IS_NEW
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE LOGICAL_MOD,        ONLY : LANTHRO, LBIOFUEL
-      USE LOGICAL_MOD,        ONLY : LSHIPSO2,   LPRT,   LBIOMASS !(win,5/1/09)
       USE TIME_MOD,           ONLY : GET_SEASON, GET_MONTH
       USE TIME_MOD,           ONLY : GET_YEAR,   ITS_A_NEW_MONTH
       USE TIME_MOD,           ONLY : GET_DAY,    ITS_A_NEW_DAY
-#if defined( DEVEL )
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-#else
-      USE TRACER_MOD,         ONLY : STT
-#endif
-      USE TRACER_MOD,         ONLY : ITS_AN_AEROSOL_SIM
       USE TRACERID_MOD,       ONLY : IDTNITs,    IDTSO4s
       USE TRACERID_MOD,       ONLY : IDTDMS,     IDTSO2 
       USE TRACERID_MOD,       ONLY : IDTSO4,     IDTNH3
-#if defined( DEVEL )
-      USE TRACER_MOD,         ONLY : N_TRACERS 
-#endif
-
-      USE CMN_SIZE_MOD             ! Size parameters
-
 !
 ! !INPUT PARAMETERS:
 !
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
       TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
-#if defined( DEVEL )
-!
-! !INPUT/OUTPUT PARAMETERS: 
-!
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-      REAL*8,         INTENT(INOUT) :: 
-     &            EMISSIONS(IIPAR,JJPAR,LLPAR,N_TRACERS+1)
-#endif
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY:
 !  (1 ) BXHEIGHT is now dimensioned IIPAR,JJPAR,LLPAR (bmy, 9/26/01)
@@ -4525,29 +4514,42 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE      :: FIRSTEMISS = .TRUE. 
-      INTEGER            :: NSEASON, DAY, MONTH, YEAR   
+      LOGICAL, SAVE :: FIRSTEMISS = .TRUE. 
+      INTEGER       :: NSEASON, DAY, MONTH, YEAR   
+
+      ! For fields from Input_Opt
+      LOGICAL       :: LANTHRO
+      LOGICAL       :: LBIOFUEL
+      LOGICAL       :: LBIOMASS
+      LOGICAL       :: LPRT
+      LOGICAL       :: LSHIPSO2
+      LOGICAL       :: ITS_AN_AEROSOL_SIM
+      INTEGER       :: N_TRACERS
 
       ! Pointers
-#if defined( DEVEL )
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER :: STT(:,:,:,:)
-#endif
-
-#if defined( DEVEL )
-!      REAL*8                     :: STT_TMP(IIPAR,JJPAR,
-#endif
 
       !=================================================================
       ! EMISSSULFATE begins here!
       !=================================================================
 
-#if defined( DEVEL )
+      ! Assume success
+      RC                 = GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LANTHRO            = Input_Opt%LANTHRO
+      LBIOFUEL           = Input_Opt%LBIOFUEL
+      LBIOMASS           = Input_Opt%LBIOMASS
+      LPRT               = Input_Opt%LPRT
+      LSHIPSO2           = Input_Opt%LSHIPSO2
+      ITS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
+      N_TRACERS          = Input_Opt%N_TRACERS
+
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
-#endif
 
       ! Do only on the first timestep
       IF ( FIRSTEMISS ) THEN
@@ -4620,7 +4622,7 @@
          CALL READ_SHIP_SO2( MONTH )
 
          ! Read oxidants for the offline simulation only
-         IF ( ITS_AN_AEROSOL_SIM() ) CALL READ_OXIDANT( MONTH )
+         IF ( ITS_AN_AEROSOL_SIM ) CALL READ_OXIDANT( MONTH )
 
       ENDIF
 
@@ -4637,26 +4639,24 @@
       !=================================================================
       ! Add emissions into the STT tracer array
       !=================================================================
-#if defined( DEVEL )
-      IF ( IDTDMS /= 0 ) CALL SRCDMS( STT(:,:,:,IDTDMS),         
-     &                    EMISSIONS(:,:,1,IDTDMS), State_Met )
-      IF ( IDTSO2 /= 0 ) CALL SRCSO2( STT(:,:,:,IDTSO2), NSEASON,         
-     &                    EMISSIONS(:,:,:,IDTSO2))
-      IF ( IDTSO4 /= 0 ) CALL SRCSO4( STT(:,:,:,IDTSO4),                  
-     &                    EMISSIONS(:,:,:,IDTSO4))
-      IF ( IDTNH3 /= 0 ) CALL SRCNH3( STT(:,:,:,IDTNH3),
-     &                    EMISSIONS(:,:,:,IDTNH3))
-#else
-      IF ( IDTDMS /= 0 ) CALL SRCDMS( STT(:,:,:,IDTDMS), State_Met )
-      IF ( IDTSO2 /= 0 ) CALL SRCSO2( STT(:,:,:,IDTSO2), NSEASON   )
-      IF ( IDTSO4 /= 0 ) CALL SRCSO4( STT(:,:,:,IDTSO4)            )
-      IF ( IDTNH3 /= 0 ) CALL SRCNH3( STT(:,:,:,IDTNH3)            )
-#endif
+      IF ( IDTDMS /= 0 ) THEN
+         CALL SRCDMS( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+      ENDIF
 
-#if defined( DEVEL )
+      IF ( IDTSO2 /= 0 ) THEN
+         CALL SRCSO2( am_I_Root, NSEASON, Input_Opt, State_Chm, RC )
+      ENDIF
+
+      IF ( IDTSO4 /= 0 ) THEN 
+         CALL SRCSO4( am_I_Root, Input_Opt, State_Chm, RC ) 
+      ENDIF
+
+      IF ( IDTNH3 /= 0 ) THEN
+         CALL SRCNH3( am_I_Root, Input_Opt, State_Chm, RC ) 
+      ENDIF
+
       ! Free pointer
       NULLIFY( STT )
-#endif
 
       END SUBROUTINE EMISSSULFATE
 !EOC
@@ -4762,16 +4762,17 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL)
-      SUBROUTINE SRCDMS( TC, SFLX, State_Met )
-#else
-      SUBROUTINE SRCDMS( TC, State_Met )
-#endif
+
+      SUBROUTINE SRCDMS( am_I_Root, Input_Opt,
+     &                   State_Met, State_Chm, RC )
 !
 ! !USES:
 !
       USE DIAG_MOD,           ONLY : AD13_DMS
       USE DAO_MOD,            ONLY : IS_WATER
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
@@ -4781,23 +4782,20 @@
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND13 (for now)
       USE CMN_GCTM_MOD             ! SCALE_HEIGHT
-
-      !%%% NOTE: Keep this here as a placeholder, but we should
-      !%%% eventually replace this with Input_Opt%LNLPBL
-      USE LOGICAL_MOD,         ONLY : LNLPBL
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
-      REAL*8,         INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! Initial tracer
-                                                             !  mass [kg], plus
-                                                             !  DMS emiss
-#if defined( DEVEL )
-      REAL*8,         INTENT(INOUT) :: SFLX(IIPAR,JJPAR)
-#endif
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  (1 ) Now reference NSRCE, LWI, DXYP, XTRA2 from either header files or
@@ -4815,6 +4813,7 @@
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4832,6 +4831,14 @@
       INTEGER                :: I,      J,    L,     NTOP
       REAL*8                 :: DTSRCE, SST,  Sc,    CONC,   W10 
       REAL*8                 :: ScCO2,  AKw,  ERATE, DMSSRC, FEMIS
+
+      ! For fields from Input_Opt
+      LOGICAL                :: LNLPBL
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8,  POINTER       :: TC(:,:,:)
 !
 ! !EXTERNAL FUNCTIONS:   
 !
@@ -4841,8 +4848,17 @@
       ! SRCDMS begins here!
       !=================================================================
 
+      ! Assume success
+      RC     =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LNLPBL = Input_Opt%LNLPBL
+
       ! Chemistry timestep in seconds
       DTSRCE = GET_TS_EMIS() * 60d0
+
+      ! Point to the DMS tracer slice
+      TC     => State_Chm%TRACERS(:,:,:,IDTDMS)
 
       !=================================================================      
       ! Compute DMS emissions = seawater DMS * transfer velocity
@@ -4948,7 +4964,8 @@
             DMSSRC = ERATE * GET_AREA_M2( I, J, 1 )
 
 #if defined( DEVEL )
-            SFLX(I,J) = SFLX(I,J) + DMSSRC/DTSRCE ! kg DMS/grid/s
+            State_Chm%TRAC_TEND(I,J,1,IDTDMS) = 
+     &      State_Chm%TRAC_TEND(I,J,1,IDTDMS) + DMSSRC/DTSRCE ! kg DMS/grid/s
 #endif
             !===========================================================
             ! Add DMS emissions [kg DMS/box] into the tracer array
@@ -4980,7 +4997,7 @@
  
          ! Save surface emis for non-local PBL mixing (vdiff_mod.f) (units: kg)
          ! (Lin, 06/09/08)
-         if (LNLPBL) emis_save(I,J,IDTDMS) = DMSSRC
+         if ( LNLPBL ) emis_save(I,J,IDTDMS) = DMSSRC
 
          !==============================================================
          ! ND13 diagnostic:  DMS emissions [kg S/box/timestep]
@@ -4991,6 +5008,9 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+      ! Free pointer
+      NULLIFY( TC )
 
       END SUBROUTINE SRCDMS 
 !EOC
@@ -5008,11 +5028,7 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE SRCSO2( TC, NSEASON, SFLX )
-#else
-      SUBROUTINE SRCSO2( TC, NSEASON )
-#endif
+      SUBROUTINE SRCSO2( am_I_Root, NSEASON, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
@@ -5026,41 +5042,37 @@
       USE EPA_NEI_MOD,    ONLY     : GET_USA_MASK
       USE ERROR_MOD,      ONLY     : ERROR_STOP,       GEOS_CHEM_STOP
       USE ERROR_MOD,      ONLY     : IS_SAFE_DIV
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GRID_MOD,       ONLY     : GET_AREA_CM2
       USE GRID_MOD,       ONLY     : GET_XOFFSET, GET_YOFFSET
-      USE LOGICAL_MOD,    ONLY     : LBRAVO, LNEI99,   LSHIPSO2
-      USE LOGICAL_MOD,    ONLY     : LCAC, LNEI05
       USE NEI2005_ANTHRO_MOD, ONLY : GET_NEI2005_ANTHRO
       USE NEI2005_ANTHRO_MOD, ONLY : NEI05_MASK => USA_MASK
       USE PBL_MIX_MOD,    ONLY     : GET_FRAC_OF_PBL,  GET_PBL_TOP_L
       USE PRESSURE_MOD,   ONLY     : GET_PEDGE
       USE TIME_MOD,       ONLY     : GET_TS_EMIS,      GET_DAY_OF_YEAR 
       USE TIME_MOD,       ONLY     : GET_DAY_OF_WEEK
-      USE TRACER_MOD,     ONLY     : XNUMOL
       USE TRACERID_MOD,   ONLY     : IDTSO2
-![eml
-      USE LOGICAL_MOD,    ONLY     : LHIST
-!eml]
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND13, LD13 (for now)
       USE CMN_GCTM_MOD             ! SCALE_HEIGHT
-
-      !%%% NOTE: Keep this here as a placeholder, but we should
-      !%%% eventually replace this with Input_Opt%LNLPBL
-      USE LOGICAL_MOD,         ONLY : LNLPBL
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN)    :: NSEASON ! Season #: 1=DJF; 2=MAM; 3=JJA; 4=SON
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      INTEGER,        INTENT(IN)    :: NSEASON     ! Season #: 1=DJF; 2=MAM; 
+                                                   !           3=JJA; 4=SON
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! SO2 tracer mass [kg]
-#if defined( DEVEL )
-      REAL*8                 :: SFLX(IIPAR,JJPAR,LLPAR)
-#endif
-
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY:
 !  (1 ) Now reference NSRCE, JDAY, PBL, XTRA2, BXHEIGHT from either header
@@ -5126,6 +5138,12 @@
       INTEGER                :: IREF, JREF, I0, J0
       REAL*8                 :: PLOW, PHIGH, PVOLCLOW, PVOLCHIGH, FRAC
 
+      ! For fields from Input_Opt
+      LOGICAL                :: LHIST,    LNLPBL, LBRAVO, LNEI99  
+      LOGICAL                :: LSHIPSO2, LCAC,   LNEI05
+      INTEGER                :: N_TRACERS
+      REAL*8                 :: XNUMOL(Input_Opt%N_TRACERS)
+
       ! Pressure edges of volcanic 0.5-km grid. Edges come from
       ! converting 500 m increments to pressure using the U.S. standard
       ! atmosphere since volcanic emissions are provided as meters above
@@ -5135,9 +5153,31 @@
      &   657.64, 616.40, 577.28, 540.20, 505.07, 471.81, 440.35,
      &   410.61, 382.52, 356.00, 330.99, 307.42, 285.24, 264.36 /)
 
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER        :: TC(:,:,:)
+
       !=================================================================
       ! SRCSO2 begins here!
       !================================================================
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LHIST     = Input_Opt%LHIST
+      LNLPBL    = Input_Opt%LNLPBL
+      LBRAVO    = Input_Opt%LBRAVO
+      LNEI99    = Input_Opt%LNEI99
+      LSHIPSO2  = Input_Opt%LSHIPSO2
+      LCAC      = Input_Opt%LCAC
+      LNEI05    = Input_Opt%LNEI05
+      N_TRACERS = Input_Opt%N_TRACERS
+      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
+
+      ! Point to the SO2 tracer slice
+      TC      => State_Chm%TRACERS(:,:,:,IDTSO2)
 
       ! DTSRCE is the emission timestep in seconds
       DTSRCE  = GET_TS_EMIS() * 60d0
@@ -5521,12 +5561,16 @@
             ENDIF
 
          ENDDO
+
 #if defined( DEVEL )
          ! kg/m2/s
-         SFLX(:,J,1) = SFLX(:,J,1) + (SO2an(:,J,1) + Eso2_bb(:,J) +
-     &                                 SO2bf(:,J)   + ESO2_sh(:,J))
+         State_Chm%TRAC_TEND(:,J,1,IDTSO2) = 
+     &   State_Chm%TRAC_TEND(:,J,1,IDTSO2) + 
+     &       ( SO2an(:,J,1) + Eso2_bb(:,J) +
+     &         SO2bf(:,J)   + ESO2_sh(:,J) )
 
-         SFLX(:,J,2:NOXLEVELS) = SFLX(:,J,2:NOXLEVELS) + SO2an(:,J,2:)
+         State_Chm%TRAC_TEND(:,J,2:NOXLEVELS,IDTSO2) = 
+     &   State_Chm%TRAC_TEND(:,J,2:NOXLEVELS,IDTSO2) + SO2an(:,J,2:)
 
 #endif
       ENDDO
@@ -5634,6 +5678,9 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+      ! Free pointer
+      NULLIFY( TC )
+
       END SUBROUTINE SRCSO2
 !EOC
 !------------------------------------------------------------------------------
@@ -5649,11 +5696,7 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE SRCSO4( TC, SFLX )
-#else
-      SUBROUTINE SRCSO4( TC )
-#endif
+      SUBROUTINE SRCSO4( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
@@ -5665,31 +5708,31 @@
       USE EPA_NEI_MOD,        ONLY : GET_EPA_ANTHRO,  GET_EPA_BIOFUEL
       USE EPA_NEI_MOD,        ONLY : GET_USA_MASK
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,        ONLY : LNEI99, LCAC, LBRAVO, LNEI05
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
       USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK, GET_TS_EMIS
-      USE TRACER_MOD,         ONLY : XNUMOL
       USE TRACERID_MOD,       ONLY : IDTSO4, IDTSO2
-![eml
-      USE LOGICAL_MOD,        ONLY : LHIST
-!eml]
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND13 (for now)
       USE CMN_GCTM_MOD             ! SCALE_HEIGHT
-
-      !%%% NOTE: Keep this here as a placeholder, but we should
-      !%%% eventually replace this with Input_Opt%LNLPBL
-      USE LOGICAL_MOD,         ONLY : LNLPBL
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
-      REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! SO4 mass [kg]
-#if defined( DEVEL )
-      REAL*8,  INTENT(INOUT) :: SFLX(IIPAR,JJPAR,LLPAR)
-#endif
-
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
 ! 
 ! !REVISION HISTORY:
 !  (1 ) Emission of SO4 is read in SULFATE_READYR, in [kg/box/s]. 
@@ -5717,6 +5760,7 @@
 !        emissions (phs, 10/27/09)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5738,9 +5782,36 @@
       REAL*8                 :: SO4bf(IIPAR,JJPAR)
       REAL*8                 :: TEMPEMISS(NOXLEVELS)
 
+      ! For fields from Input_Opt
+      LOGICAL                :: LHIST,  LNLPBL, LBRAVO  
+      LOGICAL                :: LNEI99, LCAC,   LNEI05
+      INTEGER                :: N_TRACERS
+      REAL*8                 :: XNUMOL(Input_Opt%N_TRACERS)
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER        :: TC(:,:,:)
+
       !=================================================================
       ! SRCSO4 begins here!
       !=================================================================
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LHIST     = Input_Opt%LHIST
+      LNLPBL    = Input_Opt%LNLPBL
+      LBRAVO    = Input_Opt%LBRAVO
+      LNEI99    = Input_Opt%LNEI99
+      LCAC      = Input_Opt%LCAC
+      LNEI05    = Input_Opt%LNEI05
+      N_TRACERS = Input_Opt%N_TRACERS
+      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
+
+      ! Point to the SO4 tracer slice
+      TC        => State_Chm%TRACERS(:,:,:,IDTSO4)
 
       ! DTSRCE is the emission timestep in seconds
       DTSRCE  = GET_TS_EMIS() * 60d0
@@ -5939,11 +6010,18 @@
             
          ENDDO
 #if defined( DEVEL )
-         SFLX(:,J,1) = SFLX(:,J,1) + (SO4an(:,J,1) + SO4bf(:,J))
-         SFLX(:,J,2:NOXLEVELS) = SFLX(:,J,2:NOXLEVELS) + SO4an(:,J,2:)
+         State_Chm%TRAC_TEND(:,J,1,IDTSO4)           = 
+     &   State_Chm%TRAC_TEND(:,J,1,IDTSO4)           + 
+     &        ( SO4an(:,J,1) + SO4bf(:,J) )
+
+         State_Chm%TRAC_TEND(:,J,2:NOXLEVELS,IDTSO4) = 
+     &   State_Chm%TRAC_TEND(:,J,2:NOXLEVELS,IDTSO4) + SO4an(:,J,2:)
 #endif
       ENDDO
 !$OMP END PARALLEL DO
+
+      ! Free pointer
+      NULLIFY( TC )
 
       END SUBROUTINE SRCSO4
 !EOC
@@ -5960,11 +6038,7 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE SRCNH3( TC, SFLX )
-#else
-      SUBROUTINE SRCNH3( TC )
-#endif
+      SUBROUTINE SRCNH3( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
@@ -5974,30 +6048,33 @@
       USE NEI2005_ANTHRO_MOD, ONLY : NEI05_MASK => USA_MASK
       USE DIAG_MOD,           ONLY : AD13_NH3_an, AD13_NH3_bb
       USE DIAG_MOD,           ONLY : AD13_NH3_bf, AD13_NH3_na
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE EPA_NEI_MOD,        ONLY : GET_EPA_ANTHRO, GET_EPA_BIOFUEL
       USE EPA_NEI_MOD,        ONLY : GET_USA_MASK
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE LOGICAL_MOD,        ONLY : LNEI99, LCAC, LNEI05
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
       USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK, GET_TS_EMIS
-      USE TRACER_MOD,         ONLY : XNUMOL
       USE TRACERID_MOD,       ONLY : IDTNH3
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND13
       USE CMN_GCTM_MOD             ! SCALE_HEIGHT
-
-      !%%% NOTE: Keep this here as a placeholder, but we should
-      !%%% eventually replace this with Input_Opt%LNLPBL
-      USE LOGICAL_MOD,         ONLY : LNLPBL
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
-      REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! NH3 tracer mass [kg]
-#if defined( DEVEL )
-      REAL*8,  INTENT(INOUT) :: SFLX(IIPAR,JJPAR,LLPAR)
-#endif
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  (1 ) Now save NH3 emissions to ND13 diagnostic (bmy, 12/13/02)
@@ -6026,6 +6103,7 @@
 !       emissions, and allows for emissions above the PBL (phs, 10/27/09)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6042,9 +6120,33 @@
       REAL*8                 :: NH3bf(IIPAR,JJPAR)
       REAL*8                 :: TEMPEMISS(NOXLEVELS)
       
+      ! For fields from Input_Opt
+      LOGICAL                :: LNEI99, LCAC, LNEI05, LNLPBL
+      INTEGER                :: N_TRACERS
+      REAL*8                 :: XNUMOL(Input_Opt%N_TRACERS)
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER        :: TC(:,:,:)
+
       !=================================================================
       ! SRCNH3 begins here!
       !=================================================================
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LNLPBL    = Input_Opt%LNLPBL
+      LNEI99    = Input_Opt%LNEI99
+      LCAC      = Input_Opt%LCAC
+      LNEI05    = Input_Opt%LNEI05
+      N_TRACERS = Input_Opt%N_TRACERS
+      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
+
+      ! Point to the NH3 tracer slice
+      TC        => State_Chm%TRACERS(:,:,:,IDTNH3)
 
       ! Emission timestep [s]
       DTSRCE  = GET_TS_EMIS() * 60d0
@@ -6222,13 +6324,19 @@
             
          ENDDO
 #if defined( DEVEL )
-         SFLX(:,J,1) = SFLX(:,J,1) + (NH3an(:,J,1) + ENH3_bb(:,J) + 
-     &                                NH3bf(:,J)   + ENH3_na(:,J))
+         State_Chm%TRAC_TEND(:,J,1,IDTNH3) = 
+     &   State_Chm%TRAC_TEND(:,J,1,IDTNH3) + 
+     &        ( NH3an(:,J,1) + ENH3_bb(:,J) + 
+     &          NH3bf(:,J)   + ENH3_na(:,J) )
 
-         SFLX(:,J,2:NOXLEVELS) = SFLX(:,J,2:NOXLEVELS) + NH3an(:,J,2:)
+         State_Chm%TRAC_TEND(:,J,2:NOXLEVELS,IDTNH3) = 
+     &   State_Chm%TRAC_TEND(:,J,2:NOXLEVELS,IDTNH3) + NH3an(:,J,2:)
 #endif
       ENDDO
 !$OMP END PARALLEL DO
+
+      ! Free pointer
+      NULLIFY( TC )
 
       END SUBROUTINE SRCNH3
 !EOC

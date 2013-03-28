@@ -264,12 +264,8 @@
          IF ( ITS_A_C2H6_SIM ) THEN
 
             ! Read biofuel burning emissions (and update ND34 diagnostic)
-#if defined( DEVEL )
-            CALL BIOFUEL_BURN( State_Met, 
-     &                         State_Chm%TRAC_BTEND(:,:,1,:) )
-#else
-            CALL BIOFUEL_BURN( State_Met )
-#endif
+            CALL BIOFUEL_BURN
+     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )

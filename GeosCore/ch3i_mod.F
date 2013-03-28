@@ -780,11 +780,8 @@
       ENDIF
 
       ! Now reference routine BIOFUEL_BURN from "biofuel_mod.f" (bmy, 9/12/00)
-#if defined( DEVEL )
-      CALL BIOFUEL_BURN( State_Met, State_Chm%TRAC_BTEND(:,:,1,:) )
-#else
-      CALL BIOFUEL_BURN( State_Met )
-#endif
+      CALL BIOFUEL_BURN
+     &   ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
       N = 3
       L = 1

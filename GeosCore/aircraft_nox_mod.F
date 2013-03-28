@@ -255,11 +255,8 @@
       END SUBROUTINE READAIR
 
 !------------------------------------------------------------------------------
-#if defined( DEVEL )
-      SUBROUTINE AIREMISS( State_Met, EMISS )
-#else
-      SUBROUTINE AIREMISS( State_Met )
-#endif
+
+      SUBROUTINE AIREMISS( State_Met, State_Chm )
 !
 !******************************************************************************
 !  Subroutine AIREMISS interpolates the aircraft NOx emissions from the 1-km
@@ -285,13 +282,16 @@
 !        in order to avoid common block errors. (ltm, bmy, 10/3/07)
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  25 Mar 2013 - R. Yantosca - Now accept State_Chm argument
 !******************************************************************************
 !
       ! References to F90 modules
       USE DIAG_MOD,           ONLY : AD32_ac
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET
       USE PRESSURE_MOD,       ONLY : GET_PEDGE
+      USE TRACERID_MOD,       ONLY : IDTNOx
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! Diagnostic switches
@@ -303,12 +303,14 @@
       
       ! External functions
       REAL*8, EXTERNAL    ::  BOXVL
-
-      ! Arguments
-      TYPE(MetState), INTENT(IN)    :: State_Met    ! Meteorology State object
-#if defined( DEVEL )
-      REAL*8,         INTENT(INOUT) :: EMISS(:,:,:)
-#endif
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
       
       !=================================================================
       ! AIREMISS begins here!
@@ -414,7 +416,9 @@
 
 #if defined( DEVEL )
       ! Superimpose aircraft NOx onto exiting tendency
-      EMISS = EMISS + EMIS_AC_NOx ! Assumes dimension conformity
+      ! Assumes dimension conformity
+      State_Chm%TRAC_TEND(:,:,:,IDTNOX) = 
+     &State_Chm%TRAC_TEND(:,:,:,IDTNOx) + EMIS_AC_NOx 
 #endif
 
       ! Return to calling program
