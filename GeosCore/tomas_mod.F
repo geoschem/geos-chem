@@ -351,18 +351,9 @@
       COAG = .TRUE.
       NUCL = .TRUE.
 
-!$OMP PARALLEL DO
-!$OMP+SHARED( nucrate, nucrate1)
-!$OMP+PRIVATE( J, L )
-!$OMP+SCHEDULE( DYNAMIC )
       ! Initialize nucleation rate arrays
-      DO J=1,JJPAR
-      DO L=1,LLPAR
-         nucrate(J,L)=0.d0
-         nucrate1(J,L)=0.d0
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
+      nucrate(:,:)  = 0.d0
+      nucrate1(:,:) = 0.d0
 
       ! Make sure there is access to the H2SO4 production rate array
       ! H2SO4RATE, which saves the H2SO4 production rate for EACH chemistry
@@ -6079,8 +6070,13 @@ c      USE LOGICAL_MOD,    ONLY : LSULF30, LSALT30, LCARB30, LDUST30
       CALL CHECKMN( 0, 0, 0, State_Met, 'kg',
      &              'AERO_DIADEN called from DEPVEL')
 
-      DO BIN = 1, IBINS
+!$OMP PARALLEL DO
+!$OMP+PRIVATE( BIN, IJLOOP, I, J, TRACID, WID, MH2O, MSO4, MNACL )
+!$OMP+PRIVATE( MECIL, MECOB, MOCIL, MOCOB, MDUST )
+!$OMP+DEFAULT( SHARED )
+!$OMP+SCHEDULE( DYNAMIC )
       DO IJLOOP = 1, MAXIJ
+      DO BIN = 1, IBINS
 
          ! Calculate the I and J-index from IJLOOP index
          I = MOD( IJLOOP, IIPAR )
@@ -6118,6 +6114,7 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
 
       ENDDO
       ENDDO
+!$OMP END PARALLEL DO
 
       END SUBROUTINE AERO_DIADEN
       

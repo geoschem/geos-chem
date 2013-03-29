@@ -156,7 +156,13 @@ cdbg      print *, dryd(:)
 
       ! SIZ_DIA [=] m  and SIZ_DEN [=] kg/m3
       CALL AERO_DIADEN( SIZ_DIA(:,:), SIZ_DEN(:,:), 1, State_Met )
-      
+
+!$OMP PARALLEL DO
+!$OMP+PRIVATE( BIN, I, J, IJLOOP, DP, DEN, CONST, L, P, TEMP )
+!$OMP+PRIVATE( PDP, SLIP, VISC, VTS, JC, ID, TC0, TC )
+!$OMP+PRIVATE( DELZ, DELZ1, AREA_CM2, TOT1, TOT2, FLUX )
+!$OMP+DEFAULT( SHARED )
+!$OMP+SCHEDULE( DYNAMIC )
       DO BIN = 1, IBINS
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -299,6 +305,7 @@ cdbg      print *, dryd(:)
       ENDDO  ! I-loop
       ENDDO  ! J-loop
       ENDDO  ! Bin-loop
+!$OMP END PARALLEL DO
 
       ENDIF  ! DOSETTLING 
 
@@ -315,8 +322,12 @@ cdbg      print *, dryd(:)
       X = 0d0
       X0 = 0d0
 
-      ! Loop over tropospheric grid boxes
-      DO L = 1, LLTROP 
+!$OMP PARALLEL DO
+!$OMP+PRIVATE( L, J, I, AREA_CM2, RKT, flux, JC, BIN )
+!$OMP+PRIVATE( ID, X0, X, Y0, Y )
+!$OMP+DEFAULT( SHARED )
+!$OMP+SCHEDULE( DYNAMIC )
+      DO L = 1, LLTROP ! Loop over tropospheric grid boxes
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -433,6 +444,7 @@ c     &           AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1)
       ENDDO
       ENDDO
       ENDDO
+!$OMP END PARALLEL DO
 
 
       IF ( LPRT ) PRINT *,'### Finish AERO_DRYDEP'
