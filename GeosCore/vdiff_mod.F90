@@ -1825,6 +1825,9 @@ contains
 !  Need to declare the Meteorology State object (State_MET) with
 !  INTENT(INOUT).  This is because VDIFF will modify the specific
 !  humidity field. (bmy, 11/21/12)
+!                                                                            .
+!  VDIFF also archives drydep fluxes to the soil NOx emissions module
+!  (by calling routine SOIL_DRYDEP) and to the ND44 diagnostic.
 !
 ! !REVISION HISTORY:
 ! (1 ) Calls to vdiff and vdiffar are now done with full arrays as arguments.
@@ -2368,18 +2371,20 @@ contains
                                 * GET_TS_CONV() / GET_TS_EMIS() 
 		ENDIF
 
-		IF(LSOILNOX) THEN
-			soilflux = 0d0
-			DO J = 1, JJPAR
-		 	DO I = 1, IIPAR			
-				soilflux = dflx(I,J,NN) &
-		                        / TRACER_MW_KG(NN) * 6.022d23 * 1.d-4 &
-		                        * GET_TS_CONV() / GET_TS_EMIS() 
+                ! If Soil NOx is turned on, then call SOIL_DRYDEP to
+                ! archive dry deposition fluxes for nitrogen species
+                ! (SOIL_DRYDEP will exit if it can't find a match.)
+		IF ( LSOILNOX ) THEN
+                   soilflux = 0d0
+                   DO J = 1, JJPAR
+                   DO I = 1, IIPAR
+                      soilflux = dflx(I,J,NN) &
+		               / TRACER_MW_KG(NN) * 6.022d23 * 1.d-4 &
+                               * GET_TS_CONV() / GET_TS_EMIS()
 
-		      	        CALL SOIL_DRYDEP ( I, J, 1, NN, soilflux)
-			ENDDO
-			ENDDO
-
+                      CALL SOIL_DRYDEP ( I, J, 1, NN, soilflux)
+                   ENDDO
+                   ENDDO
 		ENDIF
 
           END SELECT
