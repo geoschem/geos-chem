@@ -2481,6 +2481,8 @@ c$$$      AEF_MYRC = ARRAY(:,:,1)
 
 #if   defined( GEOS_57 )
 
+            !print*, 'call geos57_read_a1'
+
             !-----------------------------
             ! GEOS-5.7.x met fields
             ! Sfc temp is hourly data

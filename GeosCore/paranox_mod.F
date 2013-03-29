@@ -90,8 +90,12 @@
       !=================================================================
 
       ! File name
-      FILENAME = TRIM( DATA_DIR_1x1 ) // 'PARANOX_201202/' //
-     &           'FracNOx_binary_5hrs_20gs.dat'
+!      FILENAME = TRIM( DATA_DIR_1x1 ) // 'PARANOX_201202/' //
+!     &           'FracNOx_binary_5hrs_20gs.dat'
+
+      ! Replace filename for testing purposes (skim, 1/31/13)
+      FILENAME = '/home/skim/SEAC4RS/LUTs_Patrick/newjo1drange/' //
+     &           'FracNOx_binary_2hrs_20gs.dat'
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -120,8 +124,12 @@
       !=================================================================
 
       ! File name
-      FILENAME = TRIM( DATA_DIR_1x1 ) // 'PARANOX_201202/' //
-     &           'IntOPE_binary_5hrs_20gs.dat'
+!      FILENAME = TRIM( DATA_DIR_1x1 ) // 'PARANOX_201202/' //
+!     &           'IntOPE_binary_5hrs_20gs.dat'
+
+      ! Replace filename for testing purposes (skim, 1/31/13)
+      FILENAME = '/home/skim/SEAC4RS/LUTs_Patrick/newjo1drange/' //
+     &           'IntOPE_binary_2hrs_20gs.dat'
 
       ! Echo info
       WRITE( 6, 101 ) TRIM( FILENAME )
@@ -256,7 +264,9 @@
       alfa5lev = (/ -90.,  -60.,   -45.,   -30., 
      $              -15.,    0.,    15.,    30.,
      $               45.,   60.,    75.,    90.   /)
-      jo1dlev  = (/ 5.e-4, 0.0015, 0.0025, 0.0055 /)
+      ! Change based on advice from Geert (skim, 1/31/13)
+      !jo1dlev  = (/ 5.e-4, 0.0015, 0.0025, 0.0055 /)
+      jo1dlev = (/ 2d-6, 50d-6, 200d-6, 600d-6 /)
       cacolev  = (/  50.,  100.,   150.,   1200.  /) 
 
 !      PRINT*,"Temperature levels are: ",templev

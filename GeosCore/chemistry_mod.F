@@ -661,7 +661,7 @@
       ! Suggested tolerance for Rosenbrock solvers
       DO i=1,NVAR
 !         RTOL(i) = 2.d-1
-         RTOL(i) = 1.d-1
+         RTOL(i) = 5.d-2
          ATOL(i) = 1.d-2
       END DO
 

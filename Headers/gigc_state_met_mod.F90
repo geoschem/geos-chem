@@ -240,10 +240,16 @@ CONTAINS
 !  27 Nov 2012 - R. Yantosca - Now allocate SUNCOS fields (IM,JM)
 !  12 Dec 2012 - R. Yantosca - Now allocate the IREG, ILAND, IUSE fields
 !  13 Dec 2012 - R. Yantosca - Now allocate the XLAI, XLAI2 fields
+!  07 Mar 2013 - R. Yantosca - Now allocate PF*LSAN, PF*CU fields properly
+!                              for GEOS-5.7.x met (they are edged)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
+! !LOCAL VARIABLES:
+!
+    INTEGER :: LX
+
     ! Assume success
     RC = GIGC_SUCCESS
 
@@ -743,19 +749,27 @@ CONTAINS
     !=======================================================================
     ! GEOS-5.7.x / MERRA met fields
     !=======================================================================
-    ALLOCATE( State_Met%PFICU     ( IM, JM, LM   ), STAT=RC )
+
+    ! Pick the proper vertical dimension
+#if defined( GEOS_57 )
+    LX = LM + 1           ! For fields that are on level edges
+#else
+    LX = LM               ! For fields that are on level centers
+#endif
+    
+    ALLOCATE( State_Met%PFICU     ( IM, JM, LX   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%PFICU    = 0d0
 
-    ALLOCATE( State_Met%PFILSAN   ( IM, JM, LM   ), STAT=RC )
+    ALLOCATE( State_Met%PFILSAN   ( IM, JM, LX   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%PFILSAN  = 0d0
 
-    ALLOCATE( State_Met%PFLCU     ( IM, JM, LM   ), STAT=RC )
+    ALLOCATE( State_Met%PFLCU     ( IM, JM, LX   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%PFLCU    = 0d0
 
-    ALLOCATE( State_Met%PFLLSAN   ( IM, JM, LM   ), STAT=RC )
+    ALLOCATE( State_Met%PFLLSAN   ( IM, JM, LX   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
     State_Met%PFLLSAN  = 0d0
 

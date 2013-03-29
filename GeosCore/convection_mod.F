@@ -284,16 +284,23 @@
 
       ENDDO
       
+      !PRINT*, '42, 37'
+      !PRINT*, STT(42, 37, :, 1)
+      !PRINT*, '43, 37'
+      !PRINT*, STT(43, 37, :, 1)
+      !PRINT*, '44, 37'
+      !PRINT*, STT(44, 37, :, 1)
+
       !-----------------------------------------------------------------
       ! Do convection column by column
       !-----------------------------------------------------------------
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( J,          AREA_M2,  I,       IDENT,      L       )
-!$OMP+PRIVATE( PEDGE,      N,        F,       DIAG14,     DIAG38  )
-!$OMP+PRIVATE( RC,         NN,       p_AD,    p_BXHEIGHT, p_CMFMC )
-!$OMP+PRIVATE( p_DQRCU,    p_DTRAIN, p_H2O2s, p_PFICU,    p_PFLCU )
-!$OMP+PRIVATE( P_REEVAPCN, p_SO2s,   p_STT,   p_T                 )
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( J,          AREA_M2,  I,       IDENT,      L       )
+!!$OMP+PRIVATE( PEDGE,      N,        F,       DIAG14,     DIAG38  )
+!!$OMP+PRIVATE( RC,         NN,       p_AD,    p_BXHEIGHT, p_CMFMC )
+!!$OMP+PRIVATE( p_DQRCU,    p_DTRAIN, p_H2O2s, p_PFICU,    p_PFLCU )
+!!$OMP+PRIVATE( P_REEVAPCN, p_SO2s,   p_STT,   p_T                 )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -340,6 +347,8 @@
 #endif
 
          ! Pointers to slices of larger arrays
+         ! Remove State_Met for variables not in the structure
+         !    (skim, 1/31/13)
          p_AD              => State_Met%AD      ( I, J,  :          )
          p_BXHEIGHT        => State_Met%BXHEIGHT( I, J,  :          )
          p_CMFMC           => State_Met%CMFMC   ( I, J, 2:LLPAR+1   )
@@ -351,6 +360,10 @@
          p_STT             =>           STT     ( I, J,  :,       : )
          p_T               => State_Met%T       ( I, J,  :          )
          
+         !PRINT*, 'CALLING'
+         !PRINT*, I, J
+         !PRINT*, STT(I, J, :, 1)
+
          !--------------------------
          ! Do the cloud convection
          !--------------------------
@@ -368,13 +381,13 @@
      &                             CMFMC     = p_CMFMC,
      &                             DQRCU     = p_DQRCU,
      &                             DTRAIN    = p_DTRAIN,
-     &                             H2O2s     = p_H2O2s,
+     &                             H2O2s     = H2O2s(I,J, :        ),
      &                             PFICU     = p_PFICU,
      &                             PFLCU     = p_PFLCU,
      &                             REEVAPCN  = p_REEVAPCN,            
-     &                             SO2s      = p_SO2s,
+     &                             SO2s      = SO2s (I,J, :        ),
      &                             T         = p_T,
-     &                             Q         = p_STT,
+     &                             Q         = STT  (I,J, :,      :),
      &                             DIAG14    = DIAG14,
      &                             DIAG38    = DIAG38,
      &                             I         = I,
@@ -422,7 +435,7 @@
          ENDIF
       ENDDO
       ENDDO
-!$OMP END PARALLEL DO
+!!$OMP END PARALLEL DO
 
       ! Free the memory
       DEALLOCATE( COEF%MOLWT_KG )
@@ -1792,6 +1805,27 @@
       ! (0)  I n i t i a l i z a t i o n
       !========================================================================
       
+      !PRINT*, I, J
+      !PRINT*, Q(:,1)
+
+      !PRINT*, MAXVAL( AD ), MINVAL( AD )
+      !PRINT*, AREA_M2
+      !PRINT*, MAXVAL( BXHEIGHT ), MINVAL( BXHEIGHT )
+      !PRINT*, MAXVAL( CMFMC ), MINVAL( CMFMC )
+      !PRINT*, MAXVAL( DQRCU ), MINVAL( DQRCU )
+      !PRINT*, MAXVAL( DTRAIN ), MINVAL( DTRAIN )
+      !PRINT*, MAXVAL( F ), MINVAL( F )
+      !PRINT*, MAXVAL( PEDGE ), MINVAL( PEDGE )
+      !PRINT*, MAXVAL( PFICU ), MINVAL( PFICU )
+      !PRINT*, MAXVAL( PFLCU ), MINVAL( PFLCU )
+      !PRINT*, MAXVAL( REEVAPCN ), MINVAL( REEVAPCN )
+      !PRINT*, MAXVAL( T ), MINVAL( T )
+      !PRINT*, TS_DYN
+      !PRINT*, MAXVAL( Q ), MINVAL( Q )
+      !PRINT*, MAXVAL( H2O2s ), MINVAL( H2O2s )
+      !PRINT*, MAXVAL( SO2s ), MINVAL( SO2s )
+      !PRINT*, I, J
+
       ! Put this routine name on error trace stack
       IDENT%LEV               = IDENT%LEV + 1
       IDENT%I_AM( IDENT%LEV ) = 'DO_MERRA_CONVECTION'
@@ -1893,6 +1927,7 @@
 
          ! numerator of QB
          QB_NUM(:) = QB_NUM(:) + Q(K,:) * ( PEDGE(K) - PEDGE(K+1) )
+         !PRINT*, Q(K,:)
 
       ENDDO
 
@@ -2033,6 +2068,9 @@
                   ! Air mass flowing into cloud at grid box (K)
                   ENTRN   = CMOUT - CMFMC_BELOW
 
+                  !PRINT*, 'QC= ', QC
+                  !PRINT*, 'F= ', F(K, IC)
+
                   ! Amount of QC preserved against scavenging
                   QC_PRES = QC * ( 1d0 - F(K,IC) )
 
@@ -2087,6 +2125,8 @@
                         
                      ENDIF
                     
+                     !PRINT*, 'ALPHA= ', ALPHA2
+
                      ! The resuspension takes 1/2 the amount of the scavenged
                      ! aerosol (QC_SCAV) and adds that back to QC_PRES ...
                      QC_PRES  = QC_PRES + ( ALPHA2 * QC_SCAV )
@@ -2190,6 +2230,14 @@
 
                   ! check for infinity
                   IF ( .not. IT_IS_FINITE( Q(K,IC) ) ) THEN
+                     PRINT*, I, J
+                     PRINT*, NDT, NS
+                     PRINT*, CLDBASE,QB_NUM(IC),PEDGE(1),PEDGE(CLDBASE)
+                     PRINT*, MB, QB, Q(CLDBASE,IC)
+                     PRINT*, F(K,IC), ALPHA2
+                     PRINT*, CMFMC_BELOW, CMFMC(K), QC_SCAV, QC_PRES, QC
+                     PRINT*, T0, T1, T2, T3, T4
+                     PRINT*, K, IC, Q(K,IC), SDT, BMASS(K), TSUM, DELQ
                      PRINT*, 'Q IS INFINITY'
                      CALL GEOS_CHEM_STOP
                   ENDIF

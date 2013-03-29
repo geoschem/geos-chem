@@ -5180,7 +5180,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WETDEP_MERRA( LS, State_Met )
+      ! Switch up order of variables (skim, 1/31/13)
+      SUBROUTINE WETDEP_MERRA( State_Met, LS )
 !
 ! !USES:
 !
