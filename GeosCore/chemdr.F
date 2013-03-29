@@ -538,12 +538,8 @@
       IF ( LSULF .or. LCARB .or. LDUST .or. LSSALT ) THEN
 
          ! Skip this section if all these are turned off
-#if defined( DEVEL )
-         CALL AEROSOL_CONC( am_I_Root, Input_Opt, State_Met,
-     &                      State_Chm, RC )
-#else
-         CALL AEROSOL_CONC( am_I_Root, Input_Opt, State_Met, RC )
-#endif
+         CALL AEROSOL_CONC
+     &      ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
       ENDIF
 

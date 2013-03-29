@@ -311,12 +311,8 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE AEROSOL_CONC( am_I_Root, Input_Opt, State_Met,
-     &                         State_Chm, RC )
-#else
-      SUBROUTINE AEROSOL_CONC( am_I_Root, Input_Opt, State_Met, RC )
-#endif
+      SUBROUTINE AEROSOL_CONC( am_I_Root, Input_Opt, 
+     &                         State_Met, State_Chm, RC )
 !
 ! !USES:
 !
@@ -324,11 +320,7 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
-#if defined( DEVEL )
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-#else
-      USE TRACER_MOD,         ONLY : STT
-#endif
       USE TRACERID_MOD,       ONLY : IDTBCPI, IDTBCPO, IDTDST1, IDTDST2
       USE TRACERID_MOD,       ONLY : IDTDST3, IDTDST4, IDTNH4,  IDTNIT  
       USE TRACERID_MOD,       ONLY : IDTOCPO, IDTOCPI, IDTSALA, IDTSALC 
@@ -338,19 +330,17 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-#if defined( DEVEL )
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-#endif
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 !
 ! !REMARKS:
 !  This code was originally included in "chemdr.f", but the same computation 
@@ -370,6 +360,7 @@
 !                              derived type object
 !  05 Mar 2013 - R. Yantosca - Remove call to INIT_AEROSOL, this is now done
 !                              in the initialization stage
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -403,21 +394,17 @@
       LOGICAL            :: LSULF
 
       ! Pointers
-#if defined( DEVEL )
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER :: STT(:,:,:,:)
-#endif
 
       !=================================================================
       ! AEROSOL_CONC begins here!
       !=================================================================
 
-#if defined( DEVEL )
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
-#endif
 
       ! Assume success
       RC     = GIGC_SUCCESS
@@ -428,16 +415,6 @@
       LSOA   = Input_Opt%LSOA
       LSSALT = Input_Opt%LSSALT
       LSULF  = Input_Opt%LSULF
-
-!-----------------------------------------------------------------------------
-! Prior to 3/5/13:
-! This needs to be moved to the init stage for ESMF (bmy, 3/5/13)
-!      ! First-time initialization
-!      IF ( FIRST ) THEN
-!         CALL INIT_AEROSOL()
-!         FIRST = .FALSE.
-!      ENDIF
-!-----------------------------------------------------------------------------
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -606,10 +583,8 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-#if defined( DEVEL )
       ! Free pointer
       NULLIFY( STT )
-#endif
 
       END SUBROUTINE AEROSOL_CONC
 !EOC
@@ -1622,7 +1597,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SOILDUST' )
       SOILDUST = 0d0
 
-!#if defined( DEVEL )
       ! Mass of hydrophobic aerosol from Mian Chin
       ALLOCATE( DAERSL(IIPAR,JJPAR,LLPAR,2), STAT=AS)       
       IF ( AS /= 0) CALL ALLOC_ERR( 'DAERSL' )
@@ -1632,7 +1606,6 @@
       ALLOCATE( WAERSL(IIPAR,JJPAR,LLPAR,NAER), STAT=AS)       
       IF ( AS /= 0) CALL ALLOC_ERR( 'WAERSL' )
       DAERSL = 0d0
-!#endif
 
       ! Return to calling program
 

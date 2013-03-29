@@ -229,6 +229,7 @@
 !  05 Mar 2013 - R. Yantosca - Now pass am_I_Root, Input_Opt, RC to routine
 !                              DO_PBL_MIX_2 (for non-local PBL mixing)
 !  15 Mar 2013 - R. Yantosca - Now set Input_Opt%LINOZ_N* fields here
+!  29 Mar 2013 - R. Yantosca - Bring code out of DEVEL blocks
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -292,13 +293,22 @@
       ! (mlong, bmy, 7/30/12)
       !
       LOGICAL, PARAMETER       :: am_I_Root = .TRUE. 
-#if defined( DEVEL )
       !
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       !
       REAL*8, POINTER          :: STT(:,:,:,:)
-#endif
+      !
+      ! Define shadow variables for fields in Input_Opt (bmy, 3/29/13)
+      !LOGICAL                  :: ITS_A_FULLCHEM_SIM 
+      !LOGICAL                  :: ITS_A_CH4_SIM
+      !LOGICAL                  :: ITS_A_MERCURY_SIM  
+      !LOGICAL                  :: ITS_A_TAGCO_SIM
+      !LOGICAL                  :: ITS_AN_AEROSOL_SIM 
+      !LOGICAL                  :: ITS_A_CH3I_SIM
+      !LOGICAL                  :: ITS_A_H2HD_SIM          
+      !INTEGER                  :: N_MEMBERS 
+      !INTEGER                  :: N_TRACERS 
       !-----------------------------------------------------------------
 
       !=================================================================
@@ -399,12 +409,10 @@
       !
       CALL Fill_Chem_State_Name_IDs( am_I_Root, State_Chm )
       !
-#if defined( DEVEL )
       ! Define STT array from Chemistry State object (mpayer, 12/6/12)
       !
       STT => State_Chm%Tracers
       !
-#endif
       !-----------------------------------------------------------------
 
       ! Initialize diagnostic arrays and counters
@@ -557,11 +565,7 @@
       ENDIF
 
       ! Save initial tracer masses to disk for benchmark runs
-#if defined( DEVEL )
       IF ( LSTDRUN ) CALL STDRUN( State_Chm, LBEGIN=.TRUE. )
-#else
-      IF ( LSTDRUN ) CALL STDRUN( LBEGIN=.TRUE. )
-#endif
 
       !=================================================================
       !      ***** 6 - H O U R   T I M E S T E P   L O O P  *****
@@ -636,11 +640,7 @@
 
             ! Write bpch file
             IF ( DO_DIAG_WRITE ) THEN
-#if defined( DEVEL )
-               CALL DIAG3( State_Chm )
-#else
-               CALL DIAG3  
-#endif
+               CALL DIAG3( am_I_Root, Input_Opt, State_Chm, RC )
 
                ! Flush file units
                CALL CTM_FLUSH
@@ -651,19 +651,14 @@
             IF ( LSVGLB ) THEN
 
                ! Determine and print STE fluxes (ltm, 06/10/12)
-#if defined( DEVEL )
-               IF ( LSCHEM ) CALL CALC_STE( am_I_Root, State_Chm )
-#else
-               IF ( LSCHEM ) CALL CALC_STE( am_I_Root )
-#endif
+               IF ( LSCHEM ) THEN
+                  CALL CALC_STE( am_I_Root, Input_Opt, State_Chm, RC )
+               ENDIF
 
                ! Make atmospheric restart file
-#if defined( DEVEL )
-               CALL MAKE_RESTART_FILE( NYMD,      NHMS,     TAU,
-     &                                 State_Met, State_Chm )
-#else
-               CALL MAKE_RESTART_FILE( NYMD, NHMS, TAU, State_Met )
-#endif
+               CALL MAKE_RESTART_FILE
+     &            ( am_I_Root, Input_Opt, NYMD,      NHMS,     
+     &              TAU,       State_Met, State_Chm, RC    )
                   
                ! Make soil restart file
                IF ( LSOILNOX ) THEN
@@ -692,11 +687,8 @@
 
                ! Save species concentrations (CSPEC_FULL). (dkh, 02/12/09)
                IF ( LCHEM .and. LSVCSPEC ) THEN 
-#if defined( DEVEL )
-                  CALL MAKE_CSPEC_FILE( NYMD, NHMS, State_Chm )
-#else
-                  CALL MAKE_CSPEC_FILE( NYMD, NHMS )
-#endif
+                  CALL MAKE_CSPEC_FILE( am_I_Root, Input_Opt, NYMD, 
+     &                                  NHMS,      State_Chm, RC    )
                ENDIF 
 
                !### Debug
@@ -953,18 +945,16 @@
 
             ! Output BC's
             ! Save boundary conditions (global grid) for future nested run
-#if defined( DEVEL )
-            IF ( LWINDO ) CALL SAVE_GLOBAL_TPCORE_BC( State_Chm )
-#else
-            IF ( LWINDO ) CALL SAVE_GLOBAL_TPCORE_BC
-#endif
+            IF ( LWINDO ) THEN
+               CALL SAVE_GLOBAL_TPCORE_BC
+     &            ( am_I_Root, Input_Opt, State_Chm, RC )
+               ENDIF
 
             ! Call the appropritate version of TPCORE
-#if defined( DEVEL )
-            IF ( LTRAN ) CALL DO_TRANSPORT( State_Met, State_Chm )
-#else
-            IF ( LTRAN ) CALL DO_TRANSPORT( State_Met )
-#endif
+            IF ( LTRAN ) THEN 
+               CALL DO_TRANSPORT
+     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+            ENDIF
 
             ! Reset air mass quantities
             CALL AIRQNT( State_Met )
@@ -1468,20 +1458,14 @@
 
       ! For model benchmarking, save final masses of 
       ! Rn,Pb,Be or Ox to a binary punch file 
-#if defined( DEVEL )
       IF ( LSTDRUN ) CALL STDRUN( State_Chm, LBEGIN=.FALSE. )
-#else
-      IF ( LSTDRUN ) CALL STDRUN( LBEGIN=.FALSE. )
-#endif
 
       ! Close all files
       CALL CLOSE_FILES
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a CLOSE_FILES' )
 
-#if defined( DEVEL)
       ! Free pointer (mpayer, 12/6/12)
       NULLIFY( STT )
-#endif
 
       ! Deallocate fields of the Input Options object
       CALL Cleanup_GIGC_Input_Opt( am_I_Root, Input_Opt, RC )

@@ -91,41 +91,39 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE MAKE_RESTART_FILE( YYYYMMDD,  HHMMSS,   TAU,
-     &                              State_Met, State_Chm )
-#else
-      SUBROUTINE MAKE_RESTART_FILE( YYYYMMDD, HHMMSS, TAU, State_Met )
-#endif
+      SUBROUTINE MAKE_RESTART_FILE( am_I_Root, Input_Opt, 
+     &                              YYYYMMDD,  HHMMSS,   
+     &                              TAU,       State_Met, 
+     &                              State_Chm, RC )
 !
 ! !USES:
 !
       USE BPCH2_MOD,          ONLY : BPCH2,         GET_MODELNAME
       USE BPCH2_MOD,          ONLY : GET_HALFPOLAR, OPEN_BPCH2_FOR_WRITE
+      USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_XOFFSET,   GET_YOFFSET
-      USE LOGICAL_MOD,        ONLY : LPRT
       USE TIME_MOD,           ONLY : EXPAND_DATE
-#if defined( DEVEL )
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-#else
-      USE TRACER_MOD,         ONLY : STT
-#endif
-      USE TRACER_MOD,         ONLY : N_TRACERS,     TCVV
 
-      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER,        INTENT(IN)  :: YYYYMMDD   ! YYYY/MM/DD GMT date
-      INTEGER,        INTENT(IN)  :: HHMMSS     ! hh:mm:ss GMT time
-      REAL*8,         INTENT(IN)  :: TAU        ! TAU value (hrs from 1/1/1985)
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      INTEGER,        INTENT(IN)  :: YYYYMMDD    ! YYYY/MM/DD GMT date
+      INTEGER,        INTENT(IN)  :: HHMMSS      ! hh:mm:ss GMT time
+      REAL*8,         INTENT(IN)  :: TAU         ! TAU value (hrs from 1/1/1985)
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-#if defined( DEVEL )
       TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
-#endif
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  27 May 1999 - R. Yantosca - Initial version
@@ -159,6 +157,8 @@
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -183,16 +183,27 @@
       CHARACTER(LEN=40)    :: RESERVED = ''
       CHARACTER(LEN=80)    :: TITLE 
 
+      ! For fields from Input_Opt
+      LOGICAL              :: LPRT
+      INTEGER              :: N_TRACERS
+      REAL*8               :: TCVV(Input_Opt%N_TRACERS)
+
       ! Pointers
-#if defined( DEVEL )
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
-#endif
+      REAL*8, POINTER      :: STT(:,:,:,:)
 
       !=================================================================
       ! MAKE_RESTART_FILE begins here!
       !=================================================================
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LPRT      = Input_Opt%LPRT
+      N_TRACERS = Input_Opt%N_TRACERS
+      TCVV      = Input_Opt%TCVV(1:N_TRACERS)
 
       ! Define variables for BINARY PUNCH FILE OUTPUT
       TITLE    = 'GEOS-CHEM Restart File: ' // 
@@ -875,41 +886,40 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE MAKE_CSPEC_FILE( YYYYMMDD, HHMMSS, State_Chm )
-#else
-      SUBROUTINE MAKE_CSPEC_FILE( YYYYMMDD, HHMMSS )
-#endif
+      SUBROUTINE MAKE_CSPEC_FILE( am_I_Root, Input_Opt, YYYYMMDD, 
+     &                            HHMMSS,    State_Chm, RC        )
 !
 ! !USES:
 !
       USE BPCH2_MOD
-#if defined( DEVEL )
+      USE CMN_SIZE_MOD
+      USE COMODE_LOOP_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-#else
-      USE COMODE_MOD,  ONLY : CSPEC_FULL
-#endif
-      USE COMODE_MOD,  ONLY : JLOP
-      USE ERROR_MOD,   ONLY : DEBUG_MSG
-      USE ERROR_MOD,   ONLY : ERROR_STOP
-      USE FILE_MOD,    ONLY : IOERROR
-      USE GRID_MOD,    ONLY : GET_XOFFSET
-      USE GRID_MOD,    ONLY : GET_YOFFSET
-      USE LOGICAL_MOD, ONLY : LPRT
-      USE TIME_MOD,    ONLY : EXPAND_DATE
-      USE TIME_MOD,    ONLY : GET_TAU
-
-      USE CMN_SIZE_MOD                   ! Size parameters
-      USE COMODE_LOOP_MOD                ! IGAS
-      USE CMN_MOD                        ! TAU , NSRCX, LSOILNOX
+      USE COMODE_MOD,         ONLY : JLOP
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GRID_MOD,           ONLY : GET_XOFFSET
+      USE GRID_MOD,           ONLY : GET_YOFFSET
+      USE TIME_MOD,           ONLY : EXPAND_DATE
+      USE TIME_MOD,           ONLY : GET_TAU
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN)  :: YYYYMMDD   ! YYYY/MM/DD GMT date
-      INTEGER, INTENT(IN)  :: HHMMSS     ! hh:mm:ss   GMT time
-#if defined( DEVEL )
-      TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
-#endif
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      INTEGER,        INTENT(IN)    :: YYYYMMDD    ! YYYY/MM/DD GMT date
+      INTEGER,        INTENT(IN)    :: HHMMSS      ! hh:mm:ss   GMT time
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  27 Aug 2004 - D. Henze    - Initial version, based on MAKE_RESTART
@@ -921,6 +931,7 @@
 !  21 Jul 2011 - M. Long     - Now include F77_CMN_SIZE instead of CMN_SIZE
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -953,16 +964,23 @@
       CHARACTER(LEN=40)    :: RESERVED = ''
       CHARACTER(LEN=80)    :: TITLE 
 
+      ! For fields from Input_Opt
+      LOGICAL              :: LPRT
+
       ! Pointers
-#if defined( DEVEL )
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 1/24/12)
-      REAL*8, POINTER :: CSPEC_FULL(:,:,:,:)
-#endif
+      REAL*8, POINTER      :: CSPEC_FULL(:,:,:,:)
 
       !=================================================================
       ! MAKE_CSPEC_FILE begins here!
       !=================================================================
+
+      ! Assume success
+      RC                  =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LPRT                = Input_Opt%LPRT
 
       ! Hardwire output file for now
       OUTPUT_CHECKPT_FILE = 'restart.cspec.YYYYMMDDhh'
@@ -972,11 +990,9 @@
       !TMP(:,:,:)   = 0e0
       TMP(:,:,:)   = 1e-30
 
-#if defined( DEVEL )
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       CSPEC_FULL => State_Chm%Species
-#endif
 
       ! Define variables for BINARY PUNCH FILE OUTPUT
       TITLE    = 'GEOS-CHEM Checkpoint File: ' // 
@@ -1072,10 +1088,8 @@
       ! Close file
       CLOSE( IU_RST )
 
-#if defined( DEVEL )
       ! Free pointer
       NULLIFY( CSPEC_FULL )
-#endif
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### MAKE_CSPEC_FILE: wrote file' )

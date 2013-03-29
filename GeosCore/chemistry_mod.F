@@ -296,48 +296,42 @@
          IF ( IT_IS_A_FULLCHEM_SIM ) THEN 
 
             ! Call gas-phase chemistry
-            CALL CHEMDR( am_I_Root, Input_Opt, 
-     &                   State_Met, State_Chm, RC )
+            CALL CHEMDR
+     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
             ! Call linearized stratospheric scheme
             IF ( LSCHEM ) THEN 
-               CALL DO_STRAT_CHEM( am_I_Root, Input_Opt, 
-     &                             State_Met, State_Chm, RC )
+               CALL DO_STRAT_CHEM
+     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
             ENDIF
 
             ! Do seasalt aerosol chemistry
             IF ( LSSALT ) THEN
-               CALL CHEMSEASALT( am_I_Root, Input_Opt, 
-     &                           State_Met, State_Chm, RC )
+               CALL CHEMSEASALT
+     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
             ENDIF
 
             ! Also do sulfate chemistry
             IF ( LSULF ) THEN
 
                ! Do sulfate chemistry
-               CALL CHEMSULFATE( am_I_Root, Input_Opt, 
-     &                           State_Met, State_Chm, RC )
+               CALL CHEMSULFATE
+     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
                ! Do aerosol thermodynamic equilibrium
                IF ( LSSALT ) THEN
 
 #if   !defined( NO_ISORROPIA )
-#if defined( DEVEL )
                   ! ISOROPIA takes Na+, Cl- into account
-                  CALL DO_ISOROPIAII( am_I_Root, Input_Opt, State_Met,
-     &                                State_Chm, RC )
-#else
-                  ! ISOROPIA takes Na+, Cl- into account
-                  CALL DO_ISOROPIAII( am_I_Root, Input_Opt, 
-     &                                State_Met, RC         )
-#endif
+                  CALL DO_ISOROPIAII
+     &               ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 #endif
 
                ELSE
 
                   ! RPMARES does not take Na+, Cl- into account
-                  CALL DO_RPMARES( am_I_Root, Input_Opt, 
-     &                             State_Met, State_Chm, RC )
+                  CALL DO_RPMARES
+     &               ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
                ENDIF
 
@@ -345,18 +339,14 @@
 
             ! Do carbonaceous aerosol chemistry
             IF ( LCARB ) THEN
-               CALL CHEMCARBON( am_I_Root, Input_Opt, 
-     &                          State_Met, State_Chm, RC )
+               CALL CHEMCARBON
+     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
             ENDIF
 
             ! Do dust aerosol chemistry
             IF ( LDUST ) THEN
-#if defined( DEVEL )
-               CALL CHEMDUST( am_I_Root, Input_Opt, State_Met,
-     &                        State_Chm, RC )
-#else
-               CALL CHEMDUST( am_I_Root, Input_Opt, State_Met, RC )
-#endif
+               CALL CHEMDUST
+     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
             ENDIF
  
             ! ND44 drydep fluxes
@@ -405,12 +395,8 @@
  
             ! Compute aerosol & dust concentrations [kg/m3]
             ! (NOTE: SOILDUST in "aerosol_mod.f" is computed here)
-#if defined( DEVEL )
-            CALL AEROSOL_CONC( am_I_Root, Input_Opt, State_Met,
-     &                         State_Chm, RC )
-#else
-            CALL AEROSOL_CONC( am_I_Root, Input_Opt, State_Met, RC )
-#endif
+            CALL AEROSOL_CONC
+     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
             ! Compute AOD's and surface areas at 999 nm
             MONTH      = 0
@@ -424,12 +410,8 @@
 
 #if   !defined( NO_ISORROPIA )
                ! ISOROPIA takes Na+, Cl- into account
-#if defined( DEVEL )
-               CALL DO_ISOROPIAII( am_I_Root, Input_Opt, State_Met,
-     &                             State_Chm, RC )
-#else
-               CALL DO_ISOROPIAII( am_I_Root, Input_Opt, State_Met, RC )
-#endif
+               CALL DO_ISOROPIAII
+     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 #endif
 
             ELSE
@@ -444,43 +426,31 @@
 
             !*** SEASALT AEROSOLS ***
             IF ( LSSALT ) THEN
-#if defined( DEVEL )
-               CALL CHEMSEASALT( am_I_Root, Input_Opt, State_Met,
-     &                           State_Chm, RC )
-#else
-               CALL CHEMSEASALT( am_I_Root, Input_Opt, State_Met, RC )
-#endif
+               CALL CHEMSEASALT
+     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
             ENDIF
 
             !*** SULFATE AEROSOLS ***
             IF ( LSULF .or. LCRYST ) THEN
  
                ! Do sulfate chemistry
-               CALL CHEMSULFATE( am_I_Root, Input_Opt, 
-     &                           State_Met, State_Chm, RC )
+               CALL CHEMSULFATE
+     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
             ENDIF
 
             !*** CARBON AND 2NDARY ORGANIC AEROSOLS ***
             IF ( LCARB ) THEN
-#if defined( DEVEL )
-               CALL CHEMCARBON( am_I_Root, Input_Opt, State_Met,
-     &                          State_Chm, RC )
-#else
-               CALL CHEMCARBON( am_I_Root, Input_Opt, State_Met, RC )
-#endif
+               CALL CHEMCARBON
+     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
             ENDIF
 
             !*** MINERAL DUST AEROSOLS ***
             IF ( LDUST ) THEN 
  
                ! Do dust aerosol chemsitry
-#if defined( DEVEL )
-               CALL CHEMDUST( am_I_Root, Input_Opt, State_Met,
-     &                        State_Chm, RC )
-#else
-               CALL CHEMDUST( am_I_Root, Input_Opt, State_Met, RC )
-#endif
+               CALL CHEMDUST
+     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
                ! Compute dust OD's & surface areas
                WAVELENGTH = 0
@@ -491,51 +461,52 @@
          ! Rn-Pb-Be
          !---------------------------------                 
          ELSE IF ( IT_IS_A_RnPbBe_SIM ) THEN
-            CALL CHEMRnPbBe (  am_I_Root, Input_Opt, 
-     &                         State_Met, State_Chm, RC )
-            CALL DRYFLXRnPbBe( am_I_Root, Input_Opt, 
-     &                                    State_Chm, RC )
+            CALL CHEMRnPbBe 
+     &         (  am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+
+            CALL DRYFLXRnPbBe
+     &         ( am_I_Root, Input_Opt, State_Chm, RC )
 
          !---------------------------------
          ! CH3I
          !---------------------------------
          ELSE IF ( IT_IS_A_CH3I_SIM ) THEN
-            CALL CHEMCH3I( am_I_Root, Input_Opt, 
-     &                     State_Met, State_Chm, RC )
+            CALL CHEMCH3I
+     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
  
          !---------------------------------            
          ! HCN
          !---------------------------------
          ELSE IF ( IT_IS_A_HCN_SIM ) THEN
-            CALL CHEM_HCN_CH3CN( am_I_Root, Input_Opt,
-     &                           State_Met, State_Chm, RC )
+            CALL CHEM_HCN_CH3CN
+     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
  
          !---------------------------------
          ! Tagged O3
          !---------------------------------
          ELSE IF ( IT_IS_A_TAGOX_SIM ) THEN 
-            CALL CHEM_TAGGED_OX( am_I_Root, Input_Opt,
-     &                           State_Met, State_Chm, RC )
+            CALL CHEM_TAGGED_OX
+     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
             ! Call linearized stratospheric scheme
             IF ( LSCHEM ) THEN 
-               CALL DO_STRAT_CHEM( am_I_Root, Input_Opt, 
-     &                             State_met, State_Chm, RC )
+               CALL DO_STRAT_CHEM
+     &            ( am_I_Root, Input_Opt, State_met, State_Chm, RC )
             ENDIF
 
          !---------------------------------
          ! Tagged CO
          !---------------------------------
          ELSE IF ( IT_IS_A_TAGCO_SIM ) THEN
-            CALL CHEM_TAGGED_CO( am_I_Root, Input_Opt,
-     &                           State_Met, State_Chm, RC )
+            CALL CHEM_TAGGED_CO
+     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
  
          !---------------------------------
          ! C2H6
          !---------------------------------
          ELSE IF ( IT_IS_A_C2H6_SIM ) THEN
-            CALL CHEMC2H6( am_I_Root, Input_Opt,
-     &                     State_Met, State_Chm, RC )
+            CALL CHEMC2H6
+     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
  
          !---------------------------------
          ! CH4
@@ -544,8 +515,8 @@
  
             ! Only call after the first 24 hours
             IF ( GET_ELAPSED_MIN() >= GET_TS_CHEM() ) THEN
-               CALL CHEMCH4( am_I_Root, Input_Opt,
-     &                       State_Met, State_Chm, RC )
+               CALL CHEMCH4
+     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
             ENDIF
 
          !---------------------------------
@@ -554,8 +525,8 @@
          ELSE IF ( IT_IS_A_MERCURY_SIM ) THEN
  
             ! Do Hg chemistry
-            CALL CHEMMERCURY( am_I_Root, Input_Opt,
-     &                        State_Met, State_Chm, RC )
+            CALL CHEMMERCURY
+     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
          !---------------------------------
          ! POPs
@@ -563,21 +534,22 @@
          ELSE IF ( IT_IS_A_POPS_SIM ) THEN
  
             ! Do POPS chemistry
-            CALL CHEMPOPS( am_I_Root, Input_Opt,
-     &                     State_Met, State_Chm, RC )
+            CALL CHEMPOPS
+     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
                
          !---------------------------------
          ! Offline H2/HD
          !---------------------------------
          ELSE IF ( IT_IS_A_H2HD_SIM ) THEN
-            CALL CHEM_H2_HD( am_I_Root, Input_Opt,
-     &                       State_Met, State_Chm, RC )
+            CALL CHEM_H2_HD
+     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+
             CALL DRYFLXH2HD( State_Met, State_Chm )
 
             ! Call linearized stratospheric scheme
             IF ( LSCHEM ) THEN 
-               CALL DO_STRAT_CHEM( am_I_Root, Input_Opt, 
-     &                             State_Met, State_Chm, RC )
+               CALL DO_STRAT_CHEM
+     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
             ENDIF
          ENDIF
 

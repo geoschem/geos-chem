@@ -1226,20 +1226,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-  SUBROUTINE Calc_STE( am_I_Root, State_Chm )
-#else
-  SUBROUTINE Calc_STE( am_I_Root )
-#endif
+  SUBROUTINE Calc_STE( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
-#if defined( DEVEL )
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Chm_Mod, ONLY : ChmState
-#else
-    USE TRACER_MOD, ONLY : STT
-#endif
-    USE TRACER_MOD, ONLY : TRACER_MW_KG, N_TRACERS, TRACER_NAME
     USE TIME_MOD,   ONLY : GET_TAU, GET_NYMD, GET_NHMS, EXPAND_DATE
 
     USE CMN_SIZE_MOD
@@ -1250,10 +1243,16 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-#if defined( DEVEL )
-    TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
-#endif
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  28 Apr 2012 - L. Murray   - Initial version
@@ -1264,6 +1263,7 @@ CONTAINS
 !                              running with the traditional driver main.F
 !  05 Oct 2012 - R. Yantosca - Bug fix for IFORT 12: extend the #if statement
 !                              to avoid including code for nested-grid sims
+!  25 Mar 2013 - R. Yantosca - Now accept Input_Opt, State_Chm, RC arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1278,12 +1278,13 @@ CONTAINS
     REAL*8             :: M1 (IIPAR,JJPAR,LLPAR)
     REAL*8             :: M2 (IIPAR,JJPAR,LLPAR)
 
+    ! For fields from Input_Opt
+    INTEGER            :: N_TRACERS
+
     ! Pointers
-#if defined( DEVEL )
     ! We need to define local arrays to hold corresponding values 
     ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
     REAL*8, POINTER :: STT(:,:,:,:)
-#endif
 
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     ! By simple mass balance, dStrat/dt = P - L - STE,
@@ -1303,11 +1304,13 @@ CONTAINS
     ! boundaries during the period is taken into account.
     RETURN
 #else
-#if defined( DEVEL )
+
+    ! Copy values from Input_Opt
+    N_TRACERS = Input_Opt%N_TRACERS
+
     ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
     ! (mpayer, 12/6/12)
-    STT => State_Chm%Tracers
-#endif
+    STT       => State_Chm%Tracers
 
     ! Determine mean tropopause level for the period
     !$OMP PARALLEL DO                               &
@@ -1373,10 +1376,10 @@ CONTAINS
 
        ! Print to standard output
        IF ( am_I_Root ) THEN
-          WRITE(6,120) TRIM(TRACER_NAME(N)),  &
-               STE/TRACER_MW_KG(N),           & ! mol/a-1
-               TRACER_MW_KG(N)*1d3,           & ! g/mol
-               STE*1d-9                         ! Tg a-1
+          WRITE(6,120) TRIM(Input_Opt%TRACER_NAME(N)),  &
+               STE/Input_Opt%TRACER_MW_KG(N),           & ! mol/a-1
+               Input_Opt%TRACER_MW_KG(N)*1d3,           & ! g/mol
+               STE*1d-9                                   ! Tg a-1
        ENDIF
 
     ENDDO
@@ -1398,10 +1401,8 @@ CONTAINS
     SChem_tend(:,:,:,:)  = 0d0
     MInit(:,:,:,:)       = STT(:,:,:,:)
 
-#if defined( DEVEL )
     ! Free pointer
     NULLIFY( STT )
-#endif
 #endif
   END SUBROUTINE Calc_STE
 !EOC

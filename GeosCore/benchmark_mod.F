@@ -53,11 +53,7 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE STDRUN( State_Chm, LBEGIN )
-#else
-      SUBROUTINE STDRUN( LBEGIN )
-#endif
 !
 ! !USES:
 !
@@ -67,24 +63,17 @@
       USE TIME_MOD,     ONLY : EXPAND_DATE,          GET_NYMD
       USE TIME_MOD,     ONLY : GET_NHMS,             GET_TAU
       USE TRACER_MOD,   ONLY : ITS_A_FULLCHEM_SIM,   ITS_A_RnPbBe_SIM
-#if defined( DEVEL )
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-#else
-      USE TRACER_MOD,   ONLY : STT
-#endif
       USE TRACER_MOD,   ONLY : N_TRACERS
       USE TRACERID_MOD, ONLY : IDTOX
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_SIZE_MOD
       USE inquireMod,   ONLY : findFreeLUN
 !
 ! !INPUT PARAMETERS: 
 !
-      ! TRUE  denotes beginning of simulation
-      ! FALSE denotes end of simulation
-      LOGICAL, INTENT(IN) :: LBEGIN 
-#if defined( DEVEL )
       TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
-#endif
+      LOGICAL,        INTENT(IN) :: LBEGIN      ! =T denotes start of run
+                                                ! =F denotes end of run
 ! 
 ! !REVISION HISTORY: 
 !  12 Aug 2002 - R. Yantosca - Initial version
@@ -100,6 +89,7 @@
 !        and TRCOFFSET. (bmy, 6/28/05)
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  03 Aug 2012 - R. Yantosca - Now use findFreeLUN to obtain file unit #'s
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -120,11 +110,9 @@
       CHARACTER(LEN=255)  :: FILENAME
 
       ! Pointers
-#if defined( DEVEL )
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER :: STT(:,:,:,:)
-#endif
 
       !=================================================================
       ! STDRUN begins here!
@@ -149,11 +137,9 @@
       NHMS      = GET_NHMS()
       TAU       = GET_TAU()
 
-#if defined( DEVEL )
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT       => State_Chm%Tracers
-#endif
 
       ! Define filename for beginning or end of benchmark run
       IF ( LBEGIN ) THEN
@@ -213,10 +199,8 @@
       ! Close file
       CLOSE( IU_FILE )
 
-#if defined( DEVEL )
       ! Free pointer
       NULLIFY( STT )
-#endif
 
       END SUBROUTINE STDRUN
 !EOC
