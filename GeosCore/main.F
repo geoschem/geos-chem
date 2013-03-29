@@ -33,18 +33,10 @@
       USE PRESSURE_MOD          ! For computing pressure at grid boxes
       USE RESTART_MOD           ! For restart file I/O
       USE TIME_MOD              ! For computing date & time 
-#if !defined( DEVEL)
-      USE TRACER_MOD            ! Tracer array (STT) + related functions
-#else
-      ! For testing, remove later (mpayer, 12/6/12)
-      USE TRACER_MOD, ONLY      : N_MEMBERS, N_TRACERS, TCVV,
-     &                            ITS_A_FULLCHEM_SIM, ITS_A_CH4_SIM,
-     &                            ITS_A_MERCURY_SIM,  ITS_A_TAGCO_SIM,
-     &                            ITS_AN_AEROSOL_SIM, ITS_A_CH3I_SIM,
-     &                            ITS_A_H2HD_SIM,     CHECK_STT,
-     &                            CHECK_STT_05x0666
-#endif
       USE TRACERID_MOD          ! Flags for G-C tracers & chemical species
+      USE TRACER_MOD, ONLY : N_MEMBERS
+      USE TRACER_MOD, ONLY : CHECK_STT
+      USE TRACER_MOD, ONLY : CHECK_STT_05x0666
 
       !-----------------------------------------------------------------
       ! GEOS-Chem chemistry modules
@@ -297,18 +289,18 @@
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       !
-      REAL*8, POINTER          :: STT(:,:,:,:)
+      REAL*8,  POINTER         :: STT(:,:,:,:)
       !
       ! Define shadow variables for fields in Input_Opt (bmy, 3/29/13)
-      !LOGICAL                  :: ITS_A_FULLCHEM_SIM 
-      !LOGICAL                  :: ITS_A_CH4_SIM
-      !LOGICAL                  :: ITS_A_MERCURY_SIM  
-      !LOGICAL                  :: ITS_A_TAGCO_SIM
-      !LOGICAL                  :: ITS_AN_AEROSOL_SIM 
-      !LOGICAL                  :: ITS_A_CH3I_SIM
-      !LOGICAL                  :: ITS_A_H2HD_SIM          
-      !INTEGER                  :: N_MEMBERS 
-      !INTEGER                  :: N_TRACERS 
+      LOGICAL                  :: ITS_A_FULLCHEM_SIM 
+      LOGICAL                  :: ITS_A_CH4_SIM
+      LOGICAL                  :: ITS_A_MERCURY_SIM  
+      LOGICAL                  :: ITS_A_TAGCO_SIM
+      LOGICAL                  :: ITS_AN_AEROSOL_SIM 
+      LOGICAL                  :: ITS_A_CH3I_SIM
+      LOGICAL                  :: ITS_A_H2HD_SIM          
+      INTEGER                  :: N_TRACERS 
+      REAL*8,  POINTER         :: TCVV(:)
       !-----------------------------------------------------------------
 
       !=================================================================
@@ -363,8 +355,20 @@
       ! Read input file and call init routines from other modules
       CALL READ_INPUT_FILE( am_I_Root, Input_Opt, RC ) 
 
+      ! Copy values from Input_Opt.  These replace the variables
+      ! from logical_mod.F and tracer_mod.F. (bmy, 3/29/13)
+      ITS_A_FULLCHEM_SIM  =  Input_Opt%ITS_A_FULLCHEM_SIM
+      ITS_A_CH4_SIM       =  Input_Opt%ITS_A_CH4_SIM
+      ITS_A_MERCURY_SIM   =  Input_Opt%ITS_A_MERCURY_SIM
+      ITS_A_TAGCO_SIM     =  Input_Opt%ITS_A_TAGCO_SIM 
+      ITS_AN_AEROSOL_SIM  =  Input_Opt%ITS_AN_AEROSOL_SIM
+      ITS_A_CH3I_SIM      =  Input_Opt%ITS_A_CH3I_SIM
+      ITS_A_H2HD_SIM      =  Input_Opt%ITS_A_H2HD_SIM    
+      N_TRACERS           =  Input_Opt%N_TRACERS  
+      TCVV                => Input_Opt%TCVV
+
       ! Set a flag to denote if we should print ND70 debug output
-      prtDebug = ( LPRT .and. am_I_Root )
+      prtDebug            = ( LPRT .and. am_I_Root )
       
       ! Debug output
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_INPUT_FILE' )
@@ -392,8 +396,8 @@
       ! Initialize Input_Opt, State_Chem, State_Met, objects. 
       ! (bmy, 3/4/13)
       !
-      CALL GIGC_Init_All( am_I_Root, Input_Opt, 
-     &                    State_Chm, State_Met, RC )
+      CALL GIGC_Init_All
+     &   ( am_I_Root, Input_Opt, State_Chm, State_Met, RC )
       !
       ! Also allocate arrays in GEOS-Chem modules that have not yet
       ! been initialized (i.e. SEASALT_MOD, CARBON_MOD,  DUST_MOD, 
@@ -409,7 +413,8 @@
       !
       CALL Fill_Chem_State_Name_IDs( am_I_Root, State_Chm )
       !
-      ! Define STT array from Chemistry State object (mpayer, 12/6/12)
+      ! Define STT array from Chemistry State object.  This
+      ! allows us to keep existing code intact. (mpayer, 12/6/12)
       !
       STT => State_Chm%Tracers
       !
@@ -433,8 +438,8 @@
 
       ! Initialize allocatable SMVGEAR/KPP arrays
       IF ( LEMIS .or. LCHEM ) THEN
-         IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or.
-     &        Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
+         IF ( ITS_A_FULLCHEM_SIM   .or.
+     &        ITS_AN_AEROSOL_SIM ) THEN
             CALL INIT_COMODE( am_I_Root, Input_Opt, RC )
          ENDIF
          IF ( LKPP ) THEN
@@ -453,7 +458,7 @@
       ENDIF
 
       ! Allocate arrays from "global_ch4_mod.f" for CH4 run 
-      IF ( ITS_A_CH4_SIM() ) CALL INIT_GLOBAL_CH4
+      IF ( ITS_A_CH4_SIM ) CALL INIT_GLOBAL_CH4
 
       ! Initialize MEGAN arrays, get 15-day avg temperatures
       IF ( LMEGAN ) THEN
@@ -557,8 +562,8 @@
       ENDIF
 
       ! Read ocean Hg initial conditions (if necessary)
-      IF ( ITS_A_MERCURY_SIM() .and. LDYNOCEAN ) THEN
-         CALL READ_OCEAN_Hg_RESTART( NYMDb, NHMSb )
+      IF ( ITS_A_MERCURY_SIM .and. LDYNOCEAN ) THEN
+         CALL READ_OCEAN_Hg_RESTART( NYMDb, NHMSb, Input_Opt )
          IF ( prtDebug ) THEN 
             CALL DEBUG_MSG( '### MAIN: a READ_OCEAN_RESTART' )
          ENDIF
@@ -666,8 +671,9 @@
                ENDIF
 
                ! Make ocean mercury restart file
-               IF ( ITS_A_MERCURY_SIM() .and. LDYNOCEAN ) THEN
-                  CALL MAKE_OCEAN_Hg_RESTART( NYMD, NHMS, TAU )
+               IF ( ITS_A_MERCURY_SIM .and. LDYNOCEAN ) THEN
+                  CALL MAKE_OCEAN_Hg_RESTART
+     &               ( NYMD, NHMS, TAU, Input_Opt )
                ENDIF
 
                ! (dkh, 11/09/06)  
@@ -751,9 +757,9 @@
          IF ( LCHEM .and. ITS_A_NEW_MONTH() ) THEN
 
             ! Quantities for FAST-J photolysis
-            IF ( ITS_A_FULLCHEM_SIM()  .or.
-     &           ITS_AN_AEROSOL_SIM()  .or.
-     &           ITS_A_CH3I_SIM()     ) THEN
+            IF ( ITS_A_FULLCHEM_SIM   .or.
+     &           ITS_AN_AEROSOL_SIM   .or.
+     &           ITS_A_CH3I_SIM     ) THEN
 
                ! Read UV albedoes for FAST-J
                CALL READ_UVALBEDO( MONTH, State_Met )
@@ -767,16 +773,16 @@
          ! NOTE: Only call ANTHROEMS if it's time to do emissions;
          ! this will function properly for the central chemistry time step
          ! (bmy, 10/14/11)
-         IF ( ITS_A_FULLCHEM_SIM() .or. ITS_A_TAGCO_SIM() ) THEN
+         IF ( ITS_A_FULLCHEM_SIM .or. ITS_A_TAGCO_SIM ) THEN
             IF ( ITS_TIME_FOR_EMIS() ) THEN 
                IF ( LEMIS .and. ITS_A_NEW_SEASON() ) THEN
-                  CALL ANTHROEMS( SEASON )              
+                  CALL ANTHROEMS( SEASON, Input_Opt )              
                ENDIF
             ENDIF
          ENDIF
 
          ! Hg2 gas-particle partitioning (H Amos, 25 Oct 2011)
-         IF ( ITS_A_MERCURY_SIM() .and. ITS_A_NEW_MONTH() ) THEN
+         IF ( ITS_A_MERCURY_SIM .and. ITS_A_NEW_MONTH() ) THEN
             CALL PARTITION_Hg2( MONTH, State_Met )
             IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a PARTITION_Hg2')
          ENDIF
@@ -872,7 +878,7 @@
             ! Note: this daily call to rdsoil left for backward compatibility.
             ! To be revised later.
             ! Also read soil-type info for fullchem simulation
-            IF ( ITS_A_FULLCHEM_SIM() .or. ITS_A_H2HD_SIM() ) THEN
+            IF ( ITS_A_FULLCHEM_SIM .or. ITS_A_H2HD_SIM ) THEN
 	       CALL READSOIL
 	       CALL READFERT
 	       CALL READCLIM
@@ -967,12 +973,10 @@
 
             ! Initialize wet scavenging and wetdep fields after
             ! the airmass quantities are reset after transport
-#if defined( DEVEL )
-            IF ( LCONV .or. LWETD )
-     &         CALL INIT_WETSCAV( State_Met, State_Chm )
-#else
-            IF ( LCONV .or. LWETD ) CALL INIT_WETSCAV( State_Met )
-#endif
+            IF ( LCONV .or. LWETD ) THEN
+               CALL INIT_WETSCAV
+     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+            ENDIF
          ENDIF
 
 
@@ -991,7 +995,7 @@
             !===========================================================
             !         ***** D R Y   D E P O S I T I O N *****
             !===========================================================
-            IF ( LDRYD .and. ( .not. ITS_A_H2HD_SIM() ) ) THEN
+            IF ( LDRYD .and. ( .not. ITS_A_H2HD_SIM ) ) THEN
                CALL DO_DRYDEP( am_I_Root, Input_Opt, 
      &                         State_Met, State_Chm, RC )
             ENDIF
@@ -1008,7 +1012,7 @@
      &         CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, 
      &                             State_Met%AD, STT ) ! kg -> v/v
 
-            IF ( ITS_A_FULLCHEM_SIM() ) THEN
+            IF ( ITS_A_FULLCHEM_SIM ) THEN
                !========================================================
                !jpp, 2/12/08: putting a call to SET_CH3Br
                !              which is in bromocarb_mod.f
@@ -1063,18 +1067,16 @@
             IF ( LCONV ) THEN
                
                ! Partition Hg(II) between aerosol and gas
-               IF ( ITS_A_MERCURY_SIM() ) THEN
+               IF ( ITS_A_MERCURY_SIM ) THEN
                   CALL PARTITIONHG( 1, STT )
                ENDIF
       
-#if defined( DEVEL )
-               CALL DO_CONVECTION( State_Met, State_Chm )
-#else
-               CALL DO_CONVECTION( State_Met )
-#endif
+               ! Call the appropriate convection routine
+               CALL DO_CONVECTION
+     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
                ! Return all reactive particulate Hg(II) to total Hg(II) tracer
-               IF ( ITS_A_MERCURY_SIM() ) THEN
+               IF ( ITS_A_MERCURY_SIM ) THEN
                   CALL PARTITIONHG( 2, STT )
                ENDIF
       
@@ -1109,20 +1111,20 @@
             !===========================================================
             !         ***** D R Y   D E P O S I T I O N *****
             !===========================================================
-            IF ( LDRYD .and. ( .not. ITS_A_H2HD_SIM() ) ) THEN
-               CALL DO_DRYDEP( am_I_Root, Input_Opt, 
-     &                         State_Met, State_Chm, RC )
+            IF ( LDRYD .and. ( .not. ITS_A_H2HD_SIM ) ) THEN
+               CALL DO_DRYDEP
+     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
             ENDIF
 
             !===========================================================
             !             ***** E M I S S I O N S *****
             !===========================================================
             IF ( LEMIS ) THEN
-               CALL DO_EMISSIONS( am_I_Root, Input_Opt, 
-     &                            State_Met, State_Chm, RC )
+               CALL DO_EMISSIONS
+     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
             ENDIF
 
-            IF ( ITS_A_FULLCHEM_SIM() ) THEN
+            IF ( ITS_A_FULLCHEM_SIM ) THEN
                !========================================================
                !jpp, 2/12/08: putting a call to SET_CH3Br
                !              which is in bromocarb_mod.f
@@ -1154,7 +1156,7 @@
          !============================================================== 
 
          ! Also need to compute avg P, T for CH4 chemistry (bmy, 1/16/01)
-         IF ( ITS_A_CH4_SIM() ) CALL CH4_AVGTP( State_Met )
+         IF ( ITS_A_CH4_SIM ) CALL CH4_AVGTP( State_Met )
 
          ! Every chemistry timestep...
          IF ( ITS_TIME_FOR_CHEM() ) THEN
@@ -1162,46 +1164,16 @@
             ! Increment chemistry timestep counter
             CALL SET_CT_CHEM( INCREMENT=.TRUE. )
 
-            !-----------------------------------------------------------
-            ! %% REPLICATING GIGC FUNCTIONALITY IN EXISTING GEOS-CHEM %%
-            !
-            ! We must pass the Input Options (Input_Opt), Chemistry 
-            ! State (State_Chm) and Meteorology State (i.e. State_Met) 
-            ! objects, along with the global dimension sizes, to the 
-            ! GEOS-Chem chemistry driver DO_CHEMISTRY.
-            !
-            ! Eventually, the tracer fields in the Chemistry State 
-            ! object (State_Chm%TRACERS) will replace current GEOS-Chem
-            ! tracer array STT.  At present (25 Oct 2012), we have yet
-            ! to complete this transition.  For now, we shall set the
-            ! State_Chm%TRACERS field directly from the STT array.
-            !
-            ! Also note: State_Chm%TRACERS must enter DO_CHEMISTRY with
-            ! units of [kg].  Because STT is already in [kg] at this 
-            ! point, no further unit conversion is necessary here.
-            ! (bmy, 10/25/12)
-
-#if !defined( DEVEL )
-            ! Initialize the tracer field in the Chemistry State object
-            State_Chm%TRACERS( :, :, :, 1:N_TRACERS ) = 
-     &                    STT( :, :, :, 1:N_TRACERS )
-#endif
-
             ! Do GEOS-Chem chemistry
             CALL DO_CHEMISTRY( am_I_Root, Input_Opt, 
      &                         State_Chm, State_Met, RC ) 
-            !-----------------------------------------------------------
 
          ENDIF 
 
          ! Check STT (yxw)   
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )
-#if defined( DEVEL )
          CALL CHECK_STT_05x0666( State_Chm, 
      &                           'end of chem section, before wetdep' )
-#else
-         CALL CHECK_STT_05x0666( 'end of chem section, before wetdep' )
-#endif
 #endif 
 
          !==============================================================
@@ -1210,19 +1182,16 @@
          IF ( LWETD .and. ITS_TIME_FOR_DYN() ) THEN
 
             ! Add partition Hg(II) between aerosol and gas
-            IF ( ITS_A_MERCURY_SIM() ) THEN
+            IF ( ITS_A_MERCURY_SIM ) THEN
                CALL PARTITIONHG( 1, STT )
             ENDIF            
      
             ! Do wet deposition
-#if defined( DEVEL )
-            CALL DO_WETDEP( State_Met, State_Chm )
-#else
-            CALL DO_WETDEP( State_Met )
-#endif
+            CALL DO_WETDEP
+     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
             
             ! Return all reactive particulate Hg(II) to total Hg(II) tracer
-            IF ( ITS_A_MERCURY_SIM() ) THEN
+            IF ( ITS_A_MERCURY_SIM ) THEN
                CALL PARTITIONHG( 2, STT )
             ENDIF 
 
@@ -1236,12 +1205,8 @@
          ! diagnostic and only on a chemistry timestep.
          ! (skim, 02/05/11)
          IF ( ITS_TIME_FOR_CHEM() ) THEN
-#if defined( DEVEL )
-            CALL RECOMPUTE_OD( am_I_Root, Input_Opt, State_Met,
-     &                         State_Chm, RC )
-#else
-            CALL RECOMPUTE_OD( am_I_Root, Input_Opt, State_Met, RC )
-#endif
+            CALL RECOMPUTE_OD
+     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
          ENDIF
 
          !==============================================================
@@ -1259,7 +1224,7 @@
                
                ! If it's a full-chemistry simulation but LCHEM=F,
                ! or if it's an offline simulation, call setup routine 
-               IF ( ITS_A_FULLCHEM_SIM() ) THEN
+               IF ( ITS_A_FULLCHEM_SIM ) THEN
                   IF ( .not. LCHEM ) THEN
                      CALL SETUP_PLANEFLIGHT( am_I_Root )
                   ENDIF
@@ -1285,11 +1250,8 @@
             IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: b DIAGNOSTICS' )
 
             ! Accumulate several diagnostic quantities
-#if defined( DEVEL )
-            CALL DIAG1( State_Met, State_Chm )
-#else
-            CALL DIAG1( State_Met )
-#endif
+            CALL DIAG1
+     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
             IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG1' )
 
             ! ND41: save PBL height in 1200-1600 LT (amf)
@@ -1298,19 +1260,16 @@
             IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG41' )
 
             ! ND42: SOA concentrations [ug/m3]
-#if defined( DEVEL )
-            IF ( ND42 > 0 ) CALL DIAG42( State_Met, State_Chm )
+            IF ( ND42 > 0 ) THEN
+               CALL DIAG42( State_Met, State_Chm )
+            ENDIF
             IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG42' )
 
             ! 24-hr timeseries
-            IF ( DO_SAVE_DIAG50 ) CALL DIAG50( State_Met, State_Chm )
-#else
-            IF ( ND42 > 0 ) CALL DIAG42( State_Met )
-            IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG42' )
-
-            ! 24-hr timeseries
-            IF ( DO_SAVE_DIAG50 ) CALL DIAG50( State_Met )
-#endif
+            IF ( DO_SAVE_DIAG50 ) THEN
+               CALL DIAG50
+     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+            ENDIF
 
             ! Increment diagnostic timestep counter. (ccc, 5/13/09)
             CALL SET_CT_DIAG( INCREMENT=.TRUE. )
@@ -1320,11 +1279,8 @@
                
                print*, 'Call planeflight'
                ! Archive data along the flight track
-#if defined( DEVEL )
-               CALL PLANEFLIGHT( State_Met, State_Chm )
-#else
-               CALL PLANEFLIGHT( State_Met )
-#endif
+               CALL PLANEFLIGHT
+     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
             ENDIF
             IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG40' )
 
@@ -1343,41 +1299,33 @@
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: before TIMESERIES' )
 
          ! Station timeseries
-#if defined( DEVEL )
-         IF ( ITS_TIME_FOR_DIAG48() )
-     &      CALL DIAG48( State_Met, State_Chm )
+         IF ( ITS_TIME_FOR_DIAG48() ) THEN
+            CALL DIAG48
+     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+         ENDIF
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG48' )
 
          ! 3-D timeseries
-         IF ( ITS_TIME_FOR_DIAG49() )
-     &      CALL DIAG49( State_Met, State_Chm )
+         IF ( ITS_TIME_FOR_DIAG49() ) THEN
+            CALL DIAG49
+     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+         ENDIF
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG49' )
 
          ! Ship timeseries
-         IF ( ITS_TIME_FOR_DIAG63() ) CALL DIAG63
+         IF ( ITS_TIME_FOR_DIAG63() ) CALL DIAG63()
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG63' )
 
          ! Morning or afternoon timeseries
-         IF ( DO_SAVE_DIAG51 ) CALL DIAG51( State_Met, State_Chm )
-         IF ( DO_SAVE_DIAG51b ) CALL DIAG51b( State_Met, State_Chm )
+         IF ( DO_SAVE_DIAG51 ) THEN
+            CALL DIAG51
+     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+         ENDIF
+         IF ( DO_SAVE_DIAG51b ) THEN
+            CALL DIAG51b
+     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+         ENDIF
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG51' )
-#else
-         IF ( ITS_TIME_FOR_DIAG48() ) CALL DIAG48( State_Met )
-         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG48' )
-
-         ! 3-D timeseries
-         IF ( ITS_TIME_FOR_DIAG49() ) CALL DIAG49( State_Met )
-         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG49' )
-
-         ! Ship timeseries
-         IF ( ITS_TIME_FOR_DIAG63() ) CALL DIAG63
-         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG63' )
-
-         ! Morning or afternoon timeseries
-         IF ( DO_SAVE_DIAG51 ) CALL DIAG51( State_Met )
-         IF ( DO_SAVE_DIAG51b ) CALL DIAG51b( State_Met )
-         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG51' )
-#endif
 
          ! Comment out for now 
          !! Column timeseries
@@ -1401,18 +1349,10 @@
          ! the nested-grid domain edges. Force them to be zero before
          ! CHECK_STT (yxw)
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )
-#if defined( DEVEL )
             CALL CHECK_STT_05x0666( State_Chm, 'after dynamics step' )
-#else
-            CALL CHECK_STT_05x0666( 'after dynamics step' )
-#endif
 #endif
 
-#if defined( DEVEL )
             CALL CHECK_STT( State_Chm, 'End of Dynamic Loop' )
-#else
-            CALL CHECK_STT( 'End of Dynamic Loop' )
-#endif
          ENDIF
           
       ENDDO
@@ -1464,8 +1404,8 @@
       CALL CLOSE_FILES
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a CLOSE_FILES' )
 
-      ! Free pointer (mpayer, 12/6/12)
-      NULLIFY( STT )
+      ! Free pointers (mpayer, 12/6/12)
+      NULLIFY( STT, TCVV )
 
       ! Deallocate fields of the Input Options object
       CALL Cleanup_GIGC_Input_Opt( am_I_Root, Input_Opt, RC )
@@ -2167,9 +2107,9 @@
 
       ! FAST-J is only used for fullchem, offline aerosol
       ! and CH3I simulations, so skip otherwise
-      IF ( ITS_A_FULLCHEM_SIM()  .or.
-     &     ITS_AN_AEROSOL_SIM()  .or.
-     &     ITS_A_CH3I_SIM()     ) THEN
+      IF ( ITS_A_FULLCHEM_SIM  .or.
+     &     ITS_AN_AEROSOL_SIM  .or.
+     &     ITS_A_CH3I_SIM     ) THEN
 
          ! Only execute this if we are doing chemistry
          ! and if it we are at a chemistry timestep

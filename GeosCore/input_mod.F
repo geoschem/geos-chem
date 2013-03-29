@@ -3817,7 +3817,9 @@
       ENDIF
 
       ! Initialize wet deposition tracers
-      IF ( LWETD .or. LCONV ) CALL WETDEPID( am_I_Root )
+      IF ( LWETD .or. LCONV ) THEN
+         CALL WETDEPID( am_I_Root, Input_Opt, RC )
+      ENDIF
 
 #if   defined( APM )
       ! Initialize wet deposition tracers for APM
@@ -6562,7 +6564,7 @@
       !=================================================================
 
       ! Pass values to "tpcore_bc_mod.f"
-      CALL INIT_TPCORE_BC( TS, I0W, J0W, I1, J1, I2, J2 )
+      CALL INIT_TPCORE_BC( TS, I0W, J0W, I1, J1, I2, J2, Input_Opt )
 
       END SUBROUTINE READ_NESTED_GRID_MENU
 !EOC
@@ -7978,6 +7980,7 @@
       USE Linoz_Mod,          ONLY : Init_Linoz
       USE Seasalt_Mod,        ONLY : Init_SeaSalt
       USE Sulfate_Mod,        ONLY : Init_Sulfate
+      USE Tropopause_Mod,     ONLY : Init_Tropopause
 !
 ! !INPUT PARAMETERS:
 !
@@ -8004,6 +8007,8 @@
 !  04 Mar 2013 - R. Yantosca - Initial revision
 !  05 Mar 2013 - R. Yantosca - Now call INIT_AEROSOL (GeosCore/aerosol_mod.F)
 !  15 Mar 2013 - R. Yantosca - Now call INIT_LINOZ (GeosCore/linoz_mod.F)
+!  29 Mar 2013 - R. Yantosca - Now call INIT_TROPOPAUSE (so that we can pass
+!                              a LVARTROP from Input_Opt and not logical_mod.F)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8063,6 +8068,11 @@
          CALL INIT_LINOZ( am_I_Root, Input_Opt, RC )
          IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_LINOZ' )
       ENDIF
+
+      ! Initialize "tropopause_mod.F"
+      CALL INIT_TROPOPAUSE( am_I_Root, Input_Opt, RC )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_TROPOPAUSE' )
+
 
       END SUBROUTINE GIGC_Init_Extra
 !EOC

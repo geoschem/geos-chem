@@ -134,12 +134,8 @@
       CONTAINS
 
 !------------------------------------------------------------------------------
-
-#if defined( DEVEL )
-      SUBROUTINE DIAG48( State_Met, State_Chm )
-#else
-      SUBROUTINE DIAG48( State_Met )
-#endif
+      SUBROUTINE DIAG48( am_I_Root, Input_Opt, 
+     &                   State_Met, State_Chm, RC )
 !
 !******************************************************************************
 !  Subroutine DIAG48 saves station time series diagnostics to disk.
@@ -166,26 +162,23 @@
 !                              than PSURFACE - PTOP.
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,          ONLY : BPCH2
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_XOFFSET,        GET_YOFFSET
-      USE LOGICAL_MOD,        ONLY : DO_DIAG_WRITE
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
       USE PRESSURE_MOD,       ONLY : GET_PEDGE
       USE TIME_MOD,           ONLY : GET_LOCALTIME,      GET_NYMD
       USE TIME_MOD,           ONLY : GET_NHMS,           GET_TAU
       USE TIME_MOD,           ONLY : EXPAND_DATE,        ITS_A_NEW_DAY
-      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM, N_TRACERS
-      USE TRACER_MOD,         ONLY : TCVV,               XNUMOLAIR
-#if defined( DEVEL )
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-#else
-      USE TRACER_MOD,         ONLY : STT
-#endif
+      USE TRACER_MOD,         ONLY : XNUMOLAIR
       USE TRACERID_MOD,       ONLY : IDTHNO3, IDTN2O5, IDTHNO4, IDTNOX
       USE TRACERID_MOD,       ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
       USE TRACERID_MOD,       ONLY : IDTR4N2, IDTSALA, IDTSALC 
@@ -194,14 +187,23 @@
       USE JV_CMN_MOD               ! ODAER, ODMDUST, QAA, QAA_OUT
       USE CMN_O3_MOD               ! XNUMOLAIR
       USE CMN_GCTM_MOD             ! SCALE_HEIGHT
-
-      ! Arguments
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-#if defined( DEVEL )
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-#endif
-
-      ! Local variables
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE      :: IS_CLDTOPS,  IS_OPTD, IS_SEASALT, IS_SLP
       LOGICAL, SAVE      :: IS_FULLCHEM, IS_Ox,   IS_NOx,     IS_NOy
       LOGICAL, SAVE      :: FIRST = .TRUE.
@@ -214,16 +216,27 @@
       ! Aerosol types (rvm, aad, bmy, 7/20/04)
       INTEGER            :: IND(6) = (/ 22, 29, 36, 43, 50, 15 /)
 
+      ! For fields from Input_Opt
+      LOGICAL         :: DO_DIAG_WRITE
+      INTEGER         :: N_TRACERS
+      REAL*8          :: TCVV(Input_Opt%N_TRACERS)
+
       ! Pointers
-#if defined( DEVEL )
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER :: STT(:,:,:,:)
-#endif
 
       !=================================================================
       ! DIAG48 begins here!
       !=================================================================
+
+      ! Assume success
+      RC            =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      DO_DIAG_WRITE = Input_Opt%DO_DIAG_WRITE
+      N_TRACERS     = Input_Opt%N_TRACERS
+      TCVV          = Input_Opt%TCVV(1:N_TRACERS)
 
       ! Get grid offsets
       I0 = GET_XOFFSET( GLOBAL=.TRUE. )
@@ -236,7 +249,7 @@
          IS_CLDTOPS  = ASSOCIATED( State_Met%CLDTOPS )
          IS_SLP      = ASSOCIATED( State_Met%SLP     )
          IS_OPTD     = ASSOCIATED( State_Met%OPTD    )
-         IS_FULLCHEM = ITS_A_FULLCHEM_SIM()
+         IS_FULLCHEM = Input_Opt%ITS_A_FULLCHEM_SIM
          IS_SEASALT  = ( IDTSALA > 0 .and. IDTSALC > 0 )
          IS_Ox       = ( IS_FULLCHEM .and. IDTOX   > 0 )
          IS_NOx      = ( IS_FULLCHEM .and. IDTNOX  > 0 )
@@ -292,20 +305,16 @@
             UNIT     = ''              ! Let GAMAP pick the unit
             GMTRC    = N
 
-#if defined( DEVEL )
             ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
             ! (mpayer, 12/6/12)
             STT => State_Chm%Tracers
-#endif
 
             DO L = 1, K
                Q(L) = STT(I,J,L,N) * TCVV(N) / State_Met%AD(I,J,L)
             ENDDO
 
-#if defined( DEVEL )
             ! Free pointer
             NULLIFY( STT )
-#endif
 
          ELSE IF ( N == 91 .and. IS_Ox ) THEN
  
@@ -316,21 +325,17 @@
             UNIT     = ''              ! Let GAMAP pick the unit
             GMTRC    = N_TRACERS + 1
 
-#if defined( DEVEL )
             ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
             ! (mpayer, 12/6/12)
             STT => State_Chm%Tracers
-#endif
 
             DO L = 1, K
                Q(L) = STT(I,J,L,IDTOX)    * TCVV(IDTOX)  / 
      &                State_Met%AD(I,J,L) * FRACO3(I,J,L)
             ENDDO
                
-#if defined( DEVEL )
             ! Free pointer
             NULLIFY( STT )
-#endif
 
          ELSE IF ( N == 92 .and. IS_NOx ) THEN
 
@@ -341,21 +346,17 @@
             UNIT     = ''           ! Let GAMAP pick the unit
             GMTRC    = 9
 
-#if defined( DEVEL )
             ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
             ! (mpayer, 12/6/12)
             STT => State_Chm%Tracers
-#endif
 
             DO L = 1, K
                Q(L) = STT(I,J,L,IDTNOX) * TCVV(IDTNOX) * 
      &                FRACNO(I,J,L)     / State_Met%AD(I,J,L)
             ENDDO
 
-#if defined( DEVEL )
             ! Free pointer
             NULLIFY( STT )
-#endif
 
          ELSE IF ( N == 93 .and. IS_NOy ) THEN
 
@@ -366,11 +367,9 @@
             UNIT     = ''              ! Let GAMAP pick unit
             GMTRC    = 3
 
-#if defined( DEVEL )
             ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
             ! (mpayer, 12/6/12)
             STT => State_Chm%Tracers
-#endif
 
             DO L = 1, K
 
@@ -418,10 +417,8 @@
      &                         State_Met%AD(I,J,L) )
             ENDDO
 
-#if defined( DEVEL )
             ! Free pointer
             NULLIFY( STT )
-#endif
 
          ELSE IF ( N == 76 .and. IS_FULLCHEM ) THEN
 
@@ -681,21 +678,17 @@
             UNIT     = ''              ! Let GAMAP pick unit
             GMTRC    = 24
 
-#if defined( DEVEL )
             ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
             ! (mpayer, 12/6/12)
             STT => State_Chm%Tracers
-#endif
 
             DO L = 1, K
                Q(L) = ( STT(I,J,L,IDTSALA) + STT(I,J,L,IDTSALC) ) *
      &                  TCVV(IDTSALA)      / State_Met%AD(I,J,L) 
             ENDDO
 
-#if defined( DEVEL )
             ! Free pointer
             NULLIFY( STT )
-#endif
 
          ELSE IF ( N == 94 ) THEN 
 

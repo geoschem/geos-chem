@@ -1126,11 +1126,8 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE PLANEFLIGHT( State_Met, State_Chm )
-#else
-      SUBROUTINE PLANEFLIGHT( State_Met )
-#endif
+      SUBROUTINE PLANEFLIGHT( am_I_Root, Input_Opt,
+     &                        State_Met, State_Chm, RC )
 !
 ! !USES:
 !
@@ -1138,30 +1135,31 @@
       USE COMODE_MOD,         ONLY : T3,             VOLUME,      ABSHUM
       USE COMODE_MOD,         ONLY : TAREA
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP  
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PRESSURE_MOD,       ONLY : GET_PEDGE
       USE TIME_MOD,           ONLY : GET_TAU,        GET_TS_DIAG
-#if defined( DEVEL )
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-#else
-      USE TRACER_MOD,         ONLY : STT
-#endif
-      USE TRACER_MOD,         ONLY : TCVV
       USE OCEAN_MERCURY_MOD,  ONLY : Fp, Fg !eds 10/27/11
 
       USE JV_CMN_MOD               ! ODAER, QAA, QAA_AOD
       USE COMODE_LOOP_MOD          ! CSPEC, etc.
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-#if defined( DEVEL )
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-#endif
-! 
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
 ! !REVISION HISTORY: 
 !  08 Jul 2002 - M. Evans    - Initial version
 !  (1 ) Now reference AD from "dao_mod.f".  Now references GEOS_CHEM_STOP from
@@ -1186,6 +1184,7 @@
 !  09 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1559,7 +1558,7 @@
                         LL = L
                      ENDIF
 
-                     VARI(V) = STT(I,J,L,N) * TCVV(N) /
+                     VARI(V) = STT(I,J,L,N) * Input_Opt%TCVV(N) /
      &                         State_Met%AD(I,J,L)
 !----------------------------------------------------------------------------
 

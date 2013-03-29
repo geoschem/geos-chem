@@ -106,15 +106,16 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE AEROSOL_RURALBOX( N_TROP, am_I_Root, State_Met )
+      SUBROUTINE AEROSOL_RURALBOX( N_TROP,    am_I_Root, 
+     &                             Input_Opt, State_Met )
 !
 ! !USES:
 !
       USE COMODE_MOD,         ONLY : ABSHUM, AIRDENS, IXSAVE   
       USE COMODE_MOD,         ONLY : IYSAVE, IZSAVE,  JLOP       
       USE DAO_MOD,            ONLY : MAKE_AVGW
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE LOGICAL_MOD,        ONLY : LVARTROP
       USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_TROP
 
       USE CMN_SIZE_MOD             ! Size parameters
@@ -126,6 +127,7 @@
 !
 ! !INPUT PARAMETERS: 
 !
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt ! Input Options object
       TYPE(MetState), INTENT(INOUT) :: State_Met ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
@@ -175,7 +177,7 @@
       !=================================================================
 
       ! bdf-phs: must do it everytime with a variable tropopause
-      IF ( FIRST .or. LVARTROP ) THEN
+      IF ( FIRST .or. Input_Opt%LVARTROP ) THEN
 
          ! Initialize 1-D index
          JLOOP  = 0

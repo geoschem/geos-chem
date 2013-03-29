@@ -440,7 +440,8 @@
                DO N = 1, NEMANTHRO
                   NN = IDEMS(N)
                   IF ( NN /= 0 ) THEN
-                     CALL EMFOSSIL( I, J, N, NN, IREF, JREF, JSCEN )
+                     CALL EMFOSSIL( I, J, N, NN, IREF, JREF, JSCEN,
+     &                              Input_Opt )
                   ENDIF
                ENDDO
             ENDIF

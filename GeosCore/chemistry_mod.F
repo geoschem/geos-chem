@@ -371,7 +371,8 @@
 
             ! Define loop index and other SMVGEAR arrays
             ! N_TROP, the # of trop boxes, is returned
-            CALL AEROSOL_RURALBOX( N_TROP, am_I_Root, State_Met )
+            CALL AEROSOL_RURALBOX( N_TROP,    am_I_Root, 
+     &                             Input_Opt, State_Met  )
  
             ! Initialize FAST-J quantities for computing AOD's
             IF ( FIRST ) THEN
@@ -889,12 +890,8 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE RECOMPUTE_OD( am_I_Root, Input_Opt, State_Met,
-     &                         State_Chm, RC )
-#else
-      SUBROUTINE RECOMPUTE_OD( am_I_Root, Input_Opt, State_Met, RC )
-#endif
+      SUBROUTINE RECOMPUTE_OD( am_I_Root, Input_Opt, 
+     &                         State_Met, State_Chm, RC )
 !
 ! !USES:
 !
@@ -907,28 +904,24 @@
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-#if defined( DEVEL )
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-#endif
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : GET_YEAR
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-#if defined( DEVEL )
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-#endif
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  03 Fev 2011 - Adapted from chemdr.f by skim
@@ -936,6 +929,7 @@
 !                              running with the traditional driver main.F
 !  13 Nov 2012 - R. Yantosca - Now pass Input_Opt and RC arguments for GIGC
 !  15 Nov 2012 - M. Payer    - Now pass all met fields via State_Met
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -981,12 +975,8 @@
             IF ( LSULF .or. LCARB .or. LDUST .or. LSSALT ) THEN
 
                ! Skip this section if all of these are turned off
-#if defined( DEVEL )
-               CALL AEROSOL_CONC( am_I_Root, Input_Opt, State_Met,
-     &                            State_Chm, RC )
-#else
-               CALL AEROSOL_CONC( am_I_Root, Input_Opt, State_Met, RC )
-#endif
+               CALL AEROSOL_CONC
+     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
                !===============================================================
                ! Call RDAER -- computes aerosol optical depths

@@ -1608,28 +1608,27 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_TPCORE_BC( TS, I0W, J0W, I1, J1, I2, J2 )
+      SUBROUTINE INIT_TPCORE_BC( TS, I0W, J0W, I1, 
+     &                           J1, I2,  J2,  Input_Opt )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE DIRECTORY_MOD, ONLY : TPBC_DIR
-      USE ERROR_MOD,     ONLY : ALLOC_ERR
-      USE GRID_MOD,      ONLY : GET_XOFFSET, GET_YOFFSET 
-      USE GRID_MOD,      ONLY : ITS_A_NESTED_GRID
-      USE LOGICAL_MOD,   ONLY : LWINDO,    LWINDO_NA,  LWINDO_CU
-      USE LOGICAL_MOD,   ONLY : LWINDO_EU, LWINDO_CH,  LWINDO2x25
-      USE LOGICAL_MOD,   ONLY : LWINDO_SE
-      USE TRACER_MOD,    ONLY : N_TRACERS
+      USE DIRECTORY_MOD,      ONLY : TPBC_DIR
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET 
+      USE GRID_MOD,           ONLY : ITS_A_NESTED_GRID
 
 #     include "define.h"
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: TS          ! Timestep for BC data
-      INTEGER, INTENT(IN) :: I0W, J0W    ! Transport region offsets
-      INTEGER, INTENT(IN) :: I1,  J1     ! Lon, lat indices @ LL corner 
-      INTEGER, INTENT(IN) :: I2,  J2     ! Lon, lat indices @ UR corner
+      INTEGER,        INTENT(IN) :: TS          ! Timestep for BC data
+      INTEGER,        INTENT(IN) :: I0W, J0W    ! Transport region offsets
+      INTEGER,        INTENT(IN) :: I1,  J1     ! Lon, lat indices @ LL corner 
+      INTEGER,        INTENT(IN) :: I2,  J2     ! Lon, lat indices @ UR corner
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
 ! 
 ! !REVISION HISTORY: 
 !  10 Feb 2003 - R. Yantosca - Initial version
@@ -1650,9 +1649,24 @@
 !
       INTEGER :: AS, I, J
 
+      ! For values from Input_Opt
+      LOGICAL :: LWINDO,    LWINDO_NA,  LWINDO_CU
+      LOGICAL :: LWINDO_EU, LWINDO_CH,  LWINDO2x25
+      LOGICAL :: LWINDO_SE
+      INTEGER :: N_TRACERS
+
       !=================================================================
       ! INIT_TPCORE_BC begins here!
       !=================================================================
+
+      ! Copy values from Input_Opt
+      LWINDO     = Input_Opt%LWINDO
+      LWINDO_NA  = Input_Opt%LWINDO_NA
+      LWINDO_CU  = Input_Opt%LWINDO_CU
+      LWINDO_EU  = Input_Opt%LWINDO_EU
+      LWINDO_CH  = Input_Opt%LWINDO_CH
+      LWINDO2x25 = Input_Opt%LWINDO2x25
+      N_TRACERS  = Input_Opt%N_TRACERS
 
       ! Timestep for BC's [min]
       TS_BC = TS

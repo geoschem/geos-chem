@@ -11,10 +11,11 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE EMFOSSIL( I, J, N, NN, IREF, JREF, JSCEN )
+      SUBROUTINE EMFOSSIL( I, J, N, NN, IREF, JREF, JSCEN, Input_Opt )
 !
 ! !USES:
 !
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE BRAVO_MOD,          ONLY : GET_BRAVO_ANTHRO, GET_BRAVO_MASK
       USE CAC_ANTHRO_MOD,     ONLY : GET_CANADA_MASK,  GET_CAC_ANTHRO
       !USE DAO_MOD,            ONLY : IS_WATER
@@ -24,13 +25,6 @@
       USE EMEP_MOD,           ONLY : GET_EMEP_ANTHRO,  GET_EUROPE_MASK
       USE EPA_NEI_MOD,        ONLY : GET_EPA_ANTHRO,   GET_USA_MASK
       USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,        ONLY : LBRAVO, LEMEP,    LNEI99
-      USE LOGICAL_MOD,        ONLY : LEDGARNOx,        LEDGARCO
-      USE LOGICAL_MOD,        ONLY : LSTREETS,         LCAC
-      USE LOGICAL_MOD,        ONLY : LEDGARSHIP,       LARCSHIP
-      USE LOGICAL_MOD,        ONLY : LEMEPSHIP,        LVISTAS
-      USE LOGICAL_MOD,        ONLY : LICARTT,          LNEI05
-      USE LOGICAL_MOD,        ONLY : LRETRO
       USE RETRO_MOD,          ONLY : GET_RETRO_ANTHRO
       USE C2H6_MOD,           ONLY : GET_C2H6_ANTHRO
       USE NEI2005_ANTHRO_MOD, ONLY : GET_NEI2005_ANTHRO
@@ -41,16 +35,11 @@
       USE STREETS_ANTHRO_MOD, ONLY : GET_STREETS_ANTHRO
       USE TIME_MOD,           ONLY : GET_TS_EMIS,      GET_DAY_OF_WEEK
       USE TIME_MOD,           ONLY : GET_HOUR
-      USE TRACER_MOD,         ONLY : ITS_A_TAGCO_SIM
-      USE TRACER_MOD,         ONLY : XNUMOL
       USE TRACERID_MOD,       ONLY : IDENOX, IDEOX,    IDEHNO3
       USE TRACERID_MOD,       ONLY : IDTOX,  IDTCO,    IDTHNO3
       USE TRACERID_MOD,       ONLY : IDTC2H6
       USE VISTAS_ANTHRO_MOD,  ONLY : GET_VISTAS_ANTHRO
       USE ICOADS_SHIP_MOD,    ONLY : GET_ICOADS_SHIP !(cklee, 7/09/09)
-![eml
-      USE LOGICAL_MOD,        ONLY : LHIST
-!eml]
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE COMODE_LOOP_MOD          ! IHOUR
@@ -69,6 +58,7 @@
       INTEGER, INTENT(IN)   :: IREF    ! Offset index I+I0
       INTEGER, INTENT(IN)   :: JREF    ! Offset index J+J0
       INTEGER, INTENT(IN)   :: JSCEN   ! Day index (Sat=1, Sun=2, Weekday=3)
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
 !
 ! !REMARKS:
 !  In most cases, I0=J0=0, so IREF=I and JREF=J.  The offsets I0 and J0 are
@@ -147,6 +137,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  22 Mar 2012 - M. Payer    - Update for C2H6. RETRO ethane emissions are too
 !                              low so we will use Yaping Xiao's offline emiss.
+!  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -164,9 +155,49 @@
       REAL*8  :: RETRO
       REAL*8  :: C2H6_ANTHRO
 
+      ! For fields from Input_Opt
+      LOGICAL :: LBRAVO
+      LOGICAL :: LEMEP
+      LOGICAL :: LNEI99
+      LOGICAL :: LEDGARNOx
+      LOGICAL :: LEDGARCO
+      LOGICAL :: LSTREETS
+      LOGICAL :: LCAC
+      LOGICAL :: LEDGARSHIP
+      LOGICAL :: LARCSHIP
+      LOGICAL :: LEMEPSHIP
+      LOGICAL :: LVISTAS
+      LOGICAL :: LICARTT
+      LOGICAL :: LNEI05
+      LOGICAL :: LRETRO
+      LOGICAL :: LHIST
+      LOGICAL :: ITS_A_TAGCO_SIM
+      INTEGER :: N_TRACERS
+      REAL*8  :: XNUMOL(Input_Opt%N_TRACERS)
+
       !=================================================================
       ! EMFOSSIL begins here!
       !=================================================================
+
+      ! Copy values from Input_Opt
+      LBRAVO          = Input_Opt%LBRAVO
+      LEMEP           = Input_Opt%LEMEP 
+      LNEI99          = Input_Opt%LNEI99
+      LEDGARNOx       = Input_Opt%LEDGARNOx
+      LEDGARCO        = Input_Opt%LEDGARCO
+      LSTREETS        = Input_Opt%LSTREETS  
+      LCAC            = Input_Opt%LCAC
+      LEDGARSHIP      = Input_Opt%LEDGARSHIP
+      LARCSHIP        = Input_Opt%LARCSHIP
+      LEMEPSHIP       = Input_Opt%LEMEPSHIP
+      LVISTAS         = Input_Opt%LVISTAS
+      LICARTT         = Input_Opt%LICARTT
+      LNEI05          = Input_Opt%LNEI05
+      LRETRO          = Input_Opt%LRETRO
+      LHIST           = Input_Opt%LHIST
+      ITS_A_TAGCO_SIM = Input_Opt%ITS_A_TAGCO_SIM
+      N_TRACERS       = Input_Opt%N_TRACERS
+      XNUMOL          = Input_Opt%XNUMOL(1:N_TRACERS)
 
       ! Emission timestep [s]
       DTSRCE   = GET_TS_EMIS() * 60d0
@@ -857,7 +888,7 @@
          ! Modifications of the scaling using Rynda GRL 2008.
          ! (jaf, ccc, 2/25/09)
          ! Added a nested if (phs, 7/9/09)
-         IF ( ITS_A_TAGCO_SIM() ) THEN           
+         IF ( ITS_A_TAGCO_SIM ) THEN           
             IF ( LICARTT ) THEN
                IF ( GET_USA_MASK(I,J) > 0.d0 ) THEN
                   IF ( NN == IDTCO ) EMX(1) = EMX(1) * 1.39d0

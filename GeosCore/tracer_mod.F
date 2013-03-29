@@ -660,32 +660,23 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE CHECK_STT( State_Chm, LOCATION )
-#else
-      SUBROUTINE CHECK_STT( LOCATION )
-#endif
 !
 ! !USES:
 !
-      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
-      USE ERROR_MOD, ONLY : IT_IS_NAN
-      USE ERROR_MOD, ONLY : IT_IS_FINITE
-#if defined( DEVEL )
+      USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
+      USE ERROR_MOD,          ONLY : IT_IS_NAN
+      USE ERROR_MOD,          ONLY : IT_IS_FINITE
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-#endif
-
-      USE CMN_SIZE_MOD    ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
       CHARACTER(LEN=*), INTENT(IN) :: LOCATION
-#if defined( DEVEL )
 !
 ! !INPUT PARAMETERS: 
 !
       TYPE(ChmState),   INTENT(IN) :: State_Chm   ! Chemistry State object
-#endif
 ! 
 ! !REVISION HISTORY:
 !  (1 ) CHECK_STT uses the interfaces defined above -- these will do the
@@ -698,6 +689,7 @@
 !  (4 ) Moved from "error_mod.f" to "tracer_mod.f" (bmy, 7/15/04)
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  05 Mar 2012 - M. Payer    - Added ProTeX headers
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -708,11 +700,9 @@
       INTEGER                      :: I,    J,    L,   N, N_TOT_TRC
       
       ! Pointers
-#if defined( DEVEL )
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER :: STT(:,:,:,:)
-#endif
 
       !=================================================================
       ! CHECK_STT begins here!
@@ -725,11 +715,9 @@
       N_TOT_TRC = N_TRACERS              ! G-C advected tracers only
 #endif
 
-#if defined( DEVEL )
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
-#endif
 
       ! Initialize
       LNEG = .FALSE.
@@ -780,10 +768,8 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-#if defined( DEVEL )
       ! Free pointer
       NULLIFY( STT )
-#endif
 
       !=================================================================
       ! Stop the run if any of LNEG, LNAN, LINF is true

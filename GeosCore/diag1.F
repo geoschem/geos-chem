@@ -11,11 +11,8 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE DIAG1( State_Met, State_Chm )
-#else
-      SUBROUTINE DIAG1( State_Met )
-#endif
+      SUBROUTINE DIAG1( am_I_Root, Input_Opt,
+     &                  State_Met, State_Chm, RC )
 !
 ! !USES:
 !
@@ -24,18 +21,14 @@
       USE DIAG_MOD,           ONLY : AD30, AD31, AD33, AD35, AD45, AD54 
       USE DIAG_MOD,           ONLY : AD47, AD67, AD68, AD69, LTOTH, LTO3
       USE DIAG_MOD,           ONLY : AD57
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE PRESSURE_MOD,       ONLY : GET_PEDGE
       USE TIME_MOD,           ONLY : ITS_TIME_FOR_CHEM
-#if defined( DEVEL )
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-#else
-      USE TRACER_MOD,         ONLY : STT
-#endif
-      USE TRACER_MOD,         ONLY : N_TRACERS, TCVV
-      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
       USE TRACER_MOD,         ONLY : XNUMOLAIR
       USE TRACERID_MOD,       ONLY : IDTOX
       USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_TROP
@@ -52,17 +45,20 @@
 
       IMPLICIT NONE
 #     include "define.h"
-
 !
 ! !INPUT PARAMETERS:
 !
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-#if defined( DEVEL )
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
-#endif
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  (1 ) This subroutine was reconstructed from gmg's version of (10/10/97)
@@ -121,6 +117,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !
 ! !REMARKS:
 !  For a complete list of GEOS-Chem diagnostics, please see this web page:
@@ -135,26 +132,38 @@
       INTEGER :: I, J, K, L, N, NN, IREF, JREF, LN45, N_TRC
       REAL*8  :: FDTT, XLOCTM, AREA_M2
 #if   defined( APM ) 
-      REAL*8  :: STT_VV(IIPAR,JJPAR,LLPAR,N_TRACERS+N_APMTRA)
+      REAL*8  :: STT_VV(IIPAR,JJPAR,LLPAR,
+     &                  Input_Opt%N_TRACERS+N_APMTRA)
 #else
-      REAL*8  :: STT_VV(IIPAR,JJPAR,LLPAR,N_TRACERS)
+      REAL*8  :: STT_VV(IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS)
 #endif 
 
       !FOR ND57
       ! For FP potential temperature (hotp 7/31/09)
       REAL*8  :: P0
 
+      ! For fields from Input_Opt
+      LOGICAL :: ITS_A_FULLCHEM_SIM
+      INTEGER :: N_TRACERS
+      REAL*8  :: TCVV(Input_Opt%N_TRACERS)
+
       ! Pointers
-#if defined( DEVEL )
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER :: STT(:,:,:,:)
-#endif
 
       !=================================================================
       ! DIAG1 begins here!
       !=================================================================
       
+      ! Assume success
+      RC                 =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      ITS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
+      N_TRACERS          = Input_Opt%N_TRACERS
+      TCVV               = Input_Opt%TCVV(1:N_TRACERS)
+
       ! Pick the proper # of tracers for diagnostics
 #if   defined( APM )
       N_TRC = N_TRACERS + N_APMTRA    ! G-C advected tracers + APM tracers
@@ -163,17 +172,15 @@
 #endif
 
       ! Is it a fullchem run?
-      IS_FULLCHEM = ITS_A_FULLCHEM_SIM()
+      IS_FULLCHEM = ITS_A_FULLCHEM_SIM
       IS_CHEM     = ITS_TIME_FOR_CHEM()
       
       ! Compute conc. in mixing ratio for ND35, ND45, ND47 diagnostics 
       IF ( ND35 > 0 .or. ND45 > 0 .or. ND47 > 0 ) THEN
 
-#if defined( DEVEL )
          ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
          ! (mpayer, 12/6/12)
          STT => State_Chm%Tracers
-#endif
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -190,10 +197,8 @@
          ENDDO
 !$OMP END PARALLEL DO
 
-#if defined( DEVEL )
          ! Free pointer
          NULLIFY( STT )
-#endif
 
       ENDIF
 
@@ -204,11 +209,9 @@
       !-----------------------------------------------!
       IF(ND03 > 0) THEN
 
-#if defined( DEVEL )
         ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
         ! (mpayer, 12/6/12)
         STT => State_Chm%Tracers
-#endif
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
@@ -232,10 +235,8 @@
         ENDDO
 !$OMP END PARALLEL DO 
 
-#if defined( DEVEL )
         ! Free pointer
         NULLIFY( STT )
-#endif
 
       ENDIF
 !-------------------------------------------------------------------------
@@ -282,11 +283,9 @@
       !=================================================================  
       IF ( ND33 > 0 ) THEN   
 
-#if defined( DEVEL )
          ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
          ! (mpayer, 12/6/12)
          STT => State_Chm%Tracers
-#endif
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
@@ -302,10 +301,8 @@
          ENDDO  
 !$OMP END PARALLEL DO
 
-#if defined( DEVEL )
          ! Free pointer
          NULLIFY( STT )
-#endif
 
       ENDIF
 

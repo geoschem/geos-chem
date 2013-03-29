@@ -320,7 +320,8 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LPRT
      INTEGER,            POINTER :: TINDEX(:,:)
      INTEGER,            POINTER :: TCOUNT(:) 				  
-     INTEGER,            POINTER :: TMAX(:)	
+     INTEGER,            POINTER :: TMAX(:)
+     LOGICAL                     :: DO_DIAG_WRITE
 
      !----------------------------------------
      ! PLANEFLIGHT MENU fields
@@ -576,6 +577,7 @@ MODULE GIGC_Input_Opt_Mod
 !  15 Mar 2013 - R. Yantosca - Add fields for LINOZ strat chemistry
 !  27 Mar 2013 - R. Yantosca - Add extra fields for tagged CO2
 !  27 Mar 2013 - R. Yantosca - Add extra fields for tagged EDGAR
+!  29 Mar 2013 - R. Yantosca - Add DO_DIAG_WRITE field (to shut diags in MPI)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -640,6 +642,7 @@ CONTAINS
 !  15 Mar 2013 - R. Yantosca - Now initialize the LINOZ_TPARM field
 !  27 Mar 2013 - R. Yantosca - Add extra fields for tagged CO2
 !  27 Mar 2013 - R. Yantosca - Add extra fields for EDGAR
+!  29 Mar 2013 - R. Yantosca - Add DO_DIAG_WRITE field (to shut diags in MPI)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1033,6 +1036,14 @@ CONTAINS
     Input_Opt%TINDEX(:,:)            = 0
     Input_Opt%TCOUNT(:)              = 0	  
     Input_Opt%TMAX(:)	             = 0
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+    ! Need to shut off G-C diagnostics when 
+    ! connecting to an external GCM (bmy, 3/29/13)
+    Input_Opt%DO_DIAG_WRITE          = .FALSE.
+#else
+    ! For traditional G-C runs, always write diags (bmy, 3/29/13)
+    Input_Opt%DO_DIAG_WRITE          = .TRUE.
+#endif   
 
     !----------------------------------------
     ! PLANEFLIGHT MENU fields
