@@ -1027,8 +1027,7 @@ c907  FORMAT(20X,6E10.3/(8E10.3))
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  31 Jul 2012 - R. Yantosca - Now loop over 1..LLPAR for GIGC compatibility
-!  14 Mar 2013 - M. Payer    - Replace Ox with O3 as part of removal of NOx-Ox
-!                              partitioning
+!  14 Mar 2013 - M. Payer    - Replace Ox with O3 for full-chemistry simulation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1043,12 +1042,11 @@ c907  FORMAT(20X,6E10.3/(8E10.3))
       DO I = 1,IIPAR
       DO L = 1, LLPAR
          IF (L .LT. LPAUSE(I,J)) CYCLE
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! Replace Ox with O3 (mpayer, 3/14/13)
-!         STT(I,J,L,IDTOX) = TLSTT(J,L,1) / TCVV(IDTOX)
-!------------------------------------------------------------------------------
-         STT(I,J,L,IDTO3) = TLSTT(J,L,1) / TCVV(IDTO3)
+         IF ( ITS_A_TAGOX_SIM() ) THEN
+            STT(I,J,L,IDTOX) = TLSTT(J,L,1) / TCVV(IDTOX)
+         ELSE
+            STT(I,J,L,IDTO3) = TLSTT(J,L,1) / TCVV(IDTO3)
+         ENDIF
       ENDDO
       ENDDO
       ENDDO

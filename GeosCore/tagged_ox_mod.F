@@ -526,11 +526,7 @@
       USE TRACER_MOD,         ONLY : STT
       USE TRACER_MOD,         ONLY : N_TRACERS
       USE TRACER_MOD,         ONLY : XNUMOL
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD,       ONLY : IDTOX
-!------------------------------------------------------------------------------
-      USE TRACERID_MOD,       ONLY : IDTO3
+      USE TRACERID_MOD,       ONLY : IDTOX
       USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_TROP
       USE LOGICAL_MOD,        ONLY : LNLPBL
 
@@ -728,12 +724,7 @@
                      IF ( ND44 > 0 .and. Ox_LOST > 0d0 ) THEN
 
                         ! Convert from [kg] to [molec/cm2/s]
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! Replace Ox with O3 (mpayer, 3/14/13)
-!                        FLUX = Ox_LOST             * XNUMOL(IDTOX) / 
-!------------------------------------------------------------------------------
-                        FLUX = Ox_LOST             * XNUMOL(IDTO3) / 
+                        FLUX = Ox_LOST             * XNUMOL(IDTOX) / 
      &                         GET_AREA_CM2(I,J,L) / DTCHEM 
                      
                         ! Store dryd flx in ND44_TMP as a placeholder

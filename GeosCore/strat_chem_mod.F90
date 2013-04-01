@@ -1657,11 +1657,8 @@ CONTAINS
     USE TAGGED_OX_MOD,      ONLY : ADD_STRAT_POX
     USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_YEAR
     USE TRACER_MOD,         ONLY : STT, ITS_A_TAGOX_SIM
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!    USE TRACERID_MOD,       ONLY : IDTOX, IDTOxStrt
-!------------------------------------------------------------------------------
-    USE TRACERID_MOD,       ONLY : IDTO3, IDTOxStrt
+    USE TRACERID_MOD,       ONLY : IDTO3
+    USE TRACERID_MOD,       ONLY : IDTOX, IDTOxStrt
     USE TROPOPAUSE_MOD,     ONLY : GET_TPAUSE_LEVEL
 
     USE CMN_SIZE_MOD             ! Size parameters
@@ -1879,11 +1876,11 @@ CONTAINS
 #endif
 
     ! Store in the proper Ox tracer #
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!    NTRACER = IDTOX
-!------------------------------------------------------------------------------
-    NTRACER = IDTO3
+    IF ( ITS_A_TAGOX_SIM() ) THEN
+       NTRACER = IDTOX
+    ELSE
+       NTRACER = IDTO3
+    ENDIF
 
     ! Only initialize on first time step
     IF ( FIRST ) STFLUX = 0d0
@@ -1989,16 +1986,15 @@ CONTAINS
                 PO3 = PO3 * H70mb / State_Met%BXHEIGHT(I,J,L) 
              ENDIF
 
-             ! Store O3 flux in the proper tracer number
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!             STT(I,J,L,IDTOX) = STT(I,J,L,IDTOX) + PO3 
-!------------------------------------------------------------------------------
-             STT(I,J,L,IDTO3) = STT(I,J,L,IDTO3) + PO3 
-
-             ! Store O3 flux for strat Ox tracer (Tagged Ox only)
              IF ( ITS_A_TAGOX_SIM() ) THEN
+                ! Store O3 flux in the proper tracer number
+                STT(I,J,L,IDTOX) = STT(I,J,L,IDTOX) + PO3 
+
+                ! Store O3 flux for strat Ox tracer (Tagged Ox only)
                 STT(I,J,L,IDTOxStrt) = STT(I,J,L,IDTOxStrt) + PO3
+             ELSE
+                ! Store O3 flux in the proper tracer number
+                STT(I,J,L,IDTO3) = STT(I,J,L,IDTO3) + PO3 
              ENDIF
 
              ! Archive stratospheric O3 for printout in [Tg/yr]

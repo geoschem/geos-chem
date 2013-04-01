@@ -181,6 +181,7 @@
 !                              (E. Browne)
 !  07 Feb 2013 - M. Payer    - Add NO, NO2, NO2, HNO2, and O3 as tracers to
 !                              replace NOx and Ox
+!  01 Apr 2013 - M. Payer    - Restore IDTOX for tagged Ox simulation
 !******************************************************************************
 !
 
@@ -273,7 +274,7 @@
       INTEGER            :: IDTMPN
 
       ! For tagged Ox simulation
-      INTEGER            :: IDTOxStrt
+      INTEGER            :: IDTOxStrt, IDTOX
 
       INTEGER		 :: IDTHCOOH, IDTACTA  ! (mjc, 4/13/11)
 
@@ -1049,6 +1050,9 @@
             ! Tagged Ox Tracers
             !--------------------------------
              
+            CASE ( 'OX' )
+               IDTOX    = N
+
             CASE ( 'OXSTRT' )
                IDTOxStrt = N
 
@@ -3190,6 +3194,7 @@
       IDTOCPO   = 0
 
       IDTOxStrt = 0
+      IDTOX     = 0  
       
       IDTALPH   = 0
       IDTLIMO   = 0

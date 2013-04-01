@@ -1803,18 +1803,14 @@
 !       same as the ND27 diagnostic. (bmy, 10/15/04)
 !  (5) Now provides stratrospheric flux of H2/HD if it is a H2/HD simulation
 !       (lyj, phs, 9/18/07)
+!  (6) Replace Ox with O3 for full-chemistry simulation (mpayer, 3/14/13)
 !******************************************************************************
 !
 #if   !defined( GEOS_4 ) 
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      IF ( ND27 > 0 .and. IDTOX > 0 ) then
-!         IF ( ( IDTOX > 0 .and. 
-!------------------------------------------------------------------------------
-      IF ( ND27 > 0 .and. IDTO3 > 0 ) then
-         IF ( ( IDTO3 > 0 .and. 
-     &        ( ITS_A_FULLCHEM_SIM() .or. ITS_A_TAGOX_SIM() ) ) .OR. 
-     &        ( ITS_A_H2HD_SIM()                              ) ) THEN
+      IF ( ND27 > 0 .and. ( IDTO3 > 0 .or. IDTOx > 0 )) THEN
+         IF ( ( IDTO3 > 0 .and. ITS_A_FULLCHEM_SIM() )  .OR.
+     &        ( IDTOx > 0 .and. ITS_A_TAGOX_SIM()    )  .OR. 
+     &        ( ITS_A_H2HD_SIM()                     )) THEN
 
             CATEGORY = 'STRT-FLX'
             UNIT     = 'kg/s'
