@@ -753,11 +753,11 @@
 !     &                SAVENO3 )
 !------------------------------------------------------------------------------
       IF ( IDTNO /= 0 .AND. IDTO3 /= 0 ) THEN
-         CALL OHSAVE( N_TRACERS,              XNUMOL(1:N_TRACERS),
+         CALL OHSAVE( N_TRACERS,
+     &                XNUMOL(1:N_TRACERS),
      &                STT(:,:,:,1:N_TRACERS), 
-     &                SAVEOH,                 SAVEHO2, 
-     &                SAVENO,                 SAVENO2, 
-     &                SAVENO3 )
+     &                SAVEOH,
+     &                SAVEHO2 )
 
          !### Debug
          IF ( prtDebug ) THEN

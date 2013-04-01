@@ -115,13 +115,17 @@
       !                           for ship emissions (gvinken, 6/6/10)
       ! intope                  = look up table for integrated Ozone Production
       !                           Efficiency for ship emiss (gvinken, 6/6/10)
-      REAL*8, ALLOCATABLE ::   FRACO3(:,:,:)
+!------------------------------------------------------------------------------
+! Prior to 3/29/13:
+! O3, NO, NO2, and NO3 are now tracers (mpayer, 3/29/13)
+!      REAL*8, ALLOCATABLE ::   FRACO3(:,:,:)
+!      REAL*8, ALLOCATABLE ::   FRACNO(:,:,:)
+!      REAL*8, ALLOCATABLE ::   SAVENO(:,:,:)
+!      REAL*8, ALLOCATABLE ::   SAVENO2(:,:,:)
+!      REAL*8, ALLOCATABLE ::   SAVENO3(:,:,:)
+!      REAL*8, ALLOCATABLE ::   FRACNO2(:,:,:)
+!------------------------------------------------------------------------------
       REAL*8, ALLOCATABLE ::   SAVEOH(:,:,:)
-      REAL*8, ALLOCATABLE ::   FRACNO(:,:,:)
-      REAL*8, ALLOCATABLE ::   SAVENO(:,:,:)
-      REAL*8, ALLOCATABLE ::   SAVENO2(:,:,:)
-      REAL*8, ALLOCATABLE ::   SAVENO3(:,:,:)
-      REAL*8, ALLOCATABLE ::   FRACNO2(:,:,:)
       REAL*8, ALLOCATABLE ::   SAVEHO2(:,:,:)
       REAL  , ALLOCATABLE ::   jvalues(:,:,:)
       REAL*4 ::   fracnox(4,4,4,12,12,4,5)
@@ -138,6 +142,9 @@
 !
 ! !REVISION HISTORY:
 !  23 Aug 2011 - M. Long   - Converted to Module from Header file
+!  29 Mar 2013 - M. Payer    - Removed FRACO3, FRACNO, FRACNO2, SAVENO, SAVENO2,
+!                              and SAVENO3. They are no longer needed because
+!                              O3, NO, NO2, and NO3 are now tracers.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -171,6 +178,9 @@
 ! 
 ! !REVISION HISTORY: 
 !  19 Nov 2012 - R. Yantosca - Added ProTeX headers
+!  29 Mar 2013 - M. Payer    - Removed FRACO3, FRACNO, FRACNO2, SAVENO, SAVENO2,
+!                              and SAVENO3. They are no longer needed because
+!                              O3, NO, NO2, and NO3 are now tracers.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -202,13 +212,16 @@
       ALLOCATE( EMISTC2H2 ( IIPAR, JJPAR                  ), STAT=RC )
       ALLOCATE( FTOTCO2   ( IIPAR, JJPAR                  ), STAT=RC )
       ALLOCATE( FLIQCO2   ( IIPAR, JJPAR                  ), STAT=RC )
-      ALLOCATE( FRACO3    ( IIPAR, JJPAR, LLPAR           ), STAT=RC )
+!------------------------------------------------------------------------------
+! Prior to 3/29/13:
+!      ALLOCATE( FRACO3    ( IIPAR, JJPAR, LLPAR           ), STAT=RC )
+!      ALLOCATE( FRACNO    ( IIPAR, JJPAR, LLPAR           ), STAT=RC )
+!      ALLOCATE( SAVENO    ( IIPAR, JJPAR, LLPAR           ), STAT=RC )
+!      ALLOCATE( SAVENO2   ( IIPAR, JJPAR, LLPAR           ), STAT=RC )
+!      ALLOCATE( SAVENO3   ( IIPAR, JJPAR, LLPAR           ), STAT=RC )
+!      ALLOCATE( FRACNO2   ( IIPAR, JJPAR, LLPAR           ), STAT=RC )
+!------------------------------------------------------------------------------
       ALLOCATE( SAVEOH    ( IIPAR, JJPAR, LLPAR           ), STAT=RC )
-      ALLOCATE( FRACNO    ( IIPAR, JJPAR, LLPAR           ), STAT=RC )
-      ALLOCATE( SAVENO    ( IIPAR, JJPAR, LLPAR           ), STAT=RC )
-      ALLOCATE( SAVENO2   ( IIPAR, JJPAR, LLPAR           ), STAT=RC )
-      ALLOCATE( SAVENO3   ( IIPAR, JJPAR, LLPAR           ), STAT=RC )
-      ALLOCATE( FRACNO2   ( IIPAR, JJPAR, LLPAR           ), STAT=RC )
       ALLOCATE( SAVEHO2   ( IIPAR, JJPAR, LLPAR           ), STAT=RC )
       ALLOCATE( JVALUES   ( IIPAR, JJPAR, 2               ), STAT=RC )
 
@@ -237,13 +250,16 @@
       EMISTC2H2  = 0e0
       FTOTCO2    = 0d0
       FLIQCO2    = 0d0
-      FRACO3     = 0d0
+!------------------------------------------------------------------------------
+! Prior to 3/29/13:
+!      FRACO3     = 0d0
+!      FRACNO     = 0d0
+!      SAVENO     = 0d0
+!      SAVENO2    = 0d0
+!      SAVENO3    = 0d0
+!      FRACNO2    = 0d0
+!------------------------------------------------------------------------------
       SAVEOH     = 0d0
-      FRACNO     = 0d0
-      SAVENO     = 0d0
-      SAVENO2    = 0d0
-      SAVENO3    = 0d0
-      FRACNO2    = 0d0
       SAVEHO2    = 0d0
       JVALUES    = 0d0
 
@@ -277,6 +293,9 @@
 ! 
 ! !REVISION HISTORY: 
 !  19 Nov 2012 - R. Yantosca - Added ProTeX headers
+!  29 Mar 2013 - M. Payer    - Removed FRACO3, FRACNO, FRACNO2, SAVENO, SAVENO2,
+!                              and SAVENO3. They are no longer needed because
+!                              O3, NO, NO2, and NO3 are now tracers.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -308,13 +327,16 @@
       IF ( ALLOCATED( EMISTC2H2  ) ) DEALLOCATE( EMISTC2H2  )
       IF ( ALLOCATED( FTOTCO2    ) ) DEALLOCATE( FTOTCO2    )
       IF ( ALLOCATED( FLIQCO2    ) ) DEALLOCATE( FLIQCO2    )
-      IF ( ALLOCATED( FRACO3     ) ) DEALLOCATE( FRACO3     )
+!------------------------------------------------------------------------------
+! Prior to 3/29/13:
+!      IF ( ALLOCATED( FRACO3     ) ) DEALLOCATE( FRACO3     )
+!      IF ( ALLOCATED( FRACNO     ) ) DEALLOCATE( FRACNO     )
+!      IF ( ALLOCATED( SAVENO     ) ) DEALLOCATE( SAVENO     )
+!      IF ( ALLOCATED( SAVENO2    ) ) DEALLOCATE( SAVENO2    )
+!      IF ( ALLOCATED( SAVENO3    ) ) DEALLOCATE( SAVENO3    )
+!      IF ( ALLOCATED( FRACNO2    ) ) DEALLOCATE( FRACNO2    )
+!------------------------------------------------------------------------------
       IF ( ALLOCATED( SAVEOH     ) ) DEALLOCATE( SAVEOH     )
-      IF ( ALLOCATED( FRACNO     ) ) DEALLOCATE( FRACNO     )
-      IF ( ALLOCATED( SAVENO     ) ) DEALLOCATE( SAVENO     )
-      IF ( ALLOCATED( SAVENO2    ) ) DEALLOCATE( SAVENO2    )
-      IF ( ALLOCATED( SAVENO3    ) ) DEALLOCATE( SAVENO3    )
-      IF ( ALLOCATED( FRACNO2    ) ) DEALLOCATE( FRACNO2    )
       IF ( ALLOCATED( SAVEHO2    ) ) DEALLOCATE( SAVEHO2    )
       IF ( ALLOCATED( JVALUES    ) ) DEALLOCATE( JVALUES    )
 

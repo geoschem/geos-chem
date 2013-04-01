@@ -41,7 +41,10 @@
 #endif
 
       USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_O3_MOD               ! FRACO3
+!------------------------------------------------------------------------------
+! Prior to 3/14/13:
+!      USE CMN_O3_MOD               ! FRACO3
+!------------------------------------------------------------------------------
       USE CMN_DIAG_MOD             ! Diagnostic arrays & parameters
       USE CMN_GCTM_MOD             ! Physical constants
 
@@ -306,29 +309,30 @@
             ENDDO
             ENDDO
 
-            ! With TS_DIAG, the diags are automatically calculated at the
-            ! right time (= same time done for all processes). (ccc, 5/21/09)
 !------------------------------------------------------------------------------
 ! Prior to 3/14/13:
+! No longer need this because O3 is now a tracer (mpayer, 3/14/13)
+!            ! With TS_DIAG, the diags are automatically calculated at the
+!            ! right time (= same time done for all processes). (ccc, 5/21/09)
 !!            IF ( N == IDTOX .and. IS_FULLCHEM .and. IS_CHEM ) THEN
 !            IF ( N == IDTOX .and. IS_FULLCHEM ) THEN
+!            IF ( N == IDTO3 .and. IS_FULLCHEM ) THEN
+!               DO L = 1, LD45
+!               DO J = 1, JJPAR
+!               DO I = 1, IIPAR
+!#if   defined( APM )
+!                  AD45(I,J,L,(N_TRACERS+N_APMTRA+1)) = 
+!     &            AD45(I,J,L,(N_TRACERS+N_APMTRA+1)) +
+!     &                 ( STT_VV(I,J,L,N) * FRACO3(I,J,L) * LTO3(I,J) )
+!#else
+!                  AD45(I,J,L,N_TRACERS+1) = AD45(I,J,L,N_TRACERS+1) +
+!     &                 ( STT_VV(I,J,L,N) * FRACO3(I,J,L) * LTO3(I,J) )
+!#endif
+!               ENDDO            
+!               ENDDO            
+!               ENDDO            
+!            ENDIF
 !------------------------------------------------------------------------------
-            IF ( N == IDTO3 .and. IS_FULLCHEM ) THEN
-               DO L = 1, LD45
-               DO J = 1, JJPAR
-               DO I = 1, IIPAR
-#if   defined( APM )
-                  AD45(I,J,L,(N_TRACERS+N_APMTRA+1)) = 
-     &            AD45(I,J,L,(N_TRACERS+N_APMTRA+1)) +
-     &                 ( STT_VV(I,J,L,N) * FRACO3(I,J,L) * LTO3(I,J) )
-#else
-                  AD45(I,J,L,N_TRACERS+1) = AD45(I,J,L,N_TRACERS+1) +
-     &                 ( STT_VV(I,J,L,N) * FRACO3(I,J,L) * LTO3(I,J) )
-#endif
-               ENDDO            
-               ENDDO            
-               ENDDO            
-            ENDIF
          ENDDO   
 !$OMP END PARALLEL DO 
       ENDIF
@@ -352,23 +356,24 @@
             ENDDO
             ENDDO
             
-            ! With TS_DIAG, the diags are automatically calculated at the
-            ! right time (= same time done for all processes). (ccc, 5/21/09)
 !------------------------------------------------------------------------------
 ! Prior to 3/14/13:
+! No longer need this because O3 is now a tracer (mpayer, 3/14/13)
+!            ! With TS_DIAG, the diags are automatically calculated at the
+!            ! right time (= same time done for all processes). (ccc, 5/21/09)
 !!            IF ( N == IDTOX .and. IS_FULLCHEM .and. IS_CHEM ) THEN
 !            IF ( N == IDTOX .and. IS_FULLCHEM ) THEN
+!            IF ( N == IDTO3 .and. IS_FULLCHEM ) THEN
+!               DO L = 1, LD47
+!               DO J = 1, JJPAR
+!               DO I = 1, IIPAR
+!                  AD47(I,J,L,N_TRACERS+1) = AD47(I,J,L,N_TRACERS+1) +
+!     &                 ( STT_VV(I,J,L,N) * FRACO3(I,J,L) )
+!               ENDDO
+!               ENDDO
+!               ENDDO
+!            ENDIF
 !------------------------------------------------------------------------------
-            IF ( N == IDTO3 .and. IS_FULLCHEM ) THEN
-               DO L = 1, LD47
-               DO J = 1, JJPAR
-               DO I = 1, IIPAR
-                  AD47(I,J,L,N_TRACERS+1) = AD47(I,J,L,N_TRACERS+1) +
-     &                 ( STT_VV(I,J,L,N) * FRACO3(I,J,L) )
-               ENDDO
-               ENDDO
-               ENDDO
-            ENDIF
          ENDDO 
 !$OMP END PARALLEL DO   
       ENDIF

@@ -2632,10 +2632,7 @@
 !   # : Field : Description             : Units   : Scale Factor
 !  ---------------------------------------------------------------------------
 !  (1)  OH    : OH  Chemical Diagnostic : mol/cm3 : CTOH
-!  (2)  NO    : NO  Chemical Diagnostic : v/v     : CTNO
 !  (3)  HO2   : HO2 Chemical Diagnostic : v/v     : CTHO2
-!  (4)  NO2   : NO2 Chemical Diagnostic : v/v     : CTNO2
-!  (5)  NO3   : NO3 Chemical Diagnostic : v/v     : CTNO3
 !
 !  NOTES:
 !  (1) Print output for either a NOx-Ox-HC run (NSRCX == 3), or a CO run
@@ -2647,6 +2644,7 @@
 !  (5) Now uses 3D counters (phs, 1/24/07)
 !  (6) Now assume that LD43 can't be higher than LD45 (phs, 1/24/07)
 !  (7) Check that CTxx are not zero, instead of adding 1e-20 (phs, 11/13/07)
+!  (8) Removed NO, NO2, and NO3. These are now tracers (mpayer, 3/29/13)
 !******************************************************************************
 !
       IF ( ND43 > 0 .and. ITS_A_FULLCHEM_SIM() ) THEN
@@ -2673,16 +2671,18 @@
                   ENDWHERE
 
                   UNIT = 'molec/cm3'
-                  
-               ! NO
-               CASE ( 2 ) 
-                  WHERE( CTNO /= 0 )
-                     ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
-     $                    FLOAT( CTNO )
-                  ELSEWHERE
-                     ARRAY(:,:,1:LD43) = 0.
-                  ENDWHERE
-                  
+
+!------------------------------------------------------------------------------
+! Prior to 3/29/13:
+!               ! NO
+!               CASE ( 2 ) 
+!                  WHERE( CTNO /= 0 )
+!                     ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
+!     $                    FLOAT( CTNO )
+!                  ELSEWHERE
+!                     ARRAY(:,:,1:LD43) = 0.
+!                  ENDWHERE
+!------------------------------------------------------------------------------
 
                ! HO2 (rvm, bmy, 2/27/02)
                CASE ( 3 )
@@ -2693,25 +2693,27 @@
                      ARRAY(:,:,1:LD43) = 0.
                   ENDWHERE
 
-
-               ! NO2 (rvm, bmy, 2/27/02)
-               CASE ( 4 ) 
-                  WHERE( CTNO2 /= 0 )
-                     ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
-     $                    FLOAT( CTNO2 )
-                  ELSEWHERE
-                     ARRAY(:,:,1:LD43) = 0.
-                  ENDWHERE
-                  
-
-               ! NO3 (rjp, bmy, 1/16/03)
-               CASE ( 5 )
-                  WHERE( CTNO3 /= 0 )
-                     ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
-     $                    FLOAT( CTNO3 )
-                  ELSEWHERE
-                     ARRAY(:,:,1:LD43) = 0.
-                  ENDWHERE
+!------------------------------------------------------------------------------
+! Prior to 3/29/13:
+!               ! NO2 (rvm, bmy, 2/27/02)
+!               CASE ( 4 ) 
+!                  WHERE( CTNO2 /= 0 )
+!                     ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
+!     $                    FLOAT( CTNO2 )
+!                  ELSEWHERE
+!                     ARRAY(:,:,1:LD43) = 0.
+!                  ENDWHERE
+!
+!
+!               ! NO3 (rjp, bmy, 1/16/03)
+!               CASE ( 5 )
+!                  WHERE( CTNO3 /= 0 )
+!                     ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
+!     $                    FLOAT( CTNO3 )
+!                  ELSEWHERE
+!                     ARRAY(:,:,1:LD43) = 0.
+!                  ENDWHERE
+!------------------------------------------------------------------------------
 
                CASE ( 6 )
                   WHERE( CTLBRO2H /= 0 )

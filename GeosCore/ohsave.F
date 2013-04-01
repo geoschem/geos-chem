@@ -19,8 +19,7 @@
 !     &                   SAVENO,    SAVENO2, SAVENO3 )
 !------------------------------------------------------------------------------
       SUBROUTINE OHSAVE( N_TRACERS, XNUMOL,  STT,
-     &                   SAVEOH,    SAVEHO2,
-     &                   SAVENO,    SAVENO2, SAVENO3 )
+     &                   SAVEOH,    SAVEHO2  )
 !
 ! !USES:
 !
@@ -31,7 +30,7 @@
 !      USE TRACERID_MOD, ONLY : IDTOX, IDTNOX, IDO3,  IDNO
 !      USE TRACERID_MOD, ONLY : IDNO2, IDOH,   IDHO2, IDNO3  
 !------------------------------------------------------------------------------
-      USE TRACERID_MOD, ONLY : IDNO, IDNO2, IDOH, IDHO2, IDNO3  
+      USE TRACERID_MOD, ONLY : IDOH, IDHO2
 
       USE CMN_SIZE_MOD       ! Size parameters
       USE COMODE_LOOP_MOD    ! VOLUME, CSPEC, NPVERT, NLAT, NLONG
@@ -72,14 +71,18 @@
       ! Array of HO2 concentrations [v/v]
       REAL*8, INTENT(OUT) :: SAVEHO2(IIPAR,JJPAR,LLPAR)
 
-      ! Array of NO  concentrations [v/v]
-      REAL*8, INTENT(OUT) :: SAVENO(IIPAR,JJPAR,LLPAR)     
-
-      ! Array of NO2 concentrations [v/v]
-      REAL*8, INTENT(OUT) :: SAVENO2(IIPAR,JJPAR,LLPAR)
-
-      ! Array of NO3 concentrations [v/v]
-      REAL*8, INTENT(OUT) :: SAVENO3(IIPAR,JJPAR,LLPAR)
+!------------------------------------------------------------------------------
+! Prior to 3/29/13:
+! No longer need these because O3, NO, and NO2 are now tracers (mpayer, 3/29/13)
+!      ! Array of NO  concentrations [v/v]
+!      REAL*8, INTENT(OUT) :: SAVENO(IIPAR,JJPAR,LLPAR)     
+!
+!      ! Array of NO2 concentrations [v/v]
+!      REAL*8, INTENT(OUT) :: SAVENO2(IIPAR,JJPAR,LLPAR)
+!
+!      ! Array of NO3 concentrations [v/v]
+!      REAL*8, INTENT(OUT) :: SAVENO3(IIPAR,JJPAR,LLPAR)
+!------------------------------------------------------------------------------
 !
 ! !REVISION HISTORY: 
 !  27 Feb 2002 - R. Yantosca - Initial version
@@ -104,6 +107,7 @@
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  14 Mar 2013 - M. Payer    - FRACO3, FRACNO, and FRACNO2 are no longer needed
 !                              because O3, NO, and NO2 are now tracers.
+!  29 Mar 2013 - M. Payer    - Removed SAVENO, SAVENO2, SAVENO3.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -128,16 +132,16 @@
       ! that once were in the troposphere, and are not anymore, do not
       ! carry dubious data over. (phs, 1/19/07)
 !------------------------------------------------------------------------------
-! Prior to 3/14/13:
+! Prior to 3/29/13:
 !      FRACO3  = 0d0
 !      FRACNO  = 0d0
 !      FRACNO2 = 0d0
+!      SAVENO  = 0d0
+!      SAVENO2 = 0d0
+!      SAVENO3 = 0d0
 !------------------------------------------------------------------------------
       SAVEOH  = 0d0
       SAVEHO2 = 0d0
-      SAVENO  = 0d0
-      SAVENO2 = 0d0
-      SAVENO3 = 0d0
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -184,14 +188,18 @@
          ! HO2 concentration [v/v] 
          SAVEHO2(I,J,L) = CSPEC(JLOOP,IDHO2) / AIRDENS(JLOOP)  
 
-         ! NO concentration [v/v]
-         SAVENO(I,J,L)  = CSPEC(JLOOP,IDNO)  / AIRDENS(JLOOP)
-
-         ! NO2 concentration [v/v]
-         SAVENO2(I,J,L) = CSPEC(JLOOP,IDNO2) / AIRDENS(JLOOP)  
-
-         ! NO3 concentration [v/v]
-         SAVENO3(I,J,L) = CSPEC(JLOOP,IDNO3) / AIRDENS(JLOOP)
+!------------------------------------------------------------------------------
+! Prior to 3/29/13:
+! No longer need these because NO, NO2, and NO3 are now tracers (mpayer,3/29/13)
+!         ! NO concentration [v/v]
+!         SAVENO(I,J,L)  = CSPEC(JLOOP,IDNO)  / AIRDENS(JLOOP)
+!
+!         ! NO2 concentration [v/v]
+!         SAVENO2(I,J,L) = CSPEC(JLOOP,IDNO2) / AIRDENS(JLOOP)  
+!
+!         ! NO3 concentration [v/v]
+!         SAVENO3(I,J,L) = CSPEC(JLOOP,IDNO3) / AIRDENS(JLOOP)
+!------------------------------------------------------------------------------
 
  350  CONTINUE
  360  CONTINUE
