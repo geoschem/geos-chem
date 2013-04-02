@@ -163,10 +163,6 @@
 !
 ! !USES:
 !
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD,       ONLY : IDO3, IDTOX, IDTCO
-!------------------------------------------------------------------------------
       USE TRACERID_MOD,       ONLY : IDO3, IDTO3, IDTCO
       USE TRACER_MOD,         ONLY : STT,  TCVV
       USE TIME_MOD,           ONLY : GET_LOCALTIME
@@ -295,12 +291,6 @@
       IJLOOP       = ( (J-1) * IIPAR ) + I 
       var_array(1) = State_Met%TS(I,J)                ! Temperature
       var_array(2) = jvalues(I,J,1)                   ! J(NO2)
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      var_array(3) = STT(I,J,1,IDTOX)    /            ! [O3] in ppbv 
-!     $               State_Met%AD(I,J,1) *
-!     $               TCVV(IDTOX)         * 1.E9   
-!------------------------------------------------------------------------------
       var_array(3) = STT(I,J,1,IDTO3)    /            ! [O3] in ppbv 
      $               State_Met%AD(I,J,1) *
      $               TCVV(IDTO3)         * 1.E9

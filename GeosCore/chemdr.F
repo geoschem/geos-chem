@@ -50,11 +50,6 @@
       USE TIME_MOD,             ONLY : GET_YEAR
       USE TIME_MOD,             ONLY : ITS_A_NEW_DAY
       USE TRACER_MOD,           ONLY : STT
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD,         ONLY : IDTNOX
-!      USE TRACERID_MOD,         ONLY : IDTOX
-!------------------------------------------------------------------------------
       USE TRACERID_MOD,         ONLY : IDTNO
       USE TRACERID_MOD,         ONLY : IDTO3
       USE TRACERID_MOD,         ONLY : SETTRACE
@@ -740,29 +735,17 @@
       ENDIF
 
       !=================================================================
-      ! Call OHSAVE which saves info on OZONE, OH, AND NO concentrations 
+      ! Call OHSAVE which saves info on OH AND HO2 concentrations 
       !=================================================================
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      IF ( IDTNOX /= 0 .AND. IDTOX /= 0 ) THEN
-!         CALL OHSAVE( N_TRACERS,              XNUMOL(1:N_TRACERS),
-!     &                STT(:,:,:,1:N_TRACERS), FRACO3, 
-!     &                FRACNO,                 FRACNO2, 
-!     &                SAVEOH,                 SAVEHO2, 
-!     &                SAVENO,                 SAVENO2, 
-!     &                SAVENO3 )
-!------------------------------------------------------------------------------
-      IF ( IDTNO /= 0 .AND. IDTO3 /= 0 ) THEN
-         CALL OHSAVE( N_TRACERS,
-     &                XNUMOL(1:N_TRACERS),
-     &                STT(:,:,:,1:N_TRACERS), 
-     &                SAVEOH,
-     &                SAVEHO2 )
+      CALL OHSAVE( N_TRACERS,
+     &             XNUMOL(1:N_TRACERS),
+     &             STT(:,:,:,1:N_TRACERS), 
+     &             SAVEOH,
+     &             SAVEHO2 )
 
-         !### Debug
-         IF ( prtDebug ) THEN
-            CALL DEBUG_MSG( '### CHEMDR: after OHSAVE' )
-         ENDIF
+      !### Debug
+      IF ( prtDebug ) THEN
+         CALL DEBUG_MSG( '### CHEMDR: after OHSAVE' )
       ENDIF
 
       !=================================================================

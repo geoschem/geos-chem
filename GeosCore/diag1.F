@@ -28,10 +28,6 @@
       USE TRACER_MOD,         ONLY : N_TRACERS, STT, TCVV
       USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
       USE TRACER_MOD,         ONLY : XNUMOLAIR
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD,       ONLY : IDTOX
-!------------------------------------------------------------------------------
       USE TRACERID_MOD,       ONLY : IDTO3
       USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_TROP
       USE DIAG03_MOD,         ONLY : AD03_RGM, AD03_PBM, ND03   
@@ -41,10 +37,6 @@
 #endif
 
       USE CMN_SIZE_MOD             ! Size parameters
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE CMN_O3_MOD               ! FRACO3
-!------------------------------------------------------------------------------
       USE CMN_DIAG_MOD             ! Diagnostic arrays & parameters
       USE CMN_GCTM_MOD             ! Physical constants
 
@@ -285,15 +277,13 @@
       ! ND45: Tracer (V/V) at level 1 to level LD45, averaged over 
       !       the time period OTH_HR1 to OTH_HR2.  
       !
-      ! Store pure O3 (as opposed to Ox) in the NTRACE+1 location of 
-      ! AD45.  FRACO3(I,J,L) is the fraction of Ox that is actually O3, 
-      ! and is calculated in subroutine OHSAVE.
-      !
       !  NOTES: 
       !  (1 ) AD45 array replaces the AIJ array for this diagnostic 
       !        (bmy, 3/22/99)
       !  (2 ) Add parallel loop over tracers (bmy, 5/4/00)
       !  (3 ) Use LTO3 and not LTOTH for O3. (ccc, 7/20/09)
+      !  (4 ) Removed code for storing pure O3 as N_TRACERS+1 because O3
+      !       is now a tracer (mpayer, 3/14/13)
       !================================================================= 
       IF ( ND45 > 0 ) THEN
 !$OMP PARALLEL DO 
@@ -308,31 +298,6 @@
             ENDDO
             ENDDO
             ENDDO
-
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! No longer need this because O3 is now a tracer (mpayer, 3/14/13)
-!            ! With TS_DIAG, the diags are automatically calculated at the
-!            ! right time (= same time done for all processes). (ccc, 5/21/09)
-!!            IF ( N == IDTOX .and. IS_FULLCHEM .and. IS_CHEM ) THEN
-!            IF ( N == IDTOX .and. IS_FULLCHEM ) THEN
-!            IF ( N == IDTO3 .and. IS_FULLCHEM ) THEN
-!               DO L = 1, LD45
-!               DO J = 1, JJPAR
-!               DO I = 1, IIPAR
-!#if   defined( APM )
-!                  AD45(I,J,L,(N_TRACERS+N_APMTRA+1)) = 
-!     &            AD45(I,J,L,(N_TRACERS+N_APMTRA+1)) +
-!     &                 ( STT_VV(I,J,L,N) * FRACO3(I,J,L) * LTO3(I,J) )
-!#else
-!                  AD45(I,J,L,N_TRACERS+1) = AD45(I,J,L,N_TRACERS+1) +
-!     &                 ( STT_VV(I,J,L,N) * FRACO3(I,J,L) * LTO3(I,J) )
-!#endif
-!               ENDDO            
-!               ENDDO            
-!               ENDDO            
-!            ENDIF
-!------------------------------------------------------------------------------
          ENDDO   
 !$OMP END PARALLEL DO 
       ENDIF
@@ -341,7 +306,9 @@
       ! ND47: Tracer (V/V) at level 1 to level LD45, 
       ! averaged from 0-24 hours
       !
-      ! Added parallel loop over tracers (bmy, 5/4/00)
+      !  (1 ) Added parallel loop over tracers (bmy, 5/4/00)
+      !  (2 ) Removed code for storing pure O3 as N_TRACERS+1 because O3
+      !       is now a tracer (mpayer, 3/14/13)
       !================================================================= 
       IF ( ND47 > 0 ) THEN
 !$OMP PARALLEL DO 
@@ -355,25 +322,6 @@
             ENDDO   
             ENDDO
             ENDDO
-            
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! No longer need this because O3 is now a tracer (mpayer, 3/14/13)
-!            ! With TS_DIAG, the diags are automatically calculated at the
-!            ! right time (= same time done for all processes). (ccc, 5/21/09)
-!!            IF ( N == IDTOX .and. IS_FULLCHEM .and. IS_CHEM ) THEN
-!            IF ( N == IDTOX .and. IS_FULLCHEM ) THEN
-!            IF ( N == IDTO3 .and. IS_FULLCHEM ) THEN
-!               DO L = 1, LD47
-!               DO J = 1, JJPAR
-!               DO I = 1, IIPAR
-!                  AD47(I,J,L,N_TRACERS+1) = AD47(I,J,L,N_TRACERS+1) +
-!     &                 ( STT_VV(I,J,L,N) * FRACO3(I,J,L) )
-!               ENDDO
-!               ENDDO
-!               ENDDO
-!            ENDIF
-!------------------------------------------------------------------------------
          ENDDO 
 !$OMP END PARALLEL DO   
       ENDIF

@@ -896,10 +896,6 @@
       USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_VOCbb
       USE TRACER_MOD,             ONLY : ITS_A_CO2_SIM 
       USE TRACER_MOD,             ONLY : ITS_A_CH4_SIM
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD,           ONLY : IDBNOx,  IDBCO,   IDBSO2 
-!------------------------------------------------------------------------------
       USE TRACERID_MOD,           ONLY : IDBNO,   IDBCO,   IDBSO2 
       USE TRACERID_MOD,           ONLY : IDBNH3,  IDBBC,   IDBOC 
 
@@ -943,11 +939,6 @@
       DO I = 1, IIPAR 
 
          ! Scale each species to IPCC future scenario
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
-!         IF ( BIO_SAVE(N) == IDBNOx ) THEN
-!------------------------------------------------------------------------------
          IF ( BIO_SAVE(N) == IDBNO ) THEN
 
             ! Future biomass NOx [molec/cm2]
@@ -1089,10 +1080,6 @@
       USE LOGICAL_MOD,     ONLY : LDICARB
       USE LOGICAL_MOD,     ONLY : LDAYBB3
       USE LOGICAL_MOD,     ONLY : L3HRBB3
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD,    ONLY : IDBNOx,  IDBCO,   IDBALK4
-!------------------------------------------------------------------------------
       USE TRACERID_MOD,    ONLY : IDBNO,  IDBCO,   IDBALK4
       USE TRACERID_MOD,    ONLY : IDBACET, IDBMEK,  IDBALD2
       USE TRACERID_MOD,    ONLY : IDBPRPE, IDBC3H8, IDBCH2O
@@ -1292,11 +1279,7 @@
       DO N = 1, N_SPEC
          SELECT CASE ( TRIM( GFED3_SPEC_NAME(N) ) ) 
             CASE( 'NOx'  )
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
-!               BIO_SAVE(N)         = IDBNOX
-!------------------------------------------------------------------------------
+               ! Replaced NOx with NO (mpayer, 3/14/13)
                BIO_SAVE(N)         = IDBNO
                GFED3_SPEC_MOLWT(N) = 14d-3
                GFED3_SPEC_UNIT(N)  = '[Tg N]'

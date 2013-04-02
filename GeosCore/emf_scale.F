@@ -22,10 +22,6 @@
 ! !USES:
 !
       USE TRACERID_MOD, ONLY : IDTALK4, IDTC3H8, IDTISOP, IDTCO
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD, ONLY : IDTNOX,  IDTOX,   IDTPRPE
-!------------------------------------------------------------------------------
       USE TRACERID_MOD, ONLY : IDTNO,   IDTO3,   IDTPRPE
       USE TRACERID_MOD, ONLY : IDTMEK,  IDTC2H2, IDTC2H4, IDTACET
       USE TRACERID_MOD, ONLY : IDTBENZ, IDTTOLU, IDTXYLE, IDTC2H6
@@ -97,10 +93,7 @@
       ! restored later.   Use the appropriate multi-level arrays for 
       ! NOx emissions
       !=================================================================
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      IF ( NN == IDTNOX ) THEN
-!------------------------------------------------------------------------------
+      ! Replaced NOx with NO (mpayer, 3/14/13)
       IF ( NN == IDTNO ) THEN
          XEMISRN(1:NOXLEVELS) = EMISRN(IREF,JREF,1:NOXLEVELS)
       ELSE
@@ -113,10 +106,7 @@
       !=================================================================
 
       ! NOx weekday/weekend emissions: Use SCNR89(1,JSCEN) as scale factor 
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      IF ( NN == IDTNOX ) THEN
-!------------------------------------------------------------------------------
+      ! Replaced NOx with NO (mpayer, 3/14/13)
       IF ( NN == IDTNO ) THEN   
          SFAC89 = SCNR89(1,JSCEN) 
 
@@ -128,10 +118,7 @@
       ! HC weekday/weekend emissions: Use SCNR89(3,JSCEN) as scale factor
       ! Otherwise:                    Use 1d0             as scale factor
       ELSE 
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!         IF ( NN == IDTOX ) THEN 
-!------------------------------------------------------------------------------
+         ! Replaced Ox with O3 (mpayer, 3/14/13)
          IF ( NN == IDTO3 ) THEN 
             SFAC89 = SCNR89(1,JSCEN)
 

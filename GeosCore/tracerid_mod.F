@@ -198,11 +198,6 @@
       REAL*8             :: CTRMB(NNNTRID,MMMEMBER)
      
       ! ID's for SMVGEAR species
-!------------------------------------------------------------------------------
-! Prior to 2/7/13:
-!      INTEGER            :: IDO3,    IDNO2,    IDNO3,   IDN2O5,  IDHNO4
-!      INTEGER            :: IDOX,    IDNOX,    IDHC1,   IDNO,    IDHNO2
-!------------------------------------------------------------------------------
       INTEGER            :: IDO3,    IDNO2,    IDNO3,   IDNO,    IDHNO2
       INTEGER            :: IDN2O5,  IDHNO4,   IDHC1
       INTEGER            :: IDCO,    IDPRPE,   IDISOP,  IDALK4,  IDC3H8
@@ -237,10 +232,6 @@
       INTEGER            :: IDLXRO2H, IDLXRO2N  
 
       ! GEOS-CHEM tracer ID's
-!------------------------------------------------------------------------------
-! Prior to 2/7/13:
-!      INTEGER            :: IDTNOX,  IDTOX,    IDTPAN,  IDTCO,   IDTALK4
-!------------------------------------------------------------------------------
       INTEGER            :: IDTNO,   IDTNO2,   IDTNO3,  IDTHNO2, IDTO3
       INTEGER            :: IDTPAN,  IDTCO,    IDTALK4
       INTEGER            :: IDTISOP, IDTHNO3,  IDTH2O2, IDTACET, IDTMEK
@@ -314,10 +305,6 @@
 
 
       ! GEOS-CHEM emission ID's
-!------------------------------------------------------------------------------
-! Prior to 2/7/13:
-!      INTEGER            :: IDENOX,  IDEOX,    IDECO,   IDEPRPE, IDEC3H8
-!------------------------------------------------------------------------------
       INTEGER            :: IDENO,   IDEO3,    IDECO,   IDEPRPE, IDEC3H8
       INTEGER            :: IDEALK4, IDEC2H6,  IDEISOP, IDEACET, IDEMEK
       INTEGER            :: IDEALD2, IDECH2O,  IDEHNO3
@@ -334,10 +321,6 @@
       INTEGER            :: IDECHBr3, IDECH2Br2, IDEBr2      
 
       ! GEOS-CHEM biofuel ID's
-!------------------------------------------------------------------------------
-! Prior to 2/7/13:
-!      INTEGER            :: IDBFNOX,  IDBFCO,   IDBFALK4, IDBFACET 
-!------------------------------------------------------------------------------
       INTEGER            :: IDBFNO,   IDBFCO,   IDBFALK4, IDBFACET 
       INTEGER            :: IDBFMEK,  IDBFALD2, IDBFPRPE, IDBFC3H8
       INTEGER            :: IDBFCH2O, IDBFC2H6
@@ -348,10 +331,6 @@
       INTEGER            :: IDBFHAC
 
       !BIOMASS BURNING  !(FP,01/27/10)
-!------------------------------------------------------------------------------
-! Prior to 2/7/13:
-!      INTEGER            :: IDBNOX,  IDBCO,   IDBALK4, IDBACET
-!------------------------------------------------------------------------------
       INTEGER            :: IDBNO,   IDBCO,   IDBALK4, IDBACET 
       INTEGER            :: IDBMEK,  IDBALD2, IDBPRPE, IDBC3H8
       INTEGER            :: IDBCH2O, IDBC2H6
@@ -503,21 +482,6 @@
             !------------------------
             ! Full chem tracers
             !------------------------
-!------------------------------------------------------------------------------
-! Prior to 2/7/13:
-! Replace NOx and Ox with NO, NO2, NO3, HNO2, and O3 (mpayer, 2/7/13)
-!            CASE ( 'NOX' )
-!               COUNT    = COUNT + 1
-!               IDTNOX   = N
-!               IDBFNOX  = COUNT
-!
-!               !(fp)              
-!               COUNT_BB = COUNT_BB + 1
-!               IDBNOX   = COUNT_BB
-!
-!            CASE ( 'OX' )
-!               IDTOX    = N
-!------------------------------------------------------------------------------
             CASE ( 'NO' )
                COUNT    = COUNT + 1
                IDTNO    = N
@@ -1610,13 +1574,6 @@
 
          ! The first 12 tracers are in the original order and thus
          ! IDEs are the same as listed below
-!------------------------------------------------------------------------------
-! Prior to 2/7/13:
-! Replace NOx emissions with NO emissions (mpayer, 2/7/13)
-!         IF ( IDTNOX > 0 ) THEN
-!            NEMANTHRO = NEMANTHRO + 1
-!            IDENOX    = NEMANTHRO
-!------------------------------------------------------------------------------
          IF ( IDTNO > 0 ) THEN
             NEMANTHRO = NEMANTHRO + 1
             IDENO     = NEMANTHRO
@@ -1657,14 +1614,6 @@
             NEMANTHRO = NEMANTHRO + 1
             IDECH2O   = NEMANTHRO
          ENDIF
-!------------------------------------------------------------------------------
-! Prior to 2/7/13:
-! Replace Ox emissions with O3 emissions (mpayer, 2/7/13)
-!         IF ( IDTOX > 0 ) THEN
-!            NEMANTHRO = NEMANTHRO + 1
-!            IDEOX     = NEMANTHRO
-!         ENDIF
-!------------------------------------------------------------------------------
          IF ( IDTO3 > 0 ) THEN
             NEMANTHRO = NEMANTHRO + 1
             IDEO3     = NEMANTHRO
@@ -1768,12 +1717,7 @@
       ! NOTE: IDEMS is in "comode.h", maybe later split this off into
       ! an F90 module somehow.  Think about this later. (bmy, 11/12/02)
       !=================================================================
-!------------------------------------------------------------------------------
-! Prior to 2/7/13:
-! Replace NOx emissions with NO emissions (mpayer, 2/7/13)
-!      IF ( IDENOX  /= 0 ) IDEMS(IDENOX ) = IDTNOX
-!------------------------------------------------------------------------------
-      IF ( IDENO   /= 0 ) IDEMS(IDENO  ) = IDTNO    ! mpayer
+      IF ( IDENO   /= 0 ) IDEMS(IDENO  ) = IDTNO
       IF ( IDECO   /= 0 ) IDEMS(IDECO  ) = IDTCO
       IF ( IDEPRPE /= 0 ) IDEMS(IDEPRPE) = IDTPRPE
       IF ( IDEC3H8 /= 0 ) IDEMS(IDEC3H8) = IDTC3H8
@@ -1784,11 +1728,6 @@
       IF ( IDEMEK  /= 0 ) IDEMS(IDEMEK ) = IDTMEK
       IF ( IDEALD2 /= 0 ) IDEMS(IDEALD2) = IDTALD2
       IF ( IDECH2O /= 0 ) IDEMS(IDECH2O) = IDTCH2O
-!------------------------------------------------------------------------------
-! Prior to 2/7/13:
-! Replace Ox emissions with O3 emissions (mpayer, 2/7/13)
-!      IF ( IDEOX   /= 0 ) IDEMS(IDEOX  ) = IDTOX    ! PHS
-!------------------------------------------------------------------------------
       IF ( IDEO3   /= 0 ) IDEMS(IDEO3  ) = IDTO3
       IF ( IDEHNO3 /= 0 ) IDEMS(IDEHNO3) = IDTHNO3  ! PHS
       IF ( IDEGLYX /= 0 ) IDEMS(IDEGLYX) = IDTGLYX
@@ -1832,10 +1771,6 @@
          WRITE( 6, 115 ) 'NEMBIOG:   10 max'
          WRITE( 6, 120 ) 'THIS NEMBIOG:   ', NEMBIOG
          WRITE( 6, 115 ) '-----------------------------------------'
-!------------------------------------------------------------------------------
-! Prior to 2/7/13:
-!         WRITE( 6, 120 ) 'IDENOX  ', IDENOX
-!------------------------------------------------------------------------------
          WRITE( 6, 120 ) 'IDENO   ', IDENO
          WRITE( 6, 120 ) 'IDECO   ', IDECO
          WRITE( 6, 120 ) 'IDEPRPE ', IDEPRPE
@@ -1846,10 +1781,6 @@
          WRITE( 6, 120 ) 'IDEMEK  ', IDEMEK
          WRITE( 6, 120 ) 'IDEALD2 ', IDEALD2
          WRITE( 6, 120 ) 'IDECH2O ', IDECH2O
-!------------------------------------------------------------------------------
-! Prior to 2/7/13:
-!         WRITE( 6, 120 ) 'IDEOX   ', IDEOX
-!------------------------------------------------------------------------------
          WRITE( 6, 120 ) 'IDEO3   ', IDEO3
          WRITE( 6, 120 ) 'IDEHNO3 ', IDEHNO3
          WRITE( 6, 120 ) 'IDEISOP ', IDEISOP
@@ -3045,11 +2976,6 @@
       IDNO3     = 0 
       IDN2O5    = 0
       IDHNO4    = 0
-!------------------------------------------------------------------------------
-! Prior to 2/7/13:
-!      IDOX      = 0
-!      IDNOX     = 0
-!------------------------------------------------------------------------------
       IDHC1     = 0
       IDNO      = 0
       IDHNO2    = 0
@@ -3140,12 +3066,6 @@
       ! +++++++++++++++++
 
       ! GEOS-CHEM Tracer ID #'s
-!------------------------------------------------------------------------------
-! Prior to 2/7/13:
-! Replace NOx and Ox with NO, NO2, NO3, HNO2, and O3 (mpayer, 2/7/13)
-!      IDTNOX    = 0
-!      IDTOX     = 0  
-!------------------------------------------------------------------------------
       IDTNO     = 0
       IDTNO2    = 0
       IDTNO3    = 0
@@ -3269,11 +3189,6 @@
       ! GEOS-CHEM Emission ID #'s
       NEMANTHRO = 0
       NEMBIOG   = 0
-!------------------------------------------------------------------------------
-! Prior to 2/7/13:
-!      IDENOX    = 0
-!      IDEOX     = 0
-!------------------------------------------------------------------------------
       IDENO     = 0
       IDEO3     = 0
       IDECO     = 0
@@ -3303,10 +3218,6 @@
       IDEBr2    = 0 ! jpp, 3/2/10
 
       ! GEOS-CHEM Biofuel ID #'s
-!------------------------------------------------------------------------------
-! Prior to 2/7/13:
-!      IDBFNOX   = 0
-!------------------------------------------------------------------------------
       IDBFNO    = 0
       IDBFCO    = 0
       IDBFALK4  = 0
@@ -3328,10 +3239,6 @@
       IDBFHAC   = 0
 
       ! Initialize IDBs for BIOMASS BURNING (hotp 8/24/09)
-!------------------------------------------------------------------------------
-! Prior to 2/7/13:
-!      IDBNOX    = 0
-!------------------------------------------------------------------------------
       IDBNO     = 0
       IDBCO     = 0
       IDBALK4   = 0

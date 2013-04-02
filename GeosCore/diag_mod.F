@@ -168,18 +168,12 @@
       ! For ND39 -- Washout in aerosol wet deposition diagnostic
       REAL*4,  ALLOCATABLE :: AD39(:,:,:,:)      
 
-      ! For ND43 -- OH, NO, NO2, HO2 chemical diagnostics
+      ! For ND43 -- OH and HO2 chemical diagnostics
       REAL*4,  ALLOCATABLE :: AD43(:,:,:,:)      
-      INTEGER, ALLOCATABLE :: LTNO(:,:)
-      INTEGER, ALLOCATABLE :: CTNO(:,:,:)
       INTEGER, ALLOCATABLE :: LTOH(:,:)
       INTEGER, ALLOCATABLE :: CTOH(:,:,:)
-      INTEGER, ALLOCATABLE :: LTNO2(:,:)
-      INTEGER, ALLOCATABLE :: CTNO2(:,:,:)
       INTEGER, ALLOCATABLE :: LTHO2(:,:)
       INTEGER, ALLOCATABLE :: CTHO2(:,:,:)
-      INTEGER, ALLOCATABLE :: LTNO3(:,:)
-      INTEGER, ALLOCATABLE :: CTNO3(:,:,:)
       ! update for arom (dkh, 06/21/07)  
       INTEGER, ALLOCATABLE :: CTLBRO2H(:,:,:)
       INTEGER, ALLOCATABLE :: CTLBRO2N(:,:,:)
@@ -303,6 +297,9 @@
 !  (34) Add counter for aromatics SOA and add AD57 diagnostic for potential
 !       temperature. (fp, 2/3/10)
 !  26 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  02 Apr 2013 - M. Payer    - Removed *NO, *NO2, and *NO3 arrays for ND43
+!                              diagnostic. These are no longer needed because
+!                              NO, NO2, and NO3 are now tracers.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -424,12 +421,9 @@
       IF ( ALLOCATED( CT17        ) ) DEALLOCATE( CT17        )
       IF ( ALLOCATED( CT18        ) ) DEALLOCATE( CT18        )
       IF ( ALLOCATED( CTJV        ) ) DEALLOCATE( CTJV        )
-      IF ( ALLOCATED( CTNO        ) ) DEALLOCATE( CTNO        )
       IF ( ALLOCATED( CTO3        ) ) DEALLOCATE( CTO3        )
       IF ( ALLOCATED( CTO3_24h    ) ) DEALLOCATE( CTO3_24h    )
       IF ( ALLOCATED( CTOH        ) ) DEALLOCATE( CTOH        )
-      IF ( ALLOCATED( CTNO2       ) ) DEALLOCATE( CTNO2       )
-      IF ( ALLOCATED( CTNO3       ) ) DEALLOCATE( CTNO3       )
       ! update for arom (dkh, 06/21/07)  
       IF ( ALLOCATED( CTLBRO2H    ) ) DEALLOCATE( CTLBRO2H    )
       IF ( ALLOCATED( CTLBRO2N    ) ) DEALLOCATE( CTLBRO2N    )
@@ -447,10 +441,7 @@
       IF ( ALLOCATED( CTOTH       ) ) DEALLOCATE( CTOTH       )
       IF ( ALLOCATED( DIAGCHLORO  ) ) DEALLOCATE( DIAGCHLORO  )
       IF ( ALLOCATED( LTJV        ) ) DEALLOCATE( LTJV        )
-      IF ( ALLOCATED( LTNO        ) ) DEALLOCATE( LTNO        )
       IF ( ALLOCATED( LTOH        ) ) DEALLOCATE( LTOH        )
-      IF ( ALLOCATED( LTNO2       ) ) DEALLOCATE( LTNO2       )
-      IF ( ALLOCATED( LTNO3       ) ) DEALLOCATE( LTNO3       )
       IF ( ALLOCATED( LTHO2       ) ) DEALLOCATE( LTHO2       )
       IF ( ALLOCATED( LTOTH       ) ) DEALLOCATE( LTOTH       )
       IF ( ALLOCATED( LTO3        ) ) DEALLOCATE( LTO3        )

@@ -12,12 +12,6 @@
 !\\
 ! !INTERFACE:
 !
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      SUBROUTINE OHSAVE( N_TRACERS, XNUMOL,  STT,    FRACO3,  
-!     &                   FRACNO,    FRACNO2, SAVEOH, SAVEHO2, 
-!     &                   SAVENO,    SAVENO2, SAVENO3 )
-!------------------------------------------------------------------------------
       SUBROUTINE OHSAVE( N_TRACERS, XNUMOL,  STT,
      &                   SAVEOH,    SAVEHO2  )
 !
@@ -25,11 +19,6 @@
 !
       USE COMODE_MOD,   ONLY : AIRDENS, CSPEC, JLOP, T3, VOLUME
       USE DIAG_MOD,     ONLY : DIAGCHLORO
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD, ONLY : IDTOX, IDTNOX, IDO3,  IDNO
-!      USE TRACERID_MOD, ONLY : IDNO2, IDOH,   IDHO2, IDNO3  
-!------------------------------------------------------------------------------
       USE TRACERID_MOD, ONLY : IDOH, IDHO2
 
       USE CMN_SIZE_MOD       ! Size parameters
@@ -52,37 +41,12 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! No longer need these because O3, NO, and NO2 are now tracers (mpayer, 3/14/13)
-!      ! Array of O3/Ox fractions 
-!      REAL*8, INTENT(OUT) :: FRACO3(IIPAR,JJPAR,LLPAR)
-!
-!      ! Array of NO/NOx fractions 
-!      REAL*8, INTENT(OUT) :: FRACNO(IIPAR,JJPAR,LLPAR)
-!
-!      ! Array of NO2/NOx fractions
-!      REAL*8, INTENT(OUT) :: FRACNO2(IIPAR,JJPAR,LLPAR)
-!------------------------------------------------------------------------------
-
       ! Array of OH  concentrations [molec/cm3]
       REAL*8, INTENT(OUT) :: SAVEOH(IIPAR,JJPAR,LLPAR)
 
       ! Array of HO2 concentrations [v/v]
       REAL*8, INTENT(OUT) :: SAVEHO2(IIPAR,JJPAR,LLPAR)
 
-!------------------------------------------------------------------------------
-! Prior to 3/29/13:
-! No longer need these because O3, NO, and NO2 are now tracers (mpayer, 3/29/13)
-!      ! Array of NO  concentrations [v/v]
-!      REAL*8, INTENT(OUT) :: SAVENO(IIPAR,JJPAR,LLPAR)     
-!
-!      ! Array of NO2 concentrations [v/v]
-!      REAL*8, INTENT(OUT) :: SAVENO2(IIPAR,JJPAR,LLPAR)
-!
-!      ! Array of NO3 concentrations [v/v]
-!      REAL*8, INTENT(OUT) :: SAVENO3(IIPAR,JJPAR,LLPAR)
-!------------------------------------------------------------------------------
 !
 ! !REVISION HISTORY: 
 !  27 Feb 2002 - R. Yantosca - Initial version
@@ -115,10 +79,6 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: I, J, L, JLOOP   ! (bmy, 7/20/04)
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      REAL*8  :: TEMPOX, TEMPNOX  !, KCLO, XLOSS, XOHMASS
-!------------------------------------------------------------------------------
 
       !=================================================================
       ! OHSAVE begins here!
@@ -131,24 +91,11 @@
       ! Reset because of variable tropopause.  Ensure that data for boxes 
       ! that once were in the troposphere, and are not anymore, do not
       ! carry dubious data over. (phs, 1/19/07)
-!------------------------------------------------------------------------------
-! Prior to 3/29/13:
-!      FRACO3  = 0d0
-!      FRACNO  = 0d0
-!      FRACNO2 = 0d0
-!      SAVENO  = 0d0
-!      SAVENO2 = 0d0
-!      SAVENO3 = 0d0
-!------------------------------------------------------------------------------
       SAVEOH  = 0d0
       SAVEHO2 = 0d0
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!!$OMP+PRIVATE( I, J, L, JLOOP, TEMPOX, TEMPNOX )
-!------------------------------------------------------------------------------
 !$OMP+PRIVATE( I, J, L, JLOOP )
 !$OMP+SCHEDULE( DYNAMIC )
       DO 370 L = 1, NPVERT
@@ -161,45 +108,11 @@
          ! Cycle if this isn't a valid SMVGEAR gridbox
          IF ( JLOOP == 0 ) GOTO 350
 
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! No longer need these because O3, NO, and NO2 are now tracers (mpayer, 3/14/13)
-!         ! Total Ox concentration, convert from [kg] to [molec/cm3]
-!         TEMPOX         = STT(I,J,L,IDTOX)
-!         TEMPOX         = TEMPOX  * XNUMOL(IDTOX) /VOLUME(JLOOP)
-!
-!         ! Total NOx concentration, convert from [kg] to [molec/cm3]
-!         TEMPNOX        = STT(I,J,L,IDTNOX)
-!         TEMPNOX        = TEMPNOX * XNUMOL(IDTNOX)/VOLUME(JLOOP)
-!
-!         ! Ox/O3 fraction [unitless]
-!         FRACO3(I,J,L)  = CSPEC(JLOOP,IDO3)  / TEMPOX
-!
-!         ! NO/NOx fraction [unitless]
-!         FRACNO(I,J,L)  = CSPEC(JLOOP,IDNO)  / TEMPNOX
-!
-!         ! NO2/NOx fraction [unitless]
-!         FRACNO2(I,J,L) = CSPEC(JLOOP,IDNO2) / TEMPNOX    
-!------------------------------------------------------------------------------
-
          ! OH concentration [molec/cm3]
          SAVEOH(I,J,L)  = CSPEC(JLOOP,IDOH)
 
          ! HO2 concentration [v/v] 
          SAVEHO2(I,J,L) = CSPEC(JLOOP,IDHO2) / AIRDENS(JLOOP)  
-
-!------------------------------------------------------------------------------
-! Prior to 3/29/13:
-! No longer need these because NO, NO2, and NO3 are now tracers (mpayer,3/29/13)
-!         ! NO concentration [v/v]
-!         SAVENO(I,J,L)  = CSPEC(JLOOP,IDNO)  / AIRDENS(JLOOP)
-!
-!         ! NO2 concentration [v/v]
-!         SAVENO2(I,J,L) = CSPEC(JLOOP,IDNO2) / AIRDENS(JLOOP)  
-!
-!         ! NO3 concentration [v/v]
-!         SAVENO3(I,J,L) = CSPEC(JLOOP,IDNO3) / AIRDENS(JLOOP)
-!------------------------------------------------------------------------------
 
  350  CONTINUE
  360  CONTINUE

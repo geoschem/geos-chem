@@ -532,11 +532,6 @@
       USE CMN_SIZE_MOD
       USE TRACER_MOD,   ONLY : N_TRACERS
       USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
-      USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNOX
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNOX
-!------------------------------------------------------------------------------
       USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNO
       USE TRACERID_MOD, ONLY : IDTNH3,  IDTPRPE, IDTSO2,  IDTSO4  
       USE GRID_MOD,     ONLY : GET_AREA_CM2
@@ -645,13 +640,6 @@
       DO J=1,JJPAR
          IF ( WEEKDAY ) THEN
             IF (.not. LNEI05) THEN
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
-!               IF ( IDTNOX > 0) EMISS(:,J,IDTNOX) = 
-!     &              EPA_WD_AN_NOX(:,J) * A(:,J) *
-!     &              6.0225d-23 * TRACER_MW_KG(IDTNOX) 
-!------------------------------------------------------------------------------
                IF ( IDTNO > 0) EMISS(:,J,IDTNO) = 
      &              EPA_WD_AN_NOX(:,J) * A(:,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTNO) 
@@ -690,13 +678,6 @@
      &              6.0225d-23 * TRACER_MW_KG(IDTNH3) 
             ENDIF
 
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
-!            IF ( IDTNOX > 0 ) EMISS(:,J,IDTNOX) = 
-!     &           EPA_WD_BF_NOX(:,J) * A(:,J) *
-!     &           6.0225d-23 * TRACER_MW_KG(IDTNOX) 
-!------------------------------------------------------------------------------
             IF ( IDTNO > 0 ) EMISS(:,J,IDTNO) = 
      &           EPA_WD_BF_NOX(:,J) * A(:,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTNO) 
@@ -736,13 +717,6 @@
 
          ELSE ! ITS a WEEKEND...
             IF (.not. LNEI05) THEN
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
-!               IF ( IDTNOX > 0) EMISS(:,J,IDTNOX) = 
-!     &              EPA_WE_AN_NOX(:,J) * A(:,J) *
-!     &              6.0225d-23 * TRACER_MW_KG(IDTNOX) 
-!------------------------------------------------------------------------------
                IF ( IDTNO > 0) EMISS(:,J,IDTNO) = 
      &              EPA_WE_AN_NOX(:,J) * A(:,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTNO) 
@@ -781,13 +755,6 @@
      &              6.0225d-23 * TRACER_MW_KG(IDTNH3) 
             ENDIF
             
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
-!            IF ( IDTNOX > 0 ) EMISS(:,J,IDTNOX) = 
-!     &           EPA_WE_BF_NOX(:,J) * A(:,J) *
-!     &           6.0225d-23 * TRACER_MW_KG(IDTNOX) 
-!------------------------------------------------------------------------------
             IF ( IDTNO > 0 ) EMISS(:,J,IDTNO) = 
      &           EPA_WE_BF_NOX(:,J) * A(:,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTNO) 
@@ -1840,10 +1807,6 @@
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TRACER_MOD,   ONLY : TRACER_MW_KG
       USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNOX
-!------------------------------------------------------------------------------
       USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNO
       USE TRACERID_MOD, ONLY : IDTNH3,  IDTPRPE, IDTSO2,  IDTSO4  
 
@@ -1936,10 +1899,6 @@
       F_NH3   = 0d0 
 
       ! Prevent array out of bounds error for undefined tracers
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      IF ( IDTNOX  > 0 ) F_NOX  = TRACER_MW_KG(IDTNOX )
-!------------------------------------------------------------------------------
       IF ( IDTNO   > 0 ) F_NOX  = TRACER_MW_KG(IDTNO  )
       IF ( IDTCO   > 0 ) F_CO   = TRACER_MW_KG(IDTCO  )
       IF ( IDTALK4 > 0 ) F_ALK4 = TRACER_MW_KG(IDTALK4)
@@ -2003,10 +1962,6 @@
       
       ! Weekday avg anthro
       WRITE( 6, '(a)' )
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      WRITE( 6, 100   ) 'NOx ', THISMONTH, WD_NOX,  '  '
-!------------------------------------------------------------------------------
       WRITE( 6, 100   ) 'NO  ', THISMONTH, WD_NOX,  '  '
       WRITE( 6, 100   ) 'CO  ', THISMONTH, WD_CO,   '  '
       WRITE( 6, 100   ) 'ALK4', THISMONTH, WD_ALK4, ' C'
@@ -2023,10 +1978,6 @@
 
       ! Weekend avg anthro
       WRITE( 6, '(a)' )
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      WRITE( 6, 110   ) 'NOx ', THISMONTH, WE_NOX,  '  '
-!------------------------------------------------------------------------------
       WRITE( 6, 110   ) 'NO  ', THISMONTH, WE_NOX,  '  '
       WRITE( 6, 110   ) 'CO  ', THISMONTH, WE_CO,   '  '
       WRITE( 6, 110   ) 'ALK4', THISMONTH, WE_ALK4, ' C'
@@ -2067,10 +2018,6 @@
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TRACER_MOD,   ONLY : TRACER_MW_KG
       USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNOX
-!------------------------------------------------------------------------------
       USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNO
       USE TRACERID_MOD, ONLY : IDTNH3,  IDTPRPE, IDTSO2,  IDTSO4  
 
@@ -2157,10 +2104,6 @@
       F_NH3   = 0d0 
 
       ! Prevent array out of bounds error for undefined tracers
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      IF ( IDTNOX  > 0 ) F_NOX  = TRACER_MW_KG(IDTNOX )
-!------------------------------------------------------------------------------
       IF ( IDTNO   > 0 ) F_NOX  = TRACER_MW_KG(IDTNO  )
       IF ( IDTCO   > 0 ) F_CO   = TRACER_MW_KG(IDTCO  )
       IF ( IDTALK4 > 0 ) F_ALK4 = TRACER_MW_KG(IDTALK4)
@@ -2225,10 +2168,6 @@
       
       ! Weekday avg biofuel
       WRITE( 6, '(a)' )
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      WRITE( 6, 100   ) 'NOx ', THISMONTH, WD_NOX,  '  '
-!------------------------------------------------------------------------------
       WRITE( 6, 100   ) 'NO  ', THISMONTH, WD_NOX,  '  '
       WRITE( 6, 100   ) 'CO  ', THISMONTH, WD_CO,   '  '
       WRITE( 6, 100   ) 'ALK4', THISMONTH, WD_ALK4, ' C'
@@ -2246,10 +2185,6 @@
 
       ! Weekend avg biofuel
       WRITE( 6, '(a)' )
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      WRITE( 6, 110   ) 'NOx ', THISMONTH, WE_NOX,  '  '
-!------------------------------------------------------------------------------
       WRITE( 6, 110   ) 'NO  ', THISMONTH, WE_NOX,  '  '
       WRITE( 6, 110   ) 'CO  ', THISMONTH, WE_CO,   '  '
       WRITE( 6, 110   ) 'ALK4', THISMONTH, WE_ALK4, ' C'
@@ -2324,10 +2259,6 @@
 ! !USES:
 !
       USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNOX
-!------------------------------------------------------------------------------
       USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNO
       USE TRACERID_MOD, ONLY : IDTNH3,  IDTPRPE, IDTSO2,  IDTSO4  
 
@@ -2370,11 +2301,7 @@
          !--------------------
          ! Weekday avg anthro
          !--------------------
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
-!         IF ( N == IDTNOX ) THEN
-!------------------------------------------------------------------------------
+         ! Replaced NOx with NO (mpayer, 3/14/13)
          IF ( N == IDTNO ) THEN
             EPA_NEI = EPA_WD_AN_NOX(I,J)
 
@@ -2423,11 +2350,7 @@
          !--------------------
          ! Weekend avg anthro
          !--------------------
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
-!         IF (  N == IDTNOX  ) THEN
-!------------------------------------------------------------------------------
+         ! Replaced NOx with NO (mpayer, 3/14/13)
          IF (  N == IDTNO ) THEN
             EPA_NEI = EPA_WE_AN_NOX(I,J)
 
@@ -2493,10 +2416,6 @@
 ! !USES:
 !
       USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNOX
-!------------------------------------------------------------------------------
       USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNO
       USE TRACERID_MOD, ONLY : IDTNH3,  IDTPRPE, IDTSO2,  IDTSO4  
 
@@ -2533,11 +2452,7 @@
          !---------------------
          ! Weekday avg biofuel
          !---------------------
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
-!         IF ( N == IDTNOX ) THEN
-!------------------------------------------------------------------------------
+         ! Replaced NOx with NO (mpayer, 3/14/13)
          IF ( N == IDTNO ) THEN
             EPA_NEI = EPA_WD_BF_NOX(I,J)
 
@@ -2584,11 +2499,7 @@
          !---------------------
          ! Weekend avg biofuel
          !---------------------
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
-!         IF (  N == IDTNOX  ) THEN
-!------------------------------------------------------------------------------
+         ! Replaced NOx with NO (mpayer, 3/14/13)
          IF (  N == IDTNO ) THEN
             EPA_NEI = EPA_WE_BF_NOX(I,J)
 

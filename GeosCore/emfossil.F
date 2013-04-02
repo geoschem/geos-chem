@@ -43,10 +43,6 @@
       USE TIME_MOD,           ONLY : GET_HOUR
       USE TRACER_MOD,         ONLY : ITS_A_TAGCO_SIM
       USE TRACER_MOD,         ONLY : XNUMOL
-!-----------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD,       ONLY : IDENOX, IDEOX,    IDEHNO3
-!-----------------------------------------------------------------------
       USE TRACERID_MOD,       ONLY : IDENO,    IDEO3,    IDEHNO3
       USE TRACERID_MOD,       ONLY : IDTCO,    IDTHNO3
       USE TRACERID_MOD,       ONLY : IDTC2H6
@@ -205,11 +201,7 @@
       !
       ! NOx only: account for all NOx levels (LL=1,NOXLEVELS)
       !=================================================================    
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
-!      IF ( N == IDENOX ) THEN
-!------------------------------------------------------------------------------
+      ! Replaced NOx emissions with NO emissions (mpayer, 3/14/13)
       IF ( N == IDENO ) THEN
 
          ! Initialize work variables
@@ -592,11 +584,7 @@
          EMX(:)  = 0d0
 
          ! Use appropriate scale factor for time of day
-!-----------------------------------------------------------------------
-! Prior to 3/13/13:
-! Replace IDEOx with IDEO3 (mpayer, 2/7/13)
-!         IF ( N == IDEOX ) THEN
-!-----------------------------------------------------------------------
+         ! Replaced Ox emissions with O3 emissions (mpayer, 3/14/13)
          IF ( N == IDEO3 ) THEN
             TODX = TODN(IHOUR)
          ELSE
@@ -943,11 +931,6 @@
       !=================================================================
       ! Restore EMISR, EMISRN to original values
       !=================================================================
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
-!      IF ( N == IDENOX ) THEN
-!------------------------------------------------------------------------------
       IF ( N == IDENO ) THEN
          EMISRN(IREF,JREF,1:NOXLEVELS) = XEMISRN(1:NOXLEVELS)
       ELSE

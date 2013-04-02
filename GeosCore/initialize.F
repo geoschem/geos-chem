@@ -125,6 +125,9 @@
 !  08 Feb 2012 - R. Yantosca - Now also reset the counter for I3 timesteps
 !  15 Oct 2012 - R. Yantosca - Bug fix, make sure Counter arrays CTLBRO2H etc. 
 !                              are allocated before we use them
+!  02 Apr 2013 - M. Payer    - Remove code for CTNO, CTNO2, and CTNO3. These
+!                              are no onger needed because NO, NO2, and NO3
+!                              are now tracers.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -320,14 +323,11 @@
          IF ( ND17 >               0 ) CT17       = 0
          IF ( ND18 >               0 ) CT18       = 0
          IF ( ND22 >               0 ) CTJV       = 0
-         IF ( ND43 >               0 ) CTNO       = 0
          IF ( ND43 >               0 ) CTOH       = 0
          IF ( ND45 >               0 ) CTOTH      = 0
          IF ( ND45 >               0 ) CTO3       = 0
          IF ( ND47 > 0 .OR. ND65 > 0 ) CTO3_24h   = 0
-         IF ( ND43 >               0 ) CTNO2      = 0
          IF ( ND43 >               0 ) CTHO2      = 0
-         IF ( ND43 >               0 ) CTNO3      = 0
          ! update for arom (dkh, 06/21/07)  
          IF ( ND43 > 0 ) THEN
             IF ( ALLOCATED( CTLBRO2H ) ) CTLBRO2H   = 0

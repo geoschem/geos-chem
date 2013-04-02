@@ -246,10 +246,6 @@
       USE TRACER_MOD,           ONLY : ITS_A_CH4_SIM
       USE TRACER_MOD,           ONLY : ITS_A_CO2_SIM
       USE TRACER_MOD,           ONLY : XNUMOL
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD,         ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
-!------------------------------------------------------------------------------
       USE TRACERID_MOD,         ONLY : IDTNO,   IDTCO,   IDTSO2, IDTNH3
       USE TRACERID_MOD,         ONLY : IDTACET, IDTALK4, IDTC2H6
       USE TRACERID_MOD,         ONLY : IDTCH2O, IDTMEK,  IDTALD2
@@ -297,11 +293,7 @@
          !-------------------
          ! Other simulations
          !-------------------
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
-!         IF ( N == IDTNOx ) THEN
-!------------------------------------------------------------------------------
+         ! Replaced NOx with NO (mpayer, 3/14/13)
          IF ( N == IDTNO ) THEN
 
             ! NOx [kg/yr]
@@ -468,10 +460,6 @@
 
 #if defined( DEVEL )
       USE TRACER_MOD,         ONLY : N_TRACERS
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD,       ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
-!------------------------------------------------------------------------------
       USE TRACERID_MOD,       ONLY : IDTNO,   IDTCO,   IDTSO2, IDTNH3
       USE TRACERID_MOD,       ONLY : IDTACET, IDTALK4, IDTC2H6
       USE TRACERID_MOD,       ONLY : IDTCH2O, IDTMEK,  IDTALD2
@@ -1077,10 +1065,6 @@
       CALL TOTAL_ANTHRO_Tg( SIM_YEAR, BASE_YEAR )
 
 #if defined( DEVEL )
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      EMISSIONS(:,:,IDTNOX)  = EMISSIONS(:,:,IDTNOX)  + NOX
-!------------------------------------------------------------------------------
       EMISSIONS(:,:,IDTNO)   = EMISSIONS(:,:,IDTNO)   + NOX
       EMISSIONS(:,:,IDTCO)   = EMISSIONS(:,:,IDTCO)   + CO
       EMISSIONS(:,:,IDTSO2)  = EMISSIONS(:,:,IDTSO2)  + SO2
@@ -1355,10 +1339,6 @@
 
 #if defined( DEVEL )
       USE TRACER_MOD,         ONLY : N_TRACERS
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD,       ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
-!------------------------------------------------------------------------------
       USE TRACERID_MOD,       ONLY : IDTNO,   IDTCO,   IDTSO2, IDTNH3
       USE TRACERID_MOD,       ONLY : IDTACET, IDTALK4, IDTC2H6
       USE TRACERID_MOD,       ONLY : IDTCH2O, IDTMEK,  IDTALD2
@@ -1995,10 +1975,6 @@
       CALL TOTAL_ANTHRO_Tg( SIM_YEAR, BASE_YEAR )
 
 #if defined( DEVEL )
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      EMISSIONS(:,:,IDTNOX)  = EMISSIONS(:,:,IDTNOX)  + NOX
-!------------------------------------------------------------------------------
       EMISSIONS(:,:,IDTNO)   = EMISSIONS(:,:,IDTNO)   + NOX
       EMISSIONS(:,:,IDTCO)   = EMISSIONS(:,:,IDTCO)   + CO
       EMISSIONS(:,:,IDTSO2)  = EMISSIONS(:,:,IDTSO2)  + SO2
@@ -2160,11 +2136,6 @@
 #endif
          
          ! Total NOx [Tg N]
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! Molecular weight of NO is 30 g/mol (mpayer 3/14/13)
-!         T_NOX = SUM( NOx ) * 1d-9 * ( 14d0 / ( 12d0 * 46d0 ) )
-!------------------------------------------------------------------------------
          T_NOX = SUM( NOx ) * 1d-9 * ( 14d0 / ( 12d0 * 30d0 ) )
  
          ! Total CO  [Tg CO]
@@ -2195,10 +2166,6 @@
 
             
          ! Print totals in [kg/month]
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!         WRITE( 6, 110 ) 'NOx  ', YEAR, MONTH, T_NOx,  '[Tg N   ]'
-!------------------------------------------------------------------------------
          WRITE( 6, 110 ) 'NO   ', YEAR, MONTH, T_NOx,  '[Tg N   ]'
          WRITE( 6, 110 ) 'CO   ', YEAR, MONTH, T_CO,   '[Tg CO  ]'
          WRITE( 6, 110 ) 'SO2  ', YEAR, MONTH, T_SO2,  '[Tg S   ]'

@@ -121,12 +121,6 @@
       USE TRACER_MOD,         ONLY : XNUMOL
       USE TIME_MOD,           ONLY : GET_TS_EMIS
       USE GRID_MOD,           ONLY : GET_AREA_CM2
-!-----------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD,       ONLY : IDTNOX,  IDO3,   IDNO,  IDNO2
-!      USE TRACERID_MOD,       ONLY : IDHNO3,  IDOX,   IDTOX
-!      USE TRACERID_MOD,       ONLY : CTRMB,   IDENOX, IDEOX, IDEHNO3
-!-----------------------------------------------------------------------
       USE TRACERID_MOD,       ONLY : IDTNO,  IDTO3,  IDTHNO3
       USE TRACERID_MOD,       ONLY : IDNO,   IDO3,   IDHNO3,  IDNO2
       USE TRACERID_MOD,       ONLY : IDENO,  IDEO3,  IDEHNO3
@@ -1494,10 +1488,7 @@ c new OH+CO rate from JPL2006.
                ! Surface area of grid box
                AREA_CM2 = GET_AREA_CM2( IX, IY, IZ )
    
-!-----------------------------------------------------------------------
-! Prior to 3/14/13:
-!               NN = IDTNOX
-!-----------------------------------------------------------------------
+               ! Replaced NOx with NO (mpayer, 3/14/13)
                NN = IDTNO
 
                ! Reset
@@ -1633,11 +1624,7 @@ c new OH+CO rate from JPL2006.
                     
                      ! Convert anthro NOx emissions from [molec NO/box/s]
                      ! to [molec NO/cm3/s] and add to the REMIS array
-!-----------------------------------------------------------------------
-! Prior to 3/14/13:
-! Replace NOX emissions with NO emissions (mpayer, 3/14/13)
-!                     REMIS(JLOOP,IDENOX) = REMIS(JLOOP,IDENOX) + 
-!-----------------------------------------------------------------------
+                     ! Replaced NOX emissions with NO emissions (mpayer,3/14/13)
                      REMIS(JLOOP,IDENO) = REMIS(JLOOP,IDENO) + 
      &                                     EMIS_BL / VOLUME(JLOOP)
                   ENDIF
@@ -1693,10 +1680,7 @@ c new OH+CO rate from JPL2006.
                ! Distribute emissions thru the entire boundary layer
                !========================================================
 
-!-----------------------------------------------------------------------
-! Prior to 3/14/13:
-!               NN = IDTOX
-!-----------------------------------------------------------------------
+               ! Replaced Ox with O3 (mpayer, 3/14/13)
                NN = IDTO3
 
                ! COEF1 = molecules of emission species / molecules of tracer
@@ -1731,18 +1715,7 @@ c new OH+CO rate from JPL2006.
                     
                      ! Convert ship O3 emissions from [molec NO/box/s]
                      ! to [molec NO/cm3/s] and store in the REMIS array
-!-----------------------------------------------------------------------
-! Prior to 3/14/13:
-! Replace Ox emissions with O3 emissions (mpayer, 3/14/13)
-!                     REMIS(JLOOP,IDEOX) = REMIS(JLOOP,IDEOX) + 
-!     &                                    EMIS_BL / VOLUME(JLOOP)
-!
-!                     !%%% DO NOT LET NEGATIVE SHIP EMISSIONS GET  
-!                     !%%% ARCHIVED INTO REMIS (bmy, mpayer, 6/20/12)
-!                     IF ( REMIS(JLOOP,IDEOX) < 0d0 ) THEN
-!                        REMIS(JLOOP,IDEOX) = 0d0
-!                     ENDIF
-!-----------------------------------------------------------------------
+                     ! Replaced Ox emissions with O3 emissions (mpayer, 3/14/13)
                      REMIS(JLOOP,IDEO3) = REMIS(JLOOP,IDEO3) + 
      &                                     EMIS_BL / VOLUME(JLOOP)
 
@@ -1765,17 +1738,6 @@ c new OH+CO rate from JPL2006.
      &                                  (1D0 - fraction_nox) *
      &                                  XNUMOL(IDTHNO3) / AREA_CM2
 
-!-----------------------------------------------------------------------
-! Prior to 3/14/13:
-! Replace NOx and Ox with NO and O3 (mpayer, 3/14/13)
-!                  AD36(IX,IY,IDEOX)  = AD36(IX,IY,IDEOX) + SHIP * 
-!     &                                 int_ope * (1D0 - fraction_nox)* 
-!     &                                 XNUMOL(IDTOX) / AREA_CM2
-!    
-!                  AD36(IX,IY,IDENOX) = AD36(IX,IY,IDENOX) + SHIP * 
-!     &                                 fraction_nox * 
-!     &                                 XNUMOL(IDTNOX) / AREA_CM2
-!-----------------------------------------------------------------------
                   AD36(IX,IY,IDEO3)  = AD36(IX,IY,IDEO3) + SHIP * 
      &                                 int_ope * (1D0 - fraction_nox)* 
      &                                 XNUMOL(IDTO3) / AREA_CM2

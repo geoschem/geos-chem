@@ -19,10 +19,6 @@
       USE COMODE_MOD,   ONLY : CSPEC,     JLOP,       VOLUME
       USE COMODE_MOD,   ONLY : JLOP_PREVIOUS
       USE ERROR_MOD,    ONLY : ALLOC_ERR, ERROR_STOP, SAFE_DIV
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD, ONLY : IDTOX,     IDTNOX,     IDTRMB
-!------------------------------------------------------------------------------
       USE TRACERID_MOD, ONLY : IDTRMB
       USE TRACERID_MOD, ONLY : IDO3,      IDNO,       IDHNO2
       USE TRACERID_MOD, ONLY : CTRMB,     NMEMBER
@@ -76,9 +72,9 @@
 !  27 Jun 2011 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
-!  14 Mar 2013 - M. Payer    - Remove partitioning of NOx and Ox. Tracers NOx
-!                              and Ox have now been replaced with tracers NO,
-!                              NO2, NO3, HNO3, and O3.
+!  14 Mar 2013 - M. Payer    - Remove partitioning of NOx and Ox. Family tracers
+!                              NOx and Ox have now been replaced with tracers
+!                              NO, NO2, NO3, HNO3, and O3.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -112,11 +108,6 @@
          ! Skip if this is not a valid tracer
          IF ( IDTRMB(N,1) == 0 ) CYCLE
 
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!         ! Handle all other tracers except Ox 
-!         IF ( N /= IDTOX ) THEN
-!------------------------------------------------------------------------------
             DO KK = 1, NMEMBER(N)
                IDNUM             = IDNUM + 1
                JJ                = IDTRMB(N,KK)
@@ -124,16 +115,6 @@
                CSAVEID_JJ(IDNUM) = JJ
             ENDDO
 
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!         ! Handle Ox
-!         ELSE IF ( IDTOX /= 0 ) THEN
-!            JJ                = IDTRMB(N,1)
-!            IDNUM             = IDNUM + 1
-!            CSAVEID(JJ)       = IDNUM
-!            CSAVEID_JJ(IDNUM) = JJ
-!         ENDIF
-!------------------------------------------------------------------------------
       ENDDO
 
       ! Loop over tracer members and boxes
@@ -241,90 +222,55 @@
             ! First, find sum of starting concentrations
             !===========================================================
 
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!            !------------------------
-!            ! All tracers except Ox
-!            !------------------------
-!            IF ( N /= IDTOX ) THEN
-!------------------------------------------------------------------------------
-               SUM = 0.d0
+            SUM = 0.d0
 
-               DO KK = 1, NMEMBER(N)
-                  JJ = IDTRMB(N, KK)
+            DO KK = 1, NMEMBER(N)
+               JJ = IDTRMB(N, KK)
 
-                  ! Error check
-                  IF ( JJ == 0 ) THEN
+               ! Error check
+               IF ( JJ == 0 ) THEN
 !$OMP CRITICAL
-                     IF ( am_I_Root ) THEN
-                        PRINT *,JJ,JLOOP,N,KK,IDTRMB(N, KK)
-                     ENDIF
-!$OMP END CRITICAL
+                  IF ( am_I_Root ) THEN
+                     PRINT *,JJ,JLOOP,N,KK,IDTRMB(N, KK)
                   ENDIF
+!$OMP END CRITICAL
+               ENDIF
 
-                  SUM = SUM + CSAVE(JLOOP,CSAVEID(JJ)) * (CTRMB(N,KK)+1)
-               ENDDO
-
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!            !------------------------
-!            ! Ox
-!            !------------------------
-!            ELSE IF ( IDTOX /= 0 ) THEN
-!               JJ   = IDTRMB(N,1)
-!               SUM  = CSAVE(JLOOP,CSAVEID(JJ)) * (CTRMB(N,1)+1)
-!               SUM1 = 0.d0
-!
-!
-!               ! SUM  = sum of starting values for all Ox species (incl. O3)
-!               ! SUM1 = sum of new values for all Ox species except O3,
-!               ! based on NOx partitioning
-!               DO KK = 2, NMEMBER(N)
-!                  JJ   = IDTRMB(N,KK)
-!                  SUM  = SUM + CSAVE(JLOOP,CSAVEID(JJ))*(CTRMB(N,KK)+1)
-!                  SUM1 = SUM1+ CSPEC(JLOOP,JJ) * (CTRMB(N,KK)+1)
-!               ENDDO
-!
-!            ENDIF
-!------------------------------------------------------------------------------
+               SUM = SUM + CSAVE(JLOOP,CSAVEID(JJ)) * (CTRMB(N,KK)+1)
+            ENDDO
 
             !===========================================================
             ! Now perform the partitioning
             !===========================================================
 
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!            !----------------------------------------
-!            ! All tracers except Ox
-!            !----------------------------------------
-!            IF ( N /= IDTOX ) THEN
-!------------------------------------------------------------------------------
-               ! Loop over # of member species in this tracer
-               DO KK = 1, NMEMBER(N)
+            ! Loop over # of member species in this tracer
+            DO KK = 1, NMEMBER(N)
 
-                  ! Index of member species for CSPEC
-                  JJ = IDTRMB(N, KK)
+               ! Index of member species for CSPEC
+               JJ = IDTRMB(N, KK)
 
-                  ! QTEMP is the fraction of the given member species KK
-                  ! in the tracer N.  The value QTEMP*CONCTMP is the 
-                  ! concentration of the member species itself, and that
-                  ! needs to be saved into CSPEC.
-                  !
-                  ! In the partitioning, now be sure to perform a safe
-                  ! floating point division of CSAVE/SUM.  Return the value
-                  ! 1/NMEMBER(N) if the division can't be done, i.e. do a
-                  ! uniform paritioning among all member species of the
-                  ! given tracer. (phs, bmy, 2/26/08)
-                  QTEMP = SAFE_DIV( CSAVE(JLOOP,CSAVEID(JJ)),
-     &                              SUM, 1d0/NMEMBER(N) )
+               ! QTEMP is the fraction of the given member species KK
+               ! in the tracer N.  The value QTEMP*CONCTMP is the 
+               ! concentration of the member species itself, and that
+               ! needs to be saved into CSPEC.
+               !
+               ! In the partitioning, now be sure to perform a safe
+               ! floating point division of CSAVE/SUM.  Return the value
+               ! 1/NMEMBER(N) if the division can't be done, i.e. do a
+               ! uniform paritioning among all member species of the
+               ! given tracer. (phs, bmy, 2/26/08)
+               QTEMP = SAFE_DIV( CSAVE(JLOOP,CSAVEID(JJ)),
+     &                           SUM, 1d0/NMEMBER(N) )
                      
-                  ! Store the concentration of member species KK
-                  ! into the CSPEC array.  Do not allow underflow!
-                  CSPEC(JLOOP,JJ) = MAX( QTEMP*CONCTMP, SMAL2 )
-               ENDDO
+               ! Store the concentration of member species KK
+               ! into the CSPEC array.  Do not allow underflow!
+               CSPEC(JLOOP,JJ) = MAX( QTEMP*CONCTMP, SMAL2 )
+            ENDDO
 
-!------------------------------------------------------------------------------
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ! Prior to 3/14/13:
+! Remove partitioning of NOx and Ox. The family tracers have now been replaced
+! with their individual constituents (mpayer, 3/14/13)
 !            !----------------------------------------
 !            ! For Ox, take O3 = Ox - SUM(NO2+NO3*2)
 !            !----------------------------------------
@@ -437,7 +383,7 @@
 !               !========================================================
 ! 220           CONTINUE
 !            ENDIF
-!------------------------------------------------------------------------------
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          ENDDO
          ENDDO
          ENDDO

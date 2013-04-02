@@ -163,10 +163,6 @@
 !
 ! !USES:
 ! 
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD, ONLY : IDTNOX,  IDTCO,   IDTALK4, IDTMEK
-!------------------------------------------------------------------------------
       USE TRACERID_MOD, ONLY : IDTNO,   IDTCO,   IDTALK4, IDTMEK
       USE TRACERID_MOD, ONLY : IDTALD2, IDTPRPE, IDTC2H6, IDTSO2
       USE TRACERID_MOD, ONLY : IDTNH3
@@ -218,10 +214,6 @@
       IF ( PRESENT( SHIP ) ) IS_SHIP = SHIP
 
       ! check SHIP availability
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      HAS_SHIP = (/ IDTNOX, IDTCO, IDTSO2 /)
-!------------------------------------------------------------------------------
       HAS_SHIP = (/ IDTNO, IDTCO, IDTSO2 /)
 
       IF ( IS_SHIP .AND. .NOT. ANY( HAS_SHIP == N) ) THEN
@@ -232,11 +224,7 @@
       ENDIF
 
       ! NOx
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
-!      IF ( N  == IDTNOX ) THEN
-!------------------------------------------------------------------------------
+      ! Replaced NOx with NO (mpayer, 3/14/13)
       IF ( N  == IDTNO ) THEN
          IF ( IS_SHIP ) THEN
             EMEP = EMEP_NOx_SHIP(I,J)
@@ -344,10 +332,6 @@
       USE CMN_O3_MOD             ! SCALEYEAR
 
 #if defined( DEVEL )
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD, ONLY : IDTNOX,  IDTCO,   IDTALK4, IDTMEK
-!------------------------------------------------------------------------------
       USE TRACERID_MOD, ONLY : IDTNO,   IDTCO,   IDTALK4, IDTMEK
       USE TRACERID_MOD, ONLY : IDTALD2, IDTPRPE, IDTC2H6, IDTSO2
       USE TRACERID_MOD, ONLY : IDTNH3
@@ -604,17 +588,6 @@
       ENDDO
       ENDDO
 
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
-!      IF ( LEMEPSHIP ) THEN
-!         EMISS(:,:,IDTNOx) = EMEP_NOx_SHIP(:,:)
-!     &        * A / XNUMOL(IDTNOx)
-!      ELSE 
-!         EMISS(:,:,IDTNOx) = EMEP_NOx(:,:)
-!     &        * A / XNUMOL(IDTNOx)
-!      ENDIF
-!------------------------------------------------------------------------------
       IF ( LEMEPSHIP ) THEN
          EMISS(:,:,IDTNO) = EMEP_NOx_SHIP(:,:)
      &        * A / XNUMOL(IDTNO)
@@ -705,10 +678,6 @@
       USE CMN_O3_MOD         ! SCALEYEAR
 
 #if defined( DEVEL )
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD, ONLY : IDTNOX,  IDTCO,   IDTALK4, IDTMEK
-!------------------------------------------------------------------------------
       USE TRACERID_MOD, ONLY : IDTNO,   IDTCO,   IDTALK4, IDTMEK
       USE TRACERID_MOD, ONLY : IDTALD2, IDTPRPE, IDTC2H6, IDTSO2
       USE TRACERID_MOD, ONLY : IDTNH3
@@ -880,17 +849,6 @@
       ENDDO
       ENDDO
 
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
-!      IF ( LEMEPSHIP ) THEN
-!         EMISS(:,:,IDTNOx) = EMEP_NOx_SHIP(:,:)
-!     &        * A / XNUMOL(IDTNOx)
-!      ELSE 
-!         EMISS(:,:,IDTNOx) = EMEP_NOx(:,:)
-!     &        * A / XNUMOL(IDTNOx)
-!      ENDIF
-!------------------------------------------------------------------------------
       IF ( LEMEPSHIP ) THEN
          EMISS(:,:,IDTNO) = EMEP_NOx_SHIP(:,:)
      &        * A / XNUMOL(IDTNO)
@@ -1050,10 +1008,6 @@
       USE LOGICAL_MOD,  ONLY : LEMEPSHIP
       USE TIME_MOD,     ONLY : ITS_A_LEAPYEAR
       USE TRACER_MOD,   ONLY : XNUMOL
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD, ONLY : IDTNOX,  IDTCO,   IDTALK4, IDTMEK
-!------------------------------------------------------------------------------
       USE TRACERID_MOD, ONLY : IDTNO,   IDTCO,   IDTALK4, IDTMEK
       USE TRACERID_MOD, ONLY : IDTALD2, IDTPRPE, IDTC2H6, IDTSO2
       USE TRACERID_MOD, ONLY : IDTNH3
@@ -1128,10 +1082,6 @@
       ! Define conversion factors for kg/molec
       ! (Undefined tracers will be zero)
       B(:) = 0d0
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      IF ( IDTNOx  > 0 ) B(1) = 14d-3 / 6.0225d23        ! Tg N
-!------------------------------------------------------------------------------
       IF ( IDTNO   > 0 ) B(1) = 14d-3 / 6.0225d23        ! Tg N
       IF ( IDTCO   > 0 ) B(2) = 1d0   / XNUMOL(IDTCO  )
       IF ( IDTALK4 > 0 ) B(3) = 1d0   / XNUMOL(IDTALK4)
@@ -1183,10 +1133,6 @@
       !----------------
 
       ! Print totals in [kg/month]
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      WRITE( 6, 110   ) 'NOx ', EMISS_YEAR, EMEP_MONTH, NOx,  ' N'
-!------------------------------------------------------------------------------
       WRITE( 6, 110   ) 'NO  ', EMISS_YEAR, EMEP_MONTH, NOx,  ' N'
       WRITE( 6, 110   ) 'CO  ', EMISS_YEAR, EMEP_MONTH, CO,   '  '
       WRITE( 6, 110   ) 'SO2 ', EMISS_YEAR, EMEP_MONTH, SO2,  ' S'
@@ -1532,11 +1478,6 @@
       ! convert to molec/cm2 for consistency with previous
       ! emissions
       B = 0d0
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! Molecular weight of NO is 30 g/mol (mpayer 3/14/13)
-!      IF ( TRACER .eq.  1 ) B = 1.d3 / 46d0 * 6.0225d23
-!------------------------------------------------------------------------------
       IF ( TRACER .eq.  1 ) B = 1.d3 / 30d0 * 6.0225d23
       IF ( TRACER .eq.  4 ) B = 1.d3 / 28d0 * 6.0225d23
       IF ( TRACER .eq. 26 ) B = 1.d3 / 64d0 * 6.0225d23
@@ -1741,11 +1682,6 @@
       ! convert to molec/cm2 for consistency with previous
       ! emissions
       B = 0d0
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! Molecular weight of NO is 30 g/mol (mpayer 3/14/13)
-!      IF ( TRACER .eq.  1 ) B = 1.d3 / 46d0 * 6.0225d23
-!------------------------------------------------------------------------------
       IF ( TRACER .eq.  1 ) B = 1.d3 / 30d0 * 6.0225d23
       IF ( TRACER .eq.  4 ) B = 1.d3 / 28d0 * 6.0225d23
       IF ( TRACER .eq. 26 ) B = 1.d3 / 64d0 * 6.0225d23

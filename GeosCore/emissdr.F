@@ -137,10 +137,6 @@
       USE TRACERID_MOD,       ONLY : IDTMONX, IDTC2H4
       USE TRACERID_MOD,       ONLY : IDECHBr3, IDECH2Br2
 #if defined( DEVEL )
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD,       ONLY : IDTNOX
-!------------------------------------------------------------------------------
       USE TRACERID_MOD,       ONLY : IDTNO
       USE TRACER_MOD,         ONLY : N_TRACERS
 #endif
@@ -418,10 +414,6 @@
 !
 #if defined( DEVEL )
             IF ( LLIGHTNOX .AND. I == 1 .AND. J == 1 ) 
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!     &           CALL EMLIGHTNING( State_Met, EMISS_TEND(:,:,:,IDTNOX) )
-!------------------------------------------------------------------------------
      &           CALL EMLIGHTNING( State_Met, EMISS_TEND(:,:,:,IDTNO) )
 #else
             IF ( LLIGHTNOX ) CALL EMLIGHTNING( I, J, State_Met )
@@ -431,10 +423,6 @@
 !
 #if defined( DEVEL )
             IF ( LAIRNOX .AND. I == 1 .AND. J == 1 ) 
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!     &           CALL AIREMISS( State_Met, EMISS_TEND(:,:,:,IDTNOX) )
-!------------------------------------------------------------------------------
      &           CALL AIREMISS( State_Met, EMISS_TEND(:,:,:,IDTNO) )
 #else
             IF ( LAIRNOX .AND. I == 1 .AND. J == 1 ) 

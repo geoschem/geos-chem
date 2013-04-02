@@ -78,10 +78,6 @@
 !
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TRACER_MOD,   ONLY : XNUMOL
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD, ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
-!------------------------------------------------------------------------------
       USE TRACERID_MOD, ONLY : IDTNO, IDTCO, IDTSO2, IDTNH3
       USE TIME_MOD,     ONLY : GET_YEAR, GET_MONTH
 !
@@ -128,11 +124,7 @@
       IF ( PRESENT( KG_S        ) ) DO_KGS = KG_S
       IF ( PRESENT( MOLEC_CM2_S ) ) DO_MCS = MOLEC_CM2_S
 
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
-!      IF ( N == IDTNOx ) THEN
-!------------------------------------------------------------------------------
+      ! Replaced NOx with NO (mpayer, 3/14/13)
       IF ( N == IDTNO ) THEN
 
          ! NOx [kg/month]
@@ -234,10 +226,6 @@
 
 #if defined( DEVEL )
       USE TRACER_MOD,   ONLY : XNUMOL, N_TRACERS
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD, ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
-!------------------------------------------------------------------------------
       USE TRACERID_MOD, ONLY : IDTNO, IDTCO, IDTSO2, IDTNH3
 #endif
 !
@@ -405,10 +393,6 @@
       ENDIF
 
       ! Convert from Kg/Month -> Kg/S
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      EMISS(:,:,IDTNOx) = NOx / SEC_IN_MONTH
-!------------------------------------------------------------------------------
       EMISS(:,:,IDTNO)  = NOx / SEC_IN_MONTH
       EMISS(:,:,IDTCO)  = CO  / SEC_IN_MONTH
       EMISS(:,:,IDTSO2) = SO2 / SEC_IN_MONTH
@@ -528,11 +512,6 @@
 
 
       ! Total NOx [Tg N]
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! Molecular weight of NO is 30 g/mol (mpayer 3/14/13)
-!      T_NOX = SUM( NOx ) * 1d-9 * ( 14d0 / 46d0 )
-!------------------------------------------------------------------------------
       T_NOX = SUM( NOx ) * 1d-9 * ( 14d0 / 30d0 )
 
       ! Total CO  [Tg CO]
@@ -542,10 +521,6 @@
       T_SO2 = SUM( SO2 ) * 1d-9 * ( 32d0 / 64d0 )
 
       ! Print totals in [kg]
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      WRITE( 6, 110 ) 'NOx ', MONTH, T_NOx,  '[Tg N  ]'
-!------------------------------------------------------------------------------
       WRITE( 6, 110 ) 'NO  ', MONTH, T_NOx,  '[Tg N  ]'
       WRITE( 6, 110 ) 'CO  ', MONTH, T_CO,   '[Tg CO ]'
       WRITE( 6, 110 ) 'SO2 ', MONTH, T_SO2,  '[Tg S  ]'

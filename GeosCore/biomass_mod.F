@@ -106,29 +106,11 @@
       ! Make everything PRIVATE ...
       PRIVATE
 
-      ! ... except these variables
-      ! FP: NBIOMAX now specified in CMN_SIZE_mod and is the max
-      ! number of BB species allowed, used for array allocation (hotp 7/30/09)
-      ! if additional BB species are added, increase NBIOMAX in CMN_SIZE_mod
-      !PUBLIC :: NBIOMAX
-      !PUBLIC :: NBIOMAX_GAS ! no longer needed (hotp 8/3/09)
-      !FP_ISOP
       ! NBIOTRCE is the number of BB species in a simulation
       ! and is determined online FP (hotp 7/30/09)
       PUBLIC :: NBIOTRCE
       PUBLIC :: BIOMASS
       PUBLIC :: BIOTRCE
-      ! IDBxxx are now determined online and stored in
-      ! BIOTRCE array by FP (hotp 7/30/09)
-      ! IDBxxx are part of tracerid_mod by FP (hotp 7/31/09)
-      !PUBLIC :: IDBBC
-      !PUBLIC :: IDBCO
-      !PUBLIC :: IDBCO2
-      !PUBLIC :: IDBC2H6
-      !PUBLIC :: IDBNH3
-      !PUBLIC :: IDBNOX
-      !PUBLIC :: IDBOC
-      !PUBLIC :: IDBSO2
 
       ! Logical array to determine if species is treated in setemis 
       ! (hotp 8/3/09)
@@ -144,18 +126,6 @@
       !=================================================================
       ! MODULE VARIABLES
       !=================================================================
-
-      ! FP Removed hard-wired IDBxxx and move NBIOMAX to CMN_SIZE_mod (hotp 7/30/09)      ! Parameters
-!      INTEGER, PARAMETER   :: NBIOMAX     = 24
-!      INTEGER, PARAMETER   :: NBIOMAX_GAS = 19
-!      INTEGER, PARAMETER   :: IDBNOX      = 1
-!      INTEGER, PARAMETER   :: IDBCO       = 2
-!      INTEGER, PARAMETER   :: IDBC2H6     = 10
-!      INTEGER, PARAMETER   :: IDBSO2      = 11
-!      INTEGER, PARAMETER   :: IDBNH3      = 12
-!      INTEGER, PARAMETER   :: IDBBC       = 13
-!      INTEGER, PARAMETER   :: IDBOC       = 14
-!      INTEGER, PARAMETER   :: IDBCO2      = 24
       
       !FP_ISOP
       ! FP: NBIOTRCE is number of biomass burning tracers (hotp 7/30/09)
@@ -235,12 +205,7 @@
       !FP_ISOP
       ! FP: IDBxxxs will need to used here (hotp 7/30/09)
       USE TRACERID_MOD,      ONLY : IDBBC, IDBNH3, IDBOC, IDBSO2
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD,      ONLY : IDBCO, IDBNOx
-!------------------------------------------------------------------------------
-      USE TRACERID_MOD,      ONLY : IDBNO
-      USE TRACERID_MOD,      ONLY : IDBCO
+      USE TRACERID_MOD,      ONLY : IDBCO, IDBNO
       USE TRACERID_MOD,      ONLY : IDBCO2
 
 
@@ -452,12 +417,6 @@
             ENDIF
             
             ! ND32: NOx biomass emissions in [molec/cm2/s]
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
-!            IF ( DO_ND32 .and. N == IDBNOx ) THEN
-!               AD32_bb(I,J) = AD32_bb(I,J) + BIOMASS(I,J,IDBNOx)
-!------------------------------------------------------------------------------
             IF ( DO_ND32 .and. N == IDBNO ) THEN
                AD32_bb(I,J) = AD32_bb(I,J) + BIOMASS(I,J,IDBNO)
             ENDIF
@@ -495,10 +454,6 @@
       USE ERROR_MOD, ONLY    : ERROR_STOP
 
       ! need both IDBxxss and IDTxxxs
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD, ONLY : IDBNOX,  IDBCO,   IDBALK4, IDBACET 
-!------------------------------------------------------------------------------
       USE TRACERID_MOD, ONLY : IDBNO,   IDBCO,   IDBALK4, IDBACET 
       USE TRACERID_MOD, ONLY : IDBMEK,  IDBALD2, IDBPRPE, IDBC3H8
       USE TRACERID_MOD, ONLY : IDBCH2O, IDBC2H6
@@ -511,10 +466,6 @@
       USE TRACERID_MOD, ONLY : IDBGLYX, IDBMGLY, IDBC2H4
       USE TRACERID_MOD, ONLY : IDBC2H2, IDBGLYC, IDBHAC
 
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD, ONLY : IDTNOX,  IDTCO,   IDTALK4, IDTACET 
-!------------------------------------------------------------------------------
       USE TRACERID_MOD, ONLY : IDTNO,   IDTCO,   IDTALK4, IDTACET 
       USE TRACERID_MOD, ONLY : IDTMEK,  IDTALD2, IDTPRPE, IDTC3H8
       USE TRACERID_MOD, ONLY : IDTCH2O, IDTC2H6
@@ -536,10 +487,7 @@
       NBIOTRCE = 0
       
       ! Increment NBIOTRCE for each turned on biomass burning tracer
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      IF ( IDBNOX   /= 0 ) NBIOTRCE = NBIOTRCE + 1
-!------------------------------------------------------------------------------
+      ! Replaced NOx with NO (mpayer, 3/14/13)
       IF ( IDBNO    /= 0 ) NBIOTRCE = NBIOTRCE + 1
       IF ( IDBCO    /= 0 ) NBIOTRCE = NBIOTRCE + 1 
       IF ( IDBALK4  /= 0 ) NBIOTRCE = NBIOTRCE + 1 
@@ -569,10 +517,7 @@
       IF ( IDBHAC   /= 0 ) NBIOTRCE = NBIOTRCE + 1 
 
       ! Fill BIOTRCE w/ appropriate TRACER ID #'s
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      IF ( IDBNOX   /= 0 ) BIOTRCE(IDBNOX ) = IDTNOX
-!------------------------------------------------------------------------------
+      ! Replaced NOx with NO (mpayer, 3/14/13)
       IF ( IDBNO    /= 0 ) BIOTRCE(IDBNO  ) = IDTNO
       IF ( IDBCO    /= 0 ) BIOTRCE(IDBCO  ) = IDTCO
       IF ( IDBALK4  /= 0 ) BIOTRCE(IDBALK4) = IDTALK4
@@ -613,10 +558,7 @@
       ! Initialize to false
       BIOBGAS = .FALSE.
       ! Original gas phase emissions handled in setemis
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      IF ( IDBNOX   /= 0 ) BIOBGAS(IDBNOX ) = .TRUE.
-!------------------------------------------------------------------------------
+      ! Replaced NOx with NO (mpayer, 3/14/13)
       IF ( IDBNO    /= 0 ) BIOBGAS(IDBNO  ) = .TRUE.
       IF ( IDBCO    /= 0 ) BIOBGAS(IDBCO  ) = .TRUE.
       IF ( IDBALK4  /= 0 ) BIOBGAS(IDBALK4) = .TRUE.

@@ -126,10 +126,6 @@
 !
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TRACER_MOD,   ONLY : XNUMOL
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD, ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
-!------------------------------------------------------------------------------
       USE TRACERID_MOD, ONLY : IDTNO, IDTCO, IDTSO2, IDTNH3
 !
 ! !INPUT PARAMETERS: 
@@ -172,10 +168,7 @@
       IF ( PRESENT( KG_S        ) ) DO_KGS = KG_S
       IF ( PRESENT( MOLEC_CM2_S ) ) DO_MCS = MOLEC_CM2_S
 
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      IF ( N == IDTNOx ) THEN
-!------------------------------------------------------------------------------
+      ! Replaced NOx with NO (mpayer, 3/14/13)
       IF ( N == IDTNO ) THEN
 
          ! NOx [kg/yr]
@@ -255,10 +248,6 @@
       USE CMN_O3_MOD              ! FSCALYR
 
 #if defined( DEVEL )
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD, ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
-!------------------------------------------------------------------------------
       USE TRACERID_MOD, ONLY : IDTNO, IDTCO, IDTSO2, IDTNH3
       USE TRACER_MOD, ONLY   : N_TRACERS 
 #endif
@@ -511,10 +500,6 @@
 #if defined( DEVEL )
       EMISSIONS(:,:,IDTNH3) = EMISSIONS(:,:,IDTNH3)+NH3
       EMISSIONS(:,:,IDTSO2) = EMISSIONS(:,:,IDTSO2)+SO2
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      EMISSIONS(:,:,IDTNOx) = EMISSIONS(:,:,IDTNOx)+NOx
-!------------------------------------------------------------------------------
       EMISSIONS(:,:,IDTNO) = EMISSIONS(:,:,IDTNO)+NOx
       EMISSIONS(:,:,IDTCO)  = EMISSIONS(:,:,IDTCO) +CO
 #endif
@@ -552,10 +537,6 @@
       USE CMN_SIZE_MOD          ! Size parameters
       USE CMN_O3_MOD            ! FSCALYR
 #if defined( DEVEL )
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD, ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
-!------------------------------------------------------------------------------
       USE TRACERID_MOD, ONLY : IDTNO, IDTCO, IDTSO2, IDTNH3
       USE TRACER_MOD,   ONLY : N_TRACERS 
 #endif
@@ -773,10 +754,6 @@
 #if defined( DEVEL )
       EMISSIONS(:,:,IDTNH3) = EMISSIONS(:,:,IDTNH3)+NH3
       EMISSIONS(:,:,IDTSO2) = EMISSIONS(:,:,IDTSO2)+SO2
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      EMISSIONS(:,:,IDTNOx) = EMISSIONS(:,:,IDTNOx)+NOx
-!------------------------------------------------------------------------------
       EMISSIONS(:,:,IDTNO)  = EMISSIONS(:,:,IDTNO) +NOx
       EMISSIONS(:,:,IDTCO)  = EMISSIONS(:,:,IDTCO) +CO
 #endif
@@ -894,11 +871,6 @@
 
 
       ! Total NOx [Tg N]
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! Molecular weight of NO is 30 g/mol (mpayer 3/14/13)
-!      T_NOX = SUM( NOx ) * 1d-9 * ( 14d0 / 46d0 )
-!------------------------------------------------------------------------------
       T_NOX = SUM( NOx ) * 1d-9 * ( 14d0 / 30d0 )
 
       ! Total CO  [Tg CO]
@@ -911,10 +883,6 @@
       T_NH3 = SUM( NH3 ) * 1d-9
 
       ! Print totals in [kg]
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      WRITE( 6, 110 ) 'NOx ', YEAR, T_NOx,  '[Tg N  ]'
-!------------------------------------------------------------------------------
       WRITE( 6, 110 ) 'NO  ', YEAR, T_NOx,  '[Tg N  ]'
       WRITE( 6, 110 ) 'CO  ', YEAR, T_CO,   '[Tg CO ]'
       WRITE( 6, 110 ) 'SO2 ', YEAR, T_SO2,  '[Tg S  ]'

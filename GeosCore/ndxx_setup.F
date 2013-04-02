@@ -46,10 +46,9 @@
       USE DIAG_MOD,        ONLY : AD32_so,     AD32_ub,     AD33
       USE DIAG_MOD,        ONLY : AD34,        AD35,        AD36
       USE DIAG_MOD,        ONLY : AD37,        AD38,        AD39
-      USE DIAG_MOD,        ONLY : AD43,        LTNO
-      USE DIAG_MOD,        ONLY : CTNO,        LTOH,        CTOH
-      USE DIAG_MOD,        ONLY : LTHO2,       CTHO2,       LTNO2
-      USE DIAG_MOD,        ONLY : CTNO2,       LTNO3,       CTNO3
+      USE DIAG_MOD,        ONLY : AD43
+      USE DIAG_MOD,        ONLY : LTOH,        CTOH
+      USE DIAG_MOD,        ONLY : LTHO2,       CTHO2
       USE DIAG_MOD,        ONLY : CTLBRO2H,    CTLBRO2N
       USE DIAG_MOD,        ONLY : CTLTRO2H,    CTLTRO2N
       USE DIAG_MOD,        ONLY : CTLXRO2H,    CTLXRO2N
@@ -233,6 +232,9 @@
 !  26 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
 !  09 Nov 2012 - R. Yantosca - Added GIGC-specific modifications
+!  02 Apr 2013 - M. Payer    - Remove allocation of *NO, *NO2, and *NO3 arrays
+!                              for ND43. These are no longer needed because NO,
+!                              NO2, and NO3 are now tracers.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -876,7 +878,7 @@
       !=================================================================
       ! ND42: SOA concentration
       !
-      ! ND43: Chemical diagnostics: OH [molec/cm3/s] and NO [v/v]
+      ! ND43: Chemical diagnostics: OH [molec/cm3/s] and HO2 [v/v]
       !       --> uses AD43 array (allocatable)
       !=================================================================
       IF ( ND43 > 0 ) THEN
@@ -893,14 +895,6 @@
          ALLOCATE( AD43( IIPAR, JJPAR, LD43, PD43 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD43' )
 
-         ! Locations where LT is between HR1_NO and HR2_NO
-         ALLOCATE( LTNO( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'LTNO' )
-         
-         ! Number of times LT was between HR1_NO and HR2_NO
-         ALLOCATE( CTNO( IIPAR, JJPAR, LD43 ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'CTNO' )
-
          ! Locations where LT is between HR1_OH and HR2_OH
          ALLOCATE( LTOH( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'LTOH' )
@@ -915,23 +909,6 @@
 
          ! Locations where LT is between HR1_OH and HR2_OH
          ALLOCATE( CTHO2( IIPAR, JJPAR, LD43 ), STAT=AS )
-
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'CTHO2' )
-
-         ! Locations where LT is between HR1_OH and HR2_OH
-         ALLOCATE( LTNO2( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'LTHO2' )
-
-         ! Locations where LT is between HR1_OH and HR2_OH
-         ALLOCATE( CTNO2( IIPAR, JJPAR, LD43 ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'CTHO2' )
-
-         ! Locations where LT is between HR1_OH and HR2_OH
-         ALLOCATE( LTNO3( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'LTHO2' )
-
-         ! Locations where LT is between HR1_OH and HR2_OH
-         ALLOCATE( CTNO3( IIPAR, JJPAR, LD43 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CTHO2' )
 
          ! update for aroms (dkh, 06/21/07)  

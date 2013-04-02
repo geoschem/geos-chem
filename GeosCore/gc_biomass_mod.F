@@ -603,10 +603,6 @@
       USE LOGICAL_MOD,          ONLY : LFUTURE
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
       ! Add IDBs of all species handled here (hotp 8/3/09)
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD, ONLY : IDBNOX,  IDBCO,   IDBALK4, IDBACET 
-!------------------------------------------------------------------------------
       USE TRACERID_MOD, ONLY : IDBNO,   IDBCO,   IDBALK4, IDBACET 
       USE TRACERID_MOD, ONLY : IDBMEK,  IDBALD2, IDBPRPE, IDBC3H8
       USE TRACERID_MOD, ONLY : IDBCH2O, IDBC2H6
@@ -644,12 +640,7 @@
       ! (ccc, 01/29/10)
           
          ! Do scaling if necessary and print totals in Tg
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
-!         ! Do scaling if necessary and print totals in Tg
-!         IF  ( IDBNOX > 0 ) THEN
-!------------------------------------------------------------------------------
+         ! Replaced NOx emissions with NO emissions (mpayer, 3/14/13)
          IF  ( IDBNO > 0 ) THEN
 
             !----------
@@ -661,20 +652,6 @@
      &                       TAU0,      IIPAR,     JJPAR,     
      &                       1,         ARRAY,     QUIET=.TRUE. )  
 
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!            ! Cast from REAL*4 to REAL*8 and resize to (IIPAR,JJPAR)
-!            CALL TRANSFER_2D( ARRAY(:,:,1), BIOMASS(:,:,IDBNOX) )
-!
-!            ! Compute future NOx emissions (if necessary)
-!            IF ( LFUTURE ) THEN
-!               CALL SCALE_FUTURE( 'NOxbb', BIOMASS(:,:,IDBNOX) )
-!            ENDIF
-!
-!            ! NOX -- print totals in [Tg/month]
-!            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBNOX), 14d-3, 'NOx' )
-!         ENDIF
-!------------------------------------------------------------------------------
             ! Cast from REAL*4 to REAL*8 and resize to (IIPAR,JJPAR)
             CALL TRANSFER_2D( ARRAY(:,:,1), BIOMASS(:,:,IDBNO) )
 
@@ -1174,11 +1151,6 @@
       ! SCALE_FUTURE begins here!
       !=================================================================
 
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
-!      IF ( NAME == 'NOxbb' ) THEN
-!------------------------------------------------------------------------------
       IF ( NAME == 'NObb' ) THEN
 
          ! Compute future NOx emissions
@@ -1285,10 +1257,6 @@
      
       ! Define unit string
       SELECT CASE( NAME )
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!         CASE( 'NOx' )
-!------------------------------------------------------------------------------
          CASE( 'NO' )
             UNIT = '[Tg N]'
          CASE( 'CO', 'CH2O', 'GLYX', 'MGLY', 'GLYC', 'HAC' )

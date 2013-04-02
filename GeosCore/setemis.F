@@ -36,10 +36,6 @@
       USE LOGICAL_MOD,        ONLY : LPRT
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L
       USE PRESSURE_MOD,       ONLY : GET_PEDGE
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD,       ONLY : CTRMB,     IDEMIS,  IDENOX
-!------------------------------------------------------------------------------
       USE TRACERID_MOD,       ONLY : CTRMB,     IDEMIS,  IDENO
       USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
 
@@ -273,11 +269,7 @@
             TOTPRES = GET_PEDGE(I,J,1) - GET_PEDGE(I,J,TOP+1)
 
             ! For NOx only....
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
-!            IF ( N == IDENOX ) THEN
-!------------------------------------------------------------------------------
+            ! Replaced NOx with NO (mpayer, 3/14/13)
             IF ( N == IDENO ) THEN
 
                !========================================================

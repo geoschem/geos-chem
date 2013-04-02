@@ -143,10 +143,6 @@ CONTAINS
     USE TIME_MOD,           ONLY : TIMESTAMP_STRING
     USE TRACER_MOD,         ONLY : STT
     USE TRACER_MOD,         ONLY : XNUMOLAIR
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!    USE TRACERID_MOD,       ONLY : IDTOX
-!------------------------------------------------------------------------------
     USE TRACERID_MOD,       ONLY : IDTO3
     USE TRACERID_MOD,       ONLY : IDTCHBr3
     USE TRACERID_MOD,       ONLY : IDTCH2Br2
@@ -311,11 +307,7 @@ CONTAINS
                 DO N=1,NSCHEM ! Tracer index of active strat chem species
                    NN = Strat_TrID_GC(N) ! Tracer index in STT
 
-                   ! Skip Ox; we'll always use either Linoz or Synoz
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!                   IF ( IT_IS_A_FULLCHEM_SIM .and. NN .eq. IDTOx ) CYCLE
-!------------------------------------------------------------------------------
+                   ! Skip O3; we'll always use either Linoz or Synoz
                    IF ( IT_IS_A_FULLCHEM_SIM .and. NN .eq. IDTO3 ) CYCLE
 
                    dt = DTCHEM                              ! timestep [s]
@@ -348,30 +340,6 @@ CONTAINS
        ! Ozone
        !===================================
 
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! Replace Ox with O3 (mpayer, 3/14/13)
-!       ! Make note of inital state for determining tendency later
-!       BEFORE = STT(:,:,:,IDTOX )
-!
-!       ! Put ozone in v/v
-!       STT(:,:,:,IDTOX ) = STT(:,:,:,IDTOX) * TCVV( IDTOX ) / &
-!                           State_Met%AD
-!
-!       ! Do Linoz or Synoz
-!       IF ( LLINOZ ) THEN
-!          CALL Do_Linoz( am_I_Root, State_Met )
-!       ELSE
-!          CALL Do_Synoz( am_I_Root, State_Met )
-!       ENDIF
-!
-!       ! Put ozone back to kg
-!       STT(:,:,:,IDTOX) = STT(:,:,:,IDTOX) * State_Met%AD / TCVV( IDTOX )
-!
-!       ! Put tendency into diagnostic array [kg box-1]
-!       SCHEM_TEND(:,:,:,IDTOX) = SCHEM_TEND(:,:,:,IDTOX) + &
-!                                                  ( STT(:,:,:,IDTOX) - BEFORE )
-!------------------------------------------------------------------------------
        ! Make note of inital state for determining tendency later
        BEFORE = STT(:,:,:,IDTO3 )
 
@@ -1465,18 +1433,10 @@ CONTAINS
 
              IF ( TRIM(TRACER_NAME(N)) .eq. TRIM(sname) ) THEN
                 
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!                IF ( LLINOZ .and. TRIM(TRACER_NAME(N)) .eq. 'Ox' ) THEN
-!------------------------------------------------------------------------------
                 IF ( LLINOZ .and. TRIM(TRACER_NAME(N)) .eq. 'O3' ) THEN
                    IF ( am_I_Root ) THEN
                       WRITE( 6, '(a)' ) TRIM(TRACER_NAME(N)) // ' (via Linoz)'
                    ENDIF
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!                ELSE IF ( TRIM(TRACER_NAME(N)) .eq. 'Ox' ) THEN
-!------------------------------------------------------------------------------
                 ELSE IF ( TRIM(TRACER_NAME(N)) .eq. 'O3' ) THEN
                    IF ( am_I_Root ) THEN
                       WRITE( 6, '(a)' ) TRIM(TRACER_NAME(N)) // ' (via Synoz)'
@@ -1533,11 +1493,7 @@ CONTAINS
           ENDIF
        ENDIF
        DO N = 1, N_TRACERS
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!          IF ( TRIM(TRACER_NAME(N)) .eq. 'Ox' .or. &
-!------------------------------------------------------------------------------
-          IF ( TRIM(TRACER_NAME(N)) .eq. 'O3' .or. &
+          IF ( TRIM(TRACER_NAME(N)) .eq. 'Ox' .or. &
                TRIM(TRACER_NAME(N)) .eq. 'OxStrt' ) THEN
              NSCHEM = NSCHEM + 1
              Strat_TrID_GC(NSCHEM) = N

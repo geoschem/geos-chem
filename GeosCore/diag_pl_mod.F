@@ -693,10 +693,6 @@
       USE TIME_MOD,      ONLY : GET_TAU,       GET_TAUb 
       USE TIME_MOD,      ONLY : ITS_A_NEW_DAY, TIMESTAMP_STRING
       USE TRACER_MOD,    ONLY : STT,           XNUMOL
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD,  ONLY : IDTOX
-!------------------------------------------------------------------------------
       USE TRACERID_MOD,  ONLY : IDTO3
       USE CMN_SIZE_MOD                      ! Size parameters
       USE CMN_DIAG_MOD                      ! LD65
@@ -745,11 +741,6 @@
       !=================================================================
 
       ! Error check
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      IF ( IDTOX == 0 ) THEN 
-!         CALL ERROR_STOP( 'IDTOX = 0!', 'DIAG20 ("diag20_mod.f")' )
-!------------------------------------------------------------------------------
       IF ( IDTO3 == 0 ) THEN 
          CALL ERROR_STOP( 'IDTO3 = 0!', 'DIAG20 ("diag20_mod.f")' )
       ENDIF
@@ -800,10 +791,6 @@
          !-------------
 
          ! Convert P(Ox) from [molec/cm3/s] to [kg/cm3/s]
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!         P_Ox           = FAM_PL(I,J,L,1) / XNUMOL(IDTOX)
-!------------------------------------------------------------------------------
          P_Ox           = FAM_PL(I,J,L,1) / XNUMOL(IDTO3)
 
          ! Store P(Ox) [kg/cm3/s] in PL24H array
@@ -814,10 +801,6 @@
          !-------------
 
          ! Convert Ox mass from [kg] to [molec]
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!         L_Ox           = STT(I,J,L,IDTOX) * XNUMOL(IDTOX)
-!------------------------------------------------------------------------------
          L_Ox           = STT(I,J,L,IDTO3) * XNUMOL(IDTO3)
 
          ! Divide L(Ox) [molec/cm3/s] by Ox mass [molec] 

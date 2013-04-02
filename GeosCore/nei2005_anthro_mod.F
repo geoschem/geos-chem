@@ -143,10 +143,6 @@
       USE TRACER_MOD,   ONLY : XNUMOL
       USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
       USE TRACERID_MOD, ONLY : IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD, ONLY : IDTNOx,  IDTCO,   IDTSO2,  IDTNH3
-!------------------------------------------------------------------------------
       USE TRACERID_MOD, ONLY : IDTNO,   IDTCO,   IDTSO2,  IDTNH3
       USE TRACERID_MOD, ONLY : IDTSO4
 !
@@ -195,11 +191,7 @@
       IF ( PRESENT( MOLEC_CM2_S ) ) DO_MCS = MOLEC_CM2_S
 
       IF ( WEEKDAY ) THEN
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
-!         IF ( N == IDTNOx ) THEN
-!------------------------------------------------------------------------------
+         ! Replaced NOx with NO (mpayer, 3/14/13)
          IF ( N == IDTNO ) THEN
 
             ! NOx [kg/yr]
@@ -273,11 +265,7 @@
          ENDIF
 
       ELSE
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
-!         IF ( N == IDTNOx ) THEN
-!------------------------------------------------------------------------------
+         ! Replaced NOx with NO (mpayer, 3/14/13)
          IF ( N == IDTNO ) THEN
 
             ! NOx [kg/yr]
@@ -403,10 +391,6 @@
       USE TRACER_MOD,        ONLY : ITS_A_FULLCHEM_SIM
       USE TRACERID_MOD,      ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
       USE TRACERID_MOD,      ONLY : IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD,      ONLY : IDTNOx,  IDTCO,   IDTSO2,  IDTNH3
-!------------------------------------------------------------------------------
       USE TRACERID_MOD,      ONLY : IDTNO,   IDTCO,   IDTSO2,  IDTNH3
       USE TRACERID_MOD,      ONLY : IDTSO4,  IDTOCPI, IDTBCPI
 
@@ -487,10 +471,6 @@
 #endif
 
       ! list of ID of available species
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      SPECIES_ID = (/ IDTNOX,  IDTCO,   IDTSO2,  IDTSO4, IDTNH3,
-!------------------------------------------------------------------------------
       SPECIES_ID = (/ IDTNO,   IDTCO,   IDTSO2,  IDTSO4, IDTNH3,
      &                IDTACET, IDTALK4, IDTC2H6, IDTC3H8,
      &                IDTOCPI, IDTBCPI,
@@ -1253,10 +1233,6 @@
       WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
 
       IF ( WEEKDAY ) THEN       !Kg/Yr
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!         EMISS(:,:,1:5,IDTNOx)  = NOx
-!------------------------------------------------------------------------------
          EMISS(:,:,1:5,IDTNO)   = NOx
          EMISS(:,:,1:5,IDTCO)   = CO
          EMISS(:,:,1:5,IDTSO2)  = SO2
@@ -1271,10 +1247,6 @@
          EMISS(:,:,1:5,IDTC2H6) = C2H6
          EMISS(:,:,1:5,IDTALD2) = ALD2
       ELSE
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!         EMISS(:,:,1:5,IDTNOx)  = NOx_WKEND
-!------------------------------------------------------------------------------
          EMISS(:,:,1:5,IDTNO)   = NOx_WKEND
          EMISS(:,:,1:5,IDTCO)   = CO_WKEND
          EMISS(:,:,1:5,IDTSO2)  = SO2_WKEND
@@ -1327,10 +1299,6 @@
       USE TRACER_MOD,        ONLY : ITS_A_FULLCHEM_SIM
       USE TRACERID_MOD,      ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
       USE TRACERID_MOD,      ONLY : IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD, ONLY : IDTNOx,  IDTCO,   IDTSO2,  IDTNH3
-!------------------------------------------------------------------------------
       USE TRACERID_MOD,      ONLY : IDTNO,   IDTCO,   IDTSO2,  IDTNH3
       USE TRACERID_MOD,      ONLY : IDTSO4,  IDTOCPI, IDTBCPI
 
@@ -1406,10 +1374,6 @@
 #endif
 
       ! list of ID of available species
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      SPECIES_ID = (/ IDTNOX,  IDTCO,   IDTSO2,  IDTSO4, IDTNH3,
-!------------------------------------------------------------------------------
       SPECIES_ID = (/ IDTNO,   IDTCO,   IDTSO2,  IDTSO4, IDTNH3,
      &                IDTACET, IDTALK4, IDTC2H6, IDTC3H8,
      &                IDTOCPI, IDTBCPI,
@@ -1650,10 +1614,6 @@
       WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
 
       IF ( WEEKDAY ) THEN       !Kg/Yr
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!         EMISS(:,:,:,IDTNOx)  = NOx
-!------------------------------------------------------------------------------
          EMISS(:,:,:,IDTNO)   = NOx
          EMISS(:,:,:,IDTCO)   = CO
          EMISS(:,:,:,IDTSO2)  = SO2
@@ -1668,10 +1628,6 @@
          EMISS(:,:,:,IDTC2H6) = C2H6
          EMISS(:,:,:,IDTALD2) = ALD2
       ELSE
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!         EMISS(:,:,:,IDTNOx)  = NOx_WKEND
-!------------------------------------------------------------------------------
          EMISS(:,:,:,IDTNO)   = NOx_WKEND
          EMISS(:,:,:,IDTCO)   = CO_WKEND
          EMISS(:,:,:,IDTSO2)  = SO2_WKEND
@@ -2608,11 +2564,6 @@
 
 
       ! Total NOx [Tg N]
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! Molecular weight of NO is 30 g/mol (mpayer 3/14/13)
-!      T_NOX = SUM( NOx ) * 1d-9 * ( 14d0 / 46d0 )
-!------------------------------------------------------------------------------
       T_NOX = SUM( NOx ) * 1d-9 * ( 14d0 / 30d0 )
 
       ! Total CO  [Tg CO]
@@ -2660,10 +2611,6 @@
 
       
       ! Print totals in [Tg]
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      WRITE( 6, 110 ) 'NOx ',  YEAR, T_NOx,  '[Tg N  ]'
-!------------------------------------------------------------------------------
       WRITE( 6, 110 ) 'NO  ',  YEAR, T_NOx,  '[Tg N  ]'
       WRITE( 6, 110 ) 'CO  ',  YEAR, T_CO,   '[Tg CO ]'
       WRITE( 6, 110 ) 'SO2 ',  YEAR, T_SO2,  '[Tg S  ]'

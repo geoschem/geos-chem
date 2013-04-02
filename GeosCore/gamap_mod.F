@@ -841,49 +841,6 @@
       DESCRIPT(N) = 'Biofuel emissions'
       OFFSET(N)   = SPACING * 1
 
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
-!      N           = N + 1
-!      CATEGORY(N) = 'NOX-AC-$'
-!      DESCRIPT(N) = 'Aircraft NOx'
-!      OFFSET(N)   = SPACING * 1
-!
-!      N           = N + 1
-!      CATEGORY(N) = 'NOX-AN-$'
-!      DESCRIPT(N) = 'Anthropogenic NOx'
-!      OFFSET(N)   = SPACING * 1
-!
-!      N           = N + 1
-!      CATEGORY(N) = 'NOX-BIOB'
-!      DESCRIPT(N) = 'Biomass NOx'
-!      OFFSET(N)   = SPACING * 1
-!
-!      N           = N + 1
-!      CATEGORY(N) = 'NOX-BIOF'
-!      DESCRIPT(N) = 'Biofuel NOx'
-!      OFFSET(N)   = SPACING * 1
-!
-!      N           = N + 1
-!      CATEGORY(N) = 'NOX-LI-$'
-!      DESCRIPT(N) = 'Lightning NOx'      
-!      OFFSET(N)   = SPACING * 1
-!
-!      N           = N + 1
-!      CATEGORY(N) = 'NOX-SOIL'
-!      DESCRIPT(N) = 'Soil NOx'
-!      OFFSET(N)   = SPACING * 1
-!
-!      N           = N + 1
-!      CATEGORY(N) = 'NOX-FERT'
-!      DESCRIPT(N) = 'Fertilizer NOx'
-!      OFFSET(N)   = SPACING * 1
-!
-!      N           = N + 1
-!      CATEGORY(N) = 'NOX-STRT'
-!      DESCRIPT(N) = 'Stratopsheric NOx'
-!      OFFSET(N)   = SPACING * 1
-!------------------------------------------------------------------------------
       N           = N + 1
       CATEGORY(N) = 'NO-AC-$'
       DESCRIPT(N) = 'Aircraft NO'
@@ -1611,10 +1568,6 @@
       USE TRACERID_MOD, ONLY : IDTGLYC, IDTHAC
       USE WETSCAV_MOD,  ONLY : GET_WETDEP_IDWETD, GET_WETDEP_NSOL
       !(FP, 6/2009) To remove hard-wired for biomass burning
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD, ONLY : IDBNOX,  IDBCO,   IDBALK4, IDBACET
-!------------------------------------------------------------------------------
       USE TRACERID_MOD, ONLY : IDBNO,  IDBCO,   IDBALK4, IDBACET
       USE TRACERID_MOD, ONLY : IDBMEK,  IDBALD2, IDBPRPE, IDBC3H8
       USE TRACERID_MOD, ONLY : IDBCH2O, IDBC2H6
@@ -1623,10 +1576,6 @@
       USE TRACERID_MOD, ONLY : IDBXYLE, IDBBENZ, IDBTOLU
       USE TRACERID_MOD, ONLY : IDBGLYX, IDBMGLY, IDBC2H4, IDBC2H2
       USE TRACERID_MOD, ONLY : IDBGLYC, IDBHAC
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD, ONLY : IDTNOX,  IDTCO,   IDTALK4, IDTACET
-!------------------------------------------------------------------------------
       USE TRACERID_MOD, ONLY : IDTNO,   IDTCO,   IDTALK4, IDTACET
       USE TRACERID_MOD, ONLY : IDTMEK,  IDTALD2, IDTPRPE, IDTC3H8
       USE TRACERID_MOD, ONLY : IDTCH2O, IDTC2H6
@@ -1672,7 +1621,8 @@
 !                              included in the direct emissions (ACETbg).
 !                              (E. Fischer)
 !  14 Mar 2013 - M. Payer    - Replace NOx and Ox with NO and O3 as part of
-!                              removal of NOx-Ox partitioning
+!                              removal of NOx-Ox partitioning. Removed code for
+!                              storing pure O3 as N_TRACERS+1.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1720,7 +1670,7 @@
          INDEX(T,45) = T   !changed from N (phs, 3/19/03)
          MWT  (T,45) = TRACER_MW_KG(T) 
 
-!------------------------------------------------------------------------------
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ! Prior to 3/14/13:
 ! No longer need this because NO and NO2 are now tracers (mpayer, 3/14/13)
 !         ! We usually report NOx as Tg N
@@ -1730,7 +1680,7 @@
 !         ELSE
 !            MWT(T,45) = TRACER_MW_KG(T) 
 !         ENDIF
-!------------------------------------------------------------------------------
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
          ! Special handling for hydrocarbons
          IF ( MOLC(T,45) > 1 ) THEN
@@ -1765,26 +1715,6 @@
 
       ! Number of ND45 tracers 
       NTRAC(45) = N_TRACERS
-
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! No longer need this because O3 is now a tracer (mpayer, 3/14/13)
-!      !-------------------------------------
-!      ! FULL-CHEMISTRY RUNS ONLY: 
-!      ! Pure O3 is stored as N_TRACERS+1
-!      !-------------------------------------
-!      IF ( ITS_A_FULLCHEM_SIM() ) THEN
-!         NTRAC(45)   = N_TRACERS + 1
-!         T           = N_TRACERS + 1
-!         NAME (T,45) = 'O3'
-!         FNAME(T,45) = 'Pure O3 tracer'
-!         UNIT (T,45) = 'ppbv'
-!         MWT  (T,45) = TRACER_MW_KG(IDTO3)           ! Ox is tracer 2
-!         MOLC (T,45) = INT( TRACER_COEFF(IDTO3,1) )  ! Ox is tracer 2
-!         SCALE(T,45) = 1.0e+9
-!         INDEX(T,45) = T
-!      ENDIF
-!------------------------------------------------------------------------------
 
       !-------------------------------------
       ! Hg source, production & loss (ND03)
@@ -5133,16 +5063,7 @@
 
                ! removed hardwires (fp, 6/2009)
                ! Case statement
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
-!               IF ( T == IDBNOX ) THEN
-!                  NAME (T,28) = 'NOx'
-!                  INDEX(T,28) = IDTNOX + ( SPACING * 45 )
-!                  MWT  (T,28) = 14e-3
-!                  MOLC (T,28) = 1
-!                  UNIT (T,28) = 'molec/cm2/s'
-!------------------------------------------------------------------------------
+               ! Replaced NOx emissions with NO emissions (mpayer, 3/14/13)
                IF ( T == IDBNO ) THEN
                   NAME (T,28) = 'NO'
                   INDEX(T,28) = IDTNO + ( SPACING * 45 )

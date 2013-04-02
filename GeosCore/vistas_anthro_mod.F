@@ -73,10 +73,6 @@
 !
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TRACER_MOD,   ONLY : XNUMOL
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD, ONLY : IDTNOx
-!------------------------------------------------------------------------------
       USE TRACERID_MOD, ONLY : IDTNO
 !
 ! !INPUT PARAMETERS: 
@@ -119,11 +115,7 @@
       ! Return data in [kg/s] or [molec/cm2/s]?
       IF ( PRESENT( KG_S        ) ) DO_KGS = KG_S
 
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
-!      IF ( N == IDTNOx ) THEN
-!------------------------------------------------------------------------------
+      ! Replaced NOx with NO (mpayer, 3/14/13)
       IF ( N == IDTNO ) THEN
 
          ! NOx [molec/cm2/s]
@@ -189,10 +181,6 @@
       USE TIME_MOD,     ONLY : GET_DAY_OF_WEEK
       USE TRACER_MOD,   ONLY : N_TRACERS
       USE TRACER_MOD,   ONLY : XNUMOL
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD, ONLY : IDTNOx
-!------------------------------------------------------------------------------
       USE TRACERID_MOD, ONLY : IDTNO
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE ERROR_MOD,    ONLY : ALLOC_ERR
@@ -385,17 +373,6 @@
       ENDDO
       ENDDO
 
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
-!      IF ( WEEKDAY ) THEN
-!         IF ( IDTNOX > 0) EMISS(:,:,IDTNOX) = 
-!     &        VISTAS_WD_NOx(:,:) * A / XNUMOL(IDTNOX)
-!      ELSE
-!         IF ( IDTNOX > 0) EMISS(:,:,IDTNOX) = 
-!     &        VISTAS_WE_NOx(:,:) * A / XNUMOL(IDTNOX)
-!      ENDIF
-!------------------------------------------------------------------------------
       IF ( WEEKDAY ) THEN
          IF ( IDTNO > 0) EMISS(:,:,IDTNO) = 
      &        VISTAS_WD_NOx(:,:) * A / XNUMOL(IDTNO)
@@ -484,10 +461,6 @@
 ! 
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TRACER_MOD,   ONLY : TRACER_MW_KG
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD, ONLY : IDTNOX
-!------------------------------------------------------------------------------
       USE TRACERID_MOD, ONLY : IDTNO
 
       USE CMN_SIZE_MOD   ! Size parameters
@@ -522,10 +495,6 @@
 
       WD_NOX  = 0d0
       WE_NOX  = 0d0
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      F_NOX   = TRACER_MW_KG(IDTNOX )
-!------------------------------------------------------------------------------
       F_NOX   = TRACER_MW_KG(IDTNO)
 
       ! Loop over latitudes
@@ -553,20 +522,12 @@
 
       ! Weekday avg anthro
       WRITE( 6, '(a)' )
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      WRITE( 6, 110   ) 'NOx ', THISMONTH, WD_NOX,  '  '
-!------------------------------------------------------------------------------
       WRITE( 6, 110   ) 'NO ', THISMONTH, WD_NOX,  '  '
  110  FORMAT( 'Total weekday avg anthro ', a4, ' for 1999/',
      &         i2.2, ': ', f13.6, ' Tg', a2 )
 
       ! Weekend avg anthro
       WRITE( 6, '(a)' )
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      WRITE( 6, 120   ) 'NOx ', THISMONTH, WE_NOX,  '  '
-!------------------------------------------------------------------------------
       WRITE( 6, 120   ) 'NO ', THISMONTH, WE_NOX,  '  '
  120  FORMAT( 'Total weekend avg anthro ', a4, ' for 1999/',
      &         i2.2, ': ', f13.6, ' Tg', a2 )

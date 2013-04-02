@@ -64,10 +64,6 @@
       USE TIME_MOD,     ONLY : GET_NHMS,             GET_TAU
       USE TRACER_MOD,   ONLY : ITS_A_FULLCHEM_SIM,   ITS_A_RnPbBe_SIM
       USE TRACER_MOD,   ONLY : STT,                  N_TRACERS
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD, ONLY : IDTOX
-!------------------------------------------------------------------------------
       USE TRACERID_MOD, ONLY : IDTO3
       USE CMN_SIZE_MOD       ! Size parameters
       USE inquireMod,   ONLY : findFreeLUN
@@ -171,27 +167,6 @@
 
          ENDDO
 
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! Replace Ox with O3 (mpayer, 3/14/13)
-!      !=================================================================
-!      ! Save the mass of Ox to a file
-!      !=================================================================
-!      ELSE IF ( ITS_A_FULLCHEM_SIM() .and. IDTOX > 0 ) THEN
-!
-!         ! Open binary punch file for writing
-!         CALL OPEN_BPCH2_FOR_WRITE( IU_FILE, FILENAME, TITLE )
-!        
-!         ! Save Ox as REAL*4
-!         ARRAY(:,:,:) = STT(:,:,:,IDTOX)
-!
-!         ! Write Ox to binary punch file
-!         CALL BPCH2( IU_FILE,   MODELNAME, LONRES,    LATRES,
-!     &               HALFPOLAR, CENTER180, CATEGORY,  IDTOX,    
-!     &               UNIT,      GET_TAU(), GET_TAU(), RESERVED,   
-!     &               IIPAR,     JJPAR,     LLPAR,     IFIRST,     
-!     &               JFIRST,    LFIRST,    ARRAY(:,:,:) )
-!------------------------------------------------------------------------------
       !=================================================================
       ! Save the mass of O3 to a file
       !=================================================================

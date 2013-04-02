@@ -106,25 +106,12 @@
       REAL*4, ALLOCATABLE  :: FTOTCO2(:,:)
       REAL*4, ALLOCATABLE  :: FLIQCO2(:,:)
 
-      ! FRACO3, FRACNO          = fractions of O3, NO
-      ! SAVEOH, SAVENO, SAVENO3 = array to save OH, NO, & NO3 fields 
-      ! SAVENO2                 = array to save NO2 fields (rvm, 5/9/00)
-      ! FRACNO2                 = fraction of NO2 (rvm, bmy, 2/27/02)
+      ! SAVEOH                  = array to save OH  fields 
       ! SAVEHO2                 = array to save HO2 fields (rvm, bmy, 2/27/02)
       ! fracnox                 = look up table for fraction of NOx remaining
       !                           for ship emissions (gvinken, 6/6/10)
       ! intope                  = look up table for integrated Ozone Production
       !                           Efficiency for ship emiss (gvinken, 6/6/10)
-!------------------------------------------------------------------------------
-! Prior to 3/29/13:
-! O3, NO, NO2, and NO3 are now tracers (mpayer, 3/29/13)
-!      REAL*8, ALLOCATABLE ::   FRACO3(:,:,:)
-!      REAL*8, ALLOCATABLE ::   FRACNO(:,:,:)
-!      REAL*8, ALLOCATABLE ::   SAVENO(:,:,:)
-!      REAL*8, ALLOCATABLE ::   SAVENO2(:,:,:)
-!      REAL*8, ALLOCATABLE ::   SAVENO3(:,:,:)
-!      REAL*8, ALLOCATABLE ::   FRACNO2(:,:,:)
-!------------------------------------------------------------------------------
       REAL*8, ALLOCATABLE ::   SAVEOH(:,:,:)
       REAL*8, ALLOCATABLE ::   SAVEHO2(:,:,:)
       REAL  , ALLOCATABLE ::   jvalues(:,:,:)
@@ -212,15 +199,6 @@
       ALLOCATE( EMISTC2H2 ( IIPAR, JJPAR                  ), STAT=RC )
       ALLOCATE( FTOTCO2   ( IIPAR, JJPAR                  ), STAT=RC )
       ALLOCATE( FLIQCO2   ( IIPAR, JJPAR                  ), STAT=RC )
-!------------------------------------------------------------------------------
-! Prior to 3/29/13:
-!      ALLOCATE( FRACO3    ( IIPAR, JJPAR, LLPAR           ), STAT=RC )
-!      ALLOCATE( FRACNO    ( IIPAR, JJPAR, LLPAR           ), STAT=RC )
-!      ALLOCATE( SAVENO    ( IIPAR, JJPAR, LLPAR           ), STAT=RC )
-!      ALLOCATE( SAVENO2   ( IIPAR, JJPAR, LLPAR           ), STAT=RC )
-!      ALLOCATE( SAVENO3   ( IIPAR, JJPAR, LLPAR           ), STAT=RC )
-!      ALLOCATE( FRACNO2   ( IIPAR, JJPAR, LLPAR           ), STAT=RC )
-!------------------------------------------------------------------------------
       ALLOCATE( SAVEOH    ( IIPAR, JJPAR, LLPAR           ), STAT=RC )
       ALLOCATE( SAVEHO2   ( IIPAR, JJPAR, LLPAR           ), STAT=RC )
       ALLOCATE( JVALUES   ( IIPAR, JJPAR, 2               ), STAT=RC )
@@ -250,15 +228,6 @@
       EMISTC2H2  = 0e0
       FTOTCO2    = 0d0
       FLIQCO2    = 0d0
-!------------------------------------------------------------------------------
-! Prior to 3/29/13:
-!      FRACO3     = 0d0
-!      FRACNO     = 0d0
-!      SAVENO     = 0d0
-!      SAVENO2    = 0d0
-!      SAVENO3    = 0d0
-!      FRACNO2    = 0d0
-!------------------------------------------------------------------------------
       SAVEOH     = 0d0
       SAVEHO2    = 0d0
       JVALUES    = 0d0
@@ -327,15 +296,6 @@
       IF ( ALLOCATED( EMISTC2H2  ) ) DEALLOCATE( EMISTC2H2  )
       IF ( ALLOCATED( FTOTCO2    ) ) DEALLOCATE( FTOTCO2    )
       IF ( ALLOCATED( FLIQCO2    ) ) DEALLOCATE( FLIQCO2    )
-!------------------------------------------------------------------------------
-! Prior to 3/29/13:
-!      IF ( ALLOCATED( FRACO3     ) ) DEALLOCATE( FRACO3     )
-!      IF ( ALLOCATED( FRACNO     ) ) DEALLOCATE( FRACNO     )
-!      IF ( ALLOCATED( SAVENO     ) ) DEALLOCATE( SAVENO     )
-!      IF ( ALLOCATED( SAVENO2    ) ) DEALLOCATE( SAVENO2    )
-!      IF ( ALLOCATED( SAVENO3    ) ) DEALLOCATE( SAVENO3    )
-!      IF ( ALLOCATED( FRACNO2    ) ) DEALLOCATE( FRACNO2    )
-!------------------------------------------------------------------------------
       IF ( ALLOCATED( SAVEOH     ) ) DEALLOCATE( SAVEOH     )
       IF ( ALLOCATED( SAVEHO2    ) ) DEALLOCATE( SAVEHO2    )
       IF ( ALLOCATED( JVALUES    ) ) DEALLOCATE( JVALUES    )

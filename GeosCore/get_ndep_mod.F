@@ -52,10 +52,6 @@
 !
       USE TRACERID_MOD, ONLY : IDTNH4,    IDTNIT, IDTNH4aq 
       USE TRACERID_MOD, ONLY : IDTHNO3,   IDTNH3, IDTNITs
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD, ONLY : IDTNOx,    IDTPAN
-!------------------------------------------------------------------------------
       USE TRACERID_MOD, ONLY : IDTNO2,     IDTPAN
       USE COMMSOIL_MOD
 !
@@ -75,10 +71,6 @@
 !------------------------------------------------------------------------------
 !BOC
 !
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      IF ( NN == IDTNOx   ) DRY_NO2(I,J)  = DRY_NO2(I,J)  + TDRYFX 
-!------------------------------------------------------------------------------
       IF ( NN == IDTNO2   ) DRY_NO2(I,J)  = DRY_NO2(I,J)  + TDRYFX 
       IF ( NN == IDTPAN   ) DRY_PAN(I,J)  = DRY_PAN(I,J)  + TDRYFX 
       IF ( NN == IDTHNO3  ) DRY_HNO3(I,J) = DRY_HNO3(I,J) + TDRYFX 

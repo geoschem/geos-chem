@@ -266,11 +266,6 @@
       DO ITRC=1,NUM_TRACER     ! dbj loop for tagged
 
          IF ( ITS_A_FULLCHEM_SIM() ) THEN
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! Replace Ox with O3 (mpayer, 3/14/13)
-!            NTRACER = IDTOX
-!------------------------------------------------------------------------------
             NTRACER = IDTO3
          ELSE
             NTRACER = ITRC

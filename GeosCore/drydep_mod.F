@@ -1668,28 +1668,13 @@
 !****************************************************************************
 
          ! Loop over the # of Olson land types in this grid box (I,J)
-!------------------------------------------------------------------------------
-! Prior to 12/12/12:
-! Now get IREG from State_Met (bmy, 12/12/12)
-!         DO 170 LDT = 1, IREG(I,J)
-!------------------------------------------------------------------------------
          DO 170 LDT = 1, State_Met%IREG(I,J)
 
             ! If the land type is not represented in grid 
             ! box  (I,J), then skip to the next land type
-!------------------------------------------------------------------------------
-! Prior to 12/12/12:
-! Now get IREG from State_Met (bmy, 12/12/12)
-!            IF ( IUSE(I,J,LDT) == 0 ) GOTO 170
-!------------------------------------------------------------------------------
             IF ( State_Met%IUSE(I,J,LDT) == 0 ) GOTO 170
 
             ! Olson land type index + 1
-!------------------------------------------------------------------------------
-! Prior to 12/12/12:
-! Now get IREG from State_Met (bmy, 12/12/12)
-!            IOLSON = ILAND(I,J,LDT)+1
-!------------------------------------------------------------------------------
             IOLSON = State_Met%ILAND(I,J,LDT)+1
 
             ! Dry deposition land type index
@@ -1712,20 +1697,10 @@
 !** divide them by the leaf area index to get a cuticular resistance for the
 !** bulk canopy.  If IRLU is '9999' it means there are no cuticular
 !** surfaces on which to deposit so we impose a very large value for RLU.
-!------------------------------------------------------------------------------
-! Prior to 12/12/12:
-! Now get XLAI from State_Met (bmy, 12/12/12)
-!            IF ( IRLU(II) >= 9999 .or. XLAI(I,J,LDT) <= 0.D0 ) THEN
-!------------------------------------------------------------------------------
             IF ( IRLU(II) >= 9999 .or. 
      &           State_Met%XLAI(I,J,LDT) <= 0.D0 ) THEN
                RLU(LDT) = 1.D6
             ELSE
-!------------------------------------------------------------------------------
-! Prior to 12/12/12:
-! Now get XLAI from State_Met (bmy, 12/12/12)
-!               RLU(LDT) = DBLE( IRLU(II) ) / XLAI(I,J,LDT) + RT
-!------------------------------------------------------------------------------
                RLU(LDT) = DBLE( IRLU(II) ) 
      &                  / State_Met%XLAI(I,J,LDT) + RT
             ENDIF
@@ -1776,14 +1751,6 @@
             IF (TEMPC .GT. 0.D0 .AND. TEMPC .LT. 40.D0)
      *           GFACT = 400.D0/TEMPC/(40.0D0-TEMPC)
             GFACI = 100.D0
-!------------------------------------------------------------------------------
-! Prior to 12/12/12:
-! Now get XLAI from State_Met (bmy, 12/12/12)
-!            IF ( RAD0 > 0.D0 .and. XLAI(I,J,LDT) > 0.D0 ) THEN
-!               GFACI = 1.D0 / BIOFIT( DRYCOEFF,       XLAI(I,J,LDT),
-!     &                                SUNCOS(IJLOOP), CFRAC(IJLOOP)  )
-!            ENDIF
-!------------------------------------------------------------------------------
             IF ( RAD0 > 0.D0 .and. State_Met%XLAI(I,J,LDT) > 0.D0 ) THEN
                GFACI = 1.D0 / BIOFIT( DRYCOEFF,       
      &                                State_Met%XLAI(I,J,LDT),
@@ -1945,17 +1912,7 @@
 !*                                 
          DO 190 K = 1,NUMDEP 
             IF (.NOT.LDEP(K)) GOTO 190
-!------------------------------------------------------------------------------
-! Prior to 12/12/12:
-! Now get IREG from State_Met (bmy, 12/12/12)
-!            DO 180 LDT = 1,IREG(I,J)
-!------------------------------------------------------------------------------
             DO 180 LDT = 1, State_Met%IREG(I,J)
-!------------------------------------------------------------------------------
-! Prior to 12/12/12:
-! Now get IUSE from State_Met (bmy, 12/12/12)
-!               IF ( IUSE(I,J,LDT) == 0 ) GOTO 180
-!------------------------------------------------------------------------------
                IF ( State_Met%IUSE(I,J,LDT) == 0 ) GOTO 180
                RSURFC(K,LDT)= MAX(1.D0, MIN(RSURFC(K,LDT), 9999.D0))
  180        CONTINUE
@@ -1963,19 +1920,9 @@
 !*                                 
 !*    Loop through the different landuse types present in the grid square     
 !*           
-!------------------------------------------------------------------------------
-! Prior to 12/12/12:
-! Now get IREG from State_Met (bmy, 12/12/12)                      
-!         DO 500 LDT = 1, IREG(I,J)
-!------------------------------------------------------------------------------
          DO 500 LDT = 1, State_Met%IREG(I,J)
             !IF ( IUSE(I,J,LDT) == 0 ) GOTO 500
             IF ( State_Met%IUSE(I,J,LDT) == 0 ) GOTO 500
-!------------------------------------------------------------------------------
-! Prior to 12/12/12:
-! Now get IREG from State_Met (bmy, 12/12/12)  
-!            IOLSON = ILAND(I,J,LDT) + 1
-!------------------------------------------------------------------------------
             IOLSON = State_Met%ILAND(I,J,LDT) + 1
 
 #if   defined( GCAP )
@@ -4248,16 +4195,8 @@
             XMW(NUMDEP)     = 7d-3
             AIROSOL(NUMDEP) = .TRUE. 
 
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! Replace NOx with NO2 (mpayer, 3/14/13)
-!         ! NO2 (as part of NOx)
-!         ELSE IF ( N == IDTNOX ) THEN
-!            NUMDEP          = NUMDEP + 1
-!            DRYDNO2         = NUMDEP
-!            NTRAIND(NUMDEP) = IDTNOX
-!------------------------------------------------------------------------------
          ! NO2
+         ! Replaced NOx with NO2  (mpayer, 3/14/13)
          ELSE IF ( N == IDTNO2 ) THEN
             NUMDEP          = NUMDEP + 1
             DRYDNO2         = NUMDEP
@@ -4269,15 +4208,8 @@
             XMW(NUMDEP)     = 46d-3
             AIROSOL(NUMDEP) = .FALSE.
             
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! Replace Ox with NO3 (mpayer, 3/14/13)
-!         ! O3 (as part of Ox)
-!         ELSE IF ( N == IDTOX ) THEN
-!            NUMDEP          = NUMDEP + 1
-!            NTRAIND(NUMDEP) = IDTOX
-!------------------------------------------------------------------------------
          ! O3
+         ! Replaced Ox with O3  (mpayer, 3/14/13)
          ELSE IF ( N == IDTO3 ) THEN
             NUMDEP          = NUMDEP + 1
             NTRAIND(NUMDEP) = IDTO3

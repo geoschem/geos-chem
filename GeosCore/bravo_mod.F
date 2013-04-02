@@ -116,10 +116,6 @@
 !
 ! !USES:
 ! 
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD, ONLY : IDTNOX, IDTCO, IDTSO2
-!------------------------------------------------------------------------------
       USE TRACERID_MOD, ONLY : IDTNO, IDTCO, IDTSO2
 !
 ! !INPUT PARAMETERS:
@@ -148,10 +144,7 @@
       !=================================================================
 
       ! NOx
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      IF ( N  == IDTNOX ) THEN
-!------------------------------------------------------------------------------
+      ! Replaced NOx with NO (mpayer, 3/14/13)
       IF ( N  == IDTNO ) THEN
          BRAVO = BRAVO_NOx(I,J)
 
@@ -205,10 +198,6 @@
 
 #if defined( DEVEL )
       USE TRACER_MOD,   ONLY : N_TRACERS
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD, ONLY : IDTNOX, IDTCO, IDTSO2
-!------------------------------------------------------------------------------
       USE TRACERID_MOD, ONLY : IDTNO, IDTCO, IDTSO2
 #endif
 !
@@ -379,11 +368,6 @@
       CALL TOTAL_ANTHRO_TG( SCALEYEAR )
 
 #if defined( DEVEL )
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      EMISSIONS(:,:,IDTNOX) = EMISSIONS(:,:,IDTNOX) +
-!     &                        BRAVO_NOx
-!------------------------------------------------------------------------------
       EMISSIONS(:,:,IDTNO)  = EMISSIONS(:,:,IDTNO) +
      &                        BRAVO_NOx
 
@@ -476,10 +460,6 @@
 ! 
       ! References to F90 modules
       USE GRID_MOD,     ONLY : GET_AREA_CM2
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD, ONLY : IDTNOX, IDTCO, IDTSO2
-!------------------------------------------------------------------------------
       USE TRACERID_MOD, ONLY : IDTNO, IDTCO, IDTSO2
 
       USE CMN_SIZE_MOD     ! Size parameters
@@ -521,10 +501,6 @@
       ! Define conversion factors for kg/molec
       ! (Undefined tracers will be zero)
       B(:) = 0d0
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      IF ( IDTNOx > 0 ) B(1) = 1d0 / ( 6.0225d23 / 14d-3 )  ! Tg N
-!------------------------------------------------------------------------------
       IF ( IDTNO  > 0 ) B(1) = 1d0 / ( 6.0225d23 / 14d-3 )  ! Tg N
       IF ( IDTCO  > 0 ) B(2) = 1d0 / ( 6.0225d23 / 28d-3 )  ! Tg CO
       IF ( IDTSO2 > 0 ) B(3) = 1d0 / ( 6.0225d23 / 32d-3 )  ! Tg S
@@ -554,10 +530,6 @@
       !----------------
 
       ! Print totals in [kg]
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      WRITE( 6, 110   ) 'NOx ', YEAR, NOx, ' N'
-!------------------------------------------------------------------------------
       WRITE( 6, 110   ) 'NO  ', YEAR, NOx, ' N'
       WRITE( 6, 110   ) 'CO  ', YEAR, CO,  '  '
       WRITE( 6, 110   ) 'SO2 ', YEAR, SO2, ' S'

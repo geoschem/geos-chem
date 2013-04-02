@@ -35,10 +35,6 @@
       USE TRACERID_MOD,        ONLY : IDEACET,      IDEALK4
       USE TRACERID_MOD,        ONLY : IDEC2H6,      IDEC3H8
       USE TRACERID_MOD,        ONLY : IDECO,        IDEMEK
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!      USE TRACERID_MOD,        ONLY : IDENOX,       IDEPRPE
-!------------------------------------------------------------------------------
       USE TRACERID_MOD,        ONLY : IDENO,       IDEPRPE
       USE TRACERID_MOD,        ONLY : NEMANTHRO
       USE TRACERID_MOD,        ONLY : IDEBENZ,     IDETOLU,    IDEXYLE
@@ -594,10 +590,7 @@
             NN = IDEMS(N)
 
             ! Skip NOx
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-!            IF ( N == IDENOX ) CYCLE
-!------------------------------------------------------------------------------
+            ! Replaced NOx with NO (mpayer, 3/14/13)
             IF ( N == IDENO ) CYCLE
 
             ! Skip if some tracer is not present because there are more 
@@ -636,11 +629,7 @@
 
       ! NOX: scale by total CO2 scale factors
       ! Now loop over 2 levels only (phs, 10/19/09)
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
-!      IF ( IDENOX > 0 ) THEN
-!------------------------------------------------------------------------------
+      ! Replaced NOx with NO (mpayer, 3/14/13)
       IF ( IDENO > 0 ) THEN
          DO LL = 1, 2 !NOXLEVELS
             DO J = 1, JJPAR
@@ -656,8 +645,7 @@
          ! Print total in Tg N
          ! Now loop over 2 levels only (phs, 10/19/09)
          CALL TOTAL_FOSSIL_TG( EMISTN,    IIPAR, JJPAR,  
-!     &                         NOXLEVELS, 14d-3, 'NOx', NSEASON )
-     &                         2,         14d-3, 'NOx', NSEASON )
+     &                         2,         14d-3, 'NO', NSEASON )
       ENDIF   
 
       !=================================================================
@@ -674,11 +662,7 @@
 
          ! Do unit conversion for NOx separately, since it is multi-level
          ! Now loop over 2 levels only (phs, 10/19/09)
-!------------------------------------------------------------------------------
-! Prior to 3/14/13:
-! Replace NOx emissions with NO emissions (mpayer, 3/14/13)
-!         IF ( N == IDENOX ) THEN
-!------------------------------------------------------------------------------
+         ! Replaced NOx with NO (mpayer, 3/14/13)
          IF ( N == IDENO ) THEN
             DO LL = 1, 2 !NOXLEVELS
                DO J = 1, JJPAR
