@@ -843,6 +843,7 @@
             IF (SPECL(1).EQ.'T') NKHNO4(NCS)  =NK !Flag HNO4 photolysis (gcc)
             IF (SPECL(1).EQ.'I') NKHOROI(NCS) = NK !Flag CH2O-producing branch in EP photolysis
             IF (SPECL(1).EQ.'J') NKHOROJ(NCS) = NK !Flag GLYC-producing branch in EP photolysis
+            IF (SPECL(1).EQ.'R') NKO2PHOT(NCS) = NK !Flag O2 photolysis
 
 !FLAG HACET AND GLYC reaction to modify yield according to temperature
 ! (fp, 8/09)

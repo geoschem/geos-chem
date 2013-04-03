@@ -329,8 +329,8 @@
             WRITE( IO93, *       ) 'YHIS      = ', YHIS
             WRITE( IO93, *       ) 'HMAXDAYS  = ', HMAXDAYS 
             WRITE( IO93, *       ) 'HMAXNIT   = ', HMAXNIT
-            WRITE( IO93, '(/,a)' ) 'Using U.C.I. Fast-J photolysis'  
-            WRITE(    6, '(  a)' ) 'Using U.C.I. Fast-J photolysis'     
+           WRITE( IO93, '(/,a)' ) 'Using U.C.I. Fast-JX v7.0 photolysis'
+           WRITE(    6, '(  a)' ) 'Using U.C.I. Fast-JX v7.0 photolysis'
 
             ! Write spacer line to "smv2.log
             WRITE( IO93, '(a)' )

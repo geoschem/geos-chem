@@ -26,30 +26,41 @@
 ! !PUBLIC MEMBER FUNCTIONS:
 !
       PUBLIC  :: EXITC
+      PUBLIC  :: SOLAR_JX
+      PUBLIC  :: ACLIM_FJX
+      PUBLIC  :: JP_ATMO
       PUBLIC  :: PHOTO_JX
       PUBLIC  :: INIT_FJX
       PUBLIC  :: FAST_JX
-      PUBLIC  :: FJXFUNC
 
+!      PUBLIC  :: FAST_J
+!      PUBLIC  :: FJFUNC
+!      PUBLIC  :: INPHOT
+!      PUBLIC  :: JRATET
+!      PUBLIC  :: OPMIE
+!      PUBLIC  :: PHOTOJ
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-      PRIVATE :: SOLAR_JX
       PRIVATE :: OPMIE
       PRIVATE :: MIESCT 
       PRIVATE :: LEGND0
       PRIVATE :: BLKSLV 
       PRIVATE :: GEN_ID 
+      PRIVATE :: OPTICL
+      PRIVATE :: OPTICA
+      PRIVATE :: OPTICM 
       PRIVATE :: JRATET
       PRIVATE :: X_INTERP 
+      PRIVATE :: JP_ATM
       PRIVATE :: SPHERE2 
       PRIVATE :: EXTRAL 
       PRIVATE :: RD_XXX
-      PRIVATE :: RD_AOD
+      PRIVATE :: RD_CLD
       PRIVATE :: RD_MIE
+      PRIVATE :: RD_UM
       PRIVATE :: RD_PROF
       PRIVATE :: RD_JS_JX
-      PRIVATE :: SET_AER
 !
 ! !REVISION HISTORY:
 !  27 Mar 2013 - S. D. Eastham - Initial version (based on original GEOS-
@@ -79,9 +90,9 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      SUBROUTINE FAST_JX( SUNCOS, OD, ALBD, PEDGE, WLAOD, am_I_Root )  
+      SUBROUTINE FAST_JX( SUNCOS, OD, ALBD, PEDGE, am_I_Root )  
 #else
-      SUBROUTINE FAST_JX( SUNCOS, OD, ALBD, WLAOD, am_I_Root )  
+      SUBROUTINE FAST_JX( SUNCOS, OD, ALBD, am_I_Root )  
 #endif
 !
 ! !USES:
@@ -114,9 +125,6 @@
 
       ! UV albedo [unitless]
       REAL*8,  INTENT(IN) :: ALBD(IIPAR,JJPAR)    
-
-      ! How was AOD calculated? (1: 550 nm, 0: 999 nm)
-      INTEGER, INTENT(IN) :: WLAOD
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       ! Pressure at gridbox interfaces
@@ -185,7 +193,8 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  10 Aug 2012 - R. Yantosca - Replace IPAR, JPAR, LPAR w/ IIPAR, JJPAR, LLPAR
-!  27 Mar 2013 - S. D. Eastham - Rolled in FAST_JX_MOD
+!  27 Mar 2013 - S. D. Eastham - Rolled into FAST_JX_MOD
+!  29 Mar 2013 - S. D. Eastham - Updated to Fast-JX from Fast-J
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -195,7 +204,7 @@
       INTEGER, SAVE      :: LASTMONTH = -1
       INTEGER            :: NLON, NLAT, DAY,  MONTH, DAY_OF_YR, L
       REAL*8             :: CSZA, PRES, SFCA, YLAT,  O3COL
-      REAL*8             :: T_CTM(LLPAR+1), OPTD(LLPAR)
+      REAL*8             :: TEMP(LLPAR), OPTD(LLPAR)
       REAL*8             :: OPTDUST(LLPAR,NDUST)
       REAL*8             :: OPTAER(LLPAR,NAER*NRH)
 
@@ -216,9 +225,6 @@
                                             !  FIX(LLPAR)+1
       REAL*8             :: CLDF1D(LLPAR)
       REAL*8             :: ODNEW(LLPAR)
-      REAL*8             :: P_CTM(LLPAR+2)
-
-      LOGICAL            :: AOD999
 
       ! NOTE: Switch from linear approximation (OVERLAP=1) to approximate
       ! random overlap (OVERLAP=2) because we have re-processed the GEOS-5
@@ -256,9 +262,6 @@
       ! Get day of month
       DAY       = GET_DAY()
 
-      ! Was AOD calculated at 999 nm or reference?
-      AOD999=(WLAOD.eq.0)
-
       !=================================================================
       ! For each (NLON,NLAT) location, call subroutine PHOTO_JX (in a 
       ! parallel loop to compute J-values for the entire column.  
@@ -268,10 +271,10 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( NLON,  NLAT,   YLAT,  CSZA,      OPTAER  )
-!$OMP+PRIVATE( PRES,  T_CTM,  OPTD,  SFCA,      OPTDUST )
+!$OMP+PRIVATE( PRES,  TEMP,   OPTD,  SFCA,      OPTDUST )
 !$OMP+PRIVATE( FMAX,  CLDF1D, KK,    NUMB,      L       )
 !$OMP+PRIVATE( KBOT,  KTOP,   ODNEW, INDICATOR, INDIC   )
-!$OMP+PRIVATE( O3COL, P_CTM                             )
+!$OMP+PRIVATE( O3COL                                    )
 !$OMP+SCHEDULE( DYNAMIC )
 
       ! Loop over latitudes
@@ -287,25 +290,22 @@
             CSZA         = SUNCOS( (NLAT-1)*IIPAR + NLON ) 
 
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-            ! Define the P array here, using GCM pressures
+            ! Define the PJ array here, using GCM pressures
             DO L = 1, LLPAR+1
-               P_CTM(L)  = PEDGE( NLON, NLAT, L )
+               PJ(L)     = PEDGE( NLON, NLAT, L )
             ENDDO
 #else
-            ! Define the P array here, using Ap and Bp from GEOS-Chem
-            DO L = 1, LLPAR+1
-               P_CTM(L)  = GET_PEDGE( NLON, NLAT, L )
+            ! Define the PJ array here, using Ap and Bp from GEOS-Chem
+            DO L = 1, NB
+               PJ(L)     = GET_PEDGE( NLON, NLAT, L )
             ENDDO
 #endif
 
-            ! Top edge of P_CTM is top of atmosphere (bmy, 2/13/07)
-            P_CTM(LLPAR+2)  = 0d0
+            ! Top edge of PJ is top of atmosphere (bmy, 2/13/07)
+            PJ(NB+1)     = 0d0
 
             ! Temperature profile [K] at (NLON,NLAT)
-            T_CTM(1:LLPAR) = T(NLON,NLAT,1:LLPAR)
-
-            ! Top of atmosphere
-            T_CTM(LLPAR+1) = T_CTM(LLPAR)
+            TEMP         = T(NLON,NLAT,1:LLPAR)
 
             ! Surface albedo [unitless] at (NLON,NLAT)
             SFCA         = ALBD(NLON,NLAT)
@@ -329,6 +329,7 @@
             !OPTDUST = 0d0
             !OPTD    = 0d0
             !-----------------------------------------------------------
+
             !===========================================================
             ! CLOUD OVERLAP : LINEAR ASSUMPTION 
             ! Directly use OPTDEPTH = TAUCLD * CLDTOT
@@ -338,23 +339,27 @@
             !===========================================================
             IF ( OVERLAP == 1 ) then
 
-               CALL ERROR_STOP('Linear cloud overlap not ready.',
-     &                         'fast_jx_mod.F')
-!#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
-!
-!               ! Column cloud fraction (not less than zero)
-!               CLDF1D = CLDF(1:LLPAR,NLON,NLAT)
-!               WHERE ( CLDF1D < 0d0 ) CLDF1D = 0d0
-!               
-!               ! NOTE: for the reprocessed GEOS-5 met fields (i.e. with
-!               ! optical depth & cloud fractions regridded with RegridTau)
-!               ! OPTD is the in-cloud optical depth.  At this point it has
-!               ! NOT been multiplied by cloud fraction yet.  Therefore,
-!               ! we can just apply the linear overlap formula as written 
-!               ! above (i.e. multiply by cloud fraction). (hyl, bmy, 10/24/08)
-!               OPTD = OPTD * CLDF1D
-!#endif
-!
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+
+               ! Column cloud fraction (not less than zero)
+               CLDF1D = CLDF(1:LLPAR,NLON,NLAT)
+               WHERE ( CLDF1D < 0d0 ) CLDF1D = 0d0
+               
+               ! NOTE: for the reprocessed GEOS-5 met fields (i.e. with
+               ! optical depth & cloud fractions regridded with RegridTau)
+               ! OPTD is the in-cloud optical depth.  At this point it has
+               ! NOT been multiplied by cloud fraction yet.  Therefore,
+               ! we can just apply the linear overlap formula as written 
+               ! above (i.e. multiply by cloud fraction). (hyl, bmy, 10/24/08)
+               OPTD = OPTD * CLDF1D
+#endif
+
+               ! Call FAST-JX routines to compute J-values
+               CALL PHOTO_JX(NLON,NLAT,SUNCOS,DAY_OF_YR,
+     &                       DAY,SFCA,.FALSE.,PJ,--ZZZ--,TEMP,
+     &                   --DDD--,--RRR--,  O3COL,  --CLDWP--,
+     &                       AERSP,NDXCLD,   NDXAER,   L1U,
+     &                       ANU,  VALJXX,   NJXU,     am_I_Root)
 !               CALL PHOTOJ( NLON,  NLAT,     YLAT,    DAY_OF_YR,  
 !     &                      MONTH, DAY,      CSZA,    TEMP,    
 !     &                      SFCA,  OPTD,     OPTDUST, OPTAER, 
@@ -391,16 +396,13 @@
 
 #endif
 
+               ! Call FAST-J routines to compute J-values
                ! Call FAST-JX routines to compute J-values
-                     CALL PHOTO_JX(CSZA,SFCA,P_CTM,T_CTM,O3COL,AOD999,
-     &                 OPTAER,OPTDUST,OPTD,NLON,NLAT,YLAT,DAY_OF_YR,
-     &                 MONTH,DAY,am_I_Root)
-
-!               CALL PHOTO_JX(U0,   SZA,      REFLB,    SOLF,  
-!     &                       LPRTJ,PPP,      ZZZ,      TTT,
-!     &                       DDD,  RRR,      OOO,      CLDWP,
-!     &                       AERSP,NDXCLD,   NDXAER,   L1U,
-!     &                       ANU,  VALJXX,   NJXU,     am_I_Root)
+               CALL PHOTO_JX(U0,   SZA,      REFLB,    SOLF,  
+     &                       LPRTJ,PPP,      ZZZ,      TTT,
+     &                       DDD,  RRR,      OOO,      CLDWP,
+     &                       AERSP,NDXCLD,   NDXAER,   L1U,
+     &                       ANU,  VALJXX,   NJXU,     am_I_Root)
 !               CALL PHOTOJ( NLON,  NLAT,     YLAT,    DAY_OF_YR,  
 !     &                      MONTH, DAY,      CSZA,    TEMP,  
 !     &                      SFCA,  OPTD,     OPTDUST, OPTAER,
@@ -441,94 +443,97 @@
             !===========================================================
             ELSE IF ( OVERLAP == 3 ) THEN
 
-               ! Sort this out later
-               CALL ERROR_STOP('MMRAN_16 not yet FJX compatible.',
-     &                         'fast_jx_mod.F')
-!               ! Initialize
-!               FMAX(:)   = 0d0  ! max cloud fraction in each cloud block
-!               ODNEW(:)  = 0d0  ! in-cloud optical depth
-!               CLDF1D    = CLDF(1:LLPAR,NLON,NLAT)
-!               INDICATOR = 0
-!
-!               ! set small negative CLDF or OPTD to zero. 
-!               ! Set indicator vector.
-!               WHERE ( CLDF1D <= 0d0 ) 
-!                  CLDF1D               = 0d0
-!                  OPTD                 = 0D0
-!               ELSEWHERE
-!                  INDICATOR(2:LLPAR+1) = 1
-!               ENDWHERE
-!
-!               ! Prevent negative opt depth
-!               WHERE ( OPTD < 0D0 ) OPTD   = 0D0
-!
-!               !--------------------------------------------------------
-!               ! Generate cloud blocks & get their Bottom and Top levels
-!               !--------------------------------------------------------
-!               INDICATOR = CSHIFT(INDICATOR, 1) - INDICATOR
-!               INDIC     = INDICATOR(1:LLPAR+1)
-!
-!               ! Number of cloud block
-!               NUMB      = COUNT( INDIC == 1 ) 
-!               
-!               ! Bottom layer of each block
-!               KBOT(1:NUMB) = PACK(INDGEN, (INDIC == 1 ) ) 
-!
-!               ! Top layer of each block
-!               KTOP(1:NUMB) = PACK(INDGEN, (INDIC == -1) ) - 1 
-!             
-!               !--------------------------------------------------------
-!               ! For each cloud block, get Max Cloud Fractions, and 
-!               ! in-cloud optical depth vertical distribution.
-!               !--------------------------------------------------------
-!               DO KK = 1, NUMB
-!
-!                  ! Max cloud fraction
-!                  FMAX(KK) = MAXVAL( CLDF1D(KBOT(KK):KTOP(KK)) )
-!
-!#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
-!
-!                  ! NOTE: for the reprocessed GEOS-5 met fields (i.e. with
-!                  ! optical depth & cloud fractions regridded with RegridTau)
-!                  ! OPTD is the in-cloud optical depth.  At this point it has
-!                  ! NOT been multiplied by cloud fraction yet.  Therefore,
-!                  ! we can just set ODNEW = OPTD. (bmy, hyl, 10/24/08)
-!
-!                  ! ODNEW is adjusted in-cloud OD vertical distrib.
-!                  ODNEW(KBOT(KK):KTOP(KK)) = OPTD(KBOT(KK):KTOP(KK))
-!
-!#else
-!
-!                  ! Otherwise, OPTD is the grid-box optical depth.  
-!                  ! Therefore, we must divide out by the cloud fraction
-!                  ! and thus set ODNEW = OPTD / FMAX. (bmy, hyl, 10/24/08)
-!
-!                  ! ODNEW is adjusted in-cloud OD vertical distrib.
-!                  ODNEW(KBOT(KK):KTOP(KK)) = OPTD(KBOT(KK):KTOP(KK)) / 
-!     &                                       FMAX(KK)
-!
-!#endif
-!               ENDDO
-!            
-!               !--------------------------------------------------------
-!               ! Apply Max RANdom if 1-6 clouds blocks, else use linear 
-!               !--------------------------------------------------------
-!               SELECT CASE( NUMB ) 
-!           
-!                  CASE( 0,7: )
+               ! Initialize
+               FMAX(:)   = 0d0  ! max cloud fraction in each cloud block
+               ODNEW(:)  = 0d0  ! in-cloud optical depth
+               CLDF1D    = CLDF(1:LLPAR,NLON,NLAT)
+               INDICATOR = 0
+
+               ! set small negative CLDF or OPTD to zero. 
+               ! Set indicator vector.
+               WHERE ( CLDF1D <= 0d0 ) 
+                  CLDF1D               = 0d0
+                  OPTD                 = 0D0
+               ELSEWHERE
+                  INDICATOR(2:LLPAR+1) = 1
+               ENDWHERE
+
+               ! Prevent negative opt depth
+               WHERE ( OPTD < 0D0 ) OPTD   = 0D0
+
+               !--------------------------------------------------------
+               ! Generate cloud blocks & get their Bottom and Top levels
+               !--------------------------------------------------------
+               INDICATOR = CSHIFT(INDICATOR, 1) - INDICATOR
+               INDIC     = INDICATOR(1:LLPAR+1)
+
+               ! Number of cloud block
+               NUMB      = COUNT( INDIC == 1 ) 
+               
+               ! Bottom layer of each block
+               KBOT(1:NUMB) = PACK(INDGEN, (INDIC == 1 ) ) 
+
+               ! Top layer of each block
+               KTOP(1:NUMB) = PACK(INDGEN, (INDIC == -1) ) - 1 
+             
+               !--------------------------------------------------------
+               ! For each cloud block, get Max Cloud Fractions, and 
+               ! in-cloud optical depth vertical distribution.
+               !--------------------------------------------------------
+               DO KK = 1, NUMB
+
+                  ! Max cloud fraction
+                  FMAX(KK) = MAXVAL( CLDF1D(KBOT(KK):KTOP(KK)) )
+
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+
+                  ! NOTE: for the reprocessed GEOS-5 met fields (i.e. with
+                  ! optical depth & cloud fractions regridded with RegridTau)
+                  ! OPTD is the in-cloud optical depth.  At this point it has
+                  ! NOT been multiplied by cloud fraction yet.  Therefore,
+                  ! we can just set ODNEW = OPTD. (bmy, hyl, 10/24/08)
+
+                  ! ODNEW is adjusted in-cloud OD vertical distrib.
+                  ODNEW(KBOT(KK):KTOP(KK)) = OPTD(KBOT(KK):KTOP(KK))
+
+#else
+
+                  ! Otherwise, OPTD is the grid-box optical depth.  
+                  ! Therefore, we must divide out by the cloud fraction
+                  ! and thus set ODNEW = OPTD / FMAX. (bmy, hyl, 10/24/08)
+
+                  ! ODNEW is adjusted in-cloud OD vertical distrib.
+                  ODNEW(KBOT(KK):KTOP(KK)) = OPTD(KBOT(KK):KTOP(KK)) / 
+     &                                       FMAX(KK)
+
+#endif
+               ENDDO
+            
+               !--------------------------------------------------------
+               ! Apply Max RANdom if 1-6 clouds blocks, else use linear 
+               !--------------------------------------------------------
+               SELECT CASE( NUMB ) 
+           
+                  CASE( 0,7: )
+               ! Call FAST-JX routines to compute J-values
+                     CALL PHOTO_JX(U0,   SZA,      REFLB,    SOLF,  
+     &                             LPRTJ,PPP,      ZZZ,      TTT,
+     &                             DDD,  RRR,      OOO,      CLDWP,
+     &                            AERSP,NDXCLD,   NDXAER,   L1U,
+     &                            ANU,  VALJXX,   NJXU,     am_I_Root)
 !                     CALL PHOTOJ( NLON,  NLAT,     YLAT,    DAY_OF_YR, 
 !     &                            MONTH, DAY,      CSZA,    TEMP,  
 !     &                            SFCA,  OPTD,     OPTDUST, OPTAER,
 !     &                            O3COL, am_I_Root                    )
-!
-!                  CASE( 1:6 ) 
-!                     CALL MMRAN_16( NUMB,  NLON,  NLAT,      YLAT,   
-!     &                              DAY,   MONTH, DAY_OF_YR, CSZA,    
-!     &                              TEMP,  SFCA,  OPTDUST,   OPTAER, 
-!     &                              LLPAR, FMAX,  ODNEW,     KBOT,   
-!     &                              KTOP,  O3COL, am_I_Root )
-!
-!               END SELECT
+
+                  CASE( 1:6 ) 
+                     CALL MMRAN_16( NUMB,  NLON,  NLAT,      YLAT,   
+     &                              DAY,   MONTH, DAY_OF_YR, CSZA,    
+     &                              TEMP,  SFCA,  OPTDUST,   OPTAER, 
+     &                              LLPAR, FMAX,  ODNEW,     KBOT,   
+     &                              KTOP,  O3COL, am_I_Root )
+
+               END SELECT
             ENDIF 
          ENDDO
       ENDDO
@@ -1104,6 +1109,243 @@ C------------lower boundary, 2nd-order, A-matrix is full (AA)
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: opticl
+!
+! !DESCRIPTION: Subroutine OPTICL calculated cloud properties at 5 wavelengths.
+! 01 W_C02   (C1/Deir)GAMMA:r-m=2.0/alf=6 n=1.335   reff=3.000___G=19.55_rho=1.000
+! 02 W_C04   (C1/Deir)GAMMA:r-m=4.0/alf=6 n=1.335   reff=6.000___G=78.19_rho=1.000
+! 03 W_C08   (C1/Deir)GAMMA:r-m=8.0/alf=2 n=1.335   reff=12.00___G=301.1_rho=1.000
+! 04 W_C13   (C1/Deir)GAMMA:r-m=13./alf=2 n=1.335   reff=20.00___G=472.9_rho=1.000
+! 05 W_L06   (W/Lacis)GAMMA:r-m=5.5/alf=11/3        reff=10.00___G=183.9_rho=1.000
+! 06 Ice-Hexagonal (Mishchencko)                    reff=50.00___G=999.9_rho=0.917
+! 07 Ice-Irregular (Mishchencko)                    reff=50.00___G=999.9_rho=0.917
+! 08 S-Bkg   LOGN:r=.090 s=.600 n=1.514/.../1.435   reff=0.221___G=.0523_rho=1.630
+! 09 S-Vol   LOGN:r=.080 s=.800 n=1.514/.../1.435   reff=0.386___G=.0721_rho=1.630
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE OPTICL (OPTD,SSALB,SLEG, ODCLD,NDCLD)
+!
+! !USES:
+!
+! !INPUT PARAMETERS:
+!
+      real*8, intent(in)::     ODCLD      ! optical depth of cloud layer @600 nm
+      integer,intent(inout)::  NDCLD      ! index of cloud layer:  4:13
+!
+! !OUTPUT VARIABLES:
+!
+      real*8, intent(out)::    OPTD(5)    ! optical depth of layer
+      real*8, intent(out)::    SSALB(5)   ! single-scattering albedo
+      real*8, intent(out)::    SLEG(8,5)  ! scatt phase fn (Leg coeffs)
+!
+! !REMARKS:
+! 
+! !REVISION HISTORY: 
+!  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      integer I,J
+      real*8  XTINCT, REFF,RHO
+
+      !=================================================================
+      ! OPTICL begins here!
+      !=================================================================
+
+c---default cloud type C1, Reff = 12 microns
+      if (NDCLD .lt. 1 .or. NDCLD .gt. 9) then
+         NDCLD = 3
+      endif
+
+c--rescale OD by Qext at 600 nm (J=4)
+      do J=1,5
+         OPTD(J) = ODCLD * QCC(J,NDCLD)/QCC(4,NDCLD)
+         SSALB(J) = SCC(J,NDCLD)
+        do I=1,8
+         SLEG(I,J) =  PCC(I,J,NDCLD)
+        enddo
+      enddo
+
+      END SUBROUTINE OPTICL
+!
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: optica
+!
+! !DESCRIPTION: Subroutine OPTICA calculates aerosol optical properties.       
+!---UCI aersols optical data  v-7.0+
+! 01 S-Bkg   LOGN:r=.090 s=.600 n=1.514/.../1.435   reff=0.221___G=.0523_rho=1.630
+! 02 S-Vol   LOGN:r=.080 s=.800 n=1.514/.../1.435   reff=0.386___G=.0721_rho=1.630
+! 03 UT-sulfate LOGN:r=0.05 s=.693 n=1.44           reff=0.166___G=.0205_rho=1.769
+! 04 UT-sulfate LOGN:r=0.05 s=.693 n=1.46           reff=0.166___G=.0205_rho=1.769
+! 05 UT-sulfatM LOGN:r=.050 s=.642 n=1.53           reff=0.140___G=.0179_rho=1.769
+! 06 UM-BC1     LOGN:r=.050 s=.642 n=1.80+0.50i     reff=0.140___G=.0179_rho=1.500
+! 07 UM-BC2     LOGN:r=.080 s=.501 n=1.80+0.50i     reff=0.150___G=.0332_rho=1.500
+! 08 UM-BB08 (%BC)LOGN:r=.080 s=.500 n=1.552+0.04i  reff=0.149___G=.0331_rho=1.230
+! 09 UM-FF04 (%BC) LOGN:r=.050 s=.642 n=1.541+0.02i reff=0.140___G=.0179_rho=1.212
+! 10 UM-FF10 (%BC)LOGN:r=.050 s=.642 n=1.557+0.05i  reff=0.140___G=.0179_rho=1.230
+! 11 MDust.15  (R.V. Martin generated phase fns)    reff=0.150___G=1.000_rho=2.600
+! 12 MDust.25  (R.V. Martin generated phase fns)    reff=0.250___G=1.000_rho=2.600
+! 13 MDust.40  (R.V. Martin generated phase fns)    reff=0.400___G=1.000_rho=2.600
+! 14 MDust.80  (R.V. Martin generated phase fns)    reff=0.800___G=1.000_rho=2.6001
+! 15 MDust1.5  (R.V. Martin generated phase fns)    reff=1.500___G=1.000_rho=2.600
+! 16 MDust2.5  (R.V. Martin generated phase fns)    reff=2.500___G=1.000_rho=2.600
+! 17 MDust4.0  (R.V. Martin generated phase fns)    reff=4.000___G=1.000_rho=2.600
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE OPTICA (OPTD,SSALB,SLEG,PATH,RELH,K)
+!
+! !USES:
+!
+! !INPUT PARAMETERS:
+!
+      real*8, intent(in)::     PATH       ! path (g/m2) of aerosol/cloud
+      real*8, intent(in)::     RELH       ! relative humidity (0.00->1.00+)
+      integer,intent(inout)::     K       ! index of cloud/aerosols
+!
+! !OUTPUT VARIABLES:
+!
+      real*8, intent(out)::    OPTD(5)    ! optical depth of layer
+      real*8, intent(out)::    SSALB(5)   ! single-scattering albedo
+      real*8, intent(out)::    SLEG(8,5)  ! scatt phase fn (Leg coeffs)
+!
+! !REMARKS:
+! 
+! !REVISION HISTORY: 
+!  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      integer I,J
+      real*8  XTINCT, REFF,RHO
+
+      !=================================================================
+      ! OPTICA begins here!
+      !=================================================================
+
+      if (K .gt. NAA .or. K .lt. 1) then
+         write(6,*) ' aerosol index out-of-range: K/NAA',K,NAA
+         K = 18
+      endif
+
+         REFF = RAA(K)
+         RHO = DAA(K)
+      do J=1,5
+c---extinction K(m2/g) = Q(wvl) / [4/3 * Reff(micron) * aerosol-density(g/cm3)]
+         XTINCT = 0.75d0*QAA(J,K)/(REFF*RHO)
+         OPTD(J) = PATH*XTINCT
+         SSALB(J) = SAA(J,K)
+       do I=1,8
+         SLEG(I,J) =  PAA(I,J,K)
+       enddo
+      enddo
+
+      END SUBROUTINE OPTICA
+!
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: opticm
+!
+! !DESCRIPTION: Subroutine OPTICM calculates aerosol optical properties.       
+!  For the U. Michigan aerosol data sets, this generate Fast-JX data formats.
+!  NB: Approximates the Legendre expansion(L) of the scattering phase fn
+!      as (2*L+1)*g**L
+!   UMAER(I,J,K,L):
+!   I=1:3 = [SSAbldeo, g, k-ext(m2/g)]
+!   J=1:5 = [200, 300, 400, (550,) 600 , 1000 nm]
+!   K=1:21= [0, 5, 10, 15, ..., 90, 95, 99 %RelHum]
+!   L=1:33= UM aerosol types [SULF, SS-1,-2,-3,-4, DD-1,-2,-3,-4, FF00(0%BC),
+!                      FF02, ...FF14(14%BC), BB00, BB02, ...BB30(30%BC)]
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE OPTICM (OPTD,SSALB,SLEG,PATH,RELH,LL)
+!
+! !USES:
+!
+! !INPUT PARAMETERS:
+!
+      real*8, intent(in)       :: PATH       ! path (g/m2) of aerosol/cloud
+      real*8, intent(in)       :: RELH       ! relative humidity (0.00->1.00+)
+      integer,intent(in)       :: LL         ! index of cloud/aerosols
+!
+! !OUTPUT VARIABLES:
+!
+      real*8, intent(out)      :: OPTD(5)    ! optical depth of layer
+      real*8, intent(out)      :: SSALB(5)   ! single-scattering albedo
+      real*8, intent(out)      :: SLEG(8,5)  ! scatt phase fn (Leg coeffs)
+!
+! !REMARKS:
+! 
+! !REVISION HISTORY: 
+!  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      integer KR,I,J
+      real*8  XTINCT,R,FRH,GCOS
+
+      !=================================================================
+      ! OPTICM begins here!
+      !=================================================================
+
+c---calculate fast-JX properties at the std 5 wavelengths:200-300-400-600-999nm
+c---extrapolate phase fn from first term (g)
+      L = LL
+      if (L .lt. 1 .or. L .gt. 33) then
+cccc         write(6,*) ' UM aer index too large: L',L
+         L = 1
+      endif
+
+c---pick nearest Relative Humidity
+      KR =  20.d0*RELH  + 1.5d0
+      KR = max(1, min(21, KR))
+
+      do J=1,5
+       SSALB(J) = UMAER(1,J,KR,L)
+         XTINCT = UMAER(3,J,KR,L)
+       OPTD(J) = PATH*XTINCT
+         GCOS   = UMAER(2,J,KR,L)
+       SLEG(1,J) =  1.d0
+       SLEG(2,J) =  3.d0*GCOS
+       SLEG(3,J) =  5.d0*GCOS**2
+       SLEG(4,J) =  7.d0*GCOS**3
+       SLEG(5,J) =  9.d0*GCOS**4
+       SLEG(6,J) = 11.d0*GCOS**5
+       SLEG(7,J) = 13.d0*GCOS**6
+       SLEG(8,J) = 15.d0*GCOS**7
+      enddo
+
+      END SUBROUTINE OPTICM
+!
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: jratet
 !
 ! !DESCRIPTION: Subroutine JRATET calculates temperature-dependent J-rates.
@@ -1111,27 +1353,25 @@ C------------lower boundary, 2nd-order, A-matrix is full (AA)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE JRATET(PPJ,TTJ,FFF,VALJL,LCTM,LCHEM,NJXU)
+      SUBROUTINE JRATET(PPJ,TTJ,FFF,VALJL,LU,NJXU)
 !
 ! !USES:
 !
 !
 ! !INPUT PARAMETERS:
 !
-      integer, intent(in)   :: LCTM,LCHEM,NJXU
-      real*8, intent(in)    ::  PPJ(JXL1_+1),TTJ(JXL1_+1)
-      real*8, intent(inout) ::  FFF(W_,LCTM)
+      integer, intent(in)  :: LU,NJXU
+      real*8, intent(in)  ::  PPJ(LU+1),TTJ(LU+1)
+      real*8, intent(inout)  ::  FFF(W_,LU)
 !
 ! !OUTPUT VARIABLES:
 !
-      real*8, intent(out), dimension(LCTM,NJXU) ::  VALJL
+      real*8, intent(out), dimension(LU,NJXU) ::  VALJL
 !
 ! !REMARKS:
 ! 
 ! !REVISION HISTORY: 
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
-!  02 Apr 2013 - S. D. Eastham - Now only assign J-rates on
-!                                levels within the chemistry grid.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1150,7 +1390,7 @@ C------------lower boundary, 2nd-order, A-matrix is full (AA)
       if (NJXU .lt. NJX) then
         call EXITC(' JRATET:  CTM has not enough J-values dimensioned')
       endif
-      do L = 1,LCTM
+      do L = 1,LU
 c---need temperature, pressure, and density at mid-layer (for some quantum yields):
           TT   = TTJ(L)
          if (L .eq. 1) then
@@ -1206,15 +1446,6 @@ c---also need to allow for Pressure interpolation if SQQ(J) = 'p'
         enddo
 
       enddo
-
-      ! Zero non-chemistry layers
-      if (LCHEM.lt.LCTM) then
-         do l=LCTM+1,LCHEM
-            do J=1,NJX
-               VALJL(L,J) = 0.d0
-            enddo
-         enddo
-      endif
 
       END SUBROUTINE JRATET
 !
@@ -1286,6 +1517,146 @@ c---also need to allow for Pressure interpolation if SQQ(J) = 'p'
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: jp_atm
+!
+! !DESCRIPTION: Subroutine JP\_ATM sets up the atmosphere for photolysis.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE JP_ATM(PPJ,TTJ,DDJ,OOJ,ZZJ,DTAU6,POMEG6,JXTRA,LU)
+!
+! !USES:
+!
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER,INTENT(IN)                  :: LU
+      REAL*8, INTENT(IN), DIMENSION(LU+2) :: PPJ,ZZJ
+      REAL*8, INTENT(IN), DIMENSION(LU+1) :: TTJ,DDJ,OOJ,DTAU6
+      REAL*8, INTENT(IN), DIMENSION(8,LU+1) :: POMEG6
+      INTEGER,INTENT(IN), DIMENSION(LU+LU+3) :: JXTRA
+!
+! !OUTPUT VARIABLES:
+!
+!
+! !REMARKS:
+! 
+! !REVISION HISTORY: 
+!  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER  I,J,K,L
+      REAL*8   COLO2,COLO3,ZKM,DELZ,ZTOP
+
+      !=================================================================
+      ! JP_ATM begins here!
+      !=================================================================
+
+      write(6,'(4a)') '   L z(km)     p      T   ',
+     & '    d(air)   d(O3)','  col(O2)  col(O3)     d-TAU   SS-alb',
+     & '  g(cos) CTM lyr=>'
+
+      L = LU+2
+      write(6,'(1x,i3,0p,f6.2,f10.3,f7.2,1p,4e9.2,0p,f10.4,2f8.5,2i3)')
+     &      L,ZZJ(L)*1.d-5,PPJ(L)
+
+          COLO2 = 0.d0
+          COLO3 = 0.d0
+          ZTOP = ZZJ(LU+2)
+
+        do L = LU+1,1,-1
+          COLO2 = COLO2 + DDJ(L)*0.20948d0
+          COLO3 = COLO3 + OOJ(L)
+          DELZ = ZTOP-ZZJ(L)
+          ZTOP = ZZJ(L)
+          ZKM = ZZJ(L)*1.d-5
+
+      write(6,'(1x,i3,0p,f6.2,f10.3,f7.2,1p,4e9.2,0p,f10.4,2f8.5,2i3)')
+     &      L,ZKM,PPJ(L),TTJ(L),DDJ(L)/DELZ,OOJ(L)/DELZ,
+     &      COLO2,COLO3,DTAU6(L),POMEG6(1,L),POMEG6(2,L)/3.d0,
+     &      JXTRA(L+L),JXTRA(L+L-1)
+
+        enddo
+
+      END SUBROUTINE JP_ATM
+!
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: jp_atm0
+!
+! !DESCRIPTION: Subroutine JP\_ATM0 sets up the atmosphere for photolysis.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE JP_ATM0(PPJ,TTJ,DDJ,OOJ,ZZJ,LU)
+!
+! !USES:
+!
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER,INTENT(IN)                  :: LU
+      REAL*8, INTENT(IN), DIMENSION(LU+2) :: PPJ,ZZJ
+      REAL*8, INTENT(IN), DIMENSION(LU+1) :: TTJ,DDJ,OOJ
+!
+! !OUTPUT VARIABLES:
+!
+!
+! !REMARKS:
+! 
+! !REVISION HISTORY: 
+!  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER  I,J,K,L
+      REAL*8   COLO2,COLO3,ZKM,DELZ,ZTOP
+
+      !=================================================================
+      ! JP_ATM0 begins here!
+      !=================================================================
+
+      write(6,'(4a)') '   L z(km)     p      T   ',
+     & '    d(air)   d(O3)','  col(O2)  col(O3)     d-TAU   SS-alb',
+     & '  g(cos) CTM lyr=>'
+      L = LU+2
+      write(6,'(1x,i3,0p,f6.2,f10.3,f7.2,1p,4e9.2,0p,f10.4,2f8.5,2i3)')
+     &      L,ZZJ(L)*1.d-5,PPJ(L)
+          COLO2 = 0.d0
+          COLO3 = 0.d0
+          ZTOP = ZZJ(LU+2)
+        do L = LU+1,1,-1
+          COLO2 = COLO2 + DDJ(L)*0.20948d0
+          COLO3 = COLO3 + OOJ(L)
+          DELZ = ZTOP-ZZJ(L)
+          ZTOP = ZZJ(L)
+          ZKM = ZZJ(L)*1.d-5
+      write(6,'(1x,i3,0p,f6.2,f10.3,f7.2,1p,4e9.2,0p,f10.4,2f8.5,2i3)')
+     &      L,ZKM,PPJ(L),TTJ(L),DDJ(L)/DELZ,OOJ(L)/DELZ,
+     &      COLO2,COLO3
+        enddo
+
+      END SUBROUTINE JP_ATM0
+!
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: sphere2
 !
 ! !DESCRIPTION: Subroutine SPHERE2 is an AMF2. Quoting from the original:
@@ -1305,9 +1676,8 @@ c---also need to allow for Pressure interpolation if SQQ(J) = 'p'
 !  ---------------------------------------------------------------------
 !  Inputs:
 !     U0      cos(solar zenith angle)
-!     RAD  radius of Earth mean sea level (cm)
-!     ZHL(L)  height (cm) of the bottom edge of CTM level L
-!     ZZHT    scale height (cm) used above top of CTM (ZHL(L_+1))
+!     RAD     radius of Earth mean sea level (cm)
+!     ZHL(L)  height (cm) of the bottome edge of CTM level L
 !     L1U     dimension of CTM = levels +1 (L+1 = above-CTM level)
 !  Outputs:
 !     AMF2(I,J) = air mass factor for CTM level I for sunlight reaching J
@@ -1317,7 +1687,7 @@ c---also need to allow for Pressure interpolation if SQQ(J) = 'p'
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SPHERE2 (U0,ZHL,AMF2,L1U,LJX1U)
+      SUBROUTINE SPHERE2 (U0,RAD,ZHL,AMF2,L1U,LJX1U)
 !
 ! !USES:
 !
@@ -1325,7 +1695,7 @@ c---also need to allow for Pressure interpolation if SQQ(J) = 'p'
 ! !INPUT PARAMETERS:
 !
       INTEGER, INTENT(IN) ::   L1U, LJX1U
-      REAL*8, INTENT(IN)  ::   U0,ZHL(L1U+1)
+      REAL*8, INTENT(IN)  ::   U0,RAD,ZHL(L1U+1)
 !
 ! !OUTPUT VARIABLES:
 !
@@ -1357,7 +1727,6 @@ c---also need to allow for Pressure interpolation if SQQ(J) = 'p'
       !=================================================================
 
 c--- must have top-of-atmos (NOT top-of-CTM) defined
-c      ZHL(L1U+1) = ZHL(L1U) + ZZHT
 
       if (L1U .gt. LSPH_) then
         call EXITC(' SPHERE2: temp arrays not large enough')
@@ -1459,16 +1828,17 @@ c  Lowest level intersected by emergent beam
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE EXTRAL (DTAUX,L1X,L2X,NX,JXTRA)
+      SUBROUTINE EXTRAL (DTAUX,L1X,L2X,NX,JTAUMX,ATAU,ATAU0,JXTRA)
 !
 ! !USES:
 !
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN) ::  L1X,L2X         !index of cloud/aerosol
+      INTEGER, INTENT(IN) ::  JTAUMX,L1X,L2X  !index of cloud/aerosol
       integer, intent(in) ::  NX              !Mie scattering array size
       real*8,  intent(in) ::  DTAUX(L1X)      !cloud+3aerosol OD in each layer
+      real*8,  intent(in) ::  ATAU,ATAU0
 !
 ! !OUTPUT VARIABLES:
 !
@@ -1510,7 +1880,7 @@ c---The key parameters are:
 c---        ATAU = factor increase from one layer to the next
 c---        ATAUMN = the smallest OD layer desired
 c---        JTAUMX = maximum number of divisions (i.e., may not get to ATAUMN)
-c---These are set in CMN_FJX_MOD, and have been tested/optimized
+c---These are hardwired below, can be changed, but have been tested/optimized
 
       ATAU1  = ATAU - 1.d0
       ATAULN = log(ATAU)
@@ -1546,7 +1916,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       enddo
   10  continue
 
-      END SUBROUTINE EXTRAL
+      END SUBROUTINE EXTRA
 !
 !EOC
 !------------------------------------------------------------------------------
@@ -1556,7 +1926,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 !
 ! !IROUTINE: exitc
 !
-! !DESCRIPTION: Subroutine EXITC forces an error in GEOS-Chem and quits.
+! !DESCRIPTION: Subroutine EXITC simply writes T\_EXIT to stdout.
 !\\
 !\\
 ! !INTERFACE:
@@ -1565,7 +1935,6 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 !
 ! !USES:
 !
-      USE ERROR_MOD, ONLY : ERROR_STOP
 !
 ! !INPUT PARAMETERS:
 !
@@ -1588,7 +1957,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       ! EXITC begins here!
       !=================================================================
 
-      CALL ERROR_STOP( T_EXIT, 'fast_jx_mod.F' )
+      WRITE(6, '(a)') T_EXIT
 
       END SUBROUTINE EXITC
 !
@@ -1605,7 +1974,8 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_FJX(am_I_Root)
+!      SUBROUTINE INIT_FJX(TITLEJXX,NJXU,NJXX,am_I_Root)
+      SUBROUTINE INIT_FJX(NCHEM,NJXU,am_I_Root)
 !
 ! !USES:
 !
@@ -1613,10 +1983,14 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 !
 ! !INPUT PARAMETERS:
 !
+      INTEGER, INTENT(IN) :: NCHEM       ! Number of chemistry layers
+      INTEGER, INTENT(IN) :: NJXU
       LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 !
 ! !OUTPUT VARIABLES:
 !
+!      INTEGER, INTENT(OUT) ::NJXX
+!      CHARACTER*6, INTENT(OUT), DIMENSION(NJXU) :: TITLEJXX
 !
 ! !REMARKS:
 ! 
@@ -1630,8 +2004,8 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 !
       INTEGER                     :: JXUNIT,J
       CHARACTER(LEN=255)          :: FILENAME
-      INTEGER                     :: NJXX
-      CHARACTER*6,DIMENSION(JVN_)  :: TITLEJXX
+      INTEGER                     :: NJXX     ! Actual no. of rxns FJX will run
+      CHARACTER*6,DIMENSION(NJXU) :: TITLEJXX
 
       !=================================================================
       ! INIT_FJX begins here!
@@ -1645,8 +2019,8 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
          endif
       ENDIF
 
-      ! Set shared variable according to input argument
-      
+      ! Set shared variables according to input arguments
+      JVLACTIVE = NCHEM
 
       ! Get a free LUN
       JXUNIT = findFreeLUN()
@@ -1661,29 +2035,14 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 
       ! Echo info
       IF ( am_I_Root ) THEN
-         WRITE( 6, 100 ) TRIM( FILENAME ), JXUNIT
+         WRITE( 6, 100 ) TRIM( FILENAME ), LUN
  100     FORMAT( 'GEOSCHEM::INIT_FJX: Reading ', a ', on unit ', i4 )
       ENDIF
 
-      call RD_XXX(JXUNIT,TRIM( FILENAME ), am_I_Root)
+      call RD_XXX(JXUNIT,TRIM( FILENAME ))
 
-      ! Read in 5-wavelength scattering data
-      FILENAME = 'jv_spec_mie.dat'
-
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      ! For the ESMF interface to GEOS-5 GCM, we need to append *___.rc
-      FILENAME = TRIM( FILENAME ) // '___.rc'
-#endif
-
-      ! Echo info
-      IF ( am_I_Root ) THEN
-         WRITE( 6, 100 ) TRIM( FILENAME ), JXUNIT
-      ENDIF
-
-      call RD_MIE(JXUNIT,TRIM( FILENAME ), am_I_Root)
-
-      ! Read in AOD data
-      FILENAME = 'jv_spec_aod.dat'
+      ! Read in cloud scattering data
+      FILENAME = 'FJX_scat-cld.dat'
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       ! For the ESMF interface to GEOS-5 GCM, we need to append *___.rc
@@ -1692,13 +2051,40 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 
       ! Echo info
       IF ( am_I_Root ) THEN
-         WRITE( 6, 100 ) TRIM( FILENAME ), JXUNIT
+         WRITE( 6, 100 ) TRIM( FILENAME ), LUN
       ENDIF
 
-      call RD_AOD(JXUNIT,TRIM( FILENAME ), am_I_Root)
+      call RD_CLD(JXUNIT,TRIM( FILENAME ))
 
-      ! Set up MIEDX array to interpret between GC and FJX aerosol indexing
-      call SET_AER(am_I_Root)
+      ! Read in aerosols scattering data
+      FILENAME = 'FJX_scat-aer.dat'
+
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      ! For the ESMF interface to GEOS-5 GCM, we need to append *___.rc
+      FILENAME = TRIM( FILENAME ) // '___.rc'
+#endif
+
+      ! Echo info
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 100 ) TRIM( FILENAME ), LUN
+      ENDIF
+
+      call RD_MIE(JXUNIT,TRIM( FILENAME ))
+
+      ! Read in UMich aerosol scattering data
+      FILENAME = 'FJX_scat-UMa.dat'
+
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      ! For the ESMF interface to GEOS-5 GCM, we need to append *___.rc
+      FILENAME = TRIM( FILENAME ) // '___.rc'
+#endif
+
+      ! Echo info
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 100 ) TRIM( FILENAME ), LUN
+      ENDIF
+
+      call RD_UM (JXUNIT,TRIM( FILENAME ))
 
       ! Read in T & O3 climatology used to fill e.g. upper layers or if O3 not calc.
       FILENAME = 'atmos_std.dat'
@@ -1710,12 +2096,12 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 
       ! Echo info
       IF ( am_I_Root ) THEN
-         WRITE( 6, 100 ) TRIM( FILENAME ), JXUNIT
+         WRITE( 6, 100 ) TRIM( FILENAME ), LUN
       ENDIF
 
-      call RD_PROF(JXUNIT,TRIM( FILENAME ), am_I_Root)
+      call RD_PROF(JXUNIT,TRIM( FILENAME ))
 
-      NJXX = NJX
+        NJXX = NJX
       do J = 1,NJX
         TITLEJXX(J) = TITLEJX(J)
       enddo
@@ -1731,16 +2117,91 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 
       ! Echo info
       IF ( am_I_Root ) THEN
-         WRITE( 6, 100 ) TRIM( FILENAME ), JXUNIT
+         WRITE( 6, 100 ) TRIM( FILENAME ), LUN
       ENDIF
 
-      call RD_JS_JX(JXUNIT,TRIM( FILENAME ), TITLEJXX,NJXX,am_I_Root)
-
-      ! Build cross-referencing indices
-      call JV_INDEX(am_I_Root)
+      call RD_JS_JX(JXUNIT,TRIM( FILENAME ), TITLEJXX,NJXX)
 
       END SUBROUTINE INIT_FJX
 !
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: fjxfunc
+!
+! !DESCRIPTION: Function FJXFUNC supplies J-values to the chemistry solver.  
+!\\
+!\\
+! !INTERFACE:
+!
+      REAL*8 FUNCTION FJXFUNC(I,J,L,NREAC,BRCH,NAME)
+!
+! !USES:
+!
+      USE ERROR_MOD, ONLY : ERROR_STOP
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER,           INTENT(IN) :: I,J,L,NREAC,BRCH
+      CHARACTER (LEN=4), INTENT(IN) :: NAME
+!
+! !REVISION HISTORY: 
+!  (1  ) "cmn_fj.h" also includes "CMN_SIZE" and "define.h".
+!  (2  ) J-values are stored in array "ZPJ" from "cmn_fjx_mod.F".
+!  (3  ) Now references ERROR_STOP from "error_mod.F".  Updated comments,
+!         and made some cosmetic changes. (bmy, 10/15/02)
+!  27 Mar 2013 - S. D. Eastham - Rolled into FAST_JX_MOD
+!  29 Mar 2013 - S. D. Eastham - Converted fro fjfunc into fjxfunc
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER                       :: N
+      
+      !=================================================================
+      ! FJXFUNC begins here!
+      !
+      ! If your compiler has subscript-range checking (-C or 
+      ! -check_bounds) then it is recommended to use this option to 
+      ! test for the validity of (I,J,L), since repeated IF statements 
+      ! are computationally expensive.
+      !
+      ! If your compiler does not have subscript-range checking, then 
+      ! uncomment the following lines to do a manual test for the 
+      ! validity of (I,J,L).  
+      !=================================================================
+
+!      IF ( I > IIPAR .OR. J > JJPAR .OR. L > JPNL ) THEN 
+!         CALL ERROR_STOP('Invalid grid-box # in call to FJXFUNC',
+!     & 'FAST_JX_MOD.F')
+!      ENDIF
+
+      !=================================================================
+      ! RINDEX converts the J-value index as read from "globchem.dat" to 
+      ! the J-value index as read from "fjx_j2j.dat". 
+      ! (bmy, 10/5/98, SDE 03/29/13)
+      !
+      ! Make sure that we have taken the proper reaction! 
+      !=================================================================
+      N = RINDEX(NREAC)
+
+      IF ( N > JVN_ ) THEN
+         WRITE(6,*) 'RXN for ',name,', branch ',brch,' not found!'
+         CALL ERROR_STOP( 'Check FJXFUNC', 'FAST_JX_MOD.F' )
+      ENDIF
+
+      !=================================================================
+      ! Return the appropriate J-value as the value of the function 
+      !=================================================================
+      FJXFUNC = ZPJ(L,N,I,J)
+
+      ! Return to calling program
+      END FUNCTION FJXFUNC
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -1781,7 +2242,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RD_XXX (NUN,NAMFIL,am_I_Root)
+      SUBROUTINE RD_XXX (NUN,NAMFIL)
 !
 ! !USES:
 !
@@ -1790,7 +2251,6 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 !
       INTEGER, INTENT(IN) :: NUN
       CHARACTER(*), INTENT(IN) ::  NAMFIL
-      LOGICAL,      INTENT(IN) :: am_I_Root
 !
 ! !OUTPUT VARIABLES:
 !
@@ -1900,9 +2360,7 @@ c---skip stratosphere only J's (denoted by 'x')if W_<18 => trop-only J's
         NJX = JJ
 
       do J = 1,NJX
-        if (am_I_Root) then
-           write(6,200) J,TITLEJX(J),SQQ(J),LQQ(J),(TQQ(I,J),I=1,LQQ(J))
-        endif
+        write(6,200) J,TITLEJX(J),SQQ(J),LQQ(J),(TQQ(I,J),I=1,LQQ(J))
 c---need to check that TQQ is monotonically increasing:
         if (LQQ(J) .eq. 3) then
           if (TQQ(2,J) .ge. TQQ(3,J)) then
@@ -1928,10 +2386,8 @@ c---truncate number of wavelengths to do troposphere-only
       if (W_ .ne. WX_) then
 c---TROP-ONLY
        if (W_ .eq. 12) then
-        if (am_I_Root) then
-           write(6,'(a)')
-     &      ' >>>TROP-ONLY reduce wavelengths to 12, drop strat X-sects'
-        endif
+        write(6,'(a)')
+     &   ' >>>TROP-ONLY reduce wavelengths to 12, drop strat X-sects'
         NW2 = 12
         do IW = 1,4
           WL(IW) = WL(IW+4)
@@ -1963,10 +2419,8 @@ c---TROP-ONLY
         enddo
 c---TROP-QUICK  (must scale solar flux for W=5)
        elseif (W_ .eq. 8) then
-        if (am_I_Root) then
         write(6,'(a)')
      &   ' >>>TROP-QUICK reduce wavelengths to 8, drop strat X-sects'
-        endif
         NW2 = 8
         do IW = 1,1
           WL(IW) = WL(IW+4)
@@ -2021,6 +2475,93 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: rd_cld
+!
+! !DESCRIPTION: Subroutine RD\_CLD reads in aerosol/cloud scattering data.
+!   --------------------------------------------------------------------
+!     NAMFIL   Name of scattering data file (e.g., FJX_scat.dat)
+!     NUN      Channel number for reading data file
+!     NCC      Number of categories for cloud scattering phase functions
+!     QCC      Cloud scattering phase functions
+!     WCC      5 Wavelengths for supplied phase functions
+!     PCC      Phase function: first 8 terms of expansion
+!     RCC      Effective radius associated with cloud type
+!     SCC      Single scattering albedo
+!     DCC      density (g/cm^3)
+!   --------------------------------------------------------------------
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE RD_CLD (NUN,NAMFIL)
+!
+! !USES:
+!
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER, INTENT(IN) :: NUN
+      CHARACTER(*), INTENT(IN) ::  NAMFIL
+!
+! !OUTPUT VARIABLES:
+!
+!
+! !REMARKS:
+! 
+! !REVISION HISTORY: 
+!  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER  I, J, K
+      CHARACTER*78 TITLE0
+      CHARACTER*20 TITLAA(A_)   ! TITLAA: Title for scatering data
+
+      !=================================================================
+      ! RD_CLD begins here!
+      !=================================================================
+
+      open (NUN,FILE=NAMFIL,status='old',form='formatted')
+
+      read (NUN,'(i2,a78)') NCC,TITLE0
+        if (NCC .gt. C_) then
+          call EXITC(' too many cld-data sets: NCC > C_')
+        endif
+
+      write(6,'(a,2f9.5,i5)') ' ATAU/ATAU0/JMX',ATAU,ATAU0,JTAUMX
+
+      read (NUN,*)
+      read (NUN,*)
+      do J = 1,NCC
+          read (NUN,'(3x,a8,1x,2f6.3)') TITLAA(J),RCC(J),DCC(J)
+        do K = 1,5
+          read (NUN,'(f4.0,f7.4,f7.4,7f6.3)')
+     &  WCC(K,J),QCC(K,J),SCC(K,J),(PCC(I,K,J),I=2,8)
+          PCC(1,K,J) = 1.d0
+        enddo
+      enddo
+
+      close(NUN)
+
+      write(6,'(a,9f8.1)') ' Aerosol optical: r-eff/rho/Q(@wavel):'
+     &             ,(WCC(K,1),K=1,5)
+      write(6,*) TITLE0
+      do J=1,NCC
+      write(6,'(i3,1x,a8,7f8.3)')
+     &              J,TITLAA(J),RCC(J),DCC(J),(QCC(K,J),K=1,5)
+      enddo
+
+      END SUBROUTINE RD_CLD
+!
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: rd_mie
 !
 ! !DESCRIPTION: Subroutine RD\_MIE retrieves aerosol scattering data for FJX.
@@ -2033,22 +2574,21 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !     PAA      Phase function: first 8 terms of expansion
 !     RAA      Effective radius associated with aerosol type
 !     SAA      Single scattering albedo
+!     DAA      density (g/cm^3)
 !   --------------------------------------------------------------------
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RD_MIE(NUN,NAMFIL,am_I_Root)
+      SUBROUTINE RD_MIE(NUN,NAMFIL)
 !
 ! !USES:
 !
-      USE FILE_MOD,   ONLY : IOERROR
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER,      INTENT(IN) :: NUN
-      CHARACTER(*), INTENT(IN) :: NAMFIL
-      LOGICAL,      INTENT(IN) :: am_I_Root
+      INTEGER, INTENT(IN) :: NUN
+      CHARACTER(*), INTENT(IN) ::  NAMFIL
 !
 ! !OUTPUT VARIABLES:
 !
@@ -2056,15 +2596,16 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 ! !REMARKS:
 ! 
 ! !REVISION HISTORY: 
-!  28 Mar 2013 - S. D. Eastham - Adapted from GEOS-Chem v9-1-3
+!  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER  I, J, K, NK
+      INTEGER  I, J, K
       CHARACTER*78 TITLE0
+      CHARACTER*20 TITLAA(A_)   ! TITLAA: Title for scatering data
 
       !=================================================================
       ! RD_MIE begins here!
@@ -2072,35 +2613,33 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 
       open (NUN,FILE=NAMFIL,status='old',form='formatted')
 
-      ! Read header lines
-      READ( NUN,'(A)' ) TITLE0
-      IF  ( am_I_Root ) WRITE( 6, '(1X,A)' ) TITLE0
-      READ( NUN,'(A)' ) TITLE0
+      read (NUN,'(i2,a78)') NAA,TITLE0
+        if (NAA .gt. A_) then
+          call EXITC(' too many aerosol-data sets: NAA > A_')
+        endif
 
-!---Read aerosol phase functions:
-      read(NUN,'(A10,I5,/)') TITLE0,NAA
-      NK=5
-      do j=1,NAA
-        read(NUN,110) TITLEAA(j)
-        do k=1,NK
-          read(NUN,*) WAA(k,j),QAA(k,j),RAA(k,j),SAA(k,j),
-     &                                             (PAA(i,k,j),i=1,8)
+      write(6,'(a,2f9.5,i5)') ' ATAU/ATAU0/JMX',ATAU,ATAU0,JTAUMX
+
+      read (NUN,*)
+      read (NUN,*)
+      do J = 1,NAA
+          read (NUN,'(3x,a8,1x,2f6.3)') TITLAA(J),RAA(J),DAA(J)
+        do K = 1,5
+          read (NUN,'(f4.0,f7.4,f7.4,7f6.3)')
+     &  WAA(K,J),QAA(K,J),SAA(K,J),(PAA(I,K,J),I=2,8)
+          PAA(1,K,J) = 1.d0
         enddo
       enddo
 
       close(NUN)
 
-      IF ( am_I_Root ) THEN 
-         write(6,'(a,9f8.1)') ' Aerosol optical: r-eff/rho/Q(@wavel):'
+      write(6,'(a,9f8.1)') ' Aerosol optical: r-eff/rho/Q(@wavel):'
      &             ,(WAA(K,1),K=1,5)
-         do J=1,NAA
-            write(6,'(1x,A8,I2,A,9F8.1)')
-     &           TITLEAA(J),J,'  wavel=',(WAA(K,J),K=1,NK)
-            write(6,'(9x,I2,A,9F8.4)') J,'  Qext =',(QAA(K,J),K=1,NK)
-         enddo
-      ENDIF
-
-  110 format(3x,a20)
+      write(6,*) TITLE0
+      do J=1,NAA
+      write(6,'(i3,1x,a8,7f8.3)')
+     &              J,TITLAA(J),RAA(J),DAA(J),(QAA(K,J),K=1,5)
+      enddo
 
       END SUBROUTINE RD_MIE
 !
@@ -2110,120 +2649,82 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: rd_aod
+! !IROUTINE: rd_um
 !
-! !DESCRIPTION: Subroutine RD\_AOD reads aerosol phase functions that are
-!  used to scale diagnostic output to an arbitrary wavelengh.  This
-!  facilitates comparing with satellite observations.
+! !DESCRIPTION: Subroutine RD\_UM retrieves U. Michigan optical data.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RD_AOD( NJ1, NAMFIL, am_I_Root )
+      SUBROUTINE RD_UM(NUN,NAMFIL)
 !
 ! !USES:
 !
-      USE FILE_MOD,   ONLY : IOERROR
-
-      IMPLICIT NONE
-
 !
 ! !INPUT PARAMETERS:
-!     
-      INTEGER,          INTENT(IN) :: NJ1         ! Unit # of file to open
-      CHARACTER(LEN=*), INTENT(IN) :: NAMFIL      ! Name of file to open
-      LOGICAL,          INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 !
-! !INPUT/OUTPUT PARAMETERS:
+      INTEGER, INTENT(IN) :: NUN
+      CHARACTER(*), INTENT(IN) ::  NAMFIL
+!
+! !OUTPUT VARIABLES:
 !
 !
 ! !REMARKS:
-!  The jv_spec_aod.dat file contains the optical properties for aerosols 
-!  at a single wavelength to be used in the online calculation of the aerosol 
-!  optical depth diagnostics.  The default properties are provided at 550 nm. 
-!  These properties have been calculated using the same size and optical 
-!  properties as the jv_spec.dat file used for the FAST-J photolysis 
-!  calculations.  The user can exchange this set of properties with those at 
-!  another wavelength.  We recommend that the wavelength used be included 
-!  in the first line of the header for traceability (this line is output to 
-!  the GEOS-Chem log file during run time). A complete set of optical 
-!  properties from 250-2000 nm for aerosols is available at:  
-!  ftp://ftp.as.harvard.edu/geos-chem/data/aerosol_optics/hi_spectral_res
-!                                                                             .
-!     -- Colette L. Heald, 05/10/10)
-!
-!  Important variables:
-!                                                                             .
-!     NAMFIL       Name of spectral data file (jv_spec_aod.dat)
-!     NJ1          Channel number for reading data file
-!     NAA2         Number of categories for scattering phase functions
-!     QAA_AOD      Aerosol scattering phase functions
-!     WAA_AOD      Wavelengths for the NK supplied phase functions
-!     PAA_AOD      Phase function: first 8 terms of expansion
-!     RAA_AOD      Effective radius associated with aerosol type
-!     SAA_AOD      Single scattering albedo
-!
+! 
 ! !REVISION HISTORY: 
-!  10 May 2010 - C. Heald    - Initial version
-!  06 Aug 2010 - C. Carouge  - Add an error check when opening the file
-!  01 Aug 2012 - R. Yantosca - Now restore NJ1 to INTENT(IN) status
-!  31 Mar 2013 - S. D. Eastham - Added to Fast-JX v7.0 implementation
+!  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
-! !LOCAL VARIABLES
+! !LOCAL VARIABLES:
 !
-      INTEGER :: I, J, K, NAA2
-      INTEGER :: IOS
+      INTEGER  I, J, K, L
       CHARACTER*78 TITLE0
-      CHARACTER*20 TITLEA(NAA)   ! TITLEAA: Title for scattering data
+      CHARACTER*20 TITLUM(33)   ! TITLUM: Title for U Michigan aerosol data set
 
-      !================================================================
-      ! RD_AOD begins here!
-      !================================================================
+      !=================================================================
+      ! RD_UM begins here!
+      !=================================================================
 
-      ! open file
-      OPEN( NJ1, FILE=TRIM( NAMFIL ), STATUS='OLD', IOSTAT=IOS )
+      open (NUN,FILE=NAMFIL,status='old',form='formatted')
 
-      ! Error check
-      IF ( IOS /= 0 ) THEN
-         IF ( am_I_Root ) THEN
-            WRITE(6,100) trim(NAMFIL)
- 100        FORMAT('Error opening filename=', a )
-            CALL FLUSH(6)
-         ENDIF
-         CALL IOERROR( IOS, NJ1, 'RD_AOD:1')
-      ENDIF
+      read (NUN,'(a78)') TITLE0
+        write(6,*) 'UMichigan Aerosols', TITLE0
+      read(NUN,'(5x,10f5.0)') WMM
+        write(6,'(a,10f7.1)') ' UMIchigan aerosol wavelengths:',WMM
 
-      
-      ! Read header lines
-      READ( NJ1,'(A)' ) TITLE0
-      IF  ( am_I_Root ) WRITE( 6, '(1X,A)' ) TITLE0
-      READ( NJ1,'(A)' ) TITLE0
+c---33 Different UM Aerosol Types:  SULF, SS-1,-2,-3,-4, DD-1,-2,-3,-4,
+c---      FF00(0%BC), FF02, ...FF14(14%BC),  BB00, BB02, ...BB30(30%BC)
+      do L=1,33
+          read(NUN,'(a4)') TITLUM(L)
+c---21 Rel Hum:    K=1=0%, =2=5%, ... =20=95%, =21=99%
+        do K=1,21
+c---6 wavelengths: J=1=200nm, 2=300nm, 3=400nm, (4'=550nm) 5=600nm, 6=1000nm
+c---3 optic vars:  I=1=SSAlbedo,  =2=g,  =3=k-ext
+          read(NUN,'(18f9.5)')  ((UMAER(I,J,K,L),I=1,3),J=1,6)
+        enddo
+      enddo
 
-      ! Read aerosol phase functions (one wavelength only):
-      READ( NJ1,'(A10,I5,/)' ) TITLE0,NAA2
-      DO J = 15, NAA
-         READ(NJ1,110) TITLEA(j)
- 110     FORMAT( 3x, a20 )
-         IF ( am_I_Root ) WRITE(6,*) TITLEA(j)
-         READ(NJ1,*) WAA_AOD(j),QAA_AOD(j),RAA_AOD(j),SAA_AOD(j),
-     &               (PAA_AOD(i,j),i=1,8)
-      ENDDO
+      close(NUN)
 
-      ! Echo info to stdout
-      IF ( am_I_Root ) THEN
-         WRITE( 6, '(a)' ) 'Aerosol Qext for AOD calculations'
-         DO J=15,NAA
-            WRITE( 6, * ) TITLEA(J),J,'  Qext =',(QAA_AOD(J))
-         ENDDO
-      ENDIF
+        write(6,'(a)') 'collapse UM wavelengths, drop 550 nm'
+          WMM(4) = WMM(5)
+          WMM(5) = WMM(6)
+       do L=1,33
+       do K=1,21
+       do I=1,3
+          UMAER(I,4,K,L) = UMAER(I,5,K,L)
+          UMAER(I,5,K,L) = UMAER(I,6,K,L)
+       enddo
+       enddo
+       enddo
 
-      ! Close file
-      CLOSE( NJ1 )
+        write(6,'(7(i5,1x,a4))') (L,TITLUM(L), L=1,33)
 
-      END SUBROUTINE RD_AOD
+      END SUBROUTINE RD_UM
+
+!
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -2238,7 +2739,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RD_PROF(NJ2,NAMFIL,am_I_Root)
+      SUBROUTINE RD_PROF(NJ2,NAMFIL)
 !
 ! !USES:
 !
@@ -2247,7 +2748,6 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !
       INTEGER, INTENT(IN) ::  NJ2
       CHARACTER(*), INTENT(IN) ::  NAMFIL
-      LOGICAL, INTENT(IN) :: am_I_Root
 !
 ! !OUTPUT VARIABLES:
 !
@@ -2274,9 +2774,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       read (NJ2,'(A)') TITLE0
       read (NJ2,'(2I5)') NTLATS,NTMONS
 c      write(6,'(1X,A)') TITLE0
-      IF ( am_I_Root ) THEN 
       write(6,1000) NTLATS,NTMONS
-      ENDIF
       N216  = min(216, NTLATS*NTMONS)
       do IA = 1,N216
         read (NJ2,'(1X,I3,3X,I2)') LAT, MON
@@ -2325,7 +2823,7 @@ c  Extend climatology to 100 km
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RD_JS_JX(NUNIT,NAMFIL,TITLEJX,NJX,am_I_Root)
+      SUBROUTINE RD_JS_JX(NUNIT,NAMFIL,TITLEJX,NJX)
 !
 ! !USES:
 !
@@ -2335,7 +2833,6 @@ c  Extend climatology to 100 km
       INTEGER, INTENT(IN)                    ::  NUNIT, NJX
       CHARACTER(*), INTENT(IN)               ::  NAMFIL
       CHARACTER*6, INTENT(IN),DIMENSION(NJX) :: TITLEJX
-      LOGICAL, INTENT(IN)                    :: am_I_Root
 !
 ! !OUTPUT VARIABLES:
 !
@@ -2344,7 +2841,6 @@ c  Extend climatology to 100 km
 ! 
 ! !REVISION HISTORY: 
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
-!  31 Mar 2013 - S. D. Eastham - Modified to track number of branches
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2374,9 +2870,7 @@ c   include fractional quantum yield for the fast-JX J's
       open (NUNIT,file=NAMFIL,status='old',form='formatted')
 
        read (NUNIT,'(a)') CLINE
-      IF ( am_I_Root ) THEN 
          write(6,'(a)') CLINE
-      ENDIF
       do J = 1,JVN_
        read (NUNIT,'(i4,1x,a50,4x,f5.3,2x,a6)') JJ,T_REACT,F_FJX,T_FJX
        if (JJ.gt.JVN_) goto 20
@@ -2384,18 +2878,6 @@ c   include fractional quantum yield for the fast-JX J's
         JFACTA(JJ) = F_FJX
         JMAP(JJ) = T_FJX
         NRATJ = JJ
-        ! SDE 03/31/13: Check number of branches
-        ! Note that the order of the branches in
-        ! globchem.dat must match the order in 
-        ! FJX_j2j.dat
-        READ (T_REACT(1:10),"(a10)") RNAMES(JJ)
-        RNAMES(JJ) = TRIM(RNAMES(JJ))
-        BRANCH(JJ) = 1
-        DO K=1,(JJ-1)
-           IF (RNAMES(JJ) == RNAMES(K)) THEN
-              BRANCH(JJ) = BRANCH(K) + 1
-           ENDIF
-        ENDDO
       enddo
 
  20   close(NUNIT)
@@ -2413,18 +2895,16 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
 
       write(6,'(a,i4,a)')' Photochemistry Scheme with',NRATJ,' J-values'
       do K=1,NRATJ
-         if (JMAP(K) .ne. '------' ) then
-            J = JIND(K)
-            IF ( am_I_Root ) THEN 
-               if (J.eq.0) then
+       if (JMAP(K) .ne. '------' ) then
+        J = JIND(K)
+        if (J.eq.0) then
          write(6,'(i5,a50,f6.3,a,1x,a6)') K,JLABEL(K),JFACTA(K),
      &         ' no mapping onto fast-JX',JMAP(K)
-               else
+        else
          write(6,'(i5,a50,f6.3,a,i4,1x,a6)') K,JLABEL(K),JFACTA(K),
      &         ' mapped to FJX:',J,TITLEJX(J)
-               endif
-            ENDIF
-         endif
+        endif
+       endif
       enddo
 
       END SUBROUTINE RD_JS_JX
@@ -2439,10 +2919,14 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
 !
 ! !DESCRIPTION: Subroutine SOLAR\_JX handles solar zenith angles.
 !  ---------------------------------------------------------------------
+!     GMTIME = UT for when J-values are wanted
+!           (for implicit solver this is at the end of the time step)
 !     NDAY   = integer day of the year (used for solar lat and declin)
+!     YGRDJ  = laitude (radians) for grid (I,J)
+!     XGDRI  = longitude (radians) for grid (I,J)
+!
 !     SZA = solar zenith angle in degrees
 !     COSSZA = U0 = cos(SZA)
-!     SOLFX = Solar function
 !  ---------------------------------------------------------------------
 !\\
 !\\
@@ -2472,7 +2956,8 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8  PI, PI180
+      REAL*8  PI, PI180!, LOCT
+!      REAL*8  SINDEC, SOLDEK, COSDEC, SINLAT, SOLLAT, COSLAT, COSZ
 
       !=================================================================
       ! SOLAR_JX begins here!
@@ -2480,8 +2965,23 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
 
       PI     = 3.141592653589793d0
       PI180  = PI/180.d0
+!      SINDEC = 0.3978d0*sin(0.9863d0*(dble(NDAY)-80.d0)*PI180)
+!      SOLDEK = asin(SINDEC)
+!      COSDEC = cos(SOLDEK)
+!      SINLAT = sin(YGRDJ)
+!      SOLLAT = asin(SINLAT)
+!      COSLAT = cos(SOLLAT)
+c
+!      LOCT   = (((GMTIME)*15.d0)-180.d0)*PI180 + XGRDI
+!      COSSZA = COSDEC*COSLAT*cos(LOCT) + SINDEC*SINLAT
       SZA    = acos(COSSZA)/PI180
-
+c
+c      write(6,*) ' XGRDI,YGRDJ',XGRDI,YGRDJ
+c      write(6,*) ' LOCT (rad)',LOCT
+c      write(6,*) ' SINDEC,COSDEC', SINDEC,COSDEC
+c      write(6,*) ' SINLAT,COSLAT', SINLAT,COSLAT
+c      write(6,*) ' COS, SZA',COSSZA,SZA
+c
       ! Offset used for GEOS-Chem slightly different
       !SOLFX  = 1.d0-(0.034d0*cos(dble(NDAY-186)*2.d0*PI/365.d0))
       SOLFX  = 1.d0-(0.034d0*cos(dble(NDAY-172)*2.d0*PI/365.d0))
@@ -2494,41 +2994,29 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: photo_jx
+! !IROUTINE: aclim_fjx
 !
-! !DESCRIPTION: Subroutine PHOTO\_JX is the core subroutine of Fast-JX.
-!    calc J's for a single column atmosphere (aka Indep Colm Atmos or ICA)
-!    needs P, T, O3, clds, aersls; adds top-of-atmos layer from climatology
-!    needs day-fo-year for sun distance, SZA (not lat or long)
+! !DESCRIPTION: Subroutine ACLIM\_FJX loads Fast-JX climatology for a given 
+!  latitude and month (for a specific pressure grid)
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE PHOTO_JX(U0,REFLB,P_COL,T_COL,O3_COL,AOD999,
-     &              ODAER_COL,ODMDUST_COL,ODCLOUD_COL_IN,ILON,ILAT,YLAT,
-     &              DAY_OF_YR,MONTH,DAY,am_I_Root)
+      SUBROUTINE ACLIM_FJX (YLATD, MONTH, PPP,TTT,ZZZ,DDD,OOO, L1U)
 !
 ! !USES:
 !
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN)                           :: ILON,ILAT
-      INTEGER, INTENT(IN)                           :: DAY_OF_YR
-      INTEGER, INTENT(IN)                           :: MONTH,DAY
-      REAL*8,  INTENT(IN)                           :: YLAT
-      REAL*8,  INTENT(IN)                           :: U0,REFLB
-      REAL*8,  INTENT(IN),DIMENSION(L1_+1)          :: P_COL
-      REAL*8,  INTENT(IN),DIMENSION(L1_)            :: T_COL
-      REAL*8,  INTENT(IN)                           :: O3_COL
-      REAL*8,  INTENT(IN),DIMENSION(L_,NAER*NRH)    :: ODAER_COL
-      REAL*8,  INTENT(IN),DIMENSION(L_,NDUST)       :: ODMDUST_COL
-      REAL*8,  INTENT(IN),DIMENSION(L_)             :: ODCLOUD_COL_IN
-      LOGICAL, INTENT(IN)                           :: AOD999
-      LOGICAL, INTENT(IN)                           :: am_I_Root
+      REAL*8, INTENT(IN)  :: YLATD
+      INTEGER, INTENT(IN) :: MONTH, L1U
+      REAL*8, INTENT(IN),  DIMENSION(L1U+1) :: PPP
 !
 ! !OUTPUT VARIABLES:
 !
+      REAL*8, INTENT(OUT), DIMENSION(L1U+1) :: ZZZ
+      REAL*8, INTENT(OUT), DIMENSION(L1U) :: TTT,DDD,OOO
 !
 ! !REMARKS:
 ! 
@@ -2540,158 +3028,214 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
 !
 ! !LOCAL VARIABLES:
 !
+      REAL*8, DIMENSION(51) :: OREF2,TREF2
+      REAL*8, DIMENSION(52) :: PSTD
+      INTEGER  K, L, M, N
+      REAL*8   DLOGP,F0,T0,PB,PC,XC,MASFAC,SCALEH
+
+      !=================================================================
+      ! ACLIM_FJX begins here!
+      !=================================================================
+
+c  Select appropriate month
+      M = max(1,min(12,MONTH))
+c  Select appropriate latitudinal profiles
+      N = max(1, min(18, (int(YLATD+99)/10 )))
+      do K = 1,51
+        OREF2(K) = OREF(K,N,M)
+        TREF2(K) = TREF(K,N,M)
+      enddo
+
+c  Apportion O3 and T on supplied climatology z levels onto CTM levels +1
+c  with mass (pressure) weighting, assuming constant mixing ratio and
+c  temperature half a layer on either side of the point supplied.
+c   PPP(L=1:L1_)=edge-pressure of CTM layer, PPP(L1_+1)=0 (top-of-atmos)
+c  Mass factor - delta-Pressure (mbars) to delta-Column (molecules.cm-2)
+      MASFAC = 100.d0*6.022d+23/(28.97d0*9.8d0*10.d0)
+
+c  Set up pressure levels for O3/T climatology - assume that value
+c  given for each 2 km z* level applies from 1 km below to 1 km above,
+c  so select pressures at these boundaries. Surface level values at
+c  1000 mb are assumed to extend down to the actual PSURF (if > 1000)
+           PSTD(1) = max(PPP(1),1000.d0)
+           PSTD(2) = 1000.d0 * 10.d0**(-1.d0/16.d0)
+           DLOGP   = 10.d0**(-2.d0/16.d0)
+      do K = 3,51
+        PSTD(K) = PSTD(K-1)*DLOGP
+      enddo
+        PSTD(52)  = 0.d0
+      do L = 1,L1U
+        F0 = 0.d0
+        T0 = 0.d0
+        do K = 1,51
+          PC   = min(PPP(L),PSTD(K))
+          PB   = max(PPP(L+1),PSTD(K+1))
+          if (PC .gt. PB) then
+            XC = (PC-PB)/(PPP(L)-PPP(L+1))
+            F0 = F0 + OREF2(K)*XC
+            T0 = T0 + TREF2(K)*XC
+          endif
+        enddo
+        TTT(L)  = T0
+        DDD(L)  = (PPP(L)-PPP(L+1))*MASFAC
+        OOO(L) = F0*1.d-6*DDD(L)
+      enddo
+
+c  Calculate effective altitudes using scale height at each level
+        ZZZ(1) = 0.d0
+      do L = 1,L1U-1
+        SCALEH      = 1.3806d-19*MASFAC*TTT(L)
+        ZZZ(L+1) = ZZZ(L) -( LOG(PPP(L+1)/PPP(L)) * SCALEH )
+      enddo
+        ZZZ(L1U+1) = ZZZ(L1U) + ZZHT
+
+      END SUBROUTINE ACLIM_FJX
+!
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: photo_jx
+!
+! !DESCRIPTION: Subroutine PHOTO\_JX is the core subroutine of Fast-JX.
+!    calc J's for a single column atmosphere (aka Indep Colm Atmos or ICA)
+!    needs P, T, O3, clds, aersls; adds top-of-atmos layer from climatology
+!    needs day-of-year for solar functions.
+!    Aerosol data is taken from GEOS-Chem's existing arrays, rather than
+!    calculating using the U. Michigan techniques (as is the case in
+!    original Fast-JX)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE PHOTO_JX(NLON,NLAT,U0,DAY_YR,DAY_M,REFLB,LPRTJ,
+     & PPP,ZZZ,TTT,DDD,RRR,CLDWP,AERSP,NDXCLD,NDXAER,L1U,ANU,
+     &  VALJXX,NJXU,am_I_Root)
+!
+! !USES:
+!
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER, INTENT(IN)                   :: L1U,ANU,NJXU
+      INTEGER, INTENT(IN)                   :: DAY_YR,DAY_M
+      INTEGER, INTENT(IN)                   :: NLON, NLAT
+      REAL*8,  INTENT(IN)                   :: U0,REFLB
+      LOGICAL, INTENT(IN)                   :: LPRTJ
+      REAL*8,  INTENT(IN),DIMENSION(L1U+1)  :: PPP
+      REAL*8,  INTENT(IN),DIMENSION(L1U  )  :: TTT,DDD,RRR,OOO,CLDWP
+      REAL*8,  INTENT(IN),DIMENSION(L1U,ANU):: AERSP
+      INTEGER, INTENT(IN),DIMENSION(L1U  )  :: NDXCLD
+      INTEGER, INTENT(IN),DIMENSION(L1U,ANU):: NDXAER
+      LOGICAL, INTENT(IN)                   :: am_I_Root
+!
+! !OUTPUT VARIABLES:
+!
+      REAL*8, INTENT(OUT), DIMENSION(L1U-1,NJXU)::  VALJXX
+!
+! !REMARKS:
+! 
+! !REVISION HISTORY: 
+!  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8                     :: SZA     ! Solar zenith angle (deg)
+      REAL*8                     :: SOLF    ! Solar function
 c-----------------------------------------------------------------------
 c---key LOCAL atmospheric data needed to solve plane-parallel J----
-c-----these are dimensioned JXL_, and must have JXL_ .ge. LLPAR
-      real*8, dimension(JXL1_+1) :: TTJ,DDJ,OOJ,ZZJ
-      real*8, dimension(JXL1_+1) :: PPJ
-      integer,dimension(JXL2_+1) :: JXTRA
-      real*8, dimension(W_)     :: FJTOP,FJBOT,FSBOT,FLXD0,RFL
-      real*8, dimension(JXL_, W_)   ::  AVGF, FJFLX
-      real*8, dimension(JXL1_,W_)   ::  DTAUX, FLXD
-      real*8, dimension(8,JXL1_,W_) ::  POMEGAX
+c-----these are dimensioned JXL_, and must have JXL_ .ge. L_
+      REAL*8, DIMENSION(JXL1_+1)    :: TTJ,DDJ,OOJ,ZZJ
+      REAL*8, DIMENSION(JXL1_+1)    :: PPJ,RELH
+      INTEGER,DIMENSION(JXL2_+1)    :: JXTRA
+      REAL*8, DIMENSION(W_)         :: FJTOP,FJBOT,FSBOT,FLXD0,RFL
+      REAL*8, DIMENSION(JXL_, W_)   ::  AVGF, FJFLX
+      REAL*8, DIMENSION(JXL1_,W_)   ::  DTAUX, FLXD
+      REAL*8, DIMENSION(8,JXL1_,W_) ::  POMEGAX
+      REAL*8, DIMENSION(JXL1_)      ::  DTAU600
+      REAL*8, DIMENSION(8,JXL1_)    ::  POMG600
+      REAL*8, DIMENSION(W_,JXL1_)   ::  FFX
+      REAL*8, DIMENSION(W_,8)       ::  FFXNET
+      REAL*8, DIMENSION(L1U+1)      ::  ZZZ
 c---flux/heating arrays (along with FJFLX,FLXD,FLXD0)
+      real*8  FLXJ(JXL1_),FFX0,FXBOT,FABOT
       real*8             :: ODABS,ODRAY
-      real*8             :: RFLECT
+      real*8             :: RFLECT,FREFS,FREFL,FREFI
       real*8             :: AMF2(2*JXL1_+1,2*JXL1_+1)
 c------------key SCATTERING arrays for clouds+aerosols------------------
+      real*8             :: OPTX(5),SSAX(5),SLEGX(8,5)
       real*8             :: OD(5,JXL1_),SSA(5,JXL1_),SLEG(8,5,JXL1_)
       real*8             :: OD600(JXL1_)
+      real*8             :: PATH,DENSWP,DENS,RH,RHO,REFF,XTINCT,ODCLD
 c------------key arrays AFTER solving for J's---------------------------
       real*8  FFF(W_,JXL_),VALJ(X_)
+      real*8  FLXUP(W_),FLXDN(W_),DIRUP(W_),DIRDN(W_)
       real*8  VALJL(JXL_,X_) !2-D array of J_s returned by JRATET
 
-      integer  L2EDGE, I,J,K,L,M,KMIE,IDXAER
-      real*8   XQO3,XQO2,WAVE, TTTX
+      integer  LU,L2U, I,J,K,L,M,KMIE,KW,NAER,NDCLD, RATIO(W_)
+      real*8   XQO3,XQO2,DTAUC,WAVE, TTTX
 C-----------------------------------------------------------------------
-      ! For compatibility with GEOS-Chem (SDE 03/30/13)
-      REAL*8   QSCALING,LOCALOD,LOCALSSA,SZA,SOLF
-      REAL*8   AERX_COL(A_,L1_) ! Accumulated aerosol array
-      REAL*8   ODCLOUD_COL(L_)
-      REAL*8   VALJXX(L_,JVN_)
 
       !=================================================================
       ! PHOTO_JX begins here!
       !=================================================================
 
-      if (LLPAR+1 .gt. JXL1_) then
+      ! Input conversion (SDE 03/29/13)
+      ! Calculate solar zenith angle (degrees)
+      CALL SOLAR_JX(DAY_YR,U0,SZA,SOLF)
+
+      if (L1U .gt. JXL1_) then
         call EXITC(' PHOTO_JX: not enough levels in JX')
       endif
 
-      ! Copy cloud OD data to a variable array
-      DO L=1,L_
-         ODCLOUD_COL(L) = ODCLOUD_COL_IN(L)
-      ENDDO
+      LU = L1U - 1
+      L2U = LU + LU + 2
 
-      ! Input conversion (SDE 03/29/13)
-      ! Calculate solar zenith angle (degrees)
-      CALL SOLAR_JX(DAY_OF_YR,U0,SZA,SOLF)
-
-      L2EDGE = L_ + L_ + 2
       FFF(:,:) = 0.d0
+      FREFI = 0.d0
+      FREFL = 0.d0
+      FREFS = 0.d0
 
 c---check for dark conditions SZA > 98.0 deg => tan ht = 63 km
 c                        or         99.0                 80 km
       if (SZA .gt. 98.d0) goto 99
 
-      ! Use GEOS-Chem methodology to set vertical profiles of:
-      ! Pressure      (PPJ) [hPa]
-      ! Temperature   (TTJ) [K]
-      ! Path density  (DDJ) [# molec/cm2]
-      ! Ozone density (OOJ) [# O3 molec/cm2]
-      CALL SET_PROF (ILON,ILAT,YLAT,MONTH,DAY,T_COL,P_COL,
-     &               ODCLOUD_COL,ODMDUST_COL,ODAER_COL,AERX_COL,O3_COL,
-     &               TTJ,OOJ,ZZJ,DDJ)
+      !-----------------------------------------------------------------
+      !### If you want to set SZA = 0 degrees for testing,
+      !### then uncomment the following lines (bmy, 9/13/99) 
+      !U0  = 1.0d0
+      !SZA = 0.0d0
+      !-----------------------------------------------------------------
 
-      ! Fill out PPJ
-      DO L=1,L1_
-         PPJ(L) = P_COL(L)
+      ! Use SET_PROF to acquire atmospheric column data
+      CALL SET_PROF( NLON, NLAT, YLAT, MONTH, DAY,
+     &          PPP ,TTT, REFLB, ODCOL, OPTDUST, OPTAER, 
+     &          TTJ, DO3, DBC, DM, ZZZ, AER )
+
+      DO L = 1, L1U
+         ZZJ(L) = ZZZ(L)
       ENDDO
+      ZZJ(L1U+1) = ZZJ(L1U) + ZZHT
 
-      ! Ensure TOA pressure is zero
-      PPJ(L1_+1) = 0.d0
-
-c---calculate spherical weighting functions (AMF: Air Mass Factor)
         RFLECT = REFLB
 
 C-----------------------------------------------------------------------
-      call SPHERE2 (U0,ZZJ,AMF2,L1_,JXL1_)
+      call SPHERE2 (U0,RAD,ZZJ,AMF2,L1U,JXL1_)
 C-----------------------------------------------------------------------
 
-!-----------------------------------------------------------------------
-! Modification for GEOS-Chem: Optical depths are calculated at a single
-! wavelength for GEOS-Chem, so we perform scaling in this routine.
-! elsewhere.
-! (SDE 03/31/13)
-!-----------------------------------------------------------------------
-c---calculate the optical properties (opt-depth, single-scat-alb, phase-fn(1:8))
-c---  at the 5 std wavelengths 200-300-400-600-999 nm for cloud+aerosols
-      do L = 1,L1_
-       OD600(L) = 0.d0
-       do K=1,5
-         OD(K,L)  = 0.d0
-         SSA(K,L) = 0.d0
-        do I=1,8
-         SLEG(I,K,L) = 0.d0
-        enddo
-       enddo
-      enddo
+      DO L=1,LU
+         OD600(L) = ODCOL(L)
+      ENDDO
 
-       ! Don't bother on extraneous level - leave as zero
-       do L = 1,L_
-          DO K=1,W_
-             WAVE = WL(K)
-             ! Identify which wavelength bin we are in
-                                   KMIE=1 !   0-255 nm
-             IF( WAVE .gt. 255.d0) KMIE=2 ! 255-355 nm
-             IF( WAVE .gt. 355.d0) KMIE=3 ! 355-500 nm
-             IF( WAVE .gt. 500.d0) KMIE=4 ! 500-800 nm
-             IF( WAVE .gt. 600.d0) KMIE=5 ! 800+    nm
-
-             ! Clouds, aerosols, mineral dust
-             DO M=1,AN_
-                IDXAER=MIEDX(M)
-                IF (IDXAER.lt.15) THEN
-                   ! Cloud (600 nm scaling)
-                   QSCALING = QAA(KMIE,IDXAER)/QAA(4,IDXAER)
-                ELSEIF (AOD999) THEN
-                   ! Aerosol/dust (999 nm scaling)
-                   QSCALING = QAA(KMIE,IDXAER)/QAA(IND999,IDXAER)
-                ELSE
-                   ! Aerosol/dust (550 nm scaling)
-                   QSCALING = QAA(KMIE,IDXAER)/QAA_AOD(IDXAER)
-                ENDIF
-                LOCALOD = QSCALING*AERX_COL(M,L)
-                LOCALSSA = SAA(KMIE,IDXAER)*LOCALOD
-                OD(KMIE,L) = OD(KMIE,L) + LOCALOD
-                SSA(KMIE,L)= SSA(KMIE,L) + LOCALSSA
-                DO I=1,8
-                   SLEG(I,KMIE,L) = SLEG(I,KMIE,L) + 
-     &                         (PAA(I,KMIE,IDXAER)*LOCALSSA)
-                ENDDO ! I (Phase function)
-             ENDDO ! M (Aerosol)
-          ENDDO ! K (Wavelength bin)
-
-          ! Normalize
-          DO KMIE=1,5
-             IF (OD(KMIE,L).gt.0.d0) THEN
-                SSA(KMIE,L) = SSA(KMIE,L)/OD(KMIE,L)
-                DO I=1,8
-                   SLEG(I,KMIE,L) = SLEG(I,KMIE,L)/OD(KMIE,L)
-                ENDDO
-             ENDIF
-          ENDDO
-          ! Retrieve 600 nm OD to determine added layers:
-          OD600(L) = OD(4,L)
-       ENDDO ! L (Layer)
-
-c---when combining with Rayleigh and O2-O3 abs, remember the SSA and
-c---  phase fn SLEG are weighted by OD and OD*SSA, respectively.
-c---Given the aerosol+cloud OD/layer in visible (600 nm) calculate how to add
-C       additonal levels at top of clouds (now uses log spacing)
+      OD600(LU+1) = 0.d0
 
 C-----------------------------------------------------------------------
-      call EXTRAL(OD600,L1_,L2EDGE,N_,JXTRA)
+      call EXTRAL(OD600,L1U,L2U,N_,JTAUMX,ATAU,ATAU0, JXTRA)
 C-----------------------------------------------------------------------
 
 c---set surface reflectance
@@ -2708,89 +3252,74 @@ C---Pick nearest Mie wavelength to get scattering properites------------
                                KMIE=1  ! use 200 nm prop for <255 nm
         if( WAVE .gt. 255.d0 ) KMIE=2  ! use 300 nm prop for 255-355 nm
         if( WAVE .gt. 355.d0 ) KMIE=3  ! use 400 nm prop for 355-500 nm
-        if( WAVE .gt. 500.d0 ) KMIE=4
-        if( WAVE .gt. 800.d0 ) KMIE=5
+        if( WAVE .gt. 500.d0 ) KMIE=4  ! use 600 nm prop for 500-800 nm
+        ! Truncate here (KMIE=5 not appropriate in our applicaation)
+
+C---For Mie code scale extinction at 1000 nm to wavelength WAVEL (QXMIE)
+      do I=1,MX
+        QXMIE(I) = QAA(KMIE,MIEDX(I))/QAA(IND999,MIEDX(I))
+        SSALB(I) = SSA(KMIE,MIEDX(I))
+      enddo
 
 c---Combine: Rayleigh scatters & O2 & O3 absorbers to get optical properties
 c---values at L1_=L_+1 are a pseudo/climatol layer above the top CTM layer (L_)
-        do L = 1,L1_
+        do L = 1,L1U
          TTTX     = TTJ(L)
          call X_interp (TTTX,XQO2, TQQ(1,1),QO2(K,1), TQQ(2,1),QO2(K,2),
      &         TQQ(3,1),QO2(K,3), LQQ(1))
          call X_interp (TTTX,XQO3, TQQ(1,2),QO3(K,1), TQQ(2,2),QO3(K,2),
      &         TQQ(3,2),QO3(K,3), LQQ(2))
-         ODABS = XQO3*OOJ(L) + XQO2*DDJ(L)*0.20948d0
-         ODRAY = DDJ(L)*QRAYL(K)
-
-         DTAUX(L,K) = OD(KMIE,L) + ODABS + ODRAY
-
-         ! Aerosols + clouds + O2 + O3
-         do I=1,8
-           POMEGAX(I,L,K) = SLEG(I,KMIE,L)*OD(KMIE,L)
-         enddo
-         ! Add Rayleigh scattering effects
-         ! Only non-zero for 1st and 3rd phase functions
-         POMEGAX(1,L,K) = POMEGAX(1,L,K) + 1.0d0*ODRAY
-         POMEGAX(3,L,K) = POMEGAX(3,L,K) + 0.5d0*ODRAY
-         ! Normalize
-         do I=1,8
-           POMEGAX(I,L,K) = POMEGAX(I,L,K)/DTAUX(L,K)
-         enddo
         enddo
+        XLO3=DO3(L)*XQO3(L)
+        XLO2=DM(L)*XQO2(L)*0.20948d0
+        XLRAY=DM(L)*QRAYL(K)
+        do I=1,MX
+          XLAER(I)=AER(I,L)*QXMIE(I)
+        enddo
+        DTAUX(L)=XLO3+XLO2+XLRAY
+        do I=1,MX
+          DTAUX(L)=DTAUX(L)+XLAER(I)
+        enddo
+c  Fractional extinction for Rayleigh scattering and each aerosol type
+        PIRAY(L)=XLRAY/DTAUX(L)
+        do I=1,MX
+          PIAER(I,L)=SSALB(I)*XLAER(I)/DTAUX(L)
+        enddo
+       enddo !This is for the L=1,L1_
+        MFIT = 2*M_
+	  J1 = NLBATM
+        do J=J1,NB
+          do i=1,MFIT
+              POMEGAX(I,J) = PIRAY(J)*PAA(I,KMIE,1)
+           do k0=1,MX
+         POMEGAX(I,J) = POMEGAX(I,J) + PIAER(K0,J)*PAA(I,KMIE,MIEDX(K0))
+           enddo
+          enddo
       enddo
+
 C-----------------------------------------------------------------------
 
       call OPMIE (DTAUX,POMEGAX,U0,RFL,AMF2,JXTRA,
-     &        AVGF,FJTOP,FJBOT,FSBOT,FJFLX,FLXD,FLXD0,LLPAR)
+     &        AVGF,FJTOP,FJBOT,FSBOT,FJFLX,FLXD,FLXD0, LU)
 
 C-----------------------------------------------------------------------
 
       do K = 1,W_
 
-        do L = 1,L_
-           FFF(K,L) = FFF(K,L) + SOLF*FL(K)*AVGF(L,K)
+c----direct(DIR) and diffuse(FLX) fluxes at top(UP) (solar = negative by convention)
+c----     also at bottom (DN), does not include diffuse reflected flux.
+
+        do L = 1,LU
+          FFF(K,L) = FFF(K,L) + SOLF*FL(K)*AVGF(L,K)
         enddo
-
-      enddo
-
-      ! Calculate photolysis rates
-      call JRATET(PPJ,TTJ,FFF, VALJXX,L_,LLCHEM,NJX)
-
-      ! Fill out common-block array of J-rates
-      DO L=1,LLCHEM
-         DO J=1,NJX
-            IF (JIND(J).gt.0) THEN
-               ZPJ(L,J,ILON,ILAT) = VALJXX(L,JIND(J))*JFACTA(J)
-            ELSE
-               ZPJ(L,J,ILON,ILAT) = 0.d0
-            ENDIF
-         ENDDO
-      ENDDO
-      
-      ! Set J-rates outside the chemgrid to zero
-      IF (LLCHEM.lt.L_) THEN
-         DO L=LLCHEM+1,L_
-            DO J=1,NJX
-               ZPJ(L,J,ILON,ILAT) = 0.d0
-            ENDDO
-         ENDDO
-      ENDIF
-
-        !---------------------------------------------------------------
-        ! Majority of heating code ignored by GEOS-Chem
-        ! Everything from here until statement number 99 is ignored
-        ! (SDE 03/31/13)
-        !---------------------------------------------------------------
-!c----direct(DIR) and diffuse(FLX) fluxes at top(UP) (solar = negative by convention)
-!c----     also at bottom (DN), does not include diffuse reflected flux.
+!-----------------------------------------------------------------------
+!     BEGINNING OF HEATING RATES CODE (Not relevant to GEOS-Chem)      !
+!-----------------------------------------------------------------------
 !        FLXUP(K) =  FJTOP(K)
 !        DIRUP(K) = -FLXD0(K)
 !        FLXDN(K) = -FJBOT(K)
 !        DIRDN(K) = -FSBOT(K)
 !
-!        do L = 1,LU
-!          FFF(K,L) = FFF(K,L) + SOLF*FL(K)*AVGF(L,K)
-!        enddo
 !          FREFI = FREFI + SOLF*FL(K)*FLXD0(K)/WL(K)
 !          FREFL = FREFL + SOLF*FL(K)*FJTOP(K)/WL(K)
 !          FREFS = FREFS + SOLF*FL(K)/WL(K)
@@ -2803,7 +3332,7 @@ C-----------------------------------------------------------------------
 !c---calculate divergence of diffuse flux in each CTM layer (& t-o-a)
 !c---     need special fix at top and bottom:
 !c---FABOT = total abs at L.B. &  FXBOT = net diffusive flux at L.B.
-!         FABOT = (1.d0-RFL(K))*(FJBOT(K)+FSBOT(K))
+!!         FABOT = (1.d0-RFL(K))*(FJBOT(K)+FSBOT(K))
 !         FXBOT = -FJBOT(K) + RFL(K)*(FJBOT(K)+FSBOT(K))
 !         FLXJ(1) = FJFLX(1,K) - FXBOT
 !       do L=2,LU
@@ -2838,88 +3367,24 @@ C-----------------------------------------------------------------------
 !      FFXNET(K,7) = FSBOT(K)
 !      FFXNET(K,8) = FJBOT(K)
 !
-!c-----------------------------------------------------------------------
-!      enddo       ! end loop over wavelength K
-!c-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
+!           END OF HEATING RATES CODE (Not relevant to GEOS-Chem)      !
+!-----------------------------------------------------------------------
+c-----------------------------------------------------------------------
+      enddo       ! end loop over wavelength K
+c-----------------------------------------------------------------------
 !          FREFL = FREFL/FREFS      !calculate reflected flux (energy weighted)
 !          FREFI = FREFI/FREFS
-!
-!c---NB UVB = 280-320 = bins 12:15, UVA = 320-400 = bins 16:17, VIS = bin 18 (++)
-!
-!
-!c---mapping J-values from fast-JX onto CTM chemistry is done in main
-!
-!C-----------------------------------------------------------------------
-!      if ((am_I_Root).and.(LPRTJ)) then
-!c---diagnostics below are NOT returned to the CTM code
-!      write(6,*)'fast-JX-(7.0)---PHOTO_JX internal print: Atmosphere---'
-!c---used last called values of DTAUX and POMEGAX, should be 600 nm
-!      do L=1,L1U
-!        DTAU600(L) = DTAUX(L,W_)
-!       do I=1,8
-!        POMG600(I,L) = POMEGAX(I,L,W_)
-!       enddo
-!      enddo
-!
-!      call JP_ATM(PPJ,TTJ,DDJ,OOJ,ZZJ,DTAU600,POMG600,JXTRA, LU)
-!
-!C---PRINT SUMMARY of mean intensity, flux, heating rates:
-!      if (am_I_Root) then
-!      write(6,*)
-!      write(6,*)'fast-JX(7.0)---PHOTO_JX internal print: Mean Intens---'
-!      write(6,'(a,5f10.4)')
-!     & ' SUMMARY fast-JX: albedo/SZA/u0/F-incd/F-refl/',
-!     &  RFLECT,SZA,U0,FREFI,FREFL
-!
-!      write(6,'(a5,18i8)')   ' bin:',(K, K=NW2,NW1,-1)
-!      write(6,'(a5,18f8.1)') ' wvl:',(WL(K), K=NW2,NW1,-1)
-!      write(6,'(a)') ' ----  100000=Fsolar   MEAN INTENSITY per wvl bin'
-!      endif
-!      do L = LU,1,-1
-!       do K=NW1,NW2
-!        RATIO(K) = (1.d5*FFF(K,L)/FL(K))
-!       enddo
-!        if (am_I_Root) then
-!        write(6,'(i3,2x,18i8)') L,(RATIO(K),K=NW2,NW1,-1)
-!        endif
-!      enddo
-!
-!      if (am_I_Root) then
-!      write(6,*)
-!      write(6,*)'fast-JX(7.0)---PHOTO_JX internal print: Net Fluxes---'
-!      write(6,'(a11,18i8)')   ' bin:',(K, K=NW2,NW1,-1)
-!      write(6,'(a11,18f8.1)') ' wvl:',(WL(K), K=NW2,NW1,-1)
-!c      write(6,'(a11,18f8.4)') ' sol in atm',(FFXNET(K,1), K=NW2,NW1,-1)
-!c      write(6,'(a11,18f8.4)') ' sol at srf',(FFXNET(K,2), K=NW2,NW1,-1)
-!      write(6,*) ' ---NET FLUXES--- '
-!      write(6,'(a11,18f8.4)') ' sol TOTAL ',(FFXNET(K,3), K=NW2,NW1,-1)
-!      write(6,'(a11,18f8.4)') ' dif outtop',(FFXNET(K,4), K=NW2,NW1,-1)
-!      write(6,'(a11,18f8.4)') ' abs in atm',(FFXNET(K,5), K=NW2,NW1,-1)
-!      write(6,'(a11,18f8.4)') ' abs at srf',(FFXNET(K,6), K=NW2,NW1,-1)
-!      write(6,*) ' ---SRF FLUXES--- '
-!      write(6,'(a11,18f8.4)') ' srf direct',(FFXNET(K,7), K=NW2,NW1,-1)
-!      write(6,'(a11,18f8.4)') ' srf diffus',(FFXNET(K,8), K=NW2,NW1,-1)
-!      write(6,'(2a)') '  ---NET ABS per layer:       10000=Fsolar',
-!     & '  [NB: values <0 = numerical error w/clouds or SZA>90, colm OK]'
-!      endif
-!      do L = LU,1,-1
-!       do K=NW1,NW2
-!        RATIO(K) = 1.d5*FFX(K,L)
-!       enddo
-!        if (am_I_Root) then
-!        write(6,'(i9,2x,18i8)') L,(RATIO(K),K=NW2,NW1,-1)
-!        endif
-!      enddo
-!      if (am_I_Root) then
-!      write(6,'(a)')
-!      write(6,'(a)') ' fast-JX (7.0)----J-values----'
-!      write(6,'(1x,a,72(a6,3x))') 'L=  ',(TITLEJX(K), K=1,NJX)
-!      do L = LU,1,-1
-!        write(6,'(i3,1p, 72e9.2)') L,(VALJXX(L,K),K=1,NJX)
-!      enddo
-!      endif
-!
-!      endif
+
+c---NB UVB = 280-320 = bins 12:15, UVA = 320-400 = bins 16:17, VIS = bin 18 (++)
+
+C-----------------------------------------------------------------------
+      call JRATET(PPJ,TTJ,FFF, VALJXX, LU,NJXU)
+C-----------------------------------------------------------------------
+
+c---mapping J-values from fast-JX onto CTM chemistry is done in main
+
+C-----------------------------------------------------------------------
 
    99 continue
 
@@ -3344,7 +3809,6 @@ c---mean intensity averaged throughout layer:
          SUMT =SUMT + ZTAU(LZ+2,K)-ZTAU(LZ-2,K)
         enddo
         FJACT(L,K) = SUMJ/SUMT
-
        enddo
 
 c---mean diffuse flux:  4<I*mu> (not solar) at top of layer L
@@ -3504,99 +3968,95 @@ C---Always does PL(2) = P[1]
 !
 ! !IROUTINE: set_prof
 !
-! !DESCRIPTION: Subroutine SET\_PROF sets vertical profiles for a given
-!  latitude and longitude. 
+! !DESCRIPTION: Subroutine SET\_PROF sets up the atmospheric column profile
+!  for Fast-JX.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_PROF (ILON,ILAT,YLAT,MONTH,DAY,T_CTM,P_CTM,
-     &                     CLDOD,DSTOD,AEROD,AERCOL,O3_COL,
-     &                     T_CLIM,O3_CLIM,Z_CLIM,AIR_CLIM)
+      SUBROUTINE SET_PROF( NLON, NLAT, YLAT,  MONTH,   DAY, 
+     &              PCOL, TCOL,SFCALB,ODCOL, OPTDUST, OPTAER,
+     &              TINTERP, DO3, DBC, DM, Z, AER )
 !
 ! !USES:
 !
+      USE TOMS_MOD, ONLY : TOMS, DTOMS1, DTOMS2
+      USE ERROR_MOD
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER,INTENT(IN)    :: ILON                  ! Longitude index
-      INTEGER,INTENT(IN)    :: ILAT                  ! Latitude index
-      REAL*8, INTENT(IN)    :: YLAT                  ! Latitude (degrees)
-      INTEGER,INTENT(IN)    :: MONTH
-      INTEGER,INTENT(IN)    :: DAY                   ! Day *of month*
-      REAL*8, INTENT(IN)    :: T_CTM(L1_)            ! CTM temperatures (K)
-      REAL*8, INTENT(IN)    :: O3_COL                ! O3 column (DU)
-      REAL*8, INTENT(IN)    :: P_CTM(L1_+1)          ! CTM edge pressures (hPa)
-      REAL*8, INTENT(INOUT) :: CLDOD(L_)             ! Cloud optical depth
-      REAL*8, INTENT(IN)    :: DSTOD(L_,NDUST)       ! Mineral dust OD
-      REAL*8, INTENT(IN)    :: AEROD(L_,NAER*NRH)    ! Aerosol OD
+      INTEGER, INTENT(IN)    :: DAY, MONTH, NLAT, NLON
+      REAL*8,  INTENT(IN)    :: SFCALB, YLAT
+      REAL*8,  INTENT(IN)    :: PCOL(LLPAR+1),TCOL(LLPAR)
+      REAL*8,  INTENT(INOUT) :: ODCOL(LLPAR)
+      REAL*8,  INTENT(IN)    :: OPTDUST(LLPAR,NDUST)  
+      REAL*8,  INTENT(IN)    :: OPTAER(LLPAR,NAER*NRH)  
 !
 ! !OUTPUT VARIABLES:
 !
-      REAL*8, INTENT(OUT)   :: AERCOL(A_,L1_)        ! Aerosol column
-      REAL*8, INTENT(OUT)   :: T_CLIM(L1_)           ! Clim. temperatures (K)
-      REAL*8, INTENT(OUT)   :: Z_CLIM(L1_+1)         ! Edge altitudes (cm)
-      REAL*8, INTENT(OUT)   :: O3_CLIM(L1_)          ! O3 column depth (#/cm2)
-      REAL*8, INTENT(OUT)   :: AIR_CLIM(L1_)         ! O3 column depth (#/cm2)
+      REAL*8,  INTENT(OUT)   :: TINTERP(LLPAR)
+      REAL*8,  INTENT(OUT)   :: DO3(LLPAR)
+      REAL*8,  INTENT(OUT)   :: DBC(LLPAR)
+      REAL*8,  INTENT(OUT)   :: DM(LLPAR)
+      REAL*8,  INTENT(OUT)   :: Z(LLPAR+1)
+      REAL*8, INTENT(INOUT)  :: AER(A_,LLPAR)
 !
 ! !REMARKS:
+!  (1 ) Since we parallelize over columns, T, ODCOL, OPTDUST, and OPTAER
+!        are 1-D vectors. In the original code from Oliver Wild, these were 
+!        3-D arrays.  Also P and SA are just scalars since we just pass one 
+!        surface location at a time w/in the parallel loop. (bmy, 9/13/99)
+!  (2 ) Mineral dust profiles are also constructed (rvm, 06/04/00)
+!  (3 ) Other aerosol profiles are also constructed (rvm, bmy, 2/27/02)
+!  (4 ) Added NLON, NLAT, DAY to the arg list.  Now weight the O3 column by 
+!        the observed monthly mean EP-TOMS data.  Also updated comments and 
+!        added standard GEOS-CHEM documentation header. (mje, bmy, 7/13/03)
 ! 
 ! !REVISION HISTORY: 
-!  30 Mar 2013 - S. D. Eastham - Adapted from J. Mao code
+!  28 Mar 2013 - S. D. Eastham - Addapted from J. Mao's implementation of
+!                                Fast-JX v6.2 in GEOS-Chem
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                :: I, K, L, M, N, LCTM
+      INTEGER                :: I, K, L, M, N
       REAL*8                 :: DLOGP,F0,T0,B0,PB,PC,XC,MASFAC,SCALEH
-      REAL*8                 :: PSTD(52),OREF2(51),TREF2(51)
-      REAL*8                 :: PROFCOL, ODSUM
-      REAL*8, PARAMETER      :: ODMAX = 200.0d0
+      REAL*8                 :: PSTD(52),OREF2(51),TREF2(51),BREF2(51)
+      REAL*8                 :: O3COL_DU, DAYTOMS
 
       !=================================================================
       ! SET_PROF begins here!
       !=================================================================
 
-      ! Zero aerosol column
-      DO K=1,A_
-         DO I=1,L1_   
-            AERCOL(K,I) = 0.d0
-         ENDDO
-      ENDDO
+      ! Set up cloud and surface properties
+      CALL CLDSRF( ODCOL, SFCALB )
 
-      ! Scale optical depths to stay within limits
-      ODSUM = 0.d0
-      DO I=1,L_   
-         CLDOD(I) = DBLE(CLDOD(I))
-         ODSUM = ODSUM + CLDOD(I) 
+      ! Zero out aerosol column
+      DO K=1,A_
+        DO I=1,LLPAR
+          AER(K,I) = 0.D0
+        ENDDO
       ENDDO
-      IF (ODSUM.gt.ODMAX) THEN
-         ODSUM = ODMAX/ODSUM ! Temporary
-         DO I=1,L_    
-            CLDOD(I) = CLDOD(I)*ODSUM
-         ENDDO
-         ODSUM = ODMAX
-      ENDIF
 
       !=================================================================      
       ! Set up pressure levels for O3/T climatology - assume that value
       ! given for each 2 km z* level applies from 1 km below to 1 km 
       ! above, so select pressures at these boundaries. Surface level 
       ! values at 1000 mb are assumed to extend down to the actual 
-      ! surface pressure for this lat/lon.
+      ! P(nslon,nslat).
       !=================================================================      
-      PSTD(1)  = MAX(P_CTM(1),1000.d0)
-      PSTD(2)  = 1000.d0 * 10.d0 ** (-1.d0/16.d0)
-      DLOGP    = 10.d0**(-2.d0/16.d0)
-      DO I=3,51
+      PSTD(1) = MAX( PCOL(1), 1000.D0 )
+      PSTD(2) = 1000.D0 * 10.D0**( -1.D0/16.D0 )
+      DLOGP   = 10.D0**( -2.D0/16.D0 )
+      DO I = 3, 51
          PSTD(I) = PSTD(I-1) * DLOGP
       ENDDO
-      PSTD(52) = 0.d0
+      PSTD(52) = 0.D0
 
       ! Mass factor - delta-Pressure [hPa] to delta-Column [molec/cm2]
-      MASFAC = 100.d0 * 6.022d+23 / ( 28.97d0 * 9.8d0 * 10.d0 )
+      MASFAC = 100.D0 * 6.022D+23 / ( 28.97D0 * 9.8D0 * 10.D0 )
 
       ! Select appropriate monthly and latitudinal profiles
       ! Now use YLAT instead of Oliver's YDGRD(NSLAT) (bmy, 9/13/99) 
@@ -3607,38 +4067,40 @@ C---Always does PL(2) = P[1]
       DO I = 1, 51
           OREF2(I) = OREF(I,L,M)
           TREF2(I) = TREF(I,L,M)
+          BREF2(I) = BREF(I)
       ENDDO
- 
+
       ! Apportion O3 and T on supplied climatology z* levels onto CTM levels 
       ! with mass (pressure) weighting, assuming constant mixing ratio and
       ! temperature half a layer on either side of the point supplied.
 
-      DO I = 1, L1_  
+      DO I = 1, NB
          F0 = 0.D0
          T0 = 0.D0
+         B0 = 0.D0
          DO K = 1, 51
-            PC = MIN( P_CTM(I),   PSTD(K)   )
-            PB = MAX( P_CTM(I+1), PSTD(K+1) )
+            PC = MIN( PCOL(I),   PSTD(K)   )
+            PB = MAX( PCOL(I+1), PSTD(K+1) )
             IF ( PC .GT. PB ) THEN
-               XC = ( PC - PB ) / ( P_CTM(I) - P_CTM(I+1) )
+               XC = ( PC - PB ) / ( PCOL(I) - PCOL(I+1) )
                F0 = F0 + OREF2(K)*XC
                T0 = T0 + TREF2(K)*XC
+               B0 = B0 + BREF2(K)*XC
             ENDIF
          ENDDO
-         T_CLIM(I)  = T0
-         O3_CLIM(I) = F0 * 1.D-6
+         TINTERP(I)  = T0
+         DO3(I) = F0 * 1.D-6
+         DBC(I) = B0
       ENDDO
 
       !=================================================================
       ! Calculate effective altitudes using scale height at each level
       !=================================================================
-      Z_CLIM(1) = 0.D0
-      DO I = 1, L_   
-         SCALEH = 1.3806D-19 * MASFAC * T_CLIM(I)
-         Z_CLIM(I+1) = Z_CLIM(I) - 
-     &        ( LOG( P_CTM(I+1) / P_CTM(I) ) * SCALEH )
+      Z(1) = 0.D0
+      DO I = 1, LLPAR
+         SCALEH = 1.3806D-19 * MASFAC * TINTERP(I)
+         Z(I+1) = Z(I) - ( LOG( PCOL(I+1) / PCOL(I) ) * SCALEH )
       ENDDO
-      Z_CLIM(L1_+1)=Z_CLIM(L1_) + ZZHT
 
       !=================================================================
       ! Add Aerosol Column - include aerosol types here. Currently use 
@@ -3646,54 +4108,52 @@ C---Always does PL(2) = P[1]
       ! independent of wavelength; assume limiting temperature for 
       ! ice of -40 deg C.
       !=================================================================
-      DO I = 1, L_   
+      DO I = 1, LLPAR
          ! Turn off uniform black carbon profile (rvm, bmy, 2/27/02)
-         AERCOL(1,I) = 0D0
+         !AER(1,I) = DBC(I) * 10.D0 * ( Z(I+1) - Z(I) )
+         AER(1,I) = 0D0
 
-         IF ( T_CTM(I) .GT. 233.D0 ) THEN
-            AERCOL(2,I) = CLDOD(I)
-            AERCOL(3,I) = 0.D0
+         IF ( TCOL(I) .GT. 233.D0 ) THEN
+            AER(2,I) = ODCOL(I)
+            AER(3,I) = 0.D0
          ELSE
-            AERCOL(2,I) = 0.D0
-            AERCOL(3,I) = CLDOD(I)
-         ENDIF
+            AER(2,I) = 0.D0
+            AER(3,I) = ODCOL(I)
+         ENDIF   
 
          ! Also add in aerosol optical depth columns (rvm, bmy, 9/30/00)
          DO N = 1, NDUST
-            AERCOL(3+N,I) = DSTOD(I,N)
+            AER(3+N,I) = OPTDUST(I,N)
          ENDDO
         
          ! Also add in other aerosol optical depth columns (rvm, bmy, 2/27/02)
          DO N = 1, NAER*NRH
-            AERCOL(3+N+NDUST,I) = AEROD(I,N)
+            AER(3+N+NDUST,I) = OPTAER(I,N)
          ENDDO
 
       ENDDO
 
-      DO K = 1,(3+NDUST+(NAER*NRH))
-         AERCOL(K,L1_    ) = 0.D0
+      DO K = 1, A_
+         AER(K,LLPAR+1) = 0.D0
       ENDDO
 
       !=================================================================
-      ! Calculate column quantities for FAST-JX
+      ! Calculate column quantities for Fast-JX
       !=================================================================
-      PROFCOL = 0d0
 
-      DO I = 1, L1_   
+      O3COL_DU = 0d0
+
+      DO I = 1, NB
 
          ! Monthly mean air Column [molec/cm2]
-         AIR_CLIM(I)  = ( P_CTM(I) - P_CTM(I+1) ) * MASFAC
+         DM(I)  = ( PCOL(I) - PCOL(I+1) ) * MASFAC
 
          ! Monthly mean O3 column [molec/cm2]
-         O3_CLIM(I) = O3_CLIM(I) * AIR_CLIM(I)
+         DO3(I) = DO3(I) * DM(I)
     
          ! Monthly mean O3 column [DU] 
-         PROFCOL = PROFCOL + ( O3_CLIM(I) / 2.69d16 )
+         O3COL_DU = O3COL_DU + ( DO3(I) / 2.69d16 )
       ENDDO
-
-      !! Top values are special (do not exist in CTM data)
-      !AIR_CLIM(L1_)     = P_CTM(L1_) * MASFAC
-      !O3_CLIM(L1_) = O3_CLIM(L1_) * AIR_CLIM(L1_)
       
       !=================================================================
       ! Now weight the O3 column by the observed monthly mean TOMS.
@@ -3745,11 +4205,30 @@ C---Always does PL(2) = P[1]
       ! processing the TOMS O3 data files from 1979 thru 2005 in the 
       ! TOMS_200701 directory.
       !=================================================================
+      DAYTOMS = 0d0
 
+      IF ( DAY <= 15 ) THEN 
+
+         ! Interpolate O3 to current day (w/in first half of month)
+         IF ( TOMS(NLON,NLAT)   > -999d0  .AND.
+     &        DTOMS1(NLON,NLAT) > -999d0 ) THEN  
+            DAYTOMS = TOMS(NLON,NLAT) + DTOMS1(NLON,NLAT) * ( DAY - 15 )
+         ENDIF
+
+      ELSE
+
+         ! Interpolate O3 to current day (w/in 2nd half of month)
+         IF ( TOMS(NLON,NLAT)   > -999d0  .AND.
+     &        DTOMS2(NLON,NLAT) > -999d0 ) THEN  
+            DAYTOMS = TOMS(NLON,NLAT) + DTOMS2(NLON,NLAT) * ( DAY - 15 )
+         ENDIF
+
+      ENDIF
+      
       ! Scale monthly O3 profile to the daily O3 profile (if available)
-      IF ( O3_COL > 0d0 ) THEN 
-         DO I = 1, L1_    
-            O3_CLIM(I) = O3_CLIM(I) * ( O3_COL / PROFCOL )
+      IF ( DAYTOMS > 0d0 ) THEN 
+         DO I = 1, NB
+            DO3(I) = DO3(I) * ( DAYTOMS / O3COL_DU )
          ENDDO
       ENDIF
 
@@ -3761,23 +4240,22 @@ C---Always does PL(2) = P[1]
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_aer
+! !IROUTINE: cldsrf
 !
-! !DESCRIPTION: Subroutine SET\_AER fills out the array MIEDX.
-!  Each entry connects a GEOS-Chem aerosol to its Fast-JX counterpart:
-!  MIEDX(Fast-JX index) = (GC index)
+! !DESCRIPTION: Subroutine CLDSRF calculates cloud surface properties.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_AER(am_I_Root)
+      SUBROUTINE CLDSRF( ODCOL, SFCALB )
 !
 ! !USES:
 !
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root
+      REAL*8, INTENT(INOUT) :: ODCOL(LLPAR)
+      REAL*8, INTENT(IN)    :: SFCALB
 !
 ! !OUTPUT VARIABLES:
 !
@@ -3785,264 +4263,195 @@ C---Always does PL(2) = P[1]
 ! !REMARKS:
 ! 
 ! !REVISION HISTORY: 
-!  31 Mar 2013 - S. D. Eastham - Adapted from J. Mao FJX v6.2 implementation
+!  28 Mar 2013 - S. D. Eastham - Adapted from Fast-JX v6.2/GC implementation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER               :: I, J, K
-      INTEGER               :: IND(NAER)
+      INTEGER I
+      REAL*8  ODSUM, ODMAX, ODTOT
 
       !=================================================================
-      ! SER_AER begins here!
+      ! CLDSRF begins here!
       !=================================================================
-
-      ! Taken from aerosol_mod.F
-      IND = (/22,29,36,43,50/)
-
-      DO I=1,AN_
-         MIEDX(I) = 0
-      ENDDO
-
-!     Select Aerosol/Cloud types to be used - define types here
-!     Each of these types must be listed in the order used by OPMIE.F
-
-      ! Clouds
-      MIEDX(1)  =  3   !  Black carbon absorber
-      MIEDX(2)  = 10   !  Water Cloud (Deirmenjian 8 micron)
-      MIEDX(3)  = 14   !  Irregular Ice Cloud (Mishchenko)
-
-      ! Dust
-      MIEDX(4)  = 15   !  Mineral Dust  .15 micron    (rvm, 9/30/00)
-      MIEDX(5)  = 16   !  Mineral Dust  .25 micron    (rvm, 9/30/00)
-      MIEDX(6)  = 17   !  Mineral Dust  .4  micron    (rvm, 9/30/00)
-      MIEDX(7)  = 18   !  Mineral Dust  .8  micron    (rvm, 9/30/00)
-      MIEDX(8)  = 19   !  Mineral Dust 1.5  micron    (rvm, 9/30/00)
-      MIEDX(9)  = 20   !  Mineral Dust 2.5  micron    (rvm, 9/30/00)
-      MIEDX(10) = 21   !  Mineral Dust 4.0  micron    (rvm, 9/30/00)
-
-      ! Aerosols
-      DO I=1,NAER
-         DO J=1,NRH
-            MIEDX(10+((I-1)*NRH)+J)=IND(I)+J-1
-         ENDDO
-      ENDDO 
 c
-c  Ensure all 'AN_' types are valid selections
-      do i=1,AN_
-        IF (am_I_Root) write(6,1000) MIEDX(i),TITLEAA(MIEDX(i))
-        if(MIEDX(i).gt.NAA.or.MIEDX(i).le.0) then
-          if (am_I_Root) then
-             write(6,1200) MIEDX(i),NAA
-          endif
-          CALL EXITC('Bad MIEDX value.')
-        endif
+c Default lower photolysis boundary as bottom of level 1
+!      nlbatm = 1
+c
+c Scale optical depths as appropriate - limit column to 'odmax'
+      odmax = 200.d0
+      odsum =   0.d0
+      do i=1,llpar
+        odcol(i) = dble(odcol(i))
+        odsum    = odsum + odcol(i)
       enddo
+      if(odsum.gt.odmax) then
+        odsum = odmax/odsum
+        do i=1,llpar
+          odcol(i) = odcol(i)*odsum
+        enddo
+        odsum = odmax
+      endif
 
- 1000 format('Using Aerosol type: ',i3,1x,a)
- 1200 format('Aerosol type ',i3,' unsuitable; supplied values must be ',
-     $       'between 1 and ',i3)
-
-      END SUBROUTINE SET_AER
+      return
+      END SUBROUTINE CLDSRF
 !
 !EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
+!!------------------------------------------------------------------------------
+!!          Harvard University Atmospheric Chemistry Modeling Group            !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: srtn
+!!
+!! !DESCRIPTION: Subroutine SRTN is a reference subroutine, with more than one
+!!  line of description.
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE SRTN (INARG1,IOARG2,OARG3)
+!!
+!! !USES:
+!!
+!      USE THIS_MOD, ONLY : THIS_FN
+!!
+!! !INPUT PARAMETERS:
+!!
+!      REAL*8, INTENT(IN)          :: INARG1     ! Description of INARG1
+!      REAL*8, INTENT(INOUT)       :: IOARG2     ! Description of IOARG2
+!!
+!! !OUTPUT VARIABLES:
+!!
+!      REAL*8, INTENT(OUT)         :: OARG3      ! Description of OARG3
+!!
+!! !REMARKS:
+!! (1) A remark
+!! 
+!! !REVISION HISTORY: 
+!!  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      INTEGER, PARAMETER    :: IPARAM1=2
 !
-! !IROUTINE: fjxfunc
+!      !=================================================================
+!      ! SRTN begins here!
+!      !=================================================================
 !
-! !DESCRIPTION: Function FJXFUNC supplies J-values to the chemistry solver.  
-!\\
-!\\
-! !INTERFACE:
+!      OARG3 = INARG1 + IOARG2
+!      IOARG2 = OARG3/2.d0*IPARAM1
 !
-      REAL*8 FUNCTION FJXFUNC(I,J,L,NREAC,BRCH,NAME)
+!      END SUBROUTINE SRTN
+!!
+!!EOC
+!!------------------------------------------------------------------------------
+!!          Harvard University Atmospheric Chemistry Modeling Group            !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: srtn
+!!
+!! !DESCRIPTION: Subroutine SRTN is a reference subroutine, with more than one
+!!  line of description.
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE SRTN (INARG1,IOARG2,OARG3)
+!!
+!! !USES:
+!!
+!      USE THIS_MOD, ONLY : THIS_FN
+!!
+!! !INPUT PARAMETERS:
+!!
+!      REAL*8, INTENT(IN)          :: INARG1     ! Description of INARG1
+!      REAL*8, INTENT(INOUT)       :: IOARG2     ! Description of IOARG2
+!!
+!! !OUTPUT VARIABLES:
+!!
+!      REAL*8, INTENT(OUT)         :: OARG3      ! Description of OARG3
+!!
+!! !REMARKS:
+!! (1) A remark
+!! 
+!! !REVISION HISTORY: 
+!!  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      INTEGER, PARAMETER    :: IPARAM1=2
 !
-! !USES:
+!      !=================================================================
+!      ! SRTN begins here!
+!      !=================================================================
 !
+!      OARG3 = INARG1 + IOARG2
+!      IOARG2 = OARG3/2.d0*IPARAM1
 !
-! !INPUT PARAMETERS: 
+!      END SUBROUTINE SRTN
+!!
+!!EOC
+!!------------------------------------------------------------------------------
+!!          Harvard University Atmospheric Chemistry Modeling Group            !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: srtn
+!!
+!! !DESCRIPTION: Subroutine SRTN is a reference subroutine, with more than one
+!!  line of description.
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE SRTN (INARG1,IOARG2,OARG3)
+!!
+!! !USES:
+!!
+!      USE THIS_MOD, ONLY : THIS_FN
+!!
+!! !INPUT PARAMETERS:
+!!
+!      REAL*8, INTENT(IN)          :: INARG1     ! Description of INARG1
+!      REAL*8, INTENT(INOUT)       :: IOARG2     ! Description of IOARG2
+!!
+!! !OUTPUT VARIABLES:
+!!
+!      REAL*8, INTENT(OUT)         :: OARG3      ! Description of OARG3
+!!
+!! !REMARKS:
+!! (1) A remark
+!! 
+!! !REVISION HISTORY: 
+!!  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      INTEGER, PARAMETER    :: IPARAM1=2
 !
-      INTEGER,           INTENT(IN) :: I,J,L,NREAC,BRCH
-      CHARACTER (LEN=4), INTENT(IN) :: NAME
+!      !=================================================================
+!      ! SRTN begins here!
+!      !=================================================================
 !
-! !REVISION HISTORY: 
-!  (1  ) "cmn_fj.h" also includes "CMN_SIZE" and "define.h".
-!  (2  ) J-values are stored in array "ZPJ" from "cmn_fjx_mod.F".
-!  (3  ) Now references ERROR_STOP from "error_mod.F".  Updated comments,
-!         and made some cosmetic changes. (bmy, 10/15/02)
-!  27 Mar 2013 - S. D. Eastham - Rolled into FAST_JX_MOD
-!  29 Mar 2013 - S. D. Eastham - Converted from fjfunc into fjxfunc
-!EOP
-!------------------------------------------------------------------------------
-!BOC
+!      OARG3 = INARG1 + IOARG2
+!      IOARG2 = OARG3/2.d0*IPARAM1
 !
-! !LOCAL VARIABLES:
-!
-      INTEGER                       :: N
-      
-      !=================================================================
-      ! FJXFUNC begins here!
-      !
-      ! If your compiler has subscript-range checking (-C or 
-      ! -check_bounds) then it is recommended to use this option to 
-      ! test for the validity of (I,J,L), since repeated IF statements 
-      ! are computationally expensive.
-      !
-      ! If your compiler does not have subscript-range checking, then 
-      ! uncomment the following lines to do a manual test for the 
-      ! validity of (I,J,L).  
-      !=================================================================
-
-!      IF ( I > IIPAR .OR. J > JJPAR .OR. L > JVL_ ) THEN 
-!         CALL EXITC('Invalid grid-box # in call to FJXFUNC')
-!      ENDIF
-
-      !=================================================================
-      ! RINDEX converts the J-value index as read from "globchem.dat" to 
-      ! the J-value index as read from "fjx_j2j.dat". 
-      ! (bmy, 10/5/98, SDE 03/29/13)
-      !
-      ! Make sure that we have taken the proper reaction! 
-      !=================================================================
-      N = RINDEX(NREAC)
-
-      IF ( (N > NRATJ ) .or. (N .eq. 0) ) THEN
-         WRITE(6,*) 'RXN for ',name,', branch ',brch,' not found!'
-         CALL EXITC( 'Check FJXFUNC' )
-      ENDIF
-
-      !=================================================================
-      ! Return the appropriate J-value as the value of the function 
-      !=================================================================
-      FJXFUNC = ZPJ(L,N,I,J)
-
-!      ! Uncomment following lines for more rigorous checking
-!      IF (ISNAN(FJXFUNC)) THEN
-!         WRITE(6,*) 'Photolysis error for branch ', brch, ' of ', name
-!         WRITE(6,*) 'NaN photorate in grid I J L: ',I, J, L
-!         CALL EXITC('Bad photorate')
-!      ENDIF
-
-      ! Return to calling program
-      END FUNCTION FJXFUNC
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !ROUTINE: jv_index
-!
-! !DESCRIPTION: Subroutine JV\_INDEX computes the mapping between the CTM 
-!  indices (from "globchem.dat") for J-values to the FAST-JX indices 
-!  (from "FJX_j2j.dat") for J-values.  (bmy, 10/5/98, 4/27/10)
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE JV_INDEX( am_I_Root )
-!
-! !USES:
-!
-      USE CMN_SIZE_MOD
-      USE COMODE_LOOP_MOD  ! SMVGEAR II arrays
-
-! !INPUT PARAMETERS: 
-!
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-! 
-! !REVISION HISTORY:
-!  05 Oct 1998 - R. Yantosca - Initial version
-!  (1 ) Assumes the ordering of a species with several branches in 
-!        "ratj.d" is the same as in "chem.dat".
-!  (2 ) Updated comments, cosmetic changes (bmy, 11/15/01)
-!  (3 ) NAMESPEC is now NAMEGAS for SMVGEAR II.   We don't need to reference 
-!        CMN anymore. Now loop from NCS = 1..NCSGAS (bdf, bmy, 4/8/03)
-!  (4 ) Now reset NCS to NCSURBAN after loop (dbm, bmy, 10/16/06)
-!  (5 ) Increase species name length (fp, 6/09)
-!  (6 ) Change "Harvard #" to "GEOS-Chem #" in output (bmy, 4/27/10)
-!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
-!                              running with the traditional driver main.F
-!  30 Jul 2012 - R. Yantosca - Added ProTeX headers
-!  31 Mar 2013 - S. D. Eastham - Adapted for Fast-JX v7.0
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      ! Local variables
-      INTEGER            :: I, IFNC, IBRCH, N, NK
-
-      ! Needed longer name limits (SDE 03/31/13)
-      CHARACTER (LEN=14)  :: FULLNAME
-      CHARACTER (LEN=10)  :: SPECNAME
-
-      !=================================================================
-      ! JV_INDEX begins here!
-      !=================================================================
-
-      ! Zero the RINDEX array
-      RINDEX(:) = 0
-
-      ! Loop over photolysis rxns (urban chemistry only)
-      DO NCS = 1, NCSGAS
-      DO I   = 1, NPHOT
-
-         !==============================================================
-         ! I        = Index of photo rxns    from "globchem.dat"
-         ! NK       = Absolute rxn number (adds offset to I)
-         ! SPECNAME = Name of species I,     from "globchem.dat"
-         ! IBRCH    = Branch # of species I, from "globchem.dat"
-         !==============================================================
-         NK       = NRATES(NCS) + I
-         FULLNAME = TRIM(NAMEGAS(IRM(1,NK,NCS)))
-         ! Get first 10 characters only
-         READ (FULLNAME(1:10),"(a10)") SPECNAME
-         IFNC     = DEFPRAT(NK,NCS) + 0.01d0
-         IBRCH    = 10d0*( DEFPRAT(NK,NCS) - IFNC ) + 0.5d0
-
-         !==============================================================
-         ! N      = Index of photolysis reaction in "FJX_j2j.dat"
-         ! RNAMES = Name of species N as listed in "FJX_j2j.dat" 
-         ! BRANCH = Relative count of reaction in "FJX_j2j.dat"
-         !  
-         ! If the species names and branch numbers from both "globchem" 
-         ! and "FJX_j2j" match, then store N (the FJX index) in the 
-         ! Ith element of RINDEX.
-         !  
-         ! Thus, when looping over I (the "globchem" indices), as is 
-         ! done in FJXFUNC, RINDEX(I) will access the correct J-value 
-         ! according to the ordering in "FJX_j2j.dat".
-         !==============================================================
-         DO N = 1, NRATJ
-            IF ( SPECNAME == RNAMES(N) .and. IBRCH == BRANCH(N) ) THEN
-               RINDEX(I) = N
-
-               ! change formatting for longer name (FP 6/2009)
-               IF ( am_I_Root ) THEN
-                  WRITE ( 6, 100 ) I,         FULLNAME,  IBRCH, 
-     &                             RINDEX(I), RNAMES(N), BRANCH(N)
-               ENDIF
- 100           FORMAT('GEOS-Chem #: ', i3, 1x, a14, ' Branch: ', i2, 
-     &               ' --->  Fast-JX #: ', i3, 1x, a10, ' Branch: ',i2 )
-               EXIT
-            ENDIF
-         ENDDO
-      ENDDO  
-      ENDDO
-
-      ! Reset NCS to NCSURBAN for safety's sake (bmy, 10/16/06)
-      NCS = NCSURBAN
-
-      ! Return to calling program      
-      END SUBROUTINE JV_INDEX
-!EOC
+!      END SUBROUTINE SRTN
+!!
+!!EOC
 !!------------------------------------------------------------------------------
 !!          Harvard University Atmospheric Chemistry Modeling Group            !
 !!------------------------------------------------------------------------------

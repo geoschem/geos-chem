@@ -130,7 +130,7 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
-      USE FAST_JX_MOD,     ONLY : INPHOT
+      USE FAST_JX_MOD,     ONLY : INIT_FJX
 
 !
 ! !INPUT VARIABLES:
@@ -156,7 +156,7 @@
 !  (7 ) Now references "logical_mod.f" & "tracer_mod.f".  Now references
 !        AEROSOL_CONC, AEROSOL_RURALBOX, and RDAER from "aerosol_mod.f".  
 !        Now includes "CMN_DIAG" and "comode.h".  Also call READER, READCHEM, 
-!        and INPHOT to initialize the FAST-J arrays so that we can save out !
+!        and INIT_FJX to initialize the FAST-J arrays so that we can save out !
 !        AOD's to the ND21 diagnostic for offline runs. (bmy, 7/20/04)
 !  (8 ) Now call routine CHEMMERCURY from "mercury_mod.f" for an offline
 !        Hg0/Hg2/HgP simulation. (eck, bmy, 12/7/04)
@@ -296,13 +296,14 @@
             ! N_TROP, the # of trop boxes, is returned
             CALL AEROSOL_RURALBOX( N_TROP, am_I_Root )
  
-            ! Initialize FAST-J quantities for computing AOD's
+            ! Initialize FAST-JX quantities for computing AOD's
             IF ( FIRST ) THEN
 
                ! Init chem mechanism and photolysis
                CALL READER  ( FIRST,         am_I_Root )
                CALL READCHEM(                am_I_Root )
-               CALL INPHOT  ( LLCHEM, NPHOT, am_I_Root )
+               CALL INIT_FJX  ( am_I_Root )
+
  
                ! Reset NCS with NCSURBAN
                NCS     = NCSURBAN
@@ -824,7 +825,7 @@
                !===============================================================
                ! If LDUST is turned on, then we have online dust aerosol in
                ! GEOS-CHEM...so just pass SOILDUST to RDUST_ONLINE in order to
-               ! compute aerosol optical depth for FAST-J, etc.
+               ! compute aerosol optical depth for FAST-JX, etc.
                !
                ! If LDUST is turned off, then we don't have online dust aerosol
                ! in GEOS-CHEM...so read monthly-mean dust files from disk.

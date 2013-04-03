@@ -973,7 +973,7 @@
       USE TIME_MOD,     ONLY : GET_TS_CHEM
       USE TRACER_MOD,   ONLY : STT, N_TRACERS
 
-      USE FAST_JX_MOD,  ONLY : FAST_J, INPHOT, FJFUNC
+      USE FAST_JX_MOD,  ONLY : FAST_JX, INIT_FJX, FJXFUNC
       USE CMN_SIZE_MOD     ! Size parameters
       USE COMODE_LOOP_MOD     ! SPECNAME
       USE CMN_DIAG_MOD     ! ND36
@@ -995,9 +995,6 @@
       ! Hardwired Logical flag for FAST-J
       LOGICAL, PARAMETER     :: DO_FASTJ = .TRUE. 
 
-!      ! External functions
-!      REAL*8, EXTERNAL       :: FJFUNC 
-
       !=================================================================
       ! CHEMCH3I begins here!
       !=================================================================
@@ -1018,11 +1015,11 @@
 !-----------------------------------------------------------------------------
 
          !==============================================================
-         ! If LFASTJ is defined in "define.h", then invoke FAST-J 
+         ! If LFASTJ is defined in "define.h", then invoke FAST-JX
          ! subroutines to compute photolysis rates.  The loss rate
          ! of CH3I is dependent on the local photolysis rates.
          !
-         ! Initialize FAST-J quantities on the first timestep
+         ! Initialize FAST-JX quantities on the first timestep
          !==============================================================
          IF ( FIRSTCHEM ) THEN
 
@@ -1031,12 +1028,12 @@
             CALL READER( FIRSTCHEM )
             CALL READCHEM
             
-            ! Call INPHOT to initialize the fast-J variables. 
-            CALL INPHOT( LLCHEM, NPHOT, am_I_Root )
+            ! Call INIT_FJX to initialize the fast-JX variables. 
+            CALL INIT_FJX( am_I_Root )
             
             ! Echo output
             IF (am_I_Root) THEN
-               WRITE( 6,'(a)' ) 'Using U.C.I Fast-J Photolysis'
+               WRITE( 6,'(a)' ) 'Using U.C.I Fast-JX v7.0 Photolysis'
             ENDIF
 
             ! Reset FIRSTCHEM
@@ -1046,9 +1043,10 @@
          !==============================================================
          ! For each chemistry time step, compute J-values and store 
          ! them in an internal array.  SUNCOS, OPTD, and UVALBEDO are 
-         ! needed for FAST-J.
+         ! needed for FAST-JX. Also set aerosol data to be computed
+         ! at 999 nm.
          !==============================================================
-         CALL FAST_J( SUNCOS, OPTD, UVALBEDO, am_I_Root )
+         CALL FAST_JX( SUNCOS, OPTD, UVALBEDO, 0, am_I_Root )
         
          !==============================================================
          ! NR is the loop over the number of reactions (NR=1 for now!)
@@ -1089,7 +1087,7 @@
 
                ! SUNCOS > 0 means daytime!
                IF ( SUNCOS( (J-1)*IIPAR + I ) > 0 ) THEN
-                  JVALUE = FJFUNC( I, J, L, NR, IBRCH, SPECNAME )
+                  JVALUE = FJXFUNC( I, J, L, NR, IBRCH, SPECNAME )
                   RLRAD  = JVALUE * DTCHEM
                   RDLOSS = EXP( -RLRAD )
 

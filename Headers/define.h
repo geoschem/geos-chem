@@ -31,6 +31,7 @@
 !  SPARC       : Enables code for Sun w/ SPARC or Sun Studio compiler
 !  GTMM_Hg     : Enables code for Hg simulation with GTMM
 !  GMISTRAT    : Enables code for full stratospheric chemistry
+!  FASTJX7     : Modifies photolysis code for compatibility with FJX 7.0
 !                                                                            .
 !  NOTES:
 !  (1 ) "define.h" is #include'd at the top of CMN_SIZE.  All subroutines
@@ -100,6 +101,7 @@
 !  07 Sep 2012 - R. Yantosca - Removed EXTERNAL_GRID, EXTERNAL_FORCING, these
 !                              will now be set in the Makefile_header.mk
 !  24 Mar 2013 - S. D. Eastham - Added GMISTRAT switch
+!  01 Apr 2013 - S. D. Eastham - Added FASTJX7 switch (temporary)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -130,6 +132,7 @@
 #undef SPARC
 #undef GTMM_Hg
 #undef GMISTRAT
+#undef FASTJX7
 
 !==============================================================================
 ! Define the necessary "switches" for GEOS-CHEM. 
@@ -167,6 +170,7 @@
 !----- Simulation type -----
 !#define GTMM_Hg
 !#define GMISTRAT
+#define FASTJX7
 
 !==============================================================================
 ! Force a compile error if a model type is undefined

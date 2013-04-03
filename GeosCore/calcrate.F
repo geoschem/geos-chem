@@ -139,7 +139,7 @@
       USE CMN_MOD               ! STT, etc
       USE CMN_DEP_MOD           ! FRCLND
       USE CMN_O3_MOD            ! for jvalues (gvinken, 6/09/10)
-      USE FAST_JX_MOD,     ONLY : FJFUNC
+      USE FAST_JX_MOD,     ONLY : FJXFUNC
 
       IMPLICIT NONE
 #     include "define.h"
@@ -839,6 +839,10 @@ c new OH+CO rate from JPL2006.
 ! FP_ISOP 
 ! Change yield for HAC  
 
+         ! The following T and P dependencies are directly included
+         ! in Fast-JX v7.0 (SDE 04/01/13)
+#if !defined( FASTJX7 )
+
          ! Questions for Fabien: (hotp 7/31/09)
          ! What are HAC, MCO3, and GLYC? Can you provide some comments for
          ! this new code?
@@ -906,6 +910,7 @@ c new OH+CO rate from JPL2006.
 
             ENDDO
          ENDIF
+#endif
 
 
       !=================================================================
@@ -1230,8 +1235,8 @@ c new OH+CO rate from JPL2006.
                ! For daylight boxes...
                IF(GMU.GT. 0.D0) THEN
 
-                  ! For FAST-J, get photorates from fjfunc.f
-                  RRATE(KLOOP,NKN)  = FJFUNC(IX,IY,IZ,I,IBRCH,SPECNAME)
+                  ! For FAST-JX, get photorates from fjfunc.f
+                  RRATE(KLOOP,NKN)  = FJXFUNC(IX,IY,IZ,I,IBRCH,SPECNAME)
 
 !### Debug: warn if there are negative J-values, for either 
 !### FAST-J or SLOW-J photolysis (bmy, 10/1/98)
@@ -1258,7 +1263,11 @@ c new OH+CO rate from JPL2006.
          !                                    'globchem.dat'
          !
          ! Add NCS index to NKHOROI and HKHOROJ for SMVGEAR II (tmf, 12/16/06)
+         !
+         ! Not yet modified this for compatibility with Fast-JX v7.0.
+         ! (SDE 04/01/13)
          !==============================================================
+#if !defined( FASTJX7 )
          IF ( NKHOROI(NCS) > 0 ) THEN
 
             ! Put J(EP) in correct spot for SMVGEAR II
@@ -1282,14 +1291,41 @@ c new OH+CO rate from JPL2006.
      +            FYHORO(DENAIR(KLOOP), T3K(KLOOP)) 
             ENDDO
          ENDIF
+#endif
 
          !==============================================================
-         ! SPECIAL TREATMENT FOR O3+hv -> OH+OH
+         ! SPECIAL TREATMENT FOR O2+hv -> O+O
+         !
+         ! O2 is an inactive species, so we need to premultiply RRATE
+         ! by the O2 concentration prior to sending to the solver
+         !
+         !==============================================================
+         
+         IF ( NKO2PHOT(NCS) > 0) THEN
+         
+            !GET CORRECT NKN LOCATION OF O2 PHOT
+            PHOTVAL = NKO2PHOT(NCS)-NRATES(NCS)
+            NKN     = NKNPHOTRT(PHOTVAL,NCS)
+         
+            !Loop through boxes and multiply by O2 Concentration
+            DO KLOOP = 1, KTLOOP
+               !Save old value of J-O2 in a diagnostic array
+               RRATE(KLOOP,NKN) = RRATE(KLOOP,NKN)*CONCO2(KLOOP)
+            ENDDO
+         ENDIF 
+
+         !==============================================================
+         ! SPECIAL TREATMENT FOR O3+hv -> O+O2
          ! [O1D]ss=J[O3]/(k[H2O]+k[N2]+k[O2])
          ! SO, THE EFFECTIVE J-VALUE IS J*k[H2O]/(k[H2O]+k[N2]+k[O2])
          !
          ! Add NCS index to NKHNO4 for SMVGEAR II (gcc, bmy, 4/1/03)
+         !
+         ! We don't want to do this if strat-chem is in use, as all
+         ! the intermediate reactions are included - this would be
+         ! double-counting (SDE 04/01/13)
          !==============================================================
+#if !defined( GMISTRAT )
          IF ( NKO3PHOT(NCS) > 0 ) THEN
 
             ! Put J(O3) in correct spot for SMVGEAR II
@@ -1329,6 +1365,7 @@ c new OH+CO rate from JPL2006.
 
             ENDDO
          ENDIF
+#endif
       ELSEIF(IFSUN.EQ.2) THEN
          DO I          = 1, JPHOTRAT(NCS)
             NKN        = NKNPHOTRT(I,NCS)

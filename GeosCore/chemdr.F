@@ -57,7 +57,7 @@
       USE GIGC_State_Met_Mod,   ONLY : MetState
 #endif
 
-      USE FAST_JX_MOD,  ONLY : INPHOT, FAST_J
+      USE FAST_JX_MOD,  ONLY : INIT_FJX, FAST_JX
 
       IMPLICIT NONE
 #     include "define.h"
@@ -82,10 +82,10 @@
 !  ALBD        : DAO visible albedo                         [unitless]
 !  AVGW        : Mixing ratio of water vapor                [v/v] 
 !  BXHEIGHT    : Grid box heights                           [m]
-!  OPTD        : DAO grid-box optical depths (for FAST-J)   [unitless]
+!  OPTD        : DAO grid-box optical depths (for FAST-JX)  [unitless]
 !  SUNCOS      : Cosine of solar zenith angle               [unitless]
 !  SUNCOSB     : Cosine of solar zenith angle 1 hr from now [unitless]
-!  UVALBEDO    : TOMS UV albedo 340-380 nm (for FAST-J)     [unitless]
+!  UVALBEDO    : TOMS UV albedo 340-380 nm (for FAST-JX)    [unitless]
 !                                                                             .
 !  Important input variables from "comode.h" or "comode_mod.f":
 !  ============================================================================
@@ -120,11 +120,11 @@
 ! globchem.dat : species list, reaction list,           (read in "chemset.f")
 !                photolysis reaction list
 !                                                                             .
-!  Input files for FAST-J photolysis:
+!  Input files for FAST-JX photolysis (all handled in fast_jx_mod.F):
 !  ============================================================================
-!     ratj.d   : Lists photo species, branching ratios  (read in "rd_js.f")
-! jv_atms.dat  : Climatology of T and O3                (read in "rd_prof.f")
-! jv_spec.dat  : Cross-sections for each species        (read in "RD_TJPL.f")
+!   FJX_j2j.dat: Lists photo species, branching ratios  
+!atmos_spec.dat: Climatology of T and O3                
+!  FJX_spec.dat: Cross-sections for each species        
 !
 ! !REVISION HISTORY:
 !  15 Nov 2001 - Adapted from original code by lwh, jyl, gmg, djj. 
@@ -233,6 +233,7 @@
 !  16 Oct 2012 - R. Yantosca - Renamed Meteorology State object to State_Met
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
+!  31 Mar 2013 - S. D. Eastham - Updated in line with Fast-JX v7.0
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -387,13 +388,13 @@
          ENDIF
 
          !-------------------------------
-         ! Initialize FAST-J photolysis
+         ! Initialize FAST-JX photolysis
          !-------------------------------
-         CALL INPHOT( LLCHEM, NPHOT, am_I_Root ) 
+         CALL INIT_FJX(am_I_Root) 
          
          !### Debug
          IF ( LPRT .and. am_I_Root ) THEN
-            CALL DEBUG_MSG( '### CHEMDR: after INPHOT' )        
+            CALL DEBUG_MSG( '### CHEMDR: after INIT_FJX' )        
          ENDIF
 
          !-------------------------------
@@ -445,7 +446,7 @@
 
       !================================================================
       ! Get concentrations of aerosols in [kg/m3] 
-      ! for FAST-J and optical depth diagnostics
+      ! for FAST-JX and optical depth diagnostics
       !=================================================================
       IF ( LSULF .or. LCARB .or. LDUST .or. LSSALT ) THEN
 
@@ -527,7 +528,7 @@
       ! Call RDAER -- computes aerosol optical depths
       !=================================================================
 
-      ! Call RDAER to compute AOD for FAST-J (skim, 02/03/11)
+      ! Call RDAER to compute AOD for FAST-JX (skim, 02/03/11)
       WAVELENGTH = 0
 
       CALL RDAER( am_I_Root, MONTH, YEAR, WAVELENGTH )
@@ -540,7 +541,7 @@
       !=================================================================
       ! If LDUST is turned on, then we have online dust aerosol in
       ! GEOS-CHEM...so just pass SOILDUST to RDUST_ONLINE in order to
-      ! compute aerosol optical depth for FAST-J, etc.
+      ! compute aerosol optical depth for FAST-JX, etc.
       !
       ! If LDUST is turned off, then we do not have online dust aerosol
       ! in GEOS-CHEM...so read monthly-mean dust files from disk.
@@ -567,14 +568,14 @@
       ! Call photolysis routine to compute J-Values
       !=================================================================
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      CALL FAST_J( SUNCOS_MID,      OPTD,     UVALBEDO, 
-     &             State_Met%PEDGE, am_I_Root           )
+      CALL FAST_JX( SUNCOS_MID,      OPTD,     UVALBEDO, 
+     &             State_Met%PEDGE, WAVELENGTH, am_I_Root )
 #else
-      CALL FAST_J( SUNCOS_MID, OPTD, UVALBEDO, am_I_Root )              
+      CALL FAST_JX( SUNCOS_MID, OPTD, UVALBEDO, WAVELENGTH, am_I_Root )
 #endif
 
       !### Debug
-      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after FAST-J' )
+      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after FAST-JX' )
 
       !================================================================
       ! Call chemistry routines
