@@ -276,6 +276,19 @@
       IT_IS_AN_AEROSOL_SIM     = Input_Opt%ITS_AN_AEROSOL_SIM
       IT_IS_NOT_COPARAM_OR_CH4 = Input_Opt%ITS_NOT_COPARAM_OR_CH4
 
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! NOTE: State_Chm%TRACERS needs to enter this routine with
+      ! units of [kg].  If we are calling this routine from the 
+      ! traditional "main.F" driver, then the tracers are already in
+      ! [kg] and no further unit conversion is necessary.  If on the
+      ! other hand we are calling this routine from the ESMF interface,
+      ! then we need to convert State_Chm%TRACERS from [v/v] to [kg]
+      ! in the calling routine GIGC_Do_Chem (in ESMF/gigc_chemdr.F90).
+      ! (bmy, 4/4/13) 
+      !-----------------------------------------------------------------
+
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT                      => State_Chm%Tracers
@@ -563,21 +576,14 @@
       !-----------------------------------------------------------------
       !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
       !
-      ! At present (25 Oct 2012), we have not yet completely replaced
-      ! the GEOS-Chem arrays with fields from the Chemistry State 
-      ! (i.e. State_Chm) and Meteorology State (i.e. State_Met)
-      ! objects.  In order to continue GIGC development without 
-      ! disrupting the existing GEOS-Chem workflow, we shall copy the 
-      ! tracer array STT back to State_Chm%TRACERS after chemistry. 
-      !
-      ! Also note: State_Chm%TRACERS needs to leave this routine with
+      ! ALSO NOTE: State_Chm%TRACERS needs to leave this routine with
       ! units of [kg].  If we are calling this routine from the 
       ! traditional "main.F" driver, then the tracers are already in
       ! [kg] and no further unit conversion is necessary.  If on the
       ! other hand we are calling this routine from the ESMF interface,
       ! then we need to convert State_Chm%TRACERS from [kg] to [v/v]
       ! in the calling routine GIGC_Do_Chem (in ESMF/gigc_chemdr.F90).
-      ! (bmy, 10/24/12) 
+      ! (bmy, 4/4/13) 
       !-----------------------------------------------------------------
 
       ! Free pointer

@@ -4132,7 +4132,6 @@ c
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACER_MOD,         ONLY : XNUMOL
 !
 ! !INPUT PARAMTERS:
 !
@@ -4152,9 +4151,17 @@ c
       REAL*8  :: TC0, CNEW, FREQ, AREA_CM2
       REAL*8  :: ND44_TMP(IIPAR,JJPAR,LLPAR)
 
+      ! For fields in Input_Opt
+      INTEGER :: N_TRACERS
+      REAL*8  :: XNUMOL(Input_Opt%N_TRACERS)
+
       !=================================================================
       ! SOA_DEPO begins here!
       !=================================================================
+
+      ! Copy values from Input_Opt
+      N_TRACERS = Input_Opt%N_TRACERS
+      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS )
 
       ! Return if tracer ID or tracer ID is undefined
       IF ( TRID == 0 .OR. DEPID == 0 ) RETURN
@@ -4342,6 +4349,9 @@ c
       ! and hydrophobic fractions. NOTE, CARBON AEROSOLS HAVE TO BE 
       ! ORDERED AS Hydrophilic(BC[1], OC[2]) Hydrophobic(BC[3], OC[4]).
       !=================================================================      
+
+      ! Assume success
+      RC        = GIGC_SUCCESS
 
       ! Copy values from Input_Opt
       N_TRACERS = Input_Opt%N_TRACERS
@@ -6573,7 +6583,6 @@ c
       USE COMODE_MOD,         ONLY : CSPEC, JLOP, VOLUME
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE TRACER_MOD,         ONLY : XNUMOL
       USE TRACERID_MOD,       ONLY : IDTBENZ, IDTTOLU, IDTXYLE
 
       ! Arguments
@@ -6587,9 +6596,14 @@ c
       INTEGER                    :: JLOOP, ILARO2, IDTAROM
       REAL*8                     :: ARO2CARB
 
+      ! For values from Input_Opt
+      INTEGER                    :: N_TRACERS
+      REAL*8                     :: XNUMOL(Input_Opt%N_TRACERS)
+
       !=================================================================
       ! GET_DARO2 begins here!
       !=================================================================
+
       !print*, ' get DARO2'
       DARO2 = 0d0
 

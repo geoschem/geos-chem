@@ -728,7 +728,7 @@
       !=================================================================
       ! Call LUMP which lumps the species together after chemistry
       !=================================================================
-      CALL LUMP( N_TRACERS, XNUMOL(1:N_TRACERS), State_Chm )
+      CALL LUMP( am_I_Root, Input_Opt, State_Chm, RC )
 
       !### Debug
       IF ( prtDebug ) THEN

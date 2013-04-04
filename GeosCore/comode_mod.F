@@ -43,9 +43,6 @@
       REAL*8,  ALLOCATABLE, PUBLIC :: ABSHUM(:) 
       REAL*8,  ALLOCATABLE, PUBLIC :: AIRDENS(:) 
       REAL*8,  ALLOCATABLE, PUBLIC :: CSPEC(:,:)
-#if !defined( DEVEL )
-      REAL*8,  ALLOCATABLE, PUBLIC :: CSPEC_FULL(:,:,:,:)
-#endif
       REAL*8,  ALLOCATABLE, PUBLIC :: CSUMA(:) 
       REAL*8,  ALLOCATABLE, PUBLIC :: CSUMC(:) 
       REAL*8,  ALLOCATABLE, PUBLIC :: ERADIUS(:,:)
@@ -92,7 +89,8 @@
 !       but excludes BCPO and OCPO (tmf, ccc, 1/7/09)
 !  (11) Added 3 *_KPP arrays (phs,ks,dhk, 09/15/09)
 !  (12) Removed 3 *_KPP arrays (phs, 09/16/09)
-!  21 Dec 2010 - R. Yantosca - Added ProTeX headers     
+!  21 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  04 Apr 2013 - R. Yantosca - Removed CSPEC_FULL (now in State_Chm)   
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -140,6 +138,7 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  13 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC arguments for GIGC
+!  04 Apr 2013 - R. Yantosca - Removed CSPEC_FULL (now in State_Chm)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -181,12 +180,6 @@
          ALLOCATE( CSPEC( ITLOOP, IGAS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CSPEC' )
          CSPEC = 0d0
-
-#if !defined( DEVEL )
-         ALLOCATE( CSPEC_FULL( ILONG, ILAT, IPVERT, IGAS ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'CSPEC_FULL' )
-         CSPEC_FULL = 0d0
-#endif
 
          ALLOCATE( CSUMA( ITLOOP ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CSUMA' )
@@ -329,6 +322,7 @@
 !  (1 ) Now deallocate CSPEC, CSUMA, ERRMX2; cosmetic changes (bmy, 7/18/03)
 !  21 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  13 Nov 2012 - R. Yantosca - Cosmetic changes
+!   4 Apr 2013 - R. Yantosca - Removed CSPEC_FULL (now in State_Chm)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -338,9 +332,6 @@
       IF ( ALLOCATED( ABSHUM        ) ) DEALLOCATE( ABSHUM        )
       IF ( ALLOCATED( AIRDENS       ) ) DEALLOCATE( AIRDENS       )
       IF ( ALLOCATED( CSPEC         ) ) DEALLOCATE( CSPEC         )
-#if !defined( DEVEL )
-      IF ( ALLOCATED( CSPEC_FULL    ) ) DEALLOCATE( CSPEC_FULL    )
-#endif
       IF ( ALLOCATED( CSUMA         ) ) DEALLOCATE( CSUMA         )
       IF ( ALLOCATED( CSUMC         ) ) DEALLOCATE( CSUMC         )
       IF ( ALLOCATED( ERADIUS       ) ) DEALLOCATE( ERADIUS       )

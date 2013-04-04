@@ -1076,11 +1076,9 @@ c new OH+CO rate from JPL2006.
             ! both pseudo-rxns (rate limiting). (jpp, 4/12/10)
             ! -------------------------------------------------
 
-#if defined( DEVEL )
             ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
             ! (mpayer, 12/6/12)
             STT => State_Chm%Tracers
-#endif
 
             IF ( ( IDTHBr > 0) .and. ( IDTHOBr > 0 ) ) THEN
 
@@ -1170,10 +1168,8 @@ c new OH+CO rate from JPL2006.
                RRATE(KLOOP, NK2HOBr) = ki_hobr
             ENDIF
 
-#if defined( DEVEL )
             ! Free pointer
             NULLIFY( STT )
-#endif
 
          ELSE
 

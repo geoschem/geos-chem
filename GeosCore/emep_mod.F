@@ -102,6 +102,9 @@
       REAL*8,  ALLOCATABLE, TARGET  :: EMEP_SO2_SHIP(:,:)
       REAL*8,  ALLOCATABLE, TARGET  :: EMEP_NOx_SHIP(:,:)
 
+      ! Shadow variable for XNUMOL
+      REAL*8,  ALLOCATABLE          :: s_XNUMOL(:)
+
       ! Shadow variables for logicals from Input_Opt
       LOGICAL                       :: LEMEPSHIP
       LOGICAL                       :: LFUTURE
@@ -168,7 +171,6 @@
       USE TRACERID_MOD, ONLY : IDTNOX,  IDTCO,   IDTALK4, IDTMEK
       USE TRACERID_MOD, ONLY : IDTALD2, IDTPRPE, IDTC2H6, IDTSO2
       USE TRACERID_MOD, ONLY : IDTNH3
-      USE TRACER_MOD,   ONLY : XNUMOL
       USE GRID_MOD,     ONLY : GET_AREA_CM2
 !
 ! !INPUT PARAMETERS:
@@ -290,7 +292,7 @@
       !------------------------------
       IF ( DO_KGS ) THEN
 
-         EMEP = EMEP * GET_AREA_CM2( I, J, 1 ) / XNUMOL(NN)
+         EMEP = EMEP * GET_AREA_CM2( I, J, 1 ) / s_XNUMOL(NN)
 
       ENDIF
 
@@ -1783,6 +1785,7 @@
 !  26 Jan 2010 - R. Yantosca - Fixed cut-n-paste error.  Now make sure to zero 
 !                              EMEP_CO_SHIP and EMEP_NOx_SHIP. 
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC 
+!  04 Apr 2013 - R. Yantosca - Now allocate a shadow variable of XNUMOL
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1847,6 +1850,11 @@
       ALLOCATE( EUROPE_MASK( IIPAR, JJPAR ), STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'EUROPE_MASK' )
       EUROPE_MASK = 0d0
+
+      ! Shadow variable for XNUMOL
+      ALLOCATE( s_XNUMOL( Input_Opt%N_TRACERS ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'p_XNUMOL' )
+      s_XNUMOL = Input_Opt%XNUMOL(1:Input_Opt%N_TRACERS)
 
       ! Read and regrid the European mask
 #if   defined(GRID05x0666)

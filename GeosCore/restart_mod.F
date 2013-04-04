@@ -225,11 +225,9 @@
       I0 = GET_XOFFSET( GLOBAL=.TRUE. )
       J0 = GET_YOFFSET( GLOBAL=.TRUE. )
 
-#if defined( DEVEL )
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
-#endif
 
       !=================================================================
       ! Open the restart file for output -- binary punch format
@@ -280,10 +278,8 @@
       ! Close file
       CLOSE( IU_RST )
 
-#if defined( DEVEL )
       ! Free pointer
       NULLIFY( STT )
-#endif
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### MAKE_RESTART_FILE: wrote file' )
@@ -1111,46 +1107,34 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE READ_CSPEC_FILE( am_I_Root, YYYYMMDD, HHMMSS,
      &                            IT_EXISTS, State_Chm )
-#else
-      SUBROUTINE READ_CSPEC_FILE( am_I_Root, YYYYMMDD,  
-     &                            HHMMSS,    IT_EXISTS ) 
-#endif
 !
 ! !USES:
 !
-      USE BPCH2_MOD,   ONLY : OPEN_BPCH2_FOR_READ
-#if defined( DEVEL )
+      USE BPCH2_MOD,          ONLY : OPEN_BPCH2_FOR_READ
+      USE CMN_MOD
+      USE CMN_SIZE_MOD
+      USE COMODE_LOOP_MOD
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-#else
-      USE COMODE_MOD,  ONLY : CSPEC_FULL
-#endif
-      USE COMODE_MOD,  ONLY : JLOP
-      USE ERROR_MOD,   ONLY : DEBUG_MSG
-      USE ERROR_MOD,   ONLY : ERROR_STOP
-      USE FILE_MOD,    ONLY : IOERROR
-      USE FILE_MOD,    ONLY : FILE_EXISTS
-      USE LOGICAL_MOD, ONLY : LPRT
-      USE TIME_MOD,    ONLY : EXPAND_DATE
-
-      USE CMN_SIZE_MOD                  ! Size parameters
-      USE COMODE_LOOP_MOD               ! ITLOOP, IGAS
-      USE CMN_MOD	                ! LPRT, NSRCX, LSOILNOX
+      USE COMODE_MOD,         ONLY : JLOP
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE FILE_MOD,           ONLY : IOERROR
+      USE FILE_MOD,           ONLY : FILE_EXISTS
+      USE LOGICAL_MOD,        ONLY : LPRT
+      USE TIME_MOD,           ONLY : EXPAND_DATE
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL, INTENT(IN) :: am_I_Root  ! Is this the root CPU?
-      INTEGER, INTENT(IN) :: YYYYMMDD   ! YYYY/MM/DD GMT date
-      INTEGER, INTENT(IN) :: HHMMSS     ! hh:mm:ss   GMT time
+      LOGICAL,       INTENT(IN)     :: am_I_Root   ! Is this the root CPU?
+      INTEGER,       INTENT(IN)     :: YYYYMMDD    ! YYYY/MM/DD GMT date
+      INTEGER,       INTENT(IN)     :: HHMMSS      ! hh:mm:ss   GMT time
 !
 ! !OUTPUT PARAMETERS: 
 !
-      LOGICAL,        INTENT(OUT) :: IT_EXISTS   ! Does CSPEC restart exist?
-#if defined( DEVEL )
-      TYPE(ChmState), INTENT(OUT) :: State_Chm   ! Chemistry State object
-#endif
+      LOGICAL,        INTENT(OUT)   :: IT_EXISTS   ! Does CSPEC restart exist?
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 ! 
 ! !REVISION HISTORY: 
 !  30 Aug 2004 - D. Henze    - Initial version, based on READ_RESTART  
@@ -1164,6 +1148,7 @@
 !                              running with the traditional driver main.F
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  04 Apr 2013 - R. Yantosca - Now declare State_Chm INTENT(INOUT)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1193,11 +1178,9 @@
       CHARACTER(LEN=40)   :: RESERVED
 
       ! Pointers
-#if defined( DEVEL )
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 1/24/12)
       REAL*8, POINTER :: CSPEC_FULL(:,:,:,:)
-#endif
 
       !=================================================================
       ! READ_CSPEC_FILE begins here!
@@ -1211,11 +1194,9 @@
       ! use 1e-30 as min (hotp 2/25/09)
       TMP(:,:,:) = 1e-30
 
-#if defined( DEVEL )
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       CSPEC_FULL => State_Chm%Species
-#endif
 
       !=================================================================
       ! Open checkpoint file and read top-of-file header
@@ -1324,10 +1305,8 @@
       ! Close file
       CLOSE( IU_RST )      
 
-#if defined( DEVEL )
       ! Free pointer
       NULLIFY( CSPEC_FULL )
-#endif
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### READ_CSPEC_FILE: read file' )

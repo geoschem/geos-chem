@@ -551,7 +551,8 @@ CONTAINS
     CALL Init_PBL_Mix()
 
     ! Initialize arrays SO2s, H2O2s in wetscav_mod.F for use in sulfate chem
-    CALL Init_WetScav( State_Met )
+    CALL Init_WetScav &
+       ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
     !=======================================================================
     ! Initialize dry deposition 

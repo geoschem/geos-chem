@@ -331,10 +331,8 @@
 
 #endif
 
-#if defined( DEVEL )
       ! Free pointer
       NULLIFY( CSPEC_FULL )
-#endif
 
 !  ********************************************************************
 !  *            Update starting concentrations for plumes             *

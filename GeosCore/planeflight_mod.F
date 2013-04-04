@@ -1209,15 +1209,16 @@
                                                         !  avoid faulty output
 
       ! Pointers
-#if defined( DEVEL )
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER :: STT(:,:,:,:)
-#endif
 
       !=================================================================
       ! PLANEFLIGHT begins here!
       !=================================================================
+
+      ! Assume success
+      RC = GIGC_SUCCESS
 
       ! Return if there is no flighttrack data for today
       IF ( .not. DO_PF ) RETURN
@@ -1544,11 +1545,9 @@
                      ! Remove offset from PVAR
                      N = PVAR(V) - 100000
 
-#if defined( DEVEL )
                      ! Initialize GEOS-Chem tracer array [kg] from
                      ! Chemistry State object (mpayer, 12/6/12)
                      STT => State_Chm%Tracers
-#endif
                      
                      ! Convert from [kg] --> [v/v]
 !--------------------eds test sampling 1 level up----------------------------
@@ -1564,10 +1563,8 @@
 
                      IF ( VARI(V) < TINY ) VARI(V) = 0.d0
 
-#if defined( DEVEL )
                      ! Free pointer
                      NULLIFY( STT )
-#endif
 
                   !--------------------------
                   ! Otherwise it's an error!

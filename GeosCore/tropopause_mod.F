@@ -119,21 +119,12 @@
       INTEGER :: JGAS, JLOOP, IX, IY, IZ
       INTEGER :: LOCATION(4)
 
-      ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 1/24/12)
-      REAL*8, POINTER :: CSPEC_FULL(:,:,:,:)
-
       !=================================================================
       ! COPY_FULL_TROP begins here!
       !=================================================================
 
       ! Reset NCS to NCSURBAN for safety's sake (bmy, 4/25/07)
       NCS = NCSURBAN
-
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      CSPEC_FULL => State_Chm%Species
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -151,14 +142,11 @@
             IZ = IZSAVE(JLOOP)
 
             ! Copy from 3-D array
-            CSPEC(JLOOP,JGAS) = CSPEC_FULL(IX,IY,IZ,JGAS)
+            CSPEC(JLOOP,JGAS) = State_Chm%Species(IX,IY,IZ,JGAS)
 
          ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
-      ! Free pointer
-      NULLIFY( CSPEC_FULL )
 
       END SUBROUTINE COPY_FULL_TROP
 !EOC
@@ -188,7 +176,7 @@
 !
 ! !OUTPUT PARAMETERS: 
 !
-      TYPE(ChmState), INTENT(OUT) :: State_Chm   ! Chemistry State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !REMARKS:
 !  ROUTINE NEEDED BECAUSE WITH VARIABLE TROPOPAUSE 
@@ -209,21 +197,12 @@
 !
       INTEGER :: JGAS, JLOOP, IX, IY, IZ
 
-      ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 1/24/12)
-      REAL*8, POINTER :: CSPEC_FULL(:,:,:,:)
-
       !=================================================================
       ! SAVE_FULL_TROP begins here!
       !=================================================================
 
       ! Reset NCS to NCSURBAN for safety's sake (bmy, 4/25/07)
       NCS = NCSURBAN
-
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      CSPEC_FULL => State_Chm%Species
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -241,14 +220,11 @@
             IZ = IZSAVE(JLOOP)
 
             ! Save in 3-D array
-            CSPEC_FULL(IX,IY,IZ,JGAS) = CSPEC(JLOOP,JGAS)
+            State_Chm%Species(IX,IY,IZ,JGAS) = CSPEC(JLOOP,JGAS)
 
          ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
-      ! Free pointer
-      NULLIFY( CSPEC_FULL )
 
       END SUBROUTINE SAVE_FULL_TROP
 !EOC

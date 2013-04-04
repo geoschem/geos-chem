@@ -215,6 +215,7 @@
 !                              to the GEOS-5 GCM via the ESMF environment,
 !  19 Mar 2013 - R. Yantosca - When using ESMF interface to GEOS-5, append
 !                              ".rc" to input.geos (instead of ___.rc)
+!  04 Apr 2013 - R. Yantosca - Now pass objects to DO_GAMAP routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -422,7 +423,7 @@
       CALL CHECK_TIME_STEPS( am_I_Root )
 
       ! Create "diaginfo.dat" and "tracerinfo.dat" files for GAMAP
-      CALL DO_GAMAP( DIAGINFO, TRACERINFO )
+      CALL DO_GAMAP( am_I_Root, Input_Opt, RC )
 
       ! Echo output
       IF ( am_I_Root ) THEN

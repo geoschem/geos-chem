@@ -12,23 +12,17 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE PARTITION( NTRACER, XNUMOL, am_I_Root, State_Chm ) 
-#else
-      SUBROUTINE PARTITION( NTRACER, STT, XNUMOL, am_I_Root ) 
-#endif
 !
 ! !USES:
 !
-      USE COMODE_MOD,   ONLY : CSPEC,     JLOP,       VOLUME
-      USE COMODE_MOD,   ONLY : JLOP_PREVIOUS
-      USE ERROR_MOD,    ONLY : ALLOC_ERR, ERROR_STOP, SAFE_DIV
-      USE TRACERID_MOD, ONLY : IDTOX,     IDTNOX,     IDTRMB
-      USE TRACERID_MOD, ONLY : IDO3,      IDNO,       IDHNO2
-      USE TRACERID_MOD, ONLY : CTRMB,     NMEMBER
-#if defined( DEVEL )
+      USE COMODE_MOD,         ONLY : CSPEC,     JLOP,       VOLUME
+      USE COMODE_MOD,         ONLY : JLOP_PREVIOUS
+      USE ERROR_MOD,          ONLY : ALLOC_ERR, ERROR_STOP, SAFE_DIV
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-#endif
+      USE TRACERID_MOD,       ONLY : IDTOX,     IDTNOX,     IDTRMB
+      USE TRACERID_MOD,       ONLY : IDO3,      IDNO,       IDHNO2
+      USE TRACERID_MOD,       ONLY : CTRMB,     NMEMBER
 
 #     include "define.h"
       USE CMN_SIZE_MOD
@@ -50,13 +44,8 @@
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-#if defined( DEVEL )
       ! Chemistry State object
       TYPE(ChmState), INTENT(INOUT) :: State_Chm
-#else
-      ! Updated tracer concentrations [molec/cm3/box]
-      REAL*8,  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,NTRACER)
-#endif
 !
 ! !REMARKS:
 !  Warning: 
@@ -101,11 +90,9 @@
       REAL*8  :: QTEMP
 
       ! Pointers
-#if defined( DEVEL )
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER :: STT(:,:,:,:)
-#endif
 
       !=================================================================
       ! PARTITION begins here!
@@ -215,11 +202,9 @@
       ! initial ratios. In tracer sequence, OX must be after NOX, 
       ! otherwise, adjust the code
       !=================================================================
-#if defined( DEVEL )
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
-#endif
 
       DO N = 1, NTRACER
 
@@ -445,10 +430,8 @@
 !$OMP END PARALLEL DO
       ENDDO
 
-#if defined( DEVEL )
       ! Free pointer
       NULLIFY( STT )
-#endif
 
       END SUBROUTINE PARTITION
 !EOC

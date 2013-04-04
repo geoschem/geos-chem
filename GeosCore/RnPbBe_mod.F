@@ -364,6 +364,9 @@
       ! EMISSRnPbBe begins here!
       !=================================================================
 
+      ! Assume success
+      RC = GIGC_SUCCESS
+
       ! Return if we are not doing emissions!
       IF ( .not. Input_Opt%LEMIS ) RETURN   
 

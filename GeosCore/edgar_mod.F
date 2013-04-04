@@ -165,7 +165,7 @@
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2ff
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NOxff
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_COff
-#endif 
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -229,7 +229,7 @@
 
       ! First-time initialization
       IF ( FIRST ) THEN
-         CALL INIT_EDGAR
+         CALL INIT_EDGAR( Input_Opt )
          FIRST = .FALSE.
       ENDIF
 
@@ -320,8 +320,8 @@
 #if defined( DEVEL )
 
       IF ( LFUTURE ) THEN
+         DO J=1,JJPAR
          DO I=1,IIPAR
-            DO J=1,JJPAR
                SO2_FUTURE_SCALE(I,J) = GET_FUTURE_SCALE_SO2ff(I,J)
                CO_FUTURE_SCALE(I,J)  = GET_FUTURE_SCALE_COff(I,J)
                NOX_FUTURE_SCALE(I,J) = GET_FUTURE_SCALE_NOXff(I,J)
@@ -2946,7 +2946,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE INIT_EDGAR
+      SUBROUTINE INIT_EDGAR( Input_Opt )
 !
 !******************************************************************************
 !  Subroutine INIT_EDGAR allocates and initializes all module arrays.
@@ -2960,6 +2960,10 @@
       ! Reference to F90 modules
       USE ERROR_MOD,   ONLY : ALLOC_ERR
       USE CMN_SIZE_MOD  ! Size parameters
+      
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+
+      TYPE(OptInput), INTENT(IN) :: Input_Opt
 
       ! Local Variables
       INTEGER            :: AS, J
@@ -2979,6 +2983,9 @@
       ALLOCATE( EDGAR_SO2( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EDGAR_SO2' )
       EDGAR_SO2 = 0d0
+
+      print*, '### LEDGARSHIP: ', LEDGARSHIP, Input_Opt%LEDGARSHIP
+      call flush(6)
 
       IF ( LEDGARSHIP ) THEN
 

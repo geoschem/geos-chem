@@ -79,9 +79,6 @@
       INTEGER,           PUBLIC, ALLOCATABLE :: ID_TRACER(:)
       INTEGER,           PUBLIC, ALLOCATABLE :: ID_EMITTED(:)
       INTEGER,           PUBLIC, ALLOCATABLE :: TRACER_N_CONST(:)
-#if !defined( DEVEL )
-      REAL*8,    TARGET, PUBLIC, ALLOCATABLE :: STT(:,:,:,:)
-#endif
       REAL*8,            PUBLIC, ALLOCATABLE :: TCVV(:)
       REAL*8,            PUBLIC, ALLOCATABLE :: TRACER_COEFF(:,:)
       REAL*8,            PUBLIC, ALLOCATABLE :: TRACER_MW_G(:)
@@ -106,6 +103,7 @@
 !  (7 ) Added public routine ITS_A_POPS_SIM (eck, 9/20/10)
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !  05 Mar 2012 - M. Payer    - Added ProTeX headers
+!  04 Apr 2013 - R. Yantosca - Removed STT (now in State_Chm)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -801,32 +799,24 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE CHECK_STT_05x0666( State_Chm, LOCATION )
-#else
-      SUBROUTINE CHECK_STT_05x0666( LOCATION )
-#endif
 !
 ! !USES:
 !
       USE ERROR_MOD, ONLY : IT_IS_NAN
       USE ERROR_MOD, ONLY : IT_IS_FINITE
-#if defined( DEVEL )
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-#endif
 
       USE CMN_SIZE_MOD    ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
-      CHARACTER(LEN=*), INTENT(IN) :: LOCATION
-#if defined( DEVEL )
+      CHARACTER(LEN=*), INTENT(IN)    :: LOCATION
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(ChmState),   INTENT(INOUT) :: State_Chm   ! Chemistry State object
-#endif
-! 
+!
 ! !REVISION HISTORY:
 !  05 Mar 2012 - M. Payer    - Initial version based on CHECK_STT and updates
 !                              for nested grid by Yuxuan Wang.
@@ -840,21 +830,17 @@
       INTEGER                      :: I,    J,    L,   N
       
       ! Pointers
-#if defined( DEVEL )
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL*8, POINTER :: STT(:,:,:,:)
-#endif
 
       !=================================================================
       ! CHECK_STT_05x0666 begins here!
       !=================================================================
 
-#if defined( DEVEL )
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
       STT => State_Chm%Tracers
-#endif
 
       ! Loop over grid boxes
 !$OMP PARALLEL DO 
@@ -905,10 +891,8 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-#if defined( DEVEL )
       ! Free pointer
       NULLIFY( STT )
-#endif
 
  100  FORMAT( ' STT(',i3,',',i3,',',i3,',',i3,') = ', f13.6 )
 
@@ -956,6 +940,7 @@
 !  05 Mar 2012 - M. Payer    - Added ProTeX headers
 !  26 Feb 2013 - R. Yantosca - Now pass am_I_Root, Input_Opt, RC as arguments
 !  07 Mar 2013 - R. Yantosca - Now assign RC=GIGC_SUCCESS outside of APM block
+!  04 Apr 2013 - R. Yantosca - Removed STT (now in State_Chm)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1037,12 +1022,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TRACER_N_CONST' )
       TRACER_N_CONST = 0
 
-#if !defined( DEVEL )
-      ALLOCATE( STT( IIPAR, JJPAR, LLPAR, N_TOT_TRC ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'STT' )
-      STT = 0d0      
-#endif
-
       ALLOCATE( XNUMOL( N_TOT_TRC ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'XNUMOL' )
       XNUMOL = 0
@@ -1072,6 +1051,7 @@
 !  15 Jul 2004 - R. Yantosca - Initial version
 !  25 Oct 2005 - R. Yantosca - Now deallocates XNUMOL
 !  05 Mar 2012 - M. Payer    - Added ProTeX headers
+!  04 Apr 2013 - R. Yantosca - Removed STT (now in State_Chm)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1088,9 +1068,6 @@
       IF ( ALLOCATED( TRACER_N_CONST ) ) DEALLOCATE( TRACER_N_CONST )
       IF ( ALLOCATED( TRACER_MW_G    ) ) DEALLOCATE( TRACER_MW_G    )
       IF ( ALLOCATED( TRACER_MW_KG   ) ) DEALLOCATE( TRACER_MW_KG   )
-#if !defined( DEVEL )
-      IF ( ALLOCATED( STT            ) ) DEALLOCATE( STT            )
-#endif
       IF ( ALLOCATED( XNUMOL         ) ) DEALLOCATE( XNUMOL         )
 
       END SUBROUTINE CLEANUP_TRACER

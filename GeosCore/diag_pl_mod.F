@@ -689,7 +689,9 @@
       ! Also call DIAG20, which will save out the P(Ox) and L(Ox)
       ! from the fullchem simulation for a future tagged Ox run
       !=================================================================
-      IF ( DO_SAVE_O3 ) CALL DIAG20( am_I_Root, State_Chm, RC )
+      IF ( DO_SAVE_O3 ) THEN
+         CALL DIAG20( am_I_Root, Input_Opt, State_Chm, RC )
+      ENDIF
 
       END SUBROUTINE DO_DIAG_PL
 !EOC
@@ -709,7 +711,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG20( am_I_Root, State_Chm, RC )
+      SUBROUTINE DIAG20( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
@@ -719,16 +721,17 @@
       USE DIRECTORY_MOD,      ONLY : O3PL_DIR
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TIME_MOD,           ONLY : EXPAND_DATE,   GET_NYMD
       USE TIME_MOD,           ONLY : GET_TAU,       GET_TAUb 
       USE TIME_MOD,           ONLY : ITS_A_NEW_DAY, TIMESTAMP_STRING
-      USE TRACER_MOD,         ONLY : XNUMOL
       USE TRACERID_MOD,       ONLY : IDTOX
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root    ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -760,6 +763,7 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object + RC via the arg list
+!  04 Apr 2013 - R. Yantosca - Now pass the Input_Opt object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -838,7 +842,7 @@
          !-------------
 
          ! Convert P(Ox) from [molec/cm3/s] to [kg/cm3/s]
-         P_Ox           = FAM_PL(I,J,L,1) / XNUMOL(IDTOX)
+         P_Ox           = FAM_PL(I,J,L,1) / Input_Opt%XNUMOL(IDTOX)
 
          ! Store P(Ox) [kg/cm3/s] in PL24H array
          PL24H(I,J,L,1) = PL24H(I,J,L,1) + P_Ox
@@ -848,7 +852,7 @@
          !-------------
 
          ! Convert Ox mass from [kg] to [molec]
-         L_Ox           = STT(I,J,L,IDTOX) * XNUMOL(IDTOX)
+         L_Ox           = STT(I,J,L,IDTOX) * Input_Opt%XNUMOL(IDTOX)
 
          ! Divide L(Ox) [molec/cm3/s] by Ox mass [molec] 
          ! in order to get L(Ox) in [1/cm3/s]

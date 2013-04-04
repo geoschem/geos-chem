@@ -639,8 +639,8 @@
          ! If we are using EPA/NEI99, then we will read both the anthro
          ! and biofuel emissions data from disk for each month.
          WRITE( 6, 120 )
-         CALL EMISS_EPA_NEI_AN
-         CALL EMISS_EPA_NEI_BF
+         CALL EMISS_EPA_NEI_AN( am_I_Root, Input_Opt, RC )
+         CALL EMISS_EPA_NEI_BF( am_I_Root, Input_Opt, RC )
 
       ELSE 
 
@@ -651,7 +651,7 @@
          ! biomass data from Yevich & Logan 2003.
          IF ( LNEI05 ) THEN
             WRITE( 6, 130 )
-            CALL EMISS_EPA_NEI_BF
+            CALL EMISS_EPA_NEI_BF( am_I_Root, Input_Opt, RC )
          ENDIF
 
       ENDIF
@@ -850,7 +850,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE EMISS_EPA_NEI_AN
+      SUBROUTINE EMISS_EPA_NEI_AN( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -867,10 +867,21 @@
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2ff
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_TONEff  
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_VOCff
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
       USE TIME_MOD,             ONLY : EXPAND_DATE
       USE TIME_MOD,             ONLY : GET_MONTH
 
-      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_SIZE_MOD
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  Split off from EMISS_EPA_NEI.
@@ -881,6 +892,7 @@
 !  (3 ) Now can read 0.5 x 0.667 nested grid emissions (amv, bmy, 12/18/09)
 !  07 Feb 2011 - R. Yantosca - Now only read anthro emissions.
 !  07 Feb 2011 - R. Yantosca - Added ProTeX headers
+!  04 Apr 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -893,10 +905,28 @@
       REAL*8             :: TONEff, VOCff 
       CHARACTER(LEN=255) :: FILENAME
 
+      ! For fields from Input_Opt
+      LOGICAL            :: LBRAVO
+      LOGICAL            :: LCAC
+      LOGICAL            :: LFUTURE
+      LOGICAL            :: LICARTT
+      LOGICAL            :: LNEI99
+      LOGICAL            :: LNEI05
       !=================================================================
       ! EMISS_EPA_NEI_AN begins here!
       !=================================================================
       
+      ! Assume success
+      RC           =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LBRAVO       = Input_Opt%LBRAVO
+      LCAC         = Input_Opt%LCAC
+      LFUTURE      = Input_Opt%LFUTURE
+      LICARTT      = Input_Opt%LICARTT
+      LNEI99       = Input_Opt%LNEI99 
+      LNEI05       = Input_Opt%LNEI05 
+
       ! Get the current month
       THISMONTH = GET_MONTH()
 
@@ -1070,7 +1100,7 @@
 !$OMP END PARALLEL DO
 
       ! Print totals to the log file
-      CALL TOTAL_ANTHRO_TG( THISMONTH )
+      CALL TOTAL_ANTHRO_TG( THISMONTH, Input_Opt )
 
       END SUBROUTINE EMISS_EPA_NEI_AN
 !EOC
@@ -1087,7 +1117,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE EMISS_EPA_NEI_BF
+      SUBROUTINE EMISS_EPA_NEI_BF( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -1099,11 +1129,21 @@
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NOxbf
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2bf
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_VOCbf
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
       USE TIME_MOD,             ONLY : EXPAND_DATE
       USE TIME_MOD,             ONLY : GET_MONTH
 
       USE CMN_SIZE_MOD             ! Size parameters
-
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  Split off from EMISS_EPA_NEI.
@@ -1124,9 +1164,28 @@
       REAL*8             :: CObf,  NH3bf, NOxbf,     SO2bf,   VOCbf 
       CHARACTER(LEN=255) :: FILENAME
 
+      ! For fields from Input_Opt
+      LOGICAL            :: LBRAVO
+      LOGICAL            :: LCAC
+      LOGICAL            :: LFUTURE
+      LOGICAL            :: LICARTT
+      LOGICAL            :: LNEI99
+      LOGICAL            :: LNEI05
+
       !=================================================================
       ! EMISS_EPA_NEI_BF begins here!
       !=================================================================
+      
+      ! Assume success
+      RC           =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LBRAVO       = Input_Opt%LBRAVO
+      LCAC         = Input_Opt%LCAC
+      LFUTURE      = Input_Opt%LFUTURE
+      LICARTT      = Input_Opt%LICARTT
+      LNEI99       = Input_Opt%LNEI99 
+      LNEI05       = Input_Opt%LNEI05 
       
       ! Get the current month
       THISMONTH = GET_MONTH()
@@ -1282,7 +1341,7 @@
 !$OMP END PARALLEL DO
 
       ! Print totals to the log file
-      CALL TOTAL_BIOFUEL_TG( THISMONTH )
+      CALL TOTAL_BIOFUEL_TG( THISMONTH, Input_Opt )
 
       END SUBROUTINE EMISS_EPA_NEI_BF
 !EOC
@@ -1824,22 +1883,23 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE TOTAL_ANTHRO_Tg( THISMONTH )
+      SUBROUTINE TOTAL_ANTHRO_Tg( THISMONTH, Input_Opt )
 !
 ! !USES:
 !
-      USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE TRACER_MOD,   ONLY : TRACER_MW_KG
-      USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
-      USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNOX
-      USE TRACERID_MOD, ONLY : IDTNH3,  IDTPRPE, IDTSO2,  IDTSO4  
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TRACERID_MOD,       ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
+      USE TRACERID_MOD,       ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNOX
+      USE TRACERID_MOD,       ONLY : IDTNH3,  IDTPRPE, IDTSO2,  IDTSO4  
 
       USE CMN_SIZE_MOD                 ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: THISMONTH   ! Current month (1-12)
-! 
+      INTEGER,        INTENT(IN) :: THISMONTH   ! Current month (1-12)
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
+!
 ! !REVISION HISTORY: 
 !  10 Nov 2004 - R. Hudman   - Initial version
 !  (1) Scale factors were determined by Jennifer Logan (jal@io.harvard.edu),
@@ -1853,6 +1913,7 @@
 !  07 Feb 2011 - R. Yantosca - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  22 Mar 2012 - M. Payer    - Remove print for C2H6 emissions.
+!  04 Apr 2013 - R. Yantosca - Now pass Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1921,18 +1982,18 @@
       F_NH3   = 0d0 
 
       ! Prevent array out of bounds error for undefined tracers
-      IF ( IDTNOX  > 0 ) F_NOX  = TRACER_MW_KG(IDTNOX )
-      IF ( IDTCO   > 0 ) F_CO   = TRACER_MW_KG(IDTCO  )
-      IF ( IDTALK4 > 0 ) F_ALK4 = TRACER_MW_KG(IDTALK4)
-      IF ( IDTACET > 0 ) F_ACET = TRACER_MW_KG(IDTACET)
-      IF ( IDTMEK  > 0 ) F_MEK  = TRACER_MW_KG(IDTMEK )
-      IF ( IDTPRPE > 0 ) F_PRPE = TRACER_MW_KG(IDTPRPE)
-      IF ( IDTC2H6 > 0 ) F_C2H6 = TRACER_MW_KG(IDTC2H6)
-      IF ( IDTC3H8 > 0 ) F_C3H8 = TRACER_MW_KG(IDTC3H8)
-      IF ( IDTCH2O > 0 ) F_CH2O = TRACER_MW_KG(IDTCH2O)
-      IF ( IDTSO2  > 0 ) F_SO2  = TRACER_MW_KG(IDTSO2 )
-      IF ( IDTSO4  > 0 ) F_SO4  = TRACER_MW_KG(IDTSO4 )
-      IF ( IDTNH3  > 0 ) F_NH3  = TRACER_MW_KG(IDTNH3 )
+      IF ( IDTNOX  > 0 ) F_NOX  = Input_Opt%TRACER_MW_KG(IDTNOX )
+      IF ( IDTCO   > 0 ) F_CO   = Input_Opt%TRACER_MW_KG(IDTCO  )
+      IF ( IDTALK4 > 0 ) F_ALK4 = Input_Opt%TRACER_MW_KG(IDTALK4)
+      IF ( IDTACET > 0 ) F_ACET = Input_Opt%TRACER_MW_KG(IDTACET)
+      IF ( IDTMEK  > 0 ) F_MEK  = Input_Opt%TRACER_MW_KG(IDTMEK )
+      IF ( IDTPRPE > 0 ) F_PRPE = Input_Opt%TRACER_MW_KG(IDTPRPE)
+      IF ( IDTC2H6 > 0 ) F_C2H6 = Input_Opt%TRACER_MW_KG(IDTC2H6)
+      IF ( IDTC3H8 > 0 ) F_C3H8 = Input_Opt%TRACER_MW_KG(IDTC3H8)
+      IF ( IDTCH2O > 0 ) F_CH2O = Input_Opt%TRACER_MW_KG(IDTCH2O)
+      IF ( IDTSO2  > 0 ) F_SO2  = Input_Opt%TRACER_MW_KG(IDTSO2 )
+      IF ( IDTSO4  > 0 ) F_SO4  = Input_Opt%TRACER_MW_KG(IDTSO4 )
+      IF ( IDTNH3  > 0 ) F_NH3  = Input_Opt%TRACER_MW_KG(IDTNH3 )
 
       !=================================================================
       ! Sum anthropogenic emissions
@@ -2033,21 +2094,22 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE TOTAL_BIOFUEL_Tg( THISMONTH )
+      SUBROUTINE TOTAL_BIOFUEL_Tg( THISMONTH, Input_Opt )
 !
 ! !USES:
 !
-      USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE TRACER_MOD,   ONLY : TRACER_MW_KG
-      USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
-      USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNOX
-      USE TRACERID_MOD, ONLY : IDTNH3,  IDTPRPE, IDTSO2,  IDTSO4  
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TRACERID_MOD,       ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
+      USE TRACERID_MOD,       ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNOX
+      USE TRACERID_MOD,       ONLY : IDTNH3,  IDTPRPE, IDTSO2,  IDTSO4  
 
-      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_SIZE_MOD 
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: THISMONTH   ! Current month (1-12)
+      INTEGER,        INTENT(IN) :: THISMONTH   ! Current month (1-12)
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
 ! 
 ! !REVISION HISTORY: 
 !  10 Nov 2004 - R. Hudman   - Initial version
@@ -2124,18 +2186,18 @@
       F_NH3   = 0d0 
 
       ! Prevent array out of bounds error for undefined tracers
-      IF ( IDTNOX  > 0 ) F_NOX  = TRACER_MW_KG(IDTNOX )
-      IF ( IDTCO   > 0 ) F_CO   = TRACER_MW_KG(IDTCO  )
-      IF ( IDTALK4 > 0 ) F_ALK4 = TRACER_MW_KG(IDTALK4)
-      IF ( IDTACET > 0 ) F_ACET = TRACER_MW_KG(IDTACET)
-      IF ( IDTMEK  > 0 ) F_MEK  = TRACER_MW_KG(IDTMEK )
-      IF ( IDTPRPE > 0 ) F_PRPE = TRACER_MW_KG(IDTPRPE)
-      IF ( IDTC2H6 > 0 ) F_C2H6 = TRACER_MW_KG(IDTC2H6)
-      IF ( IDTC3H8 > 0 ) F_C3H8 = TRACER_MW_KG(IDTC3H8)
-      IF ( IDTCH2O > 0 ) F_CH2O = TRACER_MW_KG(IDTCH2O)
-      IF ( IDTSO2  > 0 ) F_SO2  = TRACER_MW_KG(IDTSO2 )
-      IF ( IDTSO4  > 0 ) F_SO4  = TRACER_MW_KG(IDTSO4 )
-      IF ( IDTNH3  > 0 ) F_NH3  = TRACER_MW_KG(IDTNH3 )
+      IF ( IDTNOX  > 0 ) F_NOX  = Input_Opt%TRACER_MW_KG(IDTNOX )
+      IF ( IDTCO   > 0 ) F_CO   = Input_Opt%TRACER_MW_KG(IDTCO  )
+      IF ( IDTALK4 > 0 ) F_ALK4 = Input_Opt%TRACER_MW_KG(IDTALK4)
+      IF ( IDTACET > 0 ) F_ACET = Input_Opt%TRACER_MW_KG(IDTACET)
+      IF ( IDTMEK  > 0 ) F_MEK  = Input_Opt%TRACER_MW_KG(IDTMEK )
+      IF ( IDTPRPE > 0 ) F_PRPE = Input_Opt%TRACER_MW_KG(IDTPRPE)
+      IF ( IDTC2H6 > 0 ) F_C2H6 = Input_Opt%TRACER_MW_KG(IDTC2H6)
+      IF ( IDTC3H8 > 0 ) F_C3H8 = Input_Opt%TRACER_MW_KG(IDTC3H8)
+      IF ( IDTCH2O > 0 ) F_CH2O = Input_Opt%TRACER_MW_KG(IDTCH2O)
+      IF ( IDTSO2  > 0 ) F_SO2  = Input_Opt%TRACER_MW_KG(IDTSO2 )
+      IF ( IDTSO4  > 0 ) F_SO4  = Input_Opt%TRACER_MW_KG(IDTSO4 )
+      IF ( IDTNH3  > 0 ) F_NH3  = Input_Opt%TRACER_MW_KG(IDTNH3 )
 
       !=================================================================
       ! Sum biofuel emissions
