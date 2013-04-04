@@ -144,7 +144,7 @@
       PUBLIC :: STRAT_BR_FACTOR,        LAnthroHgOnly
       PUBLIC :: LOHO3CHEM,              LnoUSAemis
       PUBLIC :: LGCBROMINE !eds 4/19/12         
-      PUBLIC :: PARTITION_Hg2 ! hma       
+      PUBLIC :: READ_HG2_PARTITIONING
       PUBLIC :: Fp, Fg        ! hma 
       PUBLIC :: LNEI2005,               LInPlume     ! yzh
          
@@ -229,10 +229,10 @@
 
 !-------------------------------------------------------------------------
 
-      SUBROUTINE PARTITION_Hg2( THISMONTH, State_Met )
+      SUBROUTINE READ_HG2_PARTITIONING( THISMONTH, State_Met )
 
 !****************************************************************************  
-!  SUBROUTINE PARTITION_Hg2 calculates the fractions of Hg(II) is the particle 
+!  SUBROUTINE READ_HG2_PARTITIONING calculates the fractions of Hg(II) is the particle 
 !     gas phases.
 !
 !
@@ -304,7 +304,7 @@
 !  (1 ) Scaling factor for dust emissions --> Fairlie et al., 'Impact of
 !       mineral dust on nitrate, sulfate, and ozone in transpacific Asian
 !       pollution plumes'. (2009) - in preparation. [hma, 22 Oct 09]
-!  (2 ) SUBROUTINE PARTITION_Hg2 moved from mercury_mod.f to ocean_mercury_mod.f!    
+!  (2 ) SUBROUTINE READ_HG2_PARTITION moved from mercury_mod.f to ocean_mercury_mod.f!    
 !       because partitioning needs to happen before vdiff_mod.f90 (in terms of
 !       the order in which modules are compiled.)
 !  (3 ) Use benchmark V8-02-01 geos5 runs for aerosol concentration (ppbv)
@@ -395,7 +395,7 @@
 
       ! Echo some information to the standard output
       WRITE( 6, 110 )  FILENAME 
- 110  FORMAT( '     -PARTITION_Hg2: Reading ', a )
+ 110  FORMAT( '     -READ_HG2_PARTITIONING: Reading ', a )
 
       !------------------------------------------------------!
       ! Put aerosol mixing ratio (mol/mol) into arrays.     
@@ -544,7 +544,7 @@
       CALL SET_Hg2_DIAG( INCREMENT=.TRUE. )
 
       ! Return to calling program.
-      END SUBROUTINE PARTITION_Hg2
+      END SUBROUTINE READ_HG2_PARTITIONING
 
 !------------------------------------------------------------------------------
 

@@ -1624,7 +1624,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: N, NN, NYMDb, NHMSb, T, NUM_TRACERS
+      INTEGER :: N, NN, NYMDb, NHMSb, T
       LOGICAL :: DO_TIMESERIES
 
 
@@ -1645,17 +1645,7 @@
       ! General tracer information
       !----------------------------------
 
-!hma,20120323
-      !Do not print HgP in the IJ-AVG-$ field.
-      !HgP is now emitted and treated as Hg2, so all HgP IJ-AVG-$
-      !  fields are just zeroes
-      IF ( ITS_A_MERCURY_SIM() ) THEN
-         NUM_TRACERS = N_TRACERS - 1
-      ELSE
-         NUM_TRACERS = N_TRACERS
-      ENDIF
-
-      DO T = 1, NUM_TRACERS
+      DO T = 1, N_TRACERS
 
          ! Store quantities for each tracer
          NAME (T,45) = TRACER_NAME(T)
@@ -1704,7 +1694,7 @@
       ENDDO
 
       ! Number of ND45 tracers 
-      NTRAC(45) = NUM_TRACERS
+      NTRAC(45) = N_TRACERS
 
       !-------------------------------------
       ! FULL-CHEMISTRY RUNS ONLY: 

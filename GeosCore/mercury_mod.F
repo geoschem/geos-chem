@@ -221,8 +221,7 @@
       PUBLIC :: CLEANUP_MERCURY
       PUBLIC :: INIT_MERCURY
       PUBLIC :: EMISSMERCURY
-      PUBLIC :: PARTITIONHG
-      PUBLIC :: HGPFRAC
+      PUBLIC :: PARTITIONHG2
 
       !=================================================================
       ! MODULE VARIABLES
@@ -322,7 +321,6 @@
 
       ! Henry's Law constant for Hg2 [mol /L /atm]
       REAL*8, PARAMETER     :: HL       = 1.4d6
-      REAL*8, ALLOCATABLE :: HGPFRAC(:,:,:)
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -357,7 +355,6 @@
       USE GLOBAL_BR_MOD,      ONLY : GET_GLOBAL_BR
       USE LOGICAL_MOD,        ONLY : LPRT, LGTMM, LNLPBL 
       USE OCEAN_MERCURY_MOD,  ONLY : Fg, Fp  
-      USE OCEAN_MERCURY_MOD,  ONLY : PARTITION_Hg2
       USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L
       USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
       USE TIME_MOD,           ONLY : ITS_TIME_FOR_A3 
@@ -418,20 +415,23 @@
          IF ( LPRT ) CALL DEBUG_MSG( 'CHEMMERCURY: a SEASALT_LOSSRATE' )
       ENDIF
 
+      ! Partition Hg(II) between gas and aerosol
+      CALL PARTITIONHG2
+
       ! Choose dry deposition frequency for Hg2, 1/s
-      IF (LHg2HalfAerosol) THEN
-         K_DRYD2 = ( DEPSAV(:,:,DRYHg2) +  DEPSAV(:,:,DRYHgP) ) / 2D0
-      ELSE
-         !--------------------------------------------------------
-         ! Previous to 25 Oct 2011, H Amos
-         !K_DRYD2 = DEPSAV(:,:,DRYHg2)
-         !
-         ! Weigh dry dep velocity by gas and aerosol fractions. 
-         ! [ref: Amos et al., 2011, submitted to ACP]
-         K_DRYD2 = ( DEPSAV(:,:,DRYHg2)*Fg(:,:,1) + 
-     &               DEPSAV(:,:,DRYHgP)*Fp(:,:,1) )
-         !--------------------------------------------------------
-      ENDIF
+c$$$      IF (LHg2HalfAerosol) THEN
+c$$$         K_DRYD2 = ( DEPSAV(:,:,DRYHg2) +  DEPSAV(:,:,DRYHgP) ) / 2D0
+c$$$      ELSE
+c$$$         !--------------------------------------------------------
+c$$$         ! Previous to 25 Oct 2011, H Amos
+c$$$         !K_DRYD2 = DEPSAV(:,:,DRYHg2)
+c$$$         !
+c$$$         ! Weigh dry dep velocity by gas and aerosol fractions. 
+c$$$         ! [ref: Amos et al., 2011, submitted to ACP]
+c$$$         K_DRYD2 = ( DEPSAV(:,:,DRYHg2)*Fg(:,:,1) + 
+c$$$     &               DEPSAV(:,:,DRYHgP)*Fp(:,:,1) )
+c$$$         !--------------------------------------------------------
+c$$$      ENDIF
 
 
       !-------------------------
@@ -451,14 +451,16 @@
          IF ( DRYHg2 > 0 .and. DRYHg0 > 0 ) THEN
 
             ! Dry deposition active for both Hg0 and Hg2; 
-            ! pass drydep frequency to CHEM_Hg0_Hg2
-            ! (NOTE: DEPSAV has units 1/s)
-            CALL CHEM_Hg0_Hg2( K_DRYD2, DEPSAV(:,:,DRYHg0), State_Met )
-
+            ! pass drydep frequency to CHEM_Hg0_Hg2 (NOTE: DEPSAV has units 1/s)
+!            CALL CHEM_Hg0_Hg2( K_DRYD2, DEPSAV(:,:,DRYHg0) )
+            CALL CHEM_Hg0_Hg2( DEPSAV(:,:,DRYHg2), DEPSAV(:,:,DRYHg0), 
+     &                         State_Met )
+            
          ELSEIF (DRYHg2 > 0 .and. DRYHg0 .le. 0) THEN
 
             ! Only Hg2 dry deposition is active
-            CALL CHEM_Hg0_Hg2( K_DRYD2, ZERO_DVEL, State_Met )
+!            CALL CHEM_Hg0_Hg2( K_DRYD2, ZERO_DVEL) 
+            CALL CHEM_Hg0_Hg2( DEPSAV(:,:,DRYHg2), ZERO_DVEL, State_Met)
 
          ELSEIF (DRYHg2 <= 0 .and. DRYHg0 > 0) THEN
 
@@ -496,6 +498,9 @@
          CALL CHEM_HgP( DEPSAV(:,:,DRYHgP) )
 
       ENDIF
+
+      ! Partition Hg(II) between gas and aerosol
+      CALL PARTITIONHG2
 
       IF ( LPRT ) CALL DEBUG_MSG( 'CHEMMERCURY: a CHEM_HgP' )
 
@@ -625,7 +630,7 @@
       ! Local variables
       INTEGER               :: I, J, L, NN
       REAL*8                :: DTCHEM
-      REAL*8                :: FC,          FA,          F_PBL
+      REAL*8                :: FC,          Faq,         F_PBL
       REAL*8                :: LWC,         AREA_CM2
       REAL*8                :: C_O3,        C_OH,        C_BR
       REAL*8                :: C_BRO
@@ -707,7 +712,7 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,       J,        L,         NN                   )
-!$OMP+PRIVATE( F_PBL,   FC,       FA,        LWC,      AREA_CM2   )
+!$OMP+PRIVATE( F_PBL,   FC,       Faq,       LWC,      AREA_CM2   )
 !$OMP+PRIVATE( C_O3,    C_OH,     C_BR,      C_BRO                )   
 !$OMP+PRIVATE( K_O3,    K_OH,    K_BR,       K_BRO                )
 !$OMP+PRIVATE( K_OX,    K_RED,   E_KOX_T,    E_KRED_T             )
@@ -792,15 +797,14 @@
 
          ! Define fraction of Hg(II) which is in aqueous solution
          ! [dimensionless]
-         FA          = ( HL * R * State_Met%T(I,J,L) * LWC )
-         FA          = FA / ( 1d0 + FA )
+         Faq          = ( HL * R * State_Met%T(I,J,L) * LWC )
+         Faq          = Faq / ( 1d0 + Faq )
 
          ! Cl- in sea-salt aerosol enhances solubility 2000X in MBL
          IF ( LRED_JNO2 .AND. ( F_PBL >0.1  )  .AND. 
      &        IS_WATER( I, J, State_Met )) THEN
-            FA          = ( HL * 2D3 * R * State_Met%T(I,J,L) * LWC )
-            FA          = FA / ( 1d0 + FA )
-            
+            Faq          = ( HL * 2D3 * R * State_Met%T(I,J,L) * LWC )
+            Faq          = Faq / ( 1d0 + Faq )
          ENDIF
 
          ! yzh added this. (11/9/2011)
@@ -810,7 +814,7 @@
          ! L2S and L3s by the cloud fraction after the aqueous chemistry
          ! has been done.  (lzh, jaf, bmy, 5/27/11)
 #if   defined( GEOS_5 ) || defined( MERRA ) 
-         IF ( LGEOSLWC ) FA =  FA * FC
+         IF ( LGEOSLWC ) Faq =  Faq * FC
 #endif
 
          ! Define K's for the oxidation reactions [/s]
@@ -840,13 +844,12 @@
          
          ! Define K for the reduction reaction. 
          IF (LRED_JNO2) THEN
-            K_RED = K_RED_JNO2 * FA * GET_JNO2(I,J,L,State_Met)
-
+            K_RED = K_RED_JNO2 * Faq * GET_JNO2(I,J,L,State_Met)
          ELSE
             ! Include the fraction of 
             ! Hg(II) in air within the Kreduction & 
             ! scale to OH concentration [/s]
-            K_RED = K_RED_OH * FA * C_OH
+            K_RED = K_RED_OH * Faq * C_OH
          ENDIF
 
          ! Round very small K_OX, K_RED to prevent numerical errors
@@ -1947,7 +1950,6 @@
 !
       ! Refernces to F90 modules
       USE DIAG03_MOD,   ONLY : ND03, LD03
-      USE LOGICAL_MOD,  ONLY : LSPLIT
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
       USE TIME_MOD,     ONLY : GET_TS_CHEM
       USE TRACER_MOD,   ONLY : STT,       XNUMOL
@@ -7385,17 +7387,13 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE PARTITIONHG( DIRECTION, STT_COPY )
+      SUBROUTINE PARTITIONHG2
 
 !******************************************************************************
-!  SUBROUTINE PARTITIONHG partitions the Hg2 tracer between gas and particle
-!  phases for the purpose of wet/dry deposition.
+!  SUBROUTINE PARTITIONHG2 splits Hg2 into gas and aerosol portions.  
 !
 !  Arguments as Input/Output:
 !  ============================================================================
-!  DIRECTION  : 1 for forward , split Hg2 into gas and particle phases
-!             : 2 for backward, return gas and particle phases to Hg2 tracer
-!  STT_COPY   : STT array of tracer concentrations
 !
 !  NOTES:
 !   12-Jul-2010 H. Amos - Add option to partition Hg2 according to Fg/Fp
@@ -7403,98 +7401,64 @@
 !   04 Jan 2012 H. Amos - modify algorithms to reflect the fact that 
 !                         anthropogenic Hg(p) is now emitted as Hg(II) (i.e. 
 !                         it's no longer considered refractory). 
+!   28-Mar-2013 C. Holmes - Since we now assume that all HgP and Hg2 actively 
+!                         partition between gas and aerosol, we no longer 
+!                         need to 'reverse' partition. 
 !******************************************************************************
 
       ! References to F90 modules
       USE ERROR_MOD        , ONLY : SAFE_DIV  , GEOS_CHEM_STOP
-      USE TRACERID_MOD     , ONLY : ID_HG2    , ID_HGP
-      USE TRACER_MOD       , ONLY : N_TRACERS
-      USE TRACERID_MOD,     ONLY  : N_HG_CATS                   !eds
+      USE TRACERID_MOD     , ONLY : ID_HG2,     ID_HGP, N_HG_CATS
+      USE TRACER_MOD       , ONLY : N_TRACERS , STT
       USE OCEAN_MERCURY_MOD, ONLY : Fp        , Fg
 
       USE CMN_SIZE_MOD  ! Size parameters
 
-      INTEGER, INTENT(IN)     :: DIRECTION
-      REAL*8, INTENT(INOUT)   :: STT_COPY(IIPAR,JJPAR,LLPAR,N_TRACERS)
-
-      INTEGER                 :: I,J,L
-      INTEGER                 :: NN !eds 
-
+      INTEGER                 :: I,J,L,N
+      REAL*8                  :: FGas, Hg2TOT
 
       !=================================================================
-      ! PARTITIONHG begins here!
+      ! PARTITIONHG2 begins here!
       !=================================================================
       
-      SELECT CASE (DIRECTION) 
-         CASE (1) ! Split Hg2 into gas and particle phases
-
-            ! Note: Now that anthropogenic Hg(p) is emitted as Hg(II)
-            !       and not treated as refractory particulate Hg, the
-            !       Hg(p) tracer is empty. (hma, 20120104)
-
-
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, NN)
-            DO L=1, LLPAR
-            DO J=1, JJPAR
-            DO I=1, IIPAR
-            DO NN=1, N_HG_CATS
+!$OMP+PRIVATE( I, J, L, N, FGas, Hg2TOT )
+      DO L=1, LLPAR
+      DO J=1, JJPAR
+      DO I=1, IIPAR
+         
+         ! Fraction of Hg(II) as gas
+         IF ( LHG2HALFAEROSOL ) THEN
+            ! Assume constant partitioning
+            Fgas = 0.5
+         ELSE
+            ! Temperature and aerosol-dependent partitioning
+            Fgas = Fg(I,J,L)
+         ENDIF
+         
+         ! Loop over the Hg regional tags
+         DO N = 1, N_HG_CATS
 
-              IF ( LHG2HALFAEROSOL ) THEN 
-                !----------------------------
-                ! Partition Hg(II) 50/50
-                !----------------------------
+            ! Total Hg(II) (gas +aerosol)
+            HG2TOT = STT(I,J,L,ID_HG2(N)) + 
+     &               STT(I,J,L,ID_HGP(N))
 
-                ! Put particulate Hg(II) into the Hg(p) tracer
-                STT_COPY(I,J,L,ID_HGP(NN)) =                       !eds NN
-     &               0.5D0 * STT_COPY(I,J,L,ID_HG2(NN))
-                STT_COPY(I,J,L,ID_HG2(NN)) = 0.5D0 *
-     &               STT_COPY(I,J,L,ID_HG2(NN))
-              ELSE 
-               !--------------------------------------------
-               ! temperature dependent Hg(II) partitioning
-               !--------------------------------------------
+            ! Gas portion
+            STT(I,J,L,ID_HG2(N)) = Hg2TOT * Fgas 
 
-                ! Put particulate Hg(II) into the Hg(p) tracer
-                STT_COPY(I,J,L,ID_HGP(NN)) = 
-     &               Fp(I,J,L) * STT_COPY(I,J,L,ID_HG2(NN))
-                STT_COPY(I,J,L,ID_HG2(NN)) = Fg(I,J,L) *          !eds NN
-     &               STT_COPY(I,J,L,ID_HG2(NN))
-              ENDIF
-                  
-            ENDDO
-            ENDDO
-            ENDDO
-            ENDDO
+            ! Aerosol portion
+            STT(I,J,L,ID_HGP(N)) = Hg2TOT * (1d0 - Fgas)
+
+         ENDDO
+
+      ENDDO
+      ENDDO
+      ENDDO
 !$OMP END PARALLEL DO
       
-         CASE(2) ! Recombine particulate Hg2 with  gaseous Hg2
-            
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, NN )
-            DO L=1, LLPAR
-            DO J=1, JJPAR
-            DO I=1, IIPAR
-            DO NN=1, N_HG_CATS
-               STT_COPY(I,J,L,ID_HG2(NN)) = STT_COPY(I,J,L,ID_HG2(NN)) +
-     &                                      STT_COPY(I,J,L,ID_HGP(NN))
-               STT_COPY(I,J,L,ID_HGP(NN)) = 0d0
-            ENDDO
-            ENDDO
-            ENDDO               
-            ENDDO
-!$OMP END PARALLEL DO
-
-         CASE DEFAULT
-            WRITE( 6,'(A)') 'Unrecognized conversion direction'
-            CALL GEOS_CHEM_STOP
-
-         END SELECT
-
       ! Return to calling program
-      END SUBROUTINE PARTITIONHG
+      END SUBROUTINE PARTITIONHG2
 
 !-----------------------------------------------------------------------------
 
@@ -7977,10 +7941,6 @@
       ALLOCATE( JNO2( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'JNO2' )
       JNO2 = 0d0
-
-      ALLOCATE( HGPFRAC( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HGPFRAC' )
-      HGPFRAC = 0d0
 
       !=================================================================
       ! Allocate & initialize arrays for tagged tracer indices

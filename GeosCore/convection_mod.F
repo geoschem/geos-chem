@@ -1658,9 +1658,8 @@
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_WD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_HgP_WD
       USE ERROR_MOD,          ONLY : IT_IS_NAN, IT_IS_FINITE
-      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP  ! hma Nov 3, debug
+      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP  
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE MERCURY_MOD,        ONLY : PARTITIONHg
       USE TRACERID_MOD,       ONLY : IS_Hg2
       USE TRACERID_MOD,       ONLY : IS_HgP
       USE WETSCAV_MOD,        ONLY : WASHOUT

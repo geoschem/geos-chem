@@ -736,10 +736,12 @@
             ENDIF
          ENDIF
 
-         ! Hg2 gas-particle partitioning (H Amos, 25 Oct 2011)
+         ! Read data required for Hg2 gas-particle partitioning 
+         ! (H Amos, 25 Oct 2011)
          IF ( ITS_A_MERCURY_SIM() .and. ITS_A_NEW_MONTH() ) THEN
-            CALL PARTITION_Hg2( MONTH, State_Met )
-            IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a PARTITION_Hg2')
+            CALL READ_HG2_PARTITIONING( MONTH, State_Met )
+            IF ( prtDebug ) 
+     &           CALL DEBUG_MSG( '### MAIN: a READ_HG2_PARTITIONGING')
          ENDIF
 
          !==============================================================
@@ -1011,18 +1013,8 @@
             !===========================================================
             IF ( LCONV ) THEN
                
-               ! Partition Hg(II) between aerosol and gas
-               IF ( ITS_A_MERCURY_SIM() ) THEN
-                  CALL PARTITIONHG( 1, STT )
-               ENDIF
-      
                CALL DO_CONVECTION( State_Met )
 
-               ! Return all reactive particulate Hg(II) to total Hg(II) tracer
-               IF ( ITS_A_MERCURY_SIM() ) THEN
-                  CALL PARTITIONHG( 2, STT )
-               ENDIF
-      
                !### Debug
                IF ( prtDebug ) THEN
                   CALL DEBUG_MSG( '### MAIN: a CONVECTION' )
@@ -1148,19 +1140,9 @@
          !==============================================================
          IF ( LWETD .and. ITS_TIME_FOR_DYN() ) THEN
 
-            ! Add partition Hg(II) between aerosol and gas
-            IF ( ITS_A_MERCURY_SIM() ) THEN
-               CALL PARTITIONHG( 1, STT )
-            ENDIF            
-     
             ! Do wet deposition
             CALL DO_WETDEP( State_Met )
             
-            ! Return all reactive particulate Hg(II) to total Hg(II) tracer
-            IF ( ITS_A_MERCURY_SIM() ) THEN
-               CALL PARTITIONHG( 2, STT )
-            ENDIF 
-
          ENDIF
 
          !==============================================================

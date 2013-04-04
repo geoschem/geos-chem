@@ -2163,25 +2163,26 @@ contains
              !   
              !ENDIF
              !
-             IF ( IS_HG2(NN) ) THEN
-
-                IF ( LHG2HALFAEROSOL ) THEN
-                   ! NOTE: Now use as2_scal(I,J,NN), instead of as2(I,J,1,NN) to 
-                   ! avoid seg faults in parallelization (ccarouge, bmy, 12/20/10)
-
-                   ! partition Hg2 50/50 gas/particle
-                   dflx(I,J,NN) =  &
-                        ( DEPSAV(I,J,DRYHg2) +  DEPSAV(I,J,DRYHgP) ) / 2D0 * &
-                        as2_scal(I,J,NN) / TCVV(NN) 
-                ELSE
-                   
-                   ! temperature-dependent Hg2 partitioning
-                   dflx(I,J,NN) = ( DEPSAV(I,J,DRYHg2)*Fg(I,J,1) + &
-                                    DEPSAV(I,J,DRYHgP)*Fp(I,J,1) ) * &
-                                    as2_scal(I,J,NN) / TCVV(NN) 
-                ENDIF
-                   
-             ENDIF
+!!$ No longer needed since Hg(II) is already partitioned between gas and aerosol. (cdh, 28-Mar-2013)
+!!$             IF ( IS_HG2(NN) ) THEN
+!!$
+!!$                IF ( LHG2HALFAEROSOL ) THEN
+!!$                   ! NOTE: Now use as2_scal(I,J,NN), instead of as2(I,J,1,NN) to 
+!!$                   ! avoid seg faults in parallelization (ccarouge, bmy, 12/20/10)
+!!$
+!!$                   ! partition Hg2 50/50 gas/particle
+!!$                   dflx(I,J,NN) =  &
+!!$                        ( DEPSAV(I,J,DRYHg2) +  DEPSAV(I,J,DRYHgP) ) / 2D0 * &
+!!$                        as2_scal(I,J,NN) / TCVV(NN) 
+!!$                ELSE
+!!$                   
+!!$                   ! temperature-dependent Hg2 partitioning
+!!$                   dflx(I,J,NN) = ( DEPSAV(I,J,DRYHg2)*Fg(I,J,1) + &
+!!$                                    DEPSAV(I,J,DRYHgP)*Fp(I,J,1) ) * &
+!!$                                    as2_scal(I,J,NN) / TCVV(NN) 
+!!$                ENDIF
+!!$                   
+!!$             ENDIF
              !------------------------------------------------------------------
           endif
           

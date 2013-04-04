@@ -28,10 +28,10 @@
       USE TRACER_MOD,         ONLY : N_TRACERS, STT, TCVV
       USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
       USE TRACER_MOD,         ONLY : XNUMOLAIR
-      USE TRACERID_MOD,       ONLY : IDTOX
+      USE TRACERID_MOD,       ONLY : IDTOX, ID_HG2, ID_HGP, ID_Hg_TOT
       USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_TROP
       USE DIAG03_MOD,         ONLY : AD03_RGM, AD03_PBM, ND03   
-      USE OCEAN_MERCURY_MOD,  ONLY : Fg, Fp, PARTITION_Hg2
+
 #if   defined( APM )
       USE TRACER_MOD,         ONLY : N_APMTRA
 #endif
@@ -178,14 +178,14 @@
         DO I = 1, IIPAR
 
           ! Reactive gaseous mercury, RGM
-          AD03_RGM(I,J,L) = AD03_RGM(I,J,L) +
-     &                      Fg(I,J,L) * STT(I,J,L,2) * TCVV(2) /
-     &                      State_Met%AD(I,J,L) *1D12
+          AD03_RGM(I,J,L) = AD03_RGM(I,J,L)+
+     &          STT(I,J,L,ID_Hg2(ID_Hg_tot)) * TCVV(ID_Hg2(ID_Hg_tot)) /
+     &          State_Met%AD(I,J,L) *1D12 
 
           ! Reactive particulate mercury, PBM
-          AD03_PBM(I,J,L) = AD03_PBM(I,J,L) +
-     &                      Fp(I,J,L) * STT(I,J,L,2) * TCVV(2) /
-     &                      State_Met%AD(I,J,L) *1D12
+          AD03_PBM(I,J,L) = AD03_PBM(I,J,L) + 
+     &         STT(I,J,L,ID_HgP(ID_Hg_tot)) * TCVV(ID_HgP(ID_Hg_tot)) / 
+     &         State_Met%AD(I,J,L) *1D12
                                                        
         ENDDO
         ENDDO

@@ -2835,8 +2835,6 @@
          ! # of drydep velocity tracers
          IF ( ITS_A_TAGOX_SIM() ) THEN
             M = 1
-         ELSE IF ( ITS_A_MERCURY_SIM() ) THEN
-            M = 2
          ELSE
             M = NUMDEP
          ENDIF
