@@ -218,7 +218,6 @@
 
       ! ... except these routines
       PUBLIC :: CHEMMERCURY
-      PUBLIC :: CHEMMERCURY2
       PUBLIC :: CLEANUP_MERCURY
       PUBLIC :: INIT_MERCURY
       PUBLIC :: EMISSMERCURY
@@ -330,7 +329,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE CHEMMERCURY2
+      SUBROUTINE CHEMMERCURY
       
 !
 !******************************************************************************
@@ -345,6 +344,81 @@
 !  (2 ) Bug fix: Set T44 to 0e0 for single precision.  Now allow for zero
 !        dry deposition velocity.  Now call INIT_MERCURY from "input_mod.f"
 !        (bmy, 4/6/06)
+!  02 Apr 2013 - C. Holmes - CHEMMERCURY rewritten for clarity and easier
+!        maintainability. The chemistry and deposition for particle-bound
+!        mercury is now solved simultaneously with Hg(0) and gaseous Hg(II).
+!        The subroutine now uses a 4th-order Runge-Kutta method to solve
+!        the coupled chemistry. The subroutines CHEM_HG0_HG2 and CHEM_HGP 
+!        are now obsolete.
+!
+!  Description of the chemistry mechanism:
+!  ============================================================================
+!  The comments and code below refer to 3 mercury species:
+!     1. Hg0  or Hg(0)     : gaseous elemental mercury
+!     2. Hg2g or Hg(II)g   : gaseous Hg(II) (comparable to RGM observations)
+!     3. Hg2p or Hg(II)p   : particle-bound Hg(II) (comparable to PBM observations)
+!  Following Amos et al. (2012), the Hg(II) partitioning between
+!  Hg2g and Hg2p is based on temperature and aerosol surface area.
+!  There is no refractory particulate Hg.
+!  In some legacy code below Hg2p is called HgP and Hg2g is called Hg2.
+!
+!  The differential equations for oxidation, reduction and deposition are:
+!
+!     d[Hg0]/dt = -(k_Ox + k_Dep0) [Hg0] + k_Red_Hg2g [Hg2g]
+!                                        + k_Red_Hg2p [Hg2p] 
+! 
+!     d[Hg2g]/dt =  k_Ox [Hg0] - (k_Red_Hg2g + k_Dep_Hg2g) [Hg2g]
+!
+!     d[Hg2p]/dt =  -(k_Red_Hg2p + k_Dep_Hg2p) [Hg2p]
+!
+!  The chemical mechanism currently assumes that the product of Hg(0)
+!  oxidation is in the gas phase. This can be easily changed.
+!
+!  Equilibrium partitioning between Hg2g and Hg2p is established at 
+!  the beginning and end of CHEMMERCURY.
+!
+!  -----------------------------------------------
+!  Notes on chemistry and deposition:
+!
+!  (1 ) Oxidation: Hg(0) --> Hg(II):
+!     Oxidation by Br, BrO, OH, and O3 can be selectively enabled or disabled
+!     with switches (LBRCHEM, LBROCHEM, LOHO3CHEM) in INIT_MERCURY. 
+!
+!     Hg(0)(g) + Br(g) --> + Br/OH --> Hg(II)g, rates are selected with
+!        METHOD keyword below. Recommded kinetics are 'DonohoueYBBalabanov'
+!        which use rates from Donohoue et al. (2006), Goodsite et al. (2004)
+!        and Balabanov et al. (2005)
+!           
+!     Hg(0)(g)+ O3(g) --> Hg(II) ,  k  = 3.0e-20 cm3 molec-1 s-1
+!                                       Source: Hall, 1995
+!       
+!     Hg(0)(g)+ OH(g) --> Hg(II) ,  k  = 8.7e-14 cm3 s-1 
+!                                       Source: Sommar et al. 2001
+!
+!  (2 ) Reduction: 
+!     Reduction rates can be scaled to NO2 photolysis rates or OH concentrations
+!     with the switch LRED_JNO2.
+
+!     In either case, aqueous-phase photochemical reduction of Hg(II) is included based
+!        on estimate of rate constant and scaled to NO2 photolysis or [OH]. The
+!        rate is tuned to match the global Hg(0) concentration and
+!        seasonal cycle. 
+! 
+!  (3 ) Hg(0) dry deposition:
+!     The dry deposition frequency is calculated by drydep_mod. If the non-local
+!         PBL mixing scheme is used, however, all dry deposition is done elsewhere.
+!         The ocean module separately cacluates Hg(0) dry deposition over
+!         ocean, so CHEMMERCURY only includes Hg(0) dry deposition over land.
+!
+!  (4 ) Hg(II)g and Hg(II)p dry deposition:
+!     The dry deposition frequencies are calculated by drydep_mod. If the non-local
+!         PBL mixing scheme is used, however, all dry deposition is done elsewhere.
+!
+!  (5 ) Sea-salt uptake of Hg(II)g 
+!     Hg(II)g is taken up into sea-salt aerosol and deposited to the ocean surface
+!         at a rate based on wind speed and relative humidity. Hg(II)p uptake into
+!         sea-salt aerosol may also occur at a slower rate, but is not yet treated here.
+!
 !******************************************************************************
 !
       ! References to F90 modules
@@ -406,10 +480,10 @@
       ! K for reaction Hg0 + O3  [cm3 /molecule /s] (Source: Hall 1995)
       REAL*8, PARAMETER     :: K_HG_O3  = 3.0d-20 !3.0d-20 (Gas phase)
 
-      ! K for reaction Hg2 + OH  [cm3 /molecule /s] (Source: Sommar 2001)
+      ! K for reaction Hg0 + OH  [cm3 /molecule /s] (Source: Sommar 2001)
       REAL*8, PARAMETER     :: K_HG_OH  = 8.7d-14 !8.7d-14 (Gas phase)
 
-      ! K for reaction Hg2 + BrO  [cm3 /molecule /s]
+      ! K for reaction Hg0 + BrO  [cm3 /molecule /s]
       ! (Source: Raofie and Ariya 2003; 2004)
       REAL*8, PARAMETER     :: K_HG_BRO  = 1d-14 !1d-15 - 1d-14
 
@@ -440,9 +514,9 @@
       CHARACTER(LEN=*), PARAMETER  :: METHOD='DonohoueYBBalabanov' 
 
       !=================================================================
-      ! CHEMMERCURY2 begins here!
+      ! CHEMMERCURY begins here!
       !
-      ! Read monthly mean OH and O3 fields
+      ! Read monthly mean Br, OH, O3, and J_NO2 fields
       !=================================================================
       IF ( ITS_A_NEW_MONTH() ) THEN 
 
@@ -456,8 +530,6 @@
          CALL GET_GLOBAL_O3( MONTH )
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_O3' )
 
-         ! Renamed to GET_GLOBAL_BR
-         !CALL GET_GLOBAL_BR_NEW( MONTH )
          CALL GET_GLOBAL_BR( MONTH )
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_BR' )
 
@@ -491,25 +563,23 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,       J,        L,        K, N, NSTEPS              )
+!$OMP+PRIVATE( I,       J,        L,        K,       N, NSTEPS         )
 !$OMP+PRIVATE( K_DRYD0, K_DRYD2G, K_DRYD2P, K_SALT )
-!$OMP+PRIVATE( C_OH, C_O3, C_BR, C_BRO )
-!$OMP+PRIVATE( K_OH, K_O3, K_BR, K_BRO )
-!$OMP+PRIVATE( K_OX, K_RED, K_DEP0, K_DEP2G, K_DEP2P )
+!$OMP+PRIVATE( C_OH,    C_O3,     C_BR,     C_BRO )
+!$OMP+PRIVATE( K_OH,    K_O3,     K_BR,     K_BRO )
+!$OMP+PRIVATE( K_OX,    K_RED,    K_DEP0,   K_DEP2G, K_DEP2P )
+!$OMP+PRIVATE( F_PBL,   FC,       Faq,      LWC )
+!$OMP+PRIVATE( DT,      KMAX )
+!$OMP+PRIVATE( A,       Xold,     Xnew,     s1, s2, s3, s4 )
 !$OMP+PRIVATE( DEP_Hg0, DEP_HG2G, DEP_HG2P )
-!$OMP+PRIVATE( DEP_HG2G_DRY, DEP_HG2G_SALT, DEP_HG2P_DRY )
+!$OMP+PRIVATE( DEP_HG2G_DRY,      DEP_HG2G_SALT,     DEP_HG2P_DRY )
 !$OMP+PRIVATE( GROSS_OX, GROSS_OX_BR, GROSS_OX_OH, GROSS_OX_O3 )
 !$OMP+PRIVATE( GROSS_RED, NET_OX )
-!$OMP+PRIVATE( F_PBL, FC, Faq, LWC )
-!$OMP+PRIVATE( AREA_CM2, DEP_DRY_FLX )
+!$OMP+PRIVATE( AREA_CM2,  DEP_DRY_FLX )
 !$OMP+PRIVATE( F_HG0_DEP )
-!$OMP+PRIVATE( DT )
-!$OMP+PRIVATE( KMAX )
-!$OMP+PRIVATE( A, Xold, Xnew, s1, s2, s3, s4 )
       DO I=1, IIPAR
       DO J=1, JJPAR
       DO L=1, LLPAR
-
 
          !------------------------------------------------------
          ! Dry deposition frequencies, 1/s
@@ -534,7 +604,6 @@
          ! Sea-salt aerosol uptake
          !------------------------------------------------------
 
-         ! Define K for total deposition over ocean [/s]
          ! IS_WATER returns true for ocean boxes. 
          ! Fresh water may be TRUE in 
          ! principle but is not at 4x5 resolution.
@@ -557,14 +626,14 @@
             
          !------------------------------------------------------
          ! Disable Hg(0) deposition to ocean, ice, snow
-         !------------------------------------------------------
-
+         !
          ! Hg(0) exchange with the ocean is handled by ocean_mercury_mod
          ! so disable deposition over water here.
          ! Turn off Hg(0) deposition to snow and ice because we haven't yet
          ! included emission from these surfaces and most field studies
          ! suggest Hg(0) emissions exceed deposition during sunlit hours.
          ! (Holmes et al. 2010)
+         !------------------------------------------------------
 
          ! Area fraction of box with Hg0 dep. Default is dep everywhere
          F_Hg0_Dep = 1d0
@@ -606,7 +675,7 @@
             K_DEP2G = 0d0
             K_DEP2P = 0d0
          ENDIF
-
+         
          !-------------------------------------------------
          ! Oxidation rates
          !-------------------------------------------------
@@ -703,9 +772,9 @@
             K_RED = K_RED_OH * Faq * C_OH
          ENDIF
          
-         !-------------
-         ! CLEANUP
-         !-------------
+         !---------------------------------------------    
+         ! Round off small chemical rates
+         !---------------------------------------------    
          
          ! Round very small K_OX, K_RED to prevent numerical errors
          ! (jaf, cdh, 11/17/11)
@@ -713,7 +782,21 @@
          IF ( K_RED < 1D-10 ) K_RED = 0d0
 
          !==============================================================
-         ! CHEMISTRY AND DEPOSITION REACTIONS
+         ! CHEMICAL SOLVER
+         !
+         ! The chemical ODEs are 
+         ! dX/dt = A * X,
+         ! where X is a column vector consisting of 
+         ! X = [Hg(0), RGM, PBM]
+         ! plus additional terms for total deposition, oxidation, 
+         ! and reduction of each species.
+         !
+         ! We use an explicit 4th-order Runge-Kutta solver. 
+         ! The internal time step is chosen to be 5 times smaller than
+         ! the shortest chemical or deposition time scale. 
+         ! Since the shortest time scales are usually a few hours for Hg,
+         ! there is rarely more than 1 internal time step per hour.
+         ! (C. Holmes 4/2/2013)
          !==============================================================
          
          ! Largest rate, 1/s
@@ -728,7 +811,7 @@
          DT = DTCHEM / NSTEPS
             
          !------------------------------------------------
-         ! Load coefficients into the d/dt matrix
+         ! Load coefficients into the A = d/dt matrix
          !------------------------------------------------
 
          ! Reset elements to zero
@@ -759,7 +842,7 @@
          A(9,3) = K_RED
 
          !------------------------------------------------
-         ! Loop over the Hg regional tags
+         ! Run solver for each Hg regional tag
          !------------------------------------------------
          DO N = 1, N_HG_CATS
 
@@ -771,11 +854,11 @@
             ! Rows 4-9 accumulate oxidation, reduction, and deposition fluxes
             ! so these start at zero
 
+            ! Loop over internal time steps
             DO K=1, NSTEPS 
 
                !-----------------------------------------
-               ! 4th-Order Runge-Kutta method 
-               ! for each internal time step
+               ! Runge-Kutta equations
                !-----------------------------------------
                s1 = matmul(A,Xold)
                s2 = matmul(A,Xold+DT/2d0*s1)
@@ -796,7 +879,7 @@
      &                 ', Current conc: ',3E10.3,
      &                 ', Rate coeffs: ',6E10.3 )
                   CALL ERROR_STOP( 'Negative Hg concentration',
-     &                 ' MERCURY_MOD: CHEMMERCURY2' )
+     &                 ' MERCURY_MOD: CHEMMERCURY' )
                ENDIF
 
                ! Set for next loop
@@ -941,1359 +1024,7 @@
       IF ( LPRT ) CALL DEBUG_MSG( 'CHEMMERCURY: a CHEM_HgP' )
 
       ! Return to calling program
-      END SUBROUTINE CHEMMERCURY2
-
-!------------------------------------------------------------------------------
-
-      SUBROUTINE CHEMMERCURY( State_Met )
-!
-!******************************************************************************
-!  Subroutine CHEMMERCURY is the driver routine for mercury chemistry
-!  in the GEOS-CHEM module. (eck, bmy, 12/6/04, 4/6/06)
-!
-!  NOTES:
-!  (1 ) Now references routine GET_PBL_MAX_L from "pbl_mix_mod.f".  Now
-!        references AD44 from "diag_mod.f".  Now sum the levels from T44 into 
-!        the AD44 array.  Now references N_TRACERS from "tracer_mod.f".
-!        (bmy, 2/24/05)
-!  (2 ) Bug fix: Set T44 to 0e0 for single precision.  Now allow for zero
-!        dry deposition velocity.  Now call INIT_MERCURY from "input_mod.f"
-!        (bmy, 4/6/06)
-!******************************************************************************
-!
-      ! References to F90 modules
-      USE DRYDEP_MOD,         ONLY : DEPSAV
-      USE DRYDEP_MOD,         ONLY : DRYHg0, DRYHg2, DRYHgP
-      USE ERROR_MOD,          ONLY : DEBUG_MSG
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GLOBAL_O3_MOD,      ONLY : GET_GLOBAL_O3
-      USE GLOBAL_OH_MOD,      ONLY : GET_GLOBAL_OH
-      USE GLOBAL_BR_MOD,      ONLY : GET_GLOBAL_BR
-      USE LOGICAL_MOD,        ONLY : LPRT, LGTMM, LNLPBL 
-      USE OCEAN_MERCURY_MOD,  ONLY : Fg, Fp  
-      USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L
-      USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
-      USE TIME_MOD,           ONLY : ITS_TIME_FOR_A3 
-      USE TRACER_MOD,         ONLY : N_TRACERS
-      USE TRACERID_MOD,       ONLY : N_HG_CATS
-
-      USE CMN_SIZE_MOD             ! Size parameters
-
-      !Arguments
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-
-      ! Local variables
-      LOGICAL, SAVE          :: FIRST = .TRUE.
-      INTEGER                :: I, J, L, MONTH, N, PBL_MAX
-
-      REAL*8                 :: K_DRYD2(IIPAR,JJPAR)
-
-      !=================================================================
-      ! CHEMMERCURY begins here!
-      !
-      ! Read monthly mean OH and O3 fields
-      !=================================================================
-      IF ( ITS_A_NEW_MONTH() ) THEN 
-
-         ! Get the current month
-         MONTH = GET_MONTH()
-
-         ! Read monthly mean OH and O3 from disk
-         CALL GET_GLOBAL_OH( MONTH, State_Met )
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_OH' )
-
-         CALL GET_GLOBAL_O3( MONTH )
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_O3' )
-
-         ! Renamed to GET_GLOBAL_BR
-         CALL GET_GLOBAL_BR( MONTH, State_Met )
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_BR' )
-
-         IF (LRED_JNO2) THEN
-            CALL GET_GLOBAL_JNO2( MONTH ) 
-            IF ( LPRT ) 
-     &           CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_JNO2' )
-         ENDIF
-
-      ENDIF
-      
-      !=================================================================
-      ! Perform chemistry on Hg tracers 
-      !=================================================================
-      
-      ! Compute diurnal scaling for OH
-      CALL OHNO3TIME
-      IF ( LPRT ) CALL DEBUG_MSG( 'CHEMMERCURY: a OHNO3TIME' )
-
-      ! Calculate the rate of sea salt aerosol uptake of Hg2
-      IF ( LDYNSEASALT .AND. ITS_TIME_FOR_A3() ) THEN
-         CALL CALC_HG2_SEASALT_LOSSRATE( State_Met )
-         IF ( LPRT ) CALL DEBUG_MSG( 'CHEMMERCURY: a SEASALT_LOSSRATE' )
-      ENDIF
-
-      ! Partition Hg(II) between gas and aerosol
-      CALL PARTITIONHG2
-
-      ! Choose dry deposition frequency for Hg2, 1/s
-c$$$      IF (LHg2HalfAerosol) THEN
-c$$$         K_DRYD2 = ( DEPSAV(:,:,DRYHg2) +  DEPSAV(:,:,DRYHgP) ) / 2D0
-c$$$      ELSE
-c$$$         !--------------------------------------------------------
-c$$$         ! Previous to 25 Oct 2011, H Amos
-c$$$         !K_DRYD2 = DEPSAV(:,:,DRYHg2)
-c$$$         !
-c$$$         ! Weigh dry dep velocity by gas and aerosol fractions. 
-c$$$         ! [ref: Amos et al., 2011, submitted to ACP]
-c$$$         K_DRYD2 = ( DEPSAV(:,:,DRYHg2)*Fg(:,:,1) + 
-c$$$     &               DEPSAV(:,:,DRYHgP)*Fp(:,:,1) )
-c$$$         !--------------------------------------------------------
-c$$$      ENDIF
-
-
-      !-------------------------
-      ! Hg0 and Hg2 chemistry
-      !-------------------------
-      IF ( LPRT ) CALL DEBUG_MSG( 'CHEMMERCURY: b CHEM_Hg0_Hg2' )
-      
-      ! Add option for non-local PBL (cdh, 08/27/09)
-      IF ( LNLPBL ) THEN
-
-         ! Dry deposition occurs with PBL mixing,
-         ! pass zero deposition frequency
-         CALL CHEM_Hg0_Hg2( ZERO_DVEL, ZERO_DVEL, State_Met )
-
-      ELSE
-
-         IF ( DRYHg2 > 0 .and. DRYHg0 > 0 ) THEN
-
-            ! Dry deposition active for both Hg0 and Hg2; 
-            ! pass drydep frequency to CHEM_Hg0_Hg2 (NOTE: DEPSAV has units 1/s)
-!            CALL CHEM_Hg0_Hg2( K_DRYD2, DEPSAV(:,:,DRYHg0) )
-            CALL CHEM_Hg0_Hg2( DEPSAV(:,:,DRYHg2), DEPSAV(:,:,DRYHg0), 
-     &                         State_Met )
-            
-         ELSEIF (DRYHg2 > 0 .and. DRYHg0 .le. 0) THEN
-
-            ! Only Hg2 dry deposition is active
-!            CALL CHEM_Hg0_Hg2( K_DRYD2, ZERO_DVEL) 
-            CALL CHEM_Hg0_Hg2( DEPSAV(:,:,DRYHg2), ZERO_DVEL, State_Met)
-
-         ELSEIF (DRYHg2 <= 0 .and. DRYHg0 > 0) THEN
-
-            ! Only Hg0 dry deposition is active
-            CALL CHEM_Hg0_Hg2( ZERO_DVEL , DEPSAV(:,:,DRYHg0),
-     &                         State_Met )
-
-         ELSE
-
-            ! No dry deposition, pass zero deposition frequency
-            CALL CHEM_Hg0_Hg2( ZERO_DVEL , ZERO_DVEL, State_Met )
-
-         ENDIF
-
-      ENDIF      
-
-      IF ( LPRT ) CALL DEBUG_MSG( 'CHEMMERCURY: a CHEM_Hg0_Hg2' )
-   
-      !--------------------------
-      ! HgP chemistry
-      !--------------------------
-      IF ( LPRT ) CALL DEBUG_MSG( 'CHEMMERCURY: b CHEM_HgP' )
-      
-      ! Add option for non-local PBL (cdh, 08/27/09)
-      ! Dry deposition done with PBL mixing if non-local selected
-      IF ( DRYHgP == 0 .OR. LNLPBL ) THEN
-
-         ! Otherwise pass zero drydep frequency
-         CALL CHEM_HgP( ZERO_DVEL )
-
-      ELSE
-         
-         ! If DRYHgP > 0, then drydep is active;
-         ! Pass drydep frequency to CHEM_HgP
-         CALL CHEM_HgP( DEPSAV(:,:,DRYHgP) )
-
-      ENDIF
-
-      ! Partition Hg(II) between gas and aerosol
-      CALL PARTITIONHG2
-
-      IF ( LPRT ) CALL DEBUG_MSG( 'CHEMMERCURY: a CHEM_HgP' )
-
-      ! Return to calling program
       END SUBROUTINE CHEMMERCURY
-
-!------------------------------------------------------------------------------
-
-      SUBROUTINE CHEM_Hg0_Hg2( V_DEP_Hg2, V_DEP_Hg0, State_Met )
-!
-!******************************************************************************
-!  Subroutine CHEM_Hg0_Hg2 is the chemistry subroutine for the oxidation,
-!  reduction and deposition of Hg(0) and Hg(II), including tagged tracers of 
-!  these species.
-!  (eck, bmy, cdh, 12/6/04, 1/9/06, 7/25/08)
-!
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) V_DEP_Hg2 (REAL*8) : Dry deposition frequency for Hg(II) [/s]
-!  (1 ) V_DEP_Hg0 (REAL*8) : Dry deposition frequency for Hg(0) [/s]
-!
-!  Description of the chemistry mechanism:
-!  ============================================================================
-!  The oxidation, reduction and deposition properties can be changed with 
-!  logical switches found in INIT_MERCURY (below). Here we describe two 
-!  alternatives.
-!
-!  -----------------------------------------------
-!  Chemistry and deposition as described by Holmes et al. (2010):
-!
-!  (1 ) Oxidation: Hg(0) --> Hg(II):
-!       
-!     Hg(0)(g) + Br(g) --> + Br/OH --> Hg(II), rates are selected with
-!        METHOD keyword below. Recommded kinetics are 'DonohoueYBBalabanov'
-!        which use rates from Donohoue et al. (2006), Goodsite et al. (2004)
-!        and Balabanov et al. (2005)
-!           
-!  (2 ) Aqueous-phase photochemical reduction of Hg(II) is included based
-!        on estimate of rate constant and scaled to NO2 photolysis. The
-!        rate is tuned to match the global Hg(0) concentration and
-!        seasonal cycle.
-! 
-!  (3 ) Hg(II) is dry deposited,        kd calculated by drydep_mod [/s]     
-!        The dry deposition rate is an average of the particulate and gaseous
-!        deposition rates, reflecting that Hg(II) partitions between gas and
-!        aerosol.
-!
-!  (4 ) Hg(0) is dry deposited,         kd calculated by drydep_mod [/s]
-!         The ocean module separately cacluates Hg(0) dry deposition over
-!         ocean, so this module only includes Hg(0) dry deposition over land.
-!
-!  -----------------------------------------------
-!  Chemistry and deposition as described by Selin et al. (2010):
-!
-!  (1 ) Oxidation: Hg(0) --> Hg(II): 
-!
-!         Hg(0)(g)+ O3(g) --> Hg(II) ,  k  = 3.0e-20 cm3 molec-1 s-1
-!                                       Source: Hall, 1995
-!       
-!         Hg(0)(g)+ OH(g) --> Hg(II) ,  k  = 8.7e-14 cm3 s-1 
-!                                       Source: Sommar et al. 2001
-!           
-!  (2 ) Aqueous-phase photochemical reduction of Hg(II) is included based
-!        on estimate of rate constant and scaled to OH concentrations. The
-!        rate is tuned with the OH oxidation rate to match the global Hg(0) 
-!        concentration and seasonal cycle.
-! 
-!  (3 ) Hg(II) is dry-deposited,        kd calculated by drydep_mod [/s]    
-!
-!  (4 ) Hg(0) is dry deposited,         kd calculated by drydep_mod [/s]
-!         The ocean module separately cacluates Hg(0) dry deposition over
-!         ocean, so this module only includes Hg(0) dry deposition over land.
-!     
-!  NOTES:
-!  (1 ) Updated for reduction reaction.  Now use diagnostic arrays from
-!        "diag03_mod.f" (eck, bmy, 1/21/05)
-!  (2 ) Now references GET_FRAC_UNDER_PBLTOP from "pbl_mix_mod.f".  Now
-!        performs drydep for all levels in the PBL.  Changed Kred to 2.1e-10
-!        on advice of Noelle Eckley Selin. (bmy, 2/24/05)
-!  (3 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
-!  (4 ) Now prevent divide-by-zero error.  Now use ID_Hg0 and ID_Hg2 index
-!        arrays from "tracerid_mod.f".  Also modified for updated ocean
-!        mercury module.  Updated some constants.  Also saves out diagnostic 
-!        of Hg2 lost to rxn w/ seasalt. (eck, cdh, sas, bmy, 4/6/06)
-!  (5 ) Added Hg0 dry deposition (eck)
-!  (6 ) Chemistry and dry deposition now occur simultaneously. (cdh, 7/9/08)
-!  13 Aug 2010 - R. Yantosca - Treat MERRA like GEOS-5 
-!  14 Jan 2011 - R. Yantosca - Now get volume cloud fraction directly
-!                              from GEOS-5 and MERRA met fields
-!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
-!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  28 Nov 2012 - R. Yantosca - Now pass State_Met to GET_OH and GET_JNO2
-!******************************************************************************
-!
-      ! References to F90 modules
-      USE DAO_MOD,            ONLY : IS_WATER, IS_ICE, IS_LAND
-      USE DEPO_MERCURY_MOD,   ONLY : ADD_HG2_DD
-      USE DIAG_MOD,           ONLY : AD44
-      USE DIAG03_MOD,         ONLY : AD03_Hg2_Hg0, AD03_Hg2_O3
-      USE DIAG03_MOD,         ONLY : AD03_Hg2_Br, AD03_Hg2_OH
-      USE DIAG03_MOD,         ONLY : AD03_Hg2_SS,  LD03,        ND03
-      USE DIAG03_MOD,         ONLY : AD03_Hg2_SSR 
-      USE DIAG03_MOD,         ONLY : AD03_Br 
-      USE ERROR_MOD,          ONLY : DEBUG_MSG 
-      USE ERROR_MOD,          ONLY : SAFE_DIV   !yzh
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,        ONLY : LPRT, LDYNOCEAN, LNLPBL
-      USE LOGICAL_MOD,        ONLY : LSPLIT, LGTMM !ccc for GTMM
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER 
-      USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACER_MOD,         ONLY : STT,    XNUMOL
-      USE TRACERID_MOD,       ONLY : ID_Hg0, ID_Hg2, ID_Hg_tot
-      USE TRACERID_MOD,       ONLY : IS_Hg2, N_Hg_CATS
-
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_DIAG_MOD             ! ND44
-
-      ! Arguments
-      REAL*8,         INTENT(IN)  :: V_DEP_Hg2(IIPAR,JJPAR)
-      REAL*8,         INTENT(IN)  :: V_DEP_Hg0(IIPAR,JJPAR)
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-
-      ! Local variables
-      INTEGER               :: I, J, L, NN
-      REAL*8                :: DTCHEM
-      REAL*8                :: FC,          Faq,         F_PBL
-      REAL*8                :: LWC,         AREA_CM2
-      REAL*8                :: C_O3,        C_OH,        C_BR
-      REAL*8                :: C_BRO
-      REAL*8                :: K_O3,        K_OH,        K_BR, K_BRO   
-      REAL*8                :: K_OX,        K_RED       
-      REAL*8                :: E_KOX_T,     E_KRED_T    
-
-      REAL*8                :: K_DRYD0,     K_DRYD2,     K_SALT
-      REAL*8                :: K_DEP0,      K_DEP2
-
-      REAL*8                :: OLD_HG0,     OLD_HG2
-      REAL*8                :: NEW_HG0,     NEW_HG2
-      REAL*8                :: HG0_BL,      HG2_BL
-      REAL*8                :: HG0_FT,      HG2_FT
-
-      REAL*8                :: TMP_HG0,     TMP_HG2,     TMP_OX
-      REAL*8                :: GROSS_OX,    NET_OX 
-      REAL*8                :: GROSS_OX_OH, GROSS_OX_O3, GROSS_OX_BR
-      REAL*8                :: DEP_HG0,     DEP_HG2
-      REAL*8                :: DEP_HG2_DRY, DEP_HG2_SALT
-      REAL*8                :: DEP_DRY_FLX
-      REAL*8                :: FRAC_NO_HG0_DEP !jaf 
-      LOGICAL               :: ZERO_HG0_DEP !jaf 
-
-      ! K for reaction Hg0 + O3  [cm3 /molecule /s] (Source: Hall 1995)
-      REAL*8, PARAMETER     :: K_HG_O3  = 3.0d-20 !3.0d-20 (Gas phase)
-
-      ! K for reaction Hg2 + OH  [cm3 /molecule /s] (Source: Sommar 2001)
-      REAL*8, PARAMETER     :: K_HG_OH  = 8.7d-14 !8.7d-14 (Gas phase)
-
-      ! K for reaction Hg2 + BrO  [cm3 /molecule /s]
-      ! (Source: Raofie and Ariya 2003; 2004)
-      REAL*8, PARAMETER     :: K_HG_BRO  = 1d-14 !1d-15 - 1d-14
-
-      ! Gas constant [L atm /K /mol]
-      REAL*8, PARAMETER     :: R        = 8.2d-2
-
-      ! K for reduction [cm3 /molecule /s] (Source: Selin 2007)
-      ! This variable is unused if LREDJNO2 is TRUE
-      REAL*8, PARAMETER     :: K_RED_OH = 1d-10!4.2d-10 from Noelle
-                                !4d-10 works well for Hg+OH/O3
-     
-      ! K for reduction, using J_NO2, [unitless scale factor]
-      ! Source: Holmes et al. 2010
-      ! 3.5D-3 for Hg+Br simulation; 1.3D-2 for Hg+OH/O3 simulation
-
-      ! Reduce K_RED_JNO2 for GEIA 2005 inventory
-      ! recommended by Helen Amos, 23 Sep 2011
-      ! change implemented 10/19/11 by eck
-      ! inserted ifdefs for future tuning of 2x2.5 by eck
-#if defined (GRID4x5)
-      !REAL*8, PARAMETER     :: K_RED_JNO2 = 3.5d-3 / 2d0 ! ref: Amos et al. (2011)
-      REAL*8, PARAMETER     :: K_RED_JNO2 = 6.4d-3 ! yzh, consider cloud fraction 
-#elif defined (GRID2x25)
-      REAL*8, PARAMETER     :: K_RED_JNO2 = 3.5D-3/2d0
-#elif defined( GRID05x0666 ) && defined( NESTED_NA )
-      REAL*8, PARAMETER     :: K_RED_JNO2 = 6.4D-3 * 1.33 ! yzh
-#else
-      REAL*8, PARAMETER     :: K_RED_JNO2 = 6.4d-3        ! yzh, need tune 
-#endif      
-
-      ! K for sea salt (eck, bmy, 4/6/06) [/s]
-      REAL*8, PARAMETER     :: K_SALT_FIXED   = 3.8d-5
-
-      ! Set of Hg/Br rate constants to use
-      ! Recommended: DonohoueYBBalabanov, GoodsiteY, or DonohoueYB
-      ! DonohoueYBBalabanov used by Holmes et al. 2010
-      !CHARACTER(LEN=*), PARAMETER :: METHOD='DonohoueYBBalabanov'
-      CHARACTER(LEN=*), PARAMETER  :: METHOD='GoodsiteUpdate' 
-
-
-      !=================================================================
-      ! CHEM_Hg0_Hg2 begins here!
-      !=================================================================
-
-      ! Chemistry timestep [s]
-      DTCHEM = GET_TS_CHEM() * 60d0
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,       J,        L,         NN                   )
-!$OMP+PRIVATE( F_PBL,   FC,       Faq,       LWC,      AREA_CM2   )
-!$OMP+PRIVATE( C_O3,    C_OH,     C_BR,      C_BRO                )   
-!$OMP+PRIVATE( K_O3,    K_OH,    K_BR,       K_BRO                )
-!$OMP+PRIVATE( K_OX,    K_RED,   E_KOX_T,    E_KRED_T             )
-!$OMP+PRIVATE( K_DEP0,  K_DEP2,  K_DRYD0,    K_DRYD2,  K_SALT     )
-!$OMP+PRIVATE( OLD_HG0, OLD_HG2,  NEW_HG0,   NEW_HG2              )
-!$OMP+PRIVATE( HG0_BL,  HG2_BL,   HG0_FT,    HG2_FT               )
-!$OMP+PRIVATE( TMP_HG0, TMP_HG2,  TMP_OX                          )    
-!$OMP+PRIVATE( DEP_HG0, DEP_HG2,  DEP_HG2_DRY, DEP_HG2_SALT       )
-!$OMP+PRIVATE( DEP_DRY_FLX,       ZERO_HG0_DEP, FRAC_NO_HG0_DEP   )
-!$OMP+PRIVATE( NET_OX,  GROSS_OX                                  )
-!$OMP+PRIVATE( GROSS_OX_OH,       GROSS_OX_O3, GROSS_OX_BR        )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-
-         ! Fraction of box (I,J,L) underneath the PBL top [dimensionless]
-         F_PBL = GET_FRAC_UNDER_PBLTOP( I, J, L )
-
-         ! Monthly mean O3, OH Br concentrations [molec/cm3]
-         C_BR        = GET_BR( I, J, L, C_BRO, State_Met )
-         C_O3        = GET_O3( I, J, L,        State_Met )
-         C_OH        = GET_OH( I, J, L,        State_Met )
-
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
-
-         !---------------------------------------------
-         ! GEOS-5/MERRA: Get LWC, FC from met fields
-         ! (skim, bmy, 1/14/10)
-         !---------------------------------------------
-
-         ! Get cloud fraction from met fields [unitless]
-         FC = State_Met%CLDF(L,I,J)
-
-         IF ( LGEOSLWC ) THEN
-
-            ! Get liquid water content [m3 H2O/m3 air] within cloud from met
-            ! Units: [kg H2O/kg air] * [kg air/m3 air] * [m3 H2O/1e3 kg H2O]
-            LWC = State_Met%QL(I,J,L) * State_Met%AIRDEN(L,I,J) * 1D-3
-
-            !%%% NOTE: Someone should investigate effect of dividing LWC by the
-            !%%% cloud fraction, as is done in sulfate_mod.f (bmy, 5/27/11)
-
-            ! yzh added this. (11/9/2011)
-            ! LWC is a grid-box averaged quantity. To improve representation 
-            ! of sulfate chemistry, we divide LWC by the cloud fraction and 
-            ! compute sulfate chemistry based on the LWC within the cloud.  We 
-            ! get the appropriate grid-box averaged mass of SO2 and sulfate by 
-            ! multiplying these quantities by FC AFTER computing the aqueous 
-            ! sulfur chemistry within the cloud. (lzh, jaf, bmy, 5/27/11)
-            LWC     = SAFE_DIV( LWC, FC, 0d0 )
-
-         ELSE
-
-            ! Get liquid water content for entire grid box,
-            ! based on formula for LWC in cloud [m3 H2O/m3 air]
-            LWC = GET_LWC( State_Met%T(I,J,L) ) * FC 
-
-            ! There should be no liquid water when T < 258K 
-            IF ( State_Met%T(I,J,L) < 258D0 )  LWC = 0D0
-
-         ENDIF
-
-#else
-         !---------------------------------------------
-         ! Otherwise, compute FC, LWC as before
-         !---------------------------------------------    
-
-         ! Get volume fraction of gridbox containing 
-         ! cloud [unitless], following Sundqvist et al 1989.
-         FC          = GET_VCLDF( I, J, L, State_Met )
-
-         ! Get liquid water content for entire grid box,
-         ! based on formula for LWC in cloud (m3/m3)
-         LWC         = GET_LWC( State_Met%T(I,J,L) ) * FC 
-
-         ! There should be no liquid water when T < 258K 
-         IF ( State_Met%T(I,J,L) < 258D0 )  LWC = 0D0
-
-#endif
-
-         ! Define fraction of Hg(II) which is in aqueous solution
-         ! [dimensionless]
-         Faq          = ( HL * R * State_Met%T(I,J,L) * LWC )
-         Faq          = Faq / ( 1d0 + Faq )
-
-         ! Cl- in sea-salt aerosol enhances solubility 2000X in MBL
-         IF ( LRED_JNO2 .AND. ( F_PBL >0.1  )  .AND. 
-     &        IS_WATER( I, J, State_Met )) THEN
-            Faq          = ( HL * 2D3 * R * State_Met%T(I,J,L) * LWC )
-            Faq          = Faq / ( 1d0 + Faq )
-         ENDIF
-
-         ! yzh added this. (11/9/2011)
-         ! We have used the in-cloud LWC to compute the sulfate
-         ! aqueous chemistry.  We get the appropriate grid-box averaged 
-         ! mass of SO2 and sulfate by multiplying the reaction rates
-         ! L2S and L3s by the cloud fraction after the aqueous chemistry
-         ! has been done.  (lzh, jaf, bmy, 5/27/11)
-#if   defined( GEOS_5 ) || defined( MERRA ) 
-         IF ( LGEOSLWC ) Faq =  Faq * FC
-#endif
-
-         ! Define K's for the oxidation reactions [/s]
-         K_O3        = K_HG_O3 * C_O3
-         K_OH        = K_HG_OH * C_OH
-
-         IF (LBRCHEM) THEN
-            K_BR = GET_HGBR_RATE( C_BR, State_Met%T(I,J,L), 
-     &             GET_PCENTER(I,J,L), C_OH, METHOD )
-         ELSE
-            K_BR = 0d0
-         ENDIF
-
-         IF (LBROCHEM) THEN
-            K_BRO = K_HG_BRO * C_BRO
-         ELSE
-            K_BRO = 0d0
-         ENDIF
-         
-
-         IF (.NOT. LOHO3CHEM) THEN
-            K_O3 = 0D0
-            K_OH = 0D0
-         ENDIF
-
-         K_OX        = K_O3 + K_OH + K_BR + K_BRO
-         
-         ! Define K for the reduction reaction. 
-         IF (LRED_JNO2) THEN
-            K_RED = K_RED_JNO2 * Faq * GET_JNO2(I,J,L,State_Met)
-         ELSE
-            ! Include the fraction of 
-            ! Hg(II) in air within the Kreduction & 
-            ! scale to OH concentration [/s]
-            K_RED = K_RED_OH * Faq * C_OH
-         ENDIF
-
-         ! Round very small K_OX, K_RED to prevent numerical errors
-         ! (jaf, cdh, 11/17/11)
-         IF ( K_OX  < 1D-10 ) K_OX  = 0d0
-         IF ( K_RED < 1D-10 ) K_RED = 0d0
-
-         ! Define K for dry deposition, [/s]
-         K_DRYD0 = V_DEP_HG0(I,J)
-         K_DRYD2 = V_DEP_HG2(I,J)
-
-         ! Define K for total deposition over ocean [/s]
-         ! IS_WATER returns true for ocean boxes. Fresh water may be TRUE in 
-         ! principle but is not at 4x5 resolution.
-         ! Sea salt will not be active in coastal boxes that have some ocean
-         ! but where IS_WATER is FALSE.
-         ! Note: we only need the IF structure for the fixed
-         ! K_SALT, so that deposition doesn't occur over land.
-         ! Remove the IF statement once HG2_SEASALT_LOSSRATE 
-         ! is in the standard version. (cdh, 2/8/08)
-         IF ( IS_WATER( I, J, State_Met ) ) THEN
-
-            IF (LDYNSEASALT) THEN
-               ! Uptake based on sea-salt aerosol flux and salinity [/s]
-               K_SALT = HG2_SEASALT_LOSSRATE(I,J)
-            ELSE
-               !Constant rate tuned for Okinawa [/s]
-               K_SALT = K_SALT_FIXED
-            ENDIF
-
-            K_DEP2 = K_DRYD2 + K_SALT
-
-         ELSE
-            K_SALT = 0d0
-
-            K_DEP2 = K_DRYD2 
-         ENDIF
-         
-!--jaf.start
-         ! Restructure to allow use of fractional land area info in MERRA
-         ! jaf, 4/26/11
-!         ! Disable dry deposition of Hg(0) to ice because we do not have
-!         ! an ice emission model. Perennial ice should have equal emission
-!         ! and deposition averaged over multiple years. (cdh, 9/11/09)
-!#if   defined( GEOS_5 ) || defined( MERRA )
-!         ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-!         SNOW_HT = SNOMAS(I,J)
-!#else
-!         ! GEOS1-4 snow heigt (water equivalent) in mm
-!         SNOW_HT = SNOW(I,J)
-!#endif 
-!         IF ( IS_ICE(I,J) .OR. (IS_LAND(I,J) .AND. SNOW_HT>10d0) ) THEN
-!            K_DEP0 = 0D0
-!         ENDIF
-
-         ! Hg(0) exchange with the ocean is handled by ocean_mercury_mod
-         ! so disable deposition over water here.
-         ! Turn off Hg(0) deposition to snow and ice because we haven't yet
-         ! included emission from these surfaces and most field studies
-         ! suggest Hg(0) emissions exceed deposition during sunlit hours.
-            
-         ! Except in MERRA, we assume entire grid box is water or ice
-         ! if conditions are met (jaf, 4/26/11)
-         FRAC_NO_HG0_DEP = 1d0
-
-#if   defined( MERRA ) || defined( GEOS_57 )
-         FRAC_NO_HG0_DEP = MIN( State_Met%FROCEAN(I,J) + 
-     &                          State_Met%FRSNO(I,J)   +
-     &                          State_Met%FRLANDIC(I,J), 1d0 ) 
-         ZERO_HG0_DEP = ( FRAC_NO_HG0_DEP > 0d0 )
-
-#elif defined( GEOS_5 )
-         ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-         ZERO_HG0_DEP = (( State_Met%LWI(I,J)   == 0    )  .OR. 
-     &                   ( IS_ICE ( I, J, State_Met     )) .OR.
-     &                   ( IS_LAND( I, J, State_Met     )  .AND.
-     &                     State_Met%SNOMAS(I,J) > 10d0 ))
-
-#else
-         ! GEOS1-4 snow heigt (water equivalent) in mm
-         ZERO_HG0_DEP = (( State_Met%LWI(I,J) == 0    )  .OR.
-     &                   ( IS_ICE ( I, J, State_Met   )) .OR. 
-     &                   ( IS_LAND( I, J, State_Met   )  .AND.
-     &                     State_Met%SNOW(I,J) > 10d0 ))
-#endif 
-
-         K_DEP0 = K_DRYD0
-         IF ( ZERO_HG0_DEP ) THEN
-            K_DEP0 = K_DEP0 * MAX(1d0 - FRAC_NO_HG0_DEP,0d0)
-         ENDIF
-!--jaf.end
-
-         ! Precompute exponential factors [dimensionless]
-         E_KOX_T   = EXP( -K_OX   * DTCHEM )
-         E_KRED_T  = EXP( -K_RED  * DTCHEM )
-
-         !==============================================================
-         ! CHEMISTRY AND DEPOSITION REACTIONS
-         !==============================================================
-         
-         ! Loop over the Hg regional tags
-         DO NN = 1, N_HG_CATS
-
-            ! Initial concentrations of Hg(0) and Hg(II) [kg]
-            OLD_Hg0 = MAX( STT(I,J,L,ID_Hg0(NN)), SMALLNUM )
-            OLD_Hg2 = MAX( STT(I,J,L,ID_Hg2(NN)), SMALLNUM )   
-
-            IF ( F_PBL < 0.05D0 .OR. 
-     &           (K_DEP0 < SMALLNUM .AND. K_DEP2 < SMALLNUM) ) THEN
-
-               !==============================================================
-               ! Entire box is in the free troposphere
-               ! or deposition is turned off, so use RXN without deposition
-               !==============================================================
-
-               CALL RXN_REDOX_NODEP(  OLD_HG0, OLD_HG2, 
-     &              K_OX,    K_RED,   DTCHEM, 
-     &              E_KOX_T, E_KRED_T,
-     &              NEW_HG0, NEW_HG2, GROSS_OX )
-
-               ! No deposition occurs [kg]
-               DEP_HG0 = 0D0
-               DEP_HG2 = 0D0
-
-            ELSE IF ( F_PBL > 0.95D0 ) THEN 
-
-               !==============================================================
-               ! Entire box is in the boundary layer
-               ! so use RXN with deposition
-               !==============================================================
-
-               CALL RXN_REDOX_WITHDEP( OLD_HG0,   OLD_HG2,
-     &              K_OX,    K_RED,    K_DEP0,    K_DEP2,   DTCHEM, 
-     &              E_KOX_T, E_KRED_T,
-     &              NEW_HG0, NEW_HG2,  GROSS_OX,  DEP_HG0,  DEP_HG2 )
-
-            ELSE
-
-               !==============================================================
-               ! Box spans the top of the boundary layer
-               ! Part of the mass is in the boundary layer and subject to 
-               ! deposition while part is in the free troposphere and
-               ! experiences no deposition.
-               !
-               ! We apportion the mass between the BL and FT according to the
-               ! volume fraction of the box in the boundary layer.
-               ! Arguably we should assume uniform mixing ratio, instead of
-               ! uniform density but if the boxes are short, the air density
-               ! doesn't change much.
-               ! But assuming uniform mixing ratio across the inversion layer
-               ! is a poor assumption anyway, so we are just using the
-               ! simplest approach.
-               !==============================================================
-
-               ! Boundary layer portion of Hg [kg]
-               Hg0_BL = OLD_HG0 * F_PBL
-               Hg2_BL = OLD_HG2 * F_PBL
-
-               ! Free troposphere portion of Hg [kg]
-               Hg0_FT = OLD_HG0 - Hg0_BL
-               Hg2_FT = OLD_HG2 - Hg2_BL
-               
-               ! Do chemistry with deposition on BL fraction
-               CALL RXN_REDOX_WITHDEP( Hg0_BL,  Hg2_BL,
-     &              K_OX,    K_RED,    K_DEP0,    K_DEP2,   DTCHEM, 
-     &              E_KOX_T, E_KRED_T, 
-     &              NEW_HG0, NEW_HG2,  GROSS_OX,  DEP_HG0,  DEP_HG2 )
-
-               ! Do chemistry without deposition on the FT fraction
-               CALL RXN_REDOX_NODEP(  Hg0_FT, Hg2_FT,
-     &              K_OX,    K_RED,   DTCHEM, 
-     &              E_KOX_T, E_KRED_T,
-     &              TMP_HG0, TMP_HG2, TMP_OX )
-               
-               ! Recombine the boundary layer and free troposphere parts [kg]
-               NEW_HG0 = NEW_HG0 + TMP_HG0
-               NEW_HG2 = NEW_HG2 + TMP_HG2
-               
-               ! Total gross oxidation in the BL and FT [kg]
-               GROSS_OX = GROSS_OX + TMP_OX
-
-            ENDIF
-
-            ! Ensure positive concentration [kg]
-            NEW_HG0 = MAX( NEW_HG0, SMALLNUM )
-            NEW_HG2 = MAX( NEW_HG2, SMALLNUM )
-
-            ! Archive new Hg values [kg]
-            STT(I,J,L,ID_Hg0(NN)) = NEW_Hg0 
-            STT(I,J,L,ID_Hg2(NN)) = NEW_Hg2
-
-            ! Net oxidation [kg]
-            NET_OX = OLD_HG0 - NEW_HG0 - DEP_HG0
-
-            ! Error check on gross oxidation [kg]
-            IF ( GROSS_OX < 0D0 ) 
-     &          CALL DEBUG_MSG('CHEM_HG0_HG2: negative gross oxidation')
-
-            ! Apportion gross oxidation between O3 and OH [kg]
-            IF ( (K_OX     < SMALLNUM) .OR. 
-     &           (GROSS_OX < SMALLNUM) ) THEN
-               GROSS_OX_OH = 0D0
-               GROSS_OX_BR = 0D0
-               GROSS_OX_O3 = 0D0
-            ELSE
-               GROSS_OX_OH = GROSS_OX * K_OH / K_OX
-               GROSS_OX_BR = GROSS_OX * K_BR / K_OX
-               GROSS_OX_O3 = GROSS_OX * K_O3 / K_OX
-            ENDIF
-               
-            ! Apportion deposition between dry deposition and sea salt [kg]
-            IF ( (K_DEP2  < SMALLNUM) .OR. 
-     &           (DEP_HG2 < SMALLNUM) ) THEN
-               DEP_HG2_SALT = 0D0
-               DEP_HG2_DRY  = 0D0
-            ELSE
-               DEP_HG2_DRY  = DEP_HG2 * K_DRYD2 / K_DEP2
-               DEP_HG2_SALT = DEP_HG2 - DEP_HG2_DRY 
-            ENDIF
-            
-            ! Add deposited Hg(II) to the ocean module. OCEAN_MERCURY_MOD
-            ! determines whether the box is marine, so we don't need to here.
-            ! We should add an if statement to test whether DYNAMIC LAND is 
-            ! active.
-            IF ( LDYNOCEAN .AND. (DEP_Hg2 > 0d0) ) THEN
-               CALL ADD_Hg2_DD( I, J, ID_Hg2(NN), DEP_HG2 )
-            ENDIF           
-
-            ! Add deposited Hg(II) to the snowpack
-            IF ( LHGSNOW .AND. (DEP_Hg2>0d0) ) THEN
-               CALL ADD_HG2_SNOWPACK(I,J,ID_Hg2(NN),DEP_HG2_DRY,
-     &                               State_Met)
-            ENDIF
-               
-
-            !=================================================================
-            ! ND44 diagnostic: drydep flux of Hg(II) [molec/cm2/s]
-            !=================================================================
-            IF ( ( ND44 > 0 .OR. LGTMM ) .AND. (.NOT. LNLPBL) ) THEN
-
-               ! Grid box surface area [cm2]
-               AREA_CM2 = GET_AREA_CM2( I, J, L )
-
-               ! Amt of Hg(II) lost to drydep [molec/cm2/s]
-               DEP_DRY_FLX  = DEP_HG2_DRY * XNUMOL(ID_Hg2(NN)) / 
-     &              ( AREA_CM2 * DTCHEM )
-
-               ! Archive Hg(II) drydep flux in AD44 array [molec/cm2/s]
-               AD44(I,J,ID_HG2(NN),1) = AD44(I,J,ID_HG2(NN),1) +
-     &              DEP_DRY_FLX
-
-               ! Amt of Hg(0) lost to drydep [molec/cm2/s]
-               DEP_DRY_FLX  = DEP_HG0 * XNUMOL(ID_Hg0(NN)) / 
-     &              ( AREA_CM2 * DTCHEM )
-
-               ! Archive Hg(0) drydep flux in AD44 array [molec/cm2/s]
-               AD44(I,J,ID_HG0(NN),1) = AD44(I,J,ID_HG0(NN),1) +
-     &              DEP_DRY_FLX
-
-            ENDIF
-
-            !==============================================================
-            ! ND03 diagnostic: Hg(II) production [kg]
-            !==============================================================
-            IF ( ND03 > 0 .AND. L <= LD03 ) THEN 
-
-               ! Store chemistry diagnostics only for total tracer
-               IF ( ID_HG0(NN) == ID_HG_TOT) THEN
-
-!- eds 8/31/10 -------------------------------------------------------------
-!                  AD03_Hg2_Hg0(I,J,L)= AD03_Hg2_Hg0(I,J,L) + NET_OX
-!                  AD03_Hg2_Br(I,J,L) = AD03_Hg2_Br(I,J,L)  + GROSS_OX_BR 
-!                  AD03_Hg2_OH(I,J,L) = AD03_Hg2_OH(I,J,L)  + GROSS_OX_OH
-!                  AD03_Hg2_O3(I,J,L) = AD03_Hg2_O3(I,J,L)  + GROSS_OX_O3
-!---------------------------------------------------------------------------
-
-                  AD03_Br(I,J,L,1) = AD03_Br(I,J,L,1) + C_BR
-                  AD03_Br(I,J,L,2) = AD03_Br(I,J,L,2) + C_BRO
-
-
-               ENDIF
-
-!- eds 8/31/10 ------------------------------------------------------------
-
-                  AD03_Hg2_Hg0(I,J,L,NN)= AD03_Hg2_Hg0(I,J,L,NN) 
-     &                                    + NET_OX
-                  AD03_Hg2_Br(I,J,L,NN) = AD03_Hg2_Br(I,J,L,NN)  
-     &                                    + GROSS_OX_BR !cdh added diagnostic
-                  AD03_Hg2_OH(I,J,L,NN) = AD03_Hg2_OH(I,J,L,NN)  
-     &                                    + GROSS_OX_OH
-                  AD03_Hg2_O3(I,J,L,NN) = AD03_Hg2_O3(I,J,L,NN)  
-     &                                    + GROSS_OX_O3
-
-!--------------------------------------------------------------------------
-               
-               ! Sea salt diagnostic is 2-D [kg]
-               AD03_Hg2_SS(I,J,NN) = AD03_Hg2_SS(I,J,NN) + DEP_HG2_SALT
-
-               ! Sea-salt loss rate diagnostic [/s]
-               IF ( L == 1 ) THEN
-!- eds 8/31/10 -----------------------------------------------------------
-!                  AD03_Hg2_SSR(I,J) = AD03_Hg2_SSR(I,J) + K_SALT
-                  AD03_Hg2_SSR(I,J,NN) = AD03_Hg2_SSR(I,J,NN) + K_SALT
-!-------------------------------------------------------------------------
-               ENDIF
-               
-            ENDIF               
-
-         ENDDO               
-         
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      ! Return to calling program
-      END SUBROUTINE CHEM_Hg0_Hg2
-
-!------------------------------------------------------------------------------
-
-      SUBROUTINE RXN_REDOX_NODEP( OLD_Hg0, OLD_Hg2, 
-     &     K_OX,    K_RED,   DT,
-     &     E_KOX_T, E_KRED_T,
-     &     NEW_Hg0, NEW_Hg2, GROSS_OX  )
-
-!
-!******************************************************************************
-!  Subroutine RXN_REDOX_NODEP calculates new masses of Hg0 and Hg2 for given
-!  rates of oxidation and reduction, without any deposition. This is for the
-!  free troposphere, or simulations with deposition turned off. 
-!  The analytic forms for the solutions were derived in Mathematica. 
-!  (cdh 1/17/2008)
-!
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) OLD_Hg0  (REAL*8) : Initial mass of Hg(0) [kg]
-!  (2 ) OLD_Hg2  (REAL*8) : Initial mass of Hg(II) [kg]
-!  (3 ) K_OX     (REAL*8) : 1st order oxidation rate [/s]
-!  (4 ) K_RED    (REAL*8) : 1st order reduction rate [/s]
-!  (5 ) DT       (REAL*8) : Chemistry time step [s]
-!  (6 ) E_KOX_T  (REAL*8) : Precalculated exponential 
-!                             exp( - K_OX * DT )  [dimensionless]
-!  (7 ) E_KRED_T (REAL*8) : Precalculated exponential 
-!                             exp( - K_RED * DT ) [dimensionless]
-!
-!  Arguments as Output:
-!  ============================================================================
-!  (1 ) NEW_Hg0  (REAL*8) : Final mass of Hg(0) [kg]
-!  (2 ) NEW_Hg2  (REAL*8) : Final mass of Hg(II) [kg]
-!  (3 ) GROSS_OX (REAL*8) : Total mass of Hg(0) oxidized [kg] 
-! 
-!------------------------------------------------------------------------------
-!  GENERAL SOLUTION - OXIDATION AND REDUCTION
-!
-!  The differential equations for oxidation, reduction and deposition are:
-!
-!     d[Hg0]/dt = -kOx [Hg0] + kRed [Hg2]
-! 
-!     d[Hg2]/dt =  kOx [Hg0] - kRed [Hg2] 
-!
-!  The solution is:
-!  
-!     [Hg0](t) = [Hg0](0) ( kRed + kOx exp(-kt) ) / k
-!              + [Hg2](0) ( 1 - exp(-kt) ) kRed / k
-!
-!     [Hg2](t) = [Hg0](0) ( 1 - exp(-kt) ) kOx / k
-!              + [Hg2](0) ( kOx + kRed exp(-kt) ) / k
-!
-!  where
-!
-!     k    = kOx + kRed
-!
-!  In addition, we want to know the gross oxidation flux for diagnostic 
-!  reasons:
-!     
-!     Ox(t) = kOx / k^2 *
-!           (   [Hg0](0) ( kOx (1-exp(-kt)) + kRed k t ) 
-!             + [Hg2](0) (-kRed(1-exp(-kt)) + kRed k t ) )
-!
-!  The solutions for [Hg0](t), [Hg2](t), and Ox(t) can become numerically
-!  unstable if k << 1. In that case both kOx << 1 and kRed << 1, so the
-!  final concentrations will be unchanged from the initial conditions.
-!
-!------------------------------------------------------------------------------
-!  SPECIAL CASE - OXIDATION ONLY   
-!
-!  The solution simplifies when there is no reduction (kRed=0). Although the
-!  exact solution will still apply when kRed=0, we include a separate solution
-!  in this subroutine to reduce the computational burden for simulations with
-!  kRed=0.
-!
-!     [Hg0](t) = [Hg0](0) exp(-kOx t)
-!
-!     [Hg2](t) = [HG2](0) + [Hg0](0) - [Hg0](t) 
-!
-!  In the absence of reduction, gross and net oxidation are the same
-!  
-!     Ox(t) = [Hg0](0) - [Hg0](t)
-!
-!  NOTES:
-!  (1 ) Previous versions of the mercury simulation used an inexact solution to
-!       the differential equations of chemistry and deposition. The assumptions
-!       previously included operator splitting between chemistry and
-!       deposition, as well as other numerical approximations. This version
-!       simultaneously does chemistry and deposition and uses exact solutions
-!       to the differential equations plus some numerical approximations where 
-!       the exact solutions may be numerically unstable.
-!******************************************************************************
-      
-      ! Arguments
-      REAL*8,  INTENT(IN)  :: OLD_Hg0, OLD_Hg2
-      REAL*8,  INTENT(IN)  :: K_OX,    K_RED,   DT
-      REAL*8,  INTENT(IN)  :: E_KOX_T, E_KRED_T
-      REAL*8,  INTENT(OUT) :: NEW_Hg0, NEW_Hg2, GROSS_OX
-
-      ! Local variables
-      REAL*8               :: K,  KT, E_KT
-
-      !=================================================================
-      ! RXN_REDOX_NODEP begins here!
-      !=================================================================
-
-      IF ( K_RED < SMALLNUM ) THEN
-
-         !=================================================================
-         ! Oxidation Only
-         !=================================================================
-
-         ! New concentration of Hg0
-         NEW_HG0 = OLD_HG0 * E_KOX_T
-
-         ! New concentration of Hg2
-         NEW_HG2 = OLD_HG2 + OLD_HG0 - NEW_HG0
-
-         ! Gross oxidation is the same as net oxidation
-         GROSS_OX = OLD_HG0 - NEW_HG0
-
-      ELSE
-
-         !=================================================================
-         ! Oxidation and Reduction
-         !=================================================================
-
-         ! Define useful terms
-         K    = K_OX + K_RED
-         KT   = K * DT
-         E_KT = E_KOX_T * E_KRED_T
-
-         ! Avoid a small divisor
-         IF ( K < SMALLNUM ) THEN
-
-            ! When K is very small, then there is no oxidation or reduction
-            NEW_HG0 = OLD_HG0
-            NEW_HG2 = OLD_HG2
-            GROSS_OX = 0D0
-
-         ELSE
-
-            ! New concentration of Hg0
-            NEW_HG0 = OLD_HG0 * ( K_RED + K_OX * E_KT ) / K +
-     &                OLD_HG2 * K_RED * ( 1D0 - E_KT )  / K
-
-            ! New concentration of Hg2
-            NEW_HG2 = OLD_HG2 + OLD_HG0 - NEW_HG0
-
-            ! Gross oxidation
-            GROSS_OX = K_OX / ( K**2 ) * 
-     &           ( OLD_HG0 * ( K_OX  * (  1D0 - E_KT ) + K_RED * KT ) +
-     &             OLD_HG2 * ( K_RED * ( -1D0 + E_KT ) + K_RED * KT ) )
-            
-         ENDIF
-
-      ENDIF
-      
-      ! Return to calling program
-      END SUBROUTINE RXN_REDOX_NODEP
-
-!------------------------------------------------------------------------------
-
-      SUBROUTINE RXN_REDOX_WITHDEP( OLD_Hg0, OLD_Hg2, 
-     &     K_OX,    K_RED,    K_DEP0,        K_DEP2,    DT, 
-     &     E_KOX_T, E_KRED_T,
-     &     NEW_Hg0, NEW_Hg2,  GROSS_OX,      DEP_HG0,   DEP_HG2 )
-
-!
-!******************************************************************************
-!  Subroutine RXN_REDOX_WITHDEP calculates new masses of Hg0 and Hg2 for given
-!  rates of oxidation, reduction, and deposition of Hg2. This is for the
-!  boundary layer. The analytic forms for the solutions were derived in
-!  Mathematica. (cdh, 1/17/2008, 7/8/2008)
-! 
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) OLD_Hg0  (REAL*8) : Initial mass of Hg(0) [kg]
-!  (2 ) OLD_Hg2  (REAL*8) : Initial mass of Hg(II) [kg]
-!  (3 ) K_OX     (REAL*8) : 1st order oxidation rate [/s]
-!  (4 ) K_RED    (REAL*8) : 1st order reduction rate [/s]
-!  (5 ) K_DEP0   (REAL*8) : Hg(0) deposition rate [/s]
-!  (6 ) K_DEP2   (REAL*8) : Hg(II) deposition rate [/s]
-!  (7 ) DT       (REAL*8) : Chemistry time step [s]
-!  (8 ) E_KOX_T  (REAL*8) : Precalculated exponential 
-!                             exp( - K_OX * DT )  [dimensionless]
-!  (9 ) E_KRED_T (REAL*8) : Precalculated exponential 
-!                             exp( - K_RED * DT ) [dimensionless]
-!
-!  Arguments as Output:
-!  ============================================================================
-!  (1 ) NEW_Hg0  (REAL*8) : Final mass of Hg(0) [kg]
-!  (2 ) NEW_Hg2  (REAL*8) : Final mass of Hg(II) [kg]
-!  (3 ) GROSS_OX (REAL*8) : Total mass of Hg(0) oxidized [kg] 
-!  (4 ) DEP_HG0  (REAL*8) : Total mass of Hg(0) deposited [kg] 
-!  (5 ) DEP_HG2  (REAL*8) : Total mass of Hg(II) deposited [kg] 
-! 
-!------------------------------------------------------------------------------
-!  GENERAL SOLUTION - OXIDATION, REDUCTION, DEPOSITION
-!
-!  The differential equations for oxidation, reduction and deposition are:
-!
-!     d[Hg0]/dt = -kOx [Hg0] + kRed [Hg2] - kDep0 [Hg0]
-! 
-!     d[Hg2]/dt =  kOx [Hg0] - kRed [Hg2] - kDep2 [Hg2]
-!
-!  The solution is:
-!  
-!     [Hg0](t) = [Hg0](0) A(t) /(2R) *
-!                         ( R(1+exp(Rt)) + (kOx+kD0-kRed-kD2)(1-exp(Rt)) )
-!              + [Hg2](0) A(t) kRed (1-exp(Rt)) / R
-!
-!     [Hg2](t) = [Hg0](0) A(t) kOx (1-exp(Rt)) / R
-!              + [Hg2](0) A(t)/(2R) *
-!                         ( R(1+exp(Rt)) + (kRed+kD2-kOx-kD0)(1-exp(Rt)) )
-!
-!  where
-!
-!     k    = kOx + kRed + kD0 + kD2
-!     R    = sqrt( k^2 - 4( kOx kD2 + kD0( kD2 + kRed ) )
-!     A(t) = exp( -(k+R)t / 2 )
-!
-!  In addition, we want to know the gross oxidation flux for diagnostic
-!  reasons:
-!     
-!     Ox(t) = [Hg0](0) A(t) kOx / (2R ( kOx kD2 + kD0( kD2 + kRed ) ) ) 
-!             * ( (1-exp(Rt))( kD2^2 - kD2( kOx - 2kRed ) 
-!                              -kD0( kD2 + kRed) +kR( kOx +kRed) )
-!               - R ( 1 + exp(Rt) - 2/A(t) )(kD2+kRed) )
-!           + [Hg2](0) A(t) kOx kRed / (2R ( kOx kD2 + kD0( kD2 + kRed ) ) )
-!             * ( k(1-exp(Rt)) - R( 1 + exp(Rt) + 2/A(t) ) )
-!
-!     Dep0(t) = Ox(t) kD0 / kOx
-!
-!     Dep2(t) = [Hg0](0) + [Hg2](0) - [Hg0](t) - [Hg2](t) - Dep0(t)
-!
-!  The solutions for [Hg0](t), [Hg2](t), and Ox(t) can become numerically
-!  unstable if R << 1. In that case we use an approximation that is accurate 
-!  to second order in R:
-!     (1-exp(Rt))/R ~= -t (1+Rt/2)
-!
-!------------------------------------------------------------------------------
-!
-!  The expression for Gross Oxidation has a multiplicative term
-!       1/( kOx kD2 + kD0( kD2 + kRed ) ).
-!  This is undefined in the following cases:
-!    a) kD0 = kOx  = 0 (no Hg(0) loss)
-!    b) kD2 = kRed = 0 (no Hg(II) loss)
-!    c) kD0 = kD2  = 0 (no deposition; this is handled by RXN_REDOX_NODEP)
-!  In addition the solutions are very simple when there is no chemistry
-!    d) kOx = kRed = 0
-!
-!------------------------------------------------------------------------------
-!  SPECIAL CASE - DEPOSITION ONLY
-!  
-!  The solution is very simple when (kOx=kRed=0). We include this case
-!  because it reduces computation time.
-!
-!     [Hg0](t) = [Hg0](0) exp( -kD0 t)
-!     [Hg2](t) = [Hg2](0) exp( -kD2 t)
-!  
-!     Ox(t)   = 0
-!     Dep0(t) = [Hg0](0) - [Hg0](t)
-!     Dep2(t) = [Hg2](0) - [Hg2](t)
-!
-!------------------------------------------------------------------------------
-!  SPECIAL CASE - OXIDATION AND DEPOSITION, NO REDUCTION   
-!
-!  The solution simplifies when there is no reduction (kRed=0). Although the
-!  exact solution will still apply when kRed=0, we include a separate solution
-!  in this subroutine to reduce the computational burden for simulations with
-!  kRed=0.
-!
-!     [Hg0](t) = [Hg0](0) exp( -(kOx+kD0) t)
-!
-!     [Hg2](t) = [Hg0](0) kOx (exp(-(kOx+kD0) t) - exp(-kD2 t)) / (kD2-kOx-kD0)
-!              + [Hg2](0) exp(-kD2 t)
-!
-!     Ox(t)   = ( [Hg0](0) - [Hg0](t) ) * kOx / ( kOx + kD0 )
-!     
-!     Dep0(t) = ( [Hg0](0) - [Hg0](t) - Ox(t) )
-!     Dep2(t) = ( [Hg0](0) + [Hg2](0) - [Hg0](t) - [Hg2](t) - Dep0(t) )
-!
-!  The solution for [Hg2](t) can become numerically unstable if 
-!  (kD2-kOx-kD0)<<1. In that case, we use an approximation that is accurate
-!  to first order in (kD2-kOx-kD0).
-!  One can show
-!     ( exp(-kt) - exp(-(k+e)t) ) / e ~= -t exp(-kt)
-!
-!  Therefore, when (kD2-kOx-kD0)<<1, we know kD2~=(kOx+kD0) and thus
-!
-!     [Hg2](t) ~= [Hg0](0) kOx exp(-kD2 t) (-t) 
-!               + [Hg2](0) exp(-kD2 t)
-!
-!------------------------------------------------------------------------------
-!  SPECIAL CASE - REDUCTION AND DEPOSITION, NO OXIDATION   
-!
-!  The solution simplifies when there is no oxidation (kOx=0). Although the
-!  exact solution will still apply when kOx=0, we include a separate solution
-!  in this subroutine to reduce the computational burden for simulations with
-!  kOx=0.
-!
-!     [Hg0](t) = [Hg0](0) exp( -kD0 t)
-!              + [Hg2](0) kRed (exp( -(kRed+kD2) t) - exp(-kD0 t)) / 
-!                   ( kD0 - kRed - kD2 )
-!
-!     [Hg2](t) = [Hg2](0) exp( -(kRed+kD2) t)
-!
-!     Ox(t)   = 0
-!     Dep2(t) = ( [Hg2](0) - [Hg2](t) ) * kD2 / ( kRed + kD2 )
-!     Dep0(t) =   [Hg0](0) + [Hg2](0) - [Hg2](t) - [Hg2](t) - Dep2(t)
-!    
-!  The solution for [Hg0](t) can become numerically unstable if 
-!  (kD0-kRed-kD2)<<1. In that case, we use an approximation that is accurate
-!  to first order in (kD0-kRed-kD2).
-!  One can show
-!     ( exp(-kt) - exp(-(k+e)t) ) / e ~= -t exp(-kt)
-!
-!  Therefore, when (kD0-kRed-kD2)<<1, we know kD0~=(kRed+kD2) and thus
-!
-!     [Hg0](t) ~= [Hg0](0) exp(-kD0 t)
-!               + [Hg2](0) kRed exp(-kD0 t) (-t) 
-!
-!  NOTES:
-!  (1 ) Previous versions of the mercury simulation used an inexact solution to
-!       the differential equations of chemistry and deposition. The assumptions
-!       previously included operator splitting between chemistry and
-!       deposition, as well as other numerical approximations. This version
-!       simultaneously does chemistry and deposition and uses exact solutions
-!       to the differential equations plus some numerical approximations where 
-!       the exact solutions may be numerically unstable.
-!******************************************************************************
-
-      ! Refernces to F90 modules
-      USE ERROR_MOD,   ONLY : ERROR_STOP
-
-      ! Arguments
-      REAL*8,  INTENT(IN)  :: OLD_Hg0 , OLD_Hg2  , DT
-      REAL*8,  INTENT(IN)  :: K_OX    , K_RED    , K_DEP0  ,    K_DEP2
-      REAL*8,  INTENT(IN)  :: E_KOX_T , E_KRED_T
-      REAL*8,  INTENT(OUT) :: NEW_Hg0 , NEW_Hg2  , GROSS_OX  
-      REAL*8,  INTENT(OUT) :: DEP_HG0 , DEP_HG2
-
-      ! Local variables
-      REAL*8               :: K, RAD   , E_RAD_T  , AA, QTY1, QTY2
-      REAL*8               :: E_KDEP0_T, E_KDEP2_T
-
-      !=================================================================
-      ! RXN_REDOX_WITHDEP begins here!
-      !=================================================================
-
-      ! Precompute exponential factors [dimensionless]
-      E_KDEP0_T = EXP( -K_DEP0 * DT )
-      E_KDEP2_T = EXP( -K_DEP2 * DT )
-
-      IF ( (K_RED < SMALLNUM) .AND. (K_OX < SMALLNUM)  ) THEN      
-
-         !=================================================================
-         ! No Chemistry, Deposition only
-         !=================================================================
-
-         ! New mass of Hg0 and Hg2, [kg]
-         NEW_HG0 = OLD_HG0 * E_KDEP0_T
-         NEW_HG2 = OLD_HG2 * E_KDEP2_T
-
-         ! Oxidation of Hg0 [kg]
-         GROSS_OX = 0D0
-
-         ! Deposited Hg0 and Hg2 [kg]
-         DEP_HG0 = OLD_HG0 - NEW_HG0
-         DEP_HG2 = OLD_HG2 - NEW_HG2
-
-      ELSE IF (K_RED < SMALLNUM) THEN
-
-         !=================================================================
-         ! Oxidation and Deposition only
-         !=================================================================
-
-         ! To avoid a small divisor, use an approximation, if necessary
-         ! This is accurate to first order in K_OX or K_DEP
-         IF ( ABS(K_DEP2 - K_OX - K_DEP0) < SMALLNUM ) THEN
-            ! First order approximation
-            QTY1 = -DT * E_KDEP2_T
-         ELSE
-            ! Exact form
-            QTY1 = ( E_KOX_T * E_KDEP0_T - E_KDEP2_T ) / 
-     &             ( K_DEP2 - K_OX - K_DEP0 )
-         ENDIF
-
-         ! New concentration of Hg0 [kg]
-         NEW_HG0 = OLD_HG0 * E_KOX_T * E_KDEP0_T
-         
-         ! New concentration of Hg2 [kg]
-         NEW_HG2 = OLD_HG0 * K_OX * QTY1 
-     &           + OLD_HG2 * E_KDEP2_T
-
-         ! Gross oxidation mass [kg]
-         GROSS_OX = ( OLD_HG0 - NEW_HG0 ) * K_OX / ( K_OX + K_DEP0 )
-         GROSS_OX = MAX( GROSS_OX, 0D0 )
-
-         ! Hg0 deposition [kg]
-         DEP_HG0 = ( OLD_HG0 - NEW_HG0 - GROSS_OX )
-         DEP_HG0 = MAX( DEP_HG0, 0D0 )
-
-         ! Hg2 deposition [kg]
-         DEP_HG2 = OLD_HG0 + OLD_HG2 - NEW_HG0 - NEW_HG2 - DEP_HG0
-         DEP_HG2 = MAX( DEP_HG2, 0D0 )
-
-      ELSE IF ( K_OX < SMALLNUM ) THEN
-
-         !=================================================================
-         ! Reduction and Deposition only
-         !=================================================================
-
-         ! To avoid a small divisor, use an approximation, if necessary
-         ! This is accurate to first order in K_OX or K_DEP
-         IF ( ABS(K_DEP2 + K_RED - K_DEP0) < SMALLNUM ) THEN
-            ! First order approximation
-            QTY1 = -DT * E_KDEP0_T
-         ELSE
-            ! Exact form
-            QTY1 = ( E_KDEP0_T - E_KDEP2_T * E_KRED_T ) / 
-     &             ( K_DEP2 + K_RED - K_DEP0 )
-         ENDIF
-
-         ! New concentration of Hg0 [kg]
-         NEW_HG0 = OLD_HG0 * E_KDEP0_T 
-     &           + OLD_HG2 * K_RED * QTY1
-         
-         ! New concentration of Hg2 [kg]
-         NEW_HG2 = OLD_HG2 * E_KRED_T * E_KDEP2_T 
-
-         ! Gross oxidation mass [kg]
-         GROSS_OX = 0D0
-
-         ! Hg2 deposition [kg]
-         DEP_HG2 = ( OLD_HG2 - NEW_HG2 ) * K_DEP2 / ( K_DEP2 + K_RED )
-         DEP_HG2 = MAX( DEP_HG2, 0D0 )
-
-         ! Hg0 deposition [kg]
-         DEP_HG0 = OLD_HG0 + OLD_HG2 - NEW_HG0 - NEW_HG2 - DEP_HG2
-         DEP_HG0 = MAX( DEP_HG0, 0D0 )
-
-      ELSE
-
-         !=================================================================
-         ! Oxidation, Reduction, and Deposition
-         !=================================================================
-
-         ! Define common quantities
-         K       = K_OX + K_RED + K_DEP2 + K_DEP0
-         RAD     = SQRT( K**2 - 4D0 * 
-     &                ( K_OX * K_DEP2 + K_DEP0 * ( K_DEP2 + K_RED ) ) )
-         E_RAD_T = EXP( RAD * DT )
-         AA      = EXP( -( K + RAD ) * DT / 2D0 )
-         QTY2    = K_OX * K_DEP2 + K_DEP0 *( K_DEP2 + K_RED ) 
-       
-         ! To avoid a small divisor, use an approximation, if necessary
-         ! This is accurate to second order in RAD
-         IF ( ABS(RAD) < SMALLNUM ) THEN
-            ! Second Order Approximation
-            QTY1 = -DT * ( 1D0 + RAD * DT / 2D0 ) 
-         ELSE
-            ! Exact form
-            QTY1 = ( 1D0 - E_RAD_T ) / RAD
-         ENDIF
-
-         ! New concentration of Hg0 [kg]
-         NEW_HG0 = 
-     &        OLD_HG0 * AA / 2D0 * 
-     &          ( ( 1D0 + E_RAD_T )  
-     &          + ( K_OX + K_DEP0 - K_RED - K_DEP2 ) * QTY1 )
-     &      - OLD_HG2 * AA * K_RED * QTY1
-
-         ! New concentration of Hg2 [kg]
-         NEW_HG2 =
-     &       -OLD_HG0 * AA * K_OX * QTY1 
-     &       +OLD_HG2 * AA / 2D0 *
-     &          ( ( 1D0 + E_RAD_T ) 
-     &          - ( K_OX + K_DEP0 - K_RED - K_DEP2 ) * QTY1 ) 
-
-         ! The following conditions will make the oxidation calculation
-         ! unstable. The code will require revisions if these conditions
-         ! occur, but I don't think they will because of the IF statements
-         IF ( AA < SMALLNUM ) THEN
-            CALL ERROR_STOP( 'GROSS_OX unstable when AA << 1 ', 
-     &           'MERCURY_MOD: RXN_REDOX_WITHDEP')
-         ENDIF
-         IF ( QTY2 < SMALLNUM ) THEN
-            CALL ERROR_STOP( 'GROSS_OX unstable when QTY2 << 1', 
-     &           'MERCURY_MOD: RXN_REDOX_WITHDEP')
-         ENDIF
-         
-         ! Gross oxidation mass [kg]
-         GROSS_OX =
-     &        OLD_HG0 * AA * K_OX / ( 2D0 * QTY2 ) *
-     &          ( QTY1 * 
-     &              ( K_DEP2**2 - K_DEP2 * ( K_OX - 2D0 * K_RED ) - 
-     &                K_DEP0 * ( K_DEP2 + K_RED ) + 
-     &                K_RED  * ( K_OX + K_RED ) ) -
-     &            ( K_DEP2 + K_RED ) * ( 1D0 + E_RAD_T - 2D0 / AA ) )  
-     &      + OLD_HG2 * AA * K_OX * K_RED / ( 2D0 * QTY2 ) * 
-     &          ( K * QTY1 - ( 1D0 + E_RAD_T - 2D0 / AA ) )
-
-         ! Deposition of Hg0 and Hg2 [kg]
-         DEP_HG0 = GROSS_OX * K_DEP0 / K_OX
-         DEP_HG2 = OLD_HG0 + OLD_HG2 - NEW_HG0 - NEW_HG2 - DEP_HG0
-
-    
-      ENDIF
-
-      ! Return to calling program
-      END SUBROUTINE RXN_REDOX_WITHDEP
 
 !------------------------------------------------------------------------------
 
@@ -2545,172 +1276,6 @@ c$$$      ENDIF
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE CHEM_HgP( V_DEP_HgP )
-!
-!******************************************************************************
-!  Subroutine CHEM_HgP is the chemistry subroutine for HgP (particulate
-!  mercury.  HgP is lost via dry deposition. (eck, bmy, 12/7/04, 4/6/06)
-!
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) V_DEP_HgP (REAL*8) : Dry deposition velocity for Hg(II) [cm/s]
-!     
-!  NOTES:
-!  (1 ) Removed references to AD44 and "CMN_DIAG".  Now compute drydep for all
-!        levels within the PBL.  Now references ND03, LD03 from "diag03_mod.f".
-!        (bmy, 2/24/05)
-!  (2 ) Now references XNUMOL & XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
-!  (3 ) Now use ID_HgP index array from "tracerid_mod.f". (cdh, bmy, 1/9/06)
-!******************************************************************************
-!
-      ! Refernces to F90 modules
-      USE DIAG03_MOD,   ONLY : ND03, LD03
-      USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
-      USE TIME_MOD,     ONLY : GET_TS_CHEM
-      USE TRACER_MOD,   ONLY : STT,       XNUMOL
-      USE TRACERID_MOD, ONLY : ID_HgP,    N_Hg_CATS
-
-      USE CMN_SIZE_MOD  ! Size parameters
-
-      ! Arguments
-      REAL*8, INTENT(IN) :: V_DEP_HgP(IIPAR,JJPAR)
-
-      ! Local variables
-      INTEGER            :: I,      J,    L,          NN,  PBL_MAX
-      REAL*8             :: DTCHEM, E_KT, F_UNDER_TOP
-
-      !=================================================================
-      ! CHEM_HgP begins here!
-      !=================================================================
-
-      ! Chemistry timestep [s]
-      DTCHEM  = GET_TS_CHEM() * 60d0
-
-      ! Maximum extent of the PBL
-      PBL_MAX = GET_PBL_MAX_L()
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, F_UNDER_TOP, E_KT, NN )
-!$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, PBL_MAX
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! Fraction of box (I,J,L) underneath the PBL top [unitless]
-         F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )
-
-         ! If we are in the PBL and there is nonzero drydep vel ...
-         IF ( F_UNDER_TOP > 0d0 .and. V_DEP_HgP(I,J) > 0d0 ) THEN
-
-            ! Pre-compute the exponential term for use below [unitless]
-            E_KT = EXP( -V_DEP_HgP(I,J) * DTCHEM * F_UNDER_TOP  )
-
-            ! Compute new conc of HgP tracers after drydep [kg]
-            DO NN = 1, N_Hg_CATS
-               
-               ! Do dry deposition (skip undefined HgP tagged tracers)
-               IF ( ID_HgP(NN) > 0 ) THEN
-                  CALL RXN_HgP_DRYD( I, J, L, ID_HgP(NN), E_KT, DTCHEM )
-               ENDIF
-
-            ENDDO
-         ENDIF
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      ! Return to calling program
-      END SUBROUTINE CHEM_HgP
-
-!------------------------------------------------------------------------------
-
-      SUBROUTINE RXN_HgP_DRYD( I, J, L, N, E_KT, DTCHEM )
-!
-!******************************************************************************
-!  Subroutine RXN_Hg0_DRYD computes the new concentration of HgP 
-!  after dry deposition.  ND44 diagnostics are also archived. 
-!  (eck, bmy, 12/14/04, 4/6/06)
-! 
-!  Arguments as Input:
-!  ============================================================================
-!  (1-3) I, J, L  (INTEGER) : GEOS-CHEM lon, lat, alt grid box indices
-!  (4  ) N        (INTEGER) : Index for HgP total or tagged tracers
-!  (5  ) E_KT     (REAL*8 ) : Value of EXP( -KT ) for drydep rxn [unitless]
-!  (6  ) DTCHEM   (INTEGER) : Chemistry timestep [s]
-!
-!  NOTES:
-!  (1  ) Remove references to "diag_mod.f" and "CMN_DIAG".  Now save drydep
-!         fluxes into T44 array. (bmy, 2/24/05)
-!  (2  ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
-!  (3  ) Now uses ID_HgP and ID_Hg_tot from "tracerid_mod.f" (cdh, bmy,4/6/06)
-!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
-!******************************************************************************
-!
-      ! References to F90 modules
-      USE DIAG_MOD        , ONLY : AD44
-      USE GRID_MOD        , ONLY : GET_AREA_CM2
-      USE TRACER_MOD      , ONLY : STT, XNUMOL
-      USE DEPO_MERCURY_MOD, ONLY : ADD_HgP_DD
-      USE TRACERID_MOD    , ONLY : IS_HgP
-      USE LOGICAL_MOD     , ONLY : LNLPBL
-
-      USE CMN_SIZE_MOD   ! Size parameters
-      USE CMN_DIAG_MOD   ! ND44 
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: I, J, L, N
-      REAL*8,  INTENT(IN) :: DTCHEM, E_KT
-
-      ! Local variables
-      INTEGER             :: NN
-      REAL*8              :: AREA_CM2, DRYDEP, OLD_HgP, NEW_HgP
-
-      !=================================================================
-      ! RXN_HgP_DRYD begins here!
-      !=================================================================
-
-      ! Error check tracer number
-      IF ( N < 1 ) RETURN
-
-      ! Initial concentration of HgP [kg]
-      OLD_HgP      = MAX( STT(I,J,L,N), SMALLNUM )
-
-      ! New concentration of HgP after drydep [kg]
-      NEW_HgP      = MAX( ( OLD_HgP * E_KT ), SMALLNUM )
-
-      ! Save new concentration of HgP in STT [kg]
-      STT(I,J,L,N) = NEW_HgP
-
-      ! Archive Hg(P) lost to drydep [kg] for the ocean mercury flux routines
-      ! in "ocean_mercury_mod.f" if necessary.  Do not call ADD_HgP_DD if the 
-      DRYDEP       = OLD_HgP - NEW_HgP  
-      IF ( IS_HgP(N)) THEN
-        CALL ADD_HgP_DD( I, J, N, DRYDEP )
-      ENDIF
-
-      !=================================================================
-      ! ND44 diagnostic: drydep flux of Hg(II) [molec/cm2/s]
-      !=================================================================
-      IF ( ND44 > 0 .AND. (.NOT. LNLPBL) ) THEN
-         
-         ! Grid box surface area [cm2]
-         AREA_CM2     = GET_AREA_CM2( I, J, L )
-
-         ! Amt of Hg(II) lost to drydep [molec/cm2/s]
-         DRYDEP       = OLD_HgP - NEW_HgP  
-         DRYDEP       = ( DRYDEP * XNUMOL(N) ) / ( AREA_CM2 * DTCHEM )
-
-         ! Archive Hg(II) drydep flux in AD44 array [molec/cm2/s]
-         AD44(I,J,N,1) = AD44(I,J,N,1) + DRYDEP
-
-      ENDIF
-     
-      ! Return to calling program
-      END SUBROUTINE RXN_HgP_DRYD
-
-!------------------------------------------------------------------------------
 
       SUBROUTINE EMISSMERCURY( State_Met )
 !
@@ -8005,7 +6570,9 @@ c$$$      ENDIF
       SUBROUTINE PARTITIONHG2
 
 !******************************************************************************
-!  SUBROUTINE PARTITIONHG2 splits Hg2 into gas and aerosol portions.  
+!  SUBROUTINE PARTITIONHG2 splits Hg(II) into gas and aerosol portions 
+!  according to the thermodynamic equilibrium determined by temperature and
+!  aerosol surface area.  
 !
 !  Arguments as Input/Output:
 !  ============================================================================
