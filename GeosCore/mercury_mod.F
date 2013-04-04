@@ -196,7 +196,7 @@
       USE OCEAN_MERCURY_MOD, ONLY : LGEIA05
       ! Added LVEGEMIS, distinct from LGCAPEMIS (jaf, eds, 4/1/11)
       USE OCEAN_MERCURY_MOD, ONLY : LVEGEMIS
-      USE OCEAN_MERCURY_MOD, ONLY : LBRCHEM,     LRED_JNO2, LGEOSLWC
+      USE OCEAN_MERCURY_MOD, ONLY : LBRCHEM,     LRED_JNO2
       USE DEPO_MERCURY_MOD , ONLY : LHGSNOW, ADD_HG2_SNOWPACK
       USE OCEAN_MERCURY_MOD, ONLY : LHg2HalfAerosol
       USE OCEAN_MERCURY_MOD, ONLY : STRAT_BR_FACTOR
@@ -329,8 +329,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE CHEMMERCURY
-      
+      SUBROUTINE CHEMMERCURY( State_Met )
 !
 !******************************************************************************
 !  Subroutine CHEMMERCURY is the driver routine for mercury chemistry
@@ -350,6 +349,7 @@
 !        The subroutine now uses a 4th-order Runge-Kutta method to solve
 !        the coupled chemistry. The subroutines CHEM_HG0_HG2 and CHEM_HGP 
 !        are now obsolete.
+!  04 Apr 2013 - C. Holmes - Use State_Met for met fields.
 !
 !  Description of the chemistry mechanism:
 !  ============================================================================
@@ -422,8 +422,9 @@
 !******************************************************************************
 !
       ! References to F90 modules
+      USE GIGC_State_Met_Mod, ONLY : MetState
       USE DRYDEP_MOD       , ONLY : DEPSAV
-      USE ERROR_MOD        , ONLY : DEBUG_MSG, ERROR_STOP
+      USE ERROR_MOD        , ONLY : DEBUG_MSG, ERROR_STOP, SAFE_DIV
       USE GLOBAL_O3_MOD    , ONLY : GET_GLOBAL_O3
       USE GLOBAL_OH_MOD    , ONLY : GET_GLOBAL_OH
       USE GLOBAL_BR_MOD    , ONLY : GET_GLOBAL_BR
@@ -434,9 +435,7 @@
      &     N_HG_CATS, ID_HG_TOT
       USE TIME_MOD         , ONLY : ITS_TIME_FOR_A3 
       USE DRYDEP_MOD       , ONLY : DRYHg0, DRYHg2, DRYHgP
-      USE DAO_MOD,          ONLY : FRSNO, FRLANDIC, FROCEAN,
-     &     LWI, IS_ICE, IS_WATER, IS_LAND, SNOMAS, SNOW,
-     &     T, CLDF, QL, AIRDEN
+      USE DAO_MOD,          ONLY :  IS_ICE, IS_WATER, IS_LAND
       USE PBL_MIX_MOD,      ONLY : GET_FRAC_UNDER_PBLTOP
       USE PRESSURE_MOD,     ONLY : GET_PCENTER       
       USE TIME_MOD,         ONLY : GET_TS_CHEM
@@ -453,7 +452,8 @@
       USE CMN_SIZE_MOD        ! Size parameters
       USE CMN_DIAG_MOD        ! ND44
      
-      USE GRID_MOD, ONLY : GET_YMID !cdh temp
+      !Arguments
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 
       ! Local variables
       INTEGER       :: I, J, L, K, N, MONTH, NSTEPS
@@ -501,17 +501,21 @@
       ! change implemented 10/19/11 by eck
       ! inserted ifdefs for future tuning of 2x2.5 by eck
 #if defined (GRID4x5)
-      REAL*8, PARAMETER     :: K_RED_JNO2 = 3.5D-3/2d0 
+      !REAL*8, PARAMETER     :: K_RED_JNO2 = 3.5d-3 / 2d0 ! ref: Amos et al. (2011)
+      REAL*8, PARAMETER     :: K_RED_JNO2 = 6.4d-3 ! yzh, consider cloud fraction 
 #elif defined (GRID2x25)
       REAL*8, PARAMETER     :: K_RED_JNO2 = 3.5D-3/2d0
+#elif defined( GRID05x0666 ) && defined( NESTED_NA )
+      REAL*8, PARAMETER     :: K_RED_JNO2 = 6.4D-3 * 1.33 ! yzh
 #else
-      REAL*8, PARAMETER     :: K_RED_JNO2 = 3.5D-3/2d0
-#endif      
+      REAL*8, PARAMETER     :: K_RED_JNO2 = 6.4d-3        ! yzh, need tune 
+#endif   
 
       ! Set of Hg/Br rate constants to use
       ! Recommended: DonohoueYBBalabanov, GoodsiteY, or DonohoueYB
       ! DonohoueYBBalabanov used by Holmes et al. 2010
-      CHARACTER(LEN=*), PARAMETER  :: METHOD='DonohoueYBBalabanov' 
+      CHARACTER(LEN=*), PARAMETER  :: METHOD='GoodsiteUpdate' 
+
 
       !=================================================================
       ! CHEMMERCURY begins here!
@@ -524,13 +528,13 @@
          MONTH = GET_MONTH()
 
          ! Read monthly mean OH and O3 from disk
-         CALL GET_GLOBAL_OH( MONTH )
+         CALL GET_GLOBAL_OH( MONTH, State_Met  )
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_OH' )
 
          CALL GET_GLOBAL_O3( MONTH )
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_O3' )
 
-         CALL GET_GLOBAL_BR( MONTH )
+         CALL GET_GLOBAL_BR( MONTH, State_Met  )
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_BR' )
 
          IF (LRED_JNO2) THEN
@@ -554,7 +558,7 @@
 
       ! Calculate the rate of sea salt aerosol uptake of Hg2
       IF ( LDYNSEASALT .AND. ITS_TIME_FOR_A3() ) THEN
-         CALL CALC_HG2_SEASALT_LOSSRATE
+         CALL CALC_HG2_SEASALT_LOSSRATE( State_Met )
          IF ( LPRT ) CALL DEBUG_MSG( 'CHEMMERCURY: a SEASALT_LOSSRATE' )
       ENDIF
 
@@ -641,19 +645,25 @@
          ! Deposition occurs over areas that are not ocean, snow or ice
          ! (jaf, 4/26/11)
          F_Hg0_Dep = 1d0 - MAX( 0d0, MIN( 1D0, 
-     &        FROCEAN(I,J) + FRSNO(I,J) + FRLANDIC(I,J) ) )
+     &        State_Met%FROCEAN(I,J) + 
+     &        State_Met%FRSNO(I,J) + 
+     &        State_Met%FRLANDIC(I,J) ) )
 #elif defined( GEOS_5 )
          ! Deposition disabled for entire box if it is ocean, ice
          ! or land with more than 10 mm water-equivalent snow depth
-         IF ( (LWI(I,J) == 0) .OR. (IS_ICE(I,J)) .OR. 
-     &        (IS_LAND(I,J) .AND. SNOMAS(I,J) > 10d0) ) THEN
+         IF ( (State_Met%LWI(I,J) == 0) .OR. 
+     &        (IS_ICE(I,J, State_Met)) .OR. 
+     &        (IS_LAND(I,J, State_Met) .AND.
+     &        State_Met%SNOMAS(I,J) > 10d0) ) THEN
             F_Hg0_Dep = 0d0
          ENDIF
 #else
          ! Deposition disabled for entire box if it is ocean, ice
          ! or land with more than 10 mm water-equivalent snow depth
-         IF ( (LWI(I,J) == 0) .OR. (IS_ICE(I,J)) .OR. 
-     &        (IS_LAND(I,J) .AND. SNOW(I,J) > 10d0) ) THEN
+         IF ( (State_Met%LWI(I,J) == 0) .OR. 
+     &        (IS_ICE(I,J, State_Met)) .OR. 
+     &        (IS_LAND(I,J, State_Met) .AND. 
+     &        State_Met%SNOW(I,J) > 10d0) ) THEN
             F_Hg0_Dep = 0d0
          ENDIF                 
 #endif 
@@ -681,9 +691,9 @@
          !-------------------------------------------------
 
          ! Concentrations of oxidants, molec/cm3
-         C_O3        = GET_O3( I, J, L )
-         C_OH        = GET_OH( I, J, L )
-         C_BR        = GET_BR( I, J, L, C_BRO )
+         C_O3        = GET_O3( I, J, L,        State_Met )
+         C_OH        = GET_OH( I, J, L,        State_Met )
+         C_BR        = GET_BR( I, J, L, C_BRO, State_Met )
 
          ! Oxidation rate by O3 and OH, 1/s
          IF (LOHO3CHEM) THEN
@@ -696,7 +706,7 @@
 
          ! Oxidation rate by Br, 1/s (accounts for HgBr intermediate)
          IF (LBRCHEM) THEN
-            K_BR = GET_HGBR_RATE( C_BR, T(I,J,L), 
+            K_BR = GET_HGBR_RATE( C_BR, State_Met%T(I,J,L), 
      &           GET_PCENTER(I,J,L), C_OH, METHOD )
          ELSE
             K_BR = 0d0
@@ -724,14 +734,20 @@
          !---------------------------------------------
 
          ! Get cloud fraction from met fields [unitless]
-         FC = CLDF(L,I,J)
+         FC = State_Met%CLDF(L,I,J)
 
-         ! Get liquid water content [m3 H2O/m3 air] within cloud from met
+         ! Get grid-average liquid water content [m3 H2O/m3 air] from met
          ! Units: [kg H2O/kg air] * [kg air/m3 air] * [m3 H2O/1e3 kg H2O]
-         LWC = QL(I,J,L) * AIRDEN(L,I,J) * 1D-3
+         LWC = State_Met%QL(I,J,L) * State_Met%AIRDEN(L,I,J) * 1D-3
 
-         !%%% NOTE: Someone should investigate effect of dividing LWC by the
-         !%%% cloud fraction, as is done in sulfate_mod.f (bmy, 5/27/11)
+         ! LWC is a grid-box averaged quantity. To improve representation 
+         ! of sulfate chemistry, we divide LWC by the cloud fraction and 
+         ! compute sulfate chemistry based on the LWC within the cloud.  We 
+         ! get the appropriate grid-box averaged mass of SO2 and sulfate by 
+         ! multiplying these quantities by FC AFTER computing the aqueous 
+         ! sulfur chemistry within the cloud. (lzh, jaf, bmy, 5/27/11)
+         ! Adopted for mercury chemistry (yzh, 11/9/2011)
+         LWC     = SAFE_DIV( LWC, FC, 0d0 )
 
 #else
          !---------------------------------------------
@@ -740,31 +756,40 @@
 
          ! Get volume fraction of gridbox containing 
          ! cloud [unitless], following Sundqvist et al 1989.
-         FC          = GET_VCLDF( I, J, L )
+         FC          = GET_VCLDF( I, J, L, State_Met  )
 
-         ! Get liquid water content for entire grid box,
-         ! based on formula for LWC in cloud (m3/m3)
-         LWC         = GET_LWC( T(I,J,L) ) * FC 
+         ! Get liquid water content in cloud (m3/m3)
+         LWC         = GET_LWC( State_Met%T(I,J,L) ) 
 
          ! There should be no liquid water when T < 258K 
-         IF ( T(I,J,L) < 258D0 )  LWC = 0D0
+         IF ( State_Met%T(I,J,L) < 258D0 )  LWC = 0D0
 
 #endif
 
-         ! Define fraction of Hg(II) which is in aqueous solution
+         ! Define fraction of in-cloud Hg(II) which is in aqueous solution
          ! [dimensionless]
-         Faq  = ( HL * R * T(I,J,L) * LWC )
+         Faq  = ( HL * R * State_Met%T(I,J,L) * LWC )
          Faq  = Faq / ( 1d0 + Faq )
 
          ! Cl- in sea-salt aerosol enhances solubility 2000X in MBL
-         IF (LRED_JNO2 .AND. (F_PBL >0.1) .AND. IS_WATER(I,J)) THEN
-            Faq = ( HL * 2D3 * R * T(I,J,L) * LWC )
+         IF (LRED_JNO2 .AND. (F_PBL >0.1) .AND. 
+     &        IS_WATER(I,J, State_Met )) THEN
+            Faq = ( HL * 2D3 * R * State_Met%T(I,J,L) * LWC )
             Faq = Faq / ( 1d0 + Faq )
          ENDIF
+         
+         ! Fraction of all Hg(II) in the grid box which is in cloud water.
+         ! We have used the in-cloud LWC to compute the sulfate
+         ! aqueous chemistry.  We get the appropriate grid-box averaged 
+         ! mass of SO2 and sulfate by multiplying the reaction rates
+         ! by the cloud fraction after the aqueous chemistry
+         ! has been done.  (lzh, jaf, bmy, 5/27/11)
+         ! Adopted for mercury chemistry (yzh, 11/9/2011)
+         Faq =  Faq * FC
 
          ! Define K for the reduction reaction. 
          IF (LRED_JNO2) THEN
-            K_RED = K_RED_JNO2 * Faq * GET_JNO2(I,J,L)
+            K_RED = K_RED_JNO2 * Faq * GET_JNO2(I,J,L,State_Met)
          ELSE
             ! Include the fraction of 
             ! Hg(II) in air within the Kreduction & 
@@ -942,7 +967,7 @@
             ! Add deposited Hg(II) to the snowpack
             IF ( LHGSNOW ) THEN
                CALL ADD_HG2_SNOWPACK(I,J,ID_Hg2(N),
-     &              DEP_HG2g_DRY + DEP_Hg2p_DRY )
+     &              DEP_HG2g_DRY + DEP_Hg2p_DRY, State_Met )
             ENDIF           
 
             !=================================================================
@@ -991,10 +1016,14 @@
                   ! Net oxidation [kg]
                   NET_OX = GROSS_OX - GROSS_RED
 
-                  AD03_Hg2_Hg0(I,J,L)= AD03_Hg2_Hg0(I,J,L) + NET_OX
-                  AD03_Hg2_Br(I,J,L) = AD03_Hg2_Br(I,J,L)  + GROSS_OX_BR 
-                  AD03_Hg2_OH(I,J,L) = AD03_Hg2_OH(I,J,L)  + GROSS_OX_OH
-                  AD03_Hg2_O3(I,J,L) = AD03_Hg2_O3(I,J,L)  + GROSS_OX_O3
+                  AD03_Hg2_Hg0(I,J,L,N)= AD03_Hg2_Hg0(I,J,L,N) +
+     &                 NET_OX
+                  AD03_Hg2_Br(I,J,L,N) = AD03_Hg2_Br(I,J,L,N)  + 
+     &                 GROSS_OX_BR 
+                  AD03_Hg2_OH(I,J,L,N) = AD03_Hg2_OH(I,J,L,N)  + 
+     &                 GROSS_OX_OH
+                  AD03_Hg2_O3(I,J,L,N) = AD03_Hg2_O3(I,J,L,N)  + 
+     &                 GROSS_OX_O3
 
                   AD03_Br(I,J,L,1) = AD03_Br(I,J,L,1) + C_BR
                   AD03_Br(I,J,L,2) = AD03_Br(I,J,L,2) + C_BRO
@@ -1006,7 +1035,7 @@
 
                ! Sea-salt loss rate diagnostic [/s]
                IF ( L == 1 ) THEN
-                  AD03_Hg2_SSR(I,J) = AD03_Hg2_SSR(I,J) + K_SALT
+                  AD03_Hg2_SSR(I,J,N) = AD03_Hg2_SSR(I,J,N) + K_SALT
                ENDIF
                
             ENDIF               
@@ -7184,7 +7213,6 @@
 
       ! Switches for new reduction parameterization
       LRED_JNO2=.TRUE. ! Make propto JNO2 otherwise [OH]
-      LGEOSLWC=.TRUE. ! Use GEOS LWC
 
       ! Switch for using GEOS-Chem tropospheric bromine fields,
       ! ref. Parrella et al. 2012, instead of older TOMCAT fields
