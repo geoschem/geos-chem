@@ -6315,6 +6315,7 @@ c$$$     &                                WASHFRAC, AER                 )
      &                   LOST        = LOST,         
      &                   DSTT        = DSTT(NN,:,I,J), 
      &                   STT         = STT(I,J,:,N)     )
+
          ENDIF
       ENDDO  
  
