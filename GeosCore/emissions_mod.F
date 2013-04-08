@@ -873,6 +873,7 @@ c$$$         IF ( LDUST             ) CALL EMISSDUST( State_Met )
          !--------------------
          ! Mercury
          !--------------------
+         print *, 'emis mercury'
          CALL EMISSMERCURY( State_Met )
 
       ELSE IF ( ITS_A_POPS_SIM() ) THEN

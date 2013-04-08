@@ -4972,6 +4972,9 @@ ccc
 
          ERRORSWITCH = .FALSE.
          
+#if defined ( DEBUG ) 
+!      print *, 'mnfix in carbon_mod:4976'
+#endif
          CALL MNFIX( NDIST2, MDIST2, ERRORSWITCH )
             
          IF( ERRORSWITCH ) PRINT *,'EMITSGC: MNFIX found error ',

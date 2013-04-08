@@ -160,9 +160,6 @@
       REAL*8                            AVGMASS(IBINS) ! Average mass per particle
                                                        ! mid-range of size bin
                                                        ! [kg/no.]
-      REAL*8                         ::  ionrate       ! ion pair formation 
-                                                       ! rate [ion pairs cm^-3 s^-1]
-      REAL*8                         ::  surf_area     ! aerosol surface area [micon^2 cm^-3]
       REAL*8                         ::  cosmic_ions(72,46,9) !careful, this is not GIGC safe!
                                                        ! [ion pairs kg^-1 s^-1]
 
@@ -218,9 +215,16 @@
       ! Do TOMAS aerosol microphysics
       IF( LTOMAS ) CALL AEROPHYS( State_Met )
 
+#if defined ( DEBUG ) 
+      print *, 'call checkmn in tomas_mod:222'
+#endif
+      CALL CHECKMN( 0, 0, 0, State_Met, 'kg', 'Before Aerodrydep')
       ! Do dry deposition
       IF( LDRYD) CALL AERO_DRYDEP( am_I_Root, Input_Opt, State_Met, RC )
 
+#if defined ( DEBUG ) 
+      print *, 'call checkmn in tomas_mod:229'
+#endif
       CALL CHECKMN( 0, 0, 0, State_Met, 'kg', 'Before exiting DO_TOMAS')
 
       ! Return to calling program 
@@ -288,6 +292,10 @@
 
       REAL*4                         :: BOXVOL,  BOXMASS, TEMPTMS
       REAL*4                         :: PRES,    RHTOMAS
+
+      REAL*8                         ::  surf_area     ! aerosol surface area [micon^2 cm^-3]
+      REAL*8                         ::  ionrate       ! ion pair formation 
+                                                       ! rate [ion pairs cm^-3 s^-1]
 !---------
 
       REAL*8            :: Nkout(ibins), Mkout(ibins,icomp)
@@ -309,7 +317,7 @@
       logical           :: printdebug !<step4.3> Print out for debugging (win, 9/16/05)
       logical           :: COND, COAG, NUCL !<step5.1> switch for each process (win 4/8/06)
       integer :: iob, job,lob !Just declare in case I want to debug (4/8/06)
-      data iob, job, lob / 46  ,        6    ,        1 /
+      data iob, job, lob /  5  ,       18    ,       25 /
       real*8           :: NH3_to_NH4, CEPS
       parameter ( CEPS=1.d-17 )
 
@@ -393,15 +401,14 @@
 !$OMP+PRIVATE( ADT, PRES, TEMPTMS, BOXMASS, RHTOMAS, BOXVOL )
 !$OMP+PRIVATE( printneg, ionrate, lev, weight, GC, N, NK, JC )
 !$OMP+PRIVATE( MK, H2SO4rate_o, tot_n_1, k, tot_s_1, MPNUM )
-!$OMP+PRIVATE( Nkd, Mkd, TOT_NK, TOT_MK )
+!$OMP+PRIVATE( Nkd, Mkd, TOT_NK, TOT_MK, TRANSFER )
 !$OMP+PRIVATE( Nkout,Mkout,Gcout,fn,fn1 )
 !$OMP+PRIVATE( num_iter,Nknuc,Mknuc,Nkcond )
 !$OMP+PRIVATE( Mkcond, ERRORSWITCH, tot_s_1a, tot_n_1a )
 !$OMP+SCHEDULE( DYNAMIC )
-      !Loop over all grid cells
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
       DO I = 1, IIPAR
+      DO J = 1, JJPAR
+      DO L = 1, LLPAR
 
          ! Reset the AD61_INST array used for tracking instantaneous 
          ! certain rates.  As of now, tracking nucleation (win, 10/7/08)
@@ -529,6 +536,9 @@ c         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
          if(printdebug .and. 
      &        i==iob.and.j==job.and.l==lob) ERRORSWITCH =.TRUE. 
 
+#if defined ( DEBUG ) 
+!      print *, 'mnfix in tomas_mod:533'
+#endif
          CALL MNFIX( NK, MK, ERRORSWITCH )
          IF ( ERRORSWITCH ) THEN
             PRINT *,'Aerophys: MNFIX found error at',I,J,L
@@ -572,7 +582,7 @@ c         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
 
             CALL COND_NUC(Nk,Mk,Gc,Nkout,Mkout,Gcout,fn,fn1,
      &             H2SO4rate_o,adt,num_iter,Nknuc,Mknuc,Nkcond,Mkcond, 
-     &             BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS,
+     &             ionrate, BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS,
      &             ERRORSWITCH, l)
 !            print*,'After COND_NUC Gcout(srtso4)=',Gcout(srtso4)
             
@@ -670,6 +680,9 @@ c         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
          enddo
 
          CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd) 
+#if defined ( DEBUG ) 
+!      print *, 'mnfix in tomas_mod:677'
+#endif
          CALL MNFIX( Nk, Mk, ERRORSWITCH )
          IF ( ERRORSWITCH ) THEN
             PRINT *,'Aerophys: MNFIX found error at',I,J,L
@@ -709,6 +722,9 @@ c         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
             if(printdebug .and. i==iob.and.j==job.and.l==lob) 
      &           ERRORSWITCH=.true. !4/18/06 win
 
+#if defined ( DEBUG ) 
+!      print *, 'mnfix in tomas_mod:719'
+#endif
             CALL MNFIX( NK, MK, ERRORSWITCH )
 
             IF ( ERRORSWITCH ) THEN
@@ -745,6 +761,9 @@ c         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
          if(printdebug .and. i==iob.and.j==job.and.l==lob) 
      &      ERRORSWITCH =.true. 
 
+#if defined ( DEBUG ) 
+!      print *, 'mnfix in tomas_mod:758'
+#endif
          CALL MNFIX(NK,MK,ERRORSWITCH) 
          IF ( ERRORSWITCH ) THEN
             PRINT *,'End of Aerophys: MNFIX found error at',I,J,L
@@ -793,9 +812,9 @@ cvbn         write(889,89)I,J,L,STT(i,j,l,IDTH2SO4)
  89      format(3I3,'STT(IDTH2SO4) kg', E13.5)
 
       !End of loop over grid cells
-      ENDDO                     !I loop
-      ENDDO                     !J loop
       ENDDO                     !L loop
+      ENDDO                     !J loop
+      ENDDO                     !I loop
 
 !$OMP END PARALLEL DO
 
@@ -812,7 +831,7 @@ cvbn         write(889,89)I,J,L,STT(i,j,l,IDTH2SO4)
 
       SUBROUTINE COND_NUC(Nki,Mki,Gci,Nkf,Mkf,Gcf,fnavg,fn1avg,
      &      H2SO4rate,dti,num_iter,Nknuc,Mknuc,Nkcond,Mkcond,
-     &      BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS,
+     &      ionrate, BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS,
      &      errswitch, lev)
 !
 !******************************************************************************
@@ -844,10 +863,10 @@ C     fn, fn1
 !
       IMPLICIT NONE
 
-      double precision Nki(ibins), Mki(ibins, icomp), Gci(icomp-1)
-      double precision Nkf(ibins), Mkf(ibins, icomp), Gcf(icomp-1)
-      double precision Nknuc(ibins), Mknuc(ibins, icomp)
-      double precision Nkcond(ibins),Mkcond(ibins,icomp)
+      REAL*8 Nki(ibins), Mki(ibins, icomp), Gci(icomp-1)
+      REAL*8 Nkf(ibins), Mkf(ibins, icomp), Gcf(icomp-1)
+      REAL*8 Nknuc(ibins), Mknuc(ibins, icomp)
+      REAL*8 Nkcond(ibins),Mkcond(ibins,icomp)
       double precision H2SO4rate
       real             dti
       double precision fnavg        ! nucleation rate of clusters cm-3 s-1
@@ -855,6 +874,7 @@ C     fn, fn1
       REAL*4           BOXVOL, BOXMASS, TEMPTMS, RHTOMAS, PRES
       logical          errswitch    ! signal for error 
       integer          lev          ! layer of the model
+      REAL*8   ionrate
 
 C-----VARIABLE DECLARATIONS---------------------------------------------
 
@@ -866,9 +886,9 @@ C-----VARIABLE DECLARATIONS---------------------------------------------
       double precision CSi,CSa      ! intial and average condensation sinks
       double precision CS1,CS2      ! guesses for condensation sink [s^-1]
       double precision CStest       ! guess for condensation sink
-      double precision Nk1(ibins), Mk1(ibins, icomp), Gc1(icomp-1)
-      double precision Nk2(ibins), Mk2(ibins, icomp), Gc2(icomp-1)
-      double precision Nk3(ibins), Mk3(ibins, icomp), Gc3(icomp-1)
+      REAL*8           Nk1(ibins), Mk1(ibins, icomp), Gc1(icomp-1)
+      REAL*8           Nk2(ibins), Mk2(ibins, icomp), Gc2(icomp-1)
+      REAL*8           Nk3(ibins), Mk3(ibins, icomp), Gc3(icomp-1)
       logical          nflg         ! returned from nucleation, says whether nucleation occurred or not
       double precision mcond,mcond1 ! mass to condense [kg]
       double precision tol          ! tolerance
@@ -911,6 +931,7 @@ C-----CODE--------------------------------------------------------------
 C Initialize values of Nkf, Mkf, Gcf, and time
       do j=1,icomp-1
          Gc1(j)=Gci(j)
+         Gcf(j)=Gci(j)
       enddo
       do k=1,ibins
          Nk1(k)=Nki(k)
@@ -936,7 +957,7 @@ C     during that timestep (this will happen when the condensation sink is very 
 
 C     get the steady state H2SO4 concentration
       call getH2SO4conc(Nk1, Mk1, H2SO4rate, CS1, Gc1(srtnh4),
-     &    gasConc, BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, lev)
+     &   gasConc, ionrate, BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, lev)
       if( pdbg) print*,'gasConc',gasConc
       Gc1(srtso4) = gasConc
       addt = min_tstep
@@ -951,7 +972,8 @@ c     &     Nnuc2,Mnuc2,nflg)
 !      call nucleation(Nk1,Mk1,Gc1,Nk2,Mk2,Gc2,fn,fn1,totmass,nuc_bin,
 !     &     addt, PDBG, lev)
       call nucleation(Nk1,Mk1,Gc1,Nk2,Mk2,Gc2,fn,fn1,totmass,nuc_bin,
-     &     addt, BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, PDBG, lev)
+     &     addt, ionrate, BOXVOL, BOXMASS, TEMPTMS,
+     &     PRES, RHTOMAS, PDBG, lev)
       
       if(pdbg) then
          print*,'COND_NUC: Found an error at nucleation --> TERMINATE'
@@ -1083,7 +1105,7 @@ c      if (CSch.gt.CSch_tol) then ! condensation sink didn't change much use who
 C     get the steady state H2SO4 concentration
             if (num_iter.gt.1)then ! no need to recalculate for first step
       call getH2SO4conc(Nk1, Mk1, H2SO4rate, CS1, Gc1(srtnh4),
-     &    gasConc, BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, lev)
+     &   gasConc, ionrate, BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, lev)
                Gc1(srtso4) = gasConc
             endif
             if( pdbg)    print*,'gasConc',gasConc
@@ -1102,11 +1124,9 @@ c     &           Mk2,Gc2,Nnuc2,Mnuc2,nflg,lev)
 
 
             tempvar = pdbg
-!            call nucleation(Nk1,Mk1,Gc1,Nk2,Mk2,Gc2,fn,fn1,totmass,
-!     &           nuc_bin,addt, PDBG, lev) 
             call nucleation(Nk1,Mk1,Gc1,Nk2,Mk2,Gc2,fn,fn1,totmass,
-     &           nuc_bin,addt, BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS,
-     &           PDBG, lev)
+     &           nuc_bin,addt, ionrate, BOXVOL, BOXMASS, TEMPTMS,
+     &           PRES, RHTOMAS, PDBG, lev)
 
             if(pdbg) then
                print*,'COND_NUC: Error at nucleation[2] --> TERMINATE'
@@ -1425,16 +1445,13 @@ Ckpc  Density should be changed due to more species involed.
 
 C     get condensation sink
       CS = 0.d0
-!      surf_area = 0.d0
       do k=1,ibins
          CS = CS + Dpk(k)*Nko(k)*beta(k)
-!         surf_area = surf_area+Nko(k)*pi*(Dpk(k)*1.0D6)**2
       enddo
       do k=1,ibins
          sinkfrac(k) = Dpk(k)*Nko(k)*beta(k)/CS
       enddo     
       CS = 2.d0*pi*dble(Di)*CS/(dble(boxvol)*1D-6)  
-!      surf_area = surf_area/(dble(boxvol))
 
       return
       end subroutine getcondsink
@@ -1442,7 +1459,7 @@ C     get condensation sink
 !------------------------------------------------------------------------------
 
       SUBROUTINE getH2SO4conc(Nk, Mk, H2SO4rate, CS, NH3conc, gasConc, 
-     &              BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, lev)
+     &    ionrate,  BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, lev)
 !
 !******************************************************************************
 C     This subroutine uses newtons method to solve for the steady state 
@@ -1487,6 +1504,8 @@ C-----ARGUMENT DECLARATIONS---------------------------------------------
       REAL*4, INTENT(IN)       :: BOXVOL,  BOXMASS, TEMPTMS
       REAL*4, INTENT(IN)       :: PRES,    RHTOMAS
       integer          lev
+
+      REAL*8                   :: ionrate
 
 C-----VARIABLE DECLARATIONS---------------------------------------------
 
@@ -1574,16 +1593,16 @@ C     Checks for when condensation sink is very small
 
       gasConc = min(gasConc,max_H2SO4conc)
       Gci(srtso4) = gasConc
-      call getNucRate(Nk, Mk, Gci,fn,mnuc,nflg,
-     & BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, lev)
+      call getNucRate(Nk, Mk, Gci,fn,mnuc,nflg,ionrate,
+     &       BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, lev)
 
       if (fn.gt.0.d0) then      ! nucleation occured
          gasConc_lo = H2SO4min*boxvol/(1000.d0/98.d0*6.022d23) !convert to kg/box
          
 C     Test to see if gasConc_lo gives a res < 0 (this means ANY nucleation is too high)
          Gci(srtso4) = gasConc_lo*1.000001d0
-         call getNucRate(Nk,Mk,Gci,fn1,mnuc1,nflg,
-     &     BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, lev)
+         call getNucRate(Nk,Mk,Gci,fn1,mnuc1,nflg,ionrate,
+     &        BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, lev)
          if (fn1.gt.0.d0) then
             massnuc = mnuc1*fn1*boxvol*98.d0/96.d0
 c     massnuc = 4.d0/3.d0*pi*(rnuc1*1.d-9)**3*1350.*fn1*boxvol*
@@ -1631,8 +1650,8 @@ c            print*, 'iter',iter
 c            print*,'gasConc_lo',gasConc_lo,'gasConc_hi',gasConc_hi
             gasConc = sqrt(gasConc_hi*gasConc_lo) ! take new guess as logmean
             Gci(srtso4) = gasConc
-            call getNucRate(Nk, Mk,Gci,fn,mnuc,nflg,
-     &        BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, lev)
+            call getNucRate(Nk, Mk,Gci,fn,mnuc,nflg,ionrate,
+     &            BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, lev)
             massnuc = mnuc*fn*boxvol*98.d0/96.d0
             res = H2SO4rate - CS*gasConc - massnuc
 c            print*,'res',res
@@ -1660,7 +1679,7 @@ c     print*,'massnuc',massnuc,'CS*gasConc',CS*gasConc
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE getNucRate(Nk, Mk, Gci,fn,mnuc,nflg,
+      SUBROUTINE getNucRate(Nk, Mk, Gci,fn,mnuc,nflg, ionrate,
      &            BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, lev)
 !
 !******************************************************************************
@@ -1694,9 +1713,12 @@ C-----ARGUMENT DECLARATIONS---------------------------------------------
       REAL*8, INTENT(INOUT)          :: Mk(IBINS, ICOMP)
       REAL*4, INTENT(IN)       :: BOXVOL,  BOXMASS, TEMPTMS
       REAL*4, INTENT(IN)       :: PRES,    RHTOMAS
+      REAL*8, INTENT(IN)       :: Gci(icomp-1)
+
+      REAL*8                         :: surf_area
+      REAL*8                         :: ionrate
 
       integer j,i,k
-      double precision Gci(icomp-1)
       double precision fn       ! nucleation rate to first bin cm-3 s-1
       double precision mnuc     !mass of nucleating particle [kg]
       logical nflg
@@ -2323,7 +2345,7 @@ C     gtime: the time it takes the particle to grow to first size bin [s]
 
       ! Arguments
       REAL*8, INTENT(IN)     ::  d1,d2    ! initial and final diameters [m]
-      REAL*8, INTENT(IN)     ::  h2so4    ! h2so4 ammount [kg]
+      REAL*8, INTENT(IN)     ::  h2so4    ! h2so4 amount [kg]
       real*4, INTENT(IN)     ::  temp     ! temperature [K]
       real*4, INTENT(IN)     ::  boxvol  ! box volume [cm3]
       REAL*8, INTENT(IN)     ::  density  ! density of particles in first bin [kg/m3]
@@ -2374,8 +2396,8 @@ Cjrp
 !------------------------------------------------------------------------------
 
       SUBROUTINE NUCLEATION (Nki,Mki,Gci,Nkf,Mkf,Gcf,fn,fn1,totsulf,
-     &              nuc_bin,dt,BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS,
-     &              pdbg,lev)
+     &              nuc_bin,dt,ionrate, BOXVOL, BOXMASS, TEMPTMS,
+     &              PRES, RHTOMAS, pdbg,lev)
 !
 !******************************************************************************
 C     This subroutine calls the Vehkamaki 2002 and Napari 2002 nucleation
@@ -2424,7 +2446,9 @@ C-----ARGUMENT DECLARATIONS---------------------------------------------
       LOGICAL  PDBG             ! Signal print for debug
       integer lev ! layer of model
 
+      REAL*8                     ionrate
 C-----VARIABLE DECLARATIONS---------------------------------------------
+      REAL*8                     surf_area
 
       double precision nh3ppt   ! gas phase ammonia in pptv
       double precision h2so4    ! gas phase h2so4 in molec cc-1
@@ -2474,6 +2498,13 @@ C-----CODE--------------------------------------------------------------
       fn1 = 0.d0
       rnuc = 0.d0
       gtime = 0.d0
+
+      do k = 1,ibins
+         ! sfarina - added surface area back into nucleation just to carry it
+         ! surface area per particle = pi*diameter**2
+         surf_area = surf_area + 1.D-6*(Nki(k)/boxvol)*
+     &       pi*(d2**2.D0) ! (um2 cm-2) 
+      end do
 
 C     if requirements for nucleation are met, call nucleation subroutines
 C     and get the nucleation rate and critical cluster size
@@ -2663,6 +2694,9 @@ cc         print*,'[nucleation] Gci',Gci
                enddo
             endif
          enddo
+#if defined ( DEBUG ) 
+!      print *, 'mnfix in tomas_mod:2679'
+#endif
          call mnfix(Nkf,Mkf, ERRORSWITCH)
          pdbg = errorswitch ! carry the error signal from mnfix to outside
          if (errorswitch) print*,'NUCLEATION: Error after mnfix'
@@ -2785,6 +2819,9 @@ C-----CODE--------------------------------------------------------------
       enddo
 
 
+#if defined ( DEBUG ) 
+!      print *, 'mnfix in tomas_mod:2804'
+#endif
       call mnfix(Nk1,Mk1, errorswitch)
       if(errorswitch) then
          print *, 'EZCOND: MNFIX[1] found error --> TERMINATE'
@@ -2920,6 +2957,9 @@ c     maddp(k)=0.d0
                endif
             enddo
 c     print*,'tau',tau
+#if defined ( DEBUG ) 
+!      print *, 'mnfix in tomas_mod:2942'
+#endif
             call mnfix(Nk1,Mk1, errorswitch)
             if (errorswitch) then
                print *, 'EZCOND: MNFIX[2] found error --> TERMINATE'
@@ -2974,6 +3014,9 @@ c     print*,'fracch',fracch,'totch',totch
                Nk2(k)=Nk1(k)
             enddo
             if(pdbg) errorswitch = .true.
+#if defined ( DEBUG ) 
+!      print *, 'mnfix in tomas_mod:2999'
+#endif
             call mnfix(Nk2,Mk2, errorswitch)
             if(errorswitch) then
                print *, 'EZCOND: MNFIX[3] found error --> TERMINATE'
@@ -3051,6 +3094,9 @@ c     print*,'fracch',fracch,'totch',totch
             enddo
 
             if(pdbg) errorswitch=.true.
+#if defined ( DEBUG ) 
+!      print *, 'mnfix in tomas_mod:3079'
+#endif
             call mnfix(Nkf,Mkf, errorswitch)
             if(errorswitch) then
                print *, 'EZCOND: MNFIX[4] found error --> TERMINATE'
@@ -3194,6 +3240,9 @@ Cjrp      endif
       ! Fix any inconsistencies in M/N distribution 
          CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd) 
 !debug      IF ( I == 46 .AND. J == 59 .AND. L == 9) PDBG = .TRUE.
+#if defined ( DEBUG ) 
+!      print *, 'mnfix in tomas_mod:3225'
+#endif
       CALL MNFIX( NK, MK, PDBG )
       IF( PDBG ) THEN
          PRINT *,'AQOXID: MNFIX found error at',I,J,L
@@ -3337,6 +3386,9 @@ Cjrp      endif
 
       ! Fix any inconsistencies in M/N distribution 
       CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd) 
+#if defined ( DEBUG ) 
+!      print *, 'mnfix in tomas_mod:3371'
+#endif
       CALL MNFIX( NK, MK, PDBG )
       IF( PDBG ) THEN
          PRINT *,'AQOXID: MNFIX found error at',I,J,L
@@ -4363,6 +4415,9 @@ cdbg         endif
 
 C original         call mnfix(Nkf,Mkf)
          if (printdebug) negvalue=.true. !signal received to printdebug (win, 4/8/06)
+#if defined ( DEBUG ) 
+!      print *, 'mnfix in tomas_mod:4400'
+#endif
          call mnfix(Nkf,Mkf,negvalue) !<step5.1> bug fix call argument (win, 4/15/06) !<step4.2> Add call argument to carry tell where mnfix found
                                 ! the negative value (win, 9/12/05)
          !-------------------------------------------------------------------
@@ -5846,13 +5901,13 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
 !******************************************************************************
 !
       ! Arguments
-      REAL*8            :: Mke(IBINS,ICOMP)
+      REAL*8,INTENT(INOUT) :: Mke(IBINS,ICOMP)
+      REAL*4,INTENT(IN)    :: RHTOMAS
 
       ! Local variables
       INTEGER           :: k, j
       REAL*8            :: so4mass, naclmass, ocilmass
       REAL*8            :: wrso4, wrnacl, wrocil
-      REAL*4            :: RHTOMAS
       REAL*8            :: rhe
 
       !========================================================================
@@ -6120,14 +6175,14 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
       
 !-----------------------------------------------------------------------------
       
-      SUBROUTINE CHECKMN ( II, JJ, LL, State_Met, UNIT, LOCATION )
+      SUBROUTINE CHECKMN ( II, JJ, LL, State_Met, UNITS, LOCATION )
 !      
 !*****************************************************************************
 !  Subroutine CHECKMN use the subroutine MNFIX to check for error in the 
 !  aerosol mass and number inconsistencies. (win, 7/24/07)
 !  Variables
 !  I, J, L    (INTEGER )  : Grid box
-!  UNIT       (CHARACTER) : Current unit of STT tracer array
+!  UNITS       (CHARACTER) : Current unit of STT tracer array
 !  LOCATION   (CHARACTER) : Location of calling program / subroutine
 !
 !  NOTES:
@@ -6150,7 +6205,7 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
 
       ! Arguments
       INTEGER                      :: II, JJ, LL
-      CHARACTER(LEN=*), INTENT(IN) :: UNIT, LOCATION
+      CHARACTER(LEN=*), INTENT(IN) :: UNITS, LOCATION
       TYPE(MetState),   INTENT(IN) :: State_Met   ! Meteorology State object
 
       ! Local variables
@@ -6176,7 +6231,7 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
       ERRORSWITCH = .FALSE.
 
       ! We want to work with STT in [kg]
-      IF ( TRIM( UNIT ) == 'V/V' .or. TRIM( UNIT ) == 'v/v' )
+      IF ( TRIM( UNITS ) == 'V/V' .or. TRIM( UNITS ) == 'v/v' )
       ! Convert STT from v/v --> kg
      &     CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, State_Met%AD, STT ) 
 
@@ -6197,15 +6252,18 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
          L2 = LL
       ENDIF
 
-!........10........20........30........40........50........60........70........80
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-!$OMP+PRIVATE( Nk, Nkd, Mk, Mkd, K, TRACNUM, JC, MPNUM, BOXVOL )
-!$OMP+SCHEDULE( DYNAMIC )
-      DO L = L1, L2
-      DO J = J1, J2
+!%%%% PARALLEL DO
+!%%%%+DEFAULT( SHARED )
+!%%%%+PRIVATE( I, J, L )
+!%%%%+PRIVATE( Nk, Nkd, Mk, Mkd, K, TRACNUM, JC, MPNUM, BOXVOL )
+!%%%%+PRIVATE( GC, GCd, ERRORSWITCH )
+!%%%%+SCHEDULE( DYNAMIC )
+
+!%%%%+DEFAULT( PRIVATE )
+!%%%%+SHARED( STT, State_Met, IDTNK1, ICOMP, IDIAG, IDTAW1 )
       DO I = I1, I2
+      DO J = J1, J2
+      DO L = L1, L2
          
          BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3 
 
@@ -6234,6 +6292,7 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
 
          CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd) 
          !if(i==47.and.j==10.and.l==7) ERRORSWITCH = .TRUE.
+!%%%% CRITICAL
          CALL MNFIX( NK, MK, ERRORSWITCH )
          IF ( ERRORSWITCH ) THEN
             PRINT *, 'CHECKMN is going to terminate at grid',I,J,L
@@ -6264,10 +6323,10 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
       ENDDO
       ENDDO
       ENDDO
-!$OMP END PARALLEL DO
+!%%%% END PARALLEL DO
       
       ! In the input unit is [v/v], then convert [kg] back to [v/v]
-      IF ( TRIM( UNIT ) == 'V/V' .or. TRIM( UNIT ) == 'v/v' ) 
+      IF ( TRIM( UNITS ) == 'V/V' .or. TRIM( UNITS ) == 'v/v' ) 
        ! Convert STT from kg --> v/v
      &     CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, State_Met%AD, STT ) 
         
@@ -6278,7 +6337,7 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
 
 !-----------------------------------------------------------------------------
       
-      SUBROUTINE MNFIX_deprecated ( NKX, MKX, ERRORSWITCH )
+      SUBROUTINE MNFIX ( NK, MK, ERRORSWITCH )
 !
 !*****************************************************************************
 !  Subroutine MNFIX examines the mass and number distrubution and determine if
@@ -6293,7 +6352,7 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
 !  NOTES: 
 !  (1 ) Getting rid of eps which was added to the denominator to 
 !       avoid a division by zero when calculating avg mass/number
-!       and calculating multicomponent mass species fj=Mkx(k,j)/drymass.
+!       and calculating multicomponent mass species fj=MK(k,j)/drymass.
 !  (2 ) Introduce this code from a previous version of GEOSCHEM -- so this 
 !       may need cleaning up later since this version is full of debugging
 !       print statements (Win, 7/23/07)
@@ -6305,7 +6364,7 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
       USE ERROR_MOD,    ONLY : ERROR_STOP, IT_IS_NAN
 
       ! Arguments
-      REAL*8,  INTENT(INOUT) :: NKX(IBINS),  MKX(IBINS, ICOMP)
+      REAL*8,  INTENT(INOUT) :: NK(IBINS),  MK(IBINS, ICOMP)
       LOGICAL, INTENT(INOUT) :: ERRORSWITCH
 
       ! Local variables
@@ -6314,469 +6373,14 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
       REAL*8              :: XOLD, XNEW !average masses of old and new bins
       REAL*8              :: DRYMASS !dry mass of in a bin
       REAL*8              :: AVG !average dry mass of particles in bin
-      REAL*8              :: NUMBER !number of particles initially in problem bin
-      REAL*8              :: NSHIFT  !number to shift to new bin
-      REAL*8              :: MSHIFT !mass to shift to new bin
-      REAL*8              :: FJ !fraction of mass that is component j
-      REAL*8,   PARAMETER :: EPS = 1.D-20 !small number for Nk
-      REAL*8,   PARAMETER :: EPS2= 1.D-32 !small number for Mk 
-
-      LOGICAL             :: FIXERROR
-      LOGICAL             :: PRT
-      REAL*8              :: TOTMAS, TOTNUM !for print debug 
-
-      !=================================================================
-      ! MNFIX begins here!
-      !=================================================================
-
-      FIXERROR = .TRUE.
-      PRT = .FALSE.
-      PRT = ERRORSWITCH !just carrying a signal to print out value at the observed box - since mnfix does not have any information about I,J,L location. (Win, 9/27/05)
-      ERRORSWITCH = .FALSE.
-
-      ! Check for any incoming negative values or NaN
-      !--------------------------------------------------------------------------
-      DO K = 1, IBINS
-        IF ( NKX(K) < 0D0 ) THEN
-           IF ( PRT ) THEN 
-              PRINT *,'MNFIX[0]: FOUND NEGATIVE N'
-              PRINT *, 'Bin, N', K, NKX(K)
-           ENDIF
-           IF ( ABS(NKX(K)) < 1D0 .and. FIXERROR ) THEN
-              NKX(K) = 0D0
-              IF ( PRT ) PRINT *,'Negative N > -1.0 Reset to zero'
-           ELSE
-              ERRORSWITCH = .TRUE.
-              print *,'MNFIX(0): Found negative Nk(',k,') <-1d0'
-              GOTO 300          !exit mnfix if found negative error (win, 4/18/06)
-           ENDIF
-        ENDIF
-        IF ( IT_IS_NAN(NKX(K)) ) THEN 
-           PRINT *,'Found Nan in Nk at bin',K
-           ERRORSWITCH = .TRUE.
-           print *,'MNFIX(0): Found NaN in Nk(,',k,')'
-           GOTO 300
-        ENDIF
-        DO J = 1, ICOMP
-           IF ( MKX(K,J) < 0D0 ) THEN
-              IF ( PRT ) THEN 
-                 PRINT *,'MNFIX[0]: FOUND NEGATIVE M'
-                 PRINT *,'Bin, Comp, Mk', K, J, MKX(K,J)
-              ENDIF
-              IF( ABS(MKX(K,J)) < 1D-5 .and. FIXERROR ) THEN
-                 MKX(K,J) = 0D0
-                 IF ( PRT ) PRINT *,'Negative M > -1.d-5 Reset to zero'
-              ELSE
-                 ERRORSWITCH =.TRUE.
-                 print *,'MNFIX(0): Found negative Mk(',k,',comp',j,')'
-                 GOTO 300       !exit mnfix if found negative error (win, 4/18/06)
-              ENDIF
-           ENDIF
-           IF ( IT_IS_NAN(MKX(K,J)) ) THEN 
-              PRINT *,'Found Nan in Mk at bin',K,'component',J
-              ERRORSWITCH = .TRUE.
-              GOTO 300
-           ENDIF
-        ENDDO                   !icomp
-      ENDDO                     !ibins
-
-      ! Check if both number and mass are zero, if yes then exit mnfix.
-      !----------------------------------------------------------------
-      TOTNUM = 0d0 
-      TOTMAS = 0D0
-      DO K = 1,IBINS
-         TOTNUM = TOTNUM + NKX(K)
-         DO J=1,ICOMP-IDIAG
-            TOTMAS = TOTMAS + MKX(K,J)
-         ENDDO
-      ENDDO
-      IF ( TOTNUM == 0D0 .AND. TOTMAS == 0D0 ) THEN
-          IF ( PRT ) PRINT *,'MNFIX: Nk=Mk=0. Exit now'
-         GOTO 300
-      ENDIF
-
-      ! If number is tiny ( < EPS) then set it to zero
-!      DO K = 1,IBINS
-!         IF ( NKX(K) <= EPS ) THEN
-!            NKX(K) = 0D0
-!            DO J= 1, ICOMP-1
-!               MKX(K,J) = 0d0
-!            ENDDO               !STOP  !original (win, 9/1/05)
-
-!         ENDIF
-!      ENDDO
-
-      ! If N is tiny and M is tiny, set both to zeroes
-      !--------------------------------------------------------
-      DO K = 1, IBINS
-      IF ( NKX(K) <= EPS .AND. NKX(K)>= 0D0 ) THEN
-         DO J = 1, ICOMP-IDIAG
-         IF ( MKX(K,J) <= EPS2 ) THEN
-            ! set both to zeroes
-            MKX(K,J) = 0.D0
-            NKX(K) = 0.D0
-         ELSE
-            IF ( PRT ) THEN
-               WRITE(*,*) 'Tiny Number, not tiny mass in MNFIX'
-               WRITE(*,*) 'bin=',k
-               WRITE(*,*) 'N=',NKX(K)
-               WRITE(*,*) 'M=',MKX(K,J)
-            ENDIF
-            IF ( FIXERROR ) THEN 
-               MKX(K,J)=0.D0
-               NKX(K) = 0.D0
-               IF ( PRT ) PRINT *,'MNFIX: Mass is set to zero, N=0'
-            ELSE
-               ! I may want to let it run w/o stopping the run.(win, 7/24/07)
-               !CALL ERROR_STOP('Tiny number but not tiny mass', 
-!     &                         'MNFIX:1')
-               ERRORSWITCH =.TRUE.
-               print *,'MNFIX(0): Tiny number, not tiny mass, bin',k
-               GOTO 300         !<step4.2> Instead of stop here, stop outside mnfix
-                                !so I can print out the i,j,l (location) of error (win, 9/1/05)
-            ENDIF               !fixerror
-         ENDIF
-         ENDDO
-         DO J = ICOMP-IDIAG+1, ICOMP
-            MKX(K,J) = 0.d0 ! Set other diagnostic species to zero too (nh4, h2o) (win, 9/27/08)
-         ENDDO
-         !MKX(K,ICOMP) = 0.d0    !Set aerosol water to zero too
-      ENDIF ! If tiny number
-      ENDDO
-
-!      if (PRT) then !<step5.1-temp>
-!         print *,'After_Check1----------------------'
-!         do k=1,ibins
-!            totmas = sum(mkx(k,1:icomp-1))
-!            print *, totmas,nkx(k), totmas/nkx(k)
-!         enddo
-!      endif
-
-      ! Check to see if any bins are completely out of bounds for min or max bin
-      !-------------------------------------------------------------------------
-      DO K = 1, IBINS
-         DRYMASS = 0.d0
-         DO J = 1, ICOMP-IDIAG
-            DRYMASS = DRYMASS + MKX(K,J)
-         ENDDO
-
-         IF ( Nkx(k) == 0d0 ) THEN
-            AVG = SQRT( XK(K)* XK(K+1) )
-         ELSE
-            AVG = DRYMASS/ NKX(K)
-         ENDIF
-
-         IF ( AVG >  XK(IBINS+1) ) THEN
-            IF ( PRT ) PRINT *, 'MNFIX [1]: AVG > Xk(31) at bin',K
-            IF ( FIXERROR ) THEN 
-               !out of bin range - remove some mass
-               MSHIFT = NKX(k)* XK(IBINS+1)/ 1.2
-               DO J= 1, ICOMP
-                  MKX(K,J) = MKX(K,J)* MSHIFT/ (DRYMASS+EPS2)
-               ENDDO
-            ELSE
-               ERRORSWITCH = .TRUE.
-               print *,'MNFIX(1): AVG>Xk(31) at bin',K
-               GOTO 300
-            ENDIF
-         ENDIF
-         IF ( AVG < XK(1)) THEN
-            IF( PRT ) PRINT *,'MNFIX [2]: AVG < Xk(1)'
-            IF( FIXERROR ) THEN 
-               !out of bin range - remove some number
-               NKX(K) = DRYMASS/ ( XK(1)* 1.2 )
-            ELSE
-               ERRORSWITCH = .TRUE.
-               print *,'MNFIX(1): AVG < Xk(1) at bin',K
-               GOTO 300
-            ENDIF
-         ENDIF
-      ENDDO
-
-!      if (PRT) then !<step5.1-temp>
-!         print *,'After_Check2 ---------------------'
-!         do k=1,ibins
-!            totmas = sum(mkx(k,1:icomp-1))
-!            print *, totmas,nkx(k), totmas/nkx(k)
-!         enddo
-!      endif
-
-      ! Check to see if any bins are out of bounds
-      !-------------------------------------------------------------------
-      DO K = 1, IBINS
-!         if (PRT) print *,'Now at bin',k !<step4.4>tmp (win, 9/28/05)
-
-         DRYMASS = 0.d0
-         DO J = 1, ICOMP-IDIAG
-            DRYMASS = DRYMASS + MKX(K,J)
-         ENDDO
-
-         IF ( NKX(K) == 0d0 ) THEN
-            AVG = SQRT(XK(K)*XK(K+1)) !set to mid-range value
-         ELSE
-            AVG = DRYMASS/NKX(K)
-         ENDIF
-
-!         if (PRT) then     !<step5.1-temp>
-!            print *,'After_Check3---------------------'
-!            totmas = sum(mkx(k,1:icomp-1))
-!            print *, totmas,nkx(k), totmas/nkx(k)
-!         endif
-
-         ! If over boundary of the current bin
-         IF ( AVG >  XK(K+1) ) THEN
-           IF ( PRT ) PRINT *, 'MNFIX [3]: AVG>Xk(',K+1,')'
-           IF ( FIXERROR ) THEN 
-            !Average mass is too high - shift to higher bin
-            KK = K + 1
-            XNEW = XK(KK+1)/ 1.1
-            if ( PRT ) PRINT *, 'AVG',AVG,' XNEW ',XNEW
- 100        IF ( XNEW <= AVG .and. KK <= IBINS ) THEN
-               IF ( KK <= IBINS ) THEN
-!               IF ( KK < IBINS ) THEN
-                  KK = KK + 1
-                  XNEW = XK(KK+1)/ 1.1
-                  if (PRT) PRINT *, '..move up to bin ',KK,' XNEW ',XNEW
-                  GOTO 100
-               ELSE
-                  ! Already reach highest bin - must remove some mass (win, 8/1/07)
-                  MSHIFT = NKX(k)* XK(IBINS+1)/ 1.3
-                  if( PRT ) PRINT*,' Mass being discarded: '
-                  DO J= 1, ICOMP
-                     if (PRT) print*,'               ',
-     &                    MKX(K,J)*(1- MSHIFT/ (DRYMASS))
-                     MKX(K,J) = MKX(K,J)* MSHIFT/ (DRYMASS)
-                  ENDDO 
-                  ! and recalculate dry mass (win, 8/1/07)
-                  DO J = 1, ICOMP-IDIAG
-                     DRYMASS = DRYMASS + MKX(K,J)
-                  ENDDO
-                  KK = KK - 1
-                  XNEW = XK(KK+1)/ 1.1
-               ENDIF         
-            ENDIF
-
-            if(PRT)print*,'Old NK',Nkx(k),'Old DRYMASS',DRYMASS,'bin',k
-
-            XOLD = SQRT( XK(K)* XK(K+1) )
-            NUMBER = NKX(K)
-            NSHIFT = ( DRYMASS - XOLD * NUMBER )/ ( XNEW - XOLD )
-            MSHIFT = XNEW * NSHIFT
-            NKX(K) = NKX(K) - NSHIFT
-            NKX(KK) =NKX(KK) + NSHIFT
-
-            if(prt) then
-               print*,'NSHIFT',NSHIFT, 'MSHIFT',MSHIFT
-               print*,'New NK',k,Nkx(k),' Nk(kk)',kk,Nkx(kk)
-               print*,'Total mass bin',k,sum(Mkx(k,1:icomp-idiag))
-               print*,'SO4 mass bin  ',k,(Mkx(k,srtso4))
-               print*,'Total mass bin',kk,sum(Mkx(kk,1:icomp-idiag))
-               print*,'SO4 mass bin  ' ,kk,(Mkx(kk,srtso4))
-            endif            
-
-            DO J = 1, ICOMP-IDIAG
-              FJ = MKX(K,J)/ DRYMASS 
-              MKX(K,J) = XOLD * NKX(K) * FJ
-              MKX(KK,J) = MKX(KK,J) + MSHIFT * FJ
-            ENDDO
-
-            if(prt) then
-               print*,'After shift mass'
-               print*,'Total mass bin',k,sum(Mkx(k,1:icomp-idiag))
-               print*,'SO4 mass bin  ',k,(Mkx(k,srtso4))
-               print*,'Total mass bin',kk,sum(Mkx(kk,1:icomp-idiag))
-               print*,'SO4 mass bin  ',kk,(Mkx(kk,srtso4))
-            endif            
-
-
-
-         ELSE
-            ERRORSWITCH = .TRUE.
-            PRINT *, 'MNFIX(3) : AVG>Xk(',K+1,')'
-            GOTO 300
-         ENDIF    ! Fixerror             
-         ENDIF       ! AVG > Xk(k+1)
-
-!         if (PRT) then     !<step5.1-temp>
-!            print *,'After_Check4---------------------'
-!            totmas = sum(mkx(k,1:icomp-1))
-!            print *, totmas,nkx(k), totmas/nkx(k)
-!         endif
-
-         ! If under boundary of the current bin
-         IF ( AVG <  XK(K) ) THEN
-            IF ( PRT ) PRINT *,'MNFIX [4]: AVG<Xk(',K,')'
-            IF ( FIXERROR ) THEN
-               !average mass is too low - shift number to lower bin
-               KK = K - 1
-               XNEW = XK(KK)* 1.1
- 200           IF ( XNEW >= AVG ) THEN
-                  IF ( KK > 1 ) THEN 
-                     KK = KK - 1
-                     XNEW = XK(KK)* 1.1
-                     GOTO 200
-                  ELSE
-                     ! Already reach lowest bin - must remove some number (win, 8/1/07)
-                     NKX(K) = DRYMASS/ ( XK(1)* 1.2 )
-                  ENDIF                     
-               ENDIF
-               XOLD = SQRT(XK(K)* XK(K+1))
-               NUMBER = NKX(K)
-               NSHIFT = NUMBER - DRYMASS/XOLD !(win, 10/20/08)
-               !Prior to 10/20/08 (win)
-               !NSHIFT = (DRYMASS - XOLD * NUMBER)/ ( XNEW - XOLD )
-               MSHIFT = XNEW * NSHIFT
-               NKX(K) = NKX(K) - NSHIFT
-               NKX(KK) = NKX(KK) + NSHIFT
-               DO J=1,ICOMP
-                  FJ = MKX(K,J)/ DRYMASS   
-                  MKX(K,J) = XOLD * NKX(K) * FJ
-                  MKX(KK,J) = MKX(KK,J) + MSHIFT * FJ
-               ENDDO
-
-            ELSE
-               ERRORSWITCH = .TRUE.
-               PRINT *, 'MNFIX(4): AVG < Xk(',k,')'
-               GOTO 300
-            ENDIF       
-         ENDIF
-         
-!         if (PRT) then     !<step5.1-temp>
-!            print *,'After_Check5---------------------'
-!            totmas = sum(mkx(k,1:icomp-1))
-!            print *, totmas,nkx(k), totmas/nkx(k)
-!         endif
-!c         if (PRT) print *,mkx(k,1),nkx(k), mkx(k,1)/nkx(k),'Check5'!<step4.4>tmp (win, 9/28/05)
-
-
-      ENDDO ! loop bin
-
-      ! Catch any small negative values resulting from fixing
-      !--------------------------------------------------------------------------
-      DO K = 1, IBINS
-        IF ( NKX(K) < 0D0 ) THEN
-           IF ( PRT ) THEN 
-              PRINT *,'MNFIX[5]: FOUND NEGATIVE N'
-              PRINT *, 'Bin, N', K, NKX(K)
-           ENDIF
-           IF ( ABS(NKX(K)) < 1D0 .and. FIXERROR ) THEN
-              NKX(K) = 0D0
-              IF ( PRT ) PRINT *,'Negative N > -1.0 Reset to zero'
-           ELSE
-              ERRORSWITCH = .TRUE.
-              PRINT *, 'MNFIX(5): Negative N after fixing at bin',k
-              GOTO 300          !exit mnfix if found negative error (win, 4/18/06)
-           ENDIF
-        ENDIF
-        DO J = 1, ICOMP
-           IF ( MKX(K,J) < 0D0 ) THEN
-              IF ( PRT ) THEN 
-                 PRINT *,'MNFIX[6]: FOUND NEGATIVE M'
-                 PRINT *,'Bin, Comp, Mk', K, J, MKX(K,J)
-              ENDIF
-              IF( ABS(MKX(K,J)) < 1D-5 .and. FIXERROR ) THEN
-                 MKX(K,J) = 0D0
-                 IF ( PRT ) PRINT *,'Negative M > -1.d-5 Reset to zero'
-              ELSE
-                 ERRORSWITCH =.TRUE.
-                 PRINT *, 'MNFIX(6): Negative M after fixing at bin',k
-                 GOTO 300       !exit mnfix if found negative error (win, 4/18/06)
-              ENDIF
-           ENDIF
-        ENDDO                   !icomp
-      ENDDO                     !ibins
-
-      ! Check any last inconsistent M=0 or N=0 
-      !--------------------------------------------------------
-      DO K = 1, IBINS
-         DRYMASS = 0.d0
-         DO J = 1, ICOMP-IDIAG
-            DRYMASS = DRYMASS + MKX(K,J)
-         ENDDO
-         IF ( NKX(K) /= 0D0 .AND. DRYMASS == 0D0 .or.
-     &        NKX(K) == 0D0 .AND. DRYMASS /= 0D0     ) THEN   
-            DO J = 1, ICOMP
-               MKX(K,J)=0.D0
-               NKX(K) = 0.D0
-            ENDDO
-            MKX(K,ICOMP) = 0.d0 !Set aerosol water to zero too
-         ENDIF                  ! If tiny number
-      ENDDO
-
- 300  CONTINUE
-          
-      IF (ERRORSWITCH) THEN
-555   FORMAT (3E15.5E2)
-       WRITE(6,*)'END OF MNFIX ( WHERE? )'
-       WRITE(6,*)'DRYMAS-excl-NH4  NK      DRYMASS/NK'
-       DO K = 1,30
-            TOTMAS = SUM(MKX(K,1:ICOMP-1))
-!            PRINT *, TOTMAS,NKX(K), TOTMAS/NKX(K)
-        WRITE(6,555)
-     &          TOTMAS, NKX(K),
-     &          TOTMAS/ NKX(K) 
-        print*,'-----------'
-        call debugprint( Nkx, Mkx, 0,0,0,'End of MNFIX')
-       ENDDO
-
-!       write(*,*)'Nk'
-!       write(*,*) Nkx(1:30)
-!       write(*,*)'Mk(srtso4)'
-!       write(*,*) Mkx(1:30,srtso4)
-!       write(*,*)'Mk(srth2o)'
-!       write(*,*) Mkx(1:30,srth2o)
-       !STOP 'Negative Nk or Mk at after mnfix'  !comment out this to make it stop outside mnfix so that I can print out the i,j,l (location) of the error (win, 9/1/05)
-      ENDIF
-
-       ! Return to call subroutine
-      END SUBROUTINE MNFIX_deprecated 
-
-!-----------------------------------------------------------------------------
-
-      SUBROUTINE MNFIX ( NKX, MKX, ERRORSWITCH )
-!
-!*****************************************************************************
-!  Subroutine MNFIX examines the mass and number distrubution and determine if
-!  any bins have an average mass outside their normal range.  This can happen 
-!  because some process, e.g. advection, seems to treat the mass and number
-!  tracers inconsistently.  If any bins are out of range, I shift some mass 
-!  and number to a new bin in a way that conserves both. 
-!  (win, 7/23/07)
-!  ORiginally written by Peter Adams, September 2000
-!  Modified for GEOS-CHEM by Win Trivitayanurak (win@cmu.edu)
-!
-!  NOTES: 
-!  (1 ) Getting rid of eps which was added to the denominator to 
-!       avoid a division by zero when calculating avg mass/number
-!       and calculating multicomponent mass species fj=Mkx(k,j)/drymass.
-!  (2 ) Introduce this code from a previous version of GEOSCHEM -- so this 
-!       may need cleaning up later since this version is full of debugging
-!       print statements (Win, 7/23/07)
-!  (3 ) Bug fix - now when shifting mass or number, it can't try to go beyond
-!       the max or min bin. (win, 8/1/07)
-!*****************************************************************************
-!
-      ! References to F90 modules
-      USE ERROR_MOD,    ONLY : ERROR_STOP, IT_IS_NAN
-
-      ! Arguments
-      REAL*8,  INTENT(INOUT) :: NKX(IBINS),  MKX(IBINS, ICOMP)
-      LOGICAL, INTENT(INOUT) :: ERRORSWITCH
-
-      ! Local variables
-      integer             :: K,J,KK !counters
-      integer             :: NEWBIN !bin number into which mass is shifted
-      REAL*8              :: XOLD, XNEW !average masses of old and new bins
-      REAL*8              :: DRYMASS !dry mass of in a bin
-      REAL*8              :: AVG !average dry mass of particles in bin
-      REAL*8              :: NUMBER !number of particles initially in problem bin
+      REAL*8              :: NUM_INITIAL !number of particles initially in problem bin
       REAL*8              :: NSHIFT  !number to shift to new bin
       REAL*8              :: MSHIFT !mass to shift to new bin
       REAL*8              :: FJ !fraction of mass that is component j
       REAL*8              :: save1,save2,save3,save4,save5
 !      REAL*8,   PARAMETER :: EPS = 1.D-20 !small number for Nk
 !      REAL*8,   PARAMETER :: EPS2= 1.D-32 !small number for Mk 
-      REAL*8,   PARAMETER :: EPS = 1.D-2 !small number for Nk 
+      REAL*8,   PARAMETER :: EPS = 1.D-20 !small number for Nk 
       REAL*8,   PARAMETER :: EPS2= 1.D-28 !small number for Mk
       REAL*8,   PARAMETER :: TINY= 1.D-36 !very small number
 
@@ -6787,7 +6391,10 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
       !=================================================================
       ! MNFIX begins here!
       !=================================================================
-
+!%%%%+PRIVATE(K, J, KK, NEWBIN, XOLD, XNEW, DRYMASS, AVG)
+!%%%%+PRIVATE(NUM_INITIAL, NSHIFT, MSHIFT, FJ )
+!%%%%+PRIVATE( save1, save2, save3, save4, save5)
+!%%%%+PRIVATE(FIXERROR, PRT, TOTMAS, TOTNUM)
       FIXERROR = .TRUE.
       PRT = .FALSE.
       PRT = ERRORSWITCH !just carrying a signal to print out value at the observed box - since mnfix does not have any information about I,J,L location. (Win, 9/27/05)
@@ -6799,26 +6406,26 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
       ! Check for any incoming negative values or NaN
       !--------------------------------------------------------------------------
       DO K = 1, IBINS
-        IF ( IT_IS_NAN(NKX(K)) ) THEN
+        IF ( IT_IS_NAN(NK(K)) ) THEN
            PRINT *,'11 Found Nan in Nk at bin',K
            ERRORSWITCH = .TRUE.
            print *,'11 MNFIX(0): Found NaN in Nk(,',k,')'
            GOTO 300
         ENDIF
         DO J = 1, ICOMP
-           IF ( IT_IS_NAN(MKX(K,J)) ) THEN
+           IF ( IT_IS_NAN(MK(K,J)) ) THEN
               PRINT *,'11 Found Nan in Mk at bin',K,'component',J
               ERRORSWITCH = .TRUE.
               GOTO 300
            ENDIF
         ENDDO
-        IF ( NKX(K) < 0D0 ) THEN
+        IF ( NK(K) < 0D0 ) THEN
            IF ( PRT ) THEN 
               PRINT *,'MNFIX[0]: FOUND NEGATIVE N'
-              PRINT *, 'Bin, N', K, NKX(K)
+              PRINT *, 'Bin, N', K, NK(K)
            ENDIF
-           IF ( ABS(NKX(K)) < 1D0 .and. FIXERROR ) THEN
-              NKX(K) = 0D0
+           IF ( ABS(NK(K)) < 1D0 .and. FIXERROR ) THEN
+              NK(K) = 0D0
               IF ( PRT ) PRINT *,'Negative N > -1.0 Reset to zero'
            ELSE
               ERRORSWITCH = .TRUE.
@@ -6826,20 +6433,20 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
               GOTO 300          !exit mnfix if found negative error (win, 4/18/06)
            ENDIF
         ENDIF
-        IF ( IT_IS_NAN(NKX(K)) ) THEN 
+        IF ( IT_IS_NAN(NK(K)) ) THEN 
            PRINT *,'Found Nan in Nk at bin',K
            ERRORSWITCH = .TRUE.
            print *,'MNFIX(0): Found NaN in Nk(,',k,')'
            GOTO 300
         ENDIF
         DO J = 1, ICOMP
-           IF ( MKX(K,J) < 0D0 ) THEN
+           IF ( MK(K,J) < 0D0 ) THEN
               IF ( PRT ) THEN 
                  PRINT *,'MNFIX[0]: FOUND NEGATIVE M'
-                 PRINT *,'Bin, Comp, Mk', K, J, MKX(K,J)
+                 PRINT *,'Bin, Comp, Mk', K, J, MK(K,J)
               ENDIF
-              IF( ABS(MKX(K,J)) < 1D-5 .and. FIXERROR ) THEN
-                 MKX(K,J) = 0D0
+              IF( ABS(MK(K,J)) < 1D-5 .and. FIXERROR ) THEN
+                 MK(K,J) = 0D0
                  IF ( PRT ) PRINT *,'Negative M > -1.d-5 Reset to zero'
               ELSE
                  ERRORSWITCH =.TRUE.
@@ -6847,7 +6454,7 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
                  GOTO 300       !exit mnfix if found negative error (win, 4/18/06)
               ENDIF
            ENDIF
-           IF ( IT_IS_NAN(MKX(K,J)) ) THEN 
+           IF ( IT_IS_NAN(MK(K,J)) ) THEN 
               PRINT *,'Found Nan in Mk at bin',K,'component',J
               ERRORSWITCH = .TRUE.
               GOTO 300
@@ -6858,22 +6465,22 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
 
       ! JRP check for neg numbers
       DO K = 1,IBINS
-        IF (NKX(K) < 0.d0) THEN
-           print*,'1 NKX < 0 in MNFIX',K,NKX(K)
+        IF (NK(K) < 0.d0) THEN
+           print*,'1 NK < 0 in MNFIX',K,NK(K)
         ENDIF
         DO J=1,ICOMP
-           IF (MKX(K,J) < 0.d0) THEN
-              print*,'1 MKX < 0 in MNFIX',K,J,MKX(K,J)
+           IF (MK(K,J) < 0.d0) THEN
+              print*,'1 MK < 0 in MNFIX',K,J,MK(K,J)
            ENDIF
         ENDDO
-        IF ( IT_IS_NAN(NKX(K)) ) THEN
+        IF ( IT_IS_NAN(NK(K)) ) THEN
            PRINT *,'11 Found Nan in Nk at bin',K
            ERRORSWITCH = .TRUE.
            print *,'11 MNFIX(0): Found NaN in Nk(,',k,')'
            GOTO 300
         ENDIF
         DO J = 1, ICOMP
-           IF ( IT_IS_NAN(MKX(K,J)) ) THEN
+           IF ( IT_IS_NAN(MK(K,J)) ) THEN
               PRINT *,'11 Found Nan in Mk at bin',K,'component',J
               ERRORSWITCH = .TRUE.
               GOTO 300
@@ -6886,9 +6493,9 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
       TOTNUM = 0d0 
       TOTMAS = 0D0
       DO K = 1,IBINS
-         TOTNUM = TOTNUM + NKX(K)
+         TOTNUM = TOTNUM + NK(K)
          DO J=1,ICOMP-IDIAG
-            TOTMAS = TOTMAS + MKX(K,J)
+            TOTMAS = TOTMAS + MK(K,J)
          ENDDO
       ENDDO
       IF ( TOTNUM == 0D0 .AND. TOTMAS == 0D0 ) THEN
@@ -6898,10 +6505,10 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
 
       ! If number is tiny ( < EPS) then set it to zero
 !      DO K = 1,IBINS
-!         IF ( NKX(K) <= EPS ) THEN
-!            NKX(K) = 0D0
+!         IF ( NK(K) <= EPS ) THEN
+!            NK(K) = 0D0
 !            DO J= 1, ICOMP-1
-!               MKX(K,J) = 0d0
+!               MK(K,J) = 0d0
 !            ENDDO               !STOP  !original (win, 9/1/05)
 
 !         ENDIF
@@ -6910,50 +6517,50 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
       ! If N is tiny and M is tiny, set both to zeroes
       !--------------------------------------------------------
       DO K = 1, IBINS
-        IF ( IT_IS_NAN(NKX(K)) ) THEN
+        IF ( IT_IS_NAN(NK(K)) ) THEN
            PRINT *,'22 Found Nan in Nk at bin',K
            ERRORSWITCH = .TRUE.
            print *,'22 MNFIX(0): Found NaN in Nk(,',k,')'
            GOTO 300
         ENDIF
         DO J = 1, ICOMP
-           IF ( IT_IS_NAN(MKX(K,J)) ) THEN
+           IF ( IT_IS_NAN(MK(K,J)) ) THEN
               PRINT *,'22 Found Nan in Mk at bin',K,'component',J
               ERRORSWITCH = .TRUE.
               GOTO 300
            ENDIF
         ENDDO
-       IF ( NKX(K) <= EPS .AND. NKX(K)>= 0D0 ) THEN
+       IF ( NK(K) <= EPS .AND. NK(K)>= 0D0 ) THEN
          !print*,'1111'
          !print*,k,EPS,xk(K),xk(K+1)
          !print*,'word up'
-         NKX(K) = EPS
-         !NKX(K) = 0.d0
+         NK(K) = EPS
+         !NK(K) = 0.d0
          !DO J = 1, ICOMP-IDIAG
          DO J = 1, ICOMP
             if (J .eq. 1) then
-               !MKX(K,J) = EPS*sqrt(xk(K)*xk(K+1))
-               MKX(K,J) = EPS*AVGMASS(k)
-               !MKX(K,J) = 0.d0
+               !MK(K,J) = EPS*sqrt(xk(K)*xk(K+1))
+               MK(K,J) = EPS*AVGMASS(k)
+               !MK(K,J) = 0.d0
             else
-               MKX(K,J) = TINY
+               MK(K,J) = TINY
             endif
          enddo
-         !print*,'allbins',MKX(:,1)
+         !print*,'allbins',MK(:,1)
        ENDIF ! If tiny number
-         TOTMAS = SUM(MKX(K,1:ICOMP-IDIAG))
+         TOTMAS = SUM(MK(K,1:ICOMP-IDIAG))
          if (TOTMAS.lt.eps2) then
             !print*,'2222'
-            NKX(K) = EPS
-            !NKX(K) = 0.d0
+            NK(K) = EPS
+            !NK(K) = 0.d0
             DO J = 1, ICOMP
             !DO J = 1, ICOMP-IDIAG
                if (J .eq. 1) then
-                  !MKX(K,J) = EPS*sqrt(xk(K)*xk(K+1))
-                  MKX(K,J) = EPS*AVGMASS(k)
-                  !MKX(K,J) = 0.d0
+                  !MK(K,J) = EPS*sqrt(xk(K)*xk(K+1))
+                  MK(K,J) = EPS*AVGMASS(k)
+                  !MK(K,J) = 0.d0
                else
-                  MKX(K,J) = TINY
+                  MK(K,J) = TINY
                endif
             enddo
          endif
@@ -6962,22 +6569,22 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
 
       ! JRP check for neg numbers
       DO K = 1,IBINS
-        IF (NKX(K) < 0.d0) THEN
-           print*,'2 NKX < 0 in MNFIX',K,NKX(K)
+        IF (NK(K) < 0.d0) THEN
+           print*,'2 NK < 0 in MNFIX',K,NK(K)
         ENDIF
         DO J=1,ICOMP
-           IF (MKX(K,J) < 0.d0) THEN
-              print*,'2 MKX < 0 in MNFIX',K,J,MKX(K,J)
+           IF (MK(K,J) < 0.d0) THEN
+              print*,'2 MK < 0 in MNFIX',K,J,MK(K,J)
            ENDIF
         ENDDO
-        IF ( IT_IS_NAN(NKX(K)) ) THEN
+        IF ( IT_IS_NAN(NK(K)) ) THEN
            PRINT *,'2 Found Nan in Nk at bin',K
            ERRORSWITCH = .TRUE.
            print *,'2 MNFIX(0): Found NaN in Nk(,',k,')'
            GOTO 300
         ENDIF
         DO J = 1, ICOMP
-           IF ( IT_IS_NAN(MKX(K,J)) ) THEN
+           IF ( IT_IS_NAN(MK(K,J)) ) THEN
               PRINT *,'2 Found Nan in Mk at bin',K,'component',J
               ERRORSWITCH = .TRUE.
               GOTO 300
@@ -6990,23 +6597,23 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
       DO K = 1, IBINS
          DRYMASS = 0.d0
          DO J = 1, ICOMP-IDIAG
-            DRYMASS = DRYMASS + MKX(K,J)
+            DRYMASS = DRYMASS + MK(K,J)
          ENDDO
 
-         IF ( Nkx(k) == 0d0 ) THEN
+         IF ( NK(k) == 0d0 ) THEN
             !AVG = SQRT( xk(K)* xk(K+1) )
             AVG = SQRT( AVGMASS(k) )
          ELSE
-            AVG = DRYMASS/ NKX(K)
+            AVG = DRYMASS/ NK(K)
          ENDIF
 
          IF ( AVG >  xk(IBINS+1) ) THEN
             IF ( PRT ) PRINT *, 'MNFIX [1]: AVG > Xk(31) at bin',K
             IF ( FIXERROR ) THEN 
                !out of bin range - remove some mass
-               MSHIFT = NKX(k)* xk(IBINS+1)/ 1.2
+               MSHIFT = NK(k)* xk(IBINS+1)/ 1.2
                DO J= 1, ICOMP
-                  MKX(K,J) = MKX(K,J)* MSHIFT/ (DRYMASS+EPS2)
+                  MK(K,J) = MK(K,J)* MSHIFT/ (DRYMASS+EPS2)
                ENDDO
             ELSE
                ERRORSWITCH = .TRUE.
@@ -7018,7 +6625,7 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
             IF( PRT ) PRINT *,'MNFIX [2]: AVG < Xk(1)'
             IF( FIXERROR ) THEN 
                !out of bin range - remove some number
-               NKX(K) = DRYMASS/ ( xk(1)* 1.2 )
+               NK(K) = DRYMASS/ ( xk(1)* 1.2 )
             ELSE
                ERRORSWITCH = .TRUE.
                print *,'MNFIX(1): AVG < Xk(1) at bin',K
@@ -7029,22 +6636,22 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
 
       ! JRP check for neg numbers
       DO K = 1,IBINS
-        IF (NKX(K) < 0.d0) THEN
-           print*,'3 NKX < 0 in MNFIX',K,NKX(K)
+        IF (NK(K) < 0.d0) THEN
+           print*,'3 NK < 0 in MNFIX',K,NK(K)
         ENDIF
         DO J=1,ICOMP
-           IF (MKX(K,J) < 0.d0) THEN
-              print*,'3 MKX < 0 in MNFIX',K,J,MKX(K,J)
+           IF (MK(K,J) < 0.d0) THEN
+              print*,'3 MK < 0 in MNFIX',K,J,MK(K,J)
            ENDIF
         ENDDO
-        IF ( IT_IS_NAN(NKX(K)) ) THEN
+        IF ( IT_IS_NAN(NK(K)) ) THEN
            PRINT *,'3 Found Nan in Nk at bin',K
            ERRORSWITCH = .TRUE.
            print *,'3 MNFIX(0): Found NaN in Nk(,',k,')'
            GOTO 300
         ENDIF
         DO J = 1, ICOMP
-           IF ( IT_IS_NAN(MKX(K,J)) ) THEN
+           IF ( IT_IS_NAN(MK(K,J)) ) THEN
               PRINT *,'3 Found Nan in Mk at bin',K,'component',J
               ERRORSWITCH = .TRUE.
               GOTO 300
@@ -7056,14 +6663,14 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
 !      if (PRT) then !<step5.1-temp>
 !         print *,'After_Check2 ---------------------'
 !         do k=1,ibins
-!            totmas = sum(mkx(k,1:icomp-1))
-!            print *, totmas,nkx(k), totmas/nkx(k)
+!            totmas = sum(MK(k,1:icomp-1))
+!            print *, totmas,NK(k), totmas/NK(k)
 !         enddo
 !      endif
 
-      !print*,1,Nkx(1),Nkx(2)
-      !print*,1,Mkx(1,:)
-      !print*,1,Mkx(2,:)
+      !print*,1,NK(1),NK(2)
+      !print*,1,MK(1,:)
+      !print*,1,MK(2,:)
 
       ! Check to see if any bins are out of bounds
       !-------------------------------------------------------------------
@@ -7072,20 +6679,20 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
 
          DRYMASS = 0.d0
          DO J = 1, ICOMP-IDIAG
-            DRYMASS = DRYMASS + MKX(K,J)
+            DRYMASS = DRYMASS + MK(K,J)
          ENDDO
 
-         IF ( NKX(K) == 0d0 ) THEN
+         IF ( NK(K) == 0d0 ) THEN
             !AVG = SQRT(xk(K)*xk(K+1)) !set to mid-range value
             AVG = AVGMASS(k) !set to mid-range value
          ELSE
-            AVG = DRYMASS/NKX(K)
+            AVG = DRYMASS/NK(K)
          ENDIF
 
 !         if (PRT) then     !<step5.1-temp>
 !            print *,'After_Check3---------------------'
-!            totmas = sum(mkx(k,1:icomp-1))
-!            print *, totmas,nkx(k), totmas/nkx(k)
+!            totmas = sum(MK(k,1:icomp-1))
+!            print *, totmas,NK(k), totmas/NK(k)
 !         endif
 
          ! If over boundary of the current bin
@@ -7106,54 +6713,54 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
                ELSE
                   ! Already reach highest bin - must remove some mass (win, 8/1/07)
                   ! Updated by jrp 3/1/2012
-                  MSHIFT = NKX(k)* xk(k+1)/ 1.1
+                  MSHIFT = NK(k)* xk(k+1)/ 1.1
                   if( PRT ) PRINT*,' Mass being discarded: '
                   DO J= 1, ICOMP
                      !if (PRT) 
 !                     print*,'Removing mass in MNFIX',
 !     &                    MSHIFT, DRYMASS
-                     MKX(K,J) = MKX(K,J)* MSHIFT/ (DRYMASS)
+                     MK(K,J) = MK(K,J)* MSHIFT/ (DRYMASS)
                   ENDDO 
                   ! and recalculate dry mass (win, 8/1/07)
                   DRYMASS = 0.d0 ! jrp fix 2/29/12
                   DO J = 1, ICOMP-IDIAG
-                     DRYMASS = DRYMASS + MKX(K,J)
+                     DRYMASS = DRYMASS + MK(K,J)
                   ENDDO
                   GOTO 111
                ENDIF         
             ENDIF
 
-            if(PRT)print*,'Old NK',Nkx(k),'Old DRYMASS',DRYMASS,'bin',k
+            if(PRT)print*,'Old NK',NK(k),'Old DRYMASS',DRYMASS,'bin',k
 
             !XOLD = SQRT( xk(K)* xk(K+1) )
             XOLD = AVGMASS(k)
-            NUMBER = NKX(K)
-            NSHIFT = ( DRYMASS - XOLD * NUMBER )/ ( XNEW - XOLD )
+            NUM_INITIAL = NK(K)
+            NSHIFT = ( DRYMASS - XOLD * NUM_INITIAL )/ ( XNEW - XOLD )
             MSHIFT = XNEW * NSHIFT
-            NKX(K) = NKX(K) - NSHIFT
-            NKX(KK) =NKX(KK) + NSHIFT
+            NK(K) = NK(K) - NSHIFT
+            NK(KK) =NK(KK) + NSHIFT
 
             if(prt) then
                print*,'NSHIFT',NSHIFT, 'MSHIFT',MSHIFT
-               print*,'New NK',k,Nkx(k),' Nk(kk)',kk,Nkx(kk)
-               print*,'Total mass bin',k,sum(Mkx(k,1:icomp-idiag))
-               print*,'SO4 mass bin  ',k,(Mkx(k,srtso4))
-               print*,'Total mass bin',kk,sum(Mkx(kk,1:icomp-idiag))
-               print*,'SO4 mass bin  ' ,kk,(Mkx(kk,srtso4))
+               print*,'New NK',k,NK(k),' Nk(kk)',kk,NK(kk)
+               print*,'Total mass bin',k,sum(MK(k,1:icomp-idiag))
+               print*,'SO4 mass bin  ',k,(MK(k,srtso4))
+               print*,'Total mass bin',kk,sum(MK(kk,1:icomp-idiag))
+               print*,'SO4 mass bin  ' ,kk,(MK(kk,srtso4))
             endif            
 
             DO J = 1, ICOMP-IDIAG
-              FJ = MKX(K,J)/ DRYMASS 
-              MKX(K,J) = XOLD * NKX(K) * FJ
-              MKX(KK,J) = MKX(KK,J) + MSHIFT * FJ
+              FJ = MK(K,J)/ DRYMASS 
+              MK(K,J) = XOLD * NK(K) * FJ
+              MK(KK,J) = MK(KK,J) + MSHIFT * FJ
             ENDDO
 
             if(prt) then
                print*,'After shift mass'
-               print*,'Total mass bin',k,sum(Mkx(k,1:icomp-idiag))
-               print*,'SO4 mass bin  ',k,(Mkx(k,srtso4))
-               print*,'Total mass bin',kk,sum(Mkx(kk,1:icomp-idiag))
-               print*,'SO4 mass bin  ',kk,(Mkx(kk,srtso4))
+               print*,'Total mass bin',k,sum(MK(k,1:icomp-idiag))
+               print*,'SO4 mass bin  ',k,(MK(k,srtso4))
+               print*,'Total mass bin',kk,sum(MK(kk,1:icomp-idiag))
+               print*,'SO4 mass bin  ',kk,(MK(kk,srtso4))
             endif            
 
 
@@ -7167,8 +6774,8 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
 
 !         if (PRT) then     !<step5.1-temp>
 !            print *,'After_Check4---------------------'
-!            totmas = sum(mkx(k,1:icomp-1))
-!            print *, totmas,nkx(k), totmas/nkx(k)
+!            totmas = sum(MK(k,1:icomp-1))
+!            print *, totmas,NK(k), totmas/NK(k)
 !         endif
 
          ! If under boundary of the current bin
@@ -7186,23 +6793,23 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
                      GOTO 200
                   ELSE
                      ! Already reach lowest bin - must remove some number (win, 8/1/07)
-                     NKX(K) = DRYMASS/ ( xk(1)* 1.2 )
+                     NK(K) = DRYMASS/ ( xk(1)* 1.2 )
                      GOTO 222
                   ENDIF                     
                ENDIF
                !XOLD = SQRT(xk(K)* xk(K+1))
                XOLD = AVGMASS(k)
-               NUMBER = NKX(K)
-               NSHIFT = NUMBER - DRYMASS/XOLD !(win, 10/20/08)
+               NUM_INITIAL = NK(K)
+               NSHIFT = NUM_INITIAL - DRYMASS/XOLD !(win, 10/20/08)
                !Prior to 10/20/08 (win)
                !NSHIFT = (DRYMASS - XOLD * NUMBER)/ ( XNEW - XOLD )
                MSHIFT = XNEW * NSHIFT
-               NKX(K) = NKX(K) - NSHIFT
-               NKX(KK) = NKX(KK) + NSHIFT
+               NK(K) = NK(K) - NSHIFT
+               NK(KK) = NK(KK) + NSHIFT
                DO J=1,ICOMP
-                  FJ = MKX(K,J)/ DRYMASS   
-                  MKX(K,J) = XOLD * NKX(K) * FJ
-                  MKX(KK,J) = MKX(KK,J) + MSHIFT * FJ
+                  FJ = MK(K,J)/ DRYMASS   
+                  MK(K,J) = XOLD * NK(K) * FJ
+                  MK(KK,J) = MK(KK,J) + MSHIFT * FJ
                ENDDO
 
             ELSE
@@ -7214,39 +6821,39 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
          
 !         if (PRT) then     !<step5.1-temp>
 !            print *,'After_Check5---------------------'
-!            totmas = sum(mkx(k,1:icomp-1))
-!            print *, totmas,nkx(k), totmas/nkx(k)
+!            totmas = sum(MK(k,1:icomp-1))
+!            print *, totmas,NK(k), totmas/NK(k)
 !         endif
-!c         if (PRT) print *,mkx(k,1),nkx(k), mkx(k,1)/nkx(k),'Check5'!<step4.4>tmp (win, 9/28/05)
+!c         if (PRT) print *,MK(k,1),NK(k), MK(k,1)/NK(k),'Check5'!<step4.4>tmp (win, 9/28/05)
 
 
       ENDDO ! loop bin
       save5=xk(1)
 
-      !print*,2,Nkx(1),Nkx(2)
-      !print*,2,Mkx(1,:)
-      !print*,2,Mkx(2,:)
+      !print*,2,NK(1),NK(2)
+      !print*,2,MK(1,:)
+      !print*,2,MK(2,:)
 
       ! JRP check for neg numbers
       DO K = 1,IBINS
-        IF (NKX(K) < 0.d0) THEN
-           print*,'4 NKX < 0 in MNFIX',K,NKX(K)
+        IF (NK(K) < 0.d0) THEN
+           print*,'4 NK < 0 in MNFIX',K,NK(K)
         ENDIF
         DO J=1,ICOMP
-           IF (MKX(K,J) < 0.d0) THEN
-              print*,'4 MKX < 0 in MNFIX',K,J,MKX(K,J)
+           IF (MK(K,J) < 0.d0) THEN
+              print*,'4 MK < 0 in MNFIX',K,J,MK(K,J)
               print*,'saved xk1s',save1,save2,save3,save4,save5
               print*,'xk',xk
            ENDIF
         ENDDO
-        IF ( IT_IS_NAN(NKX(K)) ) THEN
+        IF ( IT_IS_NAN(NK(K)) ) THEN
            PRINT *,'4 Found Nan in Nk at bin',K
            ERRORSWITCH = .TRUE.
            print *,'4 MNFIX(0): Found NaN in Nk(,',k,')'
            GOTO 300
         ENDIF
         DO J = 1, ICOMP
-           IF ( IT_IS_NAN(MKX(K,J)) ) THEN
+           IF ( IT_IS_NAN(MK(K,J)) ) THEN
               PRINT *,'4 Found Nan in Mk at bin',K,'component',J
               ERRORSWITCH = .TRUE.
               GOTO 300
@@ -7258,13 +6865,13 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
       ! Catch any small negative values resulting from fixing
       !--------------------------------------------------------------------------
       DO K = 1, IBINS
-        IF ( NKX(K) < 0D0 ) THEN
+        IF ( NK(K) < 0D0 ) THEN
            IF ( PRT ) THEN 
               PRINT *,'MNFIX[5]: FOUND NEGATIVE N'
-              PRINT *, 'Bin, N', K, NKX(K)
+              PRINT *, 'Bin, N', K, NK(K)
            ENDIF
-           IF ( ABS(NKX(K)) < 1D0 .and. FIXERROR ) THEN
-              NKX(K) = 0D0
+           IF ( ABS(NK(K)) < 1D0 .and. FIXERROR ) THEN
+              NK(K) = 0D0
               IF ( PRT ) PRINT *,'Negative N > -1.0 Reset to zero'
            ELSE
               ERRORSWITCH = .TRUE.
@@ -7273,13 +6880,13 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
            ENDIF
         ENDIF
         DO J = 1, ICOMP
-           IF ( MKX(K,J) < 0D0 ) THEN
+           IF ( MK(K,J) < 0D0 ) THEN
               IF ( PRT ) THEN 
                  PRINT *,'MNFIX[6]: FOUND NEGATIVE M'
-                 PRINT *,'Bin, Comp, Mk', K, J, MKX(K,J)
+                 PRINT *,'Bin, Comp, Mk', K, J, MK(K,J)
               ENDIF
-              IF( ABS(MKX(K,J)) < 1D-5 .and. FIXERROR ) THEN
-                 MKX(K,J) = 0D0
+              IF( ABS(MK(K,J)) < 1D-5 .and. FIXERROR ) THEN
+                 MK(K,J) = 0D0
                  IF ( PRT ) PRINT *,'Negative M > -1.d-5 Reset to zero'
               ELSE
                  ERRORSWITCH =.TRUE.
@@ -7292,22 +6899,22 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
 
       ! JRP check for neg numbers
       DO K = 1,IBINS
-        IF (NKX(K) < 0.d0) THEN
-           print*,'5 NKX < 0 in MNFIX',K,NKX(K)
+        IF (NK(K) < 0.d0) THEN
+           print*,'5 NK < 0 in MNFIX',K,NK(K)
         ENDIF
         DO J=1,ICOMP
-           IF (MKX(K,J) < 0.d0) THEN
-              print*,'5 MKX < 0 in MNFIX',K,J,MKX(K,J)
+           IF (MK(K,J) < 0.d0) THEN
+              print*,'5 MK < 0 in MNFIX',K,J,MK(K,J)
            ENDIF
         ENDDO
-        IF ( IT_IS_NAN(NKX(K)) ) THEN
+        IF ( IT_IS_NAN(NK(K)) ) THEN
            PRINT *,'5 Found Nan in Nk at bin',K
            ERRORSWITCH = .TRUE.
            print *,'5 MNFIX(0): Found NaN in Nk(,',k,')'
            GOTO 300
         ENDIF
         DO J = 1, ICOMP
-           IF ( IT_IS_NAN(MKX(K,J)) ) THEN
+           IF ( IT_IS_NAN(MK(K,J)) ) THEN
               PRINT *,'5 Found Nan in Mk at bin',K,'component',J
               ERRORSWITCH = .TRUE.
               GOTO 300
@@ -7320,27 +6927,27 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
       DO K = 1, IBINS
          DRYMASS = 0.d0
          DO J = 1, ICOMP-IDIAG
-            DRYMASS = DRYMASS + MKX(K,J)
+            DRYMASS = DRYMASS + MK(K,J)
          ENDDO
-         IF ( NKX(K) /= 0D0 .AND. DRYMASS == 0D0 .or.
-     &        NKX(K) == 0D0 .AND. DRYMASS /= 0D0     ) THEN   
+         IF ( NK(K) /= 0D0 .AND. DRYMASS == 0D0 .or.
+     &        NK(K) == 0D0 .AND. DRYMASS /= 0D0     ) THEN   
             DO J = 1, ICOMP
-               MKX(K,J)=0.D0
-               NKX(K) = 0.D0
+               MK(K,J)=0.D0
+               NK(K) = 0.D0
             ENDDO
-            MKX(K,ICOMP) = 0.d0 !Set aerosol water to zero too
+            MK(K,ICOMP) = 0.d0 !Set aerosol water to zero too
          ENDIF                  ! If tiny number
       ENDDO
 
       ! JRP check for neg numbers
       DO K = 1,IBINS
-        IF (NKX(K) < 0.d0) THEN
-           print*,'6 NKX < 0 in MNFIX',K,NKX(K)
+        IF (NK(K) < 0.d0) THEN
+           print*,'6 NK < 0 in MNFIX',K,NK(K)
            STOP
         ENDIF
         DO J=1,ICOMP
-           IF (MKX(K,J) < 0.d0) THEN
-              print*,'6 MKX < 0 in MNFIX',K,J,MKX(K,J)
+           IF (MK(K,J) < 0.d0) THEN
+              print*,'6 MK < 0 in MNFIX',K,J,MK(K,J)
               STOP
            ENDIF
         ENDDO
@@ -7353,21 +6960,21 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
        WRITE(6,*)'END OF MNFIX ( WHERE? )'
        WRITE(6,*)'DRYMAS-excl-NH4  NK      DRYMASS/NK'
        DO K = 1,30
-            TOTMAS = SUM(MKX(K,1:ICOMP-1))
-!            PRINT *, TOTMAS,NKX(K), TOTMAS/NKX(K)
+            TOTMAS = SUM(MK(K,1:ICOMP-1))
+!            PRINT *, TOTMAS,NK(K), TOTMAS/NK(K)
         WRITE(6,555)
-     &          TOTMAS, NKX(K),
-     &          TOTMAS/ NKX(K) 
+     &          TOTMAS, NK(K),
+     &          TOTMAS/ NK(K) 
         print*,'-----------'
-        call debugprint( Nkx, Mkx, 0,0,0,'End of MNFIX')
+        call debugprint( NK, MK, 0,0,0,'End of MNFIX')
        ENDDO
 
 !       write(*,*)'Nk'
-!       write(*,*) Nkx(1:30)
+!       write(*,*) NK(1:30)
 !       write(*,*)'Mk(srtso4)'
-!       write(*,*) Mkx(1:30,srtso4)
+!       write(*,*) MK(1:30,srtso4)
 !       write(*,*)'Mk(srth2o)'
-!       write(*,*) Mkx(1:30,srth2o)
+!       write(*,*) MK(1:30,srth2o)
        !STOP 'Negative Nk or Mk at after mnfix'  !comment out this to make it stop outside mnfix so that I can print out the i,j,l (location) of the error (win, 9/1/05)
       ENDIF
 
@@ -7452,6 +7059,9 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
 
       !Before going in to calculation, check and fix Nk and Mk
       ERRORSWITCH = .FALSE.
+#if defined ( DEBUG ) 
+!      print *, 'mnfix in tomas_mod:7495'
+#endif
       CALL MNFIX( NDIST, MDIST, ERRORSWITCH )
       IF ( ERRORSWITCH ) THEN
          PRINT *,'SUBGRIDCOAG: MNFIX found error: Entering SUBGRIDCOAG'

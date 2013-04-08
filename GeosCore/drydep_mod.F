@@ -1622,6 +1622,9 @@
       ! Add parallel DO-loop (bmy, 2/22/05)
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
+#if   defined( TOMAS )
+!$OMP+PRIVATE( BIN, A_RADI, A_DEN )
+#endif
 !$OMP+PRIVATE( IJLOOP, CZ,     TEMPK,  TEMPC,  K,      VD     )
 !$OMP+PRIVATE( LDT,    RSURFC, C1,     XNU,    RT,     IOLSON )
 !$OMP+PRIVATE( II,     RI,     RLU,    RAC,    RGSS,   RGSO   )

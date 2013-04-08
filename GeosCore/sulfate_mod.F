@@ -1771,9 +1771,9 @@
 !$OMP+PRIVATE( Kt1, Kt2, AREASS1, AREASS2, SO2_ss, Kt1N, Kt2N          )
 !$OMP+PRIVATE( PSO4E, PSO4F, XX                                        )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, LLPAR 
-      DO J = 1, JJPAR
       DO I = 1, IIPAR
+      DO J = 1, JJPAR
+      DO L = 1, LLPAR 
 
          ! Initialize for safety's sake 
          AREA_CM2 = 0d0
@@ -6101,7 +6101,6 @@ c      print *,BINMASS(24,11,2,:)
 !
       LOGICAL                :: WEEKDAY
       INTEGER                :: I, J, K, L, DAY_NUM, NTOP, C
-      INTEGER                :: NB
       REAL*8                 :: SO4(LLPAR), DTSRCE  , EFRAC(LLPAR)
       REAL*8                 :: TSO4,       FEMIS
       REAL*8                 :: AREA_CM2,   EPA_AN,  EPA_BF
@@ -6236,11 +6235,13 @@ c      print *,BINMASS(24,11,2,:)
       !=================================================================
       ! Compute SO4 emissions 
       !=================================================================
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, NTOP, SO4, TSO4, L, FEMIS, EFRAC, N0, M0 )
-!!$OMP+PRIVATE( NDISTINIT, NDIST, NDISTFINAL, NADDFINAL )
-!!$OMP+SCHEDULE( DYNAMIC )
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, NTOP, SO4, TSO4, L, FEMIS, EFRAC, N0, M0, K )
+!$OMP+PRIVATE( NDISTINIT, NDIST, MDIST, NDISTFINAL, MADDFINAL )
+!$OMP+PRIVATE( NDIST2, MDIST2, C )
+!$OMP+PRIVATE( BOXVOL, TEMP, PRES, TSCALE, pdbug )
+!$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -6342,6 +6343,9 @@ c      print *,BINMASS(24,11,2,:)
                MADDFINAL(K)  = 0
             ENDDO  
 
+#if defined ( DEBUG ) 
+!      print *, 'mnfix in sulfate_mod:6346'
+#endif
             CALL MNFIX( NDIST, MDIST, ERRORSWITCH )
             IF( ERRORSWITCH ) PRINT *,'SRCSF30: MNFIX found error ',
      &              'before SUBGRIDCOAG at ',I,J,L
@@ -6385,7 +6389,6 @@ c      print *,BINMASS(24,11,2,:)
 !debug            if (I.eq.II.and.J.eq.JJ .and. L==LL) pdbug=.true.
                              
             CALL SUBGRIDCOAG( NDISTINIT, NDIST, MDIST, BOXVOL,TEMP,
-!     &                        PRES, TSCALE, NDISTFINAL, MADDFINAL   ) 
      &                        PRES, TSCALE, NDISTFINAL, MADDFINAL,pdbug) 
 
 !debug            if (I== ii .and. J==jj .and. L==ll)then
@@ -6423,6 +6426,9 @@ c      print *,BINMASS(24,11,2,:)
  
             ERRORSWITCH = .FALSE.
 !debug            if(i==ii.and.j==ii.and.l==ll) errorswitch=.true.
+#if defined ( DEBUG ) 
+!      print *, 'mnfix in sulfate_mod:6430'
+#endif
 
             CALL MNFIX( NDIST2, MDIST2, ERRORSWITCH )
 
@@ -6450,17 +6456,17 @@ c      print *,BINMASS(24,11,2,:)
            !==============================================================
             IF ( ND59 > 0 ) THEN 
                DO L = 1, LLPAR
-               DO NB = 1, IBINS
-                  if(TC2(I,J,L,NB)-M0(L,NB) < 0d0) 
-     &              print *,'Negative SF emis ',TC2(I,J,L,NB)-M0(L,NB),
-     &                 'at',I,J,L,NB
-                  if(TC1(I,J,L,NB)-N0(L,NB) < 0d0) 
-     &              print *,'Negative NK emis ',TC1(I,J,L,NB)-N0(L,NB),
-     &                 'at',I,J,L,NB
-                  AD59_SULF(I,J,1,NB) = AD59_SULF(I,J,1,NB) + 
-     &                                  (TC2(I,J,L,NB)-M0(L,NB))*S_SO4
-                  AD59_NUMB(I,J,1,NB) = AD59_NUMB(I,J,1,NB) + 
-     &                                  TC1(I,J,L,NB)-N0(L,NB)
+               DO K = 1, IBINS
+                  if(TC2(I,J,L,K)-M0(L,K) < 0d0) 
+     &              print *,'Negative SF emis ',TC2(I,J,L,K)-M0(L,K),
+     &                 'at',I,J,L,K
+                  if(TC1(I,J,L,K)-N0(L,K) < 0d0) 
+     &              print *,'Negative NK emis ',TC1(I,J,L,K)-N0(L,K),
+     &                 'at',I,J,L,K
+                  AD59_SULF(I,J,1,K) = AD59_SULF(I,J,1,K) + 
+     &                                  (TC2(I,J,L,K)-M0(L,K))*S_SO4
+                  AD59_NUMB(I,J,1,K) = AD59_NUMB(I,J,1,K) + 
+     &                                  TC1(I,J,L,K)-N0(L,K)
                ENDDO
                ENDDO
             ENDIF
@@ -6475,11 +6481,11 @@ c      print *,BINMASS(24,11,2,:)
          !=============================================================
             DO L = 1, LLPAR
                SO4(L) = TSO4 * EFRAC(L)
-               DO NB = 1, IBINS
-                  TC1(I,J,L,NB) = TC1(I,J,L,NB) + 
-     &                    ( SO4(L) * DTSRCE * BFRAC(NB) / AVGMASS(NB) )
-                  TC2(I,J,L,NB) = TC2(I,J,L,NB) + 
-     &                    ( SO4(L) * DTSRCE * BFRAC(NB)               )
+               DO K = 1, IBINS
+                  TC1(I,J,L,K) = TC1(I,J,L,K) + 
+     &                    ( SO4(L) * DTSRCE * BFRAC(K) / AVGMASS(K) )
+                  TC2(I,J,L,K) = TC2(I,J,L,K) + 
+     &                    ( SO4(L) * DTSRCE * BFRAC(K)               )
                ENDDO
             ENDDO
 
@@ -6493,13 +6499,13 @@ c      print *,BINMASS(24,11,2,:)
                SO4anbf(:,:,2) = SO4an(:,:,2)
             
                DO L = 1, 2
-               DO NB = 1, IBINS
-                  AD59_SULF(I,J,L,NB) = AD59_SULF(I,J,L,NB) + 
-     &                                ( SO4anbf(I,J,L) * BFRAC(NB) 
+               DO K = 1, IBINS
+                  AD59_SULF(I,J,L,K) = AD59_SULF(I,J,L,K) + 
+     &                                ( SO4anbf(I,J,L) * BFRAC(K) 
      &                                    * S_SO4 * DTSRCE         )
-                  AD59_NUMB(I,J,L,NB) = AD59_NUMB(I,J,L,NB) + 
-     &                                ( SO4anbf(I,J,L) * BFRAC(NB) 
-     &                                    / AVGMASS(NB) * DTSRCE   )
+                  AD59_NUMB(I,J,L,K) = AD59_NUMB(I,J,L,K) + 
+     &                                ( SO4anbf(I,J,L) * BFRAC(K) 
+     &                                    / AVGMASS(K) * DTSRCE   )
                ENDDO
                ENDDO
 
@@ -6509,7 +6515,7 @@ c      print *,BINMASS(24,11,2,:)
 
       ENDDO
       ENDDO
-!!$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
       IF ( LPRT ) print *,'   ### Finish SRCSF30'
 
       END SUBROUTINE SRCSF30

@@ -163,9 +163,9 @@ cdbg      print *, dryd(:)
 !$OMP+PRIVATE( DELZ, DELZ1, AREA_CM2, TOT1, TOT2, FLUX )
 !$OMP+DEFAULT( SHARED )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO BIN = 1, IBINS
-      DO J = 1, JJPAR
       DO I = 1, IIPAR
+      DO J = 1, JJPAR
+      DO BIN = 1, IBINS
 
          ! 1-D grid box index
          IJLOOP      = ( (J-1) * IIPAR ) + I
@@ -320,7 +320,7 @@ cdbg      print *, dryd(:)
 
       ! Initialize array
       X = 0d0
-      X0 = 0d0
+      X0(:,:) = 0d0
 
 !$OMP PARALLEL DO
 !$OMP+PRIVATE( L, J, I, AREA_CM2, RKT, flux, JC, BIN )

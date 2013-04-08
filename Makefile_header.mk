@@ -203,8 +203,6 @@ endif
 #==============================================================================
 ifeq ($(COMPILER),ifort) 
 
-#DEBUG     := DEBUG
-
 # Default optimization level for all routines (-O2)
 ifndef OPT
 OPT       := -O2
@@ -217,7 +215,7 @@ endif
 
 # Pick compiler options for debug run or regular run 
 ifdef DEBUG
-FFLAGS    := -cpp -w -O0 -auto -noalign -convert big_endian -g
+FFLAGS    := -cpp -w -O0 -auto -noalign -convert big_endian -g -DDEBUG
 else
 FFLAGS    := -cpp -w $(OPT) -auto -noalign -convert big_endian -vec-report0 
 endif
