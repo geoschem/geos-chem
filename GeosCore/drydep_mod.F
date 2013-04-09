@@ -1620,20 +1620,20 @@
 #endif
 
       ! Add parallel DO-loop (bmy, 2/22/05)
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
+!%%%% PARALLEL DO
+!%%%%+DEFAULT( SHARED )
 #if   defined( TOMAS )
-!$OMP+PRIVATE( BIN, A_RADI, A_DEN )
+!%%%%+PRIVATE( BIN, A_RADI, A_DEN )
 #endif
-!$OMP+PRIVATE( IJLOOP, CZ,     TEMPK,  TEMPC,  K,      VD     )
-!$OMP+PRIVATE( LDT,    RSURFC, C1,     XNU,    RT,     IOLSON )
-!$OMP+PRIVATE( II,     RI,     RLU,    RAC,    RGSS,   RGSO   )
-!$OMP+PRIVATE( RCLS,   RCLO,   RAD0,   RIX,    GFACT,  GFACI  )
-!$OMP+PRIVATE( RDC,    XMWH2O, RIXX,   RLUXX,  RGSX,   RCLX   )
-!$OMP+PRIVATE( DTMP1,  DTMP2,  DTMP3,  DTMP4,  VDS,    CZH    )
-!$OMP+PRIVATE( CKUSTR, REYNO,  CORR1,  CORR2,  Z0OBK,  RA     )
-!$OMP+PRIVATE( DUMMY1, DUMMY2, DUMMY3, DUMMY4, DAIR,   RB     )
-!$OMP+PRIVATE( C1X,    VK,     I,      J                      )
+!%%%%+PRIVATE( IJLOOP, CZ,     TEMPK,  TEMPC,  K,      VD     )
+!%%%%+PRIVATE( LDT,    RSURFC, C1,     XNU,    RT,     IOLSON )
+!%%%%+PRIVATE( II,     RI,     RLU,    RAC,    RGSS,   RGSO   )
+!%%%%+PRIVATE( RCLS,   RCLO,   RAD0,   RIX,    GFACT,  GFACI  )
+!%%%%+PRIVATE( RDC,    XMWH2O, RIXX,   RLUXX,  RGSX,   RCLX   )
+!%%%%+PRIVATE( DTMP1,  DTMP2,  DTMP3,  DTMP4,  VDS,    CZH    )
+!%%%%+PRIVATE( CKUSTR, REYNO,  CORR1,  CORR2,  Z0OBK,  RA     )
+!%%%%+PRIVATE( DUMMY1, DUMMY2, DUMMY3, DUMMY4, DAIR,   RB     )
+!%%%%+PRIVATE( C1X,    VK,     I,      J                      )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -2350,7 +2350,7 @@
  550     CONTINUE
       ENDDO
       ENDDO
-!$OMP END PARALLEL DO
+!%%%% END PARALLEL DO
 
       END SUBROUTINE DEPVEL
 !EOC

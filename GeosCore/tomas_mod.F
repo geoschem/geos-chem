@@ -395,17 +395,17 @@
       endif
 
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-!$OMP+PRIVATE( ADT, PRES, TEMPTMS, BOXMASS, RHTOMAS, BOXVOL )
-!$OMP+PRIVATE( printneg, ionrate, lev, weight, GC, N, NK, JC )
-!$OMP+PRIVATE( MK, H2SO4rate_o, tot_n_1, k, tot_s_1, MPNUM )
-!$OMP+PRIVATE( Nkd, Mkd, TOT_NK, TOT_MK, TRANSFER )
-!$OMP+PRIVATE( Nkout,Mkout,Gcout,fn,fn1 )
-!$OMP+PRIVATE( num_iter,Nknuc,Mknuc,Nkcond )
-!$OMP+PRIVATE( Mkcond, ERRORSWITCH, tot_s_1a, tot_n_1a )
-!$OMP+SCHEDULE( DYNAMIC )
+!%%%% PARALLEL DO
+!%%%%+DEFAULT( SHARED )
+!%%%%+PRIVATE( I, J, L )
+!%%%%+PRIVATE( ADT, PRES, TEMPTMS, BOXMASS, RHTOMAS, BOXVOL )
+!%%%%+PRIVATE( printneg, ionrate, lev, weight, GC, N, NK, JC )
+!%%%%+PRIVATE( MK, H2SO4rate_o, tot_n_1, k, tot_s_1, MPNUM )
+!%%%%+PRIVATE( Nkd, Mkd, TOT_NK, TOT_MK, TRANSFER )
+!%%%%+PRIVATE( Nkout,Mkout,Gcout,fn,fn1 )
+!%%%%+PRIVATE( num_iter,Nknuc,Mknuc,Nkcond )
+!%%%%+PRIVATE( Mkcond, ERRORSWITCH, tot_s_1a, tot_n_1a )
+!%%%%+SCHEDULE( DYNAMIC )
       DO I = 1, IIPAR
       DO J = 1, JJPAR
       DO L = 1, LLPAR
@@ -582,8 +582,8 @@ c         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
 
             CALL COND_NUC(Nk,Mk,Gc,Nkout,Mkout,Gcout,fn,fn1,
      &             H2SO4rate_o,adt,num_iter,Nknuc,Mknuc,Nkcond,Mkcond, 
-     &             ionrate, BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS,
-     &             ERRORSWITCH, l)
+     &             ionrate, surf_area, BOXVOL, BOXMASS, TEMPTMS, PRES,
+     &             RHTOMAS, ERRORSWITCH, l)
 !            print*,'After COND_NUC Gcout(srtso4)=',Gcout(srtso4)
             
             IF ( ERRORSWITCH ) THEN
@@ -816,7 +816,7 @@ cvbn         write(889,89)I,J,L,STT(i,j,l,IDTH2SO4)
       ENDDO                     !J loop
       ENDDO                     !I loop
 
-!$OMP END PARALLEL DO
+!%%%% END PARALLEL DO
 
 !      WRITE(777,*) '---------------------------'
  77   FORMAT(3I4, '  STT(IDTNH3),'E13.5,'  Used', E13.5 ) 
@@ -831,8 +831,8 @@ cvbn         write(889,89)I,J,L,STT(i,j,l,IDTH2SO4)
 
       SUBROUTINE COND_NUC(Nki,Mki,Gci,Nkf,Mkf,Gcf,fnavg,fn1avg,
      &      H2SO4rate,dti,num_iter,Nknuc,Mknuc,Nkcond,Mkcond,
-     &      ionrate, BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS,
-     &      errswitch, lev)
+     &      ionrate, surf_area, BOXVOL, BOXMASS, TEMPTMS, PRES, 
+     &      RHTOMAS, errswitch, lev)
 !
 !******************************************************************************
 C     This subroutine calculates the change in the aerosol size distribution
@@ -874,6 +874,7 @@ C     fn, fn1
       REAL*4           BOXVOL, BOXMASS, TEMPTMS, RHTOMAS, PRES
       logical          errswitch    ! signal for error 
       integer          lev          ! layer of the model
+      REAL*8   surf_area
       REAL*8   ionrate
 
 C-----VARIABLE DECLARATIONS---------------------------------------------
@@ -931,7 +932,7 @@ C-----CODE--------------------------------------------------------------
 C Initialize values of Nkf, Mkf, Gcf, and time
       do j=1,icomp-1
          Gc1(j)=Gci(j)
-         Gcf(j)=Gci(j)
+         Gcf(j)=Gci(j) !sfarina
       enddo
       do k=1,ibins
          Nk1(k)=Nki(k)
@@ -946,7 +947,7 @@ C Initialize values of Nkf, Mkf, Gcf, and time
 
 C     Get initial condensation sink
       CS1 = 0.d0
-      call getCondSink(Nk1,Mk1,srtso4,CS1,sinkfrac,
+      call getCondSink(Nk1,Mk1,srtso4,CS1,sinkfrac,surf_area,
      &               BOXVOL,TEMPTMS, PRES)  
       if( pdbg) print*,'CS1', CS1
 c      CS1 = max(CS1,eps)
@@ -957,7 +958,8 @@ C     during that timestep (this will happen when the condensation sink is very 
 
 C     get the steady state H2SO4 concentration
       call getH2SO4conc(Nk1, Mk1, H2SO4rate, CS1, Gc1(srtnh4),
-     &   gasConc, ionrate, BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, lev)
+     &                  gasConc, ionrate, surf_area, 
+     &                  BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, lev)
       if( pdbg) print*,'gasConc',gasConc
       Gc1(srtso4) = gasConc
       addt = min_tstep
@@ -1054,7 +1056,7 @@ c      endif
       tempvar = pdbg
       
 C     Get guess for condensation
-      call ezcond(Nk2,Mk2,mcond,srtso4,Nk3,Mk3,
+      call ezcond(Nk2,Mk2,mcond,srtso4,Nk3,Mk3,surf_area,
      &      BOXVOL, TEMPTMS, PRES, pdbg )
 
       if(pdbg) then
@@ -1079,7 +1081,7 @@ c      print*,'mcond',mcond,'mcond1',mcond1
       call ezwatereqm(Mk3, RHTOMAS)
 
       ! check to see how much condensation sink changed
-      call getCondSink(Nk3,Mk3,srtso4,CS2,sinkfrac,
+      call getCondSink(Nk3,Mk3,srtso4,CS2,sinkfrac,surf_area,
      &               BOXVOL,TEMPTMS, PRES)  
       CSch = abs(CS2 - CS1)/CS1    
        
@@ -1105,7 +1107,8 @@ c      if (CSch.gt.CSch_tol) then ! condensation sink didn't change much use who
 C     get the steady state H2SO4 concentration
             if (num_iter.gt.1)then ! no need to recalculate for first step
       call getH2SO4conc(Nk1, Mk1, H2SO4rate, CS1, Gc1(srtnh4),
-     &   gasConc, ionrate, BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, lev)
+     &                  gasConc, ionrate, surf_area,
+     &                  BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, lev)
                Gc1(srtso4) = gasConc
             endif
             if( pdbg)    print*,'gasConc',gasConc
@@ -1252,7 +1255,7 @@ c            call getCondSink(Nk2,Mk2,Nnuc2,Mnuc2,srtso4,CStest,sinkfrac)
             
             tempvar = pdbg
 
-            call ezcond(Nk2,Mk2,mcond,srtso4,Nk3,Mk3,
+            call ezcond(Nk2,Mk2,mcond,srtso4,Nk3,Mk3,surf_area,
      &      BOXVOL, TEMPTMS, PRES, pdbg)
             do k=1,ibins
                Nkcond(k) = Nkcond(k)+Nk3(k)-Nk2(k)
@@ -1276,7 +1279,7 @@ c            call getCondSink(Nk2,Mk2,Nnuc2,Mnuc2,srtso4,CStest,sinkfrac)
             call ezwatereqm(Mk3, RHTOMAS)
             
                                 ! check to see how much condensation sink changed
-            call getCondSink(Nk3,Mk3,srtso4,CS2,sinkfrac,
+            call getCondSink(Nk3,Mk3,srtso4,CS2,sinkfrac,surf_area,
      &               BOXVOL,TEMPTMS, PRES)  
 
             time_rem = time_rem - addt
@@ -1337,7 +1340,7 @@ Cjrp      endif
 !------------------------------------------------------------------------------
 !........10........20........30........40........50........60........70........80
 
-      SUBROUTINE getCondSink(Nko,Mko,spec,CS,sinkfrac,
+      SUBROUTINE getCondSink(Nko, Mko, spec, CS, sinkfrac, surf_area,
      &       BOXVOL, TEMPTMS, PRES)
 !
 !******************************************************************************
@@ -1372,6 +1375,7 @@ C-----ARGUMENT DECLARATIONS---------------------------------------------
       double precision CS, sinkfrac(ibins)
       REAL*4, INTENT(IN)       :: BOXVOL, TEMPTMS, PRES
       integer spec
+      REAL*8, INTENT(OUT)     :: surf_area
 
 C-----VARIABLE DECLARATIONS---------------------------------------------
 
@@ -1445,13 +1449,16 @@ Ckpc  Density should be changed due to more species involed.
 
 C     get condensation sink
       CS = 0.d0
+      surf_area = 0.d0
       do k=1,ibins
          CS = CS + Dpk(k)*Nko(k)*beta(k)
+         surf_area = surf_area+Nko(k)*pi*(Dpk(k)*1.0D6)**2
       enddo
       do k=1,ibins
          sinkfrac(k) = Dpk(k)*Nko(k)*beta(k)/CS
-      enddo     
-      CS = 2.d0*pi*dble(Di)*CS/(dble(boxvol)*1D-6)  
+      enddo
+      CS = 2.d0*pi*dble(Di)*CS/(dble(boxvol)*1D-6)
+      surf_area = surf_area/(dble(boxvol))
 
       return
       end subroutine getcondsink
@@ -1459,7 +1466,8 @@ C     get condensation sink
 !------------------------------------------------------------------------------
 
       SUBROUTINE getH2SO4conc(Nk, Mk, H2SO4rate, CS, NH3conc, gasConc, 
-     &    ionrate,  BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, lev)
+     &    ionrate, surf_area, BOXVOL, BOXMASS,
+     &    TEMPTMS, PRES, RHTOMAS, lev)
 !
 !******************************************************************************
 C     This subroutine uses newtons method to solve for the steady state 
@@ -1506,6 +1514,7 @@ C-----ARGUMENT DECLARATIONS---------------------------------------------
       integer          lev
 
       REAL*8                   :: ionrate
+      REAL*8                   :: surf_area
 
 C-----VARIABLE DECLARATIONS---------------------------------------------
 
@@ -1593,7 +1602,7 @@ C     Checks for when condensation sink is very small
 
       gasConc = min(gasConc,max_H2SO4conc)
       Gci(srtso4) = gasConc
-      call getNucRate(Nk, Mk, Gci,fn,mnuc,nflg,ionrate,
+      call getNucRate(Nk, Mk, Gci,fn,mnuc,nflg,ionrate, surf_area,
      &       BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, lev)
 
       if (fn.gt.0.d0) then      ! nucleation occured
@@ -1601,7 +1610,7 @@ C     Checks for when condensation sink is very small
          
 C     Test to see if gasConc_lo gives a res < 0 (this means ANY nucleation is too high)
          Gci(srtso4) = gasConc_lo*1.000001d0
-         call getNucRate(Nk,Mk,Gci,fn1,mnuc1,nflg,ionrate,
+         call getNucRate(Nk,Mk,Gci,fn1,mnuc1,nflg,ionrate,surf_area,
      &        BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, lev)
          if (fn1.gt.0.d0) then
             massnuc = mnuc1*fn1*boxvol*98.d0/96.d0
@@ -1650,7 +1659,7 @@ c            print*, 'iter',iter
 c            print*,'gasConc_lo',gasConc_lo,'gasConc_hi',gasConc_hi
             gasConc = sqrt(gasConc_hi*gasConc_lo) ! take new guess as logmean
             Gci(srtso4) = gasConc
-            call getNucRate(Nk, Mk,Gci,fn,mnuc,nflg,ionrate,
+            call getNucRate(Nk, Mk,Gci,fn,mnuc,nflg,ionrate,surf_area,
      &            BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, lev)
             massnuc = mnuc*fn*boxvol*98.d0/96.d0
             res = H2SO4rate - CS*gasConc - massnuc
@@ -1679,7 +1688,7 @@ c     print*,'massnuc',massnuc,'CS*gasConc',CS*gasConc
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE getNucRate(Nk, Mk, Gci,fn,mnuc,nflg, ionrate,
+      SUBROUTINE getNucRate(Nk, Mk, Gci,fn,mnuc,nflg, ionrate,surf_area,
      &            BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, lev)
 !
 !******************************************************************************
@@ -2723,7 +2732,7 @@ C     particles into the first size bin.  don't let it go less than zero.
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE EZCOND (Nki,Mki,mcondi,spec,Nkf,Mkf,
+      SUBROUTINE EZCOND (Nki,Mki,mcondi,spec,Nkf,Mkf,surf_area,
      &      BOXVOL, TEMPTMS, PRES, errswitch)
 !
 !******************************************************************************
@@ -2756,6 +2765,7 @@ C-----ARGUMENT DECLARATIONS---------------------------------------------
       double precision Nki(ibins), Mki(ibins, icomp)
       double precision Nkf(ibins), Mkf(ibins, icomp)
       double precision mcondi
+      REAL*8           surf_area
       integer spec
       REAL*4, INTENT(IN)       :: BOXVOL, TEMPTMS, PRES
       LOGICAL ERRSWITCH   ! signal error to outside
@@ -2830,7 +2840,7 @@ C-----CODE--------------------------------------------------------------
       endif
 
       ! get the sink fractions
-      call getCondSink(Nk1,Mk1,spec,CS,sinkfrac, ! set Nnuc to zero for this calc
+      call getCondSink(Nk1,Mk1,spec,CS,sinkfrac,surf_area, ! set Nnuc to zero for this calc
      &               BOXVOL,TEMPTMS, PRES)  
 
       ! make sure that condensation sink isn't too small
@@ -2891,7 +2901,7 @@ C-----CODE--------------------------------------------------------------
       ! do steps of condensation
       do i=1,nsteps
          if (i.ne.1) then
-            call getCondSink(Nk1,Mk1,spec,CS,sinkfrac,      ! set Nnuc to zero for this calculation
+            call getCondSink(Nk1,Mk1,spec,CS,sinkfrac,surf_area,      ! set Nnuc to zero for this calculation
      &               BOXVOL,TEMPTMS, PRES)  
             totsinkfrac = 0.d0
             do k=1,ibins
@@ -3068,12 +3078,12 @@ c     print*,'fracch',fracch,'totch',totch
          print *,'Percent error=',abs((mcond-(tot_f-tot_i))/mcond)*1e2
       endif
 
-
       if (mcond.gt.0.d0.and.
      &    abs((mcond-(tot_f-tot_i))/mcond).gt.0.d0) then
          IF(mcond > 1.d-8 .and. tot_i > 5.d-2)  THEN  !Add a check to check error if mcond is significant (win, 10/2/08)
-         if (abs((mcond-(tot_f-tot_i))/mcond).lt.1.d0 .OR. 
-     &            spinup(31.0) ) then
+
+          IF (abs((mcond-(tot_f-tot_i))/mcond).lt.1.d0 .OR. 
+     &            spinup(31.0) ) THEN
           !Prior to 10/2/08 (win)   .. original was Jeff's fix  
           !  ! do correction of mass
           !  ratio = (tot_f-tot_i)/mcond 
@@ -3103,7 +3113,7 @@ c     print*,'fracch',fracch,'totch',totch
                errswitch=.true.
                return
             endif
-         else
+          else
             print*,'ERROR in ezcond'
             print*,'Condensation error',(mcond-(tot_f-tot_i))/mcond
             print*,'mcond',mcond,'change',tot_f-tot_i
@@ -3120,7 +3130,7 @@ c     print*,'fracch',fracch,'totch',totch
 !! fudging inside mnfix.
 !            ERRSWITCH=.TRUE.
 !            RETURN
-         endif
+          ENDIF
          ENDIF
       endif
 
@@ -3447,6 +3457,7 @@ Cjrp      endif
       REAL*8                 :: MSOA
       INTEGER,INTENT(IN)     :: I, J, L
       REAL*4, INTENT(IN)     :: BOXVOL, TEMPTMS, PRES
+      REAL*8                    surf_area
 
       ! Local variables
       REAL*8                 :: MPO, OCTAU(IBINS), ntot, mtot
@@ -3530,7 +3541,7 @@ Cjrp      endif
       enddo
 
       ! Fraction to each bin for surface condensation
-      call getCondSink(Nk,Mk,srtocil,CS,sinkfrac,
+      call getCondSink(Nk,Mk,srtocil,CS,sinkfrac,surf_area,
      &               BOXVOL,TEMPTMS, PRES)  
 
       do k = 1,IBINS
@@ -6064,8 +6075,20 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
       else ! free ammonia
          do k=1,ibins
             Mke(k,srtnh4) = Mke(k,srtso4)/96.d0*2.d0*18.d0 ! fill the particle phase
+#if defined ( DEBUG )
+            if ( Mke(k,srtnh4) < 0.0 ) then
+               print *,'negative gas phase ammonia in eznh3eqm!!'
+               print *,'bin  ', k
+            endif
+#endif
          enddo
          Gce(srtnh4) = (tot_nh3 - tot_so4*2.d0)*17.d0 ! put whats left over in the gas phase
+#if defined ( DEBUG )
+         if ( Gce(srtnh4) < 0.0 ) then
+            print *,'negative gas phase ammonia in eznh3eqm!!'
+         endif
+#endif
+
       endif
 
       RETURN
@@ -6125,11 +6148,11 @@ c      USE LOGICAL_MOD,    ONLY : LSULF30, LSALT30, LCARB30, LDUST30
       CALL CHECKMN( 0, 0, 0, State_Met, 'kg',
      &              'AERO_DIADEN called from DEPVEL')
 
-!$OMP PARALLEL DO
-!$OMP+PRIVATE( BIN, IJLOOP, I, J, TRACID, WID, MH2O, MSO4, MNACL )
-!$OMP+PRIVATE( MECIL, MECOB, MOCIL, MOCOB, MDUST )
-!$OMP+DEFAULT( SHARED )
-!$OMP+SCHEDULE( DYNAMIC )
+!%%%% PARALLEL DO
+!%%%%+DEFAULT( SHARED )
+!%%%%+PRIVATE( MECIL, MECOB, MOCIL, MOCOB, MDUST )
+!%%%%+PRIVATE( BIN, IJLOOP, I, J, TRACID, WID, MH2O, MSO4, MNACL )
+!%%%%+SCHEDULE( DYNAMIC )
       DO IJLOOP = 1, MAXIJ
       DO BIN = 1, IBINS
 
@@ -6169,7 +6192,7 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
 
       ENDDO
       ENDDO
-!$OMP END PARALLEL DO
+!%%%% END PARALLEL DO
 
       END SUBROUTINE AERO_DIADEN
       
@@ -7231,14 +7254,15 @@ C     determine the mass added to each bin coagulation
 !         write(6,*) 'Mk(1:30) comp:',jc
 !         write(6,*) Mk(1:30,jc)
 !      enddo
-      write(*,111) 'Bin     Num       SO4      NaCl      ECIL      ',
-     &     'ECOB      OCIL      OCOB      Dust       NH4     Water  '
+      write(*,111) 'Bin        Num         SO4        NaCl        ',
+     &             'ECIL        ECOB        OCIL       OCOB       ',
+     &             'Dust        NH4         Water  '
       DO K = 1, IBINS
          write(*,110) k,Nk(k), Mk(k, 1:icomp)
       ENDDO
       write(*,*) ' '
  110  FORMAT ( I2, 10E12.5 )
- 111  FORMAT (a,a)
+ 111  FORMAT (a,a,a)
 
       END SUBROUTINE DEBUGPRINT
 
