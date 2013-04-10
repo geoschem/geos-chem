@@ -3353,11 +3353,11 @@
       ! Convert STT from [v/v] -> [kg] 
       CALL CONVERT_UNITS(2, N_TRACERS, TCVV, State_Met%AD, STT )
 
-!%%%% PARALLEL DO
-!%%%%+DEFAULT( SHARED )
-!%%%%+PRIVATE( I, J, L )
-!%%%%+PRIVATE( KMIN, SO4OXID, BINACT1, BINACT2 )
-!%%%%+SCHEDULE( DYNAMIC )
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+!$OMP+PRIVATE( KMIN, SO4OXID, BINACT1, BINACT2 )
+!$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLTROP
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -3377,7 +3377,7 @@
       ENDDO
       ENDDO
       ENDDO
-!%%%% END PARALLEL DO
+!$OMP END PARALLEL DO
 
        ! Convert STT from [kg] -> [v/v] 
       CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, State_Met%AD, STT )
@@ -3736,6 +3736,11 @@
 
                ! Subtract NH3 lost to drydep from initial NH3 [v/v]
                STT(I,J,L,IDTNH3) = NH30 - NH3
+#if defined ( DEBUG )
+               if ( STT(I,J,L,IDTNH3) < 0d0 ) then
+                  print *, 'NH3 < 0 in sulfate_mod:CHEM_NH3'
+               endif
+#endif
 
                !========================================================
                ! ND44 diagnostic: Drydep flux of NH3 [molec/cm2/s]
@@ -6158,9 +6163,9 @@ c      print *,BINMASS(24,11,2,:)
       ! Overwrite CANADA w/ CAC       SO2-fraction emiss. (if necessary)
       ! Store emissions into local arrays SO4an, SO4bf
       !=================================================================
-!%%%% PARALLEL DO
-!%%%%+DEFAULT( SHARED )
-!%%%%+PRIVATE( I, J, AREA_CM2, EPA_AN, EPA_BF, CAC_AN )
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, AREA_CM2, EPA_AN, EPA_BF, CAC_AN )
       DO J = 1, JJPAR
          
          DO I = 1, IIPAR
@@ -6230,18 +6235,18 @@ c      print *,BINMASS(24,11,2,:)
 
          ENDDO
       ENDDO
-!%%%% END PARALLEL DO
+!$OMP END PARALLEL DO
 
       !=================================================================
       ! Compute SO4 emissions 
       !=================================================================
-!%%%% PARALLEL DO
-!%%%%+DEFAULT( SHARED )
-!%%%%+PRIVATE( I, J, NTOP, SO4, TSO4, L, FEMIS, EFRAC, N0, M0, K )
-!%%%%+PRIVATE( NDISTINIT, NDIST, MDIST, NDISTFINAL, MADDFINAL )
-!%%%%+PRIVATE( NDIST2, MDIST2, C )
-!%%%%+PRIVATE( BOXVOL, TEMP, PRES, TSCALE, pdbug )
-!%%%%+SCHEDULE( DYNAMIC )
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, NTOP, SO4, TSO4, L, FEMIS, EFRAC, N0, M0, K )
+!$OMP+PRIVATE( NDISTINIT, NDIST, MDIST, NDISTFINAL, MADDFINAL )
+!$OMP+PRIVATE( NDIST2, MDIST2, C )
+!$OMP+PRIVATE( BOXVOL, TEMP, PRES, TSCALE, pdbug )
+!$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -6515,7 +6520,7 @@ c      print *,BINMASS(24,11,2,:)
 
       ENDDO
       ENDDO
-!%%%% END PARALLEL DO
+!$OMP END PARALLEL DO
       IF ( LPRT ) print *,'   ### Finish SRCSF30'
 
       END SUBROUTINE SRCSF30
@@ -6635,10 +6640,10 @@ c      print *,BINMASS(24,11,2,:)
       ! Overwrite USA with EPA/NEI NH3 emissions (if necessary)
       ! Store emissions into local arrays NH3an, NH3bf
       !=================================================================
-!%%%% PARALLEL DO
-!%%%%+DEFAULT( SHARED )
-!%%%%+PRIVATE( I, J, AREA_CM2, EPA_AN, EPA_BF, CAC_AN, L )
-!%%%%+PRIVATE( NTOP, FEMIS, NH3, TEMPEMISS )
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, AREA_CM2, EPA_AN, EPA_BF, CAC_AN, L )
+!$OMP+PRIVATE( NTOP, FEMIS, NH3, TEMPEMISS )
       DO J = 1, JJPAR
 
          DO I = 1, IIPAR
@@ -6798,7 +6803,7 @@ c      print *,BINMASS(24,11,2,:)
          SFLX(:,J,2:NOXLEVELS) = SFLX(:,J,2:NOXLEVELS) + NH3an(:,J,2:)
 #endif
       ENDDO
-!%%%% END PARALLEL DO
+!$OMP END PARALLEL DO
 
       END SUBROUTINE SRCNH3
 !EOC

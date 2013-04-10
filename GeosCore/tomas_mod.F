@@ -395,17 +395,17 @@
       endif
 
 
-!%%%% PARALLEL DO
-!%%%%+DEFAULT( SHARED )
-!%%%%+PRIVATE( I, J, L )
-!%%%%+PRIVATE( ADT, PRES, TEMPTMS, BOXMASS, RHTOMAS, BOXVOL )
-!%%%%+PRIVATE( printneg, ionrate, lev, weight, GC, N, NK, JC )
-!%%%%+PRIVATE( MK, H2SO4rate_o, tot_n_1, k, tot_s_1, MPNUM )
-!%%%%+PRIVATE( Nkd, Mkd, TOT_NK, TOT_MK, TRANSFER )
-!%%%%+PRIVATE( Nkout,Mkout,Gcout,fn,fn1 )
-!%%%%+PRIVATE( num_iter,Nknuc,Mknuc,Nkcond )
-!%%%%+PRIVATE( Mkcond, ERRORSWITCH, tot_s_1a, tot_n_1a )
-!%%%%+SCHEDULE( DYNAMIC )
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+!$OMP+PRIVATE( ADT, PRES, TEMPTMS, BOXMASS, RHTOMAS, BOXVOL )
+!$OMP+PRIVATE( printneg, ionrate, lev, weight, GC, N, NK, JC )
+!$OMP+PRIVATE( MK, H2SO4rate_o, tot_n_1, k, tot_s_1, MPNUM )
+!$OMP+PRIVATE( Nkd, Mkd, TOT_NK, TOT_MK, TRANSFER )
+!$OMP+PRIVATE( Nkout,Mkout,Gcout,fn,fn1 )
+!$OMP+PRIVATE( num_iter,Nknuc,Mknuc,Nkcond )
+!$OMP+PRIVATE( Mkcond, ERRORSWITCH, tot_s_1a, tot_n_1a )
+!$OMP+SCHEDULE( DYNAMIC )
       DO I = 1, IIPAR
       DO J = 1, JJPAR
       DO L = 1, LLPAR
@@ -580,10 +580,18 @@ c         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
 
 !            print*,'Before COND_NUC Gc(srtso4)=',Gc(srtso4)
 
+
+
+!sfarina - UNCOMMENT DEBUG!
             CALL COND_NUC(Nk,Mk,Gc,Nkout,Mkout,Gcout,fn,fn1,
      &             H2SO4rate_o,adt,num_iter,Nknuc,Mknuc,Nkcond,Mkcond, 
      &             ionrate, surf_area, BOXVOL, BOXMASS, TEMPTMS, PRES,
      &             RHTOMAS, ERRORSWITCH, l)
+!sfarina - UNCOMMENT DEBUG!
+
+
+
+
 !            print*,'After COND_NUC Gcout(srtso4)=',Gcout(srtso4)
             
             IF ( ERRORSWITCH ) THEN
@@ -816,7 +824,7 @@ cvbn         write(889,89)I,J,L,STT(i,j,l,IDTH2SO4)
       ENDDO                     !J loop
       ENDDO                     !I loop
 
-!%%%% END PARALLEL DO
+!$OMP END PARALLEL DO
 
 !      WRITE(777,*) '---------------------------'
  77   FORMAT(3I4, '  STT(IDTNH3),'E13.5,'  Used', E13.5 ) 
@@ -926,13 +934,14 @@ C-----CODE--------------------------------------------------------------
 
       pdbg = errswitch ! transfer the signal to print debug from outside
       errswitch = .false. ! flag error to outide to terminate program. Initialize wiht .false.
+!      pdbg = .true. ! transfer the signal to print debug from outside
 
       dt = dble(dti)
 
 C Initialize values of Nkf, Mkf, Gcf, and time
       do j=1,icomp-1
          Gc1(j)=Gci(j)
-         Gcf(j)=Gci(j) !sfarina
+!         Gcf(j)=Gci(j) !sfarina
       enddo
       do k=1,ibins
          Nk1(k)=Nki(k)
@@ -974,7 +983,7 @@ c     &     Nnuc2,Mnuc2,nflg)
 !      call nucleation(Nk1,Mk1,Gc1,Nk2,Mk2,Gc2,fn,fn1,totmass,nuc_bin,
 !     &     addt, PDBG, lev)
       call nucleation(Nk1,Mk1,Gc1,Nk2,Mk2,Gc2,fn,fn1,totmass,nuc_bin,
-     &     addt, ionrate, BOXVOL, BOXMASS, TEMPTMS,
+     &     addt, ionrate, surf_area, BOXVOL, BOXMASS, TEMPTMS,
      &     PRES, RHTOMAS, PDBG, lev)
       
       if(pdbg) then
@@ -1128,8 +1137,8 @@ c     &           Mk2,Gc2,Nnuc2,Mnuc2,nflg,lev)
 
             tempvar = pdbg
             call nucleation(Nk1,Mk1,Gc1,Nk2,Mk2,Gc2,fn,fn1,totmass,
-     &           nuc_bin,addt, ionrate, BOXVOL, BOXMASS, TEMPTMS,
-     &           PRES, RHTOMAS, PDBG, lev)
+     &           nuc_bin,addt, ionrate, surf_area, BOXVOL, BOXMASS,
+     &           TEMPTMS, PRES, RHTOMAS, PDBG, lev)
 
             if(pdbg) then
                print*,'COND_NUC: Error at nucleation[2] --> TERMINATE'
@@ -1338,7 +1347,6 @@ Cjrp      endif
       END SUBROUTINE COND_NUC
 
 !------------------------------------------------------------------------------
-!........10........20........30........40........50........60........70........80
 
       SUBROUTINE getCondSink(Nko, Mko, spec, CS, sinkfrac, surf_area,
      &       BOXVOL, TEMPTMS, PRES)
@@ -2405,8 +2413,8 @@ Cjrp
 !------------------------------------------------------------------------------
 
       SUBROUTINE NUCLEATION (Nki,Mki,Gci,Nkf,Mkf,Gcf,fn,fn1,totsulf,
-     &              nuc_bin,dt,ionrate, BOXVOL, BOXMASS, TEMPTMS,
-     &              PRES, RHTOMAS, pdbg,lev)
+     &              nuc_bin,dt,ionrate, surf_area, BOXVOL, BOXMASS,
+     &              TEMPTMS, PRES, RHTOMAS, pdbg,lev)
 !
 !******************************************************************************
 C     This subroutine calls the Vehkamaki 2002 and Napari 2002 nucleation
@@ -2456,8 +2464,8 @@ C-----ARGUMENT DECLARATIONS---------------------------------------------
       integer lev ! layer of model
 
       REAL*8                     ionrate
-C-----VARIABLE DECLARATIONS---------------------------------------------
       REAL*8                     surf_area
+C-----VARIABLE DECLARATIONS---------------------------------------------
 
       double precision nh3ppt   ! gas phase ammonia in pptv
       double precision h2so4    ! gas phase h2so4 in molec cc-1
@@ -2507,13 +2515,6 @@ C-----CODE--------------------------------------------------------------
       fn1 = 0.d0
       rnuc = 0.d0
       gtime = 0.d0
-
-      do k = 1,ibins
-         ! sfarina - added surface area back into nucleation just to carry it
-         ! surface area per particle = pi*diameter**2
-         surf_area = surf_area + 1.D-6*(Nki(k)/boxvol)*
-     &       pi*(d2**2.D0) ! (um2 cm-2) 
-      end do
 
 C     if requirements for nucleation are met, call nucleation subroutines
 C     and get the nucleation rate and critical cluster size
@@ -4057,6 +4058,7 @@ cdbg
       if (tsum .lt. dt) goto 10
 
       
+      RETURN
       END SUBROUTINE MULTICOAG
 
 !------------------------------------------------------------------------------
@@ -4539,6 +4541,7 @@ cdbg      write(*,*) 'Number cons. error was ', dNerr
 
  100  continue   !skip to here if there is no gas phase to condense
 
+      RETURN
       END SUBROUTINE SO4COND
 
 !------------------------------------------------------------------------------
@@ -5240,6 +5243,7 @@ c
       pdbug = errspot
 
       ! Return to call subroutine
+      RETURN
       END SUBROUTINE TMCOND
 
 !------------------------------------------------------------------------------
@@ -5778,6 +5782,7 @@ c      IF (LCARB30) MECOB = STT(I,J,L,IDTECOB1-1+BIN)
       SOLFRAC = MTOT / ( MTOT + MECOB ) 
 
       ! Return to calling program
+      RETURN
       END SUBROUTINE GETFRACTION
       
 !------------------------------------------------------------------------------
@@ -5874,6 +5879,7 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
          BINACT = BINACT2(ISO4, INACL, IOCIL) + OFFSET
       ENDIF
 
+      RETURN
       END SUBROUTINE GETACTBIN
 
 !------------------------------------------------------------------------------
@@ -5956,6 +5962,7 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
 
       enddo
 
+      RETURN
       END SUBROUTINE EZWATEREQM
 
 !------------------------------------------------------------------------------
@@ -6071,6 +6078,12 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
          do k=1,ibins
             sfrac = Mke(k,srtso4)/96.d0/tot_so4
             Mke(k,srtnh4) = sfrac*tot_nh3*18.d0 ! put the ammonia where the sulfate is
+#if defined ( DEBUG )
+            if ( Mke(k,srtnh4) < 0.0 ) then
+               print *,'negative gas phase ammonia in eznh3eqm!!'
+               print *,'bin  ', k
+            endif
+#endif
          enddo
       else ! free ammonia
          do k=1,ibins
@@ -6148,11 +6161,11 @@ c      USE LOGICAL_MOD,    ONLY : LSULF30, LSALT30, LCARB30, LDUST30
       CALL CHECKMN( 0, 0, 0, State_Met, 'kg',
      &              'AERO_DIADEN called from DEPVEL')
 
-!%%%% PARALLEL DO
-!%%%%+DEFAULT( SHARED )
-!%%%%+PRIVATE( MECIL, MECOB, MOCIL, MOCOB, MDUST )
-!%%%%+PRIVATE( BIN, IJLOOP, I, J, TRACID, WID, MH2O, MSO4, MNACL )
-!%%%%+SCHEDULE( DYNAMIC )
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( MECIL, MECOB, MOCIL, MOCOB, MDUST )
+!$OMP+PRIVATE( BIN, IJLOOP, I, J, TRACID, WID, MH2O, MSO4, MNACL )
+!$OMP+SCHEDULE( DYNAMIC )
       DO IJLOOP = 1, MAXIJ
       DO BIN = 1, IBINS
 
@@ -6192,8 +6205,9 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
 
       ENDDO
       ENDDO
-!%%%% END PARALLEL DO
+!$OMP END PARALLEL DO
 
+      RETURN
       END SUBROUTINE AERO_DIADEN
       
 !-----------------------------------------------------------------------------
@@ -6220,7 +6234,7 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
       USE ERROR_MOD,          ONLY : ERROR_STOP, DEBUG_MSG, IT_IS_NAN
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE LOGICAL_MOD,        ONLY : LPRT
-      USE TRACERID_MOD,       ONLY : IDTNK1,  IDTAW1
+      USE TRACERID_MOD,       ONLY : IDTNK1,  IDTAW1, IDTNH4, IDTNH3
       USE TRACER_MOD,         ONLY : STT, TCVV, XNUMOL, N_TRACERS
 
       USE CMN_SIZE_MOD             ! Size parameters
@@ -6246,6 +6260,7 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
       REAL*8                         :: Gc(ICOMP - 1)
       REAL*8                         :: Gcd(ICOMP - 1)
       REAL*4                         :: BOXVOL
+      REAL*8                         :: XFER(IBINS)
     
       !=================================================================
       ! CHECKMN begins here!
@@ -6275,12 +6290,12 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
          L2 = LL
       ENDIF
 
-!%%%% PARALLEL DO
-!%%%%+DEFAULT( SHARED )
-!%%%%+PRIVATE( I, J, L )
-!%%%%+PRIVATE( Nk, Nkd, Mk, Mkd, K, TRACNUM, JC, MPNUM, BOXVOL )
-!%%%%+PRIVATE( GC, GCd, ERRORSWITCH )
-!%%%%+SCHEDULE( DYNAMIC )
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+!$OMP+PRIVATE( Nk, Nkd, Mk, Mkd, K, TRACNUM, JC, MPNUM, BOXVOL )
+!$OMP+PRIVATE( GC, GCd, ERRORSWITCH )
+!$OMP+SCHEDULE( DYNAMIC )
 
 !%%%%+DEFAULT( PRIVATE )
 !%%%%+SHARED( STT, State_Met, IDTNK1, ICOMP, IDIAG, IDTAW1 )
@@ -6309,6 +6324,14 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
          DO JC = 1, ICOMP - 1
             Gc(JC) = 0.0   !sfarina - init Gc so storenm doesn't go NaN on us.
          END DO
+
+         ! Get NH4 mass from the bulk mass and scale to bin with sulfate
+         IF ( SRTNH4 > 0 ) THEN
+            CALL NH4BULKTOBIN( MK(1:IBINS,SRTSO4), STT(I,J,L,IDTNH4),
+     &                         XFER(1:IBINS)  )
+            MK(1:IBINS,SRTNH4) = XFER(1:IBINS)
+            Gc(SRTNH4) = STT(I,J,L,IDTNH3) 
+         ENDIF
 
 !         if ( i==26 .and. j==57 .and. l==13 ) 
 !     &        call debugprint(Nk,Mk,i,j,l,'In CHECKMN')
@@ -6346,7 +6369,7 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
       ENDDO
       ENDDO
       ENDDO
-!%%%% END PARALLEL DO
+!$OMP END PARALLEL DO
       
       ! In the input unit is [v/v], then convert [kg] back to [v/v]
       IF ( TRIM( UNITS ) == 'V/V' .or. TRIM( UNITS ) == 'v/v' ) 
@@ -6403,7 +6426,7 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
       REAL*8              :: save1,save2,save3,save4,save5
 !      REAL*8,   PARAMETER :: EPS = 1.D-20 !small number for Nk
 !      REAL*8,   PARAMETER :: EPS2= 1.D-32 !small number for Mk 
-      REAL*8,   PARAMETER :: EPS = 1.D-20 !small number for Nk 
+      REAL*8,   PARAMETER :: EPS = 1.D-2 !small number for Nk 
       REAL*8,   PARAMETER :: EPS2= 1.D-28 !small number for Mk
       REAL*8,   PARAMETER :: TINY= 1.D-36 !very small number
 
@@ -7002,6 +7025,7 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
       ENDIF
 
        ! Return to call subroutine
+      RETURN
       END SUBROUTINE MNFIX
 
 !-----------------------------------------------------------------------------
@@ -7227,6 +7251,7 @@ C     determine the mass added to each bin coagulation
       ENDDO
 
       ! Return to calling subroutine
+      RETURN
       END SUBROUTINE STORENM
 
 !----------------------------------------------------------------------------
@@ -7320,6 +7345,7 @@ C     determine the mass added to each bin coagulation
 
 !      write(777,*) NH4B/TOTMASS
       
+      RETURN
       END SUBROUTINE NH4BULKTOBIN
       
 !------------------------------------------------------------------------------

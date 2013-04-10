@@ -1616,24 +1616,24 @@
       ! because at each box the aerosol size&density is different
       ! depending on the internally-mixed composition (win, 7/15/09)
       if (IDTNK1 > 0 )
-     &   CALL AERO_DIADEN( SIZ_DIA(:,:), SIZ_DEN(:,:), 1, State_Met )
+     &   CALL AERO_DIADEN( SIZ_DIA, SIZ_DEN, 1, State_Met )
 #endif
 
       ! Add parallel DO-loop (bmy, 2/22/05)
-!%%%% PARALLEL DO
-!%%%%+DEFAULT( SHARED )
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
 #if   defined( TOMAS )
-!%%%%+PRIVATE( BIN, A_RADI, A_DEN )
+!$OMP+PRIVATE( BIN, A_RADI, A_DEN )
 #endif
-!%%%%+PRIVATE( IJLOOP, CZ,     TEMPK,  TEMPC,  K,      VD     )
-!%%%%+PRIVATE( LDT,    RSURFC, C1,     XNU,    RT,     IOLSON )
-!%%%%+PRIVATE( II,     RI,     RLU,    RAC,    RGSS,   RGSO   )
-!%%%%+PRIVATE( RCLS,   RCLO,   RAD0,   RIX,    GFACT,  GFACI  )
-!%%%%+PRIVATE( RDC,    XMWH2O, RIXX,   RLUXX,  RGSX,   RCLX   )
-!%%%%+PRIVATE( DTMP1,  DTMP2,  DTMP3,  DTMP4,  VDS,    CZH    )
-!%%%%+PRIVATE( CKUSTR, REYNO,  CORR1,  CORR2,  Z0OBK,  RA     )
-!%%%%+PRIVATE( DUMMY1, DUMMY2, DUMMY3, DUMMY4, DAIR,   RB     )
-!%%%%+PRIVATE( C1X,    VK,     I,      J                      )
+!$OMP+PRIVATE( IJLOOP, CZ,     TEMPK,  TEMPC,  K,      VD     )
+!$OMP+PRIVATE( LDT,    RSURFC, C1,     XNU,    RT,     IOLSON )
+!$OMP+PRIVATE( II,     RI,     RLU,    RAC,    RGSS,   RGSO   )
+!$OMP+PRIVATE( RCLS,   RCLO,   RAD0,   RIX,    GFACT,  GFACI  )
+!$OMP+PRIVATE( RDC,    XMWH2O, RIXX,   RLUXX,  RGSX,   RCLX   )
+!$OMP+PRIVATE( DTMP1,  DTMP2,  DTMP3,  DTMP4,  VDS,    CZH    )
+!$OMP+PRIVATE( CKUSTR, REYNO,  CORR1,  CORR2,  Z0OBK,  RA     )
+!$OMP+PRIVATE( DUMMY1, DUMMY2, DUMMY3, DUMMY4, DAIR,   RB     )
+!$OMP+PRIVATE( C1X,    VK,     I,      J                      )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -2350,7 +2350,7 @@
  550     CONTINUE
       ENDDO
       ENDDO
-!%%%% END PARALLEL DO
+!$OMP END PARALLEL DO
 
       END SUBROUTINE DEPVEL
 !EOC
