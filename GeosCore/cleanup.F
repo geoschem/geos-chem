@@ -57,6 +57,7 @@
       USE GLOBAL_OC_MOD,           ONLY : CLEANUP_GLOBAL_OC
       USE GLOBAL_BC_MOD,           ONLY : CLEANUP_GLOBAL_BC
       USE GLOBAL_GRID_MOD,         ONLY : CLEANUP_GLOBAL_GRID
+      USE GMISTRAT_MOD,            ONLY : CLEANUP_GMISTRAT
       USE GRID_MOD,                ONLY : CLEANUP_GRID
       USE H2_HD_MOD,               ONLY : CLEANUP_H2_HD
       USE HCN_CH3CN_MOD,           ONLY : CLEANUP_HCN_CH3CN
@@ -198,6 +199,7 @@
 !  01 May 2012 - M. Payer    - Added calls for CLEANUP_GLOBAL_GRID and
 !                              CLEANUP_GRID
 !  24 Mar 2013 - S. D. Eastham - Switched TROPOPAUSE_MOD to CHEMGRID_MOD
+!  04 Apr 2013 - S. D. Eastham - Added call for CLEANUP_GMISTRAT
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -253,6 +255,7 @@
       CALL CLEANUP_GLOBAL_OC
       CALL CLEANUP_GLOBAL_BC
       CALL CLEANUP_GLOBAL_GRID
+      CALL CLEANUP_GMISTRAT
       CALL CLEANUP_GRID
       CALL CLEANUP_H2_HD
       CALL CLEANUP_HCN_CH3CN

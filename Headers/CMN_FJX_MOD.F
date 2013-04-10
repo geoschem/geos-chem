@@ -91,7 +91,7 @@
       INTEGER, PARAMETER ::  W_=12
 #endif
       ! N_  = no. of levels in Mie scattering arrays
-      !     = 2*NC+1 = 4*(L_+1) + 1`+ 2*sum(JADDLV)
+      !     = 2*NC+1 = 4*(L_+1) + 1 + 2*sum(JADDLV)
       INTEGER, PARAMETER ::  N_=601
       ! M_  = no. of Gauss points used, must = 4 in fast_JX (no option)
       INTEGER, PARAMETER ::  M_=4

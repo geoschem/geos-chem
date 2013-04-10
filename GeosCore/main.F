@@ -112,7 +112,7 @@
       !-----------------------------------------------------------------
       ! Modules added in the stratospheric chemistry update (SDE)
       !-----------------------------------------------------------------
-      USE SET_INIT_MOD          ! For initalizing rare tracer fields
+      USE GMISTRAT_MOD          ! For initalizing rare tracer fields
 
 #if defined( DEVEL )
       !-----------------------------------------------------------------

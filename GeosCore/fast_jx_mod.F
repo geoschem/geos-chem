@@ -43,11 +43,11 @@
       PRIVATE :: JRATET
       PRIVATE :: X_INTERP 
       PRIVATE :: SPHERE2 
-      PRIVATE :: EXTRAL 
+      PRIVATE :: EXTRAL
+      PRIVATE :: RD_PROF_NC
       PRIVATE :: RD_XXX
       PRIVATE :: RD_AOD
       PRIVATE :: RD_MIE
-      PRIVATE :: RD_PROF
       PRIVATE :: RD_JS_JX
       PRIVATE :: SET_AER
 !
@@ -1701,19 +1701,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       call SET_AER(am_I_Root)
 
       ! Read in T & O3 climatology used to fill e.g. upper layers or if O3 not calc.
-      FILENAME = 'atmos_std.dat'
-
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      ! For the ESMF interface to GEOS-5 GCM, we need to append *___.rc
-      FILENAME = TRIM( FILENAME ) // '___.rc'
-#endif
-
-      ! Echo info
-      IF ( am_I_Root ) THEN
-         WRITE( 6, 100 ) TRIM( FILENAME ), JXUNIT
-      ENDIF
-
-      call RD_PROF(JXUNIT,TRIM( FILENAME ), am_I_Root)
+      call RD_PROF_NC( am_I_Root )
 
       NJXX = NJX
       do J = 1,NJX
@@ -2230,91 +2218,6 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: rd_prof
-!
-! !DESCRIPTION: Subroutine RD\_PROF inputs temperature and O3 reference 
-!  profiles from 'atmos_std.dat'.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE RD_PROF(NJ2,NAMFIL,am_I_Root)
-!
-! !USES:
-!
-!
-! !INPUT PARAMETERS:
-!
-      INTEGER, INTENT(IN) ::  NJ2
-      CHARACTER(*), INTENT(IN) ::  NAMFIL
-      LOGICAL, INTENT(IN) :: am_I_Root
-!
-! !OUTPUT VARIABLES:
-!
-!
-! !REMARKS:
-! 
-! !REVISION HISTORY: 
-!  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      integer IA, I, M, L, LAT, MON, NTLATS, NTMONS, N216
-      REAL*8  OFAC, OFAK
-      CHARACTER*78 TITLE0
-
-      !=================================================================
-      ! RD_PROF begins here!
-      !=================================================================
-
-      open (NJ2,file=NAMFIL,status='old',form='formatted')
-      read (NJ2,'(A)') TITLE0
-      read (NJ2,'(2I5)') NTLATS,NTMONS
-c      write(6,'(1X,A)') TITLE0
-      IF ( am_I_Root ) THEN 
-      write(6,1000) NTLATS,NTMONS
-      ENDIF
-      N216  = min(216, NTLATS*NTMONS)
-      do IA = 1,N216
-        read (NJ2,'(1X,I3,3X,I2)') LAT, MON
-        M = min(12, max(1, MON))
-        L = min(18, max(1, (LAT+95)/10))
-        read (NJ2,'(3X,11F7.1)') (TREF(I,L,M), I=1,41)
-        read (NJ2,'(3X,11F7.4)') (OREF(I,L,M), I=1,31)
-      enddo
-      close (NJ2)
-
-c  Extend climatology to 100 km
-      OFAC = exp(-2.d5/5.d5)
-      do I = 32,51
-        OFAK = OFAC**(I-31)
-        do M = 1,NTMONS
-        do L = 1,NTLATS
-          OREF(I,L,M) = OREF(31,L,M)*OFAK
-        enddo
-        enddo
-      enddo
-      do L = 1,NTLATS
-      do M = 1,NTMONS
-      do I = 42,51
-        TREF(I,L,M) = TREF(41,L,M)
-      enddo
-      enddo
-      enddo
-
- 1000 format(1x,'std atmos profiles: ',i3,' lat x ',i2,' mon')
-
-      END SUBROUTINE RD_PROF
-!
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: rd_js_jx
 !
 ! !DESCRIPTION: Subroutine RD\_JS\_JX reads in 'FJX_j2j.dat', which defines 
@@ -2543,7 +2446,7 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
 c-----------------------------------------------------------------------
 c---key LOCAL atmospheric data needed to solve plane-parallel J----
 c-----these are dimensioned JXL_, and must have JXL_ .ge. LLPAR
-      real*8, dimension(JXL1_+1) :: TTJ,DDJ,OOJ,ZZJ
+      real*8, dimension(JXL1_+1) :: DDJ,OOJ,ZZJ
       real*8, dimension(JXL1_+1) :: PPJ
       integer,dimension(JXL2_+1) :: JXTRA
       real*8, dimension(W_)     :: FJTOP,FJBOT,FSBOT,FLXD0,RFL
@@ -2569,6 +2472,10 @@ C-----------------------------------------------------------------------
       REAL*8   AERX_COL(A_,L1_) ! Accumulated aerosol array
       REAL*8   ODCLOUD_COL(L_)
       REAL*8   VALJXX(L_,JVN_)
+      ! T_CLIM: Climatology data temperature (K)
+      REAL*8   T_CLIM(JXL1_+1)
+      ! T_INPUT: Input temperature (K) with extra layer for compatibility
+      REAL*8   T_INPUT(JXL1_+1)
 
       !=================================================================
       ! PHOTO_JX begins here!
@@ -2595,21 +2502,23 @@ c                        or         99.0                 80 km
       if (SZA .gt. 98.d0) goto 99
 
       ! Use GEOS-Chem methodology to set vertical profiles of:
-      ! Pressure      (PPJ) [hPa]
-      ! Temperature   (TTJ) [K]
-      ! Path density  (DDJ) [# molec/cm2]
-      ! Ozone density (OOJ) [# O3 molec/cm2]
-      CALL SET_PROF (ILON,ILAT,YLAT,MONTH,DAY,T_COL,P_COL,
+      ! Pressure      (PPJ)    [hPa]
+      ! Temperature   (T_CLIm) [K]
+      ! Path density  (DDJ)    [# molec/cm2]
+      ! Ozone density (OOJ)    [# O3 molec/cm2]
+      CALL SET_PROF (YLAT,MONTH,DAY,T_COL,P_COL,
      &               ODCLOUD_COL,ODMDUST_COL,ODAER_COL,AERX_COL,O3_COL,
-     &               TTJ,OOJ,ZZJ,DDJ)
+     &               T_CLIM,OOJ,ZZJ,DDJ)
 
-      ! Fill out PPJ
+      ! Fill out PPJ and TTJ with CTM data to replace fixed climatology
       DO L=1,L1_
          PPJ(L) = P_COL(L)
+         T_INPUT(L) = T_COL(L)
       ENDDO
 
       ! Ensure TOA pressure is zero
       PPJ(L1_+1) = 0.d0
+      T_INPUT(L1_+1) = T_CLIM(L1_+1)
 
 c---calculate spherical weighting functions (AMF: Air Mass Factor)
         RFLECT = REFLB
@@ -2628,6 +2537,10 @@ c---calculate the optical properties (opt-depth, single-scat-alb, phase-fn(1:8))
 c---  at the 5 std wavelengths 200-300-400-600-999 nm for cloud+aerosols
       do L = 1,L1_
        OD600(L) = 0.d0
+       ! ODs stored with fine-grain (DTAUX) and coarse (OD)
+       do K=1,W_
+         DTAUX(L,K) = 0.d0
+       enddo
        do K=1,5
          OD(K,L)  = 0.d0
          SSA(K,L) = 0.d0
@@ -2639,38 +2552,32 @@ c---  at the 5 std wavelengths 200-300-400-600-999 nm for cloud+aerosols
 
        ! Don't bother on extraneous level - leave as zero
        do L = 1,L_
-          DO K=1,W_
-             WAVE = WL(K)
-             ! Identify which wavelength bin we are in
-                                   KMIE=1 !   0-255 nm
-             IF( WAVE .gt. 255.d0) KMIE=2 ! 255-355 nm
-             IF( WAVE .gt. 355.d0) KMIE=3 ! 355-500 nm
-             IF( WAVE .gt. 500.d0) KMIE=4 ! 500-800 nm
-             IF( WAVE .gt. 600.d0) KMIE=5 ! 800+    nm
-
+          DO KMIE=1,5
              ! Clouds, aerosols, mineral dust
              DO M=1,AN_
-                IDXAER=MIEDX(M)
-                IF (IDXAER.lt.15) THEN
-                   ! Cloud (600 nm scaling)
-                   QSCALING = QAA(KMIE,IDXAER)/QAA(4,IDXAER)
-                ELSEIF (AOD999) THEN
-                   ! Aerosol/dust (999 nm scaling)
-                   QSCALING = QAA(KMIE,IDXAER)/QAA(IND999,IDXAER)
-                ELSE
-                   ! Aerosol/dust (550 nm scaling)
-                   QSCALING = QAA(KMIE,IDXAER)/QAA_AOD(IDXAER)
+                IF (AERX_COL(M,L).gt.0d0) THEN
+                   IDXAER=MIEDX(M)
+                   IF (IDXAER.lt.15) THEN
+                      ! Cloud (600 nm scaling)
+                      QSCALING = QAA(KMIE,IDXAER)/QAA(4,IDXAER)
+                   ELSEIF (AOD999) THEN
+                      ! Aerosol/dust (999 nm scaling)
+                      QSCALING = QAA(KMIE,IDXAER)/QAA(IND999,IDXAER)
+                   ELSE
+                      ! Aerosol/dust (550 nm scaling)
+                      QSCALING = QAA(KMIE,IDXAER)/QAA_AOD(IDXAER)
+                   ENDIF
+                   LOCALOD = QSCALING*AERX_COL(M,L)
+                   LOCALSSA = SAA(KMIE,IDXAER)*LOCALOD
+                   OD(KMIE,L) = OD(KMIE,L) + LOCALOD
+                   SSA(KMIE,L)= SSA(KMIE,L) + LOCALSSA
+                   DO I=1,8
+                      SLEG(I,KMIE,L) = SLEG(I,KMIE,L) + 
+     &                            (PAA(I,KMIE,IDXAER)*LOCALSSA)
+                   ENDDO ! I (Phase function)
                 ENDIF
-                LOCALOD = QSCALING*AERX_COL(M,L)
-                LOCALSSA = SAA(KMIE,IDXAER)*LOCALOD
-                OD(KMIE,L) = OD(KMIE,L) + LOCALOD
-                SSA(KMIE,L)= SSA(KMIE,L) + LOCALSSA
-                DO I=1,8
-                   SLEG(I,KMIE,L) = SLEG(I,KMIE,L) + 
-     &                         (PAA(I,KMIE,IDXAER)*LOCALSSA)
-                ENDDO ! I (Phase function)
              ENDDO ! M (Aerosol)
-          ENDDO ! K (Wavelength bin)
+          ENDDO ! KMIE (Mie scattering wavelength bin)
 
           ! Normalize
           DO KMIE=1,5
@@ -2681,7 +2588,7 @@ c---  at the 5 std wavelengths 200-300-400-600-999 nm for cloud+aerosols
                 ENDDO
              ENDIF
           ENDDO
-          ! Retrieve 600 nm OD to determine added layers:
+          ! Retrieve 600 nm OD to determine added layers
           OD600(L) = OD(4,L)
        ENDDO ! L (Layer)
 
@@ -2714,7 +2621,7 @@ C---Pick nearest Mie wavelength to get scattering properites------------
 c---Combine: Rayleigh scatters & O2 & O3 absorbers to get optical properties
 c---values at L1_=L_+1 are a pseudo/climatol layer above the top CTM layer (L_)
         do L = 1,L1_
-         TTTX     = TTJ(L)
+         TTTX     = T_CLIM(L) ! Following GEOS-Chem v9-1-3
          call X_interp (TTTX,XQO2, TQQ(1,1),QO2(K,1), TQQ(2,1),QO2(K,2),
      &         TQQ(3,1),QO2(K,3), LQQ(1))
          call X_interp (TTTX,XQO3, TQQ(1,2),QO3(K,1), TQQ(2,2),QO3(K,2),
@@ -2739,7 +2646,6 @@ c---values at L1_=L_+1 are a pseudo/climatol layer above the top CTM layer (L_)
         enddo
       enddo
 C-----------------------------------------------------------------------
-
       call OPMIE (DTAUX,POMEGAX,U0,RFL,AMF2,JXTRA,
      &        AVGF,FJTOP,FJBOT,FSBOT,FJFLX,FLXD,FLXD0,LLPAR)
 
@@ -2754,7 +2660,7 @@ C-----------------------------------------------------------------------
       enddo
 
       ! Calculate photolysis rates
-      call JRATET(PPJ,TTJ,FFF, VALJXX,L_,LLCHEM,NJX)
+      call JRATET(PPJ,T_INPUT,FFF, VALJXX,L_,LLCHEM,NJX)
 
       ! Fill out common-block array of J-rates
       DO L=1,LLCHEM
@@ -3510,7 +3416,7 @@ C---Always does PL(2) = P[1]
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_PROF (ILON,ILAT,YLAT,MONTH,DAY,T_CTM,P_CTM,
+      SUBROUTINE SET_PROF (YLAT,MONTH,DAY,T_CTM,P_CTM,
      &                     CLDOD,DSTOD,AEROD,AERCOL,O3_COL,
      &                     T_CLIM,O3_CLIM,Z_CLIM,AIR_CLIM)
 !
@@ -3519,8 +3425,6 @@ C---Always does PL(2) = P[1]
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER,INTENT(IN)    :: ILON                  ! Longitude index
-      INTEGER,INTENT(IN)    :: ILAT                  ! Latitude index
       REAL*8, INTENT(IN)    :: YLAT                  ! Latitude (degrees)
       INTEGER,INTENT(IN)    :: MONTH
       INTEGER,INTENT(IN)    :: DAY                   ! Day *of month*
@@ -4043,8 +3947,159 @@ c  Ensure all 'AN_' types are valid selections
       ! Return to calling program      
       END SUBROUTINE JV_INDEX
 !EOC
+!------------------------------------------------------------------------------
+!               MIT Laboratory for Aviation and the Environment               !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: rd_prof_nc
+!
+! !DESCRIPTION: Subroutine RAD\_PROF\_NC reads in the reference climatology  
+!  from a NetCDF file rather than an ASCII .dat.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE RD_PROF_NC( am_I_Root )
+!
+! !USES:
+!
+      ! Modules for netCDF read
+      USE m_netcdf_io_open
+      USE m_netcdf_io_read
+      USE m_netcdf_io_readattr
+      USE m_netcdf_io_close
+
+      ! GEOS-Chem modules
+      USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1    ! Data directory 
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN)         :: am_I_Root  ! Is this the root CPU?
+!
+! !OUTPUT VARIABLES:
+!
+!
+! !REMARKS:
+!  This file was automatically generated by the Perl scripts in the
+!  NcdfUtilities package (which ships w/ GEOS-Chem) and was subsequently
+!  hand-edited.
+!
+! !REVISION HISTORY:
+!  19 Apr 2012 - R. Yantosca - Initial version
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
+!  10 Apr 2013 - S. D. Eastham - Adapted for Fast-JX v7.0
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! netCDF file handle
+      INTEGER            :: fId                 ! netCDF file ID
+    
+      ! Character strings
+      CHARACTER(LEN=255) :: nc_dir              ! netCDF directory name
+      CHARACTER(LEN=255) :: nc_file             ! netCDF file name
+      CHARACTER(LEN=255) :: nc_path             ! netCDF path name
+      CHARACTER(LEN=255) :: v_name              ! netCDF variable name 
+      CHARACTER(LEN=255) :: a_name              ! netCDF attribute name
+      CHARACTER(LEN=255) :: a_val               ! netCDF attribute value
+    
+      ! Arrays for netCDF start and count values
+      INTEGER            :: st3d(3), ct3d(3)    ! For 3D arrays 
+   
+      !=================================================================
+      ! RD_PROF_NC begins here!
+      !=================================================================
+
+      !=========================================================================
+      ! Open and read data from the netCDF file
+      !=========================================================================
+    
+      ! Directory and file names
+      nc_dir  = TRIM( DATA_DIR_1x1 ) // 'FastJ_201204/'      
+      nc_file = 'fastj.jv_atms_dat.nc'  
+      nc_path = TRIM( nc_dir ) // TRIM( nc_file )
+    
+      ! Open netCDF file
+      CALL Ncop_Rd( fId, TRIM(nc_path) )
+      
+      ! Echo info to stdout
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 100 ) REPEAT( '%', 79 )
+         WRITE( 6, 110 ) TRIM(nc_file)
+         WRITE( 6, 120 ) TRIM(nc_dir)
+      ENDIF
+    
+      !----------------------------------------
+      ! VARIABLE: T
+      !----------------------------------------
+      
+      ! Variable name
+      v_name = "T"
+      
+      ! Read T from file
+      st3d   = (/  1,  1,  1 /)
+      ct3d   = (/ 51, 18, 12 /)
+      CALL NcRd( TREF, fId, TRIM(v_name), st3d, ct3d )
+      
+      ! Read the T:units attribute
+      a_name = "units"
+      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+      
+      ! Echo info to stdout
+      IF ( am_I_Root ) THEN 
+         WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+      ENDIF
+    
+      !----------------------------------------
+      ! VARIABLE: O3
+      !----------------------------------------
+      
+      ! Variable name
+      v_name = "O3"
+      
+      ! Read O3 from file
+      st3d   = (/  1,  1,  1 /)
+      ct3d   = (/ 51, 18, 12 /)
+      CALL NcRd( OREF, fId, TRIM(v_name), st3d, ct3d )
+      
+      ! Read the O3:units attribute
+      a_name = "units"
+      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+          
+      ! Echo info to stdout
+      IF ( am_I_Root ) THEN 
+         WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+      ENDIF
+    
+      !=================================================================
+      ! Cleanup and quit
+      !=================================================================
+    
+      ! Close netCDF file
+      CALL NcCl( fId )
+    
+      ! Echo info to stdout
+      IF ( am_I_Root ) THEN 
+         WRITE( 6, 140 )
+         WRITE( 6, 100 ) REPEAT( '%', 79 )
+      ENDIF
+    
+      ! FORMAT statements
+ 100  FORMAT( a                                              )
+ 110  FORMAT( '%% Opening file  : ',         a               )
+ 120  FORMAT( '%%  in directory : ',         a, / , '%%'     )
+ 130  FORMAT( '%% Successfully read ',       a, ' [', a, ']' )
+ 140  FORMAT( '%% Successfully closed file!'                 )
+
+      END SUBROUTINE RD_PROF_NC
+!
+!EOC
 !!------------------------------------------------------------------------------
-!!          Harvard University Atmospheric Chemistry Modeling Group            !
+!!               MIT Laboratory for Aviation and the Environment               !
 !!------------------------------------------------------------------------------
 !!BOP
 !!

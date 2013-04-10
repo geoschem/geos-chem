@@ -840,7 +840,8 @@ c new OH+CO rate from JPL2006.
 ! Change yield for HAC  
 
          ! The following T and P dependencies are directly included
-         ! in Fast-JX v7.0 (SDE 04/01/13)
+         ! in Fast-JX v7.0, and are ignored in the standard GC mechanism
+         ! in any case (SDE 04/01/13)
 #if !defined( FASTJX7 )
 
          ! Questions for Fabien: (hotp 7/31/09)
@@ -1297,8 +1298,10 @@ c new OH+CO rate from JPL2006.
          ! SPECIAL TREATMENT FOR O2+hv -> O+O
          !
          ! O2 is an inactive species, so we need to premultiply RRATE
-         ! by the O2 concentration prior to sending to the solver
-         !
+         ! by the O2 concentration prior to sending to the solver. If
+         ! the unified chemistry mechanism is enabled, we produce
+         ! O+O(1D) directly; if it is not, we need to adjust for
+         ! the rate as we do for O3 (below) (SDE 04/05/13)
          !==============================================================
          
          IF ( NKO2PHOT(NCS) > 0) THEN
@@ -1311,6 +1314,13 @@ c new OH+CO rate from JPL2006.
             DO KLOOP = 1, KTLOOP
                !Save old value of J-O2 in a diagnostic array
                RRATE(KLOOP,NKN) = RRATE(KLOOP,NKN)*CONCO2(KLOOP)
+#if !defined( GMISTRAT )
+               RRATE(KLOOP,NKN) = RRATE(KLOOP,NKN) *
+     $            1.63d-10 * EXP( 60.d0*T3I(KLOOP)) * CBLK(KLOOP,IH2O) /
+     $          ( 1.63d-10 * EXP( 60.d0*T3I(KLOOP)) * CBLK(KLOOP,IH2O) +
+     $            2.15d-11 * EXP(110.d0*T3I(KLOOP)) * CONCN2(KLOOP)    +
+     $            3.30d-11 * EXP( 55.d0*T3I(KLOOP)) * CONCO2(KLOOP)    )
+#endif
             ENDDO
          ENDIF 
 
@@ -1325,7 +1335,6 @@ c new OH+CO rate from JPL2006.
          ! the intermediate reactions are included - this would be
          ! double-counting (SDE 04/01/13)
          !==============================================================
-#if !defined( GMISTRAT )
          IF ( NKO3PHOT(NCS) > 0 ) THEN
 
             ! Put J(O3) in correct spot for SMVGEAR II
@@ -1338,6 +1347,7 @@ c new OH+CO rate from JPL2006.
                ! (gcc, bmy, 4/1/03)
                DUMMY(KLOOP) = RRATE(KLOOP,NKN)
 
+#if !defined( GMISTRAT )
                !========================================================
                ! Change rate of O(1D)+ N2 to be 3.1e-11 at 298K rather
                ! than 2.6e-11.  The temperature dependence remains the
@@ -1362,10 +1372,10 @@ c new OH+CO rate from JPL2006.
 !     $          ( 1.45d-10 * EXP( 89.d0*T3I(KLOOP)) * CBLK(KLOOP,IH2O) +
 !     $            2.14d-11 * EXP(110.d0*T3I(KLOOP)) * CONCN2(KLOOP)    +
 !     $            3.20d-11 * EXP( 70.d0*T3I(KLOOP)) * CONCO2(KLOOP)    )
+#endif
 
             ENDDO
          ENDIF
-#endif
       ELSEIF(IFSUN.EQ.2) THEN
          DO I          = 1, JPHOTRAT(NCS)
             NKN        = NKNPHOTRT(I,NCS)
@@ -1438,8 +1448,7 @@ c new OH+CO rate from JPL2006.
             IF ( (INDEX == 1) .AND. ( IZ ==1 ) ) THEN
                ! store J(NO2)
                jvalues(IX,IY,1) = RRATE(KLOOP,NKN)
-            ENDIF
-            IF ( (INDEX == 5) .AND. ( IZ ==1 ) ) THEN
+            ELSEIF ( (INDEX == 5) .AND. ( IZ ==1 ) ) THEN
                ! store J(O3)
                jvalues(IX,IY,2) = DUMMY(KLOOP) !RRATE(KLOOP,NKN)
             ENDIF     
@@ -1452,7 +1461,6 @@ c new OH+CO rate from JPL2006.
                ! Use AD22 array for J-value diagnostic (bmy, 9/30/99)
                IF ( LTJV(IX,IY) > 0 .and. IZ <= LD22 ) THEN
                   IF ( INDEX == 5 ) THEN
-
                      ! Store unadjusted J-O3 as AD22(:,:,:,5)
                      AD22(IX,IY,IZ,5) =
      &                    AD22(IX,IY,IZ,5) + DUMMY(KLOOP)

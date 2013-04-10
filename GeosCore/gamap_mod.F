@@ -4895,11 +4895,7 @@
             !------------------
 
             ! Number of tracers
-!#if defined( GMISTRAT )
-            NTRAC(22) = 14 ! Increase for bromine (jpp, mpayer, 12/28/11)
-!#else
-!            NTRAC(22) = 15 ! Increase for O2 (SDE, 03/28/13)
-!#endif
+            NTRAC(22) = 15 ! Increase for Br2 & O2 (SDE, 03/28/13)
 
             ! Loop over tracers
             DO T = 1, NTRAC(22)
@@ -4934,10 +4930,8 @@
                      NAME(T,22) = 'JCHBr3'
                   CASE( 14 )
                      NAME(T,22) = 'JBr2'
-#if defined( GMISTRAT )
-!                  CASE( 15 )
-!                     NAME(T,22) = 'JO2'
-#endif
+                  CASE( 15 )
+                     NAME(T,22) = 'JO2'
                  CASE DEFAULT
                   ! Nothing
                END SELECT

@@ -408,6 +408,7 @@ cleanup.o                   : cleanup.F                                      \
                               global_ch4_mod.o        global_hno3_mod.o      \
                               global_no3_mod.o        global_nox_mod.o       \
                               global_o1d_mod.o        global_oh_mod.o        \
+                              gmistrat_mod.o                                 \
                               h2_hd_mod.o             hcn_ch3cn_mod.o        \
                               modis_lai_mod.o         land_mercury_mod.o     \
                               lightning_nox_mod.o     linoz_mod.o            \
@@ -592,7 +593,7 @@ emissions_mod.o             : emissions_mod.F                                \
                               seasalt_mod.o           streets_anthro_mod.o   \
                               sulfate_mod.o           tagged_co_mod.o        \
                               tracer_mod.o            vistas_anthro_mod.o    \
-                              pops_mod.o
+                              pops_mod.o              gmistrat_mod.o
 
 epa_nei_mod.o               : epa_nei_mod.F                                  \
                               future_emissions_mod.o  logical_mod.o          \
@@ -803,7 +804,7 @@ main.o                      : main.F                                         \
                               gigc_environment_mod.o  geos57_read_mod.o      \
                               diag63_mod.o            olson_landmap_mod.o    \
                               mapping_mod.o           toms_mod.o             \
-                              soilnox_restart_mod.o   set_init_mod.o
+                              soilnox_restart_mod.o   gmistrat_mod.o
 
 mapping_mod.o               : mapping_mod.F90                                \
                               logical_mod.o
@@ -965,7 +966,7 @@ setemis.o                   : setemis.F                                      \
                               pbl_mix_mod.o           tracerid_mod.o         \
                               chemgrid_mod.o      
 
-set_init_mod.o              : set_init_mod.F          logical_mod.o          \
+gmistrat_mod.o              : gmistrat_mod.F          logical_mod.o          \
                               tracer_mod.o            tracerid_mod.o         \
                               global_ch4_mod.o        chemgrid_mod.o
 

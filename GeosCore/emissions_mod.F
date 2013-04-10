@@ -105,6 +105,7 @@
       USE EPA_NEI_MOD,            ONLY : EMISS_EPA_NEI
       USE ERROR_MOD,              ONLY : DEBUG_MSG
       USE GLOBAL_CH4_MOD,         ONLY : EMISSCH4
+      USE GMISTRAT_MOD,           ONLY : EMISS_BASIC
       USE H2_HD_MOD,              ONLY : EMISS_H2_HD
       USE HCN_CH3CN_MOD,          ONLY : EMISS_HCN_CH3CN
       USE LOGICAL_MOD                
@@ -389,6 +390,11 @@
 #else
          CALL EMISSC2H6
 #endif
+
+         ! Simplified emissions of N2O, OCS and CFCs (SDE 04/04/13)
+         IF (LBASICEMIS) THEN
+            CALL EMISS_BASIC
+         ENDIF
 
          ! CH4 emissions
          IF (LCH4EMIS) THEN
