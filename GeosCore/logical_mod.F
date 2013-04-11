@@ -83,6 +83,7 @@
       LOGICAL :: LSOA            ! Use secondary organic aerosol tracers?
       LOGICAL :: LSSALT          ! Use sea-salt aerosol tracers?
       LOGICAL :: LDICARB         ! Use dicarbonyl chemistry mechanism?
+      LOGICAL :: LGRAVSTRAT      ! Perform graviational settling in strat?
 
       !%%%% Chemistry %%%%
       LOGICAL :: LCHEM           ! Use chemistry?

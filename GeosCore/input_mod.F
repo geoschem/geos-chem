@@ -1283,7 +1283,7 @@
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE LOGICAL_MOD,  ONLY : LSULF, LCARB, LSOA
       USE LOGICAL_MOD,  ONLY : LDUST, LDEAD, LSSALT, LCRYST
-      USE LOGICAL_MOD,  ONLY : LDICARB
+      USE LOGICAL_MOD,  ONLY : LDICARB, LGRAVSTRAT
       USE TRACER_MOD,   ONLY : N_TRACERS
       USE TRACER_MOD,   ONLY : SALA_REDGE_um,      SALC_REDGE_um
       USE TRACER_MOD,   ONLY : ITS_AN_AEROSOL_SIM, ITS_A_FULLCHEM_SIM
@@ -1318,6 +1318,7 @@
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  11 Apr 2013 - S. D. Eastham - Added gravitational settling flag
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1385,8 +1386,12 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:10' )
       READ( SUBSTRS(1:N), * ) LDICARB
 
-      ! Separator line
+      ! Apply gravitational settling in stratosphere?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:11' )
+      READ( SUBSTRS(1:N), * ) LGRAVSTRAT  
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:12' )
 
       !=================================================================
       ! Error checks
@@ -1570,6 +1575,7 @@
      &                        SALA_REDGE_um(1), SALA_REDGE_um(2)
          WRITE( 6, 110     ) 'Coarse SEA SALT radii [um]  : ',
      &                        SALC_REDGE_um(1), SALC_REDGE_um(2)
+         WRITE( 6, 100     ) 'Settle strat. aerosols?     : ',LGRAVSTRAT
       ENDIF
 
  100  FORMAT( A, L5     )
@@ -7130,6 +7136,7 @@
       LBREMIS        = .FALSE.
       LOCSEMIS       = .FALSE.
       LN2OEMIS       = .FALSE.
+      LGRAVSTRAT     = .FALSE.
 
       !Specifically for CO2 simulation (R Nassar, 2009-03-02)
       LGENFF         = .FALSE.

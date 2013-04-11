@@ -429,6 +429,10 @@
       USE TRACER_MOD,     ONLY : STT,             TCVV 
       USE TRACER_MOD,     ONLY : N_TRACERS,       ITS_AN_AEROSOL_SIM
       USE TRACERID_MOD,   ONLY : IDTNITs,         IDTSO4s
+
+      ! Stratospheric settling
+      USE GMISTRAT_MOD,   ONLY : SETTLE_STRAT_AER
+      USE LOGICAL_MOD,    ONLY : LGRAVSTRAT
  
       USE CMN_SIZE_MOD                   ! Size parameters
 !
@@ -536,6 +540,14 @@
       CALL GRAV_SETTLING( STT(:,:,:,IDTNITs), 2 )
       IF ( LPRT .and. am_I_Root ) THEN
          CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITS' )
+      ENDIF
+
+      ! BC, SO4, NH4 and NIT [kg] gravitational settling in strat.
+      IF ( LGRAVSTRAT ) THEN
+         CALL SETTLE_STRAT_AER
+         IF ( LPRT .and. am_I_Root ) THEN
+            CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, STRAT' )
+         ENDIF
       ENDIF
 
       ! Convert all tracers in STT from [kg] -> [v/v] 

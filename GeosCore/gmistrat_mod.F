@@ -30,11 +30,13 @@
 !
       CHARACTER(LEN=255), PUBLIC :: TRAC_FILE_ROOT ! Root directory of 2D data
       CHARACTER(LEN=255), PUBLIC :: MONTREAL_FILE_ROOT ! Root directoy for WHO data 
+                          PUBLIC :: T_STS ! Max temperature of STS formation (K)
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
       PUBLIC  :: SET_INITIAL_MIXRATIOS
       PUBLIC  :: EMISS_BASIC
+      PUBLIC  :: SETTLE_STRAT_AER
       PUBLIC  :: INIT_GMISTRAT
       PUBLIC  :: CLEANUP_GMISTRAT
 !
@@ -57,10 +59,13 @@
       ! MODULE PARAMETERS
       !
       ! AER_NLEVS       : Number of levels in AER data
+      ! T_STS           : Maximum temperature of STS formation (K)
       !
       !=================================================================
 
       INTEGER, PARAMETER            :: AER_NLEVS=51
+      REAL*8, PARAMETER             :: T_STS=240.0d0
+
 
 !
 ! PRIVATE TYPES:
@@ -963,6 +968,304 @@
 
       ! Return to calling program
       END SUBROUTINE GET_MONTREAL
+!
+!EOC
+!------------------------------------------------------------------------------
+!               MIT Laboratory for Aviation and the Environment               !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: settle_strat_aer
+!
+! !DESCRIPTION: Subroutine SETTLE\_STRAT\_AER performs gravitational settling
+!  of stratospheric sulfates, nitrates, black carbon and organic carbon on a
+!  total mass basis. It is copied largely from GRAV\_SETTLING in
+!  sulfate\_mod.F, using a mean radius of 0.1 micrometers for STS (which
+!  all stratospheric sulfate is assumed to be) and the relevant aerosol radii
+!  calculated in aerosol\_mod.F for the rest. All of this is ignored if APM
+!  is active.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE SETTLE_STRAT_AER
+!
+! !USES:
+!
+      USE DAO_MOD,       ONLY : T, BXHEIGHT
+      USE DRYDEP_MOD,    ONLY : DEPSAV
+      USE PRESSURE_MOD,  ONLY : GET_PCENTER
+      USE TRACER_MOD,    ONLY : STT, XNUMOL
+      USE TRACERID_MOD,  ONLY : IDTSO4,IDTNIT,IDTNH4,IDTBCPI
+      USE TIME_MOD,      ONLY : GET_ELAPSED_SEC, GET_TS_CHEM
+      USE GRID_MOD,      ONLY : GET_AREA_CM2
+      USE COMODE_MOD,    ONLY : JLOP,WERADIUS,ERADIUS
+      USE LOGICAL_MOD,   ONLY : LGMISTRAT
+      USE CHEMGRID_MOD,  ONLY : ITS_IN_THE_STRAT
+
+      USE CMN_SIZE_MOD        ! Size parameters
+      USE CMN_DIAG_MOD        ! ND44
+      USE CMN_GCTM_MOD        ! g0
+      USE ERROR_MOD,   ONLY : IT_IS_NAN,ERROR_STOP     ! Test for NaN
+!
+! !REVISION HISTORY: 
+!  11 Apr 2013 - S. D. Eastham - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Common to all particles
+      INTEGER                :: I,      J,     L,        DTCHEM
+      REAL*8                 :: DELZ,   DELZ1
+      REAL*8                 :: P,      TEMP,  DP,       PDP     
+      REAL*8                 :: CONST,  SLIP,  VISC,     FAC1
+      REAL*8                 :: FAC2,   FLUX,  AREA_CM2, RHB
+      REAL*8                 :: RCM
+      REAL*8                 :: TOT1,   TOT2
+      INTEGER                :: KLOOP
+      LOGICAL                :: STSBOX, NATBOX
+     
+      ! Specific to each class
+      REAL*8                 :: RWET(2),CONST_V(2)
+      REAL*8                 :: RHO(2),RATIO_R(2),REFF(2)
+      REAL*8                 :: VTS(LLPAR,2),INMASS(4)
+      REAL*8                 :: OUTMASS(4)
+ 
+      ! Used for old Seinfeld & Pandis slip factor calc
+      REAL*8                 :: sp_Lambda, sp_Num
+
+      ! H2SO4 aqueous fraction
+      INTEGER                :: LOCALSO4AQ
+      
+      ! Parameters
+      REAL*8, PARAMETER      :: SALTDEN = 2200.0d0 ! density (kg/m3)
+      REAL*8, PARAMETER      :: H2SO4DEN = 1840.0d0
+      REAL*8, PARAMETER      :: BCDEN = 2200.d0 ! density (kg/m3)
+      REAL*8, PARAMETER      :: R_STRAT_STS = 2.0d-7 ! Mean STS rad. (m)
+
+      ! Indexing
+      INTEGER, PARAMETER     :: IBC = 1
+      INTEGER, PARAMETER     :: ISO4= 2
+      INTEGER, PARAMETER     :: INH4= 3
+      INTEGER, PARAMETER     :: INIT= 4
+      INTEGER, PARAMETER     :: NSETTLE = 2
+      INTEGER                :: IAERO
+      LOGICAL                :: RUNCALC
+
+      !=================================================================
+      ! SETTLE_STRAT_AER begins here!
+      !=================================================================
+
+      ! Return if it's the start of the run
+      IF ( GET_ELAPSED_SEC() == 0 ) RETURN
+
+      ! Chemistry timestep [s]
+      DTCHEM = GET_TS_CHEM() * 60d0
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I,       J,     L,    VTS,  P,        TEMP, RHB,  RWET ) 
+!$OMP+PRIVATE( RATIO_R, RHO,   DP,   PDP,  CONST,    SLIP, VISC )
+!$OMP+PRIVATE( DELZ,    DELZ1, TOT1, TOT2, AREA_CM2, FLUX, IAERO      )
+!$OMP+PRIVATE( STSBOX, NATBOX, LOCALSO4AQ, SP_NUM, SP_LAMBDA, RUNCALC )
+!$OMP+PRIVATE( CONST_V, INMASS, OUTMASS )
+!$OMP+SCHEDULE( DYNAMIC )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR       
+
+         ! Initialize 
+         DO L = 1, LLPAR
+            VTS(L,:) = 0d0
+         ENDDO
+
+         ! Loop over levels
+         DO L = 1, LLPAR
+
+            ! Temperature [K]
+            TEMP    = T(I,J,L)
+ 
+            NATBOX = .FALSE.
+            IF (ITS_IN_THE_STRAT(I,J,L)) THEN
+
+               ! Need to translate for radii
+               KLOOP = JLOP(I,J,L)
+
+               !-----SDE DEBUG
+               ! Replace these with actual values!
+               ! Can calculate density from mass/vol
+               ! Need to write H2SO4 gas fraction calculation
+               ! LOCALSO4AQ = 1.d0 - H2SO4_GASFRAC(I,J,L)
+               RWET(IBC) = WERADIUS(KLOOP,8)
+               RHO(IBC) = BCDEN
+               LOCALSO4AQ = 1.d0
+               !-----SDE DEBUG
+
+               IF (LOCALSO4AQ.gt.TINY(0d0)) THEN
+                  ! Sulfate now takes the form of STS
+                  RWET(ISO4) = R_STRAT_STS ! Use simple mean radius for STS for now
+                  RHO(ISO4) = H2SO4DEN ! kg/m3
+                  NATBOX = (TEMP.le.T_STS)
+                  !-----SDE DEBUG
+               ELSE
+                  ! Only sediment if aerosol form
+                  LOCALSO4AQ = 1.d0
+                  RHO(ISO4) = TINY(0d0)
+                  RWET(ISO4) = TINY(0d0)
+               ENDIF
+            ELSE
+               ! Don't settle outside the strat
+               RWET(ISO4) = TINY(0d0)
+               RHO(ISO4) = TINY(0d0)
+            ENDIF
+
+            RUNCALC = .FALSE.
+            IF ((RWET(ISO4) .le. 1.d-20).or.
+     &                       (LOCALSO4AQ.le.TINY(1d0))) THEN
+               ! Very low concentrations or sulfate is gaseous; skip
+               ! cell and move on
+               VTS(L,ISO4) = TINY(0d0)
+            ELSE
+               RUNCALC = .TRUE.
+            ENDIF
+            IF (RWET(IBC) .le. 1.d-20) THEN
+               VTS(L,IBC) = TINY(0d0)
+            ELSE
+               RUNCALC = .TRUE.
+            ENDIF
+
+            IF (RUNCALC) THEN
+               ! Pressure at center of the level [kPa]
+               P       = GET_PCENTER(I,J,L) * 0.1d0
+
+               ! Calculate common variables first
+               sp_Num = P * 1.d3 * 6.023d23 / (8.314 * Temp)
+               sp_Lambda = 1.d6/(1.41421*sp_Num*3.141592*(3.7d-10)**2)
+
+               ! Viscosity [Pa*s] of air as a function of temperature 
+               VISC = 1.458d-6 * (Temp)**(1.5d0) / ( Temp + 110.4d0 )
+
+               DO IAERO=1,NSETTLE
+                  ! Dp = particle diameter [um]
+                  DP = 2.d0 * RWET(IAERO) * 1.d6        
+
+                  ! PdP = P * dP [hPa * um]
+                  PDp     = P * Dp
+
+                  ! Constant
+                  CONST   = 2.d0 * RHO(IAERO) * RWET(IAERO)**2 * g0 / 9.d0
+
+                  !===========================================================
+                  ! NOTE: Slip correction factor calculations following 
+                  ! Seinfeld, pp464 which is thought to be more accurate 
+                  ! but more computation required. (rjp, 1/24/02)
+                  !
+                  ! # air molecule number density
+                  ! num = P * 1d3 * 6.023d23 / (8.314 * Temp) 
+                  !
+                  ! # gas mean free path
+                  ! lamda = 1.d6/( 1.41421 * num * 3.141592 * (3.7d-10)**2 ) 
+                  !
+                  ! # Slip correction
+                  ! Slip = 1. + 2. * lamda * (1.257 + 0.4 * exp( -1.1 * Dp     
+                  !     &     / (2. * lamda))) / Dp
+                  !
+                  ! NOTE: Eq) 3.22 pp 50 in Hinds (Aerosol Technology)
+                  ! which produces slip correction factore with small error
+                  ! compared to the above with less computation.
+                  !===========================================================  
+                
+                  ! Slip correction factor (as function of P*dp)
+                  ! Slip = 1.d0+(15.60d0 + 7.0d0 * EXP(-0.059d0 * PDp)) / PDp
+                  ! Reverting to Seinfeld and Pandis
+                  Slip = 1. + 2. * sp_Lambda * (1.257 + 0.4 * exp(-1.1*
+     &                  Dp / (2. * sp_Lambda))) / Dp
+   
+                  ! Settling velocity [m/s]
+                  VTS(L,IAERO) = CONST * Slip / VISC
+                 
+                  !-----SDE DEBUG
+                  ! Not yet implemented
+                  !IF (IAERO.eq.ISO4) THEN
+                  !   ! Correct for partial gas content
+                  !   VTS(L,ISO4) = VTS(L,ISO4) *
+     &            !      (1.d0-H2SO4_GASFRAC(I,J,L))
+                  !ENDIF
+                  !-----SDE DEBUG
+               ENDDO
+            ENDIF
+ 
+            IF (L .eq. LLPAR) THEN
+               DELZ = BXHEIGHT(I,J,L)
+               DO IAERO=1,2
+                  CONST_V(IAERO) = 1.d0 / (1.d0 + DTCHEM * 
+     &                                 VTS(L,IAERO) / DELZ)
+               ENDDO
+               ! Store loss from current box in OUTMASS
+               OUTMASS(ISO4) = STT(I,J,L,IDTSO4) * (1.d0-CONST_V(ISO4))
+               OUTMASS(INH4) = STT(I,J,L,IDTNH4) * (1.d0-CONST_V(ISO4))
+               OUTMASS(INIT) = STT(I,J,L,IDTNIT) * (1.d0-CONST_V(ISO4))
+               IF (NATBOX) OUTMASS(INIT) = 0d0
+               OUTMASS(IBC) = STT(I,J,L,IDTBCPI) * (1.d0-CONST_V(IBC))
+
+               STT(I,J,L,IDTBCPI) = STT(I,J,L,IDTBCPI) - OUTMASS(IBC)
+               STT(I,J,L,IDTSO4) = STT(I,J,L,IDTSO4) - OUTMASS(ISO4)
+               STT(I,J,L,IDTNH4) = STT(I,J,L,IDTNH4) - OUTMASS(INH4)
+               STT(I,J,L,IDTNIT) = STT(I,J,L,IDTNIT) - OUTMASS(INIT)
+            ENDIF
+         ENDDO
+
+         ! Method is to solve bidiagonal matrix which is
+         ! implicit and first order accurate in z (rjp, 1/24/02)
+
+         ! We know the boundary condition at the model top, and
+         ! precomputed accordingly at the end of the last loop
+
+         DO L = LLPAR-1, 1, -1
+            DELZ  = BXHEIGHT(I,J,L)
+            DELZ1 = BXHEIGHT(I,J,L+1)
+            DO IAERO=1,2
+               CONST_V = 1.d0 / (1.d0 + DTCHEM * VTS(L,IAERO) / DELZ)
+            ENDDO
+
+            NATBOX = ( LGMISTRAT.and.(ITS_IN_THE_STRAT(I,J,L)))
+
+            ! Set last iteration's outgoing mass as this one's incoming
+            INMASS = OUTMASS
+
+            IF (L.eq.1) THEN
+               ! Dry deposition handled elsewhere
+               OUTMASS = 0d0
+            ELSE
+               ! Calculate outgoing mass as before
+               OUTMASS(ISO4) = STT(I,J,L,IDTSO4) * (1.d0-CONST_V(ISO4))
+               OUTMASS(INH4) = STT(I,J,L,IDTNH4) * (1.d0-CONST_V(ISO4))
+               OUTMASS(INIT) = STT(I,J,L,IDTNIT) * (1.d0-CONST_V(ISO4))
+               OUTMASS(IBC) = STT(I,J,L,IDTBCPI) * (1.d0-CONST_V(IBC))
+            ENDIF
+ 
+            ! Adjust mass
+            STT(I,J,L,IDTBCPI) = STT(I,J,L,IDTBCPI) - OUTMASS(IBC) + 
+     &                                        INMASS(IBC)
+            STT(I,J,L,IDTSO4) = STT(I,J,L,IDTSO4) - OUTMASS(ISO4) + 
+     &                                        INMASS(ISO4)
+            STT(I,J,L,IDTNH4) = STT(I,J,L,IDTNH4) - OUTMASS(INH4) + 
+     &                                        INMASS(INH4)
+            IF (.not. NATBOX) THEN
+               ! NIT = NAT in strat, for which sedimentation is
+               ! handled separately
+               STT(I,J,L,IDTNIT) = STT(I,J,L,IDTNIT) - OUTMASS(INIT) + 
+     &                                        INMASS(INIT)
+            ENDIF
+
+         ENDDO
+
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      END SUBROUTINE SETTLE_STRAT_AER
 !
 !EOC
 !!------------------------------------------------------------------------------

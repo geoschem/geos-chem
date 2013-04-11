@@ -601,7 +601,8 @@ epa_nei_mod.o               : epa_nei_mod.F                                  \
                               tracer_mod.o    
 
 fast_jx_mod.o               : fast_jx_mod.F                                  \
-                              dao_mod.o               toms_mod.o             
+                              dao_mod.o               toms_mod.o             \
+                              chemgrid_mod.o
 
 future_emissions_mod.o      : future_emissions_mod.F
 
@@ -1018,7 +1019,8 @@ sulfate_mod.o               : sulfate_mod.F                                  \
                               streets_anthro_mod.o    tracerid_mod.o         \
                               tracer_mod.o            chemgrid_mod.o         \
                               uvalbedo_mod.o          vdiff_pre_mod.o        \
-                              wetscav_mod.o           get_ndep_mod.o  
+                              wetscav_mod.o           get_ndep_mod.o         \
+                              gmistrat_mod.o
 
 sunparam.o                  : sunparam.F
 
