@@ -601,7 +601,7 @@ epa_nei_mod.o               : epa_nei_mod.F                                  \
                               tracer_mod.o    
 
 fast_jx_mod.o               : fast_jx_mod.F                                  \
-                              dao_mod.o               toms_mod.o
+                              dao_mod.o               toms_mod.o             
 
 future_emissions_mod.o      : future_emissions_mod.F
 

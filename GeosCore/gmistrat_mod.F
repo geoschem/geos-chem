@@ -225,11 +225,6 @@
       ! Are we using 2D data?
       USE2DDATA = (LSETOCS.or.LSETCFC.or.LSETCL.or.LSETBR.or.LSETH2SO4)
       USE2DDATA = (USE2DDATA.or.STRAT2DCH4)
-
-      ! Retrieval from GC data fields not yet implemented
-      IF ( am_I_Root ) THEN
-         WRITE(6,*) '<<<<2D data read still necessary for N2O>>>>'
-      ENDIF
       USE2DDATA = (USE2DDATA.or.LSETN2O)
 
 #if !defined(GRID4x5) && !defined(GRID2x25)
@@ -473,16 +468,10 @@
          ENDIF
       ENDIF ! USE2DDATA
 
-      ! N2O and CH4 are treated differently
-      ! Take these from the existing GEOS-Chem 3D input data,
-      ! rather than from 2D data
-
       IF (LSETN2O) THEN
          IF ( am_I_Root ) THEN
             WRITE(6,*) '|N2O      |         |         |'
             WRITE(6,*) '|---------|---------|---------|'
-            ! SDE DEBUG
-            WRITE(6,*) 'SDE DEBUG: N2O STILL BEING SET IN 2D!'
             IF ( LPRT ) CALL DEBUG_MSG( '### GMISTRAT: Forcing 2D N2O' )
          ENDIF
 
@@ -490,6 +479,9 @@
          TRAC_SET  = 'N2O'
          CALL APPLY_2DTRAC(.FALSE.,.FALSE.)
       ENDIF
+
+      ! CH4 taken from the existing GEOS-Chem 3D input data,
+      ! rather than from 2D data
 
       IF (LSETCH4) THEN
          IF ( am_I_Root ) THEN

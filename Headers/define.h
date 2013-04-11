@@ -102,6 +102,7 @@
 !                              will now be set in the Makefile_header.mk
 !  24 Mar 2013 - S. D. Eastham - Added GMISTRAT switch
 !  01 Apr 2013 - S. D. Eastham - Added FASTJX7 switch (temporary)
+!  10 Apr 2013 - S. D. Eastham - Added FORCEO1D switch (temporary)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -133,6 +134,7 @@
 #undef GTMM_Hg
 #undef GMISTRAT
 #undef FASTJX7
+#undef FORCEO1D
 
 !==============================================================================
 ! Define the necessary "switches" for GEOS-CHEM. 
@@ -171,6 +173,7 @@
 !#define GTMM_Hg
 !#define GMISTRAT
 #define FASTJX7
+#define FORCEO1D
 
 !==============================================================================
 ! Force a compile error if a model type is undefined

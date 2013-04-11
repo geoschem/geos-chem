@@ -88,16 +88,22 @@
 !
 #     include "define.h"
 
-      USE DAO_MOD,      ONLY : T, CLDF
-      USE ERROR_MOD,    ONLY : ERROR_STOP, ALLOC_ERR
-      USE GRID_MOD,     ONLY : GET_YMID
-      USE PRESSURE_MOD, ONLY : GET_PEDGE
-      USE TIME_MOD,     ONLY : GET_MONTH, GET_DAY, GET_DAY_OF_YEAR
-      USE TIME_MOD,     ONLY : GET_TAU,   GET_YEAR
-      USE TOMS_MOD,     ONLY : GET_OVERHEAD_O3
+      USE DAO_MOD,        ONLY : T, CLDF
+      USE ERROR_MOD,      ONLY : ERROR_STOP, ALLOC_ERR
+      USE GRID_MOD,       ONLY : GET_YMID
+      USE PRESSURE_MOD,   ONLY : GET_PEDGE
+      USE TIME_MOD,       ONLY : GET_MONTH, GET_DAY, GET_DAY_OF_YEAR
+      USE TIME_MOD,       ONLY : GET_TAU,   GET_YEAR
+      USE TOMS_MOD,       ONLY : GET_OVERHEAD_O3
 
-      USE CMN_SIZE_MOD, ONLY : IIPAR,   JJPAR, LLPAR
-      USE CMN_SIZE_MOD, ONLY : NDUST,   MAXIJ, NAER,  NRH
+      USE CMN_SIZE_MOD,   ONLY : IIPAR,   JJPAR, LLPAR
+      USE CMN_SIZE_MOD,   ONLY : NDUST,   MAXIJ, NAER,  NRH
+      USE COMODE_MOD,     ONLY : JLOP, CSPEC, AIRDENS, ABSHUM
+      USE COMODE_LOOP_MOD,ONLY : CONSVAP,AVG,RSTARG
+      USE TRACERID_MOD,   ONLY : IDO1D, IDO3
+      USE ERROR_MOD,      ONLY : DEBUG_MSG
+      USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_NOCHEMGRID
+      USE LOGICAL_MOD,    ONLY : LPRT
 
       IMPLICIT NONE
 !
@@ -229,6 +235,10 @@
       
       LOGICAL, SAVE      :: FIRST = .true.
 
+      ! For setting O1D
+      INTEGER            :: JLOOP
+      REAL*8             :: H2OFACTOR,CONSEXP,TLOCAL,TINV, ADLOCAL
+
       !=================================================================
       ! FAST_JX begins here!
       !=================================================================
@@ -242,7 +252,8 @@
          DO i = 1,LLPAR+1
             INDGEN(i) = i       !(/(i,i=1,LLPAR+1)/)
          ENDDO
-         FIRST = .FALSE.
+         ! FIRST now reset later
+         !FIRST = .FALSE.
 
       ENDIF
 #endif
@@ -271,7 +282,8 @@
 !$OMP+PRIVATE( PRES,  T_CTM,  OPTD,  SFCA,      OPTDUST )
 !$OMP+PRIVATE( FMAX,  CLDF1D, KK,    NUMB,      L       )
 !$OMP+PRIVATE( KBOT,  KTOP,   ODNEW, INDICATOR, INDIC   )
-!$OMP+PRIVATE( O3COL, P_CTM                             )
+!$OMP+PRIVATE( O3COL, P_CTM,  JLOOP, H2OFACTOR, CONSEXP )
+!$OMP+PRIVATE( TLOCAL                                   )
 !$OMP+SCHEDULE( DYNAMIC )
 
       ! Loop over latitudes
@@ -338,27 +350,25 @@
             !===========================================================
             IF ( OVERLAP == 1 ) then
 
-               CALL ERROR_STOP('Linear cloud overlap not ready.',
-     &                         'fast_jx_mod.F')
-!#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
-!
-!               ! Column cloud fraction (not less than zero)
-!               CLDF1D = CLDF(1:LLPAR,NLON,NLAT)
-!               WHERE ( CLDF1D < 0d0 ) CLDF1D = 0d0
-!               
-!               ! NOTE: for the reprocessed GEOS-5 met fields (i.e. with
-!               ! optical depth & cloud fractions regridded with RegridTau)
-!               ! OPTD is the in-cloud optical depth.  At this point it has
-!               ! NOT been multiplied by cloud fraction yet.  Therefore,
-!               ! we can just apply the linear overlap formula as written 
-!               ! above (i.e. multiply by cloud fraction). (hyl, bmy, 10/24/08)
-!               OPTD = OPTD * CLDF1D
-!#endif
-!
-!               CALL PHOTOJ( NLON,  NLAT,     YLAT,    DAY_OF_YR,  
-!     &                      MONTH, DAY,      CSZA,    TEMP,    
-!     &                      SFCA,  OPTD,     OPTDUST, OPTAER, 
-!     &                      O3COL, am_I_Root                     )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+
+               ! Column cloud fraction (not less than zero)
+               CLDF1D = CLDF(1:LLPAR,NLON,NLAT)
+               WHERE ( CLDF1D < 0d0 ) CLDF1D = 0d0
+               
+               ! NOTE: for the reprocessed GEOS-5 met fields (i.e. with
+               ! optical depth & cloud fractions regridded with RegridTau)
+               ! OPTD is the in-cloud optical depth.  At this point it has
+               ! NOT been multiplied by cloud fraction yet.  Therefore,
+               ! we can just apply the linear overlap formula as written 
+               ! above (i.e. multiply by cloud fraction). (hyl, bmy, 10/24/08)
+               OPTD = OPTD * CLDF1D
+#endif
+
+               ! Call FAST-JX routines to compute J-values
+               CALL PHOTO_JX(CSZA,SFCA,P_CTM,T_CTM,O3COL,AOD999,
+     &            OPTAER,OPTDUST,OPTD,NLON,NLAT,YLAT,DAY_OF_YR,
+     &            MONTH,DAY,am_I_Root)
 
             !===========================================================
             ! CLOUD OVERLAP : APPROXIMATE RANDOM OVERLAP
@@ -392,19 +402,9 @@
 #endif
 
                ! Call FAST-JX routines to compute J-values
-                     CALL PHOTO_JX(CSZA,SFCA,P_CTM,T_CTM,O3COL,AOD999,
-     &                 OPTAER,OPTDUST,OPTD,NLON,NLAT,YLAT,DAY_OF_YR,
-     &                 MONTH,DAY,am_I_Root)
-
-!               CALL PHOTO_JX(U0,   SZA,      REFLB,    SOLF,  
-!     &                       LPRTJ,PPP,      ZZZ,      TTT,
-!     &                       DDD,  RRR,      OOO,      CLDWP,
-!     &                       AERSP,NDXCLD,   NDXAER,   L1U,
-!     &                       ANU,  VALJXX,   NJXU,     am_I_Root)
-!               CALL PHOTOJ( NLON,  NLAT,     YLAT,    DAY_OF_YR,  
-!     &                      MONTH, DAY,      CSZA,    TEMP,  
-!     &                      SFCA,  OPTD,     OPTDUST, OPTAER,
-!     &                      O3COL, am_I_Root                    )
+               CALL PHOTO_JX(CSZA,SFCA,P_CTM,T_CTM,O3COL,AOD999,
+     &            OPTAER,OPTDUST,OPTD,NLON,NLAT,YLAT,DAY_OF_YR,
+     &            MONTH,DAY,am_I_Root)
 
             !===========================================================
             ! CLOUD OVERLAP : MAXIMUM RANDOM OVERLAP
@@ -529,10 +529,41 @@
 !     &                              KTOP,  O3COL, am_I_Root )
 !
 !               END SELECT
-            ENDIF 
+            ENDIF
+            ! If this is the first call and we do not have O1D cons
+            ! from CSPEC, calculate a rough first approximation as PSSA
+            IF ((FIRST).and.(.not.O1D_SET)) THEN
+               DO L=1,LLCHEM
+                  ! Ignore non-chemistry cells
+                  IF (ITS_IN_THE_NOCHEMGRID(NLON,NLAT,L)) THEN
+                     CYCLE
+                  ENDIF
+                  ! [O1Dss] =       J[O3]
+                  !          ---------------------
+                  !          k1[H2O]+k2[N2]+k3[O2]
+                  JLOOP = JLOP(NLON,NLAT,L)
+                  ! Taken from calcrate.F
+                  TLOCAL = T_CTM(L)
+                  ADLOCAL = AIRDENS(JLOOP)
+                  TINV = 1.d0/TLOCAL
+                  CONSEXP = 17.2693882D0 * (TLOCAL - 273.16D0) / 
+     &                                      (TLOCAL - 35.86D0) 
+                  H2OFACTOR = ABSHUM(JLOOP)*CONSVAP*EXP(CONSEXP)*TINV
+                  CSPEC(JLOOP,IDO1D) = 
+     &             CSPEC(JLOOP,IDO3) *  ZPJ(L,3,NLON,NLAT) / 
+     &    ( 1.63d-10*EXP( 60.d0*TINV)*H2OFACTOR +
+     &      2.15d-11*EXP(110.d0*TINV)*0.2095d0*ADLOCAL +
+     &      3.30d-11*EXP( 55.d0*TINV)*0.7808d0*ADLOCAL )
+               ENDDO
+            ENDIF
          ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+      IF (FIRST.and.(.not.O1D_SET)) THEN
+         IF ( LPRT ) CALL DEBUG_MSG( '### FAST_JX_MOD: O1D SET' )
+      ENDIF
+      FIRST=.FALSE.
 
       !-----------------------------------------------------------
       ! END OF SUBROUTINE FAST-J

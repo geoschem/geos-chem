@@ -28,6 +28,8 @@
       ! New (SDE 03/28/13)
       ! Index in RAA & QAA of 999 nm wavelength
       INTEGER, PARAMETER :: IND999 = 5
+      ! Has O1D been set by CSPEC or another step?
+      LOGICAL            :: O1D_SET
 
 !-----------------------------------------------------------------------
 !      integer, parameter ::

@@ -1298,31 +1298,20 @@ c new OH+CO rate from JPL2006.
          ! SPECIAL TREATMENT FOR O2+hv -> O+O
          !
          ! O2 is an inactive species, so we need to premultiply RRATE
-         ! by the O2 concentration prior to sending to the solver. If
-         ! the unified chemistry mechanism is enabled, we produce
-         ! O+O(1D) directly; if it is not, we need to adjust for
-         ! the rate as we do for O3 (below) (SDE 04/05/13)
+         ! by the O2 concentration prior to sending to the solver.
+         ! (SDE 04/05/13)
          !==============================================================
-         
          IF ( NKO2PHOT(NCS) > 0) THEN
          
             !GET CORRECT NKN LOCATION OF O2 PHOT
             PHOTVAL = NKO2PHOT(NCS)-NRATES(NCS)
             NKN     = NKNPHOTRT(PHOTVAL,NCS)
          
-            !Loop through boxes and multiply by O2 Concentration
+            !Loop through boxes and multiply by O2 concentration
             DO KLOOP = 1, KTLOOP
-               !Save old value of J-O2 in a diagnostic array
                RRATE(KLOOP,NKN) = RRATE(KLOOP,NKN)*CONCO2(KLOOP)
-#if !defined( GMISTRAT )
-               RRATE(KLOOP,NKN) = RRATE(KLOOP,NKN) *
-     $            1.63d-10 * EXP( 60.d0*T3I(KLOOP)) * CBLK(KLOOP,IH2O) /
-     $          ( 1.63d-10 * EXP( 60.d0*T3I(KLOOP)) * CBLK(KLOOP,IH2O) +
-     $            2.15d-11 * EXP(110.d0*T3I(KLOOP)) * CONCN2(KLOOP)    +
-     $            3.30d-11 * EXP( 55.d0*T3I(KLOOP)) * CONCO2(KLOOP)    )
-#endif
             ENDDO
-         ENDIF 
+         ENDIF
 
          !==============================================================
          ! SPECIAL TREATMENT FOR O3+hv -> O+O2
@@ -1347,7 +1336,7 @@ c new OH+CO rate from JPL2006.
                ! (gcc, bmy, 4/1/03)
                DUMMY(KLOOP) = RRATE(KLOOP,NKN)
 
-#if !defined( GMISTRAT )
+#if ( !defined( GMISTRAT ) ) && ( !defined( FORCEO1D ) )
                !========================================================
                ! Change rate of O(1D)+ N2 to be 3.1e-11 at 298K rather
                ! than 2.6e-11.  The temperature dependence remains the
