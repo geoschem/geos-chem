@@ -107,6 +107,7 @@ CONTAINS
 !  04 Jan 2013 - M. Long     - Initial version
 !  28 Feb 2013 - R. Yantosca - Now MPI BCast the Input_Opt%haveImpRst field
 !  18 Mar 2013 - R. Yantosca - Mow MPI Bcast the Input_Opt%LINOZ_* fields
+!  11 Apr 2013 - R. Yantosca - Now MPI Bcast extra fields in Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -250,6 +251,9 @@ CONTAINS
     CALL MPI_Bcast( INPUT_OPT%LSSABr2, 1, mpi_logical, 0, mpiComm, RC )
     CALL MPI_Bcast( INPUT_OPT%LFIX_PBL_BRO, 1, mpi_logical, 0, mpiComm, RC )
     CALL MPI_Bcast( INPUT_OPT%Br_SCALING, 1, mpi_real8, 0, mpiComm, RC )
+    CALL MPI_Bcast( INPUT_OPT%LEDGARNOx, 1, mpi_logical, 0, mpiComm, RC )
+    CALL MPI_Bcast( INPUT_OPT%LEDGARCO, 1, mpi_logical, 0, mpiComm, RC )
+    CALL MPI_Bcast( INPUT_OPT%LEDGARSOX, 1, mpi_logical, 0, mpiComm, RC )
 
     !----------------------------------------
     ! CO2 MENU fields
@@ -269,6 +273,12 @@ CONTAINS
     CALL MPI_Bcast( INPUT_OPT%LSHIPEDG, 1, mpi_logical, 0, mpiComm, RC )
     CALL MPI_Bcast( INPUT_OPT%LSHIPICO, 1, mpi_logical, 0, mpiComm, RC )
     CALL MPI_Bcast( INPUT_OPT%LPLANE, 1, mpi_logical, 0, mpiComm, RC )
+    CALL MPI_Bcast( INPUT_OPT%LFFBKGRD, 1, mpi_logical, 0, mpiComm, RC )
+    CALL MPI_Bcast( INPUT_OPT%LBIOSPHTAG, 1, mpi_logical, 0, mpiComm, RC )
+    CALL MPI_Bcast( INPUT_OPT%LFOSSILTAG, 1, mpi_logical, 0, mpiComm, RC )
+    CALL MPI_Bcast( INPUT_OPT%LSHIPTAG, 1, mpi_logical, 0, mpiComm, RC )
+    CALL MPI_Bcast( INPUT_OPT%LPLANETAG, 1, mpi_logical, 0, mpiComm, RC )
+
 
     !----------------------------------------
     ! FUTURE MENU fields
@@ -469,6 +479,7 @@ CONTAINS
     CALL MPI_Bcast( INPUT_OPT%TINDEX(:,:), INPUT_OPT%MAX_DIAG*INPUT_OPT%MAX_TRCS, mpi_integer, 0, mpiComm, RC )
     CALL MPI_Bcast( INPUT_OPT%TCOUNT(:)  , INPUT_OPT%MAX_DIAG, mpi_integer, 0, mpiComm, RC )
     CALL MPI_Bcast( INPUT_OPT%TMAX(:)    , INPUT_OPT%MAX_DIAG, mpi_integer, 0, mpiComm, RC )
+    CALL MPI_Bcast( INPUT_OPT%DO_DIAG_WRITE, 1, mpi_logical, 0, mpiComm, RC )
 
     !----------------------------------------
     ! PLANEFLIGHT MENU fields
