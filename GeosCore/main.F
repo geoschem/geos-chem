@@ -462,7 +462,7 @@
 
       ! Initialize MEGAN arrays, get 15-day avg temperatures
       IF ( LMEGAN ) THEN
-         CALL INIT_MEGAN( State_Met )
+         CALL INIT_MEGAN( Input_Opt, State_Met )
          CALL INITIALIZE( 2, am_I_Root )
          CALL INITIALIZE( 3, am_I_Root )
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_MEGAN' )
@@ -1382,13 +1382,13 @@
          ZTYPE = 'remove all'
 
          ! Remove A3, A6, I6 fields
-         CALL UNZIP_A3_FIELDS( ZTYPE )
-         CALL UNZIP_A6_FIELDS( ZTYPE )
-         CALL UNZIP_I6_FIELDS( ZTYPE )
+         CALL UNZIP_A3_FIELDS( Input_Opt, ZTYPE )
+         CALL UNZIP_A6_FIELDS( Input_Opt, ZTYPE )
+         CALL UNZIP_I6_FIELDS( Input_Opt, ZTYPE )
 
 #if   defined( GCAP )
          ! Remove GCAP PHIS field (if necessary)
-         CALL UNZIP_GCAP_FIELDS( ZTYPE )
+         CALL UNZIP_GCAP_FIELDS( Input_Opt, ZTYPE )
 #endif
 
       ENDIF
@@ -1690,19 +1690,19 @@
 #if   defined( GEOS_57 )
 
       ! Read time-invariant data
-      CALL GEOS57_READ_CN( State_Met )
+      CALL GEOS57_READ_CN( Input_Opt, State_Met )
 
       ! Read 1-hr time-averaged data
       DATE = GET_FIRST_A1_TIME()
-      CALL GEOS57_READ_A1( DATE(1), DATE(2), State_Met )
+      CALL GEOS57_READ_A1( DATE(1), DATE(2), Input_Opt, State_Met )
 
       ! Read 3-hr time averaged data
       DATE = GET_FIRST_A3_TIME()
-      CALL GEOS57_READ_A3( DATE(1), DATE(2), State_Met )
+      CALL GEOS57_READ_A3( DATE(1), DATE(2), Input_Opt, State_Met )
 
       ! Read 3-hr time averaged data
       DATE = GET_FIRST_I3_TIME()
-      CALL GEOS57_READ_I3_1( DATE(1), DATE(2), State_Met )
+      CALL GEOS57_READ_I3_1( DATE(1), DATE(2), Input_Opt, State_Met )
 
 #elif defined( MERRA )
 
@@ -1715,25 +1715,26 @@
 
       ! Open constant fields
       DATE = (/ 20000101, 000000 /)
-      CALL OPEN_MERRA_CN_FIELDS( DATE(1), DATE(2) )
+      CALL OPEN_MERRA_CN_FIELDS( DATE(1), DATE(2), Input_Opt )
       CALL GET_MERRA_CN_FIELDS(  DATE(1), DATE(2), State_Met )
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st MERRA CN TIME' )
 
       ! Open and read A-1 fields
       DATE = GET_FIRST_A1_TIME()
-      CALL OPEN_MERRA_A1_FIELDS( DATE(1), DATE(2), RESET=.TRUE. )
-      CALL GET_MERRA_A1_FIELDS(  DATE(1), DATE(2), State_Met )
+      CALL OPEN_MERRA_A1_FIELDS( DATE(1), DATE(2), Input_Opt, 
+     &                                             RESET=.TRUE. )
+      CALL GET_MERRA_A1_FIELDS(  DATE(1), DATE(2), State_Met    )
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st MERRA A1 TIME' )
 
       ! Open and read A-3 fields
       DATE = GET_FIRST_A3_TIME()
-      CALL OPEN_MERRA_A3_FIELDS( DATE(1), DATE(2) )
+      CALL OPEN_MERRA_A3_FIELDS( DATE(1), DATE(2), Input_Opt )
       CALL GET_MERRA_A3_FIELDS(  DATE(1), DATE(2), State_Met )
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st MERRA A3 TIME' )
 
       ! Open & read I-6 fields
       DATE = GET_FIRST_I6_TIME()
-      CALL OPEN_MERRA_I6_FIELDS(  DATE(1), DATE(2) )
+      CALL OPEN_MERRA_I6_FIELDS(  DATE(1), DATE(2), Input_Opt )
       CALL GET_MERRA_I6_FIELDS_1( DATE(1), DATE(2), State_Met )
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st I6 TIME' )
 
@@ -1745,7 +1746,7 @@
       !
       !   Here we unzip the initial GEOS-3, GEOS-4, GEOS-5, GCAP data
       !=================================================================
-      IF ( LUNZIP ) THEN
+      IF ( Input_Opt%LUNZIP ) THEN
 
          !---------------------
          ! Remove all files
@@ -1755,13 +1756,13 @@
          ZTYPE = 'remove all'
          
          ! Remove any leftover A-3, A-6, I-6, in temp dir
-         CALL UNZIP_A3_FIELDS( ZTYPE )
-         CALL UNZIP_A6_FIELDS( ZTYPE )
-         CALL UNZIP_I6_FIELDS( ZTYPE )
+         CALL UNZIP_A3_FIELDS( Input_Opt, ZTYPE )
+         CALL UNZIP_A6_FIELDS( Input_Opt, ZTYPE )
+         CALL UNZIP_I6_FIELDS( Input_Opt, ZTYPE )
 
 #if   defined( GCAP )
          ! Unzip GCAP PHIS field (if necessary)
-         CALL UNZIP_GCAP_FIELDS( ZTYPE )
+         CALL UNZIP_GCAP_FIELDS( Input_Opt, ZTYPE )
 #endif
 
          !---------------------
@@ -1772,13 +1773,13 @@
          ZTYPE = 'unzip foreground'
 
          ! Unzip A-3, A-6, I-6 files for START of run
-         CALL UNZIP_A3_FIELDS( ZTYPE, NYMDb )
-         CALL UNZIP_A6_FIELDS( ZTYPE, NYMDb )
-         CALL UNZIP_I6_FIELDS( ZTYPE, NYMDb )
+         CALL UNZIP_A3_FIELDS( Input_Opt, ZTYPE, NYMDb )
+         CALL UNZIP_A6_FIELDS( Input_Opt, ZTYPE, NYMDb )
+         CALL UNZIP_I6_FIELDS( Input_Opt, ZTYPE, NYMDb )
 
 #if   defined( GCAP )
          ! Unzip GCAP PHIS field (if necessary)
-         CALL UNZIP_GCAP_FIELDS( ZTYPE )
+         CALL UNZIP_GCAP_FIELDS( Input_Opt, ZTYPE )
 #endif
 
          !### Debug output
@@ -1794,25 +1795,25 @@
 
       ! Open and read A-3 fields
       DATE = GET_FIRST_A3_TIME()
-      CALL OPEN_A3_FIELDS( DATE(1), DATE(2), RESET=.TRUE. )
-      CALL GET_A3_FIELDS(  DATE(1), DATE(2), State_Met )
+      CALL OPEN_A3_FIELDS( DATE(1), DATE(2), Input_Opt, RESET=.TRUE. )
+      CALL GET_A3_FIELDS(  DATE(1), DATE(2), State_Met               )
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st A3 TIME' )
 
       ! For MEGAN biogenics, update hourly temps w/in 15-day window
-      IF ( LMEGAN ) THEN
+      IF ( Input_Opt%LMEGAN ) THEN
          CALL UPDATE_T_DAY( State_Met )
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: UPDATE T_DAY' )
       ENDIF
 
       ! Open & read A-6 fields
       DATE = GET_FIRST_A6_TIME()
-      CALL OPEN_A6_FIELDS( DATE(1), DATE(2) ) 
+      CALL OPEN_A6_FIELDS( DATE(1), DATE(2), Input_Opt ) 
       CALL GET_A6_FIELDS(  DATE(1), DATE(2), State_Met )      
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st A6 TIME' )
 
       ! Open & read I-6 fields
       DATE = GET_FIRST_I6_TIME()
-      CALL OPEN_I6_FIELDS(  DATE(1), DATE(2) )
+      CALL OPEN_I6_FIELDS(  DATE(1), DATE(2), Input_Opt )
       CALL GET_I6_FIELDS_1( DATE(1), DATE(2), State_Met )
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st I6 TIME' )
     
@@ -1823,12 +1824,12 @@
       !-----------------------------------------------------------------
 
       ! Read GCAP PHIS and LWI fields (if necessary)
-      CALL OPEN_GCAP_FIELDS
-      CALL GET_GCAP_FIELDS( State_Met )
+      CALL OPEN_GCAP_FIELDS( Input_Opt            )
+      CALL GET_GCAP_FIELDS ( Input_Opt, State_Met )
 
       ! Remove temporary file (if necessary)
       IF ( LUNZIP ) THEN
-         CALL UNZIP_GCAP_FIELDS( 'remove date' )
+         CALL UNZIP_GCAP_FIELDS( Input_Opt, 'remove date' )
       ENDIF
 
 #endif
@@ -1881,11 +1882,11 @@
       !---------------------------------
       IF ( ITS_TIME_FOR_A1() ) THEN
          DATE = GET_A1_TIME()
-         CALL GEOS57_READ_A1( DATE(1), DATE(2), State_Met )
+         CALL GEOS57_READ_A1( DATE(1), DATE(2), Input_Opt, State_Met )
 
          ! Update daily mean temperature archive for MEGAN biogenics
          ! (tmf, 1/4/2012) This should be turned on!
-         IF ( LMEGAN ) CALL UPDATE_T_DAY( State_Met )
+         IF ( Input_Opt%LMEGAN ) CALL UPDATE_T_DAY( State_Met )
       ENDIF
 
       !----------------------------------
@@ -1893,7 +1894,7 @@
       !----------------------------------
       IF ( ITS_TIME_FOR_A3() ) THEN
          DATE = GET_A3_TIME()
-         CALL GEOS57_READ_A3( DATE(1), DATE(2), State_Met )
+         CALL GEOS57_READ_A3( DATE(1), DATE(2), Input_Opt, State_Met )
 
          ! Since CLDTOPS is an A-3 field, update the
          ! lightning NOx emissions [molec/box/6h]
@@ -1905,7 +1906,7 @@
       !----------------------------------
       IF ( ITS_TIME_ FOR_I3() ) THEN
          DATE = GET_I3_TIME()
-         CALL GEOS57_READ_I3_2( DATE(1), DATE(2), State_Met )
+         CALL GEOS57_READ_I3_2( DATE(1), DATE(2), Input_Opt%State_Met )
 
          ! Compute avg pressure at polar caps 
          CALL AVGPOLE( State_Met%PS2 )
@@ -1925,13 +1926,13 @@
          DATE = GET_A1_TIME()
 
          ! Open & read A-3 fields
-         CALL OPEN_MERRA_A1_FIELDS( DATE(1), DATE(2) )
+         CALL OPEN_MERRA_A1_FIELDS( DATE(1), DATE(2), Input_Opt )
          CALL GET_MERRA_A1_FIELDS ( DATE(1), DATE(2), State_Met )
 
          !%%% NEED TO UPDATE FOR MERRA %%%
          ! Update daily mean temperature archive for MEGAN biogenics
          ! (tmf, 1/4/2012) This should be turned on!
-         IF ( LMEGAN ) CALL UPDATE_T_DAY( State_Met )
+         IF ( Input_Opt%LMEGAN ) CALL UPDATE_T_DAY( State_Met )
       ENDIf
 
       !==============================================================
@@ -1945,12 +1946,12 @@
          DATE = GET_A3_TIME()
 
          ! Open and read A-6 fields
-         CALL OPEN_MERRA_A3_FIELDS( DATE(1), DATE(2) )
+         CALL OPEN_MERRA_A3_FIELDS( DATE(1), DATE(2), Input_Opt )
          CALL GET_MERRA_A3_FIELDS ( DATE(1), DATE(2), State_Met )
 
          ! Since CLDTOPS is an A-3 field, update the
          ! lightning NOx emissions [molec/box/6h]
-         IF ( LLIGHTNOX ) CALL LIGHTNING
+         IF ( Input_Opt%LLIGHTNOX ) CALL LIGHTNING( State_Met )
       ENDIF
 
       !==============================================================
@@ -1964,7 +1965,7 @@
          DATE = GET_I6_TIME()
 
          ! Open and read files
-         CALL OPEN_MERRA_I6_FIELDS ( DATE(1), DATE(2) )
+         CALL OPEN_MERRA_I6_FIELDS ( DATE(1), DATE(2), Input_Opt )
          CALL GET_MERRA_I6_FIELDS_2( DATE(1), DATE(2), State_Met )
 
          ! Compute avg pressure at polar caps 
@@ -1994,9 +1995,9 @@
          ENDIF
          
          ! Unzip A3, A6, I6 fields
-         CALL UNZIP_A3_FIELDS( ZTYPE, DATE(1) )
-         CALL UNZIP_A6_FIELDS( ZTYPE, DATE(1) )
-         CALL UNZIP_I6_FIELDS( ZTYPE, DATE(1) )
+         CALL UNZIP_A3_FIELDS( Input_Opt, ZTYPE, DATE(1) )
+         CALL UNZIP_A6_FIELDS( Input_Opt, ZTYPE, DATE(1) )
+         CALL UNZIP_I6_FIELDS( Input_Opt, ZTYPE, DATE(1) )
       
       ENDIF
 
@@ -2009,9 +2010,9 @@
          ZTYPE = 'remove date'
 
          ! Remove A-3, A-6, and I-6 files only for the current date
-         CALL UNZIP_A3_FIELDS( ZTYPE, NYMD )
-         CALL UNZIP_A6_FIELDS( ZTYPE, NYMD )
-         CALL UNZIP_I6_FIELDS( ZTYPE, NYMD )
+         CALL UNZIP_A3_FIELDS( Input_Opt, ZTYPE, NYMD )
+         CALL UNZIP_A6_FIELDS( Input_Opt, ZTYPE, NYMD )
+         CALL UNZIP_I6_FIELDS( Input_Opt, ZTYPE, NYMD )
 
       ENDIF  
 
@@ -2026,11 +2027,11 @@
          DATE = GET_A3_TIME()
 
          ! Open & read A-3 fields
-         CALL OPEN_A3_FIELDS( DATE(1), DATE(2) )
-         CALL GET_A3_FIELDS(  DATE(1), DATE(2), State_Met )
+         CALL OPEN_A3_FIELDS( DATE(1), DATE(2), Input_Opt )
+         CALL GET_A3_FIELDS ( DATE(1), DATE(2), State_Met )
 
          ! Update daily mean temperature archive for MEGAN biogenics
-         IF ( LMEGAN ) CALL UPDATE_T_DAY( State_Met )
+         IF ( Input_Opt%LMEGAN ) CALL UPDATE_T_DAY( State_Met )
 
       ENDIF
 
@@ -2045,12 +2046,12 @@
          DATE = GET_A6_TIME()
 
          ! Open and read A-6 fields
-         CALL OPEN_A6_FIELDS( DATE(1), DATE(2) )
+         CALL OPEN_A6_FIELDS( DATE(1), DATE(2), Input_Opt )
          CALL GET_A6_FIELDS(  DATE(1), DATE(2), State_Met )      
 
          ! Since CLDTOPS is an A-6 field, update the
          ! lightning NOx emissions [molec/box/6h]
-         IF ( LLIGHTNOX ) CALL LIGHTNING( State_Met )
+         IF ( Input_Opt%LLIGHTNOX ) CALL LIGHTNING( State_Met )
       ENDIF
 
       !==============================================================
@@ -2062,7 +2063,7 @@
          DATE = GET_I6_TIME()
 
          ! Open and read files
-         CALL OPEN_I6_FIELDS(  DATE(1), DATE(2) )
+         CALL OPEN_I6_FIELDS(  DATE(1), DATE(2), Input_Opt )
          CALL GET_I6_FIELDS_2( DATE(1), DATE(2), State_Met )
 
          ! Compute avg pressure at polar caps 

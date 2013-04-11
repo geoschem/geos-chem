@@ -992,8 +992,8 @@
          FRAC_L       = State_Met%FRLAND(I,J)
          FRAC_O       = MAX( State_Met%FROCEAN(I,J) -
      &                       State_Met%FRSEAICE(I,J), 0d0 )
-         IS_OCEAN_BOX = (( FRAC_O > 0d0 ) .and. 
-                         ( State_Met%SEAICE00(I,J)  > 0.5d0 ))
+         IS_OCEAN_BOX = ( ( FRAC_O > 0d0                     ) .and. 
+     &                    ( State_Met%SEAICE00(I,J)  > 0.5d0 ) )
 #else
          FRAC_L       = State_Met%FRCLND(I,J)
          FRAC_O       = 1d0 - FRAC_L

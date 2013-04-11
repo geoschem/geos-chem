@@ -161,11 +161,11 @@
       INTEGER :: N_TOT_TRC               ! # of tracers to convect
  
       ! For fields from Input_Opt
-      LOGICAL :: LDYNOCEAN
-      LOGICAL :: ITS_A_MERCURY_SIM
-      INTEGER :: N_TRACERS
-      REAL*8  :: TCVV(Input_Opt%N_TRACERS)
-      REAL*8  :: TRACER_MW_KG(Input_Opt%N_TRACERS)
+      LOGICAL         :: LDYNOCEAN
+      LOGICAL         :: ITS_A_MERCURY_SIM
+      INTEGER         :: N_TRACERS
+      REAL*8          :: TCVV(Input_Opt%N_TRACERS)
+      REAL*8          :: TRACER_MW_KG(Input_Opt%N_TRACERS)
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -176,21 +176,14 @@
       ! DO_CONVECT begins here!
       !=================================================================
 
-      ! Assume success
-      RC                =  GIGC_SUCCESS
-
-      ! Copy values from Input_Opt
-      LDYNOCEAN         = Input_Opt%LDYNOCEAN
-      ITS_A_MERCURY_SIM = Input_Opt%ITS_A_MERCURY_SIM
-      N_TRACERS         = Input_Opt%N_TRACERS
-      TCVV              = Input_Opt%TCVV(1:N_TRACERS)
-      TRACER_MW_KG      = Input_Opt%TRACER_MW_KG(1:N_TRACERS)
-
 #if   defined( GCAP ) 
 
       !=================================================================
       ! GCAP met fields
       !=================================================================
+
+      ! Assume success
+      RC                =  GIGC_SUCCESS
 
       ! Call GCAP driver routine
       CALL DO_GCAP_CONVECT
@@ -202,6 +195,9 @@
       ! GEOS-4 met fields
       !=================================================================
 
+      ! Assume success
+      RC                =  GIGC_SUCCESS
+
       ! Call GEOS-4 driver routine
       CALL DO_GEOS4_CONVECT
      &   ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
@@ -212,6 +208,13 @@
       ! GEOS-5 met fields
       !=================================================================
 
+      ! Assume success
+      RC                =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      ITS_A_MERCURY_SIM = Input_Opt%ITS_A_MERCURY_SIM
+      N_TRACERS         = Input_Opt%N_TRACERS
+
       ! Pick the proper # of tracers
 #if   defined( APM )  
       N_TOT_TRC = N_TRACERS + N_APMTRA   ! If APM is used, then convect
@@ -219,20 +222,13 @@
       N_TOT_TRC = N_TRACERS              !  the APM aerosol tracers
 #endif
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
-
       ! Call the S-J Lin convection routine for GEOS-5
       CALL NFCLDMX( N_TOT_TRC,
-     &              TCVV,
+     &              Input_Opt%TCVV,
      &              State_Met%CMFMC(:,:,2:LLPAR+1),
      &              State_Met%DTRAIN, 
-     &              STT,
+     &              State_Chm%TRACERS,
      &              State_Met )
-
-      ! Free pointer
-      NULLIFY( STT )
 
 #elif defined( MERRA ) || defined( GEOS_57 )
 
@@ -248,16 +244,17 @@
       TYPE(ID_TRAC)      :: IDT
                    
       ! Scalars          
-      INTEGER            :: I, J, L, N, NN, RC, TS_DYN
+      INTEGER            :: I, J, L, N, NN, TS_DYN
       REAL*8             :: AREA_M2, DT
                          
       ! Arrays           
-      REAL*8             :: DIAG14 (               LLPAR,   N_TRACERS )
-      REAL*8             :: DIAG38 (               LLPAR,   N_TRACERS )
-      REAL*8             :: F      (               LLPAR,   N_TRACERS )
-      REAL*8,  TARGET    :: FSOL   ( IIPAR, JJPAR, LLPAR,   N_TRACERS )
-      INTEGER            :: ISOL   (                        N_TRACERS )
-      REAL*8             :: PEDGE  (               LLPAR+1            )
+      REAL*8             :: DIAG14 ( LLPAR,   Input_Opt%N_TRACERS )
+      REAL*8             :: DIAG38 ( LLPAR,   Input_Opt%N_TRACERS )
+      REAL*8             :: F      ( LLPAR,   Input_Opt%N_TRACERS )
+      REAL*8,  TARGET    :: FSOL   ( IIPAR, JJPAR, LLPAR,   
+     &                                        Input_Opt%N_TRACERS )
+      INTEGER            :: ISOL   (          Input_Opt%N_TRACERS )
+      REAL*8             :: PEDGE  ( LLPAR+1                      )
 
       ! Pointers
       REAL*8,  POINTER   :: p_AD      (:    )   
@@ -281,6 +278,16 @@
       ! Initialization
       !-----------------------------------------------------------------
 
+      ! Assume success
+      RC                =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LDYNOCEAN         = Input_Opt%LDYNOCEAN
+      ITS_A_MERCURY_SIM = Input_Opt%ITS_A_MERCURY_SIM
+      N_TRACERS         = Input_Opt%N_TRACERS
+      TCVV              = Input_Opt%TCVV(1:N_TRACERS)
+      TRACER_MW_KG      = Input_Opt%TRACER_MW_KG(1:N_TRACERS)
+
       ! Pick the proper # of tracers
 #if   defined( APM )  
       N_TOT_TRC = N_TRACERS + N_APMTRA   ! If APM is used, then convect
@@ -295,7 +302,7 @@
       DIMINFO%N_TRACERS       = N_TRACERS            ! # of tracers
       IDT%Hg2                 = IDTHg2               ! Tracer ID flag for Hg2
       IDT%HgP                 = IDTHgP               ! Tracer ID flag for HgP
-      OPTIONS%USE_Hg          = ITS_A_MERCURY_SIM()  ! Mercury simulation?
+      OPTIONS%USE_Hg          = ITS_A_MERCURY_SIM    ! Mercury simulation?
       OPTIONS%USE_Hg_DYNOCEAN = LDYNOCEAN            !  with dynamic ocean?
       OPTIONS%USE_DIAG14      = ( ND14 > 0 )         ! Use ND14 diagnostic?
       OPTIONS%USE_DIAG38      = ( ND38 > 0 )         ! Use ND38 diagnostic?
@@ -383,9 +390,9 @@
          p_CMFMC           => State_Met%CMFMC   ( I, J, 2:LLPAR+1   )
          p_DQRCU           => State_Met%DQRCU   ( I, J,  :          )
          p_DTRAIN          => State_Met%DTRAIN  ( I, J,  :          )
-         p_H2O2s           => State_Met%H2O2s   ( I, J,  :          )
+         p_H2O2s           =>           H2O2s   ( I, J,  :          )
          p_REEVAPCN        => State_Met%REEVAPCN( I, J,  :          )
-         p_SO2s            => State_Met%SO2s    ( I, J,  :          )
+         p_SO2s            =>           SO2s    ( I, J,  :          )
          p_T               => State_Met%T       ( I, J,  :          )
          p_STT             => State_Chm%Tracers ( I, J,  :,       : )
          
@@ -417,8 +424,8 @@
      &                             DIAG38    = DIAG38,
      &                             I         = I,
      &                             J         = J,
-     &                             RC        = RC, 
-     &                             State_Met = State_Met )
+     &                             State_Met = State_Met,
+     &                             RC        = RC         )
 
          ! Stop if error is encountered
          IF ( RC /= GIGC_SUCCESS ) THEN

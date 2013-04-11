@@ -2853,24 +2853,28 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_MEGAN( State_Met )
+      SUBROUTINE INIT_MEGAN( Input_Opt, State_Met )
 !
 ! !USES:
 !
       USE A3_READ_MOD
       USE GEOS57_READ_MOD,    ONLY : GEOS57_READ_A1
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE inquireMod,         ONLY : findFreeLUN
       USE MERRA_A1_MOD
       USE JULDAY_MOD,         ONLY : CALDATE
       USE ERROR_MOD,          ONLY : ALLOC_ERR
-      USE LOGICAL_MOD,        ONLY : LUNZIP
       USE TIME_MOD,           ONLY : GET_FIRST_A3_TIME
       USE TIME_MOD,           ONLY : GET_JD
       USE TIME_MOD,           ONLY : ITS_A_LEAPYEAR
       USE TIME_MOD,           ONLY : YMD_EXTRACT
 !
 ! !INPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 ! 
@@ -2890,6 +2894,7 @@
 !  11 Apr 2012 - R. Yantosca - Now remove the call to INIT_LAI; we shall 
 !                              initialize the LAI arrays from main.F
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  11 Apr 2013 - R. Yantosca - Now pass directory info with Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3100,8 +3105,8 @@
 #endif
 
       ! Remove any leftover A-3 files in temp dir (if necessary)
-      IF ( LUNZIP ) THEN
-         CALL UNZIP_A3_FIELDS( 'remove all' )
+      IF ( Input_Opt%LUNZIP ) THEN
+         CALL UNZIP_A3_FIELDS( Input_Opt, 'remove all' )
       ENDIF
 
       ! Loop over 15 days
@@ -3117,8 +3122,10 @@
          CALL CALDATE( JD_T15, NYMD_T15, NHMS_T15 )
 
          ! Unzip A-3 files for archving (if necessary)
-         IF ( LUNZIP ) THEN
-            CALL UNZIP_A3_FIELDS( 'unzip foreground', NYMD_T15 )
+         IF ( Input_Opt%LUNZIP ) THEN
+            CALL UNZIP_A3_FIELDS( Input_Opt, 
+     &                            'unzip foreground', 
+     &                            NYMD_T15             )
          ENDIF
 
          ! Loop over 3h periods during day
@@ -3130,8 +3137,10 @@
             ! GEOS-5.7.x met fields
             ! Sfc temp is hourly data
             !-----------------------------
-            CALL GEOS57_READ_A1( NYMD_T15, 010000*J + G4AHEAD,
-     &                           State_Met ) 
+            CALL GEOS57_READ_A1( NYMD_T15, 
+     &                           010000*J + G4AHEAD,
+     &                           Input_Opt, 
+     &                           State_Met           ) 
 
 #elif   defined( MERRA )
 
@@ -3141,12 +3150,15 @@
             !-----------------------------
 
             ! Open A1 fields
-            CALL OPEN_MERRA_A1_FIELDS( NYMD_T15, 010000*J + G4AHEAD,
-     &                                 IUNIT=IUNIT )
+            CALL OPEN_MERRA_A1_FIELDS( NYMD_T15, 
+     &                                 010000*J + G4AHEAD,
+     &                                 Input_Opt, 
+     &                                 IUNIT=IUNIT         )
 
             ! Read A1 fields from disk
-            CALL GET_MERRA_A1_FIELDS(  NYMD_T15, 010000*J + G4AHEAD,
-     &                                 State_Met ) 
+            CALL GET_MERRA_A1_FIELDS(  NYMD_T15, 
+     &                                 010000*J + G4AHEAD,
+     &                                 State_Met           ) 
 
 #else
             !-----------------------------
@@ -3155,12 +3167,15 @@
             !-----------------------------
 
             ! Open A3 fields
-            CALL OPEN_A3_FIELDS( NYMD_T15, 030000*J + G4AHEAD, 
-     &                           IUNIT=IUNIT )
+            CALL OPEN_A3_FIELDS( NYMD_T15, 
+     &                           030000*J + G4AHEAD,
+     &                           Input_Opt,  
+     &                           IUNIT=IUNIT         )
 
             ! Read A3 fields from disk
-            CALL GET_A3_FIELDS(  NYMD_T15, 030000*J + G4AHEAD, 
-     &                           State_Met ) 
+            CALL GET_A3_FIELDS(  NYMD_T15, 
+     &                           030000*J + G4AHEAD, 
+     &                           State_Met           ) 
 
 #endif
 
@@ -3172,8 +3187,10 @@
          CALL UPDATE_T_15_AVG
 
          ! Remove A-3 file from temp dir (if necessary)
-         IF ( LUNZIP ) THEN
-            CALL UNZIP_A3_FIELDS( 'remove date', NYMD_T15 )
+         IF ( Input_Opt%LUNZIP ) THEN
+            CALL UNZIP_A3_FIELDS( Input_Opt, 
+     &                            'remove date', 
+     &                            NYMD_T15       )
          ENDIF
 
       ENDDO
@@ -3184,8 +3201,8 @@
 #endif
 
       ! Remove any leftover A-3 files in temp dir
-      IF ( LUNZIP ) THEN
-         CALL UNZIP_A3_FIELDS(  'remove all' )
+      IF ( Input_Opt%LUNZIP ) THEN
+         CALL UNZIP_A3_FIELDS( Input_Opt, 'remove all' )
       ENDIF
 
       END SUBROUTINE INIT_MEGAN
