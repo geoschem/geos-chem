@@ -712,11 +712,9 @@
 !         WRITE (6,*) 'C_O3=', C_O3
 
          ! Get monthly mean NO3 concentration (molec/cm3)
+! ----> this is causing a segfault because it's looking for 
+!       L = 39 and NO3 is (72, 46, 38). (H. Amos, 10April2013)
          C_NO3       = GET_NO3( I, J, L )
-!         WRITE (6,*) 'C_NO3=', C_NO3
-!         WRITE (6,*) 'I =', I
-!         WRITE (6,*) 'J =', J
-!         WRITE (6,*) 'L =', L
 
          ! Fraction of box (I,J,L) underneath the PBL top [dimensionless]
          F_PBL = GET_FRAC_UNDER_PBLTOP( I, J, L )
@@ -2916,7 +2914,7 @@ c$$$      ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
             NO3_MOLEC_CM3 = NO3(I,J,L) * AD(I,J,L) * ( 62d0/28.97d0 ) 
 !            WRITE (6,*) 'NO3 v/v =', NO3(I,J,L)
 !            WRITE (6,*) 'NO3 kg =', NO3_MOLEC_CM3
-               
+
             ! Convert NO3 from [kg] to [molec/cm3]
             NO3_MOLEC_CM3 = NO3_MOLEC_CM3 * XNUMOL_NO3 / BOXVL(I,J,L)
 !            WRITE (6,*) 'XNUMOL_NO3 =', XNUMOL_NO3
@@ -3275,11 +3273,16 @@ c$$$      ENDIF
 !$OMP+PRIVATE( I, J, YMID_R, IJLOOP, TIMLOC, AHR )
             DO J = 1, JJPAR
 
-               ! Grid box latitude center [radians]
-               !YMID_R = GET_YMID_R( J )
-               YMID_R = GET_YMID_R( I, J, 1 ) ! hma, 8mar2013
+c$$$               ! Grid box latitude center [radians]
+c$$$               !YMID_R = GET_YMID_R( J )
+c$$$               YMID_R = GET_YMID_R( I, J, 1 ) ! hma, 8mar2013
 
             DO I = 1, IIPAR
+
+               ! Grid box latitude center [radians]
+               ! (moved inside I,J loops - H. Amos, 10Apr2013)
+               YMID_R = GET_YMID_R( I, J, 1)
+
 
                ! Increment IJLOOP
                IJLOOP = ( (J-1) * IIPAR ) + I

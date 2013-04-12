@@ -115,14 +115,18 @@
          CALL INIT_GLOBAL_NO3
          FIRST = .FALSE.
       ENDIF
-
+  
 !      ! File name
 !      FILENAME = TRIM( DATA_DIR )                       // 
 !     &           'sulfate_sim_200508/offline/NO3.'      //
 !     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
-      !kludge until I can't NO3 for GEOS-5 (H. Amos, 25Mar2013)
-      FILENAME = '/as/data/geos/GEOS_4x5/sulfate_sim_200508' // 
-     &           '/offline/NO3.geos4.4x5'
+!      !kludge until I can't NO3 for GEOS-5 (H. Amos, 25Mar2013)
+!      FILENAME = '/as/data/geos/GEOS_4x5/sulfate_sim_200508' // 
+!     &           '/offline/NO3.geos4.4x5'
+      ! GEOS-5 4x5 file from Carey Friedman (H. Amos, 10Apr2013)
+      FILENAME = '/home/hamos/GC/input_files/POPs' //
+     &           '/PAHs_2004_GEOS/4x5/CLF_fullchem' //
+     &           '/NO3.geos5.4x5.bpch'
 
       ! Echo some information to the standard output
       WRITE( 6, 110 ) TRIM( FILENAME )
@@ -145,9 +149,11 @@
      &         XTAU,        IIPAR,                    JJPAR,      
      &         LLTROP_FIX,  ARRAY(:,:,1:LLTROP_FIX),  QUIET=.TRUE. )
 
-      ! Assign data from ARRAY to the module variable H2O2
-      ! Levels between LLTROP_FIX and LLROP are 0
+      ! Assign data from ARRAY to the module variable NO3
+      ! Levels between LLTROP_FIX and LLTROP are 0
       CALL TRANSFER_3D_TROP( ARRAY, NO3 )
+
+      PRINT*,'DIM NO3 = ', SIZE( NO3 ,3 ) !debugging
 
       END SUBROUTINE GET_GLOBAL_NO3
 !EOC
@@ -188,7 +194,9 @@
       !=================================================================
       ! INIT_GLOBAL_NO3 begins here!
       !=================================================================
-      ALLOCATE( NO3( IIPAR, JJPAR, LLTROP ), STAT=AS )
+! fix out of bounds error (H. Amos, 11 April 2013)
+!      ALLOCATE( NO3( IIPAR, JJPAR, LLTROP ), STAT=AS )
+      ALLOCATE( NO3( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'NO3' )
       NO3 = 0d0
 
