@@ -638,6 +638,10 @@
 !  20 Jan 2010 - C. Carouge  - Now use the # of active species from GC to 
 !                              update CSPEC and not the of variable species 
 !                              from KPP.
+!  12 Apr 2013 - R. Yantosca - If -DDEVEL is used, when the chemistry can't
+!                              converge, we shall increase the tolerances
+!                              by a factor of 2 and try again.  This is often
+!                              needed to run GEOS-Chem in the GEOS-5 GCM.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -664,7 +668,7 @@
          RTOL(i) = 5.d-2
          ATOL(i) = 1.d-2
       END DO
-
+      
       ! for LSODE
 !      DO i=1,NVAR
 !         RTOL(i) = 1.0d-3
@@ -766,6 +770,13 @@
          
          ! Try another time if it failed
          IF ( IERR < 0 ) THEN
+#if defined( DEVEL )
+            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            !%%% For KPP tolerance fix (mlong, 4/12/13) %%%
+            !%%% Re-entry point for non-convergence     %%%
+            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ 123        CONTINUE
+#endif
             write(6,*) ''
             write(6,100) istatus(1:8),rstate(1:3)
             write(6,*) ''
@@ -784,9 +795,25 @@
             ! 1D grid box index on the global grid
             JLOOP = JLOOPLO+KLOOP
 
-            call integrate(TIN, TOUT, ICNTRL, RCNTRL, ISTATUS,
-     $           RSTATE, IERR)
-            IF ( IERR < 0 ) THEN              
+#if defined( DEVEL )
+            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            !%%% FOR KPP TOLERANCE FIX (mlong, 4/13/12) %%%
+            !%%% Increase tolerances by factor of 2     %%%
+            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+           !RTOL = 2d0 * RTOL    ! Relative
+            ATOL = 2d0 * ATOL    ! Absolute
+#endif
+
+            call Integrate( TIN,    TOUT,    ICNTRL, 
+     &                      RCNTRL, ISTATUS, RSTATE, IERR )
+            IF ( IERR < 0 ) THEN 
+#if defined( DEVEL )
+               !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+               !%%% FOR KPP TOLERANCE FIX (mlong, 4/13/12) %%%
+               !%%% Try to solve again; don't quit the run %%%
+               !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+               GOTO 123
+#endif
                print*, 'failed twice !!! '
                CALL ERROR_STOP(ERR_MSG, 'INTEGRATE_KPP')
             ENDIF
