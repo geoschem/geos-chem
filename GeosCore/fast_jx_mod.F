@@ -530,9 +530,11 @@
 !
 !               END SELECT
             ENDIF
-            ! If this is the first call and we do not have O1D cons
+            ! If this is the first call and we do not have O1D conc.
             ! from CSPEC, calculate a rough first approximation as PSSA
-            IF ((FIRST).and.(.not.O1D_SET)) THEN
+            !-----SDE DEBUG - Deactivated for now
+#if (defined( FORCEO1D ) || defined( GMISTRAT ))
+            IF ((FIRST).and.(.not.O1D_SET).and.(.FALSE.)) THEN
                DO L=1,LLCHEM
                   ! Ignore non-chemistry cells
                   IF (ITS_IN_THE_NOCHEMGRID(NLON,NLAT,L)) THEN
@@ -556,6 +558,7 @@
      &      3.30d-11*EXP( 55.d0*TINV)*0.7808d0*ADLOCAL )
                ENDDO
             ENDIF
+#endif
          ENDDO
       ENDDO
 !$OMP END PARALLEL DO

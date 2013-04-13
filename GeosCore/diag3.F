@@ -1580,6 +1580,8 @@
 !  (6  ) POH   : OH-source from O3 photolysis  : s-1   : SCALE_JV
 !  (7  ) JGLYX : GLYX  J-Value                 : s-1   : SCALE
 !  (8  ) JMGLY : MGLY  J-Value                 : s-1   : SCALE
+!  (15 ) JO2   : O2    J-value                 : s-1   : SCALE_JV
+!  (16 ) JN2O  : N2O   J-value                 : s-1   : SCALE_JV
 !  (71 ) JCH3I : CH3I  J-value (s^-1)          : s-1   : SCALE_JV
 !  (81 ) JHCN  : HCN   J-value (s^-1)          : s-1   : SCALE_JV
 !
@@ -1609,15 +1611,25 @@
             ! 1           = NOx        1 = CH3I     1 = HCN
             ! 7           = HNO3
             ! 8           = H2O2
+            ! 9           = BrO
+            ! 10          = HOBr
+            ! 11          = BrNO2
+            ! 12          = BrNO3
+            ! 13          = CHBr3
+            ! 14          = Br2
             ! 20          = CH2O
+            ! 54          = N2O
             ! 55          = GLYX
             ! 56          = MGLY
+            ! -1          = O2
             ! N_TRACERS+1 = O3 & OH
             !
             ! (ccc, bmy, 12/15/08)
             !-----------------------------------------------------------------
             IF ( NN >= N_TRACERS+1 ) THEN
                MM = 5    ! Write 'O3' and 'OH'
+            ELSEIF ( NN .lt. 0 ) THEN
+               MM = 15   ! Write 'O2'
             ELSE
                SELECT CASE ( TRIM( TRACER_NAME(NN) ) )
                   CASE ( 'NOx', 'HCN', 'CH3I' )
@@ -1644,6 +1656,8 @@
                      MM = 13
                   CASE ( 'Br2' )
                      MM = 14
+                  CASE ( 'N2O' )
+                     MM = 16
                   CASE DEFAULT
                      MM = 0
                END SELECT

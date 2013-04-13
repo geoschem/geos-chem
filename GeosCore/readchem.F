@@ -837,6 +837,8 @@
          ENDIF
 
 ! bdf smv2 use Q to flag O3 photolysis, code is not confused by 'A''s
+! SDE 04/11/13: Do the same for H2SO4 photolysis
+         NKSO4PHOT(NCS) = 0
          IF (NOUSE(NCS) .EQ. 0) THEN
             NK                 = NRATCUR(NCS)
             IF (SPECL(1).EQ.'Q') NKO3PHOT(NCS)=NK !Flag O3 photolysis
@@ -844,6 +846,9 @@
             IF (SPECL(1).EQ.'I') NKHOROI(NCS) = NK !Flag CH2O-producing branch in EP photolysis
             IF (SPECL(1).EQ.'J') NKHOROJ(NCS) = NK !Flag GLYC-producing branch in EP photolysis
             IF (SPECL(1).EQ.'R') NKO2PHOT(NCS) = NK !Flag O2 photolysis
+            IF (trim(adjustl(comment)) == 'sf') THEN
+               NKSO4PHOT(NCS) = NK
+            ENDIF
 
 !FLAG HACET AND GLYC reaction to modify yield according to temperature
 ! (fp, 8/09)

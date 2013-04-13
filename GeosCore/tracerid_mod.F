@@ -292,9 +292,9 @@
       ! Reservoirs
       INTEGER            :: IDTN2O, IDTOCS
       ! CFCs
-      INTEGER            :: IDTCFC,    IDTHCFC, IDTCH3Cl,IDTCF2Cl2
-      INTEGER            :: IDTCH3CCl3,IDTCFCl3,IDTCBrF3,IDTC2Br2F4
-      INTEGER            :: IDTCBrClF2,IDTCF2Br2
+      INTEGER            :: IDTCFC,    IDTHCFC, IDTCH3Cl,IDTCFC12 
+      INTEGER            :: IDTCH3CCl3,IDTCFC11,IDTH1301,IDTH2402  
+      INTEGER            :: IDTH1211  ,IDTH1202 
 
       ! For tagged Hg simulation
       INTEGER              :: N_Hg_CATS
@@ -855,7 +855,7 @@
             CASE ( 'HOCL' )
                IDTHOCl = N
              
-            CASE ( 'CLONO2' )
+            CASE ( 'CLNO3' )
                IDTClNO3 = N
 
             CASE ( 'CLNO2' )
@@ -876,8 +876,8 @@
             CASE ( 'CCL4' )
                IDTCCl4 = N
 
-            CASE ( 'CF2CL2' )
-               IDTCF2Cl2 = N
+            CASE ( 'CFC12' )
+               IDTCFC12  = N
 
             CASE ( 'CH3CCL3' )
                IDTCH3CCl3 = N
@@ -897,20 +897,20 @@
             CASE ( 'OCLO' )
                IDTOClO = N
 
-            CASE ( 'CFCL3' )
-               IDTCFCl3 = N
+            CASE ( 'CFC11' )
+               IDTCFC11 = N
 
-            CASE ( 'C2BR2F4' )
-               IDTC2Br2F4 = N
+            CASE ( 'H2402' )
+               IDTH2402   = N
 
-            CASE ( 'CF3BR' )
-               IDTCBrF3 = N
+            CASE ( 'H1301' )
+               IDTH1301 = N
 
-            CASE ( 'CF2BR2' )
-               IDTCF2Br2 = N
+            CASE ( 'H1202' )
+               IDTH1202  = N
 
-            CASE ( 'CF2CLBR' )
-               IDTCBrClF2 = N
+            CASE ( 'H1211' )
+               IDTH1211   = N
 
             CASE ( 'CFC'  )
                IDTCFC = N
@@ -3249,7 +3249,7 @@
       IDTClOx    = 0
       IDTHOCl    = 0
       IDTCH3CCl3 = 0
-      IDTCF2Cl2  = 0
+      IDTCFC12   = 0
       IDTCCl4    = 0
       IDTCH3Cl   = 0
       IDTClNO3   = 0
@@ -3260,15 +3260,15 @@
       IDTCl2O2   = 0
       IDTOClO    = 0
       IDTClOO    = 0
-      IDTCFCl3   = 0
+      IDTCFC11   = 0
       IDTCFC     = 0
       IDTHCFC    = 0
       IDTN2O     = 0
       IDTOCS     = 0
-      IDTCBrF3   = 0
-      IDTCBrClF2 = 0
-      IDTC2Br2F4 = 0
-      IDTCF2Br2  = 0
+      IDTH1301   = 0
+      IDTH1211   = 0
+      IDTH2402   = 0
+      IDTH1202   = 0
       ! +++++++++++++++++
       !(fp, 6/09)
       IDTISOPN   = 0

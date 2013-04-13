@@ -132,6 +132,8 @@
       USE DIAG63_MOD,      ONLY : DO_SAVE_DIAG63
       USE EMISSIONS_MOD,   ONLY : NOx_SCALING      
       USE PARANOX_MOD,     ONLY : INTERPOLATE_LUT2 !(mpayer, 2/7/12)
+      USE FAST_JX_MOD,     ONLY : FJXFUNC
+      USE GMISTRAT_MOD,    ONLY : SO4_PHOTFRAC
 
       USE CMN_SIZE_MOD          ! Size parameters
       USE COMODE_LOOP_MOD       ! SMVGEAR II arrays
@@ -139,7 +141,6 @@
       USE CMN_MOD               ! STT, etc
       USE CMN_DEP_MOD           ! FRCLND
       USE CMN_O3_MOD            ! for jvalues (gvinken, 6/09/10)
-      USE FAST_JX_MOD,     ONLY : FJXFUNC
 
       IMPLICIT NONE
 #     include "define.h"
@@ -228,6 +229,9 @@
       REAL*8  :: QLIQ(KBLOOP)
       REAL*8  :: QICE(KBLOOP)
 
+      ! SDE: Strat-chem
+      REAL*8  :: DUMMYO2(KBLOOP)
+
 !-------------------------------------------------------------------------------
 ! Prior to 9/24/12:
 ! CALCRATE is already called within a parallel loop from routine PHYSPROC,
@@ -265,8 +269,9 @@
       yn_nkhobr = .false.; yn_nk1hbr = .false.
       br_aer1_rc = 0.d0
 
-      ! FAST-J: Zero out the dummy array (bmy, 9/30/99)
-      DUMMY = 0d0
+      ! FAST-JX: Zero out the dummy arrays (bmy, 9/30/99)
+      DUMMY   = 0d0
+      DUMMYO2 = 0d0
 
       ! Zero rate arrays for this column, so that we don't have any
       ! "leftovers" from the last iteration.  This facilitates 
@@ -1295,6 +1300,41 @@ c new OH+CO rate from JPL2006.
 #endif
 
          !==============================================================
+         ! SPECIAL TREATMENT FOR H2SO4+hv -> SO2 + 2OH
+         !
+         ! Only allow photolysis of H2SO4 when gaseous (SDE 04/11/13)
+         !
+         !==============================================================
+
+#if defined( GMISTRAT )       
+         IF ( NKSO4PHOT(NCS) > 0 ) THEN
+            ! Calculate if H2SO4 expected to be gaseous or aqueous
+            ! Only allow photolysis above 6 hPa
+            PHOTVAL = NKSO4PHOT(NCS)-NRATES(NCS)
+            NKN     = NKNPHOTRT(PHOTVAL,NCS)
+            
+            IF (LGMISTRAT) THEN
+               DO KLOOP = 1, KTLOOP 
+                  JLOOP            = LREORDER(KLOOP+JLOOPLO)
+
+                  ! Find location
+                  IX               = IXSAVE(JLOOP)
+                  IY               = IYSAVE(JLOOP)
+                  IZ               = IZSAVE(JLOOP)                  
+                  RRATE(KLOOP,NKN)=RRATE(KLOOP,NKN)
+     &                               *SO4_PHOTFRAC(IX,IY,IZ)
+               ENDDO
+            ELSE
+               ! No H2SO4 photolysis in trop model
+               DO KLOOP = 1, KTLOOP
+                  RRATE(KLOOP,NKN) = 0.d0
+               ENDDO
+            ENDIF
+         ENDIF
+#endif
+          
+               
+         !==============================================================
          ! SPECIAL TREATMENT FOR O2+hv -> O+O
          !
          ! O2 is an inactive species, so we need to premultiply RRATE
@@ -1306,9 +1346,12 @@ c new OH+CO rate from JPL2006.
             !GET CORRECT NKN LOCATION OF O2 PHOT
             PHOTVAL = NKO2PHOT(NCS)-NRATES(NCS)
             NKN     = NKNPHOTRT(PHOTVAL,NCS)
-         
+
             !Loop through boxes and multiply by O2 concentration
             DO KLOOP = 1, KTLOOP
+               ! Store actual rate in dummy array         
+               DUMMYO2(KLOOP) = RRATE(KLOOP,NKN)
+
                RRATE(KLOOP,NKN) = RRATE(KLOOP,NKN)*CONCO2(KLOOP)
             ENDDO
          ENDIF
@@ -1415,6 +1458,10 @@ c new OH+CO rate from JPL2006.
                INDEX = 13
             CASE ( 'Br2' )
                INDEX = 14
+            CASE ( 'O2' )
+               INDEX = 15
+            CASE ( 'N2O' )
+               INDEX = 16
             CASE DEFAULT
                INDEX = 0
          END SELECT
@@ -1453,10 +1500,18 @@ c new OH+CO rate from JPL2006.
                      ! Store unadjusted J-O3 as AD22(:,:,:,5)
                      AD22(IX,IY,IZ,5) =
      &                    AD22(IX,IY,IZ,5) + DUMMY(KLOOP)
-
+#if !defined( FORCEO1D )
                      ! Store POH as AD22(:,:,:,6)
                      AD22(IX,IY,IZ,6) =
      &                    AD22(IX,IY,IZ,6) + RRATE(KLOOP,NKN)
+#else
+                     ! POH is now from O1D rxn!
+                     AD22(IX,IY,IZ,6) = 0d0
+#endif
+                  ELSEIF ( INDEX == 15 ) THEN
+                     ! Store unadjusted O2
+                     AD22(IX,IY,IZ,15) = 
+     &                       AD22(IX,IY,IZ,15) + DUMMYO2(KLOOP)
                   ELSE
                      ! Store other J-Values in their appropriate slots
                      AD22(IX,IY,IZ,INDEX) =

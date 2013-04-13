@@ -411,6 +411,7 @@
       ! Added NK2HOBr and NK2HBR to /CHEM4/ to flag the two HOBr + HBr
       !      pseudo reactions (in place of HBr + HOBr --ice-->) (jpp, 6/16/11)
       ! Added NKO2PHOT to flag the O2 photolysis reaction (SDE 03/28/13)
+      ! Added NKSO4PHOT to flag the H2SO4 photolysis reaction (SDE 04/11/13)
       INTEGER            NNADD1,        NNADDA(ICS),  NNADDB(  ICS), 
      &                   NNADDC(ICS),   NNADDD(ICS),  NNADDK(  ICS), 
      &                   NNADDV(ICS),   NNADDZ,       NKO3PHOT(ICS),
@@ -420,7 +421,8 @@
      &                   NKHNO4(ICS),   NKN2O5,       NKHO2,
      &                   NKGLYC(ICS,2), NKHAC(ICS,2), NKMCO3(ICS,3),
      &                   NKBrNO3,       NKHOBr,       NK1HBr, 
-     &                   NK2HOBr,       NK2HBr,       NKO2PHOT(ICS)
+     &                   NK2HOBr,       NK2HBr,       NKO2PHOT(ICS),
+     &                   NKSO4PHOT(ICS)
 
       INTEGER ::         IH2O,        IOXYGEN,   MB1,      MB2
 

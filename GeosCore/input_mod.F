@@ -3078,9 +3078,6 @@
       IF ( LGMISTRAT .and. LSCHEM ) THEN
          MSG = 'Cannot have both unified and linearized strat chem!'
          CALL ERROR_STOP( MSG, LOCATION )
-      ELSEIF ( (.not. LGMISTRAT) .and. LSETH2SO4 ) THEN 
-         MSG = 'Stratospheric H2SO4 is set but full strat-chem is off!'
-         CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
 
       !=================================================================

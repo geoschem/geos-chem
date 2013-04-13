@@ -44,6 +44,9 @@
       USE TIME_MOD,             ONLY : GET_NYMD,     GET_NHMS
       USE LOGICAL_MOD,          ONLY : LSVCSPEC,     LLINOZ
       USE TRACERID_MOD,         ONLY : IDTCH4 ! SDE 03/25/13
+      USE LOGICAL_MOD,          ONLY : LGMISTRAT ! SDE 04/11/13
+      USE LOGICAL_MOD,          ONLY : LGRAVSTRAT ! SDE 04/12/13
+      USE GMISTRAT_MOD,         ONLY : CALC_H2SO4_GAS ! SDE 04/11/13
 
       USE CMN_SIZE_MOD               ! Size parameters
       USE COMODE_LOOP_MOD            ! SMVGEAR variables
@@ -583,6 +586,16 @@
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after FAST-JX' )
+
+      !================================================================
+      ! Partition stratospheric H2SO4
+      !================================================================
+
+      IF (LGMISTRAT.or.LGRAVSTRAT) THEN
+         CALL CALC_H2SO4_GAS
+         !### Debug
+         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after H2SO4 GAS' )
+      ENDIF
 
       !================================================================
       ! Call chemistry routines

@@ -87,11 +87,15 @@
       ! A_   = dim = no. of Aerosol/cloud Mie sets (input data)
       INTEGER, PARAMETER ::  A_=56!A_=40
       ! W_   = dim = no. of Wavelength bins:  =18 std, =12 trop only
-#if defined( GMISTRAT )
-      INTEGER, PARAMETER ::  W_=18    ! W_=12 or 18
-#else
-      INTEGER, PARAMETER ::  W_=12
-#endif
+      !-----SDE DEBUG
+      ! Force full mechanism for now (debug)
+      INTEGER, PARAMETER ::  W_=18
+!#if defined( GMISTRAT )
+!      INTEGER, PARAMETER ::  W_=18    ! W_=12 or 18
+!#else
+!      INTEGER, PARAMETER ::  W_=12
+!#endif
+      !-----SDE DEBUG
       ! N_  = no. of levels in Mie scattering arrays
       !     = 2*NC+1 = 4*(L_+1) + 1 + 2*sum(JADDLV)
       INTEGER, PARAMETER ::  N_=601

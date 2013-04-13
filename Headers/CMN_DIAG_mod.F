@@ -68,6 +68,7 @@
       ! changed PD39 (wetdep) to 38 (jpp, 7/08/09)
       ! Now set PD46 to 16 (jpp, 6/7/09)
       ! Changed PD11 from 7 to 5 (efischer, mpayer, 3/19/12)
+      ! Changed PD22 from 14 to 16 for O2 and N2O (SDE 04/13/13)
       !=================================================================
       INTEGER, PARAMETER :: PD01=3            
       INTEGER, PARAMETER :: PD02=3
@@ -88,7 +89,7 @@
       INTEGER, PARAMETER :: PD19=0            
       INTEGER, PARAMETER :: PD20=0 
       INTEGER, PARAMETER :: PD21=27
-      INTEGER, PARAMETER :: PD22=14      !jpp replaced 8, 4/24/2011... for Br.
+      INTEGER, PARAMETER :: PD22=16      !jpp (Br), SDE (O2,N2O) 4/24/2011-04/13/13
       INTEGER, PARAMETER :: PD23=0           
       INTEGER, PARAMETER :: PD24=NNPAR        
       INTEGER, PARAMETER :: PD25=NNPAR       

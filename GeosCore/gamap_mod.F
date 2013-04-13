@@ -4895,7 +4895,7 @@
             !------------------
 
             ! Number of tracers
-            NTRAC(22) = 15 ! Increase for Br2 & O2 (SDE, 03/28/13)
+            NTRAC(22) = 16 ! Increase for Br2, O2 & N2O (SDE, 03/28/13)
 
             ! Loop over tracers
             DO T = 1, NTRAC(22)
@@ -4932,6 +4932,8 @@
                      NAME(T,22) = 'JBr2'
                   CASE( 15 )
                      NAME(T,22) = 'JO2'
+                  CASE( 16 )
+                     NAME(T,22) = 'JN2O'
                  CASE DEFAULT
                   ! Nothing
                END SELECT

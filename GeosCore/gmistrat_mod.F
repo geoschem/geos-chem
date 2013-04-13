@@ -37,6 +37,9 @@
       PUBLIC  :: SET_INITIAL_MIXRATIOS
       PUBLIC  :: EMISS_BASIC
       PUBLIC  :: SETTLE_STRAT_AER
+      PUBLIC  :: CALC_H2SO4_GAS
+      PUBLIC  :: SO4_PHOTFRAC
+      PUBLIC  :: CALC_PSC
       PUBLIC  :: INIT_GMISTRAT
       PUBLIC  :: CLEANUP_GMISTRAT
 !
@@ -60,12 +63,13 @@
       !
       ! AER_NLEVS       : Number of levels in AER data
       ! T_STS           : Maximum temperature of STS formation (K)
+      ! N_PSC           : Number of PSC types
       !
       !=================================================================
 
       INTEGER, PARAMETER            :: AER_NLEVS=51
       REAL*8, PARAMETER             :: T_STS=240.0d0
-
+      INTEGER, PARAMETER            :: N_PSC=2
 
 !
 ! PRIVATE TYPES:
@@ -85,6 +89,14 @@
       ! IDT_EMIT           : IDs of emitted tracers
       ! GRID_EMIT          : Surface CFC mixing ratios
       ! SFC_MONTH          : Month of last read-in
+      ! H2SO4_GASFRAC      : Fraction of SO4 considered gaseous
+      ! RAD_PSC            : PSC aerosol radius (m)
+      ! KG_PSC             : PSC mass (kg/box)
+      ! SAD_PSC            : PSC surface area density (m2/m3)
+      ! OD_PSC             : PSC optical depth (unitless)
+      ! NDENS_PSC          : PSC aerosol number density (#/m3)
+      ! RHO_PSC            : PSC aerosol mass density (kg/m3 aerosol)
+      ! STATE_PSC          : Gridbox PSC type (see Kirner et al)
       !
       ! Strings
       !
@@ -106,10 +118,18 @@
       INTEGER                           :: SFC_MONTH
 
       ! Arrays
-      REAL*8,DIMENSION(:,:),ALLOCATABLE :: AER_MR
-      REAL*8,DIMENSION(:),ALLOCATABLE   :: AER_PLEVS
-      INTEGER,DIMENSION(MAX_EMIT)       :: IDT_EMIT
-      REAL*8,DIMENSION(:,:),ALLOCATABLE :: GRID_EMIT
+      REAL*8,DIMENSION(:,:),ALLOCATABLE     :: AER_MR
+      REAL*8,DIMENSION(:),ALLOCATABLE       :: AER_PLEVS
+      INTEGER,DIMENSION(MAX_EMIT)           :: IDT_EMIT
+      REAL*8,DIMENSION(:,:),ALLOCATABLE     :: GRID_EMIT
+      REAL*8,DIMENSION(:,:,:),ALLOCATABLE   :: H2SO4_GASFRAC
+      REAL*8,DIMENSION(:,:,:,:),ALLOCATABLE :: RAD_PSC
+      REAL*8,DIMENSION(:,:,:,:),ALLOCATABLE :: KG_PSC
+      REAL*8,DIMENSION(:,:,:,:),ALLOCATABLE :: SAD_PSC
+      REAL*8,DIMENSION(:,:,:,:),ALLOCATABLE :: OD_PSC
+      REAL*8,DIMENSION(:,:,:,:),ALLOCATABLE :: NDENS_PSC
+      REAL*8,DIMENSION(:,:,:,:),ALLOCATABLE :: RHO_PSC
+      INTEGER,DIMENSION(:,:,:),ALLOCATABLE  :: STATE_PSC
  
       ! Strings
       CHARACTER(LEN=255)                :: TRAC_FILE
@@ -145,12 +165,12 @@
 !     (4 ) SO4                 = H2SO4                < LSETH2SO4
 !     (5 ) CFC                 = CFC-113/114/115      < LSETCFC
 !     (6 ) HCFC                = HCFC-22/141b/142b    < LSETCFC
-!     (7 ) CFCl3               = CFC-11               < LSETCFC
-!     (8 ) CF2Cl2              = CFC-12               < LSETCFC
-!     (9 ) CF2Br2              = Halon 1202           < LSETCFC
-!     (10) CF2ClBr             = Halon 1211           < LSETCFC
-!     (11) CBrF3               = Halon 1301           < LSETCFC
-!     (12) C2Br2F4             = Halon 2402           < LSETCFC
+!     (7 ) CFC11               = CFC-11               < LSETCFC
+!     (8 ) CFC12               = CFC-12               < LSETCFC
+!     (9 ) H1202               = Halon 1202           < LSETCFC
+!     (10) H1211               = Halon 1211           < LSETCFC
+!     (11) H1301               = Halon 1301           < LSETCFC
+!     (12) H2402               = Halon 2402           < LSETCFC
 !     (13) Cl2                 = Cl2                  < LSETCL
 !     (14) ClOx                = Cl + ClO             < LSETCL
 !     (15) CCl4                = CCl4                 < LSETCL
@@ -160,7 +180,7 @@
 !     (19) HOCl                = HOCl                 < LSETCL
 !     (20) Cl2O2               = Cl2O2                < LSETCL
 !     (21) ClNO2               = ClNO2                < LSETCL
-!     (22) ClONO2 (ClNO3)      = ClNO3                < LSETCL
+!     (22) ClONO2              = ClNO3                < LSETCL
 !     (23) OClO                = OClO                 < LSETCL
 !     (24) ClOO                = ClOO                 < LSETCL
 !     (25) BrCl                = BrCl                 < (LSETCL || LSETBR)
@@ -408,28 +428,28 @@
                WRITE(6,*) '|---------|---------|---------|'
             ENDIF
             ! H1202, 1211, 1301 and 2402
-            TRAC_IDX = IDTCF2Br2
+            TRAC_IDX = IDTH1202 
             TRAC_SET  = 'CBR2F2'
             CALL APPLY_2DTRAC(.FALSE.,.FALSE.)
      
-            TRAC_IDX = IDTCBrClF2
+            TRAC_IDX = IDTH1211  
             TRAC_SET  = 'CBRCLF2'
             CALL APPLY_2DTRAC(.FALSE.,.FALSE.)
      
-            TRAC_IDX = IDTCBrF3
+            TRAC_IDX = IDTH1301 
             TRAC_SET  = 'CBRF3'
             CALL APPLY_2DTRAC(.FALSE.,.FALSE.)
      
-            TRAC_IDX = IDTC2Br2F4
+            TRAC_IDX = IDTH2402  
             TRAC_SET  = 'C2BR2F4'
             CALL APPLY_2DTRAC(.FALSE.,.FALSE.)
      
             ! CFC  11, 12, and [113/114/115]
-            TRAC_IDX = IDTCFCl3
+            TRAC_IDX = IDTCFC11
             TRAC_SET  = 'CFCL3'
             CALL APPLY_2DTRAC(.FALSE.,.FALSE.)   
     
-            TRAC_IDX = IDTCF2Cl2
+            TRAC_IDX = IDTCFC12 
             TRAC_SET  = 'CF2CL2'
             CALL APPLY_2DTRAC(.FALSE.,.FALSE.)
    
@@ -993,15 +1013,14 @@
 ! !USES:
 !
       USE DAO_MOD,       ONLY : T, BXHEIGHT
-      USE DRYDEP_MOD,    ONLY : DEPSAV
       USE PRESSURE_MOD,  ONLY : GET_PCENTER
       USE TRACER_MOD,    ONLY : STT, XNUMOL
-      USE TRACERID_MOD,  ONLY : IDTSO4,IDTNIT,IDTNH4,IDTBCPI
+      USE TRACERID_MOD,  ONLY : IDTSO4,IDTBCPI
       USE TIME_MOD,      ONLY : GET_ELAPSED_SEC, GET_TS_CHEM
-      USE GRID_MOD,      ONLY : GET_AREA_CM2
       USE COMODE_MOD,    ONLY : JLOP,WERADIUS,ERADIUS
       USE LOGICAL_MOD,   ONLY : LGMISTRAT
-      USE CHEMGRID_MOD,  ONLY : ITS_IN_THE_STRAT
+      USE CHEMGRID_MOD,  ONLY : ITS_IN_THE_STRATMESO
+      USE CHEMGRID_MOD,  ONLY : ITS_IN_THE_TROP
 
       USE CMN_SIZE_MOD        ! Size parameters
       USE CMN_DIAG_MOD        ! ND44
@@ -1042,14 +1061,12 @@
       ! Parameters
       REAL*8, PARAMETER      :: SALTDEN = 2200.0d0 ! density (kg/m3)
       REAL*8, PARAMETER      :: H2SO4DEN = 1840.0d0
-      REAL*8, PARAMETER      :: BCDEN = 2200.d0 ! density (kg/m3)
+      REAL*8, PARAMETER      :: BCDEN = 1000.d0 ! density (kg/m3)
       REAL*8, PARAMETER      :: R_STRAT_STS = 2.0d-7 ! Mean STS rad. (m)
 
       ! Indexing
       INTEGER, PARAMETER     :: IBC = 1
       INTEGER, PARAMETER     :: ISO4= 2
-      INTEGER, PARAMETER     :: INH4= 3
-      INTEGER, PARAMETER     :: INIT= 4
       INTEGER, PARAMETER     :: NSETTLE = 2
       INTEGER                :: IAERO
       LOGICAL                :: RUNCALC
@@ -1070,7 +1087,7 @@
 !$OMP+PRIVATE( RATIO_R, RHO,   DP,   PDP,  CONST,    SLIP, VISC )
 !$OMP+PRIVATE( DELZ,    DELZ1, TOT1, TOT2, AREA_CM2, FLUX, IAERO      )
 !$OMP+PRIVATE( STSBOX, NATBOX, LOCALSO4AQ, SP_NUM, SP_LAMBDA, RUNCALC )
-!$OMP+PRIVATE( CONST_V, INMASS, OUTMASS )
+!$OMP+PRIVATE( CONST_V )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR       
@@ -1086,20 +1103,18 @@
             ! Temperature [K]
             TEMP    = T(I,J,L)
  
-            NATBOX = .FALSE.
-            IF (ITS_IN_THE_STRAT(I,J,L)) THEN
+            RUNCALC = ITS_IN_THE_STRATMESO(I,J,L)
+            LOCALSO4AQ = 1.d0 - H2SO4_GASFRAC(I,J,L)
 
+            IF (RUNCALC) THEN
                ! Need to translate for radii
                KLOOP = JLOP(I,J,L)
 
                !-----SDE DEBUG
                ! Replace these with actual values!
                ! Can calculate density from mass/vol
-               ! Need to write H2SO4 gas fraction calculation
-               ! LOCALSO4AQ = 1.d0 - H2SO4_GASFRAC(I,J,L)
-               RWET(IBC) = WERADIUS(KLOOP,8)
+               RWET(IBC) = WERADIUS(KLOOP,2)*1.d-2
                RHO(IBC) = BCDEN
-               LOCALSO4AQ = 1.d0
                !-----SDE DEBUG
 
                IF (LOCALSO4AQ.gt.TINY(0d0)) THEN
@@ -1107,35 +1122,16 @@
                   RWET(ISO4) = R_STRAT_STS ! Use simple mean radius for STS for now
                   RHO(ISO4) = H2SO4DEN ! kg/m3
                   NATBOX = (TEMP.le.T_STS)
-                  !-----SDE DEBUG
                ELSE
                   ! Only sediment if aerosol form
-                  LOCALSO4AQ = 1.d0
-                  RHO(ISO4) = TINY(0d0)
-                  RWET(ISO4) = TINY(0d0)
+                  RWET(ISO4) = -1d0
+                  RHO(ISO4) = -1d0
                ENDIF
-            ELSE
-               ! Don't settle outside the strat
-               RWET(ISO4) = TINY(0d0)
-               RHO(ISO4) = TINY(0d0)
             ENDIF
 
-            RUNCALC = .FALSE.
-            IF ((RWET(ISO4) .le. 1.d-20).or.
-     &                       (LOCALSO4AQ.le.TINY(1d0))) THEN
-               ! Very low concentrations or sulfate is gaseous; skip
-               ! cell and move on
-               VTS(L,ISO4) = TINY(0d0)
+            IF (.not.RUNCALC) THEN
+               VTS(L,:) = 0d0
             ELSE
-               RUNCALC = .TRUE.
-            ENDIF
-            IF (RWET(IBC) .le. 1.d-20) THEN
-               VTS(L,IBC) = TINY(0d0)
-            ELSE
-               RUNCALC = .TRUE.
-            ENDIF
-
-            IF (RUNCALC) THEN
                ! Pressure at center of the level [kPa]
                P       = GET_PCENTER(I,J,L) * 0.1d0
 
@@ -1146,119 +1142,76 @@
                ! Viscosity [Pa*s] of air as a function of temperature 
                VISC = 1.458d-6 * (Temp)**(1.5d0) / ( Temp + 110.4d0 )
 
-               DO IAERO=1,NSETTLE
-                  ! Dp = particle diameter [um]
-                  DP = 2.d0 * RWET(IAERO) * 1.d6        
-
-                  ! PdP = P * dP [hPa * um]
-                  PDp     = P * Dp
-
-                  ! Constant
-                  CONST   = 2.d0 * RHO(IAERO) * RWET(IAERO)**2 * g0 / 9.d0
-
-                  !===========================================================
-                  ! NOTE: Slip correction factor calculations following 
-                  ! Seinfeld, pp464 which is thought to be more accurate 
-                  ! but more computation required. (rjp, 1/24/02)
-                  !
-                  ! # air molecule number density
-                  ! num = P * 1d3 * 6.023d23 / (8.314 * Temp) 
-                  !
-                  ! # gas mean free path
-                  ! lamda = 1.d6/( 1.41421 * num * 3.141592 * (3.7d-10)**2 ) 
-                  !
-                  ! # Slip correction
-                  ! Slip = 1. + 2. * lamda * (1.257 + 0.4 * exp( -1.1 * Dp     
-                  !     &     / (2. * lamda))) / Dp
-                  !
-                  ! NOTE: Eq) 3.22 pp 50 in Hinds (Aerosol Technology)
-                  ! which produces slip correction factore with small error
-                  ! compared to the above with less computation.
-                  !===========================================================  
-                
-                  ! Slip correction factor (as function of P*dp)
-                  ! Slip = 1.d0+(15.60d0 + 7.0d0 * EXP(-0.059d0 * PDp)) / PDp
-                  ! Reverting to Seinfeld and Pandis
-                  Slip = 1. + 2. * sp_Lambda * (1.257 + 0.4 * exp(-1.1*
-     &                  Dp / (2. * sp_Lambda))) / Dp
-   
-                  ! Settling velocity [m/s]
-                  VTS(L,IAERO) = CONST * Slip / VISC
-                 
-                  !-----SDE DEBUG
-                  ! Not yet implemented
-                  !IF (IAERO.eq.ISO4) THEN
-                  !   ! Correct for partial gas content
-                  !   VTS(L,ISO4) = VTS(L,ISO4) *
-     &            !      (1.d0-H2SO4_GASFRAC(I,J,L))
-                  !ENDIF
-                  !-----SDE DEBUG
-               ENDDO
-            ENDIF
- 
-            IF (L .eq. LLPAR) THEN
-               DELZ = BXHEIGHT(I,J,L)
                DO IAERO=1,2
-                  CONST_V(IAERO) = 1.d0 / (1.d0 + DTCHEM * 
-     &                                 VTS(L,IAERO) / DELZ)
-               ENDDO
-               ! Store loss from current box in OUTMASS
-               OUTMASS(ISO4) = STT(I,J,L,IDTSO4) * (1.d0-CONST_V(ISO4))
-               OUTMASS(INH4) = STT(I,J,L,IDTNH4) * (1.d0-CONST_V(ISO4))
-               OUTMASS(INIT) = STT(I,J,L,IDTNIT) * (1.d0-CONST_V(ISO4))
-               IF (NATBOX) OUTMASS(INIT) = 0d0
-               OUTMASS(IBC) = STT(I,J,L,IDTBCPI) * (1.d0-CONST_V(IBC))
+                  IF (RWET(IAERO).le.TINY(0d0)) THEN
+                     VTS(L,IAERO) = 0d0
+                  ELSE
+                     ! Dp = particle diameter [um]
+                     DP = 2.d0 * RWET(IAERO) * 1.d6        
 
-               STT(I,J,L,IDTBCPI) = STT(I,J,L,IDTBCPI) - OUTMASS(IBC)
-               STT(I,J,L,IDTSO4) = STT(I,J,L,IDTSO4) - OUTMASS(ISO4)
-               STT(I,J,L,IDTNH4) = STT(I,J,L,IDTNH4) - OUTMASS(INH4)
-               STT(I,J,L,IDTNIT) = STT(I,J,L,IDTNIT) - OUTMASS(INIT)
-            ENDIF
+                     ! PdP = P * dP [hPa * um]
+                     PDp     = P * Dp
+
+                     ! Constant
+                     CONST = 2.d0 * RHO(IAERO) * RWET(IAERO)**2 * g0 / 9.d0
+
+                     !===========================================================
+                     ! NOTE: Slip correction factor calculations following 
+                     ! Seinfeld, pp464 which is thought to be more accurate 
+                     ! but more computation required. (rjp, 1/24/02)
+                     !
+                     ! # air molecule number density
+                     ! num = P * 1d3 * 6.023d23 / (8.314 * Temp) 
+                     !
+                     ! # gas mean free path
+                     ! lamda = 1.d6/( 1.41421 * num * 3.141592 * (3.7d-10)**2 ) 
+                     !
+                     ! # Slip correction
+                     ! Slip = 1. + 2. * lamda * (1.257 + 0.4 * exp( -1.1 * Dp     
+                     !     &     / (2. * lamda))) / Dp
+                     !
+                     ! NOTE: Eq) 3.22 pp 50 in Hinds (Aerosol Technology)
+                     ! which produces slip correction factore with small error
+                     ! compared to the above with less computation.
+                     !===========================================================  
+                   
+                     ! Slip correction factor (as function of P*dp)
+                     ! Slip = 1.d0+(15.60d0 + 7.0d0 *
+     &               !           EXP(-0.059d0 * PDp)) / PDp
+                     ! Reverting to Seinfeld and Pandis
+                     Slip = 1. + 2. * sp_Lambda * (1.257 + 0.4*exp(-1.1*
+     &                     Dp / (2. * sp_Lambda))) / Dp
+   
+                     ! Settling velocity [m/s]
+                     VTS(L,IAERO) = CONST * Slip / VISC  
+                  ENDIF ! RWET
+               ENDDO ! IAERO
+               ! Correct for partial gas content
+               VTS(L,ISO4) = VTS(L,ISO4) * LOCALSO4AQ
+            ENDIF ! RUNCALC
          ENDDO
 
-         ! Method is to solve bidiagonal matrix which is
-         ! implicit and first order accurate in z (rjp, 1/24/02)
+         ! Handle model top condition
+         L = LLPAR
+         DELZ = BXHEIGHT(I,J,L)
+         
+         DO IAERO=1,2
+            CONST_V(IAERO) = 1.d0/(1.d0+DTCHEM*VTS(L,IAERO)/DELZ)
+         ENDDO
 
-         ! We know the boundary condition at the model top, and
-         ! precomputed accordingly at the end of the last loop
+         STT(I,J,L,IDTSO4) = STT(I,J,L,IDTSO4) * CONST_V(ISO4)
+         STT(I,J,L,IDTBCPI)= STT(I,J,L,IDTBCPI)* CONST_V(IBC) 
 
-         DO L = LLPAR-1, 1, -1
+         DO L = LLPAR-1,1,-1
+            IF (ITS_IN_THE_TROP(I,J,L+1)) CYCLE
             DELZ  = BXHEIGHT(I,J,L)
             DELZ1 = BXHEIGHT(I,J,L+1)
-            DO IAERO=1,2
-               CONST_V = 1.d0 / (1.d0 + DTCHEM * VTS(L,IAERO) / DELZ)
-            ENDDO
-
-            NATBOX = ( LGMISTRAT.and.(ITS_IN_THE_STRAT(I,J,L)))
-
-            ! Set last iteration's outgoing mass as this one's incoming
-            INMASS = OUTMASS
-
-            IF (L.eq.1) THEN
-               ! Dry deposition handled elsewhere
-               OUTMASS = 0d0
-            ELSE
-               ! Calculate outgoing mass as before
-               OUTMASS(ISO4) = STT(I,J,L,IDTSO4) * (1.d0-CONST_V(ISO4))
-               OUTMASS(INH4) = STT(I,J,L,IDTNH4) * (1.d0-CONST_V(ISO4))
-               OUTMASS(INIT) = STT(I,J,L,IDTNIT) * (1.d0-CONST_V(ISO4))
-               OUTMASS(IBC) = STT(I,J,L,IDTBCPI) * (1.d0-CONST_V(IBC))
-            ENDIF
- 
-            ! Adjust mass
-            STT(I,J,L,IDTBCPI) = STT(I,J,L,IDTBCPI) - OUTMASS(IBC) + 
-     &                                        INMASS(IBC)
-            STT(I,J,L,IDTSO4) = STT(I,J,L,IDTSO4) - OUTMASS(ISO4) + 
-     &                                        INMASS(ISO4)
-            STT(I,J,L,IDTNH4) = STT(I,J,L,IDTNH4) - OUTMASS(INH4) + 
-     &                                        INMASS(INH4)
-            IF (.not. NATBOX) THEN
-               ! NIT = NAT in strat, for which sedimentation is
-               ! handled separately
-               STT(I,J,L,IDTNIT) = STT(I,J,L,IDTNIT) - OUTMASS(INIT) + 
-     &                                        INMASS(INIT)
-            ENDIF
-
+            STT(I,J,L,IDTSO4) = 1.d0/(1.d0+DTCHEM*VTS(L,ISO4)/DELZ)
+     &              * (STT(I,J,L,IDTSO4)+DTCHEM*VTS(L+1,ISO4)/DELZ1
+     &              * STT(I,J,L+1,IDTSO4))
+            STT(I,J,L,IDTBCPI) = 1.d0/(1.d0+DTCHEM*VTS(L,IBC)/DELZ)
+     &              * (STT(I,J,L,IDTBCPI)+DTCHEM*VTS(L+1,IBC)/DELZ1
+     &              * STT(I,J,L+1,IDTBCPI)) 
          ENDDO
 
       ENDDO
@@ -1268,57 +1221,198 @@
       END SUBROUTINE SETTLE_STRAT_AER
 !
 !EOC
-!!------------------------------------------------------------------------------
-!!               MIT Laboratory for Aviation and the Environment               !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: srtn
-!!
-!! !DESCRIPTION: Subroutine SRTN is a reference subroutine, with more than one
-!!  line of description.
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!      SUBROUTINE SRTN (INARG1,IOARG2,OARG3)
-!!
-!! !USES:
-!!
+!------------------------------------------------------------------------------
+!               MIT Laboratory for Aviation and the Environment               !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: calc_h2so4_gas
+!
+! !DESCRIPTION: Subroutine CALC\_H2SO4\_GAS calculates the fraction of strat.
+!  SO4 aerosol which can be considered to be gaseous H2SO4.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE CALC_H2SO4_GAS
+!
+! !USES:
+!
+      USE DAO_MOD,      ONLY : T, AD
+      USE TRACER_MOD,   ONLY : STT, TRACER_MW_G
+      USE TRACERID_MOD, ONLY : IDTSO4
+      USE PRESSURE_MOD, ONLY : GET_PCENTER
+
+      USE CMN_GCTM_MOD, ONLY : AIRMW
+!
+! !REVISION HISTORY: 
+!  11 Apr 2013 - S. D. Eastham - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL, SAVE      :: FIRST=.TRUE.
+      REAL*8,PARAMETER   :: GF_THRESHOLD = 0.0d0
+      REAL*8,PARAMETER   :: GF_RANGE     = 1.0d-8
+      REAL*8,PARAMETER   :: GF_DELTAHBYR = 10156.d0
+      REAL*8,PARAMETER   :: GF_T0        = 360.d0
+      REAL*8,PARAMETER   :: GF_TC        = 905.d0
+      REAL*8,SAVE        :: GF_LOGP0
+      REAL*8,SAVE        :: GF_BFACTOR
+      REAL*8,SAVE        :: GF_ATMCONV
+      REAL*8,SAVE        :: GF_INVT0
+      REAL*8             :: GF_INVT,GF_LOGPSULFATE,GF_CFACTOR
+      REAL*8             :: GF_AFACTOR
+      REAL*8             :: GF_PP,GF_PVAP,GF_DIFF
+
+      INTEGER            :: I, J, L
+      REAL*8             :: PCENTER, TCENTER, H2SO4SUM, INVAIR
+
+      !=================================================================
+      ! CALC_H2SO4_GAS begins here!
+      !=================================================================
+
+      IF (FIRST) THEN
+         FIRST = .FALSE.
+         ! Calculate H2SO4 gas phase prefactors
+         GF_INVT0 = 1.d0/GF_T0
+         GF_LOGP0 = (-1.d0*GF_DELTAHBYR*GF_INVT0) + 16.259d0
+         GF_BFACTOR = 0.38d0/(GF_TC - GF_T0)
+         GF_ATMCONV = LOG(101325.d0)
+         IF (.not.ALLOCATED(H2SO4_GASFRAC)) THEN 
+            CALL INIT_GMISTRAT
+         ENDIF
+      ENDIF
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, PCENTER, TCENTER, INVAIR ) 
+!$OMP+PRIVATE( H2SO4SUM, GF_DIFF )
+!$OMP+PRIVATE( GF_PP, GF_INVT, GF_CFACTOR, GF_LOGPSULFATE, GF_PVAP )
+!$OMP+SCHEDULE( DYNAMIC )
+
+      DO J=1, JJPAR
+      DO I=1, IIPAR
+      DO L=1, LLPAR
+         ! Only interested in low-pressure boxes
+         PCENTER = GET_PCENTER(I,J,L)
+         TCENTER = T(I,J,L)
+         INVAIR  = AIRMW / AD(I,J,L)
+         IF (PCENTER.ge.1.d2) THEN
+            H2SO4_GASFRAC(I,J,L) = 0d0
+            CYCLE
+         ELSE
+            H2SO4SUM = STT(I,J,L,IDTSO4  )*INVAIR/TRACER_MW_G(IDTSO4  )
+            ! Use approximation from Kumala (1990)
+            GF_PP = H2SO4SUM*PCENTER
+            GF_INVT = 1./TCENTER
+            GF_CFACTOR = 1.d0+(LOG(GF_T0*GF_INVT))-(GF_T0*GF_INVT)
+            GF_LOGPSULFATE = GF_LOGP0 + (GF_DELTAHBYR*(GF_INVT0 -
+     &               GF_INVT + (GF_BFACTOR*GF_CFACTOR)))
+            GF_LOGPSULFATE = GF_LOGPSULFATE + GF_ATMCONV
+            GF_PVAP = 1.d-2 * EXP(GF_LOGPSULFATE)
+            GF_DIFF = (GF_PVAP+GF_THRESHOLD) - GF_PP
+            IF (GF_DIFF .lt. 0) THEN
+               H2SO4_GASFRAC(I,J,L) = 0.d0
+            ELSEIF (GF_DIFF .lt. GF_RANGE) THEN
+               H2SO4_GASFRAC(I,J,L) = GF_DIFF/GF_RANGE
+            ELSE
+               H2SO4_GASFRAC(I,J,L) = 1.d0
+            ENDIF
+         ENDIF
+      ENDDO
+      ENDDO
+      ENDDO
+
+!$OMP END PARALLEL DO
+      END SUBROUTINE CALC_H2SO4_GAS
+!
+!EOC
+!------------------------------------------------------------------------------
+!               MIT Laboratory for Aviation and the Environment               !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: SO4_PHOTFRAC
+!
+! !DESCRIPTION: FUNCTION SO4\_PHOTFRAC returns the fraction of H2SO4 which 
+!  is available for photolysis.
+!\\
+!\\
+! !INTERFACE:
+!
+      REAL*8 FUNCTION SO4_PHOTFRAC(I,J,L)
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER,INTENT(IN)          :: I,J,L      ! Location indices
+!
+! !OUTPUT VARIABLES:
+!
+!      REAL*8, INTENT(OUT)         :: PHOTFRAC   ! Gaseous fraction of H2SO4
+!
+! !REVISION HISTORY: 
+!  11 Apr 2013 - S. D. Eastham - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+      !=================================================================
+      ! SO4_PHOTFRAC begins here!
+      !=================================================================
+
+      IF (.not.ALLOCATED(H2SO4_GASFRAC)) THEN 
+         CALL CALC_H2SO4_GAS
+      ENDIF
+
+      SO4_PHOTFRAC = H2SO4_GASFRAC(I,J,L)
+
+      END FUNCTION SO4_PHOTFRAC
+!
+!EOC
+!------------------------------------------------------------------------------
+!               MIT Laboratory for Aviation and the Environment               !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: calc_psc
+!
+! !DESCRIPTION: Subroutine CALC\_PSC calculates PSC properties throughout the
+!  chemistry grid using the thermodynamic parameterization described in
+!  Kirner et al. (`Simulation of polar stratospheric clouds in the
+!  chemistry-climate-model EMAC via the submodel PSC', Geosci. Mod. Dev.,
+!  4, 169-182, 2011)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE CALC_PSC
+!
+! !USES:
+!
 !      USE THIS_MOD, ONLY : THIS_FN
-!!
-!! !INPUT PARAMETERS:
-!!
-!      REAL*8, INTENT(IN)          :: INARG1     ! Description of INARG1
-!      REAL*8, INTENT(INOUT)       :: IOARG2     ! Description of IOARG2
-!!
-!! !OUTPUT VARIABLES:
-!!
-!      REAL*8, INTENT(OUT)         :: OARG3      ! Description of OARG3
-!!
-!! !REMARKS:
-!! (1) A remark
-!! 
-!! !REVISION HISTORY: 
-!!  28 Mar 2013 - S. D. Eastham - Initial version
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
+!
+! !REVISION HISTORY: 
+!  13 Apr 2013 - S. D. Eastham - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
 !      INTEGER, PARAMETER    :: IPARAM1=2
+
+      !=================================================================
+      ! CALC_PSC begins here!
+      !=================================================================
+
+      ! Function stub - fill out later (SDE 04/13/13)
+
+      END SUBROUTINE CALC_PSC
 !
-!      !=================================================================
-!      ! SRTN begins here!
-!      !=================================================================
-!
-!      OARG3 = INARG1 + IOARG2
-!      IOARG2 = OARG3/2.d0*IPARAM1
-!
-!      END SUBROUTINE SRTN
-!!
-!!EOC
+!EOC
 !!------------------------------------------------------------------------------
 !!               MIT Laboratory for Aviation and the Environment               !
 !!------------------------------------------------------------------------------
@@ -1417,6 +1511,11 @@
       WRITE( 6,'(a)') 'Last Modification Date: 05/09/13'
       WRITE( 6,'(a)') REPEAT( '=', 79 )
 
+      ! Initialize H2SO4 gas fraction
+      ALLOCATE( H2SO4_GASFRAC( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'H2SO4_GAS_FRAC' )
+      H2SO4_GASFRAC = 0d0
+
       ! Determine which tracers are to be emitted
       N_EMIT = 0
       IDT_EMIT = 0
@@ -1434,32 +1533,32 @@
 
          ! R-11
          N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = IDTCFCl3
+         IDT_EMIT( N_EMIT) = IDTCFC11 
          TRAC_EMIT(N_EMIT) = 'CFC11'
 
          ! R-12
          N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = IDTCF2Cl2
+         IDT_EMIT( N_EMIT) = IDTCFC12 
          TRAC_EMIT(N_EMIT) = 'CFC12'
 
          ! H-1202
          N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = IDTCF2Br2
+         IDT_EMIT( N_EMIT) = IDTH1202 
          TRAC_EMIT(N_EMIT) = 'CBR2F2'
 
          ! H-1211
          N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = IDTCBrClF2
+         IDT_EMIT( N_EMIT) = IDTH1211  
          TRAC_EMIT(N_EMIT) = 'H1211'
 
          ! H-1301
          N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = IDTCBrF3
+         IDT_EMIT( N_EMIT) = IDTH1301 
          TRAC_EMIT(N_EMIT) = 'H1301'
 
          ! H-2402
          N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = IDTC2Br2F4
+         IDT_EMIT( N_EMIT) = IDTH2402  
          TRAC_EMIT(N_EMIT) = 'H2402_YEARLY'
       ENDIF
 
@@ -1471,7 +1570,7 @@
 
          ! CH3CCl3
          N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = IDTCCl4
+         IDT_EMIT( N_EMIT) = IDTCH3CCl3
          TRAC_EMIT(N_EMIT) = 'CH3CCL3'
       ENDIF
 
@@ -1502,6 +1601,36 @@
       ! Need to put a trailing slash on the file root
       MONTREAL_FILE_ROOT = TRIM(MONTREAL_FILE_ROOT) // '/'
 
+      ! Initialize PSC variables
+      ALLOCATE( RAD_PSC( IIPAR, JJPAR, LLPAR, N_PSC ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RAD_PSC' )
+      RAD_PSC = 0d0
+      
+      ALLOCATE( KG_PSC( IIPAR, JJPAR, LLPAR, N_PSC ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'KG_PSC' )
+      KG_PSC = 0d0
+      
+      ALLOCATE( SAD_PSC( IIPAR, JJPAR, LLPAR, N_PSC ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SAD_PSC' )
+      SAD_PSC = 0d0
+      
+      ALLOCATE( OD_PSC( IIPAR, JJPAR, LLPAR, N_PSC ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OD_PSC' )
+      OD_PSC = 0d0
+      
+      ALLOCATE( NDENS_PSC( IIPAR, JJPAR, LLPAR, N_PSC ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'NDENS_PSC' )
+      NDENS_PSC = 0d0
+      
+      ALLOCATE( RHO_PSC( IIPAR, JJPAR, LLPAR, N_PSC ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'NDENS_PSC' )
+      NDENS_PSC = 0d0
+      
+      ALLOCATE( STATE_PSC( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'STATE_PSC' )
+      STATE_PSC = 0d0
+      
+
       END SUBROUTINE INIT_GMISTRAT
 !
 !EOC
@@ -1521,6 +1650,7 @@
 !
 ! !REVISION HISTORY: 
 !  04 Apr 2013 - S. D. Eastham - Initial version
+!  13 Apr 2013 - S. D. Eastham - Added PSC arrays
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1530,6 +1660,11 @@
       !=================================================================
 
       IF ( ALLOCATED( GRID_EMIT  ) ) DEALLOCATE( GRID_EMIT  )
+      IF ( ALLOCATED( RAD_PSC    ) ) DEALLOCATE( RAD_PSC    )
+      IF ( ALLOCATED( KG_PSC     ) ) DEALLOCATE( KG_PSC     )
+      IF ( ALLOCATED( OD_PSC     ) ) DEALLOCATE( OD_PSC     )
+      IF ( ALLOCATED( STATE_PSC  ) ) DEALLOCATE( STATE_PSC  )
+      IF ( ALLOCATED( NDENS_PSC  ) ) DEALLOCATE( NDENS_PSC  )
 
       END SUBROUTINE CLEANUP_GMISTRAT
 !
