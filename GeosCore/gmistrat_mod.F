@@ -64,12 +64,18 @@
       ! AER_NLEVS       : Number of levels in AER data
       ! T_STS           : Maximum temperature of STS formation (K)
       ! N_PSC           : Number of PSC types
+      ! I_STS           : Index of STS PSCs
+      ! I_PRT           : Index of particulate PSCs
+      ! AVOGADRO        : Avogadro's number (#/mole)
       !
       !=================================================================
 
       INTEGER, PARAMETER            :: AER_NLEVS=51
       REAL*8, PARAMETER             :: T_STS=240.0d0
       INTEGER, PARAMETER            :: N_PSC=2
+      INTEGER, PARAMETER            :: I_STS=1
+      INTEGER, PARAMETER            :: I_PRT=2
+      REAL*8,  PARAMETER            :: AVOGADRO=6.022d23
 
 !
 ! PRIVATE TYPES:
@@ -1383,7 +1389,8 @@
 !  chemistry grid using the thermodynamic parameterization described in
 !  Kirner et al. (`Simulation of polar stratospheric clouds in the
 !  chemistry-climate-model EMAC via the submodel PSC', Geosci. Mod. Dev.,
-!  4, 169-182, 2011)
+!  4, 169-182, 2011). This routine calculates solid PSC properties directly
+!  before handing over to CALC\_STS for liquid aerosol properties.
 !\\
 !\\
 ! !INTERFACE:
@@ -1392,7 +1399,16 @@
 !
 ! !USES:
 !
-!      USE THIS_MOD, ONLY : THIS_FN
+      USE DAO_MOD,          ONLY : T, AD, CLDF, QI, SPHU
+      USE PRESSURE_MOD,     ONLY : GET_PCENTER
+      USE LOGICAL_MOD,      ONLY : LPRT
+      USE ERROR_MOD,        ONLY : DEBUG_MSG
+      USE GRID_MOD,         ONLY : GET_YEDGE
+      USE TRACER_MOD,       ONLY : STT, TRACER_MW_G
+      USE TRACERID_MOD,     ONLY : IDTHNO3
+      USE CHEMGRID_MOD,     ONLY : ITS_IN_THE_STRATMESO
+
+      USE CMN_GCTM_MOD,     ONLY : AIRMW, Rd
 !
 ! !REVISION HISTORY: 
 !  13 Apr 2013 - S. D. Eastham - Initial version
@@ -1402,13 +1418,170 @@
 !
 ! !LOCAL VARIABLES:
 !
-!      INTEGER, PARAMETER    :: IPARAM1=2
+      ! Limits on PSC formation
+      REAL*8,PARAMETER      :: PSC_MAXLAT =  45.0d0
+      REAL*8,PARAMETER      :: PSC_MINLAT = -55.0d0
+      REAL*8,PARAMETER      :: PSC_PMAX   =  18.0d3
+      REAL*8,PARAMETER      :: PSC_PMIN   =   5.0d3
+
+      ! Saturation and nucleation properties of HNO3
+      REAL*8, PARAMETER     :: TSATHNO3_A = -2.7836d0
+      REAL*8, PARAMETER     :: TSATHNO3_B = -0.00088d0
+      REAL*8, PARAMETER     :: TSATHNO3_C = 38.9855d0
+      REAL*8, PARAMETER     :: TSATHNO3_D = -11397.0d0
+      REAL*8, PARAMETER     :: TSATHNO3_E = 0.009179d0
+
+      ! Saturation and nucleation properties of water
+      REAL*8, PARAMETER     :: TSATH2O_A  = -2663.5d0
+      REAL*8, PARAMETER     :: TSATH2O_B  = 12.537d0
+
+      ! Peak pressure at which NAT can form homogeneously
+      REAL*8, PARAMETER     :: P_MAXNAT = 1.40d4 ! Pa
+
+      ! Universal gas constant
+      REAL*8, PARAMETER     :: R_UNIV = 8.31448d0
+
+      ! Maximum temperature for PSC formation (K)
+      REAL*8, PARAMETER     :: T_MAX = 215.0d0
+
+      ! Local conditions
+      REAL*8                :: TCENTER, PCENTER, PCENTER_PA, DENAIR
+      REAL*8                :: INVAIR, TINV
+
+      ! Gridbox mixing ratios and partial pressures
+      REAL*8                :: HNO3SUM, H2OSUM
+      REAL*8                :: HNO3PP,  H2OPP
+      REAL*8                :: PSATHNO3, PSATH2O
+
+      ! Gridbox phase data
+      REAL*8                :: HNO3_BOX_NAT, H2O_BOX_ICE
+
+      ! Grid box location
+      REAL*8                :: BOX_LAT_S, BOX_LAT_N
+      LOGICAL               :: IS_VALID
+
+      ! Loop variables
+      INTEGER               :: I, J, L
+
+      ! Loop limits for column
+      INTEGER               :: MINLEV, MAXLEV
 
       !=================================================================
       ! CALC_PSC begins here!
       !=================================================================
 
+      !-----SDE DEBUG
       ! Function stub - fill out later (SDE 04/13/13)
+      WRITE(6,*) 'SDE DEBUG - FUNCTION NOT READY!'
+      RETURN
+      !-----SDE DEBUG
+
+      ! Allocate if not ready
+      IF (.not.ALLOCATED(RAD_PSC)) THEN
+         CALL INIT_GMISTRAT
+      ENDIF
+
+      IF (LPRT) THEN
+         CALL DEBUG_MSG( '### GMISTRAT: start CALC_PSC' )
+      ENDIF
+
+      ! First step is to determine what PSCs can form, if any
+      ! Loop over latitude boxes first
+      DO J=1,JJPAR
+         BOX_LAT_S = GET_YEDGE(1,J,1)
+         BOX_LAT_N = GET_YEDGE(1,J+1,1)
+         IS_VALID = ((BOX_LAT_S.lt.PSC_MINLAT).or.
+     &               (BOX_LAT_N.gt.PSC_MAXLAT))
+         IF (.not.IS_VALID) THEN
+            STATE_PSC(:,J,:) = 0
+         ELSE
+            ! Loop over longitudinal boxes
+            DO I=1,IIPAR
+               ! Set impossible loop limits
+               MINLEV=LLPAR+1
+               MAXLEV=0
+               LLOOP: DO L=1,LLPAR
+
+                  ! Get local conditions
+                  PCENTER = GET_PCENTER(I,J,L) 
+                  PCENTER_PA = PCENTER*1.d2
+                  TINV = 1.d0/TCENTER
+                  TCENTER = T(I,J,L)
+
+                  ! Apply other limits from Kirner et al.
+                  IS_VALID = ((.not.ITS_IN_THE_STRATMESO(I,J,L)).or.
+     &                                  (PCENTER_PA.lt.PSC_PMIN).or.
+     &                                  (PCENTER_PA.gt.PSC_PMAX))
+
+                  IF (.not.IS_VALID) THEN
+                     ! No PSCs
+                     STATE_PSC(I,J,L) = 0
+                     CYCLE LLOOP
+                  ENDIF
+
+                  IF (TCENTER.gt.T_MAX) THEN
+                     ! STS only
+                     STATE_PSC(I,J,L) = 1
+                     CYCLE LLOOP
+                  ENDIF
+ 
+                  ! Calculate local air density
+                  DENAIR = AVOGADRO * PCENTER_PA / (TCENTER*Rd)
+                  INVAIR = AIRMW / AD(I,J,L)
+
+                  !-----SDE DEBUG
+                  ! Get available HNO3
+                  ! Ignoring NIT for now
+                  HNO3SUM = STT(I,J,L,IDTHNO3)*INVAIR/
+     &                       TRACER_MW_G(IDTHNO3)
+                  !-----SDE DEBUG
+
+                  !-----SDE DEBUG
+                  ! Revert to static H2O for now
+                  H2OSUM = SPHU(I,J,L)*1.d-3*AD(I,J,L)
+                  !-----SDE DEBUG
+
+                  ! Calculate partial pressures (Pa)
+                  HNO3PP = PCENTER_PA * HNO3SUM
+                  H2OPP  = PCENTER_PA * H2OSUM
+
+                  ! Calculate saturation pressures
+                  PSATHNO3 = 10.d0**(((TSATHNO3_A+(TCENTER*TSATHNO3_B))*
+     &            LOG10(H2OPP*760.0d0/101325.0d0)) + (TSATHNO3_C + 
+     &            (TSATHNO3_D*TINV) + (TSATHNO3_E*TCENTER)))*
+     &            101325.0d0/760.0d0
+
+                  PSATH2O = 10.0d0**((TSATH2O_A*TINV)+TSATH2O_B)
+                  
+                  ! Use local ice mass ratio from GEOS-5 data
+                  H2O_BOX_ICE = QI(I,J,L)*CLDF(L,I,J)*AIRMW/18.0d0
+
+                  ! Ice exists/possible?
+                  IF ((H2OPP.gt.PSATH2O).or.
+     &                   (H2O_BOX_ICE.gt.TINY(0d0))) THEN
+                     STATE_PSC(I,J,L) = 3
+                  ELSE
+                     ! If ice not possible could still have NAT
+                     IF (STATE_PSC(I,J,L).gt.1) THEN
+                        ! Had PSCs here last time
+                        IF (((HNO3PP.gt.PSATHNO3).and.
+     &                       (PSATHNO3.gt.PSATH2O)).or.
+     &                       (PCENTER.lt.P_MAXNAT)) THEN
+                           STATE_PSC(I,J,L) = 2
+                        ELSE
+                           ! STS only
+                           STATE_PSC(I,J,L) = 1
+                        ENDIF 
+                     ELSE
+                        ! STS only
+                        STATE_PSC(I,J,L) = 1
+                     ENDIF
+                  ENDIF
+               ENDDO LLOOP ! L
+                  ! Check for NAT formation
+            ENDDO ! I
+         ENDIF ! IS_POLAR
+      ENDDO ! J
 
       END SUBROUTINE CALC_PSC
 !
@@ -1623,13 +1796,16 @@
       NDENS_PSC = 0d0
       
       ALLOCATE( RHO_PSC( IIPAR, JJPAR, LLPAR, N_PSC ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'NDENS_PSC' )
-      NDENS_PSC = 0d0
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RHO_PSC' )
+      RHO_PSC = 0d0
       
       ALLOCATE( STATE_PSC( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'STATE_PSC' )
       STATE_PSC = 0d0
       
+      !-----SDE DEBUG
+      WRITE(6,'(a)') 'WARNING: Need to add subroutine to read in PSCs!'
+      !-----SDE DEBUG
 
       END SUBROUTINE INIT_GMISTRAT
 !
