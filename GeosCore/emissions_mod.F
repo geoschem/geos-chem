@@ -132,6 +132,15 @@
       USE TRACER_MOD                 
       USE TRACERID_MOD,           ONLY : IDTSO2, IDTC2H6
       USE VISTAS_ANTHRO_MOD,      ONLY : EMISS_VISTAS_ANTHRO
+#if   defined( TOMAS )
+      USE TRACERID_MOD,           ONLY : IDTSS1           ! (win, 1/25/10)
+      USE TRACERID_MOD,           ONLY : IDTSF1           ! (win, 1/25/10)
+      USE TRACERID_MOD,           ONLY : IDTECIL1         ! (win, 1/25/10)
+      USE TRACERID_MOD,           ONLY : IDTOCIL1         ! (win, 1/25/10)
+      USE TRACERID_MOD,           ONLY : IDTECOB1         ! (win, 1/25/10)
+      USE TRACERID_MOD,           ONLY : IDTOCOB1         ! (win, 1/25/10)
+      USE TRACERID_MOD,           ONLY : IDTDUST1         ! (win, 1/25/10)
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -181,6 +190,7 @@
 !        EMEP, and Streets every month (amv, 12/2/08)
 !  (21) Now references EMISS_NEI2005_ANTHRO from "nei2005_anthro_mod.f"
 !        (amv, 10/19/09)
+!  (22) Reference to TRACERID_MOd for IDTDUST1 for calling EMISSDUST (Win, 7/17/09)
 !  18 Dec 2009 - Aaron van D - Added emissions for nested grids @ 0.5 x 0.666
 !  08 Feb 2010 - NBIOMAX is now in CMN_SIZE
 !  01 Feb 2011 - CFriedman   - Added emissions for POPs
@@ -411,25 +421,67 @@
 #endif
 
          ! Emissions for various aerosol types
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-         IF ( LSSALT            ) 
+#if   defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+
+
+# if  defined( TOMAS )
+         IF ( LSSALT .or. IDTSS1 > 0 ) 
+# else
+         IF ( LSSALT                 ) 
+# endif
      &      CALL EMISSSEASALT( State_Met, State_Chm%TRAC_TEND(:,:,:,:),
      &                         ssa_br2    )
-         IF ( LSULF .or. LCRYST ) 
+
+
+# if  defined( TOMAS )
+         IF ( LSULF .or. LCRYST .or. IDTSF1 > 0 ) 
+# else
+         IF ( LSULF .or. LCRYST                 ) 
+# endif
      &      CALL EMISSSULFATE( State_Met, State_Chm%TRAC_TEND(:,:,:,:))
-         IF ( LCARB             ) 
+
+
+# if  defined( TOMAS )
+         IF ( LCARB .or. ( IDTECIL1 > 0 .and.   IDTECOB1 > 0 .and. 
+     &        IDTOCIL1 > 0 .and. IDTOCOB1 > 0 ) ) 
+# else
+         IF ( LCARB                             )
+# endif
      &      CALL EMISSCARBON ( State_Met, State_Chm%TRAC_TEND(:,:,1,:))
+
+
 #else
+!prior to TOMAS addition (win, 7/17/09)
+c$$$         IF ( LSSALT            ) CALL EMISSSEASALT( State_Met, ssa_br2)
+c$$$         IF ( LSULF .or. LCRYST ) CALL EMISSSULFATE( State_Met )
+c$$$         IF ( LCARB             ) CALL EMISSCARBON( State_Met )
+c$$$         IF ( LDUST             ) CALL EMISSDUST( State_Met )
+# if  defined( TOMAS )
+         IF ( LSSALT .or. IDTSS1 > 0 )
+     &      CALL EMISSSEASALT( State_Met, ssa_br2)
+         IF ( LSULF  .or. LCRYST .or. IDTSF1 > 0 )
+     &      CALL EMISSSULFATE( State_Met )
+         IF ( LCARB  .or. ( IDTECIL1 > 0 .and.   IDTECOB1 > 0 .and. 
+     &        IDTOCIL1 > 0 .and. IDTOCOB1 > 0 ) )
+     &      CALL EMISSCARBON( State_Met )
+# else
          IF ( LSSALT            ) CALL EMISSSEASALT( State_Met, ssa_br2)
          IF ( LSULF .or. LCRYST ) CALL EMISSSULFATE( State_Met )
          IF ( LCARB             ) CALL EMISSCARBON( State_Met )
+# endif
+
+#endif
          !---------------------------------------------------------------------
          ! Prior to 11/26/12:
          ! Now mainline new call for EMISSDUST w/ Input_Opt (bmy, 11/26/12)
          !IF ( LDUST             ) CALL EMISSDUST( State_Met )
          !---------------------------------------------------------------------
+
+#if   defined( TOMAS )
+         IF ( LDUST  .or. IDTDUST1 > 0 ) THEN
+#else
+         IF ( LDUST                    ) THEN
 #endif
-         IF ( LDUST             ) THEN
             CALL EMISSDUST( am_I_Root, 
      &                      Input_Opt, 
      &                      State_Met, 
@@ -821,6 +873,7 @@
          !--------------------
          ! Mercury
          !--------------------
+         print *, 'emis mercury'
          CALL EMISSMERCURY( State_Met )
 
       ELSE IF ( ITS_A_POPS_SIM() ) THEN

@@ -57,6 +57,7 @@
 !  18 Dec 2009 - Aaron van D - Added logicals for NA, EU, CH, CU nested grids
 !  18 Dec 2009 - Aaron van D - Added logical for 2 x 2.5 TPCORE BC's 
 !  29 Jan 2009 - F. Paulot   - Added LFERTILIZERNOX.
+!  22 Jan 2010 - R. Yantosca - Added LTOMAS switch
 !  26 Feb 2010 - R. Yantosca - Remove obsolete LEMBED flag
 !  18 May 2010 - R. Nassar   - Add logical flags for CO2 offline simulation
 !  20 Jul 2010 - C. Carouge  - Add LPREINDHG and LGTMM for updated mercury.
@@ -72,6 +73,7 @@
       ! The logical switches below are for turning options ON or OFF
       !=================================================================
 
+      LOGICAL :: LTOMAS          ! TOMAS aerosol microphysics
       !%%%% Aerosols %%%%
       LOGICAL :: LATEQ           ! ??     
       LOGICAL :: LCARB           ! Use carbon aerosol tracers?

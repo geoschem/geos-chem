@@ -113,6 +113,10 @@
       USE TRACER_MOD,         ONLY : STT  
       USE TRACERID_MOD,       ONLY : IDTACET
       USE TRACERID_MOD,       ONLY : IDTISOP
+#if   defined( TOMAS )
+      USE TOMAS_MOD,          ONLY : DO_TOMAS  !(win, 7/14/09)
+      USE TRACERID_MOD,       ONLY : IDTNK1    !(win, 7/14/09)
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -177,6 +181,7 @@
 !  (19) Now calls CHEMPOPS from "pops_mod.f" for an offline POPs simulation
 !       (eck, 9/20/10)
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  25 Jan 2010 - R. Yantosca - Now call DO_TOMAS for TOMAS microphysics
 !  28 Jan 2010 - C. Carouge, R. Yantosca - Modified for ISORROPIA II
 !  19 Mar 2012 - R. Yantosca - Add C-preprocessor switch to shut off 
 !                              ISORROPIA to facilitate debugging
@@ -337,6 +342,12 @@
                CALL CHEMDUST( am_I_Root, Input_Opt, State_Met, RC )
             ENDIF
  
+#if   defined( TOMAS )
+            ! Do TOMAS aerosol microphysics and dry dep
+            IF ( IDTNK1 > 0 ) CALL DO_TOMAS( am_I_Root, Input_Opt,
+     &                                       State_Met, RC )
+#endif
+
             ! ND44 drydep fluxes
             ! The drydep fluxes diag. is done in vdiff_mod.f when non-local 
             ! PBL is used ( Lin, 03/31/09) 

@@ -105,6 +105,7 @@
 #  11 May 2012 - R. Yantosca - Now export NCL (netCDF linking sequence)
 #  07 Sep 2012 - R. Yantosca - Now add OPT variable to set global opt levels
 #  07 Sep 2012 - R. Yantosca - Also set TRACEBACK for PGI compiler
+#  25 Feb 2013 - S. Farina   - Add flag for TOMAS40
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -139,9 +140,9 @@ PRECISE   := yes
 endif 
 
 # TOMAS runs on single processor (at least for now!)
-ifeq ($(TOMAS),yes)
-OMP       := no
-endif
+#ifeq ($(TOMAS),yes)
+#OMP       := no
+#endif
 
 #==============================================================================
 # Default values for variables
@@ -214,9 +215,13 @@ endif
 
 # Pick compiler options for debug run or regular run 
 ifdef DEBUG
-FFLAGS    := -cpp -w -O0 -auto -noalign -convert big_endian -g
+FFLAGS    := -cpp -w -O0 -auto -noalign -convert big_endian -g -DDEBUG
 else
 FFLAGS    := -cpp -w $(OPT) -auto -noalign -convert big_endian -vec-report0 
+endif
+
+ifdef FPE
+FFLAGS    += -debug parallel -fpe3 -ftrapuv
 endif
 
 # OSX compilation options
@@ -247,6 +252,10 @@ endif
 # Also add TOMAS aerosol microphysics option
 ifeq ($(TOMAS),yes) 
 FFLAGS    += -DTOMAS
+endif
+
+ifeq ($(TOMAS40),yes) 
+FFLAGS    += -DTOMAS40
 endif
 
 # Also add APM aerosol microphysics option
@@ -350,6 +359,10 @@ endif
 # Also add TOMAS aerosol microphysics option
 ifeq ($(TOMAS),yes) 
 FFLAGS    += -DTOMAS
+endif
+
+ifeq ($(TOMAS40),yes) 
+FFLAGS    += -DTOMAS40
 endif
 
 # Also add APM aerosol microphysics option
