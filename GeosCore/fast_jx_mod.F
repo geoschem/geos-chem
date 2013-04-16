@@ -532,33 +532,33 @@
             ENDIF
             ! If this is the first call and we do not have O1D conc.
             ! from CSPEC, calculate a rough first approximation as PSSA
-            !-----SDE DEBUG - Deactivated for now
-#if (defined( FORCEO1D ) || defined( GMISTRAT ))
-            IF ((FIRST).and.(.not.O1D_SET).and.(.FALSE.)) THEN
-               DO L=1,LLCHEM
-                  ! Ignore non-chemistry cells
-                  IF (ITS_IN_THE_NOCHEMGRID(NLON,NLAT,L)) THEN
-                     CYCLE
-                  ENDIF
-                  ! [O1Dss] =       J[O3]
-                  !          ---------------------
-                  !          k1[H2O]+k2[N2]+k3[O2]
-                  JLOOP = JLOP(NLON,NLAT,L)
-                  ! Taken from calcrate.F
-                  TLOCAL = T_CTM(L)
-                  ADLOCAL = AIRDENS(JLOOP)
-                  TINV = 1.d0/TLOCAL
-                  CONSEXP = 17.2693882D0 * (TLOCAL - 273.16D0) / 
-     &                                      (TLOCAL - 35.86D0) 
-                  H2OFACTOR = ABSHUM(JLOOP)*CONSVAP*EXP(CONSEXP)*TINV
-                  CSPEC(JLOOP,IDO1D) = 
-     &             CSPEC(JLOOP,IDO3) *  ZPJ(L,3,NLON,NLAT) / 
-     &    ( 1.63d-10*EXP( 60.d0*TINV)*H2OFACTOR +
-     &      2.15d-11*EXP(110.d0*TINV)*0.2095d0*ADLOCAL +
-     &      3.30d-11*EXP( 55.d0*TINV)*0.7808d0*ADLOCAL )
-               ENDDO
-            ENDIF
-#endif
+!            !-----SDE DEBUG - Deactivated for now
+!#if (defined( FORCEO1D ) || defined( GMISTRAT ))
+!            IF ((FIRST).and.(.not.O1D_SET).and.(.FALSE.)) THEN
+!               DO L=1,LLCHEM
+!                  ! Ignore non-chemistry cells
+!                  IF (ITS_IN_THE_NOCHEMGRID(NLON,NLAT,L)) THEN
+!                     CYCLE
+!                  ENDIF
+!                  ! [O1Dss] =       J[O3]
+!                  !          ---------------------
+!                  !          k1[H2O]+k2[N2]+k3[O2]
+!                  JLOOP = JLOP(NLON,NLAT,L)
+!                  ! Taken from calcrate.F
+!                  TLOCAL = T_CTM(L)
+!                  ADLOCAL = AIRDENS(JLOOP)
+!                  TINV = 1.d0/TLOCAL
+!                  CONSEXP = 17.2693882D0 * (TLOCAL - 273.16D0) / 
+!     &                                      (TLOCAL - 35.86D0) 
+!                  H2OFACTOR = ABSHUM(JLOOP)*CONSVAP*EXP(CONSEXP)*TINV
+!                  CSPEC(JLOOP,IDO1D) = 
+!     &             CSPEC(JLOOP,IDO3) *  ZPJ(L,3,NLON,NLAT) / 
+!     &    ( 1.63d-10*EXP( 60.d0*TINV)*H2OFACTOR +
+!     &      2.15d-11*EXP(110.d0*TINV)*0.2095d0*ADLOCAL +
+!     &      3.30d-11*EXP( 55.d0*TINV)*0.7808d0*ADLOCAL )
+!               ENDDO
+!            ENDIF
+!#endif
          ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -1204,7 +1204,7 @@ c        and does not represent the decay of 215.5-221.5 nm sunlight.
           endif
         endif
 
-        do J = 1,NJX
+        do J = 1,NJXU
           VALJ(J) = 0.d0
         enddo
 
@@ -1221,7 +1221,7 @@ c        and does not represent the decay of 215.5-221.5 nm sunlight.
            VALJ(3) = VALJ(3) + QO31D*FFF(K,L)
          enddo
 
-        do J = 4,NJX
+        do J = 4,NJXU
          do K = 1,W_
 c---also need to allow for Pressure interpolation if SQQ(J) = 'p'
           if (SQQ(J) .eq.'p') then
@@ -1235,7 +1235,7 @@ c---also need to allow for Pressure interpolation if SQQ(J) = 'p'
          enddo
         enddo
 
-        do J=1,NJX
+        do J=1,NJXU
           VALJL(L,J) = VALJ(J)
         enddo
 
@@ -1243,8 +1243,8 @@ c---also need to allow for Pressure interpolation if SQQ(J) = 'p'
 
       ! Zero non-chemistry layers
       if (LCHEM.lt.LCTM) then
-         do l=LCTM+1,LCHEM
-            do J=1,NJX
+         do L=(LCTM+1),LCHEM
+            do J=1,NJXU
                VALJL(L,J) = 0.d0
             enddo
          enddo
@@ -2262,16 +2262,16 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RD_JS_JX(NUNIT,NAMFIL,TITLEJX,NJX,am_I_Root)
+      SUBROUTINE RD_JS_JX(NUNIT,NAMFIL,TITLEJX,NJXX,am_I_Root)
 !
 ! !USES:
 !
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN)                    ::  NUNIT, NJX
+      INTEGER, INTENT(IN)                    ::  NUNIT, NJXX
       CHARACTER(*), INTENT(IN)               ::  NAMFIL
-      CHARACTER*6, INTENT(IN),DIMENSION(NJX) :: TITLEJX
+      CHARACTER*6, INTENT(IN),DIMENSION(NJXX):: TITLEJX
       LOGICAL, INTENT(IN)                    :: am_I_Root
 !
 ! !OUTPUT VARIABLES:
@@ -2340,7 +2340,7 @@ c   include fractional quantum yield for the fast-JX J's
 c---Zero / Set index arrays that map Jvalue(j) onto rates
       do K = 1,NRATJ
          JIND(K) = 0
-       do J = 1,NJX
+       do J = 1,NJXX
          T_FJX = TITLEJX(J)
         if (JMAP(K) .eq. TITLEJX(J)) then
          JIND(K)=J
@@ -2698,7 +2698,7 @@ C-----------------------------------------------------------------------
 
       ! Fill out common-block array of J-rates
       DO L=1,LLCHEM
-         DO J=1,NJX
+         DO J=1,NRATJ
             IF (JIND(J).gt.0) THEN
                ZPJ(L,J,ILON,ILAT) = VALJXX(L,JIND(J))*JFACTA(J)
             ELSE
@@ -2710,7 +2710,7 @@ C-----------------------------------------------------------------------
       ! Set J-rates outside the chemgrid to zero
       IF (LLCHEM.lt.L_) THEN
          DO L=LLCHEM+1,L_
-            DO J=1,NJX
+            DO J=1,NRATJ
                ZPJ(L,J,ILON,ILAT) = 0.d0
             ENDDO
          ENDDO

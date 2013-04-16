@@ -1248,6 +1248,7 @@
       USE TRACER_MOD,   ONLY : STT, TRACER_MW_G
       USE TRACERID_MOD, ONLY : IDTSO4
       USE PRESSURE_MOD, ONLY : GET_PCENTER
+      USE CHEMGRID_MOD, ONLY : ITS_IN_THE_TROP
 
       USE CMN_GCTM_MOD, ONLY : AIRMW
 !
@@ -1307,6 +1308,10 @@
          TCENTER = T(I,J,L)
          INVAIR  = AIRMW / AD(I,J,L)
          IF (PCENTER.ge.1.d2) THEN
+            H2SO4_GASFRAC(I,J,L) = 0d0
+            CYCLE
+         ELSEIF (ITS_IN_THE_TROP(I,J,L)) THEN
+            ! Don't want to interfere with tropospheric aerosols
             H2SO4_GASFRAC(I,J,L) = 0d0
             CYCLE
          ELSE

@@ -21,6 +21,7 @@
       USE CMN_SIZE_MOD,      ONLY : NDUST, NAER, NRH
 
       IMPLICIT NONE
+#     include "define.h"
       PUBLIC
 !
 ! !DEFINED PARAMETERS:
@@ -45,7 +46,7 @@
       INTEGER, PARAMETER :: L2_=L1_*2  ! Number of levels in FJX grid that
                                        ! inc. both edges and mid-points
       INTEGER, PARAMETER :: JVL_=LLPAR ! Vertical levels for J-values
-      INTEGER, PARAMETER :: JVN_=101   ! Max number of J-values
+      INTEGER, PARAMETER :: JVN_=121   ! Max number of J-values
       INTEGER, PARAMETER :: AN_ =35    ! Number of separate aerosols per layer
 
       ! Variables used to interface GEOS-Chem and Fast-JX at runtime
@@ -87,15 +88,11 @@
       ! A_   = dim = no. of Aerosol/cloud Mie sets (input data)
       INTEGER, PARAMETER ::  A_=56!A_=40
       ! W_   = dim = no. of Wavelength bins:  =18 std, =12 trop only
-      !-----SDE DEBUG
-      ! Force full mechanism for now (debug)
-      INTEGER, PARAMETER ::  W_=18
-!#if defined( GMISTRAT )
-!      INTEGER, PARAMETER ::  W_=18    ! W_=12 or 18
-!#else
-!      INTEGER, PARAMETER ::  W_=12
-!#endif
-      !-----SDE DEBUG
+#if defined( GMISTRAT )
+      INTEGER, PARAMETER ::  W_=18    ! W_=12 or 18
+#else
+      INTEGER, PARAMETER ::  W_=12
+#endif
       ! N_  = no. of levels in Mie scattering arrays
       !     = 2*NC+1 = 4*(L_+1) + 1 + 2*sum(JADDLV)
       INTEGER, PARAMETER ::  N_=601
@@ -186,7 +183,7 @@
 
       ! Interfacing indices for GC and FJX aerosols
       INTEGER, DIMENSION(AN_)     :: MIEDX
-      CHARACTER*20, DIMENSION(A_):: TITLEAA ! TITLEAA: Title for scattering data
+      CHARACTER*20, DIMENSION(A_) :: TITLEAA ! TITLEAA: Title for scattering data
 
       ! Dust and aerosol optical depths
       REAL*8 :: ODMDUST(IIPAR,JJPAR,LLPAR,NDUST)

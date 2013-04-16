@@ -171,7 +171,7 @@
 
 !----- Simulation type -----
 !#define GTMM_Hg
-!#define GMISTRAT
+#define GMISTRAT
 #define FASTJX7
 #define FORCEO1D
 
