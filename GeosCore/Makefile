@@ -1109,7 +1109,7 @@ tpcore_geos57_window_mod.o  : tpcore_geos57_window_mod.F90
 tpcore_mod.o                : tpcore_mod.F            dao_mod.o              \
                               diag_mod.o              global_ch4_mod.o       \
                               tracer_mod.o            tomas_tpcore_mod.o
-	$(F90) -c $(R8) $<
+	$(F90) -c $(R8) $(FFLAGS) $<
 
 tpcore_window_mod.o         : tpcore_window_mod.F     dao_mod.o              \
                               diag_mod.o              global_ch4_mod.o       \

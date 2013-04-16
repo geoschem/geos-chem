@@ -183,12 +183,13 @@
       ! Pick the proper # of tracers
 #if   defined( APM )  
       N_TOT_TRC = N_TRACERS + N_APMTRA   ! If APM is used, then convect
-#else                                    !  the G-C advected tracers +
+                                         !  the G-C advected tracers +
+#else                                    
       N_TOT_TRC = N_TRACERS              !  the APM aerosol tracers
 #endif
 
       ! Call the S-J Lin convection routine for GEOS-5
-      CALL NFCLDMX( N_TOT_TRC,
+         CALL NFCLDMX( N_TOT_TRC,
      &              TCVV,
      &              State_Met%CMFMC(:,:,2:LLPAR+1),
      &              State_Met%DTRAIN, 
@@ -1410,6 +1411,11 @@
                      ENTRN    = CMOUT         - CLDMAS(I,J,K-1)
                      QC_PRES  = QC(I,J) * ( 1d0 - F(I,J,K,IC) )
                      QC_SCAV  = QC(I,J) * F(I,J,K,IC)
+#if defined ( DEBUG )
+       IF ( IC == 129 ) THEN
+          print *, I, J, K, QC_PRES, QC_SCAV, QC(I,J), F(I,J,K,IC)
+       ENDIF
+#endif
 
                      IF ( ENTRN .ge. 0 ) THEN
                         QC(I,J) = ( CLDMAS(I,J,K-1) * QC_PRES       + 
@@ -1499,6 +1505,11 @@
                      !==================================================
                      IF ( ( ND38 > 0 .or. LGTMM )
      &                    .and. ISOL > 0 .and. K <= LD38 ) THEN
+#if defined ( DEBUG )
+                        if(TCVV(IC) <= 0.d0) then
+                           print *, I, J, K, IC, ISOL, TCVV(IC)
+                        endif
+#endif
                         AD38(I,J,K,ISOL) = AD38(I,J,K,ISOL) +
      &                       ( T0 * AREA_M2 / ( TCVV(IC) * DNS ) )
                      ENDIF

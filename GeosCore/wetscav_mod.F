@@ -911,6 +911,7 @@
       ! Initialize
       DUM = 1.0
 
+
       !-------------------------------
       ! 210Pb and 7Be (aerosols)
       !-------------------------------
@@ -2005,8 +2006,12 @@
          DO L = 2, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            F(I,J,L) = TOM_SC_FRACTION(I,J,L,N-IDTSF1+1) * F(I,J,L)
-!            F(I,J,L) = ACTIV_F( N, .FALSE. ) * F(I,J,L)
+!sfarina - old
+!            F(I,J,L) = TOM_SC_FRACTION(I,J,L,N-IDTSF1+1) * F(I,J,L)
+!new
+            CALL GETFRACTION( I, J, L, N, .FALSE., 
+     &                        XFRAC, SOLFRAC       )
+            F(I,J,L) = XFRAC * F(I,J,L)                 
          ENDDO
          ENDDO
          ENDDO
@@ -2021,8 +2026,10 @@
          DO L = 2, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            F(I,J,L) = TOM_SC_FRACTION(I,J,L,N-IDTSS1+1) * F(I,J,L)
-!            F(I,J,L) = ACTIV_F( N, .FALSE. ) * F(I,J,L)
+!            F(I,J,L) = TOM_SC_FRACTION(I,J,L,N-IDTSS1+1) * F(I,J,L)
+            CALL GETFRACTION( I, J, L, N, .FALSE., 
+     &                        XFRAC, SOLFRAC       )
+            F(I,J,L) = XFRAC * F(I,J,L)                 
          ENDDO
          ENDDO
          ENDDO
@@ -2037,8 +2044,10 @@
          DO L = 2, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            F(I,J,L) = TOM_SC_FRACTION(I,J,L,N-IDTECIL1+1) * F(I,J,L)
-!            F(I,J,L) = ACTIV_F( N, .FALSE. ) * F(I,J,L)
+!            F(I,J,L) = TOM_SC_FRACTION(I,J,L,N-IDTECIL1+1) * F(I,J,L)
+            CALL GETFRACTION( I, J, L, N, .FALSE., 
+     &                        XFRAC, SOLFRAC       )
+            F(I,J,L) = XFRAC * F(I,J,L)                 
          ENDDO
          ENDDO
          ENDDO
@@ -2053,8 +2062,10 @@
          DO L = 2, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            F(I,J,L) = TOM_SC_FRACTION(I,J,L,N-IDTOCIL1+1) * F(I,J,L)
-!            F(I,J,L) = ACTIV_F( N, .FALSE. ) * F(I,J,L)
+!            F(I,J,L) = TOM_SC_FRACTION(I,J,L,N-IDTOCIL1+1) * F(I,J,L)
+            CALL GETFRACTION( I, J, L, N, .FALSE., 
+     &                        XFRAC, SOLFRAC       )
+            F(I,J,L) = XFRAC * F(I,J,L)                 
          ENDDO
          ENDDO
          ENDDO
@@ -2069,8 +2080,10 @@
          DO L = 2, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            F(I,J,L) = TOM_SC_FRACTION(I,J,L,N-IDTOCOB1+1) * F(I,J,L)
-!            F(I,J,L) = ACTIV_F( N, .FALSE. ) * F(I,J,L)
+!            F(I,J,L) = TOM_SC_FRACTION(I,J,L,N-IDTOCOB1+1) * F(I,J,L)
+            CALL GETFRACTION( I, J, L, N, .FALSE., 
+     &                        XFRAC, SOLFRAC       )
+            F(I,J,L) = XFRAC * F(I,J,L)                 
          ENDDO
          ENDDO
          ENDDO
@@ -2085,7 +2098,10 @@
          DO L = 2, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            F(I,J,L) = TOM_SC_FRACTION(I,J,L,N-IDTDUST1+1) * F(I,J,L)
+!            F(I,J,L) = TOM_SC_FRACTION(I,J,L,N-IDTDUST1+1) * F(I,J,L)
+            CALL GETFRACTION( I, J, L, N, .FALSE., 
+     &                        XFRAC, SOLFRAC       )
+            F(I,J,L) = XFRAC * F(I,J,L)                 
          ENDDO
          ENDDO
          ENDDO
@@ -2576,6 +2592,7 @@
 ! !INTERFACE:
 !
       SUBROUTINE F_AEROSOL( KC, N, F, State_Met ) 
+
 !
 ! !USES:
 !
@@ -2593,6 +2610,7 @@
       !Add N to idendify tracers (qq,10/11/2011)
       INTEGER,        INTENT(IN)  :: N
 
+!      REAL*8, INTENT(IN)          :: Vud(IIPAR,JJPAR)
       ! Meteorology State object
       TYPE(MetState), INTENT(IN)  :: State_Met
 !
@@ -2614,6 +2632,7 @@
 !
       INTEGER             :: I, J, L
       REAL*8              :: TMP
+      REAL*8              :: TINY1 = 1.0d-20
      
       !=================================================================
       ! F_AEROSOL begins here!
@@ -2635,7 +2654,11 @@
      &                   State_Met%BXHEIGHT(I,J,L) ) 
        
          ! (Eq. 2, Jacob et al, 2000, with K = Kc)
-         F(I,J,L) = 1d0 - EXP( -KC * TMP / Vud(I,J) )
+         IF (Vud(I,J) < TINY1) THEN
+            F(I,J,L) = 1d0
+         ELSE
+            F(I,J,L) = 1d0 - EXP( -KC * TMP / Vud(I,J) )
+         ENDIF
          ! snow vs rain (qq, 10/11/2011)
          IF ( State_Met%T(I,J,L) >= 258d0 .and. N == IDTBCPO) THEN
             F(I,J,L) = 0d0

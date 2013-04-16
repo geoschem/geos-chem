@@ -6977,6 +6977,7 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
          ENDDO
          IF ( NK(K) /= 0D0 .AND. DRYMASS == 0D0 .or.
      &        NK(K) == 0D0 .AND. DRYMASS /= 0D0     ) THEN   
+            PRINT *, '5.5 set nk, mk to ZERO for all bins'
             DO J = 1, ICOMP
                MK(K,J)=0.D0
                NK(K) = 0.D0

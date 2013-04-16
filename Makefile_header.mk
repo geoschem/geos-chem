@@ -220,6 +220,10 @@ else
 FFLAGS    := -cpp -w $(OPT) -auto -noalign -convert big_endian -vec-report0 
 endif
 
+ifdef FPE
+FFLAGS    += -debug parallel -fpe3 -ftrapuv
+endif
+
 # OSX compilation options
 ifeq ($(UNAME),Darwin)
 FFLAGS    += -Wl,-stack_size,0x2cb410000 # Allow 12GB of stack space

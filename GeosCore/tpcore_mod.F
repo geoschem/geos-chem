@@ -1045,7 +1045,7 @@ c        write(6,*) ' *** Smooth the wind fields or reduce NDT'
 !MIC$* shared(fx1_tp, fy1_tp)
 !MIC$* private(i,j,k,jt,wk,DG2)
 #else
-!$OMP PARALLEL DO PRIVATE( I, J, K, JT, WK, DG2 )
+!$OMP PARALLEL DO PRIVATE( I, J, K, JT, WK, DG2, IC )
 #endif
 #endif
 
@@ -1150,6 +1150,7 @@ c        write(6,*) ' *** Smooth the wind fields or reduce NDT'
       endif
 
       enddo
+!$OMP END PARALLEL DO
  
 !****6***0*********0*********0*********0*********0*********0**********72
        call FCT3D(Q(1,1,1,IC),qlow,fx,fy,fz,IM,JM,NL,j1,j2,delp2,

@@ -3579,9 +3579,9 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
+         DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-         DO L = 1, LLPAR
             AD44(I,J,DRYMSA,1) = AD44(I,J,DRYMSA,1) + ND44_TMP(I,J,L)
          ENDDO
          ENDDO
@@ -3773,9 +3773,9 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
+         DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-         DO L = 1, LLPAR
 
             IF (ND44 > 0) THEN            
                AD44(I,J,DRYNH3,1) = AD44(I,J,DRYNH3,1) + ND44_TMP(I,J,L)
@@ -3969,9 +3969,9 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
+         DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-         DO L = 1, LLPAR
 
             IF (ND44 > 0 ) THEN
             AD44(I,J,DRYNH4,1) = AD44(I,J,DRYNH4,1) + ND44_TMP(I,J,L)
@@ -4697,6 +4697,10 @@
          IF ( SRTNH4 > 0 ) THEN
             TID = IBINS*(ICOMP-IDIAG) + 1
 c     print *, '============================================'
+!%%%OMP PARALLEL DO
+!%%%OMP+DEFAULT( SHARED )
+!%%%OMP+PRIVATE( I, J, L, TMPNH4 )
+!%%%OMP+SCHEDULE( DYNAMIC )
             DO L=1,LLPAR
             DO J=1,JJPAR
             DO I=1,IIPAR
@@ -4709,6 +4713,7 @@ c         print *, I,J,L,'NH4',STT(I,J,L,IDTNH4)
             ENDDO
             ENDDO
             ENDDO
+!%%%OMP END PARALLEL DO
 
          ENDIF
 
@@ -6350,10 +6355,10 @@ c      print *,BINMASS(24,11,2,:)
 
 #if defined ( DEBUG ) 
 !      print *, 'mnfix in sulfate_mod:6346'
-#endif
             CALL MNFIX( NDIST, MDIST, ERRORSWITCH )
             IF( ERRORSWITCH ) PRINT *,'SRCSF30: MNFIX found error ',
      &              'before SUBGRIDCOAG at ',I,J,L
+#endif
 
             ! Overwrite number and mass before emission for diagnostic 
             ! just in case there was any change by MNFIX (win, 10/27/08)
@@ -6433,9 +6438,8 @@ c      print *,BINMASS(24,11,2,:)
 !debug            if(i==ii.and.j==ii.and.l==ll) errorswitch=.true.
 #if defined ( DEBUG ) 
 !      print *, 'mnfix in sulfate_mod:6430'
-#endif
-
             CALL MNFIX( NDIST2, MDIST2, ERRORSWITCH )
+#endif
 
             IF( ERRORSWITCH ) PRINT *,'SRCSF30: MNFIX found error ',
      &           'after SUBGRIDCOAG at ',I,J,L
