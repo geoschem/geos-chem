@@ -96,7 +96,7 @@
       USE DAO_MOD,         ONLY : IS_ICE
       ! KPP interface (phs,ks,dhk, 09/15/09)
       USE GCKPP_GLOBAL,    ONLY : IND
-      USE LOGICAL_MOD,     ONLY : LNLPBL, LKPP ! (Lin, 03/31/09)
+      USE LOGICAL_MOD,     ONLY : LNLPBL, LKPP, LDRYD! (Lin, 03/31/09)
       ! jpp, testing
       USE LOGICAL_MOD,     ONLY : LWARWICK_VSLS
       ! jpp, added the following for BrNO3 recycling off of clouds (3/17/2011)
@@ -1534,7 +1534,7 @@ c new OH+CO rate from JPL2006.
 
                   ! No need for deposition when net O3 production from 
                   ! ships is positive
-                  SHIPO3DEP(IX,IY) = 0d0
+                  IF (LDRYD) SHIPO3DEP(IX,IY) = 0d0
 
                   ! Loop over the boundary layer
                   DO L = 1, TOP
@@ -1586,7 +1586,7 @@ c new OH+CO rate from JPL2006.
                   ! column, molec(O3)/cm2/s
                   ! TOTO3 is the total O3 content of the PBL, molec(O3)/cm2
                   ! Final units: 1/s
-                  SHIPO3DEP(IX,IY) = ABS( EMIS_BL / TOTO3 )
+                  IF (LDRYD) SHIPO3DEP(IX,IY) = ABS( EMIS_BL / TOTO3 )
 
                ENDIF
 
