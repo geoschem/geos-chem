@@ -313,43 +313,43 @@
             ENDIF
             TRAC_IDX = IDTBr2
             TRAC_SET  = 'BR2'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
          
             TRAC_IDX = IDTBr
             TRAC_SET  = 'BR'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
          
             TRAC_IDX = IDTBrO
             TRAC_SET  = 'BRO'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
          
             TRAC_IDX = IDTHOBr
             TRAC_SET  = 'HOBR'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
          
             TRAC_IDX = IDTHBr
             TRAC_SET  = 'HBR'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
      
             TRAC_IDX = IDTBrNO2
             TRAC_SET  = 'BRNO2'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
      
             TRAC_IDX = IDTBrNO3
             TRAC_SET  = 'BRNO3'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
      
             TRAC_IDX = IDTCHBr3 
             TRAC_SET  = 'CHBR3'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
      
             TRAC_IDX = IDTCH2Br2
             TRAC_SET  = 'CH2BR2'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
      
             TRAC_IDX = IDTCH3Br
             TRAC_SET  = 'CH3BR'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
          ENDIF
 
          ! Br-Cl (special case)
@@ -360,121 +360,101 @@
             ENDIF
             TRAC_IDX = IDTBrCl
             TRAC_SET  = 'BRCL'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
      
          ENDIF
 
          ! Chlorine species (except CFCS, HCFCs and Halons)
          IF (LSETCL) THEN
             IF ( am_I_Root ) THEN
-               WRITE(6,*) '|Cl2      |ClOx     |Cl2O2    |'
-               WRITE(6,*) '|ClNO2    |ClONO2   |HCl      |'
+               WRITE(6,*) '|Cl2      |ClO      |Cl2O2    |'
+               WRITE(6,*) '|Cl       |ClONO2   |HCl      |'
                WRITE(6,*) '|HOCl     |OClO     |CH3Cl    |'
                WRITE(6,*) '|CH3CCl3  |CCl4     |ClOO     |'
+               WRITE(6,*) '|         |         |         |'
                WRITE(6,*) '|---------|---------|---------|'
             ENDIF
-            TRAC_IDX = IDTClOx
+            TRAC_IDX = IDTCly
             TRAC_SET  = 'CL'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
             TRAC_SET  = 'CLO'
-            CALL APPLY_2DTRAC(.TRUE.,.FALSE.)
-     
-            TRAC_IDX = IDTCl2
-            TRAC_SET  = 'CL2'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.)
-     
-            TRAC_IDX = IDTCl2O2
-            TRAC_SET  = 'CL2O2'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.)
-     
-            TRAC_IDX = IDTClNO2
+            CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.)
             TRAC_SET  = 'CLNO2'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.)
-
-            TRAC_IDX = IDTClNO3
+            CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.)
             TRAC_SET  = 'CLNO3'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.)
-
+            CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.)
+            TRAC_SET  = 'HOCL'
+            CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.)
+            TRAC_SET  = 'OCLO'
+            CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.)
+            TRAC_SET  = 'CLOO'
+            CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.)
+     
+            TRAC_IDX = IDTCl2y
+            TRAC_SET  = 'CL2'
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+            TRAC_SET  = 'CL2O2'
+            CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.)
+     
             TRAC_IDX = IDTHCl
             TRAC_SET  = 'HCL'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
      
-            TRAC_IDX = IDTHOCl
-            TRAC_SET  = 'HOCL'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.)
-     
-            TRAC_IDX = IDTOClO
-            TRAC_SET  = 'OCLO'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.)
-
-            TRAC_IDX = IDTClOO
-            TRAC_SET  = 'CLOO'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.)
-
             ! Handle chloroalkanes      
             TRAC_IDX = IDTCH3Cl
             TRAC_SET  = 'CH3CL'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
      
             TRAC_IDX = IDTCH3CCl3
             TRAC_SET  = 'CH3CCL3'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
      
             TRAC_IDX = IDTCCl4
             TRAC_SET  = 'CCL4'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
          ENDIf
          
          ! CFCs, HCFCs and Halons
          IF (LSETCFC) THEN
             IF ( am_I_Root ) THEN
                WRITE(6,*) '|H-1211   |H-1301   |H-2402   |'
-               WRITE(6,*) '|CFC-11   |CFC-12   |CFC-X    |'
-               WRITE(6,*) '|HCFC-X   |H-1202   |         |'
+               WRITE(6,*) '|HCFC-123 |HCFC-141b|HCFC-142b|'
+               WRITE(6,*) '|HCFC-22  |R-11     |R-12     |'
+               WRITE(6,*) '|R-113    |R-114    |R-115    |'
                WRITE(6,*) '|---------|---------|---------|'
             ENDIF
-            ! H1202, 1211, 1301 and 2402
-            TRAC_IDX = IDTH1202 
-            TRAC_SET  = 'CBR2F2'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.)
-     
-            TRAC_IDX = IDTH1211  
+            ! H-1211, 1301 and 2402
+            TRAC_IDX = IDTHalon
             TRAC_SET  = 'CBRCLF2'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.)
-     
-            TRAC_IDX = IDTH1301 
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
             TRAC_SET  = 'CBRF3'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.)
-     
-            TRAC_IDX = IDTH2402  
+            CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.)
             TRAC_SET  = 'C2BR2F4'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.)
      
             ! CFC  11, 12, and [113/114/115]
-            TRAC_IDX = IDTCFC11
-            TRAC_SET  = 'CFCL3'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.)   
-    
-            TRAC_IDX = IDTCFC12 
-            TRAC_SET  = 'CF2CL2'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.)
-   
             TRAC_IDX = IDTCFC
+            TRAC_SET  = 'CFCL3'
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+            TRAC_SET  = 'CF2CL2'
+            CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.)
             TRAC_SET  = 'C2CL3F3'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.) 
+            CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.)
             TRAC_SET  = 'C2CL2F4'
-            CALL APPLY_2DTRAC(.TRUE.,.FALSE.)
+            CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.)
             TRAC_SET  = 'C2CLF5'
-            CALL APPLY_2DTRAC(.TRUE.,.FALSE.)
+            CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.)
      
-            ! HCFC 22, 141b and 142b
+            ! HCFC 22, 123, 141b and 142b
             TRAC_IDX = IDTHCFC
             TRAC_SET  = 'CHCLF2'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+            TRAC_SET  = 'C2HF3CL2'
+            CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.)
             TRAC_SET  = 'C2H3FCL2'
-            CALL APPLY_2DTRAC(.TRUE.,.FALSE.)
+            CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.)
             TRAC_SET  = 'C2H3F2CL'
-            CALL APPLY_2DTRAC(.TRUE.,.FALSE.)
+            CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.)
          ENDIF
 
          IF (LSETOCS) THEN
@@ -484,7 +464,7 @@
             ENDIF
             TRAC_IDX = IDTOCS
             TRAC_SET  = 'OCS'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
          ENDIF
 
          IF (LSETH2SO4) THEN
@@ -495,7 +475,7 @@
             TRAC_IDX = IDTSO4
             ! Actually H2SO4 aerosol
             TRAC_SET  = 'SO4'
-            CALL APPLY_2DTRAC(.FALSE.,.TRUE.)
+            CALL APPLY_2DTRAC(.FALSE.,.TRUE.,.FALSE.)
          ENDIF
       ENDIF ! USE2DDATA
 
@@ -508,7 +488,7 @@
 
          TRAC_IDX = IDTN2O
          TRAC_SET  = 'N2O'
-         CALL APPLY_2DTRAC(.FALSE.,.FALSE.)
+         CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
       ENDIF
 
       ! CH4 taken from the existing GEOS-Chem 3D input data,
@@ -570,7 +550,7 @@
             ! Code to set strat using AER 2D data
             TRAC_IDX = IDTCH4
             TRAC_SET  = 'CH4'
-            CALL APPLY_2DTRAC(.FALSE.,.TRUE.)
+            CALL APPLY_2DTRAC(.FALSE.,.TRUE.,.FALSE.)
          ENDIF
       ENDIF
 
@@ -594,11 +574,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE APPLY_2DTRAC( TRAC_ADD, STRAT_ONLY )
+      SUBROUTINE APPLY_2DTRAC( TRAC_ADD, STRAT_ONLY, SFC_ONLY )
 !
 ! !USES:
 !
       USE FILE_MOD,      ONLY : IOERROR
+      USE ERROR_MOD,     ONLY : ERROR_STOP
       USE PRESSURE_MOD,  ONLY : GET_PCENTER
       USE TRACER_MOD,    ONLY : STT, TCVV
       USE CHEMGRID_MOD,  ONLY : ITS_IN_THE_STRATMESO
@@ -608,6 +589,7 @@
 !
       LOGICAL, INTENT(IN)              :: TRAC_ADD     ! Add (instead of overwrite) 
       LOGICAL, INTENT(IN)              :: STRAT_ONLY   ! Only write to stratosphere 
+      LOGICAL, INTENT(IN)              :: SFC_ONLY     ! Only write to surface 
 !
 ! !REVISION HISTORY: 
 !  26 Mar 2013 - S. D. Eastham - Initial version
@@ -627,6 +609,7 @@
       REAL*8  :: TRACMULT
       LOGICAL :: SET_CELL
       INTEGER :: IU_FILE
+      INTEGER :: L_MAX
 
       !=================================================================
       ! APPLY_2DTRAC begins here!
@@ -634,6 +617,12 @@
 
       TRAC_FILE = TRIM(TRAC_FILE_ROOT)//TRIM(TRAC_SET )
       TRAC_FILE = TRIM(TRAC_FILE)//'_'//TRIM(MONTH_STR)//'.dat'
+
+      ! Error check
+      IF ((STRAT_ONLY).and.(SFC_ONLY)) THEN
+         CALL ERROR_STOP('Cannot have both SFC_ONLY and STRAT_ONLY!',
+     &                           'APPLY_2DTRAC(gmistrat_mod.F)')
+      ENDIF
 
       ! Get a free LUN
       IU_FILE = findFreeLUN()
@@ -658,6 +647,12 @@
 
       CLOSE(IU_FILE)    
  
+      IF (SFC_ONLY) THEN
+         L_MAX = 1
+      ELSE
+         L_MAX = LLPAR
+      ENDIF
+
       ! Scan through STT, element by element
       DO J = 1,JJPAR
          DO I = 1,IIPAR
@@ -665,7 +660,7 @@
             ! is at the *top* of the atmosphere
             VERTCOUNT = 51
             EXTRAP = .TRUE.
-            DO L = 1, LLPAR
+            DO L = 1, L_MAX
                IF (STRAT_ONLY) THEN
                   ! Only want to set non-trop cells
                   SET_CELL = ITS_IN_THE_STRATMESO(I,J,L)
@@ -814,6 +809,7 @@
 ! !USES:
 !
       USE TIME_MOD,       ONLY : GET_MONTH,GET_YEAR
+      USE TRACERID_MOD,   ONLY : IDTHALON
 !
 ! !INPUT PARAMETERS:
 !
@@ -847,15 +843,15 @@
       DO N=1,N_EMIT
          LOCAL_NAME = TRIM(TRAC_EMIT(N))
          SELECT CASE (LOCAL_NAME)
-            CASE ('GENERIC_CFC')
+            CASE ('CFCS')
                ! Add 3 CFCs
                LOCAL_NAME = TRIM('CFC113')
                CALL GET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
                LOCAL_NAME = TRIM('CFC114')
                CALL GET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
                LOCAL_NAME = TRIM('CFC115')
-               CALL GET_MONTREAL(LOCAL_NAME  ,TARG_LINE,N)
-            CASE ('GENERIC_HCFC')
+               CALL GET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
+            CASE ('HCFCS')
                ! Add 3 HCFCs
                LOCAL_NAME = TRIM('HCFC22')
                CALL GET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
@@ -863,8 +859,17 @@
                CALL GET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
                LOCAL_NAME = TRIM('HCFC142b')
                CALL GET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
-            CASE ('H2402_YEARLY')
-               ! Limited data available
+               ! Also need HCFC123 - no Montreal data
+               ! Use surface-level MR from 2D data instead
+               TRAC_IDX = IDTHalon
+               TRAC_SET  = 'C2HF3CL2'
+               CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.TRUE.)
+            CASE ('HALONS')
+               LOCAL_NAME = TRIM('H1301')
+               CALL GET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
+               LOCAL_NAME = TRIM('H1211')
+               CALL GET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
+               ! Limited data available for H2402
                LOCAL_NAME = TRIM('C2BR2F4')
                CALL GET_MONTREAL(LOCAL_NAME,GET_YEAR()-1949,N)
             CASE ('OCS')
@@ -1302,18 +1307,18 @@
 
       DO J=1, JJPAR
       DO I=1, IIPAR
-      DO L=1, LLPAR
+      LLOOP: DO L=1, LLPAR
          ! Only interested in low-pressure boxes
          PCENTER = GET_PCENTER(I,J,L)
          TCENTER = T(I,J,L)
          INVAIR  = AIRMW / AD(I,J,L)
          IF (PCENTER.ge.1.d2) THEN
             H2SO4_GASFRAC(I,J,L) = 0d0
-            CYCLE
+            CYCLE LLOOP
          ELSEIF (ITS_IN_THE_TROP(I,J,L)) THEN
             ! Don't want to interfere with tropospheric aerosols
             H2SO4_GASFRAC(I,J,L) = 0d0
-            CYCLE
+            CYCLE LLOOP
          ELSE
             H2SO4SUM = STT(I,J,L,IDTSO4  )*INVAIR/TRACER_MW_G(IDTSO4  )
             ! Use approximation from Kumala (1990)
@@ -1333,11 +1338,14 @@
                H2SO4_GASFRAC(I,J,L) = 1.d0
             ENDIF
          ENDIF
-      ENDDO
+      ENDDO LLOOP
       ENDDO
       ENDDO
 
 !$OMP END PARALLEL DO
+
+      IF ( LPRT ) CALL DEBUG_MSG( '### GMISTRAT: H2SO4 partitioned' )
+
       END SUBROUTINE CALC_H2SO4_GAS
 !
 !EOC
@@ -1699,45 +1707,20 @@
       IDT_EMIT = 0
 
       IF (LCFCEMIS) THEN
-         ! R-113/114/115
+         ! R-11/12/113/114/115
          N_EMIT = N_EMIT + 1
          IDT_EMIT( N_EMIT) = IDTCFC
-         TRAC_EMIT(N_EMIT) = 'GENERIC_CFC'
+         TRAC_EMIT(N_EMIT) = 'CFCS'
 
-         ! HCFC-22/141b/142b
+         ! HCFC-22/123/141b/142b
          N_EMIT = N_EMIT + 1
          IDT_EMIT( N_EMIT) = IDTHCFC
-         TRAC_EMIT(N_EMIT) = 'GENERIC_HCFC'
+         TRAC_EMIT(N_EMIT) = 'HCFCS'
 
-         ! R-11
+         ! Halons (H-1301/2402/1211)
          N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = IDTCFC11 
-         TRAC_EMIT(N_EMIT) = 'CFC11'
-
-         ! R-12
-         N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = IDTCFC12 
-         TRAC_EMIT(N_EMIT) = 'CFC12'
-
-         ! H-1202
-         N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = IDTH1202 
-         TRAC_EMIT(N_EMIT) = 'CBR2F2'
-
-         ! H-1211
-         N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = IDTH1211  
-         TRAC_EMIT(N_EMIT) = 'H1211'
-
-         ! H-1301
-         N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = IDTH1301 
-         TRAC_EMIT(N_EMIT) = 'H1301'
-
-         ! H-2402
-         N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = IDTH2402  
-         TRAC_EMIT(N_EMIT) = 'H2402_YEARLY'
+         IDT_EMIT( N_EMIT) = IDTHalon
+         TRAC_EMIT(N_EMIT) = 'HALONS'
       ENDIF
 
       IF (LCLEMIS) THEN
@@ -1745,6 +1728,11 @@
          N_EMIT = N_EMIT + 1
          IDT_EMIT( N_EMIT) = IDTCCl4
          TRAC_EMIT(N_EMIT) = 'CCL4'
+
+         ! CH3Cl
+         N_EMIT = N_EMIT + 1
+         IDT_EMIT( N_EMIT) = IDTCH3Cl
+         TRAC_EMIT(N_EMIT) = 'CH3CL'
 
          ! CH3CCl3
          N_EMIT = N_EMIT + 1

@@ -225,15 +225,17 @@
 ! Increase NMRATE from 700 to 726 for bromine rxns
 ! Increase IPHOT  from 85  to 92  for Br
 ! (J. Parrella, mpayer, 12/28/11)
-! Increase IPHOT  from 92  to 100 for Fast-JX (SDE 04/14/13)
+! Increase IPHOT  from 92  to 120 for Fast-JX (SDE 04/14/13)
+! Increase IGAS from 310 to 350 for chlorine chemistry (SDE 04/14/13)
+! Increase NMRATE from 726 to 800 for chlorine chemistry (SDE 04/14/13)
 !!FP_ISOP 06/15/09 !IGAS, NMRATE and MAXGL increased
 !!      PARAMETER ( IGAS    = 200,               IAERTY  = 1           )
 !!      PARAMETER ( NMRATE  = 510,               IPHOT   = 85          )
 !      PARAMETER ( IGAS    = 300,               IAERTY  = 1           )
 !      PARAMETER ( NMRATE  = 700,               IPHOT   = 85          )
 !------------------------------------------------------------------------------
-      PARAMETER ( IGAS    = 310,               IAERTY  = 1           )
-      PARAMETER ( NMRATE  = 726,               IPHOT   = 100         )
+      PARAMETER ( IGAS    = 350,               IAERTY  = 1           )
+      PARAMETER ( NMRATE  = 800,               IPHOT   = 120         )
       PARAMETER ( NMTRATE = NMRATE + IPHOT,    NMQRATE = 1           ) 
       PARAMETER ( NMRPROD = 25,                NMDEAD  = 100         )
 !      PARAMETER ( MAXGL   = 750,               MAXGL2  = 90          )

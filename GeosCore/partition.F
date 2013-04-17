@@ -72,6 +72,7 @@
 !  27 Jun 2011 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  17 Apr 2013 - S. D. Eastham - Resize CSAVE to IGAS rather than NTRACER
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -85,7 +86,7 @@
       INTEGER :: LTEST
       INTEGER :: JLOOP_P 
       REAL*8  :: CONCTMP, CONCNOX, SUM, SUM1
-      REAL*8  :: CSAVE( ITLOOP, NTRACER )
+      REAL*8  :: CSAVE( ITLOOP, IGAS )
       REAL*8  :: QTEMP
 
       !=================================================================

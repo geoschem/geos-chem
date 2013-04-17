@@ -447,9 +447,10 @@
 !------------------------------------------------------------------------------
 ! Prior to 10/22/12:
 ! Increase to 100 for tagged Hg sim (eds, mpayer, 10/22/12)
+! Increase to 120 for unified chemistry (SDE 04/17/12)
 !      INTEGER, PARAMETER :: NNPAR   = 85    ! For non-TOMAS simulations
 !------------------------------------------------------------------------------
-      INTEGER, PARAMETER :: NNPAR   = 100   ! For non-TOMAS simulations
+      INTEGER, PARAMETER :: NNPAR   = 120   ! For non-TOMAS simulations
 #endif
 
       ! Nempara increased to 26. (fp, 2/8/10)
