@@ -204,7 +204,6 @@
          B_1x1(:,:) = 1.d0
 
       ELSE
-
          ! Filename
          IF ( TRACER == 71 ) THEN
 
@@ -216,7 +215,7 @@
 
             ! CO
             FILENAME = TRIM( SCALE_DIR ) //
-     &           'CO-AnnualScalar.201105-Fix.geos.1x1'
+     &           'CO-AnnualScalar.geos.1x1'
 
          ELSE IF ( TRACER == 73 ) THEN
 
@@ -262,7 +261,7 @@
 
             ! CO
             FILENAME = TRIM( SCALE_DIR ) //
-     &           'CO-AnnualScalar.201105-Fix.geos.1x1'
+     &           'CO-AnnualScalar.geos.1x1'
 
          ELSE IF ( TRACER == 73 ) THEN
 
@@ -289,7 +288,6 @@
      &                    1,        T_1x1,      QUIET=.TRUE. )
 
       ENDIF
-
       ! Get scaling and cast as real*8
       AS_1x1(:,:) = T_1x1(:,:) / B_1x1(:,:)
 

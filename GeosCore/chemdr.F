@@ -512,7 +512,7 @@
       !
       ! NOTE: SCHEM still needs to be called whether or not LINOZ is
       ! used.  LINOZ is just a replacement for SYNOZ. (bmy, 4/28/10)
-      CALL SCHEM
+!      CALL SCHEM
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after SCHEM' )

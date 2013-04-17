@@ -956,6 +956,10 @@
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )
          CALL CHECK_STT_05x0666( 'after chemistry' )
 #endif 
+#if   defined( GEOS_57) && defined( GRID025x03125)
+         CALL CHECK_STT_025x03125( 'after chemistry' )
+#endif 
+
 
          !==============================================================
          ! ***** W E T   D E P O S I T I O N  (rainout + washout) *****
@@ -1107,6 +1111,10 @@
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )
             CALL CHECK_STT_05x0666( 'after dynamics step' )
 #endif
+#if   defined( GEOS_57) && defined( GRID025x03125)
+         CALL CHECK_STT_025x03125( 'after dynamics step' )
+#endif 
+
 
             CALL CHECK_STT( 'End of Dynamic Loop' )
          ENDIF

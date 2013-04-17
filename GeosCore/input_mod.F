@@ -6032,6 +6032,7 @@
       ! For the centralizing chemistry timestep modification, the emissions 
       ! should be done at the same time as chemistry.  Stop the run if the
       ! emissions timestep differs from the chemistry timestep. (bmy, 10/7/11)
+      write(6,*),TS_EMIS,TS_CHEM
       IF ( TS_EMIS /= TS_CHEM ) THEN 
          WRITE(6,*) 'The emission time step should equal the chemistry'
          WRITE(6,*) 'timestep.  This is required for the new central'

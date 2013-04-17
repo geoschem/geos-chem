@@ -4820,7 +4820,8 @@ c
 
             ! Echo info
             WRITE( 6, 100 ) TRIM( FILENAME )
-
+!clb XTAU
+            XTAU          = GET_TAU0( THISMONTH, 1, 2000 )
             ! Read data
             CALL READ_BPCH2( FILENAME, 'BIOFSRCE', 34, 
      &                       XTAU,      IIPAR,     JJPAR,

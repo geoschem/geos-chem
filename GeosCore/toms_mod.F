@@ -228,7 +228,7 @@
       YYYYMMDD = ( YEAR * 10000 ) + ( THISMONTH * 100 ) + 01
      
       ! Define filename (with replaceable tokens)
-      FILENAME = 'TOMS_200906/TOMS_O3col_YYYY.' // GET_NAME_EXT_2D() //
+      FILENAME = 'TOMS_201203/TOMS_O3col_YYYY.' // GET_NAME_EXT_2D() //
      &           '.'                            // GET_RES_EXT()
 
       ! Replace YYYY token with current year

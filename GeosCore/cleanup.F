@@ -15,7 +15,7 @@
 !
 ! !USES:
 !
-      !USE ACETONE_MOD,             ONLY : CLEANUP_ACETONE
+      USE ACETONE_MOD,             ONLY : CLEANUP_ACETONE
       USE AEROSOL_MOD,             ONLY : CLEANUP_AEROSOL
       USE AIRCRAFT_NOX_MOD,        ONLY : CLEANUP_AIRCRAFT_NOX
       USE ARCTAS_SHIP_EMISS_MOD,   ONLY : CLEANUP_ARCTAS_SHIP
@@ -199,7 +199,7 @@
  100  FORMAT( '     - CLEANUP: deallocating arrays now...' )
 
       ! Call cleanup routines from individual F90 modules
-      !CALL CLEANUP_ACETONE
+      CALL CLEANUP_ACETONE
       CALL CLEANUP_AEROSOL
       CALL CLEANUP_AIRCRAFT_NOX
       CALL CLEANUP_ARCTAS_SHIP
@@ -269,7 +269,6 @@
       CALL CLEANUP_WETSCAV
       CALL CLEANUP_ICOADS_SHIP !(cklee,7/09/09)
       CALL CLEANUP_RETRO
-
 #if   defined( APM )
       CALL CLEANUP_WETSCAVBIN  ! Cleanup arrays for APM wet scavenging
 #endif
@@ -282,6 +281,5 @@
 #else
       CALL EXIT_TPCORE
 #endif
-
       END SUBROUTINE CLEANUP
 !EOC
