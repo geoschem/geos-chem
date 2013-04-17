@@ -111,8 +111,8 @@
       ! correct vertical regridding of OH for offline simulations
       ! (mpayer, 3/14/13)
       !-----------------------------------------------------------------
-# if !defined( TOMAS )
       USE DAO_MOD,                 ONLY : CLEANUP_DAO
+# if !defined( TOMAS )
 # endif
 #endif
 
@@ -354,11 +354,9 @@
       ! (mpayer, 3/14/13)
       !-----------------------------------------------------------------
       CALL CLEANUP_DAO
-=======
 # if !defined( TOMAS )
       CALL CLEANUP_DAO         ! Clean up met fields for APM
 # endif
->>>>>>> PTOMAS
 #endif
 
 #if   defined( TOMAS )
