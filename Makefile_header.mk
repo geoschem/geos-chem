@@ -160,6 +160,7 @@ NCI       := -I$(GC_INCLUDE)
 # for this build of netCDF with nf-config and nc-config. 
 NCL       := $(shell $(GC_BIN)/nf-config --flibs)
 NCL       += $(shell $(GC_BIN)/nc-config --libs)
+NCL       += -lnetcdff
 NCL       := $(filter -l%,$(NCL))
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -167,7 +168,7 @@ NCL       := $(filter -l%,$(NCL))
 #%%%% Then you can add/modify the linking sequence here.  (This sequence
 #%%%% is a guess, but is probably good enough for other netCDF builds.)
 ifeq ($(NCL),) 
-NCL       := -lnetcdf -lhdf5_hl -lhdf5 -lz
+NCL       := -lnetcdff -lnetcdf -lhdf5_hl -lhdf5 -lz
 endif
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

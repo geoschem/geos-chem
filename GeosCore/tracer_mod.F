@@ -38,6 +38,7 @@
       PUBLIC :: GET_SIM_NAME
       PUBLIC :: CHECK_STT
       PUBLIC :: CHECK_STT_05x0666
+      PUBLIC :: CHECK_STT_025x03125
       PUBLIC :: INIT_TRACER
       PUBLIC :: CLEANUP_TRACER
 !
@@ -720,6 +721,8 @@
          !---------------------------
          ! Check for Negatives
          !---------------------------
+!clb fill nega
+         STT(I,J,L,N) = ABS(STT(I,J,L,N))
          IF ( STT(I,J,L,N) < 0d0 ) THEN 
 !$OMP CRITICAL
             LNEG = .TRUE.
@@ -864,6 +867,91 @@
 
       END SUBROUTINE CHECK_STT_05x0666
 !EOC
+!clb
+      SUBROUTINE CHECK_STT_025x03125( LOCATION )
+!
+! !USES:
+!
+      USE ERROR_MOD, ONLY : IT_IS_NAN
+      USE ERROR_MOD, ONLY : IT_IS_FINITE
+
+      USE CMN_SIZE_MOD    ! Size parameters
+!
+! !INPUT PARAMETERS: 
+!
+      CHARACTER(LEN=*), INTENT(IN) :: LOCATION
+! 
+! !REVISION HISTORY:
+!  05 Mar 2012 - M. Payer    - Initial version based on CHECK_STT and updates
+!                              for nested grid by Yuxuan Wang.
+!  05 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER                      :: I,    J,    L,   N
+
+      !=================================================================
+      ! CHECK_STT_05x0666 begins here!
+      !=================================================================
+
+      ! Loop over grid boxes
+!$OMP PARALLEL DO 
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N )
+      DO N = 1, N_TRACERS
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         !---------------------------
+         ! Check for Negatives
+         !---------------------------
+!clb         STT (I,J,L,N)=ABS(STT(I,J,L,N))
+         IF ( STT(I,J,L,N) < 0d0 ) THEN
+!$OMP CRITICAL
+            WRITE( 6, 100 ) I, J, L, N, STT(I,J,L,N)
+            PRINT*, 'Neg STT ' // TRIM( LOCATION ) //
+     &              '. SET STT TO BE ZERO.'
+            STT(I,J,L,N) = 0d0
+!$OMP END CRITICAL
+
+         !---------------------------
+         ! Check for NaN's
+         !---------------------------
+         ELSE IF ( IT_IS_NAN( STT(I,J,L,N) ) ) THEN
+!$OMP CRITICAL
+            WRITE( 6, 100 ) I, J, L, N, STT(I,J,L,N)
+            PRINT*, 'NaN STT ' // TRIM( LOCATION ) //
+     &              '. SET STT TO BE LOWER LEVEL.'
+            STT(I,J,L,N) = STT(I,J,L-1,N)
+!$OMP END CRITICAL
+
+         !----------------------------
+         ! Check STT's for Infinities
+         !----------------------------
+         ELSE IF ( .not. IT_IS_FINITE( STT(I,J,L,N) ) ) THEN
+!$OMP CRITICAL
+            WRITE( 6, 100 ) I, J, L, N, STT(I,J,L,N)
+            PRINT*, 'Inf STT ' // TRIM( LOCATION ) //
+     &              '. SET STT TO BE LOWER LEVEL.'
+            STT(I,J,L,N) =  STT(I,J,L-1,N)
+!$OMP END CRITICAL
+
+         ENDIF
+      ENDDO
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+ 100  FORMAT( ' STT(',i3,',',i3,',',i3,',',i3,') = ', f13.6 )
+
+      END SUBROUTINE CHECK_STT_025x03125
+!EOC
+
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -970,7 +1058,6 @@
       ALLOCATE( TRACER_N_CONST( N_TRACERS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TRACER_N_CONST' )
       TRACER_N_CONST = 0
-
       ALLOCATE( STT( IIPAR, JJPAR, LLPAR, N_TOT_TRC ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'STT' )
       STT = 0d0      
@@ -1015,7 +1102,8 @@
       IF ( ALLOCATED( TRACER_N_CONST ) ) DEALLOCATE( TRACER_N_CONST )
       IF ( ALLOCATED( TRACER_MW_G    ) ) DEALLOCATE( TRACER_MW_G    )
       IF ( ALLOCATED( TRACER_MW_KG   ) ) DEALLOCATE( TRACER_MW_KG   )
-      IF ( ALLOCATED( STT            ) ) DEALLOCATE( STT            )
+!clb Dellocate error, lost pointer
+!      IF ( ALLOCATED( STT            ) ) DEALLOCATE( STT            )
       IF ( ALLOCATED( XNUMOL         ) ) DEALLOCATE( XNUMOL         )
 
       END SUBROUTINE CLEANUP_TRACER

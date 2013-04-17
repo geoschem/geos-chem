@@ -319,8 +319,8 @@
       INTEGER            :: IGLOB      = 225
       INTEGER            :: JGLOB      = 161
       INTEGER            :: LGLOB      = 72
-      INTEGER            :: IIPAR
-      INTEGER            :: JJPAR
+      INTEGER            :: IIPAR      = IGLOB
+      INTEGER            :: JJPAR      = JGLOB
 #if   defined( GRIDREDUCED )
       INTEGER            :: LLPAR      = 47        ! Reduced vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
