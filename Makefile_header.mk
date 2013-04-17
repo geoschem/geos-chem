@@ -105,6 +105,8 @@
 #  11 May 2012 - R. Yantosca - Now export NCL (netCDF linking sequence)
 #  07 Sep 2012 - R. Yantosca - Now add OPT variable to set global opt levels
 #  07 Sep 2012 - R. Yantosca - Also set TRACEBACK for PGI compiler
+#  17 Apr 2013 - R. Yantosca - Add switch to set -DKPP_SOLVE_ALWAYS, which 
+#                              will force KPP to get past nonconvergences
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -309,6 +311,11 @@ FFLAGS    += -DEXTERNAL_FORCING
 endif
 #----------------------------------------------------------------------------
 
+# Loosen KPP tolerances upon non-convergence and try again
+ifeq ($(KPP_SOLVE_ALWAYS),yes)
+FFLAGS    += -DKPP_SOLVE_ALWAYS
+endif
+
 CC        :=
 F90       := ifort $(FFLAGS) $(INCLUDE)
 LD        := ifort $(FFLAGS)
@@ -396,6 +403,11 @@ ifeq ($(EXTERNAL_FORCING),yes)
 FFLAGS    += -DEXTERNAL_FORCING
 endif
 #----------------------------------------------------------------------------
+
+# Loosen KPP tolerances upon non-convergence and try again
+ifeq ($(KPP_SOLVE_ALWAYS),yes)
+FFLAGS    += -DKPP_SOLVE_ALWAYS
+endif
 
 CC        := gcc
 F90       := pgf90 $(FFLAGS) $(INCLUDE)
