@@ -1236,6 +1236,7 @@
 !       (ltm, bmy, 1/25/11)
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
 !  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met
+!  18 Apr 2013 - R. Yantosca - Bug fix, prefix DATA_DIR to GEOS-5.7.x file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1274,10 +1275,7 @@
      &        TRIM( MODELNAME ) // '.' // GET_RES_EXT()
 
       ! Prefix directory to file name
-#if !defined( GEOS_57 )
-
       FILENAME = TRIM( DATA_DIR ) // TRIM( FILENAME ) 
-#endif      
 
       ! For GEOS-57 nested grids, append a suffix to denote either
       ! SEAC4RS or the China domain (skim, 5/29/12)
@@ -1508,6 +1506,7 @@
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
 !  02 Feb 2012 - R. Yantosca - Compute BETA for MERRA 2 x 2.5
 !  02 Feb 2012 - R. Yantosca - Compute BETA for GEOS-5.7.x
+!  18 Apr 2013 - R. Yantosca - Bug fix, use GRID025x03125 (was 0325)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1607,7 +1606,7 @@
          BETA = 0.20604515d0
       ENDIF
 
-#elif defined( GEOS_57 ) && defined( GRID025x0325 ) && defined( SEAC4RS )
+#elif defined( GEOS_57 ) && defined( GRID025x03125 ) && defined( SEAC4RS )
 
       !---------------------------------------
       ! GEOS-5.7.x: Nested SEAC4RS simulation

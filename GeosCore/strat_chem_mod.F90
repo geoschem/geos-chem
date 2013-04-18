@@ -1728,18 +1728,31 @@ CONTAINS
     INTEGER, PARAMETER   :: J30S = 61, J30N = 121
 
 #elif defined( GRID05x0666 )
-    INTEGER, PARAMETER   :: J30S = 1, J30N = JJPAR
+
+#if defined( NESTED_CH )
+    INTEGER, PARAMETER   :: J30S = 1, J30N = 133
+#elif defined( NESTED_NA )
+    INTEGER, PARAMETER   :: J30S = 1, J30N = 121
+#elif defined( NESTED_EU )
+    INTEGER, PARAMETER   :: J30S = 1, J30N = 81
+
+#endif
 
 #elif defined( GRID025x03125 )
-    INTEGER, PARAMETER   :: J30S = 1, J30N = JJPAR
 
-#elif defined( GRID1x1 ) 
-
-#if   defined( NESTED_CH ) || defined( NESTED_NA )
-    INTEGER, PARAMETER   :: J30S = 1,  J30N = JJPAR  ! 1x1 nested grids
-#else  
-    INTEGER, PARAMETER   :: J30S = 61, J30N = 121    ! 1x1 global grid
+#if defined( NESTED_CH )
+    INTEGER, PARAMETER   :: J30S = 1, J30N = 161
+#elif defined( SEAC4RS )
+    INTEGER, PARAMETER   :: J30S = 1, J30N = 161
 #endif
+
+!#elif defined( GRID1x1 ) 
+!
+!#if   defined( NESTED_CH ) || defined( NESTED_NA )
+!    INTEGER, PARAMETER   :: J30S = 1,  J30N = JJPAR  ! 1x1 nested grids
+!#else  
+!    INTEGER, PARAMETER   :: J30S = 61, J30N = 121    ! 1x1 global grid
+!#endif
 
 #elif defined( EXTERNAL_GRID )
     ! THIS HAS TO BE DEFINED SPECIFICALLY! HOW?
@@ -2042,18 +2055,31 @@ CONTAINS
     INTEGER, PARAMETER   :: J30S = 61, J30N = 121
 
 #elif defined( GRID05x0666 )
-    INTEGER, PARAMETER   :: J30S = 1, J30N = JJPAR
+
+#if defined( NESTED_CH )
+    INTEGER, PARAMETER   :: J30S = 1, J30N = 133
+#elif defined( NESTED_NA )
+    INTEGER, PARAMETER   :: J30S = 1, J30N = 121
+#elif defined( NESTED_EU )
+    INTEGER, PARAMETER   :: J30S = 1, J30N = 81
+
+#endif
 
 #elif defined( GRID025x03125 )
-    INTEGER, PARAMETER   :: J30S = 1, J30N = JJPAR
 
-#elif defined( GRID1x1 ) 
-
-#if   defined( NESTED_CH ) || defined( NESTED_NA )
-    INTEGER, PARAMETER   :: J30S = 1,  J30N = JJPAR  ! 1x1 nested grids
-#else  
-    INTEGER, PARAMETER   :: J30S = 61, J30N = 121    ! 1x1 global grid
+#if defined( NESTED_CH )
+    INTEGER, PARAMETER   :: J30S = 1, J30N = 161
+#elif defined( SEAC4RS )
+    INTEGER, PARAMETER   :: J30S = 1, J30N = 161
 #endif
+
+!#elif defined( GRID1x1 ) 
+!
+!#if   defined( NESTED_CH ) || defined( NESTED_NA )
+!    INTEGER, PARAMETER   :: J30S = 1,  J30N = JJPAR  ! 1x1 nested grids
+!#else  
+!    INTEGER, PARAMETER   :: J30S = 61, J30N = 121    ! 1x1 global grid
+!#endif
 
 #elif defined( EXTERNAL_GRID )
     ! THIS HAS TO BE DEFINED SPECIFICALLY! HOW?

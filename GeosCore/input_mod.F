@@ -241,8 +241,9 @@
       RC       = GIGC_SUCCESS
 
       ! For ESMF interface to GEOS-5 GCM, we need to add "*___.rc"
-      FILENAME = TRIM( FILENAME ) // '___.rc'
-
+#if defined( ESMF_ )
+      FILENAME = TRIM( FILENAME ) // '.rc'
+#endif
       ! Open file
       OPEN( IU_GEOS, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_GEOS, 'read_input_file:1' )
