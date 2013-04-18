@@ -123,6 +123,7 @@
       USE TIME_MOD,     ONLY : GET_NYMD_DIAG,      GET_TS_DIAG
       USE TIME_MOD,     ONLY : GET_TAU,            GET_HOUR
       USE TIME_MOD,     ONLY : ITS_A_NEW_DAY,      TIMESTAMP_STRING
+      USE TIME_MOD,     ONLY : GET_TAUb
       USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
       USE TRACER_MOD,   ONLY : ITS_A_FULLCHEM_SIM, N_TRACERS
       USE TRACER_MOD,   ONLY : STT,                TCVV
@@ -197,7 +198,10 @@
       ! To change TS_DIAG to NHMS format
       TS_DIAG = TS_DIAG/60 * 10000 + (TS_DIAG - (TS_DIAG/60)*60) * 100  
 
-      IF ( NHMS == TS_DIAG ) THEN     ! It's a new day for diagnostics.
+      ! Check if it's a new day for diagnostics, 
+      ! or if the model run just started
+      IF ( (NHMS == TS_DIAG) .OR. 
+     &     (GET_TAU() == ( GET_TAUb() + ND63_FREQ/60d0 )) ) THEN
 
          ! Find a free file LUN
          IU_ND63  = findFreeLUN()
