@@ -180,6 +180,9 @@
       NKHOBr         = 0
       NK1HBr         = 0
 
+      ! Initialize flags for PSC reactions (SDE 04/17/13)
+      NKPSC(:,:)     = 0
+
       DO 44 I            = 1, NMDEAD
        NAMD(I)           = ' '
  44   CONTINUE
@@ -944,7 +947,12 @@
 
                   ! Also denote N2O5 hydrolysis rxn (mje, bmy, 8/7/03)
                   IF ( XINP(1) == 'N2O5' ) THEN
-                     NKN2O5 = NK
+                     IF (trim(adjustl(comment)) == 'pb') THEN
+                        ! PSC reaction N2O5 + HCl
+                        NKPSC(NCS,2) = NK
+                     ELSE
+                        NKN2O5 = NK
+                     ENDIF
                   ENDIF
 
                   ! Same for HO2 hydrolysis rxn (jaegle, 02/26/09)
@@ -954,35 +962,48 @@
 
                   ! Same for BrNO3 hydrolysis rxn (jpp, 5/4/10)
                   IF ( XINP(1) == 'BrNO3' ) THEN
-                     NKBrNO3 = NK
+                     IF (trim(adjustl(comment)) == 'pg') THEN
+                        NKPSC(NCS,7) = NK
+                     ELSE
+                        NKBrNO3 = NK
+                     ENDIF
                   ENDIF
 
-                  ! Same for HOBr psuedo-rxn (jpp, 03/22/11)
-                  !   ( HOBr + HBr ---het---> Br2 + H2O )
-                  IF ( (XINP(1) == 'HOBr') .and. 
-     &                 (trim(adjustl(comment)) == 'h1') ) THEN
-                     NKHOBr = NK
+                  ! Same for HOBr reactions (jpp, 03/22/11)
+                  IF (XINP(1) == 'HOBr') THEN
+                     IF (trim(adjustl(comment)) == 'h1') THEN
+                        NKHOBr = NK
+                     ELSEIF (trim(adjustl(comment)) == 'h2') THEN
+                        NK2HOBr = NK
+                     ELSEIF (trim(adjustl(comment)) == 'pj') THEN
+                        NKPSC(NCS,10) = NK
+                     ENDIF
                   ENDIF
 
-                  ! Same for 1st HBr psuedo-rxn (jpp, 03/22/11)
-                  !   ( HOBr + HBr ---het---> Br2 + H2O )
-                  IF ( XINP(1) == 'HBr' .and. 
-     &                 (trim(adjustl(comment)) == 'h1') ) THEN
-                     NK1HBr = NK
+                  ! Same for HBr reactions (jpp, 03/22/11)
+                  IF ( XINP(1) == 'HBr' ) THEN
+                     IF (trim(adjustl(comment)) == 'h1') THEN
+                        NK1HBr = NK
+                     ELSEIF (trim(adjustl(comment)) == 'h2') THEn
+                        NK2HBr = NK
+                     ENDIF
                   ENDIF
 
-                  ! Now the HOBr ice psuedo-rxn (jpp, 06/16/11)
-                  !   ( HOBr + HBr ---ice---> Br2 + H2O )
-                  IF ( (XINP(1) == 'HOBr') .and. 
-     &                 (trim(adjustl(comment)) == 'h2') ) THEN
-                     NK2HOBr = NK
-                  ENDIF
-
-                  ! Now the HOBr ice psuedo-rxn (jpp, 06/16/11)
-                  !   ( HOBr + HBr ---ice---> Br2 + H2O )
-                  IF ( (XINP(1) == 'HBr') .and. 
-     &                 (trim(adjustl(comment)) == 'h2') ) THEN
-                     NK2HBr = NK
+                  ! Flag remaining PSC reactions (SDE 04/17/13)
+                  IF (XINP(1) == 'ClNO3') THEN
+                     IF (trim(adjustl(comment)) == 'pc') THEN
+                        NKPSC(NCS,3) = NK
+                     ELSEIF (trim(adjustl(comment)) == 'pd') THEN
+                        NKPSC(NCS,4) = NK
+                     ELSEIF (trim(adjustl(comment)) == 'pe') THEN
+                        NKPSC(NCS,5) = NK
+                     ENDIF
+                  ELSEIF (XINP(1) == 'HOCl') THEN
+                     IF (trim(adjustl(comment)) == 'ph') THEN
+                        NKPSC(NCS,8) = NK
+                     ELSEIF (trim(adjustl(comment)) == 'pi') THEN
+                        NKPSC(NCS,9) = NK
+                     ENDIF
                   ENDIF
 
                ENDIF

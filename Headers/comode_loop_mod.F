@@ -415,6 +415,7 @@
       !      pseudo reactions (in place of HBr + HOBr --ice-->) (jpp, 6/16/11)
       ! Added NKO2PHOT to flag the O2 photolysis reaction (SDE 03/28/13)
       ! Added NKSO4PHOT to flag the H2SO4 photolysis reaction (SDE 04/11/13)
+      ! Added NKPSC to flag PSC heterogeneous reactions (SDE 04/17/13)
       INTEGER            NNADD1,        NNADDA(ICS),  NNADDB(  ICS), 
      &                   NNADDC(ICS),   NNADDD(ICS),  NNADDK(  ICS), 
      &                   NNADDV(ICS),   NNADDZ,       NKO3PHOT(ICS),
@@ -425,7 +426,7 @@
      &                   NKGLYC(ICS,2), NKHAC(ICS,2), NKMCO3(ICS,3),
      &                   NKBrNO3,       NKHOBr,       NK1HBr, 
      &                   NK2HOBr,       NK2HBr,       NKO2PHOT(ICS),
-     &                   NKSO4PHOT(ICS)
+     &                   NKSO4PHOT(ICS),NKPSC(ICS,11)
 
       INTEGER ::         IH2O,        IOXYGEN,   MB1,      MB2
 

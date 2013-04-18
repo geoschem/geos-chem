@@ -40,6 +40,8 @@
       PUBLIC  :: CALC_H2SO4_GAS
       PUBLIC  :: SO4_PHOTFRAC
       PUBLIC  :: CALC_PSC
+      PUBLIC  :: GET_STRAT_AER
+      PUBLIC  :: CHECK_NAT
       PUBLIC  :: INIT_GMISTRAT
       PUBLIC  :: CLEANUP_GMISTRAT
 !
@@ -63,7 +65,7 @@
       !
       ! AER_NLEVS       : Number of levels in AER data
       ! T_STS           : Maximum temperature of STS formation (K)
-      ! N_PSC           : Number of PSC types
+      ! I_SSA           : Index of SSA aerosol
       ! I_STS           : Index of STS PSCs
       ! I_PRT           : Index of particulate PSCs
       ! AVOGADRO        : Avogadro's number (#/mole)
@@ -72,9 +74,9 @@
 
       INTEGER, PARAMETER            :: AER_NLEVS=51
       REAL*8, PARAMETER             :: T_STS=240.0d0
-      INTEGER, PARAMETER            :: N_PSC=2
-      INTEGER, PARAMETER            :: I_STS=1
-      INTEGER, PARAMETER            :: I_PRT=2
+      INTEGER, PARAMETER            :: I_SSA=1
+      INTEGER, PARAMETER            :: I_STS=2
+      INTEGER, PARAMETER            :: I_PRT=3
       REAL*8,  PARAMETER            :: AVOGADRO=6.022d23
 
 !
@@ -96,12 +98,11 @@
       ! GRID_EMIT          : Surface CFC mixing ratios
       ! SFC_MONTH          : Month of last read-in
       ! H2SO4_GASFRAC      : Fraction of SO4 considered gaseous
-      ! RAD_PSC            : PSC aerosol radius (m)
-      ! KG_PSC             : PSC mass (kg/box)
-      ! SAD_PSC            : PSC surface area density (m2/m3)
-      ! OD_PSC             : PSC optical depth (unitless)
-      ! NDENS_PSC          : PSC aerosol number density (#/m3)
-      ! RHO_PSC            : PSC aerosol mass density (kg/m3 aerosol)
+      ! RAD_AER            : Strat. aerosol radius (cm)
+      ! KG_AER             : Aerosol mass (kg/box)
+      ! SAD_AER            : Aerosol surface area density (cm2/cm3)
+      ! NDENS_AER          : Aerosol number density (#/m3)
+      ! RHO_AER            : Aerosol mass density (kg/m3 aerosol)
       ! STATE_PSC          : Gridbox PSC type (see Kirner et al)
       !
       ! Strings
@@ -129,12 +130,11 @@
       INTEGER,DIMENSION(MAX_EMIT)           :: IDT_EMIT
       REAL*8,DIMENSION(:,:),ALLOCATABLE     :: GRID_EMIT
       REAL*8,DIMENSION(:,:,:),ALLOCATABLE   :: H2SO4_GASFRAC
-      REAL*8,DIMENSION(:,:,:,:),ALLOCATABLE :: RAD_PSC
-      REAL*8,DIMENSION(:,:,:,:),ALLOCATABLE :: KG_PSC
-      REAL*8,DIMENSION(:,:,:,:),ALLOCATABLE :: SAD_PSC
-      REAL*8,DIMENSION(:,:,:,:),ALLOCATABLE :: OD_PSC
-      REAL*8,DIMENSION(:,:,:,:),ALLOCATABLE :: NDENS_PSC
-      REAL*8,DIMENSION(:,:,:,:),ALLOCATABLE :: RHO_PSC
+      REAL*8,DIMENSION(:,:,:,:),ALLOCATABLE :: RAD_AER
+      REAL*8,DIMENSION(:,:,:,:),ALLOCATABLE :: KG_AER
+      REAL*8,DIMENSION(:,:,:,:),ALLOCATABLE :: SAD_AER
+      REAL*8,DIMENSION(:,:,:,:),ALLOCATABLE :: NDENS_AER
+      REAL*8,DIMENSION(:,:,:,:),ALLOCATABLE :: RHO_AER
       INTEGER,DIMENSION(:,:,:),ALLOCATABLE  :: STATE_PSC
  
       ! Strings
@@ -759,14 +759,6 @@
       ! EMISS_BASIC begins here!
       !=================================================================
 
-      ! Allocated module variables, if necessary
-      IF (.not.ALLOCATED(GRID_EMIT)) THEN
-         ! Set "current" month to impossible value
-         SFC_MONTH = 0
-
-         CALL INIT_GMISTRAT
-      ENDIF
-
        ! If not correct hour block and day read in new fields
        IF (SFC_MONTH/=GET_MONTH()) THEN
           CALL READ_SFC
@@ -1293,9 +1285,6 @@
          GF_LOGP0 = (-1.d0*GF_DELTAHBYR*GF_INVT0) + 16.259d0
          GF_BFACTOR = 0.38d0/(GF_TC - GF_T0)
          GF_ATMCONV = LOG(101325.d0)
-         IF (.not.ALLOCATED(H2SO4_GASFRAC)) THEN 
-            CALL INIT_GMISTRAT
-         ENDIF
       ENDIF
 
 !$OMP PARALLEL DO
@@ -1489,11 +1478,6 @@
       RETURN
       !-----SDE DEBUG
 
-      ! Allocate if not ready
-      IF (.not.ALLOCATED(RAD_PSC)) THEN
-         CALL INIT_GMISTRAT
-      ENDIF
-
       IF (LPRT) THEN
          CALL DEBUG_MSG( '### GMISTRAT: start CALC_PSC' )
       ENDIF
@@ -1599,6 +1583,98 @@
       END SUBROUTINE CALC_PSC
 !
 !EOC
+!------------------------------------------------------------------------------
+!               MIT Laboratory for Aviation and the Environment               !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_strat_aer
+!
+! !DESCRIPTION: Subroutine GET\_STRAT\_AER returns local physical properties 
+!  for a given stratospheric aerosol. The routine is essentially just an
+!  interface to allow external routines to "see" the arrays.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE GET_STRAT_AER (I,J,L,IAER,REFF,SAD)
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER,INTENT(IN)          :: I,J,L      ! Grid indices
+      INTEGER,INTENT(IN)          :: IAER       ! Aerosol index
+                                                ! 1 = SSA (pure H2SO4)
+                                                ! 2 = STS
+                                                ! 3 = Solid PSC
+!
+! !OUTPUT VARIABLES:
+!
+      REAL*8, INTENT(OUT)         :: REFF       ! Effective radius (cm)
+      REAL*8, INTENT(OUT)         :: SAD        ! Surface area density (cm2/cm3)
+!
+! !REMARKS:
+! (1) A remark
+! 
+! !REVISION HISTORY: 
+!  17 Apr 2013 - S. D. Eastham - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+      !=================================================================
+      ! GET_STRAT_AER begins here!
+      !=================================================================
+
+      SAD  = SAD_AER(I,J,L,IAER)
+      REFF = RAD_AER(I,J,L,IAER)
+
+      END SUBROUTINE GET_STRAT_AER
+!
+!EOC
+!------------------------------------------------------------------------------
+!               MIT Laboratory for Aviation and the Environment               !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: check_nat
+!
+! !DESCRIPTION: Subroutine CHECK\_NAT determines whether the solid PSC is 
+!  composed of ice or NAT (needed for heterogeneous chemistry)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE CHECK_NAT (I,J,L,IS_NAT)
+!
+! !USES:
+!
+      USE TRACERID_MOD,      ONLY : IDTNIT
+      USE TRACER_MOD,        ONLY : STT
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER,INTENT(IN)          :: I,J,L      ! Grid indices
+!
+! !OUTPUT VARIABLES:
+!
+      LOGICAL,INTENT(OUT)         :: IS_NAT     ! Is surface NAT?
+!
+! !REVISION HISTORY: 
+!  17 Apr 2013 - S. D. Eastham - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+      !=================================================================
+      ! CHECK_NAT begins here!
+      !=================================================================
+
+      IS_NAT = ((STATE_PSC(I,J,L).eq.2).or.((STATE_PSC(I,J,L).eq.3).and.
+     &          (STT(I,J,L,IDTNIT).gt.TINY(1d0))))
+
+      END SUBROUTINE CHECK_NAT
+!
+!EOC
 !!------------------------------------------------------------------------------
 !!               MIT Laboratory for Aviation and the Environment               !
 !!------------------------------------------------------------------------------
@@ -1702,6 +1778,9 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'H2SO4_GAS_FRAC' )
       H2SO4_GASFRAC = 0d0
 
+      ! Set "current" month to impossible value
+      SFC_MONTH = 0
+
       ! Determine which tracers are to be emitted
       N_EMIT = 0
       IDT_EMIT = 0
@@ -1753,6 +1832,9 @@
       ENDIF 
 
       IF (N_EMIT.gt.0) THEN
+         !-----SDE DEBUG
+         WRITE(6,'(a,1x,I3,1x,I3)') 'GRID_EMIT 1 2: ', JJPAR, N_EMIT
+         !-----SDE DEBUG
          ALLOCATE( GRID_EMIT( JJPAR, N_EMIT ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'GRID_EMIT' )
          GRID_EMIT = 0d0
@@ -1768,29 +1850,25 @@
       MONTREAL_FILE_ROOT = TRIM(MONTREAL_FILE_ROOT) // '/'
 
       ! Initialize PSC variables
-      ALLOCATE( RAD_PSC( IIPAR, JJPAR, LLPAR, N_PSC ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RAD_PSC' )
-      RAD_PSC = 0d0
+      ALLOCATE( RAD_AER( IIPAR, JJPAR, LLPAR, NSTRATAER ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RAD_AER' )
+      RAD_AER = 0d0
       
-      ALLOCATE( KG_PSC( IIPAR, JJPAR, LLPAR, N_PSC ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'KG_PSC' )
-      KG_PSC = 0d0
+      ALLOCATE( KG_AER( IIPAR, JJPAR, LLPAR, NSTRATAER ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'KG_AER' )
+      KG_AER = 0d0
       
-      ALLOCATE( SAD_PSC( IIPAR, JJPAR, LLPAR, N_PSC ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SAD_PSC' )
-      SAD_PSC = 0d0
+      ALLOCATE( SAD_AER( IIPAR, JJPAR, LLPAR, NSTRATAER ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SAD_AER' )
+      SAD_AER = 0d0
       
-      ALLOCATE( OD_PSC( IIPAR, JJPAR, LLPAR, N_PSC ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OD_PSC' )
-      OD_PSC = 0d0
+      ALLOCATE( NDENS_AER( IIPAR, JJPAR, LLPAR, NSTRATAER ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'NDENS_AER' )
+      NDENS_AER = 0d0
       
-      ALLOCATE( NDENS_PSC( IIPAR, JJPAR, LLPAR, N_PSC ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'NDENS_PSC' )
-      NDENS_PSC = 0d0
-      
-      ALLOCATE( RHO_PSC( IIPAR, JJPAR, LLPAR, N_PSC ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RHO_PSC' )
-      RHO_PSC = 0d0
+      ALLOCATE( RHO_AER( IIPAR, JJPAR, LLPAR, NSTRATAER ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RHO_AER' )
+      RHO_AER = 0d0
       
       ALLOCATE( STATE_PSC( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'STATE_PSC' )
@@ -1829,11 +1907,11 @@
       !=================================================================
 
       IF ( ALLOCATED( GRID_EMIT  ) ) DEALLOCATE( GRID_EMIT  )
-      IF ( ALLOCATED( RAD_PSC    ) ) DEALLOCATE( RAD_PSC    )
-      IF ( ALLOCATED( KG_PSC     ) ) DEALLOCATE( KG_PSC     )
-      IF ( ALLOCATED( OD_PSC     ) ) DEALLOCATE( OD_PSC     )
+      IF ( ALLOCATED( RAD_AER    ) ) DEALLOCATE( RAD_AER    )
+      IF ( ALLOCATED( KG_AER     ) ) DEALLOCATE( KG_AER     )
+      IF ( ALLOCATED( RHO_AER    ) ) DEALLOCATE( RHO_AER    )
       IF ( ALLOCATED( STATE_PSC  ) ) DEALLOCATE( STATE_PSC  )
-      IF ( ALLOCATED( NDENS_PSC  ) ) DEALLOCATE( NDENS_PSC  )
+      IF ( ALLOCATED( NDENS_AER  ) ) DEALLOCATE( NDENS_AER  )
 
       END SUBROUTINE CLEANUP_GMISTRAT
 !

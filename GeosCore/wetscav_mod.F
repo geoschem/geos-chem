@@ -754,6 +754,8 @@
       USE TRACERID_MOD, ONLY : IDTMAP
       ! jpp 4/27/09
       USE TRACERID_MOD, ONLY : IDTHOBr,  IDTHBr,   IDTBr2
+      ! SDE 04/17/13
+      USE TRACERID_MOD, ONLY : IDTHCl
       !(eck, 9/21/10)
       USE TRACERID_MOD, ONLY : IDTPOPPOC,  IDTPOPPBC,  IDTPOPG 
       USE GET_POPSINFO_MOD, ONLY : GET_POP_HSTAR, GET_POP_DEL_Hw
@@ -1052,6 +1054,71 @@
 
          ! ND38 index
          ISOL = GET_ISOL( N ) 
+
+      !-------------------------------
+      ! HCl (liquid phase only)
+      ! SDE (04/17/13)
+      !-------------------------------
+      ELSE IF ( N == IDTHCl ) THEN 
+
+         ! No scavenging at the surface
+         F(:,:,1) = 0d0
+
+         ! Apply scavenging in levels 2 and higher
+         DO L = 2, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+            ! Compute liquid to gas ratio for HCl:
+            ! 1. first argument is the adjusted Henry's law coefficient
+            ! H0 and heat of solution are estimated by Yang et al. [2005]
+            CALL COMPUTE_L2G( 7.1d15, -1.10d4, 
+     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
+
+
+            ! Fraction of HBr in liquid phase
+            ! (Eqs. 4, 5, 6, Jacob et al, 2000)
+            C_TOT = 1d0 + L2G
+            F_L   = L2G / C_TOT
+
+            ! Compute the rate constant K.
+            IF ( T(I,J,L) >= 268d0 ) THEN
+
+               K = KC * F_L
+
+            ELSE IF ( T(I,J,L) > 248d0  .and. T(I,J,L) < 268d0 ) THEN
+               
+               ! HBr has a large effective Henry's
+               ! Law Constant, similar to HCl and HNO3, which have
+               ! retention fractions (RFs) of 1.
+               ! RFs have not been measured for HBr; 
+               ! however, Stuart and Jacobson [2003]
+               ! suggest that species with large
+               ! Hstar's should have RF's of about 1.
+               ! (jpp, 6/13/2011)
+               K = KC * (1.d0 * F_L) !jpp, testing riming efficiency
+
+            ELSE
+
+               K = 0.d0
+                  
+            ENDIF
+
+            ! Distance between grid box centers [m]
+            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+
+            ! F is the fraction of HBr scavenged out of the updraft
+            ! (Eq. 2, Jacob et al, 2000)
+            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+
+
+         ENDDO
+         ENDDO
+         ENDDO
+
+         ! ND38 index
+         ISOL = GET_ISOL( N )
+
 
       !-------------------------------
       ! HBr (liquid phase only)
@@ -2542,6 +2609,7 @@
       USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP, IDTMAP
       ! jpp 4/27/09
       USE TRACERID_MOD, ONLY : IDTHOBr, IDTHBr,   IDTBr2
+      USE TRACERID_MOD, ONLY : IDTHCl ! SDE 04/17/13
       USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM 
       !POPs (eck, 9/21/10)
       USE TRACERID_MOD, ONLY : IDTPOPPOC, IDTPOPPBC, IDTPOPG
@@ -3109,6 +3177,35 @@
          ENDIF
 
          ! Compute RAINFRAC, the fraction of rained-out HOBr
+         ! (Eq. 10, Jacob et al, 2000)
+         RAINFRAC = GET_RAINFRAC( K, F, DT ) 
+
+      !-----------------------------------
+      ! HCl (liquid phase only), SDE 04/17/13
+      !-----------------------------------
+      ELSE IF ( N == IDTHCl ) THEN
+
+         CALL COMPUTE_L2G( 7.1d15, -1.10d4, 
+     &                     T(I,J,L), CLDLIQ(I,J,L), L2G )
+
+         ! Fraction of HCl in liquid phase
+         ! (Eqs. 4, 5, 6, Jacob et al, 2000)
+         C_TOT = 1d0 + L2G
+         F_L   = L2G / C_TOT
+
+         ! Compute the rate constant K.
+         IF ( TK >= 268d0 ) THEN
+            K = K_RAIN * F_L 
+         ELSE IF ( TK > 248d0  .and. TK < 268d0 ) THEN
+
+            ! HCl has a large effective H*
+            K = K_RAIN * (1.d0 * F_L)
+
+         ELSE
+            K = 0.d0
+         ENDIF
+  
+         ! Compute RAINFRAC, the fraction of rained-out HBr
          ! (Eq. 10, Jacob et al, 2000)
          RAINFRAC = GET_RAINFRAC( K, F, DT ) 
 
@@ -3706,6 +3803,7 @@
       USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP, IDTMAP
       ! jpp 4/27/09
       USE TRACERID_MOD, ONLY : IDTHOBr,  IDTHBr,   IDTBr2
+      USE TRACERID_MOD, ONLY : IDTHCl
       !POPs (eck, 9/21/10)
       USE TRACERID_MOD, ONLY : IDTPOPPOC, IDTPOPPBC, IDTPOPG
       USE GET_POPSINFO_MOD, ONLY : GET_POP_HSTAR, GET_POP_DEL_Hw
@@ -3859,6 +3957,14 @@
       ELSE IF ( N == IDTHBr ) THEN 
          KIN      = .FALSE.
          CALL WASHFRAC_LIQ_GAS( 7.1d13, -10200.d0, PP,       DT,  F,
+     &                          DZ,     TK,        WASHFRAC, KIN  )
+
+      !------------------------------
+      ! HCl (liquid & gas phases) jpp
+      !------------------------------
+      ELSE IF ( N == IDTHCl ) THEN 
+         KIN      = .FALSE.
+         CALL WASHFRAC_LIQ_GAS( 7.1d15, -1.10d4, PP,       DT,  F,
      &                          DZ,     TK,        WASHFRAC, KIN  )
 
       !------------------------------
@@ -6771,6 +6877,8 @@
       USE TRACERID_MOD, ONLY : IDTHOBr,   IDTHBr,    IDTBr2
       ! POPS (10/2010)
       USE TRACERID_MOD, ONLY : IDTPOPPOC, IDTPOPPBC,  IDTPOPG
+      ! SDE 04/17/13
+      USE TRACERID_MOD, ONLY : IDTHCl
 
       USE CMN_SIZE_MOD       ! Size parameters
 !
@@ -6872,9 +6980,12 @@
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTBr2
          !---------------------------------------
+         ! SDE 04/17/13: HCl
+         ELSE IF ( N == IDTHCl ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTHCl
 
-         !FP_ISOP (6/2009)
-         
+         !FP_ISOP (6/2009) 
          ELSE IF ( N == IDTISOPN ) THEN
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTISOPN
@@ -7150,7 +7261,7 @@
 ! !USES:
 !
       USE LOGICAL_MOD,  ONLY : LCARB,  LDUST, LSOA
-      USE LOGICAL_MOD,  ONLY : LSSALT, LSULF, LSPLIT, LCRYST
+      USE LOGICAL_MOD,  ONLY : LSSALT, LSULF, LSPLIT, LCRYST, LGMISTRAT
       USE TRACER_MOD,   ONLY : ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM
       USE TRACER_MOD,   ONLY : ITS_A_RnPbBe_SIM,   ITS_A_MERCURY_SIM
       USE TRACER_MOD,   ONLY : ITS_A_POPS_SIM
@@ -7180,6 +7291,7 @@
 !  (9 ) Added 9 new tracers for ISOPRENE species (fp, 6/2009)
 !  (10) Added SOA5 and SOG5 (hotp, 6/15/09)
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  17 Apr 2013 - S. D. Eastham - Added HCl
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7207,6 +7319,8 @@
          ! jpp, 4/27/09:( 1) add space for 3 bromine species to
          !                   be wet-deposited: HBr, HOBr, and Br2.
          NMAX = NMAX + 3
+         ! SDE 04/17/13: Also HCl
+         IF ( LGMISTRAT ) NMAX = NMAX + 1
 
          IF ( LSOA ) THEN
             IF ( LCARB ) NMAX = NMAX + 17       ! carbon + SOA aerosols

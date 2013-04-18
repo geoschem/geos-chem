@@ -4441,6 +4441,17 @@
             XMW(NUMDEP)     = 160.d-3
             AIROSOL(NUMDEP) = .FALSE.
          !--------------------------------------------
+         ! HCl (SDE 04/17/13)
+         ELSE IF ( N == IDTHCl ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTHCl
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'HCl'
+            HSTAR(NUMDEP)   = 2.05d+6
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 36.d-3
+            AIROSOL(NUMDEP) = .FALSE.
+         !-------------------------------------------
 
          !FP_ISOP
          ! !ISOPN=ISOPNDISOPNB

@@ -4778,7 +4778,7 @@
       IF ( ND21 > 0 .or. DO_TIMESERIES ) THEN
 
          ! Number of tracers
-         NTRAC(21) = 27
+         NTRAC(21) = 33
 
          ! Loop over tracers
          DO T = 1, NTRAC(21)
@@ -4877,6 +4877,27 @@
                CASE( 27 )
                   NAME (T,21) = 'OPD7'
                   FNAME(T,21) = 'Dust bin 7 AOD (550 nm)'
+               CASE( 28 )
+                  NAME (T,21) = 'ODSSA'
+                  FNAME(T,21) = 'SSA AOD (600 nm)'
+               CASE( 29 )
+                  NAME (T,21) = 'SASSA'
+                  FNAME(T,21) = 'SSA surface area'
+                  UNIT (T,21) = 'cm2/cm3'
+               CASE( 30 )
+                  NAME (T,21) = 'ODSTS'
+                  FNAME(T,21) = 'STS surface area'
+               CASE( 31 )
+                  NAME (T,21) = 'SASTS'
+                  FNAME(T,21) = 'STS surface area'
+                  UNIT (T,21) = 'cm2/cm3'
+               CASE( 32 )
+                  NAME (T,21) = 'ODPSC'
+                  FNAME(T,21) = 'PSC surface area'
+               CASE( 33 )
+                  NAME (T,21) = 'SAPSC'
+                  FNAME(T,21) = 'PSC surface area'
+                  UNIT (T,21) = 'cm2/cm3'
                CASE DEFAULT
                   ! Nothing
             END SELECT
@@ -4884,7 +4905,7 @@
       ENDIF
 
       !-------------------------------------      
-      ! Optical depths (ND22)
+      ! J-rates (ND22)
       !-------------------------------------
       IF ( ND22 > 0 ) THEN
 

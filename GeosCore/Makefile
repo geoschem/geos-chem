@@ -267,7 +267,8 @@ acetone_mod.o               : acetone_mod.F           dao_mod.o              \
 aerosol_mod.o               : aerosol_mod.F           comode_mod.o           \
                               dao_mod.o               diag_mod.o             \
                               logical_mod.o           tracerid_mod.o         \
-                              tracer_mod.o            chemgrid_mod.o    
+                              tracer_mod.o            chemgrid_mod.o         \
+                              gmistrat_mod.o
 
 aeic_mod.o                  : aeic_mod.F              chemgrid_mod.o         \
                               dao_mod.o               diag_mod.o              

@@ -97,7 +97,7 @@
       USE TOMS_MOD,       ONLY : GET_OVERHEAD_O3
 
       USE CMN_SIZE_MOD,   ONLY : IIPAR,   JJPAR, LLPAR
-      USE CMN_SIZE_MOD,   ONLY : NDUST,   MAXIJ, NAER,  NRH
+      USE CMN_SIZE_MOD,   ONLY : NDUST,   MAXIJ
       USE COMODE_MOD,     ONLY : JLOP, CSPEC, AIRDENS, ABSHUM
       USE COMODE_LOOP_MOD,ONLY : CONSVAP,AVG,RSTARG
       USE TRACERID_MOD,   ONLY : IDO1D, IDO3
@@ -203,10 +203,10 @@
       REAL*8             :: CSZA, PRES, SFCA, YLAT,  O3COL
       REAL*8             :: T_CTM(LLPAR+1), OPTD(LLPAR)
       REAL*8             :: OPTDUST(LLPAR,NDUST)
-      REAL*8             :: OPTAER(LLPAR,NAER*NRH)
+      REAL*8             :: OPTAER(LLPAR,NALLAER)
 
       ! Local variables for cloud overlap (hyl, phs)
-      INTEGER           :: NUMB, KK, I
+      INTEGER            :: NUMB, KK, I
       INTEGER            :: INDIC(LLPAR+1)
 !#if defined( DEVEL )
 !      INTEGER, ALLOCATABLE :: INDGEN(:)
@@ -2226,7 +2226,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 
       ! Read aerosol phase functions (one wavelength only):
       READ( NJ1,'(A10,I5,/)' ) TITLE0,NAA2
-      DO J = 15, NAA
+      DO J = 1, NAA
          READ(NJ1,110) TITLEA(j)
  110     FORMAT( 3x, a20 )
          IF ( am_I_Root ) WRITE(6,*) TITLEA(j)
@@ -2237,7 +2237,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       ! Echo info to stdout
       IF ( am_I_Root ) THEN
          WRITE( 6, '(a)' ) 'Aerosol Qext for AOD calculations'
-         DO J=15,NAA
+         DO J=1,NAA
             WRITE( 6, * ) TITLEA(J),J,'  Qext =',(QAA_AOD(J))
          ENDDO
       ENDIF
@@ -2458,7 +2458,7 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
       REAL*8,  INTENT(IN),DIMENSION(L1_+1)          :: P_COL
       REAL*8,  INTENT(IN),DIMENSION(L1_)            :: T_COL
       REAL*8,  INTENT(IN)                           :: O3_COL
-      REAL*8,  INTENT(IN),DIMENSION(L_,NAER*NRH)    :: ODAER_COL
+      REAL*8,  INTENT(IN),DIMENSION(L_,NALLAER)     :: ODAER_COL
       REAL*8,  INTENT(IN),DIMENSION(L_,NDUST)       :: ODMDUST_COL
       REAL*8,  INTENT(IN),DIMENSION(L_)             :: ODCLOUD_COL_IN
       LOGICAL, INTENT(IN)                           :: AOD999
@@ -3467,7 +3467,7 @@ C---Always does PL(2) = P[1]
       REAL*8, INTENT(IN)    :: P_CTM(L1_+1)          ! CTM edge pressures (hPa)
       REAL*8, INTENT(INOUT) :: CLDOD(L_)             ! Cloud optical depth
       REAL*8, INTENT(IN)    :: DSTOD(L_,NDUST)       ! Mineral dust OD
-      REAL*8, INTENT(IN)    :: AEROD(L_,NAER*NRH)    ! Aerosol OD
+      REAL*8, INTENT(IN)    :: AEROD(L_,NALLAER)     ! Aerosol OD
 !
 ! !OUTPUT VARIABLES:
 !
@@ -3602,13 +3602,13 @@ C---Always does PL(2) = P[1]
          ENDDO
         
          ! Also add in other aerosol optical depth columns (rvm, bmy, 2/27/02)
-         DO N = 1, NAER*NRH
+         DO N = 1, NALLAER
             AERCOL(3+N+NDUST,I) = AEROD(I,N)
          ENDDO
 
       ENDDO
 
-      DO K = 1,(3+NDUST+(NAER*NRH))
+      DO K = 1,(3+NDUST+(NALLAER))
          AERCOL(K,L1_    ) = 0.D0
       ENDDO
 
@@ -3731,7 +3731,7 @@ C---Always does PL(2) = P[1]
 ! !LOCAL VARIABLES:
 !
       INTEGER               :: I, J, K
-      INTEGER               :: IND(NAER)
+      INTEGER               :: IND(NRHAER)
 
       !=================================================================
       ! SER_AER begins here!
@@ -3762,11 +3762,18 @@ C---Always does PL(2) = P[1]
       MIEDX(10) = 21   !  Mineral Dust 4.0  micron    (rvm, 9/30/00)
 
       ! Aerosols
-      DO I=1,NAER
+      DO I=1,NRHAER
          DO J=1,NRH
             MIEDX(10+((I-1)*NRH)+J)=IND(I)+J-1
          ENDDO
-      ENDDO 
+      ENDDO
+
+#if defined( GMISTRAT )
+      ! Stratospheric aerosols - SSA, STS and solid PSCs
+      MIEDX(10+(NRHAER*NRH)+1) = 4  ! SSA (liquid H2SO4)
+      MIEDX(10+(NRHAER*NRH)+2) = 4  ! STS (approx. as SSA)
+      MIEDX(10+(NRHAER*NRH)+3) = 14 ! NAT/ice PSCs
+#endif
 c
 c  Ensure all 'AN_' types are valid selections
       do i=1,AN_

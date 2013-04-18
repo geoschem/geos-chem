@@ -18,7 +18,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD,      ONLY : IIPAR, JJPAR, LLPAR, LLCHEM
-      USE CMN_SIZE_MOD,      ONLY : NDUST, NAER, NRH
+      USE CMN_SIZE_MOD,      ONLY : NDUST, NAER, NRHAER, NSTRATAER, NRH
 
       IMPLICIT NONE
 #     include "define.h"
@@ -31,6 +31,8 @@
       INTEGER, PARAMETER :: IND999 = 5
       ! Has O1D been set by CSPEC or another step?
       LOGICAL            :: O1D_SET
+      ! Required size of aerosol arrays
+      INTEGER, PARAMETER :: NALLAER = (NRHAER*NRH)+NSTRATAER
 
 !-----------------------------------------------------------------------
 !      integer, parameter ::
@@ -47,7 +49,12 @@
                                        ! inc. both edges and mid-points
       INTEGER, PARAMETER :: JVL_=LLPAR ! Vertical levels for J-values
       INTEGER, PARAMETER :: JVN_=121   ! Max number of J-values
+
+#if defined( GMISTRAT )
+      INTEGER, PARAMETER :: AN_ =38    ! Including PSCs
+#else
       INTEGER, PARAMETER :: AN_ =35    ! Number of separate aerosols per layer
+#endif
 
       ! Variables used to interface GEOS-Chem and Fast-JX at runtime
       ! Branches for photolysis species
@@ -187,7 +194,7 @@
 
       ! Dust and aerosol optical depths
       REAL*8 :: ODMDUST(IIPAR,JJPAR,LLPAR,NDUST)
-      REAL*8 :: ODAER(IIPAR,JJPAR,LLPAR,NAER*NRH)
+      REAL*8 :: ODAER(IIPAR,JJPAR,LLPAR,NALLAER)
 
       INTEGER NJX,NW1,NW2
 

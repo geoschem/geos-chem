@@ -1455,7 +1455,13 @@
 !  (18) OPSSc  Sea Salt (coarse) Opt Depth(400 nm) : unitless : SCALECHEM
 !  (19) HGSSc  Hygroscopic growth of SSc           : unitless : SCALECHEM
 !  (20) SSSc   Sea Salt (coarse) Surface Area      : cm2/cm3  : SCALECHEM  
-!  (21-27)     Dust Optical Depth for each size    : unitless : SCALECHEM  
+!  (21-27)     Dust Optical Depth for each size    : unitless : SCALECHEM 
+!  (28) ODSSA  Strat. sulf. acid optical depth     : unitless : SCALECHEM
+!  (29) SASSA  Strat. sulf. acid surface area      : cm2/cm3  : SCALECHEM 
+!  (30) ODSTS  Supercooled tern. soln. OD          : unitless : SCALECHEM
+!  (31) SASTS  Supercooled tern. soln. surf. area  : cm2/cm3  : SCALECHEM 
+!  (32) ODPSC  Polar strat. cloud optical depth    : unitless : SCALECHEM
+!  (33) SAPSC  Polar strat. cloud surface area     : cm2/cm3  : SCALECHEM 
 !
 !  NOTES:
 !  (1 ) We don't need to add TRCOFFSET to N.  These are not CTM tracers.
@@ -1470,6 +1476,7 @@
 !  (7 ) Also save out extra diagnostics for cryst sulfur tracers (bmy, 1/5/05)
 !  (8 ) Save out extra diagnostics for dust AOD in each size bin (clh, 5/7/10)
 !  (9 ) Bug fix, don't write out obsolete tracer #3 for ND21 (bmy, 12/16/11)
+!  (10) Added stratospheric aerosols (SDE 04/17/13)
 !******************************************************************************
 !
       IF ( ND21 > 0 ) THEN
@@ -1489,7 +1496,7 @@
                   ! This diagnostic is for a GEOS-1/GEOS-STRAT field
                   ! so skip it! (bmy, 12/16/11)
                   CYCLE
-               CASE ( 5, 8, 11, 14, 17, 20 )
+               CASE ( 5, 8, 11, 14, 17, 20, 29, 31, 33 )
                   UNIT = 'cm2/cm3'
                CASE DEFAULT
                   UNIT = 'unitless'

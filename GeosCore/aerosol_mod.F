@@ -69,6 +69,9 @@
       ! SALC        : Coarse mode seasalt aerosol        [kg/m3]
       ! SO4_NH4_NIT : Lumped SO4-NH4-NIT aerosol         [kg/m3]
       ! SOILDUST    : Mineral dust aerosol from soils    [kg/m3]
+      ! SSA         : Supercooled sulfuric acid          [kg/m3]
+      ! STS         : Supercooled ternary solution       [kg/m3]
+      ! PSC1a2      : NAT/ice PSCs                       [kg/m3]
       !========================================================================
       REAL*8, ALLOCATABLE :: BCPI(:,:,:)
       REAL*8, ALLOCATABLE :: BCPO(:,:,:)
@@ -78,6 +81,9 @@
       REAL*8, ALLOCATABLE :: SALC(:,:,:)
       REAL*8, ALLOCATABLE :: SO4_NH4_NIT(:,:,:)
       REAL*8, ALLOCATABLE :: SOILDUST(:,:,:,:)
+      REAL*8, ALLOCATABLE :: SSA(:,:,:)
+      REAL*8, ALLOCATABLE :: STS(:,:,:)
+      REAL*8, ALLOCATABLE :: PSC1a2(:,:,:)
 
 #if defined( DEVEL )
       ! Mass of hydrophobic aerosol from Mian Chin
@@ -85,6 +91,9 @@
 
       ! Mass of hydrophilic aerosol from Mian Chin
       REAL*8, ALLOCATABLE, SAVE   :: WAERSL(:,:,:,:)
+
+      ! Mass of stratospheric aerosol (SDE 04/17/13)
+      REAL*8, ALLOCATABLE, SAVE   :: SAERSL(:,:,:,:)
 #endif
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -314,6 +323,7 @@
       USE TRACERID_MOD, ONLY : IDTSOA1, IDTSOA2, IDTSOA3, IDTSOA4
       USE TRACERID_MOD, ONLY : IDTSO4,  IDTSOA5  
       USE TRACERID_MOD, ONLY : IDTSOAG, IDTSOAM
+      USE CHEMGRID_MOD, ONLY : ITS_IN_THE_TROP
 
       USE CMN_SIZE_MOD       ! Size parameters
 !
@@ -392,12 +402,34 @@
          ! Units of SO4_NH4_NIT are [kg/m3].  (rjp, bmy, 3/23/03)
          !==============================================================
          IF ( LSULF ) THEN
-
+#if defined( GMISTRAT )
+            ! If we are using the full stratospheric chemistry mechanism,
+            ! stratospheric NH4 is ignored, stratospheric NIT is taken
+            ! as available for NAT formation and stratospheric SO4 is
+            ! taken as sulfuric acid
+            IF (ITS_IN_THE_TROP(I,J,L)) THEN
+               ! Tropospheric - keep as normal
+               SO4_NH4_NIT(I,J,L) = ( STT(I,J,L,IDTSO4) + 
+     &                                STT(I,J,L,IDTNH4) +
+     &                                STT(I,J,L,IDTNIT) )/AIRVOL(I,J,L)
+               SSA(I,J,L) = 0d0
+               STS(I,J,L) = 0d0
+               PSC1a2(I,J,L) = 0d0
+            ELSE
+               ! Tropospheric sulfate is zero
+               SO4_NH4_NIT(I,J,L) = 0d0
+               !-----SDE DEBUG
+               ! GMI module not complete!
+               SSA(I,J,L) = STT(I,J,L,IDTSO4)/AIRVOL(I,J,L)
+               STS(I,J,L) = 0d0
+               PSC1a2(I,J,L) = STT(I,J,L,IDTNIT)/AIRVOL(I,J,L)
+            ENDIF
+#else
             ! Compute SO4 aerosol concentration [kg/m3]
             SO4_NH4_NIT(I,J,L) = ( STT(I,J,L,IDTSO4) + 
      &                             STT(I,J,L,IDTNH4) +
      &                             STT(I,J,L,IDTNIT) ) / AIRVOL(I,J,L)
-
+#endif
          ENDIF
 
          !==============================================================
@@ -557,7 +589,8 @@
       USE TIME_MOD,      ONLY : ITS_A_NEW_MONTH
       USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D
- 
+      USE GMISTRAT_MOD,  ONLY : GET_STRAT_AER 
+
       USE CMN_SIZE_MOD,  ONLY : NNPAR, NDSTBIN, IIPAR,   JJPAR
       USE CMN_SIZE_MOD,  ONLY : LLPAR, MAXFAM,  NEMPARA, NEMPARB, LGLOB
       USE COMODE_LOOP_MOD     ! NTLOOP
@@ -672,9 +705,17 @@
       ! Relative Humidities
       REAL*8,  SAVE       :: RH(NRH)   = (/0d0,0.5d0,0.7d0,0.8d0,0.9d0/)
 
+      ! Temporary varaibles
+      REAL*8              :: RSTRAT, SADSTRAT
+      INTEGER             :: ISTRAT
+
       ! Index to aerosol types in jv_spec.dat
       ! The following are ordered according to the mass densities below
+#if defined( GMISTRAT )
+      INTEGER, SAVE       :: IND(NAER) = (/22,29,36,43,50,4,4,14/)
+#else
       INTEGER, SAVE	  :: IND(NAER) = (/22, 29, 36, 43, 50/)
+#endif
 
       !=================================================================
       ! RDAER begins here!
@@ -963,6 +1004,13 @@
          ENDIF   
       ENDIF 
 
+#if defined( GMISTRAT )
+      ! SDE 04/17/13 - Transfer stratospheric aerosol data
+      WAERSL(:,:,:,NRHAER+1) = SSA
+      WAERSL(:,:,:,NRHAER+2) = STS
+      WAERSL(:,:,:,NRHAER+3) = PSC1a2
+#endif
+
       !=================================================================
       ! Calculate optical depth and surface area at each timestep
       ! to account for the change in relative humidity
@@ -983,9 +1031,16 @@
       MSDENS(3) = 1800.0d0    !OC 
       MSDENS(4) = 2200.0d0    !SS (accum)
       MSDENS(5) = 2200.0d0    !SS (coarse)
+#if defined( GMISTRAT )
+      !-----SDE DEBUG
+      ! Need to retrive these from gmistrat_mod.F
+      MSDENS(NRHAER+1) = 1700.0d0! SSA 
+      MSDENS(NRHAER+2) = 1700.0d0! STS 
+      MSDENS(NRHAER+3) = 1000.0d0! NAT/ice PSC
+#endif
 
-      ! Loop over types of aerosol
-      DO N = 1, NAER
+      ! Loop over types of aerosol with hygroscopic growth
+      DO N = 1, NRHAER
 
          ! Zero array
          SCALEOD(:,:,:,:) = 0d0
@@ -1230,7 +1285,7 @@
          ENDDO
 !$OMP END PARALLEL DO
 
-      ENDDO  !Loop over NAER
+      ENDDO  !Loop over NRHAER
 
       !==============================================================
       ! Account for hydrophobic aerosols (BC and OC), N=2 and N=3
@@ -1307,6 +1362,81 @@
 !$OMP END PARALLEL DO
 
       ENDDO
+
+#if defined( GMISTRAT )
+      !==============================================================
+      ! Account for stratospheric aerosols (SDE 04/17/13)
+      !==============================================================
+      DO ISTRAT = 1,NSTRATAER
+
+         ! Index for combination of aerosol type and RH
+         N = NRHAER + ISTRAT
+         IRHN = (NRHAER*NRH) + ISTRAT
+
+!$OMP PARALLEL DO 
+!$OMP+DEFAULT( SHARED ) 
+!$OMP+PRIVATE( I, J, L ) 
+!$OMP+SCHEDULE( DYNAMIC )
+         DO L = 1, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+            IF ( WAVELENGTH > 0 ) THEN
+
+            ! Aerosol optical depth
+            ODAER(I,J,L,IRHN) = 0.75d0          * BXHEIGHT(I,J,L) * 
+     &                          WAERSL(I,J,L,N) * QAA_AOD(IND(N))   / 
+     &                          ( MSDENS(N) * RAA_AOD(IND(N)) * 1.0D-6 )
+
+            ELSE
+
+            ! Aerosol optical depth
+            ODAER(I,J,L,IRHN) = 0.75d0          * BXHEIGHT(I,J,L) * 
+     &                       WAERSL(I,J,L,N)    * QAA(IND999,IND(N))  / 
+     &                       ( MSDENS(N) * RAA(IND999,IND(N)) * 1.0D-6 )
+
+            ENDIF
+
+         ENDDO
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+
+         ! Effective radius
+         IF ( WAVELENGTH > 0 ) THEN
+            REFF = 1.0D-4 * RAA_AOD(IND(N))
+         ELSE
+            REFF = 1.0D-4 * RAA(IND999,IND(N))
+         ENDIF
+
+         ! Loop over grid boxes
+!$OMP PARALLEL DO 
+!$OMP+DEFAULT( SHARED ) 
+!$OMP+PRIVATE( I, J, L, JLOOP, RSTRAT,SADSTRAT ) 
+!$OMP+SCHEDULE( DYNAMIC )
+         DO JLOOP = 1, NTLOOP
+
+            ! Get 3-D grid box indices
+            I = IXSAVE(JLOOP)
+            J = IYSAVE(JLOOP)
+            L = IZSAVE(JLOOP)
+
+            ! Retrieve aerosol properties from gmistrat_mod
+            CALL GET_STRAT_AER(I,J,L,ISTRAT,RSTRAT,SADSTRAT)
+
+            ! Add surface area to TAREA array
+            TAREA(JLOOP,NDUST+N) = SADSTRAT
+            WTAREA(JLOOP,NDUST+N) = SADSTRAT
+
+            ! Store radius
+            ERADIUS(JLOOP,NDUST+N) = RSTRAT
+            WERADIUS(JLOOP,NDUST+N) = RSTRAT
+
+         ENDDO
+!$OMP END PARALLEL DO
+
+      ENDDO
+#endif
        
       !==============================================================
       ! ND21 Diagnostic: Aerosol OD's, Growth Rates, Surface Areas
@@ -1347,7 +1477,14 @@
       ! #25: Dust optical depths (1.5 um)     --> from "rdust.f"
       ! #26: Dust optical depths (2.5 um)     --> from "rdust.f"
       ! #27: Dust optical depths (4.0 um)     --> from "rdust.f"
-
+      !
+      ! #28: SSA optical depth                       [unitless]
+      ! #29: SSA surface area                        [cm2/cm3 ]
+      ! #30: STS optical depth                       [unitless]
+      ! #31: STS surface area                        [cm2/cm3 ]
+      ! #32: PSC optical depth                       [unitless]
+      ! #33: PSC surface area                        [cm2/cm3 ]
+      !
       ! NOTE: The cloud optical depths are actually recorded at
       !       1000 nm, but vary little with wavelength.
       !==============================================================
@@ -1358,10 +1495,10 @@
 !$OMP+DEFAULT( SHARED ) 
 !$OMP+PRIVATE( I, IRHN, J, JLOOP, L, N, R ) 
 !$OMP+SCHEDULE( DYNAMIC )
-         DO N = 1, NAER
+         DO N = 1, NRHAER
 
             !------------------------------------
-            ! Aerosol Optical Depths [uhitless]
+            ! Aerosol Optical Depths [unitless]
             ! Scale of optical depths w/ RH 
             !------------------------------------
             DO R = 1, NRH
@@ -1401,6 +1538,41 @@
          ENDDO
 !$OMP END PARALLEL DO
 
+#if defined( GMISTRAT )
+      ! Add stratospheric aerosols      
+!$OMP PARALLEL DO 
+!$OMP+DEFAULT( SHARED ) 
+!$OMP+PRIVATE( I, IRHN, J, JLOOP, L, N, R, ISTRAT ) 
+!$OMP+SCHEDULE( DYNAMIC )
+      DO ISTRAT = 1,NSTRATAER
+
+         ! Index for combination of aerosol type and RH
+         N = NRHAER + ISTRAT
+         IRHN = (NRHAER*NRH) + (N-NRHAER)
+         DO L = 1, LD21
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            AD21(I,J,L,26+(2*ISTRAT)) = ODAER(I,J,L,IRHN)
+         ENDDO
+         ENDDO
+         ENDDO
+
+         DO JLOOP = 1, NTLOOP
+               ! Get 3-D grid box indices
+               I = IXSAVE(JLOOP)
+               J = IYSAVE(JLOOP)
+               L = IZSAVE(JLOOP)
+
+               ! Add aerosol surface areas 
+               IF ( L <= LD21 ) THEN
+                  AD21(I,J,L,27+(2*ISTRAT)) = TAREA(JLOOP,N+NDUST)
+               ENDIF 
+         ENDDO
+
+      ENDDO
+!$OMP END PARALLEL DO
+#endif
+
       ENDIF 
 
       !=================================================================
@@ -1414,6 +1586,9 @@
       !  ODAER(:,:,:,R+3*NRH) = 0.d0  !SS(accum)
       !  ODAER(:,:,:,R+4*NRH) = 0.d0  !SS(coarse)
       !ENDDO
+      !ODAER(:,:,:,NRHAER*NRH+1) = 0.d0   !SSA
+      !ODAER(:,:,:,NRHAER*NRH+2) = 0.d0   !STS
+      !ODAER(:,:,:,NRHAER*NRH+3) = 0.d0   !PSC1a2
 
       !=================================================================
       ! To turn off heterogeneous chemistry on different aerosols
@@ -1424,6 +1599,9 @@
       !TAREA(:,NDUST+3) = 0.d0	!OC 
       !TAREA(:,NDUST+4) = 0.d0	!SS (accum)
       !TAREA(:,NDUST+5) = 0.d0	!SS (coarse)
+      !TAREA(:,NDUST+NRHAER+1) = 0.d0 !SSA
+      !TAREA(:,NDUST+NRHAER+2) = 0.d0 !STS
+      !TAREA(:,NDUST+NRHAER+3) = 0.d0 !PSC1a2
 
       ! Reset first-time flag
       FIRST = .FALSE.
@@ -1497,6 +1675,20 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SOILDUST' )
       SOILDUST = 0d0
 
+#if defined( GMISTRAT )
+      ALLOCATE( SSA( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SSA' )
+      SSA = 0d0
+
+      ALLOCATE( STS( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'STS' )
+      STS   = 0d0
+
+      ALLOCATE( PSC1a2( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSC1a2' )
+      PSC1a2 = 0d0
+#endif
+
 #if defined( DEVEL )
       ! Mass of hydrophobic aerosol from Mian Chin
       ALLOCATE( DAERSL(IIPAR,JJPAR,LLPAR,2), STAT=AS)       
@@ -1546,6 +1738,9 @@
       IF ( ALLOCATED( SALC        ) ) DEALLOCATE( SALC        )
       IF ( ALLOCATED( SO4_NH4_NIT ) ) DEALLOCATE( SO4_NH4_NIT )
       IF ( ALLOCATED( SOILDUST    ) ) DEALLOCATE( SOILDUST    )
+      IF ( ALLOCATED( SSA         ) ) DEALLOCATE( SSA         )
+      IF ( ALLOCATED( STS         ) ) DEALLOCATE( STS         )
+      IF ( ALLOCATED( PSC1a2      ) ) DEALLOCATE( PSC1a2      )
 
       END SUBROUTINE CLEANUP_AEROSOL
 !EOC

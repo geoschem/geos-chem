@@ -89,7 +89,8 @@
       USE PBL_MIX_MOD,     ONLY : GET_FRAC_UNDER_PBLTOP,GET_PBL_TOP_L
       USE PLANEFLIGHT_MOD, ONLY : ARCHIVE_RXNS_FOR_PF
       ! Add IDHO2 for HO2 concentration and IS_ICE (jaegle 02/26/09)
-      USE TRACERID_MOD,    ONLY : IDHO2
+      ! Also IDHCl and IDHBr for PSCs (SDE 04/17/13)
+      USE TRACERID_MOD,    ONLY : IDHO2, IDHCl, IDHBr
       USE DAO_MOD,         ONLY : IS_ICE
       ! KPP interface (phs,ks,dhk, 09/15/09)
       USE GCKPP_GLOBAL,    ONLY : IND
@@ -133,7 +134,7 @@
       USE EMISSIONS_MOD,   ONLY : NOx_SCALING      
       USE PARANOX_MOD,     ONLY : INTERPOLATE_LUT2 !(mpayer, 2/7/12)
       USE FAST_JX_MOD,     ONLY : FJXFUNC
-      USE GMISTRAT_MOD,    ONLY : SO4_PHOTFRAC
+      USE GMISTRAT_MOD,    ONLY : SO4_PHOTFRAC, CHECK_NAT
 
       USE CMN_SIZE_MOD          ! Size parameters
       USE COMODE_LOOP_MOD       ! SMVGEAR II arrays
@@ -231,6 +232,8 @@
 
       ! SDE: Strat-chem
       REAL*8  :: DUMMYO2(KBLOOP)
+      REAL*8  :: AQCONC
+      LOGICAL :: NATSURFACE
 
 !-------------------------------------------------------------------------------
 ! Prior to 9/24/12:
@@ -946,6 +949,9 @@ c new OH+CO rate from JPL2006.
             !===========================================================
             XDENA   = DENAIR(KLOOP)
             XSTK    = SQRT(T3K(KLOOP))
+                  
+            ! Check surface type of PSCs (SDE 04/17/13)
+            CALL CHECK_NAT(IX,IY,IZ,NATSURFACE)
 
             DO I       = 1, NNADDK(NCS)
                NK      = NKSPECK(I,NCS)
@@ -974,14 +980,22 @@ c new OH+CO rate from JPL2006.
                   XAREA = TAREA(JLOOP,N) 
 
                   ! Radius for aerosol size bin N (jaegle 2/26/09)
-                  XRADIUS = ERADIUS(JLOOP,N) 
-                  
+                  XRADIUS = ERADIUS(JLOOP,N)
+
                   ! Test if N2O5 hydrolysis rxn
                   IF ( NK == NKN2O5 ) THEN
                      
                      ! Get GAMMA for N2O5 hydrolysis, which is
                      ! a function of aerosol type, temp, and RH
-                     XSTKCF = N2O5( N, T3K(KLOOP), ABSHUMK(KLOOP) )
+                     IF (N.eq.15) THEN
+                        IF (NATSURFACE) THEN
+                           XSTKCF = 4.0d-4 ! NAT
+                        ELSE
+                           XSTKCF = 0.02d0 ! Ice
+                        ENDIF
+                     ELSE
+                        XSTKCF = N2O5( N, T3K(KLOOP), ABSHUMK(KLOOP) )
+                     ENDIF
 
                      ! Archive N2O5 hydrolysis for ND40 diagnostic
                      DUMMY2(KLOOP) = DUMMY2(KLOOP) +
@@ -1007,8 +1021,12 @@ c new OH+CO rate from JPL2006.
                         CONTINENTAL_PBL=0
                      ENDIF
 
-                     XSTKCF = HO2( XRADIUS, T3K(KLOOP), XDENA, XSQM,
+                     IF (N.eq.15) THEN
+                        XSTKCF = TINY(1d0)
+                     ELSE
+                        XSTKCF = HO2( XRADIUS, T3K(KLOOP), XDENA, XSQM,
      &                             HO2_MOLEC_CM3, N , CONTINENTAL_PBL)
+                     ENDIF
 
                      ! Now call CHECK_VALUE to make sure that XSTKCF is 
                      ! not a NaN or an infinity
@@ -1035,23 +1053,155 @@ c new OH+CO rate from JPL2006.
                      ELSE IF ( (N == 11) .OR. ( N == 12) ) THEN
                         ! 2 modes of sea-salt
                         XSTKCF = BRR(NK,NCS)
+                     ELSE IF ( (N == 13) .or. (N == 14) ) THEN
+                        ! SSA/STS
+                        !-----SDE DEBUG
+                        ! Write function to retrieve gamma
+                        XSTKCF = 0.8d0      
+                        !-----SDE DEBUG
+                     ELSE IF ( N == 15 ) THEN 
+                        ! Ice/NAT PSC
+                        IF (NATSURFACE) THEN 
+                           XSTKCF = 0.001d0
+                        ELSE
+                           XSTKCF = 0.3d0
+                        ENDIF
                      ELSE
                         XSTKCF = TINY(1d0) ! avoid divide by zero
                      ENDIF
-
                   ELSE IF ( NK == NKHOBr .OR. NK == NK1HBr) THEN
                      ! jpp, 3/22/11: set the sticking coefficient to 
                      !  ~0 for aerosol types we don't want reactions on
                      !  for the HBr and HOBr surface reaction
 
                      ! Select proper aerosol type
-                     IF ( (N == 8) .OR. (N==11) .OR. (N==12) ) THEN
-                        ! sulfate or 2 modes of sea-salt
+                     IF ( (N == 8) .OR. ((N.ge.11).and.(N.le.14))) THEN
+                        ! sulfate, 2 modes of sea-salt or SSA/STS
                         XSTKCF = BRR(NK,NCS)
                      ELSE
                         XSTKCF = TINY(1d0) ! avoid divide by zero
                      ENDIF
 
+                  ELSE IF ( NK == NKPSC(NCS,2 ) ) THEN
+                     ! N2O5(g)    + HCl(l,s)
+                     IF ((N.eq.8).or.(N.eq.13).or.(N.eq.14)) THEN
+                        !-----SDE DEBUG
+                        XSTKCF = 0.1d-4 ! Sulfate
+                        !-----SDE DEBUG
+                     ELSEIF (N.eq.15) THEN
+                        IF (NATSURFACE) THEN
+                           XSTKCF = 0.003d0 ! NAT
+                        ELSE
+                           XSTKCF = 0.03d0 ! Ice
+                        ENDIF
+                     ELSE
+                        XSTKCF = TINY(1d0)
+                     ENDIF
+                  ELSE IF ( NK == NKPSC(NCS,3 ) ) THEN
+                     ! ClNO3(g)   + H2O(l,s)
+                     IF ((N.eq.8).or.(N.eq.13).or.(N.eq.14)) THEN
+                        !-----SDE DEBUG
+                        XSTKCF = 0.1d-3 ! Sulfate
+                        !-----SDE DEBUG
+                     ELSEIF (N.eq.15) THEN
+                        IF (NATSURFACE) THEN
+                           XSTKCF = 0.004d0 ! NAT
+                        ELSE
+                           XSTKCF = 0.3d0 ! Ice
+                        ENDIF
+                     ELSE
+                        XSTKCF = TINY(1d0)
+                     ENDIF
+                  ELSE IF ( NK == NKPSC(NCS,4 ) ) THEN
+                     ! ClNO3(g)   + HCl(l,s)
+                     IF ((N.eq.8).or.(N.eq.13).or.(N.eq.14)) THEN
+                        !-----SDE DEBUG
+                        XSTKCF = 0.1d-4 ! Sulfate
+                        !-----SDE DEBUG
+                     ELSEIF (N.eq.15) THEN
+                        IF (NATSURFACE) THEN
+                           XSTKCF = 0.2d0 ! NAT
+                        ELSE
+                           XSTKCF = 0.3d0 ! Ice
+                        ENDIF
+                     ELSE
+                        XSTKCF = TINY(1d0)
+                     ENDIF
+                  ELSE IF ( NK == NKPSC(NCS,5 ) ) THEN
+                     ! ClNO3(g)   + HBr(l,s)
+                     IF ((N.eq.8).or.(N.eq.13).or.(N.eq.14)) THEN
+                        !-----SDE DEBUG
+                        XSTKCF = TINY(1d0) ! Sulfate
+                        !-----SDE DEBUG
+                     ELSEIF (N.eq.15) THEN
+                        IF (NATSURFACE) THEN
+                           XSTKCF = 0.3d0 ! NAT
+                        ELSE
+                           XSTKCF = 0.3d0 ! Ice
+                        ENDIF
+                     ELSE
+                        XSTKCF = TINY(1d0)
+                     ENDIF
+                  ELSE IF ( NK == NKPSC(NCS,7 ) ) THEN
+                     ! BrNO3(g)   + HCl(l,s)
+                     IF ((N.eq.8).or.(N.eq.13).or.(N.eq.14)) THEN
+                        !-----SDE DEBUG
+                        XSTKCF = 0.9d0 ! Sulfate
+                        !-----SDE DEBUG
+                     ELSEIF (N.eq.15) THEN
+                        IF (NATSURFACE) THEN
+                           XSTKCF = 0.3d0 ! NAT
+                        ELSE
+                           XSTKCF = 0.3d0 ! Ice
+                        ENDIF
+                     ELSE
+                        XSTKCF = TINY(1d0)
+                     ENDIF
+                  ELSE IF ( NK == NKPSC(NCS,8 ) ) THEN
+                     ! HOCl(g)    + HCl(l,s)
+                     IF ((N.eq.8).or.(N.eq.13).or.(N.eq.14)) THEN
+                        !-----SDE DEBUG
+                        XSTKCF = 0.8d0 ! Sulfate
+                        !-----SDE DEBUG
+                     ELSEIF (N.eq.15) THEN
+                        IF (NATSURFACE) THEN
+                           XSTKCF = 0.1d0 ! NAT
+                        ELSE
+                           XSTKCF = 0.2d0 ! Ice
+                        ENDIF
+                     ELSE
+                        XSTKCF = TINY(1d0)
+                     ENDIF
+                  ELSE IF ( NK == NKPSC(NCS,9 ) ) THEN
+                     ! HOCl(g)    + HBr(l,s)
+                     IF ((N.eq.8).or.(N.eq.13).or.(N.eq.14)) THEN
+                        !-----SDE DEBUG
+                        XSTKCF = 0.8d0 ! Sulfate
+                        !-----SDE DEBUG
+                     ELSEIF (N.eq.15) THEN
+                        IF (NATSURFACE) THEN
+                           XSTKCF = 0.3d0 ! NAT
+                        ELSE
+                           XSTKCF = 0.3d0 ! Ice
+                        ENDIF
+                     ELSE
+                        XSTKCF = TINY(1d0)
+                     ENDIF
+                  ELSE IF ( NK == NKPSC(NCS,10) ) THEN
+                     ! HOBr(g)    + HCl(l,s)
+                     IF ((N.eq.8).or.(N.eq.13).or.(N.eq.14)) THEN
+                        !-----SDE DEBUG
+                        XSTKCF = 0.8d0 ! Sulfate
+                        !-----SDE DEBUG
+                     ELSEIF (N.eq.15) THEN
+                        IF (NATSURFACE) THEN
+                           XSTKCF = 0.1d0 ! NAT
+                        ELSE
+                           XSTKCF = 0.3d0 ! Ice
+                        ENDIF
+                     ELSE
+                        XSTKCF = TINY(1d0)
+                     ENDIF
                   ELSE
 
                      ! Get GAMMA for species other than N2O5
@@ -1072,6 +1222,41 @@ c new OH+CO rate from JPL2006.
      &                    AD52(IX,IY,IZ) + DUMMY3(KLOOP)
                   ENDIF
                ENDIF
+            ENDDO
+
+            ! Correct PSC reaction rates - divide by gas-phase conc. of
+            ! liquid/solid 
+            DO I=1,11
+               NK = NKPSC(NCS,I)
+               SELECT CASE ( NK )
+                  !----------------
+                  ! HCl
+                  !----------------
+                   CASE ( 2, 4, 7, 8, 10 )
+                      AQCONC = CSPEC(JLOOP,IDHCl)
+                      IF (AQCONC.gt.TINY(1d0)) THEN
+                         RRATE(KLOOP,NK) = RRATE(KLOOP,NK)/AQCONC
+                      ELSE
+                         RRATE(KLOOP,NK) = TINY(1d0)
+                      ENDIF
+                  !----------------
+                  ! HBr
+                  !----------------
+                   CASE ( 5, 9 )
+                      AQCONC = CSPEC(JLOOP,IDHBr)
+                      IF (AQCONC.gt.TINY(1d0)) THEN
+                         RRATE(KLOOP,NK) = RRATE(KLOOP,NK)/AQCONC
+                      ELSE
+                         RRATE(KLOOP,NK) = TINY(1d0)
+                      ENDIF
+                  !----------------
+                  ! H2O
+                  !----------------
+                   CASE ( 3 )
+                      ! Do nothing
+                   CASE DEFAULT
+                      ! Do nothing
+                END SELECT                   
             ENDDO
 
             ! ---------------------------------------------------
@@ -2127,6 +2312,15 @@ c new OH+CO rate from JPL2006.
                GAMMA = 0.005d0
             ENDIF
 
+         !----------------
+         ! SSA, STS
+         !----------------
+         CASE ( 13, 14 )
+       
+            !-----SDE DEBUG
+            GAMMA = 0.8d0
+            !-----SDE DEBUG
+
          !----------------         
          ! Default
          !----------------
@@ -2318,6 +2512,15 @@ c new OH+CO rate from JPL2006.
             IF ( AEROTYPE == 8 .and. CONTINENTAL_PBL == 1) THEN
                 GAMMA = 0.07
             ENDIF 
+
+         !----------------
+         ! SSA, STS, NAT
+         !----------------
+         CASE ( 13, 14, 15 )
+       
+            !-----SDE DEBUG
+            GAMMA = 0.d0
+            !-----SDE DEBUG
 
          !----------------
          ! Default

@@ -515,8 +515,18 @@
       ! NDUST -- Number of FAST-J aerosol size bins (rvm, bmy, 11/15/01)
       INTEGER, PARAMETER :: NDUST = 7
 
+      ! NRHAER -- Number of aerosols undergoing hygroscopic growth
+      INTEGER, PARAMETER :: NRHAER = 5
+
+      ! NSTRATAER -- Number of stratospheric aerosols (SDE 04/17/13)
+#if defined( GMISTRAT )
+      INTEGER, PARAMETER :: NSTRATAER = 3
+#else
+      INTEGER, PARAMETER :: NSTRATAER = 0
+#endif
+
       ! NAER -- number of other aerosol categories (rvm, bmy, 2/27/02)
-      INTEGER, PARAMETER :: NAER = 5
+      INTEGER, PARAMETER :: NAER = NRHAER + NSTRATAER
 
       ! NRH -- number of relative humidity bins (rvm, bmy, 2/27/02)
       INTEGER, PARAMETER :: NRH = 5
@@ -1326,12 +1336,21 @@
       ! to here by FP (hotp 7/31/09)
       INTEGER, PARAMETER :: MAXPL = 500
 
-
       ! NDUST -- Number of FAST-J aerosol size bins (rvm, bmy, 11/15/01)
       INTEGER, PARAMETER :: NDUST = 7
 
+      ! NRHAER -- Number of aerosols undergoing hygroscopic growth
+      INTEGER, PARAMETER :: NRHAER = 5
+
+      ! NSTRATAER -- Number of stratospheric aerosols (SDE 04/17/13)
+#if defined( GMISTRAT )
+      INTEGER, PARAMETER :: NSTRATAER = 3
+#else
+      INTEGER, PARAMETER :: NSTRATAER = 0
+#endif
+
       ! NAER -- number of other aerosol categories (rvm, bmy, 2/27/02)
-      INTEGER, PARAMETER :: NAER = 5
+      INTEGER, PARAMETER :: NAER = NRHAER + NSTRATAER
 
       ! NRH -- number of relative humidity bins (rvm, bmy, 2/27/02)
       INTEGER, PARAMETER :: NRH = 5

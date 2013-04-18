@@ -405,6 +405,12 @@
       CALL READ_RESTART_FILE( NYMDb, NHMSb )
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a READ_RESTART_FILE' )
 
+      ! Initialize stratospheric routines
+      IF (LGMISTRAT) THEN
+         CALL INIT_GMISTRAT
+         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INIT_GMISTRAT' )
+      ENDIF
+
       ! Set simple initial tracer conditions
       CALL SET_INITIAL_MIXRATIOS( am_I_Root )
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a SET_INITIAL_MIXRATIOS' )

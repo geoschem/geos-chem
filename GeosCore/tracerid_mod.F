@@ -228,8 +228,8 @@
       ! Online CH4 chemistry (mpayer, 1/24/12)
       INTEGER            :: IDCH4
 
-      ! Excited singlet oxygen (SDE 04/11/13)
-      INTEGER            :: IDO1D
+      ! Stratospheric chemistry (SDE 04/11/13)
+      INTEGER            :: IDO1D, IDHCl
 
       ! GEOS-CHEM tracer ID's
       INTEGER            :: IDTNOX,  IDTOX,    IDTPAN,  IDTCO,   IDTALK4
@@ -2024,6 +2024,7 @@
          IF ( NAMEGAS(I) == 'CH4'      ) IDCH4      = I
          ! Stratospheric chemistry (SDE 04/11/13)
          IF ( NAMEGAS(I) == 'O1D'      ) IDO1D      = I
+         IF ( NAMEGAS(I) == 'HCl'      ) IDHCl      = I
 
 #if defined( ESMF_ )
          ! Add the species name & Id to the chemistry state object
@@ -3043,6 +3044,7 @@
       IDMSA     = 0
       IDCH4     = 0 ! (mpayer, 1/24/12)
       IDO1D     = 0 ! (SDE 04/11/13)
+      IDHCl     = 0 ! (SDE 04/11/13)
       IDDRYO3   = 0
       IDDRYPAN  = 0
       IDDRYNO2  = 0       
