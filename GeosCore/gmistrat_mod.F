@@ -42,6 +42,7 @@
       PUBLIC  :: CALC_PSC
       PUBLIC  :: GET_STRAT_AER
       PUBLIC  :: KG_STRAT_AER
+      PUBLIC  :: RHO_STRAT_AER
       PUBLIC  :: CHECK_NAT
       PUBLIC  :: INIT_GMISTRAT
       PUBLIC  :: CLEANUP_GMISTRAT
@@ -51,6 +52,8 @@
       PRIVATE :: APPLY_2DTRAC
       PRIVATE :: READ_SFC
       PRIVATE :: GET_MONTREAL
+      PRIVATE :: TERNARY
+      PRIVATE :: CARSLAW_DENSITY
 !
 ! !REVISION HISTORY: 
 !  26 Mar 2013 - S. D. Eastham - Initial version
@@ -90,6 +93,9 @@
       ! N_EMIT             : Number of tracers to emit
       ! MAX_EMIT           : Limit on tracer emission count
       ! SFC_MONTH          : Current month
+      ! SLA_VA             : SLA volume-area conversion
+      ! SLA_RR             : SLA effective-liquid radius conversion
+      ! SLA_VR             : SLA volume-effective radius conversion
       ! NATMW              : Molar mass of NAT (kg/kmol)
       ! ICEMEW             : Molar mass of ice (kg/kmol)
       ! DENSNAT            : Density of pure NAT (kg/m3)
@@ -109,6 +115,8 @@
       ! NDENS_AER          : Aerosol number density (#/m3)
       ! RHO_AER            : Aerosol mass density (kg/m3 aerosol)
       ! STATE_PSC          : Gridbox PSC type (see Kirner et al)
+      ! GAMMA_SLA          : Liquid aerosol sticking coeff.
+      ! AERFRAC            : Mass fraction of species in aerosol form
       !
       ! Strings
       !
@@ -128,6 +136,9 @@
       INTEGER                           :: N_EMIT
       INTEGER, PARAMETER                :: MAX_EMIT=50
       INTEGER                           :: SFC_MONTH
+      REAL*8                            :: SLA_VA
+      REAL*8                            :: SLA_RR
+      REAL*8                            :: SLA_VR
       REAL*8, PARAMETER                 :: NATMW   = 117.0
       REAL*8, PARAMETER                 :: ICEMW   = 18.0
       REAL*8, PARAMETER                 :: DENSNAT = 1626.d0
@@ -145,6 +156,8 @@
       REAL*8,DIMENSION(:,:,:,:),ALLOCATABLE :: NDENS_AER
       REAL*8,DIMENSION(:,:,:,:),ALLOCATABLE :: RHO_AER
       INTEGER,DIMENSION(:,:,:),ALLOCATABLE  :: STATE_PSC
+      REAL*8,DIMENSION(:,:,:,:),ALLOCATABLE :: GAMMA_SLA
+      REAL*8,DIMENSION(:,:,:,:),ALLOCATABLE :: AERFRAC
  
       ! Strings
       CHARACTER(LEN=255)                :: TRAC_FILE
@@ -1009,8 +1022,7 @@
 ! !IROUTINE: settle_strat_aer
 !
 ! !DESCRIPTION: Subroutine SETTLE\_STRAT\_AER performs gravitational settling
-!  of stratospheric sulfates, nitrates, black carbon and organic carbon on a
-!  total mass basis. It is copied largely from GRAV\_SETTLING in
+!  of stratospheric aerosols. It is copied largely from GRAV\_SETTLING in
 !  sulfate\_mod.F, using a mean radius of 0.1 micrometers for STS (which
 !  all stratospheric sulfate is assumed to be) and the relevant aerosol radii
 !  calculated in aerosol\_mod.F for the rest. All of this is ignored if APM
@@ -1379,10 +1391,6 @@
       ! SO4_PHOTFRAC begins here!
       !=================================================================
 
-      IF (.not.ALLOCATED(H2SO4_GASFRAC)) THEN 
-         CALL CALC_H2SO4_GAS
-      ENDIF
-
       SO4_PHOTFRAC = H2SO4_GASFRAC(I,J,L)
 
       END FUNCTION SO4_PHOTFRAC
@@ -1399,8 +1407,7 @@
 !  chemistry grid using the thermodynamic parameterization described in
 !  Kirner et al. (`Simulation of polar stratospheric clouds in the
 !  chemistry-climate-model EMAC via the submodel PSC', Geosci. Mod. Dev.,
-!  4, 169-182, 2011). This routine calculates solid PSC properties directly
-!  before handing over to CALC\_STS for liquid aerosol properties.
+!  4, 169-182, 2011).
 !\\
 !\\
 ! !INTERFACE:
@@ -1409,15 +1416,18 @@
 !
 ! !USES:
 !
-      USE DAO_MOD,          ONLY : T, AD, CLDF, QI, SPHU, AVGW
+      USE DAO_MOD,          ONLY : T, AD, CLDF, QI, AIRVOL, AVGW
       USE PRESSURE_MOD,     ONLY : GET_PCENTER
       USE LOGICAL_MOD,      ONLY : LPRT
       USE ERROR_MOD,        ONLY : DEBUG_MSG
       USE GRID_MOD,         ONLY : GET_YEDGE
       USE TRACER_MOD,       ONLY : STT, TRACER_MW_G
-      USE TRACERID_MOD,     ONLY : IDTHNO3, IDTNIT
+      USE TRACERID_MOD,     ONLY : IDTSO4
+      USE TRACERID_MOD,     ONLY : IDTHNO3, IDTNIT, IDTBrNO3, IDTHBr
+      USE TRACERID_MOD,     ONLY : IDTHOBr, IDTHCl, IDClNO3, IDHOCl
       USE CHEMGRID_MOD,     ONLY : ITS_IN_THE_STRATMESO
-      USE CHEMGRID_MOD,     ONLY : ITS_IN_THE_TROP
+      USE CHEMGRID_MOD,     ONLY : ITS_IN_THE_CHEMGRID
+      USE COMODE_MOD,       ONLY : CSPEC,JLOP
       USE ERROR_MOD,        ONLY : ERROR_STOP
 
       USE CMN_GCTM_MOD,     ONLY : AIRMW, PI
@@ -1468,23 +1478,39 @@
       REAL*8                :: HNO3SUM, H2OSUM
       REAL*8                :: HNO3PP,  H2OPP
       REAL*8                :: PSATHNO3, PSATH2O
+      REAL*8                :: H2SO4SUM
+      REAL*8                :: ClNO3SUM, HClSUM, HOClSUM
+      REAL*8                :: BrNO3SUM, HBrSUM, HOBrSUM
 
       ! Gridbox aerosol and phase data
-      REAL*8                       :: HNO3_BOX_NAT, H2O_BOX_ICE
-      REAL*8                       :: VOL_NAT, VOL_ICE
-      REAL*8, DIMENSION(NSTRATAER) :: RAD_AER_BOX,RHO_AER_BOX
-      REAL*8, DIMENSION(NSTRATAER) :: KG_AER_BOX,NDENS_AER_BOX
-      REAL*8                       :: KG_NAT, KG_ICE, KG_NO3
+      REAL*8                :: HNO3_BOX_G, HNO3_BOX_L, HNO3_BOX_S
+      REAL*8                :: H2O_BOX_G,  H2O_BOX_L,  H2O_BOX_S
+      REAL*8                :: H2SO4_BOX_G,H2SO4_BOX_L
+      REAL*8                :: HCl_BOX_G,  HCl_BOX_L
+      REAL*8                :: HOCl_BOX_G, HOCl_BOX_L
+      REAL*8                :: HBr_BOX_G,  HBr_BOX_L
+      REAL*8                :: HOBr_BOX_G, HOBr_BOX_L
+      REAL*8                :: HNO3GASFRAC, HClGASFRAC, HOClGASFRAC
+      REAL*8                :: HBrGASFRAC, HOBrGASFRAC
+      REAL*8                :: VOL_NAT, VOL_ICE, VOL_SLA
+      REAL*8                :: RAD_AER_BOX,RHO_AER_BOX
+      REAL*8                :: KG_AER_BOX,NDENS_AER_BOX,SAD_AER_BOX
+      REAL*8                :: KG_NAT, KG_ICE, KG_NO3
+
+      ! SLA weight fractions
+      REAL*8                :: W_H2SO4, W_H2O, W_HNO3
+      REAL*8                :: W_HCl, W_HOCl, W_HBr, W_HOBr
 
       ! Grid box location
       REAL*8                :: BOX_LAT_S, BOX_LAT_N
-      LOGICAL               :: IS_VALID, IS_POLAR
+      LOGICAL               :: IS_VALID, IS_POLAR, IS_STRAT
+
+      ! Local properties
+      REAL*8, DIMENSION(11) :: GAMMA_BOX
+      INTEGER               :: STATE_LOCAL
 
       ! Loop variables
-      INTEGER               :: I, J, L
-
-      ! Loop limits for column
-      INTEGER               :: MINLEV, MAXLEV
+      INTEGER               :: I, J, L, K, JLOOP
 
       !=================================================================
       ! CALC_PSC begins here!
@@ -1497,12 +1523,20 @@
       ! Loop over latitude boxes first
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, MINLEV, MAXLEV, PCENTER, PCENTER_PA, INVAIR )
-!$OMP+PRIVATE( H2O_BOX_ICE, HNO3_BOX_NAT, DENAIR, PSATHNO3, PSATH2O )
-!$OMP+PRIVATE( VOL_NAT, VOL_ICE, H2OPP, H2OSUM, HNO3PP, HNO3SUM )
+!$OMP+PRIVATE( I,J,L,K,IS_POLAR,IS_STRAT,PCENTER,PCENTER_PA )
+!$OMP+PRIVATE( DENAIR, INVAIR, PSATHNO3, PSATH2O, JLOOP )
+!$OMP+PRIVATE( VOL_NAT, VOL_ICE, VOL_SLA )
 !$OMP+PRIVATE( TCENTER, TINV, IS_VALID, BOX_LAT_S, BOX_LAT_N )
 !$OMP+PRIVATE( RAD_AER_BOX, RHO_AER_BOX, KG_AER_BOX, NDENS_AER_BOX )
-!$OMP+PRIVATE( KG_NAT, KG_ICE, KG_NO3, IS_POLAR )
+!$OMP+PRIVATE( SAD_AER_BOX, KG_NAT, KG_ICE, KG_NO3 )
+!$OMP+PRIVATE( H2OSUM,H2OPP,H2O_BOX_S,H2O_BOX_L,H2O_BOX_G, H2SO4SUM )
+!$OMP+PRIVATE( HNO3SUM,HNO3PP,HNO3_BOX_S,HNO3_BOX_L,HNO3_BOX_G )
+!$OMP+PRIVATE( BrNO3SUM,HBrSUM,HOBrSUM,ClNO3SUM,HClSUM,HOClSUM )
+!$OMP+PRIVATE( STATE_LOCAL,GAMMA_BOX,HBrGASFRAC,HOBrGASFRAC )
+!$OMP+PRIVATE( HNO3GASFRAC,HClGASFRAC,HOClGASFRAC )
+!$OMP+PRIVATE( W_H2SO4,W_H2O,W_HCl,W_HOCl,W_HBr,W_HOBr,W_HNO3 )
+!$OMP+PRIVATE( HCl_BOX_G,HCl_BOX_L,HOCl_BOX_G,HOCl_BOX_L,H2SO4_BOX_G )
+!$OMP+PRIVATE( HBr_BOX_G,HBr_BOX_L,HOBr_BOX_G,HOBr_BOX_L,H2SO4_BOX_L )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J=1,JJPAR
          BOX_LAT_S = GET_YEDGE(1,J,1)
@@ -1511,9 +1545,6 @@
      &               (BOX_LAT_N.gt.PSC_MAXLAT))
          ! Loop over longitudinal boxes
          DO I=1,IIPAR
-            ! Set impossible loop limits
-            MINLEV=LLPAR+1
-            MAXLEV=0
             LLOOP: DO L=1,LLPAR
 
                ! Get local conditions
@@ -1523,23 +1554,40 @@
                TINV = 1.d0/TCENTER
 
                ! Apply other limits from Kirner et al.
-               IS_VALID = (IS_POLAR).and.(.not.                  
-     &                              ((ITS_IN_THE_TROP(I,J,L) .or.
-     &                               (PCENTER_PA.lt.PSC_PMIN).or.
-     &                               (PCENTER_PA.gt.PSC_PMAX))))
+               IS_STRAT = ITS_IN_THE_STRATMESO(I,J,L)
+               IS_VALID = (IS_POLAR).and.(IS_STRAT).and.       
+     &                        (.not.((PCENTER_PA.lt.PSC_PMIN).or.
+     &                               (PCENTER_PA.gt.PSC_PMAX)))
 
                ! Initialize variables
-               HNO3_BOX_NAT = 0d0
-               VOL_NAT      = 0d0
-               KG_NAT       = 0d0
-               H2O_BOX_ICE  = 0d0
-               VOL_ICE      = 0d0
-               KG_ICE       = 0d0
+               VOL_NAT      = 0.0d0
+               KG_NAT       = 0.0d0
+               VOL_ICE      = 0.0d0
+               KG_ICE       = 0.0d0
  
-               RAD_AER_BOX  = 0d0
-               RHO_AER_BOX  = 0d0
-               KG_AER_BOX   = 0d0
-               NDENS_AER_BOX= 0d0
+               RAD_AER_BOX  = 0.0d0
+               RHO_AER_BOX  = 0.0d0
+               KG_AER_BOX   = 0.0d0
+               NDENS_AER_BOX= 0.0d0
+
+               H2O_BOX_S    = 0.0d0
+               H2O_BOX_L    = 0.0d0
+               H2O_BOX_G    = 0.0d0
+               HNO3_BOX_S   = 0.0d0
+               HNO3_BOX_L   = 0.0d0
+               HNO3_BOX_G   = 0.0d0
+               H2SO4_BOX_L  = 0.0d0
+               H2SO4_BOX_G  = 0.0d0
+               HCl_BOX_L    = 0.0d0
+               HCl_BOX_G    = 0.0d0
+               HOCl_BOX_L   = 0.0d0
+               HOCl_BOX_G   = 0.0d0
+               HBr_BOX_L    = 0.0d0
+               HBr_BOX_G    = 0.0d0
+               HOBr_BOX_L   = 0.0d0
+               HOBr_BOX_G   = 0.0d0
+
+               STATE_LOCAL  = STATE_PSC(I,J,L)
 
                ! Calculate local air density
                DENAIR = AVOGADRO * PCENTER_PA / (TCENTER*R_UNIV)
@@ -1558,7 +1606,6 @@
 
                !-----SDE DEBUG
                ! Revert to static H2O for now
-               !H2OSUM = SPHU(I,J,L)*1.d-3*AD(I,J,L)
                H2OSUM = AVGW(I,J,L)
                !-----SDE DEBUG
 
@@ -1568,11 +1615,10 @@
 
                IF (.not.IS_VALID) THEN
                   ! No PSCs
-                  STATE_PSC(I,J,L) = 0
+                  STATE_LOCAL = 0
                ELSEIF (TCENTER.gt.T_MAX) THEN
                   ! STS only
-                  STATE_PSC(I,J,L) = 1
-                  IS_VALID = .FALSE.
+                  STATE_LOCAL = 1
                ELSE
                   ! Calculate saturation pressures
                   PSATHNO3 = 10.d0**(((TSATHNO3_A+(TCENTER*
@@ -1584,85 +1630,89 @@
                   
                   ! Use local ice mass ratio from GEOS-5 data
                   KG_ICE = QI(I,J,L)*CLDF(L,I,J)*AD(I,J,L)
-                  H2O_BOX_ICE = QI(I,J,L)*CLDF(L,I,J)*AIRMW/ICEMW
-                  VOL_ICE = H2O_BOX_ICE * DENAIR * (1.d-3) * ICEMW /
+                  H2O_BOX_S = QI(I,J,L)*CLDF(L,I,J)*AIRMW/ICEMW
+                  VOL_ICE = H2O_BOX_S * DENAIR * (1.d-3) * ICEMW /
      &                             (DENSICE*AVOGADRO) ! m3 ice/m3 air
 
                   ! Ice exists/possible?
                   IF ((H2OPP.gt.PSATH2O).or.
-     &                   (H2O_BOX_ICE.gt.TINY(0d0))) THEN
-                     STATE_PSC(I,J,L) = 3
-                     HNO3_BOX_NAT = 1d0
+     &                   (H2O_BOX_S.gt.TINY(0d0))) THEN
+                     STATE_LOCAL = 3
+                     HNO3_BOX_S = 1d0
                   ELSE
                      ! If ice not possible could still have NAT
-                     IF (STATE_PSC(I,J,L).gt.1) THEN
+                     IF (STATE_LOCAL.gt.1) THEN
                         ! Had PSCs here last time
                         IF (((HNO3PP.gt.PSATHNO3).and.
      &                       (PSATHNO3.gt.PSATH2O)).or.
      &                       (PCENTER.lt.P_MAXNAT)) THEN
-                           STATE_PSC(I,J,L) = 2
-                           HNO3_BOX_NAT = 1d0
+                           STATE_LOCAL = 2
+                           HNO3_BOX_S = 1d0
                         ELSE
                            ! STS only
-                           STATE_PSC(I,J,L) = 1
-                           IS_VALID = .FALSE.
+                           STATE_LOCAL = 1
                         ENDIF 
                      ELSE
                         ! STS only
-                        STATE_PSC(I,J,L) = 1
-                        IS_VALID = .FALSE.
+                        STATE_LOCAL = 1
                      ENDIF
                   ENDIF
                ENDIF
 
+               ! Store state
+               STATE_PSC(I,J,L) = STATE_LOCAL
+
                ! Calculate NAT if relevant
-               IF (HNO3_BOX_NAT.gt.TINY(1d0)) THEN
-                  HNO3_BOX_NAT = (HNO3PP-PSATHNO3)/PCENTER_PA
-                  HNO3_BOX_NAT = MAX(0d0,HNO3_BOX_NAT)
+               IF (HNO3_BOX_S.gt.TINY(1d0)) THEN
+                  HNO3_BOX_S = (HNO3PP-PSATHNO3)/PCENTER_PA
+                  HNO3_BOX_S = MAX(0d0,HNO3_BOX_S)
 
                   ! Calculate m3 NAT/m3 air
-                  ! HNO3_BOX_NAT is the number of moles of HNO3
+                  ! HNO3_BOX_S is the number of moles of HNO3
                   ! which will be frozen into HNO3.3H2O (NAT)
                   ! Therefore volume calculation must be done
                   ! with care!
-                  VOL_NAT = HNO3_BOX_NAT * DENAIR * (1.d-3) *
+                  VOL_NAT = HNO3_BOX_S * DENAIR * (1.d-3) *
      &               NATMW / (DENSNAT*AVOGADRO)
-                  KG_NAT = HNO3_BOX_NAT * NATMW *
+                  KG_NAT = HNO3_BOX_S * NATMW *
      &                     AD(I,J,L) / AIRMW
                ENDIF
 
                ! Calculate particle properties
-               IF (.not.IS_VALID) THEN
+               IF (STATE_LOCAL.lt.2) THEN
                   ! Zero all!
-                  KG_AER_BOX(I_SPA)   = 0d0
-                  RAD_AER_BOX(I_SPA)  = 0d0
-                  RHO_AER_BOX(I_SPA)  = DENSICE
-                  NDENS_AER_BOX(I_SPA)= 0d0
+                  KG_AER_BOX   = 0d0
+                  RAD_AER_BOX  = 0d0
+                  RHO_AER_BOX  = DENSICE
+                  NDENS_AER_BOX= 0d0
                ELSE
-                  KG_AER_BOX(I_SPA) = KG_NAT + KG_ICE
-                  RAD_AER_BOX(I_SPA) = MIN_RAD
-                  NDENS_AER_BOX(I_SPA) = (3.0d0*(VOL_NAT+VOL_ICE)/
-     &               (4.0d0*PI*(RAD_AER_BOX(I_SPA)**3.0d0)))
-                  IF (NDENS_AER_BOX(I_SPA).gt.MAX_NDENS) THEN
-                     NDENS_AER_BOX(I_SPA) = MAX_NDENS
-                     RAD_AER_BOX(I_SPA) = (3.0d0*(VOL_NAT+VOL_ICE)/
+                  KG_AER_BOX = KG_NAT + KG_ICE
+                  RAD_AER_BOX = MIN_RAD
+                  NDENS_AER_BOX = (3.0d0*(VOL_NAT+VOL_ICE)/
+     &               (4.0d0*PI*(RAD_AER_BOX**3.0d0)))
+                  IF (NDENS_AER_BOX.gt.MAX_NDENS) THEN
+                     NDENS_AER_BOX = MAX_NDENS
+                     RAD_AER_BOX = (3.0d0*(VOL_NAT+VOL_ICE)/
      &                  (4.0d0*PI*MAX_NDENS))**(1.d0/3.d0)
                   ENDIF
-                  RHO_AER_BOX(I_SPA) = 
+                  RHO_AER_BOX = 
      &               ((VOL_ICE*DENSICE)+(VOL_NAT*DENSNAT))/
      &                                 (VOL_ICE+VOL_NAT)
                ENDIF
 
-               ! Store in outer array
-               RAD_AER(I,J,L,I_SPA)  = RAD_AER_BOX(I_SPA)*1.d2 ! cm
-               RHO_AER(I,J,L,I_SPA)  = RHO_AER_BOX(I_SPA) ! kg/m3
-               KG_AER(I,J,L,I_SPA)   = KG_AER_BOX(I_SPA)  ! kg
-               NDENS_AER(I,J,L,I_SPA)= NDENS_AER_BOX(I_SPA)!#/m3
-               SAD_AER(I,J,L,I_SPA)  = 4.0d-2 * RAD_AER_BOX(I_SPA) *
-     &            RAD_AER_BOX(I_SPA) * NDENS_AER_BOX(I_SPA) * PI
+               ! Calculate SAD (cm2/cm3)
+               SAD_AER_BOX = 4.0d-2 * RAD_AER_BOX *
+     &            RAD_AER_BOX * NDENS_AER_BOX * PI
+
+               ! Store in outer arrays
+               RAD_AER(I,J,L,I_SPA)  = RAD_AER_BOX*1.d2 ! cm
+               RHO_AER(I,J,L,I_SPA)  = RHO_AER_BOX ! kg/m3
+               KG_AER(I,J,L,I_SPA)   = KG_AER_BOX  ! kg
+               NDENS_AER(I,J,L,I_SPA)= NDENS_AER_BOX!#/m3
+               SAD_AER(I,J,L,I_SPA)  = SAD_AER_BOX
 
                ! Repartition NIT and HNO3 in strat/meso
-               IF (ITS_IN_THE_STRATMESO(I,J,L)) THEN
+               IF (IS_STRAT) THEN
                   ! Convert NAT from kg NAT to kg NO3
                   STT(I,J,L,IDTNIT) = KG_NAT*TRACER_MW_G(IDTNIT)/NATMW
                   ! Remove (kg NO3 as NAT) from total kg NO3
@@ -1671,23 +1721,131 @@
      &                  *TRACER_MW_G(IDTHNO3)/TRACER_MW_G(IDTNIT) 
                ENDIF
 
+               ! Now start liquid aerosol consideration
+               ! Start by assuming all non-solid H2O/HNO3 is gaseous
+               HNO3_BOX_G = HNO3SUM - HNO3_BOX_S
+               HNO3_BOX_L = 0d0
+               H2O_BOX_G = H2OSUM - H2O_BOX_S
+               H2O_BOX_L = 0d0
+
+               ! Calculate mixing ratios of other relevant species
+               H2SO4SUM = STT(I,J,L,IDTSO4  )*INVAIR/
+     &                  TRACER_MW_G(IDTSO4  )
+               BrNO3SUM = STT(I,J,L,IDTBrNO3)*INVAIR/
+     &                  TRACER_MW_G(IDTBrNO3)
+               HClSUM   = STT(I,J,L,IDTHCl  )*INVAIR/
+     &                  TRACER_MW_G(IDTHCl  )
+               HOBrSUM  = STT(I,J,L,IDTHOBr )*INVAIR/
+     &                  TRACER_MW_G(IDTHOBr )
+               HBrSUM   = STT(I,J,L,IDTHBr  )*INVAIR/
+     &                  TRACER_MW_G(IDTHBr  )
+
+               ! ClNO3 and HOCl not stored as tracers, only species
+               IF (ITS_IN_THE_CHEMGRID(I,J,L)) THEN
+                  JLOOP = JLOP(I,J,L)
+                  ClNO3SUM = CSPEC(JLOOP,IDClNO3)/DENAIR
+                  HOClSUM  = CSPEC(JLOOP,IDHOCl) /DENAIR
+               ELSE
+                  ClNO3SUM = 0d0
+                  HOClSUM = 0d0
+               ENDIF
+
+               ! H2SO4 gas fraction calculated earlier throughout grid
+               ! Consider gaseoues H2SO4 to be unavailable for SLA
+               H2SO4_BOX_G = H2SO4SUM * H2SO4_GASFRAC(I,J,L)
+               H2SO4_BOX_L = H2SO4SUM - H2SO4_BOX_G
+
+               ! Zero local properties
+               RHO_AER_BOX   = 1000d0
+               RAD_AER_BOX   = 0d0 
+               KG_AER_BOX    = 0d0
+               NDENS_AER_BOX = 0d0
+               SAD_AER_BOX   = 0d0
+               VOL_SLA = 0d0
+
+               IF (.not.IS_STRAT) THEN
+                  ! Use JPL 10-06/Oslo CTM data, where available,
+                  ! for conventional sulfates/H2SO4
+                  GAMMA_BOX(1)  = 0.1d0
+                  GAMMA_BOX(2)  = 0.0d0
+                  GAMMA_BOX(3)  = 0.0d0
+                  GAMMA_BOX(4)  = 0.0d0
+                  GAMMA_BOX(5)  = 0.3d0
+                  GAMMA_BOX(6)  = 0.4d0
+                  GAMMA_BOX(7)  = 0.9d0
+                  GAMMA_BOX(8)  = 0.0d0
+                  GAMMA_BOX(9)  = 0.0d0
+                  GAMMA_BOX(10) = 0.2d0
+                  GAMMA_BOX(11) = 0.0d0
+               ELSEIF (H2SO4SUM.lt.1d-12) THEN
+                  ! No aerosol to speak of
+                  DO K=1,11
+                     GAMMA_BOX(K) = 0.0d0
+                  ENDDO
+               ELSE
+                  CALL TERNARY (PCENTER,TCENTER,H2OSUM,H2SO4_BOX_L,
+     &               HNO3SUM,HClSUM,HOClSUM,HBrSUM,HOBrSUM,
+     &               W_H2SO4,W_H2O,W_HNO3,W_HCl,W_HOCl,W_HBr,W_HOBr,
+     &               HNO3GASFRAC,HClGASFRAC,HOClGASFRAC,
+     &               HBrGASFRAC,HOBrGASFRAC,VOL_SLA,RHO_AER_BOX)
+        
+                  ! Partition species
+                  HNO3_BOX_G = HNO3SUM*HNO3GASFRAC
+                  HNO3_BOX_L = HNO3SUM - (HNO3_BOX_G+HNO3_BOX_S)
+                  HCl_BOX_G  = HClSUM *HClGASFRAC
+                  HCl_BOX_L  = HClSUM -HCl_BOX_G
+                  HOCl_BOX_G = HOClSUM*HOClGASFRAC
+                  HOCl_BOX_L = HOClSUM-HOCl_BOX_G
+                  HBr_BOX_G  = HBrSUM *HBrGASFRAC
+                  HBr_BOX_L  = HBrSUM -HBr_BOX_G
+                  HOBr_BOX_G = HOBrSUM*HOBrGASFRAC
+                  HOBr_BOX_L = HOBrSUM-HOBr_BOX_G
+
+                  ! Calculate SLA parameters (Grainger 1995)
+                  SAD_AER_BOX = SLA_VA*(VOL_SLA**0.751d0)
+                  RAD_AER_BOX = SLA_VR*SLA_RR*(VOL_SLA**0.249d0)
+                  KG_AER_BOX  = RHO_AER_BOX*VOL_SLA*AIRVOL(I,J,L)
+
+                  !-----SDE DEBUG
+                  DO K=1,11
+                     GAMMA_BOX(K) = 0.d0
+                  ENDDO
+                  !-----SDE DEBUG
+               ENDIF
+
+               ! Send properties to larger array
+               DO K=1,11
+                  GAMMA_SLA(I,J,L,K) = GAMMA_BOX(K)
+               ENDDO
+               RAD_AER(I,J,L,I_SLA)  = RAD_AER_BOX*1.d2 ! cm
+               RHO_AER(I,J,L,I_SLA)  = RHO_AER_BOX      ! kg/m3
+               KG_AER(I,J,L,I_SLA)   = KG_AER_BOX       ! kg
+               NDENS_AER(I,J,L,I_SLA)= NDENS_AER_BOX    ! #/m3
+               SAD_AER(I,J,L,I_SLA)  = SAD_AER_BOX      ! cm2/cm3
             ENDDO LLOOP ! L
-               ! Check for NAT formation
          ENDDO ! I
       ENDDO ! J
 !$OMP END PARALLEL DO
 
       IF (LPRT) THEN
-         CALL DEBUG_MSG( '### GMISTRAT: after CALC_ICENAT' )
-         WRITE(6,'(a)') 'Ice/NAT diagnostics summary:'
-         WRITE(6,'(a,1x,E10.2)') 'Peak particle # density (#/m3): ',
+         CALL DEBUG_MSG( '### GMISTRAT: after CALC_PSC' )
+         WRITE(6,'(a)') 'Strat. aerosol diagnostics summary:'
+         WRITE(6,'(a,1x,E12.4)') 'Peak particle # density (#/m3): ',
      &                               MAXVAL(NDENS_AER(:,:,:,I_SPA))
-         WRITE(6,'(a,1x,E10.2)') 'Peak particle density (kg/m3) : ',
+         WRITE(6,'(a,1x,E12.4)') 'Peak particle density (kg/m3) : ',
      &                               MAXVAL(RHO_AER(:,:,:,I_SPA))
-         WRITE(6,'(a,1x,E10.2)') 'Peak particle SAD (cm2/cm3)   : ',
+         WRITE(6,'(a,1x,E12.4)') 'Peak particle SAD (cm2/cm3)   : ',
      &                               MAXVAL(SAD_AER(:,:,:,I_SPA))
-         WRITE(6,'(a,1x,E10.2)') 'Peak particle radius (cm)     : ',
+         WRITE(6,'(a,1x,E12.4)') 'Peak particle radius (cm)     : ',
      &                               MAXVAL(RAD_AER(:,:,:,I_SPA))
+         WRITE(6,'(a,1x,E12.4)') 'Peak SSA/STS density (kg/m3)  : ',
+     &                               MAXVAL(RHO_AER(:,:,:,I_SLA))
+         WRITE(6,'(a,1x,E12.4)') 'Peak SSA/STS SAD (cm2/cm3)    : ',
+     &                               MAXVAL(SAD_AER(:,:,:,I_SLA))
+         WRITE(6,'(a,1x,E12.4)') 'Peak SSA/STS radius (cm)      : ',
+     &                               MAXVAL(RAD_AER(:,:,:,I_SLA))
+         WRITE(6,'(a,1x,E12.4)') 'Peak SSA/STS gamma (fraction) : ',
+     &                                 MAXVAL(GAMMA_SLA(:,:,:,:))
       ENDIF
 
       END SUBROUTINE CALC_PSC
@@ -1732,6 +1890,48 @@
       END FUNCTION KG_STRAT_AER
 !
 !EOC
+!------------------------------------------------------------------------------
+!               MIT Laboratory for Aviation and the Environment               !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: rho_strat_aer
+!
+! !DESCRIPTION: Function RHO\_STRAT\_AER returns the calculated
+!  stratospheric aerosol mass density.
+!\\
+!\\
+! !INTERFACE:
+!
+      REAL*8 FUNCTION RHO_STRAT_AER (I,J,L,IAER)
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER,INTENT(IN)          :: I,J,L      ! Grid indices
+      INTEGER,INTENT(IN)          :: IAER       ! Aerosol index:
+                                                ! 1 = Liquid aerosol
+                                                ! 2 = Solid aerosol
+!
+! !REVISION HISTORY: 
+!  18 Apr 2013 - S. D. Eastham - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+      !=================================================================
+      ! RHO_STRAT_AER begins here!
+      !=================================================================
+
+      RHO_STRAT_AER = RHO_AER(I,J,L,IAER)
+
+      END FUNCTION RHO_STRAT_AER
+!
+!EOC
+!------------------------------------------------------------------------------
+!               MIT Laboratory for Aviation and the Environment               !
+!------------------------------------------------------------------------------
+!BOP
+!
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
 !------------------------------------------------------------------------------
@@ -1822,6 +2022,404 @@
      &          (STT(I,J,L,IDTNIT).gt.TINY(1d0)))
 
       END SUBROUTINE CHECK_NAT
+!
+!EOC
+!------------------------------------------------------------------------------
+!               MIT Laboratory for Aviation and the Environment               !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: ternary
+!
+! !DESCRIPTION: Subroutine TERNARY calculates the composition of SSA/STS 
+!  aerosols using a paramaterization from Carslaw et al. "A Thermodynamic
+!  Model of the System HCl-HNO3-H2SO4-H2O, Including Solubilities of HBr,
+!  from <200 to 328 K". The bulk of this code was taken directly from the
+!  Global Modeling Initiative implementation by David Considine.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE TERNARY (PCENTER_IN,TCENTER_IN,H2OSUM_IN,H2SO4SUM,
+     &                 HNO3SUM,HClSUM,HOClSUM,HBRSum,HOBrSUM,
+     &                 W_H2SO4,W_H2O,W_HNO3,W_HCl,W_HOCl,W_HBr,W_HOBr,
+     &                 HNO3GASFRAC,HClGASFRAC,HOClGASFRAC,
+     &                 HBrGASFRAC,HOBrGASFRAC,SLA_VOL,SLA_RHO)
+!
+! !USES:
+!
+      USE CMN_GCTM_MOD,      ONLY : PI
+!
+! !INPUT PARAMETERS:
+!
+      REAL*8, INTENT(IN)  :: PCENTER_IN   ! Pressure (hPa)
+      REAL*8, INTENT(IN)  :: TCENTER_IN   ! Temperature (K)
+      REAL*8, INTENT(IN)  :: H2OSUM_IN    ! Total H2O mixing ratio
+      REAL*8, INTENT(IN)  :: H2SO4SUM     ! Liquid H2SO4 mixing ratio
+      REAL*8, INTENT(IN)  :: HNO3SUM      ! Total HNO3 mixing ratio
+      REAL*8, INTENT(IN)  :: HClSUM       ! Total HCl mixing ratio
+      REAL*8, INTENT(IN)  :: HOClSUM      ! Total HOCl mixing ratio
+      REAL*8, INTENT(IN)  :: HBrSUM       ! Total HBr mixing ratio
+      REAL*8, INTENT(IN)  :: HOBrSUM      ! Total HOBr mixing ratio
+!
+! !OUTPUT VARIABLES:
+!
+      REAL*8, INTENT(OUT) :: W_H2SO4      ! kg H2SO4/kg SLA
+      REAL*8, INTENT(OUT) :: W_H2O        ! kg H2O  /kg SLA
+      REAL*8, INTENT(OUT) :: W_HNO3       ! kg HNO3 /kg SLA
+      REAL*8, INTENT(OUT) :: W_HCl        ! kg HCl  /kg SLA
+      REAL*8, INTENT(OUT) :: W_HOCl       ! kg HOCl /kg SLA
+      REAL*8, INTENT(OUT) :: W_HBr        ! kg HBr  /kg SLA
+      REAL*8, INTENT(OUT) :: W_HOBr       ! kg HOBr /kg SLA
+      REAL*8, INTENT(OUT) :: HNO3GASFRAC  ! Gas fraction HNO3     
+      REAL*8, INTENT(OUT) :: HClGASFRAC   ! Gas fraction HCl     
+      REAL*8, INTENT(OUT) :: HOClGASFRAC  ! Gas fraction HOCl     
+      REAL*8, INTENT(OUT) :: HBrGASFRAC   ! Gas fraction HBr     
+      REAL*8, INTENT(OUT) :: HOBrGASFRAC  ! Gas fraction HOBr     
+      REAL*8, INTENT(OUT) :: SLA_VOL      ! Aerosol volume (m3/m3)
+      REAL*8, INTENT(OUT) :: SLA_RHO      ! Aer. mass density (kg/m3)
+!
+! !REVISION HISTORY: 
+!  19 Apr 2013 - S. D. Eastham - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Derived inputs
+      REAL*8 :: H2OSUM
+      REAL*8 :: TCENTER
+      REAL*8 :: PCENTER
+
+      ! Partial pressures
+      REAL*8 :: PATMH2O
+      REAL*8 :: PATMHNO3
+      REAL*8 :: PATMHCl
+      REAL*8 :: PATMHOCl
+      REAL*8 :: PATMHBr
+      REAL*8 :: PATMHOBr
+
+      ! Molar densities (mol/m3)
+      REAL*8 :: MOLDENS_H2SO4
+
+      ! Mass totals
+      REAL*8 :: M_H2SO4,M_HNO3
+      REAL*8 :: M_HCl,M_HOCl
+      REAL*8 :: M_HBr,M_HOBr
+
+      ! Binary solutions denoted with BIN
+      ! Mole fractions
+      REAL*8 :: X_H2SO4_BIN
+      REAL*8 :: X_HNO3_BIN
+
+      ! Mass fractions
+      REAL*8 :: M_H2SO4_BIN
+      REAL*8 :: M_HNO3_BIN
+
+      ! Effective Henry's Law coefficients
+      REAL*8 :: H_H2SO4_BIN
+      REAL*8 :: H_HNO3_BIN
+      REAL*8 :: H_HCL, H_HOCL
+      REAL*8 :: H_HBr, H_HOBr
+
+      ! Frost point
+      REAL*8 :: T_ICE
+
+      ! Equilibrium vapor pressure
+      REAL*8 :: PVAP_HNO3
+      REAL*8 :: PVAP_HCl
+      REAL*8 :: PVAP_HBr
+      REAL*8 :: PVAP_HOBr
+
+      ! R in m3.atm/(mol K)
+      REAL*8, PARAMETER :: R_ATM = 8.205d-5
+
+      ! Transitional variables
+      REAL*8 :: DENSITY
+      REAL*8 :: TEMPERATURE
+      REAL*8 :: PR
+      REAL*8 :: TR
+      REAL*8 :: TT
+
+      ! Coefficients (q, k) for calculation of H* for H2SO4 and HNO3
+      REAL*8,DIMENSION(10) :: QN,QS
+      REAL*8,DIMENSION(7)  :: KN,KS
+
+      ! Derived parameters
+      REAL*8 :: A,B,C,PHI
+      
+! ======================================================================
+        DATA QN/14.5734d0,0.0615994d0,-1.14895d0,0.691693d0,-0.098863d0,
+     &  0.0051579d0,0.123472d0,-0.115574d0,0.0110113d0,0.0097914d0/
+        DATA QS/14.4700d0,0.0638795d0,-3.29597d0,1.778224d0,-0.223244d0,
+     &  0.0086486d0,0.536695d0,-0.335164d0,0.0265153d0,0.0157550d0/
+        DATA KN/-39.136d0,6358.4d0,83.29d0,-17650.0d0,198.53d0,
+     &  -11948.d0,-28.469d0/
+        DATA KS/-21.661d0,2724.2d0,51.81d0,-15732.0d0,47.004d0,
+     &       -6969.0d0,-4.6183d0/
+! ======================================================================
+
+      SAVE QN, QS, KN, KS
+
+      !=================================================================
+      ! TERNARY begins here!
+      !=================================================================
+
+      ! Routine only valid for certain limits
+      H2OSUM = MAX(H2OSUM_IN,5.0d-7)
+      PCENTER = MAX(PCENTER_IN,5.0d0)
+      TCENTER = TCENTER_IN
+
+      ! Calculate partial pressure of H2O & HNO3
+      ! PCENTER is in hPa
+      PATMH2O  = H2OSUM  * PCENTER / 1013.0d0
+      PATMHNO3 = HNO3SUM * PCENTER / 1013.0d0
+      PATMHCl  = HClSUM  * PCENTER / 1013.0d0
+      PATMHOCl = HOClSUM * PCENTER / 1013.0d0
+      PATMHBr  = HBrSUM  * PCENTER / 1013.0d0
+      PATMHOBr = HOBrSUM * PCENTER / 1013.0d0
+
+      ! Moles of H2SO4 per m3
+      MOLDENS_H2SO4 = 100*PCENTER*H2SO4SUM/(8.314d0*TCENTER)
+
+      ! Nucleation temperature of ice
+      T_ICE = 2668.70d0/
+     &   (10.4310d0-(LOG(PATMH2O)+LOG(760.0d0))/LOG(10.0d0))
+
+      ! Pressure relation
+      PR = LOG(PATMH2O)+18.4d0
+      
+      ! Therefore if temperature lower, set to T_ICE-3
+      IF (TCENTER .lt. (T_ICE-3.0d0)) THEN
+         TCENTER = (T_ICE-3.0d0)
+      ENDIF
+
+      IF (TCENTER .lt. 185.0d0) THEN
+         TCENTER = 185.0d0
+      ENDIF
+
+      ! ??
+      TT = TCENTER * R_ATM * MOLDENS_H2SO4
+      
+      ! Temperature relation
+      TR = 1.0d4/TCENTER-43.4782608d0
+
+      ! Determine H2SO4/H2O pure solution concentration
+      ! Mole fraction of H2SO4 in binary solution
+      X_H2SO4_BIN = 1.0d0/(2.0d0*(KS(3)+KS(4)/TCENTER))*
+     &   (-KS(1)-KS(2)/TCENTER-((KS(1)+KS(2)/TCENTER)**
+     &   2.0d0-4.0d0*(KS(3)+KS(4)/TCENTER)*(KS(5)+KS(6)/
+     &   TCENTER+KS(7)*LOG(TCENTER)-LOG(PATMH2O)))**0.5d0)
+      M_H2SO4_BIN = 55.51d0*X_H2SO4_BIN/(1.0d0-X_H2SO4_BIN)
+
+      IF ((TCENTER.le.215.0d0).AND.(PATMHNO3.gt.0.0d0)) THEN
+         ! Determine HNO3/H2SO4/H2O solution composition
+         H_H2SO4_BIN = EXP(QS(1)+QS(2)*TR**2+(QS(3)+QS(4)*TR+
+     &      QS(5)*TR**2+QS(6)*TR**3)*PR+(QS(7)+QS(8)*TR+
+     &      QS(9)*TR**2)*PR**2+QS(10)*TR*PR**3)
+         X_HNO3_BIN=1.0d0/(2.0d0*(KN(3)+KN(4)/TCENTER))*
+     &      (-KN(1)-KN(2)/TCENTER-((KN(1)+KN(2)/TCENTER)**
+     &      2-4.0d0*(KN(3)+KN(4)/TCENTER)*(KN(5)+
+     &      KN(6)/TCENTER+KN(7)*LOG(TCENTER)-LOG(PATMH2O)
+     &      ))**0.5d0)
+         M_HNO3_BIN=55.51d0*X_HNO3_BIN/(1.0d0-X_HNO3_BIN)
+         H_HNO3_BIN=EXP(QN(1)+QN(2)*TR**2+(QN(3)+QN(4)*TR+QN(5)*
+     &      TR**2+QN(6)*TR**3)*PR+(QN(7)+QN(8)*TR+QN(9)*TR**2)*
+     &      PR**2+QN(10)*TR*PR**3)
+         A=(TT*H_HNO3_BIN*M_HNO3_BIN**2-TT*H_H2SO4_BIN*M_HNO3_BIN*
+     &      M_H2SO4_BIN-2.0d0*M_HNO3_BIN**2*M_H2SO4_BIN+
+     &      M_HNO3_BIN*M_H2SO4_BIN**2+H_HNO3_BIN*M_HNO3_BIN*
+     &      M_H2SO4_BIN*PATMHNO3-H_H2SO4_BIN*M_H2SO4_BIN**2*
+     &      PATMHNO3)/(M_HNO3_BIN**2-M_HNO3_BIN*M_H2SO4_BIN)
+         B=M_H2SO4_BIN*(-2.0d0*TT*H_HNO3_BIN*M_HNO3_BIN+TT*
+     &      H_H2SO4_BIN*M_H2SO4_BIN+M_HNO3_BIN*M_H2SO4_BIN-
+     &      H_HNO3_BIN*M_H2SO4_BIN*PATMHNO3)/(M_HNO3_BIN-
+     &      M_H2SO4_BIN)
+         C=(TT*H_HNO3_BIN*M_HNO3_BIN*M_H2SO4_BIN**2)/
+     &      (M_HNO3_BIN-M_H2SO4_BIN)
+         PHI=ATAN(SQRT(4.0d0*(A**2-3.0d0*B)**3-(-2.0d0*A**3+
+     &      9.0d0*A*B-27.0d0*C)**2)/(-2.0d0*A**3+9.0d0*A*B-
+     &      27.0d0*C))
+         IF (PHI.lt.0.d0) THEN
+            PHI = PHI + PI
+         ENDIF
+         M_H2SO4=-1.0d0/3.0d0*(A+2.0d0*SQRT(A**2-3.0d0*B)*
+     &      COS((PI+PHI)/3.0d0))
+         M_HNO3=M_HNO3_BIN*(1.0d0-M_H2SO4/M_H2SO4_BIN)
+         W_H2SO4 = M_H2SO4*0.098076d0/(1.0d0+M_H2SO4*
+     &      0.098076d0+M_HNO3*0.063012d0)
+
+         ! Check for low H2SO4
+         IF (M_H2SO4 .lt. 0d0) THEN
+             M_H2SO4 = 0.0d0
+             M_HNO3 = M_HNO3_BIN
+             W_H2SO4 = 0.0d0
+         ENDIF
+
+         PVAP_HNO3=M_HNO3/(H_HNO3_BIN*M_HNO3/(M_HNO3+
+     &      M_H2SO4)+H_H2SO4_BIN*M_H2SO4/(M_HNO3+M_H2SO4))
+         W_HNO3 = M_HNO3*0.063012d0/(1.0d0+M_H2SO4*
+     &      0.098076d0+M_HNO3*0.063012d0)
+         HNO3GASFRAC=(1.0d0-(PATMHNO3-PVAP_HNO3)/PATMHNO3)
+         M_HNO3=MAX(M_HNO3,0.0d0)
+      ELSE
+         ! Solution is pure H2SO4/H2O
+         M_H2SO4 = M_H2SO4_BIN
+         M_HNO3 = 0.0d0
+         W_H2SO4 = M_H2SO4_BIN*0.098076d0/(1.0d0+M_H2SO4_BIN*
+     &      0.098076d0)
+         W_HNO3 = 0.0d0
+         PVAP_HNO3 = 0.0d0
+         HNO3GASFRAC=1.0d0
+      ENDIF
+
+      ! Handle HCl (Luo et al., Vapor pressures of
+      ! H2SO4/HNO3/HCl/HBr/H2O solutions to low stratospheric
+      ! temperatures, 1995)
+      IF (PATMHCL.gt.0.0d0) THEN
+         H_HCL = EXP(-(21.0d0+46.610d0*W_HNO3+4.0690d0*W_H2SO4-
+     &      4.8370d0*SQRT(W_HNO3)+2.1860d0*SQRT(W_H2SO4)-63.0d0*
+     &      W_HNO3**2-40.170d0*W_HNO3*W_H2SO4-1.5710d0*W_H2SO4**2)-
+     &      1.0d0/TCENTER*(-7437.0d0-8327.80d0*W_HNO3+1300.90d0*
+     &      W_H2SO4+1087.20d0*SQRT(W_HNO3)-242.710d0*SQRT(W_H2SO4)+
+     &      18749.0d0*W_HNO3**2+18500.0d0*W_HNO3*W_H2SO4+
+     &      5632.0d0*W_H2SO4**2)-LOG(W_HNO3+0.610d0*W_H2SO4)-
+     &      LOG(36.461d0/(1000.0d0+98.076d0*M_H2SO4+63.012d0*
+     &      M_HNO3)))*1013.0d0
+         M_HCl = (1.0d0/R_ATM/TCENTER*PATMHCL)/
+     &      (MOLDENS_H2SO4/M_H2SO4 + 1.0d0/R_ATM/TCENTER/H_HCL)
+         W_HCL=M_HCL*36.461d0/(1.0d3+98.076d0*M_H2SO4+
+     &      63.012d0*M_HNO3)
+         PVAP_HCl = M_HCl/H_HCl
+         HClGASFRAC=1.0d0-(PATMHCL-PVAP_HCL)/PATMHCL
+      ELSE
+         W_HCl=0.0d0
+         HClGASFRAC=1.0d0
+      ENDIF
+
+      ! Now HOCl
+      IF (PATMHOCl.gt.0.0d0) THEN
+         H_HOCl=EXP(6.49460d0-(-0.041070d0+54.56d0/TCENTER)*
+     &      (M_H2SO4+M_HNO3)-5862.0d0*(1.0d0/298.15d0-1.0d0/
+     &      TCENTER))
+         M_HOCl=(1.0d0/R_ATM/TCENTER*PATMHOCl)/
+     &      (MOLDENS_H2SO4/M_H2SO4 + 1.0d0/R_ATM/TCENTER/H_HOCL)
+         W_HOCL=M_HOCL*52.46d0/(1.0d3+98.076d0*M_H2SO4+
+     &      63.012d0*M_HNO3)
+         ! Realistically expect no gas phase removal
+         HOCLGASFRAC=1.0d0 
+      ELSE
+         W_HOCl=0.0d0
+         HOClGASFRAC=1.0d0
+      ENDIF
+ 
+      ! Now HBr (Luo et al., Vapor pressures of
+      ! H2SO4/HNO3/HCl/HBr/H2O solutions to low stratospheric
+      ! temperatures, 1995)
+      IF (PATMHBr.gt.0.0d0) THEN
+         H_HBr = EXP(-(17.83d0+1.02d0*W_HNO3-1.08d0*W_H2SO4+
+     &      3.9d0*SQRT(W_HNO3)+4.38d0*SQRT(W_H2SO4)-8.87d0*
+     &      W_HNO3**2-17.0d0*W_HNO3*W_H2SO4+3.73d0*W_H2SO4**2)-
+     &      1.0d0/TCENTER*(-8220.5d0-362.76d0*W_HNO3+658.93d0*
+     &      W_H2SO4-914.0d0*SQRT(W_HNO3)-955.3d0*SQRT(W_H2SO4)+
+     &      9976.6d0*W_HNO3**2+19778.5d0*W_HNO3*W_H2SO4+
+     &      7680.0d0*W_H2SO4**2)-LOG(W_HNO3+0.410d0*W_H2SO4)-
+     &      LOG(36.461d0/(1000.0d0+98.076d0*M_H2SO4+63.012d0*
+     &      M_HNO3)))*1013.0d0
+         M_HBr = (1.0d0/R_ATM/TCENTER*PATMHBr)/
+     &      (MOLDENS_H2SO4/M_H2SO4 + 1.0d0/R_ATM/TCENTER/H_HBr)
+         W_HBr=M_HBr*80.91d0/(1.0d3+98.076d0*M_H2SO4+
+     &      63.012d0*M_HNO3)
+         PVAP_HBr = M_HBr/H_HBr
+         HBrGASFRAC=1.0d0-(PATMHBr-PVAP_HBr)/PATMHBr
+      ELSE
+         W_HBr=0.0d0
+         HBrGASFRAC=1.0d0
+      ENDIF
+
+      ! Finally HOBr (Hanson and Ravishankara, Heterogeneous
+      ! chemistry of Bromine species in sulfuric acid under
+      ! stratospheric conditions, 1995)
+      IF (PATMHOBr.gt.0.0d0) THEN
+         ! Hanson and Ravishankara state that the volume-based
+         ! Henry's Law coefficient for HOBr in H2SO4 is 10^6 M/atm.
+         ! The molality-based Henry's law constant, H_HOBr, is
+         ! therefore:
+         H_HOBr = (1.0d6) * MOLDENS_H2SO4 / M_H2SO4
+         M_HOBr = (1.0d0/R_ATM/TCENTER*PATMHOBr)/
+     &      (MOLDENS_H2SO4/M_H2SO4 + 1.0d0/R_ATM/TCENTER/H_HOBr)
+         W_HOBr = M_HOBr*96.911d0/(1.0d3+98.076d0*M_H2SO4+
+     &      63.012d0*M_HNO3)
+         PVAP_HOBr = M_HOBr/H_HOBr
+         HOBrGASFRAC=1.0d0-(PATMHOBr-PVAP_HOBr)/PATMHOBr
+      ELSE
+         W_HOBr=0d0
+         HOBrGASFRAC=1.0d0
+      ENDIF
+
+      ! Take W_H2O as remainder
+      W_H2O = 1.d0-(W_H2SO4+W_HNO3+W_HCl+W_HOCl+W_HBr+W_HOBr)
+
+      ! Aerosol mass density in kg/m3 aerosol
+      SLA_RHO = CARSLAW_DENSITY(M_H2SO4,M_HNO3,TCENTER)
+
+      ! Aerosol volume in m3/m3 air
+      SLA_VOL = (MOLDENS_H2SO4*98.076d0/W_H2SO4/SLA_RHO)*1.d-3
+
+      END SUBROUTINE TERNARY
+!
+!EOC
+!------------------------------------------------------------------------------
+!               MIT Laboratory for Aviation and the Environment               !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: carslaw_density
+!
+! !DESCRIPTION: Function CARSLAW\_DENSITY determines the density of a
+!  sol'n through a relationship from Carslaw et al.. Result is in kg/m3.
+!\\
+!\\
+! !INTERFACE:
+!
+      REAL*8 FUNCTION CARSLAW_DENSITY(CS,CN,T)
+!
+! !INPUT PARAMETERS:
+!
+      REAL*8, INTENT(IN)          :: CS         ! H2SO4 concentration
+      REAL*8, INTENT(IN)          :: CN         ! HNO3 concentration
+      REAL*8, INTENT(IN)          :: T          ! Temperatue (K)
+!
+! !REVISION HISTORY: 
+!  19 Apr 2013 - S. D. Eastham - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8                :: DENSS,DENSN
+
+      !=================================================================
+      ! CARSLAW_DENSITY begins here!
+      !=================================================================
+
+        DENSS=1000.0d0+123.64d0*CS-5.6d-4*CS*T**2  
+     &       -29.54d0*CS**1.5d0 + 1.814d-4*CS**1.5d0*T**2  
+     &       + 2.343d0*CS**2  -1.487d-3*CS**2*T  
+     &       -1.324d-5*CS**2*T**2
+
+        DENSN=1000.0d0+85.107d0*CN-5.043d-4*CN*T**2  
+     &       -18.96d0*CN**1.5d0 + 1.427d-4*CN**1.5d0*T**2  
+     &       + 1.458d0*CN**2  -1.198d-3*CN**2*T  
+     &       -9.703d-6*CN**2*T**2
+
+        CARSLAW_DENSITY=1.0d0/((1.0d0/DENSS*CS/(CS+CN)  
+     &  +1.0d0/DENSN*CN/(CS+CN)))
+      RETURN
+
+      END FUNCTION CARSLAW_DENSITY
 !
 !EOC
 !!------------------------------------------------------------------------------
@@ -1926,6 +2524,11 @@
       ALLOCATE( H2SO4_GASFRAC( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'H2SO4_GAS_FRAC' )
       H2SO4_GASFRAC = 0d0
+
+      ! Calculate conversion factors for SLA
+      SLA_VA = (8.406d-8)*(10.d0**(12.d0*0.751d0))
+      SLA_RR = EXP(-0.173d0)
+      SLA_VR = (0.357d-6)*(10.d0**(12.d0*0.249))
 
       ! Set "current" month to impossible value
       SFC_MONTH = 0
@@ -2043,6 +2646,22 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'STATE_PSC' )
       STATE_PSC = 0d0
       
+      ! Mass fraction of tracers contained in aerosols
+      ! Indices: 1 - SO4
+      !          2 - HNO3
+      !          3 - HCl
+      !          4 - HOCl
+      !          5 - HBr
+      !          6 - HOBr
+      ALLOCATE( AERFRAC( IIPAR, JJPAR, LLPAR, 6 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AERFRAC' )
+      AERFRAC = 0d0
+    
+      ! Sticking coefficients for PSC reactions on SLA 
+      ALLOCATE( GAMMA_SLA( IIPAR, JJPAR, LLPAR, 11 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GAMMA_SLA' )
+      GAMMA_SLA = 0d0
+      
       !-----SDE DEBUG
       WRITE(6,'(a)') 'WARNING: Need to add subroutine to read in PSCs!'
       !-----SDE DEBUG
@@ -2082,6 +2701,8 @@
       IF ( ALLOCATED( RHO_AER    ) ) DEALLOCATE( RHO_AER    )
       IF ( ALLOCATED( STATE_PSC  ) ) DEALLOCATE( STATE_PSC  )
       IF ( ALLOCATED( NDENS_AER  ) ) DEALLOCATE( NDENS_AER  )
+      IF ( ALLOCATED( AERFRAC    ) ) DEALLOCATE( AERFRAC    )
+      IF ( ALLOCATED( GAMMA_SLA  ) ) DEALLOCATE( GAMMA_SLA  )
 
       END SUBROUTINE CLEANUP_GMISTRAT
 !

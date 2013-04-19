@@ -455,7 +455,12 @@
       IF ( LSULF .or. LCARB .or. LDUST .or. LSSALT ) THEN
 
          ! Calculate stratospheric aerosol properties (SDE 04/18/13)
-         IF (LGMISTRAT) CALL CALC_PSC
+         IF (LGMISTRAT) THEN
+            CALL CALC_H2SO4_GAS
+            CALL CALC_PSC
+            !### Debug
+            IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after CALC_PSC' )
+         ENDIF
 
          ! Skip this section if all these are turned off
          CALL AEROSOL_CONC
@@ -583,16 +588,6 @@
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after FAST-JX' )
-
-      !================================================================
-      ! Partition stratospheric H2SO4
-      !================================================================
-
-      IF (LGMISTRAT.or.LGRAVSTRAT) THEN
-         CALL CALC_H2SO4_GAS
-         !### Debug
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after H2SO4 GAS' )
-      ENDIF
 
       !================================================================
       ! Call chemistry routines
