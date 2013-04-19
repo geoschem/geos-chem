@@ -41,6 +41,7 @@
       PUBLIC  :: SO4_PHOTFRAC
       PUBLIC  :: CALC_PSC
       PUBLIC  :: GET_STRAT_AER
+      PUBLIC  :: KG_STRAT_AER
       PUBLIC  :: CHECK_NAT
       PUBLIC  :: INIT_GMISTRAT
       PUBLIC  :: CLEANUP_GMISTRAT
@@ -65,18 +66,16 @@
       !
       ! AER_NLEVS       : Number of levels in AER data
       ! T_STS           : Maximum temperature of STS formation (K)
-      ! I_SSA           : Index of SSA aerosol
-      ! I_STS           : Index of STS PSCs
-      ! I_PRT           : Index of particulate PSCs
+      ! I_SLA           : Index of liquid aerosols
+      ! I_SPA           : Index of particulate PSCs
       ! AVOGADRO        : Avogadro's number (#/mole)
       !
       !=================================================================
 
       INTEGER, PARAMETER            :: AER_NLEVS=51
       REAL*8, PARAMETER             :: T_STS=240.0d0
-      INTEGER, PARAMETER            :: I_SSA=1
-      INTEGER, PARAMETER            :: I_STS=2
-      INTEGER, PARAMETER            :: I_PRT=3
+      INTEGER, PARAMETER            :: I_SLA=1
+      INTEGER, PARAMETER            :: I_SPA=2
       REAL*8,  PARAMETER            :: AVOGADRO=6.022d23
 
 !
@@ -89,6 +88,12 @@
       !
       ! TRAC_IDX           : Tracer index for output
       ! N_EMIT             : Number of tracers to emit
+      ! MAX_EMIT           : Limit on tracer emission count
+      ! SFC_MONTH          : Current month
+      ! NATMW              : Molar mass of NAT (kg/kmol)
+      ! ICEMEW             : Molar mass of ice (kg/kmol)
+      ! DENSNAT            : Density of pure NAT (kg/m3)
+      ! DENSICE            : Density of pure ice (kg/m3)
       !
       ! Arrays
       !
@@ -123,6 +128,10 @@
       INTEGER                           :: N_EMIT
       INTEGER, PARAMETER                :: MAX_EMIT=50
       INTEGER                           :: SFC_MONTH
+      REAL*8, PARAMETER                 :: NATMW   = 117.0
+      REAL*8, PARAMETER                 :: ICEMW   = 18.0
+      REAL*8, PARAMETER                 :: DENSNAT = 1626.d0
+      REAL*8, PARAMETER                 :: DENSICE = 990.0d0
 
       ! Arrays
       REAL*8,DIMENSION(:,:),ALLOCATABLE     :: AER_MR
@@ -424,33 +433,38 @@
                WRITE(6,*) '|---------|---------|---------|'
             ENDIF
             ! H-1211, 1301 and 2402
-            TRAC_IDX = IDTHalon
+            TRAC_IDX = IDTH1211
             TRAC_SET  = 'CBRCLF2'
             CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+            TRAC_IDX = IDTH1301
             TRAC_SET  = 'CBRF3'
-            CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+            TRAC_IDX = IDTH2402
             TRAC_SET  = 'C2BR2F4'
-            CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
      
             ! CFC  11, 12, and [113/114/115]
-            TRAC_IDX = IDTCFC
+            TRAC_IDX = IDTCFC11
             TRAC_SET  = 'CFCL3'
             CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+            TRAC_IDX = IDTCFC12
             TRAC_SET  = 'CF2CL2'
-            CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+            TRAC_IDX = IDTCFCX
             TRAC_SET  = 'C2CL3F3'
-            CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
             TRAC_SET  = 'C2CL2F4'
             CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.)
             TRAC_SET  = 'C2CLF5'
             CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.)
      
             ! HCFC 22, 123, 141b and 142b
-            TRAC_IDX = IDTHCFC
+            TRAC_IDX = IDTHCFC22
             TRAC_SET  = 'CHCLF2'
             CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+            TRAC_IDX = IDTHCFCX
             TRAC_SET  = 'C2HF3CL2'
-            CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
             TRAC_SET  = 'C2H3FCL2'
             CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.)
             TRAC_SET  = 'C2H3F2CL'
@@ -801,7 +815,7 @@
 ! !USES:
 !
       USE TIME_MOD,       ONLY : GET_MONTH,GET_YEAR
-      USE TRACERID_MOD,   ONLY : IDTHALON
+      USE TRACERID_MOD,   ONLY : IDTHCFCX
 !
 ! !INPUT PARAMETERS:
 !
@@ -835,7 +849,7 @@
       DO N=1,N_EMIT
          LOCAL_NAME = TRIM(TRAC_EMIT(N))
          SELECT CASE (LOCAL_NAME)
-            CASE ('CFCS')
+            CASE ('CFCX')
                ! Add 3 CFCs
                LOCAL_NAME = TRIM('CFC113')
                CALL GET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
@@ -843,24 +857,18 @@
                CALL GET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
                LOCAL_NAME = TRIM('CFC115')
                CALL GET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
-            CASE ('HCFCS')
-               ! Add 3 HCFCs
-               LOCAL_NAME = TRIM('HCFC22')
-               CALL GET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
+            CASE ('HCFCX')
+               ! Add 2 HCFCs
                LOCAL_NAME = TRIM('HCFC141b')
                CALL GET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
                LOCAL_NAME = TRIM('HCFC142b')
                CALL GET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
                ! Also need HCFC123 - no Montreal data
                ! Use surface-level MR from 2D data instead
-               TRAC_IDX = IDTHalon
+               TRAC_IDX = IDTHCFCX
                TRAC_SET  = 'C2HF3CL2'
                CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.TRUE.)
-            CASE ('HALONS')
-               LOCAL_NAME = TRIM('H1301')
-               CALL GET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
-               LOCAL_NAME = TRIM('H1211')
-               CALL GET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
+            CASE ('H2402')
                ! Limited data available for H2402
                LOCAL_NAME = TRIM('C2BR2F4')
                CALL GET_MONTREAL(LOCAL_NAME,GET_YEAR()-1949,N)
@@ -1401,16 +1409,18 @@
 !
 ! !USES:
 !
-      USE DAO_MOD,          ONLY : T, AD, CLDF, QI, SPHU
+      USE DAO_MOD,          ONLY : T, AD, CLDF, QI, SPHU, AVGW
       USE PRESSURE_MOD,     ONLY : GET_PCENTER
       USE LOGICAL_MOD,      ONLY : LPRT
       USE ERROR_MOD,        ONLY : DEBUG_MSG
       USE GRID_MOD,         ONLY : GET_YEDGE
       USE TRACER_MOD,       ONLY : STT, TRACER_MW_G
-      USE TRACERID_MOD,     ONLY : IDTHNO3
+      USE TRACERID_MOD,     ONLY : IDTHNO3, IDTNIT
       USE CHEMGRID_MOD,     ONLY : ITS_IN_THE_STRATMESO
+      USE CHEMGRID_MOD,     ONLY : ITS_IN_THE_TROP
+      USE ERROR_MOD,        ONLY : ERROR_STOP
 
-      USE CMN_GCTM_MOD,     ONLY : AIRMW, Rd
+      USE CMN_GCTM_MOD,     ONLY : AIRMW, PI
 !
 ! !REVISION HISTORY: 
 !  13 Apr 2013 - S. D. Eastham - Initial version
@@ -1424,7 +1434,7 @@
       REAL*8,PARAMETER      :: PSC_MAXLAT =  45.0d0
       REAL*8,PARAMETER      :: PSC_MINLAT = -55.0d0
       REAL*8,PARAMETER      :: PSC_PMAX   =  18.0d3
-      REAL*8,PARAMETER      :: PSC_PMIN   =   5.0d3
+      REAL*8,PARAMETER      :: PSC_PMIN   =   5.0d2
 
       ! Saturation and nucleation properties of HNO3
       REAL*8, PARAMETER     :: TSATHNO3_A = -2.7836d0
@@ -1446,6 +1456,10 @@
       ! Maximum temperature for PSC formation (K)
       REAL*8, PARAMETER     :: T_MAX = 215.0d0
 
+      ! Limits on NAT/ice formatino
+      REAL*8, PARAMETER     :: MIN_RAD = 1.0d-7 ! m
+      REAL*8, PARAMETER     :: MAX_NDENS=42.0d3 ! #/m3
+
       ! Local conditions
       REAL*8                :: TCENTER, PCENTER, PCENTER_PA, DENAIR
       REAL*8                :: INVAIR, TINV
@@ -1455,12 +1469,16 @@
       REAL*8                :: HNO3PP,  H2OPP
       REAL*8                :: PSATHNO3, PSATH2O
 
-      ! Gridbox phase data
-      REAL*8                :: HNO3_BOX_NAT, H2O_BOX_ICE
+      ! Gridbox aerosol and phase data
+      REAL*8                       :: HNO3_BOX_NAT, H2O_BOX_ICE
+      REAL*8                       :: VOL_NAT, VOL_ICE
+      REAL*8, DIMENSION(NSTRATAER) :: RAD_AER_BOX,RHO_AER_BOX
+      REAL*8, DIMENSION(NSTRATAER) :: KG_AER_BOX,NDENS_AER_BOX
+      REAL*8                       :: KG_NAT, KG_ICE, KG_NO3
 
       ! Grid box location
       REAL*8                :: BOX_LAT_S, BOX_LAT_N
-      LOGICAL               :: IS_VALID
+      LOGICAL               :: IS_VALID, IS_POLAR
 
       ! Loop variables
       INTEGER               :: I, J, L
@@ -1472,91 +1490,109 @@
       ! CALC_PSC begins here!
       !=================================================================
 
-      !-----SDE DEBUG
-      ! Function stub - fill out later (SDE 04/13/13)
-      WRITE(6,*) 'SDE DEBUG - FUNCTION NOT READY!'
-      RETURN
-      !-----SDE DEBUG
-
       IF (LPRT) THEN
          CALL DEBUG_MSG( '### GMISTRAT: start CALC_PSC' )
       ENDIF
 
-      ! First step is to determine what PSCs can form, if any
       ! Loop over latitude boxes first
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, MINLEV, MAXLEV, PCENTER, PCENTER_PA, INVAIR )
+!$OMP+PRIVATE( H2O_BOX_ICE, HNO3_BOX_NAT, DENAIR, PSATHNO3, PSATH2O )
+!$OMP+PRIVATE( VOL_NAT, VOL_ICE, H2OPP, H2OSUM, HNO3PP, HNO3SUM )
+!$OMP+PRIVATE( TCENTER, TINV, IS_VALID, BOX_LAT_S, BOX_LAT_N )
+!$OMP+PRIVATE( RAD_AER_BOX, RHO_AER_BOX, KG_AER_BOX, NDENS_AER_BOX )
+!$OMP+PRIVATE( KG_NAT, KG_ICE, KG_NO3, IS_POLAR )
+!$OMP+SCHEDULE( DYNAMIC )
       DO J=1,JJPAR
          BOX_LAT_S = GET_YEDGE(1,J,1)
          BOX_LAT_N = GET_YEDGE(1,J+1,1)
-         IS_VALID = ((BOX_LAT_S.lt.PSC_MINLAT).or.
+         IS_POLAR = ((BOX_LAT_S.lt.PSC_MINLAT).or.
      &               (BOX_LAT_N.gt.PSC_MAXLAT))
-         IF (.not.IS_VALID) THEN
-            STATE_PSC(:,J,:) = 0
-         ELSE
-            ! Loop over longitudinal boxes
-            DO I=1,IIPAR
-               ! Set impossible loop limits
-               MINLEV=LLPAR+1
-               MAXLEV=0
-               LLOOP: DO L=1,LLPAR
+         ! Loop over longitudinal boxes
+         DO I=1,IIPAR
+            ! Set impossible loop limits
+            MINLEV=LLPAR+1
+            MAXLEV=0
+            LLOOP: DO L=1,LLPAR
 
-                  ! Get local conditions
-                  PCENTER = GET_PCENTER(I,J,L) 
-                  PCENTER_PA = PCENTER*1.d2
-                  TINV = 1.d0/TCENTER
-                  TCENTER = T(I,J,L)
+               ! Get local conditions
+               PCENTER = GET_PCENTER(I,J,L) 
+               PCENTER_PA = PCENTER*1.d2
+               TCENTER = T(I,J,L)
+               TINV = 1.d0/TCENTER
 
-                  ! Apply other limits from Kirner et al.
-                  IS_VALID = ((.not.ITS_IN_THE_STRATMESO(I,J,L)).or.
-     &                                  (PCENTER_PA.lt.PSC_PMIN).or.
-     &                                  (PCENTER_PA.gt.PSC_PMAX))
+               ! Apply other limits from Kirner et al.
+               IS_VALID = (IS_POLAR).and.(.not.                  
+     &                              ((ITS_IN_THE_TROP(I,J,L) .or.
+     &                               (PCENTER_PA.lt.PSC_PMIN).or.
+     &                               (PCENTER_PA.gt.PSC_PMAX))))
 
-                  IF (.not.IS_VALID) THEN
-                     ! No PSCs
-                     STATE_PSC(I,J,L) = 0
-                     CYCLE LLOOP
-                  ENDIF
-
-                  IF (TCENTER.gt.T_MAX) THEN
-                     ! STS only
-                     STATE_PSC(I,J,L) = 1
-                     CYCLE LLOOP
-                  ENDIF
+               ! Initialize variables
+               HNO3_BOX_NAT = 0d0
+               VOL_NAT      = 0d0
+               KG_NAT       = 0d0
+               H2O_BOX_ICE  = 0d0
+               VOL_ICE      = 0d0
+               KG_ICE       = 0d0
  
-                  ! Calculate local air density
-                  DENAIR = AVOGADRO * PCENTER_PA / (TCENTER*Rd)
-                  INVAIR = AIRMW / AD(I,J,L)
+               RAD_AER_BOX  = 0d0
+               RHO_AER_BOX  = 0d0
+               KG_AER_BOX   = 0d0
+               NDENS_AER_BOX= 0d0
 
-                  !-----SDE DEBUG
-                  ! Get available HNO3
-                  ! Ignoring NIT for now
-                  HNO3SUM = STT(I,J,L,IDTHNO3)*INVAIR/
-     &                       TRACER_MW_G(IDTHNO3)
-                  !-----SDE DEBUG
+               ! Calculate local air density
+               DENAIR = AVOGADRO * PCENTER_PA / (TCENTER*R_UNIV)
+               INVAIR = AIRMW / AD(I,J,L)
 
-                  !-----SDE DEBUG
-                  ! Revert to static H2O for now
-                  H2OSUM = SPHU(I,J,L)*1.d-3*AD(I,J,L)
-                  !-----SDE DEBUG
+               ! Get available NO3 mass
+               KG_NO3 = (STT(I,J,L,IDTHNO3)*
+     &                   TRACER_MW_G(IDTNIT)/TRACER_MW_G(IDTHNO3)) + 
+     &                   STT(I,J,L,IDTNIT)
 
-                  ! Calculate partial pressures (Pa)
-                  HNO3PP = PCENTER_PA * HNO3SUM
-                  H2OPP  = PCENTER_PA * H2OSUM
+               ! Calculate HNO3 mixing ratio
+               HNO3SUM = STT(I,J,L,IDTHNO3)*INVAIR/
+     &                    TRACER_MW_G(IDTHNO3)
+               HNO3SUM = HNO3SUM + STT(I,J,L,IDTNIT)*INVAIR/
+     &                    TRACER_MW_G(IDTNIT)
 
+               !-----SDE DEBUG
+               ! Revert to static H2O for now
+               !H2OSUM = SPHU(I,J,L)*1.d-3*AD(I,J,L)
+               H2OSUM = AVGW(I,J,L)
+               !-----SDE DEBUG
+
+               ! Calculate partial pressures (Pa)
+               HNO3PP = PCENTER_PA * HNO3SUM
+               H2OPP  = PCENTER_PA * H2OSUM
+
+               IF (.not.IS_VALID) THEN
+                  ! No PSCs
+                  STATE_PSC(I,J,L) = 0
+               ELSEIF (TCENTER.gt.T_MAX) THEN
+                  ! STS only
+                  STATE_PSC(I,J,L) = 1
+                  IS_VALID = .FALSE.
+               ELSE
                   ! Calculate saturation pressures
-                  PSATHNO3 = 10.d0**(((TSATHNO3_A+(TCENTER*TSATHNO3_B))*
-     &            LOG10(H2OPP*760.0d0/101325.0d0)) + (TSATHNO3_C + 
-     &            (TSATHNO3_D*TINV) + (TSATHNO3_E*TCENTER)))*
-     &            101325.0d0/760.0d0
+                  PSATHNO3 = 10.d0**(((TSATHNO3_A+(TCENTER*
+     &            TSATHNO3_B))*LOG10(H2OPP*760.0d0/101325.0d0))+
+     &            (TSATHNO3_C+(TSATHNO3_D*TINV)+(TSATHNO3_E*
+     &            TCENTER)))*101325.0d0/760.0d0
 
                   PSATH2O = 10.0d0**((TSATH2O_A*TINV)+TSATH2O_B)
                   
                   ! Use local ice mass ratio from GEOS-5 data
-                  H2O_BOX_ICE = QI(I,J,L)*CLDF(L,I,J)*AIRMW/18.0d0
+                  KG_ICE = QI(I,J,L)*CLDF(L,I,J)*AD(I,J,L)
+                  H2O_BOX_ICE = QI(I,J,L)*CLDF(L,I,J)*AIRMW/ICEMW
+                  VOL_ICE = H2O_BOX_ICE * DENAIR * (1.d-3) * ICEMW /
+     &                             (DENSICE*AVOGADRO) ! m3 ice/m3 air
 
                   ! Ice exists/possible?
                   IF ((H2OPP.gt.PSATH2O).or.
      &                   (H2O_BOX_ICE.gt.TINY(0d0))) THEN
                      STATE_PSC(I,J,L) = 3
+                     HNO3_BOX_NAT = 1d0
                   ELSE
                      ! If ice not possible could still have NAT
                      IF (STATE_PSC(I,J,L).gt.1) THEN
@@ -1565,22 +1601,135 @@
      &                       (PSATHNO3.gt.PSATH2O)).or.
      &                       (PCENTER.lt.P_MAXNAT)) THEN
                            STATE_PSC(I,J,L) = 2
+                           HNO3_BOX_NAT = 1d0
                         ELSE
                            ! STS only
                            STATE_PSC(I,J,L) = 1
+                           IS_VALID = .FALSE.
                         ENDIF 
                      ELSE
                         ! STS only
                         STATE_PSC(I,J,L) = 1
+                        IS_VALID = .FALSE.
                      ENDIF
                   ENDIF
-               ENDDO LLOOP ! L
-                  ! Check for NAT formation
-            ENDDO ! I
-         ENDIF ! IS_POLAR
+               ENDIF
+
+               ! Calculate NAT if relevant
+               IF (HNO3_BOX_NAT.gt.TINY(1d0)) THEN
+                  HNO3_BOX_NAT = (HNO3PP-PSATHNO3)/PCENTER_PA
+                  HNO3_BOX_NAT = MAX(0d0,HNO3_BOX_NAT)
+
+                  ! Calculate m3 NAT/m3 air
+                  ! HNO3_BOX_NAT is the number of moles of HNO3
+                  ! which will be frozen into HNO3.3H2O (NAT)
+                  ! Therefore volume calculation must be done
+                  ! with care!
+                  VOL_NAT = HNO3_BOX_NAT * DENAIR * (1.d-3) *
+     &               NATMW / (DENSNAT*AVOGADRO)
+                  KG_NAT = HNO3_BOX_NAT * NATMW *
+     &                     AD(I,J,L) / AIRMW
+               ENDIF
+
+               ! Calculate particle properties
+               IF (.not.IS_VALID) THEN
+                  ! Zero all!
+                  KG_AER_BOX(I_SPA)   = 0d0
+                  RAD_AER_BOX(I_SPA)  = 0d0
+                  RHO_AER_BOX(I_SPA)  = DENSICE
+                  NDENS_AER_BOX(I_SPA)= 0d0
+               ELSE
+                  KG_AER_BOX(I_SPA) = KG_NAT + KG_ICE
+                  RAD_AER_BOX(I_SPA) = MIN_RAD
+                  NDENS_AER_BOX(I_SPA) = (3.0d0*(VOL_NAT+VOL_ICE)/
+     &               (4.0d0*PI*(RAD_AER_BOX(I_SPA)**3.0d0)))
+                  IF (NDENS_AER_BOX(I_SPA).gt.MAX_NDENS) THEN
+                     NDENS_AER_BOX(I_SPA) = MAX_NDENS
+                     RAD_AER_BOX(I_SPA) = (3.0d0*(VOL_NAT+VOL_ICE)/
+     &                  (4.0d0*PI*MAX_NDENS))**(1.d0/3.d0)
+                  ENDIF
+                  RHO_AER_BOX(I_SPA) = 
+     &               ((VOL_ICE*DENSICE)+(VOL_NAT*DENSNAT))/
+     &                                 (VOL_ICE+VOL_NAT)
+               ENDIF
+
+               ! Store in outer array
+               RAD_AER(I,J,L,I_SPA)  = RAD_AER_BOX(I_SPA)*1.d2 ! cm
+               RHO_AER(I,J,L,I_SPA)  = RHO_AER_BOX(I_SPA) ! kg/m3
+               KG_AER(I,J,L,I_SPA)   = KG_AER_BOX(I_SPA)  ! kg
+               NDENS_AER(I,J,L,I_SPA)= NDENS_AER_BOX(I_SPA)!#/m3
+               SAD_AER(I,J,L,I_SPA)  = 4.0d-2 * RAD_AER_BOX(I_SPA) *
+     &            RAD_AER_BOX(I_SPA) * NDENS_AER_BOX(I_SPA) * PI
+
+               ! Repartition NIT and HNO3 in strat/meso
+               IF (ITS_IN_THE_STRATMESO(I,J,L)) THEN
+                  ! Convert NAT from kg NAT to kg NO3
+                  STT(I,J,L,IDTNIT) = KG_NAT*TRACER_MW_G(IDTNIT)/NATMW
+                  ! Remove (kg NO3 as NAT) from total kg NO3
+                  ! then convert to kg HNO3
+                  STT(I,J,L,IDTHNO3) = (KG_NO3-STT(I,J,L,IDTNIT))
+     &                  *TRACER_MW_G(IDTHNO3)/TRACER_MW_G(IDTNIT) 
+               ENDIF
+
+            ENDDO LLOOP ! L
+               ! Check for NAT formation
+         ENDDO ! I
       ENDDO ! J
+!$OMP END PARALLEL DO
+
+      IF (LPRT) THEN
+         CALL DEBUG_MSG( '### GMISTRAT: after CALC_ICENAT' )
+         WRITE(6,'(a)') 'Ice/NAT diagnostics summary:'
+         WRITE(6,'(a,1x,E10.2)') 'Peak particle # density (#/m3): ',
+     &                               MAXVAL(NDENS_AER(:,:,:,I_SPA))
+         WRITE(6,'(a,1x,E10.2)') 'Peak particle density (kg/m3) : ',
+     &                               MAXVAL(RHO_AER(:,:,:,I_SPA))
+         WRITE(6,'(a,1x,E10.2)') 'Peak particle SAD (cm2/cm3)   : ',
+     &                               MAXVAL(SAD_AER(:,:,:,I_SPA))
+         WRITE(6,'(a,1x,E10.2)') 'Peak particle radius (cm)     : ',
+     &                               MAXVAL(RAD_AER(:,:,:,I_SPA))
+      ENDIF
 
       END SUBROUTINE CALC_PSC
+!
+!EOC
+!------------------------------------------------------------------------------
+!               MIT Laboratory for Aviation and the Environment               !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: kg_strat_aer
+!
+! !DESCRIPTION: Function KG\_STRAT\_AER returns the calculated mass of a  
+!  stratospheric aerosol. The routine is essentially just an
+!  interface to allow external routines to "see" the arrays.
+!\\
+!\\
+! !INTERFACE:
+!
+      REAL*8 FUNCTION KG_STRAT_AER (I,J,L,IAER)
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER,INTENT(IN)          :: I,J,L      ! Grid indices
+      INTEGER,INTENT(IN)          :: IAER       ! Aerosol index
+                                                ! 1 = SSA (pure H2SO4)
+                                                ! 2 = STS
+                                                ! 3 = Solid PSC
+!
+! !REVISION HISTORY: 
+!  18 Apr 2013 - S. D. Eastham - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+      !=================================================================
+      ! KG_STRAT_AER begins here!
+      !=================================================================
+
+      KG_STRAT_AER = KG_AER(I,J,L,IAER)
+
+      END FUNCTION KG_STRAT_AER
 !
 !EOC
 !------------------------------------------------------------------------------
@@ -1669,8 +1818,8 @@
       ! CHECK_NAT begins here!
       !=================================================================
 
-      IS_NAT = ((STATE_PSC(I,J,L).eq.2).or.((STATE_PSC(I,J,L).eq.3).and.
-     &          (STT(I,J,L,IDTNIT).gt.TINY(1d0))))
+      IS_NAT = ((STATE_PSC(I,J,L).ge.2).and.
+     &          (STT(I,J,L,IDTNIT).gt.TINY(1d0)))
 
       END SUBROUTINE CHECK_NAT
 !
@@ -1788,18 +1937,38 @@
       IF (LCFCEMIS) THEN
          ! R-11/12/113/114/115
          N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = IDTCFC
-         TRAC_EMIT(N_EMIT) = 'CFCS'
+         IDT_EMIT( N_EMIT) = IDTCFC11
+         TRAC_EMIT(N_EMIT) = 'CFC11'
+
+         N_EMIT = N_EMIT + 1
+         IDT_EMIT( N_EMIT) = IDTCFC12
+         TRAC_EMIT(N_EMIT) = 'CFC12'
+
+         N_EMIT = N_EMIT + 1
+         IDT_EMIT( N_EMIT) = IDTCFCX
+         TRAC_EMIT(N_EMIT) = 'CFCX'
 
          ! HCFC-22/123/141b/142b
          N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = IDTHCFC
-         TRAC_EMIT(N_EMIT) = 'HCFCS'
+         IDT_EMIT( N_EMIT) = IDTHCFC22
+         TRAC_EMIT(N_EMIT) = 'HCFC22'
+
+         N_EMIT = N_EMIT + 1
+         IDT_EMIT( N_EMIT) = IDTHCFCX
+         TRAC_EMIT(N_EMIT) = 'HCFCX'
 
          ! Halons (H-1301/2402/1211)
          N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = IDTHalon
-         TRAC_EMIT(N_EMIT) = 'HALONS'
+         IDT_EMIT( N_EMIT) = IDTH1301
+         TRAC_EMIT(N_EMIT) = 'H1301'
+
+         N_EMIT = N_EMIT + 1
+         IDT_EMIT( N_EMIT) = IDTH1211
+         TRAC_EMIT(N_EMIT) = 'H1211'
+
+         N_EMIT = N_EMIT + 1
+         IDT_EMIT( N_EMIT) = IDTH2402
+         TRAC_EMIT(N_EMIT) = 'H2402'
       ENDIF
 
       IF (LCLEMIS) THEN
@@ -1908,6 +2077,7 @@
 
       IF ( ALLOCATED( GRID_EMIT  ) ) DEALLOCATE( GRID_EMIT  )
       IF ( ALLOCATED( RAD_AER    ) ) DEALLOCATE( RAD_AER    )
+      IF ( ALLOCATED( SAD_AER    ) ) DEALLOCATE( SAD_AER    )
       IF ( ALLOCATED( KG_AER     ) ) DEALLOCATE( KG_AER     )
       IF ( ALLOCATED( RHO_AER    ) ) DEALLOCATE( RHO_AER    )
       IF ( ALLOCATED( STATE_PSC  ) ) DEALLOCATE( STATE_PSC  )

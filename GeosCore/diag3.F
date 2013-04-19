@@ -1456,12 +1456,10 @@
 !  (19) HGSSc  Hygroscopic growth of SSc           : unitless : SCALECHEM
 !  (20) SSSc   Sea Salt (coarse) Surface Area      : cm2/cm3  : SCALECHEM  
 !  (21-27)     Dust Optical Depth for each size    : unitless : SCALECHEM 
-!  (28) ODSSA  Strat. sulf. acid optical depth     : unitless : SCALECHEM
-!  (29) SASSA  Strat. sulf. acid surface area      : cm2/cm3  : SCALECHEM 
-!  (30) ODSTS  Supercooled tern. soln. OD          : unitless : SCALECHEM
-!  (31) SASTS  Supercooled tern. soln. surf. area  : cm2/cm3  : SCALECHEM 
-!  (32) ODPSC  Polar strat. cloud optical depth    : unitless : SCALECHEM
-!  (33) SAPSC  Polar strat. cloud surface area     : cm2/cm3  : SCALECHEM 
+!  (28) ODSLA  Strat. liquid aerosol optical depth : unitless : SCALECHEM
+!  (29) SASLA  Strat. liquid aerosol surface area  : cm2/cm3  : SCALECHEM 
+!  (30) ODSPA  Strat. particulate optical depth    : unitless : SCALECHEM
+!  (31) SASPA  Strat. particula. soln. surf. area  : cm2/cm3  : SCALECHEM 
 !
 !  NOTES:
 !  (1 ) We don't need to add TRCOFFSET to N.  These are not CTM tracers.
@@ -1496,7 +1494,7 @@
                   ! This diagnostic is for a GEOS-1/GEOS-STRAT field
                   ! so skip it! (bmy, 12/16/11)
                   CYCLE
-               CASE ( 5, 8, 11, 14, 17, 20, 29, 31, 33 )
+               CASE ( 5, 8, 11, 14, 17, 20, 29, 31 )
                   UNIT = 'cm2/cm3'
                CASE DEFAULT
                   UNIT = 'unitless'

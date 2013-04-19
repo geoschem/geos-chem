@@ -69,9 +69,8 @@
       ! SALC        : Coarse mode seasalt aerosol        [kg/m3]
       ! SO4_NH4_NIT : Lumped SO4-NH4-NIT aerosol         [kg/m3]
       ! SOILDUST    : Mineral dust aerosol from soils    [kg/m3]
-      ! SSA         : Supercooled sulfuric acid          [kg/m3]
-      ! STS         : Supercooled ternary solution       [kg/m3]
-      ! PSC1a2      : NAT/ice PSCs                       [kg/m3]
+      ! SLA         : Stratospheric liquid aerosol       [kg/m3]
+      ! SPA         : Stratospheric particulate aerosol  [kg/m3]
       !========================================================================
       REAL*8, ALLOCATABLE :: BCPI(:,:,:)
       REAL*8, ALLOCATABLE :: BCPO(:,:,:)
@@ -81,9 +80,8 @@
       REAL*8, ALLOCATABLE :: SALC(:,:,:)
       REAL*8, ALLOCATABLE :: SO4_NH4_NIT(:,:,:)
       REAL*8, ALLOCATABLE :: SOILDUST(:,:,:,:)
-      REAL*8, ALLOCATABLE :: SSA(:,:,:)
-      REAL*8, ALLOCATABLE :: STS(:,:,:)
-      REAL*8, ALLOCATABLE :: PSC1a2(:,:,:)
+      REAL*8, ALLOCATABLE :: SLA(:,:,:)
+      REAL*8, ALLOCATABLE :: SPA(:,:,:)
 
 #if defined( DEVEL )
       ! Mass of hydrophobic aerosol from Mian Chin
@@ -324,6 +322,7 @@
       USE TRACERID_MOD, ONLY : IDTSO4,  IDTSOA5  
       USE TRACERID_MOD, ONLY : IDTSOAG, IDTSOAM
       USE CHEMGRID_MOD, ONLY : ITS_IN_THE_TROP
+      USE GMISTRAT_MOD, ONLY : KG_STRAT_AER
 
       USE CMN_SIZE_MOD       ! Size parameters
 !
@@ -412,17 +411,15 @@
                SO4_NH4_NIT(I,J,L) = ( STT(I,J,L,IDTSO4) + 
      &                                STT(I,J,L,IDTNH4) +
      &                                STT(I,J,L,IDTNIT) )/AIRVOL(I,J,L)
-               SSA(I,J,L) = 0d0
-               STS(I,J,L) = 0d0
-               PSC1a2(I,J,L) = 0d0
+               SLA(I,J,L) = 0d0
+               SPA(I,J,L) = 0d0
             ELSE
-               ! Tropospheric sulfate is zero
+               ! Tropospheric sulfate is zero in stratosphere
                SO4_NH4_NIT(I,J,L) = 0d0
                !-----SDE DEBUG
                ! GMI module not complete!
-               SSA(I,J,L) = STT(I,J,L,IDTSO4)/AIRVOL(I,J,L)
-               STS(I,J,L) = 0d0
-               PSC1a2(I,J,L) = STT(I,J,L,IDTNIT)/AIRVOL(I,J,L)
+               SLA(I,J,L) = KG_STRAT_AER(I,J,L,1)/AIRVOL(I,J,L)
+               SPA(I,J,L) = KG_STRAT_AER(I,J,L,2)/AIRVOL(I,J,L)
             ENDIF
 #else
             ! Compute SO4 aerosol concentration [kg/m3]
@@ -712,7 +709,7 @@
       ! Index to aerosol types in jv_spec.dat
       ! The following are ordered according to the mass densities below
 #if defined( GMISTRAT )
-      INTEGER, SAVE       :: IND(NAER) = (/22,29,36,43,50,4,4,14/)
+      INTEGER, SAVE       :: IND(NAER) = (/22,29,36,43,50,4,14/)
 #else
       INTEGER, SAVE	  :: IND(NAER) = (/22, 29, 36, 43, 50/)
 #endif
@@ -1006,9 +1003,8 @@
 
 #if defined( GMISTRAT )
       ! SDE 04/17/13 - Transfer stratospheric aerosol data
-      WAERSL(:,:,:,NRHAER+1) = SSA
-      WAERSL(:,:,:,NRHAER+2) = STS
-      WAERSL(:,:,:,NRHAER+3) = PSC1a2
+      WAERSL(:,:,:,NRHAER+1) = SLA
+      WAERSL(:,:,:,NRHAER+2) = SPA
 #endif
 
       !=================================================================
@@ -1033,10 +1029,9 @@
       MSDENS(5) = 2200.0d0    !SS (coarse)
 #if defined( GMISTRAT )
       !-----SDE DEBUG
-      ! Need to retrive these from gmistrat_mod.F
-      MSDENS(NRHAER+1) = 1700.0d0! SSA 
-      MSDENS(NRHAER+2) = 1700.0d0! STS 
-      MSDENS(NRHAER+3) = 1000.0d0! NAT/ice PSC
+      ! Need to retrieve these from gmistrat_mod.F
+      MSDENS(NRHAER+1) = 1700.0d0! SSA/STS
+      MSDENS(NRHAER+2) = 1000.0d0! NAT/ice PSC
 #endif
 
       ! Loop over types of aerosol with hygroscopic growth
@@ -1478,12 +1473,10 @@
       ! #26: Dust optical depths (2.5 um)     --> from "rdust.f"
       ! #27: Dust optical depths (4.0 um)     --> from "rdust.f"
       !
-      ! #28: SSA optical depth                       [unitless]
-      ! #29: SSA surface area                        [cm2/cm3 ]
-      ! #30: STS optical depth                       [unitless]
-      ! #31: STS surface area                        [cm2/cm3 ]
-      ! #32: PSC optical depth                       [unitless]
-      ! #33: PSC surface area                        [cm2/cm3 ]
+      ! #28: Strat. liquid aerosol optical depth     [unitless]
+      ! #29: Strat. liquid aerosol surface area      [cm2/cm3 ]
+      ! #30: Strat. particulate aerosol opt. depth   [unitless]
+      ! #31: Strat. particulate aerosol surface area [cm2/cm3 ]
       !
       ! NOTE: The cloud optical depths are actually recorded at
       !       1000 nm, but vary little with wavelength.
@@ -1586,9 +1579,8 @@
       !  ODAER(:,:,:,R+3*NRH) = 0.d0  !SS(accum)
       !  ODAER(:,:,:,R+4*NRH) = 0.d0  !SS(coarse)
       !ENDDO
-      !ODAER(:,:,:,NRHAER*NRH+1) = 0.d0   !SSA
-      !ODAER(:,:,:,NRHAER*NRH+2) = 0.d0   !STS
-      !ODAER(:,:,:,NRHAER*NRH+3) = 0.d0   !PSC1a2
+      !ODAER(:,:,:,NRHAER*NRH+1) = 0.d0   !SLA
+      !ODAER(:,:,:,NRHAER*NRH+2) = 0.d0   !SPA
 
       !=================================================================
       ! To turn off heterogeneous chemistry on different aerosols
@@ -1599,9 +1591,8 @@
       !TAREA(:,NDUST+3) = 0.d0	!OC 
       !TAREA(:,NDUST+4) = 0.d0	!SS (accum)
       !TAREA(:,NDUST+5) = 0.d0	!SS (coarse)
-      !TAREA(:,NDUST+NRHAER+1) = 0.d0 !SSA
-      !TAREA(:,NDUST+NRHAER+2) = 0.d0 !STS
-      !TAREA(:,NDUST+NRHAER+3) = 0.d0 !PSC1a2
+      !TAREA(:,NDUST+NRHAER+1) = 0.d0 !SLA
+      !TAREA(:,NDUST+NRHAER+2) = 0.d0 !SPA
 
       ! Reset first-time flag
       FIRST = .FALSE.
@@ -1676,17 +1667,13 @@
       SOILDUST = 0d0
 
 #if defined( GMISTRAT )
-      ALLOCATE( SSA( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SSA' )
-      SSA = 0d0
+      ALLOCATE( SLA( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SLA' )
+      SLA = 0d0
 
-      ALLOCATE( STS( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'STS' )
-      STS   = 0d0
-
-      ALLOCATE( PSC1a2( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSC1a2' )
-      PSC1a2 = 0d0
+      ALLOCATE( SPA( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPA' )
+      SPA   = 0d0
 #endif
 
 #if defined( DEVEL )
@@ -1738,9 +1725,8 @@
       IF ( ALLOCATED( SALC        ) ) DEALLOCATE( SALC        )
       IF ( ALLOCATED( SO4_NH4_NIT ) ) DEALLOCATE( SO4_NH4_NIT )
       IF ( ALLOCATED( SOILDUST    ) ) DEALLOCATE( SOILDUST    )
-      IF ( ALLOCATED( SSA         ) ) DEALLOCATE( SSA         )
-      IF ( ALLOCATED( STS         ) ) DEALLOCATE( STS         )
-      IF ( ALLOCATED( PSC1a2      ) ) DEALLOCATE( PSC1a2      )
+      IF ( ALLOCATED( SLA         ) ) DEALLOCATE( SLA         )
+      IF ( ALLOCATED( SPA         ) ) DEALLOCATE( SPA         )
 
       END SUBROUTINE CLEANUP_AEROSOL
 !EOC

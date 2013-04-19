@@ -2400,6 +2400,11 @@ c new OH+CO rate from JPL2006.
       ! Default value
       GAMMA = 0.0d0
 
+      ! Error check
+      IF (RADIUS.le.1d-30) THEN
+         RETURN
+      ENDIF
+
       ! Special handling for various aerosols
       SELECT CASE ( AEROTYPE )
 
@@ -2436,8 +2441,10 @@ c new OH+CO rate from JPL2006.
          ! in the US boundary layer). Outside the continental boundary layer, we
          ! use the HO2-only algebraic expression.
          !
+         ! SDE 04/18/13: Added stratospheric sulfur aerosols
+         !
          !----------------
-         CASE ( 8, 9, 10, 11, 12)  
+         CASE ( 8, 9, 10, 11, 12, 13, 14 )  
 
             ! Mean molecular speed [cm/s]
             w = 14550.5d0 * sqrt(TEMP/(SQM*SQM))
@@ -2514,13 +2521,11 @@ c new OH+CO rate from JPL2006.
             ENDIF 
 
          !----------------
-         ! SSA, STS, NAT
+         ! NAT/ice (SDE 04/18/13)
          !----------------
-         CASE ( 13, 14, 15 )
+         CASE ( 15 )
        
-            !-----SDE DEBUG
             GAMMA = 0.d0
-            !-----SDE DEBUG
 
          !----------------
          ! Default

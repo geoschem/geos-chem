@@ -511,7 +511,6 @@
       ! to here by FP (hotp 7/31/09)
       INTEGER, PARAMETER :: MAXPL = 500
 
-
       ! NDUST -- Number of FAST-J aerosol size bins (rvm, bmy, 11/15/01)
       INTEGER, PARAMETER :: NDUST = 7
 
@@ -520,7 +519,7 @@
 
       ! NSTRATAER -- Number of stratospheric aerosols (SDE 04/17/13)
 #if defined( GMISTRAT )
-      INTEGER, PARAMETER :: NSTRATAER = 3
+      INTEGER, PARAMETER :: NSTRATAER = 2
 #else
       INTEGER, PARAMETER :: NSTRATAER = 0
 #endif
@@ -1344,7 +1343,7 @@
 
       ! NSTRATAER -- Number of stratospheric aerosols (SDE 04/17/13)
 #if defined( GMISTRAT )
-      INTEGER, PARAMETER :: NSTRATAER = 3
+      INTEGER, PARAMETER :: NSTRATAER = 2
 #else
       INTEGER, PARAMETER :: NSTRATAER = 0
 #endif

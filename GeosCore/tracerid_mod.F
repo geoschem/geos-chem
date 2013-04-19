@@ -286,8 +286,11 @@
 
       ! SDE 03/26/13: Strat-chem tracers
       INTEGER            :: IDTBrCl,  IDTHCl,   IDTCCl4,  IDTCH3Cl
-      INTEGER            :: IDTCly,   IDTHalon, IDTCFC,   IDTHCFC  
-      INTEGER            :: IDTCl2y,  IDTCH3CCl3                  
+      INTEGER            :: IDTCly,   IDTCl2y,  IDTCH3CCl3
+      INTEGER            :: IDTCFCX,  IDTHCFCX
+      INTEGER            :: IDTCFC11, IDTCFC12, IDTHCFC22
+      INTEGER            :: IDTH1211, IDTH1301, IDTH2402
+
       ! Reservoirs
       INTEGER            :: IDTN2O, IDTOCS
 
@@ -868,14 +871,29 @@
             CASE ( 'CL2Y' )
                IDTCl2y = N
 
-            CASE ( 'CFC' )
-               IDTCFC = N
+            CASE ( 'CFCX' )
+               IDTCFCX = N
 
-            CASE ( 'HCFC' )
-               IDTHCFC = N
+            CASE ( 'CFC11' )
+               IDTCFC11 = N
 
-            CASE ( 'HALON' )
-               IDTHalon = N
+            CASE ( 'CFC12' )
+               IDTCFC12 = N
+
+            CASE ( 'HCFCX' )
+               IDTHCFCX = N
+
+            CASE ( 'HCFC22' )
+               IDTHCFC22 = N
+
+            CASE ( 'H1301' )
+               IDTH1301 = N
+
+            CASE ( 'H1211' )
+               IDTH1211 = N
+
+            CASE ( 'H2402' )
+               IDTH2402 = N
 
             CASE ( 'N2O' )
                IDTN2O = N
@@ -3213,9 +3231,14 @@
       IDTCH3CCl3 = 0
       IDTBrCl    = 0
       IDTCCl4    = 0
-      IDTCFC     = 0
-      IDTHCFC    = 0
-      IDTHalon   = 0
+      IDTCFCX    = 0
+      IDTCFC11   = 0
+      IDTCFC12   = 0
+      IDTHCFCX   = 0
+      IDTHCFC22  = 0
+      IDTH1211   = 0
+      IDTH1301   = 0
+      IDTH2402   = 0
       IDTN2O     = 0
       IDTOCS     = 0
       ! +++++++++++++++++

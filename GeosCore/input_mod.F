@@ -1611,7 +1611,7 @@
       USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM
       USE CMN_SIZE_MOD      ! Size parameters
       USE CMN_O3_MOD        ! FSCALYR
-      USE TRACERID_MOD,  ONLY : IDTCH4, IDTOCS, IDTCFC
+      USE TRACERID_MOD,  ONLY : IDTCH4, IDTOCS, IDTCFCX
       USE TRACERID_MOD,  ONLY : IDTCly, IDTN2O, IDTBr2
       USE GMISTRAT_MOD,  ONLY : TRAC_FILE_ROOT, MONTREAL_FILE_ROOT
 !
@@ -2370,11 +2370,11 @@
       ! Error check CFC emissions
       !=================================================================
       IF ( LCFCEMIS .or. LSETCFC ) THEN
-         IF ( IDTCFC == 0 ) THEN
+         IF ( IDTCFCX == 0 ) THEN
             LCFCEMIS = .FALSE.
             LSETCFC = .FALSE.
             WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
-     &            // 'CFCs are emitted but CFC tracer is undefined.'
+     &            // 'CFCs are emitted but CFC tracers are undefined.'
             WRITE( 6, '(a)' ) 'Turning off CFC emissions.'
          ENDIF
       ENDIF

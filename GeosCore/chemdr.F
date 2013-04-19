@@ -47,6 +47,7 @@
       USE LOGICAL_MOD,          ONLY : LGMISTRAT ! SDE 04/11/13
       USE LOGICAL_MOD,          ONLY : LGRAVSTRAT ! SDE 04/12/13
       USE GMISTRAT_MOD,         ONLY : CALC_H2SO4_GAS ! SDE 04/11/13
+      USE GMISTRAT_MOD,         ONLY : CALC_PSC ! SDE 04/18/13
 
       USE CMN_SIZE_MOD               ! Size parameters
       USE COMODE_LOOP_MOD            ! SMVGEAR variables
@@ -54,7 +55,6 @@
       USE CMN_DIAG_MOD               ! ND40
       USE CMN_NOX_MOD                ! SLBASE
       USE CMN_DEP_MOD                ! FRCLND
-      USE CMN_FJX_MOD,          ONLY : O1D_SET ! SDE 04/11/13
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE GIGC_State_Chm_Mod,   ONLY : ChmState
@@ -454,6 +454,9 @@
       !=================================================================
       IF ( LSULF .or. LCARB .or. LDUST .or. LSSALT ) THEN
 
+         ! Calculate stratospheric aerosol properties (SDE 04/18/13)
+         IF (LGMISTRAT) CALL CALC_PSC
+
          ! Skip this section if all these are turned off
          CALL AEROSOL_CONC
 
@@ -474,9 +477,6 @@
          CALL READ_CSPEC_FILE( am_I_Root,  GET_NYMD(), 
      &                         GET_NHMS(), IT_EXISTS ) 
   
-         ! Need to know if CSPEC was used for O1D (SDE 04/11/13)
-         O1D_SET = IT_EXISTS
- 
          IF ( .not. IT_EXISTS ) THEN 
              
             ! Use default background values 
@@ -507,9 +507,6 @@
          ENDIF 
 
       ELSE
-
-         ! Will need to estimate initial O1D from PSSA (SDE 04/11/13)
-         O1D_SET = .FALSE. 
 
          CALL GASCONC(  am_I_Root,
      &                  FIRSTCHEM,              N_TRACERS, 

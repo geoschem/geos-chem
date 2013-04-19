@@ -4778,7 +4778,7 @@
       IF ( ND21 > 0 .or. DO_TIMESERIES ) THEN
 
          ! Number of tracers
-         NTRAC(21) = 33
+         NTRAC(21) = 31
 
          ! Loop over tracers
          DO T = 1, NTRAC(21)
@@ -4878,25 +4878,18 @@
                   NAME (T,21) = 'OPD7'
                   FNAME(T,21) = 'Dust bin 7 AOD (550 nm)'
                CASE( 28 )
-                  NAME (T,21) = 'ODSSA'
-                  FNAME(T,21) = 'SSA AOD (600 nm)'
+                  NAME (T,21) = 'ODSLA'
+                  FNAME(T,21) = 'SLA AOD (600 nm)'
                CASE( 29 )
-                  NAME (T,21) = 'SASSA'
-                  FNAME(T,21) = 'SSA surface area'
+                  NAME (T,21) = 'SASLA'
+                  FNAME(T,21) = 'SLA surface area'
                   UNIT (T,21) = 'cm2/cm3'
                CASE( 30 )
-                  NAME (T,21) = 'ODSTS'
-                  FNAME(T,21) = 'STS surface area'
+                  NAME (T,21) = 'ODSPA'
+                  FNAME(T,21) = 'PSC type 1a/2 AOD (600 nm)'
                CASE( 31 )
-                  NAME (T,21) = 'SASTS'
-                  FNAME(T,21) = 'STS surface area'
-                  UNIT (T,21) = 'cm2/cm3'
-               CASE( 32 )
-                  NAME (T,21) = 'ODPSC'
-                  FNAME(T,21) = 'PSC surface area'
-               CASE( 33 )
-                  NAME (T,21) = 'SAPSC'
-                  FNAME(T,21) = 'PSC surface area'
+                  NAME (T,21) = 'SASPA'
+                  FNAME(T,21) = 'PSC type 1a/2 surface area'
                   UNIT (T,21) = 'cm2/cm3'
                CASE DEFAULT
                   ! Nothing

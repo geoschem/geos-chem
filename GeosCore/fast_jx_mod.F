@@ -100,7 +100,6 @@
       USE CMN_SIZE_MOD,   ONLY : NDUST,   MAXIJ
       USE COMODE_MOD,     ONLY : JLOP, CSPEC, AIRDENS, ABSHUM
       USE COMODE_LOOP_MOD,ONLY : CONSVAP,AVG,RSTARG
-      USE TRACERID_MOD,   ONLY : IDO1D, IDO3
       USE ERROR_MOD,      ONLY : DEBUG_MSG
       USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_NOCHEMGRID
       USE LOGICAL_MOD,    ONLY : LPRT
@@ -530,42 +529,10 @@
 !
 !               END SELECT
             ENDIF
-            ! If this is the first call and we do not have O1D conc.
-            ! from CSPEC, calculate a rough first approximation as PSSA
-!            !-----SDE DEBUG - Deactivated for now
-!#if (defined( FORCEO1D ) || defined( GMISTRAT ))
-!            IF ((FIRST).and.(.not.O1D_SET).and.(.FALSE.)) THEN
-!               DO L=1,LLCHEM
-!                  ! Ignore non-chemistry cells
-!                  IF (ITS_IN_THE_NOCHEMGRID(NLON,NLAT,L)) THEN
-!                     CYCLE
-!                  ENDIF
-!                  ! [O1Dss] =       J[O3]
-!                  !          ---------------------
-!                  !          k1[H2O]+k2[N2]+k3[O2]
-!                  JLOOP = JLOP(NLON,NLAT,L)
-!                  ! Taken from calcrate.F
-!                  TLOCAL = T_CTM(L)
-!                  ADLOCAL = AIRDENS(JLOOP)
-!                  TINV = 1.d0/TLOCAL
-!                  CONSEXP = 17.2693882D0 * (TLOCAL - 273.16D0) / 
-!     &                                      (TLOCAL - 35.86D0) 
-!                  H2OFACTOR = ABSHUM(JLOOP)*CONSVAP*EXP(CONSEXP)*TINV
-!                  CSPEC(JLOOP,IDO1D) = 
-!     &             CSPEC(JLOOP,IDO3) *  ZPJ(L,3,NLON,NLAT) / 
-!     &    ( 1.63d-10*EXP( 60.d0*TINV)*H2OFACTOR +
-!     &      2.15d-11*EXP(110.d0*TINV)*0.2095d0*ADLOCAL +
-!     &      3.30d-11*EXP( 55.d0*TINV)*0.7808d0*ADLOCAL )
-!               ENDDO
-!            ENDIF
-!#endif
          ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
-      IF (FIRST.and.(.not.O1D_SET)) THEN
-         IF ( LPRT ) CALL DEBUG_MSG( '### FAST_JX_MOD: O1D SET' )
-      ENDIF
       FIRST=.FALSE.
 
       !-----------------------------------------------------------
