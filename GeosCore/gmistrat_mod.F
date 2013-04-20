@@ -1032,13 +1032,13 @@
 !
 ! !USES:
 !
-      USE DAO_MOD,       ONLY : T, BXHEIGHT
-      USE PRESSURE_MOD,  ONLY : GET_PCENTER
-      USE TRACER_MOD,    ONLY : STT, XNUMOL
-      USE TRACERID_MOD,  ONLY : IDTSO4,IDTBCPI
+      USE DAO_MOD,       ONLY : T, BXHEIGHT, AD
+      USE PRESSURE_MOD,  ONLY : GET_PCENTER, GET_PEDGE
+      USE TRACER_MOD,    ONLY : STT, XNUMOL, TRACER_MW_G
+      USE TRACERID_MOD,  ONLY : IDTNIT,IDTBCPI
       USE TIME_MOD,      ONLY : GET_ELAPSED_SEC, GET_TS_CHEM
       USE COMODE_MOD,    ONLY : JLOP,WERADIUS,ERADIUS
-      USE LOGICAL_MOD,   ONLY : LGMISTRAT
+      USE LOGICAL_MOD,   ONLY : LGMISTRAT,LGRAVSTRAT
       USE CHEMGRID_MOD,  ONLY : ITS_IN_THE_STRATMESO
       USE CHEMGRID_MOD,  ONLY : ITS_IN_THE_TROP,ITS_IN_THE_CHEMGRID
 
@@ -1056,7 +1056,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      ! Common to all particles
+      ! Common
       INTEGER                :: I,      J,     L,        DTCHEM
       REAL*8                 :: DELZ,   DELZ1
       REAL*8                 :: P,      TEMP,  DP,       PDP     
@@ -1065,13 +1065,12 @@
       REAL*8                 :: RCM
       REAL*8                 :: TOT1,   TOT2
       INTEGER                :: KLOOP, K
-      LOGICAL                :: STSBOX, NATBOX
+      LOGICAL                :: NATCOL
      
       ! Specific to each class
       REAL*8                 :: RWET(2),CONST_V(2)
       REAL*8                 :: RHO(2),RATIO_R(2),REFF(2)
-      REAL*8                 :: VTS(LLPAR,2),INMASS(4)
-      REAL*8                 :: OUTMASS(4)
+      REAL*8                 :: VTS(LLPAR,2)
  
       ! Used for old Seinfeld & Pandis slip factor calc
       REAL*8                 :: sp_Lambda, sp_Num
@@ -1084,8 +1083,8 @@
 #endif
 
       ! Indexing
-      INTEGER, PARAMETER     :: IBC = 1
-      INTEGER, PARAMETER     :: ILIQ= 2
+      INTEGER, PARAMETER     :: IBC  = 1
+      INTEGER, PARAMETER     :: ILIQ = 2
       INTEGER, PARAMETER     :: NSETTLE = 2
       INTEGER                :: IAERO
       LOGICAL                :: RUNCALC
@@ -1095,9 +1094,26 @@
       REAL*8                 :: SEDMASS
       INTEGER                :: IDTCURRENT
 
+      ! NAT only
+      REAL*8                 :: VFALLMAX
+      REAL*8,DIMENSION(LLPAR):: VNAT
+      INTEGER                :: MAXALT, MINALT
+      REAL*8                 :: BXMIN, SEDSTEP, TEMPREAL, P_0, P_ABOVE
+      REAL*8                 :: PSED0, PSEDABOVE, INVAIR_0, INVAIR_ABOVE
+      REAL*8                 :: XPSC_ABOVE, XPSC_0, XPSC_BELOW
+      REAL*8                 :: XNAT_ABOVE, XNAT_0, XNAT_BELOW
+      REAL*8                 :: XNO3_ABOVE, XNO3_0, XNO3_BELOW
+      REAL*8                 :: XICE_ABOVE, XICE_0, XICE_BELOW
+      REAL*8                 :: SEDPSC, SEDNAT, SEDNO3, SEDICE, SEDQUANT
+      REAL*8                 :: BELOWGRAD, ABOVEGRAD
+      INTEGER                :: LOCALPROFILE, NUMSEDSTEPS, STARTPT, ISED
+
       !=================================================================
       ! SETTLE_STRAT_AER begins here!
       !=================================================================
+
+      ! Return if gravitational settling disabled
+      IF (.not. LGRAVSTRAT) RETURN
 
       ! Return if it's the start of the run
       IF ( GET_ELAPSED_SEC() == 0 ) RETURN
@@ -1112,8 +1128,16 @@
 !$OMP+PRIVATE( I,       J,     L,    VTS,  P,        TEMP, RHB,  RWET ) 
 !$OMP+PRIVATE( RATIO_R, RHO,   DP,   PDP,  CONST,    SLIP, VISC )
 !$OMP+PRIVATE( DELZ,    DELZ1, TOT1, TOT2, AREA_CM2, FLUX, IAERO      )
-!$OMP+PRIVATE( STSBOX, NATBOX, SP_NUM, SP_LAMBDA, RUNCALC )
+!$OMP+PRIVATE( SP_NUM, SP_LAMBDA, RUNCALC )
 !$OMP+PRIVATE( CONST_V, K, PHASEMASS, IDTCURRENT, SEDMASS )
+!$OMP+PRIVATE( BXMIN, NATCOL, MINALT, MAXALT, VFALLMAX, SEDSTEP )
+!$OMP+PRIVATE( LOCALPROFILE, NUMSEDSTEPS, TEMPREAL, STARTPT, ISED )
+!$OMP+PRIVATE( PSED0, P_0, P_ABOVE, ABOVEGRAD, PSEDABOVE )
+!$OMP+PRIVATE( BELOWGRAD, INVAIR_0, INVAIR_ABOVE )
+!$OMP+PRIVATE( SEDNO3, SEDNAT, SEDICE, SEDPSC, SEDQUANT )
+!$OMP+PRIVATE( XNO3_ABOVE, XNAT_ABOVE, XICE_ABOVE, XPSC_ABOVE )
+!$OMP+PRIVATE( XNO3_0, XNAT_0, XICE_0, XPSC_0, VNAT )
+!$OMP+PRIVATE( XNO3_BELOW, XNAT_BELOW, XICE_BELOW, XPSC_BELOW )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR       
@@ -1121,7 +1145,15 @@
          ! Initialize 
          DO L = 1, LLPAR
             VTS(L,:) = 0d0
+            VNAT(L) = 0d0
          ENDDO
+         NATCOL = .FALSE.
+
+         ! Arbitrary limits
+         BXMIN = 1.d20
+         MINALT = LLPAR+1
+         MAXALT = 0
+         VFALLMAX = 0d0
 
          ! Loop over levels
          DO L = 1, LLPAR
@@ -1134,8 +1166,7 @@
             IF (RUNCALC) THEN
                ! Need to translate for BC radii
                IF (ITS_IN_THE_CHEMGRID(I,J,L)) THEN
-                  KLOOP = JLOP(I,J,L)
-   
+                  KLOOP = JLOP(I,J,L)  
                   RWET(IBC) = WERADIUS(KLOOP,2)*1.d-2
                ELSE
                   ! Use defaults, assume dry (!)
@@ -1148,10 +1179,19 @@
                ! Get aerosol properties
                RWET(ILIQ) = RAD_AER(I,J,L,I_SLA)*1.d-2
                RHO(ILIQ)  = RHO_AER(I,J,L,I_SLA)
+
+               ! Do we need to sediment NAT?
+               IF (NDENS_AER(I,J,L,I_SPA).gt.TINY(0d0)) THEN
+                  NATCOL = .TRUE.
+                  BXMIN = MIN(BXMIN,BXHEIGHT(I,J,L))
+                  MINALT = MIN(L,MINALT)
+                  MAXALT = MAX(L,MAXALT)
+               ENDIF
             ENDIF
 
             IF (.not.RUNCALC) THEN
                VTS(L,:) = 0d0
+               VNAT(L) = 0d0
             ELSE
                ! Pressure at center of the level [kPa]
                P       = GET_PCENTER(I,J,L) * 0.1d0
@@ -1207,9 +1247,20 @@
                      VTS(L,IAERO) = CONST * Slip / VISC  
                   ENDIF ! RWET
                ENDDO ! IAERO
+               
+               ! Now solid PSC particles
+               IF (NATCOL) THEN
+                  ! sp_Num: Air molecule#/m3
+                  VNAT(L) = CALC_FALLVEL(RHO_AER(I,J,L,I_SPA),
+     &                          RAD_AER(I,J,L,I_SPA),TEMP,P)
+                  IF (VNAT(L).gt.VFALLMAX) VFALLMAX = VNAT(L)
+               ELSE
+                  VNAT(L) = 0.d0
+               ENDIF
             ENDIF ! RUNCALC
          ENDDO
 
+         ! First apply simpler SLA sedimentation scheme
          ! Handle model top condition
          L = LLPAR
          DELZ = BXHEIGHT(I,J,L)
@@ -1301,6 +1352,191 @@
      &              * STT(I,J,L+1,IDTBCPI)) 
          ENDDO
 
+         ! Now perform trapezoidal scheme for particulates
+         ! Calculate maximum allowable timestep (seconds)
+         SEDSTEP = BXMIN/VFALLMAX
+         IF(DTCHEM.le.SEDSTEP)THEN
+            NUMSEDSTEPS = 1
+            SEDSTEP = DTCHEM
+         ELSE
+            ! Will need to run iteratively
+            ! Calculate minimum necessary number of steps, limiting to
+            ! 10 steps if excessive
+            TEMPREAL = DTCHEM/SEDSTEP 
+            NUMSEDSTEPS = CEILING(TEMPREAL)
+            NUMSEDSTEPS = MIN(10,NUMSEDSTEPS)
+            SEDSTEP = DTCHEM/(NUMSEDSTEPS*1.d0)
+            VFALLMAX = BXMIN/SEDSTEP
+            !-----SDE DEBUG
+            IF (NUMSEDSTEPS .eq. 10) THEN
+               WRITE(6,*) 'DEBUG: MAXSTEP CONDITION'
+            ENDIF
+         ENDIF
+
+         SEDSTEPLOOP: DO ISED=1,NUMSEDSTEPS
+            STARTPT = MAX(1,MINALT-1)
+            ! XPSC is the number of molecules tied up in solid particles
+            ! per m3 in a grid box
+            L = STARTPT
+            XNO3_0 = STT(I,J,L,IDTNIT) * AIRMW / 
+     &                      (TRACER_MW_G(IDTNIT)*AD(I,J,L))
+            XNAT_0 = XNO3_0 * 4.d0
+            XICE_0 = (KG_AER(I,J,L,I_SPA)-STT(I,J,L,IDTNIT))
+     &                    *AIRMW/(ICEMW*AD(I,J,L))
+            XPSC_0 = XNAT_0 + XICE_0
+            P_0 = 100.0d0 * GET_PCENTER(I,J,L)
+            INVAIR_0 = AIRMW/AD(I,J,L)
+            IF (L .ne. LLPAR) THEN
+               INVAIR_ABOVE = AIRMW/AD(I,J,L+1)
+               XNO3_ABOVE = STT(I,J,L+1,IDTNIT) * INVAIR_ABOVE / 
+     &                             (TRACER_MW_G(IDTNIT))
+               ! NAT = HNO3.3H2O = 4 molecules
+               XNAT_ABOVE = XNO3_ABOVE * 4.d0
+               XICE_ABOVE = (KG_AER(I,J,L+1,I_SPA)-STT(I,J,L+1,IDTNIT))
+     &                                    *INVAIR_ABOVE/ICEMW
+               XPSC_ABOVE = XNAT_ABOVE + XICE_ABOVE
+               P_ABOVE = 100.0d0 * GET_PCENTER(I,J,L+1)
+               PSEDABOVE = VNAT(L+1)*SEDSTEP*1.d2*
+     &            (GET_PEDGE(I,J,L)-GET_PEDGE(I,J,L+1))/BXHEIGHT(I,J,L)
+!               PSEDABOVE=g0 * (1.0d3*AIRMW) * P_ABOVE * 
+!     &            VNAT(L+1) / (Rd * T(I,J,L+1))*SEDSTEP
+            ELSE
+               INVAIR_ABOVE = 0.0d0
+               XNO3_ABOVE = 0.0d0
+               XNAT_ABOVE = 0.0d0
+               XICE_ABOVE = 0.0d0
+               XPSC_ABOVE = 0.0d0
+               P_ABOVE = GET_PEDGE(I,J,LLPAR+1) * 100.0d0
+               PSEDABOVE = 0.0d0
+            ENDIF
+            ABOVEGRAD = (XPSC_ABOVE-XPSC_0)/(P_0-P_ABOVE)
+            SED_LLOOP: DO L=STARTPT,MAXALT
+               ! Actually calculating sedimentation for the box above this
+               ! one. By the time we get around to processing a given
+               ! box, it is actually the (i-1)th box
+               ! We are therefore concerned with calculating
+               ! sedimentation *out* of the box above us and *into* this
+               ! one
+               XNO3_BELOW = XNO3_0
+               XNAT_BELOW = XNAT_0
+               XICE_BELOW = XICE_0
+               XPSC_BELOW = XPSC_0
+               XNO3_0 = XNO3_ABOVE
+               XNAT_0 = XNAT_ABOVE
+               XICE_0 = XICE_ABOVE
+               XPSC_0 = XPSC_ABOVE
+               P_0 = P_ABOVE
+               PSED0 = PSEDABOVE
+               INVAIR_0 = INVAIR_ABOVE
+               
+               IF (L.le.(LLPAR-2)) THEN
+                  INVAIR_ABOVE = AIRMW/AD(I,J,L+2)
+                  XNO3_ABOVE = STT(I,J,L+2,IDTNIT) * INVAIR_ABOVE / 
+     &                             TRACER_MW_G(IDTNIT)
+                  XNAT_ABOVE = XNO3_ABOVE * 4.d0
+                  XICE_ABOVE = (KG_AER(I,J,L+2,I_SPA)-
+     &                STT(I,J,L+2,IDTNIT))/ICEMW
+                  XPSC_ABOVE = XNAT_ABOVE + XICE_ABOVE
+                  P_ABOVE = GET_PCENTER(I,J,L+2) * 100.0d0
+                  PSEDABOVE=VNAT(L+2)*SEDSTEP*1.d2*(GET_PEDGE(I,J,L+1)-
+     &               GET_PEDGE(I,J,L+2))/BXHEIGHT(I,J,L+2)
+!                  PSEDABOVE = g0 * (1.0d3*AIRMW) * P_ABOVE *
+!     &               VNAT(L+2)/(Rd * T(I,J,L+2))*SEDSTEP
+               ELSE
+                  INVAIR_ABOVE = 0.0d0
+                  XNO3_ABOVE = 0.0d0
+                  XNAT_ABOVE = 0.0d0
+                  XICE_ABOVE = 0.0d0
+                  XPSC_ABOVE = 0.0d0
+                  P_ABOVE = GET_PEDGE(I,J,LLPAR) * 100.0d0
+                  PSEDABOVE = 0.0d0
+               ENDIF
+               ! Note reversal of pressure values as pressure falls with
+               ! height. If a value is positive, PSC particle substance
+               ! mixing ratios are increasing with height, and vice versa
+               BELOWGRAD = ABOVEGRAD
+               ABOVEGRAD = (XPSC_ABOVE-XPSC_0)/(P_0-P_ABOVE)
+
+               ! NB: Order of following conditionals is important! Could
+               ! theoretically do without localprofile as a variable, but
+               ! should be sure to check for the possible (but phenomenally
+               ! unlikely) condition that the gradients are both zero
+               IF ((ABOVEGRAD .eq. 0d0) .and. (BELOWGRAD .eq. 0d0)) THEN
+                  ! Extremelely unlikely case, but use standard scheme
+                  ! for flat vertical profile
+                  LOCALPROFILE = 0
+               ELSEIF ((ABOVEGRAD .le. 0d0) .and.
+     &                  (BELOWGRAD .le. 0d0)) THEN
+                  ! Consistently decreasing with height - above a peak
+                  LOCALPROFILE = -1
+               ELSEIF ((ABOVEGRAD .ge. 0d0) .and. 
+     &                  (BELOWGRAD .ge. 0d0)) THEN
+                  ! Consistently increasing with height - below a peak
+                  LOCALPROFILE = +1
+               ELSE
+                  ! Local minmum or maximum
+                  LOCALPROFILE = 0
+               ENDIF
+
+               IF (LOCALPROFILE.eq.0) THEN
+                  ! Standard sedimentation scheme
+                  SEDQUANT = XPSC_0 * PSED0
+               ELSEIF (LOCALPROFILE.eq.1) THEN
+                  ! Currently below a peak
+                  ! Use gradient of bottom and centre boxes
+                  IF (XPSC_0 .le. (0.5d0 * XPSC_ABOVE)) THEN
+                     ! Interpret as nearing peak; use lower gradient
+                     SEDQUANT = (XPSC_0+XPSC_BELOW)*0.5d0*PSED0
+                  ELSE
+                     SEDQUANT = (XPSC_ABOVE+XPSC_0)*0.50*PSED0
+                  ENDIF
+               ELSE
+                  ! Above a peak
+                  SEDQUANT = (XPSC_0+XPSC_BELOW)*0.5d0*PSED0
+               ENDIF
+               ! Divide sedimenting quantity by the pressure difference
+               ! across the box being sedimented from
+               ! Note conversion from hPa to Pa for denominator, ie
+               ! multiply numerator by (1/100)
+               IF (L .ne. LLPAR) THEN
+                  SEDQUANT = (1.d-2) * SEDQUANT /
+     &               (GET_PEDGE(I,J,L+1)-GET_PEDGE(I,J,L+2))
+               ELSE
+                  ! This shouldn't be possible?
+                  CALL ERROR_STOP('Unknown sedimentation error',
+     &                            'gmistrat_mod.F')
+               ENDIF
+         
+               ! Apply limits so that sedimented quantity is:
+               ! Greater than or equal to zero
+               ! Less than or equal to the total available quantity
+
+               ! Note that we are calculating sedimentation using
+               ! the total ice and NAT, but are only actually
+               ! transporting the local NO3
+               SEDQUANT = MAX(0.0d0,SEDQUANT)
+               ! X???_0 refers to the box losing mass (L+1)
+               SEDNO3 = SEDQUANT * (XNO3_0/XPSC_0)
+               SEDICE = SEDQUANT * (XICE_0/XPSC_0)
+               SEDNAT = SEDNO3 * 4.d0
+               
+               ! Convert v/v to kg/box
+               SEDNO3 = SEDNO3*TRACER_MW_G(IDTNIT)/INVAIR_0
+               SEDICE = SEDICE*ICEMW/INVAIR_0
+               SEDNAT = SEDNAT*NATMW/INVAIR_0
+               
+               SEDNO3 = MIN(SEDNO3,STT(I,J,L+1,IDTNIT))
+               STT(I,J,L,IDTNIT) = STT(I,J,L,IDTNIT) + SEDNO3
+               STT(I,J,L+1,IDTNIT)=STT(I,J,L+1,IDTNIT)-SEDNO3
+
+               ! Now correct aerosol totals
+               SEDPSC = SEDNAT + SEDICE
+               SEDPSC = MIN(SEDPSC,KG_AER(I,J,L+1,I_SPA))
+               KG_AER(I,J,L,I_SPA) = KG_AER(I,J,L,I_SPA) + SEDPSC
+               KG_AER(I,J,L+1,I_SPA)=KG_AER(I,J,L+1,I_SPA)-SEDPSC
+               
+            ENDDO SED_LLOOP
+         ENDDO SEDSTEPLOOP
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -1862,17 +2098,23 @@
                         HNO3GASFRAC = 1.d0
                         W_H2O = W_H2O + W_HNO3
                         W_HNO3 = 0.d0
+                        HNO3_BOX_G = HNO3SUM - HNO3_BOX_S
+                        HNO3_BOX_L = 0.d0
                   ELSE
+                     ! As per Buchholz, use only non-NAT HNO3 for STS
+                     HNO3_BOX_G = HNO3SUM - HNO3_BOX_S
                      CALL TERNARY (PCENTER,TCENTER,H2OSUM,H2SO4_BOX_L,
-     &                  HNO3SUM,HClSUM,HOClSUM,HBrSUM,HOBrSUM,
+     &                  HNO3_BOX_G,HClSUM,HOClSUM,HBrSUM,HOBrSUM,
      &                  W_H2SO4,W_H2O,W_HNO3,W_HCl,W_HOCl,W_HBr,W_HOBr,
      &                  HNO3GASFRAC,HClGASFRAC,HOClGASFRAC,
      &                  HBrGASFRAC,HOBrGASFRAC,VOL_SLA,RHO_AER_BOX)
+        
+                        ! Partition HNO3 here for safety
+                        HNO3_BOX_G = HNO3_BOX_G*HNO3GASFRAC
+                        HNO3_BOX_L = HNO3SUM - (HNO3_BOX_G+HNO3_BOX_S)
                   ENDIF
         
-                  ! Partition species
-                  HNO3_BOX_G = HNO3SUM*HNO3GASFRAC
-                  HNO3_BOX_L = HNO3SUM - (HNO3_BOX_G+HNO3_BOX_S)
+                  ! Partition minor species
                   HCl_BOX_G  = HClSUM *HClGASFRAC
                   HCl_BOX_L  = HClSUM -HCl_BOX_G
                   HOCl_BOX_G = HOClSUM*HOClGASFRAC
@@ -2517,6 +2759,77 @@
       RETURN
 
       END FUNCTION CARSLAW_DENSITY
+!
+!EOC
+!------------------------------------------------------------------------------
+!               MIT Laboratory for Aviation and the Environment               !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: calc_fallvel
+!
+! !DESCRIPTION: Function CALC\_FALLVEL calculates the terminal velocity of a
+!  solid particle.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION CALC_FALLVEL(DENSITY,RADIUS,TCENTER,PCENTER) RESULT(VEL)
+!
+! !USES:
+!
+      USE CMN_GCTM_MOD,    ONLY : PI, g0
+!
+! !INPUT PARAMETERS:
+!
+      REAL*8,INTENT(IN)   :: RADIUS  ! Particle radius (cm)
+      REAL*8,INTENT(IN)   :: DENSITY ! Particle density (kg/m3)
+      REAL*8,INTENT(IN)   :: TCENTER ! Local temperature (K)
+      REAL*8,INTENT(IN)   :: PCENTER ! Local pressure (kPa)
+!
+! !OUTPUT VARIABLES:
+!
+      REAL*8              :: VEL ! Fall velocity (m/s)
+!
+! !REMARKS:
+! (1) A remark
+! 
+! !REVISION HISTORY: 
+!  11 Aug 2012 - S. D. Eastham - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8              :: Vy ! Intermediate velocity (m/s)
+      REAL*8,PARAMETER    :: eta=6.45d-8 ! Constant (kg/(msK))
+      REAL*8              :: val_x ! Dimensionless variable
+      REAL*8,DIMENSION(3) :: alpha ! Auxiliary variables
+      REAL*8              :: PR ! Pressure times radius
+
+      !=================================================================
+      ! CALC_FALLVEL begins here!
+      !=================================================================
+
+      DATA ALPHA/1.49d-5,5.02d-6,2.64d-5/
+
+      ! Sanity check
+      IF ((RADIUS.le.0.d0).or.(DENSITY.le.0.d0)) THEN
+         VEL=0.d0
+      ELSE
+         ! PCENTER (kPa -> Pa) = *1.d3
+         ! RADIUS  (cm  -> m ) = *1.d-2
+         ! Therefore multiply PR by 10
+         PR = PCENTER * RADIUS * 10d0
+         VAL_X = -1.0d0*PR/(ALPHA(3)*TCENTER)
+         VAL_X = ALPHA(2)*TCENTER*EXP(VAL_X)/PR
+         VAL_X = 1.0d0 + VAL_X + (ALPHA(1)*TCENTER/PR)
+         Vy = g0*DENSITY*RADIUS*RADIUS*(1.d-4)/(4.5*ETA*TCENTER)
+         VEL = 0.893d0 * Vy * VAL_X
+      ENDIF
+
+      END FUNCTION CALC_FALLVEL
 !
 !EOC
 !!------------------------------------------------------------------------------
