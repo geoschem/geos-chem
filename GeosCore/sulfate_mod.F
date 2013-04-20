@@ -542,7 +542,7 @@
          CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITS' )
       ENDIF
 
-      ! BC, SO4, NH4 and NIT [kg] gravitational settling in strat.
+      ! Stratospheric aerosol graviational settling
       IF ( LGRAVSTRAT ) THEN
          CALL SETTLE_STRAT_AER
          IF ( LPRT .and. am_I_Root ) THEN

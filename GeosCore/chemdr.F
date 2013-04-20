@@ -46,8 +46,7 @@
       USE TRACERID_MOD,         ONLY : IDTCH4 ! SDE 03/25/13
       USE LOGICAL_MOD,          ONLY : LGMISTRAT ! SDE 04/11/13
       USE LOGICAL_MOD,          ONLY : LGRAVSTRAT ! SDE 04/12/13
-      USE GMISTRAT_MOD,         ONLY : CALC_H2SO4_GAS ! SDE 04/11/13
-      USE GMISTRAT_MOD,         ONLY : CALC_PSC ! SDE 04/18/13
+      USE GMISTRAT_MOD,         ONLY : CALC_STRAT_AER ! SDE 04/18/13
 
       USE CMN_SIZE_MOD               ! Size parameters
       USE COMODE_LOOP_MOD            ! SMVGEAR variables
@@ -456,8 +455,7 @@
 
          ! Calculate stratospheric aerosol properties (SDE 04/18/13)
          IF (LGMISTRAT) THEN
-            CALL CALC_H2SO4_GAS
-            CALL CALC_PSC
+            CALL CALC_STRAT_AER
             !### Debug
             IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after CALC_PSC' )
          ENDIF

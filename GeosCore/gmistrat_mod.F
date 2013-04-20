@@ -37,9 +37,8 @@
       PUBLIC  :: SET_INITIAL_MIXRATIOS
       PUBLIC  :: EMISS_BASIC
       PUBLIC  :: SETTLE_STRAT_AER
-      PUBLIC  :: CALC_H2SO4_GAS
       PUBLIC  :: SO4_PHOTFRAC
-      PUBLIC  :: CALC_PSC
+      PUBLIC  :: CALC_STRAT_AER
       PUBLIC  :: GET_STRAT_OPT
       PUBLIC  :: KG_STRAT_AER
       PUBLIC  :: RHO_STRAT_AER
@@ -54,6 +53,7 @@
       PRIVATE :: GET_MONTREAL
       PRIVATE :: TERNARY
       PRIVATE :: CARSLAW_DENSITY
+      PRIVATE :: CALC_H2SO4_GAS
 !
 ! !REVISION HISTORY: 
 !  26 Mar 2013 - S. D. Eastham - Initial version
@@ -108,7 +108,6 @@
       ! IDT_EMIT           : IDs of emitted tracers
       ! GRID_EMIT          : Surface CFC mixing ratios
       ! SFC_MONTH          : Month of last read-in
-      ! H2SO4_GASFRAC      : Fraction of SO4 considered gaseous
       ! RAD_AER            : Strat. aerosol radius (cm)
       ! KG_AER             : Aerosol mass (kg/box)
       ! SAD_AER            : Aerosol surface area density (cm2/cm3)
@@ -116,7 +115,8 @@
       ! RHO_AER            : Aerosol mass density (kg/m3 aerosol)
       ! STATE_PSC          : Gridbox PSC type (see Kirner et al)
       ! GAMMA_SLA          : Liquid aerosol sticking coeff.
-      ! AERFRAC            : Mass fraction of species in aerosol form
+      ! AERFRAC            : Mass fraction of species in liquid aerosols
+      ! AERFRACIND         : Indices of liquid aerosol species
       !
       ! Strings
       !
@@ -149,7 +149,6 @@
       REAL*8,DIMENSION(:),ALLOCATABLE       :: AER_PLEVS
       INTEGER,DIMENSION(MAX_EMIT)           :: IDT_EMIT
       REAL*8,DIMENSION(:,:),ALLOCATABLE     :: GRID_EMIT
-      REAL*8,DIMENSION(:,:,:),ALLOCATABLE   :: H2SO4_GASFRAC
       REAL*8,DIMENSION(:,:,:,:),ALLOCATABLE :: RAD_AER
       REAL*8,DIMENSION(:,:,:,:),ALLOCATABLE :: KG_AER
       REAL*8,DIMENSION(:,:,:,:),ALLOCATABLE :: SAD_AER
@@ -158,6 +157,7 @@
       INTEGER,DIMENSION(:,:,:),ALLOCATABLE  :: STATE_PSC
       REAL*8,DIMENSION(:,:,:,:),ALLOCATABLE :: GAMMA_SLA
       REAL*8,DIMENSION(:,:,:,:),ALLOCATABLE :: AERFRAC
+      INTEGER,DIMENSION(:),ALLOCATABLE      :: AERFRACIND
  
       ! Strings
       CHARACTER(LEN=255)                :: TRAC_FILE
@@ -1040,12 +1040,13 @@
       USE COMODE_MOD,    ONLY : JLOP,WERADIUS,ERADIUS
       USE LOGICAL_MOD,   ONLY : LGMISTRAT
       USE CHEMGRID_MOD,  ONLY : ITS_IN_THE_STRATMESO
-      USE CHEMGRID_MOD,  ONLY : ITS_IN_THE_TROP
+      USE CHEMGRID_MOD,  ONLY : ITS_IN_THE_TROP,ITS_IN_THE_CHEMGRID
 
       USE CMN_SIZE_MOD        ! Size parameters
       USE CMN_DIAG_MOD        ! ND44
       USE CMN_GCTM_MOD        ! g0
-      USE ERROR_MOD,   ONLY : IT_IS_NAN,ERROR_STOP     ! Test for NaN
+      USE CMN_FJX_MOD,   ONLY : RAA, IND999
+      USE ERROR_MOD,     ONLY : IT_IS_NAN,ERROR_STOP     ! Test for NaN
 !
 ! !REVISION HISTORY: 
 !  11 Apr 2013 - S. D. Eastham - Initial version
@@ -1063,7 +1064,7 @@
       REAL*8                 :: FAC2,   FLUX,  AREA_CM2, RHB
       REAL*8                 :: RCM
       REAL*8                 :: TOT1,   TOT2
-      INTEGER                :: KLOOP
+      INTEGER                :: KLOOP, K
       LOGICAL                :: STSBOX, NATBOX
      
       ! Specific to each class
@@ -1075,21 +1076,24 @@
       ! Used for old Seinfeld & Pandis slip factor calc
       REAL*8                 :: sp_Lambda, sp_Num
 
-      ! H2SO4 aqueous fraction
-      INTEGER                :: LOCALSO4AQ
-      
       ! Parameters
-      REAL*8, PARAMETER      :: SALTDEN = 2200.0d0 ! density (kg/m3)
-      REAL*8, PARAMETER      :: H2SO4DEN = 1840.0d0
+#if defined( APM )
+      REAL*8, PARAMETER      :: BCDEN = 1800.d0
+#else
       REAL*8, PARAMETER      :: BCDEN = 1000.d0 ! density (kg/m3)
-      REAL*8, PARAMETER      :: R_STRAT_STS = 2.0d-7 ! Mean STS rad. (m)
+#endif
 
       ! Indexing
       INTEGER, PARAMETER     :: IBC = 1
-      INTEGER, PARAMETER     :: ISO4= 2
+      INTEGER, PARAMETER     :: ILIQ= 2
       INTEGER, PARAMETER     :: NSETTLE = 2
       INTEGER                :: IAERO
       LOGICAL                :: RUNCALC
+
+      ! Partitioning
+      REAL*8, DIMENSION(3,2) :: PHASEMASS
+      REAL*8                 :: SEDMASS
+      INTEGER                :: IDTCURRENT
 
       !=================================================================
       ! SETTLE_STRAT_AER begins here!
@@ -1101,13 +1105,15 @@
       ! Chemistry timestep [s]
       DTCHEM = GET_TS_CHEM() * 60d0
 
+      ! First settle liquid aerosols (SLA) using scheme found
+      ! elsewhere in GEOS-Chem
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,       J,     L,    VTS,  P,        TEMP, RHB,  RWET ) 
 !$OMP+PRIVATE( RATIO_R, RHO,   DP,   PDP,  CONST,    SLIP, VISC )
 !$OMP+PRIVATE( DELZ,    DELZ1, TOT1, TOT2, AREA_CM2, FLUX, IAERO      )
-!$OMP+PRIVATE( STSBOX, NATBOX, LOCALSO4AQ, SP_NUM, SP_LAMBDA, RUNCALC )
-!$OMP+PRIVATE( CONST_V )
+!$OMP+PRIVATE( STSBOX, NATBOX, SP_NUM, SP_LAMBDA, RUNCALC )
+!$OMP+PRIVATE( CONST_V, K, PHASEMASS, IDTCURRENT, SEDMASS )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR       
@@ -1124,29 +1130,24 @@
             TEMP    = T(I,J,L)
  
             RUNCALC = ITS_IN_THE_STRATMESO(I,J,L)
-            LOCALSO4AQ = 1.d0 - H2SO4_GASFRAC(I,J,L)
 
             IF (RUNCALC) THEN
-               ! Need to translate for radii
-               KLOOP = JLOP(I,J,L)
-
-               !-----SDE DEBUG
-               ! Replace these with actual values!
-               ! Can calculate density from mass/vol
-               RWET(IBC) = WERADIUS(KLOOP,2)*1.d-2
-               RHO(IBC) = BCDEN
-               !-----SDE DEBUG
-
-               IF (LOCALSO4AQ.gt.TINY(0d0)) THEN
-                  ! Sulfate now takes the form of STS
-                  RWET(ISO4) = R_STRAT_STS ! Use simple mean radius for STS for now
-                  RHO(ISO4) = H2SO4DEN ! kg/m3
-                  NATBOX = (TEMP.le.T_STS)
+               ! Need to translate for BC radii
+               IF (ITS_IN_THE_CHEMGRID(I,J,L)) THEN
+                  KLOOP = JLOP(I,J,L)
+   
+                  RWET(IBC) = WERADIUS(KLOOP,2)*1.d-2
                ELSE
-                  ! Only sediment if aerosol form
-                  RWET(ISO4) = -1d0
-                  RHO(ISO4) = -1d0
+                  ! Use defaults, assume dry (!)
+                  RWET(IBC) = RAA(IND999,29)
                ENDIF
+
+               ! Taken from aerosol_mod (MSDENS(2))
+               RHO(IBC) = BCDEN
+
+               ! Get aerosol properties
+               RWET(ILIQ) = RAD_AER(I,J,L,I_SLA)*1.d-2
+               RHO(ILIQ)  = RHO_AER(I,J,L,I_SLA)
             ENDIF
 
             IF (.not.RUNCALC) THEN
@@ -1206,8 +1207,6 @@
                      VTS(L,IAERO) = CONST * Slip / VISC  
                   ENDIF ! RWET
                ENDDO ! IAERO
-               ! Correct for partial gas content
-               VTS(L,ISO4) = VTS(L,ISO4) * LOCALSO4AQ
             ENDIF ! RUNCALC
          ENDDO
 
@@ -1219,16 +1218,84 @@
             CONST_V(IAERO) = 1.d0/(1.d0+DTCHEM*VTS(L,IAERO)/DELZ)
          ENDDO
 
-         STT(I,J,L,IDTSO4) = STT(I,J,L,IDTSO4) * CONST_V(ISO4)
+         ! Zero arrays
+         PHASEMASS(:,:) = 0d0
+
+         ! Only want to sediment fraction of species currently
+         ! in the aerosol
+         DO K = 1,6
+            ! Only process transported tracers
+            IDTCURRENT = AERFRACIND(K)
+            IF (IDTCURRENT.ne.0) THEN
+               ! Calculate local phase partitioning
+               ! Total upper gridbox mass
+               PHASEMASS(3,2) = STT(I,J,L,IDTCURRENT)
+               ! Aerosol-phase upper gridbox mass
+               PHASEMASS(2,2) = AERFRAC(I,J,L,K)*PHASEMASS(3,2)
+               ! Gas-phase upper gridbox mass
+               PHASEMASS(1,2) = PHASEMASS(3,2) - PHASEMASS(2,2)
+
+               ! Calculate total sedimented mass
+               SEDMASS = PHASEMASS(2,2) * (1.d0-CONST_V(ILIQ))
+
+               ! Remove from upper gridbox
+               PHASEMASS(2,2) = PHASEMASS(2,2) - SEDMASS
+               PHASEMASS(3,2) = PHASEMASS(1,2) + PHASEMASS(2,2)
+
+               ! Recalculate phase fractions
+               IF (PHASEMASS(3,2).gt.TINY(1d0)) THEN
+                  AERFRAC(I,J,L,K) = PHASEMASS(2,2)/PHASEMASS(3,2)
+               ELSE
+                  AERFRAC(I,J,L,K) = 0d0
+               ENDIF
+
+               ! Store result
+               STT(I,J,L,IDTCURRENT) = PHASEMASS(3,2)
+            ENDIF
+         ENDDO
          STT(I,J,L,IDTBCPI)= STT(I,J,L,IDTBCPI)* CONST_V(IBC) 
 
          DO L = LLPAR-1,1,-1
             IF (ITS_IN_THE_TROP(I,J,L+1)) CYCLE
             DELZ  = BXHEIGHT(I,J,L)
             DELZ1 = BXHEIGHT(I,J,L+1)
-            STT(I,J,L,IDTSO4) = 1.d0/(1.d0+DTCHEM*VTS(L,ISO4)/DELZ)
-     &              * (STT(I,J,L,IDTSO4)+DTCHEM*VTS(L+1,ISO4)/DELZ1
-     &              * STT(I,J,L+1,IDTSO4))
+
+            DO K=1,6
+               IDTCURRENT = AERFRACIND(K)
+               IF (IDTCURRENT.ne.0) THEN
+                  ! Total upper gridbox mass
+                  PHASEMASS(3,2) = STT(I,J,L+1,IDTCURRENT)
+                  ! Aerosol-phase upper gridbox mass
+                  PHASEMASS(2,2) = AERFRAC(I,J,L+1,K)*PHASEMASS(3,2)
+                  ! Gas-phase upper gridbox mass
+                  PHASEMASS(1,2) = PHASEMASS(3,2) - PHASEMASS(2,2)
+                  
+                  ! Total lower gridbox mass
+                  PHASEMASS(3,1) = STT(I,J,L,IDTCURRENT)
+                  ! Aerosol-phase lower gridbox mass
+                  PHASEMASS(2,1) = AERFRAC(I,J,L,K)*PHASEMASS(3,1)
+                  ! Gas-phase lower gridbox mass
+                  PHASEMASS(1,1) = PHASEMASS(3,1) - PHASEMASS(2,1)
+                  
+                  ! New lower gridbox mass
+                  PHASEMASS(2,1) = 1.d0/(1.d0+DTCHEM*VTS(L,ILIQ)/DELZ)
+     &               * (PHASEMASS(2,1)+DTCHEM*VTS(L+1,ILIQ)/DELZ1
+     &               * PHASEMASS(2,2))
+
+                  ! Calculate new total mass in lower gridbox
+                  PHASEMASS(3,1) = PHASEMASS(2,1) + PHASEMASS(1,1)
+
+                  ! Recalculate phase fraction
+                  IF (PHASEMASS(3,1).gt.TINY(1d0)) THEN
+                     AERFRAC(I,J,L,K) = PHASEMASS(2,1)/PHASEMASS(3,1)
+                  ELSE
+                     AERFRAC(I,J,L,K) = 0d0
+                  ENDIF
+
+                  ! Store result
+                  STT(I,J,L,IDTCURRENT) = PHASEMASS(3,1)
+               ENDIF
+            ENDDO
             STT(I,J,L,IDTBCPI) = 1.d0/(1.d0+DTCHEM*VTS(L,IBC)/DELZ)
      &              * (STT(I,J,L,IDTBCPI)+DTCHEM*VTS(L+1,IBC)/DELZ1
      &              * STT(I,J,L+1,IDTBCPI)) 
@@ -1319,11 +1386,11 @@
          TCENTER = T(I,J,L)
          INVAIR  = AIRMW / AD(I,J,L)
          IF (PCENTER.ge.1.d2) THEN
-            H2SO4_GASFRAC(I,J,L) = 0d0
+            AERFRAC(I,J,L,1) = 1d0
             CYCLE LLOOP
          ELSEIF (ITS_IN_THE_TROP(I,J,L)) THEN
             ! Don't want to interfere with tropospheric aerosols
-            H2SO4_GASFRAC(I,J,L) = 0d0
+            AERFRAC(I,J,L,1) = 1d0
             CYCLE LLOOP
          ELSE
             H2SO4SUM = STT(I,J,L,IDTSO4  )*INVAIR/TRACER_MW_G(IDTSO4  )
@@ -1337,11 +1404,11 @@
             GF_PVAP = 1.d-2 * EXP(GF_LOGPSULFATE)
             GF_DIFF = (GF_PVAP+GF_THRESHOLD) - GF_PP
             IF (GF_DIFF .lt. 0) THEN
-               H2SO4_GASFRAC(I,J,L) = 0.d0
+               AERFRAC(I,J,L,1) = 1.d0
             ELSEIF (GF_DIFF .lt. GF_RANGE) THEN
-               H2SO4_GASFRAC(I,J,L) = GF_DIFF/GF_RANGE
+               AERFRAC(I,J,L,1) = 1.d0-(GF_DIFF/GF_RANGE)
             ELSE
-               H2SO4_GASFRAC(I,J,L) = 1.d0
+               AERFRAC(I,J,L,1) = 0d0
             ENDIF
          ENDIF
       ENDDO LLOOP
@@ -1388,7 +1455,7 @@
       ! SO4_PHOTFRAC begins here!
       !=================================================================
 
-      SO4_PHOTFRAC = H2SO4_GASFRAC(I,J,L)
+      SO4_PHOTFRAC = 1.d0 - AERFRAC(I,J,L,1)
 
       END FUNCTION SO4_PHOTFRAC
 !
@@ -1398,10 +1465,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: calc_psc
+! !IROUTINE: calc_strat_aer
 !
-! !DESCRIPTION: Subroutine CALC\_PSC calculates PSC properties throughout the
-!  chemistry grid using the thermodynamic parameterization described in
+! !DESCRIPTION: Subroutine CALC\_STRAT\_AER calculates aerosol properties    
+!  stratosphere using the thermodynamic parameterization described in
 !  Kirner et al. (`Simulation of polar stratospheric clouds in the
 !  chemistry-climate-model EMAC via the submodel PSC', Geosci. Mod. Dev.,
 !  4, 169-182, 2011).
@@ -1409,7 +1476,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CALC_PSC
+      SUBROUTINE CALC_STRAT_AER
 !
 ! !USES:
 !
@@ -1510,12 +1577,15 @@
       INTEGER               :: I, J, L, K, JLOOP
 
       !=================================================================
-      ! CALC_PSC begins here!
+      ! CALC_STRAT_AER begins here!
       !=================================================================
 
       IF (LPRT) THEN
-         CALL DEBUG_MSG( '### GMISTRAT: start CALC_PSC' )
+         CALL DEBUG_MSG( '### GMISTRAT: start CALC_STRAT_AER' )
       ENDIF
+
+      ! Partition H2SO4 before proceeding
+      CALL CALC_H2SO4_GAS
 
       ! Loop over latitude boxes first
 !$OMP PARALLEL DO
@@ -1611,7 +1681,7 @@
                H2OPP  = PCENTER_PA * H2OSUM
 
                IF (.not.IS_VALID) THEN
-                  ! No PSCs
+                  ! No PSCs (SSA only)
                   STATE_LOCAL = 0
                ELSEIF (TCENTER.gt.T_MAX) THEN
                   ! STS only
@@ -1749,8 +1819,8 @@
 
                ! H2SO4 gas fraction calculated earlier throughout grid
                ! Consider gaseoues H2SO4 to be unavailable for SLA
-               H2SO4_BOX_G = H2SO4SUM * H2SO4_GASFRAC(I,J,L)
-               H2SO4_BOX_L = H2SO4SUM - H2SO4_BOX_G
+               H2SO4_BOX_L = H2SO4SUM * AERFRAC(I,J,L,1)
+               H2SO4_BOX_G = H2SO4SUM - H2SO4_BOX_L
 
                ! Zero local properties
                RHO_AER_BOX   = 1000d0
@@ -1780,11 +1850,25 @@
                      GAMMA_BOX(K) = 0.0d0
                   ENDDO
                ELSE
-                  CALL TERNARY (PCENTER,TCENTER,H2OSUM,H2SO4_BOX_L,
-     &               HNO3SUM,HClSUM,HOClSUM,HBrSUM,HOBrSUM,
-     &               W_H2SO4,W_H2O,W_HNO3,W_HCl,W_HOCl,W_HBr,W_HOBr,
-     &               HNO3GASFRAC,HClGASFRAC,HOClGASFRAC,
-     &               HBrGASFRAC,HOBrGASFRAC,VOL_SLA,RHO_AER_BOX)
+                  IF (STATE_LOCAL.eq.0) THEN
+                     ! Allow binary H2SO4.nH2O only
+                     CALL TERNARY (PCENTER,TCENTER,H2OSUM,H2SO4_BOX_L,
+     &                  0.d0   ,HClSUM,HOClSUM,HBrSUM,HOBrSUM,
+     &                  W_H2SO4,W_H2O,W_HNO3,W_HCl,W_HOCl,W_HBr,W_HOBr,
+     &                  HNO3GASFRAC,HClGASFRAC,HOClGASFRAC,
+     &                  HBrGASFRAC,HOBrGASFRAC,VOL_SLA,RHO_AER_BOX)
+
+                        ! For safety's sake, zero out HNO3 uptake
+                        HNO3GASFRAC = 1.d0
+                        W_H2O = W_H2O + W_HNO3
+                        W_HNO3 = 0.d0
+                  ELSE
+                     CALL TERNARY (PCENTER,TCENTER,H2OSUM,H2SO4_BOX_L,
+     &                  HNO3SUM,HClSUM,HOClSUM,HBrSUM,HOBrSUM,
+     &                  W_H2SO4,W_H2O,W_HNO3,W_HCl,W_HOCl,W_HBr,W_HOBr,
+     &                  HNO3GASFRAC,HClGASFRAC,HOClGASFRAC,
+     &                  HBrGASFRAC,HOBrGASFRAC,VOL_SLA,RHO_AER_BOX)
+                  ENDIF
         
                   ! Partition species
                   HNO3_BOX_G = HNO3SUM*HNO3GASFRAC
@@ -1802,6 +1886,11 @@
                   SAD_AER_BOX = SLA_VA*(VOL_SLA**0.751d0)
                   RAD_AER_BOX = SLA_VR*SLA_RR*(VOL_SLA**0.249d0)
                   KG_AER_BOX  = RHO_AER_BOX*VOL_SLA*AIRVOL(I,J,L)
+
+                  ! Approximate particles as spherical for calculation
+                  ! of aerosol number density
+                  NDENS_AER_BOX = VOL_SLA*3.d0/
+     &                    (4.d0*PI*(RAD_AER_BOX**3.d0))
 
                   !-----SDE DEBUG
                   DO K=1,11
@@ -1825,7 +1914,7 @@
 !$OMP END PARALLEL DO
 
       IF (LPRT) THEN
-         CALL DEBUG_MSG( '### GMISTRAT: after CALC_PSC' )
+         CALL DEBUG_MSG( '### GMISTRAT: after CALC_STRAT_AER' )
          WRITE(6,'(a)') 'Strat. aerosol diagnostics summary:'
          WRITE(6,'(a,1x,E12.4)') 'Peak particle # density (#/m3): ',
      &                               MAXVAL(NDENS_AER(:,:,:,I_SPA))
@@ -1835,6 +1924,8 @@
      &                               MAXVAL(SAD_AER(:,:,:,I_SPA))
          WRITE(6,'(a,1x,E12.4)') 'Peak particle radius (cm)     : ',
      &                               MAXVAL(RAD_AER(:,:,:,I_SPA))
+         WRITE(6,'(a,1x,E12.4)') 'Peak SSA/STS # density (#/m3) : ',
+     &                               MAXVAL(NDENS_AER(:,:,:,I_SLA))
          WRITE(6,'(a,1x,E12.4)') 'Peak SSA/STS density (kg/m3)  : ',
      &                               MAXVAL(RHO_AER(:,:,:,I_SLA))
          WRITE(6,'(a,1x,E12.4)') 'Peak SSA/STS SAD (cm2/cm3)    : ',
@@ -1845,7 +1936,7 @@
      &                                 MAXVAL(GAMMA_SLA(:,:,:,:))
       ENDIF
 
-      END SUBROUTINE CALC_PSC
+      END SUBROUTINE CALC_STRAT_AER
 !
 !EOC
 !------------------------------------------------------------------------------
@@ -2526,11 +2617,6 @@
       WRITE( 6,'(a)') 'Last Modification Date: 05/09/13'
       WRITE( 6,'(a)') REPEAT( '=', 79 )
 
-      ! Initialize H2SO4 gas fraction
-      ALLOCATE( H2SO4_GASFRAC( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'H2SO4_GAS_FRAC' )
-      H2SO4_GASFRAC = 0d0
-
       ! Calculate conversion factors for SLA
       SLA_VA = (8.406d-8)*(10.d0**(12.d0*0.751d0))
       SLA_RR = EXP(-0.173d0)
@@ -2652,7 +2738,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'STATE_PSC' )
       STATE_PSC = 0d0
       
-      ! Mass fraction of tracers contained in aerosols
+      ! Mass fraction of tracers contained in liquid aerosol
       ! Indices: 1 - SO4
       !          2 - HNO3
       !          3 - HCl
@@ -2662,6 +2748,15 @@
       ALLOCATE( AERFRAC( IIPAR, JJPAR, LLPAR, 6 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AERFRAC' )
       AERFRAC = 0d0
+
+      ALLOCATE( AERFRACIND( 6 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AERFRACIND' )
+      AERFRACIND(1) = IDTSO4
+      AERFRACIND(2) = IDTHNO3
+      AERFRACIND(3) = IDTHCl
+      AERFRACIND(4) = 0     ! HOCl a species only
+      AERFRACIND(5) = IDTHBr
+      AERFRACIND(6) = IDTHOBr
     
       ! Sticking coefficients for PSC reactions on SLA 
       ALLOCATE( GAMMA_SLA( IIPAR, JJPAR, LLPAR, 11 ), STAT=AS )
@@ -2708,6 +2803,7 @@
       IF ( ALLOCATED( STATE_PSC  ) ) DEALLOCATE( STATE_PSC  )
       IF ( ALLOCATED( NDENS_AER  ) ) DEALLOCATE( NDENS_AER  )
       IF ( ALLOCATED( AERFRAC    ) ) DEALLOCATE( AERFRAC    )
+      IF ( ALLOCATED( AERFRACIND ) ) DEALLOCATE( AERFRACIND )
       IF ( ALLOCATED( GAMMA_SLA  ) ) DEALLOCATE( GAMMA_SLA  )
 
       END SUBROUTINE CLEANUP_GMISTRAT

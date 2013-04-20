@@ -120,6 +120,8 @@
       USE TRACER_MOD,      ONLY : ITS_NOT_COPARAM_OR_CH4
       USE TRACERID_MOD,    ONLY : IDTACET, IDTISOP
       USE LOGICAL_MOD,     ONLY : LNLPBL ! (Lin, 03/31/09)
+      USE LOGICAL_MOD,     ONLY : LGMISTRAT ! (SDE 04/20/13)
+      USE GMISTRAT_MOD,    ONLY : CALC_STRAT_AER ! (SDE 04/20/13)
 
       USE CMN_SIZE_MOD          ! Size parameters
       USE COMODE_LOOP_MOD       ! NPHOT
@@ -244,6 +246,11 @@
             
             ! Do seasalt aerosol chemistry
             IF ( LSSALT ) CALL CHEMSEASALT( am_I_Root )
+
+#if defined( GMISTRAT )
+            ! Recalculate PSC properties
+            IF ( LGMISTRAT ) CALL CALC_STRAT_AER
+#endif
 
             ! Also do sulfate chemistry
             IF ( LSULF ) THEN
