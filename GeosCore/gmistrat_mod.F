@@ -40,7 +40,7 @@
       PUBLIC  :: CALC_H2SO4_GAS
       PUBLIC  :: SO4_PHOTFRAC
       PUBLIC  :: CALC_PSC
-      PUBLIC  :: GET_STRAT_AER
+      PUBLIC  :: GET_STRAT_OPT
       PUBLIC  :: KG_STRAT_AER
       PUBLIC  :: RHO_STRAT_AER
       PUBLIC  :: CHECK_NAT
@@ -1023,10 +1023,7 @@
 !
 ! !DESCRIPTION: Subroutine SETTLE\_STRAT\_AER performs gravitational settling
 !  of stratospheric aerosols. It is copied largely from GRAV\_SETTLING in
-!  sulfate\_mod.F, using a mean radius of 0.1 micrometers for STS (which
-!  all stratospheric sulfate is assumed to be) and the relevant aerosol radii
-!  calculated in aerosol\_mod.F for the rest. All of this is ignored if APM
-!  is active.
+!  sulfate\_mod.F. All of this is ignored if APM is active.
 !\\
 !\\
 ! !INTERFACE:
@@ -1937,16 +1934,18 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_strat_aer
+! !IROUTINE: get_strat_opt
 !
-! !DESCRIPTION: Subroutine GET\_STRAT\_AER returns local physical properties 
+! !DESCRIPTION: Subroutine GET\_STRAT\_OPT returns local optical properties 
 !  for a given stratospheric aerosol. The routine is essentially just an
-!  interface to allow external routines to "see" the arrays.
+!  interface to allow external routines to "see" the arrays. However, local
+!  aerosol radius is adjusted from liquid to effective radius for aerosol
+!  optical depth calculations with liquid aerosols.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_STRAT_AER (I,J,L,IAER,REFF,SAD)
+      SUBROUTINE GET_STRAT_OPT (I,J,L,IAER,RAER,REFF,SAD)
 !
 ! !INPUT PARAMETERS:
 !
@@ -1959,6 +1958,7 @@
 ! !OUTPUT VARIABLES:
 !
       REAL*8, INTENT(OUT)         :: REFF       ! Effective radius (cm)
+      REAL*8, INTENT(OUT)         :: RAER       ! Physical radius (cm)
       REAL*8, INTENT(OUT)         :: SAD        ! Surface area density (cm2/cm3)
 !
 ! !REMARKS:
@@ -1971,13 +1971,19 @@
 !BOC
 !
       !=================================================================
-      ! GET_STRAT_AER begins here!
+      ! GET_STRAT_OPT begins here!
       !=================================================================
 
       SAD  = SAD_AER(I,J,L,IAER)
-      REFF = RAD_AER(I,J,L,IAER)
+      ! For SLA, convert liquid radius to effective optical radius
+      RAER = RAD_AER(I,J,L,IAER)
+      IF (IAER.eq.I_SLA) THEN
+         REFF = RAER/SLA_RR
+      ELSE
+         REFF = RAER
+      ENDIF
 
-      END SUBROUTINE GET_STRAT_AER
+      END SUBROUTINE GET_STRAT_OPT
 !
 !EOC
 !------------------------------------------------------------------------------

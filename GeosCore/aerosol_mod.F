@@ -586,7 +586,7 @@
       USE TIME_MOD,      ONLY : ITS_A_NEW_MONTH
       USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D
-      USE GMISTRAT_MOD,  ONLY : GET_STRAT_AER, RHO_STRAT_AER
+      USE GMISTRAT_MOD,  ONLY : GET_STRAT_OPT, RHO_STRAT_AER
 
       USE CMN_SIZE_MOD,  ONLY : NNPAR, NDSTBIN, IIPAR,   JJPAR
       USE CMN_SIZE_MOD,  ONLY : LLPAR, MAXFAM,  NEMPARA, NEMPARB, LGLOB
@@ -703,7 +703,7 @@
       REAL*8,  SAVE       :: RH(NRH)   = (/0d0,0.5d0,0.7d0,0.8d0,0.9d0/)
 
       ! Temporary varaibles
-      REAL*8              :: RSTRAT, SADSTRAT
+      REAL*8              :: RAER, SADSTRAT, RHOSTRAT
       INTEGER             :: ISTRAT
 
       ! Index to aerosol types in jv_spec.dat
@@ -1028,8 +1028,7 @@
       MSDENS(4) = 2200.0d0    !SS (accum)
       MSDENS(5) = 2200.0d0    !SS (coarse)
 #if defined( GMISTRAT )
-      !-----SDE DEBUG
-      ! Need to retrieve these from gmistrat_mod.F
+      ! These default values unused (actively retrieved from gmistrat_mod)
       MSDENS(NRHAER+1) = 1700.0d0! SSA/STS
       MSDENS(NRHAER+2) = 1000.0d0! NAT/ice PSC
 #endif
@@ -1370,28 +1369,28 @@
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( I, J, L ) 
+!$OMP+PRIVATE( I, J, L, RHOSTRAT ) 
 !$OMP+SCHEDULE( DYNAMIC )
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
             ! Retrieve aerosol density
-            MSDENS(N) = RHO_STRAT_AER(I,J,L,ISTRAT)
+            RHOSTRAT = RHO_STRAT_AER(I,J,L,ISTRAT)
 
             IF ( WAVELENGTH > 0 ) THEN
 
             ! Aerosol optical depth
             ODAER(I,J,L,IRHN) = 0.75d0          * BXHEIGHT(I,J,L) * 
      &                          WAERSL(I,J,L,N) * QAA_AOD(IND(N))   / 
-     &                          ( MSDENS(N) * RAA_AOD(IND(N)) * 1.0D-6 )
+     &                          ( RHOSTRAT * RAA_AOD(IND(N)) * 1.0D-6 )
 
             ELSE
 
             ! Aerosol optical depth
             ODAER(I,J,L,IRHN) = 0.75d0          * BXHEIGHT(I,J,L) * 
      &                       WAERSL(I,J,L,N)    * QAA(IND999,IND(N))  / 
-     &                       ( MSDENS(N) * RAA(IND999,IND(N)) * 1.0D-6 )
+     &                       ( RHOSTRAT * RAA(IND999,IND(N)) * 1.0D-6 )
 
             ENDIF
 
@@ -1400,17 +1399,10 @@
          ENDDO
 !$OMP END PARALLEL DO
 
-         ! Effective radius
-         IF ( WAVELENGTH > 0 ) THEN
-            REFF = 1.0D-4 * RAA_AOD(IND(N))
-         ELSE
-            REFF = 1.0D-4 * RAA(IND999,IND(N))
-         ENDIF
-
          ! Loop over grid boxes
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( I, J, L, JLOOP, RSTRAT,SADSTRAT ) 
+!$OMP+PRIVATE( I, J, L, JLOOP, RAER, REFF, SADSTRAT ) 
 !$OMP+SCHEDULE( DYNAMIC )
          DO JLOOP = 1, NTLOOP
 
@@ -1420,15 +1412,15 @@
             L = IZSAVE(JLOOP)
 
             ! Retrieve aerosol properties from gmistrat_mod
-            CALL GET_STRAT_AER(I,J,L,ISTRAT,RSTRAT,SADSTRAT)
+            CALL GET_STRAT_OPT(I,J,L,ISTRAT,RAER,REFF,SADSTRAT)
 
             ! Add surface area to TAREA array
             TAREA(JLOOP,NDUST+N) = SADSTRAT
             WTAREA(JLOOP,NDUST+N) = SADSTRAT
 
             ! Store radius
-            ERADIUS(JLOOP,NDUST+N) = RSTRAT
-            WERADIUS(JLOOP,NDUST+N) = RSTRAT
+            ERADIUS(JLOOP,NDUST+N) = RAER
+            WERADIUS(JLOOP,NDUST+N) = REFF
 
          ENDDO
 !$OMP END PARALLEL DO
