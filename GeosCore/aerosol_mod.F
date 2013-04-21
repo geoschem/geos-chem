@@ -416,8 +416,6 @@
             ELSE
                ! Tropospheric sulfate is zero in stratosphere
                SO4_NH4_NIT(I,J,L) = 0d0
-               !-----SDE DEBUG
-               ! GMI module not complete!
                SLA(I,J,L) = KG_STRAT_AER(I,J,L,1)/AIRVOL(I,J,L)
                SPA(I,J,L) = KG_STRAT_AER(I,J,L,2)/AIRVOL(I,J,L)
             ENDIF

@@ -1283,7 +1283,8 @@
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE LOGICAL_MOD,  ONLY : LSULF, LCARB, LSOA
       USE LOGICAL_MOD,  ONLY : LDUST, LDEAD, LSSALT, LCRYST
-      USE LOGICAL_MOD,  ONLY : LDICARB, LGRAVSTRAT
+      USE LOGICAL_MOD,  ONLY : LDICARB, LGRAVSTRAT, LHOMNUCNAT
+      USE GMISTRAT_MOD, ONLY : T_NAT_SUPERCOOL, P_ICE_SUPERSAT
       USE TRACER_MOD,   ONLY : N_TRACERS
       USE TRACER_MOD,   ONLY : SALA_REDGE_um,      SALC_REDGE_um
       USE TRACER_MOD,   ONLY : ITS_AN_AEROSOL_SIM, ITS_A_FULLCHEM_SIM
@@ -1390,8 +1391,20 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:11' )
       READ( SUBSTRS(1:N), * ) LGRAVSTRAT  
 
-      ! Separator line
+      ! Allow homogeneous nucleation of NAT?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:12' )
+      READ( SUBSTRS(1:N), * ) LHOMNUCNAT 
+
+      ! NAT supercooling requirement (K)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:14' )
+      READ( SUBSTRS(1:N), * ) T_NAT_SUPERCOOL
+
+      ! Ice supersaturation ratio requirement
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:14' )
+      READ( SUBSTRS(1:N), * ) P_ICE_SUPERSAT
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:15' )
 
       !=================================================================
       ! Error checks
@@ -1576,10 +1589,17 @@
          WRITE( 6, 110     ) 'Coarse SEA SALT radii [um]  : ',
      &                        SALC_REDGE_um(1), SALC_REDGE_um(2)
          WRITE( 6, 100     ) 'Settle strat. aerosols?     : ',LGRAVSTRAT
+         WRITE( 6, 100     ) 'Allow hom. NAT nucleation?  : ',LHOMNUCNAT
+         WRITE( 6, 120     ) 'NAT supercooling requirement: ',
+     &                                                 T_NAT_SUPERCOOL
+         WRITE( 6, 120     ) 'Ice supersaturation req.    : ',
+     &                                        ((P_ICE_SUPERSAT-1)*1.d2)
       ENDIF
 
  100  FORMAT( A, L5     )
  110  FORMAT( A, f6.2, ' - ', f6.2 )
+ 120  FORMAT( A, f6.2, 'K' )
+ 130  FORMAT( A, f6.2, '%' )
 
       END SUBROUTINE READ_AEROSOL_MENU
 !EOC
@@ -7134,6 +7154,7 @@
       LOCSEMIS       = .FALSE.
       LN2OEMIS       = .FALSE.
       LGRAVSTRAT     = .FALSE.
+      LHOMNUCNAT     = .FALSE.
 
       !Specifically for CO2 simulation (R Nassar, 2009-03-02)
       LGENFF         = .FALSE.

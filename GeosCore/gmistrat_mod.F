@@ -31,6 +31,9 @@
       CHARACTER(LEN=255), PUBLIC :: TRAC_FILE_ROOT ! Root directory of 2D data
       CHARACTER(LEN=255), PUBLIC :: MONTREAL_FILE_ROOT ! Root directoy for WHO data 
                           PUBLIC :: T_STS ! Max temperature of STS formation (K)
+      REAL*8,             PUBLIC :: T_NAT_SUPERCOOL ! NAT supercooling (K)
+      REAL*8,             PUBLIC :: P_ICE_SUPERSAT ! Ice supersaturation (-)
+                          PUBLIC :: GAMMA_SLA ! Sticking coefficients for SLA
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -54,6 +57,8 @@
       PRIVATE :: TERNARY
       PRIVATE :: CARSLAW_DENSITY
       PRIVATE :: CALC_H2SO4_GAS
+      PRIVATE :: CALC_SLA_GAMMA
+      PRIVATE :: MOLEC_SPEED
 !
 ! !REVISION HISTORY: 
 !  26 Mar 2013 - S. D. Eastham - Initial version
@@ -1367,10 +1372,6 @@
             NUMSEDSTEPS = MIN(10,NUMSEDSTEPS)
             SEDSTEP = DTCHEM/(NUMSEDSTEPS*1.d0)
             VFALLMAX = BXMIN/SEDSTEP
-            !-----SDE DEBUG
-            IF (NUMSEDSTEPS .eq. 10) THEN
-               WRITE(6,*) 'DEBUG: MAXSTEP CONDITION'
-            ENDIF
          ENDIF
 
          SEDSTEPLOOP: DO ISED=1,NUMSEDSTEPS
@@ -1718,7 +1719,7 @@
 !
       USE DAO_MOD,          ONLY : T, AD, CLDF, QI, AIRVOL, AVGW
       USE PRESSURE_MOD,     ONLY : GET_PCENTER
-      USE LOGICAL_MOD,      ONLY : LPRT
+      USE LOGICAL_MOD,      ONLY : LPRT, LHOMNUCNAT
       USE ERROR_MOD,        ONLY : DEBUG_MSG
       USE GRID_MOD,         ONLY : GET_YEDGE
       USE TRACER_MOD,       ONLY : STT, TRACER_MW_G
@@ -1772,11 +1773,13 @@
 
       ! Local conditions
       REAL*8                :: TCENTER, PCENTER, PCENTER_PA, DENAIR
-      REAL*8                :: INVAIR, TINV
+      REAL*8                :: INVAIR, TINV, TOFFSET
 
       ! Gridbox mixing ratios and partial pressures
       REAL*8                :: HNO3SUM, H2OSUM
       REAL*8                :: HNO3PP,  H2OPP
+      REAL*8                :: PSATHNO3_SUPERCOOL
+      REAL*8                :: PSATH2O_SUPERSAT
       REAL*8                :: PSATHNO3, PSATH2O
       REAL*8                :: H2SO4SUM
       REAL*8                :: ClNO3SUM, HClSUM, HOClSUM
@@ -1828,15 +1831,15 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,J,L,K,IS_POLAR,IS_STRAT,PCENTER,PCENTER_PA )
 !$OMP+PRIVATE( DENAIR, INVAIR, PSATHNO3, PSATH2O, JLOOP )
-!$OMP+PRIVATE( VOL_NAT, VOL_ICE, VOL_SLA )
+!$OMP+PRIVATE( VOL_NAT, VOL_ICE, VOL_SLA, PSATHNO3_SUPERCOOL )
 !$OMP+PRIVATE( TCENTER, TINV, IS_VALID, BOX_LAT_S, BOX_LAT_N )
 !$OMP+PRIVATE( RAD_AER_BOX, RHO_AER_BOX, KG_AER_BOX, NDENS_AER_BOX )
-!$OMP+PRIVATE( SAD_AER_BOX, KG_NAT, KG_ICE, KG_NO3 )
+!$OMP+PRIVATE( SAD_AER_BOX, KG_NAT, KG_ICE, KG_NO3,PSATH2O_SUPERSAT )
 !$OMP+PRIVATE( H2OSUM,H2OPP,H2O_BOX_S,H2O_BOX_L,H2O_BOX_G, H2SO4SUM )
 !$OMP+PRIVATE( HNO3SUM,HNO3PP,HNO3_BOX_S,HNO3_BOX_L,HNO3_BOX_G )
 !$OMP+PRIVATE( BrNO3SUM,HBrSUM,HOBrSUM,ClNO3SUM,HClSUM,HOClSUM )
 !$OMP+PRIVATE( STATE_LOCAL,GAMMA_BOX,HBrGASFRAC,HOBrGASFRAC )
-!$OMP+PRIVATE( HNO3GASFRAC,HClGASFRAC,HOClGASFRAC )
+!$OMP+PRIVATE( HNO3GASFRAC,HClGASFRAC,HOClGASFRAC,TOFFSET )
 !$OMP+PRIVATE( W_H2SO4,W_H2O,W_HCl,W_HOCl,W_HBr,W_HOBr,W_HNO3 )
 !$OMP+PRIVATE( HCl_BOX_G,HCl_BOX_L,HOCl_BOX_G,HOCl_BOX_L,H2SO4_BOX_G )
 !$OMP+PRIVATE( HBr_BOX_G,HBr_BOX_L,HOBr_BOX_G,HOBr_BOX_L,H2SO4_BOX_L )
@@ -1907,10 +1910,8 @@
                HNO3SUM = HNO3SUM + STT(I,J,L,IDTNIT)*INVAIR/
      &                    TRACER_MW_G(IDTNIT)
 
-               !-----SDE DEBUG
                ! Revert to static H2O for now
                H2OSUM = AVGW(I,J,L)
-               !-----SDE DEBUG
 
                ! Calculate partial pressures (Pa)
                HNO3PP = PCENTER_PA * HNO3SUM
@@ -1930,6 +1931,24 @@
      &            TCENTER)))*101325.0d0/760.0d0
 
                   PSATH2O = 10.0d0**((TSATH2O_A*TINV)+TSATH2O_B)
+
+                  ! Supersaturation requirement for ice
+                  PSATH2O_SUPERSAT = PSATH2O * P_ICE_SUPERSAT
+
+                  ! If homogeneous NAT nucleation allowed, calculate
+                  ! threshold saturation pressure
+                  IF (LHOMNUCNAT) THEN
+                     ! Calculate as if temperature is (T+T_NAT_SUPERCOOL)
+                     TOFFSET = TCENTER + T_NAT_SUPERCOOL
+                     PSATHNO3_SUPERCOOL = 10.d0**(((TSATHNO3_A+(TOFFSET*
+     &                  TSATHNO3_B))*LOG10(H2OPP*760.0d0/101325.0d0))+
+     &                  (TSATHNO3_C+(TSATHNO3_D/TOFFSET)+(TSATHNO3_E*
+     &                  TOFFSET)))*101325.0d0/760.0d0
+                  ELSE
+                     ! Make homogeneous nucleation impossible
+                     TOFFSET = 280.0d0
+                     PSATHNO3_SUPERCOOL = HNO3PP + 1d0
+                  ENDIF
                   
                   ! Use local ice mass ratio from GEOS-5 data
                   KG_ICE = QI(I,J,L)*CLDF(L,I,J)*AD(I,J,L)
@@ -1938,7 +1957,7 @@
      &                             (DENSICE*AVOGADRO) ! m3 ice/m3 air
 
                   ! Ice exists/possible?
-                  IF ((H2OPP.gt.PSATH2O).or.
+                  IF ((H2OPP.gt.PSATH2O_SUPERSAT).or.
      &                   (H2O_BOX_S.gt.TINY(0d0))) THEN
                      STATE_LOCAL = 3
                      HNO3_BOX_S = 1d0
@@ -1946,7 +1965,7 @@
                      ! If ice not possible could still have NAT
                      IF (STATE_LOCAL.gt.1) THEN
                         ! Had PSCs here last time
-                        IF (((HNO3PP.gt.PSATHNO3).and.
+                        IF (((HNO3PP.gt.PSATHNO3_SUPERCOOL).and.
      &                       (PSATHNO3.gt.PSATH2O)).or.
      &                       (PCENTER.lt.P_MAXNAT)) THEN
                            STATE_LOCAL = 2
@@ -1966,7 +1985,8 @@
                STATE_PSC(I,J,L) = STATE_LOCAL
 
                ! Calculate NAT if relevant
-               IF (HNO3_BOX_S.gt.TINY(1d0)) THEN
+               IF ((HNO3_BOX_S.gt.TINY(1d0)).and.
+     &                            (STATE_LOCAL.ge.2)) THEN
                   HNO3_BOX_S = (HNO3PP-PSATHNO3)/PCENTER_PA
                   HNO3_BOX_S = MAX(0d0,HNO3_BOX_S)
 
@@ -2004,7 +2024,7 @@
                ENDIF
 
                ! Calculate SAD (cm2/cm3)
-               SAD_AER_BOX = 4.0d-2 * RAD_AER_BOX *
+               SAD_AER_BOX = 4.0d2 * RAD_AER_BOX *
      &            RAD_AER_BOX * NDENS_AER_BOX * PI
 
                ! Store in outer arrays
@@ -2012,7 +2032,7 @@
                RHO_AER(I,J,L,I_SPA)  = RHO_AER_BOX ! kg/m3
                KG_AER(I,J,L,I_SPA)   = KG_AER_BOX  ! kg
                NDENS_AER(I,J,L,I_SPA)= NDENS_AER_BOX!#/m3
-               SAD_AER(I,J,L,I_SPA)  = SAD_AER_BOX
+               SAD_AER(I,J,L,I_SPA)  = SAD_AER_BOX ! cm2/cm3
 
                ! Repartition NIT and HNO3 in strat/meso
                IF (IS_STRAT) THEN
@@ -2129,16 +2149,23 @@
                   RAD_AER_BOX = SLA_VR*SLA_RR*(VOL_SLA**0.249d0)
                   KG_AER_BOX  = RHO_AER_BOX*VOL_SLA*AIRVOL(I,J,L)
 
-                  ! Approximate particles as spherical for calculation
-                  ! of aerosol number density
-                  NDENS_AER_BOX = VOL_SLA*3.d0/
-     &                    (4.d0*PI*(RAD_AER_BOX**3.d0))
+                  IF (VOL_SLA.gt.1.d-30) THEN
+                     ! Approximate particles as spherical for calculation
+                     ! of aerosol number density
+                     NDENS_AER_BOX = VOL_SLA*3.d0/
+     &                       (4.d0*PI*(RAD_AER_BOX**3.d0))
 
-                  !-----SDE DEBUG
-                  DO K=1,11
-                     GAMMA_BOX(K) = 0.d0
-                  ENDDO
-                  !-----SDE DEBUG
+                     ! DENAIR in #/m3 - convert to #/cm3
+                     ! RAD_AER_BOX in m - convert to cm
+                     CALL  CALC_SLA_GAMMA(DENAIR*1.d-6,TCENTER,PCENTER,
+     &                   W_H2SO4,H2OSUM,HClSUM,HBrSUM,HOBrSUM,
+     &                   ClNO3SUM,BrNO3SUM,RAD_AER_BOX*1.d2,GAMMA_BOX)
+                  ELSE
+                     ! Ignore SLA
+                     DO K=1,11
+                        GAMMA_BOX(K) = 0.0d0
+                     ENDDO
+                  ENDIF
                ENDIF
 
                ! Send properties to larger array
@@ -2832,6 +2859,304 @@
       END FUNCTION CALC_FALLVEL
 !
 !EOC
+!------------------------------------------------------------------------------
+!               MIT Laboratory for Aviation and the Environment               !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cacl_sla_gamma
+!
+! !DESCRIPTION: Subroutine CALC\_SLA\_GAMMA calculates 11 different sticking 
+!  coefficients on the surface of local stratospheric liquid aerosols, 
+!  relevant to each of the 11 reactions listed in Kirner's paper.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE CALC_SLA_GAMMA( NDENS, T, P, WT_FRC,
+     &                           H2OSUM, HClSUM, HBrSUM, HOBrSUM,
+     &                           ClNO3SUM, BrNO3SUM, ARAD, RXNGAMMA )
+!
+! !USES:
+!
+      USE CMN_GCTM_MOD,       ONLY : PI
+!
+! !INPUT PARAMETERS:
+!
+      REAL*8, INTENT(IN)  :: NDENS    ! Air number density (molec/cm3)
+      REAL*8, INTENT(IN)  :: T        ! Temperature (K)
+      REAL*8, INTENT(IN)  :: P        ! Pressure (hPa)
+      REAL*8, INTENT(IN)  :: WT_FRC   ! Weight fraction of H2SO4
+      REAL*8, INTENT(IN)  :: H2OSUM   ! H2O mixing ratio
+      REAL*8, INTENT(IN)  :: HClSUM   ! HCl mixing ratio
+      REAL*8, INTENT(IN)  :: HBrSUM   ! HBr mixing ratio
+      REAL*8, INTENT(IN)  :: HOBrSUM  ! HOBr mixing ratio
+      REAL*8, INTENT(IN)  :: ClNO3SUM ! ClNO3 mixing ratio
+      REAL*8, INTENT(IN)  :: BrNO3SUM ! BrNO3 mixing ratio
+      REAL*8, INTENT(IN)  :: ARAD     ! SLA radius (cm)
+!
+! !OUTPUT VARIABLES:
+!
+      REAL*8, INTENT(OUT) :: RXNGAMMA(11) ! Sticking coefficients
+!
+! !REVISION HISTORY: 
+!  10 Oct 2012 - S. D. Eastham - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8               :: WT      ! Weight percentage H2SO4
+      REAL*8               :: H2OPP   ! Partial pressure of H2O (hPa)
+      REAL*8               :: HClPP   ! Partial pressure of HCl (atm)
+      REAL*8               :: HBrPP   ! Partial pressure of HBr (atm)
+      REAL*8               :: HOBrPP  ! Partial pressure of HOBr (atm)
+      REAL*8               :: ClNO3PP ! Partial p. of ClONO2 (atm)
+      REAL*8               :: BrNO3PP ! Partial p. of BrONO2 (atm)
+      REAL*8               :: PSATH2O ! Water vapor sat. pressure (hPa)
+      REAL*8               :: ACTH2O  ! Activity of water
+      REAL*8               :: MOLAL   ! Molality of H2SO4
+      REAL*8, DIMENSION(3) :: Z       ! Parameters for H2SO4 sol'n
+      REAL*8               :: RHO     ! STS density
+      REAL*8               :: M_H2SO4 ! Mass of H2SO4
+
+      ! HOBr parameters
+      REAL*8               :: c_HOBr
+      REAL*8               :: SHOBr
+      REAL*8               :: HHOBr
+      REAL*8               :: DHOBr
+      REAL*8               :: kHOBr_HCl
+      REAL*8               :: GHOBrrxn
+      REAL*8               :: lHOBr
+      REAL*8               :: fHOBr
+      REAL*8               :: gHOBr_HCl
+
+      ! HOCl parameters
+      REAL*8               :: c_HOCl
+      REAL*8               :: SHOCl
+      REAL*8               :: HHOCl
+      REAL*8               :: DHOCl
+      REAL*8               :: kHOCl_HCl
+      REAL*8               :: GHOClrxn
+      REAL*8               :: lHOCl
+      REAL*8               :: fHOCl
+      REAL*8               :: gHOCl_HCl
+
+      ! ClNO3 parameters
+      REAL*8               :: c_ClNO3
+      REAL*8               :: SClNO3
+      REAL*8               :: HClNO3
+      REAL*8               :: DClNO3
+      REAL*8               :: GClNO3rxn
+      REAL*8               :: lClNO3
+      REAL*8               :: fClNO3
+      REAL*8               :: gClNO3
+      REAL*8               :: gClNO3_HCl
+      REAL*8               :: gClNO3_H2O
+ 
+      ! N2O5 parameters
+      REAL*8, DIMENSION(3) :: AK
+
+      ! Other parameters
+      REAL*8 :: kH2O,kH,khdr,GbH2O,HHCl,MHCl,kHCl,GbHCl,Gs,FHCl,Gsp
+      REAL*8 :: GbHClp, Gb, khydr, kII, k_dl
+
+      ! Interim variables
+      REAL*8               :: X,A,H,T_THRESHOLD,aH
+      REAL*8, PARAMETER    :: MAX_T_DIFF = 6.0d0
+
+      ! Control whether to run HCl calculations
+      LOGICAL              :: HClOK
+
+      !=================================================================
+      ! CALC_SLA_GAMMA begins here!
+      !=================================================================
+
+      PSATH2O = EXP(18.452406985d0-3505.1578807d0/T-330918.55082d0/(T*T)
+     &     +12725068.262d0/(T*T*T))       ! Saturation pressure of H2O
+      H2OPP = H2OSUM * P                  ! Partial pressure of H2O
+      ACTH2O = MAX((H2OPP/PSATH2O),1.0d0) ! Water activity
+
+      ! Calculate molality of solution
+      WT = 100.0d0*WT_FRC ! Convert from fraction to %
+      MOLAL = 1000.0d0 * (WT/98.0d0/(100.0-WT))
+
+      ! Parameters for H2SO4 solution
+      Z(1) =   0.12364d0-5.6d-7*T*T
+      Z(2) =   -0.02954d0+1.814d-7*T*T
+      Z(3) =   2.343d-3-1.487d-6*T-1.324d-8*T*T
+      RHO  =   1.0d0+Z(1)*MOLAL+Z(2)*MOLAL**1.5+Z(3)*MOLAL*MOLAL
+      M_H2SO4 =   RHO*WT/9.8
+      X    =   WT/(WT+(100.-WT)*98./18.)
+      A    =   169.5+5.18*WT-0.0825*WT*WT+3.27d-3*WT*WT*WT
+      T_THRESHOLD = 144.11+0.166*WT-0.015*WT*WT+2.18d-4*WT*WT*WT
+      IF ((T-T_THRESHOLD).gt.MAX_T_DIFF) THEN
+         H = A*T**(-1.43)*EXP(448./(T-T_THRESHOLD))
+      ELSE
+         H = A*T**(-1.43)*EXP(448./MAX_T_DIFF)
+      ENDIF
+
+      aH   =   EXP(60.51-0.095*WT+0.0077*WT*WT-1.61e-5*WT*WT*WT
+     &     -(1.76+2.52d-4*WT*WT)*SQRT(T) +
+     &     (-805.89+253.05*WT**0.076)/SQRT(T))
+
+      HClPP = HClSUM*P/1013.25 ! Note atm, not hPa
+      ClNO3PP = ClNO3SUM*P/1013.25
+      BrNO3PP = BrNO3SUM*P/1013.25
+ 
+      ! Should we bother running HCl calculations?
+      HClOK = (HClPP .gt. TINY(1.d0))
+
+      ! Reaction 1. N2O5 + H2O (hydrolysis of N2O5)
+      AK(1)=-25.5265-0.133188*WT+0.0093084*WT**2-9.0194E-5*WT**3
+      AK(2)=9283.76+115.345*WT-5.19258*WT**2+0.0483464*WT**3
+      AK(3)=-851801-22191.2*WT+766.916*WT**2-6.85427*WT**3
+      RXNGAMMA(1)=exp(AK(1)+AK(2)/T+AK(3)/T**2)
+      
+      ! Reaction 2. N2O5 + HCl
+      ! JPL 10-06 suggests near-zero gamma
+      RXNGAMMA(2) = TINY(1d0)
+
+      ! Reactions 3/4. ClNO3 + H2O/HCl
+      c_ClNO3     =  1474.d0*SQRT(T)
+      SClNO3      =  0.306d0+24.d0/T
+      HClNO3      =  1.6d-6*EXP(4710.D0/T)*EXP(-SClNO3*M_H2SO4)
+      DClNO3      =  5d-8*T/h
+      kH2O        =  1.95d10*EXP(-2800.d0/T)
+      kH          =  1.22d12*EXP(-6200.d0/T)
+      khydr       =  kH2O*ACTH2O + kH*aH*ACTH2O
+      GbH2O       =  4.D0*HClNO3*0.082D0*T*SQRT(DClNO3*khydr)/c_ClNO3
+      HHCl        =  (0.094D0-0.61D0*X+1.2D0*X*X)*EXP(-8.68D0+
+     &                                   (8515.D0-10718.D0*X**0.7)/T)
+      MHCl        =  HHCl *HClPP
+      kHCl        =  7.9D11*aH*DClNO3*MHCl
+      lClNO3      =  SQRT(DClNO3/(khydr+kHCl))
+      fClNO3      =  1.D0/tanh(arad/lClNO3)- lClNO3/arad
+      GClNO3rxn   =  fClNO3*GbH2O *SQRT(1.D0+kHCl/khydr)
+      GbHCl       =  GClNO3rxn* kHCl/(kHCl+ khydr)
+      Gs          =  66.12D0*EXP(-1374.D0/T)*HClNO3*MHCl
+      FHCl        =  1.D0/(1.D0+0.612D0*(Gs+GbHCl)* ClNO3PP/ HClPP)
+      Gsp         =  FHCl*Gs
+      GbHClp      =  FHCl*GbHCl
+      Gb          =  GbHClp  + GClNO3rxn* khydr/( kHCl+ khydr)
+      gClNO3      =  1.D0/(1.D0+1.D0/(Gsp + Gb))
+      gClNO3_HCl  =  gClNO3 *(Gsp + GbHClp)/(Gsp + Gb)
+      gClNO3_H2O  =  gClNO3 - gClNO3_HCl
+
+      RXNGAMMA(3) =  gClNO3_H2O
+      IF (HClOK) THEN
+         RXNGAMMA(4) =  gClNO3_HCl
+      ELSE
+         RXNGAMMA(4) = TINY(1d0)
+      ENDIF
+
+      ! Reaction 5. ClNO3 + HBr
+      ! Not present in JPL 10-06 for H2SO4
+      RXNGAMMA(5) = TINY(1d0)
+
+      ! Reaction 6. BrNO3 + H2O
+!      RXNGAMMA(6) = 1.0/(1.0/0.88+exp(-17.832+0.245*WT))
+      RXNGAMMA(6) = 1.D0/(1.D0/0.80D0+1.D0/(exp(29.2D0-0.4D0*WT )+0.11))
+      
+      ! Reaction 7. BrNO3 + HCl
+      RXNGAMMA(7) = 0.9d0 ! JPL 10-06
+
+      ! Reaction 8. HOCl + HCl
+      IF (HClOK) THEN
+         c_HOCl    =  MOLEC_SPEED(T,52.46D0)
+         SHOCl     =  0.0776D0+59.18D0/T
+         HHOCl     =  1.91D-6*EXP(5862.4D0/T)*EXP(-SHOCl*M_H2SO4)
+         DHOCl     =  6.4d-8*T/H
+         kHOCl_HCl =  1.25d9*aH*DHOCl*MHCl
+         lHOCl     =  SQRT(DHOCl/kHOCl_HCl)
+         fHOCl     =  1.D0/tanh(arad/lHOCl)- lHOCl/arad
+         GHOClrxn  =  4.D0*HHOCl*0.082D0*T*sqrt(DHOCl*kHOCl_HCl)/c_HOCl
+         IF (fHOCl.eq.0.) THEN
+            gHOCl_HCl =  TINY(1d0)
+         ELSE
+            gHOCl_HCl =  1.D0/(1.D0+1.D0/(fHOCl*GHOClrxn*FHCl))
+         ENDIF
+      ELSE
+         gHOCl_HCl = TINY(1d0)
+      ENDIF
+   
+      RXNGAMMA(8) = gHOCl_HCl
+
+      ! Reaction 9. HOCl + HBr
+      ! Not yet implemented for STS; JPL 10-06 suggests complex
+      ! relationship, not yet sufficiently well understood or
+      ! parameterized for the purposes of simulation. Ignore for now
+      RXNGAMMA(9) = TINY(1d0)
+
+      ! Reaction 10. HOBr + HCl
+      IF (HClOK) THEN
+         HOBrPP = HOBrSUM*P/1013.25 ! Note atm, not hPa
+         c_HOBr    =  MOLEC_SPEED(T,96.91D0)
+         SHOBr     =  0.0776D0+59.18D0/T
+!         HHOBr     =  30.D0
+         HHOBR     = exp(-9.86D0+5427.D0/T)
+         DHOBr     =  1.E-8
+         kII       = exp(154.d0-1.63d0*WT)*exp(-(3.85d4-478.d0*WT)/T)
+         k_dl      = 7.5D14*(DHOBr*arad*1.e7)
+         IF (kII.gt.k_dl) kII=k_dl
+         kHOBr_HCl =  kII*HHOBr*HOBrPP
+         GHOBrrxn  =  4.D0*HHCl*0.082D0*T*sqrt(DHOBr*kHOBr_HCl)/c_HOBr
+         lHOBr     =  sqrt(DHOBr/kHOBr_HCl)
+         fHOBr     =  1.D0/tanh(arad/lHOBr)- lHOBr/arad
+         gHOBr_HCl =  1.D0/(1.D0+1.D0/(fHOBr*GHOBrrxn))
+         RXNGAMMA(10) = gHOBr_HCl
+      ELSE
+         RXNGAMMA(10) = TINY(1d0)
+      ENDIF
+
+      ! Reaction 11. HOBr + HBr
+      ! Data from JPL limited; ignore for now
+      RXNGAMMA(11) = TINY(1d0)
+
+      ! Return to calling program
+      END SUBROUTINE CALC_SLA_GAMMA
+!
+!EOC
+!------------------------------------------------------------------------------
+!               MIT Laboratory for Aviation and the Environment               !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: molec_speed
+!
+! !DESCRIPTION: Function MOLEC\_SPEED calculates the mean velocity of gas
+!  phase particles based on temperature and molecular mass.
+!\\
+!\\
+! !INTERFACE:
+!
+      REAL*8 FUNCTION MOLEC_SPEED(T,MOLMASS)
+!
+! !USES:
+!
+      USE CMN_GCTM_MOD, ONLY : PI
+!
+! !INPUT PARAMETERS:
+!
+      REAL*8, INTENT(IN)          :: T       ! Temperature (K)
+      REAL*8, INTENT(IN)          :: MOLMASS ! Molecular mass (g/mol)
+!
+! !REVISION HISTORY: 
+!  10 Oct 2012 - S. D. Eastham - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+      !=================================================================
+      ! MOLEC_SPEED begins here!
+      !=================================================================
+
+      MOLEC_SPEED=SQRT(8.0d0*8.31451d7*T/(PI*MOLMASS))
+
+      END FUNCTION MOLEC_SPEED
+!
+!EOC
 !!------------------------------------------------------------------------------
 !!               MIT Laboratory for Aviation and the Environment               !
 !!------------------------------------------------------------------------------
@@ -3009,9 +3334,6 @@
       ENDIF 
 
       IF (N_EMIT.gt.0) THEN
-         !-----SDE DEBUG
-         WRITE(6,'(a,1x,I3,1x,I3)') 'GRID_EMIT 1 2: ', JJPAR, N_EMIT
-         !-----SDE DEBUG
          ALLOCATE( GRID_EMIT( JJPAR, N_EMIT ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'GRID_EMIT' )
          GRID_EMIT = 0d0

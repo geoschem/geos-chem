@@ -90,7 +90,8 @@
       USE PLANEFLIGHT_MOD, ONLY : ARCHIVE_RXNS_FOR_PF
       ! Add IDHO2 for HO2 concentration and IS_ICE (jaegle 02/26/09)
       ! Also IDHCl and IDHBr for PSCs (SDE 04/17/13)
-      USE TRACERID_MOD,    ONLY : IDHO2, IDHCl, IDHBr
+      USE TRACERID_MOD,    ONLY : IDHO2, IDHCl, IDHBr, IDHOCl, IDHOBr
+      USE TRACERID_MOD,    ONLY : IDBrNO3, IDClNO3, IDN2O5
       USE DAO_MOD,         ONLY : IS_ICE
       ! KPP interface (phs,ks,dhk, 09/15/09)
       USE GCKPP_GLOBAL,    ONLY : IND
@@ -135,6 +136,7 @@
       USE PARANOX_MOD,     ONLY : INTERPOLATE_LUT2 !(mpayer, 2/7/12)
       USE FAST_JX_MOD,     ONLY : FJXFUNC
       USE GMISTRAT_MOD,    ONLY : SO4_PHOTFRAC, CHECK_NAT
+      USE GMISTRAT_MOD,    ONLY : GAMMA_SLA
 
       USE CMN_SIZE_MOD          ! Size parameters
       USE COMODE_LOOP_MOD       ! SMVGEAR II arrays
@@ -232,8 +234,12 @@
 
       ! SDE: Strat-chem
       REAL*8  :: DUMMYO2(KBLOOP)
-      REAL*8  :: AQCONC
+      REAL*8  :: EDUCTCONC
       LOGICAL :: NATSURFACE
+      REAL*8  :: ADJUSTEDRATE
+      LOGICAL :: PHASEADJUST
+      LOGICAL :: RATELIMIT
+      REAL*8,PARAMETER :: MAXKPSC = 1.d-13
 
 !-------------------------------------------------------------------------------
 ! Prior to 9/24/12:
@@ -982,17 +988,27 @@ c new OH+CO rate from JPL2006.
                   ! Radius for aerosol size bin N (jaegle 2/26/09)
                   XRADIUS = ERADIUS(JLOOP,N)
 
+                  ! Divide by educt concentration
+                  EDUCTCONC = 1d0
+                  PHASEADJUST = .FALSE.
+                  RATELIMIT = .FALSE.
+
                   ! Test if N2O5 hydrolysis rxn
                   IF ( NK == NKN2O5 ) THEN
                      
                      ! Get GAMMA for N2O5 hydrolysis, which is
                      ! a function of aerosol type, temp, and RH
-                     IF (N.eq.15) THEN
+                     IF (N.eq.14) THEN
+                        RATELIMIT = .TRUE.
                         IF (NATSURFACE) THEN
                            XSTKCF = 4.0d-4 ! NAT
                         ELSE
                            XSTKCF = 0.02d0 ! Ice
                         ENDIF
+                     ELSEIF (N.eq.13) THEN
+                        ! Stratospheric aerosol
+                        XSTKCF = GAMMA_SLA(IX,IY,IZ,1)
+                        RATELIMIT = .TRUE.
                      ELSE
                         XSTKCF = N2O5( N, T3K(KLOOP), ABSHUMK(KLOOP) )
                      ENDIF
@@ -1021,7 +1037,7 @@ c new OH+CO rate from JPL2006.
                         CONTINENTAL_PBL=0
                      ENDIF
 
-                     IF (N.eq.15) THEN
+                     IF (N.gt.12) THEN
                         XSTKCF = TINY(1d0)
                      ELSE
                         XSTKCF = HO2( XRADIUS, T3K(KLOOP), XDENA, XSQM,
@@ -1053,14 +1069,13 @@ c new OH+CO rate from JPL2006.
                      ELSE IF ( (N == 11) .OR. ( N == 12) ) THEN
                         ! 2 modes of sea-salt
                         XSTKCF = BRR(NK,NCS)
-                     ELSE IF ( (N == 13) .or. (N == 14) ) THEN
+                     ELSE IF ( N == 13 ) THEN
                         ! SSA/STS
-                        !-----SDE DEBUG
-                        ! Write function to retrieve gamma
-                        XSTKCF = 0.8d0      
-                        !-----SDE DEBUG
-                     ELSE IF ( N == 15 ) THEN 
+                        RATELIMIT = .TRUE.
+                        XSTKCF = GAMMA_SLA(IX,IY,IZ,6)
+                     ELSE IF ( N == 14 ) THEN 
                         ! Ice/NAT PSC
+                        RATELIMIT = .TRUE.
                         IF (NATSURFACE) THEN 
                            XSTKCF = 0.001d0
                         ELSE
@@ -1075,20 +1090,33 @@ c new OH+CO rate from JPL2006.
                      !  for the HBr and HOBr surface reaction
 
                      ! Select proper aerosol type
-                     IF ( (N == 8) .OR. ((N.ge.11).and.(N.le.14))) THEN
-                        ! sulfate, 2 modes of sea-salt or SSA/STS
+                     IF ( (N == 8) .OR. (N == 11) .OR. (N == 12)) THEN
+                        ! sulfate, 2 modes of sea-salt
                         XSTKCF = BRR(NK,NCS)
+                     ELSEIF ( N == 13 ) THEN
+                        RATELIMIT = .TRUE.
+                        XSTKCF = GAMMA_SLA(IX,IY,IZ,11)
+                     ELSEIF ( N == 14 ) THEN
+                        RATELIMIT = .TRUE.
+                        XSTKCF = 0.1d0
                      ELSE
                         XSTKCF = TINY(1d0) ! avoid divide by zero
                      ENDIF
 
                   ELSE IF ( NK == NKPSC(NCS,2 ) ) THEN
                      ! N2O5(g)    + HCl(l,s)
-                     IF ((N.eq.8).or.(N.eq.13).or.(N.eq.14)) THEN
-                        !-----SDE DEBUG
+                     EDUCTCONC = MAX(CSPEC(JLOOP,IDN2O5),
+     &                               CSPEC(JLOOP,IDHCl))
+                     PHASEADJUST = .TRUE.
+                     RATELIMIT = .TRUE.
+                     IF (N.eq.8) THEN
                         XSTKCF = 0.1d-4 ! Sulfate
                         !-----SDE DEBUG
-                     ELSEIF (N.eq.15) THEN
+                        !XSTKCF = TINY(1d0)
+                        !-----SDE DEBUG
+                     ELSEIF (N.eq.13) THEN
+                        XSTKCF = GAMMA_SLA(IX,IY,IZ,2)
+                     ELSEIF (N.eq.14) THEN
                         IF (NATSURFACE) THEN
                            XSTKCF = 0.003d0 ! NAT
                         ELSE
@@ -1099,11 +1127,24 @@ c new OH+CO rate from JPL2006.
                      ENDIF
                   ELSE IF ( NK == NKPSC(NCS,3 ) ) THEN
                      ! ClNO3(g)   + H2O(l,s)
-                     IF ((N.eq.8).or.(N.eq.13).or.(N.eq.14)) THEN
-                        !-----SDE DEBUG
+!                     EDUCTCONC = ABSHUMK(KLOOP)
+                     RATELIMIT = .TRUE.
+                     ! Multiplication by H2O overwritten
+                     IF (ABSHUMK(KLOOP) .lt. CSPEC(JLOOP,IDClNO3)) THEN
+                        ! H2O limited!
+                        EDUCTCONC = CSPEC(JLOOP,IDClNO3)/ABSHUMK(KLOOP)
+                        PHASEADJUST = .TRUE.
+                     ELSE
+                        PHASEADJUST = .FALSE.
+                     ENDIF
+                     IF (N.eq.8) THEN
                         XSTKCF = 0.1d-3 ! Sulfate
                         !-----SDE DEBUG
-                     ELSEIF (N.eq.15) THEN
+                        !XSTKCF = TINY(1d0)
+                        !-----SDE DEBUG
+                     ELSEIF (N.eq.13) THEN
+                        XSTKCF = GAMMA_SLA(IX,IY,IZ,3)
+                     ELSEIF (N.eq.14) THEN
                         IF (NATSURFACE) THEN
                            XSTKCF = 0.004d0 ! NAT
                         ELSE
@@ -1114,11 +1155,18 @@ c new OH+CO rate from JPL2006.
                      ENDIF
                   ELSE IF ( NK == NKPSC(NCS,4 ) ) THEN
                      ! ClNO3(g)   + HCl(l,s)
-                     IF ((N.eq.8).or.(N.eq.13).or.(N.eq.14)) THEN
-                        !-----SDE DEBUG
+                     EDUCTCONC = MAX(CSPEC(JLOOP,IDClNO3),
+     &                               CSPEC(JLOOP,IDHCl))
+                     PHASEADJUST = .TRUE.
+                     RATELIMIT = .TRUE.
+                     IF (N.eq.8) THEN
                         XSTKCF = 0.1d-4 ! Sulfate
                         !-----SDE DEBUG
-                     ELSEIF (N.eq.15) THEN
+                        !XSTKCF = TINY(1d0)
+                        !-----SDE DEBUG
+                     ELSEIF (N.eq.13) THEN
+                        XSTKCF = GAMMA_SLA(IX,IY,IZ,4)
+                     ELSEIF (N.eq.14) THEN
                         IF (NATSURFACE) THEN
                            XSTKCF = 0.2d0 ! NAT
                         ELSE
@@ -1129,11 +1177,15 @@ c new OH+CO rate from JPL2006.
                      ENDIF
                   ELSE IF ( NK == NKPSC(NCS,5 ) ) THEN
                      ! ClNO3(g)   + HBr(l,s)
-                     IF ((N.eq.8).or.(N.eq.13).or.(N.eq.14)) THEN
-                        !-----SDE DEBUG
+                     EDUCTCONC = MAX(CSPEC(JLOOP,IDClNO3),
+     &                               CSPEC(JLOOP,IDHBr))
+                     PHASEADJUST = .TRUE.
+                     RATELIMIT = .TRUE.
+                     IF (N.eq.8) THEN
                         XSTKCF = TINY(1d0) ! Sulfate
-                        !-----SDE DEBUG
-                     ELSEIF (N.eq.15) THEN
+                     ELSEIF (N.eq.13) THEN
+                        XSTKCF = GAMMA_SLA(IX,IY,IZ,5)
+                     ELSEIF (N.eq.14) THEN
                         IF (NATSURFACE) THEN
                            XSTKCF = 0.3d0 ! NAT
                         ELSE
@@ -1144,11 +1196,18 @@ c new OH+CO rate from JPL2006.
                      ENDIF
                   ELSE IF ( NK == NKPSC(NCS,7 ) ) THEN
                      ! BrNO3(g)   + HCl(l,s)
-                     IF ((N.eq.8).or.(N.eq.13).or.(N.eq.14)) THEN
-                        !-----SDE DEBUG
+                     EDUCTCONC = MAX(CSPEC(JLOOP,IDBrNO3),
+     &                               CSPEC(JLOOP,IDHCl))
+                     PHASEADJUST = .TRUE.
+                     RATELIMIT = .TRUE.
+                     IF (N.eq.8) THEN
                         XSTKCF = 0.9d0 ! Sulfate
                         !-----SDE DEBUG
-                     ELSEIF (N.eq.15) THEN
+                        !XSTKCF = TINY(1d0)
+                        !-----SDE DEBUG
+                     ELSEIF (N.eq.13) THEN
+                        XSTKCF = GAMMA_SLA(IX,IY,IZ,7)
+                     ELSEIF (N.eq.14) THEN
                         IF (NATSURFACE) THEN
                            XSTKCF = 0.3d0 ! NAT
                         ELSE
@@ -1159,11 +1218,18 @@ c new OH+CO rate from JPL2006.
                      ENDIF
                   ELSE IF ( NK == NKPSC(NCS,8 ) ) THEN
                      ! HOCl(g)    + HCl(l,s)
-                     IF ((N.eq.8).or.(N.eq.13).or.(N.eq.14)) THEN
-                        !-----SDE DEBUG
+                     EDUCTCONC = MAX(CSPEC(JLOOP,IDHOCl),
+     &                               CSPEC(JLOOP,IDHCl))
+                     PHASEADJUST = .TRUE.
+                     RATELIMIT = .TRUE.
+                     IF (N.eq.8) THEN
                         XSTKCF = 0.8d0 ! Sulfate
                         !-----SDE DEBUG
-                     ELSEIF (N.eq.15) THEN
+                        !XSTKCF = TINY(1d0)
+                        !-----SDE DEBUG
+                     ELSEIF (N.eq.13) THEN
+                        XSTKCF = GAMMA_SLA(IX,IY,IZ,8)
+                     ELSEIF (N.eq.14) THEN
                         IF (NATSURFACE) THEN
                            XSTKCF = 0.1d0 ! NAT
                         ELSE
@@ -1174,11 +1240,18 @@ c new OH+CO rate from JPL2006.
                      ENDIF
                   ELSE IF ( NK == NKPSC(NCS,9 ) ) THEN
                      ! HOCl(g)    + HBr(l,s)
-                     IF ((N.eq.8).or.(N.eq.13).or.(N.eq.14)) THEN
-                        !-----SDE DEBUG
+                     EDUCTCONC = MAX(CSPEC(JLOOP,IDHOCl),
+     &                               CSPEC(JLOOP,IDHBr))
+                     PHASEADJUST = .TRUE.
+                     RATELIMIT = .TRUE.
+                     IF (N.eq.8) THEN
                         XSTKCF = 0.8d0 ! Sulfate
                         !-----SDE DEBUG
-                     ELSEIF (N.eq.15) THEN
+                        !XSTKCF = TINY(1d0)
+                        !-----SDE DEBUG
+                     ELSEIF (N.eq.13) THEN
+                        XSTKCF = GAMMA_SLA(IX,IY,IZ,9)
+                     ELSEIF (N.eq.14) THEN
                         IF (NATSURFACE) THEN
                            XSTKCF = 0.3d0 ! NAT
                         ELSE
@@ -1189,11 +1262,18 @@ c new OH+CO rate from JPL2006.
                      ENDIF
                   ELSE IF ( NK == NKPSC(NCS,10) ) THEN
                      ! HOBr(g)    + HCl(l,s)
-                     IF ((N.eq.8).or.(N.eq.13).or.(N.eq.14)) THEN
-                        !-----SDE DEBUG
+                     EDUCTCONC = MAX(CSPEC(JLOOP,IDHOBr),
+     &                               CSPEC(JLOOP,IDHCl))
+                     PHASEADJUST = .TRUE.
+                     RATELIMIT = .TRUE.
+                     IF (N.eq.8) THEN
                         XSTKCF = 0.8d0 ! Sulfate
                         !-----SDE DEBUG
-                     ELSEIF (N.eq.15) THEN
+                        !XSTKCF = TINY(1d0)
+                        !-----SDE DEBUG
+                     ELSEIF (N.eq.13) THEN
+                        XSTKCF = GAMMA_SLA(IX,IY,IZ,10)
+                     ELSEIF (N.eq.14) THEN
                         IF (NATSURFACE) THEN
                            XSTKCF = 0.1d0 ! NAT
                         ELSE
@@ -1209,9 +1289,34 @@ c new OH+CO rate from JPL2006.
 
                   ENDIF
 
-                  ! Reaction rate for dust size bin N
-                  RRATE(KLOOP,NK) = RRATE(KLOOP,NK) + 
-     $                 ARSL1K(XAREA,XRADIUS,XDENA,XSTKCF,XSTK,XSQM)
+                  IF (N.eq.13) THEN
+                     ! Calculate for stratospheric liquid aerosol
+                     ADJUSTEDRATE = XAREA * XSTKCF
+                  ELSE
+                     ! Reaction rate for dust size bin N
+                     ADJUSTEDRATE=
+     &                 ARSL1K(XAREA,XRADIUS,XDENA,XSTKCF,XSTK,XSQM)
+                  ENDIF
+
+                  ! We pre-divide by whichever species concentration
+                  ! is greater, on the basis that we are calculating
+                  ! a 1st order reaction rate and want to limit by
+                  ! whichever is less abundant
+                  IF (PHASEADJUST) THEN
+                     IF (IS_SAFE_DIV(ADJUSTEDRATE,EDUCTCONC)) THEN
+                         ADJUSTEDRATE = ADJUSTEDRATE/EDUCTCONC
+                     ELSE
+                         ADJUSTEDRATE = 0d0
+                     ENDIF
+                  ENDIF
+
+                  ! Limit PSC reaction rates (kludge from Kirner)
+                  IF (RATELIMIT) THEN
+                     ADJUSTEDRATE = MIN(ADJUSTEDRATE,MAXKPSC)
+                  ENDIF
+
+                  ! Add to overall reaction rate
+                  RRATE(KLOOP,NK) = RRATE(KLOOP,NK) + ADJUSTEDRATE
 
                ENDDO
 
@@ -1222,41 +1327,6 @@ c new OH+CO rate from JPL2006.
      &                    AD52(IX,IY,IZ) + DUMMY3(KLOOP)
                   ENDIF
                ENDIF
-            ENDDO
-
-            ! Correct PSC reaction rates - divide by gas-phase conc. of
-            ! liquid/solid 
-            DO I=1,11
-               NK = NKPSC(NCS,I)
-               SELECT CASE ( NK )
-                  !----------------
-                  ! HCl
-                  !----------------
-                   CASE ( 2, 4, 7, 8, 10 )
-                      AQCONC = CSPEC(JLOOP,IDHCl)
-                      IF (AQCONC.gt.TINY(1d0)) THEN
-                         RRATE(KLOOP,NK) = RRATE(KLOOP,NK)/AQCONC
-                      ELSE
-                         RRATE(KLOOP,NK) = TINY(1d0)
-                      ENDIF
-                  !----------------
-                  ! HBr
-                  !----------------
-                   CASE ( 5, 9 )
-                      AQCONC = CSPEC(JLOOP,IDHBr)
-                      IF (AQCONC.gt.TINY(1d0)) THEN
-                         RRATE(KLOOP,NK) = RRATE(KLOOP,NK)/AQCONC
-                      ELSE
-                         RRATE(KLOOP,NK) = TINY(1d0)
-                      ENDIF
-                  !----------------
-                  ! H2O
-                  !----------------
-                   CASE ( 3 )
-                      ! Do nothing
-                   CASE DEFAULT
-                      ! Do nothing
-                END SELECT                   
             ENDDO
 
             ! ---------------------------------------------------
@@ -2313,13 +2383,17 @@ c new OH+CO rate from JPL2006.
             ENDIF
 
          !----------------
-         ! SSA, STS
+         ! Strat. aerosols
          !----------------
          CASE ( 13, 14 )
        
-            !-----SDE DEBUG
-            GAMMA = 0.8d0
-            !-----SDE DEBUG
+            ! These are handled outside this routine - something
+            ! is wrong if AEROTYPE=13 or 14 reaches this point
+            WRITE (6,*) 'Stratospheric aerosols should not '
+            WRITE (6,*) 'be passed to general N2O5 het. '
+            WRITE (6,*) 'chem. subroutine'
+            WRITE (6,*) 'AEROSOL TYPE =',AEROTYPE
+            CALL GEOS_CHEM_STOP
 
          !----------------         
          ! Default
@@ -2444,7 +2518,7 @@ c new OH+CO rate from JPL2006.
          ! SDE 04/18/13: Added stratospheric sulfur aerosols
          !
          !----------------
-         CASE ( 8, 9, 10, 11, 12, 13, 14 )  
+         CASE ( 8, 9, 10, 11, 12, 13 )  
 
             ! Mean molecular speed [cm/s]
             w = 14550.5d0 * sqrt(TEMP/(SQM*SQM))
@@ -2523,7 +2597,7 @@ c new OH+CO rate from JPL2006.
          !----------------
          ! NAT/ice (SDE 04/18/13)
          !----------------
-         CASE ( 15 )
+         CASE ( 14 )
        
             GAMMA = 0.d0
 
