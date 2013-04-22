@@ -643,6 +643,8 @@ CONTAINS
 !  27 Mar 2013 - R. Yantosca - Add extra fields for tagged CO2
 !  27 Mar 2013 - R. Yantosca - Add extra fields for EDGAR
 !  29 Mar 2013 - R. Yantosca - Add DO_DIAG_WRITE field (to shut diags in MPI)
+!  22 Apr 2013 - R. Yantosca - Now dimension ND48_*ARR to 1000 so that we are
+!                              consistent with the settings in diag48_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1055,10 +1057,10 @@ CONTAINS
     !----------------------------------------
     ! ND48 MENU fields
     !----------------------------------------
-    ALLOCATE( Input_Opt%ND48_IARR( MAX_TRCS ), STAT=RC )
-    ALLOCATE( Input_Opt%ND48_JARR( MAX_TRCS ), STAT=RC )
-    ALLOCATE( Input_Opt%ND48_LARR( MAX_TRCS ), STAT=RC )
-    ALLOCATE( Input_Opt%ND48_NARR( MAX_TRCS ), STAT=RC )
+    ALLOCATE( Input_Opt%ND48_IARR( 1000 ), STAT=RC )
+    ALLOCATE( Input_Opt%ND48_JARR( 1000 ), STAT=RC )
+    ALLOCATE( Input_Opt%ND48_LARR( 1000 ), STAT=RC )
+    ALLOCATE( Input_Opt%ND48_NARR( 1000 ), STAT=RC )
 
     Input_Opt%DO_ND48                = .FALSE.
     Input_Opt%ND48_FILE              = ''
