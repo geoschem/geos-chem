@@ -460,9 +460,6 @@
       USE TRACER_MOD,         ONLY : STT
       USE TRACERID_MOD,       ONLY : IDTNITs
       USE TRACERID_MOD,       ONLY : IDTSO4s
-#if   defined( TOMAS )
-      USE LOGICAL_MOD,        ONLY : LTOMAS    !(win, 1/25/10)
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -506,6 +503,8 @@
 !  14 Nov 2012 - R. Yantosca - Add Input_Opt, RC as arguments
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  23 Apr 2013 - R. Yantosca - Remove LTOMAS logical, since we now invoke TOMAS
+!                              with either TOMAS=yes or TOMAS40=yes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -657,10 +656,8 @@
       ! by TOMAS subroutine AQOXID  
       ! NOTE: This may be moved to tomas_mod.f in the future, but for now
       ! it still need to get the PSO4_SO2AQ value while CHEMSULFATE is called
-      IF ( LTOMAS ) THEN 
-         CALL CHEM_SO4_AQ( State_Met )
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO4_AQ' )
-      ENDIF
+      CALL CHEM_SO4_AQ( State_Met )
+      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO4_AQ' )
 #endif
 
       ! MSA

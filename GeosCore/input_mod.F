@@ -59,6 +59,9 @@
       PRIVATE :: CHECK_TIME_STEPS 
       PRIVATE :: IS_LAST_DAY_GOOD
       PRIVATE :: INIT_INPUT
+#if defined( TOMAS )
+      PRIVATE :: INIT_TOMAS_MICROPHYSICS
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -129,6 +132,8 @@
 !                              so that we can define it with findFreeLun
 !  02 Nov 2012 - R. Yantosca - Now pass the Input Options object to routines;
 !                              this will eventually replace logical_mod, etc.
+!  23 Apr 2013 - R. Yantosca - For TOMAS, rename READ_MICROPHYSICS_MENU to 
+!                              INIT_TOMAS_MICROPHYSICS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -283,18 +288,20 @@
          !=============================================================
          IF      ( INDEX( LINE, 'SIMULATION MENU'  ) > 0 ) THEN
             CALL READ_SIMULATION_MENU( am_I_Root, Input_Opt, RC )             
+
          ELSE IF ( INDEX( LINE, 'TRACER MENU'      ) > 0 ) THEN
             CALL READ_TRACER_MENU( am_I_Root, Input_Opt, RC )                 
 
          ELSE IF ( INDEX( LINE, 'AEROSOL MENU'     ) > 0 ) THEN
             CALL READ_AEROSOL_MENU( am_I_Root, Input_Opt, RC )              
 
-#if   defined( TOMAS )
-         ELSE IF ( INDEX( LINE, 'MICROPHYS MENU'   ) > 0 ) THEN 
-            CALL READ_MICROPHYS_MENU( am_I_Root, Input_Opt, RC )              
+#if defined( TOMAS )
+         ! Initialize the TOMAS microphysics package, if necessary
+         CALL INIT_TOMAS_MICROPHYSICS( am_I_Root, Input_Opt, RC )    
 #endif
 
-#if   defined( APM )
+#if defined( APM )
+         ! Initialize APM microphysics package, if necessary
          ELSE IF ( INDEX( LINE, 'APM MENU'         ) > 0 ) THEN
             CALL READ_APM_MENU( am_I_Root, Input_Opt, RC )
 #endif
@@ -1508,7 +1515,6 @@
       USE LOGICAL_MOD,  ONLY : LSULF, LCARB, LSOA
       USE LOGICAL_MOD,  ONLY : LDUST, LDEAD, LSSALT, LCRYST
       USE LOGICAL_MOD,  ONLY : LDICARB
-      USE LOGICAL_MOD,  ONLY : LTOMAS       !sfarina - leave LTOMAS defined regardless of ifdef TOMAS, init here.
       USE TRACER_MOD,   ONLY : N_TRACERS
       USE TRACER_MOD,   ONLY : SALA_REDGE_um,      SALC_REDGE_um
       USE TRACER_MOD,   ONLY : ITS_AN_AEROSOL_SIM, ITS_A_FULLCHEM_SIM
@@ -1566,11 +1572,6 @@
       !=================================================================
       ! READ_AEROSOL_MENU begins here!
       !=================================================================
-
-!sfarina - set LTOMAS = false, unless TOMAS is defined, then let READ_MICROPHYS_MENU set LTOMAS
-#if  !defined ( TOMAS )
-      LTOMAS = .FALSE.
-#endif
 
       ! Location string for ERROR_STOP
       LOCATION = 'READ_AEROSOL_MENU ("input_mod.f")'
@@ -1835,39 +1836,34 @@
 
       END SUBROUTINE READ_AEROSOL_MENU
 !EOC
+#if defined( TOMAS )
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-
-
-#if   defined( TOMAS )
-! !IROUTINE: read_microphys_menu
+! !IROUTINE: init_tomas_microphys
 !
-! !DESCRIPTION: Subroutine READ\_MICROPHYS\_MENU reads the AEROSOL 
-!  MICROPHYSICS MENU section  of the GEOS-Chem input file.
+! !DESCRIPTION: Subroutine INIT\_TOMAS\_MICROPHYS will initialize the 
+!  TOMAS microphysics package.  This replaces the former subroutine
+!  READ\_MICROPHYSICS\_MENU.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_MICROPHYS_MENU( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_TOMAS_MICROPHYSICS( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE LOGICAL_MOD,  ONLY : LTOMAS
-c$$$      USE LOGICAL_MOD,  ONLY : LSULF30,  LSALT30, LCARB30
-c$$$      USE LOGICAL_MOD,  ONLY : LDUST30,  LNUMB30
-      USE LOGICAL_MOD,  ONLY : LSULF, LCARB,  LDUST
-      USE TRACER_MOD,   ONLY : ITS_AN_AEROSOL_SIM, ITS_A_FULLCHEM_SIM
-      USE TRACERID_MOD, ONLY : IDTNK1,   IDTNK10,  IDTNK20, IDTNK30
-      USE TRACERID_MOD, ONLY : IDTSF1,   IDTSF10,  IDTSF20, IDTSF30
-      USE TRACERID_MOD, ONLY : IDTSS1,   IDTSS10,  IDTSS20, IDTSS30
-      USE TRACERID_MOD, ONLY : IDTECOB1, IDTECIL1, IDTOCOB1,IDTOCIL1
-      USE TRACERID_MOD, ONLY : IDTH2SO4, IDTDUST1
-      USE TOMAS_MOD,    ONLY : INIT_TOMAS
+      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TOMAS_MOD,          ONLY : INIT_TOMAS
+      USE TRACERID_MOD,       ONLY : IDTNK1,   IDTNK10,  IDTNK20
+      USE TRACERID_MOD,       ONLY : IDTNK30,  IDTSF1,   IDTSF10
+      USE TRACERID_MOD,       ONLY : IDTSF20,  IDTSF30,  IDTSS1
+      USE TRACERID_MOD,       ONLY : IDTSS10,  IDTSS20,  IDTSS30
+      USE TRACERID_MOD,       ONLY : IDTECOB1, IDTECIL1, IDTOCOB1
+      USE TRACERID_MOD,       ONLY : IDTOCIL1, IDTH2SO4, IDTDUST1
 !
 ! !INPUT PARAMETERS:
 !
@@ -1881,6 +1877,14 @@ c$$$      USE LOGICAL_MOD,  ONLY : LDUST30,  LNUMB30
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
+! !REMARKS:
+!  We now invoke TOMAS by compiling GEOS-Chem and setting either the TOMAS=yes
+!  (30 bins, default) or TOMAS40=yes (40 bins, optional) switches.  The old
+!  LTOMAS logical switch is now obsolete because all of the TOMAS code is
+!  segregated from the rest of GEOS-Chem with #ifdef blocks.  Therefore,
+!  we no longer need to read the microphysics menu, but we still need to
+!  apply some error checks and then call INIT_TOMAS. (bmy, 4/23/13)
+!
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Now read LNEI99 -- switch for EPA/NEI99 emissions (bmy, 11/5/04)
@@ -1924,6 +1928,7 @@ c$$$      USE LOGICAL_MOD,  ONLY : LDUST30,  LNUMB30
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  23 Apr 2013 - R. Yantosca - Renamed to INIT_TOMAS_MICROPHYS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1934,200 +1939,58 @@ c$$$      USE LOGICAL_MOD,  ONLY : LDUST30,  LNUMB30
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG, LOCATION
 
       !=================================================================
-      ! READ_AEROSOL_MENU begins here!
+      ! INIT_TOMAS_MICROPHYSICS begins here!
       !=================================================================
 
       ! Location string for ERROR_STOP
-      LOCATION = 'READ_MICROPHYS_MENU ("input_mod.f")'
+      LOCATION = 'INIT_TOMAS_MICROPHYS ("input_mod.f")'
 
-      ! Error check
-      IF ( CT1 /= 2 ) THEN 
-         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
+      ! Halt with error if we are trying to run TOMAS in a simulation
+      ! that does not have any defined aerosols
+      ! Turn off switches for simulations that don't use microphysics
+      IF ( ( .not. Input_Opt%ITS_A_FULLCHEM_SIM )  .and.
+     &     ( .not. Input_Opt%ITS_AN_AEROSOL_SIM ) ) THEN
+         MSG = 'TOMAS needs to run with either a full-chemistry ' //
+     &         'or offline aerosol simulation!'
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
 
-c$$$      ! Use 30-bin aerosol numbers
-c$$$      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_microphys_menu:1' )
-c$$$      READ( SUBSTRS(1:N), * ) LNUMB30
-c$$$
-c$$$      ! Use 30-bin sulfate aerosols
-c$$$      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_microphys_menu:2' )
-c$$$      READ( SUBSTRS(1:N), * ) LSULF30
-c$$$
-c$$$      ! Use 30-bin sea-salt aerosols
-c$$$      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_microphys_menu:3' )
-c$$$      READ( SUBSTRS(1:N), * ) LSALT30
-c$$$
-c$$$      ! Use 30-bin carbonaceous aerosols
-c$$$      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_microphys_menu:4' )
-c$$$      READ( SUBSTRS(1:N), * ) LCARB30
-c$$$
-c$$$      ! Use 30-bin dust aerosols
-c$$$      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_microphys_menu:5' )
-c$$$      READ( SUBSTRS(1:N), * ) LDUST30
-c$$$
-      ! Turn on TOMAS aerosol microphysics
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_microphys_menu:6' )
-      READ( SUBSTRS(1:N), * ) LTOMAS
-
-      ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:7' )
-
-      !=================================================================
-      ! Error checks
-      !=================================================================
-
-      ! Turn off switches for simulations that don't use microphysics
-      IF ( ( .not. ITS_A_FULLCHEM_SIM() )  .and. 
-     &     ( .not. ITS_AN_AEROSOL_SIM() ) ) THEN
-c$$$         LNUMB30  = .FALSE.
-c$$$         LSULF30  = .FALSE.
-c$$$         LSALT30  = .FALSE.
-c$$$         LCARB30  = .FALSE.
-c$$$         LDUST30  = .FALSE.
-         LTOMAS = .FALSE.
-      ENDIF
-
-      ! Turn off LTOMAS switch if none of the TOMAS aerosol species 
-      ! are in use (win, 8/10/09)
+      ! Halt with error if none of the TOMAS aerosol species are defined
       I =  IDTNK1 + IDTSF1 + IDTSS1 + IDTECOB1 + IDTECIL1 + 
      &     IDTOCOB1 + IDTOCIL1  + IDTDUST1
       IF ( I == 0 ) THEN 
-         LTOMAS = .FALSE.
+         MSG = 'None of the TOMAS aerosols are defined!'
+         CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
       
-      ! If any aerosol mass is used, the aerosol number needs to be turned on
-c$$$      IF ( ( LSULF30 .OR. LSALT30 .OR. LCARB30 .OR. LDUST30 ) .and.
-c$$$     &     ( .not. LNUMB30 ) ) THEN 
-c$$$         MSG = 'Cannot simulate microphysics if LNUMB30=F'
-c$$$         CALL ERROR_STOP( MSG, LOCATION )
-c$$$      ENDIF
-c$$$      
-c$$$      ! Stop w/ error if tracers are undefined
-c$$$      I = IDTNK1 + IDTNK10 + IDTNK20 + IDTNK30
-c$$$      IF ( LNUMB30 ) THEN
-c$$$         IF ( I == 0 ) THEN
-c$$$            MSG = 'LNUMB30=T but NK1-NK30 tracers are undefined'
-c$$$            CALL ERROR_STOP( MSG, LOCATION)
-c$$$         ENDIF
-c$$$      ELSE
-c$$$         IF ( I > 0 ) THEN 
-c$$$            MSG = 'Cannot use NK1-NK30 tracers if LNUMB30=F'
-c$$$            CALL ERROR_STOP( MSG, LOCATION )
-c$$$         ENDIF
-c$$$      ENDIF
-c$$$            
-c$$$      I = IDTSF1 + IDTSF10 + IDTSF20 + IDTSF30
-c$$$      IF ( LSULF30 ) THEN
-c$$$         IF ( I == 0 ) THEN
-c$$$            MSG = 'LSULF30=T but SF1-SF30 tracers are undefined'
-c$$$            CALL ERROR_STOP( MSG, LOCATION)
-c$$$         ENDIF
-c$$$      ELSE
-c$$$         IF ( I > 0 ) THEN 
-c$$$            MSG = 'Cannot use SF1-SF30 tracers if LSULF30=F'
-c$$$            CALL ERROR_STOP( MSG, LOCATION )
-c$$$         ENDIF
-c$$$      ENDIF
-c$$$            
-c$$$      I = IDTSS1 + IDTSS10 + IDTSS20 + IDTSS30
-c$$$      IF ( LSALT30 ) THEN
-c$$$         IF ( I == 0 ) THEN
-c$$$            MSG = 'LSALT30=T but SS1-SS30 tracers are undefined'
-c$$$            CALL ERROR_STOP( MSG, LOCATION)
-c$$$         ENDIF
-c$$$      ELSE
-c$$$         IF ( I > 0 ) THEN 
-c$$$            MSG = 'Cannot use SS1-SS30 tracers if LSALT30=F'
-c$$$            CALL ERROR_STOP( MSG, LOCATION )
-c$$$         ENDIF
-c$$$      ENDIF
-c$$$
-c$$$      I = IDTSS1 + IDTSS10 + IDTSS20 + IDTSS30
-c$$$      IF ( LSALT30 ) THEN
-c$$$         IF ( I == 0 ) THEN
-c$$$            MSG = 'LSALT30=T but SS1-SS30 tracers are undefined'
-c$$$            CALL ERROR_STOP( MSG, LOCATION)
-c$$$         ENDIF
-c$$$      ELSE
-c$$$         IF ( I > 0 ) THEN 
-c$$$            MSG = 'Cannot use SS1-SS30 tracers if LSALT30=F'
-c$$$            CALL ERROR_STOP( MSG, LOCATION )
-c$$$         ENDIF
-c$$$      ENDIF
-c$$$
-c$$$      I = IDTECOB1 + IDTECIL1 + IDTOCOB1 + IDTOCIL1
-c$$$      IF ( LCARB30 ) THEN
-c$$$         IF ( I == 0 ) THEN
-c$$$            MSG = 'LCARB=T but ECOB, ECIL, OCOB, and OCIL' // 
-c$$$     &            'tracers (30 of each) are undefined'
-c$$$            CALL ERROR_STOP( MSG, LOCATION)
-c$$$         ENDIF
-c$$$      ELSE
-c$$$         IF ( I > 0 ) THEN 
-c$$$            MSG = 'Cannot use ECOB, ECIL, OCOB, and OCIL ' //
-c$$$     &            'tracers (30 of each) if LCARB30=F'
-c$$$            CALL ERROR_STOP( MSG, LOCATION )
-c$$$         ENDIF
-c$$$      ENDIF
-c$$$
-c$$$      ! Make sure that H2SO4(gas) tracer is defined for microphysics 
-c$$$      IF( ( LSULF30 .and. LTOMAS ) .and. ( IDTH2SO4 == 0 ) ) THEN
-c$$$         MSG = 'IDTH2SO4=0 BUT Sulfate aerosol simulation need H2SO4'
-c$$$         CALL ERROR_STOP( MSG, LOCATION )
-c$$$      ENDIF
-
-      ! Currently 30-bin sulfate need to use calculation from the 
-      !  existing bulk sulfate of Rokjin, so LSULF=T is needed when 
-      !  LSULF30=T
-c      IF( LSULF30 .and. ( .not. LSULF ) ) THEN
-      IF( IDTSF1 > 0 .and. ( .not. LSULF ) ) THEN
+      ! Halt with error if sulfate aerosols are not defined
+      IF( IDTSF1 > 0 .and. ( .not. Input_Opt%LSULF ) ) THEN
          MSG = 'Need LSULF on for TOMAS-Sulfate to work (for now)'
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
 
-      ! If LCARB30 is turned on, then need the bulk carbon LCARB to 
-      ! be turned on too for the use of the existing emissions 
+      ! Halt with error if carbonaceous aerosols are not defined
       I = IDTECOB1 + IDTECIL1 + IDTOCOB1 + IDTOCIL1
-c      IF ( LCARB30 .and. (.not. LCARB ) ) THEN
-      IF ( I > 0 .and. (.not. LCARB ) ) THEN
+      IF ( I > 0 .and. (.not. Input_Opt%LCARB ) ) THEN
          MSG = 'Need LCARB on for TOMAS-carb to work (for now)'
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
 
-
-      ! Currently dust emission only works for either 30-bin OR 4-bin
-      ! So cannot turned on both at the same time
-c      IF ( LDUST .AND. LDUST30 ) THEN 
-      IF ( IDTDUST1 > 0 .AND. LDUST ) THEN 
+      ! Halt with error if dust aerosols are turned on.
+      ! TOMAS defines its own dust aerosol tracers.
+      IF ( IDTDUST1 > 0 .AND. Input_Opt%LDUST ) THEN
          MSG = 'Need to turn off LDUST for TOMAS Dust to work'
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
 
       !=================================================================
-      ! Print to screen
+      ! All error checks are satisfied, so initialize TOMAS
       !=================================================================
-      IF ( am_I_Root ) THEN
-         WRITE( 6, '(/,a)' ) 'AEROSOL MICROPHYSICS MENU'
-         WRITE( 6, '(  a)' ) '------------'
-c$$$      WRITE( 6, 100     ) '30-BIN AEROSOL NUMBER?      : ', LNUMB30
-c$$$      WRITE( 6, 100     ) '30-BIN SULFATE AEROSOL?     : ', LSULF30
-c$$$      WRITE( 6, 100     ) '30-BIN SEA-SALT AEROSOLS?   : ', LSALT30
-c$$$      WRITE( 6, 100     ) '30-BIN CARBONACEOUS AEROSOL?: ', LCARB30
-c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
-         WRITE( 6, 100     ) 'Use TOMAS MICROPHYSICS?     : ', LTOMAS
-      ENDIF
-
- 100  FORMAT( A, L5     )
-
-      ! Initialize TOMAS microphysics variables
       CALL INIT_TOMAS    
  
-      END SUBROUTINE READ_MICROPHYS_MENU
-
-#endif
-
+      END SUBROUTINE INIT_TOMAS_MICROPHYSICS
 !EOC
+#endif
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------

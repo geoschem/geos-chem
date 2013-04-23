@@ -1,4 +1,4 @@
-#if   defined ( TOMAS )
+#if defined ( TOMAS )
 ! $Id: tomas_mod.f,v 1.2 2010/03/15 19:33:19 ccarouge Exp $
       MODULE TOMAS_MOD
 !
@@ -118,6 +118,7 @@
 !  NOTES:
 !  (1 ) Add BINACT1 and FRACTION1 for compositionally-resolved scavenging after
 !        OC and EC are included in the simulation (win, 9/10/07)
+!  23 Apr 2013 - R. Yantosca - Now use findFreeLUN to get file LUN's
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -5463,18 +5464,19 @@ c
 !   (1 ) Add calculation for bin boundaries array Xk using Mo = lower mass 
 !         bound for first size bin (kg) (win, 7/18/07)
 !   (2 ) IDIAG is introduced.  IDIAG=2 for NH4 and H2O (win, 9/26/08)
+!  23 Apr 2013 - R. Yantosca - Now get unit # with findFreeLUN
+
 !******************************************************************************
 !
       ! References to F90 modules
-!      USE LOGICAL_MOD, ONLY : LNUMB30, LSULF30, LSALT30
-!      USE LOGICAL_MOD, ONLY : LCARB30, LDUST30
-      USE ERROR_MOD,   ONLY : ALLOC_ERR, ERROR_STOP
+      USE ERROR_MOD,     ONLY : ALLOC_ERR, ERROR_STOP
+      USE inquireMod,    ONLY : findFreeLUN
       USE DIRECTORY_MOD, ONLY: DATA_DIR
-      USE TRACERID_MOD, ONLY : IDTSF1, IDTSS1, IDTECIL1, IDTECOB1
-      USE TRACERID_MOD, ONLY : IDTOCIL1, IDTOCOB1, IDTDUST1
+      USE TRACERID_MOD,  ONLY : IDTSF1, IDTSS1, IDTECIL1, IDTECOB1
+      USE TRACERID_MOD,  ONLY : IDTOCIL1, IDTOCOB1, IDTDUST1
 
       ! Local variables
-      INTEGER              :: AS, K, I,J,L, dum1, dum2, dum3
+      INTEGER              :: AS, K, I,J,L, dum1, dum2, dum3, LUN
       REAL*8               :: Mo
       character*80         :: filename
 
@@ -5598,22 +5600,27 @@ c         SRTH2O = ICOMP
       !initialize yu lookup table
       call READJIMN5D ! yu nucleation inputs
 
-      !read cosmic ray ion input file
-      open(unit=79,file="IonPairs1GV.4x5",FORM='FORMATTED',
-     &     STATUS='OLD')
-      !do L=1,20
-      do L=1,9
-         do J=1,46
-            do I=1,72
-               READ(79,'(I5,I5,I5,E10.3)') dum1,dum2,dum3,
-     &                                      cosmic_ions(I,J,L)
-               if (I.eq.50.and.J.eq.20.and.L.eq.5)then
-                  print*,'ion test',cosmic_ions(I,J,L)
-               endif
-            enddo
-         enddo
-      enddo
+      ! Find a free file LUN
+      LUN = findFreeLUN()
+
+      ! Read cosmic ray ion input file
+      OPEN( unit=LUN, file="IonPairs1GV.4x5", FORM='FORMATTED',
+     &      STATUS='OLD' )
+
+      DO L=1,9
+      DO J=1,46
+      DO I=1,72
+         READ( LUN ,'(I5,I5,I5,E10.3)') dum1,dum2,dum3,
+     &                                  cosmic_ions(I,J,L)
+         if (I.eq.50.and.J.eq.20.and.L.eq.5)then
+            print*,'ion test',cosmic_ions(I,J,L)
+         endif
+      ENDDO
+      ENDDO
+      ENDDO
       
+      ! Close file
+      CLOSE( LUN )
 
       ! Return to calling program
       END SUBROUTINE INIT_TOMAS
@@ -5622,10 +5629,15 @@ c         SRTH2O = ICOMP
 
       SUBROUTINE READBINACT( INFILE, BINACT )
 
+      USE inquireMod, ONLY : findFreeLun
+
       CHARACTER*80 INFILE
-      INTEGER INNUM, II, JJ, KK
+      INTEGER INNUM, II, JJ, KK, LUN
       INTEGER BINACT(101,101,101)
-      PARAMETER (INNUM=59)
+
+      ! Find a free file LUN
+      INNUM = findFreeLun()
+
  1    FORMAT(I2)
       OPEN(UNIT=INNUM,FILE=INFILE,FORM='FORMATTED',STATUS='OLD')
       DO II=1,101
@@ -5644,10 +5656,15 @@ c         SRTH2O = ICOMP
 
       SUBROUTINE READFRACTION(INFILE,FRACTION)
 
+      USE inquireMod, ONLY : findFreeLun
+
       CHARACTER*80 INFILE
       INTEGER INNUM, II, JJ, KK
       REAL*8 FRACTION(101,101,101)
-      PARAMETER (INNUM=58)
+
+      ! Find a free file LUN
+      INNUM = findFreeLun()
+
  1    FORMAT(F6.5)
       OPEN(UNIT=INNUM,FILE=INFILE,FORM='FORMATTED',STATUS='OLD')
       DO II=1,101

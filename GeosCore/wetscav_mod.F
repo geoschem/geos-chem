@@ -138,25 +138,26 @@
 !  01 Aug 2011 - H. Amos - Updated comments
 !  09 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x
 !  21 Jun 2012 - R. Yantosca - Declare H2O2s, SO2s as TARGETs for pointers
+!  23 Apr 2013 - R. Yantosca - Bug fix, eliminate white space from #if block
+!  23 Apr 2013 - R. Yantosca - Remove LTOMAS logical, since we now invoke TOMAS
+!                              with either TOMAS=yes or TOMAS40=yes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS:
 !
-!------------------------------------------------------------------------------
-! Prior to 10/22/12:
-! Increased from 53 to 60 for tagged Hg sim (eds, mpayer, 10/22/12)
-!      INTEGER, PARAMETER   :: NSOLMAX = 53      ! Max # of soluble tracers
-!------------------------------------------------------------------------------
-#if   defined ( TOMAS )
-# if  defined ( TOMAS40 )
-      INTEGER, PARAMETER   :: NSOLMAX = 370     ! Max # of soluble tracers for TOMAS40
-# else
-      INTEGER, PARAMETER   :: NSOLMAX = 262     ! Max # of soluble tracers for TOMAS30
-# endif
+#if defined( TOMAS   )
+#if defined( TOMAS40 )
+      INTEGER, PARAMETER   :: NSOLMAX = 370     ! Max # of soluble tracers
+                                                !  for TOMAS40 runs
+#else
+      INTEGER, PARAMETER   :: NSOLMAX = 262     ! Max # of soluble tracers
+                                                !  for TOMAS30 runs
+#endif
 #else
       INTEGER, PARAMETER   :: NSOLMAX = 60      ! Max # of soluble tracers
+                                                !  for regular G-C runs
 #endif
       REAL*8,  PARAMETER   :: EPSILON = 1d-32   ! A very small positive #
 !
@@ -173,7 +174,6 @@
                                                 !  [cm3 ice/cm3 air]
       REAL*8,  ALLOCATABLE :: CLDLIQ(:,:,:)     ! Cloud liquid water mix rat
                                                 !  [cm3 H2O/cm3 air]
-
       REAL*8,  ALLOCATABLE :: PDOWN(:,:,:)      ! Precipitation thru the
                                                 !  bottom of the grid box 
                                                 !  [cm3 H2O/cm2 area/s]
@@ -6270,7 +6270,6 @@
       USE TOMAS_MOD,          ONLY : IBINS, ICOMP, AQOXID !(win, 7/16/09)
       USE TOMAS_MOD,          ONLY : GETFRACTION !(win, 7/16/09)
       USE DIAG_MOD,           ONLY : AD05  !(win, 7/16/09)
-      USE LOGICAL_MOD,        ONLY : LTOMAS ! (win, 7/16/09)
 #endif
  
       USE CMN_SIZE_MOD                                 ! Size parameters
@@ -6523,7 +6522,6 @@
       USE TOMAS_MOD,          ONLY : IBINS, ICOMP, AQOXID         !(win, 7/16/09)
       USE TOMAS_MOD,          ONLY : GETFRACTION                  !(win, 7/16/09)
       USE DIAG_MOD,           ONLY : AD05                         !(win, 7/16/09)
-      USE LOGICAL_MOD,        ONLY : LTOMAS                       !(win, 7/16/09)
 #endif
 
       USE CMN_SIZE_MOD                                 ! Size parameters
@@ -6771,7 +6769,7 @@
                             
             ! Re-evaporated portion get distributed onto
             ! size-resolved sulfate by AQOXID (win, 7/16/09)
-            IF ( LTOMAS .and. GAINED > 0d0 ) THEN 
+            IF ( GAINED > 0d0 ) THEN 
                IF ( LS ) THEN
                   KMIN = 10
                ELSE
@@ -6931,7 +6929,6 @@
       USE TOMAS_MOD,          ONLY : IBINS, ICOMP, AQOXID         !(win, 7/16/09)
       USE TOMAS_MOD,          ONLY : GETFRACTION                  !(win, 7/16/09)
       USE DIAG_MOD,           ONLY : AD05                         !(win, 7/16/09)
-      USE LOGICAL_MOD,        ONLY : LTOMAS                       !(win, 7/16/09)
 #endif
 
       USE CMN_SIZE_MOD                                 ! Size parameters
@@ -7014,7 +7011,7 @@
                             
                        ! Re-evaporated portion get distributed onto
                      ! size-resolved sulfate by AQOXID (win, 7/16/09)
-                     IF ( LTOMAS .and. ABS(WETLOSS) > 0d0 ) THEN 
+                     IF ( ABS(WETLOSS) > 0d0 ) THEN 
                         IF ( LS ) THEN
                            KMIN = 10
                         ELSE
@@ -7881,8 +7878,8 @@
       USE TRACER_MOD,   ONLY : ITS_A_POPS_SIM
       USE TRACERID_MOD, ONLY : IDTSOAG,  IDTSOAM
 #if defined( TOMAS )
-      USE TRACERID_MOD, ONLY : IDTNK1    !(win, 7/16/09)
-      USE TOMAS_MOD,    ONLY : IBINS, IDIAG, ICOMP  !(win, 7/16/09)
+      USE TRACERID_MOD, ONLY : IDTNK1
+      USE TOMAS_MOD,    ONLY : IBINS, IDIAG, ICOMP
 #endif
 
       USE CMN_SIZE_MOD       ! Size parameters
@@ -7909,6 +7906,8 @@
 !  (9 ) Added 9 new tracers for ISOPRENE species (fp, 6/2009)
 !  (10) Added SOA5 and SOG5 (hotp, 6/15/09)
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  23 Apr 2013 - S. Farina   - Inlined code for TOMAS, separated w/ #ifdefs
+!  23 Apr 2013 - R. Yantosca - Updated comments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7922,34 +7921,31 @@
          !-----------------------
          ! Fullchem simulation
          !-----------------------
-         NMAX = 14                              ! HNO3, H2O2, CH2O, MP, 
-                                                ! GLYX, MGLY, GLYC
-                                                ! MOBA
-                                                ! ISOPN, MVKN, PROPNN
-                                                ! RIP, IEPOX
-                                                ! PMNN 
+         NMAX = 14                                   ! HNO3,  H2O2,   CH2O,
+                                                     ! MP,    GLYX,   MGLY,
+                                                     ! GLYC,  MOBA,   ISOPN,
+                                                     ! MVKN,  PROPNN, RIP,
+                                                     ! IEPOX, PMNN
 
-         IF ( LSULF )    NMAX = NMAX + 8        ! SO2, SO4, MSA, NH3, NH4, NIT
-         IF ( LDUST  )   NMAX = NMAX + NDSTBIN  ! plus # of dust bins
-         IF ( LSSALT )   NMAX = NMAX + 2        ! plus 2 seasalts
+         NMAX = NMAX + 3                             ! HBr,   HOBr,   Br2
 
-         ! jpp, 4/27/09:( 1) add space for 3 bromine species to
-         !                   be wet-deposited: HBr, HOBr, and Br2.
-         NMAX = NMAX + 3
+         IF ( LSULF )    NMAX = NMAX + 8             ! SO2,   SO4,    MSA,
+                                                     ! NH3,   NH4,    NIT
+         IF ( LDUST  )   NMAX = NMAX + NDSTBIN       ! plus # of dust bins
+         IF ( LSSALT )   NMAX = NMAX + 2             ! plus 2 seasalts
 
-         IF ( LSOA ) THEN
-            IF ( LCARB ) NMAX = NMAX + 17       ! carbon + SOA aerosols
-            IF ( IDTSOAG /= 0 ) NMAX = NMAX + 1 ! SOAG deposition
-            IF ( IDTSOAM /= 0 ) NMAX = NMAX + 1 ! SOAM deposition
-         ELSE                                 
-            IF ( LCARB ) NMAX = NMAX + 4        ! just carbon aerosols
+         IF ( LSOA ) THEN                            !%% SOA SIMULATION %%
+            IF ( LCARB ) NMAX = NMAX + 17            ! carbon + SOA aerosols
+            IF ( IDTSOAG /= 0 ) NMAX = NMAX + 1      ! plus SOAG deposition
+            IF ( IDTSOAM /= 0 ) NMAX = NMAX + 1      ! plus SOAM deposition
+         ELSE                                        !%% non-SOA SIMULATION %%
+            IF ( LCARB ) NMAX = NMAX + 4             ! BCPI, BCPO, OCPI, OCPO
          ENDIF
 
 #if defined( TOMAS )
-         ! For TOMAS microphysics     (win, 7/16/09)
-         IF ( IDTNK1 > 0 ) THEN 
+         IF ( IDTNK1 > 0 ) THEN                      !%% TOMAS SIMULATION %%
             NMAX = NMAX + IBINS                      ! Aerosol numbers
-            NMAX = NMAX + ( ICOMP - IDIAG ) * IBINS  !Aerosol mass species
+            NMAX = NMAX + ( ICOMP - IDIAG ) * IBINS  ! Aerosol mass species
             NMAX = NMAX + 1                          ! H2SO4
          ENDIF
 #endif
@@ -7959,23 +7955,22 @@
          !-----------------------
          ! Offline simulation
          !-----------------------
-         NMAX = 0
-         IF ( LSULF  )   NMAX = NMAX + 9        ! add 9 sulfur species
-         IF ( LCRYST )   NMAX = NMAX + 5        ! add 5 cryst & aq species
-         IF ( LDUST  )   NMAX = NMAX + NDSTBIN  ! Add number of dust bins
-         IF ( LSSALT )   NMAX = NMAX + 2        ! plus 2 seasalts
+         NMAX = 0                                    ! Start with 0
+         IF ( LSULF  )   NMAX = NMAX + 9             ! add 9 sulfur species
+         IF ( LCRYST )   NMAX = NMAX + 5             ! add 5 cryst & aq species
+         IF ( LDUST  )   NMAX = NMAX + NDSTBIN       ! add number of dust bins
+         IF ( LSSALT )   NMAX = NMAX + 2             ! add 2 seasalts
 
-         IF ( LSOA ) THEN
-            IF ( LCARB ) NMAX = NMAX + 15       ! carbon + SOA aerosols
-         ELSE
-            IF ( LCARB ) NMAX = NMAX + 4        ! just carbon aerosols
+         IF ( LSOA ) THEN                            !%% SOA SIMULATION %%
+            IF ( LCARB ) NMAX = NMAX + 15            ! carbon + SOA aerosols
+         ELSE                                        !%% non-SOA simulation %%
+            IF ( LCARB ) NMAX = NMAX + 4             ! BCPI, BCPO, OCPI, OCPO
          ENDIF
 
 #if defined( TOMAS )
-         ! For TOMAS microphysics     (win, 7/16/09)
-         IF ( IDTNK1 > 0 ) THEN 
+          IF ( IDTNK1 > 0 ) THEN                     !%% TOMAS SIMULATION %%
             NMAX = NMAX + IBINS                      ! Aerosol numbers
-            NMAX = NMAX + ( ICOMP - IDIAG ) * IBINS  !Aerosol mass species
+            NMAX = NMAX + ( ICOMP - IDIAG ) * IBINS  ! Aerosol mass species
             NMAX = NMAX + 1                          ! H2SO4
          ENDIF
 #endif
@@ -7985,22 +7980,22 @@
          !-----------------------
          ! Rn-Pb-Be simulation
          !-----------------------
-         NMAX = 2                               ! 210Pb, 7Be
+         NMAX = 2                                    ! 210Pb, 7Be
 
       ELSE IF ( ITS_A_MERCURY_SIM() ) THEN
 
          !-----------------------
          ! Mercury simulation
          !-----------------------
-         NMAX = 2                               ! Hg2, HgP
-         IF ( LSPLIT ) NMAX = 58                ! Tagged tracers (eds)
+         NMAX = 2                                    ! Hg2, HgP
+         IF ( LSPLIT ) NMAX = 58                     ! Tagged tracers (eds)
 
       ELSE IF ( ITS_A_POPS_SIM() ) THEN
 
          ! ------------------
          ! POPs simulation
          ! -----------------
-         NMAX = 3                               ! POPPOC, POPPBC, and POPG
+         NMAX = 3                                    ! POPPOC, POPPBC, POPG
 
       ELSE 
 
@@ -8011,6 +8006,7 @@
 
       ENDIF
 
+      print*, '### GET_WETDEP_NMAX: ', NMAX
       END FUNCTION GET_WETDEP_NMAX
 !EOC
 !------------------------------------------------------------------------------
