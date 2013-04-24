@@ -506,16 +506,6 @@
          CALL DEBUG_MSG( '### CHEMDR: after GASCONC' )
       ENDIF
 
-      !=================================================================  
-      ! Call SETEMIS which sets emission rates REMIS 
-      !=================================================================
-      CALL SETEMIS( EMISRR, EMISRRN, am_I_Root )
-      
-      !### Debug
-      IF ( LPRT .and. am_I_Root ) THEN
-         CALL DEBUG_MSG( '### CHEMDR: after SETEMIS' )
-      ENDIf
-
       !=================================================================
       ! Call RDAER -- computes aerosol optical depths
       !=================================================================
@@ -567,6 +557,16 @@
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after FAST-J' )
+
+      !=================================================================  
+      ! Call SETEMIS which sets emission rates REMIS 
+      !=================================================================
+      CALL SETEMIS( EMISRR, EMISRRN, am_I_Root )
+      
+      !### Debug
+      IF ( LPRT .and. am_I_Root ) THEN
+         CALL DEBUG_MSG( '### CHEMDR: after SETEMIS' )
+      ENDIf
 
       !================================================================
       ! Call chemistry routines
