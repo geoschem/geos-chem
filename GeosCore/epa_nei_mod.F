@@ -534,6 +534,7 @@
       USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
       USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNO
       USE TRACERID_MOD, ONLY : IDTNH3,  IDTPRPE, IDTSO2,  IDTSO4  
+      USE TRACERID_MOD, ONLY : IDTNO2
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TRACER_MOD,   ONLY : TRACER_MW_KG
       USE TIME_MOD,     ONLY : GET_DAY_OF_WEEK
@@ -642,7 +643,7 @@
             IF (.not. LNEI05) THEN
                IF ( IDTNO > 0) EMISS(:,J,IDTNO) = 
      &              EPA_WD_AN_NOX(:,J) * A(:,J) *
-     &              6.0225d-23 * TRACER_MW_KG(IDTNO) 
+     &              6.0225d-23 * TRACER_MW_KG(IDTNO2) 
                IF ( IDTCO  > 0) EMISS(:,J,IDTCO)  = 
      &              EPA_WD_AN_CO(:,J) * A(:,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTCO) 
@@ -680,7 +681,7 @@
 
             IF ( IDTNO > 0 ) EMISS(:,J,IDTNO) = 
      &           EPA_WD_BF_NOX(:,J) * A(:,J) *
-     &           6.0225d-23 * TRACER_MW_KG(IDTNO) 
+     &           6.0225d-23 * TRACER_MW_KG(IDTNO2) 
             IF ( IDTCO > 0 ) EMISS(:,J,IDTCO)  = 
      &           EPA_WD_BF_CO(:,J) * A(:,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTCO) 
@@ -719,7 +720,7 @@
             IF (.not. LNEI05) THEN
                IF ( IDTNO > 0) EMISS(:,J,IDTNO) = 
      &              EPA_WE_AN_NOX(:,J) * A(:,J) *
-     &              6.0225d-23 * TRACER_MW_KG(IDTNO) 
+     &              6.0225d-23 * TRACER_MW_KG(IDTNO2) 
                IF ( IDTCO  > 0) EMISS(:,J,IDTCO)  = 
      &              EPA_WE_AN_CO(:,J) * A(:,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTCO) 
@@ -757,7 +758,7 @@
             
             IF ( IDTNO > 0 ) EMISS(:,J,IDTNO) = 
      &           EPA_WE_BF_NOX(:,J) * A(:,J) *
-     &           6.0225d-23 * TRACER_MW_KG(IDTNO) 
+     &           6.0225d-23 * TRACER_MW_KG(IDTNO2) 
             IF ( IDTCO  > 0 ) EMISS(:,J,IDTCO)  = 
      &           EPA_WE_BF_CO(:,J) * A(:,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTCO) 
@@ -1807,7 +1808,7 @@
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TRACER_MOD,   ONLY : TRACER_MW_KG
       USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
-      USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNO
+      USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNO2
       USE TRACERID_MOD, ONLY : IDTNH3,  IDTPRPE, IDTSO2,  IDTSO4  
 
       USE CMN_SIZE_MOD                 ! Size parameters
@@ -1899,7 +1900,7 @@
       F_NH3   = 0d0 
 
       ! Prevent array out of bounds error for undefined tracers
-      IF ( IDTNO   > 0 ) F_NOX  = TRACER_MW_KG(IDTNO  )
+      IF ( IDTNO2  > 0 ) F_NOX  = TRACER_MW_KG(IDTNO2 )
       IF ( IDTCO   > 0 ) F_CO   = TRACER_MW_KG(IDTCO  )
       IF ( IDTALK4 > 0 ) F_ALK4 = TRACER_MW_KG(IDTALK4)
       IF ( IDTACET > 0 ) F_ACET = TRACER_MW_KG(IDTACET)
@@ -2018,7 +2019,7 @@
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TRACER_MOD,   ONLY : TRACER_MW_KG
       USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
-      USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNO
+      USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNO2
       USE TRACERID_MOD, ONLY : IDTNH3,  IDTPRPE, IDTSO2,  IDTSO4  
 
       USE CMN_SIZE_MOD  ! Size parameters
@@ -2104,7 +2105,7 @@
       F_NH3   = 0d0 
 
       ! Prevent array out of bounds error for undefined tracers
-      IF ( IDTNO   > 0 ) F_NOX  = TRACER_MW_KG(IDTNO  )
+      IF ( IDTNO2  > 0 ) F_NOX  = TRACER_MW_KG(IDTNO2 )
       IF ( IDTCO   > 0 ) F_CO   = TRACER_MW_KG(IDTCO  )
       IF ( IDTALK4 > 0 ) F_ALK4 = TRACER_MW_KG(IDTALK4)
       IF ( IDTACET > 0 ) F_ACET = TRACER_MW_KG(IDTACET)

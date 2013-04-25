@@ -45,7 +45,7 @@
       USE TRACER_MOD,         ONLY : XNUMOL
       USE TRACERID_MOD,       ONLY : IDENO,    IDEO3,    IDEHNO3
       USE TRACERID_MOD,       ONLY : IDTCO,    IDTHNO3
-      USE TRACERID_MOD,       ONLY : IDTC2H6
+      USE TRACERID_MOD,       ONLY : IDTC2H6,  IDTNO2
       USE VISTAS_ANTHRO_MOD,  ONLY : GET_VISTAS_ANTHRO
       USE ICOADS_SHIP_MOD,    ONLY : GET_ICOADS_SHIP !(cklee, 7/09/09)
 ![eml
@@ -150,6 +150,8 @@
 !  14 Mar 2013 - M. Payer    - Replace NOx and Ox emissions with NO and O3
 !                              emissions as part of removal of NOx-Ox
 !                              partitioning
+!  18 Apr 2013 - M. Payer    - Convert NOx using XNUMOL for NO2 since original
+!                              NOx emissions are in mass units of NO2
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -233,7 +235,8 @@
                   EDGAR   = EDGAR * GET_EDGAR_TODN( I, J, HOUR )
 
                   ! Replace GEIA with EPA/NEI emissions at surface
-                  EMX(LL) = EDGAR * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
+                  EMX(LL) = EDGAR * ( DTSRCE * AREA_CM2 ) /
+     &                      XNUMOL(IDTNO2) 
             
                ELSE 
             
@@ -263,7 +266,8 @@
                      EMEP    = EMEP * TODX
 
                      ! Replace GEIA with EMEP emissions at surface
-                     EMX(LL) = EMEP * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
+                     EMX(LL) = EMEP * ( DTSRCE * AREA_CM2 ) /
+     &                         XNUMOL(IDTNO2) 
                   
                   ELSE 
             
@@ -298,7 +302,7 @@
 
                      ! Replace GEIA with EPA/NEI emissions at surface
                      EMX(LL) = EPA_NEI * 
-     &                         ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
+     &                         ( DTSRCE * AREA_CM2 ) / XNUMOL(IDTNO2) 
             
                   ELSE 
             
@@ -326,7 +330,7 @@
 
                      ! Replace with VISTAS emissions at surface
                      EMX(LL) = VISTAS * 
-     &                         ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)
+     &                         ( DTSRCE * AREA_CM2 ) / XNUMOL(IDTNO2)
 
                   ELSE 
 
@@ -359,7 +363,7 @@
 
                      ! Replace base emissions with STREETS
                      EMX(LL) = STREETS * 
-     &                         ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
+     &                         ( DTSRCE * AREA_CM2 ) / XNUMOL(IDTNO2) 
             
                   ELSE 
             
@@ -393,12 +397,12 @@
                      IF ( LNEI99 ) THEN 
                         IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
 
-                           EMX(LL) = EMX(LL) + BRAVO * 
-     &                              ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
+                           EMX(LL) = EMX(LL) + BRAVO * ( DTSRCE *
+     &                               AREA_CM2 ) / XNUMOL(IDTNO2) 
                         ENDIF                           
                      ELSE
-                        EMX(LL) = BRAVO * 
-     &                            ( DTSRCE*AREA_CM2 ) / XNUMOL(NN) 
+                        EMX(LL) = BRAVO * ( DTSRCE*AREA_CM2 ) /
+     &                            XNUMOL(IDTNO2) 
 
                      ENDIF
 
@@ -438,17 +442,17 @@
                         ! If on border, add to NEI99 emissions (which has
                         ! no Canadian component)
                         IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
-                           EMX(LL) = EMX(LL) + CAC *
-     &                               ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)
+                           EMX(LL) = EMX(LL) + CAC * ( DTSRCE * 
+     &                               AREA_CM2 ) / XNUMOL(IDTNO2)
                         ELSE
-                           EMX(LL) = CAC *
-     &                               ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)
+                           EMX(LL) = CAC * ( DTSRCE * AREA_CM2 ) /
+     &                               XNUMOL(IDTNO2)
                         ENDIF
                      ELSE
 
                         ! Replace base emissions with CAC
-                        EMX(LL) = CAC *
-     &                            ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)
+                        EMX(LL) = CAC * ( DTSRCE * AREA_CM2 ) /
+     &                            XNUMOL(IDTNO2)
                      ENDIF
 
                   ELSE
@@ -475,7 +479,7 @@
 
                   ! Replace GEIA with EPA/NEI emissions at surface
                   EMX(LL) = NEI05 *
-     &                      ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)
+     &                      ( DTSRCE * AREA_CM2 ) / XNUMOL(IDTNO2)
 
                ENDIF
                
@@ -559,19 +563,19 @@
 
             ! EMISRRN [molec/box/s] is referenced by LL
             EMISRRN(I,J,LL) = EMISRRN(I,J,LL) +
-     &                       ( EMX(LL) * XNUMOL(NN) / DTSRCE )
+     &                       ( EMX(LL) * XNUMOL(IDTNO2) / DTSRCE )
 
             ! ND32 = save anthro NOx for levels L=1,NOXEXTENT [molec/cm2/s]
             IF ( ND32 > 0 ) THEN
                AD32_an(I,J,LL) = AD32_an(I,J,LL) + 
-     &              ( EMX(LL) * XNUMOL(NN) / ( DTSRCE * AREA_CM2 ) )   
+     &              ( EMX(LL) * XNUMOL(IDTNO2) / ( DTSRCE * AREA_CM2 ) )   
             ENDIF
 
             ! ND36 = save anthro emissions in [molec/cm2]
             ! and then convert to [molec/cm2/s] in DIAG3.F
             IF ( ND36 > 0 ) THEN
                AD36(I,J,N) = AD36(I,J,N) +
-     &            ( EMX(LL) * XNUMOL(NN) / AREA_CM2 )
+     &            ( EMX(LL) * XNUMOL(IDTNO2) / AREA_CM2 )
             ENDIF    
          ENDDO     
 

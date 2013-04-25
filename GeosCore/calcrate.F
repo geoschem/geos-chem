@@ -121,7 +121,7 @@
       USE TRACER_MOD,         ONLY : XNUMOL
       USE TIME_MOD,           ONLY : GET_TS_EMIS
       USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE TRACERID_MOD,       ONLY : IDTNO,  IDTO3,  IDTHNO3
+      USE TRACERID_MOD,       ONLY : IDTNO,  IDTO3,  IDTHNO3, IDTNO2
       USE TRACERID_MOD,       ONLY : IDNO,   IDO3,   IDHNO3,  IDNO2
       USE TRACERID_MOD,       ONLY : IDENO,  IDEO3,  IDEHNO3
       USE TRACERID_MOD,       ONLY : CTRMB,  IDEMIS
@@ -1546,7 +1546,9 @@ c new OH+CO rate from JPL2006.
                   
                ! Convert molec/cm2/s to kg/box/timestep to get same
                ! units as EMISRN, ie default GEIA emiss (phs, 7/9/09)
-               SHIP = SHIP * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
+               ! Convert NOx using XNUMOL for NO2 since original NOX
+               ! emissions are in mass units of NO2  (mpayer, 4/18/13)
+               SHIP = SHIP * ( DTSRCE * AREA_CM2 ) / XNUMOL(IDTNO2) 
          
                ! Add possible scaling of NOx emissions
                SHIP = SHIP * NOx_SCALING
@@ -1617,8 +1619,10 @@ c new OH+CO rate from JPL2006.
                      ! Convert SHIP (kg/box/timestep) to the REMIS format 
                      ! (molec NO/box/s) and multiply by the fraction of NOx
                      ! remaining
+                     ! Convert NOx using XNUMOL for NO2 since original NOx
+                     ! emissions are in mass units of NO2 (mpayer, 4/18/13)
                     
-                     EMIS_BL = ( (SHIP * fraction_nox * XNUMOL(NN)
+                     EMIS_BL = ( (SHIP * fraction_nox * XNUMOL(IDTNO2)
      &                             / DTSRCE )    
      &                             / COEF1  ) * ( DELTPRES / TOTPRES )
                     
@@ -1744,14 +1748,14 @@ c new OH+CO rate from JPL2006.
     
                   AD36(IX,IY,IDENO)  = AD36(IX,IY,IDENO)  + SHIP * 
      &                                 fraction_nox * 
-     &                                 XNUMOL(IDTNO) / AREA_CM2
+     &                                 XNUMOL(IDTNO2) / AREA_CM2
                ENDIF
 
                ! ND32 = save anthro NOx for levels L=1,NOXEXTENT [molec/cm2/s]
                IF ( ND32 > 0 ) THEN
-                  AD32_an(IX,IY,IZ) = AD32_an(IX,IY,IZ) + 
-     &                 ( SHIP * fraction_nox * XNUMOL(NN) / 
-     &                                 ( DTSRCE * AREA_CM2 ) )   
+                  AD32_an(IX,IY,IZ) = AD32_an(IX,IY,IZ) + ( SHIP * 
+     &                                fraction_nox * XNUMOL(IDTNO2) / 
+     &                                ( DTSRCE * AREA_CM2 ) )   
                ENDIF
 
                ! ND63 = save the fraction of NOx remaining and integrated OPE +

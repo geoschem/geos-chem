@@ -78,7 +78,7 @@
 !
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TRACER_MOD,   ONLY : XNUMOL
-      USE TRACERID_MOD, ONLY : IDTNO, IDTCO, IDTSO2, IDTNH3
+      USE TRACERID_MOD, ONLY : IDTNO, IDTCO, IDTSO2, IDTNH3, IDTNO2
       USE TIME_MOD,     ONLY : GET_YEAR, GET_MONTH
 !
 ! !INPUT PARAMETERS: 
@@ -185,9 +185,16 @@
 
       ELSE IF ( DO_MCS ) THEN
 
-         ! Convert NOx from [kg/month] to [molec/cm2/s]
-         VALUE = ( VALUE                   * XNUMOL(N)    )
-     &         / ( GET_AREA_CM2( I, J, 1 ) * SEC_IN_MONTH )
+         ! Convert from [kg/month] to [molec/cm2/s]
+         IF ( N == IDTNO ) THEN
+            ! Convert NOx using XNUMOL for NO2 since original NOX emissions
+            ! are in mass units of NO2 (mpayer, 4/18/13)
+            VALUE = ( VALUE                   * XNUMOL(IDTNO2)    )
+     &            / ( GET_AREA_CM2( I, J, 1 ) * SEC_IN_MONTH )
+         ELSE
+            VALUE = ( VALUE                   * XNUMOL(N)    )
+     &            / ( GET_AREA_CM2( I, J, 1 ) * SEC_IN_MONTH )
+         ENDIF
 
       ENDIF
 
@@ -512,7 +519,7 @@
 
 
       ! Total NOx [Tg N]
-      T_NOX = SUM( NOx ) * 1d-9 * ( 14d0 / 30d0 )
+      T_NOX = SUM( NOx ) * 1d-9 * ( 14d0 / 46d0 )
 
       ! Total CO  [Tg CO]
       T_CO  = SUM( CO  ) * 1d-9

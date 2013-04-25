@@ -109,6 +109,7 @@
       INTEGER, PARAMETER   :: N_HOURS     = 24
       REAL*8,  PARAMETER   :: SEC_IN_DAY  = 86400d0
       REAL*8,  PARAMETER   :: SEC_IN_2000 = SEC_IN_DAY * 366d0  ! leapyear
+      REAL*8,  PARAMETER   :: XNUMOL_NO2  = 6.0225d23  / 46d-3
       REAL*8,  PARAMETER   :: XNUMOL_CO   = 6.0225d23  / 28d-3
       REAL*8,  PARAMETER   :: XNUMOL_SO2  = 6.0225d23  / 64d-3
 
@@ -1856,8 +1857,6 @@
       USE GRID_MOD,             ONLY : GET_AREA_CM2
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NOxff
       USE LOGICAL_MOD,          ONLY : LFUTURE
-      USE TRACER_MOD,           ONLY : XNUMOL
-      USE TRACERID_MOD,         ONLY : IDTNO
 
       ! Arguments
       INTEGER, INTENT(IN)           :: I,      J
@@ -1914,7 +1913,9 @@
       ELSE IF ( DO_MCS ) THEN
 
          ! Convert to [molec/cm2/s]
-         NOx = NOx * XNUMOL(IDTNO)
+         ! Convert NOx using XNUMOL for NO2 since original NOx
+         ! emissions are in mass units of NO2 (mpayer, 4/18/13)
+         NOx = NOx * XNUMOL_NO2 
      &       / ( GET_AREA_CM2( I, J, 1 ) * SEC_IN_SEASON )
 
       ENDIF
@@ -2218,12 +2219,12 @@
       !=================================================================
 
       ! Compute totals [Tg/yr]
-      T_NOx      = SUM( EDGAR_NOx      ) * ( 14d0/30d0 ) / 1d9 ! Tg N
+      T_NOx      = SUM( EDGAR_NOx      ) * ( 14d0/46d0 ) / 1d9 ! Tg N
       T_CO       = SUM( EDGAR_CO       )                 / 1d9 ! Tg CO
       T_SO2an    = SUM( EDGAR_SO2      ) * ( 32d0/64d0 ) / 1d9 ! Tg S
 
       IF ( LEDGARSHIP ) THEN
-         T_NOxSh = SUM( EDGAR_NOx_SHIP ) * ( 14d0/30d0 ) / 1d9 ! Tg N
+         T_NOxSh = SUM( EDGAR_NOx_SHIP ) * ( 14d0/46d0 ) / 1d9 ! Tg N
          T_COSh  = SUM( EDGAR_CO_SHIP  )                 / 1d9 ! Tg CO
          T_SO2sh = SUM( EDGAR_SO2_SHIP ) * ( 32d0/64d0 ) / 1d9 ! Tg S
       ELSE

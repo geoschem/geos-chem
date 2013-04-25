@@ -40,7 +40,7 @@
       USE TRACERID_MOD,        ONLY : IDEBENZ,     IDETOLU,    IDEXYLE
       USE TRACERID_MOD,        ONLY : IDEC2H4,      IDEC2H2
       USE TRACERID_MOD,        ONLY : IDTBENZ,     IDTTOLU,    IDTXYLE
-      USE TRACERID_MOD,        ONLY : IDTC2H4,      IDTC2H2
+      USE TRACERID_MOD,        ONLY : IDTC2H4,      IDTC2H2,   IDTNO2
       USE SCALE_ANTHRO_MOD,    ONLY : GET_ANNUAL_SCALAR
       USE SCALE_ANTHRO_MOD,    ONLY : GET_ANNUAL_SCALAR_05x0666_NESTED
       USE EDGAR_MOD,           ONLY : READ_AROMATICS, READ_C2H4
@@ -674,7 +674,10 @@
                      ! Grid box surface area [cm2]
                      AREA_CM2 = GET_AREA_CM2( I, J, 1 )
                
-                     EMISTN(I,J,LL) = EMISTN(I,J,LL) *TRACER_MW_KG(NN) * 
+                     ! Convert NOx using molecular weight of NO2 since original
+                     ! NOx emissions are in mass units of NO2 (mpayer, 4/18/13)
+                     EMISTN(I,J,LL) = EMISTN(I,J,LL) *
+     &                                TRACER_MW_KG(IDTNO2) * 
      &                                DTSRCE * AREA_CM2  / 6.023d23
                
                      EMISRN(IREF,JREF,LL) = EMISTN(I,J,LL)

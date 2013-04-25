@@ -226,6 +226,7 @@
       USE TRACERID_MOD,         ONLY : IDTGLYX, IDTMGLY, IDTBENZ
       USE TRACERID_MOD,         ONLY : IDTTOLU, IDTXYLE, IDTC2H4
       USE TRACERID_MOD,         ONLY : IDTC2H2, IDTGLYC, IDTHAC
+      USE TRACERID_MOD,         ONLY : IDTNO2
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
       ! for US emission fix (hotp 11/20/09)
       USE TRACERID_MOD,         ONLY : IDBFBENZ,IDBFTOLU,IDBFXYLE
@@ -409,7 +410,7 @@
                WRITE( 6, 120 ) 'NO ', TOTAL, '[Tg  /yr]'
                
                ! Define MOLWT for use below
-               MOLWT(N) = 30d-3
+               MOLWT(N) = 46d-3
 
             ELSE IF ( NN == IDTCO ) THEN
 

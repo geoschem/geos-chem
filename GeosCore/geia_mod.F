@@ -1099,7 +1099,7 @@
 
       ! Define unit string
       SELECT CASE( TRIM( NAME ) ) 
-         CASE ( 'NOx' ) 
+         CASE ( 'NO' ) 
             UNIT = '[Tg N]'
          CASE ( 'CO', 'CH2O'  )
             UNIT = '[Tg  ]'

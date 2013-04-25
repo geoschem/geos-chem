@@ -249,7 +249,7 @@
       USE TRACERID_MOD,         ONLY : IDTNO,   IDTCO,   IDTSO2, IDTNH3
       USE TRACERID_MOD,         ONLY : IDTACET, IDTALK4, IDTC2H6
       USE TRACERID_MOD,         ONLY : IDTCH2O, IDTMEK,  IDTALD2
-      USE TRACERID_MOD,         ONLY : IDTPRPE, IDTC3H8
+      USE TRACERID_MOD,         ONLY : IDTPRPE, IDTC3H8, IDTNO2
 
       ! Arguments
       INTEGER, INTENT(IN)           :: I, J, N
@@ -401,8 +401,15 @@
      &            / ( GET_AREA_CM2( I, J, 1 ) * SEC_IN_YEAR )            
          ELSE                                                     
             ! Convert from [kg/yr] to [molec/cm2/s]            
-            VALUE = VALUE * XNUMOL(N) 
-     &            / ( GET_AREA_CM2( I, J, 1 ) * SEC_IN_YEAR )
+            IF ( N == IDTNO ) THEN
+               ! Convert NOx using XNUMOL for NO2 since original NOX emissions
+               ! are in mass units of NO2 (mpayer, 4/18/13)
+               VALUE = VALUE * XNUMOL(IDTNO2) 
+     &               / ( GET_AREA_CM2( I, J, 1 ) * SEC_IN_YEAR )
+            ELSE
+               VALUE = VALUE * XNUMOL(N) 
+     &               / ( GET_AREA_CM2( I, J, 1 ) * SEC_IN_YEAR )
+            ENDIF
          ENDIF                                                    
 
       ENDIF
@@ -2136,7 +2143,7 @@
 #endif
          
          ! Total NOx [Tg N]
-         T_NOX = SUM( NOx ) * 1d-9 * ( 14d0 / ( 12d0 * 30d0 ) )
+         T_NOX = SUM( NOx ) * 1d-9 * ( 14d0 / ( 12d0 * 46d0 ) )
  
          ! Total CO  [Tg CO]
          T_CO  = SUM( CO  ) * 1d-9 / 12d0

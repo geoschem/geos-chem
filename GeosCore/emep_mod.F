@@ -165,7 +165,7 @@
 ! 
       USE TRACERID_MOD, ONLY : IDTNO,   IDTCO,   IDTALK4, IDTMEK
       USE TRACERID_MOD, ONLY : IDTALD2, IDTPRPE, IDTC2H6, IDTSO2
-      USE TRACERID_MOD, ONLY : IDTNH3
+      USE TRACERID_MOD, ONLY : IDTNH3,  IDTNO2
       USE TRACER_MOD,   ONLY : XNUMOL
       USE GRID_MOD,     ONLY : GET_AREA_CM2
 !
@@ -291,7 +291,13 @@
       !------------------------------
       IF ( DO_KGS ) THEN
 
-         EMEP = EMEP * GET_AREA_CM2( I, J, 1 ) / XNUMOL(NN)
+         IF ( N == IDTNO ) THEN
+            ! Convert NOx using XNUMOL for NO2 since original NOx emissions
+            ! are in mass units of NO2 (mpayer 4/18/13)
+            EMEP = EMEP * GET_AREA_CM2( I, J, 1 ) / XNUMOL(IDTNO2)
+         ELSE
+            EMEP = EMEP * GET_AREA_CM2( I, J, 1 ) / XNUMOL(NN)
+         ENDIF
 
       ENDIF
 
@@ -332,7 +338,7 @@
       USE CMN_O3_MOD             ! SCALEYEAR
 
 #if defined( DEVEL )
-      USE TRACERID_MOD, ONLY : IDTNO,   IDTCO,   IDTALK4, IDTMEK
+      USE TRACERID_MOD, ONLY : IDTNO2,  IDTCO,   IDTALK4, IDTMEK
       USE TRACERID_MOD, ONLY : IDTALD2, IDTPRPE, IDTC2H6, IDTSO2
       USE TRACERID_MOD, ONLY : IDTNH3
       USE TRACER_MOD,   ONLY : XNUMOL
@@ -590,10 +596,10 @@
 
       IF ( LEMEPSHIP ) THEN
          EMISS(:,:,IDTNO) = EMEP_NOx_SHIP(:,:)
-     &        * A / XNUMOL(IDTNO)
+     &        * A / XNUMOL(IDTNO2)
       ELSE 
          EMISS(:,:,IDTNO) = EMEP_NOx(:,:)
-     &        * A / XNUMOL(IDTNO)
+     &        * A / XNUMOL(IDTNO2)
       ENDIF
       IF ( LEMEPSHIP ) THEN
          EMISS(:,:,IDTCO) = EMEP_CO_SHIP(:,:)
@@ -678,7 +684,7 @@
       USE CMN_O3_MOD         ! SCALEYEAR
 
 #if defined( DEVEL )
-      USE TRACERID_MOD, ONLY : IDTNO,   IDTCO,   IDTALK4, IDTMEK
+      USE TRACERID_MOD, ONLY : IDTNO2,  IDTCO,   IDTALK4, IDTMEK
       USE TRACERID_MOD, ONLY : IDTALD2, IDTPRPE, IDTC2H6, IDTSO2
       USE TRACERID_MOD, ONLY : IDTNH3
       USE TRACER_MOD,   ONLY : XNUMOL
@@ -851,10 +857,10 @@
 
       IF ( LEMEPSHIP ) THEN
          EMISS(:,:,IDTNO) = EMEP_NOx_SHIP(:,:)
-     &        * A / XNUMOL(IDTNO)
+     &        * A / XNUMOL(IDTNO2)
       ELSE 
          EMISS(:,:,IDTNO) = EMEP_NOx(:,:)
-     &        * A / XNUMOL(IDTNO)
+     &        * A / XNUMOL(IDTNO2)
       ENDIF
       IF ( LEMEPSHIP ) THEN
          EMISS(:,:,IDTCO) = EMEP_CO_SHIP(:,:)
@@ -1478,7 +1484,7 @@
       ! convert to molec/cm2 for consistency with previous
       ! emissions
       B = 0d0
-      IF ( TRACER .eq.  1 ) B = 1.d3 / 30d0 * 6.0225d23
+      IF ( TRACER .eq.  1 ) B = 1.d3 / 46d0 * 6.0225d23
       IF ( TRACER .eq.  4 ) B = 1.d3 / 28d0 * 6.0225d23
       IF ( TRACER .eq. 26 ) B = 1.d3 / 64d0 * 6.0225d23
       IF ( TRACER .eq. 30 ) B = 1.d3 / 17d0 * 6.0225d23
@@ -1682,7 +1688,7 @@
       ! convert to molec/cm2 for consistency with previous
       ! emissions
       B = 0d0
-      IF ( TRACER .eq.  1 ) B = 1.d3 / 30d0 * 6.0225d23
+      IF ( TRACER .eq.  1 ) B = 1.d3 / 46d0 * 6.0225d23
       IF ( TRACER .eq.  4 ) B = 1.d3 / 28d0 * 6.0225d23
       IF ( TRACER .eq. 26 ) B = 1.d3 / 64d0 * 6.0225d23
       IF ( TRACER .eq. 30 ) B = 1.d3 / 17d0 * 6.0225d23
