@@ -46,7 +46,9 @@
       USE DIAG_MOD,        ONLY : AD32_ac,     AD32_an,     AD32_bb
       USE DIAG_MOD,        ONLY : AD32_bf,     AD32_fe,     AD32_li
       USE DIAG_MOD,        ONLY : AD32_so,     AD32_ub,     AD33
+      USE DIAG_MOD,        ONLY : AD32_SHIP,   AD32_SHIP_COUNT
       USE DIAG_MOD,        ONLY : AD34,        AD35,        AD36
+      USE DIAG_MOD,        ONLY : AD36_SHIP,   AD36_SHIP_COUNT
       USE DIAG_MOD,        ONLY : AD37,        AD38,        AD39
       USE DIAG_MOD,        ONLY : AD43,        LTNO
       USE DIAG_MOD,        ONLY : CTNO,        LTOH,        CTOH
@@ -741,6 +743,14 @@
          ! For stratospheric NOx
          ALLOCATE( AD32_ub( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD32_st' ) 
+
+         ! For ship NOx
+         ALLOCATE( AD32_ship( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD32_ship' ) 
+
+         ! For ship NOx counter
+         ALLOCATE( AD32_ship_count, STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD32_ship_count' ) 
       ENDIF
 
       !=================================================================
@@ -783,6 +793,12 @@
       IF ( ND36 > 0 ) THEN
          ALLOCATE( AD36( IIPAR, JJPAR, NEMANTHRO ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD36' )
+
+         ALLOCATE( AD36_SHIP( IIPAR, JJPAR, NEMANTHRO ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD36_SHIP' )
+
+         ALLOCATE( AD36_SHIP_COUNT, STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD36_SHIP_COUNT' )
       ENDIF
 
       !=================================================================

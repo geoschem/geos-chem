@@ -146,6 +146,8 @@
       REAL*4,  ALLOCATABLE :: AD32_li(:,:,:)
       REAL*4,  ALLOCATABLE :: AD32_so(:,:)
       REAL*4,  ALLOCATABLE :: AD32_ub(:,:)
+      REAL*4,  ALLOCATABLE :: AD32_ship(:,:)
+      INTEGER, ALLOCATABLE :: AD32_ship_count
 
       ! For ND33 -- tropopsheric sum of tracer
       REAL*4,  ALLOCATABLE :: AD33(:,:,:)
@@ -158,6 +160,8 @@
 
       ! For ND36 -- Anthropogenic source diagnostic
       REAL*4,  ALLOCATABLE :: AD36(:,:,:)
+      REAL*4,  ALLOCATABLE :: AD36_SHIP(:,:,:)
+      INTEGER, ALLOCATABLE :: AD36_SHIP_COUNT
 
       ! For ND37 -- Fraction of tracer scavenged in cloud updrafts
       REAL*4,  ALLOCATABLE :: AD37(:,:,:,:)      
@@ -396,10 +400,14 @@
       IF ( ALLOCATED( AD32_li     ) ) DEALLOCATE( AD32_li     )
       IF ( ALLOCATED( AD32_so     ) ) DEALLOCATE( AD32_so     )
       IF ( ALLOCATED( AD32_ub     ) ) DEALLOCATE( AD32_ub     )
+      IF ( ALLOCATED( AD32_ship   ) ) DEALLOCATE( AD32_ship   )
+      IF ( ALLOCATED( AD32_ship_count) ) DEALLOCATE( AD32_ship_count)
       IF ( ALLOCATED( AD33        ) ) DEALLOCATE( AD33        )
       IF ( ALLOCATED( AD34        ) ) DEALLOCATE( AD34        )
       IF ( ALLOCATED( AD35        ) ) DEALLOCATE( AD35        )
       IF ( ALLOCATED( AD36        ) ) DEALLOCATE( AD36        )
+      IF ( ALLOCATED( AD36_SHIP   ) ) DEALLOCATE( AD36_SHIP   )
+      IF ( ALLOCATED( AD36_SHIP_COUNT ) ) DEALLOCATE( AD36_SHIP_COUNT )
       IF ( ALLOCATED( AD37        ) ) DEALLOCATE( AD37        )
       IF ( ALLOCATED( AD38        ) ) DEALLOCATE( AD38        )  
       IF ( ALLOCATED( AD39        ) ) DEALLOCATE( AD39        )

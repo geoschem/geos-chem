@@ -53,7 +53,9 @@
       USE TRACERID_MOD,      ONLY : IDO3,   IDNO,  IDNO2
       USE TRACERID_MOD,      ONLY : IDEOX,   IDEHNO3 
       USE TRACERID_MOD,      ONLY : IDTNOX,  IDTOX,   IDTHNO3
-      USE DIAG_MOD,          ONLY : AD32_an, AD36,   AD63,  AD63_COUNT
+      USE DIAG_MOD,          ONLY : AD32_SHIP, AD32_SHIP_COUNT 
+      USE DIAG_MOD,          ONLY : AD36_SHIP, AD36_SHIP_COUNT
+      USE DIAG_MOD,          only : AD63,      AD63_COUNT
       USE DIAG63_MOD,        ONLY : DO_SAVE_DIAG63
       USE PARANOX_MOD,       ONLY : INTERPOLATE_LUT2
       USE DAO_MOD,           ONLY : BXHEIGHT,  SUNCOS_MID
@@ -182,7 +184,7 @@
       INTEGER :: NK, IJLOOP
       CHARACTER*8 :: SPECNAME
       REAL*8, EXTERNAL :: FJFUNC
-
+      
       !=================================================================
       ! SETEMIS begins here!
       !=================================================================
@@ -207,6 +209,9 @@
       IF ( LPRT .and. am_I_Root ) THEN
          WRITE(*,*) 'SCALE NOx emissions by', NOx_SCALING
       ENDIF
+
+      ! Initialize REMIS(*,N) -- the emission rate array
+      REMIS = 0d0
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
@@ -254,11 +259,6 @@
               ENDIF
             ENDDO
          ENDIF            
-
-         ! Initialize REMIS(*,N) -- the emission rate array
-         DO JLOOP = 1, NTTLOOP
-            REMIS(JLOOP,N) = 0d0
-         ENDDO       
 
          ! Skip to next tracer if IDEMIS(NN) is not defined in 
          ! order to avoid array-out-of-bounds errors (bmy, 8/6/04)
@@ -309,7 +309,7 @@
                DO L = 1, TOPMIX
                   NOXTOT = NOXTOT + EMISRRN(I,J,L)
                ENDDO
-
+               
                ! Loop over the boundary layer
                DO L = 1, TOP
                   JLOOP   = JLOP(I,J,L)
@@ -334,6 +334,7 @@
                      ! Convert anthro NOx emissions from [molec NO/box/s]
                      ! to [molec NO/cm3/s] and store in the REMIS array
                      REMIS(JLOOP,N) = EMIS_BL / VOLUME(JLOOP)
+
                   ENDIF
                ENDDO
 
@@ -389,6 +390,7 @@
                      ! Store in the REMIS array for SMVGEAR.
                      REMIS(JLOOP,N) = REMIS(JLOOP,N) + 
      &                                ( EMIS_BL / VOLUME(JLOOP) ) 
+
                   ENDIF
                ENDDO
 
@@ -420,6 +422,7 @@
 
                         ! Save lightning NOx [molec NO/cm3/s] in REMIS
                         REMIS(JLOOP,N) = REMIS(JLOOP,N) + EMIS_BL
+
                      ENDIF
 
                      !-----------------
@@ -434,6 +437,7 @@
 
                         ! Save aircraft NOx [molec NO/cm3/s] in REMIS
                         REMIS(JLOOP,N) = REMIS(JLOOP,N) + EMIS_BL
+
                      ENDIF
 
                      ! NOx scaling moved here for optimisation. (ccc, 11/10/10)
@@ -495,7 +499,6 @@
                   ! Get J-Values for J(NO2) and J(O3)
                   !----------------------------------
 
-
                   ! Check if sun is up
                   IJLOOP       = ( (J-1) * IIPAR ) + I
                   IF ( SUNCOS_MID(IJLOOP) > 0d0 ) THEN
@@ -527,7 +530,6 @@
                      JO1D = 0d0
 
                   ENDIF
-
 
                   ! Determine fraction of NOx remaining and integrated Ozone
                   ! Production Efficiency for ship emiss (gvinken,mpayer,2/7/12)
@@ -699,28 +701,38 @@
                   ! Ship diagnostics
                   !-----------------
 
-                  !ND36 = Anthro source diagnostic...store as [molec/cm2]
-                  !and convert to [molec/cm2/s] in DIAG3.F
+                  !ND36 = Anthro source diagnostic [molec/cm2/s]
+                  ! We need separate arrays for ship emissions because 
+                  ! other emissions are calculated at different model times
                   IF ( ND36 > 0 ) THEN
 
-                     AD36(I,J,IDEHNO3) = AD36(I,J,IDEHNO3) + 
-     &                    SHIP * (1D0 - FRACTION_NOx) * 
-     &                    DTSRCE
+                     AD36_SHIP(I,J,IDEHNO3) = AD36_SHIP(I,J,IDEHNO3) + 
+     &                    SHIP * (1D0 - FRACTION_NOx)
                      
-                     AD36(I,J,IDEOX)  = AD36(I,J,IDEOX) + 
-     &                    SHIP * (1D0 - FRACTION_NOx) * INT_OPE * 
-     &                                  DTSRCE 
+                     AD36_SHIP(I,J,IDEOX)  = AD36_SHIP(I,J,IDEOX) + 
+     &                    SHIP * (1D0 - FRACTION_NOx) * INT_OPE
     
-                     AD36(I,J,IDENOX) = AD36(I,J,IDENOX) + 
-     &                                 SHIP * FRACTION_NOx * 
-     &                                 DTSRCE
+                     AD36_SHIP(I,J,IDENOX) = AD36_SHIP(I,J,IDENOX) + 
+     &                    SHIP * FRACTION_NOx
+
+                     ! Increment counter, only once per time step
+                     IF ( (I == 1) .and. (J==1) ) THEN
+                        AD36_SHIP_COUNT = AD36_SHIP_COUNT + 1
+                     ENDIF
 
                   ENDIF
 
                   ! ND32 = save anthro NOx for levels L=1,NOXEXTENT [molec/cm2/s]
                   IF ( ND32 > 0 ) THEN
-                     AD32_an(I,J,1) = AD32_an(I,J,1) + 
+
+                     AD32_ship(I,J) = AD32_ship(I,J) + 
      &                    ( SHIP * FRACTION_NOx )
+
+                     ! Increment counter, only once per time step
+                     IF ( (I == 1) .and. (J==1) ) THEN
+                        AD32_SHIP_COUNT = AD32_SHIP_COUNT + 1
+                     ENDIF
+
                   ENDIF
 
                   ! ND63 = save the fraction of NOx remaining, integrated OPE
@@ -755,16 +767,6 @@
                   ENDIF
 
                ENDIF
-
-
-
-
-
-
-
-
-
-
               
             ELSE
 
