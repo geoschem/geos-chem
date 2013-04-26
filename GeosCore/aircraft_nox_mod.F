@@ -258,10 +258,11 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,      ONLY : BXHEIGHT
-      USE DIAG_MOD,     ONLY : AD32_ac
-      USE GRID_MOD,     ONLY : GET_XOFFSET, GET_YOFFSET
-      USE PRESSURE_MOD, ONLY : GET_PEDGE
+      USE DAO_MOD,        ONLY : BXHEIGHT
+      USE DIAG_MOD,       ONLY : AD32_ac
+      USE GRID_MOD,       ONLY : GET_XOFFSET, GET_YOFFSET
+      USE PRESSURE_MOD,   ONLY : GET_PEDGE
+      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
 
       USE CMN_SIZE_MOD  ! Size parameters
       USE CMN_DIAG_MOD  ! Diagnostic switches
@@ -364,6 +365,9 @@
 
                ! Convert from [molec/s] to [molec/cm3/s]
                TMP             = AIREMIS(I,J,L)  / BOXVL(I,J,L)
+
+               ! No aircraft emissions in the stratosphere (cdh, 4/25/2013)
+               IF ( ITS_IN_THE_STRAT(I,J,L) ) TMP = 0d0
 
                ! Store in GEMISNOX in [molec/cm3/s]
                EMIS_AC_NOx(I,J,L) = TMP

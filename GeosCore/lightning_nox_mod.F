@@ -1360,8 +1360,9 @@
 !
 ! !USES:
 !
-      USE DAO_MOD,  ONLY : BXHEIGHT
-      USE DIAG_MOD, ONLY : AD32_li
+      USE DAO_MOD,           ONLY : BXHEIGHT
+      USE DIAG_MOD,          ONLY : AD32_li
+      USE TROPOPAUSE_MOD,    ONLY : ITS_IN_THE_STRAT
 
       USE CMN_SIZE_MOD         ! Size parameters
       USE CMN_DIAG_MOD         ! ND32
@@ -1400,9 +1401,13 @@
       !=================================================================
       DO L = 1, LLCONVM 
 
+          ! No lightning emissions in the stratosphere (cdh, 4/25/2013)
+          IF ( ITS_IN_THE_STRAT(I,J,L) ) EXIT
+
           ! SLBASE(I,J,L) has units [molec NOx/6h/box], convert units:
           ! [molec/6h/box] * [6h/21600s] * [box/BOXVL cm3] = [molec/cm3/s]
           TMP             = SLBASE(I,J,L) / ( 21600.d0 * BOXVL(I,J,L) )
+
           EMIS_LI_NOx(I,J,L) = TMP
 
           ! ND32 Diagnostic: Lightning NOx [molec NOx/cm2/s]
