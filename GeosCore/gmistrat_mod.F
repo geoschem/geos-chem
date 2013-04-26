@@ -33,7 +33,7 @@
                           PUBLIC :: T_STS ! Max temperature of STS formation (K)
       REAL*8,             PUBLIC :: T_NAT_SUPERCOOL ! NAT supercooling (K)
       REAL*8,             PUBLIC :: P_ICE_SUPERSAT ! Ice supersaturation (-)
-                          PUBLIC :: GAMMA_SLA ! Sticking coefficients for SLA
+                          PUBLIC :: KHETI_SLA ! Reaction cofactors for SLA
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -105,6 +105,11 @@
       ! ICEMEW             : Molar mass of ice (kg/kmol)
       ! DENSNAT            : Density of pure NAT (kg/m3)
       ! DENSICE            : Density of pure ice (kg/m3)
+      ! ISR_ClNO3          : ClNO3 MW (inverse sqrt) (kg/kmol)^-0.5 
+      ! ISR_BrNO3          : BrNO3 MW (inverse sqrt) (kg/kmol)^-0.5 
+      ! ISR_N2O5           : N2O5 MW (inverse sqrt) (kg/kmol)^-0.5
+      ! ISR_HOCl           : HOCl MW (inverse sqrt) (kg/kmol)^-0.5
+      ! ISR_HOBr           : HOBr MW (inverse sqrt) (kg/kmol)^-0.5
       !
       ! Arrays
       !
@@ -119,7 +124,7 @@
       ! NDENS_AER          : Aerosol number density (#/m3)
       ! RHO_AER            : Aerosol mass density (kg/m3 aerosol)
       ! STATE_PSC          : Gridbox PSC type (see Kirner et al)
-      ! GAMMA_SLA          : Liquid aerosol sticking coeff.
+      ! KHETI_SLA          : Liquid aerosol reaction cofactors
       ! AERFRAC            : Mass fraction of species in liquid aerosols
       ! AERFRACIND         : Indices of liquid aerosol species
       !
@@ -148,6 +153,11 @@
       REAL*8, PARAMETER                 :: ICEMW   = 18.0
       REAL*8, PARAMETER                 :: DENSNAT = 1626.d0
       REAL*8, PARAMETER                 :: DENSICE = 990.0d0
+      REAL*8, PARAMETER                 :: ISR_ClNO3=1.d0/sqrt(97.46d0)
+      REAL*8, PARAMETER                 :: ISR_BrNO3=1.d0/sqrt(141.9d0)
+      REAL*8, PARAMETER                 :: ISR_N2O5 =1.d0/sqrt(108.0d0)
+      REAL*8, PARAMETER                 :: ISR_HOCl =1.d0/sqrt(52.46d0)
+      REAL*8, PARAMETER                 :: ISR_HOBr =1.d0/sqrt(96.91d0)
 
       ! Arrays
       REAL*8,DIMENSION(:,:),ALLOCATABLE     :: AER_MR
@@ -160,7 +170,7 @@
       REAL*8,DIMENSION(:,:,:,:),ALLOCATABLE :: NDENS_AER
       REAL*8,DIMENSION(:,:,:,:),ALLOCATABLE :: RHO_AER
       INTEGER,DIMENSION(:,:,:),ALLOCATABLE  :: STATE_PSC
-      REAL*8,DIMENSION(:,:,:,:),ALLOCATABLE :: GAMMA_SLA
+      REAL*8,DIMENSION(:,:,:,:),ALLOCATABLE :: KHETI_SLA
       REAL*8,DIMENSION(:,:,:,:),ALLOCATABLE :: AERFRAC
       INTEGER,DIMENSION(:),ALLOCATABLE      :: AERFRACIND
  
@@ -216,17 +226,17 @@
 !     (22) ClONO2              = ClNO3                < LSETCL
 !     (23) OClO                = OClO                 < LSETCL
 !     (24) ClOO                = ClOO                 < LSETCL
-!     (25) BrCl                = BrCl                 < (LSETCL || LSETBR)
-!     (26) Br2                 = Br2                  < LSETBR
-!     (27) Br                  = Br                   < LSETBR
-!     (28) BrO                 = BrO                  < LSETBR
-!     (29) HOBr                = HOBr                 < LSETBR
-!     (30) HBr                 = HBr                  < LSETBR
-!     (31) BrNO2               = BrNO2                < LSETBR
-!     (32) BrNO3               = BrNO3                < LSETBR
-!     (33) CHBr3               = CHBr3                < LSETBR
-!     (34) CH2Br2              = CH2Br2               < LSETBR
-!     (35) CH3Br               = CH3Br                < LSETBR
+!     (25) BrCl                = BrCl                 < (LSETCL || LSETBR || LSETBRSTRAT)
+!     (26) Br2                 = Br2                  < LSETBR || LSETBRSTRAT
+!     (27) Br                  = Br                   < LSETBR || LSETBRSTRAT 
+!     (28) BrO                 = BrO                  < LSETBR || LSETBRSTRAT
+!     (29) HOBr                = HOBr                 < LSETBR || LSETBRSTRAT
+!     (30) HBr                 = HBr                  < LSETBR || LSETBRSTRAT
+!     (31) BrNO2               = BrNO2                < LSETBR || LSETBRSTRAT
+!     (32) BrNO3               = BrNO3                < LSETBR || LSETBRSTRAT
+!     (33) CHBr3               = CHBr3                < LSETBR || LSETBRSTRAT
+!     (34) CH2Br2              = CH2Br2               < LSETBR || LSETBRSTRAT
+!     (35) CH3Br               = CH3Br                < LSETBR || LSETBRSTRAT
 !\\
 !\\
 ! !INTERFACE:
@@ -237,7 +247,7 @@
 !
       USE LOGICAL_MOD,          ONLY : LSETCH4,  LSETOCS,  LSETCFC
       USE LOGICAL_MOD,          ONLY : LSETCL,   LSETBR,   LSETN2O
-      USE LOGICAL_MOD,          ONLY : LSETH2SO4,LGMISTRAT
+      USE LOGICAL_MOD,          ONLY : LSETH2SO4,LGMISTRAT, LSETBRSTRAT
       USE TRACERID_MOD
       USE TRACER_MOD,           ONLY : N_TRACERS, STT,TCVV
       USE DAO_MOD,              ONLY : AD
@@ -282,7 +292,7 @@
 
       ! Are we using 2D data?
       USE2DDATA = (LSETOCS.or.LSETCFC.or.LSETCL.or.LSETBR.or.LSETH2SO4)
-      USE2DDATA = (USE2DDATA.or.STRAT2DCH4)
+      USE2DDATA = (USE2DDATA.or.STRAT2DCH4.or.LSETBRSTRAT)
       USE2DDATA = (USE2DDATA.or.LSETN2O)
 
 #if !defined(GRID4x5) && !defined(GRID2x25)
@@ -330,7 +340,7 @@
          ENDIF
 
          ! Bromine species (except Halons)
-         IF (LSETBR) THEN
+         IF (LSETBR.or.LSETBRSTRAT) THEN
             IF ( am_I_Root ) THEN
                WRITE(6,*) '|Br2      |Br       |BrO      |'
                WRITE(6,*) '|HOBr     |HBr      |BrNO2    |'
@@ -340,54 +350,54 @@
             ENDIF
             TRAC_IDX = IDTBr2
             TRAC_SET  = 'BR2'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.)
          
             TRAC_IDX = IDTBr
             TRAC_SET  = 'BR'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.)
          
             TRAC_IDX = IDTBrO
             TRAC_SET  = 'BRO'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.)
          
             TRAC_IDX = IDTHOBr
             TRAC_SET  = 'HOBR'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.)
          
             TRAC_IDX = IDTHBr
             TRAC_SET  = 'HBR'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.)
      
             TRAC_IDX = IDTBrNO2
             TRAC_SET  = 'BRNO2'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.)
      
             TRAC_IDX = IDTBrNO3
             TRAC_SET  = 'BRNO3'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.)
      
             TRAC_IDX = IDTCHBr3 
             TRAC_SET  = 'CHBR3'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.)
      
             TRAC_IDX = IDTCH2Br2
             TRAC_SET  = 'CH2BR2'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.)
      
             TRAC_IDX = IDTCH3Br
             TRAC_SET  = 'CH3BR'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.)
          ENDIF
 
          ! Br-Cl (special case)
-         IF (LSETCL.or.LSETBR) THEN
+         IF (LSETCL.or.LSETBR.or.LSETBRSTRAT) THEN
             IF ( am_I_Root ) THEN
                WRITE(6,*) '|BrCl     |         |         |'
                WRITE(6,*) '|---------|---------|---------|'
             ENDIF
             TRAC_IDX = IDTBrCl
             TRAC_SET  = 'BRCL'
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.)
      
          ENDIF
 
@@ -1767,7 +1777,7 @@
       ! Maximum temperature for PSC formation (K)
       REAL*8, PARAMETER     :: T_MAX = 215.0d0
 
-      ! Limits on NAT/ice formatino
+      ! Limits on NAT/ice formation
       REAL*8, PARAMETER     :: MIN_RAD = 1.0d-7 ! m
       REAL*8, PARAMETER     :: MAX_NDENS=42.0d3 ! #/m3
 
@@ -1803,6 +1813,10 @@
       ! SLA weight fractions
       REAL*8                :: W_H2SO4, W_H2O, W_HNO3
       REAL*8                :: W_HCl, W_HOCl, W_HBr, W_HOBr
+
+      ! Reaction prefactors
+      REAL*8                :: KHET_COMMON
+      REAL*8                :: KHET_SPECIFIC
 
       ! Grid box location
       REAL*8                :: BOX_LAT_S, BOX_LAT_N
@@ -1843,6 +1857,7 @@
 !$OMP+PRIVATE( W_H2SO4,W_H2O,W_HCl,W_HOCl,W_HBr,W_HOBr,W_HNO3 )
 !$OMP+PRIVATE( HCl_BOX_G,HCl_BOX_L,HOCl_BOX_G,HOCl_BOX_L,H2SO4_BOX_G )
 !$OMP+PRIVATE( HBr_BOX_G,HBr_BOX_L,HOBr_BOX_G,HOBr_BOX_L,H2SO4_BOX_L )
+!$OMP+PRIVATE( KHET_COMMON, KHET_SPECIFIC )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J=1,JJPAR
          BOX_LAT_S = GET_YEDGE(1,J,1)
@@ -2024,7 +2039,7 @@
                ENDIF
 
                ! Calculate SAD (cm2/cm3)
-               SAD_AER_BOX = 4.0d2 * RAD_AER_BOX *
+               SAD_AER_BOX = 4.0d-2 * RAD_AER_BOX *
      &            RAD_AER_BOX * NDENS_AER_BOX * PI
 
                ! Store in outer arrays
@@ -2145,9 +2160,9 @@
                   HOBr_BOX_L = HOBrSUM-HOBr_BOX_G
 
                   ! Calculate SLA parameters (Grainger 1995)
-                  SAD_AER_BOX = SLA_VA*(VOL_SLA**0.751d0)
-                  RAD_AER_BOX = SLA_VR*SLA_RR*(VOL_SLA**0.249d0)
-                  KG_AER_BOX  = RHO_AER_BOX*VOL_SLA*AIRVOL(I,J,L)
+                  SAD_AER_BOX = SLA_VA*(VOL_SLA**0.751d0)        ! cm2/cm3
+                  RAD_AER_BOX = SLA_VR*SLA_RR*(VOL_SLA**0.249d0) ! m
+                  KG_AER_BOX  = RHO_AER_BOX*VOL_SLA*AIRVOL(I,J,L)! kg
 
                   IF (VOL_SLA.gt.1.d-30) THEN
                      ! Approximate particles as spherical for calculation
@@ -2156,10 +2171,12 @@
      &                       (4.d0*PI*(RAD_AER_BOX**3.d0))
 
                      ! DENAIR in #/m3 - convert to #/cm3
+                     ! RHO_AER_BOX in kg/m3 - convert to g/cm3
                      ! RAD_AER_BOX in m - convert to cm
                      CALL  CALC_SLA_GAMMA(DENAIR*1.d-6,TCENTER,PCENTER,
      &                   W_H2SO4,H2OSUM,HClSUM,HBrSUM,HOBrSUM,
-     &                   ClNO3SUM,BrNO3SUM,RAD_AER_BOX*1.d2,GAMMA_BOX)
+     &                   ClNO3SUM,BrNO3SUM,RHO_AER_BOX*1.d-3,
+     &                   RAD_AER_BOX*1.d2,GAMMA_BOX)
                   ELSE
                      ! Ignore SLA
                      DO K=1,11
@@ -2169,9 +2186,36 @@
                ENDIF
 
                ! Send properties to larger array
-               DO K=1,11
-                  GAMMA_SLA(I,J,L,K) = GAMMA_BOX(K)
-               ENDDO
+               ! Convert sticking coefficients into
+               ! premultiplying factors (Kirner)
+               KHET_COMMON = 0.25d0*MOLEC_SPEED(TCENTER,1d0)
+
+               ! N2O5 + H2O/HCl
+               KHET_SPECIFIC= KHET_COMMON*ISR_N2O5
+               KHETI_SLA(I,J,L,1)  = GAMMA_BOX(1 )*KHET_SPECIFIC
+               KHETI_SLA(I,J,L,2)  = GAMMA_BOX(2 )*KHET_SPECIFIC
+
+               ! ClNO3 + H2O/HCl/HBr
+               KHET_SPECIFIC= KHET_COMMON*ISR_ClNO3
+               KHETI_SLA(I,J,L,3)  = GAMMA_BOX(3 )*KHET_SPECIFIC
+               KHETI_SLA(I,J,L,4)  = GAMMA_BOX(4 )*KHET_SPECIFIC
+               KHETI_SLA(I,J,L,5)  = GAMMA_BOX(5 )*KHET_SPECIFIC
+ 
+               ! BrNO3 + H2O/HCl
+               KHET_SPECIFIC= KHET_COMMON*ISR_BrNO3
+               KHETI_SLA(I,J,L,6)  = GAMMA_BOX(6 )*KHET_SPECIFIC
+               KHETI_SLA(I,J,L,7)  = GAMMA_BOX(7 )*KHET_SPECIFIC
+
+               ! HOCl + HCl/HBr
+               KHET_SPECIFIC= KHET_COMMON*ISR_HOCl
+               KHETI_SLA(I,J,L,8)  = GAMMA_BOX(8 )*KHET_SPECIFIC
+               KHETI_SLA(I,J,L,9)  = GAMMA_BOX(9 )*KHET_SPECIFIC
+
+               ! HOBr + HBr/HCl
+               KHET_SPECIFIC= KHET_COMMON*ISR_HOBr
+               KHETI_SLA(I,J,L,10) = GAMMA_BOX(10)*KHET_SPECIFIC
+               KHETI_SLA(I,J,L,11) = GAMMA_BOX(11)*KHET_SPECIFIC
+
                RAD_AER(I,J,L,I_SLA)  = RAD_AER_BOX*1.d2 ! cm
                RHO_AER(I,J,L,I_SLA)  = RHO_AER_BOX      ! kg/m3
                KG_AER(I,J,L,I_SLA)   = KG_AER_BOX       ! kg
@@ -2201,8 +2245,6 @@
      &                               MAXVAL(SAD_AER(:,:,:,I_SLA))
          WRITE(6,'(a,1x,E12.4)') 'Peak SSA/STS radius (cm)      : ',
      &                               MAXVAL(RAD_AER(:,:,:,I_SLA))
-         WRITE(6,'(a,1x,E12.4)') 'Peak SSA/STS gamma (fraction) : ',
-     &                                 MAXVAL(GAMMA_SLA(:,:,:,:))
       ENDIF
 
       END SUBROUTINE CALC_STRAT_AER
@@ -2354,17 +2396,20 @@
 ! !IROUTINE: check_nat
 !
 ! !DESCRIPTION: Subroutine CHECK\_NAT determines whether the solid PSC is 
-!  composed of ice or NAT (needed for heterogeneous chemistry)
+!  composed of ice or NAT (needed for heterogeneous chemistry), or indeed
+!  if there is any direct PSC calculation at all. This is important for
+!  determining whether to use the JPP or Kirner scheme for ice cloud radii.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHECK_NAT (I,J,L,IS_NAT)
+      SUBROUTINE CHECK_NAT (I,J,L,IS_NAT,IS_PSC)
 !
 ! !USES:
 !
       USE TRACERID_MOD,      ONLY : IDTNIT
       USE TRACER_MOD,        ONLY : STT
+      USE CHEMGRID_MOD,      ONLY : ITS_IN_THE_STRAT
 !
 ! !INPUT PARAMETERS:
 !
@@ -2373,6 +2418,7 @@
 ! !OUTPUT VARIABLES:
 !
       LOGICAL,INTENT(OUT)         :: IS_NAT     ! Is surface NAT?
+      LOGICAL,INTENT(OUT)         :: IS_PSC     ! Are there solid PSCs?
 !
 ! !REVISION HISTORY: 
 !  17 Apr 2013 - S. D. Eastham - Initial version
@@ -2384,8 +2430,8 @@
       ! CHECK_NAT begins here!
       !=================================================================
 
-      IS_NAT = ((STATE_PSC(I,J,L).ge.2).and.
-     &          (STT(I,J,L,IDTNIT).gt.TINY(1d0)))
+      IS_PSC = ((STATE_PSC(I,J,L).ge.2).and.(ITS_IN_THE_STRAT(I,J,L)))
+      IS_NAT = (IS_PSC).and.(STT(I,J,L,IDTNIT).gt.TINY(1d0))
 
       END SUBROUTINE CHECK_NAT
 !
@@ -2546,8 +2592,8 @@
       PATMHBr  = HBrSUM  * PCENTER / 1013.0d0
       PATMHOBr = HOBrSUM * PCENTER / 1013.0d0
 
-      ! Moles of H2SO4 per m3
-      MOLDENS_H2SO4 = 100*PCENTER*H2SO4SUM/(8.314d0*TCENTER)
+      ! Moles of H2SO4 per m3 air
+      MOLDENS_H2SO4 = 100.d0*PCENTER*H2SO4SUM/(8.314d0*TCENTER)
 
       ! Nucleation temperature of ice
       T_ICE = 2668.70d0/
@@ -2577,6 +2623,8 @@
      &   (-KS(1)-KS(2)/TCENTER-((KS(1)+KS(2)/TCENTER)**
      &   2.0d0-4.0d0*(KS(3)+KS(4)/TCENTER)*(KS(5)+KS(6)/
      &   TCENTER+KS(7)*LOG(TCENTER)-LOG(PATMH2O)))**0.5d0)
+
+      ! Molality (mol H2SO4/kg H2O) in binary solution
       M_H2SO4_BIN = 55.51d0*X_H2SO4_BIN/(1.0d0-X_H2SO4_BIN)
 
       IF ((TCENTER.le.215.0d0).AND.(PATMHNO3.gt.0.0d0)) THEN
@@ -2753,9 +2801,9 @@
 !
 ! !INPUT PARAMETERS:
 !
-      REAL*8, INTENT(IN)          :: CS         ! H2SO4 concentration
-      REAL*8, INTENT(IN)          :: CN         ! HNO3 concentration
-      REAL*8, INTENT(IN)          :: T          ! Temperatue (K)
+      REAL*8, INTENT(IN)          :: CS         ! H2SO4 molality (mol H2SO4/kg solvent)
+      REAL*8, INTENT(IN)          :: CN         ! HNO3 molality (mol HNO3/kg solvent)
+      REAL*8, INTENT(IN)          :: T          ! Temperature (K)
 !
 ! !REVISION HISTORY: 
 !  19 Apr 2013 - S. D. Eastham - Initial version
@@ -2873,9 +2921,9 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CALC_SLA_GAMMA( NDENS, T, P, WT_FRC,
-     &                           H2OSUM, HClSUM, HBrSUM, HOBrSUM,
-     &                           ClNO3SUM, BrNO3SUM, ARAD, RXNGAMMA )
+      SUBROUTINE CALC_SLA_GAMMA( NDENS, T, P, WT_FRC, H2OSUM, HClSUM,
+     &                           HBrSUM, HOBrSUM, ClNO3SUM, BrNO3SUM,
+     &                           RHO, ARAD, RXNGAMMA )
 !
 ! !USES:
 !
@@ -2886,18 +2934,19 @@
       REAL*8, INTENT(IN)  :: NDENS    ! Air number density (molec/cm3)
       REAL*8, INTENT(IN)  :: T        ! Temperature (K)
       REAL*8, INTENT(IN)  :: P        ! Pressure (hPa)
-      REAL*8, INTENT(IN)  :: WT_FRC   ! Weight fraction of H2SO4
+      REAL*8, INTENT(IN)  :: WT_FRC   ! Weight fraction of H2SO4 (kg/kg)
       REAL*8, INTENT(IN)  :: H2OSUM   ! H2O mixing ratio
       REAL*8, INTENT(IN)  :: HClSUM   ! HCl mixing ratio
       REAL*8, INTENT(IN)  :: HBrSUM   ! HBr mixing ratio
       REAL*8, INTENT(IN)  :: HOBrSUM  ! HOBr mixing ratio
       REAL*8, INTENT(IN)  :: ClNO3SUM ! ClNO3 mixing ratio
       REAL*8, INTENT(IN)  :: BrNO3SUM ! BrNO3 mixing ratio
+      REAL*8, INTENT(IN)  :: RHO      ! STS density (g/cm3)
       REAL*8, INTENT(IN)  :: ARAD     ! SLA radius (cm)
 !
 ! !OUTPUT VARIABLES:
 !
-      REAL*8, INTENT(OUT) :: RXNGAMMA(11) ! Sticking coefficients
+      REAL*8, INTENT(OUT) :: RXNGAMMA(11) ! Premultiplying factors
 !
 ! !REVISION HISTORY: 
 !  10 Oct 2012 - S. D. Eastham - Initial version
@@ -2907,7 +2956,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8               :: WT      ! Weight percentage H2SO4
+      REAL*8               :: WT      ! Weight percentage H2SO4 (100*kg/kg)
       REAL*8               :: H2OPP   ! Partial pressure of H2O (hPa)
       REAL*8               :: HClPP   ! Partial pressure of HCl (atm)
       REAL*8               :: HBrPP   ! Partial pressure of HBr (atm)
@@ -2916,9 +2965,8 @@
       REAL*8               :: BrNO3PP ! Partial p. of BrONO2 (atm)
       REAL*8               :: PSATH2O ! Water vapor sat. pressure (hPa)
       REAL*8               :: ACTH2O  ! Activity of water
-      REAL*8               :: MOLAL   ! Molality of H2SO4
+      REAL*8               :: MOLAL   ! Molality of H2SO4 (mol H2SO4/kg solvent)
       REAL*8, DIMENSION(3) :: Z       ! Parameters for H2SO4 sol'n
-      REAL*8               :: RHO     ! STS density
       REAL*8               :: M_H2SO4 ! Mass of H2SO4
 
       ! HOBr parameters
@@ -2983,11 +3031,20 @@
       MOLAL = 1000.0d0 * (WT/98.0d0/(100.0-WT))
 
       ! Parameters for H2SO4 solution
-      Z(1) =   0.12364d0-5.6d-7*T*T
-      Z(2) =   -0.02954d0+1.814d-7*T*T
-      Z(3) =   2.343d-3-1.487d-6*T-1.324d-8*T*T
-      RHO  =   1.0d0+Z(1)*MOLAL+Z(2)*MOLAL**1.5+Z(3)*MOLAL*MOLAL
-      M_H2SO4 =   RHO*WT/9.8
+      !----------------------------------------------------------
+      ! The solution density is calculated earlier, including
+      ! contributions from HNO3. This code treats it as a binary
+      ! solution - so far this is just a kludge. Need to update
+      ! all this code to acknowledge the presence of at least
+      ! HNO3 (e.g. X is still calculated based on pure H2O
+      ! solvent!)
+      !----------------------------------------------------------
+      !Z(1) =   0.12364d0-5.6d-7*T*T
+      !Z(2) =   -0.02954d0+1.814d-7*T*T
+      !Z(3) =   2.343d-3-1.487d-6*T-1.324d-8*T*T
+      !RHO  =   1.0d0+Z(1)*MOLAL+Z(2)*MOLAL**1.5+Z(3)*MOLAL*MOLAL
+      !----------------------------------------------------------
+      M_H2SO4 =   RHO*WT/9.8 ! Molality (mol H2SO4/kg solvent)
       X    =   WT/(WT+(100.-WT)*98./18.)
       A    =   169.5+5.18*WT-0.0825*WT*WT+3.27d-3*WT*WT*WT
       T_THRESHOLD = 144.11+0.166*WT-0.015*WT*WT+2.18d-4*WT*WT*WT
@@ -3256,8 +3313,16 @@
       WRITE( 6,'(a)') REPEAT( '=', 79 )
 
       ! Calculate conversion factors for SLA
+      ! Factor to convert volume (m3 SLA/m3 air) to
+      ! surface area density (cm2 SLA/cm3 air)
       SLA_VA = (8.406d-8)*(10.d0**(12.d0*0.751d0))
+
+      ! Factor to convert effective radius to 
+      ! liquid radius (unitless)
       SLA_RR = EXP(-0.173d0)
+
+      ! Factor to convert volume (m3/m3) to effective
+      ! radius (m)
       SLA_VR = (0.357d-6)*(10.d0**(12.d0*0.249))
 
       ! Set "current" month to impossible value
@@ -3394,9 +3459,9 @@
       AERFRACIND(6) = IDTHOBr
     
       ! Sticking coefficients for PSC reactions on SLA 
-      ALLOCATE( GAMMA_SLA( IIPAR, JJPAR, LLPAR, 11 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GAMMA_SLA' )
-      GAMMA_SLA = 0d0
+      ALLOCATE( KHETI_SLA( IIPAR, JJPAR, LLPAR, 11 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'KHETI_SLA' )
+      KHETI_SLA = 0d0
       
       !-----SDE DEBUG
       WRITE(6,'(a)') 'WARNING: Need to add subroutine to read in PSCs!'
@@ -3439,7 +3504,7 @@
       IF ( ALLOCATED( NDENS_AER  ) ) DEALLOCATE( NDENS_AER  )
       IF ( ALLOCATED( AERFRAC    ) ) DEALLOCATE( AERFRAC    )
       IF ( ALLOCATED( AERFRACIND ) ) DEALLOCATE( AERFRACIND )
-      IF ( ALLOCATED( GAMMA_SLA  ) ) DEALLOCATE( GAMMA_SLA  )
+      IF ( ALLOCATED( KHETI_SLA  ) ) DEALLOCATE( KHETI_SLA  )
 
       END SUBROUTINE CLEANUP_GMISTRAT
 !

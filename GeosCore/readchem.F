@@ -951,6 +951,7 @@
                         ! PSC reaction N2O5 + HCl
                         NKPSC(NCS,2) = NK
                      ELSE
+                        NKPSC(NCS,1) = NK
                         NKN2O5 = NK
                      ENDIF
                   ENDIF
@@ -965,6 +966,7 @@
                      IF (trim(adjustl(comment)) == 'pg') THEN
                         NKPSC(NCS,7) = NK
                      ELSE
+                        NKPSC(NCS,6) = NK
                         NKBrNO3 = NK
                      ENDIF
                   ENDIF
@@ -973,6 +975,7 @@
                   IF (XINP(1) == 'HOBr') THEN
                      IF (trim(adjustl(comment)) == 'h1') THEN
                         NKHOBr = NK
+                        NKPSC(NCS,11) = NK
                      ELSEIF (trim(adjustl(comment)) == 'h2') THEN
                         NK2HOBr = NK
                      ELSEIF (trim(adjustl(comment)) == 'pj') THEN

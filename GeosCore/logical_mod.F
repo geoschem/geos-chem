@@ -176,6 +176,7 @@
       LOGICAL :: LSETCFC         ! Initialize CFCs to generic conditions?
       LOGICAL :: LSETCL          ! Initialize chlorine species to generic conditions?
       LOGICAL :: LSETBR          ! Initialize bromine species to generic conditions?
+      LOGICAL :: LSETBRSTRAT     ! Initialize strat. Br. spc. to generic conditions?
       LOGICAL :: LSETOCS         ! Initialize OCS to generic conditions?
       LOGICAL :: LSETH2SO4       ! Initialize H2SO4 to generic conditions?
 

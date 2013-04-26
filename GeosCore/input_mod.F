@@ -2072,24 +2072,28 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:87' )
       READ( SUBSTRS(1:N), * ) LSETBR
 
-      ! Initialize N2O to GEOS-Chem baseline?
+      ! Initialize stratospheric bromine species to 2D baseline?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:88' )
+      READ( SUBSTRS(1:N), * ) LSETBRSTRAT
+
+      ! Initialize N2O to GEOS-Chem baseline?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:89' )
       READ( SUBSTRS(1:N), * ) LSETN2O
 
       ! Initialize stratospheric sulfates to GEOS-Chem baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:89' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:90' )
       READ( SUBSTRS(1:N), * ) LSETH2SO4
 
       ! Directory containing 2D data
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:90' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:91' )
       READ( SUBSTRS(1:N), '(a)' ) TRAC_FILE_ROOT 
 
       ! Directory containing WHO data
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:91' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:92' )
       READ( SUBSTRS(1:N), '(a)' ) MONTREAL_FILE_ROOT 
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:92' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:93' )
 
       !=================================================================
       ! Error check logical flags
@@ -2148,6 +2152,7 @@
       LOTDLOC           = ( LOTDLOC        .and. LEMIS     )
       LSOILNOX          = ( LSOILNOX       .and. LEMIS     )
       LFERTILIZERNOX    = ( LFERTILIZERNOX .and. LEMIS     )
+      LSETBRSTRAT       = ( (.not.LSETBR)  .and. LSETBRSTRAT)
 
       ! Define these flags for backwards compatibility
       LFOSSIL           = LANTHRO
@@ -2425,10 +2430,11 @@
          ENDIF
       ENDIF
 
-      IF ( LBREMIS .or. LSETBR) THEN
+      IF ( LBREMIS .or. LSETBR .or. LSETBRSTRAT) THEN
          IF ( IDTBR2 == 0 ) THEN
             LBREMIS = .FALSE.
             LSETBR = .FALSE.
+            LSETBRSTRAT = .FALSE.
             WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
      &            // 'Br species emitted but Br2 tracer is undefined.'
             WRITE( 6, '(a)' ) 'Turning off bromine emissions.'
@@ -2575,6 +2581,7 @@
         WRITE( 6, 100 ) '      --> CFCs/HCFCs/halon? : ', LSETCFC
         WRITE( 6, 100 ) '      --> chlorine species? : ', LSETCL
         WRITE( 6, 100 ) '      --> bromine species?  : ', LSETBR
+        WRITE( 6, 100 ) '      --> strat. bromine?   : ', LSETBRSTRAT
         WRITE( 6, 100 ) '      --> N2O?              : ', LSETN2O
         WRITE( 6, 100 ) '      --> strat. H2SO4?     : ', LSETH2SO4
         WRITE( 6, 130 ) ' Directory for 2D data      : ',
@@ -7145,6 +7152,7 @@
       LSETCFC        = .FALSE.
       LSETCL         = .FALSE.
       LSETBR         = .FALSE.
+      LSETBRSTRAT    = .FALSE.
       LSETOCS        = .FALSE.
       LSETN2O        = .FALSE.
       LSETH2SO4      = .FALSE.
