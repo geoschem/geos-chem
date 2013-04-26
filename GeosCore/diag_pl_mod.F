@@ -1298,7 +1298,6 @@ c 88            format (3I3, 'H2SO4rate (kg/s)',e13.5)
 !
       USE ERROR_MOD,   ONLY : ALLOC_ERR
       USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM
-      USE LOGICAL_MOD, ONLY : LTOMAS !sfarina, leave LTOMAS intact
 
       USE CMN_SIZE_MOD      ! Size parameters
       USE COMODE_LOOP_MOD   ! LFAMILY, NFAMILIES
@@ -1334,6 +1333,7 @@ c 88            format (3I3, 'H2SO4rate (kg/s)',e13.5)
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Now allocate arrays up to LD65 levels (phs, bmy, 12/4/07)
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers 
+!  26 Apr 2013 - R. Yantosca - Removed LTOMAS; we now use #if defined( TOMAS )
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1417,10 +1417,8 @@ c 88            format (3I3, 'H2SO4rate (kg/s)',e13.5)
 
 #if   defined ( TOMAS )
       ! Only allocate H2SO4RATE for a TOMAS simulation !(win, 7/709)
-      IF ( LTOMAS ) THEN
-         ALLOCATE( H2SO4RATE( IIPAR, JJPAR, LLTROP ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'H2SO4RATE' )
-      ENDIF
+      ALLOCATE( H2SO4RATE( IIPAR, JJPAR, LLTROP ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'H2SO4RATE' )
 #endif
 
       ! Allocate PL24H if we are also saving out the P(Ox)

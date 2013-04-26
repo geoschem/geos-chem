@@ -192,13 +192,14 @@
 !  aerosol microphysics and dry deposition subroutines. (win, 7/23/07)
 !
 !  NOTES: 
+!  26 Apr 2013 - R. Yantosca - Remove LTOMAS flag, that is now obsolete.
 !******************************************************************************
 !
       ! References to F90 modules
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE LOGICAL_MOD,        ONLY : LDRYD,  LTOMAS
+      USE LOGICAL_MOD,        ONLY : LDRYD
 
       ! Arguments
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
@@ -214,14 +215,17 @@
       RC    = GIGC_SUCCESS
 
       ! Do TOMAS aerosol microphysics
-      IF( LTOMAS ) CALL AEROPHYS( State_Met )
+      CALL AEROPHYS( State_Met )
 
 #if defined ( DEBUG ) 
       print *, 'call checkmn in tomas_mod:222'
 #endif
       CALL CHECKMN( 0, 0, 0, State_Met, 'kg', 'Before Aerodrydep')
+
       ! Do dry deposition
-      IF( LDRYD) CALL AERO_DRYDEP( am_I_Root, Input_Opt, State_Met, RC )
+      IF ( LDRYD ) THEN
+         CALL AERO_DRYDEP( am_I_Root, Input_Opt, State_Met, RC )
+      ENDIF
 
 #if defined ( DEBUG ) 
       print *, 'call checkmn in tomas_mod:229'

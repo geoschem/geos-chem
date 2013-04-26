@@ -54,7 +54,6 @@
       USE TRACERID_MOD,         ONLY : IDTOX
       USE TRACERID_MOD,         ONLY : SETTRACE
       USE TROPOPAUSE_MOD,       ONLY : SAVE_FULL_TROP
-      USE LOGICAL_MOD,          ONLY : LTOMAS
 
       IMPLICIT NONE
 #     include "define.h"
@@ -683,14 +682,14 @@
       IF ( LDUST ) THEN
          CALL RDUST_ONLINE(  SOILDUST,    WAVELENGTH, State_Met )
       ELSE
-         IF ( LTOMAS ) THEN
+#if defined( TOMAS )
             ! Don't read dust emissions from disk when using TOMAS,
             ! because TOMAS uses a different set of dust tracers than the 
             ! std code (win, bmy, 1/25/10)
-         ELSE
+#else
             CALL RDUST_OFFLINE( MONTH, YEAR, WAVELENGTH, am_I_Root,
      &                          State_Met )
-         ENDIF
+#endif
       ENDIF
 
       !### Debug

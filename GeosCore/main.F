@@ -927,10 +927,10 @@
             CALL AIRQNT( State_Met )
 
 #if defined ( TOMAS )
-# if defined ( DEBUG )
+#if defined ( DEBUG )
 !      CALL CHECKMN( 0, 0, 0, State_Met, 'v/v',
 !     &              'checkmn called from MAIN after transport')
-# endif
+#endif
 #endif
 
 #if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_57 )
@@ -939,10 +939,25 @@
             CALL MAKE_RH( State_Met )
 #endif
 
+!-----------------------------------------------------------------------------
+! Prior to 4/26/13
+! Now remove LTOMAS logical (bmy, sfarina, 4/26/13)
+!            ! Initialize wet scavenging and wetdep fields after
+!            ! the airmass quantities are reset after transport
+!            IF ( LCONV .or. LWETD .or. LTOMAS )
+!     &          CALL INIT_WETSCAV( State_Met )
+!-----------------------------------------------------------------------------
+
             ! Initialize wet scavenging and wetdep fields after
             ! the airmass quantities are reset after transport
-            IF ( LCONV .or. LWETD .or. LTOMAS )
-     &          CALL INIT_WETSCAV( State_Met )
+#if defined ( TOMAS )
+            CALL INIT_WETSCAV( State_Met )      ! For TOMAS, always call
+#else
+            IF ( LCONV .or. LWETD ) THEN
+               CALL INIT_WETSCAV( State_Met )   ! For non-TOMAS, only call
+            ENDIF                               !  if LWETD=T or LCONV=T
+#endif
+
          ENDIF
 
 #if defined ( TOMAS )

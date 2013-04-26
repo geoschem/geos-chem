@@ -291,10 +291,6 @@
       USE FILE_MOD,    ONLY : IOERROR
       USE LOGICAL_MOD, ONLY : LSOA
       USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM
-      USE LOGICAL_MOD, ONLY : LTOMAS    !(win, 7/9/09)
-                                        !(sfarina, 1/28/13)
-                                        !LTOMAS can remain in use - always defined
-                                        !LTOMAS is false is !defined(TOMAS)
 ! 
 ! !REVISION HISTORY: 
 !  21 Apr 2005 - R. Yantosca - Initial version

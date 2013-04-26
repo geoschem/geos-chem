@@ -66,6 +66,7 @@
 !  07 Sep 2011 - P. Kasibhatla - Modified to include GFED3
 !  26 Mar 2012 - R. Yantosca - Add USE_OLSON_2001 switch, which will use the
 !                              newer Olson 2001 land map & drydep inputs
+!  26 Apr 2013 - R. Yantosca - Remove LTOMAS; we now use #if defined( TOMAS )
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -73,7 +74,6 @@
       ! The logical switches below are for turning options ON or OFF
       !=================================================================
 
-      LOGICAL :: LTOMAS          ! TOMAS aerosol microphysics
       !%%%% Aerosols %%%%
       LOGICAL :: LATEQ           ! ??     
       LOGICAL :: LCARB           ! Use carbon aerosol tracers?
