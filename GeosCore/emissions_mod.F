@@ -112,7 +112,10 @@
       USE MERCURY_MOD,            ONLY : EMISSMERCURY
       USE NEI2005_ANTHRO_MOD,     ONLY : EMISS_NEI2005_ANTHRO
       USE NEI2005_ANTHRO_MOD,     ONLY : EMISS_NEI2005_ANTHRO_05x0666
+      ! Problems compiling APM + GMISTRAT with this...
+#if !defined( APM )
       USE POPS_MOD,               ONLY : EMISSPOPS  !(clf, 2/1/2011)
+#endif
       USE RETRO_MOD,              ONLY : EMISS_RETRO
       USE RnPbBe_MOD,             ONLY : EMISSRnPbBe
       USE SEASALT_MOD,            ONLY : EMISSSEASALT
@@ -805,10 +808,12 @@
 
       ELSE IF ( ITS_A_POPS_SIM() ) THEN
 
+#if !defined( APM )
          !--------------------
          ! POPS
          !--------------------
          CALL EMISSPOPS
+#endif
 
       ELSE IF ( ITS_A_CO2_SIM() ) THEN
 

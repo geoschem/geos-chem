@@ -1189,8 +1189,7 @@
       USE DAO_MOD,       ONLY : RH
 
       USE CMN_FJX_MOD,   ONLY : ODMDUST, QAA, RAA, QAA_AOD
-      USE CMN_FJX_MOD,   ONLY : IND999
-!!      USE CMN_FJ_MOD,    ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ      
+      USE CMN_FJX_MOD,   ONLY : IND999, RAA_AOD
       USE COMODE_LOOP_MOD     ! NTTLOOP
 
       USE CMN_DIAG_MOD        ! ND21, LD21
@@ -1432,7 +1431,7 @@
 
 #     include "define.h"
 
-      USE CMN_FJX_MOD,   ONLY : JPMAX, JPPJ, IND999
+      USE CMN_FJX_MOD,   ONLY : IND999
       USE CMN_FJX_MOD,   ONLY : ODMDUST, QAA, RAA, RAA_AOD, QAA_AOD
       USE COMODE_LOOP_MOD     ! NTTLOOP
       USE CMN_DIAG_MOD        ! ND21, LD21
@@ -1605,8 +1604,8 @@
             ELSE
 
                ODMDUST(I,J,L,N) = 0.75d0        * BXHEIGHT(I,J,L) * 
-     &                            DUST(I,J,L,N) * QAA(IND999,14+N)     / 
-     &                           ( MSDENS(N) * RAA(IND999,14+N) * 1.0D-6 )
+     &                         DUST(I,J,L,N) * QAA(IND999,14+N)     / 
+     &                        ( MSDENS(N) * RAA(IND999,14+N) * 1.0D-6 )
 
             ENDIF
 

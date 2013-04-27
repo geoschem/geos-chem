@@ -436,6 +436,9 @@
 #if   defined( APM ) 
       USE TRACER_MOD,     ONLY : N_APMTRA
 #endif
+      ! Stratospheric settling
+      USE GMISTRAT_MOD,   ONLY : SETTLE_STRAT_AER
+      USE LOGICAL_MOD,    ONLY : LGRAVSTRAT
 
       USE CMN_SIZE_MOD                   ! Size parameters 
 !
@@ -553,6 +556,14 @@
          CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITS' )
       ENDIF
 
+      ! Stratospheric aerosol graviational settling
+      IF ( LGRAVSTRAT ) THEN
+         CALL SETTLE_STRAT_AER
+         IF ( LPRT .and. am_I_Root ) THEN
+            CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, STRAT' )
+         ENDIF
+      ENDIF
+ 
       ! Convert all tracers in STT from [kg] -> [v/v] 
       CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, AD, STT )
       IF ( LPRT .and. am_I_Root ) THEN 
@@ -1254,7 +1265,6 @@
       USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_NOCHEMGRID
  
       USE CMN_SIZE_MOD
-      USE CMN_FJX_MOD,    ONLY : JPMAX, JPPJ
       USE CMN_DIAG_MOD         ! ND44
       USE CMN_GCTM_MOD         ! AIRMW
 !
@@ -4267,7 +4277,7 @@
       USE TRACERID_MOD,      ONLY : IDTSO4,     IDTNH3
       USE GFED2_BIOMASS_MOD, ONLY : GFED2_IS_NEW
       USE GFED3_BIOMASS_MOD, ONLY : GFED3_IS_NEW
-      USE LOGICAL_MOD,       ONLY : LANTHRO, LBIOFUEL
+      USE LOGICAL_MOD,       ONLY : LANTHRO, LBIOFUEL, LAEIC
 
       USE CMN_SIZE_MOD            ! Size parameters
 
@@ -4402,7 +4412,12 @@
          ! Add LANTHRO switch to turn off anthropogenic emissions.
          ! (ccc, 4/15/09)
          IF ( LANTHRO ) THEN
-            CALL READ_AIRCRAFT_SO2( MONTH )
+            ! AEIC sets aircraft SOx elsewhere
+            IF (.not.LAEIC) THEN
+               CALL READ_AIRCRAFT_SO2( MONTH )
+            ELSE
+               ESO2_ac = 0d0
+            ENDIF
             CALL READ_ANTHRO_SOx( MONTH, NSEASON )
             CALL READ_ANTHRO_NH3( MONTH )
          ENDIF

@@ -118,6 +118,10 @@
       USE TRACER_MOD,      ONLY : ITS_NOT_COPARAM_OR_CH4
       USE TRACERID_MOD,    ONLY : IDTACET, IDTISOP
       USE LOGICAL_MOD,     ONLY : LNLPBL ! (Lin, 03/31/09)
+#if defined (GMISTRAT )
+      USE LOGICAL_MOD,     ONLY : LGMISTRAT ! (SDE 04/20/13)
+      USE GMISTRAT_MOD,    ONLY : CALC_STRAT_AER ! (SDE 04/20/13)
+#endif
 #if   defined( APM )
       USE APM_DRIV_MOD,    ONLY : PSO4GAS
       USE TRACERID_MOD,    ONLY : IDTSO4
@@ -126,7 +130,7 @@
       USE CMN_SIZE_MOD          ! Size parameters
       USE COMODE_LOOP_MOD       ! NPHOT
       USE CMN_DIAG_MOD          ! NDxx flags
-      USE FAST_JX_MOD,     ONLY : INPHOT
+      USE FAST_JX_MOD,     ONLY : INIT_FJX
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -156,7 +160,7 @@
 !  (7 ) Now references "logical_mod.f" & "tracer_mod.f".  Now references
 !        AEROSOL_CONC, AEROSOL_RURALBOX, and RDAER from "aerosol_mod.f".  
 !        Now includes "CMN_DIAG" and "comode.h".  Also call READER, READCHEM, 
-!        and INPHOT to initialize the FAST-J arrays so that we can save out !
+!        and INIT_FJX to initialize the FAST-J arrays so that we can save out !
 !        AOD's to the ND21 diagnostic for offline runs. (bmy, 7/20/04)
 !  (8 ) Now call routine CHEMMERCURY from "mercury_mod.f" for an offline
 !        Hg0/Hg2/HgP simulation. (eck, bmy, 12/7/04)
@@ -260,6 +264,13 @@
             ! Do seasalt aerosol chemistry
             IF ( LSSALT ) CALL CHEMSEASALT( am_I_Root )
 
+#if defined( GMISTRAT )
+            ! Recalculate PSC properties
+            ! SDE: Handle for future implementation of 
+            ! AER-compatible aerosols
+            !IF ( LGMISTRAT ) CALL CALC_STRAT_AER
+#endif
+
             ! Also do sulfate chemistry
             IF ( LSULF ) THEN
 
@@ -317,7 +328,7 @@
                ! Init chem mechanism and photolysis
                CALL READER  ( FIRST,         am_I_Root )
                CALL READCHEM(                am_I_Root )
-               CALL INPHOT  ( LLCHEM, NPHOT, am_I_Root )
+               CALL INIT_FJX  ( am_I_Root )
  
                ! Reset NCS with NCSURBAN
                NCS     = NCSURBAN
@@ -394,7 +405,7 @@
          ! CH3I
          !---------------------------------
          ELSE IF ( ITS_A_CH3I_SIM() ) THEN
-            CALL CHEMCH3I
+            CALL CHEMCH3I( am_I_Root )
  
          !---------------------------------            
          ! HCN

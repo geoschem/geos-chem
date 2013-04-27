@@ -3960,7 +3960,7 @@
      &                          DZ,     TK,        WASHFRAC, KIN  )
 
       !------------------------------
-      ! HCl (liquid & gas phases) jpp
+      ! HCl (liquid & gas phases) SDE
       !------------------------------
       ELSE IF ( N == IDTHCl ) THEN 
          KIN      = .FALSE.

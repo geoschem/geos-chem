@@ -1533,7 +1533,10 @@
       USE TRACERID_MOD, ONLY : N_Hg_CATS  !CDH for snowpack
       USE TRACERID_MOD, ONLY : IDBCH4, IDTCH4
       USE LOGICAL_MOD,  ONLY : LSPLIT
+      ! Bypassing for now - problems with GMISTRAT (SDE 04/27/13)
+#if !defined( APM )
       USE GET_POPSINFO_MOD, ONLY : GET_POP_XMW
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  17 Oct 1996 - R. Yantosca & P. Le Sager - Initial version
@@ -5971,12 +5974,18 @@
 
          ! Loop over tracers
          DO T = 1, PD53
-
+#if defined( APM )
+            UNIT (T,53) = 'disabled'
+            MOLC (T,53) = 1
+            MWT  (T,53) = 1d0
+            SCALE(T,53) = 1e0
+#else
             ! Define quantities
             UNIT (T,53) = 'kg'
             MOLC (T,53) = 1
             MWT  (T,53) = GET_POP_XMW(DUM)
             SCALE(T,53) = 1e0
+#endif
 
             ! Get name, long-name, index, and new units
             SELECT CASE( T )

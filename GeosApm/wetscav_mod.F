@@ -755,6 +755,8 @@
       USE TRACERID_MOD, ONLY : IDTMAP
       ! jpp 4/27/09
       USE TRACERID_MOD, ONLY : IDTHOBr,  IDTHBr,   IDTBr2
+      ! SDE 04/27/13
+      USE TRACERID_MOD, ONLY : IDTHCl
 #if   defined( APM )
       USE APM_INIT_MOD,   ONLY : NGCOND,NSO4,NSEA,NDSTB
       USE APM_INIT_MOD,   ONLY : NCTSO4,NCTBCOC,NCTDST,NCTSEA
@@ -1055,6 +1057,64 @@
 
          ! ND38 index
          ISOL = GET_ISOL( N ) 
+
+      !-------------------------------
+      ! HCl (liquid phase only)
+      ! SDE (04/17/13)
+      !-------------------------------
+      ELSE IF ( N == IDTHCl ) THEN 
+
+         ! No scavenging at the surface
+         F(:,:,1) = 0d0
+
+         ! Apply scavenging in levels 2 and higher
+         DO L = 2, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+            ! Compute liquid to gas ratio for HCl:
+            ! 1. first argument is the adjusted Henry's law coefficient
+            ! H0 and heat of solution are estimated by Yang et al. [2005]
+            CALL COMPUTE_L2G( 7.1d15, -1.10d4, 
+     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
+
+
+            ! Fraction of HCl in liquid phase
+            ! (Eqs. 4, 5, 6, Jacob et al, 2000)
+            C_TOT = 1d0 + L2G
+            F_L   = L2G / C_TOT
+
+            ! Compute the rate constant K.
+            IF ( T(I,J,L) >= 268d0 ) THEN
+
+               K = KC * F_L
+
+            ELSE IF ( T(I,J,L) > 248d0  .and. T(I,J,L) < 268d0 ) THEN
+               
+               ! HCl has a large effective Henry's
+               ! Law Constant & retention fraction of 1.
+               K = KC * (1.d0 * F_L)
+
+            ELSE
+
+               K = 0.d0
+                  
+            ENDIF
+
+            ! Distance between grid box centers [m]
+            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+
+            ! F is the fraction of HCl scavenged out of the updraft
+            ! (Eq. 2, Jacob et al, 2000)
+            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+
+
+         ENDDO
+         ENDDO
+         ENDDO
+
+         ! ND38 index
+         ISOL = GET_ISOL( N )
 
       !-------------------------------
       ! HBr (liquid phase only)
@@ -2497,6 +2557,7 @@
       USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP, IDTMAP
       ! jpp 4/27/09
       USE TRACERID_MOD, ONLY : IDTHOBr, IDTHBr,   IDTBr2
+      USE TRACERID_MOD, ONLY : IDTHCl
       USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM 
 #if   defined( APM )
       USE APM_INIT_MOD, ONLY : NDSTB,IDTDSTBIN1
@@ -3063,6 +3124,35 @@
          RAINFRAC = GET_RAINFRAC( K, F, DT ) 
 
       !-----------------------------------
+      ! HCl (liquid phase only), SDE 04/17/13
+      !-----------------------------------
+      ELSE IF ( N == IDTHCl ) THEN
+
+         CALL COMPUTE_L2G( 7.1d15, -1.10d4, 
+     &                     T(I,J,L), CLDLIQ(I,J,L), L2G )
+
+         ! Fraction of HCl in liquid phase
+         ! (Eqs. 4, 5, 6, Jacob et al, 2000)
+         C_TOT = 1d0 + L2G
+         F_L   = L2G / C_TOT
+
+         ! Compute the rate constant K.
+         IF ( TK >= 268d0 ) THEN
+            K = K_RAIN * F_L 
+         ELSE IF ( TK > 248d0  .and. TK < 268d0 ) THEN
+
+            ! HCl has a large effective H*
+            K = K_RAIN * (1.d0 * F_L)
+
+         ELSE
+            K = 0.d0
+         ENDIF
+  
+         ! Compute RAINFRAC, the fraction of rained-out HCl
+         ! (Eq. 10, Jacob et al, 2000)
+         RAINFRAC = GET_RAINFRAC( K, F, DT ) 
+
+      !-----------------------------------
       ! HBr (liquid phase only), jpp
       !-----------------------------------
       ELSE IF ( N == IDTHBr ) THEN
@@ -3607,6 +3697,7 @@
       USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP, IDTMAP
       ! jpp 4/27/09
       USE TRACERID_MOD, ONLY : IDTHOBr,  IDTHBr,   IDTBr2
+      USE TRACERID_MOD, ONLY : IDTHCl
 #if   defined( APM )
       USE APM_INIT_MOD, ONLY : NDSTB,IDTDSTBIN1
 #endif
@@ -3754,6 +3845,14 @@
       ELSE IF ( N == IDTHBr ) THEN 
          KIN      = .FALSE.
          CALL WASHFRAC_LIQ_GAS( 7.1d13, -10200.d0, PP,       DT,  F,
+     &                          DZ,     TK,        WASHFRAC, KIN  )
+
+      !------------------------------
+      ! HCl (liquid & gas phases) SDE
+      !------------------------------
+      ELSE IF ( N == IDTHCl ) THEN 
+         KIN      = .FALSE.
+         CALL WASHFRAC_LIQ_GAS( 7.1d15, -1.10d4, PP,       DT,  F,
      &                          DZ,     TK,        WASHFRAC, KIN  )
 
       !------------------------------
@@ -6651,6 +6750,7 @@
       USE TRACERID_MOD, ONLY : IDTIEPOX,  IDTRIP,    IDTMAP
       ! jpp 4/27/09
       USE TRACERID_MOD, ONLY : IDTHOBr,   IDTHBr,    IDTBr2
+      USE TRACERID_MOD, ONLY : IDTHCl
 #if   defined( APM )
       USE APM_INIT_MOD, ONLY : NDSTB,IDTDSTBIN1
 #endif
@@ -6763,6 +6863,11 @@
          ELSE IF ( N == IDTBr2 ) THEN
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTBr2
+         !---------------------------------------
+         ! SDE 04/17/13: HCl
+         ELSE IF ( N == IDTHCl ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTHCl
          !---------------------------------------
 
          !FP_ISOP (6/2009)

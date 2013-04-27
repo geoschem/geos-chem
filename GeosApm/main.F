@@ -121,6 +121,11 @@
       USE TIME_MOD,          ONLY : ITS_TIME_FOR_A6UPDATE
       USE TRACER_MOD,        ONLY : N_APMTRA
 #endif
+ 
+      !-----------------------------------------------------------------
+      ! Modules in the stratospheric chemistry update (SDE)
+      !-----------------------------------------------------------------
+      USE GMISTRAT_MOD          ! For initializing minor tracer fields
 
 #if defined( DEVEL )
       !-----------------------------------------------------------------
@@ -436,6 +441,16 @@
          CALL READ_SOIL_RESTART( NYMDb , NHMSb )
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a READ_SOIL_RESTART' )
       ENDIF
+
+      ! Initialize stratospheric routines
+      IF (LGMISTRAT) THEN
+         CALL INIT_GMISTRAT
+         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INIT_GMISTRAT' )
+      ENDIF
+
+      ! Set simple initial tracer conditions
+      CALL SET_INITIAL_MIXRATIOS( am_I_Root )
+      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a SET_INITIAL_MIXRATIOS' )
 
       ! Capture initial state of atmosphere for STE flux calc (ltm, 06/10/12)
       IF ( LSCHEM ) CALL INIT_STRAT_CHEM( am_I_Root )

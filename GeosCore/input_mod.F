@@ -6300,6 +6300,7 @@
 !
 ! !USES:
 !
+#if !defined( APM )
       USE GET_POPSINFO_MOD,  ONLY : GET_POP_TYPE
       USE POPS_MOD,          ONLY : INIT_POPS
       USE DIRECTORY_MOD,     ONLY : POP_EMISDIR
@@ -6416,6 +6417,14 @@
      &                  POP_HSTAR, POP_DEL_H, POP_DEL_Hw )
 
       ENDIF
+
+#else
+      ! Hack to get APM compiled
+      USE ERROR_MOD, ONLY : ERROR_STOP
+      LOGICAL, INTENT(IN)        :: am_I_Root   ! Is this the root CPU?
+      CALL ERROR_STOP('POPS and APM not currently compatible',
+     &                'input_mod.F')
+#endif
 
       END SUBROUTINE READ_POPS_MENU
 !EOC
