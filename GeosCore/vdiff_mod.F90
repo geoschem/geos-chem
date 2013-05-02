@@ -2358,6 +2358,7 @@ contains
     enddo
 !$OMP END PARALLEL DO
 
+
     ! drydep fluxes diag. for SMVGEAR mechanism 
     ! for gases -- moved from DRYFLX in drydep_mod.f to here
     ! for aerosols -- 
@@ -2563,7 +2564,7 @@ contains
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_PBL_MIX_2( DO_TURBDAY )
+  SUBROUTINE DO_PBL_MIX_2( DO_TURBDAY, am_I_Root )
 !
 ! !USES:
 !
@@ -2582,6 +2583,7 @@ contains
 !
     LOGICAL, INTENT(IN) :: DO_TURBDAY  ! Switch which turns on PBL mixing of 
                                        ! tracers
+    LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 !
 ! !REVISION HISTORY: 
 !  11 Feb 2005 - R. Yantosca - Initial version
@@ -2618,7 +2620,7 @@ contains
 
        ! If it's time to do emissions, call SETEMIS
        IF ( ITS_TIME_FOR_EMIS() ) THEN 
-          CALL SETEMIS( EMISRR, EMISRRN )
+          CALL SETEMIS( EMISRR, EMISRRN, am_I_Root )
           IF ( LPRT ) CALL DEBUG_MSG( '### DO_PBL_MIX_2: aft SETEMIS' )
        ENDIF
 

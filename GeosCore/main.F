@@ -377,7 +377,7 @@
         CALL DO_PBL_MIX( .FALSE. )
         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:1' )
       ELSE
-        CALL DO_PBL_MIX_2( .FALSE. )
+        CALL DO_PBL_MIX_2( .FALSE., am_I_Root )
         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a NLPBL 1' )
       ENDIF
 
@@ -879,12 +879,18 @@
             !      ***** M I X E D   L A Y E R   M I X I N G *****
             !===========================================================
             ! Add option for non-local PBL. (Lin, 03/31/09)
-            IF ( .NOT. LNLPBL ) THEN
+            ! Note that some emission arrays are initialized with chemistry 
+            ! (due to legacy code), so there are *no emissions* on the first
+            ! mixing and convection timestep when using non-local mixing
+            ! scheme (LNLPBL), although this is not reflected in the 
+            ! diagnostics. The instant mixing scheme is unaffected by this
+            ! bug since emissions then occur with chemistry. (cdh, 5/1/2013)
+            IF ( LNLPBL ) THEN
+               CALL DO_PBL_MIX_2( LTURB, am_I_Root )
+               IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a NLPBL 2' )
+            ELSE
                CALL DO_PBL_MIX( LTURB )
                IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:1' )
-            ELSE
-               CALL DO_PBL_MIX_2( LTURB )
-               IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a NLPBL 2' )
             ENDIF
 
             !### Debug
