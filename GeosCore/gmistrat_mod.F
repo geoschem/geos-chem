@@ -46,6 +46,7 @@
       PUBLIC  :: KG_STRAT_AER
       PUBLIC  :: RHO_STRAT_AER
       PUBLIC  :: CHECK_NAT
+      PUBLIC  :: MAKE_PSC_FILE
       PUBLIC  :: INIT_GMISTRAT
       PUBLIC  :: CLEANUP_GMISTRAT
 !
@@ -55,6 +56,7 @@
       PRIVATE :: READ_SFC
       PRIVATE :: GET_MONTREAL
       PRIVATE :: TERNARY
+      PRIVATE :: READ_PSC_FILE
       PRIVATE :: CARSLAW_DENSITY
       PRIVATE :: CALC_H2SO4_GAS
       PRIVATE :: CALC_SLA_GAMMA
@@ -1729,7 +1731,7 @@
 !
       USE DAO_MOD,          ONLY : T, AD, CLDF, QI, AIRVOL, AVGW
       USE PRESSURE_MOD,     ONLY : GET_PCENTER
-      USE LOGICAL_MOD,      ONLY : LPRT, LHOMNUCNAT
+      USE LOGICAL_MOD,      ONLY : LPRT, LHOMNUCNAT, LSOLIDPSC
       USE ERROR_MOD,        ONLY : DEBUG_MSG
       USE GRID_MOD,         ONLY : GET_YEDGE
       USE TRACER_MOD,       ONLY : STT, TRACER_MW_G
@@ -1999,48 +2001,61 @@
                ! Store state
                STATE_PSC(I,J,L) = STATE_LOCAL
 
-               ! Calculate NAT if relevant
-               IF ((HNO3_BOX_S.gt.TINY(1d0)).and.
-     &                            (STATE_LOCAL.ge.2)) THEN
-                  HNO3_BOX_S = (HNO3PP-PSATHNO3)/PCENTER_PA
-                  HNO3_BOX_S = MAX(0d0,HNO3_BOX_S)
+               ! Only continue if we want online solid PSCs
+               IF (LSOLIDPSC) THEN
 
-                  ! Calculate m3 NAT/m3 air
-                  ! HNO3_BOX_S is the number of moles of HNO3
-                  ! which will be frozen into HNO3.3H2O (NAT)
-                  ! Therefore volume calculation must be done
-                  ! with care!
-                  VOL_NAT = HNO3_BOX_S * DENAIR * (1.d-3) *
-     &               NATMW / (DENSNAT*AVOGADRO)
-                  KG_NAT = HNO3_BOX_S * NATMW *
-     &                     AD(I,J,L) / AIRMW
-               ENDIF
+                  ! Calculate NAT if relevant
+                  IF ((HNO3_BOX_S.gt.TINY(1d0)).and.
+     &                               (STATE_LOCAL.ge.2)) THEN
+                     HNO3_BOX_S = (HNO3PP-PSATHNO3)/PCENTER_PA
+                     HNO3_BOX_S = MAX(0d0,HNO3_BOX_S)
 
-               ! Calculate particle properties
-               IF (STATE_LOCAL.lt.2) THEN
-                  ! Zero all!
-                  KG_AER_BOX   = 0d0
-                  RAD_AER_BOX  = 0d0
-                  RHO_AER_BOX  = DENSICE
-                  NDENS_AER_BOX= 0d0
-               ELSE
-                  KG_AER_BOX = KG_NAT + KG_ICE
-                  RAD_AER_BOX = MIN_RAD
-                  NDENS_AER_BOX = (3.0d0*(VOL_NAT+VOL_ICE)/
-     &               (4.0d0*PI*(RAD_AER_BOX**3.0d0)))
-                  IF (NDENS_AER_BOX.gt.MAX_NDENS) THEN
-                     NDENS_AER_BOX = MAX_NDENS
-                     RAD_AER_BOX = (3.0d0*(VOL_NAT+VOL_ICE)/
-     &                  (4.0d0*PI*MAX_NDENS))**(1.d0/3.d0)
+                     ! Calculate m3 NAT/m3 air
+                     ! HNO3_BOX_S is the number of moles of HNO3
+                     ! which will be frozen into HNO3.3H2O (NAT)
+                     ! Therefore volume calculation must be done
+                     ! with care!
+                     VOL_NAT = HNO3_BOX_S * DENAIR * (1.d-3) *
+     &                  NATMW / (DENSNAT*AVOGADRO)
+                     KG_NAT = HNO3_BOX_S * NATMW *
+     &                        AD(I,J,L) / AIRMW
                   ENDIF
-                  RHO_AER_BOX = 
-     &               ((VOL_ICE*DENSICE)+(VOL_NAT*DENSNAT))/
-     &                                 (VOL_ICE+VOL_NAT)
-               ENDIF
 
-               ! Calculate SAD (cm2/cm3)
-               SAD_AER_BOX = 4.0d-2 * RAD_AER_BOX *
-     &            RAD_AER_BOX * NDENS_AER_BOX * PI
+                  ! Calculate particle properties
+                  IF (STATE_LOCAL.lt.2) THEN
+                     ! Zero all!
+                     KG_AER_BOX   = 0d0
+                     RAD_AER_BOX  = 0d0
+                     RHO_AER_BOX  = DENSICE
+                     NDENS_AER_BOX= 0d0
+                  ELSE
+                     KG_AER_BOX = KG_NAT + KG_ICE
+                     RAD_AER_BOX = MIN_RAD
+                     NDENS_AER_BOX = (3.0d0*(VOL_NAT+VOL_ICE)/
+     &                  (4.0d0*PI*(RAD_AER_BOX**3.0d0)))
+                     IF (NDENS_AER_BOX.gt.MAX_NDENS) THEN
+                        NDENS_AER_BOX = MAX_NDENS
+                        RAD_AER_BOX = (3.0d0*(VOL_NAT+VOL_ICE)/
+     &                     (4.0d0*PI*MAX_NDENS))**(1.d0/3.d0)
+                     ENDIF
+                     RHO_AER_BOX = 
+     &                  ((VOL_ICE*DENSICE)+(VOL_NAT*DENSNAT))/
+     &                                    (VOL_ICE+VOL_NAT)
+                  ENDIF
+
+                  ! Calculate SAD (cm2/cm3)
+                  SAD_AER_BOX = 4.0d-2 * RAD_AER_BOX *
+     &               RAD_AER_BOX * NDENS_AER_BOX * PI
+               ELSE
+                  ! Solid PSCs not active
+                  RAD_AER_BOX = 0d0
+                  RHO_AER_BOX = 1000d0
+                  KG_AER_BOX = 0d0
+                  NDENS_AER_BOX = 0d0
+                  SAD_AER_BOX = 0d0
+                  HNO3_BOX_S = 0d0
+                  H2O_BOX_S = 0d0
+               ENDIF
 
                ! Store in outer arrays
                RAD_AER(I,J,L,I_SPA)  = RAD_AER_BOX*1.d2 ! cm
@@ -2050,7 +2065,7 @@
                SAD_AER(I,J,L,I_SPA)  = SAD_AER_BOX ! cm2/cm3
 
                ! Repartition NIT and HNO3 in strat/meso
-               IF (IS_STRAT) THEN
+               IF (LSOLIDPSC.and.IS_STRAT) THEN
                   ! Convert NAT from kg NAT to kg NO3
                   STT(I,J,L,IDTNIT) = KG_NAT*TRACER_MW_G(IDTNIT)/NATMW
                   ! Remove (kg NO3 as NAT) from total kg NO3
@@ -3214,6 +3229,328 @@
       END FUNCTION MOLEC_SPEED
 !
 !EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: make_psc_file
+!
+! !DESCRIPTION: Subroutine MAKE\_PSC\_FILE writes PSC state information
+!  into a checkpoint file (binary punch file format).
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE MAKE_PSC_FILE( YYYYMMDD, HHMMSS )
+!
+! !USES:
+!
+      USE BPCH2_MOD
+      USE ERROR_MOD,   ONLY : DEBUG_MSG
+      USE ERROR_MOD,   ONLY : ERROR_STOP
+      USE FILE_MOD,    ONLY : IOERROR
+      USE GRID_MOD,    ONLY : GET_XOFFSET
+      USE GRID_MOD,    ONLY : GET_YOFFSET
+      USE LOGICAL_MOD, ONLY : LPRT
+      USE TIME_MOD,    ONLY : EXPAND_DATE
+      USE TIME_MOD,    ONLY : GET_TAU
+
+      USE CMN_SIZE_MOD                   ! Size parameters
+      USE COMODE_LOOP_MOD                ! IGAS
+      USE CMN_MOD                        ! TAU , NSRCX, LSOILNOX
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN)  :: YYYYMMDD   ! YYYY/MM/DD GMT date
+      INTEGER, INTENT(IN)  :: HHMMSS     ! hh:mm:ss   GMT time
+! 
+! !REVISION HISTORY: 
+!  28 Apr 2013 - S. D. Eastham - Initial version, based on MAKE_CSPEC_FILE
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER              :: IU_RST
+      INTEGER              :: I,    I0, IOS, J,  J0, L, N, JLOOP
+      INTEGER              :: YYYY, MM, DD,  HH, SS, ZIP_HH
+      CHARACTER(LEN=255)   :: FILENAME
+      CHARACTER(LEN=255)   :: OUTPUT_CHECKPT_FILE
+
+
+      ! Temporary storage arrays for checkpointed variables
+      REAL*4               :: TMP(ILONG, ILAT, IPVERT)
+
+      ! For binary punch file, version 2.0
+      REAL*4               :: LONRES, LATRES
+      ! make HALFPOLAR variable (hotp 2/25/09)
+      INTEGER              :: HALFPOLAR
+      INTEGER, PARAMETER   :: CENTER180 = 1
+
+      CHARACTER(LEN=20)    :: MODELNAME
+      CHARACTER(LEN=40)    :: CATEGORY
+      CHARACTER(LEN=40)    :: UNIT     
+      CHARACTER(LEN=40)    :: RESERVED = ''
+      CHARACTER(LEN=80)    :: TITLE 
+
+
+      !=================================================================
+      ! MAKE_PSC_FILE begins here!
+      !=================================================================
+
+      ! Hardwire output file for now
+      OUTPUT_CHECKPT_FILE = 'restart.psc.YYYYMMDDhh'
+
+      ! Clear some arrays 
+      ! use minimum value instead of zero hotp 2/25/09
+      TMP(:,:,:)   = 0
+
+
+      ! Define variables for BINARY PUNCH FILE OUTPUT
+      TITLE    = 'GEOS-CHEM Checkpoint File: ' // 
+     &           'Instantaneous PSC state (unitless)'
+      CATEGORY = 'IJ-PSC-$'
+      LONRES   = DISIZE
+      LATRES   = DJSIZE
+      ! get value of HALFPOLAR hotp 2/25/09
+      HALFPOLAR = GET_HALFPOLAR()
+
+      ! Call GET_MODELNAME to return the proper model name for
+      ! the given met data being used (bmy, 6/22/00)
+      MODELNAME = GET_MODELNAME()
+
+      ! Get the nested-grid offsets
+      I0 = GET_XOFFSET( GLOBAL=.TRUE. )
+      J0 = GET_YOFFSET( GLOBAL=.TRUE. )
+
+      !=================================================================
+      ! Open the checkpoint file for output -- binary punch format
+      !=================================================================
+
+      ! Find a free file LUN
+      IU_RST   = findFreeLUN()
+
+      ! Copy the output checkpoint file name into a local variable
+      FILENAME = TRIM( OUTPUT_CHECKPT_FILE )
+
+      ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
+      CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
+
+      ! Add ADJ_DIR prefix to filename
+      !FILENAME = TRIM( ADJ_DIR ) // TRIM( FILENAME )
+
+      WRITE( 6, 100 ) TRIM( FILENAME ), IU_RST
+ 100  FORMAT( '     - MAKE_PSC_FILE: Writing ', a, ' on unit ', i4 )
+
+      ! Open checkpoint file for output
+      CALL OPEN_BPCH2_FOR_WRITE( IU_RST, FILENAME, TITLE )
+
+      !=================================================================
+      ! Write each checkpointed quantity to the checkpoint file
+      !=================================================================
+
+      ! Checkpt additional values for full chem simulation
+      UNIT = '-'
+          
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+         DO L = 1, IPVERT
+         DO J = 1, ILAT
+         DO I = 1, ILONG
+        
+              TMP(I,J,L) = REAL(STATE_PSC(I,J,L))+0.1d0
+
+         ENDDO
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+ 
+      ! Save the species name to the RESERVED slot of the bpch file
+      RESERVED = 'STATE_PSC'
+
+      ! Write the data block to the CSPEC checkpoint file
+      CALL BPCH2( IU_RST,    MODELNAME, LONRES,    LATRES,
+     &               HALFPOLAR, CENTER180, CATEGORY,  N,
+     &               UNIT,      GET_TAU(), GET_TAU(), RESERVED,
+     &               ILONG,     ILAT,      IPVERT,    I0+1,
+     &               J0+1,      1,         TMP(:,:,:) )
+ 
+      ! Close file
+      CLOSE( IU_RST )
+
+      !### Debug
+      IF ( LPRT ) CALL DEBUG_MSG( '### MAKE_PSC_FILE: wrote file' )
+
+      END SUBROUTINE MAKE_PSC_FILE
+!
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_psc_file
+!
+! !DESCRIPTION: Subroutine READ\_PSC\_FILE initializes PSC state information
+!  from a checkpoint file (binary punch file format).
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE READ_PSC_FILE( am_I_Root, YYYYMMDD,  
+     &                          HHMMSS,    IT_EXISTS ) 
+!
+! !USES:
+!
+      USE BPCH2_MOD,   ONLY : OPEN_BPCH2_FOR_READ
+      USE ERROR_MOD,   ONLY : DEBUG_MSG
+      USE ERROR_MOD,   ONLY : ERROR_STOP
+      USE FILE_MOD,    ONLY : IOERROR
+      USE FILE_MOD,    ONLY : FILE_EXISTS
+      USE LOGICAL_MOD, ONLY : LPRT
+      USE TIME_MOD,    ONLY : EXPAND_DATE
+
+      USE CMN_SIZE_MOD                  ! Size parameters
+      USE COMODE_LOOP_MOD               ! ITLOOP, IGAS
+      USE CMN_MOD                        ! TAU , NSRCX, LSOILNOX
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL, INTENT(IN) :: am_I_Root  ! Is this the root CPU?
+      INTEGER, INTENT(IN) :: YYYYMMDD   ! YYYY/MM/DD GMT date
+      INTEGER, INTENT(IN) :: HHMMSS     ! hh:mm:ss   GMT time
+! 
+! !REVISION HISTORY: 
+!  28 Apr 2013 - S. D. Eastham - Initial version, based on READ_CSPEC_FILE
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER             :: I, IOS, IU_RST, J, L, N, NN, NTL
+      REAL*4              :: TMP(ILONG,ILAT,IPVERT)
+      LOGICAL             :: IT_EXISTS 
+
+      REAL*8              :: SUMTC
+      CHARACTER(LEN=255)  :: FILENAME
+      CHARACTER(LEN=255)  :: INPUT_CHECKPT_FILE
+      CHARACTER(LEN=255)  :: MSG
+     
+
+      ! For binary punch file, version 2.0
+      INTEGER             :: NI,     NJ,     NL
+      INTEGER             :: IFIRST, JFIRST, LFIRST
+      INTEGER             :: NTRACER,   NSKIP
+      INTEGER             :: HALFPOLAR, CENTER180
+      REAL*4              :: LONRES,    LATRES
+      REAL*8              :: ZTAU0,     ZTAU1
+      CHARACTER(LEN=20)   :: MODELNAME
+      CHARACTER(LEN=40)   :: CATEGORY
+      CHARACTER(LEN=40)   :: UNIT     
+      CHARACTER(LEN=40)   :: RESERVED
+
+      !=================================================================
+      ! READ_PSC_FILE begins here!
+      !=================================================================
+
+      ! Hardwire output file for now
+      INPUT_CHECKPT_FILE = 'restart.psc.YYYYMMDDhh'
+
+      ! Initialize some variables
+      TMP(:,:,:) = 0
+
+      !=================================================================
+      ! Open checkpoint file and read top-of-file header
+      !=================================================================
+
+      ! Find a free file LUN
+      IU_RST   = findFreeLUN()
+     
+      ! Copy input file name to a local variable
+      FILENAME = TRIM( INPUT_CHECKPT_FILE )
+
+      ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
+      CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
+
+      ! Add ADJ_DIR prefix to name
+      !FILENAME = TRIM( ADJ_DIR ) // TRIM( FILENAME )
+
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 100 ) TRIM( FILENAME ), IU_RST
+      ENDIF
+ 100  FORMAT( '     - READ_PSC_FILE: Reading ', a, ' on unit ', i4 )
+ 
+      ! Check to see if PSC restart file exists
+      IT_EXISTS = FILE_EXISTS( FILENAME )
+      IF ( .not. IT_EXISTS ) THEN 
+         RETURN
+      ENDIF 
+
+      ! Open the binary punch file for input
+      CALL OPEN_BPCH2_FOR_READ( IU_RST, FILENAME )
+
+      ! Read the values of STATE_PSC
+      READ( IU_RST, IOSTAT=IOS )
+     &    MODELNAME, LONRES, LATRES, HALFPOLAR, CENTER180
+
+      ! IOS < 0 is end-of-file, so exit
+      IF ( IOS < 0 ) GOTO 555
+
+      ! IOS > 0 is a real I/O error -- print error message
+      IF ( IOS > 0 ) 
+     &   CALL IOERROR( IOS,IU_RST,'read_psc_file:13' )
+
+      ! Read data block header
+      READ( IU_RST, IOSTAT=IOS )
+     &      CATEGORY, NTRACER,  UNIT, ZTAU0,  ZTAU1,  RESERVED,
+     &      NTL,      NN,       NL,   IFIRST, JFIRST, LFIRST,
+     &      NSKIP
+
+      ! Error check
+      IF ( IOS /= 0 ) 
+     &   CALL IOERROR(IOS,IU_RST,'read_psc_file:14' )
+
+      ! Read data block
+      READ( IU_RST, IOSTAT=IOS )
+     &    ( ( ( TMP(I,J,L), I= 1, NTL), J=1,NN ), L = 1, NL)
+
+      ! Error check
+      IF ( IOS /= 0 ) 
+     &   CALL IOERROR( IOS,IU_RST,'read_psc_file:16' )
+
+      !==============================================================
+      ! Assign data from the TMP array to STATE_PSC
+      !==============================================================
+
+      ! Only process PSC data 
+      IF ( CATEGORY(1:8) == 'IJ-PSC-$' .and.
+     &     NTL           == ILONG      .and. 
+     &     NN            == ILAT       .and. 
+     &     NL            == IPVERT            ) THEN
+
+         STATE_PSC(:,:,:) = INT(FLOOR(TMP(:,:,:)))
+
+      ELSE
+         CALL ERROR_STOP(' Restart data is not correct ', 
+     &                   ' reading STATE_PSC, gmistrat_mod')
+
+      ENDIF
+
+ 555  CONTINUE
+
+      ! Close file
+      CLOSE( IU_RST )      
+
+      !### Debug
+      IF ( LPRT ) CALL DEBUG_MSG( '### READ_PSC_FILE: read file' )
+
+      END SUBROUTINE READ_PSC_FILE
+!
+!EOC
 !!------------------------------------------------------------------------------
 !!               MIT Laboratory for Aviation and the Environment               !
 !!------------------------------------------------------------------------------
@@ -3277,7 +3614,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_GMISTRAT
+      SUBROUTINE INIT_GMISTRAT( am_I_Root, YYYYMMDD, HHMMSS )
 !
 ! !USES:
 !
@@ -3288,6 +3625,9 @@
 !
 ! !INPUT PARAMETERS:
 !
+      LOGICAL, INTENT(IN) :: am_I_Root  ! Is this the root CPU?
+      INTEGER, INTENT(IN) :: YYYYMMDD   ! YYYY/MM/DD GMT date
+      INTEGER, INTENT(IN) :: HHMMSS     ! hh:mm:ss   GMT time
 !
 ! !OUTPUT VARIABLES:
 !
@@ -3301,6 +3641,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: N, AS
+      LOGICAL :: IT_EXISTS
 
       !=================================================================
       ! INIT_GMISTRAT begins here!
@@ -3398,6 +3739,12 @@
          TRAC_EMIT(N_EMIT) = 'N2O'
       ENDIF 
 
+      IF (LBREMIS) THEN
+         N_EMIT = N_EMIT + 1
+         IDT_EMIT( N_EMIT) = IDTCH3Br
+         TRAC_EMIT(N_EMIT) = 'CH3BR'
+      ENDIF
+
       IF (N_EMIT.gt.0) THEN
          ALLOCATE( GRID_EMIT( JJPAR, N_EMIT ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'GRID_EMIT' )
@@ -3462,10 +3809,15 @@
       ALLOCATE( KHETI_SLA( IIPAR, JJPAR, LLPAR, 11 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'KHETI_SLA' )
       KHETI_SLA = 0d0
-      
-      !-----SDE DEBUG
-      WRITE(6,'(a)') 'WARNING: Need to add subroutine to read in PSCs!'
-      !-----SDE DEBUG
+     
+      ! Read in PSC state
+      CALL READ_PSC_FILE( am_I_Root, YYYYMMDD,  
+     &                    HHMMSS,    IT_EXISTS )
+
+      IF ((am_I_Root).and.(.not.IT_EXISTS)) THEN
+         WRITE(6,*) 
+     &  '    - GMISTRAT: PSC restart not found, initialize PSC-free'
+      ENDIF
 
       END SUBROUTINE INIT_GMISTRAT
 !

@@ -271,7 +271,8 @@ aerosol_mod.o               : aerosol_mod.F           comode_mod.o           \
                               gmistrat_mod.o
 
 aeic_mod.o                  : aeic_mod.F              chemgrid_mod.o         \
-                              dao_mod.o               diag_mod.o              
+                              dao_mod.o               diag_mod.o             \
+                              tracerid_mod.o
 
 airmas.o                    : airmas.F
 

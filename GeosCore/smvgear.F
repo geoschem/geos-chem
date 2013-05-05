@@ -381,6 +381,11 @@
 
       DO 129 JNEW         = 1, ISCHAN
        DO 127 KLOOP       = 1, KTLOOP
+!-----SDE DEBUG
+!        IF (IT_IS_NAN(CORIG(KLOOP,JNEW))) THEN
+!           WRITE(6,'(a,1x,2I5)') 'SDE DEBUG 0', KLOOP, JNEW
+!        ENDIF
+!-----SDE DEBUG
         CNEW( KLOOP,JNEW) = CORIG(KLOOP,JNEW)
         !---------------------------------------------------------------------
         ! %%%%% MODIFICATION TO PREVENT NEGATIVE CNEW (tmf, 11/1/07) %%%%%
@@ -494,6 +499,11 @@
          ! criteria for the SMVGEAR solver (ljm, bmy, 5/9/03)
          IF ( ITS_NOT_A_ND65_FAMILY(JSPC) ) THEN 
             DO 138 KLOOP    = 1, KTLOOP
+!-----SDE DEBUG
+!                IF (IT_IS_NAN(CNEW(KLOOP,JSPC))) THEN
+!                   WRITE(6,'(a,1x,2I5)') 'SDE DEBUG 03', KLOOP, JSPC
+!                ENDIF
+!-----SDE DEBUG
                CNEWYLOW       = CNEW(KLOOP,JSPC) + YABST(KLOOP) *RELTOL1
                ERRYMAX        = GLOSS(KLOOP,JSPC) / CNEWYLOW
                ERRHOLD(KLOOP) = ERRHOLD(KLOOP) + ERRYMAX * ERRYMAX
@@ -584,14 +594,25 @@
 ! *   STORE INITIAL CONCENTRATION AND FIRST DERIVATIVES x TIME-STEP   * 
 ! *********************************************************************
 !
+!-----SDE DEBUG
+!      IF (IT_IS_NAN(CONC(10,1))) WRITE(6,'(a)') '-S-S-10-S-S-'
+!-----SDE DEBUG
       DO 155 JSPC        = 1, ISCHAN 
        JS1               = ISCHAN + JSPC
        DO 154 KLOOP      = 1, KTLOOP
+!-----SDE DEBUG
+!        IF (IT_IS_NAN(CNEW(KLOOP,JSPC))) THEN
+!           WRITE(6,'(a,1x,2I5)') 'SDE DEBUG 04', KLOOP, JSPC
+!        ENDIF
+!-----SDE DEBUG
         CONC(KLOOP,JSPC) = CNEW(KLOOP,JSPC)
         CONC(KLOOP,JS1)  = DELT * GLOSS(KLOOP,JSPC) 
  154   CONTINUE
  155  CONTINUE
 
+!-----SDE DEBUG
+!      IF (IT_IS_NAN(CONC(10,1))) WRITE(6,'(a)') '-S-S-9-S-S-'
+!-----SDE DEBUG
 !
 ! *********************************************************************
 ! ** UPDATE COEFFICIENTS OF THE ORDER. NQQ IS THE ORDER. ASET AND    **
@@ -627,6 +648,9 @@
       HRATIO        = HRATIO * RDELT 
       XELAPS        = XELAPS + DELT  
 
+!-----SDE DEBUG
+!      IF (IT_IS_NAN(CONC(10,1))) WRITE(6,'(a)') '-S-S-8-S-S-'
+!-----SDE DEBUG
 
 !
       IF (ABS(HRATIO-1.0).GT.HRMAX.OR.NSTEPS.GE.NSLP) JEVAL = 1
@@ -674,6 +698,9 @@
 ! * 1), THEN SCALE THE DERIVATIVES                                    *
 ! *********************************************************************
 !
+!-----SDE DEBUG
+!      IF (IT_IS_NAN(CONC(10,1))) WRITE(6,'(a)') '-S-S-7-S-S-'
+!-----SDE DEBUG
       IF (RDELT.NE.1.0) THEN
        RDELTA            = 1.0d0
        I1                = 1
@@ -683,10 +710,18 @@
         DO 182 I         = I1, I1 + ISCHAN1
          DO 180 KLOOP    = 1, KTLOOP
           CONC(KLOOP,I)  = CONC(KLOOP,I) * RDELTA  
+!-----SDE DEBUG
+!          IF (IT_IS_NAN(CONC(KLOOP,I))) THEN
+!              WRITE(6,'(a,1x,2I5)') 'SDE DEBUG 05', KLOOP, I
+!          ENDIF
+!-----SDE DEBUG
  180     CONTINUE
  182    CONTINUE
  184   CONTINUE
       ENDIF
+!-----SDE DEBUG
+!      IF (IT_IS_NAN(CONC(10,1))) WRITE(6,'(a)') '-S-S-6-S-S-'
+!-----SDE DEBUG
 !
 ! *********************************************************************
 ! * UPDATE PHOTO RATES BECAUSE THE TIME CHANGED.                      *
@@ -694,8 +729,14 @@
 ! * OR FAILED STEP                                                    * 
 ! *********************************************************************
 !
+!-----SDE DEBUG
+!      IF (IT_IS_NAN(CONC(10,1))) WRITE(6,'(a)') '-S-S-5-S-S-'
+!-----SDE DEBUG
       ! Called for photorates with no active loss terms (bdf, 4/18/03)
       IF (IFSUN.EQ.1.AND.XELAPS.NE.XELAPLAST) CALL UPDATE
+!-----SDE DEBUG
+!      IF (IT_IS_NAN(CONC(10,1))) WRITE(6,'(a)') '-S-S-4-S-S-'
+!-----SDE DEBUG
 !
 ! *********************************************************************
 ! * IF THE LAST STEP WAS SUCCESSFUL, RESET RDELMAX = 10 AND UPDATE    *
@@ -717,6 +758,9 @@
 !     the absolute error tolerance every on 3rd step. 
 ! *********************************************************************
 !
+!-----SDE DEBUG
+!      IF (IT_IS_NAN(CONC(10,1))) WRITE(6,'(a)') '-S-S-3-S-S-'
+!-----SDE DEBUG
        IF (MOD(NSTEPS,3).EQ.2) THEN
         DO 203 K              = 1, 5        
          DO 201 KLOOP         = 1, KTLOOP
@@ -769,6 +813,9 @@
          ENDIF
  209    CONTINUE
        ENDIF
+!-----SDE DEBUG
+!      IF (IT_IS_NAN(CONC(10,1))) WRITE(6,'(a)') '-S-S-2-S-S-'
+!-----SDE DEBUG
 !
 ! EXPLANATORY NOTES: (tmf, 11/1/07)
 ! (1) What is CHOLD?
@@ -789,6 +836,9 @@
 !
       ENDIF 
 
+!-----SDE DEBUG
+!      IF (IT_IS_NAN(CONC(10,1))) WRITE(6,'(a)') '-S-S-1-S-S-'
+!-----SDE DEBUG
 !     ENDIF IFSUCCESS.EQ.1
 !
 ! *********************************************************************
@@ -804,7 +854,20 @@
        DO 236 I          = 1, ISCHAN
         J                = I + ISCHAN
         DO 235 KLOOP     = 1, KTLOOP
+!-----SDE DEBUG
+!          IF (IT_IS_NAN(CONC(KLOOP,I))) THEN
+!              WRITE(6,'(a,1x,3I5)') 'SDE DEBUG 06.1', KLOOP, I, J
+!          ENDIF
+!          IF (IT_IS_NAN(CONC(KLOOP,J))) THEN
+!              WRITE(6,'(a,1x,3I5)') 'SDE DEBUG 06.1', KLOOP, I, J
+!          ENDIF
+!-----SDE DEBUG
          CONC(KLOOP,I)   = CONC(KLOOP,I) + CONC(KLOOP,J)
+!-----SDE DEBUG
+!          IF (IT_IS_NAN(CONC(KLOOP,I))) THEN
+!              WRITE(6,'(a,1x,3I5)') 'SDE DEBUG 06.2', KLOOP, I, J
+!          ENDIF
+!-----SDE DEBUG
  235    CONTINUE
  236   CONTINUE
 ! 
@@ -817,6 +880,14 @@
          CONC(KLOOP, I) = CONC(KLOOP, I) + CONC(KLOOP,J1)
      1                  +                  CONC(KLOOP,J2)
          CONC(KLOOP,J1) = CONC(KLOOP,J1) + CONC(KLOOP,J2) * 2.d0
+!-----SDE DEBUG
+!          IF (IT_IS_NAN(CONC(KLOOP,I))) THEN
+!              WRITE(6,'(a,1x,4I5)') 'SDE DEBUG 07a', KLOOP, I,J1,J2
+!          ENDIF
+!          IF (IT_IS_NAN(CONC(KLOOP,J1))) THEN
+!              WRITE(6,'(a,1x,4I5)') 'SDE DEBUG 07b', KLOOP, I,J1,J2
+!          ENDIF
+!-----SDE DEBUG
  237    CONTINUE
  238   CONTINUE
 !
@@ -832,6 +903,17 @@
      1                  + CONC(KLOOP,J2) + CONC(KLOOP,J3)
          CONC(KLOOP,J1) = CONC(KLOOP,J1) + CONC(KLOOP,J2)*2.d0 + CONC3J3 
          CONC(KLOOP,J2) = CONC(KLOOP,J2) + CONC3J3
+!-----SDE DEBUG
+!          IF (IT_IS_NAN(CONC(KLOOP,I))) THEN
+!              WRITE(6,'(a,1x,5I5)') 'SDE DEBUG 08a', KLOOP, I,J1,J2,J3
+!          ENDIF
+!          IF (IT_IS_NAN(CONC(KLOOP,J1))) THEN
+!              WRITE(6,'(a,1x,5I5)') 'SDE DEBUG 08b', KLOOP, I,J1,J2,J3
+!          ENDIF
+!          IF (IT_IS_NAN(CONC(KLOOP,J2))) THEN
+!              WRITE(6,'(a,1x,5I5)') 'SDE DEBUG 08c', KLOOP, I,J1,J2,J3
+!          ENDIF
+!-----SDE DEBUG
  239    CONTINUE
  240   CONTINUE
 !
@@ -852,6 +934,20 @@
      1                                   + CONC4J4
          CONC(KLOOP,J2) = CONC(KLOOP,J2) + CONC3J3 + CONC(KLOOP,J4)*6.d0 
          CONC(KLOOP,J3) = CONC(KLOOP,J3) + CONC4J4
+!-----SDE DEBUG
+!          IF (IT_IS_NAN(CONC(KLOOP,I))) THEN
+!              WRITE(6,'(a,1x,6I5)') 'SDE DEBUG 09a', KLOOP,I,J1,J2,J3,J4
+!          ENDIF
+!          IF (IT_IS_NAN(CONC(KLOOP,J1))) THEN
+!              WRITE(6,'(a,1x,6I5)') 'SDE DEBUG 09b', KLOOP,I,J1,J2,J3,J4
+!          ENDIF
+!          IF (IT_IS_NAN(CONC(KLOOP,J2))) THEN
+!              WRITE(6,'(a,1x,6I5)') 'SDE DEBUG 09c', KLOOP,I,J1,J2,J3,J4
+!          ENDIF
+!          IF (IT_IS_NAN(CONC(KLOOP,J3))) THEN
+!              WRITE(6,'(a,1x,6I5)') 'SDE DEBUG 09d', KLOOP,I,J1,J2,J3,J4
+!          ENDIF
+!-----SDE DEBUG
  241    CONTINUE 
  242   CONTINUE
 !
@@ -877,6 +973,23 @@
      1                                   + CONC10J5
          CONC(KLOOP,J3) = CONC(KLOOP,J3) + CONC4J4 + CONC10J5
          CONC(KLOOP,J4) = CONC(KLOOP,J4) + CONC5J5
+!-----SDE DEBUG
+!          IF (IT_IS_NAN(CONC(KLOOP,I))) THEN
+!           WRITE(6,'(a,1x,6I5)') 'SDE DEBUG 10a', KLOOP,I,J1,J2,J3,J4,J5
+!          ENDIF
+!          IF (IT_IS_NAN(CONC(KLOOP,J1))) THEN
+!           WRITE(6,'(a,1x,6I5)') 'SDE DEBUG 10b', KLOOP,I,J1,J2,J3,J4,J5
+!          ENDIF
+!          IF (IT_IS_NAN(CONC(KLOOP,J2))) THEN
+!           WRITE(6,'(a,1x,6I5)') 'SDE DEBUG 10c', KLOOP,I,J1,J2,J3,J4,J5
+!          ENDIF
+!          IF (IT_IS_NAN(CONC(KLOOP,J3))) THEN
+!           WRITE(6,'(a,1x,6I5)') 'SDE DEBUG 10d', KLOOP,I,J1,J2,J3,J4,J5
+!          ENDIF
+!          IF (IT_IS_NAN(CONC(KLOOP,J4))) THEN
+!           WRITE(6,'(a,1x,6I5)') 'SDE DEBUG 10e', KLOOP,I,J1,J2,J3,J4,J5
+!          ENDIF
+!-----SDE DEBUG
  243    CONTINUE
  244   CONTINUE
       ENDIF
@@ -940,11 +1053,26 @@
 ! * (3) DTLOS is the accumulation of deltaN (x array in Px = B)       *
 ! *********************************************************************
 !
+!-----SDE DEBUG
+!      IF (IT_IS_NAN(DELT)) THEN
+!         WRITE(6,'(a)') 'SDE DEBUG 400'
+!      ENDIF
+!-----SDE DEBUG
       DO 362 JSPC         = 1,  ISCHAN
        J                  = JSPC + ISCHAN
        DO 360 KLOOP       = 1, KTLOOP
+!-----SDE DEBUG
+!        IF (IT_IS_NAN(GLOSS(KLOOP,JSPC))) THEN
+!           WRITE(6,'(a,1x,2I5)') 'SDE DEBUG 401', KLOOP, JSPC
+!        ENDIF
+!-----SDE DEBUG
         GLOSS(KLOOP,JSPC) = DELT * GLOSS(KLOOP,JSPC)  
      1                    - (CONC(KLOOP,J) + DTLOS(KLOOP,JSPC))
+!-----SDE DEBUG
+!        IF (IT_IS_NAN(GLOSS(KLOOP,JSPC))) THEN
+!           WRITE(6,'(a,1x,2I5)') 'SDE DEBUG 402', KLOOP, JSPC
+!        ENDIF
+!-----SDE DEBUG
  360   CONTINUE
  362  CONTINUE
 
@@ -981,8 +1109,29 @@
       IF (ASN1.EQ.1.0) THEN 
        DO 368 I         = 1, ISCHAN
            DO 366 KLOOP    = 1, KTLOOP
+!-----SDE DEBUG
+!               IF (IT_IS_NAN(DTLOS(KLOOP,I))) THEN
+!                 WRITE(6,'(a,1x,2I5)') 'SDE DEBUG 301.1a', KLOOP, I
+!              ENDIF
+!               IF (IT_IS_NAN(GLOSS(KLOOP,I))) THEN
+!                 WRITE(6,'(a,1x,2I5)') 'SDE DEBUG 301.2a', KLOOP, I
+!              ENDIF
+!-----SDE DEBUG
               DTLOS(KLOOP,I) = DTLOS(KLOOP,I)  + GLOSS(KLOOP,I)
+!-----SDE DEBUG
+!              IF (IT_IS_NAN(DTLOS(KLOOP,I))) THEN
+!                 WRITE(6,'(a,1x,2I5)') 'SDE DEBUG 301b', KLOOP, I
+!              ENDIF
+!               IF (IT_IS_NAN(CONC(KLOOP,I))) THEN
+!                 WRITE(6,'(a,1x,2I5)') 'SDE DEBUG 301c', KLOOP, I
+!              ENDIF
+!-----SDE DEBUG
               CNEW(KLOOP,I)  = CONC(KLOOP,I)   + DTLOS(KLOOP,I)
+!-----SDE DEBUG
+!               IF (IT_IS_NAN(CNEW(KLOOP,I))) THEN
+!                 WRITE(6,'(a,1x,2I5)') 'SDE DEBUG 301d', KLOOP, I
+!              ENDIF
+!-----SDE DEBUG
               !---------------------------------------------------------------
               ! Added for the ND65 prod/loss diagnostic.  This prevents 
               ! ND65 prod/loss species from being counted towards the 
@@ -997,6 +1146,7 @@
       ELSE
        DO 372 I         = 1, ISCHAN
            DO 370 KLOOP    = 1, KTLOOP
+              
               DTLOS(KLOOP,I) = DTLOS(KLOOP,I)  + GLOSS(KLOOP,I)
               CNEW(KLOOP,I)  = CONC(KLOOP,I)   + ASN1  *  DTLOS(KLOOP,I)
               !---------------------------------------------------------------
@@ -1118,7 +1268,20 @@
        DO 376 I        = 1, ISCHAN
         J              = I + ISCHAN
         DO 375 KLOOP   = 1, KTLOOP
+!-----SDE DEBUG
+!          IF (IT_IS_NAN(CONC(KLOOP,I))) THEN
+!              WRITE(6,'(a,1x,3I5)') 'SDE DEBUG 106.1', KLOOP, I, J
+!          ENDIF
+!          IF (IT_IS_NAN(CONC(KLOOP,J))) THEN
+!              WRITE(6,'(a,1x,3I5)') 'SDE DEBUG 106.1', KLOOP, I, J
+!          ENDIF
+!-----SDE DEBUG
          CONC(KLOOP,I) = CONC(KLOOP,I) - CONC(KLOOP,J)
+!-----SDE DEBUG
+!          IF (IT_IS_NAN(CONC(KLOOP,I))) THEN
+!              WRITE(6,'(a,1x,3I5)') 'SDE DEBUG 106.2', KLOOP, I, J
+!          ENDIF
+!-----SDE DEBUG
  375    CONTINUE
  376   CONTINUE
 !
@@ -1130,6 +1293,14 @@
         DO 377 KLOOP    = 1, KTLOOP
          CONC(KLOOP, I) = CONC(KLOOP, I) - CONC(KLOOP,J1)-CONC(KLOOP,J2) 
          CONC(KLOOP,J1) = CONC(KLOOP,J1) - CONC(KLOOP,J2) * 2.d0 
+!-----SDE DEBUG
+!          IF (IT_IS_NAN(CONC(KLOOP,I))) THEN
+!              WRITE(6,'(a,1x,4I5)') 'SDE DEBUG 107a', KLOOP, I,J1,J2
+!          ENDIF
+!          IF (IT_IS_NAN(CONC(KLOOP,J1))) THEN
+!              WRITE(6,'(a,1x,4I5)') 'SDE DEBUG 107b', KLOOP, I,J1,J2
+!          ENDIF
+!-----SDE DEBUG
  377    CONTINUE
  378   CONTINUE
 !
@@ -1144,6 +1315,17 @@
      1                  - CONC(KLOOP,J2) - CONC(KLOOP,J3)
          CONC(KLOOP,J1) = CONC(KLOOP,J1) - CONC(KLOOP,J2)*2.d0 - CONC3J3 
          CONC(KLOOP,J2) = CONC(KLOOP,J2) - CONC3J3
+!-----SDE DEBUG
+!          IF (IT_IS_NAN(CONC(KLOOP,I))) THEN
+!              WRITE(6,'(a,1x,5I5)') 'SDE DEBUG 108a', KLOOP, I,J1,J2,J3
+!          ENDIF
+!          IF (IT_IS_NAN(CONC(KLOOP,J1))) THEN
+!              WRITE(6,'(a,1x,5I5)') 'SDE DEBUG 108b', KLOOP, I,J1,J2,J3
+!          ENDIF
+!          IF (IT_IS_NAN(CONC(KLOOP,J2))) THEN
+!              WRITE(6,'(a,1x,5I5)') 'SDE DEBUG 108c', KLOOP, I,J1,J2,J3
+!          ENDIF
+!-----SDE DEBUG
  379    CONTINUE
  380   CONTINUE
 !
@@ -1164,6 +1346,20 @@
      1                                   - CONC4J4
          CONC(KLOOP,J2) = CONC(KLOOP,J2) - CONC3J3 - CONC(KLOOP,J4)*6.d0 
          CONC(KLOOP,J3) = CONC(KLOOP,J3) - CONC4J4
+!-----SDE DEBUG
+!          IF (IT_IS_NAN(CONC(KLOOP,I))) THEN
+!              WRITE(6,'(a,1x,6I5)') 'SDE DEBUG 109a', KLOOP,I,J1,J2,J3,J4
+!          ENDIF
+!          IF (IT_IS_NAN(CONC(KLOOP,J1))) THEN
+!              WRITE(6,'(a,1x,6I5)') 'SDE DEBUG 109b', KLOOP,I,J1,J2,J3,J4
+!          ENDIF
+!          IF (IT_IS_NAN(CONC(KLOOP,J2))) THEN
+!              WRITE(6,'(a,1x,6I5)') 'SDE DEBUG 109c', KLOOP,I,J1,J2,J3,J4
+!          ENDIF
+!          IF (IT_IS_NAN(CONC(KLOOP,J3))) THEN
+!              WRITE(6,'(a,1x,6I5)') 'SDE DEBUG 109d', KLOOP,I,J1,J2,J3,J4
+!          ENDIF
+!-----SDE DEBUG
  381    CONTINUE 
  382   CONTINUE
 !
@@ -1189,6 +1385,23 @@
      2                                   - CONC10J5
          CONC(KLOOP,J3) = CONC(KLOOP,J3) - CONC4J4 - CONC10J5
          CONC(KLOOP,J4) = CONC(KLOOP,J4) - CONC5J5
+!-----SDE DEBUG
+!          IF (IT_IS_NAN(CONC(KLOOP,I))) THEN
+!           WRITE(6,'(a,1x,6I5)') 'SDE DEBUG 110a',KLOOP,I,J1,J2,J3,J4,J5
+!          ENDIF
+!          IF (IT_IS_NAN(CONC(KLOOP,J1))) THEN
+!           WRITE(6,'(a,1x,6I5)') 'SDE DEBUG 110b',KLOOP,I,J1,J2,J3,J4,J5
+!          ENDIF
+!          IF (IT_IS_NAN(CONC(KLOOP,J2))) THEN
+!           WRITE(6,'(a,1x,6I5)') 'SDE DEBUG 110c',KLOOP,I,J1,J2,J3,J4,J5
+!          ENDIF
+!          IF (IT_IS_NAN(CONC(KLOOP,J3))) THEN
+!           WRITE(6,'(a,1x,6I5)') 'SDE DEBUG 110d',KLOOP,I,J1,J2,J3,J4,J5
+!          ENDIF
+!          IF (IT_IS_NAN(CONC(KLOOP,J4))) THEN
+!           WRITE(6,'(a,1x,6I5)') 'SDE DEBUG 110e',KLOOP,I,J1,J2,J3,J4,J5
+!          ENDIF
+!-----SDE DEBUG
  383    CONTINUE
  384   CONTINUE
       ENDIF
@@ -1372,7 +1585,18 @@
         DO 472 JSPC     = 1, ISCHAN
          I              = JSPC + I1 - 1 
          DO 470 KLOOP   = 1, KTLOOP
+!-----SDE DEBUG
+!          IF (IT_IS_NAN(CONC(KLOOP,I))) THEN
+!             WRITE(6,'(a,1x,2I5)') 'SDE DEBUG 201a', KLOOP, I
+!          ENDIF
+!-----SDE DEBUG
           CONC(KLOOP,I) = CONC(KLOOP,I) + ASNQQJ * DTLOS(KLOOP,JSPC)
+!-----SDE DEBUG
+!          IF (IT_IS_NAN(CONC(KLOOP,I))) THEN
+!             WRITE(6,'(a,1x,2I5,E10.2)') 'SDE DEBUG 201b', KLOOP, I,
+!     &                         DTLOS(KLOOP,JSPC)
+!          ENDIF
+!-----SDE DEBUG
  470     CONTINUE
  472    CONTINUE
  474   CONTINUE
@@ -1380,13 +1604,30 @@
        IF (ASN1.EQ.1.0) THEN 
         DO 473 JSPC         = 1, ISCHAN
          DO 471 KLOOP       = 1, KTLOOP
+!-----SDE DEBUG
+!          IF (IT_IS_NAN(CONC(KLOOP,JSPC))) THEN
+!             WRITE(6,'(a,1x,2I5,1x,E10.2)') 'SDE DEBUG 202a', KLOOP, 
+!     &             JSPC, CONC(KLOOP,JSPC)
+!          ENDIF
+!-----SDE DEBUG
           CONC( KLOOP,JSPC) = CONC( KLOOP,JSPC) + DTLOS(KLOOP,JSPC)
+!-----SDE DEBUG
+!          IF (IT_IS_NAN(CONC(KLOOP,JSPC))) THEN
+!             WRITE(6,'(a,1x,2I5,1x,E10.2)') 'SDE DEBUG 202b', KLOOP, 
+!     &             JSPC, DTLOS(KLOOP,JSPC)
+!          ENDIF
+!-----SDE DEBUG
  471     CONTINUE 
  473    CONTINUE 
        ELSE
         DO 477 JSPC         = 1, ISCHAN
          DO 475 KLOOP       = 1, KTLOOP
           CONC( KLOOP,JSPC) = CONC( KLOOP,JSPC) + ASN1*DTLOS(KLOOP,JSPC)
+!-----SDE DEBUG
+!          IF (IT_IS_NAN(CNEW(KLOOP,JSPC))) THEN
+!             WRITE(6,'(a,1x,2I5)') 'SDE DEBUG 202', KLOOP, JSPC
+!          ENDIF
+!-----SDE DEBUG
  475     CONTINUE 
  477    CONTINUE 
        ENDIF 

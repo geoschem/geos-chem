@@ -142,6 +142,12 @@
       USE GMISTRAT_MOD,    ONLY : KHETI_SLA
       USE ERROR_MOD,       ONLY : IT_IS_FINITE
 
+!-----SDE DEBUG
+!      USE ERROR_MOD,       ONLY : IT_IS_NAN
+!      USE COMODE_MOD,      ONLY : IZSAVE
+!      USE inquireMod,      ONLY : findFreeLUN
+!      USE FILE_MOD,        ONLY : IOERROR
+!-----SDE DEBUG
       USE CMN_SIZE_MOD          ! Size parameters
       USE COMODE_LOOP_MOD       ! SMVGEAR II arrays
       USE CMN_DIAG_MOD          ! ND22, LD22, ND52, LD52
@@ -247,6 +253,13 @@
       LOGICAL :: KII_KI, PSCBOX
       REAL*8,PARAMETER :: MAXLOSSFACTOR=0.9d0
 
+!-----SDE DEBUG
+!      REAL*8 :: CURRLOSS
+!      REAL*8 :: SPCLOSS(NTSPEC(1))
+!      INTEGER :: SPCTARG(NMREAC)
+!      INTEGER IU_CSPC,IU_RATE,IU_LOSS,IOS,IREACT
+!      CHARACTER(LEN=255) :: DBGSTATUS, DBGACCESS
+!-----SDE DEBUG
 !-------------------------------------------------------------------------------
 ! Prior to 9/24/12:
 ! CALCRATE is already called within a parallel loop from routine PHYSPROC,
@@ -1144,139 +1157,142 @@ c new OH+CO rate from JPL2006.
                      ELSE
                         XSTKCF = TINY(1d0) ! avoid divide by zero
                      ENDIF
-                  ELSE IF ( NK == NKPSC(NCS,2 ) ) THEN
-                     ! N2O5(g)    + HCl(l,s)
-                     EDUCTCONC = PSCEDUCTCONC(2,2)
-                     KII_KI = .TRUE.
-                     IF (N.eq.8) THEN
-                        XSTKCF = 0.1d-4 ! Sulfate
-                     ELSEIF (N.eq.13) THEN
-                        XSTKCF = KHETI_SLA(IX,IY,IZ,2)
-                     ELSEIF (N.eq.14) THEN
-                        IF (NATSURFACE) THEN
-                           XSTKCF = 0.003d0 ! NAT
+                  ! Only consider PSC reactions in strat
+                  ELSE IF (PSCBOX) THEN
+                     IF ( NK == NKPSC(NCS,2 ) ) THEN
+                        ! N2O5(g)    + HCl(l,s)
+                        EDUCTCONC = PSCEDUCTCONC(2,2)
+                        KII_KI = .TRUE.
+                        IF (N.eq.8) THEN
+                           XSTKCF = 0.1d-4 ! Sulfate
+                        ELSEIF (N.eq.13) THEN
+                           XSTKCF = KHETI_SLA(IX,IY,IZ,2)
+                        ELSEIF (N.eq.14) THEN
+                           IF (NATSURFACE) THEN
+                              XSTKCF = 0.003d0 ! NAT
+                           ELSE
+                              XSTKCF = 0.03d0 ! Ice
+                           ENDIF
                         ELSE
-                           XSTKCF = 0.03d0 ! Ice
+                           XSTKCF = 0d0
                         ENDIF
-                     ELSE
-                        XSTKCF = 0d0
-                     ENDIF
-                  ELSE IF ( NK == NKPSC(NCS,3 ) ) THEN
-                     ! ClNO3(g)   + H2O(l,s)
-                     IF (N.eq.8) THEN
-                        XSTKCF = 0.1d-3 ! Sulfate
-                     ELSEIF (N.eq.13) THEN
-                        XSTKCF = KHETI_SLA(IX,IY,IZ,3)
-                     ELSEIF (N.eq.14) THEN
-                        IF (NATSURFACE) THEN
-                           XSTKCF = 0.004d0 ! NAT
+                     ELSE IF ( NK == NKPSC(NCS,3 ) ) THEN
+                        ! ClNO3(g)   + H2O(l,s)
+                        IF (N.eq.8) THEN
+                           XSTKCF = 0.1d-3 ! Sulfate
+                        ELSEIF (N.eq.13) THEN
+                           XSTKCF = KHETI_SLA(IX,IY,IZ,3)
+                        ELSEIF (N.eq.14) THEN
+                           IF (NATSURFACE) THEN
+                              XSTKCF = 0.004d0 ! NAT
+                           ELSE
+                              XSTKCF = 0.3d0 ! Ice
+                           ENDIF
                         ELSE
-                           XSTKCF = 0.3d0 ! Ice
+                           XSTKCF = 0d0
                         ENDIF
-                     ELSE
-                        XSTKCF = 0d0
-                     ENDIF
-                  ELSE IF ( NK == NKPSC(NCS,4 ) ) THEN
-                     ! ClNO3(g)   + HCl(l,s)
-                     EDUCTCONC = PSCEDUCTCONC(4,2)
-                     KII_KI = .TRUE.
-                     IF (N.eq.8) THEN
-                        XSTKCF = 0.1d-4 ! Sulfate
-                     ELSEIF (N.eq.13) THEN
-                        XSTKCF = KHETI_SLA(IX,IY,IZ,4)
-                     ELSEIF (N.eq.14) THEN
-                        IF (NATSURFACE) THEN
-                           XSTKCF = 0.2d0 ! NAT
+                     ELSE IF ( NK == NKPSC(NCS,4 ) ) THEN
+                        ! ClNO3(g)   + HCl(l,s)
+                        EDUCTCONC = PSCEDUCTCONC(4,2)
+                        KII_KI = .TRUE.
+                        IF (N.eq.8) THEN
+                           XSTKCF = 0.1d-4 ! Sulfate
+                        ELSEIF (N.eq.13) THEN
+                           XSTKCF = KHETI_SLA(IX,IY,IZ,4)
+                        ELSEIF (N.eq.14) THEN
+                           IF (NATSURFACE) THEN
+                              XSTKCF = 0.2d0 ! NAT
+                           ELSE
+                              XSTKCF = 0.3d0 ! Ice
+                           ENDIF
                         ELSE
-                           XSTKCF = 0.3d0 ! Ice
+                           XSTKCF = 0d0
                         ENDIF
-                     ELSE
-                        XSTKCF = 0d0
-                     ENDIF
-                  ELSE IF ( NK == NKPSC(NCS,5 ) ) THEN
-                     ! ClNO3(g)   + HBr(l,s)
-                     EDUCTCONC = PSCEDUCTCONC(5,2)
-                     KII_KI = .TRUE.
-                     IF (N.eq.8) THEN
-                        XSTKCF = 0.d0 ! Sulfate
-                     ELSEIF (N.eq.13) THEN
-                        XSTKCF = KHETI_SLA(IX,IY,IZ,5)
-                     ELSEIF (N.eq.14) THEN
-                        IF (NATSURFACE) THEN
-                           XSTKCF = 0.3d0 ! NAT
+                     ELSE IF ( NK == NKPSC(NCS,5 ) ) THEN
+                        ! ClNO3(g)   + HBr(l,s)
+                        EDUCTCONC = PSCEDUCTCONC(5,2)
+                        KII_KI = .TRUE.
+                        IF (N.eq.8) THEN
+                           XSTKCF = 0.d0 ! Sulfate
+                        ELSEIF (N.eq.13) THEN
+                           XSTKCF = KHETI_SLA(IX,IY,IZ,5)
+                        ELSEIF (N.eq.14) THEN
+                           IF (NATSURFACE) THEN
+                              XSTKCF = 0.3d0 ! NAT
+                           ELSE
+                              XSTKCF = 0.3d0 ! Ice
+                           ENDIF
                         ELSE
-                           XSTKCF = 0.3d0 ! Ice
+                           XSTKCF = 0d0
                         ENDIF
-                     ELSE
-                        XSTKCF = 0d0
-                     ENDIF
-                  ELSE IF ( NK == NKPSC(NCS,7 ) ) THEN
-                     ! BrNO3(g)   + HCl(l,s)
-                     EDUCTCONC = PSCEDUCTCONC(7,2)
-                     KII_KI = .TRUE.
-                     IF (N.eq.8) THEN
-                        XSTKCF = 0.9d0 ! Sulfate
-                     ELSEIF (N.eq.13) THEN
-                        XSTKCF = KHETI_SLA(IX,IY,IZ,7)
-                     ELSEIF (N.eq.14) THEN
-                        IF (NATSURFACE) THEN
-                           XSTKCF = 0.3d0 ! NAT
+                     ELSE IF ( NK == NKPSC(NCS,7 ) ) THEN
+                        ! BrNO3(g)   + HCl(l,s)
+                        EDUCTCONC = PSCEDUCTCONC(7,2)
+                        KII_KI = .TRUE.
+                        IF (N.eq.8) THEN
+                           XSTKCF = 0.9d0 ! Sulfate
+                        ELSEIF (N.eq.13) THEN
+                           XSTKCF = KHETI_SLA(IX,IY,IZ,7)
+                        ELSEIF (N.eq.14) THEN
+                           IF (NATSURFACE) THEN
+                              XSTKCF = 0.3d0 ! NAT
+                           ELSE
+                              XSTKCF = 0.3d0 ! Ice
+                           ENDIF
                         ELSE
-                           XSTKCF = 0.3d0 ! Ice
+                           XSTKCF = 0d0
                         ENDIF
-                     ELSE
-                        XSTKCF = 0d0
-                     ENDIF
-                  ELSE IF ( NK == NKPSC(NCS,8 ) ) THEN
-                     ! HOCl(g)    + HCl(l,s)
-                     EDUCTCONC = PSCEDUCTCONC(8,2)
-                     KII_KI = .TRUE.
-                     IF (N.eq.8) THEN
-                        XSTKCF = 0.8d0 ! Sulfate
-                     ELSEIF (N.eq.13) THEN
-                        XSTKCF = KHETI_SLA(IX,IY,IZ,8)
-                     ELSEIF (N.eq.14) THEN
-                        IF (NATSURFACE) THEN
-                           XSTKCF = 0.1d0 ! NAT
+                     ELSE IF ( NK == NKPSC(NCS,8 ) ) THEN
+                        ! HOCl(g)    + HCl(l,s)
+                        EDUCTCONC = PSCEDUCTCONC(8,2)
+                        KII_KI = .TRUE.
+                        IF (N.eq.8) THEN
+                           XSTKCF = 0.8d0 ! Sulfate
+                        ELSEIF (N.eq.13) THEN
+                           XSTKCF = KHETI_SLA(IX,IY,IZ,8)
+                        ELSEIF (N.eq.14) THEN
+                           IF (NATSURFACE) THEN
+                              XSTKCF = 0.1d0 ! NAT
+                           ELSE
+                              XSTKCF = 0.2d0 ! Ice
+                           ENDIF
                         ELSE
-                           XSTKCF = 0.2d0 ! Ice
+                           XSTKCF = 0d0
                         ENDIF
-                     ELSE
-                        XSTKCF = 0d0
-                     ENDIF
-                  ELSE IF ( NK == NKPSC(NCS,9 ) ) THEN
-                     ! HOCl(g)    + HBr(l,s)
-                     EDUCTCONC = PSCEDUCTCONC(9,2)
-                     KII_KI = .TRUE.
-                     IF (N.eq.8) THEN
-                        XSTKCF = 0.8d0 ! Sulfate
-                     ELSEIF (N.eq.13) THEN
-                        XSTKCF = KHETI_SLA(IX,IY,IZ,9)
-                     ELSEIF (N.eq.14) THEN
-                        IF (NATSURFACE) THEN
-                           XSTKCF = 0.3d0 ! NAT
+                     ELSE IF ( NK == NKPSC(NCS,9 ) ) THEN
+                        ! HOCl(g)    + HBr(l,s)
+                        EDUCTCONC = PSCEDUCTCONC(9,2)
+                        KII_KI = .TRUE.
+                        IF (N.eq.8) THEN
+                           XSTKCF = 0.8d0 ! Sulfate
+                        ELSEIF (N.eq.13) THEN
+                           XSTKCF = KHETI_SLA(IX,IY,IZ,9)
+                        ELSEIF (N.eq.14) THEN
+                           IF (NATSURFACE) THEN
+                              XSTKCF = 0.3d0 ! NAT
+                           ELSE
+                              XSTKCF = 0.3d0 ! Ice
+                           ENDIF
                         ELSE
-                           XSTKCF = 0.3d0 ! Ice
+                           XSTKCF = 0d0
                         ENDIF
-                     ELSE
-                        XSTKCF = 0d0
-                     ENDIF
-                  ELSE IF ( NK == NKPSC(NCS,10) ) THEN
-                     ! HOBr(g)    + HCl(l,s)
-                     EDUCTCONC = PSCEDUCTCONC(10,2)
-                     KII_KI = .TRUE.
-                     IF (N.eq.8) THEN
-                        XSTKCF = 0.8d0 ! Sulfate
-                     ELSEIF (N.eq.13) THEN
-                        XSTKCF = KHETI_SLA(IX,IY,IZ,10)
-                     ELSEIF (N.eq.14) THEN
-                        IF (NATSURFACE) THEN
-                           XSTKCF = 0.1d0 ! NAT
+                     ELSE IF ( NK == NKPSC(NCS,10) ) THEN
+                        ! HOBr(g)    + HCl(l,s)
+                        EDUCTCONC = PSCEDUCTCONC(10,2)
+                        KII_KI = .TRUE.
+                        IF (N.eq.8) THEN
+                           XSTKCF = 0.8d0 ! Sulfate
+                        ELSEIF (N.eq.13) THEN
+                           XSTKCF = KHETI_SLA(IX,IY,IZ,10)
+                        ELSEIF (N.eq.14) THEN
+                           IF (NATSURFACE) THEN
+                              XSTKCF = 0.1d0 ! NAT
+                           ELSE
+                              XSTKCF = 0.3d0 ! Ice
+                           ENDIF
                         ELSE
-                           XSTKCF = 0.3d0 ! Ice
+                           XSTKCF = 0d0
                         ENDIF
-                     ELSE
-                        XSTKCF = 0d0
                      ENDIF
                   ELSE
 
@@ -1305,6 +1321,15 @@ c new OH+CO rate from JPL2006.
                         ADJUSTEDRATE = 0d0
                      ENDIF
                   ENDIF
+
+                  !-----SDE DEBUG
+                  ! Sanity check!
+                  IF (ADJUSTEDRATE.lt.0d0) THEN
+                     WRITE(6,'(a,I5,1x,2E10.2)') 'NK/rate/XSTK:', 
+     &                               NK,ADJUSTEDRATE,XSTKCF
+                     CALL ERROR_STOP( 'Negative het rate!','calcrate.f')
+                  !ADJUSTEDRATE = MAX(0d0,ADJUSTEDRATE)
+                  !-----SDE DEBUG
 
                   ! Add to overall reaction rate
                   RRATE(KLOOP,NK) = RRATE(KLOOP,NK) + ADJUSTEDRATE
@@ -2282,7 +2307,85 @@ c new OH+CO rate from JPL2006.
       ! Pass JO1D and N2O5 to "planeflight_mod.f" (mje, bmy, 8/7/03)
       CALL ARCHIVE_RXNS_FOR_PF( DUMMY, DUMMY2 )
 
-
+!-----SDE DEBUG
+!      ! Brute force debugging
+!      ! Write all species concentrations and rates to file (!!)
+!      WRITE(6,'(a)') 'SDE DEBUG: BRUTE FORCE OUTPUT'
+!      WRITE(6,'(a,1x,I5)') 'IDEHNO3: ', IDEHNO3
+!      IF (JLOOPLO.eq.0) THEN
+!         ! Replace existing file
+!         DBGSTATUS = 'REPLACE'
+!         DBGACCESS = 'SEQUENTIAL'
+!      ELSE
+!         ! Append to existing file
+!         DBGSTATUS = 'OLD'
+!         DBGACCESS = 'APPEND'
+!      ENDIF
+!      IU_CSPC = findFreeLUN()
+!      OPEN( IU_CSPC,FILE='dbgspc',STATUS=TRIM(DBGSTATUS),
+!     &              IOSTAT=IOS,ACCESS=TRIM(DBGACCESS) )
+!      IF ( IOS /= 0 ) THEN
+!         WRITE(6,'(a)') 'SDE DEBUG: File write error!'
+!         CALL IOERROR( IOS, IU_CSPC, 'dbg error' )
+!      ENDIF
+!      IU_RATE = findFreeLUN()
+!      OPEN( IU_RATE,FILE='dbgrte',STATUS=TRIM(DBGSTATUS),
+!     &              IOSTAT=IOS,ACCESS=TRIM(DBGACCESS) )
+!      IF ( IOS /= 0 ) THEN
+!         CLOSE(IU_CSPC)
+!         WRITE(6,'(a)') 'SDE DEBUG: File write error!'
+!         CALL IOERROR( IOS, IU_RATE, 'dbg error' )
+!      ENDIF
+!      IU_LOSS = findFreeLUN()
+!      OPEN( IU_LOSS,FILE='dbglss',STATUS=TRIM(DBGSTATUS),
+!     &              IOSTAT=IOS,ACCESS=TRIM(DBGACCESS) )
+!      IF ( IOS /= 0 ) THEN
+!         CLOSE(IU_CSPC)
+!         CLOSE(IU_RATE)
+!         WRITE(6,'(a)') 'SDE DEBUG: File write error!'
+!         CALL IOERROR( IOS, IU_LOSS, 'dbg error' )
+!      ENDIF
+! 990  FORMAT(I5,1x,I3,1x,I3,1x,I3,1x,I5,1x,E10.3) ! Species conc.
+!      DO KLOOP=1,KTLOOP
+!         JLOOP = JREORDER(JLOOPLO+KLOOP)
+!         IX        = IXSAVE(JLOOP)
+!         IY        = IYSAVE(JLOOP)
+!         IZ        = IZSAVE(JLOOP)
+!         DO I=1,NTSPEC(NCS)
+!            SPCLOSS(I) = 0d0 ! Reset loss rates
+!            JOLD = MAPPL(I,NCS)
+!            !JOLD = I
+!            WRITE(IU_CSPC,990) KLOOP,IX,IY,IZ,I,CSPEC(JLOOP,JOLD)
+!         ENDDO
+!         DO NK=1,NALLRAT(NCS)
+!            WRITE(IU_RATE,990) KLOOP,IX,IY,IZ,NOLDFNEW(NK,NCS),
+!     &             RRATE(KLOOP,NOLDFNEW(NK,NCS))
+!            CURRLOSS = RRATE(KLOOP,NOLDFNEW(NK,NCS))
+!            DO I=1,NMREAC
+!               IREACT = IRM(I,NOLDFNEW(NK,NCS),NCS)
+!               IF ((IREACT.gt.0).and.(IREACT.le.NTSPEC(NCS))) THEN
+!                  SPCTARG(I) = IREACT
+!                  CURRLOSS = CURRLOSS * CSPEC(JLOOP,IREACT)
+!               ELSE
+!                  SPCTARG(I) = 0
+!               ENDIF
+!            ENDDO
+!            DO I=1,NMREAC
+!               IREACT = SPCTARG(I)
+!               IF (IREACT.gt.0) THEN
+!                  SPCLOSS(IREACT) = SPCLOSS(IREACT) - CURRLOSS
+!               ENDIF
+!            ENDDO
+!         ENDDO
+!         DO I=1,NTSPEC(NCS)
+!            WRITE(IU_LOSS,990) KLOOP,IX,IY,IZ,I,SPCLOSS(I)
+!            SPCLOSS(I) = 0d0
+!         ENDDO
+!      ENDDO
+!      CLOSE(IU_CSPC)
+!      CLOSE(IU_RATE)
+!      CLOSE(IU_LOSS)
+!-----SDE DEBUG
       !*********KPP_INTERFACE************ (phs,ks,dhk, 09/15/09)
       IF ( LKPP ) THEN 
          I = 1

@@ -84,6 +84,7 @@
       LOGICAL :: LSSALT          ! Use sea-salt aerosol tracers?
       LOGICAL :: LDICARB         ! Use dicarbonyl chemistry mechanism?
       LOGICAL :: LGRAVSTRAT      ! Perform graviational settling in strat?
+      LOGICAL :: LSOLIDPSC       ! Allow solid PSC formation?
       LOGICAL :: LHOMNUCNAT      ! Allow homogeneous NAT nucleation?
 
       !%%%% Chemistry %%%%

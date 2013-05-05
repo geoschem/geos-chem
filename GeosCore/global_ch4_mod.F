@@ -3250,6 +3250,7 @@
 ! !USES:
 !
       USE TRACERID_MOD, ONLY : IDTCH4
+      USE LOGICAL_MOD,  ONLY : LCH4EMIS
       USE CMN_SIZE_MOD       ! Size parameters
 !
 ! !INPUT PARAMETERS: 
@@ -3275,7 +3276,7 @@
       !=================================================================
       !  GET_CH4_ANTHRO begins here
       !=================================================================
-      IF ( N == IDTCH4 ) THEN
+      IF (( LCH4EMIS ).and.( N == IDTCH4 )) THEN
          CH4_ANTHRO = SUMANTHRO(I,J)
       ELSE
          CH4_ANTHRO = -1d0
@@ -3302,6 +3303,7 @@
 ! !USES:
 !
       USE TRACERID_MOD, ONLY : IDTCH4
+      USE LOGICAL_MOD,  ONLY : LCH4EMIS
       USE CMN_SIZE_MOD       ! Size parameters
 !
 ! !INPUT PARAMETERS: 
@@ -3327,7 +3329,7 @@
       !=================================================================
       !  GET_CH4_BIOG begins here
       !=================================================================
-      IF ( N == IDTCH4 ) THEN
+      IF (( LCH4EMIS ).and.( N == IDTCH4 )) THEN
          CH4_BIOG = SUMBIOG(I,J)
       ELSE
          CH4_BIOG = -1d0

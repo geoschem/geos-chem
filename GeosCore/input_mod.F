@@ -1284,6 +1284,7 @@
       USE LOGICAL_MOD,  ONLY : LSULF, LCARB, LSOA
       USE LOGICAL_MOD,  ONLY : LDUST, LDEAD, LSSALT, LCRYST
       USE LOGICAL_MOD,  ONLY : LDICARB, LGRAVSTRAT, LHOMNUCNAT
+      USE LOGICAL_MOD,  ONLY : LSOLIDPSC
       USE GMISTRAT_MOD, ONLY : T_NAT_SUPERCOOL, P_ICE_SUPERSAT
       USE TRACER_MOD,   ONLY : N_TRACERS
       USE TRACER_MOD,   ONLY : SALA_REDGE_um,      SALC_REDGE_um
@@ -1391,8 +1392,12 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:11' )
       READ( SUBSTRS(1:N), * ) LGRAVSTRAT  
 
-      ! Allow homogeneous nucleation of NAT?
+      ! Use solid polar stratospheric clouds (PSCs)?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:12' )
+      READ( SUBSTRS(1:N), * ) LSOLIDPSC   
+
+      ! Allow homogeneous nucleation of NAT?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:13' )
       READ( SUBSTRS(1:N), * ) LHOMNUCNAT 
 
       ! NAT supercooling requirement (K)
@@ -1400,11 +1405,11 @@
       READ( SUBSTRS(1:N), * ) T_NAT_SUPERCOOL
 
       ! Ice supersaturation ratio requirement
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:14' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:15' )
       READ( SUBSTRS(1:N), * ) P_ICE_SUPERSAT
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:15' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:16' )
 
       !=================================================================
       ! Error checks
@@ -1589,6 +1594,7 @@
          WRITE( 6, 110     ) 'Coarse SEA SALT radii [um]  : ',
      &                        SALC_REDGE_um(1), SALC_REDGE_um(2)
          WRITE( 6, 100     ) 'Settle strat. aerosols?     : ',LGRAVSTRAT
+         WRITE( 6, 100     ) 'Online SOLID PSC aerosols?  : ',LSOLIDPSC
          WRITE( 6, 100     ) 'Allow hom. NAT nucleation?  : ',LHOMNUCNAT
          WRITE( 6, 120     ) 'NAT supercooling requirement: ',
      &                                                 T_NAT_SUPERCOOL
@@ -7171,6 +7177,7 @@
       LOCSEMIS       = .FALSE.
       LN2OEMIS       = .FALSE.
       LGRAVSTRAT     = .FALSE.
+      LSOLIDPSC      = .FALSE.
       LHOMNUCNAT     = .FALSE.
 
       !Specifically for CO2 simulation (R Nassar, 2009-03-02)

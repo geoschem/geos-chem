@@ -25,7 +25,10 @@
       USE TIME_MOD,        ONLY : TIMESTAMP_STRING
       USE CHEMISTRY_MOD,   ONLY : GCKPP_DRIVER
       USE GCKPP_GLOBAL,    ONLY : NTT
-
+!-----SDE DEBUG
+!!      USE ERROR_MOD,       ONLY : IT_IS_NAN
+!      USE ERROR_MOD,       ONLY : ERROR_STOP
+!-----SDE DEBUG
       USE CMN_SIZE_MOD  ! Size parameters
       USE COMODE_LOOP_MOD  ! SMVGEAR II arrays
 
@@ -339,6 +342,9 @@
              CALL SMVGEAR
           call CPU_TIME(finish)
 
+!-----SDE DEBUG
+!          IF (KBLK.eq.15) CALL ERROR_STOP('HARDKILL','physproc.F')
+!-----SDE DEBUG
 !
 ! *********************************************************************
 ! * REPLACE BLOCK CONCENTRATIONS (# CM-3) INTO DOMAIN CONCENTRATIONS  *

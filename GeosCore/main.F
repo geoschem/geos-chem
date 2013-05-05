@@ -407,7 +407,7 @@
 
       ! Initialize stratospheric routines
       IF (LGMISTRAT) THEN
-         CALL INIT_GMISTRAT
+         CALL INIT_GMISTRAT( am_I_Root, NYMDb, NHMSb )
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INIT_GMISTRAT' )
       ENDIF
 
@@ -564,6 +564,13 @@
                IF ( LCHEM .and. LSVCSPEC ) THEN 
                   CALL MAKE_CSPEC_FILE( NYMD, NHMS )
                ENDIF 
+
+#if defined( GMISTRAT )
+               ! Write PSC data
+               IF ( LGMISTRAT ) THEN
+                  CALL MAKE_PSC_FILE( NYMD, NHMS )
+               ENDIF
+#endif
 
                !### Debug
                IF ( LPRT ) THEN
