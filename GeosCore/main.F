@@ -331,6 +331,25 @@
       ! Debug output
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_INPUT_FILE' )
 
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Do not initialize met field arrays from "dao_mod.F"
+      ! (mpayer, 3/14/13)
+      !-----------------------------------------------------------------
+#else
+      !-----------------------------------------------------------------
+      !                %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Initialize met field arrays from "dao_mod.F" used to
+      ! correct vertical regridding of OH for offline simulations
+      ! (mpayer, 3/14/13)
+      !-----------------------------------------------------------------
+      CALL INIT_DAO
+      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_DAO' )
+#endif
+
       !-----------------------------------------------------------------
       ! %%%% REPLICATING GIGC FUNCTIONALITY IN EXISTING GEOS-CHEM %%%%
       !

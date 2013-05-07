@@ -136,7 +136,7 @@
          YEAR = GET_YEAR()
 
          ! Read monthly mean OH from disk [molecule/cm3]
-         CALL GET_GLOBAL_OH( MONTH)
+         CALL GET_GLOBAL_OH( MONTH, State_Met )
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMPOPS: a GET_GLOBAL_OH' )
 
          ! Read monthly mean O3 from disk [molecule/cm3]

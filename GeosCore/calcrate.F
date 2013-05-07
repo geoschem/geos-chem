@@ -189,6 +189,7 @@
 
       ! External functions
       REAL*8, EXTERNAL :: RTFUNC, FYRNO3,  ARSL1K,  FJFUNC, FYHORO
+      REAL*8, EXTERNAL :: FCRO2HO2 !fgap
 
       CHARACTER*8      :: SPECNAME
 
@@ -688,6 +689,18 @@
 ! *                       SET SPECIAL RATES                           *
 ! *********************************************************************
 !
+
+! FGAP  25/02/2011 
+! add carbon dependence of RO2+HO2
+         DO I  = 1, NNRO2HO2(NCS)
+            NK         = NKSPECRO2HO2( I,NCS )
+            DO KLOOP   = 1, KTLOOP
+               RRATE(KLOOP,NK) = RRATE(KLOOP,NK) * 
+     &              FCRO2HO2(RRATE(KLOOP,NK+1))
+           ENDDO
+         ENDDO
+
+
 ! ---  K = K1 + K2  ---- 
          IF (NKSPECW(NCS).GT.0) THEN
             NK         = NKSPECW( I )
@@ -2302,7 +2315,8 @@ c new OH+CO rate from JPL2006.
      
       ! If negative value is calculated, set it to zero
       IF ( GAMMA  <= 0d0 ) GAMMA = 0d0
-
+! This is for v9-02h, which is the improved HO2 uptake.
+!      GAMMA = 1d0
       ! Return to CALCRATE
       END FUNCTION HO2
 

@@ -1759,7 +1759,7 @@
                DO M=1,12
 
                   ! Global OH 
-                  CALL GET_GLOBAL_OH( M )
+                  CALL GET_GLOBAL_OH( M, State_Met )
 
                   ! Assign to module variable BOH
                   BOH(:,:,:,M) = OH(:,:,:)

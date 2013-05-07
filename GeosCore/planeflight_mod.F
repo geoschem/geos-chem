@@ -1524,16 +1524,8 @@
                      N = PVAR(V) - 100000
                      
                      ! Convert from [kg] --> [v/v]
-!--------------------eds test sampling 1 level up----------------------------
-                     IF (L < LLPAR) THEN
-                        LL = L + 1
-                     ELSE
-                        LL = L
-                     ENDIF
-
                      VARI(V) = STT(I,J,L,N) * TCVV(N) /
      &                         State_Met%AD(I,J,L)
-!----------------------------------------------------------------------------
 
                      IF ( VARI(V) < TINY ) VARI(V) = 0.d0
 

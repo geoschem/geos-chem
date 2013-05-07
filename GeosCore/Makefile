@@ -296,7 +296,9 @@ biofuel_mod.o               : biofuel_mod.F                                  \
                               dao_mod.o               diag_mod.o             \
                               epa_nei_mod.o           future_emissions_mod.o \
                               logical_mod.o           streets_anthro_mod.o   \
-                              tracerid_mod.o          tracer_mod.o    
+                              tracerid_mod.o          tracer_mod.o           \
+                              bravo_mod.o             logical_mod.o          \
+                              emep_mod.o              cac_anthro_mod.o
 
 biofit.o                    : biofit.F
 
@@ -421,7 +423,9 @@ cleanup.o                   : cleanup.F                                      \
                               icoads_ship_mod.o       tpcore_fvdas_mod.o     \
                               tpcore_geos5_window_mod.o                      \
                               tpcore_geos57_window_mod.o                     \
-                              retro_mod.o             strat_chem_mod.o
+                              retro_mod.o             strat_chem_mod.o       \
+                              global_bc_mod.o         global_oc_mod.o        \
+                              diag53_mod.o
 
 cldice_HBrHOBr_rxn.o        : cldice_HBrHOBr_rxn.F
 
@@ -617,6 +621,8 @@ fvdas_convect_mod.o         : fvdas_convect_mod.F                            \
                               tracerid_mod.o          tracer_mod.o  
 
 fyhoro.o                    : fyhoro.F
+
+fcro2ho2.o                  : fcro2ho2.F
 
 fyrno3.o                    : fyrno3.F
 

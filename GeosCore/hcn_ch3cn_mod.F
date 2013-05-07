@@ -544,7 +544,7 @@
 
       ! Read offline OH fields once per month
       IF ( ITS_A_NEW_MONTH() ) THEN 
-         CALL GET_GLOBAL_OH( GET_MONTH() )
+         CALL GET_GLOBAL_OH( GET_MONTH(), State_Met )
       ENDIF
      
       ! Compute number of tracers to process

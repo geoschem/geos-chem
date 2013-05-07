@@ -404,6 +404,7 @@
       !      pseudo reactions (in place of HBr + HOBr --ice-->) (jpp, 6/16/11)
       ! Add NKO3PHOTH2 to account for the H2 reaction of O1D (bhh, jmao,
       !  eam, 7/18/11)
+      !Added NNRO2HO2(jmao, 11/17/2012)
       INTEGER            NNADD1,        NNADDA(ICS),  NNADDB(  ICS), 
      &                   NNADDC(ICS),   NNADDD(ICS),  NNADDK(  ICS), 
      &                   NNADDV(ICS),   NNADDZ,       
@@ -411,10 +412,10 @@
      &                   NNADDG(ICS),   NEMIS( ICS),  NDRYDEP( ICS),
      &                   NNADDF(ICS),   NNADDH(ICS), 
      &                   NKHOROI(ICS),  NKHOROJ(ICS),
-     &                   NKHNO4(ICS),   NKN2O5,       NKHO2,
+     &                   NKHNO4(ICS),   NKN2O5,       NKHO2, 
      &                   NKGLYC(ICS,2), NKHAC(ICS,2), NKMCO3(ICS,3),
      &                   NKBrNO3,       NKHOBr,       NK1HBr, 
-     &                   NK2HOBr,       NK2HBr
+     &                   NK2HOBr,       NK2HBr,       NNRO2HO2(ICS) 
 
       INTEGER ::         IH2O,        IOXYGEN,   MB1,      MB2
 
@@ -451,7 +452,7 @@
 
       ! Add NKSPECG for DMS+OH+O2 rxn (bdf, bmy, 4/18/03)
       ! Added NKSPECF, NKSPECH to /IDICS/ for C2H4 chemistry (tmf, 3/6/09) 
-
+      ! Added NKSPECRO2HO2 for RO2+HO2 (jmao, 11/17/2012)
       INTEGER ::
      &  NMOTH(   ICS), NTSPEC( ICS), JPHOTRAT(ICS),
      &  ISGAINR( ICS), ISPORL( ICS), NOGAINE( ICS),   NOUSE(    ICS),
@@ -464,7 +465,7 @@
      &  NKSPECY( ICS), NKSPECZ(ICS), NKSPECV(MAXGL2,ICS),ISLOSSR(ICS),
      &  NKSPECA(  MAXGL3,ICS), NKSPECB(  MAXGL3,ICS),
      &  NKSPECC(MAXGL3,ICS),NKSPECD(MAXGL3,ICS),NKSPECK(MAXGL3,ICS),
-     &  NKSPECG(MAXGL2,ICS),
+     &  NKSPECG(MAXGL2,ICS),NKSPECRO2HO2(MAXGL3,ICS),
      &  NKSPECF(MAXGL3,ICS), NKSPECH(MAXGL3,ICS)
 
       ! re-define some nkspec* arrays for harvard chem mechanism (bdf)

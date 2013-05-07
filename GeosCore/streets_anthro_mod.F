@@ -589,7 +589,7 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_527 )
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
             IF ( State_Met%FROCEAN(I,J) == 1d0 ) SCALOC(I,J) = 0d0
 #else
             IF ( IS_WATER(I,J,State_Met) ) SCALOC(I,J) = 0d0
@@ -1730,6 +1730,8 @@
             
             WHERE ( MASK_CHINA > 0 ) CO = TEMP
 
+            ! switch and scale
+            CO = CO * ONOFF( 1 )
 
          ENDIF
             

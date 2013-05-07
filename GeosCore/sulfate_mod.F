@@ -555,7 +555,7 @@
 
          ! Then read monthly data files ...
          IF ( ITS_A_NEW_MONTH() ) THEN 
-            CALL GET_GLOBAL_OH( MONTH )
+            CALL GET_GLOBAL_OH( MONTH, State_Met )
             CALL GET_GLOBAL_NO3( MONTH )
          ENDIF
 

@@ -786,7 +786,7 @@
          MONTH = GET_MONTH()
 
          ! Global OH 
-         CALL GET_GLOBAL_OH( MONTH )
+         CALL GET_GLOBAL_OH( MONTH, State_Met )
 
 	 ! Global O1D
 	 CALL GET_GLOBAL_O1D( MONTH )
