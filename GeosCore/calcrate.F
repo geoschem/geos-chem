@@ -113,9 +113,6 @@
       USE LOGICAL_MOD,     ONLY : LGMISTRAT
       USE TRACERID_MOD,    ONLY : IDTCH4
 
-      ! Prevent overrun (SDE 04/24/13)
-      USE TIME_MOD,        ONLY : GET_TS_CHEM
-
       !UPDATE BY GVINKEN, USE FOR SHIPS EMISSIONS
       USE ICOADS_SHIP_MOD, ONLY : GET_ICOADS_SHIP  !(cklee, 7/09/09)
       USE LOGICAL_MOD,     ONLY : LICOADSSHIP      !(cklee, 6/30/09)
@@ -142,12 +139,6 @@
       USE GMISTRAT_MOD,    ONLY : KHETI_SLA
       USE ERROR_MOD,       ONLY : IT_IS_FINITE
 
-!-----SDE DEBUG
-!      USE ERROR_MOD,       ONLY : IT_IS_NAN
-!      USE COMODE_MOD,      ONLY : IZSAVE
-!      USE inquireMod,      ONLY : findFreeLUN
-!      USE FILE_MOD,        ONLY : IOERROR
-!-----SDE DEBUG
       USE CMN_SIZE_MOD          ! Size parameters
       USE COMODE_LOOP_MOD       ! SMVGEAR II arrays
       USE CMN_DIAG_MOD          ! ND22, LD22, ND52, LD52
@@ -246,20 +237,10 @@
       REAL*8  :: DUMMYO2(KBLOOP)
       REAL*8  :: EDUCTCONC
       REAL*8  :: PSCEDUCTCONC(13,2)
-      REAL*8  :: LOSS_HETRXN
-      REAL*8  :: DTCHEM
       LOGICAL :: NATSURFACE
       REAL*8  :: ADJUSTEDRATE
       LOGICAL :: KII_KI, PSCBOX
-      REAL*8,PARAMETER :: MAXLOSSFACTOR=0.9d0
 
-!-----SDE DEBUG
-!      REAL*8 :: CURRLOSS
-!      REAL*8 :: SPCLOSS(NTSPEC(1))
-!      INTEGER :: SPCTARG(NMREAC)
-!      INTEGER IU_CSPC,IU_RATE,IU_LOSS,IOS,IREACT
-!      CHARACTER(LEN=255) :: DBGSTATUS, DBGACCESS
-!-----SDE DEBUG
 !-------------------------------------------------------------------------------
 ! Prior to 9/24/12:
 ! CALCRATE is already called within a parallel loop from routine PHYSPROC,
@@ -981,9 +962,6 @@ c new OH+CO rate from JPL2006.
             ! Check surface type of PSCs (SDE 04/17/13)
             CALL CHECK_NAT(IX,IY,IZ,NATSURFACE,PSCBOX)
 
-            ! Needed to check limiting cases
-            DTCHEM = GET_TS_CHEM() * 60.d0
-
             ! Set PSC educt concentrations (SDE 04/24/13)
             PSCEDUCTCONC( 1,1) = CSPEC(JLOOP,IDN2O5)
             PSCEDUCTCONC( 1,2) = ABSHUMK(KLOOP)
@@ -1315,21 +1293,13 @@ c new OH+CO rate from JPL2006.
                   ! Pseudo-first-order reaction - divide by number-conc
                   ! of aerosol-phase educt
                   IF (KII_KI) THEN
-                     IF (IS_SAFE_DIV(ADJUSTEDRATE,EDUCTCONC)) THEN
+                     IF ((EDUCTCONC.gt.1.d-1).and.
+     &                      (IS_SAFE_DIV(ADJUSTEDRATE,EDUCTCONC))) THEN
                         ADJUSTEDRATE = ADJUSTEDRATE/EDUCTCONC
                      ELSE
                         ADJUSTEDRATE = 0d0
                      ENDIF
                   ENDIF
-
-                  !-----SDE DEBUG
-                  ! Sanity check!
-                  IF (ADJUSTEDRATE.lt.0d0) THEN
-                     WRITE(6,'(a,I5,1x,2E10.2)') 'NK/rate/XSTK:', 
-     &                               NK,ADJUSTEDRATE,XSTKCF
-                     CALL ERROR_STOP( 'Negative het rate!','calcrate.f')
-                  !ADJUSTEDRATE = MAX(0d0,ADJUSTEDRATE)
-                  !-----SDE DEBUG
 
                   ! Add to overall reaction rate
                   RRATE(KLOOP,NK) = RRATE(KLOOP,NK) + ADJUSTEDRATE
@@ -1467,53 +1437,6 @@ c new OH+CO rate from JPL2006.
                RRATE(KLOOP, NK2HOBr) = ki_hobr
             ENDIF
 
-!-----SDE DEBUG
-!            ! ---------------------------------------------------
-!            ! Heterogeneous chemistry somewhat unstable
-!            ! Limit loss rate to depletion of either
-!            ! reactant chemistry timestep (SDE 04/24/13)
-!            !----------------------------------------------------
-!            DO N = 2,11
-!               NK = NKPSC(NCS,N)
-!               ! If gas-phase species concentration is below
-!               ! that of liquid-phase species, limit reaction
-!               IF (NK==0) CYCLE
-!               ADJUSTEDRATE = RRATE(KLOOP,NK)
-!               LOSS_HETRXN = PSCEDUCTCONC(N,1)*PSCEDUCTCONC(N,2)*
-!     &                               ADJUSTEDRATE*DTCHEM
-!               ! Find limiting reactant
-!               EDUCTCONC = MAXLOSSFACTOR*MINVAL(PSCEDUCTCONC(N,:))
-!               IF (LOSS_HETRXN .gt. EDUCTCONC) THEN
-!!                  !-----SDE DEBUG
-!!                  EDUCTCONC = ADJUSTEDRATE ! temp storage
-!!                  !-----SDE DEBUG
-!                  ! Rate too high - will deplete one species
-!                  IF (PSCEDUCTCONC(N,1).gt.PSCEDUCTCONC(N,2)) THEN
-!                     ADJUSTEDRATE = MAXLOSSFACTOR/
-!     &                               (DTCHEM*PSCEDUCTCONC(N,1))
-!                  ELSE
-!                     ADJUSTEDRATE = MAXLOSSFACTOR/
-!     &                               (DTCHEM*PSCEDUCTCONC(N,2))
-!                  ENDIF
-!!                  !-----SDE DEBUG
-!!                  WRITE(6,'(a,1x,4I2,1x,3E10.2)') 'RADJ: IJLN A B B/A:',
-!!     &               IX,IY,IZ,N,EDUCTCONC,ADJUSTEDRATE,
-!!     &               ADJUSTEDRATE/EDUCTCONC
-!!                  !-----SDE DEBUG
-!                  ! Check that we have a sensible final rate
-!                  IF (.not.IT_IS_FINITE(ADJUSTEDRATE)) THEN
-!                     ADJUSTEDRATE = TINY(0d0)
-!                  ENDIF
-!                  RRATE(KLOOP,NK) = ADJUSTEDRATE
-!                  IF (N.eq.11) THEN
-!                     ! Need to set NK1HBr as well
-!                     RRATE(KLOOP,NK1HBr) = ADJUSTEDRATE*
-!     &                       PSCEDUCTCONC(N,1)/PSCEDUCTCONC(N,2)
-!                  ENDIF
-!               ENDIF
-!            ENDDO
-!-----SDE DEBUG
-            
          ELSE
 
             !===========================================================
@@ -2307,85 +2230,6 @@ c new OH+CO rate from JPL2006.
       ! Pass JO1D and N2O5 to "planeflight_mod.f" (mje, bmy, 8/7/03)
       CALL ARCHIVE_RXNS_FOR_PF( DUMMY, DUMMY2 )
 
-!-----SDE DEBUG
-!      ! Brute force debugging
-!      ! Write all species concentrations and rates to file (!!)
-!      WRITE(6,'(a)') 'SDE DEBUG: BRUTE FORCE OUTPUT'
-!      WRITE(6,'(a,1x,I5)') 'IDEHNO3: ', IDEHNO3
-!      IF (JLOOPLO.eq.0) THEN
-!         ! Replace existing file
-!         DBGSTATUS = 'REPLACE'
-!         DBGACCESS = 'SEQUENTIAL'
-!      ELSE
-!         ! Append to existing file
-!         DBGSTATUS = 'OLD'
-!         DBGACCESS = 'APPEND'
-!      ENDIF
-!      IU_CSPC = findFreeLUN()
-!      OPEN( IU_CSPC,FILE='dbgspc',STATUS=TRIM(DBGSTATUS),
-!     &              IOSTAT=IOS,ACCESS=TRIM(DBGACCESS) )
-!      IF ( IOS /= 0 ) THEN
-!         WRITE(6,'(a)') 'SDE DEBUG: File write error!'
-!         CALL IOERROR( IOS, IU_CSPC, 'dbg error' )
-!      ENDIF
-!      IU_RATE = findFreeLUN()
-!      OPEN( IU_RATE,FILE='dbgrte',STATUS=TRIM(DBGSTATUS),
-!     &              IOSTAT=IOS,ACCESS=TRIM(DBGACCESS) )
-!      IF ( IOS /= 0 ) THEN
-!         CLOSE(IU_CSPC)
-!         WRITE(6,'(a)') 'SDE DEBUG: File write error!'
-!         CALL IOERROR( IOS, IU_RATE, 'dbg error' )
-!      ENDIF
-!      IU_LOSS = findFreeLUN()
-!      OPEN( IU_LOSS,FILE='dbglss',STATUS=TRIM(DBGSTATUS),
-!     &              IOSTAT=IOS,ACCESS=TRIM(DBGACCESS) )
-!      IF ( IOS /= 0 ) THEN
-!         CLOSE(IU_CSPC)
-!         CLOSE(IU_RATE)
-!         WRITE(6,'(a)') 'SDE DEBUG: File write error!'
-!         CALL IOERROR( IOS, IU_LOSS, 'dbg error' )
-!      ENDIF
-! 990  FORMAT(I5,1x,I3,1x,I3,1x,I3,1x,I5,1x,E10.3) ! Species conc.
-!      DO KLOOP=1,KTLOOP
-!         JLOOP = JREORDER(JLOOPLO+KLOOP)
-!         IX        = IXSAVE(JLOOP)
-!         IY        = IYSAVE(JLOOP)
-!         IZ        = IZSAVE(JLOOP)
-!         DO I=1,NTSPEC(NCS)
-!            SPCLOSS(I) = 0d0 ! Reset loss rates
-!            JOLD = MAPPL(I,NCS)
-!            !JOLD = I
-!            WRITE(IU_CSPC,990) KLOOP,IX,IY,IZ,I,CSPEC(JLOOP,JOLD)
-!         ENDDO
-!         DO NK=1,NALLRAT(NCS)
-!            WRITE(IU_RATE,990) KLOOP,IX,IY,IZ,NOLDFNEW(NK,NCS),
-!     &             RRATE(KLOOP,NOLDFNEW(NK,NCS))
-!            CURRLOSS = RRATE(KLOOP,NOLDFNEW(NK,NCS))
-!            DO I=1,NMREAC
-!               IREACT = IRM(I,NOLDFNEW(NK,NCS),NCS)
-!               IF ((IREACT.gt.0).and.(IREACT.le.NTSPEC(NCS))) THEN
-!                  SPCTARG(I) = IREACT
-!                  CURRLOSS = CURRLOSS * CSPEC(JLOOP,IREACT)
-!               ELSE
-!                  SPCTARG(I) = 0
-!               ENDIF
-!            ENDDO
-!            DO I=1,NMREAC
-!               IREACT = SPCTARG(I)
-!               IF (IREACT.gt.0) THEN
-!                  SPCLOSS(IREACT) = SPCLOSS(IREACT) - CURRLOSS
-!               ENDIF
-!            ENDDO
-!         ENDDO
-!         DO I=1,NTSPEC(NCS)
-!            WRITE(IU_LOSS,990) KLOOP,IX,IY,IZ,I,SPCLOSS(I)
-!            SPCLOSS(I) = 0d0
-!         ENDDO
-!      ENDDO
-!      CLOSE(IU_CSPC)
-!      CLOSE(IU_RATE)
-!      CLOSE(IU_LOSS)
-!-----SDE DEBUG
       !*********KPP_INTERFACE************ (phs,ks,dhk, 09/15/09)
       IF ( LKPP ) THEN 
          I = 1

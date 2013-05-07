@@ -14,9 +14,6 @@
 !
       USE CMN_SIZE_MOD
       USE COMODE_LOOP_MOD
-!-----SDE DEBUG
-!      USE ERROR_MOD, ONLY  : IT_IS_NAN, IT_IS_FINITE
-!-----SDE DEBUG
 
       IMPLICIT NONE
 #     include "define.h"
@@ -83,16 +80,6 @@
       INTEGER IC,IK0,IK1,IK2,IK3,IK4,KJ0,KJ1,KJ2,KJ3,KJ4,K,IAR
       INTEGER JL,JH,JC,IJA
 
-!-----SDE DEBUG
-!      DO K=1,KTLOOP
-!      DO J=0,MXARRAY
-!       IF (IT_IS_NAN(CC2(K,J))) THEN
-!        WRITE(6,'(a,1x,2I5)') 'SDE DEBUG d000a', K, J
-!       ENDIF
-!      ENDDO
-!      ENDDO
-!      IF (IT_IS_NAN(CC2(10,76))) WRITE(6,'(a)') 'SDBG--X--'
-!-----SDE DEBUG
       DO 510 J       = 1, ISCHAN
          DO 310 IJT    = IJTLO(J,NCSP), IJTHI(J,NCSP)
             IJ           = IJVAL(IJT)
@@ -109,9 +96,6 @@
 
 ! ********************* SUM 5 TERMS AT A TIME *************************
 !
-!-----SDE DEBUG
-!            IF (IT_IS_NAN(CC2(10,76))) WRITE(6,'(a)') 'SDBG--5--'
-!-----SDE DEBUG
             DO 105 IC    = IL5, IH5
                IK0         = IKDECA(IC)
                IK1         = IKDECB(IC)
@@ -129,19 +113,11 @@
      &                       - CC2(K,IK2) * CC2(K,KJ2) 
      &                       - CC2(K,IK3) * CC2(K,KJ3) 
      &                       - CC2(K,IK4) * CC2(K,KJ4) 
-!-----SDE DEBUG
-!                  IF (IT_IS_NAN(CC2(K,IJ))) THEN
-!                   WRITE(6,'(a,1x,2I5)') 'SDE DEBUG d001', K, IJ
-!                  ENDIF
-!-----SDE DEBUG
  100           CONTINUE 
  105        CONTINUE 
 !
 ! ********************* SUM 4 TERMS AT A TIME *************************
 !
-!-----SDE DEBUG
-!            IF (IT_IS_NAN(CC2(10,76))) WRITE(6,'(a)') 'SDBG--4--'
-!-----SDE DEBUG
             DO 155 IC    = IL4, IH4
                IK0         = IKDECA(IC)
                IK1         = IKDECB(IC)
@@ -156,19 +132,11 @@
      &                       - CC2(K,IK1) * CC2(K,KJ1) 
      &                       - CC2(K,IK2) * CC2(K,KJ2) 
      &                       - CC2(K,IK3) * CC2(K,KJ3) 
-!-----SDE DEBUG
-!                  IF (IT_IS_NAN(CC2(K,IJ))) THEN
-!                   WRITE(6,'(a,1x,2I5)') 'SDE DEBUG d002', K, IJ
-!                  ENDIF
-!-----SDE DEBUG
  150           CONTINUE 
  155        CONTINUE 
 !
 ! ********************* SUM 3 TERMS AT A TIME *************************
 !
-!-----SDE DEBUG
-!            IF (IT_IS_NAN(CC2(10,76))) WRITE(6,'(a)') 'SDBG--3--'
-!-----SDE DEBUG
             DO 205 IC    = IL3, IH3
                IK0         = IKDECA(IC)
                IK1         = IKDECB(IC)
@@ -180,19 +148,11 @@
                   CC2(K,IJ)  = CC2(K,IJ) - CC2(K,IK0) * CC2(K,KJ0) 
      &                       - CC2(K,IK1) * CC2(K,KJ1) 
      &                       - CC2(K,IK2) * CC2(K,KJ2) 
-!-----SDE DEBUG
-!                  IF (IT_IS_NAN(CC2(K,IJ))) THEN
-!                   WRITE(6,'(a,1x,2I5)') 'SDE DEBUG d003', K, IJ
-!                  ENDIF
-!-----SDE DEBUG
  200           CONTINUE
  205        CONTINUE
 !
 ! ********************* SUM 2 TERMS AT A TIME *************************
 !
-!-----SDE DEBUG
-!            IF (IT_IS_NAN(CC2(10,76))) WRITE(6,'(a)') 'SDBG--2--'
-!-----SDE DEBUG
             DO 255 IC    = IL2, IH2
                IK0         = IKDECA(IC)
                IK1         = IKDECB(IC)
@@ -201,46 +161,16 @@
                DO 250 K    = 1, KTLOOP 
                   CC2(K,IJ)  = CC2(K,IJ) - CC2(K,IK0) * CC2(K,KJ0) 
      &                       - CC2(K,IK1) * CC2(K,KJ1) 
-!-----SDE DEBUG
-!                  IF (IT_IS_NAN(CC2(K,IJ))) THEN
-!                   WRITE(6,'(a,1x,2I5)') 'SDE DEBUG d004', K, IJ
-!                  ENDIF
-!-----SDE DEBUG
  250           CONTINUE 
  255        CONTINUE 
 !     
 ! ********************* SUM 1 TERM  AT A TIME *************************
 !
-!-----SDE DEBUG
-!            IF (IT_IS_NAN(CC2(10,76))) WRITE(6,'(a)') 'SDBG--1--'
-!-----SDE DEBUG
             DO 305 IC    = IL1, IH1
                IK0         = IKDECA(IC)
                KJ0         = KJDECA(IC)
                DO 300 K    = 1, KTLOOP 
-!-----SDE DEBUG
-!                  IF (IT_IS_NAN(CC2(K,IJ))) THEN
-!                   WRITE(6,'(a,1x,4I5)') 'SDE DEBUG d005a', K,IJ,IK0,KJ0
-!!                   WRITE(6,'(4I5)') IJ,IK0,KJ0,MXARRAY
-!!                   WRITE(6,'(2E10.2)') CC2(K,IK0),CC2(K,KJ0)
-!                  ENDIF
-!                  IF (.not. IT_IS_FINITE(1.d0/CC2(K,IJ))) THEN
-!                     WRITE(6,'(a,1x,5I5,1x,3E10.2)') 'SDE DEBUG d005b',
-!     &       K, IJ,IK0,KJ0,J,CC2(K,IAR),CC2(K,IK0),CC2(K,KJ0)
-!                  ENDIF
-!-----SDE DEBUG
                   CC2(K,IJ)  = CC2(K,IJ) - CC2(K,IK0) * CC2(K,KJ0) 
-!-----SDE DEBUG
-!                  IF (.not. IT_IS_FINITE(1.d0/CC2(K,IJ))) THEN
-!                     WRITE(6,'(a,1x,5I5,1x,3E10.2)') 'SDE DEBUG d005c',
-!     &       K, IJ,IK0,KJ0,J,CC2(K,IAR),CC2(K,IK0),CC2(K,KJ0)
-!                  ENDIF
-!                  IF (IT_IS_NAN(CC2(K,IJ))) THEN
-!                   WRITE(6,'(a,1x,4I5)') 'SDE DEBUG d005d', K,IJ,IK0,KJ0
-!!                   WRITE(6,'(4I5)') IJ,IK0,KJ0,MXARRAY
-!!                   WRITE(6,'(2E10.2)') CC2(K,IK0),CC2(K,KJ0)
-!                  ENDIF
-!-----SDE DEBUG
  300           CONTINUE
  305        CONTINUE
 !     
@@ -253,16 +183,6 @@
        IAR          = JARRDIAG(J,NCSP)
        DO 400 K     = 1, KTLOOP 
           VDIAG(K,J)  = 1.0d0 / CC2(K,IAR) 
-!-----SDE DEBUG
-!          IF (IT_IS_NAN(VDIAG(K,J))) THEN
-!           WRITE(6,'(a,1x,2I5,1x,E10.2)') 'SDE DEBUG d011a', K, J,
-!     &                    CC2(K,IAR)
-!          ENDIF
-!          IF (.not.IT_IS_FINITE(VDIAG(K,J))) THEN
-!           WRITE(6,'(a,1x,2I5,1x,E10.2)') 'SDE DEBUG d011b', K, J,
-!     &                    CC2(K,IAR)
-!          ENDIF
-!-----SDE DEBUG
  400   CONTINUE
 !
 ! *********************************************************************
@@ -275,18 +195,7 @@
        DO 505 JC    = JL, JH
           IJA         = JZEROA(JC)
           DO 500 K    = 1, KTLOOP 
-!-----SDE DEBUG
-!             IF (IT_IS_NAN(CC2(K,IJA))) THEN
-!              WRITE(6,'(a,1x,3I5)') 'SDE DEBUG d012a', K, J, IJA
-!             ENDIF
-!-----SDE DEBUG
              CC2(K,IJA) = CC2(K,IJA) * VDIAG(K,J)  
-!-----SDE DEBUG
-!             IF (IT_IS_NAN(CC2(K,IJA))) THEN
-!              WRITE(6,'(a,1x,3I5,1x,E10.2)') 'SDE DEBUG d012b', K, J,
-!     &                    IJA,VDIAG(K,J)
-!             ENDIF
-!-----SDE DEBUG
  500      CONTINUE
  505   CONTINUE
 !

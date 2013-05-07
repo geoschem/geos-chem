@@ -413,27 +413,34 @@
                WRITE(6,*) '|         |         |         |'
                WRITE(6,*) '|---------|---------|---------|'
             ENDIF
-            TRAC_IDX = IDTCly
+            TRAC_IDX = IDTCl
             TRAC_SET  = 'CL'
             CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+            TRAC_IDX = IDTClO
             TRAC_SET  = 'CLO'
-            CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+            TRAC_IDX = IDTClNO2
             TRAC_SET  = 'CLNO2'
-            CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+            TRAC_IDX = IDTClNO3
             TRAC_SET  = 'CLNO3'
-            CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+            TRAC_IDX = IDTHOCl
             TRAC_SET  = 'HOCL'
-            CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+            TRAC_IDX = IDTOClO
             TRAC_SET  = 'OCLO'
-            CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+            TRAC_IDX = IDTClOO
             TRAC_SET  = 'CLOO'
-            CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
      
-            TRAC_IDX = IDTCl2y
+            TRAC_IDX = IDTCl2
             TRAC_SET  = 'CL2'
             CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
+            TRAC_IDX = IDTCl2O2
             TRAC_SET  = 'CL2O2'
-            CALL APPLY_2DTRAC(.TRUE.,.FALSE.,.FALSE.)
+            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.)
      
             TRAC_IDX = IDTHCl
             TRAC_SET  = 'HCL'
@@ -1737,7 +1744,7 @@
       USE TRACER_MOD,       ONLY : STT, TRACER_MW_G
       USE TRACERID_MOD,     ONLY : IDTSO4
       USE TRACERID_MOD,     ONLY : IDTHNO3, IDTNIT, IDTBrNO3, IDTHBr
-      USE TRACERID_MOD,     ONLY : IDTHOBr, IDTHCl, IDClNO3, IDHOCl
+      USE TRACERID_MOD,     ONLY : IDTHOBr, IDTHCl, IDTClNO3, IDTHOCl
       USE CHEMGRID_MOD,     ONLY : ITS_IN_THE_STRATMESO
       USE CHEMGRID_MOD,     ONLY : ITS_IN_THE_CHEMGRID
       USE COMODE_MOD,       ONLY : CSPEC,JLOP
@@ -2086,22 +2093,16 @@
      &                  TRACER_MW_G(IDTSO4  )
                BrNO3SUM = STT(I,J,L,IDTBrNO3)*INVAIR/
      &                  TRACER_MW_G(IDTBrNO3)
+               ClNO3SUM = STT(I,J,L,IDTClNO3)*INVAIR/
+     &                  TRACER_MW_G(IDTClNO3)
+               HOClSUM  = STT(I,J,L,IDTHOCl )*INVAIR/
+     &                  TRACER_MW_G(IDTHOCl )
                HClSUM   = STT(I,J,L,IDTHCl  )*INVAIR/
      &                  TRACER_MW_G(IDTHCl  )
                HOBrSUM  = STT(I,J,L,IDTHOBr )*INVAIR/
      &                  TRACER_MW_G(IDTHOBr )
                HBrSUM   = STT(I,J,L,IDTHBr  )*INVAIR/
      &                  TRACER_MW_G(IDTHBr  )
-
-               ! ClNO3 and HOCl not stored as tracers, only species
-               IF (ITS_IN_THE_CHEMGRID(I,J,L)) THEN
-                  JLOOP = JLOP(I,J,L)
-                  ClNO3SUM = CSPEC(JLOOP,IDClNO3)/DENAIR
-                  HOClSUM  = CSPEC(JLOOP,IDHOCl) /DENAIR
-               ELSE
-                  ClNO3SUM = 0d0
-                  HOClSUM = 0d0
-               ENDIF
 
                ! H2SO4 gas fraction calculated earlier throughout grid
                ! Consider gaseoues H2SO4 to be unavailable for SLA
@@ -3078,7 +3079,7 @@
       BrNO3PP = BrNO3SUM*P/1013.25
  
       ! Should we bother running HCl calculations?
-      HClOK = (HClPP .gt. TINY(1.d0))
+      HClOK = (HClPP .gt. 1.d-30)
 
       ! Reaction 1. N2O5 + H2O (hydrolysis of N2O5)
       AK(1)=-25.5265-0.133188*WT+0.0093084*WT**2-9.0194E-5*WT**3
@@ -3142,7 +3143,12 @@
          DHOCl     =  6.4d-8*T/H
          kHOCl_HCl =  1.25d9*aH*DHOCl*MHCl
          lHOCl     =  SQRT(DHOCl/kHOCl_HCl)
-         fHOCl     =  1.D0/tanh(arad/lHOCl)- lHOCl/arad
+         if (lHOCl.gt.(1.d3*arad)) then
+            ! Limiting rate
+            fHOCl = arad/(3.d0*lHOCl)
+         else
+            fHOCl     =  1.D0/tanh(arad/lHOCl)- lHOCl/arad
+         endif
          GHOClrxn  =  4.D0*HHOCl*0.082D0*T*sqrt(DHOCl*kHOCl_HCl)/c_HOCl
          IF (fHOCl.eq.0.) THEN
             gHOCl_HCl =  TINY(1d0)
@@ -3175,7 +3181,12 @@
          kHOBr_HCl =  kII*HHOBr*HOBrPP
          GHOBrrxn  =  4.D0*HHCl*0.082D0*T*sqrt(DHOBr*kHOBr_HCl)/c_HOBr
          lHOBr     =  sqrt(DHOBr/kHOBr_HCl)
-         fHOBr     =  1.D0/tanh(arad/lHOBr)- lHOBr/arad
+         if (lHOBr.gt.(1.d3*arad)) then
+            ! Limiting rate
+            fHOBr = arad/(3.d0*lHOBr)
+         else
+            fHOBr     =  1.D0/tanh(arad/lHOBr)- lHOBr/arad
+         endif
          gHOBr_HCl =  1.D0/(1.D0+1.D0/(fHOBr*GHOBrrxn))
          RXNGAMMA(10) = gHOBr_HCl
       ELSE

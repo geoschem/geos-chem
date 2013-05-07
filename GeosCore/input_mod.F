@@ -1638,7 +1638,7 @@
       USE CMN_SIZE_MOD      ! Size parameters
       USE CMN_O3_MOD        ! FSCALYR
       USE TRACERID_MOD,  ONLY : IDTCH4, IDTOCS, IDTCFCX
-      USE TRACERID_MOD,  ONLY : IDTCly, IDTN2O, IDTBr2
+      USE TRACERID_MOD,  ONLY : IDTCl, IDTN2O, IDTBr2
       USE GMISTRAT_MOD,  ONLY : TRAC_FILE_ROOT, MONTREAL_FILE_ROOT
 !
 ! !INPUT PARAMETERS:
@@ -2427,11 +2427,11 @@
       ! Error check halogen emissions
       !=================================================================
       IF ( LCLEMIS .or. LSETCL) THEN
-         IF ( IDTCly == 0 ) THEN
+         IF ( IDTCl == 0 ) THEN
             LCLEMIS = .FALSE.
             LSETCL = .FALSE.
             WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
-     &            // 'Cl species emitted but Cly tracer is undefined.'
+     &            // 'Cl species emitted but Cl tracer is undefined.'
             WRITE( 6, '(a)' ) 'Turning off chlorine emissions.'
          ENDIF
       ENDIF

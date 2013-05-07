@@ -12,9 +12,6 @@
 #     include "define.h"
       USE CMN_SIZE_MOD  ! Size parameters
       USE COMODE_LOOP_MOD  ! SMVGEAR II arrays
-!-----SDE DEBUG
-!      USE ERROR_MOD, ONLY : IT_IS_NAN
-!-----SDE DEBUG
 
       IMPLICIT NONE
 !
@@ -103,12 +100,6 @@
        NH            = NKN + NALLR
        DO 100 K      = 1, KTLOOP
         TRATE(K,NKN) = RRATE(K,NKN)*CNEW(K,JA)*CNEW(K,JB)*CNEW(K,JC)
-!-----SDE DEBUG
-!        IF (IT_IS_NAN(RRATE(K,NKN)*CNEW(K,JA)*CNEW(K,JB)*
-!     &                                            CNEW(K,JC))) THEN
-!           WRITE(6,'(a)') 'SDE DEBUG A'
-!        ENDIF
-!-----SDE DEBUG 
         TRATE(K,NH) = -TRATE(K,NKN) 
  100   CONTINUE
  102  CONTINUE
@@ -125,13 +116,6 @@
        NH            = NKN + NALLR
        DO 150 K      = 1, KTLOOP
         TRATE(K,NKN) = RRATE(K,NKN) * CNEW(K,JA) * CNEW(K,JB) 
-!-----SDE DEBUG
-!        IF (IT_IS_NAN(RRATE(K,NKN)*CNEW(K,JA)*CNEW(K,JB))) THEN
-!           WRITE(6,'(a)') 'SDE DEBUG B'
-!           WRITE(6,'(5I4)') N, NKN, K, JA, JB
-!           WRITE(6,'(3E10.2)') RRATE(N,NKN), CNEW(K,JA), CNEW(K,JB)
-!        ENDIF
-!-----SDE DEBUG 
         TRATE(K,NH) = -TRATE(K,NKN)
  150   CONTINUE 
  152  CONTINUE 
@@ -152,17 +136,7 @@
        DO 200 K      = 1, KTLOOP
         CONCMULT     = CNEW(K,JA)   * CNEW(K,JB) 
         TRATE(K,NKN) = RRATE(K,NKN) * CONCMULT
-!-----SDE DEBUG
-!        IF (IT_IS_NAN(RRATE(K,NKN)*CONCMULT)) THEN
-!           WRITE(6,'(a)') 'SDE DEBUG C'
-!        ENDIF
-!-----SDE DEBUG 
         TRATE(K,NK2) = RRATE(K,NK2) * CONCMULT
-!-----SDE DEBUG
-!        IF (IT_IS_NAN(RRATE(K,NK2)*CONCMULT)) THEN
-!           WRITE(6,'(a)') 'SDE DEBUG D'
-!        ENDIF
-!-----SDE DEBUG 
         TRATE(K,NH)  = -TRATE(K,NKN) 
         TRATE(K,NH2) = -TRATE(K,NK2) 
  200   CONTINUE 
@@ -178,11 +152,6 @@
        NH            = NKN + NALLR
        DO 250 K      = 1, KTLOOP
         TRATE(K,NKN) = RRATE(K,NKN) * CNEW(K,JA) 
-!-----SDE DEBUG
-!        IF (IT_IS_NAN(RRATE(K,NKN)*CNEW(K,JA))) THEN
-!           WRITE(6,'(a)') 'SDE DEBUG E'
-!        ENDIF
-!-----SDE DEBUG 
         TRATE(K,NH) = -TRATE(K,NKN) 
  250   CONTINUE 
  252  CONTINUE 

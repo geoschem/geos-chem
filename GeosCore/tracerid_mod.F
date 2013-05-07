@@ -285,8 +285,10 @@
       INTEGER            :: IDTCH3Br
 
       ! SDE 03/26/13: Strat-chem tracers
-      INTEGER            :: IDTBrCl,  IDTHCl,   IDTCCl4,  IDTCH3Cl
-      INTEGER            :: IDTCly,   IDTCl2y,  IDTCH3CCl3
+      INTEGER            :: IDTBrCl,  IDTCCl4,  IDTCH3Cl, IDTCH3CCl3
+      INTEGER            :: IDTCl,    IDTCl2,   IDTHCl,   IDTHOCl
+      INTEGER            :: IDTClO,   IDTClNO2, IDTClNO3, IDTCl2O2
+      INTEGER            :: IDTClOO,  IDTOClO
       INTEGER            :: IDTCFCX,  IDTHCFCX
       INTEGER            :: IDTCFC11, IDTCFC12, IDTHCFC22
       INTEGER            :: IDTH1211, IDTH1301, IDTH2402
@@ -865,11 +867,32 @@
             CASE ( 'CH3CCL3' )
                IDTCH3CCl3 = N
 
-            CASE ( 'CLY' )
-               IDTCly = N
+            CASE ( 'CL' )
+               IDTCl = N
 
-            CASE ( 'CL2Y' )
-               IDTCl2y = N
+            CASE ( 'CLO' )
+               IDTClO = N
+
+            CASE ( 'HOCL' )
+               IDTHOCl = N
+
+            CASE ( 'CLNO3' )
+               IDTClNO3 = N
+
+            CASE ( 'CLNO2' )
+               IDTClNO2 = N
+
+            CASE ( 'CLOO' )
+               IDTClOO = N
+
+            CASE ( 'OCLO' )
+               IDTOClO = N
+
+            CASE ( 'CL2O2' )
+               IDTCl2O2 = N
+
+            CASE ( 'CL2' )
+               IDTCl2 = N
 
             CASE ( 'CFCX' )
                IDTCFCX = N
@@ -3227,8 +3250,15 @@
       ! SDE 07/24/12
       ! Strat-Chem
       IDTHCl     = 0
-      IDTCly     = 0
-      IDTCl2y    = 0
+      IDTCl      = 0
+      IDTClO     = 0
+      IDTHOCl    = 0
+      IDTClNO3   = 0
+      IDTClNO2   = 0
+      IDTCl2O2   = 0
+      IDTOClO    = 0
+      IDTClOO    = 0
+      IDTCl2     = 0
       IDTCH3Cl   = 0
       IDTCH3CCl3 = 0
       IDTBrCl    = 0

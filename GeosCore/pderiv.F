@@ -12,9 +12,6 @@
 #     include "define.h"
       USE CMN_SIZE_MOD  ! Size parameters
       USE COMODE_LOOP_MOD  ! SMVGEAR II arrays
-!-----SDE DEBUG
-!      USE ERROR_MOD, ONLY  : IT_IS_NAN
-!-----SDE DEBUG
 
       IMPLICIT NONE
 
@@ -127,31 +124,9 @@
          JB              = IRMB(NKN)
          JC              = IRMC(NKN)
          DO 100 K        = 1, KTLOOP
-!-----SDE DEBUG
-!            IF (IT_IS_NAN(URATE(K,NKN,1))) THEN
-!             WRITE(6,'(a,1x,2I5)') 'SDE DEBUG p001.1', K, NKN
-!            ENDIF
-!            IF (IT_IS_NAN(URATE(K,NKN,2))) THEN
-!             WRITE(6,'(a,1x,2I5)') 'SDE DEBUG p001.2', K, NKN
-!            ENDIF
-!            IF (IT_IS_NAN(URATE(K,NKN,3))) THEN
-!             WRITE(6,'(a,1x,2I5)') 'SDE DEBUG p001.3', K, NKN
-!            ENDIF
-!-----SDE DEBUG
             URATE(K,NKN,1) = RRATE(K,NKN) * CNEW(K,JB) * CNEW(K,JC) 
             URATE(K,NKN,2) = RRATE(K,NKN) * CNEW(K,JA) * CNEW(K,JC)
             URATE(K,NKN,3) = RRATE(K,NKN) * CNEW(K,JA) * CNEW(K,JB)
-!-----SDE DEBUG
-!            IF (IT_IS_NAN(URATE(K,NKN,1))) THEN
-!             WRITE(6,'(a,1x,2I5)') 'SDE DEBUG p002.1', K, NKN
-!            ENDIF
-!            IF (IT_IS_NAN(URATE(K,NKN,2))) THEN
-!             WRITE(6,'(a,1x,2I5)') 'SDE DEBUG p002.2', K, NKN
-!            ENDIF
-!            IF (IT_IS_NAN(URATE(K,NKN,3))) THEN
-!             WRITE(6,'(a,1x,2I5)') 'SDE DEBUG p002.3', K, NKN
-!            ENDIF
-!-----SDE DEBUG
  100     CONTINUE 
  105  CONTINUE 
 !
@@ -163,24 +138,8 @@
          JA              = IRMA(NKN)
          JB              = IRMB(NKN)
          DO 150 K        = 1, KTLOOP
-!-----SDE DEBUG
-!            IF (IT_IS_NAN(URATE(K,NKN,1))) THEN
-!             WRITE(6,'(a,1x,2I5)') 'SDE DEBUG p011.1', K, NKN
-!            ENDIF
-!            IF (IT_IS_NAN(URATE(K,NKN,2))) THEN
-!             WRITE(6,'(a,1x,2I5)') 'SDE DEBUG p011.2', K, NKN
-!            ENDIF
-!-----SDE DEBUG
             URATE(K,NKN,1) = RRATE(K,NKN) * CNEW(K,JB) 
             URATE(K,NKN,2) = RRATE(K,NKN) * CNEW(K,JA) 
-!-----SDE DEBUG
-!            IF (IT_IS_NAN(URATE(K,NKN,1))) THEN
-!             WRITE(6,'(a,1x,2I5)') 'SDE DEBUG p012.1', K, NKN
-!            ENDIF
-!            IF (IT_IS_NAN(URATE(K,NKN,2))) THEN
-!             WRITE(6,'(a,1x,2I5)') 'SDE DEBUG p012.2', K, NKN
-!            ENDIF
-!-----SDE DEBUG
  150     CONTINUE 
  155  CONTINUE 
 !
@@ -190,17 +149,7 @@
 !
       DO 205 NKN       = NFDL1, NFDH1 
          DO 200 K        = 1, KTLOOP
-!-----SDE DEBUG
-!            IF (IT_IS_NAN(URATE(K,NKN,1))) THEN
-!             WRITE(6,'(a,1x,2I5)') 'SDE DEBUG p021.1', K, NKN
-!            ENDIF
-!-----SDE DEBUG
             URATE(K,NKN,1) = RRATE(K,NKN) 
-!-----SDE DEBUG
-!            IF (IT_IS_NAN(URATE(K,NKN,1))) THEN
-!             WRITE(6,'(a,1x,2I5)') 'SDE DEBUG p021.2', K, NKN
-!            ENDIF
-!-----SDE DEBUG
  200     CONTINUE
  205  CONTINUE
 !
@@ -227,26 +176,8 @@
          IAR           = IPOSPD(  N)
          IAL           = IIALPD(  N)
          FRACR1        = FRACPL(  N) * R1DELT  
-!-----SDE DEBUG
-!            IF (IT_IS_NAN(FRACPL(N))) THEN
-!             WRITE(6,'(a,1x,I5)') 'SDE DEBUG p031.1', N
-!            ENDIF
-!            IF (IT_IS_NAN(R1DELT)) THEN
-!             WRITE(6,'(a)') 'SDE DEBUG p032.1'
-!            ENDIF
-!-----SDE DEBUG
          DO 400 K      = 1, KTLOOP 
-!-----SDE DEBUG
-!            IF (IT_IS_NAN(CC2(K,IAR))) THEN
-!             WRITE(6,'(a,1x,2I5)') 'SDE DEBUG p033.1', K, IAR
-!            ENDIF
-!-----SDE DEBUG
             CC2(K,IAR)   = CC2(K,IAR) + FRACR1 * URATE(K,NKN,IAL)   
-!-----SDE DEBUG
-!            IF (IT_IS_NAN(CC2(K,IAR))) THEN
-!             WRITE(6,'(a,1x,2I5)') 'SDE DEBUG p033.2', K, IAR
-!            ENDIF
-!-----SDE DEBUG
  400     CONTINUE 
  405  CONTINUE 
 !

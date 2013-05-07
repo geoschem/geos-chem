@@ -12,9 +12,6 @@
 #     include "define.h"
       USE CMN_SIZE_MOD  ! Size parameters
       USE COMODE_LOOP_MOD  ! SMVGEAR II arrays
-!-----SDE DEBUG
-!      USE ERROR_MOD, ONLY : IT_IS_NAN
-!-----SDE DEBUG
 
       IMPLICIT NONE
 
@@ -74,14 +71,6 @@
          DO 79 KLOOP       = 1, KTLOOP
             TRATE(KLOOP,NKN) =  RRATE(KLOOP,NKN)
             TRATE(KLOOP,NH)  = -RRATE(KLOOP,NKN)
-!-----SDE DEBUG
-!            IF (IT_IS_NAN(TRATE(KLOOP,NKN))) THEN
-!               WRITE(6,'(a)') 'SDE DEBUG 01'
-!            ENDIF
-!            IF (IT_IS_NAN(TRATE(KLOOP,NH))) THEN
-!               WRITE(6,'(a)') 'SDE DEBUG 02'
-!            ENDIF
-!-----SDE DEBUG
  79      CONTINUE
  80   CONTINUE
 !
