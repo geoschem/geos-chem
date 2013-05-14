@@ -165,8 +165,16 @@ tomas:
 	@$(MAKE) TOMAS=yes tomexe
 
 tomas40:
-	@$(MAKE) TOMAS=yes TOMAS40=yes lib              #  and the executable
-	@$(MAKE) TOMAS=yes TOMAS40=yes tomexe
+	@$(MAKE) TOMAS40=yes lib              #  and the executable
+	@$(MAKE) TOMAS40=yes tomexe
+
+tomas12:
+	@$(MAKE) TOMAS12=yes lib              #  and the executable
+	@$(MAKE) TOMAS12=yes tomexe
+
+tomas15:
+	@$(MAKE) TOMAS15=yes lib              #  and the executable
+	@$(MAKE) TOMAS15=yes tomexe
 
 lib:                                               # Build all G-C libraries
 	@$(MAKE) libnc
