@@ -1401,6 +1401,8 @@
 #if   defined ( TOMAS )
 # if   defined ( TOMAS40 )
       ACTMODEBINS=10
+# elif defined ( TOMAS15 )
+      ACTMODEBINS=3
 #else
       ACTMODEBINS=0
 # endif
@@ -1418,7 +1420,7 @@
          IPOINT(4) = 2
       ELSEIF ( NDSTBIN == IBINS ) THEN
          IPOINT(1:3) = 3
-         IPOINT(4:(ACTMODEBINS + 30)) = 2 ! scf for TOMAS40
+         IPOINT(4:(ACTMODEBINS + IBINS)) = 2 ! scf for TOMAS40 and TOMAS15
       ELSE
          PRINT *,' SRC_DUST_GINOUX: not support ',NDSTBIN,' bin yet'
          CALL ERROR_STOP('Need to change hard-wired array IPOINT',
@@ -2205,8 +2207,10 @@
 
       INTEGER            :: ACTMODEBINS        !(scf, 2/27/13)
 
-# if  defined( TOMAS40 )
+# if   defined( TOMAS40 )
       ACTMODEBINS = 10  !10 activation mode size bins
+# elif defined( TOMAS15 )
+      ACTMODEBINS = 3   !3  activation mode size bins
 # else
       ACTMODEBINS = 0   !no bins < 10nm
 # endif
@@ -2249,6 +2253,14 @@
 # if  defined( TOMAS40 )
          IF ( IBINS /= 40 ) 
      &        CALL ERROR_STOP('Current code compatible with 40-bin',
+     &                         'INIT_DUST ("dust_mod.f")')
+# elif  defined( TOMAS12 )
+         IF ( IBINS /= 12 ) 
+     &        CALL ERROR_STOP('Current code compatible with 12-bin',
+     &                         'INIT_DUST ("dust_mod.f")')
+# elif  defined( TOMAS15 )
+         IF ( IBINS /= 15 ) 
+     &        CALL ERROR_STOP('Current code compatible with 15-bin',
      &                         'INIT_DUST ("dust_mod.f")')
 # else
          IF ( IBINS /= 30 ) 
@@ -2299,10 +2311,45 @@
             FRAC_S(3) =   0.3d0
             FRAC_S(4) =   0.3d0
          ELSEIF ( NDSTBIN == IBINS ) THEN
+
+
+# if  defined( TOMAS12 ) || defined( TOMAS15 )
+            DO I=1,3
+               FRAC_S( I )  = 0.00d-00 !scf for TOMAS15
+                                       !first 3 bins frac_s = 0.0d0
+            END DO
+
+            FRAC_S(ACTMODEBINS + 1  )  = 7.33E-10
+            FRAC_S(ACTMODEBINS + 2  )  = 2.032E-08
+            FRAC_S(ACTMODEBINS + 3  )  = 3.849E-07
+            FRAC_S(ACTMODEBINS + 4  )  = 5.01E-06
+            FRAC_S(ACTMODEBINS + 5  )  = 4.45E-05
+            FRAC_S(ACTMODEBINS + 6  )  = 2.714E-04
+            FRAC_S(ACTMODEBINS + 7  )  = 1.133E-03
+            FRAC_S(ACTMODEBINS + 8  )  = 3.27E-03
+            FRAC_S(ACTMODEBINS + 9  )  = 6.81E-03
+            FRAC_S(ACTMODEBINS + 10 )  = 1.276E-02
+            FRAC_S(ACTMODEBINS + 11 )  = 2.155E-01
+            FRAC_S(ACTMODEBINS + 12 )  = 6.085E-01
+
+#  if  defined( TOMAS15 )
+         IF ( IBINS /= 15 ) 
+     &        CALL ERROR_STOP('Current code compatible with 15-bin',
+     &                         'INIT_DUST ("dust_mod.f")')
+#  else
+         IF ( IBINS /= 12 ) 
+     &        CALL ERROR_STOP('Current code compatible with 12-bin',
+     &                         'INIT_DUST ("dust_mod.f")')
+#  endif
+
+# else
+! else TOMAS30 or 40
+
             DO I=1,10
                FRAC_S( I )  = 0.00d-00 !scf for TOMAS40
                                        !first 10 bins frac_s = 0.0d0
             END DO
+
             FRAC_S( ACTMODEBINS +  1 )  = 1.05d-10
             FRAC_S( ACTMODEBINS +  2 )  = 6.28d-10
             FRAC_S( ACTMODEBINS +  3 )  = 3.42d-09
@@ -2334,19 +2381,17 @@
             FRAC_S( ACTMODEBINS + 29 )  = 1.24d-01
             FRAC_S( ACTMODEBINS + 30 )  = 9.85d-02
 
-# if  defined( TOMAS40 )
+#  if  defined( TOMAS40 )
          IF ( IBINS /= 40 ) 
      &        CALL ERROR_STOP('Current code compatible with 40-bin',
      &                         'INIT_DUST ("dust_mod.f")')
-# else
+#  else
          IF ( IBINS /= 30 ) 
      &        CALL ERROR_STOP('Current code compatible with 30-bin',
      &                         'INIT_DUST ("dust_mod.f")')
+#  endif
 # endif
-      
-
-
-
+! endif choose 12/15 or 30/40
 
          ENDIF
 #else
