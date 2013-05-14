@@ -7027,15 +7027,15 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
 555   FORMAT (3E15.5E2)
        WRITE(6,*)'END OF MNFIX ( WHERE? )'
        WRITE(6,*)'DRYMAS-excl-NH4  NK      DRYMASS/NK'
-       DO K = 1,30
+       DO K = 1,IBINS
             TOTMAS = SUM(MK(K,1:ICOMP-1))
 !            PRINT *, TOTMAS,NK(K), TOTMAS/NK(K)
+       ENDDO
         WRITE(6,555)
      &          TOTMAS, NK(K),
      &          TOTMAS/ NK(K) 
         print*,'-----------'
         call debugprint( NK, MK, 0,0,0,'End of MNFIX')
-       ENDDO
 
 !       write(*,*)'Nk'
 !       write(*,*) NK(1:30)
