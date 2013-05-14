@@ -3543,7 +3543,13 @@
      &     NN            == ILAT       .and. 
      &     NL            == IPVERT            ) THEN
 
-         STATE_PSC(:,:,:) = INT(FLOOR(TMP(:,:,:)))
+         DO I=1,NTL
+         DO J=1,NN
+         DO L=1,NL
+         STATE_PSC(I,J,L) = INT(FLOOR(TMP(I,J,L)))
+         ENDDO
+         ENDDO
+         ENDDO
 
       ELSE
          CALL ERROR_STOP(' Restart data is not correct ', 

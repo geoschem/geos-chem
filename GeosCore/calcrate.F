@@ -1293,7 +1293,7 @@ c new OH+CO rate from JPL2006.
                   ! Pseudo-first-order reaction - divide by number-conc
                   ! of aerosol-phase educt
                   IF (KII_KI) THEN
-                     IF ((EDUCTCONC.gt.1.d-1).and.
+                     IF ((EDUCTCONC.gt.1.d2).and.
      &                      (IS_SAFE_DIV(ADJUSTEDRATE,EDUCTCONC))) THEN
                         ADJUSTEDRATE = ADJUSTEDRATE/EDUCTCONC
                      ELSE

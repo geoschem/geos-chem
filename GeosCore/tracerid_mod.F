@@ -420,7 +420,7 @@
 !
       ! References to F90 modules
       USE CHARPAK_MOD, ONLY : TRANUC
-      USE LOGICAL_MOD, ONLY : LSPLIT
+      USE LOGICAL_MOD, ONLY : LSPLIT, LGMISTRAT
       USE TRACER_MOD,  ONLY : ITS_A_C2H6_SIM,  ITS_A_FULLCHEM_SIM
       USE TRACER_MOD,  ONLY : ITS_A_TAGCO_SIM, ITS_A_MERCURY_SIM
       USE TRACER_MOD,  ONLY : ITS_A_POPS_SIM
@@ -539,6 +539,13 @@
             ! (hup, lyj, phs, 9/18/07)
             !-----------------------------------
             CASE ( 'H2' )
+              
+#if defined( GMISTRAT )
+               IF (LGMISTRAT) THEN
+                  ! No special treatment in strat-chem
+                  IDTH2 = N
+               ELSE
+#endif 
                COUNT    = COUNT + 1
                IDTCO    = N
                IDBFCO   = COUNT
@@ -552,7 +559,9 @@
 		  IDTH2     = 1 ! (hup 7/14/2004)
 
                ENDIF
-
+#if defined( GMISTRAT )
+               ENDIF
+#endif
             ! ... and HD
             CASE ( 'HD' )
                COUNT    = COUNT + 1
