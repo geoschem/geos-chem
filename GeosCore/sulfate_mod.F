@@ -4816,12 +4816,13 @@ c      print *,BINMASS(24,11,2,:)
 
 
       !IF ( IDTSF1 > 0 ) THEN
-         CALL SRCSF30(  STT(:,:,:,IDTNK1:IDTNK1+IBINS-1), 
-     &                  BINMASS(:,:,:,:), State_Met       )
+!         CALL SRCSF30(  STT(:,:,:,IDTNK1:IDTNK1+IBINS-1), 
+!     &                  BINMASS(:,:,:,:), State_Met       )
+         CALL SRCSF30( State_Met )
          ! Return the aerosol mass after emission subroutine to STT
          ! excluding the NH4 aerosol and aerosol water (win, 9/27/08) 
-         STT(:,:,:,IDTSF1:IDTSF1+IBINS*(ICOMP-IDIAG)-1) = 
-     &        BINMASS(:,:,:,1:IBINS*(ICOMP-IDIAG))
+!         STT(:,:,:,IDTSF1:IDTSF1+IBINS*(ICOMP-IDIAG)-1) = 
+!     &        BINMASS(:,:,:,1:IBINS*(ICOMP-IDIAG))
       ENDIF
 #endif
 
@@ -6127,7 +6128,7 @@ c      print *,BINMASS(24,11,2,:)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SRCSF30( TC1, TC2, State_Met )
+      SUBROUTINE SRCSF30( State_Met )
 !
 ! !USES:
 !
@@ -6143,10 +6144,12 @@ c      print *,BINMASS(24,11,2,:)
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK, GET_TS_EMIS
-      USE TOMAS_MOD,          ONLY : IBINS, AVGMASS, ICOMP
+      USE TOMAS_MOD,          ONLY : IBINS, AVGMASS, ICOMP, IDIAG
       USE TOMAS_MOD,          ONLY : Xk,  SUBGRIDCOAG, MNFIX
-      USE TOMAS_MOD,          ONLY : SRTSO4, SRTNH4,  DEBUGPRINT
+      USE TOMAS_MOD,          ONLY : SRTSO4, SRTNH4, SRTH2O, DEBUGPRINT
+      USE TOMAS_MOD,          ONLY : NH4BULKTOBIN
       USE TRACER_MOD,         ONLY : XNUMOL
+      USE TRACER_MOD,         ONLY : STT
       USE TRACERID_MOD        
 
       USE CMN_SIZE_MOD             ! Size parameters
@@ -6162,8 +6165,8 @@ c      print *,BINMASS(24,11,2,:)
 
       ! TC1 (REAL*8 ) : Array for 30-bin NK1-NK30 tracer number [no.]
       ! TC2 (REAL*8)  : Array for 30-bin SF1-SF30 tracer mass [kg] 
-      REAL*8,  INTENT(INOUT) :: TC1(IIPAR,JJPAR,LLPAR,IBINS)
-      REAL*8,  INTENT(INOUT) :: TC2(IIPAR,JJPAR,LLPAR,IBINS*ICOMP)
+!      REAL*8,  INTENT(INOUT) :: TC1(IIPAR,JJPAR,LLPAR,IBINS)
+!      REAL*8,  INTENT(INOUT) :: TC2(IIPAR,JJPAR,LLPAR,IBINS*ICOMP)
 !
 ! !REMARKS:
 !  Variable comments
@@ -6208,7 +6211,7 @@ c      print *,BINMASS(24,11,2,:)
       REAL*8                 :: SO4an(IIPAR,JJPAR,2)
       REAL*8                 :: SO4bf(IIPAR,JJPAR)
       REAL*8                 :: SO4anbf(IIPAR,JJPAR,2)
-      REAL*8 BFRAC(IBINS)     ! Mass fraction emitted to each bin
+      REAL*8                 :: BFRAC(IBINS)     ! Mass fraction emitted to each bin
 
 
 #if  defined( TOMAS12) || defined( TOMAS15)
@@ -6439,34 +6442,42 @@ c      print *,BINMASS(24,11,2,:)
          !=============================================================
          IF ( SGCOAG ) THEN
 
-            N0(:,:) = TC1(I,J,:,:)
-            M0(:,:) = TC2(I,J,:,1:IBINS)
+            N0(:,:) = STT(I,J,:,IDTNK1:IDTNK1+IBINS)
+            M0(:,:) = STT(I,J,:,IDTSF1:IDTSF1+IBINS)
 
           DO L = 1, LLPAR
             SO4(L) = TSO4 * EFRAC(L) * DTSRCE
             IF ( SO4(L) == 0.d0 ) CYCLE
+
             DO K = 1, IBINS
                NDISTINIT(K) = SO4(L) * BFRAC(K) /
      &                                ( SQRT( XK(K)*XK(K+1) ) )
-               NDIST(K) = TC1(I,J,L,K)
-               DO C = 1, ICOMP
-                  MDIST(K,C) = TC2(I,J,L,K+(C-1)*IBINS)
+               NDIST(K) = STT(I,J,L,IDTNK1+K-1)
+               DO C = 1, ICOMP-IDIAG
+                  MDIST(K,C) = STT(I,J,L,IDTNK1+IBINS*C+K-1)
                   IF( IT_IS_NAN( MDIST(K,C) ) ) THEN
                      PRINT *,'+++++++ Found NaN in SRCSF30  +++++++'
                      PRINT *,'Location (I,J,L):',I,J,L,'Bin',K,'comp',C
                      CALL  ERROR_STOP('SRCSF30 SGCCOAG','sulfate_mod.f')
                   ENDIF
                ENDDO
+               MDIST(K,SRTH2O) = STT(I,J,L,IDTAW1-1+K)
                NDISTFINAL(K) = 0
                MADDFINAL(K)  = 0
             ENDDO  
 
+         IF( SRTNH4 > 0 ) 
+     &        CALL NH4BULKTOBIN( MDIST(1:IBINS,SRTSO4),
+     &                           STT(I,J,L,IDTNH4),
+     &                           MDIST(1:IBINS,SRTNH4) )
+
+
 #if defined ( DEBUG ) 
 !      print *, 'mnfix in sulfate_mod:6346'
+#endif
             CALL MNFIX( NDIST, MDIST, ERRORSWITCH )
             IF( ERRORSWITCH ) PRINT *,'SRCSF30: MNFIX found error ',
      &              'before SUBGRIDCOAG at ',I,J,L
-#endif
 
             ! Overwrite number and mass before emission for diagnostic 
             ! just in case there was any change by MNFIX (win, 10/27/08)
@@ -6546,8 +6557,8 @@ c      print *,BINMASS(24,11,2,:)
 !debug            if(i==ii.and.j==ii.and.l==ll) errorswitch=.true.
 #if defined ( DEBUG ) 
 !      print *, 'mnfix in sulfate_mod:6430'
-            CALL MNFIX( NDIST2, MDIST2, ERRORSWITCH )
 #endif
+            CALL MNFIX( NDIST2, MDIST2, ERRORSWITCH )
 
             IF( ERRORSWITCH ) PRINT *,'SRCSF30: MNFIX found error ',
      &           'after SUBGRIDCOAG at ',I,J,L
@@ -6557,10 +6568,11 @@ c      print *,BINMASS(24,11,2,:)
 !     &                         'SRCSF30 : After MNFIX')
 
             DO K = 1, IBINS
-               TC1(I,J,L,K) = NDIST2(K)
-               DO C=1,ICOMP
-                  TC2(I,J,L,K+(C-1)*IBINS) = MDIST2(K,C)
+               STT(I,J,L,IDTNK1-1+K) = NDIST2(K)
+               DO C = 1, ICOMP-IDIAG
+                STT(I,J,L,IDTNK1+K-1+C*IBINS) = MDIST2(K,C)
                ENDDO
+               STT(I,J,L,IDTAW1-1+K)  = MDIST2(K,SRTH2O)
             ENDDO
 
          ENDDO ! L loop
@@ -6574,16 +6586,16 @@ c      print *,BINMASS(24,11,2,:)
             IF ( ND59 > 0 ) THEN 
                DO L = 1, LLPAR
                DO K = 1, IBINS
-                  if(TC2(I,J,L,K)-M0(L,K) < 0d0) 
-     &              print *,'Negative SF emis ',TC2(I,J,L,K)-M0(L,K),
-     &                 'at',I,J,L,K
-                  if(TC1(I,J,L,K)-N0(L,K) < 0d0) 
-     &              print *,'Negative NK emis ',TC1(I,J,L,K)-N0(L,K),
-     &                 'at',I,J,L,K
+                  if(STT(I,J,L,IDTSF1+K-1)-M0(L,K) < 0d0) 
+     &              print *,'Negative SF emis ',
+     &                STT(I,J,L,IDTSF1+K-1)-M0(L,K), 'at',I,J,L,K
+                  if(STT(I,J,L,IDTNK1+K-1)-N0(L,K) < 0d0) 
+     &              print *,'Negative NK emis ',
+     &                STT(I,J,L,IDTNK1+K-1)-N0(L,K), 'at',I,J,L,K
                   AD59_SULF(I,J,1,K) = AD59_SULF(I,J,1,K) + 
-     &                                  (TC2(I,J,L,K)-M0(L,K))*S_SO4
+     &                         (STT(I,J,L,IDTSF1+K-1)-M0(L,K))*S_SO4
                   AD59_NUMB(I,J,1,K) = AD59_NUMB(I,J,1,K) + 
-     &                                  TC1(I,J,L,K)-N0(L,K)
+     &                         STT(I,J,L,IDTNK1+K-1)-N0(L,K)
                ENDDO
                ENDDO
             ENDIF
@@ -6599,9 +6611,9 @@ c      print *,BINMASS(24,11,2,:)
             DO L = 1, LLPAR
                SO4(L) = TSO4 * EFRAC(L)
                DO K = 1, IBINS
-                  TC1(I,J,L,K) = TC1(I,J,L,K) + 
+                  STT(I,J,L,IDTNK1+K-1) = STT(I,J,L,IDTNK1+K-1) + 
      &                    ( SO4(L) * DTSRCE * BFRAC(K) / AVGMASS(K) )
-                  TC2(I,J,L,K) = TC2(I,J,L,K) + 
+                  STT(I,J,L,IDTSF1+K-1) = STT(I,J,L,IDTSF1+K-1) + 
      &                    ( SO4(L) * DTSRCE * BFRAC(K)               )
                ENDDO
             ENDDO

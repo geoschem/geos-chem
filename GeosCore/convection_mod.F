@@ -1506,11 +1506,11 @@
                      !==================================================
                      IF ( ( ND38 > 0 .or. LGTMM )
      &                    .and. ISOL > 0 .and. K <= LD38 ) THEN
-#if defined ( DEBUG )
-                        if(TCVV(IC) <= 0.d0) then
-                           print *, I, J, K, IC, ISOL, TCVV(IC)
-                        endif
-#endif
+!#if defined ( DEBUG )
+!                        if(TCVV(IC) <= 0.d0) then
+!                           print *, I, J, K, IC, ISOL, TCVV(IC)
+!                        endif
+!#endif
                         AD38(I,J,K,ISOL) = AD38(I,J,K,ISOL) +
      &                       ( T0 * AREA_M2 / ( TCVV(IC) * DNS ) )
                      ENDIF

@@ -420,8 +420,12 @@
       !=================================================================
       ! increase NNPAR and NEMPARA an extra amount (hotp 7/31/09)
 #if   defined( TOMAS )
-# if  defined( TOMAS40 )
+# if    defined( TOMAS40 )
       INTEGER, PARAMETER :: NNPAR   = 410   ! For TOMAS40 (jeff 2/25/10)
+# elif  defined( TOMAS15 )
+      INTEGER, PARAMETER :: NNPAR   = 185   ! For TOMAS15 (sfarina 4/28/13)
+# elif  defined( TOMAS12 )
+      INTEGER, PARAMETER :: NNPAR   = 158   ! For TOMAS12 (sfarina 4/28/13)
 # else
       INTEGER, PARAMETER :: NNPAR   = 320   ! For TOMAS (win, bmy, 1/25/10)
 # endif
@@ -520,6 +524,12 @@
 # if  defined( TOMAS40 )
       INTEGER, PARAMETER :: NDSTBIN   = 40
       INTEGER, PARAMETER :: TOMASBIN  = 40
+# elif  defined( TOMAS15 )
+      INTEGER, PARAMETER :: NDSTBIN   = 15
+      INTEGER, PARAMETER :: TOMASBIN  = 15
+# elif  defined( TOMAS12 )
+      INTEGER, PARAMETER :: NDSTBIN   = 12
+      INTEGER, PARAMETER :: TOMASBIN  = 12
 # else
       ! NDSTBIN -- redimensioned for TOMAS (dwest, bmy, 2/1/10)
       INTEGER, PARAMETER :: NDSTBIN   = 30

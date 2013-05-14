@@ -131,21 +131,25 @@
       INTEGER                        :: ICOMP,   IDIAG         
 
       ! Note that there is a parameter declared in CMN_SIZE called TOMASBIN --> which defines how many size bins (win, 7/7/09)
-#if   defined ( TOMAS40 )
-      INTEGER,           PARAMETER   :: IBINS = 40     
+#if   defined ( TOMAS12 )
+      INTEGER,           PARAMETER   :: IBINS = 12
+#elif defined ( TOMAS15 )
+      INTEGER,           PARAMETER   :: IBINS = 15
+#elif defined ( TOMAS40 )
+      INTEGER,           PARAMETER   :: IBINS = 40
 #else
-      INTEGER,           PARAMETER   :: IBINS = 30     
+      INTEGER,           PARAMETER   :: IBINS = 30
 #endif
 
-      INTEGER,           PARAMETER   :: SRTSO4 = 1
+      INTEGER,           PARAMETER   :: SRTSO4  = 1
       INTEGER,           PARAMETER   :: SRTNACL = 2
       INTEGER,           PARAMETER   :: SRTECIL = 3
       INTEGER,           PARAMETER   :: SRTECOB = 4
       INTEGER,           PARAMETER   :: SRTOCIL = 5
       INTEGER,           PARAMETER   :: SRTOCOB = 6
       INTEGER,           PARAMETER   :: SRTDUST = 7
-      INTEGER,           PARAMETER   :: SRTNH4 = 8
-      INTEGER,           PARAMETER   :: SRTH2O = 9
+      INTEGER,           PARAMETER   :: SRTNH4  = 8
+      INTEGER,           PARAMETER   :: SRTH2O  = 9
 
       INTEGER,           PARAMETER   :: ICOMPHARD = 9
      
