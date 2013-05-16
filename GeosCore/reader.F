@@ -672,6 +672,7 @@
        NKO2PHOT( NCS) = 0
        NKPSC( NCS,11) = 0
  705  CONTINUE
+      NKNOPHOT        = 0
 
       ! Zero out entire nkspecv array (bdf, 4/1/03)
       NKSPECV = 0d0

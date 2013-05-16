@@ -427,7 +427,11 @@
      &                   NKBrNO3,       NKHOBr,       NK1HBr, 
      &                   NK2HOBr,       NK2HBr,       NKO2PHOT(ICS),
      &                   NKSO4PHOT(ICS),NKPSC(ICS,11)
-
+     
+      ! SDE 05/14/13: Tracking O1D, O3P, N and H
+      INTEGER ::         IO1D, IO3P, INATOM, IHATOM, INO
+      INTEGER ::         NKNOPHOT
+ 
       INTEGER ::         IH2O,        IOXYGEN,   MB1,      MB2
 
       ! Added for interannually-varying Methane (bnd, bmy, 7/1/03)

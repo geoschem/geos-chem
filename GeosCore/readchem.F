@@ -43,6 +43,9 @@
 !                              called from the traditional driver "main.F"
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  14 May 2013 - S. D. Eastham - Now setting O1D, O3P, H and N as inactive
+!                                species but determining steady-state so
+!                                need to identify relevant elements here
 !******************************************************************************
 !
 !
@@ -474,6 +477,12 @@
       ! and for the new VSL index holders (jpp, 4/15/10)
       ICH2Br2  = 0
       ICHBr3   = 0
+      ! SDE 05/14/13: For GMISTRAT
+      IO1D     = 0
+      IO3P     = 0
+      INATOM   = 0
+      IHATOM   = 0
+      INO      = 0
 
       ! Locate positions of O2, H2O, CH4, LISOPOH in CSPEC array
       DO I = 1, NTSPECGAS
@@ -503,6 +512,16 @@
                ICHBr3   = I
             CASE( 'CH2Br2'  ) ! adding selection of CH2Br2
                ICH2Br2  = I
+            CASE( 'O'       )
+               IO3P     = I
+            CASE( 'O1D'     )
+               IO1D     = I
+            CASE( 'N'       )
+               INATOM   = I
+            CASE( 'H'       )
+               IHATOM   = I
+            CASE( 'NO'      ) 
+               INO      = I
             CASE DEFAULT
                ! Nothing
          END SELECT
@@ -850,6 +869,9 @@
             IF (SPECL(1).EQ.'R') NKO2PHOT(NCS) = NK !Flag O2 photolysis
             IF (trim(adjustl(comment)) == 'sf') THEN
                NKSO4PHOT(NCS) = NK
+            ENDIF
+            IF (TRIM(ADJUSTL(COMMENT)) == 'qn') THEN
+               NKNOPHOT = NK
             ENDIF
 
 !FLAG HACET AND GLYC reaction to modify yield according to temperature

@@ -1268,7 +1268,7 @@
      &                     Dp / (2. * sp_Lambda))) / Dp
    
                      ! Settling velocity [m/s]
-                     VTS(L,IAERO) = CONST * Slip / VISC  
+                     VTS(L,IAERO) = CONST * Slip / VISC 
                   ENDIF ! RWET
                ENDDO ! IAERO
                
@@ -2131,7 +2131,7 @@
                   GAMMA_BOX(9)  = 0.0d0
                   GAMMA_BOX(10) = 0.2d0
                   GAMMA_BOX(11) = 0.0d0
-               ELSEIF (H2SO4SUM.lt.1d-12) THEN
+               ELSEIF (H2SO4_BOX_L.lt.1d-15) THEN
                   ! No aerosol to speak of
                   DO K=1,11
                      GAMMA_BOX(K) = 0.0d0
@@ -2164,7 +2164,7 @@
                         HNO3_BOX_G = HNO3_BOX_G*HNO3GASFRAC
                         HNO3_BOX_L = HNO3SUM - (HNO3_BOX_G+HNO3_BOX_S)
                   ENDIF
-        
+
                   ! Partition minor species
                   HCl_BOX_G  = HClSUM *HClGASFRAC
                   HCl_BOX_L  = HClSUM -HCl_BOX_G
@@ -3818,7 +3818,7 @@
       AERFRACIND(1) = IDTSO4
       AERFRACIND(2) = IDTHNO3
       AERFRACIND(3) = IDTHCl
-      AERFRACIND(4) = 0     ! HOCl a species only
+      AERFRACIND(4) = IDTHOCl
       AERFRACIND(5) = IDTHBr
       AERFRACIND(6) = IDTHOBr
     

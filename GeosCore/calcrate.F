@@ -146,6 +146,10 @@
       USE CMN_DEP_MOD           ! FRCLND
       USE CMN_O3_MOD            ! for jvalues (gvinken, 6/09/10)
 
+!      !-----SDE DEBUG
+!      USE ERROR_MOD, ONLY : DEBUG_MSG
+!      USE LOGICAL_MOD, ONLY : LPRT
+!      !-----SDE DEBUG
       IMPLICIT NONE
 #     include "define.h"
 
@@ -235,11 +239,16 @@
 
       ! SDE: Strat-chem
       REAL*8  :: DUMMYO2(KBLOOP)
-      REAL*8  :: EDUCTCONC
+      REAL*8  :: EDUCTCONC, LIMITCONC
+      INTEGER :: PSCIDX
       REAL*8  :: PSCEDUCTCONC(13,2)
       LOGICAL :: NATSURFACE
       REAL*8  :: ADJUSTEDRATE
       LOGICAL :: KII_KI, PSCBOX
+      !-----SDE DEBUG
+      REAL*8, PARAMETER :: PSCMAXRATE=1.d-13
+      CHARACTER(LEN=255) :: PSCMESSAGE
+      !-----SDE DEBUG
 
 !-------------------------------------------------------------------------------
 ! Prior to 9/24/12:
@@ -523,6 +532,85 @@
  50         CONTINUE
  52      CONTINUE
 
+!
+! *********************************************************************
+!              Photorates for Harvard Geos Code
+! *********************************************************************
+! PRATE           = PHOTORATE (SEC-1) IF SUN IS DOWN, PRATE = 0.
+! RRATE           = RATE COEFFICIENT (SEC-1)
+! NRATES          = NUMBER OF KINETIC REACTION RATES.
+!
+!
+      IF(IFSUN.EQ.1) THEN
+         DO I                = 1, JPHOTRAT(NCS)
+            NK               = NRATES(NCS) + I
+            NKN              = NKNPHOTRT(I,NCS)
+            SPECNAME         = NAMEGAS(IRM(1,NK,NCS))
+            IFNC             = DEFPRAT(NK,NCS) + 0.01D0
+            IBRCH            = 10.D0*(DEFPRAT(NK,NCS)-IFNC) + 0.5D0
+
+            DO KLOOP            = 1, KTLOOP 
+               JLOOP            = LREORDER(KLOOP+JLOOPLO)
+
+               ! Translate 1-D to 3-D grid box indices
+               IX               = IXSAVE(JLOOP)
+               IY               = IYSAVE(JLOOP)
+               IZ               = IZSAVE(JLOOP)                  
+
+               ! Get cosine( SZA ) using 1-D array index
+               IJWINDOW         = (IY-1)*IIPAR + IX
+               GMU              = SUNCOS(IJWINDOW)
+
+               ! For daylight boxes...
+               IF(GMU.GT. 0.D0) THEN
+
+                  ! For FAST-JX, get photorates from fjfunc.f
+                  RRATE(KLOOP,NKN)  = FJXFUNC(IX,IY,IZ,I,IBRCH,SPECNAME)
+
+!### Debug: warn if there are negative J-values, for either 
+!### FAST-J or SLOW-J photolysis (bmy, 10/1/98)
+!###                  IF ( RRATE(KLOOP,NK) < 0 ) THEN
+!###                     PRINT*, 'CALCRATE.F: J-Value < 0: ', 
+!###     &                  IX, IY, IZ, IBRCH, SPECNAME, KLOOP, NK,
+!###     &                  RRATE(KLOOP,NK)
+!###                  ENDIF
+
+               ELSE
+
+                  ! Nighttime: photorates are zero
+                  RRATE(KLOOP,NKN)  = 0.D0
+
+               ENDIF
+            ENDDO
+         ENDDO
+      ENDIF
+
+!-----SDE DEBUG         
+! SDE 05/14/13: Calculate atomic N steady-state concentration
+!      IF (INATOM.GT.NGAS) THEN
+!         PHOTVAL = NKNOPHOT-NRATES(NCS)
+!         NKN     = NKNPHOTRT(PHOTVAL,NCS)
+!         DO KLOOP          = 1, KTLOOP
+!            CBLK(KLOOP,INATOM) = RRATE(KLOOP,NKN)/(
+!     &         (1.5d-11*dexp(-3600.d0*T3I(KLOOP))*CONCO2(KLOOP)/
+!     &          CBLK(KLOOP,INO)) - (2.1d-11*dexp(100.d0*T3I(KLOOP))))
+!         ENDDO
+!      ENDIF
+!      IF (IO1D.GT.NGAS) THEN
+!         PHOTVAL = NKO3PHOT(NCS) - NRATES(NCS)
+!         NKN     = NKNPHOTRT(PHOTVAL,NCS)
+!!         PHOTVAL = NKN2OPHOT(NCS) - NRATES(NCS)
+!!         NK      = NKNPHOTRT(PHOTVAL,NCS)
+!         DO KLOOP          = 1, KTLOOP
+!            CBLK(KLOOP,IO1D) = (RRATE(KLOOP,NKN)*CBLK(KLOOP,IO3) + 
+!     &                          RRATE(KLOOP,NKN)*CBLK(KLOOP,IN2O)   ) /
+!     $       ( 1.63d-10 * EXP( 60.d0*T3I(KLOOP)) * CBLK(KLOOP,IH2O) +
+!     $         2.15d-11 * EXP(110.d0*T3I(KLOOP)) * CONCN2(KLOOP)    +
+!     $         3.30d-11 * EXP( 55.d0*T3I(KLOOP)) * CONCO2(KLOOP)    )
+!!               RRATE(KLOOP,NKN) = RRATE(KLOOP,NKN) *
+!         ENDDO
+!      ENDIF
+!-----SDE DEBUG         
 !
 ! *********************************************************************
 ! ******                SET DRY DEPOSITION RATES                 ******
@@ -1027,6 +1115,8 @@ c new OH+CO rate from JPL2006.
 
                   ! Divide by educt concentration
                   EDUCTCONC = 1d0
+                  LIMITCONC = 1d0
+                  PSCIDX = 0
                   KII_KI = .FALSE.
 
                   ! Test if N2O5 hydrolysis rxn
@@ -1139,6 +1229,7 @@ c new OH+CO rate from JPL2006.
                   ELSE IF (PSCBOX) THEN
                      IF ( NK == NKPSC(NCS,2 ) ) THEN
                         ! N2O5(g)    + HCl(l,s)
+                        PSCIDX = 2
                         EDUCTCONC = PSCEDUCTCONC(2,2)
                         KII_KI = .TRUE.
                         IF (N.eq.8) THEN
@@ -1172,6 +1263,7 @@ c new OH+CO rate from JPL2006.
                      ELSE IF ( NK == NKPSC(NCS,4 ) ) THEN
                         ! ClNO3(g)   + HCl(l,s)
                         EDUCTCONC = PSCEDUCTCONC(4,2)
+                        PSCIDX = 4
                         KII_KI = .TRUE.
                         IF (N.eq.8) THEN
                            XSTKCF = 0.1d-4 ! Sulfate
@@ -1189,6 +1281,7 @@ c new OH+CO rate from JPL2006.
                      ELSE IF ( NK == NKPSC(NCS,5 ) ) THEN
                         ! ClNO3(g)   + HBr(l,s)
                         EDUCTCONC = PSCEDUCTCONC(5,2)
+                        PSCIDX = 5
                         KII_KI = .TRUE.
                         IF (N.eq.8) THEN
                            XSTKCF = 0.d0 ! Sulfate
@@ -1206,6 +1299,7 @@ c new OH+CO rate from JPL2006.
                      ELSE IF ( NK == NKPSC(NCS,7 ) ) THEN
                         ! BrNO3(g)   + HCl(l,s)
                         EDUCTCONC = PSCEDUCTCONC(7,2)
+                        PSCIDX = 7
                         KII_KI = .TRUE.
                         IF (N.eq.8) THEN
                            XSTKCF = 0.9d0 ! Sulfate
@@ -1223,6 +1317,7 @@ c new OH+CO rate from JPL2006.
                      ELSE IF ( NK == NKPSC(NCS,8 ) ) THEN
                         ! HOCl(g)    + HCl(l,s)
                         EDUCTCONC = PSCEDUCTCONC(8,2)
+                        PSCIDX = 8
                         KII_KI = .TRUE.
                         IF (N.eq.8) THEN
                            XSTKCF = 0.8d0 ! Sulfate
@@ -1240,6 +1335,7 @@ c new OH+CO rate from JPL2006.
                      ELSE IF ( NK == NKPSC(NCS,9 ) ) THEN
                         ! HOCl(g)    + HBr(l,s)
                         EDUCTCONC = PSCEDUCTCONC(9,2)
+                        PSCIDX = 9
                         KII_KI = .TRUE.
                         IF (N.eq.8) THEN
                            XSTKCF = 0.8d0 ! Sulfate
@@ -1257,6 +1353,7 @@ c new OH+CO rate from JPL2006.
                      ELSE IF ( NK == NKPSC(NCS,10) ) THEN
                         ! HOBr(g)    + HCl(l,s)
                         EDUCTCONC = PSCEDUCTCONC(10,2)
+                        PSCIDX = 10
                         KII_KI = .TRUE.
                         IF (N.eq.8) THEN
                            XSTKCF = 0.8d0 ! Sulfate
@@ -1293,6 +1390,55 @@ c new OH+CO rate from JPL2006.
                   ! Pseudo-first-order reaction - divide by number-conc
                   ! of aerosol-phase educt
                   IF (KII_KI) THEN
+                     EDUCTCONC = PSCEDUCTCONC(PSCIDX,2)
+                     LIMITCONC = PSCEDUCTCONC(PSCIDX,1)
+!                     !-----SDE DEBUG
+!                     IF (ADJUSTEDRATE.gt.PSCMAXRATE) THEN
+!                        WRITE(PSCMESSAGE,'(a,1x,4I3,1x,3E12.4)')
+!     &                       'HIGH KHET: ',IX,IY,IZ,PSCIDX,
+!     &                       ADJUSTEDRATE,LIMITCONC,EDUCTCONC
+!                        IF ( LPRT ) CALL DEBUG_MSG( PSCMESSAGE )
+!                     ENDIF
+                     !-----SDE DEBUG
+
+                     ! ---SAFETY-CHECK REACTION---
+                     ! Definition of 2nd order reaction rate:
+                     ! k[A][B] = -d[A]/dt = -d[B]/dt
+                     ! 
+                     ! However, here we are using a pseudo-first order
+                     ! reaction rate, ki, and assuming that [B] is
+                     ! abundant. To get k, we will therefore perform:
+                     ! k = ki/[B]
+                     !
+                     ! This will yield the following when solved:
+                     ! -d[A]/dt = ki[A] = -d[B]/dt
+                     !
+                     ! This has some problems, especially for small [B]!
+                     ! To get around this, we run the following checks:
+                     !
+                     ! 1. The depletion time of [A] is 1/ki. If this 
+                     !    is below 60 seconds, limit reaction rate to
+                     !    yield a 60 second depletion (ki = 1/60)
+                     ! 2. The depletion time of [B] is [B]/(ki[A]). If
+                     !    this is below 60 seconds, limit reaction rate
+                     !    to yield a 60 second depletion
+                     !    (ki = [B]/(60*[A])
+                     ! 3. If [B] is < 100 molec/cm3, or ki/[B] yields
+                     !    a Nan, force k = 0.
+                     !
+                     ! If all these checks are passed, we set k = ki/[B].
+                     IF (ADJUSTEDRATE.gt.(1.d0/60.d0)) THEN
+                        ADJUSTEDRATE = 1.d0/60.d0
+                     ENDIF
+                     IF (IS_SAFE_DIV(EDUCTCONC,LIMITCONC)) THEN
+                        ! Temporarily store [B]/(60*[A])
+                        LIMITCONC = EDUCTCONC/(60.d0*LIMITCONC)
+                        IF (ADJUSTEDRATE.gt.LIMITCONC) THEN
+                           ADJUSTEDRATE = LIMITCONC
+                        ENDIF
+                     ELSE
+                        ADJUSTEDRATE = 0d0
+                     ENDIF
                      IF ((EDUCTCONC.gt.1.d2).and.
      &                      (IS_SAFE_DIV(ADJUSTEDRATE,EDUCTCONC))) THEN
                         ADJUSTEDRATE = ADJUSTEDRATE/EDUCTCONC
@@ -1458,58 +1604,11 @@ c new OH+CO rate from JPL2006.
 
       ENDIF
 !     ENDIF NCS.EQ.1 OR 2
-!
-! *********************************************************************
-!              Photorates for Harvard Geos Code
-! *********************************************************************
-! PRATE           = PHOTORATE (SEC-1) IF SUN IS DOWN, PRATE = 0.
-! RRATE           = RATE COEFFICIENT (SEC-1)
-! NRATES          = NUMBER OF KINETIC REACTION RATES.
-!
-!
-      IF(IFSUN.EQ.1) THEN
-         DO I                = 1, JPHOTRAT(NCS)
-            NK               = NRATES(NCS) + I
-            NKN              = NKNPHOTRT(I,NCS)
-            SPECNAME         = NAMEGAS(IRM(1,NK,NCS))
-            IFNC             = DEFPRAT(NK,NCS) + 0.01D0
-            IBRCH            = 10.D0*(DEFPRAT(NK,NCS)-IFNC) + 0.5D0
 
-            DO KLOOP            = 1, KTLOOP 
-               JLOOP            = LREORDER(KLOOP+JLOOPLO)
-
-               ! Translate 1-D to 3-D grid box indices
-               IX               = IXSAVE(JLOOP)
-               IY               = IYSAVE(JLOOP)
-               IZ               = IZSAVE(JLOOP)                  
-
-               ! Get cosine( SZA ) using 1-D array index
-               IJWINDOW         = (IY-1)*IIPAR + IX
-               GMU              = SUNCOS(IJWINDOW)
-
-               ! For daylight boxes...
-               IF(GMU.GT. 0.D0) THEN
-
-                  ! For FAST-JX, get photorates from fjfunc.f
-                  RRATE(KLOOP,NKN)  = FJXFUNC(IX,IY,IZ,I,IBRCH,SPECNAME)
-
-!### Debug: warn if there are negative J-values, for either 
-!### FAST-J or SLOW-J photolysis (bmy, 10/1/98)
-!###                  IF ( RRATE(KLOOP,NK) < 0 ) THEN
-!###                     PRINT*, 'CALCRATE.F: J-Value < 0: ', 
-!###     &                  IX, IY, IZ, IBRCH, SPECNAME, KLOOP, NK,
-!###     &                  RRATE(KLOOP,NK)
-!###                  ENDIF
-
-               ELSE
-
-                  ! Nighttime: photorates are zero
-                  RRATE(KLOOP,NKN)  = 0.D0
-
-               ENDIF
-            ENDDO
-         ENDDO
-         
+      ! SDE 05/14/13: Moved initial photorate calculation to be earlier
+      ! so that O1D/O3P/H/N steady-states can be found
+      ! Special photorates
+      IF (IFSUN.EQ.1) THEN
          !==============================================================
          ! HARDWIRE the effect of branching ratio of HOC2H4O in EP photolysis
          !   HOC2H4O ------> HO2 + 2CH2O    : marked as I in P column of 

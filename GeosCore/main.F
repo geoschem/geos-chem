@@ -1072,7 +1072,7 @@
      
             ! Do wet deposition
             CALL DO_WETDEP
-            
+
             ! Return all reactive particulate Hg(II) to total Hg(II) tracer
             IF ( ITS_A_MERCURY_SIM() ) THEN
                CALL PARTITIONHG( 2, STT )

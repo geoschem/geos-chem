@@ -455,7 +455,7 @@
          !### Debug
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a CHEMISTRY' )
       ENDIF
-      
+     
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       ! Transfer tracer array back to non-local
       State_Chm%TRACERS(:,:,:,1:N_TRACERS) = STT(:,:,:,1:N_TRACERS)
