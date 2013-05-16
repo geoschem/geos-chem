@@ -133,6 +133,9 @@
       USE EMISSIONS_MOD,      ONLY : NOx_SCALING      
       USE PARANOX_MOD,        ONLY : INTERPOLATE_LUT2 !(mpayer, 2/7/12)
 
+      ! Add nitrate effect (lzh, 10/25/2011)
+      USE TRACERID_MOD,       ONLY : IDTSO4, IDTNIT
+
       USE GIGC_State_Met_Mod, ONLY : MetState
 
       USE CMN_SIZE_MOD             ! Size parameters
@@ -232,6 +235,9 @@
       ! Local variables for ice and water mixing ratios
       REAL*8  :: QLIQ(KBLOOP)
       REAL*8  :: QICE(KBLOOP)
+
+      ! Add nitrate effect (lzh, 10/25/2011)
+      REAL*8           :: TMP1, TMP2
 
       darea  = 0d0
 
@@ -966,6 +972,17 @@ c new OH+CO rate from JPL2006.
                      ! Get GAMMA for N2O5 hydrolysis, which is
                      ! a function of aerosol type, temp, and RH
                      XSTKCF = N2O5( N, T3K(KLOOP), ABSHUMK(KLOOP) )
+
+                     ! Nitrate effect; reduce the gamma on nitrate by a
+                     ! factor of 10 (lzh, 10/25/2011)
+                     IF ( N == 8 ) THEN
+                        TMP1 = STT(IX,IY,IZ,IDTSO4) +
+     &                         STT(IX,IY,IZ,IDTNIT)
+                        TMP2 = STT(IX,IY,IZ,IDTNIT)
+                        IF ( TMP1 .GT. 0.0 ) THEN
+                           XSTKCF = XSTKCF * ( 1.0d0 - 0.9d0*TMP2/TMP1 )
+                        ENDIF
+                     ENDIF
 
                      ! Archive N2O5 hydrolysis for ND40 diagnostic
                      DUMMY2(KLOOP) = DUMMY2(KLOOP) +
@@ -2016,6 +2033,10 @@ c new OH+CO rate from JPL2006.
             ! gaseous N2O5 by (NH4)2SO4, NH4HSO4 and H2SO4 aerosols
             ! J. Phys. Chem. A , 2001, 105, 6465-6470 
             !===========================================================
+            ! No RH dependence above 50.0% (lzh, 10/26/2011)
+            ! According to Bertram and Thornton, ACP, 9, 8351-8363, 2009
+            RH_P  = MIN( RH_P, 50d0 )
+
             GAMMA = 2.79d-4 + RH_P*(  1.30d-4 + 
      &                        RH_P*( -3.43d-6 + 
      &                        RH_P*(  7.52d-8 ) ) )
