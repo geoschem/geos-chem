@@ -81,6 +81,8 @@
 !  14 Mar 2013 - M. Payer    - Replace NOx and Ox emissions with NO and O3
 !                              emissions as part of removal of NOx-Ox
 !                              partitioning
+!  16 May 2013 - M. Payer    - Add nitrate effect (L. Zhang)
+!  17 May 2013 - M. Payer    - Add improved HO2 uptake (J. Mao)
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -2302,8 +2304,10 @@ c new OH+CO rate from JPL2006.
      
       ! If negative value is calculated, set it to zero
       IF ( GAMMA  <= 0d0 ) GAMMA = 0d0
-! This is for v9-02h, which is the improved HO2 uptake.
-!      GAMMA = 1d0
+
+      ! This is for v9-02h, which is the improved HO2 uptake (J. Mao)
+      GAMMA = 1d0
+
       ! Return to CALCRATE
       END FUNCTION HO2
 
