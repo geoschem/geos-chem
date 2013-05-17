@@ -2641,7 +2641,6 @@
      &           '/soil_conc/pyr_soil_conc_ann.bpch'
 
 #if defined ( GEOS_5 ) && defined ( GRID4x5 )
-      PRINT*,'DEBUG 00'
       FILENAME = '/home/hamos/GC/input_files/POPs/PAHs_2004_GEOS/4x5' //
      &           '/soil_conc/pyr_soil_conc_ann.bpch'
 #elif defined ( GEOS_5 ) && defined ( GRID2x25 )
@@ -3371,6 +3370,7 @@ c$$$               YMID_R = GET_YMID_R( I, J, 1 ) ! hma, 8mar2013
       ! Call to INIT_LAI obsolete (H. Amos, 7Mar2013)
 !      USE LAI_MOD,      ONLY : INIT_LAI
       USE GET_POPSINFO_MOD, ONLY : INIT_POP_PARAMS
+
 
       ! Replace include statements (H. Amos, 7Mar2013)
       USE CMN_SIZE_MOD ! Size parameters

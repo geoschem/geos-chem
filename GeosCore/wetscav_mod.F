@@ -4360,7 +4360,7 @@ c$$$     &                                WASHFRAC, AER                 )
 !BOC
 !
       !=================================================================
-      ! WASHFRAC_FINE_AEROSOL begins here!
+      ! WASHFRAC_COARSE_AEROSOL begins here!
       !=================================================================
 
       ! Washout only happens at or above 268 K

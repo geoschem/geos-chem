@@ -67,7 +67,7 @@
       USE MODIS_LAI_MOD, ONLY : GC_LAI, GC_LAI_CM, GC_LAI_PM !hma, 7Mar2013
 !      USE LAI_MOD, ONLY       : ISOLAI, MISOLAI, PMISOLAI
       USE DAO_MOD, ONLY       : TSKIN, AIRVOL, T, TS
-!      USE DAO_MOD, ONLY       : IS_ICE, IS_LAND, SNOMAS 
+      USE DAO_MOD, ONLY       : IS_ICE, IS_LAND, SNOMAS 
       USE GRID_MOD, ONLY      : GET_AREA_CM2, GET_YMID
       USE GRID_MOD, ONLY      : GET_AREA_M2
       USE TRACER_MOD, ONLY    : STT
@@ -192,7 +192,6 @@
       DO J=1, JJPAR
       DO I=1, IIPAR
 
-#if defined ( GEOS_5 )
          ! Set logicals
          ! Is grid box covered by land/ice or by water? (IS_LAND_OR_ICE)
          ! IS_LAND will return non-ocean boxes but may still contain lakes
@@ -200,18 +199,31 @@
          IS_LAND_OR_ICE = ( (IS_LAND(I,J)) .OR. (IS_ICE(I,J)) ) 
          IS_SNOW_OR_ICE = 
      &      ( (IS_ICE(I,J)) .OR. (IS_LAND(I,J) .AND. SNOMAS(I,J)>10d0) )
-#elif defined ( GCAP )
-         ! GCAP uses different snow variable 
-         IS_LAND_OR_ICE = ( (IS_LAND(I,J)) .OR. (IS_ICE(I,J)) )    
-         IS_SNOW_OR_ICE = 
-     &      ( (IS_ICE(I,J)) .OR. (IS_LAND(I,J)  .AND. SNOW(I,J)>10d0) )
-#endif
+         
+!THIS IF-STATEMENT ISN'T WORKING. NEVER TRUE. DEBUG! (H. Amos, 16 May 2013)
+c$$$#if defined ( GEOS_5 )
+c$$$         ! Set logicals
+c$$$         ! Is grid box covered by land/ice or by water? (IS_LAND_OR_ICE)
+c$$$         ! IS_LAND will return non-ocean boxes but may still contain lakes
+c$$$         ! If land, is it covered by snow/ice? (IS_SNOW_OR_ICE)
+c$$$         IS_LAND_OR_ICE = ( (IS_LAND(I,J)) .OR. (IS_ICE(I,J)) ) 
+c$$$         IS_SNOW_OR_ICE = 
+c$$$     &      ( (IS_ICE(I,J)) .OR. (IS_LAND(I,J) .AND. SNOMAS(I,J)>10d0) )
+c$$$         IF (I .EQ. 10 .AND. J .EQ. 10 ) PRINT*,'ICELAND Success!' ! hma debug
+c$$$         
+c$$$#elif defined ( GCAP )
+c$$$         ! GCAP uses different snow variable 
+c$$$         IS_LAND_OR_ICE = ( (IS_LAND(I,J)) .OR. (IS_ICE(I,J)) )    
+c$$$         IS_SNOW_OR_ICE = 
+c$$$     &      ( (IS_ICE(I,J)) .OR. (IS_LAND(I,J)  .AND. SNOW(I,J)>10d0) )
+c$$$#endif
 
          ! Do soils routine only if we are on land that is not covered with
          ! snow or ice
          IF ((IS_LAND_OR_ICE) .AND. .NOT. ( IS_SNOW_OR_ICE )) THEN
+!         IF( IS_LAND(I,J) ) THEN !hma debugging   
+!            PRINT*,'Made it inside loop' !hma debug
 
-#if defined ( GEOS_5 )
             ! Get fraction of grid box covered by leaf surface area
             ! Do not consider different vegetation types for now
 !            FRAC_LEAF = ISOLAI(I,J)
@@ -220,10 +232,22 @@
 
             ! Get fraction of grid box covered by lake surface area
             FRAC_LAKE = FRLAKE(I,J)
-#elif defined ( GCAP )
-            ! Lake surface is not defined for GCAP
-            FRAC_LAKE = 0d0
-#endif
+
+!THIS IF-STATEMENT ISN'T WORKING. NEVER TRUE. DEBUG! (H. Amos, 16 May 2013)
+c$$$
+c$$$#if defined ( GEOS_5 )
+c$$$            ! Get fraction of grid box covered by leaf surface area
+c$$$            ! Do not consider different vegetation types for now
+c$$$!            FRAC_LEAF = ISOLAI(I,J)
+c$$$            ! DON'T DO THIS NOW B/C FRAC_LEAF CAN BE GREATER THAN 1D0
+c$$$            ! PRESUMABLY CONSIDERING SURFACE AREA IN 3 DIMENSIONS
+c$$$
+c$$$            ! Get fraction of grid box covered by lake surface area
+c$$$            FRAC_LAKE = FRLAKE(I,J)
+c$$$#elif defined ( GCAP )
+c$$$            ! Lake surface is not defined for GCAP
+c$$$            FRAC_LAKE = 0d0
+c$$$#endif
             ! Get fraction of land remaining
             ! Assume the remaining land is soil and get OC content. If remaining land is not
             ! soil (e.g., desert), there should be a characteristically low OC content
@@ -231,12 +255,16 @@
             ! ONLY SUBTRACT FRAC LAKE NOW
             FRAC_SOIL = MAX(1d0 - FRAC_LAKE, 0d0)
 
-#if defined ( GEOS_5 )
             ! Get surface skin temp [K]
             TK_SURF = TSKIN(I,J)
-#elif defined ( GCAP )
-            TK_SURF = TS(I,J)
-#endif
+
+!THIS IF-STATEMENT ISN'T WORKING. NEVER TRUE. DEBUG! (H. Amos, 16 May 2013)
+c$$$#if defined ( GEOS_5 )
+c$$$            ! Get surface skin temp [K]
+c$$$            TK_SURF = TSKIN(I,J)
+c$$$#elif defined ( GCAP )
+c$$$            TK_SURF = TS(I,J)
+c$$$#endif
 
             ! Get air temp [K]
             TK = T(I,J,1)
@@ -351,6 +379,7 @@
 !     &                         / 1d12, 0d0 )
             EPOP_SOIL(I,J) = MAX(FLUX * GET_AREA_M2(I,J,1) / 24d0  
      &                         / 3600d0 / 1d12, 0d0 )
+
 
             ! Multiply the mass emitted by the fraction of land that is soil
             EPOP_SOIL(I,J) = FRAC_SOIL * EPOP_SOIL(I,J)
@@ -1202,6 +1231,7 @@ c$$$      TRANSP = 0d0
 !------------------------------------------------------------------------------
 !BOP
 !
+
 ! !IROUTINE: cleanup_land_pops
 !
 ! !DESCRIPTION: Subroutine CLEANUP\_LAND\_POPS deallocates all module 
