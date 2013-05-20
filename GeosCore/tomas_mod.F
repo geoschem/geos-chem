@@ -327,7 +327,7 @@
       logical           :: printdebug !<step4.3> Print out for debugging (win, 9/16/05)
       logical           :: COND, COAG, NUCL !<step5.1> switch for each process (win 4/8/06)
       integer :: iob, job,lob !Just declare in case I want to debug (4/8/06)
-      data iob, job, lob /  5  ,       18    ,       25 /
+      data iob, job, lob /  20  ,       33    ,       2 /
       real*8           :: NH3_to_NH4, CEPS
       parameter ( CEPS=1.d-17 )
 
@@ -722,14 +722,18 @@ c         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
 
             if(printdebug .and. 
      &           i==iob.and.j==job.and.l==lob) ERRORSWITCH =.TRUE. 
+C         if (i==iob .and. j==job .and. l==lob ) 
+C     &      CALL DEBUGPRINT( Nk, Mk, I, J, L,'Before coagulation' )
          
          IF( COAG )  THEN
             CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd) 
             CALL MULTICOAG( ADT, Nk, Mk, BOXVOL, PRES, TEMPTMS,
      &             errorswitch )
 
-            if (printdebug.and.i==iob .and. j==job .and. l==lob ) 
-     &           CALL DEBUGPRINT( Nk, Mk, I, J, L,'After coagulation' )
+            if ( errorswitch )
+     &       CALL DEBUGPRINT( Nk, Mk, I, J, L,'After coagulation' )
+C            if (i==iob .and. j==job .and. l==lob ) 
+C     &       CALL DEBUGPRINT( Nk, Mk, I, J, L,'After coagulation' )
 
             MPNUM = 2
             IF ( ND60 > 0 ) 
@@ -4188,9 +4192,10 @@ C Update Nk and Mk according to rates of change and time step
          enddo
       enddo
 
+      call mnfix(NK, MK, PDBG)
+
       !Choose time step
       dts=dt-tsum      !try to take entire remaining time step
-cdbg
       limit='comp'
       do k=1,ibins
          if(pdbg) print*,'At bin ',k
@@ -4202,11 +4207,8 @@ cdbg
                dts=Nk(k)*tlimit/abs(dNdt(k))
                if(pdbg) print*,'tlimit',tlimit,'Nk(',k,')',Nk(k), 
      &              'dNdt',dNdt(k), ' == dts ',dts
-cdbg
                limit='number'
-cdbg
                if(pdbg) write(limit(8:9),'(I2)') k
-cdbg
                if(pdbg) write(*,*) Nk(k), dNdt(k)
             endif
             do j=1,icomp-idiag
@@ -4214,29 +4216,25 @@ cdbg
                if (dMdt(k,j) .lt. 0.0) tlimit=dtlimit
                if (dMdt(k,j) .gt. 0.0) tlimit=itlimit
                if (abs(dMdt(k,j)*dts) .gt. Mk(k,j)*tlimit) then 
-               mtotal=0.d0
-               do jj=1,icomp-idiag
-                  mtotal=mtotal+Mk(k,jj)
-               enddo
-               !only use this criteria if this species is significant
-               if ((Mk(k,j)/mtotal) .gt. 1.d-5) then
-                  dts=Mk(k,j)*tlimit/abs(dMdt(k,j))
-                  if(pdbg) print*,'tlimit',tlimit,'Mk(',k,j,')',Mk(k,j), 
-     &              'dMdt',dMdt(k,j), ' == dts ',dts
-               else
-                  if (dMdt(k,j) .lt. 0.0) then
-                     !set dmdt to 0 to avoid very small mk going negative
-                     dMdt(k,j)=0.0
-                     if(pdbg) print*,' dMdt(k,j) < 0 '
+                  mtotal=0.d0
+                  do jj=1,icomp-idiag
+                     mtotal=mtotal+Mk(k,jj)
+                  enddo
+                  !only use this criteria if this species is significant
+                  if ((Mk(k,j)/mtotal) .gt. 1.d-5) then
+                    dts=Mk(k,j)*tlimit/abs(dMdt(k,j))
+                    if(pdbg) print*,'tlimit',tlimit,'Mk(',k,j,')',
+     &                Mk(k,j),'dMdt',dMdt(k,j), ' == dts ',dts
+                  else
+                    if (dMdt(k,j) .lt. 0.0) then
+                       !set dmdt to 0 to avoid very small mk going negative
+                       dMdt(k,j)=0.0
+                       if(pdbg) print*,' dMdt(k,j) < 0 '
+                    endif
                   endif
-               endif
-cdbg
                   limit='mass'
-cdbg
                   if(pdbg) write(limit(6:7),'(I2)') k
-cdbg
                   if(pdbg) write(limit(9:9),'(I1)') j
-cdbg
                   if(pdbg) write(*,*) Mk(k,j), dMdt(k,j)
                endif
             enddo
@@ -4261,9 +4259,19 @@ c      if (dts .lt. 20.) write(*,*) 'dts<20. in multicoag'
        if (dts .eq. 0.) then
           write(*,*) 'time step is 0'
 C          pause
+C         do k = 1,ibins
+C            print *, 'dNdt(k)', dNdt(k)
+C            print *, 'dMdt(k,j)'
+C            do j = 1,icomp - idiag
+C               print *, dMdt(k,j)
+C            end do
+C         end do
+      
           call debugprint(nk, mk, 0,0,0,
      &         'MULTICOAG before terminate: dts=0')
-          stop
+          PDBG = .true.
+          return
+!          stop
 C       go to 20
        endif
 
@@ -4279,8 +4287,10 @@ cdbg
 
       !Update time and repeat process if necessary
       tsum=tsum+dts
-      if(pdbg) print*,'tsum',tsum, 'less than 3600. loop again'
-      if (tsum .lt. dt) goto 10
+      if (tsum .lt. dt) then
+C         print*,'tsum',tsum, 'less than 3600. loop again'
+         goto 10
+      endif
 
       
       RETURN
@@ -6635,6 +6645,8 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
 
          CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd) 
          !if(i==47.and.j==10.and.l==7) ERRORSWITCH = .TRUE.
+C         if(i==22.and.j==33.and.l==2) 
+C     &      call debugprint( NK, MK, i,j,l,LOCATION)
 !%%%% CRITICAL
          CALL MNFIX( NK, MK, ERRORSWITCH )
          IF ( ERRORSWITCH ) THEN
@@ -6951,7 +6963,7 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
          ENDIF
 
          IF ( AVG >  xk(IBINS+1) ) THEN
-            IF ( PRT ) PRINT *, 'MNFIX [1]: AVG > Xk(31) at bin',K
+            IF ( PRT ) PRINT *, 'MNFIX [1]: AVG > Xk(ibins+1) at bin',K
             IF ( FIXERROR ) THEN 
                !out of bin range - remove some mass
                MSHIFT = NK(k)* xk(IBINS+1)/ 1.2
@@ -6960,7 +6972,7 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
                ENDDO
             ELSE
                ERRORSWITCH = .TRUE.
-               print *,'MNFIX(1): AVG>Xk(31) at bin',K
+               print *,'MNFIX(1): AVG>Xk(ibins+1) at bin',K
                GOTO 300
             ENDIF
          ENDIF

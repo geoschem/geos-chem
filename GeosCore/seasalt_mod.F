@@ -1028,7 +1028,7 @@
          CALL SRCSALT30( STT(:,:,:,IDTNK1:IDTNK1+IBINS-1), 
      &                   STT(:,:,:,IDTSS1:IDTSS1+IBINS-1 ),
      &                   State_Met )
-         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSSEASALT: 30-Bin' )
+         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSSEASALT: TOMAS' )
       ENDIF
 #endif
 
