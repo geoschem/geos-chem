@@ -7360,8 +7360,8 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
       REAL*8 ndistinit(ibins) 
       REAL*8 ndist(ibins) 
       REAL*8 mdist(ibins,icomp)
-      REAL*8 boxvolume, temp , PRES
-      REAL*8 tscale
+      REAL*4 boxvolume, temp , PRES
+      REAL*4 tscale
       REAL*8 ndistfinal(ibins)
       REAL*8 maddfinal(ibins)
       logical pdbug  ! for pringing out during debugging
@@ -7460,7 +7460,7 @@ C Calculate coagulation coefficients
       enddo
 
 C     get the first order loss rate
-      kcoag(30)=0.0
+      kcoag(ibins)=0.0
 !debug
       if(pdbug) print *,'Bin  KCOAG'
       do k=1,ibins-1

@@ -4803,7 +4803,7 @@ c
       REAL*8                      :: MDIST(IBINS,ICOMP)
       REAL*8                      :: NDIST2(IBINS)
       REAL*8                      :: MDIST2(IBINS,ICOMP)
-      REAL*8                      :: TSCALE, BOXVOL, TEMP, PRES
+      REAL*4                      :: TSCALE, BOXVOL, TEMP, PRES
       INTEGER                     :: I, J, L, K, C, PBL_MAX
       REAL*8                      :: F_OF_PBL
       LOGICAL                     :: ERRORSWITCH, PDBUG

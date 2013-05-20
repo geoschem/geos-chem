@@ -6246,7 +6246,7 @@ c      print *,BINMASS(24,11,2,:)
       REAL*8                 :: MADDFINAL(IBINS) 
       REAL*8                 :: NDIST(IBINS),  MDIST(IBINS,ICOMP)
       REAL*8                 :: NDIST2(IBINS), MDIST2(IBINS,ICOMP)
-      REAL*8                 :: TSCALE, BOXVOL, TEMP, PRES
+      REAL*4                 :: TSCALE, BOXVOL, TEMP, PRES
 
       REAL*8                 :: N0(LLPAR,IBINS), M0(LLPAR,IBINS)
 
@@ -6356,13 +6356,14 @@ c      print *,BINMASS(24,11,2,:)
       !=================================================================
       ! Compute SO4 emissions 
       !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, NTOP, SO4, TSO4, L, FEMIS, EFRAC, N0, M0, K )
-!$OMP+PRIVATE( NDISTINIT, NDIST, MDIST, NDISTFINAL, MADDFINAL )
-!$OMP+PRIVATE( NDIST2, MDIST2, C )
-!$OMP+PRIVATE( BOXVOL, TEMP, PRES, TSCALE, pdbug )
-!$OMP+SCHEDULE( DYNAMIC )
+
+!SOMP PARALLEL DO
+!SOMP+DEFAULT( SHARED )
+!SOMP+PRIVATE( I, J, NTOP, SO4, TSO4, L, FEMIS, EFRAC, N0, M0, K )
+!SOMP+PRIVATE( NDISTINIT, NDIST, MDIST, NDISTFINAL, MADDFINAL )
+!SOMP+PRIVATE( NDIST2, MDIST2, C )
+!SOMP+PRIVATE( BOXVOL, TEMP, PRES, TSCALE, pdbug )
+!SOMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -6517,8 +6518,8 @@ c      print *,BINMASS(24,11,2,:)
             pdbug=.false.
 !debug            if (I.eq.II.and.J.eq.JJ .and. L==LL) pdbug=.true.
                              
-            CALL SUBGRIDCOAG( NDISTINIT, NDIST, MDIST, BOXVOL,TEMP,
-     &                        PRES, TSCALE, NDISTFINAL, MADDFINAL,pdbug) 
+            CALL SUBGRIDCOAG( NDISTINIT, NDIST, MDIST, BOXVOL, TEMP,
+     &                        PRES, TSCALE, NDISTFINAL, MADDFINAL,pdbug)
 
 !debug            if (I== ii .and. J==jj .and. L==ll)then
 !               print*,'PS'
@@ -6644,7 +6645,7 @@ c      print *,BINMASS(24,11,2,:)
 
       ENDDO
       ENDDO
-!$OMP END PARALLEL DO
+!SOMP END PARALLEL DO
       IF ( LPRT ) print *,'   ### Finish SRCSF30'
 
       END SUBROUTINE SRCSF30
@@ -6901,7 +6902,7 @@ c      print *,BINMASS(24,11,2,:)
                ! Anthro NH3
                DO L = 1, NOXLEVELS      
                   AD13_NH3_an(I,J,L) = AD13_NH3_an(I,J,L) + 
-     &                              ( NH3an(I,J,L)   * DTSRCE )            
+     &                              ( NH3an(I,J,L)   * DTSRCE )
                ENDDO
 
                ! Biomass NH3
