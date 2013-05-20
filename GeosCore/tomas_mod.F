@@ -3172,7 +3172,7 @@ Cjrp      endif
          if ( tot_i > 1.0d-20 ) then
             print*,'No N conservation in ezcond.f'
             print*,'initial',tot_i
-            print*,'final',tot_f
+            print*,'final  ',tot_f
          endif
       endif
 
@@ -4270,8 +4270,8 @@ C         end do
           call debugprint(nk, mk, 0,0,0,
      &         'MULTICOAG before terminate: dts=0')
           PDBG = .true.
-          return
-!          stop
+C          return
+          stop
 C       go to 20
        endif
 
