@@ -2305,8 +2305,8 @@ c new OH+CO rate from JPL2006.
       ! If negative value is calculated, set it to zero
       IF ( GAMMA  <= 0d0 ) GAMMA = 0d0
 
-      ! This is for v9-02h, which is the improved HO2 uptake (J. Mao)
-      GAMMA = 1d0
+      ! This is for v9-02j, which is the improved HO2 uptake (J. Mao)
+      GAMMA = 0.2d0
 
       ! Return to CALCRATE
       END FUNCTION HO2
