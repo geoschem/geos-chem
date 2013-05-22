@@ -341,7 +341,7 @@
 ! *              CALCULATE REACTION RATE COEFFICIENTS                 *
 ! *********************************************************************
 !
-          CALL CALCRATE( State_Met )
+          CALL CALCRATE( State_Met, Input_Opt )
 !
 ! *********************************************************************
 ! *                        SOLVE CHEMICAL ODES                        *

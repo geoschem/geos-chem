@@ -1,5 +1,5 @@
 ! $Id: calcrate.f,v 1.6 2010/03/15 19:33:25 ccarouge Exp $
-      SUBROUTINE CALCRATE( State_Met )
+      SUBROUTINE CALCRATE( State_Met, Input_Opt )
 !
 !******************************************************************************
 !  Subroutine CALCRATE computes reaction rates before passing them to the
@@ -139,6 +139,7 @@
       USE TRACERID_MOD,       ONLY : IDTSO4, IDTNIT
 
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE COMODE_LOOP_MOD          ! SMVGEAR II arrays
@@ -151,6 +152,7 @@
 
       ! Arguments
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input options
       
       ! jpp, rate constant for BrNO3 cloud recycling
       REAL*8 :: CLD_BrNO3_RC
@@ -1012,7 +1014,8 @@ c new OH+CO rate from JPL2006.
                      ENDIF
 
                      XSTKCF = HO2( XRADIUS, T3K(KLOOP), XDENA, XSQM,
-     &                             HO2_MOLEC_CM3, N , CONTINENTAL_PBL)
+     &                             HO2_MOLEC_CM3, N , CONTINENTAL_PBL,
+     &                             Input_Opt )
 
                      ! Now call CHECK_VALUE to make sure that XSTKCF is 
                      ! not a NaN or an infinity
@@ -2116,7 +2119,8 @@ c new OH+CO rate from JPL2006.
 ! *********************************************************************
 
       FUNCTION HO2( RADIUS, TEMP, DENAIR, SQM, HO2DENS,
-     &              AEROTYPE, CONTINENTAL_PBL ) RESULT( GAMMA )
+     &              AEROTYPE, CONTINENTAL_PBL, Input_Opt )
+     &              RESULT( GAMMA )
 
       !=================================================================
       ! Internal function HO2 computes the GAMMA reaction probability
@@ -2143,9 +2147,25 @@ c new OH+CO rate from JPL2006.
       !         otherwise it is zero. Also check for ICE/SNOW (to
       !         disable this at high latitudes)
       !
-      ! NOTES:
+      ! References:
+      ! ----------------------------------------------------------------
+      ! (1) Jacob, D.J., Heterogeneous chemistry and tropospheric ozone,
+      !     Atmos. Environ., 34, 2131-2159, 2000. [full text (pdf)]
+      ! (2) J. Mao, Fan, S., Jacob, D. J., and Travis, K. R.: Radical
+      !     loss in the atmosphere from Cu-Fe redox coupling in aerosols,
+      !     Atmos. Chem. Phys., 13, 509-519, doi:10.5194/acp-13-509-2013,
+      !     2013.
+      !
+      ! REVISION HISTORY:
+      !  17 May 2013 - M. Payer    - Add improved HO2 uptake (J. Mao)
+      !  22 May 2013 - M. Payer    - Added option to read GAMMA_HO2 from
+      !                              input.geos. Recommended value is 0.2
+      !                              based on Jacob et al (2000) and Mao
+      !                              et al. (2013).
       !=================================================================
       
+      ! References to F90 modules 
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 
       IMPLICIT NONE
 #     include "define.h"
@@ -2153,6 +2173,7 @@ c new OH+CO rate from JPL2006.
       ! Arguments
       REAL*8,  INTENT(IN) :: RADIUS, TEMP, DENAIR, HO2DENS, SQM
       INTEGER, INTENT(IN) :: AEROTYPE, CONTINENTAL_PBL
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
 
       ! Local variables
       REAL*8              :: ALPHA
@@ -2305,8 +2326,8 @@ c new OH+CO rate from JPL2006.
       ! If negative value is calculated, set it to zero
       IF ( GAMMA  <= 0d0 ) GAMMA = 0d0
 
-      ! This is for v9-02j, which is the improved HO2 uptake (J. Mao)
-      GAMMA = 0.2d0
+      ! This is for the improved HO2 uptake (J. Mao)
+      GAMMA = Input_Opt%GAMMA_HO2
 
       ! Return to CALCRATE
       END FUNCTION HO2

@@ -3128,6 +3128,8 @@
 !                              when we are connecting to the GEOS-5 GCM
 !  11 Dec 2012 - R. Yantosca - ACCEPT_DATE_TIME_FROM_ESMF has now been renamed
 !                              to ACCEPT_EXTERNAL_DATE_TIME
+!  22 May 2013 - M. Payer    - Now read in GAMMA_HO2. Recommended value is 0.2
+!                              based on Jacon et al (2000) and Mao et al (2013).
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3170,6 +3172,10 @@
       ! Use KPP solver ?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:6' )
       READ( SUBSTRS(1:N), * ) LKPP
+
+      ! GAMMA HO2 ?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:6' )
+      READ( SUBSTRS(1:N), * ) Input_Opt%GAMMA_HO2
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:7' )
@@ -3247,6 +3253,8 @@
          WRITE( 6, 110     ) 'Chemistry timestep [min]    : ', TS_CHEM
          WRITE( 6, 100     ) 'Use CSPEC restart?          : ', LSVCSPEC
          WRITE( 6, 100     ) 'Use solver coded by KPP?    : ', LKPP
+         WRITE( 6, 100     ) 'GAMMA HO2                   : ',
+     &      Input_Opt%GAMMA_HO2
       ENDIF
 
       ! FORMAT statements

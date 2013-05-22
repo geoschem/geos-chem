@@ -196,6 +196,7 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: TS_CHEM
      LOGICAL                     :: LSVCSPEC
      LOGICAL                     :: LKPP
+     REAL*8                      :: GAMMA_HO2
 
      !----------------------------------------
      ! CHEMISTRY MENU fields
@@ -531,6 +532,7 @@ MODULE GIGC_Input_Opt_Mod
 !  08 Nov 2012 - R. Yantosca - Added APM MENU fields
 !  09 Nov 2012 - R. Yantosca - Added LD* variables for diagnostic levels
 !  28 Nov 2012 - R. Yantosca - Add USE_OLSON_2001 logical flag
+!  22 May 2013 - M. Payer    - Add GAMMA_HO2 variable for chemistry menu
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -773,6 +775,7 @@ CONTAINS
     Input_Opt%TS_CHEM                = 0
     Input_Opt%LSVCSPEC               = .FALSE. 
     Input_Opt%LKPP                   = .FALSE. 
+    Input_Opt%GAMMA_HO2              = 0d0
 
     !----------------------------------------
     ! CHEMISTRY MENU fields
