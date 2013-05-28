@@ -59,6 +59,9 @@
       PRIVATE :: CHECK_TIME_STEPS 
       PRIVATE :: IS_LAST_DAY_GOOD
       PRIVATE :: INIT_INPUT
+#if defined( TOMAS )
+      PRIVATE :: INIT_TOMAS_MICROPHYSICS
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -129,6 +132,8 @@
 !                              so that we can define it with findFreeLun
 !  02 Nov 2012 - R. Yantosca - Now pass the Input Options object to routines;
 !                              this will eventually replace logical_mod, etc.
+!  23 Apr 2013 - R. Yantosca - For TOMAS, rename READ_MICROPHYSICS_MENU to 
+!                              INIT_TOMAS_MICROPHYSICS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -283,13 +288,20 @@
          !=============================================================
          IF      ( INDEX( LINE, 'SIMULATION MENU'  ) > 0 ) THEN
             CALL READ_SIMULATION_MENU( am_I_Root, Input_Opt, RC )             
+
          ELSE IF ( INDEX( LINE, 'TRACER MENU'      ) > 0 ) THEN
             CALL READ_TRACER_MENU( am_I_Root, Input_Opt, RC )                 
 
          ELSE IF ( INDEX( LINE, 'AEROSOL MENU'     ) > 0 ) THEN
             CALL READ_AEROSOL_MENU( am_I_Root, Input_Opt, RC )              
 
-#if   defined( APM )
+#if defined( TOMAS )
+         ! Initialize the TOMAS microphysics package, if necessary
+         CALL INIT_TOMAS_MICROPHYSICS( am_I_Root, Input_Opt, RC )    
+#endif
+
+#if defined( APM )
+         ! Initialize APM microphysics package, if necessary
          ELSE IF ( INDEX( LINE, 'APM MENU'         ) > 0 ) THEN
             CALL READ_APM_MENU( am_I_Root, Input_Opt, RC )
 #endif
@@ -1209,8 +1221,8 @@
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_tracer_menu:3' )
-      
       ! NTRACE cannot exceed NNPAR
+
       IF ( N_TRACERS > NNPAR ) THEN
          CALL ERROR_STOP( 'Error: N_TRACERS > NNPAR!', 
      &                    'read_tracer_menu (input_mod.f)' )
@@ -1824,6 +1836,161 @@
 
       END SUBROUTINE READ_AEROSOL_MENU
 !EOC
+#if defined( TOMAS )
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_tomas_microphys
+!
+! !DESCRIPTION: Subroutine INIT\_TOMAS\_MICROPHYS will initialize the 
+!  TOMAS microphysics package.  This replaces the former subroutine
+!  READ\_MICROPHYSICS\_MENU.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE INIT_TOMAS_MICROPHYSICS( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TOMAS_MOD,          ONLY : INIT_TOMAS
+      USE TRACERID_MOD,       ONLY : IDTNK1,   IDTNK10,  IDTNK20
+      USE TRACERID_MOD,       ONLY : IDTNK30,  IDTSF1,   IDTSF10
+      USE TRACERID_MOD,       ONLY : IDTSF20,  IDTSF30,  IDTSS1
+      USE TRACERID_MOD,       ONLY : IDTSS10,  IDTSS20,  IDTSS30
+      USE TRACERID_MOD,       ONLY : IDTECOB1, IDTECIL1, IDTOCOB1
+      USE TRACERID_MOD,       ONLY : IDTOCIL1, IDTH2SO4, IDTDUST1
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+! 
+! !REMARKS:
+!  We now invoke TOMAS by compiling GEOS-Chem and setting either the TOMAS=yes
+!  (30 bins, default) or TOMAS40=yes (40 bins, optional) switches.  The old
+!  LTOMAS logical switch is now obsolete because all of the TOMAS code is
+!  segregated from the rest of GEOS-Chem with #ifdef blocks.  Therefore,
+!  we no longer need to read the microphysics menu, but we still need to
+!  apply some error checks and then call INIT_TOMAS. (bmy, 4/23/13)
+!
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
+!  (1 ) Now read LNEI99 -- switch for EPA/NEI99 emissions (bmy, 11/5/04)
+!  (2 ) Now read LAVHRRLAI-switch for using AVHRR-derived LAI (bmy, 12/20/04)
+!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (4 ) Now read LMEGAN -- switch for MEGAN biogenics (tmf, bmy, 10/20/05)
+!  (5 ) Now read LEMEP -- switch for EMEP emissions (bdf, bmy, 11/1/05)
+!  (6 ) Now read LGFED2BB -- switch for GFED2 biomass emissions (bmy, 4/5/06)
+!  (7 ) Now read LOTDLIS, LCTH, LMFLUX, LPRECON for lightning options 
+!        (bmy, 5/10/06)
+!  (8 ) Now read LBRAVO for BRAVO Mexican emissions (rjp, kfb, bmy, 6/26/06)
+!  (9 ) Now read LEDGAR for EDGAR emissions (avd, bmy, 7/11/06)
+!  (10) Now read LSTREETS for David Streets' emissions (bmy, 8/17/06)
+!  (11) Kludge: Reset LMFLUX or LPRECON to LCTH, as the MFLUX and PRECON
+!        lightning schemes have not yet been implemented.  Rename LOTDLIS
+!        to LOTDREG.  Also read LOTDLOC for the OTD-LIS local redistribution
+!        of lightning flashes (cf B. Sauvage).  Make sure LOTDREG and 
+!        LOTDLOC are not both turned on at the same time. (bmy, 1/31/07)
+!  (12) Add LOTDSCALE to the list of LNOx options (ltm, bmy, 9/24/07)
+!  (13) Add new error traps for OTD-LIS options, dependent on met field type
+!        (ltm, bmy, 11/29/07)
+!  (14) Bug fix, create string variables for ERROR_STOP (bmy, 1/24/08)
+!  (15) Now read LCAC for CAC emissions (amv, 1/09/2008)
+!  (16) Now read LEDGARSHIP, LARCSHIP and LEMEPSHIP (phs, 12/5/08)
+!  (17) Fixed typo in message for GEOS-3 (bmy, 10/30/08)
+!  (18) Now read LVISTAS (amv, 12/2/08)
+!  (19) Now read L8DAYBB, L3HRBB and LSYNOPBB for GFED2 8-days and 3hr
+!        emissions, and LICARTT for corrected EPA (phs, yc, 12/17/08)
+!  (20) Add a specific switch for MEGAN emissions for monoterpenes and MBO
+!       (ccc, 2/2/09)
+!  (21) Now read LICOADSSHIP (cklee, 6/30/09)
+!  (22) Bug fix: for now, if LEMEPSHIP is turned on but LEMEP is turned off,
+!        just turn off LEMEPSHIP and print a warning msg. (mak, bmy, 10/18/09)
+!  (23) Now accounts for NEI2005 (amv, phs, 10/9/09)
+!  (24) Included optional flag for using MODIS LAI data (mpb,2009).
+!  (25) Included optional flag for using PCEEA model (mpb, 2009)
+!  (26) Now force settings for EU, NA, CC nested grids (amv, bmy, 12/18/09)
+!  (27) Now force MEGAN to use MODIS LAI (ccarouge, bmy, 2/24/10)
+!  (28) Add separate switch for NOx fertilizer. (fp, 2/29/10)
+!  (29) Add scaling for isoprene and NOx emissions. (fp, 2/29/10)
+!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
+!  23 Apr 2013 - R. Yantosca - Renamed to INIT_TOMAS_MICROPHYS
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER            :: N, I
+      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG, LOCATION
+
+      !=================================================================
+      ! INIT_TOMAS_MICROPHYSICS begins here!
+      !=================================================================
+
+      ! Location string for ERROR_STOP
+      LOCATION = 'INIT_TOMAS_MICROPHYS ("input_mod.f")'
+
+      ! Halt with error if we are trying to run TOMAS in a simulation
+      ! that does not have any defined aerosols
+      ! Turn off switches for simulations that don't use microphysics
+      IF ( ( .not. Input_Opt%ITS_A_FULLCHEM_SIM )  .and.
+     &     ( .not. Input_Opt%ITS_AN_AEROSOL_SIM ) ) THEN
+         MSG = 'TOMAS needs to run with either a full-chemistry ' //
+     &         'or offline aerosol simulation!'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+
+      ! Halt with error if none of the TOMAS aerosol species are defined
+      I =  IDTNK1 + IDTSF1 + IDTSS1 + IDTECOB1 + IDTECIL1 + 
+     &     IDTOCOB1 + IDTOCIL1  + IDTDUST1
+      IF ( I == 0 ) THEN 
+         MSG = 'None of the TOMAS aerosols are defined!'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+      
+      ! Halt with error if sulfate aerosols are not defined
+      IF( IDTSF1 > 0 .and. ( .not. Input_Opt%LSULF ) ) THEN
+         MSG = 'Need LSULF on for TOMAS-Sulfate to work (for now)'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+
+      ! Halt with error if carbonaceous aerosols are not defined
+      I = IDTECOB1 + IDTECIL1 + IDTOCOB1 + IDTOCIL1
+      IF ( I > 0 .and. (.not. Input_Opt%LCARB ) ) THEN
+         MSG = 'Need LCARB on for TOMAS-carb to work (for now)'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+
+      ! Halt with error if dust aerosols are turned on.
+      ! TOMAS defines its own dust aerosol tracers.
+      IF ( IDTDUST1 > 0 .AND. Input_Opt%LDUST ) THEN
+         MSG = 'Need to turn off LDUST for TOMAS Dust to work'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+
+      !=================================================================
+      ! All error checks are satisfied, so initialize TOMAS
+      !=================================================================
+      CALL INIT_TOMAS    
+ 
+      END SUBROUTINE INIT_TOMAS_MICROPHYSICS
+!EOC
+#endif
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -2287,13 +2454,13 @@
          WRITE( 6, '(a)' ) 'we also turn off LMEGANMONO ship emissions'
          WRITE( 6, '(a)' ) 'in order to avoid crashing GEOS-Chem!'
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-	 ENDIF
+         ENDIF
       ENDIF
 
       !=================================================================
       ! Enforce emissions options for Nested China on native GEOS-5 grid
       !=================================================================
-#if   defined ( NESTED_CH ) || defined ( SEAC4RS )
+#if   defined( NESTED_CH ) || defined( SEAC4RS )
 
       ! Turn off emissions options that are
       ! not appropriate for the Nested CH grid
@@ -4712,6 +4879,10 @@
 !
 ! !USES:
 !
+#if   defined( TOMAS )
+      USE CHARPAK_MOD, ONLY : TXTEXT   ! (win, 7/14/09)
+#endif
+
       USE CMN_SIZE_MOD                              ! Size parameters
       USE CMN_DIAG_MOD                              ! TMAX, TINDEX
 !
@@ -4737,9 +4908,14 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE :: FIRST = .TRUE.
-      LOGICAL       :: IS_ALL 
-      INTEGER       :: M
+      LOGICAL, SAVE       :: FIRST = .TRUE.
+      LOGICAL             :: IS_ALL 
+      INTEGER             :: M
+#if   defined( TOMAS )
+      INTEGER             :: NN,     COL,     IFLAG, TC     ! (win, 7/14/09)
+      CHARACTER (LEN=255) :: WORD,   SUBWORD, TMP1,  TMP2   ! (win, 7/14/09)
+      INTEGER             :: MINTMP, MAXTMP                 ! (win, 7/14/09)
+#endif
 
       !=================================================================
       ! SET_TINDEX begins here!
@@ -4776,6 +4952,48 @@
 
       ELSE 
 
+#if   defined( TOMAS )
+!(win, 7/14/09)  use TXTEXT and split the read in characters by -
+
+         COL   = 1
+         NN    = 0
+         SUBWORD  = ''
+         IFLAG = 0
+
+         ! Use explicit DO-loop
+         DO M = 1, N
+            WORD = SUBSTRS(M)
+
+            ! Check if the characters are a range with - in the middle
+            CALL TXTEXT ( '-', WORD, COL, SUBWORD, IFLAG )
+
+            ! Found a dash!  Get the numbers on both sides of the dash
+            ! since these the min and max of the tracer range
+            IF ( IFLAG == 0 ) THEN
+               TMP1 = TRIM( WORD(      1:COL-1      ) )
+               TMP2 = TRIM( WORD( COL+1:LEN_TRIM( WORD ) ) )
+
+               READ( TMP1, * ) MINTMP
+               READ( TMP2, * ) MAXTMP
+               
+               DO TC = MINTMP, MAXTMP
+                  NN = NN + 1
+                  TINDEX( N_DIAG, NN ) = TC
+               ENDDO
+
+            ! If we haven't found a dash, then there is only one number,
+            ! so that number is both the min and max of the tracer range
+            ELSE IF ( IFLAG == -1 ) THEN
+               NN = NN + 1
+               TMP1 = TRIM( WORD )
+               READ( TMP1, * ) TINDEX( N_DIAG, NN )
+            ENDIF
+               
+         ENDDO
+
+         ! Set TMAX to the counted # of tracers
+         TMAX( N_DIAG ) = NN
+#else
          ! Otherwise, set TMAX, TINDEX to the # of tracers
          ! listed in "input.ctm" -- need some error checks too
          TMAX(N_DIAG) = N
@@ -4785,6 +5003,7 @@
             READ( SUBSTRS(M:M), * ) TINDEX(N_DIAG,M)
          ENDDO
 
+#endif
          ! Set flag
          IS_ALL = .FALSE.
 
@@ -7381,6 +7600,7 @@
  120  FORMAT( A, F7.3 )
 
       END SUBROUTINE READ_APM_MENU
+
 !EOC
 #endif
 !EOC

@@ -43,6 +43,9 @@
       USE TRACER_MOD                         ! For tracer array
       USE TRACERID_MOD                       ! For tracer flags
       USE WETSCAV_MOD                        ! For wet deposition
+#if   defined( TOMAS )
+      USE TOMAS_MOD, ONLY : ICOMP, IDIAG, IBINS  !(win, 1/25/10)
+#endif
 
 #if   defined( APM )
       ! Modules from GeosApm directory
@@ -158,14 +161,15 @@
 !        steps. (ccc, 7/20/09)
 !  (87) Add diagnostics 19, 58 and 60 for methane. (kjw, 8/18/09)
 !  (88) Account for 3D AD13_NH3_an now (phs, 10/22/09)
-!  (89) NBIOMAX is now in CMN_SIZE (hotp 7/31/09)
-!  (90) Add SOA5 to ND07_HC, add AD57 for potential temperature. (fp, 2/3/10)
-!  (91) Modify ND44 for tracers with several deposition tracers. (ccc, 2/3/10)
-!  (92) Add aromatics to ND43. (dkh, 06/21/07)
-!  (93) Add ND57 for potential temperature. (fp, 2/3/10)
-!  (94) Re-order levels in mass fluxes diagnostics before writing them to file.
+!  (89) Added TOMAS diagnostics (win, bmy, 1/25/10)
+!  (90) NBIOMAX is now in CMN_SIZE (hotp 7/31/09)
+!  (91) Add SOA5 to ND07_HC, add AD57 for potential temperature. (fp, 2/3/10)
+!  (92) Modify ND44 for tracers with several deposition tracers. (ccc, 2/3/10)
+!  (93) Add aromatics to ND43. (dkh, 06/21/07)
+!  (94) Add ND57 for potential temperature. (fp, 2/3/10)
+!  (95) Re-order levels in mass fluxes diagnostics before writing them to file.
 !       (ND24, 25, 26). (ccc, 3/8/10)
-!  (95) Add call to update_dep for mercury simulation at the end.(ccc, 7/19/10)
+!  (96) Add call to update_dep for mercury simulation at the end.(ccc, 7/19/10)
 !  20 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  20 Aug 2010 - R. Yantosca - Now pick proper scale for ND66 for MERRA
 !  20 Aug 2010 - R. Yantosca - Now pick proper scale for ND67 for MERRA
@@ -192,6 +196,10 @@
       INTEGER            :: I, IREF, J, JREF, L, M, MM, MMB, LMAX
       INTEGER            :: N, NN, NMAX, NTEST, N_TOT_TRC
       INTEGER            :: IE, IN, IS, IW, ITEMP(3)
+
+      INTEGER            :: NN1    ! TOMAS tracers
+      INTEGER            :: NBIN   ! TOMAS bin counter (win, 1/25/10)
+
       REAL*8             :: SCALE_TMP(IIPAR,JJPAR)
       REAL*8             :: SCALE_I6,   SCALE_A6,   SCALE_A3  
       REAL*8             :: SCALE_A1,   SCALED,     SCALEDYN
@@ -219,6 +227,7 @@
 !  Add a small number (e.g. 1d-32) to prevent division by zero errors.
 !******************************************************************************
 !
+
       ! Pick the proper # of tracers
 #if   defined( APM )
       N_TOT_TRC = N_TRACERS + N_APMTRA   ! G-C advected tracers + APM tracers
@@ -2745,7 +2754,16 @@
          IF ( ITS_A_TAGOX_SIM() .or. ITS_A_MERCURY_SIM() ) THEN
             M = N_TRACERS
          ELSE
+            ! Extend dry dep tracers if 30-bin aerosol is turned on (win, 7/14/09)
+#if   defined ( TOMAS )
+            IF ( IDTNK1 > 0 ) THEN
+               M = NUMDEP + ( ( ICOMP - IDIAG )* IBINS )
+            ELSE
+               M = NUMDEP
+            ENDIF
+#else
             M = NUMDEP
+#endif
          ENDIF
 
          ! Loop over drydep tracers
@@ -2767,18 +2785,37 @@
      
                ! Other simulations
                UNIT = 'molec/cm2/s'
+
+#if   defined( TOMAS )
+               ! For extended drydep tracers, assign tracer ID of the TOMAS
+               ! aerosol mass (win, 7/14/09)
+               IF ( N <= NUMDEP ) THEN 
+                  NN  = NTRAIND(N)
+                  NN1 = NN
+               ELSE
+                  ! To calculate the IDTxxx of the associated  
+                  ! tracer. (ccc, 3/11/10) 
+                  NN  = MOD( N - NUMDEP-1, IBINS ) + IDTNK1
+
+                  ! Tracer number for bpch file
+                  NN1  = ( N - NUMDEP ) + ( IDTNK1 + IBINS - 1 )
+               ENDIF
+#else
                NN   = NTRAIND(N)
+#endif
  
             ENDIF
 
             ! To output only the species asked in input.geos 
             ! (ccc, 5/15/09)
+#if !defined( TOMAS )
             MM  = 1
             MMB = 0
             DO WHILE ( MMB /= NN .AND. MM <= TMAX(44) )
                MMB = TINDEX(44,MM)
                MM  = MM + 1
             ENDDO
+#endif
           
             IF ( ITS_A_FULLCHEM_SIM() ) THEN
                ! Special case for tracers with several dry dep. tracers
@@ -2795,15 +2832,23 @@
             ARRAY(:,:,1) = ( AD44(:,:,N,1) / SCALECHEM )
 
             ! Write to file
+#if   defined( TOMAS )
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, NN1,    
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &                  IIPAR,     JJPAR,     1,        IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
+#else
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &                  IIPAR,     JJPAR,     1,        IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
+#endif
 
 
             ! Special case for tracers with several deposition tracers.
-            ! (E.G. ISOPN: ISOPND and ISOPNB) (ccc, 2/3/10)
+            ! (E.G. ISOPN: ISOPND and ISOPNB). Not aerosols (ccc, 2/3/10)
             SELECT CASE( DEPNAME( N ) )
                CASE( 'ISOPND' ) 
                   !ISOPNB is the next deposition tracer
@@ -2946,8 +2991,7 @@
 
          DO M = 1, TMAX(45)
             N  = TINDEX(45,M)
-            IF ( N > N_TOT_TRC ) CYCLE
-
+            IF ( N > N_TOT_TRC ) CYCLE !(sfarina, 1/28/2013 - valid for all sims)
             NN = N
 
             DO L = 1, LD45
@@ -2991,6 +3035,7 @@
          NPOUTSTEPS = 0
       ENDIF
 #endif
+
 
 !
 !******************************************************************************
@@ -3255,6 +3300,431 @@
          ENDDO
       ENDIF
 
+#if   defined( TOMAS )
+!
+!*****************************************************************************
+!  ND59: Size-resolved primary aerosol emission (win, 8/22/07)
+!        Unit is amount of aerosol per time of simulation e.g. sulfate[=] kg S
+!
+!   # : Field   : Description                 : Units     : Scale Factor
+!  ---------------------------------------------------------------------------
+!  (1 )  NK-EMISS : Size-resolved number emission   : No       : 1
+!  (2 )  SF-EMISS : Size-resolved sulfate emission  : kg S     : 1
+!  (3 )  SS-EMISS : Size-resolved sea-salt emission : kg       : 1 
+!  (4 )  ECIL-SRC : Size-resolved H-phillic EC emission   : kg : 1
+!  (5 )  ECOB-SRC : Size-resolved H-phobic EC emission    : kg : 1
+!  (6 )  OCIL-SRC : Size-resolved H-phillic OC emission   : kg : 1
+!  (7 )  OCOB-SRC : Size-resolved H-phobic OC emission    : kg : 1
+!  (8 )  DUST-SRC : Size-resolved dust emission      : kg      : 1
+!
+!  NOTES:
+!*****************************************************************************
+!
+      IF ( ND59 > 0 ) THEN
+
+         !==============================================================
+         ! Size-resolved primary aerosol number emission 
+         !==============================================================
+         UNIT         = 'No.'
+         CATEGORY     = 'NK-EMISS'
+         DO NBIN =1,IBINS
+            N        = IDTNK1 + NBIN - 1
+            DO L = 1, NOXEXTENT 
+               ARRAY(:,:,L) = AD59_NUMB(:,:,L,NBIN)
+            ENDDO
+            
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY,  N,
+     &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
+     &                  IIPAR,     JJPAR,     NOXEXTENT, IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:NOXEXTENT) )
+     
+         ENDDO
+
+         !==============================================================
+         ! Size-resolved primary aerosol sulfate mass emission 
+         !==============================================================
+         UNIT         = 'kg S'
+         CATEGORY     = 'SF-EMISS'
+         DO NBIN =1,IBINS
+            N        = IDTSF1 + NBIN - 1
+            DO L = 1, NOXEXTENT 
+               ARRAY(:,:,L) = AD59_SULF(:,:,L,NBIN)
+            ENDDO
+            
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY,  N,
+     &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
+     &                  IIPAR,     JJPAR,     NOXEXTENT, IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:NOXEXTENT) )
+     
+         ENDDO
+
+         !==============================================================
+         ! Size-resolved primary aerosol sea-salt mass emission 
+         !==============================================================
+         UNIT         = 'kg'
+         CATEGORY     = 'SS-EMISS'
+         DO NBIN =1,IBINS
+            N        = IDTSS1 + NBIN - 1
+            DO L = 1, NOXEXTENT 
+               ARRAY(:,:,L) = AD59_SALT(:,:,L,NBIN)
+            ENDDO
+            
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY,  N,
+     &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
+     &                  IIPAR,     JJPAR,     NOXEXTENT, IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:NOXEXTENT) )
+     
+         ENDDO
+
+         !==============================================================
+         ! Size-resolved primary Hydrophillic EC mass emission
+         !==============================================================
+         UNIT         = 'kg'
+         CATEGORY     = 'ECIL-SRC'
+         DO NBIN =1,IBINS
+            N        = IDTECIL1 - 1 + NBIN
+            DO L = 1, NOXEXTENT 
+               ARRAY(:,:,L) = AD59_ECIL(:,:,L,NBIN)
+            ENDDO
+            
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY,  N,
+     &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
+     &                  IIPAR,     JJPAR,     NOXEXTENT, IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:NOXEXTENT) )
+     
+         ENDDO
+
+         !==============================================================
+         ! Size-resolved primary Hydrophobic EC mass emission
+         !==============================================================
+         UNIT         = 'kg'
+         CATEGORY     = 'ECOB-SRC'
+         DO NBIN =1,IBINS
+            N        = IDTECOB1 - 1 + NBIN
+            DO L = 1, NOXEXTENT 
+               ARRAY(:,:,L) = AD59_ECOB(:,:,L,NBIN)
+            ENDDO
+            
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY,  N,
+     &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
+     &                  IIPAR,     JJPAR,     NOXEXTENT, IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:NOXEXTENT) )
+     
+         ENDDO
+
+         !==============================================================
+         ! Size-resolved primary Hydrophillic OC mass emission
+         !==============================================================
+         UNIT         = 'kg'
+         CATEGORY     = 'OCIL-SRC'
+         DO NBIN =1,IBINS
+            N        = IDTOCIL1 - 1 + NBIN
+            DO L = 1, NOXEXTENT 
+               ARRAY(:,:,L) = AD59_OCIL(:,:,L,NBIN)
+            ENDDO
+            
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY,  N,
+     &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
+     &                  IIPAR,     JJPAR,     NOXEXTENT, IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:NOXEXTENT) )
+     
+         ENDDO
+
+         !==============================================================
+         ! Size-resolved primary Hydrophobic OC mass emission
+         !==============================================================
+         UNIT         = 'kg'
+         CATEGORY     = 'OCOB-SRC'
+         DO NBIN =1,IBINS
+            N        = IDTOCOB1 - 1 + NBIN
+            DO L = 1, NOXEXTENT 
+               ARRAY(:,:,L) = AD59_OCOB(:,:,L,NBIN)
+            ENDDO
+            
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY,  N,
+     &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
+     &                  IIPAR,     JJPAR,     NOXEXTENT, IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:NOXEXTENT) )
+     
+         ENDDO
+
+         !==============================================================
+         ! Size-resolved dust mass emission
+         !==============================================================
+         UNIT         = 'kg'
+         CATEGORY     = 'DUST-SRC'
+         DO NBIN =1,IBINS
+            N        = IDTDUST1 - 1 + NBIN
+            DO L = 1, NOXEXTENT 
+               ARRAY(:,:,L) = AD59_DUST(:,:,L,NBIN)
+            ENDDO
+            
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY,  N,
+     &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
+     &                  IIPAR,     JJPAR,     NOXEXTENT, IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:NOXEXTENT) )
+     
+         ENDDO
+
+      ENDIF  
+!
+!*****************************************************************************
+!  ND60: TOMAS Aerosol microphysical rate (win, 7/9/07)
+!        Unit is amount of aerosol per time of simulation e.g. sulfate[=] kg S
+!
+!   # : Field   : Description                 : Units     : Scale Factor
+!  ---------------------------------------------------------------------------
+!  (1) TMS-COND : Condensation rate           : no. or kg : NONE
+!  (2) TMS-COAG : Coagulation rate            : no. or kg : NONE
+!  (3) TMS-NUCL : Nucleation rate             : no. or kg : NONE
+!  (4) TMS-AQOX : Aqueous oxidation rate      : no. or kg : NONE
+!  (5) AERO-FIX : Accumulated error fixed     : no. or kg : NONE
+!  (6) TMS-SOA  : SOA condensation rate       : no. or kg : NONE
+!
+!  NOTES:
+!  (1 ) Add TMS-SOA diagnostic (win, 9/25/07)
+!*****************************************************************************
+!
+      IF ( ND60 > 0 ) THEN
+         
+         !==============================================================
+         ! Condensation rate
+         !==============================================================
+
+         ! Category name
+         CATEGORY = 'TMS-COND'
+         DO M = 1,TMAX(60)
+            NN = TINDEX(60,M)
+            
+            SCALEX = 1.d0
+
+            IF ( ( NN .ge. IDTNK1 ) .and. 
+     &           ( NN .lt. IDTNK1+IBINS )      ) THEN
+               UNIT = 'no.'
+            ELSE
+               UNIT = 'kg'
+            ENDIF
+
+            DO L = 1, LD60
+               ARRAY(1,:,L) = AD60_COND(1,:,L,M) / SCALEX
+            ENDDO
+
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                  1,         JJPAR,     LD60,     IFIRST,
+     &                  JFIRST,    LFIRST,    ARRAY(1,:,1:LD60)  )
+         ENDDO
+
+         !==============================================================
+         ! Coagulation rate
+         !==============================================================
+
+         ! Category name
+         CATEGORY = 'TMS-COAG'
+         DO M = 1,TMAX(60)
+            NN = TINDEX(60,M)
+            
+            SCALEX = 1.d0
+
+            IF ( ( NN .ge. IDTNK1 ) .and. 
+     &           ( NN .lt. IDTNK1+IBINS )      ) THEN
+               UNIT = 'no.'
+            ELSE
+               UNIT = 'kg'
+            ENDIF
+
+            DO L = 1, LD60
+               ARRAY(1,:,L) = AD60_COAG(1,:,L,M) / SCALEX
+            ENDDO
+
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                  1,         JJPAR,     LD60,     IFIRST,
+     &                  JFIRST,    LFIRST,    ARRAY(1,:,1:LD60)  )
+         ENDDO
+
+         !==============================================================
+         ! Nucleation rate
+         !==============================================================
+
+         ! Category name
+         CATEGORY = 'TMS-NUCL'
+         DO M = 1,TMAX(60)
+            NN = TINDEX(60,M)
+            
+            SCALEX = 1.d0
+
+            IF ( ( NN .ge. IDTNK1 ) .and. 
+     &           ( NN .lt. IDTNK1+IBINS )      ) THEN
+               UNIT = 'no.'
+            ELSE
+               UNIT = 'kg'
+            ENDIF
+
+            DO L = 1, LD60
+               ARRAY(1,:,L) = AD60_NUCL(1,:,L,M) / SCALEX
+            ENDDO
+
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                  1,         JJPAR,     LD60,     IFIRST,
+     &                  JFIRST,    LFIRST,    ARRAY(1,:,1:LD60)  )
+         ENDDO
+
+         !==============================================================
+         ! Aqueous oxidation rate
+         !==============================================================
+
+         ! Category name
+         CATEGORY = 'TMS-AQOX'
+         DO M = 1,TMAX(60)
+            NN = TINDEX(60,M)
+            
+            SCALEX = 1.d0
+
+            IF ( ( NN .ge. IDTNK1 ) .and. 
+     &           ( NN .lt. IDTNK1+IBINS )      ) THEN
+               UNIT = 'no.'
+            ELSE
+               UNIT = 'kg'
+            ENDIF
+
+            DO L = 1, LD60
+               ARRAY(1,:,L) = AD60_AQOX(1,:,L,M) / SCALEX
+            ENDDO
+
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                  1,         JJPAR,     LD60,     IFIRST,
+     &                  JFIRST,    LFIRST,    ARRAY(1,:,1:LD60)  )
+         ENDDO
+
+         !==============================================================
+         ! Error fudging during aerosol microphysics
+         !==============================================================
+
+         ! Category name
+         CATEGORY = 'AERO-FIX'
+         DO M = 1,TMAX(60)
+            NN = TINDEX(60,M)
+            
+            SCALEX = 1.d0
+
+            IF ( ( NN .ge. IDTNK1 ) .and. 
+     &           ( NN .lt. IDTNK1+IBINS )      ) THEN
+               UNIT = 'no.'
+            ELSE
+               UNIT = 'kg'
+            ENDIF
+
+             DO L = 1, LD60
+                ARRAY(1,:,L) = AD60_ERROR(1,:,L,M) / SCALEX
+             ENDDO
+
+             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                  1,         JJPAR,     LD60,     IFIRST,
+     &                  JFIRST,    LFIRST,    ARRAY(1,:,1:LD60)  )
+          ENDDO
+
+         !==============================================================
+         ! SOA Condensation rate  (win, 9/25/07)
+         !==============================================================
+
+         ! Category name
+         CATEGORY = 'TMS-SOA'
+         DO M = 1,TMAX(60)
+            NN = TINDEX(60,M)
+            
+            SCALEX = 1.d0
+
+            IF ( ( NN .ge. IDTNK1 ) .and. 
+     &           ( NN .lt. IDTNK1+IBINS )      ) THEN
+               UNIT = 'no.'
+            ELSE
+               UNIT = 'kg'
+            ENDIF
+
+            DO L = 1, LD60
+               ARRAY(1,:,L) = AD60_SOA(1,:,L,M) / SCALEX
+            ENDDO
+
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                  1,         JJPAR,     LD60,     IFIRST,
+     &                  JFIRST,    LFIRST,    ARRAY(1,:,1:LD60)  )
+         ENDDO
+
+      ENDIF
+
+!
+!*****************************************************************************
+!  ND61: TOMAS microphysics process rate saved in 3-D (kg/s)
+!
+!  Remark: for aerosol number, the unit 'kg' is used as a fake kg where
+!          1 fake kg = 1 aerosol number.
+!          Molecular weight of aerosol number is 1g/mol and   
+!
+!   # : Field   : Description                 : Units     : Scale Factor
+!  ---------------------------------------------------------------------------
+!  (1) TOMAS-3D : 3-D microphysics rate       : kg/s      : SCALECHEM
+!
+!  NOTES: 
+!  (1 ) Create ND61 to output nucleation rate in 3-D array diagnostic (win, 6/21/08)
+!  (2 ) Change ND61 tracer and unit to be new list with unit of 'cm-3s-1'
+!       (win, 10/6/08)
+!*****************************************************************************
+
+      IF ( ND61 > 0 ) THEN
+         CATEGORY = 'TOMAS-3D'
+         
+         DO M = 1, TMAX(61)
+            NN = TINDEX(61,M)
+
+            SCALEX = SCALECHEM
+
+            UNIT = 'cm-3s-1'
+
+            DO L = 1, LD61
+               ARRAY(:,:,L) = AD61(:,:,L,NN) / SCALEX
+            ENDDO
+
+!Prior to 10/6/08
+!            SCALEX = SCALECHEM
+!
+!            UNIT = 'kg/s'
+!
+!            DO L = 1, LD61
+!            DO J = 1, JJPAR
+!            DO I = 1, IIPAR
+!               ARRAY(I,J,L) = AD61(I,J,L) / SCALEX
+!            ENDDO
+!            ENDDO
+!            ENDDO
+            
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                  IIPAR,     JJPAR,     LD61,     IFIRST,
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD61)  )
+         ENDDO
+      ENDIF
+#else  
+! ND60 s used for wetland fraction in non-tomas sim diagnostics
 !
 !******************************************************************************
 !  ND60: Wetland fraction
@@ -3280,7 +3750,7 @@
 
       ENDIF
 
-
+#endif
 !
 !*****************************************************************************
 !  ND62: I-J Instantaneous Column Maps for Tracers (molec/cm^2)  

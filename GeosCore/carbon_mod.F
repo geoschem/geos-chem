@@ -171,8 +171,9 @@
 !        onto OC aerosol, according to recommendations of Aerosol Working 
 !        Group. (amv, clh, bmy, 12/21/09)
 !  (25) Bug fix for EMIS_SAVE in EMITHIGH (bmy, 1/11/10)
-!  (26) Bug fix: call SOA_PARA_INIT (ensberg, bmy, 6/30/10)
-!  (27) Modified to include GFED3 (psk, 1/5/11)
+!  (26) Modifications for TOMAS (win, bmy, 1/25/10)
+!  (27) Bug fix: call SOA_PARA_INIT (ensberg, bmy, 6/30/10)
+!  (28) Modified to include GFED3 (psk, 1/5/11)
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  30 Jul 2012 - R. Yantosca - Modifications for grid-independence
 !  28 Nov 2012 - R. Yantosca - Replace SUNCOS array with State_Met%SUNCOS and
@@ -310,6 +311,11 @@
       USE TRACERID_MOD,       ONLY : IDTOCPO, IDTSOG4, IDTSOA4
       USE TRACERID_MOD,       ONLY : IDTSOG5, IDTSOA5
       USE TRACERID_MOD,       ONLY : IDTSOAG, IDTSOAM
+#if   defined( TOMAS )
+      USE TRACERID_MOD,       ONLY : IDTECIL1, IDTECOB1          !(win, 1/25/10)
+      USE TRACERID_MOD,       ONLY : IDTOCIL1, IDTOCOB1, IDTNK1  !(win, 1/25/10)
+      USE TOMAS_MOD,          ONLY : IBINS                       !(win, 1/25/10)
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -335,6 +341,8 @@
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (5 ) Now updated for SOA production from ISOP. (dkh, bmy, 6/1/06)
 !  (6 ) Bug fix for aerosol sim w/ 20 tracers (phs, 9/14/06)
+!  (7 ) Add subroutine call AGING_CARB for converting H-phobic 30-bin EC or OC
+!        to H-philic EC or OC. (win, 1/25/10)
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
@@ -482,6 +490,24 @@
             CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPI' )
          ENDIF
       ENDIF
+
+#if   defined( TOMAS )
+      ! Chemistry (aging) for size-resolved EC and OC (win, 1/25/10)
+      IF ( IDTECOB1 > 0 ) THEN
+         CALL AGING_CARB( STT(:,:,:,IDTECIL1:IDTECIL1+IBINS-1), 
+     &                     STT(:,:,:,IDTECOB1:IDTECOB1+IBINS-1) )
+         IF ( prtDebug ) THEN
+            CALL DEBUG_MSG( '### CHEMCARBO: AGING_CARB EC' )
+         ENDIF
+      ENDIF
+      IF ( IDTOCOB1 > 0 ) THEN
+         CALL AGING_CARB( STT(:,:,:,IDTOCIL1:IDTOCIL1+IBINS-1), 
+     &                     STT(:,:,:,IDTOCOB1:IDTOCOB1+IBINS-1) )
+         IF ( prtDebug ) THEN
+            CALL DEBUG_MSG( '### CHEMCARBO: AGING_CARB OC' )
+         ENDIF
+      ENDIF
+#endif
 
       !=================================================================
       ! Do chemistry for secondary organic aerosols 
@@ -1333,6 +1359,55 @@
       END SUBROUTINE CHEM_OCPI
 !EOC
 !-------------------------------------------------------------------------------
+
+#if   defined( TOMAS )
+      SUBROUTINE AGING_CARB( MIL, MOB )
+!
+!******************************************************************************
+!  Subroutine AGING_CARB converts the size-resolved hydrophobic EC or OC to 
+!  hydrophilic EC or OC with an assumed e-folding time. (win, 9/11/07)
+!
+!  NOTES:
+!******************************************************************************
+
+      ! Reference to F90 modules
+      USE TIME_MOD,     ONLY : GET_TS_CHEM    ! [=] minute
+      USE TOMAS_MOD,    ONLY : IBINS
+
+      USE CMN_SIZE_MOD       ! Size parameters
+
+      ! Argument
+      REAL*8,  INTENT(INOUT) :: MIL(IIPAR,JJPAR,LLPAR, IBINS)
+      REAL*8,  INTENT(INOUT) :: MOB(IIPAR,JJPAR,LLPAR, IBINS)
+
+      ! Local variables
+      INTEGER                :: I, J, L, K
+      REAL*8                 :: DTCHEM
+      REAL*8,  PARAMETER     :: TAU_HYDRO = 1.15D0  ! [=]day
+
+      !=================================================================
+      ! AGING_CARB begins here!
+      !=================================================================
+
+      DTCHEM = GET_TS_CHEM() / 60d0 / 24d0    ![=] day
+
+      DO K = 1, IBINS
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+         MIL(I,J,L,K) = MIL(I,J,L,K) + 
+     &                  MOB(I,J,L,K) * (1.D0 - DEXP(-DTCHEM/TAU_HYDRO))
+         MOB(I,J,L,K) = MOB(I,J,L,K) * (DEXP(-DTCHEM/TAU_HYDRO))
+      ENDDO
+      ENDDO
+      ENDDO
+      ENDDO
+
+      ! Return to calling program
+      END SUBROUTINE AGING_CARB
+#endif
+ 
+!------------------------------------------------------------------------------
 
       SUBROUTINE SOAG_LIGGIO_DIFF( State_Met )
 !
@@ -4143,6 +4218,15 @@ c
 !  (6 ) Now check that GFED2 has been updated if we do not use the annual
 !        Bond Biomass emission (phs, yc, 12/18/08)
 !  (7 ) Now reads monthly (eml, phs, 5/18/09)
+!  (8 ) New array for 30bin EC and OC source EC30SRC and OC30SRC and refer to 
+!        IBINS (size bin parameters) and refer to LCARB30 (win, 9/4/07)
+!  (9 ) Condensing SOA (when LSOA = F) onto existing aerosol by SOACOND 
+!        (win, 9/25/07)
+!  (10) Convert OC emitted to OM using a factor of 1.8 and note that now
+!        OCIL and OCOB are actually OM mass.  I might have to rename these 
+!        arrays later. (win, 2/26/08)
+!  (11) Correct the biogenic mass input to SOA condensation from mass OC to
+!        mass OM using the OC2OM factor. (win, 9/20/08)
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !******************************************************************************
@@ -4156,6 +4240,16 @@ c
       USE LOGICAL_MOD,        ONLY : LSOA,      LPRT,  LCOOKE
       USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
       USE TRACER_MOD,         ONLY : STT
+#if   defined ( TOMAS )
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER
+      USE DIAG_MOD,           ONLY : AD59_ECIL, AD59_ECOB        !(win, 1/25/10)
+      USE DIAG_MOD,           ONLY : AD59_OCIL, AD59_OCOB        !(win, 1/25/10)
+      USE DIAG_MOD,           ONLY : AD59_NUMB                   !(win, 1/25/10)
+      USE TOMAS_MOD,          ONLY : IBINS,     AVGMASS, SOACOND !(win, 1/25/10)
+      USE TOMAS_MOD,          ONLY : ICOMP,     IDIAG            !(win, 1/25/10)
+      USE TRACERID_MOD,       ONLY : IDTECIL1,  IDTECOB1, IDTNK1 !(win, 1/25/10)
+      USE TRACERID_MOD,       ONLY : IDTOCIL1,  IDTOCOB1         !(win, 1/25/10)
+#endif
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND07
@@ -4176,6 +4270,35 @@ c
 #if defined( DEVEL )
       REAL*8,      INTENT(INOUT) :: EMISSIONS(IIPAR,JJPAR,N_TRACERS+1)
 #endif
+
+#if   defined( TOMAS )
+      ! more variables (win, 9/4/07)
+      REAL*8               :: EC30SRC(IIPAR, JJPAR, IBINS, 2)
+      REAL*8               :: OC30SRC(IIPAR, JJPAR, IBINS, 2)
+      REAL*8               :: NUMBSRC(IIPAR, JJPAR, IBINS )
+      REAL*8               :: ECFF(IIPAR,JJPAR,IBINS,2)
+      REAL*8               :: ECBF(IIPAR,JJPAR,IBINS,2)
+      REAL*8               :: ECBB(IIPAR,JJPAR,IBINS,2)
+      REAL*8               :: OCFF(IIPAR,JJPAR,IBINS,2)
+      REAL*8               :: OCBF(IIPAR,JJPAR,IBINS,2)
+      REAL*8               :: OCBB(IIPAR,JJPAR,IBINS,2)
+      INTEGER              :: K
+      LOGICAL              :: SGCOAG = .TRUE.
+      REAL*8               :: SOASRC(IIPAR, JJPAR), SFRAC
+      LOGICAL              :: PSTEST = .FALSE. ! POA/SOA sentivity test switch
+      REAL*8               :: OC2OM = 1.8d0 ! Converting OC to OM mass 
+                                            ! (win, 2/26/08)
+      ! Debugging (win, 3/12/08)
+      integer              :: ii, jj, ll
+      logical              :: dbg = .false.
+      data ii, jj, ll /53, 29, 8 /
+
+      REAL*4               :: BOXVOL  ! calculated from State_Met
+      REAL*4               :: TEMPTMS ! calculated from State_Met
+      REAL*4               :: PRES    ! calculated from State_Met
+#endif
+
+
       !=================================================================
       ! EMISSCARBON begins here!
       !
@@ -4415,8 +4538,612 @@ c
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISCARB: after ND07' )
       ENDIF
 
+#if   defined( TOMAS )
+      ! Added for emitting 30-bin EC and OC by Win Trivitayanurak (9/4/07)
+      ! From this point to the end of this subroutine and also added function 
+      !  SCALECARB and subroutine EMITHIGH2 and EMITSGC in carbon_mod.f 
+      !=================================================================
+      ! Emit EC and OC for 30-bin aerosol    (win, 9/4/07)
+      !=================================================================
+
+      IF ( IDTNK1 > 0 .AND. IDTECIL1 > 0 .AND. 
+     &     IDTECOB1 > 0 .AND. IDTOCIL1 > 0 .AND. IDTOCOB1 > 1 ) THEN
+         
+         !Scale the emission of each source to 30 size bins [kg]
+         ! Hydryphilic EC (internally-mixed)
+         ECFF(:,:,:,1) = SCALECARB( ANTH_BLKC(:,:,1), 1, 1 )
+         ECBF(:,:,:,1) = SCALECARB( BIOF_BLKC(:,:,1), 2, 1 )
+         ECBB(:,:,:,1) = SCALECARB( BIOB_BLKC(:,:,1), 3, 1 )
+
+         ! Hydrophobic EC (externally-mixed)
+         ECFF(:,:,:,2) = SCALECARB( ANTH_BLKC(:,:,2), 1, 1 )
+         ECBF(:,:,:,2) = SCALECARB( BIOF_BLKC(:,:,2), 2, 1 )
+         ECBB(:,:,:,2) = SCALECARB( BIOB_BLKC(:,:,2), 3, 1 )
+
+         ! Hydryphilic OC
+         !  NOTE: now the mass is emitted by increasing amount by 1.8 (win,26/2008)
+         OCFF(:,:,:,1) = OC2OM * SCALECARB( ANTH_ORGC(:,:,1), 1, 2 )
+         OCBF(:,:,:,1) = OC2OM * SCALECARB( BIOF_ORGC(:,:,1), 2, 2 )
+         OCBB(:,:,:,1) = OC2OM * SCALECARB( BIOB_ORGC(:,:,1), 3, 2 )
+
+         ! Hydrophobic OC 
+         OCFF(:,:,:,2) = OC2OM * SCALECARB( ANTH_ORGC(:,:,2), 1, 2 )
+         OCBF(:,:,:,2) = OC2OM * SCALECARB( BIOF_ORGC(:,:,2), 2, 2 )
+         OCBB(:,:,:,2) = OC2OM * SCALECARB( BIOB_ORGC(:,:,2), 3, 2 )
+
+         EC30SRC(:,:,:,1) = ECFF(:,:,:,1) + ECBF(:,:,:,1) + 
+     &                      ECBB(:,:,:,1) 
+
+         EC30SRC(:,:,:,2) = ECFF(:,:,:,2) + ECBF(:,:,:,2) + 
+     &                      ECBB(:,:,:,2)
+
+         ! Default is to use all three sources of OC
+         OC30SRC(:,:,:,1) = OCFF(:,:,:,1) + OCBF(:,:,:,1) + 
+     &                      OCBB(:,:,:,1)
+
+         OC30SRC(:,:,:,2) = OCFF(:,:,:,2) + OCBF(:,:,:,2) + 
+     &                      OCBB(:,:,:,2)
+         ! For a sensitivity run, use only one source
+!         OC30SRC(:,:,:,1) = 0.d0*OCFF(:,:,:,1) + OCBF(:,:,:,1) + 
+!     &                      0.d0*OCBB(:,:,:,1)
+
+!         OC30SRC(:,:,:,2) = 0.d0*OCFF(:,:,:,2) + OCBF(:,:,:,2) + 
+!     &                      0.d0*OCBB(:,:,:,2)
+!         must change here before next use (it will not compile before removing this)
+!         win, 12/05/08
+
+         !==========================================================
+         ! For Sensitivity test on SOA/POA split
+         !   SFRAC = %/100 of OA treated as SOA to account for 
+         !          evaporation b/c of their semivolatile properties
+         !==========================================================
+         IF ( PSTEST ) THEN 
+            SFRAC = 100.d-2 ! <------ change this number for SOA fraction
+            DO K = 1, IBINS
+               ! Fraction of POA evaporated and act like SOA
+               SOASRC(:,:) = SOASRC(:,:) + (OC30SRC(:,:,K,1) + 
+     &                                      OC30SRC(:,:,K,2)  ) * SFRAC
+            ENDDO 
+         
+            ! Fraction of POA remained as POA
+            OC30SRC(:,:,:,:) = OC30SRC(:,:,:,:)* (1d0 - SFRAC)
+
+            IF ( PSTEST ) PRINT 77, SFRAC*100.
+ 77         FORMAT( '>>>>> POA/SOA SENSITIVITY TEST: ', F5.1,
+     &              '% SOA  <<<<<')
+         ENDIF
+
+         IF ( SGCOAG ) THEN
+            
+            !-----------------------------------------
+            ! Add emission with sub-grid coagulation
+            !-----------------------------------------
+
+!temp debug            if(sum(EC30SRC(ii,jj,:,:)) > 0d0) dbg = .true.
+      if( dbg) then
+         print *,'===== Before EMITSGC:EC ===== at',ii,jj,ll
+         print *,'Nk'
+         print *,STT(ii,jj,ll,IDTNK1:IDTNK1+ibins-1)
+         print *,'Mk'
+         do k=1,icomp-idiag
+            print *,'comp',k
+            print *,STT(ii,jj,ll,IDTNK1+k*IBINS:IDTNK1+IBINS-1+k*IBINS)
+         enddo
+      endif
+!temp debug --------
+            CALL EMITSGC( EC30SRC(:,:,:,1) + EC30SRC(:,:,:,2), 1,
+     &                    State_Met )
+!temp debug            if(sum(OC30SRC(ii,jj,:,:)) > 0d0) dbg = .true.
+      if( dbg) then
+         print *,'===== Before EMITSGC:OC ===== at',ii,jj,ll
+         print *,'Nk'
+         print *,STT(ii,jj,ll,IDTNK1:IDTNK1+ibins-1)
+         print *,'Mk'
+         do k=1,icomp -idiag
+            print *,'comp',k
+            print *,STT(ii,jj,ll,IDTNK1+k*IBINS:IDTNK1+IBINS-1+k*IBINS)
+         enddo
+      endif
+!temp debug --------
+            CALL EMITSGC( OC30SRC(:,:,:,1) + OC30SRC(:,:,:,2), 2,
+     &                    State_Met )
+!temp debug
+      if( dbg) then
+         print *,'===== After EMITSGC:OC ===== at',ii,jj,ll
+         print *,'Nk'
+         print *,STT(ii,jj,ll,IDTNK1:IDTNK1+ibins-1)
+         print *,'Mk'
+         do k=1,icomp -idiag
+            print *,'comp',k
+            print *,STT(ii,jj,ll,IDTNK1+k*IBINS:IDTNK1+IBINS-1+k*IBINS)
+         enddo
+      endif
+!temp debug --------
+            IF ( LPRT ) CALL DEBUG_MSG( '### EMISCARB: after EMITSGC')
+
+         ELSE
+
+           !-----------------------------------------
+           ! Add emission w/o sub-grid coagulation
+           !-----------------------------------------
+
+           ! Convert the total mass emission to number emisison [No.]
+           DO K = 1, IBINS
+              NUMBSRC(:,:,K) = ( EC30SRC(:,:,K,1) + EC30SRC(:,:,K,2) +
+     &                          OC30SRC(:,:,K,1) + OC30SRC(:,:,K,2) )/
+     &                          AVGMASS(K) 
+           ENDDO
+
+           CALL EMITHIGH2( EC30SRC, OC30SRC, NUMBSRC )
+           IF ( LPRT ) CALL DEBUG_MSG( '### EMISCARB: after EMITHIGH2' )
+         
+           !=================================================================
+           ! ND59 diagnostic: Size-resolved aerosol emissions [kg/timestep]
+           !=================================================================
+!FUTUREOMP
+           IF ( ND59 > 0 ) THEN
+              DO K = 1, IBINS
+              DO J = 1, JJPAR
+              DO I = 1, IIPAR
+
+                 AD59_NUMB(I,J,1,K) = AD59_NUMB(I,J,1,K) + 
+     &                                 NUMBSRC(I,J,K)
+
+                 AD59_ECIL(I,J,1,K) = AD59_ECIL(I,J,1,K) + 
+     &                                 ECFF(I,J,K,1) + ECBF(I,J,K,1) +
+     &                                 ECBB(I,J,K,1)
+                 AD59_ECOB(I,J,1,K) = AD59_ECOB(I,J,1,K) + 
+     &                                 ECFF(I,J,K,2) + ECBF(I,J,K,2) +
+     &                                 ECBB(I,J,K,2)
+                 IF ( PSTEST ) THEN
+                    AD59_OCIL(I,J,1,K) = AD59_OCIL(I,J,1,K) + 
+     &                                  (OCFF(I,J,K,1) + OCBF(I,J,K,1) +
+     &                                   OCBB(I,J,K,1))*(1-SFRAC)
+                    AD59_OCOB(I,J,1,K) = AD59_OCOB(I,J,1,K) + 
+     &                                  (OCFF(I,J,K,2) + OCBF(I,J,K,2) +
+     &                                   OCBB(I,J,K,2))*(1-SFRAC)
+                 ELSE
+                    AD59_OCIL(I,J,1,K) = AD59_OCIL(I,J,1,K) + 
+     &                                  (OCFF(I,J,K,1) + OCBF(I,J,K,1) +
+     &                                   OCBB(I,J,K,1))
+                    AD59_OCOB(I,J,1,K) = AD59_OCOB(I,J,1,K) + 
+     &                                  (OCFF(I,J,K,2) + OCBF(I,J,K,2) +
+     &                                   OCBB(I,J,K,2))
+                 ENDIF
+
+              ENDDO
+              ENDDO
+              ENDDO
+           ENDIF                ! ND59
+
+        ENDIF                   ! SGCOAG
+
+         ! Condensing SOA [kg] onto existing size distribution
+         IF ( PSTEST ) THEN 
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR  
+               BOXVOL  = State_Met%AIRVOL(I,J,1) * 1.e6 !convert from m3 -> cm3 
+               TEMPTMS = State_Met%T(I,J,1)
+               PRES    = GET_PCENTER(i,j,1)*100.0 ! in Pa       
+               IF ( SOASRC(I,J) > 0.d0 ) 
+     &            CALL SOACOND( SOASRC(I,J), I, J, 1,
+     &               BOXVOL, TEMPTMS, PRES )
+            ENDDO
+            ENDDO
+            IF ( LPRT ) 
+     &           CALL DEBUG_MSG( '### EMISCARB: after SOACOND[S-TEST]' )
+         ELSE
+
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR  
+               BOXVOL  = State_Met%AIRVOL(I,J,1) * 1.e6 !convert from m3 -> cm3 
+               TEMPTMS = State_Met%T(I,J,1)
+               PRES    = GET_PCENTER(i,j,1)*100.0 ! in Pa       
+               IF ( TERP_ORGC(I,J) > 0.d0 ) 
+     &            CALL SOACOND( OC2OM * TERP_ORGC(I,J), I, J, 1,
+     &               BOXVOL, TEMPTMS, PRES )
+            ENDDO
+            ENDDO
+            IF ( LPRT ) 
+     &           CALL DEBUG_MSG( '### EMISCARB: after SOACOND (BIOG) ' )
+         ENDIF
+
+      ENDIF ! size-resolved carb aerosol tracers ID > 0
+#endif
+
       ! Return to calling program
       END SUBROUTINE EMISSCARBON
+
+!------------------------------------------------------------------------------
+
+#if   defined( TOMAS )
+      SUBROUTINE EMITSGC( EMISMASS, CTYPE, State_Met )
+!
+!******************************************************************************
+!  Subroutine EMITSGC calculates sub-grid coagulation for the size distribution
+!  of emission. (win, 10/6/07)
+!
+! !REVISION HISTORY:
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!******************************************************************************
+
+      ! References to F90 modules
+      USE DIAG_MOD,           ONLY : AD59_ECIL,   AD59_ECOB
+      USE DIAG_MOD,           ONLY : AD59_OCIL,   AD59_OCOB
+      USE DIAG_MOD,           ONLY : AD59_NUMB
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL,  GET_PBL_MAX_L
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER
+      USE TRACER_MOD,         ONLY : STT
+      USE TRACERID_MOD,       ONLY : IDTECIL1, IDTECOB1
+      USE TRACERID_MOD,       ONLY : IDTOCIL1, IDTOCOB1, IDTNK1
+      USE TRACERID_MOD,       ONLY : IDTNH4,   IDTAW1
+      USE TOMAS_MOD,          ONLY : IBINS,    AVGMASS,  ICOMP,   IDIAG
+      USE TOMAS_MOD,          ONLY : SRTECIL,  SRTECOB,  SRTOCIL
+      USE TOMAS_MOD,          ONLY : SRTOCOB,  SRTSO4,   SRTNH4
+      USE TOMAS_MOD,          ONLY : SRTH2O,   MNFIX
+      USE TOMAS_MOD,          ONLY : SUBGRIDCOAG
+      USE TOMAS_MOD,          ONLY : NH4BULKTOBIN
+      USE ERROR_MOD,          ONLY : IT_IS_NAN
+
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND59
+
+      ! Arguments
+      REAL*8,         INTENT(IN)  :: EMISMASS(IIPAR, JJPAR, IBINS)
+      INTEGER,        INTENT(IN)  :: CTYPE       ! 1 = EC and 2 = OC
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+
+      ! Local variables
+      REAL*8                      :: NDISTINIT(IBINS) 
+      REAL*8                      :: NDISTFINAL(IBINS) 
+      REAL*8                      :: MADDFINAL(IBINS) 
+      REAL*8                      :: NDIST(IBINS)
+      REAL*8                      :: MDIST(IBINS,ICOMP)
+      REAL*8                      :: NDIST2(IBINS)
+      REAL*8                      :: MDIST2(IBINS,ICOMP)
+      REAL*8                      :: TSCALE, BOXVOL, TEMP, PRES
+      INTEGER                     :: I, J, L, K, C, PBL_MAX
+      REAL*8                      :: F_OF_PBL
+      LOGICAL                     :: ERRORSWITCH, PDBUG
+      REAL*4                      :: N0(LLPAR,IBINS)
+      REAL*4                      :: N1(LLPAR,IBINS)
+      REAL*4                      :: MIL0(LLPAR,IBINS)
+      REAL*4                      :: MIL1(LLPAR,IBINS)
+      REAL*4                      :: MOB0(LLPAR,IBINS)
+      REAL*4                      :: MOB1(LLPAR,IBINS)
+      INTEGER                     :: ii, jj, ll
+      LOGICAL                     :: dbg = .false.
+      DATA ii, jj, ll /53, 29, 8 /
+
+      !=================================================================
+      ! EMITSGC begins here!
+      !=================================================================
+
+      IF ( LNLPBL ) THEN 
+         print *,'Currently subroutine EMITHIGH2 does not support ',
+     &        'the new non-local PBL scheme!'
+         stop
+      ENDIF
+
+      ! Maximum extent of PBL [model levels]
+      PBL_MAX = GET_PBL_MAX_L()
+
+!temp debug      if( sum(emismass(ii,jj,:)) > 0d0) dbg = .true.
+      if( dbg) then
+         print *,'===== Entering EMITSGC ===== at',ii,jj,ll
+         print *,'Nk'
+         print *,STT(ii,jj,ll,IDTNK1:IDTNK1+ibins-1)
+         print *,'Mk'
+         do k=1,icomp-idiag
+            print *,'comp',k
+            print *,STT(ii,jj,ll,IDTNK1+k*IBINS:IDTNK1+IBINS-1+k*IBINS)
+         enddo
+         print *,'EMISSION'
+         print *,emismass(ii,jj,:)
+      endif
+!temp debug --------
+
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+      IF ( SUM( EMISMASS(I,J,:) ) == 0.d0 ) GOTO 100
+      DO L = 1, PBL_MAX
+
+         ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
+         F_OF_PBL = GET_FRAC_OF_PBL( I, J, L )
+
+         DO K = 1, IBINS
+            NDISTINIT(K) = EMISMASS(I,J,K) * F_OF_PBL / AVGMASS(K) 
+            NDIST(K) = STT(I,J,L,IDTNK1+K-1)
+            DO C = 1, ICOMP-IDIAG
+               MDIST(K,C) = STT(I,J,L,IDTNK1+IBINS*C+K-1)
+               IF( IT_IS_NAN( MDIST(K,C) ) ) THEN
+                  PRINT *,'+++++++ Found NaN in EMITSGC ++++++++'
+                  PRINT *,'Location (I,J,L):',I,J,L,'Bin',K,'comp',C
+               ENDIF
+            ENDDO
+            MDIST(K,SRTH2O) = STT(I,J,L,IDTAW1-1+K)
+            NDISTFINAL(K) = 0d0
+            MADDFINAL(K) = 0d0
+         ENDDO
+
+         IF( SRTNH4 > 0 ) 
+     &        CALL NH4BULKTOBIN( MDIST(1:IBINS,SRTSO4),
+     &                           STT(I,J,L,IDTNH4),
+     &                           MDIST(1:IBINS,SRTNH4) )
+
+         ! Save initial info for diagnostic
+         N0(L,:) = NDIST(:)
+         IF(CTYPE == 1) THEN
+            MIL0(L,:) = MDIST(:,SRTECIL)
+            MOB0(L,:) = MDIST(:,SRTECOB)
+         ELSE
+            MIL0(L,:) = MDIST(:,SRTOCIL)
+            MOB0(L,:) = MDIST(:,SRTOCOB)
+         ENDIF
+
+      ! Define subgrid coagulation timescale (win, 10/28/08)
+#if   defined( GRID4x5   ) 
+      TSCALE = 10.*3600.        ! 10 hours
+#elif defined( GRID2x25  )
+      TSCALE = 5.*3600.    
+#elif defined( GRID1x125 )
+      TSCALE = 2.*3600.    
+#elif defined( GRID1x1   ) 
+      TSCALE = 2.*3600.    
+#elif defined( GRID05x0666 ) 
+      TSCALE = 1.*3600.
+      ! Copy the 05x0666 timescale for now
+      ! (skim, 5/20/12)
+#elif defined( GRID025x03125 )
+      TSCALE = 1.*3600.
+#endif
+        !Prior to 10/28/08 (win)     
+        !TSCALE = 10.*3600.
+!            print *, 'Now doing subgrid coag with timescale ',
+!     &           TSCALE/3600.,'hr'
+
+         BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3 
+         TEMP    = State_Met%T(I,J,L)
+         PRES    = GET_PCENTER(i,j,l)*100.0 ! in Pa
+
+         PDBUG = .FALSE.
+!temp debug
+         if( dbg .and. i==ii .and. j==jj .and. l==ll ) then
+            print *,'===== NDISTINIT ===== at',ii,jj,ll
+            print *, NDISTINIT(:)
+         endif
+!temp debug         if( dbg .and. i==ii .and. j==jj .and. l==ll ) PDBUG = .TRUE.
+
+         CALL SUBGRIDCOAG( NDISTINIT, NDIST, MDIST, BOXVOL,TEMP,
+!     &                     PRES, TSCALE, NDISTFINAL, MADDFINAL   ) 
+     &                     PRES, TSCALE, NDISTFINAL, MADDFINAL,pdbug)
+         IF ( PDBUG ) THEN
+            PRINT *,'Found error in SUBGRIDCOAG at', I,J,L
+            PRINT *,'Nk',STT(I,J,L,IDTNK1:IDTNK1+ibins-1)
+            do k=1,8 
+               print *,'Mk comp',k
+               print *,STT(I,J,L,IDTNK1+k*IBINS:IDTNK1+IBINS-1+k*IBINS)
+            enddo
+         ENDIF
+ccc            
+         DO K = 1, IBINS
+            NDIST(K) = NDIST(K) + NDISTFINAL(K)
+            IF( CTYPE == 1 ) THEN
+               MDIST(K,SRTECIL) = MDIST(K,SRTECIL) +
+     &                            NDISTFINAL(K) * AVGMASS(K) * 0.2d0 + 
+     &                            MADDFINAL(K) * 0.2d0
+               MDIST(K,SRTECOB) = MDIST(K,SRTECOB) +
+     &                            NDISTFINAL(K) * AVGMASS(K) * 0.8d0 + 
+     &                            MADDFINAL(K) * 0.8d0
+            ELSE
+               MDIST(K,SRTOCIL) = MDIST(K,SRTOCIL) +
+     &                            NDISTFINAL(K) * AVGMASS(K) * 0.5d0 + 
+     &                            MADDFINAL(K) * 0.5d0
+               MDIST(K,SRTOCOB) = MDIST(K,SRTOCOB) +
+     &                            NDISTFINAL(K) * AVGMASS(K) * 0.5d0 + 
+     &                            MADDFINAL(K) * 0.5d0
+            ENDIF
+         ENDDO
+!temp debug
+         if( dbg .and. i==ii .and. j==jj .and. l==ll ) then
+            print *,'===== After SUBGRIDCOAG ===== at',ii,jj,ll
+            print *,'Nk'
+            print *, NDIST(:)
+            print *,'xxx___NDISTFINAL__xxx'
+            print *, NDISTFINAL(:)
+
+            print *,'Mk'
+            do k=1,icomp 
+               print *,'comp',k
+               print *,MDIST(:,k)
+            enddo
+         endif
+!temp debug --------
+
+         ! Fix any inconsistencies in size dist
+         DO K= 1, IBINS
+            NDIST2(K) = NDIST(K)
+            DO C = 1, ICOMP
+               MDIST2(K,C) = MDIST(K,C)
+            ENDDO
+         ENDDO
+
+         ERRORSWITCH = .FALSE.
+         
+#if defined ( DEBUG ) 
+!      print *, 'mnfix in carbon_mod:4976'
+#endif
+         CALL MNFIX( NDIST2, MDIST2, ERRORSWITCH )
+            
+         IF( ERRORSWITCH ) PRINT *,'EMITSGC: MNFIX found error ',
+     &           'after SUBGRIDCOAG at ',I,J,L
+
+         DO K = 1, IBINS
+            STT(I,J,L,IDTNK1-1+K) = NDIST2(K)
+            DO C = 1, ICOMP-IDIAG
+               STT(I,J,L,IDTNK1+K-1+C*IBINS) = MDIST2(K,C)
+            ENDDO
+            STT(I,J,L,IDTAW1-1+K)  = MDIST2(K,SRTH2O)
+         ENDDO
+
+         ! Save final info for diagnostic
+         N1(L,:) = NDIST2(:)
+         IF(CTYPE == 1) THEN
+            MIL1(L,:) = MDIST2(:,SRTECIL)
+            MOB1(L,:) = MDIST2(:,SRTECOB)
+         ELSE
+            MIL1(L,:) = MDIST2(:,SRTOCIL)
+            MOB1(L,:) = MDIST2(:,SRTOCOB)
+         ENDIF
+
+      ENDDO ! L loop
+ 
+      !=======================================================================
+      !  ND59 Diagnostic: Size-resolved primary emission in 
+      !                 [kg/box/timestep] and the corresponding
+      !                  number emission [no./box/timestep]
+      !=======================================================================
+      IF ( ND59 > 0 ) THEN 
+         DO L = 1, PBL_MAX
+         DO K = 1, IBINS
+            IF ( CTYPE == 1 ) THEN
+               AD59_ECIL(I,J,1,K) = AD59_ECIL(I,J,1,K) + 
+     &                              ( MIL1(L,K) - MIL0(L,K) )
+               AD59_ECOB(I,J,1,K) = AD59_ECOB(I,J,1,K) + 
+     &                              ( MOB1(L,K) - MOB0(L,K) )
+            ELSE
+               AD59_OCIL(I,J,1,K) = AD59_OCIL(I,J,1,K) + 
+     &                              ( MIL1(L,K) - MIL0(L,K) )
+               AD59_OCOB(I,J,1,K) = AD59_OCOB(I,J,1,K) + 
+     &                              ( MOB1(L,K) - MOB0(L,K) )
+            ENDIF
+            AD59_NUMB(I,J,1,K) = AD59_NUMB(I,J,1,K) + 
+     &                           ( N1(L,K) - N0(L,K) )
+         ENDDO
+         ENDDO
+      ENDIF
+
+ 100  CONTINUE
+ 
+      ENDDO ! I loop
+      ENDDO ! J loop
+
+      ! Return to calling subroutine
+      END SUBROUTINE EMITSGC
+            
+!------------------------------------------------------------------------------
+
+      FUNCTION SCALECARB( BULKEMIS, STYPE, CTYPE ) RESULT( VALUE )
+!
+!******************************************************************************
+!  Function SCALECARB split the carbonaceous emission from each source into the
+!  TOMAS aerosol size bins using different mass distribution for fossil fuel
+!  and biomass burning+biofuel.  The mass size distributions are different for
+!  EC and OC.   (win, 9/4/07)
+!    STYPE (source type): 1 = Fossil fule
+!                         2 = Biofuel
+!                         3 = Biomass burning
+!    CTYPE (carbon type): 1 = EC 
+!                         2 = OC
+!
+!  Array ECSCALE30 and OCSCALE100 specify how mass is distributed into bins 
+!  for a 30 nm number peak and a 100 nm peak.  Similary for OC size split.
+!
+!  This function is adapted from emisOCbond.f and emisBCbond.f by Jeff Pierce
+!  (Jan, 2007) used in GISS GCM-II'.  Introduced to GEOS-Chem by Win T.(9/4/07)
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! Reference to F90 modules
+      USE TOMAS_MOD,   ONLY : IBINS
+
+      USE CMN_SIZE_MOD      ! Size parameters
+
+      ! Arguments
+      REAL*8,  INTENT(IN) :: BULKEMIS(IIPAR, JJPAR)
+      INTEGER, INTENT(IN) :: STYPE,  CTYPE
+
+      ! Return value
+      REAL*8              :: VALUE(IIPAR, JJPAR, IBINS)
+
+      ! Local variables
+      INTEGER             :: I, J, K
+      REAL*8              :: ECSCALE30(IBINS), ECSCALE100(IBINS) 
+      REAL*8              :: OCSCALE30(IBINS), OCSCALE100(IBINS) 
+
+      DATA OCSCALE30/      ! use for fossil fuel
+#if  defined( TOMAS40)
+     &   0.0     , 0.0     , 0.0     , 0.0     , 0.0     , 
+     &   0.0     , 0.0     , 0.0     , 0.0     , 0.0     , 
+#endif
+     &   1.04E-03, 2.77E-03, 6.60E-03, 1.41E-02, 2.69E-02,
+     &   4.60E-02, 7.06E-02, 9.69E-02, 1.19E-01, 1.31E-01,
+     &   1.30E-01, 1.15E-01, 9.07E-02, 6.44E-02, 4.09E-02,
+     &   2.33E-02, 1.19E-02, 5.42E-03, 2.22E-03, 8.12E-04,
+     &   2.66E-04, 7.83E-05, 2.06E-05, 4.86E-06, 1.03E-06,
+     &   1.94E-07, 3.29E-08, 4.99E-09, 6.79E-10, 8.26E-11/
+      DATA OCSCALE100/     ! use for biomass burning
+#if  defined( TOMAS40)
+     &   0.0        , 0.0        , 0.0        , 0.0        , 0.0       ,
+     &   0.0        , 0.0        , 0.0        , 0.0        , 0.0       ,
+#endif
+     &   3.2224e-07 , 1.6605e-06 , 7.6565e-06 , 3.1592e-05 , 0.00011664,
+     &   0.00038538 , 0.0011394  , 0.0030144  , 0.0071362  , 0.015117  ,
+     &   0.028657   , 0.048612   , 0.073789   , 0.10023    , 0.12182   ,
+     &   0.1325     , 0.12895    , 0.11231    , 0.087525   , 0.061037  ,
+     &   0.038089   , 0.02127    , 0.010628   , 0.0047523  , 0.0019015 ,
+     &   0.00068081 , 0.00021813 , 6.2536e-05 , 1.6044e-05 , 3.6831e-06/
+      DATA ECSCALE30/      ! use for fossil fuel
+#if  defined( TOMAS40)
+     &   0.0     , 0.0     , 0.0     , 0.0     , 0.0     , 
+     &   0.0     , 0.0     , 0.0     , 0.0     , 0.0     , 
+#endif
+     &   1.04E-03, 2.77E-03, 6.60E-03, 1.41E-02, 2.69E-02,
+     &   4.60E-02, 7.06E-02, 9.69E-02, 1.19E-01, 1.31E-01,
+     &   1.30E-01, 1.15E-01, 9.07E-02, 6.44E-02, 4.09E-02,
+     &   2.33E-02, 1.19E-02, 5.42E-03, 2.22E-03, 8.12E-04,
+     &   2.66E-04, 7.83E-05, 2.06E-05, 4.86E-06, 1.03E-06,
+     &   1.94E-07, 3.29E-08, 4.99E-09, 6.79E-10, 8.26E-11/
+      DATA ECSCALE100/     ! use for biomass burning
+#if  defined( TOMAS40)
+     &   0.0        , 0.0        , 0.0        , 0.0        , 0.0       ,
+     &   0.0        , 0.0        , 0.0        , 0.0        , 0.0       ,
+#endif
+     &   3.2224e-07 , 1.6605e-06 , 7.6565e-06 , 3.1592e-05 , 0.00011664,
+     &   0.00038538 , 0.0011394  , 0.0030144  , 0.0071362  , 0.015117  ,
+     &   0.028657   , 0.048612   , 0.073789   , 0.10023    , 0.12182   ,
+     &   0.1325     , 0.12895    , 0.11231    , 0.087525   , 0.061037  ,
+     &   0.038089   , 0.02127    , 0.010628   , 0.0047523  , 0.0019015 ,
+     &   0.00068081 , 0.00021813 , 6.2536e-05 , 1.6044e-05 , 3.6831e-06/
+
+ 
+      DO K = 1, IBINS
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+      IF ( CTYPE == 1 ) THEN
+         IF ( STYPE == 1 ) THEN
+            VALUE(I,J,K) = BULKEMIS(I,J)*ECSCALE30(K)
+         ELSE  ! for STYPE 2 and 3
+            VALUE(I,J,K) = BULKEMIS(I,J)*ECSCALE100(K)
+         ENDIF
+      ELSE 
+         IF ( STYPE == 1 ) THEN
+            VALUE(I,J,K) = BULKEMIS(I,J)*OCSCALE30(K)
+         ELSE  ! for STYPE 2 and 3
+            VALUE(I,J,K) = BULKEMIS(I,J)*OCSCALE100(K)
+         ENDIF
+      ENDIF
+
+      ENDDO
+      ENDDO
+      ENDDO
+
+      END FUNCTION SCALECARB
+#endif
 
 !------------------------------------------------------------------------------
 
@@ -5812,6 +6539,112 @@ c
 
       ! Return to calling program
       END SUBROUTINE EMITHIGH
+
+!------------------------------------------------------------------------------
+
+#if   defined( TOMAS )
+      SUBROUTINE EMITHIGH2( BCSRC, OCSRC, NUMBSRC )
+!
+!******************************************************************************
+!  Subroutine EMITHIGH2 mixes tracer completely from the surface to the PBL
+!  top. This is a copy of subroutine EMITHIGH modified to work with 30-bin
+!  EC and OC mass and also aerosol number.  (win, 9/4/07)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) BCSRC (REAL*8) : Array which holds Total BC (H-phobic & H-philic)
+!  (2 ) OCSRC (REAL*8) : Array which holds Total OC (H-phobic & H-philic)
+!  (3 ) NUMBSRC(REAL*8): Array which holds number emission from BC+OC
+!
+!  NOTES:
+!  (1 ) Now also mix ALPH, LIMO, ALCO tracers (rjp, bmy, 7/8/04)
+!  (2 ) Now reference STT from "tracer_mod.f" (bmy, 7/20/04)
+!  (3 ) Remove references to "dao_mod.f", "pressure_mod.f", and "error_mod.f".
+!        Rewrote for computational expediency using routines from
+!        "pbl_mix_mod.f".  (bmy, 2/17/05)
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE PBL_MIX_MOD,  ONLY : GET_FRAC_OF_PBL,  GET_PBL_MAX_L
+      USE TRACER_MOD,   ONLY : STT
+      USE TRACERID_MOD, ONLY : IDTECIL1, IDTECOB1
+      USE TRACERID_MOD, ONLY : IDTOCIL1, IDTOCOB1, IDTNK1
+      USE TOMAS_MOD,    ONLY : IBINS
+      USE VDIFF_PRE_MOD, ONLY : EMIS_SAVE 
+
+      USE CMN_SIZE_MOD       ! Size parameters
+
+      ! Arguments
+      REAL*8, INTENT(IN) :: BCSRC(IIPAR,JJPAR,IBINS, 2)
+      REAL*8, INTENT(IN) :: OCSRC(IIPAR,JJPAR,IBINS, 2)
+      REAL*8, INTENT(IN) :: NUMBSRC(IIPAR,JJPAR,IBINS)
+
+      ! Local variables
+      INTEGER            :: I,       J,       L,       PBL_MAX, K
+      REAL*8             :: F_OF_PBL
+
+      !=================================================================
+      ! EMITHIGH2 begins here!
+      !=================================================================
+
+      ! Maximum extent of PBL [model levels]
+      PBL_MAX = GET_PBL_MAX_L()
+
+      !=================================================================
+      ! Partition emissions throughout the boundary layer
+      !=================================================================
+! ****** To Bob or Philippe, ********
+!     This subroutine may look like it has the structure for parallel 
+!     processing compaibility (the OMP flag), but it's not fully compatible
+!     
+      IF ( LNLPBL ) THEN 
+         print *,'Currently subroutine EMITHIGH2 does not support ',
+     &        'the new non-local PBL scheme!'
+         stop
+      ENDIF
+
+
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, F_OF_PBL )
+      DO K = 1, IBINS
+      DO L = 1, PBL_MAX
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
+         F_OF_PBL = GET_FRAC_OF_PBL( I, J, L )
+
+         ! Hydrophilic ELEMENTAL CARBON
+         STT(I,J,L,IDTECIL1-1+K) =  STT(I,J,L,IDTECIL1-1+K) +
+     &                            ( F_OF_PBL * BCSRC(I,J,K,1) )
+
+         ! Hydrophobic ELEMENTAL CARBON
+         STT(I,J,L,IDTECOB1-1+K) =  STT(I,J,L,IDTECOB1-1+K) +
+     &                            ( F_OF_PBL * BCSRC(I,J,K,2) )
+
+         ! Hydrophilic ORGANIC CARBON
+         STT(I,J,L,IDTOCIL1-1+K) =  STT(I,J,L,IDTOCIL1-1+K) +
+     &                            ( F_OF_PBL * OCSRC(I,J,K,1) )
+
+         ! Hydrophobic ORGANIC CARBON
+         STT(I,J,L,IDTOCOB1-1+K) =  STT(I,J,L,IDTOCOB1-1+K) +
+     &                            ( F_OF_PBL * OCSRC(I,J,K,2) )
+
+         ! Number corresponding to EC + OC [No.]
+         STT(I,J,L,IDTNK1-1+K)   = STT(I,J,L,IDTNK1-1+K) + 
+     &                            ( F_OF_PBL * NUMBSRC(I,J,K) )
+
+      ENDDO
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      ! Return to calling program
+      END SUBROUTINE EMITHIGH2
+#endif
 
 !------------------------------------------------------------------------------
 

@@ -128,7 +128,6 @@ MODULE Tpcore_FvDas_Mod
 ! 
   IMPLICIT NONE
 #     include "define.h"
-#     include "define.h"
   PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -575,6 +574,15 @@ CONTAINS
     ! Add definition of j1p and j2p for enlarge polar cap. (ccc, 11/20/08)
     j1p = 3
     j2p = jm - j1p + 1
+
+      do ik= 1, km
+      do ij= 1, jm
+      do il= 1, im
+         va(il,ij,ik) = 0.D0
+         ua(il,ij,ik) = 0.D0
+      end do
+      end do
+      end do
     
     ! Average surf. pressures in the polar cap. (ccc, 11/20/08)
     CALL Average_Press_Poles( area_m2, ps1, 1, im, 1, jm, 1, im, 1, jm )
@@ -1322,6 +1330,20 @@ CONTAINS
              va(il,ij) = 0.5d0 * (cry(il,ij) + cry(il,ij+1))
           end do
        end do
+
+!       do ij = j1p, j2p
+!          do il = i1, i2-1
+!             
+!             ua(il,ij) = 0.5d0 * (crx(il,ij) + crx(il+1,ij))
+!             va(il,ij) = 0.5d0 * (cry(il,ij) + cry(il,ij+1))
+!!             print *, va(il,ij)
+!          end do
+!          ua(i2,ij) = 0.5d0 * (crx(i2,ij) + crx(1,ij))
+!          va(i2,ij) = 0.5d0 * (cry(i2,ij) + cry(i2,ij+1)) !sfarina - this line was missing in v9.02, restored from v8.02
+!!          print *, va(i2,ij) 
+!
+!       end do
+
 
 !      =============================
        call Do_Cross_Terms_Pole_I2d2  &

@@ -211,9 +211,10 @@
 !  (33) Added optional call to gckpp_driver (phs,ks,dhk, 09/15/09)
 !  (34) CSPEC_FOR_KPP not used anymore (use CSPEC instead) (ccc, 12/3/09)
 !  (35) Move the KPP interface in physproc.f to save memory (ccc, 12/3/09)
-!  (36) Now remove obsolete embedded chemistry stuff.  Modify arg list to
+!  (36) Now bracket out dust emissions if TOMAS is invoked (bmy, 1/25/10)
+!  (37) Now remove obsolete embedded chemistry stuff.  Modify arg list to
 !        RURALBOX accordingly.   Removed obsolete LEMBED switch. (bmy, 2/26/10)
-!  (37) Remove obsolete SUNCOSB (bmy, 4/28/10)
+!  (38) Remove obsolete SUNCOSB (bmy, 4/28/10)
 !  26 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  05 Oct 2011 - R. Yantosca - Now use SUNCOS30 (cosine of SZA at 30m after
 !                              the GMT hour) instead of SUNCOS.  This fixes
@@ -683,8 +684,14 @@
       IF ( LDUST ) THEN
          CALL RDUST_ONLINE(  SOILDUST,    WAVELENGTH, State_Met )
       ELSE
-         CALL RDUST_OFFLINE( MONTH, YEAR, WAVELENGTH, am_I_Root,
-     &                       State_Met )
+#if defined( TOMAS )
+            ! Don't read dust emissions from disk when using TOMAS,
+            ! because TOMAS uses a different set of dust tracers than the 
+            ! std code (win, bmy, 1/25/10)
+#else
+            CALL RDUST_OFFLINE( MONTH, YEAR, WAVELENGTH, am_I_Root,
+     &                          State_Met )
+#endif
       ENDIF
 
       !### Debug
@@ -778,7 +785,7 @@
       ! This is current practice in the std GEOS-Chem. (bmy, 10/24/12)
       !-----------------------------------------------------------------
       IF ( Input_Opt%LFAMILY ) THEN
-         CALL DO_DIAG_PL( am_I_Root )
+         CALL DO_DIAG_PL( am_I_Root, State_Met )
 
          !### Debug
          IF ( prtDebug ) THEN

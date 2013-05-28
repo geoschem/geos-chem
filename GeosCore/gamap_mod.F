@@ -73,6 +73,7 @@
 !  (21) Include second satellite overpass diagnostic.  Adjust AOD name to 550 
 !        nm from 400 nm.  Add additional dust AOD bins.  Output values to 
 !        hdf_mod. (amv, bmy, 12/1/09)
+!  (22) Increase MAXTRACER from 120 to 325 (win, 6/25/09) 
 !  03 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  03 Aug 2010 - R. Yantosca - Now move the #include "CMN_SIZE" and
 !                              #include "CMN_DIAG" to the top of module
@@ -740,6 +741,8 @@
             WRITE( IU_FILE, 150, IOSTAT=IOS )
          CASE( 600 ) 
             WRITE( IU_FILE, 160, IOSTAT=IOS )
+         CASE( 700 )          !(win, 7/9/09)
+            WRITE( IU_FILE, 190, IOSTAT=IOS ) !sfarina - this can stay
          CASE( 999 ) 
             WRITE( IU_FILE, 170, IOSTAT=IOS )
          CASE DEFAULT
@@ -763,6 +766,7 @@
  160  FORMAT( '# SOA GPROD & APROD [kg/kg]'            )
  170  FORMAT( '# Quantities for Soil NOx restart file' )
  180  FORMAT( '# ND', i2.2, ' diagnostic quantities'   )
+ 190  FORMAT( '# TOMAS aerosol rate [cm-3 s-1]'      )   !(win, 7/9/09)
       
       END SUBROUTINE WRITE_SEPARATOR
 !EOC
@@ -1026,6 +1030,48 @@
       DESCRIPT(N) = 'Biofuel NH3 emissions'
       OFFSET(N)   = SPACING * 4
 
+#if   defined( TOMAS )
+      N           = N + 1               !(win, 7/9/09)
+      CATEGORY(N) = 'NK-EMISS'
+      DESCRIPT(N) = 'Size-res aerosol number emissions'
+      OFFSET(N)   = SPACING * 4
+
+      N           = N + 1               !(win, 7/9/09)
+      CATEGORY(N) = 'SF-EMISS'
+      DESCRIPT(N) = 'Size-res sulfate mass emissions'
+      OFFSET(N)   = SPACING * 4
+
+      N           = N + 1               !(win, 7/9/09)
+      CATEGORY(N) = 'SS-EMISS'
+      DESCRIPT(N) = 'Size-res sea-salt mass emissions'
+      OFFSET(N)   = SPACING * 4
+
+      N           = N + 1               !(win, 7/9/09)
+      CATEGORY(N) = 'ECIL-SRC'
+      DESCRIPT(N) = 'Size-res H-phillic EC mass emissions'
+      OFFSET(N)   = SPACING * 4
+
+      N           = N + 1               !(win, 7/9/09)
+      CATEGORY(N) = 'ECOB-SRC'
+      DESCRIPT(N) = 'Size-res H-phobic EC mass emissions'
+      OFFSET(N)   = SPACING * 4
+
+      N           = N + 1               !(win, 7/9/09)
+      CATEGORY(N) = 'OCIL-SRC'
+      DESCRIPT(N) = 'Size-res H-phillic OC mass emissions'
+      OFFSET(N)   = SPACING * 4
+
+      N           = N + 1               !(win, 7/9/09)
+      CATEGORY(N) = 'OCOB-SRC'
+      DESCRIPT(N) = 'Size-res H-phobic OC mass emissions'
+      OFFSET(N)   = SPACING * 4
+
+      N           = N + 1               !(win, 7/9/09)
+      CATEGORY(N) = 'DUST-SRC'
+      DESCRIPT(N) = 'Size-res dust mass emissions'
+      OFFSET(N)   = SPACING * 4
+#endif
+
       N           = N + 1
       CATEGORY(N) = 'TROPO-AV'
       DESCRIPT(N) = 'Trop avg''d tracer'
@@ -1045,6 +1091,13 @@
       CATEGORY(N) = 'SOAAPROD'
       DESCRIPT(N) = 'SOA APROD restart'
       OFFSET(N)   = SPACING * 6
+
+#if   defined( TOMAS )
+      N           = N + 1           !(win, 7/9/09)
+      CATEGORY(N) = 'TOMAS-3D'
+      DESCRIPT(N) = '3-D aerosol rate of a selected microphysics'
+      OFFSET(N)   = SPACING * 7
+#endif
 
       N           = N + 1
       CATEGORY(N) = 'PEDGE-$'
@@ -1582,6 +1635,10 @@
       USE TRACERID_MOD, ONLY : IDTSO2,  IDTNH3
       USE TRACERID_MOD, ONLY : IDTBCPI,   IDTOCPI
       USE TRACERID_MOD, ONLY : IDTXYLE, IDTBENZ, IDTTOLU
+#if   defined( TOMAS )
+      USE TOMAS_MOD,    ONLY : IBINS, ICOMP,   IDIAG  !(win, 7/14/09)
+      USE TRACERID_MOD, ONLY : IDTNK1                 !(win, 7/14/09)
+#endif
       USE TRACERID_MOD, ONLY : N_Hg_CATS  !CDH for snowpack
       USE LOGICAL_MOD,  ONLY : LSPLIT
       USE GET_POPSINFO_MOD, ONLY : GET_POP_XMW
@@ -1603,6 +1660,11 @@
 !  (7 ) Previous bug fix was erroneous; now corrected (dkh, bmy, 11/19/09)
 !  (8 ) Include second satellite overpass diagnostic.  Adjust AOD name to 550 
 !        nm from 400 nm.  Add additional dust AOD bins (amv, bmy, 12/18/09)
+!  (9 ) Add iniformation for ND61 (win, 7/9/09)
+!  (10) Manually add info for ND44 when TOMAS aerosols dry deposition because
+!        only numbers are real drydep species while the mass species just 
+!        tag along but we need them to show up in diagnostic too.  Reference  
+!        to TOMAS_MOD and use IDTNK1 from TRACERID_MOD (win, 7/14/09)
 !  20 Jul 2010 - C. Carouge  - Modifications to ND03 for mercury.
 !  03 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
@@ -5641,7 +5703,67 @@
             ! Otherwise save drydep flux for NUMDEP species only
             !----------------------------------------------------
 
-            ! Loop over drydep species
+#if   defined( TOMAS )
+            ! Manually extend the set of dry dep species.  (win, 7/14/09)
+            DO N = 1, NUMDEP + (ICOMP-IDIAG)* IBINS
+               
+             IF ( N <= NUMDEP ) THEN 
+               ! GEOS-CHEM tracer #
+               T            = NTRAIND(N)         
+
+               ! Drydep flux (deposited species only)
+               NAME (N,44)  = TRIM( DEPNAME(N) ) // 'df'        
+               FNAME(N,44)  = TRIM( DEPNAME(N) ) // ' drydep flux'
+               UNIT (N,44)  = 'molec/cm2/s'
+               MWT  (N,44)  = TRACER_MW_KG(T) 
+               MOLC (N,44)  = INT( TRACER_COEFF(T,1) )
+               SCALE(N,44)  = 1.0e0
+               !To allow several compounds in a same tracer to deposit
+               !(fp, 06/09)
+               INDEX(N,44)  = T + ( SPACING * 36 )
+               IF ( DEPNAME(N) == 'ISOPNB' ) 
+     &              INDEX(N,44)  = NNPAR + 1 + ( SPACING * 36 )
+               IF ( DEPNAME(N) == 'MVKN' )
+     &              INDEX(N,44)  = NNPAR + 2 + ( SPACING * 36 )
+               NTRAC(44)    = NTRAC(44) + 1
+
+               ! For the Rn simulation, unit is kg/s (bmy, 2/22/08)
+               IF ( ITS_A_RnPbBe_SIM() ) UNIT(N,44) = 'kg/s'
+
+               ! Drydep velocity (deposited species only)
+               NN           = N + NUMDEP + (ICOMP-IDIAG)*IBINS
+               NAME (NN,44) = TRIM( DEPNAME(N) ) // 'dv'        
+               FNAME(NN,44) = TRIM( DEPNAME(N) ) // ' drydep velocity'
+               UNIT (NN,44) = 'cm/s'
+               MWT  (NN,44) = TRACER_MW_KG(T) 
+               MOLC (NN,44) = INT( TRACER_COEFF(T,1) )
+               SCALE(NN,44) = 1.0e0
+               !To allow several compounds in a same tracer to deposit
+               !(fp, 06/09)
+               INDEX(NN,44) = T + ( SPACING * 37 )
+               IF ( DEPNAME(N) == 'ISOPNB' ) 
+     &              INDEX(NN,44)  = NNPAR + 1 + ( SPACING * 37 )
+               IF ( DEPNAME(N) == 'MVKN' )
+     &              INDEX(NN,44)  = NNPAR + 2 + ( SPACING * 37 )
+               NTRAC(44)    = NTRAC(44) + 1
+             ELSE
+               ! GEOS-CHEM tracer # for aerosol mass
+               T = IDTNK1 + IBINS - 1 + ( N - NUMDEP )
+               ! Drydep flux (extended deposited species)
+               NAME (N,44)  = TRIM( TRACER_NAME(T) ) // 'df'        
+               FNAME(N,44)  = TRIM( TRACER_NAME(T) ) // ' drydep flux'
+               UNIT (N,44)  = 'molec/cm2/s'
+               MWT  (N,44)  = TRACER_MW_KG(T) 
+               MOLC (N,44)  = INT( TRACER_COEFF(T,1) )
+               SCALE(N,44)  = 1.0e0
+               !To allow several compounds in a same tracer to deposit
+               INDEX(N,44)  = T + ( SPACING * 36 )
+               NTRAC(44)    = NTRAC(44) + 1
+
+             ENDIF
+            ENDDO
+#else
+
             DO N = 1, NUMDEP
                
                ! GEOS-CHEM tracer #
@@ -5683,6 +5805,8 @@
      &              INDEX(NN,44)  = NNPAR + 2 + ( SPACING * 37 )
                NTRAC(44)    = NTRAC(44) + 1
             ENDDO
+
+#endif
          ENDIF
       ENDIF
 
@@ -6216,6 +6340,39 @@
          UNIT(T,60)  = 'unitless'
       ENDIF
 
+
+#if   defined( TOMAS )
+      !-------------------------------------
+      ! TOMAS 3-D rate (ND61)                !(win, 7/9/09)
+      !-------------------------------------
+      IF ( ND61 > 0 ) THEN
+         NTRAC(61) = 2
+
+         ! Loop over tracers
+         DO T = 1, NTRAC(61)
+            
+            ! Get name and long name for each tracer
+            SELECT CASE( T )
+               CASE( 1 )
+                  NAME (T,61) = 'NUC10NM'
+                  FNAME(T,61) = 'Particle Dp>10nm formation rate'
+               CASE( 2 )
+                  NAME (T,61) = 'NUC-1NM'
+                  FNAME(T,61) = 'Nucleation rate (cluster size)'
+               CASE DEFAULT
+                  !Nothing
+            END SELECT
+
+            ! Define the rest of the quantities
+            UNIT (T,61) = 'cm-3s-1'
+            INDEX(T,61) = T + ( SPACING * 7 )
+            MOLC (T,61) = 1
+            MWT  (T,61) = 1e0
+            SCALE(T,61) = 1e0
+         ENDDO
+      ENDIF
+#endif
+
       !-------------------------------------      
       ! SHIP DIAGNOSTICS (ND63)
       !-------------------------------------      
@@ -6284,6 +6441,28 @@
             ELSE
                UNIT(T,65) = 'molec/cm3/s'
             ENDIF
+
+
+#if   defined( TOMAS )
+            ! For sulfur tracking species, use 'kg S' unit and
+            ! give a descriptive FNAME. (win, 8/9/09)
+            IF ( NAME(T,65) == 'PSO21' ) THEN
+               FNAME(T,65) = 'P(SO2) from DMS+OH (Online)'
+               UNIT(T,65)  = 'kg S'
+               MWT(T,65)   = 64e-3
+            ELSE IF ( NAME(T,65) == 'PSO22' ) THEN
+               FNAME(T,65) = 'P(SO2) from DMS+NO3 (Online)'
+               UNIT(T,65)  = 'kg S'
+               MWT(T,65)   = 64e-3
+            ELSE IF ( NAME(T,65) == 'PSO4' ) THEN
+               FNAME(T,65) = 'P(H2SO4) from SO2+OH (Online)'
+               UNIT(T,65)  = 'kg S'
+            ELSE IF ( NAME(T,65) == 'PMSA' ) THEN
+               FNAME(T,65) = 'P(MSA) from DMS (Online)'
+               UNIT(T,65) = 'kg S'
+            ENDIF
+#endif
+
          ENDDO
       ENDIF
 

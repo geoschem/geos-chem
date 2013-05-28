@@ -227,6 +227,30 @@
       REAL*4,  ALLOCATABLE :: AD58(:,:,:)
       REAL*4,  ALLOCATABLE :: AD60(:,:)
 
+#if   defined( TOMAS )
+      ! For ND59 -- Size-resolved primary aerosol emissions
+      REAL*4,  ALLOCATABLE :: AD59_NUMB(:,:,:,:)
+      REAL*4,  ALLOCATABLE :: AD59_SULF(:,:,:,:)
+      REAL*4,  ALLOCATABLE :: AD59_SALT(:,:,:,:)
+      REAL*4,  ALLOCATABLE :: AD59_ECIL(:,:,:,:)
+      REAL*4,  ALLOCATABLE :: AD59_ECOB(:,:,:,:)
+      REAL*4,  ALLOCATABLE :: AD59_OCIL(:,:,:,:)
+      REAL*4,  ALLOCATABLE :: AD59_OCOB(:,:,:,:)
+      REAL*4,  ALLOCATABLE :: AD59_DUST(:,:,:,:)
+
+      ! For ND60 -- TOMAS condensation rate diagnostic
+      REAL*4,  ALLOCATABLE :: AD60_COND(:,:,:,:)      
+      REAL*4,  ALLOCATABLE :: AD60_COAG(:,:,:,:)      
+      REAL*4,  ALLOCATABLE :: AD60_NUCL(:,:,:,:)      
+      REAL*4,  ALLOCATABLE :: AD60_AQOX(:,:,:,:)      
+      REAL*4,  ALLOCATABLE :: AD60_ERROR(:,:,:,:)      
+      REAL*4,  ALLOCATABLE :: AD60_SOA(:,:,:,:)
+
+      ! For ND61 -- 3D TOMAS rate diagnostic
+      REAL*4,  ALLOCATABLE :: AD61(:,:,:,:)
+      REAL*4,  ALLOCATABLE :: AD61_inst(:,:,:,:)
+#endif
+
       ! For ND63 -- fraction of NOx remaining and Integrated OPE
       REAL*4,  ALLOCATABLE :: AD63(:,:,:)
 
@@ -241,7 +265,6 @@
 
       ! For ND69 -- DXYP diagnostic
       REAL*4,  ALLOCATABLE :: AD69(:,:,:)      
-
 !
 ! !REVISION HISTORY:
 !  30 Nov 1999 - A. Fiore - Initial version
@@ -293,8 +316,13 @@
 !       (tmf, 3/6/09)
 !  (31) Add LTO3 for ND45 diag. (ccc, 7/20/09)
 !  (32) Add AD19, AD58, AD60 for CH4 (kjw, 8/18/09)
-!  (33) AD13_NH3_an is 3D now (phs, 10/22/09)   
-!  (34) Add counter for aromatics SOA and add AD57 diagnostic for potential
+!  (33) AD13_NH3_an is 3D now (phs, 10/22/09)  
+!  (34) Add AD59_NUMB, AD59_SULF, AD59_SALT, AD59_ECOB, AD59_ECIL, AD59_OCOB, 
+!        AD59_OCIL, and AD59_DUST for size-resolved emission  (win, 1/25/10)
+!  (35) Add AD60_COND, AD60_COAG, AD60_NUCL, AD60_AQOX, AD60_SOA, and 
+!        AD60_ERROR for TOMAS process rate diagnostics (win, 1/25/10)
+!  (36) Add AD61 and AD61_INST for saving 3-D TOMAS rate (win, 1/25/10)   
+!  (37) Add counter for aromatics SOA and add AD57 diagnostic for potential
 !       temperature. (fp, 2/3/10)
 !  26 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  02 Apr 2013 - M. Payer    - Removed *NO, *NO2, and *NO3 arrays for ND43
@@ -338,6 +366,7 @@
 !  (12) Now also deallocate AD09 and AD09_em (bmy, 6/27/05)
 !  (13) Now deallocate AD30 (bmy, 8/18/05)
 !  (14) Now deallocate CTO3, AD10, AD10em arrays (phs, 9/18/07)
+!  (15) Now deallocate TOMAS related arrays (win, bmy, 1/25/10)
 !  15 Feb 2011 - R. Yantosca - Add modifications for APM microphysics
 !EOP
 !------------------------------------------------------------------------------
@@ -411,7 +440,26 @@
       IF ( ALLOCATED( AD57        ) ) DEALLOCATE( AD57        )
       IF ( ALLOCATED( AD19        ) ) DEALLOCATE( AD19        )
       IF ( ALLOCATED( AD58        ) ) DEALLOCATE( AD58        )
+#if   defined( TOMAS )
+      IF ( ALLOCATED( AD59_NUMB   ) ) DEALLOCATE( AD59_NUMB   ) !(win, 1/25/10)
+      IF ( ALLOCATED( AD59_SULF   ) ) DEALLOCATE( AD59_SULF   )
+      IF ( ALLOCATED( AD59_SALT   ) ) DEALLOCATE( AD59_SALT   )
+      IF ( ALLOCATED( AD59_ECIL   ) ) DEALLOCATE( AD59_ECIL   )
+      IF ( ALLOCATED( AD59_ECOB   ) ) DEALLOCATE( AD59_ECOB   )
+      IF ( ALLOCATED( AD59_OCIL   ) ) DEALLOCATE( AD59_OCIL   )
+      IF ( ALLOCATED( AD59_OCOB   ) ) DEALLOCATE( AD59_OCOB   )
+      IF ( ALLOCATED( AD59_DUST   ) ) DEALLOCATE( AD59_DUST   )
+      IF ( ALLOCATED( AD60_COND   ) ) DEALLOCATE( AD60_COND   )
+      IF ( ALLOCATED( AD60_COAG   ) ) DEALLOCATE( AD60_COAG   )
+      IF ( ALLOCATED( AD60_NUCL   ) ) DEALLOCATE( AD60_NUCL   )
+      IF ( ALLOCATED( AD60_AQOX   ) ) DEALLOCATE( AD60_AQOX   )
+      IF ( ALLOCATED( AD60_ERROR  ) ) DEALLOCATE( AD60_ERROR  )
+      IF ( ALLOCATED( AD60_SOA    ) ) DEALLOCATE( AD60_SOA    )
+      IF ( ALLOCATED( AD61        ) ) DEALLOCATE( AD61        )
+      IF ( ALLOCATED( AD61_inst   ) ) DEALLOCATE( AD61_inst   ) !(win, 1/25/10)
+#else
       IF ( ALLOCATED( AD60        ) ) DEALLOCATE( AD60        )
+#endif
       IF ( ALLOCATED( AD63        ) ) DEALLOCATE( AD63        )
       IF ( ALLOCATED( AD66        ) ) DEALLOCATE( AD66        )
       IF ( ALLOCATED( AD68        ) ) DEALLOCATE( AD68        )
@@ -449,7 +497,7 @@
       IF ( ALLOCATED( MASSFLNS    ) ) DEALLOCATE( MASSFLNS    )
       IF ( ALLOCATED( MASSFLUP    ) ) DEALLOCATE( MASSFLUP    )
       IF ( ALLOCATED( TURBFLUP    ) ) DEALLOCATE( TURBFLUP    )
-      IF ( ALLOCATED( STT_TEMPO2  ) ) DEALLOCATE( STT_TEMPO2  ) 
+      IF ( ALLOCATED( STT_TEMPO2  ) ) DEALLOCATE( STT_TEMPO2  )
 
 #if   defined( APM )
       !-----------------------------------------
@@ -461,4 +509,5 @@
       END SUBROUTINE CLEANUP_DIAG
 !EOC
       END MODULE DIAG_MOD 
+
 

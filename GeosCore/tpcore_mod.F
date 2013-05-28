@@ -31,6 +31,15 @@
 !  (22) LOCFLT    : Local pressure filter -- called from PFILTR
 !  (23) POLFLT    : Polar pressure filter -- called from PFILTR
 !  (24) DIAG_FLUX : Computes TPCORE mass fluxes for ND24, ND25, ND26 diags
+!  (25) MASSFLUX  : Compute size-resolved aerosol mass flux based on
+!                   fluxes of aerosol number
+!
+!  Functions:
+!  ============================================================================
+!  (1 ) IDFLUX    : Take tracer ID as input and return a switch determining
+!                   if the flux shall be calculated for aerosol mass
+!  (2 ) NBIN      : For size-resolved aerosol, take tracer number and return
+!                   a size-bin number
 !
 !  GEOS-CHEM modules referenced by tagged_co_mod.f
 !  ============================================================================
@@ -75,6 +84,12 @@
 !  (16) Now print output for IFORT compiler in "tpcore" (bmy, 10/18/05)
 !  (17) Remove support for LINUX_IFC & LINUX_EFC compilers (bmy, 8/4/06)
 !  (18) Corrected mass flux diagnostics (phs, 9/18/07)
+!  (19) Add subroutine MASSFLUX, function IDFLUX and NBIN and modify TPCORE
+!       for aerosol number and mass advection by adding arrays for saving
+!       fluxes and tracer mixing ratio fields arrays. (win, 7/17/09)
+!  (19) Modify subroutine YTP for a complete saving of diagnostic array fy1_tp 
+!      (win,7/17/09)
+!  (20) Modify subroutine FZPPM extending the loop for fz1_tp (win, 7/17/09)
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !******************************************************************************
 !
@@ -353,7 +368,11 @@
 
       ! References to F90 modules
       USE GIGC_State_Met_Mod, ONLY : MetState
- 
+#if   defined( TOMAS )
+      USE TOMAS_MOD,          ONLY : IBINS   !(win, 7/17/09)
+      USE TOMAS_TPCORE_MOD,   ONLY : IDFLUX, NBIN, AERMASSDR
+#endif
+
       ! Added to pass C-preprocessor switches (bmy, 3/9/01)
 #     include "define.h"
 
@@ -378,6 +397,13 @@
      &     WK(IM,JM,NL),PU(IM,JM,NL),DQ(IM,JM,NL),
      &     fx(IM+1,JM,NL),fy(IM,JM,NL),fz(IM,JM,NL+1),
      &     qz(IM,JM,NL),Qmax(IM,JM,NL),Qmin(IM,JM,NL)
+
+#if   defined( TOMAS )
+! For size-resolved aerosol number and mass (win, 7/17/09)
+      REAL  FXNK(IM,JM,NL,IBINS), DQNKX(IM,JM,NL,IBINS)
+      REAL  FYNK(IM,JM,NL,IBINS), DQNKY(IM,JM,NL,IBINS)
+      REAL  FZNK(IM,JM,NL,IBINS), DQNKZ(IM,JM,NL,IBINS)
+#endif
 
 ! bey, 6/20/00. for mass-flux diagnostic
       REAL fx1_tp(IM,JM,NL), fy1_tp(IM,JM,NL), fz1_tp(IM,JM,NL)
@@ -1000,6 +1026,16 @@ c        write(6,*) ' *** Smooth the wind fields or reduce NDT'
       fy(:,:,:) = 0d0
       fz(:,:,:) = 0d0
 
+#if   defined( TOMAS )
+      ! For aerosol mass flux modification (win, 7/17/09)
+      FXNK(:,:,:,:) = 0d0
+      FYNK(:,:,:,:) = 0d0
+      FZNK(:,:,:,:) = 0d0
+      DQNKX(:,:,:,:) = 0d0
+      DQNKY(:,:,:,:) = 0d0
+      DQNKZ(:,:,:,:) = 0d0
+#endif
+
 
 #if   defined( multitask  )
 #if   defined( CRAY       )
@@ -1009,7 +1045,7 @@ c        write(6,*) ' *** Smooth the wind fields or reduce NDT'
 !MIC$* shared(fx1_tp, fy1_tp)
 !MIC$* private(i,j,k,jt,wk,DG2)
 #else
-!$OMP PARALLEL DO PRIVATE( I, J, K, JT, WK, DG2 )
+!$OMP PARALLEL DO PRIVATE( I, J, K, JT, WK, DG2, IC )
 #endif
 #endif
 
@@ -1114,6 +1150,7 @@ c        write(6,*) ' *** Smooth the wind fields or reduce NDT'
       endif
 
       enddo
+!$OMP END PARALLEL DO
  
 !****6***0*********0*********0*********0*********0*********0**********72
        call FCT3D(Q(1,1,1,IC),qlow,fx,fy,fz,IM,JM,NL,j1,j2,delp2,
@@ -1124,14 +1161,152 @@ c        write(6,*) ' *** Smooth the wind fields or reduce NDT'
  
 ! Final update
 
-#if   defined( multitask  )
-#if   defined( CRAY       )
+#if   defined( TOMAS )
+!With the addition for TOMAS, I don't know exactly how to make the 
+!new code parallel, so c/o this part for now (win, 8/11/09)
+c$$$#if   defined( multitask  )
+c$$$#if   defined( CRAY       )
+c$$$CMIC$ do all autoscope
+c$$$CMIC$* private(i,j,k,sum1,sum2)
+c$$$#else
+c$$$!$OMP PARALLEL DO PRIVATE( I, J, K, SUM1, SUM2 )
+c$$$#endif
+c$$$#endif 
+
+!Prior to addition for TOMAS aerosols advection (win, 7/17/09)
+c$$$      do 101 k=1,NL
+c$$$
+c$$$      do 425 j=j1,j2
+c$$$      do 425 i=1,IM
+c$$$      DQ(i,j,k) = DQ(i,j,k) +  fx(i,j,k) - fx(i+1,j,k)
+c$$$     &                      + (fy(i,j,k) - fy(i,j+1,k))*acosp(j)
+c$$$     &                      +  fz(i,j,k) - fz(i,j,k+1)
+c$$$
+c$$$425   continue
+c$$$
+c$$$      sum1 = fy(IM,j1  ,k)
+c$$$      sum2 = fy(IM,J2+1,k)
+c$$$
+c$$$      do i=1,IM-1
+c$$$         sum1 = sum1 + fy(i,j1  ,k)
+c$$$         sum2 = sum2 + fy(i,J2+1,k)
+c$$$      enddo
+c$$$ 
+c$$$      DQ(1, 1,k) = DQ(1, 1,k) - sum1*RCAP + fz(1, 1,k) - fz(1, 1,k+1)
+c$$$      DQ(1,JM,k) = DQ(1,JM,k) + sum2*RCAP + fz(1,JM,k) - fz(1,JM,k+1)
+c$$$ 
+c$$$      do i=2,IM
+c$$$      DQ(i, 1,k) = DQ(1, 1,k)
+c$$$      DQ(i,JM,k) = DQ(1,JM,k)
+c$$$      enddo
+c$$$
+c$$$101   continue
+!-------ending of original for the modified section (win, 7/17/09)
+
+! Modification for TOMAS aerosol advection (win, 7/17/09)
+!Split up the addition of fluxes to DQ array into separate directions;
+!E-W, N-S, then vertical.  Then add saving of aerosol number fluxes and 
+!aerosol number mixing ratio field and calculation of aerosol mass fluxes
+!in between each flux addition to the mixing ratio field.
+
+
+      IF ( IDFLUX( IC ) /= 0 ) THEN
+         CALL AERMASSDR(IC,IM,JM,J1,J2,NL,FXNK(:,:,:,NBIN( IC )),
+     &           DQNKZ(:,:,:,NBIN( IC )),fx(1:IM,:,:),DQ(:,:,:),1     )
+      ENDIF
+
+      DO K = 1, NL
+      DO J = 1, JM
+         fx(IM+1, J, K) = fx(1, J, K)
+      ENDDO
+      ENDDO
+         
+! Update in E-W direction
+      do 425 k=1,NL
+      do 425 j=j1,j2
+      do 425 i=1,IM
+      DQ(i,j,k) = DQ(i,j,k) +  fx(i,j,k) - fx(i+1,j,k)
+ 425  continue
+
+      IF ( IDFLUX( IC ) /= 0 ) THEN
+         CALL AERMASSDR(IC,IM,JM,J1,J2,NL,FYNK(:,:,:,NBIN( IC )),
+     &           DQNKX(:,:,:,NBIN( IC )),fy(1:IM,:,:),DQ(:,:,:),2     )
+      ENDIF
+
+! Update in N-S direction
+      do 101 k=1,NL
+
+      do 426 j=j1,j2
+      do 426 i=1,IM
+      DQ(i,j,k) = DQ(i,j,k) + (fy(i,j,k) - fy(i,j+1,k))*acosp(j)
+426   continue
+
+      sum1 = fy(IM,j1  ,k)
+      sum2 = fy(IM,J2+1,k)
+
+      do i=1,IM-1
+         sum1 = sum1 + fy(i,j1  ,k)
+         sum2 = sum2 + fy(i,J2+1,k)
+      enddo
+ 
+      DQ(1, 1,k) = DQ(1, 1,k) - sum1*RCAP 
+      DQ(1,JM,k) = DQ(1,JM,k) + sum2*RCAP 
+ 
+      do i=2,IM
+      DQ(i, 1,k) = DQ(1, 1,k)
+      DQ(i,JM,k) = DQ(1,JM,k)
+      enddo
+
+      if(j1.ne.2)then
+      do I=1,IM
+      DQ(I,  2,k) = DQ(I, 1,k)
+      DQ(I,JM1,k) = DQ(I,JM,k)
+      enddo
+      endif
+
+ 101  continue
+
+      IF ( IDFLUX( IC ) /= 0 ) THEN
+         CALL AERMASSDR(IC,IM,JM,J1,J2,NL,FZNK(:,:,:,NBIN( IC )),
+     &           DQNKY(:,:,:,NBIN( IC )),fz(1:IM,:,:),DQ(:,:,:),3     )
+      ENDIF
+
+! Update in the vertical direction
+      do 102 k=1,NL
+
+      do 427 j=j1,j2
+      do 427 i=1,IM
+      DQ(i,j,k) = DQ(i,j,k) +  fz(i,j,k) - fz(i,j,k+1)
+ 427  continue
+
+      DQ(1, 1,k) = DQ(1, 1,k) + fz(1, 1,k) - fz(1, 1,k+1)
+      DQ(1,JM,k) = DQ(1,JM,k) + fz(1,JM,k) - fz(1,JM,k+1)
+ 
+      do i=2,IM
+      DQ(i, 1,k) = DQ(1, 1,k)
+      DQ(i,JM,k) = DQ(1,JM,k)
+      enddo
+
+      if(j1.ne.2)then
+      do I=1,IM
+      DQ(I,  2,k) = DQ(I, 1,k)
+      DQ(I,JM1,k) = DQ(I,JM,k)
+      enddo
+      endif
+
+ 102  continue
+!----ending section modified for size-resolved aerosols (win, 7/17/09)
+
+#else
+
+# if   defined( multitask  )
+#  if   defined( CRAY       )
 !MIC$ do all autoscope
 !MIC$* private(i,j,k,sum1,sum2)
-#else
+#  else
 !$OMP PARALLEL DO PRIVATE( I, J, K, SUM1, SUM2 )
-#endif
-#endif 
+#  endif
+# endif 
 
       do 101 k=1,NL
 
@@ -1160,6 +1335,8 @@ c        write(6,*) ' *** Smooth the wind fields or reduce NDT'
       enddo
 
 101   continue
+#endif
+
  
       !=================================================================
       ! bey, 6/20/00. for mass-flux diagnostic
@@ -1856,9 +2033,9 @@ c
       real fz1_tp(IMR,JNP,NL)
 
       real lac
-c     real x, y, z
-c     real median
-c     median(x,y,z) = min(max(x,y), max(y,z), max(z,x))
+!     real x, y, z
+!     real median
+!     median(x,y,z) = min(max(x,y), max(y,z), max(z,x))
 !============================================================================
 ! Cray NOBOUNDS directive will turn off all subscript bounds checking.
 ! This directive is also legal on SGI compilers (bmy, 4/24/00)
@@ -2016,14 +2193,14 @@ c     median(x,y,z) = min(max(x,y), max(y,z), max(z,x))
          lac   = P(i,j,k) + 1.5*DC(i,k-1) + 0.5*delq(i,k-1)
          qmin  = min(P(i,j,k), qmp, lac)
          qmax  = max(P(i,j,k), qmp, lac)
-c        AR(i,k) = median(AR(i,k), qmin, qmax)
+!        AR(i,k) = median(AR(i,k), qmin, qmax)
          AR(i,k) = min(max(AR(i,k), qmin), qmax)
 ! Left  edges
          qmp   = P(i,j,k)                 - 2.0*delq(i,k)
          lac   = P(i,j,k) + 1.5*DC(i,k+1) - 0.5*delq(i,k)
          qmin  = min(P(i,j,k), qmp, lac)
          qmax  = max(P(i,j,k), qmp, lac)
-c        AL(i,k) = median(AL(i,k), qmin, qmax)
+!        AL(i,k) = median(AL(i,k), qmin, qmax)
          AL(i,k) = min(max(AL(i,k), qmin), qmax)
 ! Recompute A6
          A6(i,k) = 3.*(2.*P(i,j,k) - (AR(i,k)+AL(i,k)))
@@ -2084,6 +2261,13 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
          fz1_tp(i,j,k) = DC(i,k)
       enddo
       enddo
+ 
+#if   defined( TOMAS )
+      ! Extend the loop to k=NL (win, 7/17/09)
+      do i=1,IMR
+         fz1_tp(i,j,NL) = DC(i,NL)
+      enddo
+#endif
  
 4000  continue
       return
@@ -2835,6 +3019,10 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 
          ! bey, 6/20/00. for mass-flux diagnostic
          fy1_tp(i,j) = fy1(i,j) 
+#if   defined( TOMAS )
+         !Add one more strip of J to the array (win, 7/17/09)
+         IF ( j == j2 ) fy1_tp(i,j+1) = fy1(i,j+1)
+#endif
       ENDDO
       ENDDO
 !
