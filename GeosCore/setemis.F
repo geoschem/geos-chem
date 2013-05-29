@@ -160,6 +160,10 @@
       REAL*8  :: COEF1,   TOTPRES, DELTPRES
       REAL*8  :: EMIS_BL, NOXTOT,  TOTAL, A_CM2
 
+      !%%% BMY KLUDGE to only print out warning message about 
+      !%%% non-emitted tracers on the first timestep (bmy, 5/28/13)
+      LOGICAL, SAVE :: FIRST = .TRUE.
+
       !=================================================================
       ! SETEMIS begins here!
       !=================================================================
@@ -235,7 +239,12 @@
          ! Skip to next tracer if IDEMIS(NN) is not defined in 
          ! order to avoid array-out-of-bounds errors (bmy, 8/6/04)
          IF ( IDEMIS(NN) <= 0 ) THEN
-            IF ( am_I_Root ) THEN
+            !---------------------------------------------------------------
+            !%%% BMY KLUDGE to only print out warning message about 
+            !%%% non-emitted tracers on the first timestep (bmy, 5/28/13)
+            !IF ( am_I_Root ) THEN
+            !---------------------------------------------------------------
+            IF ( FIRST .and. am_I_Root ) THEN
                PRINT*, 'Tracer ', NN, ' is not an emitted species!'
             ENDIF
             CYCLE
@@ -554,6 +563,10 @@
          ENDDO  ! J
       ENDDO     ! N
 !$OMP END PARALLEL DO
+
+      !%%% BMY KLUDGE to only print out warning message about 
+      !%%% non-emitted tracers on the first timestep (bmy, 5/28/13)
+      FIRST = .FALSE.
 
       END SUBROUTINE SETEMIS
 !EOC
