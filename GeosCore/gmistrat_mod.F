@@ -2426,6 +2426,7 @@
       USE TRACERID_MOD,      ONLY : IDTNIT
       USE TRACER_MOD,        ONLY : STT
       USE CHEMGRID_MOD,      ONLY : ITS_IN_THE_STRAT
+      USE LOGICAL_MOD,       ONLY : LPSCCHEM
 !
 ! !INPUT PARAMETERS:
 !
@@ -2446,7 +2447,8 @@
       ! CHECK_NAT begins here!
       !=================================================================
 
-      IS_PSC = ((STATE_PSC(I,J,L).ge.2).and.(ITS_IN_THE_STRAT(I,J,L)))
+      IS_PSC = ((LPSCCHEM).and.(STATE_PSC(I,J,L).ge.2).and.
+     &                                 (ITS_IN_THE_STRAT(I,J,L)))
       IS_NAT = (IS_PSC).and.(STT(I,J,L,IDTNIT).gt.TINY(1d0))
 
       END SUBROUTINE CHECK_NAT

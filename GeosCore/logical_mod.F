@@ -86,6 +86,7 @@
       LOGICAL :: LGRAVSTRAT      ! Perform graviational settling in strat?
       LOGICAL :: LSOLIDPSC       ! Allow solid PSC formation?
       LOGICAL :: LHOMNUCNAT      ! Allow homogeneous NAT nucleation?
+      LOGICAL :: LPSCCHEM        ! Perform PSC heterogeneous chemistry?
 
       !%%%% Chemistry %%%%
       LOGICAL :: LCHEM           ! Use chemistry?

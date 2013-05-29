@@ -1427,18 +1427,21 @@ c new OH+CO rate from JPL2006.
                      !    a Nan, force k = 0.
                      !
                      ! If all these checks are passed, we set k = ki/[B].
-                     IF (ADJUSTEDRATE.gt.(1.d0/60.d0)) THEN
-                        ADJUSTEDRATE = 1.d0/60.d0
-                     ENDIF
-                     IF (IS_SAFE_DIV(EDUCTCONC,LIMITCONC)) THEN
-                        ! Temporarily store [B]/(60*[A])
-                        LIMITCONC = EDUCTCONC/(60.d0*LIMITCONC)
-                        IF (ADJUSTEDRATE.gt.LIMITCONC) THEN
-                           ADJUSTEDRATE = LIMITCONC
-                        ENDIF
-                     ELSE
-                        ADJUSTEDRATE = 0d0
-                     ENDIF
+                     !-----SDE DEBUG
+                     ! Rollbacks too aggressive - temp disabled
+                     !IF (ADJUSTEDRATE.gt.(1.d0/60.d0)) THEN
+                     !   ADJUSTEDRATE = 1.d0/60.d0
+                     !ENDIF
+                     !IF (IS_SAFE_DIV(EDUCTCONC,LIMITCONC)) THEN
+                     !   ! Temporarily store [B]/(60*[A])
+                     !   LIMITCONC = EDUCTCONC/(60.d0*LIMITCONC)
+                     !   IF (ADJUSTEDRATE.gt.LIMITCONC) THEN
+                     !      ADJUSTEDRATE = LIMITCONC
+                     !   ENDIF
+                     !ELSE
+                     !   ADJUSTEDRATE = 0d0
+                     !ENDIF
+                     !-----SDE DEBUG
                      IF ((EDUCTCONC.gt.1.d2).and.
      &                      (IS_SAFE_DIV(ADJUSTEDRATE,EDUCTCONC))) THEN
                         ADJUSTEDRATE = ADJUSTEDRATE/EDUCTCONC

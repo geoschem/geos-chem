@@ -1284,7 +1284,7 @@
       USE LOGICAL_MOD,  ONLY : LSULF, LCARB, LSOA
       USE LOGICAL_MOD,  ONLY : LDUST, LDEAD, LSSALT, LCRYST
       USE LOGICAL_MOD,  ONLY : LDICARB, LGRAVSTRAT, LHOMNUCNAT
-      USE LOGICAL_MOD,  ONLY : LSOLIDPSC
+      USE LOGICAL_MOD,  ONLY : LSOLIDPSC, LPSCCHEM
       USE GMISTRAT_MOD, ONLY : T_NAT_SUPERCOOL, P_ICE_SUPERSAT
       USE TRACER_MOD,   ONLY : N_TRACERS
       USE TRACER_MOD,   ONLY : SALA_REDGE_um,      SALC_REDGE_um
@@ -1408,8 +1408,12 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:15' )
       READ( SUBSTRS(1:N), * ) P_ICE_SUPERSAT
 
-      ! Separator line
+      ! Perform PSC-related heterogeneous chemistry?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:16' )
+      READ( SUBSTRS(1:N), * ) LPSCCHEM 
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:17' )
 
       !=================================================================
       ! Error checks
@@ -1600,6 +1604,7 @@
      &                                                 T_NAT_SUPERCOOL
          WRITE( 6, 120     ) 'Ice supersaturation req.    : ',
      &                                        ((P_ICE_SUPERSAT-1)*1.d2)
+         WRITE( 6, 100     ) 'Perform PSC het. chemistry? : ',LPSCCHEM
       ENDIF
 
  100  FORMAT( A, L5     )
@@ -7179,6 +7184,7 @@
       LGRAVSTRAT     = .FALSE.
       LSOLIDPSC      = .FALSE.
       LHOMNUCNAT     = .FALSE.
+      LPSCCHEM       = .FALSE.
 
       !Specifically for CO2 simulation (R Nassar, 2009-03-02)
       LGENFF         = .FALSE.
