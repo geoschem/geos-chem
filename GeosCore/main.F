@@ -119,12 +119,6 @@
       USE GIGC_State_Chm_Mod    ! Derived type for Chemistry State object    
       USE GIGC_State_Met_Mod    ! Derived type for Meteorology State object
 
-#if defined ( TOMAS )
-# if defined ( DEBUG )
-      USE TOMAS_MOD, ONLY      : CHECKMN
-# endif
-#endif
-
       IMPLICIT NONE
 
 #     include "define.h"
@@ -894,12 +888,6 @@
          ! Get the overhead column O3 for use with FAST-J
          CALL GET_OVERHEAD_O3_FOR_FASTJ()
 
-#if defined ( TOMAS )
-# if defined ( DEBUG )
-!      CALL CHECKMN( 0, 0, 0, State_Met, 'kg',
-!     &              'checkmn called from MAIN before transport')
-# endif
-#endif
          !==============================================================
          !   ***** U N I T   C O N V E R S I O N  ( kg -> v/v ) *****
          !==============================================================
@@ -926,27 +914,11 @@
             ! Reset air mass quantities
             CALL AIRQNT( State_Met )
 
-#if defined ( TOMAS )
-#if defined ( DEBUG )
-!      CALL CHECKMN( 0, 0, 0, State_Met, 'v/v',
-!     &              'checkmn called from MAIN after transport')
-#endif
-#endif
-
 #if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_57 )
             ! Get relative humidity (after recomputing pressures)
             ! NOTE: for GEOS-5 we'll read this from disk instead
             CALL MAKE_RH( State_Met )
 #endif
-
-!-----------------------------------------------------------------------------
-! Prior to 4/26/13
-! Now remove LTOMAS logical (bmy, sfarina, 4/26/13)
-!            ! Initialize wet scavenging and wetdep fields after
-!            ! the airmass quantities are reset after transport
-!            IF ( LCONV .or. LWETD .or. LTOMAS )
-!     &          CALL INIT_WETSCAV( State_Met )
-!-----------------------------------------------------------------------------
 
             ! Initialize wet scavenging and wetdep fields after
             ! the airmass quantities are reset after transport
@@ -959,13 +931,6 @@
 #endif
 
          ENDIF
-
-#if defined ( TOMAS )
-# if defined ( DEBUG )
-!      CALL CHECKMN( 0, 0, 0, State_Met, 'v/v',
-!     &              'checkmn called from MAIN after wetscav')
-# endif
-#endif
 
          !-------------------------------
          ! Test for emission timestep
@@ -1057,19 +1022,7 @@
                   CALL PARTITIONHG( 1, STT )
                ENDIF
       
-#if defined ( TOMAS )
-# if defined ( DEBUG )
-      CALL CHECKMN( 0, 0, 0, State_Met, 'v/v',
-     &              'checkmn called from MAIN before convection')
-# endif
-#endif
                CALL DO_CONVECTION( State_Met )
-#if defined ( TOMAS )
-# if defined ( DEBUG )
-      CALL CHECKMN( 0, 0, 0, State_Met, 'v/v',
-     &              'checkmn called from MAIN after convection')
-# endif
-#endif
 
                ! Return all reactive particulate Hg(II) to total Hg(II) tracer
                IF ( ITS_A_MERCURY_SIM() ) THEN
@@ -1107,12 +1060,6 @@
             !===========================================================
             !         ***** D R Y   D E P O S I T I O N *****
             !===========================================================
-#if defined ( TOMAS )
-# if defined ( DEBUG )
-      CALL CHECKMN( 0, 0, 0, State_Met, 'kg',
-     &              'checkmn called from MAIN before drydep @main:1080')
-# endif
-#endif
             IF ( LDRYD .and. ( .not. ITS_A_H2HD_SIM() ) ) THEN
                CALL DO_DRYDEP( am_I_Root, Input_Opt, 
      &                         State_Met, State_Chm, RC )

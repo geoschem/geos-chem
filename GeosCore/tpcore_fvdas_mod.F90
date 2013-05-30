@@ -501,6 +501,7 @@ CONTAINS
 !                               processing time.
 !   03 Dec 2009 - C. Carouge  - Modify declarations of MASSFLEW, MASSFLNS and 
 !                               MASSFLUP to save memory space.
+!   30 May 2013 - S. Farina   - For TOMAS, zero out UA and VA variables
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -575,6 +576,16 @@ CONTAINS
     j1p = 3
     j2p = jm - j1p + 1
 
+#if defined( TOMAS )
+      !================================================================
+      ! For TOMAS microphysics: zero out UA and VA.
+      !
+      ! Segregate this block from the code with an #ifdef block.
+      ! We can't bring this into the standard GEOS-Chem yet, since
+      ! that will make it hard to compare benchmark results to prior
+      ! versions.  When we do bring this change into the standard code,
+      ! we will have to benchmark it. (sfarina, bmy, 5/30/13)
+      !================================================================
       do ik= 1, km
       do ij= 1, jm
       do il= 1, im
@@ -583,7 +594,8 @@ CONTAINS
       end do
       end do
       end do
-    
+#endif
+
     ! Average surf. pressures in the polar cap. (ccc, 11/20/08)
     CALL Average_Press_Poles( area_m2, ps1, 1, im, 1, jm, 1, im, 1, jm )
     CALL Average_Press_Poles( area_m2, ps2, 1, im, 1, jm, 1, im, 1, jm )
@@ -1330,20 +1342,6 @@ CONTAINS
              va(il,ij) = 0.5d0 * (cry(il,ij) + cry(il,ij+1))
           end do
        end do
-
-!       do ij = j1p, j2p
-!          do il = i1, i2-1
-!             
-!             ua(il,ij) = 0.5d0 * (crx(il,ij) + crx(il+1,ij))
-!             va(il,ij) = 0.5d0 * (cry(il,ij) + cry(il,ij+1))
-!!             print *, va(il,ij)
-!          end do
-!          ua(i2,ij) = 0.5d0 * (crx(i2,ij) + crx(1,ij))
-!          va(i2,ij) = 0.5d0 * (cry(i2,ij) + cry(i2,ij+1)) !sfarina - this line was missing in v9.02, restored from v8.02
-!!          print *, va(i2,ij) 
-!
-!       end do
-
 
 !      =============================
        call Do_Cross_Terms_Pole_I2d2  &

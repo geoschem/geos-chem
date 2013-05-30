@@ -870,6 +870,10 @@
 
 
 #if   defined( TOMAS )
+      !=================================================================
+      ! For TOMAS microphysics
+      !=================================================================
+
       ! Added option to do 4-bin dust or TOMAS size-resolved dust emission (win, 7/17/09)
       IF ( LDUST ) THEN 
  
@@ -895,14 +899,6 @@
       ELSEIF ( IDTNK1 > 0 .and. IDTDUST1 > 0 ) THEN
 
          MINIT(:,:,1,1:IBINS) = STT(:,:,1,IDTDUST1:IDTDUST1-1+IBINS)
-!      print *,'STT AT 13,34,1', STT(13,34,1,IDTNK1:IDTNK1-1+IBINS),
-!     &     'SF',STT(23,12,1,IDTNK1+30:IDTNK1-1+30+30),
-!     &     'SS',STT(23,12,1,IDTNK1+30*2:IDTNK1-1+30+30*2),
-!     &     'ECIL',STT(23,12,1,IDTNK1+30*3:IDTNK1-1+30+30*3),
-!     &     'ECOB',STT(23,12,1,IDTNK1+30*4:IDTNK1-1+30+30*4),
-!     &     'OCIL',STT(23,12,1,IDTNK1+30*5:IDTNK1-1+30+30*5),
-!     &     'OCOB',STT(23,12,1,IDTNK1+30*6:IDTNK1-1+30+30*6),
-!     &     'DUST',STT(13,34,1,IDTNK1+30*7:IDTNK1-1+30+30*7)
 
          IF ( LDEAD ) THEN
             ! still didn't figure out why run would crash w/ this option (win, 7/17/09)
@@ -924,14 +920,6 @@
             IF ( LPRT ) 
      &           CALL DEBUG_MSG( '### EMISSDUST: a SRC_DUST_GINOUX')
          ENDIF
-!      print *,'STT AT 13,34,1', STT(13,34,1,IDTNK1:IDTNK1-1+IBINS),
-!     &     'SF',STT(13,34,1,IDTNK1+30:IDTNK1-1+30+30),
-!     &     'SS',STT(13,34,1,IDTNK1+30*2:IDTNK1-1+30+30*2),
-!     &     'ECIL',STT(13,34,1,IDTNK1+30*3:IDTNK1-1+30+30*3),
-!     &     'ECOB',STT(13,34,1,IDTNK1+30*4:IDTNK1-1+30+30*4),
-!     &     'OCIL',STT(13,34,1,IDTNK1+30*5:IDTNK1-1+30+30*5),
-!     &     'OCOB',STT(13,34,1,IDTNK1+30*6:IDTNK1-1+30+30*6),
-!     &     'DUST',STT(13,34,1,IDTNK1+30*7:IDTNK1-1+30+30*7)
 
          IF ( ND59 > 0 ) THEN 
             DO K = 1, IBINS
@@ -953,6 +941,9 @@
          ENDIF
       ENDIF
 #else
+      !=================================================================
+      ! For standard GEOS-Chem simulations w/o TOMAS:
+      !=================================================================
       IF ( LDEAD ) THEN
 
          ! Use Zender's DEAD dust source function
@@ -971,8 +962,6 @@
 
       ENDIF    
 #endif
-
-
 
 #if defined( DEVEL )
       SFLX(:,:,:,IDTDST1:IDTDST4) = (STT(:,:,:,IDTDST1:IDTDST4)-STT_TMP)
@@ -1381,12 +1370,12 @@
       !       Thus applying 1/2  factor to correct the emission.
 #else
 
-# if   defined( TOMAS )
+#if   defined( TOMAS )
       CALL ERROR_STOP('Adjust dust transfer coeff for your model res.?',
      &                'SRC_DUST_GINOUX: dust_mod.f')
-# else
+#else
       REAL*8, PARAMETER      :: CH_DUST  = 9.375d-10 
-# endif
+#endif
 #endif
       REAL*8, PARAMETER      :: G        = G0 * 1.d2
       REAL*8, PARAMETER      :: RHOA     = 1.25d-3
@@ -1399,11 +1388,11 @@
       !=================================================================
 
 #if   defined ( TOMAS )
-# if   defined ( TOMAS40 )
+#if   defined ( TOMAS40 )
       ACTMODEBINS=10
 #else
       ACTMODEBINS=0
-# endif
+#endif
 #endif
 
       ! Emission timestep [s]
@@ -2205,11 +2194,11 @@
 
       INTEGER            :: ACTMODEBINS        !(scf, 2/27/13)
 
-# if  defined( TOMAS40 )
+#if  defined( TOMAS40 )
       ACTMODEBINS = 10  !10 activation mode size bins
-# else
+#else
       ACTMODEBINS = 0   !no bins < 10nm
-# endif
+#endif
 
 #endif
 
@@ -2343,11 +2332,6 @@
      &        CALL ERROR_STOP('Current code compatible with 30-bin',
      &                         'INIT_DUST ("dust_mod.f")')
 # endif
-      
-
-
-
-
          ENDIF
 #else
          FRAC_S(1:NDSTBIN)   = (/ 0.095d0, 0.3d0, 0.3d0, 0.3d0 /)
@@ -2358,7 +2342,7 @@
       ALLOCATE( SRCE_FUNC(IIPAR,JJPAR,3), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SRCE_FUNC' )
       SRCE_FUNC = 0.d0
-#else if defined( TOMAS )
+#elif defined( TOMAS )
       ALLOCATE( SRCE_FUNC(IIPAR,JJPAR,3), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SRCE_FUNC' )
       SRCE_FUNC = 0.d0

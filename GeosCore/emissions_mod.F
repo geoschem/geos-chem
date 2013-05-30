@@ -424,11 +424,11 @@
 #if   defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 
 
-# if  defined( TOMAS )
+#if  defined( TOMAS )
          IF ( LSSALT .or. IDTSS1 > 0 ) 
-# else
+#else
          IF ( LSSALT                 ) 
-# endif
+#endif
      &      CALL EMISSSEASALT( State_Met, State_Chm%TRAC_TEND(:,:,:,:),
      &                         ssa_br2    )
 
@@ -451,11 +451,7 @@
 
 
 #else
-!prior to TOMAS addition (win, 7/17/09)
-c$$$         IF ( LSSALT            ) CALL EMISSSEASALT( State_Met, ssa_br2)
-c$$$         IF ( LSULF .or. LCRYST ) CALL EMISSSULFATE( State_Met )
-c$$$         IF ( LCARB             ) CALL EMISSCARBON( State_Met )
-c$$$         IF ( LDUST             ) CALL EMISSDUST( State_Met )
+
 # if  defined( TOMAS )
          IF ( LSSALT .or. IDTSS1 > 0 )
      &      CALL EMISSSEASALT( State_Met, ssa_br2)
@@ -471,11 +467,6 @@ c$$$         IF ( LDUST             ) CALL EMISSDUST( State_Met )
 # endif
 
 #endif
-         !---------------------------------------------------------------------
-         ! Prior to 11/26/12:
-         ! Now mainline new call for EMISSDUST w/ Input_Opt (bmy, 11/26/12)
-         !IF ( LDUST             ) CALL EMISSDUST( State_Met )
-         !---------------------------------------------------------------------
 
 #if   defined( TOMAS )
          IF ( LDUST  .or. IDTDUST1 > 0 ) THEN

@@ -135,6 +135,7 @@
 !  28 Nov 2012 - R. Yantosca   - Use SUNCOS fields from the State_Met object
 !  13 Mar 2013 - R. Yantosca   - Bug fix: make sure we pass values to the
 !                                SOIL_DRYDEP routine even when ND44 is off
+!  30 May 2013 - S. Farina     - Merged TOMAS code into sulfate_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -154,8 +155,13 @@
       REAL*8,  PARAMETER   :: XNUMOL_NO3 = 6.022d23 / 62d-3
       REAL*8,  PARAMETER   :: TCVV_S     = 28.97d0  / 32d0 
       REAL*8,  PARAMETER   :: SMALLNUM   = 1d-20
-      REAL*8,  PARAMETER   :: scaleanthso2 = 1.0d0
 
+#if defined( TOMAS )
+      !---------------------------------------------------------------
+      ! For TOMAS microphysics: Add parameter for scaling anthro SO2
+      !---------------------------------------------------------------
+      REAL*8,  PARAMETER   :: scaleanthso2 = 1.0d0
+#endif
 !
 ! !PRIVATE TYPES:
 !
@@ -239,8 +245,12 @@
       REAL*8,  ALLOCATABLE :: TTDAY(:,:)
       REAL*8,  ALLOCATABLE :: VCLDF(:,:,:)
       REAL*8,  ALLOCATABLE :: COSZM(:,:)
+
 #if   defined( TOMAS )
-      REAL*8,  ALLOCATABLE :: PSO4_SO2AQ(:,:,:)   ! (win, 1/25/10)
+      !---------------------------------------------------------------
+      ! For TOMAS microphysics: Define PSO4_SO2aq array
+      !---------------------------------------------------------------
+      REAL*8,  ALLOCATABLE :: PSO4_SO2AQ(:,:,:)
 #endif
 
       ! Volcanic emissions parameters (ccc, 9/30/10)
@@ -588,7 +598,7 @@
       PSO4_SS  = 0d0
       PNITs    = 0d0
 #if   defined( TOMAS )
-      PSO4_SO2AQ = 0d0 !(win, 8/10/09)
+      PSO4_SO2AQ = 0d0     ! For TOMAS microphysics
 #endif
                   
       !================================================================= 
@@ -650,12 +660,16 @@
       ENDIF
 
 #if   defined( TOMAS )
-      ! SO4 from aqueous chemistry of SO2 (in-cloud oxidation)  !(win, 1/25/10)
-      ! 
-      ! SO4 produced via aqueous chemistry is distributed onto 30-bin aerosol
-      ! by TOMAS subroutine AQOXID  
-      ! NOTE: This may be moved to tomas_mod.f in the future, but for now
-      ! it still need to get the PSO4_SO2AQ value while CHEMSULFATE is called
+      !-----------------------------------------------------------------
+      ! For TOMAS microphysics:
+      !
+      ! SO4 from aqueous chemistry of SO2 (in-cloud oxidation)
+      !
+      ! SO4 produced via aqueous chemistry is distributed onto 30-bin
+      ! aerosol by TOMAS subroutine AQOXID.   NOTE: This may be moved
+      ! to tomas_mod.f in the future, but for now it still needs to get
+      ! the PSO4_SO2AQ value while CHEMSULFATE is called
+      !-----------------------------------------------------------------
       CALL CHEM_SO4_AQ( State_Met )
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO4_AQ' )
 #endif
@@ -1770,9 +1784,9 @@
 !$OMP+PRIVATE( Kt1, Kt2, AREASS1, AREASS2, SO2_ss, Kt1N, Kt2N          )
 !$OMP+PRIVATE( PSO4E, PSO4F, XX                                        )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO I = 1, IIPAR
-      DO J = 1, JJPAR
       DO L = 1, LLPAR 
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Initialize for safety's sake 
          AREA_CM2 = 0d0
@@ -2116,7 +2130,7 @@
          PSO4_ss (I,J,L) = PSO4F
 
 #if   defined( TOMAS )
-         PSO4_SO2AQ(I,J,L) = L2S + L3S  !For microphysics (win, 1/25/10)
+         PSO4_SO2AQ(I,J,L) = L2S + L3S  ! For TOMAS microphysics
 #endif
 
          !=================================================================
@@ -3325,6 +3339,9 @@
 !
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
+! !REMARKS:
+!  NOTE: This subroutine is ignored unless we compile for TOMAS microphysics.
+!
 ! !REVISION HISTORY:
 !  (1 ) As of now the SO4 produced via heterogeneous reaction on the 2-mode
 !        seasalt is not include in this treatment (win, 7/23/07)
@@ -3578,9 +3595,9 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
-         DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
+         DO L = 1, LLPAR
             AD44(I,J,DRYMSA,1) = AD44(I,J,DRYMSA,1) + ND44_TMP(I,J,L)
          ENDDO
          ENDDO
@@ -3743,11 +3760,6 @@
 
                ! Subtract NH3 lost to drydep from initial NH3 [v/v]
                STT(I,J,L,IDTNH3) = NH30 - NH3
-#if defined ( DEBUG )
-               if ( STT(I,J,L,IDTNH3) < 0d0 ) then
-                  print *, 'NH3 < 0 in sulfate_mod:CHEM_NH3'
-               endif
-#endif
 
                !========================================================
                ! Archive drydep flux of NH3 [molec/cm2/s]
@@ -4581,11 +4593,11 @@
       USE TRACERID_MOD,       ONLY : IDTDMS,     IDTSO2 
       USE TRACERID_MOD,       ONLY : IDTSO4,     IDTNH3
 #if   defined( TOMAS )
-      USE TRACERID_MOD,       ONLY : IDTSF1,     IDTAW1,  IDTNH4 !(win, 1/25/10)
-      USE TRACERID_MOD,       ONLY : IDTNK1                      !(win, 1/25/10)
-      USE TOMAS_MOD,          ONLY : IBINS,      ICOMP,   IDIAG  !(win, 1/25/10)
-      USE TOMAS_MOD,          ONLY : NH4BULKTOBIN                !(win, 1/25/10)
-      USE TOMAS_MOD,          ONLY : SRTNH4                      !(win, 1/25/10)
+      USE TRACERID_MOD,       ONLY : IDTSF1,     IDTAW1,  IDTNH4
+      USE TRACERID_MOD,       ONLY : IDTNK1
+      USE TOMAS_MOD,          ONLY : IBINS,      ICOMP,   IDIAG
+      USE TOMAS_MOD,          ONLY : NH4BULKTOBIN
+      USE TOMAS_MOD,          ONLY : SRTNH4
 #endif
 #if defined( DEVEL )
       USE TRACER_MOD,         ONLY : N_TRACERS 
@@ -4644,14 +4656,10 @@
       LOGICAL, SAVE      :: FIRSTEMISS = .TRUE. 
       INTEGER            :: NSEASON, DAY, MONTH, YEAR   
 
-#if defined( DEVEL )
-!      REAL*8                     :: STT_TMP(IIPAR,JJPAR,
-#endif
-
 #if   defined( TOMAS )
-      REAL*8             :: BINMASS(IIPAR,JJPAR,LLPAR,IBINS*ICOMP) !(win, 1/25/10)
-      REAL*8             :: tempnh4(ibins) !(win, 1/25/10)
-      INTEGER            :: TID, I, J, L   !(win, 1/25/10)
+      REAL*8             :: BINMASS(IIPAR,JJPAR,LLPAR,IBINS*ICOMP)
+      REAL*8             :: tempnh4(ibins)
+      INTEGER            :: TID, I, J, L
 #endif
 
       !=================================================================
@@ -4717,8 +4725,10 @@
          !(ccc, 7/16/10)
          IF ( LBIOFUEL ) THEN
             CALL READ_BIOFUEL_SO2( MONTH )
-            ! jeff pierce scale anth so2 emissions
-            ESO2_bf(:,:) = ESO2_bf(:,:)*scaleanthso2
+#if defined( TOMAS )
+            ! Scale anthro SO2 for TOMAS
+            ESO2_bf = ESO2_bf * scaleanthso2
+#endif
             CALL READ_BIOFUEL_NH3( MONTH )
          ENDIF
 
@@ -4726,16 +4736,25 @@
          ! (ccc, 4/15/09)
          IF ( LANTHRO ) THEN
             CALL READ_AIRCRAFT_SO2( MONTH, State_Met )
-            ESO2_ac(:,:,:) = ESO2_ac(:,:,:)*scaleanthso2
+#if defined( TOMAS )
+            ! Scale anthro SO2 for TOMAS
+            ESO2_ac = ESO2_ac * scaleanthso2
+#endif
             CALL READ_ANTHRO_SOx( MONTH, NSEASON )
-            ESO2_an(:,:,:) = ESO2_an(:,:,:)*scaleanthso2
-            ESO4_an(:,:,:) = ESO4_an(:,:,:)*scaleanthso2
+#if defined( TOMAS )
+            ! Scale anthro SO2 for TOMAS
+            ESO2_an  = ESO2_an * scaleanthso2
+            ESO4_an  = ESO4_an * scaleanthso2
+#endif
             CALL READ_ANTHRO_NH3( MONTH )
          ENDIF
 
          ! Also read ship exhaust SO2 if necessary 
          CALL READ_SHIP_SO2( MONTH )
-         ESO2_sh(:,:) = ESO2_sh(:,:)*scaleanthso2
+#if defined( TOMAS )
+         ! Scale anthro SO2 for TOMAS
+         ESO2_sh  = ESO2_sh * scaleanthso2
+#endif
 
          ! Read oxidants for the offline simulation only
          IF ( ITS_AN_AEROSOL_SIM() ) CALL READ_OXIDANT( MONTH )
@@ -4786,7 +4805,7 @@
 
          IF ( SRTNH4 > 0 ) THEN
             TID = IBINS*(ICOMP-IDIAG) + 1
-c     print *, '============================================'
+
 !%%%OMP PARALLEL DO
 !%%%OMP+DEFAULT( SHARED )
 !%%%OMP+PRIVATE( I, J, L, TMPNH4 )
@@ -4795,7 +4814,6 @@ c     print *, '============================================'
             DO J=1,JJPAR
             DO I=1,IIPAR
          
-c         print *, I,J,L,'NH4',STT(I,J,L,IDTNH4)
                CALL NH4BULKTOBIN( STT(I,J,L,IDTSF1:IDTSF1-1+IBINS), 
      &              STT(I,J,L,IDTNH4), TEMPNH4(1:IBINS) )
 
@@ -4812,12 +4830,10 @@ c         print *, I,J,L,'NH4',STT(I,J,L,IDTNH4)
      &           STT(:,:,:,IDTAW1:IDTAW1+IBINS-1)
 
 
-c      print *,BINMASS(24,11,2,:)
-
-
       !IF ( IDTSF1 > 0 ) THEN
          CALL SRCSF30(  STT(:,:,:,IDTNK1:IDTNK1+IBINS-1), 
      &                  BINMASS(:,:,:,:), State_Met       )
+
          ! Return the aerosol mass after emission subroutine to STT
          ! excluding the NH4 aerosol and aerosol water (win, 9/27/08) 
          STT(:,:,:,IDTSF1:IDTSF1+IBINS*(ICOMP-IDIAG)-1) = 
@@ -5582,14 +5598,19 @@ c      print *,BINMASS(24,11,2,:)
                ! Convert anthro SO2 from [molec/cm2/s] to [kg/box/s] 
                ! Place all anthro SO2 into surface layer
                SO2an(I,J,1) = AN * AREA_CM2 / XNUMOL(IDTSO2)
-     &                           *scaleanthso2
+#if defined( TOMAS )
+     &                      * scaleanthso2
+#endif
+
                DO L = 2, NOXLEVELS
                   SO2an(I,J,L) = 0d0
                ENDDO
                
                ! Convert biofuel SO2 from [molec/cm2/s] to [kg/box/s] 
                SO2bf(I,J)   = BF * AREA_CM2 / XNUMOL(IDTSO2)
-     &                           *scaleanthso2
+#if defined( TOMAS )
+     &                      * scaleanthso2
+#endif
 
             ENDIF
             ENDIF
@@ -5613,11 +5634,15 @@ c      print *,BINMASS(24,11,2,:)
 
                   SO2an(I,J,1) = SO2an(I,J,1) + 
      &                           AN * AREA_CM2 / XNUMOL(IDTSO2)
+#if defined( TOMAS )
      &                           *scaleanthso2
+#endif
                  ENDIF 
                ELSE
                   SO2an(I,J,1) = AN * AREA_CM2 / XNUMOL(IDTSO2)
+#if defined( TOMAS )
      &                           *scaleanthso2
+#endif
                ENDIF
 
                DO L = 2, NOXLEVELS
@@ -5648,11 +5673,15 @@ c      print *,BINMASS(24,11,2,:)
 
                      SO2an(I,J,1) = SO2an(I,J,1) + 
      &                    AN * AREA_CM2 / XNUMOL(IDTSO2)
+#if defined( TOMAS )
      &                           *scaleanthso2
+#endif
                   endif
                ELSE
                   SO2an(I,J,1) = AN * AREA_CM2 / XNUMOL(IDTSO2)
+#if defined( TOMAS )
      &                           *scaleanthso2
+#endif
                ENDIF
 
                DO L = 2, NOXLEVELS
@@ -5965,15 +5994,18 @@ c      print *,BINMASS(24,11,2,:)
                   ! Convert anthro SO4 from [molec/cm2/s] to [kg/box/s] 
                   ! Place all EPA/NEI99 anthro SO4 into surface layer
                   SO4an(I,J,1) = EPA_AN * AREA_CM2 / XNUMOL(IDTSO4)
+#if defined( TOMAS )
      &                           *scaleanthso2
+#endif
                   DO L = 2,NOXLEVELS
                      SO4an(I,J,L) = 0d0
                   ENDDO
                
                   ! Convert biofuel SO4 from [molec/cm2/s] to [kg/box/s]
                   SO4bf(I,J)   = EPA_BF * AREA_CM2 / XNUMOL(IDTSO4)
+#if defined( TOMAS )
      &                           *scaleanthso2
-
+#endif
             ENDIF
             ENDIF
 
@@ -5994,12 +6026,16 @@ c      print *,BINMASS(24,11,2,:)
                   if (GET_USA_MASK( I, J) > 0d0 ) THEN
                      SO4an(I,J,1) = SO4an(I,J,1) + AN * 0.014/ 0.986 
      &                    * AREA_CM2 / XNUMOL(IDTSO4)
+#if defined( TOMAS )
      &                           *scaleanthso2
+#endif
                   endif
                ELSE
                   SO4an(I,J,1) = AN * 0.014 / 0.986 * AREA_CM2 
      &                           / XNUMOL(IDTSO4)
+#if defined( TOMAS )
      &                           *scaleanthso2
+#endif
                   SO4bf(I,J)   = 0d0
                ENDIF
 
@@ -6166,6 +6202,8 @@ c      print *,BINMASS(24,11,2,:)
       REAL*8,  INTENT(INOUT) :: TC2(IIPAR,JJPAR,LLPAR,IBINS*ICOMP)
 !
 ! !REMARKS:
+!  NOTE: This subroutine is ignored unless you compile for TOMAS microphysics.
+!                                                                             .
 !  Variable comments
 !  ============================================================================
 !  NdistInit(IBINS)    : Initial size dist of emission
@@ -7669,7 +7707,7 @@ c      print *,BINMASS(24,11,2,:)
       USE LOGICAL_MOD,          ONLY : LHIST
 !eml]
 #if   defined( TOMAS )
-      USE TRACERID_MOD,         ONLY : IDTNK1           !(win, 1/25/10)
+      USE TRACERID_MOD,         ONLY : IDTNK1    ! For TOMAS microphysics
 #endif
 
       USE CMN_SIZE_MOD               ! Size parameters
@@ -7708,6 +7746,7 @@ c      print *,BINMASS(24,11,2,:)
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
+!  30 May 2013 - S. Farina   - Merge in TOMAS updates
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7812,11 +7851,15 @@ c      print *,BINMASS(24,11,2,:)
 
            
 #if   defined( TOMAS )
-                  !----------------------------------------------
-                  ! when TOMAS aerosol is in use, switch to use 
-                  ! 1% SO4 fraction (win, 1/25/10)
-                  Fe = 0.01d0 
+               !--------------------------------------------------------
+               ! For TOMAS microphysics: use 1% SO4 fraction
+               !--------------------------------------------------------
+               Fe = 0.01d0 
 #else
+               !--------------------------------------------------------
+               ! For std GEOS-Chem: preserve existing code
+               !--------------------------------------------------------
+
                ! Compute SO4/SOx fraction for EUROPE
                IF ( ( X >= -12.5 .and. X <= 60.0 )  .and.
      &              ( Y >=  36.0 .and. Y <= 78.0 ) ) THEN
@@ -8167,15 +8210,9 @@ c      print *,BINMASS(24,11,2,:)
 
          ! Regrid from 1x1 and cast to REAL*8
          INGRID = ARRAY1(:,:,1)
-#if   defined( TOMAS )
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
      &                       INGRID,     SSTEMP,  IS_MASS=0,
      &                       netCDF=.TRUE.                   )
-#else
-         CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                       INGRID,     SSTEMP,  IS_MASS=1,
-     &                       netCDF=.TRUE.                   )
-#endif
 
       ELSE
 
@@ -8281,6 +8318,9 @@ c      print *,BINMASS(24,11,2,:)
 !  06 Apr 2012 - M. Payer    - Changed regrid algorithm to map_a2a (M. Cooper)
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Bug fix for regridding of historical emissions.
+!                              Changed to PERAREA=1 since units are kg/yr.
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8402,7 +8442,7 @@ c      print *,BINMASS(24,11,2,:)
 
          ! Regrid to current model resolution [kg/yr]
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-     &                       INGRID,     OUTGRID, IS_MASS=0,
+     &                       INGRID,     OUTGRID, IS_MASS=1,
      &                       netCDF=.TRUE.                   )
 
          ! Free pointers
@@ -9628,6 +9668,7 @@ c      print *,BINMASS(24,11,2,:)
 !        emissions inventory. (jaf, bmy, 10/15/09)
 !  (11) Now alllocate PSO4_SO2AQ (win, 1/25/10)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  30 May 2013 - S. Farina   - Allocate PSO4_SO2AQ for TOMAS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -9742,7 +9783,8 @@ c      print *,BINMASS(24,11,2,:)
 #endif
 
 #if   defined( TOMAS )
-      ALLOCATE( PSO4_SO2AQ( IIPAR, JJPAR, LLTROP ), STAT=AS ) !(win, 1/25/10)
+      ! Allocate for TOMAS microphysics
+      ALLOCATE( PSO4_SO2AQ( IIPAR, JJPAR, LLTROP ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSO4_SO2AQ' )
       PSO4_SO2AQ = 0d0
 #endif
@@ -9869,6 +9911,7 @@ c      print *,BINMASS(24,11,2,:)
 !        inventory (jaf, bmy, 10/15/09)
 !  (8 ) Deallocate PSO4_SO2AQ (win, 1/25/10)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  30 May 2013 - S. Farina   - Deallocate PSO4_SO2AQ for TOMAS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -9901,7 +9944,7 @@ c      print *,BINMASS(24,11,2,:)
       IF ( ALLOCATED( PSO2_DMS   ) ) DEALLOCATE( PSO2_DMS   )
       IF ( ALLOCATED( PSO4_SO2   ) ) DEALLOCATE( PSO4_SO2   )
 #if   defined( TOMAS )
-      IF ( ALLOCATED( PSO4_SO2AQ ) ) DEALLOCATE( PSO4_SO2AQ ) !(win, 1/25/10)
+      IF ( ALLOCATED( PSO4_SO2AQ ) ) DEALLOCATE( PSO4_SO2AQ ) 
 #endif
       IF ( ALLOCATED( PSO4_ss    ) ) DEALLOCATE( PSO4_ss    )
       IF ( ALLOCATED( SOx_SCALE  ) ) DEALLOCATE( SOx_SCALE  )

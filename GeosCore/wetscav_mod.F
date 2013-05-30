@@ -911,7 +911,6 @@
       ! Initialize
       DUM = 1.0
 
-
       !-------------------------------
       ! 210Pb and 7Be (aerosols)
       !-------------------------------
@@ -2592,7 +2591,6 @@
 ! !INTERFACE:
 !
       SUBROUTINE F_AEROSOL( KC, N, F, State_Met ) 
-
 !
 ! !USES:
 !
@@ -2610,7 +2608,6 @@
       !Add N to idendify tracers (qq,10/11/2011)
       INTEGER,        INTENT(IN)  :: N
 
-!      REAL*8, INTENT(IN)          :: Vud(IIPAR,JJPAR)
       ! Meteorology State object
       TYPE(MetState), INTENT(IN)  :: State_Met
 !
@@ -2624,6 +2621,7 @@
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  29 May 2013 - R. Yantosca - Segregate TOMAS-specific code with #ifdefs
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2632,8 +2630,10 @@
 !
       INTEGER             :: I, J, L
       REAL*8              :: TMP
+#if defined( TOMAS )
       REAL*8              :: TINY1 = 1.0d-20
-     
+#endif
+
       !=================================================================
       ! F_AEROSOL begins here!
       !
@@ -2654,11 +2654,22 @@
      &                   State_Met%BXHEIGHT(I,J,L) ) 
        
          ! (Eq. 2, Jacob et al, 2000, with K = Kc)
-         IF (Vud(I,J) < TINY1) THEN
+#if defined( TOMAS )
+         !-------------------------------------
+         ! TOMAS: set F=1 if Vud is too small
+         !-------------------------------------
+         IF ( Vud(I,J) < TINY1 ) THEN
             F(I,J,L) = 1d0
          ELSE
             F(I,J,L) = 1d0 - EXP( -KC * TMP / Vud(I,J) )
          ENDIF
+#else
+         !-------------------------------------
+         ! STD G-C: Preserve existing code
+         !-------------------------------------
+         F(I,J,L) = 1d0 - EXP( -KC * TMP / Vud(I,J) )
+#endif
+
          ! snow vs rain (qq, 10/11/2011)
          IF ( State_Met%T(I,J,L) >= 258d0 .and. N == IDTBCPO) THEN
             F(I,J,L) = 0d0
@@ -5201,10 +5212,7 @@
 !
       LOGICAL, SAVE      :: FIRST = .TRUE.
       LOGICAL            :: IS_Hg
-      LOGICAL            :: KIN !sfarina - formerly AER
-                                !KIN true for kinetic process, vs 
-                                !AER true if tracer is an aerosol
-                                !I think this is effectively the same variable
+      LOGICAL            :: KIN
                          
       INTEGER            :: I, IDX, J, L, N, NN
                          
