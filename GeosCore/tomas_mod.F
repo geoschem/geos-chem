@@ -1649,7 +1649,7 @@ C     jrp            print*,'CS*gasConc_lo',CS*gasConc_lo
 C     jrp            print*,'mnuc',mnuc
             res = H2SO4rate - CS*gasConc_lo - massnuc
             if (res.lt.0.d0) then ! any nucleation too high
-               print*,'nucleation cuttoff'
+!               if (.not. spinup(14.0)) print*,'nucleation cuttoff'
                gasConc = gasConc_lo*1.000001 ! have nucleation occur and fix mass balance after
                return
             endif
@@ -3168,11 +3168,13 @@ Cjrp      endif
          tot_i=tot_i+Mki(k,srtnh4)
          tot_f=tot_f+Mkf(k,srtnh4)
       enddo
-      if (abs(tot_f-tot_i)/tot_i.gt.1.0D-8)then
-         if ( tot_i > 1.0d-20 ) then
-            print*,'No N conservation in ezcond.f'
-            print*,'initial',tot_i
-            print*,'final  ',tot_f
+      if (.not. spinup(14.0)) then
+         if (abs(tot_f-tot_i)/tot_i.gt.1.0D-8)then
+            if ( tot_i > 1.0d-20 ) then
+               print*,'No N conservation in ezcond.f'
+               print*,'initial',tot_i
+               print*,'final  ',tot_f
+            endif
          endif
       endif
 
@@ -3312,7 +3314,7 @@ Cjrp      endif
 
       ! If condensing mass is too large for the alloted portion of NK
       ! then lower KMIN 
-      IF ( ( Mact + MOXID )/ Nact > XK(IBINS-1) / thresh ) THEN
+      IF ( ( Mact + MOXID )/ Nact > XK(IBINS+1) / thresh ) THEN
       IF ( KMIN > K_MIN ) THEN 
          KMIN = KMIN - 1
          GOTO 10
@@ -3516,7 +3518,7 @@ Cjrp      endif
       pdbg = .false.
 
 #if   defined ( TOMAS12 ) || defined ( TOMAS15 )
-      thresh = 4.0
+      thresh = 1.0
 #else
       thresh = 1.0
 #endif
@@ -3590,7 +3592,7 @@ Cjrp      endif
          ntot = ntot + Nk(k)
       enddo
 
-      IF ( ( Mtot + MSOA ) / Ntot > XK(IBINS-1) / thresh ) THEN
+      IF ( ( Mtot + MSOA ) / Ntot > XK(IBINS+1) / thresh ) THEN
          IF ( .not. SPINUP(14.0) ) THEN
             WRITE(*,*) 'Location: ',I,J,L
             WRITE(*,*) 'Mtot_&_Ntot: ',Mtot, Ntot
@@ -4255,23 +4257,26 @@ C Update Nk and Mk according to rates of change and time step
          endif
       enddo  !loop bin
 
-c      if (dts .lt. 20.) write(*,*) 'dts<20. in multicoag'
+       if (pdbg .and. dts .lt. 1. ) then
+         write(*,*), dts, 'dts < 1. in multicoag'
+       endif
+
        if (dts .eq. 0.) then
-          write(*,*) 'time step is 0'
+          write(*,*) 'time step is 0 in multicoag - inf/nan/tiny error'
 C          pause
-C         do k = 1,ibins
-C            print *, 'dNdt(k)', dNdt(k)
-C            print *, 'dMdt(k,j)'
-C            do j = 1,icomp - idiag
-C               print *, dMdt(k,j)
-C            end do
-C         end do
+         do k = 1,ibins
+            print *, 'dNdt(k)', dNdt(k)
+            print *, 'dMdt(k,j)'
+            do j = 1,icomp - idiag
+               print *, dMdt(k,j)
+            end do
+         end do
       
           call debugprint(nk, mk, 0,0,0,
      &         'MULTICOAG before terminate: dts=0')
           PDBG = .true.
-C          return
-          stop
+          return
+C          stop
 C       go to 20
        endif
 
@@ -6733,9 +6738,9 @@ C     &      call debugprint( NK, MK, i,j,l,LOCATION)
       REAL*8              :: MSHIFT !mass to shift to new bin
       REAL*8              :: FJ !fraction of mass that is component j
       REAL*8              :: save1,save2,save3,save4,save5
-!      REAL*8,   PARAMETER :: EPS = 1.D-20 !small number for Nk
 !      REAL*8,   PARAMETER :: EPS2= 1.D-32 !small number for Mk 
-      REAL*8,   PARAMETER :: EPS = 1.D-2 !small number for Nk 
+!      REAL*8,   PARAMETER :: EPS = 1.D-2 !small number for Nk 
+      REAL*8,   PARAMETER :: EPS = 1.D-20 !small number for Nk
       REAL*8,   PARAMETER :: EPS2= 1.D-28 !small number for Mk
       REAL*8,   PARAMETER :: TINY= 1.D-36 !very small number
 
