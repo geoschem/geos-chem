@@ -25,8 +25,9 @@
 !
       PUBLIC :: AEROSOL_CONC
       PUBLIC :: AEROSOL_RURALBOX
-      PUBLIC :: RDAER
       PUBLIC :: CLEANUP_AEROSOL
+      PUBLIC :: INIT_AEROSOL
+      PUBLIC :: RDAER
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -52,6 +53,7 @@
 !  (10) Modify AOD output to wavelength specified in jv_spec_aod.dat 
 !       (clh, 05/07/10)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  05 Mar 2013 - R. Yantosca - Now make INIT_AEROSOL a public routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -104,15 +106,16 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE AEROSOL_RURALBOX( N_TROP, am_I_Root, State_Met )
+      SUBROUTINE AEROSOL_RURALBOX( N_TROP,    am_I_Root, 
+     &                             Input_Opt, State_Met )
 !
 ! !USES:
 !
       USE COMODE_MOD,         ONLY : ABSHUM, AIRDENS, IXSAVE   
       USE COMODE_MOD,         ONLY : IYSAVE, IZSAVE,  JLOP       
       USE DAO_MOD,            ONLY : MAKE_AVGW
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE LOGICAL_MOD,        ONLY : LVARTROP
       USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_TROP
 
       USE CMN_SIZE_MOD             ! Size parameters
@@ -124,6 +127,7 @@
 !
 ! !INPUT PARAMETERS: 
 !
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt ! Input Options object
       TYPE(MetState), INTENT(INOUT) :: State_Met ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
@@ -173,7 +177,7 @@
       !=================================================================
 
       ! bdf-phs: must do it everytime with a variable tropopause
-      IF ( FIRST .or. LVARTROP ) THEN
+      IF ( FIRST .or. Input_Opt%LVARTROP ) THEN
 
          ! Initialize 1-D index
          JLOOP  = 0
@@ -309,7 +313,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE AEROSOL_CONC( am_I_Root, Input_Opt, State_Met, RC )
+      SUBROUTINE AEROSOL_CONC( am_I_Root, Input_Opt, 
+     &                         State_Met, State_Chm, RC )
 !
 ! !USES:
 !
@@ -317,7 +322,7 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACER_MOD,         ONLY : STT
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TRACERID_MOD,       ONLY : IDTBCPI, IDTBCPO, IDTDST1, IDTDST2
       USE TRACERID_MOD,       ONLY : IDTDST3, IDTDST4, IDTNH4,  IDTNIT  
       USE TRACERID_MOD,       ONLY : IDTOCPO, IDTOCPI, IDTSALA, IDTSALC 
@@ -327,13 +332,17 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 !
 ! !REMARKS:
 !  This code was originally included in "chemdr.f", but the same computation 
@@ -351,6 +360,9 @@
 !  13 Nov 2012 - R. Yantosca - Now pass am_I_Root, Input_Opt, RC as arguments
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  05 Mar 2013 - R. Yantosca - Remove call to INIT_AEROSOL, this is now done
+!                              in the initialization stage
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -383,9 +395,18 @@
       LOGICAL            :: LSSALT
       LOGICAL            :: LSULF
 
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! AEROSOL_CONC begins here!
       !=================================================================
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       ! Assume success
       RC     = GIGC_SUCCESS
@@ -396,12 +417,6 @@
       LSOA   = Input_Opt%LSOA
       LSSALT = Input_Opt%LSSALT
       LSULF  = Input_Opt%LSULF
-
-      ! First-time initialization
-      IF ( FIRST ) THEN
-         CALL INIT_AEROSOL()
-         FIRST = .FALSE.
-      ENDIF
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -569,6 +584,9 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+      ! Free pointer
+      NULLIFY( STT )
 
       END SUBROUTINE AEROSOL_CONC
 !EOC
@@ -1507,21 +1525,32 @@
 ! !IROUTINE: init_aerosol
 !
 ! !DESCRIPTION: Subroutine INIT\_AEROSOL allocates and zeroes module arrays
-!  (bmy, 7/20/04)
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_AEROSOL
+      SUBROUTINE INIT_AEROSOL( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE ERROR_MOD, ONLY : ALLOC_ERR
-
       USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY:
+!  20 Jul 2004 - R. Yantosca - Initial version
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  05 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1534,6 +1563,10 @@
       ! INIT_AEROSOL begins here!
       !=================================================================
 
+      ! Assume success
+      RC = GIGC_SUCCESS
+
+      ! Allocate arrays
       ALLOCATE( BCPI( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCPI' )
       BCPI = 0d0
@@ -1566,7 +1599,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SOILDUST' )
       SOILDUST = 0d0
 
-!#if defined( DEVEL )
       ! Mass of hydrophobic aerosol from Mian Chin
       ALLOCATE( DAERSL(IIPAR,JJPAR,LLPAR,2), STAT=AS)       
       IF ( AS /= 0) CALL ALLOC_ERR( 'DAERSL' )
@@ -1576,7 +1608,6 @@
       ALLOCATE( WAERSL(IIPAR,JJPAR,LLPAR,NAER), STAT=AS)       
       IF ( AS /= 0) CALL ALLOC_ERR( 'WAERSL' )
       DAERSL = 0d0
-!#endif
 
       ! Return to calling program
 

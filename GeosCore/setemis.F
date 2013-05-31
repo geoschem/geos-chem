@@ -17,7 +17,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SETEMIS( EMISRR, EMISRRN, am_I_Root, State_Met )
+      SUBROUTINE SETEMIS( EMISRR,    EMISRRN,   am_I_Root,
+     &                    Input_Opt, State_Met, RC         )
 !
 ! !USES:
 !
@@ -29,11 +30,11 @@
       USE COMODE_MOD,         ONLY : IXSAVE,    IYSAVE,  IZSAVE
       USE DIAG_MOD,           ONLY : AD12
       USE EMISSIONS_MOD,      ONLY : NOx_SCALING
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE LIGHTNING_NOX_MOD,  ONLY : EMIS_LI_NOx
-      USE LOGICAL_MOD,        ONLY : LNLPBL ! (Lin, 03/31/09)
-      USE LOGICAL_MOD,        ONLY : LPRT
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L
       USE PRESSURE_MOD,       ONLY : GET_PEDGE
       USE TRACERID_MOD,       ONLY : CTRMB,     IDEMIS,  IDENO
@@ -51,16 +52,24 @@
 ! !INPUT PARAMETERS:
 !
       ! CO, hydrocarbon emission   [molec tracer/box/s]
-      REAL*8,         INTENT(IN) :: EMISRR(IIPAR,JJPAR,NEMPARA+NEMPARB)
+      REAL*8,         INTENT(IN)  :: EMISRR(IIPAR,JJPAR,NEMPARA+NEMPARB)
 
       ! Multi-level NOx emissions  [molec NOx/box/s]
-      REAL*8,         INTENT(IN) :: EMISRRN(IIPAR,JJPAR,NOXEXTENT)  
+      REAL*8,         INTENT(IN)  :: EMISRRN(IIPAR,JJPAR,NOXEXTENT)  
 
       ! Is this the root CPU?
-      LOGICAL,        INTENT(IN) :: am_I_Root
+      LOGICAL,        INTENT(IN)  :: am_I_Root
+
+      ! Input Options object
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt
 
       ! Meteorology State object
-      TYPE(MetState), INTENT(IN) :: State_Met
+      TYPE(MetState), INTENT(IN)  :: State_Met
+!
+! !OUTPUT PARAMETERS:
+!
+      ! Success or failure?
+      INTEGER,        INTENT(OUT) :: RC 
 !
 ! !REMARKS:
 !  Developers: lwh, jyl, gmg, djj, bdf, bmy, 6/8/98, 6/11/08
@@ -145,6 +154,7 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  02 Aug 2012 - R. Yantosca - Add error trap for JLOOP=0 under DEVEL tag
+!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LPRT and Input_Opt%LNLPBL
 !  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
 !                              of removal of NOx-Ox partitioning
 !EOP
@@ -154,6 +164,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
+      LOGICAL :: LNLPBL,    LPRT
       LOGICAL :: IS_LI_NOx, IS_AC_NOx
       INTEGER :: I, J,  JLOOP, JLOOP1, LTROP
       INTEGER :: L, LL, N, NN,  NBB, NBF, TOP, TOPMIX
@@ -168,6 +179,9 @@
       ! SETEMIS begins here!
       !=================================================================
 
+      ! Assume success
+      RC = GIGC_SUCCESS
+      
       ! some ajdustments for non-local PBL (Lin, 03/31/09)
       ! NOTE: If NCS=0 and we are NOT doing a full-chemistry run, then
       ! setting REMIS=0 can lead to a seg-fault error.  Therefore, you should
@@ -181,6 +195,10 @@
       ! Test if the EMIS_LI_NOx and EMIS_AC_NOx arrays are allocated
       IS_LI_NOx = ALLOCATED( EMIS_LI_NOx )
       IS_AC_NOX = ALLOCATED( EMIS_AC_NOX )
+      
+      ! Now use logical fields from Input_Opt
+      LNLPBL    = Input_Opt%LNLPBL
+      LPRT      = Input_Opt%LPRT
 
       IF ( LPRT .and. am_I_Root ) THEN
          WRITE(6,*) 'SCALE NOx emissions by', NOx_SCALING

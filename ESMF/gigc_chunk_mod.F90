@@ -28,6 +28,10 @@ MODULE GIGC_Chunk_Mod
   PUBLIC :: GIGC_Chunk_Run
   PUBLIC :: GIGC_Chunk_Final
 !
+! !PRIVATE MEMBER FUNCTIONS:
+!
+  PRIVATE :: GIGC_Cap_Tropopause_Prs
+!
 ! !REMARKS:
 !  The routines in this module execute only when GEOS-Chem is connected
 !  to the GEOS-5 GCM via the ESMF/MAPL interface.
@@ -39,6 +43,7 @@ MODULE GIGC_Chunk_Mod
 !  16 Oct 2012 - R. Yantosca - Renamed GC_STATE argument to State_Chm
 !  22 Oct 2012 - R. Yantosca - Renamed to gigc_chunk_mod.F90
 !  01 Nov 2012 - R. Yantosca - Now pass Input Options object to routines
+!  15 Mar 2013 - R. Yantosca - Add routine GIGC_Cap_Tropopause_Prs
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -215,7 +220,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE COMODE_MOD,         ONLY : CSPEC_FULL
+!    USE COMODE_MOD,         ONLY : CSPEC_FULL
     USE COMODE_LOOP_MOD
     USE Dao_Mod,            ONLY : Convert_Units
     USE Chemistry_Mod,      ONLY : Do_Chemistry
@@ -288,6 +293,9 @@ CONTAINS
 !                              GIGC_DO_DRYDEP, this is moved to obsolete dir.
 !  11 Dec 2012 - R. Yantosca - Now call routine ACCEPT_EXTERNAL_PEDGE to pass
 !                              the pressure edges from ESMF to GEOS-Chem
+!  15 Mar 2013 - R. Yantosca - Now call GIGC_CAP_TROPOPAUSE_PRS to cap the
+!                              State_Met%TROPP field to 200 hPa polewards
+!                              of 60S and 60N.  We do this in the std G-C.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -300,9 +308,9 @@ CONTAINS
 
     ! Exit if we are doing neither drydep nor chemistry
     IF ( ( .not. Input_Opt%LDRYD ) .and. ( .not. Input_Opt%LCHEM ) ) THEN
+       print*, '### LDRYD=F and LCHEM=F, so skipping!'
        RETURN
     ENDIF
-
 
     ! Pass time values from obtained fom the ESMF environment to GEOS-Chem
     CALL Accept_External_Date_Time( am_I_Root      = am_I_Root,  &
@@ -326,10 +334,24 @@ CONTAINS
                                     State_Met      = State_Met,  &
                                     RC             = RC         )
 
-    ! CSPEC_FULL is the array of species [molec/cm3] in the chemical mechanism.
-    ! Initialize this with the value from obtained from the the ESMF internal 
-    ! state, which has been saved into the State_Chm%SPECIES field.
-    CSPEC_FULL = State_Chm%Species   
+    ! Cap the polar tropopause pressures at 200 hPa, in order to avoid
+    ! tropospheric chemistry from happening too high up (cf. J. Logan)
+    CALL GIGC_Cap_Tropopause_Prs  ( am_I_Root      = am_I_Root,  &
+                                    IM             = IM,         &
+                                    JM             = JM,         &
+                                    Input_Opt      = Input_Opt,  &
+                                    State_Met      = State_Met,  &
+                                    RC             = RC         )
+
+    !-------------------------------------------------------------------------
+    ! Prior to 3/25/13
+    ! NOTE: CSPEC_FULL Is now removed from comode_loop_mod.F (bmy, 3/25/13)
+    !! CSPEC_FULL is the array of species [molec/cm3] in the chemical mechanism.
+    !! Initialize this with the value from obtained from the the ESMF internal 
+    !! state, which has been saved into the State_Chm%SPECIES field.
+    !CSPEC_FULL = State_Chm%Species   
+    !!-------------------------------------------------------------------------
+
 
     ! Zero Rate arrays  
     RRATE      = 0.E0
@@ -387,10 +409,14 @@ CONTAINS
     ! Cleanup after dry deposition & chemistry
     !=======================================================================
 
+    !-------------------------------------------------------------------------
+    ! Prior to 3/25/13
+    ! NOTE: CSPEC_FULL Is now removed from comode_loop_mod.F (bmy, 3/25/13)
     ! Set the modified chemical species concentrations [molec/cm3] back 
     ! into State_Chm%SPECIES.  They will be passed back into the ESMF
     ! internal state to be preserved for the next chemistry timestep.
-    State_Chm%Species = CSPEC_FULL
+    !State_Chm%Species = CSPEC_FULL
+    !-------------------------------------------------------------------------
 
   END SUBROUTINE GIGC_Chunk_Run
 !EOC
@@ -454,6 +480,96 @@ CONTAINS
                         RC        = RC         )   ! Success or failure?
 
   END SUBROUTINE GIGC_Chunk_Final
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: gigc_cap_tropopause_prs
+!
+! !DESCRIPTION: Subroutine GIGC\_CAP\_TROPOPAUSE\_PRS caps the tropopause
+!  pressure in polar latitudes to 200 hPa, so that we don't end up doing
+!  tropopsheric chemistry too high over the poles.  This is done in the
+!  standalone GEOS-Chem, and we also need to apply this when running
+!  GEOS-Chem within the GEOS-5 GCM.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE GIGC_Cap_Tropopause_Prs( am_I_Root, IM,        JM,  &
+                                      Input_Opt, State_Met, RC  )
+!
+! !USES:
+!
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE Grid_Mod,           ONLY : Get_XEdge
+    USE Grid_Mod,           ONLY : Get_YEdge
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root     ! Are we on the root CPU?
+    INTEGER,        INTENT(IN)    :: IM            ! # of lons on this CPU
+    INTEGER,        INTENT(IN)    :: JM            ! # of lats on this CPU
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt     ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(MetState), INTENT(INOUT) :: State_Met     ! Meteorology State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC            ! Success or failure
+!
+! !REMARKS:
+!  Jennifer Logan (see correspondence below) suggested that we should cap the 
+!  variable tropopause at 200hPa in near-polar regions (90-60S and 60-90N), 
+!  to avoid the problem with anomalously high tropopause heights at high 
+!  latitudes. This fix was standardized in GEOS-Chem v7-04-13.
+!                                                                             .
+!  Jennifer Logan wrote:
+!     I think we should restrict the tropopause at latitudes > 60 deg. to 
+!     pressures greater than 200 mb (about 11 km). From Fig. 3 in Seidel and 
+!     Randel, there are tropopause (TP) heights as high as 13.5 km in the 
+!     Antarctic (median height is ~9.8 km, 250 mb), but I don't think we want 
+!     to be doing trop. chem there. The median TP pressure at ~80 N is ~300 mb, 
+!     compared to ~250 mb at 70-85 S. The extratropical TP heights are higher
+!     (lower pressure) in the SH than in the NH according to Fig. 3. 
+!     This approach is also very easy to explain in a paper. 
+! 
+! !REVISION HISTORY: 
+!  14 Mar 2013 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER :: I,       J
+    REAL*8  :: YSOUTH,  YNORTH
+
+    ! Assume success
+    RC = GIGC_SUCCESS
+
+    ! Loop over grid boxes on this PET
+    DO J = 1, JM
+    DO I = 1, IM
+
+       ! North & south edges of box
+       YSOUTH = GET_YEDGE( I, J,   1 )
+       YNORTH = GET_YEDGE( I, J+1, 1 )
+
+       ! Cap tropopause height at 200 hPa polewards of 60N and 60S
+       IF ( YSOUTH >= 60d0 .or. YNORTH <= -60d0 ) THEN
+          State_Met%TROPP(I,J) = MAX( State_Met%TROPP(I,J), 200d0 )
+       ENDIF
+
+    ENDDO
+    ENDDO
+
+  END SUBROUTINE GIGC_Cap_Tropopause_Prs
 !EOC
 END MODULE GIGC_Chunk_Mod
 #endif

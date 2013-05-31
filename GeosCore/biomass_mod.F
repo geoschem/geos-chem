@@ -147,11 +147,9 @@
 
 !------------------------------------------------------------------------------
 
-#if defined( DEVEL )
-      SUBROUTINE COMPUTE_BIOMASS_EMISSIONS( YEAR, MONTH, BIOEMISSIONS )
-#else
-      SUBROUTINE COMPUTE_BIOMASS_EMISSIONS( YEAR, MONTH )
-#endif
+      SUBROUTINE COMPUTE_BIOMASS_EMISSIONS( am_I_Root, YEAR,      
+     &                                      MONTH,     Input_Opt, 
+     &                                      State_Chm, RC         )
 !
 !******************************************************************************
 !  Subroutine COMPUTE_BIOMASS_EMISSIONS is a wrapper which allows us to select
@@ -182,54 +180,87 @@
 !  27 Jul 2011 - R. Yantosca - Make sure that IDBCO > 0 before using it
 !  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
 !                              of removal of NOx-Ox partitioning
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIAG_MOD,          ONLY : AD28, AD29, AD32_bb
-      USE GC_BIOMASS_MOD,    ONLY : GC_COMPUTE_BIOMASS
-      USE GC_BIOMASS_MOD,    ONLY : GC_READ_BIOMASS_BCOC
-      USE GC_BIOMASS_MOD,    ONLY : GC_READ_BIOMASS_CO2
-      USE GC_BIOMASS_MOD,    ONLY : GC_READ_BIOMASS_NH3
-      USE GC_BIOMASS_MOD,    ONLY : GC_READ_BIOMASS_SO2
-      USE GFED2_BIOMASS_MOD, ONLY : GFED2_COMPUTE_BIOMASS
-      USE GFED3_BIOMASS_MOD, ONLY : GFED3_COMPUTE_BIOMASS
-      USE LOGICAL_MOD,       ONLY : LBIOMASS, LGFED2BB, LGFED3BB
-      USE LOGICAL_MOD,       ONLY : L8DAYBB,  LSYNOPBB, L3HRBB
-      USE LOGICAL_MOD,       ONLY : LDAYBB3,  L3HRBB3
-      USE TIME_MOD,          ONLY : ITS_A_NEW_MONTH
-      USE TRACER_MOD,        ONLY : ITS_A_CO2_SIM
-      USE TRACER_MOD,        ONLY : ITS_A_H2HD_SIM
-      USE TRACER_MOD,        ONLY : ITS_A_FULLCHEM_SIM
-      USE TRACER_MOD,        ONLY : ITS_A_TAGCO_SIM
-      USE TRACERID_MOD,      ONLY : IDTBCPO, IDTNH3, IDTOCPO, IDTSO2
-      !FP_ISOP
-      ! FP: IDBxxxs will need to used here (hotp 7/30/09)
-      USE TRACERID_MOD,      ONLY : IDBBC, IDBNH3, IDBOC, IDBSO2
-      USE TRACERID_MOD,      ONLY : IDBCO, IDBNO
-      USE TRACERID_MOD,      ONLY : IDBCO2
+      USE DIAG_MOD,           ONLY : AD28, AD29, AD32_bb
+      USE GC_BIOMASS_MOD,     ONLY : GC_COMPUTE_BIOMASS
+      USE GC_BIOMASS_MOD,     ONLY : GC_READ_BIOMASS_BCOC
+      USE GC_BIOMASS_MOD,     ONLY : GC_READ_BIOMASS_CO2
+      USE GC_BIOMASS_MOD,     ONLY : GC_READ_BIOMASS_NH3
+      USE GC_BIOMASS_MOD,     ONLY : GC_READ_BIOMASS_SO2
+      USE GFED2_BIOMASS_MOD,  ONLY : GFED2_COMPUTE_BIOMASS
+      USE GFED3_BIOMASS_MOD,  ONLY : GFED3_COMPUTE_BIOMASS
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
+      USE TRACERID_MOD,       ONLY : IDTBCPO, IDTNH3, IDTOCPO, IDTSO2
+      USE TRACERID_MOD,       ONLY : IDBBC, IDBNH3, IDBOC, IDBSO2
+      USE TRACERID_MOD,       ONLY : IDBCO, IDBNO
+      USE TRACERID_MOD,       ONLY : IDBCO2
 
-
-      USE CMN_SIZE_MOD          ! Size parameters
-      USE CMN_DIAG_MOD          ! Diagnostic flags
-
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! Diagnostic flags
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      INTEGER,        INTENT(IN)    :: YEAR
+      INTEGER,        INTENT(IN)    :: MONTH
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !LOCAL VARIABLES:
+!
       ! Arguments
-      INTEGER, INTENT(IN)        :: YEAR, MONTH
-#if defined( DEVEL )
-!      REAL*8,  INTENT(INOUT)     :: BIOEMISSIONS(:,:,:) ! MSL
-      REAL*8,  INTENT(INOUT)     :: BIOEMISSIONS(IIPAR,JJPAR,NBIOMAX) ! MSL
-#endif
+
       ! Local variables
-      LOGICAL, SAVE              :: FIRST = .TRUE.
-      LOGICAL                    :: DO_ND28, DO_ND29, DO_ND32
-      LOGICAL, SAVE              :: USE_GFED
-      LOGICAL, SAVE              :: USE_GFED2
-      LOGICAL, SAVE              :: USE_GFED3
-      INTEGER                    :: I,       J,       N,      N_BIOB
-      REAL*8                     :: BXHT_CM, DTSRCE
+      LOGICAL, SAVE       :: FIRST = .TRUE.
+      LOGICAL             :: DO_ND28, DO_ND29, DO_ND32
+      LOGICAL, SAVE       :: USE_GFED
+      LOGICAL, SAVE       :: USE_GFED2
+      LOGICAL, SAVE       :: USE_GFED3
+      INTEGER             :: I,       J,       N,      N_BIOB
+      REAL*8              :: BXHT_CM, DTSRCE
       
+      ! For fields from Input_Opt
+      LOGICAL             :: ITS_A_CO2_SIM
+      LOGICAL             :: ITS_A_H2HD_SIM
+      LOGICAL             :: ITS_A_FULLCHEM_SIM
+      LOGICAL             :: ITS_A_TAGCO_SIM
+      LOGICAL             :: LBIOMASS, LGFED2BB, LGFED3BB
+      LOGICAL             :: L8DAYBB,  LSYNOPBB, L3HRBB
+      LOGICAL             :: LDAYBB3,  L3HRBB3
+
       !=================================================================
       ! COMPUTE_BIOMASS_EMISSIONS begins here!
       !=================================================================
+      
+      ! Assume success
+      RC                  =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      ITS_A_CO2_SIM       = Input_Opt%ITS_A_CO2_SIM
+      ITS_A_H2HD_SIM      = Input_Opt%ITS_A_H2HD_SIM
+      ITS_A_FULLCHEM_SIM  = Input_Opt%ITS_A_FULLCHEM_SIM
+      ITS_A_TAGCO_SIM     = Input_Opt%ITS_A_TAGCO_SIM
+      LBIOMASS            = Input_Opt%LBIOMASS
+      LGFED2BB            = Input_Opt%LGFED2BB
+      LGFED3BB            = Input_Opt%LGFED3BB
+      L8DAYBB             = Input_Opt%L8DAYBB
+      LSYNOPBB            = Input_Opt%LSYNOPBB
+      L3HRBB              = Input_Opt%L3HRBB
+      LDAYBB3             = Input_Opt%LDAYBB3
+      L3HRBB3             = Input_Opt%L3HRBB3  
 
       ! If there are biomass emissions ...
       IF ( LBIOMASS ) THEN
@@ -265,9 +296,9 @@
             ! Now make sure IDBCO is defined before using it.  This will
             ! avoid an out-of-bounds error. (bmy, 7/29/11)
             IF ( IDBCO > 0 ) THEN
-               IF ( ITS_A_FULLCHEM_SIM() ) THEN
+               IF ( ITS_A_FULLCHEM_SIM ) THEN
                   BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.05d0
-               ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
+               ELSE IF ( ITS_A_TAGCO_SIM ) THEN
                   BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.11d0
                ENDIF
             ENDIF
@@ -285,9 +316,9 @@
             ! explicitly carried in the chemistry mechanisms. This used
             ! to be done in gc_biomass_mod.f but then is not used for
             ! GFED3, FLAMBE, etc. (jaf, mak, 2/6/09)
-            IF ( ITS_A_FULLCHEM_SIM() ) THEN
+            IF ( ITS_A_FULLCHEM_SIM ) THEN
                BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.05d0
-            ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
+            ELSE IF ( ITS_A_TAGCO_SIM ) THEN
                BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.11d0
             ENDIF
 
@@ -300,7 +331,7 @@
             BIOMASS = 0d0
 
             ! Test if it's a CO2 simulation
-            IF ( ITS_A_CO2_SIM() ) THEN
+            IF ( ITS_A_CO2_SIM ) THEN
 
                !------------------------------
                ! CO2 emissions (based on 
@@ -312,8 +343,8 @@
      &                                   BIOMASS(:,:,IDBCO2) )
 
 #if defined( DEVEL )
-               BIOEMISSIONS(:,:,IDBCO2) = BIOEMISSIONS(:,:,IDBCO2) +
-     &                                    BIOMASS(:,:,IDBCO2)
+               State_Chm%TRAC_BTEND(:,:,1,IDBCO2) = 
+     &         State_Chm%TRAC_BTEND(:,:,1,IDBCO2) + BIOMASS(:,:,IDBCO2)
 #endif
             ELSE
 
@@ -338,8 +369,8 @@
                ENDIF
 
 #if defined( DEVEL )
-               BIOEMISSIONS(:,:,IDBSO2) = BIOEMISSIONS(:,:,IDBSO2) +
-     &                                    BIOMASS(:,:,IDBSO2)
+               State_Chm%TRAC_BTEND(:,:,1,IDBSO2) =
+     &         State_Chm%TRAC_BTEND(:,:,1,IDBSO2) + BIOMASS(:,:,IDBSO2)
 #endif
 
                ! Get biomass NH3 [molec/cm2/s]
@@ -349,8 +380,8 @@
                ENDIF
 
 #if defined( DEVEL )
-               BIOEMISSIONS(:,:,IDBNH3) = BIOEMISSIONS(:,:,IDBNH3) +
-     &                                    BIOMASS(:,:,IDBNH3)
+               State_Chm%TRAC_BTEND(:,:,1,IDBNH3) = 
+     &         State_Chm%TRAC_BTEND(:,:,1,IDBNH3) +BIOMASS(:,:,IDBNH3)
 #endif
 
                ! Get biomass BC & OC [molec/cm2/s]
@@ -360,10 +391,10 @@
      &                                       BIOMASS(:,:,IDBOC) ) 
                ENDIF
 #if defined( DEVEL )
-               BIOEMISSIONS(:,:,IDBBC) = BIOEMISSIONS(:,:,IDBBC) +
-     &                                   BIOMASS(:,:,IDBBC)
-               BIOEMISSIONS(:,:,IDBOC) = BIOEMISSIONS(:,:,IDBOC) +
-     &                                   BIOMASS(:,:,IDBOC)
+               State_Chm%TRAC_BTEND(:,:,1,IDBBC) =  
+     &         State_Chm%TRAC_BTEND(:,:,1,IDBBC) + BIOMASS(:,:,IDBBC)
+               State_Chm%TRAC_BTEND(:,:,1,IDBOC) = 
+     &         State_Chm%TRAC_BTEND(:,:,1,IDBOC) + BIOMASS(:,:,IDBOC)
 #endif
             ENDIF
 
@@ -376,14 +407,14 @@
             ! Now make sure IDBCO is defined before using it.  This will
             ! avoid an out-of-bounds error. (bmy, 7/29/11)
             IF ( IDBCO > 0 ) THEN
-               IF ( ITS_A_FULLCHEM_SIM() ) THEN
+               IF ( ITS_A_FULLCHEM_SIM ) THEN
                   BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.05d0
-               ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
+               ELSE IF ( ITS_A_TAGCO_SIM ) THEN
                   BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.11d0
                ENDIF
 #if defined( DEVEL )
-               BIOEMISSIONS(:,:,IDBCO) = BIOEMISSIONS(:,:,IDBCO) +
-     &                                   BIOMASS(:,:,IDBCO)
+               State_Chm%TRAC_BTEND(:,:,1,IDBCO) = 
+     &         State_Chm%TRAC_BTEND(:,:,1,IDBCO) + BIOMASS(:,:,IDBCO)
 #endif
             ENDIF
          ENDIF
@@ -408,7 +439,7 @@
             ! ND29: CO biomass emissions [molec/cm2/s]
             IF ( DO_ND29 .and. N == IDBCO ) THEN 
 
-               IF ( ITS_A_H2HD_SIM() .and. (.not. USE_GFED ) ) THEN
+               IF ( ITS_A_H2HD_SIM .and. (.not. USE_GFED ) ) THEN
                   AD29(I,J,2) = AD29(I,J,2) + 
      &                          BIOMASS(I,J,IDBCO) * 1.11d0
                ELSE

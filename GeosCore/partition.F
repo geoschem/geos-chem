@@ -12,23 +12,23 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE PARTITION( NTRACER, STT, XNUMOL, am_I_Root ) 
+      SUBROUTINE PARTITION( NTRACER, XNUMOL, am_I_Root, State_Chm ) 
 !
 ! !USES:
 !
-      USE COMODE_MOD,   ONLY : CSPEC,     JLOP,       VOLUME
-      USE COMODE_MOD,   ONLY : JLOP_PREVIOUS
-      USE ERROR_MOD,    ONLY : ALLOC_ERR, ERROR_STOP, SAFE_DIV
-      USE TRACERID_MOD, ONLY : IDTRMB
-      USE TRACERID_MOD, ONLY : IDO3,      IDNO,       IDHNO2
-      USE TRACERID_MOD, ONLY : CTRMB,     NMEMBER
+      USE COMODE_MOD,         ONLY : CSPEC,     JLOP,       VOLUME
+      USE COMODE_MOD,         ONLY : JLOP_PREVIOUS
+      USE ERROR_MOD,          ONLY : ALLOC_ERR, ERROR_STOP, SAFE_DIV
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE TRACERID_MOD,       ONLY : IDTRMB
+      USE TRACERID_MOD,       ONLY : IDO3,      IDNO,       IDHNO2
+      USE TRACERID_MOD,       ONLY : CTRMB,     NMEMBER
 
 #     include "define.h"
       USE CMN_SIZE_MOD
       USE COMODE_LOOP_MOD
 
       IMPLICIT NONE
-
 !
 ! !INPUT PARAMETERS: 
 !
@@ -43,8 +43,8 @@
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      ! Updated tracer concentrations [molec/cm3/box]
-      REAL*8,  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,NTRACER)
+      ! Chemistry State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm
 !
 ! !REMARKS:
 !  Warning: 
@@ -90,6 +90,11 @@
       REAL*8  :: CONCTMP, CONCNOX, SUM, SUM1
       REAL*8  :: CSAVE( ITLOOP, NTRACER )
       REAL*8  :: QTEMP
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! PARTITION begins here!
@@ -190,6 +195,10 @@
       ! initial ratios. In tracer sequence, OX must be after NOX, 
       ! otherwise, adjust the code
       !=================================================================
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+
       DO N = 1, NTRACER
 
          ! Skip if it's not a valid tracer
@@ -389,6 +398,9 @@
          ENDDO
 !$OMP END PARALLEL DO
       ENDDO
+
+      ! Free pointer
+      NULLIFY( STT )
 
       END SUBROUTINE PARTITION
 !EOC

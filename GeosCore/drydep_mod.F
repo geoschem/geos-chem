@@ -31,7 +31,15 @@
       USE PBL_MIX_MOD                           ! Boundary layer quantities
       USE PRESSURE_MOD,   ONLY : GET_PEDGE      ! Pressure @ level edges
       USE TIME_MOD,       ONLY : GET_TS_CHEM    ! Chemistry timestep
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      ! For testing, remove later (mpayer 12/6/12)
+      USE TRACER_MOD,         ONLY : N_TRACERS, 
+     &                               SALC_REDGE_um,  SALA_REDGE_um,
+     &                               ITS_A_POPS_SIM, ITS_A_MERCURY_SIM
+#else
       USE TRACER_MOD                            ! Tracer array STT etc.
+#endif
       USE TRACERID_MOD                          ! Tracer ID flags
 #if   defined( TOMAS )
       USE TOMAS_MOD                             ! For TOMAS microphysics
@@ -65,6 +73,7 @@
       PUBLIC :: DRYPOPG, DRYPOPP_OC, DRYPOPP_BC
       PUBLIC :: IDEP,   IRGSS,  IRAC, IRCLS
       PUBLIC :: IRGSO,  IRLU,   IRI,  IRCLO, DRYCOEFF
+      PUBLIC :: NDVZIND ! MSL -> For MPI broadcasting in GIGC
 !
 ! !REMARKS:
 !  References:
@@ -185,6 +194,7 @@
 !  11 Dec 2012 - M. Long     - Now call READ_DRYDEP_INPUTS from INIT_DRYDEP
 !  11 Dec 2012 - R. Yantosca - Now call INIT_WEIGHTSS from INIT_DRYDEP
 !  13 Dec 2012 - R. Yantosca - Remove reference to obsolete CMN_DEP_mod.F
+!  26 Feb 2013 - R. Yantosca - Now use Input_Opt fields where possible
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -389,6 +399,8 @@
 !  11 Dec 2012 - R. Yantosca - Remove FIRST variable, as we now read inputs
 !                              from disk in routine INIT_DRYDEP
 !  12 Dec 2012 - R. Yantosca - Now pass State_Met to DEPVEL
+!  26 Feb 2013 - R. Yantosca - Now use Input_Opt fields where possible.  This
+!                              facilitates connection to the GEOS-5 GCM.   
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -436,8 +448,14 @@
       RC     = GIGC_SUCCESS
       
       ! Copy values from the Input Options object to local variables
-      LNLPBL = Input_Opt%LNLPBL
-      LPRT   = Input_Opt%LPRT
+      LNLPBL  = Input_Opt%LNLPBL
+      LPRT    = Input_Opt%LPRT
+
+      ! Be careful only to copy NUMDEP values from Input_Opt%NDVZIND
+      ! to the NDVZIND local array.  This will prevent an OOB error.
+      DO N = 1, Input_Opt%NUMDEP
+         NDVZIND(N) = Input_Opt%NDVZIND(N)
+      ENDDO
 
       ! Call METERO to obtain meterological fields (all 1-D arrays)
       ! Added sfc pressure as PRESSU and 10m windspeed as W10 
@@ -483,7 +501,7 @@
             ! Index of drydep species in the DVEL array 
             ! as passed back from subroutine DEPVEL
             NDVZ = NDVZIND(N)
-                  
+
             ! Dry deposition velocity [cm/s]
             DVZ  = DVEL(IJLOOP,NDVZ) * 100.d0
 
@@ -522,6 +540,13 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+! Activate this shortly (bmy, 3/5/13)
+!      IF ( Input_Opt%LDRYD ) THEN
+!         DO N = 1, Input_Opt%NUMDEP
+!            State_Chm%DEPSAV(:,:,N) = DEPSAV(:,:,N)
+!         ENDDO
+!      ENDIF
 
       !### Debug
       IF ( LPRT .and. am_I_Root ) THEN
@@ -802,18 +827,27 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DRYFLX
+      SUBROUTINE DRYFLX( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE LOGICAL_MOD,  ONLY : LSOILNOX
-      USE GET_NDEP_MOD, ONLY : SOIL_DRYDEP
-      USE TRACERID_MOD, ONLY : IDTHNO3
-
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_DIAG_MOD       ! Diagnostic switches & arrays
-      USE COMMSOIL_MOD       ! Soil wetness variables
+      USE CMN_SIZE_MOD
+      USE CMN_DIAG_MOD
+      USE COMMSOIL_MOD
       USE COMODE_MOD
+      USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TRACERID_MOD,       ONLY : IDTHNO3
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 ! 
 ! !REMARKS:
 !  DRYFLX is not called if non-local PBL mixing is done (i.e. when LNLPBL=F).
@@ -846,6 +880,8 @@
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !  31 Jul 2012 - R. Yantosca - Now loop from 1..LLPAR for GIGC compatibility
+!  05 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
+!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LSOILNOX and Input_Opt%NUMDEP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -858,6 +894,9 @@
       !=================================================================
       ! DRYFLX begins here!
       !=================================================================
+
+      ! Assume success
+      RC      = GIGC_SUCCESS
 
       ! Return unless we have turned on ND44 drydep diagnostic
       !IF ( ND44 == 0 ) RETURN
@@ -880,7 +919,7 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N, NN, NK, JJ, JLOOP, TDRYFX )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO N = 1, NUMDEP
+      DO N = 1, Input_Opt%NUMDEP
 
          ! Index for drydep species #N, from SMVGEAR
          NK = NTDEP(N)
@@ -931,7 +970,7 @@
 !$OMP END CRITICAL
 
                ! Archive dry deposited N species for use in soil_nox_mod
-               IF ( LSOILNOX ) THEN
+               IF ( Input_Opt%LSOILNOX ) THEN
                   CALL SOIL_DRYDEP( I, J, L, NN, TDRYFX )
                ENDIF
 
@@ -958,7 +997,26 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DRYFLXRnPbBe
+      SUBROUTINE DRYFLXRnPbBe( am_I_Root, Input_Opt, State_Chm, RC )
+!
+! !USES:
+!
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY:
 !  (1 ) Now eliminate DEPFLUX from CMN_SAV, in order to save memory.
@@ -985,6 +1043,8 @@
 !        (bmy, 7/20/04)
 !  (14) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -994,12 +1054,24 @@
       INTEGER             :: I, J, L, PBL_MAX, N, NN
       REAL*8              :: DTCHEM, FRACLOST, F_UNDER_TOP, AMT_LOST
 
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! DRYFLXRnPbBe begins here!!
       !=================================================================
 
+      ! Assume success
+      RC = GIGC_SUCCESS
+
       ! Return if drydep is turned off
-      IF ( .not. LDRYD ) RETURN
+      IF ( .not. Input_Opt%LDRYD ) RETURN
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       ! Chemistry timestep in seconds
       DTCHEM  = GET_TS_CHEM() * 60d0
@@ -1009,7 +1081,7 @@
 
       ! Add option for non-local PBL mixing scheme: only done at the surface
       ! (Lin, 03/31/09) 
-      IF (LNLPBL) PBL_MAX = 1
+      IF ( Input_Opt%LNLPBL ) PBL_MAX = 1
 
       ! Loop over drydep species
 !$OMP PARALLEL DO
@@ -1079,6 +1151,9 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+      ! Free pointer
+      NULLIFY( STT )
+
       END SUBROUTINE DRYFLXRnPbBe
 !EOC
 !------------------------------------------------------------------------------
@@ -1095,12 +1170,13 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DRYFLXH2HD( State_Met )
+      SUBROUTINE DRYFLXH2HD( State_Met, State_Chm )
 !
 ! !USES:
 !
       USE DIAG_MOD,           ONLY : AD44
       USE ERROR_MOD,          ONLY : ERROR_STOP, GEOS_CHEM_STOP
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET
@@ -1109,7 +1185,6 @@
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACER_MOD,         ONLY : STT
       
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! Diagnostic switches & arrays
@@ -1117,7 +1192,11 @@
 !
 ! !INPUT PARAMETERS:
 !
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 ! 
 ! !REMARKS:
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1154,6 +1233,11 @@
       REAL*8      :: SOIL_H2, SOIL_HD, TMMP, STEMP(IIPAR,JJPAR)
       REAL*8      :: MLD
       REAL*8      :: F_UNDER_TOP
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
 
       ! External functions, for calculating soil temperature
       REAL*8, EXTERNAL   :: SOILTEMP
@@ -1192,6 +1276,9 @@
          ENDDO
       ENDDO
 
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       ! Loop over drydep species
       DO N = 1, NUMDEP
@@ -1334,6 +1421,8 @@
          ENDDO                  ! PBL layers
       ENDDO                     ! NUMDEP = Number of species that drydep
 
+      ! Free pointer
+      NULLIFY( STT )
 
       END SUBROUTINE DRYFLXH2HD
 !EOC
@@ -2401,7 +2490,7 @@
      &                               IZO,       IDRYDEP,  IRI,    
      &                               IRLU,      IRAC,     IRGSS,  
      &                               IRGSO,     IRCLS,    IRCLO,  
-     &                               IVSMAX                       )
+     &                               IVSMAX,    Data_Dir_1x1      )
 !
 ! !USES:
 !
@@ -2417,6 +2506,7 @@
 ! !INPUT PARAMETERS:
 !
       LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      CHARACTER(LEN=255), INTENT(IN) :: Data_Dir_1x1
 !
 ! !OUTPUT PARAMETERS:
 !  
@@ -4129,11 +4219,24 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_DRYDEP( am_I_Root )
+      SUBROUTINE INIT_DRYDEP( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  (1 ) Added N2O5 as a drydep tracer, w/ the same drydep velocity as
@@ -4171,6 +4274,8 @@
 !                              running with the traditional driver main.F
 !  14 Mar 2013 - M. Payer    - Replace NOx and Ox with NO2 and O3 as part
 !                              of removal of NOx-Ox partitioning
+!  27 Feb 2013 - R. Yantosca - Bug fix: now only copy NUMDEP values from
+!                              Input_Opt%NDVZIND to NDVZIND array.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4189,7 +4294,12 @@
       !=================================================================
       ! INIT_DRYDEP begins here!
       !=================================================================
-
+      
+      ! Assume success
+      RC = GIGC_SUCCESS
+     
+      ! For GEOS-5, we need to do this only on the root CPU
+      IF ( am_I_Root ) THEN
       DUM = 1.0
 
       ! Is this a mercury simulation?
@@ -5856,8 +5966,9 @@
           ENDIF
 
       ENDIF
-
-
+      ELSE
+         NUMDEP  = Input_Opt%NUMDEP
+      ENDIF
 
       !=================================================================
       ! Allocate arrays
@@ -5875,6 +5986,11 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'DMID' )
       DMID = 0d0
 
+      IF ( am_I_Root ) THEN
+         Input_Opt%NUMDEP  = NUMDEP
+         Input_Opt%NDVZIND = NDVZIND
+         Input_Opt%DEPNAME = DEPNAME
+      ENDIF
 
       !=================================================================
       ! Echo information to stdout
@@ -5913,12 +6029,16 @@
      &                         IWATER,   NWATER,   IZO,      
      &                         IDRYDEP,  IRI,      IRLU,     
      &                         IRAC,     IRGSS,    IRGSO, 
-     &                         IRCLS,    IRCLO,    IVSMAX )
+     &                         IRCLS,    IRCLO,    IVSMAX, 
+     &                         Input_Opt%Data_Dir_1x1    )
 
 
       ! Calls INIT_WEIGHTSS to calculate the volume distribution of 
       ! sea salt aerosols (jaegle 5/11/11)
       CALL INIT_WEIGHTSS()
+      
+      ! Need to save NUMDEP into Input_Opt
+      Input_Opt%NUMDEP = NUMDEP
 
       END SUBROUTINE INIT_DRYDEP
 !EOC

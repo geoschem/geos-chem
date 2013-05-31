@@ -565,7 +565,7 @@
       USE FILE_MOD,      ONLY : IOERROR
       USE inquireMod,    ONLY : findFreeLun
       USE TIME_MOD,      ONLY : EXPAND_DATE
-      USE TRACER_MOD,    ONLY : STT,         TRACER_NAME, TRACER_MW_G
+      USE TRACER_MOD,    ONLY : TRACER_NAME, TRACER_MW_G
       USE TRACERID_MOD,  ONLY : GET_Hg0_CAT, GET_Hg2_CAT, N_Hg_CATS
       USE TRACERID_MOD,  ONLY : ID_Hg0,      ID_Hg2
 

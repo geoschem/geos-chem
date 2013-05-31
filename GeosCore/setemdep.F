@@ -18,7 +18,6 @@
 !
 #     include "define.h"
 
-      USE DRYDEP_MOD,   ONLY : DEPNAME, NUMDEP
       USE TRACERID_MOD, ONLY : IDEMIS, IDTRMB, NEMANTHRO, NEMBIOG
 
       USE CMN_SIZE_MOD                   ! Size parameters
@@ -50,6 +49,7 @@
 !                              running with the traditional driver main.F
 !  30 Jul 2012 - R. Yantosca - Added ProTeX headers
 !  13 Nov 2012 - R. Yantosca - Now pass Input_Opt and RC as arguments for GIGC
+!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%NUMDEP and Input_Opt%DEPNAME
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -58,7 +58,7 @@
 !     
       ! Scalars
       INTEGER            :: I, N, NK, NCS_TEMP
-      INTEGER            :: NTRACER
+      INTEGER            :: NTRACER, NUMDEP
       CHARACTER(LEN=14)  :: NAME1
 
       ! Arrays
@@ -78,6 +78,7 @@
       ! Set local variables from the Input_Opt object
       NTRACER     = Input_Opt%N_TRACERS
       TRACER_NAME = Input_Opt%TRACER_NAME
+      NUMDEP      = Input_Opt%NUMDEP
 
       !=================================================================
       ! Flag EMISSION REACTIONS in "globchem.dat" for GEOS-CHEM tracers
@@ -150,7 +151,7 @@
 
             ! If we can match NAME1 against the GEOS-CHEM drydep tracer
             ! names in DEPNAME, then store the rxn number in NTDEP
-            IF ( DEPNAME(I) == NAME1 ) THEN
+            IF ( Input_Opt%DEPNAME(I) == NAME1 ) THEN
                NTDEP(I) = NK
                EXIT
             ENDIF
@@ -158,7 +159,7 @@
 
          ! Flag drydep tracers
          IF ( NTDEP(I) > 0 ) THEN 
-            IF ( am_I_Root ) WRITE( IO93, 120 ) I, DEPNAME(I)
+            IF ( am_I_Root ) WRITE( IO93, 120 ) I, Input_Opt%DEPNAME(I)
  120        FORMAT( 'Drydep species # ', i3, ' (', a5, 
      &              ') has a drydep rxn defined in "globchem.dat"' )
          ENDIF

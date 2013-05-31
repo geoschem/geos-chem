@@ -104,6 +104,13 @@
       REAL*8,  ALLOCATABLE, TARGET  :: EMEP_SO2_SHIP(:,:)
       REAL*8,  ALLOCATABLE, TARGET  :: EMEP_NOx_SHIP(:,:)
 
+      ! Shadow variable for XNUMOL
+      REAL*8,  ALLOCATABLE          :: s_XNUMOL(:)
+
+      ! Shadow variables for logicals from Input_Opt
+      LOGICAL                       :: LEMEPSHIP
+      LOGICAL                       :: LFUTURE
+
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -166,7 +173,6 @@
       USE TRACERID_MOD, ONLY : IDTNO,   IDTCO,   IDTALK4, IDTMEK
       USE TRACERID_MOD, ONLY : IDTALD2, IDTPRPE, IDTC2H6, IDTSO2
       USE TRACERID_MOD, ONLY : IDTNH3,  IDTNO2
-      USE TRACER_MOD,   ONLY : XNUMOL
       USE GRID_MOD,     ONLY : GET_AREA_CM2
 !
 ! !INPUT PARAMETERS:
@@ -294,9 +300,9 @@
          IF ( N == IDTNO ) THEN
             ! Convert NOx using XNUMOL for NO2 since original NOx emissions
             ! are in mass units of NO2 (mpayer 4/18/13)
-            EMEP = EMEP * GET_AREA_CM2( I, J, 1 ) / XNUMOL(IDTNO2)
+            EMEP = EMEP * GET_AREA_CM2( I, J, 1 ) / s_XNUMOL(IDTNO2)
          ELSE
-            EMEP = EMEP * GET_AREA_CM2( I, J, 1 ) / XNUMOL(NN)
+            EMEP = EMEP * GET_AREA_CM2( I, J, 1 ) / s_XNUMOL(NN)
          ENDIF
 
       ENDIF
@@ -316,36 +322,44 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE EMISS_EMEP( EMISS )
-#else
-      SUBROUTINE EMISS_EMEP
-#endif
+      SUBROUTINE EMISS_EMEP( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 ! 
-      USE BPCH2_MOD,        ONLY : GET_TAU0,     OPEN_BPCH2_FOR_READ
-      USE FILE_MOD,         ONLY : IOERROR
-      USE DIRECTORY_MOD,    ONLY : DATA_DIR_1x1 
-      USE LOGICAL_MOD,      ONLY : LFUTURE
-      USE REGRID_A2A_MOD,   ONLY : DO_REGRID_A2A
-      USE TIME_MOD,         ONLY : EXPAND_DATE,  GET_YEAR
-      USE TIME_MOD,         ONLY : GET_MONTH
-      USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
-      USE inquireMod,       ONLY : findFreeLUN
-
-      USE CMN_SIZE_MOD           ! Size parameters
-      USE CMN_O3_MOD             ! SCALEYEAR
-
+      USE BPCH2_MOD,          ONLY : GET_TAU0, OPEN_BPCH2_FOR_READ
+      USE CMN_O3_MOD
+      USE CMN_SIZE_MOD
+      USE FILE_MOD,           ONLY : IOERROR
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR_1x1
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState 
+      USE inquireMod,         ONLY : findFreeLUN
+      USE REGRID_A2A_MOD,     ONLY : DO_REGRID_A2A
+      USE TIME_MOD,           ONLY : EXPAND_DATE,  GET_YEAR
+      USE TIME_MOD,           ONLY : GET_MONTH
+      USE SCALE_ANTHRO_MOD,   ONLY : GET_ANNUAL_SCALAR
 #if defined( DEVEL )
-      USE TRACERID_MOD, ONLY : IDTNO2,  IDTCO,   IDTALK4, IDTMEK
-      USE TRACERID_MOD, ONLY : IDTALD2, IDTPRPE, IDTC2H6, IDTSO2
-      USE TRACERID_MOD, ONLY : IDTNH3
-      USE TRACER_MOD,   ONLY : XNUMOL
-      USE TRACER_MOD,   ONLY : N_TRACERS
-      USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,  ONLY : LEMEPSHIP
+      USE TRACERID_MOD,       ONLY : IDTNO2,  IDTCO,   IDTALK4, IDTMEK
+      USE TRACERID_MOD,       ONLY : IDTALD2, IDTPRPE, IDTC2H6, IDTSO2
+      USE TRACERID_MOD,       ONLY : IDTNH3,  IDTNO
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
 #endif
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
 !
 ! !REVISION HISTORY: 
 !  01 Nov 2005 - B. Field, R. Yantosca - Initial version
@@ -359,44 +373,57 @@
 !  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
 !                              of removal of NOx-Ox partitioning
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE           :: FIRST = .TRUE.
-      INTEGER                 :: EMEP_NYMD, EMEP_YEAR
-      REAL*8                  :: EMEP_TAU,  TAU0
-      CHARACTER(LEN=255)      :: FILENAME
+      LOGICAL, SAVE       :: FIRST = .TRUE.
+      INTEGER             :: EMEP_NYMD, EMEP_YEAR
+      REAL*8              :: EMEP_TAU,  TAU0
+      CHARACTER(LEN=255)  :: FILENAME
 
       ! For bpch file format
-      INTEGER                 :: I,  IU_FILE, J,  L,  N,  IOS
-      INTEGER                 :: NTRACER,   NSKIP
-      INTEGER                 :: HALFPOLAR, CENTER180
-      INTEGER                 :: NI,        NJ,        NL
-      INTEGER                 :: IFIRST,    JFIRST,    LFIRST
-      INTEGER                 :: SCALEYEAR
-      REAL*4                  :: ARRAY(I1x1,J1x1,1)
-      REAL*4                  :: LONRES,    LATRES
-      REAL*4                  :: Sc(IIPAR,JJPAR)
-      REAL*8                  :: ZTAU0,     ZTAU1
-      CHARACTER(LEN=20)       :: MODELNAME
-      CHARACTER(LEN=40)       :: CATEGORY
-      CHARACTER(LEN=40)       :: UNIT     
-      CHARACTER(LEN=40)       :: RESERVED
-      CHARACTER(LEN=255)      :: LLFILENAME
-      REAL*8                  :: INGRID (I1x1, J1x1 )
+      INTEGER             :: I,  IU_FILE, J,  L,  N,  IOS
+      INTEGER             :: NTRACER,   NSKIP
+      INTEGER             :: HALFPOLAR, CENTER180
+      INTEGER             :: NI,        NJ,        NL
+      INTEGER             :: IFIRST,    JFIRST,    LFIRST
+      INTEGER             :: SCALEYEAR
+      REAL*4              :: ARRAY(I1x1,J1x1,1)
+      REAL*4              :: LONRES,    LATRES
+      REAL*4              :: Sc(IIPAR,JJPAR)
+      REAL*8              :: ZTAU0,     ZTAU1
+      CHARACTER(LEN=20)   :: MODELNAME
+      CHARACTER(LEN=40)   :: CATEGORY
+      CHARACTER(LEN=40)   :: UNIT     
+      CHARACTER(LEN=40)   :: RESERVED
+      CHARACTER(LEN=255)  :: LLFILENAME
+      REAL*8              :: INGRID (I1x1, J1x1 )
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      REAL*8, INTENT(INOUT) :: EMISS(IIPAR, JJPAR, N_TRACERS)
-      REAL*8, ALLOCATABLE   :: A(:,:)
+      REAL*8, ALLOCATABLE :: A(:,:)
       INTEGER AS
 #endif
+
+      ! For fields from Input_Opt
+      INTEGER             :: N_TRACERS
+      REAL*8              :: XNUMOL(Input_Opt%N_TRACERS)
 
       !=================================================================
       ! EMISS_EMEP begins here!
       !=================================================================
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LEMEPSHIP = Input_Opt%LEMEPSHIP
+      LFUTURE   = Input_Opt%LFUTURE
+      N_TRACERS = Input_Opt%N_TRACERS
+      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
 
       ! First-time initialization
       IF ( FIRST ) THEN
@@ -406,7 +433,7 @@
          A = 0d0
 #endif         
          
-         CALL INIT_EMEP
+         CALL INIT_EMEP( am_I_Root, Input_Opt, RC )
          FIRST = .FALSE.
       ENDIF
 
@@ -595,51 +622,52 @@
       ENDDO
 
       IF ( LEMEPSHIP ) THEN
-         EMISS(:,:,IDTNO) = EMEP_NOx_SHIP(:,:)
+         State_Chm%TRAC_TEND(:,:,1,IDTNO) = EMEP_NOx_SHIP(:,:)
      &        * A / XNUMOL(IDTNO2)
       ELSE 
-         EMISS(:,:,IDTNO) = EMEP_NOx(:,:)
+         State_Chm%TRAC_TEND(:,:,1,IDTNO) = EMEP_NOx(:,:)
      &        * A / XNUMOL(IDTNO2)
       ENDIF
+
       IF ( LEMEPSHIP ) THEN
-         EMISS(:,:,IDTCO) = EMEP_CO_SHIP(:,:)
+         State_Chm%TRAC_TEND(:,:,1,IDTCO) = EMEP_CO_SHIP(:,:)
      &        * A / XNUMOL(IDTCO)
       ELSE 
-         EMISS(:,:,IDTCO) = EMEP_CO(:,:)
+         State_Chm%TRAC_TEND(:,:,1,IDTCO) = EMEP_CO(:,:)
      &        * A / XNUMOL(IDTCO)
       ENDIF
 
       ! ALK4 (>= C4 alkanes)
-      EMISS(:,:,IDTALK4) = EMEP_ALK4(:,:)
+      State_Chm%TRAC_TEND(:,:,1,IDTALK4) = EMEP_ALK4(:,:)
      &        * A / XNUMOL(IDTALK4)
 
       ! MEK
-      EMISS(:,:,IDTMEK) = EMEP_MEK(:,:)
+      State_Chm%TRAC_TEND(:,:,1,IDTMEK) = EMEP_MEK(:,:)
      &        * A / XNUMOL(IDTMEK)
 
       ! ALD2 (acetaldehyde)
-      EMISS(:,:,IDTALD2) = EMEP_ALD2(:,:)
+      State_Chm%TRAC_TEND(:,:,1,IDTALD2) = EMEP_ALD2(:,:)
      &        * A / XNUMOL(IDTALD2)
 
       ! PRPE (>= C3 alkenes)
-      EMISS(:,:,IDTPRPE) = EMEP_PRPE(:,:)
+      State_Chm%TRAC_TEND(:,:,1,IDTPRPE) = EMEP_PRPE(:,:)
      &        * A / XNUMOL(IDTPRPE)
 
       ! C2H6 
-      EMISS(:,:,IDTC2H6) = EMEP_C2H6(:,:)
+      State_Chm%TRAC_TEND(:,:,1,IDTC2H6) = EMEP_C2H6(:,:)
      &        * A / XNUMOL(IDTC2H6)
          
       ! SO2
       IF ( LEMEPSHIP ) THEN
-         EMISS(:,:,IDTSO2) = EMEP_SO2_SHIP(:,:)
+         State_Chm%TRAC_TEND(:,:,1,IDTSO2) = EMEP_SO2_SHIP(:,:)
      &        * A / XNUMOL(IDTSO2)
       ELSE 
-         EMISS(:,:,IDTSO2) = EMEP_SO2(:,:)
+         State_Chm%TRAC_TEND(:,:,1,IDTSO2) = EMEP_SO2(:,:)
      &        * A / XNUMOL(IDTSO2)
       ENDIF
 
       ! NH3
-      EMISS(:,:,IDTNH3) = EMEP_NH3(:,:)
+      State_Chm%TRAC_TEND(:,:,1,IDTNH3) = EMEP_NH3(:,:)
      &        * A / XNUMOL(IDTNH3)
 #endif
 
@@ -648,7 +676,8 @@
       !=================================================================
 
       ! Print totals for EMEP_YEAR
-      CALL TOTAL_ANTHRO_TG( EMEP_YEAR, SCALEYEAR, GET_MONTH() )
+      CALL TOTAL_ANTHRO_TG( EMEP_YEAR,   SCALEYEAR, 
+     &                      GET_MONTH(), Input_Opt  )
 
       END SUBROUTINE EMISS_EMEP
 !EOC
@@ -665,34 +694,40 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE EMISS_EMEP_05x0666( EMISS )
-#else
-      SUBROUTINE EMISS_EMEP_05x0666
-#endif
+      SUBROUTINE EMISS_EMEP_05x0666( am_I_Root, Input_Opt,
+     &                               State_Chm, RC         )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,        ONLY : GET_TAU0,     READ_BPCH2
-      USE DIRECTORY_MOD,    ONLY : DATA_DIR
-      USE LOGICAL_MOD,      ONLY : LFUTURE
-      USE TIME_MOD,         ONLY : EXPAND_DATE,  GET_YEAR
-      USE TIME_MOD,         ONLY : GET_MONTH
-      USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR_05x0666_NESTED
-
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_O3_MOD         ! SCALEYEAR
-
+      USE BPCH2_MOD,          ONLY : GET_TAU0,     READ_BPCH2
+      USE CMN_O3_MOD
+      USE CMN_SIZE_MOD
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE TIME_MOD,           ONLY : EXPAND_DATE,  GET_YEAR
+      USE TIME_MOD,           ONLY : GET_MONTH
+      USE SCALE_ANTHRO_MOD,   ONLY : GET_ANNUAL_SCALAR_05x0666_NESTED
 #if defined( DEVEL )
-      USE TRACERID_MOD, ONLY : IDTNO2,  IDTCO,   IDTALK4, IDTMEK
-      USE TRACERID_MOD, ONLY : IDTALD2, IDTPRPE, IDTC2H6, IDTSO2
-      USE TRACERID_MOD, ONLY : IDTNH3
-      USE TRACER_MOD,   ONLY : XNUMOL
-      USE TRACER_MOD,   ONLY : N_TRACERS
-      USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,  ONLY : LEMEPSHIP
+      USE TRACERID_MOD,       ONLY : IDTNO2,  IDTCO,   IDTALK4, IDTMEK
+      USE TRACERID_MOD,       ONLY : IDTALD2, IDTPRPE, IDTC2H6, IDTSO2
+      USE TRACERID_MOD,       ONLY : IDTNH3,  IDTNO
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
 #endif
-
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  23 Oct 2006 - A. v. Donkelaar - Initial version, modified from EMISS_EMEP
@@ -704,36 +739,46 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE           :: FIRST = .TRUE.
-      INTEGER                 :: EMEP_NYMD, EMEP_YEAR
-      REAL*8                  :: EMEP_TAU,  TAU0
-      CHARACTER(LEN=255)      :: FILENAME
+      LOGICAL, SAVE       :: FIRST = .TRUE.
+      INTEGER             :: EMEP_NYMD, EMEP_YEAR
+      REAL*8              :: EMEP_TAU,  TAU0
+      CHARACTER(LEN=255)  :: FILENAME
 
       ! For bpch file format
-      INTEGER                 :: I,  J,  L,  N,  IOS
-      INTEGER                 :: NTRACER,   NSKIP
-      INTEGER                 :: HALFPOLAR, CENTER180
-      INTEGER                 :: NI,        NJ,        NL
-      INTEGER                 :: IFIRST,    JFIRST,    LFIRST
-      INTEGER                 :: SCALEYEAR
-      REAL*4                  :: ARRAY(IIPAR,JJPAR,1)
-      REAL*4                  :: LONRES,    LATRES
-      REAL*4                  :: Sc(IIPAR,JJPAR)
-      REAL*8                  :: ZTAU0,     ZTAU1
-      CHARACTER(LEN=20)       :: MODELNAME
-      CHARACTER(LEN=40)       :: CATEGORY
-      CHARACTER(LEN=40)       :: UNIT
-      CHARACTER(LEN=40)       :: RESERVED
+      INTEGER             :: I,  J,  L,  N,  IOS
+      INTEGER             :: NTRACER,   NSKIP
+      INTEGER             :: HALFPOLAR, CENTER180
+      INTEGER             :: NI,        NJ,        NL
+      INTEGER             :: IFIRST,    JFIRST,    LFIRST
+      INTEGER             :: SCALEYEAR
+      REAL*4              :: ARRAY(IIPAR,JJPAR,1)
+      REAL*4              :: LONRES,    LATRES
+      REAL*4              :: Sc(IIPAR,JJPAR)
+      REAL*8              :: ZTAU0,     ZTAU1
+      CHARACTER(LEN=20)   :: MODELNAME
+      CHARACTER(LEN=40)   :: CATEGORY
+      CHARACTER(LEN=40)   :: UNIT
+      CHARACTER(LEN=40)   :: RESERVED
 
 #if defined( DEVEL )
-      REAL*8, INTENT(INOUT) :: EMISS(IIPAR, JJPAR, N_TRACERS)
-      REAL*8, ALLOCATABLE   :: A(:,:)
+      REAL*8, ALLOCATABLE :: A(:,:)
       INTEGER AS
 #endif
+
+      ! For fields from Input_Opt
+      INTEGER             :: N_TRACERS
+      REAL*8              :: XNUMOL(Input_Opt%N_TRACERS)
 
       !=================================================================
       ! EMISS_EMEP begins here!
       !=================================================================
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      N_TRACERS = Input_Opt%N_TRACERS
+      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
 
       ! First-time initialization
       IF ( FIRST ) THEN
@@ -743,7 +788,7 @@
          A = 0d0
 #endif         
          
-         CALL INIT_EMEP
+         CALL INIT_EMEP( am_I_Root, Input_Opt, RC )
          FIRST = .FALSE.
       ENDIF
 
@@ -856,51 +901,52 @@
       ENDDO
 
       IF ( LEMEPSHIP ) THEN
-         EMISS(:,:,IDTNO) = EMEP_NOx_SHIP(:,:)
+         State_Chm%TRAC_TEND(:,:,1,IDTNO)  = EMEP_NOx_SHIP(:,:)
      &        * A / XNUMOL(IDTNO2)
       ELSE 
-         EMISS(:,:,IDTNO) = EMEP_NOx(:,:)
+         State_Chm%TRAC_TEND(:,:,1,IDTNO)  = EMEP_NOx(:,:)
      &        * A / XNUMOL(IDTNO2)
       ENDIF
+
       IF ( LEMEPSHIP ) THEN
-         EMISS(:,:,IDTCO) = EMEP_CO_SHIP(:,:)
+         State_Chm%TRAC_TEND(:,:,1,IDTCO) = EMEP_CO_SHIP(:,:)
      &        * A / XNUMOL(IDTCO)
       ELSE 
-         EMISS(:,:,IDTCO) = EMEP_CO(:,:)
+         State_Chm%TRAC_TEND(:,:,1,IDTCO) = EMEP_CO(:,:)
      &        * A / XNUMOL(IDTCO)
       ENDIF
 
       ! ALK4 (>= C4 alkanes)
-      EMISS(:,:,IDTALK4) = EMEP_ALK4(:,:)
+      State_Chm%TRAC_TEND(:,:,1,IDTALK4) = EMEP_ALK4(:,:)
      &        * A / XNUMOL(IDTALK4)
 
       ! MEK
-      EMISS(:,:,IDTMEK) = EMEP_MEK(:,:)
+      State_Chm%TRAC_TEND(:,:,1,IDTMEK) = EMEP_MEK(:,:)
      &        * A / XNUMOL(IDTMEK)
 
       ! ALD2 (acetaldehyde)
-      EMISS(:,:,IDTALD2) = EMEP_ALD2(:,:)
+      State_Chm%TRAC_TEND(:,:,1,IDTALD2) = EMEP_ALD2(:,:)
      &        * A / XNUMOL(IDTALD2)
 
       ! PRPE (>= C3 alkenes)
-      EMISS(:,:,IDTPRPE) = EMEP_PRPE(:,:)
+      State_Chm%TRAC_TEND(:,:,1,IDTPRPE) = EMEP_PRPE(:,:)
      &        * A / XNUMOL(IDTPRPE)
 
       ! C2H6 
-      EMISS(:,:,IDTC2H6) = EMEP_C2H6(:,:)
+      State_Chm%TRAC_TEND(:,:,1,IDTC2H6) = EMEP_C2H6(:,:)
      &        * A / XNUMOL(IDTC2H6)
          
       ! SO2
       IF ( LEMEPSHIP ) THEN
-         EMISS(:,:,IDTSO2) = EMEP_SO2_SHIP(:,:)
+         State_Chm%TRAC_TEND(:,:,1,IDTSO2) = EMEP_SO2_SHIP(:,:)
      &        * A / XNUMOL(IDTSO2)
       ELSE 
-         EMISS(:,:,IDTSO2) = EMEP_SO2(:,:)
+         State_Chm%TRAC_TEND(:,:,1,IDTSO2) = EMEP_SO2(:,:)
      &        * A / XNUMOL(IDTSO2)
       ENDIF
 
       ! NH3
-      EMISS(:,:,IDTNH3) = EMEP_NH3(:,:)
+      State_Chm%TRAC_TEND(:,:,1,IDTNH3) = EMEP_NH3(:,:)
      &        * A / XNUMOL(IDTNH3)
 #endif
 
@@ -909,7 +955,8 @@
       !=================================================================
 
       ! Print totals for EMEP_YEAR
-      CALL TOTAL_ANTHRO_TG( EMEP_YEAR, SCALEYEAR, GET_MONTH() )
+      CALL TOTAL_ANTHRO_TG( EMEP_YEAR,   SCALEYEAR, 
+     &                      GET_MONTH(), Input_Opt )
 
       END SUBROUTINE EMISS_EMEP_05x0666
 !EOC
@@ -1006,25 +1053,25 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE TOTAL_ANTHRO_TG( EMEP_YEAR, EMISS_YEAR, EMEP_MONTH )
+      SUBROUTINE TOTAL_ANTHRO_TG( EMEP_YEAR,  EMISS_YEAR, 
+     &                            EMEP_MONTH, Input_Opt )
 !
 ! !USES:
 ! 
-      USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,  ONLY : LEMEPSHIP
-      USE TIME_MOD,     ONLY : ITS_A_LEAPYEAR
-      USE TRACER_MOD,   ONLY : XNUMOL
-      USE TRACERID_MOD, ONLY : IDTNO,   IDTCO,   IDTALK4, IDTMEK
-      USE TRACERID_MOD, ONLY : IDTALD2, IDTPRPE, IDTC2H6, IDTSO2
-      USE TRACERID_MOD, ONLY : IDTNH3
-
-      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_SIZE_MOD
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : ITS_A_LEAPYEAR
+      USE TRACERID_MOD,       ONLY : IDTNO,   IDTCO,   IDTALK4, IDTMEK
+      USE TRACERID_MOD,       ONLY : IDTALD2, IDTPRPE, IDTC2H6, IDTSO2
+      USE TRACERID_MOD,       ONLY : IDTNH3
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN)   :: EMEP_YEAR    ! EMEP base year
-      INTEGER, INTENT(IN)   :: EMISS_YEAR   ! Current simulated year
-      INTEGER, INTENT(IN)   :: EMEP_MONTH   ! Current simulated month
+      INTEGER,        INTENT(IN) :: EMEP_YEAR    ! EMEP base year
+      INTEGER,        INTENT(IN) :: EMISS_YEAR   ! Current simulated year
+      INTEGER,        INTENT(IN) :: EMEP_MONTH   ! Current simulated month
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
 !
 ! !REVISION HISTORY: 
 !  10 Nov 2004 - R. Hudman, R. Yantosca - Initial version  
@@ -1045,23 +1092,32 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER               :: I, J
-      REAL*8                :: A,   B(9), NOX,  CO,  ALK4
-      REAL*8                :: MEK, ALD2, PRPE, C2H6, SO2
-      REAL*8                :: NH3
-      CHARACTER(LEN=3)      :: UNIT
+      INTEGER          :: I, J
+      REAL*8           :: A,   B(9), NOX,  CO,  ALK4
+      REAL*8           :: MEK, ALD2, PRPE, C2H6, SO2
+      REAL*8           :: NH3
+      CHARACTER(LEN=3) :: UNIT
 
       ! Days per month
-      REAL*8                :: DAYS_IN_MONTH
-      REAL*8                :: DMON(12) = (/ 31d0, 28d0, 31d0, 30d0,
-     &                                       31d0, 30d0, 31d0, 31d0,
-     &                                       30d0, 31d0, 30d0, 31d0 /) 
+      REAL*8           :: DAYS_IN_MONTH
+      REAL*8           :: DMON(12) = (/ 31d0, 28d0, 31d0, 30d0,
+     &                                 31d0, 30d0, 31d0, 31d0,
+     &                                 30d0, 31d0, 30d0, 31d0 /) 
+
+      ! For fields from Input_Opt
+      LOGICAL          :: LEMEPSHIP
+      INTEGER          :: N_TRACERS
+      REAL*8           :: XNUMOL(Input_Opt%N_TRACERS)
 
       !=================================================================
       ! TOTAL_ANTHRO_TG begins here!
       !=================================================================
 
-      ! Fancy output
+      ! Copy values from Input_Opt
+      N_TRACERS = Input_Opt%N_TRACERS
+      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
+
+
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
       WRITE( 6, 100 )
  100  FORMAT( 'M O N T H L Y   E M E P   E U R O P E A N
@@ -1315,7 +1371,6 @@
       USE BPCH2_MOD,      ONLY : READ_BPCH2, GET_TAU0
       USE TIME_MOD,       ONLY : EXPAND_DATE, GET_MONTH
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1 
-      USE LOGICAL_MOD,    ONLY : LEMEPSHIP
       USE GRID_MOD,       ONLY : GET_AREA_CM2
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
 
@@ -1526,11 +1581,10 @@
       USE BPCH2_MOD,      ONLY : READ_BPCH2, GET_TAU0
       USE TIME_MOD,       ONLY : EXPAND_DATE, GET_MONTH
       USE DIRECTORY_MOD,  ONLY : DATA_DIR
-      USE LOGICAL_MOD,    ONLY : LEMEPSHIP
       USE GRID_MOD,       ONLY : GET_AREA_CM2
 
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_O3_MOD         ! SCALEYEAR
+      USE CMN_SIZE_MOD
+      USE CMN_O3_MOD
 !
 ! !INPUT PARAMETERS:
 !
@@ -1721,92 +1775,102 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_EMEP
+      SUBROUTINE INIT_EMEP( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 ! 
-      ! References to F90 modules
-      USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE GRID_MOD,    ONLY : GET_XMID, GET_YMID
-      USE LOGICAL_MOD, ONLY : LEMEP
-
-      USE CMN_SIZE_MOD    ! Size parameters
+      USE CMN_SIZE_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GRID_MOD,           ONLY : GET_XMID, GET_YMID
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  01 Nov 2005 - B. Field, R. Yantosca - Initial version
 !  (1 ) Now call READ_EUROPE_MASK to read & regrid EUROPE_MASK from disk 
 !        instead of just defining it as a rectangular box. (bmy, 10/18/06)
 !  26 Jan 2010 - R. Yantosca - Fixed cut-n-paste error.  Now make sure to zero 
-!                              EMEP_CO_SHIP and EMEP_NOx_SHIP.  
+!                              EMEP_CO_SHIP and EMEP_NOx_SHIP. 
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC 
+!  04 Apr 2013 - R. Yantosca - Now allocate a shadow variable of XNUMOL
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER              :: AS, I, J, X, Y
-
       !=================================================================
       ! INIT_EMEP begins here!
       !=================================================================
 
       ! Return if LEMEP is false
-      IF ( .not. LEMEP ) RETURN
+      IF ( .not. Input_Opt%LEMEP ) RETURN
       
       !--------------------------------
       ! Allocate and zero arrays
       !--------------------------------
-      ALLOCATE( EMEP_NOx( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMEP_NOx' )
+      ALLOCATE( EMEP_NOx( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'EMEP_NOx' )
       EMEP_NOx = 0d0
 
-      ALLOCATE( EMEP_CO( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMEP_CO' )
+      ALLOCATE( EMEP_CO( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'EMEP_CO' )
       EMEP_CO = 0d0
 
-      ALLOCATE( EMEP_SO2( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMEP_SO2' )
+      ALLOCATE( EMEP_SO2( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'EMEP_SO2' )
       EMEP_SO2 = 0d0
 
-      ALLOCATE( EMEP_SO2_SHIP( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMEP_SO2_SHIP' )
+      ALLOCATE( EMEP_SO2_SHIP( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'EMEP_SO2_SHIP' )
       EMEP_SO2_SHIP = 0d0
 
-      ALLOCATE( EMEP_CO_SHIP( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMEP_CO_SHIP' )
+      ALLOCATE( EMEP_CO_SHIP( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'EMEP_CO_SHIP' )
       EMEP_CO_SHIP = 0d0
 
-      ALLOCATE( EMEP_NOx_SHIP( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMEP_NOx_SHIP' )
+      ALLOCATE( EMEP_NOx_SHIP( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'EMEP_NOx_SHIP' )
       EMEP_NOx_SHIP = 0d0
 
-      ALLOCATE( EMEP_NH3( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMEP_NH3' )
+      ALLOCATE( EMEP_NH3( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'EMEP_NH3' )
       EMEP_NH3 = 0d0
 
-      ALLOCATE( EMEP_ALK4( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMEP_ALK4' )
+      ALLOCATE( EMEP_ALK4( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'EMEP_ALK4' )
       EMEP_ALK4 = 0d0
 
-      ALLOCATE( EMEP_MEK( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMEP_MEK' )
+      ALLOCATE( EMEP_MEK( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'EMEP_MEK' )
       EMEP_MEK = 0d0
 
-      ALLOCATE( EMEP_ALD2( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMEP_ALD2' )
+      ALLOCATE( EMEP_ALD2( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'EMEP_ALD2' )
       EMEP_ALD2 = 0d0
 
-      ALLOCATE( EMEP_PRPE( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMEP_PRPE' )
+      ALLOCATE( EMEP_PRPE( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'EMEP_PRPE' )
       EMEP_PRPE = 0d0
 
-      ALLOCATE( EMEP_C2H6( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMEP_C2H6' )
+      ALLOCATE( EMEP_C2H6( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'EMEP_C2H6' )
       EMEP_C2H6 = 0d0
 
-      ALLOCATE( EUROPE_MASK( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EUROPE_MASK' )
+      ALLOCATE( EUROPE_MASK( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'EUROPE_MASK' )
       EUROPE_MASK = 0d0
+
+      ! Shadow variable for XNUMOL
+      ALLOCATE( s_XNUMOL( Input_Opt%N_TRACERS ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'p_XNUMOL' )
+      s_XNUMOL = Input_Opt%XNUMOL(1:Input_Opt%N_TRACERS)
 
       ! Read and regrid the European mask
 #if   defined(GRID05x0666)

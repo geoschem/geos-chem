@@ -179,6 +179,15 @@
                                                 !  [cm3 H2O/cm2 area/s]
       REAL*8,  ALLOCATABLE :: QQ(:,:,:)         ! Rate of new precip formation
                                                 !  [cm3 H2O/cm3 air/s]
+
+      ! Define local shadow variables for values in Input_Opt
+      LOGICAL :: LPRT
+      LOGICAL :: LGTMM
+      LOGICAL :: LSOILNOX
+      LOGICAL :: LDYNOCEAN
+      LOGICAL :: ITS_A_MERCURY_SIM
+      LOGICAL :: ITS_A_POPS_SIM
+
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -194,19 +203,31 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_WETDEP( State_Met )
+      SUBROUTINE DO_WETDEP( am_I_Root, Input_Opt,
+     &                      State_Met, State_Chm, RC )
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE LOGICAL_MOD,        ONLY : LPRT
-
-      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REMARKS:
 !  NOTE FROM HONGYU LIU (hyl@nianet.org) -- 3/5/08
@@ -227,10 +248,34 @@
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  20 Sep 2010 - R. Yantosca - Rewrote #if block structure for clarity
 !  09 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
+! !LOCAL VARIABLES:
+!
+      ! For fields from Input_Opt
+      LOGICAL :: doPrt
+
+      !=================================================================
+      ! Initialize
+      !=================================================================
+
+      ! Assume success
+      RC                =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt to module shadow variables
+      LPRT              = Input_Opt%LPRT
+      LGTMM             = Input_Opt%LGTMM
+      LSOILNOX          = Input_Opt%LSOILNOX
+      LDYNOCEAN         = Input_Opt%LDYNOCEAN
+      ITS_A_MERCURY_SIM = Input_Opt%ITS_A_MERCURY_SIM
+      ITS_A_POPS_SIM    = Input_Opt%ITS_A_POPS_SIM
+
+      ! Only print output on the root CPU
+      doPrt = ( LPRT .and. am_I_Root )
+
 #if   defined( MERRA ) || defined( GEOS_57 )
 
       !=================================================================
@@ -239,11 +284,11 @@
 
       ! Create precip fields
       CALL MAKE_QQ( State_Met, LS=.TRUE. )
-      IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: before LS wetdep' )
+      IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: before LS wetdep' )
 
       ! Do wet deposition
-      CALL WETDEP_MERRA( State_Met=State_Met, LS=.TRUE. )
-      IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
+      CALL WETDEP_MERRA( State_Met, State_Chm, LS=.TRUE. )
+      IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
 
 #elif defined( GEOS_5 )
 
@@ -253,11 +298,11 @@
 
       ! Create precip fields
       CALL MAKE_QQ( State_Met, LS=.TRUE. )
-      IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: before LS wetdep' )
+      IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: before LS wetdep' )
 
       ! Do wet deposition
-      CALL WETDEP(  State_Met, LS=.TRUE. )
-      IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
+      CALL WETDEP(  State_Met, State_Chm, LS=.TRUE. )
+      IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
 
 #else
 
@@ -271,11 +316,11 @@
 
       ! Create precip fields
       CALL MAKE_QQ( State_Met, LS=.TRUE. )
-      IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: before LS wetdep' )
+      IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: before LS wetdep' )
 
       ! Do wet deposition
       CALL WETDEP(  State_Met, LS=.TRUE. )
-      IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
+      IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
 
       !---------------------
       ! Convective precip
@@ -283,11 +328,11 @@
 
       ! Create precip fields
       CALL MAKE_QQ( State_Met, LS=.FALSE. )
-      IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: before conv wetdep' )
+      IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: before conv wetdep' )
 
       !  Do wet deposition
       CALL WETDEP(  State_Met, LS=.FALSE. )
-      IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: after conv wetdep' )
+      IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: after conv wetdep' )
 
 #endif
 
@@ -310,10 +355,9 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE GIGC_State_Met_Mod, ONLY : MetState
-      
-      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -763,6 +807,7 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
       USE GET_POPSINFO_MOD,   ONLY : GET_POP_HSTAR
       USE GET_POPSINFO_MOD,   ONLY : GET_POP_DEL_Hw
       USE GIGC_State_Met_Mod, ONLY : MetState
@@ -789,13 +834,12 @@
       USE TRACERID_MOD,       ONLY : IDTMAP
       USE TRACERID_MOD,       ONLY : IDTHOBr,   IDTHBr,    IDTBr2
       USE TRACERID_MOD,       ONLY : IDTPOPPOC, IDTPOPPBC, IDTPOPG 
-#if defined( TOMAS )
-      USE TRACERID_MOD, ONLY : IDTH2SO4, IDTNK1,   IDTSF1,  IDTSS1  !(win, 7/16/09)
-      USE TRACERID_MOD, ONLY : IDTECIL1, IDTOCIL1, IDTOCOB1,IDTDUST1  !(win, 7/16/09)
-      USE TOMAS_MOD,    ONLY : IBINS,    GETFRACTION  !(win, 7/16/09)
-#endif
 
-      USE CMN_SIZE_MOD             ! Size parameters
+#if defined( TOMAS )
+      USE TRACERID_MOD, ONLY : IDTH2SO4, IDTNK1,   IDTSF1,  IDTSS1
+      USE TRACERID_MOD, ONLY : IDTECIL1, IDTOCIL1, IDTOCOB1,IDTDUST1
+      USE TOMAS_MOD,    ONLY : IBINS,    GETFRACTION
+#endif
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2594,11 +2638,10 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRACERID_MOD,       ONLY : IDTBCPO,  IDTDST1,  IDTHNO3 
       USE TRACERID_MOD,       ONLY : IDTDST2,  IDTDST3,  IDTDST4
-
-      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2788,12 +2831,11 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      !POPs (eck, 9/21/10)
       USE GET_POPSINFO_MOD,   ONLY : GET_POP_HSTAR
       USE GET_POPSINFO_MOD,   ONLY : GET_POP_DEL_Hw
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACER_MOD,         ONLY : ITS_A_MERCURY_SIM 
       USE TRACERID_MOD,       ONLY : IDTPB,   IDTBE7,   IDTHNO3, IDTH2O2 
       USE TRACERID_MOD,       ONLY : IDTCH2O, IDTMP,    IDTSO2,  IDTSO4  
       USE TRACERID_MOD,       ONLY : IDTSO4s, IDTSO4aq, IDTMSA,  IDTNH3   
@@ -2811,17 +2853,14 @@
       USE TRACERID_MOD,       ONLY : IDTMOBA,   IDTPROPNN
       USE TRACERID_MOD,       ONLY : IDTISOPN,  IDTMMN
       USE TRACERID_MOD,       ONLY : IDTIEPOX,  IDTRIP,    IDTMAP
-      ! jpp 4/27/09
       USE TRACERID_MOD,       ONLY : IDTHOBr,   IDTHBr,    IDTBr2
-      !POPs (eck, 9/21/10)
       USE TRACERID_MOD,       ONLY : IDTPOPPOC, IDTPOPPBC, IDTPOPG
-#if defined( TOMAS )
-      USE TRACERID_MOD, ONLY : IDTH2SO4,IDTNK1,   IDTSF1,  IDTSS1 !(win, 7/16/09)
-      USE TRACERID_MOD, ONLY : IDTECIL1,IDTOCIL1, IDTOCOB1,IDTDUST1 !(win, 7/16/09)
-      USE TOMAS_MOD,    ONLY : ICOMP,   IBINS !(win, 7/16/09)
-#endif
 
-      USE CMN_SIZE_MOD             ! Size parameters
+#if defined( TOMAS )
+      USE TRACERID_MOD, ONLY : IDTH2SO4,IDTNK1,   IDTSF1,  IDTSS1
+      USE TRACERID_MOD, ONLY : IDTECIL1,IDTOCIL1, IDTOCOB1,IDTDUST1
+      USE TOMAS_MOD,    ONLY : ICOMP,   IBINS
+#endif
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3639,7 +3678,7 @@
          ! (cdh, 4/16/09, 5/20/09)
          !------------------------------------------------------------------- 
 ! CDH 8/7/2009, 10/27/2009. All temperature dependence for Hg handled below
-         IF ( TK < 258d0 .AND. (.NOT. ITS_A_MERCURY_SIM() ) ) THEN
+         IF ( TK < 258d0 .AND. (.NOT. ITS_A_MERCURY_SIM ) ) THEN
             ! allow Dust and BCPO to be IN (qq,10/11/2011)
             IF ( N == IDTBCPO .or. N == IDTDST1 .or. N == IDTDST2 .or.
      &           N == IDTDST3 .or. N == IDTDST4 .or.N == IDTHNO3) THEN
@@ -4018,6 +4057,7 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE TRACERID_MOD, ONLY : IDTPB,    IDTBE7,   IDTHNO3, IDTH2O2 
       USE TRACERID_MOD, ONLY : IDTCH2O,  IDTMP,    IDTSO2,  IDTSO4  
@@ -4039,17 +4079,14 @@
       USE GIGC_State_Met_Mod, ONLY : MetState !(sfarina 2/20/13)
       ! jpp 4/27/09
       USE TRACERID_MOD, ONLY : IDTHOBr,  IDTHBr,   IDTBr2
-      !POPs (eck, 9/21/10)
       USE TRACERID_MOD, ONLY : IDTPOPPOC, IDTPOPPBC, IDTPOPG
       USE GET_POPSINFO_MOD, ONLY : GET_POP_HSTAR, GET_POP_DEL_Hw
 
 #if defined( TOMAS )
-      USE TRACERID_MOD, ONLY : IDTH2SO4, IDTNK1,   IDTSF1,  IDTSS1 ! (win, 7/16/09)
-      USE TRACERID_MOD, ONLY : IDTECIL1, IDTOCIL1, IDTOCOB1,IDTDUST1 ! (win, 7/16/09) 
-      USE TOMAS_MOD,    ONLY : IBINS,    ICOMP ! (win, 7/16/09)
+      USE TRACERID_MOD, ONLY : IDTH2SO4, IDTNK1,   IDTSF1,  IDTSS1
+      USE TRACERID_MOD, ONLY : IDTECIL1, IDTOCIL1, IDTOCOB1,IDTDUST1
+      USE TOMAS_MOD,    ONLY : IBINS,    ICOMP
 #endif
-
-      USE CMN_SIZE_MOD                     ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -4623,7 +4660,6 @@
 !
 ! !USES:
 !
-      USE TRACER_MOD, ONLY : ITS_A_POPS_SIM ! (eck, 10/15/10)
 !
 ! !INPUT PARAMETERS: 
 !
@@ -4667,7 +4703,7 @@
       !=================================================================
 
       ! Washout only happens at or above 268 K
-      IF ( ( TK >= 268d0 ) .OR. ITS_A_POPS_SIM() ) THEN
+      IF ( ( TK >= 268d0 ) .OR. ITS_A_POPS_SIM ) THEN
          WASHFRAC = F *(1d0 - EXP( -K_WASH * 
      &                         (PP / F*3.6d4 )**0.61d0 * DT / 3.6d3 ))
       ELSE
@@ -5011,35 +5047,34 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WETDEP( State_Met, LS )
+      SUBROUTINE WETDEP( State_Met, State_Chm, LS )
 !
 ! !USES:
 !
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
+      USE COMMSOIL_MOD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_WD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_HgP_WD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
       USE GET_NDEP_MOD,       ONLY : SOIL_WETDEP
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE LOGICAL_MOD,        ONLY : LGTMM
-      USE LOGICAL_MOD,        ONLY : LSOILNOX
-      USE LOGICAL_MOD,        ONLY : LDYNOCEAN
       USE TIME_MOD,           ONLY : GET_TS_DYN
-      USE TRACER_MOD,         ONLY : ITS_A_MERCURY_SIM
-      USE TRACER_MOD,         ONLY : STT
       USE TRACERID_MOD,       ONLY : IDTSO2
       USE TRACERID_MOD,       ONLY : IDTSO4
       USE TRACERID_MOD,       ONLY : IS_Hg2
       USE TRACERID_MOD,       ONLY : IS_HgP
-
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_DIAG_MOD             ! Diagnostic arrays and switches
-      USE COMMSOIL_MOD
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL,        INTENT(IN)  :: LS         ! =T denotes large-scale precip
-                                                ! =F denotes convective precip
-      TYPE(MetState), INTENT(IN)  :: State_Met  ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: LS         ! =T for large-scale precip
+                                                  ! =F for convective precip
+      TYPE(MetState), INTENT(IN)    :: State_Met  ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm  ! Chemistry State object
 !
 ! !REMARKS:
 !  Precipitation fields:
@@ -5230,12 +5265,21 @@
  
       CHARACTER(LEN=255) :: ERRMSG
 
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! (1)  I n i t i a l i z e   V a r i a b l e s
       !=================================================================
 
       ! Is this a mercury simulation with dynamic online ocean?
-      IS_Hg = ( ITS_A_MERCURY_SIM() .and. LDYNOCEAN )
+      IS_Hg = ( ITS_A_MERCURY_SIM .and. LDYNOCEAN )
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       ! Dynamic timestep [s]
       DT    = GET_TS_DYN() * 60d0
@@ -5592,6 +5636,9 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+      ! Free pointer
+      NULLIFY( STT )
+
       END SUBROUTINE WETDEP
 !EOC
 !------------------------------------------------------------------------------
@@ -5609,32 +5656,32 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WETDEP_MERRA( LS, State_Met )
+      SUBROUTINE WETDEP_MERRA( State_Met, State_Chm, LS )
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
+      USE CMN_DIAG_MOD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_WD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_HgP_WD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE LOGICAL_MOD,        ONLY : LDYNOCEAN
-      USE LOGICAL_MOD,        ONLY : LGTMM
       USE TIME_MOD,           ONLY : GET_TS_DYN
-      USE TRACER_MOD,         ONLY : ITS_A_MERCURY_SIM
-      USE TRACER_MOD,         ONLY : STT
       USE TRACERID_MOD,       ONLY : IDTSO2
       USE TRACERID_MOD,       ONLY : IDTSO4
       USE TRACERID_MOD,       ONLY : IS_Hg2
       USE TRACERID_MOD,       ONLY : IS_HgP
-
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_DIAG_MOD             ! Diagnostic arrays and switches
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL,        INTENT(IN)  :: LS         ! =T denotes large-scale precip
-                                                ! =F denotes convective precip
-      TYPE(MetState), INTENT(IN)  :: State_Met  ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: LS         ! =T for large-scale precip
+                                                  ! =F for convective precip
+      TYPE(MetState), INTENT(IN)    :: State_Met  ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm  ! Chemistry State object
 !
 ! !REMARKS:
 !  Precipitation fields:
@@ -5775,12 +5822,21 @@
  
       CHARACTER(LEN=255) :: ERRMSG
 
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! (1)  I n i t i a l i z e   V a r i a b l e s
       !=================================================================
 
       ! Is this a mercury simulation with dynamic online ocean?
-      IS_Hg = ( ITS_A_MERCURY_SIM() .and. LDYNOCEAN )
+      IS_Hg = ( ITS_A_MERCURY_SIM .and. LDYNOCEAN )
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       ! Dynamic timestep [s]
       DT    = GET_TS_DYN() * 60d0
@@ -6091,6 +6147,9 @@
       ENDDO	
 !$OMP END PARALLEL DO
 
+      ! Free pointer
+      NULLIFY( STT )
+
       END SUBROUTINE WETDEP_MERRA
 !EOC
 !------------------------------------------------------------------------------
@@ -6261,6 +6320,8 @@
 !
 ! !USES:
 !
+      USE CMN_DIAG_MOD                                 ! Diagnostic flags
+      USE CMN_SIZE_MOD                                 ! Size parameters
       USE DIAG_MOD,           ONLY : AD16              ! ND16 diag array
       USE DIAG_MOD,           ONLY : AD17              ! ND17 diag array
       USE DIAG_MOD,           ONLY : AD39              ! ND39 diag array
@@ -6269,19 +6330,14 @@
       USE ERROR_MOD,          ONLY : IT_IS_NAN         ! Test for NaN
       USE GET_NDEP_MOD,       ONLY : SOIL_WETDEP       ! Wet deposited species
       USE GIGC_State_Met_Mod, ONLY : MetState          ! Met State object
-      USE LOGICAL_MOD,        ONLY : LGTMM             ! Use GTMM for Hg sim?
-      USE LOGICAL_MOD,        ONLY : LSOILNOX          ! Use soil NOx?
 #if defined( TOMAS )
-      USE TRACERID_MOD,       ONLY : IDTNK1, IDTSF1, IDTSS1  !(win, 7/16/09)
-      USE TRACERID_MOD,       ONLY : IDTECIL1, IDTOCIL1, IDTOCOB1 !(win, 7/16/09)
-      USE TRACERID_MOD,       ONLY : IDTDUST1 !(win, 7/16/09)
-      USE TOMAS_MOD,          ONLY : IBINS, ICOMP, AQOXID !(win, 7/16/09)
-      USE TOMAS_MOD,          ONLY : GETFRACTION !(win, 7/16/09)
-      USE DIAG_MOD,           ONLY : AD05  !(win, 7/16/09)
+      USE TRACERID_MOD,       ONLY : IDTNK1, IDTSF1, IDTSS1
+      USE TRACERID_MOD,       ONLY : IDTECIL1, IDTOCIL1, IDTOCOB1
+      USE TRACERID_MOD,       ONLY : IDTDUST1
+      USE TOMAS_MOD,          ONLY : IBINS, ICOMP, AQOXID
+      USE TOMAS_MOD,          ONLY : GETFRACTION
+      USE DIAG_MOD,           ONLY : AD05
 #endif
- 
-      USE CMN_SIZE_MOD                                 ! Size parameters
-      USE CMN_DIAG_MOD                                 ! Diagnostic flags
 !
 ! !INPUT PARAMETERS: 
 !     
@@ -6509,6 +6565,8 @@
 !
 ! !USES:
 !
+      USE CMN_DIAG_MOD                                 ! Diagnostic flags
+      USE CMN_SIZE_MOD                                 ! Size parameters
       USE DIAG_MOD,           ONLY : AD16              ! ND16 diag array
       USE DIAG_MOD,           ONLY : AD17              ! ND17 diag array
       USE DIAG_MOD,           ONLY : AD18              ! ND18 diag array
@@ -6519,21 +6577,16 @@
       USE ERROR_MOD,          ONLY : IT_IS_NAN         ! Test for NaN
       USE GET_NDEP_MOD,       ONLY : SOIL_WETDEP       ! Wet deposited species
       USE GIGC_State_Met_Mod, ONLY : MetState          ! Met State object
-      USE LOGICAL_MOD,        ONLY : LGTMM             ! Use GTMM w/ Hg sim?
-      USE LOGICAL_MOD,        ONLY : LSOILNOX          ! Use soil NOx?
       USE TRACERID_MOD,       ONLY : IDTSO2            ! ID flag for SO2
       USE TRACERID_MOD,       ONLY : IDTSO4            ! ID flag for SO4
 #if defined( TOMAS )
-      USE TRACERID_MOD,       ONLY : IDTNK1, IDTSF1, IDTSS1       !(win, 7/16/09)
-      USE TRACERID_MOD,       ONLY : IDTECIL1, IDTOCIL1, IDTOCOB1 !(win, 7/16/09)
-      USE TRACERID_MOD,       ONLY : IDTDUST1                     !(win, 7/16/09)
-      USE TOMAS_MOD,          ONLY : IBINS, ICOMP, AQOXID         !(win, 7/16/09)
-      USE TOMAS_MOD,          ONLY : GETFRACTION                  !(win, 7/16/09)
-      USE DIAG_MOD,           ONLY : AD05                         !(win, 7/16/09)
+      USE TRACERID_MOD,       ONLY : IDTNK1, IDTSF1, IDTSS1
+      USE TRACERID_MOD,       ONLY : IDTECIL1, IDTOCIL1, IDTOCOB1
+      USE TRACERID_MOD,       ONLY : IDTDUST1
+      USE TOMAS_MOD,          ONLY : IBINS, ICOMP, AQOXID
+      USE TOMAS_MOD,          ONLY : GETFRACTION
+      USE DIAG_MOD,           ONLY : AD05
 #endif
-
-      USE CMN_SIZE_MOD                                 ! Size parameters
-      USE CMN_DIAG_MOD                                 ! Diagnostic flags
 !
 ! !INPUT PARAMETERS: 
 !     
@@ -6916,31 +6969,28 @@
 !
 ! !USES:
 !
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE DIAG_MOD,     ONLY : AD16                    ! ND16 diag array
-      USE DIAG_MOD,     ONLY : AD17                    ! ND17 diag array
-      USE DIAG_MOD,     ONLY : AD18                    ! ND18 diag array
-      USE DIAG_MOD,     ONLY : AD39                    ! ND39 diag array
-      USE DIAG_MOD,     ONLY : CT16                    ! ND16 diag counter
-      USE DIAG_MOD,     ONLY : CT17                    ! ND17 diag counter
-      USE DIAG_MOD,     ONLY : CT18                    ! ND18 diag counter
-      USE ERROR_MOD,    ONLY : IT_IS_NAN               ! Test for NaN
-      USE GET_NDEP_MOD, ONLY : SOIL_WETDEP             ! Wet deposited species
-      USE LOGICAL_MOD,  ONLY : LGTMM                   ! Use GTMM w/ Hg sim?
-      USE LOGICAL_MOD,  ONLY : LSOILNOX                ! Use soil NOx?
-      USE TRACERID_MOD, ONLY : IDTSO2                  ! ID flag for SO2
-      USE TRACERID_MOD, ONLY : IDTSO4                  ! ID flag for SO4
-#if defined( TOMAS )
-      USE TRACERID_MOD,       ONLY : IDTNK1, IDTSF1, IDTSS1       !(win, 7/16/09)
-      USE TRACERID_MOD,       ONLY : IDTECIL1, IDTOCIL1, IDTOCOB1 !(win, 7/16/09)
-      USE TRACERID_MOD,       ONLY : IDTDUST1                     !(win, 7/16/09)
-      USE TOMAS_MOD,          ONLY : IBINS, ICOMP, AQOXID         !(win, 7/16/09)
-      USE TOMAS_MOD,          ONLY : GETFRACTION                  !(win, 7/16/09)
-      USE DIAG_MOD,           ONLY : AD05                         !(win, 7/16/09)
-#endif
-
-      USE CMN_SIZE_MOD                                 ! Size parameters
       USE CMN_DIAG_MOD                                 ! Diagnostic flags
+      USE CMN_SIZE_MOD                                 ! Size parameters
+      USE DIAG_MOD,           ONLY : AD16              ! ND16 diag array
+      USE DIAG_MOD,           ONLY : AD17              ! ND17 diag array
+      USE DIAG_MOD,           ONLY : AD18              ! ND18 diag array
+      USE DIAG_MOD,           ONLY : AD39              ! ND39 diag array
+      USE DIAG_MOD,           ONLY : CT16              ! ND16 diag counter
+      USE DIAG_MOD,           ONLY : CT17              ! ND17 diag counter
+      USE DIAG_MOD,           ONLY : CT18              ! ND18 diag counter
+      USE ERROR_MOD,          ONLY : IT_IS_NAN         ! Test for NaN
+      USE GET_NDEP_MOD,       ONLY : SOIL_WETDEP       ! Wet deposited species
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TRACERID_MOD,       ONLY : IDTSO2            ! ID flag for SO2
+      USE TRACERID_MOD,       ONLY : IDTSO4            ! ID flag for SO4
+#if defined( TOMAS )
+      USE TRACERID_MOD,       ONLY : IDTNK1, IDTSF1, IDTSS1
+      USE TRACERID_MOD,       ONLY : IDTECIL1, IDTOCIL1, IDTOCOB1
+      USE TRACERID_MOD,       ONLY : IDTDUST1
+      USE TOMAS_MOD,          ONLY : IBINS, ICOMP, AQOXID
+      USE TOMAS_MOD,          ONLY : GETFRACTION
+      USE DIAG_MOD,           ONLY : AD05
+#endif
 !
 ! !INPUT PARAMETERS: 
 !     
@@ -7104,6 +7154,8 @@
 !
 ! !USES:
 !
+      USE CMN_DIAG_MOD                                 ! Diagnostic flags
+      USE CMN_SIZE_MOD                                 ! Size parameters
       USE DIAG_MOD,           ONLY : AD16              ! ND16 diag array
       USE DIAG_MOD,           ONLY : AD17              ! ND17 diag array
       USE DIAG_MOD,           ONLY : AD18              ! ND18 diag array
@@ -7114,13 +7166,8 @@
       USE ERROR_MOD,          ONLY : IT_IS_NAN         ! Test for NaN
       USE GET_NDEP_MOD,       ONLY : SOIL_WETDEP       ! Wet deposited species
       USE GIGC_State_Met_Mod, ONLY : MetState          ! Met State object
-      USE LOGICAL_MOD,        ONLY : LGTMM             ! Use GTMM w/ Hg sim?
-      USE LOGICAL_MOD,        ONLY : LSOILNOX          ! Use soil NOx?
       USE TRACERID_MOD,       ONLY : IDTSO2            ! ID flag for SO2
       USE TRACERID_MOD,       ONLY : IDTSO4            ! ID flag for SO4
-
-      USE CMN_SIZE_MOD                                 ! Size parameters
-      USE CMN_DIAG_MOD                                 ! Diagnostic flags
 !
 ! !INPUT PARAMETERS: 
 !     
@@ -7312,9 +7359,9 @@
 !
 ! !USES:
 !
-      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
+      USE CMN_SIZE_MOD
+      USE ERROR_MOD,    ONLY : GEOS_CHEM_STOP
 
-      USE CMN_SIZE_MOD                              ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -7395,12 +7442,14 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WETDEPID( am_I_Root )
+      SUBROUTINE WETDEPID( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
       USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE TRACER_MOD,   ONLY : N_TRACERS, TRACER_NAME, TRACER_MW_G
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE TRACERID_MOD, ONLY : IDTPB,     IDTBE7,    IDTHNO3, IDTH2O2 
       USE TRACERID_MOD, ONLY : IDTCH2O,   IDTMP,     IDTSO2,  IDTSO4  
       USE TRACERID_MOD, ONLY : IDTSO4s,   IDTSO4aq,  IDTMSA,  IDTNH3   
@@ -7418,21 +7467,22 @@
       USE TRACERID_MOD, ONLY : IDTMOBA,   IDTPROPNN
       USE TRACERID_MOD, ONLY : IDTISOPN,  IDTMMN
       USE TRACERID_MOD, ONLY : IDTIEPOX,  IDTRIP,    IDTMAP
-      ! jpp 4/27/09
       USE TRACERID_MOD, ONLY : IDTHOBr,   IDTHBr,    IDTBr2
-      ! POPS (10/2010)
       USE TRACERID_MOD, ONLY : IDTPOPPOC, IDTPOPPBC,  IDTPOPG
 #if defined( TOMAS )
-      USE TRACERID_MOD, ONLY : IDTH2SO4,  IDTNK1,    IDTSF1,  IDTSS1 !(win, 7/16/09)
-      USE TRACERID_MOD, ONLY : IDTECIL1,  IDTOCIL1,  IDTOCOB1,IDTDUST1 !(win, 7/16/09)
-      USE TOMAS_MOD,    ONLY : IBINS  !(win, 7/16/09)
+      USE TRACERID_MOD, ONLY : IDTH2SO4,  IDTNK1,    IDTSF1,  IDTSS1
+      USE TRACERID_MOD, ONLY : IDTECIL1,  IDTOCIL1,  IDTOCOB1,IDTDUST1
+      USE TOMAS_MOD,    ONLY : IBINS
 #endif
-
-      USE CMN_SIZE_MOD       ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  08 Nov 2002 - R. Yantosca - Initial version
@@ -7454,6 +7504,7 @@
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7470,7 +7521,7 @@
       NSOL = 0
 
       ! Sort soluble tracers into IDWETD
-      DO N = 1, N_TRACERS
+      DO N = 1, Input_Opt%N_TRACERS
 
          !-----------------------------
          ! Rn-Pb-Be tracers
@@ -7839,7 +7890,7 @@
       
       ! Also check to see if NSOL is larger than the maximum
       ! number of soluble tracers for a particular simulation
-      IF ( NSOL > GET_WETDEP_NMAX() ) THEN
+      IF ( NSOL > GET_WETDEP_NMAX( am_I_Root, Input_Opt, RC ) ) THEN
          CALL ERROR_STOP( 'NSOL > NMAX', 'WETDEPID (wetscav_mod.f)')
       ENDIF
 
@@ -7855,7 +7906,8 @@
          DO NN = 1, NSOL
             N = IDWETD(NN)
             WRITE( 6, '(i3,3x,a14,3x,i3,3x,f6.1)' )
-     &           NN, TRIM( TRACER_NAME(N) ), N, TRACER_MW_G(N)
+     &           NN, TRIM( Input_Opt%TRACER_NAME(N) ), 
+     &           N, Input_Opt%TRACER_MW_G(N)
          ENDDO
       ENDIF
 
@@ -7875,22 +7927,28 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_WETDEP_NMAX() RESULT ( NMAX )
+      FUNCTION GET_WETDEP_NMAX( am_I_Root, Input_Opt, RC ) RESULT(NMAX)
 !
 ! !USES:
 !
-      USE LOGICAL_MOD,  ONLY : LCARB,  LDUST, LSOA
-      USE LOGICAL_MOD,  ONLY : LSSALT, LSULF, LSPLIT, LCRYST
-      USE TRACER_MOD,   ONLY : ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM
-      USE TRACER_MOD,   ONLY : ITS_A_RnPbBe_SIM,   ITS_A_MERCURY_SIM
-      USE TRACER_MOD,   ONLY : ITS_A_POPS_SIM
-      USE TRACERID_MOD, ONLY : IDTSOAG,  IDTSOAM
+      USE CMN_SIZE_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TRACERID_MOD,       ONLY : IDTSOAG,  IDTSOAM
 #if defined( TOMAS )
-      USE TRACERID_MOD, ONLY : IDTNK1
-      USE TOMAS_MOD,    ONLY : IBINS, IDIAG, ICOMP
+      USE TRACERID_MOD,       ONLY : IDTNK1
+      USE TOMAS_MOD,          ONLY : IBINS, IDIAG, ICOMP
 #endif
 
-      USE CMN_SIZE_MOD       ! Size parameters
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !RETURN VALUE:
 !
@@ -7914,17 +7972,37 @@
 !  (9 ) Added 9 new tracers for ISOPRENE species (fp, 6/2009)
 !  (10) Added SOA5 and SOG5 (hotp, 6/15/09)
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  23 Apr 2013 - S. Farina   - Inlined code for TOMAS, separated w/ #ifdefs
 !  23 Apr 2013 - R. Yantosca - Updated comments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+
+      ! For fields from Input_Opt
+      LOGICAL :: LCARB,  LDUST, LSOA
+      LOGICAL :: LSSALT, LSULF, LSPLIT, LCRYST
+
       !=================================================================
       ! GET_WETDEP_NMAX begins here!
-      !
+      !=================================================================
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LCARB  = Input_Opt%LCARB
+      LDUST  = Input_Opt%LDUST
+      LSOA   = Input_Opt%LSOA
+      LSSALT = Input_Opt%LSSALT
+      LSULF  = Input_Opt%LSULF
+      LSPLIT = Input_Opt%LSPLIT
+      LCRYST = Input_Opt%LCRYST
+
+      !=================================================================
       ! NOTE: If you add tracers to a simulation, update as necessary
       !=================================================================
-      IF ( ITS_A_FULLCHEM_SIM() ) THEN 
+      IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN 
       
          !-----------------------
          ! Fullchem simulation
@@ -7958,7 +8036,7 @@
          ENDIF
 #endif
 
-      ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
+      ELSE IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
          !-----------------------
          ! Offline simulation
@@ -7983,14 +8061,14 @@
          ENDIF
 #endif
                
-      ELSE IF ( ITS_A_RnPbBe_SIM() ) THEN
+      ELSE IF ( Input_Opt%ITS_A_RnPbBe_SIM ) THEN
 
          !-----------------------
          ! Rn-Pb-Be simulation
          !-----------------------
          NMAX = 2                                    ! 210Pb, 7Be
 
-      ELSE IF ( ITS_A_MERCURY_SIM() ) THEN
+      ELSE IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
          !-----------------------
          ! Mercury simulation
@@ -7998,7 +8076,7 @@
          NMAX = 2                                    ! Hg2, HgP
          IF ( LSPLIT ) NMAX = 58                     ! Tagged tracers (eds)
 
-      ELSE IF ( ITS_A_POPS_SIM() ) THEN
+      ELSE IF ( Input_Opt%ITS_A_POPS_SIM ) THEN
 
          ! ------------------
          ! POPs simulation
@@ -8014,7 +8092,6 @@
 
       ENDIF
 
-      print*, '### GET_WETDEP_NMAX: ', NMAX
       END FUNCTION GET_WETDEP_NMAX
 !EOC
 !------------------------------------------------------------------------------
@@ -8115,23 +8192,34 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_WETSCAV( State_Met )
+      SUBROUTINE INIT_WETSCAV( am_I_Root, Input_Opt, 
+     &                         State_Met, State_Chm, RC )
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
       USE DAO_MOD,            ONLY : IS_WATER
       USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
-      USE TRACER_MOD,         ONLY : STT
       USE TRACERID_MOD,       ONLY : IDTH2O2, IDTSO2
-
-      USE CMN_SIZE_MOD             ! Size parameters
-
 !
 ! !INPUT PARAMETERS:
 !
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  23 Feb 2000 - R. Yantosca - Initial version
@@ -8170,38 +8258,47 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER       :: I, J, L, AS
+      INTEGER       :: I, J, L
       REAL*8        :: PL, TK
       LOGICAL, SAVE :: FIRST = .TRUE.      
             
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! INIT_WETSCAV begins here!
       !=================================================================
       IF ( FIRST ) THEN
 
+         ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+         ! (mpayer, 12/6/12)
+         STT => State_Chm%Tracers
+
          ! Allocate Vud on first call
-         ALLOCATE( Vud( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'Vud' )
+         ALLOCATE( Vud( IIPAR, JJPAR ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'Vud' )
          Vud = 0d0
 
          ! Allocate C_H2O on first call
-         ALLOCATE( C_H2O( IIPAR, JJPAR, LLPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'C_H2O' )
+         ALLOCATE( C_H2O( IIPAR, JJPAR, LLPAR ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'C_H2O' )
          C_H2O = 0d0
 
          ! Allocate CLDLIQ on first call
-         ALLOCATE( CLDLIQ( IIPAR, JJPAR, LLPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDLIQ' )
+         ALLOCATE( CLDLIQ( IIPAR, JJPAR, LLPAR ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'CLDLIQ' )
          CLDLIQ = 0d0
 
          ! Allocate CLDICE on first call
-         ALLOCATE( CLDICE( IIPAR, JJPAR, LLPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDICE' )
+         ALLOCATE( CLDICE( IIPAR, JJPAR, LLPAR ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'CLDICE' )
          CLDICE = 0d0
 
          ! Allocate H2O2s for wet deposition 
-         ALLOCATE( H2O2s( IIPAR, JJPAR, LLPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'H2O2s' )
+         ALLOCATE( H2O2s( IIPAR, JJPAR, LLPAR ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'H2O2s' )
 
          ! Set H2O2s to the initial H2O2 from STT, so that we will have
          ! nonzero values for the first call to COMPUTE_F (bmy, 1/14/03)
@@ -8212,8 +8309,8 @@
          ENDIF
 
          ! Allocate SO2s for wet deposition
-         ALLOCATE( SO2s( IIPAR, JJPAR, LLPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'SO2s' )
+         ALLOCATE( SO2s( IIPAR, JJPAR, LLPAR ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'SO2s' )
 
          ! Set SO2s to the initial SO2 from STT, so that we will have
          ! nonzero values for the first call to COMPUTE_F (bmy, 1/14/03)
@@ -8225,6 +8322,9 @@
 
          ! Reset flag
          FIRST = .FALSE. 
+
+         ! Free pointer
+         NULLIFY( STT )
       ENDIF
 
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )

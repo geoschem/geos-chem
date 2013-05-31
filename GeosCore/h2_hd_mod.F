@@ -110,53 +110,50 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE EMISS_H2_HD( State_Met, BIO_EMISS )
-#else
-      SUBROUTINE EMISS_H2_HD( State_Met )
-#endif
+      SUBROUTINE EMISS_H2_HD( am_I_Root, Input_Opt,
+     &                        State_Met, State_Chm, RC )
 !
 ! !USES:
 !
       USE BIOFUEL_MOD,        ONLY : BIOFUEL,     BIOFUEL_BURN
       USE BIOMASS_MOD,        ONLY : BIOMASS
+      USE CMN_DIAG_MOD
+      USE CMN_O3_MOD
+      USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD29,        AD46,         AD10em
       USE GEIA_MOD,           ONLY : GET_IHOUR,   GET_DAY_INDEX
       USE GEIA_MOD,           ONLY : READ_GEIA,   READ_TODX
       USE GEIA_MOD,           ONLY : READ_LIQCO2, READ_TOTCO2
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET  
       USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,        ONLY : LANTHRO,     LGFED2BB,     LGFED3BB
-      USE LOGICAL_MOD,        ONLY : LBIOMASS,    LBIOFUEL,     LNEI99
-      USE LOGICAL_MOD,        ONLY : LSTREETS,    LEDGAR,       LBRAVO
-      USE LOGICAL_MOD,        ONLY : LMEGAN
       USE MEGANUT_MOD,        ONLY : XLTMMP
       USE MEGAN_MOD,          ONLY : GET_EMMONOT_MEGAN
       USE MEGAN_MOD,          ONLY : GET_EMISOP_MEGAN
       USE TRACERID_MOD,       ONLY : IDBCO
       USE TIME_MOD,           ONLY : GET_MONTH,   GET_TAU 
       USE TIME_MOD,           ONLY : GET_YEAR,    GET_TS_EMIS  
-      USE TRACER_MOD,         ONLY : STT
       USE TRACERID_MOD,       ONLY : IDBFCO,      IDTH2,        IDTHD
       USE TAGGED_CO_MOD,      ONLY : INIT_TAGGED_CO
       USE TAGGED_CO_MOD,      ONLY : READ_ACETONE,  EMACET
       USE SCALE_ANTHRO_MOD,   ONLY : GET_ANNUAL_SCALAR
-      
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_O3_MOD               ! FSCALYR, SCNR89, TODH, EMISTCO
-      USE CMN_DIAG_MOD             ! Diagnostic arrays & switches
-
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
-#if defined( DEVEL )
-      REAL*8,         INTENT(INOUT) :: BIO_EMISS(:,:,:)
-#endif
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  18 Sep 2007 - L. Jaegle, H. U. Price, P. Le Sager -- Initial version
@@ -197,13 +194,41 @@
       ! Cosine SZA & PAR (for calculation of monoterpenes)
       REAL*8                 :: SC, PDF, PDR
 
+      ! For fields from Input_Opt
+      LOGICAL                :: LANTHRO,     LGFED2BB,     LGFED3BB
+      LOGICAL                :: LBIOMASS,    LBIOFUEL,     LNEI99
+      LOGICAL                :: LSTREETS,    LEDGAR,       LBRAVO
+      LOGICAL                :: LMEGAN
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER        :: STT(:,:,:,:)
+
       ! External functions
       REAL*8, EXTERNAL       :: BOXVL
       REAL*8, EXTERNAL       :: EMCH3OH
 
       !=================================================================
       ! EMISS_H2_HD begins here!
-      !
+      !=================================================================
+
+      ! Assume success
+      RC       =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LANTHRO  = Input_Opt%LANTHRO
+      LGFED2BB = Input_Opt%LGFED2BB
+      LGFED3BB = Input_Opt%LGFED3BB
+      LBIOMASS = Input_Opt%LBIOMASS
+      LBIOFUEL = Input_Opt%LBIOFUEL
+      LNEI99   = Input_Opt%LNEI99 
+      LSTREETS = Input_Opt%LSTREETS
+      LEDGAR   = Input_Opt%LEDGAR
+      LBRAVO   = Input_Opt%LBRAVO
+      LMEGAN   = Input_Opt%LMEGAN
+
+      !=================================================================
       ! Do the following only on the first call to EMISS_H2_HD...
       !=================================================================
       IF ( FIRSTEMISS ) THEN
@@ -268,6 +293,10 @@
          LASTYEAR = SCALEYEAR
       ENDIF
 
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+
       ! DTSRCE is the number of seconds per emission timestep
       DTSRCE = GET_TS_EMIS() * 60d0
 
@@ -304,7 +333,6 @@
 
          ! SFAC89 is the Weekday/Saturday/Sunday scale factor
          SFAC89 = SCNR89( 2, GET_DAY_INDEX( NTAU ) ) 
-
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
@@ -511,11 +539,8 @@
       !       biofuel burning array (bmy, 6/8/01).
       !=================================================================
       IF ( LBIOFUEL ) THEN
-#if defined( DEVEL )
-         CALL BIOFUEL_BURN( State_Met, BIO_EMISS )
-#else
-         CALL BIOFUEL_BURN( State_Met )
-#endif
+         CALL BIOFUEL_BURN
+     &      ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -673,6 +698,9 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+      ! Free pointer
+      NULLIFY( STT )
+
       END SUBROUTINE EMISS_H2_HD
 !EOC
 !------------------------------------------------------------------------------
@@ -691,12 +719,18 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_H2_HD( State_Met )
+      SUBROUTINE CHEM_H2_HD( am_I_Root, Input_Opt,
+     &                       State_Met, State_Chm, RC )
 !
 ! !USES:
 !
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD10
       USE ERROR_MOD,          ONLY : CHECK_VALUE
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GLOBAL_OH_MOD,      ONLY : GET_GLOBAL_OH,   OH
       USE GLOBAL_O1D_MOD,     ONLY : GET_GLOBAL_O1D, O1D
@@ -707,19 +741,25 @@
       USE TIME_MOD,           ONLY : GET_YEAR
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
       USE DRYDEP_MOD,         ONLY : DEPSAV
-      USE TRACER_MOD,         ONLY : N_TRACERS,       STT
       USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
       USE TRACERID_MOD,       ONLY : IDTH2, IDTHD
       USE TAGGED_CO_MOD,      ONLY : GET_ALPHA_ISOP
       USE TAGGED_CO_MOD,      ONLY : READ_PCO_LCO_STRAT
       USE TAGGED_CO_MOD,      ONLY : GET_PCO_LCO_STRAT
-
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_DIAG_MOD             ! ND65
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  18 Sep 2007 - L. Jaegle, H. U. Price, P. Le Sager -- Initial version
@@ -728,6 +768,9 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  11 Apr 2013 - R. Yantosca - Now pass Input_Opt to GET_GLOBAL_NOx
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -735,6 +778,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE          :: FIRSTCHEM = .TRUE.
+      INTEGER                :: N_TRACERS
       INTEGER                :: I, J, L, N, MONTH
       REAL*8                 :: ALPHA_CH4, ALPHA_ISOP, ALPHA_MONO
       REAL*8                 :: DTCHEM,    GH2,        PCO
@@ -750,6 +794,11 @@
       REAL*8                 :: AREA_CM2, SVEL, FLUX
       REAL*8                 :: THIK, P2, DRYF, TESTVAR
       REAL*8                 :: FRACLOST, H2_RATE
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
 
       ! For saving CH4 latitudinal gradient
       REAL*8,  SAVE          :: A3090S, A0030S, A0030N, A3090N
@@ -770,6 +819,13 @@
       !
       ! Do the following on the first calla to CHEM_H2_HD...
       !=================================================================
+
+      ! Assume success
+      RC        = GIGC_SUCCESS
+
+      ! Get fields from Input_Opt
+      N_TRACERS = Input_Opt%N_TRACERS
+
       IF ( FIRSTCHEM ) THEN
          FIRSTCHEM = .FALSE.
       ENDIF
@@ -793,7 +849,9 @@
 
          ! Global NOx -- need this to determine 
          ! ALPHA_ISOP which is a function of NOx
-         IF ( ALPHA_ISOP_FROM_NOX ) CALL GET_GLOBAL_NOX( MONTH )
+         IF ( ALPHA_ISOP_FROM_NOX ) THEN
+            CALL GET_GLOBAL_NOX( MONTH, Input_Opt )
+         ENDIF
             
          ! Read in the loss/production of CO in the stratosphere.
          CALL READ_PCO_LCO_STRAT( MONTH )
@@ -811,6 +869,11 @@
       !=================================================================
       ! Do H2 and HD chemistry 
       !=================================================================
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED                                             ) 
 !$OMP+PRIVATE( I, J, L, N, STTH2, GH2, DENS, CH4RATE, H2_CH4, CH4 )
@@ -1310,6 +1373,9 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+      ! Free pointer
+      NULLIFY( STT )
+
       END SUBROUTINE CHEM_H2_HD
 !EOC
 !------------------------------------------------------------------------------
@@ -1509,7 +1575,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: AS, I, J, IJLOOP
+      INTEGER :: AS
       
       !=================================================================
       ! INIT_H2_HD begins here!

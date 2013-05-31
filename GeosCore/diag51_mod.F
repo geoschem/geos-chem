@@ -245,22 +245,37 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG51( State_Met )
+      SUBROUTINE DIAG51( am_I_Root, Input_Opt,
+     &                   State_Met, State_Chm, RC )
 !
 ! !USES:
 !
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE LOGICAL_MOD,        ONLY : DO_DIAG_WRITE
 !
 ! !INPUT PARAMETERS:
 !
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Rewritten for clarity (bmy, 7/20/04)
 !  (2 ) Added TAU_W as a local variable (bmy, 9/28/04)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -272,16 +287,21 @@
       !=================================================================
       ! DIAG51 begins here!
       !=================================================================
-      
+
+      ! Assume success
+      RC =  GIGC_SUCCESS      
+
       ! Construct array of where local times are between HR1, HR2
       CALL GET_LOCAL_TIME
 
       ! Accumulate data in the Q array
-      CALL ACCUMULATE_DIAG51( State_Met )
+      CALL ACCUMULATE_DIAG51
+     &   ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
       ! Write data to disk at the proper time
-      IF ( ITS_TIME_FOR_WRITE_DIAG51( TAU_W ) .and. DO_DIAG_WRITE ) THEN
-         CALL WRITE_DIAG51( TAU_W )
+      IF ( ITS_TIME_FOR_WRITE_DIAG51( TAU_W )  .and. 
+     &     Input_Opt%DO_DIAG_WRITE            ) THEN
+         CALL WRITE_DIAG51( am_I_Root, Input_Opt, TAU_W, RC )
       ENDIF
 
       END SUBROUTINE DIAG51
@@ -371,11 +391,14 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE ACCUMULATE_DIAG51( State_Met )
+      SUBROUTINE ACCUMULATE_DIAG51( am_I_Root, Input_Opt,
+     &                              State_Met, State_Chm, RC )
 !
 ! !USES:
 !
-      ! References to F90 modules
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE MODIS_LAI_MOD,      ONLY : ISOLAI => GC_LAI
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,   GET_PBL_TOP_m
@@ -383,8 +406,7 @@
       USE TIME_MOD,           ONLY : GET_ELAPSED_MIN, GET_TS_CHEM 
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING, GET_TS_DYN
       USE TIME_MOD,           ONLY : GET_TS_DIAG, GET_TS_EMIS
-      USE TRACER_MOD,         ONLY : STT, TCVV, ITS_A_FULLCHEM_SIM
-      USE TRACER_MOD,         ONLY : N_TRACERS, XNUMOLAIR
+      USE TRACER_MOD,         ONLY : XNUMOLAIR
       USE TRACERID_MOD,       ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNO
       USE TRACERID_MOD,       ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTO3
       USE TRACERID_MOD,       ONLY : IDTR4N2, IDTSALA, IDTSALC, IDTNO2
@@ -397,7 +419,17 @@
 !
 ! !INPUT PARAMETERS:
 !
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -455,16 +487,32 @@
       ! Aerosol types (rvm, aad, bmy, 7/20/04)
       INTEGER           :: IND(6) = (/ 22, 29, 36, 43, 50, 15 /)
 
+      ! For fields from Input_Opt
+      INTEGER           :: N_TRACERS
+      REAL*8            :: TCVV(Input_Opt%N_TRACERS)
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER   :: STT(:,:,:,:)
+
       !=================================================================
       ! ACCUMULATE_DIAG51 begins here!
       !=================================================================
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      N_TRACERS = Input_Opt%N_TRACERS
+      TCVV      = Input_Opt%TCVV(1:N_TRACERS)
 
       ! Set logical flags on first call
       IF ( FIRST ) THEN
          IS_OPTD     = ASSOCIATED( State_Met%OPTD    )
          IS_CLDTOPS  = ASSOCIATED( State_Met%CLDTOPS )
          IS_SLP      = ASSOCIATED( State_Met%SLP     )
-         IS_FULLCHEM = ITS_A_FULLCHEM_SIM()
+         IS_FULLCHEM = Input_Opt%ITS_A_FULLCHEM_SIM
          IS_SEASALT  = ( IDTSALA > 0 .and. IDTSALC > 0 )
          IS_NO       = ( IS_FULLCHEM .and. IDTNO   > 0 )
          IS_NO2      = ( IS_FULLCHEM .and. IDTNO2  > 0 )
@@ -561,11 +609,16 @@
       ! Accumulate quantities
       !------------------------
       IF ( IS_DIAG ) THEN
+
+         ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+         ! (mpayer, 12/6/12)
+         STT => State_Chm%Tracers
+
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
 !$OMP+PRIVATE( W, N, X, Y, K, I, J, L, TMP, H, R, SCALEAODnm ) 
 !$OMP+SCHEDULE( DYNAMIC )
-      DO W = 1, ND51_N_TRACERS
+         DO W = 1, ND51_N_TRACERS
 
          ! ND51 Tracer number
          N = ND51_TRACERS(W)
@@ -1145,9 +1198,13 @@
          ENDDO
          ENDDO
          ENDDO
-      ENDDO 
+         ENDDO 
 !$OMP END PARALLEL DO
-      GOOD(:) = 0
+         GOOD(:) = 0
+
+         ! Free pointer
+         NULLIFY( STT )
+
       ENDIF
 
       END SUBROUTINE ACCUMULATE_DIAG51
@@ -1255,37 +1312,43 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WRITE_DIAG51( TAU_W )
+      SUBROUTINE WRITE_DIAG51( am_I_Root, Input_Opt, TAU_W, RC )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,   ONLY : BPCH2
-      USE BPCH2_MOD,   ONLY : OPEN_BPCH2_FOR_WRITE
-      USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE inquireMod,  ONLY : findFreeLUN
-      USE LOGICAL_MOD, ONLY : LND51_HDF
-      USE TIME_MOD,    ONLY : EXPAND_DATE
-      USE TIME_MOD,    ONLY : GET_NYMD_DIAG    
-      USE TIME_MOD,    ONLY : GET_NHMS
-      USE TIME_MOD,    ONLY : GET_TAU 
-      USE TIME_MOD,    ONLY : TIMESTAMP_STRING
-      USE TIME_MOD,    ONLY : GET_TS_DYN
-      USE TRACER_MOD,  ONLY : N_TRACERS
+      USE BPCH2_MOD,          ONLY : BPCH2
+      USE BPCH2_MOD,          ONLY : OPEN_BPCH2_FOR_WRITE
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE inquireMod,         ONLY : findFreeLUN
+      USE TIME_MOD,           ONLY : EXPAND_DATE
+      USE TIME_MOD,           ONLY : GET_NYMD_DIAG    
+      USE TIME_MOD,           ONLY : GET_NHMS
+      USE TIME_MOD,           ONLY : GET_TAU 
+      USE TIME_MOD,           ONLY : TIMESTAMP_STRING
+      USE TIME_MOD,           ONLY : GET_TS_DYN
 
 #if   defined( USE_HDF5 )
       ! Only include this if we are linking to HDF5 library (bmy, 12/21/09)
-      USE HDF_MOD,     ONLY : OPEN_HDF
-      USE HDF_MOD,     ONLY : CLOSE_HDF
-      USE HDF_MOD,     ONLY : WRITE_HDF
-      USE HDF5,        ONLY : HID_T
-      INTEGER(HID_T)       :: IU_ND51_HDF
+      USE HDF_MOD,            ONLY : OPEN_HDF
+      USE HDF_MOD,            ONLY : CLOSE_HDF
+      USE HDF_MOD,            ONLY : WRITE_HDF
+      USE HDF5,               ONLY : HID_T
+      INTEGER(HID_T)              :: IU_ND51_HDF
 #endif
 
       USE CMN_SIZE_MOD   ! Size Parameters
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
-      REAL*8, INTENT(IN)  :: TAU_W   ! TAU value at time of disk write
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      REAL*8,         INTENT(IN)  :: TAU_W       ! TAU value at time of write
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -1317,6 +1380,7 @@
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1330,9 +1394,20 @@
       CHARACTER(LEN=40)   :: UNIT 
       CHARACTER(LEN=255)  :: FILENAME
 
+      ! For fields from Input_Opt
+      LOGICAL             :: LND51_HDF
+      INTEGER             :: N_TRACERS
+
       !=================================================================
       ! WRITE_DIAG51 begins here!
       !=================================================================
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LND51_HDF = Input_Opt%LND51_HDF
+      N_TRACERS = Input_Opt%N_TRACERS
 
       ! Find a free file LUN
       IU_ND51 = findFreeLUN()
@@ -1905,7 +1980,7 @@
      &                  ND51_NI,      ND51_NJ,      GMNL,
      &                  ND51_IMIN+I0, ND51_JMIN+J0, ND51_LMIN,
      &                  REAL( Q(1:ND51_NI, 1:ND51_NJ, 1:GMNL, W)))
-#endif
+#else
          ELSE
             CALL BPCH2( IU_ND51,      MODELNAME,    LONRES,   
      &                  LATRES,       HALFPOLAR,    CENTER180, 
@@ -1913,9 +1988,6 @@
      &                  TAU0,         TAU1,         RESERVED,  
      &                  ND51_NI,      ND51_NJ,      GMNL,     
      &                  ND51_IMIN+I0, ND51_JMIN+J0, ND51_LMIN, 
-#if defined( DEVEL )
-     &                  REAL(Q(1:ND51_NI, 1:ND51_NJ, 1:GMNL, W)))
-#else
      &                  REAL(Q(1:ND51_NI, 1:ND51_NJ, 1:GMNL, W)))
 #endif
          ENDIF

@@ -548,7 +548,8 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE OCEAN_MERCURY_FLUX( FLUX, State_Met )
+      SUBROUTINE OCEAN_MERCURY_FLUX( FLUX,      Input_Opt, 
+     &                               State_Met, State_Chm )
 !
 !******************************************************************************
 !  Subroutine OCEAN_MERCURY_FLUX calculates emissions of Hg(0) from 
@@ -714,13 +715,13 @@
       USE DEPO_MERCURY_MOD,   ONLY : DD_Hg2, WD_Hg2, DD_HgP, WD_HgP
       USE DIAG03_MOD,         ONLY : AD03, ND03
       USE DIRECTORY_MOD,      ONLY : DATA_DIR
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2, GET_XMID, GET_YMID 
-      USE LOGICAL_MOD,        ONLY : LSPLIT
       USE TIME_MOD,           ONLY : GET_TS_EMIS,     GET_MONTH 
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH, ITS_MIDMONTH
       USE TIME_MOD,           ONLY : GET_YEAR 
-      USE TRACER_MOD,         ONLY : STT,             TRACER_MW_KG
 !- eds 8/31/10 -------------------------------------------------------------
 !      USE TRACERID_MOD,  ONLY : ID_Hg_tot,       ID_Hg_oc
       USE TRACERID_MOD,       ONLY : ID_Hg_tot
@@ -732,11 +733,23 @@
       USE TRANSFER_MOD,       ONLY : TRANSFER_2D
 
       USE CMN_SIZE_MOD             ! Size parameters
+!
+! !INPUT PARAMETERS:
+!
 
-      ! Arguments 
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
       REAL*8,         INTENT(OUT) :: FLUX(IIPAR,JJPAR,N_Hg_CATS)
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-
+!
+! !LOCAL VARIABLES:
+!
       ! Local variables
       LOGICAL, SAVE         :: FIRST = .TRUE.
       LOGICAL               :: IS_OCEAN_BOX ! jaf
@@ -795,9 +808,24 @@
       ! External functions
       REAL*8,  EXTERNAL     :: SFCWINDSQR 
      
+      ! For values from Input_Opt
+      LOGICAL         :: LSPLIT
+      INTEGER         :: N_TRACERS
+      REAL*8          :: TRACER_MW_KG(Input_Opt%N_TRACERS)
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! OCEAN_MERCURY_FLUX begins here!
       !=================================================================
+
+      ! Copy values from Input_Opt
+      LSPLIT       = Input_Opt%LSPLIT
+      N_TRACERS    = Input_Opt%N_TRACERS
+      TRACER_MW_KG = Input_Opt%TRACER_MW_KG(1:N_TRACERS)
 
       ! Loop limit for use below
       IF ( LSPLIT ) THEN
@@ -813,7 +841,8 @@
       ! Check tagged & total sums (if necessary)
       !-----------------------------------------------
       IF ( USE_CHECKS .and. LSPLIT ) THEN
-         CALL CHECK_ATMOS_MERCURY( 'start of OCEAN_MERCURY_FLUX' )
+         CALL CHECK_ATMOS_MERCURY( State_Chm,
+     &                             'start of OCEAN_MERCURY_FLUX' )
          CALL CHECK_OCEAN_MERCURY( 'start of OCEAN_MERCURY_FLUX' )
          CALL CHECK_OCEAN_FLUXES ( 'start of OCEAN_MERCURY_FLUX' )
       ENDIF
@@ -895,6 +924,9 @@
 
       NPP_avg = NPP_tot / A_ocean
 
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       ! Loop over surface boxes  
 !$OMP PARALLEL DO
@@ -961,8 +993,8 @@
          FRAC_L       = State_Met%FRLAND(I,J)
          FRAC_O       = MAX( State_Met%FROCEAN(I,J) -
      &                       State_Met%FRSEAICE(I,J), 0d0 )
-         IS_OCEAN_BOX = (( FRAC_O > 0d0 ) .and. 
-     &                   ( State_Met%SEAICE00(I,J)  > 0.5d0 ))
+         IS_OCEAN_BOX = ( ( FRAC_O > 0d0                     ) .and. 
+     &                    ( State_Met%SEAICE00(I,J)  > 0.5d0 ) )
 #else
          FRAC_L       = State_Met%FRCLND(I,J)
          FRAC_O       = 1d0 - FRAC_L
@@ -973,7 +1005,8 @@
 
          ! Change ocean mass due to mixed layer depth change
          ! Keep before next IF so that we adjust mass in ice-covered boxes
-         CALL MLD_ADJUSTMENT( I, J, OLDMLD*1d-2, MLDcm*1d-2, State_Met )
+         CALL MLD_ADJUSTMENT( I, J, OLDMLD*1d-2, MLDcm*1d-2, 
+     &                        Input_Opt, State_Met )
 
          !===========================================================
          ! Make sure we are in an ocean box
@@ -1683,11 +1716,15 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+      ! Free pointer
+      NULLIFY( STT )
+
       !=================================================================
       ! Check tagged & total sums (if necessary)
       !=================================================================
       IF ( USE_CHECKS .and. LSPLIT ) THEN
-         CALL CHECK_ATMOS_MERCURY(  'end of OCEAN_MERCURY_FLUX' )
+         CALL CHECK_ATMOS_MERCURY(  State_Chm, 
+     &                              'end of OCEAN_MERCURY_FLUX' )
          CALL CHECK_OCEAN_MERCURY(  'end of OCEAN_MERCURY_FLUX' )
          CALL CHECK_OCEAN_FLUXES (  'end of OCEAN_MERCURY_FLUX' )
          CALL CHECK_FLUX_OUT( FLUX, 'end of OCEAN_MERCURY_FLUX' )
@@ -2111,7 +2148,8 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE MLD_ADJUSTMENT( I, J, MLDold, MLDnew, State_Met )
+      SUBROUTINE MLD_ADJUSTMENT( I, J, MLDold, MLDnew, 
+     &                           Input_Opt, State_Met )
 !
 !******************************************************************************
 !  Subroutine MLD_ADJUSTMENT entrains new water when mixed layer depth deepens
@@ -2137,13 +2175,13 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
 !******************************************************************************
 !
       ! Reference to fortran90 modules
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2, GET_XMID, GET_YMID
-      USE LOGICAL_MOD,        ONLY : LSPLIT
-      USE TRACER_MOD,         ONLY : TRACER_MW_KG
 !- eds 8/31/10 -------------------------------------------------------------
 !      USE TRACERID_MOD, ONLY : ID_Hg_tot, ID_Hg_oc, N_Hg_CATS
       USE TRACERID_MOD,       ONLY : ID_Hg_tot, N_Hg_CATS
@@ -2157,6 +2195,7 @@
       ! Arguments
       INTEGER,        INTENT(IN)  :: I, J 
       REAL*8,         INTENT(IN)  :: MLDold, MLDnew  
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 
       ! Local variables
@@ -2165,9 +2204,19 @@
       REAL*8                :: A_M2, DELTAH, FRAC_O,  MHg
       REAL*8                :: X, Y                   !(added anls 01/05/09)
 
+      ! For fields from Input_Opt
+      LOGICAL               :: LSPLIT
+      INTEGER               :: N_TRACERS
+      REAL*8                :: TRACER_MW_KG(Input_Opt%N_TRACERS)
+
       !=================================================================
       ! MLD_ADJUSTMENT begins here!
       !=================================================================
+
+      ! Copy values from Input_Opt
+      LSPLIT       = Input_Opt%LSPLIT
+      N_TRACERS    = Input_Opt%N_TRACERS
+      TRACER_MW_KG = Input_Opt%TRACER_MW_KG(1:N_TRACERS)
 
       ! Loop limit for use below
       IF ( LSPLIT ) THEN
@@ -2435,7 +2484,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE READ_OCEAN_Hg_RESTART( YYYYMMDD, HHMMSS ) 
+      SUBROUTINE READ_OCEAN_Hg_RESTART( YYYYMMDD, HHMMSS, Input_Opt ) 
 !
 !******************************************************************************
 !  Subroutine READ_OCEAN_Hg_RESTART initializes GEOS-CHEM oceanic mercury 
@@ -2449,28 +2498,28 @@
 !  NOTES:
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD,        ONLY : OPEN_BPCH2_FOR_READ
-      USE DEPO_MERCURY_MOD, ONLY : SNOW_HG, CHECK_DIMENSIONS
-      USE DIRECTORY_MOD,    ONLY : RUN_DIR
-      USE ERROR_MOD,        ONLY : DEBUG_MSG
-      USE FILE_MOD,         ONLY : IOERROR
-      USE LOGICAL_MOD,      ONLY : LSPLIT,      LPRT
-      USE TIME_MOD,         ONLY : EXPAND_DATE
-      USE TRACER_MOD,       ONLY : STT,         TRACER_NAME, TRACER_MW_G
-      USE TRACERID_MOD,     ONLY : GET_Hg0_CAT, GET_Hg2_CAT, N_Hg_CATS
-      USE TRACERID_MOD,     ONLY : ID_Hg0,      ID_Hg2 
+      USE BPCH2_MOD,          ONLY : OPEN_BPCH2_FOR_READ
+      USE CMN_SIZE_MOD
+      USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG, CHECK_DIMENSIONS
+      USE DIRECTORY_MOD,      ONLY : RUN_DIR
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE FILE_MOD,           ONLY : IOERROR
+      USE TIME_MOD,           ONLY : EXPAND_DATE
+      USE TRACERID_MOD,       ONLY : GET_Hg0_CAT, GET_Hg2_CAT, N_Hg_CATS
+      USE TRACERID_MOD,       ONLY : ID_Hg0,      ID_Hg2 
       !- eds 8/31/10 ---------------------------------------------------------
-      USE TRACERID_MOD,     ONLY : ID_HgP
-      USE TRACERID_MOD,     ONLY : GET_HgP_CAT !eds 10/18/10
+      USE TRACERID_MOD,       ONLY : ID_HgP
+      USE TRACERID_MOD,       ONLY : GET_HgP_CAT !eds 10/18/10
       !-----------------------------------------------------------------------
 
-      USE CMN_SIZE_MOD           ! Size parameters
-
       ! Arguments
-      INTEGER, INTENT(IN) :: YYYYMMDD, HHMMSS
+      INTEGER,        INTENT(IN) :: YYYYMMDD, HHMMSS
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
 
       ! Local Variables
       INTEGER             :: IU_FILE
@@ -2492,9 +2541,24 @@
       CHARACTER(LEN=40)   :: UNIT     
       CHARACTER(LEN=40)   :: RESERVED
 
+      ! For fields from Input_Opt
+      LOGICAL             :: LPRT
+      LOGICAL             :: LSPLIT
+      LOGICAL             :: LFUTURE
+      INTEGER             :: N_TRACERS
+      CHARACTER(LEN=14)   :: TRACER_NAME(Input_Opt%N_TRACERS)
+      REAL*8              :: TRACER_MW_KG(Input_Opt%N_TRACERS)
+
       !=================================================================
       ! READ_OCEAN_Hg_RESTART begins here!
       !=================================================================
+
+      ! Copy values from Input_Opt
+      LPRT         = Input_Opt%LPRT
+      LSPLIT       = Input_Opt%LSPLIT
+      N_TRACERS    = Input_Opt%N_TRACERS
+      TRACER_NAME  = Input_Opt%TRACER_NAME(1:N_TRACERS)
+      TRACER_MW_KG = Input_Opt%TRACER_MW_KG(1:N_TRACERS)
 
       ! Initialize some variables
       NCOUNT(:)       = 0
@@ -2770,7 +2834,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE MAKE_OCEAN_Hg_RESTART( NYMD, NHMS, TAU )
+      SUBROUTINE MAKE_OCEAN_Hg_RESTART( NYMD, NHMS, TAU, Input_Opt )
 !
 !******************************************************************************
 !  Subroutine MAKE_OCEAN_Hg_RESTART writes an ocean mercury restart file.
@@ -2784,24 +2848,26 @@
 !  
 !  NOTES:
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE DEPO_MERCURY_MOD, ONLY : SNOW_HG
-      USE DIRECTORY_MOD,    ONLY : RUN_DIR
-      USE GRID_MOD,         ONLY : GET_XOFFSET, GET_YOFFSET
-      USE LOGICAL_MOD,      ONLY : LSPLIT
-      USE TIME_MOD,         ONLY : EXPAND_DATE, GET_TAU
-      USE TRACERID_MOD,     ONLY : ID_Hg_tot,   ID_Hg0
-      USE TRACERID_MOD,     ONLY : ID_Hg2,      N_Hg_CATS
-      USE TRACERID_MOD,     ONLY : ID_HgP !eds 9/9/10 
+      USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG
+      USE DIRECTORY_MOD,      ONLY : RUN_DIR
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET
+      USE TIME_MOD,           ONLY : EXPAND_DATE, GET_TAU
+      USE TRACERID_MOD,       ONLY : ID_Hg_tot,   ID_Hg0
+      USE TRACERID_MOD,       ONLY : ID_Hg2,      N_Hg_CATS
+      USE TRACERID_MOD,       ONLY : ID_HgP !eds 9/9/10 
 
       USE CMN_SIZE_MOD           ! Size parameters
 
       ! Arguments           
-      INTEGER, INTENT(IN) :: NYMD, NHMS
-      REAL*8,  INTENT(IN) :: TAU
+      INTEGER,        INTENT(IN) :: NYMD, NHMS
+      REAL*8,         INTENT(IN) :: TAU
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
 
       ! Local variables
       INTEGER             :: IU_FILE
@@ -2813,9 +2879,15 @@
       CHARACTER(LEN=40)   :: CATEGORY,  UNIT,     RESERVED
       CHARACTER(LEN=255)  :: FILENAME
 
+      ! For values from Input_Opt
+      LOGICAL             :: LSPLIT
+
       !=================================================================
       ! MAKE_OCEAN_Hg_RESTART begins here!
       !=================================================================
+
+      ! Copy values from Input_Opt
+      LSPLIT    = Input_Opt%LSPLIT
 
       ! Initialize values
       IFIRST    = GET_XOFFSET( GLOBAL=.TRUE. ) + 1
@@ -2954,7 +3026,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE CHECK_ATMOS_MERCURY( LOC )
+      SUBROUTINE CHECK_ATMOS_MERCURY( State_Chm, LOC )
 !
 !******************************************************************************
 !  Subroutine CHECK_ATMOS_MERCURY tests whether the total and tagged tracers 
@@ -2969,7 +3041,7 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE TRACER_MOD,          ONLY : STT
+      USE GIGC_State_Chm_Mod,  ONLY : ChmState
       USE ERROR_MOD,           ONLY : ERROR_STOP
       USE TRACERID_MOD,        ONLY : ID_Hg0,    ID_Hg2,   ID_HgP
       USE TRACERID_MOD,        ONLY : ID_Hg_tot, N_Hg_CATS
@@ -2978,6 +3050,7 @@
 
       ! Arguments as Input
       CHARACTER(LEN=*), INTENT(IN) :: LOC
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 
       ! Local variables
       LOGICAL                      :: FLAG
@@ -2987,12 +3060,21 @@
       REAL*8                       :: Hg2_tot, Hg2_tag, RELERR2, ABSERR2
       REAL*8                       :: HgP_tot, HgP_tag, RELERRP, ABSERRP
 
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! CHECK_ATMOS_MERCURY begins here!
       !=================================================================
 
       ! Set error flags
       FLAG = .FALSE.
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       ! Loop over grid boxes
 ! OMP PARALLEL DO
@@ -3125,6 +3207,9 @@
       ENDDO
       ENDDO
 ! OMP END PARALLEL DO
+
+      ! Free pointer
+      NULLIFY( STT )
 
       ! FORMAT strings
  100  FORMAT( 'Hg0 error: ', 3i5, 4es13.6 )

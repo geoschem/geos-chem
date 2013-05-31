@@ -11,7 +11,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG3                                                    
+      SUBROUTINE DIAG3( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
@@ -22,6 +22,9 @@
       USE CMN_DIAG_MOD                       ! Diagnostic switches & arrays
       USE COMODE_LOOP_MOD                    ! IDEMS
       USE FILE_MOD                           
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GRID_MOD, ONLY : GET_AREA_M2, GET_YOFFSET, GET_XOFFSET
       USE TIME_MOD
 
@@ -40,7 +43,6 @@
       USE DEPO_MERCURY_MOD                   ! For offline Hg simulation
       USE DRYDEP_MOD                         ! For dry deposition
       USE LOGICAL_MOD                        ! For logical switches
-      USE TRACER_MOD                         ! For tracer array
       USE TRACERID_MOD                       ! For tracer flags
       USE WETSCAV_MOD                        ! For wet deposition
 #if   defined( TOMAS )
@@ -55,11 +57,22 @@
       USE APM_DRIV_MOD, ONLY : NPOUTSTEPS
 #endif
 
-
       IMPLICIT NONE
 #     include "define.h"
-
-! 
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
 ! !REVISION HISTORY: 
 !  (40) Bug fix: Save levels 1:LD13 for ND13 diagnostic for diagnostic
 !        categories "SO2-AC-$" and "SO2-EV-$".  Now reference F90 module
@@ -219,6 +232,14 @@
       CHARACTER (LEN=20) :: MODELNAME 
       CHARACTER (LEN=40) :: UNIT
       CHARACTER (LEN=40) :: RESERVED = ''
+
+      ! For fields from Input_Opt
+      INTEGER         :: N_TRACERS
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
 !
 !******************************************************************************
 !  DIAG3 begins here!
@@ -227,6 +248,11 @@
 !  Add a small number (e.g. 1d-32) to prevent division by zero errors.
 !******************************************************************************
 !
+      ! Assume success
+      RC         = GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      N_TRACERS  = Input_Opt%N_TRACERS
 
       ! Pick the proper # of tracers
 #if   defined( APM )
@@ -965,7 +991,8 @@
 !******************************************************************************
 !
       IF ( ND13 > 0 .and. 
-     &   ( ITS_A_FULLCHEM_SIM() .or. ITS_AN_AEROSOL_SIM() ) ) THEN
+     &   ( Input_Opt%ITS_A_FULLCHEM_SIM .or. 
+     &     Input_Opt%ITS_AN_AEROSOL_SIM ) ) THEN
          UNIT = 'kg S'
 
          !==============================================================
@@ -1631,7 +1658,7 @@
             IF ( NN >= N_TRACERS+1 ) THEN
                MM = 5    ! Write 'O3' and 'OH'
             ELSE
-               SELECT CASE ( TRIM( TRACER_NAME(NN) ) )
+               SELECT CASE ( TRIM( Input_Opt%TRACER_NAME(NN) ) )
                   CASE ( 'NO2', 'HCN', 'CH3I' )
                      MM = 1
                   CASE ( 'HNO3' )
@@ -1814,9 +1841,9 @@
 !
 #if   !defined( GEOS_4 ) 
       IF ( ND27 > 0 .and. ( IDTO3 > 0 .or. IDTOx > 0 )) THEN
-         IF ( ( IDTO3 > 0 .and. ITS_A_FULLCHEM_SIM() )  .OR.
-     &        ( IDTOx > 0 .and. ITS_A_TAGOX_SIM()    )  .OR. 
-     &        ( ITS_A_H2HD_SIM()                     )) THEN
+         IF ( ( IDTO3 > 0 .and. Input_Opt%ITS_A_FULLCHEM_SIM )  .OR.
+     &        ( IDTOx > 0 .and. Input_Opt%ITS_A_TAGOX_SIM    )  .OR. 
+     &        (                 Input_Opt%ITS_A_H2HD_SIM    )) THEN
 
             CATEGORY = 'STRT-FLX'
             UNIT     = 'kg/s'
@@ -1825,9 +1852,9 @@
             ! H2/HD            -- compute H2,  HD fluxes
             ! Single tracer Ox -- compute Ox flux only, hardwire
             !                     to tracer = 1 (bmy, 2/7/00)
-            IF ( ITS_A_FULLCHEM_SIM() ) THEN
+            IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
                ITEMP = (/ IDTNO, IDTO3, IDTHNO3 /)
-            ELSE IF ( ITS_A_H2HD_SIM() ) THEN
+            ELSE IF ( Input_Opt%ITS_A_H2HD_SIM ) THEN
                ITEMP = (/ IDTH2, IDTHD, 0 /)
             ELSE
                ITEMP = (/ 1, 0, 0 /)
@@ -2069,7 +2096,9 @@
 !  (4) Replaced NOx emissions with NO emissions (mpayer, 3/14/13)
 !******************************************************************************
 !
-      IF ( ND32 > 0 .and. IDTNO > 0 .and. ITS_A_FULLCHEM_SIM() ) THEN
+      IF ( ND32  > 0                     .and. 
+     &     IDTNO > 0                     .and. 
+     &     Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
          ! All categories of NOx are in molec/cm2/s
          UNIT = 'molec/cm2/s'
@@ -2344,7 +2373,7 @@
             ! Get the tracer # from input.geos
             N  = TINDEX(36,M)
 
-            IF ( ITS_A_CH3I_SIM() ) THEN
+            IF ( Input_Opt%ITS_A_CH3I_SIM ) THEN
 
                !--------------------------------------------------------
                ! For CH3I simulation only 
@@ -2576,7 +2605,7 @@
 !  (8) Removed NO, NO2, and NO3. These are now tracers (mpayer, 3/29/13)
 !******************************************************************************
 !
-      IF ( ND43 > 0 .and. ITS_A_FULLCHEM_SIM() ) THEN
+      IF ( ND43 > 0 .and. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
          CATEGORY = 'CHEM-L=$' 
 
@@ -2751,7 +2780,8 @@
          CATEGORY = 'DRYD-FLX'
 
          ! # of drydep flux tracers
-         IF ( ITS_A_TAGOX_SIM() .or. ITS_A_MERCURY_SIM() ) THEN
+         IF ( Input_Opt%ITS_A_TAGOX_SIM .or. 
+     &        Input_Opt%ITS_A_MERCURY_SIM ) THEN
             M = N_TRACERS
          ELSE
             ! Extend dry dep tracers if 30-bin aerosol is turned on (win, 7/14/09)
@@ -2769,13 +2799,15 @@
          ! Loop over drydep tracers
          DO N = 1, M
 
-            IF ( ITS_A_RnPbBe_SIM() .or. ITS_A_H2HD_SIM() ) THEN
+            IF ( Input_Opt%ITS_A_RnPbBe_SIM .or. 
+     &           Input_Opt%ITS_A_H2HD_SIM ) THEN
 
                ! Radon or H2/HD
                UNIT = 'kg/s'       
                NN   = NTRAIND(N)
  
-            ELSE IF ( ITS_A_TAGOX_SIM() .or. ITS_A_MERCURY_SIM() ) THEN
+            ELSE IF ( Input_Opt%ITS_A_TAGOX_SIM .or. 
+     &                Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
                ! Tagged Ox or Tagged Hg
                UNIT = 'molec/cm2/s'
@@ -2817,7 +2849,7 @@
             ENDDO
 #endif
           
-            IF ( ITS_A_FULLCHEM_SIM() ) THEN
+            IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
                ! Special case for tracers with several dry dep. tracers
                ! E.g. ISOPN: ISOPND and ISOPNB.
                ! We handle both tracers at the same time so we need to 
@@ -2890,9 +2922,9 @@
          UNIT      = 'cm/s'
 
          ! # of drydep velocity tracers
-         IF ( ITS_A_TAGOX_SIM() ) THEN
+         IF ( Input_Opt%ITS_A_TAGOX_SIM ) THEN
             M = 1
-         ELSE IF ( ITS_A_MERCURY_SIM() ) THEN
+         ELSE IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
             M = 2
          ELSE
             M = NUMDEP
@@ -2911,7 +2943,7 @@
                MM  = MM + 1
             ENDDO
 
-            IF ( ITS_A_FULLCHEM_SIM() ) THEN
+            IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
                ! Special case for tracers with several dry dep. tracers
                ! E.g. ISOPN: ISOPND and ISOPNB.
                ! We handle both tracers at the same time so we need to 
@@ -3770,6 +3802,12 @@
       IF ( ND62 > 0 ) THEN
          CATEGORY = 'INST-MAP'
 
+#if defined( DEVEL )
+         ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+         ! (mpayer, 12/6/12)
+         STT => State_Chm%Tracers
+#endif
+
          DO M = 1, TMAX(62)
             N  = TINDEX(62,M)
             IF ( N > N_TRACERS ) CYCLE
@@ -3781,13 +3819,13 @@
                ! Grid box surface area [cm2]
                AREA_M2 = GET_AREA_M2( I, J, 1 )
 
-               ARRAY(I,J,1) = ( SUM( STT(I,J,:,N) ) * 6.022d22 )
-     &                      / ( TRACER_MW_G(N)       * AREA_M2  )
+               ARRAY(I,J,1) = ( SUM( STT(I,J,:,N) )      * 6.022d22 )
+     &                      / ( Input_Opt%TRACER_MW_G(N) * AREA_M2  )
             ENDDO
             ENDDO
 
             ! Write the proper unit string
-            IF ( TRACER_MW_G(N) > 12d0 ) THEN
+            IF ( Input_Opt%TRACER_MW_G(N) > 12d0 ) THEN
                UNIT = 'molec/cm2'
             ELSE
                UNIT = 'atoms C/cm2'
@@ -3800,6 +3838,12 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
 
          ENDDO
+
+#if defined( DEVEL )
+         ! Free pointer
+         NULLIFY( STT )
+#endif
+
       ENDIF
 !
 !******************************************************************************
@@ -3830,7 +3874,7 @@
 
             ! Don't add TRCOFFSET for single tracer Ox
             ! Also select proper unit string
-            IF ( ITS_A_CH3I_SIM() ) THEN
+            IF ( Input_Opt%ITS_A_CH3I_SIM ) THEN
                NN          = N
                UNIT        = 'kg/s'
 
@@ -3838,7 +3882,7 @@
                   ARRAY(:,:,L) = AD65(:,:,L,N)
                ENDDO
 
-            ELSE IF ( ITS_A_TAGOX_SIM() ) THEN
+            ELSE IF ( Input_Opt%ITS_A_TAGOX_SIM ) THEN
                NN          = N
                UNIT        = 'kg/s'
                
@@ -3849,7 +3893,7 @@
                   ARRAY(:,:,1:LD65) = 0.
                ENDWHERE
 
-            ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
+            ELSE IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
                NN          = N
                UNIT        = 'mol/cm3/s'
 

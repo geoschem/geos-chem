@@ -354,7 +354,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE EMISS_TAGGED_CO( State_Met )
+      SUBROUTINE EMISS_TAGGED_CO( am_I_Root, Input_Opt,
+     &                            State_Met, State_Chm, RC )
 !
 ! !USES:
 !
@@ -365,28 +366,36 @@
       USE BIOFUEL_MOD,        ONLY : BIOFUEL
       USE BIOMASS_MOD,        ONLY : BIOMASS
       USE DIAG_MOD,           ONLY : AD29,          AD46
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_XOFFSET,   GET_YOFFSET
       USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,        ONLY : LSPLIT,        LANTHRO
-      USE LOGICAL_MOD,        ONLY : LBIOMASS,      LBIOFUEL
-      USE LOGICAL_MOD,        ONLY : LBIOGENIC,     LMEGAN
       USE MEGAN_MOD,          ONLY : GET_EMISOP_MEGAN
       USE MEGAN_MOD,          ONLY : GET_EMMONOT_MEGAN
       USE MEGANUT_MOD,        ONLY : XLTMMP
       USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L, GET_FRAC_OF_PBL
       USE TIME_MOD,           ONLY : GET_MONTH,     GET_TAU 
       USE TIME_MOD,           ONLY : GET_YEAR,      GET_TS_EMIS  
-      USE TRACER_MOD,         ONLY : STT
       USE TRACERID_MOD,       ONLY : IDBFCO, IDECO, IDBCO
 
       IMPLICIT NONE
 #     include "define.h"
-
 !
 ! !INPUT PARAMETERS:
 !
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  21 Jul 2000 - I. Bey, B. Field, B. Duncan - Initial version
@@ -458,25 +467,48 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE          :: FIRSTEMISS = .TRUE.
-      INTEGER                :: I, J, L, N, I0, J0
-      INTEGER                :: AS, IREF, JREF, IJLOOP, PBL_MAX
-      INTEGER, SAVE          :: LASTMONTH = -999
+      LOGICAL, SAVE    :: FIRSTEMISS = .TRUE.
+      INTEGER          :: I, J, L, N, I0, J0
+      INTEGER          :: AS, IREF, JREF, IJLOOP, PBL_MAX
+      INTEGER, SAVE    :: LASTMONTH = -999
 
       ! Change EMXX to EMIS to match full chem (jaf, 3/10/09)
-      REAL*8                 :: TMMP, EMIS, EMX,    EMMO,    F_OF_PBL 
-      REAL*8                 :: EMAC, E_CO, DTSRCE, AREA_CM2
+      REAL*8           :: TMMP, EMIS, EMX,    EMMO,    F_OF_PBL 
+      REAL*8           :: EMAC, E_CO, DTSRCE, AREA_CM2
 
       ! Add variables needed for MEGAN biogenics (jaf, 3/10/09)
-      REAL*8                 :: SC,   PDF,  PDR
+      REAL*8           :: SC,   PDF,  PDR
       
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER  :: STT(:,:,:,:)
+
+      ! For fields from Input_Opt
+      LOGICAL          :: LSPLIT,    LANTHRO
+      LOGICAL          :: LBIOMASS,  LBIOFUEL
+      LOGICAL          :: LBIOGENIC, LMEGAN
+
       ! External functions
-      REAL*8, EXTERNAL       :: BOXVL
-      REAL*8, EXTERNAL       :: EMCH3OH
+      REAL*8, EXTERNAL :: BOXVL
+      REAL*8, EXTERNAL :: EMCH3OH
 
       !=================================================================
       ! EMISS_TAGGED_CO begins here!
-      !
+      !=================================================================
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LSPLIT    = Input_Opt%LSPLIT
+      LANTHRO   = Input_Opt%LANTHRO
+      LBIOMASS  = Input_Opt%LBIOMASS
+      LBIOFUEL  = Input_Opt%LBIOFUEL
+      LBIOGENIC = Input_Opt%LBIOGENIC
+      LMEGAN    = Input_Opt%LMEGAN
+
+      !=================================================================
       ! Do the following only on the first call to EMISS_TAGGED_CO...
       !=================================================================
       IF ( FIRSTEMISS ) THEN 
@@ -511,6 +543,10 @@
       ! Get nested-grid offsets
       I0 = GET_XOFFSET()
       J0 = GET_YOFFSET()
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       !=================================================================
       ! Process Anthropogenic (Fossil Fuel) CO emissions
@@ -757,6 +793,9 @@
 !$OMP END PARALLEL DO
       ENDIF
 
+      ! Free pointer
+      NULLIFY( STT )
+
       END SUBROUTINE EMISS_TAGGED_CO
 !EOC
 !------------------------------------------------------------------------------
@@ -772,30 +811,42 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_TAGGED_CO( State_Met )
+      SUBROUTINE CHEM_TAGGED_CO( am_I_Root, Input_Opt,
+     &                           State_Met, State_Chm, RC )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_DIAG_MOD             ! ND65
+      USE CMN_SIZE_MOD
+      USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD29
       USE DIAG_PL_MOD,        ONLY : AD65
       USE ERROR_MOD,          ONLY : CHECK_VALUE
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GLOBAL_OH_MOD,      ONLY : GET_GLOBAL_OH,   OH
       USE GLOBAL_NOX_MOD,     ONLY : GET_GLOBAL_NOX,  BNOX
       USE GRID_MOD,           ONLY : GET_YMID,        GET_AREA_CM2
-      USE LOGICAL_MOD,        ONLY : LSPLIT
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TIME_MOD,           ONLY : GET_TS_CHEM,     GET_TS_EMIS
       USE TIME_MOD,           ONLY : GET_MONTH,       GET_YEAR
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
-      USE TRACER_MOD,         ONLY : N_TRACERS,       STT
       USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
 !
 ! !INPUT PARAMETERS:
 !
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  19 Oct 1999 - Q. Li, B. Duncan, B. Field - Initial version
@@ -849,6 +900,8 @@
 !  23 Oct 2012 - R. Yantosca - Added ProTeX headers
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  11 Apr 2013 - R. Yantosca - Now pass Input_Opt to GET_GLOBAL_NOX 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -856,6 +909,8 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE          :: FIRSTCHEM = .TRUE.
+      LOGICAL                :: LSPLIT
+      INTEGER                :: N_TRACERS
       INTEGER                :: I, J, L, N, MONTH
       REAL*8                 :: ALPHA_CH4, ALPHA_ISOP, ALPHA_MONO
       REAL*8                 :: DTCHEM,    GCO,        PCO   
@@ -886,20 +941,34 @@
       ! Switch to scale yield of isoprene from NOx concentration or not
       LOGICAL, PARAMETER     :: ALPHA_ISOP_FROM_NOX = .FALSE.
 
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! CHEM_TAGGED_CO begins here!
       !
       ! Do the following on the first calla to CHEM_TAGGED_CO...
       !=================================================================
+
+      ! Assume success
+      RC        = GIGC_SUCCESS
+
+      ! Get fields from Input_Opt
+      LSPLIT    = Input_Opt%LSPLIT
+      N_TRACERS = Input_Opt%N_TRACERS
+
       IF ( FIRSTCHEM ) THEN
          FIRSTCHEM = .FALSE.
       ENDIF
 
-      ! DTCHEM is the chemistry timestep in seconds
-      DTCHEM = GET_TS_CHEM() * 60d0
-
       ! DTSRCE is the number of seconds per emission timestep
       DTSRCE = GET_TS_EMIS() * 60d0
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       !=================================================================
       ! Read in OH, NOx, P(CO), and L(CO) fields for the current month
@@ -914,7 +983,9 @@
 
          ! Global NOx -- need this to determine 
          ! ALPHA_ISOP which is a function of NOx
-         IF ( ALPHA_ISOP_FROM_NOX ) CALL GET_GLOBAL_NOX( MONTH )
+         IF ( ALPHA_ISOP_FROM_NOX ) THEN
+            CALL GET_GLOBAL_NOX( MONTH, Input_Opt )
+         ENDIF
             
          ! Read in the loss/production of CO in the stratosphere.
          CALL READ_PCO_LCO_STRAT( MONTH )
@@ -1407,6 +1478,9 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+      ! Free pointer
+      NULLIFY( STT )
 
       END SUBROUTINE CHEM_TAGGED_CO
 !EOC

@@ -129,28 +129,29 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE OPEN_MERRA_A3_FIELDS( NYMD, NHMS )
+      SUBROUTINE OPEN_MERRA_A3_FIELDS( NYMD, NHMS, Input_Opt )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE DIRECTORY_MOD, ONLY : MERRA_DIR
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE FILE_MOD,      ONLY : FILE_EXISTS
-      USE FILE_MOD,      ONLY : IOERROR
-      USE TIME_MOD,      ONLY : EXPAND_DATE
-      USE CMN_SIZE_MOD              ! Size parameters
+      USE BPCH2_MOD,          ONLY : GET_RES_EXT
+      USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE FILE_MOD,           ONLY : FILE_EXISTS
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : EXPAND_DATE
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: NYMD   ! YYYYMMDD and
-      INTEGER, INTENT(IN) :: NHMS   !  hhmmss to test for A3 file open
+      INTEGER,        INTENT(IN) :: NYMD        ! YYYYMMDD and hhmmss
+      INTEGER,        INTENT(IN) :: NHMS        !  to test for A3 file open
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
 ! 
 ! !REVISION HISTORY: 
 !  20 Aug 2010 - R. Yantosca - Initial version, based on a6_read_mod.f
 !  03 Aug 2012 - R. Yantosca - Now use findFreeLUN to define IU_A3 locally
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  11 Apr 2013 - R. Yantosca - Now pass fields with Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -177,7 +178,7 @@
          !---------------------------
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( MERRA_DIR )
+         GEOS_DIR = TRIM( Input_Opt%MERRA_DIR )
          A3_FILE  = 'YYYYMMDD.a3.' // GET_RES_EXT()
 
          ! Replace date tokens
@@ -185,8 +186,9 @@
          CALL EXPAND_DATE( A3_FILE,  NYMD, NHMS )
 
          ! Full file path
-         PATH = TRIM( DATA_DIR ) // 
-     &          TRIM( GEOS_DIR ) // TRIM( A3_FILE )
+         PATH = TRIM( Input_Opt%DATA_DIR ) // 
+     &          TRIM( GEOS_DIR           ) // 
+     &          TRIM( A3_FILE            )
 
          ! Close previously opened A-3 file
 	 INQUIRE( IU_A3, OPENED=IS_OPEN )

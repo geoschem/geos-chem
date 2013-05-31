@@ -121,11 +121,8 @@
 
 !------------------------------------------------------------------------------
 
-#if defined( DEVEL )
-      SUBROUTINE BIOFUEL_BURN( State_Met, BIO_EMISS )
-#else
-      SUBROUTINE BIOFUEL_BURN( State_Met )
-#endif
+      SUBROUTINE BIOFUEL_BURN( am_I_Root, Input_Opt, 
+     &                         State_Met, State_Chm, RC )
 !
 !******************************************************************************
 !  Subroutine BIOFUEL_BURN computes the yearly biofuel burning emissions
@@ -204,6 +201,7 @@
 !  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
 !                              of removal of NOx-Ox partitioning
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !******************************************************************************
 !
       ! References to F90 modules
@@ -212,13 +210,12 @@
       USE DIAG_MOD,             ONLY : AD29,    AD32_bf, AD34
       USE DIRECTORY_MOD,        ONLY : DATA_DIR,         DATA_DIR_1x1
       USE EPA_NEI_MOD,          ONLY : GET_EPA_BIOFUEL,  GET_USA_MASK
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
+      USE GIGC_State_Chm_Mod,   ONLY : ChmState
       USE GIGC_State_Met_Mod,   ONLY : MetState
-      USE LOGICAL_MOD,          ONLY : LFUTURE, LNEI99,  LSTREETS
-      USE LOGICAL_MOD,          ONLY : LRETRO ! (dbm, 8/18/2011)
-      USE LOGICAL_MOD,          ONLY : LNEI05
       USE STREETS_ANTHRO_MOD,   ONLY : GET_SE_ASIA_MASK
       USE TIME_MOD,             ONLY : GET_DAY_OF_WEEK,  GET_YEAR
-      USE TRACER_MOD,           ONLY : ITS_A_H2HD_SIM
       USE TRACERID_MOD,         ONLY : IDBFCO,  IDBFNO,  IDTACET
       USE TRACERID_MOD,         ONLY : IDTALD2, IDTALK4, IDTC2H6
       USE TRACERID_MOD,         ONLY : IDTC3H8, IDTCH2O, IDTCO
@@ -228,12 +225,10 @@
       USE TRACERID_MOD,         ONLY : IDTC2H2, IDTGLYC, IDTHAC
       USE TRACERID_MOD,         ONLY : IDTNO2
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
-      ! for US emission fix (hotp 11/20/09)
       USE TRACERID_MOD,         ONLY : IDBFBENZ,IDBFTOLU,IDBFXYLE
       USE TRACERID_MOD,         ONLY : IDBFGLYX,IDBFMGLY,IDBFC2H4
       USE TRACERID_MOD,         ONLY : IDBFC2H2,IDBFGLYC,IDBFHAC
 ![eml 
-      USE LOGICAL_MOD,          ONLY : LHIST
       USE TIME_MOD,             ONLY : GET_HISTYR
       USE REGRID_A2A_MOD,       ONLY : DO_REGRID_A2A
 !eml]
@@ -244,8 +239,23 @@
 
       IMPLICIT NONE
 #     include "define.h"
-            
-      ! Local variables
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !LOCAL VARIABLES:
+!            
       LOGICAL                       :: WEEKDAY
       LOGICAL, SAVE                 :: FIRST = .TRUE.
       LOGICAL, SAVE                 :: DO_ND29, DO_ND32, DO_ND34
@@ -271,15 +281,30 @@
 
       REAL*8                        :: BF_CO( IIPAR, JJPAR )  ! Biofuel emission of CO [molec/cm2/s]
 
-      ! Inout parameters
-      TYPE(MetState), INTENT(IN)    :: State_Met      ! Meteorology State object
-#if defined( DEVEL )
-      REAL*8,         INTENT(INOUT) :: BIO_EMISS(:,:,:)
-#endif
+      ! For fields from Input_Opt
+      LOGICAL                       :: LFUTURE
+      LOGICAL                       :: LNEI99
+      LOGICAL                       :: LSTREETS
+      LOGICAL                       :: LRETRO
+      LOGICAL                       :: LNEI05
+      LOGICAL                       :: LHIST
+      LOGICAL                       :: ITS_A_H2HD_SIM
 
       !=================================================================
       !   B i o f u e l   B u r n i n g   B e g i n s   H e r e !!
       !=================================================================
+
+      ! Assume success
+      RC             =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LFUTURE        = Input_Opt%LFUTURE
+      LNEI99         = Input_Opt%LNEI99
+      LSTREETS       = Input_Opt%LSTREETS
+      LRETRO         = Input_Opt%LRETRO
+      LNEI05         = Input_Opt%LNEI05
+      LHIST          = Input_Opt%LHIST
+      ITS_A_H2HD_SIM = Input_Opt%ITS_A_H2HD_SIM
 
       ! First-time initialization
       IF ( FIRST ) THEN
@@ -951,7 +976,7 @@
          ! ND29 -- CO source diagnostics [molec/cm2/s]
          IF ( DO_ND29 ) THEN
 
-            IF ( ITS_A_H2HD_SIM() ) THEN
+            IF ( ITS_A_H2HD_SIM ) THEN
                AD29(I,J,3) = AD29(I,J,3) + ( BIOFUEL(IDBFCO,I,J) * 
      &                                       BXHEIGHT_CM ) * 1.189d0
             ELSE

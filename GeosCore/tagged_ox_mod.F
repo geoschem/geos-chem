@@ -93,11 +93,11 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE ADD_STRAT_POX( I, J, L, POx )
+      SUBROUTINE ADD_STRAT_POX( I, J, L, POx, State_Chm )
 !
 ! !USES:
 !
-      USE TRACER_MOD,   ONLY : STT
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TRACERID_MOD, ONLY : IDTOxStrt
 
       USE CMN_SIZE_MOD           ! Size parameters
@@ -108,6 +108,10 @@
       INTEGER, INTENT(IN) :: J     ! GEOS-Chem grid box lat index
       INTEGER, INTENT(IN) :: L     ! GEOS-Chem grid box level index
       REAL*8,  INTENT(IN) :: POx   ! P(Ox) in the stratosphere [v/v]
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 ! 
 ! !REVISION HISTORY:
 !  19 Aug 2003 - R. Yantosca - Initial version
@@ -117,10 +121,26 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! GET_STRAT_POX begins here!
       !=================================================================
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+
       STT(I,J,L,IDTOxStrt) = STT(I,J,L,IDTOxStrt) + POx
+
+      ! Free pointer
+      NULLIFY( STT )
 
       END SUBROUTINE ADD_STRAT_POX
 !EOC
@@ -507,39 +527,46 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_TAGGED_OX( State_Met )
+      SUBROUTINE CHEM_TAGGED_OX( am_I_Root, Input_Opt,
+     &                           State_Met, State_Chm, RC )
 !
 ! !USES:
 !
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD44
       USE DIAG_PL_MOD,        ONLY : AD65
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
       USE DRYDEP_MOD,         ONLY : DEPSAV      
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,        ONLY : LDRYD
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE PBL_MIX_MOD,        ONLY : GET_PBL_MAX_L
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TIME_MOD,           ONLY : ITS_A_NEW_DAY 
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING
-      USE TRACER_MOD,         ONLY : STT
-      USE TRACER_MOD,         ONLY : N_TRACERS
-      USE TRACER_MOD,         ONLY : XNUMOL
       USE TRACERID_MOD,       ONLY : IDTOX
       USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_TROP
-      USE LOGICAL_MOD,        ONLY : LNLPBL
-
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_DIAG_MOD             ! ND44, ND65, LD65
 
       IMPLICIT NONE
 #     include "define.h"
-
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY:
 !  20 Aug 2003 - R. Hudman   - Initial version
@@ -566,6 +593,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  14 Mar 2013 - M. Payer    - Replace Ox with O3 as part of removal of NOx-Ox
 !                              partitioning
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -582,6 +610,18 @@
       REAL*8            :: Ox_LOST, PBL_MAX, F_UNDER_TOP
       CHARACTER(LEN=16) :: STAMP
 
+      ! For fields from Input_Opt
+      LOGICAL           :: LDRYD
+      LOGICAL           :: LNLPBL
+      LOGICAL           :: LSPLIT
+      INTEGER           :: N_TRACERS
+      REAL*8            :: XNUMOL(Input_Opt%N_TRACERS)
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       ! External routines
       REAL*8, EXTERNAL :: BOXVL
 
@@ -589,12 +629,27 @@
       ! CHEM_TAGGED_OX begins here!
       !=================================================================
 
+      ! Assume success
+      RC        = GIGC_SUCCESS
+
+      ! Get fields from Input_Opt
+      LDRYD     = Input_Opt%LDRYD
+      LNLPBL    = Input_Opt%LNLPBL
+      LSPLIT    = Input_Opt%LSPLIT
+      N_TRACERS = Input_Opt%N_TRACERS
+      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+
       ! Chemistry timestep [s]
       DTCHEM = GET_TS_CHEM() * 60d0
 
       ! First-time initialization only
+      !%%% NOTE: Need to eventually move this to the init stage %%%
       IF ( FIRST ) THEN 
-         CALL INIT_TAGGED_OX
+         CALL INIT_TAGGED_OX( am_I_Root, Input_Opt, RC )
          FIRST = .FALSE.
       ENDIF
 
@@ -763,6 +818,9 @@
          ENDIF
       ENDDO
 
+      ! Free pointer
+      NULLIFY( STT )
+
       END SUBROUTINE CHEM_TAGGED_OX
 !EOC
 !------------------------------------------------------------------------------
@@ -778,22 +836,35 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_TAGGED_OX
+      SUBROUTINE INIT_TAGGED_OX( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE ERROR_MOD,  ONLY : ALLOC_ERR
-      USE ERROR_MOD,  ONLY : ERROR_STOP
-      USE TRACER_MOD, ONLY : N_TRACERS
-
-      USE CMN_SIZE_MOD   ! Size parameters
-      USE CMN_DIAG_MOD   ! ND44, ND65, LD65
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+!
+! !LOCAL VARIABLES:
+!
 ! 
 ! !REVISION HISTORY:
 !  20 Aug 2003 - R. Yantosca - Initial version
 !  (1 ) Now reference N_TRACERS from "tracer_mod.f" (bmy, 7/20/04)
 !  (2 ) Now use LD65 instead of LLTROP to dimension P24H, L24H (phs, 11/18/08)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC args
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -806,8 +877,11 @@
       ! INIT_TAGGED_OX begins here
       !=================================================================
 
+      ! Assume success
+      RC = GIGC_SUCCESS
+
       ! Safety valve
-      IF ( N_TRACERS > N_TAGGED ) THEN
+      IF ( Input_Opt%N_TRACERS > N_TAGGED ) THEN
          CALL ERROR_STOP( 'NTRACE is too large for Tagged Ox!', 
      &                    'INIT_TAGGED_OX (tagged_ox_mod.f)' )
       ENDIF

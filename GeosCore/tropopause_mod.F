@@ -21,25 +21,23 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-      PUBLIC  :: CLEANUP_TROPOPAUSE
-      PUBLIC  :: CHECK_VAR_TROP
-      PUBLIC  :: COPY_FULL_TROP
-      PUBLIC  :: DIAG_TROPOPAUSE
-      PUBLIC  :: GET_MIN_TPAUSE_LEVEL
-      PUBLIC  :: GET_MAX_TPAUSE_LEVEL
-      PUBLIC  :: GET_TPAUSE_LEVEL
-      PUBLIC  :: ITS_IN_THE_TROP
-      PUBLIC  :: ITS_IN_THE_STRAT
-      PUBLIC  :: READ_TROPOPAUSE
-      PUBLIC  :: SAVE_FULL_TROP
-#if defined( DEVEL)
-      PUBLIC  :: LMIN, LMAX
-#endif
-
+      PUBLIC :: CLEANUP_TROPOPAUSE
+      PUBLIC :: CHECK_VAR_TROP
+      PUBLIC :: COPY_FULL_TROP
+      PUBLIC :: DIAG_TROPOPAUSE
+      PUBLIC :: GET_MIN_TPAUSE_LEVEL
+      PUBLIC :: GET_MAX_TPAUSE_LEVEL
+      PUBLIC :: GET_TPAUSE_LEVEL
+      PUBLIC :: INIT_TROPOPAUSE
+      PUBLIC :: ITS_IN_THE_TROP
+      PUBLIC :: ITS_IN_THE_STRAT
+      PUBLIC :: READ_TROPOPAUSE
+      PUBLIC :: SAVE_FULL_TROP
 !
-! !PRIVATE MEMBER FUNCTIONS:
+! !PUBLIC DATA MEMBERS:
 !
-      PRIVATE :: INIT_TROPOPAUSE
+      PUBLIC :: LMIN
+      PUBLIC :: LMAX
 !
 ! !REVISION HISTORY:
 !  22 Aug 2005 - R. Yantosca - Initial version
@@ -54,6 +52,7 @@
 !  (5 ) Updated comments (bmy, 9/18/07)
 !  (6 ) Bug fix: make ITS_IN_THE_STRAT more robust. (phs, 11/14/08)
 !  09 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  29 Mar 2013 - R. Yantosca - Now make INIT_TROPOPAUSE a public function
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -66,6 +65,9 @@
       ! Arrays
       INTEGER, ALLOCATABLE :: TROPOPAUSE(:,:)
       INTEGER, ALLOCATABLE :: IFLX(:,:)
+
+      ! Shadow variables for values in Input_Opt
+      LOGICAL              :: LVARTROP
 
       CONTAINS
 !EOC
@@ -83,15 +85,19 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE COPY_FULL_TROP()
+      SUBROUTINE COPY_FULL_TROP( State_Chm )
 !
 ! !USES:
 !
-      USE COMODE_MOD,     ONLY : CSPEC,  CSPEC_FULL
-      USE COMODE_MOD,     ONLY : IXSAVE, IYSAVE, IZSAVE
-
       USE CMN_SIZE_MOD
+      USE COMODE_MOD,         ONLY : CSPEC
+      USE COMODE_MOD,         ONLY : IXSAVE, IYSAVE, IZSAVE
       USE COMODE_LOOP_MOD
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
 !
 ! !REMARKS:
 !  ROUTINE NEEDED BECAUSE WITH VARIABLE TROPOPAUSE 
@@ -103,6 +109,7 @@
 !        be in COMODE_MOD.F, and called GET_SPECIES_CONCENTRATION (phs)
 !  (2 ) Bug fix: set NCS=NCSURBAN for safety's sake (bmy, 4/25/07)
 !  09 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -123,7 +130,7 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( JGAS, JLOOP, IX, IY, IZ )
 
-      ! Loop over species
+      ! Loop over species (active + inactive)
       DO JGAS  = 1, NTSPEC(NCS)
 
          ! Loop over 1-D grid boxes
@@ -135,7 +142,7 @@
             IZ = IZSAVE(JLOOP)
 
             ! Copy from 3-D array
-            CSPEC(JLOOP,JGAS) = CSPEC_FULL(IX,IY,IZ,JGAS)
+            CSPEC(JLOOP,JGAS) = State_Chm%Species(IX,IY,IZ,JGAS)
 
          ENDDO
       ENDDO
@@ -157,15 +164,19 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SAVE_FULL_TROP()
+      SUBROUTINE SAVE_FULL_TROP( State_Chm )
 !
 ! !USES:
 !
-      USE COMODE_MOD,     ONLY : CSPEC,  CSPEC_FULL
-      USE COMODE_MOD,     ONLY : IXSAVE, IYSAVE, IZSAVE
-
       USE CMN_SIZE_MOD
+      USE COMODE_MOD,         ONLY : CSPEC
+      USE COMODE_MOD,         ONLY : IXSAVE, IYSAVE, IZSAVE
       USE COMODE_LOOP_MOD
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+!
+! !OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !REMARKS:
 !  ROUTINE NEEDED BECAUSE WITH VARIABLE TROPOPAUSE 
@@ -177,6 +188,7 @@
 !        be in COMODE_MOD.F, and called SAVE_SPECIES_CONCENTRATION (phs)
 !  (2 ) Bug fix: set NCS=NCSURBAN for safety's sake! (bmy, 4/25/07)
 !  09 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -196,7 +208,7 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( JGAS, JLOOP, IX, IY, IZ )
 
-      ! Loop over species
+      ! Loop over species (active + inactive)
       DO JGAS = 1, NTSPEC(NCS)
 
          ! Loop over 1-D grid boxes
@@ -208,7 +220,7 @@
             IZ = IZSAVE(JLOOP)
 
             ! Save in 3-D array
-            CSPEC_FULL(IX,IY,IZ,JGAS) = CSPEC(JLOOP,JGAS)
+            State_Chm%Species(IX,IY,IZ,JGAS) = CSPEC(JLOOP,JGAS)
 
          ENDDO
       ENDDO
@@ -342,13 +354,14 @@
 !  (14) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (15) Simplify counting of # of tropospheric boxes (bmy, 11/1/05)
 !  09 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  29 Mar 2013 - R. Yantosca - Remove call to INIT_TROPOPAUSE, this is now
+!                              done in the init stage
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE      :: FIRST=.TRUE.
       INTEGER            :: I, J, COUNT
       REAL*4             :: ARRAY(IIPAR,JJPAR,1)
       CHARACTER(LEN=255) :: FILENAME
@@ -360,12 +373,6 @@
       ! format).  Transfer data into an array of size (IIPAR,JJPAR).
       !=================================================================
       
-      ! Allocate arrays
-      IF ( FIRST ) THEN
-         CALL INIT_TROPOPAUSE
-         FIRST = .FALSE.
-      ENDIF
-
       ! Create filename
       FILENAME = TRIM( DATA_DIR )                      // 
      &           'ann_mean_trop_200202/ann_mean_trop.' //
@@ -952,18 +959,31 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_TROPOPAUSE
+      SUBROUTINE INIT_TROPOPAUSE( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      ! References to F90 modules
-      USE ERROR_MOD, ONLY : ALLOC_ERR
-
       USE CMN_SIZE_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 ! 
+! !REMARKS:
+!  Now 
+!
 ! !REVISION HISTORY: 
 !  10 Feb 2005 - R. Yantosca - Initial version
 !  09 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  29 Mar 2013 - R. Yantosca - Now made public so we can shadow LVARTROP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -975,14 +995,27 @@
       !=================================================================
       ! INIT_TROPOPAUSE
       !=================================================================
-      ALLOCATE( TROPOPAUSE( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPOPAUSE' )
-      TROPOPAUSE = 0
 
-      ! For now don't allocate IFLX
-      !ALLOCATE( IFLX( IIPAR, JJPAR ), STAT=AS ) 
-      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'IFLX' )
-      !IFLX = 0
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Shadow Input_Opt%LVARTROP in a module variable
+      LVARTROP = Input_Opt%LVARTROP
+
+      ! Only allocate arrays if we are not using the variable tropopause
+      IF ( .not. LVARTROP ) THEN 
+
+         ! Array for the ann mean tropopause
+         ALLOCATE( TROPOPAUSE( IIPAR, JJPAR ), STAT=AS ) 
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPOPAUSE' )
+         TROPOPAUSE = 0
+
+         ! For now don't allocate IFLX
+         !ALLOCATE( IFLX( IIPAR, JJPAR ), STAT=AS ) 
+         !IF ( AS /= 0 ) CALL ALLOC_ERR( 'IFLX' )
+         !IFLX = 0
+         
+      ENDIF
 
       END SUBROUTINE INIT_TROPOPAUSE
 !EOC

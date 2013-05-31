@@ -523,7 +523,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_Olson_LandMap( am_I_Root )
+  SUBROUTINE Init_Olson_LandMap( am_I_Root, DATA_DIR_1x1 )
 !
 ! !USES:
 !
@@ -538,7 +538,8 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL, INTENT(IN) :: am_I_Root
+    LOGICAL,            INTENT(IN) :: am_I_Root
+    CHARACTER(LEN=255), INTENT(IN) :: DATA_DIR_1x1
 !
 ! !REMARKS:
 !  Assumes that you have:
@@ -552,6 +553,7 @@ CONTAINS
 !  27 Mar 2012 - R. Yantosca - Now echo file I/O status info to stdout
 !  27 Mar 2012 - R. Yantosca - Now can read Olson 1992 or Olson 2001 land map
 !  29 Nov 2012 - R. Yantosca - Add am_I_Root to the argument list
+!  26 Feb 2013 - M. Long     - Now pass DATA_DIR_1x1 via the argument list
 !EOP
 !------------------------------------------------------------------------------
 !BOC

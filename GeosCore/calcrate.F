@@ -1,5 +1,6 @@
 ! $Id: calcrate.f,v 1.6 2010/03/15 19:33:25 ccarouge Exp $
-      SUBROUTINE CALCRATE( State_Met, Input_Opt )
+      SUBROUTINE CALCRATE( am_I_Root, Input_Opt, 
+     &                     State_Met, State_Chm, RC )
 !
 !******************************************************************************
 !  Subroutine CALCRATE computes reaction rates before passing them to the
@@ -78,6 +79,9 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  27 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOSmid
+!  05 Mar 2013 - R. Yantosca - Now get logical, XNMOL fields from Input_Opt
+!  05 Mar 2013 - R. Yantosca - Pass am_I_Root, Input_Opt, RC arguments
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm via the argument list
 !  14 Mar 2013 - M. Payer    - Replace NOx and Ox emissions with NO and O3
 !                              emissions as part of removal of NOx-Ox
 !                              partitioning
@@ -85,75 +89,67 @@
 !  17 May 2013 - M. Payer    - Add improved HO2 uptake (J. Mao)
 !******************************************************************************
 !
-      ! References to F90 modules 
-      ! Add CSPEC to extract HO2 concentration (jaegle 2/26/09)
+! !USES:
+!
+      USE CMN_SIZE_MOD
+      USE COMODE_LOOP_MOD
+      USE CMN_DIAG_MOD
+      USE CMN_MOD
+      USE CMN_O3_MOD
       USE COMODE_MOD,         ONLY : ABSHUM, AIRDENS, ERADIUS, IXSAVE, 
      &                               IYSAVE, IZSAVE,  JLOP,    PRESS3,  
      &                               REMIS,  T3,      TAREA,    CSPEC
-      ! Add AD52 for gamma_ho2 diagnostic (jaegle 02/26/09)
-      USE DIAG_MOD,           ONLY : AD22,   LTJV, AD52
-      USE DRYDEP_MOD,         ONLY : DEPSAV, NUMDEP, DEPNAME
-      ! Add CHECK_VALUE (jaegle 2/26/09)
-      USE ERROR_MOD,          ONLY : ERROR_STOP, GEOS_CHEM_STOP
-      USE ERROR_MOD,          ONLY : CHECK_VALUE, DEBUG_MSG
-      USE GRID_MOD,           ONLY : GET_YMID
-      ! Add GET_PBL_TOP_L (   jaegle 02/26/09)
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP,GET_PBL_TOP_L
-      USE PLANEFLIGHT_MOD,    ONLY : ARCHIVE_RXNS_FOR_PF
-      ! Add IDHO2 for HO2 concentration and IS_ICE (jaegle 02/26/09)
-      USE TRACERID_MOD,       ONLY : IDHO2
+      USE COMODE_MOD,         ONLY : VOLUME
       USE DAO_MOD,            ONLY : IS_ICE
-      ! KPP interface (phs,   ks,dhk, 09/15/09)
-      USE GCKPP_GLOBAL,       ONLY : IND
-      USE LOGICAL_MOD,        ONLY : LNLPBL, LKPP, LPRT ! (Lin, 03/31/09)
-      ! jpp, testing          
-      USE LOGICAL_MOD,        ONLY : LWARWICK_VSLS
-      ! jpp, add for use in HOBr + HBr reaction
-      USE TRACERID_MOD,       ONLY : IDTHBr, IDTHOBr
-      USE ERROR_MOD,          ONLY : is_safe_div
-      USE TRACER_MOD,         ONLY : STT
-
-      !UPDATE BY GVINKEN, USE FOR SHIPS EMISSIONS
-      USE ICOADS_SHIP_MOD,    ONLY : GET_ICOADS_SHIP  !(cklee, 7/09/09)
-      USE LOGICAL_MOD,        ONLY : LICOADSSHIP      !(cklee, 6/30/09)
-      USE LOGICAL_MOD,        ONLY : LEDGARSHIP
-      USE LOGICAL_MOD,        ONLY : LEMEPSHIP,       LVISTAS
+      USE DIAG_MOD,           ONLY : AD22,   LTJV, AD52
+      USE DIAG_MOD,           ONLY : AD32_an, AD36,   AD63
+      USE DIAG63_MOD,         ONLY : DO_SAVE_DIAG63
+      USE DRYDEP_MOD,         ONLY : DEPSAV, NUMDEP, DEPNAME
       USE EDGAR_MOD,          ONLY : GET_EDGAR_NOx
       USE EMEP_MOD,           ONLY : GET_EMEP_ANTHRO, GET_EUROPE_MASK
-      USE TRACER_MOD,         ONLY : XNUMOL
-      USE TIME_MOD,           ONLY : GET_TS_EMIS
+      USE EMISSIONS_MOD,      ONLY : NOx_SCALING      
+      USE ERROR_MOD,          ONLY : is_safe_div
+      USE ERROR_MOD,          ONLY : ERROR_STOP, GEOS_CHEM_STOP
+      USE ERROR_MOD,          ONLY : CHECK_VALUE
+      USE GCKPP_GLOBAL,       ONLY : IND
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE GRID_MOD,           ONLY : GET_YMID
+      USE ICOADS_SHIP_MOD,    ONLY : GET_ICOADS_SHIP
+      USE PARANOX_MOD,        ONLY : INTERPOLATE_LUT2
+      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP,GET_PBL_TOP_L
+      USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE     
+      USE PLANEFLIGHT_MOD,    ONLY : ARCHIVE_RXNS_FOR_PF
+      USE TIME_MOD,           ONLY : GET_TS_EMIS
+      USE TRACERID_MOD,       ONLY : IDTHBr,  IDTHOBr
+      USE TRACERID_MOD,       ONLY : IDHO2
       USE TRACERID_MOD,       ONLY : IDTNO,  IDTO3,  IDTHNO3, IDTNO2
       USE TRACERID_MOD,       ONLY : IDNO,   IDO3,   IDHNO3,  IDNO2
       USE TRACERID_MOD,       ONLY : IDENO,  IDEO3,  IDEHNO3
-      USE TRACERID_MOD,       ONLY : CTRMB,  IDEMIS
-      USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE     
-      USE COMODE_MOD,         ONLY : VOLUME
-      USE DIAG_MOD,           ONLY : AD32_an, AD36,   AD63
-      USE DIAG63_MOD,         ONLY : DO_SAVE_DIAG63
-      USE EMISSIONS_MOD,      ONLY : NOx_SCALING      
-      USE PARANOX_MOD,        ONLY : INTERPOLATE_LUT2 !(mpayer, 2/7/12)
-
-      ! Add nitrate effect (lzh, 10/25/2011)
       USE TRACERID_MOD,       ONLY : IDTSO4, IDTNIT
-
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE COMODE_LOOP_MOD          ! SMVGEAR II arrays
-      USE CMN_DIAG_MOD             ! ND22, LD22, ND52, LD52
-      USE CMN_MOD                  ! STT, etc
-      USE CMN_O3_MOD               ! for jvalues (gvinken, 6/09/10)
+      USE TRACERID_MOD,       ONLY : CTRMB,  IDEMIS
 
       IMPLICIT NONE
 #     include "define.h"
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+!
+! !LOCAL VARIABLES:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 
-      ! Arguments
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input options
-      
       ! jpp, rate constant for BrNO3 cloud recycling
       REAL*8 :: CLD_BrNO3_RC
 
@@ -243,26 +239,63 @@
       ! Add nitrate effect (lzh, 10/25/2011)
       REAL*8           :: TMP1, TMP2
 
-      darea  = 0d0
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%% NEED TO GET THESE FIELDS FROM Input_Opt SO THAT     %%%
+      !%%% THE MPI PARALLELIZATION WILL WORK PROPERLY FOR ESMF %%%
+      !%%% (bmy, 3/5/13)                                       %%%
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      LOGICAL :: LEDGARSHIP
+      LOGICAL :: LEMEPSHIP
+      LOGICAL :: LICOADSSHIP
+      LOGICAL :: LKPP
+      LOGICAL :: LNLPBL
+      LOGICAL :: LVISTAS
+      LOGICAL :: LWARWICK_VSLS
+      REAL*8  :: XNUMOL(Input_Opt%N_TRACERS)
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
+      !=================================================================
+      ! CALCRATE begins here!
+      !=================================================================
+
+      ! Assume success
+      RC            = GIGC_SUCCESS
+
+      ! Save fields from Input_Opt into local variables
+      LEDGARSHIP    = Input_Opt%LEDGARSHIP
+      LEMEPSHIP     = Input_Opt%LEMEPSHIP
+      LICOADSSHIP   = Input_Opt%LICOADSSHIP
+      LKPP          = Input_Opt%LKPP
+      LNLPBL        = Input_Opt%LNLPBL
+      LVISTAS       = Input_Opt%LVISTAS
+      LWARWICK_VSLS = Input_Opt%LWARWICK_VSLS
+      XNUMOL        = Input_Opt%XNUMOL
+
+      ! Initialize
+      darea         = 0d0
 
       ! initialize the true/false selectors (jpp, 4/12/10)
-      yn_nkhobr = .false.; yn_nk1hbr = .false.
-      br_aer1_rc = 0.d0
+      yn_nkhobr     = .false.; yn_nk1hbr = .false.
+      br_aer1_rc    = 0.d0
 
       ! FAST-J: Zero out the dummy array (bmy, 9/30/99)
-      DUMMY = 0d0
+      DUMMY         = 0d0
 
       ! Zero rate arrays for this column, so that we don't have any
       ! "leftovers" from the last iteration.  This facilitates 
       ! comparing rates directly with the column code. (bmy, 5/22/09)
-      RRATE = 0d0
-      TRATE = 0d0
-      URATE = 0d0
-      GLOSS = 0d0
+      RRATE         = 0d0
+      TRATE         = 0d0
+      URATE         = 0d0
+      GLOSS         = 0d0
 
       ! Zero QICE, QLIQ arrays for safety's sake (bmy, 9/24/12)
-      QICE  = 0d0
-      QLIQ  = 0d0
+      QICE          = 0d0
+      QLIQ          = 0d0
 !
 ! *********************************************************************
 ! ************        WRITTEN BY MARK JACOBSON (1993)      ************
@@ -1090,6 +1123,10 @@ c new OH+CO rate from JPL2006.
             ! both pseudo-rxns (rate limiting). (jpp, 4/12/10)
             ! -------------------------------------------------
 
+            ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+            ! (mpayer, 12/6/12)
+            STT => State_Chm%Tracers
+
             IF ( ( IDTHBr > 0) .and. ( IDTHOBr > 0 ) ) THEN
 
                ! select the min of the two rates
@@ -1177,6 +1214,9 @@ c new OH+CO rate from JPL2006.
                RRATE(KLOOP, NK2HBr)  = ki_hbr
                RRATE(KLOOP, NK2HOBr) = ki_hobr
             ENDIF
+
+            ! Free pointer
+            NULLIFY( STT )
 
          ELSE
 

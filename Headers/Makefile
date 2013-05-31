@@ -139,7 +139,8 @@ gigc_input_opt_mod.o : gigc_input_opt_mod.F90   \
                        gigc_errcode_mod.o
 
 gigc_state_chm_mod.o : gigc_state_chm_mod.F90   \
-                       gigc_errcode_mod.o
+                       gigc_errcode_mod.o       \
+                       gigc_input_opt_mod.o
 
 gigc_state_met_mod.o : gigc_state_met_mod.F90   \
                        gigc_errcode_mod.o       \

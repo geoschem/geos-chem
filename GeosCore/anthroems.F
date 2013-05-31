@@ -12,10 +12,11 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE ANTHROEMS( NSEASON )
+      SUBROUTINE ANTHROEMS( NSEASON, Input_Opt )
 !
 ! !USES:
 !
+      USE GIGC_Input_Opt_Mod,  ONLY : OptInput
       USE FUTURE_EMISSIONS_MOD,ONLY : GET_FUTURE_SCALE_ALK4ff
       USE FUTURE_EMISSIONS_MOD,ONLY : GET_FUTURE_SCALE_C2H6ff
       USE FUTURE_EMISSIONS_MOD,ONLY : GET_FUTURE_SCALE_C3H8ff
@@ -28,10 +29,8 @@
       USE GEIA_MOD,            ONLY : READ_TOTCO2,  TOTAL_FOSSIL_TG
       USE GRID_MOD,            ONLY : GET_AREA_CM2, GET_XOFFSET
       USE GRID_MOD,            ONLY : GET_YOFFSET
-      USE LOGICAL_MOD,         ONLY : LFUTURE
       USE TIME_MOD,            ONLY : GET_TS_EMIS,  GET_YEAR
       USE TIME_MOD,            ONLY : GET_SEASON
-      USE TRACER_MOD,          ONLY : TRACER_MW_KG
       USE TRACERID_MOD,        ONLY : IDEACET,      IDEALK4
       USE TRACERID_MOD,        ONLY : IDEC2H6,      IDEC3H8
       USE TRACERID_MOD,        ONLY : IDECO,        IDEMEK
@@ -60,7 +59,8 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: NSEASON   ! Current season (1-4)
+      INTEGER,        INTENT(IN) :: NSEASON   ! Current season (1-4)
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !REMARKS:
 !  NSEASON:  is the seasonal index for NOx emissions:
@@ -144,6 +144,7 @@
 !  19 Nov 2010 - R. Yantosca - Added ProTeX headers
 !  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
 !                              of removal of NOx-Ox partitioning
+!  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -163,10 +164,19 @@
       REAL*8 :: GEOS1x1(I1x1,J1x1,1)
       REAL*8 :: TEMP(IIPAR,JJPAR)
 
+      ! For values from Input_Opt
+      LOGICAL :: LFUTURE
+      INTEGER :: N_TRACERS
+      REAL*8  :: TRACER_MW_KG(Input_Opt%N_TRACERS)
 
       !=================================================================
       ! ANTHROEMS begins here!
       !=================================================================
+
+      ! Copy values from Input_Opt
+      LFUTURE      = Input_Opt%LFUTURE
+      N_TRACERS    = Input_Opt%N_TRACERS
+      TRACER_MW_KG = Input_Opt%TRACER_MW_KG(1:N_TRACERS)
 
       ! Echo info
       WRITE( 6, '(a)' ) REPEAT( '=', 79 ) 

@@ -113,6 +113,11 @@
       REAL*8,  ALLOCATABLE, TARGET :: C2H6_WKEND(:,:,:) ! 121
       REAL*8,  ALLOCATABLE, TARGET :: C3H8_WKEND(:,:,:) ! 119
       REAL*8,  ALLOCATABLE, TARGET :: CH2O_WKEND(:,:,:) ! 120
+
+      ! Shadow logical variables from Input_Opt
+      LOGICAL                      :: LBRAVO
+      LOGICAL                      :: LCAC
+      LOGICAL                      :: LFUTURE
 !
 ! !DEFINED PARAMETERS:
 !
@@ -380,34 +385,40 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE EMISS_NEI2005_ANTHRO( EMISS )
-#else
-      SUBROUTINE EMISS_NEI2005_ANTHRO
-#endif
+      SUBROUTINE EMISS_NEI2005_ANTHRO( am_I_Root, Input_Opt,
+     &                                 State_Chm, RC         )
 !
 ! !USES:
 ! 
-      USE BPCH2_MOD,         ONLY : GET_TAU0,      READ_BPCH2
-      USE DIRECTORY_MOD,     ONLY : DATA_DIR_1x1 
-      USE LOGICAL_MOD,       ONLY : LFUTURE
-      USE REGRID_A2A_MOD,    ONLY : DO_REGRID_A2A
-      USE TIME_MOD,          ONLY : GET_YEAR, GET_MONTH
-      USE SCALE_ANTHRO_MOD,  ONLY : GET_ANNUAL_SCALAR_1x1
-      USE TRACER_MOD,        ONLY : ITS_A_FULLCHEM_SIM
-      USE TRACERID_MOD,      ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
-      USE TRACERID_MOD,      ONLY : IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
-      USE TRACERID_MOD,      ONLY : IDTNO,   IDTCO,   IDTSO2,  IDTNH3
-      USE TRACERID_MOD,      ONLY : IDTSO4,  IDTOCPI, IDTBCPI
-
-      USE CMN_SIZE_MOD            ! Size parameters
-      USE CMN_O3_MOD              ! FSCALYR
-
-#if defined( DEVEL )
-      USE TRACER_MOD,   ONLY : N_TRACERS
-      USE TIME_MOD,     ONLY : GET_DAY_OF_WEEK
-#endif
+      USE BPCH2_MOD,          ONLY : GET_TAU0,      READ_BPCH2
+      USE CMN_O3_MOD
+      USE CMN_SIZE_MOD
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR_1x1 
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE REGRID_A2A_MOD,     ONLY : DO_REGRID_A2A
+      USE TIME_MOD,           ONLY : GET_YEAR, GET_MONTH
+      USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK
+      USE SCALE_ANTHRO_MOD,   ONLY : GET_ANNUAL_SCALAR_1x1
+      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
+      USE TRACERID_MOD,       ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
+      USE TRACERID_MOD,       ONLY : IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
+      USE TRACERID_MOD,       ONLY : IDTNO,   IDTCO,   IDTSO2,  IDTNH3
+      USE TRACERID_MOD,       ONLY : IDTSO4,  IDTOCPI, IDTBCPI
 !
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?!
 ! !REVISION HISTORY: 
 !  07 Oct 2009 - A. van Donkelaar - initial version
 !  20 Oct 2009 - P. Le Sager - added VOC, account for mask to get better total
@@ -423,41 +434,52 @@
 !  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
 !                              of removal of NOx-Ox partitioning
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE              :: FIRST = .TRUE.
-      INTEGER                    :: I, J,   THISYEAR,       SNo, ScNo
-      INTEGER                    :: L, KLM, SPECIES_ID(15), ID,  MN
-      INTEGER                    :: OFFLINE_ID(15)
-      REAL*4                     :: ARRAY(I1x1,J1x1,5)
-      REAL*8, TARGET             :: GEOS_1x1(I1x1,J1x1,5)
-      REAL*8                     :: SC_1x1(I1x1,J1x1)
-      REAL*8                     :: TAU2005, TAU
-      CHARACTER(LEN=255)         :: FILENAME
-      CHARACTER(LEN=4)           :: SYEAR
-      CHARACTER(LEN=5)           :: SNAME
-      CHARACTER(LEN=1)           :: SSMN
-      CHARACTER(LEN=2)           :: SMN
-      CHARACTER(LEN=255)         :: LLFILENAME
-      REAL*8, POINTER            :: OUTGRID(:,:) => NULL()
-      REAL*8, POINTER            :: INGRID (:,:) => NULL()
+      LOGICAL, SAVE      :: FIRST = .TRUE.
+      INTEGER            :: I, J,   THISYEAR,       SNo, ScNo
+      INTEGER            :: L, KLM, SPECIES_ID(15), ID,  MN
+      INTEGER            :: OFFLINE_ID(15)
+      REAL*4             :: ARRAY(I1x1,J1x1,5)
+      REAL*8, TARGET     :: GEOS_1x1(I1x1,J1x1,5)
+      REAL*8             :: SC_1x1(I1x1,J1x1)
+      REAL*8             :: TAU2005, TAU
+      CHARACTER(LEN=255) :: FILENAME
+      CHARACTER(LEN=4)   :: SYEAR
+      CHARACTER(LEN=5)   :: SNAME
+      CHARACTER(LEN=1)   :: SSMN
+      CHARACTER(LEN=2)   :: SMN
+      CHARACTER(LEN=255) :: LLFILENAME
+      REAL*8, POINTER    :: OUTGRID(:,:) => NULL()
+      REAL*8, POINTER    :: INGRID (:,:) => NULL()
 
-#if defined( DEVEL )
-      INTEGER               :: DAY_NUM
-      LOGICAL               :: WEEKDAY
-      REAL*8, INTENT(INOUT) :: EMISS(IIPAR, JJPAR, LLPAR, N_TRACERS)
-#endif
+      INTEGER            :: DAY_NUM
+      LOGICAL            :: WEEKDAY
+
+      ! For fields from Input_Opt
+      INTEGER            :: N_TRACERS
+
       !=================================================================
       ! EMISS_NEI2005_ANTHRO begins here!
       !=================================================================
 
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LBRAVO    = Input_Opt%LBRAVO
+      LCAC      = Input_Opt%LCAC
+      LFUTURE   = Input_Opt%LFUTURE
+      N_TRACERS = Input_Opt%N_TRACERS
+
       ! First-time initialization
       IF ( FIRST ) THEN
-         CALL INIT_NEI2005_ANTHRO
+         CALL INIT_NEI2005_ANTHRO( am_I_Root, Input_Opt, RC )
          FIRST = .FALSE.
       ENDIF
 
@@ -1239,33 +1261,33 @@
       WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
 
       IF ( WEEKDAY ) THEN       !Kg/Yr
-         EMISS(:,:,1:5,IDTNO)   = NOx
-         EMISS(:,:,1:5,IDTCO)   = CO
-         EMISS(:,:,1:5,IDTSO2)  = SO2
-         EMISS(:,:,1:5,IDTSO4)  = SO4
-         EMISS(:,:,1:5,IDTNH3)  = NH3
-         EMISS(:,:,1:5,IDTALK4) = ALK4
-         EMISS(:,:,1:5,IDTACET) = ACET
-         EMISS(:,:,1:5,IDTMEK)  = MEK
-         EMISS(:,:,1:5,IDTPRPE) = PRPE
-         EMISS(:,:,1:5,IDTC3H8) = C3H8
-         EMISS(:,:,1:5,IDTCH2O) = CH2O
-         EMISS(:,:,1:5,IDTC2H6) = C2H6
-         EMISS(:,:,1:5,IDTALD2) = ALD2
+         State_Chm%TRAC_TEND(:,:,1:5,IDTNO)   = NOx
+         State_Chm%TRAC_TEND(:,:,1:5,IDTCO)   = CO
+         State_Chm%TRAC_TEND(:,:,1:5,IDTSO2)  = SO2
+         State_Chm%TRAC_TEND(:,:,1:5,IDTSO4)  = SO4
+         State_Chm%TRAC_TEND(:,:,1:5,IDTNH3)  = NH3
+         State_Chm%TRAC_TEND(:,:,1:5,IDTALK4) = ALK4
+         State_Chm%TRAC_TEND(:,:,1:5,IDTACET) = ACET
+         State_Chm%TRAC_TEND(:,:,1:5,IDTMEK)  = MEK
+         State_Chm%TRAC_TEND(:,:,1:5,IDTPRPE) = PRPE
+         State_Chm%TRAC_TEND(:,:,1:5,IDTC3H8) = C3H8
+         State_Chm%TRAC_TEND(:,:,1:5,IDTCH2O) = CH2O
+         State_Chm%TRAC_TEND(:,:,1:5,IDTC2H6) = C2H6
+         State_Chm%TRAC_TEND(:,:,1:5,IDTALD2) = ALD2
       ELSE
-         EMISS(:,:,1:5,IDTNO)   = NOx_WKEND
-         EMISS(:,:,1:5,IDTCO)   = CO_WKEND
-         EMISS(:,:,1:5,IDTSO2)  = SO2_WKEND
-         EMISS(:,:,1:5,IDTSO4)  = SO4_WKEND
-         EMISS(:,:,1:5,IDTNH3)  = NH3_WKEND
-         EMISS(:,:,1:5,IDTALK4) = ALK4_WKEND
-         EMISS(:,:,1:5,IDTACET) = ACET_WKEND
-         EMISS(:,:,1:5,IDTMEK)  = MEK_WKEND
-         EMISS(:,:,1:5,IDTPRPE) = PRPE_WKEND
-         EMISS(:,:,1:5,IDTC3H8) = C3H8_WKEND
-         EMISS(:,:,1:5,IDTCH2O) = CH2O_WKEND
-         EMISS(:,:,1:5,IDTC2H6) = C2H6_WKEND
-         EMISS(:,:,1:5,IDTALD2) = ALD2_WKEND
+         State_Chm%TRAC_TEND(:,:,1:5,IDTNO)   = NOx_WKEND
+         State_Chm%TRAC_TEND(:,:,1:5,IDTCO)   = CO_WKEND
+         State_Chm%TRAC_TEND(:,:,1:5,IDTSO2)  = SO2_WKEND
+         State_Chm%TRAC_TEND(:,:,1:5,IDTSO4)  = SO4_WKEND
+         State_Chm%TRAC_TEND(:,:,1:5,IDTNH3)  = NH3_WKEND
+         State_Chm%TRAC_TEND(:,:,1:5,IDTALK4) = ALK4_WKEND
+         State_Chm%TRAC_TEND(:,:,1:5,IDTACET) = ACET_WKEND
+         State_Chm%TRAC_TEND(:,:,1:5,IDTMEK)  = MEK_WKEND
+         State_Chm%TRAC_TEND(:,:,1:5,IDTPRPE) = PRPE_WKEND
+         State_Chm%TRAC_TEND(:,:,1:5,IDTC3H8) = C3H8_WKEND
+         State_Chm%TRAC_TEND(:,:,1:5,IDTCH2O) = CH2O_WKEND
+         State_Chm%TRAC_TEND(:,:,1:5,IDTC2H6) = C2H6_WKEND
+         State_Chm%TRAC_TEND(:,:,1:5,IDTALD2) = ALD2_WKEND
       ENDIF
 #endif
       !--------------------------
@@ -1289,33 +1311,39 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE EMISS_NEI2005_ANTHRO_05x0666( EMISS )
-#else
-      SUBROUTINE EMISS_NEI2005_ANTHRO_05x0666
-#endif
+      SUBROUTINE EMISS_NEI2005_ANTHRO_05x0666( am_I_Root, Input_Opt,
+     &                                         State_Chm, RC         )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,         ONLY : GET_TAU0,      READ_BPCH2
-      USE DIRECTORY_MOD,     ONLY : DATA_DIR
-      USE LOGICAL_MOD,       ONLY : LFUTURE
-      USE TIME_MOD,          ONLY : GET_YEAR, GET_MONTH
-      USE SCALE_ANTHRO_MOD,  ONLY : GET_ANNUAL_SCALAR_05x0666_NESTED
-      USE TRACER_MOD,        ONLY : ITS_A_FULLCHEM_SIM
-      USE TRACERID_MOD,      ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
-      USE TRACERID_MOD,      ONLY : IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
-      USE TRACERID_MOD,      ONLY : IDTNO,   IDTCO,   IDTSO2,  IDTNH3
-      USE TRACERID_MOD,      ONLY : IDTSO4,  IDTOCPI, IDTBCPI
-
-      USE CMN_SIZE_MOD            ! Size parameters
-      USE CMN_O3_MOD              ! FSCALYR
-
-#if defined( DEVEL )
-      USE TRACER_MOD,        ONLY : N_TRACERS
-      USE TIME_MOD,          ONLY : GET_DAY_OF_WEEK
-#endif
-
+      USE BPCH2_MOD,          ONLY : GET_TAU0,      READ_BPCH2
+      USE CMN_O3_MOD
+      USE CMN_SIZE_MOD
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE TIME_MOD,           ONLY : GET_YEAR, GET_MONTH
+      USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK
+      USE SCALE_ANTHRO_MOD,   ONLY : GET_ANNUAL_SCALAR_05x0666_NESTED
+      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
+      USE TRACERID_MOD,       ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
+      USE TRACERID_MOD,       ONLY : IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
+      USE TRACERID_MOD,       ONLY : IDTNO,   IDTCO,   IDTSO2,  IDTNH3
+      USE TRACERID_MOD,       ONLY : IDTSO4,  IDTOCPI, IDTBCPI
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  03 Nov 2009 - A. van Donkelaar - initial version
@@ -1327,40 +1355,49 @@
 !                              data directory NEI2005_101007/
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x like MERRA
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE              :: FIRST = .TRUE.
-      INTEGER                    :: I, J,   THISYEAR,       SNo, ScNo
-      INTEGER                    :: L, KLM, SPECIES_ID(15), ID,  MN
-      INTEGER                    :: OFFLINE_ID(15)
-      REAL*4                     :: ARRAY(IIPAR,JJPAR,5)
-      REAL*8                     :: GEOS_05x0666(IIPAR,JJPAR,5)
-      REAL*4                     :: SC_05x0666(IIPAR,JJPAR)
-      REAL*8                     :: TAU2005, TAU
-      CHARACTER(LEN=255)         :: FILENAME
-      CHARACTER(LEN=4)           :: SYEAR
-      CHARACTER(LEN=5)           :: SNAME
-      CHARACTER(LEN=1)           :: SSMN
-      CHARACTER(LEN=2)           :: SMN
+      LOGICAL, SAVE       :: FIRST = .TRUE.
+      INTEGER             :: I, J,   THISYEAR,       SNo, ScNo
+      INTEGER             :: L, KLM, SPECIES_ID(15), ID,  MN
+      INTEGER             :: OFFLINE_ID(15)
+      REAL*4              :: ARRAY(IIPAR,JJPAR,5)
+      REAL*8              :: GEOS_05x0666(IIPAR,JJPAR,5)
+      REAL*4              :: SC_05x0666(IIPAR,JJPAR)
+      REAL*8              :: TAU2005, TAU
+      CHARACTER(LEN=255)  :: FILENAME
+      CHARACTER(LEN=4)    :: SYEAR
+      CHARACTER(LEN=5)    :: SNAME
+      CHARACTER(LEN=1)    :: SSMN
+      CHARACTER(LEN=2)    :: SMN
 
+      INTEGER             :: DAY_NUM
+      LOGICAL             :: WEEKDAY
 
-#if defined( DEVEL )
-      INTEGER               :: DAY_NUM
-      LOGICAL               :: WEEKDAY
-      REAL*8, INTENT(INOUT) :: EMISS(IIPAR, JJPAR, LLPAR, N_TRACERS)
-#endif
+      ! For fields from Input_Opt
+      INTEGER             :: N_TRACERS
 
       !=================================================================
       ! EMISS_NEI2005_ANTHRO begins here!
       !=================================================================
 
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LBRAVO    = Input_Opt%LBRAVO
+      LCAC      = Input_Opt%LCAC
+      LFUTURE   = Input_Opt%LFUTURE
+      N_TRACERS = Input_Opt%N_TRACERS
+
       ! First-time initialization
       IF ( FIRST ) THEN
-         CALL INIT_NEI2005_ANTHRO
+         CALL INIT_NEI2005_ANTHRO( am_I_Root, Input_Opt, RC )
          FIRST = .FALSE.
       ENDIF
 
@@ -1620,33 +1657,33 @@
       WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
 
       IF ( WEEKDAY ) THEN       !Kg/Yr
-         EMISS(:,:,:,IDTNO)   = NOx
-         EMISS(:,:,:,IDTCO)   = CO
-         EMISS(:,:,:,IDTSO2)  = SO2
-         EMISS(:,:,:,IDTSO4)  = SO4
-         EMISS(:,:,:,IDTNH3)  = NH3
-         EMISS(:,:,:,IDTALK4) = ALK4
-         EMISS(:,:,:,IDTACET) = ACET
-         EMISS(:,:,:,IDTMEK)  = MEK
-         EMISS(:,:,:,IDTPRPE) = PRPE
-         EMISS(:,:,:,IDTC3H8) = C3H8
-         EMISS(:,:,:,IDTCH2O) = CH2O
-         EMISS(:,:,:,IDTC2H6) = C2H6
-         EMISS(:,:,:,IDTALD2) = ALD2
+         State_Chm%TRAC_TEND(:,:,1:5,IDTNO)   = NOx
+         State_Chm%TRAC_TEND(:,:,1:5,IDTCO)   = CO
+         State_Chm%TRAC_TEND(:,:,1:5,IDTSO2)  = SO2
+         State_Chm%TRAC_TEND(:,:,1:5,IDTSO4)  = SO4
+         State_Chm%TRAC_TEND(:,:,1:5,IDTNH3)  = NH3
+         State_Chm%TRAC_TEND(:,:,1:5,IDTALK4) = ALK4
+         State_Chm%TRAC_TEND(:,:,1:5,IDTACET) = ACET
+         State_Chm%TRAC_TEND(:,:,1:5,IDTMEK)  = MEK
+         State_Chm%TRAC_TEND(:,:,1:5,IDTPRPE) = PRPE
+         State_Chm%TRAC_TEND(:,:,1:5,IDTC3H8) = C3H8
+         State_Chm%TRAC_TEND(:,:,1:5,IDTCH2O) = CH2O
+         State_Chm%TRAC_TEND(:,:,1:5,IDTC2H6) = C2H6
+         State_Chm%TRAC_TEND(:,:,1:5,IDTALD2) = ALD2
       ELSE
-         EMISS(:,:,:,IDTNO)   = NOx_WKEND
-         EMISS(:,:,:,IDTCO)   = CO_WKEND
-         EMISS(:,:,:,IDTSO2)  = SO2_WKEND
-         EMISS(:,:,:,IDTSO4)  = SO4_WKEND
-         EMISS(:,:,:,IDTNH3)  = NH3_WKEND
-         EMISS(:,:,:,IDTALK4) = ALK4_WKEND
-         EMISS(:,:,:,IDTACET) = ACET_WKEND
-         EMISS(:,:,:,IDTMEK)  = MEK_WKEND
-         EMISS(:,:,:,IDTPRPE) = PRPE_WKEND
-         EMISS(:,:,:,IDTC3H8) = C3H8_WKEND
-         EMISS(:,:,:,IDTCH2O) = CH2O_WKEND
-         EMISS(:,:,:,IDTC2H6) = C2H6_WKEND
-         EMISS(:,:,:,IDTALD2) = ALD2_WKEND
+         State_Chm%TRAC_TEND(:,:,1:5,IDTNO)   = NOx_WKEND
+         State_Chm%TRAC_TEND(:,:,1:5,IDTCO)   = CO_WKEND
+         State_Chm%TRAC_TEND(:,:,1:5,IDTSO2)  = SO2_WKEND
+         State_Chm%TRAC_TEND(:,:,1:5,IDTSO4)  = SO4_WKEND
+         State_Chm%TRAC_TEND(:,:,1:5,IDTNH3)  = NH3_WKEND
+         State_Chm%TRAC_TEND(:,:,1:5,IDTALK4) = ALK4_WKEND
+         State_Chm%TRAC_TEND(:,:,1:5,IDTACET) = ACET_WKEND
+         State_Chm%TRAC_TEND(:,:,1:5,IDTMEK)  = MEK_WKEND
+         State_Chm%TRAC_TEND(:,:,1:5,IDTPRPE) = PRPE_WKEND
+         State_Chm%TRAC_TEND(:,:,1:5,IDTC3H8) = C3H8_WKEND
+         State_Chm%TRAC_TEND(:,:,1:5,IDTCH2O) = CH2O_WKEND
+         State_Chm%TRAC_TEND(:,:,1:5,IDTC2H6) = C2H6_WKEND
+         State_Chm%TRAC_TEND(:,:,1:5,IDTALD2) = ALD2_WKEND
       ENDIF
 #endif
 
@@ -2315,7 +2352,6 @@
       ! Reference to F90 modules
       USE BPCH2_MOD,      ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,      ONLY : GET_TAU0,        READ_BPCH2
-      USE LOGICAL_MOD,    ONLY : LCAC,            LBRAVO
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
@@ -2659,161 +2695,170 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_NEI2005_ANTHRO
+      SUBROUTINE INIT_NEI2005_ANTHRO( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 ! 
-      USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE LOGICAL_MOD, ONLY : LNEI05
-
-      USE CMN_SIZE_MOD    ! Size parameters
+      USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  02 Mar 2012 - R. Yantosca - Remove A_CM2 array
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt,  RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER              :: AS, J
 
       !=================================================================
       ! INIT_NEI2005_ANTHRO begins here!
       !=================================================================
 
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
       ! Return if LNEI05 is false
-      IF ( .not. LNEI05 ) RETURN
+      IF ( .not. Input_Opt%LNEI05 ) RETURN
       
       !--------------------------------------------------
       ! Allocate and zero arrays for emissions
       !--------------------------------------------------
 
       ! allocate and read USA Mask
-      ALLOCATE( USA_MASK( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'USA_MASK' )
+      ALLOCATE( USA_MASK( IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'USA_MRCK' )
       USA_MASK = 0d0
 
       CALL READ_NEI2005_MASK
 
-      ALLOCATE( NOx( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'NOx' )
+      ALLOCATE( NOx( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'NOx' )
       NOx = 0d0
 
-      ALLOCATE( CO( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CO' )
+      ALLOCATE( CO( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'CO' )
       CO = 0d0
 
-      ALLOCATE( SO2( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SO2' )
+      ALLOCATE( SO2( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'SO2' )
       SO2 = 0d0
 
-      ALLOCATE( SO4( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SO4' )
+      ALLOCATE( SO4( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'SO4' )
       SO4 = 0d0
 
-      ALLOCATE( NH3( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'NH3' )
+      ALLOCATE( NH3( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'NH3' )
       NH3 = 0d0
 
-      ALLOCATE( OC( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OC' )
+      ALLOCATE( OC( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'OC' )
       OC = 0d0 
 
-      ALLOCATE( BC( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC' )
+      ALLOCATE( BC( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'BC' )
       BC = 0d0 
 
-      ALLOCATE( ALK4( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALK4' )
+      ALLOCATE( ALK4( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'ALK4' )
       ALK4 = 0d0
 
-      ALLOCATE( ACET( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ACET' )
+      ALLOCATE( ACET( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'ACET' )
       ACET = 0d0
 
-      ALLOCATE( MEK( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MEK' )
+      ALLOCATE( MEK( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'MEK' )
       MEK = 0d0
 
-      ALLOCATE( ALD2( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALD2' )
+      ALLOCATE( ALD2( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'ALD2' )
       ALD2 = 0d0
 
-      ALLOCATE( PRPE( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRPE' )
+      ALLOCATE( PRPE( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'PRPE' )
       PRPE = 0d0
 
-      ALLOCATE( C2H6( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'C2H6' )
+      ALLOCATE( C2H6( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'C2H6' )
       C2H6 = 0d0 
 
-      ALLOCATE( C3H8( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'C3H8' )
+      ALLOCATE( C3H8( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'C3H8' )
       C3H8 = 0d0 
 
-      ALLOCATE( CH2O( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CH2O' )
+      ALLOCATE( CH2O( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'CH2O' )
       CH2O = 0d0 
 
-      ALLOCATE( NOx_WKEND( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'NOx_WKEND' )
+      ALLOCATE( NOx_WKEND( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'NOx_WKEND' )
       NOx_WKEND = 0d0
 
-      ALLOCATE( CO_WKEND( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CO_WKEND' )
+      ALLOCATE( CO_WKEND( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'CO_WKEND' )
       CO_WKEND = 0d0
 
-      ALLOCATE( SO2_WKEND( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SO2_WKEND' )
+      ALLOCATE( SO2_WKEND( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'SO2_WKEND' )
       SO2_WKEND = 0d0
 
-      ALLOCATE( SO4_WKEND( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SO4_WKEND' )
+      ALLOCATE( SO4_WKEND( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'SO4_WKEND' )
       SO4_WKEND = 0d0
 
-      ALLOCATE( NH3_WKEND( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'NH3_WKEND' )
+      ALLOCATE( NH3_WKEND( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'NH3_WKEND' )
       NH3_WKEND = 0d0
 
-      ALLOCATE( OC_WKEND( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OC_WKEND' )
+      ALLOCATE( OC_WKEND( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'OC_WKEND' )
       OC_WKEND = 0d0 
 
-      ALLOCATE( BC_WKEND( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC_WKEND' )
+      ALLOCATE( BC_WKEND( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'BC_WKEND' )
       BC_WKEND = 0d0 
 
-      ALLOCATE( ALK4_WKEND( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALK4_WKEND' )
+      ALLOCATE( ALK4_WKEND( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'ALK4_WKEND' )
       ALK4_WKEND = 0d0
 
-      ALLOCATE( ACET_WKEND( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ACET_WKEND' )
+      ALLOCATE( ACET_WKEND( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'ACET_WKEND' )
       ACET_WKEND = 0d0
 
-      ALLOCATE( MEK_WKEND( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MEK_WKEND' )
+      ALLOCATE( MEK_WKEND( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'MEK_WKEND' )
       MEK_WKEND = 0d0
 
-      ALLOCATE( ALD2_WKEND( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALD2_WKEND' )
+      ALLOCATE( ALD2_WKEND( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'ALD2_WKEND' )
       ALD2_WKEND = 0d0
 
-      ALLOCATE( PRPE_WKEND( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRPE_WKEND' )
+      ALLOCATE( PRPE_WKEND( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'PRPE_WKEND' )
       PRPE_WKEND = 0d0
 
-      ALLOCATE( C2H6_WKEND( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'C2H6_WKEND' )
+      ALLOCATE( C2H6_WKEND( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'C2H6_WKEND' )
       C2H6_WKEND = 0d0 
 
-      ALLOCATE( C3H8_WKEND( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'C3H8_WKEND' )
+      ALLOCATE( C3H8_WKEND( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'C3H8_WKEND' )
       C3H8_WKEND = 0d0 
 
-      ALLOCATE( CH2O_WKEND( IIPAR, JJPAR, 5 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CH2O_WKEND' )
+      ALLOCATE( CH2O_WKEND( IIPAR, JJPAR, 5 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'CH2O_WKEND' )
       CH2O_WKEND = 0d0 
 
       ! Return to calling program

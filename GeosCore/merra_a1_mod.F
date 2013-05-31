@@ -140,33 +140,35 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE OPEN_MERRA_A1_FIELDS( NYMD, NHMS, RESET, IUNIT )
+      SUBROUTINE OPEN_MERRA_A1_FIELDS( NYMD,  NHMS, Input_Opt, 
+     &                                 RESET, IUNIT            )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE DIRECTORY_MOD, ONLY : MERRA_DIR
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE FILE_MOD,      ONLY : FILE_EXISTS
-      USE FILE_MOD,      ONLY : IOERROR
-      USE TIME_MOD,      ONLY : EXPAND_DATE
+      USE BPCH2_MOD,          ONLY : GET_RES_EXT
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE FILE_MOD,           ONLY : FILE_EXISTS
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : EXPAND_DATE
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)            :: NYMD    ! YYYYMMDD date
-      INTEGER, INTENT(IN)            :: NHMS    ! hhmmss time
-      LOGICAL, INTENT(IN),  OPTIONAL :: RESET   ! Reset first-time A1 flag?
+      INTEGER,        INTENT(IN)            :: NYMD      ! YYYYMMDD date
+      INTEGER,        INTENT(IN)            :: NHMS      ! hhmmss time
+      TYPE(OptInput), INTENT(IN)            :: Input_Opt ! Input Options
+      LOGICAL,        INTENT(IN),  OPTIONAL :: RESET     ! Reset first A1 flag?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      INTEGER, INTENT(OUT), OPTIONAL :: IUNIT   ! Returns IU_A1 to caller
+      INTEGER,        INTENT(OUT), OPTIONAL :: IUNIT     ! Returns IU_A1
 ! 
 ! !REVISION HISTORY:
 !  19 Aug 2010 - R. Yantosca - Initial version, based on a3_read_mod.f
 !  03 Aug 2012 - R. Yantosca - Now use findFreeLUN to define IU_A1 locally
 !  06 Aug 2012 - R. Yantosca - Add optional IUNIT to pass LUN to calling routine
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  11 Apr 2013 - R. Yantosca - Now pass directory fields with Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -201,7 +203,7 @@
          !---------------------------
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( MERRA_DIR )
+         GEOS_DIR = TRIM( Input_Opt%MERRA_DIR )
          A1_FILE  = 'YYYYMMDD.a1.' // GET_RES_EXT()
 
          ! Replace date tokens
@@ -209,8 +211,9 @@
          CALL EXPAND_DATE( GEOS_DIR, NYMD, NHMS )
 
          ! Full file path
-         PATH = TRIM( DATA_DIR ) // 
-     &          TRIM( GEOS_DIR ) // TRIM( A1_FILE )
+         PATH = TRIM( Input_Opt%DATA_DIR ) // 
+     &          TRIM( GEOS_DIR           ) // 
+     &          TRIM( A1_FILE            )
 
          ! Close previously opened A-1 file
 	 INQUIRE( IU_A1, OPENED=IS_OPEN )

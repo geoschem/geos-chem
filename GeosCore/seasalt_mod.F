@@ -17,7 +17,6 @@
 !
 ! !USES:
 !
-      USE LOGICAL_MOD,     ONLY : LNLPBL ! (Lin, 03/31/09)
 
       IMPLICIT NONE
 #     include "define.h"
@@ -29,6 +28,7 @@
       PUBLIC :: EMISSSEASALT
       PUBLIC :: CLEANUP_SEASALT
       PUBLIC :: GET_ALK
+      PUBLIC :: INIT_SEASALT
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -73,6 +73,8 @@
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  16 Feb 2012 - R. Yantosca - Moved SRCSALT30 to end of module
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!  04 Mar 2013 - R. Yantosca - Now call INIT_SULFATE from the init stage
+!                              which facilitates connection to GEOS-5 GCM
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -112,7 +114,6 @@
       REAL*8,  ALLOCATABLE :: SRC_N(:,:)   
       REAL*8,  ALLOCATABLE :: ALK_EMIS(:,:,:,:)
       REAL*8,  ALLOCATABLE :: N_DENS(:,:,:,:)    
-      ! Add SALT_V and DMID (jaegle 5/11/11)
       REAL*8,  ALLOCATABLE :: SALT_V(:)
       REAL*8,  ALLOCATABLE :: DMID(:)
       REAL*8               :: SS_DEN(NSALT)    = (/ 2200.d0, 2200.d0 /)
@@ -136,7 +137,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEMSEASALT( am_I_Root, Input_Opt, State_Met, RC )
+      SUBROUTINE CHEMSEASALT( am_I_Root, Input_Opt, 
+     &                        State_Met, State_Chm, RC )
 !
 ! !USES:
 !
@@ -148,19 +150,23 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACER_MOD,         ONLY : STT
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TRACERID_MOD,       ONLY : IDTSALA
       USE TRACERID_MOD,       ONLY : IDTSALC
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !      
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY:
 !  (1 ) Now reference STT from "tracer_mod.f".  Now references LPRT from
@@ -171,21 +177,24 @@
 !                              running with the traditional driver main.F
 !  13 Nov 2012 - R. Yantosca - Now add Input_Opt, RC arguments for GIGC
 !  15 Nov 2012 - M. Payer    - Now pass met fields via State_Met object
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      ! SAVEd variables
-      LOGICAL, SAVE  :: FIRST = .TRUE.
-
       ! Non-SAVEd variables
       LOGICAL        :: prtDebug
       LOGICAL        :: LDRYD
       LOGICAL        :: LNLPBL
       LOGICAL        :: LPRT
       INTEGER        :: N
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! CHEMSEASALT begins here!
@@ -199,34 +208,12 @@
       LNLPBL   = Input_Opt%LNLPBL
       LPRT     = Input_Opt%LPRT
 
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT      => State_Chm%Tracers
+
       ! Do we have to print debug output?
       prtDebug = ( LPRT .and. am_I_Root )
-      
-      ! First-time initialization
-      IF ( FIRST ) THEN
-
-         ! Initialize (if necessary)
-         CALL INIT_SEASALT
-
-         ! Find drydep species in DEPSAV
-         DO N = 1, NUMDEP
-            SELECT CASE ( TRIM( DEPNAME(N) ) )
-               CASE ( 'SALA' )
-                  DRYSALA = N
-               CASE ( 'SALC' )
-                  DRYSALC = N
-               CASE DEFAULT
-                  ! Nothing
-            END SELECT        
-         ENDDO
-
-         ! Store in IDDEP array
-         IDDEP(1) = DRYSALA
-         IDDEP(2) = DRYSALC
-
-         ! Reset first-time flag
-         FIRST = .FALSE.
-      ENDIF
 
       !=================================================================
       ! Maybe someday we should merge these two separate calculations
@@ -274,6 +261,9 @@
             CALL DEBUG_MSG( '### CHEMSEASALT: DRY_DEP, Coarse')
          ENDIF
       ENDIF
+
+      ! Free pointer
+      NULLIFY( STT )
 
       END SUBROUTINE CHEMSEASALT
 !EOC
@@ -346,13 +336,14 @@
 !  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%XNUMOL(1:N_TRACERS)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                :: I,      J,     L
+      INTEGER                :: I,      J,     L,        N_TRACERS
       REAL*8                 :: DELZ,   DELZ1, REFF,     DEN
       REAL*8                 :: P,      DP,    PDP,      TEMP        
       REAL*8                 :: CONST,  SLIP,  VISC,     FAC1
@@ -410,7 +401,8 @@
       ! Copy fields from INPUT_OPT to local variables for use below
       SALA_REDGE_um = Input_Opt%SALA_REDGE_um 
       SALC_REDGE_um = Input_Opt%SALC_REDGE_um
-      XNUMOL        = Input_Opt%XNUMOL
+      N_TRACERS     = Input_Opt%N_TRACERS
+      XNUMOL        = Input_Opt%XNUMOL(1:N_TRACERS)
 
       ! Chemistry timestep [s]
       DTCHEM        = GET_TS_CHEM() * 60d0
@@ -753,6 +745,7 @@
 !                              then save back to AD44 outside parallel loop
 !  20 Nov 2012 - R. Yantosca - Now loop from 1..LLPAR for GIGC.  Remove
 !                              references to GET_PBL_MAX_L.
+!  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%XNUMOL(1:N_TRACERS)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -760,6 +753,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
+      INTEGER            :: N_TRACERS
       INTEGER            :: I,        J,     L,      DTCHEM
       REAL*8             :: OLD,      NEW,   G,      REFF
       REAL*8             :: DIAM,     U_TS0, REYNOL, ALPHA 
@@ -780,13 +774,14 @@
       !=================================================================
 
       ! Assume success
-      RC     = GIGC_SUCCESS
+      RC        = GIGC_SUCCESS
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      XNUMOL = Input_Opt%XNUMOL
+      N_TRACERS = Input_Opt%N_TRACERS
+      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
 
       ! Chemistry timestep [s]
-      DTCHEM = GET_TS_CHEM() * 60d0
+      DTCHEM    = GET_TS_CHEM() * 60d0
 
       ! Zero temporary array for drydep diagnostic
       IF ( ND44 > 0 ) ND44_TMP = 0d0
@@ -885,18 +880,17 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE EMISSSEASALT( State_Met, SFLX, SSA_Br2 )
-#else
-      SUBROUTINE EMISSSEASALT( State_Met, SSA_Br2 )
-#endif
+      SUBROUTINE EMISSSEASALT( am_I_Root, Input_Opt, State_Met, 
+     &                         State_Chm, RC,        SSA_Br2    )
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE LOGICAL_MOD,        ONLY : LPRT
-      USE TRACER_MOD,         ONLY : STT
       USE TRACERID_MOD,       ONLY : IDTSALA, IDTSALC
       USE VDIFF_PRE_MOD,      ONLY : emis_save ! (Lin, 03/31/09)
 #if   defined( TOMAS )
@@ -904,25 +898,21 @@
       USE TRACERID_MOD,       ONLY : IDTSS1 ! (win, 7/17/09)
       USE TOMAS_MOD,          ONLY : IBINS  ! (win, 7/17/09)
 #endif
-#if defined( DEVEL )
-      USE TRACER_MOD,         ONLY : N_TRACERS
-#endif
-
-      USE CMN_SIZE_MOD             ! Size parameters
-!
-! !OUTPUT PARAMETERS:
-!
-      REAL*8, INTENT(OUT), OPTIONAL :: SSA_Br2(IIPAR, JJPAR)
-!
-! !INPUT/OUTPUT PARAMETERS
-!
-#if defined( DEVEL )
-      REAL*8, INTENT(INOUT) :: SFLX(IIPAR,JJPAR,LLPAR,N_TRACERS+1)
-#endif
 !
 ! !INPUT PARAMETERS:
 !
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+      LOGICAL,           INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput),    INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState),    INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState),    INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,           INTENT(OUT)   :: RC          ! Success or failure?
+      REAL*8,  OPTIONAL, INTENT(OUT)   :: SSA_Br2(IIPAR, JJPAR)
 !
 ! !REVISION HISTORY: 
 !  (1 ) Now references LPRT from "logical_mod.f" and STT from "tracer_mod.f".
@@ -940,28 +930,42 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE         :: FIRST = .TRUE.
-      INTEGER               :: I, J, L, N
+      LOGICAL, SAVE   :: FIRST = .TRUE.
+      INTEGER         :: I, J, L, N
 
       ! jpp, 3/2/10
-      REAL*8                :: tmpbr2(IIPAR, JJPAR)
+      REAL*8          :: tmpbr2(IIPAR, JJPAR)
+
+      ! For fields from Input_Opt
+      LOGICAL         :: LNLPBL
+      LOGICAL         :: LPRT
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! EMISSSEASALT begins here! 
       !=================================================================
 
+      ! Assume success
+      RC          =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LNLPBL      = Input_Opt%LNLPBL
+      LPRT        = Input_Opt%LPRT
+
       ! Initialize Br2 emission arrays
       tmpbr2(:,:) = 0.d0
       IF ( PRESENT ( SSA_Br2 ) ) SSA_Br2(:,:) = 0.d0
 
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### in EMISSEASALT' )
-
-      ! Allocate all module arrays (bec, bmy, 4/13/05)
-      IF ( FIRST ) THEN  
-         CALL INIT_SEASALT
-         FIRST = .FALSE.
-      ENDIF
 
       ! Initialize for each timestep (bec, bmy, 4/13/05)
 !$OMP PARALLEL DO
@@ -1001,8 +1005,10 @@
       ENDIF
 
 #if defined( DEVEL )
-      SFLX(:,:,1,IDTSALA) = SFLX(:,:,1,IDTSALA) + ALK_EMIS(:,:,1,1)
-      SFLX(:,:,1,IDTSALC) = SFLX(:,:,1,IDTSALC) + ALK_EMIS(:,:,1,2)
+      State_Chm%TRAC_TEND(:,:,1,IDTSALA) = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTSALA) + ALK_EMIS(:,:,1,1)
+      State_Chm%TRAC_TEND(:,:,1,IDTSALC) = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTSALC) + ALK_EMIS(:,:,1,2)
 #endif
 
       IF ( PRESENT ( SSA_Br2 ) ) THEN
@@ -1034,7 +1040,7 @@
 
       ! save surface emis for non-local PBL mixing (vdiff_mod.f) (units: kg)
       ! (Lin, 06/09/08) 
-      IF (LNLPBL) THEN
+      IF ( LNLPBL ) THEN
 !$OMP PARALLEL DO
 !$OMP+PRIVATE( I, J )
          DO J = 1, JJPAR
@@ -1045,6 +1051,9 @@
          ENDDO
 !$OMP END PARALLEL DO
       ENDIF
+
+      ! Free pointer
+      NULLIFY( STT )
 
       END SUBROUTINE EMISSSEASALT
 !EOC
@@ -1083,6 +1092,10 @@
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND44, ND08
       USE CMN_GCTM_MOD             ! PI
+
+      !%%% NOTE: Keep this here as a placeholder, but we should
+      !%%% eventually replace this with Input_Opt%LNLPBL
+      USE LOGICAL_MOD,         ONLY : LNLPBL
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1396,7 +1409,7 @@
             ! Move surface emis to vdiff_mod.f for non-local PBL mixing
             ! --- emis is saved in emis_save(:,:,:) in SUBROUTINE EMISSSEASALT 
             ! (Lin, 06/09/08) 
-            IF (LNLPBL) FEMIS = 0.D0
+            IF ( LNLPBL ) FEMIS = 0.D0
 
             ! Add seasalt emissions into box (I,J,L) [kg]
             TC(I,J,L)         = TC(I,J,L) + ( FEMIS * SALT(I,J) )
@@ -1627,19 +1640,32 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_SEASALT
+      SUBROUTINE INIT_SEASALT( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE ERROR_MOD, ONLY : ALLOC_ERR
-
       USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC
 !
 ! !REVISION HISTORY:
 !  (1 ) Now exit if we have allocated arrays before.  Now also allocate 
 !        ALK_EMIS & N_DENS.  Now reference CMN_SIZE. (bec, bmy, 4/13/05)
 !  (2 ) Added SALT_V and DMID (jaegle 5/11/11)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  04 Mar 2013 - R. Yantosca - Now pass am_I_Root, Input_Opt, RC as arguments
+!   4 Mar 2013 - R. Yantosca - Now test for DEPSALA, DEPSALC here
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1647,11 +1673,14 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE :: IS_INIT = .FALSE.
-      INTEGER       :: AS
+      INTEGER       :: AS, N
 
       !=================================================================
       ! INIT_SEASALT begins here!
       !=================================================================
+
+      ! Assume success
+      RC = GIGC_SUCCESS
 
       ! Return if we have already allocated arrays
       IF ( IS_INIT ) RETURN
@@ -1688,6 +1717,27 @@
       ALLOCATE( DMID( NR_MAX ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'DMID' )
       DMID = 0d0
+
+      ! Zero the IDDEP array
+      IDDEP = 0
+
+      ! Find drydep species in DEPSAV
+      IF ( Input_Opt%LDRYD ) THEN 
+         DO N = 1, Input_Opt%NUMDEP
+            SELECT CASE ( TRIM( Input_Opt%DEPNAME(N) ) )
+               CASE ( 'SALA' )
+                  DRYSALA = N
+               CASE ( 'SALC' )
+                  DRYSALC = N
+               CASE DEFAULT
+                  ! Nothing
+            END SELECT        
+         ENDDO
+
+         ! Store in IDDEP array
+         IDDEP(1) = DRYSALA
+         IDDEP(2) = DRYSALC
+      ENDIF
 
       ! Reset IS_INIT
       IS_INIT = .TRUE.

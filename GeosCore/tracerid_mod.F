@@ -2730,7 +2730,9 @@
 !  16 Oct 2012 - R. Yantosca - Renamed chem state object to State_Chm
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
 !  13 Nov 2012 - R. Yantosca - Now pass Input Options object as an argument
-
+!  05 Mar 2013 - R. Yantosca - Now TRIM the TRACER_NAME in the ND70 debug print
+!  06 Mar 2013 - R. Yantosca - Now move call to REGISTER_SPECIES to routine
+!                              GIGC_INIT_SIMULATION 
 !******************************************************************************
 !
 ! !USES:
@@ -2741,9 +2743,6 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY: OptInput          
       USE GIGC_State_Chm_Mod, ONLY: ChmState          
-#if defined( ESMF_ )
-      USE GIGC_State_Chm_Mod, ONLY: Register_Species   ! Used w/ ESMF
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -2882,23 +2881,6 @@
          IF ( NAMEGAS(I) == 'LTRO2N'   ) IDLTRO2N   = I
          IF ( NAMEGAS(I) == 'LXRO2H'   ) IDLXRO2H   = I
          IF ( NAMEGAS(I) == 'LXRO2N'   ) IDLXRO2N   = I
-
-         IF ( NAMEGAS(I) == 'H2SO4'  ) IDH2SO4  = I !(win, 6/23/09)
-
-#if defined( ESMF_ )
-         ! Add the species name & Id to the chemistry state object
-         ! (this only needs to be done if we are using the ESMF interface)
-         CALL Register_Species( NAMEGAS(I), I, State_Chm, STAT )
-
-         ! Error check
-         IF ( STAT .lt. 0 ) THEN
-            CALL ERROR_STOP('FAIL','REGISTER_CSPEC')
-         ELSE
-            IF ( am_I_Root ) THEN
-               WRITE(6,*) 'Registered ', NAMEGAS(I), STAT
-            ENDIF
-         ENDIF
-#endif
       ENDDO
 
       !=================================================================
@@ -2972,9 +2954,9 @@
             IF ( LPRT .and. am_I_Root ) THEN
                PRINT*, '###--------------------'
                PRINT*, '### T, C       : ', T, C
-               PRINT*, '### NAME       : ', TRIM(TRACER_NAME(T))
+               PRINT*, '### NAME       : ', TRIM( TRACER_NAME(T) )
                PRINT*, '### NMEMBER    : ', NMEMBER(T)
-               PRINT*, '### CONST(T,C) : ', TRIM(TRACER_CONST(T,C))
+               PRINT*, '### CONST(T,C) : ', TRIM( TRACER_CONST(T,C) )
                PRINT*, '### CTRMB(T,C) : ', CTRMB(T,C)
                PRINT*, '### IDEMIS(T)  : ', IDEMIS(T)
                PRINT*, '### IDTRMB(T,C): ', IDTRMB(T,C)

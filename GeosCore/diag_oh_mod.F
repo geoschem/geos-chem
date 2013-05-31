@@ -64,11 +64,10 @@
 !
 ! !USES:
 !
-      USE COMODE_MOD,   ONLY : AIRDENS, CSPEC, JLOP, T3, VOLUME
-      USE TRACERID_MOD, ONLY : IDOH
-
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE COMODE_LOOP_MOD     ! NPVERT, NLAT, NLONG
+      USE CMN_SIZE_MOD
+      USE COMODE_MOD,     ONLY : AIRDENS, CSPEC, JLOP, T3, VOLUME
+      USE COMODE_LOOP_MOD
+      USE TRACERID_MOD,   ONLY : IDOH
 ! 
 ! !REVISION HISTORY:
 !  07 Jul 2004 - R. Yantosca - Initial version

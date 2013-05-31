@@ -107,7 +107,8 @@
 #  12 Apr 2012 - R. Yantosca - Remove reference to findmon.F
 #  19 Apr 2012 - R. Yantosca - Remove reference to rd_prof.F
 #  30 Oct 2012 - R. Yantosca - Remove reference to rdsoil.F
-#  27 Nov 2012 - R. Yantosca - Remvoe reference to getifsun.F
+#  27 Nov 2012 - R. Yantosca - Remove reference to getifsun.F
+#  30 May 2013 - R. Yantosca - Remove reference to GEOS-3 TPCORE routines 
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -283,7 +284,8 @@ aerosol_mod.o               : aerosol_mod.F           comode_mod.o           \
                               tracer_mod.o            tropopause_mod.o  
 
 aircraft_nox_mod.o          : aircraft_nox_mod.F                             \
-                              dao_mod.o               diag_mod.o              
+                              dao_mod.o               diag_mod.o             \
+                              tracerid_mod.o
 
 airmas.o                    : airmas.F
 
@@ -448,10 +450,6 @@ CLDSRF.o                    : CLDSRF.F
 co2_mod.o                   : co2_mod.F               biomass_mod.o          \
                               diag04_mod.o            tracer_mod.o           \
 	                      tracerid_mod.o          
-
-CO_strat_pl.o               : CO_strat_pl.F                                  \
-                              dao_mod.o               tracer_mod.o           \
-                              tracerid_mod.o          tropopause_mod.o 
 
 comode_mod.o                : comode_mod.F            tracer_mod.o
 
@@ -768,21 +766,23 @@ input_mod.o                 : input_mod.F                                    \
                               benchmark_mod.o         biofuel_mod.o          \
                               depo_mercury_mod.o      diag03_mod.o           \
                               diag04_mod.o            diag41_mod.o           \
-                              diag42_mod.o  	         diag48_mod.o           \
-                              diag49_mod.o  	         diag50_mod.o           \
-                              diag51_mod.o  	         diag51b_mod.o          \
-                              diag56_mod.o  	         diag_oh_mod.o          \
-                              diag_pl_mod.o 	         drydep_mod.o           \
+                              diag42_mod.o  	      diag48_mod.o           \
+                              diag49_mod.o  	      diag50_mod.o           \
+                              diag51_mod.o  	      diag51b_mod.o          \
+                              diag56_mod.o  	      diag_oh_mod.o          \
+                              diag_pl_mod.o 	      drydep_mod.o           \
                               emissions_mod.o         future_emissions_mod.o \
                               gamap_mod.o             land_mercury_mod.o     \
-                              logical_mod.o 	         mercury_mod.o          \
+                              logical_mod.o 	      mercury_mod.o          \
                               ocean_mercury_mod.o     planeflight_mod.o      \
                               restart_mod.o           tpcore_bc_mod.o        \
                               tracerid_mod.o          tracer_mod.o           \
                               transport_mod.o         wetscav_mod.o          \
                               diag63_mod.o            bromocarb_mod.o        \
                               get_popsinfo_mod.o      pops_mod.o             \
-                              tomas_mod.o
+                              tomas_mod.o             carbon_mod.o           \
+                              dust_mod.o              seasalt_mod.o          \
+                              sulfate_mod.o           aerosol_mod.o
 
 isoropiaII_mod.o            : isoropiaII_mod.F                               \
                               dao_mod.o               global_hno3_mod.o      \
@@ -808,7 +808,8 @@ LEGND0.o                    : LEGND0.F
 
 lightning_nox_mod.o         : lightning_nox_mod.F                            \
                               dao_mod.o               diag56_mod.o           \
-                              diag_mod.o              logical_mod.o        
+                              diag_mod.o              logical_mod.o          \
+                              tracerid_mod.o
 
 linoz_mod.o                 : linoz_mod.F                                    \
                               dao_mod.o               tracerid_mod.o         \
@@ -1111,16 +1112,6 @@ tpcore_geos5_window_mod.o   : tpcore_geos5_window_mod.F90
 tpcore_geos57_window_mod.o  : tpcore_geos57_window_mod.F90
 	$(F90) -c $(FREEFORM) $(R8) $<
 
-tpcore_mod.o                : tpcore_mod.F            dao_mod.o              \
-                              diag_mod.o              global_ch4_mod.o       \
-                              tracer_mod.o            tomas_tpcore_mod.o
-	$(F90) -c $(R8) $(FFLAGS) $<
-
-tpcore_window_mod.o         : tpcore_window_mod.F     dao_mod.o              \
-                              diag_mod.o              global_ch4_mod.o       \
-                              tracer_mod.o            tomas_mod.o
-	$(F90) -c $(R8) $<
-
 tracer_mod.o                : tracer_mod.F
 
 tracerid_mod.o              : tracerid_mod.F                                 \
@@ -1130,8 +1121,7 @@ tracerid_mod.o              : tracerid_mod.F                                 \
 transport_mod.o             : transport_mod.F                                \
                               dao_mod.o               diag_mod.o             \
                               logical_mod.o           pjc_pfix_mod.o         \
-                              tpcore_mod.o            tpcore_bc_mod.o        \
-                              tpcore_fvdas_mod.o      tpcore_window_mod.o    \
+                              tpcore_bc_mod.o         tpcore_fvdas_mod.o     \
                               tracer_mod.o                                   \
                               tpcore_geos5_window_mod.o                      \
                               tpcore_geos57_window_mod.o                     \

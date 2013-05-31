@@ -24,7 +24,9 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !  
+      PUBLIC  :: INITIALIZE_GEOS_GRID
       PUBLIC  :: READ_INPUT_FILE
+      PUBLIC  :: GIGC_Init_Extra
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -132,6 +134,9 @@
 !                              so that we can define it with findFreeLun
 !  02 Nov 2012 - R. Yantosca - Now pass the Input Options object to routines;
 !                              this will eventually replace logical_mod, etc.
+!  26 Feb 2013 - M. Long     - Now make INITIALIZE_GEOS_GRID a public routine
+!  04 Mar 2013 - R. Yantosca - Add routine GIGC_Init_Extra to move some init
+!                              calls out of the run stage when using ESMF
 !  23 Apr 2013 - R. Yantosca - For TOMAS, rename READ_MICROPHYSICS_MENU to 
 !                              INIT_TOMAS_MICROPHYSICS
 !EOP
@@ -181,6 +186,7 @@
       USE GAMAP_MOD,          ONLY : DO_GAMAP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE SEASALT_MOD,        ONLY : INIT_SEASALT
 !
 ! !INPUT PARAMETERS:
 !
@@ -212,6 +218,9 @@
 !  09 Nov 2012 - R. Yantosca - Now pass Input_Opt to lower-level routines
 !  06 Dec 2012 - R. Yantosca - Now call CHECK_TIME_STEPS when we are connecting
 !                              to the GEOS-5 GCM via the ESMF environment,
+!  19 Mar 2013 - R. Yantosca - When using ESMF interface to GEOS-5, append
+!                              ".rc" to input.geos (instead of ___.rc)
+!  04 Apr 2013 - R. Yantosca - Now pass objects to DO_GAMAP routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -245,9 +254,10 @@
       ! Assume success
       RC       = GIGC_SUCCESS
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      ! For ESMF interface to GEOS-5 GCM, we need to add "*___.rc"
-      FILENAME = TRIM( FILENAME ) // '___.rc'
+#if defined( ESMF_ )
+      ! We need to add the ".rc" extension to the "input.geos" file
+      ! so that GEOS-5 will copy it to the proper run directory.
+      FILENAME = TRIM( FILENAME ) // '.rc'
 #endif
 
       ! Open file
@@ -392,6 +402,10 @@
       ! Close input file
       CLOSE( IU_GEOS )
 
+      !=================================================================
+      ! Further error-checking and initialization
+      !=================================================================
+
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
       !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
@@ -401,12 +415,16 @@
       !-----------------------------------------------------------------
 #else
 
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! We only need to initialize GEOS-5 diagnostics if we are not
+      ! using ESMF.  The GEOS-5 GCM has its own History component
+      ! for diagnostic output (bmy, 3/4/13)
+      !-----------------------------------------------------------------
+
       ! Define GEOS-Chem diagnostic info
       CALL NDXX_SETUP( am_I_Root, Input_Opt, RC )
-
-      !=================================================================
-      ! Further error-checking and initialization
-      !=================================================================
 
       ! Make sure all directories are valid
       CALL VALIDATE_DIRECTORIES
@@ -417,7 +435,7 @@
       CALL CHECK_TIME_STEPS( am_I_Root )
 
       ! Create "diaginfo.dat" and "tracerinfo.dat" files for GAMAP
-      CALL DO_GAMAP( DIAGINFO, TRACERINFO )
+      CALL DO_GAMAP( am_I_Root, Input_Opt, RC )
 
       ! Echo output
       IF ( am_I_Root ) THEN
@@ -1008,6 +1026,9 @@
 !                              running with the traditional driver main.F
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !  30 Nov 2012 - R. Yantosca - Accept external DLON, DLAT from ESMF interface
+!  26 Feb 2013 - R. Yantosca - Now pass I_LO, J_LO to COMPUTE_GRID
+!  28 Feb 2013 - R. Yantosca - Bug fix for GEOS-5 interface: Now call 
+!                              Compute_Grid with 1..IIPAR, I..JJPAR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1118,16 +1139,18 @@
 
       ! Compute the horiziontal grid properties
       CALL Compute_Grid( am_I_Root = am_I_Root,     ! Are we on the root CPU?
-     &                   I1        = I_LO,          ! Min lon index, this CPU
-     &                   J1        = J_LO,          ! Min lat index, this CPU
+     &                   I1        = 1,             ! Min lon index, this CPU
+     &                   J1        = 1,             ! Min lat index, this CPU
      &                   L1        = 1,             ! Min lev index, this CPU
-     &                   I2        = I_HI,          ! Max lon index, this CPU
-     &                   J2        = J_HI,          ! Max lat index, this CPU
+     &                   I2        = IIPAR,         ! Max lon index, this CPU
+     &                   J2        = JJPAR,         ! Max lat index, this CPU
      &                   L2        = LLPAR,         ! Max lev index, this CPU
      &                   JSP       = JSP,           ! Lat index of South Pole
      &                   JNP       = JNP,           ! Lat index of North Pole
      &                   DLON      = DLON,          ! Delta-longitudes [deg]
      &                   DLAT      = DLAT,          ! Delta-latitudes  [deg]
+     &                   I_LO      = I_LO,          ! Min global lon index
+     &                   J_LO      = J_LO,          ! Min global lat index
      &                   RC        = RC         )   ! Success or failure?
 
 
@@ -1228,8 +1251,11 @@
      &                    'read_tracer_menu (input_mod.f)' )
       ENDIF
      
+      ! Save N_TRACERS to Input_Opt
+      Input_Opt%N_TRACERS = N_TRACERS
+
       ! Initialize tracer arrays in tracer_mod.f
-      CALL INIT_TRACER
+      CALL INIT_TRACER( am_I_Root, Input_Opt, RC )
 
       !=================================================================
       ! Read tracer ID, emission ID, biomass ID, biofuel ID, & mol wt
@@ -2709,7 +2735,9 @@
       Input_Opt%LSSABr2        = LSSABr2
       Input_Opt%LFIX_PBL_BRO   = LFIX_PBL_BRO
       Input_Opt%Br_SCALING     = Br_SCALING
-
+      Input_Opt%LEDGARNOx      = LEDGARNOx
+      Input_Opt%LEDGARCO       = LEDGARCO
+      Input_Opt%LEDGARSOx      = LEDGARSOx
 
       ! Return success
       RC = GIGC_SUCCESS
@@ -3067,6 +3095,11 @@
       Input_Opt%LSHIPEDG    = LSHIPEDG
       Input_Opt%LSHIPICO    = LSHIPICO
       Input_Opt%LPLANE      = LPLANE
+      Input_Opt%LFFBKGRD    = LFFBKGRD
+      Input_Opt%LBIOSPHTAG  = LBIOSPHTAG
+      Input_Opt%LFOSSILTAG  = LFOSSILTAG
+      Input_Opt%LSHIPTAG    = LSHIPTAG
+      Input_Opt%LPLANETAG   = LPLANETAG
 
       ! Return success
       RC = GIGC_SUCCESS
@@ -3608,9 +3641,9 @@
       TS_DYN                = Input_Opt%TS_DYN
 
       ! Pass chemistry timestep to time_mod.F
-      CALL Accept_External_Date_Time( am_I_Root    = am_I_Root, 
-     &                                value_TS_DYN = TS_DYN,
-     &                                RC           = RC         )
+      CALL Accept_External_Date_Time( am_I_Root     = am_I_Root, 
+     &                                value_TS_DYN  = TS_DYN,
+     &                                RC            = RC         )
      &                                 
 
 #else
@@ -3674,11 +3707,14 @@
 !
 ! !USES:
 !
-      USE ERROR_MOD,   ONLY : ERROR_STOP
-      USE LOGICAL_MOD, ONLY : LCONV, LTURB
-      USE LOGICAL_MOD, ONLY : LNLPBL        ! (Lin, 03/31/09)
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE LOGICAL_MOD,        ONLY : LCONV, LTURB
+      USE LOGICAL_MOD,        ONLY : LNLPBL        ! (Lin, 03/31/09)
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE TIME_MOD,           ONLY : Accept_External_Date_Time
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -3704,6 +3740,8 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!  01 Mar 2013 - R. Yantosca - Now set TS_CONV to the same value as TS_DYN
+!                              when connecting to the GEOS-5 GCM.         
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3762,6 +3800,27 @@
       Input_Opt%LCONV   = LCONV
       Input_Opt%LTURB   = LTURB
       Input_Opt%LNLPBL  = LNLPBL
+
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! If we are connecting to the ESMF interface, we need to set
+      ! the convection timestep equal to the dynamic timestep in
+      ! order to avoid tripping an error message in the routine
+      ! CHECK_TIMESTEPS. (bmy, 3/1/13)
+      !-----------------------------------------------------------------
+      
+      ! Set TS_CONV from Input_Opt%TS_DYN
+      TS_CONV           = Input_Opt%TS_DYN
+
+      ! Pass chemistry timestep to time_mod.F
+      CALL Accept_External_Date_Time( am_I_Root     = am_I_Root, 
+     &                                value_TS_CONV = TS_CONV,
+     &                                RC            = RC         )
+     &                                 
+#endif
+
       Input_Opt%TS_CONV = TS_CONV
 
       ! Return success
@@ -3843,6 +3902,8 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!  26 Feb 2013 - R. Yantosca - Now call INIT_DUST jere to facilitate 
+!                              connecting to the GEOS-5 GCM
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3919,10 +3980,10 @@
       !=================================================================
 
       ! Initialize dry deposition arrays
-      IF ( LDRYD ) THEN
+      IF ( Input_Opt%LDRYD ) THEN
 
          ! Setup for dry deposition
-         CALL INIT_DRYDEP( am_I_Root )
+         CALL INIT_DRYDEP( am_I_Root, Input_Opt, RC )
       
          ! Print extra info message for Hg simulation
          IF ( ITS_A_MERCURY_SIM() .and. LSPLIT ) THEN
@@ -3932,7 +3993,9 @@
       ENDIF
 
       ! Initialize wet deposition tracers
-      IF ( LWETD .or. LCONV ) CALL WETDEPID( am_I_Root )
+      IF ( LWETD .or. LCONV ) THEN
+         CALL WETDEPID( am_I_Root, Input_Opt, RC )
+      ENDIF
 
 #if   defined( APM )
       ! Initialize wet deposition tracers for APM
@@ -4076,6 +4139,7 @@
 !                              running with the traditional driver main.F
 !  03 Aug 2012 - R. Yantosca - IU_GEOS is now a global module variable
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!  28 Feb 2013 - R. Yantosca - Don't call IS_LAST_DAY_GOOD when using ESMF
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4124,8 +4188,28 @@
      &        'JUL--', 31i1, /, 'AUG--', 31i1, /, 'SEP--', 30i1, /,
      &        'OCT--', 31i1, /, 'NOV--', 30i1, /, 'DEC--', 31i1 )
 
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! When we connect to the GEOS-5 GCM via ESMF, we let the GCM
+      ! handle all timing and diagnostic output via the GEOS-5 History
+      ! Component.  Therefore we do not need to make sure that we have 
+      ! scheduled output for the last day of the run.  This can cause
+      ! a premature exit. (bmy, 2/28/13)
+      !-----------------------------------------------------------------
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Current practice in the std GEOS-Chem is to not let the run
+      ! proceed unless the user has scheduled output for the last day.
+      ! (bmy, 2/28/13)
+      !-----------------------------------------------------------------
+
       ! Make sure we have output at end of run
       CALL IS_LAST_DAY_GOOD
+#endif
 
       END SUBROUTINE READ_OUTPUT_MENU
 !EOC
@@ -6710,7 +6794,7 @@
       !=================================================================
 
       ! Pass values to "tpcore_bc_mod.f"
-      CALL INIT_TPCORE_BC( TS, I0W, J0W, I1, J1, I2, J2 )
+      CALL INIT_TPCORE_BC( TS, I0W, J0W, I1, J1, I2, J2, Input_Opt )
 
       END SUBROUTINE READ_NESTED_GRID_MENU
 !EOC
@@ -7351,6 +7435,7 @@
 !  01 Oct 2012 - C. Friedman - Initial version
 !  26 Nov 2012 - M. Payer    - Added ProTeX headers
 !  29 Nov 2012 - M. Payer    - Now pass Input_Opt, RC as arguments
+!  26 Mar 2013 - R. Yantosca - Now pass Input_Opt to INIT_POPS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7471,7 +7556,7 @@
          ! Initialize "pops_mod.f"
          CALL INIT_POPS(POP_XMW, POP_KOA, POP_KBC, POP_K_POPG_OH,
      &                  POP_K_POPP_O3A, POP_K_POPP_O3B, 
-     &                  POP_HSTAR, POP_DEL_H, POP_DEL_Hw )
+     &                  POP_HSTAR, POP_DEL_H, POP_DEL_Hw, Input_Opt )
 
       ENDIF
 
@@ -8097,6 +8182,130 @@
       ENDIF
      
       END SUBROUTINE IS_LAST_DAY_GOOD
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: gigc_init_extra
+!
+! !DESCRIPTION: Suborutine GIGC\_INIT\_EXTRA initializes other GEOS-Chem 
+!  modules that have not been initialized in either GIGC_Allocate_All or
+!  GIGC_Init_all.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE GIGC_Init_Extra( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+      USE Aerosol_Mod,        ONLY : Init_Aerosol
+      USE Carbon_Mod,         ONLY : Init_Carbon
+      USE Drydep_Mod,         ONLY : Init_Drydep
+      USE Dust_Mod,           ONLY : Init_Dust
+      USE Error_Mod,          ONLY : Debug_Msg
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Linoz_Mod,          ONLY : Init_Linoz
+      USE Seasalt_Mod,        ONLY : Init_SeaSalt
+      USE Sulfate_Mod,        ONLY : Init_Sulfate
+      USE Tropopause_Mod,     ONLY : Init_Tropopause
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  Several of the INIT routines now called within GIGC_Init_Extra had 
+!  originally been called from the Run method.  We now gather these INIT
+!  routines here so that they may be called from the Initialization method.
+!  This is necessary when connecting GEOS-Chem to the GEOS-5 GCM via ESMF.
+!                                                                             .
+!  GIGC_Init_Extra should be called after the call to DO_DRYDEP, since
+!  these routines depend on dry deposition parameters being set up first.
+!
+! !REVISION HISTORY: 
+!  04 Mar 2013 - R. Yantosca - Initial revision
+!  05 Mar 2013 - R. Yantosca - Now call INIT_AEROSOL (GeosCore/aerosol_mod.F)
+!  15 Mar 2013 - R. Yantosca - Now call INIT_LINOZ (GeosCore/linoz_mod.F)
+!  29 Mar 2013 - R. Yantosca - Now call INIT_TROPOPAUSE (so that we can pass
+!                              a LVARTROP from Input_Opt and not logical_mod.F)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL :: prtDebug
+
+      !=================================================================
+      ! GIGC_Init_Extra begins here!
+      !=================================================================
+
+      ! Assume success
+      RC       = GIGC_SUCCESS
+
+      ! Set a flag for debugging
+      prtDebug = ( am_I_Root .and. Input_Opt%LPRT )
+
+      ! Initialize "carbon_mod.F"
+      IF ( Input_Opt%LCARB ) THEN
+         CALL Init_Carbon( am_I_Root, Input_Opt, RC )
+         IF ( RC /= GIGC_SUCCESS ) RETURN
+         IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_CARBON' )
+      ENDIF
+    
+      ! Initialize "dust_mod.F"
+      IF ( Input_Opt%LDUST ) then
+         CALL Init_Dust( am_I_Root, Input_Opt, RC )
+         IF ( RC /= GIGC_SUCCESS ) RETURN
+         IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_DUST' )
+      ENDIF
+
+      ! Initialize "seasalt_mod.F
+      IF ( Input_Opt%LSSALT ) THEN
+         CALL Init_Seasalt( am_I_Root, Input_Opt, RC )
+         IF ( RC /= GIGC_SUCCESS ) RETURN
+         IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_SEASALT' )
+      ENDIF
+
+      ! Initialize "sulfate_mod.F"
+      IF ( Input_Opt%LSULF ) THEN
+         CALL Init_Sulfate( am_I_Root, Input_Opt, RC )
+         IF ( RC /= GIGC_SUCCESS ) RETURN
+         IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_SULFATE' )
+      ENDIF
+
+      ! Initialize "aerosol_mod.F"
+      IF ( Input_Opt%LSULF .or. Input_Opt%LCARB   .or. 
+     &     Input_Opt%LDUST .or. Input_Opt%LSSALT ) THEN
+         CALL Init_Aerosol( am_I_Root, Input_Opt, RC )
+         IF ( RC /= GIGC_SUCCESS ) RETURN
+         IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_AEROSOL' )
+      ENDIF
+
+      ! Initialize "linoz_mod.F"
+      IF ( Input_Opt%LLINOZ ) THEN
+         CALL INIT_LINOZ( am_I_Root, Input_Opt, RC )
+         IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_LINOZ' )
+      ENDIF
+
+      ! Initialize "tropopause_mod.F"
+      CALL INIT_TROPOPAUSE( am_I_Root, Input_Opt, RC )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_TROPOPAUSE' )
+
+
+      END SUBROUTINE GIGC_Init_Extra
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !

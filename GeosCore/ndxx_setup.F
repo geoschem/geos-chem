@@ -248,6 +248,7 @@
 !  26 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
 !  09 Nov 2012 - R. Yantosca - Added GIGC-specific modifications
+!  29 Mar 2013 - R. Yantosca - Pass objects to GET_WETDEP_NMAX
 !  02 Apr 2013 - M. Payer    - Remove allocation of *NO, *NO2, and *NO3 arrays
 !                              for ND43. These are no longer needed because NO,
 !                              NO2, and NO3 are now tracers.
@@ -557,7 +558,7 @@
          LD17 = MIN( ND17, LLPAR )
 
          ! Get max # of soluble tracers for this simulation
-         NMAX = GET_WETDEP_NMAX()
+         NMAX = GET_WETDEP_NMAX( am_I_Root, Input_Opt, RC )
 
          ! Store both LS and convective rainout fractions
          ALLOCATE( AD17( IIPAR, JJPAR, LD17, NMAX, 2 ), STAT=AS ) 
@@ -576,7 +577,7 @@
          LD18 = MIN( ND18, LLPAR )
 
          ! Get max # of soluble tracers for this simulation
-         NMAX = GET_WETDEP_NMAX()
+         NMAX = GET_WETDEP_NMAX( am_I_Root, Input_Opt, RC )
 
          ! Store both LS and convective rainout fractions         
          ALLOCATE( AD18( IIPAR, JJPAR, LD18, NMAX, 2 ), STAT=AS) 
@@ -840,7 +841,7 @@
          LD37 = MIN( ND37, LLPAR )
          
          ! Get max # of soluble tracers for this simulation
-         NMAX = GET_WETDEP_NMAX()
+         NMAX = GET_WETDEP_NMAX( am_I_Root, Input_Opt, RC )
 
          ! Allocate array accordingly
          IF ( NMAX > 0 ) THEN
@@ -861,7 +862,7 @@
          IF ( ND38 == 0 ) LD38 = LLPAR
          
          ! Get max # of soluble tracers for this simulation
-         NMAX = GET_WETDEP_NMAX()
+         NMAX = GET_WETDEP_NMAX( am_I_Root, Input_Opt, RC )
 
          ! Allocate AD38 array accordingly
          IF ( NMAX > 0 ) THEN
@@ -882,7 +883,7 @@
          IF ( ND39 == 0 ) LD39 = LLPAR
 
          ! Get max # of soluble tracers for this simulation
-         NMAX = GET_WETDEP_NMAX()
+         NMAX = GET_WETDEP_NMAX( am_I_Root, Input_Opt, RC )
          
          ! Allocate AD39 array accordingly
          IF ( NMAX > 0 ) THEN

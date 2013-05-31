@@ -27,7 +27,6 @@ MODULE Geos57_Read_Mod
   USE CMN_DIAG_MOD                        ! Diagnostic arrays & counters
   USE DIAG_MOD,      ONLY : AD66          ! Array for ND66 diagnostic  
   USE DIAG_MOD,      ONLY : AD67          ! Array for ND67 diagnostic
-  USE DIRECTORY_MOD                       ! Directory paths
   USE ERROR_MOD,     ONLY : ERROR_STOP    ! Stop w/ error message
   USE TIME_MOD                            ! Date & time routines
   USE TRANSFER_MOD                        ! Routines for casting 
@@ -65,6 +64,7 @@ MODULE Geos57_Read_Mod
 !  10 Feb 2012 - R. Yantosca - Add function Get_Resolution_String
 !  05 Apr 2012 - R. Yantosca - Convert units for specific humidity properly
 !  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
+!  11 Apr 2013 - R. Yantosca - Now pass directory fields via Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -235,11 +235,16 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Geos57_Read_CN( State_Met )
+  SUBROUTINE Geos57_Read_CN( Input_Opt, State_Met )
 !
 ! !USES:
 !
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -261,6 +266,7 @@ CONTAINS
 !  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
 !                              object
 !  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
+!  11 Apr 2013 - R. Yantosca - Now pass directory fields with Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -289,7 +295,7 @@ CONTAINS
     caller  = "GEOS57_READ_CN (geos57_read_mod.F90)"
 
     ! Replace time & date tokens in the file name
-    dir     = TRIM( GEOS_57_DIR )
+    dir     = TRIM( Input_Opt%GEOS_57_DIR )
     CALL Expand_Date( dir, 20110101, 000000 )
 
     ! Replace time & date tokens in the file name
@@ -298,7 +304,7 @@ CONTAINS
     CALL Expand_Date( nc_file, 20110101, 000000 )
 
     ! Construct complete file path
-    nc_file = TRIM( DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
+    nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
     
     ! Open netCDF file
     CALL NcOp_Rd( fId, TRIM( nc_file ) )
@@ -380,16 +386,18 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Geos57_Read_A1( YYYYMMDD, HHMMSS, State_Met )
+  SUBROUTINE Geos57_Read_A1( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
 !
 ! !USES:
-
+!
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 ! 
     INTEGER,        INTENT(IN)    :: YYYYMMDD   ! GMT date in YYYY/MM/DD format
     INTEGER,        INTENT(IN)    :: HHMMSS     ! GMT time in hh:mm:ss   format
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -428,8 +436,9 @@ CONTAINS
 !  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
 !                              object
 !  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
-!   4 Jan 2013 - M. Payer    - Bug fix: Use State_Met%TSKIN for ND67 surface
+!  04 Jan 2013 - M. Payer    - Bug fix: Use State_Met%TSKIN for ND67 surface
 !                              skin temperature diagnostic, not State_MET%TS
+!  11 Apr 2013 - R. Yantosca - Now pass directory fields with Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -472,7 +481,7 @@ CONTAINS
     caller  = "GEOS57_READ_A1 (geos57_read_mod.F90)"
 
     ! Replace time & date tokens in the file name
-    dir     = TRIM( GEOS_57_DIR )
+    dir     = TRIM( Input_Opt%GEOS_57_DIR )
     CALL Expand_Date( dir, YYYYMMDD, HHMMSS )
 
     ! Replace time & date tokens in the file name
@@ -481,7 +490,7 @@ CONTAINS
     CALL Expand_Date( nc_file, YYYYMMDD, HHMMSS )
 
     ! Construct complete file path
-    nc_file = TRIM( DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
+    nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
     
     ! Open netCDF file
     CALL NcOp_Rd( fId, TRIM( nc_file ) )
@@ -808,16 +817,18 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-  SUBROUTINE Geos57_Read_A3( YYYYMMDD, HHMMSS, State_Met )
+  SUBROUTINE Geos57_Read_A3( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
 !
 ! !USES:
 !
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 ! 
     INTEGER,        INTENT(IN)    :: YYYYMMDD   ! GMT date in YYYY/MM/DD format
     INTEGER,        INTENT(IN)    :: HHMMSS     ! GMT time in hh:mm:ss   format
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -825,6 +836,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
+!  11 Apr 2013 - R. Yantosca - Now pass directory fields with Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -856,10 +868,10 @@ CONTAINS
     lastTime = HHMMSS
 
     ! Read all the diffeent A3 files
-    CALL Geos57_Read_A3cld ( YYYYMMDD, HHMMSS, State_Met )
-    CALL Geos57_Read_A3dyn ( YYYYMMDD, HHMMSS, State_Met )
-    CALL Geos57_Read_A3mstC( YYYYMMDD, HHMMSS, State_Met )
-    CALL Geos57_Read_A3mstE( YYYYMMDD, HHMMSS, State_Met )
+    CALL Geos57_Read_A3cld ( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
+    CALL Geos57_Read_A3dyn ( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
+    CALL Geos57_Read_A3mstC( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
+    CALL Geos57_Read_A3mstE( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
 
     !======================================================================
     ! Cleanup and quit
@@ -887,16 +899,18 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Geos57_Read_A3cld( YYYYMMDD, HHMMSS, State_Met )
+  SUBROUTINE Geos57_Read_A3cld( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
 !
 ! !USES:
 !
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 ! 
     INTEGER,        INTENT(IN)    :: YYYYMMDD   ! GMT date in YYYY/MM/DD format
     INTEGER,        INTENT(IN)    :: HHMMSS     ! GMT time in hh:mm:ss   format
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -919,6 +933,7 @@ CONTAINS
 !  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
 !                              object
 !  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
+!  11 Apr 2013 - R. Yantosca - Now pass directory fields with Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -948,7 +963,7 @@ CONTAINS
     caller  = "GEOS57_READ_A3cld (geos57_read_mod.F90)"
 
     ! Replace time & date tokens in the file name
-    dir     = TRIM( GEOS_57_DIR )
+    dir     = TRIM( Input_Opt%GEOS_57_DIR )
     CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
 
     ! Replace time & date tokens in the file name
@@ -957,7 +972,7 @@ CONTAINS
     CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
 
     ! Construct complete file path
-    nc_file = TRIM( DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
+    nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
     
     ! Open netCDF file
     CALL NcOp_Rd( fId, TRIM( nc_file ) )
@@ -1047,16 +1062,18 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GEOS57_READ_A3dyn( YYYYMMDD, HHMMSS, State_Met )
+  SUBROUTINE GEOS57_READ_A3dyn( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
 !
 ! !USES:
 !
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput  
     USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 ! 
     INTEGER,        INTENT(IN)    :: YYYYMMDD   ! GMT date in YYYY/MM/DD format
     INTEGER,        INTENT(IN)    :: HHMMSS     ! GMT time in hh:mm:ss   format
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1078,6 +1095,7 @@ CONTAINS
 !  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
 !                              object
 !  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
+!  11 Apr 2013 - R. Yantosca - Now pass directories with Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1109,7 +1127,7 @@ CONTAINS
     caller  = "GEOS57_READ_A3dyn (geos57_read_mod.F90)"
 
     ! Replace time & date tokens in the file name
-    dir     = TRIM( GEOS_57_DIR )
+    dir     = TRIM( Input_Opt%GEOS_57_DIR )
     CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
 
     ! Replace time & date tokens in the file name
@@ -1118,7 +1136,7 @@ CONTAINS
     CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
 
     ! Construct complete file path
-    nc_file = TRIM( DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
+    nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
     
     ! Open netCDF file
     CALL NcOp_Rd( fId, TRIM( nc_file ) )
@@ -1250,16 +1268,18 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GEOS57_READ_A3mstC( YYYYMMDD, HHMMSS, State_Met )
+  SUBROUTINE GEOS57_READ_A3mstC( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
 !
 ! !USES:
 !
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 ! 
     INTEGER,        INTENT(IN)    :: YYYYMMDD   ! GMT date in YYYY/MM/DD format
     INTEGER,        INTENT(IN)    :: HHMMSS     ! GMT time in hh:mm:ss   format
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1281,6 +1301,7 @@ CONTAINS
 !  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
 !                              object
 !  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
+!  11 Apr 2013 - R. Yantosca - Now pass directory fields with Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1311,7 +1332,7 @@ CONTAINS
     caller  = "GEOS57_READ_A3mstC (geos57_read_mod.F90)"
 
     ! Replace time & date tokens in the file name
-    dir     = TRIM( GEOS_57_DIR )
+    dir     = TRIM( Input_Opt%GEOS_57_DIR )
     CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
 
     ! Replace time & date tokens in the file name
@@ -1320,7 +1341,7 @@ CONTAINS
     CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
 
     ! Construct complete file path
-    nc_file = TRIM( DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
+    nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
     
     ! Open netCDF file
     CALL NcOp_Rd( fId, TRIM( nc_file ) )
@@ -1401,16 +1422,18 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GEOS57_READ_A3mstE( YYYYMMDD, HHMMSS, State_Met )
+  SUBROUTINE GEOS57_READ_A3mstE( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
 !
 ! !USES:
 !
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 ! 
     INTEGER,        INTENT(IN)    :: YYYYMMDD   ! GMT date in YYYY/MM/DD format
     INTEGER,        INTENT(IN)    :: HHMMSS     ! GMT time in hh:mm:ss   format
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1432,6 +1455,7 @@ CONTAINS
 !  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
 !                              object
 !  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
+!  11 Apr 2013 - R. Yantosca - Now pass directory fields with Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1462,7 +1486,7 @@ CONTAINS
     caller  = "GEOS57_READ_A3mstE (geos57_read_mod.F90)"
 
     ! Replace time & date tokens in the file name
-    dir     = TRIM( GEOS_57_DIR )
+    dir     = TRIM( Input_Opt%GEOS_57_DIR )
     CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
 
     ! Replace time & date tokens in the file name
@@ -1471,7 +1495,7 @@ CONTAINS
     CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
 
     ! Construct complete file path
-    nc_file = TRIM( DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
+    nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
     
     ! Open netCDF file
     CALL NcOp_Rd( fId, TRIM( nc_file ) )
@@ -1551,16 +1575,18 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Geos57_Read_I3_1( YYYYMMDD, HHMMSS, State_Met )
+  SUBROUTINE Geos57_Read_I3_1( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
 !
 ! !USES:
 !
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 ! 
     INTEGER,        INTENT(IN)    :: YYYYMMDD   ! GMT date in YYYY/MM/DD format
     INTEGER,        INTENT(IN)    :: HHMMSS     ! GMT time in hh:mm:ss   format
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1583,6 +1609,7 @@ CONTAINS
 !  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
 !                              object
 !  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
+!  11 Apr 2013 - R. Yantosca - Now pass directory fields with Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1615,7 +1642,7 @@ CONTAINS
     caller  = "GEOS57_READ_I3_1 (geos57_read_mod.F90)"
 
     ! Replace time & date tokens in the file name
-    dir     = TRIM( GEOS_57_DIR )
+    dir     = TRIM( Input_Opt%GEOS_57_DIR )
     CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
 
     ! Replace time & date tokens in the file name
@@ -1624,7 +1651,7 @@ CONTAINS
     CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
 
     ! Construct complete file path
-    nc_file = TRIM( DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
+    nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
     
     ! Open netCDF file
     CALL NcOp_Rd( fId, TRIM( nc_file ) )
@@ -1745,16 +1772,18 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Geos57_Read_I3_2( YYYYMMDD, HHMMSS, State_Met )
+  SUBROUTINE Geos57_Read_I3_2( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
 !
 ! !USES:
 !
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 ! 
     INTEGER,        INTENT(IN)    :: YYYYMMDD   ! GMT date in YYYY/MM/DD format
     INTEGER,        INTENT(IN)    :: HHMMSS     ! GMT time in hh:mm:ss   format
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1777,6 +1806,7 @@ CONTAINS
 !  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
 !                              object
 !  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
+!  11 Apr 2013 - R. Yantosca - Now pass directory fields with Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1809,7 +1839,7 @@ CONTAINS
     caller  = "GEOS57_READ_I3_2 (geos57_read_mod.F90)"
 
     ! Replace time & date tokens in the file name
-    dir     = TRIM( GEOS_57_DIR )
+    dir     = TRIM( Input_Opt%GEOS_57_DIR )
     CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
 
     ! Replace time & date tokens in the file name
@@ -1818,7 +1848,7 @@ CONTAINS
     CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
 
     ! Construct complete file path
-    nc_file = TRIM( DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
+    nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
     
     ! Open netCDF file
     CALL NcOp_Rd( fId, TRIM( nc_file ) )
