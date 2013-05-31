@@ -748,11 +748,7 @@
       !=================================================================
       ! Call OHSAVE which saves info on OH AND HO2 concentrations 
       !=================================================================
-      CALL OHSAVE( N_TRACERS,
-     &             XNUMOL(1:N_TRACERS),
-     &             STT(:,:,:,1:N_TRACERS), 
-     &             SAVEOH,
-     &             SAVEHO2 )
+      CALL OHSAVE( SAVEOH, SAVEHO2 )
 
       !### Debug
       IF ( prtDebug ) THEN

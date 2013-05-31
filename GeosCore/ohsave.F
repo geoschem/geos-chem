@@ -12,31 +12,17 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE OHSAVE( N_TRACERS, XNUMOL,  STT,
-     &                   SAVEOH,    SAVEHO2  )
+      SUBROUTINE OHSAVE( SAVEOH, SAVEHO2 )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE COMODE_MOD,      ONLY : AIRDENS, CSPEC, JLOP, T3, VOLUME
+      USE COMODE_MOD,      ONLY : AIRDENS, CSPEC, JLOP
       USE COMODE_LOOP_MOD
-      USE DIAG_MOD,        ONLY : DIAGCHLORO
       USE TRACERID_MOD,    ONLY : IDOH, IDHO2
 
       IMPLICIT NONE
 #     include "define.h"
-
-!
-! !INPUT PARAMETERS: 
-!
-      ! Number of tracers in XNUMOL and STT
-      INTEGER, INTENT(IN) :: N_TRACERS
-
-      ! Array of molec/kg for each tracer
-      REAL*8, INTENT(IN)  :: XNUMOL(N_TRACERS)
-
-      ! Array containing CTM tracers
-      REAL*8, INTENT(IN)  :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS) 
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -71,6 +57,7 @@
 !  14 Mar 2013 - M. Payer    - FRACO3, FRACNO, and FRACNO2 are no longer needed
 !                              because O3, NO, and NO2 are now tracers.
 !  29 Mar 2013 - M. Payer    - Removed SAVENO, SAVENO2, SAVENO3.
+!  31 May 2013 - R. Yantosca - Extra cleanup, remove N_TRACERS, XNUMOL, STT
 !EOP
 !------------------------------------------------------------------------------
 !BOC

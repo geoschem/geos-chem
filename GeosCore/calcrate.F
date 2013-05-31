@@ -1013,9 +1013,9 @@ c new OH+CO rate from JPL2006.
                      ! Nitrate effect; reduce the gamma on nitrate by a
                      ! factor of 10 (lzh, 10/25/2011)
                      IF ( N == 8 ) THEN
-                        TMP1 = STT(IX,IY,IZ,IDTSO4) +
-     &                         STT(IX,IY,IZ,IDTNIT)
-                        TMP2 = STT(IX,IY,IZ,IDTNIT)
+                        TMP1 = State_Chm%Tracers(IX,IY,IZ,IDTSO4) +
+     &                         State_Chm%Tracers(IX,IY,IZ,IDTNIT)
+                        TMP2 = State_Chm%tracers(IX,IY,IZ,IDTNIT)
                         IF ( TMP1 .GT. 0.0 ) THEN
                            XSTKCF = XSTKCF * ( 1.0d0 - 0.9d0*TMP2/TMP1 )
                         ENDIF
