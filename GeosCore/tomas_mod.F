@@ -185,7 +185,8 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE DO_TOMAS( am_I_Root, Input_Opt, State_Met, RC )
+      SUBROUTINE DO_TOMAS( am_I_Root, Input_Opt, 
+     &                     State_Met, State_Chm, RC )
 !
 !******************************************************************************
 !  Subroutine DO_TOMAS is the driver subroutine that calls the appropriate
@@ -193,19 +194,23 @@
 !
 !  NOTES: 
 !  26 Apr 2013 - R. Yantosca - Remove LTOMAS flag, that is now obsolete.
+!  31 May 2013 - R. Yantosca - Now pass State_Chm object via the arg list
+!  31 May 2013 - R. Yantosca - Remove LDRYD; replace w/ Input_Opt%LDRYD
+!  31 May 2013 - R. Yantosca - Pass State_Chm to AEROPHYS, AERO_DRYDEP
 !******************************************************************************
 !
       ! References to F90 modules
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE LOGICAL_MOD,        ONLY : LDRYD
 
       ! Arguments
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 
       !=================================================================
       ! DO_TOMAS begins here
@@ -215,29 +220,34 @@
       RC    = GIGC_SUCCESS
 
       ! Do TOMAS aerosol microphysics
-      CALL AEROPHYS( State_Met )
+      CALL AEROPHYS( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
 #if defined ( DEBUG ) 
       print *, 'call checkmn in tomas_mod:222'
 #endif
-      CALL CHECKMN( 0, 0, 0, State_Met, 'kg', 'Before Aerodrydep')
+      CALL CHECKMN( 0,         0,         0,     Input_Opt, 
+     &              State_Met, State_Chm, 'kg', 'Before Aerodrydep')
 
       ! Do dry deposition
-      IF ( LDRYD ) THEN
-         CALL AERO_DRYDEP( am_I_Root, Input_Opt, State_Met, RC )
+      IF ( Input_Opt%LDRYD ) THEN
+         CALL AERO_DRYDEP
+     &        ( am_I_Root, Input_Opt, State_Met, State_Chm,RC )
       ENDIF
 
 #if defined ( DEBUG ) 
       print *, 'call checkmn in tomas_mod:229'
 #endif
-      CALL CHECKMN( 0, 0, 0, State_Met, 'kg', 'Before exiting DO_TOMAS')
+      CALL CHECKMN( 0,         0,         0,    
+     &              Input_Opt, State_Met, State_Chm, 
+     &              'kg',      'Before exiting DO_TOMAS' )
 
       ! Return to calling program 
       END SUBROUTINE DO_TOMAS
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE AEROPHYS( State_Met )
+      SUBROUTINE AEROPHYS( am_I_Root, Input_Opt, 
+     &                     State_Met, State_Chm, RC )
 !
 !******************************************************************************
 !  Subroutine AEROPHYS does aerosol microphysics, including nucleation, 
@@ -262,10 +272,11 @@
       USE DIAG_MOD,           ONLY : AD61,  AD61_INST
       USE DIAG_PL_MOD,        ONLY : H2SO4RATE, FAM_NAME
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE LOGICAL_MOD,        ONLY : LPRT
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
-      USE TRACER_MOD,         ONLY : STT
       USE TRACERID_MOD,       ONLY : IDTNK1, IDTH2SO4
       USE TRACERID_MOD,       ONLY : IDTAW1, IDTSF1,  IDTSO4
       USE TRACERID_MOD,       ONLY : IDTNH3, IDTNH4
@@ -276,7 +287,11 @@
       USE COMODE_LOOP_MOD          ! NFAMILIES
 
       ! Arguments
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 
       ! Local variables
       INTEGER           :: I, J, L, N, JC, K !counters
@@ -349,10 +364,24 @@
       double precision soil_ions(9) ! ion pairs cm-3 s-1 from radioactive elements in soil
       data             soil_ions / 5.,3.3,1.8,0.7,0.,0.,0.,0.,0./
 
+      ! For fields from Input_Opt
+      LOGICAL :: LPRT
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! AEROPHYS begins here
       !=================================================================
       
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      STT                      => State_Chm%Tracers
+
+      ! Get logical values from Input_Opt
+      LPRT = ( Input_Opt%LPRT .and. am_I_Root )
+
       ! Initialize debugging and error-signal switches
       printneg = .false.
       errorswitch = .false.
@@ -838,6 +867,9 @@ cvbn         write(889,89)I,J,L,STT(i,j,l,IDTH2SO4)
       IF ( COAG .and. LPRT ) PRINT *,'### AEROPHYS: COAGULATION' 
       IF ( NUCL .and. LPRT ) PRINT *,'### AEROPHYS: NUCLEATION' 
       
+      ! Free pointer memory
+      NULLIFY( STT )
+
       END SUBROUTINE AEROPHYS
 
 !------------------------------------------------------------------------------
@@ -3169,7 +3201,7 @@ Cjrp      endif
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE AQOXID ( MOXID, KMIN, I, J, L, State_Met )
+      SUBROUTINE AQOXID ( MOXID, KMIN, I, J, L, State_Met, State_Chm )
 !
 !******************************************************************************
 !  Subroutine AQOXID takes an amount of SO4 produced via in-cloud oxidation and
@@ -3190,8 +3222,8 @@ Cjrp      endif
 !
       ! References to F90 modules
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACER_MOD,         ONLY : STT
       USE TRACERID_MOD,       ONLY : IDTNK1, IDTAW1, IDTNH4
       USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
 
@@ -3199,9 +3231,10 @@ Cjrp      endif
       USE CMN_DIAG_MOD             ! ND60
 
       ! Arguments
-      REAL*8                      :: MOXID
-      INTEGER                     :: KMIN, I, J, L
-      TYPE(MetState), INTENT(IN)  :: State_Met      ! Meteorology State object
+      REAL*8                        :: MOXID
+      INTEGER                       :: KMIN, I, J, L
+      TYPE(MetState), INTENT(IN)    :: State_Met    ! Meteorology State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm    ! Chemistry State object
 
       ! Local variables
       INTEGER,     PARAMETER :: K_MIN = 4
@@ -3221,9 +3254,17 @@ Cjrp      endif
       REAL*8                 :: Gcd(ICOMP - 1)
       REAL*4                 :: BOXVOL
       
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! AQOXID begins here
       !=================================================================
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      STT => State_Chm%Tracers
 
       PDBG = .FALSE.            !For print debugging 
 !debug     IF ( I == 46 .AND. J == 59 .AND. L == 9) PDBG = .TRUE.
@@ -3231,7 +3272,7 @@ Cjrp      endif
       BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3 
       ! Update aerosol water from the current RH
       DO K = 1, IBINS
-         CALL EZWATEREQM2( I, J, L, K, State_Met )
+         CALL EZWATEREQM2( I, J, L, K, State_Met, State_Chm )
       ENDDO
       
       ! Swap GEOSCHEM variables into aerosol algorithm variables
@@ -3425,13 +3466,18 @@ Cjrp      endif
          ENDDO
          STT(I,J,L,IDTAW1-1+K) = Mk(K,SRTH2O)
       ENDDO
-                          
+           
+
+      ! Free pointer memory
+      NULLIFY( STT )
+               
       ! Return to calling subroutine
       END SUBROUTINE AQOXID
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE SOACOND ( MSOA, I, J, L, BOXVOL, TEMPTMS, PRES)
+      SUBROUTINE SOACOND
+     &    ( MSOA, I, J, L, BOXVOL, TEMPTMS, PRES, State_Chm )
 !
 !******************************************************************************
 !  Subroutine SOACOND takes the SOA calculated via 10% yeild assumption and 
@@ -3452,18 +3498,18 @@ Cjrp      endif
 !******************************************************************************
 !
       ! Reference to F90 modules
-      USE ERROR_MOD,      ONLY : ERROR_STOP, IT_IS_NAN
-      USE TRACER_MOD,     ONLY : STT
-      USE TRACERID_MOD,   ONLY : IDTNK1, IDTAW1, IDTNH4
-
-      USE CMN_SIZE_MOD         ! Size parameters
-      USE CMN_DIAG_MOD         ! ND60
+      USE CMN_SIZE_MOD
+      USE CMN_DIAG_MOD
+      USE ERROR_MOD,          ONLY : ERROR_STOP, IT_IS_NAN
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE TRACERID_MOD,       ONLY : IDTNK1, IDTAW1, IDTNH4
 
       ! Arguments
-      REAL*8                 :: MSOA
-      INTEGER,INTENT(IN)     :: I, J, L
-      REAL*4, INTENT(IN)     :: BOXVOL, TEMPTMS, PRES
-      REAL*8                    surf_area
+      REAL*8                        :: MSOA
+      INTEGER,INTENT(IN)            :: I, J, L
+      REAL*4, INTENT(IN)            :: BOXVOL, TEMPTMS, PRES
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm
+      REAL*8                        :: surf_area
 
       ! Local variables
       REAL*8                 :: MPO, OCTAU(IBINS), ntot, mtot
@@ -3485,10 +3531,19 @@ Cjrp      endif
       REAL*8                         :: Mkd(IBINS,ICOMP)
       REAL*8                         :: Gc(ICOMP - 1)
       REAL*8                         :: Gcd(ICOMP - 1)
-       
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER   :: STT(:,:,:,:)
+
       !=================================================================
       ! SOACOND begins here
       !=================================================================
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
       
       pdbg = .false.
 
@@ -3651,6 +3706,8 @@ Cjrp      endif
          STT(I,J,L,IDTAW1-1+K) = Mk(K,SRTH2O)
       ENDDO
 
+      ! Free pointer memory
+      NULLIFY( STT )
 
       ! Return to calling subroutine
       END SUBROUTINE SOACOND
@@ -5685,7 +5742,8 @@ c         SRTH2O = ICOMP
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE GETFRACTION( I, J, L, N, LS, FRACTION, SOLFRAC )
+      SUBROUTINE GETFRACTION
+     &   ( I, J, L, N, LS, FRACTION, SOLFRAC, STT )
 !
 !******************************************************************************
 !  Subroutine GETFRACTION calculate the mass fraction of each soluble component 
@@ -5706,16 +5764,15 @@ c         SRTH2O = ICOMP
       ! Reference to F90 modules
 c      USE LOGICAL_MOD, ONLY  : LSULF30, LSALT30
 c      USE LOGICAL_MOD, ONLY  : LCARB30, LDUST30
-      USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTECIL1, IDTOCIL1, IDTOCOB1, IDTECOB1
       USE TRACERID_MOD, ONLY : IDTNK1,   IDTSF1,   IDTSS1,   IDTDUST1
-
       USE CMN_SIZE_MOD      ! Size parameters
 
       ! Arguments
-      INTEGER,  INTENT(IN)   :: I, J, L, N
-      LOGICAL,  INTENT(IN)   :: LS
-      REAL*8,   INTENT(OUT)  :: FRACTION, SOLFRAC
+      INTEGER, INTENT(IN)    :: I, J, L, N
+      LOGICAL, INTENT(IN)    :: LS
+      REAL*8,  INTENT(OUT)   :: FRACTION, SOLFRAC
+      REAL*8,  INTENT(INOUT) :: STT(:,:,:,:)            ! Tracer array
 
       ! Local variables
       REAL*4                 ::  MECIL, MOCIL, MOCOB, MSO4, MNACL, MTOT
@@ -5808,7 +5865,7 @@ c      IF (LCARB30) MECOB = STT(I,J,L,IDTECOB1-1+BIN)
       
 !------------------------------------------------------------------------------
 
-      SUBROUTINE GETACTBIN ( I, J, L, N, LS, BINACT )
+      SUBROUTINE GETACTBIN ( I, J, L, N, LS, BINACT, State_Chm )
 
 !
 !******************************************************************************
@@ -5828,18 +5885,16 @@ c      IF (LCARB30) MECOB = STT(I,J,L,IDTECOB1-1+BIN)
 !******************************************************************************
 
       ! Reference to F90 modules
-c      USE LOGICAL_MOD, ONLY  : LSULF30, LSALT30
-c      USE LOGICAL_MOD, ONLY  : LCARB30, LDUST30
-      USE TRACER_MOD,   ONLY : STT
+      USE CMN_SIZE_MOD
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TRACERID_MOD, ONLY : IDTECIL1, IDTOCIL1, IDTOCOB1, IDTECOB1
       USE TRACERID_MOD, ONLY : IDTNK1,   IDTSF1,   IDTSS1 ,  IDTDUST1
 
-      USE CMN_SIZE_MOD       ! Size parameters
-
       ! Arguments
-      INTEGER,  INTENT(IN)   :: I, J, L, N
-      LOGICAL,  INTENT(IN)   :: LS
-      INTEGER,  INTENT(OUT)  :: BINACT
+      INTEGER,        INTENT(IN)    :: I, J, L, N
+      LOGICAL,        INTENT(IN)    :: LS
+      INTEGER,        INTENT(OUT)   :: BINACT
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 
       ! Local variables
       REAL*4                 ::  MECIL, MOCIL, MOCOB, MSO4, MNACL, MTOT
@@ -5849,9 +5904,19 @@ c      USE LOGICAL_MOD, ONLY  : LCARB30, LDUST30
       INTEGER                ::  BIN
       INTEGER                ::  OFFSET
 
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER   :: STT(:,:,:,:)
+
       !=================================================================
       ! GETACTBIN begins here
       !=================================================================
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+
 
       BIN = N - IDTNK1 + 1
       IF ( BIN > IBINS ) THEN
@@ -5899,6 +5964,9 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
       ELSE 
          BINACT = BINACT2(ISO4, INACL, IOCIL) + OFFSET
       ENDIF
+
+      ! Free pointer
+      NULLIFY( STT )
 
       RETURN
       END SUBROUTINE GETACTBIN
@@ -5988,7 +6056,7 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE EZWATEREQM2( I, J, L, BIN, State_Met) 
+      SUBROUTINE EZWATEREQM2( I, J, L, BIN, State_Met, State_Chm ) 
 !
 !******************************************************************************
 !  Subroutine EZWATEREQM2 is just like EZWATEREQM but access directly to STT
@@ -6002,25 +6070,34 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
 !******************************************************************************
 !
       ! Reference to F90 modules
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE GIGC_State_Chm_Mod, ONLY : ChmState    
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRACERID_MOD,       ONLY : IDTNK1, IDTSF1, IDTSS1
       USE TRACERID_MOD,       ONLY : IDTAW1, IDTOCIL1
-      USE TRACER_MOD,         ONLY : STT
-
-      USE CMN_SIZE_MOD             ! Size parameters
 
       ! Arguments
-      INTEGER,  INTENT(IN)        :: I, J, L, BIN
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      INTEGER,  INTENT(IN)          :: I, J, L, BIN
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 
       ! Local variables
       REAL*8               :: RHE
       REAL*8               :: SO4MASS, NACLMASS, OCILMASS
       REAL*8               :: WRSO4, WRNACL, WROCIL
 
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER   :: STT(:,:,:,:)
+
       !========================================================================
       ! EZWATEREQM begins here!
       !========================================================================
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       rhe = State_Met%RH(i,j,l)             !RH [=] percent
       
@@ -6050,6 +6127,9 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
       STT(i,j,l,IDTAW1-1+bin)= so4mass*(wrso4-1.d0) +
      &                            naclmass*(wrnacl-1.d0)
      &                 + ocilmass*(wrocil-1.d0)
+
+      ! Free pointer
+      NULLIFY( STT )
 
       END SUBROUTINE EZWATEREQM2   
      
@@ -6130,7 +6210,8 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
       
 !------------------------------------------------------------------------------
 
-      SUBROUTINE AERO_DIADEN( DIA, DENSITY, LEV, State_Met )
+      SUBROUTINE AERO_DIADEN( DIA,       DENSITY,   LEV, 
+     &                        Input_Opt, State_Met, State_Chm )
 
 !******************************************************************************
 !  Subroutine AERO_DIADEN calculate the diameter and density by calling external
@@ -6140,23 +6221,24 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
 !        to DEPVEL.
 !******************************************************************************
 
-c      USE LOGICAL_MOD,    ONLY : LSULF30, LSALT30, LCARB30, LDUST30
+      USE CMN_SIZE_MOD             ! Size parameters
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACER_MOD,         ONLY : STT
       USE TRACERID_MOD,       ONLY : IDTNK1,   IDTSF1,   IDTSS1
       USE TRACERID_MOD,       ONLY : IDTDUST1, IDTECIL1, IDTECOB1
       USE TRACERID_MOD,       ONLY : IDTOCIL1, IDTOCOB1
 
-      USE CMN_SIZE_MOD             ! Size parameters
-
       IMPLICIT NONE
 
       ! Arguments 
-      REAL*8,         INTENT(OUT) :: DIA(MAXIJ, IBINS)
-      REAL*8,         INTENT(OUT) :: DENSITY(MAXIJ, IBINS)
-      INTEGER,        INTENT(IN)  :: LEV  
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      REAL*8,         INTENT(OUT)   :: DIA(MAXIJ, IBINS)
+      REAL*8,         INTENT(OUT)   :: DENSITY(MAXIJ, IBINS)
+      INTEGER,        INTENT(IN)    :: LEV  
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
       
       ! Local variables
       INTEGER           :: I,J, BIN, JC, IJLOOP, TRACID, WID
@@ -6165,10 +6247,19 @@ c      USE LOGICAL_MOD,    ONLY : LSULF30, LSALT30, LCARB30, LDUST30
       REAL*8            :: MSO4, MNACL, MH2O
       REAL*8            :: MECIL, MECOB, MOCIL, MOCOB, MDUST
 
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER   :: STT(:,:,:,:)
+
       !========================================================================
       ! AERO_DIADEN begins here!
       !========================================================================
       
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+
       ! Initialize mass
       MSO4  = 0d0
       MNACL = 0d0
@@ -6179,8 +6270,9 @@ c      USE LOGICAL_MOD,    ONLY : LSULF30, LSALT30, LCARB30, LDUST30
       MOCOB = 0d0
       MDUST = 0d0
 
-      CALL CHECKMN( 0, 0, 0, State_Met, 'kg',
-     &              'AERO_DIADEN called from DEPVEL')
+      CALL CHECKMN( 0,         0,         0, 
+     &              Input_Opt, State_Met, State_Chm, 
+     &              'kg',      'AERO_DIADEN called from DEPVEL' )
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -6200,7 +6292,8 @@ c         print *,"TRACID=",TRACID,"IDTNK1=",IDTNK1, "BIN=", BIN
          WID    = IDTNK1 + (ICOMP - 1)*IBINS - 1 + BIN  !(fixed WID to 281-310. dmw 10/3/09)
 c         print *, "wid=", WID, "ICOMP=", ICOMP, "IBINS=", IBINS
          ! Get the diameter from an external function
-         DIA(IJLOOP,BIN) = GETDP( I, J, LEV, TRACID, State_Met )
+         DIA(IJLOOP,BIN) = GETDP( I,      J,         LEV, 
+     &                            TRACID, State_Met, State_Chm )
          
          ! Prepare the mass to call external function for density
          MH2O = STT(I,J,1,WID         )
@@ -6228,12 +6321,16 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
       ENDDO
 !$OMP END PARALLEL DO
 
+      ! Free pointer
+      NULLIFY( STT )
+
       RETURN
       END SUBROUTINE AERO_DIADEN
       
 !-----------------------------------------------------------------------------
       
-      SUBROUTINE CHECKMN ( II, JJ, LL, State_Met, UNITS, LOCATION )
+      SUBROUTINE CHECKMN
+     &  ( II, JJ, LL, Input_Opt, State_Met, State_Chm, UNITS, LOCATION )
 !      
 !*****************************************************************************
 !  Subroutine CHECKMN use the subroutine MNFIX to check for error in the 
@@ -6252,19 +6349,22 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
 !
       ! References to F90 modules
       USE DAO_MOD,            ONLY : CONVERT_UNITS      
-      USE ERROR_MOD,          ONLY : ERROR_STOP, DEBUG_MSG, IT_IS_NAN
+      USE ERROR_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE LOGICAL_MOD,        ONLY : LPRT
       USE TRACERID_MOD,       ONLY : IDTNK1,  IDTAW1, IDTNH4, IDTNH3
-      USE TRACER_MOD,         ONLY : STT, TCVV, XNUMOL, N_TRACERS
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND60
 
       ! Arguments
-      INTEGER                      :: II, JJ, LL
-      CHARACTER(LEN=*), INTENT(IN) :: UNITS, LOCATION
-      TYPE(MetState),   INTENT(IN) :: State_Met   ! Meteorology State object
+      INTEGER                         :: II, JJ, LL
+      CHARACTER(LEN=*), INTENT(IN)    :: UNITS, LOCATION
+      TYPE(OptInput),   INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState),   INTENT(IN)    :: State_Met   ! Meteorology State object
+      TYPE(ChmState),   INTENT(INOUT) :: State_Chm   ! Chemistry State object
 
       ! Local variables
       INTEGER                :: I, J, L
@@ -6283,9 +6383,30 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
       REAL*4                         :: BOXVOL
       REAL*8                         :: XFER(IBINS)
     
+      ! For values from Input_Opt
+      LOGICAL :: LPRT
+      INTEGER :: N_TRACERS
+      REAL*8  :: XNUMOL(Input_Opt%N_TRACERS)
+      REAL*8  :: TCVV(Input_Opt%N_TRACERS)
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER   :: STT(:,:,:,:)
+
       !=================================================================
       ! CHECKMN begins here!
       !=================================================================
+
+      ! Copy values from Input_Opt
+      LPRT      = Input_Opt%LPRT
+      N_TRACERS = Input_Opt%N_TRACERS
+      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
+      TCVV      = Input_Opt%TCVV(1:N_TRACERS)
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT       => State_Chm%Tracers
 
       ERRORSWITCH = .FALSE.
 
@@ -6398,6 +6519,9 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
      &     CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, State_Met%AD, STT ) 
         
       IF ( LPRT ) WRITE(6,*)' #### CHECKMN: finish at ',LOCATION
+
+      ! Free pointer
+      NULLIFY( STT )
 
       ! Return to calling program
       END SUBROUTINE CHECKMN    
@@ -7735,7 +7859,7 @@ Cpja Perform some numerical checks on dmdt_int
 
 !-----------------------------------------------------------------------------
 
-      FUNCTION GETDP( I, J, L, N, State_Met ) RESULT( VALUE )
+      FUNCTION GETDP( I, J, L, N, State_Met, State_Chm ) RESULT( VALUE )
 !
 !*****************************************************************************
 !  Function GETDP calculate multi-component aerosol diameter
@@ -7758,9 +7882,9 @@ Cpja Perform some numerical checks on dmdt_int
 !*****************************************************************************
 
       USE ERROR_MOD,          ONLY : ERROR_STOP, IT_IS_NAN
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRACERID_MOD,       ONLY : IDTNK1,  IDTAW1
-      USE TRACER_MOD,         ONLY : STT
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND60
@@ -7768,8 +7892,9 @@ Cpja Perform some numerical checks on dmdt_int
       implicit none
 
       ! Arguments
-      INTEGER,   INTENT(IN)       :: I, J, L, N
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      INTEGER,   INTENT(IN)         :: I, J, L, N
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 
       ! Return value
       REAL*8                :: VALUE
@@ -7787,10 +7912,19 @@ Cpja Perform some numerical checks on dmdt_int
       REAL*8                ::  pi
       parameter (pi=3.141592654d0)
 
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER   :: STT(:,:,:,:)
+
       !=================================================================
       ! GETDP begins here!
       !=================================================================
       
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+
       !-------------------------------------------------------------
       ! Calculate bin that we're working with
       !-------------------------------------------------------------
@@ -7801,7 +7935,7 @@ Cpja Perform some numerical checks on dmdt_int
       !-------------------------------------------------------------
       ! Calculate aerosol water in case it has not been initialized elsewhere 
       !-------------------------------------------------------------
-      CALL EZWATEREQM2( I, J, L, NUMBIN, State_Met )
+      CALL EZWATEREQM2( I, J, L, NUMBIN, State_Met, State_Chm )
 
       !-------------------------------------------------------------
       ! Check negative STT
@@ -7890,6 +8024,9 @@ Cpja Perform some numerical checks on dmdt_int
 
       IF( IT_IS_NAN( VALUE )) 
      &     CALL ERROR_STOP('Result is NaN', 'GETDP:3')
+
+      ! Free pointer
+      NULLIFY( STT )
 
       ! Return to calling subroutine
       END FUNCTION GETDP

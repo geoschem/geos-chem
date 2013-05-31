@@ -15,7 +15,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE AERO_DRYDEP( am_I_Root, Input_Opt, State_Met, RC )
+      SUBROUTINE AERO_DRYDEP( am_I_Root, Input_Opt, 
+     &                        State_Met, State_Chm, RC )
 !
 ! !USES:
 !
@@ -24,13 +25,12 @@
       USE DUST_MOD,           ONLY : SETTLEDUST   
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,        ONLY : LPRT  
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACER_MOD,         ONLY : STT, XNUMOL
       USE TRACERID_MOD,       ONLY : IDTNK1, IDTH2SO4
       USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
       USE TOMAS_MOD
@@ -42,13 +42,17 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  22 Jul 2007 - Win T.      - Initial version
@@ -60,6 +64,7 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  13 Dec 2012 - M. Payer    - Add am_I_Root, Input_Opt, RC as arguments
+!  31 May 2013 - R. Yantosca - Now pass Input_Opt, State_Chm to routines
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -91,15 +96,34 @@
       integer   :: ii, jj , ix, jx, bb, ll
       data ii,jj, ix, jx, bb, ll /55, 29, 55, 29, 1, 1 /
 
+      ! For fields from Input_Opt
+      LOGICAL         :: LPRT
+      INTEGER         :: N_TRACERS
+      REAL*8          :: XNUMOL(Input_Opt%N_TRACERS)
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! AERO_DRYDEP begins here!
       !=================================================================
 
       ! Assume success
-      RC    = GIGC_SUCCESS
+      RC        = GIGC_SUCCESS
 
       ! DTCHEM is the chemistry timestep in seconds
-      DTCHEM = GET_TS_CHEM() * 60d0
+      DTCHEM    = GET_TS_CHEM() * 60d0
+
+      ! Get logical values from Input_Opt
+      LPRT      = ( Input_Opt%LPRT .and. am_I_Root )
+      N_TRACERS = Input_Opt%N_TRACERS
+      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
+
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      STT       => State_Chm%TRACERS
 
       ! First identify if the size-resolved aerosol tracers have their
       ! deposition velocity calculated.
@@ -155,7 +179,8 @@ cdbg      print *, dryd(:)
       IF ( DOSETTLING ) THEN
 
       ! SIZ_DIA [=] m  and SIZ_DEN [=] kg/m3
-      CALL AERO_DIADEN( SIZ_DIA(:,:), SIZ_DEN(:,:), 1, State_Met )
+      CALL AERO_DIADEN( SIZ_DIA(:,:), SIZ_DEN(:,:), 1, 
+     &                  Input_Opt,    State_Met,    State_Chm )
 
 !$OMP PARALLEL DO
 !$OMP+PRIVATE( BIN, I, J, IJLOOP, DP, DEN, CONST, L, P, TEMP )
@@ -310,8 +335,10 @@ cdbg      print *, dryd(:)
       ENDIF  ! DOSETTLING 
 
       ! Dust gravitational settling 
-      IF (.not. DOSETTLING) CALL SETTLEDUST( am_I_Root, Input_Opt,
-     &                                       State_Met, RC )
+      IF ( .not. DOSETTLING ) THEN
+         CALL SETTLEDUST( am_I_Root, Input_Opt,
+     &                    State_Met, State_Chm, RC )
+      ENDIF
 
 
       !---------- DRY DEPOSITION ----------
@@ -448,6 +475,9 @@ c     &           AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1)
 
 
       IF ( LPRT ) PRINT *,'### Finish AERO_DRYDEP'
+
+      ! Free pointer memory
+      NULLIFY( STT )
 
       ! Return to calling program
       END SUBROUTINE AERO_DRYDEP

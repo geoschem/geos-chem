@@ -527,6 +527,8 @@
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !  23 Apr 2013 - R. Yantosca - Remove LTOMAS logical, since we now invoke TOMAS
 !                              with either TOMAS=yes or TOMAS40=yes
+!  31 May 2013 - R. Yantosca - Now pass am_I_root, Input_Opt, State_Chm
+!                              and RC to TOMAS routine CHEM_SO4_AQ
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -682,7 +684,7 @@
       ! to tomas_mod.f in the future, but for now it still needs to get
       ! the PSO4_SO2AQ value while CHEMSULFATE is called
       !-----------------------------------------------------------------
-      CALL CHEM_SO4_AQ( State_Met )
+      CALL CHEM_SO4_AQ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO4_AQ' )
 #endif
 
@@ -3407,23 +3409,6 @@
 
       END SUBROUTINE CHEM_SO4
 !EOC
-!------------------------------------------------------------------------------
-
-      !SUBROUTINE PHASE_SO4
-      !
-      ! *** Currently under development ***
-      !
-      !END SUBROUTINE PHASE_SO4
-
-!------------------------------------------------------------------------------
-
-      !SUBROUTINE PHASE_RADIATIVE
-      !
-      ! *** Currently under development ***
-      !
-      !END SUBROUTINE PHASE_RADIATIVE
-
-
 #if   defined( TOMAS )
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -3440,23 +3425,34 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_SO4_AQ( State_Met )
+      SUBROUTINE CHEM_SO4_AQ( am_I_Root, Input_Opt, 
+     &                        State_Met, State_Chm, RC )
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
       USE DAO_MOD,            ONLY : CONVERT_UNITS 
+      USE GIGC_Input_Opt_Mod, ONLY : OptINput 
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE TOMAS_MOD,          ONLY : AQOXID, GETACTBIN
-      USE TRACER_MOD,         ONLY : STT,    TCVV,     XNUMOL, N_TRACERS
       USE TRACERID_MOD,       ONLY : IDTSO4, IDTNK10
       USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
-
-      USE CMN_SIZE_MOD             ! Size parameters
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  NOTE: This subroutine is ignored unless we compile for TOMAS microphysics.
@@ -3470,6 +3466,9 @@
 !  16 Feb 2012 - R. Yantosca - Added ProTeX headers
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  31 May 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm
+!                              and RC arguments
+!  31 May 2013 - R. Yantosca - Now pass State_Chm to TOMAS routines
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3481,12 +3480,26 @@
       INTEGER :: KMIN
       REAL*8  :: SO4OXID
 
+      ! For values from Input_Opt
+      INTEGER :: N_TRACERS
+      REAL*8  :: TCVV(Input_Opt%N_TRACERS)
+      REAL*8  :: XNUMOL(Input_Opt%N_TRACERS)
+
       !=================================================================
       ! CHEM_SO4_AQ begins here!
       !=================================================================
+ 
+      ! Copy values from Input_Opt
+      N_TRACERS = Input_Opt%N_TRACERS
+      TCVV      = Input_Opt%TCVV  (1:N_TRACERS)
+      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
 
       ! Convert STT from [v/v] -> [kg] 
-      CALL CONVERT_UNITS(2, N_TRACERS, TCVV, State_Met%AD, STT )
+      CALL CONVERT_UNITS( 2, 
+     &                    N_TRACERS, 
+     &                    TCVV, 
+     &                    State_Met%AD, 
+     &                    State_Chm%Tracers )
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -3501,13 +3514,20 @@
          IF (ITS_IN_THE_STRAT( I, J, L, State_Met ) ) CYCLE
 
          SO4OXID = PSO4_SO2AQ(I,J,L) * State_Met%AD(I,J,L)/ TCVV(IDTSO4)
+
          IF ( SO4OXID > 0d0 ) THEN
+
             ! The activating bin of the composition of BIN10
             ! is, in most any case, the same as activating bin of other bins.
-            CALL GETACTBIN( I, J, L, IDTNK10, .TRUE. , BINACT1 )
-            CALL GETACTBIN( I, J, L, IDTNK10, .FALSE., BINACT2 )
+            CALL GETACTBIN
+     &         ( I, J, L, IDTNK10, .TRUE. , BINACT1, State_Chm )
+
+            CALL GETACTBIN
+     &         ( I, J, L, IDTNK10, .FALSE., BINACT2, State_Chm )
+
             KMIN = ( BINACT1 + BINACT2 )/ 2.
-            CALL AQOXID( SO4OXID, KMIN, I, J, L, State_Met )
+
+            CALL AQOXID( SO4OXID, KMIN, I, J, L, State_Met, State_Chm )
          ENDIF
       ENDDO
       ENDDO
@@ -3515,7 +3535,11 @@
 !$OMP END PARALLEL DO
 
        ! Convert STT from [kg] -> [v/v] 
-      CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, State_Met%AD, STT )
+      CALL CONVERT_UNITS( 1, 
+     &                    N_TRACERS, 
+     &                    TCVV,
+     &                    State_Met%AD, 
+     &                    State_Chm%Tracers )
       
       END SUBROUTINE CHEM_SO4_AQ
 !EOC
@@ -4832,9 +4856,6 @@
          CALL SRCNH3( am_I_Root, Input_Opt, State_Chm, RC ) 
       ENDIF
 
-      ! Free pointer
-      NULLIFY( STT )
-
 #if   defined( TOMAS )
       !=================================================================
       ! For TOMAS microphysics
@@ -4877,7 +4898,7 @@
 
       !IF ( IDTSF1 > 0 ) THEN
          CALL SRCSF30(  STT(:,:,:,IDTNK1:IDTNK1+IBINS-1), 
-     &                  BINMASS(:,:,:,:), State_Met       )
+     &                  BINMASS(:,:,:,:), Input_Opt, State_Met )
 
          ! Return the aerosol mass after emission subroutine to STT
          ! excluding the NH4 aerosol and aerosol water (win, 9/27/08) 
@@ -4885,6 +4906,9 @@
      &        BINMASS(:,:,:,1:IBINS*(ICOMP-IDIAG))
       ENDIF
 #endif
+
+      ! Free pointer
+      NULLIFY( STT )
 
       END SUBROUTINE EMISSSULFATE
 !EOC
@@ -6298,7 +6322,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SRCSF30( TC1, TC2, State_Met )
+      SUBROUTINE SRCSF30( TC1, TC2, Input_Opt, State_Met )
 !
 ! !USES:
 !
@@ -6308,9 +6332,9 @@
       USE EPA_NEI_MOD,        ONLY : GET_EPA_ANTHRO,  GET_EPA_BIOFUEL
       USE EPA_NEI_MOD,        ONLY : GET_USA_MASK
       USE ERROR_MOD,          ONLY : ERROR_STOP,  IT_IS_NAN
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,        ONLY : LNEI99,  LPRT, LCAC
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK, GET_TS_EMIS
@@ -6326,11 +6350,11 @@
 !
 ! !INPUT PARAMETERS: 
 !
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-
       ! TC1 (REAL*8 ) : Array for 30-bin NK1-NK30 tracer number [no.]
       ! TC2 (REAL*8)  : Array for 30-bin SF1-SF30 tracer mass [kg] 
       REAL*8,  INTENT(INOUT) :: TC1(IIPAR,JJPAR,LLPAR,IBINS)
@@ -6413,9 +6437,18 @@
       ! debugging 
       real*8   dummy
 
+      ! For fields from Input_Opt
+      LOGICAL :: LNEI99,  LPRT, LCAC, LNLPBL
+
       !=================================================================
       ! SRCSF30 begins here!
       !=================================================================
+
+      ! COpy values from Input_Opt
+      LNEI99  = Input_Opt%LNEI99
+      LPRT    = Input_Opt%LPRT
+      LCAC    = Input_Opt%LCAC
+      LNLPBL  = Input_Opt%LNLPBL
 
       ! DTSRCE is the emission timestep in seconds
       DTSRCE  = GET_TS_EMIS() * 60d0

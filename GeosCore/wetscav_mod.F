@@ -803,13 +803,14 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE COMPUTE_F( N, F, ISOL, State_Met )
+      SUBROUTINE COMPUTE_F( N, F, ISOL, State_Met, State_Chm )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
       USE GET_POPSINFO_MOD,   ONLY : GET_POP_HSTAR
       USE GET_POPSINFO_MOD,   ONLY : GET_POP_DEL_Hw
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRACERID_MOD,       ONLY : IDTPB,     IDTBE7,    IDTHNO3 
       USE TRACERID_MOD,       ONLY : IDTH2O2,   IDTCH2O,   IDTMP
@@ -846,12 +847,14 @@
       INTEGER,        INTENT(IN)  :: N                    ! Tracer number
       TYPE(MetState), INTENT(IN)  :: State_Met            ! Met State object
 !
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm          ! Chemistry State
+!
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT) :: ISOL                 ! Index for ND38 diag
       REAL*8,         INTENT(OUT) :: F(IIPAR,JJPAR,LLPAR) ! Fraction of tracer
-                                                          !  scavenged in cloud
-                                                          !  updraft [unitless]
 !
 ! !REVISION HISTORY: 
 !  23 Feb 2000 - H. Liu, R. Yantosca - Initial version
@@ -912,6 +915,7 @@
 !  27 Sep 2011 - H. Amos     - remove LHg_WETDasHNO3 logical, it's obsolete
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  31 May 2013 - R. Yantosca - Now accept State_Chm, and pass it to TOMAS code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2031,7 +2035,7 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
             CALL GETFRACTION( I, J, L, N, .FALSE., 
-     &                        XFRAC, SOLFRAC       )
+     &                        XFRAC, SOLFRAC, State_Chm%Tracers  )
             F(I,J,L) = XFRAC * SOLFRAC * F(I,J,L)                 
             TOM_SC_FRACTION(I,J,L,N-IDTNK1+1) = XFRAC
 !            F(I,J,L) = ACTIV_F( N, .FALSE. ) * F(I,J,L)
@@ -2053,7 +2057,7 @@
 !            F(I,J,L) = TOM_SC_FRACTION(I,J,L,N-IDTSF1+1) * F(I,J,L)
 !new
             CALL GETFRACTION( I, J, L, N, .FALSE., 
-     &                        XFRAC, SOLFRAC       )
+     &                        XFRAC, SOLFRAC, State_Chm%Tracers )
             F(I,J,L) = XFRAC * F(I,J,L)                 
          ENDDO
          ENDDO
@@ -2071,7 +2075,7 @@
          DO I = 1, IIPAR
 !            F(I,J,L) = TOM_SC_FRACTION(I,J,L,N-IDTSS1+1) * F(I,J,L)
             CALL GETFRACTION( I, J, L, N, .FALSE., 
-     &                        XFRAC, SOLFRAC       )
+     &                        XFRAC, SOLFRAC, State_Chm%Tracers )
             F(I,J,L) = XFRAC * F(I,J,L)                 
          ENDDO
          ENDDO
@@ -2089,7 +2093,7 @@
          DO I = 1, IIPAR
 !            F(I,J,L) = TOM_SC_FRACTION(I,J,L,N-IDTECIL1+1) * F(I,J,L)
             CALL GETFRACTION( I, J, L, N, .FALSE., 
-     &                        XFRAC, SOLFRAC       )
+     &                        XFRAC, SOLFRAC, State_Chm%Tracers )
             F(I,J,L) = XFRAC * F(I,J,L)                 
          ENDDO
          ENDDO
@@ -2107,7 +2111,7 @@
          DO I = 1, IIPAR
 !            F(I,J,L) = TOM_SC_FRACTION(I,J,L,N-IDTOCIL1+1) * F(I,J,L)
             CALL GETFRACTION( I, J, L, N, .FALSE., 
-     &                        XFRAC, SOLFRAC       )
+     &                        XFRAC, SOLFRAC, State_Chm%Tracers )
             F(I,J,L) = XFRAC * F(I,J,L)                 
          ENDDO
          ENDDO
@@ -2125,7 +2129,7 @@
          DO I = 1, IIPAR
 !            F(I,J,L) = TOM_SC_FRACTION(I,J,L,N-IDTOCOB1+1) * F(I,J,L)
             CALL GETFRACTION( I, J, L, N, .FALSE., 
-     &                        XFRAC, SOLFRAC       )
+     &                        XFRAC, SOLFRAC, State_Chm%Tracers )
             F(I,J,L) = XFRAC * F(I,J,L)                 
          ENDDO
          ENDDO
@@ -2143,7 +2147,7 @@
          DO I = 1, IIPAR
 !            F(I,J,L) = TOM_SC_FRACTION(I,J,L,N-IDTDUST1+1) * F(I,J,L)
             CALL GETFRACTION( I, J, L, N, .FALSE., 
-     &                        XFRAC, SOLFRAC       )
+     &                        XFRAC, SOLFRAC, State_Chm%Tracers )
             F(I,J,L) = XFRAC * F(I,J,L)                 
          ENDDO
          ENDDO
@@ -4053,7 +4057,7 @@
 !
       SUBROUTINE WASHOUT( I, J, L,  N, BXHEIGHT, TK,   PP, 
      &                    DT, F, H2O2s,    SO2s, WASHFRAC, KIN,
-     &                    State_Met)
+     &                    State_Met, State_Chm )
 !
 ! !USES:
 !
@@ -4076,6 +4080,7 @@
       USE TRACERID_MOD, ONLY : IDTMOBA,  IDTPROPNN
       USE TRACERID_MOD, ONLY : IDTISOPN, IDTMMN
       USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP, IDTMAP
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState !(sfarina 2/20/13)
       ! jpp 4/27/09
       USE TRACERID_MOD, ONLY : IDTHOBr,  IDTHBr,   IDTBr2
@@ -4102,10 +4107,11 @@
       REAL*8,  INTENT(IN)    :: F          ! Fraction of grid box that is 
                                            !   precipitating [unitless]
 
-      TYPE(MetState),INTENT(IN) :: State_Met !sfarina - required for TOMAS routines
+      TYPE(MetState),INTENT(IN)     :: State_Met !sfarina - required for TOMAS routines
 
 ! !INPUT/OUTPUT PARAMETERS:
 !
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
       REAL*8,  INTENT(INOUT) :: H2O2s      ! H2O2 [v/v] and SO2 [v/v] 
       REAL*8,  INTENT(INOUT) :: SO2s       ! concentrations after aqueous rxns 
                                            ! are applied.  These are computed 
@@ -4170,6 +4176,7 @@
 !  27 Sep 2011 - H. Amos     - remove LHg2_WETDasHNO3 logical, it's obsolete
 !  20 Jan 2012 - H. Amos     - WASHFRAC for aerosol is now either computed by
 !                              WASHFRAC_FINE_AEROSOL or WASHFRAC_COARSE_AEROSOL
+!  31 May 2013 - R. Yantosca - Now accept State_Chm, and pass it to TOMAS code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4534,6 +4541,10 @@
          WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
 #if defined( TOMAS )
+      !=================================================================
+      ! FOR TOMAS MICROPHYSICS
+      !=================================================================
+
       ! Added for size-resolved aerosol (win, 7/16/09)
       !-------------------------------
       ! H2SO4 (treat as aerosol)
@@ -4550,7 +4561,7 @@
      &          N <  IDTNK1 + IBINS ) THEN
          KIN      = .TRUE.
          WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L,
-     &                                     State_Met )
+     &                                     State_Met, State_Chm )
          
       !-------------------------------
       ! Sulfate SF1-SF30
@@ -4559,7 +4570,7 @@
      &          N <  IDTSF1 + IBINS ) THEN
          KIN      = .TRUE.
          WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L,
-     &                                     State_Met )
+     &                                     State_Met, State_Chm )
          
       !-------------------------------
       ! Sea-salt SS1-SS30
@@ -4568,7 +4579,7 @@
      &          N <  IDTSS1 + IBINS ) THEN
          KIN      = .TRUE.
          WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L,
-     &                                     State_Met )
+     &                                     State_Met, State_Chm )
          
       !-------------------------------
       ! Hydrophilic EC ECIL1-ECIL30
@@ -4577,7 +4588,7 @@
      &          N <  IDTECIL1 + IBINS ) THEN
          KIN      = .TRUE.
          WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L,
-     &                                     State_Met )
+     &                                     State_Met, State_Chm )
          
       !-------------------------------
       ! Hydrophilic OC OCIL1-OCIL30
@@ -4586,7 +4597,7 @@
      &          N <  IDTOCIL1 + IBINS ) THEN
          KIN      = .TRUE.
          WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L,
-     &                                     State_Met )
+     &                                     State_Met, State_Chm )
          
       !-------------------------------
       ! Hydrophobic OC OCOB1-OCOB30
@@ -4595,7 +4606,7 @@
      &          N <  IDTOCOB1 + IBINS ) THEN
          KIN      = .TRUE.
          WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L,
-     &                                     State_Met )
+     &                                     State_Met, State_Chm )
          
       !-------------------------------
       ! Dust DUST1-DUST30
@@ -4604,7 +4615,7 @@
      &          N <  IDTDUST1 + IBINS ) THEN
          KIN      = .TRUE.
          WASHFRAC = WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L,
-     &                                     State_Met )
+     &                                     State_Met, State_Chm )
 
       ! (end part) Added for size-resolved aerosol (win, 7/16/09)
 #endif
@@ -4784,8 +4795,8 @@
 !
 ! !IROUTINE: washfrac_size_aerosol
 !
-! !DESCRIPTION: Function WASHFRAC\_SIZE\_AEROSOL returns the fraction of soluble 
-!  aerosol tracer lost to washout. Size resolved version for TOMAS
+! !DESCRIPTION: Function WASHFRAC\_SIZE\_AEROSOL returns the fraction of 
+!  soluble aerosol tracer lost to washout. Size resolved version for TOMAS.
 !\\
 !\\
 ! !INTERFACE:
@@ -4793,7 +4804,7 @@
 
 #if defined( TOMAS )
       FUNCTION WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L,
-     &            State_Met) 
+     &                                State_Met, State_Chm ) 
      &         RESULT( WASHFRAC )
 !
 !******************************************************************************
@@ -4813,20 +4824,23 @@
 !  (6 ) I,J,L    (INTEGER) : Grid box location
 !
 !  NOTES:
+!  31 May 2013 - R. Yantosca - Now accept State_Met, State_Chm as arguments
 !******************************************************************************
 !   
       ! Reference to F90 modules
-      
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE TRACERID_MOD,ONLY : IDTNK1
-      USE TOMAS_MOD,  ONLY : IBINS, GETDP, STRATSCAV
+      USE TRACERID_MOD,       ONLY : IDTNK1
+      USE TOMAS_MOD,          ONLY : IBINS, GETDP, STRATSCAV
+
       ! Arguments
       REAL*8, INTENT(IN)    :: DT, F, PP, TK
       INTEGER,INTENT(IN)    :: I             ! Longitude index
       INTEGER,INTENT(IN)    :: J             ! Latitude index
       INTEGER,INTENT(IN)    :: N, L
 
-      TYPE(MetState),INTENT(IN) :: State_Met
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 
       ! Function value
       REAL*8             :: WASHFRAC
@@ -4846,7 +4860,7 @@
       IF ( TK >= 268d0 ) THEN
          ! For aerosol number, get Dp and calculate scavr 
          IF ( N < IDTNK1 + IBINS ) THEN
-            DPAERO = GETDP( I, J, L, N, State_Met)
+            DPAERO = GETDP( I, J, L, N, State_Met, State_Chm )
             ! External function stratscav returns the scavenging rate (mm^-1)
             ! Let scavr has a unit of cm^-1
             SCAVR = 10.d0* STRATSCAV( DPAERO )
@@ -4864,7 +4878,6 @@
       ! Return to calling program
       END FUNCTION WASHFRAC_SIZE_AEROSOL
 #endif
-
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -5521,7 +5534,8 @@
      &                               L,         IDX,  ERRMSG, 
      &                               QDOWN,     Q,    F_WASHOUT, 
      &                               F_RAINOUT, DT,   PDOWN,     
-     &                               STT,       DSTT, State_Met  )
+     &                               STT,       DSTT, State_Met,
+     &                               State_Chm                   )
             ENDIF
 
             !===========================================================
@@ -5547,7 +5561,7 @@
                ! Re-evaporate all of the rain
                CALL DO_COMPLETE_REEVAP( LS,  I,      J,  L,  
      &                                  IDX, ERRMSG, DT, STT, DSTT, 
-     &                                  State_Met )
+     &                                  State_Met, State_Chm )
             ENDIF 
 
             ! Save FTOP for next level
@@ -5588,7 +5602,8 @@
             IF ( F > 0d0 ) THEN
                CALL DO_WASHOUT_AT_SFC( LS,  I,      J,     L,         
      &                                 IDX, ERRMSG, QDOWN, F,   
-     &                                 DT,  STT,    DSTT,  State_Met )
+     &                                 DT,  STT,    DSTT,  State_Met,
+     &                                 State_Chm                      )
             ENDIF    
          ENDIF
 
@@ -6031,7 +6046,8 @@
      &                               L,         IDX, ERRMSG,   
      &                               QDOWN,     Q,   F_WASHOUT, 
      &                               F_RAINOUT, DT,  PDOWN,     
-     &                               STT,       DSTT, State_Met )
+     &                               STT,       DSTT, State_Met,
+     &                               State_Chm                   )
 
             ENDIF
 
@@ -6061,7 +6077,7 @@
                ! Re-evaporate all of the rain
                CALL DO_COMPLETE_REEVAP( LS,  I,      J,  L,  
      &                                  IDX, ERRMSG, DT, STT, DSTT, 
-     &                                  State_Met )
+     &                                  State_Met, State_Chm )
             ENDIF 
 
             ! Save FTOP for next level
@@ -6098,7 +6114,8 @@
             IF ( F > 0d0 ) THEN
                CALL DO_WASHOUT_AT_SFC( LS,  I,      J,     L,         
      &                                 IDX, ERRMSG, QDOWN, F,   
-     &                                 DT,  STT,    DSTT,  State_Met )
+     &                                 DT,  STT,    DSTT,  State_Met,
+     &                                 State_Chm                      )
 
             ENDIF    
          ENDIF
@@ -6435,7 +6452,7 @@
 !========================================================================
          IF ( IDTNK1 > 0 ) THEN
             IF ( N >= IDTNK1 .and. N < IDTNK1 + IBINS ) THEN  
-               CALL GETFRACTION( I, J, L, N, LS, XFRAC, SOLFRAC ) 
+               CALL GETFRACTION( I, J, L, N, LS, XFRAC, SOLFRAC, STT ) 
                RAINFRAC = RAINFRAC * XFRAC * SOLFRAC
                TOM_SC_FRACTION(N-IDTNK1+1) = XFRAC
              ELSE IF ( N >= IDTSF1 .and. N < IDTSF1 + IBINS ) THEN
@@ -6561,7 +6578,7 @@
      &                            IDX,       ERRMSG,    QDOWN,  Q,
      &                            F_WASHOUT, F_RAINOUT, DT,     PDOWN,
      &                            STT,       DSTT,      
-     &                            State_Met, REEVAP     )
+     &                            State_Met, State_Chm, REEVAP     )
 !
 ! !USES:
 !
@@ -6576,6 +6593,7 @@
       USE DIAG_MOD,           ONLY : CT18              ! ND18 diag counter
       USE ERROR_MOD,          ONLY : IT_IS_NAN         ! Test for NaN
       USE GET_NDEP_MOD,       ONLY : SOIL_WETDEP       ! Wet deposited species
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState          ! Met State object
       USE TRACERID_MOD,       ONLY : IDTSO2            ! ID flag for SO2
       USE TRACERID_MOD,       ONLY : IDTSO4            ! ID flag for SO4
@@ -6613,6 +6631,7 @@
 !
       REAL*8,           INTENT(INOUT) :: STT (:,:,:,:) ! Tracer array [kg]
       REAL*8,           INTENT(INOUT) :: DSTT(:,:,:,:) ! Accumulator array [kg]
+      TYPE(ChmState),   INTENT(INOUT) :: State_Chm     ! Chemistry State object
 ! 
 ! !REMARKS:
 !  A fraction ALPHA of the raindrops falling down from grid 
@@ -6747,7 +6766,7 @@
      &                 State_Met%BXHEIGHT(I,J,L), 
      &                 TK,        QDOWN,        DT,   
      &                 TF,        H2O2s(I,J,L), SO2s(I,J,L), 
-     &                 WASHFRAC,  KIN, State_Met )
+     &                 WASHFRAC,  KIN, State_Met, State_Chm )
 
 #if    defined( MERRA ) || defined( GEOS_57 )
          !%%% BUG FIX: Only apply this section of when running
@@ -6838,7 +6857,8 @@
                ENDIF
 
                REEVAPSO2 = GAINED * 96D0 / 64D0
-               CALL AQOXID( REEVAPSO2, KMIN, I, J, L, State_Met )
+               CALL AQOXID( REEVAPSO2, KMIN, I, J, L, 
+     &                      State_Met, State_Chm  )
             ENDIF
 !end -added for TOMAS  (win, 7/16/09)
 #endif
@@ -6963,9 +6983,10 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_COMPLETE_REEVAP( LS, I,   J, 
-     &                               L,  IDX, ERRMSG, 
-     &                               DT, STT, DSTT  , State_Met)
+      SUBROUTINE DO_COMPLETE_REEVAP( LS,        I,        J, 
+     &                               L,         IDX,      ERRMSG, 
+     &                               DT,        STT,      DSTT, 
+     &                               State_Met, State_Chm         )
 !
 ! !USES:
 !
@@ -6980,6 +7001,7 @@
       USE DIAG_MOD,           ONLY : CT18              ! ND18 diag counter
       USE ERROR_MOD,          ONLY : IT_IS_NAN         ! Test for NaN
       USE GET_NDEP_MOD,       ONLY : SOIL_WETDEP       ! Wet deposited species
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRACERID_MOD,       ONLY : IDTSO2            ! ID flag for SO2
       USE TRACERID_MOD,       ONLY : IDTSO4            ! ID flag for SO4
@@ -6988,7 +7010,6 @@
       USE TRACERID_MOD,       ONLY : IDTECIL1, IDTOCIL1, IDTOCOB1
       USE TRACERID_MOD,       ONLY : IDTDUST1
       USE TOMAS_MOD,          ONLY : IBINS, ICOMP, AQOXID
-      USE TOMAS_MOD,          ONLY : GETFRACTION
       USE DIAG_MOD,           ONLY : AD05
 #endif
 !
@@ -7005,6 +7026,7 @@
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
+      TYPE(ChmState),   INTENT(INOUT) :: State_Chm     ! Chemistry State object
       REAL*8,           INTENT(INOUT) :: STT (:,:,:,:) ! Tracer array [kg]
       REAL*8,           INTENT(INOUT) :: DSTT(:,:,:,:) ! Accumulator array [kg]
 ! 
@@ -7077,7 +7099,7 @@
                         ENDIF
                         REEVAPSO2 =  - ( WETLOSS * 96d0 / 64d0 )
                         CALL AQOXID( REEVAPSO2, KMIN, I, J, L,
-     &                               State_Met )
+     &                               State_Met, State_Chm )
                      ENDIF
 !end- added for TOMAS (win, 7/16/09)
 #endif
@@ -7150,7 +7172,8 @@
 !
       SUBROUTINE DO_WASHOUT_AT_SFC( LS,  I,      J,     L,         
      &                              IDX, ERRMSG, QDOWN, F,   
-     &                              DT,  STT,    DSTT,  State_Met )
+     &                              DT,  STT,    DSTT,  State_Met,
+     &                              State_Chm                      )
 !
 ! !USES:
 !
@@ -7165,6 +7188,7 @@
       USE DIAG_MOD,           ONLY : CT18              ! ND18 diag counter
       USE ERROR_MOD,          ONLY : IT_IS_NAN         ! Test for NaN
       USE GET_NDEP_MOD,       ONLY : SOIL_WETDEP       ! Wet deposited species
+      USE GIGC_State_Chm_Mod, ONLY : ChmState          ! Chm State object
       USE GIGC_State_Met_Mod, ONLY : MetState          ! Met State object
       USE TRACERID_MOD,       ONLY : IDTSO2            ! ID flag for SO2
       USE TRACERID_MOD,       ONLY : IDTSO4            ! ID flag for SO4
@@ -7188,6 +7212,7 @@
 !
       REAL*8,           INTENT(INOUT) :: STT (:,:,:,:) ! Tracer array [kg]
       REAL*8,           INTENT(INOUT) :: DSTT(:,:,:,:) ! Accumulator array [kg]
+      TYPE(ChmState),   INTENT(INOUT) :: State_Chm     ! Chemistry State object
 ! 
 ! !REMARKS:
 !  Assume all of the tracer precipitating down from grid box (I,J,L=2) to 
@@ -7244,7 +7269,8 @@
      &                 State_Met%BXHEIGHT(I,J,L), 
      &                 TK ,      QDOWN,        DT,   
      &                 F,        H2O2s(I,J,L), SO2s(I,J,L), 
-     &                 WASHFRAC, KIN, State_Met )
+     &                 WASHFRAC, KIN,          State_Met, 
+     &                 State_Chm                            )
 
          ! NOTE: for HNO3 and aerosols, there is an F factor
          ! already present in WASHFRAC.  For other soluble

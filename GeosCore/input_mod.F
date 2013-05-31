@@ -8304,7 +8304,6 @@
       CALL INIT_TROPOPAUSE( am_I_Root, Input_Opt, RC )
       IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_TROPOPAUSE' )
 
-
       END SUBROUTINE GIGC_Init_Extra
 !EOC
 !------------------------------------------------------------------------------

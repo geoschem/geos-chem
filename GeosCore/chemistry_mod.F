@@ -205,6 +205,7 @@
 !                              now obtained either from CMN_SIZE_mod.F or
 !                              from the Input_Opt object
 !  05 Mar 2013 - R. Yantosca - Now pass am_I_Root, Input_Opt, RC to DRYFLX
+!  31 May 2013 - R. Yantosca - Now pass Input_Opt, State_Chm to DO_TOMAS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -369,8 +370,10 @@
  
 #if   defined( TOMAS )
             ! Do TOMAS aerosol microphysics and dry dep
-            IF ( IDTNK1 > 0 ) CALL DO_TOMAS( am_I_Root, Input_Opt,
-     &                                       State_Met, RC )
+            IF ( IDTNK1 > 0 ) THEN 
+               CALL DO_TOMAS
+     &             ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+            ENDIF
 #endif
 
             ! ND44 drydep fluxes

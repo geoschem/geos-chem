@@ -153,6 +153,7 @@
 !                              derived type object
 !  04 Feb 2013 - S. Kim      - Bug fix: H2O2s, SO2s, STT are not in State_Met
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  31 May 2013 - R. Yantosca - Now pass objects to NFCLDMX
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -225,12 +226,13 @@
 #endif
 
       ! Call the S-J Lin convection routine for GEOS-5
-      CALL NFCLDMX( N_TOT_TRC,
-     &              Input_Opt%TCVV,
+      CALL NFCLDMX( am_I_Root, 
+     &              Input_Opt, 
      &              State_Met%CMFMC(:,:,2:LLPAR+1),
-     &              State_Met%DTRAIN, 
-     &              State_Chm%TRACERS,
-     &              State_Met )
+     &              State_Met%DTRAIN,
+     &              State_Met, 
+     &              State_Chm, 
+     &              RC                               )
 
 #elif defined( MERRA ) || defined( GEOS_57 )
 
@@ -324,7 +326,7 @@
          p_FSOL => FSOL(:,:,:,N)
 
          ! Fraction of soluble tracer
-         CALL COMPUTE_F( N, p_FSOL, ISOL(N), State_Met ) 
+         CALL COMPUTE_F( N, p_FSOL, ISOL(N), State_Met, State_Chm ) 
 
          ! Nullify the pointer
          NULLIFY( p_FSOL )
@@ -626,7 +628,7 @@
 
          ! Get fraction of tracer scavenged and the soluble tracer 
          ! index (ISOL). For non-soluble tracers, F=0 and ISOL=0.
-         CALL COMPUTE_F( N, F(:,:,:,N), ISOL, State_Met ) 
+         CALL COMPUTE_F( N, F(:,:,:,N), ISOL, State_Met, State_Chm ) 
          
          ! Store ISOL in an array for later use
          INDEXSOL(N) = ISOL
@@ -880,7 +882,7 @@
 
          ! Get fraction of tracer scavenged and the soluble tracer 
          ! index (ISOL). For non-soluble tracers, F=0 and ISOL=0.
-         CALL COMPUTE_F( N, F(:,:,:,N), ISOL, State_Met ) 
+         CALL COMPUTE_F( N, F(:,:,:,N), ISOL, State_Met, State_Chm ) 
          
          ! Store ISOL in an array for later use
          INDEXSOL(N) = ISOL
@@ -1009,7 +1011,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE NFCLDMX( NC, TCVV, CLDMAS, DTRN, Q, State_Met )
+      SUBROUTINE NFCLDMX( am_I_Root, Input_Opt, CLDMAS, 
+     &                    DTRN,      State_Met, State_Chm, RC )
 !
 ! !USES:
 !
@@ -1021,10 +1024,11 @@
       USE DIAG_MOD,           ONLY : AD37
       USE DIAG_MOD,           ONLY : AD38
       USE DIAG_MOD,           ONLY : CONVFLUP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2
-      USE LOGICAL_MOD,        ONLY : LDYNOCEAN
-      USE LOGICAL_MOD,        ONLY : LGTMM
       USE PRESSURE_MOD,       ONLY : GET_BP
       USE PRESSURE_MOD,       ONLY : GET_PEDGE
       USE TIME_MOD,           ONLY : GET_TS_CONV
@@ -1040,8 +1044,8 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      ! TOTAL number of tracers (soluble + insoluble)  [unitless]
-      INTEGER,        INTENT(IN)    :: NC 
+      ! Are we on the root CPU
+      LOGICAL,        INTENT(IN)    :: am_I_Root
 
       ! CLDMAS : Cloud mass flux (at upper edges of each level) [kg/m2/s]
       REAL*8,         INTENT(IN)    :: CLDMAS(IIPAR,JJPAR,LLPAR)
@@ -1049,17 +1053,17 @@
       ! Detrainment mass flux [kg/m2/s]
       REAL*8,         INTENT(IN)    :: DTRN(IIPAR,JJPAR,LLPAR)
 
-      ! MW air (g/mol) / MW of tracer (g/mol) [unitless]
-      REAL*8,         INTENT(IN)    :: TCVV(NC)
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 
-      ! Meteorology State object
-      TYPE(MetState), INTENT(IN)    :: State_Met
-!
-! !INPUT/OUTPUT PARAMETERS: 
-! 
-      ! Tracer concentration [v/v]
-      REAL*8,         INTENT(INOUT) :: Q(IIPAR,JJPAR,LLPAR,NC)
-!
 ! !REMARKS:
 !  (1) The "NF" stands for "no flipping", and denotes that you don't have to 
 !  flip the tracer array Q in the main program before passing it to NFCLDMX.
@@ -1199,6 +1203,8 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  29 May 2013 - R. Yantosca - Now set TINY = 1d-60 only for TOMAS code
+!  31 May 2013 - R. Yantosca - Now pass State_Chm and then have Q point to 
+!                              State_Chm%Tracers.  This is for TOMAS.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1212,12 +1218,14 @@
       INTEGER                :: IMR, JNP, NLAY, AS
       REAL*8                 :: SDT, CMOUT, ENTRN, DQ, AREA_M2
       REAL*8                 :: T0, T1, T2, T3, T4, TSUM, DELQ
-      REAL*8                 :: DTCSUM(IIPAR,JJPAR,LLPAR,NC)
+      REAL*8                 :: DTCSUM(IIPAR,JJPAR,LLPAR,
+     &                          Input_Opt%N_TRACERS)
 
       REAL*8, ALLOCATABLE, SAVE :: DSIG(:)
 
       ! F is the fraction of tracer lost to wet scavenging in updrafts
-      REAL*8                 :: F(IIPAR,JJPAR,LLPAR,NC)
+      REAL*8                 :: F(IIPAR,JJPAR,LLPAR,
+     &                            Input_Opt%N_TRACERS)
 
       ! Local Work arrays
       REAL*8                 :: BMASS(IIPAR,JJPAR,LLPAR)
@@ -1247,9 +1255,33 @@
       REAL*8                 :: WET_Hg2
       REAL*8                 :: WET_HgP 
 
+      ! For fields from Input_Opt
+      LOGICAL                :: LDYNOCEAN
+      LOGICAL                :: LGTMM
+      INTEGER                :: NC
+      REAL*8                 :: TCVV(Input_Opt%N_TRACERS)
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER        :: Q(:,:,:,:)
+
       !=================================================================
       ! NFCLDMX begins here!
       !=================================================================
+
+      ! Assume success
+      RC        = GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LDYNOCEAN = Input_Opt%LDYNOCEAN
+      LGTMM     = Input_Opt%LGTMM
+      NC        = Input_Opt%N_TRACERS
+      TCVV      = Input_Opt%TCVV(1:NC)
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      Q         => State_Chm%Tracers
 
       ! First-time initialization
       IF ( FIRST ) THEN
@@ -1276,7 +1308,7 @@
 #endif
 
          ! Flag to denote if this is a mercury simulation (sas, bmy, 1/19/05)
-         IS_Hg = ( ITS_A_MERCURY_SIM() .and. LDYNOCEAN )
+         IS_Hg = ( Input_Opt%ITS_A_MERCURY_SIM .and. LDYNOCEAN )
 
          ! Reset first time flag
          FIRST = .FALSE.
@@ -1289,7 +1321,7 @@
 
       ! Convection timestep [s]
       NDT  = GET_TS_CONV() * 60d0
-     
+
       !=================================================================
       ! Define active convective region, from J = JS(outh) to 
       ! J = JN(orth), and to level K = KTOP. 
@@ -1386,7 +1418,7 @@
          ! used for diagnostic arrays AD37 and AD38.  ISOL = 0 for all 
          ! non-soluble tracers.   
          !==============================================================
-         CALL COMPUTE_F( IC, F(:,:,:,IC), ISOL, State_Met ) 
+         CALL COMPUTE_F( IC, F(:,:,:,IC), ISOL, State_Met, State_Chm ) 
 
          ! ND37 diagnostic -- store F only for soluble tracers
          IF ( ND37 > 0 .and. ISOL > 0 ) THEN
@@ -1757,6 +1789,9 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+      ! Free pointer memory
+      NULLIFY( Q )
+
       END SUBROUTINE NFCLDMX
 !EOC
 !------------------------------------------------------------------------------
@@ -1781,7 +1816,8 @@
      &                                REEVAPCN, T,        TS_DYN,   
      &                                Q,        DIAG14,   DIAG38,   
      &                                H2O2s,    SO2s,     I,        
-     &                                J,        RC,       State_Met )
+     &                                J,        RC,       State_Met,
+     &                                State_Chm                      )
 !
 ! !USES:
 !
@@ -1790,6 +1826,7 @@
       USE DEPO_MERCURY_MOD,   ONLY : ADD_HgP_WD
       USE ERROR_MOD,          ONLY : IT_IS_NAN, IT_IS_FINITE
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP  ! hma Nov 3, debug
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE MERCURY_MOD,        ONLY : PARTITIONHg
       USE TRACERID_MOD,       ONLY : IS_Hg2
@@ -1829,7 +1866,8 @@
       INTEGER,           INTENT(IN) :: I, J        ! Lon & lat indices
 !                                                  
 ! !INPUT/OUTPUT PARAMETERS:                        
-!                                                  
+!        
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
       TYPE(GC_IDENT), INTENT(INOUT) :: IDENT       ! Obj w/ info from ESMF etc.
       REAL*8,         INTENT(INOUT) :: H2O2s(:)
       REAL*8,         INTENT(INOUT) :: SO2s(:)  
@@ -1888,6 +1926,7 @@
 !  22 Oct 2012 - R. Yantosca - Now reference Headers/gigc_errcode_mod.F90
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  31 May 2013 - R. Yantosca - Now pass State_Chm to WASHOUT
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2450,7 +2489,8 @@
                   CALL WASHOUT( I, J, K,   IC,       BXHEIGHT(K), 
      &                          T(K),      QDOWN,    DT,   
      &                          F_WASHOUT, H2O2s(K), SO2s(K), 
-     &                          WASHFRAC,  AER, State_Met)
+     &                          WASHFRAC,  AER,      State_Met,
+     &                          State_Chm                         )
 
                   ! Check if the tracer is an aerosol or not
                   IF ( AER == .TRUE. ) THEN

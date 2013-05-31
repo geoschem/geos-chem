@@ -4396,15 +4396,15 @@ c
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
-#if   defined ( TOMAS )
+#if defined( TOMAS )
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
-      USE DIAG_MOD,           ONLY : AD59_ECIL, AD59_ECOB        !(win, 1/25/10)
-      USE DIAG_MOD,           ONLY : AD59_OCIL, AD59_OCOB        !(win, 1/25/10)
-      USE DIAG_MOD,           ONLY : AD59_NUMB                   !(win, 1/25/10)
-      USE TOMAS_MOD,          ONLY : IBINS,     AVGMASS, SOACOND !(win, 1/25/10)
-      USE TOMAS_MOD,          ONLY : ICOMP,     IDIAG            !(win, 1/25/10)
-      USE TRACERID_MOD,       ONLY : IDTECIL1,  IDTECOB1, IDTNK1 !(win, 1/25/10)
-      USE TRACERID_MOD,       ONLY : IDTOCIL1,  IDTOCOB1         !(win, 1/25/10)
+      USE DIAG_MOD,           ONLY : AD59_ECIL, AD59_ECOB
+      USE DIAG_MOD,           ONLY : AD59_OCIL, AD59_OCOB
+      USE DIAG_MOD,           ONLY : AD59_NUMB
+      USE TOMAS_MOD,          ONLY : IBINS,     AVGMASS, SOACOND
+      USE TOMAS_MOD,          ONLY : ICOMP,     IDIAG
+      USE TRACERID_MOD,       ONLY : IDTECIL1,  IDTECOB1, IDTNK1
+      USE TRACERID_MOD,       ONLY : IDTOCIL1,  IDTOCOB1
 #endif
 
       USE CMN_SIZE_MOD             ! Size parameters
@@ -4469,6 +4469,11 @@ c
       LOGICAL         :: LPRT
       LOGICAL         :: LSOA
 
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER   :: STT(:,:,:,:)
+
       !=================================================================
       ! EMISSCARBON begins here!
       !
@@ -4485,6 +4490,10 @@ c
       LCOOKE    = Input_Opt%LCOOKE
       LPRT      = Input_Opt%LPRT
       LSOA      = Input_Opt%LSOA
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT       => State_Chm%Tracers
 
       !--------------------------
       ! Read time-invariant data
@@ -4726,10 +4735,13 @@ c
       ENDIF
 
 #if   defined( TOMAS )
+      !=================================================================
+      ! FOR TOMAS MICROPHYSICS
+      !
       ! Added for emitting 30-bin EC and OC by Win Trivitayanurak (9/4/07)
       ! From this point to the end of this subroutine and also added function 
-      !  SCALECARB and subroutine EMITHIGH2 and EMITSGC in carbon_mod.f 
-      !=================================================================
+      ! SCALECARB and subroutine EMITHIGH2 and EMITSGC in carbon_mod.f 
+      !
       ! Emit EC and OC for 30-bin aerosol    (win, 9/4/07)
       !=================================================================
 
@@ -4819,7 +4831,7 @@ c
       endif
 !temp debug --------
             CALL EMITSGC( EC30SRC(:,:,:,1) + EC30SRC(:,:,:,2), 1,
-     &                    State_Met )
+     &                    Input_Opt, State_Met, State_Chm )
 !temp debug            if(sum(OC30SRC(ii,jj,:,:)) > 0d0) dbg = .true.
       if( dbg) then
          print *,'===== Before EMITSGC:OC ===== at',ii,jj,ll
@@ -4833,7 +4845,7 @@ c
       endif
 !temp debug --------
             CALL EMITSGC( OC30SRC(:,:,:,1) + OC30SRC(:,:,:,2), 2,
-     &                    State_Met )
+     &                    Input_Opt, State_Met, State_Chm )
 !temp debug
       if( dbg) then
          print *,'===== After EMITSGC:OC ===== at',ii,jj,ll
@@ -4861,7 +4873,8 @@ c
      &                          AVGMASS(K) 
            ENDDO
 
-           CALL EMITHIGH2( EC30SRC, OC30SRC, NUMBSRC )
+           CALL EMITHIGH2( EC30SRC, OC30SRC, NUMBSRC,
+     &                     Input_Opt, State_Chm )
            IF ( LPRT ) CALL DEBUG_MSG( '### EMISCARB: after EMITHIGH2' )
          
            !=================================================================
@@ -4914,7 +4927,7 @@ c
                PRES    = GET_PCENTER(i,j,1)*100.0 ! in Pa       
                IF ( SOASRC(I,J) > 0.d0 ) 
      &            CALL SOACOND( SOASRC(I,J), I, J, 1,
-     &               BOXVOL, TEMPTMS, PRES )
+     &               BOXVOL, TEMPTMS, PRES, State_Chm )
             ENDDO
             ENDDO
             IF ( LPRT ) 
@@ -4928,7 +4941,7 @@ c
                PRES    = GET_PCENTER(i,j,1)*100.0 ! in Pa       
                IF ( TERP_ORGC(I,J) > 0.d0 ) 
      &            CALL SOACOND( OC2OM * TERP_ORGC(I,J), I, J, 1,
-     &               BOXVOL, TEMPTMS, PRES )
+     &               BOXVOL, TEMPTMS, PRES, State_Chm )
             ENDDO
             ENDDO
             IF ( LPRT ) 
@@ -4938,13 +4951,17 @@ c
       ENDIF ! size-resolved carb aerosol tracers ID > 0
 #endif
 
+      ! Free pointer
+      NULLIFY( STT )
+
       ! Return to calling program
       END SUBROUTINE EMISSCARBON
 
 !------------------------------------------------------------------------------
 
 #if   defined( TOMAS )
-      SUBROUTINE EMITSGC( EMISMASS, CTYPE, State_Met )
+      SUBROUTINE EMITSGC( EMISMASS,  CTYPE, 
+     &                    Input_Opt, State_Met, State_Chm )
 !
 !******************************************************************************
 !  Subroutine EMITSGC calculates sub-grid coagulation for the size distribution
@@ -4959,10 +4976,11 @@ c
       USE DIAG_MOD,           ONLY : AD59_ECIL,   AD59_ECOB
       USE DIAG_MOD,           ONLY : AD59_OCIL,   AD59_OCOB
       USE DIAG_MOD,           ONLY : AD59_NUMB
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL,  GET_PBL_MAX_L
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
-      USE TRACER_MOD,         ONLY : STT
       USE TRACERID_MOD,       ONLY : IDTECIL1, IDTECOB1
       USE TRACERID_MOD,       ONLY : IDTOCIL1, IDTOCOB1, IDTNK1
       USE TRACERID_MOD,       ONLY : IDTNH4,   IDTAW1
@@ -4978,10 +4996,14 @@ c
       USE CMN_DIAG_MOD             ! ND59
 
       ! Arguments
-      REAL*8,         INTENT(IN)  :: EMISMASS(IIPAR, JJPAR, IBINS)
-      INTEGER,        INTENT(IN)  :: CTYPE       ! 1 = EC and 2 = OC
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-
+      REAL*8,         INTENT(IN)    :: EMISMASS(IIPAR, JJPAR, IBINS)
+      INTEGER,        INTENT(IN)    :: CTYPE       ! 1 = EC and 2 = OC
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !LOCAL VARIABLES:
+!
       ! Local variables
       REAL*8                      :: NDISTINIT(IBINS) 
       REAL*8                      :: NDISTFINAL(IBINS) 
@@ -5004,15 +5026,24 @@ c
       LOGICAL                     :: dbg = .false.
       DATA ii, jj, ll /53, 29, 8 /
 
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER   :: STT(:,:,:,:)
+
       !=================================================================
       ! EMITSGC begins here!
       !=================================================================
 
-      IF ( LNLPBL ) THEN 
+      IF ( Input_Opt%LNLPBL ) THEN 
          print *,'Currently subroutine EMITHIGH2 does not support ',
      &        'the new non-local PBL scheme!'
          stop
       ENDIF
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       ! Maximum extent of PBL [model levels]
       PBL_MAX = GET_PBL_MAX_L()
@@ -5216,6 +5247,9 @@ ccc
  
       ENDDO ! I loop
       ENDDO ! J loop
+
+      ! Free pointer
+      NULLIFY( STT )
 
       ! Return to calling subroutine
       END SUBROUTINE EMITSGC
@@ -6814,8 +6848,9 @@ ccc
 
 !------------------------------------------------------------------------------
 
-#if   defined( TOMAS )
-      SUBROUTINE EMITHIGH2( BCSRC, OCSRC, NUMBSRC )
+#if defined( TOMAS )
+      SUBROUTINE EMITHIGH2( BCSRC, OCSRC, NUMBSRC, 
+     &                      Input_Opt, State_Chm )
 !
 !******************************************************************************
 !  Subroutine EMITHIGH2 mixes tracer completely from the surface to the PBL
@@ -6837,27 +6872,38 @@ ccc
 !******************************************************************************
 !
       ! References to F90 modules
-      USE PBL_MIX_MOD,  ONLY : GET_FRAC_OF_PBL,  GET_PBL_MAX_L
-      USE TRACER_MOD,   ONLY : STT
-      USE TRACERID_MOD, ONLY : IDTECIL1, IDTECOB1
-      USE TRACERID_MOD, ONLY : IDTOCIL1, IDTOCOB1, IDTNK1
-      USE TOMAS_MOD,    ONLY : IBINS
-      USE VDIFF_PRE_MOD, ONLY : EMIS_SAVE 
-
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_SIZE_MOD
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL,  GET_PBL_MAX_L
+      USE TRACERID_MOD,       ONLY : IDTECIL1, IDTECOB1
+      USE TRACERID_MOD,       ONLY : IDTOCIL1, IDTOCOB1, IDTNK1
+      USE TOMAS_MOD,          ONLY : IBINS
+      USE VDIFF_PRE_MOD,      ONLY : EMIS_SAVE 
 
       ! Arguments
-      REAL*8, INTENT(IN) :: BCSRC(IIPAR,JJPAR,IBINS, 2)
-      REAL*8, INTENT(IN) :: OCSRC(IIPAR,JJPAR,IBINS, 2)
-      REAL*8, INTENT(IN) :: NUMBSRC(IIPAR,JJPAR,IBINS)
+      REAL*8,         INTENT(IN)    :: BCSRC(IIPAR,JJPAR,IBINS, 2)
+      REAL*8,         INTENT(IN)    :: OCSRC(IIPAR,JJPAR,IBINS, 2)
+      REAL*8,         INTENT(IN)    :: NUMBSRC(IIPAR,JJPAR,IBINS)
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 
       ! Local variables
-      INTEGER            :: I,       J,       L,       PBL_MAX, K
-      REAL*8             :: F_OF_PBL
+      INTEGER                       :: I, J, L, PBL_MAX, K
+      REAL*8                        :: F_OF_PBL
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8,         POINTER       :: STT(:,:,:,:)
 
       !=================================================================
       ! EMITHIGH2 begins here!
       !=================================================================
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       ! Maximum extent of PBL [model levels]
       PBL_MAX = GET_PBL_MAX_L()
@@ -6869,13 +6915,11 @@ ccc
 !     This subroutine may look like it has the structure for parallel 
 !     processing compaibility (the OMP flag), but it's not fully compatible
 !     
-      IF ( LNLPBL ) THEN 
+      IF ( Input_Opt%LNLPBL ) THEN 
          print *,'Currently subroutine EMITHIGH2 does not support ',
      &        'the new non-local PBL scheme!'
          stop
       ENDIF
-
-
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -6913,6 +6957,9 @@ ccc
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+      ! Free pointer
+      NULLIFY( STT )
 
       ! Return to calling program
       END SUBROUTINE EMITHIGH2

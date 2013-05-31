@@ -5733,7 +5733,12 @@
             !----------------------------------------------------
 
 #if   defined( TOMAS )
-            ! Manually extend the set of dry dep species.  (win, 7/14/09)
+            !------------------------------------------------------
+            ! FOR TOMAS MICROPHYSICS
+            !
+            ! Manually extend the set of dry dep species.  
+            ! (win, 7/14/09)
+            !------------------------------------------------------
             DO N = 1, NUMDEP + (ICOMP-IDIAG)* IBINS
                
              IF ( N <= NUMDEP ) THEN 
@@ -5744,8 +5749,8 @@
                NAME (N,44)  = TRIM( DEPNAME(N) ) // 'df'        
                FNAME(N,44)  = TRIM( DEPNAME(N) ) // ' drydep flux'
                UNIT (N,44)  = 'molec/cm2/s'
-               MWT  (N,44)  = TRACER_MW_KG(T) 
-               MOLC (N,44)  = INT( TRACER_COEFF(T,1) )
+               MWT  (N,44)  = Input_Opt%TRACER_MW_KG(T) 
+               MOLC (N,44)  = INT( Input_Opt%TRACER_COEFF(T,1) )
                SCALE(N,44)  = 1.0e0
                !To allow several compounds in a same tracer to deposit
                !(fp, 06/09)
@@ -5757,15 +5762,15 @@
                NTRAC(44)    = NTRAC(44) + 1
 
                ! For the Rn simulation, unit is kg/s (bmy, 2/22/08)
-               IF ( ITS_A_RnPbBe_SIM() ) UNIT(N,44) = 'kg/s'
+               IF ( Input_Opt%ITS_A_RnPbBe_SIM ) UNIT(N,44) = 'kg/s'
 
                ! Drydep velocity (deposited species only)
                NN           = N + NUMDEP + (ICOMP-IDIAG)*IBINS
                NAME (NN,44) = TRIM( DEPNAME(N) ) // 'dv'        
                FNAME(NN,44) = TRIM( DEPNAME(N) ) // ' drydep velocity'
                UNIT (NN,44) = 'cm/s'
-               MWT  (NN,44) = TRACER_MW_KG(T) 
-               MOLC (NN,44) = INT( TRACER_COEFF(T,1) )
+               MWT  (NN,44) = Input_Opt%TRACER_MW_KG(T) 
+               MOLC (NN,44) = INT( Input_Opt%TRACER_COEFF(T,1) )
                SCALE(NN,44) = 1.0e0
                !To allow several compounds in a same tracer to deposit
                !(fp, 06/09)
@@ -5779,11 +5784,12 @@
                ! GEOS-CHEM tracer # for aerosol mass
                T = IDTNK1 + IBINS - 1 + ( N - NUMDEP )
                ! Drydep flux (extended deposited species)
-               NAME (N,44)  = TRIM( TRACER_NAME(T) ) // 'df'        
-               FNAME(N,44)  = TRIM( TRACER_NAME(T) ) // ' drydep flux'
+               NAME (N,44)  = TRIM( Input_Opt%TRACER_NAME(T) ) // 'df'        
+               FNAME(N,44)  = TRIM( Input_Opt%TRACER_NAME(T) ) // 
+     &                        ' drydep flux'
                UNIT (N,44)  = 'molec/cm2/s'
-               MWT  (N,44)  = TRACER_MW_KG(T) 
-               MOLC (N,44)  = INT( TRACER_COEFF(T,1) )
+               MWT  (N,44)  = Input_Opt%TRACER_MW_KG(T) 
+               MOLC (N,44)  = INT( Input_Opt%TRACER_COEFF(T,1) )
                SCALE(N,44)  = 1.0e0
                !To allow several compounds in a same tracer to deposit
                INDEX(N,44)  = T + ( SPACING * 36 )

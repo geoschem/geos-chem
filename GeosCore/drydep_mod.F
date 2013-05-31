@@ -401,6 +401,7 @@
 !  12 Dec 2012 - R. Yantosca - Now pass State_Met to DEPVEL
 !  26 Feb 2013 - R. Yantosca - Now use Input_Opt fields where possible.  This
 !                              facilitates connection to the GEOS-5 GCM.   
+!  31 May 2013 - R. Yantosca - Now pass Input_Opt & State_Chm to DEPVEL
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -465,10 +466,12 @@
      &             RHB,       PRESSU, W10,     SUNCOS_MID             )
 
       ! Call DEPVEL to compute dry deposition velocities [m/s]
-      CALL DEPVEL( State_Met, MAXIJ,  RADIAT,  TC0,       SUNCOS_MID, 
-     &             F0,        HSTAR,  XMW,     AIROSOL,   USTAR,      
-     &             CZ1,       OBK,    CFRAC,   ZH,        LSNOW,      
-     &             DVEL,      AZO,    RHB,     PRESSU,    W10         )
+      CALL DEPVEL( Input_Opt, State_Met, State_Chm,   MAXIJ,  
+     &             RADIAT,    TC0,       SUNCOS_MID,  F0,        
+     &             HSTAR,     XMW,       AIROSOL,     USTAR,      
+     &             CZ1,       OBK,       CFRAC,       ZH,        
+     &             LSNOW,     DVEL,      AZO,         RHB,     
+     &             PRESSU,    W10                                     )
 
       !=================================================================
       ! Compute dry deposition frequencies; archive diagnostics
@@ -1439,17 +1442,22 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DEPVEL( State_Met, NPTS,   RADIAT, TEMP,    SUNCOS, 
-     &                   F0,        HSTAR,  XMW,    AIROSOL, USTAR,  
-     &                   CZ1,       OBK,    CFRAC,  ZH,      LSNOW,  
-     &                   DVEL,      ZO,     RHB,    PRESSU,  W10     )
+      SUBROUTINE DEPVEL( Input_Opt, State_Met, State_Chm, NPTS,   
+     &                   RADIAT,    TEMP,      SUNCOS,    F0,        
+     &                   HSTAR,     XMW,       AIROSOL,   USTAR,  
+     &                   CZ1,       OBK,       CFRAC,     ZH,      
+     &                   LSNOW,     DVEL,      ZO,        RHB,    
+     &                   PRESSU,    W10                          )
 !
 ! !USES:
 !
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
+      TYPE(OptInput), INTENT(IN) :: Input_Opt ! Input Options object
       TYPE(MetState), INTENT(IN) :: State_Met ! Meteorology state object
 
       INTEGER, INTENT(IN) :: NPTS             ! # of grid boxes = IIPAR*JJPAR
@@ -1469,6 +1477,10 @@
       REAL*8,  INTENT(IN) :: RHB    (MAXIJ )  ! Relative humidity [%]
       REAL*8,  INTENT(IN) :: PRESSU (MAXIJ )  ! Surface pressure [hPa]
       REAL*8,  INTENT(IN) :: W10    (MAXIJ )  ! Wind speed @ 10m altitude [m/s]
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 ! 
@@ -1602,6 +1614,7 @@
 !                              running with the traditional driver main.F
 !  12 Dec 2012 - R. Yantosca - Now get ILAND, IUSE, IREG from State_Met
 !  13 Dec 2012 - R. Yantosca - Now get XLAI from State_Met
+!  31 May 2013 - R. Yantosca - Now pass State_Chm, for TOMAS
 !
 !***********************************************************************
 !   Changes from Version 3.2 to Version 3.3:                         ***
@@ -1703,12 +1716,18 @@
 !*                                 
 *                                 
 #if   defined( TOMAS )
+      !=================================================================
+      ! FOR TOMAS MICROPHYSICS:
+      !
       ! Calculate 30-bin aerosol size and diameter at each grid box
       ! This is done differently than 2-bin seasalt and 4-bin dust
       ! because at each box the aerosol size&density is different
       ! depending on the internally-mixed composition (win, 7/15/09)
-      if (IDTNK1 > 0 )
-     &   CALL AERO_DIADEN( SIZ_DIA, SIZ_DEN, 1, State_Met )
+      !=================================================================
+      IF ( IDTNK1 > 0 ) THEN
+         CALL AERO_DIADEN( SIZ_DIA,   SIZ_DEN,   1, 
+     &                     Input_Opt, State_Met, State_Chm )
+      ENDIF
 #endif
 
       ! Add parallel DO-loop (bmy, 2/22/05)

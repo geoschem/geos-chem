@@ -242,7 +242,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SETTLEDUST( am_I_Root, Input_Opt, State_Met, RC )
+      SUBROUTINE SETTLEDUST( am_I_Root, Input_Opt, 
+     &                       State_Met, State_Chm, RC )
 !
 ! !USES:
 ! 
@@ -251,11 +252,11 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TOMAS_MOD,          ONLY : IBINS, Xk, SRTDUST
-      USE TRACER_MOD,         ONLY : STT, XNUMOL
       USE TRACERID_MOD,       ONLY : IDTDUST1, IDTNK1
 
       USE CMN_SIZE_MOD             ! Size parameters
@@ -263,18 +264,23 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY:
 !  17 Jul 2009 - W. Trivitayanurak - Initial version
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  13 Dec 2012 - M. Payer    - Add am_I_Root, Input_Opt, RC as arguments
+!  31 May 2013 - R. Yantosca - Now pass State_Chm via the arg list
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -293,33 +299,29 @@
       integer       :: ii, jj , ix, jx, bb
       data ii,jj, ix, jx, bb /37, 24, 58, 34, 30 /
 
+      ! For values from Input_Opt
+      INTEGER         :: N_TRACERS
+      REAL*8          :: XNUMOL(Input_Opt%N_TRACERS)
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER   :: STT(:,:,:,:)
+
       !=================================================================
       ! SETTLEDUST begins here!
       !=================================================================
 
       ! Assume success
-      RC    = GIGC_SUCCESS
+      RC        = GIGC_SUCCESS
 
-      ! Execute on first call only
-      IF ( FIRST ) THEN
+      ! Copy values from Input_Opt
+      N_TRACERS = Input_Opt%N_TRACERS
+      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
 
-         ! Allocate arrays (if necessary)
-         CALL INIT_DUST( am_I_Root, Input_Opt, RC )
-         ! Reset first-time flag
-         FIRST = .FALSE.
-
-         ! Match dry depositing tracer in drydep list with NK1-NK30
-         DO BIN = 1, IBINS
-         DO N = 1, NUMDEP
-            IF ( NTRAIND(N) == ( IDTNK1-1+BIN ) )THEN
-               IDDEP(BIN) = N
-               GOTO 100
-            ENDIF            
-         ENDDO
- 100     CONTINUE
-         ENDDO
-
-      ENDIF
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT       => State_Chm%Tracers
 
       !=================================================================
       ! Do dust settling & deposition
@@ -390,7 +392,8 @@
          ! ND44: Dry deposition diagnostic [#/cm2/s]
          !========================================================
             IF ( ND44 > 0 ) THEN
-               AD44(I,J,IDDEP(BIN),1) = AD44(I,J,IDDEP(BIN),1) + FLUXN
+               AD44(I,J,Input_Opt%IDDEP(BIN),1) = 
+     &         AD44(I,J,Input_Opt%IDDEP(BIN),1) + FLUXN
                AD44(I,J,NN,1) = AD44(I,J,NN,1) + FLUXD
             ENDIF
 
@@ -398,11 +401,12 @@
       ENDDO
       ENDDO
 
+      ! Free pointer memory
+      NULLIFY( STT )
+
       END SUBROUTINE SETTLEDUST
 !EOC
 #endif
-
-
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -917,7 +921,7 @@
          ELSE
             ! Use Paul Ginoux's dust source function
             CALL SRC_DUST_GINOUX( STT(:,:,:,IDTDST1:IDTDST4),
-     &                            State_Met )
+     &                            State_Met, Input_Opt )
 
             !### Debug
             IF ( LPRT ) 
@@ -944,7 +948,7 @@
          ELSE
             ! Use Paul Ginoux's dust source function
             CALL SRC_DUST_GINOUX( STT(:,:,:,IDTDUST1:IDTDUST1-1+IBINS),
-     &                            State_Met )
+     &                            State_Met, Input_Opt )
             !### Debug
             IF ( LPRT ) 
      &           CALL DEBUG_MSG( '### EMISSDUST: a SRC_DUST_GINOUX')
@@ -2189,14 +2193,14 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      !USE DRYDEP_MOD,         ONLY : DEPNAME, NUMDEP
+      USE DRYDEP_MOD,         ONLY : NTRAIND
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
 #if   defined( TOMAS )
-      USE ERROR_MOD,          ONLY : ERROR_STOP !(win, 7/17/09)
-      ! TOMAS bin boundary mass/particle [kg]  !(win, 7/17/09)
+      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE TOMAS_MOD,          ONLY : IBINS, Xk
+      USE TRACERID_MOD,       ONLY : IDTNK1
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -2226,8 +2230,9 @@
       LOGICAL            :: LDEAD
       INTEGER            :: AS, N
 #if   defined( TOMAS )
-      INTEGER            :: I                  !(win, 7/17/09) 
-      INTEGER            :: ACTMODEBINS        !(scf, 2/27/13)
+      INTEGER            :: I
+      INTEGER            :: BIN
+      INTEGER            :: ACTMODEBINS
       REAL*8,  PARAMETER :: PI = 3.14159265d0  !(win, 7/17/09)
 #endif
 
@@ -2295,6 +2300,8 @@
             Input_Opt%DUSTDEN(I)  = 2650.d0
          ENDDO
 
+      ENDIF
+
       !--------------------------------
       ! Set up dust effective radius
       !--------------------------------
@@ -2308,8 +2315,9 @@
 
          ! TOMAS dust Reff (win, 7/17/09)
          DO I = 1, IBINS
-            Input_Opt%DUSTREFF(I) = 0.5d0 * ( SQRT(Xk(I) * Xk(I+1)) /
-     &                              DUSTDEN(I) * 6.d0/PI  )**( 0.333d0 )
+            Input_Opt%DUSTREFF(I) = 
+     &           0.5d0 * ( SQRT(Xk(I) * Xk(I+1)) /
+     &           Input_Opt%DUSTDEN(I) * 6.d0/PI  )**( 0.333d0 )
          ENDDO 
         
       ENDIF
@@ -2370,6 +2378,19 @@
             FRAC_S( ACTMODEBINS + 30 )  = 9.85d-02
 
          ENDIF
+
+         ! Match dry depositing tracer in drydep list with NK1-NK30
+         DO BIN = 1, IBINS
+         DO N   = 1, Input_Opt%NUMDEP
+            IF ( NTRAIND(N) == ( IDTNK1-1+BIN ) )THEN
+               Input_Opt%IDDEP(BIN) = N
+               GOTO 100
+            ENDIF            
+         ENDDO
+ 100     CONTINUE
+         ENDDO
+
+      ENDIF
 
 #else
 
