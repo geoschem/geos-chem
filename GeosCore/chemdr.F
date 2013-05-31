@@ -237,6 +237,7 @@
 !                              of removal of NOx-Ox partitioning
 !  26 Feb 2013 - M. Long     - Now pass Input_Opt to INPHOT as an argument
 !  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%XNUMOL(1:N_TRACERS)
+!  31 May 2013 - R. Yantosca - Now pass State_Met to DO_DIAG_PL, for TOMAS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -788,7 +789,8 @@
       ! This is current practice in the std GEOS-Chem. (bmy, 10/24/12)
       !-----------------------------------------------------------------
       IF ( Input_Opt%LFAMILY ) THEN
-         CALL DO_DIAG_PL( am_I_Root, Input_Opt, State_Chm, RC )
+         CALL DO_DIAG_PL
+     &        ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
          !### Debug
          IF ( prtDebug ) THEN

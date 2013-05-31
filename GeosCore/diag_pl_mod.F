@@ -593,7 +593,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_DIAG_PL( am_I_Root, Input_Opt, State_Chm, RC ) 
+      SUBROUTINE DO_DIAG_PL( am_I_Root, Input_Opt,
+     &                       State_Met, State_Chm, RC )
 !
 ! !USES:
 !
@@ -604,11 +605,13 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -674,16 +677,13 @@
             FAM_PL(I,J,L,N)      = CSPEC(JLOOP,IFAM(N)) / CHEMINTV
 
 #if   defined( TOMAS )
+            !-------------------------------------------------------------
+            ! FOR TOMAS MICROPHYSICS:
+            !
             ! Overwrite FAM_PL with a unit [kg S] for tracing 
             ! gas-phase sulfur species production (SO2, SO4, MSA)
             ! (win, 8/4/09)
-!====scf/jrp 2/27/13 comment out section===
-!            IF ( FAM_NAME(N) == 'PSO21' .or. FAM_NAME(N) == 'PSO22' .or.
-!     &           FAM_NAME(N) == 'PSO4'  .or. FAM_NAME(N) == 'PMSA' ) 
-!     &           FAM_PL(I,J,L,N)  = CSPEC(JLOOP,IFAM(N)) / 6.022d23  *
-!     &                              32.d-3 * State_Met%AIRVOL(I,J,L) *
-!     &                              1d6
-!==========================================
+            !-------------------------------------------------------------
 
             ! Calculate H2SO4 production rate [kg s-1] in each time step 
             ! (win, 8/4/09)
@@ -691,11 +691,6 @@
      &           H2SO4RATE(I,J,L) = CSPEC(JLOOP,IFAM(N)) / 6.022d23  *
      &                              98.d-3 * State_Met%AIRVOL(I,J,L) *
      &                              1d6   / CHEMINTV
-
-            !Debug print (win, 8/4/09)
-c            if (fam_name(n) =='PSO4') 
-c     &          write(888,88)i,j,l,H2so4rate(i,j,l)
-c 88            format (3I3, 'H2SO4rate (kg/s)',e13.5)
 #endif
 
             ! Zero each "fake" ND65 prod/loss family for next iteration
