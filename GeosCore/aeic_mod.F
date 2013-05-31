@@ -447,6 +447,7 @@
       USE CHEMGRID_MOD, ONLY : GET_CHEMGRID_LEVEL
       USE TIME_MOD,     ONLY : GET_MONTH,GET_TS_EMIS
       USE DAO_MOD,      ONLY : T
+      USE LOGICAL_MOD,  ONLY : LGMISTRAT
 
       USE CMN_SIZE_MOD  ! Size parameters
       USE CMN_DIAG_MOD  ! Diagnostic switches
@@ -504,6 +505,13 @@
          END IF
          WRITE(6,*) 'Offset (km)        : ',OPTIONS_AEIC%ALT_OFFSET
          WRITE(6,*) 'Cutoff (km)        : ',OPTIONS_AEIC%ALT_FLR
+#if defined( GMISTRAT )
+         IF ((LGMISTRAT).and.(IDTH2O.ne.0)) THEN
+            WRITE(6,*) ' - H2O EI          : ',1260.d0
+         ELSE
+            WRITE(6,*) 'Aircraft H2O emissions ignored.'
+         ENDIF
+#endif
 
          FBSUM = 0d0
 
@@ -524,15 +532,9 @@
      &       SUM(AEIC_EMIT(:,:,:,BC_INDEX)), ' kg/s'
          WRITE(6,*) 'Aircraft OC/PMV  : ',
      &       SUM(AEIC_EMIT(:,:,:,OC_INDEX)), ' kg/s'
+         WRITE(6,*) 'Aircraft HC      : ',
+     &       SUM(AEIC_EMIT(:,:,:,HC_INDEX)), ' kg/s'
 
-         ! Debug
-         WRITE(6,*) 'Layer 10 fuelburn: ',
-     &       SUM(AEIC_EMIT(:,:,10,FB_INDEX)), 'kg/s'
-         WRITE(6,*) 'Lat   10 fuelburn: ',
-     &       SUM(AEIC_EMIT(:,10,:,FB_INDEX)), 'kg/s'
-         WRITE(6,*) 'Lon   10 fuelburn: ',
-     &       SUM(AEIC_EMIT(10,:,:,FB_INDEX)), 'kg/s'
- 
          IF (LAST_MONTH .eq. 1) THEN
             FBSUM = 0d0
          ENDIF
@@ -546,9 +548,9 @@
       I0 = GET_XOFFSET()
       J0 = GET_YOFFSET()
 
-      ! Debug
-      WRITE(6,*) 'PRESO4:  ', SUM(STT(:,:,:,IDTSO4))
-      WRITE(6,*) 'PRENOx:  ', SUM(STT(:,:,:,IDTNOx))
+!      ! Debug
+!      WRITE(6,*) 'PRESO4:  ', SUM(STT(:,:,:,IDTSO4))
+!      WRITE(6,*) 'PRENOx:  ', SUM(STT(:,:,:,IDTNOx))
 
       ! Loop over surface grid boxes
       DO J = 1, JJPAR
@@ -576,6 +578,12 @@
      &           (AEIC_EMIT(I,J,L,OC_INDEX)*DTSRCE)
              STT(I,J,L,IDTBCPI) = STT(I,J,L,IDTBCPI) +
      &           (AEIC_EMIT(I,J,L,BC_INDEX)*DTSRCE)
+#if defined( GMISTRAT )
+             IF ((LGMISTRAT).and.(IDTH2O.ne.0)) THEN
+                STT(I,J,L,IDTH2O) = STT(I,J,L,IDTH2O) +
+     &              (1.26d0*AEIC_EMIT(I,J,L,FB_INDEX)*DTSRCE)
+             ENDIF
+#endif
              IF (L.le.MAXLEV) THEN
                 ! Only emit HC within chemgrid to avoid buildup
                 TMPMULT = THC2TOG*DTSRCE*AEIC_EMIT(I,J,L,HC_INDEX)
@@ -602,11 +610,11 @@
       ENDDO     ! I 
       ENDDO     ! J
 
-      ! Debug
-      WRITE(6,*) 'POSTSO4: ', SUM(STT(:,:,:,IDTSO4))
-      WRITE(6,*) 'POSTNOx: ', SUM(STT(:,:,:,IDTNOx))
-      FBSUM = FBSUM + (DTSRCE*SUM(AEIC_EMIT(:,:,:,FB_INDEX)))
-      WRITE(6,*) 'Fuel burn in current year: ', FBSUM*1.d-9, 'Tg'
+!      ! Debug
+!      WRITE(6,*) 'POSTSO4: ', SUM(STT(:,:,:,IDTSO4))
+!      WRITE(6,*) 'POSTNOx: ', SUM(STT(:,:,:,IDTNOx))
+!      FBSUM = FBSUM + (DTSRCE*SUM(AEIC_EMIT(:,:,:,FB_INDEX)))
+!      WRITE(6,*) 'Fuel burn in current year: ', FBSUM*1.d-9, 'Tg'
 
       ! Return to calling program
       END SUBROUTINE EMIT_AEIC

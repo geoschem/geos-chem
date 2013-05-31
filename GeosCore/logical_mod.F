@@ -173,6 +173,7 @@
       LOGICAL :: LBREMIS         ! Bromine emissions?
       LOGICAL :: LOCSEMIS        ! OCS emissions?
       LOGICAL :: LBASICEMIS      ! Use fixed surface MR module?
+      LOGICAL :: LSETH2O         ! Initialize stratospheric H2O based on met.?
       LOGICAL :: LSETCH4         ! Initialize CH4 to generic conditions?
       LOGICAL :: LSETN2O         ! Initialize N2O to generic conditions?
       LOGICAL :: LSETCFC         ! Initialize CFCs to generic conditions?

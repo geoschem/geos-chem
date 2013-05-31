@@ -1643,7 +1643,7 @@
       USE CMN_SIZE_MOD      ! Size parameters
       USE CMN_O3_MOD        ! FSCALYR
       USE TRACERID_MOD,  ONLY : IDTCH4, IDTOCS, IDTCFCX
-      USE TRACERID_MOD,  ONLY : IDTCl, IDTN2O, IDTBr2
+      USE TRACERID_MOD,  ONLY : IDTCl, IDTN2O, IDTBr2, IDTH2O
       USE GMISTRAT_MOD,  ONLY : TRAC_FILE_ROOT, MONTREAL_FILE_ROOT
 !
 ! !INPUT PARAMETERS:
@@ -2063,48 +2063,52 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:82' )
       READ( SUBSTRS(1:N), * ) LN2OEMIS
 
-      ! Initialize CH4 to GEOS-Chem baseline?
+      ! Initialize strat H2O to GEOS-Chem baseline?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:83' )
+      READ( SUBSTRS(1:N), * ) LSETH2O
+
+      ! Initialize CH4 to GEOS-Chem baseline?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:84' )
       READ( SUBSTRS(1:N), * ) LSETCH4
 
       ! Initialize OCS to 2D baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:84' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:85' )
       READ( SUBSTRS(1:N), * ) LSETOCS
 
       ! Initialize CFCs to 2D baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:85' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:86' )
       READ( SUBSTRS(1:N), * ) LSETCFC
 
       ! Initialize chlorine species to 2D baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:86' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:87' )
       READ( SUBSTRS(1:N), * ) LSETCL
 
       ! Initialize bromine species to 2D baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:87' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:88' )
       READ( SUBSTRS(1:N), * ) LSETBR
 
       ! Initialize stratospheric bromine species to 2D baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:88' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:89' )
       READ( SUBSTRS(1:N), * ) LSETBRSTRAT
 
       ! Initialize N2O to GEOS-Chem baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:89' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:90' )
       READ( SUBSTRS(1:N), * ) LSETN2O
 
       ! Initialize stratospheric sulfates to GEOS-Chem baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:90' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:91' )
       READ( SUBSTRS(1:N), * ) LSETH2SO4
 
       ! Directory containing 2D data
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:91' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:92' )
       READ( SUBSTRS(1:N), '(a)' ) TRAC_FILE_ROOT 
 
       ! Directory containing WHO data
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:92' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:93' )
       READ( SUBSTRS(1:N), '(a)' ) MONTREAL_FILE_ROOT 
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:93' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:94' )
 
       !=================================================================
       ! Error check logical flags
@@ -2176,6 +2180,7 @@
          LAEIC          = .FALSE.
          LSOILNOX       = .FALSE.
          LFERTILIZERNOX = .FALSE. 
+         LSETH2O        = .FALSE.
          LSETCH4        = .FALSE.
          LCH4CHEM       = .FALSE.
          LSETOCS        = .FALSE.
@@ -2429,6 +2434,21 @@
       ENDIF
 
       !=================================================================
+      ! Error check stratospheric H2O
+      !=================================================================
+#if defined( GMISTRAT )
+      IF ( LSETH2O ) THEN
+         IF (IDTH2O==0) THEN
+            WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
+     &            // 'H2O is set but H2O tracer is undefined.'
+            LSETH2O = .FALSE.
+         ENDIF
+      ENDIF
+#else
+      LSETH2O = .FALSE.
+#endif
+
+      !=================================================================
       ! Error check halogen emissions
       !=================================================================
       IF ( LCLEMIS .or. LSETCL) THEN
@@ -2587,6 +2607,7 @@
         WRITE( 6, 100 ) '      --> bromine species?  : ', LBREMIS
         WRITE( 6, 100 ) '      --> N2O?              : ', LN2OEMIS
         WRITE( 6, 100 ) 'Set initial global MRs for  : '
+        WRITE( 6, 100 ) '      --> strat. H2O?       : ', LSETH2O
         WRITE( 6, 100 ) '      --> methane?          : ', LSETCH4
         WRITE( 6, 100 ) '      --> OCS?              : ', LSETOCS
         WRITE( 6, 100 ) '      --> CFCs/HCFCs/halon? : ', LSETCFC
@@ -7169,6 +7190,7 @@
 
       !Full strat-chem (SDE 03/26/13)
       LGMISTRAT      = .FALSE.
+      LSETH2O        = .FALSE.
       LSETCFC        = .FALSE.
       LSETCL         = .FALSE.
       LSETBR         = .FALSE.

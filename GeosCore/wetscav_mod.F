@@ -7221,6 +7221,9 @@
       ! Also check to see if NSOL is larger than the maximum
       ! number of soluble tracers for a particular simulation
       IF ( NSOL > GET_WETDEP_NMAX() ) THEN
+         !-----SDE DEBUG
+         WRITE(6,'(a,1x,2I5)') 'NSOL, NMAX: ', NSOL, GET_WETDEP_NMAX()
+         !-----SDE DEBUG
          CALL ERROR_STOP( 'NSOL > NMAX', 'WETDEPID (wetscav_mod.f)')
       ENDIF
 
@@ -7317,8 +7320,8 @@
          IF ( LSSALT )   NMAX = NMAX + 2        ! plus 2 seasalts
 
          ! jpp, 4/27/09:( 1) add space for 3 bromine species to
-         !                   be wet-deposited: HBr, HOBr, and Br2.
-         NMAX = NMAX + 3
+         !                   be wet-deposited: HBr, HOBr, Br2 and BrNO3
+         NMAX = NMAX + 4
          ! SDE 04/17/13: Also HCl
          IF ( LGMISTRAT ) NMAX = NMAX + 1
 

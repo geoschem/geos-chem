@@ -38,6 +38,7 @@
 ! !PUBLIC MEMBER FUNCTIONS:
 !
       PUBLIC  :: SET_INITIAL_MIXRATIOS
+      PUBLIC  :: SET_H2O_TRAC
       PUBLIC  :: EMISS_BASIC
       PUBLIC  :: SETTLE_STRAT_AER
       PUBLIC  :: SO4_PHOTFRAC
@@ -1059,7 +1060,7 @@
       USE DAO_MOD,       ONLY : T, BXHEIGHT, AD
       USE PRESSURE_MOD,  ONLY : GET_PCENTER, GET_PEDGE
       USE TRACER_MOD,    ONLY : STT, XNUMOL, TRACER_MW_G
-      USE TRACERID_MOD,  ONLY : IDTNIT,IDTBCPI
+      USE TRACERID_MOD,  ONLY : IDTNIT,IDTBCPI,IDTH2O
       USE TIME_MOD,      ONLY : GET_ELAPSED_SEC, GET_TS_CHEM
       USE COMODE_MOD,    ONLY : JLOP,WERADIUS,ERADIUS
       USE LOGICAL_MOD,   ONLY : LGMISTRAT,LGRAVSTRAT
@@ -1128,7 +1129,8 @@
       REAL*8                 :: XNAT_ABOVE, XNAT_0, XNAT_BELOW
       REAL*8                 :: XNO3_ABOVE, XNO3_0, XNO3_BELOW
       REAL*8                 :: XICE_ABOVE, XICE_0, XICE_BELOW
-      REAL*8                 :: SEDPSC, SEDNAT, SEDNO3, SEDICE, SEDQUANT
+      REAL*8                 :: SEDPSC, SEDNAT, SEDICE, SEDQUANT
+      REAL*8                 :: SEDH2O, SEDNO3
       REAL*8                 :: BELOWGRAD, ABOVEGRAD
       INTEGER                :: LOCALPROFILE, NUMSEDSTEPS, STARTPT, ISED
 
@@ -1158,7 +1160,7 @@
 !$OMP+PRIVATE( LOCALPROFILE, NUMSEDSTEPS, TEMPREAL, STARTPT, ISED )
 !$OMP+PRIVATE( PSED0, P_0, P_ABOVE, ABOVEGRAD, PSEDABOVE )
 !$OMP+PRIVATE( BELOWGRAD, INVAIR_0, INVAIR_ABOVE )
-!$OMP+PRIVATE( SEDNO3, SEDNAT, SEDICE, SEDPSC, SEDQUANT )
+!$OMP+PRIVATE( SEDNO3, SEDNAT, SEDICE, SEDPSC, SEDH2O, SEDQUANT )
 !$OMP+PRIVATE( XNO3_ABOVE, XNAT_ABOVE, XICE_ABOVE, XPSC_ABOVE )
 !$OMP+PRIVATE( XNO3_0, XNAT_0, XICE_0, XPSC_0, VNAT )
 !$OMP+PRIVATE( XNO3_BELOW, XNAT_BELOW, XICE_BELOW, XPSC_BELOW )
@@ -1298,7 +1300,7 @@
 
          ! Only want to sediment fraction of species currently
          ! in the aerosol
-         DO K = 1,6
+         DO K = 1,7
             ! Only process transported tracers
             IDTCURRENT = AERFRACIND(K)
             IF (IDTCURRENT.ne.0) THEN
@@ -1335,7 +1337,7 @@
             DELZ  = BXHEIGHT(I,J,L)
             DELZ1 = BXHEIGHT(I,J,L+1)
 
-            DO K=1,6
+            DO K=1,7
                IDTCURRENT = AERFRACIND(K)
                IF (IDTCURRENT.ne.0) THEN
                   ! Total upper gridbox mass
@@ -1549,6 +1551,11 @@
                STT(I,J,L,IDTNIT) = STT(I,J,L,IDTNIT) + SEDNO3
                STT(I,J,L+1,IDTNIT)=STT(I,J,L+1,IDTNIT)-SEDNO3
 
+               ! Settle the ice out too
+               SEDH2O = MIN(SEDICE,STT(I,J,L+1,IDTH2O))
+               STT(I,J,L,IDTH2O) = STT(I,J,L,IDTH2O) + SEDH2O
+               STT(I,J,L+1,IDTH2O)=STT(I,J,L+1,IDTH2O)-SEDH2O
+
                ! Now correct aerosol totals
                SEDPSC = SEDNAT + SEDICE
                SEDPSC = MIN(SEDPSC,KG_AER(I,J,L+1,I_SPA))
@@ -1742,13 +1749,13 @@
       USE ERROR_MOD,        ONLY : DEBUG_MSG
       USE GRID_MOD,         ONLY : GET_YEDGE
       USE TRACER_MOD,       ONLY : STT, TRACER_MW_G
-      USE TRACERID_MOD,     ONLY : IDTSO4
+      USE TRACERID_MOD,     ONLY : IDTSO4, IDTH2O
       USE TRACERID_MOD,     ONLY : IDTHNO3, IDTNIT, IDTBrNO3, IDTHBr
       USE TRACERID_MOD,     ONLY : IDTHOBr, IDTHCl, IDTClNO3, IDTHOCl
       USE CHEMGRID_MOD,     ONLY : ITS_IN_THE_STRATMESO
       USE CHEMGRID_MOD,     ONLY : ITS_IN_THE_CHEMGRID
       USE COMODE_MOD,       ONLY : CSPEC,JLOP
-      USE ERROR_MOD,        ONLY : ERROR_STOP
+      USE ERROR_MOD,        ONLY : ERROR_STOP, IS_SAFE_DIV
 
       USE CMN_GCTM_MOD,     ONLY : AIRMW, PI
 !
@@ -1934,8 +1941,12 @@
                HNO3SUM = HNO3SUM + STT(I,J,L,IDTNIT)*INVAIR/
      &                    TRACER_MW_G(IDTNIT)
 
+               !-----SDE DEBUG
                ! Revert to static H2O for now
-               H2OSUM = AVGW(I,J,L)
+               !H2OSUM = AVGW(I,J,L)
+               H2OSUM = STT(I,J,L,IDTH2O)*INVAIR/
+     &                   TRACER_MW_G(IDTH2O)
+               !-----SDE DEBUG
 
                ! Calculate partial pressures (Pa)
                HNO3PP = PCENTER_PA * HNO3SUM
@@ -2115,7 +2126,9 @@
                KG_AER_BOX    = 0d0
                NDENS_AER_BOX = 0d0
                SAD_AER_BOX   = 0d0
-               VOL_SLA = 0d0
+               VOL_SLA       = 0d0
+               W_H2O         = 0d0
+               W_H2SO4       = 1d0
 
                IF (.not.IS_STRAT) THEN
                   ! Use JPL 10-06/Oslo CTM data, where available,
@@ -2201,9 +2214,55 @@
                   ENDIF
                ENDIF
 
+               ! Store liquid fractions
+               ! Liquid H2O is removed from the sum, then it is assumed
+               ! that the pre-calculated solid H2O is taken out of this
+               ! liquid total
+               H2O_BOX_L = (98.09d0/18.02d0)*H2SO4_BOX_L*(W_H2O/W_H2SO4)
+               H2O_BOX_L = MAX(0d0,MIN(H2O_BOX_L-H2O_BOX_S,H2OSUM))
+               H2O_BOX_G = MAX(0d0,H2O_BOX_G - (H2O_BOX_L+H2O_BOX_S)) 
+  
+               ! If very low number density, ignore settling
+               AERFRAC(I,J,L,2) = 0d0 
+               AERFRAC(I,J,L,3) = 0d0 
+               AERFRAC(I,J,L,4) = 0d0 
+               AERFRAC(I,J,L,5) = 0d0 
+               AERFRAC(I,J,L,6) = 0d0 
+               AERFRAC(I,J,L,7) = 0d0
+ 
+               IF ((HNO3SUM.gt.1d0).and.
+     &            (IS_SAFE_DIV(HNO3_BOX_L,HNO3SUM))) THEN
+                  AERFRAC(I,J,L,2) = HNO3_BOX_L/HNO3SUM
+               ENDIF
+
+               IF ((HClSUM.gt.1d0).and.
+     &            (IS_SAFE_DIV(HCl_BOX_L,HClSUM))) THEN
+                  AERFRAC(I,J,L,3) = HCl_BOX_L/HClSUM
+               ENDIF
+
+               IF ((HOClSUM.gt.1d0).and.
+     &            (IS_SAFE_DIV(HOCl_BOX_L,HOClSUM))) THEN
+                  AERFRAC(I,J,L,4) = HOCl_BOX_L/HOClSUM
+               ENDIF
+
+               IF ((HBrSUM.gt.1d0).and.
+     &            (IS_SAFE_DIV(HBr_BOX_L,HBrSUM))) THEN
+                  AERFRAC(I,J,L,5) = HBr_BOX_L/HBrSUM
+               ENDIF
+
+               IF ((HOBrSUM.gt.1d0).and.
+     &            (IS_SAFE_DIV(HOBr_BOX_L,HOBrSUM))) THEN
+                  AERFRAC(I,J,L,6) = HOBr_BOX_L/HOBrSUM
+               ENDIF
+
+               IF ((H2OSUM.gt.1d0).and.
+     &            (IS_SAFE_DIV(H2O_BOX_L,H2OSUM))) THEN
+                  AERFRAC(I,J,L,7) = H2O_BOX_L/H2OSUM
+               ENDIF
+
                ! Send properties to larger array
                ! Convert sticking coefficients into
-               ! premultiplying factors (Kirner)
+               ! premultiplying factors ((Kirner)
                KHET_COMMON = 0.25d0*MOLEC_SPEED(TCENTER,1d0)
 
                ! N2O5 + H2O/HCl
@@ -3570,6 +3629,95 @@
       END SUBROUTINE READ_PSC_FILE
 !
 !EOC
+!------------------------------------------------------------------------------
+!               MIT Laboratory for Aviation and the Environment               !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: set_h2o_trac
+!
+! !DESCRIPTION: Subroutine SET\_H2O\_TRAC sets the H2O tracer throughout 
+!  the selected domain (either troposphere only or the full grid).
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE SET_H2O_TRAC (TROP_ONLY)
+!
+! !USES:
+!
+      USE TRACERID_MOD, ONLY : IDTH2O
+      USE TRACER_MOD,   ONLY : STT
+      USE PRESSURE_MOD, ONLY : GET_PCENTER
+      USE DAO_MOD,      ONLY : SPHU, AD, T, RH
+      USE CHEMGRID_MOD, ONLY : ITS_IN_THE_STRATMESO
+      USE CMN_SIZE_MOD
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN)          :: TROP_ONLY   ! Force H2O in the trop. only?
+!
+! !REVISION HISTORY: 
+!  28 Mar 2013 - S. D. Eastham - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER           :: I,J,L
+
+      REAL*8            :: ESAT, SHMB, PRES, TEMP
+      REAL*8, PARAMETER :: A =  23.5518d0
+      REAL*8, PARAMETER :: B =  2937.4d0
+      REAL*8, PARAMETER :: C = -4.9283d0
+
+      LOGICAL           :: USE_STT
+      LOGICAL,SAVE      :: FIRST=.TRUE.
+
+      !=================================================================
+      ! SET_H2O_TRAC begins here!
+      !=================================================================
+ 
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, PRES, TEMP, ESAT, SHMB, USE_STT )
+      DO J=1,JJPAR
+      DO I=1,IIPAR
+      DO L=1,LLPAR
+         USE_STT = ((.not.TROP_ONLY).or.(ITS_IN_THE_STRATMESO(I,J,L)))
+         IF ((.not.FIRST).and.(USE_STT)) THEN
+            ! Set specific humidity to transported H2O
+            SPHU(I,J,L) = STT(I,J,L,IDTH2O) * 1.d3 / AD(I,J,L)
+
+            ! Pressure at midpoint of box (I,J,L)
+            PRES = GET_PCENTER(I,J,L)
+
+            ! Temperature at grid box (I,J,L)
+            TEMP = T(I,J,L)
+
+            ! Saturation water vapor pressure in mbar 
+            ! (from NASA GTE PEM-Tropics handbook)
+            ESAT = ( 10d0**( A - ( B / TEMP ) ) ) * ( TEMP**C )
+               
+            ! Specific humidity in mb
+            SHMB = SPHU(I,J,L) * 1.6072d-3 * PRES
+               
+            ! Relative humidity as a percentage
+            RH(I,J,L) = ( SHMB / ESAT ) * 100d0 
+         ELSE
+            STT(I,J,L,IDTH2O) = SPHU(I,J,L) * 1.d-3 * AD(I,J,L)
+         ENDIF
+      ENDDO ! L
+      ENDDO ! I
+      ENDDO ! J
+!$OMP END PARALLEL DO
+
+      FIRST=.FALSE.
+
+      END SUBROUTINE SET_H2O_TRAC
+!
+!EOC
 !!------------------------------------------------------------------------------
 !!               MIT Laboratory for Aviation and the Environment               !
 !!------------------------------------------------------------------------------
@@ -3811,11 +3959,12 @@
       !          4 - HOCl
       !          5 - HBr
       !          6 - HOBr
-      ALLOCATE( AERFRAC( IIPAR, JJPAR, LLPAR, 6 ), STAT=AS )
+      !          7 - H2O
+      ALLOCATE( AERFRAC( IIPAR, JJPAR, LLPAR, 7 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AERFRAC' )
       AERFRAC = 0d0
 
-      ALLOCATE( AERFRACIND( 6 ), STAT=AS )
+      ALLOCATE( AERFRACIND( 7 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AERFRACIND' )
       AERFRACIND(1) = IDTSO4
       AERFRACIND(2) = IDTHNO3
@@ -3823,6 +3972,7 @@
       AERFRACIND(4) = IDTHOCl
       AERFRACIND(5) = IDTHBr
       AERFRACIND(6) = IDTHOBr
+      AERFRACIND(7) = IDTH2O
     
       ! Sticking coefficients for PSC reactions on SLA 
       ALLOCATE( KHETI_SLA( IIPAR, JJPAR, LLPAR, 11 ), STAT=AS )

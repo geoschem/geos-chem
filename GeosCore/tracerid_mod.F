@@ -292,6 +292,7 @@
       INTEGER            :: IDTCFCX,  IDTHCFCX
       INTEGER            :: IDTCFC11, IDTCFC12, IDTHCFC22
       INTEGER            :: IDTH1211, IDTH1301, IDTH2402
+      INTEGER            :: IDTH2O
 
       ! Reservoirs
       INTEGER            :: IDTN2O, IDTOCS
@@ -926,6 +927,9 @@
 
             CASE ( 'H2402' )
                IDTH2402 = N
+
+            CASE ( 'H2O' )
+               IDTH2O = N
 
             CASE ( 'N2O' )
                IDTN2O = N
@@ -3280,6 +3284,7 @@
       IDTH1211   = 0
       IDTH1301   = 0
       IDTH2402   = 0
+      IDTH2O     = 0
       IDTN2O     = 0
       IDTOCS     = 0
       ! +++++++++++++++++

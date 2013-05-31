@@ -768,6 +768,11 @@
          ! based on their values at NSEC and NSEC+N_DYN
          CALL INTERP( NSECb, ELAPSED_TODAY, N_DYN )
 
+         ! SDE 05/28/13: Set H2O to STT if relevant
+         IF ((LGMISTRAT).and.(IDTH2O.ne.0)) THEN
+            CALL SET_H2O_TRAC(.not.(LSETH2O.and.FIRST))
+         ENDIF
+
          ! Case of variable tropopause:
          ! Check LLTROP and set LMIN, LMAX, and LPAUSE
          ! since this is not done with READ_TROPOPAUSE anymore.

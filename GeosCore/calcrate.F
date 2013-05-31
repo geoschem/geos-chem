@@ -247,6 +247,9 @@
       LOGICAL :: KII_KI, PSCBOX
       !-----SDE DEBUG
       REAL*8, PARAMETER :: PSCMAXRATE=1.d-13
+
+      ! Minimum lifetime of a species for PSC heterogeneous chemistry
+      REAL*8, PARAMETER :: PSCMINLIFE=600.d0
       CHARACTER(LEN=255) :: PSCMESSAGE
       !-----SDE DEBUG
 
@@ -421,6 +424,9 @@
 ! ---------------------------     H2O     -----------------------------
 !
       IF (IH2O.GT.NGAS) THEN
+         !-----SDE DEBUG
+         WRITE(6,'(a)') 'SDE DEBUG: H2O INACTIVE'
+         !-----SDE DEBUG
          DO KLOOP      = 1, KTLOOP 
             TK               = T3K(KLOOP) 
             CONSEXP          = 17.2693882D0 * (TK - 273.16D0) / 
@@ -933,9 +939,15 @@ c new OH+CO rate from JPL2006.
          IF (NKSPECZ(NCS).GT.0) THEN
             NK         = NKSPECZ(NCS)
             DO KLOOP   = 1, KTLOOP
+#if defined( GMISTRAT )
+               RRATE(KLOOP,NK) =
+     +          (RRATE(KLOOP,NK)+RRATE(KLOOP,NK+1)*DENAIR(KLOOP)) * 
+     +          (1.D0+1.4D-21*CSPEC(KLOOP,IH2O)*EXP(2200.D0/T3K(KLOOP)))
+#else
                RRATE(KLOOP,NK) =
      +          (RRATE(KLOOP,NK)+RRATE(KLOOP,NK+1)*DENAIR(KLOOP)) * 
      +          (1.D0+1.4D-21*CBLK(KLOOP,IH2O)*EXP(2200.D0/T3K(KLOOP)))
+#endif
             ENDDO
          ENDIF
 ! FP_ISOP 
@@ -1049,41 +1061,7 @@ c new OH+CO rate from JPL2006.
                   
             ! Check surface type of PSCs (SDE 04/17/13)
             CALL CHECK_NAT(IX,IY,IZ,NATSURFACE,PSCBOX)
-
-            ! Set PSC educt concentrations (SDE 04/24/13)
-            PSCEDUCTCONC( 1,1) = CSPEC(JLOOP,IDN2O5)
-            PSCEDUCTCONC( 1,2) = ABSHUMK(KLOOP)
-
-            PSCEDUCTCONC( 2,1) = CSPEC(JLOOP,IDN2O5)
-            PSCEDUCTCONC( 2,2) = CSPEC(JLOOP,IDHCl)
-             
-            PSCEDUCTCONC( 3,1) = CSPEC(JLOOP,IDClNO3)
-            PSCEDUCTCONC( 3,2) = ABSHUMK(KLOOP)
-            
-            PSCEDUCTCONC( 4,1) = CSPEC(JLOOP,IDClNO3)
-            PSCEDUCTCONC( 4,2) = CSPEC(JLOOP,IDHCl)
-            
-            PSCEDUCTCONC( 5,1) = CSPEC(JLOOP,IDClNO3)
-            PSCEDUCTCONC( 5,2) = CSPEC(JLOOP,IDHBr)
-            
-            PSCEDUCTCONC( 6,1) = CSPEC(JLOOP,IDBrNO3)
-            PSCEDUCTCONC( 6,2) = ABSHUMK(KLOOP)
-            
-            PSCEDUCTCONC( 7,1) = CSPEC(JLOOP,IDBrNO3)
-            PSCEDUCTCONC( 7,2) = CSPEC(JLOOP,IDHCl)
-            
-            PSCEDUCTCONC( 8,1) = CSPEC(JLOOP,IDHOCl)
-            PSCEDUCTCONC( 8,2) = CSPEC(JLOOP,IDHCl)
-            
-            PSCEDUCTCONC( 9,1) = CSPEC(JLOOP,IDHOCl)
-            PSCEDUCTCONC( 9,2) = CSPEC(JLOOP,IDHBr)
-            
-            PSCEDUCTCONC(10,1) = CSPEC(JLOOP,IDHOBr)
-            PSCEDUCTCONC(10,2) = CSPEC(JLOOP,IDHCl)
-            
-            PSCEDUCTCONC(11,1) = CSPEC(JLOOP,IDHOBr)
-            PSCEDUCTCONC(11,2) = CSPEC(JLOOP,IDHBr)
-              
+ 
             DO I       = 1, NNADDK(NCS)
                NK      = NKSPECK(I,NCS)
                XSQM    = SQRT(ARR(NK,NCS))
@@ -1114,14 +1092,11 @@ c new OH+CO rate from JPL2006.
                   XRADIUS = ERADIUS(JLOOP,N)
 
                   ! Divide by educt concentration
-                  EDUCTCONC = 1d0
-                  LIMITCONC = 1d0
-                  PSCIDX = 0
                   KII_KI = .FALSE.
 
                   ! Test if N2O5 hydrolysis rxn
-                  IF ( NK == NKN2O5 ) THEN
-                     
+                  IF ( NK == NKN2O5 ) THEN 
+                     KII_KI = .TRUE.
                      ! Get GAMMA for N2O5 hydrolysis, which is
                      ! a function of aerosol type, temp, and RH
                      IF (N.eq.14) THEN
@@ -1134,7 +1109,11 @@ c new OH+CO rate from JPL2006.
                         ! Stratospheric aerosol
                         XSTKCF = KHETI_SLA(IX,IY,IZ,1)
                      ELSE
+#if defined( GMISTRAT )
+                        XSTKCF = N2O5( N, T3K(KLOOP), CSPEC(JLOOP,IH2O))
+#else
                         XSTKCF = N2O5( N, T3K(KLOOP), ABSHUMK(KLOOP) )
+#endif
                      ENDIF
 
                      ! Archive N2O5 hydrolysis for ND40 diagnostic
@@ -1180,6 +1159,8 @@ c new OH+CO rate from JPL2006.
 
                   ELSE IF ( NK == NKBrNO3 ) THEN
 
+                     KII_KI = .TRUE.
+
                      ! Get the aerosol type
                      ! If it's sulfate then use 0.8 for alpha, following
                      !  JPL 2006 kinetics evaluation... holds for many
@@ -1211,6 +1192,8 @@ c new OH+CO rate from JPL2006.
                      !  ~0 for aerosol types we don't want reactions on
                      !  for the HBr and HOBr surface reaction
 
+                     KII_KI = .TRUE.
+
                      ! Select proper aerosol type
                      IF ( (N == 8) .OR. (N == 11) .OR. (N == 12)) THEN
                         ! sulfate, 2 modes of sea-salt
@@ -1229,8 +1212,6 @@ c new OH+CO rate from JPL2006.
                   ELSE IF (PSCBOX) THEN
                      IF ( NK == NKPSC(NCS,2 ) ) THEN
                         ! N2O5(g)    + HCl(l,s)
-                        PSCIDX = 2
-                        EDUCTCONC = PSCEDUCTCONC(2,2)
                         KII_KI = .TRUE.
                         IF (N.eq.8) THEN
                            XSTKCF = 0.1d-4 ! Sulfate
@@ -1247,6 +1228,8 @@ c new OH+CO rate from JPL2006.
                         ENDIF
                      ELSE IF ( NK == NKPSC(NCS,3 ) ) THEN
                         ! ClNO3(g)   + H2O(l,s)
+                        KII_KI = .TRUE.
+
                         IF (N.eq.8) THEN
                            XSTKCF = 0.1d-3 ! Sulfate
                         ELSEIF (N.eq.13) THEN
@@ -1262,8 +1245,6 @@ c new OH+CO rate from JPL2006.
                         ENDIF
                      ELSE IF ( NK == NKPSC(NCS,4 ) ) THEN
                         ! ClNO3(g)   + HCl(l,s)
-                        EDUCTCONC = PSCEDUCTCONC(4,2)
-                        PSCIDX = 4
                         KII_KI = .TRUE.
                         IF (N.eq.8) THEN
                            XSTKCF = 0.1d-4 ! Sulfate
@@ -1280,8 +1261,6 @@ c new OH+CO rate from JPL2006.
                         ENDIF
                      ELSE IF ( NK == NKPSC(NCS,5 ) ) THEN
                         ! ClNO3(g)   + HBr(l,s)
-                        EDUCTCONC = PSCEDUCTCONC(5,2)
-                        PSCIDX = 5
                         KII_KI = .TRUE.
                         IF (N.eq.8) THEN
                            XSTKCF = 0.d0 ! Sulfate
@@ -1298,8 +1277,6 @@ c new OH+CO rate from JPL2006.
                         ENDIF
                      ELSE IF ( NK == NKPSC(NCS,7 ) ) THEN
                         ! BrNO3(g)   + HCl(l,s)
-                        EDUCTCONC = PSCEDUCTCONC(7,2)
-                        PSCIDX = 7
                         KII_KI = .TRUE.
                         IF (N.eq.8) THEN
                            XSTKCF = 0.9d0 ! Sulfate
@@ -1316,8 +1293,6 @@ c new OH+CO rate from JPL2006.
                         ENDIF
                      ELSE IF ( NK == NKPSC(NCS,8 ) ) THEN
                         ! HOCl(g)    + HCl(l,s)
-                        EDUCTCONC = PSCEDUCTCONC(8,2)
-                        PSCIDX = 8
                         KII_KI = .TRUE.
                         IF (N.eq.8) THEN
                            XSTKCF = 0.8d0 ! Sulfate
@@ -1334,8 +1309,6 @@ c new OH+CO rate from JPL2006.
                         ENDIF
                      ELSE IF ( NK == NKPSC(NCS,9 ) ) THEN
                         ! HOCl(g)    + HBr(l,s)
-                        EDUCTCONC = PSCEDUCTCONC(9,2)
-                        PSCIDX = 9
                         KII_KI = .TRUE.
                         IF (N.eq.8) THEN
                            XSTKCF = 0.8d0 ! Sulfate
@@ -1352,8 +1325,6 @@ c new OH+CO rate from JPL2006.
                         ENDIF
                      ELSE IF ( NK == NKPSC(NCS,10) ) THEN
                         ! HOBr(g)    + HCl(l,s)
-                        EDUCTCONC = PSCEDUCTCONC(10,2)
-                        PSCIDX = 10
                         KII_KI = .TRUE.
                         IF (N.eq.8) THEN
                            XSTKCF = 0.8d0 ! Sulfate
@@ -1387,66 +1358,10 @@ c new OH+CO rate from JPL2006.
      &                 ARSL1K(XAREA,XRADIUS,XDENA,XSTKCF,XSTK,XSQM)
                   ENDIF
 
-                  ! Pseudo-first-order reaction - divide by number-conc
-                  ! of aerosol-phase educt
                   IF (KII_KI) THEN
-                     EDUCTCONC = PSCEDUCTCONC(PSCIDX,2)
-                     LIMITCONC = PSCEDUCTCONC(PSCIDX,1)
-!                     !-----SDE DEBUG
-!                     IF (ADJUSTEDRATE.gt.PSCMAXRATE) THEN
-!                        WRITE(PSCMESSAGE,'(a,1x,4I3,1x,3E12.4)')
-!     &                       'HIGH KHET: ',IX,IY,IZ,PSCIDX,
-!     &                       ADJUSTEDRATE,LIMITCONC,EDUCTCONC
-!                        IF ( LPRT ) CALL DEBUG_MSG( PSCMESSAGE )
-!                     ENDIF
-                     !-----SDE DEBUG
-
-                     ! ---SAFETY-CHECK REACTION---
-                     ! Definition of 2nd order reaction rate:
-                     ! k[A][B] = -d[A]/dt = -d[B]/dt
-                     ! 
-                     ! However, here we are using a pseudo-first order
-                     ! reaction rate, ki, and assuming that [B] is
-                     ! abundant. To get k, we will therefore perform:
-                     ! k = ki/[B]
-                     !
-                     ! This will yield the following when solved:
-                     ! -d[A]/dt = ki[A] = -d[B]/dt
-                     !
-                     ! This has some problems, especially for small [B]!
-                     ! To get around this, we run the following checks:
-                     !
-                     ! 1. The depletion time of [A] is 1/ki. If this 
-                     !    is below 60 seconds, limit reaction rate to
-                     !    yield a 60 second depletion (ki = 1/60)
-                     ! 2. The depletion time of [B] is [B]/(ki[A]). If
-                     !    this is below 60 seconds, limit reaction rate
-                     !    to yield a 60 second depletion
-                     !    (ki = [B]/(60*[A])
-                     ! 3. If [B] is < 100 molec/cm3, or ki/[B] yields
-                     !    a Nan, force k = 0.
-                     !
-                     ! If all these checks are passed, we set k = ki/[B].
-                     !-----SDE DEBUG
-                     ! Rollbacks too aggressive - temp disabled
-                     !IF (ADJUSTEDRATE.gt.(1.d0/60.d0)) THEN
-                     !   ADJUSTEDRATE = 1.d0/60.d0
-                     !ENDIF
-                     !IF (IS_SAFE_DIV(EDUCTCONC,LIMITCONC)) THEN
-                     !   ! Temporarily store [B]/(60*[A])
-                     !   LIMITCONC = EDUCTCONC/(60.d0*LIMITCONC)
-                     !   IF (ADJUSTEDRATE.gt.LIMITCONC) THEN
-                     !      ADJUSTEDRATE = LIMITCONC
-                     !   ENDIF
-                     !ELSE
-                     !   ADJUSTEDRATE = 0d0
-                     !ENDIF
-                     !-----SDE DEBUG
-                     IF ((EDUCTCONC.gt.1.d2).and.
-     &                      (IS_SAFE_DIV(ADJUSTEDRATE,EDUCTCONC))) THEN
-                        ADJUSTEDRATE = ADJUSTEDRATE/EDUCTCONC
-                     ELSE
-                        ADJUSTEDRATE = 0d0
+                     ! PSC reaction - prevent excessive reaction rate
+                     IF (ADJUSTEDRATE.gt.(1.d0/PSCMINLIFE)) THEN
+                        ADJUSTEDRATE = 1.d0/PSCMINLIFE
                      ENDIF
                   ENDIF
 
@@ -1585,6 +1500,99 @@ c new OH+CO rate from JPL2006.
                RRATE(KLOOP, NK2HBr)  = ki_hbr
                RRATE(KLOOP, NK2HOBr) = ki_hobr
             ENDIF
+
+            ! SDE 05/30/13: Loop through PSC het. chem. and limit rates
+            ! to prevent solver failure
+#if defined( GMISTRAT )
+            ! Set PSC educt concentrations (SDE 04/24/13)
+            PSCEDUCTCONC( 1,1) = CSPEC(JLOOP,IDN2O5)
+            PSCEDUCTCONC( 1,2) = CSPEC(JLOOP,IH2O)
+
+            PSCEDUCTCONC( 2,1) = CSPEC(JLOOP,IDN2O5)
+            PSCEDUCTCONC( 2,2) = CSPEC(JLOOP,IDHCl)
+             
+            PSCEDUCTCONC( 3,1) = CSPEC(JLOOP,IDClNO3)
+            PSCEDUCTCONC( 3,2) = CSPEC(JLOOP,IH2O)
+            
+            PSCEDUCTCONC( 4,1) = CSPEC(JLOOP,IDClNO3)
+            PSCEDUCTCONC( 4,2) = CSPEC(JLOOP,IDHCl)
+            
+            PSCEDUCTCONC( 5,1) = CSPEC(JLOOP,IDClNO3)
+            PSCEDUCTCONC( 5,2) = CSPEC(JLOOP,IDHBr)
+            
+            PSCEDUCTCONC( 6,1) = CSPEC(JLOOP,IDBrNO3)
+            PSCEDUCTCONC( 6,2) = CSPEC(JLOOP,IH2O)
+            
+            PSCEDUCTCONC( 7,1) = CSPEC(JLOOP,IDBrNO3)
+            PSCEDUCTCONC( 7,2) = CSPEC(JLOOP,IDHCl)
+            
+            PSCEDUCTCONC( 8,1) = CSPEC(JLOOP,IDHOCl)
+            PSCEDUCTCONC( 8,2) = CSPEC(JLOOP,IDHCl)
+            
+            PSCEDUCTCONC( 9,1) = CSPEC(JLOOP,IDHOCl)
+            PSCEDUCTCONC( 9,2) = CSPEC(JLOOP,IDHBr)
+            
+            PSCEDUCTCONC(10,1) = CSPEC(JLOOP,IDHOBr)
+            PSCEDUCTCONC(10,2) = CSPEC(JLOOP,IDHCl)
+            
+            PSCEDUCTCONC(11,1) = CSPEC(JLOOP,IDHOBr)
+            PSCEDUCTCONC(11,2) = CSPEC(JLOOP,IDHBr)
+#endif
+            DO PSCIDX=1,11
+               NK = NKPSC(NCS,PSCIDX)
+               ! Pseudo-first-order reactions - divide by number-conc
+               ! of aerosol-phase educt to yield 2nd-order constant
+               IF (NK.gt.0) THEN
+                  EDUCTCONC = PSCEDUCTCONC(PSCIDX,2)
+                  LIMITCONC = PSCEDUCTCONC(PSCIDX,1)
+                  ADJUSTEDRATE = RRATE(KLOOP,NK)
+
+                  ! ---SAFETY-CHECK REACTION---
+                  ! Definition of 2nd order reaction rate:
+                  ! k[A][B] = -d[A]/dt = -d[B]/dt
+                  ! 
+                  ! However, here we are using a pseudo-first order
+                  ! reaction rate, ki, and assuming that [B] is
+                  ! abundant. To get k, we will therefore perform:
+                  ! k = ki/[B]
+                  !
+                  ! This will yield the following when solved:
+                  ! -d[A]/dt = ki[A] = -d[B]/dt
+                  !
+                  ! This has some problems, especially for small [B]!
+                  ! To get around this, we run the following checks:
+                  !
+                  ! 1. The lifetime of [A] is 1/ki. If this is below
+                  !    PSCMINLIFE, limit reaction rate to yield the
+                  !    specified lifetimedepletion (ki = 1/60)
+                  ! 2. The depletion time of [B] is [B]/(ki[A]). If
+                  !    this is below PSCMINLIFE, limit reaction rate
+                  !    (ki = [B]/(T*[A])
+                  ! 3. If [B] is < 100 molec/cm3, or ki/[B] yields
+                  !    a Nan, force k = 0.
+                  !
+                  ! If all these checks are passed, we set k = ki/[B].
+                  IF (ADJUSTEDRATE.gt.(1.d0/PSCMINLIFE)) THEN
+                     ADJUSTEDRATE = 1.d0/PSCMINLIFE
+                  ENDIF
+                  IF (IS_SAFE_DIV(EDUCTCONC,LIMITCONC)) THEN
+                     ! Temporarily store [B]/(T*[A])
+                     LIMITCONC = EDUCTCONC/(PSCMINLIFE*LIMITCONC)
+                     IF (ADJUSTEDRATE.gt.LIMITCONC) THEN
+                        ADJUSTEDRATE = LIMITCONC
+                     ENDIF
+                  ELSE
+                     ADJUSTEDRATE = 0d0
+                  ENDIF
+                  IF ((EDUCTCONC.gt.1.d2).and.
+     &                   (IS_SAFE_DIV(ADJUSTEDRATE,EDUCTCONC))) THEN
+                     ADJUSTEDRATE = ADJUSTEDRATE/EDUCTCONC
+                  ELSE
+                     ADJUSTEDRATE = 0d0
+                  ENDIF
+                  RRATE(KLOOP,NK) = ADJUSTEDRATE
+               ENDIF
+            ENDDO
 
          ELSE
 
