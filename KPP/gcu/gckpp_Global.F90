@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Global.f90
-! Time                 : Thu May 30 12:36:26 2013
-! Working directory    : /net/d03/data/seb_data/GEOS-Chem/simulations/StratChem/KPP_Compile
+! Time                 : Sat Jun  1 09:22:13 2013
+! Working directory    : /net/d08/data/seastham/GEOS-Chem/simulations/StratChem/Strat_v1.01/KPP_Compile
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
