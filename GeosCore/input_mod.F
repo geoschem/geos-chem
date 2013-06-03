@@ -7203,7 +7203,12 @@
       IF ( ITS_A_MERCURY_SIM() ) THEN 
 
          ! Initialize "mercury_mod.f"
-         CALL INIT_MERCURY( ANTHRO_Hg_YEAR, HG_SCENARIO ) !eds 5/17/12
+!----------------------------------------------------------------------------
+! Prior to 6/3/13:
+! Now pass fields via Input_Opt instead of directly (bmy, 6/3/13)
+!         CALL INIT_MERCURY( ANTHRO_Hg_YEAR, HG_SCENARIO ) !eds 5/17/12
+!----------------------------------------------------------------------------
+         CALL INIT_MERCURY( am_I_Root, Input_Opt, RC )
          CALL INIT_LAND_MERCURY()
          CALL INIT_DEPO_MERCURY(TRIM( GTMM_RST_FILE ))
 

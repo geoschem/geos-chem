@@ -1711,7 +1711,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: N, NN, NYMDb, NHMSb, T, NUM_TRACERS
+      INTEGER :: N, NN, NYMDb, NHMSb, T
       LOGICAL :: DO_TIMESERIES
 
 
@@ -1736,7 +1736,6 @@
       ! General tracer information
       !----------------------------------
 
-!hma,20120323
       !Do not print HgP in the IJ-AVG-$ field.
       !HgP is now emitted and treated as Hg2, so all HgP IJ-AVG-$
       !  fields are just zeroes
@@ -1755,18 +1754,6 @@
          SCALE(T,45) = 1.0e+9
          INDEX(T,45) = T   !changed from N (phs, 3/19/03)
          MWT  (T,45) = Input_Opt%TRACER_MW_KG(T) 
-
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! Prior to 3/14/13:
-! No longer need this because NO and NO2 are now tracers (mpayer, 3/14/13)
-!         ! We usually report NOx as Tg N
-!         IF ( TRIM( NAME(T,45) ) == 'NOx'  .or. 
-!     &        TRIM( NAME(T,45) ) == 'NOX' ) THEN
-!            MWT(T,45) = 14e-3
-!         ELSE
-!            MWT(T,45) = TRACER_MW_KG(T) 
-!         ENDIF
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
          ! Special handling for hydrocarbons
          IF ( MOLC(T,45) > 1 ) THEN

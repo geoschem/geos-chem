@@ -2924,7 +2924,7 @@
          ! # of drydep velocity tracers
          IF ( Input_Opt%ITS_A_TAGOX_SIM ) THEN
             M = 1
-         ELSE IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
+         ELSE IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN  ! Ask Helen
             M = 2
          ELSE
             M = NUMDEP

@@ -1828,7 +1828,6 @@
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP  ! hma Nov 3, debug
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE MERCURY_MOD,        ONLY : PARTITIONHg
       USE TRACERID_MOD,       ONLY : IS_Hg2
       USE TRACERID_MOD,       ONLY : IS_HgP
       USE WETSCAV_MOD,        ONLY : WASHOUT
