@@ -154,6 +154,7 @@
 !  04 Feb 2013 - S. Kim      - Bug fix: H2O2s, SO2s, STT are not in State_Met
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  31 May 2013 - R. Yantosca - Now pass objects to NFCLDMX
+!  03 Jun 2013 - R. Yantosca - Bug fix: pass State_Chm to DO_MERRA_CONVECTION
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -429,6 +430,7 @@
      &                             I         = I,
      &                             J         = J,
      &                             State_Met = State_Met,
+     &                             State_Chm = State_Chm,
      &                             RC        = RC         )
 
          ! Stop if error is encountered

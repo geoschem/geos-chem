@@ -223,6 +223,7 @@
 !  15 Mar 2013 - R. Yantosca - Now set Input_Opt%LINOZ_N* fields here
 !  29 Mar 2013 - R. Yantosca - Bring code out of DEVEL blocks
 !  30 May 2013 - R. Yantosca - Now pass Input_Opt object to STDRUN routine
+!  03 Jun 2013 - R. Yantosca - Use routines from updated mercury_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -806,7 +807,8 @@
          ! Read data required for Hg2 gas-particle partitioning 
          ! (H Amos, 25 Oct 2011)
          ! NOTE: Renamed to READ_Hg2_Partitioning (cdh, 6/3/13)
-         IF ( ITS_A_MERCURY_SIM() .and. ITS_A_NEW_MONTH() ) THEN
+         IF ( Input_Opt%ITS_A_MERCURY_SIM  .and. 
+     &        ITS_A_NEW_MONTH()           ) THEN
             CALL READ_Hg2_PARTITIONING( MONTH, State_Met )
             IF ( prtDebug ) 
      &           CALL DEBUG_MSG( '### MAIN: a READ_HG2_PARTITIONGING')

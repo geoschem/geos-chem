@@ -171,7 +171,8 @@
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Use updated GET_LOCALTIME from time_mod.F
 !  19 Apr 2012 - E. Corbitt  - Added LGCBROMINE to use GEOS-Chem bromine.
-!  3 Jun 2013  - C. Holmes   - Extensively rewritten for simplicity
+!  03 Jun 2013  - C. Holmes   - Extensively rewritten for simplicity
+!  03 Jun 2013 - R. Yantosca - Added ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -355,7 +356,7 @@
       USE TIME_MOD,           ONLY : ITS_TIME_FOR_A3 
       USE TRACERID_MOD,       ONLY : ID_Hg0
       USE TRACERID_MOD,       ONLY : ID_Hg2
-      USE TRACERID_MOD,       ONLY : ID_HGP,
+      USE TRACERID_MOD,       ONLY : ID_HgP
       USE TRACERID_MOD,       ONLY : ID_HG_TOT
       USE TRACERID_MOD,       ONLY : N_HG_CATS
 !
@@ -1563,15 +1564,15 @@
       ! we need to initialize the EMIS_SAVE array (cdh, 08/27/09)
       IF (LNLPBL) EMIS_SAVE = 0d0
 
-      ! Add Hg(0) source into STT [kg]
+      ! Add Hg(0) source into State_Chm%TRACERS [kg]
       CALL SRCHg0( am_I_Root, Input_Opt, State_Chm, RC )
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SRCHg0' )
 
-      ! Add Hg(II) source into STT [kg]
+      ! Add Hg(II) source into State_Chm%TRACERS [kg]
       CALL SRCHg2( am_I_Root, Input_Opt, State_Chm, RC )
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SRCHg2' )
 
-      ! Add HgP source into STT [kg]
+      ! Add HgP source into State_Chm%TRACERS [kg]
       CALL SRCHgP( am_I_Root, Input_Opt, State_Chm, RC )
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SRCHgP' )
       
@@ -6856,13 +6857,11 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE OCEAN_MERCURY_MOD,  ONLY : Fp        , Fg
       USE TRACERID_MOD,       ONLY : ID_HG2,     ID_HGP, N_HG_CATS
-      USE TRACER_MOD,         ONLY : N_TRACERS , STT
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -6888,8 +6887,11 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: I,J,L,N
-      REAL*8  :: FGas, Hg2TOT
+      INTEGER           :: I, J, L, N
+      REAL*8            :: FGas, Hg2TOT
+
+      ! For values from Input_Opt
+      INTEGER           :: N_TRACERS
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -6901,11 +6903,14 @@
       !=================================================================
 
       ! Assume success
-      RC  = GIGC_SUCCESS 
+      RC        = GIGC_SUCCESS 
+
+      ! Copy values from Input_Opt
+      N_TRACERS = Input_Opt%N_TRACERS
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
+      STT       => State_Chm%Tracers
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -7170,13 +7175,13 @@
       IF ( IS_INIT ) RETURN
 
       ! Copy values from Input_Opt
-      LDRYD          = Input_Opt%LDRYD               ! Use drydep?
-      LGTMM          = Input_Opt%LGTMM               ! Use GTMM model?
-      LNLPBL         = Input_Opt%LNLPBL              ! Use non-local PBL?
-      LSPLIT         = Input_Opt%LSPLIT              ! Tagged simulation?
-      N_TRACERS      = Input_Opt%N_TRACERS           ! # of Hg tracers
-      ANTHRO_Hg_YEAR = Input_Opt%THIS_ANTHRO_Hg_YEAR ! Hg emissions year
-      SCENARIO       = Input_Opt%HG_SCENARIO         ! Future emiss scenario
+      LDRYD          = Input_Opt%LDRYD            ! Use drydep?
+      LGTMM          = Input_Opt%LGTMM            ! Use GTMM model?
+      LNLPBL         = Input_Opt%LNLPBL           ! Use non-local PBL?
+      LSPLIT         = Input_Opt%LSPLIT           ! Tagged simulation?
+      N_TRACERS      = Input_Opt%N_TRACERS        ! # of Hg tracers
+      ANTHRO_Hg_YEAR = Input_Opt%ANTHRO_Hg_YEAR   ! Hg emissions year
+      SCENARIO       = Input_Opt%HG_SCENARIO      ! Future emiss scenario
 
       ! Location string for ERROR_STOP
       LOCATION       = 'DEFINE_TAGGED_Hg ("mercury_mod.f")'

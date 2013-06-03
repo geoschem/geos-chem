@@ -1735,17 +1735,7 @@
       !----------------------------------
       ! General tracer information
       !----------------------------------
-
-      !Do not print HgP in the IJ-AVG-$ field.
-      !HgP is now emitted and treated as Hg2, so all HgP IJ-AVG-$
-      !  fields are just zeroes
-      IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
-         NUM_TRACERS = Input_Opt%N_TRACERS - 1
-      ELSE
-         NUM_TRACERS = Input_Opt%N_TRACERS
-      ENDIF
-
-      DO T = 1, NUM_TRACERS
+      DO T = 1, Input_Opt%N_TRACERS
 
          ! Store quantities for each tracer
          NAME (T,45) = Input_Opt%TRACER_NAME(T)
