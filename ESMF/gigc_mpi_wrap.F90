@@ -108,6 +108,7 @@ CONTAINS
 !  28 Feb 2013 - R. Yantosca - Now MPI BCast the Input_Opt%haveImpRst field
 !  18 Mar 2013 - R. Yantosca - Mow MPI Bcast the Input_Opt%LINOZ_* fields
 !  11 Apr 2013 - R. Yantosca - Now MPI Bcast extra fields in Input_Opt
+!  03 Jun 2013 - R. Yantosca - Now MPI Bcast the GAMMA_HO2 field of Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -290,12 +291,13 @@ CONTAINS
     !----------------------------------------
     ! CHEMISTRY MENU fields
     !----------------------------------------
-    CALL MPI_Bcast( INPUT_OPT%LCHEM, 1, mpi_logical, 0, mpiComm, RC )
-    CALL MPI_Bcast( INPUT_OPT%LSCHEM, 1, mpi_logical, 0, mpiComm, RC )
-    CALL MPI_Bcast( INPUT_OPT%LLINOZ, 1, mpi_logical, 0, mpiComm, RC )
-    CALL MPI_Bcast( INPUT_OPT%TS_CHEM, 1, mpi_integer, 0, mpiComm, RC )
-    CALL MPI_Bcast( INPUT_OPT%LSVCSPEC, 1, mpi_logical, 0, mpiComm, RC )
-    CALL MPI_Bcast( INPUT_OPT%LKPP, 1, mpi_logical, 0, mpiComm, RC )
+    CALL MPI_Bcast( INPUT_OPT%LCHEM,     1, mpi_logical, 0, mpiComm, RC )
+    CALL MPI_Bcast( INPUT_OPT%LSCHEM,    1, mpi_logical, 0, mpiComm, RC )
+    CALL MPI_Bcast( INPUT_OPT%LLINOZ,    1, mpi_logical, 0, mpiComm, RC )
+    CALL MPI_Bcast( INPUT_OPT%TS_CHEM,   1, mpi_integer, 0, mpiComm, RC )
+    CALL MPI_Bcast( INPUT_OPT%LSVCSPEC,  1, mpi_logical, 0, mpiComm, RC )
+    CALL MPI_Bcast( INPUT_OPT%LKPP,      1, mpi_logical, 0, mpiComm, RC )
+    CALL MPI_BCast( INPUT_OPT%GAMMA_HO2, 1, mpi_real8,   0, mpicomm, RC )
 
     !----------------------------------------
     ! CHEMISTRY MENU fields
