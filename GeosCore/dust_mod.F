@@ -1381,12 +1381,13 @@
       !       Thus applying 1/2  factor to correct the emission.
 #else
 
-# if   defined( TOMAS )
-      CALL ERROR_STOP('Adjust dust transfer coeff for your model res.?',
-     &                'SRC_DUST_GINOUX: dust_mod.f')
-# else
+!# if   defined( TOMAS )
+!      CALL ERROR_STOP('Adjust dust transfer coeff for your model res.?',
+!     &                'SRC_DUST_GINOUX: dust_mod.f')
+!# else
       REAL*8, PARAMETER      :: CH_DUST  = 9.375d-10 
-# endif
+!# endif
+
 #endif
       REAL*8, PARAMETER      :: G        = G0 * 1.d2
       REAL*8, PARAMETER      :: RHOA     = 1.25d-3
