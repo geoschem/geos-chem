@@ -433,12 +433,23 @@ CONTAINS
     REAL*8,  INTENT(IN)    :: bk(KM+1)              
 
     ! u-wind (m/s) at mid-time-level (t=t+dt/2)
-    REAL*8,  INTENT(IN)    :: u(IM,JFIRST:JLAST,KM) 
+!----------------------------------------------------------------------------
+! Prior to 6/4/13:
+! Now use assumed-shape declaration for U (bmy, 6/4/13)
+!   REAL*8,  INTENT(IN)    :: u(IM,JFIRST:JLAST,KM)
+!----------------------------------------------------------------------------
+    REAL*8,  INTENT(IN)    :: u(:,:,:)
 
     ! E/W and N/S mass fluxes [kg/s]
     ! (These are computed by the pressure fixer, and passed into TPCORE)
-    REAL*8,  INTENT(IN)    :: XMASS(IM,JM,KM)
-    REAL*8,  INTENT(IN)    :: YMASS(IM,JM,KM)
+!----------------------------------------------------------------------------
+! Prior to 6/4/13:
+! Now use assumed-shape declaration for XMASS, YMASS (bmy, 6/4/13)
+!   REAL*8,  INTENT(IN)    :: XMASS(IM,JM,KM)
+!   REAL*8,  INTENT(IN)    :: YMASS(IM,JM,KM)
+!----------------------------------------------------------------------------
+    REAL*8,  INTENT(IN)    :: XMASS(:,:,:)
+    REAL*8,  INTENT(IN)    :: YMASS(:,:,:)
 
     ! Grid box surface area for mass flux diag [m2]
     REAL*8,  INTENT(IN)    :: AREA_M2(JM)        
@@ -456,7 +467,12 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS: 
 !
     ! V-wind (m/s) at mid-time-level (t=t+dt/2)
-    REAL*8,  INTENT(INOUT) :: v(IM, JFIRST-MG:JLAST+MG, KM) 
+!----------------------------------------------------------------------------
+! Prior to 6/4/13:
+! Now use assumed-shape declaration for V (bmy, 6/4/13)
+!    REAL*8,  INTENT(INOUT) :: v(IM, JFIRST-MG:JLAST+MG, KM)
+!----------------------------------------------------------------------------
+    REAL*8,  INTENT(INOUT) :: v(:,:,:)
 
     ! surface pressure at current time
     REAL*8,  INTENT(INOUT) :: ps1(IM, JFIRST:JLAST)  
@@ -465,13 +481,14 @@ CONTAINS
     REAL*8,  INTENT(INOUT) :: ps2(IM, JFIRST:JLAST)  
 
     ! Tracer "mixing ratios" [v/v]
-    REAL*8,  INTENT(INOUT) :: q(IM, JFIRST-NG:JLAST+NG, KM, NQ)  
+!----------------------------------------------------------------------------
+! Prior to 6/4/13:
+! Now use assumed-shape declaration for Q (bmy, 6/4/13)
+!    REAL*8,  INTENT(INOUT) :: q(IM, JFIRST-NG:JLAST+NG, KM, NQ)
+!----------------------------------------------------------------------------
+    REAL*8,  INTENT(INOUT) :: q(:,:,:,:)
 
     ! E/W, N/S, and up/down diagnostic mass fluxes
-!--- Previous to (ccc, 12/3/09)
-!    REAL*8,  INTENT(INOUT) :: MASSFLEW(IM,JM,KM,NQ)  ! for ND24 diagnostic
-!    REAL*8,  INTENT(INOUT) :: MASSFLNS(IM,JM,KM,NQ)  ! for ND25 diagnostic
-!    REAL*8,  INTENT(INOUT) :: MASSFLUP(IM,JM,KM,NQ)  ! for ND26 diagnostic 
     REAL*8,  INTENT(INOUT) :: MASSFLEW(:,:,:,:)  ! for ND24 diagnostic
     REAL*8,  INTENT(INOUT) :: MASSFLNS(:,:,:,:)  ! for ND25 diagnostic
     REAL*8,  INTENT(INOUT) :: MASSFLUP(:,:,:,:)  ! for ND26 diagnostic 
@@ -486,22 +503,27 @@ CONTAINS
 !   John Tannahill, LLNL (jrt@llnl.gov)
 ! 
 ! !REVISION HISTORY: 
-!   05 Dec 2008 - C. Carouge  - Replaced TPCORE routines by S-J Lin and Kevin
-!                               Yeh with the TPCORE routines from GMI model.
-!                               This eliminates the polar overshoot in the
-!                               stratosphere.
-!   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
-!                               make sure all numerical constants are declared
-!                               with the "D" double-precision exponent.  Added
-!                               OpenMP parallel DO loops.
-!   01 Apr 2009 - C. Carouge  - Modified OpenMp parallelization and move the 
-!                               loops over vertical levels outside the 
-!                               horizontal transport routines for reducing
-!                               processing time.
-!   03 Dec 2009 - C. Carouge  - Modify declarations of MASSFLEW, MASSFLNS and 
-!                               MASSFLUP to save memory space.
-!   30 May 2013 - S. Farina   - For TOMAS, zero out UA and VA variables
+!  05 Dec 2008 - C. Carouge  - Replaced TPCORE routines by S-J Lin and Kevin
+!                              Yeh with the TPCORE routines from GMI model.
+!                              This eliminates the polar overshoot in the
+!                              stratosphere.
+!  05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
+!                              Declare all REAL variables as REAL*8.  Also
+!                              make sure all numerical constants are declared
+!                              with the "D" double-precision exponent.  Added
+!                              OpenMP parallel DO loops.
+!  01 Apr 2009 - C. Carouge  - Modified OpenMp parallelization and move the
+!                              loops over vertical levels outside the
+!                              horizontal transport routines for reducing
+!                              processing time.
+!  03 Dec 2009 - C. Carouge  - Modify declarations of MASSFLEW, MASSFLNS and
+!                              MASSFLUP to save memory space.
+!  30 May 2013 - S. Farina   - For TOMAS, zero out UA and VA variables
+!  04 Jun 2013 - R. Yantosca - Use assumed-shape declarations for XMASS, YMASS,
+!                              U, V, and Q arrays.  These arrays are used to
+!                              pass pointer references, so this may help to
+!                              reduce the creation of array temporaries,
+!                              which will reduce memory.
 !EOP
 !------------------------------------------------------------------------------
 !BOC

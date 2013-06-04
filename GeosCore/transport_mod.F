@@ -165,13 +165,14 @@
 
       ! First-time initialization
       IF ( FIRST ) THEN 
+
 #if   defined( GRID05x0666 )
 
       ! GEOS-5.2.0 nested simulations
       CALL INIT_GEOS5_WINDOW_TRANSPORT
      &   ( am_I_Root, Input_Opt, RC )
 
-#elif defined( GRID025x03125)
+#elif defined( GRID025x03125 )
 
       ! GEOS-5.7.2 (aka "FP") nested grids
       CALL INIT_GEOS57_WINDOW_TRANSPORT
@@ -186,11 +187,29 @@
          FIRST = .FALSE.
       ENDIF
 
+      !=================================================================
       ! Choose the proper version of TPCORE for the nested-grid window 
       ! region (usually 1x1 grids) or for the entire globe
+      !=================================================================
       IF ( ITS_A_NESTED_GRID() ) THEN
+
+#if defined( GEOS025x03125 )
+
+         ! Nested-grid simulation with GEOS 5.7-x met
+         CALL DO_GEOS57_WINDOW_TRANSPORT
+     &      ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+
+#elif defined( GRID05x0666 )
+
+         ! Nested-grid simulation with GEOS-5.2.0 met
          CALL DO_GEOS5_WINDOW_TRANSPORT
      &      ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+
+#endif
+
+      !=================================================================
+      ! Choose the proper version of TPCORE for global simulations
+      !=================================================================
       ELSE
 
 #if defined( GCAP )
@@ -277,6 +296,7 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  04 Jun 2013 - R. Yantosca - Replace pointer STT with State_Chm%Tracers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -307,7 +327,6 @@
       REAL*8,  POINTER :: p_XMASS(:,:,:  )
       REAL*8,  POINTER :: p_YMASS(:,:,:  )
       REAL*8,  POINTER :: p_STT  (:,:,:,:)
-      REAL*8,  POINTER :: STT    (:,:,:,:)
 
       ! Variable to ensure mass conservation (ccc, 2/17/09)
       REAL*8           :: SUMADA
@@ -341,10 +360,6 @@
 #else
       N_TOT_TRC = N_TRACERS              ! G-C advected tracers only
 #endif
-
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
 
       ! Dynamic timestep [s]
       N_DYN = GET_TS_DYN() * 60
@@ -403,7 +418,9 @@
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         TR_B(I,J,L,N) = STT(I,J,L,N) * AD_B(I,J,L) / TCVV(N)
+         TR_B(I,J,L,N) = State_Chm%Tracers(I,J,L,N)
+     &                 * AD_B(I,J,L)
+     &                 / TCVV(N)
       ENDDO
       ENDDO
       ENDDO
@@ -427,11 +444,11 @@
       !=================================================================
 
       ! Flip array indices in the vertical using pointer storage
-      p_UWND  => State_Met%U(:,:,LLPAR:1:-1  )
-      p_VWND  => State_Met%V(:,:,LLPAR:1:-1  )
-      p_STT   => STT  (:,:,LLPAR:1:-1,:)
-      p_XMASS => XMASS(:,:,LLPAR:1:-1  )
-      p_YMASS => YMASS(:,:,LLPAR:1:-1  )
+      p_UWND  => State_Met%U      (:,:,LLPAR:1:-1  )
+      p_VWND  => State_Met%V      (:,:,LLPAR:1:-1  )
+      p_STT   => State_Chm%Tracers(:,:,LLPAR:1:-1,:)
+      p_XMASS => XMASS            (:,:,LLPAR:1:-1  )
+      p_YMASS => YMASS            (:,:,LLPAR:1:-1  )
 
       ! Do the advection
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
@@ -478,11 +495,12 @@
             AD_A(I,J,L) = GET_AIR_MASS( I, J, L, P_TP2(I,J) )
          
             ! Tracer mass [kg] after transport
-            TR_A(I,J,L) = STT(I,J,L,N) * AD_A(I,J,L) / TCVV(N)
+            TR_A(I,J,L) = State_Chm%Tracers(I,J,L,N)
+     &                  * AD_A(I,J,L)
+     &                  / TCVV(N)
 
-            ! We apply mass conservation only on cells w/
-            ! nonzero tracer (ccc, 2/17/09)
-            IF ( STT(I,J,L,N) > 0.d0 .or. STT(I,J,L,N) < 0.d0 ) THEN
+            IF ( State_Chm%Tracers(I,J,L,N) > 0.d0   .or.
+     &           State_Chm%Tracers(I,J,L,N) < 0.d0 ) THEN
                SUMADA = SUMADA + AD_A(I,J,L)
             ENDIF
          ENDDO
@@ -500,19 +518,20 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-            IF ( STT(I,J,L,N) > 0.d0 .or. STT(I,J,L,N) < 0.d0 ) THEN
-               STT(I,J,L,N) = STT(I,J,L,N) + TR_DIFF
+            IF ( State_Chm%Tracers(I,J,L,N) > 0.d0   .or.
+     &           State_Chm%Tracers(I,J,L,N) < 0.d0 ) THEN
+               State_Chm%Tracers(I,J,L,N) =
+     &         State_Chm%Tracers(I,J,L,N) + TR_DIFF
             ENDIF
 
-            STT(I,J,L,N) = MAX( STT(I,J,L,N), 0d0 )
+            State_Chm%Tracers(I,J,L,N) =
+     &           MAX( State_Chm%Tracers(I,J,L,N), 0d0 )
+
          ENDDO
          ENDDO
          ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
-      ! Free pointer
-      NULLIFY( STT )
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### G4_G5_GLOB_ADV: a TPCORE' ) 
@@ -582,7 +601,7 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
-
+!  04 Jun 2013 - R. Yantosca - Replace pointer STT with State_Chm%Tracers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -614,7 +633,6 @@
       REAL*8,  POINTER :: p_XMASS(:,:,:  )
       REAL*8,  POINTER :: p_YMASS(:,:,:  )
       REAL*8,  POINTER :: p_STT  (:,:,:,:)
-      REAL*8,  POINTER :: STT    (:,:,:,:)
 
       ! For fields from Input_Opt
       LOGICAL          :: LFILL
@@ -648,10 +666,6 @@
 #else
       N_TOT_TRC = N_TRACERS              ! G-C advected tracers only
 #endif
-
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
 
       ! Dynamic timestep [s]
       N_DYN = GET_TS_DYN() * 60
@@ -715,7 +729,9 @@
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         TR_B(I,J,L,N) = STT(I,J,L,N) * AD_B(I,J,L) / TCVV(N)
+         TR_B(I,J,L,N) = State_Chm%Tracers(I,J,L,N)
+     &                 * AD_B(I,J,L)
+     &                 / TCVV(N)
       ENDDO
       ENDDO
       ENDDO
@@ -739,11 +755,11 @@
       !=================================================================
 
       ! Flip array indices in the vertical using pointer storage
-      p_UWND  => State_Met%U(:,:,LLPAR:1:-1  )
-      p_VWND  => State_Met%V(:,:,LLPAR:1:-1  )
-      p_STT   => STT  (:,:,LLPAR:1:-1,:)
-      p_XMASS => XMASS(:,:,LLPAR:1:-1  )
-      p_YMASS => YMASS(:,:,LLPAR:1:-1  )
+      p_UWND  => State_Met%U      (:,:,LLPAR:1:-1  )
+      p_VWND  => State_Met%V      (:,:,LLPAR:1:-1  )
+      p_STT   => State_Chm%Tracers(:,:,LLPAR:1:-1,:)
+      p_XMASS => XMASS            (:,:,LLPAR:1:-1  )
+      p_YMASS => YMASS            (:,:,LLPAR:1:-1  )
 
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
       ! are incremented upside-down (level 1 = top of the atmosphere).
@@ -790,11 +806,14 @@
             AD_A(I,J,L) = GET_AIR_MASS( I, J, L, P_TP2(I,J) )
          
             ! Tracer mass [kg] after transport
-            TR_A(I,J,L) = STT(I,J,L,N) * AD_A(I,J,L) / TCVV(N)
+            TR_A(I,J,L) = State_Chm%Tracers(I,J,L,N)
+     &                  * AD_A(I,J,L)
+     &                  / TCVV(N)
 
             ! We apply mass conservation only on cells with 
             ! nonzero tracer. (ccc, 11/20/08)
-            IF ( STT(I,J,L,N) > 0.d0 .or. STT(I,J,L,N) < 0.d0 ) THEN
+            IF ( State_Chm%Tracers(I,J,L,N) > 0.d0   .or.
+     &           State_Chm%Tracers(I,J,L,N) < 0.d0 ) THEN
                SUMADA = SUMADA + AD_A(I,J,L)
             ENDIF
          ENDDO
@@ -812,19 +831,19 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-            IF ( STT(I,J,L,N) > 0.d0 .or. STT(I,J,L,N) < 0.d0 ) THEN
-               STT(I,J,L,N) = STT(I,J,L,N) + TR_DIFF
+            IF ( State_Chm%Tracers(I,J,L,N) > 0.d0   .or. 
+     &           State_Chm%Tracers(I,J,L,N) < 0.d0 ) THEN
+               State_Chm%Tracers(I,J,L,N) =
+     &         State_Chm%Tracers(I,J,L,N) + TR_DIFF
             ENDIF
 
-            STT(I,J,L,N) = MAX( STT(I,J,L,N), 0d0 )
+            State_Chm%Tracers(I,J,L,N) =
+     &           MAX( State_Chm%Tracers(I,J,L,N), 0d0 )
          ENDDO
          ENDDO
          ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
-      ! Free pointer
-      NULLIFY( STT )
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### GCAP_GLOB_ADV: a TPCORE' ) 
@@ -897,6 +916,7 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  04 Jun 2013 - R. Yantosca - Replace pointer STT with State_Chm%Tracers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -928,7 +948,6 @@
       REAL*8,  POINTER :: p_XMASS(:,:,:  )
       REAL*8,  POINTER :: p_YMASS(:,:,:  )
       REAL*8,  POINTER :: p_STT  (:,:,:,:)
-      REAL*8,  POINTER :: STT    (:,:,:,:)
 
       ! For fields from Input_Opt
       LOGICAL          :: LFILL
@@ -942,7 +961,7 @@
       REAL*8           :: SUMADA
 
       !=================================================================
-      ! DO_GEOS5_FVDAS_WINDOW_TRANSPORT begins here!
+      ! DO_GEOS5_WINDOW_TRANSPORT begins here!
       !=================================================================
 
       ! Assume success
@@ -966,10 +985,6 @@
       ! Get nested-grid lon/lat offsets [# boxes]
       I0    = GET_XOFFSET( GLOBAL=.TRUE. )
       J0    = GET_YOFFSET( GLOBAL=.TRUE. )
-
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
 
       ! Dynamic timestep [s]
       N_DYN = GET_TS_DYN() * 60
@@ -1028,7 +1043,9 @@
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         TR_B(I,J,L,N) = STT(I,J,L,N) * AD_B(I,J,L) / TCVV(N)
+         TR_B(I,J,L,N) = State_Chm%Tracers(I,J,L,N)
+     &                 * AD_B(I,J,L)
+     &                 / TCVV(N)
       ENDDO
       ENDDO
       ENDDO
@@ -1058,11 +1075,11 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### GEOS5_NESTED: a DO_WIN_TP_BC' )
 
       ! Flip array indices in the vertical using pointer storage
-      p_UWND  => State_Met%U(:,:,LLPAR:1:-1  )
-      p_VWND  => State_Met%V(:,:,LLPAR:1:-1  )
-      p_STT   => STT  (:,:,LLPAR:1:-1,:)
-      p_XMASS => XMASS(:,:,LLPAR:1:-1  )
-      p_YMASS => YMASS(:,:,LLPAR:1:-1  )
+      p_UWND  => State_Met%U      (:,:,LLPAR:1:-1  )
+      p_VWND  => State_Met%V      (:,:,LLPAR:1:-1  )
+      p_STT   => State_Chm%Tracers(:,:,LLPAR:1:-1,:)
+      p_XMASS => XMASS            (:,:,LLPAR:1:-1  )
+      p_YMASS => YMASS            (:,:,LLPAR:1:-1  )
 
       IF ( LPRT ) CALL DEBUG_MSG( '### GEOS5_NESTED: a array flip' )
 
@@ -1081,7 +1098,7 @@
      &                          TCVV,     ND24,      ND25,     ND26 )
 
       ! Free pointer memory
-      NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS, STT ) 
+      NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS ) 
 
       !=================================================================
       ! Reset surface pressure and ensure mass conservation
@@ -1101,9 +1118,9 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: do_geos5_window_transport
+! !IROUTINE: do_geos57_window_transport
 !
-! !DESCRIPTION: Subroutine DO\_GEOS5\_WINDOW\_TRANSPORT is the driver program 
+! !DESCRIPTION: Subroutine DO\_GEOS57\_WINDOW\_TRANSPORT is the driver program 
 !  for the proper TPCORE program for the GEOS-5 nested-grid simulations. 
 !\\
 !\\
@@ -1159,6 +1176,7 @@
 !  26 Feb 2010 - R. Yantosca - Added ProTeX headers
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
 !  21 Jun 2012 - R. Yantosca - Now use pointers to flip arrays in the vertical
+!  04 Jun 2013 - R. Yantosca - Replace pointer STT with State_Chm%Tracers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1190,7 +1208,6 @@
       REAL*8,  POINTER :: p_XMASS(:,:,:  )
       REAL*8,  POINTER :: p_YMASS(:,:,:  )
       REAL*8,  POINTER :: p_STT  (:,:,:,:)
-      REAL*8,  POINTER :: STT(:,:,:,:)
 
       ! For fields from Input_Opt
       LOGICAL          :: LFILL
@@ -1225,10 +1242,6 @@
       ! Get nested-grid lon/lat offsets [# boxes]
       I0    = GET_XOFFSET( GLOBAL=.TRUE. )
       J0    = GET_YOFFSET( GLOBAL=.TRUE. )
-
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      ! (mpayer, 12/6/12)
-      STT => State_Chm%Tracers
 
       ! Dynamic timestep [s]
       N_DYN = GET_TS_DYN() * 60
@@ -1287,7 +1300,9 @@
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         TR_B(I,J,L,N) = STT(I,J,L,N) * AD_B(I,J,L) / TCVV(N)
+         TR_B(I,J,L,N) = State_Chm%Tracers(I,J,L,N)
+     &                 * AD_B(I,J,L)
+     &                 / TCVV(N)
       ENDDO
       ENDDO
       ENDDO
@@ -1313,11 +1328,11 @@
       CALL DO_WINDOW_TPCORE_BC( am_I_Root, Input_Opt, State_Chm, RC )
 
       ! Flip array indices in the vertical using pointer storage
-      p_UWND  => State_Met%U(:,:,LLPAR:1:-1  )
-      p_VWND  => State_Met%V(:,:,LLPAR:1:-1  )
-      p_STT   => STT  (:,:,LLPAR:1:-1,:)
-      p_XMASS => XMASS(:,:,LLPAR:1:-1  )
-      p_YMASS => YMASS(:,:,LLPAR:1:-1  )
+      p_UWND  => State_Met%U      (:,:,LLPAR:1:-1  )
+      p_VWND  => State_Met%V      (:,:,LLPAR:1:-1  )
+      p_STT   => State_Chm%Tracers(:,:,LLPAR:1:-1,:)
+      p_XMASS => XMASS            (:,:,LLPAR:1:-1  )
+      p_YMASS => YMASS            (:,:,LLPAR:1:-1  )
 
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
       ! are incremented upside-down (level 1 = top of the atmosphere).
@@ -1334,7 +1349,7 @@
      &                           TCVV,     ND24,      ND25,     ND26 )
 
       ! Free pointer memory
-      NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS, STT )
+      NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS )
 
       !=================================================================
       ! Reset surface pressure and ensure mass conservation
@@ -1575,9 +1590,7 @@
       CALL INIT_TPCORE( IIPAR,  JJPAR, LLPAR,  JFIRST, JLAST, 
      &                  NG, MG, DBLE( N_DYN ), Re,     YMID_R )
 
-
       END SUBROUTINE INIT_TRANSPORT
-
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
