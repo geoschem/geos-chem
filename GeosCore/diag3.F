@@ -2630,18 +2630,6 @@
 
                   UNIT = 'molec/cm3'
 
-!------------------------------------------------------------------------------
-! Prior to 3/29/13:
-!               ! NO
-!               CASE ( 2 ) 
-!                  WHERE( CTNO /= 0 )
-!                     ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
-!     $                    FLOAT( CTNO )
-!                  ELSEWHERE
-!                     ARRAY(:,:,1:LD43) = 0.
-!                  ENDWHERE
-!------------------------------------------------------------------------------
-
                ! HO2 (rvm, bmy, 2/27/02)
                CASE ( 3 )
                   WHERE( CTHO2 /= 0 )
@@ -2650,28 +2638,6 @@
                   ELSEWHERE
                      ARRAY(:,:,1:LD43) = 0.
                   ENDWHERE
-
-!------------------------------------------------------------------------------
-! Prior to 3/29/13:
-!               ! NO2 (rvm, bmy, 2/27/02)
-!               CASE ( 4 ) 
-!                  WHERE( CTNO2 /= 0 )
-!                     ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
-!     $                    FLOAT( CTNO2 )
-!                  ELSEWHERE
-!                     ARRAY(:,:,1:LD43) = 0.
-!                  ENDWHERE
-!
-!
-!               ! NO3 (rjp, bmy, 1/16/03)
-!               CASE ( 5 )
-!                  WHERE( CTNO3 /= 0 )
-!                     ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
-!     $                    FLOAT( CTNO3 )
-!                  ELSEWHERE
-!                     ARRAY(:,:,1:LD43) = 0.
-!                  ENDWHERE
-!------------------------------------------------------------------------------
 
                CASE ( 6 )
                   WHERE( CTLBRO2H /= 0 )
@@ -3735,19 +3701,6 @@
                ARRAY(:,:,L) = AD61(:,:,L,NN) / SCALEX
             ENDDO
 
-!Prior to 10/6/08
-!            SCALEX = SCALECHEM
-!
-!            UNIT = 'kg/s'
-!
-!            DO L = 1, LD61
-!            DO J = 1, JJPAR
-!            DO I = 1, IIPAR
-!               ARRAY(I,J,L) = AD61(I,J,L) / SCALEX
-!            ENDDO
-!            ENDDO
-!            ENDDO
-            
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,

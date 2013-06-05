@@ -296,6 +296,7 @@ CONTAINS
 !  15 Mar 2013 - R. Yantosca - Now call GIGC_CAP_TROPOPAUSE_PRS to cap the
 !                              State_Met%TROPP field to 200 hPa polewards
 !                              of 60S and 60N.  We do this in the std G-C.
+!  05 Jun 2013 - R. Yantosca - Remove obsolete code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -342,16 +343,6 @@ CONTAINS
                                     Input_Opt      = Input_Opt,  &
                                     State_Met      = State_Met,  &
                                     RC             = RC         )
-
-    !-------------------------------------------------------------------------
-    ! Prior to 3/25/13
-    ! NOTE: CSPEC_FULL Is now removed from comode_loop_mod.F (bmy, 3/25/13)
-    !! CSPEC_FULL is the array of species [molec/cm3] in the chemical mechanism.
-    !! Initialize this with the value from obtained from the the ESMF internal 
-    !! state, which has been saved into the State_Chm%SPECIES field.
-    !CSPEC_FULL = State_Chm%Species   
-    !!-------------------------------------------------------------------------
-
 
     ! Zero Rate arrays  
     RRATE      = 0.E0
@@ -404,19 +395,6 @@ CONTAINS
                           TCVV      = Input_Opt%TCVV,       & ! Molec / kg
                           AD        = State_Met%AD,         & ! Air mass [kg]
                           STT       = State_Chm%Tracers    )  ! Tracer array
-
-    !=======================================================================
-    ! Cleanup after dry deposition & chemistry
-    !=======================================================================
-
-    !-------------------------------------------------------------------------
-    ! Prior to 3/25/13
-    ! NOTE: CSPEC_FULL Is now removed from comode_loop_mod.F (bmy, 3/25/13)
-    ! Set the modified chemical species concentrations [molec/cm3] back 
-    ! into State_Chm%SPECIES.  They will be passed back into the ESMF
-    ! internal state to be preserved for the next chemistry timestep.
-    !State_Chm%Species = CSPEC_FULL
-    !-------------------------------------------------------------------------
 
   END SUBROUTINE GIGC_Chunk_Run
 !EOC
