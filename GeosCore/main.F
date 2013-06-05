@@ -1922,7 +1922,7 @@
       !----------------------------------
       IF ( ITS_TIME_ FOR_I3() ) THEN
          DATE = GET_I3_TIME()
-         CALL GEOS57_READ_I3_2( DATE(1), DATE(2), Input_Opt%State_Met )
+         CALL GEOS57_READ_I3_2( DATE(1), DATE(2), Input_Opt, State_Met )
 
          ! Compute avg pressure at polar caps 
          CALL AVGPOLE( State_Met%PS2 )
