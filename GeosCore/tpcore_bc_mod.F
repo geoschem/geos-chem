@@ -1641,6 +1641,7 @@
 !  17 Oct 2012 - M. Payer    - Bug fix: Define extent of coarse grid BC region
 !                              even if LWINDO_CH or LWINDO_SE = False to
 !                              avoid out-of-bounds errors in array BC
+!  05 Jun 2013 - K. Yu       - Define BC boundaries for GEOS_57 0.25 NA grid
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1717,7 +1718,15 @@
       !-----------------------------------------------------------------
       IF ( .not. LWINDO2x25 ) THEN
 
-#if   defined( GRID4x5 ) || defined( NESTED_NA )        
+#if   defined( GRID4x5 ) || defined( NESTED_NA )
+
+#if   defined( GEOS_57 )
+         !%%%%% 4x5 BC REGION FOR NORTH AMERICA NESTED GRID (GEOS_57)
+         I1_BC_NA = 11                       ! 4x5  lon index, LL corner
+         J1_BC_NA = 26                       ! 4x5  lat index, LL corner
+         I2_BC_NA = 25                       ! 4x5  lon index, UR corner
+         J2_BC_NA = 39                       ! 4x5  lat index, UR corner
+#else
          !%%%%% 4x5 BC REGION FOR NORTH AMERICA NESTED GRID %%%%%
          I1_BC_NA = 9                        ! 4x5  lon index, LL corner
          J1_BC_NA = 26                       ! 4x5  lat index, LL corner
@@ -1725,14 +1734,26 @@
          J2_BC_NA = 41                       ! 4x5  lat index, UR corner
 #endif
 
+#endif
+
       ELSE
 
 #if   defined( GRID2x25 ) || defined( NESTED_NA )
+
+#if   defined( GEOS_57 )
+         !%%%%% 2x25 BC REGION FOR NORTH AMERICA NESTED GRID (GEOS_57)
+         I1_BC_NA = 21                       ! 2x25 lon index, LL corner
+         J1_BC_NA = 51                       ! 2x25 lat index, LL corner
+         I2_BC_NA = 49                       ! 2x25 lon index, UR corner
+         J2_BC_NA = 76                       ! 2x25 lat index, UR corner
+#else
          !%%%%% 2x25 BC REGION FOR NORTH AMERICA NESTED GRID %%%%%
          I1_BC_NA = 17                       ! 2x25 lon index, LL corner
          J1_BC_NA = 51                       ! 2x25 lat index, LL corner
          I2_BC_NA = 57                       ! 2x25 lon index, UR corner
          J2_BC_NA = 81                       ! 2x25 lat index, UR corner
+#endif
+
 #endif
 
       ENDIF
