@@ -486,7 +486,7 @@ CONTAINS
 ! Now use assumed-shape declaration for Q (bmy, 6/4/13)
 !    REAL*8,  INTENT(INOUT) :: q(IM, JFIRST-NG:JLAST+NG, KM, NQ)
 !----------------------------------------------------------------------------
-    REAL*8,  INTENT(INOUT) :: q(:,:,:,:)
+    REAL*8,  INTENT(INOUT), TARGET :: q(:,:,:,:)
 
     ! E/W, N/S, and up/down diagnostic mass fluxes
     REAL*8,  INTENT(INOUT) :: MASSFLEW(:,:,:,:)  ! for ND24 diagnostic
@@ -524,6 +524,7 @@ CONTAINS
 !                              pass pointer references, so this may help to
 !                              reduce the creation of array temporaries,
 !                              which will reduce memory.
+!   5 Jun 2013 - R. Yantosca - Avoid array temporary in call to FZPPM
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -590,6 +591,9 @@ CONTAINS
     INTEGER, SAVE      :: ilmt, jlmt, klmt
     INTEGER            :: js2g0, jn2g0
     
+    ! Add pointer to avoid array temporary in call to FZPPM (bmy, 6/5/13)
+    REAL*8,  POINTER   :: ptr_Q(:,:,:)
+
     !     ----------------
     !     Begin execution.
     !     ----------------
@@ -786,7 +790,7 @@ CONTAINS
 !--------------------------------------------------------
 !$OMP PARALLEL DO        &
 !$OMP DEFAULT( SHARED   )&
-!$OMP PRIVATE( IQ, IK, adx, ady, qqu, qqv, dq1 )
+!$OMP PRIVATE( IQ, IK, adx, ady, qqu, qqv, dq1, ptr_Q )
     do iq = 1, nq
 
        do ik = 1, km
@@ -902,14 +906,26 @@ CONTAINS
 
        qtemp(:,:,:,iq) = q(:,:,:,iq)
 
+       ! Set up temporary pointer to Q to avoid array temporary in FZPPM
+       ! (bmy, 6/5/13)
+       ptr_Q => q(:,:,:,iq)
 
      ! ==========
        call Fzppm  &
      ! ==========
-            (klmt, delp1, wz, dq1, q(:,:,:,iq), fz(:,:,:,iq), &
+!-----------------------------------------------------------------------------
+! Prior to 6/5/13:
+! Now pass ptr_Q to avoid creating an array temporary in FZPPM.
+! This array temporary was found with -check arg_temp_created (bmy, 6/5/13)
+!            (klmt, delp1, wz, dq1, q(:,:,:,iq), fz(:,:,:,iq), &
+!-----------------------------------------------------------------------------
+            (klmt, delp1, wz, dq1, ptr_Q, fz(:,:,:,iq), &
             j1p, 1, jm, 1, im, 1, jm, &
             im, km, 1, im, 1, jm, 1, km)
          
+       ! Free pointer memory (bmy, 6/5/13)
+       NULLIFY( ptr_Q )
+
        !.sds notes on output arrays
        !   wz  (in) : vertical mass flux
        !   dq1 (inout) : species density (mb)
