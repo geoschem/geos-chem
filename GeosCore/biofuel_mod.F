@@ -991,7 +991,7 @@
                   IF ( GET_BRAVO_MASK( I, J ) > 0d0 ) THEN
 
                      ! If it's a BRAVO species 
-                     IF ( (NN == IDTNOX) .or. (NN == IDTCO) ) THEN
+                     IF ( (NN == IDTNO) .or. (NN == IDTCO) ) THEN
 
                         BIOFUEL(N,I,J) = 0.d0
 
@@ -1010,7 +1010,7 @@
                   IF ( GET_CANADA_MASK( I, J ) > 0d0 ) THEN
 
                      ! If it's a CAC species 
-                     IF ( (NN == IDTNOX) .or. (NN == IDTCO) ) THEN
+                     IF ( (NN == IDTNO) .or. (NN == IDTCO) ) THEN
 
                         BIOFUEL(N,I,J) = 0.d0
 
@@ -1029,7 +1029,7 @@
                   IF ( GET_EUROPE_MASK( I, J ) > 0d0 ) THEN
 
                      ! If it's an EMEP species 
-                     IF ( (NN == IDTNOX)  .OR. (NN == IDTCO)   .OR.
+                     IF ( (NN == IDTNO)   .OR. (NN == IDTCO)   .OR.
      &                    (NN == IDTALK4) .OR. (NN == IDTMEK)  .OR.
      &                    (NN == IDTALD2) .OR. (NN == IDTPRPE) .OR. 
      &                    (NN == IDTC2H6) ) THEN

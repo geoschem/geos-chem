@@ -943,8 +943,15 @@
             ENDIF
 
             ! overwrite Europe
-            IF ( LEMEPSHIP ) SHIP = 
-     $           GET_EMEP_ANTHRO( I, J, NN, SHIP=.TRUE.)
+            IF ( LEMEPSHIP ) THEN
+            
+               ! If we are over the European region ...
+               ! (bug fix, now overwrite only EMEP region, cdh 1/2/2013)
+               IF ( GET_EUROPE_MASK( I, J ) > 0d0 ) THEN
+                  SHIP =  GET_EMEP_ANTHRO( I, J, NN, SHIP=.TRUE.)
+               ENDIF
+
+            ENDIF
 
             ! Convert to same units as EMX(1), and add
             SHIP = SHIP * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 

@@ -44,7 +44,9 @@
       USE DIAG_MOD,        ONLY : AD32_ac,     AD32_an,     AD32_bb
       USE DIAG_MOD,        ONLY : AD32_bf,     AD32_fe,     AD32_li
       USE DIAG_MOD,        ONLY : AD32_so,     AD32_ub,     AD33
+      USE DIAG_MOD,        ONLY : AD32_SHIP,   AD32_SHIP_COUNT
       USE DIAG_MOD,        ONLY : AD34,        AD35,        AD36
+      USE DIAG_MOD,        ONLY : AD36_SHIP,   AD36_SHIP_COUNT
       USE DIAG_MOD,        ONLY : AD37,        AD38,        AD39
       USE DIAG_MOD,        ONLY : AD43
       USE DIAG_MOD,        ONLY : LTOH,        CTOH
@@ -58,6 +60,7 @@
       USE DIAG_MOD,        ONLY : AD44,        AD45,        LTOTH
       USE DIAG_MOD,        ONLY : CTOTH,       AD46,        AD47
       USE DIAG_MOD,        ONLY : AD52,        AD54,        AD63
+      USE DIAG_MOD,        ONLY : AD63_COUNT
       USE DIAG_MOD,        ONLY : AD19,        AD58,        AD60
 
 #if   defined( TOMAS )
@@ -789,6 +792,14 @@
          ! For stratospheric NOx
          ALLOCATE( AD32_ub( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD32_st' ) 
+
+         ! For ship NOx
+         ALLOCATE( AD32_ship( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD32_ship' ) 
+
+         ! For ship NOx counter
+         ALLOCATE( AD32_ship_count, STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD32_ship_count' ) 
       ENDIF
 
       !=================================================================
@@ -831,6 +842,12 @@
       IF ( ND36 > 0 ) THEN
          ALLOCATE( AD36( IIPAR, JJPAR, NEMANTHRO ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD36' )
+
+         ALLOCATE( AD36_SHIP( IIPAR, JJPAR, NEMANTHRO ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD36_SHIP' )
+
+         ALLOCATE( AD36_SHIP_COUNT, STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD36_SHIP_COUNT' )
       ENDIF
 
       !=================================================================
@@ -1273,6 +1290,11 @@
 
          ALLOCATE( AD63( IIPAR, JJPAR, 5), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD63' )
+         AD63 = 0d0
+
+         ALLOCATE( AD63_COUNT, STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD63_COUNT' )
+         AD63_COUNT = 0d0
 
       ENDIF
 
