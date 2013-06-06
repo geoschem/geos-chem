@@ -406,6 +406,8 @@
 !                                use 1D indices for routines GET_XEDGE_G and
 !                                GET_YEDGE_G found in global_grid_mod.90. This
 !                                will maintain grid-independent functionality.
+!  06 Jun 2013 - M. Payer      - Set TAU0 to first of month for 3-hr emissions
+!                                to match time stamp of data file (C. Keller)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -667,7 +669,7 @@
 
             IT3H = (IT3-1)*3
             HHMMSS = IT3H*10000
-            TAU0 = GET_TAU0( MM, DD, YYYY, IT3H )
+            TAU0 = GET_TAU0( MM, 1, YYYY, IT3H )
 
             FILENAME7 = TRIM( DATA_DIR_NATIVE ) //
      &         'GFED3_201203/YYYY/3hourly/GFED3_FR_3HR_YYYYMMDDhh'
