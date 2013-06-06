@@ -210,9 +210,13 @@
       !=================================================================
 
       ! Scalars 
-      INTEGER              :: ANTHRO_Hg_YEAR
-
-      CHARACTER(LEN=255)   :: SCENARIO !eds 5/17/12
+      !-----------------------------------------------------------------
+      ! Prior to 6/6/13:
+      ! These are now local variables in MERCURY_READYR (bmy, 6/6/13)
+      !INTEGER              :: ANTHRO_Hg_YEAR
+      !
+      !CHARACTER(LEN=255)   :: SCENARIO !eds 5/17/12
+      !-----------------------------------------------------------------
 
       ! Parameters
       REAL*8,  PARAMETER   :: SMALLNUM = 1D-20
@@ -3103,6 +3107,7 @@
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !  13 Jan 2013 - M. Payer    - Update soil Hg files for v9-02c (Y. Zhang)
+!  06 Jun 2013 - R. Yantosca - Get ANTHRO_Hg_YEAR, Hg_SCENARIO from Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3121,19 +3126,25 @@
       REAL*8, POINTER         :: INGRID(:,:) => NULL()
 
       ! For values from Input_Opt
-      LOGICAL                 :: LDYNOCEAN, LPREINDHG, LSPLIT
+      LOGICAL                 :: LDYNOCEAN
+      LOGICAL                 :: LPREINDHG
+      LOGICAL                 :: LSPLIT
+      INTEGER                 :: ANTHRO_Hg_YEAR
+      CHARACTER(LEN=10)       :: SCENARIO
 
       !=================================================================
       ! MERCURY_READYR begins here! 
       !=================================================================
 
       ! Assume success
-      RC        = GIGC_SUCCESS
+      RC             = GIGC_SUCCESS
 
       ! Copy values from Input_Opt
-      LDYNOCEAN = Input_Opt%LDYNOCEAN 
-      LPREINDHG = Input_Opt%LPREINDHG
-      LSPLIT    = Input_Opt%LSPLIT
+      LDYNOCEAN      = Input_Opt%LDYNOCEAN 
+      LPREINDHG      = Input_Opt%LPREINDHG
+      LSPLIT         = Input_Opt%LSPLIT
+      ANTHRO_HG_YEAR = Input_Opt%ANTHRO_Hg_YEAR
+      SCENARIO       = TRIM( Input_Opt%Hg_SCENARIO )
 
       !=================================================================
       ! Anthropogenic Emissions
@@ -7161,8 +7172,12 @@
       LOGICAL             :: LNLPBL
       LOGICAL             :: LGTMM
       INTEGER             :: N_TRACERS
-      INTEGER             :: ANTHRO_Hg_YEAR
-      CHARACTER(LEN=255)  :: HG_SCENARIO
+!----------------------------------------------------------------------------
+! Prior to 6/6/13:
+! These area now local variables in MERCURY_READYR (bmy, 6/6/13)
+!      INTEGER             :: ANTHRO_Hg_YEAR
+!      CHARACTER(LEN=255)  :: HG_SCENARIO
+!----------------------------------------------------------------------------
 
       !=================================================================
       ! INIT_MERCURY begins here!
@@ -7180,8 +7195,12 @@
       LNLPBL         = Input_Opt%LNLPBL           ! Use non-local PBL?
       LSPLIT         = Input_Opt%LSPLIT           ! Tagged simulation?
       N_TRACERS      = Input_Opt%N_TRACERS        ! # of Hg tracers
-      ANTHRO_Hg_YEAR = Input_Opt%ANTHRO_Hg_YEAR   ! Hg emissions year
-      SCENARIO       = Input_Opt%HG_SCENARIO      ! Future emiss scenario
+!----------------------------------------------------------------------------
+! Prior to 6/6/13:
+! These area now local variables in MERCURY_READYR (bmy, 6/6/13)
+!      ANTHRO_Hg_YEAR = Input_Opt%ANTHRO_Hg_YEAR   ! Hg emissions year
+!      SCENARIO       = Input_Opt%HG_SCENARIO      ! Future emiss scenario
+!----------------------------------------------------------------------------
 
       ! Location string for ERROR_STOP
       LOCATION       = 'DEFINE_TAGGED_Hg ("mercury_mod.f")'
