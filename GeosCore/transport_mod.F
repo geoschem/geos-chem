@@ -193,7 +193,7 @@
       !=================================================================
       IF ( ITS_A_NESTED_GRID() ) THEN
 
-#if defined( GEOS025x03125 )
+#if defined(  GRID025x03125 )
 
          ! Nested-grid simulation with GEOS 5.7-x met
          CALL DO_GEOS57_WINDOW_TRANSPORT
