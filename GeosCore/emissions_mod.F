@@ -111,7 +111,6 @@
       USE H2_HD_MOD,              ONLY : EMISS_H2_HD
       USE HCN_CH3CN_MOD,          ONLY : EMISS_HCN_CH3CN
       USE ICOADS_SHIP_MOD,        ONLY : EMISS_ICOADS_SHIP
-      USE LOGICAL_MOD                
       USE MERCURY_MOD,            ONLY : EMISSMERCURY
       USE NEI2005_ANTHRO_MOD,     ONLY : EMISS_NEI2005_ANTHRO
       USE NEI2005_ANTHRO_MOD,     ONLY : EMISS_NEI2005_ANTHRO_05x0666
@@ -129,9 +128,17 @@
       USE TIME_MOD,               ONLY : GET_YEAR
       USE TIME_MOD,               ONLY : ITS_A_NEW_MONTH
       USE TIME_MOD,               ONLY : ITS_A_NEW_YEAR
-      USE TRACER_MOD                 
       USE TRACERID_MOD,           ONLY : IDTSO2, IDTC2H6
       USE VISTAS_ANTHRO_MOD,      ONLY : EMISS_VISTAS_ANTHRO
+#if   defined( TOMAS )
+      USE TRACERID_MOD,           ONLY : IDTSS1           ! (win, 1/25/10)
+      USE TRACERID_MOD,           ONLY : IDTSF1           ! (win, 1/25/10)
+      USE TRACERID_MOD,           ONLY : IDTECIL1         ! (win, 1/25/10)
+      USE TRACERID_MOD,           ONLY : IDTOCIL1         ! (win, 1/25/10)
+      USE TRACERID_MOD,           ONLY : IDTECOB1         ! (win, 1/25/10)
+      USE TRACERID_MOD,           ONLY : IDTOCOB1         ! (win, 1/25/10)
+      USE TRACERID_MOD,           ONLY : IDTDUST1         ! (win, 1/25/10)
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -181,6 +188,7 @@
 !        EMEP, and Streets every month (amv, 12/2/08)
 !  (21) Now references EMISS_NEI2005_ANTHRO from "nei2005_anthro_mod.f"
 !        (amv, 10/19/09)
+!  (22) Reference to TRACERID_MOd for IDTDUST1 for calling EMISSDUST (Win, 7/17/09)
 !  18 Dec 2009 - Aaron van D - Added emissions for nested grids @ 0.5 x 0.666
 !  08 Feb 2010 - NBIOMAX is now in CMN_SIZE
 !  01 Feb 2011 - CFriedman   - Added emissions for POPs
@@ -193,49 +201,131 @@
 !  19 Oct 2012 - R. Yantosca - Rename CHEM_STATE argument to State_Chm
 !  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
 !  15 Nov 2012 - M. Payer    - Now pass all met fields via State_Met object
+!  26 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
+!  27 Mar 2013 - R. Yantosca - Now remove DEVEL tags; pass objects to routines
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                     :: MONTH, YEAR
-      ! jpp, 3/2/10: Sea-salt emissions of Br2.
-      REAL*8                      :: SSA_Br2(IIPAR,JJPAR)
+      INTEGER :: MONTH
+      INTEGER :: YEAR
+      REAL*8  :: SSA_Br2(IIPAR,JJPAR)
+
+      ! For fields from Input_Opt
+      LOGICAL :: ITS_A_FULLCHEM_SIM
+      LOGICAL :: ITS_AN_AEROSOL_SIM
+      LOGICAL :: ITS_A_RnPbBe_SIM
+      LOGICAL :: ITS_A_CH3I_SIM
+      LOGICAL :: ITS_A_HCN_SIM
+      LOGICAL :: ITS_A_TAGCO_SIM
+      LOGICAL :: ITS_A_C2H6_SIM
+      LOGICAL :: ITS_A_CH4_SIM
+      LOGICAL :: ITS_A_MERCURY_SIM
+      LOGICAL :: ITS_A_POPS_SIM
+      LOGICAL :: ITS_A_CO2_SIM
+      LOGICAL :: ITS_A_H2HD_SIM
+      LOGICAL :: LBIOMASS
+      LOGICAL :: LSTREETS
+      LOGICAL :: LRETRO
+      LOGICAL :: LNEI99
+      LOGICAL :: LVISTAS
+      LOGICAL :: LBRAVO
+      LOGICAL :: LEMEP
+      LOGICAL :: LCAC
+      LOGICAL :: LNEI05
+      LOGICAL :: LARCSHIP
+      LOGICAL :: LEDGARSHIP
+      LOGICAL :: LEMEPSHIP
+      LOGICAL :: LICOADSSHIP
+      LOGICAL :: LSSALT
+      LOGICAL :: LCARB
+      LOGICAL :: LSULF
+      LOGICAL :: LCRYST
+      LOGICAL :: LDUST
+      LOGICAL :: LSSABr2
+      LOGICAL :: LPRT
+      INTEGER :: N_TRACERS
 
       !=================================================================
       ! DO_EMISSIONS begins here!
       !=================================================================
 
       ! Assume success
-      RC    = GIGC_SUCCESS
+      RC                 = GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      ITS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
+      ITS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
+      ITS_A_RnPbBe_SIM   = Input_Opt%ITS_A_RnPbBe_SIM
+      ITS_A_CH3I_SIM     = Input_Opt%ITS_A_CH3I_SIM
+      ITS_A_HCN_SIM      = Input_Opt%ITS_A_HCN_SIM
+      ITS_A_TAGCO_SIM    = Input_Opt%ITS_A_TAGCO_SIM
+      ITS_A_C2H6_SIM     = Input_Opt%ITS_A_C2H6_SIM
+      ITS_A_CH4_SIM      = Input_Opt%ITS_A_CH4_SIM
+      ITS_A_MERCURY_SIM  = Input_Opt%ITS_A_MERCURY_SIM
+      ITS_A_POPS_SIM     = Input_Opt%ITS_A_POPS_SIM
+      ITS_A_CO2_SIM      = Input_Opt%ITS_A_CO2_SIM
+      ITS_A_H2HD_SIM     = Input_Opt%ITS_A_H2HD_SIM
+      LBIOMASS           = Input_Opt%LBIOMASS
+      LSTREETS           = Input_Opt%LSTREETS
+      LRETRO             = Input_Opt%LRETRO
+      LNEI99             = Input_Opt%LNEI99
+      LVISTAS            = Input_Opt%LVISTAS
+      LBRAVO             = Input_Opt%LBRAVO
+      LEMEP              = Input_Opt%LEMEP
+      LCAC               = Input_Opt%LCAC
+      LNEI05             = Input_Opt%LNEI05
+      LARCSHIP           = Input_Opt%LARCSHIP
+      LEDGARSHIP         = Input_Opt%LEDGARSHIP
+      LEMEPSHIP          = Input_Opt%LEMEPSHIP
+      LICOADSSHIP        = Input_Opt%LICOADSSHIP
+      LSSALT             = Input_Opt%LSSALT
+      LCARB              = Input_Opt%LCARB
+      LSULF              = Input_Opt%LSULF
+      LCRYST             = Input_Opt%LCRYST
+      LDUST              = Input_Opt%LDUST
+      LSSABr2            = Input_Opt%LSSABr2
+      LPRT               = Input_Opt%LPRT
+      N_TRACERS          = Input_Opt%N_TRACERS
+
+#if defined( TOMAS )
+      ! Extra error checks for TOMAS simulation
+      LSSALT             = ( LSSALT .and. ( IDTSS1   > 0 ) )
+      LSULF              = ( LSULF  .and. ( IDTSF1   > 0 ) )
+      LCARB              = ( LCARB  .and. ( IDTECIL1 > 0 ) 
+     &                              .and. ( IDTECOB1 > 0 ) 
+     &                              .and. ( IDTOCIL1 > 0 ) 
+     &                              .and. ( IDTOCOB1 > 0 ) )
+#endif
 
       ! Get year and month
-      MONTH = GET_MONTH()
+      MONTH              = GET_MONTH()
 
       ! check if emissions year differs from met field year
       IF ( FSCALYR < 0 ) THEN
-         YEAR = GET_YEAR()
+         YEAR            = GET_YEAR()
       ELSE
-         YEAR = FSCALYR
+         YEAR            = FSCALYR
       ENDIF
-
 
       ! Get biomass burning emissions for use below
       IF ( LBIOMASS ) THEN
+!----------------------------------------------------------------------------
 !#### HARDWIRE SWITCH : use YEAR instead of GET_YEAR() to use the same
 !#### base year as anthropogenic emissions
-!         CALL COMPUTE_BIOMASS_EMISSIONS( YEAR, MONTH )
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-         CALL COMPUTE_BIOMASS_EMISSIONS( GET_YEAR(), MONTH,
-     &                 State_Chm%TRAC_BTEND(:,:,1,:) )
-#else
-         CALL COMPUTE_BIOMASS_EMISSIONS( GET_YEAR(), MONTH )
-#endif
+!         CALL COMPUTE_BIOMASS_EMISSIONS( am_I_Root, YEAR,      
+!                                         MONTH,     Input_Opt, 
+!                                         State_Chm, RC         )  
+!----------------------------------------------------------------------------
+         CALL COMPUTE_BIOMASS_EMISSIONS
+     &      ( am_I_Root, GET_YEAR(), MONTH,     
+     &        Input_Opt, State_Chm, RC      )  
       ENDIF
          
       ! Test by simulation type
-      IF ( ITS_A_FULLCHEM_SIM() ) THEN
+      IF ( ITS_A_FULLCHEM_SIM ) THEN
 
          !--------------------
          ! NOx-Ox-HC-aerosol
@@ -243,20 +333,12 @@
 
          ! Read David Streets' emisisons over China / SE ASia
          IF ( LSTREETS .and. ITS_A_NEW_MONTH() ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 #if   defined(GRID05x0666)
-            CALL EMISS_STREETS_ANTHRO_05x0666 
-     &           ( State_Met, State_Chm%TRAC_TEND(:,:,1,:) )
+            CALL EMISS_STREETS_ANTHRO_05x0666
+     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 #else
             CALL EMISS_STREETS_ANTHRO
-     &           ( State_Met, State_Chm%TRAC_TEND(:,:,1,:) )
-#endif
-#else
-#if   defined(GRID05x0666)
-            CALL EMISS_STREETS_ANTHRO_05x0666( State_Met)
-#else
-            CALL EMISS_STREETS_ANTHRO( State_Met )
-#endif
+     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 #endif
          ENDIF
 
@@ -264,177 +346,118 @@
          ! the NOx diurnal scale factors, and the EDGAR emissions 
          ! if necessary (amv, phs, 3/11/08)
          IF ( ITS_A_NEW_MONTH() ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
             CALL EMISS_EDGAR
-     &           ( YEAR, MONTH, State_Chm%TRAC_TEND(:,:,1,:) )
-#else
-            CALL EMISS_EDGAR( YEAR, MONTH )
-#endif
+     &         ( am_I_Root, YEAR, MONTH, Input_Opt, State_Chm, RC )
          ENDIF
 
          ! Read RETRO emissions once per month (wfr, 3/8/11)
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-         IF ( LRETRO .and. ITS_A_NEW_MONTH() ) CALL EMISS_RETRO
-     &       ( State_Chm%TRAC_TEND(:,:,1,:) )
-#else
-         IF ( LRETRO .and. ITS_A_NEW_MONTH() ) CALL EMISS_RETRO
-#endif
+         IF ( LRETRO .and. ITS_A_NEW_MONTH() ) THEN
+            CALL EMISS_RETRO( am_I_Root, Input_Opt, State_Chm, RC )
+         ENDIF
 
          ! Read EPA/NEI99 (USA) emissions once per month
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-         IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) CALL EMISS_EPA_NEI(
-     &       State_Chm%TRAC_TEND(:,:,1,:),
-     &       State_Chm%TRAC_BTEND(:,:,1,:))
-#else
-         IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) CALL EMISS_EPA_NEI
-#endif
+         IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) THEN
+            CALL EMISS_EPA_NEI( am_I_Root, Input_Opt, State_Chm, RC )
+         ENDIF
+
          ! Read VISTAS (USA) emissions once per month
          IF ( LVISTAS .and. ITS_A_NEW_MONTH() ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-            CALL EMISS_VISTAS_ANTHRO(
-     &           State_Chm%TRAC_TEND(:,:,1,:))
-#else
             CALL EMISS_VISTAS_ANTHRO
-#endif
+     &         ( am_I_Root, Input_Opt, State_Chm, RC )
          ENDIF
 
          ! Read BRAVO (Mexico) emissions once per year
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-         IF ( LBRAVO .and. ITS_A_NEW_YEAR()  ) 
-     &   CALL EMISS_BRAVO(State_Chm%TRAC_TEND(:,:,1,:))
-#else
-         IF ( LBRAVO .and. ITS_A_NEW_YEAR()  ) CALL EMISS_BRAVO
-#endif
+         IF ( LBRAVO .and. ITS_A_NEW_YEAR() ) THEN
+            CALL EMISS_BRAVO( am_I_Root, Input_Opt, State_Chm, RC )
+         ENDIF
 
          ! Read EMEP (Europe) emissions once per year
          IF ( LEMEP  .and. ITS_A_NEW_MONTH()  ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-#if   defined(GRID05x0666)
-            CALL EMISS_EMEP_05x0666(State_Chm%TRAC_TEND(:,:,1,:))
-#else
-            CALL EMISS_EMEP(State_Chm%TRAC_TEND(:,:,1,:))
-#endif
-#else
 #if   defined(GRID05x0666)
             CALL EMISS_EMEP_05x0666
+     &         ( am_I_Root, Input_Opt, State_Chm, RC ) ! nested
 #else
             CALL EMISS_EMEP
-#endif
+     &         ( am_I_Root, Input_Opt, State_Chm, RC ) ! global
 #endif
          ENDIF
 
          ! Read CAC (Canada) emissions
          IF ( LCAC .and. ITS_A_NEW_YEAR() ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 #if   defined( GRID05x0666 )
             CALL EMISS_CAC_ANTHRO_05x0666
-     &      (State_Chm%TRAC_TEND(:,:,1,:))
-#else
-            CALL EMISS_CAC_ANTHRO(State_Chm%TRAC_TEND)
-#endif
-#else
-#if   defined( GRID05x0666 )
-            CALL EMISS_CAC_ANTHRO_05x0666
+     &         ( am_I_Root, Input_Opt, State_Chm, RC ) ! nested
 #else
             CALL EMISS_CAC_ANTHRO
-#endif
+     &         ( am_I_Root, Input_Opt, State_Chm, RC ) ! global
 #endif
          ENDIF
 
          ! Read NEI2005 (USA) emissions
          IF ( LNEI05 .and. ITS_A_NEW_MONTH() ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 #if   defined( GRID05x0666 )
-            CALL EMISS_EPA_NEI(                  ! Use NEI99 biofuel, nested
-     &       State_Chm%TRAC_TEND(:,:,1,:),
-     &       State_Chm%TRAC_BTEND(:,:,1,:))
-            CALL EMISS_NEI2005_ANTHRO_05x0666(   ! Use NEI05 anthro,  nested
-     &           State_Chm%TRAC_TEND)
+            CALL EMISS_EPA_NEI
+     &         ( am_I_Root, Input_Opt, State_Chm, RC ) ! NEI99 biofuel, nested
+            CALL EMISS_NEI2005_ANTHRO_05x0666
+     &         ( am_I_Root, Input_Opt, State_Chm, RC ) ! NEI05 anthro,  nested
 #else
-            CALL EMISS_EPA_NEI(                  ! Use NEI99 biofuel, global
-     &       State_Chm%TRAC_TEND(:,:,1,:),
-     &       State_Chm%TRAC_BTEND(:,:,1,:))
-            CALL EMISS_NEI2005_ANTHRO(           ! Use NEI05 anthro,  global
-     &           State_Chm%TRAC_TEND)
-#endif
-#else
-#if   defined( GRID05x0666 )
-            CALL EMISS_EPA_NEI                  ! Use NEI99 biofuel, nested
-            CALL EMISS_NEI2005_ANTHRO_05x0666   ! Use NEI05 anthrho, nested
-#else
-            CALL EMISS_EPA_NEI                  ! Use NEI99 biofuel, global
-            CALL EMISS_NEI2005_ANTHRO           ! Use NEI05 anthro,  global
-#endif
+            CALL EMISS_EPA_NEI
+     &         ( am_I_Root, Input_Opt, State_Chm, RC ) ! NEI99 biofuel, global
+            CALL EMISS_NEI2005_ANTHRO
+     &         ( am_I_Root, Input_Opt, State_Chm, RC ) ! NEI05 anthro,  global
 #endif
          ENDIF
 
          ! Read SO2 ARCTAS emissions
-         IF ( LARCSHIP .AND. ITS_A_NEW_YEAR() )
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-     &        CALL EMISS_ARCTAS_SHIP( YEAR, 
-     &                   State_Chm%TRAC_TEND(:,:,1,IDTSO2))
-#else
-     &        CALL EMISS_ARCTAS_SHIP( YEAR )
-#endif
+         IF ( LARCSHIP .AND. ITS_A_NEW_YEAR() ) THEN
+            CALL EMISS_ARCTAS_SHIP
+     &         ( am_I_Root, YEAR, Input_Opt, State_Chm, RC )
+         ENDIF
+            
          ! Read ICOADS ship emissions once per month (cklee, 7/09/09)
-         IF ( LICOADSSHIP .and. ITS_A_NEW_MONTH() ) 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-     &        CALL EMISS_ICOADS_SHIP( State_Chm%TRAC_TEND(:,:,1,:) )
-#else
-     &        CALL EMISS_ICOADS_SHIP
-#endif
-!         ENDIF
+         IF ( LICOADSSHIP .and. ITS_A_NEW_MONTH() ) THEN
+            CALL EMISS_ICOADS_SHIP
+     &         ( am_I_Root, Input_Opt, State_Chm, RC )
+         ENDIF
 
          ! Read look up tables for PARANOX ship plume model (mpayer, 2/7/12)
-         IF ( ( LICOADSSHIP .or. LEDGARSHIP .or. LEMEPSHIP ) 
-     &      .and. ITS_A_NEW_MONTH() ) THEN
+         IF ( ( LICOADSSHIP   .or.  LEDGARSHIP .or. 
+     &          LEMEPSHIP  ) .and. ITS_A_NEW_MONTH() )  THEN
             CALL READ_PARANOX_LUT
          ENDIF
 
          ! C2H6 emissions using RETRO are too low, use Yaping Xiao's
          ! offline C2H6 emissions instead (mpayer, 3/22/12)
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-         CALL EMISSC2H6( State_Met,
-     &        State_Chm%TRAC_TEND (:,:,1,IDTC2H6),
-     &        State_Chm%TRAC_BTEND(:,:,1,:)       )
-#else
-         CALL EMISSC2H6( State_Met )
-#endif
+         CALL EMISSC2H6
+     &      ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
          ! NOx-Ox-HC (w/ or w/o aerosols)
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-!         write(*,*) 'TRAC_TEND:', shape(State_Chm%TRAC_TEND)
-         CALL EMISSDR( State_Met, 
-     &                 State_Chm%TRAC_TEND, State_Chm%TRAC_BTEND )
-#else
-         CALL EMISSDR( State_Met )
-#endif
+         CALL EMISSDR
+     &      ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+!
+         ! Seasalt aerosol emission
+         IF ( LSSALT ) THEN 
+            CALL EMISSSEASALT
+     &         ( am_I_Root, Input_Opt, State_Met, 
+     &           State_Chm, RC,        ssa_br2    )
+         ENDIF
 
-         ! Emissions for various aerosol types
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-         IF ( LSSALT            ) 
-     &      CALL EMISSSEASALT( State_Met, State_Chm%TRAC_TEND(:,:,:,:),
-     &                         ssa_br2    )
-         IF ( LSULF .or. LCRYST ) 
-     &      CALL EMISSSULFATE( State_Met, State_Chm%TRAC_TEND(:,:,:,:))
-         IF ( LCARB             ) 
-     &      CALL EMISSCARBON ( State_Met, State_Chm%TRAC_TEND(:,:,1,:))
-#else
-         IF ( LSSALT            ) CALL EMISSSEASALT( State_Met, ssa_br2)
-         IF ( LSULF .or. LCRYST ) CALL EMISSSULFATE( State_Met )
-         IF ( LCARB             ) CALL EMISSCARBON( State_Met )
-         !---------------------------------------------------------------------
-         ! Prior to 11/26/12:
-         ! Now mainline new call for EMISSDUST w/ Input_Opt (bmy, 11/26/12)
-         !IF ( LDUST             ) CALL EMISSDUST( State_Met )
-         !---------------------------------------------------------------------
-#endif
-         IF ( LDUST             ) THEN
-            CALL EMISSDUST( am_I_Root, 
-     &                      Input_Opt, 
-     &                      State_Met, 
-     &                      State_Chm%TRAC_TEND(:,:,:,:), 
-     &                      RC                             )
+         ! Sulfate aerosol emission
+         IF ( LSULF .or. LCRYST ) THEN
+            CALL EMISSSULFATE
+     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+         ENDIF
+
+         ! Carbonaceous/SOA aerosol emission
+         IF ( LCARB ) THEN
+            CALL EMISSCARBON 
+     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+         ENDIF
+
+         ! Mineral dust aerosol emission
+         IF ( LDUST ) THEN
+            CALL EMISSDUST
+     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
          ENDIF
 
          ! jpp, 3/2/10:
@@ -444,7 +467,7 @@
             CALL EMIT_BR2( SSA_Br2 )
          ENDIF
 
-      ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
+      ELSE IF ( ITS_AN_AEROSOL_SIM ) THEN
          
          !--------------------
          ! Offline aerosol
@@ -452,189 +475,139 @@
 
          ! Read David Streets' emisisons over China / SE ASia
          IF ( LSTREETS .and. ITS_A_NEW_MONTH() ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 #if   defined(GRID05x0666)
-            CALL EMISS_STREETS_ANTHRO_05x0666 
-     &           ( State_Met, State_Chm%TRAC_TEND(:,:,1,:))
+            CALL EMISS_STREETS_ANTHRO_05x0666
+     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC ) ! nested
 #else
             CALL EMISS_STREETS_ANTHRO
-     &           ( State_Met, State_Chm%TRAC_TEND(:,:,1,:))
-#endif
-#else
-#if   defined( GRID05x0666 )
-            CALL EMISS_STREETS_ANTHRO_05x0666( State_Met )
-#else
-            CALL EMISS_STREETS_ANTHRO( State_Met )
-#endif
+     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC ) ! global
 #endif
          ENDIF
 
          ! Read CAC emissions
          IF ( LCAC .and. ITS_A_NEW_YEAR() ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 #if   defined( GRID05x0666 )
-            CALL EMISS_CAC_ANTHRO_05x0666(State_Chm%TRAC_TEND(:,:,1,:))
-#else
-            CALL EMISS_CAC_ANTHRO(State_Chm%TRAC_TEND(:,:,1,:))
-#endif
-#else
-#if   defined(GRID05x0666)
             CALL EMISS_CAC_ANTHRO_05x0666
+     &         ( am_I_Root, Input_Opt, State_Chm, RC ) ! nested
 #else
             CALL EMISS_CAC_ANTHRO
-#endif
+     &         ( am_I_Root, Input_Opt, State_Chm, RC ) ! global
 #endif
          ENDIF
 
          ! Read EDGAR emissions once per month
          IF ( ITS_A_NEW_MONTH() ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
             CALL EMISS_EDGAR
-     &       ( YEAR, MONTH, State_Chm%TRAC_TEND(:,:,1,:) )
-#else
-            CALL EMISS_EDGAR( YEAR, MONTH )
-#endif
+     &         ( am_I_Root, YEAR,      MONTH,
+     &           Input_Opt, State_Chm, RC     )
          ENDIF
 
          ! Read EPA/NEI99 emissions once per month
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-         IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) CALL EMISS_EPA_NEI(
-     &       State_Chm%TRAC_TEND(:,:,1,:),
-     &       State_Chm%TRAC_BTEND(:,:,1,:))
-#else
-         IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) CALL EMISS_EPA_NEI
-#endif
+         IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) THEN
+            CALL EMISS_EPA_NEI( am_I_Root, Input_Opt, State_Chm, RC )
+         ENDIF
 
          ! Read NEI2005 emissions once per month
          IF ( LNEI05 .and. ITS_A_NEW_MONTH() ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 #if   defined( GRID05x0666 )
-            CALL EMISS_EPA_NEI(                  ! Use NEI99 biofuel, nested
-     &       State_Chm%TRAC_TEND(:,:,1,:),
-     &       State_Chm%TRAC_BTEND(:,:,1,:))
-            CALL EMISS_NEI2005_ANTHRO_05x0666(   ! Use NEI05 anthro,  nested
-     &           State_Chm%TRAC_TEND)
+            CALL EMISS_EPA_NEI
+     &         ( am_I_Root, Input_Opt, State_Chm, RC ) ! NEI99 biofuel, nested
+            CALL EMISS_NEI2005_ANTHRO_05x0666
+     &         ( am_I_Root, Input_Opt, State_Chm, RC ) ! NEI05 anthro,  nested
 #else
-            CALL EMISS_EPA_NEI(                  ! Use NEI99 biofuel, global
-     &       State_Chm%TRAC_TEND(:,:,1,:),
-     &       State_Chm%TRAC_BTEND(:,:,1,:))
-            CALL EMISS_NEI2005_ANTHRO(           ! Use NEI05 anthro,  global
-     &           State_Chm%TRAC_TEND)
-#endif
-#else
-#if    defined( GRID05x0666 )
-            CALL EMISS_EPA_NEI                  ! Use NEI99 biofuel, nested
-            CALL EMISS_NEI2005_ANTHRO_05x0666   ! Use NEI05 anthro,  global
-#else
-            CALL EMISS_EPA_NEI                  ! Use NEI99 biofuel, nested
-            CALL EMISS_NEI2005_ANTHRO           ! Use NEI05 anthro,  global
-#endif
+            CALL EMISS_EPA_NEI 
+     &         ( am_I_Root, Input_Opt, State_Chm, RC ) ! NEI99 biofuel, global
+            CALL EMISS_NEI2005_ANTHRO
+     &         ( am_I_Root, Input_Opt, State_Chm, RC ) ! NEI05 anthro,  global
 #endif
          ENDIF
 
          ! Read BRAVO (Mexico) emissions once per year
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-         IF ( LBRAVO .and. ITS_A_NEW_YEAR()  ) 
-     &   CALL EMISS_BRAVO(State_Chm%TRAC_TEND(:,:,1,:))
-#else
-         IF ( LBRAVO .and. ITS_A_NEW_YEAR()  ) CALL EMISS_BRAVO
-#endif
+         IF ( LBRAVO .and. ITS_A_NEW_YEAR() ) THEN
+            CALL EMISS_BRAVO( am_I_Root, Input_Opt, State_Chm, RC )
+         ENDIF
 
          ! Read EMEP (Europe) emissions once per year
          IF ( LEMEP  .and. ITS_A_NEW_YEAR()  ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-#if   defined(GRID05x0666)
-            CALL EMISS_EMEP_05x0666(State_Chm%TRAC_TEND(:,:,1,:))
-#else
-            CALL EMISS_EMEP(State_Chm%TRAC_TEND(:,:,1,:))
-#endif
-#else
 #if   defined( GRID05x0666 )
             CALL EMISS_EMEP_05x0666
+     &         ( am_I_Root, Input_Opt, State_Chm, RC ) ! nested
 #else       
             CALL EMISS_EMEP
-#endif
+     &         ( am_I_Root, Input_Opt, State_Chm, RC ) ! global
 #endif
          ENDIF
 
          ! Read SO2 ARCTAS emissions
-         IF ( LARCSHIP .AND. ITS_A_NEW_YEAR() )
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-     &        CALL EMISS_ARCTAS_SHIP( YEAR,
-     &             State_Chm%TRAC_TEND(:,:,1,IDTSO2))
-#else
-     &        CALL EMISS_ARCTAS_SHIP( YEAR )
-#endif
+         IF ( LARCSHIP .AND. ITS_A_NEW_YEAR() ) THEN
+            CALL EMISS_ARCTAS_SHIP
+     &         ( am_I_Root, YEAR, Input_Opt, State_Chm, RC )
+         ENDIF
 
          ! Read ICOADS ship emissions once per month !(cklee, 7/09/09)
          IF ( LICOADSSHIP .and. ITS_A_NEW_MONTH() ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-            CALL EMISS_ICOADS_SHIP( State_Chm%TRAC_TEND(:,:,1,:) )
-#else
             CALL EMISS_ICOADS_SHIP
-#endif
+     &         ( am_I_Root, Input_Opt, State_Chm, RC )
          ENDIF
 
          ! Read look up tables for PARANOX ship plume model (mpayer, 2/7/12)
-         IF ( ( LICOADSSHIP .or. LEDGARSHIP .or. LEMEPSHIP ) 
-     &      .and. ITS_A_NEW_MONTH() ) THEN
+         IF ( ( LICOADSSHIP .or.  LEDGARSHIP .or. 
+     &          LEMEPSHIP ) .and. ITS_A_NEW_MONTH() ) THEN
             CALL READ_PARANOX_LUT
          ENDIF
 
-         ! Emissions for various aerosol types
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-         IF ( LSSALT            ) 
-     &   CALL EMISSSEASALT( State_Met, State_Chm%TRAC_TEND(:,:,:,:))
-         IF ( LSULF .or. LCRYST ) 
-     &   CALL EMISSSULFATE( State_Met, State_Chm%TRAC_TEND(:,:,:,:))
-         IF ( LCARB             ) 
-     &   CALL EMISSCARBON ( State_Met, State_Chm%TRAC_TEND(:,:,1,:))
-
-#else
-         IF ( LSSALT            ) CALL EMISSSEASALT( State_Met )
-         IF ( LSULF .or. LCRYST ) CALL EMISSSULFATE( State_Met )
-         IF ( LCARB             ) CALL EMISSCARBON( State_Met )
-         !-------------------------------------------------------------------
-         ! Now mainline new subroutine call to EMISSDUST (bmy, 11/26/12)
-         !IF ( LDUST             ) CALL EMISSDUST( State_Met )
-         !-------------------------------------------------------------------
-#endif
-         IF ( LDUST             ) THEN
-            CALL EMISSDUST( am_I_Root, 
-     &                      Input_Opt,
-     &                      State_Met,
-     &                      State_Chm%TRAC_TEND(:,:,:,:), 
-     &                      RC                            )
+         ! Seasalt aerosol emission
+         IF ( LSSALT ) THEN 
+            CALL EMISSSEASALT
+     &         ( am_I_Root, Input_Opt, State_Met, 
+     &           State_Chm, RC,        ssa_br2    )
          ENDIF
 
-      ELSE IF ( ITS_A_RnPbBe_SIM() ) THEN
+         ! Sulfate aerosol emission
+         IF ( LSULF .or. LCRYST ) THEN
+            CALL EMISSSULFATE
+     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+         ENDIF
+
+         ! Carbonaceous/SOA aerosol emission
+         IF ( LCARB ) THEN
+            CALL EMISSCARBON 
+     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+         ENDIF
+
+         ! Mineral dust aerosol emission
+         IF ( LDUST ) THEN
+            CALL EMISSDUST
+     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+         ENDIF
+
+      ELSE IF ( ITS_A_RnPbBe_SIM ) THEN
          
          !--------------------
          ! Rn-Pb-Be
          !--------------------
-         CALL EMISSRnPbBe( State_Met )
+         CALL EMISSRnPbBe
+     &      ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
-      ELSE IF ( ITS_A_CH3I_SIM() ) THEN
+      ELSE IF ( ITS_A_CH3I_SIM ) THEN
 
          !--------------------
          ! CH3I
          !--------------------
 
          ! Emit CH3I
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-         CALL EMISSCH3I( State_Met, State_Chm%TRAC_BTEND(:,:,1,:) )
-#else
-         CALL EMISSCH3I( State_Met )
-#endif
+         CALL EMISSCH3I
+     &      ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
-      ELSE IF ( ITS_A_HCN_SIM() ) THEN
+      ELSE IF ( ITS_A_HCN_SIM ) THEN
 
          !--------------------
          ! HCN - CH3CN
          !--------------------
-         CALL EMISS_HCN_CH3CN( N_TRACERS, STT )
+         CALL EMISS_HCN_CH3CN
+     &      ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
-      ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
+      ELSE IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
 
          !--------------------
          ! Tagged CO
@@ -642,125 +615,78 @@
 
          ! Read David Streets' emisisons over China / SE ASia
          ! Bug fix: call every month now (pdk, phs, 3/17/09)
-         IF ( LSTREETS .and. ITS_A_NEW_MONTH() ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+         IF ( Input_Opt%LSTREETS .and. ITS_A_NEW_MONTH() ) THEN
 #if   defined(GRID05x0666)
-            CALL EMISS_STREETS_ANTHRO_05x0666 
-     &           ( State_Met, State_Chm%TRAC_TEND(:,:,1,:))
+            CALL EMISS_STREETS_ANTHRO_05x0666
+     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC ) ! nested
 #else
             CALL EMISS_STREETS_ANTHRO
-     &           ( State_Met, State_Chm%TRAC_TEND(:,:,1,:))
-#endif
-#else
-#if   defined( GRID05x0666 )
-            CALL EMISS_STREETS_ANTHRO_05x0666( State_Met )
-#else
-            CALL EMISS_STREETS_ANTHRO( State_Met )
-#endif
+     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC ) ! global
 #endif
          ENDIF
 
          ! Read CAC emissions
          IF ( LCAC .and. ITS_A_NEW_YEAR() ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 #if   defined( GRID05x0666 )
             CALL EMISS_CAC_ANTHRO_05x0666
-     &      (State_Chm%TRAC_TEND(:,:,1,:))
-#else
-            CALL EMISS_CAC_ANTHRO(State_Chm%TRAC_TEND(:,:,1,:))
-#endif
-#else
-#if   defined( GRID05x0666 )
-            CALL EMISS_CAC_ANTHRO_05x0666
+     &         ( am_I_Root, Input_Opt, State_Chm, RC ) ! nested
 #else
             CALL EMISS_CAC_ANTHRO
-#endif
+     &         ( am_I_Root, Input_Opt, State_Chm, RC ) ! global
 #endif
          ENDIF
 
          ! Read EDGAR emissions once per month
          IF ( ITS_A_NEW_MONTH() ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-            CALL EMISS_EDGAR
-     &       ( YEAR, MONTH, State_Chm%TRAC_TEND(:,:,1,:) )
-#else
-            CALL EMISS_EDGAR( YEAR, MONTH )
-#endif
+            CALL EMISS_EDGAR( am_I_Root, YEAR,      MONTH,
+     &                        Input_Opt, State_Chm, RC     )
          ENDIF
 
          ! Read EPA (USA) emissions once per month
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-         IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) CALL EMISS_EPA_NEI(
-     &       State_Chm%TRAC_TEND(:,:,1,:),
-     &       State_Chm%TRAC_BTEND(:,:,1,:))
-#else
-         IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) CALL EMISS_EPA_NEI
-#endif
+         IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) THEN
+            CALL EMISS_EPA_NEI( am_I_Root, Input_Opt, State_Chm, RC )
+         ENDIF
 
          ! Read NEI2005 (USA) emissions once per year
          IF ( LNEI05 .and. ITS_A_NEW_MONTH() ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 #if   defined( GRID05x0666 )
-            CALL EMISS_EPA_NEI(                  ! Use NEI99 biofuel, nested
-     &       State_Chm%TRAC_TEND(:,:,1,:),
-     &       State_Chm%TRAC_BTEND(:,:,1,:))
-            CALL EMISS_NEI2005_ANTHRO_05x0666(   ! Use NEI05 anthro,  nested
-     &           State_Chm%TRAC_TEND)
+            CALL EMISS_EPA_NEI
+     &         ( am_I_Root, Input_Opt, State_Chm, RC ) ! NEI99 biofuel, nested
+            CALL EMISS_NEI2005_ANTHRO_05x0666
+     &         ( am_I_Root, Input_Opt, State_Chm, RC ) ! NEI05 anthro,  nested
 #else
-            CALL EMISS_EPA_NEI(                  ! Use NEI99 biofuel, global
-     &       State_Chm%TRAC_TEND(:,:,1,:),
-     &       State_Chm%TRAC_BTEND(:,:,1,:))
-            CALL EMISS_NEI2005_ANTHRO(           ! Use NEI05 anthro,  global
-     &           State_Chm%TRAC_TEND)
-#endif
-#else
-#if   defined( GRID05x0666 )
-            CALL EMISS_EPA_NEI                  ! Use NEI99 biofuel, nested
-            CALL EMISS_NEI2005_ANTHRO_05x0666   ! Use NEI05 anthro,  nested
-#else
-            CALL EMISS_EPA_NEI                  ! Use NEI99 biofuel, global
-            CALL EMISS_NEI2005_ANTHRO           ! Use NEI05 anthro,  global
-#endif
+            CALL EMISS_EPA_NEI
+     &         ( am_I_Root, Input_Opt, State_Chm, RC ) ! NEI99 biofuel, global
+            CALL EMISS_NEI2005_ANTHRO
+     &         ( am_I_Root, Input_Opt, State_Chm, RC ) ! NEI05 anthro,  global
 #endif
          ENDIF
 
          ! Read BRAVO (Mexico) emissions once per year
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-         IF ( LBRAVO .and. ITS_A_NEW_YEAR()  ) 
-     &        CALL EMISS_BRAVO(State_Chm%TRAC_TEND(:,:,1,:))
-#else
-         IF ( LBRAVO .and. ITS_A_NEW_YEAR()  ) CALL EMISS_BRAVO
-#endif
+         IF ( LBRAVO .and. ITS_A_NEW_YEAR() ) THEN
+            CALL EMISS_BRAVO( am_I_Root, Input_Opt, State_Chm, RC )
+         ENDIF
 
          ! Read EPA (Europe) emissions once per year
          IF ( LEMEP  .and. ITS_A_NEW_YEAR()  ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-#if   defined(GRID05x0666)
-            CALL EMISS_EMEP_05x0666(State_Chm%TRAC_TEND(:,:,1,:))
-#else
-            CALL EMISS_EMEP(State_Chm%TRAC_TEND(:,:,1,:))
-#endif
-#else
 #if   defined(GRID05x0666)
             CALL EMISS_EMEP_05x0666
+     &         ( am_I_Root, Input_Opt, State_Chm, RC ) ! nested
 #else
             CALL EMISS_EMEP
-#endif
+     &         ( am_I_Root, Input_Opt, State_Chm, RC ) ! global
 #endif
          ENDIF
 
          ! Read ICOADS ship emissions once per month (cklee, 7/09/09)
          IF ( LICOADSSHIP .and. ITS_A_NEW_MONTH() ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-            CALL EMISS_ICOADS_SHIP( State_Chm%TRAC_TEND(:,:,1,:) )
-#else
-            CALL EMISS_ICOADS_SHIP
-#endif
+            CALL EMISS_ICOADS_SHIP( am_I_Root, Input_Opt,
+     &                              State_Chm, RC         )
          ENDIF
 
          ! Read look up tables for PARANOX ship plume model (mpayer, 2/7/12)
-         IF ( ( LICOADSSHIP .or. LEDGARSHIP .or. LEMEPSHIP ) 
-     &      .and. ITS_A_NEW_MONTH() ) THEN
+         IF ( ( LICOADSSHIP .or. LEDGARSHIP .or. 
+     &          LEMEPSHIP ) .and. ITS_A_NEW_MONTH() ) THEN
             CALL READ_PARANOX_LUT
          ENDIF
 
@@ -770,24 +696,20 @@
          CALL EMISSDR 
          
          ! Emit tagged CO
-         CALL EMISS_TAGGED_CO( State_Met )
+         CALL EMISS_TAGGED_CO
+     &      ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
-      ELSE IF ( ITS_A_C2H6_SIM() ) THEN
+      ELSE IF ( ITS_A_C2H6_SIM ) THEN
 
          !--------------------
          ! C2H6
          !--------------------
 
          ! Emit C2H6
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-         CALL EMISSC2H6( State_Met,
-     &        State_Chm%TRAC_TEND (:,:,1,IDTC2H6),
-     &        State_Chm%TRAC_BTEND(:,:,1,:)       )
-#else
-         CALL EMISSC2H6( State_Met )
-#endif
+         CALL EMISSC2H6
+     &      ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
-      ELSE IF ( ITS_A_CH4_SIM() ) THEN
+      ELSE IF ( ITS_A_CH4_SIM ) THEN
 
          !--------------------
          ! CH4
@@ -796,41 +718,36 @@
          ! Read David Streets' emisisons over China / SE ASia
          ! Bug fix: call every month now (phs, 3/17/09)
          IF ( LSTREETS .and. ITS_A_NEW_MONTH() ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 #if   defined(GRID05x0666)
-            CALL EMISS_STREETS_ANTHRO_05x0666 
-     &           ( State_Met, State_Chm%TRAC_TEND(:,:,1,:) )
+            CALL EMISS_STREETS_ANTHRO_05x0666
+     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC ) ! nested
 #else
             CALL EMISS_STREETS_ANTHRO
-     &           ( State_Met, State_Chm%TRAC_TEND(:,:,1,:) )
-#endif
-#else
-#if   defined( GRID05x0666 )
-            CALL EMISS_STREETS_ANTHRO_05x0666( State_Met )
-#else
-            CALL EMISS_STREETS_ANTHRO( State_Met)
-#endif
+     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC ) ! global
 #endif
          ENDIF
 
          ! Emit CH4
-         CALL EMISSCH4( State_Met )
+         CALL EMISSCH4
+     &      ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
-      ELSE IF ( ITS_A_MERCURY_SIM() ) THEN
+      ELSE IF ( ITS_A_MERCURY_SIM ) THEN
 
          !--------------------
          ! Mercury
          !--------------------
-         CALL EMISSMERCURY( State_Met )
+         CALL EMISSMERCURY
+     &      ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
-      ELSE IF ( ITS_A_POPS_SIM() ) THEN
+      ELSE IF ( ITS_A_POPS_SIM ) THEN
 
          !--------------------
          ! POPS
          !--------------------
-         CALL EMISSPOPS( State_Met )
+         CALL EMISSPOPS
+     &      ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
-      ELSE IF ( ITS_A_CO2_SIM() ) THEN
+      ELSE IF ( ITS_A_CO2_SIM ) THEN
 
          !--------------------
          ! CO2
@@ -838,39 +755,27 @@
 
          ! Read David Streets' emisisons over China / SE ASia
          ! Bug fix: call every month now (phs, 3/17/09)         
-         IF ( LSTREETS .and. ITS_A_NEW_MONTH() ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+         IF ( Input_Opt%LSTREETS .and. ITS_A_NEW_MONTH() ) THEN
 #if   defined(GRID05x0666)
-            CALL EMISS_STREETS_ANTHRO_05x0666 
-     &           ( State_Met, State_Chm%TRAC_TEND(:,:,1,:) )
+            CALL EMISS_STREETS_ANTHRO_05x0666
+     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC ) ! nested
 #else
             CALL EMISS_STREETS_ANTHRO
-     &           ( State_Met, State_Chm%TRAC_TEND(:,:,1,:) )
-#endif
-#else
-#if   defined( GRID05x0666 )
-            CALL EMISS_STREETS_ANTHRO_05x0666( State_Met )
-#else
-            CALL EMISS_STREETS_ANTHRO( State_Met )
-#endif
+     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC ) ! global
 #endif
          ENDIF
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-         ! Read CO2 ARCTAS SHIP emissions
-         IF ( LARCSHIP .and. ITS_A_NEW_YEAR() )
-     &        CALL EMISS_ARCTAS_SHIP( YEAR,
-     &                   State_Chm%TRAC_TEND(:,:,1,N_TRACERS+1))
-#else
-         ! Read CO2 ARCTAS SHIP emissions
-         IF ( LARCSHIP .and. ITS_A_NEW_YEAR() )
-     &        CALL EMISS_ARCTAS_SHIP( YEAR )
-#endif
+         ! Read CO2 ARCTAS emissions
+         IF ( LARCSHIP .AND. ITS_A_NEW_YEAR() ) THEN
+            CALL EMISS_ARCTAS_SHIP
+     &         ( am_I_Root, YEAR, Input_Opt, State_Chm, RC )
+         ENDIF
 
          ! Emit CO2
-         CALL EMISSCO2( State_Met )
+         CALL EMISSCO2
+     &      ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
-      ELSE IF ( ITS_A_H2HD_SIM() ) THEN
+      ELSE IF ( ITS_A_H2HD_SIM ) THEN
 
          !--------------------
          ! Offline H2/HD 
@@ -879,132 +784,83 @@
          ! Read David Streets' emisisons over China / SE ASia
          ! Bug fix: call every month now (phs, 3/17/09)
          IF ( LSTREETS .and. ITS_A_NEW_MONTH() ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 #if   defined(GRID05x0666)
-            CALL EMISS_STREETS_ANTHRO_05x0666 
-     &           ( State_Met, State_Chm%TRAC_TEND(:,:,1,:) )
+            CALL EMISS_STREETS_ANTHRO_05x0666
+     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC ) ! nested
 #else
             CALL EMISS_STREETS_ANTHRO
-     &           ( State_Met, State_Chm%TRAC_TEND(:,:,1,:) )
-#endif
-#else
-#if   defined( GRID05x0666 )
-            CALL EMISS_STREETS_ANTHRO_05x0666( State_Met )
-#else
-            CALL EMISS_STREETS_ANTHRO( State_Met )
-#endif
+     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC ) ! global
 #endif
          ENDIF
 
          ! Read EDGAR emissions once per month
          IF ( ITS_A_NEW_MONTH() ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
             CALL EMISS_EDGAR
-     &       ( YEAR, MONTH, State_Chm%TRAC_TEND(:,:,1,:) )
-#else
-            CALL EMISS_EDGAR( YEAR, MONTH )
-#endif
+     &         ( am_I_Root, YEAR, MONTH, Input_Opt, State_Chm, RC )
          ENDIF
 
          ! Read CAC (Canada) emissions
-         IF ( LCAC .and. ITS_A_NEW_YEAR() ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-#if   defined( GRID05x0666 )
-            CALL EMISS_CAC_ANTHRO_05x0666(State_Chm%TRAC_TEND(:,:,1,:))
-#else
-            CALL EMISS_CAC_ANTHRO(State_Chm%TRAC_TEND(:,:,1,:))
-#endif
-#else
+         IF ( Input_Opt%LCAC .and. ITS_A_NEW_YEAR() ) THEN
 #if   defined( GRID05x0666 )
             CALL EMISS_CAC_ANTHRO_05x0666
+     &         ( am_I_Root, Input_Opt, State_Chm, RC ) ! nested
 #else
             CALL EMISS_CAC_ANTHRO
-#endif
+     &         ( am_I_Root, Input_Opt, State_Chm, RC ) ! global
 #endif
          ENDIF
 
          ! Read EPA (USA) emissions once per month
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-         IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) CALL EMISS_EPA_NEI(
-     &       State_Chm%TRAC_TEND(:,:,1,:),
-     &       State_Chm%TRAC_BTEND(:,:,1,:))
-#else
-         IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) CALL EMISS_EPA_NEI
-#endif
+         IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) THEN
+            CALL EMISS_EPA_NEI( am_I_Root, Input_Opt, State_Chm, RC )
+         ENDIF
 
          ! Read NEI2005 (USA) emissions
-         IF ( LNEI05 .and. ITS_A_NEW_MONTH() ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+         IF ( Input_Opt%LNEI05 .and. ITS_A_NEW_MONTH() ) THEN
 #if   defined( GRID05x0666 )
-            CALL EMISS_EPA_NEI(                  ! Use NEI99 biofuel, nested
-     &       State_Chm%TRAC_TEND(:,:,1,:),
-     &       State_Chm%TRAC_BTEND(:,:,1,:))
-            CALL EMISS_NEI2005_ANTHRO_05x0666(   ! Use NEI05 anthro,  nested
-     &           State_Chm%TRAC_TEND)
+            CALL EMISS_EPA_NEI
+     &         ( am_I_Root, Input_Opt, State_Chm, RC ) ! NEI99 biofuel, nested
+            CALL EMISS_NEI2005_ANTHRO_05x0666
+     &         ( am_I_Root, Input_Opt, State_Chm, RC ) ! NEI05 anthro,  nested
 #else
-            CALL EMISS_EPA_NEI(                  ! Use NEI99 biofuel, nested
-     &       State_Chm%TRAC_TEND(:,:,1,:),
-     &       State_Chm%TRAC_BTEND(:,:,1,:))
-            CALL EMISS_NEI2005_ANTHRO(           ! Use NEI05 anthro,  global
-     &           State_Chm%TRAC_TEND)
-#endif
-#else
-#if   defined( GRID05x0666 )
-            CALL EMISS_EPA_NEI                  ! Use NEI99 biofuel, nested
-            CALL EMISS_NEI2005_ANTHRO_05x0666   ! Use NEI05 anthro,  nested
-#else
-            CALL EMISS_EPA_NEI                  ! Use NEI99 biofuel, global
-            CALL EMISS_NEI2005_ANTHRO           ! Use NEI05 anthro,  global
-#endif
+            CALL EMISS_EPA_NEI
+     &         ( am_I_Root, Input_Opt, State_Chm, RC ) ! NEI99 biofuel, global
+            CALL EMISS_NEI2005_ANTHRO
+     &         ( am_I_Root, Input_Opt, State_Chm, RC ) ! NEI05 anthro,  global
 #endif
          ENDIF
 
          ! Read BRAVO (Mexico) emissions once per year
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-         IF ( LBRAVO .and. ITS_A_NEW_YEAR()  ) 
-     &        CALL EMISS_BRAVO(State_Chm%TRAC_TEND(:,:,1,:))
-#else
-         IF ( LBRAVO .and. ITS_A_NEW_YEAR()  ) CALL EMISS_BRAVO
-#endif
+         IF ( LBRAVO .and. ITS_A_NEW_YEAR() ) THEN
+            CALL EMISS_BRAVO( am_I_Root, Input_Opt, State_Chm, RC )
+         ENDIF
 
-         ! Read EPA (Europe) emissions once per year
+         ! Read EMEP (Europe) emissions once per year
          IF ( LEMEP  .and. ITS_A_NEW_YEAR()  ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-#if   defined(GRID05x0666)
-            CALL EMISS_EMEP_05x0666(State_Chm%TRAC_TEND(:,:,1,:))
-#else
-            CALL EMISS_EMEP(State_Chm%TRAC_TEND(:,:,1,:))
-#endif
-#else
 #if   defined( GRID05x0666 )
             CALL EMISS_EMEP_05x0666
+     &         ( am_I_Root, Input_Opt, State_Chm, RC ) ! nested
 #else
             CALL EMISS_EMEP
-#endif
+     &         ( am_I_Root, Input_Opt, State_Chm, RC ) ! global
 #endif
          ENDIF
 
          ! Read ICOADS ship emissions once per month !(cklee, 7/09/09)
          IF ( LICOADSSHIP .and. ITS_A_NEW_MONTH() ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-            CALL EMISS_ICOADS_SHIP( State_Chm%TRAC_TEND(:,:,1,:) )
-#else
             CALL EMISS_ICOADS_SHIP
-#endif
+     &         ( am_I_Root, Input_Opt, State_Chm, RC )
          ENDIF
 
          ! Read look up tables for PARANOX ship plume model (mpayer, 2/7/12)
-         IF ( ( LICOADSSHIP .or. LEDGARSHIP .or. LEMEPSHIP ) 
-     &      .and. ITS_A_NEW_MONTH() ) THEN
+         IF ( ( LICOADSSHIP .or. LEDGARSHIP .or. 
+     &          LEMEPSHIP ) .and. ITS_A_NEW_MONTH() ) THEN
             CALL READ_PARANOX_LUT
          ENDIF
 
          ! Emit H2/HD
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ) 
-         CALL EMISS_H2_HD( State_Met, State_Chm%TRAC_BTEND(:,:,1,:) )
-#else
-         CALL EMISS_H2_HD( State_Met )
-#endif
+         CALL EMISS_H2_HD
+     &      ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
       ENDIF
 

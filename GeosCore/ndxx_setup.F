@@ -46,10 +46,9 @@
       USE DIAG_MOD,        ONLY : AD32_so,     AD32_ub,     AD33
       USE DIAG_MOD,        ONLY : AD34,        AD35,        AD36
       USE DIAG_MOD,        ONLY : AD37,        AD38,        AD39
-      USE DIAG_MOD,        ONLY : AD43,        LTNO
-      USE DIAG_MOD,        ONLY : CTNO,        LTOH,        CTOH
-      USE DIAG_MOD,        ONLY : LTHO2,       CTHO2,       LTNO2
-      USE DIAG_MOD,        ONLY : CTNO2,       LTNO3,       CTNO3
+      USE DIAG_MOD,        ONLY : AD43
+      USE DIAG_MOD,        ONLY : LTOH,        CTOH
+      USE DIAG_MOD,        ONLY : LTHO2,       CTHO2
       USE DIAG_MOD,        ONLY : CTLBRO2H,    CTLBRO2N
       USE DIAG_MOD,        ONLY : CTLTRO2H,    CTLTRO2N
       USE DIAG_MOD,        ONLY : CTLXRO2H,    CTLXRO2N
@@ -60,6 +59,16 @@
       USE DIAG_MOD,        ONLY : CTOTH,       AD46,        AD47
       USE DIAG_MOD,        ONLY : AD52,        AD54,        AD63
       USE DIAG_MOD,        ONLY : AD19,        AD58,        AD60
+
+#if   defined( TOMAS )
+      USE DIAG_MOD,        ONLY : AD59_NUMB,   AD59_SULF,   AD59_SALT  !(win, 7/9/09)
+      USE DIAG_MOD,        ONLY : AD59_ECIL,   AD59_ECOB               !(win, 7/9/09)
+      USE DIAG_MOD,        ONLY : AD59_OCIL,   AD59_OCOB,   AD59_DUST  !(win, 7/9/09)
+      USE DIAG_MOD,        ONLY : AD60_COND,   AD60_COAG,   AD60_NUCL  !(win, 7/9/09)
+      USE DIAG_MOD,        ONLY : AD60_AQOX,   AD60_ERROR,  AD60_SOA   !(win, 7/9/09)
+      USE DIAG_MOD,        ONLY : AD61,        AD61_INST               !(win, 7/9/09)
+#endif
+
       USE DIAG_MOD,        ONLY : AD55,        AD66,        AD67
       USE DIAG_MOD,        ONLY : AD68,        AD69,        CTO3
       USE DIAG_MOD,        ONLY : AD10,        AD10em,      CTO3_24h
@@ -74,6 +83,12 @@
       USE PLANEFLIGHT_MOD, ONLY : SETUP_PLANEFLIGHT
       USE TRACERID_MOD,    ONLY : NEMANTHRO
       USE WETSCAV_MOD,     ONLY : GET_WETDEP_NMAX
+
+#if   defined( TOMAS )
+      USE TOMAS_MOD,       ONLY : IBINS, ICOMP, IDIAG   !(win, 7/9/09)
+      USE TRACERID_MOD,    ONLY : IDTNK1    !(win, 7/14/09)
+#endif
+
 #if   defined( APM )
       USE DIAG_MOD,        ONLY : AD07_OM 
       USE TRACER_MOD,      ONLY : N_APMTRA
@@ -233,6 +248,10 @@
 !  26 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
 !  09 Nov 2012 - R. Yantosca - Added GIGC-specific modifications
+!  29 Mar 2013 - R. Yantosca - Pass objects to GET_WETDEP_NMAX
+!  02 Apr 2013 - M. Payer    - Remove allocation of *NO, *NO2, and *NO3 arrays
+!                              for ND43. These are no longer needed because NO,
+!                              NO2, and NO3 are now tracers.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -539,7 +558,7 @@
          LD17 = MIN( ND17, LLPAR )
 
          ! Get max # of soluble tracers for this simulation
-         NMAX = GET_WETDEP_NMAX()
+         NMAX = GET_WETDEP_NMAX( am_I_Root, Input_Opt, RC )
 
          ! Store both LS and convective rainout fractions
          ALLOCATE( AD17( IIPAR, JJPAR, LD17, NMAX, 2 ), STAT=AS ) 
@@ -558,7 +577,7 @@
          LD18 = MIN( ND18, LLPAR )
 
          ! Get max # of soluble tracers for this simulation
-         NMAX = GET_WETDEP_NMAX()
+         NMAX = GET_WETDEP_NMAX( am_I_Root, Input_Opt, RC )
 
          ! Store both LS and convective rainout fractions         
          ALLOCATE( AD18( IIPAR, JJPAR, LD18, NMAX, 2 ), STAT=AS) 
@@ -822,7 +841,7 @@
          LD37 = MIN( ND37, LLPAR )
          
          ! Get max # of soluble tracers for this simulation
-         NMAX = GET_WETDEP_NMAX()
+         NMAX = GET_WETDEP_NMAX( am_I_Root, Input_Opt, RC )
 
          ! Allocate array accordingly
          IF ( NMAX > 0 ) THEN
@@ -843,7 +862,7 @@
          IF ( ND38 == 0 ) LD38 = LLPAR
          
          ! Get max # of soluble tracers for this simulation
-         NMAX = GET_WETDEP_NMAX()
+         NMAX = GET_WETDEP_NMAX( am_I_Root, Input_Opt, RC )
 
          ! Allocate AD38 array accordingly
          IF ( NMAX > 0 ) THEN
@@ -864,7 +883,7 @@
          IF ( ND39 == 0 ) LD39 = LLPAR
 
          ! Get max # of soluble tracers for this simulation
-         NMAX = GET_WETDEP_NMAX()
+         NMAX = GET_WETDEP_NMAX( am_I_Root, Input_Opt, RC )
          
          ! Allocate AD39 array accordingly
          IF ( NMAX > 0 ) THEN
@@ -876,7 +895,7 @@
       !=================================================================
       ! ND42: SOA concentration
       !
-      ! ND43: Chemical diagnostics: OH [molec/cm3/s] and NO [v/v]
+      ! ND43: Chemical diagnostics: OH [molec/cm3/s] and HO2 [v/v]
       !       --> uses AD43 array (allocatable)
       !=================================================================
       IF ( ND43 > 0 ) THEN
@@ -893,14 +912,6 @@
          ALLOCATE( AD43( IIPAR, JJPAR, LD43, PD43 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD43' )
 
-         ! Locations where LT is between HR1_NO and HR2_NO
-         ALLOCATE( LTNO( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'LTNO' )
-         
-         ! Number of times LT was between HR1_NO and HR2_NO
-         ALLOCATE( CTNO( IIPAR, JJPAR, LD43 ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'CTNO' )
-
          ! Locations where LT is between HR1_OH and HR2_OH
          ALLOCATE( LTOH( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'LTOH' )
@@ -915,23 +926,6 @@
 
          ! Locations where LT is between HR1_OH and HR2_OH
          ALLOCATE( CTHO2( IIPAR, JJPAR, LD43 ), STAT=AS )
-
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'CTHO2' )
-
-         ! Locations where LT is between HR1_OH and HR2_OH
-         ALLOCATE( LTNO2( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'LTHO2' )
-
-         ! Locations where LT is between HR1_OH and HR2_OH
-         ALLOCATE( CTNO2( IIPAR, JJPAR, LD43 ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'CTHO2' )
-
-         ! Locations where LT is between HR1_OH and HR2_OH
-         ALLOCATE( LTNO3( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'LTHO2' )
-
-         ! Locations where LT is between HR1_OH and HR2_OH
-         ALLOCATE( CTNO3( IIPAR, JJPAR, LD43 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CTHO2' )
 
          ! update for aroms (dkh, 06/21/07)  
@@ -1012,7 +1006,18 @@
          IF ( IT_IS_A_TAGOX_SIM .or. IT_IS_A_MERCURY_SIM ) THEN
             NMAX = N_TRACERS
          ELSE
+
+#if   defined( TOMAS )
+            ! add space in diag array for TOMAS aerosol mass (win, 7/14/09)
+            IF ( IDTNK1 > 1 ) THEN 
+               NMAX = NUMDEP + ( ICOMP - IDIAG )* IBINS 
+            ELSE
+               NMAX = NUMDEP
+            ENDIF
+#else
             NMAX = NUMDEP
+#endif
+
          ENDIF
 
          ! Allocate AD44 array
@@ -1150,19 +1155,116 @@
 
       ENDIF
 
+#if   defined ( TOMAS )
       !=================================================================
-      ! ND59-61: Used for TOMAS
+      ! ND59: Size-resolved primary aerosol emissions      !(win, 7/9/09)
+      !         Emissions to number, sulfate, sea-salt, carb, dust
+      !      ----> save 3-D (I,J,1) or up to (I,J,2) 
       !=================================================================
+      IF ( ND59 > 0 ) THEN
+         LD59 = MIN( ND59, LLPAR )
+
+         ! Number emission
+         ALLOCATE( AD59_NUMB( IIPAR, JJPAR, 2, IBINS ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD59_NUMB' )
+
+         ALLOCATE( AD59_SULF( IIPAR, JJPAR, 2, IBINS ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD59_SULF' )
+
+         ALLOCATE( AD59_SALT( IIPAR, JJPAR, 2, IBINS ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD59_SALT' )
+
+         ALLOCATE( AD59_ECIL( IIPAR, JJPAR, 2, IBINS ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD59_ECIL' )
+
+         ALLOCATE( AD59_ECOB( IIPAR, JJPAR, 2, IBINS ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD59_ECOB' )
+
+         ALLOCATE( AD59_OCIL( IIPAR, JJPAR, 2, IBINS ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD59_OCIL' )
+
+         ALLOCATE( AD59_OCOB( IIPAR, JJPAR, 2, IBINS ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD59_OCOB' )
+
+         ALLOCATE( AD59_DUST( IIPAR, JJPAR, 2, IBINS ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD59_DUST' )
+      ENDIF
+
+
+      !=================================================================
+      ! ND60: TOMAS microphysical process rates (condensation, 
+      !           coagulation, nucleation, aqueous oxidation, 
+      !           error-fudging)
+      !       ---> save 2-D (J,L) for 30-bin of each aerosol species
+      !=================================================================
+      IF ( ND60 > 0 ) THEN
+         LD60 = MIN( ND60, LLPAR )
+         ! Now the array dimension is IBINS*(ICOMP-IDIAG+1) because
+         ! we need it for all prognostic mass species + 1 for number
+         ! IDIAG = # of diagnostic species.  (win, 9/27/08)
+         !Condensation rate
+         ALLOCATE( AD60_COND( 1, JJPAR, LD60, IBINS*(ICOMP-IDIAG+1)), 
+     &             STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD60_COND' )
+
+         !Coagulation rate
+         ALLOCATE( AD60_COAG( 1, JJPAR, LD60, IBINS*(ICOMP-IDIAG+1)), 
+     &             STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD60_COAG' )
+
+         !Nucleation rate
+         ALLOCATE( AD60_NUCL( 1, JJPAR, LD60, IBINS*(ICOMP-IDIAG+1)), 
+     &             STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD60_NUCL' )
+
+         !Aqueous oxidation rate
+         ALLOCATE( AD60_AQOX( 1, JJPAR, LD60, IBINS*(ICOMP-IDIAG+1)), 
+     &             STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD60_AQOX' )
+
+         !Accumulated error-fudging 
+         ALLOCATE( AD60_ERROR( 1, JJPAR, LD60, IBINS*(ICOMP-IDIAG+1)), 
+     &             STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD60_ERROR' )
+
+         !SOA Condensation rate 
+         ALLOCATE( AD60_SOA( 1, JJPAR, LD60, IBINS*(ICOMP-IDIAG+1)), 
+     &             STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD60_SOA' )
+
+      ENDIF
+
+#else
 
       !=================================================================
       ! ND60: WETLAND FRACTION 
       !=================================================================
       IF ( ND60 > 0 ) THEN 
-	 
+ 
          ALLOCATE( AD60( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD60' )
 
       ENDIF
+
+#endif
+
+
+#if   defined( TOMAS )
+      !=================================================================
+      ! ND61: 3-D TOMAS process rate diagnostic
+      !       --> Uses AD61 array (allocatable)
+      !  NOTE: ND61 is used for 10-nm particle formation 
+      !        rate and cluster-size nucleation rate.  So the array
+      !        is declared for (IIPAR,JJPAR,LD61,2) (win, 10/6/08)
+      !=================================================================
+      IF ( ND61 > 0 ) THEN
+         LD61 = MIN( ND61, LLPAR )
+         ALLOCATE( AD61( IIPAR, JJPAR, LD61, PD61 ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD61' )
+         ALLOCATE( AD61_INST( IIPAR, JJPAR, LD61, PD61 ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD61_INST' )
+      ENDIF
+#endif
 
       !=================================================================
       ! ND63: FRACTION OF NOx REMAINING AND INTEGRATED OPE

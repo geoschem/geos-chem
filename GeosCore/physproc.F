@@ -12,7 +12,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE PHYSPROC( am_I_Root, Input_Opt, State_Met, RC )
+      SUBROUTINE PHYSPROC( am_I_Root, Input_Opt, 
+     &                     State_Met, State_Chm, RC )
 !
 ! !USES:
 !
@@ -33,6 +34,7 @@
       USE GCKPP_GLOBAL,       ONLY : NTT
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING
 
@@ -40,13 +42,17 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !
@@ -104,6 +110,7 @@
 !                              running with the traditional driver main.F
 !  30 Jul 2012 - R. Yantosca - Added ProTeX headers
 !  27 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOSmid
+!  01 Mar 2013 - R. Yantosca - Now set RC to GIGC_SUCCESS for default
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -136,6 +143,9 @@
       !=================================================================
       ! PHYSPROC begins here!
       !=================================================================
+
+      ! Assume success
+      RC      = GIGC_SUCCESS
 
       ! Copy values from Input_Opt to local variables
       LKPP    = Input_Opt%LKPP
@@ -341,7 +351,8 @@
 ! *              CALCULATE REACTION RATE COEFFICIENTS                 *
 ! *********************************************************************
 !
-          CALL CALCRATE( State_Met )
+          CALL CALCRATE( am_I_Root, Input_Opt, 
+     &                   State_Met, State_Chm, RC )
 !
 ! *********************************************************************
 ! *                        SOLVE CHEMICAL ODES                        *
@@ -356,7 +367,7 @@
              CALL GCKPP_DRIVER(KTLOOP, JLOOPLO, RRATE_FOR_KPP, NSPEC(1))
 
           ELSE
-             CALL SMVGEAR
+             CALL SMVGEAR( am_I_Root, Input_Opt, RC )
           call CPU_TIME(finish)
 
 !

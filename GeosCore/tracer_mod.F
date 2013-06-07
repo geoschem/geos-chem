@@ -80,7 +80,6 @@
       INTEGER,           PUBLIC, ALLOCATABLE :: ID_TRACER(:)
       INTEGER,           PUBLIC, ALLOCATABLE :: ID_EMITTED(:)
       INTEGER,           PUBLIC, ALLOCATABLE :: TRACER_N_CONST(:)
-      REAL*8,    TARGET, PUBLIC, ALLOCATABLE :: STT(:,:,:,:)
       REAL*8,            PUBLIC, ALLOCATABLE :: TCVV(:)
       REAL*8,            PUBLIC, ALLOCATABLE :: TRACER_COEFF(:,:)
       REAL*8,            PUBLIC, ALLOCATABLE :: TRACER_MW_G(:)
@@ -105,6 +104,7 @@
 !  (7 ) Added public routine ITS_A_POPS_SIM (eck, 9/20/10)
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !  05 Mar 2012 - M. Payer    - Added ProTeX headers
+!  04 Apr 2013 - R. Yantosca - Removed STT (now in State_Chm)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -659,19 +659,23 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHECK_STT( LOCATION )
+      SUBROUTINE CHECK_STT( State_Chm, LOCATION )
 !
 ! !USES:
 !
-      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
-      USE ERROR_MOD, ONLY : IT_IS_NAN
-      USE ERROR_MOD, ONLY : IT_IS_FINITE
-
-      USE CMN_SIZE_MOD    ! Size parameters
+      USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
+      USE ERROR_MOD,          ONLY : IT_IS_NAN
+      USE ERROR_MOD,          ONLY : IT_IS_FINITE
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
 !
 ! !INPUT PARAMETERS: 
 !
       CHARACTER(LEN=*), INTENT(IN) :: LOCATION
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(ChmState),   INTENT(IN) :: State_Chm   ! Chemistry State object
 ! 
 ! !REVISION HISTORY:
 !  (1 ) CHECK_STT uses the interfaces defined above -- these will do the
@@ -684,6 +688,7 @@
 !  (4 ) Moved from "error_mod.f" to "tracer_mod.f" (bmy, 7/15/04)
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  05 Mar 2012 - M. Payer    - Added ProTeX headers
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -693,6 +698,11 @@
       LOGICAL                      :: LNEG, LNAN, LINF
       INTEGER                      :: I,    J,    L,   N, N_TOT_TRC
       
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! CHECK_STT begins here!
       !=================================================================
@@ -703,6 +713,10 @@
 #else
       N_TOT_TRC = N_TRACERS              ! G-C advected tracers only
 #endif
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       ! Initialize
       LNEG = .FALSE.
@@ -755,6 +769,9 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+      ! Free pointer
+      NULLIFY( STT )
+
       !=================================================================
       ! Stop the run if any of LNEG, LNAN, LINF is true
       !=================================================================
@@ -785,19 +802,24 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHECK_STT_05x0666( LOCATION )
+      SUBROUTINE CHECK_STT_05x0666( State_Chm, LOCATION )
 !
 ! !USES:
 !
       USE ERROR_MOD, ONLY : IT_IS_NAN
       USE ERROR_MOD, ONLY : IT_IS_FINITE
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
 
       USE CMN_SIZE_MOD    ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
-      CHARACTER(LEN=*), INTENT(IN) :: LOCATION
-! 
+      CHARACTER(LEN=*), INTENT(IN)    :: LOCATION
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState),   INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
 ! !REVISION HISTORY:
 !  05 Mar 2012 - M. Payer    - Initial version based on CHECK_STT and updates
 !                              for nested grid by Yuxuan Wang.
@@ -810,9 +832,18 @@
 !
       INTEGER                      :: I,    J,    L,   N
       
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! CHECK_STT_05x0666 begins here!
       !=================================================================
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       ! Loop over grid boxes
 !$OMP PARALLEL DO 
@@ -862,6 +893,9 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+      ! Free pointer
+      NULLIFY( STT )
 
  100  FORMAT( ' STT(',i3,',',i3,',',i3,',',i3,') = ', f13.6 )
 
@@ -964,23 +998,37 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_TRACER
+      SUBROUTINE INIT_TRACER( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE ERROR_MOD,     ONLY : ALLOC_ERR
 #if   defined( APM ) 
-      USE APM_INIT_MOD,  ONLY : APM_NTRACERS
-      USE APM_INIT_MOD,  ONLY : LAPM
+      USE APM_INIT_MOD,       ONLY : APM_NTRACERS
+      USE APM_INIT_MOD,       ONLY : LAPM
 #endif
-
       USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY:
 !  15 Jul 2004 - R. Yantosca - Initial version
 !  25 Oct 2005 - R. Yantosca - Now allocate XNUMOL
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
 !  05 Mar 2012 - M. Payer    - Added ProTeX headers
+!  26 Feb 2013 - R. Yantosca - Now pass am_I_Root, Input_Opt, RC as arguments
+!  07 Mar 2013 - R. Yantosca - Now assign RC=GIGC_SUCCESS outside of APM block
+!  04 Apr 2013 - R. Yantosca - Removed STT (now in State_Chm)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1003,11 +1051,11 @@
       LAPM      = .TRUE.
 
       ! Add additional tracers for APM
-      CALL APM_NTRACERS( N_TRACERS, N_APMTRAC1 )
+      CALL APM_NTRACERS( Input_Opt%N_TRACERS, N_APMTRAC1 )
       N_APMTRA  = N_APMTRAC1  
  
       ! N_TOT_TRC is the total # of G-C advected tracers + APM tracers
-      N_TOT_TRC = N_TRACERS + N_APMTRA 
+      N_TOT_TRC = Input_Opt%N_TRACERS + N_APMTRA 
       
 #else
 
@@ -1016,18 +1064,21 @@
       !=================================================================
 
       ! N_TOT_TRC is the total # of G-C advected tracers only
-      N_TOT_TRC = N_TRACERS
+      N_TOT_TRC = Input_Opt%N_TRACERS
 
 #endif
+
+      ! Assume success
+      RC        = GIGC_SUCCESS
 
       !=================================================================
       ! Allocate arrays 
       !=================================================================
-      ALLOCATE( ID_TRACER( N_TRACERS ), STAT=AS )
+      ALLOCATE( ID_TRACER( Input_Opt%N_TRACERS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ID_TRACER' )
       ID_TRACER = 0
 
-      ALLOCATE( ID_EMITTED( N_TRACERS ), STAT=AS )
+      ALLOCATE( ID_EMITTED( Input_Opt%N_TRACERS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ID_EMITTED' )
       ID_EMITTED = 0
 
@@ -1035,36 +1086,38 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TCVV' )
       TCVV = 0d0
 
-      ALLOCATE( TRACER_NAME( N_TRACERS ), STAT=AS )
+      ALLOCATE( TRACER_NAME( Input_Opt%N_TRACERS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TRACER_NAME' )
       TRACER_NAME = ''
 
-      ALLOCATE( TRACER_MW_G( N_TRACERS ), STAT=AS )
+      ALLOCATE( TRACER_MW_G( Input_Opt%N_TRACERS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TRACER_MW_G' )
       TRACER_MW_G = 0d0
 
-      ALLOCATE( TRACER_MW_KG( N_TRACERS ), STAT=AS )
+      ALLOCATE( TRACER_MW_KG( Input_Opt%N_TRACERS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TRACER_MW_KG' )
       TRACER_MW_KG = 0d0
 
-      ALLOCATE( TRACER_COEFF( N_TRACERS, N_MEMBERS ), STAT=AS )
+      ALLOCATE( TRACER_COEFF( Input_Opt%N_TRACERS, N_MEMBERS ), STAT=AS)
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TRACER_COEFF' )
       TRACER_COEFF = 0d0
 
-      ALLOCATE( TRACER_CONST( N_TRACERS, N_MEMBERS ), STAT=AS )
+      ALLOCATE( TRACER_CONST( Input_Opt%N_TRACERS, N_MEMBERS ), STAT=AS)
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TRACER_CONST' )
       TRACER_CONST = ''
 
-      ALLOCATE( TRACER_N_CONST( N_TRACERS ), STAT=AS )
+      ALLOCATE( TRACER_N_CONST( Input_Opt%N_TRACERS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TRACER_N_CONST' )
       TRACER_N_CONST = 0
-      ALLOCATE( STT( IIPAR, JJPAR, LLPAR, N_TOT_TRC ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'STT' )
-      STT = 0d0      
 
       ALLOCATE( XNUMOL( N_TOT_TRC ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'XNUMOL' )
       XNUMOL = 0
+
+      ! Print a debug msg
+      IF ( Input_Opt%LPRT .and. am_I_Root ) THEN
+         CALL Debug_Msg( '### a INIT_TRACER' )
+      ENDIF
 
       END SUBROUTINE INIT_TRACER
 !EOC
@@ -1086,6 +1139,7 @@
 !  15 Jul 2004 - R. Yantosca - Initial version
 !  25 Oct 2005 - R. Yantosca - Now deallocates XNUMOL
 !  05 Mar 2012 - M. Payer    - Added ProTeX headers
+!  04 Apr 2013 - R. Yantosca - Removed STT (now in State_Chm)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1102,8 +1156,6 @@
       IF ( ALLOCATED( TRACER_N_CONST ) ) DEALLOCATE( TRACER_N_CONST )
       IF ( ALLOCATED( TRACER_MW_G    ) ) DEALLOCATE( TRACER_MW_G    )
       IF ( ALLOCATED( TRACER_MW_KG   ) ) DEALLOCATE( TRACER_MW_KG   )
-!clb Dellocate error, lost pointer
-!      IF ( ALLOCATED( STT            ) ) DEALLOCATE( STT            )
       IF ( ALLOCATED( XNUMOL         ) ) DEALLOCATE( XNUMOL         )
 
       END SUBROUTINE CLEANUP_TRACER

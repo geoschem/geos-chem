@@ -168,29 +168,40 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE EMISSCO2( State_Met )
+      SUBROUTINE EMISSCO2( am_I_Root, Input_Opt,
+     &                     State_Met, State_Chm, RC )
 !
 ! !USES:
 !
       USE BIOMASS_MOD,        ONLY : BIOMASS
+      USE CMN_SIZE_MOD
       USE DIAG04_MOD,         ONLY : AD04, ND04
       USE DIAG04_MOD,         ONLY : AD04_plane,    AD04_chem
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD
       USE TIME_MOD,           ONLY : GET_DAY,       GET_DAY_OF_YEAR
       USE TIME_MOD,           ONLY : GET_HOUR,      GET_MONTH
       USE TIME_MOD,           ONLY : GET_YEAR,      GET_TS_CHEM
       USE TIME_MOD,           ONLY : GET_TS_EMIS 
       USE TIME_MOD,           ONLY : ITS_A_NEW_DAY, ITS_A_NEW_MONTH
-      USE TRACER_MOD,         ONLY : N_TRACERS,     STT
       USE TRACERID_MOD,       ONLY : IDBCO2
-
-      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  The initial condition for CO2 has to be at least 50 ppm or higher or else
@@ -212,6 +223,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -226,18 +238,82 @@
       REAL*8                 :: A_CM2, DTSRCE, E_CO2
       REAL*8                 :: biomass_sum, bionet_sum
 
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER        :: STT(:,:,:,:)
+
+      ! For values from Input_Opt
+      LOGICAL                :: LGENFF
+      LOGICAL                :: LANNFF
+      LOGICAL                :: LMONFF
+      LOGICAL                :: LCHEMCO2
+      LOGICAL                :: LSEASBB
+      LOGICAL                :: LBIODAILY
+      LOGICAL                :: LBIODIURNAL
+      LOGICAL                :: LBIONETORIG
+      LOGICAL                :: LBIONETCLIM
+      LOGICAL                :: LOCN1997
+      LOGICAL                :: LOCN2009ANN
+      LOGICAL                :: LOCN2009MON
+      LOGICAL                :: LSHIPEDG
+      LOGICAL                :: LSHIPICO
+      LOGICAL                :: LPLANE
+      LOGICAL                :: LFFBKGRD
+      LOGICAL                :: LBIOSPHTAG
+      LOGICAL                :: LFOSSILTAG
+      LOGICAL                :: LSHIPTAG
+      LOGICAL                :: LPLANETAG
+      LOGICAL                :: LBIOFUEL
+      LOGICAL                :: LGFED2BB
+      LOGICAL                :: LGFED3BB
+      LOGICAL                :: L8DAYBB
+      INTEGER                :: N_TRACERS
+
       ! External functions     
       REAL*8, EXTERNAL       :: BOXVL    ! dbj
 
       !=================================================================
       ! EMISSCO2 begins here!
       !=================================================================
-      ! First-time initialization
 
+      ! Return success
+      RC          = GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LGENFF      = Input_Opt%LGENFF
+      LANNFF      = Input_Opt%LANNFF
+      LMONFF      = Input_Opt%LMONFF
+      LCHEMCO2    = Input_Opt%LCHEMCO2
+      LSEASBB     = Input_Opt%LSEASBB
+      LBIOFUEL    = Input_Opt%LBIOFUEL
+      LBIODAILY   = Input_Opt%LBIODAILY
+      LBIODIURNAL = Input_Opt%LBIODIURNAL
+      LBIONETORIG = Input_Opt%LBIONETORIG
+      LBIONETCLIM = Input_Opt%LBIONETCLIM
+      LOCN1997    = Input_Opt%LOCN1997
+      LOCN2009ANN = Input_Opt%LOCN2009ANN
+      LOCN2009MON = Input_Opt%LOCN2009MON
+      LSHIPEDG    = Input_Opt%LSHIPEDG
+      LSHIPICO    = Input_Opt%LSHIPICO
+      LPLANE      = Input_Opt%LPLANE
+      LFFBKGRD    = Input_Opt%LFFBKGRD
+      LBIOSPHTAG  = Input_Opt%LBIOSPHTAG
+      LFOSSILTAG  = Input_Opt%LFOSSILTAG
+      LSHIPTAG    = Input_Opt%LSHIPTAG
+      LPLANETAG   = Input_Opt%LPLANETAG
+      LGFED2BB    = Input_Opt%LGFED2BB
+      LGFED3BB    = Input_Opt%LGFED3BB
+      L8DAYBB     = Input_Opt%L8DAYBB
+      N_TRACERS   = Input_Opt%N_TRACERS
+  
+      !=================================================================
+      ! First-time initialization
+      !=================================================================
       IF ( FIRST ) THEN 
 
          ! Allocate arrays and read annual-mean data
-         CALL INIT_CO2
+         CALL INIT_CO2( am_I_Root, Input_Opt, RC )
 
          ! Set up tagged regions for balanced biosphere & ocean
          IF ( LBIOSPHTAG ) THEN
@@ -257,6 +333,10 @@
       !=================================================================
       ! Read in monthly, daily or variable emissions fields
       !=================================================================      
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       ! Emission timestep
 !      DTSRCE = 60d0 * GET_TS_CHEM() !Line from the orginal code
@@ -326,12 +406,12 @@
 	
          ! Fossil fuel emissions
          IF ( LMONFF .OR. LANNFF .OR. LGENFF ) THEN
-            CALL READ_FOSSILCO2 
+            CALL READ_FOSSILCO2( am_I_Root, Input_Opt, RC )
          ENDIF
                                
          ! Oceanic exchange
          IF ( LOCN1997 .OR. LOCN2009ANN .OR. LOCN2009MON ) THEN
-            CALL READ_OCEANCO2
+            CALL READ_OCEANCO2( am_I_Root, Input_Opt, RC )
          ENDIF
 
          ! Ship emissions from EDGAR
@@ -346,7 +426,7 @@
          ! Get chemical source   ! dbj
          IF ( LCHEMCO2 ) THEN
             CALL READ_CHEMCO2
-            CALL CHEM_SURF
+            CALL CHEM_SURF( am_I_Root, Input_Opt, RC )
             CHEMSRC = CHEMCO2
          ENDIF
       ENDIF
@@ -713,6 +793,9 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+      ! Free pointer
+      NULLIFY( STT )
+
       END SUBROUTINE EMISSCO2 
 !EOC
 !------------------------------------------------------------------------------
@@ -803,18 +886,27 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_FOSSILCO2
+      SUBROUTINE READ_FOSSILCO2( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-      USE TIME_MOD,      ONLY : GET_YEAR, GET_MONTH
-      USE LOGICAL_MOD,   ONLY : LGENFF, LANNFF, LMONFF, LCHEMCO2, LPLANE
-
-      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_SIZE_MOD
+      USE BPCH2_MOD,          ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,          ONLY : GET_TAU0,        READ_BPCH2
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
+      USE TIME_MOD,           ONLY : GET_YEAR, GET_MONTH
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  Original data provided by Robert Andres (CDIAC), personal communication
@@ -835,6 +927,7 @@
 !  25 Feb 2011 - R. Nassar           - Now point to annual_v2010 and
 !                                      monthly_v2010 directories, which
 !                                      contain updated CO2 data from CDIAC
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -848,9 +941,22 @@
       CHARACTER(LEN=4)       :: YEAR_STR
       CHARACTER(LEN=2)       :: MONTH_STR
 
+      LOGICAL                :: LGENFF, LANNFF, LMONFF, LCHEMCO2, LPLANE
+
       !=================================================================
       ! READ_FOSSILCO2 begins here!
       !=================================================================
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy fields from Input_Opt
+      LGENFF    = Input_Opt%LGENFF
+      LANNFF    = Input_Opt%LANNFF
+      LMONFF    = Input_Opt%LMONFF
+      LCHEMCO2  = Input_Opt%LCHEMCO2
+      LPLANE    = Input_Opt%LPLANE
+
 
       ! Time variables
       YEAR   = GET_YEAR()
@@ -928,7 +1034,7 @@
       CALL TRANSFER_2D( ARRAY(:,:,1), EMFOSSCO2 )
 
       IF ( LPLANE ) THEN
-         CALL AVIATION_DOM_CORR( EMFOSSCO2 )
+         CALL AVIATION_DOM_CORR( am_I_Root, Input_Opt, EMFOSSCO2, RC )
       ENDIF
 
       END SUBROUTINE READ_FOSSILCO2
@@ -949,19 +1055,28 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_SURF
+      SUBROUTINE CHEM_SURF( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,      ONLY : GET_TAU0,   READ_BPCH2
-      USE BPCH2_MOD,      ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE DIRECTORY_MOD,  ONLY : DATA_DIR
-      USE LOGICAL_MOD,    ONLY : LGENFF, LANNFF, LMONFF
-      USE TRANSFER_MOD,   ONLY : TRANSFER_2D
-      USE TIME_MOD,       ONLY : GET_YEAR,GET_MONTH
-      USE GRID_MOD,       ONLY : GET_AREA_CM2
-
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_SIZE_MOD
+      USE BPCH2_MOD,          ONLY : GET_TAU0,   READ_BPCH2
+      USE BPCH2_MOD,          ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
+      USE TIME_MOD,           ONLY : GET_YEAR,GET_MONTH
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  Methane source distribution are read for the same purpose from 2004 data
@@ -1017,9 +1132,24 @@
 
       REAL*8, PARAMETER       :: PERCENT_CORRECTION = 4.89d0
 
+      ! Copy values from Input_Opt
+      LOGICAL                 :: LGENFF, LANNFF, LMONFF
+
       !For # molecules <--> mass in kg
       REAL*8, PARAMETER       :: CH4FAC = 6.022d23/16d-3
       REAL*8, PARAMETER       :: CFAC   = 6.022d23/12d-3
+
+      !-----------------------------------------------------------------
+      ! Initialize
+      !-----------------------------------------------------------------
+
+      ! Assume success
+      RC     =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LGENFF = Input_Opt%LGENFF
+      LANNFF = Input_Opt%LANNFF
+      LMONFF = Input_Opt%LMONFF
 
       !-----------------------------------------------------------------
       ! Get month and year
@@ -1269,24 +1399,36 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE AVIATION_DOM_CORR( EMFOSS )
+      SUBROUTINE AVIATION_DOM_CORR( am_I_Root, Input_Opt, EMFOSS, RC )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,      ONLY : GET_TAU0,        READ_BPCH2
-      USE BPCH2_MOD,      ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE DIRECTORY_MOD,  ONLY : DATA_DIR,        DATA_DIR_1x1  !(lmw,05/16/11)
-      USE LOGICAL_MOD,    ONLY : LGENFF
-      USE TRANSFER_MOD,   ONLY : TRANSFER_2D
-      USE TIME_MOD,       ONLY : GET_YEAR,        ITS_A_LEAPYEAR
-      USE GRID_MOD,       ONLY : GET_AREA_CM2
-      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
-
-      USE CMN_SIZE_MOD         ! Size parameters
+      USE BPCH2_MOD,          ONLY : GET_TAU0,        READ_BPCH2
+      USE BPCH2_MOD,          ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE CMN_SIZE_MOD
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR,        DATA_DIR_1x1
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
+      USE TIME_MOD,           ONLY : GET_YEAR,        ITS_A_LEAPYEAR
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE REGRID_A2A_MOD,     ONLY : DO_REGRID_A2A
 !
 ! !INPUT PARAMETERS:
 !
-      REAL*8, INTENT(INOUT)   :: EMFOSS(IIPAR,JJPAR)  ! Fuel to be scaled
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options objec
+!
+! !INPUT/OUTPUT PARAMETERS:
+
+      REAL*8,         INTENT(INOUT) :: EMFOSS(IIPAR,JJPAR)  ! Fuel to be scaled
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !INPUT PARAMETERS:
+!
 
 ! !REVISION HISTORY: 
 !  18 May 2010 - R. Nassar, D. Jones - Initial version 
@@ -1321,6 +1463,19 @@
       CHARACTER(LEN=255) :: LLFILENAME
       REAL*8, POINTER    :: INGRID(:,:)  => NULL()
       REAL*8, POINTER    :: OUTGRID(:,:) => NULL()
+
+      ! Copy values from Input_Opt
+      LOGICAL            :: LGENFF
+
+      !-----------------------------------------------------------------
+      ! Initialize
+      !-----------------------------------------------------------------
+
+      ! Assume success
+      RC     =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LGENFF = Input_Opt%LGENFF
 
       !-----------------------------------------------------------------
       ! Read Generic or annual fossil fuel emissions file
@@ -1469,18 +1624,27 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_OCEANCO2
+      SUBROUTINE READ_OCEANCO2( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE TIME_MOD,      ONLY : GET_MONTH
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-      USE LOGICAL_MOD,   ONLY : LOCN1997, LOCN2009ANN, LOCN2009MON
-
-      USE CMN_SIZE_MOD      ! Size parameters
+      USE BPCH2_MOD,          ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,          ONLY : GET_TAU0,        READ_BPCH2
+      USE CMN_SIZE_MOD
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : GET_MONTH
+      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  See References Above
@@ -1491,6 +1655,7 @@
 !  25 Feb 2011 - R. Nassar           - Now point to annual_v2010 and
 !                                      monthly_v2010 directories, which
 !                                      contain updated CO2 data from CDIAC
+!  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1503,9 +1668,20 @@
       CHARACTER(LEN=255)     :: FILENAME
       CHARACTER(LEN=2)       :: MONTH_STR
 
+      ! For fields from Input_Opt
+      LOGICAL                :: LOCN1997, LOCN2009ANN, LOCN2009MON
+
       !=================================================================
       ! READ_OCEANCO2 begins here!
       !=================================================================
+
+      ! Assume success
+      RC          =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LOCN1997    = Input_Opt%LOCN1997
+      LOCN2009ANN = Input_Opt%LOCN2009ANN
+      LOCN2009MON = Input_Opt%LOCN2009MON
 
       MONTH = GET_MONTH()
       WRITE( MONTH_STR, '(i2.2)' ) MONTH
@@ -2212,19 +2388,29 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_ANNUAL_BIONET_CO2
+      SUBROUTINE READ_ANNUAL_BIONET_CO2( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
       ! References to F90 modules
-      USE BPCH2_MOD,      ONLY : GET_NAME_EXT_2D,   GET_RES_EXT
-      USE BPCH2_MOD,      ONLY : GET_TAU0,          READ_BPCH2
-      USE DIRECTORY_MOD,  ONLY : DATA_DIR,          DATA_DIR_1x1
-      USE FILE_MOD,       ONLY : IOERROR
-      USE TRANSFER_MOD,   ONLY : TRANSFER_2D
-      USE LOGICAL_MOD,    ONLY : LBIONETORIG,       LBIONETCLIM
-      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
-      USE CMN_SIZE_MOD         ! Size parameters
+      USE BPCH2_MOD,          ONLY : GET_NAME_EXT_2D,   GET_RES_EXT
+      USE BPCH2_MOD,          ONLY : GET_TAU0,          READ_BPCH2
+      USE CMN_SIZE_MOD
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR,          DATA_DIR_1x1
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE FILE_MOD,           ONLY : IOERROR
+      USE TRANSFER_MOD,       ONLY : TRANSFER_2D
+      USE REGRID_A2A_MOD,     ONLY : DO_REGRID_A2A
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  The two choices are:
@@ -2272,12 +2458,22 @@
       REAL*8,  POINTER       :: INGRID (:,:) => NULL()
       REAL*8,  POINTER       :: OUTGRID(:,:) => NULL()
 
+      ! For fields from Input_Opt
+      LOGICAL                :: LBIONETORIG, LBIONETCLIM
+
       !=================================================================
       ! READ_ANNUAL_BIONET_CO2 begins here!
       !=================================================================
-      
+
+      ! Assume success
+      RC          =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LBIONETORIG = Input_Opt%LBIONETORIG
+      LBIONETCLIM = Input_Opt%LBIONETCLIM
+
       ! Initialize ARRAY
-      ARRAY = 0e0
+      ARRAY       = 0e0
 
       !------------------------------------
       ! Read original Bionet data
@@ -3318,45 +3514,93 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_CO2 
+      SUBROUTINE INIT_CO2( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
       ! References to F90 modules
-      USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE LOGICAL_MOD, ONLY : LGENFF,  LANNFF,   LMONFF, LSTREETS
-      USE LOGICAL_MOD, ONLY : LSEASBB, LGFED2BB, L8DAYBB, LBIOFUEL
-      USE LOGICAL_MOD, ONLY : LGFED3BB
-      USE LOGICAL_MOD, ONLY : LBIODAILY,   LBIODIURNAL
-      USE LOGICAL_MOD, ONLY : LBIONETORIG, LBIONETCLIM
-      USE LOGICAL_MOD, ONLY : LOCN1997,    LOCN2009ANN, LOCN2009MON
-      USE LOGICAL_MOD, ONLY : LFFBKGRD
-      USE LOGICAL_MOD, ONLY : LSHIPEDG,    LSHIPICO,    LPLANE
-      USE LOGICAL_MOD, ONLY : LBIOSPHTAG,  LFOSSILTAG
-      USE LOGICAL_MOD, ONLY : LSHIPTAG,    LPLANETAG
-      USE TRACER_MOD,  ONLY : N_TRACERS
-
       USE CMN_SIZE_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  16 Aug 2005 - P. Suntharalingam   - Initial version
 !  18 May 2010 - R. Nassar, D. Jones - Updated 
+!  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE :: IS_INIT = .FALSE.
-      INTEGER       :: AS
+      LOGICAL, SAVE    :: IS_INIT = .FALSE.
+      INTEGER          :: AS
+
+      ! For values from Input_Opt
+      LOGICAL          :: LGENFF,      LANNFF,      LMONFF
+      LOGICAL          :: LCHEMCO2,    LBIODAILY,   LBIODIURNAL
+      LOGICAL          :: LBIONETORIG, LBIONETCLIM, LOCN1997
+      LOGICAL          :: LOCN2009ANN, LOCN2009MON, LSHIPEDG
+      LOGICAL          :: LSHIPICO,    LPLANE,      LFFBKGRD
+      LOGICAL          :: LBIOSPHTAG,  LFOSSILTAG,  LSHIPTAG
+      LOGICAL          :: LPLANETAG,   LSTREETS,    LSEASBB
+      LOGICAL          :: LGFED2BB,    L8DAYBB,     LBIOFUEL
+      LOGICAL          :: LGFED3BB
+      INTEGER          :: N_TRACERS
+
+      ! External functions     
+      REAL*8, EXTERNAL :: BOXVL    ! dbj
 
       !=================================================================
-      ! INIT_CO2 begins here!
+      ! EMISSCO2 begins here!
       !=================================================================
-           
+
+      ! Return success
+      RC          = GIGC_SUCCESS
+
       ! Exit if we have already intialized 
       IF ( IS_INIT ) RETURN
 	
+      ! Copy values from Input_Opt
+      LGENFF      = Input_Opt%LGENFF
+      LANNFF      = Input_Opt%LANNFF
+      LMONFF      = Input_Opt%LMONFF
+      LCHEMCO2    = Input_Opt%LCHEMCO2
+      LSEASBB     = Input_Opt%LSEASBB
+      LBIOFUEL    = Input_Opt%LBIOFUEL
+      LBIODAILY   = Input_Opt%LBIODAILY
+      LBIODIURNAL = Input_Opt%LBIODIURNAL
+      LBIONETORIG = Input_Opt%LBIONETORIG
+      LBIONETCLIM = Input_Opt%LBIONETCLIM
+      LOCN1997    = Input_Opt%LOCN1997
+      LOCN2009ANN = Input_Opt%LOCN2009ANN
+      LOCN2009MON = Input_Opt%LOCN2009MON
+      LSHIPEDG    = Input_Opt%LSHIPEDG
+      LSHIPICO    = Input_Opt%LSHIPICO
+      LPLANE      = Input_Opt%LPLANE
+      LFFBKGRD    = Input_Opt%LFFBKGRD
+      LBIOSPHTAG  = Input_Opt%LBIOSPHTAG
+      LFOSSILTAG  = Input_Opt%LFOSSILTAG
+      LSHIPTAG    = Input_Opt%LSHIPTAG
+      LPLANETAG   = Input_Opt%LPLANETAG
+      LSTREETS    = Input_Opt%LSTREETS
+      LSEASBB     = Input_Opt%LSEASBB
+      LGFED2BB    = Input_Opt%LGFED2BB
+      L8DAYBB     = Input_Opt%L8DAYBB     
+      LBIOFUEL    = Input_Opt%LBIOFUEL
+      LGFED3BB    = Input_Opt%LGFED3BB
+      N_TRACERS   = Input_Opt%N_TRACERS
+
       ! Array for Fossil fuel CO2
       ALLOCATE( EMFOSSCO2( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMFOSSCO2' )         
@@ -3436,7 +3680,9 @@
       IF (LBIOFUEL) CALL READ_ANNUAL_BIOFUELCO2
 
       ! Net terrestrial exchange
-      IF (LBIONETORIG .OR. LBIONETCLIM) CALL READ_ANNUAL_BIONET_CO2
+      IF (LBIONETORIG .OR. LBIONETCLIM) THEN
+         CALL READ_ANNUAL_BIONET_CO2( am_I_Root, Input_Opt, RC )
+      ENDIF
 
       ! Reset IS_INIT flag
       IS_INIT = .TRUE.

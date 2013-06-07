@@ -16,12 +16,8 @@
 ! \begin{itemize}
 ! \item Allocate geo-spatial arrays
 ! \item Initialize met. field derived type.
-! \item Initialize CHEM, PHYS, and EMISSIONS states
+! \item Initialize Chemistry, Metorology, Emissions, and Physics States
 ! \end{itemize}
-
-!  NOTE: This is mostly for testing the grid-independent code in the current 
-!  GEOS-Chem.  Many of these inputs will come from the GEOS-5 interface. 
-!  It will remain in DEVEL state for some time.
 !\\
 !\\
 ! !INTERFACE: 
@@ -280,6 +276,7 @@ CONTAINS
 !                              number of strat chem species and Bry species
 !  01 Nov 2012 - R. Yantosca - Now use LSCHEM from logical_mod.F
 !  09 Nov 2012 - R. Yantosca - Now pass Input Options object for GIGC
+!  26 Feb 2013 - R. Yantosca - Now pass Input_Opt to Init_GIGC_State_Chm
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -360,17 +357,18 @@ CONTAINS
 #endif
 
     ! Initialize chemistry state
-    CALL Init_GIGC_State_Chm(  am_I_Root  = am_I_Root,   &  ! Root CPU (Y/N)?
-                               IM         = IIPAR,       &  ! # of lons
-                               JM         = JJPAR,       &  ! # of lats
-                               LM         = LLPAR,       &  ! # of levels
-                               nTracers   = N_TRACERS,   &  ! # of tracers
-                               nBioMax    = NBIOMAX,     &  ! # biomass species
-                               nSpecies   = IGAS,        &  ! # chemical species
-                               nSchm      = nSchm,       &  ! # strat chem spec
-                               nSchmBry   = nSchmBry,    &  ! # bromine species
-                               State_Chm  = State_Chm,   &  ! Chemistry State
-                               RC         = RC          )   ! Success or failure
+    CALL Init_GIGC_State_Chm(  am_I_Root  = am_I_Root,  &  ! Root CPU (Y/N)?
+                               IM         = IIPAR,      &  ! # of lons
+                               JM         = JJPAR,      &  ! # of lats
+                               LM         = LLPAR,      &  ! # of levels
+                               nTracers   = N_TRACERS,  &  ! # of tracers
+                               nBioMax    = NBIOMAX,    &  ! # biomass species
+                               nSpecies   = IGAS,       &  ! # chemical species
+                               nSchm      = nSchm,      &  ! # strat chem spec
+                               nSchmBry   = nSchmBry,   &  ! # bromine species
+                               Input_Opt  = Input_Opt,  &  ! Input Options
+                               State_Chm  = State_Chm,  &  ! Chemistry State
+                               RC         = RC         )   ! Success or failure
     
     ! Return upon error
     IF ( RC /= GIGC_SUCCESS ) RETURN
@@ -398,7 +396,7 @@ CONTAINS
     USE CMN_SIZE_MOD
     USE GIGC_ErrCode_Mod
     USE LOGICAL_MOD,       ONLY : LLINOZ
-    USE TRACER_MOD,        ONLY : N_TRACERS, TRACER_NAME, STT
+    USE TRACER_MOD,        ONLY : N_TRACERS, TRACER_NAME
     USE TIME_MOD,          ONLY : GET_TAU, GET_NYMD, GET_NHMS, GET_TS_CHEM
 !
 ! !INPUT PARAMETERS:

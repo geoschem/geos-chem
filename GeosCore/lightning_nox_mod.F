@@ -1326,23 +1326,25 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE EMLIGHTNING( State_Met, EMISS )
+      SUBROUTINE EMLIGHTNING( State_Met, State_Chm )
 
 !
 ! !USES:
 !
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD32_li
       USE GIGC_State_Met_Mod, ONLY : MetState
-
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_DIAG_MOD             ! ND32
-
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE TRACERID_MOD,       ONLY : IDTNO
 !
 ! !INPUT PARAMETERS:
 !
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-      REAL*8,         INTENT(INOUT) :: EMISS(:,:,:)
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 ! 
 ! !REVISION HISTORY: 
 !  09 Oct 1997 - R. Yantosca - Initial version
@@ -1358,6 +1360,7 @@
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  25 Mar 2013 - R. Yantosca - Now accept State_Chm
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1373,16 +1376,19 @@
       !=================================================================
       ! EMLIGHTNING begins here!
       !=================================================================
-      DO I = 1, IIPAR
-      DO J = 1,JJPAR
       DO L = 1, LLCONVM 
-               
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+                
          ! SLBASE(I,J,L) has units [molec NOx/6h/box], convert units:
          ! [molec/6h/box] * [6h/21600s] * [box/BOXVL cm3] = [molec/cm3/s]
          TMP = SLBASE(I,J,L) / ( 21600.d0 * BOXVL(I,J,L,State_Met) )
 
-         EMIS_LI_NOx(I,J,L) = TMP
-         EMISS      (I,J,L) = TMP
+         EMIS_LI_NOx(I,J,L)                = TMP
+
+#if defined( DEVEL ) 
+         State_Chm%TRAC_TEND(I,J,L,IDTNO)  = TMP
+#endif
 
          ! ND32 Diagnostic: Lightning NOx [molec NOx/cm2/s]
          IF ( ND32 > 0 ) THEN
@@ -1392,66 +1398,7 @@
       ENDDO
       ENDDO
       ENDDO
-#else
-      SUBROUTINE EMLIGHTNING( I, J, State_Met )
-!
-! !USES:
-!
-      USE DIAG_MOD,           ONLY : AD32_li
-      USE GIGC_State_Met_Mod, ONLY : MetState
 
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_DIAG_MOD             ! ND32
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER,        INTENT(IN)  :: I           ! Longitude index
-      INTEGER,        INTENT(IN)  :: J           ! Latitude index
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-! 
-! !REVISION HISTORY: 
-!  09 Oct 1997 - R. Yantosca - Initial version
-!  (1 ) Remove IOFF, JOFF from the argument list.  Also remove references
-!        to header files "CMN_O3" and "comtrid.h" (bmy, 3/16/00)
-!  (2 ) Now use allocatable array for ND32 diagnostic (bmy, 3/16/00)  
-!  (3 ) Now reference BXHEIGHT from "dao_mod.f".  Updated comments, cosmetic
-!        changes.  Replace LCONVM with the parameter LLCONVM. (bmy, 9/18/02)
-!  (4 ) Removed obsolete reference to "CMN".  Now bundled into 
-!        "lightning_mod.f" (bmy, 4/14/04)
-!  (5 ) Renamed from EMLIGHTNING_NL to EMLIGHTNING.  Now replace GEMISNOX
-!        (from CMN_NOX) with module variable EMIS_LI_NOx. (ltm, bmy, 10/3/07)
-!  10 Nov 2010 - R. Yantosca - Added ProTeX headers
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!     
-      INTEGER             :: L
-      REAL*8              :: TMP
-
-      ! External functions
-      REAL*8, EXTERNAL    :: BOXVL
-
-      !=================================================================
-      ! EMLIGHTNING begins here!
-      !=================================================================
-      DO L = 1, LLCONVM 
-
-          ! SLBASE(I,J,L) has units [molec NOx/6h/box], convert units:
-          ! [molec/6h/box] * [6h/21600s] * [box/BOXVL cm3] = [molec/cm3/s]
-          TMP = SLBASE(I,J,L) / ( 21600.d0 * BOXVL(I,J,L,State_Met) )
-          EMIS_LI_NOx(I,J,L) = TMP
-
-          ! ND32 Diagnostic: Lightning NOx [molec NOx/cm2/s]
-          IF ( ND32 > 0 ) THEN
-             AD32_li(I,J,L) = AD32_li(I,J,L) + 
-     &                      ( TMP * State_Met%BXHEIGHT(I,J,L) * 1d2 )
-          ENDIF
-      ENDDO
-#endif
       END SUBROUTINE EMLIGHTNING
 !EOC
 !------------------------------------------------------------------------------

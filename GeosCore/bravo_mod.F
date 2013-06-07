@@ -46,6 +46,8 @@
 !  (3 ) Now accounts for FSCLYR (phs, 3/17/08)
 !  (4 ) Added ProTeX headers (bmy, 1/30/09)
 !  31 Aug 2010 - R. Yantosca - Updated comments
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -114,7 +116,7 @@
 !
 ! !USES:
 ! 
-      USE TRACERID_MOD, ONLY : IDTNOX, IDTCO, IDTSO2
+      USE TRACERID_MOD, ONLY : IDTNO, IDTCO, IDTSO2
 !
 ! !INPUT PARAMETERS:
 !
@@ -132,6 +134,8 @@
 !       (amv, 06/2008)
 !  (2 ) Now returns ship emissions if requested (phs, 6/08)
 !  (3 ) Added checks to avoid calling unavailable ship emissions (phs, 6/08)
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -140,7 +144,8 @@
       !=================================================================
 
       ! NOx
-      IF ( N  == IDTNOX ) THEN
+      ! Replaced NOx with NO (mpayer, 3/14/13)
+      IF ( N  == IDTNO ) THEN
          BRAVO = BRAVO_NOx(I,J)
 
       ! CO
@@ -173,28 +178,38 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE EMISS_BRAVO(EMISSIONS)
-#else
-      SUBROUTINE EMISS_BRAVO
-#endif
+      SUBROUTINE EMISS_BRAVO( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 ! 
-      USE BPCH2_MOD,        ONLY : GET_TAU0,      READ_BPCH2
-      USE DIRECTORY_MOD,    ONLY : DATA_DIR_1x1 
-      USE LOGICAL_MOD,      ONLY : LFUTURE
-      USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
-      USE TIME_MOD,         ONLY : GET_YEAR
-      USE REGRID_A2A_MOD,   ONLY : DO_REGRID_A2A
+      USE BPCH2_MOD,          ONLY : GET_TAU0,      READ_BPCH2
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR_1x1 
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE SCALE_ANTHRO_MOD,   ONLY : GET_ANNUAL_SCALAR
+      USE TIME_MOD,           ONLY : GET_YEAR
+      USE REGRID_A2A_MOD,     ONLY : DO_REGRID_A2A
 
       USE CMN_SIZE_MOD           ! Size parameters
       USE CMN_O3_MOD             ! 
 
 #if defined( DEVEL )
-      USE TRACER_MOD,   ONLY : N_TRACERS
-      USE TRACERID_MOD, ONLY : IDTNOX, IDTCO, IDTSO2
+      USE TRACERID_MOD, ONLY : IDTNO, IDTCO, IDTSO2
 #endif
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  22 Jun 2006 - R. Park, F. Boersma, R. Yantosca - Initial version
@@ -203,6 +218,7 @@
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -220,17 +236,21 @@
       REAL*8, POINTER         :: INGRID(:,:) => NULL()
       REAL*8                  :: OUTGRID(IIPAR,JJPAR)
 
-#if defined( DEVEL )
-      REAL*8, INTENT(INOUT)   :: EMISSIONS(IIPAR,JJPAR,N_TRACERS)
-#endif
-      
+      ! For fields from Input_Opt
+      LOGICAL                 :: LFUTURE
+      INTEGER                 :: N_TRACERS
+
       !=================================================================
       ! EMISS_BRAVO begins here!
       !=================================================================
 
+      ! Copy values from Input_Opt
+      LFUTURE   = Input_Opt%LFUTURE
+      N_TRACERS = Input_Opt%N_TRACERS
+
       ! First-time initialization
       IF ( FIRST ) THEN
-         CALL INIT_BRAVO
+         CALL INIT_BRAVO( am_I_Root, Input_Opt, RC )
          FIRST = .FALSE.
       ENDIF
 
@@ -363,14 +383,14 @@
       CALL TOTAL_ANTHRO_TG( SCALEYEAR )
 
 #if defined( DEVEL )
-      EMISSIONS(:,:,IDTNOX) = EMISSIONS(:,:,IDTNOX) +
-     &                        BRAVO_NOx
+      State_Chm%TRAC_TEND(:,:,1,IDTNO)  =
+     &State_Chm%TRAC_TEND(:,:,1,IDTNO)  + BRAVO_NOx
 
-      EMISSIONS(:,:,IDTCO)  = EMISSIONS(:,:,IDTCO) +
-     &                        BRAVO_CO
+      State_Chm%TRAC_TEND(:,:,1,IDTCO)  = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTCO)  + BRAVO_CO
 
-      EMISSIONS(:,:,IDTSO2) = EMISSIONS(:,:,IDTSO2) +
-     &                        BRAVO_SO2
+      State_Chm%TRAC_TEND(:,:,1,IDTSO2) = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTSO2) + BRAVO_SO2
 #endif      
 
       END SUBROUTINE EMISS_BRAVO
@@ -455,7 +475,7 @@
 ! 
       ! References to F90 modules
       USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE TRACERID_MOD, ONLY : IDTNOX, IDTCO, IDTSO2
+      USE TRACERID_MOD, ONLY : IDTNO, IDTCO, IDTSO2
 
       USE CMN_SIZE_MOD     ! Size parameters
 !
@@ -467,6 +487,8 @@
 !  22 Jun 2006 - R. Park, F. Boersma, R. Yantosca - Initial version
 !  (1 ) Now YEAR is input to reflect scaling factors applied (phs, 3/17/08)
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90 
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -494,7 +516,7 @@
       ! Define conversion factors for kg/molec
       ! (Undefined tracers will be zero)
       B(:) = 0d0
-      IF ( IDTNOx > 0 ) B(1) = 1d0 / ( 6.0225d23 / 14d-3 )  ! Tg N
+      IF ( IDTNO  > 0 ) B(1) = 1d0 / ( 6.0225d23 / 14d-3 )  ! Tg N
       IF ( IDTCO  > 0 ) B(2) = 1d0 / ( 6.0225d23 / 28d-3 )  ! Tg CO
       IF ( IDTSO2 > 0 ) B(3) = 1d0 / ( 6.0225d23 / 32d-3 )  ! Tg S
 
@@ -523,7 +545,7 @@
       !----------------
 
       ! Print totals in [kg]
-      WRITE( 6, 110   ) 'NOx ', YEAR, NOx, ' N'
+      WRITE( 6, 110   ) 'NO  ', YEAR, NOx, ' N'
       WRITE( 6, 110   ) 'CO  ', YEAR, CO,  '  '
       WRITE( 6, 110   ) 'SO2 ', YEAR, SO2, ' S'
 
@@ -631,18 +653,28 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_BRAVO
+      SUBROUTINE INIT_BRAVO( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 ! 
-      USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE GRID_MOD,    ONLY : GET_XMID, GET_YMID
-      USE LOGICAL_MOD, ONLY : LBRAVO
-
-      USE CMN_SIZE_MOD    ! Size parameters
+      USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GRID_MOD,           ONLY : GET_XMID, GET_YMID
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  22 Jun 2006 - R. Park, F. Boersma, R. Yantosca - Initial version
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -655,8 +687,11 @@
       ! INIT_BRAVO begins here!
       !=================================================================
 
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
       ! Return if LBRAVO is false
-      IF ( .not. LBRAVO ) RETURN
+      IF ( .not. Input_Opt%LBRAVO ) RETURN
       
       !--------------------------
       ! Allocate and zero arrays

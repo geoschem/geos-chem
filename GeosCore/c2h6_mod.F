@@ -91,11 +91,8 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )      
-      SUBROUTINE EMISSC2H6( State_Met, EMISS, BIO_EMISS)
-#else
-      SUBROUTINE EMISSC2H6( State_Met )
-#endif
+      SUBROUTINE EMISSC2H6( am_I_Root, Input_Opt, 
+     &                      State_Met, State_Chm, RC )
 !
 ! !USES:
 !
@@ -105,12 +102,12 @@
       USE DIRECTORY_MOD,      ONLY : DATA_DIR
       USE GEIA_MOD,           ONLY : READ_C3H8_C2H6_NGAS
       USE GEIA_MOD,           ONLY : TOTAL_FOSSIL_TG
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,        ONLY : LSPLIT, LBIOMASS, LBIOFUEL, LANTHRO
       USE TIME_MOD,           ONLY : GET_MONTH, GET_TS_EMIS
-      USE TRACER_MOD,         ONLY : STT
-      USE TRACER_MOD,         ONLY : ITS_A_C2H6_SIM
       USE TRACERID_MOD,       ONLY : IDBC2H6      
       USE TRACERID_MOD,       ONLY : IDBFC2H6, IDEC2H6, IDTC2H6
       USE TRANSFER_MOD,       ONLY : TRANSFER_2D
@@ -118,18 +115,20 @@
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_O3_MOD               ! EMISTC2H6
       USE CMN_DIAG_MOD             ! Diagnostic arrays & switches
-      USE CMN_MOD                  ! STT, etc.
 !
 ! !INPUT PARAMETERS:
 !
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-#if defined( DEVEL )
-      REAL*8,         INTENT(INOUT) :: EMISS(IIPAR,JJPAR)
-      REAL*8,         INTENT(INOUT) :: BIO_EMISS(:,:,:)
-#endif
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  (1 ) BURNEMIS and BIOFUEL are now dimensioned with IIPAR,JJPAR instead of
@@ -155,6 +154,7 @@
 !  (9 ) Now IDBC2H6 is defined in TRACERID_MOD. (fp, hotp , 7/31/09)
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !  22 Mar 2012 - M. Payer    - Added ProTeX headers
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -169,6 +169,15 @@
       REAL*8                 :: E_C2H6_BB,   E_C2H6_BF
       REAL*8                 :: E_C2H6_NGAS, DTSRCE
       CHARACTER(LEN=255)     :: FILENAME
+
+      ! For fields from Input_Opt
+      LOGICAL                :: ITS_A_C2H6_SIM
+      LOGICAL                :: LSPLIT, LBIOMASS, LBIOFUEL, LANTHRO
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER        :: STT(:,:,:,:)
 !
 ! !EXTERNAL FUNCTIONS:
 !
@@ -177,6 +186,17 @@
       !=================================================================
       ! EMISS_C2H6 begins here!
       !=================================================================
+
+      ! Assume success
+      RC             =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      ITS_A_C2H6_SIM = Input_Opt%ITS_A_C2H6_SIM
+      LSPLIT         = Input_Opt%LSPLIT
+      LBIOMASS       = Input_Opt%LBIOMASS
+      LBIOFUEL       = Input_Opt%LBIOFUEL
+      LANTHRO        = Input_Opt%LANTHRO
+
       IF ( FIRSTEMISS ) THEN 
 
          ! Allocate NGASC2H6 array, if this is the first emission 
@@ -185,6 +205,10 @@
          ! Set first-time flag to false
          FIRSTEMISS = .FALSE.
       ENDIF
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       ! DTSRCE is the number of seconds per emission timestep
       DTSRCE = GET_TS_EMIS() * 60d0
@@ -198,7 +222,7 @@
          ! Only process biomass C2H6 emissions if offline C2H6 sim.
          ! For fullchem sim, C2H6 biomass emissions are read from GFED2/3. 
          ! (mpayer, 3/22/12)
-         IF ( ITS_A_C2H6_SIM() ) THEN
+         IF ( ITS_A_C2H6_SIM ) THEN
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -237,14 +261,11 @@
          ! Only read biofuel burning emissions if offline C2H6 sim in order
          ! to avoid double counting of biofuel emissions in fullchem sim
          ! (mpayer, 3/22/12)
-         IF ( ITS_A_C2H6_SIM() ) THEN
+         IF ( ITS_A_C2H6_SIM ) THEN
 
             ! Read biofuel burning emissions (and update ND34 diagnostic)
-#if defined( DEVEL )
-            CALL BIOFUEL_BURN( State_Met, BIO_EMISS )
-#else
-            CALL BIOFUEL_BURN( State_Met )
-#endif
+            CALL BIOFUEL_BURN
+     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -304,7 +325,7 @@
 
          ! Only add anthro emissions to STT if offline C2H6 sim. For
          ! fullchem sim, this is done in emfossil (mpayer, 3/22/12)
-         IF ( ITS_A_C2H6_SIM() ) THEN
+         IF ( ITS_A_C2H6_SIM ) THEN
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -340,8 +361,12 @@
          ENDIF
       ENDIF
          
+      ! Free pointer
+      NULLIFY( STT )
+
 #if defined( DEVEL )
-      EMISS(:,:) = EMISS(:,:) + NGASC2H6(:,:)
+      State_Chm%TRAC_TEND(:,:,1,IDTC2H6) = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTC2H6) + NGASC2H6(:,:)
 #endif
 
       END SUBROUTINE EMISSC2H6
@@ -359,21 +384,32 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEMC2H6( State_Met )
+      SUBROUTINE CHEMC2H6( am_I_Root, Input_Opt,
+     &                     State_Met, State_Chm, RC )
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GLOBAL_OH_MOD,      ONLY : OH,        GET_GLOBAL_OH
-      USE LOGICAL_MOD,        ONLY : LSPLIT 
       USE TIME_MOD,           ONLY : GET_MONTH, GET_TS_CHEM
-      USE TRACER_MOD,         ONLY : N_TRACERS, STT
 
-      USE CMN_SIZE_MOD             ! Size parameters
-!
 ! !INPUT PARAMETERS:
 !
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY:
 !  (1 ) Now do chemistry all the way to the model top. 
@@ -388,20 +424,40 @@
 !  22 Mar 2012 - M. Payer    - Added ProTeX headers
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      ! SAVEd scalars
       LOGICAL, SAVE          :: FIRSTCHEM = .TRUE.
       INTEGER, SAVE          :: LASTMONTH = -99
+
+      ! Scalars
+      LOGICAL                :: LSPLIT
+      INTEGER                :: N_TRACERS
       INTEGER                :: I, J, L, N
       REAL*8                 :: DTCHEM, KRATE
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! CHEMC2H6 begins here! 
       !=================================================================
+
+      ! Assume success
+      RC        = GIGC_SUCCESS
+
+      ! Get fields from Input_Opt
+      LSPLIT    = Input_Opt%LSPLIT
+      N_TRACERS = Input_Opt%N_TRACERS
+
+
       IF ( FIRSTCHEM ) THEN
          FIRSTCHEM = .FALSE.  ! save for future use?
       ENDIF
@@ -409,12 +465,16 @@
       ! DTCHEM is the chemistry timestep in seconds
       DTCHEM = GET_TS_CHEM() * 60d0
 
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+
       !=================================================================
       ! Read in the tropospheric OH fields of the (LMN)th month
       ! OH data will be saved into the OH array of "global_oh_mod.f" 
       !=================================================================
       IF ( GET_MONTH() /= LASTMONTH ) THEN
-         CALL GET_GLOBAL_OH( GET_MONTH() )
+         CALL GET_GLOBAL_OH( GET_MONTH(), State_Met )
          LASTMONTH = GET_MONTH()
       ENDIF
 
@@ -458,6 +518,9 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+      ! Free pointer
+      NULLIFY( STT )
 
       END SUBROUTINE CHEMC2H6
 !EOC

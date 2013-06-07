@@ -10,8 +10,6 @@
 ! \begin{itemize}
 ! \item LTJV: J-values (ND22)
 ! \item LTOH: OH concentrations  (ND43)
-! \item LTNO: NO concentrations  (ND43)
-! \item LTNO2: NO2 concentrations (ND43)
 ! \item LTHO2: HO2 concentrations (ND43)
 ! \item LTOTH: used for tracers (ND45)
 ! \item LTO3: for O3 (ND45)
@@ -30,9 +28,9 @@
 !
 ! !USES:
 !
-      USE DIAG_MOD,           ONLY : LTJV,  CTJV,  LTNO,  CTNO,  CTO3
-      USE DIAG_MOD,           ONLY : LTOH,  CTOH,  LTOTH, CTOTH, LTNO2
-      USE DIAG_MOD,           ONLY : CTNO2, LTHO2, CTHO2, LTNO3, CTNO3
+      USE DIAG_MOD,           ONLY : LTJV,  CTJV,  CTO3
+      USE DIAG_MOD,           ONLY : LTOH,  CTOH,  LTOTH, CTOTH
+      USE DIAG_MOD,           ONLY : LTHO2, CTHO2
       USE DIAG_MOD,           ONLY : CTO3_24h, LTO3
       USE DIAG_MOD,           ONLY : LTLBRO2H, LTLBRO2N
       USE DIAG_MOD,           ONLY : LTLTRO2H, LTLTRO2N
@@ -81,6 +79,9 @@
 !  (8 ) Add LTO3 to accumulate O3 in ND45 at the same place as the
 !        chemistry (ccc, 7/17/09)
 !  01 Mar 2012 - R. Yantosca - Now use GET_LOCALTIME(I,J,L) from time_mod.F90
+!  02 Apr 2013 - M. Payer    - Remove code for LTNO, LTNO2, and LTNO3. These
+!                              are no onger needed because NO, NO2, and NO3
+!                              are now tracers.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -194,27 +195,19 @@
          ENDIF
 
          !-----------------------------
-         ! ND43 -- OH, NO, NO2, HO2
+         ! ND43 -- OH, HO2
          !-----------------------------
          IF ( IS_ND43 ) THEN
-
-            ! LTNO denotes where LT is between HR1_NO and HR2_NO
-            ! CTNO counts the times when LT was between HR1_NO and HR2_NO
-            ! Now set LTNO2, CTNO2 based on the NO times (rvm, bmy, 2/27/02)
-            IF ( LT(I) >= HR1_NO .and. LT(I) <= HR2_NO ) THEN 
-               LTNO(I,J)  = 1
-               LTNO2(I,J) = 1
                
+            IF ( LT(I) >= HR1_NO .and. LT(I) <= HR2_NO ) THEN 
                ! update for arom (dkh, 06/22/07)  
                LTLBRO2N(I,J) = 1
                LTLTRO2N(I,J) = 1
                LTLXRO2N(I,J) = 1               
 
-               ! Counters for # of NO, NO2 boxes in the trop (phs, 1/24/07)
+               ! Counters for # of boxes in the trop (phs, 1/24/07)
                DO L = 1, LD43
                   IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) THEN
-                     CTNO(I,J,L)  = CTNO(I,J,L)  + 1
-                     CTNO2(I,J,L) = CTNO2(I,J,L) + 1
                      ! update for arom (dkh, 06/22/07)  
                      CTLBRO2N(I,J,L) = CTLBRO2N(I,J,L) + 1
                      CTLTRO2N(I,J,L) = CTLTRO2N(I,J,L) + 1
@@ -223,21 +216,17 @@
                ENDDO
 
             ELSE
-               LTNO(I,J)  = 0
-               LTNO2(I,J) = 0
                ! update for arom (dkh, 06/22/07)  
                LTLBRO2N(I,J) = 0
                LTLTRO2N(I,J) = 0
                LTLXRO2N(I,J) = 0 
             ENDIF
 
-            ! LTNO denotes where LT is between HR1_OH and HR2_OH
             ! CTNO counts the times when LT was between HR1_OH and HR2_OH
             ! Now set LTHO2, CTHO2 based on the OH times (rvm, bmy, 2/27/02)
             IF ( LT(I) >= HR1_OH .and. LT(I) <= HR2_OH ) THEN  
                LTOH(I,J)  = 1
                LTHO2(I,J) = 1
-               LTNO3(I,J) = 1
                ! update for arom (dkh, 06/22/07)  
                LTLBRO2H(I,J) = 1
                LTLTRO2H(I,J) = 1
@@ -248,7 +237,6 @@
                   IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) THEN
                      CTOH(I,J,L)  = CTOH(I,J,L)  + 1
                      CTHO2(I,J,L) = CTHO2(I,J,L) + 1
-                     CTNO3(I,J,L) = CTNO3(I,J,L) + 1
                      ! update for arom (dkh, 06/22/07)  
                      CTLBRO2H(I,J,L) = CTLBRO2H(I,J,L) + 1
                      CTLTRO2H(I,J,L) = CTLTRO2H(I,J,L) + 1
@@ -259,7 +247,6 @@
             ELSE
                LTOH(I,J)  = 0
                LTHO2(I,J) = 0
-               LTNO3(I,J) = 0
                ! update for arom (dkh, 06/22/07)  
                LTLBRO2H(I,J) = 0
                LTLTRO2H(I,J) = 0

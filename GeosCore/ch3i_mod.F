@@ -233,11 +233,8 @@
 
 !------------------------------------------------------------------------------
 
-#if defined( DEVEL )
-      SUBROUTINE EMISSCH3I( State_Met, BIO_EMISS )
-#else
-      SUBROUTINE EMISSCH3I( State_Met )
-#endif
+      SUBROUTINE EMISSCH3I( am_I_Root, Input_Opt,
+     &                      State_Met, State_Chm, RC )
 !
 !******************************************************************************
 !  Subroutine EMISSCH3I (mgs, bmy, 11/23/98, 9/27/06) specifies methyl 
@@ -338,6 +335,7 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  13 Dec 2012 - R. Yantosca - Remove reference to obsolete CMN_DEP_mod.F
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -345,23 +343,32 @@
       USE BIOMASS_MOD,        ONLY : BIOMASS
       USE DIAG_MOD,           ONLY : AD29,      AD36
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_M2
-      USE LOGICAL_MOD,        ONLY : LEMIS
       USE TIME_MOD,           ONLY : GET_DAY,   GET_GMT,
      &                               GET_MONTH, GET_TS_EMIS
-      USE TRACER_MOD,         ONLY : STT,       N_TRACERS
       USE TRACERID_MOD,       ONLY : IDBCO
       USE TRACERID_MOD,       ONLY : IDBFCO
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! Diagnostic switches
-
-      ! Arguments
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-#if defined( DEVEL )
-      REAL*8,         INTENT(INOUT) :: BIO_EMISS(:,:,:)
-#endif
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 
       ! Local common blocks (shared with OPEN_CH3I_FILES)
       REAL*8 :: OCDATA(IIPAR,JJPAR)   ! scaled ocean net primary prod.
@@ -429,9 +436,27 @@
       ! output flag
       LOGICAL, PARAMETER :: OUTLOG = .FALSE.
 
+      ! For fields from Input_Opt
+      LOGICAL         :: LEMIS
+      INTEGER         :: N_TRACERS
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! EMISSCH3I begins here!
-      !
+      !=================================================================
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LEMIS     = Input_Opt%LEMIS
+      N_TRACERS = Input_Opt%N_TRACERS
+
+      !=================================================================
       ! If this is the first emission step, do the following...
       !=================================================================
       IF ( FIRSTEMISS ) THEN 
@@ -468,6 +493,10 @@
 !            ENDDO
 !         ENDIF
 !      ENDIF
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       ! DTSRCE = the number of seconds between emissions
       DTSRCE = GET_TS_EMIS() * 60d0
@@ -751,11 +780,8 @@
       ENDIF
 
       ! Now reference routine BIOFUEL_BURN from "biofuel_mod.f" (bmy, 9/12/00)
-#if defined( DEVEL )
-      CALL BIOFUEL_BURN( State_Met, BIO_EMISS )
-#else
-      CALL BIOFUEL_BURN( State_Met )
-#endif
+      CALL BIOFUEL_BURN
+     &   ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
       N = 3
       L = 1
@@ -880,6 +906,9 @@
 !          WRITE( 97, * )
 !       ENDIF
 
+      ! Free pointer
+      NULLIFY( STT )
+
       ! Make sure the next time is not the first emission time step ;-)
       FIRSTEMISS = .FALSE.
 
@@ -888,7 +917,8 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE CHEMCH3I( am_I_Root, State_Met )
+      SUBROUTINE CHEMCH3I( am_I_Root, Input_Opt, 
+     &                     State_Met, State_Chm, STATUS )
 !
 !******************************************************************************
 !  Subroutine CHEMCH3I performs loss chemistry for methyl iodide (CH3I).  
@@ -947,24 +977,40 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  27 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !******************************************************************************
 !
-      ! References to F90 modules
+!
+! !USES:
+!
       USE DIAG_MOD,           ONLY : AD22, LTJV
       USE DIAG_PL_MOD,        ONLY : AD65
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-      USE TRACER_MOD,         ONLY : STT, N_TRACERS
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE COMODE_LOOP_MOD          ! SPECNAME
       USE CMN_DIAG_MOD             ! ND36
-
-      ! Arguments
-      LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-
-      ! Local variables
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: STATUS      ! Success or failure?
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE          :: FIRSTCHEM = .TRUE.
       REAL*8                 :: DTCHEM, RLRAD, RDLOSS, T1L
       REAL*8                 :: TCHEMA, JVALUE
@@ -982,9 +1028,27 @@
       ! External functions
       REAL*8, EXTERNAL       :: FJFUNC 
 
+      ! For fields from Input_Opt
+      INTEGER               :: N_TRACERS
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! CHEMCH3I begins here!
       !=================================================================
+
+      ! Assume success
+      STATUS = GIGC_SUCCESS
+      
+      ! Get N_TRACERS field from Input_Opt
+      N_TRACERS = Input_Opt%N_TRACERS
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       ! convert DTCHEM from mn to sec.
       DTCHEM = GET_TS_CHEM() * 60d0
@@ -1114,6 +1178,9 @@
 !          ENDDO
 !       ENDIF
 !-----------------------------------------------------------------------------
+
+      ! Free pointer
+      NULLIFY( STT )
 
       ! Return to calling program
       END SUBROUTINE CHEMCH3I

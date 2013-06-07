@@ -767,22 +767,34 @@
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !  27 Aug 2012 - M. Payer    - Added parallel DO loop
 !  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
+!  05 Jun 2013 - R. Yantosca - Add st2d, ct2d arrays to avoid having the
+!                              code create array temporaries in call to NcRd
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER           :: I, J, fileID
-      INTEGER           :: AS
-      CHARACTER(len=60) :: vsl_file, fmt, vsldir
-      CHARACTER(len=10) :: cnlon
-      CHARACTER(len=255):: LLFILENAME, FILENAME
-      REAL*8            :: ARRAY2x25(144,91)
+      ! Scalars
+      INTEGER            :: I, J, fileID
+      INTEGER            :: AS
+      CHARACTER(len=60)  :: vsl_file, fmt, vsldir
+      CHARACTER(len=10)  :: cnlon
+      CHARACTER(len=255) :: LLFILENAME, FILENAME
+
+      ! Arrays
+      INTEGER            :: st2d(2)
+      INTEGER            :: ct2d(2)
+      REAL*8             :: ARRAY2x25(144,91)
+
 
       !=================================================================
       ! INIT_BROMOCARB begins here!
       !=================================================================
+
+      ! Start and count arrays for netCDF reads
+      st2d = (/ 1,   1  /)
+      ct2d = (/ 144, 91 /)
 
       !--------------------------
       ! Allocate and zero arrays
@@ -836,8 +848,15 @@
       
       ! Read in CHBr3 emission file ([kg(CHBr3)/m2/s]), regrid
       call NcOp_Rd( fileID, TRIM( FILENAME ) )
-      call NcRd( ARRAY2x25, fileID, 'CHBr3_emission', 
-     &           (/ 1, 1 /),  (/ 144, 91 /) )
+!-----------------------------------------------------------------------------
+! Prior to 6/5/13:
+! Recode to avoid creating array temporaries
+! This was found with the argument -check arg_temp_created (bmy, 6/5/13)
+!      call NcRd( ARRAY2x25, fileID, 'CHBr3_emission', 
+!     &           (/ 1, 1 /),  (/ 144, 91 /) )
+!-----------------------------------------------------------------------------
+      call NcRd( ARRAY2x25, fileID, 'CHBr3_emission', st2d, ct2d )
+
       CALL DO_REGRID_A2A( LLFILENAME, 144,         91, 
      &                    ARRAY2x25,  CHBr3_EMISS, IS_MASS=0,
      &                    netCDF=.TRUE.                       )
@@ -845,8 +864,14 @@
 
       ! Read in CH2Br2 emission file ([kg(CH2Br2)/m2/s]), regrid
       call NcOp_Rd( fileID, TRIM( FILENAME ) )
-      call NcRd( ARRAY2x25, fileID, 'CH2Br2_emission',
-     &           (/ 1, 1 /),  (/ 144, 91 /) )
+!------------------------------------------------------------------------------
+! Prior to 6/5/13:
+! Recode to avoid creating array temporaries (bmy, 6/5/13)
+! This was found with the argument -check arg_temp_created (bmy, 6/5/13)
+!      call NcRd( ARRAY2x25, fileID, 'CH2Br2_emission',
+!     &           (/ 1, 1 /),  (/ 144, 91 /) )
+!------------------------------------------------------------------------------
+      call NcRd( ARRAY2x25, fileID, 'CH2Br2_emission', st2d, ct2d )
       CALL DO_REGRID_A2A( LLFILENAME, 144,          91,
      &                    ARRAY2x25,  CH2Br2_EMISS, IS_MASS=0,
      &                    netCDF=.TRUE.                        )

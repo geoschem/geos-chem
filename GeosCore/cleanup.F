@@ -78,6 +78,9 @@
       USE SULFATE_MOD,             ONLY : CLEANUP_SULFATE
       USE STRAT_CHEM_MOD,          ONLY : CLEANUP_STRAT_CHEM
       USE TAGGED_CO_MOD,           ONLY : CLEANUP_TAGGED_CO
+#if   defined( TOMAS )
+      USE TOMAS_MOD,               ONLY : CLEANUP_TOMAS  !sfarina, 1/16/13
+#endif
       USE TOMS_MOD,                ONLY : CLEANUP_TOMS
       USE TPCORE_FVDAS_MOD,        ONLY : EXIT_TPCORE
       USE TPCORE_GEOS5_WINDOW_MOD, ONLY : EXIT_GEOS5_TPCORE_WINDOW
@@ -92,8 +95,27 @@
       USE BROMOCARB_MOD,           ONLY : CLEANUP_BROMOCARB    ! jpp, 6/17/09
 #if   defined( APM )
       USE APM_WETS_MOD,            ONLY : CLEANUP_WETSCAVBIN
-      USE DAO_MOD,                 ONLY : CLEANUP_DAO
 #endif
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Do not deallocate met field arrays from "dao_mod.F"
+      ! (mpayer, 3/14/13)
+      !-----------------------------------------------------------------
+#else
+      !-----------------------------------------------------------------
+      !                %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Deallocate met field arrays from "dao_mod.F" used to
+      ! correct vertical regridding of OH for offline simulations
+      ! (mpayer, 3/14/13)
+      !-----------------------------------------------------------------
+      USE DAO_MOD,                 ONLY : CLEANUP_DAO
+# if !defined( TOMAS )
+# endif
+#endif
+
 #if ! defined( ESMF_ )
       USE TRANSPORT_MOD,           ONLY : CLEANUP_TRANSPORT
 #endif
@@ -219,6 +241,10 @@
 !                              removed all allocatable arrays from dao_mod.F
 !  03 Dec 2012 - R. Yantosca - Now call Cleanup_CMN_SIZE
 !  13 Dec 2012 - R. Yantosca - Remove reference to obsolete CMN_DEP_mod.F
+!  14 Mar 2013 - M. Payer    - Restore reference to CLEANUP_DAO. Some arrays
+!                              have been restored to dao_mod.F for use in
+!                              the vertical regridding of OH for offline
+!                              simulations.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -308,9 +334,33 @@
       CALL CLEANUP_RETRO
 #if   defined( APM )
       CALL CLEANUP_WETSCAVBIN  ! Cleanup arrays for APM wet scavenging
-      CALL CLEANUP_DAO         ! Clean up met fields for APM
+<<<<<<< HEAD
 #endif
 
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Do not deallocate met field arrays from "dao_mod.F"
+      ! (mpayer, 3/14/13)
+      !-----------------------------------------------------------------
+#else
+      !-----------------------------------------------------------------
+      !                %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Deallocate met field arrays from "dao_mod.F" used to
+      ! correct vertical regridding of OH for offline simulations
+      ! (mpayer, 3/14/13)
+      !-----------------------------------------------------------------
+      CALL CLEANUP_DAO
+# if !defined( TOMAS )
+      CALL CLEANUP_DAO         ! Clean up met fields for APM
+# endif
+#endif
+
+#if   defined( TOMAS )
+      CALL CLEANUP_TOMAS
+#endif
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )
       CALL EXIT_GEOS5_TPCORE_WINDOW 
 #elif defined( GEOS_57) && defined( GRID025x03125)

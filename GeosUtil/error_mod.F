@@ -665,6 +665,16 @@
 !
 ! !USES:
 !
+#if defined( ESMF_ )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Use GEOS-5 style error reporting when connecting to the GEOS-5
+      ! GCM via the ESMF interface (bmy, 3/12/13)
+      !-----------------------------------------------------------------
+      USE MAPL_Mod
+#     include "MAPL_Generic.h"
+#endif
 #     include "define.h"
 
 ! !REVISION HISTORY:
@@ -672,10 +682,31 @@
 !  20 Nov 2009 - R. Yantosca - Now EXIT works for LINUX_IFC, LINUX_EFC,
 !                              so remove #if block.
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  12 Mar 2013 - R. Yantosca - Now use GEOS-5 style traceback when using ESMF
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
+#if defined( ESMF_ )
+
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Use GEOS-5 style error reporting when connecting to the GEOS-5
+      ! GCM via the ESMF interface (bmy, 3/12/13)
+      !-----------------------------------------------------------------
+      INTEGER :: RC      
+      __Iam__('GEOSCHEMSTOP')
+      STATUS = -1
+      VERIFY_(STATUS)
+
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Current practice in the std GEOS-Chem is to call CLEANUP to 
+      ! deallocate module arrays and then exit (bmy, 3/12/13)
+      !-----------------------------------------------------------------
 !$OMP CRITICAL
 
       ! Deallocate all module arrays
@@ -685,6 +716,8 @@
       CALL EXIT( 99999 )
 
 !$OMP END CRITICAL
+
+#endif
 
       ! End of program
       END SUBROUTINE GEOS_CHEM_STOP

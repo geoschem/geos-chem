@@ -85,6 +85,8 @@
 !  06 Mar 2012 - P. Kasibhatla - Final version
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -894,7 +896,7 @@
       USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_VOCbb
       USE TRACER_MOD,             ONLY : ITS_A_CO2_SIM 
       USE TRACER_MOD,             ONLY : ITS_A_CH4_SIM
-      USE TRACERID_MOD,           ONLY : IDBNOx,  IDBCO,   IDBSO2 
+      USE TRACERID_MOD,           ONLY : IDBNO,   IDBCO,   IDBSO2 
       USE TRACERID_MOD,           ONLY : IDBNH3,  IDBBC,   IDBOC 
 
       USE CMN_SIZE_MOD                 ! Size parameters
@@ -907,6 +909,8 @@
 ! !REVISION HISTORY: 
 !  07 Sep 2011 - P. Kasibhatla - Initial version, based on GFED2
 !  07 Sep 2011 - R. Yantosca   - Added ProTeX headers 
+!  14 Mar 2013 - M. Payer      - Replace NOx emissions with NO emissions as part
+!                                of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -935,7 +939,7 @@
       DO I = 1, IIPAR 
 
          ! Scale each species to IPCC future scenario
-         IF ( BIO_SAVE(N) == IDBNOx ) THEN
+         IF ( BIO_SAVE(N) == IDBNO ) THEN
 
             ! Future biomass NOx [molec/cm2]
             BB(I,J,N) = BB(I,J,N) * GET_FUTURE_SCALE_NOxbb( I, J )
@@ -1076,7 +1080,7 @@
       USE LOGICAL_MOD,     ONLY : LDICARB
       USE LOGICAL_MOD,     ONLY : LDAYBB3
       USE LOGICAL_MOD,     ONLY : L3HRBB3
-      USE TRACERID_MOD,    ONLY : IDBNOx,  IDBCO,   IDBALK4
+      USE TRACERID_MOD,    ONLY : IDBNO,  IDBCO,   IDBALK4
       USE TRACERID_MOD,    ONLY : IDBACET, IDBMEK,  IDBALD2
       USE TRACERID_MOD,    ONLY : IDBPRPE, IDBC3H8, IDBCH2O
       USE TRACERID_MOD,    ONLY : IDBC2H6, IDBBC,   IDBOC
@@ -1094,6 +1098,8 @@
 !  07 Sep 2011 - R. Yantosca   - Added ProTeX headers 
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1273,7 +1279,8 @@
       DO N = 1, N_SPEC
          SELECT CASE ( TRIM( GFED3_SPEC_NAME(N) ) ) 
             CASE( 'NOx'  )
-               BIO_SAVE(N)         = IDBNOX
+               ! Replaced NOx with NO (mpayer, 3/14/13)
+               BIO_SAVE(N)         = IDBNO
                GFED3_SPEC_MOLWT(N) = 14d-3
                GFED3_SPEC_UNIT(N)  = '[Tg N]'
             CASE( 'CO'   )

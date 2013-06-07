@@ -37,6 +37,8 @@ MODULE GIGC_Input_Opt_Mod
      INTEGER                     :: MAX_TRCS
      INTEGER                     :: MAX_MEMB
      INTEGER                     :: MAX_FAMS
+     INTEGER                     :: MAX_DEP
+
 
      !----------------------------------------
      ! SIMULATION MENU fields 
@@ -111,7 +113,7 @@ MODULE GIGC_Input_Opt_Mod
      ! EMISSIONS MENU fields
      !----------------------------------------
      LOGICAL                     :: LEMIS
-     LOGICAL                     :: TS_EMIS
+     INTEGER                     :: TS_EMIS
      LOGICAL                     :: LANTHRO
      LOGICAL                     :: FSCALYR
      LOGICAL                     :: LEMEP 
@@ -160,6 +162,9 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LSSABr2
      LOGICAL                     :: LFIX_PBL_BRO
      REAL*8                      :: Br_SCALING
+     LOGICAL                     :: LEDGARNOx
+     LOGICAL                     :: LEDGARCO
+     LOGICAL                     :: LEDGARSOx
 
      !----------------------------------------
      ! CO2 MENU fields
@@ -179,6 +184,11 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LSHIPEDG
      LOGICAL                     :: LSHIPICO
      LOGICAL                     :: LPLANE
+     LOGICAL                     :: LFFBKGRD
+     LOGICAL                     :: LBIOSPHTAG
+     LOGICAL                     :: LFOSSILTAG
+     LOGICAL                     :: LSHIPTAG
+     LOGICAL                     :: LPLANETAG
 
      !----------------------------------------
      ! FUTURE MENU fields
@@ -193,9 +203,10 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LCHEM
      LOGICAL                     :: LSCHEM
      LOGICAL                     :: LLINOZ
-     LOGICAL                     :: TS_CHEM
+     INTEGER                     :: TS_CHEM
      LOGICAL                     :: LSVCSPEC
      LOGICAL                     :: LKPP
+     REAL*8                      :: GAMMA_HO2
 
      !----------------------------------------
      ! CHEMISTRY MENU fields
@@ -206,7 +217,7 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: TPCORE_IORD
      LOGICAL                     :: TPCORE_JORD
      LOGICAL                     :: TPCORE_KORD
-     LOGICAL                     :: TS_DYN
+     INTEGER                     :: TS_DYN
 
      !----------------------------------------
      ! CONVECTION MENU fields
@@ -214,7 +225,7 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LCONV
      LOGICAL                     :: LTURB
      LOGICAL                     :: LNLPBL
-     LOGICAL                     :: TS_CONV
+     INTEGER                     :: TS_CONV
 
      !----------------------------------------
      ! DEPOSITION MENU fields
@@ -306,10 +317,12 @@ MODULE GIGC_Input_Opt_Mod
      INTEGER                     :: ND68, LD68
      INTEGER                     :: ND69, LD69
      INTEGER                     :: ND70, LD70
+     INTEGER                     :: TS_DIAG
      LOGICAL                     :: LPRT
      INTEGER,            POINTER :: TINDEX(:,:)
      INTEGER,            POINTER :: TCOUNT(:) 				  
-     INTEGER,            POINTER :: TMAX(:)	
+     INTEGER,            POINTER :: TMAX(:)
+     LOGICAL                     :: DO_DIAG_WRITE
 
      !----------------------------------------
      ! PLANEFLIGHT MENU fields
@@ -519,6 +532,33 @@ MODULE GIGC_Input_Opt_Mod
      REAL*8                     :: POP_DEL_H
      REAL*8                     :: POP_DEL_Hw
 
+     !----------------------------------------
+     ! Fields for drydep and dust.  These get
+     ! set in the init stage based on info 
+     ! from file "input.geos". (mlong, 1/5/13)
+     !----------------------------------------
+     INTEGER                    :: NUMDEP
+     INTEGER,           POINTER :: NDVZIND(:)
+     INTEGER,           POINTER :: IDDEP(:)
+     REAL*8,            POINTER :: DUSTREFF(:)
+     REAL*8,            POINTER :: DUSTDEN(:)
+     CHARACTER(LEN=14), POINTER :: DEPNAME(:)
+
+     !----------------------------------------
+     ! Fields for interface to GEOS-5 GCM
+     !----------------------------------------
+     LOGICAL                    :: haveImpRst
+     INTEGER                    :: myCpu
+
+     !----------------------------------------
+     ! Fields for LINOZ strat chem
+     !----------------------------------------
+     INTEGER                    :: LINOZ_NLEVELS
+     INTEGER                    :: LINOZ_NLAT
+     INTEGER                    :: LINOZ_NMONTHS
+     INTEGER                    :: LINOZ_NFIELDS
+     REAL*8,            POINTER :: LINOZ_TPARM(:,:,:,:)
+
   END TYPE OptInput
 !
 ! !REMARKS:
@@ -531,6 +571,15 @@ MODULE GIGC_Input_Opt_Mod
 !  08 Nov 2012 - R. Yantosca - Added APM MENU fields
 !  09 Nov 2012 - R. Yantosca - Added LD* variables for diagnostic levels
 !  28 Nov 2012 - R. Yantosca - Add USE_OLSON_2001 logical flag
+!  22 May 2013 - M. Payer    - Add GAMMA_HO2 variable for chemistry menu
+!  26 Feb 2013 - M. Long     - Add extra fields from input.geos
+!  26 Feb 2013 - M. Long     - Bug fix: timesteps are now INTEGER, not LOGICAL
+!  28 Feb 2013 - R. Yantosca - Add haveImpRst field for GEOS-5 GCM interface
+!  08 Mar 2013 - R. Yantosca - Add myCpu field to pass CPU # to GEOS-Chem
+!  15 Mar 2013 - R. Yantosca - Add fields for LINOZ strat chemistry
+!  27 Mar 2013 - R. Yantosca - Add extra fields for tagged CO2
+!  27 Mar 2013 - R. Yantosca - Add extra fields for tagged EDGAR
+!  29 Mar 2013 - R. Yantosca - Add DO_DIAG_WRITE field (to shut diags in MPI)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -554,6 +603,7 @@ CONTAINS
 ! !USES:
 !
     USE GIGC_ErrCode_Mod
+    USE CMN_SIZE_Mod,     ONLY : NDSTBIN
 !
 ! !INPUT PARAMETERS: 
 !
@@ -568,11 +618,18 @@ CONTAINS
     INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
-!  NOTE: Set Input_Opt%MAX_TRCS and Input_Opt%MAX_MEMB outside of this
-!  routine to define the max # of tracers and species per family tracer
-!  for input quantities.  
-!                                                                              .
-!  Probably need to implement better error checking.
+!  Set the following fields of Input_Opt outside of this routine:
+!  (1 ) Input_Opt%MAX_DIAG      : Max # of diagnostics
+!  (2 ) Input_Opt%MAX_TRCS      : Max # of tracers
+!  (3 ) Input_Opt%MAX_MEMB      : Max # of members per family tracer
+!  (4 ) Input_Opt%MAX_FAMS      : Max # of P/L diagnostic families
+!  (5 ) Input_Opt%MAX_DEP       : Max # of dry depositing species
+!  (6 ) Input_Opt%LINOZ_NLEVELS : Number of levels    in LINOZ climatology
+!  (7 ) Input_Opt%LINOZ_NLAT    : Number of latitudes in LINOZ climatology
+!  (8 ) Input_Opt%LINOZ_NMONTHS : Number of months    in LINOZ climatology
+!  (9 ) Input_Opt%LINOZ_NFIELDS : Number of species   in LINOZ climatology
+!                                                                             .
+!  We also need to implement better error checking.
 !
 ! !REVISION HISTORY: 
 !  01 Nov 2012 - R. Yantosca - Initial version
@@ -581,13 +638,22 @@ CONTAINS
 !  09 Nov 2012 - R. Yantosca - Now zero LD* fields for diagnostic levels
 !  28 Nov 2012 - R. Yantosca - Now set USE_OLSON_2001 logical flag
 !  29 Nov 2012 - M. Payer    - Add Input_Opt%ITS_A_POPS_SIM
+!  26 Feb 2013 - M. Long     - Add extra fields from input.geos
+!  28 Feb 2013 - R. Yantosca - Add haveImpRst field for GEOS-5 GCM interface
+!  08 Mar 2013 - R. Yantosca - Now initialize the myCpu field
+!  15 Mar 2013 - R. Yantosca - Now initialize the LINOZ_TPARM field
+!  27 Mar 2013 - R. Yantosca - Add extra fields for tagged CO2
+!  27 Mar 2013 - R. Yantosca - Add extra fields for EDGAR
+!  29 Mar 2013 - R. Yantosca - Add DO_DIAG_WRITE field (to shut diags in MPI)
+!  22 Apr 2013 - R. Yantosca - Now dimension ND48_*ARR to 1000 so that we are
+!                              consistent with the settings in diag48_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: MAX_DIAG, MAX_TRCS, MAX_MEMB, MAX_FAMS
+    INTEGER :: MAX_DIAG, MAX_TRCS, MAX_MEMB, MAX_FAMS, MAX_DEP
 
     ! Assume success
     RC                               = GIGC_SUCCESS
@@ -599,7 +665,8 @@ CONTAINS
     MAX_TRCS                         = Input_Opt%MAX_TRCS
     MAX_MEMB                         = Input_Opt%MAX_MEMB
     MAX_FAMS                         = Input_Opt%MAX_FAMS
-
+    MAX_DEP                          = Input_Opt%MAX_DEP
+  
     !----------------------------------------
     ! SIMULATION MENU fields 
     !----------------------------------------
@@ -687,7 +754,7 @@ CONTAINS
     ! EMISSIONS MENU fields
     !----------------------------------------
     Input_Opt%LEMIS                  = .FALSE.
-    Input_Opt%TS_EMIS                = .FALSE.
+    Input_Opt%TS_EMIS                = 0
     Input_Opt%LANTHRO                = .FALSE.
     Input_Opt%FSCALYR                = .FALSE.
     Input_Opt%LEMEP                  = .FALSE.
@@ -736,6 +803,9 @@ CONTAINS
     Input_Opt%LSSABr2                = .FALSE.
     Input_Opt%LFIX_PBL_BRO           = .FALSE.
     Input_Opt%Br_SCALING             = 0d0    
+    Input_Opt%LEDGARNOx              = .FALSE.
+    Input_Opt%LEDGARCO               = .FALSE. 
+    Input_Opt%LEDGARSOX              = .FALSE.
 
     !----------------------------------------
     ! CO2 MENU fields
@@ -756,6 +826,11 @@ CONTAINS
     Input_Opt%LSHIPEDG               = .FALSE.
     Input_Opt%LSHIPICO               = .FALSE.
     Input_Opt%LPLANE                 = .FALSE.
+    Input_Opt%LFFBKGRD               = .FALSE.
+    Input_Opt%LBIOSPHTAG             = .FALSE.
+    Input_Opt%LFOSSILTAG             = .FALSE.
+    Input_Opt%LSHIPTAG               = .FALSE.
+    Input_Opt%LPLANETAG              = .FALSE.
 
     !----------------------------------------
     ! FUTURE MENU fields
@@ -773,6 +848,7 @@ CONTAINS
     Input_Opt%TS_CHEM                = 0
     Input_Opt%LSVCSPEC               = .FALSE. 
     Input_Opt%LKPP                   = .FALSE. 
+    Input_Opt%GAMMA_HO2              = 0d0
 
     !----------------------------------------
     ! CHEMISTRY MENU fields
@@ -783,7 +859,7 @@ CONTAINS
     Input_Opt%TPCORE_IORD            = .FALSE.
     Input_Opt%TPCORE_JORD            = .FALSE.
     Input_Opt%TPCORE_KORD            = .FALSE.
-    Input_Opt%TS_DYN                 = .FALSE.
+    Input_Opt%TS_DYN                 = 0
 
     !----------------------------------------
     ! CONVECTION MENU fields
@@ -816,6 +892,7 @@ CONTAINS
     !----------------------------------------
     ! DIAGNOSTIC MENU fields
     !----------------------------------------
+    Input_Opt%TS_DIAG                = 0
     ALLOCATE( Input_Opt%TINDEX( MAX_DIAG, MAX_TRCS ), STAT=RC )
     ALLOCATE( Input_Opt%TCOUNT( MAX_DIAG           ), STAT=RC )
     ALLOCATE( Input_Opt%TMAX  ( MAX_DIAG           ), STAT=RC )
@@ -964,6 +1041,14 @@ CONTAINS
     Input_Opt%TINDEX(:,:)            = 0
     Input_Opt%TCOUNT(:)              = 0	  
     Input_Opt%TMAX(:)	             = 0
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+    ! Need to shut off G-C diagnostics when 
+    ! connecting to an external GCM (bmy, 3/29/13)
+    Input_Opt%DO_DIAG_WRITE          = .FALSE.
+#else
+    ! For traditional G-C runs, always write diags (bmy, 3/29/13)
+    Input_Opt%DO_DIAG_WRITE          = .TRUE.
+#endif   
 
     !----------------------------------------
     ! PLANEFLIGHT MENU fields
@@ -975,10 +1060,10 @@ CONTAINS
     !----------------------------------------
     ! ND48 MENU fields
     !----------------------------------------
-    ALLOCATE( Input_Opt%ND48_IARR( MAX_TRCS ), STAT=RC )
-    ALLOCATE( Input_Opt%ND48_JARR( MAX_TRCS ), STAT=RC )
-    ALLOCATE( Input_Opt%ND48_LARR( MAX_TRCS ), STAT=RC )
-    ALLOCATE( Input_Opt%ND48_NARR( MAX_TRCS ), STAT=RC )
+    ALLOCATE( Input_Opt%ND48_IARR( 1000 ), STAT=RC )
+    ALLOCATE( Input_Opt%ND48_JARR( 1000 ), STAT=RC )
+    ALLOCATE( Input_Opt%ND48_LARR( 1000 ), STAT=RC )
+    ALLOCATE( Input_Opt%ND48_NARR( 1000 ), STAT=RC )
 
     Input_Opt%DO_ND48                = .FALSE.
     Input_Opt%ND48_FILE              = ''
@@ -1190,6 +1275,39 @@ CONTAINS
     Input_Opt%POP_DEL_H              = 0d0
     Input_Opt%POP_DEL_Hw             = 0d0
 
+    !----------------------------------------
+    ! Fields for DRYDEP and DUST based on
+    ! input from the file "input.geos"
+    !----------------------------------------
+    ALLOCATE( Input_Opt%NDVZIND ( MAX_DEP ), STAT=RC ) ! Drydep
+    ALLOCATE( Input_Opt%DEPNAME ( MAX_DEP ), STAT=RC ) ! Drydep
+    ALLOCATE( Input_Opt%IDDEP   ( NDSTBIN ), STAT=RC ) ! Dust_mod
+    ALLOCATE( Input_Opt%DUSTREFF( NDSTBIN ), STAT=RC ) ! Dust_mod
+    ALLOCATE( Input_Opt%DUSTDEN ( NDSTBIN ), STAT=RC ) ! Dust_mod
+
+    Input_Opt%NUMDEP                 = 0
+    Input_Opt%NDVZIND                = 0
+    Input_Opt%IDDEP                  = 0
+    Input_Opt%DUSTREFF               = 0d0
+    Input_Opt%DUSTDEN                = 0d0
+    Input_Opt%DEPNAME                = ''
+
+    !----------------------------------------
+    ! Fields for interface to GEOS-5 GCM
+    !----------------------------------------
+    Input_Opt%haveImpRst             = .FALSE.
+    Input_Opt%myCpu                  = -1
+
+
+    !----------------------------------------
+    ! Fields for LINOZ strat chem
+    !----------------------------------------
+    ALLOCATE( Input_Opt%LINOZ_TPARM( Input_Opt%LINOZ_NLEVELS,            &
+                                     Input_Opt%LINOZ_NLAT,               &
+                                     Input_Opt%LINOZ_NMONTHS,            &
+                                     Input_Opt%LINOZ_NFIELDS ), STAT=RC )
+
+    Input_Opt%LINOZ_TPARM            = 0d0
 
   END SUBROUTINE Set_GIGC_Input_Opt
 !EOC
@@ -1227,6 +1345,8 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  02 Nov 2012 - R. Yantosca - Initial version
 !  07 Nov 2012 - R. Yantosca - Now deallocate fields from prod/loss menu
+!  26 Feb 2013 - M. Long     - Now deallocate extra fields from input.geos
+!  15 Mar 2013 - R. Yantosca - Now deallocate the LINOZ_TPARM field
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1340,7 +1460,31 @@ CONTAINS
     IF ( ASSOCIATED( Input_Opt%FAM_TYPE ) ) THEN
        DEALLOCATE( Input_Opt%FAM_TYPE )
     ENDIF
+
+    IF ( ASSOCIATED( Input_Opt%NDVZIND ) ) THEN
+       DEALLOCATE( Input_Opt%NDVZIND )
+    ENDIF
     
+    IF ( ASSOCIATED( Input_Opt%DEPNAME ) ) THEN
+       DEALLOCATE( Input_Opt%DEPNAME )
+    ENDIF
+
+    IF ( ASSOCIATED( Input_Opt%IDDEP ) ) THEN
+       DEALLOCATE( Input_Opt%IDDEP )
+    ENDIF
+
+    IF ( ASSOCIATED( Input_Opt%DUSTREFF ) ) THEN
+       DEALLOCATE( Input_Opt%DUSTREFF )
+    ENDIF
+
+    IF ( ASSOCIATED( Input_Opt%DUSTDEN ) ) THEN
+       DEALLOCATE( Input_Opt%DUSTDEN )
+    ENDIF
+
+    IF ( ASSOCIATED( Input_Opt%LINOZ_TPARM ) ) THEN
+       DEALLOCATE( Input_Opt%LINOZ_TPARM )
+    ENDIF
+
   END SUBROUTINE Cleanup_GIGC_Input_Opt
 !EOC
 END MODULE GIGC_Input_Opt_Mod

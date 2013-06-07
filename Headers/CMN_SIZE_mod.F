@@ -332,6 +332,27 @@
 #endif
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
+#elif defined( GEOS_57 ) && defined( GRID025x03125 ) && defined( NESTED_NA)
+
+      !-----------------------------------------------------------------
+      ! GEOS-5.7.x: Nested NA Grid
+      !-----------------------------------------------------------------
+      INTEGER            :: IGLOB      = 225
+      INTEGER            :: JGLOB      = 202
+      INTEGER            :: LGLOB      = 72
+      INTEGER            :: IIPAR
+      INTEGER            :: JJPAR
+#if   defined( GRIDREDUCED )
+      INTEGER            :: LLPAR      = 47        ! Reduced vertical grid
+      INTEGER, PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
+      INTEGER, PARAMETER :: LLTROP     = 38
+#else
+      INTEGER            :: LLPAR                  ! Full vertical grid
+      INTEGER, PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels
+      INTEGER, PARAMETER :: LLTROP     = 40
+#endif
+      REAL*8,  PARAMETER :: PTOP       = 0.01d0
+
 #elif defined( GEOS_57 ) && defined( GRID2x25 )
 
       !-----------------------------------------------------------------
@@ -420,7 +441,11 @@
       !=================================================================
       ! increase NNPAR and NEMPARA an extra amount (hotp 7/31/09)
 #if   defined( TOMAS )
+# if  defined( TOMAS40 )
+      INTEGER, PARAMETER :: NNPAR   = 410   ! For TOMAS40 (jeff 2/25/10)
+# else
       INTEGER, PARAMETER :: NNPAR   = 320   ! For TOMAS (win, bmy, 1/25/10)
+# endif
 #elif defined( APM )
       INTEGER, PARAMETER :: NNPAR   = 154   ! For APM (G. Luo, 3/8/11)
 #else
@@ -511,19 +536,20 @@
 
 
 #if   defined( TOMAS )
-
-      ! NDSTBIN -- redimensioned for TOMAS (dwest, bmy, 2/1/10)
-      INTEGER, PARAMETER :: NDSTBIN   = 30
-
-      ! Number of TOMAS bins 
-      INTEGER, PARAMETER :: TOMASBIN  = 30
       INTEGER, PARAMETER :: TOMASSPEC = 8
 
-#else
+# if  defined( TOMAS40 )
+      INTEGER, PARAMETER :: NDSTBIN   = 40
+      INTEGER, PARAMETER :: TOMASBIN  = 40
+# else
+      ! NDSTBIN -- redimensioned for TOMAS (dwest, bmy, 2/1/10)
+      INTEGER, PARAMETER :: NDSTBIN   = 30
+      INTEGER, PARAMETER :: TOMASBIN  = 30 ! Number of TOMAS bins 
+# endif
 
+#else
       ! NDSTBIN -- number of dust size bins for transport (tdf, bmy, 3/31/04)
       INTEGER, PARAMETER :: NDSTBIN   = 4
-
 #endif
 !
 ! !REMARKS:
@@ -610,6 +636,7 @@
 !  19 Nov 2012 - R. Yantosca - Renamed to INIT_CMN_SIZE, to better follow
 !                              adopted GEOS-Chem naming convention
 !  27 Nov 2012 - R. Yantosca - Removed commented out code
+!  05 Jun 2013 - R. Yantosca - Now define GEOS-5 0.25x0.3125 nested NA grid
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -783,12 +810,12 @@
 
       ! Delta-longitudes [degrees]
       ALLOCATE( DLON( IIPAR, JJPAR, LLPAR ), STAT=RC )
-      IF ( RC/= GIGC_SUCCESS ) RETURN
+      IF ( RC /= GIGC_SUCCESS ) RETURN
       DLON = 0d0
 
       ! Delta-latitudes [degrees]
       ALLOCATE( DLAT( IIPAR, JJPAR, LLPAR ), STAT=RC )
-      IF ( RC/= GIGC_SUCCESS ) RETURN
+      IF ( RC /= GIGC_SUCCESS ) RETURN
       DLON = 0d0
 
       ! Return w/ success

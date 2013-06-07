@@ -93,7 +93,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE UNZIP_A6_FIELDS( OPTION, NYMD )
+      SUBROUTINE UNZIP_A6_FIELDS( Input_Opt, OPTION, NYMD )
 !
 !******************************************************************************
 !  Subroutine UNZIP_A6_FIELDS invokes a FORTRAN system call to uncompress
@@ -118,20 +118,19 @@
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (6 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  11 Apr 2013 - R. Yantosca - Now replace directory_mod.F and unix_cmds_mod.F
+!                              with the Input_Opt derived type object
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR
-      USE DIRECTORY_MOD, ONLY : GEOS_4_DIR, GEOS_5_DIR, TEMP_DIR 
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE TIME_MOD,      ONLY : EXPAND_DATE
-      USE UNIX_CMDS_MOD, ONLY : BACKGROUND, REDIRECT,   REMOVE_CMD 
-      USE UNIX_CMDS_MOD, ONLY : UNZIP_CMD,  WILD_CARD,  ZIP_SUFFIX
-
+      USE BPCH2_MOD,          ONLY : GET_RES_EXT
       USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : EXPAND_DATE
 
       ! Arguments
+      TYPE(OptInput),    INTENT(IN) :: Input_Opt
       CHARACTER(LEN=*),  INTENT(IN) :: OPTION
       INTEGER, OPTIONAL, INTENT(IN) :: NYMD
 
@@ -149,19 +148,19 @@
 #if   defined( GEOS_4 )
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_4_DIR )
+         GEOS_DIR = TRIM( Input_Opt%GEOS_4_DIR )
          A6_STR   = 'YYYYMMDD.a6.' // GET_RES_EXT() 
 
 #elif defined( GEOS_5 )
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_5_DIR )
+         GEOS_DIR = TRIM( Input_Opt%GEOS_5_DIR )
          A6_STR   = 'YYYYMMDD.a6.' // GET_RES_EXT() 
 
 #elif defined( GCAP )
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( GCAP_DIR )
+         GEOS_DIR = TRIM( Input_Opt%GCAP_DIR )
          A6_STR   = 'YYYYMMDD.a6.' // GET_RES_EXT() 
 
 #endif
@@ -171,33 +170,42 @@
          CALL EXPAND_DATE( A6_STR,   NYMD, 000000 )
 
          ! Location of zipped A-3 file in data dir
-         A6_FILE_GZ  = TRIM( DATA_DIR  ) // TRIM( GEOS_DIR   ) // 
-     &                 TRIM( A6_STR    ) // TRIM( ZIP_SUFFIX )
+         A6_FILE_GZ  = TRIM( Input_Opt%DATA_DIR   ) // 
+     &                 TRIM( GEOS_DIR             ) // 
+     &                 TRIM( A6_STR               ) // 
+     &                 TRIM( Input_Opt%ZIP_SUFFIX )
 
          ! Location of unzipped A-3 file in temp dir
-         A6_FILE     = TRIM( TEMP_DIR  ) // TRIM( A6_STR     )
+         A6_FILE     = TRIM( Input_Opt%TEMP_DIR   ) // 
+     &                 TRIM( A6_STR               )
          
          ! Remove A-3 files for this date from temp dir 
-         REMOVE_DATE = TRIM( REMOVE_CMD ) // ' '               // 
-     &                 TRIM( TEMP_DIR   ) // TRIM( A6_STR    ) 
+         REMOVE_DATE = TRIM( Input_Opt%REMOVE_CMD ) // ' '   // 
+     &                 TRIM( Input_Opt%TEMP_DIR   ) // 
+     &                 TRIM( A6_STR               ) 
 
          !==============================================================
          ! Define the foreground and background UNZIP commands
          !==============================================================
 
          ! Foreground unzip
-         UNZIP_FG = TRIM( UNZIP_CMD ) // ' ' // TRIM( A6_FILE_GZ ) // 
-     &              TRIM( REDIRECT  ) // ' ' // TRIM( A6_FILE    )  
+         UNZIP_FG = TRIM( Input_Opt%UNZIP_CMD    ) //  ' '   // 
+     &              TRIM( A6_FILE_GZ             ) // 
+     &              TRIM( Input_Opt%REDIRECT     ) //  ' '   // 
+     &              TRIM( A6_FILE                )  
 
          ! Background unzip
-         UNZIP_BG  = TRIM( UNZIP_FG ) // TRIM( BACKGROUND )
+         UNZIP_BG = TRIM( UNZIP_FG               ) // 
+     &              TRIM( Input_Opt%BACKGROUND   ) 
       ENDIF
 
       !=================================================================
       ! Define command to remove all A-6 files from the TEMP dir
       !=================================================================
-      REMOVE_ALL = TRIM( REMOVE_CMD ) // ' '    // TRIM( TEMP_DIR  ) // 
-     &             TRIM( WILD_CARD  ) // '.a6.' // TRIM( WILD_CARD ) 
+      REMOVE_ALL = TRIM( Input_Opt%REMOVE_CMD    ) // ' '    // 
+     &             TRIM( Input_Opt%TEMP_DIR      ) // 
+     &             TRIM( Input_Opt%WILD_CARD     ) // '.a6.' // 
+     &             TRIM( Input_Opt%WILD_CARD     ) 
 
       !=================================================================
       ! Perform an F90 system call to do the desired operation
@@ -312,7 +320,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE OPEN_A6_FIELDS( NYMD, NHMS )
+      SUBROUTINE OPEN_A6_FIELDS( NYMD, NHMS, Input_Opt )
 !
 !******************************************************************************
 !  Subroutine OPEN_A6_FIELDS opens the A-6 met fields file for date NYMD and 
@@ -341,21 +349,21 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  03 Aug 2012 - R. Yantosca - Now use findFreeLUN to define IU_A6 locally
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  11 Apr 2013 - R. Yantosca - Now pass directory fields with Input_Opt
 !******************************************************************************
 !      
       ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR
-      USE DIRECTORY_MOD, ONLY : GEOS_4_DIR, GEOS_5_DIR, TEMP_DIR 
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE LOGICAL_MOD,   ONLY : LUNZIP
-      USE FILE_MOD,      ONLY : IOERROR, FILE_EXISTS
-      USE TIME_MOD,      ONLY : EXPAND_DATE
 
-      USE CMN_SIZE_MOD        ! Size parameters
+      USE BPCH2_MOD,          ONLY : GET_RES_EXT
+      USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE FILE_MOD,           ONLY : IOERROR, FILE_EXISTS
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : EXPAND_DATE
 
       ! Arguments
-      INTEGER, INTENT(IN)    :: NYMD, NHMS
+      TYPE(OptInput), INTENT(IN) :: Input_Opt
+      INTEGER,        INTENT(IN) :: NYMD, NHMS
 
       ! Local variables
       LOGICAL, SAVE          :: FIRST = .TRUE.
@@ -376,19 +384,19 @@
 #if   defined( GEOS_4 )
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_4_DIR )
+         GEOS_DIR = TRIM( Input_Opt%GEOS_4_DIR )
          A6_FILE  = 'YYYYMMDD.a6.' // GET_RES_EXT()
 
 #elif defined( GEOS_5 )
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_5_DIR )
+         GEOS_DIR = TRIM( Input_Opt%GEOS_5_DIR )
          A6_FILE  = 'YYYYMMDD.a6.' // GET_RES_EXT()
 
 #elif defined( GCAP )
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( GCAP_DIR )
+         GEOS_DIR = TRIM( Input_Opt%GCAP_DIR )
          A6_FILE  = 'YYYYMMDD.a6.' // GET_RES_EXT()
 
 #endif
@@ -399,11 +407,13 @@
 
          ! If unzipping, open GEOS-1 file in TEMP dir
          ! If not unzipping, open GEOS-1 file in DATA dir
-         IF ( LUNZIP ) THEN
-            PATH = TRIM( TEMP_DIR ) // TRIM( A6_FILE )
+         IF ( Input_Opt%LUNZIP ) THEN
+            PATH = TRIM( Input_Opt%TEMP_DIR ) // 
+     &             TRIM( A6_FILE            )
          ELSE
-            PATH = TRIM( DATA_DIR ) // 
-     &             TRIM( GEOS_DIR ) // TRIM( A6_FILE )
+            PATH = TRIM( Input_Opt%DATA_DIR ) // 
+     &             TRIM( GEOS_DIR           ) // 
+     &             TRIM( A6_FILE            )
          ENDIF
 
          ! Close previously opened A-3 file
@@ -485,11 +495,29 @@
 !  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
 !                              object
 !  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
+!  14 Mar 2013 - M. Payer    - Now read T_FULLGRID for vertical regridding of
+!                              OH for offline simulations (C. Holmes)
 !******************************************************************************
 !
       ! References to F90 modules
       USE CMN_SIZE_MOD
       USE GIGC_State_Met_Mod, ONLY : MetState
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Do not use array T_FULLGRID when we are connecting to the
+      ! GEOS-5 GCM via ESMF. (mpayer, 3/14/13)
+      !-----------------------------------------------------------------
+#else
+      !-----------------------------------------------------------------
+      !                %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Array T_FULLGRID is used to correct vertical regridding of OH
+      ! for offline simulations (mpayer, 3/14/13)
+      !-----------------------------------------------------------------
+      USE DAO_MOD,            ONLY : T_FULLGRID
+#endif
 
       ! Arguments
       INTEGER,        INTENT(IN)    :: NYMD, NHMS 
@@ -510,6 +538,13 @@
          RETURN
       ENDIF
 
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Do not use array T_FULLGRID when we are connecting to the
+      ! GEOS-5 GCM via ESMF. (mpayer, 3/14/13)
+      !-----------------------------------------------------------------
 #if   defined( GEOS_4 )
 
       !=================================================================      
@@ -593,6 +628,101 @@
       ! Create 2-D CLDFRC field from 3-D CLDF field
       CALL MAKE_GCAP_CLDFRC( State_Met%CLDF, State_Met%CLDFRC )
       
+#endif
+#else
+      !-----------------------------------------------------------------
+      !     %%%%% TRADITIONAL GEOS-CHEM %%%%%
+      !
+      ! Array T_FULLGRID is used to correct vertical regridding of OH
+      ! for offline simulations (mpayer, 3/14/13)
+      !-----------------------------------------------------------------
+#if   defined( GEOS_4 )
+
+      !=================================================================      
+      ! GEOS-4: get CLDF, CLDTOPS, HKBETA, HKETA, MOISTQ, OPTDEP, SPHU
+      !             TMPU, UWND,    VWND,  ZMEU,   ZMMD,   ZMMU
+      !=================================================================
+      CALL READ_A6( NYMD       = NYMD,     
+     &              NHMS       = NHMS,       
+     &              CLDTOPS    = State_Met%CLDTOPS,
+     &              CLDF       = State_Met%CLDF,     
+     &              HKBETA     = State_Met%HKBETA,   
+     &              HKETA      = State_Met%HKETA,   
+     &              MOISTQ     = State_Met%MOISTQ, 
+     &              OPTDEPTH   = State_Met%OPTDEP, 
+     &              Q          = State_Met%SPHU,        
+     &              T          = State_Met%T,           
+     &              U          = State_Met%UWND,          
+     &              V          = State_Met%VWND,        
+     &              ZMEU       = State_Met%ZMEU,     
+     &              ZMMD       = State_Met%ZMMD,       
+     &              ZMMU       = State_Met%ZMMU, 
+     &              T_FULLGRID = T_FULLGRID ) 
+
+#elif defined( GEOS_5 )
+
+      !=================================================================      
+      ! GEOS-5: get CLDF,   CLDTOPS, CMFMC,    DQIDTMST, DQLDTMST,
+      !             DQRCON, DQRLSC,  DQVDTMST, MFXC,     MFYC,
+      !             MFZ,    MOISTQ,  OPTDEPTH, PLE,      PV,
+      !             RH,     QV,      T,        TAUCLI,   TAUCLW,
+      !             U,      V    fields
+      !=================================================================
+      CALL READ_A6( NYMD       = NYMD,          
+     &              NHMS       = NHMS,       
+     &              CLDF       = State_Met%CLDF,          
+     &              CLDTOPS    = State_Met%CLDTOPS, 
+     &              CMFMC      = State_Met%CMFMC,        
+     &              DQIDTMST   = State_Met%DQIDTMST, 
+     &              DQLDTMST   = State_Met%DQLDTMST,  
+     &              DQRCON     = State_Met%DQRCU, 
+     &              DQRLSC     = State_Met%DQRLSAN,      
+     &              DQVDTMST   = State_Met%DQVDTMST,
+     &              DTRAIN     = State_Met%DTRAIN,     
+     &              MOISTQ     = State_Met%MOISTQ,      
+     &              OPTDEPTH   = State_Met%OPTDEP, 
+     &              PV         = State_Met%PV,              
+     &              RH         = State_Met%RH,             
+     &              Q          = State_Met%SPHU,             
+     &              QL         = State_Met%QL,             
+     &              QI         = State_Met%QI,              
+     &              T          = State_Met%T,               
+     &              TAUCLI     = State_Met%TAUCLI,      
+     &              TAUCLW     = State_Met%TAUCLW,     
+     &              U          = State_Met%U,             
+     &              V          = State_Met%V,
+     &              T_FULLGRID = T_FULLGRID          ) 
+
+#elif defined( GCAP ) 
+
+      !=================================================================
+      ! GCAP: read CLDF,   DETRAINE, DETRAIN, DNDE, DNDN, ENTRAIN,   
+      !            MOISTQ, OPTDEPTH, SPHU,    T=T,  UWND, UPDE,
+      !            UPDN,   VWND, and compute CLDTOPS & CLDFRC
+      !=================================================================
+      CALL READ_A6( NYMD       = NYMD,          
+     &              NHMS       = NHMS,         
+     &              CLDF       = State_Met%CLDF,          
+     &              CLDTOPS    = State_Met%CLDTOPS, 
+     &              DETRAINE   = State_Met%DETRAINE,  
+     &              DETRAINN   = State_Met%DETRAINN, 
+     &              DNDE       = State_Met%DNDE,          
+     &              DNDN       = State_Met%DNDN,         
+     &              ENTRAIN    = State_Met%ENTRAIN,    
+     &              MOISTQ     = State_Met%MOISTQ,
+     &              OPTDEPTH   = State_Met%OPTDEP,    
+     &              Q          = State_Met%SPHU,            
+     &              T          = State_Met%T,                
+     &              U          = State_Met%UWND,            
+     &              UPDE       = State_Met%UPDE,          
+     &              UPDN       = State_Met%UPDN,  
+     &              V          = State_Met%VWND,
+     &              T_FULLGRID = T_FULLGRID )
+     
+      ! Create 2-D CLDFRC field from 3-D CLDF field
+      CALL MAKE_GCAP_CLDFRC( State_Met%CLDF, State_Met%CLDFRC )
+      
+#endif
 #endif
 
       ! Save NYMD and NHMS for next call
@@ -750,6 +880,7 @@
 
 !-----------------------------------------------------------------------------
 
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       SUBROUTINE READ_A6( NYMD,      NHMS,   
      &                    CLDF,      CLDMAS,    CLDTOPS,   CMFMC, 
      &                    DETRAINE,  DETRAINN,  DNDE,      DNDN,     
@@ -761,6 +892,19 @@
      &                    T,         TAUCLI,    TAUCLW,    U,         
      &                    UPDE,      UPDN,      V,         ZMEU,      
      &                    ZMMD,      ZMMU )
+#else
+      SUBROUTINE READ_A6( NYMD,      NHMS,   
+     &                    CLDF,      CLDMAS,    CLDTOPS,   CMFMC, 
+     &                    DETRAINE,  DETRAINN,  DNDE,      DNDN,     
+     &                    DQIDTMST,  DQLDTMST,  DQRCON,    DQRLSC,      
+     &                    DQVDTMST,  DTRAIN,    ENTRAIN,   HKBETA,    
+     &                    HKETA,     MFXC,      MFYC,      MFZ,
+     &                    MOISTQ,    OPTDEPTH,  PLE,       PV,
+     &                    Q,         QI,        QL,        RH,        
+     &                    T,         TAUCLI,    TAUCLW,    U,         
+     &                    UPDE,      UPDN,      V,         ZMEU,      
+     &                    ZMMD,      ZMMU,      T_FULLGRID )
+#endif
 !
 !******************************************************************************
 !  Subroutine READ_A6 reads A-6 (avg 6-hr) met fields from disk. 
@@ -834,6 +978,7 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  03 Aug 2012 - R. Yantosca - Now use locally-defined IU_A3 file LUN
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  14 Mar 2013 - M. Payer    - Added T_FULLGRID as optional argument
 !******************************************************************************
 !
       ! References to F90 modules
@@ -842,6 +987,22 @@
       USE TIME_MOD,     ONLY : SET_CT_A6,   TIMESTAMP_STRING
       USE TRANSFER_MOD, ONLY : TRANSFER_A6, TRANSFER_3D_Lp1
       USE TRANSFER_MOD, ONLY : TRANSFER_3D, TRANSFER_G5_PLE
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Do not use routine TRANSFER_3D_NOLUMP when we are connecting to
+      ! the GEOS-5 GCM via ESMF. (mpayer, 3/14/13)
+      !-----------------------------------------------------------------
+#else
+      !-----------------------------------------------------------------
+      !                %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Routine TRANSFER_3D_NOLUMP is used to correct vertical regridding
+      ! of OH for offline simulations (mpayer, 3/14/13)
+      !-----------------------------------------------------------------
+      USE TRANSFER_MOD, ONLY : TRANSFER_3D_NOLUMP
+#endif
 
       USE CMN_SIZE_MOD               ! Size parameters
       USE CMN_DIAG_MOD               ! ND66, ND67
@@ -887,6 +1048,22 @@
       REAL*8,  INTENT(OUT), OPTIONAL :: ZMEU(IIPAR,JJPAR,LLPAR)
       REAL*8,  INTENT(OUT), OPTIONAL :: ZMMD(IIPAR,JJPAR,LLPAR)
       REAL*8,  INTENT(OUT), OPTIONAL :: ZMMU(IIPAR,JJPAR,LLPAR)
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Do not use array T_FULLGRID when we are connecting to the
+      ! GEOS-5 GCM via ESMF. (mpayer, 3/14/13)
+      !-----------------------------------------------------------------
+#else
+      !-----------------------------------------------------------------
+      !                %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Array T_FULLGRID is used to correct vertical regridding of OH
+      ! for offline simulations (mpayer, 3/14/13)
+      !-----------------------------------------------------------------
+      REAL*8,  INTENT(OUT), OPTIONAL :: T_FULLGRID(IIPAR,JJPAR,LGLOB)
+#endif
 
       ! Local variables
       INTEGER                        :: I, IJLOOP, J, K, L
@@ -1297,6 +1474,23 @@
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   IF ( PRESENT( T ) ) CALL TRANSFER_3D( D, T )
                   NFOUND = NFOUND + 1 
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+                  !-----------------------------------------------------
+                  ! %%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%
+                  !
+                  ! Do not use array T_FULLGRID when we are connecting
+                  ! to the GEOS-5 GCM via ESMF. (mpayer, 3/14/13)
+                  !-----------------------------------------------------
+#else
+                  !-----------------------------------------------------
+                  !          %%%%% TRADITIONAL GEOS-Chem %%%%%
+                  !
+                  ! Array T_FULLGRID is used to correct vertical regridding
+                  ! of OH for offline simulations (mpayer, 3/14/13)
+                  !-----------------------------------------------------
+                  IF ( PRESENT( T_FULLGRID) ) 
+     &                 CALL TRANSFER_3D_NOLUMP( D, T_FULLGRID )
+#endif
                ENDIF
 
             !--------------------------------------

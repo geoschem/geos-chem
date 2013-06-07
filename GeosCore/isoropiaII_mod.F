@@ -106,7 +106,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_ISOROPIAII( am_I_Root, Input_Opt, State_Met, RC )
+      SUBROUTINE DO_ISOROPIAII( am_I_Root, Input_Opt, 
+     &                          State_Met, State_Chm, RC )
 !
 ! !USES:
 !
@@ -120,7 +121,7 @@
       USE GLOBAL_HNO3_MOD,    ONLY : GET_GLOBAL_HNO3
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
-      USE TRACER_MOD,         ONLY : STT
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TRACERID_MOD,       ONLY : IDTHNO3
       USE TRACERID_MOD,       ONLY : IDTNIT
       USE TRACERID_MOD,       ONLY : IDTNH4
@@ -139,13 +140,17 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  Original isoropia v1.3 implmentation: (rjp, bec, bmy, 12/17/01, 8/22/05)
@@ -163,6 +168,7 @@
 !  14 Nov 2012 - R. Yantosca  - Add am_I_Root, Input_Opt, RC as arguments
 !  15 Nov 2012 - M. Payer     - Replaced all met field arrays with State_Met
 !                               derived type object
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -215,6 +221,11 @@
       LOGICAL                  :: IT_IS_A_FULLCHEM_SIM
       LOGICAL                  :: LPRT
                   
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER          :: STT(:,:,:,:)
+
       !=================================================================
       ! DO_ISOROPIAII begins here!
       !=================================================================
@@ -283,6 +294,10 @@
       SULRAT_SAV  = 0d0
       NARAT_SAV   = 0d0
       ACIDPUR_SAV = 0d0
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       !=================================================================
       ! Loop over grid boxes and call ISOROPIA (see comments in the 
@@ -569,6 +584,9 @@
       ENDDO
       ENDDO 
 !$OMP END PARALLEL DO
+
+      ! Free pointer
+      NULLIFY( STT )
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### ISOROPIAII: a AERO_THERMO' )

@@ -11,10 +11,11 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE EMFOSSIL( I, J, N, NN, IREF, JREF, JSCEN )
+      SUBROUTINE EMFOSSIL( I, J, N, NN, IREF, JREF, JSCEN, Input_Opt )
 !
 ! !USES:
 !
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE BRAVO_MOD,          ONLY : GET_BRAVO_ANTHRO, GET_BRAVO_MASK
       USE CAC_ANTHRO_MOD,     ONLY : GET_CANADA_MASK,  GET_CAC_ANTHRO
       !USE DAO_MOD,            ONLY : IS_WATER
@@ -24,13 +25,6 @@
       USE EMEP_MOD,           ONLY : GET_EMEP_ANTHRO,  GET_EUROPE_MASK
       USE EPA_NEI_MOD,        ONLY : GET_EPA_ANTHRO,   GET_USA_MASK
       USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,        ONLY : LBRAVO, LEMEP,    LNEI99
-      USE LOGICAL_MOD,        ONLY : LEDGARNOx,        LEDGARCO
-      USE LOGICAL_MOD,        ONLY : LSTREETS,         LCAC
-      USE LOGICAL_MOD,        ONLY : LEDGARSHIP,       LARCSHIP
-      USE LOGICAL_MOD,        ONLY : LEMEPSHIP,        LVISTAS
-      USE LOGICAL_MOD,        ONLY : LICARTT,          LNEI05
-      USE LOGICAL_MOD,        ONLY : LRETRO
       USE RETRO_MOD,          ONLY : GET_RETRO_ANTHRO
       USE C2H6_MOD,           ONLY : GET_C2H6_ANTHRO
       USE NEI2005_ANTHRO_MOD, ONLY : GET_NEI2005_ANTHRO
@@ -41,16 +35,11 @@
       USE STREETS_ANTHRO_MOD, ONLY : GET_STREETS_ANTHRO
       USE TIME_MOD,           ONLY : GET_TS_EMIS,      GET_DAY_OF_WEEK
       USE TIME_MOD,           ONLY : GET_HOUR
-      USE TRACER_MOD,         ONLY : ITS_A_TAGCO_SIM
-      USE TRACER_MOD,         ONLY : XNUMOL
-      USE TRACERID_MOD,       ONLY : IDENOX, IDEOX,    IDEHNO3
-      USE TRACERID_MOD,       ONLY : IDTOX,  IDTCO,    IDTHNO3
-      USE TRACERID_MOD,       ONLY : IDTC2H6
+      USE TRACERID_MOD,       ONLY : IDENO,    IDEO3,    IDEHNO3
+      USE TRACERID_MOD,       ONLY : IDTCO,    IDTHNO3
+      USE TRACERID_MOD,       ONLY : IDTC2H6,  IDTNO2
       USE VISTAS_ANTHRO_MOD,  ONLY : GET_VISTAS_ANTHRO
       USE ICOADS_SHIP_MOD,    ONLY : GET_ICOADS_SHIP !(cklee, 7/09/09)
-![eml
-      USE LOGICAL_MOD,        ONLY : LHIST
-!eml]
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE COMODE_LOOP_MOD          ! IHOUR
@@ -69,6 +58,7 @@
       INTEGER, INTENT(IN)   :: IREF    ! Offset index I+I0
       INTEGER, INTENT(IN)   :: JREF    ! Offset index J+J0
       INTEGER, INTENT(IN)   :: JSCEN   ! Day index (Sat=1, Sun=2, Weekday=3)
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
 !
 ! !REMARKS:
 !  In most cases, I0=J0=0, so IREF=I and JREF=J.  The offsets I0 and J0 are
@@ -147,6 +137,12 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  22 Mar 2012 - M. Payer    - Update for C2H6. RETRO ethane emissions are too
 !                              low so we will use Yaping Xiao's offline emiss.
+!  14 Mar 2013 - M. Payer    - Replace NOx and Ox emissions with NO and O3
+!                              emissions as part of removal of NOx-Ox
+!                              partitioning
+!  18 Apr 2013 - M. Payer    - Convert NOx using XNUMOL for NO2 since original
+!                              NOx emissions are in mass units of NO2
+!  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -164,9 +160,49 @@
       REAL*8  :: RETRO
       REAL*8  :: C2H6_ANTHRO
 
+      ! For fields from Input_Opt
+      LOGICAL :: LBRAVO
+      LOGICAL :: LEMEP
+      LOGICAL :: LNEI99
+      LOGICAL :: LEDGARNOx
+      LOGICAL :: LEDGARCO
+      LOGICAL :: LSTREETS
+      LOGICAL :: LCAC
+      LOGICAL :: LEDGARSHIP
+      LOGICAL :: LARCSHIP
+      LOGICAL :: LEMEPSHIP
+      LOGICAL :: LVISTAS
+      LOGICAL :: LICARTT
+      LOGICAL :: LNEI05
+      LOGICAL :: LRETRO
+      LOGICAL :: LHIST
+      LOGICAL :: ITS_A_TAGCO_SIM
+      INTEGER :: N_TRACERS
+      REAL*8  :: XNUMOL(Input_Opt%N_TRACERS)
+
       !=================================================================
       ! EMFOSSIL begins here!
       !=================================================================
+
+      ! Copy values from Input_Opt
+      LBRAVO          = Input_Opt%LBRAVO
+      LEMEP           = Input_Opt%LEMEP 
+      LNEI99          = Input_Opt%LNEI99
+      LEDGARNOx       = Input_Opt%LEDGARNOx
+      LEDGARCO        = Input_Opt%LEDGARCO
+      LSTREETS        = Input_Opt%LSTREETS  
+      LCAC            = Input_Opt%LCAC
+      LEDGARSHIP      = Input_Opt%LEDGARSHIP
+      LARCSHIP        = Input_Opt%LARCSHIP
+      LEMEPSHIP       = Input_Opt%LEMEPSHIP
+      LVISTAS         = Input_Opt%LVISTAS
+      LICARTT         = Input_Opt%LICARTT
+      LNEI05          = Input_Opt%LNEI05
+      LRETRO          = Input_Opt%LRETRO
+      LHIST           = Input_Opt%LHIST
+      ITS_A_TAGCO_SIM = Input_Opt%ITS_A_TAGCO_SIM
+      N_TRACERS       = Input_Opt%N_TRACERS
+      XNUMOL          = Input_Opt%XNUMOL(1:N_TRACERS)
 
       ! Emission timestep [s]
       DTSRCE   = GET_TS_EMIS() * 60d0
@@ -198,7 +234,8 @@
       !
       ! NOx only: account for all NOx levels (LL=1,NOXLEVELS)
       !=================================================================    
-      IF ( N == IDENOX ) THEN
+      ! Replaced NOx emissions with NO emissions (mpayer, 3/14/13)
+      IF ( N == IDENO ) THEN
 
          ! Initialize work variables
          EMX(:)  = 0d0
@@ -229,7 +266,8 @@
                   EDGAR   = EDGAR * GET_EDGAR_TODN( I, J, HOUR )
 
                   ! Replace GEIA with EPA/NEI emissions at surface
-                  EMX(LL) = EDGAR * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
+                  EMX(LL) = EDGAR * ( DTSRCE * AREA_CM2 ) /
+     &                      XNUMOL(IDTNO2) 
             
                ELSE 
             
@@ -259,7 +297,8 @@
                      EMEP    = EMEP * TODX
 
                      ! Replace GEIA with EMEP emissions at surface
-                     EMX(LL) = EMEP * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
+                     EMX(LL) = EMEP * ( DTSRCE * AREA_CM2 ) /
+     &                         XNUMOL(IDTNO2) 
                   
                   ELSE 
             
@@ -294,7 +333,7 @@
 
                      ! Replace GEIA with EPA/NEI emissions at surface
                      EMX(LL) = EPA_NEI * 
-     &                         ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
+     &                         ( DTSRCE * AREA_CM2 ) / XNUMOL(IDTNO2) 
             
                   ELSE 
             
@@ -322,7 +361,7 @@
 
                      ! Replace with VISTAS emissions at surface
                      EMX(LL) = VISTAS * 
-     &                         ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)
+     &                         ( DTSRCE * AREA_CM2 ) / XNUMOL(IDTNO2)
 
                   ELSE 
 
@@ -355,7 +394,7 @@
 
                      ! Replace base emissions with STREETS
                      EMX(LL) = STREETS * 
-     &                         ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
+     &                         ( DTSRCE * AREA_CM2 ) / XNUMOL(IDTNO2) 
             
                   ELSE 
             
@@ -389,12 +428,12 @@
                      IF ( LNEI99 ) THEN 
                         IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
 
-                           EMX(LL) = EMX(LL) + BRAVO * 
-     &                              ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
+                           EMX(LL) = EMX(LL) + BRAVO * ( DTSRCE *
+     &                               AREA_CM2 ) / XNUMOL(IDTNO2) 
                         ENDIF                           
                      ELSE
-                        EMX(LL) = BRAVO * 
-     &                            ( DTSRCE*AREA_CM2 ) / XNUMOL(NN) 
+                        EMX(LL) = BRAVO * ( DTSRCE*AREA_CM2 ) /
+     &                            XNUMOL(IDTNO2) 
 
                      ENDIF
 
@@ -434,17 +473,17 @@
                         ! If on border, add to NEI99 emissions (which has
                         ! no Canadian component)
                         IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
-                           EMX(LL) = EMX(LL) + CAC *
-     &                               ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)
+                           EMX(LL) = EMX(LL) + CAC * ( DTSRCE * 
+     &                               AREA_CM2 ) / XNUMOL(IDTNO2)
                         ELSE
-                           EMX(LL) = CAC *
-     &                               ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)
+                           EMX(LL) = CAC * ( DTSRCE * AREA_CM2 ) /
+     &                               XNUMOL(IDTNO2)
                         ENDIF
                      ELSE
 
                         ! Replace base emissions with CAC
-                        EMX(LL) = CAC *
-     &                            ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)
+                        EMX(LL) = CAC * ( DTSRCE * AREA_CM2 ) /
+     &                            XNUMOL(IDTNO2)
                      ENDIF
 
                   ELSE
@@ -471,7 +510,7 @@
 
                   ! Replace GEIA with EPA/NEI emissions at surface
                   EMX(LL) = NEI05 *
-     &                      ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)
+     &                      ( DTSRCE * AREA_CM2 ) / XNUMOL(IDTNO2)
 
                ENDIF
                
@@ -555,19 +594,19 @@
 
             ! EMISRRN [molec/box/s] is referenced by LL
             EMISRRN(I,J,LL) = EMISRRN(I,J,LL) +
-     &                       ( EMX(LL) * XNUMOL(NN) / DTSRCE )
+     &                       ( EMX(LL) * XNUMOL(IDTNO2) / DTSRCE )
 
             ! ND32 = save anthro NOx for levels L=1,NOXEXTENT [molec/cm2/s]
             IF ( ND32 > 0 ) THEN
                AD32_an(I,J,LL) = AD32_an(I,J,LL) + 
-     &              ( EMX(LL) * XNUMOL(NN) / ( DTSRCE * AREA_CM2 ) )   
+     &              ( EMX(LL) * XNUMOL(IDTNO2) / ( DTSRCE * AREA_CM2 ) )   
             ENDIF
 
             ! ND36 = save anthro emissions in [molec/cm2]
             ! and then convert to [molec/cm2/s] in DIAG3.F
             IF ( ND36 > 0 ) THEN
                AD36(I,J,N) = AD36(I,J,N) +
-     &            ( EMX(LL) * XNUMOL(NN) / AREA_CM2 )
+     &            ( EMX(LL) * XNUMOL(IDTNO2) / AREA_CM2 )
             ENDIF    
          ENDDO     
 
@@ -580,7 +619,8 @@
          EMX(:)  = 0d0
 
          ! Use appropriate scale factor for time of day
-         IF ( N == IDEOX ) THEN
+         ! Replaced Ox emissions with O3 emissions (mpayer, 3/14/13)
+         IF ( N == IDEO3 ) THEN
             TODX = TODN(IHOUR)
          ELSE
             TODX = TODH(IHOUR)
@@ -857,7 +897,7 @@
          ! Modifications of the scaling using Rynda GRL 2008.
          ! (jaf, ccc, 2/25/09)
          ! Added a nested if (phs, 7/9/09)
-         IF ( ITS_A_TAGCO_SIM() ) THEN           
+         IF ( ITS_A_TAGCO_SIM ) THEN           
             IF ( LICARTT ) THEN
                IF ( GET_USA_MASK(I,J) > 0.d0 ) THEN
                   IF ( NN == IDTCO ) EMX(1) = EMX(1) * 1.39d0
@@ -926,7 +966,7 @@
       !=================================================================
       ! Restore EMISR, EMISRN to original values
       !=================================================================
-      IF ( N == IDENOX ) THEN
+      IF ( N == IDENO ) THEN
          EMISRN(IREF,JREF,1:NOXLEVELS) = XEMISRN(1:NOXLEVELS)
       ELSE
          EMISR(IREF,JREF,N) = XEMISR

@@ -83,6 +83,8 @@
 !  01 Mar 2012 - R. Yantosca - Remove A_CM2 array, use GET_AREA_CM2 instead
 !  22 Mar 2012 - M. Payer    - C2H6 emissions are too low. Use Yaping
 !                              Xiao's C2H6 emissions instead.
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -235,6 +237,8 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  22 Mar 2012 - M. Payer    - C2H6 emissions are too low. Use Yaping
 !                              Xiao's C2H6 emissions instead.
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !******************************************************************************
 !
       ! References to F90 modules
@@ -242,10 +246,10 @@
       USE TRACER_MOD,           ONLY : ITS_A_CH4_SIM
       USE TRACER_MOD,           ONLY : ITS_A_CO2_SIM
       USE TRACER_MOD,           ONLY : XNUMOL
-      USE TRACERID_MOD,         ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
+      USE TRACERID_MOD,         ONLY : IDTNO,   IDTCO,   IDTSO2, IDTNH3
       USE TRACERID_MOD,         ONLY : IDTACET, IDTALK4, IDTC2H6
       USE TRACERID_MOD,         ONLY : IDTCH2O, IDTMEK,  IDTALD2
-      USE TRACERID_MOD,         ONLY : IDTPRPE, IDTC3H8
+      USE TRACERID_MOD,         ONLY : IDTPRPE, IDTC3H8, IDTNO2
 
       ! Arguments
       INTEGER, INTENT(IN)           :: I, J, N
@@ -289,7 +293,8 @@
          !-------------------
          ! Other simulations
          !-------------------
-         IF ( N == IDTNOx ) THEN
+         ! Replaced NOx with NO (mpayer, 3/14/13)
+         IF ( N == IDTNO ) THEN
 
             ! NOx [kg/yr]
             VALUE = NOx(I,J)
@@ -396,8 +401,15 @@
      &            / ( GET_AREA_CM2( I, J, 1 ) * SEC_IN_YEAR )            
          ELSE                                                     
             ! Convert from [kg/yr] to [molec/cm2/s]            
-            VALUE = VALUE * XNUMOL(N) 
-     &            / ( GET_AREA_CM2( I, J, 1 ) * SEC_IN_YEAR )
+            IF ( N == IDTNO ) THEN
+               ! Convert NOx using XNUMOL for NO2 since original NOX emissions
+               ! are in mass units of NO2 (mpayer, 4/18/13)
+               VALUE = VALUE * XNUMOL(IDTNO2) 
+     &               / ( GET_AREA_CM2( I, J, 1 ) * SEC_IN_YEAR )
+            ELSE
+               VALUE = VALUE * XNUMOL(N) 
+     &               / ( GET_AREA_CM2( I, J, 1 ) * SEC_IN_YEAR )
+            ENDIF
          ENDIF                                                    
 
       ENDIF
@@ -407,11 +419,8 @@
 
 !------------------------------------------------------------------------------
 
-#if defined( DEVEL )
-      SUBROUTINE EMISS_STREETS_ANTHRO( State_Met, EMISSIONS )
-#else
-      SUBROUTINE EMISS_STREETS_ANTHRO( State_Met )
-#endif
+      SUBROUTINE EMISS_STREETS_ANTHRO( am_I_Root, Input_Opt,
+     &                                 State_Met, State_Chm, RC )
 !
 !******************************************************************************
 !  Subroutine EMISS_STREETS_ANTHRO reads the David Streets et al emission 
@@ -438,14 +447,17 @@
 !  03 Jan 2013 - M. Payer    - Bug fixes for regridding of NOx and CO base
 !                              emissions and monthly variability scale factors.
 !  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,          ONLY : GET_TAU0,          READ_BPCH2
       USE DAO_MOD,            ONLY : IS_WATER
       USE DIRECTORY_MOD,      ONLY : DATA_DIR_1x1 
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE LOGICAL_MOD,        ONLY : LFUTURE
       USE TRACER_MOD,         ONLY : ITS_A_CO2_SIM,     ITS_A_CH4_SIM
       USE TIME_MOD,           ONLY : GET_YEAR,          GET_MONTH
       USE SCALE_ANTHRO_MOD,   ONLY : GET_ANNUAL_SCALAR
@@ -454,20 +466,28 @@
       USE CMN_O3_MOD               ! FSCALYR
 
 #if defined( DEVEL )
-      USE TRACER_MOD,         ONLY : N_TRACERS
-      USE TRACERID_MOD,       ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
+      USE TRACERID_MOD,       ONLY : IDTNO,   IDTCO,   IDTSO2, IDTNH3
       USE TRACERID_MOD,       ONLY : IDTACET, IDTALK4, IDTC2H6
       USE TRACERID_MOD,       ONLY : IDTCH2O, IDTMEK,  IDTALD2
       USE TRACERID_MOD,       ONLY : IDTPRPE, IDTC3H8
 #endif
-
-      ! Arguments
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-#if defined( DEVEL )
-      REAL*8,         INTENT(INOUT) :: EMISSIONS(IIPAR,JJPAR,N_TRACERS)
-#endif
-
-      ! Local variables
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE              :: FIRST = .TRUE.
       INTEGER                    :: BASE_YEAR,       SIM_YEAR
       INTEGER                    :: I, J !jaf
@@ -491,9 +511,20 @@
       REAL*8                     :: TAU2000,       TAU2004,      TAU2006
       REAL*8                     :: TAUMONTH_2001, TAUMONTH_2004, TAU
 
+      ! For fields from Input_Opt
+      LOGICAL                    :: LFUTURE
+      INTEGER                    :: N_TRACERS
+
       !=================================================================
       ! EMISS_STREETS_ANTHRO begins here!
       !=================================================================
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LFUTURE   = Input_Opt%LFUTURE
+      N_TRACERS = Input_Opt%N_TRACERS
 
       ! First-time initialization
       IF ( FIRST ) THEN
@@ -572,7 +603,7 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_527 )
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
             IF ( State_Met%FROCEAN(I,J) == 1d0 ) SCALOC(I,J) = 0d0
 #else
             IF ( IS_WATER(I,J,State_Met) ) SCALOC(I,J) = 0d0
@@ -1060,18 +1091,41 @@
       CALL TOTAL_ANTHRO_Tg( SIM_YEAR, BASE_YEAR )
 
 #if defined( DEVEL )
-      EMISSIONS(:,:,IDTNOX)  = EMISSIONS(:,:,IDTNOX)  + NOX
-      EMISSIONS(:,:,IDTCO)   = EMISSIONS(:,:,IDTCO)   + CO
-      EMISSIONS(:,:,IDTSO2)  = EMISSIONS(:,:,IDTSO2)  + SO2
-      EMISSIONS(:,:,IDTNH3)  = EMISSIONS(:,:,IDTNH3)  + NH3
-      EMISSIONS(:,:,IDTACET) = EMISSIONS(:,:,IDTACET) + ACET
-      EMISSIONS(:,:,IDTC2H6) = EMISSIONS(:,:,IDTC2H6) + C2H6
-      EMISSIONS(:,:,IDTCH2O) = EMISSIONS(:,:,IDTCH2O) + CH2O
-      EMISSIONS(:,:,IDTC3H8) = EMISSIONS(:,:,IDTC3H8) + C3H8
-      EMISSIONS(:,:,IDTPRPE) = EMISSIONS(:,:,IDTPRPE) + PRPE
-      EMISSIONS(:,:,IDTALD2) = EMISSIONS(:,:,IDTALD2) + ALD2
-      EMISSIONS(:,:,IDTMEK)  = EMISSIONS(:,:,IDTMEK)  + MEK
-      EMISSIONS(:,:,IDTALK4) = EMISSIONS(:,:,IDTALK4) + ALK4
+      State_Chm%TRAC_TEND(:,:,1,IDTNO )  = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTNO )  + NOX
+
+      State_Chm%TRAC_TEND(:,:,1,IDTCO)   = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTCO)   + CO
+
+      State_Chm%TRAC_TEND(:,:,1,IDTSO2)  = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTSO2)  + SO2
+
+      State_Chm%TRAC_TEND(:,:,1,IDTNH3)  = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTNH3)  + NH3
+
+      State_Chm%TRAC_TEND(:,:,1,IDTACET) = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTACET) + ACET
+
+      State_Chm%TRAC_TEND(:,:,1,IDTC2H6) = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTC2H6) + C2H6
+
+      State_Chm%TRAC_TEND(:,:,1,IDTCH2O) = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTCH2O) + CH2O
+
+      State_Chm%TRAC_TEND(:,:,1,IDTC3H8) = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTC3H8) + C3H8
+
+      State_Chm%TRAC_TEND(:,:,1,IDTPRPE) = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTPRPE) + PRPE
+
+      State_Chm%TRAC_TEND(:,:,1,IDTALD2) = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTALD2) + ALD2
+
+      State_Chm%TRAC_TEND(:,:,1,IDTMEK)  = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTMEK)  + MEK
+
+      State_Chm%TRAC_TEND(:,:,1,IDTALK4) = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTALK4) + ALK4
 #endif
 
       ! Return to calling program
@@ -1290,11 +1344,8 @@
 
 !------------------------------------------------------------------------------
 
-#if defined( DEVEL )
-      SUBROUTINE EMISS_STREETS_ANTHRO_05x0666( State_Met, EMISSIONS)
-#else
-      SUBROUTINE EMISS_STREETS_ANTHRO_05x0666( State_Met )
-#endif
+      SUBROUTINE EMISS_STREETS_ANTHRO_05x0666( am_I_Root, Input_Opt,
+     &                                         State_Met, State_Chm, RC)
 !
 !******************************************************************************
 !  Subroutine EMISS_STREETS_ANTHRO_05x0666 reads the David Streets et al 
@@ -1313,17 +1364,18 @@
 !     (5) Bug fix : overwrite NOx, SO2, and CO emissions over water (ship
 !     tracks) with zero for Streets 2000 emissions since these are double
 !     counted (jaf, gcmv, amv, 1/30/12)
-!  03 Jan 2013 - M. Payer    - Now pass IS_MASS as argument when calling
+!  03 Jan 2013 - M. Payer    - Now pass IS_MASS as  argument when calling
 !                              READ_STREETS_05x0666
-!
-!  NOTES:
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,          ONLY : GET_TAU0,         READ_BPCH2
-      USE DIRECTORY_MOD,      ONLY : DATA_DIR              
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE LOGICAL_MOD,        ONLY : LFUTURE
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR   
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState           
       USE TIME_MOD,           ONLY : GET_MONTH, GET_YEAR  
       USE TRACER_MOD,         ONLY : ITS_A_CO2_SIM,    ITS_A_CH4_SIM
       USE TRACER_MOD,         ONLY : XNUMOL
@@ -1333,20 +1385,28 @@
       USE CMN_O3_MOD               ! FSCALYR
 
 #if defined( DEVEL )
-      USE TRACER_MOD,         ONLY : N_TRACERS
-      USE TRACERID_MOD,       ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
+      USE TRACERID_MOD,       ONLY : IDTNO,   IDTCO,   IDTSO2, IDTNH3
       USE TRACERID_MOD,       ONLY : IDTACET, IDTALK4, IDTC2H6
       USE TRACERID_MOD,       ONLY : IDTCH2O, IDTMEK,  IDTALD2
       USE TRACERID_MOD,       ONLY : IDTPRPE, IDTC3H8
 #endif
-
-      ! Arguments
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-#if defined( DEVEL )
-      REAL*8,         INTENT(INOUT) :: EMISSIONS(IIPAR,JJPAR,N_TRACERS)
-#endif
-
-      ! Local variables
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE              :: FIRST = .TRUE.
       INTEGER                    :: BASE_YEAR,       SIM_YEAR
       INTEGER                    :: I, J !jaf 
@@ -1370,9 +1430,20 @@
       REAL*8                     :: TAU2000,       TAU2004,      TAU2006
       REAL*8                     :: TAUMONTH_2001, TAUMONTH_2004, TAU
       
+      ! For fields from Input_Opt
+      LOGICAL         :: LFUTURE
+      INTEGER         :: N_TRACERS
+
       !=================================================================
       ! EMISS_STREETS_ANTHRO begins here!
       !=================================================================
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LFUTURE   = Input_Opt%LFUTURE
+      N_TRACERS = Input_Opt%N_TRACERS
 
       ! First-time initialization
       IF ( FIRST ) THEN
@@ -1705,6 +1776,8 @@
             
             WHERE ( MASK_CHINA > 0 ) CO = TEMP
 
+            ! switch and scale
+            CO = CO * ONOFF( 1 )
 
          ENDIF
             
@@ -1968,18 +2041,41 @@
       CALL TOTAL_ANTHRO_Tg( SIM_YEAR, BASE_YEAR )
 
 #if defined( DEVEL )
-      EMISSIONS(:,:,IDTNOX)  = EMISSIONS(:,:,IDTNOX)  + NOX
-      EMISSIONS(:,:,IDTCO)   = EMISSIONS(:,:,IDTCO)   + CO
-      EMISSIONS(:,:,IDTSO2)  = EMISSIONS(:,:,IDTSO2)  + SO2
-      EMISSIONS(:,:,IDTNH3)  = EMISSIONS(:,:,IDTNH3)  + NH3
-      EMISSIONS(:,:,IDTACET) = EMISSIONS(:,:,IDTACET) + ACET
-      EMISSIONS(:,:,IDTC2H6) = EMISSIONS(:,:,IDTC2H6) + C2H6
-      EMISSIONS(:,:,IDTCH2O) = EMISSIONS(:,:,IDTCH2O) + CH2O
-      EMISSIONS(:,:,IDTC3H8) = EMISSIONS(:,:,IDTC3H8) + C3H8
-      EMISSIONS(:,:,IDTPRPE) = EMISSIONS(:,:,IDTPRPE) + PRPE
-      EMISSIONS(:,:,IDTALD2) = EMISSIONS(:,:,IDTALD2) + ALD2
-      EMISSIONS(:,:,IDTMEK)  = EMISSIONS(:,:,IDTMEK)  + MEK
-      EMISSIONS(:,:,IDTALK4) = EMISSIONS(:,:,IDTALK4) + ALK4
+      State_Chm%TRAC_TEND(:,:,1,IDTNO)   = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTNO)   + NOX
+
+      State_Chm%TRAC_TEND(:,:,1,IDTCO)   = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTCO)   + CO
+
+      State_Chm%TRAC_TEND(:,:,1,IDTSO2)  = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTSO2)  + SO2
+
+      State_Chm%TRAC_TEND(:,:,1,IDTNH3)  = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTNH3)  + NH3
+
+      State_Chm%TRAC_TEND(:,:,1,IDTACET) = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTACET) + ACET
+
+      State_Chm%TRAC_TEND(:,:,1,IDTC2H6) = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTC2H6) + C2H6
+
+      State_Chm%TRAC_TEND(:,:,1,IDTCH2O) = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTCH2O) + CH2O
+
+      State_Chm%TRAC_TEND(:,:,1,IDTC3H8) = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTC3H8) + C3H8
+
+      State_Chm%TRAC_TEND(:,:,1,IDTPRPE) = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTPRPE) + PRPE
+
+      State_Chm%TRAC_TEND(:,:,1,IDTALD2) = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTALD2) + ALD2
+
+      State_Chm%TRAC_TEND(:,:,1,IDTMEK)  = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTMEK)  + MEK
+
+      State_Chm%TRAC_TEND(:,:,1,IDTALK4) = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTALK4) + ALK4
 #endif
 
       END SUBROUTINE EMISS_STREETS_ANTHRO_05x0666
@@ -2050,6 +2146,8 @@
 !     (2 ) Updated information output. Account for NH3 2000 used for all
 !          simulation years (phs, 2/27/09) 
 !  22 Mar 2012 - M. Payer    - Remove print for C2H6 emissions.
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2157,7 +2255,7 @@
 
             
          ! Print totals in [kg/month]
-         WRITE( 6, 110 ) 'NOx  ', YEAR, MONTH, T_NOx,  '[Tg N   ]'
+         WRITE( 6, 110 ) 'NO   ', YEAR, MONTH, T_NOx,  '[Tg N   ]'
          WRITE( 6, 110 ) 'CO   ', YEAR, MONTH, T_CO,   '[Tg CO  ]'
          WRITE( 6, 110 ) 'SO2  ', YEAR, MONTH, T_SO2,  '[Tg S   ]'
          WRITE( 6, 110 ) 'NH3  ', YEAR, MONTH, T_NH3,  '[Tg NH3 ]'

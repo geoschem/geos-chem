@@ -174,20 +174,35 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG50( State_Met )
+      SUBROUTINE DIAG50( am_I_Root, Input_Opt, State_Met, State_Chm, RC)
 !
 ! !USES:
 !
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE LOGICAL_MOD,        ONLY : DO_DIAG_WRITE
 !
 ! !INPUT PARAMETERS:
 !
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -197,11 +212,13 @@
       !=================================================================
 
       ! Accumulate data over a 24-hr period in the Q array
-      CALL ACCUMULATE_DIAG50( State_Met )
+      CALL ACCUMULATE_DIAG50
+     &    ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
       ! Write data to disk at the end of the day
-      IF ( ITS_TIME_FOR_WRITE_DIAG50() .and. DO_DIAG_WRITE ) THEN
-         CALL WRITE_DIAG50
+      IF ( ITS_TIME_FOR_WRITE_DIAG50() .and. 
+     &     Input_Opt%DO_DIAG_WRITE    ) THEN
+         CALL WRITE_DIAG50( am_I_Root, Input_Opt, RC )
       ENDIF
 
       END SUBROUTINE DIAG50
@@ -219,35 +236,45 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE ACCUMULATE_DIAG50( State_Met )
+      SUBROUTINE ACCUMULATE_DIAG50( am_I_Root, Input_Opt,
+     &                              State_Met, State_Chm, RC )
 !
 ! !USES:
 !
       USE COMODE_MOD,         ONLY : JLOP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE LOGICAL_MOD,        ONLY : DO_DIAG_WRITE
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L, GET_PBL_TOP_m
       USE PRESSURE_MOD,       ONLY : GET_PEDGE
       USE TIME_MOD,           ONLY : GET_ELAPSED_MIN, GET_TS_CHEM
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING
-      USE TRACER_MOD,         ONLY : STT, TCVV, ITS_A_FULLCHEM_SIM
-      USE TRACER_MOD,         ONLY : N_TRACERS
       USE TRACER_MOD,         ONLY : XNUMOLAIR
-      USE TRACERID_MOD,       ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNOX  
-      USE TRACERID_MOD,       ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
-      USE TRACERID_MOD,       ONLY : IDTR4N2, IDTSALA, IDTSALC 
+      USE TRACERID_MOD,       ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNO
+      USE TRACERID_MOD,       ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTO3
+      USE TRACERID_MOD,       ONLY : IDTR4N2, IDTSALA, IDTSALC, IDTNO2
 
       USE CMN_FJ_MOD,         ONLY : JPMAX, JPPJ      ! includes F77_CMN_SIZE
       USE JV_CMN_MOD               ! ODAER,   QAA,    QAA_OUT
       USE COMODE_LOOP_MOD          ! NPVERT
-      USE CMN_O3_MOD               ! FRACO3,  FRACNO, SAVEO3, SAVENO2,
-                                   ! SAVEHO2, FRACNO2
+      USE CMN_O3_MOD               ! SAVEOH
       USE CMN_GCTM_MOD             ! SCALE_HEIGHT
 !
 ! !INPUT PARAMETERS:
 !
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-! 
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Rewrote to remove hardwiring and for better efficiency.  Added extra
@@ -279,6 +306,9 @@
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  14 Mar 2013 - M. Payer    - Replace NOx and Ox with NO, NO2, and O3 as part
+!                              of removal of NOx-Ox partitioning
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -286,8 +316,9 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE       :: FIRST = .TRUE.
-      LOGICAL, SAVE       :: IS_FULLCHEM, IS_NOx, IS_Ox,   IS_SEASALT
-      LOGICAL, SAVE       :: IS_CLDTOPS,  IS_NOy, IS_OPTD, IS_SLP
+      LOGICAL, SAVE       :: IS_FULLCHEM, IS_SEASALT
+      LOGICAL, SAVE       :: IS_NO,       IS_O3,     IS_NO2
+      LOGICAL, SAVE       :: IS_CLDTOPS,  IS_NOy,    IS_OPTD, IS_SLP
       INTEGER             :: H, I, J, K, L, M, N
       INTEGER             :: PBLINT,  R, X, Y, W
       REAL*8              :: C1, C2, PBLDEC, TEMPBL, TMP, SCALEAODnm
@@ -296,21 +327,38 @@
       ! Aerosol types (rvm, aad, bmy, 7/20/04)
       INTEGER             :: IND(6) = (/ 22, 29, 36, 43, 50, 15 /)
 
+      ! For fields from Input_Opt
+      INTEGER             :: N_TRACERS
+      REAL*8              :: TCVV(Input_Opt%N_TRACERS)
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER     :: STT(:,:,:,:)
+
       !=================================================================
       ! ACCUMULATE_DIAG50 begins here!
       !=================================================================
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      N_TRACERS = Input_Opt%N_TRACERS
+      TCVV      = Input_Opt%TCVV(1:N_TRACERS)
 
       ! Set logical flags
       IF ( FIRST ) THEN
          IS_OPTD     = ASSOCIATED( State_Met%OPTD    )
          IS_CLDTOPS  = ASSOCIATED( State_Met%CLDTOPS )
          IS_SLP      = ASSOCIATED( State_Met%SLP     )
-         IS_FULLCHEM = ITS_A_FULLCHEM_SIM()
+         IS_FULLCHEM = Input_Opt%ITS_A_FULLCHEM_SIM
          IS_SEASALT  = ( IDTSALA > 0 .and. IDTSALC > 0 )
-         IS_NOx      = ( IS_FULLCHEM .and. IDTNOX  > 0 )
-         IS_Ox       = ( IS_FULLCHEM .and. IDTOx   > 0 )
-         IS_NOy      = ( IS_FULLCHEM .and. 
-     &                   IDTNOX  > 0 .and. IDTPAN  > 0 .and.
+         IS_NO       = ( IS_FULLCHEM .and. IDTNO   > 0 )
+         IS_NO2      = ( IS_FULLCHEM .and. IDTNO2  > 0 )
+         IS_O3       = ( IS_FULLCHEM .and. IDTO3   > 0 )
+         IS_NOy      = ( IS_FULLCHEM .and. IDTNO   > 0 .and.
+     &                   IDTNO2  > 0 .and. IDTPAN  > 0 .and.
      &                   IDTHNO3 > 0 .and. IDTPMN  > 0 .and.
      &                   IDTPPN  > 0 .and. IDTR4N2 > 0 .and.
      &                   IDTN2O5 > 0 .and. IDTHNO4 > 0 ) 
@@ -366,6 +414,11 @@
       !-----------------------
       ! Accumulate quantities
       !-----------------------
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
 !$OMP+PRIVATE( W, N, X, Y, K, I, J, L, TMP, H, R, SCALEAODnm ) 
@@ -397,25 +450,23 @@
      &                      ( STT(I,J,L,N) * TCVV(N) /
      &                      State_Met%AD(I,J,L) )
 
-            ELSE IF ( N == 91 .and. IS_Ox ) THEN
+            ELSE IF ( N == 91 .and. IS_O3 ) THEN
 
                !--------------------------------------
                ! PURE O3 CONCENTRATION [v/v]
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
-               Q(X,Y,K,W) = Q(X,Y,K,W) + 
-     &                      ( STT(I,J,L,IDTOX) * FRACO3(I,J,L) *
-     &                        TCVV(IDTOX)      / State_Met%AD(I,J,L) )
+               Q(X,Y,K,W) = Q(X,Y,K,W)  + ( STT(I,J,L,IDTO3)    *
+     &                      TCVV(IDTO3) /   State_Met%AD(I,J,L) )
 
-            ELSE IF ( N == 92 .and. IS_NOx ) THEN
+            ELSE IF ( N == 92 .and. IS_NO ) THEN
 
                !--------------------------------------
                ! NO CONCENTRATION [v/v]
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
-               Q(X,Y,K,W) = Q(X,Y,K,W) + 
-     &                      ( STT(I,J,L,IDTNOX) * FRACNO(I,J,L) *
-     &                        TCVV(IDTNOX)      / State_Met%AD(I,J,L) )
+               Q(X,Y,K,W) = Q(X,Y,K,W)  + ( STT(I,J,L,IDTNO)    *
+     &                      TCVV(IDTNO) /   State_Met%AD(I,J,L) )
 
             ELSE IF ( N == 93 .and. IS_NOy ) THEN
 
@@ -426,11 +477,15 @@
                ! Temp variable for accumulation
                TMP = 0d0
             
-               ! NOx
-               TMP = TMP + ( TCVV(IDTNOX)        * 
-     &                       STT(I,J,L,IDTNOX)   / 
+               ! NO
+               TMP = TMP + ( TCVV(IDTNO)         * 
+     &                       STT(I,J,L,IDTNO)    / 
      &                       State_Met%AD(I,J,L) )
 
+               ! NO2
+               TMP = TMP + ( TCVV(IDTNO2)        * 
+     &                       STT(I,J,L,IDTNO2)   / 
+     &                       State_Met%AD(I,J,L) )
                ! PAN
                TMP = TMP + ( TCVV(IDTPAN)        * 
      &                       STT(I,J,L,IDTPAN)   / 
@@ -477,16 +532,15 @@
                !--------------------------------------
                Q(X,Y,K,W) = Q(X,Y,K,W) + SAVEOH(I,J,L)
               
-            ELSE IF ( N == 77 .and. IS_NOx ) THEN
+            ELSE IF ( N == 77 .and. IS_NO2 ) THEN
 
                !--------------------------------------
                ! NO2 CONCENTRATION [v/v]
                ! NOTE: Only archive at chem timestep
                !--------------------------------------     
-               Q(X,Y,K,W) = Q(X,Y,K,W) + 
-     &                      ( STT(I,J,L,IDTNOX) * FRACNO2(I,J,L) *
-     &                        TCVV(IDTNOX)      / State_Met%AD(I,J,L) )
- 
+               Q(X,Y,K,W) = Q(X,Y,K,W)   + ( STT(I,J,L,IDTNO2)   *
+     &                      TCVV(IDTNO2) /   State_Met%AD(I,J,L) )
+
             ELSE IF ( N == 78 ) THEN
 
                !--------------------------------------
@@ -735,6 +789,9 @@
       ENDDO 
 !$OMP END PARALLEL DO
 
+      ! Free pointer
+      NULLIFY( STT )
+
       END SUBROUTINE ACCUMULATE_DIAG50
 !EOC
 !------------------------------------------------------------------------------
@@ -804,38 +861,46 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WRITE_DIAG50
+      SUBROUTINE WRITE_DIAG50( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,  ONLY : BPCH2
-      USE BPCH2_MOD,  ONLY : GET_MODELNAME
-      USE BPCH2_MOD,  ONLY : GET_HALFPOLAR
-      USE BPCH2_MOD,  ONLY : OPEN_BPCH2_FOR_WRITE
-      USE ERROR_MOD,  ONLY : ALLOC_ERR
-      USE GRID_MOD,   ONLY : GET_XOFFSET
-      USE GRID_MOD,   ONLY : GET_YOFFSET
-      USE inquireMod, ONLY : findFreeLUN
-      USE LOGICAL_MOD,ONLY : LND50_HDF
-      USE TIME_MOD,   ONLY : EXPAND_DATE
-      USE TIME_MOD,   ONLY : GET_NYMD_DIAG
-      USE TIME_MOD,   ONLY : GET_NHMS
-      USE TIME_MOD,   ONLY : GET_TAU
-      USE TIME_MOD,   ONLY : GET_TS_DYN
-      USE TIME_MOD,   ONLY : TIMESTAMP_STRING
-      USE TRACER_MOD, ONLY : N_TRACERS
+      USE BPCH2_MOD,          ONLY : BPCH2
+      USE BPCH2_MOD,          ONLY : GET_MODELNAME
+      USE BPCH2_MOD,          ONLY : GET_HALFPOLAR
+      USE BPCH2_MOD,          ONLY : OPEN_BPCH2_FOR_WRITE
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GRID_MOD,           ONLY : GET_XOFFSET
+      USE GRID_MOD,           ONLY : GET_YOFFSET
+      USE inquireMod,         ONLY : findFreeLUN
+      USE TIME_MOD,           ONLY : EXPAND_DATE
+      USE TIME_MOD,           ONLY : GET_NYMD_DIAG
+      USE TIME_MOD,           ONLY : GET_NHMS
+      USE TIME_MOD,           ONLY : GET_TAU
+      USE TIME_MOD,           ONLY : GET_TS_DYN
+      USE TIME_MOD,           ONLY : TIMESTAMP_STRING
 
 #if   defined( USE_HDF5 )
       ! Only include this if we are linking to HDF5 library (bmy, 12/21/09)
-      USE HDF_MOD,    ONLY : OPEN_HDF
-      USE HDF_MOD,    ONLY : CLOSE_HDF
-      USE HDF_MOD,    ONLY : WRITE_HDF
-      USE HDF5,       ONLY : HID_T
-      INTEGER(HID_T)      :: IU_ND50_HDF
+      USE HDF_MOD,            ONLY : OPEN_HDF
+      USE HDF_MOD,            ONLY : CLOSE_HDF
+      USE HDF_MOD,            ONLY : WRITE_HDF
+      USE HDF5,               ONLY : HID_T
+      INTEGER(HID_T)              :: IU_ND50_HDF
 #endif
 
       USE CMN_SIZE_MOD  ! Size Parameters
-! 
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Rewrote to remove hardwiring and for better efficiency.  Added extra
@@ -864,6 +929,7 @@
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC args
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -878,9 +944,20 @@
       CHARACTER(LEN=40)  :: UNIT
       CHARACTER(LEN=255) :: FILENAME
 
+      ! For fields from Input_Opt
+      LOGICAL            :: LND50_HDF
+      INTEGER            :: N_TRACERS
+
       !=================================================================
       ! WRITE_DIAG50 begins here!
       !=================================================================
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LND50_HDF = Input_Opt%LND50_HDF
+      N_TRACERS = Input_Opt%N_TRACERS
 
       ! Replace time & date tokens in the filename
       FILENAME = ND50_OUTPUT_FILE

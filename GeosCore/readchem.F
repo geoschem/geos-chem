@@ -42,6 +42,8 @@
 !                              called from the traditional driver "main.F"
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  19 Mar 2013 - R. Yantosca - When using ESMF interface to GEOS-5, append
+!                              ".rc" to input.geos (instead of ___.rc)
 !******************************************************************************
 !
 ! !USES:
@@ -58,6 +60,10 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE inquireMod,         ONLY : findFreeLUN
+
+!#if defined( DEVEL ) || defined ( ESMF_ )
+!      USE GIGC_MPI_WRAP
+!endif
 
       IMPLICIT NONE
 !
@@ -161,6 +167,12 @@
       CHARACTER(LEN=255) :: FILENAME
       LOGICAL            :: LPRT
 
+      INTEGER             :: IU_CHEMDAT ! GLOBCHEM.DAT LUN
+
+!#if defined( DEVEL )
+!      INTEGER, ALLOCATABLE :: INTVAL(:)
+!#endif
+
       !=================================================================
       ! READCHEM begins here!
       !=================================================================
@@ -216,8 +228,35 @@
        DEFPRAT(I,:)        = 0.d0
  49   CONTINUE
 !
+!
+! *********************************************************************
+!                            OPEN GLOBCHEM
+!      MSL - 01-Feb-13 : Transferred from READER.F
+! *********************************************************************
+!
       !IF ( am_I_Root ) PRINT *,"READCHEM: KGLC=",KGLC
       !IF ( am_I_Root ) PRINT *,"READCHEM: IO93=",IO93
+      ! Find a free file LUN
+      IU_CHEMDAT = findFreeLUN()
+
+      ! Name of file to open
+      FILENAME   ='globchem.dat' 
+
+#if defined( ESMF_ ) 
+      ! We need to add the ".rc" extension to the "globchem.dat" file
+      ! so that GEOS-5 will copy it to the proper run directory.
+      FILENAME   = TRIM( FILENAME ) // '.rc'
+#endif
+      KGLC       = IU_CHEMDAT
+
+      IF ( am_I_Root ) THEN 
+         WRITE( 6, 301 ) TRIM( FILENAME ), KGLC
+ 301     FORMAT( 'GEOSCHEM::READER: Opening ', a, ' on unit ', i4  )
+      ENDIF
+
+      ! Open chemistry mechanism file
+      OPEN( KGLC, FILE=TRIM( FILENAME ) )
+
       READ(KGLC,21)  HEADING 
       !WRITE(6,21) HEADING 
  13   READ(KGLC,21)  HEADING 
@@ -232,6 +271,20 @@
       READ(KGLC,59) (RINP(I), I = 1, NMBGAS)  
       READ(KGLC,61) (SINP(I), I = 1, NMBGAS)   
 !
+!#if defined( ESMF_ )
+!
+!      ALLOCATE(INTVAL(1))
+!      INTVAL(1)  = NMASBAL
+!      CALL GIGC_BCAST_CHAR( RINP,   14*NMBGAS,  RC )
+!      CALL GIGC_BCAST_CHAR( NAMEMB, 14*IMASBAL, RC )
+!      CALL GIGC_BCAST_INT( INTVAL, 1, RC )
+!      NMASBAL = INTVAL(1)
+!      INTVAL(1)  = NCSURBAN
+!      CALL GIGC_BCAST_INT( INTVAL, 1, RC )
+!      NCSURBAN = INTVAL(1)
+!      DEALLOCATE(INTVAL)
+!#endif
+
       DO 36 I         = 1, NMBGAS
        MBTRACE(I)     = 0 
        IF (SINP(I).EQ.'A') THEN 
@@ -599,12 +652,12 @@
 
 !FP_ISOP - for debug (6/2009)
 
-#if !defined( ESMF_ )
-      IF ( LPRT .and. am_I_Root ) THEN
-         WRITE(*,*) DINP,IORD,ARRT(1),BRRT(1),KCRRT(1),NCOF,SPECL(1),
-     &              FCVT(1),FCT1T(1),FCT2T(1),COMMENT
-      ENDIF
-#endif
+!#if !defined( ESMF_ )
+!     IF ( LPRT .and. am_I_Root ) THEN
+!         WRITE(*,*) DINP,IORD,ARRT(1),BRRT(1),KCRRT(1),NCOF,SPECL(1),
+!     &              FCVT(1),FCT1T(1),FCT2T(1),COMMENT
+!      ENDIF
+!#endif
 
       IF (NCOF+1.GT.MXCOF) THEN
        IF ( am_I_Root ) WRITE(6,155) NCOF+1, MXCOF, IORD
@@ -652,6 +705,11 @@
       ELSEIF (DINP.EQ.'D') THEN
        GOTO 310 
       ENDIF
+
+!#if defined( DEVEL ) || defined ( ESMF_ ) 
+!      CALL GIGC_READCHEM_BCAST( C1,    CSTRAT, CTROPL, CTROPS, CURBAN, 
+!    &                       ININT, IORD,   NCOF,   RC              )
+!#endif
 !
 ! *********************************************************************
 ! *      UPDATE REACTION NUMBER FOR REACTIONS THAT ARE USED           *
@@ -852,6 +910,7 @@
          IF (NOUSE(NCS) .EQ. 0) THEN
             NK                 = NRATCUR(NCS)
             IF (SPECL(1).EQ.'Q') NKO3PHOT(NCS)=NK !Flag O3 photolysis
+            IF (SPECL(1).EQ.'QB') NKO3PHOTH2(NCS)=NK !Flag O3 photolysis (bhh, jmao, eam, 7/18/11)
             IF (SPECL(1).EQ.'T') NKHNO4(NCS)  =NK !Flag HNO4 photolysis (gcc)
             IF (SPECL(1).EQ.'I') NKHOROI(NCS) = NK !Flag CH2O-producing branch in EP photolysis
             IF (SPECL(1).EQ.'J') NKHOROJ(NCS) = NK !Flag GLYC-producing branch in EP photolysis
@@ -994,6 +1053,11 @@
 
                ENDIF
 !
+
+               IF (SPECL(1).EQ.'HR')  THEN    !modification of the rate for HO2+RO2
+                  NNRO2HO2(NCS)               = NNRO2HO2(NCS) + 1
+                  NKSPECRO2HO2( NNRO2HO2(NCS),NCS) = NK
+               ENDIF
 
                ! DA, DB, and DC are now in use by FP
                ! This part applies only to 'D' (hotp 8/1/09)
@@ -1230,6 +1294,11 @@
  700   CONTINUE 
  702  CONTINUE 
 
+!#if defined( ESMF_ )
+!      CALL GIGC_BCAST_INT(NSPEC, ICS, RC)
+!      CALL GIGC_BCAST_INT(NTSPEC, ICS, RC)
+!!      CALL GIGC_BCAST_REAL8(NTSPEC, ICS, RC)
+!#endif
 !---smv2-s
 ! Update (gcc)
 ! bdf smv2, put this in here for now.
@@ -1251,9 +1320,10 @@
       ! Name of file to open
       FILENAME = 'chemga.dat'
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      ! When connecting to GEOS-5 GCM via ESMF, add '___.rc' extension
-      FILENAME = TRIM( FILENAME ) // '___.rc'
+#if defined( ESMF_)
+      ! We need to add the ".rc" extension to the "chemga.dat" file
+      ! so that GEOS-5 will copy it to the proper run directory.
+      FILENAME = TRIM( FILENAME ) // '.rc'
 #endif
 
       IF ( am_I_Root ) THEN
@@ -1282,7 +1352,7 @@
 !
       ! Call SETPL to setup ND65 prod/loss diagnostic
       ! SETPL must be called before JSPARSE (ljm, bmy, 5/9/03)
-      IF ( LFAMILY ) CALL SETPL( am_I_Root )
+      IF ( LFAMILY ) CALL SETPL( am_I_Root, Input_Opt, RC )
 
       ! IFSOLVE = 1 means we are calling the chemistry solver
       IF ( IFSOLVE .EQ. 1 ) THEN
@@ -1374,7 +1444,6 @@
 ! *********************************************************************
 ! *******************   END OF SUBROUTINE READCHEM   ****************** 
 ! *********************************************************************
-!     
-
+!
       RETURN
       END SUBROUTINE READCHEM

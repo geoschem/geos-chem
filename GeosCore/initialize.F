@@ -118,13 +118,18 @@
 !  (44) Add initialization of counter for diag time steps. (ccc, 7/20/09)
 !  (45) Define new diagnostics, ND19, ND58, ND60 for methane 
 !       (kjw, 8/18/09)
-!  (46) Add potential temperature diagnostic. (fp, 06/09)
+!  (46) Add ND59 and ND60 for initialization (win, 7/28/09)
+!  (47) Add potential temperature diagnostic. (fp, 06/09)
+!  (48) Add TOMAS diags using ifdefs. (sfarina, 01/13)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  25 Aug 2010 - R. Yantosca - Now also reset the counter for A1 timesteps
 !  08 Feb 2012 - R. Yantosca - Rewrote USE statements, for clarity
 !  08 Feb 2012 - R. Yantosca - Now also reset the counter for I3 timesteps
 !  15 Oct 2012 - R. Yantosca - Bug fix, make sure Counter arrays CTLBRO2H etc. 
 !                              are allocated before we use them
+!  02 Apr 2013 - M. Payer    - Remove code for CTNO, CTNO2, and CTNO3. These
+!                              are no onger needed because NO, NO2, and NO3
+!                              are now tracers.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -282,6 +287,30 @@
             CALL ZERO_DIAG56
          ENDIF
 
+#if   defined( TOMAS )
+         ! For ND59 - size-resolved primary aerosol emissions (win, 7/28/09)
+         IF ( ND59 > 0 ) THEN 
+            AD59_NUMB = 0e0
+            AD59_SULF = 0e0
+            AD59_SALT = 0e0
+            AD59_ECIL = 0e0
+            AD59_ECOB = 0e0
+            AD59_OCIL = 0e0
+            AD59_OCOB = 0e0
+            AD59_DUST = 0e0
+         ENDIF
+
+         ! For ND60 - aerosol microphysics (win, 7/28/09)
+         IF ( ND60 > 0 ) THEN
+            AD60_COND = 0e0
+            AD60_COAG = 0e0
+            AD60_NUCL = 0e0
+            AD60_AQOX = 0e0
+            AD60_ERROR = 0e0
+            AD60_SOA   = 0e0
+         ENDIF
+#endif
+
          ! For ND65 -- Chemical production & loss (bmy, 12/5/00)
          IF ( ND65 > 0 ) THEN
             AD65  = 0d0
@@ -320,14 +349,11 @@
          IF ( ND17 >               0 ) CT17       = 0
          IF ( ND18 >               0 ) CT18       = 0
          IF ( ND22 >               0 ) CTJV       = 0
-         IF ( ND43 >               0 ) CTNO       = 0
          IF ( ND43 >               0 ) CTOH       = 0
          IF ( ND45 >               0 ) CTOTH      = 0
          IF ( ND45 >               0 ) CTO3       = 0
          IF ( ND47 > 0 .OR. ND65 > 0 ) CTO3_24h   = 0
-         IF ( ND43 >               0 ) CTNO2      = 0
          IF ( ND43 >               0 ) CTHO2      = 0
-         IF ( ND43 >               0 ) CTNO3      = 0
          ! update for arom (dkh, 06/21/07)  
          IF ( ND43 > 0 ) THEN
             IF ( ALLOCATED( CTLBRO2H ) ) CTLBRO2H   = 0

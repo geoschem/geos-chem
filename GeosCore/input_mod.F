@@ -24,7 +24,9 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !  
+      PUBLIC  :: INITIALIZE_GEOS_GRID
       PUBLIC  :: READ_INPUT_FILE
+      PUBLIC  :: GIGC_Init_Extra
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -59,6 +61,9 @@
       PRIVATE :: CHECK_TIME_STEPS 
       PRIVATE :: IS_LAST_DAY_GOOD
       PRIVATE :: INIT_INPUT
+#if defined( TOMAS )
+      PRIVATE :: INIT_TOMAS_MICROPHYSICS
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -129,6 +134,11 @@
 !                              so that we can define it with findFreeLun
 !  02 Nov 2012 - R. Yantosca - Now pass the Input Options object to routines;
 !                              this will eventually replace logical_mod, etc.
+!  26 Feb 2013 - M. Long     - Now make INITIALIZE_GEOS_GRID a public routine
+!  04 Mar 2013 - R. Yantosca - Add routine GIGC_Init_Extra to move some init
+!                              calls out of the run stage when using ESMF
+!  23 Apr 2013 - R. Yantosca - For TOMAS, rename READ_MICROPHYSICS_MENU to 
+!                              INIT_TOMAS_MICROPHYSICS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -176,6 +186,7 @@
       USE GAMAP_MOD,          ONLY : DO_GAMAP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE SEASALT_MOD,        ONLY : INIT_SEASALT
 !
 ! !INPUT PARAMETERS:
 !
@@ -207,6 +218,9 @@
 !  09 Nov 2012 - R. Yantosca - Now pass Input_Opt to lower-level routines
 !  06 Dec 2012 - R. Yantosca - Now call CHECK_TIME_STEPS when we are connecting
 !                              to the GEOS-5 GCM via the ESMF environment,
+!  19 Mar 2013 - R. Yantosca - When using ESMF interface to GEOS-5, append
+!                              ".rc" to input.geos (instead of ___.rc)
+!  04 Apr 2013 - R. Yantosca - Now pass objects to DO_GAMAP routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -240,10 +254,12 @@
       ! Assume success
       RC       = GIGC_SUCCESS
 
-      ! For ESMF interface to GEOS-5 GCM, we need to add "*___.rc"
 #if defined( ESMF_ )
+      ! We need to add the ".rc" extension to the "input.geos" file
+      ! so that GEOS-5 will copy it to the proper run directory.
       FILENAME = TRIM( FILENAME ) // '.rc'
 #endif
+
       ! Open file
       OPEN( IU_GEOS, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_GEOS, 'read_input_file:1' )
@@ -282,13 +298,20 @@
          !=============================================================
          IF      ( INDEX( LINE, 'SIMULATION MENU'  ) > 0 ) THEN
             CALL READ_SIMULATION_MENU( am_I_Root, Input_Opt, RC )             
+
          ELSE IF ( INDEX( LINE, 'TRACER MENU'      ) > 0 ) THEN
             CALL READ_TRACER_MENU( am_I_Root, Input_Opt, RC )                 
 
          ELSE IF ( INDEX( LINE, 'AEROSOL MENU'     ) > 0 ) THEN
             CALL READ_AEROSOL_MENU( am_I_Root, Input_Opt, RC )              
 
-#if   defined( APM )
+#if defined( TOMAS )
+         ! Initialize the TOMAS microphysics package, if necessary
+         CALL INIT_TOMAS_MICROPHYSICS( am_I_Root, Input_Opt, RC )    
+#endif
+
+#if defined( APM )
+         ! Initialize APM microphysics package, if necessary
          ELSE IF ( INDEX( LINE, 'APM MENU'         ) > 0 ) THEN
             CALL READ_APM_MENU( am_I_Root, Input_Opt, RC )
 #endif
@@ -379,6 +402,10 @@
       ! Close input file
       CLOSE( IU_GEOS )
 
+      !=================================================================
+      ! Further error-checking and initialization
+      !=================================================================
+
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
       !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
@@ -388,12 +415,16 @@
       !-----------------------------------------------------------------
 #else
 
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! We only need to initialize GEOS-5 diagnostics if we are not
+      ! using ESMF.  The GEOS-5 GCM has its own History component
+      ! for diagnostic output (bmy, 3/4/13)
+      !-----------------------------------------------------------------
+
       ! Define GEOS-Chem diagnostic info
       CALL NDXX_SETUP( am_I_Root, Input_Opt, RC )
-
-      !=================================================================
-      ! Further error-checking and initialization
-      !=================================================================
 
       ! Make sure all directories are valid
       CALL VALIDATE_DIRECTORIES
@@ -404,7 +435,7 @@
       CALL CHECK_TIME_STEPS( am_I_Root )
 
       ! Create "diaginfo.dat" and "tracerinfo.dat" files for GAMAP
-      CALL DO_GAMAP( DIAGINFO, TRACERINFO )
+      CALL DO_GAMAP( am_I_Root, Input_Opt, RC )
 
       ! Echo output
       IF ( am_I_Root ) THEN
@@ -995,6 +1026,9 @@
 !                              running with the traditional driver main.F
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !  30 Nov 2012 - R. Yantosca - Accept external DLON, DLAT from ESMF interface
+!  26 Feb 2013 - R. Yantosca - Now pass I_LO, J_LO to COMPUTE_GRID
+!  28 Feb 2013 - R. Yantosca - Bug fix for GEOS-5 interface: Now call 
+!                              Compute_Grid with 1..IIPAR, I..JJPAR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1105,16 +1139,18 @@
 
       ! Compute the horiziontal grid properties
       CALL Compute_Grid( am_I_Root = am_I_Root,     ! Are we on the root CPU?
-     &                   I1        = I_LO,          ! Min lon index, this CPU
-     &                   J1        = J_LO,          ! Min lat index, this CPU
+     &                   I1        = 1,             ! Min lon index, this CPU
+     &                   J1        = 1,             ! Min lat index, this CPU
      &                   L1        = 1,             ! Min lev index, this CPU
-     &                   I2        = I_HI,          ! Max lon index, this CPU
-     &                   J2        = J_HI,          ! Max lat index, this CPU
+     &                   I2        = IIPAR,         ! Max lon index, this CPU
+     &                   J2        = JJPAR,         ! Max lat index, this CPU
      &                   L2        = LLPAR,         ! Max lev index, this CPU
      &                   JSP       = JSP,           ! Lat index of South Pole
      &                   JNP       = JNP,           ! Lat index of North Pole
      &                   DLON      = DLON,          ! Delta-longitudes [deg]
      &                   DLAT      = DLAT,          ! Delta-latitudes  [deg]
+     &                   I_LO      = I_LO,          ! Min global lon index
+     &                   J_LO      = J_LO,          ! Min global lat index
      &                   RC        = RC         )   ! Success or failure?
 
 
@@ -1208,15 +1244,18 @@
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_tracer_menu:3' )
-      
       ! NTRACE cannot exceed NNPAR
+
       IF ( N_TRACERS > NNPAR ) THEN
          CALL ERROR_STOP( 'Error: N_TRACERS > NNPAR!', 
      &                    'read_tracer_menu (input_mod.f)' )
       ENDIF
      
+      ! Save N_TRACERS to Input_Opt
+      Input_Opt%N_TRACERS = N_TRACERS
+
       ! Initialize tracer arrays in tracer_mod.f
-      CALL INIT_TRACER
+      CALL INIT_TRACER( am_I_Root, Input_Opt, RC )
 
       !=================================================================
       ! Read tracer ID, emission ID, biomass ID, biofuel ID, & mol wt
@@ -1823,6 +1862,161 @@
 
       END SUBROUTINE READ_AEROSOL_MENU
 !EOC
+#if defined( TOMAS )
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_tomas_microphys
+!
+! !DESCRIPTION: Subroutine INIT\_TOMAS\_MICROPHYS will initialize the 
+!  TOMAS microphysics package.  This replaces the former subroutine
+!  READ\_MICROPHYSICS\_MENU.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE INIT_TOMAS_MICROPHYSICS( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TOMAS_MOD,          ONLY : INIT_TOMAS
+      USE TRACERID_MOD,       ONLY : IDTNK1,   IDTNK10,  IDTNK20
+      USE TRACERID_MOD,       ONLY : IDTNK30,  IDTSF1,   IDTSF10
+      USE TRACERID_MOD,       ONLY : IDTSF20,  IDTSF30,  IDTSS1
+      USE TRACERID_MOD,       ONLY : IDTSS10,  IDTSS20,  IDTSS30
+      USE TRACERID_MOD,       ONLY : IDTECOB1, IDTECIL1, IDTOCOB1
+      USE TRACERID_MOD,       ONLY : IDTOCIL1, IDTH2SO4, IDTDUST1
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+! 
+! !REMARKS:
+!  We now invoke TOMAS by compiling GEOS-Chem and setting either the TOMAS=yes
+!  (30 bins, default) or TOMAS40=yes (40 bins, optional) switches.  The old
+!  LTOMAS logical switch is now obsolete because all of the TOMAS code is
+!  segregated from the rest of GEOS-Chem with #ifdef blocks.  Therefore,
+!  we no longer need to read the microphysics menu, but we still need to
+!  apply some error checks and then call INIT_TOMAS. (bmy, 4/23/13)
+!
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
+!  (1 ) Now read LNEI99 -- switch for EPA/NEI99 emissions (bmy, 11/5/04)
+!  (2 ) Now read LAVHRRLAI-switch for using AVHRR-derived LAI (bmy, 12/20/04)
+!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (4 ) Now read LMEGAN -- switch for MEGAN biogenics (tmf, bmy, 10/20/05)
+!  (5 ) Now read LEMEP -- switch for EMEP emissions (bdf, bmy, 11/1/05)
+!  (6 ) Now read LGFED2BB -- switch for GFED2 biomass emissions (bmy, 4/5/06)
+!  (7 ) Now read LOTDLIS, LCTH, LMFLUX, LPRECON for lightning options 
+!        (bmy, 5/10/06)
+!  (8 ) Now read LBRAVO for BRAVO Mexican emissions (rjp, kfb, bmy, 6/26/06)
+!  (9 ) Now read LEDGAR for EDGAR emissions (avd, bmy, 7/11/06)
+!  (10) Now read LSTREETS for David Streets' emissions (bmy, 8/17/06)
+!  (11) Kludge: Reset LMFLUX or LPRECON to LCTH, as the MFLUX and PRECON
+!        lightning schemes have not yet been implemented.  Rename LOTDLIS
+!        to LOTDREG.  Also read LOTDLOC for the OTD-LIS local redistribution
+!        of lightning flashes (cf B. Sauvage).  Make sure LOTDREG and 
+!        LOTDLOC are not both turned on at the same time. (bmy, 1/31/07)
+!  (12) Add LOTDSCALE to the list of LNOx options (ltm, bmy, 9/24/07)
+!  (13) Add new error traps for OTD-LIS options, dependent on met field type
+!        (ltm, bmy, 11/29/07)
+!  (14) Bug fix, create string variables for ERROR_STOP (bmy, 1/24/08)
+!  (15) Now read LCAC for CAC emissions (amv, 1/09/2008)
+!  (16) Now read LEDGARSHIP, LARCSHIP and LEMEPSHIP (phs, 12/5/08)
+!  (17) Fixed typo in message for GEOS-3 (bmy, 10/30/08)
+!  (18) Now read LVISTAS (amv, 12/2/08)
+!  (19) Now read L8DAYBB, L3HRBB and LSYNOPBB for GFED2 8-days and 3hr
+!        emissions, and LICARTT for corrected EPA (phs, yc, 12/17/08)
+!  (20) Add a specific switch for MEGAN emissions for monoterpenes and MBO
+!       (ccc, 2/2/09)
+!  (21) Now read LICOADSSHIP (cklee, 6/30/09)
+!  (22) Bug fix: for now, if LEMEPSHIP is turned on but LEMEP is turned off,
+!        just turn off LEMEPSHIP and print a warning msg. (mak, bmy, 10/18/09)
+!  (23) Now accounts for NEI2005 (amv, phs, 10/9/09)
+!  (24) Included optional flag for using MODIS LAI data (mpb,2009).
+!  (25) Included optional flag for using PCEEA model (mpb, 2009)
+!  (26) Now force settings for EU, NA, CC nested grids (amv, bmy, 12/18/09)
+!  (27) Now force MEGAN to use MODIS LAI (ccarouge, bmy, 2/24/10)
+!  (28) Add separate switch for NOx fertilizer. (fp, 2/29/10)
+!  (29) Add scaling for isoprene and NOx emissions. (fp, 2/29/10)
+!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
+!  23 Apr 2013 - R. Yantosca - Renamed to INIT_TOMAS_MICROPHYS
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER            :: N, I
+      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG, LOCATION
+
+      !=================================================================
+      ! INIT_TOMAS_MICROPHYSICS begins here!
+      !=================================================================
+
+      ! Location string for ERROR_STOP
+      LOCATION = 'INIT_TOMAS_MICROPHYS ("input_mod.f")'
+
+      ! Halt with error if we are trying to run TOMAS in a simulation
+      ! that does not have any defined aerosols
+      ! Turn off switches for simulations that don't use microphysics
+      IF ( ( .not. Input_Opt%ITS_A_FULLCHEM_SIM )  .and.
+     &     ( .not. Input_Opt%ITS_AN_AEROSOL_SIM ) ) THEN
+         MSG = 'TOMAS needs to run with either a full-chemistry ' //
+     &         'or offline aerosol simulation!'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+
+      ! Halt with error if none of the TOMAS aerosol species are defined
+      I =  IDTNK1 + IDTSF1 + IDTSS1 + IDTECOB1 + IDTECIL1 + 
+     &     IDTOCOB1 + IDTOCIL1  + IDTDUST1
+      IF ( I == 0 ) THEN 
+         MSG = 'None of the TOMAS aerosols are defined!'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+      
+      ! Halt with error if sulfate aerosols are not defined
+      IF( IDTSF1 > 0 .and. ( .not. Input_Opt%LSULF ) ) THEN
+         MSG = 'Need LSULF on for TOMAS-Sulfate to work (for now)'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+
+      ! Halt with error if carbonaceous aerosols are not defined
+      I = IDTECOB1 + IDTECIL1 + IDTOCOB1 + IDTOCIL1
+      IF ( I > 0 .and. (.not. Input_Opt%LCARB ) ) THEN
+         MSG = 'Need LCARB on for TOMAS-carb to work (for now)'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+
+      ! Halt with error if dust aerosols are turned on.
+      ! TOMAS defines its own dust aerosol tracers.
+      IF ( IDTDUST1 > 0 .AND. Input_Opt%LDUST ) THEN
+         MSG = 'Need to turn off LDUST for TOMAS Dust to work'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+
+      !=================================================================
+      ! All error checks are satisfied, so initialize TOMAS
+      !=================================================================
+      CALL INIT_TOMAS    
+ 
+      END SUBROUTINE INIT_TOMAS_MICROPHYSICS
+!EOC
+#endif
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -2286,13 +2480,13 @@
          WRITE( 6, '(a)' ) 'we also turn off LMEGANMONO ship emissions'
          WRITE( 6, '(a)' ) 'in order to avoid crashing GEOS-Chem!'
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-	 ENDIF
+         ENDIF
       ENDIF
 
       !=================================================================
       ! Enforce emissions options for Nested China on native GEOS-5 grid
       !=================================================================
-#if   defined ( NESTED_CH ) || defined ( SEAC4RS )
+#if   defined( NESTED_CH ) || defined( SEAC4RS )
 
       ! Turn off emissions options that are
       ! not appropriate for the Nested CH grid
@@ -2541,7 +2735,9 @@
       Input_Opt%LSSABr2        = LSSABr2
       Input_Opt%LFIX_PBL_BRO   = LFIX_PBL_BRO
       Input_Opt%Br_SCALING     = Br_SCALING
-
+      Input_Opt%LEDGARNOx      = LEDGARNOx
+      Input_Opt%LEDGARCO       = LEDGARCO
+      Input_Opt%LEDGARSOx      = LEDGARSOx
 
       ! Return success
       RC = GIGC_SUCCESS
@@ -2899,6 +3095,11 @@
       Input_Opt%LSHIPEDG    = LSHIPEDG
       Input_Opt%LSHIPICO    = LSHIPICO
       Input_Opt%LPLANE      = LPLANE
+      Input_Opt%LFFBKGRD    = LFFBKGRD
+      Input_Opt%LBIOSPHTAG  = LBIOSPHTAG
+      Input_Opt%LFOSSILTAG  = LFOSSILTAG
+      Input_Opt%LSHIPTAG    = LSHIPTAG
+      Input_Opt%LPLANETAG   = LPLANETAG
 
       ! Return success
       RC = GIGC_SUCCESS
@@ -3127,6 +3328,8 @@
 !                              when we are connecting to the GEOS-5 GCM
 !  11 Dec 2012 - R. Yantosca - ACCEPT_DATE_TIME_FROM_ESMF has now been renamed
 !                              to ACCEPT_EXTERNAL_DATE_TIME
+!  22 May 2013 - M. Payer    - Now read in GAMMA_HO2. Recommended value is 0.2
+!                              based on Jacon et al (2000) and Mao et al (2013).
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3169,6 +3372,10 @@
       ! Use KPP solver ?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:6' )
       READ( SUBSTRS(1:N), * ) LKPP
+
+      ! GAMMA HO2 ?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:6' )
+      READ( SUBSTRS(1:N), * ) Input_Opt%GAMMA_HO2
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:7' )
@@ -3246,6 +3453,8 @@
          WRITE( 6, 110     ) 'Chemistry timestep [min]    : ', TS_CHEM
          WRITE( 6, 100     ) 'Use CSPEC restart?          : ', LSVCSPEC
          WRITE( 6, 100     ) 'Use solver coded by KPP?    : ', LKPP
+         WRITE( 6, 100     ) 'GAMMA HO2                   : ',
+     &      Input_Opt%GAMMA_HO2
       ENDIF
 
       ! FORMAT statements
@@ -3432,9 +3641,9 @@
       TS_DYN                = Input_Opt%TS_DYN
 
       ! Pass chemistry timestep to time_mod.F
-      CALL Accept_External_Date_Time( am_I_Root    = am_I_Root, 
-     &                                value_TS_DYN = TS_DYN,
-     &                                RC           = RC         )
+      CALL Accept_External_Date_Time( am_I_Root     = am_I_Root, 
+     &                                value_TS_DYN  = TS_DYN,
+     &                                RC            = RC         )
      &                                 
 
 #else
@@ -3498,11 +3707,14 @@
 !
 ! !USES:
 !
-      USE ERROR_MOD,   ONLY : ERROR_STOP
-      USE LOGICAL_MOD, ONLY : LCONV, LTURB
-      USE LOGICAL_MOD, ONLY : LNLPBL        ! (Lin, 03/31/09)
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE LOGICAL_MOD,        ONLY : LCONV, LTURB
+      USE LOGICAL_MOD,        ONLY : LNLPBL        ! (Lin, 03/31/09)
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE TIME_MOD,           ONLY : Accept_External_Date_Time
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -3528,6 +3740,8 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!  01 Mar 2013 - R. Yantosca - Now set TS_CONV to the same value as TS_DYN
+!                              when connecting to the GEOS-5 GCM.         
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3586,6 +3800,27 @@
       Input_Opt%LCONV   = LCONV
       Input_Opt%LTURB   = LTURB
       Input_Opt%LNLPBL  = LNLPBL
+
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! If we are connecting to the ESMF interface, we need to set
+      ! the convection timestep equal to the dynamic timestep in
+      ! order to avoid tripping an error message in the routine
+      ! CHECK_TIMESTEPS. (bmy, 3/1/13)
+      !-----------------------------------------------------------------
+      
+      ! Set TS_CONV from Input_Opt%TS_DYN
+      TS_CONV           = Input_Opt%TS_DYN
+
+      ! Pass chemistry timestep to time_mod.F
+      CALL Accept_External_Date_Time( am_I_Root     = am_I_Root, 
+     &                                value_TS_CONV = TS_CONV,
+     &                                RC            = RC         )
+     &                                 
+#endif
+
       Input_Opt%TS_CONV = TS_CONV
 
       ! Return success
@@ -3667,6 +3902,8 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!  26 Feb 2013 - R. Yantosca - Now call INIT_DUST jere to facilitate 
+!                              connecting to the GEOS-5 GCM
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3743,10 +3980,10 @@
       !=================================================================
 
       ! Initialize dry deposition arrays
-      IF ( LDRYD ) THEN
+      IF ( Input_Opt%LDRYD ) THEN
 
          ! Setup for dry deposition
-         CALL INIT_DRYDEP( am_I_Root )
+         CALL INIT_DRYDEP( am_I_Root, Input_Opt, RC )
       
          ! Print extra info message for Hg simulation
          IF ( ITS_A_MERCURY_SIM() .and. LSPLIT ) THEN
@@ -3756,7 +3993,9 @@
       ENDIF
 
       ! Initialize wet deposition tracers
-      IF ( LWETD .or. LCONV ) CALL WETDEPID( am_I_Root )
+      IF ( LWETD .or. LCONV ) THEN
+         CALL WETDEPID( am_I_Root, Input_Opt, RC )
+      ENDIF
 
 #if   defined( APM )
       ! Initialize wet deposition tracers for APM
@@ -3900,6 +4139,7 @@
 !                              running with the traditional driver main.F
 !  03 Aug 2012 - R. Yantosca - IU_GEOS is now a global module variable
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!  28 Feb 2013 - R. Yantosca - Don't call IS_LAST_DAY_GOOD when using ESMF
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3948,8 +4188,28 @@
      &        'JUL--', 31i1, /, 'AUG--', 31i1, /, 'SEP--', 30i1, /,
      &        'OCT--', 31i1, /, 'NOV--', 30i1, /, 'DEC--', 31i1 )
 
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! When we connect to the GEOS-5 GCM via ESMF, we let the GCM
+      ! handle all timing and diagnostic output via the GEOS-5 History
+      ! Component.  Therefore we do not need to make sure that we have 
+      ! scheduled output for the last day of the run.  This can cause
+      ! a premature exit. (bmy, 2/28/13)
+      !-----------------------------------------------------------------
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Current practice in the std GEOS-Chem is to not let the run
+      ! proceed unless the user has scheduled output for the last day.
+      ! (bmy, 2/28/13)
+      !-----------------------------------------------------------------
+
       ! Make sure we have output at end of run
       CALL IS_LAST_DAY_GOOD
+#endif
 
       END SUBROUTINE READ_OUTPUT_MENU
 !EOC
@@ -4103,7 +4363,9 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:5' )
       READ( SUBSTRS(1), * ) ND03
       IF ( .not. ITS_A_MERCURY_SIM() ) ND03 = 0
-      CALL SET_TINDEX( am_I_Root, 03, ND03, SUBSTRS(2:N), N-1, PD03_PL ) !eds 9/9/10
+      !CALL SET_TINDEX( am_I_Root, 03, ND03, SUBSTRS(2:N), N-1, PD03_PL ) !eds 9/9/10
+      CALL SET_TINDEX( am_I_Root, 03, ND03, SUBSTRS(2:N), N-1, PD03 ) !yzh 12/15/12
+	  
 
       !--------------------------
       ! ND04: CO2 emissions
@@ -4701,6 +4963,10 @@
 !
 ! !USES:
 !
+#if   defined( TOMAS )
+      USE CHARPAK_MOD, ONLY : TXTEXT   ! (win, 7/14/09)
+#endif
+
       USE CMN_SIZE_MOD                              ! Size parameters
       USE CMN_DIAG_MOD                              ! TMAX, TINDEX
 !
@@ -4726,9 +4992,14 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE :: FIRST = .TRUE.
-      LOGICAL       :: IS_ALL 
-      INTEGER       :: M
+      LOGICAL, SAVE       :: FIRST = .TRUE.
+      LOGICAL             :: IS_ALL 
+      INTEGER             :: M
+#if   defined( TOMAS )
+      INTEGER             :: NN,     COL,     IFLAG, TC     ! (win, 7/14/09)
+      CHARACTER (LEN=255) :: WORD,   SUBWORD, TMP1,  TMP2   ! (win, 7/14/09)
+      INTEGER             :: MINTMP, MAXTMP                 ! (win, 7/14/09)
+#endif
 
       !=================================================================
       ! SET_TINDEX begins here!
@@ -4765,6 +5036,48 @@
 
       ELSE 
 
+#if   defined( TOMAS )
+!(win, 7/14/09)  use TXTEXT and split the read in characters by -
+
+         COL   = 1
+         NN    = 0
+         SUBWORD  = ''
+         IFLAG = 0
+
+         ! Use explicit DO-loop
+         DO M = 1, N
+            WORD = SUBSTRS(M)
+
+            ! Check if the characters are a range with - in the middle
+            CALL TXTEXT ( '-', WORD, COL, SUBWORD, IFLAG )
+
+            ! Found a dash!  Get the numbers on both sides of the dash
+            ! since these the min and max of the tracer range
+            IF ( IFLAG == 0 ) THEN
+               TMP1 = TRIM( WORD(      1:COL-1      ) )
+               TMP2 = TRIM( WORD( COL+1:LEN_TRIM( WORD ) ) )
+
+               READ( TMP1, * ) MINTMP
+               READ( TMP2, * ) MAXTMP
+               
+               DO TC = MINTMP, MAXTMP
+                  NN = NN + 1
+                  TINDEX( N_DIAG, NN ) = TC
+               ENDDO
+
+            ! If we haven't found a dash, then there is only one number,
+            ! so that number is both the min and max of the tracer range
+            ELSE IF ( IFLAG == -1 ) THEN
+               NN = NN + 1
+               TMP1 = TRIM( WORD )
+               READ( TMP1, * ) TINDEX( N_DIAG, NN )
+            ENDIF
+               
+         ENDDO
+
+         ! Set TMAX to the counted # of tracers
+         TMAX( N_DIAG ) = NN
+#else
          ! Otherwise, set TMAX, TINDEX to the # of tracers
          ! listed in "input.ctm" -- need some error checks too
          TMAX(N_DIAG) = N
@@ -4774,6 +5087,7 @@
             READ( SUBSTRS(M:M), * ) TINDEX(N_DIAG,M)
          ENDDO
 
+#endif
          ! Set flag
          IS_ALL = .FALSE.
 
@@ -6480,7 +6794,7 @@
       !=================================================================
 
       ! Pass values to "tpcore_bc_mod.f"
-      CALL INIT_TPCORE_BC( TS, I0W, J0W, I1, J1, I2, J2 )
+      CALL INIT_TPCORE_BC( TS, I0W, J0W, I1, J1, I2, J2, Input_Opt )
 
       END SUBROUTINE READ_NESTED_GRID_MENU
 !EOC
@@ -6889,7 +7203,12 @@
       IF ( ITS_A_MERCURY_SIM() ) THEN 
 
          ! Initialize "mercury_mod.f"
-         CALL INIT_MERCURY( ANTHRO_Hg_YEAR, HG_SCENARIO ) !eds 5/17/12
+!----------------------------------------------------------------------------
+! Prior to 6/3/13:
+! Now pass fields via Input_Opt instead of directly (bmy, 6/3/13)
+!         CALL INIT_MERCURY( ANTHRO_Hg_YEAR, HG_SCENARIO ) !eds 5/17/12
+!----------------------------------------------------------------------------
+         CALL INIT_MERCURY( am_I_Root, Input_Opt, RC )
          CALL INIT_LAND_MERCURY()
          CALL INIT_DEPO_MERCURY(TRIM( GTMM_RST_FILE ))
 
@@ -7121,6 +7440,7 @@
 !  01 Oct 2012 - C. Friedman - Initial version
 !  26 Nov 2012 - M. Payer    - Added ProTeX headers
 !  29 Nov 2012 - M. Payer    - Now pass Input_Opt, RC as arguments
+!  26 Mar 2013 - R. Yantosca - Now pass Input_Opt to INIT_POPS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7241,7 +7561,7 @@
          ! Initialize "pops_mod.f"
          CALL INIT_POPS(POP_XMW, POP_KOA, POP_KBC, POP_K_POPG_OH,
      &                  POP_K_POPP_O3A, POP_K_POPP_O3B, 
-     &                  POP_HSTAR, POP_DEL_H, POP_DEL_Hw )
+     &                  POP_HSTAR, POP_DEL_H, POP_DEL_Hw, Input_Opt )
 
       ENDIF
 
@@ -7370,6 +7690,7 @@
  120  FORMAT( A, F7.3 )
 
       END SUBROUTINE READ_APM_MENU
+
 !EOC
 #endif
 !EOC
@@ -7867,6 +8188,129 @@
       ENDIF
      
       END SUBROUTINE IS_LAST_DAY_GOOD
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: gigc_init_extra
+!
+! !DESCRIPTION: Suborutine GIGC\_INIT\_EXTRA initializes other GEOS-Chem 
+!  modules that have not been initialized in either GIGC_Allocate_All or
+!  GIGC_Init_all.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE GIGC_Init_Extra( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+      USE Aerosol_Mod,        ONLY : Init_Aerosol
+      USE Carbon_Mod,         ONLY : Init_Carbon
+      USE Drydep_Mod,         ONLY : Init_Drydep
+      USE Dust_Mod,           ONLY : Init_Dust
+      USE Error_Mod,          ONLY : Debug_Msg
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE Linoz_Mod,          ONLY : Init_Linoz
+      USE Seasalt_Mod,        ONLY : Init_SeaSalt
+      USE Sulfate_Mod,        ONLY : Init_Sulfate
+      USE Tropopause_Mod,     ONLY : Init_Tropopause
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  Several of the INIT routines now called within GIGC_Init_Extra had 
+!  originally been called from the Run method.  We now gather these INIT
+!  routines here so that they may be called from the Initialization method.
+!  This is necessary when connecting GEOS-Chem to the GEOS-5 GCM via ESMF.
+!                                                                             .
+!  GIGC_Init_Extra should be called after the call to DO_DRYDEP, since
+!  these routines depend on dry deposition parameters being set up first.
+!
+! !REVISION HISTORY: 
+!  04 Mar 2013 - R. Yantosca - Initial revision
+!  05 Mar 2013 - R. Yantosca - Now call INIT_AEROSOL (GeosCore/aerosol_mod.F)
+!  15 Mar 2013 - R. Yantosca - Now call INIT_LINOZ (GeosCore/linoz_mod.F)
+!  29 Mar 2013 - R. Yantosca - Now call INIT_TROPOPAUSE (so that we can pass
+!                              a LVARTROP from Input_Opt and not logical_mod.F)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL :: prtDebug
+
+      !=================================================================
+      ! GIGC_Init_Extra begins here!
+      !=================================================================
+
+      ! Assume success
+      RC       = GIGC_SUCCESS
+
+      ! Set a flag for debugging
+      prtDebug = ( am_I_Root .and. Input_Opt%LPRT )
+
+      ! Initialize "carbon_mod.F"
+      IF ( Input_Opt%LCARB ) THEN
+         CALL Init_Carbon( am_I_Root, Input_Opt, RC )
+         IF ( RC /= GIGC_SUCCESS ) RETURN
+         IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_CARBON' )
+      ENDIF
+    
+      ! Initialize "dust_mod.F"
+      IF ( Input_Opt%LDUST ) then
+         CALL Init_Dust( am_I_Root, Input_Opt, RC )
+         IF ( RC /= GIGC_SUCCESS ) RETURN
+         IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_DUST' )
+      ENDIF
+
+      ! Initialize "seasalt_mod.F
+      IF ( Input_Opt%LSSALT ) THEN
+         CALL Init_Seasalt( am_I_Root, Input_Opt, RC )
+         IF ( RC /= GIGC_SUCCESS ) RETURN
+         IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_SEASALT' )
+      ENDIF
+
+      ! Initialize "sulfate_mod.F"
+      IF ( Input_Opt%LSULF ) THEN
+         CALL Init_Sulfate( am_I_Root, Input_Opt, RC )
+         IF ( RC /= GIGC_SUCCESS ) RETURN
+         IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_SULFATE' )
+      ENDIF
+
+      ! Initialize "aerosol_mod.F"
+      IF ( Input_Opt%LSULF .or. Input_Opt%LCARB   .or. 
+     &     Input_Opt%LDUST .or. Input_Opt%LSSALT ) THEN
+         CALL Init_Aerosol( am_I_Root, Input_Opt, RC )
+         IF ( RC /= GIGC_SUCCESS ) RETURN
+         IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_AEROSOL' )
+      ENDIF
+
+      ! Initialize "linoz_mod.F"
+      IF ( Input_Opt%LLINOZ ) THEN
+         CALL INIT_LINOZ( am_I_Root, Input_Opt, RC )
+         IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_LINOZ' )
+      ENDIF
+
+      ! Initialize "tropopause_mod.F"
+      CALL INIT_TROPOPAUSE( am_I_Root, Input_Opt, RC )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### a INIT_TROPOPAUSE' )
+
+      END SUBROUTINE GIGC_Init_Extra
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !

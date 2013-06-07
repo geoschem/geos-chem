@@ -42,6 +42,8 @@
 !  18 Dec 2009 - Aaron van D - Added READ_CANADA_MASK_05x0666 routine
 !  01 Mar 2012 - R. Yantosca - Remove A_CM2 array, use the new function
 !                              GET_AREA_CM2( I, J, L ) from grid_mod.F90 
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -124,7 +126,7 @@
 !
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TRACER_MOD,   ONLY : XNUMOL
-      USE TRACERID_MOD, ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
+      USE TRACERID_MOD, ONLY : IDTNO, IDTCO, IDTSO2, IDTNH3, IDTNO2
 !
 ! !INPUT PARAMETERS: 
 !
@@ -144,6 +146,8 @@
 !
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - P. Le Sager - Initial Version
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -164,7 +168,8 @@
       IF ( PRESENT( KG_S        ) ) DO_KGS = KG_S
       IF ( PRESENT( MOLEC_CM2_S ) ) DO_MCS = MOLEC_CM2_S
 
-      IF ( N == IDTNOx ) THEN
+      ! Replaced NOx with NO (mpayer, 3/14/13)
+      IF ( N == IDTNO ) THEN
 
          ! NOx [kg/yr]
          VALUE = NOx(I,J)
@@ -203,10 +208,16 @@
 
       ELSE IF ( DO_MCS ) THEN
 
-         ! Convert NOx from [kg/yr] to [molec/cm2/s]
-         VALUE = ( VALUE       * XNUMOL(N)               )
-     &         / ( SEC_IN_YEAR * GET_AREA_CM2( I, J, 1 ) )
-
+         ! Convert from [kg/yr] to [molec/cm2/s]
+         IF ( N == IDTNO ) THEN
+            ! Convert NOx using XNUMOL for NO2 since original NOx
+            ! emissions are in mass units of NO2 (mpayer, 4/18/13)
+            VALUE = ( VALUE       * XNUMOL(IDTNO2)          )
+     &            / ( SEC_IN_YEAR * GET_AREA_CM2( I, J, 1 ) )
+         ELSE
+            VALUE = ( VALUE       * XNUMOL(N)               )
+     &            / ( SEC_IN_YEAR * GET_AREA_CM2( I, J, 1 ) )
+         ENDIF
       ENDIF
 
       END FUNCTION GET_CAC_ANTHRO
@@ -225,27 +236,37 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE EMISS_CAC_ANTHRO(EMISSIONS)
-#else
-      SUBROUTINE EMISS_CAC_ANTHRO
-#endif
+      SUBROUTINE EMISS_CAC_ANTHRO( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 ! 
-      USE BPCH2_MOD,         ONLY : GET_TAU0,      READ_BPCH2
-      USE DIRECTORY_MOD,     ONLY : DATA_DIR_1x1 
-      USE LOGICAL_MOD,       ONLY : LFUTURE
-      USE TIME_MOD,          ONLY : GET_YEAR
-      USE SCALE_ANTHRO_MOD,  ONLY : GET_ANNUAL_SCALAR_1x1
-      USE REGRID_A2A_MOD,    ONLY : DO_REGRID_A2A
-      USE CMN_SIZE_MOD            ! Size parameters
-      USE CMN_O3_MOD              ! FSCALYR
+      USE BPCH2_MOD,          ONLY : GET_TAU0,      READ_BPCH2
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR_1x1 
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE TIME_MOD,           ONLY : GET_YEAR
+      USE SCALE_ANTHRO_MOD,   ONLY : GET_ANNUAL_SCALAR_1x1
+      USE REGRID_A2A_MOD,     ONLY : DO_REGRID_A2A
+      USE CMN_SIZE_MOD
+      USE CMN_O3_MOD
 
 #if defined( DEVEL )
-      USE TRACERID_MOD, ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
-      USE TRACER_MOD, ONLY   : N_TRACERS 
+      USE TRACERID_MOD,       ONLY : IDTNO, IDTCO, IDTSO2, IDTNH3
 #endif
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?!
 !
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - P. Le Sager - Initial Version
@@ -259,6 +280,7 @@
 !  24 May 2012 - R. Yantosca - Fixed minor bug in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -278,16 +300,24 @@
       CHARACTER(LEN=255)         :: LLFILENAME
       REAL*8, POINTER            :: INGRID(:,:) => NULL()
 
-#if defined( DEVEL )
-      REAL*8, INTENT(INOUT)      :: EMISSIONS(IIPAR,JJPAR,N_TRACERS+1)
-#endif
+      ! For fields from Input_Opt
+      LOGICAL                    :: LFUTURE
+      INTEGER                    :: N_TRACERS
+
       !=================================================================
       ! EMISS_CAC_ANTHRO begins here!
       !=================================================================
 
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LFUTURE   = Input_Opt%LFUTURE
+      N_TRACERS = Input_Opt%N_TRACERS
+
       ! First-time initialization
       IF ( FIRST ) THEN
-         CALL INIT_CAC_ANTHRO
+         CALL INIT_CAC_ANTHRO( am_I_Root, Input_Opt, RC )
          FIRST = .FALSE.
       ENDIF
 
@@ -493,10 +523,17 @@
       CALL TOTAL_ANTHRO_Tg( THISYEAR )
 
 #if defined( DEVEL )
-      EMISSIONS(:,:,IDTNH3) = EMISSIONS(:,:,IDTNH3)+NH3
-      EMISSIONS(:,:,IDTSO2) = EMISSIONS(:,:,IDTSO2)+SO2
-      EMISSIONS(:,:,IDTNOx) = EMISSIONS(:,:,IDTNOx)+NOx
-      EMISSIONS(:,:,IDTCO)  = EMISSIONS(:,:,IDTCO) +CO
+      State_Chm%TRAC_TEND(:,:,1,IDTNH3) = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTNH3) + NH3
+
+      State_Chm%TRAC_TEND(:,:,1,IDTSO2) = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTSO2) + SO2
+
+      State_Chm%TRAC_TEND(:,:,1,IDTNO ) = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTNO ) + NOx
+
+      State_Chm%TRAC_TEND(:,:,1,IDTCO)  = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTCO)  + CO
 #endif
 
       END SUBROUTINE EMISS_CAC_ANTHRO
@@ -515,26 +552,37 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE EMISS_CAC_ANTHRO_05x0666(EMISSIONS)
-#else
-      SUBROUTINE EMISS_CAC_ANTHRO_05x0666
-#endif
+      SUBROUTINE EMISS_CAC_ANTHRO_05x0666( am_I_Root, Input_Opt, 
+     &                                     State_Chm, RC         )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,         ONLY : GET_TAU0,      READ_BPCH2
-      USE DIRECTORY_MOD,     ONLY : DATA_DIR
-      USE LOGICAL_MOD,       ONLY : LFUTURE
-      USE TIME_MOD,          ONLY : GET_YEAR
-      USE SCALE_ANTHRO_MOD,  ONLY : GET_ANNUAL_SCALAR_05x0666_NESTED
+      USE BPCH2_MOD,          ONLY : GET_TAU0,      READ_BPCH2
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE TIME_MOD,           ONLY : GET_YEAR
+      USE SCALE_ANTHRO_MOD,   ONLY : GET_ANNUAL_SCALAR_05x0666_NESTED
+      USE CMN_SIZE_MOD
+      USE CMN_O3_MOD
 
-      USE CMN_SIZE_MOD          ! Size parameters
-      USE CMN_O3_MOD            ! FSCALYR
 #if defined( DEVEL )
-      USE TRACERID_MOD, ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
-      USE TRACER_MOD,   ONLY : N_TRACERS 
+      USE TRACERID_MOD,       ONLY : IDTNO, IDTCO, IDTSO2, IDTNH3
 #endif
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  03 Nov 2009 - A. van Donkelaar - Initial Version
@@ -543,6 +591,7 @@
 !  (1 ) Emissions are read for a year b/w 2002-2005, and scaled
 !        (except NH3) between 1985-2003 if needed (phs, 3/10/08)
 !  (2 ) Now accounts for FSCALYR (phs, 3/17/08)
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -560,16 +609,21 @@
       CHARACTER(LEN=255)         :: FILENAME
       CHARACTER(LEN=4)           :: SYEAR, SNAME
 
-#if defined( DEVEL )
-      REAL*8, INTENT(INOUT)      :: EMISSIONS(IIPAR,JJPAR,N_TRACERS+1)
-#endif
+      ! For fields from Input_Opt
+      LOGICAL         :: LFUTURE
+      INTEGER         :: N_TRACERS
+
       !=================================================================
       ! EMISS_CAC_ANTHRO begins here!
       !=================================================================
 
+      ! Copy values from Input_Opt
+      LFUTURE   = Input_Opt%LFUTURE
+      N_TRACERS = Input_Opt%N_TRACERS
+
       ! First-time initialization
       IF ( FIRST ) THEN
-         CALL INIT_CAC_ANTHRO
+         CALL INIT_CAC_ANTHRO( am_I_Root, Input_Opt, RC )
          FIRST = .FALSE.
       ENDIF
 
@@ -747,10 +801,17 @@
       CALL TOTAL_ANTHRO_Tg( THISYEAR )
 
 #if defined( DEVEL )
-      EMISSIONS(:,:,IDTNH3) = EMISSIONS(:,:,IDTNH3)+NH3
-      EMISSIONS(:,:,IDTSO2) = EMISSIONS(:,:,IDTSO2)+SO2
-      EMISSIONS(:,:,IDTNOx) = EMISSIONS(:,:,IDTNOx)+NOx
-      EMISSIONS(:,:,IDTCO)  = EMISSIONS(:,:,IDTCO) +CO
+      State_Chm%TRAC_TEND(:,:,1,IDTNH3) = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTNH3) + NH3
+      
+      State_Chm%TRAC_TEND(:,:,1,IDTSO2) = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTSO2) + SO2
+
+      State_Chm%TRAC_TEND(:,:,1,IDTNO)  = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTNO)  + NOx
+      
+      State_Chm%TRAC_TEND(:,:,1,IDTCO)  = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTCO)  + CO
 #endif
 
       END SUBROUTINE EMISS_CAC_ANTHRO_05x0666
@@ -843,6 +904,8 @@
 !
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - P. Le Sager - Initial Version
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -876,7 +939,7 @@
       T_NH3 = SUM( NH3 ) * 1d-9
 
       ! Print totals in [kg]
-      WRITE( 6, 110 ) 'NOx ', YEAR, T_NOx,  '[Tg N  ]'
+      WRITE( 6, 110 ) 'NO  ', YEAR, T_NOx,  '[Tg N  ]'
       WRITE( 6, 110 ) 'CO  ', YEAR, T_CO,   '[Tg CO ]'
       WRITE( 6, 110 ) 'SO2 ', YEAR, T_SO2,  '[Tg S  ]'
       WRITE( 6, 110 ) 'NH3 ', YEAR, T_NH3,  '[Tg NH3]'
@@ -1049,19 +1112,28 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_CAC_ANTHRO
+      SUBROUTINE INIT_CAC_ANTHRO( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 ! 
-      USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE LOGICAL_MOD, ONLY : LCAC
-
-      USE CMN_SIZE_MOD    ! Size parameters
+      USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?!
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - P. Le Sager - Initial Version
 !  01 Mar 2012 - R. Yantosca - Delete the A_CM2 array, we will now just
 !                              use the function directly
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1074,8 +1146,11 @@
       ! INIT_CAC_ANTHRO begins here!
       !=================================================================
 
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
       ! Return if LCAC is false
-      IF ( .not. LCAC ) RETURN
+      IF ( .not. Input_Opt%LCAC ) RETURN
       
       !--------------------------------------------------
       ! Allocate and zero arrays for emissions
