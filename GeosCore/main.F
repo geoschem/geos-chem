@@ -1220,7 +1220,7 @@
      &                           'end of chem section, before wetdep' )
 #endif 
 #if   defined( GEOS_57) && defined( GRID025x03125)
-         CALL CHECK_STT_025x03125( 'after chemistry' )
+         CALL CHECK_STT_025x03125( State_Chm, 'after chemistry' )
 #endif 
 
 
@@ -1390,7 +1390,7 @@
             CALL CHECK_STT_05x0666( State_Chm, 'after dynamics step' )
 #endif
 #if   defined( GEOS_57) && defined( GRID025x03125)
-         CALL CHECK_STT_025x03125( 'after dynamics step' )
+         CALL CHECK_STT_025x03125( State_Chm, 'after dynamics step' )
 #endif 
 
 

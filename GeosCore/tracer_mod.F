@@ -806,11 +806,10 @@
 !
 ! !USES:
 !
-      USE ERROR_MOD, ONLY : IT_IS_NAN
-      USE ERROR_MOD, ONLY : IT_IS_FINITE
+      USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : IT_IS_NAN
+      USE ERROR_MOD,          ONLY : IT_IS_FINITE
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-
-      USE CMN_SIZE_MOD    ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -901,35 +900,63 @@
 
       END SUBROUTINE CHECK_STT_05x0666
 !EOC
-!clb
-      SUBROUTINE CHECK_STT_025x03125( LOCATION )
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: check_stt_025x03125
+!
+! !DESCRIPTION: Subroutine CHECK\_STT\_025x03125 checks the STT tracer 
+!  array for negative values, NaN values, or Infinity values.  If any of 
+!  these are found, the STT array will be set to a specified value.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE CHECK_STT_025x03125( State_Chm, LOCATION )
 !
 ! !USES:
 !
-      USE ERROR_MOD, ONLY : IT_IS_NAN
-      USE ERROR_MOD, ONLY : IT_IS_FINITE
-
-      USE CMN_SIZE_MOD    ! Size parameters
+      USE CMN_SIZE_MOD
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE ERROR_MOD,          ONLY : IT_IS_NAN
+      USE ERROR_MOD,          ONLY : IT_IS_FINITE
 !
 ! !INPUT PARAMETERS: 
 !
-      CHARACTER(LEN=*), INTENT(IN) :: LOCATION
+      CHARACTER(LEN=*), INTENT(IN)    :: LOCATION
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState),   INTENT(INOUT) :: State_Chm   ! Chemistry State object
 ! 
 ! !REVISION HISTORY:
 !  05 Mar 2012 - M. Payer    - Initial version based on CHECK_STT and updates
 !                              for nested grid by Yuxuan Wang.
 !  05 Mar 2012 - M. Payer    - Added ProTeX headers
+!  07 Jun 2013 - R. Yantosca - Now pass State_Chm object via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                      :: I,    J,    L,   N
+      INTEGER         :: I, J, L, N
+      
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! CHECK_STT_05x0666 begins here!
       !=================================================================
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       ! Loop over grid boxes
 !$OMP PARALLEL DO 
@@ -982,6 +1009,9 @@
 !$OMP END PARALLEL DO
 
  100  FORMAT( ' STT(',i3,',',i3,',',i3,',',i3,') = ', f13.6 )
+
+      ! Free pointer memory
+      NULLIFY( STT )
 
       END SUBROUTINE CHECK_STT_025x03125
 !EOC
