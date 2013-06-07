@@ -5408,8 +5408,6 @@ ccc
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE MEGAN_MOD,          ONLY : GET_MEGAN_EMISSIONS
-      USE MEGAN_MOD,          ONLY : GET_EMMONOT_MEGAN
-      USE MEGAN_MOD,          ONLY : GET_EMMONOG_MEGAN
       USE TIME_MOD,           ONLY : GET_MONTH,        GET_TS_CHEM
       USE TIME_MOD,           ONLY : GET_TS_EMIS,      ITS_A_NEW_MONTH
       USE TRANSFER_MOD,       ONLY : TRANSFER_2D
