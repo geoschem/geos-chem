@@ -94,12 +94,8 @@
       !=================================================================
 
       ! File name
-!      FILENAME = TRIM( DATA_DIR_1x1 ) // 'PARANOX_201202/' //
-!     &           'FracNOx_binary_5hrs_20gs.dat'
-
-      ! Replace filename for testing purposes (skim, 1/31/13)
-      FILENAME = '/home/skim/SEAC4RS/LUTs_Patrick/newjo1drange/' //
-     &           'FracNOx_binary_2hrs_20gs.dat'
+      FILENAME = TRIM( DATA_DIR_1x1 ) // 'PARANOX_201202/' //
+     &           'FracNOx_binary_5hrs_20gs.dat'
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -128,12 +124,8 @@
       !=================================================================
 
       ! File name
-!      FILENAME = TRIM( DATA_DIR_1x1 ) // 'PARANOX_201202/' //
-!     &           'IntOPE_binary_5hrs_20gs.dat'
-
-      ! Replace filename for testing purposes (skim, 1/31/13)
-      FILENAME = '/home/skim/SEAC4RS/LUTs_Patrick/newjo1drange/' //
-     &           'IntOPE_binary_2hrs_20gs.dat'
+      FILENAME = TRIM( DATA_DIR_1x1 ) // 'PARANOX_201202/' //
+     &           'IntOPE_binary_5hrs_20gs.dat'
 
       ! Echo info
       WRITE( 6, 101 ) TRIM( FILENAME )

@@ -334,13 +334,6 @@
 
       ENDDO
       
-      !PRINT*, '42, 37'
-      !PRINT*, STT(42, 37, :, 1)
-      !PRINT*, '43, 37'
-      !PRINT*, STT(43, 37, :, 1)
-      !PRINT*, '44, 37'
-      !PRINT*, STT(44, 37, :, 1)
-
       !-----------------------------------------------------------------
       ! Do convection column by column
       !-----------------------------------------------------------------
@@ -410,10 +403,6 @@
          p_STT             => State_Chm%Tracers ( I, J,  :,       : )
          p_T               => State_Met%T       ( I, J,  :          )
          
-         !PRINT*, 'CALLING'
-         !PRINT*, I, J
-         !PRINT*, STT(I, J, :, 1)
-
          !--------------------------
          ! Do the cloud convection
          !--------------------------
@@ -1975,27 +1964,6 @@
       !========================================================================
       ! (0)  I n i t i a l i z a t i o n
       !========================================================================
-      
-      !PRINT*, I, J
-      !PRINT*, Q(:,1)
-
-      !PRINT*, MAXVAL( AD ), MINVAL( AD )
-      !PRINT*, AREA_M2
-      !PRINT*, MAXVAL( BXHEIGHT ), MINVAL( BXHEIGHT )
-      !PRINT*, MAXVAL( CMFMC ), MINVAL( CMFMC )
-      !PRINT*, MAXVAL( DQRCU ), MINVAL( DQRCU )
-      !PRINT*, MAXVAL( DTRAIN ), MINVAL( DTRAIN )
-      !PRINT*, MAXVAL( F ), MINVAL( F )
-      !PRINT*, MAXVAL( PEDGE ), MINVAL( PEDGE )
-      !PRINT*, MAXVAL( PFICU ), MINVAL( PFICU )
-      !PRINT*, MAXVAL( PFLCU ), MINVAL( PFLCU )
-      !PRINT*, MAXVAL( REEVAPCN ), MINVAL( REEVAPCN )
-      !PRINT*, MAXVAL( T ), MINVAL( T )
-      !PRINT*, TS_DYN
-      !PRINT*, MAXVAL( Q ), MINVAL( Q )
-      !PRINT*, MAXVAL( H2O2s ), MINVAL( H2O2s )
-      !PRINT*, MAXVAL( SO2s ), MINVAL( SO2s )
-      !PRINT*, I, J
 
       ! Put this routine name on error trace stack
       IDENT%LEV               = IDENT%LEV + 1
@@ -2098,7 +2066,6 @@
 
          ! numerator of QB
          QB_NUM(:) = QB_NUM(:) + Q(K,:) * ( PEDGE(K) - PEDGE(K+1) )
-         !PRINT*, Q(K,:)
 
       ENDDO
 
@@ -2239,9 +2206,6 @@
                   ! Air mass flowing into cloud at grid box (K)
                   ENTRN   = CMOUT - CMFMC_BELOW
 
-                  !PRINT*, 'QC= ', QC
-                  !PRINT*, 'F= ', F(K, IC)
-
                   ! Amount of QC preserved against scavenging
                   QC_PRES = QC * ( 1d0 - F(K,IC) )
 
@@ -2296,8 +2260,6 @@
                         
                      ENDIF
                     
-                     !PRINT*, 'ALPHA= ', ALPHA2
-
                      ! The resuspension takes 1/2 the amount of the scavenged
                      ! aerosol (QC_SCAV) and adds that back to QC_PRES ...
                      QC_PRES  = QC_PRES + ( ALPHA2 * QC_SCAV )
@@ -2401,15 +2363,6 @@
 
                   ! check for infinity
                   IF ( .not. IT_IS_FINITE( Q(K,IC) ) ) THEN
-                     PRINT*, I, J
-                     PRINT*, NDT, NS
-                     PRINT*, CLDBASE,QB_NUM(IC),PEDGE(1),PEDGE(CLDBASE)
-                     PRINT*, MB, QB, Q(CLDBASE,IC)
-                     PRINT*, F(K,IC), ALPHA2
-                     PRINT*, CMFMC_BELOW, CMFMC(K), QC_SCAV, QC_PRES, QC
-                     PRINT*, T0, T1, T2, T3, T4
-                     PRINT*, K, IC, Q(K,IC), SDT, BMASS(K), TSUM, DELQ
-                     PRINT*, 'Q IS INFINITY'
                      CALL GEOS_CHEM_STOP
                   ENDIF
 

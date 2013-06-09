@@ -1625,23 +1625,6 @@
       GMT5   = GMT - 5d0                               ! GMT 5h ago
       HOUR5  = INT( GMT5 )
 
-!#if defined( GEOS_57 ) && defined( GRID025x0325 ) && defined( SEAC4RS )
-
-#if defined( GEOS_57 )
-
-      ! On nested resolution grids, 5 hours may be too long
-      !   Instead get the SZA 2 hours behind the current time     
-      ! (gvinken, skim, 1/31/13)
-     
-      ! Time 2h ago
-      JDJan0 = JULDAY( YEAR, 1, 0d0 )                  ! Julian date on Jan 0
-      JD5    = JD  - ( 2d0 / 24d0 )                    ! Julian date 2h ago
-      DOY5   = JD5 - JDJan0                            ! Day of year 2h ago
-      GMT5   = GMT - 2d0                               ! GMT 2h ago
-      HOUR5  = INT( GMT5 )
-
-#endif
-
       ! Compute cosine(SZA) quantities for 5h ago
       CALL COSSZA( DOY5, HOUR5, .TRUE., State_Met )
 

@@ -803,8 +803,6 @@
                ENDIF
             ENDIF
 
-            !PRINT*, 'EMISSIONS FIRST'
-            !PRINT*, STT(37, 37, :, 1)
 
          ENDIF
 
@@ -974,9 +972,6 @@
                CALL DEBUG_MSG( '### MAIN: a CONVERT_UNITS:1' )
             ENDIF
             
-            !PRINT*, 'UNIT FIRST'
-            !PRINT*, STT(37, 37, :, 1)
-
          ENDIF
 
          !==============================================================
@@ -1000,17 +995,11 @@
             ! Reset air mass quantities
             CALL AIRQNT( State_Met )
 
-            !PRINT*, 'TRANSPORT'
-            !PRINT*, STT(37, 37, :, 1)
-
 #if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_57 )
             ! Get relative humidity (after recomputing pressures)
             ! NOTE: for GEOS-5 we'll read this from disk instead
             CALL MAKE_RH( State_Met )
 #endif
-
-            !PRINT*, 'RH'
-            !PRINT*, STT(37, 37, :, 1)
 
             ! Initialize wet scavenging and wetdep fields after
             ! the airmass quantities are reset after transport
@@ -1033,9 +1022,6 @@
          !-------------------------------
          IF ( LNLPBL .AND. ITS_TIME_FOR_EMIS() ) THEN
 
-            !PRINT*, 'EMISSIONS'
-            !PRINT*, STT(37, 37, :, 1)
-
             IF ( ITS_TIME_FOR_UNIT() )
      &         CALL CONVERT_UNITS( 2, N_TRACERS, TCVV,
      &                             State_Met%AD, STT ) ! v/v -> kg
@@ -1050,9 +1036,6 @@
                CALL DO_DRYDEP( am_I_Root, Input_Opt, 
      &                         State_Met, State_Chm, RC )
             ENDIF
-
-            !PRINT*, 'DEPOSITION'
-            !PRINT*, STT(37, 37, :, 1)
 
             !===========================================================
             !             ***** E M I S S I O N S *****

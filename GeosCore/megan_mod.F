@@ -1759,7 +1759,7 @@ c$$$      AEF_MYRC = ARRAY(:,:,1)
       ! Read data [ug compound/m2/hr] 
       CALL READ_BPCH2( FILENAME, 'BIOGSRCE', -1,   
      &                 0d0,       IIPAR,     JJPAR,     
-     &                 1,         ARRAY_16,  QUIET=.TRUE. )
+     &                 16,        ARRAY_16,  QUIET=.TRUE. )
 
       ! CLM4 PFT coverage (%)
       ! PFT_BARE                = ARRAY_16(:,:,1 )
@@ -1976,7 +1976,9 @@ c$$$      AEF_MYRC = ARRAY(:,:,1)
       DO J = 1, JJPAR
        
          ! Grid box surface area [m2]
-         AREA_M2 = GET_AREA_M2( I, J, 1 )
+         ! Change first index to 1 since AREA_M2 is symmetric in
+         ! longitude, fix from Dylan Millet (skim, 6/9/13)
+         AREA_M2 = GET_AREA_M2( 1, J, 1 )
 
          ! Conversion factor from [ug compound/m2/hr] to [g compound/box]
          FACTOR = 1.d-6 / 60.d0 * AREA_M2 * DTSRCE 
@@ -2487,8 +2489,6 @@ c$$$      AEF_MYRC = ARRAY(:,:,1)
          DO J = 0, DAY_DIM-1  
 
 #if   defined( GEOS_57 )
-
-            !print*, 'call geos57_read_a1'
 
             !-----------------------------
             ! GEOS-5.7.x met fields
