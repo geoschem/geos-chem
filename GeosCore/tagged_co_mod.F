@@ -901,7 +901,8 @@
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
-!  11 Apr 2013 - R. Yantosca - Now pass Input_Opt to GET_GLOBAL_NOX 
+!  11 Apr 2013 - R. Yantosca - Now pass Input_Opt to GET_GLOBAL_NOX
+!  10 Jun 2013 - R. Yantosca - Avoid array temporaries in CHECK_VALUE
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -931,6 +932,11 @@
 
       ! For saving CH4 latitudinal gradient
       REAL*8,  SAVE          :: A3090S, A0030S, A0030N, A3090N
+
+      ! Avoid array temporaries in CHECK_VALUE
+      INTEGER                :: ERR_LOC(4)
+      CHARACTER(LEN=255)     :: ERR_VAR
+      CHARACTER(LEN=255)     :: ERR_MSG
 
       ! External functions
       REAL*8,  EXTERNAL      :: BOXVL
@@ -1016,10 +1022,9 @@
 !$OMP+PRIVATE( ALPHA_CH4, KRATE, CO_ISOP, CO_CH3OH, ALPHA_ISOP    )
 !$OMP+PRIVATE( CO_MONO, ALPHA_MONO, CO_ACET, ALPHA_ACET, CORATE   )
 !$OMP+PRIVATE( CO_OH, PCO, YMID                                   )
-! Add private declarations for new CO+OH rate (jaf, jmao, 3/4/09)
 !$OMP+PRIVATE( KHI1, KLO1, XYRAT1, BLOG1, FEXP1, KHI2, KLO2       )
 !$OMP+PRIVATE( XYRAT2, BLOG2, FEXP2, KCO1, KCO2, AREA_CM2         )
-
+!$OMP+PRIVATE( ERR_LOC, ERR_VAR, ERR_MSG )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -1095,8 +1100,10 @@
          ENDIF
 
          ! Check CO_CH4 for NaN or Infinity
-         CALL CHECK_VALUE( CO_CH4,  (/ I, J, L, 0 /),         
-     &                    'CO_CH4', 'STOP at tagged_co_mod:1' )
+         ERR_LOC = (/ I, J, L, 0 /)
+         ERR_VAR = 'CO_CH4'
+         ERR_MSG = 'STOP at tagged_co_mod:1'
+         CALL CHECK_VALUE( CO_CH4, ERR_LOC, ERR_VAR, ERR_MSG )
 
          !==============================================================
          ! (1b) Production of CO from ISOPRENE and METHANOL (CH3OH)
@@ -1164,12 +1171,15 @@
             SUMCH3OHCO(I,J) = 0d0
 
             ! Check CO_ISOP for NaN or Infinity
-            CALL CHECK_VALUE( CO_ISOP,  (/ I, J, L, 0 /),
-     &                       'CO_ISOP', 'STOP at tagged_co_mod:2' )
+            ERR_LOC = (/ I, J, L, 0 /)
+            ERR_VAR = 'CO_ISOP'
+            ERR_MSG = 'STOP at tagged_co_mod:2'
+            CALL CHECK_VALUE( CO_ISOP,  ERR_LOC, ERR_VAR, ERR_MSG )
 
-            ! Check CO_CH4 for NaN or Infinity
-            CALL CHECK_VALUE( CO_CH3OH,  (/ I, J, L, 0 /),
-     &                       'CO_CH3OH', 'STOP at tagged_co_mod:3' )
+            ! Check CO_CH3OH for NaN or Infinity
+            ERR_VAR = 'CO_CH3OH'
+            ERR_MSG = 'STOP at tagged_co_mod:3'
+            CALL CHECK_VALUE( CO_CH3OH, ERR_LOC, ERR_VAR, ERR_MSG )
 
          ENDIF
 
@@ -1225,8 +1235,10 @@
             SUMMONOCO(I,J) = 0d0
 
             ! Check CO_MONO for NaN or Infinity
-            CALL CHECK_VALUE( CO_MONO,  (/ I, J, L, 0 /),
-     &                       'CO_MONO', 'STOP at tagged_co_mod:4' )
+            ERR_LOC = (/ I, J, L, 0 /)
+            ERR_VAR = 'CO_MONO'
+            ERR_MSG = 'STOP at tagged_co_mod:4'
+            CALL CHECK_VALUE( CO_MONO, ERR_LOC, ERR_VAR, ERR_MSG )
 
          ENDIF
 
@@ -1267,8 +1279,10 @@
             SUMACETCO(I,J) = 0d0
 
             ! Check CO_ACET for NaN or Infinity
-            CALL CHECK_VALUE( CO_ACET,  (/I, J, L, 0 /),
-     &                       'CO_ACET', 'STOP at tagged_co_mod:5' )
+            ERR_LOC = (/ I, J, L, 0 /)
+            ERR_VAR = 'CO_ACET'
+            ERR_MSG = 'STOP at tagged_co_mod:5'
+            CALL CHECK_VALUE( CO_ACET, ERR_LOC, ERR_VAR, ERR_MSG )
 
          ENDIF
 
@@ -1311,9 +1325,11 @@
             ! CO_OH is the fraction of CO lost to OH [unitless]
             CO_OH = CORATE * DTCHEM
 
-            ! Check CO_ACET for NaN or Infinity
-            CALL CHECK_VALUE( CO_OH,  (/ I, J, L, 0 /),
-     &                       'CO_OH', 'STOP at tagged_co_mod:6' )
+            ! Check CO_OH for NaN or Infinity
+            ERR_LOC = (/ I, J, L, 0 /)
+            ERR_VAR = 'CO_OH'
+            ERR_MSG = 'STOP at tagged_co_mod:6'
+            CALL CHECK_VALUE( CO_OH, ERR_LOC, ERR_VAR, ERR_MSG )
 
             ! Handle strat loss by OH for regional CO tracers
             IF ( LSPLIT ) THEN
@@ -1328,8 +1344,11 @@
                   IF ( STT(I,J,L,N) < 0d0 ) STT(I,J,L,N) = 0d0
 
                   ! Error check
-                  CALL CHECK_VALUE( STT(I,J,L,N), (/ I, J, L, N /),
-     &                              'STT','STOP at tagged_co_mod.f:7' )
+                  ERR_LOC = (/ I, J, L, N /)
+                  ERR_VAR = 'STT'
+                  ERR_MSG = 'STOP at tagged_co_mod:7'
+                  CALL CHECK_VALUE( STT(I,J,L,N), ERR_LOC,
+     &                              ERR_VAR,      ERR_MSG )
 
                   ! ND65 diagnostic -- loss of CO by OH for "tagged" tracers
                   IF ( ND65 > 0 .and. L <= LD65 ) THEN
@@ -1418,8 +1437,11 @@
      &                 ( 1d0 - KRATE * OH(I,J,L) * DTCHEM )
 
                   ! Error check
-                  CALL CHECK_VALUE( STT(I,J,L,N), (/ I, J, L, N /),
-     &                              'STT','STOP at tagged_co_mod.f:8' )
+                  ERR_LOC = (/ I, J, L, N /)
+                  ERR_VAR = 'STT'
+                  ERR_MSG = 'STOP at tagged_co_mod:8'
+                  CALL CHECK_VALUE( STT(I,J,L,N), ERR_LOC,
+     &                              ERR_VAR,      ERR_MSG )
 
                   ! ND65 diagnostic -- loss of CO by OH for "tagged" tracers
                   IF ( ND65 > 0 .and. L <= LD65 ) THEN

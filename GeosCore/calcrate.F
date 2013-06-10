@@ -239,6 +239,11 @@
       ! Add nitrate effect (lzh, 10/25/2011)
       REAL*8           :: TMP1, TMP2
 
+      ! Avoid array temporaries in CHECK_VALUE
+      INTEGER            :: ERR_LOC(4)
+      CHARACTER(LEN=255) :: ERR_VAR
+      CHARACTER(LEN=255) :: ERR_MSG
+
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       !%%% NEED TO GET THESE FIELDS FROM Input_Opt SO THAT     %%%
       !%%% THE MPI PARALLELIZATION WILL WORK PROPERLY FOR ESMF %%%
@@ -1052,8 +1057,11 @@ c new OH+CO rate from JPL2006.
 
                      ! Now call CHECK_VALUE to make sure that XSTKCF is 
                      ! not a NaN or an infinity
-                     CALL CHECK_VALUE( XSTKCF, (/KLOOP,0,0,0/),
-     &                                 'GAMMA_HO2', 'at calcrate')
+                     ERR_VAR = 'GAMMA_HO2'
+                     ERR_MSG = 'at calcrate'
+                     ERR_LOC = (/ KLOOP,0,0,0 /)
+                     CALL CHECK_VALUE( XSTKCF,  ERR_LOC, 
+     &                                 ERR_VAR, ERR_MSG  )
 
                      ! Archive gamma HO2 for ND52 diagnostic
                      DUMMY3(KLOOP) = DUMMY3(KLOOP) +
