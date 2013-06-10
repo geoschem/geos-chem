@@ -447,6 +447,7 @@ cvbn         write(890,89)I,J,L,STT(i,j,l,IDTH2SO4)
          ! determine ion rate
 c         ionrate = 10. ! set as constant now !!jrp
 
+#if  defined( GRID4x5)
          if( (pres / 100.) .lt. cplevels(9) ) then
             ionrate = cosmic_ions(i,j,9) * boxmass / boxvol
             if(State_Met%FRCLND(I,J) .gt. 0.2) then
@@ -472,6 +473,9 @@ c         ionrate = 10. ! set as constant now !!jrp
      &                             soil_ions( lev-1 ) * (1.d0-weight) )
             endif
          endif
+#else
+         ionrate = 0.D0
+#endif
          if(ionrate .le. 1.501) ionrate = 1.501
 
 c         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
@@ -574,7 +578,9 @@ c         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
          enddo
          
          if(TOT_NK .lt. 1.d-10) then
-            print *,'No aerosol in box ',I,J,L,'-->SKIP'
+            if( .NOT. SPINUP(5.0)) then
+               print *,'No aerosol in box ',I,J,L,'-->SKIP'
+            endif
             CYCLE
          endif
 
@@ -590,17 +596,10 @@ c         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
 
 !            print*,'Before COND_NUC Gc(srtso4)=',Gc(srtso4)
 
-
-
-!sfarina - UNCOMMENT DEBUG!
             CALL COND_NUC(Nk,Mk,Gc,Nkout,Mkout,Gcout,fn,fn1,
      &             H2SO4rate_o,adt,num_iter,Nknuc,Mknuc,Nkcond,Mkcond, 
      &             ionrate, surf_area, BOXVOL, BOXMASS, TEMPTMS, PRES,
      &             RHTOMAS, ERRORSWITCH, l)
-!sfarina - UNCOMMENT DEBUG!
-
-
-
 
 !            print*,'After COND_NUC Gcout(srtso4)=',Gcout(srtso4)
             
@@ -4584,10 +4583,10 @@ cdbg         limit='max'
       !debug%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       if (printdebug) then
          do j=1,icomp
-         print *,'atauc(1:30,comp) at comp',j
-         print *,atauc(1:30,j)
-         print *,'atau(1:30,comp) at comp',j
-         print *,atau(1:30,j)
+         print *,'atauc(1:ibins,comp) at comp',j
+         print *,atauc(1:ibins,j)
+         print *,'atau(1:ibins,comp) at comp',j
+         print *,atau(1:ibins,j)
          enddo
       endif
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -4987,10 +4986,10 @@ Cpja Initialize AMKDRY and WR
 
       !debug%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       if(pdbug)then
-         print*,'AMKDRY(1:30)'
-         print *,AMKDRY(1:30)
-         print *,'WR(1:30)'
-         print *,WR(1:30)
+         print*,'AMKDRY(1:ibins)'
+         print *,AMKDRY(1:ibins)
+         print *,'WR(1:ibins)'
+         print *,WR(1:ibins)
       endif
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -5009,8 +5008,8 @@ c
 
       !debug%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       if(pdbug) then
-      print*,'tau(1:30)'
-      print *,tau(1:30)
+      print*,'tau(1:ibins)'
+      print *,tau(1:ibins)
       endif
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -5077,12 +5076,12 @@ c
             !<step5.1> Add print for debugging (win, 4/10/06)
             if (pdbug) then
                print *, 'Identify_tophat_and_grow-BIN',L
-               print *,'Starting_Nk(1:30)'
-               print *, ANK(1:30)
-               print *,'Starting_Mk(1:30,comp)'
+               print *,'Starting_Nk(1:ibins)'
+               print *, ANK(1:ibins)
+               print *,'Starting_Mk(1:ibins,comp)'
                do j=1,icomp-1
                   print *,'comp',j
-                  print *, AMK(1:30,j)
+                  print *, AMK(1:ibins,j)
                enddo
             endif
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -1866,6 +1866,8 @@
       ! Depending on the grid resolution. 4x5 (default) doesn't need adjusting coeff
 #if   defined( GRID4x5  )
       COEF = 1.d0
+#elif defined( GRID2x25 )
+      COEF = 1.d0
 #elif defined( GRID1x1  ) && defined( NESTED_CH )
       COEF = 0.77d0
       ! Note: monthly emission over the China nested-grid domain is about

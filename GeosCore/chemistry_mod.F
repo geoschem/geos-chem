@@ -971,10 +971,12 @@
                !===============================================================
                IF ( LDUST ) THEN
                   CALL RDUST_ONLINE( SOILDUST, WAVELENGTH, State_Met )
+#if  !defined( TOMAS )
                ELSE
                   CALL RDUST_OFFLINE( MONTH,      YEAR,
      &                                WAVELENGTH, am_I_Root,
      &                                State_Met   )
+#endif
                ENDIF
 
                !### Debug
