@@ -107,6 +107,7 @@
 #  07 Sep 2012 - R. Yantosca - Also set TRACEBACK for PGI compiler
 #  25 Feb 2013 - S. Farina   - Add flag for TOMAS40
 #  22 Apr 2013 - R. Yantosca - TOMAS40=yes option now sets -DTOMAS -DTOMAS40
+#  28 Apr 2013 - S. Farina   - Add flags for TOMAS15 and TOMAS12
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -255,6 +256,16 @@ ifeq ($(TOMAS40),yes)
 FFLAGS    += -DTOMAS -DTOMAS40
 endif
 
+# Add TOMAS15 aerosol microphysics option (15 bins, optional)
+ifeq ($(TOMAS15),yes) 
+FFLAGS    += -DTOMAS -DTOMAS15
+endif
+
+# Add TOMAS12 aerosol microphysics option (12 bins, optional)
+ifeq ($(TOMAS12),yes) 
+FFLAGS    += -DTOMAS -DTOMAS12
+endif
+
 # Also add APM aerosol microphysics option
 ifeq ($(APM),yes) 
 FFLAGS    += -DAPM
@@ -360,6 +371,16 @@ endif
 # Add TOMAS40 aerosol microphysics option (40 bins, optional)
 ifeq ($(TOMAS40),yes) 
 FFLAGS    += -DTOMAS -DTOMAS40
+endif
+
+# Add TOMAS15 aerosol microphysics option (15 bins, optional)
+ifeq ($(TOMAS15),yes) 
+FFLAGS    += -DTOMAS -DTOMAS15
+endif
+
+# Add TOMAS12 aerosol microphysics option (12 bins, optional)
+ifeq ($(TOMAS12),yes) 
+FFLAGS    += -DTOMAS -DTOMAS12
 endif
 
 # Also add APM aerosol microphysics option

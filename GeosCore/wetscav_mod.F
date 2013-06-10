@@ -148,13 +148,16 @@
 ! !DEFINED PARAMETERS:
 !
 #if defined( TOMAS   )
-#if defined( TOMAS40 )
-      INTEGER, PARAMETER   :: NSOLMAX = 370     ! Max # of soluble tracers
-                                                !  for TOMAS40 runs
-#else
-      INTEGER, PARAMETER   :: NSOLMAX = 262     ! Max # of soluble tracers
-                                                !  for TOMAS30 runs
-#endif
+# if   defined( TOMAS40 )
+      INTEGER, PARAMETER   :: NSOLMAX = 370     ! Max # of soluble tracers for TOMAS40 runs
+# elif defined( TOMAS12 )
+      INTEGER, PARAMETER   :: NSOLMAX = 136     ! Max # of soluble tracers for TOMAS12 runs
+# elif defined( TOMAS15 )
+      INTEGER, PARAMETER   :: NSOLMAX = 157     ! Max # of soluble tracers for TOMAS15 runs
+# else
+      INTEGER, PARAMETER   :: NSOLMAX = 262     ! Max # of soluble tracers for TOMAS30 runs
+# endif
+
 #else
       INTEGER, PARAMETER   :: NSOLMAX = 60      ! Max # of soluble tracers
                                                 !  for regular G-C runs

@@ -5012,7 +5012,7 @@ c
       REAL*8                      :: MDIST(IBINS,ICOMP)
       REAL*8                      :: NDIST2(IBINS)
       REAL*8                      :: MDIST2(IBINS,ICOMP)
-      REAL*8                      :: TSCALE, BOXVOL, TEMP, PRES
+      REAL*4                      :: TSCALE, BOXVOL, TEMP, PRES
       INTEGER                     :: I, J, L, K, C, PBL_MAX
       REAL*8                      :: F_OF_PBL
       LOGICAL                     :: ERRORSWITCH, PDBUG
@@ -5292,47 +5292,63 @@ ccc
 
       ! Local variables
       INTEGER             :: I, J, K
-      REAL*8              :: ECSCALE30(IBINS), ECSCALE100(IBINS) 
-      REAL*8              :: OCSCALE30(IBINS), OCSCALE100(IBINS) 
+      REAL*8              :: ECSCALE30(IBINS), ECSCALE100(IBINS)
+      REAL*8              :: OCSCALE30(IBINS), OCSCALE100(IBINS)
+
+#if  defined( TOMAS12 ) || defined( TOMAS15 )
+
+      data OCSCALE30/
+# if  defined( TOMAS15)
+     & 0.0d0     , 0.0d0     , 0.0d0     ,
+# endif
+     & 1.1291E-03, 4.9302E-03, 1.2714E-02, 3.6431E-02,
+     & 1.0846E-01, 2.1994E-01, 2.7402E-01, 2.0750E-01,
+     & 9.5304E-02, 2.6504E-02, 1.2925E-02, 1.6069E-05/! use for fossil fuel (bimodal)
+
+      data OCSCALE100/
+# if  defined( TOMAS15)
+     & 0.0d0     , 0.0d0     , 0.0d0     ,
+# endif
+     & 1.9827E-06, 3.9249E-05, 5.0202E-04, 4.1538E-03,
+     & 2.2253E-02, 7.7269E-02, 1.7402E-01, 2.5432E-01,
+     & 2.4126E-01, 1.4856E-01, 7.6641E-02, 9.8120E-04/! use for biomass burning
+
+      data ECSCALE30/
+# if  defined( TOMAS15)
+     & 0.0d0     , 0.0d0     , 0.0d0     ,
+# endif
+     & 1.1291E-03, 4.9302E-03, 1.2714E-02, 3.6431E-02,
+     & 1.0846E-01, 2.1994E-01, 2.7402E-01, 2.0750E-01,
+     & 9.5304E-02, 2.6504E-02, 1.2925E-02, 1.6069E-05/! use for fossil fuel (bimodal)
+
+      data ECSCALE100/
+# if  defined( TOMAS15)
+     & 0.0d0     , 0.0d0     , 0.0d0     ,
+# endif
+     & 1.9827E-06, 3.9249E-05, 5.0202E-04, 4.1538E-03,
+     & 2.2253E-02, 7.7269E-02, 1.7402E-01, 2.5432E-01,
+     & 2.4126E-01, 1.4856E-01, 7.6641E-02, 9.8120E-04/  ! use for biomass burning
+
+
+#else
 
       DATA OCSCALE30/      ! use for fossil fuel
-#if  defined( TOMAS40)
-     &   0.0     , 0.0     , 0.0     , 0.0     , 0.0     , 
-     &   0.0     , 0.0     , 0.0     , 0.0     , 0.0     , 
-#endif
+# if  defined( TOMAS40)
+     &   0.0     , 0.0     , 0.0     , 0.0     , 0.0     ,
+     &   0.0     , 0.0     , 0.0     , 0.0     , 0.0     ,
+# endif
      &   1.04E-03, 2.77E-03, 6.60E-03, 1.41E-02, 2.69E-02,
      &   4.60E-02, 7.06E-02, 9.69E-02, 1.19E-01, 1.31E-01,
      &   1.30E-01, 1.15E-01, 9.07E-02, 6.44E-02, 4.09E-02,
      &   2.33E-02, 1.19E-02, 5.42E-03, 2.22E-03, 8.12E-04,
      &   2.66E-04, 7.83E-05, 2.06E-05, 4.86E-06, 1.03E-06,
      &   1.94E-07, 3.29E-08, 4.99E-09, 6.79E-10, 8.26E-11/
+
       DATA OCSCALE100/     ! use for biomass burning
-#if  defined( TOMAS40)
+# if  defined( TOMAS40)
      &   0.0        , 0.0        , 0.0        , 0.0        , 0.0       ,
      &   0.0        , 0.0        , 0.0        , 0.0        , 0.0       ,
-#endif
-     &   3.2224e-07 , 1.6605e-06 , 7.6565e-06 , 3.1592e-05 , 0.00011664,
-     &   0.00038538 , 0.0011394  , 0.0030144  , 0.0071362  , 0.015117  ,
-     &   0.028657   , 0.048612   , 0.073789   , 0.10023    , 0.12182   ,
-     &   0.1325     , 0.12895    , 0.11231    , 0.087525   , 0.061037  ,
-     &   0.038089   , 0.02127    , 0.010628   , 0.0047523  , 0.0019015 ,
-     &   0.00068081 , 0.00021813 , 6.2536e-05 , 1.6044e-05 , 3.6831e-06/
-      DATA ECSCALE30/      ! use for fossil fuel
-#if  defined( TOMAS40)
-     &   0.0     , 0.0     , 0.0     , 0.0     , 0.0     , 
-     &   0.0     , 0.0     , 0.0     , 0.0     , 0.0     , 
-#endif
-     &   1.04E-03, 2.77E-03, 6.60E-03, 1.41E-02, 2.69E-02,
-     &   4.60E-02, 7.06E-02, 9.69E-02, 1.19E-01, 1.31E-01,
-     &   1.30E-01, 1.15E-01, 9.07E-02, 6.44E-02, 4.09E-02,
-     &   2.33E-02, 1.19E-02, 5.42E-03, 2.22E-03, 8.12E-04,
-     &   2.66E-04, 7.83E-05, 2.06E-05, 4.86E-06, 1.03E-06,
-     &   1.94E-07, 3.29E-08, 4.99E-09, 6.79E-10, 8.26E-11/
-      DATA ECSCALE100/     ! use for biomass burning
-#if  defined( TOMAS40)
-     &   0.0        , 0.0        , 0.0        , 0.0        , 0.0       ,
-     &   0.0        , 0.0        , 0.0        , 0.0        , 0.0       ,
-#endif
+# endif
      &   3.2224e-07 , 1.6605e-06 , 7.6565e-06 , 3.1592e-05 , 0.00011664,
      &   0.00038538 , 0.0011394  , 0.0030144  , 0.0071362  , 0.015117  ,
      &   0.028657   , 0.048612   , 0.073789   , 0.10023    , 0.12182   ,
@@ -5340,7 +5356,31 @@ ccc
      &   0.038089   , 0.02127    , 0.010628   , 0.0047523  , 0.0019015 ,
      &   0.00068081 , 0.00021813 , 6.2536e-05 , 1.6044e-05 , 3.6831e-06/
 
- 
+      DATA ECSCALE30/      ! use for fossil fuel
+# if  defined( TOMAS40)
+     &   0.0     , 0.0     , 0.0     , 0.0     , 0.0     ,
+     &   0.0     , 0.0     , 0.0     , 0.0     , 0.0     ,
+# endif
+     &   1.04E-03, 2.77E-03, 6.60E-03, 1.41E-02, 2.69E-02,
+     &   4.60E-02, 7.06E-02, 9.69E-02, 1.19E-01, 1.31E-01,
+     &   1.30E-01, 1.15E-01, 9.07E-02, 6.44E-02, 4.09E-02,
+     &   2.33E-02, 1.19E-02, 5.42E-03, 2.22E-03, 8.12E-04,
+     &   2.66E-04, 7.83E-05, 2.06E-05, 4.86E-06, 1.03E-06,
+     &   1.94E-07, 3.29E-08, 4.99E-09, 6.79E-10, 8.26E-11/
+
+      DATA ECSCALE100/     ! use for biomass burning
+# if  defined( TOMAS40)
+     &   0.0        , 0.0        , 0.0        , 0.0        , 0.0       ,
+     &   0.0        , 0.0        , 0.0        , 0.0        , 0.0       ,
+# endif
+     &   3.2224e-07 , 1.6605e-06 , 7.6565e-06 , 3.1592e-05 , 0.00011664,
+     &   0.00038538 , 0.0011394  , 0.0030144  , 0.0071362  , 0.015117  ,
+     &   0.028657   , 0.048612   , 0.073789   , 0.10023    , 0.12182   ,
+     &   0.1325     , 0.12895    , 0.11231    , 0.087525   , 0.061037  ,
+     &   0.038089   , 0.02127    , 0.010628   , 0.0047523  , 0.0019015 ,
+     &   0.00068081 , 0.00021813 , 6.2536e-05 , 1.6044e-05 , 3.6831e-06/
+#endif
+
       DO K = 1, IBINS
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -5351,7 +5391,7 @@ ccc
          ELSE  ! for STYPE 2 and 3
             VALUE(I,J,K) = BULKEMIS(I,J)*ECSCALE100(K)
          ENDIF
-      ELSE 
+      ELSE
          IF ( STYPE == 1 ) THEN
             VALUE(I,J,K) = BULKEMIS(I,J)*OCSCALE30(K)
          ELSE  ! for STYPE 2 and 3
@@ -5471,7 +5511,7 @@ ccc
 
             ! +++++++++++++++++++++++++++++++++++++++++
             ! ** MEGAN v2.1 **
-            ! Cosine of solar zenith angle   (mpb,2009) 
+            ! Cosine of solar zenith angle   (mpb,2009)
             ! Diffuse and direct PAR         (mpb,2009)
             SC   = State_Met%SUNCOSmid(I,J)
             PDR  = State_Met%PARDR(I,J)
@@ -5492,9 +5532,9 @@ ccc
 
       !=================================================================
       ! If secondary organic aerosols are turned on ...
-      ! Then use CALTECH algorithm 
+      ! Then use CALTECH algorithm
       !=================================================================
-      ELSE 
+      ELSE
 
          ! Current month
          THISMONTH     = GET_MONTH()
@@ -6923,11 +6963,11 @@ ccc
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, F_OF_PBL )
-      DO K = 1, IBINS
+!$OMP+PRIVATE( I, J, L, K, F_OF_PBL )
       DO L = 1, PBL_MAX
       DO J = 1, JJPAR
       DO I = 1, IIPAR
+      DO K = 1, IBINS
 
          ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
          F_OF_PBL = GET_FRAC_OF_PBL( I, J, L )

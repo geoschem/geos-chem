@@ -6406,23 +6406,38 @@
       REAL*8                 :: SO4bf(IIPAR,JJPAR)
       REAL*8                 :: SO4anbf(IIPAR,JJPAR,2)
       REAL*8 BFRAC(IBINS)     ! Mass fraction emitted to each bin
+
+#if  defined( TOMAS12) || defined( TOMAS15)
       DATA BFRAC/
-#if  defined( TOMAS40)
+# if  defined( TOMAS15)
+     &           0.0d0     , 0.0d0     , 0.0d0, 
+# endif
+     &           4.3760E-02, 6.2140E-02, 3.6990E-02, 1.8270E-02,
+     &           4.2720E-02, 1.1251E-01, 1.9552E-01, 2.2060E-01,
+     &           1.6158E-01, 7.6810E-02, 2.8884E-02, 2.0027E-04/
+
+#else
+!else we are using 30 or 40 bin model
+
+      DATA BFRAC/
+# if  defined( TOMAS40)
      &           0.000d-00, 0.000d-00, 0.000d-00, 0.000d-00, 0.000d-00,
      &           0.000d-00, 0.000d-00, 0.000d-00, 0.000d-00, 0.000d-00,
-#endif
+# endif
      &           1.728d-02, 2.648d-02, 3.190d-02, 3.024d-02, 2.277d-02,
      &           1.422d-02, 9.029d-03, 9.241d-03, 1.531d-02, 2.741d-02,
      &           4.529d-02, 6.722d-02, 8.932d-02, 1.062d-01, 1.130d-01,
      &           1.076d-01, 9.168d-02, 6.990d-02, 4.769d-02, 2.912d-02,
      &           1.591d-02, 7.776d-03, 3.401d-03, 1.331d-03, 4.664d-04,
      &           1.462d-04, 4.100d-05, 1.029d-05, 2.311d-06, 4.645d-07/
+#endif
+
       REAL*8                 :: NDISTINIT(IBINS) 
       REAL*8                 :: NDISTFINAL(IBINS) 
       REAL*8                 :: MADDFINAL(IBINS) 
       REAL*8                 :: NDIST(IBINS),  MDIST(IBINS,ICOMP)
       REAL*8                 :: NDIST2(IBINS), MDIST2(IBINS,ICOMP)
-      REAL*8                 :: TSCALE, BOXVOL, TEMP, PRES
+      REAL*4                 :: TSCALE, BOXVOL, TEMP, PRES
 
       REAL*8                 :: N0(LLPAR,IBINS), M0(LLPAR,IBINS)
 
