@@ -1383,16 +1383,12 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
                 
-         ! SLBASE(I,J,L) has units [molec NOx/6h/box], convert units:
-         ! [molec/6h/box] * [6h/21600s] * [box/BOXVL cm3] = [molec/cm3/s]
-         TMP = SLBASE(I,J,L) / ( 21600.d0 * BOXVL(I,J,L,State_Met) )
-
          ! No lightning emissions in the stratosphere (cdh, 4/25/2013)
          IF ( ITS_IN_THE_STRAT(I, J, L, State_Met) ) EXIT
 
          ! SLBASE(I,J,L) has units [molec NOx/6h/box], convert units:
          ! [molec/6h/box] * [6h/21600s] * [box/BOXVL cm3] = [molec/cm3/s]
-         TMP             = SLBASE(I,J,L) / ( 21600.d0 * BOXVL(I,J,L) )
+         TMP = SLBASE(I,J,L) / ( 21600.d0 * BOXVL(I,J,L,State_Met) )
 
          EMIS_LI_NOx(I,J,L)                = TMP
 
