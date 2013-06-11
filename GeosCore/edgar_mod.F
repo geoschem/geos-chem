@@ -2991,9 +2991,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EDGAR_SO2' )
       EDGAR_SO2 = 0d0
 
-      print*, '### LEDGARSHIP: ', LEDGARSHIP, Input_Opt%LEDGARSHIP
-      call flush(6)
-
       IF ( LEDGARSHIP ) THEN
 
          ALLOCATE( EDGAR_SO2_SHIP( IIPAR, JJPAR ), STAT=AS )
