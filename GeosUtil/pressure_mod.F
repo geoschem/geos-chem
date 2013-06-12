@@ -242,20 +242,20 @@
       !=================================================================
 
       ! Define quantities for CHECK_VALUE
-      ERR_VAR = 'PFLT'
-      ERR_MSG = 'set_floating_pressure:1'
-
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, ERR_LOC )
+!$OMP+PRIVATE( I, J, ERR_LOC, ERR_VAR, ERR_MSG )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
          ! Assign into PFLT array
-         PFLT(I,J) = PS(I,J) 
+         PFLT(I,J) = PS(I,J) !  12 Jun 2013 - R. Yantosca -  
+
 
          ! Check for NaN or Infinities
          ERR_LOC = (/ I, J, 0, 0 /)
+         ERR_VAR = 'PFLT'
+         ERR_MSG = 'set_floating_pressure:1'
          CALL CHECK_VALUE( PFLT(I,J), ERR_LOC, ERR_VAR, ERR_MSG )
 
       ENDDO

@@ -78,6 +78,7 @@
 !  (21) Emissions for these 9 tracers are scaled from CO emissions. (tmf, 1/7/09)
 !  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
 !                              of removal of NOx-Ox partitioning
+!  12 Jun 2013 - R. Yantosca - Now declare BIOFUEL_KG w/ the TARGET attribute
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -106,13 +107,13 @@
       !=================================================================     
       ! MODULE VARIABLES
       !=================================================================
-      INTEGER, PARAMETER  :: NBFMAX = 19
+      INTEGER, PARAMETER          :: NBFMAX = 19
 
-      INTEGER             :: NBFTRACE
-      INTEGER             :: BFTRACE(NBFMAX) 
+      INTEGER                     :: NBFTRACE
+      INTEGER                     :: BFTRACE(NBFMAX) 
 
-      REAL*8, ALLOCATABLE :: BIOFUEL(:,:,:)
-      REAL*8, ALLOCATABLE :: BIOFUEL_KG(:,:,:)
+      REAL*8, ALLOCATABLE         :: BIOFUEL(:,:,:)
+      REAL*8, ALLOCATABLE, TARGET :: BIOFUEL_KG(:,:,:)
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -201,7 +202,8 @@
 !  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
 !                              of removal of NOx-Ox partitioning
-!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC]
+!  12 Jun 2013 - R. Yantosca - Now eliminate array temporaries (as possible)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -273,7 +275,7 @@
       REAL*8                        :: TEMP_ED(IIPAR,JJPAR,1), HIST_TAU
 !eml]
       CHARACTER(LEN=255)            :: LLFILENAME
-      REAL*8, POINTER               :: INGRID(:,:) => NULL()
+      REAL*8, POINTER               :: INGRID   (:,:) => NULL()
       REAL*8                        :: OUTGRID(IIPAR,JJPAR)
       
       ! External functions
@@ -420,7 +422,7 @@
      &                             1,         ARRAY,     QUIET=.TRUE. ) 
                           
                   ! Cast from REAL*4 to REAL*8, resize to (IIPAR,JJPAR)
-                  CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+                  BIOFUEL_KG(N,:,:) = ARRAY(:,:,1)
                
                ENDIF
 !eml]
@@ -449,10 +451,8 @@
      &                          1,         ARRAY,     QUIET=.TRUE. ) 
 
                ! Cast from REAL*4 to REAL*8, resize to (IIPAR,JJPAR)
-               CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
-
-               ! Save BF_CO before scaling (tmf, 6/15/07) 
-               CALL TRANSFER_2D( ARRAY(:,:,1), BF_CO(:,:) )         
+               BIOFUEL_KG(N,:,:) = ARRAY(:,:,1)
+               BF_CO             = ARRAY(:,:,1)
 
                ! Scale CO to account for oxidation of extra VOC's
                CALL SCALE_BIOFUEL_CO( BIOFUEL_KG(N,:,:) )
@@ -481,7 +481,7 @@
      &                          1,         ARRAY,     QUIET=.TRUE. ) 
 
                ! Cast from REAL*4 to REAL*8, resize to (IIPAR,JJPAR)
-               CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+               BIOFUEL_KG(N,:,:) = ARRAY(:,:,1)
 
                ! Compute future ALK4 emissions (if necessary)
                IF ( LFUTURE ) THEN
@@ -507,7 +507,7 @@
      &                          1,         ARRAY,     QUIET=.TRUE. ) 
 
                ! Cast from REAL*4 to REAL*8, resize to (IIPAR,JJPAR)
-               CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+               BIOFUEL_KG(N,:,:) = ARRAY(:,:,1)
 
                ! Scale to match a posteriori source (bdf, bmy, 9/10/01)
                CALL SCALE_BIOFUEL_ACET( BIOFUEL_KG(N,:,:) )
@@ -536,7 +536,7 @@
      &                          1,         ARRAY,     QUIET=.TRUE. ) 
 
                ! Cast from REAL*4 to REAL*8, resize to (IIPAR,JJPAR)
-               CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+               BIOFUEL_KG(N,:,:) = ARRAY(:,:,1)
 
                ! Compute future MEK emissions (if necessary)
                IF ( LFUTURE ) THEN
@@ -562,7 +562,7 @@
      &                          1,         ARRAY,     QUIET=.TRUE. ) 
 
                ! Cast from REAL*4 to REAL*8, resize to (IIPAR,JJPAR)
-               CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+               BIOFUEL_KG(N,:,:) = ARRAY(:,:,1)
 
                ! Compute future ALD2 emissions (if necessary)
                IF ( LFUTURE ) THEN
@@ -588,7 +588,7 @@
      &                          1,         ARRAY,     QUIET=.TRUE. ) 
 
                ! Cast from REAL*4 to REAL*8, resize to (IIPAR,JJPAR)
-               CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+               BIOFUEL_KG(N,:,:) = ARRAY(:,:,1)
 
                ! Compute future PRPE emissions (if necessary)
                IF ( LFUTURE ) THEN
@@ -614,7 +614,7 @@
      &                          1,         ARRAY,     QUIET=.TRUE. ) 
 
                ! Cast from REAL*4 to REAL*8, resize to (IIPAR,JJPAR)
-               CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+               BIOFUEL_KG(N,:,:) = ARRAY(:,:,1)
 
                ! Compute future C3H8 emissions (if necessary)
                IF ( LFUTURE ) THEN
@@ -640,7 +640,7 @@
      &                          1,         ARRAY,     QUIET=.TRUE. ) 
 
                ! Cast from REAL*4 to REAL*8, resize to (IIPAR,JJPAR)
-               CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+               BIOFUEL_KG(N,:,:) = ARRAY(:,:,1)
 
                ! Compute future CH2O emissions (if necessary)
                IF ( LFUTURE ) THEN
@@ -666,7 +666,7 @@
      &                          1,         ARRAY,     QUIET=.TRUE. ) 
 
                ! Cast from REAL*4 to REAL*8, resize to (IIPAR,JJPAR)
-               CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+               BIOFUEL_KG(N,:,:) = ARRAY(:,:,1)
 
                ! Compute future C2H6 emissions (if necessary)
                IF ( LFUTURE ) THEN
