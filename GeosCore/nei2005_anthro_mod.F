@@ -1731,6 +1731,8 @@
 !   3 Nov 2009 - P. Le Sager      - update handling of boxes w/ zero emissions
 !  10 Dec 2009 - D. Millet        - Now scale to August, not an annual average
 !  11 Dec 2009 - L. Zhang, A. van Donkelaar - Add seasonality for NH3
+!  12 Jun 2013 - M. Payer         - Update  NH3 seasonal scaling factors over
+!                                   the US (L. Zhang)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1747,10 +1749,16 @@
       INTEGER                :: MN, ThisMN, L
 
       ! seasonal scalar for NH3 emission (lzh, amv, 12/11/2009)
-      REAL*8, PARAMETER :: NH3_SCALE(12) = (/ 
-     &     0.426d0, 0.445d0, 0.526d0, 0.718d0, 1.179d0, 1.447d0, 
-     &     1.897d0, 1.884d0, 1.577d0, 0.886d0, 0.571d0, 0.445d0 /)
+!      REAL*8, PARAMETER :: NH3_SCALE(12) = (/ 
+!     &     0.426d0, 0.445d0, 0.526d0, 0.718d0, 1.179d0, 1.447d0, 
+!     &     1.897d0, 1.884d0, 1.577d0, 0.886d0, 0.571d0, 0.445d0 /)
  
+      ! New seasonal NH3 emission scalar based on
+      ! Zhang et al. ACP 2012 (lzh, 03/2012)
+       REAL*8, PARAMETER :: NH3_SCALE(12) = (/ 
+     &     0.216d0, 0.418d0, 0.622d0, 0.815d0, 0.982d0, 0.974d0, 
+     &     1.000d0, 0.900d0, 0.960d0, 0.600d0, 0.280d0, 0.236d0 /)
+
       !=================================================================
       ! GET_NEI99_SEASON begins here!
       !=================================================================
@@ -1767,7 +1775,8 @@
          AS = 1.d0
          RETURN
       ELSEIF ( TRACER == 30 ) THEN
-         AS = NH3_SCALE(ThisMN) / NH3_SCALE(8)   ! Normalize to August
+!         AS = NH3_SCALE(ThisMN) / NH3_SCALE(8)   ! Normalize to August
+         AS = NH3_SCALE(ThisMN)    ! (lzh, 03/2012)
          RETURN
       ENDIF 
 
