@@ -292,6 +292,7 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET
       USE PRESSURE_MOD,       ONLY : GET_PEDGE
+      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
 #if defined( DEVEL )
       USE TRACERID_MOD,       ONLY : IDTNO
 #endif
@@ -400,6 +401,9 @@
 
                ! Convert from [molec/s] to [molec/cm3/s]
                TMP = AIREMIS(I,J,L)  / BOXVL(I,J,L,State_Met)
+
+               ! No aircraft emissions in the stratosphere (cdh, 4/25/2013)
+               IF ( ITS_IN_THE_STRAT(I, J, L, State_Met) ) TMP = 0d0
 
                ! Store in GEMISNOX in [molec/cm3/s]
                EMIS_AC_NOx(I,J,L) = TMP

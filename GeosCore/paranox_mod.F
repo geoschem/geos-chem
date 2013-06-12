@@ -30,7 +30,15 @@
 !      PUBLIC  :: INTERPOLATE_LUT
 !##############################################
       PUBLIC  :: INTERPOLATE_LUT2
-
+!
+! !MODULE VARIABLES
+!
+      ! fracnox                 = look up table for fraction of NOx remaining
+      !                           for ship emissions (gvinken, 6/6/10)
+      ! intope                  = look up table for integrated Ozone Production
+      !                           Efficiency for ship emiss (gvinken, 6/6/10)
+      REAL*4 ::   fracnox(4,4,4,12,12,4,5)
+      REAL*4 ::   intope(4,4,4,12,12,4,5)
 !
 ! !REMARKS
 !  References:
@@ -68,7 +76,6 @@
 !
       USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1
       USE FILE_MOD,      ONLY : IOERROR
-      USE CMN_O3_MOD          ! FRACNOX, INTOPE
 !
 ! !REVISION HISTORY:
 !  06 Feb 2012 - M. Payer    - Initial version modified from code provided by
@@ -165,7 +172,7 @@
 !!\\
 !! !INTERFACE:
 !!
-!      SUBROUTINE INTERPOLATE_LUT( I, J, fraction_nox, int_ope,
+!      SUBROUTINE INTERPOLATE_LUT( I, J, JO1D, JNO2, fraction_nox, int_ope,
 !     &                            Input_Opt, State_Met, State_Chm ) 
 !!
 !! !USES:
@@ -178,11 +185,12 @@
 !      USE GIGC_State_Met_Mod, ONLY : MetState
 !
 !      USE CMN_FJ_MOD               ! Photolysis parameters
-!      USE CMN_O3_MOD               ! fracnox, intope, jvalues
+!      USE CMN_SIZE_MOD
 !!
 !! !INPUT PARAMETERS: 
 !!
 !      INTEGER,        INTENT(IN)    :: I, J
+!      REAL*8,         INTENT(IN)    :: JO1D, JNO2
 !      TYPE(OptInput), INTENT(IN)    :: OptInput    ! Input options object
 !      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !!
@@ -312,19 +320,19 @@
 !      ! Set the variables
 !      IJLOOP       = ( (J-1) * IIPAR ) + I 
 !      var_array(1) = State_Met%TS(I,J)                ! Temperature
-!      var_array(2) = jvalues(I,J,1)                   ! J(NO2)
+!      var_array(2) = JNO2                             ! J(NO2)
 !      var_array(3) = STT(I,J,1,IDTO3)    /            ! [O3] in ppbv 
 !     $               State_Met%AD(I,J,1) *
 !     $               Input_OPt%TCVV(IDTO3)         * 1.E9
 !      var_array(4) = ASIND(State_Met%SUNCOSmid5(I,J)) ! alfa0
 !      var_array(5) = ASIND(State_Met%SUNCOSmid(I,J))  ! alfa5
-!      var_array(6) = jvalues(I,J,2) / jvalues(I,J,1)  ! J(O1D)/J(NO2)
+!      var_array(6) = JO1D / JNO2                      ! J(O1D)/J(NO2)
 !      var_array(7) = STT(I,J,1,IDTCO)    /            ! [CO] in ppbv
 !     $               State_Met%AD(I,J,1) *
 !     $               Input_Opt%TCVV(IDTCO)         * 1.E9   
 !
 !      ! prevent NaN when jvalues are 0.
-!      IF (jvalues(I,J,1) .eq. 0.) var_array(6) = 0.
+!      IF (JNO2 .eq. 0.) var_array(6) = 0.
 !      
 !      ! First some error checking
 !      ! ########### MAYBE CHECK HERE FOR NEGATIVE VALUES?##########
@@ -571,7 +579,7 @@
 !      NULLIFY( STT )
 !
 !      END SUBROUTINE INTERPOLATE_LUT
-!EOC
+!!EOC
 !##############################################################################
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -586,7 +594,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INTERPOLATE_LUT2( I, J, o3, no, no2, dens,
+      SUBROUTINE INTERPOLATE_LUT2( I, J, o3, no, no2, dens, JO1D, JNO2,
      &                             fraction_nox, int_ope, State_Met ) 
 !
 ! !USES:
@@ -594,14 +602,12 @@
       USE TIME_MOD,           ONLY : GET_LOCALTIME
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_State_Met_Mod, ONLY : MetState
-
-      USE CMN_FJ_MOD               ! Photolysis parameters
-      USE CMN_O3_MOD               ! fracnox, intope, jvalues
+      USE CMN_SIZE_MOD
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER,        INTENT(IN)  :: I, J
-      REAL*8,         INTENT(IN)  :: o3, no, no2, dens
+      REAL*8,         INTENT(IN)  :: o3, no, no2, dens, JNO2, JO1D
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS: 
@@ -722,15 +728,15 @@
       ! Set the variables
       IJLOOP       = ( (J-1) * IIPAR ) + I
       var_array(1) = State_Met%TS(I,J)                ! Temperature
-      var_array(2) = jvalues(I,J,1)                   ! J(NO2)
+      var_array(2) = JNO2                             ! J(NO2), 1/s
       var_array(3) = o3 / dens * 1.E9                 ! [O3] in ppbv
       var_array(4) = ASIND(State_Met%SUNCOSmid5(I,J)) ! alfa0
       var_array(5) = ASIND(State_Met%SUNCOSmid(I,J))  ! alfa5
-      var_array(6) = jvalues(I,J,2) / jvalues(I,J,1)  ! J(O1D)/J(NO2)
+      var_array(6) = JO1D / JNO2                      ! J(O1D)/J(NO2)
       var_array(7) = (no + no2) / dens * 1.E12        ! [NOx] in pptv
       
       ! prevent NaN when jvalues are 0.
-      IF (jvalues(I,J,1) .eq. 0.) var_array(6) = 0. 
+      IF (JNO2 .eq. 0.) var_array(6) = 0. 
 
       ! First some error checking
       ! ########### MAYBE CHECK HERE FOR NEGATIVE VALUES?##########
@@ -959,7 +965,7 @@
 !         PRINT*,"-----INTERPOLATE_LUT2, for 108,49-----"
 !         PRINT*,"Fraction_nox and int_OPE: ", fraction_nox,
 !     &                                        int_ope
-!         PRINT*,"Jvalues are: ",              jvalues(I, J,:)
+!         PRINT*,"Jvalues are: ",              JNO2, JO1D
 !         PRINT*,"Vars are: ",                 var_array
 !         PRINT*,"[O3] in interpolate_lut: ",  var_array(3)
 !         PRINT*,"[NOx] in interpolate_lut: ", var_array(7)
@@ -977,7 +983,7 @@
 !         PRINT*,"-----INTERPOLATE_LUT2, for 73,76-----"
 !         PRINT*,"Fraction_nox and int_OPE: ", fraction_nox,
 !     &                                        int_ope
-!         PRINT*,"Jvalues are: ",              jvalues(I, J,:)
+!         PRINT*,"Jvalues are: ",              JNO2, JO1D
 !         PRINT*,"Vars are: ",                 var_array
 !         PRINT*,"[O3] in interpolate_lut: ",  var_array(3)
 !         PRINT*,"[NOx] in interpolate_lut: ", var_array(7)
