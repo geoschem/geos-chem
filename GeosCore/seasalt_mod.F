@@ -226,6 +226,7 @@
       CALL WET_SETTLING( am_I_Root,          Input_Opt, State_Met,
      &                   STT(:,:,:,IDTSALA), 1,         RC         )
 
+
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum' )
       ENDIF
@@ -337,6 +338,8 @@
 !  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
 !  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%XNUMOL(1:N_TRACERS)
+!  12 Jun 2013 - R. Yantosca - Bug fix: SALT_MASS needs to be !OMP PRIVATE
+!  12 Jun 2013 - R. Yantosca - Reformatted some comments for clarity
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -441,8 +444,9 @@
 
       !=================================================================
       ! Define the volume size distribution of sea-salt. This only has
-      ! to be done once. We assume that sea-salt is the combination of a coarse mode
-      ! and accumulation model log-normal distribution functions (jaegle 5/11/11)
+      ! to be done once. We assume that sea-salt is the combination of a 
+      ! coarse mode and accumulation model log-normal distribution 
+      ! functions (jaegle 5/11/11)
       !=================================================================
       IF ( FIRST) THEN
 
@@ -454,11 +458,11 @@
            ! Diameter of mid-point in microns
            DMID(ID)  = DEDGE + ( DR )
 
-	   ! Calculate the dry volume size distribution as the sum of two log-normal
-	   ! size distributions. The parameters for the size distribution are
-	   ! based on Reid et al. and Quinn et al.
-	   ! The scaling factors 13. and 0.8 for acc and coarse mode aerosols are
-	   ! chosen to obtain a realistic distribution  
+	   ! Calculate the dry volume size distribution as the sum of two 
+           ! log-normal size distributions. The parameters for the size 
+           ! distribution are based on Reid et al. and Quinn et al.
+	   ! The scaling factors 13. and 0.8 for acc and coarse mode 
+           ! aerosols are chosen to obtain a realistic distribution  
 	   ! SALT_V (D) = dV/dln(D) [um3]
 	   SALT_V(ID) = PI / 6d0* (DMID(ID)**3) * (
      &         13d0*exp(-0.5*( LOG(DMID(ID))-LOG(RG_A*2d0) )**2d0/
@@ -492,11 +496,12 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,       J,     L,    VTS,  P,        TEMP, RHB,  RWET ) 
-!$OMP+PRIVATE( RATIO_R, RHO,   DP,   PDP,  CONST,    SLIP, VISC, TC0  )
-!$OMP+PRIVATE( DELZ,    DELZ1, TOT1, TOT2, AREA_CM2, FLUX             )
-!$OMP+PRIVATE( SW,      ID,    SALT_MASS_TOTAL,      VTS_WEIGHT       ) !jaegle 5/11/11
-!$OMP+PRIVATE( DMIDW,   RHO1,  WTP                                    ) !jaegle 5/11/11
+!$OMP+PRIVATE( I,        J,     L,     VTS,             P          )     
+!$OMP+PRIVATE( TEMP,     RHB,   RWET,  RATIO_R,         RHO        )
+!$OMP+PRIVATE( DP,       PDP,   CONST, SLIP,            VISC       )
+!$OMP+PRIVATE( TC0,      DELZ,  DELZ1, TOT1,            TOT2       )
+!$OMP+PRIVATE( AREA_CM2, FLUX,  ID,    SALT_MASS_TOTAL, VTS_WEIGHT )
+!$OMP+PRIVATE( DMIDW,    RHO1,  WTP,   SALT_MASS                   )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR       
@@ -524,12 +529,14 @@
             ! Aerosol growth with relative humidity in radius [m] 
             ! (Gerber, 1985)
             !RWET    = 0.01d0*(FAC1/(FAC2-DLOG(RHB))+RCM**3.d0)**0.33d0
-	    ! Fix bugs in the Gerber formula:  a log10 (instead of ln) should be used and the 
-	    ! dry radius should be expressed in micrometers (instead of cm) also add more significant 
+	    ! Fix bugs in the Gerber formula:  a log10 (instead of ln) 
+            ! should be used and the dry radius should be expressed in 
+            ! micrometers (instead of cm) also add more significant 
 	    ! digits to the exponent (should be 1/3) (jaegle 5/11/11)
             !RWET    = 1d-6*(FAC1/(FAC2-LOG10(RHB))+RUM**3.d0)**0.33333d0
 
-            ! Use equation 5 in Lewis and Schwartz (2006) for sea salt growth (bec, jaegle 5/11/11)
+            ! Use equation 5 in Lewis and Schwartz (2006) for sea 
+            ! salt growth (bec, jaegle 5/11/11)
             RWET = REFF * (4.d0 / 3.7d0) *
      &              ( (2.d0 - RHB)/(1.d0 - RHB) )**(1.d0/3.d0)
 
@@ -540,8 +547,9 @@
             ! Density of the wet aerosol (kg/m3)
             RHO     = RATIO_R * DEN + ( 1.d0 - RATIO_R ) * 1000.d0
 
-            ! Above density calculation is chemically unsound because it ignores chemical solvation.  
-            ! Iteratively solve Tang et al., 1997 equation 5 to calculate density of wet aerosol (kg/m3) 
+            ! Above density calculation is chemically unsound because 
+            ! it ignores chemical solvation.   Iteratively solve Tang et al., 
+            ! 1997 equation 5 to calculate density of wet aerosol (kg/m3) 
             ! (bec, jaegle 5/11/11)
             RATIO_R = ( REFF / RWET )
             ! Assume an initial density of 1000 kg/m3
@@ -554,7 +562,8 @@
                 ! in Tang et al., 1997 [kg/m3]
                 RHO1   = ( 0.9971d0 + (A1 * WTP) + (A2 * WTP**2.d0) + 
      $               (A3 * WTP**3.d0) + (A4 * WTP**4.d0) ) * 1000.d0
-                ! Now calculate new weight percent using above density calculation
+                ! Now calculate new weight percent using above density 
+                ! calculation
                 WTP    = 100.d0 * DEN/RHO1 * RATIO_R**3.d0
                 ! Now recalculate new wet density [kg/m3]
                 RHO   = ( 0.9971d0 + (A1 * WTP) + (A2 * WTP**2.d0) + 
@@ -604,20 +613,21 @@
 	    ! the strong dependence on radius of the settling velocity and the
 	    ! mass size distribution:
 	    !  VTS_WEIGHTED = total( M(k) x VTS(k)) / total( M(k) ) 
-	    ! The settling velocity is a function of the radius squared (see definition
-	    ! of CONST above) 
+	    ! The settling velocity is a function of the radius squared 
+            ! (see definition of CONST above) 
 	    ! so VTS(k) = VTS * (RMID(k)/RWET)^2
             ! (jaegle 5/11/11)
 
 	    SALT_MASS_TOTAL = 0d0
 	    VTS_WEIGHT      = 0d0
 	    DO ID = 1, NR
-	       ! Calculate mass of wet aerosol (Dw = wet diameter, D = dry diamter):
-	       ! dM/dlnDw = dV/dlnDw * RHO, we assume that the density of sea-salt
-	       ! doesn't change much over the size range.
-	       ! and 
-	       ! dV/dlnDw = dV/dlnD * dlnD/dlnDw = dV/dlnD * Dw/D = dV/dlnD * Rwet/Rdry
-	       ! Further convert to dM/dDw = dM/dln(Dw) * dln(Dw)/Dw = dM/dln(Dw)/Dw
+	       ! Calculate mass of wet aerosol (Dw = wet diameter, D = 
+               ! dry diameter): dM/dlnDw = dV/dlnDw * RHO, we assume that 
+               ! the density of sea-salt doesn't change much over the size 
+               ! range.  and  dV/dlnDw = dV/dlnD * dlnD/dlnDw = 
+               ! dV/dlnD * Dw/D = dV/dlnD * Rwet/Rdry
+	       ! Further convert to dM/dDw = dM/dln(Dw) * dln(Dw)/Dw = 
+               ! dM/dln(Dw)/Dw
 	       ! Overall = dM/dDw = dV/dlnD * Rwet/Rdry * RHO /Rw
 	       ! 
 	       IF (DMID(ID) .ge. R0*2d0 .and. DMID(ID) .le. R1*2d0 ) THEN
