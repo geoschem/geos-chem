@@ -2126,7 +2126,16 @@
          DO L = 1, NOXEXTENT 
             ARRAY(:,:,L) = AD32_an(:,:,L) / SCALESRCE
          ENDDO
-            
+
+         ! Add ship NOx to layer 1
+         ! We scale by AD32_ship_count because the ship emission diagnostic
+         ! is recorded every CHEMISTRY timestep when using INSTANT PBL mixing
+         ! and every CONVECTION timestep when using NON-LOCAL PBL mixing
+         IF ( AD32_SHIP_COUNT >= 1 ) THEN
+            ARRAY(:,:,1) = ARRAY(:,:,1) + 
+     &           AD32_SHIP(:,:) / REAL( AD32_SHIP_COUNT )
+         ENDIF
+
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,     
      &               HALFPOLAR, CENTER180, CATEGORY,  IDTNO,
      &               UNIT,      DIAGb,     DIAGe,     RESERVED,   
@@ -2419,8 +2428,14 @@
                   
             ENDIF
 
-            ! Divide by seconds
-            ARRAY(:,:,1) = AD36(:,:,MM) / SECONDS
+            ! Divide by seconds for AD36 and by AD36_SHIP_COUNT for AD36_SHIP
+            ! We scale by AD32_ship_count because the ship emission diagnostic
+            ! is recorded every CHEMISTRY timestep when using INSTANT PBL mixing
+            ! and every CONVECTION timestep when using NON-LOCAL PBL mixing
+            IF ( AD36_SHIP_COUNT >= 1 ) THEN
+               ARRAY(:,:,1) = AD36(:,:,MM) / SECONDS +
+     &              AD36_SHIP(:,:,MM) / REAL( AD36_SHIP_COUNT )
+            ENDIF
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,    

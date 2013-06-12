@@ -238,6 +238,7 @@
 !  26 Feb 2013 - M. Long     - Now pass Input_Opt to INPHOT as an argument
 !  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%XNUMOL(1:N_TRACERS)
 !  31 May 2013 - R. Yantosca - Now pass State_Met to DO_DIAG_PL, for TOMAS
+!  06 Jun 2013 - M. Payer    - Move SETEMIS to after FAST_J (C. Holmes)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -653,17 +654,6 @@
       ENDIF
 #endif
 
-      !=================================================================  
-      ! Call SETEMIS which sets emission rates REMIS 
-      !=================================================================
-      CALL SETEMIS( EMISRR,    EMISRRN,   am_I_Root, 
-     &              Input_Opt, State_Met, RC         )
-      
-      !### Debug
-      IF ( prtDebug ) THEN
-         CALL DEBUG_MSG( '### CHEMDR: after SETEMIS' )
-      ENDIf
-
       !=================================================================
       ! Call RDAER -- computes aerosol optical depths
       !=================================================================
@@ -720,6 +710,17 @@
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMDR: after FAST-J' )
       ENDIF
+
+      !=================================================================  
+      ! Call SETEMIS which sets emission rates REMIS 
+      !=================================================================
+      CALL SETEMIS( EMISRR,    EMISRRN,   am_I_Root, 
+     &              Input_Opt, State_Met, RC         )
+      
+      !### Debug
+      IF ( prtDebug ) THEN
+         CALL DEBUG_MSG( '### CHEMDR: after SETEMIS' )
+      ENDIf
 
       !================================================================
       ! Call chemistry routines

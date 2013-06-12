@@ -1339,6 +1339,7 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TRACERID_MOD,       ONLY : IDTNO
+      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
 !
 ! !INPUT PARAMETERS:
 !
@@ -1382,6 +1383,9 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
                 
+         ! No lightning emissions in the stratosphere (cdh, 4/25/2013)
+         IF ( ITS_IN_THE_STRAT(I, J, L, State_Met) ) EXIT
+
          ! SLBASE(I,J,L) has units [molec NOx/6h/box], convert units:
          ! [molec/6h/box] * [6h/21600s] * [box/BOXVL cm3] = [molec/cm3/s]
          TMP = SLBASE(I,J,L) / ( 21600.d0 * BOXVL(I,J,L,State_Met) )
