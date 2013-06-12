@@ -4293,8 +4293,8 @@
 !                              running with the traditional driver main.F
 !  14 Mar 2013 - M. Payer    - Replace NOx and Ox with NO2 and O3 as part
 !                              of removal of NOx-Ox partitioning
-!  27 Feb 2013 - R. Yantosca - Bug fix: now only copy NUMDEP values from
-!                              Input_Opt%NDVZIND to NDVZIND array.
+!  12 Jun 2013 - R. Yantosca - Bug fix: now only copy NUMDEP values to
+!                              Input_Opt%NDVZIND and Input_Opt%DEPNAME
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6007,8 +6007,13 @@
 
       IF ( am_I_Root ) THEN
          Input_Opt%NUMDEP  = NUMDEP
-         Input_Opt%NDVZIND = NDVZIND
-         Input_Opt%DEPNAME = DEPNAME
+         !-------------------------------------------------------
+         ! Prior to 6/12/13:
+         !Input_Opt%NDVZIND = NDVZIND
+         !Input_Opt%DEPNAME = DEPNAME
+         !-------------------------------------------------------
+         Input_Opt%NDVZIND(1:NUMDEP) = NDVZIND(1:NUMDEP)
+         Input_Opt%DEPNAME(1:NUMDEP) = DEPNAME(1:NUMDEP)
       ENDIF
 
       !=================================================================
