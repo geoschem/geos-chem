@@ -186,7 +186,7 @@
 
       ELSE IF ( N == IDTNH3 ) THEN
 
-         ! NH3 [kg/yr]
+         ! NH3 [kg/month]
          VALUE = NH3(I,J)
 
       ELSE
@@ -202,14 +202,29 @@
       ! Convert units (if necessary)
       !------------------------------
       IF ( DO_KGS ) THEN
+         IF ( N == IDTNH3 ) THEN
+            ! Use 30 days per month (actual number of
+            ! days may be required for the future)
+            ! 2592000 = 30days*24hrs*60min*60sec
+            VALUE = VALUE / 2592000
+         ELSE
             
-         ! Convert from [kg/yr] to [kg/s]
-         VALUE = VALUE / SEC_IN_YEAR
+            ! Convert from [kg/yr] to [kg/s]
+            VALUE = VALUE / SEC_IN_YEAR
+         ENDIF
 
       ELSE IF ( DO_MCS ) THEN
 
          ! Convert from [kg/yr] to [molec/cm2/s]
-         IF ( N == IDTNO ) THEN
+         ! Updated on May 3, 2012 by Wai-Ho Lo: Not only NOx, but 
+         ! also NH3.
+         IF ( N == IDTNH3 ) THEN
+            ! Use 30 days per month (actual number of
+            ! days may be required for the future)
+            ! 2592000 = 30days*24hrs*60min*60sec
+            VALUE = VALUE * XNUMOL(N) / ( GET_AREA_CM2( I, J, 1 )
+     &            * 2592000 )
+         ELSEIF ( N == IDTNO ) THEN
             ! Convert NOx using XNUMOL for NO2 since original NOx
             ! emissions are in mass units of NO2 (mpayer, 4/18/13)
             VALUE = ( VALUE       * XNUMOL(IDTNO2)          )
@@ -245,7 +260,7 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE TIME_MOD,           ONLY : GET_YEAR
+      USE TIME_MOD,           ONLY : GET_YEAR,  GET_MONTH
       USE SCALE_ANTHRO_MOD,   ONLY : GET_ANNUAL_SCALAR_1x1
       USE REGRID_A2A_MOD,     ONLY : DO_REGRID_A2A
       USE CMN_SIZE_MOD
@@ -289,6 +304,7 @@
 !
       LOGICAL, SAVE              :: FIRST = .TRUE.
       INTEGER                    :: I, J, THISYEAR, SPECIES, SNo, ScNo
+      INTEGER                    :: THISMONTH
       REAL*4                     :: ARRAY(I1x1,J1x1,1)
       REAL*8, TARGET             :: GEOS_1x1(I1x1,J1x1,1)
       REAL*8                     :: GEOS_1x1_2002(I1x1,J1x1,1)
@@ -297,12 +313,23 @@
       REAL*8                     :: TAU2002, TAU2005, TAU
       CHARACTER(LEN=255)         :: FILENAME
       CHARACTER(LEN=4)           :: SYEAR, SNAME
+      CHARACTER(LEN=2)           :: THISMONTHCHAR
+      REAL*8                     :: NH3_SCALE(12)
       CHARACTER(LEN=255)         :: LLFILENAME
       REAL*8, POINTER            :: INGRID(:,:) => NULL()
 
       ! For fields from Input_Opt
       LOGICAL                    :: LFUTURE
       INTEGER                    :: N_TRACERS
+
+      !  seasonal scalar for NH3 emission (lzh, amv, 12/11/2009)
+      ! Updated on May 13, 2012 by Wai-Ho Lo, since Agriculture Canada's
+      ! NH3 emission inventory is used, monthly scalars are not used
+
+      NH3_SCALE = (/
+     &       1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 /)
+      !&     0.426d0, 0.445d0, 0.526d0, 0.718d0, 1.179d0, 1.447d0,
+      !&     1.897d0, 1.884d0, 1.577d0, 0.886d0, 0.571d0, 0.445d0 /)
 
       !=================================================================
       ! EMISS_CAC_ANTHRO begins here!
@@ -327,6 +354,10 @@
       ELSE
          THISYEAR = FSCALYR
       ENDIF
+      THISMONTH = GET_MONTH()
+      
+      WRITE( THISMONTHCHAR, '(i2.2)' ) THISMONTH
+      THISMONTHCHAR = ADJUSTL( THISMONTHCHAR )
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
@@ -373,15 +404,28 @@
             WRITE( SYEAR, '(i4)' ) MIN( MAX( THISYEAR, 2002 ), 2008 )
 
             ! File name
-            FILENAME  = TRIM( DATA_DIR_1x1 ) // 'CAC_200801/CAC' //
-     &                  SYEAR // '-' // TRIM( SNAME ) // '.geos.1x1'
+            IF (SPECIES .eq. 4 ) THEN
+               FILENAME = TRIM( DATA_DIR_1x1 ) // 'CAC_200801/CAC' //
+     &                    '2008-' // TRIM( SNAME ) // '-' // 
+     &                    TRIM( THISMONTHCHAR ) // 
+     &                    '.geos.1x1'
+            ELSE
+               FILENAME  = TRIM( DATA_DIR_1x1 ) // 'CAC_200801/CAC' // 
+     &                     SYEAR // '-' // TRIM( SNAME ) // '.geos.1x1'
+            ENDIF
 
             ! Echo info
             WRITE( 6, 100 ) TRIM( FILENAME )
  100        FORMAT( '     - EMISS_CAC_ANTHRO: Reading ', a )
 
             ! Read data
-            CALL READ_BPCH2( FILENAME, 'ANTHSRCE', SNo,
+            IF (SPECIES .eq. 4 ) THEN
+               ! Since currently the 2005 data is read, a monthly
+               ! TAU value has to be read for 2008 for NH3 emissions
+               TAU = GET_TAU0( THISMONTH, 1, 2008 )
+            ENDIF
+
+            CALL READ_BPCH2( FILENAME, 'ANTHSRCE', SNo, 
 !phs     &                       TAU,      I1x1,       J1x1-1,     
      &                       TAU,      I1x1,       J1x1,
      &                       1,        ARRAY,      QUIET=.TRUE. )
@@ -406,7 +450,7 @@
                GEOS_1x1(:,:,1) = GEOS_1x1(:,:,1) * SC_1x1(:,:)
 
             ENDIF
-
+            
          ELSE
 
             IF ( THISYEAR .ne. 2006 ) THEN
@@ -418,43 +462,83 @@
             ENDIF
 
             ! File name for 2002 data
-            IF ( THISYEAR .ne. 2006 ) THEN
-               FILENAME  = TRIM( DATA_DIR_1x1 ) // 'CAC_200801/CAC2002-'
-     &                    // TRIM(SNAME) // '.geos.1x1'
+            IF (SPECIES .eq. 4) THEN
+               FILENAME = TRIM(DATA_DIR_1x1 ) // 'CAC_200801/CAC' //
+     &                    '2008-' // TRIM( SNAME ) // '-' //
+     &                    TRIM( THISMONTHCHAR ) //
+     &                    '.geos.1x1'
             ELSE
-               FILENAME  = TRIM( DATA_DIR_1x1 ) // 'CAC_200801/CAC2005-'
-     &                    // TRIM(SNAME) // '.geos.1x1'
+               IF ( THISYEAR .ne. 2006 ) THEN
+                  FILENAME  = TRIM( DATA_DIR_1x1 )       //
+     &                        'CAC_200801/CAC2002-'      //
+     &                        TRIM(SNAME) // '.geos.1x1'
+               ELSE
+                  FILENAME  = TRIM( DATA_DIR_1x1 )       //
+     &                        'CAC_200801/CAC2005-'      //
+     &                        TRIM(SNAME) // '.geos.1x1'
+               ENDIF
             ENDIF
 
             ! Echo info
             WRITE( 6, 100 ) TRIM( FILENAME )
 
             ! Read data
-            CALL READ_BPCH2( FILENAME, 'ANTHSRCE', SNo,
-!phs     &                       TAU2002,   I1x1,      J1x1-1,
-     &                       TAU2002,   I1x1,      J1x1,
-     &                       1,         ARRAY,     QUIET=.TRUE. )
+            IF (SPECIES .eq. 4 ) THEN
+               ! Since currently the 2002 or 2005 data is read, a
+               ! monthly TAU value has to be read for 2008 for NH3
+               ! emissions
+               TAU = GET_TAU0( THISMONTH, 1, 2008 )
+               CALL READ_BPCH2( FILENAME, 'ANTHSRCE', SNo,
+!wl     &                          TAU,       I1x1,      J1x1-1,
+     &                          TAU,       I1x1,      J1x1,
+     &                          1,         ARRAY,     QUIET=.TRUE. )
+            ELSE
+               CALL READ_BPCH2( FILENAME, 'ANTHSRCE', SNo,
+!phs     &                          TAU2002,   I1x1,      J1x1-1,
+     &                          TAU2002,   I1x1,      J1x1,
+     &                          1,         ARRAY,     QUIET=.TRUE. )
+            ENDIF
 
             ! Cast to REAL*8 before regridding
             GEOS_1x1_2002(:,:,1) = ARRAY(:,:,1)
 
             ! File name for 2005 data
-            IF ( THISYEAR .ne. 2006 ) THEN
-               FILENAME  = TRIM( DATA_DIR_1x1 ) // 'CAC_200801/CAC2005-'
-     &                     // TRIM(SNAME) // '.geos.1x1'
+            IF (SPECIES .eq. 4) THEN
+               FILENAME = TRIM(DATA_DIR_1x1 ) // 'CAC_200801/CAC' //
+     &                    '2008-' // TRIM( SNAME ) // '-' //
+     &                    TRIM( THISMONTHCHAR ) //
+     &                    '.geos.1x1'
             ELSE
-               FILENAME  = TRIM( DATA_DIR_1x1 ) // 'CAC_200801/CAC2007-'
-     &                     // TRIM(SNAME) // '.geos.1x1'
+               IF ( THISYEAR .ne. 2006 ) THEN
+                  FILENAME  = TRIM( DATA_DIR_1x1 )       //
+     &                        'CAC_200801/CAC2005-'      //
+     &                        TRIM(SNAME) // '.geos.1x1'
+               ELSE
+                  FILENAME  = TRIM( DATA_DIR_1x1 )       //
+     &                        'CAC_200801/CAC2007-'      //
+     &                        TRIM(SNAME) // '.geos.1x1'
+               ENDIF
             ENDIF
 
             ! Echo info
             WRITE( 6, 100 ) TRIM( FILENAME )
 
             ! Read data
-            CALL READ_BPCH2( FILENAME, 'ANTHSRCE', SNo,
-!phs     &                       TAU2005,   I1x1,      J1x1-1,
-     &                       TAU2005,   I1x1,      J1x1,
-     &                       1,         ARRAY,     QUIET=.TRUE. )
+            IF (SPECIES .eq. 4 ) THEN
+               ! Since currently the 2002 or 2005 data is read, a
+               ! monthly TAU value has to be read for 2008 for NH3
+               ! emissions
+               TAU = GET_TAU0( THISMONTH, 1, 2008 )
+               CALL READ_BPCH2( FILENAME, 'ANTHSRCE', SNo,
+!wl     &                          TAU,       I1x1,      J1x1,
+     &                          TAU,       I1x1,      J1x1,
+     &                          1,         ARRAY,     QUIET=.TRUE. )
+            ELSE
+               CALL READ_BPCH2( FILENAME, 'ANTHSRCE', SNo,
+!phs     &                          TAU2005,   I1x1,      J1x1-1,
+     &                          TAU2005,   I1x1,      J1x1,
+     &                          1,         ARRAY,     QUIET=.TRUE. )
+            ENDIF
 
             ! Cast to REAL*8 before regridding
             GEOS_1x1_2005(:,:,1) = ARRAY(:,:,1)
@@ -500,9 +584,15 @@
 
          ELSEIF ( SPECIES .eq. 4 ) THEN
 
+            ! Apply seasonality
+            ! Using Agriculture Canada's NH3 emission inventory, 
+            ! no seasonality scalars are required
+            !GEOS_1x1(:,:,1) = NH3_SCALE(THISMONTH) * GEOS_1x1(:,:,1)
+
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
      &                          INGRID,     NH3,     IS_MASS=1,
      &                          netCDF=.TRUE.                   )
+
          ENDIF
 
          ! Free pointer
@@ -562,7 +652,7 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE TIME_MOD,           ONLY : GET_YEAR
+      USE TIME_MOD,           ONLY : GET_YEAR,  GET_MONTH
       USE SCALE_ANTHRO_MOD,   ONLY : GET_ANNUAL_SCALAR_05x0666_NESTED
       USE CMN_SIZE_MOD
       USE CMN_O3_MOD
@@ -600,6 +690,7 @@
 !
       LOGICAL, SAVE              :: FIRST = .TRUE.
       INTEGER                    :: I, J, THISYEAR, SPECIES, SNo, ScNo
+      INTEGER                    :: THISMONTH
       REAL*4                     :: ARRAY(IIPAR,JJPAR,1)
       REAL*8                     :: GEOS_05x0666(IIPAR,JJPAR,1)
       REAL*8                     :: GEOS_05x0666_2002(IIPAR,JJPAR,1)
@@ -608,10 +699,20 @@
       REAL*8                     :: TAU2002, TAU2005, TAU
       CHARACTER(LEN=255)         :: FILENAME
       CHARACTER(LEN=4)           :: SYEAR, SNAME
+      CHARACTER(LEN=2)           :: THISMONTHCHAR
+      REAL*8                     :: NH3_SCALE(12)
 
       ! For fields from Input_Opt
       LOGICAL         :: LFUTURE
       INTEGER         :: N_TRACERS
+
+      !  seasonal scalar for NH3 emission (lzh, amv, 12/11/2009)
+      ! Updated on May 13, 2012 by Wai-Ho Lo, since Agriculture Canada's
+      ! NH3 emission inventory is used, monthly scalars are not used
+      NH3_SCALE = (/
+     &      1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 /)
+      !&     0.426d0, 0.445d0, 0.526d0, 0.718d0, 1.179d0, 1.447d0,
+      !&     1.897d0, 1.884d0, 1.577d0, 0.886d0, 0.571d0, 0.445d0 /)
 
       !=================================================================
       ! EMISS_CAC_ANTHRO begins here!
@@ -633,6 +734,10 @@
       ELSE
          THISYEAR = FSCALYR
       ENDIF
+      THISMONTH = GET_MONTH()
+
+      WRITE( THISMONTHCHAR, '(i2.2)' ) THISMONTH
+      THISMONTHCHAR = ADJUSTL( THISMONTHCHAR )
 
 
       DO SPECIES = 1,4
@@ -664,15 +769,29 @@
             WRITE( SYEAR, '(i4)' ) MIN( MAX( THISYEAR, 2002 ), 2008 )
 
             ! File name
-            FILENAME  = TRIM( DATA_DIR ) // 'CAC_200911/CAC' //
-     &                  SYEAR // '-' // TRIM( SNAME ) //
-     &                  '.geos.na.1t2x2t3'
+            IF (SPECIES .eq. 4 ) THEN
+               FILENAME = TRIM( DATA_DIR ) // 'CAC_200911/CAC' //
+     &                    '2008-' // TRIM( SNAME ) // '-' //
+     &                    TRIM( THISMONTHCHAR ) //
+     &                    '.geos.1t2x2t3'
+            ELSE
+               FILENAME  = TRIM( DATA_DIR ) // 'CAC_200911/CAC' //
+     &                     SYEAR // '-' // TRIM( SNAME ) // 
+     &                     '.geos.na.1t2x2t3'
+            ENDIF
 
             ! Echo info
             WRITE( 6, 100 ) TRIM( FILENAME )
  100        FORMAT( '     - EMISS_CAC_ANTHRO_05x0666: Reading ', a )
 
             ! Read data
+            IF (SPECIES .eq. 4 ) THEN
+               ! Since currently the 2002 or 2005 data is read, a 
+               ! monthly TAU value has to be read for 2008 for NH3 
+               ! emissions
+               TAU = GET_TAU0(THISMONTH, 1, 2008 )
+            ENDIF
+
             CALL READ_BPCH2( FILENAME, 'ANTHSRCE', SNo,
      &                       TAU,      IIPAR,       JJPAR,
      &                       1,        ARRAY,      QUIET=.TRUE. )
@@ -699,6 +818,7 @@
      &                               * SC_05x0666(:,:)
 
             ENDIF
+	
 
          ELSE
 
@@ -711,41 +831,75 @@
             ENDIF
 
             ! File name for 2002 data
-            IF ( THISYEAR .ne. 2006 ) THEN
-               FILENAME  = TRIM( DATA_DIR ) // 'CAC_200911/CAC2002-'
-     &                    // TRIM(SNAME) // '.geos.na.1t2x2t3'
+            IF (SPECIES .eq. 4 ) THEN
+               FILENAME = TRIM( DATA_DIR ) // 'CAC_200911/CAC' //
+     &                    '2008-' // TRIM( SNAME ) // '-' //
+     &                    TRIM(THISMONTHCHAR ) //
+     &                    '.geos.1t2x2t3'
             ELSE
-               FILENAME  = TRIM( DATA_DIR ) // 'CAC_200911/CAC2005-'
-     &                    // TRIM(SNAME) // '.geos.na.1t2x2t3'
+               IF ( THISYEAR .ne. 2006 ) THEN
+                  FILENAME  = TRIM( DATA_DIR ) // 'CAC_200911/CAC2002-'
+     &                     // TRIM(SNAME)      // '.geos.na.1t2x2t3'
+               ELSE
+                  FILENAME  = TRIM( DATA_DIR ) // 'CAC_200911/CAC2005-'
+     &                     // TRIM(SNAME)      // '.geos.na.1t2x2t3'
+               ENDIF
             ENDIF
 
             ! Echo info
             WRITE( 6, 100 ) TRIM( FILENAME )
 
             ! Read data
-            CALL READ_BPCH2( FILENAME, 'ANTHSRCE', SNo,
-     &                       TAU2002,   IIPAR,      JJPAR,
-     &                       1,         ARRAY,     QUIET=.TRUE. )
+            IF (SPECIES .eq. 4 ) THEN
+               ! Since currently the 2002 or 2005 data is read, a
+               ! monthly TAU value has to be read for 2008 for NH3
+               ! emissions
+               TAU = GET_TAU0( THISMONTH, 1, 2008 )
+               CALL READ_BPCH2( FILENAME, 'ANTHSRCE', SNo,
+     &                          TAU,       IIPAR,     JJPAR,
+     &                          1,         ARRAY,     QUIET=.TRUE. )
+            ELSE
+               CALL READ_BPCH2( FILENAME, 'ANTHSRCE', SNo,
+     &                          TAU2002,   IIPAR,      JJPAR,
+     &                          1,         ARRAY,     QUIET=.TRUE. )
+            ENDIF
 
             ! Cast to REAL*8 before regridding
             GEOS_05x0666_2002(:,:,1) = ARRAY(:,:,1)
 
             ! File name for 2005 data
-            IF ( THISYEAR .ne. 2006 ) THEN
-               FILENAME  = TRIM( DATA_DIR ) // 'CAC_200911/CAC2005-'
-     &                     // TRIM(SNAME) // '.geos.na.1t2x2t3'
+            IF (SPECIES .eq. 4 ) THEN
+               FILENAME = TRIM( DATA_DIR ) // 'CAC_200911/CAC' //
+     &                    '2008-' // TRIM( SNAME ) // '-' //
+     &                    TRIM(THISMONTHCHAR ) //
+     &                    '.geos.1t2x2t3'
             ELSE
-               FILENAME  = TRIM( DATA_DIR ) // 'CAC_200911/CAC2007-'
-     &                     // TRIM(SNAME) // '.geos.na.1t2x2t3'
+               IF ( THISYEAR .ne. 2006 ) THEN
+                  FILENAME  = TRIM( DATA_DIR ) // 'CAC_200911/CAC2005-'
+     &                      // TRIM(SNAME)     // '.geos.na.1t2x2t3'
+               ELSE
+                  FILENAME  = TRIM( DATA_DIR ) // 'CAC_200911/CAC2007-'
+     &                      // TRIM(SNAME)     // '.geos.na.1t2x2t3'
+               ENDIF
             ENDIF
 
             ! Echo info
             WRITE( 6, 100 ) TRIM( FILENAME )
 
             ! Read data
-            CALL READ_BPCH2( FILENAME, 'ANTHSRCE', SNo,
-     &                       TAU2005,   IIPAR,    JJPAR,
-     &                       1,         ARRAY,     QUIET=.TRUE. )
+            IF (SPECIES .eq. 4 ) THEN
+               ! Since currently the 2002 or 2005 data is read, a
+               ! monthly TAU value has to be read for 2008 for NH3
+               ! emissions
+               TAU = GET_TAU0( THISMONTH, 1, 2008 )
+               CALL READ_BPCH2( FILENAME, 'ANTHSRCE', SNo,
+     &                          TAU,      IIPAR,     JJPAR,
+     &                          1,        ARRAY,     QUIET=.TRUE. )
+            ELSE
+               CALL READ_BPCH2( FILENAME, 'ANTHSRCE', SNo,
+     &                          TAU2005,   IIPAR,    JJPAR,
+     &                          1,         ARRAY,     QUIET=.TRUE. )
+            ENDIF
 
             ! Cast to REAL*8 before regridding
             GEOS_05x0666_2005(:,:,1) = ARRAY(:,:,1)
@@ -782,6 +936,9 @@
 
          ELSEIF ( SPECIES .eq. 4 ) THEN
 
+            ! Apply seasonality
+            !GEOS_05X0666(:,:,1) = NH3_SCALE(THISMONTH) 
+            !    * GEOS_05X0666(:,:,1)
             NH3(:,:) = GEOS_05x0666(:,:,1)
 
          ENDIF
@@ -815,7 +972,10 @@
 #endif
 
       END SUBROUTINE EMISS_CAC_ANTHRO_05x0666
-!EOC
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
