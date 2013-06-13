@@ -449,7 +449,9 @@
 #elif defined( APM )
       INTEGER, PARAMETER :: NNPAR   = 154   ! For APM (G. Luo, 3/8/11)
 #else
-      INTEGER, PARAMETER :: NNPAR   = 100   ! For non-TOMAS simulations
+      ! +4 for SEAC4RS FF passive tracers (jaf, 6/13/13)
+      !INTEGER, PARAMETER :: NNPAR   = 100   ! For non-TOMAS simulations
+      INTEGER, PARAMETER :: NNPAR   = 104   ! For non-TOMAS simulations
 #endif
 
       ! Nempara increased to 26. (fp, 2/8/10)
@@ -459,7 +461,9 @@
       !INTEGER, PARAMETER :: NEMPARA = 21 
       !  Add RCHO, HCOOH, ACTA
       !INTEGER, PARAMETER :: NEMPARA = 26 
-      INTEGER, PARAMETER :: NEMPARA = 29
+      ! +4 for SEAC4RS FF passive tracers (jaf, 6/13/13)
+      !INTEGER, PARAMETER :: NEMPARA = 29
+      INTEGER, PARAMETER :: NEMPARA = 33
       INTEGER, PARAMETER :: NEMPARB = 20
 
       !=================================================================
