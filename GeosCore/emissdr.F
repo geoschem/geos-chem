@@ -903,19 +903,21 @@
                   AD46(I,J,19) = AD46(I,J,19) + 
      &                 ( EMIS_ETOH / AREA_CM2 / DTSRCE ) 
 
-                  ! ++++++++++++++++++++++++++++++++++++++++++++++++++++
-                  
-                  ! CHBr3 emissions [kg/m2/s] -- tracer #20
-                  AD46(I,J,20) = AD46(I,J,20) + 
-     &                 ( EMISRR(I,J,IDECHBr3) / AREA_M2) * 
-     &                 ( MWT_CHBr3 / AVG )
+                  ! CHBr3 emissions [kg/m2/s] -- tracer #14
+                  IF ( IDECHBr3 > 0 ) THEN
+                     AD46(I,J,20) = AD46(I,J,20) 
+     &                            + ( EMISRR(I,J,IDECHBr3)  / AREA_M2 ) 
+     &                            * ( MWT_CHBr3             / AVG     )
+                  ENDIF
 
-                  ! CH2Br2 emissions [kg/m2/s] -- tracer #21
-                  AD46(I,J,21) = AD46(I,J,21) + 
-     &                 ( EMISRR(I,J,IDECH2Br2) / AREA_M2) * 
-     &                 ( MWT_CH2Br2 / AVG )
+                  ! CH2Br2 emissions [kg/m2/s] -- tracer #15
+                  IF ( IDECH2Br2 > 0 ) THEN
+                     AD46(I,J,21) = AD46(I,J,21) 
+     &                            + ( EMISRR(I,J,IDECH2Br2) / AREA_M2 ) 
+     &                            * ( MWT_CH2Br2            / AVG     )
+                  ENDIF
 
-                  ! Note: IDEBr2 is added to AD46(I,J,16) in ssa_bromine_mod.F
+                  ! Note: IDEBr2 is added to AD46(I,J,22) in ssa_bromine_mod.F
                
                ENDIF  
 
@@ -970,19 +972,6 @@
                EMISS_BVOC( I , J , 18) =  EMIS_MOHX  / AREA_CM2 / DTSRCE     
                EMISS_BVOC( I , J , 19) =  EMIS_ETOH  / AREA_CM2 / DTSRCE     
 
-               ! CHBr3 emissions [kg/m2/s] -- tracer #14
-               IF ( IDECHBr3 > 0 ) THEN
-                  AD46(I,J,14) = AD46(I,J,14) 
-     &                         + ( EMISRR(I,J,IDECHBr3)  / AREA_M2 ) 
-     &                         * ( MWT_CHBr3             / AVG     )
-               ENDIF
-
-               ! CH2Br2 emissions [kg/m2/s] -- tracer #15
-               IF ( IDECH2Br2 > 0 ) THEN
-                  AD46(I,J,15) = AD46(I,J,15) 
-     &                         + ( EMISRR(I,J,IDECH2Br2) / AREA_M2 ) 
-     &                         * ( MWT_CH2Br2            / AVG     )
-               ENDIF
             ENDIF
          ENDDO
       ENDDO
