@@ -255,6 +255,7 @@
       ! SEAC4RS passive tracers (jaf, 6/13/13)
       INTEGER            :: IDPCOFOV, IDPCOFSE, IDPCOFUS, IDPCOFRW
       INTEGER            :: IDPCOBCN, IDPCOBSE, IDPCOBWE, IDPCOBRW
+      INTEGER            :: IDPISOP
 
       ! GEOS-CHEM tracer ID's
       INTEGER            :: IDTNO,   IDTNO2,   IDTNO3,  IDTHNO2, IDTO3
@@ -421,6 +422,7 @@
       ! SEAC4RS passive tracers (jaf, 6/13/13)
       INTEGER            :: IDTPCOFOV, IDTPCOFSE, IDTPCOFUS, IDTPCOFRW
       INTEGER            :: IDTPCOBCN, IDTPCOBSE, IDTPCOBWE, IDTPCOBRW
+      INTEGER            :: IDTPISOP
 
       ! For tagged Hg simulation
       INTEGER              :: N_Hg_CATS
@@ -462,6 +464,7 @@
       ! SEAC4RS passive tracers (jaf, 6/13/13)
       INTEGER            :: IDEPCOFOV, IDEPCOFSE, IDEPCOFUS, IDEPCOFRW
       INTEGER            :: IDEPCOBCN, IDEPCOBSE, IDEPCOBWE, IDEPCOBRW
+      INTEGER            :: IDEPISOP
 
       ! GEOS-CHEM biofuel ID's
       INTEGER            :: IDBFNO,   IDBFCO,   IDBFALK4, IDBFACET 
@@ -1210,6 +1213,9 @@
                COUNT_BB  = COUNT_BB + 1
                IDBPCOBRW = COUNT_BB
 
+            CASE ( 'PISOP' )
+               IDTPISOP  = N
+               
             !--------------------------------
             ! Tagged Ox Tracers
             !--------------------------------
@@ -2700,6 +2706,11 @@
             NEMBIOG   = NEMBIOG + 1
             IDEBr2    = NEMANTHRO + NEMBIOG
          ENDIF
+         ! SEAC4RS passive tracer (jaf, 6/14/13)
+         IF ( IDTPISOP > 0 ) THEN
+           NEMBIOG    = NEMBIOG   + 1
+           IDEPISOP   = NEMANTHRO + NEMBIOG
+         ENDIF
       ENDIF
       
       !=================================================================
@@ -2733,6 +2744,7 @@
       IF ( IDERCHO /= 0 )  IDEMS(IDERCHO) = IDTRCHO
       IF ( IDEHCOOH /= 0 ) IDEMS(IDEHCOOH)= IDTHCOOH
       IF ( IDEACTA /= 0 )  IDEMS(IDEACTA) = IDTACTA
+      ! SEAC4RS passive tracers (jaf, 6/13/13)
       IF ( IDEPCOFOV /= 0 ) IDEMS(IDEPCOFOV) = IDTPCOFOV
       IF ( IDEPCOFSE /= 0 ) IDEMS(IDEPCOFSE) = IDTPCOFSE
       IF ( IDEPCOFUS /= 0 ) IDEMS(IDEPCOFUS) = IDTPCOFUS
@@ -2741,6 +2753,7 @@
       IF ( IDEPCOBSE /= 0 ) IDEMS(IDEPCOBSE) = IDTPCOBSE
       IF ( IDEPCOBWE /= 0 ) IDEMS(IDEPCOBWE) = IDTPCOBWE
       IF ( IDEPCOBRW /= 0 ) IDEMS(IDEPCOBRW) = IDTPCOBRW
+      IF ( IDEPISOP  /= 0 ) IDEMS(IDEPISOP)  = IDTPISOP
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       IF ( IDEMBO  /= 0 ) IDEMS(IDEMBO ) = IDTMBO
       IF ( IDEGLYC /= 0 ) IDEMS(IDEGLYC) = IDTGLYC
@@ -2768,7 +2781,8 @@
          WRITE( 6, 115 ) 'NEMBIOG:    1 for isoprene'
          WRITE( 6, 115 ) '          + 6 for dicarbonyls'
          WRITE( 6, 115 ) '          + 3 for bromine'
-         WRITE( 6, 115 ) 'NEMBIOG:   10 max'
+         WRITE( 6, 115 ) '          + 1 for SEAC4RS passive isop tracer'
+         WRITE( 6, 115 ) 'NEMBIOG:   11 max'
          WRITE( 6, 120 ) 'THIS NEMBIOG:   ', NEMBIOG
          WRITE( 6, 115 ) '-----------------------------------------'
          WRITE( 6, 120 ) 'IDENO   ', IDENO
@@ -2803,6 +2817,7 @@
          WRITE( 6, 120 ) 'IDEPCOBSE', IDEPCOBSE
          WRITE( 6, 120 ) 'IDEPCOBWE', IDEPCOBWE
          WRITE( 6, 120 ) 'IDEPCOBRW', IDEPCOBRW
+         WRITE( 6, 120 ) 'IDEPISOP ', IDEPISOP
          WRITE( 6, 120 ) 'IDEMBO  ', IDEMBO
          WRITE( 6, 120 ) 'IDEGLYC ', IDEGLYC
          WRITE( 6, 120 ) 'IDEHAC  ', IDEHAC
@@ -3010,6 +3025,7 @@
          IF ( NAMEGAS(I) == 'PCOBSE'   ) IDPCOBSE   = I
          IF ( NAMEGAS(I) == 'PCOBWE'   ) IDPCOBWE   = I
          IF ( NAMEGAS(I) == 'PCOBRW'   ) IDPCOBRW   = I
+         IF ( NAMEGAS(I) == 'PISOP'    ) IDPISOP    = I
       ENDDO
 
       !=================================================================
@@ -4081,6 +4097,7 @@
       IDPCOBSE  = 0
       IDPCOBWE  = 0
       IDPCOBRW  = 0
+      IDPISOP   = 0
 
       ! GEOS-CHEM Tracer ID #'s
       IDTNO     = 0
@@ -4212,6 +4229,7 @@
       IDTPCOBSE  = 0
       IDTPCOBWE  = 0
       IDTPCOBRW  = 0
+      IDTPISOP   = 0
 
 
 #if   defined( TOMAS )
@@ -4636,6 +4654,7 @@
       IDEPCOBSE  = 0
       IDEPCOBWE  = 0
       IDEPCOBRW  = 0
+      IDEPISOP   = 0
 
       ! GEOS-CHEM Biofuel ID #'s
       IDBFNO    = 0
