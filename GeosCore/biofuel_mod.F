@@ -79,6 +79,9 @@
 !  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
 !                              of removal of NOx-Ox partitioning
 !  12 Jun 2013 - R. Yantosca - Now declare BIOFUEL_KG w/ the TARGET attribute
+!  14 Jun 2013 - R. Yantosca - Now determine weekday/weekend with respect to
+!                              the local time at each grid box.  (Formerly,
+!                              this had been done w/r/t the GMT time.
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -207,6 +210,9 @@
 !                              of removal of NOx-Ox partitioning
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC]
 !  12 Jun 2013 - R. Yantosca - Now eliminate array temporaries (as possible)
+!  14 Jun 2013 - R. Yantosca - Now determine weekday/weekend with respect to
+!                              the local time at each grid box.  (Formerly,
+!                              this had been done w/r/t the GMT time.
 !******************************************************************************
 !
       ! References to F90 modules
@@ -220,7 +226,7 @@
       USE GIGC_State_Chm_Mod,   ONLY : ChmState
       USE GIGC_State_Met_Mod,   ONLY : MetState
       USE STREETS_ANTHRO_MOD,   ONLY : GET_SE_ASIA_MASK
-      USE TIME_MOD,             ONLY : GET_DAY_OF_WEEK,  GET_YEAR
+      USE TIME_MOD,             ONLY : GET_DAY_OF_WEEK_LT,  GET_YEAR
       USE TRACERID_MOD,         ONLY : IDBFCO,  IDBFNO,  IDTACET
       USE TRACERID_MOD,         ONLY : IDTALD2, IDTALK4, IDTC2H6
       USE TRACERID_MOD,         ONLY : IDTC3H8, IDTCH2O, IDTCO
@@ -270,7 +276,7 @@
       LOGICAL                       :: WEEKDAY
       LOGICAL, SAVE                 :: FIRST = .TRUE.
       LOGICAL, SAVE                 :: DO_ND29, DO_ND32, DO_ND34
-      INTEGER                       :: AS, I, J, N, NN, DAY_NUM
+      INTEGER                       :: AS, I, J, N, NN, DOW_LT
       INTEGER                       :: SIM_YEAR
       REAL*4                        :: ARRAY(IIPAR,JJPAR,1)
       REAL*8,  SAVE                 :: MOLWT(NBFMAX)
@@ -868,12 +874,6 @@
       ! Also archive diagnostics w/in parallel loop (bmy, 5/30/02)
       !=================================================================
 
-      ! Get current day of the week
-      DAY_NUM = GET_DAY_OF_WEEK()
-
-      ! Is it a weekday?
-      WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
-
       ! get emissions year to test Streets
       IF ( FSCALYR < 0 ) THEN
          SIM_YEAR = GET_YEAR()
@@ -883,7 +883,7 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, BXHEIGHT_CM, N, NN, EPA_NEI )
+!$OMP+PRIVATE( I, J, BXHEIGHT_CM, N, NN, EPA_NEI, DOW_LT, WEEKDAY )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -935,6 +935,12 @@
                   ! If we are over the USA ...
                   IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
   
+                     ! Determine if we should use weekday or weekend NEI
+                     ! emissions at grid box (I,J,L).  Since NEI is over
+                     ! the US, then weekend is Sat/Sun.
+                     DOW_LT  = GET_DAY_OF_WEEK_LT( I, J, 1 )
+                     WEEKDAY = ( DOW_LT > 0 .and. DOW_LT < 6 )
+
                      ! Get GEOS-CHEM tracer number
                      NN      = BFTRACE(N)
 

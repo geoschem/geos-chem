@@ -399,13 +399,15 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE REGRID_A2A_MOD,     ONLY : DO_REGRID_A2A
       USE TIME_MOD,           ONLY : GET_YEAR, GET_MONTH
-      USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK
       USE SCALE_ANTHRO_MOD,   ONLY : GET_ANNUAL_SCALAR_1x1
       USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
       USE TRACERID_MOD,       ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
       USE TRACERID_MOD,       ONLY : IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
       USE TRACERID_MOD,       ONLY : IDTNO,   IDTCO,   IDTSO2,  IDTNH3
       USE TRACERID_MOD,       ONLY : IDTSO4,  IDTOCPI, IDTBCPI
+#if defined( DEVEL )
+      USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK_LT
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -435,6 +437,9 @@
 !  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
 !                              of removal of NOx-Ox partitioning
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  14 Jun 2013 - R. Yantosca - Now determine weekday/weekend with respect to
+!                              the local time at each grid box.  (Formerly,
+!                              this had been done w/r/t the GMT time).
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -457,9 +462,10 @@
       CHARACTER(LEN=255) :: LLFILENAME
       REAL*8, POINTER    :: OUTGRID(:,:) => NULL()
       REAL*8, POINTER    :: INGRID (:,:) => NULL()
-
-      INTEGER            :: DAY_NUM
+#if defined( DEVEL )
+      INTEGER            :: DOW_LT
       LOGICAL            :: WEEKDAY
+#endif
 
       ! For fields from Input_Opt
       INTEGER            :: N_TRACERS
@@ -1257,38 +1263,46 @@
       ENDIF
 
 #if defined( DEVEL )
-      DAY_NUM = GET_DAY_OF_WEEK()
-      WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
-      IF ( WEEKDAY ) THEN       !Kg/Yr
-         State_Chm%TRAC_TEND(:,:,1:5,IDTNO)   = NOx
-         State_Chm%TRAC_TEND(:,:,1:5,IDTCO)   = CO
-         State_Chm%TRAC_TEND(:,:,1:5,IDTSO2)  = SO2
-         State_Chm%TRAC_TEND(:,:,1:5,IDTSO4)  = SO4
-         State_Chm%TRAC_TEND(:,:,1:5,IDTNH3)  = NH3
-         State_Chm%TRAC_TEND(:,:,1:5,IDTALK4) = ALK4
-         State_Chm%TRAC_TEND(:,:,1:5,IDTACET) = ACET
-         State_Chm%TRAC_TEND(:,:,1:5,IDTMEK)  = MEK
-         State_Chm%TRAC_TEND(:,:,1:5,IDTPRPE) = PRPE
-         State_Chm%TRAC_TEND(:,:,1:5,IDTC3H8) = C3H8
-         State_Chm%TRAC_TEND(:,:,1:5,IDTCH2O) = CH2O
-         State_Chm%TRAC_TEND(:,:,1:5,IDTC2H6) = C2H6
-         State_Chm%TRAC_TEND(:,:,1:5,IDTALD2) = ALD2
-      ELSE
-         State_Chm%TRAC_TEND(:,:,1:5,IDTNO)   = NOx_WKEND
-         State_Chm%TRAC_TEND(:,:,1:5,IDTCO)   = CO_WKEND
-         State_Chm%TRAC_TEND(:,:,1:5,IDTSO2)  = SO2_WKEND
-         State_Chm%TRAC_TEND(:,:,1:5,IDTSO4)  = SO4_WKEND
-         State_Chm%TRAC_TEND(:,:,1:5,IDTNH3)  = NH3_WKEND
-         State_Chm%TRAC_TEND(:,:,1:5,IDTALK4) = ALK4_WKEND
-         State_Chm%TRAC_TEND(:,:,1:5,IDTACET) = ACET_WKEND
-         State_Chm%TRAC_TEND(:,:,1:5,IDTMEK)  = MEK_WKEND
-         State_Chm%TRAC_TEND(:,:,1:5,IDTPRPE) = PRPE_WKEND
-         State_Chm%TRAC_TEND(:,:,1:5,IDTC3H8) = C3H8_WKEND
-         State_Chm%TRAC_TEND(:,:,1:5,IDTCH2O) = CH2O_WKEND
-         State_Chm%TRAC_TEND(:,:,1:5,IDTC2H6) = C2H6_WKEND
-         State_Chm%TRAC_TEND(:,:,1:5,IDTALD2) = ALD2_WKEND
-      ENDIF
+         ! Determine if we should use weekday or weekend NEI
+         ! emissions at grid box (I,J,L).  Since NEI is over
+         ! the US, then weekend is Sat/Sun.
+         DOW_LT  = GET_DAY_OF_WEEK_LT( I, J, 1 )
+         WEEKDAY = ( DOW_LT > 0 .and. DOW_LT < 6 )
+
+         IF ( WEEKDAY ) THEN    !Kg/Yr
+            State_Chm%TRAC_TEND(I,J,1:5,IDTNO)   = NOx(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTCO)   = CO(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTSO2)  = SO2(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTSO4)  = SO4(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTNH3)  = NH3(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTALK4) = ALK4(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTACET) = ACET(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTMEK)  = MEK(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTPRPE) = PRPE(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTC3H8) = C3H8(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTCH2O) = CH2O(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTC2H6) = C2H6(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTALD2) = ALD2(I,J,1:5)
+         ELSE
+            State_Chm%TRAC_TEND(I,J,1:5,IDTNO)   = NOx_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTCO)   = CO_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTSO2)  = SO2_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTSO4)  = SO4_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTNH3)  = NH3_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTALK4) = ALK4_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTACET) = ACET_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTMEK)  = MEK_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTPRPE) = PRPE_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTC3H8) = C3H8_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTCH2O) = CH2O_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTC2H6) = C2H6_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTALD2) = ALD2_WKEND(I,J,1:5)
+         ENDIF
+      ENDDO
+      ENDDO
 #endif
       !--------------------------
       ! Print emission totals
@@ -1324,13 +1338,15 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TIME_MOD,           ONLY : GET_YEAR, GET_MONTH
-      USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK
       USE SCALE_ANTHRO_MOD,   ONLY : GET_ANNUAL_SCALAR_05x0666_NESTED
       USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
       USE TRACERID_MOD,       ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
       USE TRACERID_MOD,       ONLY : IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
       USE TRACERID_MOD,       ONLY : IDTNO,   IDTCO,   IDTSO2,  IDTNH3
       USE TRACERID_MOD,       ONLY : IDTSO4,  IDTOCPI, IDTBCPI
+#if defined( DEVEL )
+      USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK_LT
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -1375,9 +1391,10 @@
       CHARACTER(LEN=5)    :: SNAME
       CHARACTER(LEN=1)    :: SSMN
       CHARACTER(LEN=2)    :: SMN
-
-      INTEGER             :: DAY_NUM
+#if defined( DEVEL )
+      INTEGER             :: DOW_LT
       LOGICAL             :: WEEKDAY
+#endif
 
       ! For fields from Input_Opt
       INTEGER             :: N_TRACERS
@@ -1653,38 +1670,46 @@
       ENDIF
 
 #if defined( DEVEL )
-      DAY_NUM = GET_DAY_OF_WEEK()
-      WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
-      IF ( WEEKDAY ) THEN       !Kg/Yr
-         State_Chm%TRAC_TEND(:,:,1:5,IDTNO)   = NOx
-         State_Chm%TRAC_TEND(:,:,1:5,IDTCO)   = CO
-         State_Chm%TRAC_TEND(:,:,1:5,IDTSO2)  = SO2
-         State_Chm%TRAC_TEND(:,:,1:5,IDTSO4)  = SO4
-         State_Chm%TRAC_TEND(:,:,1:5,IDTNH3)  = NH3
-         State_Chm%TRAC_TEND(:,:,1:5,IDTALK4) = ALK4
-         State_Chm%TRAC_TEND(:,:,1:5,IDTACET) = ACET
-         State_Chm%TRAC_TEND(:,:,1:5,IDTMEK)  = MEK
-         State_Chm%TRAC_TEND(:,:,1:5,IDTPRPE) = PRPE
-         State_Chm%TRAC_TEND(:,:,1:5,IDTC3H8) = C3H8
-         State_Chm%TRAC_TEND(:,:,1:5,IDTCH2O) = CH2O
-         State_Chm%TRAC_TEND(:,:,1:5,IDTC2H6) = C2H6
-         State_Chm%TRAC_TEND(:,:,1:5,IDTALD2) = ALD2
-      ELSE
-         State_Chm%TRAC_TEND(:,:,1:5,IDTNO)   = NOx_WKEND
-         State_Chm%TRAC_TEND(:,:,1:5,IDTCO)   = CO_WKEND
-         State_Chm%TRAC_TEND(:,:,1:5,IDTSO2)  = SO2_WKEND
-         State_Chm%TRAC_TEND(:,:,1:5,IDTSO4)  = SO4_WKEND
-         State_Chm%TRAC_TEND(:,:,1:5,IDTNH3)  = NH3_WKEND
-         State_Chm%TRAC_TEND(:,:,1:5,IDTALK4) = ALK4_WKEND
-         State_Chm%TRAC_TEND(:,:,1:5,IDTACET) = ACET_WKEND
-         State_Chm%TRAC_TEND(:,:,1:5,IDTMEK)  = MEK_WKEND
-         State_Chm%TRAC_TEND(:,:,1:5,IDTPRPE) = PRPE_WKEND
-         State_Chm%TRAC_TEND(:,:,1:5,IDTC3H8) = C3H8_WKEND
-         State_Chm%TRAC_TEND(:,:,1:5,IDTCH2O) = CH2O_WKEND
-         State_Chm%TRAC_TEND(:,:,1:5,IDTC2H6) = C2H6_WKEND
-         State_Chm%TRAC_TEND(:,:,1:5,IDTALD2) = ALD2_WKEND
-      ENDIF
+         ! Determine if we should use weekday or weekend NEI
+         ! emissions at grid box (I,J,L).  Since NEI is over
+         ! the US, then weekend is Sat/Sun.
+         DOW_LT  = GET_DAY_OF_WEEK_LT( I, J, 1 )
+         WEEKDAY = ( DOW_LT > 0 .and. DOW_LT < 6 )
+
+         IF ( WEEKDAY ) THEN    !Kg/Yr
+            State_Chm%TRAC_TEND(I,J,1:5,IDTNO)   = NOx(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTCO)   = CO(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTSO2)  = SO2(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTSO4)  = SO4(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTNH3)  = NH3(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTALK4) = ALK4(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTACET) = ACET(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTMEK)  = MEK(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTPRPE) = PRPE(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTC3H8) = C3H8(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTCH2O) = CH2O(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTC2H6) = C2H6(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTALD2) = ALD2(I,J,1:5)
+         ELSE
+            State_Chm%TRAC_TEND(I,J,1:5,IDTNO)   = NOx_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTCO)   = CO_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTSO2)  = SO2_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTSO4)  = SO4_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTNH3)  = NH3_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTALK4) = ALK4_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTACET) = ACET_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTMEK)  = MEK_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTPRPE) = PRPE_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTC3H8) = C3H8_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTCH2O) = CH2O_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTC2H6) = C2H6_WKEND(I,J,1:5)
+            State_Chm%TRAC_TEND(I,J,1:5,IDTALD2) = ALD2_WKEND(I,J,1:5)
+         ENDIF
+      ENDDO
+      ENDDO
 #endif
 
       !--------------------------

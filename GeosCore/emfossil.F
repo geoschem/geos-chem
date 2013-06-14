@@ -33,7 +33,8 @@
                               
       USE STREETS_ANTHRO_MOD, ONLY : GET_SE_ASIA_MASK
       USE STREETS_ANTHRO_MOD, ONLY : GET_STREETS_ANTHRO
-      USE TIME_MOD,           ONLY : GET_TS_EMIS,      GET_DAY_OF_WEEK
+      USE TIME_MOD,           ONLY : GET_TS_EMIS
+      USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK_LT
       USE TIME_MOD,           ONLY : GET_HOUR
       USE TRACERID_MOD,       ONLY : IDENO,    IDEO3,    IDEHNO3
       USE TRACERID_MOD,       ONLY : IDTCO,    IDTHNO3
@@ -148,6 +149,9 @@
 !  18 Apr 2013 - M. Payer    - Convert NOx using XNUMOL for NO2 since original
 !                              NOx emissions are in mass units of NO2
 !  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
+!  14 Jun 2013 - R. Yantosca - Now determine weekday/weekend with respect to
+!                              the local time at each grid box.  (Formerly,
+!                              this had been done w/r/t the GMT time.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -155,7 +159,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL :: WEEKDAY
-      INTEGER :: L, LL, K, DOW, HOUR
+      INTEGER :: L, LL, K, DOW_LT, HOUR
       REAL*8  :: TODX, DTSRCE, AREA_CM2           
       REAL*8  :: EMX(NOXLEVELS)  
       REAL*8  :: XEMISR
@@ -220,9 +224,11 @@
       ! GMT hour of day
       HOUR     = GET_HOUR()
 
-      ! Flag for weekday or weekend for NEI/VISTAS emissions
-      DOW      = GET_DAY_OF_WEEK()
-      WEEKDAY  = ( DOW > 0 .and. DOW < 6 )
+      ! Determine if we should use weekday or weekend NEI
+      ! emissions at grid box (I,J,L).  Since NEI is over
+      ! the US, then weekend is Sat/Sun.
+      DOW_LT   = GET_DAY_OF_WEEK_LT( I, J, 1 )
+      WEEKDAY  = ( DOW_LT > 0 .and. DOW_LT < 6 )
 
       !=================================================================
       ! Call EMF_SCALE to do the following:
