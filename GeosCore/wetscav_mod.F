@@ -755,6 +755,7 @@
       USE TRACERID_MOD, ONLY : IDTMAP
       ! jpp 4/27/09
       USE TRACERID_MOD, ONLY : IDTHOBr,  IDTHBr,   IDTBr2
+      USE LOGICAL_MOD,  ONLY : LWETD
 
       USE CMN_SIZE_MOD                               ! Size parameters
 !
@@ -855,6 +856,10 @@
       ! For aerosol tracers, compute F with internal routine F_AEROSOL.
       ! ISOL = tracer index for the ND38 diagnostic.
       !=================================================================
+
+      !Preventing removal if wet depostion is switched off
+      !DAR 05/2013
+      IF (LWETD.EQ..TRUE.) THEN
 
       !-------------------------------
       ! 210Pb and 7Be (aerosols)
@@ -2243,6 +2248,10 @@
          F(:,:,:) = 0d0
          ISOL     = 0
 
+      ENDIF
+      ELSE !wet deposition is off (DAR)
+         F(:,:,:) = 0d0
+         ISOL     = 0
       ENDIF
 
       END SUBROUTINE COMPUTE_F
