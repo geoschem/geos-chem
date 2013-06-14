@@ -25,6 +25,7 @@
 ! 
       PUBLIC  :: GET_MERRA_A1_FIELDS
       PUBLIC  :: OPEN_MERRA_A1_FIELDS
+      PUBLIC  :: GET_GEOS572_W1_FIELDS
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 ! 
@@ -1187,5 +1188,166 @@
       ENDIF
 
       END SUBROUTINE A1_CHECK
-!EOC
+
+!------------------------------------------------------------
+
+      SUBROUTINE GET_GEOS572_W1_FIELDS(NYMD, NHMS)
+
+!
+! !USES:
+!
+      USE DAO_MOD
+!      USE DAO_MOD,       ONLY : W10M, W10M3, W10M341, W10MLSD
+!      USE DAO_MOD,       ONLY : W10ML, W10MO, W10MOSD, SEAICE00
+      USE BPCH2_MOD,     ONLY : GET_RES_EXT
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE DIRECTORY_MOD, ONLY : MERRA_DIR
+      USE ERROR_MOD,     ONLY : ERROR_STOP
+      USE FILE_MOD,      ONLY : FILE_EXISTS
+      USE FILE_MOD,      ONLY : IOERROR
+      USE TIME_MOD,      ONLY : EXPAND_DATE, GET_HOUR, GET_MONTH
+      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
+      USE inquireMod,    ONLY : findFreeLUN
+      USE CMN_SIZE_MOD
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER, INTENT(IN) :: NYMD   ! YYYYMMDD
+      INTEGER, INTENT(IN) :: NHMS   !  and hhmmss of data to read from disk
+! !OUTPUT PARAMETERS:
+!
+!      REAL*8,  INTENT(OUT) :: W10M   (IIPAR,JJPAR)  ! scalar wind @10m[m/s]
+!      REAL*8,  INTENT(OUT) :: W10MO  (IIPAR,JJPAR)  ! scalar wind@10m[m/s]
+!      REAL*8,  INTENT(OUT) :: W10ML  (IIPAR,JJPAR)  ! scalar wind@10m[m/s]
+!      REAL*8,  INTENT(OUT) :: W10M3  (IIPAR,JJPAR)  ! sc. wind^3 @10m[m/s]
+!      REAL*8,  INTENT(OUT) :: W10M341(IIPAR,JJPAR)  ! sc. wind^3.41 @10m[m/s]
+!      REAL*8,  INTENT(OUT) :: W10MOSD(IIPAR,JJPAR)  ! sdev of sc. wind@ 10m[m/s]
+!      REAL*8,  INTENT(OUT) :: W10MLSD(IIPAR,JJPAR)  ! sdev of sc. wind@ 10m[m/s]
+!
+! !REVISION HISTORY:
+!  19 Aug 2010 - R. Yantosca - Initial version, based on a3_read_mod.f
+!  25 Aug 2010 - R. Yantosca - Now pass LWI down to READ_A1
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER, SAVE :: LASTNYMD = -1
+      INTEGER, SAVE :: LASTNHMS = -1
+! !LOCAL VARIABLES:
+!
+      LOGICAL            :: DO_OPEN  ! =T if it's time to open file
+      LOGICAL            :: DO_RESET
+      LOGICAL            :: IT_EXISTS
+      CHARACTER(LEN=2)   :: DUM
+      CHARACTER(LEN=8)   :: IDENT
+      CHARACTER(LEN=255) :: W1_FILE
+      CHARACTER(LEN=255) :: WIND_DIR
+      CHARACTER(LEN=255) :: PATH
+      ! Scalars
+      INTEGER           :: I, IOS, J, NFOUND, XYMD, XHMS
+      INTEGER           :: THISHOUR, THISMONTH
+      INTEGER           :: IU_W1
+      CHARACTER(LEN=8)  :: NAME
+      CHARACTER(LEN=16) :: STAMP
+      CHARACTER(LEN=2)  :: SHOUR, SMONTH
+
+      ! Arrays
+      REAL*4            :: Q2(IIPAR,JJPAR)
+      REAL*4            :: Q3(IIPAR,JJPAR)
+      REAL*4            :: Q4(IIPAR,JJPAR)
+      REAL*4            :: Q5(IIPAR,JJPAR)
+      REAL*4            :: Q6(IIPAR,JJPAR)
+      REAL*4            :: Q7(IIPAR,JJPAR)
+      REAL*4            :: Q8(IIPAR,JJPAR)
+!      REAL*8            :: W10M(IIPAR,JJPAR)
+
+      !=================================================================
+      ! Initialization
+      !=================================================================
+
+      ! Initialize
+      DO_OPEN = .TRUE.
+      ! Return if we have already opened the file
+      IF ( NYMD == LASTNYMD .and. NHMS == LASTNHMS ) THEN
+         DO_OPEN = .FALSE.
+      ENDIF
+
+         THISMONTH = GET_MONTH()
+         WRITE(SMONTH,101) THISMONTH
+         THISHOUR = GET_HOUR()
+         WRITE(SHOUR,101) THISHOUR
+ 101     FORMAT( I2.2 )
+
+
+      IF ( DO_OPEN ) THEN
+         IU_W1 = FINDFREELUN()
+         write(6,*) IU_W1
+         ! Strings for directory & filename
+         WIND_DIR = TRIM( DATA_DIR ) // 'MERRA/2012/' //
+     &              SMONTH // '/'
+
+         ! fix the year of the file as we only have 2012 DAR
+         W1_FILE  = '2012MMDD' // SHOUR // '.w1.' // GET_RES_EXT()
+
+         ! Replace date tokens
+         CALL EXPAND_DATE( W1_FILE,  NYMD, NHMS )
+         CALL EXPAND_DATE( WIND_DIR, NYMD, NHMS )
+
+         ! Full file path
+         PATH = TRIM( WIND_DIR ) // TRIM( W1_FILE )
+         write(6,*) PATH
+         ! Close previously opened A-3 file
+
+         ! Make sure the file unit is valid before we open the file
+         IF ( .not. FILE_EXISTS( IU_W1 ) ) THEN
+            CALL ERROR_STOP( 'Could not find file!',
+     &                       'OPEN_GEOS572_W1_FIELDS (merra_w1_mod.f)' )
+         ENDIF
+
+         !---------------------------
+         ! Open the A1 file
+         !---------------------------
+
+         ! Open the file
+         OPEN( UNIT   = IU_W1,         FILE   = TRIM( PATH ),
+     &         STATUS = 'OLD',         ACCESS = 'SEQUENTIAL',
+     &         CONVERT= 'LITTLE_ENDIAN',
+     &         FORM   = 'UNFORMATTED', IOSTAT = IOS )
+
+         IF ( IOS /= 0 ) THEN
+            CALL IOERROR( IOS, IU_W1, 'open_geos572_w1_fields:1' )
+         ENDIF
+
+         ! Echo info
+         WRITE( 6, 100 ) TRIM( PATH )
+ 100     FORMAT( '     - Opening: ', a )
+
+      !=================================================================
+      ! Read data from disk
+      !=================================================================
+      ! Data is stored in hourly files, so no need to search for correct
+      ! hour. Check above ensures that we havent already read this file
+      ! Data is unformatted in the following order:
+      ! W10M, W10M^3, W10M^3.41, W10M_SD - all the same 2D grid
+      READ( IU_W1, IOSTAT=IOS ) Q2,Q3,Q4,Q5,Q6,Q7,Q8
+      IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_W1, 'read_w1:1' )
+
+      CALL TRANSFER_2D( Q2, W10M   )
+      CALL TRANSFER_2D( Q3, W10ML  )
+      CALL TRANSFER_2D( Q4, W10MO  )
+      CALL TRANSFER_2D( Q5, W10M3  )
+      CALL TRANSFER_2D( Q6, W10M341)
+      CALL TRANSFER_2D( Q7, W10MLSD)
+      CALL TRANSFER_2D( Q8, W10MOSD)
+      write(6,*)'W10M',W10M(80,55)
+      write(6,*)'W10MLSD',W10MLSD(80,55)
+      ! Save NYMD, NHMS for next call
+      LASTNYMD = NYMD
+      LASTNHMS = NHMS
+      CLOSE( IU_W1 )
+      ENDIF !DO_OPEN
+      END SUBROUTINE
+! EOC
       END MODULE MERRA_A1_MOD
