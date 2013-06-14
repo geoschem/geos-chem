@@ -46,6 +46,8 @@
       USE TRACERID_MOD,       ONLY : IDECO
       USE TRACERID_MOD,       ONLY : IDTPCOFOV, IDTPCOFSE
       USE TRACERID_MOD,       ONLY : IDTPCOFUS, IDTPCOFRW
+      USE TRACERID_MOD,       ONLY : IDTPCOBCN, IDTPCOBSE
+      USE TRACERID_MOD,       ONLY : IDTPCOBWE, IDTPCOBRW
 
 
       USE CMN_SIZE_MOD             ! Size parameters
@@ -987,6 +989,15 @@
                ENDIF
             ENDIF
 
+         ENDIF
+
+         ! N loops over fossil fuel + biomass burning tracers, so we
+         ! zero the fossil fuel emissions for the biomass burning only
+         ! passive tracers (jaf, 6/14/13)
+         IF ( (NN == IDTPCOBCN) .or. (NN == IDTPCOBSE) .or. 
+     &        (NN == IDTPCOBWE) .or. (NN == IDTPCOBRW) ) THEN
+            EMISRR(I,J,N) = 0d0
+            EMX(1) = 0d0
          ENDIF
 
          ! ND29 = CO source diagnostic... 
