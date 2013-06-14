@@ -665,7 +665,7 @@
 
          ! Determine day of week w/r/t local time
          DOW_LT = GET_DAY_OF_WEEK_LT( I, J, 1 )
-         WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
+         WEEKDAY = ( DOW_LT > 0 .and. DOW_LT < 6 )
 
          ! Area [cm2]
          A(I,J)  = GET_AREA_CM2( I, J, 1 ) 
