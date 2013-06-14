@@ -5912,23 +5912,19 @@
                   NAME(T,46) = 'ETOH'
                   MOLC(T,46) = 2
                !jpp, 9/6/07
-
-
-
-
-               CASE( 22 )
+               CASE( 20 )
                   NAME  (T,46) = 'CHBr3'
                   FNAME (T,46) = 'Ocean bromoform emissions'
                   UNIT  (T,46) = 'kg/m2/s'
                   MWT   (T,46) = 2.53e-1   !in [kg/mol]
                   SCALE(T,46) = 1e0
-               CASE( 23 )
+               CASE( 21 )
                   NAME  (T,46) = 'CH2Br2'
                   FNAME (T,46) = 'Ocean dibromomethane emissions'
                   UNIT  (T,46) = 'kg/m2/s'
                   MWT   (T,46) = 1.74e-1   !in [kg/mol]
                   SCALE (T,46) = 1e0
-               CASE( 24 )
+               CASE( 22 )
                   NAME  (T,46) = 'SSBr2'
                   FNAME (T,46) = 'sea-salt Br2 emissions'
                   UNIT  (T,46) = 'kg/m2/s'
