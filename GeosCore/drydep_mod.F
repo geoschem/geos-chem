@@ -31,15 +31,6 @@
       USE PBL_MIX_MOD                           ! Boundary layer quantities
       USE PRESSURE_MOD,   ONLY : GET_PEDGE      ! Pressure @ level edges
       USE TIME_MOD,       ONLY : GET_TS_CHEM    ! Chemistry timestep
-#if defined( DEVEL )
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      ! For testing, remove later (mpayer 12/6/12)
-      USE TRACER_MOD,         ONLY : N_TRACERS, 
-     &                               SALC_REDGE_um,  SALA_REDGE_um,
-     &                               ITS_A_POPS_SIM, ITS_A_MERCURY_SIM
-#else
-      USE TRACER_MOD                            ! Tracer array STT etc.
-#endif
       USE TRACERID_MOD                          ! Tracer ID flags
 #if   defined( TOMAS )
       USE TOMAS_MOD                             ! For TOMAS microphysics
