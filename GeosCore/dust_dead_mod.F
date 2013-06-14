@@ -58,8 +58,8 @@
 !  (32) VWC_SFC          (REAL*8 ) : Volumetric water content       [m3/m3   ]
 !  (33) VAI_DST          (REAL*8 ) : Vegetation area index          [m2/m2   ]
 !  (34) VAI_DST_BND      (REAL*8 ) : Vegetation area index-boundary [m2/m2   ]
-!  (35) SRC_STR          (REAL*8 ) : Source strength                [fraction]
-!  (36) SRC_STR_BND      (REAL*8 ) : Source strength-boundary data  [fraction]
+!  (35) BAR_FRC          (REAL*8 ) : Source strength                [fraction]
+!  (36) BAR_FRC_BND      (REAL*8 ) : Source strength-boundary data  [fraction]
 !  (37) PLN_TYP          (INTEGER) : LSM plant type index (1-14)    [number  ]
 !  (38) PLN_FRC          (REAL*8 ) : Plant type weights (sums to 1) [unitless]
 !  (39) TAI              (REAL*8 ) : monthly LAI + Stem Area Index  [fraction]
@@ -199,6 +199,7 @@
       REAL*8,  ALLOCATABLE :: ERD_FCT_HYDRO(:,:)
       REAL*8,  ALLOCATABLE :: ERD_FCT_TOPO(:,:)
       REAL*8,  ALLOCATABLE :: ERD_FCT_UNITY(:,:)
+      REAL*8,  ALLOCATABLE :: ERD_FCT_KVN(:,:)
       REAL*8,  ALLOCATABLE :: MBL_BSN_FCT(:,:)
 
       ! GOCART source function (tdf, bmy, 1/25/07)
@@ -220,7 +221,7 @@
 
       ! Variables initialized in dst_tvbds_ntp() and dst_tvbds_ini()
       REAL*8,  ALLOCATABLE :: VAI_DST(:,:)
-      REAL*8,  ALLOCATABLE :: SRC_STR(:,:)
+      REAL*8,  ALLOCATABLE :: BAR_FRC(:,:)
 
       ! LSM plant type, 28 land surface types plus 0 for ocean
       ! Also account for 3 different land types in each grid box
@@ -304,7 +305,7 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,   ONLY : USTAR, Z0
+      USE DAO_MOD,   ONLY : USTAR, Z0, W10MLSD,W10ML
       USE GRID_MOD,  ONLY : GET_AREA_M2
       USE ERROR_MOD, ONLY : ERROR_STOP
 
@@ -334,82 +335,8 @@
       !--------------
 
       ! Global mass flux tuning factor (a posteriori) [frc]
-#if   defined( GEOS_57 ) && defined( GRID025x03125 )
-
-      ! Copy the 05x0666 scale factors for now
-      ! (skim, 5/20/12)
-
-#if defined(NESTED_CH)  
-      ! retuned based upon updated GEOS-4 tuning (amv, Nov 9, 2009)
-      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 3.23d-4
-#elif defined(SEAC4RS)
-      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 4.54d-4
-#endif
-
-      ! Global mass flux tuning factor (a posteriori) [frc]
-#elif defined( GEOS_5 ) && defined( GRID05x0666 )
-
-#if defined(NESTED_CH)  
-      ! retuned based upon updated GEOS-4 tuning (amv, Nov 9, 2009)
-      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 3.23d-4
-#elif defined(NESTED_EU)
-      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 4.54d-4
-#elif defined(NESTED_NA)
-      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 2.16d-4
-#endif
-
-
-#elif defined( GEOS_4 ) && defined( GRID2x25 )
-      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 3.5d-4
-
-      
-#elif defined( GEOS_5 ) && defined( GRID2x25 )
-
-      ! retuned based upon updated GEOS-4 tuning (amv, Nov 9, 2009)
-      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 4.9d-4
-
-
-#elif defined( MERRA ) && defined( GRID2x25 )
-      
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !%%% NOTE: RETUNING FOR MERRA 1x25 IS NEEDED ONCE MET IS AVAILABLE %%%
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 4.9d-4
-
-#elif defined( MERRA ) && defined( GRID4x5 )
-
-      !----------------------------------------------------------------
-      ! Based on results from MERRA 4x5 for years 2004-2005:
-      !
-      !   (GEOS-5 - MERRA)/GEOS-5 * 100  is 26.9% in each size bin.
-      !
-      ! We need to scale to the parameter FLX_MSS_FDG_FCT to make the 
-      ! dust emissions consistent.  Consequently, to bring MERRA 4x5 
-      ! dust emissions up to GEOS-5 levels, we need to DIVIDE the 
-      ! FLX_MSS_FDG_FCT used for GEOS-5 by (1. - 0.269) = 0.731.
-      !
-      !    -- Duncan Fairlie (t.d.fairlie@nasa.gov), 29 Oct 2010
-      !----------------------------------------------------------------
-      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 7.0d-4 / 0.731d0
-
-#elif defined( GEOS_57 ) && defined( GRID2x25 )
-
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !%%% NOTE: NEED TO SCALE THIS FOR GEOS-5.7.x 2x25!                 %%%
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 4.9d-4
-
-#elif defined( GEOS_57 ) && defined( GRID4x5 )
-
-      ! Based on results from GEOS 5.7 for September 2011
-      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 7.0d-4 * 1.272d0
-
-#else
-
-      ! Default value
-      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 7.0d-4
-
-#endif
+      ! Default value (x2 DAR)
+      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 2.0*3.38d-4
 
       ! Reference height for mobilization processes [m]
       REAL*8,  PARAMETER     :: HGT_RFR         = 10.0d0
@@ -494,6 +421,7 @@
       REAL*8 TPT_VRT_MDP           ! [K] Midlayer virtual temperature
       REAL*8 VAI_DST_SLICE(IIPAR)  ! [m2/m2] Vegetation area index,
                                    !         one-sided
+      REAL*8 BAR_FRC_SLICE(IIPAR)  ! Koven 08 rough and level source strength 
       REAL*8 VWC_DRY(IIPAR)        ! [m3/s] Dry volumetric water content
                                    !        (no E-T)
       REAL*8 VWC_OPT(IIPAR)        ! [m3/m3] E-T optimal volumetric water
@@ -504,7 +432,7 @@
       REAL*8 GWC_SFC(IIPAR)        ! [kg/kg] Gravimetric water content
       REAL*8 RGH_MMN(IIPAR)        ! [m] Roughness length momentum
       REAL*8 W10M
-
+      REAL*8 W10MSD_SLICE(IIPAR)   ! [m/s] std dev of 0.5x0.67 wind in 4x5
       ! GCM diagnostics
       ! Dust tendency due to gravitational settling [kg/kg/s]
       REAL*8 Q_DST_TND_MBL(IIPAR,NDSTBIN)
@@ -610,7 +538,8 @@
       ! Get time-varying vegetation area index
       CALL DST_TVBDS_GET(
      &    LAT_IDX,             ! I [idx] Latitude index
-     &    VAI_DST_SLICE)       ! O [m2 m-2] Vegetation area index, one-sided
+     &    VAI_DST_SLICE,       ! O [m2 m-2] Vegetation area index, one-sided
+     &    BAR_FRC_SLICE)       ! O Bareness fraction from NDVI
 
       ! Get fraction of surface covered by snow
       CALL SNW_FRC_GET(
@@ -633,7 +562,8 @@
      &    SNW_FRC,             ! I [frc] Fraction of surface covered by snow
      &    TPT_SOI_SLICE,       ! I [K] Soil temperature
      &    TPT_SOI_FRZ,         ! I [K] Temperature of frozen soil
-     &    VAI_DST_SLICE)       ! I [m2 m-2] Vegetation area index, one-sided
+     &    VAI_DST_SLICE,       ! I [m2 m-2] Vegetation area index, one-sided
+     &    BAR_FRC_SLICE)       ! I Bareness fraction from NDVI
 
       ! Much ado about nothing
       if (mbl_nbr == 0) then
@@ -659,15 +589,27 @@ ctdf        print *,' no mobilisation candidates'
       !=================================================================
       ! Get reference wind at 10m
       !=================================================================
+#if defined( MERRA ) 
       DO I = 1, IIPAR
-         W10M = SQRT( SFCWINDSQR( I, LAT_IDX ) )
-
+         W10M = W10ML(I,LAT_IDX)
+         W10MSD_SLICE(I) = W10MLSD(I, LAT_IDX)
          ! add mobilisation criterion flag
          IF ( FLG_MBL_SLICE(I) ) THEN
             WND_RFR(I) = W10M
          ENDIF
       ENDDO
-
+#else
+      DO I = 1, IIPAR
+         ! DAR - have to use regular wind until we have stats for GEOS-5
+         ! NB standard deviation still comes from GEOS 5.7.2 1/4 deg 2012 winds
+         W10M = SQRT( SFCWINDSQR( I, LAT_IDX ) )
+         W10MSD_SLICE(I) = W10MLSD(I, LAT_IDX)
+         ! add mobilisation criterion flag
+         IF ( FLG_MBL_SLICE(I) ) THEN
+            WND_RFR(I) = W10M
+         ENDIF
+      ENDDO
+#endif
       !=================================================================
       ! Compute standard roughness length.   This call is probably
       ! unnecessary, because we are only concerned with mobilisation
@@ -807,8 +749,9 @@ ctdf        print *,' no mobilisation candidates'
      &    FLX_MSS_HRZ_SLT_TTL, ! O [kg m-1 s-1] Vertically integrated
                                !                streamwise mass flux
      &    WND_FRC_SLT,         ! I [m s-1] Saltating friction velocity
-     &    WND_FRC_THR_SLT )    ! I [m s-1] Threshold friction vel for saltation
-
+     &    WND_RFR,             ! I [m s-1] Wind speed at reference height
+     &    WND_FRC_THR_SLT,     ! I [m s-1] Threshold friction vel for saltation
+     &    W10MSD_SLICE)        ! I [m s-1] Std dev of 0.5x0.67 within 4x5
 !-----------------------------------------------------------------------------
 ! Prior to 1/25/07:
 ! We now multiply by the GOCART source function, and we will ignore
@@ -945,7 +888,7 @@ ctdf        print *,' no mobilisation candidates'
       DO LON_IDX = 1, IIPAR
 
          ! Save latitude slice in SRCE_FUNC_OUT
-         SRCE_FUNC_OUT(LON_IDX) = SRCE_FUNC(LON_IDX,LAT_IDX)
+         SRCE_FUNC_OUT(LON_IDX) = ERD_FCT_KVN(LON_IDX,LAT_IDX)
 
       ENDDO
 
@@ -3357,20 +3300,25 @@ ctdf        print *,' no mobilisation candidates'
 !------------------------------------------------------------------------------
 
       SUBROUTINE FLX_MSS_HRZ_SLT_TTL_WHI79_GET( DNS_MDP, FLG_MBL,
-     &                                          QS_TTL,  U_S,  U_ST )
+     &                                QS_TTL, U_S, WND_RFR,U_ST,U_SD)
 !
 !******************************************************************************
-!  Subroutine FLX_MSS_HRZ_SLT_TTL_WHI79_GET computes vertically integrated
-!  streamwise mass flux of particles.  Theory: Uses method proposed by White
-!  (1979). See Zender et al., expr (10).  fxm: use surface air density not
+!  Subroutine FLX_MSS_HRZ_SLT_TTL_WHI79_GET computes vertically
+!  integrated
+!  streamwise mass flux of particles.  Theory: Uses method proposed by
+!  White
+!  (1979). See Zender et al., expr (10).  fxm: use surface air density
+!  not
 !  midlayer density (tdf, bmy, 4/5/04)
 !
 !  Arguments as Input:
 !  ============================================================================
-!  (1 ) DNS_MDP (REAL*8 ) : Midlayer density                           [g/m3  ]
-!  (2 ) FLG_MBL (LOGICAL) : Mobilization candidate flag                [flag  ]
-!  (4 ) U_S     (REAL*8 ) : Surface friction velocity                  [m/s   ]
-!  (5 ) U_ST    (REAL*8 ) : Threshold friction spd for saltation       [m/s   ]
+!  (1 ) DNS_MDP (REAL*8 ) : Midlayer density [g/m3  ]
+!  (2 ) FLG_MBL (LOGICAL) : Mobilization candidate flag [flag  ]
+!  (4 ) U_S     (REAL*8 ) : Surface friction velocity [m/s   ]
+!  (5 ) U_ST    (REAL*8 ) : Threshold friction spd for saltation [m/s   ]
+!  (6 ) WND_RFR (REAL*8 ) : 10m Wind Speed [m/s   ]
+!  (7 ) U_SD    (REAL*8 ) : 4x5 10m wind std dev from 0.5x0.67 mean [m/s   ]
 !
 !  Arguments as Output:
 !  ============================================================================
@@ -3381,7 +3329,7 @@ ctdf        print *,' no mobilisation candidates'
 !        with "D" exponents. (tdf, bmy, 4/5/04)
 !******************************************************************************
 !
-      USE CMN_SIZE_MOD
+      USE CMN_SIZE_MOD      ! Size parameters
 
       !------------------
       ! Arguments
@@ -3389,8 +3337,10 @@ ctdf        print *,' no mobilisation candidates'
       LOGICAL, INTENT(IN)  :: FLG_MBL(IIPAR)
       REAL*8,  INTENT(IN)  :: DNS_MDP(IIPAR)
       REAL*8,  INTENT(IN)  :: U_S(IIPAR)
+      REAL*8,  INTENT(IN)  :: WND_RFR(IIPAR)
       REAL*8,  INTENT(IN)  :: U_ST(IIPAR)
       REAL*8,  INTENT(OUT) :: QS_TTL(IIPAR)
+      REAL*8,  INTENT(IN)  :: U_SD(IIPAR)
 
       !------------------
       ! Parameters
@@ -3398,16 +3348,25 @@ ctdf        print *,' no mobilisation candidates'
 
       ! [frc] Saltation constant Whi79 p. 4648, MaB97 p. 16422
       REAL*8,  PARAMETER   :: CST_SLT = 2.61d0
-
+      ! conversion factor of 10m wind to thresh based on BLM_MBL
+      REAL*8,  PARAMETER   :: CNV_10M_THR = 0.0347436D0
+      ! number of tie points on Weibull wind distribution
+      REAL*8,  PARAMETER   :: N_U = 1000.0D0
       !------------------
       ! Local variables
       !------------------
 
       ! [frc] Ratio of wind friction threshold to wind friction
-      real*8               :: U_S_rat
+      REAL*8               :: U_S_RAT
+      REAL*8               :: U_S0F, U_THR_LIM, U_S0_INTV
+      REAL*8               :: WND_RFR_THR
+      REAL*8               :: PDFTOT !summation of PDF to check=1
+      REAL*8               :: FLX_FCT !factor increase in saltation
+      REAL*8               :: U_S0(N_U),WPDF(N_U)
+      REAL*8               :: QS_TTL0(IIPAR)
 
       ! [idx] Counting index for lon
-      integer              :: lon_idx
+      integer              :: lon_idx,U_IDX
 
       !=================================================================
       ! FLX_MSS_HRZ_SLT_TTL_WHI79_GET begins here!
@@ -3415,29 +3374,109 @@ ctdf        print *,' no mobilisation candidates'
 
       ! Initialize
       QS_TTL(:) = 0.0D0
+      QS_TTL0(:) = 0.0D0
 
       ! Loop over longitudes
       DO LON_IDX = 1, IIPAR
 
-         ! If this is a mobilization candidate and the friction
-         ! velocity is above the threshold for saltation...
-         IF ( FLG_MBL(LON_IDX) .AND.
-     &        U_S(LON_IDX) > U_ST(LON_IDX) ) THEN
+         WND_RFR_THR = U_ST(LON_IDX)/CNV_10M_THR
+         !write(6,*) 'THRESH:',WND_RFR_THR,WND_RFR(LON_IDX)
+         ! only run if mobilization candidate and if
+         ! mean gridbox wind speed is greater than
+         ! threshold wind speed -2m/s (otherwise flx is negligible)
+
+         !convert 10m wind speed tie points to threshold wind speeds
+         U_THR_LIM = U_ST(LON_IDX) - (2.0D0*CNV_10M_THR)
+
+        IF (FLG_MBL(LON_IDX).AND.(U_S(LON_IDX) > U_THR_LIM)) THEN
+!        DAR - test to see ems contribution of cases where mean wind
+!        is less than the threshold (switching U_S for WND_RFR
+!     &        WND_RFR(LON_IDX) .GT. WND_RFR_THR ) THEN
+
+         ! calculate Weibull PDF
+         CALL WEIBULL_FUNCTION(WND_RFR(LON_IDX),U_SD(LON_IDX),
+     &                     U_ST(LON_IDX),N_U,U_S0,WPDF,U_S0_INTV)
+         ! gives U_S0(N_UPNTS) and WPDF(N_UPNTS)
+         ! loop over saltation eqn with each U tie and WPDF
+         DO U_IDX = 1, (N_U-1)
+
+          !using conversion factor 3.47436e-2 from BLM_MBL
+          U_S0F = U_S0(U_IDX) * CNV_10M_THR
+
+          !wind tie point must be greater than threshold for saltation
+          IF ( U_S0F > U_ST(LON_IDX)) THEN
 
             ! Ratio of wind friction threshold to wind friction
-            U_S_RAT = U_ST(LON_IDX) / U_S(LON_IDX)
+            U_S_RAT = U_ST(LON_IDX) / U_S0F
 
             ! Whi79 p. 4648 (19), MaB97 p. 16422 (28)
-            QS_TTL(LON_IDX) =   ! [kg m-1 s-1]
-     &           CST_SLT * DNS_MDP(LON_IDX) * (U_S(LON_IDX)**3.0D0)
+            ! sum over wind speed spectrum
+            ! and use normalized weibull pdf to apply scaling to each
+            QS_TTL(LON_IDX) = QS_TTL(LON_IDX) +  ! [kg m-1 s-1]
+     &           (CST_SLT * DNS_MDP(LON_IDX) * (U_S0F**3.0D0)
      &           * (1.0D0-U_S_RAT) * (1.0D0+U_S_RAT)
-     &            * (1.0D0+U_S_RAT) / GRV_SFC
-
-         ENDIF
-      ENDDO
-
+     &           * (1.0D0+U_S_RAT) / GRV_SFC)
+     &           * (WPDF(U_IDX) + WPDF(U_IDX+1))
+     &           * U_S0_INTV * 0.5D0/WND_RFR(LON_IDX)
+          ENDIF
+         ENDDO
+        ENDIF
+       ENDDO
       ! Return to calling program
       END SUBROUTINE FLX_MSS_HRZ_SLT_TTL_WHI79_GET
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE WEIBULL_FUNCTION( U_MN,
+     &                             U_SD,
+     &                             U_ST1,
+     &                             N_U,
+     &                             U_S0,
+     &                             WPDF,
+     &                             U_S0_INTV)
+!******************************************************************************
+!
+!
+      USE CMN_SIZE_MOD    ! Size parameters
+      !-----------------
+      ! Arguments
+      !-----------------
+      REAL*8,  INTENT(IN)  :: U_MN
+      REAL*8,  INTENT(IN)  :: U_SD
+      REAL*8,  INTENT(IN)  :: U_ST1
+      REAL*8,  INTENT(IN)  :: N_U
+      REAL*8,  INTENT(OUT) :: U_S0(N_U)
+      REAL*8,  INTENT(OUT) :: WPDF(N_U)
+      REAL*8,  INTENT(OUT) :: U_S0_INTV
+
+      !-----------------
+      ! Local variables
+      !-----------------
+
+      ! [idx] Counting index for lon
+      INTEGER              :: II
+
+      ! [frc] Natural log of 10
+      REAL*8               :: K,X,GMA
+      REAL*8               :: SCL_WND(N_U)
+      REAL*8               :: U_SD1
+      U_SD1=MAX(U_SD,0.5)
+
+      K = (0.9874D0/(U_SD1/U_MN))**1.0983
+      X = 1.0D0 + 1.0D0/K
+      GMA = 0.1693D0*X**4.0D0 - 1.1495D0*X**3.0D0 +
+     &      3.3005D0*X**2.0D0 - 4.393D0*X + 3.0726D0
+
+      U_S0_INTV = (33.0D0 - 3.0D0) / N_U
+
+      DO II = 1, N_U
+        U_S0(II) = II*U_S0_INTV + 3.0D0
+        SCL_WND = U_S0(II) / U_MN
+        WPDF(II) = K * GMA *  (SCL_WND(II) * GMA)**(K-1.0D0)
+     &           * EXP(-1.0D0*(SCL_WND(II) * GMA)**K)
+      ENDDO
+
+      END SUBROUTINE WEIBULL_FUNCTION
 
 !------------------------------------------------------------------------------
 
@@ -3703,7 +3742,9 @@ ctdf        print *,' no mobilisation candidates'
       SUBROUTINE LND_FRC_MBL_GET( DOY,         FLG_MBL,     LAT_RDN,
      &                            LND_FRC_DRY, LND_FRC_MBL, MBL_NBR,
      &                            ORO,         SFC_TYP,     SNW_FRC,
-     &                            TPT_SOI,     TPT_SOI_FRZ, VAI_DST )
+     &                            TPT_SOI,     TPT_SOI_FRZ, VAI_DST,
+     &                            BAR_FRC )
+
 !
 !******************************************************************************
 !  Subroutine LND_FRC_MBL_GET returns the fraction of each GEOS-CHEM grid
@@ -3767,6 +3808,7 @@ ctdf        print *,' no mobilisation candidates'
       REAL*8,  INTENT(IN)  :: TPT_SOI(IIPAR)
       REAL*8,  INTENT(IN)  :: TPT_SOI_FRZ
       REAL*8,  INTENT(IN)  :: VAI_DST(IIPAR)
+      REAL*8,  INTENT(IN)  :: BAR_FRC(IIPAR)
       INTEGER, INTENT(OUT) :: MBL_NBR
       LOGICAL, INTENT(OUT) :: FLG_MBL(IIPAR)
       REAL*8,  INTENT(OUT) :: LND_FRC_MBL(IIPAR)
@@ -3817,7 +3859,7 @@ ctdf        print *,' no mobilisation candidates'
       !-------------------------------------------------------------------
 
       ! For GOCART source function, we do not use VAI (tdf, bmy, 1/25/07)
-      LOGICAL              :: FLG_VAI_TVBDS = .FALSE.
+      LOGICAL              :: FLG_VAI_TVBDS = .TRUE.
 
       ! [flg] Add 182 days in southern hemisphere
       LOGICAL              :: FLG_SH_ADJ = .TRUE.
@@ -3911,10 +3953,10 @@ ctdf        print *,' no mobilisation candidates'
               ! "bare ground" fraction of current gridcell decreases
               ! linearly from 1.0 to 0.0 as VAI increases from 0.0 to
               ! vai_mbl_thr.  NOTE: vai_mbl_thr set to 0.3  (tdf, 4/5/04)
-              LND_FRC_MBL(LON_IDX) =
-     &            1.0D0 - MIN(1.0D0, MIN(VAI_DST(LON_IDX),
-     &                       VAI_MBL_THR) / VAI_MBL_THR)
-
+!              LND_FRC_MBL(LON_IDX) =
+!     &            1.0D0 - MIN(1.0D0, MIN(VAI_DST(LON_IDX),
+!     &                       VAI_MBL_THR) / VAI_MBL_THR)
+              LND_FRC_MBL(LON_IDX) = BAR_FRC(LON_IDX)
            !---------------------------
            ! If we're not using VAI...
            !---------------------------
@@ -4039,7 +4081,7 @@ ctdf        print *,' no mobilisation candidates'
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE DST_TVBDS_GET( LAT_IDX, VAI_DST_OUT )
+      SUBROUTINE DST_TVBDS_GET( LAT_IDX, VAI_DST_OUT, BAR_FRC_OUT )
 !
 !******************************************************************************
 !  Subroutine DST_TVBDS_GET returns a specifed latitude slice of VAI data.
@@ -4052,17 +4094,17 @@ ctdf        print *,' no mobilisation candidates'
 !  Arguments as Output:
 !  ============================================================================
 !  (2 ) VAI_DST_OUT (REAL*8 ) : Vegetation area index, 1-sided, current [m2/m2]
-!
+!  (3 ) BAR_FRC_OUT (REAL*8 ) : Time-varying Bareness fraction [unitless]
 !  NOTES:
 !  (1 ) Updated comments, cosmetic changes.  Also now forces double-precision
 !        with "D" exponents. (tdf, bmy, 4/5/04)
 !******************************************************************************
 !
       USE CMN_SIZE_MOD  ! Size parameters
-
       ! Arguments
       INTEGER, INTENT(IN)  :: LAT_IDX
       REAL*8,  INTENT(OUT) :: VAI_DST_OUT(:)
+      REAL*8,  INTENT(OUT) :: BAR_FRC_OUT(:)
 
       ! Local variables
       INTEGER              :: LON_IDX
@@ -4074,8 +4116,8 @@ ctdf        print *,' no mobilisation candidates'
       ! Return lat slice of VAI [m2/m2]
       DO LON_IDX = 1, IIPAR
          VAI_DST_OUT(LON_IDX) = VAI_DST(LON_IDX,LAT_IDX)
+         BAR_FRC_OUT(LON_IDX) = BAR_FRC(LON_IDX,LAT_IDX)
       ENDDO
-
       ! Return to calling program
       END SUBROUTINE DST_TVBDS_GET
 
@@ -4785,6 +4827,13 @@ c Fix up for negative argument, erf, etc.
 
       CALL TRANSFER_2D( ARRAY(:,:,1), ERD_FCT_UNITY )
 
+      ! ERD_FCT_KVN !based on roughness and levelness from Koven 08
+      !-----------------
+      CALL READ_BPCH2( FILENAME, 'DEAD-2D', 87,
+     &                 XTAU,      IGLOB,    JGLOB,
+     &                 1,         ARRAY,    QUIET=.TRUE. )
+      CALL TRANSFER_2D( ARRAY(:,:,1), ERD_FCT_KVN )
+
       !-----------------
       ! MBL_BSN_FCT
       !-----------------
@@ -4896,14 +4945,14 @@ c Fix up for negative argument, erf, etc.
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE TIME_MOD,      ONLY : GET_MONTH,       ITS_A_NEW_MONTH
+      USE TIME_MOD,      ONLY : GET_MONTH,GET_YEAR,ITS_A_NEW_MONTH
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-      USE CMN_SIZE_MOD        ! Size parameters
+      USE CMN_SIZE_MOD
 
       ! Local variables
-      INTEGER               :: THISMONTH
-      REAL*4                :: ARRAY(IIPAR,JJPAR,1)
+      INTEGER               :: THISMONTH, THISYEAR
+      REAL*4                :: ARRAY(IGLOB,JGLOB,1)
       REAL*8                :: XTAU
       CHARACTER(LEN=255)    :: FILENAME
 
@@ -4918,17 +4967,37 @@ c Fix up for negative argument, erf, etc.
 
       ! TAU for reading the bpch files
       THISMONTH = GET_MONTH()
-      XTAU      = GET_TAU0( THISMONTH, 1, 1985 )
+      THISYEAR  = GET_YEAR()
+      !quick fix for YY>2006 (no NDVI bareness data yet)
+      IF (THISYEAR.GT.2006) THEN
+       THISYEAR=2006
+      ENDIF
+      ! STATIC VEGETATION
+      ! JUST FIX TO 2006 FOR NOW (DAR)
+      XTAU      = GET_TAU0( THISMONTH, 1, 2006 )
+
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
  100  FORMAT( '     - GET_MONTHLY_DATA: Reading ', a )
 
+      ! Bareness Fraction from AVHRR NDVI (Kim et al. 2013) DAR
+      !-----------------------
+      CALL READ_BPCH2( FILENAME, 'DEAD-2D', 88,
+     &                 XTAU,      IGLOB,    JGLOB,
+     &                 1,         ARRAY,    QUIET=.TRUE. )
+
+      ! Cast to REAL*8 and resize
+      CALL TRANSFER_2D( ARRAY(:,:,1), BAR_FRC )
+      write(6,*) 'BAR_FRC(80,55):',BAR_FRC(80,55)
+      ! TAU for reading the bpch files
+      XTAU      = GET_TAU0( THISMONTH, 1, 1985 )
+
       !-----------------------
       ! Veg. Area Index (VAI)
       !-----------------------
       CALL READ_BPCH2( FILENAME, 'DEAD-2D', 13,
-     &                 XTAU,      IIPAR,    JJPAR,
+     &                 XTAU,      IGLOB,    JGLOB,
      &                 1,         ARRAY,    QUIET=.TRUE. )
 
       ! Cast to REAL*8 and resize
@@ -4975,6 +5044,10 @@ c Fix up for negative argument, erf, etc.
       ALLOCATE( ERD_FCT_UNITY( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ERD_FCT_UNITY' )
       ERD_FCT_UNITY = 0d0
+
+      ALLOCATE( ERD_FCT_KVN( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ERD_FCT_KVN' )
+      ERD_FCT_KVN = 0d0
 
       ALLOCATE( MBL_BSN_FCT( IIPAR, JJPAR), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'MBL_BSN_FCT' )
@@ -5024,9 +5097,9 @@ c Fix up for negative argument, erf, etc.
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'VAI_DST' )
       VAI_DST = 0d0
 
-      ALLOCATE( SRC_STR( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SRC_STR' )
-      SRC_STR = 0d0
+      ALLOCATE( BAR_FRC( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BAR_FRC' )
+      BAR_FRC = 0d0
 
       ! (tdf, bmy, 1/25/07)
       ALLOCATE( SRCE_FUNC( IIPAR, JJPAR ), STAT=AS )
@@ -5128,6 +5201,7 @@ c Fix up for negative argument, erf, etc.
       IF ( ALLOCATED( ERD_FCT_HYDRO   ) ) DEALLOCATE( ERD_FCT_HYDRO   )
       IF ( ALLOCATED( ERD_FCT_TOPO    ) ) DEALLOCATE( ERD_FCT_TOPO    )
       IF ( ALLOCATED( ERD_FCT_UNITY   ) ) DEALLOCATE( ERD_FCT_UNITY   )
+      IF ( ALLOCATED( ERD_FCT_KVN     ) ) DEALLOCATE( ERD_FCT_KVN     )
       IF ( ALLOCATED( MBL_BSN_FCT     ) ) DEALLOCATE( MBL_BSN_FCT     )
       IF ( ALLOCATED( LND_FRC_DRY     ) ) DEALLOCATE( LND_FRC_DRY     )
       IF ( ALLOCATED( MSS_FRC_CACO3   ) ) DEALLOCATE( MSS_FRC_CACO3   )
@@ -5140,7 +5214,7 @@ c Fix up for negative argument, erf, etc.
       IF ( ALLOCATED( TPT_SOI         ) ) DEALLOCATE( TPT_SOI         )
       IF ( ALLOCATED( VWC_SFC         ) ) DEALLOCATE( VWC_SFC         )
       IF ( ALLOCATED( VAI_DST         ) ) DEALLOCATE( VAI_DST         )
-      IF ( ALLOCATED( SRC_STR         ) ) DEALLOCATE( SRC_STR         )
+      IF ( ALLOCATED( BAR_FRC         ) ) DEALLOCATE( BAR_FRC         )
       IF ( ALLOCATED( PLN_TYP         ) ) DEALLOCATE( PLN_TYP         )
       IF ( ALLOCATED( PLN_FRC         ) ) DEALLOCATE( PLN_FRC         )
       IF ( ALLOCATED( TAI             ) ) DEALLOCATE( TAI             )
