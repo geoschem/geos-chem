@@ -1001,11 +1001,11 @@
             Y = GET_YMID( I, J, 1 )  
 
             IF (      (X >= -100.0) .AND. (X <  -70.0)   .AND.
-     &                (Y >=   36.0) .AND. (Y <   50.0) ) THEN 
+     &                (Y >=   37.0) .AND. (Y <   50.0) ) THEN 
                IF ( IDBFPCOFOV > 0 )  
      &              BIOFUEL(IDBFPCOFOV,I,J) = BIOFUEL(IDBFCO,I,J)
             ELSE IF ( (X >= -100.0) .AND. (X <  -75.0)   .AND.
-     &                (Y >=   24.0) .AND. (Y <   36.0) ) THEN 
+     &                (Y >=   25.0) .AND. (Y <   37.0) ) THEN 
                IF ( IDBFPCOFSE > 0 )  
      &              BIOFUEL(IDBFPCOFSE,I,J) = BIOFUEL(IDBFCO,I,J)
             ELSE IF ( (X >= -125.0) .AND. (X < -100.0)   .AND.

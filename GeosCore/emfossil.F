@@ -963,13 +963,13 @@
             Y = GET_YMID( I, J, 1 )
 
             IF (      (X >= -100.0) .AND. (X <  -70.0)   .AND.
-     &                (Y >=   36.0) .AND. (Y <   50.0) ) THEN  
+     &                (Y >=   37.0) .AND. (Y <   50.0) ) THEN  
                IF     ( NN == IDTPCOFOV ) THEN
                     EMISRR(I,J,N) = EMISRR(I,J,IDECO)
                     EMX(1) = EMISRR(I,J,N) * DTSRCE / XNUMOL(NN)
                ENDIF
             ELSE IF ( (X >= -100.0) .AND. (X <  -75.0)  .AND.
-     &                (Y >=   24.0) .AND. (Y <   36.0) ) THEN  
+     &                (Y >=   25.0) .AND. (Y <   37.0) ) THEN  
                IF     ( NN == IDTPCOFSE ) THEN
                     EMISRR(I,J,N) = EMISRR(I,J,IDECO)
                     EMX(1) = EMISRR(I,J,N) * DTSRCE / XNUMOL(NN)
