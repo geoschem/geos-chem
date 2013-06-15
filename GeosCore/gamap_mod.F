@@ -5951,10 +5951,6 @@
                   NAME(T,46) = 'ETOH'
                   MOLC(T,46) = 2
                !jpp, 9/6/07
-
-
-
-
                CASE( 20 )
                   NAME  (T,46) = 'CHBr3'
                   FNAME (T,46) = 'Ocean bromoform emissions'
