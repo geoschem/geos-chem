@@ -442,13 +442,13 @@
       ! increase NNPAR and NEMPARA an extra amount (hotp 7/31/09)
 #if   defined( TOMAS )
 # if    defined( TOMAS40 )
-      INTEGER, PARAMETER :: NNPAR   = 410   ! For TOMAS40 (jeff 2/25/10)
+      INTEGER, PARAMETER :: NNPAR   = 430   ! For TOMAS40 (sfarina 6/11/13)
 # elif  defined( TOMAS15 )
-      INTEGER, PARAMETER :: NNPAR   = 185   ! For TOMAS15 (sfarina 4/28/13)
+      INTEGER, PARAMETER :: NNPAR   = 205   ! For TOMAS15 (sfarina 6/11/13)
 # elif  defined( TOMAS12 )
-      INTEGER, PARAMETER :: NNPAR   = 158   ! For TOMAS12 (sfarina 4/28/13)
+      INTEGER, PARAMETER :: NNPAR   = 178   ! For TOMAS12 (sfarina 6/11/13)
 # else
-      INTEGER, PARAMETER :: NNPAR   = 320   ! For TOMAS (win, bmy, 1/25/10)
+      INTEGER, PARAMETER :: NNPAR   = 340   ! For TOMAS (win, bmy, sfarina 6/11/13)
 # endif
 #elif defined( APM )
       INTEGER, PARAMETER :: NNPAR   = 154   ! For APM (G. Luo, 3/8/11)

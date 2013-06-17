@@ -1293,9 +1293,11 @@ c            call getCondSink(Nk2,Mk2,Nnuc2,Mnuc2,srtso4,CStest,sinkfrac)
             enddo
             
             if( (tmass+mcond)/tnumb  > Xk(ibins) ) then
-               print*,'Not enough aerosol for condensation!'
-               print*,'  Exiting COND_NUC iteration with '
-               print*,time_rem,'sec remaining time'
+               if( .not. SPINUP(10.0) ) then
+                  print*,'Not enough aerosol for condensation!'
+                  print*,'  Exiting COND_NUC iteration with '
+                  print*,time_rem,'sec remaining time'
+               endif
 
                Gc3(srtnh4)=Gc2(srtnh4)
                do k=1,ibins
