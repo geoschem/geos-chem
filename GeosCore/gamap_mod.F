@@ -1654,7 +1654,7 @@
       ! SEAC4RS passive tracers (jaf, 6/14/13)
       USE TRACERID_MOD, ONLY : IDTPCOBCN, IDBPCOBCN
       USE TRACERID_MOD, ONLY : IDTPCOBSE, IDBPCOBSE
-      USE TRACERID_MOD, ONLY : IDTPCOBWE, IDBPCOBWE
+      USE TRACERID_MOD, ONLY : IDTPCOBW,  IDBPCOBW
       USE TRACERID_MOD, ONLY : IDTPCOBRW, IDBPCOBRW
 
       USE TRACERID_MOD, ONLY : N_Hg_CATS  !CDH for snowpack
@@ -5314,9 +5314,9 @@
                   MOLC (T,28) = 1
                   UNIT (T,28) = 'molec/cm2/s'
 
-               ELSE IF ( T == IDBPCOBWE ) THEN
-                  NAME (T,28) = 'PCOBWE'
-                  INDEX(T,28) = IDTPCOBWE + ( SPACING * 45 )
+               ELSE IF ( T == IDBPCOBW ) THEN
+                  NAME (T,28) = 'PCOBW'
+                  INDEX(T,28) = IDTPCOBW + ( SPACING * 45 )
                   MWT  (T,28) = 28e-3
                   MOLC (T,28) = 1
                   UNIT (T,28) = 'molec/cm2/s'

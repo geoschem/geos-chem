@@ -204,7 +204,7 @@
       ! SEAC4RS passive tracers (jaf, 6/14/13)
       USE GRID_MOD,           ONLY : GET_XMID,  GET_YMID
       USE TRACERID_MOD,       ONLY : IDBPCOBCN, IDBPCOBSE
-      USE TRACERID_MOD,       ONLY : IDBPCOBWE, IDBPCOBRW
+      USE TRACERID_MOD,       ONLY : IDBPCOBW, IDBPCOBRW
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! Diagnostic flags
@@ -427,7 +427,7 @@
 
          ! SEAC4RS passive tracers (jaf, 6/14/13)
          IF ( (IDBPCOBCN > 0) .or. (IDBPCOBSE > 0) .or.
-     &        (IDBPCOBWE > 0) .or. (IDBPCOBRW > 0)) THEN
+     &        (IDBPCOBW > 0)  .or. (IDBPCOBRW > 0)) THEN
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -448,8 +448,8 @@
      &              BIOMASS(I,J,IDBPCOBSE) = BIOMASS(I,J,IDBCO)
             ELSE IF ( (X >= -125.0) .AND. (X < -100.0)   .AND.
      &                (Y >=   31.0) .AND. (Y <   50.0) ) THEN
-               IF ( IDBPCOBWE > 0 ) 
-     &              BIOMASS(I,J,IDBPCOBWE) = BIOMASS(I,J,IDBCO)
+               IF ( IDBPCOBW > 0 ) 
+     &              BIOMASS(I,J,IDBPCOBW) = BIOMASS(I,J,IDBCO)
             ELSE
                IF ( IDBPCOBRW > 0 ) 
      &              BIOMASS(I,J,IDBPCOBRW) = BIOMASS(I,J,IDBCO)
@@ -539,7 +539,7 @@
 
       ! SEAC4RS passive tracers (jaf, 6/14/13)
       USE TRACERID_MOD, ONLY : IDBPCOBCN, IDBPCOBSE
-      USE TRACERID_MOD, ONLY : IDBPCOBWE, IDBPCOBRW
+      USE TRACERID_MOD, ONLY : IDBPCOBW, IDBPCOBRW
 
       USE TRACERID_MOD, ONLY : IDTNO,   IDTCO,   IDTALK4, IDTACET 
       USE TRACERID_MOD, ONLY : IDTMEK,  IDTALD2, IDTPRPE, IDTC3H8
@@ -552,7 +552,7 @@
 
       ! SEAC4RS passive tracers (jaf, 6/14/13)
       USE TRACERID_MOD, ONLY : IDTPCOBCN, IDTPCOBSE
-      USE TRACERID_MOD, ONLY : IDTPCOBWE, IDTPCOBRW
+      USE TRACERID_MOD, ONLY : IDTPCOBW, IDTPCOBRW
 
       USE TRACER_MOD,   ONLY : ITS_A_CH4_SIM ! (mpayer, 2/14/12)
 
@@ -598,7 +598,7 @@
       ! SEAC4RS passive tracers (jaf, 6/14/13)
       IF ( IDBPCOBCN /= 0 ) NBIOTRCE = NBIOTRCE + 1 
       IF ( IDBPCOBSE /= 0 ) NBIOTRCE = NBIOTRCE + 1 
-      IF ( IDBPCOBWE /= 0 ) NBIOTRCE = NBIOTRCE + 1 
+      IF ( IDBPCOBW  /= 0 ) NBIOTRCE = NBIOTRCE + 1 
       IF ( IDBPCOBRW /= 0 ) NBIOTRCE = NBIOTRCE + 1 
 
       ! Fill BIOTRCE w/ appropriate TRACER ID #'s
@@ -639,7 +639,7 @@
       ! SEAC4RS passive tracers (jaf, 6/14/13)
       IF ( IDBPCOBCN /= 0 ) BIOTRCE(IDBPCOBCN) = IDTPCOBCN
       IF ( IDBPCOBSE /= 0 ) BIOTRCE(IDBPCOBSE) = IDTPCOBSE
-      IF ( IDBPCOBWE /= 0 ) BIOTRCE(IDBPCOBWE) = IDTPCOBWE
+      IF ( IDBPCOBW  /= 0 ) BIOTRCE(IDBPCOBW)  = IDTPCOBW
       IF ( IDBPCOBRW /= 0 ) BIOTRCE(IDBPCOBRW) = IDTPCOBRW
 
       ! Set T/F of BIOBGAS() (hotp 8/3/09)
@@ -681,7 +681,7 @@
       ! SEAC4RS passive tracers (jaf, 6/14/13)
       IF ( IDBPCOBCN /= 0 ) BIOBGAS(IDBPCOBCN) = .TRUE.
       IF ( IDBPCOBSE /= 0 ) BIOBGAS(IDBPCOBSE) = .TRUE.
-      IF ( IDBPCOBWE /= 0 ) BIOBGAS(IDBPCOBWE) = .TRUE.
+      IF ( IDBPCOBW  /= 0 ) BIOBGAS(IDBPCOBW)  = .TRUE.
       IF ( IDBPCOBRW /= 0 ) BIOBGAS(IDBPCOBRW) = .TRUE.
 
 

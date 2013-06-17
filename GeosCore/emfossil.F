@@ -44,10 +44,10 @@
       ! SEAC4RS passive tracers (jaf, 6/13/13)
       USE GRID_MOD,           ONLY : GET_XMID,  GET_YMID
       USE TRACERID_MOD,       ONLY : IDECO
-      USE TRACERID_MOD,       ONLY : IDTPCOFOV, IDTPCOFSE
-      USE TRACERID_MOD,       ONLY : IDTPCOFUS, IDTPCOFRW
+      USE TRACERID_MOD,       ONLY : IDTPCOFNE, IDTPCOFSE
+      USE TRACERID_MOD,       ONLY : IDTPCOFW, IDTPCOFRW
       USE TRACERID_MOD,       ONLY : IDTPCOBCN, IDTPCOBSE
-      USE TRACERID_MOD,       ONLY : IDTPCOBWE, IDTPCOBRW
+      USE TRACERID_MOD,       ONLY : IDTPCOBW, IDTPCOBRW
 
 
       USE CMN_SIZE_MOD             ! Size parameters
@@ -958,15 +958,15 @@
          EMISRR(I,J,N) = EMISRR(I,J,N) + EMX(1) * XNUMOL(NN) / DTSRCE
 
          ! SEAC4RS passive tracers (jaf, 6/13/13)
-         IF ( (NN == IDTPCOFOV) .or. (NN == IDTPCOFSE) .or.
-     &        (NN == IDTPCOFUS) .or. (NN == IDTPCOFRW) ) THEN
+         IF ( (NN == IDTPCOFNE) .or. (NN == IDTPCOFSE) .or.
+     &        (NN == IDTPCOFW)  .or. (NN == IDTPCOFRW) ) THEN
 
             X = GET_XMID( I, J, 1 )
             Y = GET_YMID( I, J, 1 )
 
             IF (      (X >= -100.0) .AND. (X <  -70.0)   .AND.
      &                (Y >=   37.0) .AND. (Y <   50.0) ) THEN  
-               IF     ( NN == IDTPCOFOV ) THEN
+               IF     ( NN == IDTPCOFNE ) THEN
                     EMISRR(I,J,N) = EMISRR(I,J,IDECO)
                     EMX(1) = EMISRR(I,J,N) * DTSRCE / XNUMOL(NN)
                ENDIF
@@ -978,7 +978,7 @@
                ENDIF
             ELSE IF ( (X >= -125.0) .AND. (X < -100.0)  .AND.
      &                (Y >=   31.0) .AND. (Y <   50.0) ) THEN  
-               IF     ( NN == IDTPCOFUS ) THEN
+               IF     ( NN == IDTPCOFW ) THEN
                     EMISRR(I,J,N) = EMISRR(I,J,IDECO)
                     EMX(1) = EMISRR(I,J,N) * DTSRCE / XNUMOL(NN)
                ENDIF
@@ -995,7 +995,7 @@
          ! zero the fossil fuel emissions for the biomass burning only
          ! passive tracers (jaf, 6/14/13)
          IF ( (NN == IDTPCOBCN) .or. (NN == IDTPCOBSE) .or. 
-     &        (NN == IDTPCOBWE) .or. (NN == IDTPCOBRW) ) THEN
+     &        (NN == IDTPCOBW)  .or. (NN == IDTPCOBRW) ) THEN
             EMISRR(I,J,N) = 0d0
             EMX(1) = 0d0
          ENDIF

@@ -676,7 +676,7 @@
                   Y = GET_YMID(I, J, 1)
 
                   IF ( (X >= -100.0) .AND. (X <  -75.0)  .AND.
-     &                 (Y >=   25.0) .AND. (Y <   37.0) ) THEN  
+     &                 (Y >=   25.0) .AND. (Y <   40.0) ) THEN  
                      EMISRR(I,J,IDEPISOP) = EMISRR(I,J,IDEPISOP) + 
      &                                      ( EMIS_ISOP / DTSRCE )
                      IF ( ND46 > 0 ) AD46(I,J,23) = AD46(I,J,23) +

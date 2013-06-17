@@ -253,8 +253,8 @@
       !sfarina - leaving IDH2SO4 defined regardless of sim.
 
       ! SEAC4RS passive tracers (jaf, 6/13/13)
-      INTEGER            :: IDPCOFOV, IDPCOFSE, IDPCOFUS, IDPCOFRW
-      INTEGER            :: IDPCOBCN, IDPCOBSE, IDPCOBWE, IDPCOBRW
+      INTEGER            :: IDPCOFNE, IDPCOFSE, IDPCOFW, IDPCOFRW
+      INTEGER            :: IDPCOBCN, IDPCOBSE, IDPCOBW, IDPCOBRW
       INTEGER            :: IDPISOP
 
       ! GEOS-CHEM tracer ID's
@@ -420,8 +420,8 @@
       INTEGER            :: IDTCH3Br
 
       ! SEAC4RS passive tracers (jaf, 6/13/13)
-      INTEGER            :: IDTPCOFOV, IDTPCOFSE, IDTPCOFUS, IDTPCOFRW
-      INTEGER            :: IDTPCOBCN, IDTPCOBSE, IDTPCOBWE, IDTPCOBRW
+      INTEGER            :: IDTPCOFNE, IDTPCOFSE, IDTPCOFW, IDTPCOFRW
+      INTEGER            :: IDTPCOBCN, IDTPCOBSE, IDTPCOBW, IDTPCOBRW
       INTEGER            :: IDTPISOP
 
       ! For tagged Hg simulation
@@ -462,8 +462,8 @@
       INTEGER            :: IDECHBr3, IDECH2Br2, IDEBr2      
 
       ! SEAC4RS passive tracers (jaf, 6/13/13)
-      INTEGER            :: IDEPCOFOV, IDEPCOFSE, IDEPCOFUS, IDEPCOFRW
-      INTEGER            :: IDEPCOBCN, IDEPCOBSE, IDEPCOBWE, IDEPCOBRW
+      INTEGER            :: IDEPCOFNE, IDEPCOFSE, IDEPCOFW, IDEPCOFRW
+      INTEGER            :: IDEPCOBCN, IDEPCOBSE, IDEPCOBW, IDEPCOBRW
       INTEGER            :: IDEPISOP
 
       ! GEOS-CHEM biofuel ID's
@@ -477,7 +477,7 @@
       INTEGER            :: IDBFHAC
 
       ! SEAC4RS passive tracers (jaf, 6/13/13)
-      INTEGER          :: IDBFPCOFOV, IDBFPCOFSE, IDBFPCOFUS, IDBFPCOFRW
+      INTEGER          :: IDBFPCOFNE, IDBFPCOFSE, IDBFPCOFW, IDBFPCOFRW
 
       !BIOMASS BURNING  !(FP,01/27/10)
       INTEGER            :: IDBNO,   IDBCO,   IDBALK4, IDBACET 
@@ -496,7 +496,7 @@
       INTEGER            :: IDBGLYC, IDBHAC      
       
       ! SEAC4RS passive tracers (jaf, 6/13/13)
-      INTEGER            :: IDBPCOBCN, IDBPCOBSE, IDBPCOBWE, IDBPCOBRW
+      INTEGER            :: IDBPCOBCN, IDBPCOBSE, IDBPCOBW, IDBPCOBRW
 
       CONTAINS
 
@@ -1165,20 +1165,20 @@
             !--------------------------------
             ! SEAC4RS passive tracers
             !--------------------------------
-            CASE ( 'PCOFOV' )
+            CASE ( 'PCOFNE' )
                COUNT      = COUNT + 1
-               IDTPCOFOV  = N
-               IDBFPCOFOV = COUNT
+               IDTPCOFNE  = N
+               IDBFPCOFNE = COUNT
 
             CASE ( 'PCOFSE' )
                COUNT      = COUNT + 1
                IDTPCOFSE  = N
                IDBFPCOFSE = COUNT
 
-            CASE ( 'PCOFUS' )
+            CASE ( 'PCOFW' )
                COUNT      = COUNT + 1
-               IDTPCOFUS  = N
-               IDBFPCOFUS = COUNT
+               IDTPCOFW   = N
+               IDBFPCOFW  = COUNT
 
             CASE ( 'PCOFRW' )
                COUNT      = COUNT + 1
@@ -1199,12 +1199,12 @@
                COUNT_BB  = COUNT_BB + 1
                IDBPCOBSE = COUNT_BB
 
-            CASE ( 'PCOBWE' )
+            CASE ( 'PCOBW' )
                COUNT      = COUNT + 1
-               IDTPCOBWE  = N
+               IDTPCOBW   = N
 
                COUNT_BB  = COUNT_BB + 1
-               IDBPCOBWE = COUNT_BB
+               IDBPCOBW  = COUNT_BB
 
             CASE ( 'PCOBRW' )
                COUNT      = COUNT + 1
@@ -2628,17 +2628,17 @@
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
          ! SEAC4RS passive tracers (jaf, 6/13/13)
-         IF ( IDTPCOFOV > 0 ) THEN
+         IF ( IDTPCOFNE > 0 ) THEN
             NEMANTHRO = NEMANTHRO + 1
-            IDEPCOFOV = NEMANTHRO
+            IDEPCOFNE = NEMANTHRO
          ENDIF
          IF ( IDTPCOFSE > 0 ) THEN
             NEMANTHRO = NEMANTHRO + 1
             IDEPCOFSE = NEMANTHRO
          ENDIF
-         IF ( IDTPCOFUS > 0 ) THEN
+         IF ( IDTPCOFW > 0 ) THEN
             NEMANTHRO = NEMANTHRO + 1
-            IDEPCOFUS = NEMANTHRO
+            IDEPCOFW  = NEMANTHRO
          ENDIF
          IF ( IDTPCOFRW > 0 ) THEN
             NEMANTHRO = NEMANTHRO + 1
@@ -2652,9 +2652,9 @@
             NEMANTHRO = NEMANTHRO + 1
             IDEPCOBSE = NEMANTHRO
          ENDIF
-         IF ( IDTPCOBWE > 0 ) THEN
+         IF ( IDTPCOBW > 0 ) THEN
             NEMANTHRO = NEMANTHRO + 1
-            IDEPCOBWE = NEMANTHRO
+            IDEPCOBW  = NEMANTHRO
          ENDIF
          IF ( IDTPCOBRW > 0 ) THEN
             NEMANTHRO = NEMANTHRO + 1
@@ -2745,13 +2745,13 @@
       IF ( IDEHCOOH /= 0 ) IDEMS(IDEHCOOH)= IDTHCOOH
       IF ( IDEACTA /= 0 )  IDEMS(IDEACTA) = IDTACTA
       ! SEAC4RS passive tracers (jaf, 6/13/13)
-      IF ( IDEPCOFOV /= 0 ) IDEMS(IDEPCOFOV) = IDTPCOFOV
+      IF ( IDEPCOFNE /= 0 ) IDEMS(IDEPCOFNE) = IDTPCOFNE
       IF ( IDEPCOFSE /= 0 ) IDEMS(IDEPCOFSE) = IDTPCOFSE
-      IF ( IDEPCOFUS /= 0 ) IDEMS(IDEPCOFUS) = IDTPCOFUS
+      IF ( IDEPCOFW  /= 0 ) IDEMS(IDEPCOFW)  = IDTPCOFW
       IF ( IDEPCOFRW /= 0 ) IDEMS(IDEPCOFRW) = IDTPCOFRW
       IF ( IDEPCOBCN /= 0 ) IDEMS(IDEPCOBCN) = IDTPCOBCN
       IF ( IDEPCOBSE /= 0 ) IDEMS(IDEPCOBSE) = IDTPCOBSE
-      IF ( IDEPCOBWE /= 0 ) IDEMS(IDEPCOBWE) = IDTPCOBWE
+      IF ( IDEPCOBW  /= 0 ) IDEMS(IDEPCOBW)  = IDTPCOBW
       IF ( IDEPCOBRW /= 0 ) IDEMS(IDEPCOBRW) = IDTPCOBRW
       IF ( IDEPISOP  /= 0 ) IDEMS(IDEPISOP)  = IDTPISOP
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2809,13 +2809,13 @@
          WRITE( 6, 120 ) 'IDERCHO ', IDERCHO
          WRITE( 6, 120 ) 'IDEHCOOH', IDEHCOOH
          WRITE( 6, 120 ) 'IDEACTA ', IDEACTA
-         WRITE( 6, 120 ) 'IDEPCOFOV', IDEPCOFOV
+         WRITE( 6, 120 ) 'IDEPCOFNE', IDEPCOFNE
          WRITE( 6, 120 ) 'IDEPCOFSE', IDEPCOFSE
-         WRITE( 6, 120 ) 'IDEPCOFUS', IDEPCOFUS
+         WRITE( 6, 120 ) 'IDEPCOFW',  IDEPCOFW
          WRITE( 6, 120 ) 'IDEPCOFRW', IDEPCOFRW
          WRITE( 6, 120 ) 'IDEPCOBCN', IDEPCOBCN
          WRITE( 6, 120 ) 'IDEPCOBSE', IDEPCOBSE
-         WRITE( 6, 120 ) 'IDEPCOBWE', IDEPCOBWE
+         WRITE( 6, 120 ) 'IDEPCOBW',  IDEPCOBW
          WRITE( 6, 120 ) 'IDEPCOBRW', IDEPCOBRW
          WRITE( 6, 120 ) 'IDEPISOP ', IDEPISOP
          WRITE( 6, 120 ) 'IDEMBO  ', IDEMBO
@@ -3017,13 +3017,13 @@
          IF ( NAMEGAS(I) == 'LXRO2H'   ) IDLXRO2H   = I
          IF ( NAMEGAS(I) == 'LXRO2N'   ) IDLXRO2N   = I
          ! SEAC4RS passive tracers (jaf, 6/13/13)
-         IF ( NAMEGAS(I) == 'PCOFOV'   ) IDPCOFOV   = I
+         IF ( NAMEGAS(I) == 'PCOFNE'   ) IDPCOFNE   = I
          IF ( NAMEGAS(I) == 'PCOFSE'   ) IDPCOFSE   = I
-         IF ( NAMEGAS(I) == 'PCOFUS'   ) IDPCOFUS   = I
+         IF ( NAMEGAS(I) == 'PCOFW'    ) IDPCOFW    = I
          IF ( NAMEGAS(I) == 'PCOFRW'   ) IDPCOFRW   = I
          IF ( NAMEGAS(I) == 'PCOBCN'   ) IDPCOBCN   = I
          IF ( NAMEGAS(I) == 'PCOBSE'   ) IDPCOBSE   = I
-         IF ( NAMEGAS(I) == 'PCOBWE'   ) IDPCOBWE   = I
+         IF ( NAMEGAS(I) == 'PCOBW'    ) IDPCOBW    = I
          IF ( NAMEGAS(I) == 'PCOBRW'   ) IDPCOBRW   = I
          IF ( NAMEGAS(I) == 'PISOP'    ) IDPISOP    = I
       ENDDO
@@ -4089,13 +4089,13 @@
       ! +++++++++++++++++
 
       ! SEAC4RS passive tracers (jaf, 6/13/13)
-      IDPCOFOV  = 0
+      IDPCOFNE  = 0
       IDPCOFSE  = 0
-      IDPCOFUS  = 0
+      IDPCOFW   = 0
       IDPCOFRW  = 0
       IDPCOBCN  = 0
       IDPCOBSE  = 0
-      IDPCOBWE  = 0
+      IDPCOBW   = 0
       IDPCOBRW  = 0
       IDPISOP   = 0
 
@@ -4221,13 +4221,13 @@
       IDTPYPAN   = 0
  
       ! SEAC4RS passive tracers (jaf, 6/13/13)
-      IDTPCOFOV  = 0
+      IDTPCOFNE  = 0
       IDTPCOFSE  = 0
-      IDTPCOFUS  = 0
+      IDTPCOFW   = 0
       IDTPCOFRW  = 0
       IDTPCOBCN  = 0
       IDTPCOBSE  = 0
-      IDTPCOBWE  = 0
+      IDTPCOBW   = 0
       IDTPCOBRW  = 0
       IDTPISOP   = 0
 
@@ -4646,13 +4646,13 @@
       IDEBr2    = 0 ! jpp, 3/2/10
 
       ! SEAC4RS passive tracers (jaf, 6/13/13)
-      IDEPCOFOV  = 0
+      IDEPCOFNE  = 0
       IDEPCOFSE  = 0
-      IDEPCOFUS  = 0
+      IDEPCOFW   = 0
       IDEPCOFRW  = 0
       IDEPCOBCN  = 0
       IDEPCOBSE  = 0
-      IDEPCOBWE  = 0
+      IDEPCOBW   = 0
       IDEPCOBRW  = 0
       IDEPISOP   = 0
 
@@ -4678,9 +4678,9 @@
       IDBFHAC   = 0
 
       ! SEAC4RS passive tracers (jaf, 6/13/13)
-      IDBFPCOFOV  = 0
+      IDBFPCOFNE  = 0
       IDBFPCOFSE  = 0
-      IDBFPCOFUS  = 0
+      IDBFPCOFW   = 0
       IDBFPCOFRW  = 0
 
       ! Initialize IDBs for BIOMASS BURNING (hotp 8/24/09)
@@ -4715,7 +4715,7 @@
       ! SEAC4RS passive tracers (jaf, 6/13/13)
       IDBPCOBCN  = 0
       IDBPCOBSE  = 0
-      IDBPCOBWE  = 0
+      IDBPCOBW   = 0
       IDBPCOBRW  = 0
 
       !-----------------------------------
