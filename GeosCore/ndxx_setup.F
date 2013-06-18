@@ -65,6 +65,7 @@
       USE DIAG_MOD,        ONLY : AD19,        AD58,        AD60
       USE DIAG_MOD,        ONLY : AD55,        AD66,        AD67
       USE DIAG_MOD,        ONLY : AD68,        AD69,        CTO3
+      USE DIAG_MOD,        ONLY : AD71
       USE DIAG_MOD,        ONLY : AD10,        AD10em,      CTO3_24h
       USE DIAG63_MOD,      ONLY : DO_SAVE_DIAG63
       ! Add O3 for ND45 diag. (ccc, 8/12/09)
@@ -1183,6 +1184,18 @@
          ALLOCATE( AD69( IIPAR, JJPAR, PD69 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD69' )
       ENDIF
+
+      !=================================================================
+      ! ND71: Radiative output diagnostics (TOASW, SRFSW, TOALW, SRFLW,
+      !       GTOASW, GSRFSW, GTOALW, GSRFLW, ATOASW, ASRFSW, ATOALW,
+      !       ASRFLW) for both clear and all sky (prefix CLR and ALL)
+      !       --> uses AD69 array (allocatable)
+      !=================================================================
+      IF ( ND71 > 0 ) THEN
+         ALLOCATE( AD71( IIPAR, JJPAR, PD71 ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD71' )
+      ENDIF
+
 
       END SUBROUTINE NDXX_SETUP
 !EOC
