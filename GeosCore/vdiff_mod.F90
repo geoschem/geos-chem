@@ -1806,6 +1806,7 @@ contains
     USE TRACER_MOD,         ONLY : ITS_A_CH4_SIM
     USE TRACER_MOD,         ONLY : ITS_A_MERCURY_SIM ! (cdh 8/28/09)
     USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM  !bmy
+    USE TRACER_MOD,         ONLY : ITS_AN_AEROSOL_SIM
     USE TRACERID_MOD,       ONLY : IS_Hg0, IS_Hg2, IS_HgP
     USE VDIFF_PRE_MOD,      ONLY : IIPAR, JJPAR, IDEMS, NEMIS, NCS, ND44, &
                                    NDRYDEP, emis_save
@@ -1851,6 +1852,7 @@ contains
 !  22 Jun 2012 - R. Yantosca - Now use pointers to flip arrays in vertical
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  18 Jun 2013 - M. Payer    - Add emissions for offline aerosol simulation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1888,7 +1890,7 @@ contains
     REAL*8, dimension(IIPAR, JJPAR, N_TRACERS)  :: as2_scal
 
     ! Add flags
-    LOGICAL :: IS_CH4, IS_FULLCHEM, IS_Hg, IS_TAGOx, IS_TAGCO
+    LOGICAL :: IS_CH4, IS_FULLCHEM, IS_Hg, IS_TAGOx, IS_TAGCO, IS_AEROSOL
 
     ! Pointers 
     REAL*8,  POINTER :: p_um1   (:,:,:  )
@@ -1944,6 +1946,7 @@ contains
     IS_Hg       = ITS_A_MERCURY_SIM()
     IS_TAGCO    = ITS_A_TAGCO_SIM()
     IS_TAGOX    = ITS_A_TAGOX_SIM()
+    IS_AEROSOL  = ITS_AN_AEROSOL_SIM()
 
     dtime = GET_TS_CONV()*60d0 ! min -> second
     
@@ -2043,6 +2046,23 @@ contains
              if ( ID_EMITTED(N) .le. 0 ) cycle
              eflx(I,J,N) = eflx(I,J,N) * TRACER_COEFF(N,ID_EMITTED(N))
           enddo
+
+          ! add surface emis of aerosols 
+          ! (after converting kg/box/timestep to kg/m2/s)
+          ! Should NOT use ID_EMITTED here, since it is only for gases 
+          ! for SMVGEAR. (Lin, 06/10/08)
+          do N = 1, N_TRACERS
+             eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N)       &
+                                       / GET_AREA_M2( I, J, 1 ) &
+                                       / GET_TS_EMIS() / 60.d0
+          enddo
+
+       ENDIF
+
+       !----------------------------------------------------------------
+       ! Add emissions for offline aerosol simulation
+       !----------------------------------------------------------------
+       IF ( IS_AEROSOL ) THEN
 
           ! add surface emis of aerosols 
           ! (after converting kg/box/timestep to kg/m2/s)
