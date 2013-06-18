@@ -17,7 +17,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-
+      USE JV_CMN_MOD, ONLY : NSPECRADMENU
       IMPLICIT NONE
       PUBLIC
 !
@@ -87,7 +87,7 @@
       INTEGER, PARAMETER :: PD18=8
       INTEGER, PARAMETER :: PD19=0            
       INTEGER, PARAMETER :: PD20=0 
-      INTEGER, PARAMETER :: PD21=27
+      INTEGER, PARAMETER :: PD21=27 !51 includes SSA and ASYM (dar)
       INTEGER, PARAMETER :: PD22=14      !jpp replaced 8, 4/24/2011... for Br.
       INTEGER, PARAMETER :: PD23=0           
       INTEGER, PARAMETER :: PD24=NNPAR        
@@ -147,11 +147,15 @@
       INTEGER, PARAMETER :: PD68=4            
       INTEGER, PARAMETER :: PD69=1
       INTEGER, PARAMETER :: PD70=0
+      !number of rad flux output types
+      INTEGER, PARAMETER :: PD71R=11
+      !total number of possible rad outputs (types*specs)
+      INTEGER, PARAMETER :: PD71=PD71R*(NSPECRADMENU+2) ! Radiation (Ridley 10/2012)
 
       !=================================================================
       ! Variables for printing out selected tracers in diagnostic output
       !=================================================================
-      INTEGER, PARAMETER :: MAX_DIAG   = 70
+      INTEGER, PARAMETER :: MAX_DIAG   = 71
 #if   defined( TOMAS )
       INTEGER, PARAMETER :: MAX_TRACER = NNPAR+1   ! For TOMAS (win, 1/25/10)
 #elif defined( APM ) 
