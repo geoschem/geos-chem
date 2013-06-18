@@ -5111,7 +5111,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*4 :: TMP
+      REAL*4 :: A. B. JD, THISDAY, TMP
 
       !=================================================================
       ! Set time/date values of time_mod.F from the ESMF inputs 
