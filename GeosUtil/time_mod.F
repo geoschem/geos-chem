@@ -5103,6 +5103,8 @@
 ! !REVISION HISTORY: 
 !  06 Dec 2012 - Initial version
 !  11 Dec 2012 - R. Yantosca - Renamed to ACCEPT_EXTERNAL_DATE_TIME
+!  18 Jun 2013 - R. Yantosca - Now compute day of week w/r/t GMT, which is
+!                              the same modification made in SET_CURRENT_TIME
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5176,6 +5178,15 @@
          CASE ( 9, 10, 11 )
             NSEASON = 4
       END SELECT
+
+      ! Day of week w/r/t the GMT date  
+      ! Use same algorithm as in routine SET_CURRENT_TIME
+      THISDAY     = DAY + ( GMT / 24d0 )
+      JD          = JULDAY( YEAR, MONTH, THISDAY )
+      A           = ( JD + 1.5d0 ) / 7d0
+      B           = ( A - INT( A ) ) * 7d0
+      B           = INT( NINT( B*1d5 + SIGN( 5d0, B ) ) / 10d0 ) / 1d4
+      DAY_OF_WEEK = INT( B )
 
       ! Return successfully
       RC = GIGC_SUCCESS
