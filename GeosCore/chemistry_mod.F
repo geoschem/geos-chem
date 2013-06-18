@@ -275,7 +275,7 @@
       IT_IS_A_H2HD_SIM         = Input_Opt%ITS_A_H2HD_SIM
       IT_IS_A_HCN_SIM          = Input_Opt%ITS_A_HCN_SIM
       IT_IS_A_MERCURY_SIM      = Input_Opt%ITS_A_MERCURY_SIM
-      IT_IS_A_RnPbBe_SIM       = Input_Opt%ITS_A_TAGCO_SIM
+      IT_IS_A_RnPbBe_SIM       = Input_Opt%ITS_A_RnPbBe_SIM
       IT_IS_A_TAGCO_SIM        = Input_Opt%ITS_A_TAGCO_SIM
       IT_IS_A_TAGOX_SIM        = Input_Opt%ITS_A_TAGOX_SIM
       IT_IS_A_POPS_SIM         = Input_Opt%ITS_A_POPS_SIM
