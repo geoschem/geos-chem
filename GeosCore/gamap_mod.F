@@ -113,6 +113,9 @@
       ! Other variables
       CHARACTER(LEN=16)              :: STAMP
       CHARACTER(LEN=40)              :: SIM_NAME
+      ! Used for ND71
+      CHARACTER(LEN=40)              :: NAME0
+      CHARACTER(LEN=40)              :: FNAME0
 
       CONTAINS
 !EOC
@@ -1321,6 +1324,10 @@
       DESCRIPT(N) = 'Ship diagnostics'
       OFFSET(N)   = SPACING * 59
 
+      N           = N + 1
+      CATEGORY(N) = 'RADMAP-$'
+      DESCRIPT(N) = 'Radiative diagnostics'
+      OFFSET(N)   = SPACING * 71
 
 ! NEED TO DO THAT AT ONE POINT      
 !      ! New for CSPEC
@@ -1396,6 +1403,8 @@
       USE TRACERID_MOD, ONLY : IDTBCPI,   IDTOCPI
       USE TRACERID_MOD, ONLY : IDTXYLE, IDTBENZ, IDTTOLU
       USE TRACERID_MOD, ONLY : N_Hg_CATS  !CDH for snowpack
+      USE CMN_DIAG_MOD, ONLY : PD71R
+      USE JV_CMN_MOD,   ONLY : NSPECRADMENU
 ! 
 ! !REVISION HISTORY: 
 !  17 Oct 1996 - R. Yantosca & P. Le Sager - Initial version
@@ -1436,7 +1445,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: N, NN, NYMDb, NHMSb, T
+      INTEGER :: N, NN, NYMDb, NHMSb, T, T0, T1
       LOGICAL :: DO_TIMESERIES
 
 
@@ -3934,6 +3943,117 @@
          MWT  (T,69) = 0e0
          SCALE(T,69) = 1e0
       ENDIF
+      !-------------------------------------
+      ! Radiation outputs (ND71)
+      !-------------------------------------
+      IF ( ND71 > 0 .or. DO_TIMESERIES ) THEN
+
+         ! Number of tracers
+         NTRAC(71) = (NSPECRADMENU+2)*PD71R
+
+         ! Loop over tracers
+         DO T = 1, NTRAC(71)
+
+            ! Define quantities
+            INDEX(T,71) = T + ( SPACING * 71 )
+            MOLC (T,21) = 1
+            MWT  (T,21) = 0e0
+            SCALE(T,21) = 1e0
+            !get number of current flux type
+            T0 = ((T-1)/(NSPECRADMENU+2))+1
+            SELECT CASE( T0 )
+               CASE( 1  )
+                  NAME0       = 'TOASWA'
+                  FNAME0      = 'TOA SW All-sky'
+               CASE( 2  )
+                  NAME0       = 'SRFSWA'
+                  FNAME0      = 'Surface SW All-sky'
+               CASE( 3  )
+                  NAME0       = 'TOALWA'
+                  FNAME0      = 'TOA LW All-sky'
+               CASE( 4  )
+                  NAME0       = 'SRFLWA'
+                  FNAME0      = 'Surface LW All-sky'
+               CASE( 5  )
+                  NAME0       = 'TOASWC'
+                  FNAME0      = 'TOA SW Clear-sky'
+               CASE( 6  )
+                  NAME0       = 'SRFSWC'
+                  FNAME0      = 'Surface SW Clear-sky'
+               CASE( 7  )
+                  NAME0       = 'TOALWC'
+                  FNAME0      = 'TOA LW Clear-sky'
+               CASE( 8  )
+                  NAME0       = 'SRFLWC'
+                  FNAME0      = 'Surface LW Clear-sky'
+               CASE( 9  )
+                  NAME0       = 'AODRT'
+                  FNAME0      = 'aerosol optical depth'
+               CASE( 10 )
+                  NAME0       = 'SSART'
+                  FNAME0      = 'Single scat. albedo'
+               CASE( 11 )
+                  NAME0       = 'ASYMRT'
+                  FNAME0      = 'asymmetry parameter'
+            END SELECT
+
+            ! Get name long-name (and sometimes, unit)
+            T1=MOD((T-1),(NSPECRADMENU+2))+1
+            SELECT CASE( T1 )
+               CASE( 1  )
+                  NAME (T,71) = 'BA' // TRIM(NAME0)
+                  FNAME(T,71) = 'Clear ' // TRIM(FNAME0)
+                  UNIT (T,71) = 'W/m2'
+               CASE( 2  )
+                  NAME (T,71) = 'SM' // TRIM(NAME0)
+                  FNAME(T,71) = 'Combined ' // TRIM(FNAME0)
+                  UNIT (T,71) = 'W/m2'
+               CASE( 3  )
+                  NAME (T,71) = 'O3' // TRIM(NAME0)
+                  FNAME(T,71) = 'Ozone ' // TRIM(FNAME0)
+                  UNIT (T,71) = 'W/m2'
+               CASE( 4  )
+                  NAME (T,71) = 'CH' // TRIM(NAME0)
+                  FNAME(T,71) = 'Methane ' // TRIM(FNAME0)
+                  UNIT (T,71) = 'W/m2'
+               CASE( 5  )
+                  NAME (T,71) = 'SU' // TRIM(NAME0)
+                  FNAME(T,71) = 'Sulfate ' // TRIM(FNAME0)
+                  UNIT (T,71) = 'W/m2'
+               CASE( 6  )
+                  NAME (T,71) = 'NI' // TRIM(NAME0)
+                  FNAME(T,71) = 'Nitrate ' // TRIM(FNAME0)
+                  UNIT (T,71) = 'W/m2'
+               CASE( 7  )
+                  NAME (T,71) = 'AM' // TRIM(NAME0)
+                  FNAME(T,71) = 'Ammon. ' // TRIM(FNAME0)
+                  UNIT (T,71) = 'W/m2'
+               CASE( 8  )
+                  NAME (T,71) = 'BC' // TRIM(NAME0)
+                  FNAME(T,71) = 'BC ' // TRIM(FNAME0)
+                  UNIT (T,71) = 'W/m2'
+               CASE( 9  )
+                  NAME (T,71) = 'OA' // TRIM(NAME0)
+                  FNAME(T,71) = 'Organic ' // TRIM(FNAME0)
+                  UNIT (T,71) = 'W/m2'
+               CASE( 10 )
+                  NAME (T,71) = 'SS' // TRIM(NAME0)
+                  FNAME(T,71) = 'Sea salt ' // TRIM(FNAME0)
+                  UNIT (T,71) = 'W/m2'
+               CASE( 11 )
+                  NAME (T,71) = 'DU' // TRIM(NAME0)
+                  FNAME(T,71) = 'Dust ' // TRIM(FNAME0)
+                  UNIT (T,71) = 'W/m2'
+               CASE( 12 )
+                  NAME (T,71) = 'PM' // TRIM(NAME0)
+                  FNAME(T,71) = 'All aerosol ' // TRIM(FNAME0)
+                  UNIT (T,71) = 'W/m2'
+               END SELECT
+
+
+          ENDDO
+      ENDIF
+
 
       END SUBROUTINE INIT_TRACERINFO
 !EOC
