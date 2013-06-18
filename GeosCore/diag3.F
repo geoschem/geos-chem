@@ -24,6 +24,7 @@
       USE FILE_MOD                           
       USE GRID_MOD, ONLY : GET_AREA_M2, GET_YOFFSET, GET_XOFFSET
       USE TIME_MOD
+      USE JV_CMN_MOD, ONLY : LSPECRADMENU, NSPECRADMENU
 
       ! Modules from GeosCore directory
       USE BPCH2_MOD                          ! For binary punch I/O routines
@@ -189,11 +190,13 @@
       INTEGER            :: I, IREF, J, JREF, L, M, MM, MMB, LMAX
       INTEGER            :: N, NN, NMAX, NTEST, N_TOT_TRC
       INTEGER            :: IE, IN, IS, IW, ITEMP(3)
+      INTEGER            :: NSPECOUT
       REAL*8             :: SCALE_TMP(IIPAR,JJPAR)
       REAL*8             :: SCALE_I6,   SCALE_A6,   SCALE_A3  
       REAL*8             :: SCALE_A1,   SCALED,     SCALEDYN
       REAL*8             :: SCALECONV,  SCALESRCE,  SCALECHEM  
-      REAL*8             :: SCALEDIAG,  SCALE_ND66, SCALE_ND67 
+      REAL*8             :: SCALEDIAG,  SCALE_ND66, SCALE_ND67
+      REAL*8             :: SCALERAD
       REAL*8             :: SCALEX,     SECONDS,    PMASS      
       REAL*8             :: PRESSX,     FDTT,       AREA_M2
       REAL*8             :: DIAGb,      DIAGe,      SCALE_I3
@@ -232,6 +235,7 @@
       SCALECONV  = DBLE( GET_CT_CONV() ) + 1d-32
       SCALESRCE  = DBLE( GET_CT_EMIS() ) + 1d-32
       SCALECHEM  = DBLE( GET_CT_CHEM() ) + 1d-32
+      SCALERAD   = DBLE( GET_CT_RAD()  ) + 1d-32
       SCALE_A1   = DBLE( GET_CT_A1()   ) + 1d-32
       SCALE_A3   = DBLE( GET_CT_A3()   ) + 1d-32
       SCALE_A6   = DBLE( GET_CT_A6()   ) + 1d-32
@@ -1515,7 +1519,7 @@
                ! For all other types of optical depths, we need 
                ! to scale by the chemistry timestep (bmy, 4/9/04)
                ARRAY(:,:,1:LD21) = AD21(:,:,1:LD21,N) / SCALEX
-
+               
             ENDIF
             
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -3738,6 +3742,102 @@
             
       ! Echo output
       WRITE( 6, '(a)' ) '     - DIAG3: Diagnostics written to bpch!'
+!
+!******************************************************************************
+!  ND71: RRTMG radiation fields
+!
+!   # : Field  : Description                      : Units    : Scale
+!   factor
+!  -----------------------------------------------------------------------
+!  (1 ) ALLTOASW  : All-sky TOA SW (Total)        : W/m2     : SCALERAD
+!  (2 ) ALLSRFSW  : All-sky Surface SW (Total)    : W/m2     : SCALERAD
+!  (3 ) ALLTOALW  : All-sky TOA LW (Total)        : W/m2     : SCALERAD
+!  (4 ) ALLSRFLW  : All-sky Surface LW (Total)    : W/m2     : SCALERAD
+!  (5 ) CLRTOASW  : Clear-sky TOA SW (Total)      : W/m2     : SCALERAD
+!  (6 ) CLRSRFSW  : Clear-sky Surface SW (Total)  : W/m2     : SCALERAD
+!  (7 ) CLRTOALW  : Clear-sky TOA LW (Total)      : W/m2     : SCALERAD
+!  (8 ) CLRSRFLW  : Clear-sky Surface LW (Total)  : W/m2     : SCALERAD
+!
+!******************************************************************************
+!
+      !check that RRTMG is actually switched on
+      IF (LRAD) THEN
+      IF ( ND71 > 0 ) THEN
+         CATEGORY = 'RADMAP-$'
+
+         ! ND71 is updated every rad timestep
+         SCALEX = SCALERAD
+         NSPECOUT=NSPECRADMENU+2
+         DO M = 1, TMAX(71)
+            N  = TINDEX(71,M)
+            
+            IF ( N > PD71R ) CYCLE
+             !only output clear-sky and all-sky if they are switched on
+             !or if we're doing the optics
+             IF (((N.LE.4).AND.(LSKYRAD(2).EQ..TRUE.)).OR.
+     &          ((N.GT.4).AND.(N.LE.8).AND.(LSKYRAD(1).EQ..TRUE.)).OR.
+     &           (N.GT.8)) THEN
+             ! Select proper unit string (cf list above)
+             IF (N.LE.8) THEN
+              UNIT = 'W/m2'
+             ELSE
+              !AOD, SSA, ASYM
+              UNIT = 'UNITLESS'
+             ENDIF
+               
+             ! each case is for different output type, within each
+             ! of those are the values for each species in the RAD input
+             ! menu. Only output species that are switched on for each
+           ! output type selected in the ND71 menu
+           DO IS=1,NSPECOUT
+            NN=(N-1)*NSPECOUT+IS
+
+            !if output is a flux...
+            IF (N.LE.8) THEN
+             !always output the baseline flux
+             IF (IS.EQ.1) THEN
+              ARRAY(:,:,1) = AD71(:,:,NN) / SCALEX
+              CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                   HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                   UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                   IIPAR,     JJPAR,     1,        IFIRST,
+     &                   JFIRST,    LFIRST,    ARRAY(:,:,1) )
+             !for other outputs check species has been selected
+             ELSE IF (((IS.EQ.2).AND.(LSUMRAD)).OR.
+     &               ((IS.GE.3).AND.(LSPECRADMENU(IS-2).EQ.1))) THEN
+              DO I=1,IIPAR
+               DO J=1,JJPAR
+                !store as difference in flux from baseline
+                ARRAY(I,J,1) = (AD71(I,J,(N-1)*NSPECOUT+1) - 
+     &                          AD71(I,J,NN))/SCALEX
+               ENDDO
+              ENDDO
+             
+              CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                   HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                   UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                   IIPAR,     JJPAR,     1,        IFIRST,
+     &                   JFIRST,    LFIRST,    ARRAY(:,:,1) )
+             ENDIF
+            ! N > 8 so we are outputting optics
+            ! but only for turned on species and only for aerosols
+            ! i.e. skip IS=3 and IS=4
+            ELSE IF (((IS.EQ.2).AND.(LSUMRAD)).OR.
+     &               ((IS.GE.5).AND.(LSPECRADMENU(IS-2).EQ.1))) THEN
+             !output optics
+              ARRAY(:,:,1) = AD71(:,:,NN) / SCALEX
+              CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                   HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                   UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                   IIPAR,     JJPAR,     1,        IFIRST,
+     &                   JFIRST,    LFIRST,    ARRAY(:,:,1) )
+            ENDIF !flux vs optics check
+           ENDDO
+          ENDIF !all-sky, clear-sky check
+         ENDDO
+      ENDIF
+      ENDIF
+                     
 
       END SUBROUTINE DIAG3    
 !EOC
