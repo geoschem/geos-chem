@@ -45,6 +45,7 @@ include ./Makefile_header.mk
 # Define variables
 GEOSAPM = GeosApm
 GEOSDIR = GeosCore
+GEOSRAD = GeosRad
 GEOSTOM = GeosTomas
 GTMM = GTMM
 
@@ -52,7 +53,7 @@ GTMM = GTMM
 # Makefile targets: type "make help" for a complete list!
 #=============================================================================
 
-.PHONY: all lib libkpp libnc libutil exe clean realclean doc docclean help
+.PHONY: all lib libkpp libnc libutil librad exe clean realclean doc docclean help
 
 all:
 	@$(MAKE) -C $(GEOSDIR) all
@@ -77,6 +78,9 @@ ncdfcheck:
 
 libutil:
 	@$(MAKE) -C $(GEOSDIR) libutil
+
+librad:
+	@$(MAKE) -C $(GEOSDIR) librad
 
 libheaders:
 	@$(MAKE) -C $(GEOSDIR) libheaders

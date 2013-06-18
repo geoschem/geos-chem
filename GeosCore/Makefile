@@ -120,6 +120,7 @@ EXE     := geos
 HDR     := $(ROOTDIR)/Headers
 HELP    := $(ROOTDIR)/help
 ISO     := $(ROOTDIR)/ISOROPIA
+RAD     := $(ROOTDIR)/GeosRad
 LIB     := $(ROOTDIR)/lib
 KPP     := $(ROOTDIR)/KPP
 MOD     := $(ROOTDIR)/mod
@@ -160,16 +161,22 @@ endif
 
 lib:                                               # Build all G-C libraries
 	@$(MAKE) libnc
-	@$(MAKE) libheaders         		  
-	@$(MAKE) libkpp             		  
-	@$(MAKE) libutil 			  
-	@$(MAKE) libiso 			  
-	@$(MAKE) libcore			  
+	@$(MAKE) libheaders
+	@$(MAKE) libkpp
+	@$(MAKE) libutil
+	@$(MAKE) libiso
+	@$(MAKE) librad
+	@$(MAKE) libcore
 
 libcore: $(OBJ)                                    # Build code in GeosCore/
 
 libiso:                                            # Build code in ISOROPIA/
 	@$(MAKE) -C $(ISO)			  
+
+librad:                                            # Build code in GeosRad/
+ifeq ($(RRTMG),yes)
+	@$(MAKE) -C $(RAD)			  
+endif
 
 libkpp:                                            # Build code in KPP/
 	@$(MAKE) -C $(KPP)			  
@@ -207,6 +214,7 @@ realclean:                                         # Remove files everywhere
 	@$(MAKE) -C $(GTMM) clean
 	@$(MAKE) -C $(UTIL) clean
 	@$(MAKE) -C $(HDR) clean
+	@$(MAKE) -C $(RAD) clean
 	@$(MAKE) docclean
 	rm -f $(LIB)/*.a
 	rm -f $(MOD)/*.mod
@@ -415,7 +423,8 @@ cleanup.o                   : cleanup.F                                      \
                               icoads_ship_mod.o       tpcore_fvdas_mod.o     \
                               tpcore_geos5_window_mod.o                      \
                               tpcore_geos57_window_mod.o                     \
-                              retro_mod.o             strat_chem_mod.o
+                              retro_mod.o             strat_chem_mod.o       \
+                              rrtmg_rad_transfer_mod.o
 
 cldice_HBrHOBr_rxn.o        : cldice_HBrHOBr_rxn.F
 
@@ -670,7 +679,7 @@ global_ch4_mod.o            : global_ch4_mod.F                               \
                               diag_oh_mod.o           diag_pl_mod.o          \
                               global_oh_mod.o         logical_mod.o          \
                               tracer_mod.o            vdiff_pre_mod.o        \
-                              biomass_mod.o  
+                              biomass_mod.o 
 
 global_hno3_mod.o           : global_hno3_mod.F                              \
                               dao_mod.o               tracer_mod.o  
@@ -797,7 +806,8 @@ main.o                      : main.F                                         \
                               merra_a3_mod.o          merra_i6_mod.o         \
                               gc_environment_mod.o    geos57_read_mod.o      \
                               diag63_mod.o            olson_landmap_mod.o    \
-                              mapping_mod.o           toms_mod.o
+                              mapping_mod.o           toms_mod.o             \
+                              rrtmg_rad_transfer_mod.o          
 
 mapping_mod.o               : mapping_mod.F90                                \
                               logical_mod.o
@@ -931,6 +941,13 @@ RnPbBe_mod.o                : RnPbBe_mod.F                                   \
                               logical_mod.o           tracer_mod.o           \
                               tropopause_mod.o  		       
 
+rrtmg_rad_transfer_mod.o    : rrtmg_rad_transfer_mod.F                        \
+                              dao_mod.o               comode_mod.o            \
+                              toms_mod.o              tracerid_mod.o          \
+                              diag_mod.o              logical_mod.o           \
+                              tropopause_mod.o        tracer_mod.o            \
+                              set_prof_o3.o
+
 rpmares_mod.o               : rpmares_mod.F                                  \
                               dao_mod.o               global_hno3_mod.o      \
                               tracerid_mod.o          tracer_mod.o           \
@@ -952,6 +969,8 @@ set_aer.o                   : set_aer.F
 
 set_prof.o                  : set_prof.F                                     \
                               dao_mod.o               toms_mod.o
+
+set_prof_o3.o               : set_prof_o3.F                                   
 
 setemdep.o                  : setemdep.F              drydep_mod.o           \
                               tracer_mod.o            tracerid_mod.o

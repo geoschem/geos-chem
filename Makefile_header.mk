@@ -103,8 +103,9 @@
 #  09 May 2012 - R. Yantosca - Now try to get the proper linking sequence 
 #                              for netCDF etc w/ nf-config and nc-config.
 #  11 May 2012 - R. Yantosca - Now export NCL (netCDF linking sequence)
+#  17 Aug 2012 - R. Yantosca - Now add RRTMG=yes option for RRTMG rad transfer
 #  07 Sep 2012 - R. Yantosca - Now add OPT variable to set global opt levels
-#  07 Sep 2012 - R. Yantosca - Also set TRACEBACK for PGI compiler
+#  07 Sep 2012 - R. Yantosca - Also set TRACEBACK for PGI compile
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -120,7 +121,7 @@ endif
 
 # Get Operating System (Linux = Linux; Darwin = MacOSX)
 ifndef UNAME
-UNAME     := $(shell uname)
+UNAME        := $(shell uname)
 endif
 
 # OpenMP is turned on by default
@@ -141,6 +142,11 @@ endif
 # TOMAS runs on single processor (at least for now!)
 ifeq ($(TOMAS),yes)
 OMP       := no
+endif
+
+# Use the RRTMG radiative transfer model?
+ifndef RRTMG
+RRTMG     := no
 endif
 
 #==============================================================================
@@ -175,7 +181,7 @@ endif
 NCL       := -L$(GC_LIB) $(NCL)
 
 # Command to link to the various library files (-lHeaders should be last!)
-LINK      := -L$(LIB) -lKpp -lIsoropia -lGeosUtil -lHeaders
+LINK      := -L$(LIB) -lKpp -lIsoropia -lGeosUtil -lrad -lHeaders
 LINK      := $(LINK) -lNcUtils $(NCL)
 
 # Commands to link to libraries, for GTMM code (-lHeaders should be last!)
@@ -207,6 +213,7 @@ ifndef OPT
 OPT       := -O2
 endif
 
+
 # Turn on -traceback option by default for debugging runs
 ifdef DEBUG
 TRACEBACK := yes
@@ -221,9 +228,9 @@ endif
 
 # OSX compilation options
 ifeq ($(UNAME),Darwin)
-FFLAGS    += -Wl,-stack_size,0x2cb410000 # Allow 12GB of stack space
+FFLAGS += -Wl,-stack_size,0x2cb410000 # Allow 12GB of stack space
 ifdef DEBUG
-FFLAGS    += -g0 -debug -save-temps -fpic -Wl,-no_pie
+FFLAGS += -g0 -debug -save-temps -fpic -Wl,-no_pie
 endif
 endif
 
@@ -295,24 +302,29 @@ endif
 #-----------------------------------------------------------------------------
 # Flags for interfacing GEOS-Chem with an external GCM (mlong, bmy, 9/6/12)
 #
-ifeq ($(DEVEL),yes)
-FFLAGS    += -DDEVEL
+ ifeq ($(DEVEL),yes)
+ FFLAGS    += -DDEVEL
+ endif
+
+ ifeq ($(EXTERNAL_GRID),yes)
+ FFLAGS    += -DEXTERNAL_GRID
+ endif
+
+ ifeq ($(EXTERNAL_FORCING),yes)
+ FFLAGS    += -DEXTERNAL_FORCING
+ endif
+# #----------------------------------------------------------------------------
+ 
+# Use the RRTMG radiative transfer model
+ifeq ($(RRTMG),yes)
+FFLAGS  += -DRRTMG
 endif
 
-ifeq ($(EXTERNAL_GRID),yes)
-FFLAGS    += -DEXTERNAL_GRID
-endif
-
-ifeq ($(EXTERNAL_FORCING),yes)
-FFLAGS    += -DEXTERNAL_FORCING
-endif
-#----------------------------------------------------------------------------
-
-CC        :=
-F90       := ifort $(FFLAGS) $(INCLUDE)
-LD        := ifort $(FFLAGS)
-FREEFORM  := -free
-R8        := -r8
+CC       :=
+F90      := ifort $(FFLAGS) $(INCLUDE)
+LD       := ifort $(FFLAGS)
+FREEFORM := -free
+R8       := -r8
 
 endif
 
@@ -325,12 +337,13 @@ ifeq ($(COMPILER),pgi)
 ifndef OPT
 OPT       := -fast
 endif
+ 
 
 # Pick compiler options for debug run or regular run 
 ifdef DEBUG 
 FFLAGS    := -byteswapio -Mpreprocess -Bstatic -g -O0 
 else
-FFLAGS    := -byteswapio -Mpreprocess -Bstatic $(OPT)
+FFLAGS    := -byteswapio -Mpreprocess -Bstatic $(OPT) 
 endif
 
 # Add options for medium memory model.  This is to prevent G-C from 
@@ -366,7 +379,7 @@ endif
 ifdef TRACEBACK
 FFLAGS    += -traceback
 endif
-
+ 
 # Option to turn off ISORROPIA for testing
 ifdef NO_ISO
 FFLAGS    += -DNO_ISORROPIA
@@ -395,6 +408,12 @@ ifeq ($(EXTERNAL_FORCING),yes)
 FFLAGS    += -DEXTERNAL_FORCING
 endif
 #----------------------------------------------------------------------------
+
+
+# Use the RRTMG radiative transfer model
+ifeq ($(RRTMG),yes)
+FFLAGS  += -DRRTMG
+endif
 
 CC        := gcc
 F90       := pgf90 $(FFLAGS) $(INCLUDE)
