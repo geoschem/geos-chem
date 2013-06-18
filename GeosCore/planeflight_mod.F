@@ -1169,7 +1169,7 @@
       LOGICAL, SAVE       :: FIRST = .TRUE.
       LOGICAL             :: PCHEM
       INTEGER             :: I, IP, IRHN, J, L, JLOOP, M, N, R, RH, V
-      INTEGER             :: LPLANE
+      INTEGER             :: LPLANE,IWV
       REAL*8              :: TK, PTAUS, PTAUE, CONSEXP, VPRESH2O, SAODnm
       REAL*8              :: VARI(NPVAR)
 
@@ -1182,6 +1182,7 @@
       REAL*8,  PARAMETER  :: TINY    = 1.d-36           ! arbitary small # to 
                                                         !  avoid faulty output
 
+      IWV = 7 !fixed for 550nm at the moment (DAR)
       !=================================================================
       ! PLANEFLIGHT begins here!
       !=================================================================
@@ -1438,7 +1439,7 @@
                            ! Sum AOD over all RH bins and store in VARI(V)
                            ! Sum over all vertical levels (bmy, 10/24/05)
                            VARI(V) = VARI(V) + 
-     &                               SUM( SAODnm * ODAER(I,J,:,IRHN) )
+     &                               SUM(SAODnm*ODAER(I,J,:,IWV,IRHN))
                         ENDDO
 
                   !--------------------------
@@ -1479,7 +1480,7 @@
                            ! Sum AOD over all RH bins and store in VARI(V)
                            ! Sum from surface to level where the plane is
                            VARI(V) = VARI(V) + 
-     &                          SUM( SAODnm * ODAER(I,J,1:LPLANE,IRHN) )
+     &                          SUM(SAODnm*ODAER(I,J,1:LPLANE,IWV,IRHN))
                         ENDDO
                      ENDIF
 
