@@ -2813,7 +2813,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_RADIATION_MENU
+      SUBROUTINE READ_RADIATION_MENU( am_I_Root )
 !
 ! !USES:
 !
@@ -2831,6 +2831,9 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 !
 ! !LOCAL VARIABLES:
 !
