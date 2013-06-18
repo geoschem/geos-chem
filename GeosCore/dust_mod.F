@@ -103,11 +103,12 @@
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTDST1, IDTDST2, IDTDST3, IDTDST4
 
-      USE CMN_SIZE_MOD                   ! Size parameters
-!
+      USE CMN_SIZE_MOD       ! Size parameters
+
 ! !INPUT PARAMETERS:
 !
       LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+
 ! 
 ! !REVISION HISTORY: 
 !  30 Mar 2004 - T. D. Fairlie - Initial version
@@ -893,6 +894,7 @@
       USE FILE_MOD,      ONLY : IOERROR
       USE TIME_MOD,      ONLY : GET_TS_EMIS
       USE GRID_MOD,      ONLY : GET_AREA_M2
+
       USE CMN_SIZE_MOD        ! Size parameters
       USE CMN_DIAG_MOD        ! ND19, LD13 (for now)
       USE CMN_GCTM_MOD        ! g0
@@ -1007,7 +1009,7 @@
 
          ! Open file
          OPEN( N, FILE=FILENAME,       STATUS='OLD', 
-     &            FORM= 'UNFORMATTED', IOSTAT=IOS )
+     &             FORM= 'UNFORMATTED', IOSTAT=IOS )
          IF ( IOS > 0 ) CALL IOERROR( IOS, 65, 'SRC_DUST_GINOUX:1' )
 
          ! Read data
@@ -1132,7 +1134,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RDUST_ONLINE( DUST, WAVELENGTH )
+      SUBROUTINE RDUST_ONLINE( DUST, ODSWITCH )
 !
 ! !USES:
 !
@@ -1145,17 +1147,19 @@
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D
       USE COMODE_MOD,    ONLY : WTAREA, WERADIUS
       USE DAO_MOD,       ONLY : RH
+      USE LOGICAL_MOD,   ONLY : LRAD
 
 !      USE CMN_FJ_MOD,    ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ      
       USE JV_CMN_MOD          ! ODMDUST, QAA, RAA, QAA_AOD (clh)
+                              ! ACOEF_WV, BCOEF_WV, CCOEF_WV
       USE COMODE_LOOP_MOD     ! NTTLOOP
 
       USE CMN_DIAG_MOD        ! ND21, LD21
 !
-! !INPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS: 
 ! 
-      REAL*8,  INTENT(IN) :: DUST(IIPAR,JJPAR,LLPAR,NDUST)   ! Dust [kg/m3]
-      INTEGER, INTENT(IN) :: WAVELENGTH
+      REAL*8, INTENT(IN)  :: DUST(IIPAR,JJPAR,LLPAR,NDUST)   ! Dust [kg/m3]
+      INTEGER, INTENT(IN) :: ODSWITCH
 ! 
 ! !REVISION HISTORY: 
 !  01 Apr 2004 - R. Martin, R. Park - Initial version
@@ -1171,6 +1175,9 @@
 !                              used for the calculation of the AOD. The ND21 
 !                              diagnostic should only be updated when 
 !                              WAVELENGTH = 1. (skim, 02/03/11)
+!  04 Sep 2012 - D. Ridley   - WAVELENGTH now ODSWITCH for clarity now
+!                              that multiple wavelengths can be
+!                              calculated at once.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1178,7 +1185,10 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER            :: I, J, JLOOP, L, N
+      INTEGER            :: IWV, IIWV, NWVS
       REAL*8             :: MSDENS(NDUST), XTAU
+      REAL*8             :: DENOM,NUMER !for AOD interpolation
+
       ! Added to calculate aqueous dust surface area (WTAREA, WERADIUS)
       ! (tmf, 3/6/09)
       REAL*8             :: XRH
@@ -1218,6 +1228,41 @@
       ! NOTES: 
       ! (1) Do the calculation at QAA(4,:) (i.e. 999 nm).          
       !=================================================================
+      ! DAR Oct 2012
+      ! if the call is from chemistry (ODSWITCH=0) only need one wavelength
+      ! if radiation on (LRAD=TRUE) then cycle over all LUT wavelengths
+      ! if radiation off but call is for AOD then cycle over the
+      ! wavelength required or the wavelengths between which to
+      ! interpolate
+      IF (ODSWITCH .EQ. 0) THEN
+       NWVS   = 1
+      ELSE
+       IF ( LRAD ) THEN !Loop over all RT wavelengths
+        NWVS   = NWVAA-7
+       ELSE
+        NWVS   = NWVSELECT ! 1 or 2 depending if selected wavelength on or
+                           ! between LUT tie points
+       ENDIF               
+      ENDIF
+      
+      DO IIWV = 1, NWVS
+       ! get current wavelength index
+       ! (specified by user or all wavelengths for RRTMG)
+       ! (1000nm always used for FAST-J and stored in first index)
+       IF (ODSWITCH .EQ. 0) THEN
+        ! only doing for 1000nm i.e. IWV=7 in LUT
+        ! N.B. NWVS is fixed to 1 above - only one wavelength
+        IWV=7
+       ELSE
+        IF ( LRAD ) THEN !Loop over all RT wavelengths
+         IWV = IIWV+7
+        ELSE
+         ! cycle through all requested wavelengths
+         IWV = IWVSELECT(IIWV)
+        ENDIF
+       ENDIF
+
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
@@ -1226,25 +1271,25 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         IF ( WAVELENGTH > 0 ) THEN
+            ! dust stored in the 6th species bin of LUT variables
+            ODMDUST(I,J,L,IWV,N) = 0.75d0 * BXHEIGHT(I,J,L) * 
+     &                         DUST(I,J,L,N) * QQAA(IWV,N,6)     / 
+     &                        ( MSDENS(N) * RWAA(N,6) * 1.0D-6 )
 
-            ODMDUST(I,J,L,N) = 0.75d0        * BXHEIGHT(I,J,L) * 
-     &                         DUST(I,J,L,N) * QAA_AOD(14+N)     / 
-     &                        ( MSDENS(N) * RAA_AOD(14+N) * 1.0D-6 )
-
-         ELSE
-
-            ODMDUST(I,J,L,N) = 0.75d0        * BXHEIGHT(I,J,L) * 
-     &                         DUST(I,J,L,N) * QAA(4,14+N)     / 
-     &                        ( MSDENS(N) * RAA(4,14+N) * 1.0D-6 )
-
-         ENDIF
+            !add dust optics to the RT code arrays
+            !SSA and ASYM copying seems a little redundant...
+            !will keep this way for uniformity for now but
+            !possibly could deal with SSA and ASYM in RT module
+            RTODAER(I,J,L,IWV,NAER+4+N) = ODMDUST(I,J,L,IWV,N)
+            RTSSAER(I,J,L,IWV,NAER+4+N) = SSAA(IWV,N,6)
+            RTASYMAER(I,J,L,IWV,NAER+4+N) = ASYMAA(IWV,N,6)
 
       ENDDO
       ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+      ENDDO !wavelength loop
 
       !==============================================================
       ! Calculate Dust Surface Area
@@ -1272,22 +1317,14 @@
          J = IYSAVE(JLOOP)
          L = IZSAVE(JLOOP)
 
-         IF ( WAVELENGTH > 0 ) THEN
-
-            ERADIUS(JLOOP,N) = RAA_AOD(14+N) * 1.0D-4
-
-         ELSE
-
-            ERADIUS(JLOOP,N) = RAA(4,14+N) * 1.0D-4
-
-         ENDIF
+         ERADIUS(JLOOP,N) = RWAA(N,6) * 1.0D-4
 
          TAREA(JLOOP,N)   = 3.D0 / ERADIUS(JLOOP,N) *
      &                      DUST(I,J,L,N) / MSDENS(N)  
 
          ! Archive WTAREA and WERADIUS when RH > 35%  (tmf, 6/13/07) 
          ! Get RH  
-         XRH     = RH( I, J, L )   ![%]
+         XRH                = RH( I, J, L )   ![%]
          WTAREA(JLOOP, N)   = 0.d0
          WERADIUS(JLOOP, N) = 0.d0
 
@@ -1308,10 +1345,12 @@
       ! Tracer #3: Random Overlap Cld Frac (from "optdepth_mod.f")
       ! Tracer #4: Dust optical depths (total all size bins)
       ! Tracer #5: Dust surface areas (from all size bins)
-      ! Tracers #21-27: Dust AOD for each size bin
+      ! Tracers #31-37: Dust AOD for each size bin
+      ! Tracers #38-44: Dust SSA for each size bin
+      ! Tracers #45-51: Dust ASYM for each size bin
       !==============================================================
-      IF ( ND21 > 0 .and. WAVELENGTH > 0 ) THEN
-
+      IF ( ND21 > 0 .and. ODSWITCH .EQ. 1 ) THEN
+        IF (NWVSELECT.EQ.1) THEN !no interpolation
          DO N = 1, NDUST
 
 !$OMP PARALLEL DO
@@ -1324,14 +1363,27 @@
                !--------------------------------------
                ! ND21 tracer #4: Dust optical depths (clh)
                !--------------------------------------
-               AD21(I,J,L,4) = AD21(I,J,L,4) + ODMDUST(I,J,L,N)
+               AD21(I,J,L,4) = AD21(I,J,L,4) + 
+     &                         ODMDUST(I,J,L,IWVSELECT(1),N)
 
                !--------------------------------------
                ! ND21 tracer #21-27: size-resolved dust optical depths
                !--------------------------------------
                AD21(I,J,L,21+(N-1)) = AD21(I,J,L,21+(N-1)) + 
-     &                                ODMDUST(I,J,L,N)
-  
+     &                                ODMDUST(I,J,L,IWVSELECT(1),N)
+
+!               !--------------------------------------
+!               ! ND21 tracer #38-44: Dust single scattering albedo (dar)
+!               !--------------------------------------
+!               AD21(I,J,L,38+(N-1)) = AD21(I,J,L,38+(N-1)) +
+!     &                         RTSSAER(I,J,L,IWVSELECT(1),NAER+4+N)
+!
+!               !--------------------------------------
+!               ! ND21 tracer #45-51: Dust asymmetry parameters (clh)
+!               !--------------------------------------
+!               AD21(I,J,L,45+(N-1)) = AD21(I,J,L,45+(N-1)) +
+!     &                         RTASYMAER(I,J,L,IWVSELECT(1),NAER+4+N)
+
 
                !--------------------------------------
                ! ND21 tracer #5: Dust surface areas
@@ -1346,14 +1398,91 @@
                   IF ( JLOOP > 0 ) THEN
                      AD21(I,J,L,5) = AD21(I,J,L,5) + TAREA(JLOOP,N)
                   ENDIF
+
                ENDIF
             ENDDO
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
          ENDDO
-      ENDIF 
+        ELSE !interpolate to requested wavelength
+         DO N = 1, NDUST
 
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, JLOOP, L )
+            DO L = 1, LD21
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+               ! Interpolated using angstrom exponent between
+               ! Closest available wavelengths
+               ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+               ! AOD sometimes zero (if Q zero), must catch this
+               IF ((ODMDUST(I,J,L,IWVSELECT(1),N).EQ.0).OR.
+     &             (ODMDUST(I,J,L,IWVSELECT(2),N).EQ.0)) THEN
+                DENOM=1.0
+                NUMER=1.0
+                !Dont add anything to diagnostic
+               ELSE
+
+               !--------------------------------------
+               ! ND21 tracer #4: Dust optical depths (clh)
+               !--------------------------------------
+                AD21(I,J,L,4) = AD21(I,J,L,4) +
+     &                         ODMDUST(I,J,L,IWVSELECT(2),N)*
+     &                         ACOEF_WV**(BCOEF_WV*LOG(
+     &                         ODMDUST(I,J,L,IWVSELECT(1),N)/
+     &                         ODMDUST(I,J,L,IWVSELECT(2),N)))
+
+               !--------------------------------------
+               ! ND21 tracer #31-37: size-resolved dust optical depths
+               !--------------------------------------
+                AD21(I,J,L,21+(N-1)) = AD21(I,J,L,21+(N-1)) +
+     &                                ODMDUST(I,J,L,IWVSELECT(2),N)*
+     &                                ACOEF_WV**(BCOEF_WV*LOG(
+     &                                ODMDUST(I,J,L,IWVSELECT(1),N)/
+     &                                ODMDUST(I,J,L,IWVSELECT(2),N)))
+
+               ENDIF
+!               !--------------------------------------
+!               ! ND21 tracer #38-44: Dust single scattering albedo (dar)
+!               !--------------------------------------
+!               ! CCOEF_WV defined in RD_AOD.F based on wavelengths used
+!               AD21(I,J,L,38+(N-1)) = AD21(I,J,L,38+(N-1)) +
+!     &                    CCOEF_WV*RTSSAER(I,J,L,IWVSELECT(2),NAER+4+N)+
+!     &            (1.0d0-CCOEF_WV)*RTSSAER(I,J,L,IWVSELECT(1),NAER+4+N)
+!
+!               !--------------------------------------
+!               ! ND21 tracer #45-51: Dust asymmetry parameters (dar)
+!
+!               !--------------------------------------
+!               ! CCOEF_WV defined in RD_AOD.F based on wavelengths used
+!               AD21(I,J,L,45+(N-1)) = AD21(I,J,L,45+(N-1)) +
+!     &                  CCOEF_WV*RTASYMAER(I,J,L,IWVSELECT(2),NAER+4+N)+
+!     &          (1.0d0-CCOEF_WV)*RTASYMAER(I,J,L,IWVSELECT(1),NAER+4+N)
+
+               !--------------------------------------
+               ! ND21 tracer #5: Dust surface areas
+               !--------------------------------------
+               IF ( L <= LLTROP ) THEN
+
+                  ! Convert 3-D indices to 1-D index
+                  ! JLOP is only defined in the tropopause
+                  JLOOP = JLOP(I,J,L)
+
+                  ! Add to AD21
+                  IF ( JLOOP > 0 ) THEN
+                     AD21(I,J,L,5) = AD21(I,J,L,5) + TAREA(JLOOP,N)
+                  ENDIF
+
+               ENDIF
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+         ENDDO
+        ENDIF !to interpolate or not to interpolate
+      ENDIF 
       END SUBROUTINE RDUST_ONLINE
 !EOC
 !------------------------------------------------------------------------------
@@ -1370,8 +1499,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RDUST_OFFLINE( THISMONTH,  THISYEAR, 
-     &                          WAVELENGTH, am_I_Root )
+      SUBROUTINE RDUST_OFFLINE( THISMONTH, THISYEAR, 
+     &                          ODSWITCH, am_I_Root )
 !
 ! !USES:
 !
@@ -1390,7 +1519,7 @@
 #     include "define.h"
 
       USE CMN_FJ_MOD,    ONLY : JPMAX, JPPJ
-      USE JV_CMN_MOD,    ONLY : ODMDUST, QAA, RAA, RAA_AOD, QAA_AOD
+      USE JV_CMN_MOD
       USE COMODE_LOOP_MOD     ! NTTLOOP
       USE CMN_DIAG_MOD        ! ND21, LD21
 
@@ -1400,8 +1529,8 @@
 !
       INTEGER, INTENT(IN) :: THISMONTH   ! Current month (1-12)
       INTEGER, INTENT(IN) :: THISYEAR    ! Current year  (YYYY format)
-      INTEGER, INTENT(IN) :: WAVELENGTH  ! Determine which wavelength to use 
-                                         !  for optical properties
+      ! Determine which wavelength to use for optical properties
+      INTEGER, INTENT(IN) :: ODSWITCH  
       LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 !
 ! !REVISION HISTORY: 
@@ -1553,19 +1682,21 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-            IF ( WAVELENGTH > 0 ) THEN
+!            IF ( WAVELENGTH > 0 ) THEN
+               !this needs fixing properly in case someone uses offline dust
+               !DAR
+               ODMDUST(I,J,L,14,N) = 0.75d0   * BXHEIGHT(I,J,L) * 
+     &                            DUST(I,J,L,N) * QQAA(14,N,6)     / 
+     &                           ( MSDENS(N) * RWAA(N,6) * 1.0D-6 )
 
-               ODMDUST(I,J,L,N) = 0.75d0        * BXHEIGHT(I,J,L) * 
-     &                            DUST(I,J,L,N) * QAA_AOD(14+N)     / 
-     &                           ( MSDENS(N) * RAA_AOD(14+N) * 1.0D-6 )
+!            ELSE
+!
+!               ODMDUST(I,J,L,IWV,N) = 0.75d0   * BXHEIGHT(I,J,L) * 
 
-            ELSE
+!     &                            DUST(I,J,L,N) * QAA(4,14+N)     / 
+!     &                           ( MSDENS(N) * RAA(4,14+N) * 1.0D-6 )
 
-               ODMDUST(I,J,L,N) = 0.75d0        * BXHEIGHT(I,J,L) * 
-     &                            DUST(I,J,L,N) * QAA(4,14+N)     / 
-     &                           ( MSDENS(N) * RAA(4,14+N) * 1.0D-6 )
-
-            ENDIF
+!            ENDIF
 
          ENDDO
          ENDDO
@@ -1575,7 +1706,7 @@
 
          ! Echo information
          IF ( am_I_Root ) THEN
-            WRITE( 6, 110 ) 
+            WRITE( 6, 110 )
          ENDIF
  110     FORMAT( '     - RDUST: Finished computing optical depths' )
 
@@ -1605,15 +1736,15 @@
             J = IYSAVE(JLOOP)
             L = IZSAVE(JLOOP)
 
-            IF ( WAVELENGTH > 0 ) THEN
+!            IF ( ODSWITCH > 0 ) THEN
 
-               ERADIUS(JLOOP,N) = RAA_AOD(14+N) * 1.0D-4
+               ERADIUS(JLOOP,N) = RWAA(N,6) * 1.0D-4
 
-            ELSE
-
-               ERADIUS(JLOOP,N) = RAA(4,14+N) * 1.0D-4
-
-            ENDIF
+!            ELSE
+!
+!               ERADIUS(JLOOP,N) = RAA(4,14+N) * 1.0D-4
+!
+!            ENDIF
 
             TAREA(JLOOP,N)   = 3.D0 / ERADIUS(JLOOP,N) *
      &                         DUST(I,J,L,N) / MSDENS(N)  
@@ -1642,7 +1773,7 @@
          ! Tracer #4: Dust optical depths at  (from all size bins)
          ! Tracer #5: Dust surface areas (from all size bins)
          !==============================================================
-         IF ( ND21 > 0 .and. WAVELENGTH > 0 ) THEN
+         IF ( ND21 > 0 .and. ODSWITCH > 0 ) THEN
             DO N = 1, NDUST
 
 !$OMP PARALLEL DO
@@ -1655,7 +1786,7 @@
                   !--------------------------------------
                   ! ND21 tracer #4: Dust optical depths
                   !--------------------------------------
-                  AD21(I,J,L,4) = AD21(I,J,L,4) + ODMDUST(I,J,L,N)
+                  AD21(I,J,L,4) = AD21(I,J,L,4) + ODMDUST(I,J,L,14,N)
 
 
                   !--------------------------------------
@@ -1666,7 +1797,7 @@
                   ! (skim, 02/03/11)
 
                   AD21(I,J,L,21+(N-1)) = AD21(I,J,L,21+(N-1)) + 
-     &                                   ODMDUST(I,J,L,N)
+     &                                   ODMDUST(I,J,L,14,N)
   
                   !--------------------------------------
                   ! ND21 tracer #5: Dust surface areas
@@ -1710,7 +1841,8 @@
 !
       USE LOGICAL_MOD, ONLY : LDEAD
       USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE CMN_SIZE_MOD                   ! Size parameters
+
+      USE CMN_SIZE_MOD      ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  30 Mar 2004 - R. Yantosca - Initial version
