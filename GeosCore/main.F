@@ -108,6 +108,25 @@
       USE A6_READ_MOD           ! For reading A6 data (all other met)
       USE I6_READ_MOD           ! For reading I6 data (all other met)
 
+#if defined( RRTMG )
+      !-----------------------------------------------------------------
+      ! Radiation modules
+      !-----------------------------------------------------------------
+      USE RRTMG_RAD_TRANSFER_MOD, ONLY: DO_RRTMG_RAD_TRANSFER,
+     &                                  LW_UFLUX, LW_DFLUX,
+     &                                  SW_UFLUX, SW_DFLUX,
+     &                                  LW_UFLUXC, LW_DFLUXC,
+     &                                  SW_UFLUXC, SW_DFLUXC,
+     &                                  INIT_SURFACE_RAD,
+     &                                  READ_SURFACE_RAD,
+     &                                  INIT_STRAT_CLIM,
+     &                                  READ_STRAT_CLIM,
+     &                                  SET_SPECMASK
+      USE JV_CMN_MOD,             ONLY: NSPECRADMENU,
+     &                                  LSPECRADMENU
+#endif
+
+
 #if defined( DEVEL )
       USE LOGICAL_MOD,        ONLY : DO_DIAG_WRITE
       USE GC_ENVIRONMENT_MOD, ONLY : ALLOCATE_ALL
@@ -216,8 +235,15 @@
       REAL*8                   :: TAU,           TAUb         
       CHARACTER(LEN=255)       :: ZTYPE
 
+! Set cloud flag for RRTMG
+      integer                   :: icld=0,iseed=10
+      INTEGER                   :: RR
+
       ! Arrays
       INTEGER                  :: DATE(2)
+!      INTEGER                  :: ITIMEVALS(8)
+!      REAL*8                   :: OLDSECS, NEWSECS
+!      REAL*8                   :: OLDSECST, NEWSECST
 
       ! Derived type objects
       TYPE(MapWeight), POINTER :: mapping(:,:) => NULL()
@@ -271,6 +297,16 @@
       ! the call to READ_INPUT_FILE, since we need the value of
       ! N_TRACERS, which is obtained by reading the input.geos file.
       CALL FILL_CHEM_STATE_NAME_IDs( am_I_Root, CHEM_STATE )
+#endif
+
+#if   defined( RRTMG )
+      ! Initialize surface rad fields
+      ! from rrtmg_rad_transfer_mod.F
+      !WRITE(6,*) 'Calling INIT_SURFACE_RAD'
+      CALL INIT_SURFACE_RAD
+      !WRITE(6,*) 'Calling INIT_STRAT_CLIM'
+      CALL INIT_STRAT_CLIM
+      CALL READ_STRAT_CLIM
 #endif
 
       ! Initialize met field arrays from "dao_mod.f"
@@ -1042,6 +1078,53 @@
             CALL RECOMPUTE_OD( am_I_Root )
          ENDIF
 
+#if   defined( RRTMG )
+         !==============================================================
+         !  ***** R R T M G   R A D I A T I V E   T R A N S F E R *****
+         !==============================================================
+         IF (LRAD) THEN !LRAD
+         IF ( ITS_TIME_FOR_RT() ) THEN
+         WRITE(6,*) 'CALLING RRTMG...'
+         iseed=iseed+15
+
+         !repeat twice for all-sky and clear-sky (if switched on)
+         !UPDATE
+         !clear-sky output with all-sky, so just run once either way
+          IF (LSKYRAD(2)) THEN
+           !Determine if we are doing CLEAR-SKY (1) or ALL-SKY (2)
+           ICLD=1
+          ELSE
+           ICLD=0 !clouds are on
+          ENDIF
+
+           !set all values to one for baseline RT calc
+           CALL SET_SPECMASK(0)
+           !First call for baseline (all aerosol and ozone)
+           CALL DO_RRTMG_RAD_TRANSFER( DAY,MONTH, ICLD, 0, iseed)
+
+           !Second call with aerosols or ozone if requested
+           !if user has requested summed flux then generate the relevant
+           !SPECMASK and just call once (otherwise call for each)
+           IF (LSUMRAD.eq..TRUE.) THEN
+            !generate mask for species in RT
+            !SET_SPECMASK knows the LSUMRAD setting
+            CALL SET_SPECMASK(1)
+            CALL DO_RRTMG_RAD_TRANSFER(DAY, MONTH, ICLD, 1, iseed )
+           ELSE
+            DO N = 1, NSPECRADMENU
+             IF (LSPECRADMENU(N).EQ.1) THEN
+               !generate mask for species in RT
+               CALL SET_SPECMASK(N)
+               CALL DO_RRTMG_RAD_TRANSFER(DAY, MONTH, ICLD, N, iseed)
+             ENDIF
+            ENDDO
+           ENDIF
+            ! Increment radiation timestep counter
+            CALL SET_CT_RAD( INCREMENT=.TRUE. )
+         ENDIF
+         ENDIF
+#endif
+
          !==============================================================
          !   ***** I N C R E M E N T   E L A P S E D   T I M E *****
          !============================================================== 
@@ -1506,9 +1589,7 @@
       DATE = GET_FIRST_A1_TIME()
       CALL OPEN_MERRA_A1_FIELDS( DATE(1), DATE(2), RESET=.TRUE. )
       CALL GET_MERRA_A1_FIELDS(  DATE(1), DATE(2) )
-      ! READ IN AUX WIND DATA (DAR)
-      CALL GET_GEOS572_W1_FIELDS(DATE(1), DATE(2) )
-
+      
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st MERRA A1 TIME' )
 
       ! Open and read A-3 fields
@@ -1582,9 +1663,6 @@
       DATE = GET_FIRST_A3_TIME()
       CALL OPEN_A3_FIELDS( DATE(1), DATE(2), RESET=.TRUE. )
       CALL GET_A3_FIELDS(  DATE(1), DATE(2) )
-      ! READ IN AUX WIND DATA (DAR)
-      CALL GET_GEOS572_W1_FIELDS(DATE(1), DATE(2) )
-
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st A3 TIME' )
 
       ! For MEGAN biogenics, update hourly temps w/in 15-day window
@@ -1626,6 +1704,19 @@
 
 #endif
 
+#endif
+
+#if defined( RRTMG )
+      !  Adding the call to retrieve MODIS-derived surface
+      !  albedo and emissivity here.
+      !  There is a check within READ_SURFACE_RAD to make
+      !  sure we dont re-read the same files
+      WRITE(6,*) 'IN INITIAL_MET_FIELDS'
+      !  Start day may not be one of the 8-day values
+      !  Therefore we pass the init flag to ensure
+      !  the closest date to the current day is read
+      !  rather than nothing at all
+         CALL READ_SURFACE_RAD( FORCEREAD =.TRUE. )
 #endif
 
       END SUBROUTINE READ_INITIAL_MET_FIELDS
@@ -1714,9 +1805,6 @@
          ! Open & read A-3 fields
          CALL OPEN_MERRA_A1_FIELDS( DATE(1), DATE(2) )
          CALL GET_MERRA_A1_FIELDS ( DATE(1), DATE(2) )
-         ! READ IN AUX WIND DATA (DAR)
-         CALL GET_GEOS572_W1_FIELDS(DATE(1), DATE(2) )
-
 
          !%%% NEED TO UPDATE FOR MERRA %%%
          ! Update daily mean temperature archive for MEGAN biogenics
@@ -1816,8 +1904,6 @@
          ! Open & read A-3 fields
          CALL OPEN_A3_FIELDS( DATE(1), DATE(2) )
          CALL GET_A3_FIELDS(  DATE(1), DATE(2) )
-         ! READ IN AUX WIND DATA (DAR)
-         CALL GET_GEOS572_W1_FIELDS(DATE(1), DATE(2) )
 
          ! Update daily mean temperature archive for MEGAN biogenics
          IF ( LMEGAN ) CALL UPDATE_T_DAY 
@@ -1863,6 +1949,17 @@
          CALL AVGPOLE( PS2 )
       ENDIF
 
+#endif
+
+#if defined( RRTMG )
+      !  Adding the call to retrieve MODIS-derived surface
+      !  albedo and emissivity here.
+      !  There is a check within READ_SURFACE_RAD to make
+      !  sure we dont re-read the same files
+      IF (ITS_TIME_FOR_SURFACE_RAD() ) THEN
+         WRITE(6,*) 'ITS TIME FOR SURFACE RAD'
+         CALL READ_SURFACE_RAD
+      ENDIF
 #endif
 
       END SUBROUTINE READ_MET_FIELDS
