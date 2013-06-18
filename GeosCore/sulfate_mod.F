@@ -4816,7 +4816,8 @@
          ENDIF
 
          ! Also read ship exhaust SO2 if necessary 
-         CALL READ_SHIP_SO2( MONTH )
+         !CALL READ_SHIP_SO2( MONTH )
+         CALL READ_SHIP_SO2( Input_Opt, MONTH )
 #if defined( TOMAS )
          ! Scale anthro SO2 for TOMAS
          ESO2_sh  = ESO2_sh * scaleanthso2
@@ -8906,7 +8907,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_SHIP_SO2( THISMONTH )
+      SUBROUTINE READ_SHIP_SO2( Input_Opt, THISMONTH )
 !
 ! !USES:
 !
@@ -8915,22 +8916,19 @@
       USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,            ONLY : GET_TAU0,        READ_BPCH2
       USE CMN_SIZE_MOD
-      USE DIRECTORY_MOD,        ONLY : DATA_DIR 
       USE EDGAR_MOD,            ONLY : GET_EDGAR_SHIP_SO2
       USE EMEP_MOD,             ONLY : GET_EMEP_ANTHRO, GET_EUROPE_MASK
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2ff
+      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
       USE GRID_MOD,             ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,          ONLY : LEDGARSHIP,      LFUTURE, 
-     &                                 LARCSHIP,        LSHIPSO2,
-     $                                 LEMEPSHIP
-      USE LOGICAL_MOD,          ONLY : LICOADSSHIP  !(cklee, 6/30/09)
       USE TRACER_MOD,           ONLY : XNUMOL
       USE TRACERID_MOD,         ONLY : IDTSO2
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)           :: THISMONTH ! Current month (1-12)
+      TYPE(OptInput), INTENT(IN) :: Input_Opt
+      INTEGER,        INTENT(IN) :: THISMONTH ! Current month (1-12)
 !
 ! !REVISION HISTORY:
 !  (1 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
@@ -8946,6 +8944,7 @@
 !  (7 ) Now get ICOADS ship SO2 if necessary (phs, cklee, 6/30/09) 
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  17 Jun 2013 - R. Yantosca - Now take values from Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8958,13 +8957,30 @@
       REAL*8                        :: XTAU, AREA_CM2
       CHARACTER (LEN=255)           :: FILENAME
 
+      ! For fields from Input_Opt
+      CHARACTER(LEN=255)            :: DATA_DIR
+      LOGICAL                       :: LEDGARSHIP
+      LOGICAL                       :: LEMEPSHIP
+      LOGICAL                       :: LFUTURE
+      LOGICAL                       :: LARCSHIP
+      LOGICAL                       :: LSHIPSO2
+      LOGICAL                       :: LICOADSSHIP
+
       !=================================================================
       ! READ_SHIP_SO2 begins here!
       !=================================================================
 
+      ! Copy values from Input_Opt
+      DATA_DIR    = Input_Opt%DATA_DIR
+      LEDGARSHIP  = Input_Opt%LEDGARSHIP
+      LEMEPSHIP   = Input_Opt%LEMEPSHIP
+      LFUTURE     = Input_Opt%LFUTURE
+      LARCSHIP    = Input_Opt%LARCSHIP
+      LSHIPSO2    = Input_Opt%LSHIPSO2
+      LICOADSSHIP = Input_Opt%LICOADSSHIP
+
       ! Reset
       ESO2_sh = 0D0
-
 
       ! Test for EDAGR last, since this is default inventory by design.
       ! So we can still use EDGAR SHIP to get ship-NOX and CO, and

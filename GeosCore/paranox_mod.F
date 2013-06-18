@@ -612,7 +612,7 @@
 !
 ! !OUTPUT PARAMETERS: 
 !
-      REAL,           INTENT(OUT) :: fraction_nox, int_ope
+      REAL*4,         INTENT(OUT) :: fraction_nox, int_ope
 !
 ! !REVISION HISTORY:
 !     Jun 2010 - G.C.M. Vinken - Initial version
@@ -624,6 +624,9 @@
 !                                derived type object
 !  28 Nov 2012 - R. Yantosca   - Replace SUNCOS_MID w/ State_Met%SUNCOSmid
 !  28 Nov 2012 - R. Yantosca   - Replace SUNCOS_MID_5hr w/ State_Met%SUNCOSmid5
+!  17 Jun 2013 - R. Yantosca   - Bug fix: declare all REAL variables with
+!                                REAL*4 in order to avoid numerical precision
+!                                errors when compiling with OMP=yes.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -655,22 +658,22 @@
       INTEGER, PARAMETER         :: njo1d  = 4
       INTEGER, PARAMETER         :: ncanox = 5 
  
-      REAL,    DIMENSION(ntemp)  :: templev
-      REAL,    DIMENSION(njno2)  :: jno2lev
-      REAL,    DIMENSION(ncao3)  :: cao3lev
-      REAL,    DIMENSION(nalfa0) :: alfa0lev
-      REAL,    DIMENSION(nalfa5) :: alfa5lev      
-      REAL,    DIMENSION(njo1d)  :: jo1dlev
-      REAL,    DIMENSION(ncanox) :: canoxlev
+      REAL*4,  DIMENSION(ntemp)  :: templev
+      REAL*4,  DIMENSION(njno2)  :: jno2lev
+      REAL*4,  DIMENSION(ncao3)  :: cao3lev
+      REAL*4,  DIMENSION(nalfa0) :: alfa0lev
+      REAL*4,  DIMENSION(nalfa5) :: alfa5lev      
+      REAL*4,  DIMENSION(njo1d)  :: jo1dlev
+      REAL*4,  DIMENSION(ncanox) :: canoxlev
 
       ! Temporary variable storage
-      REAL                       :: temp_tmp,  jno2_tmp,  cao3_tmp
-      REAL                       :: alfa0_tmp, alfa5_tmp, jo1d_tmp
-      REAL                       :: canox_tmp
+      REAL*4                     :: temp_tmp,  jno2_tmp,  cao3_tmp
+      REAL*4                     :: alfa0_tmp, alfa5_tmp, jo1d_tmp
+      REAL*4                     :: canox_tmp
       
       ! Interpolation parameters
-      REAL,    DIMENSION(2)      :: xtemp,     xjno2,     xcao3, xalfa0
-      REAL,    DIMENSION(2)      :: xalfa5,    xjo1d,     xcanox
+      REAL*4,  DIMENSION(2)      :: xtemp,     xjno2,     xcao3, xalfa0
+      REAL*4,  DIMENSION(2)      :: xalfa5,    xjo1d,     xcanox
       
       ! For loops
       INTEGER                    :: itemp,     ijno2,     icao3, ialfa0
@@ -678,7 +681,7 @@
       INTEGER                    :: i0,i1,i2,i3,i4,i5,i6,i7
  
       ! array contain temp, jno2, cao3, alfa_0, alfa_5, jo1d, canox
-      REAL,DIMENSION(7)          :: var_array
+      REAL*4,  DIMENSION(7)      :: var_array
 
       CHARACTER(LEN=255)         :: MSG
 

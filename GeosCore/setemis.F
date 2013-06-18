@@ -43,8 +43,6 @@
       ! Ship plume emissions moved from calcrate.F (cdh, 4/24/2013)
       USE DRYDEP_MOD,         ONLY : SHIPO3DEP
       USE ICOADS_SHIP_MOD,    ONLY : GET_ICOADS_SHIP 
-      USE LOGICAL_MOD,        ONLY : LICOADSSHIP, LEDGARSHIP, LEMEPSHIP     
-      USE LOGICAL_MOD,        ONLY : LDRYD
       USE EDGAR_MOD,          ONLY : GET_EDGAR_NOx
       USE EMEP_MOD,           ONLY : GET_EMEP_ANTHRO, GET_EUROPE_MASK
       USE TIME_MOD,           ONLY : GET_TS_EMIS
@@ -176,6 +174,14 @@
 !  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LPRT and Input_Opt%LNLPBL
 !  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
 !                              of removal of NOx-Ox partitioning
+!  17 Jun 2013 - R. Yantosca - Bug fix: declare FRACTION_NOX, INT_OPE with
+!                              REAL*4 explicitly to avoid numerical errors
+!                              when OMP=yes.
+!  18 Jun 2013 - R. Yantosca - Bug fix: always add into REMIS to better ensure
+!                              that identical results will be obtained when
+!                              compiling with OMP=no vs. OMP=yes.
+!  18 Jun 2013 - R. Yantosca - Remove COEF11 variable, that is always =1 for
+!                              O3, HNO3, and NO.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -183,25 +189,29 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL :: LNLPBL,    LPRT
-      LOGICAL :: IS_LI_NOx, IS_AC_NOx
-      INTEGER :: I, J,  JLOOP, JLOOP1, LTROP
-      INTEGER :: L, LL, N, NN,  NBB, NBF, TOP, TOPMIX
-      REAL*8  :: COEF1,   TOTPRES, DELTPRES
-      REAL*8  :: EMIS_BL, NOXTOT,  TOTAL, A_CM2
-
-      !%%% BMY KLUDGE to only print out warning message about 
-      !%%% non-emitted tracers on the first timestep (bmy, 5/28/13)
-      LOGICAL, SAVE :: FIRST = .TRUE.
+      LOGICAL          :: IS_LI_NOx, IS_AC_NOx
+      INTEGER          :: I, J,  JLOOP, JLOOP1, LTROP
+      INTEGER          :: L, LL, N, NN,  NBB, NBF, TOP, TOPMIX
+      REAL*8           :: COEF1,   TOTPRES, DELTPRES
+      REAL*8           :: EMIS_BL, NOXTOT,  TOTAL, A_CM2
 
       ! Added by G. Vinken, C. Holmes
-      REAL*8           :: SHIP,   COEF11,  TOTO3, JNO2, JO1D
+      REAL*8           :: SHIP,   TOTO3, JNO2, JO1D
       REAL*8           :: DTSRCE, AREA_CM2
-      REAL             :: FRACTION_NOX, INT_OPE 
+!      REAL*4           :: F_NOX,        I_OPE 
+      REAL*4           :: FRACTION_NOX, INT_OPE 
       INTEGER          :: NK
       CHARACTER*8      :: SPECNAME
       REAL*8, EXTERNAL :: FJFUNC
       
+      ! For fields from Input_Opt
+      LOGICAL          :: LDRYD,       LNLPBL,     LPRT
+      LOGICAL          :: LICOADSSHIP, LEDGARSHIP, LEMEPSHIP     
+
+      !%%% BMY KLUDGE to only print out warning message about 
+      !%%% non-emitted tracers on the first timestep (bmy, 5/28/13)
+      LOGICAL, SAVE    :: FIRST = .TRUE.
+
       !=================================================================
       ! SETEMIS begins here!
       !=================================================================
@@ -220,12 +230,16 @@
       ENDIF
 
       ! Test if the EMIS_LI_NOx and EMIS_AC_NOx arrays are allocated
-      IS_LI_NOx = ALLOCATED( EMIS_LI_NOx )
-      IS_AC_NOX = ALLOCATED( EMIS_AC_NOX )
+      IS_LI_NOx   = ALLOCATED( EMIS_LI_NOx )
+      IS_AC_NOX   = ALLOCATED( EMIS_AC_NOX )
       
       ! Now use logical fields from Input_Opt
-      LNLPBL    = Input_Opt%LNLPBL
-      LPRT      = Input_Opt%LPRT
+      LDRYD       = Input_Opt%LDRYD
+      LNLPBL      = Input_Opt%LNLPBL
+      LPRT        = Input_Opt%LPRT
+      LICOADSSHIP = Input_Opt%LICOADSSHIP
+      LEDGARSHIP  = Input_Opt%LEDGARSHIP 
+      LEMEPSHIP   = Input_Opt%LEMEPSHIP
 
       ! Emission timestep [s]
       DTSRCE = GET_TS_EMIS() * 60d0
@@ -237,13 +251,13 @@
       ! Initialize REMIS(*,N) -- the emission rate array
       REMIS = 0d0
 
-!$OMP PARALLEL DO 
+!$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( N,     NN,  NBB,     NBF,    I,        J,     L, JLOOP )
-!$OMP+PRIVATE( COEF1, TOP, TOTPRES, NOXTOT, DELTPRES, EMIS_BL,  A_CM2 )
-!$OMP+PRIVATE( TOTO3, SHIP,COEF11,  AREA_CM2, FRACTION_NOX, INT_OPE   )
-!$OMP+PRIVATE( NK,    JNO2,JO1D,    SPECNAME                          )
-!$OMP+PRIVATE( TOPMIX )
+!$OMP+PRIVATE( N,       NN,     NBB,      NBF,          I       )
+!$OMP+PRIVATE( J,       L,      JLOOP,    COEF1,        TOP     )
+!$OMP+PRIVATE( TOTPRES, NOXTOT, DELTPRES, EMIS_BL,      A_CM2   )
+!$OMP+PRIVATE( TOTO3,   SHIP,   AREA_CM2, FRACTION_NOX, INT_OPE )
+!$OMP+PRIVATE( NK,      JNO2,   JO1D,     SPECNAME,     TOPMIX  )
 !$OMP+SCHEDULE( DYNAMIC )
 
       ! Loop over emission species
@@ -287,11 +301,6 @@
          ! Skip to next tracer if IDEMIS(NN) is not defined in 
          ! order to avoid array-out-of-bounds errors (bmy, 8/6/04)
          IF ( IDEMIS(NN) <= 0 ) THEN
-            !---------------------------------------------------------------
-            !%%% BMY KLUDGE to only print out warning message about 
-            !%%% non-emitted tracers on the first timestep (bmy, 5/28/13)
-            !IF ( am_I_Root ) THEN
-            !---------------------------------------------------------------
             IF ( FIRST .and. am_I_Root ) THEN
                PRINT*, 'Tracer ', NN, ' is not an emitted species!'
             ENDIF
@@ -491,7 +500,7 @@
    
                   ! Reset
                   SHIP = 0D0
-
+                  
                   ! handle global inventory first
                   IF ( LEDGARSHIP ) THEN 
 
@@ -525,7 +534,7 @@
                   
                   ! Add possible scaling of NOx emissions
                   SHIP = SHIP * NOx_SCALING
-
+                  
                   !----------------------------------
                   ! Get J-Values for J(NO2) and J(O3)
                   !----------------------------------
@@ -563,7 +572,7 @@
 
                   ! Determine fraction of NOx remaining and integrated Ozone
                   ! Production Efficiency for ship emiss (gvinken,mpayer,2/7/12)
-                  ! Uses surface-layer concentrations of O3, NO, NO2 (molec/cm3) 
+                  ! Uses surface-layer concentrations of O3, NO, NO2 (molec/cm3)
                   ! from CSPEC and air density (molec/cm3)
                   JLOOP   = JLOP(I,J,1)
                   CALL INTERPOLATE_LUT2( I, J,  
@@ -576,10 +585,7 @@
                   !-----------------
                   ! Ship NO
                   !-----------------
-                  
-                  ! COEF1 = molecules of emission species / molecules of tracer
-                  COEF11 = 1.0 + CTRMB(IDTNO, IDEMIS(IDTNO))
-
+ 
                   ! Loop over the boundary layer
                   DO L = 1, TOP
                      JLOOP   = JLOP(I,J,L)
@@ -597,27 +603,22 @@
                      ! survives after plume dilution and chemistry. 
                      ! The fraction DELTPRES/TOTPRES goes into level L,
                      ! since that is the fraction of the boundary layer
-                     ! mass occupied by level L. Also,  
-                     ! since NOx is a lumped species, divide NOx 
-                     ! by COEF11 to convert from molec NOx to molec NO, 
-                     ! which is really what gets emitted.
+                     ! mass occupied by level L. 
                      ! Final units: molec(NO)/cm2/s
-                     EMIS_BL =  SHIP * FRACTION_NOX * 
-     &                    ( DELTPRES / TOTPRES ) / COEF11
+                     EMIS_BL = ( SHIP     * FRACTION_NOX )
+     &                       * ( DELTPRES / TOTPRES      )
 
                      ! Convert anthro NOx emissions from [molec NO/cm2/s]
                      ! to [molec NO/cm3/s] and store in the REMIS array
-                     REMIS(JLOOP,IDENO) = REMIS(JLOOP,IDENO) +
-     &                    EMIS_BL * AREA_CM2 / VOLUME(JLOOP)
+                     REMIS(JLOOP,IDENO) = REMIS(JLOOP,IDENO) 
+     &                                  + ( EMIS_BL * AREA_CM2 ) 
+     &                                  / VOLUME(JLOOP)
 
                   ENDDO
 
                   !-----------------
                   ! Ship HNO3
                   !-----------------
-
-                  ! COEF11 = molecules of emission species / molecules of tracer
-                  COEF11 = 1.0 + CTRMB(IDTHNO3, IDEMIS(IDTHNO3))   
 
                   ! Loop over the boundary layer
                   DO L = 1, TOP
@@ -640,13 +641,14 @@
                      ! to convert from [molec tracer/cm2/s] to 
                      ! [molec chem species/cm2/s].
                      ! Final units: molec(HNO3)/cm2/s
-                     EMIS_BL = SHIP * (1D0 - FRACTION_NOX) * 
-     &                    ( DELTPRES / TOTPRES ) / COEF11 
+                     EMIS_BL = SHIP * ( 1D0      - FRACTION_NOX ) * 
+     &                                ( DELTPRES / TOTPRES      )
 
                      ! Convert ship HNO3 emissions from [molec HNO3/cm2/s]
                      ! to [molec HNO3/cm3/s] and store in the REMIS array
-                     REMIS(JLOOP,IDEHNO3) = REMIS(JLOOP,IDEHNO3) + 
-     &                    EMIS_BL * AREA_CM2 / VOLUME(JLOOP)
+                     REMIS(JLOOP,IDEHNO3) = REMIS(JLOOP,IDEHNO3) 
+     &                                    + ( EMIS_BL * AREA_CM2 ) 
+     &                                    / VOLUME(JLOOP)
                         
                   ENDDO
 
@@ -654,16 +656,12 @@
                   ! Ship O3
                   !-----------------
 
-                  ! COEF11 = molecules of emission species / molecules of tracer
-                  COEF11 = 1.0 + CTRMB(IDTO3, IDEMIS(IDTO3))   
-
                   ! Total emissions over the boundary layer
-                  ! Of the total ship NOx, the fraction (1d0-FRACTION_NOX)*INT_OPE
-                  ! is converted to O3 during plume dilution and chemistry. 
-                  ! Divide by COEF11 to convert from [molec tracer/cm2/s] to 
-                  ! [molec chem species/cm2/s].
+                  ! Of the total ship NOx, the fraction 
+                  ! (1d0-FRACTION_NOX)*INT_OPE is converted to O3 during 
+                  ! plume dilution and chemistry. 
                   ! Final units: molec(O3)/cm2/s
-                  EMIS_BL = SHIP * (1D0 - FRACTION_NOX) * INT_OPE/COEF11
+                  EMIS_BL = SHIP * (1D0 - FRACTION_NOX) * INT_OPE
 
                   ! Ship plume chemistry can create or destroy net O3
                   ! Treat positive O3 production as emissions 
@@ -673,7 +671,9 @@
 
                      ! No need for deposition when net O3 production from 
                      ! ships is positive
+!$OMP CRITICAL
                      IF (LDRYD) SHIPO3DEP(I,J) = 0d0
+!$OMP END CRITICAL
 
                      ! Loop over the boundary layer
                      DO L = 1, TOP
@@ -693,9 +693,10 @@
                         ! The ratio ( AREA_CM2 / VOLUME(JLOOP) ) converts
                         ! molec/cm2 to molec/cm3
                         ! Final units: molec(O3)/cm3/s
-                        REMIS(JLOOP,IDEO3) = REMIS(JLOOP,IDEO3) +
-     &                       EMIS_BL * ( DELTPRES / TOTPRES ) *
-     &                       AREA_CM2 / VOLUME(JLOOP) 
+                        REMIS(JLOOP,IDEO3) = REMIS(JLOOP,IDEO3) 
+     &                                     + EMIS_BL 
+     &                                     * ( DELTPRES / TOTPRES ) 
+     &                                     * AREA_CM2 / VOLUME(JLOOP) 
          
                      ENDDO
                      
@@ -724,7 +725,9 @@
                      ! column, molec(O3)/cm2/s
                      ! TOTO3 is the total O3 content of the PBL, molec(O3)/cm2
                      ! Final units: 1/s
+!$OMP CRITICAL
                      IF (LDRYD) SHIPO3DEP(I,J) = ABS( EMIS_BL / TOTO3 )
+!$OMP END CRITICAL
 
                   ENDIF
 
@@ -830,7 +833,19 @@
 
                      ! Convert emissions from [molec species/box/s] to 
                      ! [molec species/cm3/s] and store in the REMIS array
-                     REMIS(JLOOP,N) = EMIS_BL / VOLUME(JLOOP)
+!-----------------------------------------------------------------------------
+! Prior to 6/18/13:
+! NOTE: We should be adding into REMIS here.  This line of code causes
+! setemis.F as written to not generate the same results when OMP=no.  This
+! may be because the optimizer may execute this section of code before
+! the ship NOx code when OMP=yes but not when OMP=no.  In any case, this
+! fixes the problem.  REMIS is always set to zero at the top of the routine,
+! so it's OK to add into it. (bmy, 6/18/13)
+!                     REMIS(JLOOP,N) = EMIS_BL / VOLUME(JLOOP)    
+!-----------------------------------------------------------------------------
+                     REMIS(JLOOP,N) = REMIS(JLOOP,N) 
+     &                              + ( EMIS_BL / VOLUME(JLOOP) )
+
                   ENDIF
                ENDDO
             ENDIF
