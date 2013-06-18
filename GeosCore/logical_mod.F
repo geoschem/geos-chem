@@ -90,6 +90,13 @@
       LOGICAL :: LSCHEM          ! Use linear strat chem? (vs. no strat schem)
       LOGICAL :: LLINOZ          ! T = Linoz O3; F = Synoz O3
 
+      !%%%% Radiation %%%%
+      LOGICAL :: LRAD            ! Turn on RRTMG
+      LOGICAL :: LLWRAD          ! Calculate LW fluxes
+      LOGICAL :: LSWRAD          ! Calculate SW fluxes
+      LOGICAL :: LSUMRAD         ! Sum the listed species fluxes
+      LOGICAL :: LSKYRAD(2)       ! Clear-sky, All-sky
+
       !%%%% Cloud convection %%%%
       LOGICAL :: LCONV           ! Use cloud convection?
 
@@ -247,5 +254,6 @@
       LOGICAL :: DO_DIAG_WRITE = .TRUE.  ! TURN ON/OFF DIAGNOSTIC WRITING
 
       LOGICAL :: LUPBD           ! Use stratospheric O3, NOY bdry conditions
+
       END MODULE LOGICAL_MOD
 !EOC
