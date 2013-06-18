@@ -278,8 +278,6 @@
       REAL*8  :: WAA(4,NP),QAA(4,NP)                                 
       REAL*8  :: PAA(8,4,NP),RAA(4,NP),SSA(4,NP),QBC(NW)
       
-      INTEGER :: NJVAL,NW1,NW2,NAA,NLBATM
-
       ! New optical arrays
       REAL*8  :: WVAA(NWVAA,NSPAA)
       REAL*8  :: RHAA(NRAA,NSPAA)
