@@ -36,6 +36,7 @@
       PRIVATE :: READ_EMISSIONS_MENU
       PRIVATE :: READ_FUTURE_MENU
       PRIVATE :: READ_CHEMISTRY_MENU
+      PRIVATE :: READ_RADIATION_MENU
       PRIVATE :: READ_TRANSPORT_MENU
       PRIVATE :: READ_CONVECTION_MENU
       PRIVATE :: READ_DEPOSITION_MENU
@@ -142,6 +143,7 @@
       INTEGER            :: TS_CONV
       INTEGER            :: TS_EMIS
       INTEGER            :: TS_UNIT
+      INTEGER            :: TS_RAD
       INTEGER            :: CT1, CT2, CT3
       CHARACTER(LEN=255) :: FILENAME = 'input.geos'
       CHARACTER(LEN=255) :: TOPTITLE
@@ -290,6 +292,9 @@
                                                   
          ELSE IF ( INDEX( LINE, 'DEPOSITION MENU'  ) > 0 ) THEN
             CALL READ_DEPOSITION_MENU( am_I_Root )             
+
+         ELSE IF ( INDEX( LINE, 'RADIATION MENU'   ) > 0 ) THEN
+            CALL READ_RADIATION_MENU( am_I_Root )
 
          ELSE IF ( INDEX( LINE, 'CO2 SIM MENU'     ) > 0 ) THEN !Ray Nassar
             CALL READ_CO2_SIM_MENU( am_I_Root )
@@ -2793,6 +2798,126 @@
  120  FORMAT( A, 2I5 )
 
       END SUBROUTINE READ_CHEMISTRY_MENU  
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group
+!          !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_radiation_menu
+!
+! !DESCRIPTION: Subroutine READ\_RADIATION\_MENU reads the RADIATION
+! MENU section of the GEOS-Chem input file.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE READ_RADIATION_MENU
+!
+! !USES:
+!
+      USE ERROR_MOD,   ONLY : ERROR_STOP
+      USE LOGICAL_MOD, ONLY : LRAD, LLWRAD, LSWRAD
+      USE LOGICAL_MOD, ONLY : LSUMRAD, LSKYRAD
+      USE TIME_MOD,    ONLY : SET_CT_RAD
+      USE TRACER_MOD,  ONLY : N_TRACERS
+      USE JV_CMN_MOD,  ONLY : WVSELECT, NWVSELECT
+      USE JV_CMN_MOD,  ONLY : NSPECRADMENU
+      USE JV_CMN_MOD,  ONLY : LSPECRADMENU
+      USE CMN_SIZE_MOD      ! Size parameters
+!
+! !REVISION HISTORY:
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER            :: N
+      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG
+
+      !=================================================================
+      ! READ_RADIATION_MENU begins here!
+      !=================================================================
+
+      ! Error check
+      IF ( CT1 /= 2 ) THEN
+         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
+         CALL ERROR_STOP( MSG, 'READ_RADIATION_MENU ("input_mod.f")' )
+      ENDIF
+
+      ! AOD wavelength selection?
+      CALL SPLIT_ONE_LINE( SUBSTRS, NWVSELECT,
+     &                     1, 'read_radiation_menu:1' )
+      DO N = 1, NWVSELECT
+         READ( SUBSTRS(N), * ) WVSELECT(N)
+      ENDDO
+
+      ! Turn on RRTMG?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_radiation_menu:2' )
+      READ( SUBSTRS(1:N), * ) LRAD
+
+      ! Turn on LW radiation calculation?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_radiation_menu:3' )
+      READ( SUBSTRS(1:N), * ) LLWRAD
+
+      ! Turn on SW radiation calculation?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_radiation_menu:4' )
+      READ( SUBSTRS(1:N), * ) LSWRAD
+
+      ! Calculate for clear-sky?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_radiation_menu:5' )
+      READ( SUBSTRS(1:N), * ) LSKYRAD(1)
+
+      ! Calculate for all-sky?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_radiation_menu:6' )
+      READ( SUBSTRS(1:N), * ) LSKYRAD(2)
+
+      ! Radiation timestep?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_radiation_menu:7' )
+      READ( SUBSTRS(1:N), * ) TS_RAD
+
+      ! Selection of species flux changes
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, NSPECRADMENU,
+     &                     'read_radiation_menu:8' )
+      DO N = 1, NSPECRADMENU
+       READ( SUBSTRS(N), * ) LSPECRADMENU(N)
+      ENDDO
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_radiation_menu:9' )
+
+      ! Sum all species fluxes?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_radiation_menu:10' )
+      READ( SUBSTRS(1:N), * ) LSUMRAD
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_radiation_menu:11' )
+
+      !=================================================================
+      ! Print to screen
+      !=================================================================
+      WRITE( 6, '(/,a)' ) 'RADIATION MENU'
+      WRITE( 6, '(  a)' ) '--------------'
+      WRITE( 6, 100     ) 'Turn on radiation?          : ', LRAD
+      WRITE( 6, 100     ) 'Consider LW                 : ', LLWRAD
+      WRITE( 6, 100     ) 'Consider SW                 : ', LSWRAD
+      WRITE( 6, 110     ) 'Radiation timestep [min]    : ', TS_RAD
+      WRITE( 6, 115     ) 'AOD output wavelength (nm)  : ', WVSELECT(1)
+      WRITE( 6, 120     ) 'Flux output selection       : ', LSPECRADMENU
+      WRITE( 6, 125     ) 'Clear-sky/All-sky           : ',
+     &                    LSKYRAD(1),'/',LSKYRAD(2)
+      WRITE( 6, 100     ) 'Sum fluxes?                 : ', LSUMRAD
+
+      ! FORMAT statements
+ 100  FORMAT( A, L5  )
+ 110  FORMAT( A, I5  )
+ 115  FORMAT( A, F7.1)
+ 120  FORMAT( A, 10I1 )
+ 125  FORMAT( A,L5,A,L5 )
+
+      END SUBROUTINE READ_RADIATION_MENU
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -6450,7 +6575,8 @@
       CALL SET_TIMESTEPS( am_I_Root,
      &                    CHEMISTRY  = TS_CHEM, EMISSION  = TS_EMIS, 
      &                    DYNAMICS   = TS_DYN,  UNIT_CONV = TS_UNIT,
-     &                    CONVECTION = TS_CONV, DIAGNOS   = TS_DIAG)
+     &                    CONVECTION = TS_CONV, DIAGNOS   = TS_DIAG,
+     &                    RADIATION  = TS_RAD )
 
  100  FORMAT( A, ' time step must be a multiple of the smallest one:',
      &        i5, i5 )
