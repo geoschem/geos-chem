@@ -48,7 +48,7 @@
       INTEGER, INTENT(IN)  :: IFLAG
 
       ! Is this the root CPU?
-      LOGICAL, INTENT(IN) :: am_I_Root   
+      LOGICAL, INTENT(IN) :: am_I_Root
 !
 ! !REMARKS:
 !  Eventually we will fold this into "diag_mod.f" in a cleaner,
@@ -188,6 +188,7 @@
          IF ( ND67 > 0 ) AD67     = 0e0
          IF ( ND68 > 0 ) AD68     = 0e0
          IF ( ND69 > 0 ) AD69     = 0e0
+         IF ( ND71 > 0 ) AD71     = 0e0
 
          ! For ND03 - mercury simulations (eck, sas, bmy, 1/20/05)
          IF ( ND03 > 0 ) THEN
@@ -278,7 +279,7 @@
          IF ( ND65 > 0 ) THEN
             AD65  = 0d0
             IF ( ALLOCATED( FAM_PL ) ) FAM_PL = 0d0      
-         ENDIF
+        ENDIF
 
          ! Echo output
          IF ( am_I_Root ) THEN
@@ -296,6 +297,7 @@
          CALL SET_CT_A3(   RESET=.TRUE. )
          CALL SET_CT_A6(   RESET=.TRUE. )
          CALL SET_CT_CHEM( RESET=.TRUE. )
+         CALL SET_CT_RAD ( RESET=.TRUE. )
          CALL SET_CT_CONV( RESET=.TRUE. )
          CALL SET_CT_DYN(  RESET=.TRUE. )
          CALL SET_CT_EMIS( RESET=.TRUE. )
