@@ -434,7 +434,7 @@
          ! NOx-Ox-HC (w/ or w/o aerosols)
          CALL EMISSDR
      &      ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-!
+
          ! Seasalt aerosol emission
          IF ( LSSALT ) THEN 
             CALL EMISSSEASALT
