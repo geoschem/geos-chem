@@ -81,6 +81,7 @@
       USE TPCORE_GEOS5_WINDOW_MOD, ONLY : EXIT_GEOS5_TPCORE_WINDOW
       USE TPCORE_GEOS57_WINDOW_MOD,ONLY : EXIT_GEOS57_TPCORE_WINDOW !clb
       USE TRACER_MOD,              ONLY : CLEANUP_TRACER
+      USE TRANSPORT_MOD,           ONLY : CLEANUP_TRANSPORT
       USE TROPOPAUSE_MOD,          ONLY : CLEANUP_TROPOPAUSE
       USE UVALBEDO_MOD,            ONLY : CLEANUP_UVALBEDO
       USE VISTAS_ANTHRO_MOD,       ONLY : CLEANUP_VISTAS_ANTHRO
@@ -91,9 +92,16 @@
 #if   defined( APM )
       USE APM_WETS_MOD,            ONLY : CLEANUP_WETSCAVBIN
 #endif
+
 #if ! defined( ESMF_ )
       USE TRANSPORT_MOD,           ONLY : CLEANUP_TRANSPORT
 #endif
+
+#if   defined( RRTMG )
+      USE RRTMG_RAD_TRANSFER_MOD,  ONLY : CLEANUP_SURFACE_RAD
+      USE RRTMG_RAD_TRANSFER_MOD,  ONLY : CLEANUP_STRAT_CLIM
+#endif
+
 
       IMPLICIT NONE
 #     include "define.h"
@@ -279,6 +287,12 @@
 #if   defined( APM )
       CALL CLEANUP_WETSCAVBIN  ! Cleanup arrays for APM wet scavenging
 #endif
+
+#if   defined( RRTMG )
+      CALL CLEANUP_SURFACE_RAD  ! Cleanup arrays for surface properties
+      CALL CLEANUP_STRAT_CLIM
+#endif
+
 
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )
       CALL EXIT_GEOS5_TPCORE_WINDOW 
