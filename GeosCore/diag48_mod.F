@@ -192,6 +192,7 @@
       LOGICAL, SAVE      :: IS_FULLCHEM, IS_Ox,   IS_NOx,     IS_NOy
       LOGICAL, SAVE      :: FIRST = .TRUE.
       INTEGER            :: GMTRC, I, I0, J, J0, L, N, K, R, TMP, W
+      INTEGER            :: IWV !wavelength at which to save ODAER
       REAL*8             :: LT, TAU, Q(LLPAR), SCALEAODnm
       CHARACTER(LEN=40)  :: CATEGORY
       CHARACTER(LEN=40)  :: UNIT
@@ -199,6 +200,8 @@
 
       ! Aerosol types (rvm, aad, bmy, 7/20/04)
       INTEGER            :: IND(6) = (/ 22, 29, 36, 43, 50, 15 /)
+
+      IWV=7 !fix to output 550nm values for now (DAR)
 
       !=================================================================
       ! DIAG48 begins here!
@@ -470,7 +473,7 @@
                SCALEAODnm = 1.0
 
                DO L = 1, K
-                  Q(L) = Q(L) + ODAER(I,J,L,R) * SCALEAODnm
+                  Q(L) = Q(L) + ODAER(I,J,L,IWV,R) * SCALEAODnm
                ENDDO
             ENDDO
 
@@ -491,7 +494,7 @@
                SCALEAODnm = 1.0 
 
                DO L = 1, K
-                  Q(L) = Q(L) + ODAER(I,J,L,NRH+R) * SCALEAODnm
+                  Q(L) = Q(L) + ODAER(I,J,L,IWV,NRH+R) * SCALEAODnm
                ENDDO
             ENDDO
 
@@ -512,7 +515,7 @@
                SCALEAODnm = 1.0 
 
                DO L = 1, K
-                  Q(L) = Q(L) + ODAER(I,J,L,2*NRH+R) * SCALEAODnm
+                  Q(L) = Q(L) + ODAER(I,J,L,IWV,2*NRH+R) * SCALEAODnm
                ENDDO
             ENDDO
 
@@ -533,7 +536,7 @@
                SCALEAODnm = 1.0 
 
                DO L = 1, K
-                  Q(L) = Q(L) + ODAER(I,J,L,3*NRH+R) * SCALEAODnm
+                  Q(L) = Q(L) + ODAER(I,J,L,IWV,3*NRH+R) * SCALEAODnm
                ENDDO
             ENDDO
 
@@ -554,7 +557,7 @@
                SCALEAODnm = 1.0
 
                DO L = 1, K
-                  Q(L) = Q(L) + ODAER(I,J,L,4*NRH+R) * SCALEAODnm
+                  Q(L) = Q(L) + ODAER(I,J,L,IWV,4*NRH+R) * SCALEAODnm
                ENDDO
             ENDDO
 
@@ -575,7 +578,7 @@
                SCALEAODnm = 1.0
 
                DO L = 1, K
-                  Q(L) = Q(L) + ODMDUST(I,J,L,R)* SCALEAODnm
+                  Q(L) = Q(L) + ODMDUST(I,J,L,IWV,R)* SCALEAODnm
                ENDDO
             ENDDO
 
@@ -596,7 +599,7 @@
             SCALEAODnm = 1.0 
 
             DO L = 1, K
-               Q(L) = ODMDUST(I,J,L,R) * SCALEAODnm
+               Q(L) = ODMDUST(I,J,L,IWV,R) * SCALEAODnm
             ENDDO
 
          ELSE IF ( N == 90 .and. IS_SEASALT ) THEN

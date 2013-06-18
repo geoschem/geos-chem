@@ -439,12 +439,13 @@
       LOGICAL           :: IS_CHEM,     IS_DIAG, IS_EMIS
       INTEGER           :: H, I, J, K, L, M, N
       INTEGER           :: PBLINT,  R, X, Y, W, XMIN
+      INTEGER           :: IWV
       REAL*8            :: C1, C2, PBLDEC, TEMPBL, TMP, SCALEAODnm
       CHARACTER(LEN=16) :: STAMP
 
       ! Aerosol types (rvm, aad, bmy, 7/20/04)
       INTEGER           :: IND(6) = (/ 22, 29, 36, 43, 50, 15 /)
-
+      IWV = 7 !fixed at 550nm for now (DAR)
       !=================================================================
       ! ACCUMULATE_DIAG51 begins here!
       !=================================================================
@@ -739,7 +740,7 @@
 
                   ! Accumulate
                   Q(X,Y,K,W) = Q(X,Y,K,W) + 
-     &                   ( ODAER(I,J,L,H) * SCALEAODnm * GOOD_CHEM(X) )
+     &                ( ODAER(I,J,L,IWV,H) * SCALEAODnm * GOOD_CHEM(X) )
                ENDDO
 
             ELSE IF ( N == 85 ) THEN
@@ -760,7 +761,7 @@
 
                   ! Accumulate
                   Q(X,Y,K,W) = Q(X,Y,K,W) + 
-     &                   ( ODAER(I,J,L,H) * SCALEAODnm * GOOD_CHEM(X) )
+     &                ( ODAER(I,J,L,IWV,H) * SCALEAODnm * GOOD_CHEM(X) )
                ENDDO
 
             ELSE IF ( N == 86 ) THEN
@@ -781,7 +782,7 @@
 
                   ! Accumulate
                   Q(X,Y,K,W) = Q(X,Y,K,W) +
-     &                   ( ODAER(I,J,L,H) * SCALEAODnm * GOOD_CHEM(X) )
+     &               ( ODAER(I,J,L,IWV,H) * SCALEAODnm * GOOD_CHEM(X) )
                ENDDO
 
             ELSE IF ( N == 87 ) THEN
@@ -802,7 +803,7 @@
 
                   ! Accumulate
                   Q(X,Y,K,W) = Q(X,Y,K,W) + 
-     &                   ( ODAER(I,J,L,H) * SCALEAODnm * GOOD_CHEM(X) ) 
+     &                ( ODAER(I,J,L,IWV,H) * SCALEAODnm * GOOD_CHEM(X) ) 
                ENDDO
 
             ELSE IF ( N == 88 ) THEN
@@ -823,7 +824,7 @@
 
                   ! Accumulate
                   Q(X,Y,K,W) = Q(X,Y,K,W) + 
-     &                   ( ODAER(I,J,L,H) * SCALEAODnm * GOOD_CHEM(X) )
+     &                ( ODAER(I,J,L,IWV,H) * SCALEAODnm * GOOD_CHEM(X) )
                ENDDO
 
             ELSE IF ( N == 89 ) THEN               
@@ -841,7 +842,7 @@
 
                   ! Accumulate
                   Q(X,Y,K,W) = Q(X,Y,K,W) + 
-     &                 ( ODMDUST(I,J,L,R) * SCALEAODnm * GOOD_CHEM(X) )
+     &              ( ODMDUST(I,J,L,IWV,R) * SCALEAODnm * GOOD_CHEM(X) )
                ENDDO
 
             ELSE IF ( N > 114 ) THEN               
@@ -859,7 +860,7 @@
 
                ! Accumulate
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
-     &              ( ODMDUST(I,J,L,R) * SCALEAODnm * GOOD_CHEM(X) )
+     &           ( ODMDUST(I,J,L,IWV,R) * SCALEAODnm * GOOD_CHEM(X) )
 
             ELSE IF ( N == 90 .and. IS_SEASALT ) THEN
 
@@ -1316,7 +1317,7 @@
       
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME ), IU_ND51
- 100  FORMAT( '     - DIAG51: Opening file ', a, ' on unit ', i4 ) 
+ 100  FORMAT( '     - DIAG51: Opening file ', a, ' on unit ', i4 )
 
       ! Open output file
       IF ( LND51_HDF ) THEN

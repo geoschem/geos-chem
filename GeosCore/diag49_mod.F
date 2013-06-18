@@ -204,6 +204,7 @@
       USE JV_CMN_MOD                              ! ODAER, QAA, QAA_AOD (clh)
       USE CMN_O3_MOD	                          ! Pure O3, SAVENO2
       USE CMN_GCTM_MOD                            ! XTRA2
+
 !
 ! !REVISION HISTORY: 
 !  09 Apr 1999 - I. Bey, R. Martin, R. Yantosca - Initial version
@@ -247,6 +248,7 @@
       INTEGER                  :: IOS,  GMTRC, GMNL, I, J, K, L 
       INTEGER                  :: N,    R,     H,    W, X, Y
       INTEGER                  :: NHMS, TS_DIAG
+      INTEGER                  :: IWV
       REAL*8                   :: TAU, TMP,   SCALEAODnm
       REAL*8                   :: Q( ND49_NI, ND49_NJ, ND49_NL )
       CHARACTER(LEN=16)        :: STAMP
@@ -256,7 +258,7 @@
 
       ! Aerosol types (rvm, aad, bmy, 7/20/04)
       INTEGER                  :: IND(6) = (/ 22, 29, 36, 43, 50, 15 /)
-
+      IWV = 7 !fixed to 550nm for the moment (DAR)
       !=================================================================
       ! DIAG49 begins here!
       !=================================================================
@@ -689,7 +691,7 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  Q(X,Y,K) = Q(X,Y,K) + ( ODAER(I,J,L,R) * SCALEAODnm )
+                  Q(X,Y,K) = Q(X,Y,K) +(ODAER(I,J,L,IWV,R)*SCALEAODnm )
                ENDDO
                ENDDO
                ENDDO
@@ -726,7 +728,7 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  Q(X,Y,K) = Q(X,Y,K) + ( ODAER(I,J,L,H) * SCALEAODnm )
+                  Q(X,Y,K) = Q(X,Y,K)+(ODAER(I,J,L,IWV,H)*SCALEAODnm )
                ENDDO
                ENDDO
                ENDDO
@@ -762,7 +764,7 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  Q(X,Y,K) = Q(X,Y,K) + ( ODAER(I,J,L,H) * SCALEAODnm )
+                  Q(X,Y,K) = Q(X,Y,K) +(ODAER(I,J,L,IWV,H)*SCALEAODnm )
                ENDDO
                ENDDO
                ENDDO
@@ -798,7 +800,7 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  Q(X,Y,K) = Q(X,Y,K) + ( ODAER(I,J,L,H) * SCALEAODnm )
+                  Q(X,Y,K) =Q(X,Y,K)+(ODAER(I,J,L,IWV,H) * SCALEAODnm )
                ENDDO
                ENDDO
                ENDDO
@@ -834,7 +836,7 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  Q(X,Y,K) = Q(X,Y,K) + ( ODAER(I,J,L,H) * SCALEAODnm )
+                  Q(X,Y,K) =Q(X,Y,K)+(ODAER(I,J,L,IWV,H) * SCALEAODnm )
                ENDDO
                ENDDO
                ENDDO
@@ -867,7 +869,7 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  Q(X,Y,K) = Q(X,Y,K) + ODMDUST(I,J,L,R) * SCALEAODnm
+                  Q(X,Y,K) = Q(X,Y,K)+ODMDUST(I,J,L,IWV,R) * SCALEAODnm
                ENDDO
                ENDDO
                ENDDO
@@ -901,7 +903,7 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  Q(X,Y,K) = Q(X,Y,K) + ODMDUST(I,J,L,R) * SCALEAODnm
+                  Q(X,Y,K) = Q(X,Y,K)+ODMDUST(I,J,L,IWV,R) * SCALEAODnm
                ENDDO
                ENDDO
                ENDDO

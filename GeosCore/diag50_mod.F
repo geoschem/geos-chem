@@ -278,12 +278,14 @@
       LOGICAL, SAVE       :: IS_CLDTOPS,  IS_NOy, IS_OPTD, IS_SLP
       INTEGER             :: H, I, J, K, L, M, N
       INTEGER             :: PBLINT,  R, X, Y, W
+      INTEGER             :: IWV
       REAL*8              :: C1, C2, PBLDEC, TEMPBL, TMP, SCALEAODnm
       CHARACTER(LEN=16)   :: STAMP
 
       ! Aerosol types (rvm, aad, bmy, 7/20/04)
       INTEGER             :: IND(6) = (/ 22, 29, 36, 43, 50, 15 /)
-
+      
+      IWV = 7 !fixed for 550nm initially (DAR)
       !=================================================================
       ! ACCUMULATE_DIAG50 begins here!
       !=================================================================
@@ -529,7 +531,7 @@
                   SCALEAODnm = 1.0
 
                   ! Accumulate
-                  Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,R) * SCALEAODnm
+                  Q(X,Y,K,W) = Q(X,Y,K,W)+ODAER(I,J,L,IWV,R)*SCALEAODnm
                ENDDO
 
             ELSE IF ( N == 85 ) THEN
@@ -549,7 +551,7 @@
                   SCALEAODnm = 1.0
 
                   ! Accumulate
-                  Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,H) * SCALEAODnm
+                  Q(X,Y,K,W) = Q(X,Y,K,W)+ODAER(I,J,L,IWV,H)*SCALEAODnm
                ENDDO
 
             ELSE IF ( N == 86 ) THEN
@@ -569,7 +571,7 @@
                   SCALEAODnm = 1.0
 
                   ! Accumulate
-                  Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,H) * SCALEAODnm
+                  Q(X,Y,K,W) = Q(X,Y,K,W)+ODAER(I,J,L,IWV,H)*SCALEAODnm
                ENDDO
 
             ELSE IF ( N == 87 ) THEN
@@ -589,7 +591,7 @@
                   SCALEAODnm = 1.0                 
 
                   ! Accumulate
-                  Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,H) * SCALEAODnm
+                  Q(X,Y,K,W) = Q(X,Y,K,W) +ODAER(I,J,L,IWV,H)*SCALEAODnm
                ENDDO
 
             ELSE IF ( N == 88 ) THEN
@@ -609,7 +611,7 @@
                   SCALEAODnm = 1.0                  
 
                   ! Accumulate
-                  Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,H) * SCALEAODnm
+                  Q(X,Y,K,W) = Q(X,Y,K,W)+ODAER(I,J,L,IWV,H)*SCALEAODnm
                ENDDO
 
             ELSE IF ( N == 89 ) THEN
@@ -626,7 +628,7 @@
                   SCALEAODnm = 1.0
 
                   ! Accumulate
-                  Q(X,Y,K,W) = Q(X,Y,K,W) + ODMDUST(I,J,L,R)*SCALEAODnm
+                  Q(X,Y,K,W) =Q(X,Y,K,W)+ODMDUST(I,J,L,IWV,R)*SCALEAODnm
                ENDDO
 
             ELSE IF (N > 114) THEN
@@ -643,7 +645,7 @@
                SCALEAODnm = 1.0
 
                ! Accumulate
-               Q(X,Y,K,W) = Q(X,Y,K,W) + ODMDUST(I,J,L,R)*SCALEAODnm
+               Q(X,Y,K,W) =Q(X,Y,K,W)+ODMDUST(I,J,L,IWV,R)*SCALEAODnm
 
             ELSE IF ( N == 90 .and. IS_SEASALT ) THEN
 
