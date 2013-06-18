@@ -106,7 +106,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE AEROSOL_RURALBOX( N_TROP )
+      SUBROUTINE AEROSOL_RURALBOX( N_TROP, am_I_Root )
 !
 ! !USES:
 !
@@ -118,6 +118,11 @@
 
       USE CMN_SIZE_MOD         ! Size parameters
       USE COMODE_LOOP_MOD      ! AD, AVG, WTAIR, other SMVGEAR variables
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
+
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -132,6 +137,8 @@
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (4 ) Modified for variable tropopause (phs, bdf, 9/14/06)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -198,7 +205,11 @@
 
          ! JLOOP is now the number of boxes w/in GEOS-CHEM's annual mean 
          ! tropopause.  Copy to SAVEd variable N_TROP_BOXES.
-         write(6,*) '  in aerosol ruralbox, val of trop boxes: ', jloop
+         IF ( am_I_Root ) THEN
+            WRITE( 6, 100 ) jloop
+ 100        FORMAT( '  in aerosol ruralbox, val of trop boxes: ', I10)
+         ENDIF
+
          N_TROP_BOXES = JLOOP
 
          ! Set NTLOOP, NTTLOOP here.  Howeve, we will have to reset these
@@ -319,6 +330,8 @@
 !  (2 ) Now add contribution from SOA4 into Hydrophilic OC (dkh, bmy, 5/18/06)
 !  (3 ) Now set OCF=2.1 to be consistent w/ "carbon_mod.f" (tmf, 2/10/09)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -475,7 +488,7 @@
          ! Now splitting mass into bins in fractions derived from
          ! Highwood et al. (2003).  Data is from log-normal fit of
          ! PCASP measurements of Saharan dust (Solid line in Fig.4b)
-         ! (dar, 04/25/10)
+         ! (dar, 04/25/10) [see Ridley et al., 2012, JGR]
          !===========================================================
          IF ( LDUST ) THEN
 
@@ -538,7 +551,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RDAER( MONTH, YEAR, ODSWITCH )
+      SUBROUTINE RDAER(am_I_Root, MONTH, YEAR, ODSWITCH )
 !
 ! !USES:
 !
@@ -562,11 +575,11 @@
       USE COMODE_LOOP_MOD     ! NTLOOP
       USE CMN_DIAG_MOD        ! ND21, LD21
 
-#if defined( DEVEL )
+!#if defined( DEVEL )
       USE CMN_FJ_MOD,    ONLY : JPMAX, JPPJ   ! LPAR, F77_CMN_SIZE
-#else
-      USE CMN_FJ_MOD,    ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ   ! LPAR, F77_CMN_SIZE
-#endif
+!#else
+!      USE CMN_FJ_MOD,    ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ   ! LPAR, F77_CMN_SIZE
+!#endif
 
       IMPLICIT NONE
 #     include "define.h"
@@ -575,6 +588,7 @@
 ! !INPUT PARAMETERS:
 !
       ! Arguments
+      LOGICAL, INTENT(IN)           :: am_I_Root  ! Is this the root CPU?
       INTEGER, INTENT(IN), OPTIONAL :: MONTH      ! # of current month (1-12)
       INTEGER, INTENT(IN), OPTIONAL :: YEAR       ! 4-digit year (e.g. 2002)
       INTEGER, INTENT(IN), OPTIONAL :: ODSWITCH ! Logical indicator
@@ -618,6 +632,8 @@
 !        should only be updated when WAVELENGTH = 1. (skim, 02/03/11)
 !  09 Mar 2011 - R. Yantosca - Set MSDENS(2) = 1800 for APM (G. Luo)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -635,7 +651,7 @@
       REAL*4              :: TEMP(IIPAR,JJPAR,LGLOB)
       REAL*8              :: TEMP2(IIPAR,JJPAR,LLPAR)
       REAL*8              :: MSDENS(NAER), XTAU, DRYAREA
-
+!     variables for speed diagnostics
       INTEGER                  :: ITIMEVALS(8)
       REAL*8                   :: OLDSECS, NEWSECS
       REAL*8                   :: OLDSECST, NEWSECST
@@ -697,10 +713,11 @@
       !=================================================================
       ! RDAER begins here!
       !=================================================================
-            CALL DATE_AND_TIME( VALUES=ITIMEVALS )
-            OLDSECS=real(ITIMEVALS(5))*3600.0+real(ITIMEVALS(6))*60.0+
-     &              real(ITIMEVALS(7))+real(ITIMEVALS(8))/1000.0
-
+!     speed diagnostic
+!            CALL DATE_AND_TIME( VALUES=ITIMEVALS )
+!            OLDSECS=real(ITIMEVALS(5))*3600.0+real(ITIMEVALS(6))*60.0+
+!     &              real(ITIMEVALS(7))+real(ITIMEVALS(8))/1000.0
+!
 
       ! Copy MONTH argument to local variable THISMONTH
       IF ( PRESENT( MONTH ) ) THEN
@@ -752,7 +769,7 @@
          ! Use online aerosol concentrations
          !-----------------------------------
          IF ( FIRST ) THEN
-            WRITE( 6, 100 ) 
+            IF ( am_I_Root ) WRITE( 6, 100 )
  100        FORMAT( '     - RDAER: Using online SO4 NH4 NIT!' )
          ENDIF
 
@@ -776,7 +793,7 @@
          IF ( DO_READ_DATA ) THEN
             
             ! Print filename
-            WRITE( 6, 105 ) TRIM( FILENAME )
+            IF ( am_I_Root ) WRITE( 6, 105 ) TRIM( FILENAME )
  105        FORMAT( '     - RDAER: Reading SULFATE from ', a )
 
             ! Read data
@@ -809,7 +826,7 @@
          ! Use online aerosol concentrations
          !-----------------------------------
          IF ( FIRST ) THEN
-            WRITE( 6, 110 ) 
+            IF ( am_I_Root ) WRITE( 6, 110 )
  110        FORMAT( '     - RDAER: Using online BCPI OCPI BCPO OCPO!' )
          ENDIF
 
@@ -845,7 +862,7 @@
          IF ( DO_READ_DATA ) THEN
 
             ! Print filename
-            WRITE( 6, 115 ) TRIM( FILENAME )
+            IF ( am_I_Root ) WRITE( 6, 115 ) TRIM( FILENAME )
  115        FORMAT( '     - RDAER: Reading BC and OC from ', a )
 
             !--------------------------------
@@ -907,7 +924,7 @@
          ! Use online aerosol concentrations
          !-----------------------------------
          IF ( FIRST ) THEN
-            WRITE( 6, 120 ) 
+            IF ( am_I_Root ) WRITE( 6, 120 )
  120        FORMAT( '     - RDAER: Using online SALA SALC' )
          ENDIF
 
@@ -937,7 +954,7 @@
          IF ( DO_READ_DATA ) THEN
 
             ! Print filename
-            WRITE( 6, 125 ) TRIM( FILENAME )
+            IF ( am_I_Root ) WRITE( 6, 125 ) TRIM( FILENAME )
  125        FORMAT( '     - RDAER: Reading SEASALT from ', a )
 
             !----------------------------------
@@ -1047,10 +1064,6 @@
           ELSE
            NRT=N
           ENDIF
-         
-         ! Zero array
-         !SCALEOD(:,:,:,:) = 0d0
-         !SCALEA(:,:,:,:) = 0d0
          
          !==============================================================
          ! Determine aerosol growth rates from the relative 
