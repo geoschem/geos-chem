@@ -248,6 +248,8 @@
       ! For ND69 -- DXYP diagnostic
       REAL*4,  ALLOCATABLE :: AD69(:,:,:)      
 
+      ! FOR ND71 -- Radiation output diagnostic
+      REAL*4,  ALLOCATABLE :: AD71(:,:,:)
 !
 ! !REVISION HISTORY:
 !  30 Nov 1999 - A. Fiore - Initial version
@@ -419,6 +421,7 @@
       IF ( ALLOCATED( AD66        ) ) DEALLOCATE( AD66        )
       IF ( ALLOCATED( AD68        ) ) DEALLOCATE( AD68        )
       IF ( ALLOCATED( AD69        ) ) DEALLOCATE( AD69        )
+      IF ( ALLOCATED( AD71        ) ) DEALLOCATE( AD71        )
       IF ( ALLOCATED( CONVFLUP    ) ) DEALLOCATE( CONVFLUP    )
       IF ( ALLOCATED( CT16        ) ) DEALLOCATE( CT16        )
       IF ( ALLOCATED( CT17        ) ) DEALLOCATE( CT17        )
