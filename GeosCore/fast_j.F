@@ -249,10 +249,11 @@
             O3COL        = GET_OVERHEAD_O3( NLON, NLAT )
 
             ! Aerosol OD profile [unitless] at (NLON,NLAT)
-            OPTAER(:,:)  = ODAER(NLON,NLAT,:,:)
-
+            ! and at 1000nm, IWV=14 (DAR)
+            OPTAER(:,:)  = ODAER(NLON,NLAT,:,14,:)
             ! Mineral dust OD profile [unitless] at (NLON,NLAT)
-            OPTDUST(:,:) = ODMDUST(NLON,NLAT,:,:)
+            ! and at 1000nm, IWV=14 (DAR)
+            OPTDUST(:,:) = ODMDUST(NLON,NLAT,:,14,:)
 
             ! Cloud OD profile [unitless] at (NLON,NLAT)
             OPTD         = OD(1:LLPAR,NLON,NLAT)

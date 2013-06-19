@@ -4048,8 +4048,18 @@
       LPRT = ( ND70 > 0 )
       CALL SET_TINDEX( am_I_Root, 70, ND70, SUBSTRS(2:N), N-1, PD70 )
      
+      !--------------------------
+      ! ND71: Radiation output
+      !--------------------------
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:69' )
+      READ( SUBSTRS(1), * ) ND71
+      !output fields are nspecies*nradfields but user can only specify
+      !rad fields (e.g. SW TOA ALL-SKY) so we set the max to the total
+      !divided by number of allowed species (PD71R)
+      CALL SET_TINDEX( am_I_Root, 71, ND71, SUBSTRS(2:N), N-1, PD71R )
+
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_diagnostic_menu:69' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_diagnostic_menu:70' )
 
       !=================================================================
       ! Call other setup routines
