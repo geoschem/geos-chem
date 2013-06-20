@@ -155,6 +155,8 @@
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  31 May 2013 - R. Yantosca - Now pass objects to NFCLDMX
 !  03 Jun 2013 - R. Yantosca - Bug fix: pass State_Chm to DO_MERRA_CONVECTION
+!  20 Jun 2013 - R. Yantosca - Now pass pointers to DO_MERRA_CONVECTION:
+!                              p_H2O2s, p_SO2s, p_STT.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -420,13 +422,13 @@
      &                             CMFMC     = p_CMFMC,
      &                             DQRCU     = p_DQRCU,
      &                             DTRAIN    = p_DTRAIN,
-     &                             H2O2s     = H2O2s(I,J, :        ),
+     &                             H2O2s     = p_H2O2s,
      &                             PFICU     = p_PFICU,
      &                             PFLCU     = p_PFLCU,
      &                             REEVAPCN  = p_REEVAPCN,            
-     &                             SO2s      = SO2s (I,J, :        ),
+     &                             SO2s      = p_SO2s,
      &                             T         = p_T,
-     &                             Q         = STT  (I,J, :,      :),
+     &                             Q         = p_STT,
      &                             DIAG14    = DIAG14,
      &                             DIAG38    = DIAG38,
      &                             I         = I,
