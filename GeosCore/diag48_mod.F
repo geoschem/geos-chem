@@ -292,7 +292,7 @@
          N = ND48_N(W)
 
          ! Get local time
-         LT = GET_LOCALTIME( I , J, L )
+         LT = GET_LOCALTIME( I, J, K )
 
          ! Initialize
          Q(:) = 0
@@ -772,7 +772,7 @@
             GMTRC    = 1            
             
             DO L = 1, K
-               Q(L) = GET_PEDGE( I, J, K )
+               Q(L) = GET_PEDGE( I, J, L )
             ENDDO
 
          ELSE IF ( N == 100 ) THEN

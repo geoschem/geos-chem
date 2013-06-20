@@ -730,7 +730,9 @@ CONTAINS
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  26 Oct 2012 - R. Yantosca - Now pass Chemistry State object for GIGC
-!   9 Nov 2012 - R. Yantosca - Now pass Input Options object for GIGC
+!  09 Nov 2012 - R. Yantosca - Now pass Input Options object for GIGC
+!  12 Jun 2013 - R. Yantosca - Now pass st4d, ct4d arrays to NcRd routine.
+!                              This avoids array temporaries.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -745,6 +747,8 @@ CONTAINS
     INTEGER            :: N_TRACERS
 
     ! Arrays
+    INTEGER            :: st4d(4)                        ! netCDF start
+    INTEGER            :: ct4d(4)                        ! netCDF count
     REAL*4             :: ARRAY ( IIPAR, JJPAR, LGLOB )  ! Full vertical res
     REAL*8             :: ARRAY2( IIPAR, JJPAR, LLPAR )  ! Actual vertical res
     CHARACTER(LEN=14)  :: TRACER_NAME(Input_Opt%N_TRACERS)
@@ -803,9 +807,10 @@ CONTAINS
     ENDIF
 
     call NcOp_Rd( fileID, TRIM( FILENAME ) )
-    call NcRd( array, fileID, 'species',                     &
-                              (/     1,     1,     1,  m /), & ! Start
-                              (/ iipar, jjpar, lglob,  1 /)  ) ! Count
+
+    st4d = (/     1,     1,     1,  M /)                  ! Start
+    ct4d = (/ IIPAR, JJPAR, LGLOB,  1 /)                  ! Count
+    call NcRd( array, fileID, 'species', st4d, ct4d )
     call NcCl( fileID )
 
     ! Cast from REAL*4 to REAL*8 and resize to 1:LLPAR
@@ -834,10 +839,9 @@ CONTAINS
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
        ! Read production rate [v/v/s]
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-       call NcRd( array, fileID, 'prod',                          &
-                                 (/     1,     1,     1,  m  /),  & ! Start 
-                                 (/ iipar, jjpar, lglob,  1  /)  )  ! Count
+       st4d = (/     1,     1,     1,  M  /)              ! Start
+       ct4d = (/ IIPAR, JJPAR, LGLOB,  1  /)              ! Count
+       call NcRd( array, fileID, 'prod', st4d, ct4d )
 
        ! Cast from REAL*4 to REAL*8 and resize to 1:LLPAR
        call transfer_3D( array, array2 )
@@ -851,9 +855,9 @@ CONTAINS
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
        ! Read loss frequencies [s^-1]
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-       call NcRd( array, fileID, 'loss',                          &
-                                 (/     1,     1,     1,  m  /),  & ! Start
-                                 (/ iipar, jjpar, lglob,  1  /)  )  ! Count
+       st4d = (/     1,     1,     1,  M  /)              ! Start
+       ct4d = (/ IIPAR, JJPAR, LGLOB,  1  /)              ! Count
+       call NcRd( array, fileID, 'loss', st4d, ct4d )
 
        ! Cast from REAL*4 to REAL*8 and resize to 1:LLPAR
        call transfer_3D( array, array2 )

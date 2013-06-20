@@ -225,29 +225,39 @@
 !  (1 ) Now check PFLT for NaN or Infinities (bmy, 8/27/02)
 !  (2 ) Added parallel DO-loop (bmy, 4/14/04)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  10 Jun 2013 - R. Yantosca - Avoid array temporaries in CHECK_VALUE
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 ! 
-      INTEGER :: I, J
+      INTEGER            :: I, J
+      INTEGER            :: ERR_LOC(4)
+      CHARACTER(LEN=255) :: ERR_VAR
+      CHARACTER(LEN=255) :: ERR_MSG
 
       !=================================================================
       ! SET_FLOATING_PRESSURE begins here!
       !=================================================================
+
+      ! Define quantities for CHECK_VALUE
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J )
+!$OMP+PRIVATE( I, J, ERR_LOC, ERR_VAR, ERR_MSG )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
          ! Assign into PFLT array
-         PFLT(I,J) = PS(I,J) 
+         PFLT(I,J) = PS(I,J) !  12 Jun 2013 - R. Yantosca -  
+
 
          ! Check for NaN or Infinities
-         CALL CHECK_VALUE( PFLT(I,J), (/I,J,0,0/), 
-     &                    'PFLT',   'set_floating_pressure:1' )
+         ERR_LOC = (/ I, J, 0, 0 /)
+         ERR_VAR = 'PFLT'
+         ERR_MSG = 'set_floating_pressure:1'
+         CALL CHECK_VALUE( PFLT(I,J), ERR_LOC, ERR_VAR, ERR_MSG )
+
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO

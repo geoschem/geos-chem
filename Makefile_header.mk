@@ -214,7 +214,7 @@ endif
 
 # Pick compiler options for debug run or regular run 
 ifdef DEBUG
-FFLAGS    := -cpp -w -O0 -auto -noalign -convert big_endian -g -DDEBUG
+FFLAGS    := -cpp -w -O0 -auto -noalign -convert big_endian -g -DDEBUG -check arg_temp_created
 else
 FFLAGS    := -cpp -w $(OPT) -auto -noalign -convert big_endian -vec-report0 
 endif

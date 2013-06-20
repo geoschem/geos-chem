@@ -1208,6 +1208,8 @@
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
+!  12 Jun 2013 - R. Yantosca - Remove local declaration of LEDGARSHIP & LHIST,
+!                              which obscures the module variable definitions
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1232,9 +1234,6 @@
       CHARACTER(LEN=255)               :: LLFILENAME
       REAL*8                           :: OUTGRID(IIPAR,JJPAR)
       REAL*8,  POINTER                 :: INGRID(:,:) => NULL()
-
-      ! For fields from Input_Opt
-      LOGICAL                          :: LEDGARSHIP, LHIST
 
       !=================================================================
       ! COMPUTE_EDGAR_SO2 begins here!
@@ -2962,6 +2961,7 @@
 !  NOTES:
 !  (1 ) Now allocates SHIP arrays only if LEDGARSHIP is TRUE (5/13/08)
 !  01 Mar 2012 - R. Yantosca - Removed ref to GET_AREA_CM2 and A_CM2 array
+!  12 Jun 2013 - R. Yantosca - Now use Input_Opt%LEDGARSHIP
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -2991,10 +2991,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EDGAR_SO2' )
       EDGAR_SO2 = 0d0
 
-      print*, '### LEDGARSHIP: ', LEDGARSHIP, Input_Opt%LEDGARSHIP
-      call flush(6)
-
-      IF ( LEDGARSHIP ) THEN
+      IF ( Input_Opt%LEDGARSHIP ) THEN
 
          ALLOCATE( EDGAR_SO2_SHIP( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'EDGAR_SO2_SHIP' )

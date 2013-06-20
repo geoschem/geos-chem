@@ -503,16 +503,22 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*4,           INTENT(IN) :: VALUE        ! Value to be checked
-      CHARACTER(LEN=*), INTENT(IN) :: VARNAME      ! Name of variable
-      CHARACTER(LEN=*), INTENT(IN) :: MESSAGE      ! Short descriptive msg
-      INTEGER,          INTENT(IN) :: LOCATION(4)  ! (/ I, J, L, N /) indices
+      REAL*4,             INTENT(IN) :: VALUE        ! Value to be checked
+!------------------------------------------------------------------------------
+! Prior to 6/10/13:
+!      CHARACTER(LEN=*), INTENT(IN) :: VARNAME      ! Name of variable
+!      CHARACTER(LEN=*), INTENT(IN) :: MESSAGE      ! Short descriptive msg
+!------------------------------------------------------------------------------
+      CHARACTER(LEN=255), INTENT(IN) :: VARNAME      ! Name of variable
+      CHARACTER(LEN=255), INTENT(IN) :: MESSAGE      ! Short descriptive msg
+      INTEGER,            INTENT(IN) :: LOCATION(4)  ! (/ I, J, L, N /) indices
 !
 ! !REVISION HISTORY:
 !  13 Jun 2001 - R. Yantosca - Initial version
 !  15 Oct 2002 - R. Yantosca - Now call GEOS_CHEM_STOP to shutdown safely
 !  15 Oct 2002 - R. Yantosca - Updated comments, cosmetic changes
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  10 Jun 2013 - R. Yantosca - Avoid array temporaries, use CHAR*255 args
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -563,16 +569,23 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8,           INTENT(IN) :: VALUE        ! Value to be checked
-      CHARACTER(LEN=*), INTENT(IN) :: VARNAME      ! Name of variable
-      CHARACTER(LEN=*), INTENT(IN) :: MESSAGE      ! Short descriptive msg
-      INTEGER,          INTENT(IN) :: LOCATION(4)  ! (/ I, J, L, N /) indices
+      REAL*8,             INTENT(IN) :: VALUE        ! Value to be checked
+!------------------------------------------------------------------------------
+! Prior to 6/10/13:
+! Avoid array temporaries (bmy, 6/10/13)
+!      CHARACTER(LEN=*), INTENT(IN) :: VARNAME      ! Name of variable
+!      CHARACTER(LEN=*), INTENT(IN) :: MESSAGE      ! Short descriptive msg
+!------------------------------------------------------------------------------
+      CHARACTER(LEN=255), INTENT(IN) :: VARNAME      ! Name of variable
+      CHARACTER(LEN=255), INTENT(IN) :: MESSAGE      ! Short descriptive msg
+      INTEGER,            INTENT(IN) :: LOCATION(4)  ! (/ I, J, L, N /) indices
 !
 ! !REVISION HISTORY:
 !  13 Jun 2001 - R. Yantosca - Initial version
 !  15 Oct 2002 - R. Yantosca - Now call GEOS_CHEM_STOP to shutdown safely
 !  15 Oct 2002 - R. Yantosca - Updated comments, cosmetic changes
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  10 Jun 2013 - R. Yantosca - Avoid array temporaries, use CHAR*255 args
 !EOP
 !------------------------------------------------------------------------------
 !BOC

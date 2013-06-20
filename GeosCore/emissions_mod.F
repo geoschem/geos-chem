@@ -383,7 +383,7 @@
          ENDIF
 
          ! Read CAC (Canada) emissions
-         IF ( LCAC .and. ITS_A_NEW_YEAR() ) THEN
+         IF ( LCAC .and. ITS_A_NEW_MONTH() ) THEN
 #if   defined( GRID05x0666 )
             CALL EMISS_CAC_ANTHRO_05x0666
      &         ( am_I_Root, Input_Opt, State_Chm, RC ) ! nested
@@ -434,7 +434,7 @@
          ! NOx-Ox-HC (w/ or w/o aerosols)
          CALL EMISSDR
      &      ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-!
+
          ! Seasalt aerosol emission
          IF ( LSSALT ) THEN 
             CALL EMISSSEASALT
@@ -485,8 +485,8 @@
          ENDIF
 
          ! Read CAC emissions
-         IF ( LCAC .and. ITS_A_NEW_YEAR() ) THEN
-#if   defined( GRID05x0666 )
+         IF ( LCAC .and. ITS_A_NEW_MONTH() ) THEN
+#if   defined(GRID05x0666)
             CALL EMISS_CAC_ANTHRO_05x0666
      &         ( am_I_Root, Input_Opt, State_Chm, RC ) ! nested
 #else
@@ -626,7 +626,7 @@
          ENDIF
 
          ! Read CAC emissions
-         IF ( LCAC .and. ITS_A_NEW_YEAR() ) THEN
+         IF ( LCAC .and. ITS_A_NEW_MONTH() ) THEN
 #if   defined( GRID05x0666 )
             CALL EMISS_CAC_ANTHRO_05x0666
      &         ( am_I_Root, Input_Opt, State_Chm, RC ) ! nested
@@ -800,7 +800,7 @@
          ENDIF
 
          ! Read CAC (Canada) emissions
-         IF ( Input_Opt%LCAC .and. ITS_A_NEW_YEAR() ) THEN
+         IF ( LCAC .and. ITS_A_NEW_MONTH() ) THEN
 #if   defined( GRID05x0666 )
             CALL EMISS_CAC_ANTHRO_05x0666
      &         ( am_I_Root, Input_Opt, State_Chm, RC ) ! nested

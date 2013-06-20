@@ -6430,23 +6430,23 @@
             ! Get name, long-name (and others where necessary)
             SELECT CASE( T )
                CASE( 1  )
-                  NAME (T,63) = 'Frac_NOx'
+                  NAME (T,63) = 'FracNOx'
                   FNAME(T,63) = 'Fraction of NOx remaining'
                CASE( 2  )
                   NAME (T,63) = 'IntOPE'
                   FNAME(T,63) = 'Integrated OPE'
                CASE( 3  )
-                  NAME (T,63) = 'Frac_NOx*SHIP'
-                  FNAME(T,63) = 'Integrated OPE'
-                  UNIT (T,63) = 'kg/box/timestep'
+                  NAME (T,63) = 'PlumeNOx'
+                  FNAME(T,63) = 'Ship plume NOx remaining'
+                  UNIT (T,63) = 'molec/cm2/s'
                CASE( 4  )
-                  NAME (T,63) = 'IntOPE*(1-Frac_NOx)*SHIP'
-                  FNAME(T,63) = 'Integrated OPE'
-                  UNIT (T,63) = 'kg/box/timestep'
+                  NAME (T,63) = 'PlumeO3'
+                  FNAME(T,63) = 'Ship plume Ox production'
+                  UNIT (T,63) = 'molec/cm2/s'
                CASE( 5  )
-                  NAME (T,63) = 'Ship_emissions'
-                  FNAME(T,63) = 'Ship emissions'
-                  UNIT (T,63) = 'kg/box/timestep'
+                  NAME (T,63) = 'ShipNOx'
+                  FNAME(T,63) = 'Ship NOx emissions'
+                  UNIT (T,63) = 'molec/cm2/s'
                CASE DEFAULT
                   ! Nothing
             END SELECT

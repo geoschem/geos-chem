@@ -61,6 +61,7 @@
       PUBLIC  :: GET_SECOND
       PUBLIC  :: GET_DAY_OF_YEAR
       PUBLIC  :: GET_DAY_OF_WEEK
+      PUBLIC  :: GET_DAY_OF_WEEK_LT
       PUBLIC  :: GET_GMT
       PUBLIC  :: GET_TAU
       PUBLIC  :: GET_TAUb
@@ -139,6 +140,16 @@
       PUBLIC  :: Accept_External_Date_Time
 #endif
 !
+! !REMARKS:
+!  References:
+!  ---------------------------------------------------------------------------
+!  (1) "Practical Astronomy with Your Calculator", 3rd Ed.
+!        Peter Duffett-Smith, Cambridge UP, 1992, p9.
+!  (2) Rounding algorithm from: Hultquist, P.F, "Numerical Methods for
+!        Engineers and Computer Scientists", Benjamin/Cummings, Menlo Park CA,
+!        1988, p. 20.
+!  (3) Truncation algorithm from: http://en.wikipedia.org/wiki/Truncation
+!
 ! !REVISION HISTORY:
 !  21 Jun 2000 - R. Yantosca - Initial version
 !  (1 ) Updated comments (bmy, 9/4/01)
@@ -209,38 +220,88 @@
 !  03 Feb 2012 - R. Yantosca - Added I3 fields timestep variable & routines
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  01 Mar 2012 - R. Yantosca - GET_LOCALTIME now takes (I,J,L,GMT) as args
-!  05 Dec 2012 - R. Yantosca - Add 
+!  14 Jun 2013 - R. Yantosca - Now compute day of week in SET_CURRENT_TIME
+!  14 Jun 2013 - R. Yantosca - Added comments to module variable declarations
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      ! Date and time variables
-      INTEGER           :: NYMDb,      NHMSb,       NYMDe   
-      INTEGER           :: NHMSe,      NYMD,        NHMS
-      INTEGER           :: NYMD_DIAG
-      INTEGER           :: MONTH,      DAY,         YEAR
-      INTEGER           :: HOUR,       MINUTE,      SECOND
-      INTEGER           :: NSEASON,    DAY_OF_YEAR, ELAPSED_MIN
-      INTEGER           :: NDIAGTIME
-![eml
-      INTEGER           :: HISTYRA
-!eml]
-      REAL*8            :: TAU,        TAUb,        TAUe  
-      REAL*8            :: GMT,        DIAGb,       DIAGe
+!
+! !PRIVATE TYPES:
+!
+      !---------------------------------
+      ! GMT dates @ start & end of run
+      !---------------------------------
+      INTEGER           :: NYMDb          ! YYYY/MM/DD on which to start run
+      INTEGER           :: NHMSb          ! hh:mm:ss   on which to start run
+      REAL*8            :: TAUb           ! Hours since 1/1/1985 @ start of run
+      INTEGER           :: NYMDe          ! YYYY/MM/DD on which to end run
+      INTEGER           :: NHMSe          ! hh:mm:ss   on which to end run
+      REAL*8            :: TAUe           ! Hours since 1/1/1985 @ end of run
 
-      ! Timesteps
-      INTEGER           :: TS_CHEM,    TS_CONV,     TS_DIAG
-      INTEGER           :: TS_DYN,     TS_EMIS,     TS_UNIT
+      !---------------------------------
+      ! Current GMT date/time values
+      !---------------------------------
+      INTEGER           :: NYMD           ! YYYY/MM/DD date
+      INTEGER           :: NHMS           ! hh:mm:ss time
+      INTEGER           :: MONTH          ! Month (1-12)
+      INTEGER           :: DAY            ! Day of month (1-31)
+      INTEGER           :: YEAR           ! Year (YYYY format)
+      INTEGER           :: HOUR           ! hour (0-23)
+      INTEGER           :: MINUTE         ! Minutes (0-59)
+      INTEGER           :: SECOND         ! Seconds (0-59)
+      INTEGER           :: NSEASON        ! Season (1=DJF,2=MAM,3=JJA,4=SON)
+      INTEGER           :: DAY_OF_YEAR    ! Day of year (0-365 or 0-366 if LY)
+      INTEGER           :: DAY_OF_WEEK    ! Day of week (0=Sun,1=Mon,.., 6=Sat)
+      REAL*8            :: TAU            ! Hours since 1/1/1985
+      REAL*8            :: GMT            ! Current GMT time [decimal hours]
 
-      ! Timestep counters
-      INTEGER           :: CT_CHEM,    CT_CONV,     CT_DYN    
-      INTEGER           :: CT_EMIS,    CT_A3,       CT_A6
-      INTEGER           :: CT_I3,      CT_I6,       CT_XTRA    
-      INTEGER           :: CT_DIAG,    CT_A1
-      INTEGER           :: Hg2_DIAG
+      !---------------------------------
+      ! Elapsed time values
+      !---------------------------------
+      INTEGER           :: ELAPSED_MIN    ! # of minutes into the run
+      REAL*8            :: LEAP_YEAR_DAYS ! # of leap years since start of run
 
-      ! Number of leap years we have encountered since start of simulation
-      REAL*8            :: LEAP_YEAR_DAYS
+      !---------------------------------
+      ! Diagnostic date/time values
+      !---------------------------------
+      INTEGER           :: NDIAGTIME      ! Hour of day to write diag output
+      INTEGER           :: NYMD_DIAG      ! Diagnostic date for output
+      REAL*8            :: DIAGb          ! Start of diag averaging interval
+      REAL*8            :: DIAGe          ! End   of diag averaging interval
 
+      !---------------------------------
+      ! Timestep values
+      !---------------------------------
+      INTEGER           :: TS_CHEM        ! Chemistry timestep       [min]
+      INTEGER           :: TS_CONV        ! Convection timestep      [min]
+      INTEGER           :: TS_DIAG        ! Diagnostic timestep      [min]
+      INTEGER           :: TS_DYN         ! Dynamic timestep         [min]
+      INTEGER           :: TS_EMIS        ! Emissions timestep       [min]
+      INTEGER           :: TS_UNIT        ! Unit conversion timestep [min]
+
+      !---------------------------------
+      ! Counter values
+      !---------------------------------
+      INTEGER           :: CT_CHEM        ! # of elapsed chemistry timesteps
+      INTEGER           :: CT_CONV        ! # of elapsed convection timesteps
+      INTEGER           :: CT_DYN         ! # of elapsed dynamic timesteps
+      INTEGER           :: CT_EMIS        ! # of elapsed emission timesteps
+      INTEGER           :: CT_A1          ! # of elapsed A1 met field reads
+      INTEGER           :: CT_A3          ! # of elapsed A3 met field reads
+      INTEGER           :: CT_A6          ! # of elapsed I6 met field reads
+      INTEGER           :: CT_I3          ! # of elapsed I3 met field reads
+      INTEGER           :: CT_I6          ! # of elapsed I6 met field reads
+      INTEGER           :: CT_XTRA        ! # of elapsed XTRA met field reads
+      INTEGER           :: CT_DIAG        ! # of elapsed diagnostic timesteps
+      INTEGER           :: Hg2_DIAG       ! # of elapsed Hg2 diag outputs
+
+      !---------------------------------
+      ! For historical emissions
+      !---------------------------------
+      INTEGER           :: HISTYRA        ! Year for historical emissions
+!
+! !DEFINED PARAMETERS:
+!
       ! Astronomical Julian Date at 0 GMT, 1 Jan 1985
       REAL*8, PARAMETER :: JD85 = 2446066.5d0
 
@@ -255,7 +316,8 @@
 !
 ! !DESCRIPTION: Subroutine SET\_CURRENT\_TIME takes in the elapsed time in 
 !  minutes since the start of a GEOS-Chem simulation and sets the GEOS-Chem 
-!  time variables accordingly.
+!  time variables accordingly.  NOTE: All time variables are returned
+!  w/r/t Greenwich Mean Time (aka Universal Time).
 !\\
 !\\
 ! !INTERFACE:
@@ -289,6 +351,7 @@
 !  29 Jul 2011 - R. Yantosca - Bug fix: For GCAP, we need to skip over the
 !                              # of leap-year-days that have already occurred
 !                              when going from Julian date to Y/M/D date
+!  14 Jun 2013 - R. Yantosca - Now move the day of week computation here
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -297,7 +360,7 @@
 !
       LOGICAL, SAVE :: FIRST = .TRUE.
       REAL*4        :: TMP
-      REAL*8        :: JD0, JD1
+      REAL*8        :: A, B, JD, JD0, JD1, THISDAY
 
       !=================================================================
       ! SET_CURRENT_TIME begins here!
@@ -394,6 +457,31 @@
          CASE ( 9, 10, 11 )
             NSEASON = 4
       END SELECT
+
+      !=================================================================
+      ! Compute day of week w/r/t the GMT date
+      ! (moved here from routine GET_DAY_OF_WEEK)
+      !=================================================================
+
+      ! Get fractional GMT day
+      THISDAY     = DAY + ( GMT / 24d0 )
+
+      ! Get current Julian date 
+      JD          = JULDAY( YEAR, MONTH, THISDAY )
+
+      ! Add 1.5 to JD and divide by 7
+      A           = ( JD + 1.5d0 ) / 7d0
+
+      ! Take fractional part and multiply by 7
+      B           = ( A - INT( A ) ) * 7d0
+
+      ! NOTE: This is not in the Duffett-Smith book, but when using
+      ! REAL*8, we have to round B to 4 decimal places in order
+      ! to avoid floating-point errors. (bmy, 6/13/13)
+      B           = INT( NINT( B*1d5 + SIGN( 5d0, B ) ) / 10d0 ) / 1d4
+
+      ! Discard the fractional part of B
+      DAY_OF_WEEK = INT( B )
 
       END SUBROUTINE SET_CURRENT_TIME
 !EOC
@@ -1805,8 +1893,9 @@
 !
 ! !IROUTINE: get_day_of_week
 !
-! !DESCRIPTION: Function GET\_DAY\_OF\_WEEK returns the day of the week as a 
-!  number: Sun=0, Mon=1, Tue=2, Wed=3, Thu=4, Fri=5, Sat=6.
+! !DESCRIPTION: Function GET\_DAY\_OF\_WEEK returns the day of the week (with
+!  respect to GREENWICH MEAN TIME) as a number: Sun=0, Mon=1, Tue=2, Wed=3,
+!  Thu=4, Fri=5, Sat=6.
 !\\
 !\\
 ! !INTERFACE:
@@ -1821,44 +1910,94 @@
 !
       INTEGER :: DAY_NUM   ! Day number of week
 ! 
-! !REMARKS:
-!  Reference:
-!  ----------
-!  "Practical Astronomy with Your Calculator", 3rd Ed.  Peter Duffett-Smith,
-!    Cambridge UP, 1992, p9.
-!
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  14 Jun 2013 - R. Yantosca - Now move computation to SET_CURRENT_TIME
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 ! 
-      REAL*8  :: A, B, JD, THISDAY
+      ! Return the day of week w/r/t GMT date
+      ! (stored in module variable DAY_OF_WEEK)
+      DAY_NUM = DAY_OF_WEEK
+
+      END FUNCTION GET_DAY_OF_WEEK
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_day_of_week_lt
+!
+! !DESCRIPTION: Function GET\_DAY\_OF\_WEEK\_LT returns the day of the week
+!  (with repect to the SOLAR LOCAL TIME AT GRID BOX [I,J,L]) as a number:
+!  Sun=0, Mon=1, Tue=2, Wed=3, Thu=4, Fri=5, Sat=6.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_DAY_OF_WEEK_LT( I, J, L ) RESULT( DAY_NUM )
+!
+! !USES:
+!
+      USE GRID_MOD, ONLY : GET_XMID
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER, INTENT(IN) :: I         ! Grid box lon index
+      INTEGER, INTENT(IN) :: J         ! Grid box lat index
+      INTEGER, INTENT(IN) :: L         ! Grid box level index
+!
+! !RETURN VALUE:
+!
+      INTEGER             :: DAY_NUM   ! Day of week, w/r/t local time
+! 
+! !REMARKS:
+!  This routine is used by various emissions routines, in order to determine
+!  whether weekday or weekend emissions need to be applied.
+!
+! !REVISION HISTORY: 
+!  13 Jun 2013 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+! 
+      REAL*8 :: DOW_LOCAL, LOCAL_TIME
 
       !=================================================================
       ! GET_DAY_OF_WEEK begins here!
       !=================================================================
 
-      ! Get fractional day
-      THISDAY = DAY                 + ( HOUR   / 24d0    ) + 
-     &          ( MINUTE / 1440d0 ) + ( SECOND / 86400d0 )
+      ! Get the local time [hrs] at grid box (I,J,L),
+      ! but do not force it into the range of [0..24] hours.
+      LOCAL_TIME = GMT + ( GET_XMID( I, J, L ) / 15d0 )
 
-      ! Get current Julian date 
-      JD      = JULDAY( YEAR, MONTH, THISDAY )
+      ! Add the local fraction of day elapsed to the day of week 
+      ! obtained w/r/t the GREENWICH MEAN TIME.  This accounts for 
+      ! the distance of grid box (I,J,L) from the Greenwich meridian.
+      DOW_LOCAL  = DBLE( DAY_OF_WEEK ) + ( LOCAL_TIME / 24d0 )
 
-      ! Add 1.5 to JD and divide by 7
-      A       = ( JD + 1.5d0 ) / 7d0 
+      ! If DOW_LOCAL is negative, then we need to add 7.
+      ! This means that the day of week w/r/t GMT is Sunday
+      ! but that it is still Saturday at grid box (I,J,L).
+      IF ( DOW_LOCAL < 0d0 ) THEN
+         DOW_LOCAL = DOW_LOCAL + 7d0
+      ENDIF
 
-      ! Take fractional part and multiply by 7
-      B       = ( A - INT( A ) ) * 7d0
+      ! Force the day of week w/r/t LOCAL TIME to fall 
+      ! within the range 0 (Sunday) thru 6 (Saturday).
+      DOW_LOCAL  = MOD( DOW_LOCAL, 7d0 ) 
 
-      ! Round to nearest integer -- this is the day number!
-      DAY_NUM = INT( B + 0.5d0 )
-      
-      END FUNCTION GET_DAY_OF_WEEK
+      ! Cast to integer and return result
+      DAY_NUM    = INT( DOW_LOCAL )
+    
+      END FUNCTION GET_DAY_OF_WEEK_LT
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -4433,7 +4572,6 @@
       ENDIF
 
       END FUNCTION ITS_A_NEW_DAY
-
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -4965,13 +5103,15 @@
 ! !REVISION HISTORY: 
 !  06 Dec 2012 - Initial version
 !  11 Dec 2012 - R. Yantosca - Renamed to ACCEPT_EXTERNAL_DATE_TIME
+!  18 Jun 2013 - R. Yantosca - Now compute day of week w/r/t GMT, which is
+!                              the same modification made in SET_CURRENT_TIME
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*4 :: TMP
+      REAL*4 :: A. B. JD, THISDAY, TMP
 
       !=================================================================
       ! Set time/date values of time_mod.F from the ESMF inputs 
@@ -5038,6 +5178,15 @@
          CASE ( 9, 10, 11 )
             NSEASON = 4
       END SELECT
+
+      ! Day of week w/r/t the GMT date  
+      ! Use same algorithm as in routine SET_CURRENT_TIME
+      THISDAY     = DAY + ( GMT / 24d0 )
+      JD          = JULDAY( YEAR, MONTH, THISDAY )
+      A           = ( JD + 1.5d0 ) / 7d0
+      B           = ( A - INT( A ) ) * 7d0
+      B           = INT( NINT( B*1d5 + SIGN( 5d0, B ) ) / 10d0 ) / 1d4
+      DAY_OF_WEEK = INT( B )
 
       ! Return successfully
       RC = GIGC_SUCCESS

@@ -175,7 +175,7 @@
       USE TIME_MOD,           ONLY : GET_YEAR, GET_MONTH
       USE SCALE_ANTHRO_MOD,   ONLY : GET_ANNUAL_SCALAR_1x1
 #if defined( DEVEL )
-      USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK
+      USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK_LT
       USE TRACERID_MOD,       ONLY : IDTNO
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE ERROR_MOD,          ONLY : ALLOC_ERR
@@ -223,10 +223,9 @@
       CHARACTER(LEN=255)    :: LLFILENAME
       REAL*8                :: INGRID(I1x1,J1x1)
 #if defined( DEVEL )
-      INTEGER               :: DAY_NUM
+      INTEGER               :: DOW_LT
       LOGICAL               :: WEEKDAY
-      REAL*8, ALLOCATABLE   :: A(:,:)
-      INTEGER AS
+      REAL*8                :: A(IIPAR,JJPAR)
 #endif
 
       ! For fields from Input_Opt
@@ -248,11 +247,6 @@
 
       ! First-time initialization
       IF ( FIRST ) THEN
-#if defined( DEVEL )
-         ALLOCATE( A( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMISS_EPA_NEI:A' )
-         A = 0d0
-#endif         
          CALL INIT_VISTAS_ANTHRO( am_I_Root, Input_Opt, RC )
          FIRST = .FALSE.
       ENDIF
@@ -383,22 +377,32 @@
       !--------------------------
       ! Give to global bundle
       !--------------------------
-      DAY_NUM = GET_DAY_OF_WEEK()
-      WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
-      DO I=1,IIPAR
-      DO J=1,JJPAR
+         ! Determine if we should use weekday or weekend NEI
+         ! emissions at grid box (I,J,L).  Since NEI is over
+         ! the US, then weekend is Sat/Sun.
+         DOW_LT  = GET_DAY_OF_WEEK_LT( I, J, 1 )
+         WEEKDAY = ( DOW_LT > 0 .and. DOW_LT < 6 )
+
+         ! Surface area
          A(I,J)  = GET_AREA_CM2( I, J, 1 ) 
-      ENDDO
-      ENDDO
 
-      IF ( WEEKDAY ) THEN
-         IF ( IDTNO > 0 ) State_Chm%TRAC_TEND(:,:,1,IDTNO) = 
-     &        VISTAS_WD_NOx(:,:) * A / XNUMOL(IDTNO)
-      ELSE
-         IF ( IDTNO > 0 ) State_Chm%TRAC_TEND(:,:,1,IDTNO) = 
-     &        VISTAS_WE_NOx(:,:) * A / XNUMOL(IDTNO)
-      ENDIF
+         ! Sum into the tracer tendencies
+         IF ( WEEKDAY ) THEN
+            IF ( IDTNO > 0 ) THEN
+               State_Chm%TRAC_TEND(I,J,1,IDTNO) =
+     &           VISTAS_WD_NOx(I,J) * A(I,J) / XNUMOL(IDTNO)
+            ENDIF
+         ELSE
+            IF ( IDTNO > 0 ) THEN
+               State_Chm%TRAC_TEND(I,J,1,IDTNO) =
+     &           VISTAS_WE_NOx(I,J) * A(I,J) / XNUMOL(IDTNO)
+            ENDIF
+         ENDIF
+      ENDDO
+      ENDDO
 #endif
 
       !--------------------------
