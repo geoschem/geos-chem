@@ -123,8 +123,17 @@
       ! Open the restart file for output -- binary punch format
       !=================================================================
 
-      ! Default file name (maybe later add this to input file)
-      OUTPUT_RESTART_FILE = 'restart.soilnox.YYYYMMDDhh'
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% BMY KLUDGE FOR SEAC4RS (bmy, 6/20/13)
+!%%% For now, send the restart.soilnox file to the restarts/ directory
+!%%% since this will make it more useful to manage files for the NRT.
+!%%%
+!%%%      ! Default file name (maybe later add this to input file)
+!%%%      OUTPUT_RESTART_FILE = 'restart.soilnox.YYYYMMDDhh'
+!%%%
+      ! For SEAC4RS, write soilnox restart to "restarts/" sub-directory
+      OUTPUT_RESTART_FILE = 'restarts/restart.soilnox.YYYYMMDDhh'
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Copy the output restart file name into a local variable
       FILENAME = TRIM( OUTPUT_RESTART_FILE )
@@ -277,8 +286,17 @@
       !=================================================================
       ! Open restart file and read top-of-file header
       !=================================================================
-      INPUT_RESTART_FILE = 'restart.soilnox.YYYYMMDDhh'
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% BMY KLUDGE FOR SEAC4RS (bmy, 6/20/13)
+!%%% For now, send the restart.soilnox file to the restarts/ directory
+!%%% since this will make it more useful to manage files for the NRT.
+!%%%
+!%%%      INPUT_RESTART_FILE = 'restart.soilnox.YYYYMMDDhh'
 
+      ! For SEAC4RS, read soilnox restart from "restarts/" sub-directory
+      INPUT_RESTART_FILE = 'restarts/restart.soilnox.YYYYMMDDhh'
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+c
       ! Copy input file name to a local variable
       FILENAME = TRIM( INPUT_RESTART_FILE )
 

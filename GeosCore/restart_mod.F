@@ -978,8 +978,17 @@
       ! Copy values from Input_Opt
       LPRT                = Input_Opt%LPRT
 
-      ! Hardwire output file for now
-      OUTPUT_CHECKPT_FILE = 'restart.cspec.YYYYMMDDhh'
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% BMY KLUDGE FOR SEAC4RS (bmy, 6/20/13)
+!%%% For now, send the restart.cspec file to the restarts/ directory
+!%%% since this will make it more useful to manage files for the NRT.
+!%%%
+!%%%      ! Hardwire output file for now
+!%%%      OUTPUT_CHECKPT_FILE = 'restart.cspec.YYYYMMDDhh'
+!%%%
+      ! For SEAC4RS, write cspec restart to "restarts/" sub-directory
+      OUTPUT_CHECKPT_FILE = 'restarts/restart.cspec.YYYYMMDDhh'
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Clear some arrays 
       ! use minimum value instead of zero hotp 2/25/09
@@ -1186,8 +1195,17 @@
       ! READ_CSPEC_FILE begins here!
       !=================================================================
 
-      ! Hardwire output file for now
-      INPUT_CHECKPT_FILE = 'restart.cspec.YYYYMMDDhh'
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% BMY KLUDGE FOR SEAC4RS (bmy, 6/20/13)
+!%%% For now, send the restart.cspec file to the restarts/ directory
+!%%% since this will make it more useful to manage files for the NRT.
+!%%%
+!%%%      ! Hardwire output file for now
+!%%%      INPUT_CHECKPT_FILE = 'restart.cspec.YYYYMMDDhh'
+!%%%
+      ! For SEAC4RS, read cspec restart file from "restarts/" sub-directory 
+      INPUT_CHECKPT_FILE = 'restarts/restart.cspec.YYYYMMDDhh'
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Initialize some variables
       !TMP(:,:,:) = 0e0
