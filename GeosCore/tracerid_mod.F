@@ -113,8 +113,8 @@
 !  (103) IDTDST4   (INTEGER) : DST4  index w/in STT array ("tracer_mod.f")
 !  (104) IDTSALA   (INTEGER) : SALA  index w/in STT array ("tracer_mod.f")
 !  (105) IDTSALC   (INTEGER) : SALC  index w/in STT array ("tracer_mod.f")
-!  (109) IDENOX    (INTEGER) : NOx   index w/in EMISRRN array ("CMN_O3")  
-!  (110) IDEOX     (INTEGER) : Ox    index w/in EMISRR  array ("CMN_O3")  
+!  (109) IDENO     (INTEGER) : NOx   index w/in EMISRRN array ("CMN_O3")  
+!  (110) IDEO3     (INTEGER) : Ox    index w/in EMISRR  array ("CMN_O3")  
 !  (111) IDECO     (INTEGER) : CO    index w/in EMISRR  array ("CMN_O3")     
 !  (112) IDEPRPE   (INTEGER) : PRPE  index w/in EMISRR  array ("CMN_O3")     
 !  (113) IDEC3H8   (INTEGER) : C3H8  index w/in EMISRR  array ("CMN_O3")     
@@ -449,7 +449,9 @@
       INTEGER            :: IDERCHO, IDEHCOOH, IDEACTA       
       !jpp, 8/24/07: emission ID's for Br biogenic emissions in fullchem runs
       INTEGER            :: IDECHBr3, IDECH2Br2, IDEBr2      
-
+      ! krt, 6/2/13 - for additional NEI08 emissions
+      INTEGER            :: IDENO2, IDEHNO2 
+      ! INTEGER          :: IDEMOH, IDEEOH, IDECH4
       ! GEOS-CHEM biofuel ID's
       INTEGER            :: IDBFNO,   IDBFCO,   IDBFALK4, IDBFACET 
       INTEGER            :: IDBFMEK,  IDBFALD2, IDBFPRPE, IDBFC3H8
@@ -2531,15 +2533,24 @@
             NEMANTHRO = NEMANTHRO + 1
             IDEC2H2   = NEMANTHRO
          ENDIF
-         
+         ! FOR NEI08, krt, 6/12/13
+         IF ( IDTNO2 > 0 ) THEN
+            NEMANTHRO = NEMANTHRO + 1
+            IDENO2    = NEMANTHRO
+         ENDIF
+         IF ( IDTHNO2 > 0 ) THEN
+            NEMANTHRO = NEMANTHRO + 1
+            IDEHNO2   = NEMANTHRO
+         ENDIF
          !%%%%%%bmy add these here%%%%%%%%%%
 
          ! For now, comment this out, as RETRO does not have RCHO emissions
          ! (bmy, 8/17/11)
-	 !IF ( IDTRCHO > 0 ) THEN
-         !   NEMANTHRO = NEMANTHRO + 1
-         !   IDERCHO  = NEMANTHRO
-         !ENDIF
+         ! uncommented for NEI08, krt, 6/2/13
+	 IF ( IDTRCHO > 0 ) THEN
+            NEMANTHRO = NEMANTHRO + 1
+            IDERCHO  = NEMANTHRO
+         ENDIF
 
          IF ( IDTHCOOH > 0 ) THEN
             NEMANTHRO = NEMANTHRO + 1
@@ -2606,6 +2617,8 @@
       ! an F90 module somehow.  Think about this later. (bmy, 11/12/02)
       !=================================================================
       IF ( IDENO   /= 0 ) IDEMS(IDENO  ) = IDTNO
+      IF ( IDENO2  /= 0 ) IDEMS(IDENO2 ) = IDTNO2
+      IF ( IDEHNO2 /= 0 ) IDEMS(IDEHNO2 ) = IDTHNO2
       IF ( IDECO   /= 0 ) IDEMS(IDECO  ) = IDTCO
       IF ( IDEPRPE /= 0 ) IDEMS(IDEPRPE) = IDTPRPE
       IF ( IDEC3H8 /= 0 ) IDEMS(IDEC3H8) = IDTC3H8
@@ -2660,6 +2673,8 @@
          WRITE( 6, 120 ) 'THIS NEMBIOG:   ', NEMBIOG
          WRITE( 6, 115 ) '-----------------------------------------'
          WRITE( 6, 120 ) 'IDENO   ', IDENO
+         WRITE( 6, 120 ) 'IDENO2  ', IDENO2
+         WRITE( 6, 120 ) 'IDEHNO2  ', IDEHNO2
          WRITE( 6, 120 ) 'IDECO   ', IDECO
          WRITE( 6, 120 ) 'IDEPRPE ', IDEPRPE
          WRITE( 6, 120 ) 'IDEC3H8 ', IDEC3H8
@@ -4451,6 +4466,8 @@
       NEMANTHRO = 0
       NEMBIOG   = 0
       IDENO     = 0
+      IDENO2    = 0 !krt, 6/12/13
+      IDEHNO2   = 0 !krt, 6/12/13
       IDEO3     = 0
       IDECO     = 0
       IDEPRPE   = 0

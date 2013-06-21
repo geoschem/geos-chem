@@ -57,6 +57,7 @@
 !  01 Feb 2011 - C Friedman  - Added POP emissions
 !  07 Feb 2011 - R. Yantosca - Now use EPA/NEI99 biofuel emissions when
 !                              EPA/NEI05 anthro emissions are selected.
+!  13 Feb 2013 - K. Travis - Add option for "nei2008_anthro_mod.f"
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -114,6 +115,8 @@
       USE MERCURY_MOD,            ONLY : EMISSMERCURY
       USE NEI2005_ANTHRO_MOD,     ONLY : EMISS_NEI2005_ANTHRO
       USE NEI2005_ANTHRO_MOD,     ONLY : EMISS_NEI2005_ANTHRO_05x0666
+      USE NEI2008_ANTHRO_MOD,     ONLY : EMISS_NEI2008_ANTHRO
+      USE NEI2008_ANTHRO_MOD,     ONLY : EMISS_NEI2008_ANTHRO_NATIVE
       USE PARANOX_MOD,            ONLY : READ_PARANOX_LUT
       USE POPS_MOD,               ONLY : EMISSPOPS  !(clf, 2/1/2011)
       USE RETRO_MOD,              ONLY : EMISS_RETRO
@@ -127,7 +130,7 @@
       USE TIME_MOD,               ONLY : GET_MONTH
       USE TIME_MOD,               ONLY : GET_YEAR
       USE TIME_MOD,               ONLY : ITS_A_NEW_MONTH
-      USE TIME_MOD,               ONLY : ITS_A_NEW_YEAR
+      USE TIME_MOD,               ONLY : ITS_A_NEW_YEAR, ITS_A_NEW_DAY
       USE TRACERID_MOD,           ONLY : IDTSO2, IDTC2H6
       USE VISTAS_ANTHRO_MOD,      ONLY : EMISS_VISTAS_ANTHRO
 #if   defined( TOMAS )
@@ -235,6 +238,7 @@
       LOGICAL :: LEMEP
       LOGICAL :: LCAC
       LOGICAL :: LNEI05
+      LOGICAL :: LNEI08
       LOGICAL :: LARCSHIP
       LOGICAL :: LEDGARSHIP
       LOGICAL :: LEMEPSHIP
@@ -277,6 +281,7 @@
       LEMEP              = Input_Opt%LEMEP
       LCAC               = Input_Opt%LCAC
       LNEI05             = Input_Opt%LNEI05
+      LNEI08             = Input_Opt%LNEI08
       LARCSHIP           = Input_Opt%LARCSHIP
       LEDGARSHIP         = Input_Opt%LEDGARSHIP
       LEMEPSHIP          = Input_Opt%LEMEPSHIP
@@ -413,6 +418,17 @@
             CALL EMISS_ARCTAS_SHIP
      &         ( am_I_Root, YEAR, Input_Opt, State_Chm, RC )
          ENDIF
+
+         ! Read NEI2008 (USA) emissions every month
+         IF ( LNEI08 .AND. ITS_A_NEW_MONTH() ) THEN
+#if   defined( GRID05x0666 ) .or. defined( GRID025x03125 )
+            CALL EMISS_NEI2008_ANTHRO_NATIVE(   ! Use NEI08 anthro,  nested
+     &           am_I_Root, Input_Opt, State_Chm, RC )
+#else
+            CALL EMISS_NEI2008_ANTHRO(           ! Use NEI08 anthro,  global
+     &            am_I_Root, Input_Opt, State_Chm, RC )
+#endif
+         ENDIF
             
          ! Read ICOADS ship emissions once per month (cklee, 7/09/09)
          IF ( LICOADSSHIP .and. ITS_A_NEW_MONTH() ) THEN
@@ -460,12 +476,16 @@
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
          ENDIF
 
+         print*, 'before bromine'
+
          ! jpp, 3/2/10:
          ! Now distribute the Br2 emitted from SSA, through
          ! the full mixed layer.
          IF ( LSSABr2 ) THEN
             CALL EMIT_BR2( SSA_Br2 )
          ENDIF
+
+         print*, 'after bromine'
 
       ELSE IF ( ITS_AN_AEROSOL_SIM ) THEN
          
@@ -525,6 +545,20 @@
          ! Read BRAVO (Mexico) emissions once per year
          IF ( LBRAVO .and. ITS_A_NEW_YEAR() ) THEN
             CALL EMISS_BRAVO( am_I_Root, Input_Opt, State_Chm, RC )
+         ENDIF
+
+         ! Read NEI2008 emissions once per month
+         IF ( LNEI08 .AND. ITS_A_NEW_MONTH() ) THEN
+#if   defined( GRID05x0666 ) .or. defined( GRID025x03125 )
+
+            CALL EMISS_NEI2008_ANTHRO_NATIVE(   ! Use NEI08 anthro,  nested
+     &           am_I_Root, Input_Opt, State_Chm, RC  )
+#else
+  
+            CALL EMISS_NEI2008_ANTHRO(           ! Use NEI08 anthro,  global
+     &           am_I_Root, Input_Opt, State_Chm, RC )
+
+#endif
          ENDIF
 
          ! Read EMEP (Europe) emissions once per year
@@ -665,6 +699,17 @@
          ! Read BRAVO (Mexico) emissions once per year
          IF ( LBRAVO .and. ITS_A_NEW_YEAR() ) THEN
             CALL EMISS_BRAVO( am_I_Root, Input_Opt, State_Chm, RC )
+         ENDIF
+
+         ! Read NEI2008 (USA) emissions once per month
+         IF ( LNEI08  .AND. ITS_A_NEW_MONTH() ) THEN
+#if   defined( GRID05x0666 ) .or. defined ( GRID025x03125 )
+         CALL EMISS_NEI2008_ANTHRO_NATIVE(   ! Use NEI08 anthro,  nested
+     &           am_I_Root, Input_Opt, State_Chm, RC )
+#else
+            CALL EMISS_NEI2008_ANTHRO(           ! Use NEI08 anthro,  global
+     &           am_I_Root, Input_Opt, State_Chm, RC )
+#endif
          ENDIF
 
          ! Read EPA (Europe) emissions once per year
@@ -833,6 +878,18 @@
          ! Read BRAVO (Mexico) emissions once per year
          IF ( LBRAVO .and. ITS_A_NEW_YEAR() ) THEN
             CALL EMISS_BRAVO( am_I_Root, Input_Opt, State_Chm, RC )
+         ENDIF
+
+         ! Read NEI2008 (USA) emissions
+         IF ( LNEI08 .AND. ITS_A_NEW_MONTH() ) THEN
+#if   defined( GRID05x0666 ) .or. defined( GRID025x03125 )
+            CALL EMISS_NEI2008_ANTHRO_NATIVE(   ! Use NEI08 anthro,  nested
+     &          am_I_Root, Input_Opt, State_Chm, RC )
+#else
+
+            CALL EMISS_NEI2008_ANTHRO(           ! Use NEI08 anthro,  global
+     &          am_I_Root, Input_Opt, State_Chm, RC )
+#endif
          ENDIF
 
          ! Read EMEP (Europe) emissions once per year
