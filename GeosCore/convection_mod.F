@@ -406,6 +406,7 @@
          !--------------------------
          ! Do the cloud convection
          !--------------------------
+         ! Change so that pointers are passed to do_merra_convection
          CALL DO_MERRA_CONVECTION( IDENT     = IDENT,
      &                             DIMINFO   = DIMINFO,
      &                             COEF      = COEF,
@@ -420,13 +421,13 @@
      &                             CMFMC     = p_CMFMC,
      &                             DQRCU     = p_DQRCU,
      &                             DTRAIN    = p_DTRAIN,
-     &                             H2O2s     = H2O2s(I,J, :        ),
+     &                             H2O2s     = p_H2O2s,
      &                             PFICU     = p_PFICU,
      &                             PFLCU     = p_PFLCU,
      &                             REEVAPCN  = p_REEVAPCN,            
-     &                             SO2s      = SO2s (I,J, :        ),
+     &                             SO2s      = p_SO2s,
      &                             T         = p_T,
-     &                             Q         = STT  (I,J, :,      :),
+     &                             Q         = p_STT,
      &                             DIAG14    = DIAG14,
      &                             DIAG38    = DIAG38,
      &                             I         = I,

@@ -78,6 +78,9 @@
 !  (21) Emissions for these 9 tracers are scaled from CO emissions. (tmf, 1/7/09)
 !  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
 !                              of removal of NOx-Ox partitioning
+!  14 Jun 2013 - R. Yantosca - Now determine weekday/weekend with respect to
+!                              the local time at each grid box.  (Formerly,
+!                              this had been done w/r/t the GMT time.
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -198,10 +201,23 @@
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  15 Nov 2012 - C. Keller   - Set biofuel emissions to zero if BRAVO, CAC or
+!                              EMEP emissions are used, since these 
+!                              inventories already contain biofuel emissions.
 !  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
 !                              of removal of NOx-Ox partitioning
-!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  15 Nov 2012 - C. Keller   - Set biofuel emissions to zero if BRAVO, CAC or
+!                              EMEP emissions are used, since these 
+!                              inventories already contain biofuel emissions.
+!  15 Nov 2012 - C. Keller   - Set biofuel emissions to zero if BRAVO, CAC or
+!                              EMEP emissions are used, since these 
+!                              inventories already contain biofuel emissions.
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC]
+!  12 Jun 2013 - R. Yantosca - Now eliminate array temporaries (as possible)
+!  14 Jun 2013 - R. Yantosca - Now determine weekday/weekend with respect to
+!                              the local time at each grid box.  (Formerly,
+!                              this had been done w/r/t the GMT time.
 !******************************************************************************
 !
       ! References to F90 modules
@@ -215,7 +231,7 @@
       USE GIGC_State_Chm_Mod,   ONLY : ChmState
       USE GIGC_State_Met_Mod,   ONLY : MetState
       USE STREETS_ANTHRO_MOD,   ONLY : GET_SE_ASIA_MASK
-      USE TIME_MOD,             ONLY : GET_DAY_OF_WEEK,  GET_YEAR
+      USE TIME_MOD,             ONLY : GET_DAY_OF_WEEK_LT,  GET_YEAR
       USE TRACERID_MOD,         ONLY : IDBFCO,  IDBFNO,  IDTACET
       USE TRACERID_MOD,         ONLY : IDTALD2, IDTALK4, IDTC2H6
       USE TRACERID_MOD,         ONLY : IDTC3H8, IDTCH2O, IDTCO
@@ -232,6 +248,11 @@
       USE TIME_MOD,             ONLY : GET_HISTYR
       USE REGRID_A2A_MOD,       ONLY : DO_REGRID_A2A
 !eml]
+      ! for CAC / BRAVO emissions fix (ckeller, 11/15/12)
+      USE LOGICAL_MOD,          ONLY : LBRAVO, LCAC, LEMEP
+      USE BRAVO_MOD,            ONLY : GET_BRAVO_MASK
+      USE CAC_ANTHRO_MOD,       ONLY : GET_CANADA_MASK
+      USE EMEP_MOD,             ONLY : GET_EUROPE_MASK
 
       USE CMN_SIZE_MOD               ! Size parameters
       USE CMN_O3_MOD                 ! FSCLYR
@@ -259,7 +280,7 @@
       LOGICAL                       :: WEEKDAY
       LOGICAL, SAVE                 :: FIRST = .TRUE.
       LOGICAL, SAVE                 :: DO_ND29, DO_ND32, DO_ND34
-      INTEGER                       :: AS, I, J, N, NN, DAY_NUM
+      INTEGER                       :: AS, I, J, N, NN, DOW_LT
       INTEGER                       :: SIM_YEAR
       REAL*4                        :: ARRAY(IIPAR,JJPAR,1)
       REAL*8,  SAVE                 :: MOLWT(NBFMAX)
@@ -859,12 +880,6 @@
       ! Also archive diagnostics w/in parallel loop (bmy, 5/30/02)
       !=================================================================
 
-      ! Get current day of the week
-      DAY_NUM = GET_DAY_OF_WEEK()
-
-      ! Is it a weekday?
-      WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
-
       ! get emissions year to test Streets
       IF ( FSCALYR < 0 ) THEN
          SIM_YEAR = GET_YEAR()
@@ -874,7 +889,7 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, BXHEIGHT_CM, N, NN, EPA_NEI )
+!$OMP+PRIVATE( I, J, BXHEIGHT_CM, N, NN, EPA_NEI, DOW_LT, WEEKDAY )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -926,6 +941,12 @@
                   ! If we are over the USA ...
                   IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
   
+                     ! Determine if we should use weekday or weekend NEI
+                     ! emissions at grid box (I,J,L).  Since NEI is over
+                     ! the US, then weekend is Sat/Sun.
+                     DOW_LT  = GET_DAY_OF_WEEK_LT( I, J, 1 )
+                     WEEKDAY = ( DOW_LT > 0 .and. DOW_LT < 6 )
+
                      ! Get GEOS-CHEM tracer number
                      NN      = BFTRACE(N)
 
@@ -938,7 +959,13 @@
      &                    (NN /= IDTC2H2) .and. (NN /= IDTGLYC) .and.          
      &                    (NN /= IDTHAC ) ) THEN
 
-                        ! Get EPA/NEI biofuel [molec/cm2/s or atoms C/cm2/s]
+               ! Determine if we should use weekday or weekend NEI
+               ! emissions at grid box (I,J,L).  Since NEI is over
+               ! the US, then weekend is Sat/Sun.
+                        DOW_LT       = GET_DAY_OF_WEEK_LT( I, J, 1 )
+                        WEEKDAY      = ( DOW_LT > 0 .and. DOW_LT < 6 )
+               
+               ! Get EPA/NEI biofuel [molec/cm2/s or atoms C/cm2/s]
                         EPA_NEI = GET_EPA_BIOFUEL( I, J, NN, WEEKDAY )
 
                         ! Convert [molec/cm2/s] to [molec/cm3/s]
@@ -970,6 +997,67 @@
                      ENDIF
                   ENDIF
                ENDIF
+
+               !--------------------------------------------------------
+               ! BRAVO anthropogenic emissions include residential 
+               ! biofuel, so set this to zero if we are using BRAVO
+               ! (ckeller, 11/15/2012)
+               !--------------------------------------------------------
+               IF ( LBRAVO .AND. .NOT. LHIST ) THEN
+
+                  ! If we are over the BRAVO region
+                  IF ( GET_BRAVO_MASK( I, J ) > 0d0 ) THEN
+
+                     ! If it's a BRAVO species 
+                     IF ( (NN == IDTNO) .or. (NN == IDTCO) ) THEN
+
+                        BIOFUEL(N,I,J) = 0.d0
+
+                     ENDIF
+                  ENDIF
+               ENDIF
+
+               !--------------------------------------------------------
+               ! CAC anthropogenic emissions include residential 
+               ! biofuel, so set this to zero if we are using CAC
+               ! (ckeller, 11/15/2012)
+               !--------------------------------------------------------
+               IF ( LCAC .AND. .NOT. LHIST ) THEN
+
+                  ! If we are over the CAC region
+                  IF ( GET_CANADA_MASK( I, J ) > 0d0 ) THEN
+
+                     ! If it's a CAC species 
+                     IF ( (NN == IDTNO) .or. (NN == IDTCO) ) THEN
+
+                        BIOFUEL(N,I,J) = 0.d0
+
+                     ENDIF
+                  ENDIF
+               ENDIF
+
+               !--------------------------------------------------------
+               ! EMEP anthropogenic emissions include residential 
+               ! biofuel, so set this to zero if we are using EMEP
+               ! (ckeller, 11/15/2012)
+               !--------------------------------------------------------
+               IF ( LEMEP .AND. .NOT. LHIST ) THEN
+
+                  ! If we are over the EMEP region
+                  IF ( GET_EUROPE_MASK( I, J ) > 0d0 ) THEN
+
+                     ! If it's an EMEP species 
+                     IF ( (NN == IDTNO)  .OR. (NN == IDTCO)   .OR.
+     &                    (NN == IDTALK4) .OR. (NN == IDTMEK)  .OR.
+     &                    (NN == IDTALD2) .OR. (NN == IDTPRPE) .OR. 
+     &                    (NN == IDTC2H6) ) THEN
+
+                        BIOFUEL(N,I,J) = 0.d0
+
+                     ENDIF
+                  ENDIF
+               ENDIF
+
             ENDIF
          ENDDO  
 
