@@ -158,6 +158,7 @@
 
       ! For ND36 -- Anthropogenic source diagnostic
       REAL*4,  ALLOCATABLE :: AD36(:,:,:)
+      REAL*4,  ALLOCATABLE :: EMISS_ANTHR(:,:,:)
 
       ! For ND37 -- Fraction of tracer scavenged in cloud updrafts
       REAL*4,  ALLOCATABLE :: AD37(:,:,:,:)      
@@ -472,6 +473,7 @@
       IF ( ALLOCATED( CTO3        ) ) DEALLOCATE( CTO3        )
       IF ( ALLOCATED( CTO3_24h    ) ) DEALLOCATE( CTO3_24h    )
       IF ( ALLOCATED( CTOH        ) ) DEALLOCATE( CTOH        )
+      IF ( ALLOCATED( EMISS_ANTHR ) ) DEALLOCATE( EMISS_ANTHR )
       ! update for arom (dkh, 06/21/07)  
       IF ( ALLOCATED( CTLBRO2H    ) ) DEALLOCATE( CTLBRO2H    )
       IF ( ALLOCATED( CTLBRO2N    ) ) DEALLOCATE( CTLBRO2N    )

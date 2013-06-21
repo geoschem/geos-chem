@@ -83,6 +83,7 @@
 !  113           : 3-Carene emissions                       [atomC/cm2/s]
 !  114           : Ocimene emissions                        [atomC/cm2/s]
 !  115-121       : size resolved dust optical depth         [unitless   ]
+!  122-142       : Anthropogenic emissions from ANTHSRCE    [molec/cm2/s]
 !
 ! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -108,6 +109,7 @@
 !  12 Nov 2010 - R. Yantosca - Changed tracer 99 to be PEDGE-$ (pressure at
 !                              level edges) instead of Psurface-PTOP.
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  05 May 2013 - K. Travis - Added ANTHSRCE
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -144,7 +146,7 @@
 
       INTEGER            :: IOFF,           JOFF,   LOFF
       INTEGER            :: I0,             J0
-      INTEGER            :: ND49_N_TRACERS, ND49_TRACERS(120)
+      INTEGER            :: ND49_N_TRACERS, ND49_TRACERS(134) !+12, (krt 5/2013)
       INTEGER            :: ND49_IMIN,      ND49_IMAX
       INTEGER            :: ND49_JMIN,      ND49_JMAX
       INTEGER            :: ND49_LMIN,      ND49_LMAX
@@ -199,15 +201,19 @@
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
       USE TRACER_MOD,         ONLY : XNUMOLAIR
       USE PRESSURE_MOD,       ONLY : GET_PEDGE
+      USE TRACERID_MOD,  ONLY : NEMANTHRO
       USE TRACERID_MOD,       ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNO
       USE TRACERID_MOD,       ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTO3
       USE TRACERID_MOD,       ONLY : IDTR4N2, IDTSALA, IDTSALC, IDTNO2
+      USE DIAG_MOD,      ONLY : EMISS_ANTHR
 
       USE CMN_FJ_MOD,         ONLY : JPMAX,   JPPJ     ! FAST-J stuff
       USE JV_CMN_MOD               ! ODAER, QAA, QAA_AOD (clh)
       USE CMN_O3_MOD	           ! SAVEOH
       USE CMN_GCTM_MOD             ! XTRA2
       USE COMMSOIL_MOD
+      USE COMODE_LOOP_MOD                    ! IDEMS
+
 !
 ! !INPUT PARAMETERS:
 !
@@ -279,6 +285,7 @@
 
       ! Aerosol types (rvm, aad, bmy, 7/20/04)
       INTEGER                  :: IND(6) = (/ 22, 29, 36, 43, 50, 15 /)
+      INTEGER                  :: NE, NN
 
       ! For fields from Input_Opt
       LOGICAL                  :: LSOILNOX
@@ -961,7 +968,7 @@
 !$OMP END PARALLEL DO
             ENDDO
 
-         ELSE IF (N > 114) THEN
+         ELSE IF (N .gt. 114 .and. N .lt. 121) THEN
 
             !--------------------------------------
             ! DUST OPTD BINS1-7 @ jv_spec_aod.dat wavelength[unitless]
@@ -1659,9 +1666,37 @@
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
-
-         ELSE
-
+         !-----------------------------------
+         ! Add Anthropgenic NOX to ND49
+         !(paulot,5/27/13)
+         ! [molec C/cm2/s]
+         !-----------------------------------
+         ELSE IF ( N .ge. 122 .and. N .le. 135 ) THEN
+    
+            DO NE = 1, NEMANTHRO
+               NN = IDEMS(NE)            
+               IF ( NN ==  N - 121 ) THEN
+                  CATEGORY = 'ANTHSRCE'
+                  UNIT     = 'molec/cm2/s'     
+                  GMNL     = 1
+                  GMTRC    = N-121 ! should be NOX etc
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, X, Y )
+                  ! CHECK NE not equal -1
+                  
+                  DO Y = 1, ND49_NJ
+                     J = JOFF + Y
+                     DO X = 1, ND49_NI
+                        I = GET_I( X )
+                        Q(X,Y,1) = EMISS_ANTHR( I , J , NE ) 
+                     ENDDO
+                  ENDDO
+!$OMP END PARALLEL DO
+                  
+               ENDIF
+           ENDDO
+        ELSE
             ! Skip
             CYCLE
 

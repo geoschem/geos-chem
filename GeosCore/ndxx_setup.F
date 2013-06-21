@@ -44,6 +44,7 @@
       USE DIAG_MOD,        ONLY : AD32_ac,     AD32_an,     AD32_bb
       USE DIAG_MOD,        ONLY : AD32_bf,     AD32_fe,     AD32_li
       USE DIAG_MOD,        ONLY : AD32_so,     AD32_ub,     AD33
+      USE DIAG_MOD,        ONLY : EMISS_ANTHR
       USE DIAG_MOD,        ONLY : AD34,        AD35,        AD36
       USE DIAG_MOD,        ONLY : AD37,        AD38,        AD39
       USE DIAG_MOD,        ONLY : AD43
@@ -74,6 +75,7 @@
       USE DIAG_MOD,        ONLY : AD10,        AD10em,      CTO3_24h
       USE DIAG63_MOD,      ONLY : DO_SAVE_DIAG63
       USE DIAG_MOD,        ONLY : LTO3
+      USE DIAG49_MOD,      ONLY : DO_SAVE_DIAG49
       USE DIAG_OH_MOD,     ONLY : INIT_DIAG_OH
       USE DRYDEP_MOD,      ONLY : NUMDEP
       USE ERROR_MOD,       ONLY : ALLOC_ERR,   ERROR_STOP
@@ -831,6 +833,12 @@
       IF ( ND36 > 0 ) THEN
          ALLOCATE( AD36( IIPAR, JJPAR, NEMANTHRO ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD36' )
+        
+      ENDIF
+
+      IF ( DO_SAVE_DIAG49 ) THEN
+         ALLOCATE( EMISS_ANTHR( IIPAR, JJPAR, NEMANTHRO ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMISS_ANTHR' )
       ENDIF
 
       !=================================================================

@@ -111,6 +111,7 @@
       USE CMN_NOX_MOD
       USE DIAG_MOD,           ONLY : AD29,          AD46
       USE DIAG_MOD,           ONLY : AD32_fe,       AD32_so
+      USE DIAG_MOD,           ONLY : EMISS_ANTHR
       USE EMISSIONS_MOD,      ONLY : ISOP_SCALING
       USE GET_NDEP_MOD,       ONLY : GET_DEP_N 
       USE GIGC_ErrCode_Mod
@@ -399,7 +400,8 @@
       EMISRRN     = 0d0
       EMISRR      = 0d0
       !GEMISNOX2   = 0d0
-      EMISS_BVOC  = 0d0  ! Add BVOC emissions (mpb,2009)
+      EMISS_BVOC  = 0d0         ! Add BVOC emissions (mpb,2009)
+      EMISS_ANTHR = 0d0         ! Add anthropogenic emisisons (fpaulot, 2013)
       
       ! Loop over latitudes
       IJLOOP = 0
