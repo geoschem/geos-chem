@@ -628,19 +628,19 @@
             FILENAMEWE = DATA_DIR_NEI // &
                  TRIM(TTMON) // '_wkend_regrid.nc'
             ! ptipm
-            FILENAMEWDPT = DATA_DIR_NEI //  'inln_ptipm' // &
+            FILENAMEWDPT = DATA_DIR_NEI //  'ptipm' // &
                   TRIM(TTMON) // '_wkday_regrid.nc'
-            FILENAMEWEPT =  DATA_DIR_NEI // 'inln_ptipm' // & 
+            FILENAMEWEPT =  DATA_DIR_NEI // 'ptipm' // & 
                   TRIM(TTMON) // '_wkend_regrid.nc'
             ! ptnonipm
-            FILENAMEWDPTN = DATA_DIR_NEI // 'inln_ptnonipm' // &
+            FILENAMEWDPTN = DATA_DIR_NEI // 'ptnonipm' // &
                    TRIM(TTMON) //  '_wkday_regrid.nc'
-            FILENAMEWEPTN = DATA_DIR_NEI // 'inln_ptnonipm' // &
+            FILENAMEWEPTN = DATA_DIR_NEI // 'ptnonipm' // &
                    TRIM(TTMON) //  '_wkend_regrid.nc'
             ! c3marine
-            FILENAMEWDC3 = DATA_DIR_NEI // 'inln_c3marine_' // &
+            FILENAMEWDC3 = DATA_DIR_NEI // 'c3marine_' // &
                    TRIM(TTMON) //  '_wkday_regrid.nc'
-            FILENAMEWEC3= DATA_DIR_NEI //  'inln_c3marine_' // & 
+            FILENAMEWEC3= DATA_DIR_NEI //  'c3marine_' // & 
                    TRIM(TTMON) // '_wkend_regrid.nc'
          
          ! Called once per month by emissions_mod.F
@@ -2060,19 +2060,19 @@
          FILENAMEWE = DATA_DIR_NEI // &
               TRIM(TTMON) // '_wkend_regrid.nc'
          ! ptipm
-         FILENAMEWDPT = TRIM(DATA_DIR_NEI) //  'inln_ptipm' // &
+         FILENAMEWDPT = TRIM(DATA_DIR_NEI) //  'ptipm' // &
                TRIM(TTMON) // '_wkday_regrid.nc'
-         FILENAMEWEPT =  DATA_DIR_NEI // 'inln_ptipm' // & 
+         FILENAMEWEPT =  DATA_DIR_NEI // 'ptipm' // & 
                TRIM(TTMON) // '_wkend_regrid.nc'
          ! ptnonipm
-         FILENAMEWDPTN = TRIM(DATA_DIR_NEI) // 'inln_ptnonipm' // &
+         FILENAMEWDPTN = TRIM(DATA_DIR_NEI) // 'ptnonipm' // &
                 TRIM(TTMON) //  '_wkday_regrid.nc'
-         FILENAMEWEPTN = DATA_DIR_NEI // 'inln_ptnonipm' // &
+         FILENAMEWEPTN = DATA_DIR_NEI // 'ptnonipm' // &
                 TRIM(TTMON) //  '_wkend_regrid.nc'
          ! c3marine
-         FILENAMEWDC3 = TRIM(DATA_DIR_NEI) // 'inln_c3marine_' // &
+         FILENAMEWDC3 = TRIM(DATA_DIR_NEI) // 'c3marine_' // &
                 TRIM(TTMON) //  '_wkday_regrid.nc'
-         FILENAMEWEC3= TRIM(DATA_DIR_NEI) //  'inln_c3marine_' // & 
+         FILENAMEWEC3= TRIM(DATA_DIR_NEI) //  'c3marine_' // & 
                 TRIM(TTMON) // '_wkend_regrid.nc'
 
          ! Echo info
