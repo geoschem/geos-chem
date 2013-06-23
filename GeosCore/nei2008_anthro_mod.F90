@@ -259,17 +259,17 @@
       
          ELSE IF ( N == IDTOCPO ) THEN
 
-            ! [molec/cm2/s]
+            ! [g/cm2/s]
            VALUE = OCPO(I,J,L,IH)
         
          ELSE IF ( N == IDTBCPO ) THEN
 
-            ! [molec/cm2/s]
+            ! [g/cm2/s]
             VALUE = BCPO(I,J,L,IH)
         
          ELSE IF ( N == IDTSO4 ) THEN
 
-            ! [molec/cm2/s]
+            ! [g/cm2/s]
             VALUE = SO4(I,J,L,IH)
          
         ! ELSE IF ( N == IDTEOH ) THEN
@@ -380,17 +380,17 @@
       
          ELSE IF ( N == IDTOCPO ) THEN
 
-            ! [molec/cm2/s]
+            ! [g/cm2/s]
             VALUE = OCPO_WKEND(I,J,L,IH)
         
          ELSE IF ( N == IDTBCPO ) THEN
 
-            ! [molec/cm2/s]
+            ! [g/cm2/s]
             VALUE = BCPO_WKEND(I,J,L,IH)
 
          ELSE IF ( N == IDTSO4 ) THEN
 
-            ! [molec/cm2/s]
+            ! [g/cm2/s]
             VALUE = SO4_WKEND(I,J,L,IH)
 
          !ELSE IF ( N == IDTEOH ) THEN
@@ -642,10 +642,6 @@
                    TRIM(TTMON) //  '_wkday_regrid.nc'
             FILENAMEWEC3= DATA_DIR_NEI //  'inln_c3marine_' // & 
                    TRIM(TTMON) // '_wkend_regrid.nc'
-
-         ! Echo info
-         ! GET DAY TO PRINT TOTALS
-         DOYT = GET_DAY()
          
          ! Called once per month by emissions_mod.F
          ! Allocate start and count arrays
@@ -1864,7 +1860,7 @@
       !--------------------------
       ! Print emission totals for the day
       !--------------------------
-      CALL TOTAL_ANTHRO_Tg( DOYT )
+      CALL TOTAL_ANTHRO_Tg( THISMONTH )
 
       ! Return to calling program
       END SUBROUTINE EMISS_NEI2008_ANTHRO
@@ -1986,6 +1982,7 @@
       
       ! Get month
       THISMONTH = GET_MONTH()
+      WRITE(*,*) 'MONTH', THISMONTH
 
 #if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
       SNAME = 'GEOS5'
@@ -2290,7 +2287,7 @@
       ! Print emission totals
       !--------------------------
 
-      CALL TOTAL_ANTHRO_Tg( DOYT )
+      CALL TOTAL_ANTHRO_Tg( THISMONTH )
 
       ! Return to calling program
       END SUBROUTINE EMISS_NEI2008_ANTHRO_NATIVE
@@ -2528,7 +2525,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE TOTAL_ANTHRO_TG( DAY )
+      SUBROUTINE TOTAL_ANTHRO_TG( MONTH )
 !
 ! !USES:
 ! 
@@ -2546,7 +2543,7 @@
 
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN) :: DAY   ! Day of data to compute totals
+      INTEGER, INTENT(IN) :: MONTH   ! Month of data to compute totals
 !
 ! !REVISION HISTORY: 
 !   7 Oct 2009 - A. van Donkelaar - initial version
@@ -2558,6 +2555,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER             :: II, JJ, IH, LL
+      INTEGER             :: DAY_LIST(12), DL
       REAL*8              :: T_CO, T_NO, T_NO2, T_HNO2, T_SO2, T_NH3
       REAL*8              :: T_ALD2,  T_RCHO, T_C2H6
       REAL*8              :: T_PRPE, T_ALK4, T_TOLU, T_XYLE
@@ -2585,110 +2583,113 @@
          ENDDO
       ENDDO
       
-      WDFRAC = 22d0/31d0
-      WEFRAC = 9d0/31d0
+      !           J,  F,  M,  A,  Ma,  Ju, J, Au, Se, Oc, No, Dec
+      !DAY_LIST = (/31,28,31,30,31,30,31,31,30,31,30,31/)
+      !DL = DAY_LIST(MONTH)
+      ! Annual average weekends and weekdays
+      WDFRAC = 21.7d0
+      WEFRAC = 8.7d0
       
       WRITE(6,101) WDFRAC
- 101  FORMAT('WEEKDAY FRACTION = ', i2.2)
+ 101  FORMAT('WEEKDAY FRACTION = ', f11.4)
 
       ! Total CO  [Tg CO]
       IF ( IDTCO .NE. 0 ) &
       T_CO  = SUM(SUM( CO,4)  * tmpArea ) * &
-               SEC_IN_HOUR *1d-9/XNUMOL(IDTCO)* WDFRAC + &
+              SEC_IN_HOUR *1d-9/XNUMOL(IDTCO)* WDFRAC + &
               SUM(SUM( CO_WKEND,4)  * tmpArea ) * &
               SEC_IN_HOUR *1d-9/XNUMOL(IDTCO) * WEFRAC
 
       IF ( IDTNO .NE. 0 ) &
       ! Total NOX [Tg N]
-      T_NO = SUM(SUM(NO, 4)*tmpArea ) * &
+      T_NO =   SUM(SUM(NO, 4)*tmpArea ) * &
                SEC_IN_HOUR *1d-9/XNUMOL(IDTNO)*14/30 * WDFRAC + &
                SUM(SUM(NO_WKEND, 4)*tmpArea ) * &
                SEC_IN_HOUR *1d-9/XNUMOL(IDTNO)*14/30 * WEFRAC 
       
       IF ( IDTNO2 .NE. 0 ) &
       ! Total NO2 [Tg N]
-      T_NO2 = SUM(SUM( NO2, 4 ) * tmpArea) * &
-               SEC_IN_HOUR *1d-12/XNUMOL(IDTNO2)*14/46 * WDFRAC + &
+      T_NO2 =  SUM(SUM( NO2, 4 ) * tmpArea) * &
+               SEC_IN_HOUR *1d-9/XNUMOL(IDTNO2)*14/46 * WDFRAC + &
                SUM(SUM( NO2_WKEND, 4 ) * tmpArea) * &
-               SEC_IN_HOUR *1d-12/XNUMOL(IDTNO2)*14/46 * WEFRAC
+               SEC_IN_HOUR *1d-9/XNUMOL(IDTNO2)*14/46 * WEFRAC
 
       IF ( IDTHNO2 .NE. 0 ) &
       ! Total HNO2 [Tg N]
       T_HNO2 = SUM(SUM( HNO2,4 )  * tmpArea) * &
-               SEC_IN_HOUR *1d-12/XNUMOL(IDTHNO2)*14/47 * WDFRAC + &
+               SEC_IN_HOUR *1d-9/XNUMOL(IDTHNO2)*14/47 * WDFRAC + &
                SUM(SUM( HNO2_WKEND,4 )  * tmpArea) * &
-               SEC_IN_HOUR *1d-12/XNUMOL(IDTHNO2)*14/47 * WEFRAC
+               SEC_IN_HOUR *1d-9/XNUMOL(IDTHNO2)*14/47 * WEFRAC
      
       ! Total SO2 [Tg S]
       IF ( IDTSO2 .NE. 0 ) &
-      T_SO2 = SUM( SUM( SO2,4)  * tmpArea )* &
+      T_SO2 =  SUM( SUM( SO2,4)  * tmpArea )* &
                SEC_IN_HOUR *1d-9/XNUMOL(IDTSO2) * WDFRAC + &
                SUM(SUM( SO2_WKEND,4 )  * tmpArea) * &
-               SEC_IN_HOUR *1d-12/XNUMOL(IDTSO2) * WEFRAC     
+               SEC_IN_HOUR *1d-9/XNUMOL(IDTSO2) * WEFRAC
 
       ! Total NH3 [Tg NH3]
       IF ( IDTNH3 .NE. 0 ) &
       T_NH3 =  SUM( SUM( NH3,4)  * tmpArea) * &
                SEC_IN_HOUR *1d-9/XNUMOL(IDTNH3) * WDFRAC + &
                SUM(SUM( NH3_WKEND,4 )  * tmpArea) * &
-               SEC_IN_HOUR *1d-12/XNUMOL(IDTNH3) * WEFRAC
+               SEC_IN_HOUR *1d-9/XNUMOL(IDTNH3) * WEFRAC
 
       ! Total ALD2 [Tg C]
       IF ( IDTALD2 .NE. 0 ) &
-      T_ALD2 =  SUM( SUM( ALD2,4)  * tmpArea) * &
+      T_ALD2 = SUM( SUM( ALD2,4)  * tmpArea) * &
                SEC_IN_HOUR *1d-9/XNUMOL(IDTALD2) * WDFRAC + &
                SUM(SUM( ALD2_WKEND,4 )  * tmpArea) * &
-               SEC_IN_HOUR *1d-12/XNUMOL(IDTALD2) * WEFRAC
+               SEC_IN_HOUR *1d-9/XNUMOL(IDTALD2) * WEFRAC
 
       ! Total RCHO [Tg C]
       IF ( IDTRCHO .NE. 0 ) &
-      T_RCHO =  SUM( SUM( RCHO,4)  * tmpArea) * &
+      T_RCHO = SUM( SUM( RCHO,4)  * tmpArea) * &
                SEC_IN_HOUR *1d-9/XNUMOL(IDTRCHO) * WDFRAC + &
                SUM(SUM( RCHO_WKEND,4 )  * tmpArea) * &
-               SEC_IN_HOUR *1d-12/XNUMOL(IDTRCHO) * WEFRAC
-  
+               SEC_IN_HOUR *1d-9/XNUMOL(IDTRCHO) * WEFRAC
 
       ! Total BENZ [Tg C]
       IF ( IDTBENZ .NE. 0 ) &
-      T_BENZ =  SUM( SUM( BENZ,4)  * tmpArea )* &
+      T_BENZ = SUM( SUM( BENZ,4)  * tmpArea )* &
                SEC_IN_HOUR *1d-9/XNUMOL(IDTBENZ) * WDFRAC + &
                SUM(SUM( BENZ_WKEND,4 )  * tmpArea) * &
-               SEC_IN_HOUR *1d-12/XNUMOL(IDTBENZ) * WEFRAC
+               SEC_IN_HOUR *1d-9/XNUMOL(IDTBENZ) * WEFRAC
 
       ! Total C2H6 [Tg C]
       IF ( IDTC2H6 .NE. 0 ) &
-      T_C2H6 =  SUM( SUM( C2H6,4)  * tmpArea )* &
+      T_C2H6 = SUM( SUM( C2H6,4)  * tmpArea )* &
                SEC_IN_HOUR *1d-9/XNUMOL(IDTC2H6) * WDFRAC + &
                SUM(SUM( C2H6_WKEND,4 )  * tmpArea) * &
-               SEC_IN_HOUR *1d-12/XNUMOL(IDTC2H6) * WEFRAC
+               SEC_IN_HOUR *1d-9/XNUMOL(IDTC2H6) * WEFRAC
 
       ! Total PRPE [Tg C]
       IF ( IDTPRPE .NE. 0 ) &
-      T_PRPE =  SUM( SUM( PRPE,4)  * tmpArea )* &
+      T_PRPE = SUM( SUM( PRPE,4)  * tmpArea )* &
                SEC_IN_HOUR *1d-9/XNUMOL(IDTPRPE) * WDFRAC + &
                SUM(SUM( PRPE_WKEND,4 )  * tmpArea) * &
-               SEC_IN_HOUR *1d-12/XNUMOL(IDTPRPE) * WEFRAC
+               SEC_IN_HOUR *1d-9/XNUMOL(IDTPRPE) * WEFRAC
 
       ! Total ALK4 [Tg C]
       IF ( IDTALK4 .NE. 0 ) &
-      T_ALK4 =  SUM( SUM( ALK4,4)  * tmpArea )* &
+      T_ALK4 = SUM( SUM( ALK4,4)  * tmpArea )* &
                SEC_IN_HOUR *1d-9/XNUMOL(IDTALK4) * WDFRAC + &
                SUM(SUM( ALK4_WKEND,4 )  * tmpArea) * &
-               SEC_IN_HOUR *1d-12/XNUMOL(IDTALK4)* WEFRAC
+               SEC_IN_HOUR *1d-9/XNUMOL(IDTALK4)* WEFRAC
 
       ! Total TOLU [Tg C]
       IF ( IDTTOLU .NE. 0 ) &
-      T_TOLU =  SUM( SUM( TOLU,4)  *tmpArea )* &
+      T_TOLU = SUM( SUM( TOLU,4)  *tmpArea )* &
                SEC_IN_HOUR *1d-9/XNUMOL(IDTTOLU) * WDFRAC + &
                SUM(SUM( TOLU_WKEND,4 )  * tmpArea) * &
-               SEC_IN_HOUR *1d-12/XNUMOL(IDTTOLU) * WEFRAC
+               SEC_IN_HOUR *1d-9/XNUMOL(IDTTOLU) * WEFRAC
 
       ! Total XYLE [Tg C]
       IF ( IDTXYLE .NE. 0 ) &
-      T_XYLE =  SUM( SUM( XYLE,4)  * tmpArea )* &
+      T_XYLE = SUM( SUM( XYLE,4)  * tmpArea )* &
                SEC_IN_HOUR *1d-9/XNUMOL(IDTXYLE) * WDFRAC + &
                SUM(SUM( XYLE_WKEND,4 )  * tmpArea) * &
-               SEC_IN_HOUR *1d-12/XNUMOL(IDTXYLE) * WEFRAC
+               SEC_IN_HOUR *1d-9/XNUMOL(IDTXYLE) * WEFRAC
 
       ! Total C2H4 [Tg C]
       !T_C2H4 = SUM( C2H4 * tmpArea )* &
@@ -2698,56 +2699,56 @@
 
       ! Total CH2O [Tg C]
       IF ( IDTCH2O .NE. 0 ) &
-      T_CH2O =  SUM( SUM( CH2O,4)  * tmpArea) * &
+      T_CH2O = SUM( SUM( CH2O,4)  * tmpArea) * &
                SEC_IN_HOUR *1d-9/XNUMOL(IDTCH2O) * WDFRAC + &
                SUM(SUM( CH2O_WKEND,4 )  * tmpArea) * &
-               SEC_IN_HOUR *1d-12/XNUMOL(IDTCH2O) * WEFRAC
+               SEC_IN_HOUR *1d-9/XNUMOL(IDTCH2O) * WEFRAC
       
       ! Total BC [Tg]
       IF ( IDTBCPO .NE. 0 ) &
       T_BC =  SUM( SUM( BCPO,4)   * tmpArea) * &
-               SEC_IN_HOUR *1d-9/XNUMOL(IDTBCPO) * WDFRAC + &
+               SEC_IN_HOUR *1d-12 * WDFRAC + &
                SUM(SUM( BCPO_WKEND,4 )  * tmpArea) * &
-               SEC_IN_HOUR *1d-12/XNUMOL(IDTBCPO) * WEFRAC
+               SEC_IN_HOUR *1d-12 * WEFRAC
 
       ! Total OC [Tg]
       IF ( IDTOCPO .NE. 0 ) &
       T_OC =  SUM( SUM( OCPO,4)  *  tmpArea )* &
-              SEC_IN_HOUR *1d-9/XNUMOL(IDTOCPO) * WDFRAC + &
+              SEC_IN_HOUR *1d-12 * WDFRAC + &
                SUM(SUM( OCPO_WKEND,4 )  * tmpArea) * &
-               SEC_IN_HOUR *1d-12/XNUMOL(IDTOCPO) * WEFRAC
+               SEC_IN_HOUR *1d-12 * WEFRAC
       
       ! Total SO4 [Tg S]
       IF ( IDTSO4 .NE. 0 ) &
       T_SO4 =  SUM( SUM( SO4,4)  *  tmpArea) * &
-               SEC_IN_HOUR *1d-9/XNUMOL(IDTSO4) * WDFRAC + &
+               SEC_IN_HOUR *1d-12 * WDFRAC + &
                SUM(SUM( SO4_WKEND,4 )  * tmpArea) * &
-               SEC_IN_HOUR *1d-12/XNUMOL(IDTSO4)* WEFRAC
+               SEC_IN_HOUR *1d-12* WEFRAC
       
       ! Print totals in [Tg]
-      WRITE( 6, 110 ) 'CO   ', DAY, T_CO,   '[Tg CO ]'
-      WRITE( 6, 110 ) 'NO   ', DAY, T_NO,   '[Tg N ]'
-      WRITE( 6, 110 ) 'NO2  ', DAY, T_NO2,  '[Tg N ]'
-      WRITE( 6, 110 ) 'HNO2 ', DAY, T_HNO2, '[Tg N ]'
-      WRITE( 6, 110 ) 'SO2  ', DAY, T_SO2,  '[Tg S]'
-      WRITE( 6, 110 ) 'NH3  ', DAY, T_NH3,  '[Tg NH3]'
-      WRITE( 6, 110 ) 'ALD2 ', DAY, T_ALD2, '[Tg C]'
-      WRITE( 6, 110 ) 'RCHO ', DAY, T_RCHO, '[Tg C]'
-      WRITE( 6, 110 ) 'BENZ ', DAY, T_BENZ, '[Tg C]'
-      WRITE( 6, 110 ) 'C2H6 ', DAY, T_C2H6, '[Tg C]'
-      WRITE( 6, 110 ) 'PRPE ', DAY, T_PRPE, '[Tg C]'
-      WRITE( 6, 110 ) 'ALK4 ', DAY, T_ALK4, '[Tg C]'
-      WRITE( 6, 110 ) 'TOLU ', DAY, T_TOLU, '[Tg C]'
-      WRITE( 6, 110 ) 'XYLE ', DAY, T_XYLE, '[Tg C]'
-      !WRITE( 6, 110 ) 'C2H4 ', DAY, T_C2H4, '[Tg C]'
-      WRITE( 6, 110 ) 'CH2O ', DAY, T_CH2O, '[Tg C]'
-      WRITE( 6, 110 ) 'BC   ', DAY, T_BC,   '[Tg ]'
-      WRITE( 6, 110 ) 'OC   ', DAY, T_OC,   '[Tg ]'
-      WRITE( 6, 110 ) 'SO4  ', DAY, T_SO4,  '[Tg S]'
+      WRITE( 6, 110 ) 'CO   ', MONTH, T_CO,   '[Tg CO ]'
+      WRITE( 6, 110 ) 'NO   ', MONTH, T_NO,   '[Tg N ]'
+      WRITE( 6, 110 ) 'NO2  ', MONTH, T_NO2,  '[Tg N ]'
+      WRITE( 6, 110 ) 'HNO2 ', MONTH, T_HNO2, '[Tg N ]'
+      WRITE( 6, 110 ) 'SO2  ', MONTH, T_SO2,  '[Tg S]'
+      WRITE( 6, 110 ) 'NH3  ', MONTH, T_NH3,  '[Tg NH3]'
+      WRITE( 6, 110 ) 'ALD2 ', MONTH, T_ALD2, '[Tg C]'
+      WRITE( 6, 110 ) 'RCHO ', MONTH, T_RCHO, '[Tg C]'
+      WRITE( 6, 110 ) 'BENZ ', MONTH, T_BENZ, '[Tg C]'
+      WRITE( 6, 110 ) 'C2H6 ', MONTH, T_C2H6, '[Tg C]'
+      WRITE( 6, 110 ) 'PRPE ', MONTH, T_PRPE, '[Tg C]'
+      WRITE( 6, 110 ) 'ALK4 ', MONTH, T_ALK4, '[Tg C]'
+      WRITE( 6, 110 ) 'TOLU ', MONTH, T_TOLU, '[Tg C]'
+      WRITE( 6, 110 ) 'XYLE ', MONTH, T_XYLE, '[Tg C]'
+      !WRITE( 6, 110 ) 'C2H4 ', MONTH, T_C2H4, '[Tg C]'
+      WRITE( 6, 110 ) 'CH2O ', MONTH, T_CH2O, '[Tg C]'
+      WRITE( 6, 110 ) 'BC   ', MONTH, T_BC,   '[Tg ]'
+      WRITE( 6, 110 ) 'OC   ', MONTH, T_OC,   '[Tg ]'
+      WRITE( 6, 110 ) 'SO4  ', MONTH, T_SO4,  '[Tg S]'
 
       ! Format statement
  110  FORMAT( 'NEI2008 anthro ', a5, &
-             'for day', i4, ': ', f11.4, 1x, a8 )
+             'for month', i4, ': ', f11.4, 1x, a8 )
 
       ! Fancy output
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )

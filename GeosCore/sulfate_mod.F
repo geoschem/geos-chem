@@ -6359,12 +6359,13 @@
                   DOW_LT       = GET_DAY_OF_WEEK_LT( I, J, 1 )
                   WEEKDAY      = ( DOW_LT > 0 .and. DOW_LT < 6 )
                 
-                  ! Read SO4 emissions in [molec/cm2/s]
+                  ! Read SO4 emissions in [g/cm2/s]
                   DO L = 1, NOXLEVELS
                      IF ( L .gt. 3 )  CYCLE
                      EPA_AN    = GET_NEI2008_ANTHRO( I, J, L, IH, 
      &                    IDTSO4, WEEKDAY )
-                     SO4an(I,J,L) = EPA_AN * AREA_CM2 / XNUMOL(IDTSO4)
+                     ! convert to kg/box
+                     SO4an(I,J,L) = EPA_AN * AREA_CM2 / 1d3
                   ENDDO
                   SO4bf(I,J)   = 0d0
                   
@@ -7236,7 +7237,7 @@
                   EPA_AN = GET_NEI2008_ANTHRO( I, J, L, IH, IDTNH3, 
      &                                   WEEKDAY )
      
-                  ! Convert from [molec NH3/cm2/c] to [kg NH3/box/sec]
+                  ! Convert from [molec NH3/cm2/s] to [kg NH3/box/sec]
                   NH3an(I,J,L) = EPA_AN * AREA_CM2 / XNUMOL(IDTNH3)
                ENDDO
             ENDIF
