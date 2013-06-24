@@ -53,6 +53,10 @@
       USE TRACERID_MOD,         ONLY : IDTO3
       USE TRACERID_MOD,         ONLY : SETTRACE
       USE TROPOPAUSE_MOD,       ONLY : SAVE_FULL_TROP
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% KLUDGE FOR SEAC4RS:
+      USE GAMAP_MOD,            ONLY : DO_GAMAP
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       IMPLICIT NONE
 #     include "define.h"
@@ -435,6 +439,16 @@
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMDR: after READCHEM' )
          ENDIF
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% KLUDGE FOR SEAC4RS:
+!%%% Move the call to DO_GAMAP after the call to READCHEM etc.
+!%%% so that we can write out the CSPEC restart species names
+!%%% (bmy, 6/24/13)
+!%%%
+         ! Create "diaginfo.dat" and "tracerinfo.dat" files for GAMAP
+         CALL DO_GAMAP( am_I_Root, Input_Opt, RC )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
          !---------------------------------
          ! Check for LISOPOH for SOA

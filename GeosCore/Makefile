@@ -386,7 +386,8 @@ chemdr.o                    : chemdr.F                                       \
                               dust_mod.o              logical_mod.o          \
                               planeflight_mod.o       restart_mod.o          \
                               tracer_mod.o            tracerid_mod.o         \
-                              tropopause_mod.o        uvalbedo_mod.o 
+                              tropopause_mod.o        uvalbedo_mod.o         \
+                              gamap_mod.o
 
 chemistry_mod.o             : chemistry_mod.F                                \
                               acetone_mod.o           aerosol_mod.o          \
