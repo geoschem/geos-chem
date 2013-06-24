@@ -452,8 +452,9 @@
       ! +4 for SEAC4RS FF passive tracers (jaf, 6/13/13)
       ! +4 for SEAC4RS BB passive tracers (jaf, 6/14/13)
       ! +1 for SEAC4RS ISOP passive tracers (jaf, 6/14/13)
+      ! +4 for SEAC4RS SOA tracers (jaf, 6/20/13)
       !INTEGER, PARAMETER :: NNPAR   = 100   ! For non-TOMAS simulations
-      INTEGER, PARAMETER :: NNPAR   = 109   ! For non-TOMAS simulations
+      INTEGER, PARAMETER :: NNPAR   = 113   ! For non-TOMAS simulations
 #endif
 
       ! Nempara increased to 26. (fp, 2/8/10)
@@ -465,8 +466,9 @@
       !INTEGER, PARAMETER :: NEMPARA = 26 
       ! +4 for SEAC4RS FF passive tracers (jaf, 6/13/13)
       ! +4 for SEAC4RS BB passive tracers (jaf, 6/14/13)
+      ! +2 for SEAC4RS SOA tracers (jaf, 6/20/13)
       !INTEGER, PARAMETER :: NEMPARA = 29
-      INTEGER, PARAMETER :: NEMPARA = 37
+      INTEGER, PARAMETER :: NEMPARA = 39
       ! +1 for SEAC4RS ISOP passive tracers (jaf, 6/14/13)
       !INTEGER, PARAMETER :: NEMPARB = 20
       INTEGER, PARAMETER :: NEMPARB = 21
@@ -542,7 +544,8 @@
       ! increase NBIOMAX to 24 for dicarbonyls (ccc, 2/02/10)
       ! increase NBIOMAX to 25 fpr CH4 (kjw)
       ! +4 for SEAC4RS BB passive tracers (jaf, 6/14/13)
-      INTEGER, PARAMETER :: NBIOMAX = 29
+      ! +1 for SEAC4RS SOA tracers (jaf, 6/20/13)
+      INTEGER, PARAMETER :: NBIOMAX = 30
 
 
 #if   defined( TOMAS )

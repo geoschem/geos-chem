@@ -41,13 +41,14 @@
       USE VISTAS_ANTHRO_MOD,  ONLY : GET_VISTAS_ANTHRO
       USE ICOADS_SHIP_MOD,    ONLY : GET_ICOADS_SHIP !(cklee, 7/09/09)
 
-      ! SEAC4RS passive tracers (jaf, 6/13/13)
+      ! SEAC4RS tracers (jaf, 6/13/13)
       USE GRID_MOD,           ONLY : GET_XMID,  GET_YMID
       USE TRACERID_MOD,       ONLY : IDECO
       USE TRACERID_MOD,       ONLY : IDTPCOFNE, IDTPCOFSE
-      USE TRACERID_MOD,       ONLY : IDTPCOFW, IDTPCOFRW
+      USE TRACERID_MOD,       ONLY : IDTPCOFW,  IDTPCOFRW
       USE TRACERID_MOD,       ONLY : IDTPCOBCN, IDTPCOBSE
-      USE TRACERID_MOD,       ONLY : IDTPCOBW, IDTPCOBRW
+      USE TRACERID_MOD,       ONLY : IDTPCOBW,  IDTPCOBRW
+      USE TRACERID_MOD,       ONLY : IDTAVOC,   IDTBBVOC
 
 
       USE CMN_SIZE_MOD             ! Size parameters
@@ -169,6 +170,7 @@
       REAL*8  :: RETRO
       REAL*8  :: C2H6_ANTHRO
       REAL*8  :: X, Y
+      REAL*8, PARAMETER :: EF_VOC = 5.5D-2
 
       ! For fields from Input_Opt
       LOGICAL :: LBRAVO
@@ -991,11 +993,19 @@
 
          ENDIF
 
+         ! SEAC4RS SOA tracers (jaf, 6/20/13)
+         IF ( NN == IDTAVOC ) THEN
+            EMISRR(I,J,N) = ( XNUMOL(IDTAVOC) / XNUMOL(IDTCO) ) *
+     &           EF_VOC * EMISRR(I,J,IDECO)
+                 EMX(1) = EMISRR(I,J,N) * DTSRCE / XNUMOL(NN)
+         ENDIF
+
          ! N loops over fossil fuel + biomass burning tracers, so we
          ! zero the fossil fuel emissions for the biomass burning only
          ! passive tracers (jaf, 6/14/13)
          IF ( (NN == IDTPCOBCN) .or. (NN == IDTPCOBSE) .or. 
-     &        (NN == IDTPCOBW)  .or. (NN == IDTPCOBRW) ) THEN
+     &        (NN == IDTPCOBW)  .or. (NN == IDTPCOBRW) .or.
+     &        (NN == IDTBBVOC) ) THEN
             EMISRR(I,J,N) = 0d0
             EMX(1) = 0d0
          ENDIF

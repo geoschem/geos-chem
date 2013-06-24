@@ -1651,11 +1651,12 @@
       USE TRACERID_MOD, ONLY : IDTNK1                 !(win, 7/14/09)
 #endif
 
-      ! SEAC4RS passive tracers (jaf, 6/14/13)
+      ! SEAC4RS tracers (jaf, 6/14/13)
       USE TRACERID_MOD, ONLY : IDTPCOBCN, IDBPCOBCN
       USE TRACERID_MOD, ONLY : IDTPCOBSE, IDBPCOBSE
       USE TRACERID_MOD, ONLY : IDTPCOBW,  IDBPCOBW
       USE TRACERID_MOD, ONLY : IDTPCOBRW, IDBPCOBRW
+      USE TRACERID_MOD, ONLY : IDTBBVOC,  IDBBBVOC
 
       USE TRACERID_MOD, ONLY : N_Hg_CATS  !CDH for snowpack
       USE GET_POPSINFO_MOD, ONLY : GET_POP_XMW
@@ -5129,8 +5130,9 @@
             ELSE
                ! Should have been 16 not 14 for isoprene chem
                ! +4 for SEAC4RS passive tracers (jaf, 6/14/13)
+               ! +1 for SEAC4RS SOA tracer (jaf, 6/20/13)
                !NTRAC(28) = 14    ! Standard simulation
-               NTRAC(28) = 20    ! Standard simulation
+               NTRAC(28) = 21    ! Standard simulation
             ENDIF
 
             ! Loop over tracers
@@ -5324,6 +5326,13 @@
                ELSE IF ( T == IDBPCOBRW ) THEN
                   NAME (T,28) = 'PCOBRW'
                   INDEX(T,28) = IDTPCOBRW + ( SPACING * 45 )
+                  MWT  (T,28) = 28e-3
+                  MOLC (T,28) = 1
+                  UNIT (T,28) = 'molec/cm2/s'
+
+               ELSE IF ( T == IDBBBVOC ) THEN
+                  NAME (T,28) = 'BBVOC'
+                  INDEX(T,28) = IDTBBVOC + ( SPACING * 45 )
                   MWT  (T,28) = 28e-3
                   MOLC (T,28) = 1
                   UNIT (T,28) = 'molec/cm2/s'

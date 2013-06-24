@@ -204,7 +204,9 @@
 #if   defined( TOMAS )
       INTEGER, PARAMETER :: MAXDEP    = 81      ! Max # of depositing species
 #else
-      INTEGER, PARAMETER :: MAXDEP    = 55      ! Max # of depositing species
+      ! +2 for SEAC4RS SOA tracers (jaf, 6/24/13)
+      !INTEGER, PARAMETER :: MAXDEP    = 55      ! Max # of depositing species
+      INTEGER, PARAMETER :: MAXDEP    = 57      ! Max # of depositing species
 #endif
       REAL*8,  PARAMETER :: XCKMAN    = 0.4d0   ! Von Karman's constant
       INTEGER, PARAMETER :: NR_MAX    = 200     ! # of seasalt bins 
@@ -5208,6 +5210,32 @@
             HSTAR(NUMDEP)   = 0d0
             F0(NUMDEP)      = 0d0
             XMW(NUMDEP)     = 72d-3
+            AIROSOL(NUMDEP) = .TRUE.
+
+         !----------------------------------
+         ! SEAC4RS SOA tracers (jaf, 6/24/13)
+         !----------------------------------
+
+         ! ASOA
+         ELSE IF ( N == IDTASOA ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTASOA
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'ASOA'
+            HSTAR(NUMDEP)   = 0d0
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 12d-3
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! BBSOA
+         ELSE IF ( N == IDTBBSOA ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTBBSOA
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'BBSOA'
+            HSTAR(NUMDEP)   = 0d0
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 12d-3
             AIROSOL(NUMDEP) = .TRUE.
 
          !----------------------------------

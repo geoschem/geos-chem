@@ -233,12 +233,13 @@
       USE REGRID_A2A_MOD,       ONLY : DO_REGRID_A2A
 !eml]
 
-      ! SEAC4RS passive tracers (jaf, 6/13/13)
+      ! SEAC4RS tracers (jaf, 6/13/13)
       USE GRID_MOD,             ONLY : GET_XMID,   GET_YMID
       USE TRACERID_MOD,         ONLY : IDTPCOFNE,  IDTPCOFSE
-      USE TRACERID_MOD,         ONLY : IDTPCOFW,  IDTPCOFRW
+      USE TRACERID_MOD,         ONLY : IDTPCOFW,   IDTPCOFRW
       USE TRACERID_MOD,         ONLY : IDBFPCOFNE, IDBFPCOFSE
-      USE TRACERID_MOD,         ONLY : IDBFPCOFW, IDBFPCOFRW
+      USE TRACERID_MOD,         ONLY : IDBFPCOFW,  IDBFPCOFRW
+      USE TRACERID_MOD,         ONLY : IDTAVOC,    IDBFAVOC
 
       USE CMN_SIZE_MOD               ! Size parameters
       USE CMN_O3_MOD                 ! FSCLYR
@@ -283,6 +284,8 @@
       REAL*8, POINTER               :: INGRID(:,:) => NULL()
       REAL*8                        :: OUTGRID(IIPAR,JJPAR)
       REAL*8                        :: X, Y
+      REAL*8                        :: XNUMOL_CO, XNUMOL_AVOC
+      REAL*8, PARAMETER             :: EF_VOC = 5.5D-2
       
       ! External functions
       REAL*8,  EXTERNAL             :: BOXVL
@@ -313,6 +316,8 @@
       LNEI05         = Input_Opt%LNEI05
       LHIST          = Input_Opt%LHIST
       ITS_A_H2HD_SIM = Input_Opt%ITS_A_H2HD_SIM
+      XNUMOL_CO      = Input_Opt%XNUMOL(IDTCO)
+      XNUMOL_AVOC    = Input_Opt%XNUMOL(IDTAVOC)
 
       ! First-time initialization
       IF ( FIRST ) THEN
@@ -899,7 +904,8 @@
             ! calculated CO emissions at end of subroutine (jaf,
             ! 6/13/13)
             IF ( (NN /= IDTPCOFNE) .and. (NN /= IDTPCOFSE) .and.
-     &           (NN /= IDTPCOFW) .and. (NN /= IDTPCOFRW) ) THEN
+     &           (NN /= IDTPCOFW)  .and. (NN /= IDTPCOFRW) .and.
+     &           (NN /= IDTAVOC) ) THEN
 
                ! Biofuel emissions in [molec/cm3/s]
                BIOFUEL(N,I,J) = BIOFUEL_KG(N,I,J)                  * 
@@ -989,11 +995,11 @@
             ENDIF
          ENDDO  
 
-         ! CO Passive tracers
+         ! SEAC4RS passive tracers (jaf, 6/13/13)
          ! To avoid having to access the passive tracers every time CO
          ! is changed, we let BIOFUEL be zero for these tracers up until
          ! this point, then just overwrite with the value for CO at this
-         ! stage. (jaf, 6/13/13)
+         ! stage.
          IF ( (IDBFPCOFNE > 0) .or. (IDBFPCOFSE > 0) .or. 
      &        (IDBFPCOFW > 0) .or. (IDBFPCOFRW > 0) ) THEN 
 
@@ -1018,6 +1024,12 @@
             ENDIF
 
          ENDIF
+
+         ! SEAC4RS SOA tracer (jaf, 6/20/13)
+         IF ( IDBFAVOC > 0 ) BIOFUEL(IDBFAVOC,I,J) =
+     &                       ( XNUMOL_AVOC / XNUMOL_CO ) *
+     &                       EF_VOC * BIOFUEL(IDBFCO,I,J)
+
 
          ! ND29 -- CO source diagnostics [molec/cm2/s]
          IF ( DO_ND29 ) THEN
@@ -1358,11 +1370,12 @@
       USE TRACERID_MOD, ONLY : IDTXYLE,  IDTC2H4,  IDTC2H2,  IDTGLYC
       USE TRACERID_MOD, ONLY : IDTHAC
 
-      ! SEAC4RS passive tracers (jaf, 6/13/13)
+      ! SEAC4RS tracers (jaf, 6/13/13)
       USE TRACERID_MOD, ONLY : IDBFPCOFNE, IDBFPCOFSE
-      USE TRACERID_MOD, ONLY : IDBFPCOFW, IDBFPCOFRW
+      USE TRACERID_MOD, ONLY : IDBFPCOFW,  IDBFPCOFRW
       USE TRACERID_MOD, ONLY : IDTPCOFNE,  IDTPCOFSE
-      USE TRACERID_MOD, ONLY : IDTPCOFW,  IDTPCOFRW
+      USE TRACERID_MOD, ONLY : IDTPCOFW,   IDTPCOFRW
+      USE TRACERID_MOD, ONLY : IDTAVOC,    IDBFAVOC
 
       LOGICAL, INTENT(IN) :: am_I_Root
 
@@ -1395,11 +1408,12 @@
       IF ( IDBFGLYC /= 0 ) NBFTRACE = NBFTRACE + 1 
       IF ( IDBFHAC  /= 0 ) NBFTRACE = NBFTRACE + 1 
 
-      ! SEAC4RS passive tracers (jaf, 6/13/13)
+      ! SEAC4RS tracers (jaf, 6/13/13)
       IF ( IDBFPCOFNE /= 0 ) NBFTRACE = NBFTRACE + 1 
       IF ( IDBFPCOFSE /= 0 ) NBFTRACE = NBFTRACE + 1 
-      IF ( IDBFPCOFW /= 0 ) NBFTRACE = NBFTRACE + 1 
+      IF ( IDBFPCOFW  /= 0 ) NBFTRACE = NBFTRACE + 1
       IF ( IDBFPCOFRW /= 0 ) NBFTRACE = NBFTRACE + 1 
+      IF ( IDBFAVOC   /= 0 ) NBFTRACE = NBFTRACE + 1
 
       ! Fill BFTRACE w/ appropriate TRACER ID #'s
       ! Replaced NOx with NO (mpayer, 3/14/13)
@@ -1428,6 +1442,7 @@
       IF ( IDBFPCOFSE /= 0 ) BFTRACE(IDBFPCOFSE) = IDTPCOFSE
       IF ( IDBFPCOFW  /= 0 ) BFTRACE(IDBFPCOFW)  = IDTPCOFW
       IF ( IDBFPCOFRW /= 0 ) BFTRACE(IDBFPCOFRW) = IDTPCOFRW
+      IF ( IDBFAVOC   /= 0 ) BFTRACE(IDBFAVOC)   = IDTAVOC
 
       ! Echo biofuel tracer information
       IF ( am_I_Root ) THEN

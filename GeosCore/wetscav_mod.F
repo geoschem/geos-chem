@@ -141,6 +141,7 @@
 !  23 Apr 2013 - R. Yantosca - Bug fix, eliminate white space from #if block
 !  23 Apr 2013 - R. Yantosca - Remove LTOMAS logical, since we now invoke TOMAS
 !                              with either TOMAS=yes or TOMAS40=yes
+!  24 Jun 2013 - J.A. Fisher - Modifications for SEAC4RS SOA tracers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -156,7 +157,9 @@
                                                 !  for TOMAS30 runs
 #endif
 #else
-      INTEGER, PARAMETER   :: NSOLMAX = 60      ! Max # of soluble tracers
+      ! +2 for SEAC4RS SOA tracers (jaf, 6/24/13)
+      !INTEGER, PARAMETER   :: NSOLMAX = 60      ! Max # of soluble tracers
+      INTEGER, PARAMETER   :: NSOLMAX = 62      ! Max # of soluble tracers
                                                 !  for regular G-C runs
 #endif
       REAL*8,  PARAMETER   :: EPSILON = 1d-32   ! A very small positive #
@@ -835,6 +838,9 @@
       USE TRACERID_MOD,       ONLY : IDTMAP
       USE TRACERID_MOD,       ONLY : IDTHOBr,   IDTHBr,    IDTBr2
       USE TRACERID_MOD,       ONLY : IDTPOPPOC, IDTPOPPBC, IDTPOPG 
+
+      ! SEAC4RS SOA tracers (jaf, 6/24/13)
+      USE TRACERID_MOD,       ONLY : IDTASOA,   IDTBBSOA
 
 #if defined( TOMAS )
       USE TRACERID_MOD, ONLY : IDTH2SO4, IDTNK1,   IDTSF1,  IDTSS1
@@ -1951,6 +1957,24 @@
          ! ND38 index
          ISOL = GET_ISOL( N )
 
+      !------------------------------------------
+      ! SEAC4RS SOA (aerosol)
+      ! Treat like standard SOA (jaf, 6/24/13)
+      ! Scavenging efficiency for SOA is 0.8
+      !------------------------------------------
+      ELSE IF ( N == IDTASOA .or. N == IDTBBSOA ) THEN
+         CALL F_AEROSOL( KC, N, F, State_Met )
+
+         DO L = 2, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            F(I,J,L) = 0.8d0 * F(I,J,L)
+         ENDDO
+         ENDDO
+         ENDDO
+
+         ! ND38 index
+         ISOL = GET_ISOL( N )
       !-------------------------------
       ! Hg2 (liquid phase only)
       !-------------------------------
@@ -2859,6 +2883,9 @@
       USE TRACERID_MOD,       ONLY : IDTIEPOX,  IDTRIP,    IDTMAP
       USE TRACERID_MOD,       ONLY : IDTHOBr,   IDTHBr,    IDTBr2
       USE TRACERID_MOD,       ONLY : IDTPOPPOC, IDTPOPPBC, IDTPOPG
+
+      ! SEAC4RS SOA tracers (jaf, 6/24/13)
+      USE TRACERID_MOD,       ONLY : IDTASOA,   IDTBBSOA
 
 #if defined( TOMAS )
       USE TRACERID_MOD, ONLY : IDTH2SO4,IDTNK1,   IDTSF1,  IDTSS1
@@ -3823,6 +3850,15 @@
             RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
             RAINFRAC = RAINFRAC * 0.8d0
   
+         !--------------------------------------
+         ! SEAC4RS SOA (aerosol)
+         ! Treat like standard SOA (jaf, 6/24/13)
+         ! Scavenging efficiency for SOA is 0.8
+         !--------------------------------------
+         ELSE IF ( N == IDTASOA .or. N == IDTBBSOA ) THEN
+            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+            RAINFRAC = RAINFRAC * 0.8d0
+
          !------------------------------
          ! Hg2 (liquid phase only)
          !------------------------------
@@ -4085,6 +4121,8 @@
       ! jpp 4/27/09
       USE TRACERID_MOD, ONLY : IDTHOBr,  IDTHBr,   IDTBr2
       USE TRACERID_MOD, ONLY : IDTPOPPOC, IDTPOPPBC, IDTPOPG
+      ! SEAC4RS SOA tracers (jaf, 6/24/13)
+      USE TRACERID_MOD, ONLY : IDTASOA,  IDTBBSOA
       USE GET_POPSINFO_MOD, ONLY : GET_POP_HSTAR, GET_POP_DEL_Hw
 
 #if defined( TOMAS )
@@ -4518,6 +4556,14 @@
       ! SOAG and SOAM (aerosol)
       !------------------------------
       ELSE IF ( N == IDTSOAG .or. N == IDTSOAM ) THEN
+         KIN      = .TRUE.
+         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
+
+      !------------------------------
+      ! SEAC4RS SOA (aerosol)
+      ! Treat like standard SOA (jaf, 6/24/13)
+      !------------------------------
+      ELSE IF ( N == IDTASOA .or. N == IDTBBSOA ) THEN
          KIN      = .TRUE.
          WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
@@ -7495,6 +7541,8 @@
       USE TRACERID_MOD, ONLY : IDTIEPOX,  IDTRIP,    IDTMAP
       USE TRACERID_MOD, ONLY : IDTHOBr,   IDTHBr,    IDTBr2
       USE TRACERID_MOD, ONLY : IDTPOPPOC, IDTPOPPBC,  IDTPOPG
+      ! SEAC4RS SOA tracers (jaf, 6/24/13)
+      USE TRACERID_MOD, ONLY : IDTASOA,   IDTBBSOA
 #if defined( TOMAS )
       USE TRACERID_MOD, ONLY : IDTH2SO4,  IDTNK1,    IDTSF1,  IDTSS1
       USE TRACERID_MOD, ONLY : IDTECIL1,  IDTOCIL1,  IDTOCOB1,IDTDUST1
@@ -7777,6 +7825,17 @@
             IDWETD(NSOL) = IDTSOAM
 
          !-----------------------------
+         ! SEAC4RS SOA tracers (jaf, 6/24/13)
+         !-----------------------------
+         ELSE IF ( N == IDTASOA ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTASOA
+
+         ELSE IF ( N == IDTBBSOA ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTBBSOA
+
+         !-----------------------------
          ! Dust aerosol tracers
          !-----------------------------
          ELSE IF ( N == IDTDST1 ) THEN
@@ -8040,6 +8099,7 @@
                                                      ! IEPOX, PMNN
 
          NMAX = NMAX + 3                             ! HBr,   HOBr,   Br2
+         NMAX = NMAX + 2                             ! SEAC4RS SOA (jaf, 6/24/13)
 
          IF ( LSULF )    NMAX = NMAX + 8             ! SO2,   SO4,    MSA,
                                                      ! NH3,   NH4,    NIT

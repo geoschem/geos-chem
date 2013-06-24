@@ -189,6 +189,7 @@
 !                              replace NOx and Ox
 !  01 Apr 2013 - M. Payer    - Restore IDTOX for tagged Ox simulation
 !  13 Jun 2013 - J.A. Fisher - Add SEAC4RS passive tracers
+!  20 Jun 2013 - J.A. Fisher - Add SEAC4RS SOA tracers
 !******************************************************************************
 !
 
@@ -252,10 +253,11 @@
       INTEGER            :: IDH2SO4   !(win, 6/23/09)
       !sfarina - leaving IDH2SO4 defined regardless of sim.
 
-      ! SEAC4RS passive tracers (jaf, 6/13/13)
+      ! SEAC4RS tracers (jaf, 6/13/13)
       INTEGER            :: IDPCOFNE, IDPCOFSE, IDPCOFW, IDPCOFRW
       INTEGER            :: IDPCOBCN, IDPCOBSE, IDPCOBW, IDPCOBRW
       INTEGER            :: IDPISOP
+      INTEGER            :: IDAVOC,   IDBBVOC,  IDASOA,  IDBBSOA
 
       ! GEOS-CHEM tracer ID's
       INTEGER            :: IDTNO,   IDTNO2,   IDTNO3,  IDTHNO2, IDTO3
@@ -419,10 +421,11 @@
       INTEGER            :: IDTBrNO2, IDTBrNO3, IDTCHBr3, IDTCH2Br2
       INTEGER            :: IDTCH3Br
 
-      ! SEAC4RS passive tracers (jaf, 6/13/13)
+      ! SEAC4RS tracers (jaf, 6/13/13)
       INTEGER            :: IDTPCOFNE, IDTPCOFSE, IDTPCOFW, IDTPCOFRW
       INTEGER            :: IDTPCOBCN, IDTPCOBSE, IDTPCOBW, IDTPCOBRW
       INTEGER            :: IDTPISOP
+      INTEGER            :: IDTAVOC,   IDTBBVOC,  IDTASOA,  IDTBBSOA
 
       ! For tagged Hg simulation
       INTEGER              :: N_Hg_CATS
@@ -461,10 +464,11 @@
       !jpp, 8/24/07: emission ID's for Br biogenic emissions in fullchem runs
       INTEGER            :: IDECHBr3, IDECH2Br2, IDEBr2      
 
-      ! SEAC4RS passive tracers (jaf, 6/13/13)
+      ! SEAC4RS tracers (jaf, 6/13/13)
       INTEGER            :: IDEPCOFNE, IDEPCOFSE, IDEPCOFW, IDEPCOFRW
       INTEGER            :: IDEPCOBCN, IDEPCOBSE, IDEPCOBW, IDEPCOBRW
       INTEGER            :: IDEPISOP
+      INTEGER            :: IDEAVOC,   IDEBBVOC
 
       ! GEOS-CHEM biofuel ID's
       INTEGER            :: IDBFNO,   IDBFCO,   IDBFALK4, IDBFACET 
@@ -476,8 +480,9 @@
       INTEGER            :: IDBFGLYX, IDBFMGLY
       INTEGER            :: IDBFHAC
 
-      ! SEAC4RS passive tracers (jaf, 6/13/13)
-      INTEGER          :: IDBFPCOFNE, IDBFPCOFSE, IDBFPCOFW, IDBFPCOFRW
+      ! SEAC4RS tracers (jaf, 6/13/13)
+      INTEGER           :: IDBFPCOFNE, IDBFPCOFSE, IDBFPCOFW, IDBFPCOFRW
+      INTEGER           :: IDBFAVOC
 
       !BIOMASS BURNING  !(FP,01/27/10)
       INTEGER            :: IDBNO,   IDBCO,   IDBALK4, IDBACET 
@@ -495,8 +500,9 @@
       INTEGER            :: IDBGLYX, IDBMGLY, IDBC2H4, IDBC2H2
       INTEGER            :: IDBGLYC, IDBHAC      
       
-      ! SEAC4RS passive tracers (jaf, 6/13/13)
+      ! SEAC4RS tracers (jaf, 6/13/13)
       INTEGER            :: IDBPCOBCN, IDBPCOBSE, IDBPCOBW, IDBPCOBRW
+      INTEGER            :: IDBBBVOC
 
       CONTAINS
 
@@ -1163,7 +1169,7 @@
                IDTPYPAN  = N
 
             !--------------------------------
-            ! SEAC4RS passive tracers
+            ! SEAC4RS tracers
             !--------------------------------
             CASE ( 'PCOFNE' )
                COUNT      = COUNT + 1
@@ -1186,28 +1192,24 @@
                IDBFPCOFRW = COUNT
 
             CASE ( 'PCOBCN' )
-               COUNT      = COUNT + 1
                IDTPCOBCN  = N
 
                COUNT_BB  = COUNT_BB + 1
                IDBPCOBCN = COUNT_BB
 
             CASE ( 'PCOBSE' )
-               COUNT      = COUNT + 1
                IDTPCOBSE  = N
 
                COUNT_BB  = COUNT_BB + 1
                IDBPCOBSE = COUNT_BB
 
             CASE ( 'PCOBW' )
-               COUNT      = COUNT + 1
                IDTPCOBW   = N
 
                COUNT_BB  = COUNT_BB + 1
                IDBPCOBW  = COUNT_BB
 
             CASE ( 'PCOBRW' )
-               COUNT      = COUNT + 1
                IDTPCOBRW  = N
 
                COUNT_BB  = COUNT_BB + 1
@@ -1215,7 +1217,24 @@
 
             CASE ( 'PISOP' )
                IDTPISOP  = N
+
+            CASE ( 'AVOC' )
+               COUNT      = COUNT + 1
+               IDTAVOC    = N
+               IDBFAVOC   = COUNT
                
+            CASE ( 'BBVOC' )
+               IDTBBVOC   = N
+
+               COUNT_BB  = COUNT_BB + 1
+               IDBBBVOC  = COUNT_BB
+
+            CASE ( 'ASOA' )
+               IDTASOA   = N
+
+            CASE ( 'BBSOA' )
+               IDTBBSOA  = N
+
             !--------------------------------
             ! Tagged Ox Tracers
             !--------------------------------
@@ -2627,7 +2646,7 @@
           ENDIF
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-         ! SEAC4RS passive tracers (jaf, 6/13/13)
+         ! SEAC4RS tracers (jaf, 6/13/13)
          IF ( IDTPCOFNE > 0 ) THEN
             NEMANTHRO = NEMANTHRO + 1
             IDEPCOFNE = NEMANTHRO
@@ -2659,6 +2678,14 @@
          IF ( IDTPCOBRW > 0 ) THEN
             NEMANTHRO = NEMANTHRO + 1
             IDEPCOBRW = NEMANTHRO
+         ENDIF
+         IF ( IDTAVOC > 0 ) THEN
+            NEMANTHRO = NEMANTHRO + 1
+            IDEAVOC   = NEMANTHRO
+         ENDIF
+         IF ( IDTBBVOC > 0 ) THEN
+            NEMANTHRO = NEMANTHRO + 1
+            IDEBBVOC  = NEMANTHRO
          ENDIF
 
          ! Now add additional species treated in SMVGEAR that are NOT
@@ -2744,7 +2771,7 @@
       IF ( IDERCHO /= 0 )  IDEMS(IDERCHO) = IDTRCHO
       IF ( IDEHCOOH /= 0 ) IDEMS(IDEHCOOH)= IDTHCOOH
       IF ( IDEACTA /= 0 )  IDEMS(IDEACTA) = IDTACTA
-      ! SEAC4RS passive tracers (jaf, 6/13/13)
+      ! SEAC4RS tracers (jaf, 6/13/13)
       IF ( IDEPCOFNE /= 0 ) IDEMS(IDEPCOFNE) = IDTPCOFNE
       IF ( IDEPCOFSE /= 0 ) IDEMS(IDEPCOFSE) = IDTPCOFSE
       IF ( IDEPCOFW  /= 0 ) IDEMS(IDEPCOFW)  = IDTPCOFW
@@ -2754,6 +2781,8 @@
       IF ( IDEPCOBW  /= 0 ) IDEMS(IDEPCOBW)  = IDTPCOBW
       IF ( IDEPCOBRW /= 0 ) IDEMS(IDEPCOBRW) = IDTPCOBRW
       IF ( IDEPISOP  /= 0 ) IDEMS(IDEPISOP)  = IDTPISOP
+      IF ( IDEAVOC   /= 0 ) IDEMS(IDEAVOC)   = IDTAVOC
+      IF ( IDEBBVOC  /= 0 ) IDEMS(IDEBBVOC)  = IDTBBVOC
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       IF ( IDEMBO  /= 0 ) IDEMS(IDEMBO ) = IDTMBO
       IF ( IDEGLYC /= 0 ) IDEMS(IDEGLYC) = IDTGLYC
@@ -2775,7 +2804,8 @@
          WRITE( 6, 115 ) '          + 2 for HNO3 and Ox'
          WRITE( 6, 115 ) '          + 5 for aromatics (B,T,X,C2H2,C2H4)'
          WRITE( 6, 115 ) '          + 8 for SEAC4RS passive tracers'
-         WRITE( 6, 115 ) 'NEMANTHRO: 25 max'
+         WRITE( 6, 115 ) '          + 2 for SEAC4RS SOA tracers'
+         WRITE( 6, 115 ) 'NEMANTHRO: 27 max'
          WRITE( 6, 120 ) 'THIS NEMANTHRO: ', NEMANTHRO
          WRITE( 6, 115 ) '---------------------------------------------'
          WRITE( 6, 115 ) 'NEMBIOG:    1 for isoprene'
@@ -2818,6 +2848,8 @@
          WRITE( 6, 120 ) 'IDEPCOBW',  IDEPCOBW
          WRITE( 6, 120 ) 'IDEPCOBRW', IDEPCOBRW
          WRITE( 6, 120 ) 'IDEPISOP ', IDEPISOP
+         WRITE( 6, 120 ) 'IDEAVOC  ', IDEAVOC
+         WRITE( 6, 120 ) 'IDEBBVOC ', IDEBBVOC
          WRITE( 6, 120 ) 'IDEMBO  ', IDEMBO
          WRITE( 6, 120 ) 'IDEGLYC ', IDEGLYC
          WRITE( 6, 120 ) 'IDEHAC  ', IDEHAC
@@ -3016,7 +3048,7 @@
          IF ( NAMEGAS(I) == 'LTRO2N'   ) IDLTRO2N   = I
          IF ( NAMEGAS(I) == 'LXRO2H'   ) IDLXRO2H   = I
          IF ( NAMEGAS(I) == 'LXRO2N'   ) IDLXRO2N   = I
-         ! SEAC4RS passive tracers (jaf, 6/13/13)
+         ! SEAC4RS tracers (jaf, 6/13/13)
          IF ( NAMEGAS(I) == 'PCOFNE'   ) IDPCOFNE   = I
          IF ( NAMEGAS(I) == 'PCOFSE'   ) IDPCOFSE   = I
          IF ( NAMEGAS(I) == 'PCOFW'    ) IDPCOFW    = I
@@ -3026,6 +3058,10 @@
          IF ( NAMEGAS(I) == 'PCOBW'    ) IDPCOBW    = I
          IF ( NAMEGAS(I) == 'PCOBRW'   ) IDPCOBRW   = I
          IF ( NAMEGAS(I) == 'PISOP'    ) IDPISOP    = I
+         IF ( NAMEGAS(I) == 'AVOC'     ) IDAVOC     = I
+         IF ( NAMEGAS(I) == 'BBVOC'    ) IDBBVOC    = I
+         IF ( NAMEGAS(I) == 'ASOA'     ) IDASOA     = I
+         IF ( NAMEGAS(I) == 'BBSOA'    ) IDBBSOA    = I
       ENDDO
 
       !=================================================================
@@ -4088,7 +4124,7 @@
       IDDRYBrNO3= 0
       ! +++++++++++++++++
 
-      ! SEAC4RS passive tracers (jaf, 6/13/13)
+      ! SEAC4RS tracers (jaf, 6/13/13)
       IDPCOFNE  = 0
       IDPCOFSE  = 0
       IDPCOFW   = 0
@@ -4098,6 +4134,10 @@
       IDPCOBW   = 0
       IDPCOBRW  = 0
       IDPISOP   = 0
+      IDAVOC    = 0
+      IDBBVOC   = 0
+      IDASOA    = 0
+      IDBBSOA   = 0
 
       ! GEOS-CHEM Tracer ID #'s
       IDTNO     = 0
@@ -4220,7 +4260,7 @@
       IDTMAP     = 0
       IDTPYPAN   = 0
  
-      ! SEAC4RS passive tracers (jaf, 6/13/13)
+      ! SEAC4RS tracers (jaf, 6/13/13)
       IDTPCOFNE  = 0
       IDTPCOFSE  = 0
       IDTPCOFW   = 0
@@ -4230,6 +4270,10 @@
       IDTPCOBW   = 0
       IDTPCOBRW  = 0
       IDTPISOP   = 0
+      IDTAVOC    = 0
+      IDTBBVOC   = 0
+      IDTASOA    = 0
+      IDTBBSOA   = 0
 
 
 #if   defined( TOMAS )
@@ -4645,7 +4689,7 @@
       IDECH2Br2 = 0 ! jpp, 9/16/07
       IDEBr2    = 0 ! jpp, 3/2/10
 
-      ! SEAC4RS passive tracers (jaf, 6/13/13)
+      ! SEAC4RS tracers (jaf, 6/13/13)
       IDEPCOFNE  = 0
       IDEPCOFSE  = 0
       IDEPCOFW   = 0
@@ -4655,6 +4699,8 @@
       IDEPCOBW   = 0
       IDEPCOBRW  = 0
       IDEPISOP   = 0
+      IDEAVOC    = 0
+      IDEBBVOC   = 0
 
       ! GEOS-CHEM Biofuel ID #'s
       IDBFNO    = 0
@@ -4677,11 +4723,12 @@
       IDBFMGLY  = 0
       IDBFHAC   = 0
 
-      ! SEAC4RS passive tracers (jaf, 6/13/13)
+      ! SEAC4RS tracers (jaf, 6/13/13)
       IDBFPCOFNE  = 0
       IDBFPCOFSE  = 0
       IDBFPCOFW   = 0
       IDBFPCOFRW  = 0
+      IDBFAVOC    = 0
 
       ! Initialize IDBs for BIOMASS BURNING (hotp 8/24/09)
       IDBNO     = 0
@@ -4712,11 +4759,12 @@
       IDBCH4    = 0
 !kjw
 
-      ! SEAC4RS passive tracers (jaf, 6/13/13)
+      ! SEAC4RS tracers (jaf, 6/13/13)
       IDBPCOBCN  = 0
       IDBPCOBSE  = 0
       IDBPCOBW   = 0
       IDBPCOBRW  = 0
+      IDBBBVOC   = 0
 
       !-----------------------------------
       ! Initialize tagged Hg index arrays
