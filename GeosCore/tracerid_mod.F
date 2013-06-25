@@ -257,7 +257,6 @@
       INTEGER            :: IDPCOFNE, IDPCOFSE, IDPCOFW, IDPCOFRW
       INTEGER            :: IDPCOBCN, IDPCOBSE, IDPCOBW, IDPCOBRW
       INTEGER            :: IDPISOP
-      INTEGER            :: IDAVOC,   IDBBVOC,  IDASOA,  IDBBSOA
 
       ! GEOS-CHEM tracer ID's
       INTEGER            :: IDTNO,   IDTNO2,   IDTNO3,  IDTHNO2, IDTO3
@@ -468,7 +467,6 @@
       INTEGER            :: IDEPCOFNE, IDEPCOFSE, IDEPCOFW, IDEPCOFRW
       INTEGER            :: IDEPCOBCN, IDEPCOBSE, IDEPCOBW, IDEPCOBRW
       INTEGER            :: IDEPISOP
-      INTEGER            :: IDEAVOC,   IDEBBVOC
 
       ! GEOS-CHEM biofuel ID's
       INTEGER            :: IDBFNO,   IDBFCO,   IDBFALK4, IDBFACET 
@@ -482,7 +480,6 @@
 
       ! SEAC4RS tracers (jaf, 6/13/13)
       INTEGER           :: IDBFPCOFNE, IDBFPCOFSE, IDBFPCOFW, IDBFPCOFRW
-      INTEGER           :: IDBFAVOC
 
       !BIOMASS BURNING  !(FP,01/27/10)
       INTEGER            :: IDBNO,   IDBCO,   IDBALK4, IDBACET 
@@ -502,7 +499,6 @@
       
       ! SEAC4RS tracers (jaf, 6/13/13)
       INTEGER            :: IDBPCOBCN, IDBPCOBSE, IDBPCOBW, IDBPCOBRW
-      INTEGER            :: IDBBBVOC
 
       CONTAINS
 
@@ -1219,15 +1215,10 @@
                IDTPISOP  = N
 
             CASE ( 'AVOC' )
-               COUNT      = COUNT + 1
                IDTAVOC    = N
-               IDBFAVOC   = COUNT
                
             CASE ( 'BBVOC' )
                IDTBBVOC   = N
-
-               COUNT_BB  = COUNT_BB + 1
-               IDBBBVOC  = COUNT_BB
 
             CASE ( 'ASOA' )
                IDTASOA   = N
@@ -2679,14 +2670,6 @@
             NEMANTHRO = NEMANTHRO + 1
             IDEPCOBRW = NEMANTHRO
          ENDIF
-         IF ( IDTAVOC > 0 ) THEN
-            NEMANTHRO = NEMANTHRO + 1
-            IDEAVOC   = NEMANTHRO
-         ENDIF
-         IF ( IDTBBVOC > 0 ) THEN
-            NEMANTHRO = NEMANTHRO + 1
-            IDEBBVOC  = NEMANTHRO
-         ENDIF
 
          ! Now add additional species treated in SMVGEAR that are NOT
          ! anthropogenic, increment NEMBIOG
@@ -2781,8 +2764,6 @@
       IF ( IDEPCOBW  /= 0 ) IDEMS(IDEPCOBW)  = IDTPCOBW
       IF ( IDEPCOBRW /= 0 ) IDEMS(IDEPCOBRW) = IDTPCOBRW
       IF ( IDEPISOP  /= 0 ) IDEMS(IDEPISOP)  = IDTPISOP
-      IF ( IDEAVOC   /= 0 ) IDEMS(IDEAVOC)   = IDTAVOC
-      IF ( IDEBBVOC  /= 0 ) IDEMS(IDEBBVOC)  = IDTBBVOC
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       IF ( IDEMBO  /= 0 ) IDEMS(IDEMBO ) = IDTMBO
       IF ( IDEGLYC /= 0 ) IDEMS(IDEGLYC) = IDTGLYC
@@ -2804,8 +2785,7 @@
          WRITE( 6, 115 ) '          + 2 for HNO3 and Ox'
          WRITE( 6, 115 ) '          + 5 for aromatics (B,T,X,C2H2,C2H4)'
          WRITE( 6, 115 ) '          + 8 for SEAC4RS passive tracers'
-         WRITE( 6, 115 ) '          + 2 for SEAC4RS SOA tracers'
-         WRITE( 6, 115 ) 'NEMANTHRO: 27 max'
+         WRITE( 6, 115 ) 'NEMANTHRO: 25 max'
          WRITE( 6, 120 ) 'THIS NEMANTHRO: ', NEMANTHRO
          WRITE( 6, 115 ) '---------------------------------------------'
          WRITE( 6, 115 ) 'NEMBIOG:    1 for isoprene'
@@ -2848,8 +2828,6 @@
          WRITE( 6, 120 ) 'IDEPCOBW',  IDEPCOBW
          WRITE( 6, 120 ) 'IDEPCOBRW', IDEPCOBRW
          WRITE( 6, 120 ) 'IDEPISOP ', IDEPISOP
-         WRITE( 6, 120 ) 'IDEAVOC  ', IDEAVOC
-         WRITE( 6, 120 ) 'IDEBBVOC ', IDEBBVOC
          WRITE( 6, 120 ) 'IDEMBO  ', IDEMBO
          WRITE( 6, 120 ) 'IDEGLYC ', IDEGLYC
          WRITE( 6, 120 ) 'IDEHAC  ', IDEHAC
@@ -3058,10 +3036,6 @@
          IF ( NAMEGAS(I) == 'PCOBW'    ) IDPCOBW    = I
          IF ( NAMEGAS(I) == 'PCOBRW'   ) IDPCOBRW   = I
          IF ( NAMEGAS(I) == 'PISOP'    ) IDPISOP    = I
-         IF ( NAMEGAS(I) == 'AVOC'     ) IDAVOC     = I
-         IF ( NAMEGAS(I) == 'BBVOC'    ) IDBBVOC    = I
-         IF ( NAMEGAS(I) == 'ASOA'     ) IDASOA     = I
-         IF ( NAMEGAS(I) == 'BBSOA'    ) IDBBSOA    = I
       ENDDO
 
       !=================================================================
@@ -4134,10 +4108,6 @@
       IDPCOBW   = 0
       IDPCOBRW  = 0
       IDPISOP   = 0
-      IDAVOC    = 0
-      IDBBVOC   = 0
-      IDASOA    = 0
-      IDBBSOA   = 0
 
       ! GEOS-CHEM Tracer ID #'s
       IDTNO     = 0
@@ -4699,8 +4669,6 @@
       IDEPCOBW   = 0
       IDEPCOBRW  = 0
       IDEPISOP   = 0
-      IDEAVOC    = 0
-      IDEBBVOC   = 0
 
       ! GEOS-CHEM Biofuel ID #'s
       IDBFNO    = 0
@@ -4728,7 +4696,6 @@
       IDBFPCOFSE  = 0
       IDBFPCOFW   = 0
       IDBFPCOFRW  = 0
-      IDBFAVOC    = 0
 
       ! Initialize IDBs for BIOMASS BURNING (hotp 8/24/09)
       IDBNO     = 0
@@ -4764,7 +4731,6 @@
       IDBPCOBSE  = 0
       IDBPCOBW   = 0
       IDBPCOBRW  = 0
-      IDBBBVOC   = 0
 
       !-----------------------------------
       ! Initialize tagged Hg index arrays

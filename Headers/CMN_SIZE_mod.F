@@ -466,9 +466,8 @@
       !INTEGER, PARAMETER :: NEMPARA = 26 
       ! +4 for SEAC4RS FF passive tracers (jaf, 6/13/13)
       ! +4 for SEAC4RS BB passive tracers (jaf, 6/14/13)
-      ! +2 for SEAC4RS SOA tracers (jaf, 6/20/13)
       !INTEGER, PARAMETER :: NEMPARA = 29
-      INTEGER, PARAMETER :: NEMPARA = 39
+      INTEGER, PARAMETER :: NEMPARA = 37
       ! +1 for SEAC4RS ISOP passive tracers (jaf, 6/14/13)
       !INTEGER, PARAMETER :: NEMPARB = 20
       INTEGER, PARAMETER :: NEMPARB = 21
@@ -544,8 +543,7 @@
       ! increase NBIOMAX to 24 for dicarbonyls (ccc, 2/02/10)
       ! increase NBIOMAX to 25 fpr CH4 (kjw)
       ! +4 for SEAC4RS BB passive tracers (jaf, 6/14/13)
-      ! +1 for SEAC4RS SOA tracers (jaf, 6/20/13)
-      INTEGER, PARAMETER :: NBIOMAX = 30
+      INTEGER, PARAMETER :: NBIOMAX = 29
 
 
 #if   defined( TOMAS )

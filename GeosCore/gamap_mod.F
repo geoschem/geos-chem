@@ -1303,6 +1303,16 @@
       OFFSET(N)   = SPACING * 33
 
       N           = N + 1
+      CATEGORY(N) = 'ANVOCSRC'
+      DESCRIPT(N) = 'Anthro SOA precursor emission'
+      OFFSET(N)   = SPACING * 33
+
+      N           = N + 1
+      CATEGORY(N) = 'BBVOCSRC'
+      DESCRIPT(N) = 'Biomass SOA precursor emission'
+      OFFSET(N)   = SPACING * 33
+
+      N           = N + 1
       CATEGORY(N) = 'PL-BC=$'
       DESCRIPT(N) = 'H-philic from H-phobic BC'
       OFFSET(N)   = SPACING * 33
@@ -1310,6 +1320,16 @@
       N           = N + 1
       CATEGORY(N) = 'PL-OC=$'
       DESCRIPT(N) = 'H-philic from H-phobic OC'
+      OFFSET(N)   = SPACING * 33
+
+      N           = N + 1
+      CATEGORY(N) = 'PL-ANSOA'
+      DESCRIPT(N) = 'Anthro. SOA production'
+      OFFSET(N)   = SPACING * 33
+
+      N           = N + 1
+      CATEGORY(N) = 'PL-BBSOA'
+      DESCRIPT(N) = 'Biomass SOA production'
       OFFSET(N)   = SPACING * 33
 
       N           = N + 1
@@ -1656,7 +1676,8 @@
       USE TRACERID_MOD, ONLY : IDTPCOBSE, IDBPCOBSE
       USE TRACERID_MOD, ONLY : IDTPCOBW,  IDBPCOBW
       USE TRACERID_MOD, ONLY : IDTPCOBRW, IDBPCOBRW
-      USE TRACERID_MOD, ONLY : IDTBBVOC,  IDBBBVOC
+      USE TRACERID_MOD, ONLY : IDTAVOC,   IDTBBVOC
+      USE TRACERID_MOD, ONLY : IDTASOA,   IDTBBSOA
 
       USE TRACERID_MOD, ONLY : N_Hg_CATS  !CDH for snowpack
       USE GET_POPSINFO_MOD, ONLY : GET_POP_XMW
@@ -4559,6 +4580,53 @@
             END SELECT
 
          ENDDO
+
+         ! SEAC4RS SOA tracers (jaf, 6/25/13)
+         IF ( IDTAVOC  > 0 ) THEN
+            NTRAC(07) = NTRAC(07)+1
+            T = NTRAC(07)
+            UNIT (T,07) = 'kg'
+            MOLC (T,07) = 1
+            MWT  (T,07) = 12e-3
+            SCALE(T,07) = 1e0
+            NAME (T,07) = 'ANVOC'
+            FNAME(T,07) = 'Anthro. SOA precursor'
+            INDEX(T,07) = IDTAVOC + ( SPACING * 33 )
+         ENDIF
+         IF ( IDTBBVOC > 0 ) THEN
+            NTRAC(07) = NTRAC(07)+1
+            T = T+1
+            UNIT (T,07) = 'kg'
+            MOLC (T,07) = 1
+            MWT  (T,07) = 12e-3
+            SCALE(T,07) = 1e0
+            NAME (T,07) = 'BBVOC'
+            FNAME(T,07) = 'Biomass SOA precursor'
+            INDEX(T,07) = IDTBBVOC + ( SPACING * 33 )
+         ENDIF
+         IF ( IDTASOA  > 0 ) THEN
+            NTRAC(07) = NTRAC(07)+1
+            T = NTRAC(07)
+            UNIT (T,07) = 'kg'
+            MOLC (T,07) = 1
+            MWT  (T,07) = 12e-3
+            SCALE(T,07) = 1e0
+            NAME (T,07) = 'ANSOA'
+            FNAME(T,07) = 'Anthro. SOA production'
+            INDEX(T,07) = IDTASOA + ( SPACING * 33 )
+         ENDIF
+         IF ( IDTBBSOA > 0 ) THEN
+            NTRAC(07) = NTRAC(07)+1
+            T = NTRAC(07)
+            UNIT (T,07) = 'kg'
+            MOLC (T,07) = 1
+            MWT  (T,07) = 12e-3
+            SCALE(T,07) = 1e0
+            NAME (T,07) = 'BBSOA'
+            FNAME(T,07) = 'Biomass SOA production'
+            INDEX(T,07) = IDTBBSOA + ( SPACING * 33 )
+         ENDIF
+
       ENDIF
 
       !-------------------------------------
@@ -5130,9 +5198,8 @@
             ELSE
                ! Should have been 16 not 14 for isoprene chem
                ! +4 for SEAC4RS passive tracers (jaf, 6/14/13)
-               ! +1 for SEAC4RS SOA tracer (jaf, 6/20/13)
                !NTRAC(28) = 14    ! Standard simulation
-               NTRAC(28) = 21    ! Standard simulation
+               NTRAC(28) = 20    ! Standard simulation
             ENDIF
 
             ! Loop over tracers
@@ -5326,13 +5393,6 @@
                ELSE IF ( T == IDBPCOBRW ) THEN
                   NAME (T,28) = 'PCOBRW'
                   INDEX(T,28) = IDTPCOBRW + ( SPACING * 45 )
-                  MWT  (T,28) = 28e-3
-                  MOLC (T,28) = 1
-                  UNIT (T,28) = 'molec/cm2/s'
-
-               ELSE IF ( T == IDBBBVOC ) THEN
-                  NAME (T,28) = 'BBVOC'
-                  INDEX(T,28) = IDTBBVOC + ( SPACING * 45 )
                   MWT  (T,28) = 28e-3
                   MOLC (T,28) = 1
                   UNIT (T,28) = 'molec/cm2/s'

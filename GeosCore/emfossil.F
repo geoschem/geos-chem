@@ -48,7 +48,6 @@
       USE TRACERID_MOD,       ONLY : IDTPCOFW,  IDTPCOFRW
       USE TRACERID_MOD,       ONLY : IDTPCOBCN, IDTPCOBSE
       USE TRACERID_MOD,       ONLY : IDTPCOBW,  IDTPCOBRW
-      USE TRACERID_MOD,       ONLY : IDTAVOC,   IDTBBVOC
 
 
       USE CMN_SIZE_MOD             ! Size parameters
@@ -170,7 +169,6 @@
       REAL*8  :: RETRO
       REAL*8  :: C2H6_ANTHRO
       REAL*8  :: X, Y
-      REAL*8, PARAMETER :: EF_VOC = 5.5D-2
 
       ! For fields from Input_Opt
       LOGICAL :: LBRAVO
@@ -993,19 +991,11 @@
 
          ENDIF
 
-         ! SEAC4RS SOA tracers (jaf, 6/20/13)
-         IF ( NN == IDTAVOC ) THEN
-            EMISRR(I,J,N) = ( XNUMOL(IDTAVOC) / XNUMOL(IDTCO) ) *
-     &           EF_VOC * EMISRR(I,J,IDECO)
-                 EMX(1) = EMISRR(I,J,N) * DTSRCE / XNUMOL(NN)
-         ENDIF
-
          ! N loops over fossil fuel + biomass burning tracers, so we
          ! zero the fossil fuel emissions for the biomass burning only
          ! passive tracers (jaf, 6/14/13)
          IF ( (NN == IDTPCOBCN) .or. (NN == IDTPCOBSE) .or. 
-     &        (NN == IDTPCOBW)  .or. (NN == IDTPCOBRW) .or.
-     &        (NN == IDTBBVOC) ) THEN
+     &        (NN == IDTPCOBW)  .or. (NN == IDTPCOBRW) ) THEN
             EMISRR(I,J,N) = 0d0
             EMX(1) = 0d0
          ENDIF

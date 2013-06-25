@@ -205,8 +205,6 @@
       USE GRID_MOD,           ONLY : GET_XMID,  GET_YMID
       USE TRACERID_MOD,       ONLY : IDBPCOBCN, IDBPCOBSE
       USE TRACERID_MOD,       ONLY : IDBPCOBW,  IDBPCOBRW
-      USE TRACERID_MOD,       ONLY : IDBBBVOC
-      USE TRACERID_MOD,       ONLY : IDTBBVOC,  IDTCO
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! Diagnostic flags
@@ -239,8 +237,6 @@
       INTEGER             :: I,       J,       N,      N_BIOB
       REAL*8              :: BXHT_CM, DTSRCE
       REAL*8              :: X,       Y
-      REAL*8              :: XNUMOL_CO, XNUMOL_BBVOC
-      REAL*8, PARAMETER   :: EF_VOC = 5.5D-2
       
       ! For fields from Input_Opt
       LOGICAL             :: ITS_A_CO2_SIM
@@ -271,8 +267,6 @@
       L3HRBB              = Input_Opt%L3HRBB
       LDAYBB3             = Input_Opt%LDAYBB3
       L3HRBB3             = Input_Opt%L3HRBB3  
-      XNUMOL_CO           = Input_Opt%XNUMOL(IDTCO)
-      XNUMOL_BBVOC        = Input_Opt%XNUMOL(IDTBBVOC)
 
       ! If there are biomass emissions ...
       IF ( LBIOMASS ) THEN
@@ -465,11 +459,6 @@
 !$OMP END PARALLEL DO
          ENDIF
 
-         ! SEAC4RS SOA tracers (jaf, 6/20/13)
-         IF ( IDBBBVOC > 0 ) BIOMASS(:,:,IDBBBVOC) =
-     &                       ( XNUMOL_BBVOC / XNUMOL_CO ) *
-     &                       EF_VOC * BIOMASS(:,:,IDBCO)
-
          !==============================================================
          ! Do the following on every timestep:
          !
@@ -551,7 +540,6 @@
       ! SEAC4RS tracers (jaf, 6/14/13)
       USE TRACERID_MOD, ONLY : IDBPCOBCN, IDBPCOBSE
       USE TRACERID_MOD, ONLY : IDBPCOBW, IDBPCOBRW
-      USE TRACERID_MOD, ONLY : IDBBBVOC
 
       USE TRACERID_MOD, ONLY : IDTNO,   IDTCO,   IDTALK4, IDTACET 
       USE TRACERID_MOD, ONLY : IDTMEK,  IDTALD2, IDTPRPE, IDTC3H8
@@ -565,7 +553,6 @@
       ! SEAC4RS tracers (jaf, 6/14/13)
       USE TRACERID_MOD, ONLY : IDTPCOBCN, IDTPCOBSE
       USE TRACERID_MOD, ONLY : IDTPCOBW, IDTPCOBRW
-      USE TRACERID_MOD, ONLY : IDTBBVOC
 
       USE TRACER_MOD,   ONLY : ITS_A_CH4_SIM ! (mpayer, 2/14/12)
 
@@ -613,7 +600,6 @@
       IF ( IDBPCOBSE /= 0 ) NBIOTRCE = NBIOTRCE + 1 
       IF ( IDBPCOBW  /= 0 ) NBIOTRCE = NBIOTRCE + 1 
       IF ( IDBPCOBRW /= 0 ) NBIOTRCE = NBIOTRCE + 1 
-      IF ( IDBBBVOC  /= 0 ) NBIOTRCE = NBIOTRCE + 1
 
       ! Fill BIOTRCE w/ appropriate TRACER ID #'s
       ! Replaced NOx with NO (mpayer, 3/14/13)
@@ -655,7 +641,6 @@
       IF ( IDBPCOBSE /= 0 ) BIOTRCE(IDBPCOBSE) = IDTPCOBSE
       IF ( IDBPCOBW  /= 0 ) BIOTRCE(IDBPCOBW)  = IDTPCOBW
       IF ( IDBPCOBRW /= 0 ) BIOTRCE(IDBPCOBRW) = IDTPCOBRW
-      IF ( IDBBBVOC  /= 0 ) BIOTRCE(IDBBBVOC)  = IDTBBVOC
 
       ! Set T/F of BIOBGAS() (hotp 8/3/09)
       ! BIOBGAS(IDBxx) is true if IDBxx should be handled by
@@ -698,7 +683,6 @@
       IF ( IDBPCOBSE /= 0 ) BIOBGAS(IDBPCOBSE) = .TRUE.
       IF ( IDBPCOBW  /= 0 ) BIOBGAS(IDBPCOBW)  = .TRUE.
       IF ( IDBPCOBRW /= 0 ) BIOBGAS(IDBPCOBRW) = .TRUE.
-      IF ( IDBBBVOC  /= 0 ) BIOBGAS(IDBBBVOC)  = .TRUE.
 
 
       !FP_ISOP
