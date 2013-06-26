@@ -208,6 +208,12 @@
 !  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
 !                              of removal of NOx-Ox partitioning
+!  15 Nov 2012 - C. Keller   - Set biofuel emissions to zero if BRAVO, CAC or
+!                              EMEP emissions are used, since these 
+!                              inventories already contain biofuel emissions.
+!  15 Nov 2012 - C. Keller   - Set biofuel emissions to zero if BRAVO, CAC or
+!                              EMEP emissions are used, since these 
+!                              inventories already contain biofuel emissions.
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC]
 !  12 Jun 2013 - R. Yantosca - Now eliminate array temporaries (as possible)
 !  14 Jun 2013 - R. Yantosca - Now determine weekday/weekend with respect to
@@ -953,7 +959,13 @@
      &                    (NN /= IDTC2H2) .and. (NN /= IDTGLYC) .and.          
      &                    (NN /= IDTHAC ) ) THEN
 
-                        ! Get EPA/NEI biofuel [molec/cm2/s or atoms C/cm2/s]
+               ! Determine if we should use weekday or weekend NEI
+               ! emissions at grid box (I,J,L).  Since NEI is over
+               ! the US, then weekend is Sat/Sun.
+                        DOW_LT       = GET_DAY_OF_WEEK_LT( I, J, 1 )
+                        WEEKDAY      = ( DOW_LT > 0 .and. DOW_LT < 6 )
+               
+               ! Get EPA/NEI biofuel [molec/cm2/s or atoms C/cm2/s]
                         EPA_NEI = GET_EPA_BIOFUEL( I, J, NN, WEEKDAY )
 
                         ! Convert [molec/cm2/s] to [molec/cm3/s]

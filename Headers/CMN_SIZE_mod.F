@@ -502,8 +502,9 @@
       ! NOXLEVELS = Number of levels of anthro NOx emission 
       !             (e.g. surface and 100m)
       ! NOXEXTENT = Highest sigma level that receives anthro NOx emission 
-      INTEGER, PARAMETER :: NOXLEVELS = 2
-      INTEGER, PARAMETER :: NOXEXTENT = 2 
+      ! Need to set NOXLEVELS to 5 for NEI05 and 3 for NEI08 (krt)
+      INTEGER, PARAMETER :: NOXLEVELS = 5
+      INTEGER, PARAMETER :: NOXEXTENT = 5 
 
       ! MAXFAM -- Max number of families for prod and loss output
       INTEGER, PARAMETER :: MAXFAM = 40

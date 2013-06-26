@@ -782,6 +782,7 @@
        WRITE( 6, '(''Diagnostic Timestep [min] : '', i4 )' ) TS_DIAG
       ENDIF
 
+      ! Return to calling program
       END SUBROUTINE SET_TIMESTEPS
 !EOC
 !------------------------------------------------------------------------------
@@ -1967,7 +1968,7 @@
 !BOC
 !
 ! !LOCAL VARIABLES:
-! 
+!
       REAL*8 :: DOW_LOCAL, LOCAL_TIME
 
       !=================================================================
