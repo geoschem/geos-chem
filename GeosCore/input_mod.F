@@ -1554,6 +1554,8 @@
       USE TRACERID_MOD, ONLY : IDTDST1,  IDTDST2,  IDTDST3, IDTDST4
       USE TRACERID_MOD, ONLY : IDTSALA,  IDTSALC 
       USE TRACERID_MOD, ONLY : IDTSOAG,  IDTSOAM,  IDTSOA5
+      USE TRACERID_MOD, ONLY : IDTASOA,  IDTBBSOA, IDTBGSOA
+      USE TRACERID_MOD, ONLY : IDTAVOC,  IDTBBVOC
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
@@ -1780,11 +1782,36 @@
             MSG = 'LSOA=T but ONLINE 2dy ORG AEROSOLS are undefined!'
             CALL ERROR_STOP( MSG, LOCATION )
          ENDIF
+         IF ( (IDTASOA + IDTBBSOA + IDTBGSOA) > 0 ) THEN
+            MSG = 'Cannot used simplified SOA with full SOA chem!'
+            CALL ERROR_STOP( MSG, LOCATION )
+         ENDIF
       ELSE
          IF ( I > 0 ) THEN
             MSG = 'Cannot use ONLINE 2dy ORG AEROSOLS if LSOA=F!'
             CALL ERROR_STOP( MSG, LOCATION )
          ENDIF
+      ENDIF
+
+      ! SEAC4RS simplified SOA tracers
+      IF ( ( (IDTASOA + IDTBBSOA + IDTBGSOA) > 0 ) .and.
+     &     ITS_AN_AEROSOL_SIM() ) THEN
+         MSG = 'Simplified SOA not yet available in offline sim'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+      IF ( (IDTASOA > 0) .and. (IDTAVOC == 0) ) THEN
+         MSG = 'Must include tracer AVOC to use ASOA'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ELSE IF ( (IDTASOA == 0) .and. (IDTAVOC > 0) ) THEN
+         MSG = 'Tracer AVOC meaningless without ASOA'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+      IF ( (IDTBBSOA > 0) .and. (IDTBBVOC == 0) ) THEN
+         MSG = 'Must include tracer BBVOC to use BBSOA'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ELSE IF ( (IDTBBSOA == 0) .and. (IDTBBVOC > 0) ) THEN
+         MSG = 'Tracer BBVOC meaningless without BBSOA'
+         CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
 
       !---------------------------------
