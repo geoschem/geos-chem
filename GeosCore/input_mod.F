@@ -7871,17 +7871,13 @@
       ! Check GEOS-5.7.x met field directory (starting date)
       DIR = GEOS_57_DIR
       CALL EXPAND_DATE( DIR, NYMDb, 000000 )
-      ! Temporary change since data has not been moved to permanent location yet
-      ! (skim, 6/11/13)
-      ! DIR = TRIM( DATA_DIR ) // TRIM( DIR )
+      DIR = TRIM( DATA_DIR ) // TRIM( DIR )
       CALL CHECK_DIRECTORY( DIR )
 
       ! Check GEOS-5.7.x met field directory (ending date)
       DIR = GEOS_57_DIR
       CALL EXPAND_DATE( DIR, NYMDe, 000000 )
-      ! Temporary change since data has not been moved to permanent location yet
-      ! (skim, 6/11/13)
-      !DIR = TRIM( DATA_DIR ) // TRIM( DIR )
+      DIR = TRIM( DATA_DIR ) // TRIM( DIR )
       CALL CHECK_DIRECTORY( DIR )
 
 #elif defined( MERRA )
