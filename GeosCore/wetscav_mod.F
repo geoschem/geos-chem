@@ -8027,6 +8027,8 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE TRACERID_MOD,       ONLY : IDTSOAG,  IDTSOAM
+      ! SEAC4RS SOA tracers (jaf, 6/24/13)
+      USE TRACERID_MOD,       ONLY : IDTASOA,   IDTBBSOA,  IDTBGSOA
 #if defined( TOMAS )
       USE TRACERID_MOD,       ONLY : IDTNK1
       USE TOMAS_MOD,          ONLY : IBINS, IDIAG, ICOMP
@@ -8106,7 +8108,6 @@
                                                      ! IEPOX, PMNN
 
          NMAX = NMAX + 3                             ! HBr,   HOBr,   Br2
-         NMAX = NMAX + 3                             ! SEAC4RS SOA (jaf, 6/24/13)
 
          IF ( LSULF )    NMAX = NMAX + 8             ! SO2,   SO4,    MSA,
                                                      ! NH3,   NH4,    NIT
@@ -8119,6 +8120,9 @@
             IF ( IDTSOAM /= 0 ) NMAX = NMAX + 1      ! plus SOAM deposition
          ELSE                                        !%% non-SOA SIMULATION %%
             IF ( LCARB ) NMAX = NMAX + 4             ! BCPI, BCPO, OCPI, OCPO
+            IF ( IDTASOA  /= 0 ) NMAX = NMAX + 1     ! SEAC4RS SOA tracers
+            IF ( IDTBBSOA /= 0 ) NMAX = NMAX + 1     ! SEAC4RS SOA tracers
+            IF ( IDTBGSOA /= 0 ) NMAX = NMAX + 1     ! SEAC4RS SOA tracers
          ENDIF
 
 #if defined( TOMAS )
