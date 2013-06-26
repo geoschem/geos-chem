@@ -268,6 +268,7 @@
       ! SEAC4RS SOA tracers (jaf, 6/25/13)
       REAL*8, ALLOCATABLE :: BBVOC_EMIS(:,:)
       REAL*8, ALLOCATABLE :: AVOC_EMIS(:,:)
+      REAL*8, ALLOCATABLE :: BGSOA_EMIS(:,:)
 
       REAL*8, ALLOCATABLE :: GLOB_DARO2(:,:,:,:,:) ! Diagnostic (dkh, 11/10/06) 
       ! Cloud fraction - for cloud droplet uptake of dicarbonyls 
@@ -4813,7 +4814,7 @@ c
       USE TRACERID_MOD,       ONLY : IDTECIL1,  IDTECOB1, IDTNK1
       USE TRACERID_MOD,       ONLY : IDTOCIL1,  IDTOCOB1
 #endif
-      USE TRACERID_MOD,       ONLY : IDTAVOC, IDTBBVOC
+      USE TRACERID_MOD,       ONLY : IDTAVOC, IDTBBVOC, IDTBGSOA
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND07
@@ -5145,6 +5146,8 @@ c
      &                          AD07(I,J,13) + AVOC_EMIS(I,J)
             IF ( IDTBBVOC > 0 ) AD07(I,J,14) =
      &                          AD07(I,J,14) + BBVOC_EMIS(I,J)
+            IF ( IDTBGSOA > 0 ) AD07(I,J,15) =
+     &                          AD07(I,J,15) + BGSOA_EMIS(I,J)
 
          ENDDO
          ENDDO
@@ -5831,6 +5834,7 @@ ccc
       USE TIME_MOD,           ONLY : GET_MONTH,        GET_TS_CHEM
       USE TIME_MOD,           ONLY : GET_TS_EMIS,      ITS_A_NEW_MONTH
       USE TRANSFER_MOD,       ONLY : TRANSFER_2D
+      USE TRACERID_MOD,       ONLY : IDTBGSOA
 
       ! Arguments
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
@@ -5854,12 +5858,17 @@ ccc
       ! Fraction of yield of OC (hydrophilic) from terpene emission
       REAL*8, PARAMETER           :: FBIOG = 1.0d-1
 
+      ! SEAC4RS SOA tracers (jaf, 6/25/13)
+      REAL*8                      :: EMIS_ISOP
+      REAL*8, PARAMETER           :: FBIOG_ISOP = 3.0d-2
+
       ! Cosine SZA & PAR (for calculation of monoterpenes) (mpb,2009)
       REAL*8                      :: SC, PDF, PDR
 
       ! For fields from Input_Opt
       LOGICAL         :: LMEGANMONO
       LOGICAL         :: LSOA
+      LOGICAL         :: ISOP_SCALE
 
       !=================================================================
       ! BIOGENIC_OC begins here!
@@ -5868,6 +5877,10 @@ ccc
       ! Copy values from Input_Opt
       LMEGANMONO = Input_Opt%LMEGANMONO
       LSOA       = Input_Opt%LSOA
+      ISOP_SCALE = Input_Opt%ISOP_SCALING
+      ! We can't just use the saved value in emissions_mod.F because
+      ! emissions_mod.F already depends on carbon_mod.F, so just pull it
+      ! from input_opt here (jaf, 6/25/13)
 
       !=================================================================
       ! If secondary organic aerosols are turned off ...
@@ -5899,8 +5912,25 @@ ccc
                EMMO = EMMO * 12d-3/6.02d23
              ENDIF
 
-            ! Fraction of EMMO that converts into OC [kg/box/timestep]
-            TERP_ORGC(I,J) = EMMO * FBIOG
+            ! For SEAC4RS SOA tracers, add this to biogenic SOA instead
+            ! of POA (jaf, 6/25/13)
+            IF ( IDTBGSOA > 0 ) THEN
+
+               ! Also get isoprene from MEGAN [kg C/box]
+               EMIS_ISOP = GET_MEGAN_EMISSIONS(I, J, State_Met, 'ISOP')
+
+               ! Apply same scaling used in emissdr and convert to kgC
+               EMIS_ISOP = EMIS_ISOP * ISOP_SCALE * 12d-3/6.02d23
+
+               ! Add both components to BGSOA_EMIS array
+               BGSOA_EMIS(I,J) = EMMO * FBIOG + EMIS_ISOP * FBIOG_ISOP
+
+            ELSE
+
+               ! Fraction of EMMO that converts into OC [kg/box/timestep]
+               TERP_ORGC(I,J) = EMMO * FBIOG
+
+            ENDIF
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
@@ -7243,7 +7273,7 @@ ccc
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TRACERID_MOD,       ONLY : IDTBCPI, IDTBCPO, IDTOCPI, IDTOCPO
       USE TRACERID_MOD,       ONLY : IDTALPH, IDTLIMO, IDTALCO
-      USE TRACERID_MOD,       ONLY : IDTAVOC, IDTBBVOC
+      USE TRACERID_MOD,       ONLY : IDTAVOC, IDTBBVOC, IDTBGSOA
       USE VDIFF_PRE_MOD,      ONLY : EMIS_SAVE ! (Lin, 03/31/09)
 !
 ! !INPUT PARAMETERS:
@@ -7260,7 +7290,7 @@ ccc
 !
       LOGICAL         :: IS_BCPO, IS_OCPO, IS_BCPI, IS_OCPI
       LOGICAL         :: IS_ALPH, IS_LIMO, IS_ALCO
-      LOGICAL         :: IS_AVOC, IS_BBVOC
+      LOGICAL         :: IS_AVOC, IS_BBVOC, IS_BGSOA
       INTEGER         :: I,       J,       L,       PBL_MAX
       REAL*8          :: F_OF_PBL
 
@@ -7289,6 +7319,7 @@ ccc
       IS_ALCO = ( IDTALCO > 0 )
       IS_AVOC = ( IDTAVOC > 0 )
       IS_BBVOC = ( IDTBBVOC > 0 )
+      IS_BGSOA = ( IDTBGSOA > 0 )
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -7324,6 +7355,7 @@ ccc
             ! SEAC4RS SOA Tracers (jaf, 6/25/13)
             IF ( IS_AVOC  ) EMIS_SAVE(I,J,IDTAVOC)  = AVOC_EMIS(I,J)
             IF ( IS_BBVOC ) EMIS_SAVE(I,J,IDTBBVOC) = BBVOC_EMIS(I,J)
+            IF ( IS_BGSOA ) EMIS_SAVE(I,J,IDTBGSOA) = BGSOA_EMIS(I,J)
    
          ENDDO
          ENDDO
@@ -7397,14 +7429,22 @@ ccc
      &                           ( F_OF_PBL * BIOG_SESQ(I,J) )
          ENDIF
 
-         ! Anthropogenic SOA tracer
+         ! Anthropogenic SOA precursor tracer
          IF ( IS_AVOC ) THEN
             STT(I,J,L,IDTAVOC) = STT(I,J,L,IDTAVOC) + 
      &                           ( F_OF_PBL * AVOC_EMIS(I,J) )
          ENDIF
+
+         ! Biomass burning SOA precursor tracer
          IF ( IS_BBVOC ) THEN
             STT(I,J,L,IDTBBVOC) = STT(I,J,L,IDTBBVOC) + 
      &                           ( F_OF_PBL * BBVOC_EMIS(I,J) )
+         ENDIF
+
+         ! Biogenic SOA tracer
+         IF ( IS_BGSOA ) THEN
+            STT(I,J,L,IDTBGSOA) = STT(I,J,L,IDTBGSOA) +
+     &                           ( F_OF_PBL * BGSOA_EMIS(I,J) )
          ENDIF
 
       ENDDO
@@ -8919,7 +8959,7 @@ ccc
       USE GRID_MOD,           ONLY : GET_BOUNDING_BOX
       USE TIME_MOD,           ONLY : GET_NYMDb, GET_NHMSb, GET_TAUb
       USE TRACERID_MOD,       ONLY : IDTSOA5
-      USE TRACERID_MOD,       ONLY : IDTAVOC, IDTBBVOC
+      USE TRACERID_MOD,       ONLY : IDTAVOC, IDTBBVOC, IDTBGSOA
 !
 ! !INPUT PARAMETERS:
 !
@@ -9067,6 +9107,11 @@ ccc
          ALLOCATE( BBVOC_EMIS( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'BBVOC_EMIS' )
          BBVOC_EMIS = 0d0
+      ENDIF
+      IF ( IDTBGSOA > 0 ) THEN
+         ALLOCATE( BGSOA_EMIS( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'BGSOA_EMIS' )
+         BGSOA_EMIS = 0d0
       ENDIF
 
       !=================================================================
@@ -9262,7 +9307,7 @@ ccc
 
       ! SEAC4RS SOA tracer (jaf, 6/25/13)
       IF ( ALLOCATED( AVOC_EMIS  ) ) DEALLOCATE( AVOC_EMIS  )
-      IF ( ALLOCATED( BBVOC_EMIS ) ) DEALLOCATE( BBVOC_EMIS )
+      IF ( ALLOCATED( BGSOA_EMIS ) ) DEALLOCATE( BGSOA_EMIS )
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_CARBON

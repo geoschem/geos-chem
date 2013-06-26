@@ -1313,6 +1313,11 @@
       OFFSET(N)   = SPACING * 33
 
       N           = N + 1
+      CATEGORY(N) = 'BGSOASRC'
+      DESCRIPT(N) = 'Biogenic SOA emission'
+      OFFSET(N)   = SPACING * 33
+
+      N           = N + 1
       CATEGORY(N) = 'PL-BC=$'
       DESCRIPT(N) = 'H-philic from H-phobic BC'
       OFFSET(N)   = SPACING * 33
@@ -1677,7 +1682,7 @@
       USE TRACERID_MOD, ONLY : IDTPCOBW,  IDBPCOBW
       USE TRACERID_MOD, ONLY : IDTPCOBRW, IDBPCOBRW
       USE TRACERID_MOD, ONLY : IDTAVOC,   IDTBBVOC
-      USE TRACERID_MOD, ONLY : IDTASOA,   IDTBBSOA
+      USE TRACERID_MOD, ONLY : IDTASOA,   IDTBBSOA, IDTBGSOA
 
       USE TRACERID_MOD, ONLY : N_Hg_CATS  !CDH for snowpack
       USE GET_POPSINFO_MOD, ONLY : GET_POP_XMW
@@ -4603,6 +4608,17 @@
             NAME (T,07) = 'BBVOC'
             FNAME(T,07) = 'Biomass SOA precursor'
             INDEX(T,07) = IDTBBVOC + ( SPACING * 33 )
+         ENDIF
+         IF ( IDTBGSOA > 0 ) THEN
+            NTRAC(07) = NTRAC(07)+1
+            T = T+1
+            UNIT (T,07) = 'kg'
+            MOLC (T,07) = 1
+            MWT  (T,07) = 12e-3
+            SCALE(T,07) = 1e0
+            NAME (T,07) = 'BGSOA'
+            FNAME(T,07) = 'Biogenic SOA'
+            INDEX(T,07) = IDTBGSOA + ( SPACING * 33 )
          ENDIF
          IF ( IDTASOA  > 0 ) THEN
             NTRAC(07) = NTRAC(07)+1

@@ -425,6 +425,7 @@
       INTEGER            :: IDTPCOBCN, IDTPCOBSE, IDTPCOBW, IDTPCOBRW
       INTEGER            :: IDTPISOP
       INTEGER            :: IDTAVOC,   IDTBBVOC,  IDTASOA,  IDTBBSOA
+      INTEGER            :: IDTBGSOA
 
       ! For tagged Hg simulation
       INTEGER              :: N_Hg_CATS
@@ -1225,6 +1226,9 @@
 
             CASE ( 'BBSOA' )
                IDTBBSOA  = N
+
+            CASE ( 'BGSOA' )
+               IDTBGSOA  = N
 
             !--------------------------------
             ! Tagged Ox Tracers
@@ -4244,6 +4248,7 @@
       IDTBBVOC   = 0
       IDTASOA    = 0
       IDTBBSOA   = 0
+      IDTBGSOA   = 0
 
 
 #if   defined( TOMAS )

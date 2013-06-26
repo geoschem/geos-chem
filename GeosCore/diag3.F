@@ -750,6 +750,20 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
          ENDIF
          !------------------------------
+         ! SEAC4RS biogenic SOA source
+         !------------------------------
+         IF ( IDTBGSOA > 0 ) THEN
+            CATEGORY     = 'BGSOASRC'
+            N            = IDTBGSOA
+            ARRAY(:,:,1) = AD07(:,:,15)
+
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, N,
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                  IIPAR,     JJPAR,     1,        IFIRST,
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
+         ENDIF
+         !------------------------------
          ! SEAC4RS anthropogenic SOA production
          !------------------------------
          IF ( IDTASOA > 0 ) THEN

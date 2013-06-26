@@ -157,9 +157,9 @@
                                                 !  for TOMAS30 runs
 #endif
 #else
-      ! +2 for SEAC4RS SOA tracers (jaf, 6/24/13)
+      ! +3 for SEAC4RS SOA tracers (jaf, 6/24/13)
       !INTEGER, PARAMETER   :: NSOLMAX = 60      ! Max # of soluble tracers
-      INTEGER, PARAMETER   :: NSOLMAX = 62      ! Max # of soluble tracers
+      INTEGER, PARAMETER   :: NSOLMAX = 63      ! Max # of soluble tracers
                                                 !  for regular G-C runs
 #endif
       REAL*8,  PARAMETER   :: EPSILON = 1d-32   ! A very small positive #
@@ -840,7 +840,7 @@
       USE TRACERID_MOD,       ONLY : IDTPOPPOC, IDTPOPPBC, IDTPOPG 
 
       ! SEAC4RS SOA tracers (jaf, 6/24/13)
-      USE TRACERID_MOD,       ONLY : IDTASOA,   IDTBBSOA
+      USE TRACERID_MOD,       ONLY : IDTASOA,   IDTBBSOA,  IDTBGSOA
 
 #if defined( TOMAS )
       USE TRACERID_MOD, ONLY : IDTH2SO4, IDTNK1,   IDTSF1,  IDTSS1
@@ -1962,7 +1962,8 @@
       ! Treat like standard SOA (jaf, 6/24/13)
       ! Scavenging efficiency for SOA is 0.8
       !------------------------------------------
-      ELSE IF ( N == IDTASOA .or. N == IDTBBSOA ) THEN
+      ELSE IF ( N == IDTASOA .or. N == IDTBBSOA .or.
+     &          N == IDTBGSOA ) THEN
          CALL F_AEROSOL( KC, N, F, State_Met )
 
          DO L = 2, LLPAR
@@ -2885,7 +2886,7 @@
       USE TRACERID_MOD,       ONLY : IDTPOPPOC, IDTPOPPBC, IDTPOPG
 
       ! SEAC4RS SOA tracers (jaf, 6/24/13)
-      USE TRACERID_MOD,       ONLY : IDTASOA,   IDTBBSOA
+      USE TRACERID_MOD,       ONLY : IDTASOA,   IDTBBSOA,  IDTBGSOA
 
 #if defined( TOMAS )
       USE TRACERID_MOD, ONLY : IDTH2SO4,IDTNK1,   IDTSF1,  IDTSS1
@@ -3855,7 +3856,8 @@
          ! Treat like standard SOA (jaf, 6/24/13)
          ! Scavenging efficiency for SOA is 0.8
          !--------------------------------------
-         ELSE IF ( N == IDTASOA .or. N == IDTBBSOA ) THEN
+         ELSE IF ( N == IDTASOA .or. N == IDTBBSOA .or.
+     &             N == IDTBGSOA ) THEN
             RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
             RAINFRAC = RAINFRAC * 0.8d0
 
@@ -4122,7 +4124,7 @@
       USE TRACERID_MOD, ONLY : IDTHOBr,  IDTHBr,   IDTBr2
       USE TRACERID_MOD, ONLY : IDTPOPPOC, IDTPOPPBC, IDTPOPG
       ! SEAC4RS SOA tracers (jaf, 6/24/13)
-      USE TRACERID_MOD, ONLY : IDTASOA,  IDTBBSOA
+      USE TRACERID_MOD, ONLY : IDTASOA,   IDTBBSOA,  IDTBGSOA
       USE GET_POPSINFO_MOD, ONLY : GET_POP_HSTAR, GET_POP_DEL_Hw
 
 #if defined( TOMAS )
@@ -4563,7 +4565,8 @@
       ! SEAC4RS SOA (aerosol)
       ! Treat like standard SOA (jaf, 6/24/13)
       !------------------------------
-      ELSE IF ( N == IDTASOA .or. N == IDTBBSOA ) THEN
+      ELSE IF ( N == IDTASOA .or. N == IDTBBSOA .or.
+     &          N == IDTBGSOA ) THEN
          KIN      = .TRUE.
          WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
@@ -7542,7 +7545,7 @@
       USE TRACERID_MOD, ONLY : IDTHOBr,   IDTHBr,    IDTBr2
       USE TRACERID_MOD, ONLY : IDTPOPPOC, IDTPOPPBC,  IDTPOPG
       ! SEAC4RS SOA tracers (jaf, 6/24/13)
-      USE TRACERID_MOD, ONLY : IDTASOA,   IDTBBSOA
+      USE TRACERID_MOD, ONLY : IDTASOA,   IDTBBSOA,  IDTBGSOA
 #if defined( TOMAS )
       USE TRACERID_MOD, ONLY : IDTH2SO4,  IDTNK1,    IDTSF1,  IDTSS1
       USE TRACERID_MOD, ONLY : IDTECIL1,  IDTOCIL1,  IDTOCOB1,IDTDUST1
@@ -7835,6 +7838,10 @@
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTBBSOA
 
+         ELSE IF ( N == IDTBGSOA ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTBGSOA
+
          !-----------------------------
          ! Dust aerosol tracers
          !-----------------------------
@@ -8099,7 +8106,7 @@
                                                      ! IEPOX, PMNN
 
          NMAX = NMAX + 3                             ! HBr,   HOBr,   Br2
-         NMAX = NMAX + 2                             ! SEAC4RS SOA (jaf, 6/24/13)
+         NMAX = NMAX + 3                             ! SEAC4RS SOA (jaf, 6/24/13)
 
          IF ( LSULF )    NMAX = NMAX + 8             ! SO2,   SO4,    MSA,
                                                      ! NH3,   NH4,    NIT
