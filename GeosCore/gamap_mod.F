@@ -1362,6 +1362,21 @@
       OFFSET(N)   = SPACING * 33
 
       N           = N + 1
+      CATEGORY(N) = 'ANVOCSRC'
+      DESCRIPT(N) = 'Anthro SOA precursor emission'
+      OFFSET(N)   = SPACING * 33
+
+      N           = N + 1
+      CATEGORY(N) = 'BBVOCSRC'
+      DESCRIPT(N) = 'Biomass SOA precursor emission'
+      OFFSET(N)   = SPACING * 33
+
+      N           = N + 1
+      CATEGORY(N) = 'BGSOASRC'
+      DESCRIPT(N) = 'Biogenic SOA emission'
+      OFFSET(N)   = SPACING * 33
+
+      N           = N + 1
       CATEGORY(N) = 'PL-BC=$'
       DESCRIPT(N) = 'H-philic from H-phobic BC'
       OFFSET(N)   = SPACING * 33
@@ -1369,6 +1384,16 @@
       N           = N + 1
       CATEGORY(N) = 'PL-OC=$'
       DESCRIPT(N) = 'H-philic from H-phobic OC'
+      OFFSET(N)   = SPACING * 33
+
+      N           = N + 1
+      CATEGORY(N) = 'PL-ANSOA'
+      DESCRIPT(N) = 'Anthro. SOA production'
+      OFFSET(N)   = SPACING * 33
+
+      N           = N + 1
+      CATEGORY(N) = 'PL-BBSOA'
+      DESCRIPT(N) = 'Biomass SOA production'
       OFFSET(N)   = SPACING * 33
 
       N           = N + 1
@@ -1712,6 +1737,15 @@
       USE TOMAS_MOD,    ONLY : IBINS, ICOMP,   IDIAG  !(win, 7/14/09)
       USE TRACERID_MOD, ONLY : IDTNK1                 !(win, 7/14/09)
 #endif
+
+      ! SEAC4RS tracers (jaf, 6/14/13)
+      USE TRACERID_MOD, ONLY : IDTPCOBCN, IDBPCOBCN
+      USE TRACERID_MOD, ONLY : IDTPCOBSE, IDBPCOBSE
+      USE TRACERID_MOD, ONLY : IDTPCOBW,  IDBPCOBW
+      USE TRACERID_MOD, ONLY : IDTPCOBRW, IDBPCOBRW
+      USE TRACERID_MOD, ONLY : IDTAVOC,   IDTBBVOC
+      USE TRACERID_MOD, ONLY : IDTASOA,   IDTBBSOA, IDTBGSOA
+
       USE TRACERID_MOD, ONLY : N_Hg_CATS  !CDH for snowpack
       USE GET_POPSINFO_MOD, ONLY : GET_POP_XMW
 !
@@ -4613,6 +4647,64 @@
             END SELECT
 
          ENDDO
+
+         ! SEAC4RS SOA tracers (jaf, 6/25/13)
+         IF ( IDTAVOC  > 0 ) THEN
+            NTRAC(07) = NTRAC(07)+1
+            T = NTRAC(07)
+            UNIT (T,07) = 'kg'
+            MOLC (T,07) = 1
+            MWT  (T,07) = 12e-3
+            SCALE(T,07) = 1e0
+            NAME (T,07) = 'ANVOC'
+            FNAME(T,07) = 'Anthro. SOA precursor'
+            INDEX(T,07) = IDTAVOC + ( SPACING * 33 )
+         ENDIF
+         IF ( IDTBBVOC > 0 ) THEN
+            NTRAC(07) = NTRAC(07)+1
+            T = T+1
+            UNIT (T,07) = 'kg'
+            MOLC (T,07) = 1
+            MWT  (T,07) = 12e-3
+            SCALE(T,07) = 1e0
+            NAME (T,07) = 'BBVOC'
+            FNAME(T,07) = 'Biomass SOA precursor'
+            INDEX(T,07) = IDTBBVOC + ( SPACING * 33 )
+         ENDIF
+         IF ( IDTBGSOA > 0 ) THEN
+            NTRAC(07) = NTRAC(07)+1
+            T = T+1
+            UNIT (T,07) = 'kg'
+            MOLC (T,07) = 1
+            MWT  (T,07) = 12e-3
+            SCALE(T,07) = 1e0
+            NAME (T,07) = 'BGSOA'
+            FNAME(T,07) = 'Biogenic SOA'
+            INDEX(T,07) = IDTBGSOA + ( SPACING * 33 )
+         ENDIF
+         IF ( IDTASOA  > 0 ) THEN
+            NTRAC(07) = NTRAC(07)+1
+            T = NTRAC(07)
+            UNIT (T,07) = 'kg'
+            MOLC (T,07) = 1
+            MWT  (T,07) = 12e-3
+            SCALE(T,07) = 1e0
+            NAME (T,07) = 'ANSOA'
+            FNAME(T,07) = 'Anthro. SOA production'
+            INDEX(T,07) = IDTASOA + ( SPACING * 33 )
+         ENDIF
+         IF ( IDTBBSOA > 0 ) THEN
+            NTRAC(07) = NTRAC(07)+1
+            T = NTRAC(07)
+            UNIT (T,07) = 'kg'
+            MOLC (T,07) = 1
+            MWT  (T,07) = 12e-3
+            SCALE(T,07) = 1e0
+            NAME (T,07) = 'BBSOA'
+            FNAME(T,07) = 'Biomass SOA production'
+            INDEX(T,07) = IDTBBSOA + ( SPACING * 33 )
+         ENDIF
+
       ENDIF
 
       !-------------------------------------
@@ -5182,7 +5274,10 @@
             IF ( Input_Opt%LSOA ) THEN
                NTRAC(28) = 23    ! SOA simulation
             ELSE
-               NTRAC(28) = 14    ! Standard simulation
+               ! Should have been 16 not 14 for isoprene chem
+               ! +4 for SEAC4RS passive tracers (jaf, 6/14/13)
+               !NTRAC(28) = 14    ! Standard simulation
+               NTRAC(28) = 20    ! Standard simulation
             ENDIF
 
             ! Loop over tracers
@@ -5349,6 +5444,34 @@
                   NAME (T,28) = 'HAC'
                   INDEX(T,28) = IDTHAC + ( SPACING * 45 )
                   MWT  (T,28) = 74e-3
+                  MOLC (T,28) = 1
+                  UNIT (T,28) = 'molec/cm2/s'
+
+               ELSE IF ( T == IDBPCOBCN ) THEN
+                  NAME (T,28) = 'PCOBCN'
+                  INDEX(T,28) = IDTPCOBCN + ( SPACING * 45 )
+                  MWT  (T,28) = 28e-3
+                  MOLC (T,28) = 1
+                  UNIT (T,28) = 'molec/cm2/s'
+
+               ELSE IF ( T == IDBPCOBSE ) THEN
+                  NAME (T,28) = 'PCOBSE'
+                  INDEX(T,28) = IDTPCOBSE + ( SPACING * 45 )
+                  MWT  (T,28) = 28e-3
+                  MOLC (T,28) = 1
+                  UNIT (T,28) = 'molec/cm2/s'
+
+               ELSE IF ( T == IDBPCOBW ) THEN
+                  NAME (T,28) = 'PCOBW'
+                  INDEX(T,28) = IDTPCOBW + ( SPACING * 45 )
+                  MWT  (T,28) = 28e-3
+                  MOLC (T,28) = 1
+                  UNIT (T,28) = 'molec/cm2/s'
+
+               ELSE IF ( T == IDBPCOBRW ) THEN
+                  NAME (T,28) = 'PCOBRW'
+                  INDEX(T,28) = IDTPCOBRW + ( SPACING * 45 )
+                  MWT  (T,28) = 28e-3
                   MOLC (T,28) = 1
                   UNIT (T,28) = 'molec/cm2/s'
 
@@ -5891,7 +6014,8 @@
       IF ( ND46 > 0 ) THEN 
 
          ! Number of tracers
-         NTRAC(46) = 22 ! Was 16 (dbm, 2012) 
+         ! +1 for SEAC4RS passive tracer (jaf, 6/14/13)
+         NTRAC(46) = 23 ! Was 16 (dbm, 2012) 
                         ! Increase for bromine (jpp, mpayer, 12/28/11)
 
          ! Loop over tracers
@@ -5992,6 +6116,9 @@
                   UNIT  (T,46) = 'kg/m2/s'
                   MWT   (T,46) = 1.60e-1   !in [kg/mol]
                   SCALE (T,46) = 1e0
+               CASE( 23 )
+                  NAME(T,46) = 'PISOP'
+                  MOLC(T,46) = 5
                CASE DEFAULT
                   ! Nothing
             END SELECT

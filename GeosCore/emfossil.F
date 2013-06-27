@@ -46,6 +46,15 @@
       USE VISTAS_ANTHRO_MOD,  ONLY : GET_VISTAS_ANTHRO
       USE ICOADS_SHIP_MOD,    ONLY : GET_ICOADS_SHIP !(cklee, 7/09/09)
 
+      ! SEAC4RS tracers (jaf, 6/13/13)
+      USE GRID_MOD,           ONLY : GET_XMID,  GET_YMID
+      USE TRACERID_MOD,       ONLY : IDECO
+      USE TRACERID_MOD,       ONLY : IDTPCOFNE, IDTPCOFSE
+      USE TRACERID_MOD,       ONLY : IDTPCOFW,  IDTPCOFRW
+      USE TRACERID_MOD,       ONLY : IDTPCOBCN, IDTPCOBSE
+      USE TRACERID_MOD,       ONLY : IDTPCOBW,  IDTPCOBRW
+
+
       USE CMN_SIZE_MOD             ! Size parameters
       USE COMODE_LOOP_MOD          ! IHOUR
       USE CMN_O3_MOD               ! EMISR, EMISRR, etc...
@@ -178,6 +187,8 @@
       REAL*8  :: C2H6_ANTHRO
       ! 10/24/12, ckeller: NOX diurnal scale factors fix:
       INTEGER :: NOXHOUR
+      ! 06/26/13, skim: Passive Tracers implemented by jaf
+      REAL*8  :: X, Y
 
       ! For fields from Input_Opt
       LOGICAL :: LBRAVO
@@ -1086,6 +1097,49 @@
          !fp 
          ! this need to be changed to account for injections above surface layer
          ! sum all emissions 
+
+         ! SEAC4RS passive tracers (jaf, 6/13/13)
+         IF ( (NN == IDTPCOFNE) .or. (NN == IDTPCOFSE) .or.
+     &        (NN == IDTPCOFW)  .or. (NN == IDTPCOFRW) ) THEN
+
+            X = GET_XMID( I, J, 1 )
+            Y = GET_YMID( I, J, 1 )
+
+            IF (      (X >= -100.0) .AND. (X <  -70.0)   .AND.
+     &                (Y >=   37.0) .AND. (Y <   50.0) ) THEN  
+               IF     ( NN == IDTPCOFNE ) THEN
+                    EMISRR(I,J,N) = EMISRR(I,J,IDECO)
+                    EMX(1) = EMISRR(I,J,N) * DTSRCE / XNUMOL(NN)
+               ENDIF
+            ELSE IF ( (X >= -100.0) .AND. (X <  -75.0)  .AND.
+     &                (Y >=   25.0) .AND. (Y <   37.0) ) THEN  
+               IF     ( NN == IDTPCOFSE ) THEN
+                    EMISRR(I,J,N) = EMISRR(I,J,IDECO)
+                    EMX(1) = EMISRR(I,J,N) * DTSRCE / XNUMOL(NN)
+               ENDIF
+            ELSE IF ( (X >= -125.0) .AND. (X < -100.0)  .AND.
+     &                (Y >=   31.0) .AND. (Y <   50.0) ) THEN  
+               IF     ( NN == IDTPCOFW ) THEN
+                    EMISRR(I,J,N) = EMISRR(I,J,IDECO)
+                    EMX(1) = EMISRR(I,J,N) * DTSRCE / XNUMOL(NN)
+               ENDIF
+            ELSE
+               IF     ( NN == IDTPCOFRW ) THEN
+                    EMISRR(I,J,N) = EMISRR(I,J,IDECO)
+                    EMX(1) = EMISRR(I,J,N) * DTSRCE / XNUMOL(NN)
+               ENDIF
+            ENDIF
+
+         ENDIF
+
+         ! N loops over fossil fuel + biomass burning tracers, so we
+         ! zero the fossil fuel emissions for the biomass burning only
+         ! passive tracers (jaf, 6/14/13)
+         IF ( (NN == IDTPCOBCN) .or. (NN == IDTPCOBSE) .or. 
+     &        (NN == IDTPCOBW)  .or. (NN == IDTPCOBRW) ) THEN
+            EMISRR(I,J,N) = 0d0
+            EMX(1) = 0d0
+         ENDIF
 
          ! ND29 = CO source diagnostic... 
          ! store as [molec/cm2/s] in AD29(:,:,1)

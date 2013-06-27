@@ -48,6 +48,9 @@
       REAL*4,  ALLOCATABLE :: AD07_OC(:,:,:)
       REAL*4,  ALLOCATABLE :: AD07_HC(:,:,:,:)
       REAL*4,  ALLOCATABLE :: AD07_SOAGM(:,:,:,:)
+      ! SEAC4RS SOA tracers (6/25/13)
+      REAL*4,  ALLOCATABLE :: AD07_ASOA(:,:,:)
+      REAL*4,  ALLOCATABLE :: AD07_BBSOA(:,:,:)
 
 #if   defined( APM )
       REAL*4,  ALLOCATABLE :: AD07_OM(:,:)
@@ -389,6 +392,8 @@
       IF ( ALLOCATED( AD07_OC     ) ) DEALLOCATE( AD07_OC     )
       IF ( ALLOCATED( AD07_HC     ) ) DEALLOCATE( AD07_HC     )
       IF ( ALLOCATED( AD07_SOAGM  ) ) DEALLOCATE( AD07_SOAGM  )
+      IF ( ALLOCATED( AD07_ASOA   ) ) DEALLOCATE( AD07_ASOA   )
+      IF ( ALLOCATED( AD07_BBSOA  ) ) DEALLOCATE( AD07_BBSOA  )
       IF ( ALLOCATED( AD08        ) ) DEALLOCATE( AD08        )
       IF ( ALLOCATED( AD09        ) ) DEALLOCATE( AD09        )
       IF ( ALLOCATED( AD09_em     ) ) DEALLOCATE( AD09_em     )

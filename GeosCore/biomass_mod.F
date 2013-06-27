@@ -201,6 +201,11 @@
       USE TRACERID_MOD,       ONLY : IDBCO, IDBNO
       USE TRACERID_MOD,       ONLY : IDBCO2
 
+      ! SEAC4RS passive tracers (jaf, 6/14/13)
+      USE GRID_MOD,           ONLY : GET_XMID,  GET_YMID
+      USE TRACERID_MOD,       ONLY : IDBPCOBCN, IDBPCOBSE
+      USE TRACERID_MOD,       ONLY : IDBPCOBW,  IDBPCOBRW
+
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! Diagnostic flags
 !
@@ -231,6 +236,7 @@
       LOGICAL, SAVE       :: USE_GFED3
       INTEGER             :: I,       J,       N,      N_BIOB
       REAL*8              :: BXHT_CM, DTSRCE
+      REAL*8              :: X,       Y
       
       ! For fields from Input_Opt
       LOGICAL             :: ITS_A_CO2_SIM
@@ -419,6 +425,40 @@
             ENDIF
          ENDIF
 
+         ! SEAC4RS passive tracers (jaf, 6/14/13)
+         IF ( (IDBPCOBCN > 0) .or. (IDBPCOBSE > 0) .or.
+     &        (IDBPCOBW > 0)  .or. (IDBPCOBRW > 0)) THEN
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, X, Y )
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+            X = GET_XMID( I, J, 1 ) 
+            Y = GET_YMID( I, J, 1 ) 
+
+            IF (      (X >= -140.0) .AND. (X <  -60.0)   .AND.
+     &                (Y >=   50.0) .AND. (Y <   71.0) ) THEN
+               IF ( IDBPCOBCN > 0 ) 
+     &              BIOMASS(I,J,IDBPCOBCN) = BIOMASS(I,J,IDBCO)
+            ELSE IF ( (X >= -100.0) .AND. (X <  -75.0)   .AND.
+     &                (Y >=   25.0) .AND. (Y <   37.0) ) THEN
+               IF ( IDBPCOBSE > 0 ) 
+     &              BIOMASS(I,J,IDBPCOBSE) = BIOMASS(I,J,IDBCO)
+            ELSE IF ( (X >= -125.0) .AND. (X < -100.0)   .AND.
+     &                (Y >=   31.0) .AND. (Y <   50.0) ) THEN
+               IF ( IDBPCOBW > 0 ) 
+     &              BIOMASS(I,J,IDBPCOBW) = BIOMASS(I,J,IDBCO)
+            ELSE
+               IF ( IDBPCOBRW > 0 ) 
+     &              BIOMASS(I,J,IDBPCOBRW) = BIOMASS(I,J,IDBCO)
+            ENDIF
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+         ENDIF
+
          !==============================================================
          ! Do the following on every timestep:
          !
@@ -497,6 +537,10 @@
       USE TRACERID_MOD, ONLY : IDBGLYX, IDBMGLY, IDBC2H4
       USE TRACERID_MOD, ONLY : IDBC2H2, IDBGLYC, IDBHAC
 
+      ! SEAC4RS tracers (jaf, 6/14/13)
+      USE TRACERID_MOD, ONLY : IDBPCOBCN, IDBPCOBSE
+      USE TRACERID_MOD, ONLY : IDBPCOBW, IDBPCOBRW
+
       USE TRACERID_MOD, ONLY : IDTNO,   IDTCO,   IDTALK4, IDTACET 
       USE TRACERID_MOD, ONLY : IDTMEK,  IDTALD2, IDTPRPE, IDTC3H8
       USE TRACERID_MOD, ONLY : IDTCH2O, IDTC2H6
@@ -505,6 +549,10 @@
       USE TRACERID_MOD, ONLY : IDTBENZ, IDTTOLU, IDTXYLE
       USE TRACERID_MOD, ONLY : IDTHAC, IDTGLYC, IDTMGLY, IDTGLYX
       USE TRACERID_MOD, ONLY : IDTC2H2, IDTC2H4
+
+      ! SEAC4RS tracers (jaf, 6/14/13)
+      USE TRACERID_MOD, ONLY : IDTPCOBCN, IDTPCOBSE
+      USE TRACERID_MOD, ONLY : IDTPCOBW, IDTPCOBRW
 
       USE TRACER_MOD,   ONLY : ITS_A_CH4_SIM ! (mpayer, 2/14/12)
 
@@ -547,6 +595,12 @@
       IF ( IDBGLYC  /= 0 ) NBIOTRCE = NBIOTRCE + 1 
       IF ( IDBHAC   /= 0 ) NBIOTRCE = NBIOTRCE + 1 
 
+      ! SEAC4RS tracers (jaf, 6/14/13)
+      IF ( IDBPCOBCN /= 0 ) NBIOTRCE = NBIOTRCE + 1 
+      IF ( IDBPCOBSE /= 0 ) NBIOTRCE = NBIOTRCE + 1 
+      IF ( IDBPCOBW  /= 0 ) NBIOTRCE = NBIOTRCE + 1 
+      IF ( IDBPCOBRW /= 0 ) NBIOTRCE = NBIOTRCE + 1 
+
       ! Fill BIOTRCE w/ appropriate TRACER ID #'s
       ! Replaced NOx with NO (mpayer, 3/14/13)
       IF ( IDBNO    /= 0 ) BIOTRCE(IDBNO  ) = IDTNO
@@ -582,6 +636,11 @@
       IF ( IDBGLYC  /= 0 ) BIOTRCE(IDBGLYC) = IDTGLYC
       IF ( IDBHAC   /= 0 ) BIOTRCE(IDBHAC)  = IDTHAC
 
+      ! SEAC4RS tracers (jaf, 6/14/13)
+      IF ( IDBPCOBCN /= 0 ) BIOTRCE(IDBPCOBCN) = IDTPCOBCN
+      IF ( IDBPCOBSE /= 0 ) BIOTRCE(IDBPCOBSE) = IDTPCOBSE
+      IF ( IDBPCOBW  /= 0 ) BIOTRCE(IDBPCOBW)  = IDTPCOBW
+      IF ( IDBPCOBRW /= 0 ) BIOTRCE(IDBPCOBRW) = IDTPCOBRW
 
       ! Set T/F of BIOBGAS() (hotp 8/3/09)
       ! BIOBGAS(IDBxx) is true if IDBxx should be handled by
@@ -619,6 +678,11 @@
       IF ( IDBGLYC  /= 0 ) BIOBGAS(IDBGLYC) = .TRUE.
       IF ( IDBHAC   /= 0 ) BIOBGAS(IDBHAC ) = .TRUE.
 
+      ! SEAC4RS tracers (jaf, 6/14/13)
+      IF ( IDBPCOBCN /= 0 ) BIOBGAS(IDBPCOBCN) = .TRUE.
+      IF ( IDBPCOBSE /= 0 ) BIOBGAS(IDBPCOBSE) = .TRUE.
+      IF ( IDBPCOBW  /= 0 ) BIOBGAS(IDBPCOBW)  = .TRUE.
+      IF ( IDBPCOBRW /= 0 ) BIOBGAS(IDBPCOBRW) = .TRUE.
 
 
       !FP_ISOP

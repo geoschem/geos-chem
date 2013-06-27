@@ -136,6 +136,9 @@
       USE TRACERID_MOD,       ONLY : IDTMONX,       IDTC2H4
       USE TRACERID_MOD,       ONLY : IDECHBr3,      IDECH2Br2
 
+      ! SEAC4RS passive tracer (jaf, 6/14/13)
+      USE TRACERID_MOD,       ONLY : IDTPISOP,   IDEPISOP
+
 #if defined( DEVEL )
       USE TRACERID_MOD,       ONLY : IDTNO
       USE TRACER_MOD,         ONLY : N_TRACERS
@@ -191,6 +194,7 @@
       REAL*8                 :: TOTALPULSE
       REAL*8                 :: SOILFRT
       REAL*8                 :: DEP_FERT, TEMP_FERT
+      REAL*8                 :: X, Y
 
 
       ! Molecules C / kg C
@@ -667,6 +671,21 @@
                   ENDIF
                ENDIF
 
+               ! SEAC4RS passive tracer (jaf, 6/14/13)
+               IF ( IDTPISOP /= 0 ) THEN
+
+                  X = GET_XMID(I, J, 1)
+                  Y = GET_YMID(I, J, 1)
+
+                  IF ( (X >= -100.0) .AND. (X <  -75.0)  .AND.
+     &                 (Y >=   25.0) .AND. (Y <   40.0) ) THEN  
+                     EMISRR(I,J,IDEPISOP) = EMISRR(I,J,IDEPISOP) + 
+     &                                      ( EMIS_ISOP / DTSRCE )
+                     IF ( ND46 > 0 ) AD46(I,J,23) = AD46(I,J,23) +
+     &                               ( EMIS_ISOP / AREA_CM2 / DTSRCE )
+                  ENDIF
+               ENDIF
+
                !=================================================================
                ! save biogenic monoterpene emission for later use
                ! EMISRR has units [atoms C/box/s] (tmf, 4/10/06)
@@ -905,14 +924,14 @@
                   AD46(I,J,19) = AD46(I,J,19) + 
      &                 ( EMIS_ETOH / AREA_CM2 / DTSRCE ) 
 
-                  ! CHBr3 emissions [kg/m2/s] -- tracer #14
+                  ! CHBr3 emissions [kg/m2/s] -- tracer #20
                   IF ( IDECHBr3 > 0 ) THEN
                      AD46(I,J,20) = AD46(I,J,20) 
      &                            + ( EMISRR(I,J,IDECHBr3)  / AREA_M2 ) 
      &                            * ( MWT_CHBr3             / AVG     )
                   ENDIF
 
-                  ! CH2Br2 emissions [kg/m2/s] -- tracer #15
+                  ! CH2Br2 emissions [kg/m2/s] -- tracer #21
                   IF ( IDECH2Br2 > 0 ) THEN
                      AD46(I,J,21) = AD46(I,J,21) 
      &                            + ( EMISRR(I,J,IDECH2Br2) / AREA_M2 ) 
