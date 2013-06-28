@@ -124,6 +124,9 @@
       USE STREETS_ANTHRO_MOD,     ONLY : EMISS_STREETS_ANTHRO_05x0666
       USE SULFATE_MOD,            ONLY : EMISSSULFATE 
       USE TAGGED_CO_MOD,          ONLY : EMISS_TAGGED_CO
+      ! Need to add for FLAMBE biomass burning emissions (skim, 6/21/13)
+      USE TIME_MOD,               ONLY : GET_HOUR
+      USE TIME_MOD,               ONLY : GET_DAY
       USE TIME_MOD,               ONLY : GET_MONTH
       USE TIME_MOD,               ONLY : GET_YEAR
       USE TIME_MOD,               ONLY : ITS_A_NEW_MONTH
@@ -209,6 +212,10 @@
 !
 ! !LOCAL VARIABLES:
 !
+      ! Add time information for FLAMBE biomass burning emissions
+      ! (skim, 6/21/13)
+      INTEGER :: HOUR
+      INTEGER :: DAY
       INTEGER :: MONTH
       INTEGER :: YEAR
       REAL*8  :: SSA_Br2(IIPAR,JJPAR)
@@ -300,8 +307,10 @@
      &                              .and. ( IDTOCOB1 > 0 ) )
 #endif
 
-      ! Get year and month
+      ! Get year and month, and day and hour (skim, 6/21/13)
       MONTH              = GET_MONTH()
+      DAY                = GET_DAY()
+      HOUR               = GET_HOUR()
 
       ! check if emissions year differs from met field year
       IF ( FSCALYR < 0 ) THEN
@@ -320,8 +329,8 @@
 !                                         State_Chm, RC         )  
 !----------------------------------------------------------------------------
          CALL COMPUTE_BIOMASS_EMISSIONS
-     &      ( am_I_Root, GET_YEAR(), MONTH,     
-     &        Input_Opt, State_Chm, RC      )  
+     &      ( am_I_Root, GET_YEAR(), MONTH, DAY, HOUR,
+     &        Input_Opt, State_Chm,  RC                )  
       ENDIF
          
       ! Test by simulation type
