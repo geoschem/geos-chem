@@ -7170,7 +7170,8 @@ ccc
 ! !LOCAL VARIABLES:
 !
       ! Emission ratio of SOA precursor to CO
-      REAL*8, PARAMETER     :: ER_VOC_CO = 5.5D-2
+      ! Divide by 2.1 (skim, 6/26/13)
+      REAL*8, PARAMETER     :: ER_VOC_CO = 5.5D-2/2.1
 
       INTEGER               :: I,     J
       REAL*8                :: A_CM2, DTSRCE, CONV
