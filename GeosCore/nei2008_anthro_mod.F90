@@ -78,7 +78,8 @@
       REAL*8,  ALLOCATABLE, TARGET :: BCPO(:,:,:,:)
       REAL*8,  ALLOCATABLE, TARGET :: SO4(:,:,:,:) 
 
-      REAL*8,  ALLOCATABLE, TARGET :: NOX_WKEND(:,:,:,:) 
+      ! No longer need NOx family variables (skim, 6/26/13)
+      !REAL*8,  ALLOCATABLE, TARGET :: NOX_WKEND(:,:,:,:) 
       REAL*8,  ALLOCATABLE, TARGET :: CO_WKEND(:,:,:,:) 
       REAL*8,  ALLOCATABLE, TARGET :: NO_WKEND(:,:,:,:) 
       REAL*8,  ALLOCATABLE, TARGET :: NO2_WKEND(:,:,:,:) 
@@ -577,9 +578,10 @@
       LLFILENAME = TRIM( DATA_DIR_1x1) // &
                   'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
-      ! DataDir for year
-      ! model ready
-      DATA_DIR_NEI = '/home/ktravis/NCL/NEI08_2010/NEI08_2010_1x1_' 
+      ! Directory for 1x1 files, may need to change once files are moved to directory
+      ! (skim, 6/26/13)
+      DATA_DIR_NEI = TRIM( DATA_DIR_1x1 ) // & 
+                     'NEI08_2010/NEI08_2010_1x1_' 
       
       ! Loop over species
       DO KLM = 1, SIZE( SPCLIST )
@@ -2005,13 +2007,13 @@
       OFFLINE_ID = (/ 2, 1, 64, 66, 26, 30, 11, 12, &
                      21, 18, 5, 27, 20, 36, 37    /)
 
-#if   defined( GRID05x0666 )
-     ! DataDir for year 2010
-           ! model ready
-        DATA_DIR_NEI = '/home/ktravis/NCL/NEI08_2010/NEI08_2010_05x667_' 
+! Change to the actual directories (skim, 6/26/13)
+#if  defined( GRID05x0666 )
+     DATA_DIR_NEI = TRIM( DATA_DIR ) // 'NEI08_2010' // &
+                    'NEI08_2010_25x3125_'
 #elif defined( GRID025x03125)
-     ! DataDir for year 2010
-     DATA_DIR_NEI = '/home/ktravis/NCL/NEI08_2010/NEI08_2010_25x3125_' 
+     DATA_DIR_NEI = TRIM( DATA_DIR ) // 'NEI08_2010' // &
+                    'NEI08_2010_25x3125_'                 
 #endif
 
       ! Loop over species
