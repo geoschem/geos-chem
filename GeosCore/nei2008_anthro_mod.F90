@@ -43,13 +43,15 @@
       PRIVATE :: READ_NEI2008_MASK
 !
 ! !REMARKS:
- 
-!   (1) 
+!  Note that NEI2008 does not have MEK, ACET, or C3H8
 !     
 ! !REVISION HISTORY:
-!  12 Feb 2013 - K. Travis - initial version, adapted from Aaron von Donkelaar's NEI05
-!        Note that NEI2008 does not have MEK, ACET, or C3H8
+!  12 Feb 2013 - K. Travis   - initial version, adapted from Aaron von 
+!                              Donkelaar's NEI05
+!  28 Jun 2013 - R. Yantosca - Now read data from global data paths
+!EOP
 !------------------------------------------------------------------------------
+!BOC
 !
 ! !PRIVATE TYPES:
 !
@@ -144,7 +146,6 @@
       USE TRACERID_MOD, ONLY : IDTSO4, IDTCH2O
       USE TRACERID_MOD, ONLY : IDTOCPO,  IDTBCPO 
       !USE TRACERID_MOD, ONLY : IDTMOH, IDTEOH, IDTCH4
-
 !
 ! !INPUT PARAMETERS: 
 !
@@ -160,7 +161,9 @@
       ! Emissions output
       REAL*8                        :: VALUE  
 
-! !SET LEVEL to 0   
+! !REMARKS:
+!  SET LEVEL to 0   
+!
 ! !REVISION HISTORY: 
 !  12 Feb 2013 - K. Travis - initial version  
 !EOP
@@ -169,7 +172,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL                       :: DO_KGS, DO_MCS
+      LOGICAL :: DO_KGS, DO_MCS
 
       !=================================================================
       ! GET_NEI2008_ANTHRO begins here!
@@ -451,7 +454,6 @@
       USE TIME_MOD,          ONLY : GET_YEAR, GET_MONTH, GET_DAY
       USE TIME_MOD,          ONLY : GET_DAY_OF_WEEK, GET_HOUR
       !USE SCALE_ANTHRO_MOD,  ONLY : GET_ANNUAL_SCALAR_1x1
-      USE TRACER_MOD,        ONLY : ITS_A_FULLCHEM_SIM
       USE TRACERID_MOD,      ONLY : IDTCO, IDTNO, IDTNO2, IDTHNO2
       USE TRACERID_MOD,      ONLY : IDTSO2, IDTNH3
       USE TRACERID_MOD,      ONLY : IDTALD2, IDTRCHO, IDTC2H6
@@ -484,8 +486,11 @@
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?!
 !
 ! !REVISION HISTORY: 
-! 11 Feb 2013 - K. Travis - initial version
-! --------------------------------------------------------
+!  11 Feb 2013 - K. Travis   - initial version
+!  28 Jun 2013 - R. Yantosca - Now reads files from global 1x1 data path  
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
 ! !LOCAL VARIABLES:
 !
@@ -511,13 +516,12 @@
       REAL*8, TARGET             :: GEOS_1x1WE(I1x1,J1x1,3,24)
       REAL*4                     :: ScCO, ScNOx, ScPM10, ScPM25
       REAL*4                     :: ScVOC, ScNH3, ScSO2
-      CHARACTER(LEN=44)          :: DATA_DIR_NEI
-      CHARACTER(LEN=63)          :: FILENAMEWD, FILENAMEWE
-      CHARACTER(LEN=73)          :: FILENAMEWDPT, FILENAMEWEPT
-      CHARACTER(LEN=76)          :: FILENAMEWDPTN, FILENAMEWEPTN
-      CHARACTER(LEN=77)          :: FILENAMEWDC3, FILENAMEWEC3
+      CHARACTER(LEN=255)         :: DATA_DIR_NEI
+      CHARACTER(LEN=255)         :: FILENAMEWD, FILENAMEWE
+      CHARACTER(LEN=255)         :: FILENAMEWDPT, FILENAMEWEPT
+      CHARACTER(LEN=255)         :: FILENAMEWDPTN, FILENAMEWEPTN
+      CHARACTER(LEN=255)         :: FILENAMEWDC3, FILENAMEWEC3
       CHARACTER(LEN=4)           :: SYEAR, SId
-      CHARACTER(LEN=5)           :: SNAME
       CHARACTER(LEN=1)           :: SSMN
       CHARACTER(LEN=2)           :: SMN
       CHARACTER(LEN=255)         :: LLFILENAME
@@ -552,12 +556,6 @@
       ! Get month
       THISMONTH = GET_MONTH()
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
-      SNAME = 'GEOS5'
-#elif defined( GEOS_4 )
-      SNAME = 'GEOS4'
-#endif
-
       SPECIES_ID = (/ IDTCO,   IDTNO,  IDTNO2, IDTHNO2,           &
                      IDTSO2, IDTNH3, IDTALD2, IDTRCHO, IDTC2H6,   &
                      IDTPRPE, IDTALK4, IDTSO4, IDTCH2O, IDTOCPO,  &
@@ -578,15 +576,15 @@
       LLFILENAME = TRIM( DATA_DIR_1x1) // &
                   'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
-      ! Directory for 1x1 files, may need to change once files are moved to directory
-      ! (skim, 6/26/13)
-      DATA_DIR_NEI = TRIM( DATA_DIR_1x1 ) // & 
-                     'NEI08_2010/NEI08_2010_1x1_' 
-      
+      ! DataDir for year
+      ! model ready
+      DATA_DIR_NEI = TRIM( Input_Opt%DATA_DIR_1x1 ) // &
+                     'NEI2008_201307/NEI08_2010_1x1_'
+     
       ! Loop over species
       DO KLM = 1, SIZE( SPCLIST )
 
-         IF ( ITS_A_FULLCHEM_SIM() ) THEN
+         IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
             SId = SPCLIST( KLM )
             SNo = SPECIES_ID( KLM ) 
          ELSE
@@ -624,27 +622,30 @@
             TTMON = 'Dec'
          ENDIF
          
-            ! model ready
-            FILENAMEWD = TRIM(DATA_DIR_NEI) // &
-                  TRIM(TTMON) // '_wkday_regrid.nc'
-            FILENAMEWE = DATA_DIR_NEI // &
-                 TRIM(TTMON) // '_wkend_regrid.nc'
-            ! ptipm
-            FILENAMEWDPT = DATA_DIR_NEI //  'ptipm' // &
-                  TRIM(TTMON) // '_wkday_regrid.nc'
-            FILENAMEWEPT =  DATA_DIR_NEI // 'ptipm' // & 
-                  TRIM(TTMON) // '_wkend_regrid.nc'
-            ! ptnonipm
-            FILENAMEWDPTN = DATA_DIR_NEI // 'ptnonipm' // &
-                   TRIM(TTMON) //  '_wkday_regrid.nc'
-            FILENAMEWEPTN = DATA_DIR_NEI // 'ptnonipm' // &
-                   TRIM(TTMON) //  '_wkend_regrid.nc'
-            ! c3marine
-            FILENAMEWDC3 = DATA_DIR_NEI // 'c3marine_' // &
-                   TRIM(TTMON) //  '_wkday_regrid.nc'
-            FILENAMEWEC3= DATA_DIR_NEI //  'c3marine_' // & 
-                   TRIM(TTMON) // '_wkend_regrid.nc'
-         
+         ! model ready
+         FILENAMEWD    = TRIM( DATA_DIR_NEI ) //                         &
+                         TRIM( TTMON        ) // '_wkday_regrid.nc'
+         FILENAMEWE    = TRIM( DATA_DIR_NEI ) //                         &
+                         TRIM( TTMON        ) // '_wkend_regrid.nc'
+
+         ! ptipm
+         FILENAMEWDPT  = TRIM( DATA_DIR_NEI ) //  'ptipm_'            // &
+                         TRIM( TTMON        ) // '_wkday_regrid.nc'
+         FILENAMEWEPT  = TRIM( DATA_DIR_NEI ) // 'ptipm_'             // & 
+                         TRIM( TTMON        ) // '_wkend_regrid.nc'
+
+         ! ptnonipm
+         FILENAMEWDPTN = TRIM( DATA_DIR_NEI ) // 'ptnonipm_'          // &
+                         TRIM( TTMON        ) //  '_wkday_regrid.nc'
+         FILENAMEWEPTN = TRIM( DATA_DIR_NEI ) // 'ptnonipm_'          // &
+                         TRIM( TTMON        ) //  '_wkend_regrid.nc'
+
+         ! c3marine
+         FILENAMEWDC3  = TRIM( DATA_DIR_NEI ) // 'c3marine_'          // &
+                         TRIM( TTMON        ) //  '_wkday_regrid.nc'
+         FILENAMEWEC3  = TRIM( DATA_DIR_NEI ) //  'c3marine_'         // & 
+                         TRIM( TTMON        ) // '_wkend_regrid.nc'
+
          ! Called once per month by emissions_mod.F
          ! Allocate start and count arrays
          st3d = (/1, 1, 1/)
@@ -652,7 +653,7 @@
          ct3d = (/I1x1, J1x1, 24/)
          ct4da = (/2, I1x1, J1x1, 24/)
          ct4db= (/3, I1x1, J1x1, 24/)
-            WRITE( 6, 100 )  TRIM(FILENAMEWD ), SID
+         WRITE( 6, 100 )  TRIM(FILENAMEWD    ), SID
          
                ! Open and read model_ready data from netCDF file - wkday
                CALL Ncop_Rd(fId1, TRIM(FILENAMEWD))
@@ -1896,7 +1897,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       !USE SCALE_ANTHRO_MOD,  ONLY : GET_ANNUAL_SCALAR_05x0666_NESTED
-      USE TRACER_MOD,        ONLY : ITS_A_FULLCHEM_SIM
       USE TRACERID_MOD,      ONLY : IDTCO, IDTNO, IDTHNO2, IDTNO2 
       USE TRACERID_MOD,      ONLY : IDTSO2, IDTNH3
       USE TRACERID_MOD,      ONLY : IDTALD2, IDTRCHO, IDTC2H6
@@ -1931,6 +1931,7 @@
 !
 ! !REVISION HISTORY:
 !  16 Feb 2013 - K. Travis   - initial version
+!  28 Jun 2013 - R. Yantosca - Now reads data from global data path
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1986,12 +1987,6 @@
       THISMONTH = GET_MONTH()
       WRITE(*,*) 'MONTH', THISMONTH
 
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
-      SNAME = 'GEOS5'
-#elif defined( GEOS_4 )
-      SNAME = 'GEOS4'
-#endif
-
      SPECIES_ID = (/ IDTCO,   IDTNO,  IDTNO2, IDTHNO2,           &
                    IDTSO2, IDTNH3, IDTALD2, IDTRCHO, IDTC2H6,   &
                    IDTPRPE, IDTALK4, IDTSO4, IDTCH2O, IDTOCPO, & 
@@ -2007,19 +2002,20 @@
       OFFLINE_ID = (/ 2, 1, 64, 66, 26, 30, 11, 12, &
                      21, 18, 5, 27, 20, 36, 37    /)
 
-! Change to the actual directories (skim, 6/26/13)
-#if  defined( GRID05x0666 )
-     DATA_DIR_NEI = TRIM( DATA_DIR ) // 'NEI08_2010' // &
-                    'NEI08_2010_25x3125_'
+      ! Base data directory
+      DATA_DIR_NEI = TRIM( Input_Opt%DATA_DIR ) // 'NEI2008_201307/'
+     
+      ! Add the proper resolution extension
+#if   defined( GRID05x0666 )
+      DATA_DIR_NEI = TRIM( DATA_DIR_NEI ) // 'NEI08_2010_05x667_' 
 #elif defined( GRID025x03125)
-     DATA_DIR_NEI = TRIM( DATA_DIR ) // 'NEI08_2010' // &
-                    'NEI08_2010_25x3125_'                 
+      DATA_DIR_NEI = TRIM( DATA_DIR_NEI ) // 'NEI08_2010_25x3125_' 
 #endif
 
       ! Loop over species
       DO KLM = 1, SIZE( SPECIES_ID )
 
-         IF ( ITS_A_FULLCHEM_SIM() ) THEN
+         IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
             SId = SPCLIST( KLM )
             SNo = SPECIES_ID( KLM ) 
          ELSE
@@ -2057,25 +2053,28 @@
          ENDIF
 
          ! model ready
-         FILENAMEWD = TRIM(DATA_DIR_NEI) // &
-               TRIM(TTMON) // '_wkday_regrid.nc'
-         FILENAMEWE = DATA_DIR_NEI // &
-              TRIM(TTMON) // '_wkend_regrid.nc'
+         FILENAMEWD    = TRIM( DATA_DIR_NEI ) //                        &
+                         TRIM( TTMON        ) // '_wkday_regrid.nc'
+         FILENAMEWE    = TRIM( DATA_DIR_NEI ) //                        &
+                         TRIM( TTMON        ) // '_wkend_regrid.nc'
+
          ! ptipm
-         FILENAMEWDPT = TRIM(DATA_DIR_NEI) //  'ptipm' // &
-               TRIM(TTMON) // '_wkday_regrid.nc'
-         FILENAMEWEPT =  DATA_DIR_NEI // 'ptipm' // & 
-               TRIM(TTMON) // '_wkend_regrid.nc'
+         FILENAMEWDPT  = TRIM( DATA_DIR_NEI ) //  'ptipm_'           // &
+                         TRIM( TTMON        ) // '_wkday_regrid.nc'
+         FILENAMEWEPT  = TRIM( DATA_DIR_NEI ) // 'ptipm_'            // & 
+                         TRIM( TTMON        ) // '_wkend_regrid.nc'
+
          ! ptnonipm
-         FILENAMEWDPTN = TRIM(DATA_DIR_NEI) // 'ptnonipm' // &
-                TRIM(TTMON) //  '_wkday_regrid.nc'
-         FILENAMEWEPTN = DATA_DIR_NEI // 'ptnonipm' // &
-                TRIM(TTMON) //  '_wkend_regrid.nc'
+         FILENAMEWDPTN = TRIM( DATA_DIR_NEI ) // 'ptnonipm_'         // &
+                         TRIM( TTMON        ) //  '_wkday_regrid.nc'
+         FILENAMEWEPTN = TRIM( DATA_DIR_NEI ) // 'ptnonipm_'         // &
+                         TRIM( TTMON        ) //  '_wkend_regrid.nc'
+
          ! c3marine
-         FILENAMEWDC3 = TRIM(DATA_DIR_NEI) // 'c3marine_' // &
-                TRIM(TTMON) //  '_wkday_regrid.nc'
-         FILENAMEWEC3= TRIM(DATA_DIR_NEI) //  'c3marine_' // & 
-                TRIM(TTMON) // '_wkend_regrid.nc'
+         FILENAMEWDC3  = TRIM( DATA_DIR_NEI ) // 'c3marine_'         // &
+                         TRIM( TTMON        ) //  '_wkday_regrid.nc'
+         FILENAMEWEC3  = TRIM( DATA_DIR_NEI ) //  'c3marine_'        // & 
+                         TRIM( TTMON        ) // '_wkend_regrid.nc'
 
          ! Echo info
          WRITE( 6, 100 ) TRIM( FILENAMEWD )
