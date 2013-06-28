@@ -4624,6 +4624,7 @@
 !
 ! !USES:
 !
+      USE BIOMASS_MOD,        ONLY : FLAMBE_IN_USE
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE GFED2_BIOMASS_MOD,  ONLY : GFED2_IS_NEW
@@ -4863,8 +4864,8 @@
 
       ENDIF
 
-      IF(  ( GFED2_IS_NEW() .or. GFED3_IS_NEW() .or.
-     &       ITS_A_NEW_MONTH() ) .AND. 
+      IF(  ( GFED2_IS_NEW()      .or. GFED3_IS_NEW()  .or.
+     &       ITS_A_NEW_MONTH()   .or. FLAMBE_IN_USE() ) .AND. 
      &     ( LBIOMASS )  ) THEN 
          CALL GET_BIOMASS_SO2
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSSULFATE: GET_BM_SO2')

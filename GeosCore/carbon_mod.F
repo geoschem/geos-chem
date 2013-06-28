@@ -4793,6 +4793,8 @@ c
 !******************************************************************************
 !
       ! References to F90 modules
+      ! Add for FLAMBE compatibility (jaf, 7/31/09)
+      USE BIOMASS_MOD,        ONLY : FLAMBE_IN_USE
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DIAG_MOD,           ONLY : AD07
@@ -4983,8 +4985,11 @@ c
       !-----------------------------------
       IF ( .not. USE_BOND_BIOBURN ) THEN
 
-         IF ( GFED2_IS_NEW() .or. GFED3_IS_NEW() .or. 
-     &        ITS_A_NEW_MONTH() ) THEN 
+         ! Have to check if using FLAMBE so that it is called hourly
+         ! rather than whenever GFED2 is updated (generally monthly)
+         ! (jaf, 7/30/09)
+         IF ( GFED2_IS_NEW()    .or. GFED3_IS_NEW()  .or. 
+     &        ITS_A_NEW_MONTH() .or. FLAMBE_IN_USE() ) THEN 
             CALL BIOMASS_CARB_GEOS( Input_Opt )
             IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a BB_CRB_GEOS' )
          ENDIF

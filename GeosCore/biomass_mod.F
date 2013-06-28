@@ -119,6 +119,8 @@
       ! ... and these routines
       PUBLIC :: CLEANUP_BIOMASS
       PUBLIC :: COMPUTE_BIOMASS_EMISSIONS
+      ! Indicate that we are using FLAMBE emissions (skim, 6/21/13)
+      PUBLIC :: FLAMBE_IN_USE
       !FP_ISOP
       ! FP SET_BIOTRCE is a new routine for setting the IDBxxx in BIOTRCE (hotp 7/30/09)
       PUBLIC :: SET_BIOTRCE
@@ -146,9 +148,31 @@
       CONTAINS
 
 !------------------------------------------------------------------------------
+      
+      FUNCTION FLAMBE_IN_USE( ) RESULT( USE_FLAMBE )
+!
+!******************************************************************************
+! Function FLAMBE_IN_USE returns TRUE always when we use FLAMBE (jaf, 7/30/09)
+!
+! NOTES:
+!    For FLAMBE, need to pass day and hour (bmy, 5/30/08).
+!
+!******************************************************************************
+!
+      ! Function value
+      LOGICAL  :: USE_FLAMBE
+
+      ! Hardcoded for the SEAC4RS campaign (skim, 6/21/13)
+      USE_FLAMBE = .TRUE.
+
+      ! Return to calling program
+      END FUNCTION FLAMBE_IN_USE
+
+!------------------------------------------------------------------------------
 
       SUBROUTINE COMPUTE_BIOMASS_EMISSIONS( am_I_Root, YEAR,      
-     &                                      MONTH,     Input_Opt, 
+     &                                      MONTH,     DAY,
+     &                                      HOUR,      Input_Opt, 
      &                                      State_Chm, RC         )
 !
 !******************************************************************************
@@ -164,6 +188,10 @@
 !  ============================================================================
 !  (1 ) YEAR  (INTEGER) : Current year  
 !  (2 ) MONTH (INTEGER) : Current month (1-12)
+!  (3 ) DAY   (INTEGER) : Current day
+!  (4 ) HOUR  (INTEGER) : Current hour
+!
+!  The last two arguments are necessary for FLAMBE emissions (skim, 6/21/13)
 !
 !  NOTES:
 !  (1 ) Now store all biomass species in BIOMASS, from GFED2 or Duncan et al 
@@ -185,6 +213,8 @@
 !
       ! References to F90 modules
       USE DIAG_MOD,           ONLY : AD28, AD29, AD32_bb
+      ! Needed for the SEAC4RS campagin (skim, 6/21/13)
+      USE FLAMBE_BIOMASS_MOD, ONLY : FLAMBE_COMPUTE_BIOMASS
       USE GC_BIOMASS_MOD,     ONLY : GC_COMPUTE_BIOMASS
       USE GC_BIOMASS_MOD,     ONLY : GC_READ_BIOMASS_BCOC
       USE GC_BIOMASS_MOD,     ONLY : GC_READ_BIOMASS_CO2
@@ -196,6 +226,8 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
+      ! Need to know for FLAMBE emissions (skim, 6/21/13)
+      USE TIME_MOD,           ONLY : ITS_A_NEW_HOUR
       USE TRACERID_MOD,       ONLY : IDTBCPO, IDTNH3, IDTOCPO, IDTSO2
       USE TRACERID_MOD,       ONLY : IDBBC, IDBNH3, IDBOC, IDBSO2
       USE TRACERID_MOD,       ONLY : IDBCO, IDBNO
@@ -214,6 +246,8 @@
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       INTEGER,        INTENT(IN)    :: YEAR
       INTEGER,        INTENT(IN)    :: MONTH
+      INTEGER,        INTENT(IN)    :: DAY
+      INTEGER,        INTENT(IN)    :: HOUR
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -288,7 +322,9 @@
          !==============================================================
          ! GFED2 updates BIOMASS if needed (phs, 12/17/08)
          !==============================================================
-         IF ( USE_GFED2 ) THEN
+         ! Make sure we do not use this segment of code for SEAC4RS
+         ! (skim, 6/21/13)
+         IF ( USE_GFED2 .AND. .FALSE. ) THEN
 
             ! Get emissions [molec/cm2/s] or [atoms C/cm2/s]
             CALL GFED2_COMPUTE_BIOMASS( YEAR, MONTH, BIOMASS )
@@ -312,7 +348,9 @@
          !==============================================================
          ! GFED3 updates BIOMASS if needed (psk, 1/5/11)
          !==============================================================
-         ELSE IF ( USE_GFED3 ) THEN
+         ! Make sure we do not use this segment of code for SEAC4RS
+         ! (skim, 6/21/13)
+         ELSE IF ( USE_GFED3 .AND. .FALSE. ) THEN
 
             ! Get emissions [molec/cm2/s] or [atoms C/cm2/s]
             CALL GFED3_COMPUTE_BIOMASS( YEAR, MONTH, BIOMASS )
@@ -331,7 +369,9 @@
          !==============================================================
          ! Read GC biomass emissions at the start of a new month
          !==============================================================
-         ELSE IF ( ITS_A_NEW_MONTH() ) THEN
+         ! Make sure we do not use this segment of code for SEAC4RS
+         ! (skim, 6/21/13)
+         ELSE IF ( ITS_A_NEW_MONTH() .AND. .FALSE. ) THEN
 
             ! Zero the array for biomass burning
             BIOMASS = 0d0
@@ -425,38 +465,57 @@
             ENDIF
          ENDIF
 
-         ! SEAC4RS passive tracers (jaf, 6/14/13)
-         IF ( (IDBPCOBCN > 0) .or. (IDBPCOBSE > 0) .or.
-     &        (IDBPCOBW > 0)  .or. (IDBPCOBRW > 0)) THEN
+         ! Compute the FLAMBE biomass burning emissions (skim, 6/21/13)
+         IF ( ITS_A_NEW_HOUR() ) THEN
+
+            ! Compute the FLAMBE emissions
+            CALL FLAMBE_COMPUTE_BIOMASS( BIOMASS, YEAR, MONTH, 
+     &                                            DAY,  HOUR )
+
+            ! Irrespective of inventory type, we need to scale biomass
+            ! CO to account for CO production from VOC's that are not
+            ! explicitly carried in the chemistry mechanisms. This used
+            ! to be done in gc_biomass_mod.f but then is not used for
+            ! GFED3, FLAMBE, etc. (jaf, mak, 2/6/09)
+            IF ( ITS_A_FULLCHEM_SIM ) THEN
+               BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.05d0
+            ELSE IF ( ITS_A_TAGCO_SIM ) THEN
+               BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.11d0
+            ENDIF
+
+            ! SEAC4RS passive tracers (jaf, 6/14/13)
+            IF ( (IDBPCOBCN > 0) .or. (IDBPCOBSE > 0) .or.
+     &           (IDBPCOBW  > 0) .or. (IDBPCOBRW > 0)) THEN
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, X, Y )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
 
-            X = GET_XMID( I, J, 1 ) 
-            Y = GET_YMID( I, J, 1 ) 
+               X = GET_XMID( I, J, 1 ) 
+               Y = GET_YMID( I, J, 1 ) 
 
-            IF (      (X >= -140.0) .AND. (X <  -60.0)   .AND.
-     &                (Y >=   50.0) .AND. (Y <   71.0) ) THEN
-               IF ( IDBPCOBCN > 0 ) 
-     &              BIOMASS(I,J,IDBPCOBCN) = BIOMASS(I,J,IDBCO)
-            ELSE IF ( (X >= -100.0) .AND. (X <  -75.0)   .AND.
-     &                (Y >=   25.0) .AND. (Y <   37.0) ) THEN
-               IF ( IDBPCOBSE > 0 ) 
-     &              BIOMASS(I,J,IDBPCOBSE) = BIOMASS(I,J,IDBCO)
-            ELSE IF ( (X >= -125.0) .AND. (X < -100.0)   .AND.
-     &                (Y >=   31.0) .AND. (Y <   50.0) ) THEN
-               IF ( IDBPCOBW > 0 ) 
-     &              BIOMASS(I,J,IDBPCOBW) = BIOMASS(I,J,IDBCO)
-            ELSE
-               IF ( IDBPCOBRW > 0 ) 
-     &              BIOMASS(I,J,IDBPCOBRW) = BIOMASS(I,J,IDBCO)
-            ENDIF
-         ENDDO
-         ENDDO
+               IF ( (X >= -140.0) .AND. (X <  -60.0)   .AND.
+     &              (Y >=   50.0) .AND. (Y <   71.0) ) THEN
+                  IF ( IDBPCOBCN > 0 ) 
+     &                 BIOMASS(I,J,IDBPCOBCN) = BIOMASS(I,J,IDBCO)
+               ELSE IF ( (X >= -100.0) .AND. (X <  -75.0)   .AND.
+     &                   (Y >=   25.0) .AND. (Y <   37.0) ) THEN
+                  IF ( IDBPCOBSE > 0 ) 
+     &                 BIOMASS(I,J,IDBPCOBSE) = BIOMASS(I,J,IDBCO)
+               ELSE IF ( (X >= -125.0) .AND. (X < -100.0)   .AND.
+     &                   (Y >=   31.0) .AND. (Y <   50.0) ) THEN
+                  IF ( IDBPCOBW > 0 ) 
+     &                 BIOMASS(I,J,IDBPCOBW) = BIOMASS(I,J,IDBCO)
+               ELSE
+                  IF ( IDBPCOBRW > 0 ) 
+     &                 BIOMASS(I,J,IDBPCOBRW) = BIOMASS(I,J,IDBCO)
+               ENDIF
+            ENDDO
+            ENDDO
 !$OMP END PARALLEL DO
+
          ENDIF
 
          !==============================================================
