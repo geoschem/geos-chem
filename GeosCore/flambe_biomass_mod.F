@@ -253,8 +253,10 @@
       ! Filename, TAU0 and number of seconds
       !=================================================================
       
-      TAU0     = GET_TAU0( MM, DD, YYYY, HH   )
-      TAU1     = GET_TAU0( MM, DD, YYYY, HH+1 )
+      ! Hardcode for now while we wait to get data
+      ! (skim, 6/28/13)
+      TAU0     = GET_TAU0( 6, 20, YYYY, HH   )
+      TAU1     = GET_TAU0( 6, 20, YYYY, HH+1 )
 
       ! Number of seconds in this hour 
       SECONDS  = ( TAU1 - TAU0 ) * 3600d0
@@ -927,12 +929,10 @@
                FLAMBE_SPEC_MOLWT(N) = 17d-3
                FLAMBE_SPEC_UNIT(N)  = '[Tg  ]'
             CASE( 'BC'   )
-               PRINT*, 'FLAMBE BC SPECIES: ', N
                BIO_SAVE(N)          = IDBBC
                FLAMBE_SPEC_MOLWT(N) = 12d-3
                FLAMBE_SPEC_UNIT(N)  = '[Tg C]'
             CASE( 'OC'   )
-               PRINT*, 'FLAMBE OC SPECIES: ', N
                BIO_SAVE(N)          = IDBOC
                FLAMBE_SPEC_MOLWT(N) = 12d-3
                FLAMBE_SPEC_UNIT(N)  = '[Tg C]'
