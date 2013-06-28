@@ -202,7 +202,7 @@
 ! !DEFINED PARAMETERS:
 !
 #if   defined( TOMAS )
-      INTEGER, PARAMETER :: MAXDEP    = 81      ! Max # of depositing species
+      INTEGER, PARAMETER :: MAXDEP    = 100     ! Max # of depositing species
 #else
       INTEGER, PARAMETER :: MAXDEP    = 55      ! Max # of depositing species
 #endif
