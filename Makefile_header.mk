@@ -181,7 +181,11 @@ endif
 NCL       := -L$(GC_LIB) $(NCL)
 
 # Command to link to the various library files (-lHeaders should be last!)
+ifeq ($(RRTMG),yes)
 LINK      := -L$(LIB) -lKpp -lIsoropia -lGeosUtil -lrad -lHeaders
+else
+LINK      := -L$(LIB) -lKpp -lIsoropia -lGeosUtil -lHeaders
+endif
 LINK      := $(LINK) -lNcUtils $(NCL)
 
 # Commands to link to libraries, for GTMM code (-lHeaders should be last!)

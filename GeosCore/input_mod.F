@@ -2819,7 +2819,7 @@
 !
       USE ERROR_MOD,   ONLY : ERROR_STOP
       USE LOGICAL_MOD, ONLY : LRAD, LLWRAD, LSWRAD
-      USE LOGICAL_MOD, ONLY : LSUMRAD, LSKYRAD
+      USE LOGICAL_MOD, ONLY : LSKYRAD
       USE TIME_MOD,    ONLY : SET_CT_RAD
       USE TRACER_MOD,  ONLY : N_TRACERS
       USE JV_CMN_MOD,  ONLY : WVSELECT, NWVSELECT
@@ -2891,10 +2891,6 @@
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_radiation_menu:9' )
 
-      ! Sum all species fluxes?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_radiation_menu:10' )
-      READ( SUBSTRS(1:N), * ) LSUMRAD
-
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_radiation_menu:11' )
 
@@ -2911,7 +2907,6 @@
       WRITE( 6, 120     ) 'Flux output selection       : ', LSPECRADMENU
       WRITE( 6, 125     ) 'Clear-sky/All-sky           : ',
      &                    LSKYRAD(1),'/',LSKYRAD(2)
-      WRITE( 6, 100     ) 'Sum fluxes?                 : ', LSUMRAD
 
       ! FORMAT statements
  100  FORMAT( A, L5  )

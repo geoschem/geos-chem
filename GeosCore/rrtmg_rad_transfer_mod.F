@@ -82,7 +82,7 @@
       USE JV_CMN_MOD,   ONLY : NASPECRAD ! number of aerosol species
       USE JV_CMN_MOD,   ONLY : SPECMASK, IWVSELECT, NWVSELECT
       USE JV_CMN_MOD,   ONLY : ACOEF_WV, BCOEF_WV, CCOEF_WV
-      USE LOGICAL_MOD,  ONLY : LSUMRAD,LLWRAD,LSWRAD,LSKYRAD
+      USE LOGICAL_MOD,  ONLY : LLWRAD,LSWRAD,LSKYRAD
 
       USE JV_CMN_MOD,   ONLY : DO3
       USE TOMS_MOD,     ONLY: GET_OVERHEAD_O3
@@ -569,14 +569,11 @@
       ! if calc with aerosols and gases completed
       ! USE ISPECMENU to determine which flux has been calculated
       ! if =0 then we just did the baseline flux
-      ! else if LSUMRAD is switched on then this is the combined
       IF (ISPECMENU.EQ.0) THEN
        OUTIDX = 1
-      ELSE IF ( LSUMRAD ) THEN
-        ! store in combined (2nd set)
-        OUTIDX = 2
       ELSE
-        ! DIAGNOSTIC INDEX IS ISPECMENU+2 (BASELINE=1 SUM=2)
+        ! DIAGNOSTIC INDEX IS ISPECMENU+2 (BASELINE=1 SUM=2<-- no longer
+        ! exists so we just leave this blank)
         OUTIDX = ISPECMENU + 2
         !OUTIDX = IDIAGOUT + 2
       ENDIF
@@ -699,7 +696,6 @@
 
       USE JV_CMN_MOD,   ONLY :  SPECMASK,NASPECRAD,
      &                          LSPECRADMENU,NSPECRADMENU
-      USE LOGICAL_MOD, ONLY  :  LSUMRAD
       INTEGER, INTENT(IN)    :: ISPECRADMENU
       INTEGER                :: N0,N
 
@@ -708,17 +704,10 @@
       SPECMASK(:)=1
       !If ISPECRADMENU is zero, we just wanted SPECMASK zeroing, so skip
       IF (ISPECRADMENU.GT.0) THEN
-      !need to loop over all if sum requested
-      IF (LSUMRAD) THEN
-       N0 = 1
-       N  = NSPECRADMENU
-      ELSE
-       !otherwise just set single species
+       !set single species on
        N0 = ISPECRADMENU
        N  = ISPECRADMENU
-      ENDIF
       DO I = N0, N
-       ! for the benefit of LSUMRAD=T, just combine switched on species
        IF(LSPECRADMENU(I).EQ.1) THEN 
        SELECT CASE( I )
        !ozone

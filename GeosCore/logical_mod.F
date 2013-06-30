@@ -94,7 +94,6 @@
       LOGICAL :: LRAD            ! Turn on RRTMG
       LOGICAL :: LLWRAD          ! Calculate LW fluxes
       LOGICAL :: LSWRAD          ! Calculate SW fluxes
-      LOGICAL :: LSUMRAD         ! Sum the listed species fluxes
       LOGICAL :: LSKYRAD(2)       ! Clear-sky, All-sky
 
       !%%%% Cloud convection %%%%

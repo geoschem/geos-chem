@@ -3803,8 +3803,7 @@
      &                   IIPAR,     JJPAR,     1,        IFIRST,
      &                   JFIRST,    LFIRST,    ARRAY(:,:,1) )
              !for other outputs check species has been selected
-             ELSE IF (((IS.EQ.2).AND.(LSUMRAD)).OR.
-     &               ((IS.GE.3).AND.(LSPECRADMENU(IS-2).EQ.1))) THEN
+             ELSE IF ((IS.GE.3).AND.(LSPECRADMENU(IS-2).EQ.1)) THEN
               DO I=1,IIPAR
                DO J=1,JJPAR
                 !store as difference in flux from baseline
@@ -3822,8 +3821,7 @@
             ! N > 8 so we are outputting optics
             ! but only for turned on species and only for aerosols
             ! i.e. skip IS=3 and IS=4
-            ELSE IF (((IS.EQ.2).AND.(LSUMRAD)).OR.
-     &               ((IS.GE.5).AND.(LSPECRADMENU(IS-2).EQ.1))) THEN
+            ELSE IF ((IS.GE.5).AND.(LSPECRADMENU(IS-2).EQ.1)) THEN
              !output optics
               ARRAY(:,:,1) = AD71(:,:,NN) / SCALEX
               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,

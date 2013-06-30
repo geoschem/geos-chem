@@ -1087,9 +1087,8 @@
          WRITE(6,*) 'CALLING RRTMG...'
          iseed=iseed+15
 
-         !repeat twice for all-sky and clear-sky (if switched on)
-         !UPDATE
-         !clear-sky output with all-sky, so just run once either way
+          !clear-sky is output with all-sky, so we just need to run once 
+          !regardless of whether both are required or just one
           IF (LSKYRAD(2)) THEN
            !Determine if we are doing CLEAR-SKY (1) or ALL-SKY (2)
            ICLD=1
@@ -1103,24 +1102,15 @@
            CALL DO_RRTMG_RAD_TRANSFER( DAY,MONTH, ICLD, 0, iseed)
 
            !Second call with aerosols or ozone if requested
-           !if user has requested summed flux then generate the relevant
-           !SPECMASK and just call once (otherwise call for each)
-           IF (LSUMRAD.eq..TRUE.) THEN
-            !generate mask for species in RT
-            !SET_SPECMASK knows the LSUMRAD setting
-            CALL SET_SPECMASK(1)
-            CALL DO_RRTMG_RAD_TRANSFER(DAY, MONTH, ICLD, 1, iseed )
-           ELSE
-            DO N = 1, NSPECRADMENU
-             IF (LSPECRADMENU(N).EQ.1) THEN
-               !generate mask for species in RT
-               CALL SET_SPECMASK(N)
-               CALL DO_RRTMG_RAD_TRANSFER(DAY, MONTH, ICLD, N, iseed)
-             ENDIF
-            ENDDO
-           ENDIF
-            ! Increment radiation timestep counter
-            CALL SET_CT_RAD( INCREMENT=.TRUE. )
+           DO N = 1, NSPECRADMENU
+            IF (LSPECRADMENU(N).EQ.1) THEN
+              !generate mask for species in RT
+              CALL SET_SPECMASK(N)
+              CALL DO_RRTMG_RAD_TRANSFER(DAY, MONTH, ICLD, N, iseed)
+            ENDIF
+           ENDDO
+           ! Increment radiation timestep counter
+           CALL SET_CT_RAD( INCREMENT=.TRUE. )
          ENDIF
          ENDIF
 #endif
