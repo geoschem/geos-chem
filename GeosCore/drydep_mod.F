@@ -31,15 +31,6 @@
       USE PBL_MIX_MOD                           ! Boundary layer quantities
       USE PRESSURE_MOD,   ONLY : GET_PEDGE      ! Pressure @ level edges
       USE TIME_MOD,       ONLY : GET_TS_CHEM    ! Chemistry timestep
-#if defined( DEVEL )
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      ! For testing, remove later (mpayer 12/6/12)
-      USE TRACER_MOD,         ONLY : N_TRACERS, 
-     &                               SALC_REDGE_um,  SALA_REDGE_um,
-     &                               ITS_A_POPS_SIM, ITS_A_MERCURY_SIM
-#else
-      USE TRACER_MOD                            ! Tracer array STT etc.
-#endif
       USE TRACERID_MOD                          ! Tracer ID flags
 #if   defined( TOMAS )
       USE TOMAS_MOD                             ! For TOMAS microphysics
@@ -66,6 +57,7 @@
 !
       PUBLIC :: DEPNAME
       PUBLIC :: DEPSAV
+      PUBLIC :: SHIPO3DEP
       PUBLIC :: MAXDEP
       PUBLIC :: NUMDEP
       PUBLIC :: NTRAIND
@@ -297,6 +289,7 @@
       REAL*8,  ALLOCATABLE :: DEPSAV  (:,:,:    )   ! Drydep frequencies
       REAL*8,  ALLOCATABLE :: DMID    (:        )   ! 
       REAL*8,  ALLOCATABLE :: SALT_V  (:        )
+      REAL*8,  ALLOCATABLE :: SHIPO3DEP(:,:)
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -1615,6 +1608,7 @@
 !  12 Dec 2012 - R. Yantosca - Now get ILAND, IUSE, IREG from State_Met
 !  13 Dec 2012 - R. Yantosca - Now get XLAI from State_Met
 !  31 May 2013 - R. Yantosca - Now pass State_Chm, for TOMAS
+!  14 Jun 2013 - R. Yantosca - Now use Input_Opt%ITS_A_POPS_SIM
 !
 !***********************************************************************
 !   Changes from Version 3.2 to Version 3.3:                         ***
@@ -1692,7 +1686,7 @@
       LOGICAL IS_POPS
 
       ! Is this a POPs simmulation?
-      IS_POPS = ITS_A_POPS_SIM()  ! clf, 1/3/2011
+      IS_POPS = Input_Opt%ITS_A_POPS_SIM  ! clf, 1/3/2011
 
 !***********************************************************************       
 !
@@ -1983,7 +1977,7 @@
                   RSURFC(K,LDT) = 
      &               AERO_SFCRSII( K,     II,   PRESSU(IJLOOP)*1D-3, 
      &                             TEMPK, USTAR(IJLOOP), RHB(IJLOOP),
-     &                             W10(IJLOOP) )
+     &                             W10(IJLOOP), Input_Opt )
 
                ELSE IF ( ( DEPNAME(K) == 'DST1' )  .OR. 
      &                   ( DEPNAME(K) == 'DST2' )  .OR. 
@@ -2961,18 +2955,22 @@
 ! !INTERFACE:
 !
       FUNCTION AERO_SFCRSII( K, II, PRESS, TEMP, USTAR, RHB, 
-     &                             W10 ) RESULT(RS)
+     &                       W10, Input_Opt ) RESULT(RS)
+!
+! !USES:
+!
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: K     ! Drydep tracer index (range: 1-NUMDEP)
-      INTEGER, INTENT(IN) :: II    ! Surface type index of GEOS-CHEM
-      REAL*8,  INTENT(IN) :: PRESS ! Pressure [kPa] (1 mb = 100 Pa = 0.1 kPa)
-      REAL*8,  INTENT(IN) :: TEMP  ! Temperature [K]   
-      REAL*8,  INTENT(IN) :: USTAR ! Friction velocity [m/s]
-      REAL*8,  INTENT(IN) :: RHB   ! Relative humidity (fraction)
-      ! Added 10m windspeed (jaegle 5/11/11)
-      REAL*8,  INTENT(IN) :: W10   ! 10 m windspeed [m/s]
+      INTEGER,        INTENT(IN) :: K     ! Drydep tracer index (range: 1-NUMDEP)
+      INTEGER,        INTENT(IN) :: II    ! Surface type index of GEOS-CHEM
+      REAL*8,         INTENT(IN) :: PRESS ! Pressure [kPa] (1 mb=100 Pa=0.1 kPa)
+      REAL*8,         INTENT(IN) :: TEMP  ! Temperature [K]   
+      REAL*8,         INTENT(IN) :: USTAR ! Friction velocity [m/s]
+      REAL*8,         INTENT(IN) :: RHB   ! Relative humidity (fraction)
+      REAL*8,         INTENT(IN) :: W10   ! 10 m windspeed [m/s]
+      TYPE(OptInput), INTENT(IN) :: Input_Opt  ! Input Options object
 !
 ! !RETURN VALUE:
 !
@@ -2990,6 +2988,8 @@
 !       (1980) formulation over water surface. Described in Jaegle et al. (ACP,
 !       11, 2011) (jaegle 5/11/11)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  14 Jun 2013 - R. Yantosca - Now pass Input_Opt via the arg list
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3224,8 +3224,9 @@
       !==================================================================
 
       ! Number of bins for sea salt size distribution
-      NR =INT((( SALC_REDGE_um(2) - SALA_REDGE_um(1) ) / DR )
-     &                  + 0.5d0 )
+      NR =INT((( Input_Opt%SALC_REDGE_um(2) - 
+     &           Input_Opt%SALA_REDGE_um(1) ) / DR ) 
+     &          + 0.5d0 )
 
       ! Particle radius [cm]
       ! Bug fix: The Gerber [1985] growth should use the dry radius 
@@ -3340,12 +3341,12 @@
       SALT_MASS_TOTAL = 0d0
       VTS_WEIGHT      = 0d0
       ! Check what the min/max range of the SS size bins are
-      IF ( RUM .le. SALA_REDGE_um(2) ) THEN
-        D0 = SALA_REDGE_um(1)*2d0
-        D1 = SALA_REDGE_um(2)*2d0
+      IF ( RUM .le. Input_Opt%SALA_REDGE_um(2) ) THEN
+        D0 = Input_Opt%SALA_REDGE_um(1)*2d0
+        D1 = Input_Opt%SALA_REDGE_um(2)*2d0
       ELSE 
-        D0 = SALC_REDGE_um(1)*2d0
-        D1 = SALC_REDGE_um(2)*2d0
+        D0 = Input_Opt%SALC_REDGE_um(1)*2d0
+        D1 = Input_Opt%SALC_REDGE_um(2)*2d0
       ENDIF
      
 
@@ -3428,11 +3429,20 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_WEIGHTSS()
+      SUBROUTINE INIT_WEIGHTSS( Input_Opt )
+!
+! !USES:
+!
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN) :: Input_Opt
 ! 
 ! !REVISION HISTORY: 
 !  11 May 2011 - L. Jaegle   - Initial version
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  14 Jun 2013 - R. Yantosca - Now accept Input_Opt via tha argument list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3461,7 +3471,8 @@
 
       ! Number of bins between the lowest bound of of the accumulation mode
       ! sea salt and the upper bound of the coarse mode sea salt.
-      NR =INT((( SALC_REDGE_um(2) - SALA_REDGE_um(1) ) / DR )
+      NR =INT((( Input_Opt%SALC_REDGE_um(2) - 
+     &           Input_Opt%SALA_REDGE_um(1) ) / DR )
      &                  + 0.5d0 )
 
       !=================================================================
@@ -3471,7 +3482,7 @@
       !=================================================================
 
        ! Lower edge of 0th bin diameter [um]
-       DEDGE=SALA_REDGE_um(1) * 2d0
+       DEDGE=Input_Opt%SALA_REDGE_um(1) * 2d0
 
        ! Loop over diameters
        DO ID = 1, NR
@@ -4293,8 +4304,10 @@
 !                              running with the traditional driver main.F
 !  14 Mar 2013 - M. Payer    - Replace NOx and Ox with NO2 and O3 as part
 !                              of removal of NOx-Ox partitioning
-!  27 Feb 2013 - R. Yantosca - Bug fix: now only copy NUMDEP values from
-!                              Input_Opt%NDVZIND to NDVZIND array.
+!  12 Jun 2013 - R. Yantosca - Bug fix: now only copy NUMDEP values to
+!                              Input_Opt%NDVZIND and Input_Opt%DEPNAME
+!  14 Jun 2013 - R. Yantosca - Now replace fields from tracer_mod.F
+!                              with fields from Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4322,10 +4335,10 @@
       DUM = 1.0
 
       ! Is this a mercury simulation?
-      IS_Hg      = ITS_A_MERCURY_SIM()
+      IS_Hg      = Input_Opt%ITS_A_MERCURY_SIM
 
       ! Is this a pops simulation?
-      IS_POPS     = ITS_A_POPS_SIM()
+      IS_POPS    = Input_Opt%ITS_A_POPS_SIM
 
       ! Zero variables
       DRYDNO2    = 0
@@ -4348,7 +4361,7 @@
       ! First identify tracers that dry deposit and then initialize 
       ! DEPNAME, NDVZIND, HSTAR, F0, XMW and AIROSOL accordingly
       !=================================================================
-      DO N = 1, N_TRACERS
+      DO N = 1, Input_Opt%N_TRACERS
 
          !----------------------------------
          ! Regular full-chemistry tracers
@@ -4873,8 +4886,8 @@
             HSTAR(NUMDEP)   = 0.0d0
             F0(NUMDEP)      = 0.0d0
             XMW(NUMDEP)     = 36d-3                   ! MW of seasalt
-            A_RADI(NUMDEP)  = ( SALC_REDGE_um(1) + 
-     &                          SALC_REDGE_um(2) ) * 0.5d-6
+            A_RADI(NUMDEP)  = ( Input_Opt%SALC_REDGE_um(1) + 
+     &                          Input_Opt%SALC_REDGE_um(2) ) * 0.5d-6
             A_DEN(NUMDEP)   = 2200.d0 
             AIROSOL(NUMDEP) = .TRUE. 
 
@@ -4931,8 +4944,8 @@
             HSTAR(NUMDEP)   = 0.0d0 
             F0(NUMDEP)      = 0.0d0
             XMW(NUMDEP)     = 36d-3                   ! MW of seasalt
-            A_RADI(NUMDEP)  = ( SALC_REDGE_um(1) + 
-     &                          SALC_REDGE_um(2) ) * 0.5d-6
+            A_RADI(NUMDEP)  = ( Input_Opt%SALC_REDGE_um(1) + 
+     &                          Input_Opt%SALC_REDGE_um(2) ) * 0.5d-6
             A_DEN(NUMDEP)   = 2200.d0 
             AIROSOL(NUMDEP) = .TRUE. 
 
@@ -5279,8 +5292,8 @@
             HSTAR(NUMDEP)   = 0.0d0
             F0(NUMDEP)      = 0.0d0
             XMW(NUMDEP)     = 36d-3     
-            A_RADI(NUMDEP)  = ( SALA_REDGE_um(1) + 
-     &                          SALA_REDGE_um(2) ) * 0.5d-6
+            A_RADI(NUMDEP)  = ( Input_Opt%SALA_REDGE_um(1) + 
+     &                          Input_Opt%SALA_REDGE_um(2) ) * 0.5d-6
             A_DEN(NUMDEP)   = 2200.d0         
             AIROSOL(NUMDEP) = .TRUE. 
 
@@ -5293,8 +5306,8 @@
             HSTAR(NUMDEP)   = 0.0d0
             F0(NUMDEP)      = 0.0d0
             XMW(NUMDEP)     = 36d-3 
-            A_RADI(NUMDEP)  = ( SALC_REDGE_um(1) + 
-     &                          SALC_REDGE_um(2) ) * 0.5d-6
+            A_RADI(NUMDEP)  = ( Input_Opt%SALC_REDGE_um(1) + 
+     &                          Input_Opt%SALC_REDGE_um(2) ) * 0.5d-6
             A_DEN(NUMDEP)   = 2200.d0         
             AIROSOL(NUMDEP) = .TRUE. 
 
@@ -6011,10 +6024,19 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'DMID' )
       DMID = 0d0
 
+      ALLOCATE( SHIPO3DEP( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SHIPO3DEP' )
+      SHIPO3DEP = 0d0
+
       IF ( am_I_Root ) THEN
          Input_Opt%NUMDEP  = NUMDEP
-         Input_Opt%NDVZIND = NDVZIND
-         Input_Opt%DEPNAME = DEPNAME
+         !-------------------------------------------------------
+         ! Prior to 6/12/13:
+         !Input_Opt%NDVZIND = NDVZIND
+         !Input_Opt%DEPNAME = DEPNAME
+         !-------------------------------------------------------
+         Input_Opt%NDVZIND(1:NUMDEP) = NDVZIND(1:NUMDEP)
+         Input_Opt%DEPNAME(1:NUMDEP) = DEPNAME(1:NUMDEP)
       ENDIF
 
       !=================================================================
@@ -6060,7 +6082,7 @@
 
       ! Calls INIT_WEIGHTSS to calculate the volume distribution of 
       ! sea salt aerosols (jaegle 5/11/11)
-      CALL INIT_WEIGHTSS()
+      CALL INIT_WEIGHTSS( Input_Opt )
       
       ! Need to save NUMDEP into Input_Opt
       Input_Opt%NUMDEP = NUMDEP
@@ -6095,6 +6117,7 @@
       IF ( ALLOCATED( DEPSAV   ) ) DEALLOCATE( DEPSAV   )
       IF ( ALLOCATED( SALT_V   ) ) DEALLOCATE( SALT_V   )
       IF ( ALLOCATED( DMID     ) ) DEALLOCATE( DMID     )
+      IF ( ALLOCATED( SHIPO3DEP) ) DEALLOCATE( SHIPO3DEP)
 
       END SUBROUTINE CLEANUP_DRYDEP
 !EOC

@@ -108,15 +108,8 @@
 
       ! SAVEOH                  = array to save OH  fields 
       ! SAVEHO2                 = array to save HO2 fields (rvm, bmy, 2/27/02)
-      ! fracnox                 = look up table for fraction of NOx remaining
-      !                           for ship emissions (gvinken, 6/6/10)
-      ! intope                  = look up table for integrated Ozone Production
-      !                           Efficiency for ship emiss (gvinken, 6/6/10)
       REAL*8, ALLOCATABLE ::   SAVEOH(:,:,:)
       REAL*8, ALLOCATABLE ::   SAVEHO2(:,:,:)
-      REAL  , ALLOCATABLE ::   jvalues(:,:,:)
-      REAL*4 ::   fracnox(4,4,4,12,12,4,5)
-      REAL*4 ::   intope(4,4,4,12,12,4,5)
 !
 ! !REMARKS:
 !  NOTE: Now NEMPARA = max no. of anthropogenic emissions
@@ -201,7 +194,6 @@
       ALLOCATE( FLIQCO2   ( IIPAR, JJPAR                  ), STAT=RC )
       ALLOCATE( SAVEOH    ( IIPAR, JJPAR, LLPAR           ), STAT=RC )
       ALLOCATE( SAVEHO2   ( IIPAR, JJPAR, LLPAR           ), STAT=RC )
-      ALLOCATE( JVALUES   ( IIPAR, JJPAR, 2               ), STAT=RC )
 
       ! Zero arrays
       EMISR      = 0d0
@@ -230,7 +222,6 @@
       FLIQCO2    = 0d0
       SAVEOH     = 0d0
       SAVEHO2    = 0d0
-      JVALUES    = 0d0
 
       END SUBROUTINE Init_CMN_O3
 !EOC
@@ -298,7 +289,6 @@
       IF ( ALLOCATED( FLIQCO2    ) ) DEALLOCATE( FLIQCO2    )
       IF ( ALLOCATED( SAVEOH     ) ) DEALLOCATE( SAVEOH     )
       IF ( ALLOCATED( SAVEHO2    ) ) DEALLOCATE( SAVEHO2    )
-      IF ( ALLOCATED( JVALUES    ) ) DEALLOCATE( JVALUES    )
 
       END SUBROUTINE Cleanup_CMN_O3
 !EOC

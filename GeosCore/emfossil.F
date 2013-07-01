@@ -33,7 +33,8 @@
                               
       USE STREETS_ANTHRO_MOD, ONLY : GET_SE_ASIA_MASK
       USE STREETS_ANTHRO_MOD, ONLY : GET_STREETS_ANTHRO
-      USE TIME_MOD,           ONLY : GET_TS_EMIS,      GET_DAY_OF_WEEK
+      USE TIME_MOD,           ONLY : GET_TS_EMIS
+      USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK_LT
       USE TIME_MOD,           ONLY : GET_HOUR
       USE TRACERID_MOD,       ONLY : IDENO,    IDEO3,    IDEHNO3
       USE TRACERID_MOD,       ONLY : IDTCO,    IDTHNO3
@@ -46,6 +47,9 @@
       USE CMN_O3_MOD               ! EMISR, EMISRR, etc...
       USE CMN_DIAG_MOD             ! Diagnostic switches & arrays
 
+      ! 10/24/12, ckeller: NOX diurnal scale factors fix:
+      USE TIME_MOD,           ONLY : GET_LOCALTIME
+ 
       IMPLICIT NONE
 #     include "define.h"
 !
@@ -137,12 +141,17 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  22 Mar 2012 - M. Payer    - Update for C2H6. RETRO ethane emissions are too
 !                              low so we will use Yaping Xiao's offline emiss.
+!  24 Oct 2012 - C. Keller   - Use localtime instead of UTC to derive NOx 
+!                              diurnal scale factors.
 !  14 Mar 2013 - M. Payer    - Replace NOx and Ox emissions with NO and O3
 !                              emissions as part of removal of NOx-Ox
 !                              partitioning
 !  18 Apr 2013 - M. Payer    - Convert NOx using XNUMOL for NO2 since original
 !                              NOx emissions are in mass units of NO2
 !  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
+!  14 Jun 2013 - R. Yantosca - Now determine weekday/weekend with respect to
+!                              the local time at each grid box.  (Formerly,
+!                              this had been done w/r/t the GMT time.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -150,7 +159,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL :: WEEKDAY
-      INTEGER :: L, LL, K, DOW, HOUR
+      INTEGER :: L, LL, K, DOW_LT, HOUR
       REAL*8  :: TODX, DTSRCE, AREA_CM2           
       REAL*8  :: EMX(NOXLEVELS)  
       REAL*8  :: XEMISR
@@ -159,6 +168,8 @@
       REAL*8  :: CAC,   SHIP,    VISTAS, NEI05
       REAL*8  :: RETRO
       REAL*8  :: C2H6_ANTHRO
+      ! 10/24/12, ckeller: NOX diurnal scale factors fix:
+      INTEGER :: NOXHOUR
 
       ! For fields from Input_Opt
       LOGICAL :: LBRAVO
@@ -213,9 +224,11 @@
       ! GMT hour of day
       HOUR     = GET_HOUR()
 
-      ! Flag for weekday or weekend for NEI/VISTAS emissions
-      DOW      = GET_DAY_OF_WEEK()
-      WEEKDAY  = ( DOW > 0 .and. DOW < 6 )
+      ! Determine if we should use weekday or weekend NEI
+      ! emissions at grid box (I,J,L).  Since NEI is over
+      ! the US, then weekend is Sat/Sun.
+      DOW_LT   = GET_DAY_OF_WEEK_LT( I, J, 1 )
+      WEEKDAY  = ( DOW_LT > 0 .and. DOW_LT < 6 )
 
       !=================================================================
       ! Call EMF_SCALE to do the following:
@@ -240,9 +253,13 @@
          ! Initialize work variables
          EMX(:)  = 0d0
 
+         ! 10/24/12, ckeller: fix for EDGAR diurnal scale factors:
+         NOXHOUR = MIN( 23, NINT( GET_LOCALTIME ( I, J, 1 ) ) )
+         TODX = GET_EDGAR_TODN(I,J,NOXHOUR)
+
          ! Use spatially varying diurnal scale factors 
          ! from EDGAR (amv, phs, 3/10/08)
-         TODX = GET_EDGAR_TODN(I,J,HOUR)
+!         TODX = GET_EDGAR_TODN(I,J,HOUR)
 
          
          ! Loop over all of the emission levels for NOx (e.g. surface, 100m)
@@ -263,7 +280,7 @@
                   EDGAR   = GET_EDGAR_NOx( I, J, MOLEC_CM2_S=.TRUE. )
 
                   ! Apply EDGAR time-of-day factor
-                  EDGAR   = EDGAR * GET_EDGAR_TODN( I, J, HOUR )
+                  EDGAR   = EDGAR * TODX
 
                   ! Replace GEIA with EPA/NEI emissions at surface
                   EMX(LL) = EDGAR * ( DTSRCE * AREA_CM2 ) /
@@ -498,6 +515,7 @@
 ![eml
             IF ( LNEI05 .and. .not. LHIST ) THEN
 !eml]
+
                ! If we are over the USA and CAN/MEX
                IF ( NEI05_MASK( I, J ) > 0d0 ) THEN
 
@@ -513,7 +531,6 @@
      &                      ( DTSRCE * AREA_CM2 ) / XNUMOL(IDTNO2)
 
                ENDIF
-               
 
             ENDIF
 
@@ -932,8 +949,15 @@
             ENDIF
 
             ! overwrite Europe
-            IF ( LEMEPSHIP ) SHIP = 
-     $           GET_EMEP_ANTHRO( I, J, NN, SHIP=.TRUE.)
+            IF ( LEMEPSHIP ) THEN
+            
+               ! If we are over the European region ...
+               ! (bug fix, now overwrite only EMEP region, cdh 1/2/2013)
+               IF ( GET_EUROPE_MASK( I, J ) > 0d0 ) THEN
+                  SHIP =  GET_EMEP_ANTHRO( I, J, NN, SHIP=.TRUE.)
+               ENDIF
+
+            ENDIF
 
             ! Convert to same units as EMX(1), and add
             SHIP = SHIP * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 

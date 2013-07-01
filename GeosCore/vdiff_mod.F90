@@ -1785,7 +1785,8 @@ contains
     USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_DD, ADD_HgP_DD
     USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
     USE DIAG_MOD,           ONLY : AD44
-    USE DRYDEP_MOD,         ONLY : DEPNAME, NUMDEP, NTRAIND, DEPSAV
+    USE DRYDEP_MOD,         ONLY : DEPNAME, NUMDEP, NTRAIND, DEPSAV, &
+                                   SHIPO3DEP
     USE DRYDEP_MOD,         ONLY : DRYHg0, DRYHg2, DRYHgP !cdh
     USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
     USE GIGC_State_Met_Mod, ONLY : MetState
@@ -1805,6 +1806,7 @@ contains
     USE TRACER_MOD,         ONLY : ITS_A_CH4_SIM
     USE TRACER_MOD,         ONLY : ITS_A_MERCURY_SIM ! (cdh 8/28/09)
     USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM  !bmy
+    USE TRACER_MOD,         ONLY : ITS_AN_AEROSOL_SIM
     USE TRACERID_MOD,       ONLY : IS_Hg0, IS_Hg2, IS_HgP
     USE VDIFF_PRE_MOD,      ONLY : IIPAR, JJPAR, IDEMS, NEMIS, NCS, ND44, &
                                    NDRYDEP, emis_save
@@ -1850,6 +1852,7 @@ contains
 !  22 Jun 2012 - R. Yantosca - Now use pointers to flip arrays in vertical
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  18 Jun 2013 - M. Payer    - Add emissions for offline aerosol simulation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1887,7 +1890,7 @@ contains
     REAL*8, dimension(IIPAR, JJPAR, N_TRACERS)  :: as2_scal
 
     ! Add flags
-    LOGICAL :: IS_CH4, IS_FULLCHEM, IS_Hg, IS_TAGOx, IS_TAGCO
+    LOGICAL :: IS_CH4, IS_FULLCHEM, IS_Hg, IS_TAGOx, IS_TAGCO, IS_AEROSOL
 
     ! Pointers 
     REAL*8,  POINTER :: p_um1   (:,:,:  )
@@ -1943,6 +1946,7 @@ contains
     IS_Hg       = ITS_A_MERCURY_SIM()
     IS_TAGCO    = ITS_A_TAGCO_SIM()
     IS_TAGOX    = ITS_A_TAGOX_SIM()
+    IS_AEROSOL  = ITS_AN_AEROSOL_SIM()
 
     dtime = GET_TS_CONV()*60d0 ! min -> second
     
@@ -2056,6 +2060,23 @@ contains
        ENDIF
 
        !----------------------------------------------------------------
+       ! Add emissions for offline aerosol simulation
+       !----------------------------------------------------------------
+       IF ( IS_AEROSOL ) THEN
+
+          ! add surface emis of aerosols 
+          ! (after converting kg/box/timestep to kg/m2/s)
+          ! Should NOT use ID_EMITTED here, since it is only for gases 
+          ! for SMVGEAR. (Lin, 06/10/08)
+          do N = 1, N_TRACERS
+             eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N)       &
+                                       / GET_AREA_M2( I, J, 1 ) &
+                                       / GET_TS_EMIS() / 60.d0
+          enddo
+
+       ENDIF
+
+       !----------------------------------------------------------------
        ! Zero emissions for tagged CO simulation
        !
        ! CO emis are considered in tagged_co_mod.f.  This over-
@@ -2133,7 +2154,17 @@ contains
              ! first (lowest) model layer
              ! given that as2 is in v/v
              dflx(I,J,NN) = DEPSAV(I,J,N) * (wk1/(wk2+1.d-30)) / TCVV(NN)
-             
+
+             ! Special case for O3. Increase the deposition frequency (SHIPO3DEP)
+             ! when there is O3 destruction in subgrid ship plume 
+             ! parameterization. This is roughly equivalent to negative
+             ! emissions, which were used previously by PARANOX,
+             ! but caused instability in the chemical solver
+             ! (cdh, 3/21/2013)
+             IF (TRIM( DEPNAME(N) ) == 'O3') THEN
+                dflx(I,J,NN) = dflx(I,J,NN) + SHIPO3DEP(I,J) * (wk1/(wk2+1.d-30)) / TCVV(NN)
+             ENDIF
+
              ! consistency with the standard GEOS-Chem setup (Lin, 07/14/08)
              if (drydep_back_cons) then 
                 dflx(I,J,NN) = dflx(I,J,NN) * (wk2+1.d-30) / &
@@ -2148,6 +2179,16 @@ contains
              ! NOTE: Now use as2_scal(I,J,NN), instead of as2(I,J,1,NN) to 
              ! avoid seg faults in parallelization (ccarouge, bmy, 12/20/10)
              dflx(I,J,NN) = DEPSAV(I,J,N) * as2_scal(I,J,NN) / TCVV(NN)
+
+             ! Special case for O3. Increase the deposition frequency (SHIPO3DEP)
+             ! when there is O3 destruction in subgrid ship plume 
+             ! parameterization. This is roughly equivalent to negative
+             ! emissions, which were used previously by PARANOX,
+             ! but caused instability in the chemical solver
+             ! (cdh, 3/21/2013)
+             IF ( (TRIM( DEPNAME(N) ) == 'O3') .and. (SHIPO3DEP(I,J) > 0d0) ) THEN
+                dflx(I,J,NN) = dflx(I,J,NN) + SHIPO3DEP(I,J) * as2_scal(I,J,NN) / TCVV(NN)
+             ENDIF
 
              !------------------------------------------------------------------
              !Prior to 25 Oct 2011, H Amos
@@ -2345,6 +2386,7 @@ contains
     enddo
     enddo
 !$OMP END PARALLEL DO
+
 
     ! drydep fluxes diag. for SMVGEAR mechanism 
     ! for gases -- moved from DRYFLX in drydep_mod.f to here

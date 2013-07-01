@@ -160,6 +160,8 @@ CONTAINS
 !                              when connecting GEOS-Chem to the GEOS-5 GCM
 !  21 Mar 2013 - R. Yantosca - Add fix to prevent zero surface area at poles
 !  21 Mar 2013 - R. Yantosca - Rename loop indices to prevent confusion
+!  06 Jun 2013 - M. Payer    - Add fix to compute sine of last latitude edge
+!                              for MAP_A2A regridding (C. Keller)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -345,6 +347,9 @@ CONTAINS
              YEDGE  (I,J2+1,L)   = +90d0
 #endif
              YEDGE_R(I,J2+1,L)   = YEDGE(I,J2+1,L) * PI_180
+
+             ! Also compute sine of last latitude edge! (ckeller, 02/13/12)
+             YSIN(I,J2+1,L) = SIN ( YEDGE_R(I,J2+1,L) )
           ENDDO
           
        ELSE
@@ -357,6 +362,9 @@ CONTAINS
           DO I = I1, I2
              YEDGE  (I,J2+1,L)  = YEDGE(I,J2,L  ) + DLAT(I,J2,L)
              YEDGE_R(I,J2+1,L)  = YEDGE(I,J2+1,L) * PI_180
+
+             ! Also compute sine of last latitude edge! (ckeller, 02/13/12)
+             YSIN(I,J2+1,L) = SIN ( YEDGE_R(I,J2+1,L) )
           ENDDO
        ENDIF
 

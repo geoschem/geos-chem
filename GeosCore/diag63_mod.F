@@ -118,9 +118,11 @@
       USE TIME_MOD,     ONLY : GET_NYMD_DIAG,      GET_TS_DIAG
       USE TIME_MOD,     ONLY : GET_TAU,            GET_HOUR
       USE TIME_MOD,     ONLY : ITS_A_NEW_DAY,      TIMESTAMP_STRING
+      USE TIME_MOD,     ONLY : GET_TAUb
       USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
       USE PRESSURE_MOD, ONLY : GET_PEDGE
-      USE DIAG_MOD,     ONLY : AD63     
+      USE DIAG_MOD,     ONLY : AD63,    AD63_COUNT     
+      USE ERROR_MOD,    ONLY : SAFE_DIV
 
       USE CMN_FJ_MOD         ! FAST-J stuff, includes CMN_SIZE
       USE JV_CMN_MOD         ! ODAER, QAA, QAA_AOD (clh)
@@ -141,7 +143,7 @@
       INTEGER                  :: IOS,  GMTRC, GMNL, I, J, K, L 
       INTEGER                  :: N,    R,     H,    W, X, Y
       INTEGER                  :: NHMS, TS_DIAG
-      REAL*8                   :: TAU
+      REAL*8                   :: TAU1, TAU0
       REAL*8                   :: Q( ND63_NI, ND63_NJ, 1)
       CHARACTER(LEN=16)        :: STAMP
       CHARACTER(LEN=40)        :: CATEGORY
@@ -164,7 +166,10 @@
       ! To change TS_DIAG to NHMS format
       TS_DIAG = TS_DIAG/60 * 10000 + (TS_DIAG - (TS_DIAG/60)*60) * 100  
 
-      IF ( NHMS == TS_DIAG ) THEN     ! It's a new day for diagnostics.
+      ! Check if it's a new day for diagnostics, 
+      ! or if the model run just started
+      IF ( (NHMS == TS_DIAG) .OR. 
+     &     (GET_TAU() == ( GET_TAUb() + ND63_FREQ/60d0 )) ) THEN
 
          ! Find a free file LUN
          IU_ND63  = findFreeLUN()
@@ -191,7 +196,10 @@
  110  FORMAT( '     - DIAG63: Saving timeseries at ', a )
 
       ! Time for BPCH file
-      TAU  = GET_TAU()
+      TAU1  = GET_TAU()
+      
+      ! Time for start of averaging period
+      TAU0  = TAU1 - (ND63_FREQ / 60d0) 
 
       ! Loop over tracers
       DO W = 1, ND63_N_TRACERS
@@ -214,7 +222,10 @@
                J = JOFF + Y
             DO X = 1, ND63_NI
                I = GET_I( X )
-               Q(X,Y,1) = AD63(I,J,W)
+               ! Normalize by AD63_COUNT, 
+               ! the number of times diagnostics are summed
+               Q(X,Y,1) = SAFE_DIV( DBLE(AD63(I,J,W)), DBLE(AD63_COUNT),
+     &                              0d0 )
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
@@ -225,12 +236,22 @@
          CALL BPCH2( IU_ND63,      MODELNAME,    LONRES,   
      &               LATRES,       HALFPOLAR,    CENTER180, 
      &               CATEGORY,     GMTRC,        UNIT,      
-     &               TAU,          TAU,          RESERVED,  
+     &               TAU0,         TAU1,         RESERVED,  
      &               ND63_NI,      ND63_NJ,      1,  
      &               ND63_IMIN+I0, ND63_JMIN+J0, 1, 
      &               REAL( Q(1:ND63_NI, 1:ND63_NJ, 1) ) )
       ENDDO
             
+      !=================================================================
+      ! Reset the AD63 to zero
+      !=================================================================
+
+      ! Zero all elements
+      AD63(:,:,:) = 0d0
+
+      ! Reset the counter
+      AD63_COUNT = 0d0
+
       !=================================================================
       ! Close the file at the proper time
       !=================================================================

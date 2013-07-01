@@ -404,8 +404,7 @@
       REAL*8              :: INGRID (I1x1, J1x1 )
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      REAL*8, ALLOCATABLE :: A(:,:)
-      INTEGER AS
+      REAL*8              :: A(IIPAR,JJPAR)
 #endif
 
       ! For fields from Input_Opt
@@ -428,10 +427,8 @@
       ! First-time initialization
       IF ( FIRST ) THEN
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-         ALLOCATE( A( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMEP:A' )
          A = 0d0
-#endif         
+#endif
          
          CALL INIT_EMEP( am_I_Root, Input_Opt, RC )
          FIRST = .FALSE.

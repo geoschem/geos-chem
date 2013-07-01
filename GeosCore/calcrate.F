@@ -87,6 +87,14 @@
 !                              partitioning
 !  16 May 2013 - M. Payer    - Add nitrate effect (L. Zhang)
 !  17 May 2013 - M. Payer    - Add improved HO2 uptake (J. Mao)
+!  21 Mar 2013 - C. Holmes   - Treat O3 destruction in the PARANOX ship plume 
+!                              parameterization as dry deposition. These 
+!                              "negative emissions" were previously set to zero.
+!                              Now we calculate an effective dry deposition 
+!                              frequency that will remove O3 at the same rate 
+!                              that the plume parameterization calculates.
+!  06 Jun 2013 - M. Payer    - Move ship NOx plume emissions to routine
+!                              SETEMIS (C. Holmes)
 !******************************************************************************
 !
 ! !USES:
@@ -99,15 +107,9 @@
       USE COMODE_MOD,         ONLY : ABSHUM, AIRDENS, ERADIUS, IXSAVE, 
      &                               IYSAVE, IZSAVE,  JLOP,    PRESS3,  
      &                               REMIS,  T3,      TAREA,    CSPEC
-      USE COMODE_MOD,         ONLY : VOLUME
       USE DAO_MOD,            ONLY : IS_ICE
       USE DIAG_MOD,           ONLY : AD22,   LTJV, AD52
-      USE DIAG_MOD,           ONLY : AD32_an, AD36,   AD63
-      USE DIAG63_MOD,         ONLY : DO_SAVE_DIAG63
-      USE DRYDEP_MOD,         ONLY : DEPSAV, NUMDEP, DEPNAME
-      USE EDGAR_MOD,          ONLY : GET_EDGAR_NOx
-      USE EMEP_MOD,           ONLY : GET_EMEP_ANTHRO, GET_EUROPE_MASK
-      USE EMISSIONS_MOD,      ONLY : NOx_SCALING      
+      USE DRYDEP_MOD,         ONLY : DEPSAV, NUMDEP, DEPNAME, SHIPO3DEP
       USE ERROR_MOD,          ONLY : is_safe_div
       USE ERROR_MOD,          ONLY : ERROR_STOP, GEOS_CHEM_STOP
       USE ERROR_MOD,          ONLY : CHECK_VALUE
@@ -116,22 +118,12 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE GRID_MOD,           ONLY : GET_YMID
-      USE ICOADS_SHIP_MOD,    ONLY : GET_ICOADS_SHIP
-      USE PARANOX_MOD,        ONLY : INTERPOLATE_LUT2
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP,GET_PBL_TOP_L
-      USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE     
       USE PLANEFLIGHT_MOD,    ONLY : ARCHIVE_RXNS_FOR_PF
-      USE TIME_MOD,           ONLY : GET_TS_EMIS
       USE TRACERID_MOD,       ONLY : IDTHBr,  IDTHOBr
       USE TRACERID_MOD,       ONLY : IDHO2
-      USE TRACERID_MOD,       ONLY : IDTNO,  IDTO3,  IDTHNO3, IDTNO2
-      USE TRACERID_MOD,       ONLY : IDNO,   IDO3,   IDHNO3,  IDNO2
-      USE TRACERID_MOD,       ONLY : IDENO,  IDEO3,  IDEHNO3
       USE TRACERID_MOD,       ONLY : IDTSO4, IDTNIT
-      USE TRACERID_MOD,       ONLY : CTRMB,  IDEMIS
 
       IMPLICIT NONE
 #     include "define.h"
@@ -159,13 +151,6 @@
       LOGICAL :: LJO1DH2, LJO1DH2O, LPCELL   ! (bhh, jmao, eam, 7/18/11)
       INTEGER :: NP,K,IFNC,IBRCH,IX,IY,IZ,IJWINDOW,INDEX,NN,ii,jj
       INTEGER :: PHOTVAL,KSUN
-
-      ! Added by GVINKEN
-      REAL*8  :: SHIP
-      REAL*8  :: DTSRCE, AREA_CM2
-      REAL    :: fraction_nox, int_ope 
-      INTEGER :: L, TOP
-      REAL*8  :: EMIS_BL, COEF1,   TOTPRES, DELTPRES
 
       REAL*8  :: ARRNK,FCVNK,FCT1,FCT2,FCT,XYRAT,BLOG,FEXP,RATE3M
       REAL*8  :: RO1D, RO1DplH2O, RO1DplH2   ! (bhh, jmao, eam, 7/18/11)
@@ -239,14 +224,16 @@
       ! Add nitrate effect (lzh, 10/25/2011)
       REAL*8           :: TMP1, TMP2
 
+      ! Avoid array temporaries in CHECK_VALUE
+      INTEGER            :: ERR_LOC(4)
+      CHARACTER(LEN=255) :: ERR_VAR
+      CHARACTER(LEN=255) :: ERR_MSG
+
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       !%%% NEED TO GET THESE FIELDS FROM Input_Opt SO THAT     %%%
       !%%% THE MPI PARALLELIZATION WILL WORK PROPERLY FOR ESMF %%%
       !%%% (bmy, 3/5/13)                                       %%%
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      LOGICAL :: LEDGARSHIP
-      LOGICAL :: LEMEPSHIP
-      LOGICAL :: LICOADSSHIP
       LOGICAL :: LKPP
       LOGICAL :: LNLPBL
       LOGICAL :: LVISTAS
@@ -266,9 +253,6 @@
       RC            = GIGC_SUCCESS
 
       ! Save fields from Input_Opt into local variables
-      LEDGARSHIP    = Input_Opt%LEDGARSHIP
-      LEMEPSHIP     = Input_Opt%LEMEPSHIP
-      LICOADSSHIP   = Input_Opt%LICOADSSHIP
       LKPP          = Input_Opt%LKPP
       LNLPBL        = Input_Opt%LNLPBL
       LVISTAS       = Input_Opt%LVISTAS
@@ -532,78 +516,6 @@
      1              * EXP(KCRR(NK,NCS) / T3K(KLOOP))
  50         CONTINUE
  52      CONTINUE
-
-!
-! *********************************************************************
-! ******                SET DRY DEPOSITION RATES                 ******
-! ******                                                         ******
-! ******   NOTE: Now compute drydep throughout the mixed layer   ******
-! ******   (a.k.a. PBL) in order to prevent short-lived species  ******
-! ******   such as HNO3 from being depleted in the shallow       ******
-! ******   surface layer. (rjp, bmy, 7/30/03)                    ******   
-! *********************************************************************
-!
-! Add option for non-local PBL mixing (Lin, 03/31/09)
-      IF (LNLPBL) THEN      
-
-         DO I = 1,NUMDEP
-            NK = NTDEP(I)
-            IF (NK.NE.0) THEN
-               DO KLOOP = 1,KTLOOP
-
-                  ! 1-D grid box index (accounts for reordering)
-                  JLOOP = LREORDER(KLOOP+JLOOPLO)
-
-                  ! 3-D grid box index
-                  IX    = IXSAVE(JLOOP)
-                  IY    = IYSAVE(JLOOP)
-                  IZ    = IZSAVE(JLOOP)
-               
-                  ! constrain the dry deposition to the lowest model layer
-                  ! (Lin, 04/28/08)
-                  if (IZ .NE. 1) then
-                     RRATE(KLOOP,NK) = 0.D0 
-                  else
-                     SELECT CASE ( DEPNAME(I) )
-                        CASE ( 'DST1', 'DST2', 'DST3', 'DST4', 'SALA', 
-     &                         'SALC' )
-                           ! dusts and sea salts
-                           RRATE(KLOOP,NK) = DEPSAV(IX,IY,I)
-                        CASE DEFAULT
-                           ! gases + aerosols for full chemistry
-                           RRATE(KLOOP,NK) = 0.D0
-                     END SELECT
-                  endif
-               ENDDO
-            ENDIF
-         ENDDO
-
-      ELSE
-  
-         DO I = 1,NUMDEP
-            NK = NTDEP(I)
-            IF (NK.NE.0) THEN
-               DO KLOOP = 1,KTLOOP
-
-                  ! 1-D grid box index (accounts for reordering)
-                  JLOOP = LREORDER(KLOOP+JLOOPLO)
-
-                  ! 3-D grid box index
-                  IX    = IXSAVE(JLOOP)
-                  IY    = IYSAVE(JLOOP)
-                  IZ    = IZSAVE(JLOOP)
-
-                  ! Now compute drydep throughout the entire PBL
-                  ! GET_FRAC_UNDER_PBLTOP returns the fraction of layer
-                  ! (IX, IY, IZ) that is beneath the PBL top
-                  RRATE(KLOOP,NK) = DEPSAV(IX,IY,I) * 
-     &                              GET_FRAC_UNDER_PBLTOP( IX, IY, IZ )
-
-               ENDDO
-            ENDIF
-         ENDDO
-
-      ENDIF
 
 !
 ! *********************************************************************
@@ -1052,8 +964,11 @@ c new OH+CO rate from JPL2006.
 
                      ! Now call CHECK_VALUE to make sure that XSTKCF is 
                      ! not a NaN or an infinity
-                     CALL CHECK_VALUE( XSTKCF, (/KLOOP,0,0,0/),
-     &                                 'GAMMA_HO2', 'at calcrate')
+                     ERR_VAR = 'GAMMA_HO2'
+                     ERR_MSG = 'at calcrate'
+                     ERR_LOC = (/ KLOOP,0,0,0 /)
+                     CALL CHECK_VALUE( XSTKCF,  ERR_LOC, 
+     &                                 ERR_VAR, ERR_MSG  )
 
                      ! Archive gamma HO2 for ND52 diagnostic
                      DUMMY3(KLOOP) = DUMMY3(KLOOP) +
@@ -1467,18 +1382,6 @@ c new OH+CO rate from JPL2006.
             IZ = IZSAVE(JLOOP)   
              
             !===========================================================
-            ! Store for ship emissions (gvinken, 6/09/10)
-            !===========================================================      
-            IF ( (INDEX == 1) .AND. ( IZ ==1 ) ) THEN
-               ! store J(NO2)
-               jvalues(IX,IY,1) = RRATE(KLOOP,NKN)
-            ENDIF
-            IF ( (INDEX == 5) .AND. ( IZ ==1 ) ) THEN
-               ! store J(O3)
-               jvalues(IX,IY,2) = DUMMY(KLOOP) !RRATE(KLOOP,NKN)
-            ENDIF     
-
-            !===========================================================
             ! Store J-values for 5 rxns + POH in ND22 diagnostic 
             !===========================================================
             IF ( ND22 > 0 ) THEN
@@ -1505,357 +1408,6 @@ c new OH+CO rate from JPL2006.
          ENDDO
       ENDDO
 
-
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Skip the following section where we compute the time-evolution
-      ! of ship emissions with the PARANOX model.  This will have to be
-      ! computed within the context of the new Emissions Component.
-      ! (bmy, 10/23/12)
-      !-----------------------------------------------------------------
-
-#else
-      !-----------------------------------------------------------------
-      !               %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Include the time-evolution of ship emissions with the PARANOX
-      ! model as written.  This is current practice in the standard
-      ! GEOS-Chem. (bmy, 10/23/12)
-      !-----------------------------------------------------------------
-!      
-!**********************************************************************
-!             UPDATE SHIP EMISSIONS NOW THAT J-VALUES ARE KNOWN         
-!**********************************************************************
-
-      ! Update only if ship emissions are turned on
-      IF ( LICOADSSHIP .or. LEDGARSHIP .or. LEMEPSHIP ) THEN
-
-         DO KLOOP = 1, KTLOOP
-!            JLOOP = LREORDER( KLOOP + JLOOPLO )
-            JLOOP = KLOOP + JLOOPLO   
-             
-            ! I-J-L indices
-            IX = IXSAVE(JLOOP)
-            IY = IYSAVE(JLOOP)
-            IZ = IZSAVE(JLOOP)   
-
-            ! DO it only once (1st level)
-            IF ( IZ == 1 ) THEN
-
-               ! Emission timestep [s]
-               DTSRCE   = GET_TS_EMIS() * 60d0
-
-               ! Surface area of grid box
-               AREA_CM2 = GET_AREA_CM2( IX, IY, IZ )
-   
-               ! Replaced NOx with NO (mpayer, 3/14/13)
-               NN = IDTNO
-
-               ! Reset
-               SHIP = 0D0
-
-!               !IF ((IX .eq. 59) .and. (IY .eq. 69)) THEN
-!                  PRINT*,"We are using EDGAR ", LEDGARSHIP
-!                  PRINT*,"We are using IDOADS ", LICOADSSHIP
-!                  PRINT*,"We are using EMEP ", LEMEPSHIP
-!                  PRINT*,"@@For 59,69 Europe mask is: ",
-!     &                     GET_EUROPE_MASK(IX,IY)
-!               endif  
-
-               ! handle global inventory first
-               IF ( LEDGARSHIP ) THEN 
-
-                  ! Get SHIP EDGAR emissions for NOx [molec/cm2/s]
-                  SHIP = GET_EDGAR_NOx( IX, IY, 
-     &                        MOLEC_CM2_S=.TRUE., SHIP=.TRUE.)
-                         
-                  
-               ! ICOADS ship emissions (cklee,7/09/09)
-               ELSE IF ( LICOADSSHIP ) THEN
-
-                  ! Get ICOADS  emissions for NOx [molec/cm2/s]
-                  SHIP = GET_ICOADS_SHIP( IX, IY, NN, 
-     &                        MOLEC_CM2_S=.TRUE. )
-                  
-               ENDIF
-
-!               ! THIS WAS USED TO TEST EMEP
-!               IF ((IX .eq. 59) .and. (IY .eq. 69)) THEN
-!                  JLOOP   = JLOP(IX,IY,1)
-!                  PRINT*,"@@In atlantic ocean, after ICOADS: ",
-!     &                     SHIP
-!               ENDIF  
-
-               ! Overwrite Europe
-               IF ( LEMEPSHIP ) THEN
-                 
-                  ! Prevent overwriting ICOADS data with a 0 value from EMEP 
-                  IF (GET_EUROPE_MASK( IX, IY ) > 0d0) THEN
-           
-                     ! Get SHIP EMEP emissions for NOx [molec/cm2/s]
-                     SHIP = GET_EMEP_ANTHRO( IX, IY, NN, SHIP=.TRUE.)
-                  ENDIF
-               ENDIF
-
-!               ! THIS IS TO TEST THE EMEP ROUTINE
-!               IF ((IX .eq. 59) .and. (IY .eq. 69)) THEN
-!                  JLOOP   = JLOP(IX,IY,1)
-!                  PRINT*,"@@In atlantic ocean, after EMEP: ",
-!     &                     SHIP
-!               ENDIF  
-                  
-               ! Convert molec/cm2/s to kg/box/timestep to get same
-               ! units as EMISRN, ie default GEIA emiss (phs, 7/9/09)
-               ! Convert NOx using XNUMOL for NO2 since original NOX
-               ! emissions are in mass units of NO2  (mpayer, 4/18/13)
-               SHIP = SHIP * ( DTSRCE * AREA_CM2 ) / XNUMOL(IDTNO2) 
-         
-               ! Add possible scaling of NOx emissions
-               SHIP = SHIP * NOx_SCALING
-
-               ! Determine fraction of NOx remaining and integrated Ozone
-               ! Production Efficiency for ship emiss (gvinken,mpayer,2/7/12)
-               CALL INTERPOLATE_LUT2( IX,             IY,           
-     &                             CBLK(KLOOP,IDO3),  CBLK(KLOOP,IDNO),
-     &                             CBLK(KLOOP,IDNO2), DENAIR(KLOOP),
-     &                             fraction_nox,      int_ope,
-     &                             State_Met          )
-
-               !===========================================================
-               ! STORE EMISSIONS DIRECTLY IN REMIS ARRAY, based on setemis.f
-               !===========================================================
-            
-               !===========================================================
-               ! For GEOS-3: distribute surface emissions throughout the
-               ! entire boundary layer.  Define some variables here.
-               ! (bdf, 6/15/01)
-               !===========================================================
-
-               ! Top level of the boundary layer
-               ! guard for b.l. being in first level.
-               TOP = FLOOR( GET_PBL_TOP_L( IX, IY ) )
-               IF ( TOP == 0 ) TOP = 1
-
-               ! Check for possible emissions above PBL (phs, 27/10/09)
-               ! Not necessary as ship emissions occur only in lowest level
-               !TOPMIX = MIN( TOP, NOXEXTENT )
-            
-               ! Add option for non-local PBL (Lin, 03/31/09)
-               IF (LNLPBL) TOP = 1
-
-               ! Pressure thickness of entire boundary layer [hPa]
-               TOTPRES = GET_PEDGE(IX,IY,1) - GET_PEDGE(IX,IY,TOP+1)
-
-               !========================================================
-               ! SHIP NO emissions [molec/box/s]
-               ! Distribute emissions thru the entire boundary layer
-               !========================================================
-
-               ! COEF1 = molecules of emission species / molecules of tracer
-           
-               COEF1 = 1.0 + CTRMB(NN, IDEMIS(NN))   !NN is IDTNOX
-
-
-               ! Loop over the boundary layer
-               DO L = 1, TOP
-                  JLOOP   = JLOP(IX,IY,L)
-                  EMIS_BL = 0d0
-                  
-                  IF ( JLOOP /= 0 ) THEN
-                     
-                     ! Thickness of level L [mb]
-                     DELTPRES = GET_PEDGE(IX,IY,L) - 
-     &                          GET_PEDGE(IX,IY,L+1)
-                     
-                     ! Add option for non-local PBL (Lin, 03/31/09)
-                     IF (LNLPBL) DELTPRES = TOTPRES
-                     
-                     ! Of the total anthro NOx, the fraction DELTPRES/TOTPRES
-                     ! goes into level L, since that is the fraction of the
-                     ! boundary layer occupied by level L.  Also divide NOx 
-                     ! by COEF1 to convert from [molec NOx/box/s] to 
-                     ! [molec NO/box/s], which is really what gets emitted.
-                     !
-                     ! Convert SHIP (kg/box/timestep) to the REMIS format 
-                     ! (molec NO/box/s) and multiply by the fraction of NOx
-                     ! remaining
-                     ! Convert NOx using XNUMOL for NO2 since original NOx
-                     ! emissions are in mass units of NO2 (mpayer, 4/18/13)
-                    
-                     EMIS_BL = ( (SHIP * fraction_nox * XNUMOL(IDTNO2)
-     &                             / DTSRCE )    
-     &                             / COEF1  ) * ( DELTPRES / TOTPRES )
-                    
-                     ! Convert anthro NOx emissions from [molec NO/box/s]
-                     ! to [molec NO/cm3/s] and add to the REMIS array
-                     ! Replaced NOX emissions with NO emissions (mpayer,3/14/13)
-                     REMIS(JLOOP,IDENO) = REMIS(JLOOP,IDENO) + 
-     &                                     EMIS_BL / VOLUME(JLOOP)
-                  ENDIF
-               ENDDO
-
-               !========================================================
-               ! SHIP HNO3 emissions [molec/box/s]
-               ! Distribute emissions thru the entire boundary layer
-               !========================================================
-
-               NN = IDTHNO3
-
-               ! COEF1 = molecules of emission species / molecules of tracer
-               COEF1 = 1.0 + CTRMB(NN, IDEMIS(NN))   
-
-               ! Loop over the boundary layer
-               DO L = 1, TOP
-                  JLOOP   = JLOP(IX,IY,L)
-                  EMIS_BL = 0d0
-                  
-                  IF ( JLOOP /= 0 ) THEN
-                     
-                     ! Thickness of level L [mb]
-                     DELTPRES = GET_PEDGE(IX,IY,L) - 
-     &                          GET_PEDGE(IX,IY,L+1)
-                     
-                     ! Add option for non-local PBL (Lin, 03/31/09)
-                     IF (LNLPBL) DELTPRES = TOTPRES
-                     
-                     ! Of the total ship HNO3, the fraction DELTPRES/TOTPRES
-                     ! goes into level L, since that is the fraction of the
-                     ! boundary layer occupied by level L.  Also divide HNO3 
-                     ! by COEF1 to convert from [molec NOx/box/s] to 
-                     ! [molec NO/box/s], which is really what gets emitted.
-                     !
-                     ! Convert SHIP (kg/box/timestep) to the REMIS format 
-                     ! (molec NO/box/s) and multiply by the 1 - fraction of 
-                     ! NOx remaining
-                    
-                     EMIS_BL = ( (SHIP*(1D0 - fraction_nox)* XNUMOL(NN) 
-     &                           / DTSRCE )    
-     &                           / COEF1   ) * ( DELTPRES / TOTPRES )
-                    
-                     ! Convert ship HNO3 emissions from [molec NO/box/s]
-                     ! to [molec NO/cm3/s] and store in the REMIS array
-                     REMIS(JLOOP,IDEHNO3) = REMIS(JLOOP,IDEHNO3) + 
-     &                                      EMIS_BL / VOLUME(JLOOP)
-                  ENDIF
-               ENDDO
-   
-               !========================================================
-               ! SHIP O3 emissions [molec/box/s]
-               ! Distribute emissions thru the entire boundary layer
-               !========================================================
-
-               ! Replaced Ox with O3 (mpayer, 3/14/13)
-               NN = IDTO3
-
-               ! COEF1 = molecules of emission species / molecules of tracer
-               COEF1 = 1.0 + CTRMB(NN, IDEMIS(NN))   
-
-               ! Loop over the boundary layer
-               DO L = 1, TOP
-                  JLOOP   = JLOP(IX,IY,L)
-                  EMIS_BL = 0d0
-                  
-                  IF ( JLOOP /= 0 ) THEN
-                        
-                     ! Thickness of level L [mb]
-                     DELTPRES = GET_PEDGE(IX,IY,L) - 
-     &                          GET_PEDGE(IX,IY,L+1)
-                     
-                     ! Add option for non-local PBL (Lin, 03/31/09)
-                     IF (LNLPBL) DELTPRES = TOTPRES
-                     
-                     ! Of the total ship O3, the fraction DELTPRES/TOTPRES
-                     ! goes into level L, since that is the fraction of the
-                     ! boundary layer occupied by level L.  Also divide O3 
-                     ! by COEF1 to convert from [molec NOx/box/s] to 
-                     ! [molec NO/box/s], which is really what gets emitted.
-                     !
-                     ! Convert SHIP (kg/box/timestep) to the REMIS format 
-                     ! (molec NO/box/s)
-!                     EMIS_BL = ( (int_ope * fraction_nox * SHIP    
-                     EMIS_BL = ( (int_ope * (1D0 - fraction_nox) * SHIP  
-     &                           * XNUMOL(NN) / DTSRCE )    
-     &                           / COEF1   ) * ( DELTPRES / TOTPRES )
-                    
-                     ! Convert ship O3 emissions from [molec NO/box/s]
-                     ! to [molec NO/cm3/s] and store in the REMIS array
-                     ! Replaced Ox emissions with O3 emissions (mpayer, 3/14/13)
-                     REMIS(JLOOP,IDEO3) = REMIS(JLOOP,IDEO3) + 
-     &                                     EMIS_BL / VOLUME(JLOOP)
-
-                     !%%% DO NOT LET NEGATIVE SHIP EMISSIONS GET  
-                     !%%% ARCHIVED INTO REMIS (bmy, mpayer, 6/20/12)
-                     IF ( REMIS(JLOOP,IDEO3) < 0d0 ) THEN
-                        REMIS(JLOOP,IDEO3) = 0d0
-                     ENDIF
-                  ENDIF
-               ENDDO
-           
-               !===================================================
-               ! Update diagnostics
-               !===================================================
-               !ND36 = Anthro source diagnostic...store as [molec/cm2]
-               !and convert to [molec/cm2/s] in DIAG3.F
-               IF ( ND36 > 0 ) THEN
-
-                  AD36(IX,IY,IDEHNO3) = AD36(IX,IY,IDEHNO3) + SHIP * 
-     &                                  (1D0 - fraction_nox) *
-     &                                  XNUMOL(IDTHNO3) / AREA_CM2
-
-                  AD36(IX,IY,IDEO3)  = AD36(IX,IY,IDEO3) + SHIP * 
-     &                                 int_ope * (1D0 - fraction_nox)* 
-     &                                 XNUMOL(IDTO3) / AREA_CM2
-    
-                  AD36(IX,IY,IDENO)  = AD36(IX,IY,IDENO)  + SHIP * 
-     &                                 fraction_nox * 
-     &                                 XNUMOL(IDTNO2) / AREA_CM2
-               ENDIF
-
-               ! ND32 = save anthro NOx for levels L=1,NOXEXTENT [molec/cm2/s]
-               IF ( ND32 > 0 ) THEN
-                  AD32_an(IX,IY,IZ) = AD32_an(IX,IY,IZ) + ( SHIP * 
-     &                                fraction_nox * XNUMOL(IDTNO2) / 
-     &                                ( DTSRCE * AREA_CM2 ) )   
-               ENDIF
-
-               ! ND63 = save the fraction of NOx remaining and integrated OPE +
-               ! extra stuff
-               ! Unit for 3-5 is kg/box/timestep
-               IF ( DO_SAVE_DIAG63 ) THEN
-                  AD63(IX,IY,1) = fraction_nox
-                  AD63(IX,IY,2) = int_ope
-                  AD63(IX,IY,3) = fraction_nox * SHIP
-                  AD63(IX,IY,4) = int_ope * (1D0 - fraction_nox) * SHIP
-                  AD63(IX,IY,5) = SHIP
-               ENDIF
-
-               ! Debug
-!               JLOOP   = JLOP(IX,IY,1)
-!              IF ((IX .eq. 108) .and. (IY .eq. 49)) THEN
-!                  PRINT*,"In calcrate.f: ",fraction_nox, int_ope
-!                  PRINT*,"NOx scaling: ",NOx_SCALING
-!                  PRINT*,"In calcrate.f: remis(ox),(hno3),(nox) after: ",
-!     &                    REMIS(JLOOP,IDEO3), REMIS(JLOOP,IDEHNO3),
-!     &                          REMIS(JLOOP,IDENO)
-!                  PRINT*,"This is values for emisison of ship after jval"
-!                  PRINT*,"------------END CALCRATE.F-----------------"
-!               ENDIF    
-!               IF ((IX .eq. 73) .and. (IY .eq. 76)) THEN
-!                  JLOOP   = JLOP(IX,IY,1)
-!                  PRINT*,"In calcrate.f, north sea: ",
-!     &                     fraction_nox,int_ope
-!                  PRINT*,"In calcrate.f, north sea: remis(ox),(hno3),",
-!     &                   "(nox) after: ",
-!     &                    REMIS(JLOOP,IDEO3), REMIS(JLOOP,IDEHNO3),
-!     &                          REMIS(JLOOP,IDENO)
-!               ENDIF                    
-               
-            ENDIF
-         ENDDO
-      ENDIF
-#endif
 !
 ! *********************************************************************
 ! ******                   SET EMISSION RATES                    ******
@@ -1909,6 +1461,90 @@ c new OH+CO rate from JPL2006.
                      RRATE(KLOOP,NK) = REMIS(JLOOP,I)
                   ENDDO
                ENDIF
+            ENDIF
+         ENDDO
+
+      ENDIF
+!
+! *********************************************************************
+! ******                SET DRY DEPOSITION RATES                 ******
+! ******                                                         ******
+! ******   NOTE: Now compute drydep throughout the mixed layer   ******
+! ******   (a.k.a. PBL) in order to prevent short-lived species  ******
+! ******   such as HNO3 from being depleted in the shallow       ******
+! ******   surface layer. (rjp, bmy, 7/30/03)                    ******   
+! *********************************************************************
+!
+! Add option for non-local PBL mixing (Lin, 03/31/09)
+      IF (LNLPBL) THEN      
+
+         DO I = 1,NUMDEP
+            NK = NTDEP(I)
+            IF (NK.NE.0) THEN
+               DO KLOOP = 1,KTLOOP
+
+                  ! 1-D grid box index (accounts for reordering)
+                  JLOOP = LREORDER(KLOOP+JLOOPLO)
+
+                  ! 3-D grid box index
+                  IX    = IXSAVE(JLOOP)
+                  IY    = IYSAVE(JLOOP)
+                  IZ    = IZSAVE(JLOOP)
+               
+                  ! constrain the dry deposition to the lowest model layer
+                  ! (Lin, 04/28/08)
+                  if (IZ .NE. 1) then
+                     RRATE(KLOOP,NK) = 0.D0 
+                  else
+                     SELECT CASE ( DEPNAME(I) )
+                        CASE ( 'DST1', 'DST2', 'DST3', 'DST4', 'SALA', 
+     &                         'SALC' )
+                           ! dusts and sea salts
+                           RRATE(KLOOP,NK) = DEPSAV(IX,IY,I)
+                        CASE DEFAULT
+                           ! gases + aerosols for full chemistry
+                           RRATE(KLOOP,NK) = 0.D0
+                     END SELECT
+                  endif
+               ENDDO
+            ENDIF
+         ENDDO
+
+      ELSE
+  
+         DO I = 1,NUMDEP
+            NK = NTDEP(I)
+            IF (NK.NE.0) THEN
+               DO KLOOP = 1,KTLOOP
+
+                  ! 1-D grid box index (accounts for reordering)
+                  JLOOP = LREORDER(KLOOP+JLOOPLO)
+
+                  ! 3-D grid box index
+                  IX    = IXSAVE(JLOOP)
+                  IY    = IYSAVE(JLOOP)
+                  IZ    = IZSAVE(JLOOP)
+
+                  ! Now compute drydep throughout the entire PBL
+                  ! GET_FRAC_UNDER_PBLTOP returns the fraction of layer
+                  ! (IX, IY, IZ) that is beneath the PBL top
+                  RRATE(KLOOP,NK) = DEPSAV(IX,IY,I) * 
+     &                              GET_FRAC_UNDER_PBLTOP( IX, IY, IZ )
+
+                  ! Special case for O3. Increase the deposition frequency (SHIPO3DEP)
+                  ! when there is O3 destruction in subgrid ship plume 
+                  ! parameterization. This is roughly equivalent to negative
+                  ! emissions, which were used previously by PARANOX,
+                  ! but caused instability in the chemical solver
+                  ! (cdh, 3/21/2013)
+                  SELECT CASE ( TRIM(DEPNAME(I)) )
+                     CASE ( 'O3' )
+                        RRATE(KLOOP,NK) = RRATE(KLOOP,NK) + 
+     &                              SHIPO3DEP(IX,IY) * 
+     &                              GET_FRAC_UNDER_PBLTOP( IX, IY, IZ )
+                     CASE DEFAULT  ! Do nothing
+                  END SELECT
+               ENDDO
             ENDIF
          ENDDO
 

@@ -764,6 +764,7 @@
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  10-Jan-2011 - H. Amos - Corrected the units on KStar298 from moles/atm
 !                          to M/atm
+!  15-May-2013 - F. Paulot - Fix R constant
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -775,7 +776,7 @@
 ! !DEFINED PARAMETERS:
 !
       ! R = universal gas constant [L*atm/moles/K]
-      REAL*8, PARAMETER   :: R = 8.32d-2
+      REAL*8, PARAMETER   :: R = 8.2057 d-2  
 
       ! INV_T0 = 1/298 K
       REAL*8, PARAMETER   :: INV_T0 = 1d0 / 298d0

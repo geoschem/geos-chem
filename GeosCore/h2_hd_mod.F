@@ -770,49 +770,54 @@
 !                              derived type object
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  11 Apr 2013 - R. Yantosca - Now pass Input_Opt to GET_GLOBAL_NOx
-
+!  10 Jun 2013 - R. Yantosca - Avoid array temporaries in CHECK_VALUE
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE          :: FIRSTCHEM = .TRUE.
-      INTEGER                :: N_TRACERS
-      INTEGER                :: I, J, L, N, MONTH
-      REAL*8                 :: ALPHA_CH4, ALPHA_ISOP, ALPHA_MONO
-      REAL*8                 :: DTCHEM,    GH2,        PCO
-      REAL*8                 :: GHD,       STTHD
-      REAL*8                 :: STTH2,     KRATE,      CH4
-      REAL*8                 :: H2_CH4,    H2_ISOP,    H2_MONO
-      REAL*8                 :: H2_CH3OH,  H2_OH,      H2_ACET
-      REAL*8                 :: HD_OH,     O1DRATE,    HD_RATE
-      REAL*8                 :: HD_O1D,    H2_O1D,     HD_CH4
-      REAL*8                 :: CH4RATE,   DENS,       ALPHA_ACET
-      REAL*8                 :: CORATE,    YMID,       DPHOTO
-      REAL*8                 :: KTEST(IIPAR, JJPAR)
-      REAL*8                 :: AREA_CM2, SVEL, FLUX
-      REAL*8                 :: THIK, P2, DRYF, TESTVAR
-      REAL*8                 :: FRACLOST, H2_RATE
+      LOGICAL, SAVE      :: FIRSTCHEM = .TRUE.
+      INTEGER            :: N_TRACERS
+      INTEGER            :: I, J, L, N, MONTH
+      REAL*8             :: ALPHA_CH4, ALPHA_ISOP, ALPHA_MONO
+      REAL*8             :: DTCHEM,    GH2,        PCO
+      REAL*8             :: GHD,       STTHD
+      REAL*8             :: STTH2,     KRATE,      CH4
+      REAL*8             :: H2_CH4,    H2_ISOP,    H2_MONO
+      REAL*8             :: H2_CH3OH,  H2_OH,      H2_ACET
+      REAL*8             :: HD_OH,     O1DRATE,    HD_RATE
+      REAL*8             :: HD_O1D,    H2_O1D,     HD_CH4
+      REAL*8             :: CH4RATE,   DENS,       ALPHA_ACET
+      REAL*8             :: CORATE,    YMID,       DPHOTO
+      REAL*8             :: KTEST(IIPAR, JJPAR)
+      REAL*8             :: AREA_CM2, SVEL, FLUX
+      REAL*8             :: THIK, P2, DRYF, TESTVAR
+      REAL*8             :: FRACLOST, H2_RATE
+
+      ! Avoid array temporaries in CHECK_VALUE
+      INTEGER            :: ERR_LOC(4)
+      CHARACTER(LEN=255) :: ERR_VAR
+      CHARACTER(LEN=255) :: ERR_MSG
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL*8, POINTER :: STT(:,:,:,:)
+      REAL*8, POINTER    :: STT(:,:,:,:)
 
-      ! For saving CH4 latitudinal gradient
-      REAL*8,  SAVE          :: A3090S, A0030S, A0030N, A3090N
+      ! For saving CH4 l atitudinal gradient
+      REAL*8,  SAVE      :: A3090S, A0030S, A0030N, A3090N
 
       ! External functions
-      REAL*8,  EXTERNAL      :: BOXVL
+      REAL*8,  EXTERNAL  :: BOXVL
 !
 ! !DEFINED PARAMETERS:
 !
       ! WTAIR = molecular weight of air (g/mole)
-      REAL*8,  PARAMETER     :: WTAIR = 28.966d0
+      REAL*8,  PARAMETER :: WTAIR = 28.966d0
       
       ! Switch to scale yield of isoprene from NOx concentration or not
-      LOGICAL, PARAMETER     :: ALPHA_ISOP_FROM_NOX = .FALSE.
+      LOGICAL, PARAMETER :: ALPHA_ISOP_FROM_NOX = .FALSE.
 
       !=================================================================
       ! CHEM_H2_HD begins here!
@@ -882,6 +887,7 @@
 !$OMP+PRIVATE( H2_OH, YMID, DPHOTO, SVEL, FLUX, AREA_CM2    )
 !$OMP+PRIVATE( GHD, STTHD, HD_OH, HD_CH4, HD_O1D, H2_RATE, HD_RATE)
 !$OMP+PRIVATE( H2_O1D, DRYF, P2, THIK, FRACLOST  )
+!$OMP+PRIVATE( ERR_LOC, ERR_VAR, ERR_MSG )
       
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -990,11 +996,12 @@
 	    HD_CH4 = H2_CH4 * DPHOTO
 
          ENDIF
-	 
-         ! Check H2_CH4 for NaN or Infinity
-         CALL CHECK_VALUE( H2_CH4,  (/ I, J, L, 0 /),
-     *                    'H2_CH4', 'STOP at h2_hd_mod:1' )
 
+         ! Check H2_CH4 for NaN or Infinity
+         ERR_LOC = (/ I, J, L, 0 /)
+         ERR_VAR = 'H2_CH4'
+         ERR_MSG = 'STOP at h2_hd_mod:1'
+         CALL CHECK_VALUE( H2_CH4,  ERR_LOC, ERR_VAR, ERR_MSG )
 
          !==============================================================
          ! (1b) Production of H2 from ISOPRENE and METHANOL (CH3OH)
@@ -1067,12 +1074,15 @@
             SUMCH3OHCO(I,J) = 0d0
 
             ! Check H2_ISOP for NaN or Infinity
-            CALL CHECK_VALUE( H2_ISOP,  (/ I, J, L, 0 /),
-     &                       'H2_ISOP', 'STOP at h2_hd_mod:2' )
+            ERR_LOC = (/ I, J, L, 0 /)
+            ERR_VAR = 'H2_ISOP'
+            ERR_MSG = 'STOP at h2_hd_mod:2'
+            CALL CHECK_VALUE( H2_ISOP,  ERR_LOC, ERR_VAR, ERR_MSG )
 
             ! Check H2_CH4 for NaN or Infinity
-            CALL CHECK_VALUE( H2_CH3OH,  (/ I, J, L, 0 /),
-     &                       'H2_CH3OH', 'STOP at h2_hd_mod:3' )
+            ERR_VAR = 'H2_ISOP'
+            ERR_MSG = 'STOP at h2_hd_mod:3'
+            CALL CHECK_VALUE( H2_CH3OH,  ERR_LOC, ERR_VAR, ERR_MSG )
 
          ENDIF
 
@@ -1131,8 +1141,10 @@
             SUMMONOCO(I,J) = 0d0
 
             ! Check H2_MONO for NaN or Infinity
-            CALL CHECK_VALUE( H2_MONO,  (/ I, J, L, 0 /),
-     &                       'H2_MONO', 'STOP at h2_hd_mod:4' )
+            ERR_LOC = (/ I, J, L, 0 /)
+            ERR_VAR = 'H2_MONO'
+            ERR_MSG = 'STOP at h2_hd_mod:4'
+            CALL CHECK_VALUE( H2_MONO, ERR_LOC, ERR_VAR, ERR_MSG )
 
          ENDIF
 
@@ -1176,9 +1188,10 @@
             SUMACETCO(I,J) = 0d0
 
             ! Check H2_ACET for NaN or Infinity
-            CALL CHECK_VALUE( H2_ACET,  (/I, J, L, 0 /),
-     &                       'H2_ACET', 'STOP at h2_hd_mod:5' )
-
+            ERR_LOC = (/ I, J, L, 0 /)
+            ERR_VAR = 'H2_MONO'
+            ERR_MSG = 'STOP at h2_hd_mod:5'
+            CALL CHECK_VALUE( H2_ACET, ERR_LOC, ERR_VAR, ERR_MSG )
 
          ENDIF
 
@@ -1229,13 +1242,16 @@
             ! Do not deal with this for HD.
 	    HD_O1D = 0d0
 	    
-	    
             ! Check values for NaN or Infinity
-            CALL CHECK_VALUE( H2_OH,  (/ I, J, L, 0 /),
-     &                      'H2_OH', 'STOP at h2_hd_mod:6' )
-     
-     	    CALL CHECK_VALUE( H2_O1D,  (/ I, J, L, 0 /),
-     &                      'H2_O1D', 'STOP at h2_hd_mod:6' )
+            ERR_LOC = (/ I, J, L, 0 /)
+            ERR_VAR = 'H2_OH'
+            ERR_MSG = 'STOP at h2_hd_mod:6'
+            CALL CHECK_VALUE( H2_OH,  ERR_LOC, ERR_VAR, ERR_MSG )
+
+            ! Check values for NaN or Infinity
+            ERR_VAR = 'H2_MONO'
+            ERR_MSG = 'STOP at h2_hd_mod:7'
+     	    CALL CHECK_VALUE( H2_O1D, ERR_LOC, ERR_VAR, ERR_MSG )
 
          ELSE
 

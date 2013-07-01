@@ -293,7 +293,7 @@ aerosol_mod.o               : aerosol_mod.F           comode_mod.o           \
 
 aircraft_nox_mod.o          : aircraft_nox_mod.F                             \
                               dao_mod.o               diag_mod.o             \
-                              tracerid_mod.o
+                              tracerid_mod.o          tropopause_mod.o
 
 airmas.o                    : airmas.F
 
@@ -817,7 +817,7 @@ LEGND0.o                    : LEGND0.F
 lightning_nox_mod.o         : lightning_nox_mod.F                            \
                               dao_mod.o               diag56_mod.o           \
                               diag_mod.o              logical_mod.o          \
-                              tracerid_mod.o
+                              tracerid_mod.o          tropopause_mod.o
 
 linoz_mod.o                 : linoz_mod.F                                    \
                               dao_mod.o               tracerid_mod.o         \

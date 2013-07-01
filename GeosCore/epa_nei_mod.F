@@ -540,7 +540,9 @@
       USE TRACERID_MOD,       ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNO
       USE TRACERID_MOD,       ONLY : IDTNH3,  IDTPRPE, IDTSO2,  IDTSO4  
       USE TRACERID_MOD,       ONLY : IDTNO2
-      USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK
+#if defined( DEVEL )
+      USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK_LT
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -575,9 +577,9 @@
       LOGICAL, SAVE :: FIRST = .TRUE.
       
 #if defined( DEVEL )
-      INTEGER             :: I,J,DAY_NUM, AS
+      INTEGER             :: I, J, DOW_LT
       LOGICAL             :: WEEKDAY
-      REAL*8, ALLOCATABLE :: A(:,:)
+      REAL*8              :: A(IIPAR,JJPAR)
 #endif
 
       ! For fields from Input_Opt
@@ -607,9 +609,6 @@
       IF ( FIRST ) THEN
 
 #if defined( DEVEL )
-         ! Allocate arrays
-         ALLOCATE( A( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMISS_EPA_NEI:A' )
          A = 0d0
 #endif
 
@@ -661,172 +660,172 @@
 #if defined( DEVEL )
 ! Emissions  are treated as if they're molec/cm2/s
 ! and converted to Kg/s
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
-      DAY_NUM = GET_DAY_OF_WEEK()
-      WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
+         ! Determine day of week w/r/t local time
+         DOW_LT = GET_DAY_OF_WEEK_LT( I, J, 1 )
+         WEEKDAY = ( DOW_LT > 0 .and. DOW_LT < 6 )
 
-      DO I=1,IIPAR
-      DO J=1,JJPAR
+         ! Area [cm2]
          A(I,J)  = GET_AREA_CM2( I, J, 1 ) 
-      ENDDO
-      ENDDO
 
-      DO J=1,JJPAR
          IF ( WEEKDAY ) THEN
             IF (.not. LNEI05) THEN
-               IF ( IDTNO > 0) State_Chm%TRAC_TEND(:,J,1,IDTNO) = 
-     &              EPA_WD_AN_NOX(:,J) * A(:,J) *
+               IF ( IDTNO > 0) State_Chm%TRAC_TEND(I,J,1,IDTNO) = 
+     &              EPA_WD_AN_NOX(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTNO2) 
-               IF ( IDTCO  > 0) State_Chm%TRAC_TEND(:,J,1,IDTCO)  = 
-     &              EPA_WD_AN_CO(:,J) * A(:,J) *
+               IF ( IDTCO  > 0) State_Chm%TRAC_TEND(I,J,1,IDTCO)  = 
+     &              EPA_WD_AN_CO(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTCO) 
-               IF ( IDTALK4> 0) State_Chm%TRAC_TEND(:,J,1,IDTALK4) = 
-     &              EPA_WD_AN_ALK4(:,J) * A(:,J) *
+               IF ( IDTALK4> 0) State_Chm%TRAC_TEND(I,J,1,IDTALK4) = 
+     &              EPA_WD_AN_ALK4(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTALK4) 
-               IF ( IDTACET > 0) State_Chm%TRAC_TEND(:,J,1,IDTACET) = 
-     &              EPA_WD_AN_ACET(:,J) * A(:,J) *
+               IF ( IDTACET > 0) State_Chm%TRAC_TEND(I,J,1,IDTACET) = 
+     &              EPA_WD_AN_ACET(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTACET) 
-               IF ( IDTMEK > 0) State_Chm%TRAC_TEND(:,J,1,IDTMEK)  = 
-     &              EPA_WD_AN_MEK(:,J) * A(:,J) *
+               IF ( IDTMEK > 0) State_Chm%TRAC_TEND(I,J,1,IDTMEK)  = 
+     &              EPA_WD_AN_MEK(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTMEK) 
-               IF ( IDTPRPE > 0) State_Chm%TRAC_TEND(:,J,1,IDTPRPE) = 
-     &              EPA_WD_AN_PRPE(:,J) * A(:,J) *
+               IF ( IDTPRPE > 0) State_Chm%TRAC_TEND(I,J,1,IDTPRPE) = 
+     &              EPA_WD_AN_PRPE(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTPRPE) 
-               IF ( IDTC3H8> 0) State_Chm%TRAC_TEND(:,J,1,IDTC3H8) = 
-     &              EPA_WD_AN_C3H8(:,J) * A(:,J) *
+               IF ( IDTC3H8> 0) State_Chm%TRAC_TEND(I,J,1,IDTC3H8) = 
+     &              EPA_WD_AN_C3H8(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTC3H8) 
-               IF ( IDTCH2O> 0) State_Chm%TRAC_TEND(:,J,1,IDTCH2O) = 
-     &              EPA_WD_AN_CH2O(:,J) * A(:,J) *
+               IF ( IDTCH2O> 0) State_Chm%TRAC_TEND(I,J,1,IDTCH2O) = 
+     &              EPA_WD_AN_CH2O(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTCH2O) 
-               IF ( IDTC2H6> 0) State_Chm%TRAC_TEND(:,J,1,IDTC2H6) = 
-     &              EPA_WD_AN_C2H6(:,J) * A(:,J) *
+               IF ( IDTC2H6> 0) State_Chm%TRAC_TEND(I,J,1,IDTC2H6) = 
+     &              EPA_WD_AN_C2H6(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTC2H6) 
-               IF ( IDTSO2 > 0) State_Chm%TRAC_TEND(:,J,1,IDTSO2)  = 
-     &              EPA_WD_AN_SO2(:,J) * A(:,J) *
+               IF ( IDTSO2 > 0) State_Chm%TRAC_TEND(I,J,1,IDTSO2)  = 
+     &              EPA_WD_AN_SO2(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTSO2) 
-               IF ( IDTSO4 > 0) State_Chm%TRAC_TEND(:,J,1,IDTSO4)  = 
-     &              EPA_WD_AN_SO4(:,J) * A(:,J) *
+               IF ( IDTSO4 > 0) State_Chm%TRAC_TEND(I,J,1,IDTSO4)  = 
+     &              EPA_WD_AN_SO4(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTSO4) 
-               IF ( IDTNH3 > 0) State_Chm%TRAC_TEND(:,J,1,IDTNH3)  = 
-     &              EPA_WD_AN_NH3(:,J) * A(:,J) *
+               IF ( IDTNH3 > 0) State_Chm%TRAC_TEND(I,J,1,IDTNH3)  = 
+     &              EPA_WD_AN_NH3(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTNH3) 
             ENDIF
 
-            IF ( IDTNO > 0 ) State_Chm%TRAC_TEND(:,J,1,IDTNO) = 
-     &           EPA_WD_BF_NOX(:,J) * A(:,J) *
+            IF ( IDTNO > 0 ) State_Chm%TRAC_TEND(I,J,1,IDTNO) = 
+     &           EPA_WD_BF_NOX(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTNO2) 
-            IF ( IDTCO > 0 ) State_Chm%TRAC_TEND(:,J,1,IDTCO)  = 
-     &           EPA_WD_BF_CO(:,J) * A(:,J) *
+            IF ( IDTCO > 0 ) State_Chm%TRAC_TEND(I,J,1,IDTCO)  = 
+     &           EPA_WD_BF_CO(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTCO) 
-            IF ( IDTALK4> 0 ) State_Chm%TRAC_TEND(:,J,1,IDTALK4) = 
-     &           EPA_WD_BF_ALK4(:,J) * A(:,J) *
+            IF ( IDTALK4> 0 ) State_Chm%TRAC_TEND(I,J,1,IDTALK4) = 
+     &           EPA_WD_BF_ALK4(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTALK4) 
-            IF ( IDTACET> 0 ) State_Chm%TRAC_TEND(:,J,1,IDTACET) = 
-     &           EPA_WD_BF_ACET(:,J) * A(:,J) *
+            IF ( IDTACET> 0 ) State_Chm%TRAC_TEND(I,J,1,IDTACET) = 
+     &           EPA_WD_BF_ACET(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTACET) 
-            IF ( IDTMEK > 0 ) State_Chm%TRAC_TEND(:,J,1,IDTMEK)  = 
-     &           EPA_WD_BF_MEK(:,J) * A(:,J) *
+            IF ( IDTMEK > 0 ) State_Chm%TRAC_TEND(I,J,1,IDTMEK)  = 
+     &           EPA_WD_BF_MEK(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTMEK) 
-            IF ( IDTPRPE> 0 ) State_Chm%TRAC_TEND(:,J,1,IDTPRPE) = 
-     &           EPA_WD_BF_PRPE(:,J) * A(:,J) *
+            IF ( IDTPRPE> 0 ) State_Chm%TRAC_TEND(I,J,1,IDTPRPE) = 
+     &           EPA_WD_BF_PRPE(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTPRPE) 
-            IF ( IDTC3H8> 0 ) State_Chm%TRAC_TEND(:,J,1,IDTC3H8) = 
-     &           EPA_WD_BF_C3H8(:,J) * A(:,J) *
+            IF ( IDTC3H8> 0 ) State_Chm%TRAC_TEND(I,J,1,IDTC3H8) = 
+     &           EPA_WD_BF_C3H8(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTC3H8) 
-            IF ( IDTCH2O> 0 ) State_Chm%TRAC_TEND(:,J,1,IDTCH2O) = 
-     &           EPA_WD_BF_CH2O(:,J) * A(:,J) *
+            IF ( IDTCH2O> 0 ) State_Chm%TRAC_TEND(I,J,1,IDTCH2O) = 
+     &           EPA_WD_BF_CH2O(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTCH2O) 
-            IF ( IDTC2H6> 0 ) State_Chm%TRAC_TEND(:,J,1,IDTC2H6) = 
-     &           EPA_WD_BF_C2H6(:,J) * A(:,J) *
+            IF ( IDTC2H6> 0 ) State_Chm%TRAC_TEND(I,J,1,IDTC2H6) = 
+     &           EPA_WD_BF_C2H6(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTC2H6) 
-            IF ( IDTSO2 > 0 ) State_Chm%TRAC_TEND(:,J,1,IDTSO2)  = 
-     &           EPA_WD_BF_SO2(:,J) * A(:,J) *
+            IF ( IDTSO2 > 0 ) State_Chm%TRAC_TEND(I,J,1,IDTSO2)  = 
+     &           EPA_WD_BF_SO2(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTSO2) 
-            IF ( IDTSO4 > 0 ) State_Chm%TRAC_TEND(:,J,1,IDTSO4)  = 
-     &           EPA_WD_BF_SO4(:,J) * A(:,J) *
+            IF ( IDTSO4 > 0 ) State_Chm%TRAC_TEND(I,J,1,IDTSO4)  = 
+     &           EPA_WD_BF_SO4(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTSO4) 
-            IF ( IDTNH3 > 0 ) State_Chm%TRAC_TEND(:,J,1,IDTNH3)  = 
-     &           EPA_WD_BF_NH3(:,J) * A(:,J) *
+            IF ( IDTNH3 > 0 ) State_Chm%TRAC_TEND(I,J,1,IDTNH3)  = 
+     &           EPA_WD_BF_NH3(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTNH3) 
 
          ELSE ! ITS a WEEKEND...
             IF (.not. LNEI05) THEN
-               IF ( IDTNO > 0) State_Chm%TRAC_TEND(:,J,1,IDTNO) = 
-     &              EPA_WE_AN_NOX(:,J) * A(:,J) *
+               IF ( IDTNO > 0) State_Chm%TRAC_TEND(I,J,1,IDTNO) = 
+     &              EPA_WE_AN_NOX(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTNO2) 
-               IF ( IDTCO  > 0) State_Chm%TRAC_TEND(:,J,1,IDTCO)  = 
-     &              EPA_WE_AN_CO(:,J) * A(:,J) *
+               IF ( IDTCO  > 0) State_Chm%TRAC_TEND(I,J,1,IDTCO)  = 
+     &              EPA_WE_AN_CO(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTCO) 
-               IF ( IDTALK4> 0) State_Chm%TRAC_TEND(:,J,1,IDTALK4) = 
-     &              EPA_WE_AN_ALK4(:,J) * A(:,J) *
+               IF ( IDTALK4> 0) State_Chm%TRAC_TEND(I,J,1,IDTALK4) = 
+     &              EPA_WE_AN_ALK4(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTALK4) 
-               IF ( IDTACET> 0) State_Chm%TRAC_TEND(:,J,1,IDTACET) = 
-     &              EPA_WE_AN_ACET(:,J) * A(:,J) *
+               IF ( IDTACET> 0) State_Chm%TRAC_TEND(I,J,1,IDTACET) = 
+     &              EPA_WE_AN_ACET(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTACET) 
-               IF ( IDTMEK > 0) State_Chm%TRAC_TEND(:,J,1,IDTMEK)  = 
-     &              EPA_WE_AN_MEK(:,J) * A(:,J) *
+               IF ( IDTMEK > 0) State_Chm%TRAC_TEND(I,J,1,IDTMEK)  = 
+     &              EPA_WE_AN_MEK(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTMEK) 
-               IF ( IDTPRPE> 0) State_Chm%TRAC_TEND(:,J,1,IDTPRPE) = 
-     &              EPA_WE_AN_PRPE(:,J) * A(:,J) *
+               IF ( IDTPRPE> 0) State_Chm%TRAC_TEND(I,J,1,IDTPRPE) = 
+     &              EPA_WE_AN_PRPE(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTPRPE) 
-               IF ( IDTC3H8> 0) State_Chm%TRAC_TEND(:,J,1,IDTC3H8) = 
-     &              EPA_WE_AN_C3H8(:,J) * A(:,J) *
+               IF ( IDTC3H8> 0) State_Chm%TRAC_TEND(I,J,1,IDTC3H8) = 
+     &              EPA_WE_AN_C3H8(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTC3H8) 
-               IF ( IDTCH2O> 0) State_Chm%TRAC_TEND(:,J,1,IDTCH2O) = 
-     &              EPA_WE_AN_CH2O(:,J) * A(:,J) *
+               IF ( IDTCH2O> 0) State_Chm%TRAC_TEND(I,J,1,IDTCH2O) = 
+     &              EPA_WE_AN_CH2O(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTCH2O) 
-               IF ( IDTC2H6> 0) State_Chm%TRAC_TEND(:,J,1,IDTC2H6) = 
-     &              EPA_WE_AN_C2H6(:,J) * A(:,J) *
+               IF ( IDTC2H6> 0) State_Chm%TRAC_TEND(I,J,1,IDTC2H6) = 
+     &              EPA_WE_AN_C2H6(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTC2H6) 
-               IF ( IDTSO2 > 0) State_Chm%TRAC_TEND(:,J,1,IDTSO2)  = 
-     &              EPA_WE_AN_SO2(:,J) * A(:,J) *
+               IF ( IDTSO2 > 0) State_Chm%TRAC_TEND(I,J,1,IDTSO2)  = 
+     &              EPA_WE_AN_SO2(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTSO2) 
-               IF ( IDTSO4 > 0) State_Chm%TRAC_TEND(:,J,1,IDTSO4)  = 
-     &              EPA_WE_AN_SO4(:,J) * A(:,J) *
+               IF ( IDTSO4 > 0) State_Chm%TRAC_TEND(I,J,1,IDTSO4)  = 
+     &              EPA_WE_AN_SO4(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTSO4) 
-               IF ( IDTNH3 > 0) State_Chm%TRAC_TEND(:,J,1,IDTNH3)  = 
-     &              EPA_WE_AN_NH3(:,J) * A(:,J) *
+               IF ( IDTNH3 > 0) State_Chm%TRAC_TEND(I,J,1,IDTNH3)  = 
+     &              EPA_WE_AN_NH3(I,J) * A(I,J) *
      &              6.0225d-23 * TRACER_MW_KG(IDTNH3) 
             ENDIF
             
-            IF ( IDTNO > 0 ) State_Chm%TRAC_TEND(:,J,1,IDTNO) = 
-     &           EPA_WE_BF_NOX(:,J) * A(:,J) *
+            IF ( IDTNO > 0 ) State_Chm%TRAC_TEND(I,J,1,IDTNO) = 
+     &           EPA_WE_BF_NOX(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTNO2) 
-            IF ( IDTCO  > 0 ) State_Chm%TRAC_TEND(:,J,1,IDTCO)  = 
-     &           EPA_WE_BF_CO(:,J) * A(:,J) *
+            IF ( IDTCO  > 0 ) State_Chm%TRAC_TEND(I,J,1,IDTCO)  = 
+     &           EPA_WE_BF_CO(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTCO) 
-            IF ( IDTALK4> 0 ) State_Chm%TRAC_TEND(:,J,1,IDTALK4) = 
-     &           EPA_WE_BF_ALK4(:,J) * A(:,J) *
+            IF ( IDTALK4> 0 ) State_Chm%TRAC_TEND(I,J,1,IDTALK4) = 
+     &           EPA_WE_BF_ALK4(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTALK4) 
-            IF ( IDTACET> 0 ) State_Chm%TRAC_TEND(:,J,1,IDTACET) = 
-     &           EPA_WE_BF_ACET(:,J) * A(:,J) *
+            IF ( IDTACET> 0 ) State_Chm%TRAC_TEND(I,J,1,IDTACET) = 
+     &           EPA_WE_BF_ACET(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTACET) 
-            IF ( IDTMEK > 0 ) State_Chm%TRAC_TEND(:,J,1,IDTMEK)  = 
-     &           EPA_WE_BF_MEK(:,J) * A(:,J) *
+            IF ( IDTMEK > 0 ) State_Chm%TRAC_TEND(I,J,1,IDTMEK)  = 
+     &           EPA_WE_BF_MEK(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTMEK) 
-            IF ( IDTPRPE> 0 ) State_Chm%TRAC_TEND(:,J,1,IDTPRPE) = 
-     &           EPA_WE_BF_PRPE(:,J) * A(:,J) *
+            IF ( IDTPRPE> 0 ) State_Chm%TRAC_TEND(I,J,1,IDTPRPE) = 
+     &           EPA_WE_BF_PRPE(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTPRPE) 
-            IF ( IDTC3H8> 0 ) State_Chm%TRAC_TEND(:,J,1,IDTC3H8) = 
-     &           EPA_WE_BF_C3H8(:,J) * A(:,J) *
+            IF ( IDTC3H8> 0 ) State_Chm%TRAC_TEND(I,J,1,IDTC3H8) = 
+     &           EPA_WE_BF_C3H8(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTC3H8) 
-            IF ( IDTCH2O> 0 ) State_Chm%TRAC_TEND(:,J,1,IDTCH2O) = 
-     &           EPA_WE_BF_CH2O(:,J) * A(:,J) *
+            IF ( IDTCH2O> 0 ) State_Chm%TRAC_TEND(I,J,1,IDTCH2O) = 
+     &           EPA_WE_BF_CH2O(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTCH2O) 
-            IF ( IDTC2H6> 0 ) State_Chm%TRAC_TEND(:,J,1,IDTC2H6) = 
-     &           EPA_WE_BF_C2H6(:,J) * A(:,J) *
+            IF ( IDTC2H6> 0 ) State_Chm%TRAC_TEND(I,J,1,IDTC2H6) = 
+     &           EPA_WE_BF_C2H6(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTC2H6) 
-            IF ( IDTSO2 > 0 ) State_Chm%TRAC_TEND(:,J,1,IDTSO2)  = 
-     &           EPA_WE_BF_SO2(:,J) * A(:,J) *
+            IF ( IDTSO2 > 0 ) State_Chm%TRAC_TEND(I,J,1,IDTSO2)  = 
+     &           EPA_WE_BF_SO2(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTSO2) 
-            IF ( IDTSO4 > 0 ) State_Chm%TRAC_TEND(:,J,1,IDTSO4)  = 
-     &           EPA_WE_BF_SO4(:,J) * A(:,J) *
+            IF ( IDTSO4 > 0 ) State_Chm%TRAC_TEND(I,J,1,IDTSO4)  = 
+     &           EPA_WE_BF_SO4(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTSO4) 
-            IF ( IDTNH3 > 0 ) State_Chm%TRAC_TEND(:,J,1,IDTNH3)  = 
-     &           EPA_WE_BF_NH3(:,J) * A(:,J) *
+            IF ( IDTNH3 > 0 ) State_Chm%TRAC_TEND(I,J,1,IDTNH3)  = 
+     &           EPA_WE_BF_NH3(I,J) * A(I,J) *
      &           6.0225d-23 * TRACER_MW_KG(IDTNH3) 
 
          ENDIF
+      ENDDO
       ENDDO
 #endif
 

@@ -4816,7 +4816,8 @@
          ENDIF
 
          ! Also read ship exhaust SO2 if necessary 
-         CALL READ_SHIP_SO2( MONTH )
+         !CALL READ_SHIP_SO2( MONTH )
+         CALL READ_SHIP_SO2( Input_Opt, MONTH )
 #if defined( TOMAS )
          ! Scale anthro SO2 for TOMAS
          ESO2_sh  = ESO2_sh * scaleanthso2
@@ -5304,7 +5305,7 @@
       USE PBL_MIX_MOD,    ONLY     : GET_FRAC_OF_PBL,  GET_PBL_TOP_L
       USE PRESSURE_MOD,   ONLY     : GET_PEDGE
       USE TIME_MOD,       ONLY     : GET_TS_EMIS,      GET_DAY_OF_YEAR 
-      USE TIME_MOD,       ONLY     : GET_DAY_OF_WEEK
+      USE TIME_MOD,       ONLY     : GET_DAY_OF_WEEK_LT
       USE TRACERID_MOD,   ONLY     : IDTSO2
 
       USE CMN_SIZE_MOD             ! Size parameters
@@ -5363,6 +5364,9 @@
 !        compiler. Also avoid division by zero. (bmy, 12/3/09)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  14 Jun 2013 - R. Yantosca - Now determine weekday/weekend with respect to
+!                              the local time at each grid box.  (Formerly,
+!                              this had been done w/r/t the GMT time.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5376,7 +5380,7 @@
 !
       LOGICAL                :: WEEKDAY, IS_LOCAL
       INTEGER                :: I, J, K, L, NTOP
-      INTEGER                :: DAY_NUM
+      INTEGER                :: DOW_LT
       REAL*8                 :: SO2(LLPAR)
       REAL*8                 :: DTSRCE,      SO2SRC
       REAL*8                 :: TSO2,        FEMIS(LLPAR)
@@ -5401,7 +5405,7 @@
       ! atmosphere since volcanic emissions are provided as meters above
       ! sea level (jaf, 10/15/09)
       REAL*8                 :: VOLCPRESS(LVOLC+1) = (/
-     &  1013.25, 954.61, 898.74, 845.56, 747.95, 746.83, 701.08,
+     &  1013.25, 954.61, 898.74, 845.56, 794.95, 746.83, 701.08,
      &   657.64, 616.40, 577.28, 540.20, 505.07, 471.81, 440.35,
      &   410.61, 382.52, 356.00, 330.99, 307.42, 285.24, 264.36 /)
 
@@ -5429,19 +5433,13 @@
       XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
 
       ! Point to the SO2 tracer slice
-      TC      => State_Chm%TRACERS(:,:,:,IDTSO2)
+      TC        => State_Chm%TRACERS(:,:,:,IDTSO2)
 
       ! DTSRCE is the emission timestep in seconds
-      DTSRCE  = GET_TS_EMIS() * 60d0
-
-      ! Get current day of the week
-      DAY_NUM = GET_DAY_OF_WEEK()
-
-      ! Is it a weekday?
-      WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
+      DTSRCE    = GET_TS_EMIS() * 60d0
 
       ! is it local PBL mixing scheme?
-      IS_LOCAL = .NOT. LNLPBL      
+      IS_LOCAL  = ( .NOT. LNLPBL )
       
       !=================================================================
       ! SO2 emissions from volcanoes [kg SO2/box/s].
@@ -5602,7 +5600,7 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, AREA_CM2, AN, BF )
+!$OMP+PRIVATE( I, J, L, AREA_CM2, AN, BF, DOW_LT, WEEKDAY )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
 
@@ -5623,6 +5621,12 @@
             !
             !   ! If we are over the USA ...
             !   IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
+            !
+            !      ! Determine if we should use weekday or weekend NEI
+            !      ! emissions at grid box (I,J,L).  Since NEI is over
+            !      ! the US, then weekend is Sat/Sun.
+            !      DOW_LT       = GET_DAY_OF_WEEK_LT( I, J, 1 )
+            !      WEEKDAY      = ( DOW_LT > 0 .and. DOW_LT < 6 )
             !
             !      ! Read EPA/NEI99 SO2 emissions in [molec/cm2/s]
             !      AN           = GET_EPA_ANTHRO( I, J, IDTSO2, WEEKDAY )
@@ -5707,6 +5711,12 @@
             IF ( LNEI99 .and. .not. LHIST ) THEN
 !eml]
             IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
+
+               ! Determine if we should use weekday or weekend NEI
+               ! emissions at grid box (I,J,L).  Since NEI is over
+               ! the US, then weekend is Sat/Sun.
+               DOW_LT       = GET_DAY_OF_WEEK_LT( I, J, 1 )
+               WEEKDAY      = ( DOW_LT > 0 .and. DOW_LT < 6 )
             
                ! Read EPA/NEI99 SO2 emissions in [molec/cm2/s]
                AN           = GET_EPA_ANTHRO( I, J, IDTSO2, WEEKDAY )
@@ -5819,8 +5829,15 @@
 !eml]
             IF ( NEI05_MASK( I, J ) > 0d0 ) THEN
 
+               ! Determine if we should use weekday or weekend NEI
+               ! emissions at grid box (I,J,L).  Since NEI is over
+               ! the US, then weekend is Sat/Sun.
+               DOW_LT  = GET_DAY_OF_WEEK_LT( I, J, 1 )
+               WEEKDAY = ( DOW_LT > 0 .and. DOW_LT < 6 )
+
                ! Read USA SO2 emissions in [molec/cm2/s]
                DO L = 1, NOXLEVELS
+
                   AN = GET_NEI2005_ANTHRO( I, J, L, IDTSO2, WEEKDAY,
      &                            MOLEC_CM2_s=.TRUE. )
 
@@ -5984,7 +6001,8 @@
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
-      USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK, GET_TS_EMIS
+      USE TIME_MOD,           ONLY : GET_TS_EMIS
+      USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK_LT
       USE TRACERID_MOD,       ONLY : IDTSO4, IDTSO2
 
       USE CMN_SIZE_MOD             ! Size parameters
@@ -6032,6 +6050,9 @@
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  14 Jun 2013 - R. Yantosca - Now determine weekday/weekend with respect to
+!                              the local time at each grid box.  (Formerly,
+!                              this had been done w/r/t the GMT time.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6044,7 +6065,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL                :: WEEKDAY, IS_LOCAL
-      INTEGER                :: I, J, K, L, DAY_NUM, NTOP
+      INTEGER                :: I, J, K, L, DOW_LT, NTOP
       REAL*8                 :: SO4(LLPAR), DTSRCE  
       REAL*8                 :: TSO4,       FEMIS(LLPAR)
       REAL*8                 :: AREA_CM2,   EPA_AN,  EPA_BF
@@ -6088,11 +6109,6 @@
       DTSRCE  = GET_TS_EMIS() * 60d0
 
       ! Get current day of the week
-      DAY_NUM = GET_DAY_OF_WEEK()
-
-      ! Is it a weekday?
-      WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
-
       ! is it local PBL mixing scheme?
       IS_LOCAL = .NOT. LNLPBL
 
@@ -6105,7 +6121,7 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, AREA_CM2, EPA_AN, EPA_BF, AN )
-!$OMP+PRIVATE( NTOP, FEMIS, SO4, TEMPEMISS )
+!$OMP+PRIVATE( NTOP, FEMIS, SO4, TEMPEMISS, DOW_LT, WEEKDAY )
       DO J = 1, JJPAR
          
          DO I = 1, IIPAR
@@ -6138,7 +6154,13 @@
             IF ( LNEI99 .and. .not. LHIST ) THEN
 !eml]
             IF ( GET_USA_MASK( I, J ) > 0d0 )  THEN
-            
+
+                  ! Determine if we should use weekday or weekend NEI
+                  ! emissions at grid box (I,J,L).  Since NEI is over
+                  ! the US, then weekend is Sat/Sun.
+                  DOW_LT       = GET_DAY_OF_WEEK_LT( I, J, 1 )
+                  WEEKDAY      = ( DOW_LT > 0 .and. DOW_LT < 6 )
+
                   ! Read SO4 emissions in [molec/cm2/s]
                   EPA_AN       = GET_EPA_ANTHRO( I, J, IDTSO4, WEEKDAY )
                   EPA_BF       = GET_EPA_BIOFUEL(I, J, IDTSO4, WEEKDAY ) 
@@ -6237,6 +6259,12 @@
             IF ( LNEI05 .and. .not. LHIST ) THEN
 !eml]
                IF ( NEI05_MASK( I, J) < 0d0 ) THEN
+
+                  ! Determine if we should use weekday or weekend NEI
+                  ! emissions at grid box (I,J,L).  Since NEI is over
+                  ! the US, then weekend is Sat/Sun.
+                  DOW_LT  = GET_DAY_OF_WEEK_LT( I, J, 1 )
+                  WEEKDAY = ( DOW_LT > 0 .and. DOW_LT < 6 )
 
                   ! Read SO4 emissions in [molec/cm2/s]
                   DO L = 1, NOXLEVELS
@@ -6337,7 +6365,8 @@
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
-      USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK, GET_TS_EMIS
+      USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK
+      USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK_LT
       USE TOMAS_MOD,          ONLY : IBINS, AVGMASS, ICOMP
       USE TOMAS_MOD,          ONLY : Xk,  SUBGRIDCOAG, MNFIX
       USE TOMAS_MOD,          ONLY : SRTSO4, SRTNH4,  DEBUGPRINT
@@ -6390,6 +6419,9 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
+!  14 Jun 2013 - R. Yantosca - Now determine weekday/weekend with respect to
+!                              the local time at each grid box.  (Formerly,
+!                              this had been done w/r/t the GMT time.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6397,7 +6429,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL                :: WEEKDAY
-      INTEGER                :: I, J, K, L, DAY_NUM, NTOP, C
+      INTEGER                :: I, J, K, L, DOW_LT, NTOP, C
       REAL*8                 :: SO4(LLPAR), DTSRCE  , EFRAC(LLPAR)
       REAL*8                 :: TSO4,       FEMIS
       REAL*8                 :: AREA_CM2,   EPA_AN,  EPA_BF
@@ -6468,12 +6500,6 @@
       ! DTSRCE is the emission timestep in seconds
       DTSRCE  = GET_TS_EMIS() * 60d0
 
-      ! Get current day of the week
-      DAY_NUM = GET_DAY_OF_WEEK()
-
-      ! Is it a weekday?
-      WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
-
       !=================================================================
       ! Overwrite USA w/ EPA/NEI99 SO4 emissions (if necessary)
       ! Overwrite CANADA w/ CAC       SO2-fraction emiss. (if necessary)
@@ -6481,7 +6507,7 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, AREA_CM2, EPA_AN, EPA_BF, CAC_AN )
+!$OMP+PRIVATE( I, J, AREA_CM2, EPA_AN, EPA_BF, CAC_AN, DOW_LT, WEEKDAY )
       DO J = 1, JJPAR
          
          DO I = 1, IIPAR
@@ -6501,6 +6527,12 @@
             ! If we are using EPA/NEI99 emissions
             IF ( LNEI99 ) THEN
             IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
+
+               ! Determine if we should use weekday or weekend NEI
+               ! emissions at grid box (I,J,L).  Since NEI is over
+               ! the US, then weekend is Sat/Sun.
+               DOW_LT  = GET_DAY_OF_WEEK_LT( I, J, 1 )
+               WEEKDAY = ( DOW_LT > 0 .and. DOW_LT < 6 )
 
                ! Calculate SO4 emissions from assuming the SO2 emitted
                ! is 99% of total mass (win, 10/4/07)
@@ -6872,7 +6904,8 @@
       USE EPA_NEI_MOD,        ONLY : GET_USA_MASK
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
-      USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK, GET_TS_EMIS
+      USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK_LT
+      USE TIME_MOD,           ONLY : GET_TS_EMIS
       USE TRACERID_MOD,       ONLY : IDTNH3
 
       USE CMN_SIZE_MOD             ! Size parameters
@@ -6920,6 +6953,9 @@
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  14 Jun 2013 - R. Yantosca - Now determine weekday/weekend with respect to
+!                              the local time at each grid box.  (Formerly,
+!                              this had been done w/r/t the GMT time.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6927,7 +6963,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL                :: WEEKDAY,  IS_LOCAL
-      INTEGER                :: I, J, L,  K, NTOP, DAY_NUM
+      INTEGER                :: I, J, L,  K, NTOP, DOW_LT
       REAL*8                 :: DTSRCE,   AREA_CM2    
       REAL*8                 :: CAC_AN,   EPA_AN,  EPA_BF
       REAL*8                 :: FEMIS(LLPAR), NH3(LLPAR)
@@ -6967,12 +7003,6 @@
       ! Emission timestep [s]
       DTSRCE  = GET_TS_EMIS() * 60d0
  
-      ! Get current day of the week
-      DAY_NUM = GET_DAY_OF_WEEK()
-
-      ! Is it a weekday?
-      WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
-
       ! init
       NH3an = 0D0
       
@@ -6986,7 +7016,7 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, AREA_CM2, EPA_AN, EPA_BF, CAC_AN, L )
-!$OMP+PRIVATE( NTOP, FEMIS, NH3, TEMPEMISS )
+!$OMP+PRIVATE( NTOP, FEMIS, NH3, TEMPEMISS, DOW_LT, WEEKDAY )
       DO J = 1, JJPAR
 
          DO I = 1, IIPAR
@@ -7019,6 +7049,12 @@
             !
             !   ! If we are over the USA ...
             !   IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
+            !
+            !      ! Determine if we should use weekday or weekend NEI
+            !      ! emissions at grid box (I,J,L).  Since NEI is over
+            !      ! the US, then weekend is Sat/Sun.
+            !      DOW_LT     = GET_DAY_OF_WEEK_LT( I, J, 1 )
+            !      WEEKDAY    = ( DOW_LT > 0 .and. DOW_LT < 6 )
             !
             !      ! Read NH3 anthro emissions in [molec NH3/cm2/s]
             !      EPA_AN     = GET_EPA_ANTHRO(  I, J, IDTNH3, WEEKDAY )
@@ -7073,6 +7109,12 @@
             IF ( LNEI05 ) THEN
             IF ( NEI05_MASK( I, J ) > 0d0 ) THEN
              
+               ! Determine if we should use weekday or weekend NEI
+               ! emissions at grid box (I,J,L).  Since NEI is over
+               ! the US, then weekend is Sat/Sun.
+               DOW_LT  = GET_DAY_OF_WEEK_LT( I, J, 1 )
+               WEEKDAY = ( DOW_LT > 0 .and. DOW_LT < 6 )
+
                DO L = 1, NOXLEVELS 
 
                   ! Read NH3 anthro emissions in [molec NH3/cm2/s]                  
@@ -8921,7 +8963,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_SHIP_SO2( THISMONTH )
+      SUBROUTINE READ_SHIP_SO2( Input_Opt, THISMONTH )
 !
 ! !USES:
 !
@@ -8930,22 +8972,19 @@
       USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,            ONLY : GET_TAU0,        READ_BPCH2
       USE CMN_SIZE_MOD
-      USE DIRECTORY_MOD,        ONLY : DATA_DIR 
       USE EDGAR_MOD,            ONLY : GET_EDGAR_SHIP_SO2
       USE EMEP_MOD,             ONLY : GET_EMEP_ANTHRO, GET_EUROPE_MASK
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2ff
+      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
       USE GRID_MOD,             ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,          ONLY : LEDGARSHIP,      LFUTURE, 
-     &                                 LARCSHIP,        LSHIPSO2,
-     $                                 LEMEPSHIP
-      USE LOGICAL_MOD,          ONLY : LICOADSSHIP  !(cklee, 6/30/09)
       USE TRACER_MOD,           ONLY : XNUMOL
       USE TRACERID_MOD,         ONLY : IDTSO2
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)           :: THISMONTH ! Current month (1-12)
+      TYPE(OptInput), INTENT(IN) :: Input_Opt
+      INTEGER,        INTENT(IN) :: THISMONTH ! Current month (1-12)
 !
 ! !REVISION HISTORY:
 !  (1 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
@@ -8961,6 +9000,7 @@
 !  (7 ) Now get ICOADS ship SO2 if necessary (phs, cklee, 6/30/09) 
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  17 Jun 2013 - R. Yantosca - Now take values from Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8973,13 +9013,30 @@
       REAL*8                        :: XTAU, AREA_CM2
       CHARACTER (LEN=255)           :: FILENAME
 
+      ! For fields from Input_Opt
+      CHARACTER(LEN=255)            :: DATA_DIR
+      LOGICAL                       :: LEDGARSHIP
+      LOGICAL                       :: LEMEPSHIP
+      LOGICAL                       :: LFUTURE
+      LOGICAL                       :: LARCSHIP
+      LOGICAL                       :: LSHIPSO2
+      LOGICAL                       :: LICOADSSHIP
+
       !=================================================================
       ! READ_SHIP_SO2 begins here!
       !=================================================================
 
+      ! Copy values from Input_Opt
+      DATA_DIR    = Input_Opt%DATA_DIR
+      LEDGARSHIP  = Input_Opt%LEDGARSHIP
+      LEMEPSHIP   = Input_Opt%LEMEPSHIP
+      LFUTURE     = Input_Opt%LFUTURE
+      LARCSHIP    = Input_Opt%LARCSHIP
+      LSHIPSO2    = Input_Opt%LSHIPSO2
+      LICOADSSHIP = Input_Opt%LICOADSSHIP
+
       ! Reset
       ESO2_sh = 0D0
-
 
       ! Test for EDAGR last, since this is default inventory by design.
       ! So we can still use EDGAR SHIP to get ship-NOX and CO, and
@@ -9181,7 +9238,6 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL                       :: WEEKDAY
       INTEGER                       :: I, J, DAY_NUM
       REAL*4                        :: ARRAY(IIPAR,JJPAR,1)
       REAL*8                        :: AREA_CM2, EPA_NEI, XTAU
