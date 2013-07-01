@@ -380,14 +380,13 @@
       ! ratio of aerosol molecular weight / air molecular weight
       CU = AERO_MW / AIR_MW   !  [kg aerosol / kg air]
 
-#if defined( GRID4x5 )
+#if defined( GRID4x5 ) || defined( GRID2x25 )
       ! tropospheric aerosols (v8-02-03, GEOS5, 4x5)
       FILENAME = TRIM( DATA_DIR )   //
      &           'mercury_201007/Hg_partitioning/' //
-     &           'aero.IJ_AVG.2007.geos5.4x5'
-#elif defined( GRID2x25 )
-      FILENAME = '/home/hamos/GC/input_files/aerosols/' //
-     &           'GEOS5/aero.IJ_AVG.2007.geos5.2x25'
+     &           'aero.IJ_AVG.2007.'               //
+     &           GET_NAME_EXT()     // '.'         //
+     &           GET_RES_EXT()
 #else
       CALL ERROR_STOP( "You need to make an aerosols file. ", 
      &                 "PARTITION_Hg2")
