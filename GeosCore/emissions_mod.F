@@ -476,16 +476,12 @@
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
          ENDIF
 
-         print*, 'before bromine'
-
          ! jpp, 3/2/10:
          ! Now distribute the Br2 emitted from SSA, through
          ! the full mixed layer.
          IF ( LSSABr2 ) THEN
             CALL EMIT_BR2( SSA_Br2 )
          ENDIF
-
-         print*, 'after bromine'
 
       ELSE IF ( ITS_AN_AEROSOL_SIM ) THEN
          

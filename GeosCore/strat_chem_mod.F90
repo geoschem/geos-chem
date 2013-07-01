@@ -1903,14 +1903,13 @@ CONTAINS
 
 #if defined( NESTED_CH )
     INTEGER, PARAMETER   :: J30S = 1, J30N = 161
-#elif defined( SEAC4RS )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% KLUDGE FOR SEAC4RS
+!%%% Add these parameters or else the code won't compile.  The values don't
+!%%% matter because we won't use DO_SYNOZ for SEAC4RS (bmy, 7/1/13)
+#elif defined( NESTED_NA )
     INTEGER, PARAMETER   :: J30S = 1, J30N = 161
-#endif
-
-#elif defined( GRID025x03125 )
-
-#if defined( NESTED_CH )
-    INTEGER, PARAMETER   :: J30S = 1, J30N = 161
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #elif defined( SEAC4RS )
     INTEGER, PARAMETER   :: J30S = 1, J30N = 161
 #endif
@@ -2267,14 +2266,13 @@ CONTAINS
 
 #if defined( NESTED_CH )
     INTEGER, PARAMETER   :: J30S = 1, J30N = 161
-#elif defined( SEAC4RS )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% KLUDGE FOR SEAC4RS
+!%%% Add these parameters or else the code won't compile.  The values don't
+!%%% matter because we won't use DO_SYNOZ for SEAC4RS (bmy, 7/1/13)
+#elif defined( NESTED_NA )
     INTEGER, PARAMETER   :: J30S = 1, J30N = 161
-#endif
-
-#elif defined( GRID025x03125 )
-
-#if defined( NESTED_CH )
-    INTEGER, PARAMETER   :: J30S = 1, J30N = 161
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #elif defined( SEAC4RS )
     INTEGER, PARAMETER   :: J30S = 1, J30N = 161
 #endif

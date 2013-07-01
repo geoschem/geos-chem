@@ -37,6 +37,7 @@
       USE TRACER_MOD, ONLY : N_MEMBERS
       USE TRACER_MOD, ONLY : CHECK_STT
       USE TRACER_MOD, ONLY : CHECK_STT_05x0666
+      USE TRACER_MOD, ONLY : CHECK_STT_025x03125
 
       !-----------------------------------------------------------------
       ! GEOS-Chem chemistry modules
