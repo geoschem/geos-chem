@@ -329,6 +329,7 @@
       USE TRACERID_MOD,       ONLY : IDTSOA1, IDTSOA2, IDTSOA3, IDTSOA4
       USE TRACERID_MOD,       ONLY : IDTSO4,  IDTSOA5  
       USE TRACERID_MOD,       ONLY : IDTSOAG, IDTSOAM
+      USE TRACERID_MOD,       ONLY : IDTASOA, IDTBBSOA, IDTBGSOA
 !
 ! !INPUT PARAMETERS:
 !
@@ -506,8 +507,27 @@
                ! to multiply by OCF to account for the mass of other 
                ! components which are attached to the OC aerosol.
                ! (rjp, bmy, 7/15/04)
-               OCPI(I,J,L) = STT(I,J,L,IDTOCPI) * OCF /
-     &                       State_Met%AIRVOL(I,J,L)
+!-----------
+               ! Rearrange to only do the multiplication once in the
+               ! case that SEAC4RS SOA tracers are turned on (jaf,
+               ! 6/26/13)
+!               OCPI(I,J,L) = STT(I,J,L,IDTOCPI) * OCF /
+!     &                       State_Met%AIRVOL(I,J,L)
+               OCPI(I,J,L) = STT(I,J,L,IDTOCPI)
+
+               ! Add SEAC4RS SOA tracers if they are turned on
+               ! For now assume the same correction factor for SOA
+               ! aerosols as for POA, but this should be double checked.
+               ! (jaf, 6/26/13)
+               IF ( IDTASOA > 0 ) OCPI(I,J,L) = OCPI(I,J,L) + 
+     &                                           STT(I,J,L,IDTASOA)
+               IF ( IDTBBSOA > 0 ) OCPI(I,J,L) = OCPI(I,J,L) + 
+     &                                           STT(I,J,L,IDTBBSOA)
+               IF ( IDTBGSOA > 0 ) OCPI(I,J,L) = OCPI(I,J,L) + 
+     &                                           STT(I,J,L,IDTBGSOA)
+
+               OCPI(I,J,L) = OCPI(I,J,L) * OCF / State_Met%AIRVOL(I,J,L)
+!-----------
                   
             ENDIF
 

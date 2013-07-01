@@ -224,8 +224,16 @@
       INTEGER IMASBAL,IALTS,MXCOF
 
       ! Updated for SMVGEAR II (bdf, bmy, 4/1/03)
-      PARAMETER ( IGAS    = 310,               IAERTY  = 1           )
-      PARAMETER ( NMRATE  = 726,               IPHOT   = 92          )
+      ! +4 for SEAC4RS FF passive tracers (jaf, 6/13/13)
+      ! +4 for SEAC4RS BB passive tracers (jaf, 6/14/13)
+      ! +1 for SEAC4RS ISOP passive tracer (jaf, 6/14/13)
+      !PARAMETER ( IGAS    = 310,               IAERTY  = 1           )
+      PARAMETER ( IGAS    = 320,               IAERTY  = 1           )
+      ! +8 for SEAC4RS FF passive tracers (jaf, 6/13/13)
+      ! +8 for SEAC4RS BB passive tracers (jaf, 6/14/13)
+      ! +2 for SEAC4RS ISOP passive tracer (jaf, 6/14/13)
+      !PARAMETER ( NMRATE  = 726,               IPHOT   = 92          )
+      PARAMETER ( NMRATE  = 744,               IPHOT   = 92          )
       PARAMETER ( NMTRATE = NMRATE + IPHOT,    NMQRATE = 1           ) 
       PARAMETER ( NMRPROD = 25,                NMDEAD  = 100         )
       PARAMETER ( MAXGL   = 1000,              MAXGL2  = 90          )

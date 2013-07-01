@@ -80,7 +80,8 @@
       REAL*8,  ALLOCATABLE, TARGET :: BCPO(:,:,:,:)
       REAL*8,  ALLOCATABLE, TARGET :: SO4(:,:,:,:) 
 
-      REAL*8,  ALLOCATABLE, TARGET :: NOX_WKEND(:,:,:,:) 
+      ! No longer need NOx family variables (skim, 6/26/13)
+      !REAL*8,  ALLOCATABLE, TARGET :: NOX_WKEND(:,:,:,:) 
       REAL*8,  ALLOCATABLE, TARGET :: CO_WKEND(:,:,:,:) 
       REAL*8,  ALLOCATABLE, TARGET :: NO_WKEND(:,:,:,:) 
       REAL*8,  ALLOCATABLE, TARGET :: NO2_WKEND(:,:,:,:) 
@@ -2000,7 +2001,6 @@
      ! ID #'s for that are not tied to IDTxxxx flags
       OFFLINE_ID = (/ 2, 1, 64, 66, 26, 30, 11, 12, &
                      21, 18, 5, 27, 20, 36, 37    /)
-
 
       ! Base data directory
       DATA_DIR_NEI = TRIM( Input_Opt%DATA_DIR ) // 'NEI2008_201307/'

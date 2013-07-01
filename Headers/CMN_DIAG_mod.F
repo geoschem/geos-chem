@@ -74,7 +74,8 @@
       INTEGER, PARAMETER :: PD02=3
       INTEGER, PARAMETER :: PD05=10        
       INTEGER, PARAMETER :: PD06=NDSTBIN
-      INTEGER, PARAMETER :: PD07=12
+      ! +3 for SEAC4RS SOA tracers (jaf, 6/25/13)
+      INTEGER, PARAMETER :: PD07=15
       INTEGER, PARAMETER :: PD08=2
       INTEGER, PARAMETER :: PD09=6
       INTEGER, PARAMETER :: PD10=20            
@@ -111,7 +112,9 @@
       INTEGER, PARAMETER :: PD43=5  
       INTEGER, PARAMETER :: PD44=53      !jpp replaced 41
       INTEGER, PARAMETER :: PD45=NNPAR+1      
-      INTEGER, PARAMETER :: PD46=22      !dbm replaced 16
+      ! +1 for SEAC4RS passive tracer (jaf, 6/14/13)
+      !INTEGER, PARAMETER :: PD46=22      !dbm replaced 16
+      INTEGER, PARAMETER :: PD46=23      !dbm replaced 16
       INTEGER, PARAMETER :: PD47=NNPAR+1
       INTEGER, PARAMETER :: PD48=2            
       INTEGER, PARAMETER :: PD49=0                

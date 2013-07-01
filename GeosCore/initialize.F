@@ -218,6 +218,8 @@
             AD07_OC    = 0e0
             AD07_HC    = 0e0
             AD07_SOAGM = 0e0
+            AD07_ASOA  = 0e0
+            AD07_BBSOA = 0e0
 #if   defined( APM )
             AD07_OM    = 0e0
 #endif

@@ -1281,6 +1281,9 @@
       ! SEAC4RS or the China domain (skim, 5/29/12)
 #if   defined( GEOS_57 ) && defined( NESTED_CH )
       FILENAME = TRIM( FILENAME ) // '.CH'
+      ! Add a switch for the nested North American domain
+#elif defined( GEOS_57 ) && defined( NESTED_NA )
+      FILENAME = TRIM( FILENAME ) // '.NA'
 #elif defined( GEOS_57 ) && defined( SEAC4RS )
       FILENAME = TRIM( FILENAME ) // '.SE'
 #endif
@@ -1524,6 +1527,8 @@
       ! Initialize
       BETA = 1d0
 
+! Remove Lee's error catches to get the model to run
+! (skim, 6/27/13)
 #if   defined( GEOS_57 ) && defined( GRID4x5 ) 
 
       !---------------------------------------
@@ -1531,9 +1536,9 @@
       !---------------------------------------
 
       ! ltm: Will need to be updated when other months/years become available
-      IF ( GET_YEAR() .eq. 2011 .and. GET_MONTH() .eq. 9 ) THEN
+      ! IF ( GET_YEAR() .eq. 2011 .and. GET_MONTH() .eq. 9 ) THEN
          BETA = 0.63453405d0
-      ENDIF
+      ! ENDIF
 
 #elif defined( GEOS_57 ) && defined( GRID2x25 )
 
@@ -1542,9 +1547,9 @@
       !---------------------------------------
       
       ! ltm: Will need to be updated when other months/years become available
-      IF ( GET_YEAR() .eq. 2011 .and. GET_MONTH() .eq. 9 ) THEN
+      ! IF ( GET_YEAR() .eq. 2011 .and. GET_MONTH() .eq. 9 ) THEN
          BETA = 0.20604515d0
-      ENDIF
+      ! ENDIF
 
 #elif defined( GEOS_57 ) && defined( GRID025x0325 ) && defined( NESTED_CH )
 
@@ -1553,9 +1558,9 @@
       !---------------------------------------
       
       ! ltm: Will need to be updated when other months/years become available
-      IF ( GET_YEAR() .eq. 2011 .and. GET_MONTH() .eq. 9 ) THEN
+      !IF ( GET_YEAR() .eq. 2011 .and. GET_MONTH() .eq. 9 ) THEN
          BETA = 0.20604515d0
-      ENDIF
+      !ENDIF
 
 #elif defined( GEOS_57 ) && defined( GRID025x03125 ) && defined( SEAC4RS )
 
@@ -1564,9 +1569,22 @@
       !---------------------------------------
       
       ! ltm: Will need to be updated when other months/years become available
-      IF ( GET_YEAR() .eq. 2011 .and. GET_MONTH() .eq. 9 ) THEN
+      !IF ( GET_YEAR() .eq. 2011 .and. GET_MONTH() .eq. 9 ) THEN
          BETA = 0.20604515d0
-      ENDIF
+      !ENDIF
+
+! Copy the same beta for the other nested grids for now (skim, 6/27/13)
+#elif defined( GEOS_57 ) && defined( GRID025x03125 ) && defined( NESED_NA )
+
+      !---------------------------------------
+      ! GEOS-5.7.x: Nested SEAC4RS simulation
+      !---------------------------------------
+
+      ! ltm: Will need to be updated when other months/years become
+      ! available
+      !IF ( GET_YEAR() .eq. 2011 .and. GET_MONTH() .eq. 9 ) THEN
+         BETA = 0.20604515d0
+      !ENDIF
 
 #elif defined( MERRA ) && defined( GRID2x25 )
 
