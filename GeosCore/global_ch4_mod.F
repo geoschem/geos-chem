@@ -319,7 +319,7 @@
       USE CMN_SIZE_MOD
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR 
       USE TIME_MOD,           ONLY : GET_MONTH,       GET_YEAR
-      USE TIME_MOD,           ONLY : GET_TS_EMIS
+      USE TIME_MOD,           ONLY : GET_TS_EMIS,     ITS_A_NEW_DAY
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -471,6 +471,18 @@
       ENDIF
 
       ! ==================================================================
+      ! 2)  Get Daily Varying CH4 Emissions
+      !     NOTES:                                          (kjw, 9/24/12)
+      !        Biomass burning emissions from GFED3
+      ! ==================================================================
+      IF ( ITS_A_NEW_DAY() ) THEN
+
+         !4.2 Biomass Burning emissions (CH4_BBN, #9)
+         CALL BIOBURN_EMIS( am_I_Root, Input_Opt, RC )
+
+      ENDIF
+
+      ! ==================================================================
       ! 2)  Get Monthly Varying CH4 Emissions
       !     NOTES:                                          (kjw, 5/28/09)
       !        Biomass burning emissions from GFED2 or GFED3
@@ -478,11 +490,6 @@
       !        Rice emissions from EDGAR v4, modified by GEOS soil wetness
       ! ==================================================================
       IF ( ITS_A_NEW_MONTH() ) THEN
-
-         !4.2 Biomass Burning emissions (CH4_BBN, #9)
-         IF ( LBMCH4 ) THEN
-            CALL BIOBURN_EMIS( am_I_Root, Input_Opt, RC )
-         ENDIF
 
          !4.3 Rice emissions (CH4_RIC, #7)
          IF ( LRICE ) THEN
@@ -755,14 +762,14 @@
 
       ! Read Wetland fraction only if first call of simulation
       !IF ( FIRST ) THEN
-         FILENAME = TRIM( DATA_DIR )  // 'CH4_201203/wetlands/' //
-     &              'Wetfrac.'        // GET_RES_EXT()          // 
-     &              '.bpch'
-
 #if   defined( GRID05x0666 ) && defined( NESTED_NA )
          FILENAME = TRIM( DATA_DIR )  // 'CH4_201203/wetlands/' //
      &              'Wetfrac.'        // GET_RES_EXT()          //
      &              '_NA.bpch'
+#else
+         FILENAME = TRIM( DATA_DIR )  // 'CH4_201203/wetlands/' //
+     &              'Wetfrac.'        // GET_RES_EXT()          // 
+     &              '.bpch'
 #endif
 
          WRITE( 6, 91 ) TRIM ( FILENAME )
@@ -893,14 +900,14 @@
          
          XTAU = GET_TAU0( 1, 1, 2000 )
 
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/wetlands/' //
-     &              'Carbon_litter.' // GET_RES_EXT()          // 
-     &              '.bpch'
-
 #if   defined( GRID05x0666 ) && defined( NESTED_NA )
          FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/wetlands/' //
      &              'Carbon_litter.' // GET_RES_EXT()          //
      &              '_NA.bpch'
+#else
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/wetlands/' //
+     &              'Carbon_litter.' // GET_RES_EXT()          // 
+     &              '.bpch'
 #endif
 
          CALL READ_BPCH2( FILENAME, 'CO--SRCE',   1,      
@@ -909,14 +916,14 @@
 
          CALL TRANSFER_2D( ARRAY, LITTER_C )
 
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/wetlands/' //
-     &              'Carbon_soil.'   // GET_RES_EXT()          // 
-     &              '.bpch'
-
 #if   defined( GRID05x0666 ) && defined( NESTED_NA )
          FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/wetlands/' //
      &              'Carbon_soil.'   // GET_RES_EXT()          // 
      &              '_NA.bpch'
+#else
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/wetlands/' //
+     &              'Carbon_soil.'   // GET_RES_EXT()          // 
+     &              '.bpch'
 #endif
 
          CALL READ_BPCH2( FILENAME, 'CO--SRCE',   1,      
@@ -930,15 +937,15 @@
          ! Get annual mean skin temperature. 
          !===================================================================
 
-         ! No TSKIN data for years before 2000 or after 2009
+         ! No TSKIN data for years before 2000 or after 2010
          YEAR = GET_YEAR()
 
 #if   defined( GEOS_5 )
          IF ( YEAR .LT. 2004 ) YEAR  = 2004
-         IF ( YEAR .GT. 2011 ) YEAR  = 2011
+         IF ( YEAR .GT. 2010 ) YEAR  = 2010
          WRITE( CYEAR, '(i4)' ) YEAR
 
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/wetlands/' //
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/wetlands/' //
      &              'TSKIN.'         // GET_NAME_EXT()         // 
      &              '.'              // GET_RES_EXT()          //
      &              '.'              // CYEAR                  // 
@@ -946,7 +953,7 @@
 
 #elif defined( GEOS_4 )
          IF ( YEAR .LT. 2000 ) YEAR  = 2000
-         IF ( YEAR .GT. 2009 ) YEAR  = 2009
+         IF ( YEAR .GT. 2006 ) YEAR  = 2006
          WRITE( CYEAR, '(i4)' ) YEAR
 
          FILENAME = TRIM( DATA_DIR )  // 'CH4_200911/wetlands/' //
@@ -956,10 +963,12 @@
 #endif
 
 #if   defined( GRID05x0666 ) && defined( NESTED_NA )
-         YEAR    = 2004
+         IF ( YEAR .LT. 2004 ) YEAR  = 2004
+         IF ( YEAR .GT. 2004 ) YEAR  = 2009
+         IF ( YEAR .GE. 2010 ) YEAR  = 2010
          WRITE( CYEAR, '(i4)' ) YEAR
 
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/wetlands/' //
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/wetlands/' //
      &              'TSKIN.'         // GET_NAME_EXT()         //
      &              '.'              // GET_RES_EXT()          //
      &              '_NA.'           // CYEAR                  //
@@ -1247,22 +1256,32 @@
       !4.7 Rice Emissions
       ! For now, we only have emissions from 2004 in DATA_DIR.
       ! Tau date of bpch emission files is Jan 1 of that year
-      CYEAR='2004'
-      XTAU = GET_TAU0( 1, 1, 2004 )
+      !CYEAR='2004'
+      !XTAU = GET_TAU0( 1, 1, 2004 )
       ! When DATA_DIR updated with more emission files, use:
-      !      WRITE( CYEAR, '(i4)' ) GET_YEAR()
-      !      XTAU = GET_TAU0( 1, 1, GET_YEAR() )
+      WRITE( CYEAR, '(i4)' ) GET_YEAR()
+      XTAU = GET_TAU0( 1, 1, GET_YEAR() )
+
+      IF ( GET_YEAR() .LT. 2004 ) THEN
+         CYEAR='2004'
+         XTAU = GET_TAU0( 1, 1, 2004 )
+      ENDIF
+      IF ( GET_YEAR() .GT. 2008 ) THEN
+         CYEAR='2008'
+         XTAU = GET_TAU0( 1, 1, 2008 )
+      ENDIF
+               
 
       ! Read Rice Emissions
-      FILENAME = TRIM( DATA_DIR ) // 'CH4_200911/'      //
-     &           'rice.'          // CYEAR             // 
-     &           '.'              // GET_NAME_EXT_2D() // 
-     &           '.'              // GET_RES_EXT()
-
 #if   defined( GRID05x0666 ) && defined( NESTED_NA )
-      FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/'     //
+      FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'     //
      &           'rice.'          // GET_RES_EXT()     //
      &           '_NA.'           // CYEAR             //
+     &           '.bpch' 
+#else
+      FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'     //
+     &           'rice.'          // GET_RES_EXT()     //
+     &           '.'              // CYEAR             //
      &           '.bpch'
 #endif
 
@@ -1277,10 +1296,10 @@
       YEAR = GET_YEAR()
 #if   defined( GEOS_5 )
       IF ( YEAR .LT. 2004 ) YEAR  = 2004
-      IF ( YEAR .GT. 2011 ) YEAR  = 2011
+      IF ( YEAR .GT. 2010 ) YEAR  = 2010
       WRITE( CYEAR, '(i4)' ) YEAR
 
-      FILENAME = TRIM( DATA_DIR )  // 'CH4_201203/GWETTOP/'  //
+      FILENAME = TRIM( DATA_DIR )  // 'CH4_201305/wetlands/'  //
      &           'GWETTOP.'        // GET_NAME_EXT()         // 
      &           '.'               // GET_RES_EXT()          // 
      &           '.'               // CYEAR                  // 
@@ -1288,7 +1307,7 @@
 
 #elif defined( GEOS_4 )
       IF ( YEAR .LT. 2000 ) YEAR  = 2000
-      IF ( YEAR .GT. 2009 ) YEAR  = 2009
+      IF ( YEAR .GT. 2006 ) YEAR  = 2006
       WRITE( CYEAR, '(i4)' ) YEAR
 
       FILENAME = TRIM( DATA_DIR )  // 'CH4_200911/GWETTOP/'  //
@@ -1298,10 +1317,12 @@
 #endif
 
 #if   defined( GRID05x0666 ) && defined( NESTED_NA )
-      YEAR = 2004
+      IF ( YEAR .LT. 2004 ) YEAR  = 2004
+      IF ( YEAR .GT. 2004 ) YEAR  = 2009
+      IF ( YEAR .GE. 2010 ) YEAR  = 2010
       WRITE( CYEAR, '(i4)' ) YEAR
 
-      FILENAME = TRIM( DATA_DIR )  // 'CH4_201203/GWETTOP/'  //
+      FILENAME = TRIM( DATA_DIR )  // 'CH4_201305/wetlands/'  //
      &           'GWETTOP.'        // GET_NAME_EXT()         // 
      &           '.'               // GET_RES_EXT()          // 
      &           '_NA.'            // CYEAR                  //
@@ -1434,24 +1455,33 @@
 
       ! For now, we only have emissions from 2004 in DATA_DIR.
       ! Tau date of bpch emission files is Jan 1 of that year
-      CYEAR='2004'
-      XTAU = GET_TAU0( 1, 1, 2004 )
+      !CYEAR='2004'
+      !XTAU = GET_TAU0( 1, 1, 2004 )
       ! When DATA_DIR updated with more emission files, use:
-      !      WRITE( CYEAR, '(i4)' ) GET_YEAR()
-      !      XTAU = GET_TAU0( 1, 1, GET_YEAR() )
+      WRITE( CYEAR, '(i4)' ) GET_YEAR()
+      XTAU = GET_TAU0( 1, 1, GET_YEAR() )
+
+      IF ( GET_YEAR() .LT. 2004 ) THEN
+         CYEAR='2004'
+         XTAU = GET_TAU0( 1, 1, 2004 )
+      ENDIF
+      IF ( GET_YEAR() .GT. 2008 ) THEN
+         CYEAR='2008'
+         XTAU = GET_TAU0( 1, 1, 2008 )
+      ENDIF
 
 
       !4.2 Gas and Oil emissions
       IF ( LGAO ) THEN
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_200911/'     //
-     &              'gas_oil.'       // CYEAR             // 
-     &              '.'              // GET_NAME_EXT_2D() //
-     &              '.'              // GET_RES_EXT() 
-
 #if   defined( GRID05x0666 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/'     //
-     &              'gas_oil.'       // GET_RES_EXT()     // 
-     &              '_NA.'           // CYEAR             // 
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'     //
+     &              'oil_gas.'       // GET_RES_EXT()     //
+     &              '_NA.'           // CYEAR             //
+     &              '.bpch'
+#else
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'     //
+     &              'oil_gas.'       // GET_RES_EXT()    //
+     &              '.'              // CYEAR            //
      &              '.bpch'
 #endif
 
@@ -1464,15 +1494,15 @@
 
       !4.3 Coal Mine emissions
       IF ( LCOL ) THEN
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_200911/'     //
-     &              'coal.'          // CYEAR             // 
-     &              '.'              // GET_NAME_EXT_2D() //
-     &              '.'              // GET_RES_EXT() 
-
 #if   defined( GRID05x0666 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/'     //
-     &              'coal.'          // GET_RES_EXT()     // 
-     &              '_NA.'           // CYEAR             // 
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'     //
+     &              'coal.'          // GET_RES_EXT()     //
+     &              '_NA.'           // CYEAR             //
+     &              '.bpch'
+#else
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'     //
+     &              'coal.'          // GET_RES_EXT()     //
+     &              '.'              // CYEAR             //
      &              '.bpch'
 #endif 
 
@@ -1484,15 +1514,15 @@
 
       !4.4 Livestock emissions
       IF ( LLIV ) THEN
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_200911/'     //
-     &              'livestock.'     // CYEAR             // 
-     &              '.'              // GET_NAME_EXT_2D() //
-     &              '.'              // GET_RES_EXT() 
-
 #if   defined( GRID05x0666 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/'     //
-     &              'livestock.'     // GET_RES_EXT()     // 
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'     //
+     &              'livestock.'     // GET_RES_EXT()     //
      &              '_NA.'           // CYEAR             //
+     &              '.bpch'
+#else
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'     //
+     &              'livestock.'     // GET_RES_EXT()     //
+     &              '.'              // CYEAR             //
      &              '.bpch'
 #endif
 
@@ -1502,37 +1532,17 @@
          CALL TRANSFER_2D( ARRAY, CH4_EMIS(:,:,4) )
       ENDIF
 
-      !4.6 Biofuel emissions
-      IF ( LBFCH4 ) THEN
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/'     //
-     &              'resident.'      // GET_RES_EXT()     // 
-     &              '.'              // CYEAR             //
-     &              '.bpch'
-
-#if   defined( GRID05x0666 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/'     //
-     &              'resident.'      // GET_RES_EXT()     //
-     &              '_NA.'           // CYEAR             //
-     &              '.bpch'
-#endif
-
-         CALL READ_BPCH2( TRIM(FILENAME), 'CH4-EMIS',   1,
-     &                    XTAU,           IIPAR,        JJPAR,
-     &                    1,              ARRAY,        QUIET=.TRUE.)
-         CALL TRANSFER_2D( ARRAY, CH4_EMIS(:,:,6) ) 
-      ENDIF
-	
       !4.5 Waste emissions
       IF ( LWAST ) THEN
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_200911/'     //
-     &              'waste.'         // CYEAR             // 
-     &              '.'              // GET_NAME_EXT_2D() //
-     &              '.'              // GET_RES_EXT() 
-
 #if   defined( GRID05x0666 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/'     //
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'     //
      &              'waste.'         // GET_RES_EXT()     //
      &              '_NA.'           // CYEAR             //
+     &              '.bpch'
+#else
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'     //
+     &              'waste.'         // GET_RES_EXT()     //
+     &              '.'              // CYEAR             //
      &              '.bpch'
 #endif
 
@@ -1542,17 +1552,37 @@
          CALL TRANSFER_2D( ARRAY, CH4_EMIS(:,:,5) )
       ENDIF
 
+      !4.6 Biofuel emissions
+      IF ( LBFCH4 ) THEN
+#if   defined( GRID05x0666 ) && defined( NESTED_NA )
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'     //
+     &              'resident.'      // GET_RES_EXT()     //
+     &              '_NA.'           // CYEAR             //
+     &              '.bpch'
+#else
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'     //
+     &              'resident.'      // GET_RES_EXT()     //
+     &              '.'              // CYEAR             //
+     &              '.bpch'
+#endif
+
+         CALL READ_BPCH2( TRIM(FILENAME), 'CH4-EMIS',   1,
+     &                    XTAU,           IIPAR,        JJPAR,
+     &                    1,              ARRAY,        QUIET=.TRUE.)
+         CALL TRANSFER_2D( ARRAY, CH4_EMIS(:,:,6) ) 
+      ENDIF
+	
       !4.8 Other Anthropogenic Emissions
       IF ( LOTANT ) THEN
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_200911/'     //
-     &              'other.'         // CYEAR             // 
-     &              '.'              // GET_NAME_EXT_2D() //
-     &              '.'              // GET_RES_EXT() 
-
 #if   defined( GRID05x0666 ) && defined( NESTED_NA )
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/'     //
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'     //
      &              'other.'         // GET_RES_EXT()     //
      &              '_NA.'           // CYEAR             //
+     &              '.bpch'
+#else
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201305/'     //
+     &              'other.'         // GET_RES_EXT()     //
+     &              '.'              // CYEAR             //
      &              '.bpch'
 #endif
 
@@ -1646,14 +1676,14 @@
 
       !4.11 Soil Absorption
       IF ( LSOABS ) THEN
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_200911/'     //
-     &              'soilabs.'       // GET_NAME_EXT_2D() //
-     &              '.'              // GET_RES_EXT() 
-
 #if   defined( GRID05x0666 ) && defined( NESTED_NA )
          FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/'     //
      &              'soilabs.'       // GET_RES_EXT()     // 
      &              '_NA.bpch'
+#else
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_200911/'     //
+     &              'soilabs.'       // GET_NAME_EXT_2D() //
+     &              '.'              // GET_RES_EXT() 
 #endif
 
          CALL READ_BPCH2( FILENAME, 'CH4-EMIS', 1,
@@ -1664,14 +1694,14 @@
 
       !4.12 Other Natural Emissions
       IF ( LOTNAT ) THEN
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_200911/'     //
-     &              'termites.'      // GET_NAME_EXT_2D() //
-     &              '.'              // GET_RES_EXT() 
-
 #if   defined( GRID05x0666 ) && defined( NESTED_NA )
          FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/'     //
      &              'termites.'      // GET_RES_EXT()     //
      &              '_NA.bpch'
+#else
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_200911/'     //
+     &              'termites.'      // GET_NAME_EXT_2D() //
+     &              '.'              // GET_RES_EXT() 
 #endif
 
          CALL READ_BPCH2( FILENAME, 'CH4-EMIS', 1,
@@ -1955,7 +1985,7 @@
       ! (4) Save OH concentrations for printing of global mean [OH] and
       !     CH3CCLl3 at end of simulation.
       !=================================================================
-      CALL CH4_OHSAVE( State_Met )
+      CALL CH4_OHSAVE( State_Met, State_Chm )
 
       !=================================================================
       ! (5) If multi-CH4 tracers, we store the CH4 total conc. to
@@ -2115,9 +2145,14 @@
          XTAU = GET_TAU0( M, 1, 1985 )
 
          ! Construct filename
+#if defined( GRID05x0666 ) && defined( NESTED_NA )
+         FILENAME = TRIM( DATA_DIR ) // 'pco_lco_200203/'  //
+     &              'COprod.GEOS5.05x0666_NA.trim'
+#else
          FILENAME = TRIM( DATA_DIR ) // 'pco_lco_200203/' //
-     &   'COprod.' // GET_NAME_EXT() // '.' // GET_RES_EXT()
-
+     &              'COprod.'        // GET_NAME_EXT()    //
+     7              '.'              // GET_RES_EXT()
+#endif
 
          WRITE( 6, 93 ) TRIM ( FILENAME )
  93      FORMAT( '     - READ_COPROD: Reading COprod: ', a )
@@ -2225,14 +2260,14 @@
       !=================================================================
 
       ! Construct filename
-      FILENAME = TRIM( DATA_DIR )         // 'CH4_201203/' //
-     &           'gmi.ch4loss.geos5_47L.' // GET_RES_EXT() // 
-     &           '.bpch'
-
 #if   defined( GRID05x0666 ) && defined( NESTED_NA )
       FILENAME = TRIM( DATA_DIR )         // 'CH4_201203/' //
      &           'gmi.ch4loss.geos5_47L.' // GET_RES_EXT() //
      &           '_NA.bpch'
+#else
+      FILENAME = TRIM( DATA_DIR )         // 'CH4_201203/' //
+     &           'gmi.ch4loss.geos5_47L.' // GET_RES_EXT() // 
+     &           '.bpch'
 #endif
 
       WRITE( 6, 93 ) TRIM ( FILENAME )
@@ -2435,13 +2470,15 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CH4_OHSAVE( State_Met )
+      SUBROUTINE CH4_OHSAVE( State_Met, State_Chm )
 !
 ! !USES:
 !
       ! References to F90 modules
-      USE GIGC_State_Met_Mod, ONLY : MetState
       USE DIAG_OH_MOD,        ONLY : DO_DIAG_OH_CH4
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE TIME_MOD,           ONLY : GET_MONTH
 
       USE CMN_SIZE_MOD             ! Size parameters
@@ -2450,6 +2487,7 @@
 ! !INPUT PARAMETERS:
 !
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
 ! 
 ! !REMARKS:
 !  The annual mean tropopause is stored in the LPAUSE array 
@@ -2476,7 +2514,13 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER              :: I, J, L, LMN
-      REAL*8               :: KCLO, LOSS, OHMASS, MASST
+      REAL*8               :: MASST,   AREA_CM2
+      REAL*8               :: KCLO,    LOSS,       OHMASS  
+      REAL*8               :: KCH4,    CH4LOSS,    CH4MASS
+      REAL*8               :: CH4EMIS, CH4TROPMASS
+
+      ! Pointers
+      REAL*8, POINTER      :: STT(:,:,:,:)
 !
 ! !EXTERNAL FUNCTIONS:   
 !
@@ -2491,6 +2535,9 @@
 
       ! Current month
       LMN = GET_MONTH()
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      STT => State_Chm%Tracers
 
       ! 1. Calculate OH mass and total air mass
       DO L = 1, MAXVAL( LPAUSE )
@@ -2514,15 +2561,54 @@
             LOSS   = KCLO            * BOH(I,J,L,LMN)  *
      &               BAIRDENS(I,J,L) * BOXVL(I,J,L,State_Met)
 
-            ! Pass OH mass, total mass, and loss to "diag_oh_mod.f",
-            ! which calculates mass-weighted mean [OH] and CH3CCl3
-            ! lifetime.
-            CALL DO_DIAG_OH_CH4( I, J, L, OHMASS, MASST, LOSS )
+
+            ! Calculate CH4 + OH rate constant from JPL '06
+            ! [cm3 / molec / s]
+            KCH4   = 2.45d-12 * EXP( -1775d0 / State_Met%T(I,J,L) )
+
+            ! Calculate CH4 mass [molec / box] from [kg / box]
+            CH4TROPMASS = STT(I,J,L,1) * XNUMOL_CH4 
+            CH4MASS     = STT(I,J,L,1) * XNUMOL_CH4 
+
+            ! Calculate loss term  [molec /box / s]
+            CH4LOSS = KCH4            * BOH(I,J,L,LMN)  *
+     &                BAIRDENS(I,J,L) * BOXVL(I,J,L,State_Met)
+
+            ! Calculate CH4 emissions [molec / box / s]
+            !   Only for surface level
+            ! Grid box surface area [cm2]
+            IF ( L .GT. 1 ) THEN 
+               CH4EMIS = 0d0
+            ELSE
+               AREA_CM2 = GET_AREA_CM2( I, J, L )
+               CH4EMIS  = SUM(CH4_EMIS(I,J,2:10)) + CH4_EMIS(I,J,12)
+               CH4EMIS  = CH4EMIS * AREA_CM2 ! [molec/cm2/s] --> [molec/box/s]
+            ENDIF
+
+         ELSE
+
+            OHMASS      = 0d0
+            MASST       = 0d0
+            LOSS        = 0d0
+            CH4LOSS     = 0d0
+            CH4TROPMASS = 0d0
+            CH4EMIS     = 0d0
+            CH4MASS     = STT(I,J,L,1) * XNUMOL_CH4 
 
          ENDIF
+
+         ! Pass OH mass, total mass, and loss to "diag_oh_mod.f",
+         ! which calculates mass-weighted mean [OH] and CH3CCl3
+         ! lifetime.
+         CALL DO_DIAG_OH_CH4( I, J, L, OHMASS, MASST, LOSS, 
+     &        CH4LOSS, CH4TROPMASS, CH4EMIS, CH4MASS )
+
       ENDDO
       ENDDO
       ENDDO
+
+      ! Free pointer
+      NULLIFY( STT )
 
       END SUBROUTINE CH4_OHSAVE
 !EOC
