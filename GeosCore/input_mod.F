@@ -1029,6 +1029,7 @@
 !  26 Feb 2013 - R. Yantosca - Now pass I_LO, J_LO to COMPUTE_GRID
 !  28 Feb 2013 - R. Yantosca - Bug fix for GEOS-5 interface: Now call 
 !                              Compute_Grid with 1..IIPAR, I..JJPAR
+!  01 Jul 2013 - R. Yantosca - Don't use 1/2 sized polar boxes for GCAP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1049,8 +1050,10 @@
       JNP           = JM_WORLD           ! Lat index of N pole
       DLON          = 5.0d0              ! Delta-longitude array [degrees]
       DLAT          = 4.0d0              ! Delta-latitude array [degrees]
+# if !defined( GCAP )
       DLAT(:,JSP,:) = 2.0d0              !  Half-sized S Pole boxes
       DLAT(:,JNP,:) = 2.0d0              !  Half-sized N Pole boxes
+# endif
 
 #elif defined( GRID2x25 )
 
@@ -1061,8 +1064,10 @@
       JNP           = JM_WORLD           ! Lat index of N pole
       DLON          = 2.5d0              ! Delta-longitude array [degrees]
       DLAT          = 2.0d0              ! Delta-latitude array [degrees]
+# if !defined( GCAP )
       DLAT(:,JSP,:) = 1.0d0              !  Half-sized S Pole boxes
       DLAT(:,JNP,:) = 1.0d0              !  Half-sized N Pole boxes
+# endif
 
 #elif defined( GRID1x125 )
 
@@ -1073,8 +1078,10 @@
       JNP           = JM_WORLD           ! Lat index of N pole
       DLON          = 1.25d0             ! Delta-longitude array [degrees]
       DLAT          = 1.0d0              ! Delta-latitude array [degrees]
+# if !defined( GCAP )
       DLAT(:,JSP,:) = 0.5d0              !  Half-sized S Pole boxes
       DLAT(:,JNP,:) = 0.5d0              !  Half-sized N Pole boxes
+# endif
 
 #elif defined( GRID1x1 )
 
@@ -1085,8 +1092,10 @@
       JNP           = JM_WORLD           ! Lat index of N pole
       DLON          = 1.0d0              ! Delta-longitude array [degrees]
       DLAT          = 1.0d0              ! Delta-latitude array [degrees]
+# if !defined( GCAP )
       DLAT(:,JSP,:) = 0.5d0              !  Half-sized S Pole boxes
       DLAT(:,JNP,:) = 0.5d0              !  Half-sized N Pole boxes
+# endif
 
 #elif defined( GRID05x0666 )
 

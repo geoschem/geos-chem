@@ -249,6 +249,8 @@
 !  20 Sep 2010 - R. Yantosca - Rewrote #if block structure for clarity
 !  09 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  02 Jul 2013 - R. Yantosca - Bug fix: add State_Chm to WETDEP calls for
+!                              met other than MERRA, GEOS-5.7 or GEOS-5
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -319,7 +321,7 @@
       IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: before LS wetdep' )
 
       ! Do wet deposition
-      CALL WETDEP(  State_Met, LS=.TRUE. )
+      CALL WETDEP(  State_Met, State_Chm, LS=.TRUE. )
       IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
 
       !---------------------
@@ -331,7 +333,7 @@
       IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: before conv wetdep' )
 
       !  Do wet deposition
-      CALL WETDEP(  State_Met, LS=.FALSE. )
+      CALL WETDEP(  State_Met, State_Chm, LS=.FALSE. )
       IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: after conv wetdep' )
 
 #endif

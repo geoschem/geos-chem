@@ -530,6 +530,8 @@
 !  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
 !                              object
 !  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
+!  02 Jul 2013 - R. Yantosca - For GCAP, PBL is now State_Met%PBLH (similarly
+!                              for State_Met%PRECCON and State_Met%PRECTOT)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -648,9 +650,9 @@
      &              OICE     = State_Met%OICE,     
      &              PARDF    = State_Met%PARDF,       
      &              PARDR    = State_Met%PARDR,
-     &              PBL      = State_Met%PBL,       
-     &              PREACC   = State_Met%PREACC,     
-     &              PRECON   = State_Met%PRECON,
+     &              PBL      = State_Met%PBLH,
+     &              PREACC   = State_Met%PRECTOT,
+     &              PRECON   = State_Met%PRECCON,
      &              RADSWG   = State_Met%RADSWG, 
      &              SNICE    = State_Met%SNICE,
      &              SNOW     = State_Met%SNOW, 

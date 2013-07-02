@@ -162,6 +162,8 @@ CONTAINS
 !  21 Mar 2013 - R. Yantosca - Rename loop indices to prevent confusion
 !  06 Jun 2013 - M. Payer    - Add fix to compute sine of last latitude edge
 !                              for MAP_A2A regridding (C. Keller)
+!  02 Jul 2013 - R. Yantosca - Now compute lon centers properly for GCAP,
+!                              which does not have any half-sized polar boxes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -238,8 +240,8 @@ CONTAINS
              !%%%%%%   LATITUDE CENTERS   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
              !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-             ! Lat centers (degrees)
-             YMID(I,J,L)     = ( DLAT(I,J,L) * IND_Y(J) ) - 90d0
+!             ! Lat centers (degrees)
+!             YMID(I,J,L)     = ( DLAT(I,J,L) * IND_Y(J) ) - 90d0
           
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
              !-------------------------------------------------------------
@@ -248,19 +250,41 @@ CONTAINS
              ! Do not define half-sized polar boxes (bmy, 3/21/13)
              !-------------------------------------------------------------
 #else
+
+# if defined( GCAP )
+
+             !-------------------------------------------------------------
+             !             %%%%% TRADITIONAL GEOS-Chem %%%%%
+             !
+             ! For the GCAP model, there are no half-size polar boxes.
+             ! Compute the latitude centers accordingly.  (bmy, 7/2/13)
+             !-------------------------------------------------------------
+
+             ! Lat centers (degrees)
+             YMID(I,J,L)     = ( DLAT(I,J,L) * IND_Y(J) ) - 88d0
+
+# else
+
              !-------------------------------------------------------------
              !             %%%%% TRADITIONAL GEOS-Chem %%%%%
              !
              ! Current practice in the standard GEOS-Chem is to make
-             ! the polar grid boxes (for global grids only) be half the
-             ! size of other grid boxes.  This lets us make +90 degrees
-             ! and -90 degrees be the edges of the grid. (bmy, 3/21/13)
+             ! the polar grid boxes (for non-GCAP global grids only) be
+             ! half the size of other grid boxes.  This lets us make +90
+             ! degrees and -90 degrees be the edges of the grid.
+             ! (bmy, 7/2/13)
              !-------------------------------------------------------------
+
+             ! Lat centers (degrees)
+             YMID(I,J,L)     = ( DLAT(I,J,L) * IND_Y(J) ) - 90d0
+
              IF ( JG == JSP ) THEN
                 YMID(I,J,L)  = -90d0 + ( 0.5d0 * DLAT(I,J,L) )   ! S pole
              ELSE IF ( JG == JNP ) THEN
                 YMID(I,J,L)  = +90d0 - ( 0.5d0 * DLAT(I,J,L) )   ! N pole
              ENDIF
+
+# endif
 #endif
              ! Lat centers (radians)
              YMID_R(I,J,L)   = ( PI_180 * YMID(I,J,L)  )

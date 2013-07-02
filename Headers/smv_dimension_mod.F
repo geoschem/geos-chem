@@ -25,10 +25,25 @@
 ! !DEFINED PARAMETERS: 
 !
       ! Locally defined replacement for GEOS-Chem parameter "LLPAR"
+      ! This is used to set the "NB" value in jv_cmn_mod.F
+#if defined( GCAP )
+
+      !------------------------
+      ! GCAP vertical grid
+      !------------------------
+      INTEGER, PARAMETER :: MAX_COLUMN   = 23
+
+#else
+
+      !-----------------------
+      ! GMAO vertical grids
+      !-----------------------
 #if   defined( GRIDREDUCED )
       INTEGER, PARAMETER :: MAX_COLUMN   = 47   ! Reduced GEOS-5 vertical grid
 #else
       INTEGER, PARAMETER :: MAX_COLUMN   = 72   ! Full GEOS-5 vertical grid
+#endif
+
 #endif
 
       ! Locally defined replacement for GEOS-Chem parameters "IIPAR" & "JJPAR"
@@ -54,6 +69,7 @@
 !  03 Aug 2011 - M. Long     - Converted from Header file to Module
 !  10 Aug 2012 - R. Yantosca - Now define MAX_COLUMN=47 for GRIDREDUCED or
 !                              =72 otherwise.  Kludge for testing DEVEL code.
+!  02 Jul 2013 - R. Yantosca - Set MAX_COLUMN properly for GCAP grid
 !EOP
       END MODULE SMV_DIMENSION_MOD
 !------------------------------------------------------------------------------

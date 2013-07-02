@@ -330,11 +330,16 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_GCAP_FIELDS( State_Met )
+      SUBROUTINE GET_GCAP_FIELDS( Input_Opt, State_Met )
 !
 ! !USES:
 !
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
