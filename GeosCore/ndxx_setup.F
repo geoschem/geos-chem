@@ -797,9 +797,6 @@
          ALLOCATE( AD32_ship( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD32_ship' ) 
 
-         ! For ship NOx counter
-         ALLOCATE( AD32_ship_count, STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD32_ship_count' ) 
       ENDIF
 
       !=================================================================
@@ -845,9 +842,6 @@
 
          ALLOCATE( AD36_SHIP( IIPAR, JJPAR, NEMANTHRO ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD36_SHIP' )
-
-         ALLOCATE( AD36_SHIP_COUNT, STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD36_SHIP_COUNT' )
       ENDIF
 
       !=================================================================
