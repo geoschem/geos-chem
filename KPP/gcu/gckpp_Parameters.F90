@@ -13,7 +13,7 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Parameters.f90
-! Time                 : Sat Jun  1 09:22:13 2013
+! Time                 : Tue Jul  2 17:13:54 2013
 ! Working directory    : /net/d08/data/seastham/GEOS-Chem/simulations/StratChem/Strat_v1.01/KPP_Compile
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
@@ -38,7 +38,7 @@ MODULE gckpp_Parameters
 ! NFIX - Number of Fixed species
   INTEGER, PARAMETER :: NFIX = 9 
 ! NREACT - Number of reactions
-  INTEGER, PARAMETER :: NREACT = 465 
+  INTEGER, PARAMETER :: NREACT = 464 
 ! NVARST - Starting of variables in conc. vect.
   INTEGER, PARAMETER :: NVARST = 1 
 ! NFIXST - Starting of fixed in conc. vect.
@@ -50,7 +50,7 @@ MODULE gckpp_Parameters
 ! CNVAR - (NVAR+1) Number of elements in compressed row format
   INTEGER, PARAMETER :: CNVAR = 172 
 ! CNEQN - (NREACT+1) Number stoicm elements in compressed col format
-  INTEGER, PARAMETER :: CNEQN = 466 
+  INTEGER, PARAMETER :: CNEQN = 465 
 ! NHESS - Length of Sparse Hessian
   INTEGER, PARAMETER :: NHESS = 1283 
 ! NLOOKAT - Number of species to look at
@@ -262,10 +262,10 @@ MODULE gckpp_Parameters
   INTEGER, PARAMETER :: indf_RCOOH = 9 
 
 ! NJVRP - Length of sparse Jacobian JVRP
-  INTEGER, PARAMETER :: NJVRP = 748 
+  INTEGER, PARAMETER :: NJVRP = 747 
 
 ! NSTOICM - Length of Sparse Stoichiometric Matrix
-  INTEGER, PARAMETER :: NSTOICM = 1831 
+  INTEGER, PARAMETER :: NSTOICM = 1830 
 
 END MODULE gckpp_Parameters
 

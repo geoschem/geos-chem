@@ -2162,6 +2162,10 @@
       LDAYBB3           = ( LDAYBB3        .and. LBIOMASS  )
       L3HRBB3           = ( L3HRBB3        .and. LBIOMASS  )
 
+      ! Fixed surface mixing ratio (basic)
+      LBASICEMIS        = ( LOCSEMIS       .or.  LCFCEMIS 
+     &                 .or. LBREMIS        .or.  LN2OEMIS  )
+
       ! Other
       LLIGHTNOX         = ( LLIGHTNOX      .and. LEMIS     )
       LOTDLOC           = ( LOTDLOC        .and. LEMIS     )
@@ -3041,7 +3045,7 @@
       USE LOGICAL_MOD, ONLY : LSVCSPEC, LKPP, LGMISTRAT
       USE TIME_MOD,    ONLY : SET_CT_CHEM
       USE TRACER_MOD,  ONLY : N_TRACERS
-      USE LOGICAL_MOD, ONLY : LCH4CHEM, LGMISTRAT
+      USE LOGICAL_MOD, ONLY : LCH4CHEM, LGMISTRAT, LACTIVEH2O
       USE LOGICAL_MOD, ONLY : LSETH2SO4
       USE TRACERID_MOD,ONLY : IDTCH4
 
@@ -3102,20 +3106,24 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:5' )
       READ( SUBSTRS(1:N), * ) LCH4CHEM
 
-      ! Chemistry timestep
+      ! Turn on online stratospheric H2O?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:6' )
+      READ( SUBSTRS(1:N), * ) LACTIVEH2O
+
+      ! Chemistry timestep
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:7' )
       READ( SUBSTRS(1:N), * ) TS_CHEM
 
       ! Read and save CSPEC ?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:7' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:8' )
       READ( SUBSTRS(1:N), * ) LSVCSPEC
 
       ! Use KPP solver ?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:8' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:9' )
       READ( SUBSTRS(1:N), * ) LKPP
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:9' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:10' )
 
       !=================================================================
       ! Error check settings
@@ -3139,6 +3147,12 @@
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
 
+      ! Cannot have active H2O without stratospheric chemistry
+      IF ( (.not.LGMISTRAT) .and. LACTIVEH2O ) THEN
+         MSG = 'Cannot have active H2O without full strat chem!'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+
       !=================================================================
       ! Print to screen
       !=================================================================
@@ -3150,6 +3164,7 @@
          WRITE( 6, 100     ) ' => Use Linoz for O3?       : ', LLINOZ
          WRITE( 6, 100     ) 'Use GMI strat. chem?        : ', LGMISTRAT
          WRITE( 6, 100     ) 'Online CH4 chemistry?       : ', LCH4CHEM
+         WRITE( 6, 100     ) 'Online strat. H2O?          : ',LACTIVEH2O
          WRITE( 6, 110     ) 'Chemistry timestep [min]    : ', TS_CHEM
          WRITE( 6, 100     ) 'Use CSPEC restart?          : ', LSVCSPEC
          WRITE( 6, 100     ) 'Use solver coded by KPP?    : ', LKPP
@@ -7190,6 +7205,7 @@
 
       !Full strat-chem (SDE 03/26/13)
       LGMISTRAT      = .FALSE.
+      LACTIVEH2O     = .FALSE.
       LSETH2O        = .FALSE.
       LSETCFC        = .FALSE.
       LSETCL         = .FALSE.
@@ -7203,6 +7219,7 @@
       LBREMIS        = .FALSE.
       LOCSEMIS       = .FALSE.
       LN2OEMIS       = .FALSE.
+      LBASICEMIS     = .FALSE.
       LGRAVSTRAT     = .FALSE.
       LSOLIDPSC      = .FALSE.
       LHOMNUCNAT     = .FALSE.

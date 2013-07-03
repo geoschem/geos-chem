@@ -7221,9 +7221,6 @@
       ! Also check to see if NSOL is larger than the maximum
       ! number of soluble tracers for a particular simulation
       IF ( NSOL > GET_WETDEP_NMAX() ) THEN
-         !-----SDE DEBUG
-         WRITE(6,'(a,1x,2I5)') 'NSOL, NMAX: ', NSOL, GET_WETDEP_NMAX()
-         !-----SDE DEBUG
          CALL ERROR_STOP( 'NSOL > NMAX', 'WETDEPID (wetscav_mod.f)')
       ENDIF
 

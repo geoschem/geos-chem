@@ -244,12 +244,15 @@
       REAL*8  :: PSCEDUCTCONC(13,2)
       LOGICAL :: NATSURFACE
       REAL*8  :: ADJUSTEDRATE
-      LOGICAL :: KII_KI, PSCBOX
+      LOGICAL :: KII_KI, PSCBOX, STRATBOX
       !-----SDE DEBUG
       REAL*8, PARAMETER :: PSCMAXRATE=1.d-13
 
       ! Minimum lifetime of a species for PSC heterogeneous chemistry
-      REAL*8, PARAMETER :: PSCMINLIFE=600.d0
+      !-----SDE DEBUG
+      !REAL*8, PARAMETER :: PSCMINLIFE=600.d0
+      REAL*8, PARAMETER :: PSCMINLIFE=1.d-3
+      !-----SDE DEBUG
       CHARACTER(LEN=255) :: PSCMESSAGE
       !-----SDE DEBUG
 
@@ -1049,6 +1052,7 @@ c new OH+CO rate from JPL2006.
 
          ! Initialize, for safety's sake
          PSCBOX = .FALSE.
+         STRATBOX = .FALSE.
          NATSURFACE = .FALSE.
          IF ( HETCHEM ) THEN
 
@@ -1060,8 +1064,8 @@ c new OH+CO rate from JPL2006.
             XSTK    = SQRT(T3K(KLOOP))
                   
             ! Check surface type of PSCs (SDE 04/17/13)
-            CALL CHECK_NAT(IX,IY,IZ,NATSURFACE,PSCBOX)
- 
+            CALL CHECK_NAT(IX,IY,IZ,NATSURFACE,PSCBOX,STRATBOX)
+
             DO I       = 1, NNADDK(NCS)
                NK      = NKSPECK(I,NCS)
                XSQM    = SQRT(ARR(NK,NCS))
@@ -1209,7 +1213,7 @@ c new OH+CO rate from JPL2006.
                         XSTKCF = TINY(1d0) ! avoid divide by zero
                      ENDIF
                   ! Only consider PSC reactions in strat
-                  ELSE IF (PSCBOX) THEN
+                  ELSE IF (STRATBOX) THEN
                      IF ( NK == NKPSC(NCS,2 ) ) THEN
                         ! N2O5(g)    + HCl(l,s)
                         KII_KI = .TRUE.

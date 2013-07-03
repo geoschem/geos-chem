@@ -13,7 +13,7 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_LinearAlgebra.f90
-! Time                 : Sat Jun  1 09:22:13 2013
+! Time                 : Tue Jul  2 17:13:54 2013
 ! Working directory    : /net/d08/data/seastham/GEOS-Chem/simulations/StratChem/Strat_v1.01/KPP_Compile
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
@@ -1781,9 +1781,9 @@ END SUBROUTINE KppSolveTR
       REAL(kind=dp)  ::  Suma
       REAL(kind=dp), PARAMETER  ::  ONE=1.0_dp, HALF=0.5_dp
       LOGICAL, SAVE   ::  First=.TRUE.
-
+     
 !$OMP THREADPRIVATE( Eps, First )
-      
+ 
       IF (First) THEN
         First = .FALSE.
         Eps = HALF**(16)

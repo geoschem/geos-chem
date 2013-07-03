@@ -13,7 +13,7 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Monitor.f90
-! Time                 : Sat Jun  1 09:22:13 2013
+! Time                 : Tue Jul  2 17:13:54 2013
 ! Working directory    : /net/d08/data/seastham/GEOS-Chem/simulations/StratChem/Strat_v1.01/KPP_Compile
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
@@ -558,7 +558,6 @@ MODULE gckpp_Monitor
      '         BrNO2 --> LR28 + Br + NO2                                                                  ', &
      '         CHBr3 --> LR29 + 3 Br                                                                      ', &
      '           N2O --> O1D + N2                                                                         ', &
-     '           N2O --> O1D + N2                                                                         ', &
      '           OCS --> SO2 + CO                                                                         ', &
      '           SO4 --> SO2 + 2 OH                                                                       ', &
      '            NO --> N + O                                                                            ', &
@@ -567,15 +566,15 @@ MODULE gckpp_Monitor
      '           Cl2 --> 2 Cl                                                                             ', &
      '           ClO --> O + Cl                                                                           ', &
      '          OClO --> ClO + O                                                                          ', &
-     '         Cl2O2 --> 2 Cl + O2                                                                        ', &
+     '         Cl2O2 --> ClOO + Cl                                                                        ', &
      '         ClNO2 --> Cl + NO2                                                                         ', &
      '         ClNO3 --> NO3 + Cl                                                                         ', &
      '         ClNO3 --> ClO + NO2                                                                        ', &
      '          HOCl --> OH + Cl                                                                          ', &
      '         CH3Cl --> MO2 + Cl                                                                         ', &
-     '       CH3CCl3 --> 3 Cl                                                                             ' /)
-  CHARACTER(LEN=100), PARAMETER, DIMENSION(15) :: EQN_NAMES_15 = (/ &
-     '          CCl4 --> 4 Cl                                                                             ', &
+     '       CH3CCl3 --> 3 Cl                                                                             ', &
+     '          CCl4 --> 4 Cl                                                                             ' /)
+  CHARACTER(LEN=100), PARAMETER, DIMENSION(14) :: EQN_NAMES_15 = (/ &
      '         CFC11 --> 3 Cl                                                                             ', &
      '         CFC12 --> 2 Cl                                                                             ', &
      '        CFC113 --> 3 Cl                                                                             ', &
@@ -590,7 +589,7 @@ MODULE gckpp_Monitor
      '         H2402 --> 2 Br                                                                             ', &
      '        CH2Br2 --> 2 Br                                                                             ', &
      '          ClOO --> Cl + O2                                                                          ' /)
-  CHARACTER(LEN=100), PARAMETER, DIMENSION(465) :: EQN_NAMES = (/&
+  CHARACTER(LEN=100), PARAMETER, DIMENSION(464) :: EQN_NAMES = (/&
     EQN_NAMES_0, EQN_NAMES_1, EQN_NAMES_2, EQN_NAMES_3, EQN_NAMES_4, &
     EQN_NAMES_5, EQN_NAMES_6, EQN_NAMES_7, EQN_NAMES_8, EQN_NAMES_9, &
     EQN_NAMES_10, EQN_NAMES_11, EQN_NAMES_12, EQN_NAMES_13, EQN_NAMES_14, &

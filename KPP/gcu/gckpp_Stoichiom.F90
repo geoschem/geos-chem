@@ -13,7 +13,7 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Stoichiom.f90
-! Time                 : Sat Jun  1 09:22:13 2013
+! Time                 : Tue Jul  2 17:13:54 2013
 ! Working directory    : /net/d08/data/seastham/GEOS-Chem/simulations/StratChem/Strat_v1.01/KPP_Compile
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
@@ -488,37 +488,36 @@ SUBROUTINE ReactantProd ( V, F, ARP )
   ARP(432) = V(58)
   ARP(433) = V(71)
   ARP(434) = V(54)
-  ARP(435) = V(54)
-  ARP(436) = V(68)
-  ARP(437) = V(57)
-  ARP(438) = V(158)
-  ARP(439) = V(93)
-  ARP(440) = V(101)
-  ARP(441) = V(119)
-  ARP(442) = V(161)
-  ARP(443) = V(79)
-  ARP(444) = V(73)
-  ARP(445) = V(80)
+  ARP(435) = V(68)
+  ARP(436) = V(57)
+  ARP(437) = V(158)
+  ARP(438) = V(93)
+  ARP(439) = V(101)
+  ARP(440) = V(119)
+  ARP(441) = V(161)
+  ARP(442) = V(79)
+  ARP(443) = V(73)
+  ARP(444) = V(80)
+  ARP(445) = V(141)
   ARP(446) = V(141)
-  ARP(447) = V(141)
-  ARP(448) = V(149)
-  ARP(449) = V(94)
-  ARP(450) = V(55)
-  ARP(451) = V(59)
-  ARP(452) = V(60)
-  ARP(453) = V(1)
-  ARP(454) = V(61)
-  ARP(455) = V(62)
-  ARP(456) = V(63)
-  ARP(457) = V(82)
-  ARP(458) = V(83)
-  ARP(459) = V(84)
-  ARP(460) = V(81)
-  ARP(461) = V(64)
-  ARP(462) = V(66)
-  ARP(463) = V(65)
-  ARP(464) = V(72)
-  ARP(465) = V(95)
+  ARP(447) = V(149)
+  ARP(448) = V(94)
+  ARP(449) = V(55)
+  ARP(450) = V(59)
+  ARP(451) = V(60)
+  ARP(452) = V(1)
+  ARP(453) = V(61)
+  ARP(454) = V(62)
+  ARP(455) = V(63)
+  ARP(456) = V(82)
+  ARP(457) = V(83)
+  ARP(458) = V(84)
+  ARP(459) = V(81)
+  ARP(460) = V(64)
+  ARP(461) = V(66)
+  ARP(462) = V(65)
+  ARP(463) = V(72)
+  ARP(464) = V(95)
       
 END SUBROUTINE ReactantProd
 
@@ -1985,68 +1984,66 @@ SUBROUTINE JacReactantProd ( V, F, JVRP )
   JVRP(716) = 1
 ! JVRP(717) = dARP(434)/dV(54)
   JVRP(717) = 1
-! JVRP(718) = dARP(435)/dV(54)
+! JVRP(718) = dARP(435)/dV(68)
   JVRP(718) = 1
-! JVRP(719) = dARP(436)/dV(68)
+! JVRP(719) = dARP(436)/dV(57)
   JVRP(719) = 1
-! JVRP(720) = dARP(437)/dV(57)
+! JVRP(720) = dARP(437)/dV(158)
   JVRP(720) = 1
-! JVRP(721) = dARP(438)/dV(158)
+! JVRP(721) = dARP(438)/dV(93)
   JVRP(721) = 1
-! JVRP(722) = dARP(439)/dV(93)
+! JVRP(722) = dARP(439)/dV(101)
   JVRP(722) = 1
-! JVRP(723) = dARP(440)/dV(101)
+! JVRP(723) = dARP(440)/dV(119)
   JVRP(723) = 1
-! JVRP(724) = dARP(441)/dV(119)
+! JVRP(724) = dARP(441)/dV(161)
   JVRP(724) = 1
-! JVRP(725) = dARP(442)/dV(161)
+! JVRP(725) = dARP(442)/dV(79)
   JVRP(725) = 1
-! JVRP(726) = dARP(443)/dV(79)
+! JVRP(726) = dARP(443)/dV(73)
   JVRP(726) = 1
-! JVRP(727) = dARP(444)/dV(73)
+! JVRP(727) = dARP(444)/dV(80)
   JVRP(727) = 1
-! JVRP(728) = dARP(445)/dV(80)
+! JVRP(728) = dARP(445)/dV(141)
   JVRP(728) = 1
 ! JVRP(729) = dARP(446)/dV(141)
   JVRP(729) = 1
-! JVRP(730) = dARP(447)/dV(141)
+! JVRP(730) = dARP(447)/dV(149)
   JVRP(730) = 1
-! JVRP(731) = dARP(448)/dV(149)
+! JVRP(731) = dARP(448)/dV(94)
   JVRP(731) = 1
-! JVRP(732) = dARP(449)/dV(94)
+! JVRP(732) = dARP(449)/dV(55)
   JVRP(732) = 1
-! JVRP(733) = dARP(450)/dV(55)
+! JVRP(733) = dARP(450)/dV(59)
   JVRP(733) = 1
-! JVRP(734) = dARP(451)/dV(59)
+! JVRP(734) = dARP(451)/dV(60)
   JVRP(734) = 1
-! JVRP(735) = dARP(452)/dV(60)
+! JVRP(735) = dARP(452)/dV(1)
   JVRP(735) = 1
-! JVRP(736) = dARP(453)/dV(1)
+! JVRP(736) = dARP(453)/dV(61)
   JVRP(736) = 1
-! JVRP(737) = dARP(454)/dV(61)
+! JVRP(737) = dARP(454)/dV(62)
   JVRP(737) = 1
-! JVRP(738) = dARP(455)/dV(62)
+! JVRP(738) = dARP(455)/dV(63)
   JVRP(738) = 1
-! JVRP(739) = dARP(456)/dV(63)
+! JVRP(739) = dARP(456)/dV(82)
   JVRP(739) = 1
-! JVRP(740) = dARP(457)/dV(82)
+! JVRP(740) = dARP(457)/dV(83)
   JVRP(740) = 1
-! JVRP(741) = dARP(458)/dV(83)
+! JVRP(741) = dARP(458)/dV(84)
   JVRP(741) = 1
-! JVRP(742) = dARP(459)/dV(84)
+! JVRP(742) = dARP(459)/dV(81)
   JVRP(742) = 1
-! JVRP(743) = dARP(460)/dV(81)
+! JVRP(743) = dARP(460)/dV(64)
   JVRP(743) = 1
-! JVRP(744) = dARP(461)/dV(64)
+! JVRP(744) = dARP(461)/dV(66)
   JVRP(744) = 1
-! JVRP(745) = dARP(462)/dV(66)
+! JVRP(745) = dARP(462)/dV(65)
   JVRP(745) = 1
-! JVRP(746) = dARP(463)/dV(65)
+! JVRP(746) = dARP(463)/dV(72)
   JVRP(746) = 1
-! JVRP(747) = dARP(464)/dV(72)
+! JVRP(747) = dARP(464)/dV(95)
   JVRP(747) = 1
-! JVRP(748) = dARP(465)/dV(95)
-  JVRP(748) = 1
       
 END SUBROUTINE JacReactantProd
 

@@ -596,6 +596,10 @@
       USE COMODE_LOOP_MOD   ! NTLOOP
       USE CMN_DIAG_MOD   ! ND21, LD21
 
+      !-----SDE DEBUG
+!      USE ERROR_MOD,     ONLY : IT_IS_NAN
+      !-----SDE DEBUG
+
       IMPLICIT NONE
 #     include "define.h"
 
@@ -1391,6 +1395,23 @@
      &                       ( RHOSTRAT * RAA(IND999,IND(N)) * 1.0D-6 )
 
             ENDIF
+
+            !-----SDE DEBUG
+!            IF (IT_IS_NAN(ODAER(I,J,L,IRHN))) THEN
+!               WRITE(6,'(a,1x,5I3)') 'NaN OD! I,J,L,ISTRAT,N:  ',
+!     &                        I,J,L,ISTRAT,N
+!               IF ( WAVELENGTH > 0) THEN
+!               WRITE(6,'(a,1x,4E14.4)') '1: WAERSL,QAA,RHO,RAA:   ',
+!     &                WAERSL(I,J,L,N),QAA(IND999,IND(N)),RHOSTRAT,
+!     &                RAA_AOD(IND(N))
+!               ELSE
+!               WRITE(6,'(a,1x,4E14.4)') '0: WAERSL,QAA,RHO,RAA:   ',
+!     &                WAERSL(I,J,L,N),QAA(IND999,IND(N)),RHOSTRAT,
+!     &                RAA_AOD(IND(N))
+!               ENDIF
+!               CALL ERROR_STOP('HARDKILL','HARDKILL')
+!            ENDIF
+            !-----SDE DEBUG
 
          ENDDO
          ENDDO

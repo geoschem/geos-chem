@@ -768,11 +768,6 @@
          ! based on their values at NSEC and NSEC+N_DYN
          CALL INTERP( NSECb, ELAPSED_TODAY, N_DYN )
 
-         ! SDE 05/28/13: Set H2O to STT if relevant
-         IF ((LGMISTRAT).and.(IDTH2O.ne.0)) THEN
-            CALL SET_H2O_TRAC(.not.(LSETH2O.and.FIRST))
-         ENDIF
-
          ! Case of variable tropopause:
          ! Check LLTROP and set LMIN, LMAX, and LPAUSE
          ! since this is not done with READ_TROPOPAUSE anymore.
@@ -789,6 +784,13 @@
 #else
          CALL AIRQNT
 #endif
+
+         ! SDE 05/28/13: Set H2O to STT if relevant
+         IF (IDTH2O.ne.0) THEN
+            CALL SET_H2O_TRAC((.not.LGMISTRAT).or.LSETH2O)
+            ! Only force strat once if using GMI strat
+            IF (LSETH2O) LSETH2O = .FALSE.
+         ENDIF
 
          ! Compute the cosine of the solar zenith angle array
          ! SUNCOS         = cos(SZA) at the current time
@@ -1051,6 +1053,12 @@
             State_Chm%TRACERS( :, :, :, 1:N_TRACERS ) = 
      &                     STT( :, :, :, 1:N_TRACERS )
 ! FIN DE KLUGE
+
+         ! SDE 05/28/13: Set H2O to STT if relevant
+         IF (IDTH2O.ne.0) THEN
+            CALL SET_H2O_TRAC(.not.LGMISTRAT)
+         ENDIF
+
             CALL DO_CHEMISTRY( am_I_Root, IIPAR,      JJPAR, 
      &                         LLPAR,     State_Chm, State_Met )
 #else

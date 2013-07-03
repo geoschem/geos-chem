@@ -251,6 +251,7 @@
       USE LOGICAL_MOD,          ONLY : LSETCH4,  LSETOCS,  LSETCFC
       USE LOGICAL_MOD,          ONLY : LSETCL,   LSETBR,   LSETN2O
       USE LOGICAL_MOD,          ONLY : LSETH2SO4,LGMISTRAT, LSETBRSTRAT
+      USE LOGICAL_MOD,          ONLY : LBASICEMIS
       USE TRACERID_MOD
       USE TRACER_MOD,           ONLY : N_TRACERS, STT,TCVV
       USE DAO_MOD,              ONLY : AD
@@ -296,7 +297,7 @@
       ! Are we using 2D data?
       USE2DDATA = (LSETOCS.or.LSETCFC.or.LSETCL.or.LSETBR.or.LSETH2SO4)
       USE2DDATA = (USE2DDATA.or.STRAT2DCH4.or.LSETBRSTRAT)
-      USE2DDATA = (USE2DDATA.or.LSETN2O)
+      USE2DDATA = (USE2DDATA.or.LSETN2O.or.LBASICEMIS)
 
 #if !defined(GRID4x5) && !defined(GRID2x25)
       IF (LGMISTRAT.and.USE2DDATA) THEN
@@ -333,7 +334,7 @@
      &                  3.3847d+02, 3.9985d+02, 4.7237d+02, 5.5804d+02,
      &                  6.5924d+02, 7.7880d+02, 9.2004d+02 /)
  
-         ALLOCATE( AER_MR( IGLOB, AER_NLEVS ), STAT=AS )
+         ALLOCATE( AER_MR( JGLOB, AER_NLEVS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AER_MR' )
          AER_MR = 0d0
 
@@ -605,10 +606,6 @@
             CALL APPLY_2DTRAC(.FALSE.,.TRUE.,.FALSE.)
          ENDIF
       ENDIF
-
-      ! Clean up
-      IF ( ALLOCATED( AER_MR    ) ) DEALLOCATE( AER_MR    )
-      IF ( ALLOCATED( AER_PLEVS ) ) DEALLOCATE( AER_PLEVS )
  
       END SUBROUTINE SET_INITIAL_MIXRATIOS
 !EOC
@@ -662,6 +659,7 @@
       LOGICAL :: SET_CELL
       INTEGER :: IU_FILE
       INTEGER :: L_MAX
+      CHARACTER(LEN=255) :: DBGMSG
 
       !=================================================================
       ! APPLY_2DTRAC begins here!
@@ -685,16 +683,27 @@
          WRITE(6,*) 'GMISTRAT_MOD: Could not read ', TRIM( TRAC_FILE )
          CALL IOERROR( IOS, IU_FILE,'GMISTRAT_MOD:APPLY_2DTRAC')
       ENDIF
-   
+  
+      IF (LPRT) THEN
+         WRITE(DBGMSG,'(a,a)') ' ### GMISTRAT: Reading ', 
+     &        TRIM( TRAC_FILE )
+         CALL DEBUG_MSG( DBGMSG )
+      ENDIF
+ 
       ! Read in mixing ratios
       DO ILEV = 1,51
          READ(IU_FILE, 110, IOSTAT=IOS ) AER_MR(:,ILEV)
+         IF ( IOS /= 0 ) THEN
+            WRITE(6,'(a,I4,a,1x,a)') 'GMISTRAT_MOD: Error reading line '
+     & , ILEV, ' in file ', TRIM( TRAC_FILE )
+            CALL IOERROR( IOS, IU_FILE,'GMISTRAT_MOD:APPLY_2DTRAC')
+         ENDIF
       ENDDO
 
 #if defined(GRID2x25)
-110   FORMAT(46E10.3)
-#elif defined(GRID4x5)
 110   FORMAT(91E10.3)
+#elif defined(GRID4x5)
+110   FORMAT(46E10.3)
 #endif
 
       CLOSE(IU_FILE)    
@@ -784,7 +793,6 @@
       USE TIME_MOD,     ONLY : GET_MONTH
       USE TRACER_MOD,   ONLY : STT, TCVV
       USE DAO_MOD,      ONLY : AD
-      USE LOGICAL_MOD,  ONLY : LBASICEMIS
 !
 ! !INPUT PARAMETERS:
 !
@@ -1332,6 +1340,11 @@
          ENDDO
          STT(I,J,L,IDTBCPI)= STT(I,J,L,IDTBCPI)* CONST_V(IBC) 
 
+         !-----SDE DEBUG
+!         WRITE(6,'(a,1x,2I4,1x,E10.2)') 'Pre-STS H2O sum.. for I, J: ',
+!     &                      I,J, SUM(STT(I,J,:,IDTH2O))
+         !-----SDE DEBUG
+
          DO L = LLPAR-1,1,-1
             IF (ITS_IN_THE_TROP(I,J,L+1)) CYCLE
             DELZ  = BXHEIGHT(I,J,L)
@@ -1395,6 +1408,13 @@
             VFALLMAX = BXMIN/SEDSTEP
          ENDIF
 
+         !-----SDE DEBUG
+!         WRITE(6,'(a,1x,2I4,1x,E10.2)') 'Post-STS H2O sum. for I, J: ',
+!     &                      I,J, SUM(STT(I,J,:,IDTH2O))
+!         WRITE(6,'(a,1x,2I4,1x,E10.2)') 'Max fall velocity for I, J: ',
+!     &                      I,J,VFALLMAX
+         !-----SDE DEBUG
+
          SEDSTEPLOOP: DO ISED=1,NUMSEDSTEPS
             STARTPT = MAX(1,MINALT-1)
             ! XPSC is the number of molecules tied up in solid particles
@@ -1457,7 +1477,7 @@
      &                             TRACER_MW_G(IDTNIT)
                   XNAT_ABOVE = XNO3_ABOVE * 4.d0
                   XICE_ABOVE = (KG_AER(I,J,L+2,I_SPA)-
-     &                STT(I,J,L+2,IDTNIT))/ICEMW
+     &                STT(I,J,L+2,IDTNIT)) * INVAIR_ABOVE / ICEMW
                   XPSC_ABOVE = XNAT_ABOVE + XICE_ABOVE
                   P_ABOVE = GET_PCENTER(I,J,L+2) * 100.0d0
                   PSEDABOVE=VNAT(L+2)*SEDSTEP*1.d2*(GET_PEDGE(I,J,L+1)-
@@ -1564,6 +1584,11 @@
                
             ENDDO SED_LLOOP
          ENDDO SEDSTEPLOOP
+         !-----SDE DEBUG
+!         WRITE(6,'(a,1x,2I4,1x,E10.2)') 'Post-PSC H2O sum. for I, J: ',
+!     &                      I,J, SUM(STT(I,J,:,IDTH2O))
+         !-----SDE DEBUG
+
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -1746,6 +1771,7 @@
       USE DAO_MOD,          ONLY : T, AD, CLDF, QI, AIRVOL, AVGW
       USE PRESSURE_MOD,     ONLY : GET_PCENTER
       USE LOGICAL_MOD,      ONLY : LPRT, LHOMNUCNAT, LSOLIDPSC
+      USE LOGICAL_MOD,      ONLY : LACTIVEH2O
       USE ERROR_MOD,        ONLY : DEBUG_MSG
       USE GRID_MOD,         ONLY : GET_YEDGE
       USE TRACER_MOD,       ONLY : STT, TRACER_MW_G
@@ -1756,6 +1782,9 @@
       USE CHEMGRID_MOD,     ONLY : ITS_IN_THE_CHEMGRID
       USE COMODE_MOD,       ONLY : CSPEC,JLOP
       USE ERROR_MOD,        ONLY : ERROR_STOP, IS_SAFE_DIV
+      !-----SDE DEBUG
+!      USE ERROR_MOD,        ONLY : IT_IS_NAN
+      !-----SDE DEBUG
 
       USE CMN_GCTM_MOD,     ONLY : AIRMW, PI
 !
@@ -1960,10 +1989,10 @@
                   STATE_LOCAL = 1
                ELSE
                   ! Calculate saturation pressures
-                  PSATHNO3 = 10.d0**(((TSATHNO3_A+(TCENTER*
+                  PSATHNO3 = (10.d0**(((TSATHNO3_A+(TCENTER*
      &            TSATHNO3_B))*LOG10(H2OPP*760.0d0/101325.0d0))+
      &            (TSATHNO3_C+(TSATHNO3_D*TINV)+(TSATHNO3_E*
-     &            TCENTER)))*101325.0d0/760.0d0
+     &            TCENTER))))*101325.0d0/760.0d0
 
                   PSATH2O = 10.0d0**((TSATH2O_A*TINV)+TSATH2O_B)
 
@@ -1985,32 +2014,37 @@
                      PSATHNO3_SUPERCOOL = HNO3PP + 1d0
                   ENDIF
                   
-                  ! Use local ice mass ratio from GEOS-5 data
-                  KG_ICE = QI(I,J,L)*CLDF(L,I,J)*AD(I,J,L)
-                  H2O_BOX_S = QI(I,J,L)*CLDF(L,I,J)*AIRMW/ICEMW
-                  VOL_ICE = H2O_BOX_S * DENAIR * (1.d-3) * ICEMW /
-     &                             (DENSICE*AVOGADRO) ! m3 ice/m3 air
+                  IF (LACTIVEH2O) THEN
+                     ! Only interested in sign
+                     IF (STATE_LOCAL .gt. 1) THEN
+                        H2O_BOX_S = H2OPP-PSATH2O
+                     ELSE
+                        H2O_BOX_S = H2OPP-PSATH2O_SUPERSAT
+                     ENDIF
+                  ELSE
+                     ! Use local ice mass ratio from GEOS-5 data
+                     ! Note that we are using this only for its sign!
+                     H2O_BOX_S = QI(I,J,L)
+                  ENDIF
 
                   ! Ice exists/possible?
-                  IF ((H2OPP.gt.PSATH2O_SUPERSAT).or.
-     &                   (H2O_BOX_S.gt.TINY(0d0))) THEN
+                  IF (H2O_BOX_S.gt.TINY(0d0)) THEN
                      STATE_LOCAL = 3
-                     HNO3_BOX_S = 1d0
+                     HNO3_BOX_S = HNO3PP-PSATHNO3
                   ELSE
                      ! If ice not possible could still have NAT
-                     IF (STATE_LOCAL.gt.1) THEN
-                        ! Had PSCs here last time
-                        IF (((HNO3PP.gt.PSATHNO3_SUPERCOOL).and.
-     &                       (PSATHNO3.gt.PSATH2O)).or.
-     &                       (PCENTER.lt.P_MAXNAT)) THEN
-                           STATE_LOCAL = 2
-                           HNO3_BOX_S = 1d0
-                        ELSE
-                           ! STS only
-                           STATE_LOCAL = 1
-                        ENDIF 
+                     H2O_BOX_S = 0d0
+                     ! 1. Homogeneous nucleation
+                     IF ((LHOMNUCNAT).and.(STATE_LOCAL.eq.1)) THEN
+                        HNO3_BOX_S = HNO3PP-PSATHNO3_SUPERCOOL
+                     ENDIF
+                     ! 2. Box formerly contained ice or NAT
+                     IF (STATE_LOCAL.eq.2) THEN
+                        HNO3_BOX_S = HNO3PP-PSATHNO3
+                     ENDIF
+                     IF (HNO3_BOX_S.gt.TINY(1d0)) THEN
+                        STATE_LOCAL = 2
                      ELSE
-                        ! STS only
                         STATE_LOCAL = 1
                      ENDIF
                   ENDIF
@@ -2021,6 +2055,24 @@
 
                ! Only continue if we want online solid PSCs
                IF (LSOLIDPSC) THEN
+
+                  IF (STATE_LOCAL.eq.3) THEN
+                     ! Form ice PSCs
+                     IF (LACTIVEH2O) THEN
+                        H2O_BOX_S = (H2OPP-PSATH2O)/PCENTER_PA
+                        H2O_BOX_S = MAX(0d0,H2O_BOX_S)
+                        KG_ICE = H2O_BOX_S*ICEMW*AD(I,J,L)/AIRMW
+                     ELSE
+                        H2O_BOX_S = QI(I,J,L)*CLDF(L,I,J)*AIRMW/ICEMW
+                        KG_ICE = QI(I,J,L)*CLDF(L,I,J)*AD(I,J,L)
+                     ENDIF
+                     VOL_ICE = H2O_BOX_S * DENAIR * (1.d-3) * ICEMW /
+     &                             (DENSICE*AVOGADRO) ! m3 ice/m3 air 
+                  ELSE
+                     VOL_ICE = 0d0
+                     H2O_BOX_S = 0d0
+                     KG_ICE = 0d0
+                  ENDIF
 
                   ! Calculate NAT if relevant
                   IF ((HNO3_BOX_S.gt.TINY(1d0)).and.
@@ -2037,6 +2089,10 @@
      &                  NATMW / (DENSNAT*AVOGADRO)
                      KG_NAT = HNO3_BOX_S * NATMW *
      &                        AD(I,J,L) / AIRMW
+                  ELSE
+                     HNO3_BOX_S = 0d0
+                     VOL_NAT = 0d0
+                     KG_NAT = 0d0
                   ENDIF
 
                   ! Calculate particle properties
@@ -2059,6 +2115,17 @@
                      RHO_AER_BOX = 
      &                  ((VOL_ICE*DENSICE)+(VOL_NAT*DENSNAT))/
      &                                    (VOL_ICE+VOL_NAT)
+                     !----SDE DEBUG
+!                     IF (IT_IS_NAN(RHO_AER_BOX)) THEN
+!                        WRITE(6,'(a,1x,4I4)') 'BAD RHO! I,J,L,STATE:',
+!     &                                I,J,L,STATE_LOCAL
+!                        WRITE(6,'(a,1x,3E14.4)') 'VOL/DENS/KG ICE : ',
+!     &                                 VOL_ICE,DENSICE,KG_NAT
+!                        WRITE(6,'(a,1x,3E14.4)') 'VOL/DENS/KG NAT : ',
+!     &                                 VOL_NAT,DENSNAT,KG_NAT
+!                        CALL ERROR_STOP('HARDKILL','HARDKILL')
+!                     ENDIF
+                     !----SDE DEBUG
                   ENDIF
 
                   ! Calculate SAD (cm2/cm3)
@@ -2192,6 +2259,18 @@
                   SAD_AER_BOX = SLA_VA*(VOL_SLA**0.751d0)        ! cm2/cm3
                   RAD_AER_BOX = SLA_VR*SLA_RR*(VOL_SLA**0.249d0) ! m
                   KG_AER_BOX  = RHO_AER_BOX*VOL_SLA*AIRVOL(I,J,L)! kg
+
+                  !-----SDE DEBUG
+!                  IF (RAD_AER_BOX.gt.1.d-7) THEN
+!                  WRITE(6,'(a,1x,3I3)') 'Aerosol properties at: ', I,J,L
+!                  WRITE(6,'(a,1x,4(E10.4,1x))') 'P T H2O H2SO4    : ', 
+!     &                          PCENTER,TCENTER,H2OSUM,H2SO4_BOX_L
+!                  WRITE(6,'(a,1x,4(E10.4,1x))') 'Ws Wh V RHO      : ', 
+!     &                          W_H2SO4,W_H2O,VOL_SLA,RHO_AER_BOX
+!                  WRITE(6,'(a,1x,2(E10.4,1x))') 'A(um2/cm3) r(um) : ', 
+!     &                          SAD_AER_BOX*1.d8,RAD_AER_BOX*1.d6
+!                  ENDIF
+                  !-----SDE DEBUG
 
                   IF (VOL_SLA.gt.1.d-30) THEN
                      ! Approximate particles as spherical for calculation
@@ -2428,9 +2507,8 @@
 !
       INTEGER,INTENT(IN)          :: I,J,L      ! Grid indices
       INTEGER,INTENT(IN)          :: IAER       ! Aerosol index
-                                                ! 1 = SSA (pure H2SO4)
-                                                ! 2 = STS
-                                                ! 3 = Solid PSC
+                                                ! 1 = Liquid aerosols
+                                                ! 2 = Solid PSC
 !
 ! !OUTPUT VARIABLES:
 !
@@ -2478,7 +2556,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHECK_NAT (I,J,L,IS_NAT,IS_PSC)
+      SUBROUTINE CHECK_NAT (I,J,L,IS_NAT,IS_PSC,IS_STRAT)
 !
 ! !USES:
 !
@@ -2495,6 +2573,7 @@
 !
       LOGICAL,INTENT(OUT)         :: IS_NAT     ! Is surface NAT?
       LOGICAL,INTENT(OUT)         :: IS_PSC     ! Are there solid PSCs?
+      LOGICAL,INTENT(OUT)         :: IS_STRAT   ! Are we in the strat?
 !
 ! !REVISION HISTORY: 
 !  17 Apr 2013 - S. D. Eastham - Initial version
@@ -2506,8 +2585,8 @@
       ! CHECK_NAT begins here!
       !=================================================================
 
-      IS_PSC = ((LPSCCHEM).and.(STATE_PSC(I,J,L).ge.2).and.
-     &                                 (ITS_IN_THE_STRAT(I,J,L)))
+      IS_STRAT = ITS_IN_THE_STRAT(I,J,L)
+      IS_PSC = ((LPSCCHEM).and.(STATE_PSC(I,J,L).ge.2).and.(IS_STRAT))
       IS_NAT = (IS_PSC).and.(STT(I,J,L,IDTNIT).gt.TINY(1d0))
 
       END SUBROUTINE CHECK_NAT
@@ -3135,9 +3214,9 @@
      &     -(1.76+2.52d-4*WT*WT)*SQRT(T) +
      &     (-805.89+253.05*WT**0.076)/SQRT(T))
 
-      HClPP = HClSUM*P/1013.25 ! Note atm, not hPa
-      ClNO3PP = ClNO3SUM*P/1013.25
-      BrNO3PP = BrNO3SUM*P/1013.25
+      HClPP = HClSUM*P/1013.25d0 ! Note atm, not hPa
+      ClNO3PP = ClNO3SUM*P/1013.25d0
+      BrNO3PP = BrNO3SUM*P/1013.25d0
  
       ! Should we bother running HCl calculations?
       HClOK = (HClPP .gt. 1.d-30)
@@ -3197,14 +3276,16 @@
       RXNGAMMA(7) = 0.9d0 ! JPL 10-06
 
       ! Reaction 8. HOCl + HCl
-      IF (HClOK) THEN
+      !-----SDE DEBUG
+      !IF (HClOK) THEN
+      !-----SDE DEBUG
          c_HOCl    =  MOLEC_SPEED(T,52.46D0)
          SHOCl     =  0.0776D0+59.18D0/T
          HHOCl     =  1.91D-6*EXP(5862.4D0/T)*EXP(-SHOCl*M_H2SO4)
          DHOCl     =  6.4d-8*T/H
          kHOCl_HCl =  1.25d9*aH*DHOCl*MHCl
          lHOCl     =  SQRT(DHOCl/kHOCl_HCl)
-         if (lHOCl.gt.(1.d3*arad)) then
+         if (lHOCl.gt.(1.d5*arad)) then
             ! Limiting rate
             fHOCl = arad/(3.d0*lHOCl)
          else
@@ -3216,9 +3297,11 @@
          ELSE
             gHOCl_HCl =  1.D0/(1.D0+1.D0/(fHOCl*GHOClrxn*FHCl))
          ENDIF
-      ELSE
-         gHOCl_HCl = TINY(1d0)
-      ENDIF
+      !-----SDE DEBUG
+      !ELSE
+      !   gHOCl_HCl = TINY(1d0)
+      !ENDIF
+      !-----SDE DEBUG
    
       RXNGAMMA(8) = gHOCl_HCl
 
@@ -3642,7 +3725,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_H2O_TRAC (TROP_ONLY)
+      SUBROUTINE SET_H2O_TRAC ( SETSTRAT )
 !
 ! !USES:
 !
@@ -3650,12 +3733,13 @@
       USE TRACER_MOD,   ONLY : STT
       USE PRESSURE_MOD, ONLY : GET_PCENTER
       USE DAO_MOD,      ONLY : SPHU, AD, T, RH
-      USE CHEMGRID_MOD, ONLY : ITS_IN_THE_STRATMESO
+      USE CHEMGRID_MOD, ONLY : ITS_IN_THE_TROP
+      USE LOGICAL_MOD,  ONLY : LACTIVEH2O
       USE CMN_SIZE_MOD
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN)          :: TROP_ONLY   ! Force H2O in the trop. only?
+      LOGICAL, INTENT(IN)          :: SETSTRAT   ! Set strat H2O?
 !
 ! !REVISION HISTORY: 
 !  28 Mar 2013 - S. D. Eastham - Initial version
@@ -3672,21 +3756,23 @@
       REAL*8, PARAMETER :: B =  2937.4d0
       REAL*8, PARAMETER :: C = -4.9283d0
 
-      LOGICAL           :: USE_STT
-      LOGICAL,SAVE      :: FIRST=.TRUE.
+      LOGICAL           :: READ_SPHU
 
       !=================================================================
       ! SET_H2O_TRAC begins here!
       !=================================================================
- 
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, PRES, TEMP, ESAT, SHMB, USE_STT )
+!$OMP+PRIVATE( I, J, L, PRES, TEMP, ESAT, SHMB, READ_SPHU )
       DO J=1,JJPAR
       DO I=1,IIPAR
       DO L=1,LLPAR
-         USE_STT = ((.not.TROP_ONLY).or.(ITS_IN_THE_STRATMESO(I,J,L)))
-         IF ((.not.FIRST).and.(USE_STT)) THEN
+         READ_SPHU = (ITS_IN_THE_TROP(I,J,L).or.SETSTRAT.or.
+     &                             (.not.LACTIVEH2O))
+         IF (READ_SPHU) THEN
+            STT(I,J,L,IDTH2O) = SPHU(I,J,L) * 1.d-3 * AD(I,J,L)
+         ELSE
             ! Set specific humidity to transported H2O
             SPHU(I,J,L) = STT(I,J,L,IDTH2O) * 1.d3 / AD(I,J,L)
 
@@ -3705,15 +3791,11 @@
                
             ! Relative humidity as a percentage
             RH(I,J,L) = ( SHMB / ESAT ) * 100d0 
-         ELSE
-            STT(I,J,L,IDTH2O) = SPHU(I,J,L) * 1.d-3 * AD(I,J,L)
          ENDIF
       ENDDO ! L
       ENDDO ! I
       ENDDO ! J
 !$OMP END PARALLEL DO
-
-      FIRST=.FALSE.
 
       END SUBROUTINE SET_H2O_TRAC
 !
@@ -3881,17 +3963,17 @@
          ! CCl4
          N_EMIT = N_EMIT + 1
          IDT_EMIT( N_EMIT) = IDTCCl4
-         TRAC_EMIT(N_EMIT) = 'CCL4'
+         TRAC_EMIT(N_EMIT) = 'CCl4'
 
          ! CH3Cl
          N_EMIT = N_EMIT + 1
          IDT_EMIT( N_EMIT) = IDTCH3Cl
-         TRAC_EMIT(N_EMIT) = 'CH3CL'
+         TRAC_EMIT(N_EMIT) = 'CH3Cl'
 
          ! CH3CCl3
          N_EMIT = N_EMIT + 1
          IDT_EMIT( N_EMIT) = IDTCH3CCl3
-         TRAC_EMIT(N_EMIT) = 'CH3CCL3'
+         TRAC_EMIT(N_EMIT) = 'CH3CCl3'
       ENDIF
 
       IF (LOCSEMIS) THEN
@@ -3909,7 +3991,7 @@
       IF (LBREMIS) THEN
          N_EMIT = N_EMIT + 1
          IDT_EMIT( N_EMIT) = IDTCH3Br
-         TRAC_EMIT(N_EMIT) = 'CH3BR'
+         TRAC_EMIT(N_EMIT) = 'CH3Br'
       ENDIF
 
       IF (N_EMIT.gt.0) THEN
@@ -4026,6 +4108,8 @@
       IF ( ALLOCATED( AERFRAC    ) ) DEALLOCATE( AERFRAC    )
       IF ( ALLOCATED( AERFRACIND ) ) DEALLOCATE( AERFRACIND )
       IF ( ALLOCATED( KHETI_SLA  ) ) DEALLOCATE( KHETI_SLA  )
+      IF ( ALLOCATED( AER_MR     ) ) DEALLOCATE( AER_MR     )
+      IF ( ALLOCATED( AER_PLEVS  ) ) DEALLOCATE( AER_PLEVS  )
 
       END SUBROUTINE CLEANUP_GMISTRAT
 !
