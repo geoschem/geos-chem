@@ -3,7 +3,7 @@
 
         use parrrtm, only : nbndlw
         use parrrsw, only : nbndsw
-
+        USE OMP_LIB
         USE CMN_SIZE_MOD, ONLY : IIPAR,JJPAR,LLPAR, NDUST, NAER
         USE JV_CMN_MOD, ONLY: RTODAER, RTSSAER, RTASYMAER, 
      &                        WVAA, SPECMASK, LSPECRADMENU,
@@ -93,7 +93,7 @@
       parameter (nwv=37)
       INTEGER, INTENT(IN) :: THISDAY      ! Current day
       INTEGER, INTENT(IN) :: THISMONTH    ! Current month
-      INTEGER, INTENT(IN) :: ICLD         ! Cloud flag for RRTMG: 0-nocloud, 1-grey cloud
+      INTEGER, INTENT(INOUT) :: ICLD         ! Cloud flag for RRTMG: 0-nocloud, 1-grey cloud
       INTEGER, INTENT(IN) :: ISPECMENU    ! The species being included
                                           ! Needed for output purposes
       INTEGER, INTENT(IN) :: ISEED  
@@ -126,6 +126,7 @@
 
       ! Scalars
       INTEGER :: I, J ,L, LL, N, NCOL, JLOOP, IJLOOP
+      INTEGER :: IL
       INTEGER :: OUTIDX,IOUTWV
       integer :: ib,ib_sw,is,nbnds,nspec
       INTEGER :: IS_ON,NASPECRAD_ON
@@ -141,8 +142,8 @@
       character(len=2)  :: chr 
 
       ! Arrays from GC
-      REAL*8  :: PCENTER(IIPAR,JJPAR,LLPAR)
-      REAL*8  :: PEDGE  (IIPAR,JJPAR,LLPAR)
+      REAL*8  :: PCENTER(IIPAR*JJPAR,LLPAR)
+      REAL*8  :: PEDGE  (IIPAR*JJPAR,LLPAR)
       LOGICAL :: INTROP (IIPAR,JJPAR,LLPAR)
 
       !Arrays for RRTMG
@@ -171,6 +172,50 @@
       REAL*8        :: ssaaerDIAG (IIPAR*JJPAR,LLPAR,nbndsw)
       REAL*8        :: asmaerDIAG (IIPAR*JJPAR,LLPAR,nbndsw)
 
+      REAL(kind=rb) :: H2OVMR   (IIPAR*JJPAR,LLPAR)
+      REAL(kind=rb) :: TLAY     (IIPAR*JJPAR,LLPAR)
+      REAL(kind=rb) :: PLAY     (IIPAR*JJPAR,LLPAR)
+      REAL(kind=rb) :: TSFC     (IIPAR*JJPAR)
+ 
+      !column-independent variables for rad_driver
+ 
+      REAL(kind=rb) :: TSFC0(1)
+      REAL(kind=rb) :: TLAY0(1,LLPAR) 
+      REAL(kind=rb) :: H2OVMR0(1,LLPAR)
+      REAL(kind=rb) :: SUNCOS0(1)
+      REAL(kind=rb) :: PEDGE0(1,LLPAR)
+      REAL(kind=rb) :: PCENTER0(1,LLPAR)
+      REAL(kind=rb) :: O3VMR0(1,LLPAR)
+      REAL(kind=rb) :: CH4VMR0(1,LLPAR)
+      REAL(kind=rb) :: N2OVMR0(1,LLPAR)
+      REAL(kind=rb) :: cfc11vmr0(1,LLPAR)
+      REAL(kind=rb) :: cfc12vmr0(1,LLPAR)
+      REAL(kind=rb) :: cfc22vmr0 (1,LLPAR)
+      REAL(kind=rb) :: ccl4vmr0(1,LLPAR)
+      REAL(kind=rb) :: TAUCLD0 (1,LLPAR)
+      REAL(kind=rb) :: CLDFR0 (1,LLPAR)
+      REAL(kind=rb) :: CLIQWP0(1,LLPAR)
+      REAL(kind=rb) :: CICEWP0(1,LLPAR)
+      REAL(kind=rb) :: RELIQ0 (1,LLPAR)
+      REAL(kind=rb) :: REICE0(1,LLPAR)
+      REAL(kind=rb) :: ALBDIRVIS0(1)
+      REAL(kind=rb) :: ALBDIFVIS0(1) 
+      REAL(kind=rb) :: ALBDIRNIR0(1)
+      REAL(kind=rb) :: ALBDIFNIR0(1)
+      REAL(kind=rb) :: RTEMISS0(1,NBNDLW)
+      REAL(kind=rb) :: TAUAER_LW0(1,LLPAR,NBNDLW)
+      REAL(kind=rb) :: TAUAER_SW0(1,LLPAR,NBNDSW)
+      REAL(kind=rb) :: SSAAER0(1,LLPAR,NBNDSW)
+      REAL(kind=rb) :: ASMAER0(1,LLPAR,NBNDSW)
+      REAL*8 :: LW_UFLUX0(1,LLPAR+1)
+      REAL*8 :: LW_DFLUX0(1,LLPAR+1)
+      REAL*8 :: SW_UFLUX0(1,LLPAR+1)
+      REAL*8 :: SW_DFLUX0(1,LLPAR+1)
+      REAL*8 :: LW_UFLUXC0(1,LLPAR+1)
+      REAL*8 :: LW_DFLUXC0(1,LLPAR+1)
+      REAL*8 :: SW_UFLUXC0(1,LLPAR+1)
+      REAL*8 :: SW_DFLUXC0(1,LLPAR+1)
+
       !Variables for obtaining stratospheric variables
       real*8       :: o3col, ylat, air_tmp
 
@@ -179,13 +224,14 @@
       REAL(kind=rb) :: albdifvis (IIPAR*JJPAR)
       REAL(kind=rb) :: albdirnir (IIPAR*JJPAR)
       REAL(kind=rb) :: albdifnir (IIPAR*JJPAR)
-      REAL(kind=rb) :: rtemiss (IIPAR*JJPAR,nbndlw)
+      REAL(kind=rb) :: rtemiss   (IIPAR*JJPAR,nbndlw)
 
       REAL*8        :: NUMER,DENOM
       REAL*4        :: AODTMP,AODOUT,SSATMP,SSAOUT
       REAL*4        :: ASYMTMP,ASYMOUT
 !      INTEGER       :: flg_first_strat, flg_calc_strat_scl
       INTEGER       :: flg_first_strat(iipar*jjpar)
+      INTEGER       :: ONECOL
       REAL*4        :: ch4scl(iipar*jjpar)
 
 ! Local aerosol arrays and variables for interpolating to RRTMG bands ! and combining species
@@ -295,11 +341,16 @@
       !get PCENTER, PEDGE and determine if in TROP before parallel loop
       DO I = 1, IIPAR
       DO J = 1, JJPAR
+      ijloop         = (j-1)*iipar+i
       DO L = 1, LLPAR
-         PCENTER(I,J,L) = GET_PCENTER( I, J, L )
-         PEDGE  (I,J,L) = GET_PEDGE  ( I, J, L )
+         PCENTER(IJLOOP,L) = GET_PCENTER( I, J, L )
+         PEDGE  (IJLOOP,L) = GET_PEDGE  ( I, J, L )
+         H2OVMR (IJLOOP,L) = AVGW(I,J,L)
+         TLAY   (IJLOOP,L) = T(I,J,L)
          INTROP (I,J,L) = ITS_IN_THE_TROP( I, J, L )
       ENDDO
+      TSFC   (IJLOOP)   = TSKIN(I,J)
+
 !         o3col(I,J) = get_overhead_o3(I,J)
 !         call set_prof_o3 (i,j,ylat,thismonth,thisday,t(i,j,:),o3col)
       ENDDO
@@ -543,27 +594,90 @@
       ENDIF
       ! Initialization
       !IF (LLWRAD) THEN
-       CALL RRTMG_LW_INI
+!       CALL RRTMG_LW_INI
       !ENDIF
-      IF (LSWRAD) THEN
-       CALL RRTMG_SW_INI
-      ENDIF
+!      IF (LSWRAD) THEN
+!       CALL RRTMG_SW_INI
+!      ENDIF
 
       ! RAD_DRIVER is the interface between G-C and RRTMG
       doy = get_day_of_year()
       ncol = iipar*jjpar
-      !print *,'will call rad_driver'
-      CALL RAD_DRIVER( IIPAR, JJPAR,   LLPAR, NCOL, ICLD,ISEED,T,TSKIN,
-     &                 AVGW,  SUNCOS,  DOY,   PEDGE, PCENTER,
-     &                 O3VMR, CH4VMR, N2OVMR,
-     &                 cfc11vmr, cfc12vmr, cfc22vmr, ccl4vmr,
-     &                 TAUCLD,CLDFR,CLIQWP,CICEWP,
-     &                 RELIQ,REICE,
-     &                 ALBDIRVIS,ALBDIFVIS,ALBDIRNIR,ALBDIFNIR,
-     &                 RTEMISS,LLWRAD,LSWRAD,
-     &                 TAUAER_LW,TAUAER_SW,SSAAER,ASMAER,
-     &                 LW_UFLUX,LW_DFLUX,SW_UFLUX,SW_DFLUX,  
-     &                 LW_UFLUXC,LW_DFLUXC,SW_UFLUXC,SW_DFLUXC)
+      ONECOL = 1
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( IL )
+!$OMP+PRIVATE( TLAY0,TSFC0)
+!$OMP+PRIVATE( H2OVMR0,SUNCOS0,PEDGE0,PCENTER0)
+!$OMP+PRIVATE( O3VMR0, CH4VMR0, N2OVMR0)
+!$OMP+PRIVATE( cfc11vmr0, cfc12vmr0, cfc22vmr0, ccl4vmr0)
+!$OMP+PRIVATE( TAUCLD0,CLDFR0,CLIQWP0,CICEWP0)
+!$OMP+PRIVATE( RELIQ0,REICE0)
+!$OMP+PRIVATE( ALBDIRVIS0,ALBDIFVIS0,ALBDIRNIR0,ALBDIFNIR0)
+!$OMP+PRIVATE( RTEMISS0)
+!$OMP+PRIVATE( TAUAER_LW0,TAUAER_SW0,SSAAER0,ASMAER0)
+!$OMP+PRIVATE( LW_UFLUX0,LW_DFLUX0,SW_UFLUX0,SW_DFLUX0)
+!$OMP+PRIVATE( LW_UFLUXC0,LW_DFLUXC0,SW_UFLUXC0,SW_DFLUXC0)
+!$OMP+SCHEDULE( DYNAMIC ) 
+      DO IL=1, ncol
+       
+      !create column variables to be passed
+      TLAY0(1,:)       = TLAY(il,:)
+      TSFC0(1)         = TSFC(il)
+      H2OVMR0(1,:)     = H2OVMR(il,:)
+      SUNCOS0(1)       = SUNCOS(il)
+      PEDGE0(1,:)      = PEDGE(il,:)
+      PCENTER0(1,:)    = PCENTER(il,:)
+      O3VMR0(1,:)      = O3VMR(il,:)
+      CH4VMR0(1,:)     = CH4VMR(il,:)
+      N2OVMR0(1,:)     = N2OVMR(il,:)
+      TAUCLD0(1,:)     = TAUCLD(il,:)
+      CLDFR0(1,:)      = CLDFR(il,:)
+      CLIQWP0(1,:)     = CLIQWP(il,:)
+      CICEWP0(1,:)     = CICEWP(il,:)
+      RELIQ0(1,:)      = RELIQ(il,:)
+      REICE0(1,:)      = REICE(il,:)
+      cfc11vmr0(1,:)   = cfc11vmr(il,:)
+      cfc12vmr0(1,:)   = cfc12vmr(il,:)
+      cfc22vmr0(1,:)   = cfc22vmr(il,:)
+      ccl4vmr0(1,:)    = ccl4vmr(il,:)
+      ALBDIRVIS0(1)    = ALBDIRVIS(il)
+      ALBDIFVIS0(1)    = ALBDIFVIS(il)
+      ALBDIRNIR0(1)    = ALBDIRNIR(il)
+      ALBDIFNIR0(1)    = ALBDIFNIR(il)
+      RTEMISS0(1,:)    = RTEMISS(il,:)
+      TAUAER_LW0(1,:,:)= TAUAER_LW(il,:,:)
+      TAUAER_SW0(1,:,:)= TAUAER_SW(il,:,:)
+      SSAAER0(1,:,:)   = SSAAER(il,:,:)
+      ASMAER0(1,:,:)   = ASMAER(il,:,:)
+      CALL RAD_DRIVER( LLPAR, ONECOL, ICLD,ISEED,TLAY0,TSFC0,
+     &                 H2OVMR0,SUNCOS0,DOY,PEDGE0,PCENTER0,
+     &                 O3VMR0, CH4VMR0, N2OVMR0,
+     &                 cfc11vmr0, cfc12vmr0, cfc22vmr0, ccl4vmr0,
+     &                 TAUCLD0,CLDFR0,CLIQWP0,CICEWP0,
+     &                 RELIQ0,REICE0,
+     &                 ALBDIRVIS0,ALBDIFVIS0,ALBDIRNIR0,ALBDIFNIR0,
+     &                 RTEMISS0,LLWRAD,LSWRAD,
+     &                 TAUAER_LW0,TAUAER_SW0,SSAAER0,ASMAER0,
+     &                 LW_UFLUX0,LW_DFLUX0,SW_UFLUX0,SW_DFLUX0,  
+     &                 LW_UFLUXC0,LW_DFLUXC0,SW_UFLUXC0,SW_DFLUXC0)
+      !put column LW into the 2D array
+!OMP BARRIER
+!      ITHR2 = OMP_GET_THREAD_NUM()
+!      write(6,*),'FLUX:',ITHR,ITHR2,SW_UFLUX0(1,1)
+      LW_UFLUX(il,:)  = LW_UFLUX0(1,:)
+      LW_DFLUX(il,:)  = LW_DFLUX0(1,:)
+      LW_UFLUXC(il,:) = LW_UFLUXC0(1,:)
+      LW_DFLUXC(il,:) = LW_DFLUXC0(1,:)
+      SW_UFLUX(il,:)  = SW_UFLUX0(1,:)
+      SW_DFLUX(il,:)  = SW_DFLUX0(1,:)
+      SW_UFLUXC(il,:) = SW_UFLUXC0(1,:)
+      SW_DFLUXC(il,:) = SW_DFLUXC0(1,:)
+
+
+      ENDDO !ncol
+!$OMP END PARALLEL DO
 
       ! Output radiation variables to diagnostic
       ! if calc with aerosols and gases completed

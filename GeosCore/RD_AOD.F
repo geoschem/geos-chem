@@ -169,7 +169,7 @@
       MAXWV     =  999
 
       !look for closest WV in LUT to the requested WV
-      !only looking at RT wavelengths so that we can output
+      !If LRAD set then only looking at RT wavelengths so that we can output
       !combined optics direct from RT
       IF (LRAD) THEN
        N0=8
@@ -179,26 +179,28 @@
        N0=1
        N1=6
       ENDIF
-      DO N=N0,N1
-       WVDIF = WVAA(N,1)-WVSELECT(1)
-       IF ((WVDIF.LT.0).AND.(WVDIF.GT.MINWV)) THEN
-        MINWV = WVDIF
-        IWVSELECT(1)=N
-       ENDIF
-       IF ((WVDIF.GT.0).AND.(WVDIF.LT.MAXWV)) THEN
-        MAXWV = WVDIF
-        IWVSELECT(2)=N
-       ENDIF
-       IF (WVDIF.EQ.0) THEN
-        !we have a match!
-        MINWV=0
-        MAXWV=0
-        !add this wavelength to those for output
-        NWVSELECT=1
-        IWVSELECT(1)=N
-        EXIT
-       ENDIF
-      ENDDO
+!      DO I=1,NWVS
+       DO N=N0,N1
+        WVDIF = WVAA(N,1)-WVSELECT(1)
+        IF ((WVDIF.LT.0).AND.(WVDIF.GT.MINWV)) THEN
+         MINWV = WVDIF
+         IWVSELECT(1)=N
+        ENDIF
+        IF ((WVDIF.GT.0).AND.(WVDIF.LT.MAXWV)) THEN
+         MAXWV = WVDIF
+         IWVSELECT(2)=N
+        ENDIF
+        IF (WVDIF.EQ.0) THEN
+         !we have a match!
+         MINWV=0
+         MAXWV=0
+         !add this wavelength to those for output
+         NWVSELECT=1
+         IWVSELECT(1)=N
+         EXIT
+        ENDIF
+       ENDDO
+!      ENDDO
 
       !Error check - ensure we have a match or requested wavelength
       !falls within two LUT tie points
@@ -216,19 +218,21 @@
        write(6,*) 'ERROR requested wavelength is too long!!'
        write(6,*) 'Defaulting to LUT min: ',WVAA(8,1)
        NWVSELECT=1
-       IWVSELECT(1)=8 !55556nm
+       IWVSELECT(1)=8 !
       ENDIF
 
       !now calcualte the angstrom exponent coefs for interpolation -
       !this is done here to save time in aerosol_mod.F
+      !DO I=1,NWVS
       IF (NWVSELECT.EQ.2) THEN
        ACOEF_WV = WVAA(IWVSELECT(2),1)/WVSELECT(1)
-       BCOEF_WV =1.0d0/(LOG(WVAA(IWVSELECT(2),1)/WVAA(IWVSELECT(1),1)))
+       BCOEF_WV =1.0d0/(LOG(WVAA(IWVSELECT(2),1)/
+     &                         WVAA(IWVSELECT(1),1)))
        !relative location of selected wavelength between tie points
        !for interpolating SSA and ASYM for output in aerosol_mod.F and
        !dust_mod.F
        CCOEF_WV =(WVSELECT(1)-WVAA(IWVSELECT(1),1))/
-     &           (WVAA(IWVSELECT(2),1)-WVAA(IWVSELECT(1),1))
+     &              (WVAA(IWVSELECT(2),1)-WVAA(IWVSELECT(1),1))
       ENDIF
       write(6,*) 'AOD_CALC:',WVSELECT(1)
       write(6,*) IWVSELECT(1),WVAA(IWVSELECT(1),1)

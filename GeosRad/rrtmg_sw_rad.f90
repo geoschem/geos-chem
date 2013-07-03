@@ -65,7 +65,7 @@
       use rrtmg_sw_spcvmc, only: spcvmc_sw
 
       implicit none
-
+      private
 ! public interfaces/functions/subroutines
       public :: rrtmg_sw, inatm_sw, earth_sun
 
@@ -77,7 +77,7 @@
 ! Public subroutines
 !------------------------------------------------------------------
 
-      subroutine rrtmg_sw &
+      recursive subroutine rrtmg_sw &
             (ncol    ,nlay    ,icld    , &
              play    ,plev    ,tlay    ,tlev    ,tsfc   , &
              h2ovmr , o3vmr   ,co2vmr  ,ch4vmr  ,n2ovmr ,o2vmr , &
@@ -520,12 +520,10 @@
 
 ! This is the main longitude/column loop in RRTMG.
 ! Modify to loop over all columns (nlon) or over daylight columns
-
       do iplon = 1, ncol
 
 ! Prepare atmosphere profile from GCM for use in RRTMG, and define
 ! other input parameters
-
          call inatm_sw (iplon, nlay, icld, iaer, &
               play, plev, tlay, tlev, tsfc, h2ovmr, &
               o3vmr, co2vmr, ch4vmr, n2ovmr, o2vmr, &
@@ -1086,7 +1084,6 @@
             reicmc(l) = reicmcl(iplon,l)
             relqmc(l) = relqmcl(iplon,l)
          enddo
-
 ! If an extra layer is being used in RRTMG, set all cloud properties to zero in the extra layer.
 
 !         cldfmc(:,nlayers) = 0.0_rb

@@ -9,17 +9,15 @@
 !\\
 ! !INTERFACE:
 !
-SUBROUTINE rad_driver( IIPAR, JJPAR,   NLAY, NCOL, ICLD_GC,ISEED,T,TSKIN,  &
-                       AVGW,  SUNCOS,  DOY,   PEDGE, PCENTER,  &
-                       O3VMR, CH4VMR,N2OVMR,&
-                       cfc11vmr, cfc12vmr, cfc22vmr, ccl4vmr, &
-                       TAUCLD,CLDFR,CLIQWP,CICEWP, &
-                       RELIQ,REICE,&
-                       ASDIR,ASDIF,ALDIR,ALDIF, &
-                       EMIS,LLWRAD,LSWRAD,    &
-                       TAUAER_LW,TAUAER_SW,SSAAER,ASMAER,        &
-                       lw_uflux,lw_dflux,sw_uflux,sw_dflux, &
-                       lw_ufluxc,lw_dfluxc,sw_ufluxc,sw_dfluxc) 
+SUBROUTINE rad_driver( nlay, ncol, icld_gc, iseed,&
+                       tlay, tsfc, h2ovmr, SUNCOS, doy,&
+                       plev_temp, play, O3VMR, CH4VMR, N2OVMR,&
+                       cfc11vmr, cfc12vmr, cfc22vmr, ccl4vmr, TAUCLD,&
+                       CLDFR, CLIQWP, CICEWP, RELIQ, REICE,&
+                       ASDIR, ASDIF, ALDIR, ALDIF, EMIS,&
+                       LLWRAD, LSWRAD, TAUAER_LW, TAUAER_SW, SSAAER,&
+                       ASMAER, lw_uflux, lw_dflux, sw_uflux, sw_dflux, &
+                       lw_ufluxc, lw_dfluxc, sw_ufluxc, sw_dfluxc) 
 !
 ! !USES:
 
@@ -31,10 +29,8 @@ SUBROUTINE rad_driver( IIPAR, JJPAR,   NLAY, NCOL, ICLD_GC,ISEED,T,TSKIN,  &
         use rrtmg_sw_rad, only : rrtmg_sw
         use mcica_subcol_gen_lw, only : mcica_subcol_lw
         use mcica_subcol_gen_sw, only : mcica_subcol_sw
-!        USE LOGICAL_MOD,  ONLY : LLWRAD,LSWRAD
 
         implicit none
-
 !
 
 !
@@ -42,8 +38,6 @@ SUBROUTINE rad_driver( IIPAR, JJPAR,   NLAY, NCOL, ICLD_GC,ISEED,T,TSKIN,  &
 !
   ! Scalars
   REAL*8,  INTENT(IN) :: DOY
-  INTEGER, INTENT(IN) :: IIPAR
-  INTEGER, INTENT(IN) :: JJPAR
   INTEGER, INTENT(IN) :: NCOL      !! NCOL = IIPAR*JJPAR
   INTEGER, INTENT(IN) :: NLAY      !! NLAY = LLPAR
   INTEGER, INTENT(IN) :: icld_gc
@@ -52,51 +46,38 @@ SUBROUTINE rad_driver( IIPAR, JJPAR,   NLAY, NCOL, ICLD_GC,ISEED,T,TSKIN,  &
   INTEGER, INTENT(IN) :: iseed
 
   ! 2-D Arrays
-  REAL*8,  INTENT(IN) :: TSKIN  (IIPAR,JJPAR      )
-  REAL*8,  INTENT(IN) :: SUNCOS (IIPAR*JJPAR      )
   real (kind=rb), intent(in)   :: o3vmr(ncol,nlay)
   real (kind=rb), intent(in)   :: ch4vmr(ncol,nlay)
-  real (kind=rb), intent(inout):: n2ovmr(ncol,nlay)
-  real (kind=rb), intent(in)  :: cfc11vmr(ncol,nlay)
-  real (kind=rb), intent(in) :: cfc12vmr(ncol,nlay)
-  real (kind=rb), intent(in)  :: cfc22vmr(ncol,nlay)
-  real (kind=rb), intent(in)  :: ccl4vmr(ncol,nlay)
+  real (kind=rb), intent(in)   :: n2ovmr(ncol,nlay)
+  real (kind=rb), intent(in)   :: cfc11vmr(ncol,nlay)
+  real (kind=rb), intent(in)   :: cfc12vmr(ncol,nlay)
+  real (kind=rb), intent(in)   :: cfc22vmr(ncol,nlay)
+  real (kind=rb), intent(in)   :: ccl4vmr(ncol,nlay)
   real (kind=rb), intent(in)   :: taucld(ncol,nlay)
   real (kind=rb), intent(in)   :: cldfr(ncol,nlay)
- !setting as inout so can fix for testing DAR
-  real (kind=rb), intent(inout)   :: asdir(ncol)
-  real (kind=rb), intent(inout)   :: asdif(ncol)
-  real (kind=rb), intent(inout)   :: aldir(ncol)
-  real (kind=rb), intent(inout)   :: aldif(ncol)
-  real (kind=rb), intent(inout)   :: emis(ncol,nbndlw)
-  
+  real (kind=rb), intent(in)   :: asdir(ncol)
+  real (kind=rb), intent(in)   :: asdif(ncol)
+  real (kind=rb), intent(in)   :: aldir(ncol)
+  real (kind=rb), intent(in)   :: aldif(ncol)
+  real (kind=rb), intent(in)   :: tsfc(ncol)
+  real (kind=rb), intent(in)   :: suncos(ncol)
+  real (kind=rb), intent(in)   :: emis(ncol,nbndlw)
+  real (kind=rb), intent(in)   :: plev_temp(ncol,nlay)
+  real (kind=rb), intent(in)   :: play(ncol,nlay)
+  real (kind=rb), intent(in)   :: tlay(ncol,nlay)
+  real (kind=rb), intent(in)   :: h2ovmr(ncol,nlay)
 
 ! Common cloud variables
-  real (kind=rb), intent(in)  :: cicewp(ncol,nlay)
+  real (kind=rb), intent(in) :: cicewp(ncol,nlay)
   real (kind=rb), intent(in) :: cliqwp(ncol,nlay)
   real (kind=rb), intent(in) :: reice(ncol,nlay)
   real (kind=rb), intent(in) :: reliq(ncol,nlay)
 
 ! Aerosol variables
-!  LW
-  real (kind=rb),intent(inout)  :: tauaer_lw(ncol,nlay,nbndlw)
-
-! SW
-   real(kind=rb),intent(inout)   :: tauaer_sw(ncol,nlay,nbndsw)  ! Aerosol optical depth (iaer=10 only)
-                                                      !    Dimensions: (ncol,nlay,nbndsw)
-                                                      ! (non-delta scaled)      
-   real(kind=rb),intent(inout)   :: ssaaer(ncol,nlay,nbndsw)     ! Aerosol single scattering albedo (iaer=10 only)
-                                                      !    Dimensions: (ncol,nlay,nbndsw)
-                                                      ! (non-delta scaled)      
-
-   real(kind=rb),intent(inout) :: asmaer(ncol,nlay,nbndsw)       ! Aerosol asymmetry parameter (iaer=10 only)
-                                                      !    Dimensions: !    (ncol,nlay,nbndsw)
-  ! 3-D arrays
-  REAL*8,  INTENT(IN) :: AVGW   (IIPAR,JJPAR,NLAY)
-  REAL*8,  INTENT(IN) :: PEDGE  (IIPAR,JJPAR,NLAY)
-  REAL*8,  INTENT(IN) :: PCENTER(IIPAR,JJPAR,NLAY)
-  REAL*8,  INTENT(IN) :: T      (IIPAR,JJPAR,NLAY)
-!
+  real (kind=rb),intent(in) :: tauaer_lw(ncol,nlay,nbndlw)
+  real (kind=rb),intent(in) :: tauaer_sw(ncol,nlay,nbndsw)
+  real (kind=rb),intent(in) :: ssaaer(ncol,nlay,nbndsw)
+  real (kind=rb),intent(in) :: asmaer(ncol,nlay,nbndsw) 
 
 ! !RETURN VALUE:
 ! !OUTPUT PARAMETERS:
@@ -131,18 +112,11 @@ SUBROUTINE rad_driver( IIPAR, JJPAR,   NLAY, NCOL, ICLD_GC,ISEED,T,TSKIN,  &
 
 
 ! Profile variables
-  real (kind=rb)  :: play(ncol,nlay)
   real (kind=rb)  :: plev(ncol,nlay+1)
-  real (kind=rb)  :: tlay(ncol,nlay)
   real (kind=rb)  :: tlev(ncol,nlay+1)
-  real (kind=rb)  :: h2ovmr(ncol,nlay)
   real (kind=rb)  :: co2vmr(ncol,nlay)
   real (kind=rb)  :: o2vmr(ncol,nlay)
   
-  
-! LW Surface variables
-  real (kind=rb)  :: tsfc(ncol)
-
 !  LW Cloud variables
   real (kind=rb)  :: taucld_lw(nbndlw,ncol,nlay)
 
@@ -240,12 +214,9 @@ SUBROUTINE rad_driver( IIPAR, JJPAR,   NLAY, NCOL, ICLD_GC,ISEED,T,TSKIN,  &
   real*8 :: hr_temp
   real (kind=rb)   :: cldfr_sw(ncol,nlay)
 
-! Pressure related variables
-  real*8   :: plev_temp(ncol,nlay)
-
 !McICA variables
   integer(kind=im)      :: iplon
-  integer(kind=im),save :: permuteseed
+  integer(kind=im)      :: permuteseed
   integer(kind=im)      :: irng=1  ! Mersenne Twister random number generator
 
   real(kind=rb)         :: relqmcl(ncol,nlay)
@@ -267,14 +238,6 @@ SUBROUTINE rad_driver( IIPAR, JJPAR,   NLAY, NCOL, ICLD_GC,ISEED,T,TSKIN,  &
   real(kind=rb)         :: fsfcmcl(ngptsw,ncol,nlay)
 
    
-!Shape array for reshaping arrays from 3D to 2D (nlon,nlat,nlay) to (ncol,nlay)
-  integer :: ishape1(1) 
-  integer :: ishape2(2) 
-
-  ishape1(1) = ncol
-  ishape2(1) = ncol
-  ishape2(2) = nlay
-
 !  print *,'rad_driver'
 ! Gridding is somewhat difficult
 ! GC provides variables at the center of grid boxes (including T and P)
@@ -283,13 +246,6 @@ SUBROUTINE rad_driver( IIPAR, JJPAR,   NLAY, NCOL, ICLD_GC,ISEED,T,TSKIN,  &
 ! from what we usually do)
 
 
-
-! Reshape arrays from GC to reduce to 2D
-       h2ovmr = reshape(avgw,ishape2)
-       tlay = reshape(t,ishape2)
-       play = reshape(pcenter,ishape2)
-       plev_temp = reshape(pedge,ishape2)
-       tsfc = reshape(tskin,ishape1)
 
 ! Get level values
        gcair = 1.0e-3*gascon/avogad
@@ -313,9 +269,9 @@ SUBROUTINE rad_driver( IIPAR, JJPAR,   NLAY, NCOL, ICLD_GC,ISEED,T,TSKIN,  &
 !       n2ovmr(:,:) = 3.20e-7
        o2vmr(:,:) =  0.209
 
-       ssacld(:,:,:) = 0.0
-       asmcld(:,:,:) = 0.0
-       fsfcld(:,:,:) = 0.0
+!!       ssacld(:,:,:) = 0.0
+!!       asmcld(:,:,:) = 0.0
+!!       fsfcld(:,:,:) = 0.0
 
 
        select case (icld_gc)
@@ -358,30 +314,31 @@ SUBROUTINE rad_driver( IIPAR, JJPAR,   NLAY, NCOL, ICLD_GC,ISEED,T,TSKIN,  &
 
 
 ! Initialize fluxes to avoid nasty surprises
-        uflx(:,:) = 0.0 
-        dflx(:,:) = 0.0 
-        hr(:,:) = 0.0 
-        uflxc(:,:) = 0.0 
-        dflxc(:,:) = 0.0 
-        hrc(:,:) = 0.0 
-        duflx_dt(:,:) = 0.0 
-        duflxc_dt(:,:) = 0.0 
+!        uflx(:,:) = 0.0 
+!        dflx(:,:) = 0.0 
+!        hr(:,:) = 0.0 
+!        uflxc(:,:) = 0.0 
+!        dflxc(:,:) = 0.0 
+!        hrc(:,:) = 0.0 
+!        duflx_dt(:,:) = 0.0 
+!        duflxc_dt(:,:) = 0.0 
 
-        swuflx(:,:) = 0.0 
-        swdflx(:,:) = 0.0 
-        swhr(:,:) = 0.0 
-        swuflxc(:,:) = 0.0 
-        swdflxc(:,:) = 0.0 
-        swhrc(:,:) = 0.0 
-
+!        swuflx(:,:) = 0.0 
+!        swdflx(:,:) = 0.0 
+!        swhr(:,:) = 0.0 
+!        swuflxc(:,:) = 0.0 
+!        swdflxc(:,:) = 0.0 
+!        swhrc(:,:) = 0.0 
+         !write(6,*) 'BEFORE LW'
         IF (LLWRAD) THEN
 !        print *,'will call rrtmg_lw'
         permuteseed=iseed+ngptsw+1
 
-
-        call mcica_subcol_lw ( iplon, ncol, nlay, icld, permuteseed, irng,play,&
-                       cldfr, cicewp, cliqwp, reice, reliq, taucld_lw, cldfmcl,&
-                       ciwpmcl, clwpmcl, reicmcl, relqmcl, taucmcl_lw)
+        call mcica_subcol_lw (iplon,ncol,nlay,icld,permuteseed,irng,play,&
+             cldfr,cicewp,cliqwp,reice,&
+             reliq,taucld_lw,cldfmcl,&
+             ciwpmcl, clwpmcl, reicmcl, relqmcl, taucmcl_lw)
+        !write(6,*) 'MCICA LW DONE'
         call rrtmg_lw &
             (ncol    ,nlay    ,icld    ,idrv    , &
              play    ,plev    ,tlay    ,tlev    ,tsfc    , &
@@ -392,8 +349,13 @@ SUBROUTINE rad_driver( IIPAR, JJPAR,   NLAY, NCOL, ICLD_GC,ISEED,T,TSKIN,  &
              tauaer_lw  , &
              uflx    ,dflx    ,hr      ,uflxc   ,dflxc,  hrc, &
              duflx_dt,duflxc_dt )
+
+             lw_uflux = uflx
+             lw_dflux = dflx
+             lw_ufluxc = uflxc
+             lw_dfluxc = dflxc
     ENDIF
-        
+         !write(6,*) 'BEFORE SW'
         IF (LSWRAD) THEN
 
 !        print *,'will call rrtmg_sw'
@@ -402,7 +364,9 @@ SUBROUTINE rad_driver( IIPAR, JJPAR,   NLAY, NCOL, ICLD_GC,ISEED,T,TSKIN,  &
                        cldfr, cicewp, cliqwp, reice, reliq, taucld_sw, ssacld, asmcld, fsfcld, &
                        cldfmcl_sw, ciwpmcl_sw, clwpmcl_sw, reicmcl, relqmcl, &
                        taucmcl_sw, ssacmcl, asmcmcl, fsfcmcl)
-        
+        !write(6,*) 'MCICA SW DONE'  
+
+
         call rrtmg_sw &
             (ncol    ,nlay    ,icld    , &
              play    ,plev    ,tlay    ,tlev    ,tsfc    , &
@@ -414,20 +378,13 @@ SUBROUTINE rad_driver( IIPAR, JJPAR,   NLAY, NCOL, ICLD_GC,ISEED,T,TSKIN,  &
              ciwpmcl_sw  ,clwpmcl_sw  ,reicmcl   ,relqmcl   , &  
              tauaer_sw  ,ssaaer  ,asmaer  ,ecaer   , &  
              swuflx  ,swdflx  ,swhr    ,swuflxc ,swdflxc ,swhrc)
-        ENDIF
-!
 
-             lw_uflux = uflx
-             lw_dflux = dflx
              sw_uflux = swuflx
              sw_dflux = swdflx
-             lw_ufluxc = uflxc
-             lw_dfluxc = dflxc
              sw_ufluxc = swuflxc
              sw_dfluxc = swdflxc
 
-!         
-!       
+        ENDIF
 
 100          format (i10,3f10.2,8f15.3)
 

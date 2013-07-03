@@ -44,7 +44,7 @@
 ! Public subroutines
 !------------------------------------------------------------------
 
-      subroutine mcica_subcol_sw(iplon, ncol, nlay, icld, permuteseed, irng, play, &
+      recursive subroutine mcica_subcol_sw(iplon, ncol, nlay, icld, permuteseed, irng, play, &
                        cldfrac, ciwp, clwp, rei, rel, tauc, ssac, asmc, fsfc, &
                        cldfmcl, ciwpmcl, clwpmcl, reicmcl, relqmcl, &
                        taucmcl, ssacmcl, asmcmcl, fsfcmcl)

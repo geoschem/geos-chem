@@ -124,6 +124,9 @@
      &                                  SET_SPECMASK
       USE JV_CMN_MOD,             ONLY: NSPECRADMENU,
      &                                  LSPECRADMENU
+      USE rrtmg_lw_init,  ONLY : rrtmg_lw_ini
+      USE rrtmg_sw_init,  ONLY : rrtmg_sw_ini
+
 #endif
 
 
@@ -307,6 +310,10 @@
       !WRITE(6,*) 'Calling INIT_STRAT_CLIM'
       CALL INIT_STRAT_CLIM
       CALL READ_STRAT_CLIM
+      ! Initialization
+       CALL RRTMG_LW_INI
+       CALL RRTMG_SW_INI
+
 #endif
 
       ! Initialize met field arrays from "dao_mod.f"
