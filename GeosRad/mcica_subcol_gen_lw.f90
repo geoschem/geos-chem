@@ -45,13 +45,12 @@
 ! Public subroutines
 !------------------------------------------------------------------
 
-      subroutine mcica_subcol_lw(iplon, ncol, nlay, icld, permuteseed, irng, play, &
+      recursive subroutine mcica_subcol_lw(ncol, nlay, icld, permuteseed, irng, play, &
                        cldfrac, ciwp, clwp, rei, rel, tauc, cldfmcl, &
                        ciwpmcl, clwpmcl, reicmcl, relqmcl, taucmcl)
 
 ! ----- Input -----
 ! Control
-      integer(kind=im), intent(in) :: iplon           ! column/longitude index
       integer(kind=im), intent(in) :: ncol            ! number of columns
       integer(kind=im), intent(in) :: nlay            ! number of model layers
       integer(kind=im), intent(in) :: icld            ! clear/cloud, cloud overlap flag
@@ -64,44 +63,44 @@
                                                       !  1 = Mersenne Twister
 
 ! Atmosphere
-      real(kind=rb), intent(in) :: play(:,:)          ! layer pressures (mb) 
+      real(kind=rb), intent(in) :: play(ncol,nlay)          ! layer pressures (mb) 
                                                       !    Dimensions: (ncol,nlay)
 
 ! Atmosphere/clouds - cldprop
-      real(kind=rb), intent(in) :: cldfrac(:,:)       ! layer cloud fraction
+      real(kind=rb), intent(in) :: cldfrac(ncol,nlay)       ! layer cloud fraction
                                                       !    Dimensions: (ncol,nlay)
-      real(kind=rb), intent(in) :: tauc(:,:,:)        ! in-cloud optical depth
+      real(kind=rb), intent(in) :: tauc(ngptlw,ncol,nlay)        ! in-cloud optical depth
                                                       !    Dimensions: (nbndlw,ncol,nlay)
-!      real(kind=rb), intent(in) :: ssac(:,:,:)       ! in-cloud single scattering albedo
+!      real(kind=rb), intent(in) :: ssac(ngptlw,ncol,nlay)       ! in-cloud single scattering albedo
                                                       !    Dimensions: (nbndlw,ncol,nlay)
-!      real(kind=rb), intent(in) :: asmc(:,:,:)       ! in-cloud asymmetry parameter
+!      real(kind=rb), intent(in) :: asmc(ngptlw,ncol,nlay)       ! in-cloud asymmetry parameter
                                                       !    Dimensions: (nbndlw,ncol,nlay)
-      real(kind=rb), intent(in) :: ciwp(:,:)          ! in-cloud ice water path
+      real(kind=rb), intent(in) :: ciwp(ncol,nlay)          ! in-cloud ice water path
                                                       !    Dimensions: (ncol,nlay)
-      real(kind=rb), intent(in) :: clwp(:,:)          ! in-cloud liquid water path
+      real(kind=rb), intent(in) :: clwp(ncol,nlay)          ! in-cloud liquid water path
                                                       !    Dimensions: (ncol,nlay)
-      real(kind=rb), intent(in) :: rei(:,:)           ! cloud ice particle size
+      real(kind=rb), intent(in) :: rei(ncol,nlay)           ! cloud ice particle size
                                                       !    Dimensions: (ncol,nlay)
-      real(kind=rb), intent(in) :: rel(:,:)           ! cloud liquid particle size
+      real(kind=rb), intent(in) :: rel(ncol,nlay)           ! cloud liquid particle size
                                                       !    Dimensions: (ncol,nlay)
 
 ! ----- Output -----
 ! Atmosphere/clouds - cldprmc [mcica]
-      real(kind=rb), intent(out) :: cldfmcl(:,:,:)    ! cloud fraction [mcica]
+      real(kind=rb), intent(out) :: cldfmcl(ngptlw,ncol,nlay)    ! cloud fraction [mcica]
                                                       !    Dimensions: (ngptlw,ncol,nlay)
-      real(kind=rb), intent(out) :: ciwpmcl(:,:,:)    ! in-cloud ice water path [mcica]
+      real(kind=rb), intent(out) :: ciwpmcl(ngptlw,ncol,nlay)    ! in-cloud ice water path [mcica]
                                                       !    Dimensions: (ngptlw,ncol,nlay)
-      real(kind=rb), intent(out) :: clwpmcl(:,:,:)    ! in-cloud liquid water path [mcica]
+      real(kind=rb), intent(out) :: clwpmcl(ngptlw,ncol,nlay)    ! in-cloud liquid water path [mcica]
                                                       !    Dimensions: (ngptlw,ncol,nlay)
-      real(kind=rb), intent(out) :: relqmcl(:,:)      ! liquid particle size (microns)
+      real(kind=rb), intent(out) :: relqmcl(ncol,nlay)      ! liquid particle size (microns)
                                                       !    Dimensions: (ncol,nlay)
-      real(kind=rb), intent(out) :: reicmcl(:,:)      ! ice partcle size (microns)
+      real(kind=rb), intent(out) :: reicmcl(ncol,nlay)      ! ice partcle size (microns)
                                                       !    Dimensions: (ncol,nlay)
-      real(kind=rb), intent(out) :: taucmcl(:,:,:)    ! in-cloud optical depth [mcica]
+      real(kind=rb), intent(out) :: taucmcl(ngptlw,ncol,nlay)    ! in-cloud optical depth [mcica]
                                                       !    Dimensions: (ngptlw,ncol,nlay)
-!      real(kind=rb), intent(out) :: ssacmcl(:,:,:)   ! in-cloud single scattering albedo [mcica]
+!      real(kind=rb), intent(out) :: ssacmcl(ngptlw,ncol,nlay)   ! in-cloud single scattering albedo [mcica]
                                                       !    Dimensions: (ngptlw,ncol,nlay)
-!      real(kind=rb), intent(out) :: asmcmcl(:,:,:)   ! in-cloud asymmetry parameter [mcica]
+!      real(kind=rb), intent(out) :: asmcmcl(ngptlw,ncol,nlay)   ! in-cloud asymmetry parameter [mcica]
                                                       !    Dimensions: (ngptlw,ncol,nlay)
 
 ! ----- Local -----
@@ -150,12 +149,11 @@
 !  Generate the stochastic subcolumns of cloud optical properties for the longwave;
       call generate_stochastic_clouds (ncol, nlay, nsubclw, icld, irng, pmid, cldfrac, clwp, ciwp, tauc, &
                                cldfmcl, clwpmcl, ciwpmcl, taucmcl, permuteseed)
-
       end subroutine mcica_subcol_lw
 
 
 !-------------------------------------------------------------------------------------------------
-      subroutine generate_stochastic_clouds(ncol, nlay, nsubcol, icld, irng, pmid, cld, clwp, ciwp, tauc, &
+      recursive subroutine generate_stochastic_clouds(ncol, nlay, nsubcol, icld, irng, pmid, cld, clwp, ciwp, tauc, &
                                    cld_stoch, clwp_stoch, ciwp_stoch, tauc_stoch, changeSeed) 
 !-------------------------------------------------------------------------------------------------
 
@@ -468,6 +466,7 @@
       do ilev = 1,nlay
          iscloudy(:,:,ilev) = (CDF(:,:,ilev) >= 1._rb - spread(cldf(:,ilev), dim=1, nCopies=nsubcol) )
       enddo
+      
 
 ! where the subcolumn is cloudy, the subcolumn cloud fraction is 1;
 ! where the subcolumn is not cloudy, the subcolumn cloud fraction is 0;

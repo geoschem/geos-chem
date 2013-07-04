@@ -201,41 +201,41 @@
                                                       !    2: Maximum/random
                                                       !    3: Maximum
 
-      real(kind=rb), intent(in) :: play(:,:)          ! Layer pressures (hPa, mb)
+      real(kind=rb), intent(in) :: play(ncol,nlay)          ! Layer pressures (hPa, mb)
                                                       !    Dimensions: (ncol,nlay)
-      real(kind=rb), intent(in) :: plev(:,:)          ! Interface pressures (hPa, mb)
+      real(kind=rb), intent(in) :: plev(ncol,nlay+1)          ! Interface pressures (hPa, mb)
                                                       !    Dimensions: (ncol,nlay+1)
-      real(kind=rb), intent(in) :: tlay(:,:)          ! Layer temperatures (K)
+      real(kind=rb), intent(in) :: tlay(ncol,nlay)          ! Layer temperatures (K)
                                                       !    Dimensions: (ncol,nlay)
-      real(kind=rb), intent(in) :: tlev(:,:)          ! Interface temperatures (K)
+      real(kind=rb), intent(in) :: tlev(ncol,nlay+1)          ! Interface temperatures (K)
                                                       !    Dimensions: (ncol,nlay+1)
-      real(kind=rb), intent(in) :: tsfc(:)            ! Surface temperature (K)
+      real(kind=rb), intent(in) :: tsfc(ncol)            ! Surface temperature (K)
                                                       !    Dimensions: (ncol)
-      real(kind=rb), intent(in) :: h2ovmr(:,:)        ! H2O volume mixing ratio
+      real(kind=rb), intent(in) :: h2ovmr(ncol,nlay)        ! H2O volume mixing ratio
                                                       !    Dimensions: (ncol,nlay)
-      real(kind=rb), intent(in) :: o3vmr(:,:)         ! O3 volume mixing ratio
+      real(kind=rb), intent(in) :: o3vmr(ncol,nlay)         ! O3 volume mixing ratio
                                                       !    Dimensions: (ncol,nlay)
-      real(kind=rb), intent(in) :: co2vmr(:,:)        ! CO2 volume mixing ratio
+      real(kind=rb), intent(in) :: co2vmr(ncol,nlay)        ! CO2 volume mixing ratio
                                                       !    Dimensions: (ncol,nlay)
-      real(kind=rb), intent(in) :: ch4vmr(:,:)        ! Methane volume mixing ratio
+      real(kind=rb), intent(in) :: ch4vmr(ncol,nlay)        ! Methane volume mixing ratio
                                                       !    Dimensions: (ncol,nlay)
-      real(kind=rb), intent(in) :: n2ovmr(:,:)        ! Nitrous oxide volume mixing ratio
+      real(kind=rb), intent(in) :: n2ovmr(ncol,nlay)        ! Nitrous oxide volume mixing ratio
                                                       !    Dimensions: (ncol,nlay)
-      real(kind=rb), intent(in) :: o2vmr(:,:)         ! Oxygen volume mixing ratio
+      real(kind=rb), intent(in) :: o2vmr(ncol,nlay)         ! Oxygen volume mixing ratio
                                                       !    Dimensions: (ncol,nlay)
-      real(kind=rb), intent(in) :: asdir(:)           ! UV/vis surface albedo direct rad
+      real(kind=rb), intent(in) :: asdir(ncol)           ! UV/vis surface albedo direct rad
                                                       !    Dimensions: (ncol)
-      real(kind=rb), intent(in) :: aldir(:)           ! Near-IR surface albedo direct rad
+      real(kind=rb), intent(in) :: aldir(ncol)           ! Near-IR surface albedo direct rad
                                                       !    Dimensions: (ncol)
-      real(kind=rb), intent(in) :: asdif(:)           ! UV/vis surface albedo: diffuse rad
+      real(kind=rb), intent(in) :: asdif(ncol)           ! UV/vis surface albedo: diffuse rad
                                                       !    Dimensions: (ncol)
-      real(kind=rb), intent(in) :: aldif(:)           ! Near-IR surface albedo: diffuse rad
+      real(kind=rb), intent(in) :: aldif(ncol)           ! Near-IR surface albedo: diffuse rad
                                                       !    Dimensions: (ncol)
 
       integer(kind=im), intent(in) :: dyofyr          ! Day of the year (used to get Earth/Sun
                                                       !  distance if adjflx not provided)
       real(kind=rb), intent(in) :: adjes              ! Flux adjustment for Earth/Sun distance
-      real(kind=rb), intent(in) :: coszen(:)          ! Cosine of solar zenith angle
+      real(kind=rb), intent(in) :: coszen(ncol)          ! Cosine of solar zenith angle
                                                       !    Dimensions: (ncol)
       real(kind=rb), intent(in) :: scon               ! Solar constant (W/m2)
 
@@ -243,21 +243,21 @@
       integer(kind=im), intent(in) :: iceflgsw        ! Flag for ice particle specification
       integer(kind=im), intent(in) :: liqflgsw        ! Flag for liquid droplet specification
 
-      real(kind=rb), intent(in) :: cldfmcl(:,:,:)     ! Cloud fraction
+      real(kind=rb), intent(in) :: cldfmcl(ngptsw,ncol,nlay)     ! Cloud fraction
                                                       !    Dimensions: (ngptsw,ncol,nlay)
-      real(kind=rb), intent(in) :: taucmcl(:,:,:)     ! In-cloud optical depth
+      real(kind=rb), intent(in) :: taucmcl(ngptsw,ncol,nlay)     ! In-cloud optical depth
                                                       !    Dimensions: (ngptsw,ncol,nlay)
-      real(kind=rb), intent(in) :: ssacmcl(:,:,:)     ! In-cloud single scattering albedo
+      real(kind=rb), intent(in) :: ssacmcl(ngptsw,ncol,nlay)     ! In-cloud single scattering albedo
                                                       !    Dimensions: (ngptsw,ncol,nlay)
-      real(kind=rb), intent(in) :: asmcmcl(:,:,:)     ! In-cloud asymmetry parameter
+      real(kind=rb), intent(in) :: asmcmcl(ngptsw,ncol,nlay)     ! In-cloud asymmetry parameter
                                                       !    Dimensions: (ngptsw,ncol,nlay)
-      real(kind=rb), intent(in) :: fsfcmcl(:,:,:)     ! In-cloud forward scattering fraction
+      real(kind=rb), intent(in) :: fsfcmcl(ngptsw,ncol,nlay)     ! In-cloud forward scattering fraction
                                                       !    Dimensions: (ngptsw,ncol,nlay)
-      real(kind=rb), intent(in) :: ciwpmcl(:,:,:)     ! In-cloud ice water path (g/m2)
+      real(kind=rb), intent(in) :: ciwpmcl(ngptsw,ncol,nlay)     ! In-cloud ice water path (g/m2)
                                                       !    Dimensions: (ngptsw,ncol,nlay)
-      real(kind=rb), intent(in) :: clwpmcl(:,:,:)     ! In-cloud liquid water path (g/m2)
+      real(kind=rb), intent(in) :: clwpmcl(ngptsw,ncol,nlay)     ! In-cloud liquid water path (g/m2)
                                                       !    Dimensions: (ngptsw,ncol,nlay)
-      real(kind=rb), intent(in) :: reicmcl(:,:)       ! Cloud ice effective radius (microns)
+      real(kind=rb), intent(in) :: reicmcl(ncol,nlay)       ! Cloud ice effective radius (microns)
                                                       !    Dimensions: (ncol,nlay)
                                                       ! specific definition of reicmcl depends on setting of iceflgsw:
                                                       ! iceflgsw = 0: (inactive)
@@ -269,34 +269,34 @@
                                                       ! iceflgsw = 3: generalized effective size, dge, (Fu, 1996),
                                                       !               dge range is limited to 5.0 to 140.0 microns
                                                       !               [dge = 1.0315 * r_ec]
-      real(kind=rb), intent(in) :: relqmcl(:,:)       ! Cloud water drop effective radius (microns)
+      real(kind=rb), intent(in) :: relqmcl(ncol,nlay)       ! Cloud water drop effective radius (microns)
                                                       !    Dimensions: (ncol,nlay)
-      real(kind=rb), intent(in) :: tauaer(:,:,:)      ! Aerosol optical depth (iaer=10 only)
+      real(kind=rb), intent(in) :: tauaer(ncol,nlay,nbndsw)      ! Aerosol optical depth (iaer=10 only)
                                                       !    Dimensions: (ncol,nlay,nbndsw)
                                                       ! (non-delta scaled)      
-      real(kind=rb), intent(in) :: ssaaer(:,:,:)      ! Aerosol single scattering albedo (iaer=10 only)
+      real(kind=rb), intent(in) :: ssaaer(ncol,nlay,nbndsw)      ! Aerosol single scattering albedo (iaer=10 only)
                                                       !    Dimensions: (ncol,nlay,nbndsw)
                                                       ! (non-delta scaled)      
-      real(kind=rb), intent(in) :: asmaer(:,:,:)      ! Aerosol asymmetry parameter (iaer=10 only)
+      real(kind=rb), intent(in) :: asmaer(ncol,nlay,nbndsw)      ! Aerosol asymmetry parameter (iaer=10 only)
                                                       !    Dimensions: (ncol,nlay,nbndsw)
                                                       ! (non-delta scaled)      
-      real(kind=rb), intent(in) :: ecaer(:,:,:)       ! Aerosol optical depth at 0.55 micron (iaer=6 only)
+      real(kind=rb), intent(in) :: ecaer(ncol,nlay,naerec)       ! Aerosol optical depth at 0.55 micron (iaer=6 only)
                                                       !    Dimensions: (ncol,nlay,naerec)
                                                       ! (non-delta scaled)      
 
 ! ----- Output -----
 
-      real(kind=rb), intent(out) :: swuflx(:,:)       ! Total sky shortwave upward flux (W/m2)
+      real(kind=rb), intent(out) :: swuflx(ncol,nlay+1)       ! Total sky shortwave upward flux (W/m2)
                                                       !    Dimensions: (ncol,nlay+1)
-      real(kind=rb), intent(out) :: swdflx(:,:)       ! Total sky shortwave downward flux (W/m2)
+      real(kind=rb), intent(out) :: swdflx(ncol,nlay+1)       ! Total sky shortwave downward flux (W/m2)
                                                       !    Dimensions: (ncol,nlay+1)
-      real(kind=rb), intent(out) :: swhr(:,:)         ! Total sky shortwave radiative heating rate (K/d)
+      real(kind=rb), intent(out) :: swhr(ncol,nlay)         ! Total sky shortwave radiative heating rate (K/d)
                                                       !    Dimensions: (ncol,nlay)
-      real(kind=rb), intent(out) :: swuflxc(:,:)      ! Clear sky shortwave upward flux (W/m2)
+      real(kind=rb), intent(out) :: swuflxc(ncol,nlay+1)      ! Clear sky shortwave upward flux (W/m2)
                                                       !    Dimensions: (ncol,nlay+1)
-      real(kind=rb), intent(out) :: swdflxc(:,:)      ! Clear sky shortwave downward flux (W/m2)
+      real(kind=rb), intent(out) :: swdflxc(ncol,nlay+1)      ! Clear sky shortwave downward flux (W/m2)
                                                       !    Dimensions: (ncol,nlay+1)
-      real(kind=rb), intent(out) :: swhrc(:,:)        ! Clear sky shortwave radiative heating rate (K/d)
+      real(kind=rb), intent(out) :: swhrc(ncol,nlay)        ! Clear sky shortwave radiative heating rate (K/d)
                                                       !    Dimensions: (ncol,nlay)
 
 ! ----- Local -----

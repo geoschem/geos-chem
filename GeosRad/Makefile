@@ -121,11 +121,11 @@ parrrtm.o                : parrrtm.f90             parkind.o
 	$(F90) $(R8) -c $(OPT) $<
 
 
-rad_driver.o             : rad_driver.f90                                    \
+#rad_driver.o             : rad_driver.f90                                    \
                            parkind.o               parrrtm.o                 \
                            parrrsw.o               rrlw_con.o                \
                            rrtmg_lw_rad.o          rrtmg_sw_rad.o
-	$(F90) $(R8) -c $(OPT) $<
+#	$(F90) $(R8) -c $(OPT) $<
 
 
 rrlw_cld.o               : rrlw_cld.f90            parkind.o 

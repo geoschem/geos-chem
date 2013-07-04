@@ -44,14 +44,13 @@
 ! Public subroutines
 !------------------------------------------------------------------
 
-      recursive subroutine mcica_subcol_sw(iplon, ncol, nlay, icld, permuteseed, irng, play, &
+      subroutine mcica_subcol_sw(ncol, nlay, icld, permuteseed, irng, play, &
                        cldfrac, ciwp, clwp, rei, rel, tauc, ssac, asmc, fsfc, &
                        cldfmcl, ciwpmcl, clwpmcl, reicmcl, relqmcl, &
                        taucmcl, ssacmcl, asmcmcl, fsfcmcl)
 
 ! ----- Input -----
 ! Control
-      integer(kind=im), intent(in) :: iplon           ! column/longitude dimension
       integer(kind=im), intent(in) :: ncol            ! number of columns
       integer(kind=im), intent(in) :: nlay            ! number of model layers
       integer(kind=im), intent(in) :: icld            ! clear/cloud, cloud overlap flag
@@ -64,48 +63,48 @@
                                                       !  1 = Mersenne Twister
         
 ! Atmosphere
-      real(kind=rb), intent(in) :: play(:,:)          ! layer pressures (mb) 
+      real(kind=rb), intent(in) :: play(ncol,nlay)          ! layer pressures (mb) 
                                                       !    Dimensions: (ncol,nlay)
 
 ! Atmosphere/clouds - cldprop
-      real(kind=rb), intent(in) :: cldfrac(:,:)       ! layer cloud fraction
+      real(kind=rb), intent(in) :: cldfrac(ncol,nlay)       ! layer cloud fraction
                                                       !    Dimensions: (ncol,nlay)
-      real(kind=rb), intent(in) :: tauc(:,:,:)        ! in-cloud optical depth
+      real(kind=rb), intent(in) :: tauc(nbndsw,ncol,nlay)        ! in-cloud optical depth
                                                       !    Dimensions: (nbndsw,ncol,nlay)
-      real(kind=rb), intent(in) :: ssac(:,:,:)        ! in-cloud single scattering albedo (non-delta scaled)
+      real(kind=rb), intent(in) :: ssac(nbndsw,ncol,nlay)        ! in-cloud single scattering albedo (non-delta scaled)
                                                       !    Dimensions: (nbndsw,ncol,nlay)
-      real(kind=rb), intent(in) :: asmc(:,:,:)        ! in-cloud asymmetry parameter (non-delta scaled)
+      real(kind=rb), intent(in) :: asmc(nbndsw,ncol,nlay)        ! in-cloud asymmetry parameter (non-delta scaled)
                                                       !    Dimensions: (nbndsw,ncol,nlay)
-      real(kind=rb), intent(in) :: fsfc(:,:,:)        ! in-cloud forward scattering fraction (non-delta scaled)
+      real(kind=rb), intent(in) :: fsfc(nbndsw,ncol,nlay)        ! in-cloud forward scattering fraction (non-delta scaled)
                                                       !    Dimensions: (nbndsw,ncol,nlay)
-      real(kind=rb), intent(in) :: ciwp(:,:)          ! in-cloud ice water path
+      real(kind=rb), intent(in) :: ciwp(ncol,nlay)          ! in-cloud ice water path
                                                       !    Dimensions: (ncol,nlay)
-      real(kind=rb), intent(in) :: clwp(:,:)          ! in-cloud liquid water path
+      real(kind=rb), intent(in) :: clwp(ncol,nlay)          ! in-cloud liquid water path
                                                       !    Dimensions: (ncol,nlay)
-      real(kind=rb), intent(in) :: rei(:,:)           ! cloud ice particle size
+      real(kind=rb), intent(in) :: rei(ncol,nlay)           ! cloud ice particle size
                                                       !    Dimensions: (ncol,nlay)
-      real(kind=rb), intent(in) :: rel(:,:)           ! cloud liquid particle size
+      real(kind=rb), intent(in) :: rel(ncol,nlay)           ! cloud liquid particle size
                                                       !    Dimensions: (ncol,nlay)
 
 ! ----- Output -----
 ! Atmosphere/clouds - cldprmc [mcica]
-      real(kind=rb), intent(out) :: cldfmcl(:,:,:)    ! cloud fraction [mcica]
+      real(kind=rb), intent(out) :: cldfmcl(ngptsw,ncol,nlay)    ! cloud fraction [mcica]
                                                       !    Dimensions: (ngptsw,ncol,nlay)
-      real(kind=rb), intent(out) :: ciwpmcl(:,:,:)    ! in-cloud ice water path [mcica]
+      real(kind=rb), intent(out) :: ciwpmcl(ngptsw,ncol,nlay)    ! in-cloud ice water path [mcica]
                                                       !    Dimensions: (ngptsw,ncol,nlay)
-      real(kind=rb), intent(out) :: clwpmcl(:,:,:)    ! in-cloud liquid water path [mcica]
+      real(kind=rb), intent(out) :: clwpmcl(ngptsw,ncol,nlay)    ! in-cloud liquid water path [mcica]
                                                       !    Dimensions: (ngptsw,ncol,nlay)
-      real(kind=rb), intent(out) :: relqmcl(:,:)      ! liquid particle size (microns)
+      real(kind=rb), intent(out) :: relqmcl(ncol,nlay)      ! liquid particle size (microns)
                                                       !    Dimensions: (ncol,nlay)
-      real(kind=rb), intent(out) :: reicmcl(:,:)      ! ice partcle size (microns)
+      real(kind=rb), intent(out) :: reicmcl(ncol,nlay)      ! ice partcle size (microns)
                                                       !    Dimensions: (ncol,nlay)
-      real(kind=rb), intent(out) :: taucmcl(:,:,:)    ! in-cloud optical depth [mcica]
+      real(kind=rb), intent(out) :: taucmcl(ngptsw,ncol,nlay)    ! in-cloud optical depth [mcica]
                                                       !    Dimensions: (ngptsw,ncol,nlay)
-      real(kind=rb), intent(out) :: ssacmcl(:,:,:)    ! in-cloud single scattering albedo [mcica]
+      real(kind=rb), intent(out) :: ssacmcl(ngptsw,ncol,nlay)    ! in-cloud single scattering albedo [mcica]
                                                       !    Dimensions: (ngptsw,ncol,nlay)
-      real(kind=rb), intent(out) :: asmcmcl(:,:,:)    ! in-cloud asymmetry parameter [mcica]
+      real(kind=rb), intent(out) :: asmcmcl(ngptsw,ncol,nlay)    ! in-cloud asymmetry parameter [mcica]
                                                       !    Dimensions: (ngptsw,ncol,nlay)
-      real(kind=rb), intent(out) :: fsfcmcl(:,:,:)    ! in-cloud forward scattering fraction [mcica]
+      real(kind=rb), intent(out) :: fsfcmcl(ngptsw,ncol,nlay)    ! in-cloud forward scattering fraction [mcica]
                                                       !    Dimensions: (ngptsw,ncol,nlay)
 
 ! ----- Local -----
