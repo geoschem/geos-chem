@@ -18,6 +18,9 @@
         PUBLIC  :: CLEANUP_SURFACE_RAD
         PUBLIC  :: INIT_SURFACE_RAD
         PUBLIC  :: READ_SURFACE_RAD
+        PUBLIC  :: CLEANUP_MCICA_CLOUDS
+        PUBLIC  :: INIT_MCICA_CLOUDS
+
 
 !
 ! !PUBLIC DATA MEMBERS:
@@ -33,6 +36,22 @@
       REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CFC12CLIM(:,:,:)
       REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CCL4CLIM(:,:,:)
       REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CFC22CLIM(:,:,:)
+
+!MCICA cloud variables now stored for reuse
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CLDFMCL_LW(:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CIWPMCL_LW(:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CLWPMCL_LW(:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TAUCMCL_LW(:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CLDFMCL_SW(:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CIWPMCL_SW(:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CLWPMCL_SW(:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TAUCMCL_SW(:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SSACMCL(:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: ASMCMCL(:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: FSFCMCL(:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: REICMCL(:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: RELQMCL(:,:)
+
 
         REAL*8  :: LW_UFLUX(IIPAR*JJPAR,LLPAR+1)
         REAL*8  :: LW_DFLUX(IIPAR*JJPAR,LLPAR+1)
@@ -133,7 +152,7 @@
 
       ! SCALARS
       INTEGER :: I, J ,L, LL, N, NCOL, JLOOP, IJLOOP
-      INTEGER :: IL, IL0
+      INTEGER :: IL, OMPID
       INTEGER :: OUTIDX,IOUTWV
       INTEGER :: IB,IBX,IB_SW,IS,NBNDS,NSPEC
       INTEGER :: IS_ON,NASPECRAD_ON
@@ -260,24 +279,34 @@
       INTEGER(KIND=IM)      :: SEEDSW, SEEDLW
       INTEGER(KIND=IM)      :: IRNG=1  ! MERSENNE TWISTER RANDOM NUMBER GENERATOR
       INTEGER(KIND=IM)      :: ICLDMCL
-      REAL(KIND=RB)         :: RELQMCL(1,LLPAR)
-      REAL(KIND=RB)         :: REICMCL(1,LLPAR)
+      REAL(KIND=RB)         :: RELQMCL0(1,LLPAR)
+      REAL(KIND=RB)         :: REICMCL0(1,LLPAR)
 
 ! MCICA LW SPECIFIC
-      REAL(KIND=RB)         :: CLDFMCL(NGPTLW,1,LLPAR)
-      REAL(KIND=RB)         :: CIWPMCL(NGPTLW,1,LLPAR)
-      REAL(KIND=RB)         :: CLWPMCL(NGPTLW,1,LLPAR)
-      REAL(KIND=RB)         :: TAUCMCL_LW(NGPTLW,1,LLPAR)
+      REAL(KIND=RB)         :: CLDFMCL_LW0(NGPTLW,1,LLPAR)
+      REAL(KIND=RB)         :: CIWPMCL_LW0(NGPTLW,1,LLPAR)
+      REAL(KIND=RB)         :: CLWPMCL_LW0(NGPTLW,1,LLPAR)
+      REAL(KIND=RB)         :: TAUCMCL_LW0(NGPTLW,1,LLPAR)
 
 ! MCICA SW SPECIFIC
-      REAL(KIND=RB)         :: CLDFMCL_SW(NGPTSW,1,LLPAR)
-      REAL(KIND=RB)         :: CIWPMCL_SW(NGPTSW,1,LLPAR)
-      REAL(KIND=RB)         :: CLWPMCL_SW(NGPTSW,1,LLPAR)
-      REAL(KIND=RB)         :: TAUCMCL_SW(NGPTSW,1,LLPAR)
-      REAL(KIND=RB)         :: SSACMCL(NGPTSW,1,LLPAR)
-      REAL(KIND=RB)         :: ASMCMCL(NGPTSW,1,LLPAR)
-      REAL(KIND=RB)         :: FSFCMCL(NGPTSW,1,LLPAR)
+      REAL(KIND=RB)         :: CLDFMCL_SW0(NGPTSW,1,LLPAR)
+      REAL(KIND=RB)         :: CIWPMCL_SW0(NGPTSW,1,LLPAR)
+      REAL(KIND=RB)         :: CLWPMCL_SW0(NGPTSW,1,LLPAR)
+      REAL(KIND=RB)         :: TAUCMCL_SW0(NGPTSW,1,LLPAR)
+      REAL(KIND=RB)         :: SSACMCL0(NGPTSW,1,LLPAR)
+      REAL(KIND=RB)         :: ASMCMCL0(NGPTSW,1,LLPAR)
+      REAL(KIND=RB)         :: FSFCMCL0(NGPTSW,1,LLPAR)
 
+      REAL(KIND=RB)         ::         PCENTER0(1,LLPAR)
+      REAL(KIND=RB)         ::         CLDFR0(1,LLPAR) 
+      REAL(KIND=RB)         ::         CICEWP0(1,LLPAR)
+      REAL(KIND=RB)         ::         CLIQWP0(1,LLPAR)
+      REAL(KIND=RB)         ::         REICE0(1,LLPAR)
+      REAL(KIND=RB)         ::         RELIQ0(1,LLPAR)  
+      REAL(KIND=RB)         ::         TAUCLD_SW0(NBNDSW,1,LLPAR) 
+      REAL(KIND=RB)         ::         SSACLD0(NBNDSW,1,LLPAR)
+      REAL(KIND=RB)         ::         ASMCLD0(NBNDSW,1,LLPAR)
+      REAL(KIND=RB)         ::         FSFCLD0(NBNDSW,1,LLPAR)
 
 
 ! LOCAL AEROSOL ARRAYS AND VARIABLES FOR INTERPOLATING TO RRTMG BANDS ! AND COMBINING SPECIES
@@ -399,7 +428,7 @@
       ENDDO
       ENDDO
 !OMP END PARALLEL DO
-      write(6,*) 'after alb'
+      !write(6,*) 'after alb'
       !I DONT THINK FUNCTION CALLS CAN BE PARALLELIZED
       !GET PCENTER, PEDGE AND DETERMINE IF IN TROP BEFORE PARALLEL LOOP
       DO I = 1, IIPAR
@@ -516,7 +545,7 @@
       ENDDO
       ENDDO
 !OMP END PARALLEL DO
-      write(6,*) 'aFTER CFC and O3'
+      !write(6,*) 'after CFC and O3'
       IF (DOAERAD) THEN
        DO IB = 1,NBNDS
         !RRTMG WAVEBANDS START AT I=8 IN GC ARRAYS
@@ -533,10 +562,10 @@
          !(2) THE CURRENT SPECIES FOR OUTPUT TO THE RT DIAGNOSTICS
          ! WE MUST MERGE AEROSOL PROPERTIES FOR THE SPECIES TO BE OUTPUT
          ! (I.E. COMBINE HYDROPHILIC/PHOBIC AND MULTIPLE SIZES) 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, IJLOOP)
-!$OMP+SCHEDULE( DYNAMIC )
+!OMP PARALLEL DO
+!OMP+DEFAULT( SHARED )
+!OMP+PRIVATE( I, J, L, IJLOOP)
+!OMP+SCHEDULE( DYNAMIC )
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
@@ -577,7 +606,7 @@
          ENDDO
          ENDDO
          ENDDO
-!$OMP END PARALLEL DO 
+!OMP END PARALLEL DO 
 !        write(6,*) 'after aero 1'
         ENDDO !SPECIES
         !NOW AEROSOL HAVE BEEN SUMMED AND WEIGHTED BY AOD AND SSA
@@ -587,10 +616,10 @@
 !SWITCHING THIS OMP ON HALVES THE OPTICS VALUES FOR SOME UNKNOWN REASON.
 !THE BENEFIT OF HAVING IT SWITCHED ON IS ~1% REDUCTION IN PROCESSING
 !TIME SO CURRENTLY DOING WITHOUT PARALLELIZING THIS. DAR 02/2013
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, IJLOOP )
-!$OMP+SCHEDULE( DYNAMIC )
+!OMP PARALLEL DO
+!OMP+DEFAULT( SHARED )
+!OMP+PRIVATE( I, J, L, IJLOOP )
+!OMP+SCHEDULE( DYNAMIC )
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
@@ -621,7 +650,7 @@
          ENDDO
          ENDDO
          ENDDO
-!$OMP END PARALLEL DO
+!OMP END PARALLEL DO
 !        write(6,*) 'after aero2'
         ENDIF
        ENDDO !BAND
@@ -691,6 +720,7 @@
 
        CO2VMR(:,:) = 3.90E-4
        O2VMR(:,:) =  0.209
+
        SELECT CASE (ICLD)
 !  CLOUD SETUP FOR CLEAR
        CASE (0)
@@ -714,8 +744,11 @@
           INFLGSW = 2
           TAUCLD_LW(:,:,:) = 0.0    ! TAUCLD NOT USED
           TAUCLD_SW(:,:,:) = 0.0
-          TAUCMCL_LW(:,:,:) = 0.0      ! USED ONLY AS A CHECK
+          TAUCMCL_LW(:,:,:) = 0.0   ! USED ONLY AS A CHECK
           TAUCMCL_SW(:,:,:) = 0.0
+          SSACLD(:,:,:) = 0.0
+          ASMCLD(:,:,:) = 0.0
+          FSFCLD(:,:,:) = 0.0
           ICEFLGLW = 2       !STREAMER
           LIQFLGLW = 1       !HU AND STAMNES
           ICEFLGSW = 2       !STREAMER
@@ -727,30 +760,104 @@
       END SELECT
 
 
-      SEEDLW=ISEED+NGPTSW+1
-      SEEDSW=SEEDLW+NGPTLW+1
-
+! WE ONLY NEED TO CALC CLOUDS ONCE PER RT TIMESTEP
+! DO THIS ON BASELINE CALL IF ALL-SKY IS REQUESTED
+      IF (ISPECMENU.EQ.0) THEN
+       SEEDLW=ISEED+NGPTSW+1
+       SEEDSW=SEEDLW+NGPTLW+1
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( IL )
-!$OMP+PRIVATE( CLDFMCL, CIWPMCL, CLWPMCL,REICMCL, RELQMCL, TAUCMCL_LW)
+!$OMP+PRIVATE( IL, OMPID )
+!$OMP+PRIVATE( PCENTER0, CLDFR0, CLIQWP0, CICEWP0)
+!$OMP+PRIVATE( REICE0, RELIQ0, TAUCLD_SW0)
+!$OMP+PRIVATE( SSACLD0, ASMCLD0, FSFCLD0)
+!$OMP+PRIVATE( CLDFMCL_LW0, CIWPMCL_LW0, CLWPMCL_LW0)
+!$OMP+PRIVATE( REICMCL0, RELQMCL0, TAUCMCL_LW0)
+!$OMP+PRIVATE( CLDFMCL_SW0, CIWPMCL_SW0, CLWPMCL_SW0)
+!$OMP+PRIVATE( TAUCMCL_SW0, SSACMCL0,ASMCMCL0, FSFCMCL0)
+!$OMP+SCHEDULE( DYNAMIC )
+       DO IL=1, NCOL
+        IF (LLWRAD) THEN
+
+         CALL MCICA_SUBCOL_LW(ONECOL,LLPAR,ICLDMCL,
+     &        SEEDLW,IRNG,PCENTER(IL,:),
+     &        CLDFR(IL,:),CICEWP(IL,:),CLIQWP(IL,:),
+     &        REICE(IL,:),RELIQ(IL,:),TAUCLD_LW(:,IL,:),
+     &        CLDFMCL_LW0, CIWPMCL_LW0, CLWPMCL_LW0,
+     &        REICMCL0, RELQMCL0, TAUCMCL_LW0)
+
+         CLDFMCL_LW(:,IL,:)   = CLDFMCL_LW0(:,1,:)
+         CIWPMCL_LW(:,IL,:)   = CIWPMCL_LW0(:,1,:)
+         CLWPMCL_LW(:,IL,:)   = CLWPMCL_LW0(:,1,:)
+         TAUCMCL_LW(:,IL,:)   = TAUCMCL_LW0(:,1,:)
+
+         OMPID = OMP_GET_THREAD_NUM()
+         write(6,*) 'MCICALW ',OMPID,IL,NCOL
+         write(6,*) MAXVAL(CIWPMCL_LW),MAXVAL(RELQMCL0)
+        ENDIF
+        IF (LSWRAD) THEN
+!         PCENTER0(1,:) = PCENTER(IL,:)
+!         CLDFR0(1,:)   = CLDFR(IL,:)
+!         CICEWP0(1,:)  = CICEWP(IL,:)
+!         CLIQWP0(1,:)  = CLIQWP(IL,:)
+!         REICE0(1,:)   = REICE(IL,:)
+!         RELIQ0(1,:)   = RELIQ(IL,:)
+!         TAUCLD_SW0(:,1,:) = TAUCLD_SW(:,IL,:)
+!         SSACLD0(:,1,:)= SSACLD(:,IL,:)
+!         ASMCLD0(:,1,:)= ASMCLD(:,IL,:)
+!         FSFCLD0(:,1,:)= FSFCLD(:,IL,:)
+!         CALL MCICA_SUBCOL_SW(ONECOL, LLPAR, ICLDMCL,
+!     &        SEEDSW, IRNG,PCENTER0,
+!     &        CLDFR0, CICEWP0, CLIQWP0,
+!     &        REICE0, RELIQ0,
+!     &        TAUCLD_SW0,SSACLD0,
+!     &        ASMCLD0,FSFCLD0,
+!     &        CLDFMCL_SW0, CIWPMCL_SW0, CLWPMCL_SW0,
+!     &        REICMCL0, RELQMCL0, TAUCMCL_SW0, SSACMCL0,
+!     &        ASMCMCL0, FSFCMCL0)
+
+!         CALL MCICA_SUBCOL_SW(ONECOL, LLPAR, ICLDMCL,
+!     &        SEEDSW, IRNG,PCENTER(IL,:),
+!     &        CLDFR(IL,:), CICEWP(IL,:), CLIQWP(IL,:),
+!     &        REICE(IL,:), RELIQ(IL,:),
+!     &        TAUCLD_SW(:,IL,:),SSACLD(:,IL,:),
+!     &        ASMCLD(:,IL,:),FSFCLD(:,IL,:),
+!     &        CLDFMCL_SW0, CIWPMCL_SW0, CLWPMCL_SW0,
+!     &        REICMCL0, RELQMCL0, TAUCMCL_SW0, SSACMCL0,
+!     &        ASMCMCL0, FSFCMCL0)
+
+!         CLDFMCL_SW(:,IL,:)   = CLDFMCL_SW0(:,1,:)
+!         CIWPMCL_SW(:,IL,:)   = CIWPMCL_SW0(:,1,:)
+!         CLWPMCL_SW(:,IL,:)   = CLWPMCL_SW0(:,1,:)
+!         TAUCMCL_SW(:,IL,:)   = TAUCMCL_SW0(:,1,:)
+!         SSACMCL(:,IL,:)    = SSACMCL0(:,1,:)
+!         ASMCMCL(:,IL,:)    = ASMCMCL0(:,1,:)
+!         FSFCMCL(:,IL,:)    = FSFCMCL0(:,1,:)
+         OMPID = OMP_GET_THREAD_NUM()
+         write(6,*) 'MCICASW ',OMPID,IL,NCOL
+      write(6,*)MAXVAL(CIWPMCL_SW),MAXVAL(CLDFMCL_SW),MAXVAL(TAUCMCL_SW)
+
+        ENDIF
+! these should be independent of LW and SW
+! simply rearranged by the MCICA routine
+        REICMCL(IL,:) = REICMCL0(1,:)
+        RELQMCL(IL,:) = RELQMCL0(1,:)
+
+       ENDDO
+!$OMP END PARALLEL DO
+      ENDIF !DO MCICA CLOUDS
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( IL,OMPID )
 !$OMP+PRIVATE( UFLX,DFLX,HR,UFLXC,DFLXC,HRC,DUFLX_DT,DUFLXC_DT)
-!$OMP+PRIVATE( CLDFMCL_SW, CIWPMCL_SW, CLWPMCL_SW)
-!$OMP+PRIVATE( TAUCMCL_SW, SSACMCL, ASMCMCL, FSFCMCL)
 !$OMP+PRIVATE( ECAER,SWUFLX,SWDFLX,SWHR,SWUFLXC,SWDFLXC,SWHRC)
 !$OMP+SCHEDULE( DYNAMIC ) 
       DO IL=1, NCOL
-
+ 
       IF (LLWRAD) THEN
         
-        CALL MCICA_SUBCOL_LW 
-     &        (ONECOL,LLPAR,ICLDMCL,SEEDLW,IRNG,PCENTER(IL,:),
-     &         CLDFR(IL,:),CICEWP(IL,:),CLIQWP(IL,:),
-     &         REICE(IL,:),RELIQ(IL,:),TAUCLD_LW(:,IL,:),
-     &         CLDFMCL, CIWPMCL, CLWPMCL, 
-     &         REICMCL, RELQMCL, TAUCMCL_LW)
-
         CALL RRTMG_LW 
      &       (ONECOL,LLPAR,ICLDMCL,IDRV, 
      &        PCENTER(IL,:) ,PLEV(IL,:) ,TLAY(IL,:)    ,TLEV(IL,:) ,
@@ -760,27 +867,19 @@
      &        CFC11VMR(IL,:),CFC12VMR(IL,:),CFC22VMR(IL,:),
      &        CCL4VMR(IL,:) ,RTEMISS(IL,:) , 
      &        INFLGLW ,ICEFLGLW,LIQFLGLW,
-     &        CLDFMCL,TAUCMCL_LW,CIWPMCL ,CLWPMCL,REICMCL ,RELQMCL, 
+     &        CLDFMCL_LW(:,IL,:),TAUCMCL_LW(:,IL,:),CIWPMCL_LW(:,IL,:),
+     &        CLWPMCL_LW(:,IL,:),REICMCL(IL,:),RELQMCL(IL,:), 
      &        TAUAER_LW(IL,:,:),UFLX,DFLX,HR,UFLXC,DFLXC,HRC, 
      &        DUFLX_DT,DUFLXC_DT)
-
-             LW_UFLUX(IL,:) = UFLX(1,:)
-             LW_DFLUX(IL,:) = DFLX(1,:)
-             LW_UFLUXC(IL,:) = UFLXC(1,:)
-             LW_DFLUXC(IL,:) = DFLXC(1,:)
+        OMPID = OMP_GET_THREAD_NUM()
+        write(6,*) 'RRTLW ',OMPID 
+        LW_UFLUX(IL,:) = UFLX(1,:)
+        LW_DFLUX(IL,:) = DFLX(1,:)
+        LW_UFLUXC(IL,:) = UFLXC(1,:)
+        LW_DFLUXC(IL,:) = DFLXC(1,:)
       ENDIF !LW
-
+!$OMP BARRIER
       IF (LSWRAD) THEN
-
-        CALL MCICA_SUBCOL_SW(ONECOL, LLPAR, ICLDMCL, 
-     &       SEEDSW, IRNG,PCENTER(IL,:), 
-     &       CLDFR(IL,:), CICEWP(IL,:), CLIQWP(IL,:), 
-     &       REICE(IL,:), RELIQ(IL,:), 
-     &       TAUCLD_SW(:,IL,:),SSACLD(:,IL,:), 
-     &       ASMCLD(:,IL,:),FSFCLD(:,IL,:), 
-     &       CLDFMCL_SW, CIWPMCL_SW, CLWPMCL_SW, 
-     &       REICMCL, RELQMCL, TAUCMCL_SW, SSACMCL,
-     &       ASMCMCL, FSFCMCL)
 
         CALL RRTMG_SW 
      &       (ONECOL    ,LLPAR    ,ICLDMCL , 
@@ -792,15 +891,17 @@
      &        ALBDIRNIR(IL) ,ALBDIFNIR(IL) , 
      &        SUNCOS(IL)   ,ADJES   ,DOY  ,SCON    , 
      &        INFLGSW ,ICEFLGSW,LIQFLGSW,
-     &        CLDFMCL_SW  ,TAUCMCL_SW  ,SSACMCL  ,ASMCMCL  ,FSFCMCL  , 
-     &        CIWPMCL_SW  ,CLWPMCL_SW  ,REICMCL  ,RELQMCL   , 
+     &        CLDFMCL_SW(:,IL,:),TAUCMCL_SW(:,IL,:),
+     &        SSACMCL(:,IL,:),ASMCMCL(:,IL,:),FSFCMCL(:,IL,:), 
+     &        CIWPMCL_SW(:,IL,:),CLWPMCL_SW(:,IL,:),
+     &        REICMCL(IL,:),RELQMCL(IL,:), 
      &        TAUAER_SW(IL,:,:)  ,SSAAER(IL,:,:)  ,ASMAER(IL,:,:)  ,
      &        ECAER ,SWUFLX  ,SWDFLX  ,SWHR  ,SWUFLXC ,SWDFLXC ,SWHRC)
-
-             SW_UFLUX(IL,:) = SWUFLX(1,:)
-             SW_DFLUX(IL,:) = SWDFLX(1,:)
-             SW_UFLUXC(IL,:) = SWUFLXC(1,:)
-             SW_DFLUXC(IL,:) = SWDFLXC(1,:)
+        write(6,*) 'RRTSW ',OMPID
+        SW_UFLUX(IL,:) = SWUFLX(1,:)
+        SW_DFLUX(IL,:) = SWDFLX(1,:)
+        SW_UFLUXC(IL,:) = SWUFLXC(1,:)
+        SW_DFLUXC(IL,:) = SWDFLXC(1,:)
       ENDIF !SW
       ENDDO !NCOL
 !$OMP END PARALLEL DO
@@ -831,12 +932,12 @@
       ENDIF
 
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, LL, IJLOOP )
-!$OMP+PRIVATE( AODTMP, SSATMP, ASYMTMP)
-!$OMP+PRIVATE( AODOUT, SSAOUT, ASYMOUT)
-!$OMP+SCHEDULE( DYNAMIC )
+!OMP PARALLEL DO
+!OMP+DEFAULT( SHARED )
+!OMP+PRIVATE( I, J, LL, IJLOOP )
+!OMP+PRIVATE( AODTMP, SSATMP, ASYMTMP)
+!OMP+PRIVATE( AODOUT, SSAOUT, ASYMOUT)
+!OMP+SCHEDULE( DYNAMIC )
       DO J=1,JJPAR
       DO I=1,IIPAR
        IJLOOP   = (J-1)*IIPAR+I
@@ -918,7 +1019,7 @@
        ENDIF
       ENDDO 
       ENDDO
-!$OMP END PARALLEL DO
+!OMP END PARALLEL DO
 
 !EOC
       END SUBROUTINE DO_RRTMG_RAD_TRANSFER
@@ -1088,10 +1189,11 @@
       JDNEW = THISDOFY + JULDAY(THISYEAR, 1, 0D0)
       CALL CALDATE(JDNEW, NYMD, NHMS)
       CALL YMD_EXTRACT( NYMD, THISYEAR, THISMONTH, THISDAY )
-
+!     THIS GETS CALLED EVERY TIMESTEP ON THE CORRECT DAY
+!     SO WE NEED A CTACH TO ONLY READ THE FIRST TIME THAT DAY      
       IF ( THISDOFY == LASTDAY ) THEN
-       WRITE(6,*) 'SURFACE RAD ALREADY READ', 
-     &            THISDAY,THISMONTH,THISYEAR
+!       WRITE(6,*) 'SURFACE RAD ALREADY READ', 
+!     &            THISDAY,THISMONTH,THISYEAR
        RETURN
       ENDIF
       WRITE(STHISDOFY,101) THISDOFY
@@ -1309,7 +1411,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE INIT_SURFACE_RAD
+      SUBROUTINE INIT_SURFACE_RAD()
 !
 !******************************************************************************
 !  SUBROUTINE INIT_SURFACE_RAD INITIALIZES ALL ALLOCATABLE MODULE ARRAYS.
@@ -1386,6 +1488,83 @@
 
 !------------------------------------------------------------------------------
 
+      SUBROUTINE INIT_MCICA_CLOUDS()
+!
+!******************************************************************************
+!  SUBROUTINE INIT_STRAT_CLIM INITIALIZES ALL ALLOCATABLE MODULE ARRAYS.
+!******************************************************************************
+!
+      ! REFERENCES TO F90 MODULES
+      USE ERROR_MOD, ONLY : ALLOC_ERR
+      USE JV_CMN_MOD
+      USE CMN_SIZE_MOD
+      USE PARRRTM, ONLY : NGPTLW
+      USE PARRRSW, ONLY : NGPTSW
+
+      ! LOCAL VARIABLES
+      INTEGER :: AS
+
+      !=================================================================
+      ALLOCATE( CLDFMCL_LW( NGPTLW, IIPAR*JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDFMCL_LW' )
+      CLDFMCL_LW = 0D0
+
+      ALLOCATE( CIWPMCL_LW( NGPTLW, IIPAR*JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CIWPMCL_LW' )
+      CIWPMCL_LW = 0D0
+
+      ALLOCATE( CLWPMCL_LW( NGPTLW, IIPAR*JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLWPMCL_LW' )
+      CLWPMCL_LW = 0D0
+
+      ALLOCATE( TAUCMCL_LW( NGPTLW, IIPAR*JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCMCL_LW' )
+      TAUCMCL_LW = 0D0
+
+      ALLOCATE( CLDFMCL_SW( NGPTSW, IIPAR*JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDFMCL_SW' )
+      CLDFMCL_SW = 0D0
+
+      ALLOCATE( CIWPMCL_SW( NGPTSW, IIPAR*JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CIWPMCL_SW' )
+      CIWPMCL_SW = 0D0
+
+      ALLOCATE( CLWPMCL_SW( NGPTSW, IIPAR*JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLWPMCL_SW' )
+      CLWPMCL_SW = 0D0
+
+      ALLOCATE( TAUCMCL_SW( NGPTSW, IIPAR*JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCMCL_SW' )
+      TAUCMCL_SW = 0D0
+
+      ALLOCATE( SSACMCL( NGPTSW, IIPAR*JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SSACMCL' )
+      SSACMCL = 0D0
+
+      ALLOCATE( ASMCMCL( NGPTSW, IIPAR*JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ASMCMCL' )
+      ASMCMCL = 0D0
+
+      ALLOCATE( FSFCMCL( NGPTSW, IIPAR*JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FSFCMCL' )
+      FSFCMCL = 0D0
+
+      ALLOCATE( RELQMCL( IIPAR*JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RELQMCL' )
+      RELQMCL = 0D0
+
+      ALLOCATE( REICMCL( IIPAR*JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'REICMCL' )
+      REICMCL = 0D0
+
+
+
+      ! RETURN TO CALLING PROGRAM
+      END SUBROUTINE INIT_MCICA_CLOUDS
+
+
+!------------------------------------------------------------------------------
+
 
 !
       SUBROUTINE CLEANUP_SURFACE_RAD
@@ -1431,6 +1610,39 @@
 
 
       END SUBROUTINE CLEANUP_STRAT_CLIM
+
+!------------------------------------------------------------------------------
+
+
+!
+      SUBROUTINE CLEANUP_MCICA_CLOUDS
+!
+! !REVISION HISTORY:
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      !=================================================================
+      ! CLEANUP_DAO BEGINS HERE!
+      !=================================================================
+      IF ( ALLOCATED( CLDFMCL_LW     ) ) DEALLOCATE( CLDFMCL_LW       )
+      IF ( ALLOCATED( CIWPMCL_LW     ) ) DEALLOCATE( CIWPMCL_LW       )
+      IF ( ALLOCATED( CLWPMCL_LW     ) ) DEALLOCATE( CLWPMCL_LW       )
+      IF ( ALLOCATED( TAUCMCL_LW     ) ) DEALLOCATE( TAUCMCL_LW       )
+      IF ( ALLOCATED( CLDFMCL_SW     ) ) DEALLOCATE( CLDFMCL_SW       )
+      IF ( ALLOCATED( CIWPMCL_SW     ) ) DEALLOCATE( CIWPMCL_SW       )
+      IF ( ALLOCATED( CLWPMCL_SW     ) ) DEALLOCATE( CLWPMCL_SW       )
+      IF ( ALLOCATED( TAUCMCL_SW     ) ) DEALLOCATE( TAUCMCL_SW       )
+      IF ( ALLOCATED( SSACMCL        ) ) DEALLOCATE( SSACMCL          )
+      IF ( ALLOCATED( ASMCMCL        ) ) DEALLOCATE( ASMCMCL          )
+      IF ( ALLOCATED( FSFCMCL        ) ) DEALLOCATE( FSFCMCL          )
+      IF ( ALLOCATED( REICMCL        ) ) DEALLOCATE( REICMCL          )
+      IF ( ALLOCATED( RELQMCL        ) ) DEALLOCATE( RELQMCL          )
+
+
+      END SUBROUTINE CLEANUP_MCICA_CLOUDS
 
 
       END MODULE RRTMG_RAD_TRANSFER_MOD

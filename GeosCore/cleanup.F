@@ -100,6 +100,7 @@
 #if   defined( RRTMG )
       USE RRTMG_RAD_TRANSFER_MOD,  ONLY : CLEANUP_SURFACE_RAD
       USE RRTMG_RAD_TRANSFER_MOD,  ONLY : CLEANUP_STRAT_CLIM
+      USE RRTMG_RAD_TRANSFER_MOD,  ONLY : CLEANUP_MCICA_CLOUDS
 #endif
 
 
@@ -291,6 +292,7 @@
 #if   defined( RRTMG )
       CALL CLEANUP_SURFACE_RAD  ! Cleanup arrays for surface properties
       CALL CLEANUP_STRAT_CLIM
+      CALL CLEANUP_MCICA_CLOUDS
 #endif
 
 

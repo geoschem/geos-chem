@@ -121,6 +121,7 @@
      &                                  READ_SURFACE_RAD,
      &                                  INIT_STRAT_CLIM,
      &                                  READ_STRAT_CLIM,
+     &                                  INIT_MCICA_CLOUDS,
      &                                  SET_SPECMASK
       USE JV_CMN_MOD,             ONLY: NSPECRADMENU,
      &                                  LSPECRADMENU
@@ -310,6 +311,8 @@
       !WRITE(6,*) 'Calling INIT_STRAT_CLIM'
       CALL INIT_STRAT_CLIM
       CALL READ_STRAT_CLIM
+      CALL INIT_MCICA_CLOUDS
+
       ! Initialization
        CALL RRTMG_LW_INI
        CALL RRTMG_SW_INI
@@ -1954,7 +1957,7 @@
       !  There is a check within READ_SURFACE_RAD to make
       !  sure we dont re-read the same files
       IF (ITS_TIME_FOR_SURFACE_RAD() ) THEN
-         WRITE(6,*) 'ITS TIME FOR SURFACE RAD'
+!         WRITE(6,*) 'ITS TIME FOR SURFACE RAD'
          CALL READ_SURFACE_RAD
       ENDIF
 #endif
