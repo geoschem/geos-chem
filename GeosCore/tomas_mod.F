@@ -306,6 +306,10 @@
       INTEGER           :: TRACNUM
       REAL*8            :: FRAC
 
+      CHARACTER(LEN=255) :: ERR_VAR
+      CHARACTER(LEN=255) :: ERR_MSG
+
+
 !---------
 !sfarina - move definitions of these from module common
 !to within each sub and pass them around for openmp
@@ -637,10 +641,14 @@ c         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
                CALL ERROR_STOP('AEROPHYS','After cond_nuc')
             ENDIF
 
+           ERR_VAR = 'Gcout'
+           ERR_MSG = 'After COND_NUC'
             ! check for NaN and Inf (win, 10/4/08)
             do jc = 1, icomp-1
-               call check_value(Gcout(jc),(/I,J,L,0/),'Gcout',
-     &              'After COND_NUC')
+               call check_value(Gcout(jc),(/I,J,L,0/),ERR_VAR,
+     &              ERR_MSG)
+!               call check_value(Gcout(jc),(/I,J,L,0/),'Gcout',
+!     &              'After COND_NUC')
 !               if( IT_IS_FINITE(Gcout(jc))) then
 !                  print *,'xxxxxxxxx Found Inf in Gcout xxxxxxxxxxxxxx'
 !                  print *,'Location ',I,J,L, 'comp',jc
@@ -5814,6 +5822,7 @@ c
       INTEGER              :: AS, K, I,J,L, dum1, dum2, dum3, LUN
       REAL*8               :: Mo
       character*80         :: filename
+      character*80         :: fname(4)
 
       !=================================================================
       ! INIT_TOMAS begins here!
@@ -5932,21 +5941,38 @@ c         SRTH2O = ICOMP
       ! fraction as a function of chemical composition.
       !=================================================================
 
-      FILENAME = TRIM( DATA_DIR ) // 'size.aerosol.scav/' // 
-     &     'binact02.dat'
-      CALL READBINACT(FILENAME, BINACT1)
+!      FILENAME = TRIM( DATA_DIR ) // 'size.aerosol.scav/' // 
+!     &     'binact02.dat'
+!      CALL READBINACT(FILENAME, BINACT1)
+!
+!      FILENAME = TRIM( DATA_DIR ) // 'size.aerosol.scav/' // 
+!     &     'binact10.dat'
+!      CALL READBINACT(FILENAME, BINACT2)
+!
+!      FILENAME = TRIM( DATA_DIR ) // 'size.aerosol.scav/' // 
+!     &     'fraction02.dat'
+!      CALL READFRACTION(FILENAME, FRACTION1)
+!
+!      FILENAME = TRIM( DATA_DIR ) // 'size.aerosol.scav/' // 
+!     &     'fraction10.dat'
+!      CALL READFRACTION(FILENAME, FRACTION2)
 
-      FILENAME = TRIM( DATA_DIR ) // 'size.aerosol.scav/' // 
-     &     'binact10.dat'
-      CALL READBINACT(FILENAME, BINACT2)
+      IF(IBINS .eq. 12 .OR. IBINS .eq. 15) THEN
+         fname(1) = 'binact02_12.dat'
+         fname(2) = 'binact10_12.dat'
+         fname(3) = 'fraction02_12.dat'
+         fname(4) = 'fraction10_12.dat'
+      ELSE IF (IBINS .eq. 30 .OR. IBINS .eq. 40) THEN
+         fname(1) = 'binact02.dat'
+         fname(2) = 'binact10.dat'
+         fname(3) = 'fraction02.dat'
+         fname(4) = 'fraction10.dat'
+      END IF
 
-      FILENAME = TRIM( DATA_DIR ) // 'size.aerosol.scav/' // 
-     &     'fraction02.dat'
-      CALL READFRACTION(FILENAME, FRACTION1)
-
-      FILENAME = TRIM( DATA_DIR ) // 'size.aerosol.scav/' // 
-     &     'fraction10.dat'
-      CALL READFRACTION(FILENAME, FRACTION2)
+      CALL READBINACT(  fname(1), BINACT1)
+      CALL READBINACT(  fname(2), BINACT2)
+      CALL READFRACTION(fname(3), FRACTION1)
+      CALL READFRACTION(fname(4), FRACTION2)
 
       !initialize yu lookup table
       call READJIMN5D ! yu nucleation inputs
@@ -6090,21 +6116,17 @@ c      USE LOGICAL_MOD, ONLY  : LCARB30, LDUST30
       MNACL = 0.E0
       MDUST = 0.E0
 
-c      IF (LCARB30) THEN
       IF ( IDTECIL1 > 0 .AND.IDTOCIL1 > 0 .AND. IDTOCOB1 > 0 ) THEN
          MECIL = STT(I,J,L,IDTECIL1-1+BIN)
          MOCIL = STT(I,J,L,IDTOCIL1-1+BIN)
          MOCOB = STT(I,J,L,IDTOCOB1-1+BIN)
       ENDIF
-c      IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
       IF ( IDTDUST1 > 0 ) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
-c      IF (LSULF30) MSO4  = STT(I,J,L,IDTSF1-1+BIN) * 1.2 !account for ammonium sulfate
       IF ( IDTSF1 > 0 ) MSO4  = STT(I,J,L,IDTSF1-1+BIN) * 1.2 !account for ammonium sulfate
       IF ( IDTSS1 > 0 ) MNACL = STT(I,J,L,IDTSS1-1+BIN)
-c      IF (LSALT30) MNACL = STT(I,J,L,IDTSS1-1+BIN)
       MTOT  = MECIL + MOCIL + MOCOB + MSO4 + MNACL + MDUST + 1.e-20
       XOCIL = MOCIL / MTOT
-      XSO4  = MSO4 / MTOT
+      XSO4  = MSO4  / MTOT
       XNACL = MNACL / MTOT
       ISO4  = MIN(101, INT(XSO4*100)+1)
       INACL = MIN(101, INT(XNACL*100)+1)
@@ -6132,6 +6154,8 @@ c      IF (LSALT30) MNACL = STT(I,J,L,IDTSS1-1+BIN)
          print*,'BINACT ERROR GETBINACT=',GETBINACT
          stop
       endif
+
+!      print*,'N, BINACT = ',N,GETBINACT
       
       IF ( GETBINACT > BIN ) THEN
          FRACTION = 0. !NOT ACTIVATED
@@ -6148,7 +6172,6 @@ c      IF (LSALT30) MNACL = STT(I,J,L,IDTSS1-1+BIN)
       ! Calculate the soluble fraction of mass
       MECOB = 0.E0
       IF ( IDTECOB1 > 0 ) MECOB = STT(I,J,L,IDTECOB1-1+BIN)
-c      IF (LCARB30) MECOB = STT(I,J,L,IDTECOB1-1+BIN)
       SOLFRAC = MTOT / ( MTOT + MECOB ) 
 
       ! Return to calling program
@@ -6245,8 +6268,10 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
       ! subroutine was written considering bin 1 is 10nm
       ! in TOMAS-40, bin 1 is 1nm and bin 11 is 10nm
       !==========================================================
-#if  defined( TOMAS40 )
+#if   defined( TOMAS40 )
       OFFSET = 10
+#elif  defined( TOMAS15 )
+      OFFSET = 3
 #else
       OFFSET = 0
 #endif

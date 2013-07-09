@@ -316,6 +316,8 @@
       !                     a debugger, and is probably related to
       !                     some initialization garbage in memory
       !                     see the wikipedia entry on 'Heisenbug'
+      !print *, 'welcome to geoschem'
+      !call flush()
 
       !-----------------------------------------------------------------
       ! %%%% REPLICATING GIGC FUNCTIONALITY IN EXISTING GEOS-CHEM %%%%
