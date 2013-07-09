@@ -193,6 +193,7 @@
       REAL(KIND=RB) :: TAUAER_SW (IIPAR*JJPAR,LLPAR,NBNDSW)
       REAL(KIND=RB) :: SSAAER (IIPAR*JJPAR,LLPAR,NBNDSW)
       REAL(KIND=RB) :: ASMAER (IIPAR*JJPAR,LLPAR,NBNDSW)
+
       !TO STORE THE OPTICS FOR THE AEROSOLS WE ARE INTERESTED IN
       REAL*8        :: TAUAERDIAG (IIPAR*JJPAR,LLPAR,NBNDSW)
       REAL*8        :: SSAAERDIAG (IIPAR*JJPAR,LLPAR,NBNDSW)
@@ -240,11 +241,11 @@
 
 ! SW CLOUD VARIABLES
 
-      REAL(KIND=RB)  :: TAUCLD_SW(NBNDSW,1,LLPAR)   ! IN-CLOUD OPTICAL DEPTH
-      REAL(KIND=RB)  :: TAUCLD_LW(NBNDLW,1,LLPAR)   ! NOT USED BUT PASSED TO MCICA_LW
-      REAL(KIND=RB)  :: SSACLD(NBNDSW,1,LLPAR)      ! IN-CLOUD SINGLE SCATTERING ALBEDO
-      REAL(KIND=RB)  :: ASMCLD(NBNDSW,1,LLPAR)      ! IN-CLOUD ASYMMETRY PARAMETER
-      REAL(KIND=RB)  :: FSFCLD(NBNDSW,1,LLPAR)      ! IN-CLOUD FORWARD SCATTERING FRACTION
+      REAL(KIND=RB)  :: TAUCLD_SW(NBNDSW,IIPAR*JJPAR,LLPAR)   ! IN-CLOUD OPTICAL DEPTH
+      REAL(KIND=RB)  :: TAUCLD_LW(NBNDLW,IIPAR*JJPAR,LLPAR)   ! NOT USED BUT PASSED TO MCICA_LW
+      REAL(KIND=RB)  :: SSACLD(NBNDSW,IIPAR*JJPAR,LLPAR)      ! IN-CLOUD SINGLE SCATTERING ALBEDO
+      REAL(KIND=RB)  :: ASMCLD(NBNDSW,IIPAR*JJPAR,LLPAR)      ! IN-CLOUD ASYMMETRY PARAMETER
+      REAL(KIND=RB)  :: FSFCLD(NBNDSW,IIPAR*JJPAR,LLPAR)      ! IN-CLOUD FORWARD SCATTERING FRACTION
       REAL(KIND=RB)  :: ECAER(1,LLPAR,NAEREC)        ! AEROSOL OPTICAL DEPTH AT 0.55UM (IAER=6 ONLY)
 
 
@@ -452,12 +453,42 @@
 !OMP+PRIVATE( I, J, L, IJLOOP, JLOOP, AIR_TMP )
 !OMP+PRIVATE( YLAT, O3COL)
 !OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
       DO I = 1, IIPAR
+      DO J = 1, JJPAR
+       ALBVIS(IJLOOP)   = ALBD(I,J)
+      DO L = 1, LLPAR
        
        ! 1-D INDEX
        IJLOOP         = (J-1)*IIPAR+I
+
+       ! NOT SURE IF THESE NEED TO BE IN TROPOSPHERE-ONLY LOOP...
+       ! TRYING TO FIND CAUSE OF 2X2.5 BANDING OF CLOUDS...
+            !-----------------------------
+            ! GET CLOUD PROPERTIES BY SETTING REASONABLE VALUES FOR REL
+            ! AND REI IN MICRONS AND CALCULATING LWP AND IWP FROM
+            ! VISIBLE OPTICAL DEPTH  (IN G/M2)
+            ! THIS IS A DIFERENT APPROACH THAN THAT USED UP THROUGH
+            ! OCTOBER, WHERE WE TRIED TO USED THE CLOUD LIQUID AND ICE
+            ! MIXING RATIOS TO GET LWP AND IWP. NOTE THAT RHO IN G/CM3
+            ! AND RE IN MICRONS MAKE THE CXXXWP VARIABLES COME OUT IN
+            ! G/M2.
+            !-----------------------------
+
+            !-----------------------------
+            ! SET RE VALUES TO AVOID PROBLEMS IN CLOUD CODE
+
+            IF (ICLD.NE.0) THEN
+             ! LIQUID
+             CLIQWP(IJLOOP,L) = 0.667*TAUCLW(I,J,L)*RHOLIQ*REL_DEF
+             RELIQ(IJLOOP,L) = REL_DEF
+             ! ICE
+             CICEWP(IJLOOP,L) = 0.667*TAUCLI(I,J,L)*RHOICE*REI_DEF
+             REICE(IJLOOP,L) = REI_DEF
+             !TAUCLD DERIVED IN MCICA SUB, NOT NEEDED
+             !TAUCLD(IJLOOP,L) = TAUCLI(I,J,L)+TAUCLW(I,J,L)
+             CLDFR(IJLOOP,L)   = CLDF(L,I,J)
+            ENDIF !CLOUDS
+
        IF (INTROP(IJLOOP,L).EQ..TRUE.) THEN 
            !-----------------------------
             ! WE ARE IN THE TROPOSPHERE
@@ -482,33 +513,6 @@
             CFC22VMR(IJLOOP,L) = CFC22CLIM(I,J,L)/1E9
 
 
-            TAUCLD(IJLOOP,L) = TAUCLI(I,J,L)+TAUCLW(I,J,L)
-            CLDFR(IJLOOP,L) =  CLDF(I,J,L)
-            ALBVIS(IJLOOP)   = ALBD(I,J)
-                         
-
-            !-----------------------------
-            ! GET CLOUD PROPERTIES BY SETTING REASONABLE VALUES FOR REL
-            ! AND REI IN MICRONS AND CALCULATING LWP AND IWP FROM
-            ! VISIBLE OPTICAL DEPTH  (IN G/M2)
-            ! THIS IS A DIFERENT APPROACH THAN THAT USED UP THROUGH
-            ! OCTOBER, WHERE WE TRIED TO USED THE CLOUD LIQUID AND ICE
-            ! MIXING RATIOS TO GET LWP AND IWP. NOTE THAT RHO IN G/CM3
-            ! AND RE IN MICRONS MAKE THE CXXXWP VARIABLES COME OUT IN
-            ! G/M2.
-            !-----------------------------
-
-            !-----------------------------
-            ! SET RE VALUES TO AVOID PROBLEMS IN CLOUD CODE
-
-            IF (ICLD.NE.0) THEN
-             ! LIQUID
-             CLIQWP(IJLOOP,L) = 0.667*TAUCLW(I,J,L)*RHOLIQ*REL_DEF
-             RELIQ(IJLOOP,L) = REL_DEF
-             ! ICE
-             CICEWP(IJLOOP,L) = 0.667*TAUCLI(I,J,L)*RHOICE*REI_DEF
-             REICE(IJLOOP,L) = REI_DEF
-            ENDIF !CLOUDS
        ELSE
            !-----------------------------
            ! WE ARE IN THE STRATOSPHERE
@@ -759,6 +763,8 @@
 !          PRINT *,'MCICA'
       END SELECT
 
+! SET THE MAX NUMBER OF OMP THREADS TO CHECK FOR MEMORY ISSUES
+!      OMP_SET_NUM_THREADS(1)
 
 ! WE ONLY NEED TO CALC CLOUDS ONCE PER RT TIMESTEP
 ! DO THIS ON BASELINE CALL IF ALL-SKY IS REQUESTED
@@ -792,51 +798,33 @@
          CLWPMCL_LW(:,IL,:)   = CLWPMCL_LW0(:,1,:)
          TAUCMCL_LW(:,IL,:)   = TAUCMCL_LW0(:,1,:)
 
-         OMPID = OMP_GET_THREAD_NUM()
-         write(6,*) 'MCICALW ',OMPID,IL,NCOL
-         write(6,*) MAXVAL(CIWPMCL_LW),MAXVAL(RELQMCL0)
+!         OMPID = OMP_GET_THREAD_NUM()
+!         write(6,*) 'MCICALW ',OMPID,IL,NCOL
+!         write(6,*) MAXVAL(CIWPMCL_LW),MAXVAL(RELQMCL0)
         ENDIF
         IF (LSWRAD) THEN
-!         PCENTER0(1,:) = PCENTER(IL,:)
-!         CLDFR0(1,:)   = CLDFR(IL,:)
-!         CICEWP0(1,:)  = CICEWP(IL,:)
-!         CLIQWP0(1,:)  = CLIQWP(IL,:)
-!         REICE0(1,:)   = REICE(IL,:)
-!         RELIQ0(1,:)   = RELIQ(IL,:)
-!         TAUCLD_SW0(:,1,:) = TAUCLD_SW(:,IL,:)
-!         SSACLD0(:,1,:)= SSACLD(:,IL,:)
-!         ASMCLD0(:,1,:)= ASMCLD(:,IL,:)
-!         FSFCLD0(:,1,:)= FSFCLD(:,IL,:)
-!         CALL MCICA_SUBCOL_SW(ONECOL, LLPAR, ICLDMCL,
-!     &        SEEDSW, IRNG,PCENTER0,
-!     &        CLDFR0, CICEWP0, CLIQWP0,
-!     &        REICE0, RELIQ0,
-!     &        TAUCLD_SW0,SSACLD0,
-!     &        ASMCLD0,FSFCLD0,
-!     &        CLDFMCL_SW0, CIWPMCL_SW0, CLWPMCL_SW0,
-!     &        REICMCL0, RELQMCL0, TAUCMCL_SW0, SSACMCL0,
-!     &        ASMCMCL0, FSFCMCL0)
 
-!         CALL MCICA_SUBCOL_SW(ONECOL, LLPAR, ICLDMCL,
-!     &        SEEDSW, IRNG,PCENTER(IL,:),
-!     &        CLDFR(IL,:), CICEWP(IL,:), CLIQWP(IL,:),
-!     &        REICE(IL,:), RELIQ(IL,:),
-!     &        TAUCLD_SW(:,IL,:),SSACLD(:,IL,:),
-!     &        ASMCLD(:,IL,:),FSFCLD(:,IL,:),
-!     &        CLDFMCL_SW0, CIWPMCL_SW0, CLWPMCL_SW0,
-!     &        REICMCL0, RELQMCL0, TAUCMCL_SW0, SSACMCL0,
-!     &        ASMCMCL0, FSFCMCL0)
-
-!         CLDFMCL_SW(:,IL,:)   = CLDFMCL_SW0(:,1,:)
-!         CIWPMCL_SW(:,IL,:)   = CIWPMCL_SW0(:,1,:)
-!         CLWPMCL_SW(:,IL,:)   = CLWPMCL_SW0(:,1,:)
-!         TAUCMCL_SW(:,IL,:)   = TAUCMCL_SW0(:,1,:)
-!         SSACMCL(:,IL,:)    = SSACMCL0(:,1,:)
-!         ASMCMCL(:,IL,:)    = ASMCMCL0(:,1,:)
-!         FSFCMCL(:,IL,:)    = FSFCMCL0(:,1,:)
-         OMPID = OMP_GET_THREAD_NUM()
-         write(6,*) 'MCICASW ',OMPID,IL,NCOL
-      write(6,*)MAXVAL(CIWPMCL_SW),MAXVAL(CLDFMCL_SW),MAXVAL(TAUCMCL_SW)
+         CALL MCICA_SUBCOL_SW(ONECOL, LLPAR, ICLDMCL,
+     &        SEEDSW, IRNG,PCENTER(IL,:),
+     &        CLDFR(IL,:), CICEWP(IL,:), CLIQWP(IL,:),
+     &        REICE(IL,:), RELIQ(IL,:),
+     &        TAUCLD_SW(:,IL,:),SSACLD(:,IL,:),
+     &        ASMCLD(:,IL,:),FSFCLD(:,IL,:),
+     &        CLDFMCL_SW0, CIWPMCL_SW0, CLWPMCL_SW0,
+     &        REICMCL0, RELQMCL0, TAUCMCL_SW0, SSACMCL0,
+     &        ASMCMCL0, FSFCMCL0)
+!         OMPID = OMP_GET_THREAD_NUM()
+!
+         CLDFMCL_SW(:,IL,:)   = CLDFMCL_SW0(:,1,:)
+         CIWPMCL_SW(:,IL,:)   = CIWPMCL_SW0(:,1,:)
+         CLWPMCL_SW(:,IL,:)   = CLWPMCL_SW0(:,1,:)
+         TAUCMCL_SW(:,IL,:)   = TAUCMCL_SW0(:,1,:)
+         SSACMCL(:,IL,:)    = SSACMCL0(:,1,:)
+         ASMCMCL(:,IL,:)    = ASMCMCL0(:,1,:)
+         FSFCMCL(:,IL,:)    = FSFCMCL0(:,1,:)
+!         OMPID = OMP_GET_THREAD_NUM()
+!         write(6,*) 'MCICASW ',OMPID,IL,NCOL
+!      write(6,*)MAXVAL(CIWPMCL_SW),MAXVAL(CLDFMCL_SW),MAXVAL(TAUCMCL_SW)
 
         ENDIF
 ! these should be independent of LW and SW
@@ -871,14 +859,13 @@
      &        CLWPMCL_LW(:,IL,:),REICMCL(IL,:),RELQMCL(IL,:), 
      &        TAUAER_LW(IL,:,:),UFLX,DFLX,HR,UFLXC,DFLXC,HRC, 
      &        DUFLX_DT,DUFLXC_DT)
-        OMPID = OMP_GET_THREAD_NUM()
-        write(6,*) 'RRTLW ',OMPID 
+!        OMPID = OMP_GET_THREAD_NUM()
+!        write(6,*) 'RRTLW ',OMPID 
         LW_UFLUX(IL,:) = UFLX(1,:)
         LW_DFLUX(IL,:) = DFLX(1,:)
         LW_UFLUXC(IL,:) = UFLXC(1,:)
         LW_DFLUXC(IL,:) = DFLXC(1,:)
       ENDIF !LW
-!$OMP BARRIER
       IF (LSWRAD) THEN
 
         CALL RRTMG_SW 
@@ -897,7 +884,7 @@
      &        REICMCL(IL,:),RELQMCL(IL,:), 
      &        TAUAER_SW(IL,:,:)  ,SSAAER(IL,:,:)  ,ASMAER(IL,:,:)  ,
      &        ECAER ,SWUFLX  ,SWDFLX  ,SWHR  ,SWUFLXC ,SWDFLXC ,SWHRC)
-        write(6,*) 'RRTSW ',OMPID
+!        write(6,*) 'RRTSW ',OMPID
         SW_UFLUX(IL,:) = SWUFLX(1,:)
         SW_DFLUX(IL,:) = SWDFLX(1,:)
         SW_UFLUXC(IL,:) = SWUFLXC(1,:)
