@@ -217,7 +217,7 @@
 
             ! CO
             FILENAME = TRIM( SCALE_DIR ) //
-     &           'CO-AnnualScalar.1x1'
+     &           'CO-AnnualScalar.geos.1x1'
 
          ELSE IF ( TRACER == 73 ) THEN
 
