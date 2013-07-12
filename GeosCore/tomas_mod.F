@@ -1446,6 +1446,7 @@ C-----VARIABLE DECLARATIONS---------------------------------------------
       double precision pi, R    ! pi and gas constant (J/mol K)
       double precision mu                  !viscosity of air (kg/m s)
       double precision mfp                 !mean free path of air molecule (m)
+      double precision l_ab                !mean free path of h2so4 molecule (m)
       real Di       !diffusivity of gas in air (m2/s)
       double precision Neps     !tolerance for number
       real density  !density [kg m^-3]
@@ -1454,6 +1455,7 @@ C-----VARIABLE DECLARATIONS---------------------------------------------
       double precision Kn       !Knudson number
       double precision beta(ibins) !non-continuum correction factor
       double precision Mktot    !total mass in bin [kg]
+      double precision c_a      !average speed of a, h2so4 molecule
 
 C-----ADJUSTABLE PARAMETERS---------------------------------------------
 
@@ -1482,10 +1484,15 @@ C-----CODE--------------------------------------------------------------
 
 C     get some parameters
 
-      mu=2.5277e-7 * TEMPTMS**0.75302
+!      mu=2.5277e-7 * TEMPTMS**0.75302
 !      mfp=2.0*mu / ( pres*sqrt( 8.0 * 0.6589 / (pi*R*TEMPTMS) ) )  !S&P eqn 8.6
-      mfp=2.0*mu / ( pres*sqrt( 8.0 * 0.0289 / (pi*R*TEMPTMS) ) )  !S&P eqn 8.6
+
+!      mfp=2.0*mu / ( pres*sqrt( 8.0 * 0.0289 / (pi*R*TEMPTMS) ) )  !S&P eqn 8.6
+
       Di=gasdiff(TEMPTMS,pres,98.0,Sv(spec))
+
+      c_a  = sqrt(8.0 * TEMPTMS * R / 0.098)
+      l_ab = 2.0 * Di / c_a
 
 C     get size dependent values
       do k=1,ibins
@@ -1509,9 +1516,10 @@ Ckpc  Density should be changed due to more species involed.
             mp=1.4*xk(k)
 #endif
          endif
-         Dpk(k)=((mp/density)*(6./pi))**(0.333)
-         Kn=2.0*mfp/Dpk(k)                             !S&P eqn 11.35 (text)
-         beta(k)=(1.+Kn)/(1.+2.*Kn*(1.+Kn)/alpha(spec)) !S&P eqn 11.35
+         Dpk(k)  = ( (mp/density)*(6./pi) )**(0.333)
+!        Kn      = 2.0 * mfp  / Dpk(k)                             !S&P eqn 11.35 (text)
+         Kn      = 2.0 * l_ab / Dpk(k)                             !S&Pv2 chapter 12 - Kn for Dahneke correction factor
+         beta(k) = ( 1.+Kn )  / ( 1.+2.*Kn*(1.+Kn)/alpha(spec) )    !S&P eqn 11.35
       enddo      
 
 C     get condensation sink
