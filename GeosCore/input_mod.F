@@ -2822,7 +2822,7 @@
       USE LOGICAL_MOD, ONLY : LSKYRAD
       USE TIME_MOD,    ONLY : SET_CT_RAD
       USE TRACER_MOD,  ONLY : N_TRACERS
-      USE JV_CMN_MOD,  ONLY : WVSELECT, NWVSELECT
+      USE JV_CMN_MOD,  ONLY : WVSELECT, NWVSELECT, STRWVSELECT
       USE JV_CMN_MOD,  ONLY : NSPECRADMENU
       USE JV_CMN_MOD,  ONLY : LSPECRADMENU
       USE CMN_SIZE_MOD      ! Size parameters
@@ -2852,9 +2852,15 @@
 
       ! AOD wavelength selection?
       CALL SPLIT_ONE_LINE( SUBSTRS, NWVSELECT,
-     &                     1, 'read_radiation_menu:1' )
+     &                     -1, 'read_radiation_menu:1' )
+      STRWVSELECT(1)=''
+      STRWVSELECT(2)=''
+      STRWVSELECT(3)=''
+
       DO N = 1, NWVSELECT
          READ( SUBSTRS(N), * ) WVSELECT(N)
+         ! save the string version also
+         STRWVSELECT(N) = TRIM(SUBSTRS(N))
       ENDDO
 
       ! Turn on RRTMG?
@@ -2903,7 +2909,9 @@
       WRITE( 6, 100     ) 'Consider LW                 : ', LLWRAD
       WRITE( 6, 100     ) 'Consider SW                 : ', LSWRAD
       WRITE( 6, 110     ) 'Radiation timestep [min]    : ', TS_RAD
-      WRITE( 6, 115     ) 'AOD output wavelength (nm)  : ', WVSELECT(1)
+      DO N=1, NWVSELECT
+      WRITE( 6, 115     ) 'AOD output wavelength (nm)  : ', WVSELECT(N)
+      ENDDO
       WRITE( 6, 120     ) 'Flux output selection       : ', LSPECRADMENU
       WRITE( 6, 125     ) 'Clear-sky/All-sky           : ',
      &                    LSKYRAD(1),'/',LSKYRAD(2)

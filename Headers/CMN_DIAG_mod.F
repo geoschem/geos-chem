@@ -87,7 +87,7 @@
       INTEGER, PARAMETER :: PD18=8
       INTEGER, PARAMETER :: PD19=0            
       INTEGER, PARAMETER :: PD20=0 
-      INTEGER, PARAMETER :: PD21=27 !51 includes SSA and ASYM (dar)
+      INTEGER, PARAMETER :: PD21=51 !27 plus 2x(NAER+NDUST) extra wvlength output (DAR)
       INTEGER, PARAMETER :: PD22=14      !jpp replaced 8, 4/24/2011... for Br.
       INTEGER, PARAMETER :: PD23=0           
       INTEGER, PARAMETER :: PD24=NNPAR        
@@ -125,7 +125,7 @@
       INTEGER, PARAMETER :: PD58=12
 #if   defined( TOMAS )
       ! Special settings for TOMAS aerosol microphysics (win, bmy, 1/22/10)
-      INTEGER, PARAMETER :: PD59=TOMASBIN*TOMASSPEC    
+      INTEGER, PARAMETER :: PD59=TOMASBIN*TOMASSPEC   
       INTEGER, PARAMETER :: PD60=TOMASBIN*TOMASSPEC    
       INTEGER, PARAMETER :: PD61=2 
 #else
@@ -147,15 +147,24 @@
       INTEGER, PARAMETER :: PD68=4            
       INTEGER, PARAMETER :: PD69=1
       INTEGER, PARAMETER :: PD70=0
-      !number of rad flux output types
-      INTEGER, PARAMETER :: PD71R=11
+      !number of rad flux and optics output types
+      !8 flux and 3*3=9 optics
+      INTEGER, PARAMETER :: PD71R=17
       !total number of possible rad outputs (types*specs)
-      INTEGER, PARAMETER :: PD71=PD71R*(NSPECRADMENU+2) ! Radiation (Ridley 10/2012)
+      !there are 11 possible flux output 'species' but
+      !only 8 possible optics output 'species'
+      !for simplicity we take the largest and put up with
+      !some redundancy (should be 88+72=160)
+      INTEGER, PARAMETER :: PD71=187 ! Radiation (Ridley 10/2012)
 
       !=================================================================
       ! Variables for printing out selected tracers in diagnostic output
       !=================================================================
+#if   defined( RRTMG )
+      INTEGER, PARAMETER :: MAX_DIAG   = 187
+#else
       INTEGER, PARAMETER :: MAX_DIAG   = 71
+#endif
 #if   defined( TOMAS )
       INTEGER, PARAMETER :: MAX_TRACER = NNPAR+1   ! For TOMAS (win, 1/25/10)
 #elif defined( APM ) 

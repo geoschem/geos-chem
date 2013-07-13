@@ -292,12 +292,20 @@
       REAL*8  :: SSAA(NWVAA,NRAA,NSPAA)
       REAL*8  :: ASYMAA(NWVAA,NRAA,NSPAA)
       REAL*8  :: PHAA(NWVAA,NRAA,NSPAA,8)
-      REAL*8  :: WVSELECT(NWVAA)  !wavelengths requested by user
-      INTEGER :: IWVSELECT(NWVAA) !index of requested wavelengths 
+      REAL*8  :: WVSELECT(3)  !wavelengths requested by user
+      INTEGER :: IWVSELECT(2,3) !index of requested wavelengths
+      ! max of 3 but need 2 per wavelength if interpolating
       INTEGER :: NWVSELECT !number of selected AOD output wavelengths
-      REAL*8  :: ACOEF_WV,BCOEF_WV,CCOEF_WV !coefficients for interpolation of wavelength
-      INTEGER :: LSPECRADMENU(NSPECRADMENU) !indices for number of species on input menu 
-      INTEGER :: SPECMASK(NSPECRAD) !list of binary switches for different 
+                           !(max=3)
+      INTEGER :: NWVREQUIRED !number of wvs required for interpolation
+      INTEGER :: IWVREQUIRED(6) !index of wavelengths for interp.
+      ! list of required wavelengths, up to max of 3 x 2
+
+      !coefficients for interpolation of wavelength
+      REAL*8      :: ACOEF_WV(3),BCOEF_WV(3),CCOEF_WV(3)
+      CHARACTER*5 :: STRWVSELECT(3) !String array of requested wavelengths
+      INTEGER     :: LSPECRADMENU(NSPECRADMENU) !indices for number of species on input menu 
+      INTEGER     :: SPECMASK(NSPECRAD) !list of binary switches for different 
                                     !species flux output
       INTEGER :: NJVAL,NW1,NW2,NAA,NLBATM                             
 

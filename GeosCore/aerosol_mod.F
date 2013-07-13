@@ -641,11 +641,11 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL             :: FIRST = .TRUE.
-      LOGICAL             :: DO_READ_DATA
+      LOGICAL             :: DO_READ_DATA, LINTERP
       CHARACTER(LEN=255)  :: FILENAME
       CHARACTER(LEN=16)   :: STAMP
       INTEGER             :: THISMONTH, THISYEAR
-      INTEGER             :: I, J, L, N, R, JLOOP, IRH, IRHN 
+      INTEGER             :: I, J, L, N, R, JLOOP, IRH, IRHN, W 
       INTEGER             :: AA, IWV, IIWV, NWVS, IR, NRT
       INTEGER, SAVE       :: MONTH_LAST = -999
       REAL*4              :: TEMP(IIPAR,JJPAR,LGLOB)
@@ -1036,8 +1036,8 @@
        IF ( LRAD ) THEN !Loop over all RT wavelengths
         NWVS   = NWVAA-7
        ELSE
-        NWVS   = NWVSELECT !from number of wavelengths specified in
-       ENDIF               !input.geos
+        NWVS   = NWVREQUIRED !from RD_AOD, number of wavelengths needed
+       ENDIF                 
       ENDIF
       DO IIWV = 1, NWVS
        ! get current wavelength index
@@ -1053,7 +1053,7 @@
          IWV = IIWV+7
         ELSE
          ! cycle through all requested wavelengths
-         IWV = IWVSELECT(IIWV)
+         IWV = IWVREQUIRED(IIWV)
         ENDIF               
        ENDIF
        ! loop over types of aerosol
@@ -1232,11 +1232,12 @@
             ! #16 Hygroscopic growth of Sea Salt (accum)   [unitless]
             ! #19 Hygroscopic growth of Sea Salt (coarse)  [unitless]
             !==============================================================
-            !only need to do hyg and surf areas once, not for each wavelength             
+            !only need to do hyg once, not for each wavelength             
             IF (IIWV.EQ.1) THEN
-             IF ( ND21 > 0 .and. L <= LD21.AND.(ODSWITCH.EQ.1)) THEN
+             !save increase in AOD resulting from water uptake
+             IF( ND21 > 0 .AND. L <= LD21 .AND.ODSWITCH.EQ.1) THEN
                AD21(I,J,L,7+3*(N-1)) = AD21(I,J,L,7+3*(N-1)) +
-     &                                 SCALEA
+     &                                 SCALEOD
              ENDIF
             
             
@@ -1355,34 +1356,57 @@
       !==============================================================
 
       IF ( ND21 > 0 .and. ODSWITCH .EQ. 1 ) THEN
-        !IF (IWV .EQ. IWVSELECT(NWVSELECT)) THEN
-        !Then we have AOD for last of the wavelengths so we can
-        !interpolate to requested wavelength if required
          ! Loop over aerosol types (dust handled in dust_mod.f)
-         IF (NWVSELECT.EQ.1) THEN !no interpolation
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, IRHN, J, JLOOP, L, N, NRT )
+!$OMP+PRIVATE( I, IRHN, J, JLOOP, L, N, W, IOUT )
 !$OMP+SCHEDULE( DYNAMIC )
 
          DO N = 1, NAER
-          !NRT is subscript for RT arrays that contain SNA separately
-          IF (N.GT.1) THEN
-           NRT=N+2
-          ELSE
-           NRT=N
-          ENDIF
-
             !------------------------------------
             ! Aerosol Optical Depths [unitless]
             ! Scale of optical depths w/ RH
             !------------------------------------
+            DO W = 1, NWVSELECT !different to NWVSELECT if interp
+             IF (IWVSELECT(1,W).EQ.IWVSELECT(2,W)) THEN
+              LINTERP=.FALSE.
+             ELSE
+              LINTERP=.TRUE.
+             ENDIF
+             ! DETERMINE SUBSCRIPT FOR ND21
+             ! STORE FIRST WAVELENGTH IN USUAL POSITION AND ANY
+             ! SUBSEQUENT WAVELENGTHS AT END
+             SELECT CASE(W)
+              CASE(1)
+               IOUT=6+3*(N-1)
+              CASE(2)
+               IOUT=6+3*NAER+NDUST+(N-1)
+              CASE(3)
+               IOUT=6+4*NAER+2*NDUST+(N-1)
+              CASE DEFAULT
+               IOUT=6+3*(N-1)
+             END SELECT
+
             DO L = 1, LD21
             DO J = 1, JJPAR
             DO I = 1, IIPAR
-               ! Optical Depths
-               AD21(I,J,L,6+3*(N-1)) = AD21(I,J,L,6+3*(N-1)) +
-     &                             ODAER(I,J,L,IWVSELECT(1),N)
+             ! Optical Depths
+             IF (LINTERP.EQ..FALSE.) THEN
+               AD21(I,J,L,IOUT) = AD21(I,J,L,IOUT) +
+     &                                ODAER(I,J,L,IWVSELECT(1,W),N)
+             ELSE
+               ! Interpolated using angstrom exponent between
+               ! Closest available wavelengths
+               ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+               !catch any zero values before interpolation
+               IF ((ODAER(I,J,L,IWVSELECT(2,W),N).GT.0).AND.
+     &             (ODAER(I,J,L,IWVSELECT(1,W),N).GT.0)) THEN
+                AD21(I,J,L,IOUT) = AD21(I,J,L,IOUT) +
+     &           ODAER(I,J,L,IWVSELECT(2,W),N)*ACOEF_WV(W)**
+     &           (BCOEF_WV(W)*LOG(ODAER(I,J,L,IWVSELECT(1,W),N)/
+     &                            ODAER(I,J,L,IWVSELECT(2,W),N)))
+               ENDIF
+             ENDIF
 
                !--------------------------------------
                ! ND21 tracer :  single scattering albedo (dar)
@@ -1391,17 +1415,19 @@
 !     &                             RTSSAER(I,J,L,IWVSELECT(1),N)
 !
                !--------------------------------------
-               ! ND21 tracer :  asymettry parameter (dar)
+               ! ND21 tracer :  asymmetry parameter (dar)
                !--------------------------------------
 !               AD21(I,J,L,10+5*(N-1)) = AD21(I,J,L,10+5*(N-1)) +
 !     &                             RTASYMAER(I,J,L,IWVSELECT(1),N)
             ENDDO
             ENDDO
             ENDDO
-
+         ENDDO
+         
             !------------------------------------
             ! Aerosol Surface Areas [cm2/cm3]
             !------------------------------------
+         
             DO JLOOP = 1, NTLOOP
 
                ! Get 3-D grid box indices
@@ -1416,95 +1442,9 @@
 
                ENDIF
             ENDDO
-
          ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE !interpolate
-
-!$OMP PARALLEL DO 
-!$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( I, IRHN, J, JLOOP, L, N, NRT ) 
-!$OMP+SCHEDULE( DYNAMIC )
-         
-         DO N = 1, NAER
-          !NRT is subscript for RT arrays that contain SNA separately
-          IF (N.GT.1) THEN
-           NRT=N+2
-          ELSE
-           NRT=N
-          ENDIF
-
-            !------------------------------------
-            ! Aerosol Optical Depths [unitless]
-            ! Scale of optical depths w/ RH 
-            !------------------------------------
-            DO L = 1, LD21
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-               ! Optical Depths 
-               ! Interpolated using angstrom exponent between
-               ! Closest available wavelengths
-               ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
-               !catch any zero values before interpolation
-               IF ((ODAER(I,J,L,IWVSELECT(2),N).LE.0).OR.
-     &             (ODAER(I,J,L,IWVSELECT(1),N).LE.0)) THEN
-                DENOM=1.0
-                NUMER=1.0
-               ELSE
-                DENOM=ODAER(I,J,L,IWVSELECT(2),N)
-                NUMER=ODAER(I,J,L,IWVSELECT(1),N)
-               
-!                AD21(I,J,L,6+3*(N-1)) = AD21(I,J,L,6+3*(N-1)) +
-!     &           ODAER(I,J,L,IWVSELECT(2),N)
-
-                AD21(I,J,L,6+3*(N-1)) = AD21(I,J,L,6+3*(N-1)) + 
-     &           ODAER(I,J,L,IWVSELECT(2),N)*ACOEF_WV**
-     &           (BCOEF_WV*LOG(ODAER(I,J,L,IWVSELECT(1),N)/
-     &                         ODAER(I,J,L,IWVSELECT(2),N)))
-               ENDIF
-
-               !--------------------------------------
-               ! ND21 tracer : single scattering albedo (dar)
-               !--------------------------------------
-               ! CCOEF_WV defined in RD_AOD.F based on wavelengths used
-!               AD21(I,J,L,9+5*(N-1)) = AD21(I,J,L,9+5*(N-1)) +
-!     &                    CCOEF_WV*RTSSAER(I,J,L,IWVSELECT(2),NRT)+
-!     &            (1.0d0-CCOEF_WV)*RTSSAER(I,J,L,IWVSELECT(1),NRT)
-
-               !--------------------------------------
-               ! ND21 tracer : asymmetry parameters (dar)
-               !--------------------------------------
-               ! CCOEF_WV defined in RD_AOD.F based on wavelengths used
-!               AD21(I,J,L,10+5*(N-1)) = AD21(I,J,L,10+5*(N-1)) +
-!     &                  CCOEF_WV*RTASYMAER(I,J,L,IWVSELECT(2),NRT)+
-!     &          (1.0d0-CCOEF_WV)*RTASYMAER(I,J,L,IWVSELECT(1),NRT)
-
-
-            ENDDO       
-            ENDDO
-            ENDDO
-            
-            !------------------------------------
-            ! Aerosol Surface Areas [cm2/cm3]
-            !------------------------------------
-            DO JLOOP = 1, NTLOOP
-
-               ! Get 3-D grid box indices
-               I = IXSAVE(JLOOP)
-               J = IYSAVE(JLOOP)
-               L = IZSAVE(JLOOP)
-
-               ! Add aerosol surface areas 
-               IF ( L <= LD21 ) THEN
-                 AD21(I,J,L,8+3*(N-1)) = AD21(I,J,L,8+3*(N-1)) + 
-     &                               TAREA(JLOOP,N+NDUST)
-               ENDIF 
-            ENDDO
-
-         ENDDO
-!$OMP END PARALLEL DO
-        ENDIF
       ENDIF 
  
 

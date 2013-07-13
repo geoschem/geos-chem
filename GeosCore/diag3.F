@@ -24,7 +24,7 @@
       USE FILE_MOD                           
       USE GRID_MOD, ONLY : GET_AREA_M2, GET_YOFFSET, GET_XOFFSET
       USE TIME_MOD
-      USE JV_CMN_MOD, ONLY : LSPECRADMENU, NSPECRADMENU
+      USE JV_CMN_MOD, ONLY : LSPECRADMENU, NSPECRADMENU, NWVSELECT
 
       ! Modules from GeosCore directory
       USE BPCH2_MOD                          ! For binary punch I/O routines
@@ -1495,8 +1495,15 @@
                CASE DEFAULT
                   UNIT = 'unitless'
             END SELECT
-               
-            IF (( N > 3 .AND. N < 6 ) .OR. (N > 20)) THEN
+
+           !Only output extra wavelengths if they are requested
+           IF (( N < 28 ) .OR. 
+     &         ( N > 27 .AND. N < 41 .AND. NWVSELECT > 1 ) .OR.
+     &         ( N > 40 .AND. NWVSELECT > 2 )) THEN 
+
+            !Dust arrays
+            IF (( N > 3 .AND. N < 6 ) .OR. (N > 20 .AND. N < 28) .OR. 
+     &         ( N > 32 .AND. N < 40 ) .OR. (N > 44)) THEN
 
                ! Online or offline dust fields?
                IF ( LDUST ) THEN
@@ -1527,6 +1534,7 @@
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &                  IIPAR,     JJPAR,     LD21,     IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD21) )
+           ENDIF
          ENDDO    
 
          !==============================================================
@@ -3764,19 +3772,24 @@
       IF (LRAD) THEN
       IF ( ND71 > 0 ) THEN
          CATEGORY = 'RADMAP-$'
-
+         write(6,*) 'NWVSELECT',NWVSELECT
          ! ND71 is updated every rad timestep
          SCALEX = SCALERAD
-         NSPECOUT=NSPECRADMENU+2
+         NSPECOUT=NSPECRADMENU+1 !number of output species plus baseline
          DO M = 1, TMAX(71)
             N  = TINDEX(71,M)
             
             IF ( N > PD71R ) CYCLE
              !only output clear-sky and all-sky if they are switched on
              !or if we're doing the optics
+             !but only output 2nd and 3rd sets of optics if they're
+             !requested by user in input.geos.rad
              IF (((N.LE.4).AND.(LSKYRAD(2).EQ..TRUE.)).OR.
-     &          ((N.GT.4).AND.(N.LE.8).AND.(LSKYRAD(1).EQ..TRUE.)).OR.
-     &           (N.GT.8)) THEN
+     &           ((N.GT.4).AND.(N.LE.8).AND.(LSKYRAD(1).EQ..TRUE.)).OR.
+     &           ((N.GT.8).AND.(N.LE.11)).OR.                         !1st set of optics
+     &           ((N.GT.11).AND.(N.LE.14).AND.(NWVSELECT.GT.1)).OR.   !2nd set of optics
+     &           ((N.GT.14).AND.(N.LE.17).AND.(NWVSELECT.GT.2))) THEN !3rd set of optics
+
              ! Select proper unit string (cf list above)
              IF (N.LE.8) THEN
               UNIT = 'W/m2'
@@ -3803,7 +3816,7 @@
      &                   IIPAR,     JJPAR,     1,        IFIRST,
      &                   JFIRST,    LFIRST,    ARRAY(:,:,1) )
              !for other outputs check species has been selected
-             ELSE IF ((IS.GE.3).AND.(LSPECRADMENU(IS-2).EQ.1)) THEN
+             ELSE IF ((IS.GE.2).AND.(LSPECRADMENU(IS-1).EQ.1)) THEN
               DO I=1,IIPAR
                DO J=1,JJPAR
                 !store as difference in flux from baseline
@@ -3820,8 +3833,8 @@
              ENDIF
             ! N > 8 so we are outputting optics
             ! but only for turned on species and only for aerosols
-            ! i.e. skip IS=3 and IS=4
-            ELSE IF ((IS.GE.5).AND.(LSPECRADMENU(IS-2).EQ.1)) THEN
+            ! i.e. skip IS=2 and IS=3
+            ELSE IF ((IS.GE.4).AND.(LSPECRADMENU(IS-1).EQ.1)) THEN
              !output optics
               ARRAY(:,:,1) = AD71(:,:,NN) / SCALEX
               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,

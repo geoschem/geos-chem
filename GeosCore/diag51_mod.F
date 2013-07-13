@@ -437,18 +437,19 @@
       LOGICAL, SAVE     :: IS_FULLCHEM, IS_NOx, IS_Ox,   IS_SEASALT
       LOGICAL, SAVE     :: IS_CLDTOPS,  IS_NOy, IS_OPTD, IS_SLP
       LOGICAL           :: IS_CHEM,     IS_DIAG, IS_EMIS
-      INTEGER           :: H, I, J, K, L, M, N
+      INTEGER           :: H, I, J, K, L, M, N, IWV
       INTEGER           :: PBLINT,  R, X, Y, W, XMIN
-      INTEGER           :: IWV
       REAL*8            :: C1, C2, PBLDEC, TEMPBL, TMP, SCALEAODnm
       CHARACTER(LEN=16) :: STAMP
 
       ! Aerosol types (rvm, aad, bmy, 7/20/04)
       INTEGER           :: IND(6) = (/ 22, 29, 36, 43, 50, 15 /)
-      IWV = 7 !fixed at 550nm for now (DAR)
       !=================================================================
       ! ACCUMULATE_DIAG51 begins here!
       !=================================================================
+      IWV=7
+      !set wavelength for AOD output to the first wavelength
+      !requested in the input.geos.rad file
 
       ! Set logical flags on first call
       IF ( FIRST ) THEN

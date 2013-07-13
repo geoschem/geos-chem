@@ -540,7 +540,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE :: FIRST = .TRUE.
-      
+      LOGICAL       :: LINTERP 
 #if defined( DEVEL )
       REAL*8, INTENT(INOUT) :: SFLX(IIPAR,JJPAR,LLPAR,N_TRACERS+1)
       REAL*8                :: STT_TMP(IIPAR,JJPAR,LLPAR,4)
@@ -1184,7 +1184,8 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER            :: I, J, JLOOP, L, N
+      LOGICAL            :: LINTERP
+      INTEGER            :: I, J, JLOOP, L, N, NOUT, W
       INTEGER            :: IWV, IIWV, NWVS
       REAL*8             :: MSDENS(NDUST), XTAU
       REAL*8             :: DENOM,NUMER !for AOD interpolation
@@ -1240,8 +1241,8 @@
        IF ( LRAD ) THEN !Loop over all RT wavelengths
         NWVS   = NWVAA-7
        ELSE
-        NWVS   = NWVSELECT ! 1 or 2 depending if selected wavelength on or
-                           ! between LUT tie points
+        NWVS   = NWVREQUIRED ! 1 or 2 depending if selected wavelength on or
+                             ! between LUT tie points
        ENDIF               
       ENDIF
       
@@ -1258,7 +1259,7 @@
          IWV = IIWV+7
         ELSE
          ! cycle through all requested wavelengths
-         IWV = IWVSELECT(IIWV)
+         IWV = IWVREQUIRED(IIWV)
         ENDIF
        ENDIF
 
@@ -1350,39 +1351,83 @@
       ! Tracers #45-51: Dust ASYM for each size bin
       !==============================================================
       IF ( ND21 > 0 .and. ODSWITCH .EQ. 1 ) THEN
-        IF (NWVSELECT.EQ.1) THEN !no interpolation
-         DO N = 1, NDUST
-
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, JLOOP, L )
+!$OMP+PRIVATE( I, J, JLOOP, L, N, W, NOUT )
+         DO N=1, NDUST
+            DO W = 1, NWVSELECT !different to NWVSELECT if interp
+             IF (IWVSELECT(1,W).EQ.IWVSELECT(2,W)) THEN
+              LINTERP=.FALSE.
+             ELSE
+              LINTERP=.TRUE.
+             ENDIF
+            SELECT CASE(W)
+              CASE(1)
+               NOUT=21+(N-1)
+              CASE(2)
+               NOUT=21+NAER+NDUST+(N-1)
+              CASE(3)
+               NOUT=21+2*(NAER+NDUST)+(N-1)
+              CASE DEFAULT
+               NOUT=21+(N-1)
+             END SELECT
+
             DO L = 1, LD21
             DO J = 1, JJPAR
             DO I = 1, IIPAR
-
+               IF(LINTERP.EQ..FALSE.) THEN
                !--------------------------------------
                ! ND21 tracer #4: Dust optical depths (clh)
                !--------------------------------------
                AD21(I,J,L,4) = AD21(I,J,L,4) + 
-     &                         ODMDUST(I,J,L,IWVSELECT(1),N)
+     &                         ODMDUST(I,J,L,IWVSELECT(1,W),N)
 
                !--------------------------------------
                ! ND21 tracer #21-27: size-resolved dust optical depths
                !--------------------------------------
-               AD21(I,J,L,21+(N-1)) = AD21(I,J,L,21+(N-1)) + 
-     &                                ODMDUST(I,J,L,IWVSELECT(1),N)
+               AD21(I,J,L,NOUT) = AD21(I,J,L,NOUT) + 
+     &                            ODMDUST(I,J,L,IWVSELECT(1,W),N)
+               ELSE
+               ! Interpolated using angstrom exponent between
+               ! Closest available wavelengths
+               ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+               ! AOD sometimes zero (if Q zero), must catch this
+               IF ((ODMDUST(I,J,L,IWVSELECT(1,W),N).EQ.0).OR.
+     &             (ODMDUST(I,J,L,IWVSELECT(2,W),N).EQ.0)) THEN
+                !DENOM=1.0
+                !NUMER=1.0
+                !Dont add anything to diagnostic
+               ELSE
 
+               !--------------------------------------
+               ! ND21 tracer #4: Dust optical depths (clh)
+               !--------------------------------------
+                AD21(I,J,L,4) = AD21(I,J,L,4) +
+     &                         ODMDUST(I,J,L,IWVSELECT(2,W),N)*
+     &                         ACOEF_WV(W)**(BCOEF_WV(W)*LOG(
+     &                         ODMDUST(I,J,L,IWVSELECT(1,W),N)/
+     &                         ODMDUST(I,J,L,IWVSELECT(2,W),N)))
+
+                AD21(I,J,L,NOUT) = AD21(I,J,L,NOUT) +
+     &                         ODMDUST(I,J,L,IWVSELECT(2,W),N)*
+     &                         ACOEF_WV(W)**(BCOEF_WV(W)*LOG(
+     &                         ODMDUST(I,J,L,IWVSELECT(1,W),N)/
+     &                         ODMDUST(I,J,L,IWVSELECT(2,W),N)))
+
+
+               ENDIF
+               ENDIF
 !               !--------------------------------------
 !               ! ND21 tracer #38-44: Dust single scattering albedo (dar)
 !               !--------------------------------------
 !               AD21(I,J,L,38+(N-1)) = AD21(I,J,L,38+(N-1)) +
-!     &                         RTSSAER(I,J,L,IWVSELECT(1),NAER+4+N)
+!     &                         RTSSAER(I,J,L,IWVSELECT(1,W),NAER+4+N)
 !
 !               !--------------------------------------
 !               ! ND21 tracer #45-51: Dust asymmetry parameters (clh)
 !               !--------------------------------------
 !               AD21(I,J,L,45+(N-1)) = AD21(I,J,L,45+(N-1)) +
-!     &                         RTASYMAER(I,J,L,IWVSELECT(1),NAER+4+N)
+!     &                         RTASYMAER(I,J,L,IWVSELECT(1,W),NAER+4+N)
 
 
                !--------------------------------------
@@ -1403,85 +1448,9 @@
             ENDDO
             ENDDO
             ENDDO
+            ENDDO
+           ENDDO
 !$OMP END PARALLEL DO
-         ENDDO
-        ELSE !interpolate to requested wavelength
-         DO N = 1, NDUST
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, JLOOP, L )
-            DO L = 1, LD21
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-               ! Interpolated using angstrom exponent between
-               ! Closest available wavelengths
-               ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
-               ! AOD sometimes zero (if Q zero), must catch this
-               IF ((ODMDUST(I,J,L,IWVSELECT(1),N).EQ.0).OR.
-     &             (ODMDUST(I,J,L,IWVSELECT(2),N).EQ.0)) THEN
-                DENOM=1.0
-                NUMER=1.0
-                !Dont add anything to diagnostic
-               ELSE
-
-               !--------------------------------------
-               ! ND21 tracer #4: Dust optical depths (clh)
-               !--------------------------------------
-                AD21(I,J,L,4) = AD21(I,J,L,4) +
-     &                         ODMDUST(I,J,L,IWVSELECT(2),N)*
-     &                         ACOEF_WV**(BCOEF_WV*LOG(
-     &                         ODMDUST(I,J,L,IWVSELECT(1),N)/
-     &                         ODMDUST(I,J,L,IWVSELECT(2),N)))
-
-               !--------------------------------------
-               ! ND21 tracer #31-37: size-resolved dust optical depths
-               !--------------------------------------
-                AD21(I,J,L,21+(N-1)) = AD21(I,J,L,21+(N-1)) +
-     &                                ODMDUST(I,J,L,IWVSELECT(2),N)*
-     &                                ACOEF_WV**(BCOEF_WV*LOG(
-     &                                ODMDUST(I,J,L,IWVSELECT(1),N)/
-     &                                ODMDUST(I,J,L,IWVSELECT(2),N)))
-
-               ENDIF
-!               !--------------------------------------
-!               ! ND21 tracer #38-44: Dust single scattering albedo (dar)
-!               !--------------------------------------
-!               ! CCOEF_WV defined in RD_AOD.F based on wavelengths used
-!               AD21(I,J,L,38+(N-1)) = AD21(I,J,L,38+(N-1)) +
-!     &                    CCOEF_WV*RTSSAER(I,J,L,IWVSELECT(2),NAER+4+N)+
-!     &            (1.0d0-CCOEF_WV)*RTSSAER(I,J,L,IWVSELECT(1),NAER+4+N)
-!
-!               !--------------------------------------
-!               ! ND21 tracer #45-51: Dust asymmetry parameters (dar)
-!
-!               !--------------------------------------
-!               ! CCOEF_WV defined in RD_AOD.F based on wavelengths used
-!               AD21(I,J,L,45+(N-1)) = AD21(I,J,L,45+(N-1)) +
-!     &                  CCOEF_WV*RTASYMAER(I,J,L,IWVSELECT(2),NAER+4+N)+
-!     &          (1.0d0-CCOEF_WV)*RTASYMAER(I,J,L,IWVSELECT(1),NAER+4+N)
-
-               !--------------------------------------
-               ! ND21 tracer #5: Dust surface areas
-               !--------------------------------------
-               IF ( L <= LLTROP ) THEN
-
-                  ! Convert 3-D indices to 1-D index
-                  ! JLOP is only defined in the tropopause
-                  JLOOP = JLOP(I,J,L)
-
-                  ! Add to AD21
-                  IF ( JLOOP > 0 ) THEN
-                     AD21(I,J,L,5) = AD21(I,J,L,5) + TAREA(JLOOP,N)
-                  ENDIF
-
-               ENDIF
-            ENDDO
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-         ENDDO
-        ENDIF !to interpolate or not to interpolate
       ENDIF 
       END SUBROUTINE RDUST_ONLINE
 !EOC

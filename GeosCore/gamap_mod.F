@@ -114,7 +114,7 @@
       CHARACTER(LEN=16)              :: STAMP
       CHARACTER(LEN=40)              :: SIM_NAME
       ! Used for ND71
-      CHARACTER(LEN=40)              :: NAME0
+      CHARACTER(LEN=40)              :: NAME0, NAME1
       CHARACTER(LEN=40)              :: FNAME0
 
       CONTAINS
@@ -1404,7 +1404,7 @@
       USE TRACERID_MOD, ONLY : IDTXYLE, IDTBENZ, IDTTOLU
       USE TRACERID_MOD, ONLY : N_Hg_CATS  !CDH for snowpack
       USE CMN_DIAG_MOD, ONLY : PD71R
-      USE JV_CMN_MOD,   ONLY : NSPECRADMENU
+      USE JV_CMN_MOD,   ONLY : NSPECRADMENU, STRWVSELECT
 ! 
 ! !REVISION HISTORY: 
 !  17 Oct 1996 - R. Yantosca & P. Le Sager - Initial version
@@ -2335,7 +2335,7 @@
       IF ( ND21 > 0 .or. DO_TIMESERIES ) THEN
 
          ! Number of tracers
-         NTRAC(21) = 27
+         NTRAC(21) = 51
 
          ! Loop over tracers
          DO T = 1, NTRAC(21)
@@ -2364,8 +2364,9 @@
                   FNAME(T,21) = 'Mineral dust surface area'
                   UNIT (T,21) = 'cm2/cm3'
                CASE( 6  )
-                  NAME (T,21) = 'OPSO4'
-                  FNAME(T,21) = 'Sulfate opt depth (550 nm)'
+                  NAME (T,21) = 'OPSO4'//STRWVSELECT(1)
+                  FNAME(T,21) = 'Sulfate opt depth ('
+     &                          // STRWVSELECT(1) //'nm)'
                CASE( 7  )
                   NAME (T,21) = 'HGSO4'
                   FNAME(T,21) = 'Hygr growth of SO4'
@@ -2374,8 +2375,9 @@
                   FNAME(T,21) = 'Sulfate surface area'
                   UNIT (T,21) = 'cm2/cm3'
                CASE( 9  )
-                  NAME (T,21) = 'OPBC'
-                  FNAME(T,21) = 'Black carbon opt depth (550 nm)'
+                  NAME (T,21) = 'OPBC'//STRWVSELECT(1)
+                  FNAME(T,21) = 'Black carbon opt depth ('
+     &                          // STRWVSELECT(1) //'nm)'
                CASE( 10 )
                   NAME (T,21) = 'HGBC'
                   FNAME(T,21) = 'Hygr growth of BC'
@@ -2384,8 +2386,9 @@
                   FNAME(T,21) = 'BC surface area'
                   UNIT (T,21) = 'cm2/cm3'
                CASE( 12 )
-                  NAME (T,21) = 'OPOC'
-                  FNAME(T,21) = 'Org carbon opt depth (550 nm)'
+                  NAME (T,21) = 'OPOC'//STRWVSELECT(1)
+                  FNAME(T,21) = 'Org carbon opt depth ('
+     &                          // STRWVSELECT(1) //'nm)'
                CASE( 13 )
                   NAME (T,21) = 'HGOC'
                   FNAME(T,21) = 'Hygr growth of OC'
@@ -2394,8 +2397,9 @@
                   FNAME(T,21) = 'OC surface area'
                   UNIT (T,21) = 'cm2/cm3'
                CASE( 15 )
-                  NAME (T,21) = 'OPSSa'
-                  FNAME(T,21) = 'Seasalt (accum) opt depth (550 nm)'
+                  NAME (T,21) = 'OPSSa'//STRWVSELECT(1)
+                  FNAME(T,21) = 'Seasalt (accum) opt depth ('
+     &                          // STRWVSELECT(1) //'nm)'
                CASE( 16 ) 
                   NAME (T,21) = 'HGSSa'
                   FNAME(T,21) = 'Hygr growth of seasalt (accum)'
@@ -2404,8 +2408,9 @@
                   FNAME(T,21) = 'Seasalt (accum) surface area'
                   UNIT (T,21) = 'cm2/cm3'
                CASE( 18 )
-                  NAME (T,21) = 'OPSSc'
-                  FNAME(T,21) = 'Seasalt (coarse) opt depth (550 nm)'
+                  NAME (T,21) = 'OPSSc'//STRWVSELECT(1)
+                  FNAME(T,21) = 'Seasalt (coarse) opt depth ('
+     &                          // STRWVSELECT(1) //'nm)'
                CASE( 19 ) 
                   NAME (T,21) = 'HGSSc'
                   FNAME(T,21) = 'Hygr growth of seasalt (coarse)'
@@ -2414,26 +2419,130 @@
                   FNAME(T,21) = 'Seasalt (coarse) surface area'
                   UNIT (T,21) = 'cm2/cm3'
                CASE( 21 )
-                  NAME (T,21) = 'OPD1'
-                  FNAME(T,21) = 'Dust bin 1 AOD (550 nm)'
+                  NAME (T,21) = 'OPD1'//STRWVSELECT(1)
+                  FNAME(T,21) = 'Dust bin 1 AOD ('
+     &                          // STRWVSELECT(1) //'nm)'
                CASE( 22 )
-                  NAME (T,21) = 'OPD2'
-                  FNAME(T,21) = 'Dust bin 2 AOD (550 nm)'
+                  NAME (T,21) = 'OPD2'//STRWVSELECT(1)
+                  FNAME(T,21) = 'Dust bin 2 AOD ('
+     &                          // STRWVSELECT(1) //'nm)'
                CASE( 23 )
-                  NAME (T,21) = 'OPD3'
-                  FNAME(T,21) = 'Dust bin 3 AOD (550 nm)'
+                  NAME (T,21) = 'OPD3'//STRWVSELECT(1)
+                  FNAME(T,21) = 'Dust bin 3 AOD ('
+     &                          // STRWVSELECT(1) //'nm)'
                CASE( 24 )
-                  NAME (T,21) = 'OPD4'
-                  FNAME(T,21) = 'Dust bin 4 AOD (550 nm)'
+                  NAME (T,21) = 'OPD4'//STRWVSELECT(1)
+                  FNAME(T,21) = 'Dust bin 4 AOD ('
+     &                          // STRWVSELECT(1) //'nm)'
                CASE( 25 )
-                  NAME (T,21) = 'OPD5'
-                  FNAME(T,21) = 'Dust bin 5 AOD (550 nm)'
+                  NAME (T,21) = 'OPD5'//STRWVSELECT(1)
+                  FNAME(T,21) = 'Dust bin 5 AOD ('
+     &                          // STRWVSELECT(1) //'nm)'
                CASE( 26 )
-                  NAME (T,21) = 'OPD6'
-                  FNAME(T,21) = 'Dust bin 6 AOD (550 nm)'
+                  NAME (T,21) = 'OPD6'//STRWVSELECT(1)
+                  FNAME(T,21) = 'Dust bin 6 AOD ('
+     &                          // STRWVSELECT(1) //'nm)'
                CASE( 27 )
-                  NAME (T,21) = 'OPD7'
-                  FNAME(T,21) = 'Dust bin 7 AOD (550 nm)'
+                  NAME (T,21) = 'OPD7'//STRWVSELECT(1)
+                  FNAME(T,21) = 'Dust bin 7 AOD ('
+     &                          // STRWVSELECT(1) //'nm)'
+               CASE( 28 )
+                  NAME (T,21) = 'OPSO4'//STRWVSELECT(2)
+                  FNAME(T,21) = 'Seasalt (accum) opt depth ('
+     &                           // STRWVSELECT(2) // 'nm)'
+               CASE( 29 )
+                  NAME (T,21) = 'OPBC' // STRWVSELECT(2)
+                  FNAME(T,21) = 'BC opt depth ('
+     &                           // STRWVSELECT(2) // 'nm)'
+               CASE( 30 )
+                  NAME (T,21) = 'OPOC' // STRWVSELECT(2)
+                  FNAME(T,21) = 'OC opt depth ('
+     &                           // STRWVSELECT(2) // 'nm)'
+               CASE( 31 )
+                  NAME (T,21) = 'OPSSa' // STRWVSELECT(2)
+                  FNAME(T,21) = 'Seasalt (accum) opt depth ('
+     &                           // STRWVSELECT(2) // 'nm)'
+               CASE( 32 )
+                  NAME (T,21) = 'OPSSc' // STRWVSELECT(2)
+                  FNAME(T,21) = 'seasalt (coarse) opt depth ('
+     &                           // STRWVSELECT(2) // 'nm)'
+               CASE( 33 )
+                  NAME (T,21) = 'OPD1' // STRWVSELECT(2)
+                  FNAME(T,21) = 'Dust bin 1 AOD ('
+     &                           // STRWVSELECT(2) // 'nm)'
+               CASE( 34 )
+                  NAME (T,21) = 'OPD2' // STRWVSELECT(2)
+                  FNAME(T,21) = 'Dust bin 2 AOD ('
+     &                           // STRWVSELECT(2) // 'nm)'
+               CASE( 35 )
+                  NAME (T,21) = 'OPD3' // STRWVSELECT(2)
+                  FNAME(T,21) = 'Dust bin 3 AOD ('
+     &                           // STRWVSELECT(2) // 'nm)'
+               CASE( 36 )
+                  NAME (T,21) = 'OPD4' // STRWVSELECT(2) 
+                  FNAME(T,21) = 'Dust bin 4 AOD ('
+     &                           // STRWVSELECT(2) // 'nm)'
+               CASE( 37 )
+                  NAME (T,21) = 'OPD5' // STRWVSELECT(2)
+                  FNAME(T,21) = 'Dust bin 5 AOD ('
+     &                           // STRWVSELECT(2) // 'nm)'
+               CASE( 38 )
+                  NAME (T,21) = 'OPD6' // STRWVSELECT(2)
+                  FNAME(T,21) = 'Dust bin 6 AOD ('
+     &                           // STRWVSELECT(2) // 'nm)'
+               CASE( 39 )
+                  NAME (T,21) = 'OPD7' // STRWVSELECT(2)
+                  FNAME(T,21) = 'Dust bin 7 AOD ('
+     &                           // STRWVSELECT(2) // 'nm)'
+               CASE( 40 )
+                  NAME (T,21) = 'OPSO4' // STRWVSELECT(3)
+                  FNAME(T,21) = 'Seasalt (accum) opt depth ('
+     &                           // STRWVSELECT(3) // 'nm)'
+               CASE( 41 )
+                  NAME (T,21) = 'OPBC' // STRWVSELECT(3)
+                  FNAME(T,21) = 'BC opt depth ('
+     &                           // STRWVSELECT(3) // 'nm)'
+               CASE( 42 )
+                  NAME (T,21) = 'OPOC' // STRWVSELECT(3)
+                  FNAME(T,21) = 'OC opt depth ('
+     &                           // STRWVSELECT(3) // 'nm)'
+               CASE( 43 )
+                  NAME (T,21) = 'OPSSa' // STRWVSELECT(3)
+                  FNAME(T,21) = 'Seasalt (accum) opt depth ('
+     &                           // STRWVSELECT(3) // 'nm)'
+               CASE( 44 )
+                  NAME (T,21) = 'OPSSc' // STRWVSELECT(3)
+                  FNAME(T,21) = 'seasalt (coarse) opt depth ('
+     &                           // STRWVSELECT(3) // 'nm)'
+               CASE( 45 )
+                  NAME (T,21) = 'OPD1' // STRWVSELECT(3)
+                  FNAME(T,21) = 'Dust bin 1 AOD ('
+     &                           // STRWVSELECT(3) // 'nm)'
+               CASE( 46 )
+                  NAME (T,21) = 'OPD2' // STRWVSELECT(3)
+                  FNAME(T,21) = 'Dust bin 2 AOD ('
+     &                           // STRWVSELECT(3) // 'nm)'
+               CASE( 47 )
+                  NAME (T,21) = 'OPD3' // STRWVSELECT(3)
+                  FNAME(T,21) = 'Dust bin 3 AOD ('
+     &                           // STRWVSELECT(3) // 'nm)'
+               CASE( 48 )
+                  NAME (T,21) = 'OPD4' // STRWVSELECT(3)
+                  FNAME(T,21) = 'Dust bin 4 AOD ('
+     &                           // STRWVSELECT(3) // 'nm)'
+               CASE( 49 )
+                  NAME (T,21) = 'OPD5' // STRWVSELECT(3)
+                  FNAME(T,21) = 'Dust bin 5 AOD ('
+     &                           // STRWVSELECT(3) // 'nm)'
+               CASE( 50 )
+                  NAME (T,21) = 'OPD6' // STRWVSELECT(3)
+                  FNAME(T,21) = 'Dust bin 6 AOD ('
+     &                           // STRWVSELECT(3) // 'nm)'
+               CASE( 51 )
+                  NAME (T,21) = 'OPD7' // STRWVSELECT(3)
+                  FNAME(T,21) = 'Dust bin 7 AOD ('
+     &                           // STRWVSELECT(3) // 'nm)'
+
                CASE DEFAULT
                   ! Nothing
             END SELECT
@@ -3949,7 +4058,7 @@
       IF ( ND71 > 0 .or. DO_TIMESERIES ) THEN
 
          ! Number of tracers
-         NTRAC(71) = (NSPECRADMENU+2)*PD71R
+         NTRAC(71) = (NSPECRADMENU+1)*PD71R
 
          ! Loop over tracers
          DO T = 1, NTRAC(71)
@@ -3960,92 +4069,123 @@
             MWT  (T,21) = 0e0
             SCALE(T,21) = 1e0
             !get number of current flux type
-            T0 = ((T-1)/(NSPECRADMENU+2))+1
+            T0 = ((T-1)/(NSPECRADMENU+1))+1
             SELECT CASE( T0 )
                CASE( 1  )
-                  NAME0       = 'TOASWA'
+                  NAME0       = 'FSW'
+                  NAME1       = 'TA'
                   FNAME0      = 'TOA SW All-sky'
                CASE( 2  )
-                  NAME0       = 'SRFSWA'
+                  NAME0       = 'FSW'
+                  NAME1       = 'SA'
                   FNAME0      = 'Surface SW All-sky'
                CASE( 3  )
-                  NAME0       = 'TOALWA'
+                  NAME0       = 'FLW'
+                  NAME1       = 'TA'
                   FNAME0      = 'TOA LW All-sky'
                CASE( 4  )
-                  NAME0       = 'SRFLWA'
+                  NAME0       = 'FLW'
+                  NAME1       = 'SA'
                   FNAME0      = 'Surface LW All-sky'
                CASE( 5  )
-                  NAME0       = 'TOASWC'
+                  NAME0       = 'FSW'
+                  NAME1       = 'TC'
                   FNAME0      = 'TOA SW Clear-sky'
                CASE( 6  )
-                  NAME0       = 'SRFSWC'
-                  FNAME0      = 'Surface SW Clear-sky'
+                  NAME0       = 'FSW'
+                  NAME1       = 'SC'
+                  FNAME0      = 'Flux SW Surface Clear-sky'
                CASE( 7  )
-                  NAME0       = 'TOALWC'
+                  NAME0       = 'FLW'
+                  NAME1       = 'TC'
                   FNAME0      = 'TOA LW Clear-sky'
                CASE( 8  )
-                  NAME0       = 'SRFLWC'
+                  NAME0       = 'FLW'
+                  NAME1       = 'SC'
                   FNAME0      = 'Surface LW Clear-sky'
                CASE( 9  )
-                  NAME0       = 'AODRT'
-                  FNAME0      = 'aerosol optical depth'
+                  NAME0      = 'AOD'
+                  NAME1      = STRWVSELECT(1)
+                  FNAME0  = 'aer. op. depth ('//STRWVSELECT(1)//'nm)'
                CASE( 10 )
-                  NAME0       = 'SSART'
-                  FNAME0      = 'Single scat. albedo'
+                  NAME0      = 'SSA'
+                  NAME1      = STRWVSELECT(1)
+                  FNAME0  = 'Single scat. alb.('//STRWVSELECT(1)//'nm)'
                CASE( 11 )
-                  NAME0       = 'ASYMRT'
-                  FNAME0      = 'asymmetry parameter'
+                  NAME0      = 'ASM'
+                  NAME1      = STRWVSELECT(1)
+                  FNAME0     = 'asym param ('//STRWVSELECT(1)//'nm)'
+               CASE( 12  )
+                  NAME0      = 'AOD'
+                  NAME1      = STRWVSELECT(2)
+                  FNAME0     = 'aer. op. depth ('//STRWVSELECT(2)//'nm)'
+               CASE( 13 )
+                  NAME0      = 'SSA'
+                  NAME1      = STRWVSELECT(2)
+                  FNAME0   = 'Single scat. alb.('//STRWVSELECT(2)//'nm)'
+               CASE( 14 )
+                  NAME0      = 'ASM'
+                  NAME1      = STRWVSELECT(2)
+                  FNAME0     = 'asym param ('//STRWVSELECT(2)//'nm)'
+               CASE( 15 )
+                  NAME0      = 'AOD'
+                  NAME1      = STRWVSELECT(3)
+                  FNAME0     = 'aer. op. depth ('//STRWVSELECT(3)//'nm)'
+               CASE( 16 )
+                  NAME0      = 'SSA'
+                  NAME1      = STRWVSELECT(3)
+                  FNAME0   = 'Single scat. alb.('//STRWVSELECT(3)//'nm)'
+               CASE( 17 )
+                  NAME0      = 'ASM'
+                  NAME1      = STRWVSELECT(3)
+                  FNAME0     = 'asym param ('//STRWVSELECT(3)//'nm)'
             END SELECT
 
             ! Get name long-name (and sometimes, unit)
-            T1=MOD((T-1),(NSPECRADMENU+2))+1
+            T1=MOD((T-1),(NSPECRADMENU+1))+1
             SELECT CASE( T1 )
                CASE( 1  )
-                  NAME (T,71) = 'BA' // TRIM(NAME0)
+                  NAME (T,71) = TRIM(NAME0) // 'BA' // TRIM(NAME1)
                   FNAME(T,71) = 'Clear ' // TRIM(FNAME0)
                   UNIT (T,71) = 'W/m2'
                CASE( 2  )
-                  NAME (T,71) = 'SM' // TRIM(NAME0)
-                  FNAME(T,71) = 'Combined ' // TRIM(FNAME0)
-                  UNIT (T,71) = 'W/m2'
-               CASE( 3  )
-                  NAME (T,71) = 'O3' // TRIM(NAME0)
+                  NAME (T,71) = TRIM(NAME0) // 'O3' // TRIM(NAME1)
                   FNAME(T,71) = 'Ozone ' // TRIM(FNAME0)
                   UNIT (T,71) = 'W/m2'
-               CASE( 4  )
-                  NAME (T,71) = 'CH' // TRIM(NAME0)
+               CASE( 3  )
+                  NAME (T,71) = TRIM(NAME0) // 'CH' // TRIM(NAME1)
                   FNAME(T,71) = 'Methane ' // TRIM(FNAME0)
                   UNIT (T,71) = 'W/m2'
-               CASE( 5  )
-                  NAME (T,71) = 'SU' // TRIM(NAME0)
+               CASE( 4  )
+                  NAME (T,71) = TRIM(NAME0) // 'SU' // TRIM(NAME1)
                   FNAME(T,71) = 'Sulfate ' // TRIM(FNAME0)
                   UNIT (T,71) = 'W/m2'
-               CASE( 6  )
-                  NAME (T,71) = 'NI' // TRIM(NAME0)
+               CASE( 5  )
+                  NAME (T,71) = TRIM(NAME0) // 'NI' // TRIM(NAME1)
                   FNAME(T,71) = 'Nitrate ' // TRIM(FNAME0)
                   UNIT (T,71) = 'W/m2'
-               CASE( 7  )
-                  NAME (T,71) = 'AM' // TRIM(NAME0)
+               CASE( 6  )
+                  NAME (T,71) = TRIM(NAME0) // 'AM' // TRIM(NAME1)
                   FNAME(T,71) = 'Ammon. ' // TRIM(FNAME0)
                   UNIT (T,71) = 'W/m2'
-               CASE( 8  )
-                  NAME (T,71) = 'BC' // TRIM(NAME0)
+               CASE( 7  )
+                  NAME (T,71) = TRIM(NAME0) // 'BC' // TRIM(NAME1)
                   FNAME(T,71) = 'BC ' // TRIM(FNAME0)
                   UNIT (T,71) = 'W/m2'
-               CASE( 9  )
-                  NAME (T,71) = 'OA' // TRIM(NAME0)
+               CASE( 8  )
+                  NAME (T,71) = TRIM(NAME0) // 'OA' // TRIM(NAME1)
                   FNAME(T,71) = 'Organic ' // TRIM(FNAME0)
                   UNIT (T,71) = 'W/m2'
-               CASE( 10 )
-                  NAME (T,71) = 'SS' // TRIM(NAME0)
+               CASE( 9  )
+                  NAME (T,71) = TRIM(NAME0) // 'SS' // TRIM(NAME1)
                   FNAME(T,71) = 'Sea salt ' // TRIM(FNAME0)
                   UNIT (T,71) = 'W/m2'
-               CASE( 11 )
-                  NAME (T,71) = 'DU' // TRIM(NAME0)
+               CASE( 10 )
+                  NAME (T,71) = TRIM(NAME0) // 'DU' // TRIM(NAME1)
                   FNAME(T,71) = 'Dust ' // TRIM(FNAME0)
                   UNIT (T,71) = 'W/m2'
-               CASE( 12 )
-                  NAME (T,71) = 'PM' // TRIM(NAME0)
+               CASE( 11 )
+                  NAME (T,71) = TRIM(NAME0) // 'PM' // TRIM(NAME1)
                   FNAME(T,71) = 'All aerosol ' // TRIM(FNAME0)
                   UNIT (T,71) = 'W/m2'
                END SELECT
