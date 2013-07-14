@@ -1285,11 +1285,14 @@
          IU_W1 = FINDFREELUN()
          write(6,*) IU_W1
          ! Strings for directory & filename
-         WIND_DIR = TRIM( DATA_DIR ) // 'MERRA/2012/' //
+         WIND_DIR = TRIM( DATA_DIR ) // 'MERRA/YYYY/' //
      &              SMONTH // '/'
-
-         ! fix the year of the file as we only have 2012 DAR
-         W1_FILE  = '2012MMDD' // SHOUR // '.w1.' // GET_RES_EXT()
+         !For MERRA we have all 30 years processed at 0.5x0.667
+         !For GEOS-5 we only have 2012 at 0.25x0.3125
+         !Can either fix the year of the file to 2012 or
+         !use the potentially lower quality MERRA data...
+         !Makes more sense to do the latter for now (DAR)
+         W1_FILE  = 'YYYYMMDD' // SHOUR // '.w1.' // GET_RES_EXT()
 
          ! Replace date tokens
          CALL EXPAND_DATE( W1_FILE,  NYMD, NHMS )
@@ -1341,8 +1344,6 @@
       CALL TRANSFER_2D( Q6, W10M341)
       CALL TRANSFER_2D( Q7, W10MLSD)
       CALL TRANSFER_2D( Q8, W10MOSD)
-      write(6,*)'W10M',W10M(80,55)
-      write(6,*)'W10MLSD',W10MLSD(80,55)
       ! Save NYMD, NHMS for next call
       LASTNYMD = NYMD
       LASTNHMS = NHMS
