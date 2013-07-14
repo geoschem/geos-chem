@@ -358,7 +358,6 @@
        IRTWVSELECT(1,N)=IWVSELECT(1,N)-(NBNDLW+7)
        IRTWVSELECT(2,N)=IWVSELECT(2,N)-(NBNDLW+7)
       ENDDO
-      write(6,*) 'Before Array shifting'
 
       TAUCLD(:,:) = 0.0
       CLDFR(:,:) = 0.0
@@ -435,7 +434,6 @@
       ENDDO
       ENDDO
 !OMP END PARALLEL DO
-      !write(6,*) 'after alb'
       !I DONT THINK FUNCTION CALLS CAN BE PARALLELIZED
       !GET PCENTER, PEDGE AND DETERMINE IF IN TROP BEFORE PARALLEL LOOP
       DO I = 1, IIPAR
@@ -561,7 +559,6 @@
       ENDDO
       ENDDO
 !OMP END PARALLEL DO
-      !write(6,*) 'after CFC and O3'
       IF (DOAERAD) THEN
        DO IB = 1,NBNDS
         !RRTMG WAVEBANDS START AT I=8 IN GC ARRAYS
@@ -623,7 +620,6 @@
          ENDDO
          ENDDO
 !OMP END PARALLEL DO 
-!        write(6,*) 'after aero 1'
         ENDDO !SPECIES
         !NOW AEROSOL HAVE BEEN SUMMED AND WEIGHTED BY AOD AND SSA
         !DIVIDE THROUGH BY TOTAL AOD (FOR SSA) AND AOD*SSA (FOR ASYM)
@@ -667,7 +663,6 @@
          ENDDO
          ENDDO
 !OMP END PARALLEL DO
-!        write(6,*) 'after aero2'
         ENDIF
        ENDDO !BAND
       ELSE
@@ -700,9 +695,7 @@
         ENDDO
        ENDDO
 !OMP END PARALLEL DO 
-!      write(6,*) 'after aero3'
       ENDIF
-!      write(6,*) 'after allaero'
       ! INITIALIZATION
       !IF (LLWRAD) THEN
 !       CALL RRTMG_LW_INI
@@ -783,7 +776,6 @@
       IF (ISPECMENU.EQ.0) THEN
        SEEDLW=ISEED+NGPTSW+1
        SEEDSW=SEEDLW+NGPTLW+1
-      write(6,*) 'Before Clouds'
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -836,8 +828,6 @@
          ASMCMCL(:,IL,:)    = ASMCMCL0(:,1,:)
          FSFCMCL(:,IL,:)    = FSFCMCL0(:,1,:)
 !         OMPID = OMP_GET_THREAD_NUM()
-!         write(6,*) 'MCICASW ',OMPID,IL,NCOL
-!      write(6,*)MAXVAL(CIWPMCL_SW),MAXVAL(CLDFMCL_SW),MAXVAL(TAUCMCL_SW)
 
         ENDIF
 ! these should be independent of LW and SW
@@ -872,7 +862,6 @@
      &        TAUAER_LW(IL,:,:),UFLX,DFLX,HR,UFLXC,DFLXC,HRC, 
      &        DUFLX_DT,DUFLXC_DT)
 !        OMPID = OMP_GET_THREAD_NUM()
-!        write(6,*) 'RRTLW ',OMPID 
         LW_UFLUX(IL,:) = UFLX(1,:)
         LW_DFLUX(IL,:) = DFLX(1,:)
         LW_UFLUXC(IL,:) = UFLXC(1,:)
@@ -903,7 +892,6 @@
       ENDIF !SW
       ENDDO !NCOL
 !$OMP END PARALLEL DO
-      write(6,*) 'after rrtmg'
       ! OUTPUT RADIATION VARIABLES TO DIAGNOSTIC
       ! IF CALC WITH AEROSOLS AND GASES COMPLETED
       ! USE ISPECMENU (REFERENCES THE INPUT.GEOS.RAD LIST)
@@ -923,7 +911,6 @@
        ENDIF
       ENDIF
 
-      write(6,*) 'Before Output'
 !OMP PARALLEL DO
 !OMP+DEFAULT( SHARED )
 !OMP+PRIVATE( I, J, LL, W, IJLOOP )

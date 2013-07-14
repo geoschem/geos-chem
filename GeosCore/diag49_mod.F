@@ -675,7 +675,6 @@
             GMNL     = ND49_NL
             GMTRC    = 6
 
-            DO R = 1, NRH
 
                ! Scaling factor for AOD wavelength (clh, 05/09)
                ! SCALEAODnm = QAA_AOD(IND(1)+R-1) / QAA(4,IND(1)+R-1)
@@ -691,13 +690,12 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  Q(X,Y,K) = Q(X,Y,K) +(ODAER(I,J,L,IWV,R)*SCALEAODnm )
+                  Q(X,Y,K) = Q(X,Y,K) +(ODAER(I,J,L,IWV,1)*SCALEAODnm )
                ENDDO
                ENDDO
                ENDDO
 !$OMP END PARALLEL DO
 
-            ENDDO
 
          ELSE IF ( N == 85 ) THEN
 
@@ -708,11 +706,6 @@
             UNIT     = 'unitless'
             GMNL     = ND49_NL
             GMTRC    = 9
-
-            DO R = 1, NRH
-               
-               ! Index for ODAER
-               H          = NRH + R
 
                ! Scaling factor for AOD wavelength (clh, 05/09)
                ! SCALEAODnm = QAA_AOD(IND(2)+R-1) / QAA(4,IND(2)+R-1)
@@ -728,12 +721,11 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  Q(X,Y,K) = Q(X,Y,K)+(ODAER(I,J,L,IWV,H)*SCALEAODnm )
+                  Q(X,Y,K) = Q(X,Y,K)+(ODAER(I,J,L,IWV,2)*SCALEAODnm )
                ENDDO
                ENDDO
                ENDDO
 !$OMP END PARALLEL DO
-            ENDDO
 
          ELSE IF ( N == 86 ) THEN
 
@@ -745,10 +737,6 @@
             GMNL     = ND49_NL
             GMTRC    = 12
 
-            DO R = 1, NRH
-
-               ! Index for ODAER
-               H          = 2*NRH + R
 
                ! Scaling factor for AOD wavelength (clh, 05/09)
                ! SCALEAODnm = QAA_AOD(IND(3)+R-1) / QAA(4,IND(3)+R-1)
@@ -764,12 +752,11 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  Q(X,Y,K) = Q(X,Y,K) +(ODAER(I,J,L,IWV,H)*SCALEAODnm )
+                  Q(X,Y,K) = Q(X,Y,K) +(ODAER(I,J,L,IWV,3)*SCALEAODnm )
                ENDDO
                ENDDO
                ENDDO
 !$OMP END PARALLEL DO
-            ENDDO
 
          ELSE IF ( N == 87 ) THEN
             
@@ -781,11 +768,6 @@
             GMNL     = ND49_NL
             GMTRC    = 15
 
-            DO R = 1, NRH
-
-               ! Index for ODAER
-               H          = 3*NRH + R
-  
                ! Scaling factor for AOD wavelength (clh, 05/09)
                ! SCALEAODnm = QAA_AOD(IND(4)+R-1) / QAA(4,IND(4)+R-1)
                ! We no longer need to scale by wavelength (skim, 02/03/11)
@@ -800,12 +782,11 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  Q(X,Y,K) =Q(X,Y,K)+(ODAER(I,J,L,IWV,H) * SCALEAODnm )
+                  Q(X,Y,K) =Q(X,Y,K)+(ODAER(I,J,L,IWV,4) * SCALEAODnm )
                ENDDO
                ENDDO
                ENDDO
 !$OMP END PARALLEL DO
-            ENDDO
 
          ELSE IF ( N == 88 ) THEN
 
@@ -816,11 +797,6 @@
             UNIT     = 'unitless'
             GMNL     = ND49_NL
             GMTRC    = 18
-
-            DO R = 1, NRH
-
-               ! Index for ODAER
-               H          = 4*NRH + R
 
                ! Scaling factor for AOD wavelength (clh, 05/09)
                ! SCALEAODnm = QAA_AOD(IND(5)+R-1) / QAA(4,IND(5)+R-1)
@@ -836,12 +812,11 @@
                   J = JOFF + Y
                DO X = 1, ND49_NI
                   I = GET_I( X )
-                  Q(X,Y,K) =Q(X,Y,K)+(ODAER(I,J,L,IWV,H) * SCALEAODnm )
+                  Q(X,Y,K) =Q(X,Y,K)+(ODAER(I,J,L,IWV,5) * SCALEAODnm )
                ENDDO
                ENDDO
                ENDDO
 !$OMP END PARALLEL DO
-            ENDDO
 
          ELSE IF ( N == 89 ) THEN
 

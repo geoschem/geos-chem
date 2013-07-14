@@ -465,7 +465,6 @@
             UNIT     = 'unitless'
             GMTRC    = 6
 
-            DO R = 1, NRH
 
                ! Scaling factor for AOD wavelength (clh, 05/09)
                ! SCALEAODnm = QAA_AOD(IND(1)+R-1) / QAA(4,IND(1)+R-1)
@@ -473,9 +472,8 @@
                SCALEAODnm = 1.0
 
                DO L = 1, K
-                  Q(L) = Q(L) + ODAER(I,J,L,IWV,R) * SCALEAODnm
+                  Q(L) = Q(L) + ODAER(I,J,L,IWV,1) * SCALEAODnm
                ENDDO
-            ENDDO
 
          ELSE IF ( N == 85 ) THEN
 
@@ -486,7 +484,6 @@
             UNIT     = 'unitless'
             GMTRC    = 9            
 
-            DO R = 1, NRH
 
                ! Scaling factor for AOD wavelength (clh, 05/09)
                ! SCALEAODnm = QAA_AOD(IND(2)+R-1) / QAA(4,IND(2)+R-1)
@@ -494,9 +491,8 @@
                SCALEAODnm = 1.0 
 
                DO L = 1, K
-                  Q(L) = Q(L) + ODAER(I,J,L,IWV,NRH+R) * SCALEAODnm
+                  Q(L) = Q(L) + ODAER(I,J,L,IWV,2) * SCALEAODnm
                ENDDO
-            ENDDO
 
          ELSE IF ( N == 86 ) THEN
 
@@ -507,7 +503,6 @@
             UNIT     = 'unitless'
             GMTRC    = 12
 
-            DO R = 1, NRH
 
                ! Scaling factor for AOD wavelength (clh, 05/09)
                ! SCALEAODnm = QAA_AOD(IND(3)+R-1) / QAA(4,IND(3)+R-1)
@@ -515,9 +510,8 @@
                SCALEAODnm = 1.0 
 
                DO L = 1, K
-                  Q(L) = Q(L) + ODAER(I,J,L,IWV,2*NRH+R) * SCALEAODnm
+                  Q(L) = Q(L) + ODAER(I,J,L,IWV,3) * SCALEAODnm
                ENDDO
-            ENDDO
 
          ELSE IF ( N == 87 ) THEN
             
@@ -528,7 +522,6 @@
             UNIT     = 'unitless'
             GMTRC    = 15
 
-            DO R = 1, NRH
 
                ! Scaling factor for AOD wavelength (clh, 05/09)
                ! SCALEAODnm = QAA_AOD(IND(4)+R-1) / QAA(4,IND(4)+R-1)
@@ -536,9 +529,8 @@
                SCALEAODnm = 1.0 
 
                DO L = 1, K
-                  Q(L) = Q(L) + ODAER(I,J,L,IWV,3*NRH+R) * SCALEAODnm
+                  Q(L) = Q(L) + ODAER(I,J,L,IWV,4) * SCALEAODnm
                ENDDO
-            ENDDO
 
          ELSE IF ( N == 88 ) THEN
 
@@ -549,17 +541,14 @@
             UNIT     = 'unitless'
             GMTRC    = 18
 
-            DO R = 1, NRH
-
                ! Scaling factor for AOD wavelength (clh, 05/09)
                ! SCALEAODnm = QAA_AOD(IND(5)+R-1) / QAA(4,IND(5)+R-1) 
                ! We no longer need to scale by wavelength (skim, 02/03/11)
                SCALEAODnm = 1.0
 
                DO L = 1, K
-                  Q(L) = Q(L) + ODAER(I,J,L,IWV,4*NRH+R) * SCALEAODnm
+                  Q(L) = Q(L) + ODAER(I,J,L,IWV,5) * SCALEAODnm
                ENDDO
-            ENDDO
 
          ELSE IF ( N == 89 ) THEN
 

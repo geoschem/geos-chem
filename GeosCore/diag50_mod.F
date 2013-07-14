@@ -523,7 +523,6 @@
                ! SULFATE AOD @ jv_spec_aod.dat wavelength[unitless]
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
-               DO R = 1, NRH
                   
                   ! Scaling factor to AOD wavelength (clh, 05/09)
                   ! SCALEAODnm = QAA_AOD(IND(1)+R-1) / QAA(4,IND(1)+R-1) 
@@ -531,8 +530,7 @@
                   SCALEAODnm = 1.0
 
                   ! Accumulate
-                  Q(X,Y,K,W) = Q(X,Y,K,W)+ODAER(I,J,L,IWV,R)*SCALEAODnm
-               ENDDO
+                  Q(X,Y,K,W) = Q(X,Y,K,W)+ODAER(I,J,L,IWV,1)*SCALEAODnm
 
             ELSE IF ( N == 85 ) THEN
 
@@ -540,10 +538,6 @@
                ! BLACK CARBON AOD @ jv_spec_aod.dat wavelength [unitless]
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
-               DO R = 1, NRH
-
-                  ! Index for ODAER
-                  H          = NRH + R
                   
                   ! Scaling factor to AOD wavelength (clh, 05/09)
                   ! SCALEAODnm = QAA_AOD(IND(2)+R-1) / QAA(4,IND(2)+R-1)
@@ -551,8 +545,7 @@
                   SCALEAODnm = 1.0
 
                   ! Accumulate
-                  Q(X,Y,K,W) = Q(X,Y,K,W)+ODAER(I,J,L,IWV,H)*SCALEAODnm
-               ENDDO
+                  Q(X,Y,K,W) = Q(X,Y,K,W)+ODAER(I,J,L,IWV,2)*SCALEAODnm
 
             ELSE IF ( N == 86 ) THEN
 
@@ -560,10 +553,6 @@
                ! ORG CARBON AOD @ jv_spec_aod.dat wavelength[unitless]
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
-               DO R = 1, NRH
-
-                  ! Index for ODAER
-                  H          = 2*NRH + R
 
                   ! Scaling factor to AOD wavelength (clh, 05/09)
                   ! SCALEAODnm = QAA_AOD(IND(3)+R-1) / QAA(4,IND(3)+R-1) 
@@ -571,8 +560,7 @@
                   SCALEAODnm = 1.0
 
                   ! Accumulate
-                  Q(X,Y,K,W) = Q(X,Y,K,W)+ODAER(I,J,L,IWV,H)*SCALEAODnm
-               ENDDO
+                  Q(X,Y,K,W) = Q(X,Y,K,W)+ODAER(I,J,L,IWV,3)*SCALEAODnm
 
             ELSE IF ( N == 87 ) THEN
 
@@ -580,10 +568,6 @@
                ! ACCUM SEASALT AOD @ jv_spec_aod.dat wavelength[unitless]
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
-               DO R = 1, NRH
-
-                  ! Index for ODAER
-                  H          = 3*NRH + R
 
                   ! Scaling factor to AOD wavelength (clh, 05/09)
                   ! SCALEAODnm = QAA_AOD(IND(4)+R-1) / QAA(4,IND(4)+R-1)
@@ -591,8 +575,7 @@
                   SCALEAODnm = 1.0                 
 
                   ! Accumulate
-                  Q(X,Y,K,W) = Q(X,Y,K,W) +ODAER(I,J,L,IWV,H)*SCALEAODnm
-               ENDDO
+                  Q(X,Y,K,W) = Q(X,Y,K,W) +ODAER(I,J,L,IWV,4)*SCALEAODnm
 
             ELSE IF ( N == 88 ) THEN
 
@@ -600,10 +583,6 @@
                ! COARSE SEASALT AOD @ jv_spec_aod.dat wavelength[unitless]
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
-               DO R = 1, NRH
-
-                  ! Index for ODAER
-                  H          = 4*NRH + R
 
                   ! Scaling factor to AOD wavelength (clh, 05/09)
                   ! SCALEAODnm = QAA_AOD(IND(5)+R-1) / QAA(4,IND(5)+R-1)
@@ -611,8 +590,7 @@
                   SCALEAODnm = 1.0                  
 
                   ! Accumulate
-                  Q(X,Y,K,W) = Q(X,Y,K,W)+ODAER(I,J,L,IWV,H)*SCALEAODnm
-               ENDDO
+                  Q(X,Y,K,W) = Q(X,Y,K,W)+ODAER(I,J,L,IWV,5)*SCALEAODnm
 
             ELSE IF ( N == 89 ) THEN
                

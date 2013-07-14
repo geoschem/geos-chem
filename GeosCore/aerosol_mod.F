@@ -1124,6 +1124,8 @@
             L = IZSAVE(JLOOP)
 
             ! Sort into relative humidity bins
+            ! Currently uses the 0, 50, 70, 80, 90% RH bins
+            ! (95 and 99% also stored in data files but not used) 
             IF (      ABSHUM(JLOOP) <= RH(2) ) THEN   
                IRH = 1
             ELSE IF ( ABSHUM(JLOOP) <= RH(3) ) THEN
@@ -1184,9 +1186,9 @@
             SCALEOD                = SCALEQ * SCALER * SCALER
 
             !calculate optics for hyrdophillic aerosol here
-            !using ALPHA from LUT to save time
-            !ALPHA replaces 0.75*Q/(REFF*1e-6 * MDENS)
             !However MDENS in LUT was in g/cm3 not kg/m3 so x1e3
+            !store in the correct bin for the current RH
+            !needed for OPMIE.F... ideally need to change this.
             ODAER(I,J,L,IWV,N) = SCALEOD*BXHEIGHT(I,J,L)*0.75d0 
      &                        * WAERSL(I,J,L,N) * QQAA(IWV,1,N) / 
      &                        ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
@@ -1195,16 +1197,16 @@
             !separately for RT, so we split them by mass here
             IF (N.EQ.1) THEN
              DO IR=1,3
-              RTODAER(I,J,L,IWV,N+IR-1)   = ODAER(I,J,L,IWV,N)*
+              RTODAER(I,J,L,IWV,N+IR-1)= ODAER(I,J,L,IWV,N)*
      &                                      FRAC_SNA(I,J,L,IR)
               RTSSAER(I,J,L,IWV,N+IR-1)   = SCALESSA*SSAA(IWV,1,N)
               RTASYMAER(I,J,L,IWV,N+IR-1) = SCALEASY*ASYMAA(IWV,1,N)
              ENDDO
             ELSE
              !RT arrays now offset from NAER by 2 (NRT=N+2 for N>1) 
-             RTODAER(I,J,L,IWV,NRT)       = ODAER(I,J,L,IWV,N)
-             RTSSAER(I,J,L,IWV,NRT)       = SCALESSA*SSAA(IWV,1,N)
-             RTASYMAER(I,J,L,IWV,NRT)     = SCALEASY*ASYMAA(IWV,1,N)
+             RTODAER(I,J,L,IWV,NRT)     = ODAER(I,J,L,IWV,N)
+             RTSSAER(I,J,L,IWV,NRT)     = SCALESSA*SSAA(IWV,1,N)
+             RTASYMAER(I,J,L,IWV,NRT)   = SCALEASY*ASYMAA(IWV,1,N)
             ENDIF
 
             !include hydrophobic BC and OC
@@ -1217,7 +1219,8 @@
             RTASYMAER(I,J,L,IWV,NAER+NRT-1)=ASYMAA(IWV,1,N)
 
             !now combine with hydrophilic OD as before
-            ODAER(I,J,L,IWV,N) = ODAER(I,J,L,IWV,N) +
+            ODAER(I,J,L,IWV,N)=
+     &                              ODAER(I,J,L,IWV,N) +
      &                              RTODAER(I,J,L,IWV,NAER+NRT-1)  
             ENDIF
 
@@ -1393,7 +1396,7 @@
              ! Optical Depths
              IF (LINTERP.EQ..FALSE.) THEN
                AD21(I,J,L,IOUT) = AD21(I,J,L,IOUT) +
-     &                                ODAER(I,J,L,IWVSELECT(1,W),N)
+     &                            ODAER(I,J,L,IWVSELECT(1,W),N)
              ELSE
                ! Interpolated using angstrom exponent between
                ! Closest available wavelengths
