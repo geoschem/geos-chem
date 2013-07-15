@@ -2091,24 +2091,28 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:89' )
       READ( SUBSTRS(1:N), * ) LSETBRSTRAT
 
-      ! Initialize N2O to GEOS-Chem baseline?
+      ! Initialize stratospheric NOx/HNO3 to 2D baseline?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:90' )
+      READ( SUBSTRS(1:N), * ) LSETNOYSTRAT
+
+      ! Initialize N2O to GEOS-Chem baseline?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:91' )
       READ( SUBSTRS(1:N), * ) LSETN2O
 
       ! Initialize stratospheric sulfates to GEOS-Chem baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:91' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:92' )
       READ( SUBSTRS(1:N), * ) LSETH2SO4
 
       ! Directory containing 2D data
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:92' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:93' )
       READ( SUBSTRS(1:N), '(a)' ) TRAC_FILE_ROOT 
 
       ! Directory containing WHO data
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:93' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:94' )
       READ( SUBSTRS(1:N), '(a)' ) MONTREAL_FILE_ROOT 
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:94' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:95' )
 
       !=================================================================
       ! Error check logical flags
@@ -2191,6 +2195,8 @@
          LSETH2SO4      = .FALSE.
          LSETCL         = .FALSE.
          LSETBR         = .FALSE.
+         LSETBRSTRAT    = .FALSE.
+         LSETNOYSTRAT   = .FALSE.
          LSETCFC        = .FALSE. 
       ENDIF
       
@@ -2618,6 +2624,7 @@
         WRITE( 6, 100 ) '      --> chlorine species? : ', LSETCL
         WRITE( 6, 100 ) '      --> bromine species?  : ', LSETBR
         WRITE( 6, 100 ) '      --> strat. bromine?   : ', LSETBRSTRAT
+        WRITE( 6, 100 ) '      --> strat. NOx/HNO3?  : ', LSETNOYSTRAT
         WRITE( 6, 100 ) '      --> N2O?              : ', LSETN2O
         WRITE( 6, 100 ) '      --> strat. H2SO4?     : ', LSETH2SO4
         WRITE( 6, 130 ) ' Directory for 2D data      : ',
@@ -7211,6 +7218,7 @@
       LSETCL         = .FALSE.
       LSETBR         = .FALSE.
       LSETBRSTRAT    = .FALSE.
+      LSETNOYSTRAT   = .FALSE.
       LSETOCS        = .FALSE.
       LSETN2O        = .FALSE.
       LSETH2SO4      = .FALSE.

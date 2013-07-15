@@ -15,7 +15,7 @@
 !
 ! !USES:
 !
-      USE DIAG_MOD, ONLY: AD43, LTNO, LTOH, LTNO2, LTHO2, LTNO3
+      USE DIAG_MOD, ONLY: AD43, LTNO, LTOH, LTNO2, LTHO2, LTNO3, LTO1D
 
       USE CMN_SIZE_MOD  ! Size parameters
       USE CMN_O3_MOD    ! SAVEOH, SAVENO
@@ -42,6 +42,7 @@
 !  (8 ) Now save NO3 [molec/cm3] as AD43(:,:,:,5) (bmy, 1/13/03)
 !  (9 ) Corrected typo in comments (bmy, 8/10/09)
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  15 Aug 2013 - S. D. Eastham - Added O1D (for strat-chem)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -50,6 +51,7 @@
 !
       INTEGER  :: I,  J,  L 
       REAL*8   :: OH, NO, HO2, NO2, NO3
+      REAL*8   :: O1D
 
       !=================================================================
       ! DIAGOH begins here!
@@ -63,6 +65,7 @@
       !    AD43(:,:,:,3) = HO2   [v/v]
       !    AD43(:,:,:,4) = NO2   [v/v]
       !    AD43(:,:,:,5) = NO3   [v/v]
+      !    AD43(:,:,:,6) = O1D   [molec/cm3]
       !=================================================================
       IF ( ND43 > 0 ) THEN
 
@@ -92,6 +95,13 @@
             ! Save NO3 as AD43(:,:,:,5)
             NO3           = SAVENO3(I,J,L) * LTNO3(I,J)
             AD43(I,J,L,5) = AD43(I,J,L,5)  + NO3
+
+#if defined( GMISTRAT )
+            ! Save O1D as AD43(:,:,:,6)
+            O1D           = SAVEO1D(I,J,L) * LTO1D(I,J)
+            AD43(I,J,L,6) = AD43(I,J,L,6)  + O1D
+#endif
+
          ENDDO
          ENDDO
          ENDDO

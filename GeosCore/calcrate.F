@@ -1362,7 +1362,7 @@ c new OH+CO rate from JPL2006.
      &                 ARSL1K(XAREA,XRADIUS,XDENA,XSTKCF,XSTK,XSQM)
                   ENDIF
 
-                  IF (KII_KI) THEN
+                  IF (KII_KI .and. N.gt.12) THEN
                      ! PSC reaction - prevent excessive reaction rate
                      IF (ADJUSTEDRATE.gt.(1.d0/PSCMINLIFE)) THEN
                         ADJUSTEDRATE = 1.d0/PSCMINLIFE
@@ -1576,6 +1576,7 @@ c new OH+CO rate from JPL2006.
                   !    a Nan, force k = 0.
                   !
                   ! If all these checks are passed, we set k = ki/[B].
+                  !-----SDE DEBUG
                   IF (ADJUSTEDRATE.gt.(1.d0/PSCMINLIFE)) THEN
                      ADJUSTEDRATE = 1.d0/PSCMINLIFE
                   ENDIF
@@ -1588,6 +1589,7 @@ c new OH+CO rate from JPL2006.
                   ELSE
                      ADJUSTEDRATE = 0d0
                   ENDIF
+                  !-----SDE DEBUG
                   IF ((EDUCTCONC.gt.1.d2).and.
      &                   (IS_SAFE_DIV(ADJUSTEDRATE,EDUCTCONC))) THEN
                      ADJUSTEDRATE = ADJUSTEDRATE/EDUCTCONC
@@ -1863,7 +1865,7 @@ c new OH+CO rate from JPL2006.
                      ! Store unadjusted J-O3 as AD22(:,:,:,5)
                      AD22(IX,IY,IZ,5) =
      &                    AD22(IX,IY,IZ,5) + DUMMY(KLOOP)
-#if !defined( FORCEO1D )
+#if !defined( GMISTRAT )
                      ! Store POH as AD22(:,:,:,6)
                      AD22(IX,IY,IZ,6) =
      &                    AD22(IX,IY,IZ,6) + RRATE(KLOOP,NKN)

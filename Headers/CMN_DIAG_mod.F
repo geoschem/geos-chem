@@ -70,6 +70,7 @@
       ! Changed PD11 from 7 to 5 (efischer, mpayer, 3/19/12)
       ! Changed PD22 from 14 to 16 for O2 and N2O (SDE 04/13/13)
       ! Changed PD21 from 27 to 31 for strat aerosols (SDE 04/17/13)
+      ! Changed PD43 from 5 to 6 for O1D (SDE 2013-07-15)
       !=================================================================
       INTEGER, PARAMETER :: PD01=3            
       INTEGER, PARAMETER :: PD02=3
@@ -109,7 +110,7 @@
       INTEGER, PARAMETER :: PD38=35 
       INTEGER, PARAMETER :: PD39=38      !jpp replaced 35
       INTEGER, PARAMETER :: PD40=4       
-      INTEGER, PARAMETER :: PD43=5  
+      INTEGER, PARAMETER :: PD43=6  
       INTEGER, PARAMETER :: PD44=53      !jpp replaced 41
       INTEGER, PARAMETER :: PD45=NNPAR+1      
       INTEGER, PARAMETER :: PD46=17      !jpp replaced 13

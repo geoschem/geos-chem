@@ -5547,9 +5547,15 @@
                   MWT (T,43) = 62e-3
                ! update for arom (dkh, 06/22/07)  
                CASE( 6 )
+#if defined( GMISTRAT )
+                  NAME(T,43) = 'O1D'
+                  UNIT(T,43) = 'molec/cm3'
+                  MWT (T,43) = 16e-3
+#else
                   NAME(T,43) = 'LBRO2H'
                   UNIT(T,43) = 'molec/cm3'
                   MWT (T,43) = 127e-3
+#endif
                CASE( 7 )
                   NAME(T,43) = 'LBRO2N'
                   UNIT(T,43) = 'molec/cm3'

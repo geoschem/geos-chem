@@ -13,7 +13,7 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Monitor.f90
-! Time                 : Tue Jul  2 17:13:54 2013
+! Time                 : Thu Jul 11 15:54:49 2013
 ! Working directory    : /net/d08/data/seastham/GEOS-Chem/simulations/StratChem/Strat_v1.01/KPP_Compile
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
@@ -43,47 +43,47 @@ MODULE gckpp_Monitor
      'LR26        ','LR27        ','LR28        ', &
      'LR29        ','LR30        ','LR31        ', &
      'DRYHCl      ','CO2         ','DRYDEP      ', &
-     'LISOPOH     ','N           ','N2O         ', &
-     'CH3CCl3     ','PPN         ','SO4         ', &
-     'BrNO2       ','CCl4        ','CFC11       ', &
-     'CFC113      ','CFC114      ','CFC115      ', &
-     'H1301       ','H2402       ','H1211       ', &
-     'PAN         ','OCS         ','SO2         ', &
-     'ALK4        ','CHBr3       ','CH2Br2      ', &
+     'LISOPOH     ','CH3CCl3     ','PPN         ', &
+     'SO4         ','BrNO2       ','CCl4        ', &
+     'CFC11       ','CFC113      ','CFC114      ', &
+     'CFC115      ','H1301       ','H2402       ', &
+     'H1211       ','N2O         ','OCS         ', &
+     'SO2         ','PAN         ','ALK4        ', &
+     'N           ','CHBr3       ','CH2Br2      ', &
      'Cl2O2       ','RP          ','DMS         ', &
-     'R4P         ','Br2         ','RB3P        ', &
-     'OClO        ','ClNO2       ','HCFC22      ', &
-     'HCFC123     ','HCFC141b    ','HCFC142b    ', &
-     'RA3P        ','C3H8        ','ETP         ', &
-     'GLYX        ','GP          ','HNO2        ' /)
+     'Br2         ','RB3P        ','OClO        ', &
+     'ClNO2       ','HCFC22      ','HCFC123     ', &
+     'HCFC141b    ','HCFC142b    ','R4P         ', &
+     'C3H8        ','ETP         ','GLYX        ', &
+     'GP          ','HNO2        ','MAOP        ' /)
   CHARACTER(LEN=12), PARAMETER, DIMENSION(90) :: SPC_NAMES_1 = (/ &
-     'MAOP        ','MAP         ','CH3Br       ', &
+     'MAP         ','RA3P        ','CH3Br       ', &
      'CH3Cl       ','ClOO        ','PP          ', &
-     'PRPN        ','HNO4        ','INPN        ', &
-     'MP          ','BrCl        ','MRP         ', &
-     'ISNP        ','IAP         ','C2H6        ', &
-     'H2O2        ','VRP         ','PMN         ', &
+     'HNO4        ','INPN        ','MP          ', &
+     'PRPN        ','BrCl        ','MRP         ', &
+     'ISNP        ','IAP         ','VRP         ', &
+     'C2H6        ','H2O2        ','PMN         ', &
      'RIP         ','N2O5        ','ISOP        ', &
      'HOBr        ','CH4         ','BrNO3       ', &
-     'PRPE        ','CO          ','ROH         ', &
-     'GCO3        ','Cl2         ','MAN2        ', &
+     'PRPE        ','CO          ','GCO3        ', &
+     'ROH         ','Cl2         ','MAN2        ', &
      'A3O2        ','R4N1        ','ATO2        ', &
      'RIO1        ','IALD        ','PRN1        ', &
-     'B3O2        ','VRO2        ','MRO2        ', &
+     'B3O2        ','MRO2        ','VRO2        ', &
      'HAC         ','INO2        ','ISN1        ', &
      'PO2         ','KO2         ','RCO3        ', &
-     'R4O2        ','ETO2        ','IAO2        ', &
-     'HNO3        ','GLYC        ','ClNO3       ', &
+     'IAO2        ','HNO3        ','GLYC        ', &
+     'R4O2        ','ETO2        ','ClNO3       ', &
      'MAO3        ','MGLY        ','MACR        ', &
      'RIO2        ','MVK         ','H           ', &
      'R4N2        ','HOCl        ','RCHO        ', &
      'MEK         ','ACET        ','MCO3        ', &
      'ALD2        ','CH2O        ','MO2         ', &
-     'H2O         ','NO          ','OH          ', &
-     'BrO         ','ClO         ','HCl         ', &
-     'HO2         ','HBr         ','O1D         ', &
-     'Br          ','NO3         ','O           ', &
-     'Cl          ','O3          ','NO2         ', &
+     'H2O         ','NO          ','ClO         ', &
+     'O3          ','HO2         ','HCl         ', &
+     'O1D         ','Br          ','Cl          ', &
+     'HBr         ','BrO         ','NO3         ', &
+     'OH          ','O           ','NO2         ', &
      'ACTA        ','EMISSION    ','EOH         ', &
      'H2          ','HCOOH       ','MOH         ', &
      'N2          ','O2          ','RCOOH       ' /)
@@ -111,13 +111,13 @@ MODULE gckpp_Monitor
   CHARACTER(LEN=12), DIMENSION(1) :: SMASS
   CHARACTER(LEN=100), PARAMETER, DIMENSION(30) :: EQN_NAMES_0 = (/ &
      '       NO + O3 --> NO2 + O2                                                                         ', &
-     '       OH + O3 --> HO2 + O2                                                                         ', &
-     '      HO2 + O3 --> OH + 2 O2                                                                        ', &
+     '       O3 + OH --> HO2 + O2                                                                         ', &
+     '      O3 + HO2 --> OH + 2 O2                                                                        ', &
      '      O3 + NO2 --> NO3 + O2                                                                         ', &
      '      MO2 + O3 --> CH2O + HO2 + O2                                                                  ', &
      '          2 OH --> H2O + O                                                                          ', &
      '          2 OH --> H2O2                                                                             ', &
-     '      OH + HO2 --> H2O + O2                                                                         ', &
+     '      HO2 + OH --> H2O + O2                                                                         ', &
      '     H2O2 + OH --> H2O + HO2                                                                        ', &
      '      NO + HO2 --> OH + NO2                                                                         ', &
      '         2 HO2 --> H2O2 + O2                                                                        ', &
@@ -139,7 +139,7 @@ MODULE gckpp_Monitor
      '     HNO4 + OH --> H2O + NO2 + O2                                                                   ', &
      '     HO2 + NO3 --> OH + NO2 + O2                                                                    ', &
      '      NO + NO3 --> 2 NO2                                                                            ', &
-     '      OH + NO3 --> HO2 + NO2                                                                        ' /)
+     '      NO3 + OH --> HO2 + NO2                                                                        ' /)
   CHARACTER(LEN=100), PARAMETER, DIMENSION(30) :: EQN_NAMES_1 = (/ &
      '     NO3 + NO2 --> N2O5                                                                             ', &
      '          N2O5 --> NO3 + NO2                                                                        ', &
@@ -177,7 +177,7 @@ MODULE gckpp_Monitor
      '     B3O2 + NO --> ACET + HO2 + NO2                                                                 ', &
      '     INO2 + NO --> 0.85 HNO3 + 0.1 MACR + 0.05 MVK + 0.15 CH2O + 0.8 HO2 ... etc.                   ', &
      '     PRN1 + NO --> ALD2 + CH2O + 2 NO2                                                              ', &
-     '    ALK4 + NO3 --> R4O2 + HNO3                                                                      ', &
+     '    ALK4 + NO3 --> HNO3 + R4O2                                                                      ', &
      '     R4N2 + OH --> R4N1 + H2O                                                                       ', &
      '     RCHO + OH --> RCO3 + H2O                                                                       ', &
      '    RCO3 + NO2 --> PPN                                                                              ', &
@@ -230,13 +230,13 @@ MODULE gckpp_Monitor
      '    ETO2 + HO2 --> ETP                                                                              ', &
      '    A3O2 + HO2 --> RA3P                                                                             ', &
      '     PO2 + HO2 --> PP                                                                               ', &
-     '    MCO3 + HO2 --> 0.41 MAP + 0.44 MO2 + 0.44 OH + 0.15 O3 + 0.15 ACTA ... etc.                     ', &
+     '    MCO3 + HO2 --> 0.41 MAP + 0.44 MO2 + 0.15 O3 + 0.44 OH + 0.15 ACTA ... etc.                     ', &
      '    RCO3 + HO2 --> 0.7 RP + 0.3 O3 + 0.3 RCOOH                                                      ', &
      '    GCO3 + HO2 --> 0.71 GP + 0.29 CH2O + 0.29 O3                                                    ' /)
   CHARACTER(LEN=100), PARAMETER, DIMENSION(30) :: EQN_NAMES_4 = (/ &
      '    MAO3 + HO2 --> 0.7 MAOP + 0.3 O3 + 0.3 RCOOH                                                    ', &
      '     PRPE + OH --> PO2                                                                              ', &
-     '     PRPE + O3 --> 0.42 CO + 0.5 ALD2 + 0.535 CH2O + 0.305 MO2 + 0.135 OH ... etc.                  ', &
+     '     PRPE + O3 --> 0.42 CO + 0.5 ALD2 + 0.535 CH2O + 0.305 MO2 + 0.3 HO2 ... etc.                   ', &
      '      PMN + OH --> 0.59 HAC + 2.23 CH2O + 2 HO2 + NO2                                               ', &
      '      PMN + O3 --> 0.6 CH2O + HO2 + NO2                                                             ', &
      '     GLYC + OH --> 0.4 CO + 0.8 GCO3 + 0.2 HO2 + 0.2 H2                                             ', &
@@ -254,8 +254,8 @@ MODULE gckpp_Monitor
      '   A3O2 + MCO3 --> RCHO + ACTA                                                                      ', &
      '    PO2 + MCO3 --> 0.65 HAC + 0.35 RCHO + ACTA                                                      ', &
      '     ISOP + O3 --> 0.15 CO2 + 0.07 PRPE + 0.05 CO + 0.387 MACR + 0.159 MVK ... etc.                 ', &
-     '      MVK + O3 --> 0.05 CO + 0.82 MGLY + 0.04 ALD2 + 0.8 CH2O + 0.08 OH ... etc.                    ', &
-     '     MACR + O3 --> 0.16 CO2 + 0.2 CO + 0.8 MGLY + 0.7 CH2O + 0.215 OH + 0.275 HO2 ... etc.          ', &
+     '      MVK + O3 --> 0.05 CO + 0.82 MGLY + 0.04 ALD2 + 0.8 CH2O + 0.2 O3 ... etc.                     ', &
+     '     MACR + O3 --> 0.16 CO2 + 0.2 CO + 0.8 MGLY + 0.7 CH2O + 0.2 O3 + 0.275 HO2 ... etc.            ', &
      '    ISOP + NO3 --> INO2                                                                             ', &
      '    MACR + NO3 --> MAN2                                                                             ', &
      '    MACR + NO3 --> HNO3 + MAO3                                                                      ', &
@@ -282,7 +282,7 @@ MODULE gckpp_Monitor
      '      MRP + OH --> MRO2                                                                             ', &
      '     MAOP + OH --> MAO3                                                                             ', &
      '      MAP + OH --> 0.5 MCO3 + 0.5 CH2O + 0.5 OH                                                     ', &
-     '    C2H6 + NO3 --> ETO2 + HNO3                                                                      ', &
+     '    C2H6 + NO3 --> HNO3 + ETO2                                                                      ', &
      '     IALD + OH --> 0.44 IAO2 + 0.41 MAO3 + 0.15 HO2                                                 ', &
      '     IALD + O3 --> 0.4 CO + 0.2 HAC + 0.28 GLYC + 0.6 MGLY + 0.12 CH2O ... etc.                     ', &
      '        2 MCO3 --> 2 MO2                                                                            ', &
@@ -363,15 +363,15 @@ MODULE gckpp_Monitor
      '      DMS + OH --> 0.25 MSA + 0.75 SO2 + MO2                                                        ', &
      '     DMS + NO3 --> SO2 + HNO3 + CH2O + MO2                                                          ', &
      '      SO2 + OH --> SO4 + HO2                                                                        ', &
-     '       Br + O3 --> LR1 + BrO + O2                                                                   ', &
-     '     BrO + HO2 --> LR2 + HOBr + O2                                                                  ', &
+     '       O3 + Br --> LR1 + BrO + O2                                                                   ', &
+     '     HO2 + BrO --> LR2 + HOBr + O2                                                                  ', &
      '      HO2 + Br --> LR3 + HBr + O2                                                                   ', &
-     '      OH + HBr --> LR4 + H2O + Br                                                                   ', &
+     '      HBr + OH --> LR4 + H2O + Br                                                                   ', &
      '         2 BrO --> LR5 + 2 Br + O2                                                                  ', &
      '         2 BrO --> LR6 + Br2 + O2                                                                   ', &
      '      NO + BrO --> LR7 + Br + NO2                                                                   ', &
      '      Br2 + OH --> LR9 + HOBr + Br                                                                  ', &
-     '      OH + BrO --> LR10 + HO2 + Br                                                                  ', &
+     '      BrO + OH --> LR10 + HO2 + Br                                                                  ', &
      '      Br + NO3 --> LR11 + BrO + NO2                                                                 ', &
      '     CH2O + Br --> LR12 + CO + HO2 + HBr                                                            ', &
      '     ALD2 + Br --> LR13 + CO + MCO3 + HBr                                                           ', &
@@ -403,19 +403,19 @@ MODULE gckpp_Monitor
      '     CH4 + O1D --> CH2O + H2                                                                        ', &
      '     CH4 + O1D --> H + CH2O + HO2                                                                   ', &
      '        O + O2 --> O3                                                                               ', &
-     '        O + O3 --> 2 O2                                                                             ', &
+     '        O3 + O --> 2 O2                                                                             ', &
      '       OH + H2 --> H + H2O                                                                          ', &
      '        OH + O --> H + O2                                                                           ', &
      '       HO2 + O --> OH + O2                                                                          ', &
-     '      O1D + O3 --> 2 O2                                                                             ', &
-     '      O1D + O3 --> 2 O + O2                                                                         ', &
+     '      O3 + O1D --> 2 O2                                                                             ', &
+     '      O3 + O1D --> 2 O + O2                                                                         ', &
      '       OCS + O --> SO2 + CO                                                                         ', &
      '      OCS + OH --> CO2 + SO2                                                                        ', &
      '       O + NO2 --> NO + O2                                                                          ', &
      '       NO3 + O --> NO2 + O2                                                                         ', &
      '        NO + O --> NO2                                                                              ', &
      '       O + NO2 --> NO3                                                                              ', &
-     '      H2O2 + O --> OH + HO2                                                                         ', &
+     '      H2O2 + O --> HO2 + OH                                                                         ', &
      '        H + O2 --> HO2                                                                              ', &
      '        H + O3 --> OH + O2                                                                          ', &
      '       H + HO2 --> 2 OH                                                                             ' /)
@@ -424,34 +424,35 @@ MODULE gckpp_Monitor
      '       H + HO2 --> H2 + O2                                                                          ', &
      '        N + O2 --> NO + O                                                                           ', &
      '        N + NO --> O + N2                                                                           ', &
+     '       N + NO2 --> N2O + O                                                                          ', &
      '       BrO + O --> Br + O2                                                                          ', &
-     '      CH2O + O --> CO + OH + HO2                                                                    ', &
-     '     HCl + O1D --> 0.24 H + 0.67 OH + 0.24 ClO + 0.09 HCl + 0.09 O + 0.67 Cl ... etc.               ', &
-     '     HBr + O1D --> 0.15 H + 0.65 OH + 0.15 BrO + 0.2 HBr + 0.65 Br + 0.2 O ... etc.                 ', &
-     '     Cl2 + O1D --> 0.25 Cl2 + 0.75 ClO + 0.25 O + 0.75 Cl                                           ', &
-     '    CCl4 + O1D --> 0.14 CCl4 + 0.86 ClO + 0.14 O + 2.58 Cl                                          ', &
-     '   CH3Br + O1D --> MO2 + 0.44 BrO + 0.56 Br                                                         ', &
-     '  CH2Br2 + O1D --> 0.05 CH2Br2 + 0.95 BrO + 0.95 Br + 0.05 O                                        ', &
-     '   CHBr3 + O1D --> 0.32 CHBr3 + 0.68 BrO + 1.36 Br + 0.32 O                                         ', &
-     '  HCFC22 + O1D --> 0.28 HCFC22 + 0.55 ClO + 0.28 O + 0.17 Cl                                        ', &
-     '   CFC11 + O1D --> 0.12 CFC11 + 0.88 ClO + 0.12 O + 1.76 Cl                                         ', &
-     '   H1211 + O1D --> 0.36 H1211 + 0.31 BrO + 0.33 ClO + 0.33 Br + 0.36 O ... etc.                     ', &
+     '      CH2O + O --> CO + HO2 + OH                                                                    ', &
+     '     HCl + O1D --> 0.24 H + 0.24 ClO + 0.09 HCl + 0.67 Cl + 0.67 OH + 0.09 O ... etc.               ', &
+     '     O1D + HBr --> 0.15 H + 0.65 Br + 0.2 HBr + 0.15 BrO + 0.65 OH + 0.2 O ... etc.                 ', &
+     '     Cl2 + O1D --> 0.25 Cl2 + 0.75 ClO + 0.75 Cl + 0.25 O                                           ', &
+     '    CCl4 + O1D --> 0.14 CCl4 + 0.86 ClO + 2.58 Cl + 0.14 O                                          ', &
+     '   CH3Br + O1D --> MO2 + 0.56 Br + 0.44 BrO                                                         ', &
+     '  CH2Br2 + O1D --> 0.05 CH2Br2 + 0.95 Br + 0.95 BrO + 0.05 O                                        ', &
+     '   CHBr3 + O1D --> 0.32 CHBr3 + 1.36 Br + 0.68 BrO + 0.32 O                                         ', &
+     '  HCFC22 + O1D --> 0.28 HCFC22 + 0.55 ClO + 0.17 Cl + 0.28 O                                        ', &
+     '   CFC11 + O1D --> 0.12 CFC11 + 0.88 ClO + 1.76 Cl + 0.12 O                                         ', &
+     '   H1211 + O1D --> 0.36 H1211 + 0.33 ClO + 0.33 Br + 0.31 Cl + 0.31 BrO ... etc.                    ', &
      '   H1301 + O1D --> 0.59 H1301 + 0.41 BrO + 0.59 O                                                   ', &
-     'HCFC141b + O1D --> 0.31 HCFC141b + 0.69 ClO + 0.31 O + 0.69 Cl                                      ', &
+     'HCFC141b + O1D --> 0.31 HCFC141b + 0.69 ClO + 0.69 Cl + 0.31 O                                      ', &
      'HCFC142b + O1D --> 0.26 HCFC142b + 0.74 ClO + 0.26 O                                                ', &
-     ' HCFC123 + O1D --> 0.21 HCFC123 + 0.79 ClO + 0.21 O + 0.79 Cl                                       ', &
-     '  CFC113 + O1D --> 0.25 CFC113 + 0.75 ClO + 0.25 O + 1.5 Cl                                         ', &
-     '  CFC114 + O1D --> 0.25 CFC114 + 0.75 ClO + 0.25 O + 0.75 Cl                                        ', &
+     ' HCFC123 + O1D --> 0.21 HCFC123 + 0.79 ClO + 0.79 Cl + 0.21 O                                       ', &
+     '  CFC113 + O1D --> 0.25 CFC113 + 0.75 ClO + 1.5 Cl + 0.25 O                                         ', &
+     '  CFC114 + O1D --> 0.25 CFC114 + 0.75 ClO + 0.75 Cl + 0.25 O                                        ', &
      '  CFC115 + O1D --> 0.7 CFC115 + 0.3 ClO + 0.7 O                                                     ', &
-     '   H2402 + O1D --> 0.25 H2402 + 0.75 BrO + 0.75 Br + 0.25 O                                         ', &
+     '   H2402 + O1D --> 0.25 H2402 + 0.75 Br + 0.75 BrO + 0.25 O                                         ', &
      '      Cl2 + OH --> HOCl + Cl                                                                        ', &
      '     MO2 + ClO --> ClOO + CH2O + HO2                                                                ', &
-     '      OH + ClO --> HO2 + Cl                                                                         ', &
-     '      OH + ClO --> HCl + O2                                                                         ', &
-     '     OClO + OH --> HOCl + O2                                                                        ', &
-     '    Cl2O2 + OH --> ClOO + HOCl                                                                      ' /)
+     '      ClO + OH --> HO2 + Cl                                                                         ', &
+     '      ClO + OH --> HCl + O2                                                                         ', &
+     '     OClO + OH --> HOCl + O2                                                                        ' /)
   CHARACTER(LEN=100), PARAMETER, DIMENSION(30) :: EQN_NAMES_11 = (/ &
-     '      OH + HCl --> H2O + Cl                                                                         ', &
+     '    Cl2O2 + OH --> ClOO + HOCl                                                                      ', &
+     '      HCl + OH --> H2O + Cl                                                                         ', &
      '     HOCl + OH --> H2O + ClO                                                                        ', &
      '    ClNO2 + OH --> HOCl + NO2                                                                       ', &
      '    ClNO3 + OH --> HOCl + NO3                                                                       ', &
@@ -463,12 +464,12 @@ MODULE gckpp_Monitor
      '  HCFC123 + OH --> H2O + 2 Cl                                                                       ', &
      ' HCFC142b + OH --> H2O + Cl                                                                         ', &
      '      CH4 + Cl --> MO2 + HCl                                                                        ', &
-     '     CH2O + Cl --> CO + HCl + HO2                                                                   ', &
-     '       Cl + O3 --> ClO + O2                                                                         ', &
+     '     CH2O + Cl --> CO + HO2 + HCl                                                                   ', &
+     '       O3 + Cl --> ClO + O2                                                                         ', &
      '       Cl + H2 --> H + HCl                                                                          ', &
-     '     H2O2 + Cl --> HCl + HO2                                                                        ', &
+     '     H2O2 + Cl --> HO2 + HCl                                                                        ', &
      '      HO2 + Cl --> HCl + O2                                                                         ', &
-     '      HO2 + Cl --> OH + ClO                                                                         ', &
+     '      HO2 + Cl --> ClO + OH                                                                         ', &
      '       ClO + O --> Cl + O2                                                                          ', &
      '     ClO + HO2 --> HOCl + O2                                                                        ', &
      '      NO + ClO --> Cl + NO2                                                                         ', &
@@ -479,16 +480,16 @@ MODULE gckpp_Monitor
      '       Cl + O2 --> ClOO                                                                             ', &
      '          ClOO --> Cl + O2                                                                          ', &
      '         2 ClO --> Cl2O2                                                                            ', &
-     '         Cl2O2 --> 2 ClO                                                                            ', &
-     '     ClOO + Cl --> Cl2 + O2                                                                         ' /)
+     '         Cl2O2 --> 2 ClO                                                                            ' /)
   CHARACTER(LEN=100), PARAMETER, DIMENSION(30) :: EQN_NAMES_12 = (/ &
+     '     ClOO + Cl --> Cl2 + O2                                                                         ', &
      '     ClOO + Cl --> 2 ClO                                                                            ', &
-     '     BrO + ClO --> OClO + Br                                                                        ', &
-     '     BrO + ClO --> ClOO + Br                                                                        ', &
-     '     BrO + ClO --> BrCl + O2                                                                        ', &
+     '     ClO + BrO --> OClO + Br                                                                        ', &
+     '     ClO + BrO --> ClOO + Br                                                                        ', &
+     '     ClO + BrO --> BrCl + O2                                                                        ', &
      '     ClNO3 + O --> ClO + NO3                                                                        ', &
      '    ClNO3 + Cl --> Cl2 + NO3                                                                        ', &
-     '    CH3Cl + Cl --> CO + 2 HCl + HO2                                                                 ', &
+     '    CH3Cl + Cl --> CO + HO2 + 2 HCl                                                                 ', &
      '           HCl --> DRYHCl + DRYDEP                                                                  ', &
      '    N2O5 + HCl --> ClNO2 + HNO3                                                                     ', &
      '   ClNO3 + H2O --> HNO3 + HOCl                                                                      ', &
@@ -503,16 +504,16 @@ MODULE gckpp_Monitor
      '            O2 --> 2 O                                                                              ', &
      '           NO2 --> NO + O                                                                           ', &
      '          H2O2 --> 2 OH                                                                             ', &
-     '            MP --> CH2O + OH + HO2                                                                  ', &
+     '            MP --> CH2O + HO2 + OH                                                                  ', &
      '          CH2O --> CO + H + HO2                                                                     ', &
      '          CH2O --> CO + H2                                                                          ', &
      '          HNO3 --> OH + NO2                                                                         ', &
      '          HNO2 --> NO + OH                                                                          ', &
-     '          HNO4 --> OH + NO3                                                                         ', &
+     '          HNO4 --> NO3 + OH                                                                         ', &
      '          HNO4 --> HO2 + NO2                                                                        ', &
-     '           NO3 --> O + NO2                                                                          ', &
-     '           NO3 --> NO + O2                                                                          ' /)
+     '           NO3 --> O + NO2                                                                          ' /)
   CHARACTER(LEN=100), PARAMETER, DIMENSION(30) :: EQN_NAMES_13 = (/ &
+     '           NO3 --> NO + O2                                                                          ', &
      '          N2O5 --> NO3 + NO2                                                                        ', &
      '          ALD2 --> CO + MO2 + HO2                                                                   ', &
      '          ALD2 --> CH4 + CO                                                                         ', &
@@ -532,27 +533,27 @@ MODULE gckpp_Monitor
      '          MACR --> MAO3 + HO2                                                                       ', &
      '          MACR --> CO + MCO3 + CH2O + HO2                                                           ', &
      '           HAC --> MCO3 + CH2O + HO2                                                                ', &
-     '          INPN --> RCHO + OH + HO2 + NO2                                                            ', &
-     '          PRPN --> RCHO + OH + HO2 + NO2                                                            ', &
-     '           ETP --> ALD2 + OH + HO2                                                                  ', &
-     '          RA3P --> RCHO + OH + HO2                                                                  ', &
-     '          RB3P --> ACET + OH + HO2                                                                  ', &
-     '           R4P --> RCHO + OH + HO2                                                                  ', &
-     '            PP --> ALD2 + CH2O + OH + HO2                                                           ', &
-     '            RP --> ALD2 + OH + HO2                                                                  ', &
-     '            GP --> CH2O + OH + HO2                                                                  ', &
-     '           RIP --> 0.373 IALD + 0.259 MACR + 0.368 MVK + 0.627 CH2O + OH ... etc.                   ', &
-     '           IAP --> 0.67 CO + 0.36 HAC + 0.26 GLYC + 0.58 MGLY + OH + HO2 ... etc.                   ' /)
+     '          INPN --> RCHO + HO2 + OH + NO2                                                            ', &
+     '          PRPN --> RCHO + HO2 + OH + NO2                                                            ', &
+     '           ETP --> ALD2 + HO2 + OH                                                                  ', &
+     '          RA3P --> RCHO + HO2 + OH                                                                  ', &
+     '          RB3P --> ACET + HO2 + OH                                                                  ', &
+     '           R4P --> RCHO + HO2 + OH                                                                  ', &
+     '            PP --> ALD2 + CH2O + HO2 + OH                                                           ', &
+     '            RP --> ALD2 + HO2 + OH                                                                  ', &
+     '            GP --> CH2O + HO2 + OH                                                                  ', &
+     '           RIP --> 0.373 IALD + 0.259 MACR + 0.368 MVK + 0.627 CH2O + HO2 ... etc.                  ' /)
   CHARACTER(LEN=100), PARAMETER, DIMENSION(30) :: EQN_NAMES_14 = (/ &
-     '          ISNP --> RCHO + OH + HO2 + NO2                                                            ', &
-     '           VRP --> 0.7 GLYC + 0.3 MGLY + 0.7 MCO3 + 0.3 CH2O + OH + 0.3 HO2 ... etc.                ', &
-     '           MRP --> 0.5 CO + HAC + 0.5 CH2O + OH + HO2                                               ', &
+     '           IAP --> 0.67 CO + 0.36 HAC + 0.26 GLYC + 0.58 MGLY + HO2 + OH ... etc.                   ', &
+     '          ISNP --> RCHO + HO2 + OH + NO2                                                            ', &
+     '           VRP --> 0.7 GLYC + 0.3 MGLY + 0.7 MCO3 + 0.3 CH2O + 0.3 HO2 ... etc.                     ', &
+     '           MRP --> 0.5 CO + HAC + 0.5 CH2O + HO2 + OH                                               ', &
      '          MAOP --> MCO3 + CH2O + OH                                                                 ', &
      '          R4N2 --> 0.05 A3O2 + 0.18 B3O2 + 0.32 ETO2 + 0.13 RCHO + 0.19 MEK ... etc.                ', &
      '           MAP --> MO2 + OH                                                                         ', &
      '           Br2 --> LR23 + 2 Br                                                                      ', &
      '           BrO --> LR24 + Br + O                                                                    ', &
-     '          HOBr --> LR25 + OH + Br                                                                   ', &
+     '          HOBr --> LR25 + Br + OH                                                                   ', &
      '         BrNO3 --> LR26 + Br + NO3                                                                  ', &
      '         BrNO3 --> LR27 + BrO + NO2                                                                 ', &
      '         BrNO2 --> LR28 + Br + NO2                                                                  ', &
@@ -564,17 +565,17 @@ MODULE gckpp_Monitor
      '         CH3Br --> MO2 + Br                                                                         ', &
      '          BrCl --> Br + Cl                                                                          ', &
      '           Cl2 --> 2 Cl                                                                             ', &
-     '           ClO --> O + Cl                                                                           ', &
+     '           ClO --> Cl + O                                                                           ', &
      '          OClO --> ClO + O                                                                          ', &
      '         Cl2O2 --> ClOO + Cl                                                                        ', &
      '         ClNO2 --> Cl + NO2                                                                         ', &
-     '         ClNO3 --> NO3 + Cl                                                                         ', &
+     '         ClNO3 --> Cl + NO3                                                                         ', &
      '         ClNO3 --> ClO + NO2                                                                        ', &
-     '          HOCl --> OH + Cl                                                                          ', &
+     '          HOCl --> Cl + OH                                                                          ', &
      '         CH3Cl --> MO2 + Cl                                                                         ', &
-     '       CH3CCl3 --> 3 Cl                                                                             ', &
-     '          CCl4 --> 4 Cl                                                                             ' /)
-  CHARACTER(LEN=100), PARAMETER, DIMENSION(14) :: EQN_NAMES_15 = (/ &
+     '       CH3CCl3 --> 3 Cl                                                                             ' /)
+  CHARACTER(LEN=100), PARAMETER, DIMENSION(15) :: EQN_NAMES_15 = (/ &
+     '          CCl4 --> 4 Cl                                                                             ', &
      '         CFC11 --> 3 Cl                                                                             ', &
      '         CFC12 --> 2 Cl                                                                             ', &
      '        CFC113 --> 3 Cl                                                                             ', &
@@ -589,7 +590,7 @@ MODULE gckpp_Monitor
      '         H2402 --> 2 Br                                                                             ', &
      '        CH2Br2 --> 2 Br                                                                             ', &
      '          ClOO --> Cl + O2                                                                          ' /)
-  CHARACTER(LEN=100), PARAMETER, DIMENSION(464) :: EQN_NAMES = (/&
+  CHARACTER(LEN=100), PARAMETER, DIMENSION(465) :: EQN_NAMES = (/&
     EQN_NAMES_0, EQN_NAMES_1, EQN_NAMES_2, EQN_NAMES_3, EQN_NAMES_4, &
     EQN_NAMES_5, EQN_NAMES_6, EQN_NAMES_7, EQN_NAMES_8, EQN_NAMES_9, &
     EQN_NAMES_10, EQN_NAMES_11, EQN_NAMES_12, EQN_NAMES_13, EQN_NAMES_14, &

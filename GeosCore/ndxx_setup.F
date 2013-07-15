@@ -52,6 +52,8 @@
       USE DIAG_MOD,        ONLY : CTNO,        LTOH,        CTOH
       USE DIAG_MOD,        ONLY : LTHO2,       CTHO2,       LTNO2
       USE DIAG_MOD,        ONLY : CTNO2,       LTNO3,       CTNO3
+      ! Stratospheric chemistry (SDE 2013-07-15)
+      USE DIAG_MOD,        ONLY : CTO1D,       LTO1D
       ! update for arom (dkh, 06/21/07)  
       USE DIAG_MOD,        ONLY : CTLBRO2H,    CTLBRO2N
       USE DIAG_MOD,        ONLY : CTLTRO2H,    CTLTRO2N
@@ -904,6 +906,14 @@
          ! Locations where LT is between HR1_OH and HR2_OH
          ALLOCATE( CTNO3( IIPAR, JJPAR, LD43 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CTHO2' )
+
+         ! Locations where LT is between HR1_OH and HR2_OH
+         ALLOCATE( LTO1D( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'LTO1D' )
+
+         ! Locations where LT is between HR1_OH and HR2_OH
+         ALLOCATE( CTO1D( IIPAR, JJPAR, LD43 ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'CTO1D' )
 
          ! update for aroms (dkh, 06/21/07)  
          ! additional comments added for clarification (hotp 7/21/09)

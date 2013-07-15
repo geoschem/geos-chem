@@ -229,7 +229,7 @@
       INTEGER            :: IDCH4
 
       ! Stratospheric chemistry (SDE 04/11/13)
-      INTEGER            :: IDHOCl, IDClNO3, IDHCl
+      INTEGER            :: IDHOCl, IDClNO3, IDHCl, IDO1D
 
       ! GEOS-CHEM tracer ID's
       INTEGER            :: IDTNOX,  IDTOX,    IDTPAN,  IDTCO,   IDTALK4
@@ -2080,6 +2080,7 @@
          IF ( NAMEGAS(I) == 'ClNO3'    ) IDClNO3    = I
          IF ( NAMEGAS(I) == 'HOCl'     ) IDHOCl     = I
          IF ( NAMEGAS(I) == 'HCl'      ) IDHCl      = I
+         IF ( NAMEGAS(I) == 'O1D'      ) IDO1D      = I
 
 #if defined( ESMF_ )
          ! Add the species name & Id to the chemistry state object
@@ -3101,6 +3102,7 @@
       IDClNO3   = 0 ! (SDE 04/11/13)
       IDHOCl    = 0 ! (SDE 04/11/13)
       IDHCl     = 0 ! (SDE 04/11/13)
+      IDO1D     = 0 ! (SDE 04/11/13)
       IDDRYO3   = 0
       IDDRYPAN  = 0
       IDDRYNO2  = 0       

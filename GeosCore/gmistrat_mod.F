@@ -251,6 +251,7 @@
       USE LOGICAL_MOD,          ONLY : LSETCH4,  LSETOCS,  LSETCFC
       USE LOGICAL_MOD,          ONLY : LSETCL,   LSETBR,   LSETN2O
       USE LOGICAL_MOD,          ONLY : LSETH2SO4,LGMISTRAT, LSETBRSTRAT
+      USE LOGICAL_MOD,          ONLY : LSETNOYSTRAT
       USE LOGICAL_MOD,          ONLY : LBASICEMIS
       USE TRACERID_MOD
       USE TRACER_MOD,           ONLY : N_TRACERS, STT,TCVV
@@ -297,6 +298,7 @@
       ! Are we using 2D data?
       USE2DDATA = (LSETOCS.or.LSETCFC.or.LSETCL.or.LSETBR.or.LSETH2SO4)
       USE2DDATA = (USE2DDATA.or.STRAT2DCH4.or.LSETBRSTRAT)
+      USE2DDATA = (USE2DDATA.or.LSETNOYSTRAT)
       USE2DDATA = (USE2DDATA.or.LSETN2O.or.LBASICEMIS)
 
 #if !defined(GRID4x5) && !defined(GRID2x25)
@@ -391,6 +393,22 @@
             TRAC_IDX = IDTCH3Br
             TRAC_SET  = 'CH3BR'
             CALL APPLY_2DTRAC(.FALSE.,LSETBRSTRAT,.FALSE.)
+         ENDIF
+
+         ! Stratospheric NOy
+         IF (LSETNOYSTRAT) THEN
+            IF ( am_I_Root ) THEN
+               WRITE(6,*) '|NOx      |HNO3     |         |'
+               WRITE(6,*) '|---------|---------|---------|'
+            ENDIF
+
+            TRAC_IDX = IDTHNO3
+            TRAC_SET = 'HNO3'
+            CALL APPLY_2DTRAC(.FALSE.,.TRUE.,.FALSE.)
+
+            TRAC_IDX = IDTNOx
+            TRAC_SET = 'NOX'
+            CALL APPLY_2DTRAC(.FALSE.,.TRUE.,.FALSE.)
          ENDIF
 
          ! Br-Cl (special case)
@@ -1068,7 +1086,7 @@
       USE DAO_MOD,       ONLY : T, BXHEIGHT, AD
       USE PRESSURE_MOD,  ONLY : GET_PCENTER, GET_PEDGE
       USE TRACER_MOD,    ONLY : STT, XNUMOL, TRACER_MW_G
-      USE TRACERID_MOD,  ONLY : IDTNIT,IDTBCPI,IDTH2O
+      USE TRACERID_MOD,  ONLY : IDTNIT,IDTBCPI,IDTH2O,IDTHNO3
       USE TIME_MOD,      ONLY : GET_ELAPSED_SEC, GET_TS_CHEM
       USE COMODE_MOD,    ONLY : JLOP,WERADIUS,ERADIUS
       USE LOGICAL_MOD,   ONLY : LGMISTRAT,LGRAVSTRAT
@@ -1142,6 +1160,12 @@
       REAL*8                 :: BELOWGRAD, ABOVEGRAD
       INTEGER                :: LOCALPROFILE, NUMSEDSTEPS, STARTPT, ISED
 
+      ! SDE 2013-07-07: Debug variables
+      REAL*8                 :: D_XH2O, D_PPA,  D_TK,   D_XHNO3,D_XNAT
+      REAL*8                 :: D_ICE1, D_ICE0, D_H2O1, D_H2O0
+      REAL*8                 :: D_NAT1, D_NAT0, D_SEDQ, D_PSED, D_HNO3
+      REAL*8                 :: D_RMAX, D_VMAX, MAXLOSS, FRACLOSS
+
       !=================================================================
       ! SETTLE_STRAT_AER begins here!
       !=================================================================
@@ -1154,6 +1178,25 @@
 
       ! Chemistry timestep [s]
       DTCHEM = GET_TS_CHEM() * 60d0
+
+      ! For debugging
+      MAXLOSS= 0d0
+      D_XHNO3= 0d0
+      D_XNAT = 0d0
+      D_PPA  = 0d0
+      D_TK   = 0d0
+      D_XH2O = 0d0
+      D_SEDQ = 0d0
+      D_PSED = 0d0
+      D_ICE0 = 0d0
+      D_ICE1 = 0d0
+      D_H2O0 = 0d0
+      D_H2O1 = 0d0
+      D_NAT0 = 0d0
+      D_NAT1 = 0d0
+      D_HNO3 = 0d0
+      D_RMAX = 0d0
+      D_VMAX = 0d0
 
       ! First settle liquid aerosols (SLA) using scheme found
       ! elsewhere in GEOS-Chem
@@ -1172,6 +1215,7 @@
 !$OMP+PRIVATE( XNO3_ABOVE, XNAT_ABOVE, XICE_ABOVE, XPSC_ABOVE )
 !$OMP+PRIVATE( XNO3_0, XNAT_0, XICE_0, XPSC_0, VNAT )
 !$OMP+PRIVATE( XNO3_BELOW, XNAT_BELOW, XICE_BELOW, XPSC_BELOW )
+!$OMP+PRIVATE( FRACLOSS )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR       
@@ -1195,6 +1239,9 @@
             ! Temperature [K]
             TEMP    = T(I,J,L)
  
+            ! Pressure at center of the level [kPa]
+            P       = GET_PCENTER(I,J,L) * 0.1d0
+
             RUNCALC = ITS_IN_THE_STRATMESO(I,J,L)
 
             IF (RUNCALC) THEN
@@ -1227,9 +1274,6 @@
                VTS(L,:) = 0d0
                VNAT(L) = 0d0
             ELSE
-               ! Pressure at center of the level [kPa]
-               P       = GET_PCENTER(I,J,L) * 0.1d0
-
                ! Calculate common variables first
                sp_Num = P * 1.d3 * 6.023d23 / (8.314 * Temp)
                sp_Lambda = 1.d6/(1.41421*sp_Num*3.141592*(3.7d-10)**2)
@@ -1420,35 +1464,60 @@
             ! XPSC is the number of molecules tied up in solid particles
             ! per m3 in a grid box
             L = STARTPT
-            XNO3_0 = STT(I,J,L,IDTNIT) * AIRMW / 
+            IF (STATE_PSC(I,J,L).lt.2) THEN
+               XNO3_0 = 0d0
+               XNAT_0 = 0d0
+               XICE_0 = 0d0
+            ELSE
+               XNO3_0 = STT(I,J,L,IDTNIT) * AIRMW / 
      &                      (TRACER_MW_G(IDTNIT)*AD(I,J,L))
-            XNAT_0 = XNO3_0 * 4.d0
-            XICE_0 = (KG_AER(I,J,L,I_SPA)-STT(I,J,L,IDTNIT))
-     &                    *AIRMW/(ICEMW*AD(I,J,L))
+               XNAT_0 = XNO3_0! * 4.d0
+               XICE_0 = (KG_AER(I,J,L,I_SPA)-
+     &              ((NATMW/TRACER_MW_G(IDTNIT))*
+     &             STT(I,J,L,IDTNIT)))*AIRMW/(ICEMW*AD(I,J,L))
+            ENDIF
+            !-----SDE DEBUG
+            IF (XICE_0 .lt. 0d0) THEN
+               WRITE(6,'(a)') 'ERROR! L,XNO3 XNAT XICE KG AER:'
+               WRITE(6,'(I3,1x,4(E10.4,1x))') L,XNO3_0,XNAT_0,XICE_0,
+     &               KG_AER(I,J,L,I_SPA)
+               CALL ERROR_STOP('Negative mixing ratio!',
+     &                            'gmistrat_mod.F')
+            ENDIF
+            !-----SDE DEBUG
             XPSC_0 = XNAT_0 + XICE_0
             P_0 = 100.0d0 * GET_PCENTER(I,J,L)
             INVAIR_0 = AIRMW/AD(I,J,L)
-            IF (L .ne. LLPAR) THEN
+            IF (L .lt. (LLPAR-1)) THEN
                INVAIR_ABOVE = AIRMW/AD(I,J,L+1)
-               XNO3_ABOVE = STT(I,J,L+1,IDTNIT) * INVAIR_ABOVE / 
-     &                             (TRACER_MW_G(IDTNIT))
-               ! NAT = HNO3.3H2O = 4 molecules
-               XNAT_ABOVE = XNO3_ABOVE * 4.d0
-               XICE_ABOVE = (KG_AER(I,J,L+1,I_SPA)-STT(I,J,L+1,IDTNIT))
-     &                                    *INVAIR_ABOVE/ICEMW
+               IF (STATE_PSC(I,J,L+1).lt.2) THEN
+                  XNO3_ABOVE = 0d0
+                  XNAT_ABOVE = 0d0
+                  XICE_ABOVE = 0d0
+               ELSE
+                  XNO3_ABOVE = STT(I,J,L+1,IDTNIT) * INVAIR_ABOVE / 
+     &                                (TRACER_MW_G(IDTNIT))
+                  ! NAT = HNO3.3H2O = 4 molecules
+                  XNAT_ABOVE = XNO3_ABOVE! * 4.d0
+!                  XICE_ABOVE = (KG_AER(I,J,L+1,I_SPA)-STT(I,J,L+1,IDTNIT))
+!     &                                       *INVAIR_ABOVE/ICEMW
+                  XICE_ABOVE = (KG_AER(I,J,L+1,I_SPA)-
+     &                ((NATMW/TRACER_MW_G(IDTNIT))*
+     &                STT(I,J,L+1,IDTNIT)))*INVAIR_ABOVE/ICEMW
+               ENDIF
                XPSC_ABOVE = XNAT_ABOVE + XICE_ABOVE
                P_ABOVE = 100.0d0 * GET_PCENTER(I,J,L+1)
                PSEDABOVE = VNAT(L+1)*SEDSTEP*1.d2*
-     &            (GET_PEDGE(I,J,L)-GET_PEDGE(I,J,L+1))/BXHEIGHT(I,J,L)
+     &      (GET_PEDGE(I,J,L+1)-GET_PEDGE(I,J,L+2))/BXHEIGHT(I,J,L+1)
 !               PSEDABOVE=g0 * (1.0d3*AIRMW) * P_ABOVE * 
 !     &            VNAT(L+1) / (Rd * T(I,J,L+1))*SEDSTEP
             ELSE
-               INVAIR_ABOVE = 0.0d0
+               INVAIR_ABOVE = 1.0d0
                XNO3_ABOVE = 0.0d0
                XNAT_ABOVE = 0.0d0
                XICE_ABOVE = 0.0d0
                XPSC_ABOVE = 0.0d0
-               P_ABOVE = GET_PEDGE(I,J,LLPAR+1) * 100.0d0
+               P_ABOVE = GET_PEDGE(I,J,L+2) * 100.0d0
                PSEDABOVE = 0.0d0
             ENDIF
             ABOVEGRAD = (XPSC_ABOVE-XPSC_0)/(P_0-P_ABOVE)
@@ -1471,17 +1540,24 @@
                PSED0 = PSEDABOVE
                INVAIR_0 = INVAIR_ABOVE
                
-               IF (L.le.(LLPAR-2)) THEN
+               IF (L.lt.(LLPAR-1)) THEN
                   INVAIR_ABOVE = AIRMW/AD(I,J,L+2)
-                  XNO3_ABOVE = STT(I,J,L+2,IDTNIT) * INVAIR_ABOVE / 
+                  IF (STATE_PSC(I,J,L+2).ge.2) THEN
+                     XNO3_ABOVE = STT(I,J,L+2,IDTNIT) * INVAIR_ABOVE / 
      &                             TRACER_MW_G(IDTNIT)
-                  XNAT_ABOVE = XNO3_ABOVE * 4.d0
-                  XICE_ABOVE = (KG_AER(I,J,L+2,I_SPA)-
-     &                STT(I,J,L+2,IDTNIT)) * INVAIR_ABOVE / ICEMW
+                     XNAT_ABOVE = XNO3_ABOVE! * 4.d0
+                     XICE_ABOVE = (KG_AER(I,J,L+2,I_SPA)-
+     &                   ((NATMW/TRACER_MW_G(IDTNIT))*
+     &                   STT(I,J,L+2,IDTNIT)))*INVAIR_ABOVE/ICEMW
+                  ELSE
+                     XNO3_ABOVE = 0d0
+                     XNAT_ABOVE = 0d0
+                     XICE_ABOVE = 0d0
+                  ENDIF
                   XPSC_ABOVE = XNAT_ABOVE + XICE_ABOVE
                   P_ABOVE = GET_PCENTER(I,J,L+2) * 100.0d0
-                  PSEDABOVE=VNAT(L+2)*SEDSTEP*1.d2*(GET_PEDGE(I,J,L+1)-
-     &               GET_PEDGE(I,J,L+2))/BXHEIGHT(I,J,L+2)
+                  PSEDABOVE=VNAT(L+2)*SEDSTEP*1.d2*(GET_PEDGE(I,J,L+2)-
+     &               GET_PEDGE(I,J,L+3))/BXHEIGHT(I,J,L+2)
 !                  PSEDABOVE = g0 * (1.0d3*AIRMW) * P_ABOVE *
 !     &               VNAT(L+2)/(Rd * T(I,J,L+2))*SEDSTEP
                ELSE
@@ -1490,7 +1566,7 @@
                   XNAT_ABOVE = 0.0d0
                   XICE_ABOVE = 0.0d0
                   XPSC_ABOVE = 0.0d0
-                  P_ABOVE = GET_PEDGE(I,J,LLPAR) * 100.0d0
+                  P_ABOVE = GET_PEDGE(I,J,L+2) * 100.0d0
                   PSEDABOVE = 0.0d0
                ENDIF
                ! Note reversal of pressure values as pressure falls with
@@ -1523,18 +1599,26 @@
                IF (LOCALPROFILE.eq.0) THEN
                   ! Standard sedimentation scheme
                   SEDQUANT = XPSC_0 * PSED0
+                  SEDNO3   = XNO3_0 * PSED0
+                  SEDICE   = XICE_0 * PSED0
                ELSEIF (LOCALPROFILE.eq.1) THEN
                   ! Currently below a peak
                   ! Use gradient of bottom and centre boxes
                   IF (XPSC_0 .le. (0.5d0 * XPSC_ABOVE)) THEN
                      ! Interpret as nearing peak; use lower gradient
                      SEDQUANT = (XPSC_0+XPSC_BELOW)*0.5d0*PSED0
+                     SEDNO3   = (XNO3_BELOW+XNO3_0)*0.50*PSED0
+                     SEDICE   = (XICE_BELOW+XICE_0)*0.50*PSED0
                   ELSE
                      SEDQUANT = (XPSC_ABOVE+XPSC_0)*0.50*PSED0
+                     SEDNO3   = (XNO3_ABOVE+XNO3_0)*0.50*PSED0
+                     SEDICE   = (XICE_ABOVE+XICE_0)*0.50*PSED0
                   ENDIF
                ELSE
                   ! Above a peak
                   SEDQUANT = (XPSC_0+XPSC_BELOW)*0.5d0*PSED0
+                  SEDNO3   = (XNO3_0+XNO3_BELOW)*0.5d0*PSED0
+                  SEDICE   = (XICE_0+XICE_BELOW)*0.5d0*PSED0
                ENDIF
                ! Divide sedimenting quantity by the pressure difference
                ! across the box being sedimented from
@@ -1542,6 +1626,10 @@
                ! multiply numerator by (1/100)
                IF (L .ne. LLPAR) THEN
                   SEDQUANT = (1.d-2) * SEDQUANT /
+     &               (GET_PEDGE(I,J,L+1)-GET_PEDGE(I,J,L+2))
+                  SEDNO3 = (1.d-2) * SEDNO3 / 
+     &               (GET_PEDGE(I,J,L+1)-GET_PEDGE(I,J,L+2))
+                  SEDICE = (1.d-2) * SEDICE / 
      &               (GET_PEDGE(I,J,L+1)-GET_PEDGE(I,J,L+2))
                ELSE
                   ! This shouldn't be possible?
@@ -1557,15 +1645,13 @@
                ! the total ice and NAT, but are only actually
                ! transporting the local NO3
                SEDQUANT = MAX(0.0d0,SEDQUANT)
-               ! X???_0 refers to the box losing mass (L+1)
-               SEDNO3 = SEDQUANT * (XNO3_0/XPSC_0)
-               SEDICE = SEDQUANT * (XICE_0/XPSC_0)
-               SEDNAT = SEDNO3 * 4.d0
+               SEDNO3 = MAX(0.0d0,SEDNO3)
+               SEDICE = MAX(0.0d0,SEDICE)
                
+               !-----SDE DEBUG
                ! Convert v/v to kg/box
                SEDNO3 = SEDNO3*TRACER_MW_G(IDTNIT)/INVAIR_0
                SEDICE = SEDICE*ICEMW/INVAIR_0
-               SEDNAT = SEDNAT*NATMW/INVAIR_0
                
                SEDNO3 = MIN(SEDNO3,STT(I,J,L+1,IDTNIT))
                STT(I,J,L,IDTNIT) = STT(I,J,L,IDTNIT) + SEDNO3
@@ -1577,11 +1663,35 @@
                STT(I,J,L+1,IDTH2O)=STT(I,J,L+1,IDTH2O)-SEDH2O
 
                ! Now correct aerosol totals
+               SEDNAT = SEDNO3*NATMW/TRACER_MW_G(IDTNIT)
                SEDPSC = SEDNAT + SEDICE
                SEDPSC = MIN(SEDPSC,KG_AER(I,J,L+1,I_SPA))
                KG_AER(I,J,L,I_SPA) = KG_AER(I,J,L,I_SPA) + SEDPSC
                KG_AER(I,J,L+1,I_SPA)=KG_AER(I,J,L+1,I_SPA)-SEDPSC
+               !-----SDE DEBUG
                
+               ! Store for debug
+               FRACLOSS = SEDH2O/STT(I,J,L+1,IDTH2O)
+               IF (FRACLOSS .gt. MAXLOSS) THEN
+                  MAXLOSS = FRACLOSS
+                  D_ICE0 = XICE_0*ICEMW/INVAIR_0
+                  D_ICE1 = D_ICE0 - SEDICE
+                  D_H2O1 = STT(I,J,L+1,IDTH2O)
+                  D_H2O0 = D_H2O1 + SEDH2O
+                  D_NAT1 = STT(I,J,L+1,IDTNIT)*NATMW/TRACER_MW_G(IDTNIT)
+                  D_NAT0 = D_NAT1 + SEDNAT
+                  D_HNO3 = STT(I,J,L+1,IDTHNO3)
+                  D_RMAX = RAD_AER(I,J,L+1,I_SPA)
+                  D_VMAX = VNAT(L+1)
+                  D_SEDQ = SEDQUANT
+                  D_PSED = PSED0
+                  D_XH2O = D_H2O0*INVAIR_0/ICEMW
+                  D_XHNO3= D_HNO3*INVAIR_0/TRACER_MW_G(IDTHNO3)
+                  D_XNAT = D_NAT0*INVAIR_0/NATMW
+                  D_PPA  = P_0
+                  D_TK   = TEMP
+               ENDIF
+
             ENDDO SED_LLOOP
          ENDDO SEDSTEPLOOP
          !-----SDE DEBUG
@@ -1592,6 +1702,27 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+      IF (LPRT) THEN
+         CALL DEBUG_MSG( '### GMISTRAT: after SETTLE_STRAT_AER' )
+         WRITE(6,'(a)') 'Max ice loss statistics:'
+         WRITE(6,'(a,1x,2E12.4)') 'Source ice (before/after) (kg): ',
+     &                         D_ICE0, D_ICE1
+         WRITE(6,'(a,1x,2E12.4)') 'Source H2O (before/after) (kg): ',
+     &                         D_H2O0, D_H2O1
+         WRITE(6,'(a,1x,1E12.4)') 'Source HNO3 (total) (kg)      : ',
+     &                         D_HNO3
+         WRITE(6,'(a,1x,2E12.4)') 'Source NAT (before/after) (kg): ',
+     &                         D_NAT0, D_NAT1
+         WRITE(6,'(a,1x,3E12.4)') 'Source MR (H2O-HNO3-NAT) (v/v): ',
+     &                         D_XH2O, D_XHNO3, D_XNAT
+         WRITE(6,'(a,1x,2E12.4)') 'Source T (K) and P (Pa)       : ',
+     &                         D_TK,   D_PPA
+         WRITE(6,'(a,1x,2E12.4)') 'Particle radius (cm) & V (m/s): ',
+     &                         D_RMAX, D_VMAX
+         WRITE(6,'(a,1x,2E12.4)') 'Sedquant and PSed variables   : ',
+     &                         D_SEDQ, D_PSED
+      ENDIF
 
       END SUBROUTINE SETTLE_STRAT_AER
 !
@@ -1802,6 +1933,9 @@
       REAL*8,PARAMETER      :: PSC_PMAX   =  18.0d3
       REAL*8,PARAMETER      :: PSC_PMIN   =   5.0d2
 
+      ! Allow PSC formation outsize Kirner limits?
+      LOGICAL,PARAMETER     :: PSC_FULL   =.FALSE.
+
       ! Saturation and nucleation properties of HNO3
       REAL*8, PARAMETER     :: TSATHNO3_A = -2.7836d0
       REAL*8, PARAMETER     :: TSATHNO3_B = -0.00088d0
@@ -1874,6 +2008,10 @@
       ! Loop variables
       INTEGER               :: I, J, L, K, JLOOP
 
+      ! SDE 2013-07-07: Debug variables
+      REAL*8                 :: D_XH2O, D_PPA,  D_TK,   D_XHNO3,D_XNAT
+      REAL*8                 :: D_MAXN, D_FRACN,D_PP,   D_PS
+
       !=================================================================
       ! CALC_STRAT_AER begins here!
       !=================================================================
@@ -1885,6 +2023,15 @@
       ! Partition H2SO4 before proceeding
       CALL CALC_H2SO4_GAS
 
+      D_XH2O = 0d0
+      D_PPA  = 0d0
+      D_TK   = 0d0
+      D_XHNO3= 0d0
+      D_XNAT = 0d0
+      D_MAXN = 0d0
+      D_PP   = 0d0
+      D_PS   = 0d0
+      
       ! Loop over latitude boxes first
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -1902,7 +2049,7 @@
 !$OMP+PRIVATE( W_H2SO4,W_H2O,W_HCl,W_HOCl,W_HBr,W_HOBr,W_HNO3 )
 !$OMP+PRIVATE( HCl_BOX_G,HCl_BOX_L,HOCl_BOX_G,HOCl_BOX_L,H2SO4_BOX_G )
 !$OMP+PRIVATE( HBr_BOX_G,HBr_BOX_L,HOBr_BOX_G,HOBr_BOX_L,H2SO4_BOX_L )
-!$OMP+PRIVATE( KHET_COMMON, KHET_SPECIFIC )
+!$OMP+PRIVATE( KHET_COMMON, KHET_SPECIFIC, D_FRACN )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J=1,JJPAR
          BOX_LAT_S = GET_YEDGE(1,J,1)
@@ -1924,6 +2071,7 @@
                IS_VALID = (IS_POLAR).and.(IS_STRAT).and.       
      &                        (.not.((PCENTER_PA.lt.PSC_PMIN).or.
      &                               (PCENTER_PA.gt.PSC_PMAX)))
+               IS_VALID = (IS_VALID.or.PSC_FULL)
 
                ! Initialize variables
                VOL_NAT      = 0.0d0
@@ -1985,7 +2133,7 @@
                   ! No PSCs (SSA only)
                   STATE_LOCAL = 0
                ELSEIF (TCENTER.gt.T_MAX) THEN
-                  ! STS only
+                  ! STS/SSA only
                   STATE_LOCAL = 1
                ELSE
                   ! Calculate saturation pressures
@@ -2089,6 +2237,27 @@
      &                  NATMW / (DENSNAT*AVOGADRO)
                      KG_NAT = HNO3_BOX_S * NATMW *
      &                        AD(I,J,L) / AIRMW
+
+                     ! Debug
+                     IF (HNO3SUM.gt.TINY(0d0)) THEN
+                        D_FRACN = HNO3_BOX_S/HNO3SUM
+                     ELSE
+                        D_FRACN = 0d0
+                     ENDIF
+!
+!                     IF (D_FRACN.gt.D_MAXN) THEN
+!                        D_MAXN = D_FRACN
+                     IF (HNO3_BOX_S.gt.D_XNAT) THEN
+                        D_MAXN = D_FRACN
+                        D_XH2O = H2OSUM
+                        D_XHNO3= HNO3SUM
+                        D_XNAT = HNO3_BOX_S
+                        D_PPA  = PCENTER_PA
+                        D_PP   = HNO3PP
+                        D_PS   = PSATHNO3
+                        D_TK   = TCENTER
+                     ENDIF
+                     
                   ELSE
                      HNO3_BOX_S = 0d0
                      VOL_NAT = 0d0
@@ -2375,10 +2544,32 @@
                KG_AER(I,J,L,I_SLA)   = KG_AER_BOX       ! kg
                NDENS_AER(I,J,L,I_SLA)= NDENS_AER_BOX    ! #/m3
                SAD_AER(I,J,L,I_SLA)  = SAD_AER_BOX      ! cm2/cm3
+
+!               !-----SDE DEBUG
+!               WRITE(6,'(a,3(1x,I3))') '---------I J L       : ',
+!     &                      I, J, L
+!               WRITE(6,'(a,2(1x,E10.4))') ' T (K) P (Pa)     : ',
+!     &                      TCENTER, PCENTER_PA
+!               WRITE(6,'(a,3(1x,E10.4))') ' H2SO4 HNO3 H2O   : ',
+!     &                      H2SO4SUM, HNO3SUM, H2OSUM
+!               WRITE(6,'(a,3(1x,E10.4))') ' HCl H2SO4-l WT%  : ',
+!     &                      HClSUM, H2SO4_BOX_L, 1.d2*W_H2SO4
+!               WRITE(6,'(a,2(1x,E10.4))') ' r (m) SAD (u2/c3): ',
+!     &                      RAD_AER_BOX, SAD_AER_BOX*1.d8
+!               WRITE(6,'(a,1(1x,E10.4))') ' RHO (g/cm3)      : ',
+!     &                      RHO_AER_BOX
+!               WRITE(6,'(a,3(1x,E10.4))') ' GHCl GH2O GHOCl  : ',
+!     &                      GAMMA_BOX(3), GAMMA_BOX(4), GAMMA_BOX(8)
+!               !-----SDE DEBUG
+
             ENDDO LLOOP ! L
          ENDDO ! I
       ENDDO ! J
 !$OMP END PARALLEL DO
+
+!      !-----SDE DEBUG
+!      CALL ERROR_STOP('HARDKILL','HARDKILL')
+!      !-----SDE DEBUG
 
       IF (LPRT) THEN
          CALL DEBUG_MSG( '### GMISTRAT: after CALC_STRAT_AER' )
@@ -2399,6 +2590,14 @@
      &                               MAXVAL(SAD_AER(:,:,:,I_SLA))
          WRITE(6,'(a,1x,E12.4)') 'Peak SSA/STS radius (cm)      : ',
      &                               MAXVAL(RAD_AER(:,:,:,I_SLA))
+         WRITE(6,'(a,1x,E12.4)') 'NAT/NO3 fraction in max-NAT box  : ',
+     &                               D_MAXN                       
+         WRITE(6,'(a,3(1x,E12.4))') 'Local MR (H2O-HNO3-NAT) (v/v) : ',
+     &                               D_XH2O,D_XHNO3,D_XNAT        
+         WRITE(6,'(a,3(1x,E12.4))') 'Pressure (box-HNO3-sat) (Pa)  : ',
+     &                               D_PPA,D_PP,D_PS        
+         WRITE(6,'(a,1x,E12.4)') 'Local temperature (K)         : ',
+     &                               D_TK                    
       ENDIF
 
       END SUBROUTINE CALC_STRAT_AER
@@ -3010,6 +3209,7 @@
 ! !USES:
 !
       USE CMN_GCTM_MOD,    ONLY : PI, g0
+      USE ERROR_MOD,       ONLY : ERROR_STOP
 !
 ! !INPUT PARAMETERS:
 !
@@ -3058,6 +3258,12 @@
          VAL_X = 1.0d0 + VAL_X + (ALPHA(1)*TCENTER/PR)
          Vy = g0*DENSITY*RADIUS*RADIUS*(1.d-4)/(4.5*ETA*TCENTER)
          VEL = 0.893d0 * Vy * VAL_X
+      ENDIF
+
+      ! Velocities should be of the order of 0.1 m/s
+      IF (VEL.gt.10.d0) THEN
+         CALL ERROR_STOP(' Excessive fall velocity? ', 
+     &                   ' CALC_FALLVEL, gmistrat_mod')
       ENDIF
 
       END FUNCTION CALC_FALLVEL
