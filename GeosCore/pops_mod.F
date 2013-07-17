@@ -1848,7 +1848,7 @@
       ! Get ozone [v/v] for this gridbox & month
       ! and convert to [molec/cm3] (eck, 12/2/04)
       O3_MOLEC_CM3 = O3(I,J,L) * ( 6.022d23 / 28.97d-3 ) * 
-     &               State_Met%AD(I,J,L)  /  BOXVL(I,J,L)
+     &               State_Met%AD(I,J,L)  /  BOXVL(I,J,L,State_Met)
 
       END FUNCTION GET_O3
 !EOC
