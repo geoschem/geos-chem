@@ -116,6 +116,7 @@
       USE GRID_MOD,           ONLY : GET_XMID
       USE GRID_MOD,           ONLY : GET_XOFFSET,   GET_YOFFSET
       USE LIGHTNING_NOX_MOD,  ONLY : EMLIGHTNING
+      USE LOGICAL_MOD,        ONLY : LRCPAIR     ! (cdh, 10/14/11)
       USE MEGAN_MOD,          ONLY : GET_EMISOP_MEGAN
       USE MEGAN_MOD,          ONLY : GET_EMMBO_MEGAN
       USE MEGAN_MOD,          ONLY : GET_EMMONOT_MEGAN
@@ -123,6 +124,7 @@
       USE MEGAN_MOD,          ONLY : ACTIVITY_FACTORS
       USE MEGANUT_MOD,        ONLY : XLTMMP
       USE MODIS_LAI_MOD
+      USE RCP_MOD,            ONLY : RCP_AIREMISS! (cdh, 10/14/11)
       USE SOIL_NOX_MOD,       ONLY : SOIL_NOX_EMISSION   
       USE TIME_MOD,           ONLY : GET_MONTH,     GET_TAU
       USE TIME_MOD,           ONLY : GET_TS_EMIS,   GET_LOCALTIME
@@ -455,7 +457,15 @@
 ! AIRCRAFT emissions NOx [molecules/cm3/s]
 !
             IF ( LAIRNOX .AND. I == 1 .AND. J == 1 ) THEN
-               CALL AIREMISS( State_Met, State_Chm )
+
+               ! Choose between RCP inventory and default
+               ! (cdh, 6/14/12)
+               IF (LRCPAIR) THEN
+                  CALL RCP_AIREMISS( State_Met )
+               ELSE
+                  CALL AIREMISS( State_Met, State_Chm )
+               ENDIF
+
             ENDIF
 !-----------------------------------------------------------------------------
 ! NOx AND CO from biofuel combustion [kg/box]  

@@ -1105,8 +1105,9 @@
          ! New test on logical flag (phs, 3/2/09)
          !==============================================================
          ! Add ICOADSSHIP (cklee, 6/30/09)
-         IF ( LSHIPSO2 .OR. LEDGARSHIP .OR. LARCSHIP .OR.
-     $        LEMEPSHIP .OR. LICOADSSHIP ) THEN
+         ! Add RCP
+         IF ( LSHIPSO2  .OR. LEDGARSHIP  .OR. LARCSHIP .OR.
+     $        LEMEPSHIP .OR. LICOADSSHIP .OR. LRCPSHIP ) THEN
             
             CATEGORY     = 'SO2-SHIP'
             ARRAY(:,:,1) = AD13_SO2_sh(:,:)

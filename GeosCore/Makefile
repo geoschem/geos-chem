@@ -449,7 +449,8 @@ cleanup.o                   : cleanup.F                                      \
                               tpcore_geos57_window_mod.o                     \
                               retro_mod.o             strat_chem_mod.o       \
                               global_bc_mod.o         global_oc_mod.o        \
-                              diag53_mod.o            tomas_mod.o
+                              diag53_mod.o            tomas_mod.o            \
+                              rcp_mod.o
 
 cldice_HBrHOBr_rxn.o        : cldice_HBrHOBr_rxn.F
 
@@ -593,7 +594,8 @@ emfossil.o                  : emfossil.F                                     \
                               logical_mod.o           nei2005_anthro_mod.o   \
                               streets_anthro_mod.o    tracer_mod.o           \
                               tracerid_mod.o          vistas_anthro_mod.o    \
-			      retro_mod.o             c2h6_mod.o
+			      retro_mod.o             c2h6_mod.o             \
+                              rcp_mod.o
 
 emissdr.o                   : emissdr.F                                      \
                               acetone_mod.o           aircraft_nox_mod.o     \
@@ -620,7 +622,7 @@ emissions_mod.o             : emissions_mod.F                                \
                               seasalt_mod.o           streets_anthro_mod.o   \
                               sulfate_mod.o           tagged_co_mod.o        \
                               tracer_mod.o            vistas_anthro_mod.o    \
-                              pops_mod.o
+                              pops_mod.o              rcp_mod.o
 
 epa_nei_mod.o               : epa_nei_mod.F                                  \
                               future_emissions_mod.o  logical_mod.o          \
@@ -1087,7 +1089,7 @@ sulfate_mod.o               : sulfate_mod.F                                  \
                               tracer_mod.o            tropopause_mod.o       \
                               uvalbedo_mod.o          vdiff_pre_mod.o        \
                               wetscav_mod.o           get_ndep_mod.o         \
-                              tomas_mod.o
+                              tomas_mod.o             rcp_mod.o
 
 sunparam.o                  : sunparam.F
 
@@ -1205,4 +1207,6 @@ ion_nucl.o                  : ion_nucl.F
 YuIMN_Code.o                : YuIMN_Code.F
 cf_nucl.o                   : cf_nucl.F
 
+rcp_mod.o                   : rcp_mod.F               diag_mod.o            \
+                              aircraft_nox_mod.o      dao_mod.o
 #EOC

@@ -35,6 +35,7 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE LIGHTNING_NOX_MOD,  ONLY : EMIS_LI_NOx
+      USE LOGICAL_MOD,        ONLY : LRCPSHIP
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L
       USE PRESSURE_MOD,       ONLY : GET_PEDGE
       USE TRACERID_MOD,       ONLY : CTRMB,     IDEMIS,  IDENO
@@ -56,6 +57,7 @@
       USE DIAG63_MOD,         ONLY : DO_SAVE_DIAG63
       USE PARANOX_MOD,        ONLY : INTERPOLATE_LUT2
       USE COMODE_MOD,         ONLY : CSPEC, AIRDENS
+      USE RCP_MOD,            ONLY : GET_RCP_EMISSION
 
 #     include "define.h"
       USE CMN_SIZE_MOD             ! Size parameters
@@ -516,6 +518,13 @@
                      SHIP = GET_ICOADS_SHIP( I, J, IDTNO, 
      &                      MOLEC_CM2_S=.TRUE. )
                   
+                  ! RCP ship emissions (cdh, 10/14/11)
+                  ELSE IF ( LRCPSHIP ) THEN
+
+                     ! Get SHIP RCP emissions for NOx [molec/cm2/s]
+                     SHIP = GET_RCP_EMISSION( I, J, IDTNO,  
+     &                      LAND=.FALSE., SHIP=.TRUE.)
+
                   ENDIF
 
                   ! Overwrite Europe

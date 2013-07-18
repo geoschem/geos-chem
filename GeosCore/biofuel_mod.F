@@ -234,7 +234,8 @@
       USE TRACERID_MOD,         ONLY : IDTGLYX, IDTMGLY, IDTBENZ
       USE TRACERID_MOD,         ONLY : IDTTOLU, IDTXYLE, IDTC2H4
       USE TRACERID_MOD,         ONLY : IDTC2H2, IDTGLYC, IDTHAC
-      USE TRACERID_MOD,         ONLY : IDTNO2
+      USE TRACERID_MOD,         ONLY : IDTNO2,  IDTNH3,  IDTSO2
+      USE TRACERID_MOD,         ONLY : IDTBCPO, IDTOCPO
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
       USE TRACERID_MOD,         ONLY : IDBFBENZ,IDBFTOLU,IDBFXYLE
       USE TRACERID_MOD,         ONLY : IDBFGLYX,IDBFMGLY,IDBFC2H4
@@ -249,10 +250,11 @@
       USE CAC_ANTHRO_MOD,       ONLY : GET_CANADA_MASK
       USE EMEP_MOD,             ONLY : GET_EUROPE_MASK
 
+      USE LOGICAL_MOD,          ONLY : LRCP   ! (cdh, 10/18/2011)
+
       USE CMN_SIZE_MOD               ! Size parameters
       USE CMN_O3_MOD                 ! FSCLYR
       USE CMN_DIAG_MOD               ! ND29, ND32, ND34
-
 
       IMPLICIT NONE
 #     include "define.h"
@@ -921,6 +923,47 @@
             ENDIF
 
             !-----------------------------------------------------------
+            ! RETRO anthropogenic emissions include residential biofuel,
+            ! so set this to zero if we are using RETRO for anthro VOCs
+            ! (dbm, 8/18/2011)
+            !-----------------------------------------------------------
+            IF ( LRETRO ) THEN
+               IF ( (NN == IDTC2H2) .or. (NN == IDTC2H4) .or.
+     &              (NN == IDTC2H6) .or. (NN == IDTPRPE) .or.
+     &              (NN == IDTC3H8) .or. (NN == IDTALK4) .or.
+     &              (NN == IDTCH2O) .or. (NN == IDTALD2) .or. 
+     &              (NN == IDTACET) .or. (NN == IDTMEK ) .or.
+     &              (NN == IDTBENZ) .or. (NN == IDTTOLU) .or.
+     &              (NN == IDTXYLE) ) THEN
+
+                  BIOFUEL(N,I,J) = 0.d0
+
+               ENDIF
+            ENDIF
+
+            !-----------------------------------------------------------
+            ! RCP anthropogenic emissions include residential biofuel,
+            ! so set this to zero if we are using the RCP inventory
+            ! (cdh, 10/18/2011)
+            !-----------------------------------------------------------
+            IF ( LRCP ) THEN
+               IF ( (NN == IDTNO  ) .or. (NN == IDTCO  ) .or.
+     &              (NN == IDTBCPO) .or. (NN == IDTOCPO) .or.
+     &              (NN == IDTSO2 ) .or. (NN == IDTNH3 ) .or.
+     &              (NN == IDTC2H2) .or. (NN == IDTC2H4) .or.
+     &              (NN == IDTC2H6) .or. (NN == IDTPRPE) .or.
+     &              (NN == IDTC3H8) .or. (NN == IDTALK4) .or.
+     &              (NN == IDTCH2O) .or. (NN == IDTALD2) .or. 
+     &              (NN == IDTACET) .or. (NN == IDTMEK ) .or.
+     &              (NN == IDTBENZ) .or. (NN == IDTTOLU) .or.
+     &              (NN == IDTXYLE) ) THEN
+
+                  BIOFUEL(N,I,J) = 0.d0
+
+               ENDIF
+            ENDIF
+
+            !-----------------------------------------------------------
             ! Overwrite biofuels w/ EPA/NEI emissions over the USA
             !
             ! NOTE: The NEI05 inventory only contains anthro emissions,
@@ -1155,7 +1198,7 @@
       ENDDO ! J
 !$OMP END PARALLEL DO
 
-
+!      BIOFUEL = 0d0             !CDH
       ! Save diagnostic information (biofuel burning emissions) (hotp 11/23/09)
       ! ND34 -- archive biofuel burning species [molec/cm2/s] or
       ! [molecC/cm2/s] for species transported as carbon

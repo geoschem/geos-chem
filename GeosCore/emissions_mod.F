@@ -111,11 +111,13 @@
       USE H2_HD_MOD,              ONLY : EMISS_H2_HD
       USE HCN_CH3CN_MOD,          ONLY : EMISS_HCN_CH3CN
       USE ICOADS_SHIP_MOD,        ONLY : EMISS_ICOADS_SHIP
+      USE LOGICAL_MOD,            ONLY : LRCP, LRCPSHIP, LRCPAIR
       USE MERCURY_MOD,            ONLY : EMISSMERCURY
       USE NEI2005_ANTHRO_MOD,     ONLY : EMISS_NEI2005_ANTHRO
       USE NEI2005_ANTHRO_MOD,     ONLY : EMISS_NEI2005_ANTHRO_05x0666
       USE PARANOX_MOD,            ONLY : READ_PARANOX_LUT
       USE POPS_MOD,               ONLY : EMISSPOPS  !(clf, 2/1/2011)
+      USE RCP_MOD,                ONLY : LOAD_RCP_EMISSIONS !cdh
       USE RETRO_MOD,              ONLY : EMISS_RETRO
       USE RnPbBe_MOD,             ONLY : EMISSRnPbBe
       USE SEASALT_MOD,            ONLY : EMISSSEASALT
@@ -130,6 +132,7 @@
       USE TIME_MOD,               ONLY : ITS_A_NEW_YEAR
       USE TRACERID_MOD,           ONLY : IDTSO2, IDTC2H6
       USE VISTAS_ANTHRO_MOD,      ONLY : EMISS_VISTAS_ANTHRO
+
 #if   defined( TOMAS )
       USE TRACERID_MOD,           ONLY : IDTSS1           ! (win, 1/25/10)
       USE TRACERID_MOD,           ONLY : IDTSF1           ! (win, 1/25/10)
@@ -354,6 +357,12 @@
          IF ( LRETRO .and. ITS_A_NEW_MONTH() ) THEN
             CALL EMISS_RETRO( am_I_Root, Input_Opt, State_Chm, RC )
          ENDIF
+
+         ! Read RCP emissions once per month (cdh, 10/14/11)
+         ! We read all emissions (for land, ship, air) even if only
+         ! one is needed
+         IF ( (LRCP .OR. LRCPSHIP .OR. LRCPAIR) .and. 
+     &        ITS_A_NEW_MONTH() ) CALL LOAD_RCP_EMISSIONS
 
          ! Read EPA/NEI99 (USA) emissions once per month
          IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) THEN
