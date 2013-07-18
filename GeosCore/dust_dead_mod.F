@@ -335,8 +335,8 @@
       !--------------
 
       ! Global mass flux tuning factor (a posteriori) [frc]
-      ! Default value (x2 DAR)
-      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 2.0*3.38d-4
+      ! Default value (x2.5 DAR for Sept 2010 CALIPSO comparison)
+      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 2.5*3.38d-4
 
       ! Reference height for mobilization processes [m]
       REAL*8,  PARAMETER     :: HGT_RFR         = 10.0d0
