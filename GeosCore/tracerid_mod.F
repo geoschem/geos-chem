@@ -193,22 +193,11 @@
 
       ! for CTM tracers
 
-#if   defined( TOMAS )
-      IMPLICIT NONE
-#     include "define.h"
-
-# if  defined( TOMAS40 )
-      INTEGER, PARAMETER :: NNNTRID  = 410
-# else
-      INTEGER, PARAMETER :: NNNTRID  = 320
-# endif
-
-#else
       USE CMN_SIZE_MOD, ONLY : NNNTRID=>NNPAR
 
       IMPLICIT NONE
 #     include "define.h"
-#endif
+
       INTEGER, PARAMETER :: MMMEMBER = 15
       INTEGER            :: NMEMBER(NNNTRID) 
       INTEGER            :: IDTRMB(NNNTRID,MMMEMBER)
@@ -295,110 +284,92 @@
 #if   defined( TOMAS )
       ! TOMAS tracer ID's  !(win, 6/23/09)
       INTEGER            :: IDTH2SO4
-      INTEGER            :: IDTNK1,  IDTNK2,   IDTNK3,  IDTNK4,  IDTNK5
-      INTEGER            :: IDTNK6,  IDTNK7,   IDTNK8,  IDTNK9,  IDTNK10
-      INTEGER            :: IDTNK11, IDTNK12,  IDTNK13, IDTNK14, IDTNK15
-      INTEGER            :: IDTNK16, IDTNK17,  IDTNK18, IDTNK19, IDTNK20
-      INTEGER            :: IDTNK21, IDTNK22,  IDTNK23, IDTNK24, IDTNK25
-      INTEGER            :: IDTNK26, IDTNK27,  IDTNK28, IDTNK29, IDTNK30
-# if  defined( TOMAS40 )
-      INTEGER            :: IDTNK31, IDTNK32,  IDTNK33, IDTNK34, IDTNK35
-      INTEGER            :: IDTNK36, IDTNK37,  IDTNK38, IDTNK39, IDTNK40
+
+      INTEGER ::  IDTNK1   , IDTSF1   , IDTSS1   , IDTECOB1 , IDTECIL1 
+      INTEGER ::  IDTOCOB1 , IDTOCIL1 , IDTDUST1 , IDTAW1   
+      INTEGER ::  IDTNK2   , IDTSF2   , IDTSS2   , IDTECOB2 , IDTECIL2 
+      INTEGER ::  IDTOCOB2 , IDTOCIL2 , IDTDUST2 , IDTAW2   
+      INTEGER ::  IDTNK3   , IDTSF3   , IDTSS3   , IDTECOB3 , IDTECIL3 
+      INTEGER ::  IDTOCOB3 , IDTOCIL3 , IDTDUST3 , IDTAW3   
+      INTEGER ::  IDTNK4   , IDTSF4   , IDTSS4   , IDTECOB4 , IDTECIL4 
+      INTEGER ::  IDTOCOB4 , IDTOCIL4 , IDTDUST4 , IDTAW4   
+      INTEGER ::  IDTNK5   , IDTSF5   , IDTSS5   , IDTECOB5 , IDTECIL5 
+      INTEGER ::  IDTOCOB5 , IDTOCIL5 , IDTDUST5 , IDTAW5   
+      INTEGER ::  IDTNK6   , IDTSF6   , IDTSS6   , IDTECOB6 , IDTECIL6 
+      INTEGER ::  IDTOCOB6 , IDTOCIL6 , IDTDUST6 , IDTAW6   
+      INTEGER ::  IDTNK7   , IDTSF7   , IDTSS7   , IDTECOB7 , IDTECIL7 
+      INTEGER ::  IDTOCOB7 , IDTOCIL7 , IDTDUST7 , IDTAW7   
+      INTEGER ::  IDTNK8   , IDTSF8   , IDTSS8   , IDTECOB8 , IDTECIL8 
+      INTEGER ::  IDTOCOB8 , IDTOCIL8 , IDTDUST8 , IDTAW8   
+      INTEGER ::  IDTNK9   , IDTSF9   , IDTSS9   , IDTECOB9 , IDTECIL9 
+      INTEGER ::  IDTOCOB9 , IDTOCIL9 , IDTDUST9 , IDTAW9   
+      INTEGER ::  IDTNK10  , IDTSF10  , IDTSS10  , IDTECOB10, IDTECIL10
+      INTEGER ::  IDTOCOB10, IDTOCIL10, IDTDUST10, IDTAW10  
+      INTEGER ::  IDTNK11  , IDTSF11  , IDTSS11  , IDTECOB11, IDTECIL11
+      INTEGER ::  IDTOCOB11, IDTOCIL11, IDTDUST11, IDTAW11  
+      INTEGER ::  IDTNK12  , IDTSF12  , IDTSS12  , IDTECOB12, IDTECIL12
+      INTEGER ::  IDTOCOB12, IDTOCIL12, IDTDUST12, IDTAW12  
+# if  !defined( TOMAS12 )
+      INTEGER ::  IDTNK13  , IDTSF13  , IDTSS13  , IDTECOB13, IDTECIL13
+      INTEGER ::  IDTOCOB13, IDTOCIL13, IDTDUST13, IDTAW13  
+      INTEGER ::  IDTNK14  , IDTSF14  , IDTSS14  , IDTECOB14, IDTECIL14
+      INTEGER ::  IDTOCOB14, IDTOCIL14, IDTDUST14, IDTAW14  
+      INTEGER ::  IDTNK15  , IDTSF15  , IDTSS15  , IDTECOB15, IDTECIL15
+      INTEGER ::  IDTOCOB15, IDTOCIL15, IDTDUST15, IDTAW15  
+#  if !defined( TOMAS15 )
+      INTEGER ::  IDTNK16  , IDTSF16  , IDTSS16  , IDTECOB16, IDTECIL16
+      INTEGER ::  IDTOCOB16, IDTOCIL16, IDTDUST16, IDTAW16  
+      INTEGER ::  IDTNK17  , IDTSF17  , IDTSS17  , IDTECOB17, IDTECIL17
+      INTEGER ::  IDTOCOB17, IDTOCIL17, IDTDUST17, IDTAW17  
+      INTEGER ::  IDTNK18  , IDTSF18  , IDTSS18  , IDTECOB18, IDTECIL18
+      INTEGER ::  IDTOCOB18, IDTOCIL18, IDTDUST18, IDTAW18  
+      INTEGER ::  IDTNK19  , IDTSF19  , IDTSS19  , IDTECOB19, IDTECIL19
+      INTEGER ::  IDTOCOB19, IDTOCIL19, IDTDUST19, IDTAW19  
+      INTEGER ::  IDTNK20  , IDTSF20  , IDTSS20  , IDTECOB20, IDTECIL20
+      INTEGER ::  IDTOCOB20, IDTOCIL20, IDTDUST20, IDTAW20  
+      INTEGER ::  IDTNK21  , IDTSF21  , IDTSS21  , IDTECOB21, IDTECIL21
+      INTEGER ::  IDTOCOB21, IDTOCIL21, IDTDUST21, IDTAW21  
+      INTEGER ::  IDTNK22  , IDTSF22  , IDTSS22  , IDTECOB22, IDTECIL22
+      INTEGER ::  IDTOCOB22, IDTOCIL22, IDTDUST22, IDTAW22  
+      INTEGER ::  IDTNK23  , IDTSF23  , IDTSS23  , IDTECOB23, IDTECIL23
+      INTEGER ::  IDTOCOB23, IDTOCIL23, IDTDUST23, IDTAW23  
+      INTEGER ::  IDTNK24  , IDTSF24  , IDTSS24  , IDTECOB24, IDTECIL24
+      INTEGER ::  IDTOCOB24, IDTOCIL24, IDTDUST24, IDTAW24  
+      INTEGER ::  IDTNK25  , IDTSF25  , IDTSS25  , IDTECOB25, IDTECIL25
+      INTEGER ::  IDTOCOB25, IDTOCIL25, IDTDUST25, IDTAW25  
+      INTEGER ::  IDTNK26  , IDTSF26  , IDTSS26  , IDTECOB26, IDTECIL26
+      INTEGER ::  IDTOCOB26, IDTOCIL26, IDTDUST26, IDTAW26  
+      INTEGER ::  IDTNK27  , IDTSF27  , IDTSS27  , IDTECOB27, IDTECIL27
+      INTEGER ::  IDTOCOB27, IDTOCIL27, IDTDUST27, IDTAW27  
+      INTEGER ::  IDTNK28  , IDTSF28  , IDTSS28  , IDTECOB28, IDTECIL28
+      INTEGER ::  IDTOCOB28, IDTOCIL28, IDTDUST28, IDTAW28  
+      INTEGER ::  IDTNK29  , IDTSF29  , IDTSS29  , IDTECOB29, IDTECIL29
+      INTEGER ::  IDTOCOB29, IDTOCIL29, IDTDUST29, IDTAW29  
+      INTEGER ::  IDTNK30  , IDTSF30  , IDTSS30  , IDTECOB30, IDTECIL30
+      INTEGER ::  IDTOCOB30, IDTOCIL30, IDTDUST30, IDTAW30  
+#  endif
 # endif
-      INTEGER            :: IDTSF1,  IDTSF2,   IDTSF3,  IDTSF4,  IDTSF5
-      INTEGER            :: IDTSF6,  IDTSF7,   IDTSF8,  IDTSF9,  IDTSF10
-      INTEGER            :: IDTSF11, IDTSF12,  IDTSF13, IDTSF14, IDTSF15
-      INTEGER            :: IDTSF16, IDTSF17,  IDTSF18, IDTSF19, IDTSF20
-      INTEGER            :: IDTSF21, IDTSF22,  IDTSF23, IDTSF24, IDTSF25
-      INTEGER            :: IDTSF26, IDTSF27,  IDTSF28, IDTSF29, IDTSF30
 # if  defined( TOMAS40 )
-      INTEGER            :: IDTSF31, IDTSF32,  IDTSF33, IDTSF34, IDTSF35
-      INTEGER            :: IDTSF36, IDTSF37,  IDTSF38, IDTSF39, IDTSF40
-# endif
-      INTEGER            :: IDTSS1 , IDTSS2 ,  IDTSS3 , IDTSS4 , IDTSS5
-      INTEGER            :: IDTSS6 , IDTSS7 ,  IDTSS8 , IDTSS9 , IDTSS10
-      INTEGER            :: IDTSS11, IDTSS12,  IDTSS13, IDTSS14, IDTSS15
-      INTEGER            :: IDTSS16, IDTSS17,  IDTSS18, IDTSS19, IDTSS20
-      INTEGER            :: IDTSS21, IDTSS22,  IDTSS23, IDTSS24, IDTSS25
-      INTEGER            :: IDTSS26, IDTSS27,  IDTSS28, IDTSS29, IDTSS30
-# if  defined( TOMAS40 )
-      INTEGER            :: IDTSS31, IDTSS32,  IDTSS33, IDTSS34, IDTSS35
-      INTEGER            :: IDTSS36, IDTSS37,  IDTSS38, IDTSS39, IDTSS40
-# endif
-      INTEGER            :: IDTECOB1 , IDTECOB2 , IDTECOB3 , IDTECOB4
-      INTEGER            :: IDTECOB5 , IDTECOB6 , IDTECOB7 , IDTECOB8
-      INTEGER            :: IDTECOB9 , IDTECOB10, IDTECOB11, IDTECOB12
-      INTEGER            :: IDTECOB13, IDTECOB14, IDTECOB15, IDTECOB16
-      INTEGER            :: IDTECOB17, IDTECOB18, IDTECOB19, IDTECOB20
-      INTEGER            :: IDTECOB21, IDTECOB22, IDTECOB23, IDTECOB24
-      INTEGER            :: IDTECOB25, IDTECOB26, IDTECOB27, IDTECOB28
-      INTEGER            :: IDTECOB29, IDTECOB30
-# if  defined( TOMAS40 )
-      INTEGER            :: IDTECOB31, IDTECOB32, IDTECOB33, IDTECOB34
-      INTEGER            :: IDTECOB35, IDTECOB36, IDTECOB37, IDTECOB38
-      INTEGER            :: IDTECOB39, IDTECOB40
-# endif
-      INTEGER            :: IDTECIL1 , IDTECIL2 , IDTECIL3 , IDTECIL4
-      INTEGER            :: IDTECIL5 , IDTECIL6 , IDTECIL7 , IDTECIL8
-      INTEGER            :: IDTECIL9 , IDTECIL10, IDTECIL11, IDTECIL12
-      INTEGER            :: IDTECIL13, IDTECIL14, IDTECIL15, IDTECIL16
-      INTEGER            :: IDTECIL17, IDTECIL18, IDTECIL19, IDTECIL20
-      INTEGER            :: IDTECIL21, IDTECIL22, IDTECIL23, IDTECIL24
-      INTEGER            :: IDTECIL25, IDTECIL26, IDTECIL27, IDTECIL28
-      INTEGER            :: IDTECIL29, IDTECIL30                      
-# if  defined( TOMAS40 )
-      INTEGER            :: IDTECIL31, IDTECIL32, IDTECIL33, IDTECIL34
-      INTEGER            :: IDTECIL35, IDTECIL36, IDTECIL37, IDTECIL38
-      INTEGER            :: IDTECIL39, IDTECIL40
-# endif
-      INTEGER            :: IDTOCOB1,  IDTOCOB2,  IDTOCOB3,  IDTOCOB4
-      INTEGER            :: IDTOCOB5,  IDTOCOB6,  IDTOCOB7,  IDTOCOB8
-      INTEGER            :: IDTOCOB9,  IDTOCOB10, IDTOCOB11, IDTOCOB12
-      INTEGER            :: IDTOCOB13, IDTOCOB14, IDTOCOB15, IDTOCOB16
-      INTEGER            :: IDTOCOB17, IDTOCOB18, IDTOCOB19, IDTOCOB20
-      INTEGER            :: IDTOCOB21, IDTOCOB22, IDTOCOB23, IDTOCOB24
-      INTEGER            :: IDTOCOB25, IDTOCOB26, IDTOCOB27, IDTOCOB28
-      INTEGER            :: IDTOCOB29, IDTOCOB30                      
-# if  defined( TOMAS40 )
-      INTEGER            :: IDTOCOB31, IDTOCOB32, IDTOCOB33, IDTOCOB34
-      INTEGER            :: IDTOCOB35, IDTOCOB36, IDTOCOB37, IDTOCOB38
-      INTEGER            :: IDTOCOB39, IDTOCOB40
-# endif
-      INTEGER            :: IDTOCIL1,  IDTOCIL2,  IDTOCIL3,  IDTOCIL4
-      INTEGER            :: IDTOCIL5,  IDTOCIL6,  IDTOCIL7,  IDTOCIL8
-      INTEGER            :: IDTOCIL9,  IDTOCIL10, IDTOCIL11, IDTOCIL12
-      INTEGER            :: IDTOCIL13, IDTOCIL14, IDTOCIL15, IDTOCIL16
-      INTEGER            :: IDTOCIL17, IDTOCIL18, IDTOCIL19, IDTOCIL20
-      INTEGER            :: IDTOCIL21, IDTOCIL22, IDTOCIL23, IDTOCIL24
-      INTEGER            :: IDTOCIL25, IDTOCIL26, IDTOCIL27, IDTOCIL28
-      INTEGER            :: IDTOCIL29, IDTOCIL30                      
-# if  defined( TOMAS40 )
-      INTEGER            :: IDTOCIL31, IDTOCIL32, IDTOCIL33, IDTOCIL34
-      INTEGER            :: IDTOCIL35, IDTOCIL36, IDTOCIL37, IDTOCIL38
-      INTEGER            :: IDTOCIL39, IDTOCIL40
-# endif
-      INTEGER            :: IDTDUST1,  IDTDUST2,  IDTDUST3,  IDTDUST4
-      INTEGER            :: IDTDUST5,  IDTDUST6,  IDTDUST7,  IDTDUST8
-      INTEGER            :: IDTDUST9,  IDTDUST10, IDTDUST11, IDTDUST12
-      INTEGER            :: IDTDUST13, IDTDUST14, IDTDUST15, IDTDUST16
-      INTEGER            :: IDTDUST17, IDTDUST18, IDTDUST19, IDTDUST20
-      INTEGER            :: IDTDUST21, IDTDUST22, IDTDUST23, IDTDUST24
-      INTEGER            :: IDTDUST25, IDTDUST26, IDTDUST27, IDTDUST28
-      INTEGER            :: IDTDUST29, IDTDUST30                      
-# if  defined( TOMAS40 )
-      INTEGER            :: IDTDUST31, IDTDUST32, IDTDUST33, IDTDUST34
-      INTEGER            :: IDTDUST35, IDTDUST36, IDTDUST37, IDTDUST38
-      INTEGER            :: IDTDUST39, IDTDUST40
-# endif
-      INTEGER            :: IDTAW1,  IDTAW2,   IDTAW3,  IDTAW4,  IDTAW5
-      INTEGER            :: IDTAW6,  IDTAW7,   IDTAW8,  IDTAW9,  IDTAW10
-      INTEGER            :: IDTAW11, IDTAW12,  IDTAW13, IDTAW14, IDTAW15
-      INTEGER            :: IDTAW16, IDTAW17,  IDTAW18, IDTAW19, IDTAW20
-      INTEGER            :: IDTAW21, IDTAW22,  IDTAW23, IDTAW24, IDTAW25
-      INTEGER            :: IDTAW26, IDTAW27,  IDTAW28, IDTAW29, IDTAW30
-# if  defined( TOMAS40 )
-      INTEGER            :: IDTAW31, IDTAW32,  IDTAW33, IDTAW34, IDTAW35
-      INTEGER            :: IDTAW36, IDTAW37,  IDTAW38, IDTAW39, IDTAW40
+      INTEGER ::  IDTNK31  , IDTSF31  , IDTSS31  , IDTECOB31, IDTECIL31
+      INTEGER ::  IDTOCOB31, IDTOCIL31, IDTDUST31, IDTAW31  
+      INTEGER ::  IDTNK32  , IDTSF32  , IDTSS32  , IDTECOB32, IDTECIL32
+      INTEGER ::  IDTOCOB32, IDTOCIL32, IDTDUST32, IDTAW32  
+      INTEGER ::  IDTNK33  , IDTSF33  , IDTSS33  , IDTECOB33, IDTECIL33
+      INTEGER ::  IDTOCOB33, IDTOCIL33, IDTDUST33, IDTAW33  
+      INTEGER ::  IDTNK34  , IDTSF34  , IDTSS34  , IDTECOB34, IDTECIL34
+      INTEGER ::  IDTOCOB34, IDTOCIL34, IDTDUST34, IDTAW34  
+      INTEGER ::  IDTNK35  , IDTSF35  , IDTSS35  , IDTECOB35, IDTECIL35
+      INTEGER ::  IDTOCOB35, IDTOCIL35, IDTDUST35, IDTAW35  
+      INTEGER ::  IDTNK36  , IDTSF36  , IDTSS36  , IDTECOB36, IDTECIL36
+      INTEGER ::  IDTOCOB36, IDTOCIL36, IDTDUST36, IDTAW36  
+      INTEGER ::  IDTNK37  , IDTSF37  , IDTSS37  , IDTECOB37, IDTECIL37
+      INTEGER ::  IDTOCOB37, IDTOCIL37, IDTDUST37, IDTAW37  
+      INTEGER ::  IDTNK38  , IDTSF38  , IDTSS38  , IDTECOB38, IDTECIL38
+      INTEGER ::  IDTOCOB38, IDTOCIL38, IDTDUST38, IDTAW38  
+      INTEGER ::  IDTNK39  , IDTSF39  , IDTSS39  , IDTECOB39, IDTECIL39
+      INTEGER ::  IDTOCOB39, IDTOCIL39, IDTDUST39, IDTAW39  
+      INTEGER ::  IDTNK40  , IDTSF40  , IDTSS40  , IDTECOB40, IDTECIL40
+      INTEGER ::  IDTOCOB40, IDTOCIL40, IDTDUST40, IDTAW40  
 # endif
 #endif
 
@@ -675,7 +646,7 @@
                   NEMANTHRO = 1
                   IDECO     = 2
                   IDTISOP   = 1
-		  IDTH2     = 1 ! (hup 7/14/2004)
+                  IDTH2     = 1 ! (hup 7/14/2004)
 
                ENDIF
 
@@ -1691,261 +1662,273 @@
             CASE ('H2SO4')
                 IDTH2SO4   = N
 
-            CASE ('NK1')
-                IDTNK1   = N
-            CASE ('NK2')
-                IDTNK2   = N               
-            CASE ('NK3')
-                IDTNK3   = N               
-            CASE ('NK4')
-                IDTNK4   = N
-            CASE ('NK5')
-                IDTNK5   = N
-            CASE ('NK6')
-                IDTNK6   = N
-            CASE ('NK7')
-                IDTNK7   = N
-            CASE ('NK8')
-                IDTNK8   = N
-            CASE ('NK9')
-                IDTNK9   = N
-            CASE ('NK10')
-                IDTNK10  = N
-            CASE ('NK11')
-                IDTNK11   = N
-            CASE ('NK12')
-                IDTNK12   = N
-            CASE ('NK13')
-                IDTNK13   = N
-            CASE ('NK14')
-                IDTNK14   = N
-            CASE ('NK15')
-                IDTNK15   = N
-            CASE ('NK16')
-                IDTNK16   = N
-            CASE ('NK17')
-                IDTNK17   = N
-            CASE ('NK18')
-                IDTNK18   = N
-            CASE ('NK19')
-                IDTNK19   = N
-            CASE ('NK20')
-                IDTNK20   = N
-            CASE ('NK21')
-                IDTNK21   = N
-            CASE ('NK22')
-                IDTNK22   = N
-            CASE ('NK23')
-                IDTNK23   = N               
-            CASE ('NK24')
-                IDTNK24   = N
-            CASE ('NK25')
-                IDTNK25   = N
-            CASE ('NK26')
-                IDTNK26   = N
-            CASE ('NK27')
-                IDTNK27   = N
-            CASE ('NK28')
-                IDTNK28   = N
-            CASE ('NK29')
-                IDTNK29   = N
-            CASE ('NK30')
-                IDTNK30   = N
-# if  defined( TOMAS40 )
-            CASE ('NK31')
-                IDTNK31   = N
-            CASE ('NK32')
-                IDTNK32   = N
-            CASE ('NK33')
-                IDTNK33   = N               
-            CASE ('NK34')
-                IDTNK34   = N
-            CASE ('NK35')
-                IDTNK35   = N
-            CASE ('NK36')
-                IDTNK36   = N
-            CASE ('NK37')
-                IDTNK37   = N
-            CASE ('NK38')
-                IDTNK38   = N
-            CASE ('NK39')
-                IDTNK39   = N
-            CASE ('NK40')
-                IDTNK40   = N
+            CASE (  'NK1')
+                  IDTNK1   = N
+            CASE (  'NK2')
+                  IDTNK2   = N
+            CASE (  'NK3')
+                  IDTNK3   = N
+            CASE (  'NK4')
+                  IDTNK4   = N
+            CASE (  'NK5')
+                  IDTNK5   = N
+            CASE (  'NK6')
+                  IDTNK6   = N
+            CASE (  'NK7')
+                  IDTNK7   = N
+            CASE (  'NK8')
+                  IDTNK8   = N
+            CASE (  'NK9')
+                  IDTNK9   = N
+            CASE (  'NK10')
+                  IDTNK10   = N
+            CASE (  'NK11')
+                  IDTNK11   = N
+            CASE (  'NK12')
+                  IDTNK12   = N
+# if  !defined( TOMAS12 )
+            CASE (  'NK13')
+                  IDTNK13   = N
+            CASE (  'NK14')
+                  IDTNK14   = N
+            CASE (  'NK15')
+                  IDTNK15   = N
+#  if !defined( TOMAS15 )
+            CASE (  'NK16')
+                  IDTNK16   = N
+            CASE (  'NK17')
+                  IDTNK17   = N
+            CASE (  'NK18')
+                  IDTNK18   = N
+            CASE (  'NK19')
+                  IDTNK19   = N
+            CASE (  'NK20')
+                  IDTNK20   = N
+            CASE (  'NK21')
+                  IDTNK21   = N
+            CASE (  'NK22')
+                  IDTNK22   = N
+            CASE (  'NK23')
+                  IDTNK23   = N
+            CASE (  'NK24')
+                  IDTNK24   = N
+            CASE (  'NK25')
+                  IDTNK25   = N
+            CASE (  'NK26')
+                  IDTNK26   = N
+            CASE (  'NK27')
+                  IDTNK27   = N
+            CASE (  'NK28')
+                  IDTNK28   = N
+            CASE (  'NK29')
+                  IDTNK29   = N
+            CASE (  'NK30')
+                  IDTNK30   = N
+#  endif
+# endif
+# if   defined( TOMAS40 )
+            CASE (  'NK31')
+                  IDTNK31   = N
+            CASE (  'NK32')
+                  IDTNK32   = N
+            CASE (  'NK33')
+                  IDTNK33   = N
+            CASE (  'NK34')
+                  IDTNK34   = N
+            CASE (  'NK35')
+                  IDTNK35   = N
+            CASE (  'NK36')
+                  IDTNK36   = N
+            CASE (  'NK37')
+                  IDTNK37   = N
+            CASE (  'NK38')
+                  IDTNK38   = N
+            CASE (  'NK39')
+                  IDTNK39   = N
+            CASE (  'NK40')
+                  IDTNK40   = N
 # endif
 
-            CASE ('SF1')
-                IDTSF1   = N
-            CASE ('SF2')
-                IDTSF2   = N               
-            CASE ('SF3')
-                IDTSF3   = N               
-            CASE ('SF4')
-                IDTSF4   = N
-            CASE ('SF5')
-                IDTSF5   = N
-            CASE ('SF6')
-                IDTSF6   = N
-            CASE ('SF7')
-                IDTSF7   = N
-            CASE ('SF8')
-                IDTSF8   = N
-            CASE ('SF9')
-                IDTSF9   = N
-            CASE ('SF10')
-                IDTSF10  = N
-            CASE ('SF11')
-                IDTSF11   = N
-            CASE ('SF12')
-                IDTSF12   = N
-            CASE ('SF13')
-                IDTSF13   = N
-            CASE ('SF14')
-                IDTSF14   = N
-            CASE ('SF15')
-                IDTSF15   = N
-            CASE ('SF16')
-                IDTSF16   = N
-            CASE ('SF17')
-                IDTSF17   = N
-            CASE ('SF18')
-                IDTSF18   = N
-            CASE ('SF19')
-                IDTSF19   = N
-            CASE ('SF20')
-                IDTSF20   = N
-            CASE ('SF21')
-                IDTSF21   = N
-            CASE ('SF22')
-                IDTSF22   = N
-            CASE ('SF23')
-                IDTSF23   = N               
-            CASE ('SF24')
-                IDTSF24   = N
-            CASE ('SF25')
-                IDTSF25   = N
-            CASE ('SF26')
-                IDTSF26   = N
-            CASE ('SF27')
-                IDTSF27   = N
-            CASE ('SF28')
-                IDTSF28   = N
-            CASE ('SF29')
-                IDTSF29   = N
-            CASE ('SF30')
-                IDTSF30   = N
-# if  defined( TOMAS40 )
-            CASE ('SF31')
-                IDTSF31   = N
-            CASE ('SF32')
-                IDTSF32   = N
-            CASE ('SF33')
-                IDTSF33   = N               
-            CASE ('SF34')
-                IDTSF34   = N
-            CASE ('SF35')
-                IDTSF35   = N
-            CASE ('SF36')
-                IDTSF36   = N
-            CASE ('SF37')
-                IDTSF37   = N
-            CASE ('SF38')
-                IDTSF38   = N
-            CASE ('SF39')
-                IDTSF39   = N
-            CASE ('SF40')
-                IDTSF40   = N
+            CASE (  'SF1')
+                  IDTSF1   = N
+            CASE (  'SF2')
+                  IDTSF2   = N
+            CASE (  'SF3')
+                  IDTSF3   = N
+            CASE (  'SF4')
+                  IDTSF4   = N
+            CASE (  'SF5')
+                  IDTSF5   = N
+            CASE (  'SF6')
+                  IDTSF6   = N
+            CASE (  'SF7')
+                  IDTSF7   = N
+            CASE (  'SF8')
+                  IDTSF8   = N
+            CASE (  'SF9')
+                  IDTSF9   = N
+            CASE (  'SF10')
+                  IDTSF10   = N
+            CASE (  'SF11')
+                  IDTSF11   = N
+            CASE (  'SF12')
+                  IDTSF12   = N
+# if  !defined( TOMAS12 )
+            CASE (  'SF13')
+                  IDTSF13   = N
+            CASE (  'SF14')
+                  IDTSF14   = N
+            CASE (  'SF15')
+                  IDTSF15   = N
+#  if !defined( TOMAS15 )
+            CASE (  'SF16')
+                  IDTSF16   = N
+            CASE (  'SF17')
+                  IDTSF17   = N
+            CASE (  'SF18')
+                  IDTSF18   = N
+            CASE (  'SF19')
+                  IDTSF19   = N
+            CASE (  'SF20')
+                  IDTSF20   = N
+            CASE (  'SF21')
+                  IDTSF21   = N
+            CASE (  'SF22')
+                  IDTSF22   = N
+            CASE (  'SF23')
+                  IDTSF23   = N
+            CASE (  'SF24')
+                  IDTSF24   = N
+            CASE (  'SF25')
+                  IDTSF25   = N
+            CASE (  'SF26')
+                  IDTSF26   = N
+            CASE (  'SF27')
+                  IDTSF27   = N
+            CASE (  'SF28')
+                  IDTSF28   = N
+            CASE (  'SF29')
+                  IDTSF29   = N
+            CASE (  'SF30')
+                  IDTSF30   = N
+#  endif
+# endif
+# if   defined( TOMAS40 )
+            CASE (  'SF31')
+                  IDTSF31   = N
+            CASE (  'SF32')
+                  IDTSF32   = N
+            CASE (  'SF33')
+                  IDTSF33   = N
+            CASE (  'SF34')
+                  IDTSF34   = N
+            CASE (  'SF35')
+                  IDTSF35   = N
+            CASE (  'SF36')
+                  IDTSF36   = N
+            CASE (  'SF37')
+                  IDTSF37   = N
+            CASE (  'SF38')
+                  IDTSF38   = N
+            CASE (  'SF39')
+                  IDTSF39   = N
+            CASE (  'SF40')
+                  IDTSF40   = N
 # endif
 
-            CASE ('SS1')
-                IDTSS1   = N
-            CASE ('SS2')
-                IDTSS2   = N               
-            CASE ('SS3')
-                IDTSS3   = N               
-            CASE ('SS4')
-                IDTSS4   = N
-            CASE ('SS5')
-                IDTSS5   = N
-            CASE ('SS6')
-                IDTSS6   = N
-            CASE ('SS7')
-                IDTSS7   = N
-            CASE ('SS8')
-                IDTSS8   = N
-            CASE ('SS9')
-                IDTSS9   = N
-            CASE ('SS10')
-                IDTSS10  = N
-            CASE ('SS11')
-                IDTSS11   = N
-            CASE ('SS12')
-                IDTSS12   = N
-            CASE ('SS13')
-                IDTSS13   = N
-            CASE ('SS14')
-                IDTSS14   = N
-            CASE ('SS15')
-                IDTSS15   = N
-            CASE ('SS16')
-                IDTSS16   = N
-            CASE ('SS17')
-                IDTSS17   = N
-            CASE ('SS18')
-                IDTSS18   = N
-            CASE ('SS19')
-                IDTSS19   = N
-            CASE ('SS20')
-                IDTSS20   = N
-            CASE ('SS21')
-                IDTSS21   = N
-            CASE ('SS22')
-                IDTSS22   = N
-            CASE ('SS23')
-                IDTSS23   = N               
-            CASE ('SS24')
-                IDTSS24   = N
-            CASE ('SS25')
-                IDTSS25   = N
-            CASE ('SS26')
-                IDTSS26   = N
-            CASE ('SS27')
-                IDTSS27   = N
-            CASE ('SS28')
-                IDTSS28   = N
-            CASE ('SS29')
-                IDTSS29   = N
-            CASE ('SS30')
-                IDTSS30   = N
-# if  defined( TOMAS40 )
-            CASE ('SS31')
-                IDTSS31   = N
-            CASE ('SS32')
-                IDTSS32   = N
-            CASE ('SS33')
-                IDTSS33   = N               
-            CASE ('SS34')
-                IDTSS34   = N
-            CASE ('SS35')
-                IDTSS35   = N
-            CASE ('SS36')
-                IDTSS36   = N
-            CASE ('SS37')
-                IDTSS37   = N
-            CASE ('SS38')
-                IDTSS38   = N
-            CASE ('SS39')
-                IDTSS39   = N
-            CASE ('SS40')
-                IDTSS40   = N
+            CASE (  'SS1')
+                  IDTSS1   = N
+            CASE (  'SS2')
+                  IDTSS2   = N
+            CASE (  'SS3')
+                  IDTSS3   = N
+            CASE (  'SS4')
+                  IDTSS4   = N
+            CASE (  'SS5')
+                  IDTSS5   = N
+            CASE (  'SS6')
+                  IDTSS6   = N
+            CASE (  'SS7')
+                  IDTSS7   = N
+            CASE (  'SS8')
+                  IDTSS8   = N
+            CASE (  'SS9')
+                  IDTSS9   = N
+            CASE (  'SS10')
+                  IDTSS10   = N
+            CASE (  'SS11')
+                  IDTSS11   = N
+            CASE (  'SS12')
+                  IDTSS12   = N
+# if  !defined( TOMAS12 )
+            CASE (  'SS13')
+                  IDTSS13   = N
+            CASE (  'SS14')
+                  IDTSS14   = N
+            CASE (  'SS15')
+                  IDTSS15   = N
+#  if !defined( TOMAS15 )
+            CASE (  'SS16')
+                  IDTSS16   = N
+            CASE (  'SS17')
+                  IDTSS17   = N
+            CASE (  'SS18')
+                  IDTSS18   = N
+            CASE (  'SS19')
+                  IDTSS19   = N
+            CASE (  'SS20')
+                  IDTSS20   = N
+            CASE (  'SS21')
+                  IDTSS21   = N
+            CASE (  'SS22')
+                  IDTSS22   = N
+            CASE (  'SS23')
+                  IDTSS23   = N
+            CASE (  'SS24')
+                  IDTSS24   = N
+            CASE (  'SS25')
+                  IDTSS25   = N
+            CASE (  'SS26')
+                  IDTSS26   = N
+            CASE (  'SS27')
+                  IDTSS27   = N
+            CASE (  'SS28')
+                  IDTSS28   = N
+            CASE (  'SS29')
+                  IDTSS29   = N
+            CASE (  'SS30')
+                  IDTSS30   = N
+#  endif
+# endif
+# if   defined( TOMAS40 )
+            CASE (  'SS31')
+                  IDTSS31   = N
+            CASE (  'SS32')
+                  IDTSS32   = N
+            CASE (  'SS33')
+                  IDTSS33   = N
+            CASE (  'SS34')
+                  IDTSS34   = N
+            CASE (  'SS35')
+                  IDTSS35   = N
+            CASE (  'SS36')
+                  IDTSS36   = N
+            CASE (  'SS37')
+                  IDTSS37   = N
+            CASE (  'SS38')
+                  IDTSS38   = N
+            CASE (  'SS39')
+                  IDTSS39   = N
+            CASE (  'SS40')
+                  IDTSS40   = N
 # endif
 
             CASE ('ECOB1')
                 IDTECOB1   = N
             CASE ('ECOB2')
-                IDTECOB2   = N               
+                IDTECOB2   = N
             CASE ('ECOB3')
-                IDTECOB3   = N               
+                IDTECOB3   = N
             CASE ('ECOB4')
                 IDTECOB4   = N
             CASE ('ECOB5')
@@ -1959,17 +1942,19 @@
             CASE ('ECOB9')
                 IDTECOB9   = N
             CASE ('ECOB10')
-                IDTECOB10  = N
+                IDTECOB10   = N
             CASE ('ECOB11')
                 IDTECOB11   = N
             CASE ('ECOB12')
                 IDTECOB12   = N
+# if  !defined( TOMAS12 )
             CASE ('ECOB13')
                 IDTECOB13   = N
             CASE ('ECOB14')
                 IDTECOB14   = N
             CASE ('ECOB15')
                 IDTECOB15   = N
+#  if !defined( TOMAS15 )
             CASE ('ECOB16')
                 IDTECOB16   = N
             CASE ('ECOB17')
@@ -1985,7 +1970,7 @@
             CASE ('ECOB22')
                 IDTECOB22   = N
             CASE ('ECOB23')
-                IDTECOB23   = N               
+                IDTECOB23   = N
             CASE ('ECOB24')
                 IDTECOB24   = N
             CASE ('ECOB25')
@@ -2000,13 +1985,15 @@
                 IDTECOB29   = N
             CASE ('ECOB30')
                 IDTECOB30   = N
-# if  defined( TOMAS40 )
+#  endif
+# endif
+# if   defined( TOMAS40 )
             CASE ('ECOB31')
                 IDTECOB31   = N
             CASE ('ECOB32')
                 IDTECOB32   = N
             CASE ('ECOB33')
-                IDTECOB33   = N               
+                IDTECOB33   = N
             CASE ('ECOB34')
                 IDTECOB34   = N
             CASE ('ECOB35')
@@ -2023,13 +2010,12 @@
                 IDTECOB40   = N
 # endif
 
-
             CASE ('ECIL1')
                 IDTECIL1   = N
             CASE ('ECIL2')
-                IDTECIL2   = N               
+                IDTECIL2   = N
             CASE ('ECIL3')
-                IDTECIL3   = N               
+                IDTECIL3   = N
             CASE ('ECIL4')
                 IDTECIL4   = N
             CASE ('ECIL5')
@@ -2043,17 +2029,19 @@
             CASE ('ECIL9')
                 IDTECIL9   = N
             CASE ('ECIL10')
-                IDTECIL10  = N
+                IDTECIL10   = N
             CASE ('ECIL11')
                 IDTECIL11   = N
             CASE ('ECIL12')
                 IDTECIL12   = N
+# if  !defined( TOMAS12 )
             CASE ('ECIL13')
                 IDTECIL13   = N
             CASE ('ECIL14')
                 IDTECIL14   = N
             CASE ('ECIL15')
                 IDTECIL15   = N
+#  if !defined( TOMAS15 )
             CASE ('ECIL16')
                 IDTECIL16   = N
             CASE ('ECIL17')
@@ -2069,7 +2057,7 @@
             CASE ('ECIL22')
                 IDTECIL22   = N
             CASE ('ECIL23')
-                IDTECIL23   = N               
+                IDTECIL23   = N
             CASE ('ECIL24')
                 IDTECIL24   = N
             CASE ('ECIL25')
@@ -2084,13 +2072,15 @@
                 IDTECIL29   = N
             CASE ('ECIL30')
                 IDTECIL30   = N
-# if  defined( TOMAS40 )
+#  endif
+# endif
+# if   defined( TOMAS40 )
             CASE ('ECIL31')
                 IDTECIL31   = N
             CASE ('ECIL32')
                 IDTECIL32   = N
             CASE ('ECIL33')
-                IDTECIL33   = N               
+                IDTECIL33   = N
             CASE ('ECIL34')
                 IDTECIL34   = N
             CASE ('ECIL35')
@@ -2110,9 +2100,9 @@
             CASE ('OCOB1')
                 IDTOCOB1   = N
             CASE ('OCOB2')
-                IDTOCOB2   = N               
+                IDTOCOB2   = N
             CASE ('OCOB3')
-                IDTOCOB3   = N               
+                IDTOCOB3   = N
             CASE ('OCOB4')
                 IDTOCOB4   = N
             CASE ('OCOB5')
@@ -2126,17 +2116,19 @@
             CASE ('OCOB9')
                 IDTOCOB9   = N
             CASE ('OCOB10')
-                IDTOCOB10  = N
+                IDTOCOB10   = N
             CASE ('OCOB11')
                 IDTOCOB11   = N
             CASE ('OCOB12')
                 IDTOCOB12   = N
+# if  !defined( TOMAS12 )
             CASE ('OCOB13')
                 IDTOCOB13   = N
             CASE ('OCOB14')
                 IDTOCOB14   = N
             CASE ('OCOB15')
                 IDTOCOB15   = N
+#  if !defined( TOMAS15 )
             CASE ('OCOB16')
                 IDTOCOB16   = N
             CASE ('OCOB17')
@@ -2152,7 +2144,7 @@
             CASE ('OCOB22')
                 IDTOCOB22   = N
             CASE ('OCOB23')
-                IDTOCOB23   = N               
+                IDTOCOB23   = N
             CASE ('OCOB24')
                 IDTOCOB24   = N
             CASE ('OCOB25')
@@ -2167,13 +2159,15 @@
                 IDTOCOB29   = N
             CASE ('OCOB30')
                 IDTOCOB30   = N
-# if  defined( TOMAS40 )
+#  endif
+# endif
+# if   defined( TOMAS40 )
             CASE ('OCOB31')
                 IDTOCOB31   = N
             CASE ('OCOB32')
                 IDTOCOB32   = N
             CASE ('OCOB33')
-                IDTOCOB33   = N               
+                IDTOCOB33   = N
             CASE ('OCOB34')
                 IDTOCOB34   = N
             CASE ('OCOB35')
@@ -2193,9 +2187,9 @@
             CASE ('OCIL1')
                 IDTOCIL1   = N
             CASE ('OCIL2')
-                IDTOCIL2   = N               
+                IDTOCIL2   = N
             CASE ('OCIL3')
-                IDTOCIL3   = N               
+                IDTOCIL3   = N
             CASE ('OCIL4')
                 IDTOCIL4   = N
             CASE ('OCIL5')
@@ -2209,17 +2203,19 @@
             CASE ('OCIL9')
                 IDTOCIL9   = N
             CASE ('OCIL10')
-                IDTOCIL10  = N
+                IDTOCIL10   = N
             CASE ('OCIL11')
                 IDTOCIL11   = N
             CASE ('OCIL12')
                 IDTOCIL12   = N
+# if  !defined( TOMAS12 )
             CASE ('OCIL13')
                 IDTOCIL13   = N
             CASE ('OCIL14')
                 IDTOCIL14   = N
             CASE ('OCIL15')
                 IDTOCIL15   = N
+#  if !defined( TOMAS15 )
             CASE ('OCIL16')
                 IDTOCIL16   = N
             CASE ('OCIL17')
@@ -2235,7 +2231,7 @@
             CASE ('OCIL22')
                 IDTOCIL22   = N
             CASE ('OCIL23')
-                IDTOCIL23   = N               
+                IDTOCIL23   = N
             CASE ('OCIL24')
                 IDTOCIL24   = N
             CASE ('OCIL25')
@@ -2250,13 +2246,15 @@
                 IDTOCIL29   = N
             CASE ('OCIL30')
                 IDTOCIL30   = N
-# if  defined( TOMAS40 )
+#  endif
+# endif
+# if   defined( TOMAS40 )
             CASE ('OCIL31')
                 IDTOCIL31   = N
             CASE ('OCIL32')
                 IDTOCIL32   = N
             CASE ('OCIL33')
-                IDTOCIL33   = N               
+                IDTOCIL33   = N
             CASE ('OCIL34')
                 IDTOCIL34   = N
             CASE ('OCIL35')
@@ -2276,9 +2274,9 @@
             CASE ('DUST1')
                 IDTDUST1   = N
             CASE ('DUST2')
-                IDTDUST2   = N               
+                IDTDUST2   = N
             CASE ('DUST3')
-                IDTDUST3   = N               
+                IDTDUST3   = N
             CASE ('DUST4')
                 IDTDUST4   = N
             CASE ('DUST5')
@@ -2292,17 +2290,19 @@
             CASE ('DUST9')
                 IDTDUST9   = N
             CASE ('DUST10')
-                IDTDUST10  = N
+                IDTDUST10   = N
             CASE ('DUST11')
                 IDTDUST11   = N
             CASE ('DUST12')
                 IDTDUST12   = N
+# if  !defined( TOMAS12 )
             CASE ('DUST13')
                 IDTDUST13   = N
             CASE ('DUST14')
                 IDTDUST14   = N
             CASE ('DUST15')
                 IDTDUST15   = N
+#  if !defined( TOMAS15 )
             CASE ('DUST16')
                 IDTDUST16   = N
             CASE ('DUST17')
@@ -2318,7 +2318,7 @@
             CASE ('DUST22')
                 IDTDUST22   = N
             CASE ('DUST23')
-                IDTDUST23   = N               
+                IDTDUST23   = N
             CASE ('DUST24')
                 IDTDUST24   = N
             CASE ('DUST25')
@@ -2333,13 +2333,15 @@
                 IDTDUST29   = N
             CASE ('DUST30')
                 IDTDUST30   = N
-# if  defined( TOMAS40 )
+#  endif
+# endif
+# if   defined( TOMAS40 )
             CASE ('DUST31')
                 IDTDUST31   = N
             CASE ('DUST32')
                 IDTDUST32   = N
             CASE ('DUST33')
-                IDTDUST33   = N               
+                IDTDUST33   = N
             CASE ('DUST34')
                 IDTDUST34   = N
             CASE ('DUST35')
@@ -2356,88 +2358,93 @@
                 IDTDUST40   = N
 # endif
 
-            CASE ('AW1')
-                IDTAW1   = N
-            CASE ('AW2')
-                IDTAW2   = N               
-            CASE ('AW3')
-                IDTAW3   = N               
-            CASE ('AW4')
-                IDTAW4   = N
-            CASE ('AW5')
-                IDTAW5   = N
-            CASE ('AW6')
-                IDTAW6   = N
-            CASE ('AW7')
-                IDTAW7   = N
-            CASE ('AW8')
-                IDTAW8   = N
-            CASE ('AW9')
-                IDTAW9   = N
-            CASE ('AW10')
-                IDTAW10  = N
-            CASE ('AW11')
-                IDTAW11   = N
-            CASE ('AW12')
-                IDTAW12   = N
-            CASE ('AW13')
-                IDTAW13   = N
-            CASE ('AW14')
-                IDTAW14   = N
-            CASE ('AW15')
-                IDTAW15   = N
-            CASE ('AW16')
-                IDTAW16   = N
-            CASE ('AW17')
-                IDTAW17   = N
-            CASE ('AW18')
-                IDTAW18   = N
-            CASE ('AW19')
-                IDTAW19   = N
-            CASE ('AW20')
-                IDTAW20   = N
-            CASE ('AW21')
-                IDTAW21   = N
-            CASE ('AW22')
-                IDTAW22   = N
-            CASE ('AW23')
-                IDTAW23   = N               
-            CASE ('AW24')
-                IDTAW24   = N
-            CASE ('AW25')
-                IDTAW25   = N
-            CASE ('AW26')
-                IDTAW26   = N
-            CASE ('AW27')
-                IDTAW27   = N
-            CASE ('AW28')
-                IDTAW28   = N
-            CASE ('AW29')
-                IDTAW29   = N
-            CASE ('AW30')
-                IDTAW30   = N
-# if  defined( TOMAS40 )
-            CASE ('AW31')
-                IDTAW31   = N
-            CASE ('AW32')
-                IDTAW32   = N
-            CASE ('AW33')
-                IDTAW33   = N               
-            CASE ('AW34')
-                IDTAW34   = N
-            CASE ('AW35')
-                IDTAW35   = N
-            CASE ('AW36')
-                IDTAW36   = N
-            CASE ('AW37')
-                IDTAW37   = N
-            CASE ('AW38')
-                IDTAW38   = N
-            CASE ('AW39')
-                IDTAW39   = N
-            CASE ('AW40')
-                IDTAW40   = N
+            CASE (  'AW1')
+                  IDTAW1   = N
+            CASE (  'AW2')
+                  IDTAW2   = N
+            CASE (  'AW3')
+                  IDTAW3   = N
+            CASE (  'AW4')
+                  IDTAW4   = N
+            CASE (  'AW5')
+                  IDTAW5   = N
+            CASE (  'AW6')
+                  IDTAW6   = N
+            CASE (  'AW7')
+                  IDTAW7   = N
+            CASE (  'AW8')
+                  IDTAW8   = N
+            CASE (  'AW9')
+                  IDTAW9   = N
+            CASE (  'AW10')
+                  IDTAW10   = N
+            CASE (  'AW11')
+                  IDTAW11   = N
+            CASE (  'AW12')
+                  IDTAW12   = N
+# if  !defined( TOMAS12 )
+            CASE (  'AW13')
+                  IDTAW13   = N
+            CASE (  'AW14')
+                  IDTAW14   = N
+            CASE (  'AW15')
+                  IDTAW15   = N
+#  if !defined( TOMAS15 )
+            CASE (  'AW16')
+                  IDTAW16   = N
+            CASE (  'AW17')
+                  IDTAW17   = N
+            CASE (  'AW18')
+                  IDTAW18   = N
+            CASE (  'AW19')
+                  IDTAW19   = N
+            CASE (  'AW20')
+                  IDTAW20   = N
+            CASE (  'AW21')
+                  IDTAW21   = N
+            CASE (  'AW22')
+                  IDTAW22   = N
+            CASE (  'AW23')
+                  IDTAW23   = N
+            CASE (  'AW24')
+                  IDTAW24   = N
+            CASE (  'AW25')
+                  IDTAW25   = N
+            CASE (  'AW26')
+                  IDTAW26   = N
+            CASE (  'AW27')
+                  IDTAW27   = N
+            CASE (  'AW28')
+                  IDTAW28   = N
+            CASE (  'AW29')
+                  IDTAW29   = N
+            CASE (  'AW30')
+                  IDTAW30   = N
+#  endif
 # endif
+# if   defined( TOMAS40 )
+            CASE (  'AW31')
+                  IDTAW31   = N
+            CASE (  'AW32')
+                  IDTAW32   = N
+            CASE (  'AW33')
+                  IDTAW33   = N
+            CASE (  'AW34')
+                  IDTAW34   = N
+            CASE (  'AW35')
+                  IDTAW35   = N
+            CASE (  'AW36')
+                  IDTAW36   = N
+            CASE (  'AW37')
+                  IDTAW37   = N
+            CASE (  'AW38')
+                  IDTAW38   = N
+            CASE (  'AW39')
+                  IDTAW39   = N
+            CASE (  'AW40')
+                  IDTAW40   = N
+# endif
+
 #endif
 
             CASE DEFAULT
@@ -2536,7 +2543,7 @@
 
          ! For now, comment this out, as RETRO does not have RCHO emissions
          ! (bmy, 8/17/11)
-	 !IF ( IDTRCHO > 0 ) THEN
+         !IF ( IDTRCHO > 0 ) THEN
          !   NEMANTHRO = NEMANTHRO + 1
          !   IDERCHO  = NEMANTHRO
          !ENDIF
@@ -4067,384 +4074,431 @@
 
 #if   defined( TOMAS )
       IDTH2SO4  = 0 !(win, 6/23/09)
-      IDTNK1= 0
-      IDTNK2= 0
-      IDTNK3= 0
-      IDTNK4= 0
-      IDTNK5= 0
-      IDTNK6= 0
-      IDTNK7= 0
-      IDTNK8= 0
-      IDTNK9= 0
-      IDTNK10= 0
-      IDTNK11= 0
-      IDTNK12= 0
-      IDTNK13= 0
-      IDTNK14= 0
-      IDTNK15= 0
-      IDTNK16= 0
-      IDTNK17= 0
-      IDTNK18= 0
-      IDTNK19= 0
-      IDTNK20= 0
-      IDTNK21= 0
-      IDTNK22= 0
-      IDTNK23= 0
-      IDTNK24= 0
-      IDTNK25= 0
-      IDTNK26= 0
-      IDTNK27= 0
-      IDTNK28= 0
-      IDTNK29= 0
-      IDTNK30= 0
-# if  defined( TOMAS40 )
-      IDTNK31= 0
-      IDTNK32= 0
-      IDTNK33= 0
-      IDTNK34= 0
-      IDTNK35= 0
-      IDTNK36= 0
-      IDTNK37= 0
-      IDTNK38= 0
-      IDTNK39= 0
-      IDTNK40= 0
+
+
+                  IDTNK1  = 0
+                  IDTNK2  = 0
+                  IDTNK3  = 0
+                  IDTNK4  = 0
+                  IDTNK5  = 0
+                  IDTNK6  = 0
+                  IDTNK7  = 0
+                  IDTNK8  = 0
+                  IDTNK9  = 0
+                  IDTNK10 = 0
+                  IDTNK11 = 0
+                  IDTNK12 = 0
+# if  !defined( TOMAS12 )
+                  IDTNK13 = 0
+                  IDTNK14 = 0
+                  IDTNK15 = 0
+#  if !defined( TOMAS15 )
+                  IDTNK16 = 0
+                  IDTNK17 = 0
+                  IDTNK18 = 0
+                  IDTNK19 = 0
+                  IDTNK20 = 0
+                  IDTNK21 = 0
+                  IDTNK22 = 0
+                  IDTNK23 = 0
+                  IDTNK24 = 0
+                  IDTNK25 = 0
+                  IDTNK26 = 0
+                  IDTNK27 = 0
+                  IDTNK28 = 0
+                  IDTNK29 = 0
+                  IDTNK30 = 0
+#  endif
 # endif
-      IDTSF1= 0
-      IDTSF2= 0
-      IDTSF3= 0
-      IDTSF4= 0
-      IDTSF5= 0
-      IDTSF6= 0
-      IDTSF7= 0
-      IDTSF8= 0
-      IDTSF9= 0
-      IDTSF10= 0
-      IDTSF11= 0 
-      IDTSF12= 0
-      IDTSF13= 0 
-      IDTSF14= 0
-      IDTSF15= 0
-      IDTSF16= 0 
-      IDTSF17= 0
-      IDTSF18= 0 
-      IDTSF19= 0
-      IDTSF20= 0
-      IDTSF21= 0 
-      IDTSF22= 0
-      IDTSF23= 0 
-      IDTSF24= 0
-      IDTSF25= 0
-      IDTSF26= 0 
-      IDTSF27= 0
-      IDTSF28= 0 
-      IDTSF29= 0
-      IDTSF30= 0
-# if  defined( TOMAS40 )
-      IDTSF31= 0
-      IDTSF32= 0
-      IDTSF33= 0
-      IDTSF34= 0
-      IDTSF35= 0
-      IDTSF36= 0
-      IDTSF37= 0
-      IDTSF38= 0
-      IDTSF39= 0
-      IDTSF40= 0
+# if   defined( TOMAS40 )
+                  IDTNK31 = 0
+                  IDTNK32 = 0
+                  IDTNK33 = 0
+                  IDTNK34 = 0
+                  IDTNK35 = 0
+                  IDTNK36 = 0
+                  IDTNK37 = 0
+                  IDTNK38 = 0
+                  IDTNK39 = 0
+                  IDTNK40 = 0
 # endif
-      IDTSS1= 0 
-      IDTSS2= 0 
-      IDTSS3= 0 
-      IDTSS4= 0
-      IDTSS5= 0
-      IDTSS6= 0 
-      IDTSS7= 0 
-      IDTSS8= 0 
-      IDTSS9= 0
-      IDTSS10= 0
-      IDTSS11= 0 
-      IDTSS12= 0
-      IDTSS13= 0 
-      IDTSS14= 0
-      IDTSS15= 0
-      IDTSS16= 0 
-      IDTSS17= 0
-      IDTSS18= 0 
-      IDTSS19= 0
-      IDTSS20= 0
-      IDTSS21= 0 
-      IDTSS22= 0
-      IDTSS23= 0 
-      IDTSS24= 0
-      IDTSS25= 0
-      IDTSS26= 0 
-      IDTSS27= 0
-      IDTSS28= 0 
-      IDTSS29= 0
-      IDTSS30= 0
-# if  defined( TOMAS40 )
-      IDTSS31= 0
-      IDTSS32= 0
-      IDTSS33= 0
-      IDTSS34= 0
-      IDTSS35= 0
-      IDTSS36= 0
-      IDTSS37= 0
-      IDTSS38= 0
-      IDTSS39= 0
-      IDTSS40= 0
+
+                  IDTSF1  = 0
+                  IDTSF2  = 0
+                  IDTSF3  = 0
+                  IDTSF4  = 0
+                  IDTSF5  = 0
+                  IDTSF6  = 0
+                  IDTSF7  = 0
+                  IDTSF8  = 0
+                  IDTSF9  = 0
+                  IDTSF10 = 0
+                  IDTSF11 = 0
+                  IDTSF12 = 0
+# if  !defined( TOMAS12 )
+                  IDTSF13 = 0
+                  IDTSF14 = 0
+                  IDTSF15 = 0
+#  if !defined( TOMAS15 )
+                  IDTSF16 = 0
+                  IDTSF17 = 0
+                  IDTSF18 = 0
+                  IDTSF19 = 0
+                  IDTSF20 = 0
+                  IDTSF21 = 0
+                  IDTSF22 = 0
+                  IDTSF23 = 0
+                  IDTSF24 = 0
+                  IDTSF25 = 0
+                  IDTSF26 = 0
+                  IDTSF27 = 0
+                  IDTSF28 = 0
+                  IDTSF29 = 0
+                  IDTSF30 = 0
+#  endif
 # endif
-      IDTECOB1= 0 
-      IDTECOB2= 0 
-      IDTECOB3= 0 
-      IDTECOB4= 0
-      IDTECOB5= 0
-      IDTECOB6= 0 
-      IDTECOB7= 0 
-      IDTECOB8= 0 
-      IDTECOB9= 0
-      IDTECOB10= 0
-      IDTECOB11= 0 
-      IDTECOB12= 0
-      IDTECOB13= 0 
-      IDTECOB14= 0
-      IDTECOB15= 0
-      IDTECOB16= 0 
-      IDTECOB17= 0
-      IDTECOB18= 0 
-      IDTECOB19= 0
-      IDTECOB20= 0
-      IDTECOB21= 0 
-      IDTECOB22= 0
-      IDTECOB23= 0 
-      IDTECOB24= 0
-      IDTECOB25= 0
-      IDTECOB26= 0 
-      IDTECOB27= 0
-      IDTECOB28= 0 
-      IDTECOB29= 0
-      IDTECOB30= 0
-# if  defined( TOMAS40 )
-      IDTECOB31= 0
-      IDTECOB32= 0
-      IDTECOB33= 0
-      IDTECOB34= 0
-      IDTECOB35= 0
-      IDTECOB36= 0
-      IDTECOB37= 0
-      IDTECOB38= 0
-      IDTECOB39= 0
-      IDTECOB40= 0
+# if   defined( TOMAS40 )
+                  IDTSF31 = 0
+                  IDTSF32 = 0
+                  IDTSF33 = 0
+                  IDTSF34 = 0
+                  IDTSF35 = 0
+                  IDTSF36 = 0
+                  IDTSF37 = 0
+                  IDTSF38 = 0
+                  IDTSF39 = 0
+                  IDTSF40 = 0
 # endif
-      IDTECIL1= 0 
-      IDTECIL2= 0 
-      IDTECIL3= 0 
-      IDTECIL4= 0
-      IDTECIL5= 0
-      IDTECIL6= 0 
-      IDTECIL7= 0 
-      IDTECIL8= 0 
-      IDTECIL9= 0
-      IDTECIL10= 0
-      IDTECIL11= 0 
-      IDTECIL12= 0
-      IDTECIL13= 0 
-      IDTECIL14= 0
-      IDTECIL15= 0
-      IDTECIL16= 0 
-      IDTECIL17= 0
-      IDTECIL18= 0 
-      IDTECIL19= 0
-      IDTECIL20= 0
-      IDTECIL21= 0 
-      IDTECIL22= 0
-      IDTECIL23= 0 
-      IDTECIL24= 0
-      IDTECIL25= 0
-      IDTECIL26= 0 
-      IDTECIL27= 0
-      IDTECIL28= 0 
-      IDTECIL29= 0
-      IDTECIL30= 0
-# if  defined( TOMAS40 )
-      IDTECIL31= 0
-      IDTECIL32= 0
-      IDTECIL33= 0
-      IDTECIL34= 0
-      IDTECIL35= 0
-      IDTECIL36= 0
-      IDTECIL37= 0
-      IDTECIL38= 0
-      IDTECIL39= 0
-      IDTECIL40= 0
+
+                  IDTSS1  = 0
+                  IDTSS2  = 0
+                  IDTSS3  = 0
+                  IDTSS4  = 0
+                  IDTSS5  = 0
+                  IDTSS6  = 0
+                  IDTSS7  = 0
+                  IDTSS8  = 0
+                  IDTSS9  = 0
+                  IDTSS10 = 0
+                  IDTSS11 = 0
+                  IDTSS12 = 0
+# if  !defined( TOMAS12 )
+                  IDTSS13 = 0
+                  IDTSS14 = 0
+                  IDTSS15 = 0
+#  if !defined( TOMAS15 )
+                  IDTSS16 = 0
+                  IDTSS17 = 0
+                  IDTSS18 = 0
+                  IDTSS19 = 0
+                  IDTSS20 = 0
+                  IDTSS21 = 0
+                  IDTSS22 = 0
+                  IDTSS23 = 0
+                  IDTSS24 = 0
+                  IDTSS25 = 0
+                  IDTSS26 = 0
+                  IDTSS27 = 0
+                  IDTSS28 = 0
+                  IDTSS29 = 0
+                  IDTSS30 = 0
+#  endif
 # endif
-      IDTOCOB1= 0 
-      IDTOCOB2= 0 
-      IDTOCOB3= 0 
-      IDTOCOB4= 0
-      IDTOCOB5= 0
-      IDTOCOB6= 0 
-      IDTOCOB7= 0 
-      IDTOCOB8= 0 
-      IDTOCOB9= 0
-      IDTOCOB10= 0
-      IDTOCOB11= 0 
-      IDTOCOB12= 0
-      IDTOCOB13= 0 
-      IDTOCOB14= 0
-      IDTOCOB15= 0
-      IDTOCOB16= 0 
-      IDTOCOB17= 0
-      IDTOCOB18= 0 
-      IDTOCOB19= 0
-      IDTOCOB20= 0
-      IDTOCOB21= 0 
-      IDTOCOB22= 0
-      IDTOCOB23= 0 
-      IDTOCOB24= 0
-      IDTOCOB25= 0
-      IDTOCOB26= 0 
-      IDTOCOB27= 0
-      IDTOCOB28= 0 
-      IDTOCOB29= 0
-      IDTOCOB30= 0
-# if  defined( TOMAS40 )
-      IDTOCOB31= 0
-      IDTOCOB32= 0
-      IDTOCOB33= 0
-      IDTOCOB34= 0
-      IDTOCOB35= 0
-      IDTOCOB36= 0
-      IDTOCOB37= 0
-      IDTOCOB38= 0
-      IDTOCOB39= 0
-      IDTOCOB40= 0
+# if   defined( TOMAS40 )
+                  IDTSS31 = 0
+                  IDTSS32 = 0
+                  IDTSS33 = 0
+                  IDTSS34 = 0
+                  IDTSS35 = 0
+                  IDTSS36 = 0
+                  IDTSS37 = 0
+                  IDTSS38 = 0
+                  IDTSS39 = 0
+                  IDTSS40 = 0
 # endif
-      IDTOCIL1= 0 
-      IDTOCIL2= 0 
-      IDTOCIL3= 0 
-      IDTOCIL4= 0
-      IDTOCIL5= 0
-      IDTOCIL6= 0 
-      IDTOCIL7= 0 
-      IDTOCIL8= 0 
-      IDTOCIL9= 0
-      IDTOCIL10= 0
-      IDTOCIL11= 0 
-      IDTOCIL12= 0
-      IDTOCIL13= 0 
-      IDTOCIL14= 0
-      IDTOCIL15= 0
-      IDTOCIL16= 0 
-      IDTOCIL17= 0
-      IDTOCIL18= 0 
-      IDTOCIL19= 0
-      IDTOCIL20= 0
-      IDTOCIL21= 0 
-      IDTOCIL22= 0
-      IDTOCIL23= 0 
-      IDTOCIL24= 0
-      IDTOCIL25= 0
-      IDTOCIL26= 0 
-      IDTOCIL27= 0
-      IDTOCIL28= 0 
-      IDTOCIL29= 0
-      IDTOCIL30= 0
-# if  defined( TOMAS40 )
-      IDTOCIL31= 0
-      IDTOCIL32= 0
-      IDTOCIL33= 0
-      IDTOCIL34= 0
-      IDTOCIL35= 0
-      IDTOCIL36= 0
-      IDTOCIL37= 0
-      IDTOCIL38= 0
-      IDTOCIL39= 0
-      IDTOCIL40= 0
+
+                IDTECOB1  = 0
+                IDTECOB2  = 0
+                IDTECOB3  = 0
+                IDTECOB4  = 0
+                IDTECOB5  = 0
+                IDTECOB6  = 0
+                IDTECOB7  = 0
+                IDTECOB8  = 0
+                IDTECOB9  = 0
+                IDTECOB10 = 0
+                IDTECOB11 = 0
+                IDTECOB12 = 0
+# if  !defined( TOMAS12 )
+                IDTECOB13 = 0
+                IDTECOB14 = 0
+                IDTECOB15 = 0
+#  if !defined( TOMAS15 )
+                IDTECOB16 = 0
+                IDTECOB17 = 0
+                IDTECOB18 = 0
+                IDTECOB19 = 0
+                IDTECOB20 = 0
+                IDTECOB21 = 0
+                IDTECOB22 = 0
+                IDTECOB23 = 0
+                IDTECOB24 = 0
+                IDTECOB25 = 0
+                IDTECOB26 = 0
+                IDTECOB27 = 0
+                IDTECOB28 = 0
+                IDTECOB29 = 0
+                IDTECOB30 = 0
+#  endif
 # endif
-      IDTDUST1= 0 
-      IDTDUST2= 0 
-      IDTDUST3= 0 
-      IDTDUST4= 0
-      IDTDUST5= 0
-      IDTDUST6= 0 
-      IDTDUST7= 0 
-      IDTDUST8= 0 
-      IDTDUST9= 0
-      IDTDUST10= 0
-      IDTDUST11= 0 
-      IDTDUST12= 0
-      IDTDUST13= 0 
-      IDTDUST14= 0
-      IDTDUST15= 0
-      IDTDUST16= 0 
-      IDTDUST17= 0
-      IDTDUST18= 0 
-      IDTDUST19= 0
-      IDTDUST20= 0
-      IDTDUST21= 0 
-      IDTDUST22= 0
-      IDTDUST23= 0 
-      IDTDUST24= 0
-      IDTDUST25= 0
-      IDTDUST26= 0 
-      IDTDUST27= 0
-      IDTDUST28= 0 
-      IDTDUST29= 0
-      IDTDUST30= 0
-# if  defined( TOMAS40 )
-      IDTDUST31= 0
-      IDTDUST32= 0
-      IDTDUST33= 0
-      IDTDUST34= 0
-      IDTDUST35= 0
-      IDTDUST36= 0
-      IDTDUST37= 0
-      IDTDUST38= 0
-      IDTDUST39= 0
-      IDTDUST40= 0
+# if   defined( TOMAS40 )
+                IDTECOB31 = 0
+                IDTECOB32 = 0
+                IDTECOB33 = 0
+                IDTECOB34 = 0
+                IDTECOB35 = 0
+                IDTECOB36 = 0
+                IDTECOB37 = 0
+                IDTECOB38 = 0
+                IDTECOB39 = 0
+                IDTECOB40 = 0
 # endif
-      IDTAW1= 0 
-      IDTAW2= 0 
-      IDTAW3= 0 
-      IDTAW4= 0
-      IDTAW5= 0
-      IDTAW6= 0 
-      IDTAW7= 0 
-      IDTAW8= 0 
-      IDTAW9= 0
-      IDTAW10= 0
-      IDTAW11= 0 
-      IDTAW12= 0
-      IDTAW13= 0 
-      IDTAW14= 0
-      IDTAW15= 0
-      IDTAW16= 0 
-      IDTAW17= 0
-      IDTAW18= 0 
-      IDTAW19= 0
-      IDTAW20= 0
-      IDTAW21= 0 
-      IDTAW22= 0
-      IDTAW23= 0 
-      IDTAW24= 0
-      IDTAW25= 0
-      IDTAW26= 0 
-      IDTAW27= 0
-      IDTAW28= 0 
-      IDTAW29= 0
-      IDTAW30= 0
-# if  defined( TOMAS40 )
-      IDTAW31= 0
-      IDTAW32= 0
-      IDTAW33= 0
-      IDTAW34= 0
-      IDTAW35= 0
-      IDTAW36= 0
-      IDTAW37= 0
-      IDTAW38= 0
-      IDTAW39= 0
-      IDTAW40= 0
+
+                IDTECIL1  = 0
+                IDTECIL2  = 0
+                IDTECIL3  = 0
+                IDTECIL4  = 0
+                IDTECIL5  = 0
+                IDTECIL6  = 0
+                IDTECIL7  = 0
+                IDTECIL8  = 0
+                IDTECIL9  = 0
+                IDTECIL10 = 0
+                IDTECIL11 = 0
+                IDTECIL12 = 0
+# if  !defined( TOMAS12 )
+                IDTECIL13 = 0
+                IDTECIL14 = 0
+                IDTECIL15 = 0
+#  if !defined( TOMAS15 )
+                IDTECIL16 = 0
+                IDTECIL17 = 0
+                IDTECIL18 = 0
+                IDTECIL19 = 0
+                IDTECIL20 = 0
+                IDTECIL21 = 0
+                IDTECIL22 = 0
+                IDTECIL23 = 0
+                IDTECIL24 = 0
+                IDTECIL25 = 0
+                IDTECIL26 = 0
+                IDTECIL27 = 0
+                IDTECIL28 = 0
+                IDTECIL29 = 0
+                IDTECIL30 = 0
+#  endif
 # endif
+# if   defined( TOMAS40 )
+                IDTECIL31 = 0
+                IDTECIL32 = 0
+                IDTECIL33 = 0
+                IDTECIL34 = 0
+                IDTECIL35 = 0
+                IDTECIL36 = 0
+                IDTECIL37 = 0
+                IDTECIL38 = 0
+                IDTECIL39 = 0
+                IDTECIL40 = 0
+# endif
+
+                IDTOCOB1  = 0
+                IDTOCOB2  = 0
+                IDTOCOB3  = 0
+                IDTOCOB4  = 0
+                IDTOCOB5  = 0
+                IDTOCOB6  = 0
+                IDTOCOB7  = 0
+                IDTOCOB8  = 0
+                IDTOCOB9  = 0
+                IDTOCOB10 = 0
+                IDTOCOB11 = 0
+                IDTOCOB12 = 0
+# if  !defined( TOMAS12 )
+                IDTOCOB13 = 0
+                IDTOCOB14 = 0
+                IDTOCOB15 = 0
+#  if !defined( TOMAS15 )
+                IDTOCOB16 = 0
+                IDTOCOB17 = 0
+                IDTOCOB18 = 0
+                IDTOCOB19 = 0
+                IDTOCOB20 = 0
+                IDTOCOB21 = 0
+                IDTOCOB22 = 0
+                IDTOCOB23 = 0
+                IDTOCOB24 = 0
+                IDTOCOB25 = 0
+                IDTOCOB26 = 0
+                IDTOCOB27 = 0
+                IDTOCOB28 = 0
+                IDTOCOB29 = 0
+                IDTOCOB30 = 0
+#  endif
+# endif
+# if   defined( TOMAS40 )
+                IDTOCOB31 = 0
+                IDTOCOB32 = 0
+                IDTOCOB33 = 0
+                IDTOCOB34 = 0
+                IDTOCOB35 = 0
+                IDTOCOB36 = 0
+                IDTOCOB37 = 0
+                IDTOCOB38 = 0
+                IDTOCOB39 = 0
+                IDTOCOB40 = 0
+# endif
+
+                IDTOCIL1  = 0
+                IDTOCIL2  = 0
+                IDTOCIL3  = 0
+                IDTOCIL4  = 0
+                IDTOCIL5  = 0
+                IDTOCIL6  = 0
+                IDTOCIL7  = 0
+                IDTOCIL8  = 0
+                IDTOCIL9  = 0
+                IDTOCIL10 = 0
+                IDTOCIL11 = 0
+                IDTOCIL12 = 0
+# if  !defined( TOMAS12 )
+                IDTOCIL13 = 0
+                IDTOCIL14 = 0
+                IDTOCIL15 = 0
+#  if !defined( TOMAS15 )
+                IDTOCIL16 = 0
+                IDTOCIL17 = 0
+                IDTOCIL18 = 0
+                IDTOCIL19 = 0
+                IDTOCIL20 = 0
+                IDTOCIL21 = 0
+                IDTOCIL22 = 0
+                IDTOCIL23 = 0
+                IDTOCIL24 = 0
+                IDTOCIL25 = 0
+                IDTOCIL26 = 0
+                IDTOCIL27 = 0
+                IDTOCIL28 = 0
+                IDTOCIL29 = 0
+                IDTOCIL30 = 0
+#  endif
+# endif
+# if   defined( TOMAS40 )
+                IDTOCIL31 = 0
+                IDTOCIL32 = 0
+                IDTOCIL33 = 0
+                IDTOCIL34 = 0
+                IDTOCIL35 = 0
+                IDTOCIL36 = 0
+                IDTOCIL37 = 0
+                IDTOCIL38 = 0
+                IDTOCIL39 = 0
+                IDTOCIL40 = 0
+# endif
+
+                IDTDUST1  = 0
+                IDTDUST2  = 0
+                IDTDUST3  = 0
+                IDTDUST4  = 0
+                IDTDUST5  = 0
+                IDTDUST6  = 0
+                IDTDUST7  = 0
+                IDTDUST8  = 0
+                IDTDUST9  = 0
+                IDTDUST10 = 0
+                IDTDUST11 = 0
+                IDTDUST12 = 0
+# if  !defined( TOMAS12 )
+                IDTDUST13 = 0
+                IDTDUST14 = 0
+                IDTDUST15 = 0
+#  if !defined( TOMAS15 )
+                IDTDUST16 = 0
+                IDTDUST17 = 0
+                IDTDUST18 = 0
+                IDTDUST19 = 0
+                IDTDUST20 = 0
+                IDTDUST21 = 0
+                IDTDUST22 = 0
+                IDTDUST23 = 0
+                IDTDUST24 = 0
+                IDTDUST25 = 0
+                IDTDUST26 = 0
+                IDTDUST27 = 0
+                IDTDUST28 = 0
+                IDTDUST29 = 0
+                IDTDUST30 = 0
+#  endif
+# endif
+# if   defined( TOMAS40 )
+                IDTDUST31 = 0
+                IDTDUST32 = 0
+                IDTDUST33 = 0
+                IDTDUST34 = 0
+                IDTDUST35 = 0
+                IDTDUST36 = 0
+                IDTDUST37 = 0
+                IDTDUST38 = 0
+                IDTDUST39 = 0
+                IDTDUST40 = 0
+# endif
+
+                  IDTAW1  = 0
+                  IDTAW2  = 0
+                  IDTAW3  = 0
+                  IDTAW4  = 0
+                  IDTAW5  = 0
+                  IDTAW6  = 0
+                  IDTAW7  = 0
+                  IDTAW8  = 0
+                  IDTAW9  = 0
+                  IDTAW10 = 0
+                  IDTAW11 = 0
+                  IDTAW12 = 0
+# if  !defined( TOMAS12 )
+                  IDTAW13 = 0
+                  IDTAW14 = 0
+                  IDTAW15 = 0
+#  if !defined( TOMAS15 )
+                  IDTAW16 = 0
+                  IDTAW17 = 0
+                  IDTAW18 = 0
+                  IDTAW19 = 0
+                  IDTAW20 = 0
+                  IDTAW21 = 0
+                  IDTAW22 = 0
+                  IDTAW23 = 0
+                  IDTAW24 = 0
+                  IDTAW25 = 0
+                  IDTAW26 = 0
+                  IDTAW27 = 0
+                  IDTAW28 = 0
+                  IDTAW29 = 0
+                  IDTAW30 = 0
+#  endif
+# endif
+# if   defined( TOMAS40 )
+                  IDTAW31 = 0
+                  IDTAW32 = 0
+                  IDTAW33 = 0
+                  IDTAW34 = 0
+                  IDTAW35 = 0
+                  IDTAW36 = 0
+                  IDTAW37 = 0
+                  IDTAW38 = 0
+                  IDTAW39 = 0
+                  IDTAW40 = 0
+# endif
+
 #endif
 
       ! GEOS-CHEM Emission ID #'s

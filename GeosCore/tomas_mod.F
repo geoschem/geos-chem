@@ -131,21 +131,25 @@
       INTEGER                        :: ICOMP,   IDIAG         
 
       ! Note that there is a parameter declared in CMN_SIZE called TOMASBIN --> which defines how many size bins (win, 7/7/09)
-#if   defined ( TOMAS40 )
-      INTEGER,           PARAMETER   :: IBINS = 40     
+#if   defined ( TOMAS12 )
+      INTEGER,           PARAMETER   :: IBINS = 12
+#elif defined ( TOMAS15 )
+      INTEGER,           PARAMETER   :: IBINS = 15
+#elif defined ( TOMAS40 )
+      INTEGER,           PARAMETER   :: IBINS = 40
 #else
-      INTEGER,           PARAMETER   :: IBINS = 30     
+      INTEGER,           PARAMETER   :: IBINS = 30
 #endif
 
-      INTEGER,           PARAMETER   :: SRTSO4 = 1
+      INTEGER,           PARAMETER   :: SRTSO4  = 1
       INTEGER,           PARAMETER   :: SRTNACL = 2
       INTEGER,           PARAMETER   :: SRTECIL = 3
       INTEGER,           PARAMETER   :: SRTECOB = 4
       INTEGER,           PARAMETER   :: SRTOCIL = 5
       INTEGER,           PARAMETER   :: SRTOCOB = 6
       INTEGER,           PARAMETER   :: SRTDUST = 7
-      INTEGER,           PARAMETER   :: SRTNH4 = 8
-      INTEGER,           PARAMETER   :: SRTH2O = 9
+      INTEGER,           PARAMETER   :: SRTNH4  = 8
+      INTEGER,           PARAMETER   :: SRTH2O  = 9
 
       INTEGER,           PARAMETER   :: ICOMPHARD = 9
      
@@ -176,6 +180,7 @@
       INTEGER                        :: act_nuc = 1 ! in BL
       INTEGER                        :: ion_nuc = 0 ! 1 for modgil, 2 for Yu
       INTEGER                        :: absall  = 1 ! 1 for soa absorb to all spec
+!napari nucleation tuned by factor of 1.0D-5
 
       REAL*8                         :: soaareafrac=1.0d0 ! fraction of SOA that goes
                                                           ! to SA rather than into mass
@@ -301,6 +306,10 @@
       INTEGER           :: TRACNUM
       REAL*8            :: FRAC
 
+      CHARACTER(LEN=255) :: ERR_VAR
+      CHARACTER(LEN=255) :: ERR_MSG
+
+
 !---------
 !sfarina - move definitions of these from module common
 !to within each sub and pass them around for openmp
@@ -337,7 +346,7 @@
       logical           :: printdebug !<step4.3> Print out for debugging (win, 9/16/05)
       logical           :: COND, COAG, NUCL !<step5.1> switch for each process (win 4/8/06)
       integer :: iob, job,lob !Just declare in case I want to debug (4/8/06)
-      data iob, job, lob /  5  ,       18    ,       25 /
+      data iob, job, lob /  20  ,       33    ,       2 /
       real*8           :: NH3_to_NH4, CEPS
       parameter ( CEPS=1.d-17 )
 
@@ -471,6 +480,7 @@ cvbn         write(890,89)I,J,L,STT(i,j,l,IDTH2SO4)
          ! determine ion rate
 c         ionrate = 10. ! set as constant now !!jrp
 
+#if  defined( GRID4x5)
          if( (pres / 100.) .lt. cplevels(9) ) then
             ionrate = cosmic_ions(i,j,9) * boxmass / boxvol
             if(State_Met%FRCLND(I,J) .gt. 0.2) then
@@ -496,6 +506,9 @@ c         ionrate = 10. ! set as constant now !!jrp
      &                             soil_ions( lev-1 ) * (1.d0-weight) )
             endif
          endif
+#else
+         ionrate = 0.D0
+#endif
          if(ionrate .le. 1.501) ionrate = 1.501
 
 c         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
@@ -598,7 +611,9 @@ c         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
          enddo
          
          if(TOT_NK .lt. 1.d-10) then
-            print *,'No aerosol in box ',I,J,L,'-->SKIP'
+            if( .NOT. SPINUP(5.0)) then
+               print *,'No aerosol in box ',I,J,L,'-->SKIP'
+            endif
             CYCLE
          endif
 
@@ -614,17 +629,10 @@ c         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
 
 !            print*,'Before COND_NUC Gc(srtso4)=',Gc(srtso4)
 
-
-
-!sfarina - UNCOMMENT DEBUG!
             CALL COND_NUC(Nk,Mk,Gc,Nkout,Mkout,Gcout,fn,fn1,
      &             H2SO4rate_o,adt,num_iter,Nknuc,Mknuc,Nkcond,Mkcond, 
      &             ionrate, surf_area, BOXVOL, BOXMASS, TEMPTMS, PRES,
      &             RHTOMAS, ERRORSWITCH, l)
-!sfarina - UNCOMMENT DEBUG!
-
-
-
 
 !            print*,'After COND_NUC Gcout(srtso4)=',Gcout(srtso4)
             
@@ -633,10 +641,14 @@ c         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
                CALL ERROR_STOP('AEROPHYS','After cond_nuc')
             ENDIF
 
+           ERR_VAR = 'Gcout'
+           ERR_MSG = 'After COND_NUC'
             ! check for NaN and Inf (win, 10/4/08)
             do jc = 1, icomp-1
-               call check_value(Gcout(jc),(/I,J,L,0/),'Gcout',
-     &              'After COND_NUC')
+               call check_value(Gcout(jc),(/I,J,L,0/),ERR_VAR,
+     &              ERR_MSG)
+!               call check_value(Gcout(jc),(/I,J,L,0/),'Gcout',
+!     &              'After COND_NUC')
 !               if( IT_IS_FINITE(Gcout(jc))) then
 !                  print *,'xxxxxxxxx Found Inf in Gcout xxxxxxxxxxxxxx'
 !                  print *,'Location ',I,J,L, 'comp',jc
@@ -746,14 +758,18 @@ c         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
 
             if(printdebug .and. 
      &           i==iob.and.j==job.and.l==lob) ERRORSWITCH =.TRUE. 
+C         if (i==iob .and. j==job .and. l==lob ) 
+C     &      CALL DEBUGPRINT( Nk, Mk, I, J, L,'Before coagulation' )
          
          IF( COAG )  THEN
             CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd) 
             CALL MULTICOAG( ADT, Nk, Mk, BOXVOL, PRES, TEMPTMS,
      &             errorswitch )
 
-            if (printdebug.and.i==iob .and. j==job .and. l==lob ) 
-     &           CALL DEBUGPRINT( Nk, Mk, I, J, L,'After coagulation' )
+            if ( errorswitch )
+     &       CALL DEBUGPRINT( Nk, Mk, I, J, L,'After coagulation' )
+C            if (i==iob .and. j==job .and. l==lob ) 
+C     &       CALL DEBUGPRINT( Nk, Mk, I, J, L,'After coagulation' )
 
             MPNUM = 2
             IF ( ND60 > 0 ) 
@@ -1285,9 +1301,11 @@ c            call getCondSink(Nk2,Mk2,Nnuc2,Mnuc2,srtso4,CStest,sinkfrac)
             enddo
             
             if( (tmass+mcond)/tnumb  > Xk(ibins) ) then
-               print*,'Not enough aerosol for condensation!'
-               print*,'  Exiting COND_NUC iteration with '
-               print*,time_rem,'sec remaining time'
+               if( .not. SPINUP(10.0) ) then
+                  print*,'Not enough aerosol for condensation!'
+                  print*,'  Exiting COND_NUC iteration with '
+                  print*,time_rem,'sec remaining time'
+               endif
 
                Gc3(srtnh4)=Gc2(srtnh4)
                do k=1,ibins
@@ -1428,6 +1446,7 @@ C-----VARIABLE DECLARATIONS---------------------------------------------
       double precision pi, R    ! pi and gas constant (J/mol K)
       double precision mu                  !viscosity of air (kg/m s)
       double precision mfp                 !mean free path of air molecule (m)
+      double precision l_ab                !mean free path of h2so4 molecule (m)
       real Di       !diffusivity of gas in air (m2/s)
       double precision Neps     !tolerance for number
       real density  !density [kg m^-3]
@@ -1436,6 +1455,7 @@ C-----VARIABLE DECLARATIONS---------------------------------------------
       double precision Kn       !Knudson number
       double precision beta(ibins) !non-continuum correction factor
       double precision Mktot    !total mass in bin [kg]
+      double precision c_a      !average speed of a, h2so4 molecule
 
 C-----ADJUSTABLE PARAMETERS---------------------------------------------
 
@@ -1464,10 +1484,15 @@ C-----CODE--------------------------------------------------------------
 
 C     get some parameters
 
-      mu=2.5277e-7 * TEMPTMS**0.75302
+!      mu=2.5277e-7 * TEMPTMS**0.75302
 !      mfp=2.0*mu / ( pres*sqrt( 8.0 * 0.6589 / (pi*R*TEMPTMS) ) )  !S&P eqn 8.6
-      mfp=2.0*mu / ( pres*sqrt( 8.0 * 0.0289 / (pi*R*TEMPTMS) ) )  !S&P eqn 8.6
+
+!      mfp=2.0*mu / ( pres*sqrt( 8.0 * 0.0289 / (pi*R*TEMPTMS) ) )  !S&P eqn 8.6
+
       Di=gasdiff(TEMPTMS,pres,98.0,Sv(spec))
+
+      c_a  = sqrt(8.0 * TEMPTMS * R / 0.098)
+      l_ab = 2.0 * Di / c_a
 
 C     get size dependent values
       do k=1,ibins
@@ -1485,11 +1510,16 @@ Ckpc  Density should be changed due to more species involed.
          else
             !nothing in this bin - set to "typical value"
             density=1500.
+#if  defined( TOMAS12 ) || defined( TOMAS15 )
+            mp=sqrt(xk(k)*xk(k+1))
+#else
             mp=1.4*xk(k)
+#endif
          endif
-         Dpk(k)=((mp/density)*(6./pi))**(0.333)
-         Kn=2.0*mfp/Dpk(k)                             !S&P eqn 11.35 (text)
-         beta(k)=(1.+Kn)/(1.+2.*Kn*(1.+Kn)/alpha(spec)) !S&P eqn 11.35
+         Dpk(k)  = ( (mp/density)*(6./pi) )**(0.333)
+!        Kn      = 2.0 * mfp  / Dpk(k)                             !S&P eqn 11.35 (text)
+         Kn      = 2.0 * l_ab / Dpk(k)                             !S&Pv2 chapter 12 - Kn for Dahneke correction factor
+         beta(k) = ( 1.+Kn )  / ( 1.+2.*Kn*(1.+Kn)/alpha(spec) )    !S&P eqn 11.35
       enddo      
 
 C     get condensation sink
@@ -1668,7 +1698,7 @@ C     jrp            print*,'CS*gasConc_lo',CS*gasConc_lo
 C     jrp            print*,'mnuc',mnuc
             res = H2SO4rate - CS*gasConc_lo - massnuc
             if (res.lt.0.d0) then ! any nucleation too high
-               print*,'nucleation cuttoff'
+!               if (.not. spinup(14.0)) print*,'nucleation cuttoff'
                gasConc = gasConc_lo*1.000001 ! have nucleation occur and fix mass balance after
                return
             endif
@@ -3187,11 +3217,13 @@ Cjrp      endif
          tot_i=tot_i+Mki(k,srtnh4)
          tot_f=tot_f+Mkf(k,srtnh4)
       enddo
-      if (abs(tot_f-tot_i)/tot_i.gt.1.0D-8)then
-         if ( tot_i > 1.0d-20 ) then
-            print*,'No N conservation in ezcond.f'
-            print*,'initial',tot_i
-            print*,'final',tot_f
+      if (.not. spinup(14.0)) then
+         if (abs(tot_f-tot_i)/tot_i.gt.1.0D-8)then
+            if ( tot_i > 1.0d-20 ) then
+               print*,'No N conservation in ezcond.f'
+               print*,'initial',tot_i
+               print*,'final  ',tot_f
+            endif
          endif
       endif
 
@@ -3253,6 +3285,7 @@ Cjrp      endif
       REAL*8                 :: Gc(ICOMP - 1)
       REAL*8                 :: Gcd(ICOMP - 1)
       REAL*4                 :: BOXVOL
+      REAL*4                 :: thresh
       
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -3274,6 +3307,14 @@ Cjrp      endif
       DO K = 1, IBINS
          CALL EZWATEREQM2( I, J, L, K, State_Met, State_Chm )
       ENDDO
+
+
+#if   defined ( TOMAS12 ) || defined ( TOMAS15 )
+      thresh = 4.0
+#else
+      thresh = 1.0
+#endif
+
       
       ! Swap GEOSCHEM variables into aerosol algorithm variables
       DO K = 1, IBINS
@@ -3331,7 +3372,7 @@ Cjrp      endif
 
       ! If condensing mass is too large for the alloted portion of NK
       ! then lower KMIN 
-      IF ( ( Mact + MOXID )/ Nact > XK(IBINS-1) ) THEN
+      IF ( ( Mact + MOXID )/ Nact > XK(IBINS+1) / thresh ) THEN
       IF ( KMIN > K_MIN ) THEN 
          KMIN = KMIN - 1
          GOTO 10
@@ -3531,6 +3572,7 @@ Cjrp      endif
       REAL*8                         :: Mkd(IBINS,ICOMP)
       REAL*8                         :: Gc(ICOMP - 1)
       REAL*8                         :: Gcd(ICOMP - 1)
+      REAL*4                         :: thresh
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -3546,6 +3588,12 @@ Cjrp      endif
       STT => State_Chm%Tracers
       
       pdbg = .false.
+
+#if   defined ( TOMAS12 ) || defined ( TOMAS15 )
+      thresh = 1.0
+#else
+      thresh = 1.0
+#endif
 
       ! Swap GEOSCHEM variables into TOMAS variables
       DO K = 1, IBINS
@@ -3616,7 +3664,7 @@ Cjrp      endif
          ntot = ntot + Nk(k)
       enddo
 
-      IF ( ( Mtot + MSOA ) / Ntot > XK(IBINS-1) ) THEN
+      IF ( ( Mtot + MSOA ) / Ntot > XK(IBINS+1) / thresh ) THEN
          IF ( .not. SPINUP(14.0) ) THEN
             WRITE(*,*) 'Location: ',I,J,L
             WRITE(*,*) 'Mtot_&_Ntot: ',Mtot, Ntot
@@ -3789,21 +3837,24 @@ Cjrp      endif
       REAL*8       :: sk2mtot, sk2mxtot
       REAL*8       :: sk2m(icomp-idiag), sk2mx(icomp-idiag)
       REAL*8       :: sk2mx2(icomp-idiag)
-      REAL*8       :: i_n
+      REAL*8       :: High_in
       REAL*8       :: mtotal, mktot
 
       REAL*4      ::zeta                      !see reference, eqn 6
       REAL*4      ::tlimit, dtlimit, itlimit  !fractional change in M/N allowed in one time step
       REAL*4      ::dts  !internal time step (<dt for stability)
       REAL*4      ::tsum !time so far
-      REAL*8       :: Neps !minimum value for Nk
+      REAL*8      :: Neps !minimum value for Nk
 cdbg
       character*12 limit        !description of what limits time step
 
       REAL*8       :: mi, mf   !initial and final masses
 
-
+#if  defined( TOMAS12 ) || defined( TOMAS15 )
+      parameter(zeta=1.28125 , dtlimit=0.25, itlimit=10.)
+#else
       parameter(zeta=1.0625, dtlimit=0.25, itlimit=10.)
+#endif
       REAL*4      ::pi, kB  !kB is Boltzmann constant (J/K)
       REAL*4      ::R       !gas constant (J/ mol K)
       parameter (pi=3.141592654, kB=1.38e-23, R=8.314, Neps=1.0e-3)
@@ -3825,7 +3876,11 @@ C If any Nk are zero, then set them to a small value to avoid division by zero
       do k=1,ibins
          if (Nk(k) .lt. Neps) then
             Nk(k)=Neps
+#if  defined( TOMAS12 ) || defined( TOMAS15 )
+            Mk(k,srtso4)=Neps*sqrt( xk(k)*xk(k+1) ) !make the added particles SO4
+#else
             Mk(k,srtso4)=Neps*1.4d0*xk(k) !make the added particles SO4
+#endif
          endif
       enddo
 
@@ -3888,8 +3943,52 @@ C Calculate coagulation coefficients
  10   continue     !repeat process here if multiple time steps are needed
 
       if(pdbg) print*,'In the time steps loop +++++++++++++'
-C Calculate xbar, phi and eff
+      
 
+C Calculate xbar, phi and eff
+#if  defined( TOMAS12 ) || defined( TOMAS15 )
+      do k=1,ibins
+
+         xbar(k)=0.0
+         do j=1,icomp-idiag
+            xbar(k)=xbar(k)+Mk(k,j)/Nk(k)            !eqn 8b
+         enddo
+       if(k.lt.ibins-1)then !from 1 to 10 bins
+
+         eff(k)=2./9.*Nk(k)/xk(k)
+     *        *(4.-xbar(k)/xk(k)) !eqn 4 in tzivion 1999
+         phi(k)=2./9.*Nk(k)/xk(k)
+     *        *(xbar(k)/xk(k)-1.) !eqn 4 in tzivion 1999
+
+         !Constraints in equation 15
+         if (xbar(k) .lt. xk(k)) then
+            eff(k)=2./3.*Nk(k)/xk(k)
+            phi(k)=0.0
+
+         else if (xbar(k) .gt. xk(k+1)) then
+            phi(k)=2./3.*Nk(k)/xk(k)
+            eff(k)=0.0
+         endif
+       else                      ! from 11 bins to 12 bins
+            eff(k)=2./31./31.*Nk(k)/xk(k)
+     *           *(32.-xbar(k)/xk(k)) !eqn 4 in tzivion 1999
+            phi(k)=2./31./31.*Nk(k)/xk(k)
+     *           *(xbar(k)/xk(k)-1.) !eqn 4 in tzivion 1999
+
+         !Constraints in equation 15
+         if (xbar(k) .lt. xk(k)) then
+            eff(k)=2./31.*Nk(k)/xk(k)
+            phi(k)=0.0
+
+         else if (xbar(k) .gt. xk(k+1)) then
+            phi(k)=2./31.*Nk(k)/xk(k)
+            eff(k)=0.0
+         endif
+       endif
+
+      enddo
+
+#else
       do k=1,ibins
 
          xbar(k)=0.0
@@ -3909,6 +4008,7 @@ C Calculate xbar, phi and eff
             eff(k)=0.0
          endif
       enddo
+#endif
 
 C Necessary initializations
          sk2mtot=0.0
@@ -3929,11 +4029,30 @@ C Calculate rates of change for Nk and Mk
             k1mx(j)=0.0
             k1mx2(j)=0.0
          enddo
-         i_n=0.0
+         High_in=0.0
          k1mtot=0.0
          k1mxtot=0.0
 
          !Calculate sums
+#if  defined( TOMAS12 ) || defined( TOMAS15 )
+         do j=1,icomp-idiag
+            if (k .gt. 1.and.k.lt.ibins) then
+               do i=1,k-1
+                  k1m(j)=k1m(j)+kij(k,i)*Mk(i,j)
+                  k1mx(j)=k1mx(j)+kij(k,i)*Mk(i,j)*xbar(i)*zeta
+                  k1mx2(j)=k1mx2(j)+kij(k,i)*Mk(i,j)*xbar(i)**2.
+     *                 *zeta**3.
+               enddo
+            elseif(k.eq.ibins)then
+                  k1m(j)= sk2m(j)+kij(k,k-1)*Mk(k-1,j)
+                  k1mx(j)=sk2mx(j)+kij(k,k-1)*Mk(k-1,j)*xbar(k-1)*4.754
+                  k1mx2(j)=sk2mx2(j)+kij(k,k-1)*Mk(k-1,j)*xbar(k-1)**2.
+     *                 *107.4365
+            endif
+            k1mtot=k1mtot+k1m(j)
+            k1mxtot=k1mxtot+k1mx(j)
+         enddo
+#else
          do j=1,icomp-idiag
             if (k .gt. 1) then
                do i=1,k-1
@@ -3945,18 +4064,137 @@ C Calculate rates of change for Nk and Mk
             k1mtot=k1mtot+k1m(j)
             k1mxtot=k1mxtot+k1mx(j)
          enddo
+#endif
+
          if (k .lt. ibins) then
             do i=k+1,ibins
-               i_n=i_n+Nk(i)*kij(k,i)
+               High_in=High_in+Nk(i)*kij(k,i)
             enddo
          endif
 
          !Calculate rates of change
+#if  defined( TOMAS12 ) || defined( TOMAS15 )
+         if(k.lt.ibins-1)then
+
+            dNdt(k)= -Nk(k)*High_in-kij(k,k)*Nk(k)**2.*1.125
+     *       -(phi(k)*k1mtot+(eff(k)-phi(k))/6./xk(k)*k1mxtot)
+     *       -kij(k,k)*(phi(k)/3.*xbar(k)*Nk(k)+(eff(k)-phi(k))/18.
+     *           /xk(k)*zeta*xbar(k)*xbar(k)*Nk(k))
+
+            if (k .gt. 1) then
+cyhl Nk*low_in changes to -0.5*Kij*Nk**2.
+               dNdt(k)=dNdt(k)+0.625*kij(k-1,k-1)*Nk(k-1)**2
+     *          +(phi(k-1)*sk2mtot+(eff(k-1)-phi(k-1))/6./xk(k-1)
+     *          *sk2mxtot)
+     *          +kij(k-1,k-1)*(phi(k-1)/3.*xbar(k-1)*Nk(k-1)+(eff(k-1)
+     *          -phi(k-1))/18./xk(k-1)*zeta*xbar(k-1)*xbar(k-1)
+     *          *Nk(k-1))
+
+            endif
+
+            do j=1,icomp-idiag
+
+               dMdt(k,j)= Nk(k)*k1m(j)-Mk(k,j)*High_in ! !term5,term6
+     *            -(phi(k)*xk(k+1)*k1m(j)+
+     *            (eff(k)+2.*phi(k))/6.*k1mx(j)
+     *            +(eff(k)-phi(k))/6./xk(k)*k1mx2(j)) ! term3
+     *            - kij(k,k)*Nk(k)*Mk(k,j)/3. ! I assume 1/2Nk and 2/3Mk for half bin
+     *            - kij(k,k)*(phi(k)*xk(k+1)*Mk(k,j)/3.
+     *            +(eff(k)+2.*phi(k))/6.*zeta*xbar(k)*Mk(k,j)/3.
+     *            +(eff(k)-phi(k))/6./xk(k)*zeta**3.*xbar(k)**2.
+     *            *Mk(k,j)/3.)
+
+cyhl  Term9(-kij(k,k)*Nk(k)*Mk(k,j)) is cancled out by term6 (k)  
+
+               if (k .gt. 1) then
+                  dMdt(k,j)=dMdt(k,j)
+     *               +(phi(k-1)*xk(k)*sk2m(j)+(eff(k-1)
+     *               +2.*phi(k-1))/6.*sk2mx(j)
+     *               +(eff(k-1)-phi(k-1))/6./xk(k-1)*sk2mx2(j)) !term1
+     *               +kij(k-1,k-1)*Nk(k-1)*Mk(k-1,j)/3.
+     *               +kij(k-1,k-1)*(phi(k-1)*xk(k)*Mk(k-1,j)/3.
+     *               +(eff(k-1)+2.*phi(k-1))/6.*zeta
+     *               *xbar(k-1)*Mk(k-1,j)/3.+(eff(k-1)-phi(k-1))/6.
+     *               /xk(k-1)*zeta**3.*xbar(k-1)**2.*Mk(k-1,j)/3.)
+               endif
+            enddo
+         else if (k.eq.ibins-1)then
+
+            dNdt(k)=0.625*kij(k-1,k-1)*Nk(k-1)**2
+     *         +(phi(k-1)*sk2mtot+(eff(k-1)-phi(k-1))/6./xk(k-1)
+     *         *sk2mxtot)
+     *         +kij(k-1,k-1)*xbar(k-1)*Nk(k-1)/3.*(phi(k-1)
+     *         +(eff(k-1)
+     *         -phi(k-1))/6./xk(k-1)*zeta*xbar(k-1))
+
+cyhl updated the following
+            dNdt(k)=dNdt(k)-Nk(k)*High_in-kij(k,k)*Nk(k)**2.*1.02
+     *         -(phi(k)*k1mtot+(eff(k)-phi(k))/62./xk(k)*k1mxtot)
+     *         -kij(k,k)*xbar(k)*Nk(k)*0.484*(phi(k)+(eff(k)
+     *         -phi(k))/62./xk(k)*4.754*xbar(k))
+
+cyhl I am not sure how it bring 0.5*kij(k-1,k-1)*Nk(k-1)**2 here. But
+cyhl It results in much closer result as 30 bins. Apr.27.08
+
+            do j=1,icomp-idiag
+               dMdt(k,j)=
+     *            +(phi(k-1)*xk(k)*sk2m(j)+(eff(k-1)
+     *            +2.*phi(k-1))/6.*sk2mx(j)
+     *            +(eff(k-1)-phi(k-1))/6./xk(k-1)*sk2mx2(j)) !term1
+     *            +kij(k-1,k-1)*Nk(k-1)*Mk(k-1,j)/3.
+     *            +kij(k-1,k-1)*(phi(k-1)*xk(k)*Mk(k-1,j)/3.
+     *            +(eff(k-1)+2.*phi(k-1))/6.*zeta
+     *            *xbar(k-1)*Mk(k-1,j)/3.+(eff(k-1)-phi(k-1))/6.
+     *            /xk(k-1)*zeta**3.*xbar(k-1)**2.*Mk(k-1,j)/3.)
+
+cyhl updated the following
+               dMdt(k,j)= dMdt(k,j)+Nk(k)*k1m(j)-Mk(k,j)*High_in ! !term5,term6
+     *            -(phi(k)*xk(k+1)*k1m(j)+(eff(k)/62.+0.484*phi(k))
+     *            *k1mx(j)+(eff(k)-phi(k))/62./xk(k)*k1mx2(j)) ! term3
+     *            -kij(k,k)*Nk(k)*Mk(k,j)*0.103226 ! I assume 1/2Nk and 2/3Mk for half bin
+     *            -kij(k,k)*Mk(k,j)*0.484*(phi(k)*xk(k+1)+(eff(k)/62.
+     *            +0.484*phi(k))*4.754*xbar(k)
+     *            +(eff(k)-phi(k))/62./xk(k)*107.4365*xbar(k)**2.)
+            enddo
+
+         else if (k.eq.ibins)then
+            dNdt(k)=-Nk(k)*High_in-kij(k,k)*Nk(k)**2.*1.103226
+     *         -(phi(k)*k1mtot+(eff(k)-phi(k))/62./xk(k)*k1mxtot)
+     *         -kij(k,k)*0.484*xbar(k)*Nk(k)*(phi(k)+(eff(k)-phi(k))
+     *         /62./xk(k)*4.754*xbar(k))
+     *         +0.52*kij(k-1,k-1)*Nk(k-1)**2
+     *         +(phi(k-1)*sk2mtot+(eff(k-1)-phi(k-1))/62./xk(k-1)
+     *         *sk2mxtot)
+     *         +kij(k-1,k-1)*xbar(k-1)*Nk(k-1)*0.484*(phi(k-1)
+     *         +(eff(k-1)
+     *         -phi(k-1))/62./xk(k-1)*4.754*xbar(k-1))
+
+            do j=1,icomp-idiag
+               dMdt(k,j)= Nk(k)*k1m(j)-Mk(k,j)*High_in ! !term5,term6
+     *            -(phi(k)*xk(k+1)*k1m(j)+(eff(k)/62.+0.484
+     *            *phi(k))*k1mx(j)
+     *            +(eff(k)-phi(k))/62./xk(k)*k1mx2(j)) ! term3
+     *            -kij(k,k)*Nk(k)*Mk(k,j)*0.103226 ! I assume 1/2Nk and 2/3Mk for half bin
+     *            -kij(k,k)*Mk(k,j)*0.484*(phi(k)*xk(k+1)+(eff(k)/62.
+     *            +0.484*phi(k))*4.754*xbar(k)
+     *            +(eff(k)-phi(k))/62./xk(k)*107.4365*xbar(k)**2.)
+     *            +(phi(k-1)*xk(k)*sk2m(j)+(eff(k-1)/62.+0.484
+     *            *phi(k-1))
+     *            *sk2mx(j)+(eff(k-1)-phi(k-1))/62./xk(k-1)*sk2mx2(j)) !term1
+     *            +kij(k-1,k-1)*Nk(k-1)*Mk(k-1,j)*0.103226
+     *            +kij(k-1,k-1)*Mk(k-1,j)*0.484*(phi(k-1)*xk(k)
+     *            +(eff(k-1)/62.+0.484*phi(k-1))*4.754*xbar(k-1)
+     *            +(eff(k-1)-phi(k-1))/62./xk(k-1)*107.4365
+     *            *xbar(k-1)**2.)
+            enddo
+         endif
+
+#else
          dNdt(k)= 
      &           -kij(k,k)*Nk(k)**2
      &           -phi(k)*k1mtot
      &           -zeta*(eff(k)-phi(k))/(2*xk(k))*k1mxtot
-     &           -Nk(k)*i_n
+     &           -Nk(k)*High_in
          if (k .gt. 1) then
          dNdt(k)=dNdt(k)+
      &           0.5*kij(k-1,k-1)*Nk(k-1)**2
@@ -3968,7 +4206,7 @@ C Calculate rates of change for Nk and Mk
             dMdt(k,j)= 
      &           +Nk(k)*k1m(j)
      &           -kij(k,k)*Nk(k)*Mk(k,j)
-     &           -Mk(k,j)*i_n
+     &           -Mk(k,j)*High_in
      &           -phi(k)*xk(k+1)*k1m(j)
      &           -0.5*zeta*eff(k)*k1mx(j)
      &           +zeta**3*(phi(k)-eff(k))/(2*xk(k))*k1mx2(j)
@@ -3997,6 +4235,7 @@ cdbg     &               zeta**3*(phi(k)-eff(k))/(2*xk(k))*k1mx2(j)
 cdbg               endif
 cdbg            endif
          enddo
+#endif
 
 cdbg
          if(pdbg) write(*,*) 'k,dNdt,dMdt: ', k, dNdt(k), dMdt(k,srtso4)
@@ -4029,9 +4268,10 @@ C Update Nk and Mk according to rates of change and time step
          enddo
       enddo
 
+      call mnfix(NK, MK, PDBG)
+
       !Choose time step
       dts=dt-tsum      !try to take entire remaining time step
-cdbg
       limit='comp'
       do k=1,ibins
          if(pdbg) print*,'At bin ',k
@@ -4043,11 +4283,8 @@ cdbg
                dts=Nk(k)*tlimit/abs(dNdt(k))
                if(pdbg) print*,'tlimit',tlimit,'Nk(',k,')',Nk(k), 
      &              'dNdt',dNdt(k), ' == dts ',dts
-cdbg
                limit='number'
-cdbg
                if(pdbg) write(limit(8:9),'(I2)') k
-cdbg
                if(pdbg) write(*,*) Nk(k), dNdt(k)
             endif
             do j=1,icomp-idiag
@@ -4055,36 +4292,36 @@ cdbg
                if (dMdt(k,j) .lt. 0.0) tlimit=dtlimit
                if (dMdt(k,j) .gt. 0.0) tlimit=itlimit
                if (abs(dMdt(k,j)*dts) .gt. Mk(k,j)*tlimit) then 
-               mtotal=0.d0
-               do jj=1,icomp-idiag
-                  mtotal=mtotal+Mk(k,jj)
-               enddo
-               !only use this criteria if this species is significant
-               if ((Mk(k,j)/mtotal) .gt. 1.d-5) then
-                  dts=Mk(k,j)*tlimit/abs(dMdt(k,j))
-                  if(pdbg) print*,'tlimit',tlimit,'Mk(',k,j,')',Mk(k,j), 
-     &              'dMdt',dMdt(k,j), ' == dts ',dts
-               else
-                  if (dMdt(k,j) .lt. 0.0) then
-                     !set dmdt to 0 to avoid very small mk going negative
-                     dMdt(k,j)=0.0
-                     if(pdbg) print*,' dMdt(k,j) < 0 '
+                  mtotal=0.d0
+                  do jj=1,icomp-idiag
+                     mtotal=mtotal+Mk(k,jj)
+                  enddo
+                  !only use this criteria if this species is significant
+                  if ((Mk(k,j)/mtotal) .gt. 1.d-5) then
+                    dts=Mk(k,j)*tlimit/abs(dMdt(k,j))
+                    if(pdbg) print*,'tlimit',tlimit,'Mk(',k,j,')',
+     &                Mk(k,j),'dMdt',dMdt(k,j), ' == dts ',dts
+                  else
+                    if (dMdt(k,j) .lt. 0.0) then
+                       !set dmdt to 0 to avoid very small mk going negative
+                       dMdt(k,j)=0.0
+                       if(pdbg) print*,' dMdt(k,j) < 0 '
+                    endif
                   endif
-               endif
-cdbg
                   limit='mass'
-cdbg
                   if(pdbg) write(limit(6:7),'(I2)') k
-cdbg
                   if(pdbg) write(limit(9:9),'(I1)') j
-cdbg
                   if(pdbg) write(*,*) Mk(k,j), dMdt(k,j)
                endif
             enddo
          else
             !nothing in this bin - don't let it affect time step
             Nk(k)=Neps
+#if  defined( TOMAS12 ) || defined( TOMAS15 )
+            Mk(k,srtso4)=Neps*sqrt(xk(k)*xk(k+1)) !make the added particles SO4
+#else
             Mk(k,srtso4)=Neps*1.4d0*xk(k) !make the added particles SO4
+#endif
             !make sure mass/number don't go negative
             if (dNdt(k) .lt. 0.0) dNdt(k)=0.0
             if (pdbg) print*,' dNdt(k) < 0 '
@@ -4094,13 +4331,26 @@ cdbg
          endif
       enddo  !loop bin
 
-c      if (dts .lt. 20.) write(*,*) 'dts<20. in multicoag'
+       if (pdbg .and. dts .lt. 1. ) then
+         write(*,*), dts, 'dts < 1. in multicoag'
+       endif
+
        if (dts .eq. 0.) then
-          write(*,*) 'time step is 0'
+          write(*,*) 'time step is 0 in multicoag - inf/nan/tiny error'
 C          pause
+         do k = 1,ibins
+            print *, 'dNdt(k)', dNdt(k)
+            print *, 'dMdt(k,j)'
+            do j = 1,icomp - idiag
+               print *, dMdt(k,j)
+            end do
+         end do
+      
           call debugprint(nk, mk, 0,0,0,
      &         'MULTICOAG before terminate: dts=0')
-          stop
+          PDBG = .true.
+          return
+C          stop
 C       go to 20
        endif
 
@@ -4116,8 +4366,10 @@ cdbg
 
       !Update time and repeat process if necessary
       tsum=tsum+dts
-      if(pdbg) print*,'tsum',tsum, 'less than 3600. loop again'
-      if (tsum .lt. dt) goto 10
+      if (tsum .lt. dt) then
+C         print*,'tsum',tsum, 'less than 3600. loop again'
+         goto 10
+      endif
 
       
       RETURN
@@ -4339,7 +4591,11 @@ C Calculate tj and tk factors needed to calculate tau values
          else
             !nothing in this bin - set to "typical value"
             density=1500.
+#if  defined( TOMAS12 ) || defined( TOMAS15 )
+            mp=sqrt(xk(k)*xk(k+1))
+#else
             mp=1.4*xk(k)
+#endif
          endif
          Dpk(k)=((mp/density)*(6./pi))**(0.333)
          Kn=2.0*mfp/Dpk(k)                             !S&P eqn 11.35 (text)
@@ -4402,10 +4658,10 @@ cdbg         limit='max'
       !debug%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       if (printdebug) then
          do j=1,icomp
-         print *,'atauc(1:30,comp) at comp',j
-         print *,atauc(1:30,j)
-         print *,'atau(1:30,comp) at comp',j
-         print *,atau(1:30,j)
+         print *,'atauc(1:ibins,comp) at comp',j
+         print *,atauc(1:ibins,j)
+         print *,'atau(1:ibins,comp) at comp',j
+         print *,atau(1:ibins,j)
          enddo
       endif
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -4490,9 +4746,6 @@ cdbg         endif
 
 C original         call mnfix(Nkf,Mkf)
          if (printdebug) negvalue=.true. !signal received to printdebug (win, 4/8/06)
-#if defined ( DEBUG ) 
-!      print *, 'mnfix in tomas_mod:4400'
-#endif
          call mnfix(Nkf,Mkf,negvalue) !<step5.1> bug fix call argument (win, 4/15/06) !<step4.2> Add call argument to carry tell where mnfix found
                                 ! the negative value (win, 9/12/05)
          !-------------------------------------------------------------------
@@ -4808,10 +5061,10 @@ Cpja Initialize AMKDRY and WR
 
       !debug%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       if(pdbug)then
-         print*,'AMKDRY(1:30)'
-         print *,AMKDRY(1:30)
-         print *,'WR(1:30)'
-         print *,WR(1:30)
+         print*,'AMKDRY(1:ibins)'
+         print *,AMKDRY(1:ibins)
+         print *,'WR(1:ibins)'
+         print *,WR(1:ibins)
       endif
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -4830,8 +5083,8 @@ c
 
       !debug%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       if(pdbug) then
-      print*,'tau(1:30)'
-      print *,tau(1:30)
+      print*,'tau(1:ibins)'
+      print *,tau(1:ibins)
       endif
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -4898,12 +5151,12 @@ c
             !<step5.1> Add print for debugging (win, 4/10/06)
             if (pdbug) then
                print *, 'Identify_tophat_and_grow-BIN',L
-               print *,'Starting_Nk(1:30)'
-               print *, ANK(1:30)
-               print *,'Starting_Mk(1:30,comp)'
+               print *,'Starting_Nk(1:ibins)'
+               print *, ANK(1:ibins)
+               print *,'Starting_Mk(1:ibins,comp)'
                do j=1,icomp-1
                   print *,'comp',j
-                  print *, AMK(1:30,j)
+                  print *, AMK(1:ibins,j)
                enddo
             endif
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -4915,10 +5168,48 @@ Cpja conserving mass.  I have turned them off.
 c            AVG=MAX(X(L),MIN(X(L+1),AMKDRY(L)/(NEPS+ANKD(L)))) 
 !try bring the above line back, win 4/10/06
 !win 4/10/06            
+
+
             AVG=AMKDRY(L)/ANKD(L)
             XX=X(L)/AVG
+
+
+#if  defined( TOMAS12 ) || defined( TOMAS15 )
+            if(l.lt.ibins-1)then ! bin quadrupuling
+               XI=.5d0 + XX*(2.5d0 - 2.0d0*XX)
+              !XI<1 means the AVG falls out of bin bounds
+               if (XI .LT. 1.d0) then
+                  !W1 will have sqrt of negative number
+                  write(*,*)'ERROR: tmcond - XI<1 for bin: ',L
+                  write(*,*)'AVG is ',AVG
+                  write(*,*)'Nk is ', ANKD(k)
+                  write(*,*)'Mk are ', (AMKD(k,j),j=1,icomp)
+                  write(*,*)'Initial N and M are: ',ANKD(L),AMKDRY(L)
+                  errspot = .true.
+                  RETURN
+               endif
+               W1 =SQRT(12.d0*(XI-1.d0))*AVG/4.0d0 ! cyhl 4.0=xk(k+1)/xk(k)
+               W2 =(MIN(X(L+1)-AVG,AVG-X(L)))*2.0d0
+            else ! final 2 bins mass*32
+               XI=.5d0 + XX*(16.5d0 - 16.0d0*XX)
+               if (XI .LT. 1.d0) then
+                  !W1 will have sqrt of negative number
+                  write(*,*)'ERROR: tmcond - XI<1 for bin: ',L
+                  write(*,*)'lower limit is',X(L)
+                  write(*,*)'AVG is ',AVG
+                  write(*,*)'Nk is ', ANKD(L)
+                  write(*,*)'Mk are ', (AMKD(k,j),j=1,icomp)
+                  write(*,*)'Initial N and M are: ',ANKD(L),AMKDRY(L)
+                  errspot = .true.
+                  RETURN
+               endif
+               W1 =SQRT(12.d0*(XI-1.d0))*AVG/32.0d0 ! cyhl 32.0=xk(k+1)/xk(k)
+               W2 =(MIN(X(L+1)-AVG,AVG-X(L)))*2.0d0
+            endif
+#else
             XI=.5d0 + XX*(1.5d0 - XX)
             !XI<1 means the AVG falls out of bin bounds
+
             if (XI .LT. 1.d0) then
                !W1 will have sqrt of negative number
                write(*,*)'ERROR: tmcond - XI<1 for bin: ',L
@@ -4926,21 +5217,20 @@ c            AVG=MAX(X(L),MIN(X(L+1),AMKDRY(L)/(NEPS+ANKD(L))))
                write(*,*)'Nk is ', ANKD(L)
                write(*,*)'Mk are ', (AMKD(L,j),j=1,icomp)
                write(*,*)'Initial N and M are: ',ANKD(L),AMKDRY(L)
-!original 4/12/06               STOP
-               !Not stopping here, let the run stop in aerophys (win, 4/12/06)
                errspot = .true.
                RETURN
             endif
             W1 =SQRT(12.d0*(XI-1.d0))*AVG
             W2 =MIN(X(L+1)-AVG,AVG-X(L))
+#endif
+
             WTH=W1*WW+W2*(1.d0-WW)
             IF(WTH.GT.1.) then
                write(*,*)'WTH>1 in cond.f, bin #',L
-!original 4/12/06               STOP
-               !Not stopping here, let the run stop in aerophys (win, 4/12/06)
                errspot = .true.
                RETURN
             ENDIF
+
             XU=AVG+WTH*.5d0
             XL=AVG-WTH*.5d0
 c Ventilation added bin-by-bin
@@ -5540,13 +5830,16 @@ c
       INTEGER              :: AS, K, I,J,L, dum1, dum2, dum3, LUN
       REAL*8               :: Mo
       character*80         :: filename
+      character*80         :: fname(4)
 
       !=================================================================
       ! INIT_TOMAS begins here!
       !=================================================================
 
-#if   defined( TOMAS40 )
+#if    defined( TOMAS40 )
       Mo = 1.0d-21*2.d0**(-10)     
+#elif  defined( TOMAS15 )
+      Mo = 1.0d-21*4.d0**(-3)     
 #else
       Mo = 1.0d-21
 #endif
@@ -5592,7 +5885,8 @@ c         SRTNH4 = ICOMP
          IDIAG = IDIAG + 1
 c         SRTH2O = ICOMP
       ENDIF
-      print *, 'in init_TOMAS, ICOMP = ', ICOMP
+      print *, 'In init_TOMAS, ICOMP = ', ICOMP
+      print *, 'In init_TOMAS, IBINS = ', IBINS
 
       !=================================================================
       ! Allocate arrays 
@@ -5605,9 +5899,22 @@ c         SRTH2O = ICOMP
       !=================================================================
       ! Calculate aerosol size bin boundaries (dry mass / particle)
       !=================================================================
+
+#if  defined( TOMAS12 ) || defined( TOMAS15 )
+      DO K = 1, IBINS + 1
+          if(k.lt.ibins)then
+             xk(k)=Mo * 4.d0**(k-1) !mass quadrupling
+          else
+             xk(k)=xk(k-1) * 32.d0
+          endif
+      ENDDO
+#else
       DO K = 1, IBINS + 1
          Xk( k ) = Mo * 2.d0 ** ( K-1 )
       ENDDO
+#endif
+
+
       DO K = 1, IBINS
          AVGMASS( k ) = sqrt(Xk(k)*Xk(k+1))
       ENDDO
@@ -5642,21 +5949,38 @@ c         SRTH2O = ICOMP
       ! fraction as a function of chemical composition.
       !=================================================================
 
-      FILENAME = TRIM( DATA_DIR ) // 'size.aerosol.scav/' // 
-     &     'binact02.dat'
-      CALL READBINACT(FILENAME, BINACT1)
+!      FILENAME = TRIM( DATA_DIR ) // 'size.aerosol.scav/' // 
+!     &     'binact02.dat'
+!      CALL READBINACT(FILENAME, BINACT1)
+!
+!      FILENAME = TRIM( DATA_DIR ) // 'size.aerosol.scav/' // 
+!     &     'binact10.dat'
+!      CALL READBINACT(FILENAME, BINACT2)
+!
+!      FILENAME = TRIM( DATA_DIR ) // 'size.aerosol.scav/' // 
+!     &     'fraction02.dat'
+!      CALL READFRACTION(FILENAME, FRACTION1)
+!
+!      FILENAME = TRIM( DATA_DIR ) // 'size.aerosol.scav/' // 
+!     &     'fraction10.dat'
+!      CALL READFRACTION(FILENAME, FRACTION2)
 
-      FILENAME = TRIM( DATA_DIR ) // 'size.aerosol.scav/' // 
-     &     'binact10.dat'
-      CALL READBINACT(FILENAME, BINACT2)
+      IF(IBINS .eq. 12 .OR. IBINS .eq. 15) THEN
+         fname(1) = 'binact02_12.dat'
+         fname(2) = 'binact10_12.dat'
+         fname(3) = 'fraction02_12.dat'
+         fname(4) = 'fraction10_12.dat'
+      ELSE IF (IBINS .eq. 30 .OR. IBINS .eq. 40) THEN
+         fname(1) = 'binact02.dat'
+         fname(2) = 'binact10.dat'
+         fname(3) = 'fraction02.dat'
+         fname(4) = 'fraction10.dat'
+      END IF
 
-      FILENAME = TRIM( DATA_DIR ) // 'size.aerosol.scav/' // 
-     &     'fraction02.dat'
-      CALL READFRACTION(FILENAME, FRACTION1)
-
-      FILENAME = TRIM( DATA_DIR ) // 'size.aerosol.scav/' // 
-     &     'fraction10.dat'
-      CALL READFRACTION(FILENAME, FRACTION2)
+      CALL READBINACT(  fname(1), BINACT1)
+      CALL READBINACT(  fname(2), BINACT2)
+      CALL READFRACTION(fname(3), FRACTION1)
+      CALL READFRACTION(fname(4), FRACTION2)
 
       !initialize yu lookup table
       call READJIMN5D ! yu nucleation inputs
@@ -5800,21 +6124,17 @@ c      USE LOGICAL_MOD, ONLY  : LCARB30, LDUST30
       MNACL = 0.E0
       MDUST = 0.E0
 
-c      IF (LCARB30) THEN
       IF ( IDTECIL1 > 0 .AND.IDTOCIL1 > 0 .AND. IDTOCOB1 > 0 ) THEN
          MECIL = STT(I,J,L,IDTECIL1-1+BIN)
          MOCIL = STT(I,J,L,IDTOCIL1-1+BIN)
          MOCOB = STT(I,J,L,IDTOCOB1-1+BIN)
       ENDIF
-c      IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
       IF ( IDTDUST1 > 0 ) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
-c      IF (LSULF30) MSO4  = STT(I,J,L,IDTSF1-1+BIN) * 1.2 !account for ammonium sulfate
       IF ( IDTSF1 > 0 ) MSO4  = STT(I,J,L,IDTSF1-1+BIN) * 1.2 !account for ammonium sulfate
       IF ( IDTSS1 > 0 ) MNACL = STT(I,J,L,IDTSS1-1+BIN)
-c      IF (LSALT30) MNACL = STT(I,J,L,IDTSS1-1+BIN)
       MTOT  = MECIL + MOCIL + MOCOB + MSO4 + MNACL + MDUST + 1.e-20
       XOCIL = MOCIL / MTOT
-      XSO4  = MSO4 / MTOT
+      XSO4  = MSO4  / MTOT
       XNACL = MNACL / MTOT
       ISO4  = MIN(101, INT(XSO4*100)+1)
       INACL = MIN(101, INT(XNACL*100)+1)
@@ -5824,8 +6144,10 @@ c      IF (LSALT30) MNACL = STT(I,J,L,IDTSS1-1+BIN)
       ! subroutine was written considering bin 1 is 10nm
       ! in TOMAS-40, bin 1 is 1nm and bin 11 is 10nm
       !==========================================================
-#if  defined( TOMAS40 )
+#if    defined( TOMAS40 )
       OFFSET = 10
+#elif  defined( TOMAS15 )
+      OFFSET = 3
 #else
       OFFSET = 0
 #endif
@@ -5840,6 +6162,8 @@ c      IF (LSALT30) MNACL = STT(I,J,L,IDTSS1-1+BIN)
          print*,'BINACT ERROR GETBINACT=',GETBINACT
          stop
       endif
+
+!      print*,'N, BINACT = ',N,GETBINACT
       
       IF ( GETBINACT > BIN ) THEN
          FRACTION = 0. !NOT ACTIVATED
@@ -5856,7 +6180,6 @@ c      IF (LSALT30) MNACL = STT(I,J,L,IDTSS1-1+BIN)
       ! Calculate the soluble fraction of mass
       MECOB = 0.E0
       IF ( IDTECOB1 > 0 ) MECOB = STT(I,J,L,IDTECOB1-1+BIN)
-c      IF (LCARB30) MECOB = STT(I,J,L,IDTECOB1-1+BIN)
       SOLFRAC = MTOT / ( MTOT + MECOB ) 
 
       ! Return to calling program
@@ -5953,8 +6276,10 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
       ! subroutine was written considering bin 1 is 10nm
       ! in TOMAS-40, bin 1 is 1nm and bin 11 is 10nm
       !==========================================================
-#if  defined( TOMAS40 )
+#if   defined( TOMAS40 )
       OFFSET = 10
+#elif  defined( TOMAS15 )
+      OFFSET = 3
 #else
       OFFSET = 0
 #endif
@@ -6480,6 +6805,8 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
 
          CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd) 
          !if(i==47.and.j==10.and.l==7) ERRORSWITCH = .TRUE.
+C         if(i==22.and.j==33.and.l==2) 
+C     &      call debugprint( NK, MK, i,j,l,LOCATION)
 !%%%% CRITICAL
          CALL MNFIX( NK, MK, ERRORSWITCH )
          IF ( ERRORSWITCH ) THEN
@@ -6569,9 +6896,9 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
       REAL*8              :: MSHIFT !mass to shift to new bin
       REAL*8              :: FJ !fraction of mass that is component j
       REAL*8              :: save1,save2,save3,save4,save5
-!      REAL*8,   PARAMETER :: EPS = 1.D-20 !small number for Nk
 !      REAL*8,   PARAMETER :: EPS2= 1.D-32 !small number for Mk 
-      REAL*8,   PARAMETER :: EPS = 1.D-2 !small number for Nk 
+!      REAL*8,   PARAMETER :: EPS = 1.D-2 !small number for Nk 
+      REAL*8,   PARAMETER :: EPS = 1.D-20 !small number for Nk
       REAL*8,   PARAMETER :: EPS2= 1.D-28 !small number for Mk
       REAL*8,   PARAMETER :: TINY= 1.D-36 !very small number
 
@@ -6799,7 +7126,7 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
          ENDIF
 
          IF ( AVG >  xk(IBINS+1) ) THEN
-            IF ( PRT ) PRINT *, 'MNFIX [1]: AVG > Xk(31) at bin',K
+            IF ( PRT ) PRINT *, 'MNFIX [1]: AVG > Xk(ibins+1) at bin',K
             IF ( FIXERROR ) THEN 
                !out of bin range - remove some mass
                MSHIFT = NK(k)* xk(IBINS+1)/ 1.2
@@ -6808,7 +7135,7 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
                ENDDO
             ELSE
                ERRORSWITCH = .TRUE.
-               print *,'MNFIX(1): AVG>Xk(31) at bin',K
+               print *,'MNFIX(1): AVG>Xk(ibins+1) at bin',K
                GOTO 300
             ENDIF
          ENDIF
@@ -7151,15 +7478,15 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
 555   FORMAT (3E15.5E2)
        WRITE(6,*)'END OF MNFIX ( WHERE? )'
        WRITE(6,*)'DRYMAS-excl-NH4  NK      DRYMASS/NK'
-       DO K = 1,30
+       DO K = 1,IBINS
             TOTMAS = SUM(MK(K,1:ICOMP-1))
 !            PRINT *, TOTMAS,NK(K), TOTMAS/NK(K)
+       ENDDO
         WRITE(6,555)
      &          TOTMAS, NK(K),
      &          TOTMAS/ NK(K) 
         print*,'-----------'
         call debugprint( NK, MK, 0,0,0,'End of MNFIX')
-       ENDDO
 
 !       write(*,*)'Nk'
 !       write(*,*) NK(1:30)
@@ -7208,8 +7535,8 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
       REAL*8 ndistinit(ibins) 
       REAL*8 ndist(ibins) 
       REAL*8 mdist(ibins,icomp)
-      REAL*8 boxvolume, temp , PRES
-      REAL*8 tscale
+      REAL*4 boxvolume, temp , PRES
+      REAL*4 tscale
       REAL*8 ndistfinal(ibins)
       REAL*8 maddfinal(ibins)
       logical pdbug  ! for pringing out during debugging
@@ -7308,7 +7635,7 @@ C Calculate coagulation coefficients
       enddo
 
 C     get the first order loss rate
-      kcoag(30)=0.0
+      kcoag(ibins)=0.0
 !debug
       if(pdbug) print *,'Bin  KCOAG'
       do k=1,ibins-1
