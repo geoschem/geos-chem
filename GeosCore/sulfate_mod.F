@@ -6454,8 +6454,8 @@
 
       DATA BFRAC/
 # if  defined( TOMAS40)
-     &           0.000d-00, 0.000d-00, 0.000d-00, 0.000d-00, 0.000d-00,
-     &           0.000d-00, 0.000d-00, 0.000d-00, 0.000d-00, 0.000d-00,
+     &           0.000d00 , 0.000d00 , 0.000d00 , 0.000d00 , 0.000d00 ,
+     &           0.000d00 , 0.000d00 , 0.000d00 , 0.000d00 , 0.000d00 ,
 # endif
      &           1.728d-02, 2.648d-02, 3.190d-02, 3.024d-02, 2.277d-02,
      &           1.422d-02, 9.029d-03, 9.241d-03, 1.531d-02, 2.741d-02,
@@ -6697,12 +6697,11 @@
                MADDFINAL(K)  = 0
             ENDDO  
 
-#if defined ( DEBUG ) 
 !      print *, 'mnfix in sulfate_mod:6346'
             CALL MNFIX( NDIST, MDIST, ERRORSWITCH )
             IF( ERRORSWITCH ) PRINT *,'SRCSF30: MNFIX found error ',
      &              'before SUBGRIDCOAG at ',I,J,L
-#endif
+            ERRORSWITCH = .FALSE.
 
             ! Overwrite number and mass before emission for diagnostic 
             ! just in case there was any change by MNFIX (win, 10/27/08)
@@ -6780,10 +6779,8 @@
  
             ERRORSWITCH = .FALSE.
 !debug            if(i==ii.and.j==ii.and.l==ll) errorswitch=.true.
-#if defined ( DEBUG ) 
 !      print *, 'mnfix in sulfate_mod:6430'
             CALL MNFIX( NDIST2, MDIST2, ERRORSWITCH )
-#endif
 
             IF( ERRORSWITCH ) PRINT *,'SRCSF30: MNFIX found error ',
      &           'after SUBGRIDCOAG at ',I,J,L
