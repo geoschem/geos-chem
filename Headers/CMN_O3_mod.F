@@ -6,7 +6,6 @@
 ! !MODULE: CMN_O3_mod
 !
 ! !DESCRIPTION: Common blocks for anthro emissions (via SMVGEAR!)
-!
 !\\
 !\\
 ! !INTERFACE: 
@@ -230,9 +229,9 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: init_cmn_o3
+! !IROUTINE: cleanup_cmn_o3
 !
-! !DESCRIPTION: Subroutine INIT\_CMN\_O3 allocates all module arrays.
+! !DESCRIPTION: Subroutine CLEANUP\_CMN\_O3 allocates all module arrays.
 !\\
 !\\
 ! !INTERFACE:

@@ -1799,7 +1799,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !     
-! !MODULE: get_03
+! !IROUTINE: get_O3
 !     
 ! !DESCRIPTION: Function GET\_O3 returns monthly mean O3 for offline sulfate
 !  aerosol simulations. (bmy, 12/16/02)

@@ -128,7 +128,7 @@
 !
 ! !IROUTINE: cleanup_cmn_fj
 !
-! !DESCRIPTION: Subroutine CLEANUP\_CMN_FJ deallocates all module arrays.
+! !DESCRIPTION: Subroutine CLEANUP\_CMN\_FJ deallocates all module arrays.
 !\\
 !\\
 ! !INTERFACE:

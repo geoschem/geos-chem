@@ -81,7 +81,6 @@ SRC1 :=                               \
 ./headers.geos-chem                   \
 $(HDR)/define.h                       \
 $(HDR)/CMN_SIZE_mod.F                 \
-$(HDR)/CMN_DEP_mod.F                  \
 $(HDR)/CMN_DIAG_mod.F                 \
 $(HDR)/CMN_GCTM_mod.F                 \
 $(HDR)/CMN_NOX_mod.F                  \
@@ -222,7 +221,6 @@ $(CORE)/physproc.F                    \
 $(CORE)/RD_AOD.F                      \
 $(CORE)/rd_js.F                       \
 $(CORE)/RD_TJPL.F                     \
-$(CORE)/rdsoil.F                      \
 $(CORE)/read_jv_atms_dat.F90          \
 $(CORE)/set_aer.F                     \
 $(CORE)/setemdep.F                    \

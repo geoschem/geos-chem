@@ -660,7 +660,7 @@
 ! !IROUTINE: init_cmn_size
 !
 ! !DESCRIPTION: Routine INIT\_CMN\_SIZE initializes the grid dimension values
-!  in module CMN_SIZE_mod.F.
+!  in module CMN\_SIZE\_mod.F.
 !\\
 !\\
 ! !INTERFACE:

@@ -8270,8 +8270,8 @@
 ! !IROUTINE: gigc_init_extra
 !
 ! !DESCRIPTION: Suborutine GIGC\_INIT\_EXTRA initializes other GEOS-Chem 
-!  modules that have not been initialized in either GIGC_Allocate_All or
-!  GIGC_Init_all.
+!  modules that have not been initialized in either GIGC\_Allocate\_All or
+!  GIGC\_Init\_all.
 !\\
 !\\
 ! !INTERFACE:

@@ -235,7 +235,7 @@
 ! !IROUTINE: settledust 
 !
 ! !DESCRIPTION: Subroutine SETTLEDUST is the interface between the 
-!  size-resolved dry deposition subroutine AERO_DRYDEP and the dust module. 
+!  size-resolved dry deposition subroutine AERO\_DRYDEP and the dust module. 
 !  This is to call only gravitational settling and deals with removal of 
 !  aerosol number with the dust mass.  (win, 7/17/09)
 !\\

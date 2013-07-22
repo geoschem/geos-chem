@@ -138,7 +138,7 @@
 !
 ! !IROUTINE: set_commsoil_mod
 !
-! !DESCRIPTION: Routine SET_COMMSOIL_MOD allocates all module arrays
+! !DESCRIPTION: Routine SET\_COMMSOIL\_MOD allocates all module arrays
 !  with the longitude and latitude values IIPAR and JJPAR.
 !\\
 !\\
