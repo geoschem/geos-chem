@@ -4806,7 +4806,7 @@
             ! Scale anthro SO2 for TOMAS
             ESO2_ac = ESO2_ac * scaleanthso2
 #endif
-            CALL READ_ANTHRO_SOx( MONTH, NSEASON )
+            CALL READ_ANTHRO_SOx( Input_Opt, MONTH, NSEASON )
 #if defined( TOMAS )
             ! Scale anthro SO2 for TOMAS
             ESO2_an  = ESO2_an * scaleanthso2
@@ -6904,7 +6904,6 @@
       USE EPA_NEI_MOD,        ONLY : GET_EPA_ANTHRO, GET_EPA_BIOFUEL
       USE EPA_NEI_MOD,        ONLY : GET_USA_MASK
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE LOGICAL_MOD,        ONLY : LRCP
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
       USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK_LT
       USE TIME_MOD,           ONLY : GET_TS_EMIS
@@ -6958,6 +6957,7 @@
 !  14 Jun 2013 - R. Yantosca - Now determine weekday/weekend with respect to
 !                              the local time at each grid box.  (Formerly,
 !                              this had been done w/r/t the GMT time.
+!  22 Jul 2013 - M. Sulprizio- Now copy LRCP from Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6975,7 +6975,7 @@
       REAL*8                 :: TEMPEMISS(NOXLEVELS)
       
       ! For fields from Input_Opt
-      LOGICAL                :: LNEI99, LCAC, LNEI05, LNLPBL
+      LOGICAL                :: LNEI99, LCAC, LNEI05, LNLPBL, LRCP
       INTEGER                :: N_TRACERS
       REAL*8                 :: XNUMOL(Input_Opt%N_TRACERS)
 
@@ -6996,6 +6996,7 @@
       LNEI99    = Input_Opt%LNEI99
       LCAC      = Input_Opt%LCAC
       LNEI05    = Input_Opt%LNEI05
+      LRCP      = Input_Opt%LRCP
       N_TRACERS = Input_Opt%N_TRACERS
       XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
 
@@ -7947,7 +7948,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_ANTHRO_SOx( THISMONTH, NSEASON )
+      SUBROUTINE READ_ANTHRO_SOx( Input_Opt, THISMONTH, NSEASON )
 !
 ! !USES:
 !
@@ -7958,11 +7959,9 @@
       USE EMEP_MOD,             ONLY : GET_EMEP_ANTHRO
       USE EMEP_MOD,             ONLY : GET_EUROPE_MASK
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2ff
+      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
       USE GRID_MOD,             ONLY : GET_XMID,        GET_YMID
       USE GRID_MOD,             ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,          ONLY : LFUTURE,         LEDGARSOx
-      USE LOGICAL_MOD,          ONLY : LSTREETS,        LEMEP
-      USE LOGICAL_MOD,          ONLY : LRCP
       USE RCP_MOD,              ONLY : GET_RCP_EMISSION
       USE STREETS_ANTHRO_MOD,   ONLY : GET_SE_ASIA_MASK
       USE STREETS_ANTHRO_MOD,   ONLY : GET_STREETS_ANTHRO
@@ -7983,8 +7982,9 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)           :: THISMONTH ! Current month number (1-12)
-      INTEGER, INTENT(IN)           :: NSEASON   ! Season #: 1=DJF; 2=MAM; 
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt ! Input Options object
+      INTEGER,        INTENT(IN)    :: THISMONTH ! Current month number (1-12)
+      INTEGER,        INTENT(IN)    :: NSEASON   ! Season #: 1=DJF; 2=MAM; 
                                                  !           3=JJA; 4=SON
 
 !  
@@ -8015,6 +8015,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !  30 May 2013 - S. Farina   - Merge in TOMAS updates
+!  22 Jul 2013 - M. Sulprizio- Now copy LRCP from Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8031,9 +8032,23 @@
       CHARACTER(LEN=4)              :: SYEAR
       CHARACTER(LEN=255)            :: FILENAME
 
+      ! For fields from Input_Opt
+      LOGICAL                       :: LFUTURE
+      LOGICAL                       :: LEDGARSOx
+      LOGICAL                       :: LSTREETS
+      LOGICAL                       :: LEMEP
+      LOGICAL                       :: LRCP
+
       !=================================================================
       ! READ_ANTHRO_SOx begins here!
       !=================================================================
+
+      ! Copy values from Input_Opt
+      LFUTURE        = Input_Opt%LFUTURE
+      LEDGARSOx      = Input_Opt%LEDGARSOx
+      LSTREETS       = Input_Opt%LSTREETS
+      LEMEP          = Input_Opt%LEMEP
+      LRCP           = Input_Opt%LRCP
          
       IF ( FSCALYR < 0 ) THEN
          SCALEYEAR = GET_YEAR()
@@ -9005,7 +9020,6 @@
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2ff
       USE GIGC_Input_Opt_Mod,   ONLY : OptInput
       USE GRID_MOD,             ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,          ONLY : LRCPSHIP
       USE RCP_MOD,              ONLY : GET_RCP_EMISSION
       USE TRACER_MOD,           ONLY : XNUMOL
       USE TRACERID_MOD,         ONLY : IDTSO2
@@ -9031,6 +9045,7 @@
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  17 Jun 2013 - R. Yantosca - Now take values from Input_Opt
+!  22 Jul 2013 - M. Sulprizio- Now copy LRCPSHIP from Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -9051,6 +9066,7 @@
       LOGICAL                       :: LARCSHIP
       LOGICAL                       :: LSHIPSO2
       LOGICAL                       :: LICOADSSHIP
+      LOGICAL                       :: LRCPSHIP
 
       !=================================================================
       ! READ_SHIP_SO2 begins here!
@@ -9064,6 +9080,7 @@
       LARCSHIP    = Input_Opt%LARCSHIP
       LSHIPSO2    = Input_Opt%LSHIPSO2
       LICOADSSHIP = Input_Opt%LICOADSSHIP
+      LRCPSHIP    = Input_Opt%LRCPSHIP
 
       ! Reset
       ESO2_sh = 0D0
@@ -9267,8 +9284,6 @@
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NH3an
       USE GIGC_Input_Opt_Mod,   ONLY : OptInput
       USE GRID_MOD,             ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,          ONLY : LFUTURE,         LSTREETS
-      USE LOGICAL_MOD,          ONLY : LEMEP,           LRCP
       USE RCP_MOD,              ONLY : GET_RCP_EMISSION
       USE STREETS_ANTHRO_MOD,   ONLY : GET_SE_ASIA_MASK
       USE STREETS_ANTHRO_MOD,   ONLY : GET_STREETS_ANTHRO
@@ -9299,6 +9314,7 @@
 !  (9 ) Now check if NH3 Streets is available (phs, 12/10/08)  
 !  (10) Bug fix -- STREETS needs to be PRIVATE (dkh, bmy, 3/5/10)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  22 Jul 2013 - M. Sulprizio- Now copy LRCP from Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -9318,11 +9334,21 @@
       CHARACTER(LEN=255)            :: FILENAME
       REAL*8                        :: STREETS
 
+      ! For fields from Input_Opt
+      LOGICAL                :: LFUTURE
+      LOGICAL                :: LSTREETS
+      LOGICAL                :: LEMEP
+      LOGICAL                :: LRCP
+
       !=================================================================
       ! READ_ANTHRO_NH3 begins here!
       !=================================================================
 
       ! Copy fields from INPUT_OPT to local variables for use below
+      LFUTURE       = Input_Opt%LFUTURE
+      LSTREETS      = Input_Opt%LSTREETS
+      LEMEP         = Input_Opt%LEMEP
+      LRCP          = Input_Opt%LRCP
       XNUMOL        = Input_Opt%XNUMOL
 
       !-----------------------------------------------------------

@@ -2126,6 +2126,7 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!  22 Jul 2013 - M. Sulprizio- Now copy LRCP, LRCPSHIP, LRCPAIR to Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2802,6 +2803,9 @@
       Input_Opt%LEDGARNOx      = LEDGARNOx
       Input_Opt%LEDGARCO       = LEDGARCO
       Input_Opt%LEDGARSOx      = LEDGARSOx
+      Input_Opt%LRCP            = LRCP
+      Input_Opt%LRCPSHIP        = LRCPSHIP
+      Input_Opt%LRCPAIR         = LRCPAIR
 
       ! Return success
       RC = GIGC_SUCCESS
@@ -2832,8 +2836,8 @@
         WRITE( 6, 100 ) '  Use EPA/NEI 2005          : ', LNEI05
         WRITE( 6, 100 ) '  Use RETRO emissions       : ', LRETRO
         WRITE( 6, 100 ) '  Use RCP emissions         : ', LRCP
-        WRITE( 6, 100 ) '      RCP scenario?         : ', RCPNAME
-        WRITE( 6, 100 ) '      RCP year?             : ', RCPYEAR
+        WRITE( 6, 130 ) '      RCP scenario?         : ', TRIM(RCPNAME)
+        WRITE( 6, 110 ) '      RCP year?             : ', RCPYEAR
         WRITE( 6, 100 ) 'Use EPA/NEI99 (ANTH + BF)   : ', LNEI99
         WRITE( 6, 100 ) '      --> with NOx VISTAS?  : ', LVISTAS
         WRITE( 6, 100 ) '      --> with ICARTT modif?: ', LICARTT
@@ -2886,6 +2890,7 @@
  110  FORMAT( A, I5 )
       ! add formatting for ISOP_SCALING and NOx_scaling (hotp 8/4/09)
  120  FORMAT( A, f6.2 )
+ 130  FORMAT( A, A   )
 
       END SUBROUTINE READ_EMISSIONS_MENU
 !EOC

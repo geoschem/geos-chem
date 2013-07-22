@@ -213,6 +213,7 @@
 !  14 Jun 2013 - R. Yantosca - Now determine weekday/weekend with respect to
 !                              the local time at each grid box.  (Formerly,
 !                              this had been done w/r/t the GMT time.
+!  22 Jul 2013 - M. Sulprizio- Now copy LRCP from Input_Opt
 !******************************************************************************
 !
       ! References to F90 modules
@@ -249,8 +250,6 @@
       USE BRAVO_MOD,            ONLY : GET_BRAVO_MASK
       USE CAC_ANTHRO_MOD,       ONLY : GET_CANADA_MASK
       USE EMEP_MOD,             ONLY : GET_EUROPE_MASK
-
-      USE LOGICAL_MOD,          ONLY : LRCP   ! (cdh, 10/18/2011)
 
       USE CMN_SIZE_MOD               ! Size parameters
       USE CMN_O3_MOD                 ! FSCLYR
@@ -307,6 +306,7 @@
       LOGICAL                       :: LRETRO
       LOGICAL                       :: LNEI05
       LOGICAL                       :: LHIST
+      LOGICAL                       :: LRCP
       LOGICAL                       :: ITS_A_H2HD_SIM
 
       !=================================================================
@@ -323,6 +323,7 @@
       LRETRO         = Input_Opt%LRETRO
       LNEI05         = Input_Opt%LNEI05
       LHIST          = Input_Opt%LHIST
+      LRCP           = Input_Opt%LRCP
       ITS_A_H2HD_SIM = Input_Opt%ITS_A_H2HD_SIM
 
       ! First-time initialization

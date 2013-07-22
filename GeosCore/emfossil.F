@@ -30,7 +30,6 @@
       USE NEI2005_ANTHRO_MOD, ONLY : GET_NEI2005_ANTHRO
       USE NEI2005_ANTHRO_MOD, ONLY : NEI05_MASK => USA_MASK
       USE LOGICAL_MOD,        ONLY : LICOADSSHIP !(cklee, 6/30/09)
-      USE LOGICAL_MOD,        ONLY : LRCP,             LRCPSHIP!(cdh, 10/14/11)
       USE RCP_MOD,            ONLY : GET_RCP_EMISSION
                               
       USE STREETS_ANTHRO_MOD, ONLY : GET_SE_ASIA_MASK
@@ -154,6 +153,7 @@
 !  14 Jun 2013 - R. Yantosca - Now determine weekday/weekend with respect to
 !                              the local time at each grid box.  (Formerly,
 !                              this had been done w/r/t the GMT time.
+!  22 Jul 2013 - M. Sulprizio- Now copy LRCP and LRCPSHIP from Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -190,6 +190,8 @@
       LOGICAL :: LNEI05
       LOGICAL :: LRETRO
       LOGICAL :: LHIST
+      LOGICAL :: LRCP
+      LOGICAL :: LRCPSHIP
       LOGICAL :: ITS_A_TAGCO_SIM
       INTEGER :: N_TRACERS
       REAL*8  :: XNUMOL(Input_Opt%N_TRACERS)
@@ -214,6 +216,8 @@
       LNEI05          = Input_Opt%LNEI05
       LRETRO          = Input_Opt%LRETRO
       LHIST           = Input_Opt%LHIST
+      LRCP            = Input_Opt%LRCP
+      LRCPSHIP        = Input_Opt%LRCPSHIP
       ITS_A_TAGCO_SIM = Input_Opt%ITS_A_TAGCO_SIM
       N_TRACERS       = Input_Opt%N_TRACERS
       XNUMOL          = Input_Opt%XNUMOL(1:N_TRACERS)

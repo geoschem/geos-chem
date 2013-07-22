@@ -35,7 +35,6 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE LIGHTNING_NOX_MOD,  ONLY : EMIS_LI_NOx
-      USE LOGICAL_MOD,        ONLY : LRCPSHIP
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L
       USE PRESSURE_MOD,       ONLY : GET_PEDGE
       USE TRACERID_MOD,       ONLY : CTRMB,     IDEMIS,  IDENO
@@ -184,6 +183,7 @@
 !                              compiling with OMP=no vs. OMP=yes.
 !  18 Jun 2013 - R. Yantosca - Remove COEF11 variable, that is always =1 for
 !                              O3, HNO3, and NO.
+!  22 Jul 2013 - M. Sulprizio- Now copy LRCPSHIP from Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -209,6 +209,7 @@
       ! For fields from Input_Opt
       LOGICAL          :: LDRYD,       LNLPBL,     LPRT
       LOGICAL          :: LICOADSSHIP, LEDGARSHIP, LEMEPSHIP     
+      LOGICAL          :: LRCPSHIP
 
       !%%% BMY KLUDGE to only print out warning message about 
       !%%% non-emitted tracers on the first timestep (bmy, 5/28/13)
@@ -242,6 +243,7 @@
       LICOADSSHIP = Input_Opt%LICOADSSHIP
       LEDGARSHIP  = Input_Opt%LEDGARSHIP 
       LEMEPSHIP   = Input_Opt%LEMEPSHIP
+      LRCPSHIP    = Input_Opt%LRCPSHIP
 
       ! Emission timestep [s]
       DTSRCE = GET_TS_EMIS() * 60d0

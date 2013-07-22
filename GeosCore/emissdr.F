@@ -94,6 +94,7 @@
 !  27 Nov 2012 - R. Yantosca - Replace SUNCOS_MID with State_Met%SUNCOSmid
 !  13 Dec 2012 - R. Yantosca - Now remove reference to obsolete CMN_DEP_mod.F
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  22 Jul 2013 - M. Sulprizio- Now copy LRCPAIR from Input_Opt
 !******************************************************************************
 !
       ! References to F90 modules
@@ -116,7 +117,6 @@
       USE GRID_MOD,           ONLY : GET_XMID
       USE GRID_MOD,           ONLY : GET_XOFFSET,   GET_YOFFSET
       USE LIGHTNING_NOX_MOD,  ONLY : EMLIGHTNING
-      USE LOGICAL_MOD,        ONLY : LRCPAIR     ! (cdh, 10/14/11)
       USE MEGAN_MOD,          ONLY : GET_EMISOP_MEGAN
       USE MEGAN_MOD,          ONLY : GET_EMMBO_MEGAN
       USE MEGAN_MOD,          ONLY : GET_EMMONOT_MEGAN
@@ -218,6 +218,7 @@
       LOGICAL                :: LMEGANMONO
       LOGICAL                :: LBIOGENIC
       LOGICAL                :: LNLPBL
+      LOGICAL                :: LRCPAIR
       LOGICAL                :: ITS_A_TAGCO_SIM
       INTEGER                :: N_TRACERS
 !
@@ -247,6 +248,7 @@
       LMEGANMONO       = Input_Opt%LMEGANMONO
       LBIOGENIC        = Input_Opt%LBIOGENIC
       LNLPBL           = Input_Opt%LNLPBL
+      LRCPAIR          = Input_Opt%LRCPAIR
       ITS_A_TAGCO_SIM  = Input_Opt%ITS_A_TAGCO_SIM
       N_TRACERS        = Input_Opt%N_TRACERS
 

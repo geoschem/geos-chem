@@ -4382,6 +4382,7 @@ c
 !                              derived type object
 !  04 Mar 2013 - R. Yantosca - Remove call to INIT_CARBON
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  22 Jul 2013 - M. Sulprizio- Now copy LRCP from Input_Opt
 !******************************************************************************
 !
       ! References to F90 modules
@@ -4395,7 +4396,6 @@ c
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE LOGICAL_MOD,        ONLY : LRCP
       USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
 #if defined( TOMAS )
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
@@ -4469,6 +4469,7 @@ c
       LOGICAL         :: LCOOKE
       LOGICAL         :: LPRT
       LOGICAL         :: LSOA
+      LOGICAL         :: LRCP
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -4491,6 +4492,7 @@ c
       LCOOKE    = Input_Opt%LCOOKE
       LPRT      = Input_Opt%LPRT
       LSOA      = Input_Opt%LSOA
+      LRCP      = Input_Opt%LRCP
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)

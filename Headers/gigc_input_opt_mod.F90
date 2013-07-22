@@ -165,6 +165,9 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LEDGARNOx
      LOGICAL                     :: LEDGARCO
      LOGICAL                     :: LEDGARSOx
+     LOGICAL                     :: LRCP
+     LOGICAL                     :: LRCPSHIP
+     LOGICAL                     :: LRCPAIR
 
      !----------------------------------------
      ! CO2 MENU fields
@@ -580,6 +583,7 @@ MODULE GIGC_Input_Opt_Mod
 !  27 Mar 2013 - R. Yantosca - Add extra fields for tagged CO2
 !  27 Mar 2013 - R. Yantosca - Add extra fields for tagged EDGAR
 !  29 Mar 2013 - R. Yantosca - Add DO_DIAG_WRITE field (to shut diags in MPI)
+!  22 Jul 2013 - M. Sulprizio- Add extra fields for RCP emissions
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -806,6 +810,9 @@ CONTAINS
     Input_Opt%LEDGARNOx              = .FALSE.
     Input_Opt%LEDGARCO               = .FALSE. 
     Input_Opt%LEDGARSOX              = .FALSE.
+    Input_Opt%LRCP                   = .FALSE.
+    Input_Opt%LRCPSHIP               = .FALSE.
+    Input_Opt%LRCPAIR                = .FALSE.
 
     !----------------------------------------
     ! CO2 MENU fields

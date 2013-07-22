@@ -58,22 +58,29 @@
 
 !-----------------------------------------------------------------------
 
-      SUBROUTINE LOAD_RCP_EMISSIONS
+      SUBROUTINE LOAD_RCP_EMISSIONS( Input_Opt )
 
 !***********************************************************************
 !  Subroutine LOAD_RCP_EMISSIONS reads all RCP emissions at the beginning of
 !  each month. (cdh, 10/14/11)
+!
+!  22 Jul 2013 - M. Sulprizio- Now copy LRCP, LRCPSHIP, LRCPAIR from Input_Opt
 !***********************************************************************
 
-      USE TIME_MOD,               ONLY : GET_MONTH
-      USE ERROR_MOD,              ONLY : GEOS_CHEM_STOP
-      USE DIRECTORY_MOD,          ONLY : DATA_DIR
-      USE LOGICAL_MOD,            ONLY : LRCP, LRCPSHIP, LRCPAIR
       USE BPCH2_MOD,              ONLY : GET_TAU0, GET_RES_EXT
+      USE DIRECTORY_MOD,          ONLY : DATA_DIR
+      USE ERROR_MOD,              ONLY : GEOS_CHEM_STOP
+      USE GIGC_Input_Opt_Mod,     ONLY : OptInput
+      USE TIME_MOD,               ONLY : GET_MONTH
       USE TRACERID_MOD
       USE TRACER_MOD,             ONLY : TRACER_NAME
 
 #     include "define.h"
+
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 
       !Local variables
       LOGICAL, SAVE                 :: FIRST = .TRUE.
@@ -82,16 +89,25 @@
       CHARACTER(LEN=255)            :: FILENAME
       REAL*8                        :: XTAU
 
+      ! For fields from Input_Opt
+      LOGICAL                       :: LRCP
+      LOGICAL                       :: LRCPSHIP
+      LOGICAL                       :: LRCPAIR
 
       !=================================================================
       !  LOAD_RCP_EMISSIONS begins here
       !=================================================================
 
+      ! Copy values from Input_Opt
+      LRCP     = Input_Opt%LRCP
+      LRCPSHIP = Input_Opt%LRCPSHIP
+      LRCPAIR  = Input_Opt%LRCPAIR
+
       ! First-time initialization
       IF ( FIRST ) THEN
 
          ! Allocate arrays
-         CALL INIT_RCP
+         CALL INIT_RCP( Input_Opt )
 
          ! Reset first-time flag
          FIRST = .FALSE.
@@ -808,25 +824,42 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE INIT_RCP
+      SUBROUTINE INIT_RCP( Input_Opt )
 
 !***********************************************************************
 !  Subroutine allocates and zeroes all module arrays
 !   (cdh, 10/14/11)
+!
+!  22 Jul 2013 - M. Sulprizio- Now copy LRCP, LRCPSHIP, LRCPAIR from Input_Opt
 !***********************************************************************
 
       ! References to F90 modules
-      USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE LOGICAL_MOD, ONLY : LRCP, LRCPSHIP, LRCPAIR
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 
-      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
+
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
 
       ! Local variables
       INTEGER :: AS
 
+      ! For fields from Input_Opt
+      LOGICAL                     :: LRCP
+      LOGICAL                     :: LRCPSHIP
+      LOGICAL                     :: LRCPAIR
+
       !=================================================================
       !  INIT_RCP begins here
       !=================================================================
+
+      ! Copy values from Input_Opt
+      LRCP        = Input_Opt%LRCP
+      LRCPSHIP    = Input_Opt%LRCPSHIP
+      LRCPAIR     = Input_Opt%LRCPAIR
 
       ! Return if we LRCP = .FALSE.
       IF ( .not. (LRCP .OR. LRCPSHIP .OR. LRCPAIR) ) RETURN

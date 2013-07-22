@@ -111,7 +111,6 @@
       USE H2_HD_MOD,              ONLY : EMISS_H2_HD
       USE HCN_CH3CN_MOD,          ONLY : EMISS_HCN_CH3CN
       USE ICOADS_SHIP_MOD,        ONLY : EMISS_ICOADS_SHIP
-      USE LOGICAL_MOD,            ONLY : LRCP, LRCPSHIP, LRCPAIR
       USE MERCURY_MOD,            ONLY : EMISSMERCURY
       USE NEI2005_ANTHRO_MOD,     ONLY : EMISS_NEI2005_ANTHRO
       USE NEI2005_ANTHRO_MOD,     ONLY : EMISS_NEI2005_ANTHRO_05x0666
@@ -206,6 +205,7 @@
 !  15 Nov 2012 - M. Payer    - Now pass all met fields via State_Met object
 !  26 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
 !  27 Mar 2013 - R. Yantosca - Now remove DEVEL tags; pass objects to routines
+!  22 Jul 2013 - M. Sulprizio- Now copy LRCP, LRCPSHIP, LRCPAIR from Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -249,6 +249,9 @@
       LOGICAL :: LDUST
       LOGICAL :: LSSABr2
       LOGICAL :: LPRT
+      LOGICAL :: LRCP
+      LOGICAL :: LRCPSHIP
+      LOGICAL :: LRCPAIR
       INTEGER :: N_TRACERS
 
       !=================================================================
@@ -291,6 +294,9 @@
       LDUST              = Input_Opt%LDUST
       LSSABr2            = Input_Opt%LSSABr2
       LPRT               = Input_Opt%LPRT
+      LRCP               = Input_Opt%LRCP
+      LRCPSHIP           = Input_Opt%LRCPSHIP
+      LRCPAIR            = Input_Opt%LRCPAIR
       N_TRACERS          = Input_Opt%N_TRACERS
 
 #if defined( TOMAS )
@@ -362,7 +368,7 @@
          ! We read all emissions (for land, ship, air) even if only
          ! one is needed
          IF ( (LRCP .OR. LRCPSHIP .OR. LRCPAIR) .and. 
-     &        ITS_A_NEW_MONTH() ) CALL LOAD_RCP_EMISSIONS
+     &        ITS_A_NEW_MONTH() ) CALL LOAD_RCP_EMISSIONS( Input_Opt )
 
          ! Read EPA/NEI99 (USA) emissions once per month
          IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) THEN
