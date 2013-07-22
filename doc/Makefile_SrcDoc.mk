@@ -70,6 +70,7 @@
 #  27 Nov 2012 - M. Payer    - Added modules for POPs simulation
 #  13 Dec 2012 - R. Yantosca - Added biofit, sunparam, and removed some 
 #                              obsolete functions
+#  22 Jul 2013 - M. Sulprizio- Added rcp_mod
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -171,6 +172,7 @@ $(CORE)/pbl_mix_mod.F                 \
 $(CORE)/pjc_pfix_mod.F                \
 $(CORE)/planeflight_mod.F             \
 $(CORE)/pops_mod.F                    \
+$(CORE)/rcp_mod.F                     \
 $(CORE)/retro_mod.F                   \
 $(CORE)/RnPbBe_mod.F                  \
 $(CORE)/scale_anthro_mod.F            \

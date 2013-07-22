@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: RCP_MOD
+! !MODULE: rcp_mod
 !
 ! !DESCRIPTION: Module RCP\_MOD provides access to the RCP emission inventories
 !  that were prepared for IPCC AR5. The inventory includes anthropogenic
@@ -54,19 +54,24 @@
 !BOC
 
       CONTAINS
-
-
-!-----------------------------------------------------------------------
-
-      SUBROUTINE LOAD_RCP_EMISSIONS( Input_Opt )
-
-!***********************************************************************
-!  Subroutine LOAD_RCP_EMISSIONS reads all RCP emissions at the beginning of
-!  each month. (cdh, 10/14/11)
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            
+!------------------------------------------------------------------------------
+!BOP
 !
-!  22 Jul 2013 - M. Sulprizio- Now copy LRCP, LRCPSHIP, LRCPAIR from Input_Opt
-!***********************************************************************
-
+! !IROUTINE: load_rcp_emissions
+!
+! !DESCRIPTION: Subroutine LOAD\_RCP\_EMISSIONS reads all RCP emissions at the
+!  beginning of each month. (cdh, 10/14/11)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE LOAD_RCP_EMISSIONS( Input_Opt )
+!
+! !USES:
+!
       USE BPCH2_MOD,              ONLY : GET_TAU0, GET_RES_EXT
       USE DIRECTORY_MOD,          ONLY : DATA_DIR
       USE ERROR_MOD,              ONLY : GEOS_CHEM_STOP
@@ -76,13 +81,20 @@
       USE TRACER_MOD,             ONLY : TRACER_NAME
 
 #     include "define.h"
-
 !
 ! !INPUT PARAMETERS:
 !
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-
-      !Local variables
+!
+! !REVISION HISTORY: 
+!  22 Jul 2013 - M. Sulprizio- Now copy LRCP, LRCPSHIP, LRCPAIR from Input_Opt
+!  22 Jul 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE                 :: FIRST = .TRUE.
       INTEGER                       :: THISMONTH, I
       CHARACTER(LEN=20)             :: RCPSPECIES, YEARSTR
@@ -127,7 +139,7 @@
       IF( LRCP .OR. LRCPSHIP) THEN
 
          ! Land file name
-         FILENAME = TRIM( DATA_DIR )        // 'RCP_201110/'     //
+         FILENAME = TRIM( DATA_DIR )        // 'RCP_201206/'     //
      &                     trim( RCPNAME )  // '/'               //
      &                     trim( RCPNAME )  // '_anthropogenic_' // 
      &                     trim( YEARSTR )  // '.'               //
@@ -140,7 +152,7 @@
          CALL READ_RCP_BPCH( FILENAME, TYPE=1, TAU0=XTAU )
 
          ! Ship file name
-         FILENAME = TRIM( DATA_DIR )        // 'RCP_201110/'     //
+         FILENAME = TRIM( DATA_DIR )        // 'RCP_201206/'     //
      &                     trim( RCPNAME )  // '/'               //
      &                     trim( RCPNAME )  // '_ships_'         // 
      &                     trim( YEARSTR )  // '.'               //
@@ -159,7 +171,7 @@
       !=================================================================
 
       IF (LRCPAIR) THEN
-         FILENAME = TRIM( DATA_DIR )     // 'RCP_201110/'     //
+         FILENAME = TRIM( DATA_DIR )     // 'RCP_201206/'     //
      &                  trim( RCPNAME )  // '/'               //
      &                  trim( RCPNAME )  // '_aircraft_'      // 
      &                  trim( YEARSTR )  // '.'               //
@@ -182,33 +194,46 @@
       ! Fancy output
       WRITE(6, '(a)' ) REPEAT( '=', 79)
 
-      ! Return to calling program
       END SUBROUTINE LOAD_RCP_EMISSIONS
-
-!----------------------------------------------------------------------
-
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_rcp_bpch
+!
+! !DESCRIPTION: Subroutine READ\_RCP\_BPCH reads a BPCH file containing RCP
+!  data. (cdh, 10/14/11)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_RCP_BPCH( FILENAME, TYPE, TAU0 )
-
-!***********************************************************************
-!  Subroutine READ_RCP_BPCH reads a BPCH file containing RCP data. 
-!  (cdh, 10/14/11)
-!***********************************************************************
-
-      ! Reference to F90 modules
+!
+! !USES:
+!
       USE BPCH2_MOD,        ONLY : OPEN_BPCH2_FOR_READ
       USE FILE_MOD,         ONLY : IU_FILE, IOERROR
       USE TRANSFER_MOD,     ONLY : TRANSFER_2D
       USE ERROR_MOD,        ONLY : ERROR_STOP
       USE TRACERID_MOD           ! tracer ID numbers
       USE CMN_SIZE_MOD           ! Size parameters
-
-      ! Arguments
+!
+! !INPUT PARAMETERS: 
+!
       CHARACTER(LEN=*), INTENT(IN) :: FILENAME
       INTEGER,          INTENT(IN) :: TYPE ! 1=LAND, 2=SHIP, 3=AIRCRAFT
       REAL*8,OPTIONAL,  INTENT(IN) :: TAU0
-
-
-      ! Local variables
+!
+! !REVISION HISTORY:
+!  22 Jul 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER                         :: I, J, L, N, IOS, K, IDT 
       INTEGER                         :: NI, NJ, NL
       INTEGER                         :: IFIRST, JFIRST, LFIRST
@@ -431,19 +456,25 @@
       ! Close file
       CLOSE( IU_FILE )
 
-      ! Return to calling program
       END SUBROUTINE READ_RCP_BPCH
-
-!-----------------------------------------------------------------------
-
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: rcp_airemiss
+!
+! !DESCRIPTION: Subroutine RCP\_AIREMISS populates EMIS\_AC\_NOx with aircraft
+!  NOx emissions. Also does diagnostics. (cdh, 10/14/11)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE RCP_AIREMISS( State_Met )
-
-!***********************************************************************
-!  Populate EMIS_AC_NOx with aircraft NOx emissions. Also do diagnostics
-!   (cdh, 10/14/11)
-!***********************************************************************
-
-      ! References to F90 modules
+!
+! !USES:
+!
       USE AIRCRAFT_NOX_MOD,       ONLY : EMIS_AC_NOx, READAIR
       USE DIAG_MOD,               ONLY : AD32_AC
       USE ERROR_MOD,              ONLY : ERROR_STOP
@@ -455,8 +486,16 @@
 ! !INPUT PARAMETERS:
 !
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+!
+! !REVISION HISTORY:
+!  22 Jul 2013 - M. Sulprizio- Added ProTeX headers
 
-      ! Local variables
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER          :: I, J, L, K
       LOGICAL, SAVE    :: FIRST=.TRUE.
       LOGICAL          :: TRACERFOUND
@@ -503,30 +542,44 @@
          ENDDO
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE RCP_AIREMISS
-
-!-----------------------------------------------------------------------
-
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: total_anthro_rcp
+!
+! !DESCRIPTION: Subroutine TOTAL\_ANTHRO\_RCP prints total RCP anthropogenic
+!  emissions each month. (cdh, 10/14/11)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE TOTAL_ANTHRO_RCP( THISMONTH )
-
-!***********************************************************************
-!  Subroutine to print total RCP anthropogenic emissions each month.
-!  (cdh, 10/14/11)
-!***********************************************************************
-
-      ! References to F90 modules
+!
+! !USES:
+!
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TRACER_MOD,   ONLY : TRACER_MW_KG
       USE TRACER_MOD,   ONLY : TRACER_NAME
       USE ERROR_MOD,    ONLY : GEOS_CHEM_STOP
 
       USE CMN_SIZE_MOD       ! Size parameters
-
-      ! Arguments
+!
+! !INPUT PARAMETERS:
+!
       INTEGER, INTENT(IN) :: THISMONTH
-
-      ! Local variables
+!
+! !REVISION HISTORY: 
+!  22 Jul 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER             :: I, J, K
       REAL*8              :: A, TOTAL, TOTAL_SHIP
 
@@ -731,31 +784,48 @@
 
       ENDDO
 
-      ! Return to calling program
       END SUBROUTINE TOTAL_ANTHRO_RCP
-
-!-----------------------------------------------------------------------
-
-      FUNCTION GET_RCP_EMISSION( I, J, N, LAND, SHIP ) 
-     &         RESULT( EMISS )
-
-!***********************************************************************
-!  Function GET_RCP_EMISSION retrieves the emissions of tracer N at grid
-!  location (I,J). Use LAND=.TRUE. or SHIP=.TRUE. or both to retrieve
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_rcp_emission
+!
+! !DESCRIPTION: Function GET\_RCP\_EMISSION retrieves the emissions of tracer N
+! at grid location (I,J). Use LAND=.TRUE. or SHIP=.TRUE. or both to retrieve
 !  either land anthropogenic emissions, ship emissions, or their sum. 
 !  "N" is the advected tracer index, i.e. the tracer index for STT.
 !  The function will return -1 if no emissions are found for that species.
 !  (cdh, 10/14/11)
-!***********************************************************************
-
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_RCP_EMISSION( I, J, N, LAND, SHIP ) 
+     &         RESULT( EMISS )
+!
+! !USES:
+!
       USE TRACERID_MOD
       USE ERROR_MOD,            ONLY : ERROR_STOP
-
-      ! Arguments
-      INTEGER, INTENT(IN)           :: I, J, N !GEOS-Chem advected tracer index
-      LOGICAL, INTENT(IN), OPTIONAL :: SHIP, LAND 
-
-      ! Local variables
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER, INTENT(IN)           :: I, J
+      INTEGER, INTENT(IN)           :: N     !GEOS-Chem advected tracer index
+      LOGICAL, INTENT(IN), OPTIONAL :: SHIP
+      LOGICAL, INTENT(IN), OPTIONAL :: LAND 
+!
+! !REVISION HISTORY: 
+!  22 Jul 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       REAL*8                        :: EMISS
       CHARACTER(LEN=20)             :: STR
       LOGICAL                       :: DOLAND, DOSHIP, TRACERFOUND
@@ -819,21 +889,25 @@
       ! Return -1 if there are no emissions for tracer N
       IF (.NOT. TRACERFOUND) EMISS = -1d0
       
-      ! Return to calling program
       END FUNCTION GET_RCP_EMISSION
-
+!EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE INIT_RCP( Input_Opt )
-
-!***********************************************************************
-!  Subroutine allocates and zeroes all module arrays
-!   (cdh, 10/14/11)
+!          Harvard University Atmospheric Chemistry Modeling Group            
+!------------------------------------------------------------------------------
+!BOP
 !
-!  22 Jul 2013 - M. Sulprizio- Now copy LRCP, LRCPSHIP, LRCPAIR from Input_Opt
-!***********************************************************************
-
-      ! References to F90 modules
+! !IROUTINE: init_rcp
+!
+! !DESCRIPTION: Subroutine INIT\_RCP allocates and zeroes all module arrays
+!  (cdh, 10/14/11)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE INIT_RCP( Input_Opt )
+!
+! !USES:
+!
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
 
@@ -843,14 +917,22 @@
 ! !INPUT PARAMETERS:
 !
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-
-      ! Local variables
-      INTEGER :: AS
+!
+! !REVISION HISTORY:
+!  22 Jul 2013 - M. Sulprizio- Now copy LRCP, LRCPSHIP, LRCPAIR from Input_Opt
+!  22 Jul 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER    :: AS
 
       ! For fields from Input_Opt
-      LOGICAL                     :: LRCP
-      LOGICAL                     :: LRCPSHIP
-      LOGICAL                     :: LRCPAIR
+      LOGICAL    :: LRCP
+      LOGICAL    :: LRCPSHIP
+      LOGICAL    :: LRCPAIR
 
       !=================================================================
       !  INIT_RCP begins here
@@ -884,16 +966,28 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'RCP_AIR' )
       RCP_AIR = 0e0
 
-      ! Return to calling program
       END SUBROUTINE INIT_RCP
-
-!----------------------------------------------------------------------
-
-      SUBROUTINE CLEANUP_RCP
-!**********************************************************************
-!  Subroutine deallocates all module arrays
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_rcp
+!
+! !DESCRIPTION: Subroutine CLEANUP\_RCP deallocates all module arrays
 !  (cdh, 10/14/11)
-!**********************************************************************
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE CLEANUP_RCP
+!
+! !REVISION HISTORY: 
+!  22 Jul 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 
       !=================================================================
       !  CLEANUP_RCP begins here
@@ -903,10 +997,6 @@
       IF ( ALLOCATED( RCP_SHIP ) ) DEALLOCATE( RCP_SHIP )
       IF ( ALLOCATED( RCP_AIR  ) ) DEALLOCATE( RCP_AIR )
 
-      ! Return to calling program
       END SUBROUTINE CLEANUP_RCP
-
-!----------------------------------------------------------------------
-
-
+!EOC
       END MODULE RCP_MOD
