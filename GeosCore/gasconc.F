@@ -26,7 +26,7 @@
       USE DAO_MOD,        ONLY : T
       USE PRESSURE_MOD,   ONLY : GET_PCENTER
       USE ERROR_MOD,      ONLY : ERROR_STOP ! (dkh, 10/06/06)  
-      USE LOGICAL_MOD,    ONLY : LSOA ! (dkh, 10/06/06)  
+      USE LOGICAL_MOD,    ONLY : LSOA ! (dkh, 10/06/06) 
       
       USE CMN_SIZE_MOD                                ! Size parameters
       USE COMODE_LOOP_MOD                             ! SMVGEAR II arrays
@@ -318,6 +318,18 @@
             ABSHUM(JLOOP) = CSPEC(JLOOP,IH2O) / VPRESH2O 
  33      CONTINUE
       ENDIF
+
+! If H2O is active in the GMI strat-chem mechanism, we still need
+! ABSHUM to be set (e.g. for aerosol hygroscopic growth calcs)
+#if defined( GMISTRAT )
+      DO JLOOP = 1,NTTLOOP
+         TK            = T3(JLOOP)
+         CONSEXP       = 17.2693882D0 * (TK - 273.16D0) /
+     &        (TK - 35.86D0)
+         VPRESH2O      = CONSVAP * EXP(CONSEXP) / TK 
+         ABSHUM(JLOOP) = ABSHUM(JLOOP) / VPRESH2O
+      ENDDO
+#endif
 
 ! *********************************************************************
 ! *           INITIALIZE O2 (# CM-3) IF O2 IS INACTIVE                *

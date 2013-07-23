@@ -1054,10 +1054,10 @@
      &                     STT( :, :, :, 1:N_TRACERS )
 ! FIN DE KLUGE
 
-         ! SDE 05/28/13: Set H2O to STT if relevant
-         IF (IDTH2O.ne.0) THEN
-            CALL SET_H2O_TRAC(.not.LGMISTRAT)
-         ENDIF
+            ! SDE 05/28/13: Set H2O to STT if relevant
+            IF (IDTH2O.ne.0) THEN
+               CALL SET_H2O_TRAC(.not.LGMISTRAT)
+            ENDIF
 
             CALL DO_CHEMISTRY( am_I_Root, IIPAR,      JJPAR, 
      &                         LLPAR,     State_Chm, State_Met )

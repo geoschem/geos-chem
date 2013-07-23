@@ -120,7 +120,7 @@
       LOGICAL                        :: DO_PF
 
       ! Parameters
-      INTEGER,           PARAMETER   :: MAXVARS   = 200
+      INTEGER,           PARAMETER   :: MAXVARS   = 800
       INTEGER,           PARAMETER   :: MAXPOINTS = 10000
       INTEGER,           PARAMETER   :: MAXREAC   = 50
       INTEGER,           PARAMETER   :: MAXRO2    = 45

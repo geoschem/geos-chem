@@ -4781,7 +4781,7 @@
       IF ( ND21 > 0 .or. DO_TIMESERIES ) THEN
 
          ! Number of tracers
-         NTRAC(21) = 31
+         NTRAC(21) = 33
 
          ! Loop over tracers
          DO T = 1, NTRAC(21)
@@ -4888,12 +4888,20 @@
                   FNAME(T,21) = 'SLA surface area'
                   UNIT (T,21) = 'cm2/cm3'
                CASE( 30 )
+                  NAME (T,21) = 'NDSLA'
+                  FNAME(T,21) = 'SLA number density'
+                  UNIT (T,21) = 'num/cm3'
+               CASE( 31 )
                   NAME (T,21) = 'ODSPA'
                   FNAME(T,21) = 'PSC type 1a/2 AOD (600 nm)'
-               CASE( 31 )
+               CASE( 32 )
                   NAME (T,21) = 'SASPA'
                   FNAME(T,21) = 'PSC type 1a/2 surface area'
                   UNIT (T,21) = 'cm2/cm3'
+               CASE( 33 )
+                  NAME (T,21) = 'NDSPA'
+                  FNAME(T,21) = 'SPA number density'
+                  UNIT (T,21) = 'num/cm3'
                CASE DEFAULT
                   ! Nothing
             END SELECT

@@ -1113,11 +1113,9 @@ c new OH+CO rate from JPL2006.
                         ! Stratospheric aerosol
                         XSTKCF = KHETI_SLA(IX,IY,IZ,1)
                      ELSE
-#if defined( GMISTRAT )
-                        XSTKCF = N2O5( N, T3K(KLOOP), CSPEC(JLOOP,IH2O))
-#else
+                        ! In GMISTRAT, ABSHUMK will have been set by
+                        ! STT(I,J,L,IDTH2O)
                         XSTKCF = N2O5( N, T3K(KLOOP), ABSHUMK(KLOOP) )
-#endif
                      ENDIF
 
                      ! Archive N2O5 hydrolysis for ND40 diagnostic
@@ -1538,9 +1536,12 @@ c new OH+CO rate from JPL2006.
             
             PSCEDUCTCONC(10,1) = CSPEC(JLOOP,IDHOBr)
             PSCEDUCTCONC(10,2) = CSPEC(JLOOP,IDHCl)
-            
-            PSCEDUCTCONC(11,1) = CSPEC(JLOOP,IDHOBr)
-            PSCEDUCTCONC(11,2) = CSPEC(JLOOP,IDHBr)
+
+            ! This is still pseudo-first-order - ignore            
+            PSCEDUCTCONC(11,1) = 1.d0
+            PSCEDUCTCONC(11,2) = 1.d0
+            !PSCEDUCTCONC(11,1) = CSPEC(JLOOP,IDHOBr)
+            !PSCEDUCTCONC(11,2) = CSPEC(JLOOP,IDHBr)
 #endif
             DO PSCIDX=1,11
                NK = NKPSC(NCS,PSCIDX)
@@ -1580,21 +1581,25 @@ c new OH+CO rate from JPL2006.
                   IF (ADJUSTEDRATE.gt.(1.d0/PSCMINLIFE)) THEN
                      ADJUSTEDRATE = 1.d0/PSCMINLIFE
                   ENDIF
-                  IF (IS_SAFE_DIV(EDUCTCONC,LIMITCONC)) THEN
-                     ! Temporarily store [B]/(T*[A])
-                     LIMITCONC = EDUCTCONC/(PSCMINLIFE*LIMITCONC)
-                     IF (ADJUSTEDRATE.gt.LIMITCONC) THEN
-                        ADJUSTEDRATE = LIMITCONC
+                  ! Rxn 11 is first-order - ignore
+                  IF (PSCIDX.ne.11) THEN
+                     ! Convert from 1st-order to 2nd-order
+                     IF (IS_SAFE_DIV(EDUCTCONC,LIMITCONC)) THEN
+                        ! Temporarily store [B]/(T*[A])
+                        LIMITCONC = EDUCTCONC/(PSCMINLIFE*LIMITCONC)
+                        IF (ADJUSTEDRATE.gt.LIMITCONC) THEN
+                           ADJUSTEDRATE = LIMITCONC
+                        ENDIF
+                     ELSE
+                        ADJUSTEDRATE = 0d0
                      ENDIF
-                  ELSE
-                     ADJUSTEDRATE = 0d0
-                  ENDIF
-                  !-----SDE DEBUG
-                  IF ((EDUCTCONC.gt.1.d2).and.
-     &                   (IS_SAFE_DIV(ADJUSTEDRATE,EDUCTCONC))) THEN
-                     ADJUSTEDRATE = ADJUSTEDRATE/EDUCTCONC
-                  ELSE
-                     ADJUSTEDRATE = 0d0
+                     !-----SDE DEBUG
+                     IF ((EDUCTCONC.gt.1.d2).and.
+     &                      (IS_SAFE_DIV(ADJUSTEDRATE,EDUCTCONC))) THEN
+                        ADJUSTEDRATE = ADJUSTEDRATE/EDUCTCONC
+                     ELSE
+                        ADJUSTEDRATE = 0d0
+                     ENDIF
                   ENDIF
                   RRATE(KLOOP,NK) = ADJUSTEDRATE
                ENDIF

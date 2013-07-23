@@ -273,7 +273,6 @@
 
             ! Air density in [molec/cm3]
             AIRDENS(JLOOP) = AD(I,J,L)*1000.d0/BOXVL(I,J,L)*AVG/WTAIR
-
             ! ABSHUM = absolute humidity [molec H2O/cm3 air]
             ABSHUM(JLOOP)  = AVGW(I,J,L) * AIRDENS(JLOOP)
 
@@ -284,7 +283,6 @@
      &                       ( TK - 273.16d0 ) / ( TK - 35.86d0 )
             VPRESH2O       = CONSVAP * EXP( CONSEXP ) / TK
             ABSHUM(JLOOP) = ABSHUM(JLOOP) / VPRESH2O
-
          ENDIF
       ENDDO
       ENDDO
@@ -584,7 +582,7 @@
       USE TIME_MOD,      ONLY : ITS_A_NEW_MONTH
       USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D
-      USE GMISTRAT_MOD,  ONLY : GET_STRAT_OPT, RHO_STRAT_AER
+      USE GMISTRAT_MOD,  ONLY : GET_STRAT_OPT, RHO_STRAT_AER, NDENS_AER
 
       USE CMN_SIZE_MOD,  ONLY : NNPAR, NDSTBIN, IIPAR,   JJPAR
       USE CMN_SIZE_MOD,  ONLY : LLPAR, MAXFAM,  NEMPARA, NEMPARB, LGLOB
@@ -1489,8 +1487,10 @@
       !
       ! #28: Strat. liquid aerosol optical depth     [unitless]
       ! #29: Strat. liquid aerosol surface area      [cm2/cm3 ]
-      ! #30: Strat. particulate aerosol opt. depth   [unitless]
-      ! #31: Strat. particulate aerosol surface area [cm2/cm3 ]
+      ! #30: Strat. liquid aerosol number density    [#/cm3   ]
+      ! #31: Strat. particulate aerosol opt. depth   [unitless]
+      ! #32: Strat. particulate aerosol surface area [cm2/cm3 ]
+      ! #33: Strat. particulate aerosol num. density [#/cm3   ]
       !
       ! NOTE: The cloud optical depths are actually recorded at
       !       1000 nm, but vary little with wavelength.
@@ -1559,7 +1559,8 @@
          DO L = 1, LD21
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            AD21(I,J,L,26+(2*ISTRAT)) = ODAER(I,J,L,IRHN)
+            AD21(I,J,L,25+(3*ISTRAT)) = ODAER(I,J,L,IRHN)
+            AD21(I,J,L,27+(3*ISTRAT)) = NDENS_AER(I,J,L,ISTRAT)*1.d-6
          ENDDO
          ENDDO
          ENDDO
@@ -1572,7 +1573,7 @@
 
                ! Add aerosol surface areas 
                IF ( L <= LD21 ) THEN
-                  AD21(I,J,L,27+(2*ISTRAT)) = TAREA(JLOOP,N+NDUST)
+                  AD21(I,J,L,26+(3*ISTRAT)) = TAREA(JLOOP,N+NDUST)
                ENDIF 
          ENDDO
 

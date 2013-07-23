@@ -47,6 +47,7 @@
       USE LOGICAL_MOD,          ONLY : LGMISTRAT ! SDE 04/11/13
       USE LOGICAL_MOD,          ONLY : LGRAVSTRAT ! SDE 04/12/13
       USE GMISTRAT_MOD,         ONLY : CALC_STRAT_AER ! SDE 04/18/13
+      USE GMISTRAT_MOD,         ONLY : GMISTRAT_NOX ! SDE 07/17/13
 
       USE CMN_SIZE_MOD               ! Size parameters
       USE COMODE_LOOP_MOD            ! SMVGEAR variables
@@ -627,6 +628,15 @@
       !### Debug
       IF ( LPRT .and. am_I_Root ) THEN
          CALL DEBUG_MSG( '### CHEMDR: after LUMP' )
+      ENDIF
+
+      ! If using stratospheric chemistry, applying high-altitude
+      ! active nitrogen approximations outside the chemgrid
+      IF ( LGMISTRAT ) THEN
+         CALL GMISTRAT_NOX
+         IF ( LPRT .and. am_I_Root ) THEN
+            CALL DEBUG_MSG( '### CHEMDR: after GMISTRAT_NOX' )
+         ENDIF
       ENDIF
 
       !=================================================================

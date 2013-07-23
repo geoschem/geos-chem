@@ -1644,7 +1644,7 @@
       USE CMN_O3_MOD        ! FSCALYR
       USE TRACERID_MOD,  ONLY : IDTCH4, IDTOCS, IDTCFCX
       USE TRACERID_MOD,  ONLY : IDTCl, IDTN2O, IDTBr2, IDTH2O
-      USE GMISTRAT_MOD,  ONLY : TRAC_FILE_ROOT, MONTREAL_FILE_ROOT
+      USE GMISTRAT_MOD,  ONLY : TRAC_FILE_ROOT
 !
 ! !INPUT PARAMETERS:
 !
@@ -2107,9 +2107,7 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:93' )
       READ( SUBSTRS(1:N), '(a)' ) TRAC_FILE_ROOT 
 
-      ! Directory containing WHO data
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:94' )
-      READ( SUBSTRS(1:N), '(a)' ) MONTREAL_FILE_ROOT 
+      TRAC_FILE_ROOT = TRIM(TRAC_FILE_ROOT)
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:95' )
@@ -2629,8 +2627,6 @@
         WRITE( 6, 100 ) '      --> strat. H2SO4?     : ', LSETH2SO4
         WRITE( 6, 130 ) ' Directory for 2D data      : ',
      &                                        TRIM(TRAC_FILE_ROOT)
-        WRITE( 6, 130 ) ' Directory for WHO data:    : ',
-     &                                    TRIM(MONTREAL_FILE_ROOT)
       ENDIF
 
       ! FORMAT statements

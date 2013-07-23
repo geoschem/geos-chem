@@ -13,7 +13,7 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Parameters.f90
-! Time                 : Thu Jul 11 15:54:49 2013
+! Time                 : Mon Jul 22 16:36:28 2013
 ! Working directory    : /net/d08/data/seastham/GEOS-Chem/simulations/StratChem/Strat_v1.01/KPP_Compile
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
@@ -265,7 +265,7 @@ MODULE gckpp_Parameters
   INTEGER, PARAMETER :: NJVRP = 749 
 
 ! NSTOICM - Length of Sparse Stoichiometric Matrix
-  INTEGER, PARAMETER :: NSTOICM = 1834 
+  INTEGER, PARAMETER :: NSTOICM = 1835 
 
 END MODULE gckpp_Parameters
 

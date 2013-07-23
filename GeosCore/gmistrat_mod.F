@@ -29,11 +29,14 @@
 ! !PUBLIC DATA MEMBERS:
 !
       CHARACTER(LEN=255), PUBLIC :: TRAC_FILE_ROOT ! Root directory of 2D data
+      CHARACTER(LEN=255), PUBLIC :: AVG_FILE_ROOT ! Directory for diurnal avg data
+      CHARACTER(LEN=255), PUBLIC :: NOON_FILE_ROOT ! Directory for noontime data
       CHARACTER(LEN=255), PUBLIC :: MONTREAL_FILE_ROOT ! Root directoy for WHO data 
                           PUBLIC :: T_STS ! Max temperature of STS formation (K)
       REAL*8,             PUBLIC :: T_NAT_SUPERCOOL ! NAT supercooling (K)
       REAL*8,             PUBLIC :: P_ICE_SUPERSAT ! Ice supersaturation (-)
                           PUBLIC :: KHETI_SLA ! Reaction cofactors for SLA
+                          PUBLIC :: NDENS_AER ! See below
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -42,6 +45,7 @@
       PUBLIC  :: EMISS_BASIC
       PUBLIC  :: SETTLE_STRAT_AER
       PUBLIC  :: SO4_PHOTFRAC
+      PUBLIC  :: GMISTRAT_NOX
       PUBLIC  :: CALC_STRAT_AER
       PUBLIC  :: GET_STRAT_OPT
       PUBLIC  :: KG_STRAT_AER
@@ -80,6 +84,7 @@
       ! I_SLA           : Index of liquid aerosols
       ! I_SPA           : Index of particulate PSCs
       ! AVOGADRO        : Avogadro's number (#/mole)
+      ! R_UNIV          : Universal gas constant (J/mol K)
       !
       !=================================================================
 
@@ -88,6 +93,7 @@
       INTEGER, PARAMETER            :: I_SLA=1
       INTEGER, PARAMETER            :: I_SPA=2
       REAL*8,  PARAMETER            :: AVOGADRO=6.022d23
+      REAL*8, PARAMETER             :: R_UNIV = 8.31448d0
 
 !
 ! PRIVATE TYPES:
@@ -130,6 +136,8 @@
       ! KHETI_SLA          : Liquid aerosol reaction cofactors
       ! AERFRAC            : Mass fraction of species in liquid aerosols
       ! AERFRACIND         : Indices of liquid aerosol species
+      ! NOX_O              : Monthly mean noontime O3P/O1D for NOx calcs
+      ! NOX_J              : Monthly mean noontime J-rates for NOx calcs
       !
       ! Strings
       !
@@ -141,6 +149,7 @@
       ! Logicals
       ! 
       ! TRAC_ADD            : Add to (rather than overwrite) tracer
+      ! STRAT2DCH4          : Use 2D estimates of stratospheric CH4?
       ! 
       !=================================================================
 
@@ -176,6 +185,8 @@
       REAL*8,DIMENSION(:,:,:,:),ALLOCATABLE :: KHETI_SLA
       REAL*8,DIMENSION(:,:,:,:),ALLOCATABLE :: AERFRAC
       INTEGER,DIMENSION(:),ALLOCATABLE      :: AERFRACIND
+      REAL*8,DIMENSION(:,:,:,:),ALLOCATABLE :: NOX_O
+      REAL*8,DIMENSION(:,:,:,:),ALLOCATABLE :: NOX_J
  
       ! Strings
       CHARACTER(LEN=255)                :: TRAC_FILE
@@ -185,6 +196,7 @@
 
       ! Logicals
       LOGICAL                           :: TRAC_ADD
+      LOGICAL,PARAMETER                 :: STRAT2DCH4=.TRUE.
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -279,7 +291,6 @@
       REAL*8             :: C3090S, C0030S, C0030N, C3090N
       INTEGER            :: CH4_YEAR
       LOGICAL,INTENT(IN) :: am_I_Root
-      LOGICAL,PARAMETER  :: STRAT2DCH4=.TRUE.
 
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
       WRITE( 6, 100   )
@@ -301,41 +312,8 @@
       USE2DDATA = (USE2DDATA.or.LSETNOYSTRAT)
       USE2DDATA = (USE2DDATA.or.LSETN2O.or.LBASICEMIS)
 
-#if !defined(GRID4x5) && !defined(GRID2x25)
-      IF (LGMISTRAT.and.USE2DDATA) THEN
-       MSG = 'Zonal means preprocessed only for 2x2.5 and 4x5 grid.'
-       CALL ERROR_STOP( MSG, 'SET_INITIAL_MIXRATIOS (gmistrat_mod.f)!' )
-      ELSE
-       TRAC_FILE_ROOT = ''
-      ENDIF
-#elif defined(GRID2x25)
-      TRAC_FILE_ROOT = TRIM(TRAC_FILE_ROOT)
-     &      // '/Grid2x25/InitCFC_'
-#elif defined(GRID4x5)
-      TRAC_FILE_ROOT = TRIM(TRAC_FILE_ROOT)
-     &      // '/Grid4x5/InitCFC_'
-#endif
-
       IF (USE2DDATA) THEN
-         ! Allocate array of input pressure levels
-         ALLOCATE( AER_PLEVS( AER_NLEVS ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AER_PLEVS' )
 
-         ! Set input pressure levels (hPa)
-         AER_PLEVS = (/ 0.2200d+00, 0.2600d+00, 0.3100d+00, 0.3600d+00,
-     &                  0.4300d+00, 0.5100d+00, 0.6000d+00, 0.7100d+00,
-     &                  0.8400d+00, 0.9900d+00, 1.1700d+00, 1.3800d+00,
-     &                  1.6300d+00, 1.9300d+00, 2.2800d+00, 2.6900d+00,
-     &                  3.1800d+00, 3.7600d+00, 4.4400d+00, 5.2500d+00,
-     &                  6.2000d+00, 7.3200d+00, 8.6500d+00, 1.0220d+01,
-     &                  1.2070d+01, 1.4260d+01, 1.6850d+01, 1.9910d+01,
-     &                  2.3520d+01, 2.7780d+01, 3.2820d+01, 3.8770d+01,
-     &                  4.5810d+01, 5.4110d+01, 6.3930d+01, 7.5220d+01,
-     &                  8.9220d+01, 1.0540d+02, 1.2451d+02, 1.4710d+02,
-     &                  1.7377d+02, 2.0529d+02, 2.4252d+02, 2.8650d+02,
-     &                  3.3847d+02, 3.9985d+02, 4.7237d+02, 5.5804d+02,
-     &                  6.5924d+02, 7.7880d+02, 9.2004d+02 /)
- 
          ALLOCATE( AER_MR( JGLOB, AER_NLEVS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AER_MR' )
          AER_MR = 0d0
@@ -632,6 +610,679 @@
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: gmistrat_nox
+!
+! !DESCRIPTION: Subroutine GMISTRAT\_NOX calculates NOx and N2O loss  
+!  rates above the chemistry grid, based on estimates of j-rates from 
+!  a 2D model and simple photochemical assumptiones.              
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE GMISTRAT_NOX
+!
+! !USES:
+!
+      USE ERROR_MOD,     ONLY : ERROR_STOP, DEBUG_MSG
+      USE LOGICAL_MOD,   ONLY : LPRT
+      USE TRACER_MOD,    ONLY : STT, TCVV
+      USE TRACERID_MOD,  ONLY : IDTNOX, IDTN2O, IDTOX
+      USE CHEMGRID_MOD,  ONLY : ITS_IN_THE_CHEMGRID
+      USE DAO_MOD,       ONLY : AD, T, BXHEIGHT
+      USE PRESSURE_MOD,  ONLY : GET_PCENTER
+      USE TIME_MOD,      ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_MONTH
+      USE TIME_MOD,      ONLY : ITS_A_LEAPYEAR, GET_HOUR, GET_LOCALTIME
+      USE TIME_MOD,      ONLY : GET_MINUTE
+      USE CMN_GCTM_MOD,  ONLY : PI, AIRMW, RE
+      USE GRID_MOD,      ONLY : GET_YMID
+!      !-----SDE DEBUG
+!      USE FILE_MOD,      ONLY : IOERROR
+!      USE TIME_MOD,      ONLY : GET_YEAR
+!      !-----SDE DEBUG
+
+!
+! !INPUT PARAMETERS: 
+!
+      ! Cosine of solar zenith angle [unitless]
+!
+! !REVISION HISTORY: 
+!  16 Jul 2013 - S. D. Eastham - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! For indexing the O1D/O3P concentration array
+      INTEGER, PARAMETER :: O3PIDX = 1
+      INTEGER, PARAMETER :: O1DIDX = 2
+
+      ! For indexing the J-rate coefficient array
+      INTEGER, PARAMETER :: JNOIDX = 1
+      INTEGER, PARAMETER :: JNO2IDX= 2
+      INTEGER, PARAMETER :: JNO3IDX= 3
+      INTEGER, PARAMETER :: JN2OIDX= 4
+
+      ! Reaction rates and indices
+      REAL*8,DIMENSION(12):: RRATE
+      INTEGER, PARAMETER :: k_JNO = 6
+      INTEGER, PARAMETER :: k_JNO2 = 4
+      INTEGER, PARAMETER :: k_JNO3 = 5
+      INTEGER, PARAMETER :: k_JN2O = 12
+
+      ! Intermediate variables
+      REAL*8 :: LOCALNOX, LOCALN2O, LOCALO3, LOCALO1D, LOCALO3P
+      REAL*8 :: FRACNO, FRACNO2, FRACNO3, FRACN
+      REAL*8 :: NOXRATE, N2ORATE, KGNOX, KGN2O
+      REAL*8 :: NO_ALPHA, NO_BETA, NO_GAMMA, NO_EPSILON
+      REAL*8 :: NO_QA, NO_QX, NO_QC
+      REAL*8 :: MESONOX_IN, MESON2O_IN
+      REAL*8 :: MESONOX_OUT, MESON2O_OUT
+      REAL*8,SAVE :: MESONOX_LAST=-1d0
+      REAL*8,SAVE :: MESON2O_LAST=-1d0
+
+      ! Local air number density (molec/cm3) and box mass (kg)
+      REAL*8 :: NDAIR
+      REAL*8 :: XAIR
+
+      ! Local temperature (K) and inverted T (1/K)
+      REAL*8 :: T3K, TINV
+
+      ! Chemistry timestep in seconds
+      REAL*8 :: DTCHEM
+
+      ! Timestep in hours
+      REAL*8 :: DTCHEM_HR
+
+      ! Timing information
+      INTEGER       :: NDAY
+      INTEGER, SAVE :: LASTMONTH=0
+!      !-----SDE DEBUG
+!      INTEGER, SAVE :: LASTDAY=0
+!      !-----SDE DEBUG
+
+      ! Grid indexing
+      INTEGER :: I,J,L
+      REAL*8  :: MIDLAT, ZMID, ZDEL, ZBASE
+ 
+      ! Local daylight fraction
+      REAL*8             :: DAYFRAC
+      REAL*8             :: SOL_ME, SOL_FE, SOL_LS, SOL_DEC
+      REAL*8             :: SOL_ECC2, SOL_B, SOL_C, SOL_TEST
+      REAL*8             :: TSTART, TEND, TMIN, TMAX, GMTSTART
+      REAL*8, PARAMETER  :: SOL_ECC=0.016
+      INTEGER            :: NDYEAR, AS
+      LOGICAL            :: CYCLEBOX
+      CHARACTER(LEN=255) :: DBGMSG
+
+!      !-----SDE DEBUG
+!      INTEGER            :: IU_FILE, IOS
+!      CHARACTER(LEN=255) :: STRATNOXFILE, NOXSTRING, STRATNOXSTAT
+!      CHARACTER(LEN=255) :: STRATNOXACCESS
+!      !-----SDE DEBUG
+
+      !=================================================================
+      ! GMISTRAT_NOX begins here!
+      !=================================================================
+
+      ! Retrieve monthly mean data if necessary
+      IF (LASTMONTH.ne.GET_MONTH()) THEN
+         LASTMONTH = GET_MONTH()
+         CALL GET_NOXCOEFF( LASTMONTH )
+      ENDIF
+
+      ! Get chemistry step length in seconds
+      DTCHEM = GET_TS_CHEM()*60.d0
+      DTCHEM_HR = DTCHEM/3600.d0
+
+      IF (ITS_A_LEAPYEAR()) THEN
+         NDYEAR = 366
+      ELSE
+         NDYEAR = 365
+      ENDIF
+
+      NDAY = GET_DAY_OF_YEAR()
+
+!      !-----SDE DEBUG
+!      IF (LASTDAY.ne.NDAY) THEN
+!         STRATNOXSTAT = 'REPLACE'
+!         STRATNOXACCESS='SEQUENTIAL'
+!      ELSE
+!         STRATNOXSTAT = 'OLD'
+!         STRATNOXACCESS='APPEND'
+!      ENDIF
+!      LASTDAY = NDAY
+!      !-----SDE DEBUG
+
+      ! Calculate timestep start and end (GMT)
+      GMTSTART = REAL(GET_HOUR()) + (REAL(GET_MINUTE())/60.d0)
+      GMTSTART = GMTSTART - (DTCHEM_HR/2.d0)
+
+      ! Eccentricity^2
+      SOL_ECC2 = SOL_ECC*SOL_ECC
+
+      ! Calculate solar declination
+      SOL_ME = 2.d0*PI*(REAL(NDAY)/REAL(NDYEAR)-0.009589)
+      SOL_FE = SOL_ME + (2.*SOL_ECC*SIN(SOL_ME)) + 
+     &         (1.25d0*SOL_ECC2*SIN(2.d0*SOL_ME))
+      SOL_LS = SOL_FE - (77.240d0*PI/180.d0)
+      SOL_DEC = ASIN(SIN(23.44*PI/180.d0)*SIN(SOL_LS))
+
+      ! Reset NOx/N2O mass counters
+      MESONOX_IN = 0d0
+      MESONOX_OUT = 0d0
+      MESON2O_IN = 0d0
+      MESON2O_OUT = 0d0
+
+!      !-----SDE DEBUG
+!      ! Write full set of diagnostics to file
+!      ! Get a free LUN
+!      IU_FILE = findFreeLUN()
+!      WRITE(STRATNOXFILE,'(a,I0.4,I0.3)') 'STRATNOX_', GET_YEAR(), NDAY
+!      IOS = 1
+!      OPEN( IU_FILE, FILE=TRIM( STRATNOXFILE ),
+!     &       ACCESS=TRIM( STRATNOXACCESS ),
+!     &       STATUS=TRIM(STRATNOXSTAT),IOSTAT=IOS) 
+!      IF ( IOS /= 0 ) THEN
+!         WRITE(6,*) 'GMISTRAT_MOD: Could not read ', TRIM(STRATNOXFILE)
+!         CALL IOERROR( IOS, IU_FILE,'GMISTRAT_MOD:GMISTRAT_NOX')
+!      ENDIF
+!222   FORMAT (3(I0.3,1x), 8(E14.5,1x), F10.5, 1x, F10.5)
+!!      !-----SDE DEBUG2
+!!      WRITE(6,'(F10.4,1x,4(E10.4,1x))') GMTSTART,SOL_ME,SOL_FE,SOL_LS,
+!!     &                                      SOL_DEC
+!!      !-----SDE DEBUG2
+!      !-----SDE DEBUG
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, DAYFRAC, RRATE               )
+!$OMP+PRIVATE( T3K, TINV, XAIR,  KGNOX, KGN2O        )
+!$OMP+PRIVATE( FRACNO, FRACNO2, FRACNO3, LOCALNOX )
+!$OMP+PRIVATE( LOCALN2O, LOCALO1D, LOCALO3P, LOCALO3 )
+!$OMP+PRIVATE( NOXRATE, N2ORATE, FRACN, NO_ALPHA    )
+!$OMP+PRIVATE( NO_BETA, NO_GAMMA, NDAIR, MIDLAT      )
+!$OMP+PRIVATE( SOL_B, SOL_C, SOL_TEST, NO_EPSILON    )
+!$OMP+PRIVATE( ZMID, ZBASE, ZDEL, CYCLEBOX           )
+!$OMP+PRIVATE( TSTART, TEND, TMIN, TMAX              )
+!$OMP+PRIVATE( NO_QA, NO_QX, NO_QC                   )
+      DO J=1,JJPAR
+      DO I=1,IIPAR
+      ! Grid box longitude/latitude [degrees]
+      MIDLAT = PI*GET_YMID( I, J, 1 )/180.d0
+      SOL_B = TAN(SOL_DEC)*TAN(MIDLAT)
+      SOL_C = COS(SOL_DEC)*COS(MIDLAT)
+      !SOLFUNC  = 1.d0-(0.034d0*cos(dble(NDAY-172)*2.d0*PI/365.d0))
+      TSTART = GET_LOCALTIME(I,J,1,GMTSTART)
+      TEND = TSTART + DTCHEM_HR
+      !DAYFRAC = SOLFUNC
+      ZBASE = 0d0
+      DO L=1,LLPAR
+         ZDEL = BXHEIGHT(I,J,L)
+         ZMID = ZBASE + (ZDEL/2.d0)
+         ZBASE = ZBASE + ZDEL
+         CYCLEBOX = .FALSE.
+         IF (ITS_IN_THE_CHEMGRID(I,J,L)) THEN
+!            !-----SDE DEBUG
+!            WRITE(IU_FILE,222) I,J,L,0.d0,0.d0,0.d0,0.d0,0.d0,
+!     &              0.d0,0.d0,0.d0,GMTSTART,DTCHEM_HR
+!            ! Change this to CYCLE
+!            CYCLEBOX = .TRUE.
+!            !-----SDE DEBUG
+            CYCLE
+         ENDIF
+         ! Calculate daylight fraction
+         SOL_TEST = (-SOL_B) - SQRT(ZMID*(ZMID+2.d0*RE)/
+     &     ((ZMID+RE)*(ZMID+RE)))/SOL_C
+         IF (SOL_TEST.ge.0.9998d0) THEN
+            DAYFRAC = 0.d0
+            CYCLEBOX=.TRUE.
+            TMIN = 0d0
+            TMAX = 0d0
+         ELSEIF (SOL_TEST.le.-0.998d0) THEN
+            DAYFRAC = 1.d0
+            TMIN = TSTART
+            TMAX = TEND
+            CYCLEBOX=.FALSE.
+         ELSE
+            DAYFRAC = ACOS(SOL_TEST)/PI
+            ! Determine how much of the current timestep is within daylight
+            TMIN = 12.d0*(1.d0-DAYFRAC)
+            TMAX = 12.d0*(1.d0+DAYFRAC)
+            IF ((TMIN.gt.TEND).or.(TMAX.lt.TSTART)) THEN
+               ! In darkness
+               DAYFRAC = 0.d0
+               CYCLEBOX = .TRUE.
+            ELSEIF ((TSTART.gt.TMIN).and.(TEND.lt.TMAX)) THEN
+               ! Full daylight
+               DAYFRAC = 1.d0
+            ELSE
+               ! Partial daylight
+               TMIN = MAX(TSTART,TMIN)
+               TMAX = MIN(TEND,TMAX)
+               DAYFRAC = (TMAX-TMIN)/DTCHEM_HR
+            ENDIF
+         ENDIF
+!         !-----SDE DEBUG
+!         WRITE(6,'(3(I0.3,1x),5(F10.4,1x),L1,1x,3(E10.4,1x))') I, J, L,
+!     &      TSTART,TEND,TMIN,TMAX,DAYFRAC,CYCLEBOX,SOL_B,SOL_C,SOL_TEST
+!         !-----SDE DEBUG
+         IF (CYCLEBOX) THEN
+!            !-----SDE DEBUG
+!            WRITE(IU_FILE,222) I,J,L,0.d0,0.d0,0.d0,0.d0,0.d0,
+!     &              0.d0,0.d0,1.d0,GMTSTART,DTCHEM_HR
+!            !-----SDE DEBUG
+            CYCLE
+         ENDIF
+         ! Reset reaction rates
+         RRATE = 0d0
+
+         ! Retrieve air mass (kg) and local temperature (K)
+         T3K = T(I,J,L)
+         TINV = 1.d0/T3K
+
+         ! Calculate air number density (molec/cm3)
+         NDAIR = GET_PCENTER(I,J,L)*1.d-4*AVOGADRO/(R_UNIV*T3K)
+         XAIR = NDAIR/(AD(I,J,L)*AIRMW)
+
+         ! Calculate local NOx, N2O and O3 number density
+         KGNOX = STT(I,J,L,IDTNOX)
+         KGN2O = STT(I,J,L,IDTN2O)
+         MESONOX_IN = MESONOX_IN + KGNOX
+         MESON2O_IN = MESON2O_IN + KGN2O
+         LOCALNOX = KGNOX*TCVV(IDTNOX)*XAIR
+         LOCALN2O = KGN2O*TCVV(IDTN2O)*XAIR
+         LOCALO3  = STT(I,J,L,IDTOX)*TCVV(IDTN2O)*XAIR
+
+         ! Retrieve local O3P/O1D mixing ratios and relevant
+         ! j-rates from interpolated 2D arrays
+         LOCALO3P = NOX_O(I,J,L,1)*NDAIR*DAYFRAC
+         LOCALO1D = NOX_O(I,J,L,2)*NDAIR*DAYFRAC
+
+         ! Calculate reaction rates
+         ! 1:  NO2 + O -> NO + O2
+         RRATE(1)  = 5.1d-12*dexp(210.d0*TINV)
+         ! 2:  NO + O3 -> NO2 + O2
+         RRATE(2)  = 3.0d-12*dexp(-1500.d0*TINV)
+         ! 3:  NO2 + O3 -> NO3 + O2
+         RRATE(3)  = 1.2d-13*dexp(-2450.d0*TINV)
+         ! 4:  NO2 + hv -> NO + O1D
+         RRATE(k_JNO2) = NOX_J(I,J,L,JNO2IDX)*DAYFRAC
+         ! 5:  NO3 + hv -> NO2 + O
+         RRATE(k_JNO3) = NOX_J(I,J,L,JNO3IDX)*DAYFRAC
+         ! 6:  NO + hv -> N + O
+         RRATE(k_JNO ) = NOX_J(I,J,L,JNOIDX)*DAYFRAC
+         ! 7:  N + NO2 -> N2O + O
+         RRATE(7)  = 5.8d-12*dexp(220.d0*TINV)
+         ! 8:  N + NO -> N2 + O
+         RRATE(8)  = 2.1d-11*dexp(100.d0*TINV)
+         ! 9:  N + O2 -> NO + O
+         RRATE(9)  = 1.5d-11*dexp(-3600.d0*TINV)
+         ! 10:  N2O + O1D -> N2 + O2
+         RRATE(10) = 4.63d-11*dexp(20.d0*TINV)
+         ! 11:  N2O + O1D -> 2NO
+         RRATE(11) = 7.25d-11*dexp(20.d0*TINV)
+         ! 12:  N2O + hv -> N2 + O1D
+         RRATE(k_JN2O) = NOX_J(I,J,L,JN2OIDX)*DAYFRAC
+
+         ! Partition NOx into N, NO, NO2 and NO3 based on PSSA
+         NO_ALPHA =          RRATE(k_JNO)/
+     &                  (RRATE(9)*0.21d0*NDAIR)
+         NO_BETA  = (RRATE(k_JNO2)+(RRATE(1)*LOCALO3P))/
+     &                     (RRATE(2)*LOCALO3)
+         NO_GAMMA =        (RRATE(3)*LOCALO3)/
+     &                         RRATE(k_JNO3)
+
+         ! Calculate the partition fractions
+         FRACNO2 = 1.d0/(1.d0+NO_GAMMA+(NO_BETA*(1.d0+NO_ALPHA)))
+         FRACNO3 = NO_GAMMA * FRACNO2
+         FRACNO  = NO_BETA  * FRACNO2
+         FRACN   = NO_ALPHA * FRACNO
+
+         ! Estimate net production rates for NOx and N2O
+         NOXRATE = 2.d0*((RRATE(11)*LOCALN2O*LOCALO1D) -
+     &    (((RRATE(7)*FRACN*FRACNO2)+(RRATE(8)*FRACN*FRACNO))
+     &                                   *LOCALNOX*LOCALNOX))
+         N2ORATE = (RRATE(7)*FRACN*FRACNO2*LOCALNOX*LOCALNOX) - 
+     &   ((RRATE(k_JN2O)+((RRATE(10)+RRATE(11))*LOCALO1D))*LOCALN2O)
+        
+!         !-----SDE DEBUG
+!         WRITE(6,'(a,3(1x,I2))')    'NOx partition at: ',I,J,L
+!         WRITE(6,'(a,2(1x,E10.4))') 'T/P:              ',T3K,
+!     &        GET_PCENTER(I,J,L)
+!         WRITE(6,'(a,3(1x,E10.4))') 'NO/NO2/NO3:       ',
+!     &      LOCALNO/LOCALNOX,LOCALNO2/LOCALNOX, LOCALNO3/LOCALNOX
+!         WRITE(6,'(a,4(1x,E10.4))') 'J-NO/NO2/NO3/N2O: ',
+!     &      RRATE(k_JNO),RRATE(k_JNO2),RRATE(k_JNO3),RRATE(k_JN2O)
+!         WRITE(6,'(a,4(1x,E10.4))') 'O3P/O1D/O3/NOx:   ',
+!     &      LOCALO3P,LOCALO1D,LOCALO3,LOCALNOx
+!         WRITE(6,'(a,3(1x,E10.4))') 'N/N2O/M:          ',
+!     &      LOCALN,LOCALN2O,NDAIR
+!         WRITE(6,'(a,3(1x,E10.4))') 'TSTART/TEND/DFRAC:',
+!     &      TSTART,TEND,DAYFRAC
+!         WRITE(6,'(a,2(1x,E10.4))') 'NOx/N2O rates:    ',
+!     &      NOXRATE, N2ORATE
+!         !-----SDE DEBUG
+
+         ! Calculate fractional loss and apply to tracer
+         ! Explicit Euler method (fast)
+         KGNOX = KGNOX * (1.d0 + (NOXRATE*DTCHEM/LOCALNOX))
+         IF (KGNOX.lt.0d0) KGNOX = 0d0
+         STT(I,J,L,IDTNOX) = KGNOX
+         KGN2O = KGN2O * (1.d0 + (N2ORATE*DTCHEM/LOCALN2O))
+         IF (KGN2O.lt.0d0) KGN2O = 0d0
+         STT(I,J,L,IDTN2O) = KGN2O
+         MESONOX_OUT = MESONOX_OUT + KGNOX
+         MESON2O_OUT = MESON2O_OUT + KGN2O
+         
+!         !-----SDE DEBUG
+!         WRITE(IU_FILE,222) I,J,L,N2ORATE,NOXRATE,LOCALN2O,LOCALNOX,
+!     &        FRACN,FRACNO,FRACNO2,FRACNO3,GMTSTART,DTCHEM_HR
+!         !-----SDE DEBUG
+
+!         ! Implicit Euler method (stable)
+!         NO_ALPHA  = 2.d0*RRATE(11)*LOCALO1D
+!         NO_GAMMA  = RRATE(7)*FRACN*FRACNO2   
+!         NO_BETA   = 2.d0*(NO_GAMMA + (RRATE(8)*FRACN*FRACNO))
+!         NO_EPSILON= RRATE(k_JN2O) + (LOCALO1D*(RRATE(10)+RRATE(11)))
+!         ! Temporary storage variable
+!         NO_QX     = DTCHEM*NO_ALPHA/(1.d0+(NO_EPSILON*DTCHEM))
+!         ! Calculate quadratic coefficients (B = 1)
+!         NO_QA     = DTCHEM*(NO_BETA - (NO_QX*NO_GAMMA))
+!         NO_QC     = -1.d0*(LOCALNOX + (LOCALN2O*NO_QX))
+!         ! Calculate new molecular concentrations
+!         LOCALNOX  = (-1.d0 + SQRT(1.d0 - (4.d0*NO_QA*NO_QC)))/
+!     &                              (2.d0*NO_QA)
+!         LOCALN2O  = (LOCALN2O+(DTCHEM*LOCALNOX*LOCALNOX*NO_GAMMA))/
+!     &               (1.d0 + (NO_EPSILON*DTCHEM))
+!         KGNOX     = LOCALNOX/(TCVV(IDTNOX)*XAIR)
+!         KGN2O     = LOCALN2O/(TCVV(IDTN2O)*XAIR)
+!         STT(I,J,L,IDTNOX) = KGNOX
+!         STT(I,J,L,IDTN2O) = KGN2O
+      ENDDO ! J
+      ENDDO ! I
+      ENDDO ! L
+!$OMP END PARALLEL DO
+
+      IF (LPRT) THEN
+         ! Print mean NOx tendency in mesosphere
+         NOXRATE = 1.d2*(MESONOX_OUT-MESONOX_IN)/MESONOX_IN
+         N2ORATE = 1.d2*(MESON2O_OUT-MESON2O_IN)/MESON2O_IN
+         DBGMSG = ' ### GMISTRAT_NOX: Mesospheric NOx processed'
+         CALL DEBUG_MSG(TRIM(DBGMSG))
+         IF (MESONOX_LAST.lt.0d0) THEN
+            DBGMSG = ' ### Diagnostic printing will begin on 2nd step.'
+            CALL DEBUG_MSG(TRIM(DBGMSG))
+         ELSE
+            DBGMSG = ' ### ----NOx diagnostics----'
+            CALL DEBUG_MSG(TRIM(DBGMSG))
+            WRITE(DBGMSG,'(a,2(1x,F10.5),a)') ' ### Time (start/step):',
+     &          GMTSTART, DTCHEM_HR, ' hours'
+            WRITE(DBGMSG,'(a,1x,E10.4,1x,a)') ' ### Init. meso. NOx:  ',
+     &          MESONOX_LAST, ' kg'
+            CALL DEBUG_MSG(TRIM(DBGMSG))
+            WRITE(DBGMSG,'(a,1x,E10.4,1x,a)') ' ### NOx chem. prod.:  ',
+     &          MESONOX_OUT-MESONOX_IN, ' kg'
+            CALL DEBUG_MSG(TRIM(DBGMSG))
+            WRITE(DBGMSG,'(a,1x,E10.4,1x,a)') ' ### NOx flux in:      ',
+     &          MESONOX_IN-MESONOX_LAST, ' kg'
+            CALL DEBUG_MSG(TRIM(DBGMSG))
+            WRITE(DBGMSG,'(a,1x,E10.4,1x,a)') ' ### NOx net change:   ',
+     &          MESONOX_OUT-MESONOX_LAST, ' kg'
+            CALL DEBUG_MSG(TRIM(DBGMSG))
+            WRITE(DBGMSG,'(a,1x,E10.4,1x,a)') ' ### Final meso. NOx:  ',
+     &          MESONOX_OUT, ' kg'
+            CALL DEBUG_MSG(TRIM(DBGMSG))
+            DBGMSG = ' ### ----N2O diagnostics----'
+            CALL DEBUG_MSG(TRIM(DBGMSG))
+            WRITE(DBGMSG,'(a,1x,E10.4,1x,a)') ' ### Init. meso. N2O:  ',
+     &          MESON2O_LAST, ' kg'
+            CALL DEBUG_MSG(TRIM(DBGMSG))
+            WRITE(DBGMSG,'(a,1x,E10.4,1x,a)') ' ### N2O chem. prod.:  ',
+     &          MESON2O_OUT-MESON2O_IN, ' kg'
+            CALL DEBUG_MSG(TRIM(DBGMSG))
+            WRITE(DBGMSG,'(a,1x,E10.4,1x,a)') ' ### N2O flux in:      ',
+     &          MESON2O_IN-MESON2O_LAST, ' kg'
+            CALL DEBUG_MSG(TRIM(DBGMSG))
+            WRITE(DBGMSG,'(a,1x,E10.4,1x,a)') ' ### N2O net change:   ',
+     &          MESON2O_OUT-MESON2O_LAST, ' kg'
+            CALL DEBUG_MSG(TRIM(DBGMSG))
+            WRITE(DBGMSG,'(a,1x,E10.4,1x,a)') ' ### Final meso. N2O:  ',
+     &          MESON2O_OUT, ' kg'
+            CALL DEBUG_MSG(TRIM(DBGMSG))
+         ENDIF
+         ! Store mass at finish
+         MESONOX_LAST = MESONOX_OUT
+         MESON2O_LAST = MESON2O_OUT
+      ENDIF
+
+!      !-----SDE DEBUG
+!      CLOSE(IU_FILE)
+!      !-----SDE DEBUG
+
+      END SUBROUTINE GMISTRAT_NOX
+!EOC
+!------------------------------------------------------------------------------
+!               MIT Laboratory for Aviation and the Environment               !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_noxcoeff
+!
+! !DESCRIPTION: Subroutine GET\_NOXCOEFF reads in O1D and O3P mixing  
+!  ratios along with NO, NO2, NO3 and N2O J-rates from 2D data, 
+!  interpolating onto the 3D grid and storing in NOX_O and NOX_J.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE GET_NOXCOEFF( TARG_MONTH )
+!
+! !USES:
+!
+      USE FILE_MOD,      ONLY : IOERROR
+      USE ERROR_MOD,     ONLY : ERROR_STOP, ALLOC_ERR
+      USE PRESSURE_MOD,  ONLY : GET_PCENTER
+      USE TRACER_MOD,    ONLY : STT, TCVV
+      USE CHEMGRID_MOD,  ONLY : ITS_IN_THE_CHEMGRID
+      USE DAO_MOD,       ONLY : AD
+      !-----SDE DEBUG
+      USE CHEMGRID_MOD,  ONLY : GET_CHEMGRID_LEVEL
+      USE FAST_JX_MOD,   ONLY : FJXFUNC
+      !-----SDE DEBUG
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER,INTENT(IN) :: TARG_MONTH
+!
+! !REVISION HISTORY: 
+!  26 Mar 2013 - S. D. Eastham - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: IOS
+      INTEGER :: ILEV
+      INTEGER :: I, J, L, ITRAC
+      REAL*8  :: PCENTER
+      REAL*8  :: CURRVAL
+      INTEGER :: VERTCOUNT, AS
+      LOGICAL :: FOUNDLEV,EXTRAP
+      INTEGER :: IU_FILE
+      LOGICAL :: ISRATE
+      CHARACTER(LEN=255) :: NOX_FILE
+      CHARACTER(LEN=255) :: TARG_TRAC
+      CHARACTER(LEN=255) :: DBGMSG
+      REAL*8,DIMENSION(:,:,:),ALLOCATABLE :: NOXDATA2D
+      INTEGER :: LSTART
+      !-----SDE DEBUG
+      REAL*8,DIMENSION(4) :: JTEMP
+      !-----SDE DEBUG
+
+      !=================================================================
+      ! GET_NOXCOEFF begins here!
+      !=================================================================
+
+      ! Allocate and zero 2D data array
+      ALLOCATE( NOXDATA2D( JJPAR, 51, 6 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'NOXDATA2D' )
+      NOXDATA2D = 0d0
+
+      ! Clear interpolated arrays
+      NOX_O = 0d0
+      NOX_J = 0d0
+
+      !-----SDE DEBUG
+      ! j-value data not yet available
+      !DO ITRAC = 1,2
+      !-----SDE DEBUG
+      DO ITRAC = 1,6
+         SELECT CASE (ITRAC)
+            CASE ( 1 )
+               TARG_TRAC = 'O'
+            CASE ( 2 )
+               TARG_TRAC = 'O1D'
+            CASE ( 3 )
+               TARG_TRAC = 'JNO'
+            CASE ( 4 )
+               TARG_TRAC = 'JNO2'
+            CASE ( 5 )
+               TARG_TRAC = 'JNO3'
+            CASE ( 6 )
+               TARG_TRAC = 'JN2O'
+         END SELECT
+         WRITE(NOX_FILE,'(a,a,a,I0.2,a)') TRIM(NOON_FILE_ROOT),
+     &    TRIM(TARG_TRAC), '_', TARG_MONTH, '.dat'
+!         NOX_FILE = TRIM(NOON_FILE_ROOT)//TRIM(TARG_TRAC)
+!         NOX_FILE = TRIM(NOX_FILE)//'_'//TRIM(TARG_MONTH)//'.dat'
+
+         ! Get a free LUN
+         IU_FILE = findFreeLUN()
+
+         IOS = 1
+         OPEN( IU_FILE, FILE=TRIM( NOX_FILE ),STATUS='OLD',IOSTAT=IOS) 
+         IF ( IOS /= 0 ) THEN
+            WRITE(6,*) 'GMISTRAT_MOD: Could not read ', TRIM(NOX_FILE)
+            CALL IOERROR( IOS, IU_FILE,'GMISTRAT_MOD:GET_NOXCOEFF')
+         ENDIF
+  
+        IF (LPRT) THEN
+            WRITE(DBGMSG,'(a,a)') ' ### GMISTRAT: Reading ', 
+     &        TRIM( NOX_FILE )
+            CALL DEBUG_MSG( DBGMSG )
+         ENDIF
+ 
+      ! Read in data
+         DO ILEV = 1,51
+            READ(IU_FILE, 110, IOSTAT=IOS ) NOXDATA2D(:,ILEV,ITRAC)
+            IF ( IOS /= 0 ) THEN
+               WRITE(6,'(a,a,I4,a,1x,a)') 'GMISTRAT_MOD: Error reading '
+     & , 'line ', ILEV, ' in file ', TRIM( NOX_FILE )
+               CALL IOERROR( IOS, IU_FILE,'GMISTRAT_MOD:GET_NOXCOEFF')
+            ENDIF
+         ENDDO
+
+#if defined(GRID2x25)
+110   FORMAT(91E10.3)
+#elif defined(GRID4x5)
+110   FORMAT(46E10.3)
+#endif
+
+         CLOSE(IU_FILE)
+      ENDDO 
+
+
+      ! Scan through target array, element by element
+      DO J = 1,JJPAR
+      DO I = 1,IIPAR
+         ! Vertcount is the layer count for the input, where layer 1
+         ! is at the *top* of the atmosphere
+         VERTCOUNT = 51
+         EXTRAP = .TRUE.
+         LSTART = GET_CHEMGRID_LEVEL(I,J)
+
+         !-----SDE DEBUG
+         ! Awaiting j-rates from DW
+         ! For the moment, use max alt value for I,J from FJX
+         !DO ITRAC=3,6
+         !   SELECT CASE (ITRAC)
+         !      CASE ( 3 )
+         !         JTEMP(1) = FJXFUNC(I,J,LSTART-1,61,1,'NO  ')
+         !      CASE ( 4 )
+         !         JTEMP(2) = FJXFUNC(I,J,LSTART-1,4 ,1,'NO2 ')
+         !      CASE ( 5 )
+         !         JTEMP(3) = FJXFUNC(I,J,LSTART-1,13,1,'NO3 ')
+         !      CASE ( 6 )
+         !         JTEMP(4) = FJXFUNC(I,J,LSTART-1,58,1,'N2O ')
+         !    END SELECT
+         !ENDDO
+         !-----SDE DEBUG
+
+         DO L = LSTART, LLPAR
+            IF (ITS_IN_THE_CHEMGRID(I,J,L)) CYCLE
+            ! Pressure at center of cell
+            PCENTER = GET_PCENTER(I,J,L)
+            FOUNDLEV = (PCENTER.gt.AER_PLEVS(VERTCOUNT))
+            DO WHILE (.not. FOUNDLEV)
+               IF (VERTCOUNT.eq.1) THEN
+                 ! At top layer; use it anyway
+                 FOUNDLEV = .TRUE.
+                 EXTRAP = .TRUE.
+               ELSE
+                 VERTCOUNT = VERTCOUNT - 1
+                 FOUNDLEV = (PCENTER.gt.AER_PLEVS(VERTCOUNT))
+                 EXTRAP = .FALSE.
+               ENDIF
+            ENDDO
+
+            !-----SDE DEBUG
+            ! Awaiting j-rates from DW
+            ! For the moment, use max alt value for I,J from FJX
+            !DO ITRAC=3,6
+            !    NOX_J(I,J,L,ITRAC-2) = JTEMP(ITRAC-2)
+            !ENDDO
+            !DO ITRAC=1,2
+            !-----SDE DEBUG
+            DO ITRAC=1,6
+               ISRATE = (ITRAC.gt.2)
+               ! Interpolate data
+               IF (EXTRAP) THEN
+                  ! Just take outside value if at edges
+                  CURRVAL = NOXDATA2D(J,VERTCOUNT,ITRAC)
+               ELSE
+                  ! Interpolate by pressure
+                  CURRVAL = (AER_PLEVS(VERTCOUNT+1)-PCENTER)
+                  CURRVAL = CURRVAL/(AER_PLEVS(VERTCOUNT+1)-
+     &                               AER_PLEVS(VERTCOUNT))
+                  CURRVAL = CURRVAL * 
+     &               (NOXDATA2D(J,VERTCOUNT+1,ITRAC)-
+     &                NOXDATA2D(J,VERTCOUNT,ITRAC))
+                  CURRVAL = NOXDATA2D(J,VERTCOUNT+1,ITRAC) - CURRVAL
+               ENDIF
+               IF (.not.ISRATE) THEN
+                  ! Reading in mixing ratios (v/v)
+                  NOX_O(I,J,L,ITRAC) = CURRVAL
+               ELSE
+                  ! J-rate (no conversion necessary)
+                  NOX_J(I,J,L,ITRAC-2) = CURRVAL
+               ENDIF
+            ENDDO ! ITRAC
+         ENDDO ! L
+      ENDDO ! I
+      ENDDO ! J
+
+      DEALLOCATE( NOXDATA2D )
+ 
+      END SUBROUTINE GET_NOXCOEFF
+ 
+!EOC
+!------------------------------------------------------------------------------
+!               MIT Laboratory for Aviation and the Environment               !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: apply_2dtrac
 !
 ! !DESCRIPTION: Subroutine APPLY\_2DTRAC reads in and applies 2D data 
@@ -683,7 +1334,7 @@
       ! APPLY_2DTRAC begins here!
       !=================================================================
 
-      TRAC_FILE = TRIM(TRAC_FILE_ROOT)//TRIM(TRAC_SET )
+      TRAC_FILE = TRIM(AVG_FILE_ROOT)//TRIM(TRAC_SET )
       TRAC_FILE = TRIM(TRAC_FILE)//'_'//TRIM(MONTH_STR)//'.dat'
 
       ! Error check
@@ -1950,9 +2601,6 @@
       ! Peak pressure at which NAT can form homogeneously
       REAL*8, PARAMETER     :: P_MAXNAT = 1.40d4 ! Pa
 
-      ! Universal gas constant
-      REAL*8, PARAMETER     :: R_UNIV = 8.31448d0
-
       ! Maximum temperature for PSC formation (K)
       REAL*8, PARAMETER     :: T_MAX = 215.0d0
 
@@ -2679,11 +3327,6 @@
       END FUNCTION RHO_STRAT_AER
 !
 !EOC
-!------------------------------------------------------------------------------
-!               MIT Laboratory for Aviation and the Environment               !
-!------------------------------------------------------------------------------
-!BOP
-!
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
 !------------------------------------------------------------------------------
@@ -4074,8 +4717,7 @@
 ! !USES:
 !
       USE TRACERID_MOD
-      USE LOGICAL_MOD,  ONLY : LN2OEMIS, LCFCEMIS, LCLEMIS,  LBREMIS
-      USE LOGICAL_MOD,  ONLY : LOCSEMIS
+      USE LOGICAL_MOD
       USE ERROR_MOD,    ONLY : ALLOC_ERR
 !
 ! !INPUT PARAMETERS:
@@ -4096,7 +4738,8 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: N, AS
-      LOGICAL :: IT_EXISTS
+      LOGICAL :: IT_EXISTS, USE2DDATA
+      CHARACTER(LEN=255) :: DBGMSG, GRIDSPEC
 
       !=================================================================
       ! INIT_GMISTRAT begins here!
@@ -4108,6 +4751,74 @@
       WRITE( 6,'(a)') 'Last Modification Date: 05/09/13'
       WRITE( 6,'(a)') REPEAT( '=', 79 )
 
+      USE2DDATA = (LSETOCS.or.LSETCFC.or.LSETCL.or.LSETBR.or.LSETH2SO4)
+      USE2DDATA = (USE2DDATA.or.STRAT2DCH4.or.LSETBRSTRAT)
+      USE2DDATA = (USE2DDATA.or.LSETNOYSTRAT)
+      USE2DDATA = (USE2DDATA.or.LSETN2O.or.LBASICEMIS)
+
+#if !defined(GRID4x5) && !defined(GRID2x25)
+      IF (LGMISTRAT.and.USE2DDATA) THEN
+       DBGMSG = 'Zonal means preprocessed only for 2x2.5 and 4x5 grid.'
+       CALL ERROR_STOP( DBGMSG, 'INIT_GMISTRAT (gmistrat_mod.f)!' )
+      ELSE
+       AVG_FILE_ROOT = ''
+      ENDIF
+#elif defined(GRID2x25)
+      GRIDSPEC = 'Grid2x25/InitCFC_'
+#elif defined(GRID4x5)
+      GRIDSPEC = 'Grid4x5/InitCFC_'
+#endif
+
+      !-----SDE DEBUG
+      ! Check - and write - the `record length' of AVG_FILE_ROOT
+      WRITE(6,*) TRIM(TRAC_FILE_ROOT)
+      WRITE(6,*) '/DiurnalAvg/'
+      WRITE(6,*) TRIM(GRIDSPEC)
+      WRITE(6,*) TRIM(TRAC_FILE_ROOT), '/DiurnalAvg/', TRIM(GRIDSPEC)
+      !-----SDE DEBUG
+
+      ! Determine folder paths from root folder
+      WRITE(     AVG_FILE_ROOT,'(a,a,a)') TRIM(TRAC_FILE_ROOT),
+     &   '/DiurnalAvg/', TRIM(GRIDSPEC)
+      WRITE(    NOON_FILE_ROOT,'(a,a,a)') TRIM(TRAC_FILE_ROOT), 
+     &   '/NoonTime/', TRIM(GRIDSPEC)
+      WRITE(MONTREAL_FILE_ROOT,'(a,a)') TRIM(TRAC_FILE_ROOT), 
+     &   '/Montreal/'
+  
+      IF ( LPRT ) THEN
+         WRITE(DBGMSG,'(a,a)') '### GMISTRAT: Reading O1D/O3P from ',
+     &     TRIM(NOON_FILE_ROOT)
+         CALL DEBUG_MSG( DBGMSG )
+         WRITE(DBGMSG,'(a,a)') '### GMISTRAT: Initializing CFCs from ',
+     &     TRIM(AVG_FILE_ROOT)
+         CALL DEBUG_MSG( DBGMSG )
+         WRITE(DBGMSG,'(a,a)') '### GMISTRAT: Projecting CFCs from ',
+     &     TRIM(MONTREAL_FILE_ROOT)
+         CALL DEBUG_MSG( DBGMSG )
+      ENDIF
+      
+      MONTREAL_FILE_ROOT = TRIM(TRAC_FILE_ROOT)
+     &      // '/Montreal/'
+
+      ! Allocate array of input pressure levels
+      ALLOCATE( AER_PLEVS( AER_NLEVS ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AER_PLEVS' )
+
+      ! Set input pressure levels (hPa)
+      AER_PLEVS = (/ 0.2200d+00, 0.2600d+00, 0.3100d+00, 0.3600d+00,
+     &               0.4300d+00, 0.5100d+00, 0.6000d+00, 0.7100d+00,
+     &               0.8400d+00, 0.9900d+00, 1.1700d+00, 1.3800d+00,
+     &               1.6300d+00, 1.9300d+00, 2.2800d+00, 2.6900d+00,
+     &               3.1800d+00, 3.7600d+00, 4.4400d+00, 5.2500d+00,
+     &               6.2000d+00, 7.3200d+00, 8.6500d+00, 1.0220d+01,
+     &               1.2070d+01, 1.4260d+01, 1.6850d+01, 1.9910d+01,
+     &               2.3520d+01, 2.7780d+01, 3.2820d+01, 3.8770d+01,
+     &               4.5810d+01, 5.4110d+01, 6.3930d+01, 7.5220d+01,
+     &               8.9220d+01, 1.0540d+02, 1.2451d+02, 1.4710d+02,
+     &               1.7377d+02, 2.0529d+02, 2.4252d+02, 2.8650d+02,
+     &               3.3847d+02, 3.9985d+02, 4.7237d+02, 5.5804d+02,
+     &               6.5924d+02, 7.7880d+02, 9.2004d+02 /)
+ 
       ! Calculate conversion factors for SLA
       ! Factor to convert volume (m3 SLA/m3 air) to
       ! surface area density (cm2 SLA/cm3 air)
@@ -4212,8 +4923,14 @@
          IDT_EMIT(N) = 0
       ENDDO
 
-      ! Need to put a trailing slash on the file root
-      MONTREAL_FILE_ROOT = TRIM(MONTREAL_FILE_ROOT) // '/'
+      ! Initialize NOx coefficient arrays
+      ALLOCATE( NOX_O( IIPAR, JJPAR, LLPAR, 2 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'NOX_O' )
+      NOX_O = 0d0
+
+      ALLOCATE( NOX_J( IIPAR, JJPAR, LLPAR, 4 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'NOX_J' )
+      NOX_J = 0d0
 
       ! Initialize PSC variables
       ALLOCATE( RAD_AER( IIPAR, JJPAR, LLPAR, NSTRATAER ), STAT=AS )
@@ -4316,6 +5033,8 @@
       IF ( ALLOCATED( KHETI_SLA  ) ) DEALLOCATE( KHETI_SLA  )
       IF ( ALLOCATED( AER_MR     ) ) DEALLOCATE( AER_MR     )
       IF ( ALLOCATED( AER_PLEVS  ) ) DEALLOCATE( AER_PLEVS  )
+      IF ( ALLOCATED( NOX_O      ) ) DEALLOCATE( NOX_O      )
+      IF ( ALLOCATED( NOX_J      ) ) DEALLOCATE( NOX_J      )
 
       END SUBROUTINE CLEANUP_GMISTRAT
 !

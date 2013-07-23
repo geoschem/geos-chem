@@ -13,7 +13,7 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Jacobian.f90
-! Time                 : Thu Jul 11 15:54:49 2013
+! Time                 : Mon Jul 22 16:36:28 2013
 ! Working directory    : /net/d08/data/seastham/GEOS-Chem/simulations/StratChem/Strat_v1.01/KPP_Compile
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
@@ -4102,7 +4102,7 @@ SUBROUTINE Jac_SP ( V, F, RCT, JVS )
 ! JVS(1263) = Jac_FULL(161,86)
   JVS(1263) = B(726)
 ! JVS(1264) = Jac_FULL(161,87)
-  JVS(1264) = B(243)+B(247)
+  JVS(1264) = B(243)+B(247)+2*B(714)
 ! JVS(1265) = Jac_FULL(161,88)
   JVS(1265) = B(732)
 ! JVS(1266) = Jac_FULL(161,92)
