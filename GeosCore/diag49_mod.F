@@ -416,7 +416,8 @@
             ! Free pointer
             NULLIFY( STT )
 
-         ELSE IF ( N == 91 .and. IS_O3 ) THEN
+         ! (skim 7/17/13), Modify because we now have 80 tracers)
+         ELSE IF ( N == -1 .and. IS_O3 ) THEN
 
             !-------------------------------------
             ! PURE O3 CONCENTRATION [v/v]
@@ -449,7 +450,8 @@
             ! Free pointer
             NULLIFY( STT )
 
-         ELSE IF ( N == 92 .and. IS_NO ) THEN
+         ! (skim 7/17/13), Modify because we now have 80 tracers)
+         ELSE IF ( N == -1 .and. IS_NO ) THEN
             
             !-------------------------------------
             ! NO CONCENTRATION [v/v]
@@ -482,7 +484,8 @@
             ! Free pointer
             NULLIFY( STT )
 
-         ELSE IF ( N == 93 .and. IS_NOy ) THEN
+         ! (skim 7/17/13), Modify because we now have 80 tracers)
+         ELSE IF ( N == -1 .and. IS_NOy ) THEN
 
             !--------------------------------------
             ! NOy CONCENTRATION [v/v]
@@ -565,7 +568,7 @@
             ! Free pointer
             NULLIFY( STT )
 
-         ELSE IF ( N == 76 .and. IS_FULLCHEM ) THEN
+         ELSE IF ( N == 91 .and. IS_FULLCHEM ) THEN
 
             !-------------------------------------
             ! OH CONCENTRATION [molec/cm3]
@@ -590,7 +593,8 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 77 .and. IS_FULLCHEM ) THEN
+         ! (skim 7/17/13), Modify because we now have 80 tracers)
+         ELSE IF ( N == -1 .and. IS_FULLCHEM ) THEN
 
             !-------------------------------------
             ! NO2 CONCENTRATION [molec/cm3]
@@ -616,7 +620,8 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 78 ) THEN
+         ! (skim 7/17/13), Modify because we now have 80 tracers)
+         ELSE IF ( N == 92 ) THEN
 
             !--------------------------------------
             ! PBL HEIGHTS [m] 
@@ -638,7 +643,8 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 79 ) THEN
+         ! (skim 7/17/13), Modify because we now have 80 tracers)
+         ELSE IF ( N == -1 ) THEN
 
             !--------------------------------------
             ! PBL HEIGHTS [levels] 
@@ -660,7 +666,8 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 80 ) THEN
+         ! (skim 7/17/13), Modify because we now have 80 tracers)
+         ELSE IF ( N == 93 ) THEN
 
             !--------------------------------------
             ! AIR DENSITY [molec/cm3]
@@ -1250,7 +1257,8 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 61 .and.  LSOILNOX  ) THEN
+         ! (skim 7/17/13), Modify because we now have 80 tracers)
+         ELSE IF ( N == -1 .and.  LSOILNOX  ) THEN
 
             !-----------------------------------
             ! SOIL NOX EMISSIONS [molec/cm2/s]
@@ -1273,8 +1281,8 @@
 !$OMP END PARALLEL DO
 
 
-
-         ELSE IF ( N == 62 .and.  LSOILNOX  ) THEN
+         ! (skim 7/17/13), Modify because we now have 80 tracers)
+         ELSE IF ( N == -1 .and.  LSOILNOX  ) THEN
 
             !-----------------------------------
             ! FERTILIZER SOIL NOX EMISSIONS [molec/cm2/s]
@@ -1299,8 +1307,8 @@
 !$OMP END PARALLEL DO
 
 
-
-         ELSE IF ( N == 63 .and.  LSOILNOX  ) THEN
+         ! (skim 7/17/13), Modify because we now have 80 tracers)
+         ELSE IF ( N == -1 .and.  LSOILNOX  ) THEN
 
             !-----------------------------------
             !DRY PERIOD [hours]
@@ -1322,7 +1330,8 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 64 .and.  LSOILNOX  ) THEN
+         ! (skim 7/17/13), Modify because we now have 80 tracers)
+         ELSE IF ( N == -1 .and.  LSOILNOX  ) THEN
 
             !-----------------------------------
             !PFACTOR [unitless]
@@ -1344,7 +1353,8 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 65 .and.  LSOILNOX  ) THEN
+         ! (skim 7/17/13), Modify because we now have 80 tracers)
+         ELSE IF ( N == -1 .and.  LSOILNOX  ) THEN
 
             !-----------------------------------
             !GWET_PREV [unitless]
@@ -1366,8 +1376,8 @@
 !$OMP END PARALLEL DO
 
 
-
-         ELSE IF ( N == 66 .and.  LSOILNOX  ) THEN
+         ! (skim 7/17/13), Modify because we now have 80 tracers)
+         ELSE IF ( N == -1 .and.  LSOILNOX  ) THEN
 
             !-----------------------------------
             !Accumulated Precip [mm/day]

@@ -137,8 +137,7 @@
 !
 ! !USES:
 !
-      USE BPCH2_MOD,       ONLY : READ_BPCH2
-      USE BPCH2_MOD,       ONLY : GET_TAU0
+      USE BPCH2_MOD
       USE DIRECTORY_MOD,   ONLY : DATA_DIR_NATIVE => DATA_DIR_1x1
       USE ERROR_MOD,       ONLY : GEOS_CHEM_STOP
       USE FILE_MOD,        ONLY : FILE_EXISTS
@@ -197,6 +196,7 @@
       INTEGER             :: I0,   J0
       INTEGER             :: YYYY, MM, MM1, YYYY1
       INTEGER             :: YYYYMMDD, HHMMSS
+      INTEGER             :: IU_ADJ
       REAL*8              :: GFED3_EMFACX
       REAL*4              :: ARRAY_GFED3(IGFED3, JGFED3, 1)
       REAL*4              :: FR_GFED3_DAY(IGFED3, JGFED3)
@@ -207,9 +207,17 @@
       CHARACTER(LEN=255)  :: FILENAME
       CHARACTER(LEN=255)  :: LLFILENAME
       CHARACTER(LEN=16 )  :: TIME_STR, STAMP
+      CHARACTER(LEN=80 )  :: TITLE
+      CHARACTER(LEN=30 )  :: OUTPUT_FILE
+      CHARACTER(LEN=40 )  :: CATEGORY
+      CHARACTER(LEN=40 )  :: UNIT
+      CHARACTER(LEN=20 )  :: MODELNAME
+      CHARACTER(LEN=40 )  :: RESERVED = ''
+      CHARACTER(LEN=255)  :: FILENAME_OUT
       INTEGER             :: DD, HH, DOY
       INTEGER             :: IT3HR, IT3H
-      REAL*4              :: DEG2RAD
+      REAL*4              :: DEG2RAD, LONRES, LATRES
+      REAL*4, ALLOCATABLE :: temp(:,:)
       REAL*8, ALLOCATABLE :: bq1(:,:)
       REAL*8, ALLOCATABLE :: bq2(:,:)
 
@@ -253,17 +261,16 @@
       ! Filename, TAU0 and number of seconds
       !=================================================================
       
-      ! Hardcode for now while we wait to get data
-      ! (skim, 6/28/13)
-      TAU0     = GET_TAU0( 6, 20, YYYY, HH   )
-      TAU1     = GET_TAU0( 6, 20, YYYY, HH+1 )
+      TAU0     = GET_TAU0( MM, DD, YYYY, HH   )
+      TAU1     = GET_TAU0( MM, DD, YYYY, HH+1 )
 
       ! Number of seconds in this hour 
       SECONDS  = ( TAU1 - TAU0 ) * 3600d0
 
       ! KLUDGE FOR SEAC4RS
       ! Hardwire the path for now (skim, 6/21/13)
-      FILENAME = '/home/skim/Code_Development/FLAMBE/' // 
+      FILENAME = '/home/skim/Code_Development/FLAMBE/' //
+     &           'arctas_hourly/YYYY/YYYYMM/'          // 
      &           'flambe_YYYYMMDDhhmm.generic.1x1'
 
       !=================================================================
@@ -424,7 +431,7 @@
             
             ! Multiply DM * EMISSION FACTOR to get biomass emissions
             ! for each species on the GENERIC 1x1 GRID 
-            SELECT CASE( N_VEG )
+            SELECT CASE( N_VEG )             
 
                ! Ocean 
                CASE( 0 ) 
@@ -448,7 +455,8 @@
          ! Regrid emissions from GFED3 grid to model grid
          ALLOCATE( bq1( I1x1, J1x1-1 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'bq1' )
-         ALLOCATE( bq2( IIIPAR0, JJJPAR0 ), STAT=AS )
+         ALLOCATE( bq2( IIPAR, JJPAR ), STAT=AS )
+         !ALLOCATE( bq2( IIIPAR0, JJJPAR0 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'bq2' )
 
          bq1(:,:)=BIOM_GEN_1x1(:,:,N)
@@ -464,17 +472,50 @@
      &                'MAP_A2A_latlon_generic1x1.nc'
 
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-     &                       bq1,        bq2,     IS_MASS=1,
+     &                       bq1,        bq2,     IS_MASS=0,
      &                       netCDF=.TRUE.                   )
 
-         I0    = GET_XOFFSET( GLOBAL=.TRUE. )
-         J0    = GET_YOFFSET( GLOBAL=.TRUE. )
+! THIS SEGMENT OF CODE IS FOR TESTING PURPOSES ONLY
+!         I0    = GET_XOFFSET( GLOBAL=.TRUE. )
+!         J0    = GET_YOFFSET( GLOBAL=.TRUE. )
 
-         DO JJ=1,JJPAR
-         DO II=1,IIPAR
-            BIOMASS_MODEL(II,JJ,N)=bq2(II+I0,JJ+J0)
-         END DO
-         END DO
+!         IF ( N .EQ. 2 ) THEN
+!
+!            ALLOCATE( temp( IIPAR, JJPAR ), STAT=AS )
+!            IF ( AS /= 0 ) CALL ALLOC_ERR('temp')
+
+!            LONRES       = DISIZE
+!            LATRES       = DJSIZE
+!            MODELNAME    = GET_MODELNAME()
+!            FILENAME_OUT = 'test.bpch'
+!            CATEGORY     = 'IJ-AVG-$'
+!            UNIT         = 'kg'
+!            temp         = bq2
+
+!            IU_ADJ = 32767
+
+!            CALL OPEN_BPCH2_FOR_WRITE( IU_ADJ, FILENAME_OUT, TITLE )
+
+!            CALL BPCH2( IU_ADJ, MODELNAME, LONRES,   LATRES,
+!     &                  1,      1,         CATEGORY, 1,
+!     &                  UNIT,   TAU0,      TAU0,     RESERVED,
+!     &                  IIPAR,  JJPAR,     1,        160,
+!     &                  399,    1,         TEMP              )
+
+!            CLOSE( IU_ADJ )
+
+!         ENDIF
+
+         BIOMASS_MODEL(:,:,N) = bq2
+
+         !DO JJ=1,JJPAR
+         !DO II=1,IIPAR
+         !   BIOMASS_MODEL(II,JJ,N)=bq2(II+I0,JJ+J0)
+         !   IF ( bq2( II+I0, JJ+J0 ) .GT. 0 ) THEN
+         !      PRINT*, bq2(II+I0, JJ+J0)
+         !   ENDIF
+         !END DO
+         !END DO
 
          DEALLOCATE( bq1 )
          DEALLOCATE( bq2 )
@@ -679,10 +720,11 @@
             TOTAL = TOTAL + ( BIOMASS_MODEL(I,J,N) * CONV )
          ENDDO
          ENDDO
-     
+
          ! Write totals
          WRITE( 6, 110 ) NAME, TOTAL, UNIT
  110     FORMAT( 'Sum Biomass ', a4, 1x, ': ', e12.5, 1x, a6 )
+
       ENDDO
 
       END SUBROUTINE FLAMBE_TOTAL_Tg
