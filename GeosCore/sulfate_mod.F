@@ -8218,6 +8218,7 @@
 !  17 Jun 2012 - J. Fisher   - Initial version (replaces READ_ERUP_VOLC
 !                              and READ_NONERUP_VOLC)
 !  11 Jan 2013 - S. Kim      - Update to use GIGC conventions
+!  26 Jul 2013 - R. Yantosca - Add trap for OOB errors
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8250,6 +8251,10 @@
          IF ( vnv_date(N) < YYYYMMDD ) CYCLE
          IF ( vnv_date(N) > YYYYMMDD ) EXIT
 
+         ! Extra check to avoid OOB errors (bmy, 7/26/13)
+         IF ( vnv_ii(N) < 1 .or. vnv_ii(N) > IIPAR ) CYCLE
+         IF ( vnv_jj(N) < 1 .or. vnv_jj(N) > JJPAR ) CYCLE
+
          ! For consistency check
          CHECKSUM_NV = CHECKSUM_NV + vnv_so2(N)
 
@@ -8281,6 +8286,10 @@
       DO N = 1, N_ERUP
          IF ( vev_date(N) < YYYYMMDD ) CYCLE
          IF ( vev_date(N) > YYYYMMDD ) EXIT
+
+         ! Extra check to avoid OOB erros (bmy, 7/26/13)
+         IF ( vev_ii(N) < 1 .or. vev_ii(N) > IIPAR ) CYCLE
+         IF ( vev_jj(N) < 1 .or. vev_jj(N) > JJPAR ) CYCLE
 
          ! For consistency check
          CHECKSUM_EV = CHECKSUM_EV + vev_so2(N)
