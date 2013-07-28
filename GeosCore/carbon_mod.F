@@ -4801,6 +4801,7 @@ c
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE GFED2_BIOMASS_MOD,  ONLY : GFED2_IS_NEW
       USE GFED3_BIOMASS_MOD,  ONLY : GFED3_IS_NEW
+      USE FINN_BIOMASS_MOD,   ONLY : FINN_IS_NEW
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -4989,7 +4990,8 @@ c
          ! rather than whenever GFED2 is updated (generally monthly)
          ! (jaf, 7/30/09)
          IF ( GFED2_IS_NEW()    .or. GFED3_IS_NEW()  .or. 
-     &        ITS_A_NEW_MONTH() .or. FLAMBE_IN_USE() ) THEN 
+     &        ITS_A_NEW_MONTH() .or. FLAMBE_IN_USE() .or. 
+     &        FINN_IS_NEW() ) THEN 
             CALL BIOMASS_CARB_GEOS( Input_Opt )
             IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a BB_CRB_GEOS' )
          ENDIF

@@ -163,7 +163,8 @@
       LOGICAL  :: USE_FLAMBE
 
       ! Hardcoded for the SEAC4RS campaign (skim, 6/21/13)
-      USE_FLAMBE = .TRUE.
+      ! Switch off to use FINN (skim, 7/27/13)
+      USE_FLAMBE = .FALSE.
 
       ! Return to calling program
       END FUNCTION FLAMBE_IN_USE
@@ -213,6 +214,8 @@
 !
       ! References to F90 modules
       USE DIAG_MOD,           ONLY : AD28, AD29, AD32_bb
+      ! Needed for the SEAC4RS campaign (skim, 7/27/13)
+      USE FINN_BIOMASS_MOD,   ONLY : FINN_COMPUTE_BIOMASS
       ! Needed for the SEAC4RS campagin (skim, 6/21/13)
       USE FLAMBE_BIOMASS_MOD, ONLY : FLAMBE_COMPUTE_BIOMASS
       USE GC_BIOMASS_MOD,     ONLY : GC_COMPUTE_BIOMASS
@@ -226,6 +229,8 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
+      ! Need to know for FINN emissions (skim, 7/27/13)
+      USE TIME_MOD,           ONLY : ITS_A_NEW_DAY
       ! Need to know for FLAMBE emissions (skim, 6/21/13)
       USE TIME_MOD,           ONLY : ITS_A_NEW_HOUR
       USE TRACERID_MOD,       ONLY : IDTBCPO, IDTNH3, IDTOCPO, IDTSO2
@@ -466,11 +471,16 @@
          ENDIF
 
          ! Compute the FLAMBE biomass burning emissions (skim, 6/21/13)
-         IF ( ITS_A_NEW_HOUR() ) THEN
+         ! IF ( ITS_A_NEW_HOUR() .AND. .FALSE. ) THEN
+         ! Now use the FINN inventory (7/27/13)
+         IF ( ITS_A_NEW_DAY() ) THEN
 
-            ! Compute the FLAMBE emissions
-            CALL FLAMBE_COMPUTE_BIOMASS( BIOMASS, YEAR, MONTH, 
-     &                                            DAY,  HOUR )
+!            ! Compute the FLAMBE emissions
+!            CALL FLAMBE_COMPUTE_BIOMASS( BIOMASS, YEAR, MONTH, 
+!     &                                            DAY,  HOUR )
+
+            ! Compute the FINN emissions
+            CALL FINN_COMPUTE_BIOMASS( YEAR, MONTH, BIOMASS )
 
             ! Irrespective of inventory type, we need to scale biomass
             ! CO to account for CO production from VOC's that are not

@@ -139,6 +139,7 @@ ifort_errmsg.o    : ifort_errmsg.F
 inquireMod.o      : inquireMod.F90
 julday_mod.o      : julday_mod.F
 linux_err.o       : linux_err.c
+ncdf_mod.o        : ncdf_mod.F          bpch2_mod.o    error_mod.o
 pressure_mod.o    : pressure_mod.F      error_mod.o
 regrid_1x1_mod.o  : regrid_1x1_mod.F    charpak_mod.o  error_mod.o  \
                                         grid_mod.o

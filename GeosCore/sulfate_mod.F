@@ -4629,6 +4629,7 @@
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE GFED2_BIOMASS_MOD,  ONLY : GFED2_IS_NEW
       USE GFED3_BIOMASS_MOD,  ONLY : GFED3_IS_NEW
+      USE FINN_BIOMASS_MOD,   ONLY : FINN_IS_NEW
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -4865,8 +4866,8 @@
       ENDIF
 
       IF(  ( GFED2_IS_NEW()      .or. GFED3_IS_NEW()  .or.
-     &       ITS_A_NEW_MONTH()   .or. FLAMBE_IN_USE() ) .AND. 
-     &     ( LBIOMASS )  ) THEN 
+     &       ITS_A_NEW_MONTH()   .or. FLAMBE_IN_USE() .or. 
+     &       FINN_IS_NEW() ) .AND. ( LBIOMASS )  ) THEN 
          CALL GET_BIOMASS_SO2
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSSULFATE: GET_BM_SO2')
          
