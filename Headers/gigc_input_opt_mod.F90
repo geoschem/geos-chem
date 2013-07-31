@@ -142,7 +142,7 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LGFED3BB
      LOGICAL                     :: LDAYBB3
      LOGICAL                     :: L3HRBB3
-     LOGICAL                     :: LAIRNOX
+     LOGICAL                     :: LAEIC
      LOGICAL                     :: LLIGHTNOX
      LOGICAL                     :: LOTDLOC
      LOGICAL                     :: LSOILNOX
@@ -584,6 +584,8 @@ MODULE GIGC_Input_Opt_Mod
 !  27 Mar 2013 - R. Yantosca - Add extra fields for tagged EDGAR
 !  29 Mar 2013 - R. Yantosca - Add DO_DIAG_WRITE field (to shut diags in MPI)
 !  22 Jul 2013 - M. Sulprizio- Add extra fields for RCP emissions
+!  31 Jul 2013 - M. Sulprizio- Add extra field for AEIC aircraft emissions and
+!                              remove LAIRNOX field
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -787,7 +789,7 @@ CONTAINS
     Input_Opt%LGFED3BB               = .FALSE.
     Input_Opt%LDAYBB3                = .FALSE.
     Input_Opt%L3HRBB3                = .FALSE.
-    Input_Opt%LAIRNOX                = .FALSE.
+    Input_Opt%LAEIC                  = .FALSE.
     Input_Opt%LLIGHTNOX              = .FALSE.
     Input_Opt%LOTDLOC                = .FALSE.
     Input_Opt%LSOILNOX               = .FALSE.

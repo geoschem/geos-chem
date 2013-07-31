@@ -4623,7 +4623,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE LOGICAL_MOD,        ONLY : LAEIC
       USE TIME_MOD,           ONLY : GET_SEASON, GET_MONTH
       USE TIME_MOD,           ONLY : GET_YEAR,   ITS_A_NEW_MONTH
       USE TIME_MOD,           ONLY : GET_DAY,    ITS_A_NEW_DAY
@@ -4686,6 +4685,8 @@
 !        the TOMAS aerosol from tracerid_mod  (win, 1/25/10)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  04 Mar 2013 - R. Yantosca - Remove call to INIT_SULFATE
+!  31 Jul 2013 - M. Sulprizio- Now set SO2 aircraft emissions to zero if using
+!                              AEIC aircraft emissions (S. Eastham)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4708,6 +4709,7 @@
       LOGICAL       :: LBIOMASS
       LOGICAL       :: LPRT
       LOGICAL       :: LSHIPSO2
+      LOGICAL       :: LAEIC
       LOGICAL       :: ITS_AN_AEROSOL_SIM
       INTEGER       :: N_TRACERS
 
@@ -4729,6 +4731,7 @@
       LBIOMASS           = Input_Opt%LBIOMASS
       LPRT               = Input_Opt%LPRT
       LSHIPSO2           = Input_Opt%LSHIPSO2
+      LAEIC              = Input_Opt%LAEIC
       ITS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
       N_TRACERS          = Input_Opt%N_TRACERS
 

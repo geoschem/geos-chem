@@ -122,7 +122,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_AEIC_FILE( INMONTH )
+      SUBROUTINE READ_AEIC_FILE( INMONTH, State_Met )
 !
 ! !USES:
 !
@@ -132,20 +132,22 @@
       USE m_netcdf_io_read                    ! netCDF data reads
       USE m_netcdf_io_close                   ! netCDF close
 
-      USE DAO_MOD,        ONLY : T
-      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
-      USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
-      USE TIME_MOD,       ONLY : EXPAND_DATE
-      USE ERROR_MOD,      ONLY : ERROR_STOP
-      USE PRESSURE_MOD,   ONLY : GET_AP, GET_BP
 
-      USE CMN_SIZE_MOD         ! Size parameters
-      USE CMN_GCTM_MOD, ONLY : Rdg0
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR_1x1
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE REGRID_A2A_MOD,     ONLY : DO_REGRID_A2A
+      USE TIME_MOD,           ONLY : EXPAND_DATE
+      USE PRESSURE_MOD,       ONLY : GET_AP, GET_BP
+
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_GCTM_MOD,       ONLY : Rdg0
 
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)     :: INMONTH ! Current month number (1-12)
+      INTEGER,        INTENT(IN)  :: INMONTH     ! Current month number (1-12)
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !REVISION HISTORY: 
 !  14 Dec 2012 - S. Eastham - Adapted from READ_NONERUP_VOLC
@@ -184,7 +186,7 @@
          WRITE( MONTH_STR,'(I2)' ) INMONTH
       END IF
 
-      AEIC_FILE = TRIM( DATA_DIR_1x1 ) // '/AEIC_1x1/' //
+      AEIC_FILE = TRIM( DATA_DIR_1x1 ) // '/AEIC_201301/' //
      &           'AEIC_1x1_' // TRIM(MONTH_STR) // '.nc'
 
       ! Echo output
@@ -240,9 +242,9 @@
             OUTGRID => ACARRAY_OUT
 
             ! Regrid
-            CALL DO_REGRID_A2A( LLFILENAME, 360,    180,
-     &         INGRID,     OUTGRID, PERAREA=1,
-     &         netCDF=.TRUE.                   )
+            CALL DO_REGRID_A2A( LLFILENAME, 360,     180,
+     &                          INGRID,     OUTGRID, IS_MASS=1,
+     &                          netCDF=.TRUE.                   )
 
             AEIC_REGRID(:,:,L,EMIT_INDEX) = OUTGRID
 
@@ -271,7 +273,7 @@
                PCEIL = GET_AP(L+1) + (GET_BP(L+1) * PSEALEV)
 
                ! Temperature [K]
-               TEMP    = T(I,J,L)
+               TEMP = State_Met%T(I,J,L)
 
                CURRCEIL = CURRBASE + (Rdg0*TEMP*LOG(PBASE/PCEIL))
  
@@ -336,7 +338,7 @@
 !EOC
 !------------------------------------------------------------------------------
 
-      SUBROUTINE EMIT_AEIC
+      SUBROUTINE EMIT_AEIC( Input_Opt, State_Met, State_Chm )
 !
 !******************************************************************************
 !  Subroutine EMIT_AEIC interpolates AEIC aircraft emissions from the
@@ -347,18 +349,22 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE GRID_MOD,     ONLY : GET_XOFFSET, GET_YOFFSET
-      USE TRACER_MOD,   ONLY : STT, XNUMOL
-      USE PRESSURE_MOD, ONLY : GET_AP, GET_BP
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET
+      USE PRESSURE_MOD,       ONLY : GET_AP,      GET_BP
+      USE TIME_MOD,           ONLY : GET_MONTH,   GET_TS_EMIS
       USE TRACERID_MOD
-      USE TROPOPAUSE_MOD,ONLY : GET_TPAUSE_LEVEL
-      USE LOGICAL_MOD,  ONLY : LVARTROP
-      USE TIME_MOD,     ONLY : GET_MONTH,GET_TS_EMIS
-      USE DAO_MOD,      ONLY : T
+      USE TROPOPAUSE_MOD,     ONLY : GET_TPAUSE_LEVEL
 
-      USE CMN_SIZE_MOD  ! Size parameters
-      USE CMN_DIAG_MOD  ! Diagnostic switches
-      USE CMN_MOD       ! PTOP, SIGE, AVP
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! Diagnostic switches
+      USE CMN_MOD                  ! PTOP, SIGE, AVP
+
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 
       INTEGER             :: I,    J,     IREF, JREF,  L
       INTEGER             :: I0,   J0, TPL
@@ -367,9 +373,23 @@
       LOGICAL, SAVE       :: FIRST = .TRUE.
       REAL*8, SAVE        :: FBSUM = 0d0
       
+      ! For fields from Input_Opt
+      LOGICAL             :: LVARTROP
+      REAL*8              :: XNUMOL(Input_Opt%N_TRACERS)
+
+      ! For fields from State_Chm
+      REAL*8, POINTER     :: STT(:,:,:,:)
+
       !=================================================================
       ! EMIT_AEIC begins here!
       !=================================================================
+
+      ! Copy logical fields from INPUT_OPT to local variables
+      LVARTROP  = Input_Opt%LVARTROP
+      XNUMOL    = Input_Opt%XNUMOL
+
+      ! Initialize fields from State_Chm
+      STT      => State_Chm%Tracers
 
       IF ( FIRST ) THEN
          FIRST = .FALSE.
@@ -395,7 +415,8 @@
       ! Read aircraft NOx emissions
       IF (LAST_MONTH/=GET_MONTH()) THEN
          LAST_MONTH = GET_MONTH()
-         CALL READ_AEIC_FILE(LAST_MONTH)
+         CALL READ_AEIC_FILE( LAST_MONTH, State_Met )
+
          WRITE(6,*) 'Aircraft fuelburn: ',
      &       SUM(AEIC_EMIT(:,:,:,FB_INDEX)), ' kg/s'
          WRITE(6,*) 'Aircraft NOx     : ',
@@ -422,7 +443,7 @@
 
       ! Debug
       WRITE(6,*) 'PRESO4: ', SUM(STT(:,:,:,IDTSO4))
-      WRITE(6,*) 'PRENOx: ', SUM(STT(:,:,:,IDTNOx))
+      WRITE(6,*) 'PRENOx: ', SUM(STT(:,:,:,IDTNO))
 
       ! Loop over surface grid boxes
       DO J = 1, JJPAR
@@ -433,9 +454,9 @@
          ! Loop over GEOS-CHEM levels 
          !==============================================================
          IF ( LVARTROP ) THEN
-            TPL = GET_TPAUSE_LEVEL(I,J)
+            TPL = GET_TPAUSE_LEVEL(I,J,State_Met)
          ELSE
-            TPL = GET_TPAUSE_LEVEL(I,J) - 1
+            TPL = GET_TPAUSE_LEVEL(I,J,State_Met) - 1
          END IF
  
          DO L = 1, LLPAR
@@ -447,7 +468,7 @@
              STT(I,J,L,IDTSO2) = STT(I,J,L,IDTSO2) +
      &          ((AEIC_EMIT(I,J,L,FB_INDEX)*64.0d0*TMPMULT)
      &           *(1.d0-SULFCONV))
-             STT(I,J,L,IDTNOx) = STT(I,J,L,IDTNOx) +
+             STT(I,J,L,IDTNO) = STT(I,J,L,IDTNO) +
      &           (AEIC_EMIT(I,J,L,NOx_INDEX)*DTSRCE)
              STT(I,J,L,IDTCO) = STT(I,J,L,IDTCO) +
      &           (AEIC_EMIT(I,J,L,CO_INDEX)*DTSRCE)
@@ -483,9 +504,12 @@
 
       ! Debug
       WRITE(6,*) 'POSTSO4:  ', SUM(STT(:,:,:,IDTSO4))
-      WRITE(6,*) 'POSTNOx:  ', SUM(STT(:,:,:,IDTNOx))
+      WRITE(6,*) 'POSTNOx:  ', SUM(STT(:,:,:,IDTNO))
       FBSUM = FBSUM + (DTSRCE*SUM(AEIC_EMIT(:,:,:,FB_INDEX)))
       WRITE(6,*) 'Fuel burn in current year: ', FBSUM*1.d-9, 'Tg'
+
+      ! Free pointer
+      NULLIFY( STT )
 
       ! Return to calling program
       END SUBROUTINE EMIT_AEIC

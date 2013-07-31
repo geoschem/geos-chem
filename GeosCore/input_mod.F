@@ -2127,6 +2127,8 @@
 !                              running with the traditional driver main.F
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !  22 Jul 2013 - M. Sulprizio- Now copy LRCP, LRCPSHIP, LRCPAIR to Input_Opt
+!  31 Jul 2013 - M. Sulprizio- Now copy LAEIC to Input_Opt; Add check to
+!                              make sure LAEIC and LRCPAIR are not both on
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2780,7 +2782,7 @@
       Input_Opt%LGFED3BB       = LGFED3BB
       Input_Opt%LDAYBB3        = LDAYBB3
       Input_Opt%L3HRBB3        = L3HRBB3
-      Input_Opt%LAIRNOX        = LAIRNOX
+      Input_Opt%LAEIC          = LAEIC
       Input_Opt%LLIGHTNOX      = LLIGHTNOX
       Input_Opt%LOTDLOC        = LOTDLOC
       Input_Opt%LSOILNOX       = LSOILNOX
@@ -2862,7 +2864,6 @@
         WRITE( 6, 100 ) '    monthly GFED3 emissions?: ', LGFED3BB
         WRITE( 6, 100 ) '    daily GFED3 emission?   : ', LDAYBB3
         WRITE( 6, 100 ) '    3hr GFED3 emission?     : ', L3HRBB3
-        WRITE( 6, 100 ) 'Turn on AIRCRAFT NOx?       : ', LAIRNOX
         WRITE( 6, 100 ) 'Use AIRCRAFT NOx from RCP?  : ', LRCPAIR
         WRITE( 6, 100 ) 'Turn on LIGHTNING NOx?      : ', LLIGHTNOX
         WRITE( 6, 100 ) 'Use OTD-LIS local redist?   : ', LOTDLOC

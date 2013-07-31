@@ -95,6 +95,8 @@
 !  13 Dec 2012 - R. Yantosca - Now remove reference to obsolete CMN_DEP_mod.F
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  22 Jul 2013 - M. Sulprizio- Now copy LRCPAIR from Input_Opt
+!  31 Jul 2013 - M. Sulprizio- Now use aircraft emissions from the AEIC
+!                              inventory (S. Eastham)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -117,7 +119,6 @@
       USE GRID_MOD,           ONLY : GET_XMID
       USE GRID_MOD,           ONLY : GET_XOFFSET,   GET_YOFFSET
       USE LIGHTNING_NOX_MOD,  ONLY : EMLIGHTNING
-      USE LOGICAL_MOD,        ONLY : LAEIC
       USE MEGAN_MOD,          ONLY : GET_EMISOP_MEGAN
       USE MEGAN_MOD,          ONLY : GET_EMMBO_MEGAN
       USE MEGAN_MOD,          ONLY : GET_EMMONOT_MEGAN
@@ -210,7 +211,6 @@
       LOGICAL                :: LLIGHTNOX
       LOGICAL                :: LSOILNOX
       LOGICAL                :: LFERTILIZERNOX
-      LOGICAL                :: LAIRNOX
       LOGICAL                :: LBIOMASS
       LOGICAL                :: LBIONOX
       LOGICAL                :: LBIOFUEL
@@ -220,6 +220,7 @@
       LOGICAL                :: LBIOGENIC
       LOGICAL                :: LNLPBL
       LOGICAL                :: LRCPAIR
+      LOGICAL                :: LAEIC
       LOGICAL                :: ITS_A_TAGCO_SIM
       INTEGER                :: N_TRACERS
 !
@@ -240,7 +241,6 @@
       LLIGHTNOX        = Input_Opt%LLIGHTNOX
       LSOILNOX         = Input_Opt%LSOILNOX
       LFERTILIZERNOX   = Input_Opt%LFERTILIZERNOX
-      LAIRNOX          = Input_Opt%LAIRNOX
       LBIOMASS         = Input_Opt%LBIOMASS
       LBIONOX          = Input_Opt%LBIOMASS
       LBIOFUEL         = Input_Opt%LBIOFUEL
@@ -250,6 +250,7 @@
       LBIOGENIC        = Input_Opt%LBIOGENIC
       LNLPBL           = Input_Opt%LNLPBL
       LRCPAIR          = Input_Opt%LRCPAIR
+      LAEIC            = Input_Opt%LAEIC
       ITS_A_TAGCO_SIM  = Input_Opt%ITS_A_TAGCO_SIM
       N_TRACERS        = Input_Opt%N_TRACERS
 
@@ -465,7 +466,7 @@
                IF (LRCPAIR) THEN
                   CALL RCP_AIREMISS( State_Met )
                ELSE
-                  CALL EMIT_AEIC
+                  CALL EMIT_AEIC( Input_Opt, State_Met, State_Chm )
                ENDIF
             ENDIF
 !-----------------------------------------------------------------------------
