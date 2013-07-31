@@ -477,23 +477,35 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SAVE_GLOBAL_TPCORE_BC
+      SUBROUTINE SAVE_GLOBAL_TPCORE_BC( am_I_Root, Input_Opt, 
+     &                                  State_Chm, RC         )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD 
       USE BPCH2_MOD
-      !USE FILE_MOD
-      USE TIME_MOD,    ONLY : GET_NYMD,  GET_NHMS
-      USE TIME_MOD,    ONLY : GET_TAU,   TIMESTAMP_STRING
-      USE TRACER_MOD,  ONLY : N_TRACERS, STT
-      USE LOGICAL_MOD, ONLY : LWINDO_CU, LWINDO_NA
-      USE LOGICAL_MOD, ONLY : LWINDO_CH, LWINDO_EU
-      USE LOGICAL_MOD, ONLY : LWINDO_SE
+      USE CMN_SIZE_MOD 
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE TIME_MOD,           ONLY : GET_NYMD,  GET_NHMS
+      USE TIME_MOD,           ONLY : GET_TAU,   TIMESTAMP_STRING
 #if   defined( APM )
-      USE TRACER_MOD,  ONLY : N_APMTRA
+      USE TRACER_MOD,         ONLY : N_APMTRA
 #endif
-! 
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
 ! !REVISION HISTORY: 
 !  04 Mar 2003 - Y. Wang     - Initial version
 !  (1 ) Now references N_TRACERS and STT from "tracer_mod.f".  Also now 
@@ -507,6 +519,7 @@
 !  06 Aug 2012 - R. Yantosca - Added comments & cosmetic changes
 !  06 Aug 2012 - R. Yantosca - Now use file unit variables from this module
 !                              instead of from GeosUtil/file_mod.F
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -526,9 +539,33 @@
       CHARACTER(LEN=40)  :: UNIT      = 'v/v'
       CHARACTER(LEN=40)  :: RESERVED  = ''
 
+      ! For fields from Input_Opt
+      LOGICAL            :: LWINDO_CU
+      LOGICAL            :: LWINDO_NA 
+      LOGICAL            :: LWINDO_CH
+      LOGICAL            :: LWINDO_EU
+      LOGICAL            :: LWINDO_SE
+      INTEGER            :: N_TRACERS
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER    :: STT(:,:,:,:)
+
       !=================================================================
       ! SAVE_GLOBAL_TPCORE_BC begins here!
       !=================================================================
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LWINDO_CU = Input_Opt%LWINDO_CU
+      LWINDO_NA = Input_Opt%LWINDO_NA
+      LWINDO_CH = Input_Opt%LWINDO_CH
+      LWINDO_EU = Input_Opt%LWINDO_EU
+      LWINDO_SE = Input_Opt%LWINDO_SE
+      N_TRACERS = Input_Opt%N_TRACERS
 
       ! Pick the proper # of tracers
 #if   defined( APM )
@@ -550,6 +587,10 @@
       HALFPOLAR = GET_HALFPOLAR()
       MODELNAME = GET_MODELNAME()
       TAU       = GET_TAU()
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
       ! Loop over the possible combinations of nested grids
       DO IC = 1, 5
@@ -715,6 +756,9 @@
          ENDIF
       ENDDO
 
+      ! Free pointer
+      NULLIFY( STT )
+
       ! FORMAT statements
  110  FORMAT( '     - SAVE_GLOBAL_TPCORE_BC: Wrote BC''s at ', a )
  111  FORMAT( '     - SAVE_GLOBAL_TPCORE_BC: Wrote NA BC''s at ', a )
@@ -738,36 +782,69 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_WINDOW_TPCORE_BC
+      SUBROUTINE DO_WINDOW_TPCORE_BC( am_I_Root, Input_Opt, 
+     &                                State_Chm, RC         )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE LOGICAL_MOD, ONLY : LWINDO2x25
-      USE TRACER_MOD,  ONLY : N_TRACERS, STT
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
 #if   defined( APM )
-      USE TRACER_MOD,  ONLY : N_APMTRA
+      USE TRACER_MOD,         ONLY : N_APMTRA
 #endif
-! 
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
 ! !REVISION HISTORY: 
 !  07 Mar 2003 - R. Yantosca - Initial version
 !  (1 ) Now references N_TRACERS and STT from "tracer_mod.f" (bmy, 7/20/04)
 !  (2 ) Now can use 2 x 2.5 BC's (amv, bmy, 12/18/09)
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE :: FIRST = .TRUE.
-      INTEGER       :: I, J, L, N, N_TOT_TRC
+      LOGICAL, SAVE   :: FIRST = .TRUE.
+      INTEGER         :: I, J, L, N, N_TOT_TRC
+
+      ! For fields from Input_Opt
+      LOGICAL         :: LWINDO2x25
+      INTEGER         :: N_TRACERS
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! DO_WINDOW_TPCORE_BC begins here!
       !=================================================================
 
+      ! Assume success
+      RC         =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LWINDO2x25 = Input_Opt%LWINDO2x25
+      N_TRACERS  = Input_Opt%N_TRACERS
+      
       ! Pick the proper # of tracers
 #if   defined( APM )
       N_TOT_TRC = N_TRACERS + N_APMTRA   ! G-C advected tracers + APM tracers
@@ -775,11 +852,15 @@
       N_TOT_TRC = N_TRACERS              ! G-C advected tracers only
 #endif
 
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+
       ! Either zero BC's or read them from disk
       IF ( CLEAN_BC ) THEN
-         CALL CLEAN_WINDOW_TPCORE_BC
+         CALL CLEAN_WINDOW_TPCORE_BC( am_I_Root, Input_Opt, RC )
       ELSE
-         CALL READ_WINDOW_TPCORE_BC
+         CALL READ_WINDOW_TPCORE_BC( am_I_Root, Input_Opt, RC )
       ENDIF
 
       !=================================================================
@@ -870,6 +951,9 @@
 
       ENDIF
 
+      ! Free pointer
+      NULLIFY( STT )
+
       END SUBROUTINE DO_WINDOW_TPCORE_BC
 !EOC
 !------------------------------------------------------------------------------
@@ -885,18 +969,24 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CLEAN_WINDOW_TPCORE_BC
+      SUBROUTINE CLEAN_WINDOW_TPCORE_BC( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD  
-      USE TRACER_MOD,    ONLY : N_TRACERS
-      USE LOGICAL_MOD,   ONLY : LWINDO_NA, LWINDO_EU
-      USE LOGICAL_MOD,   ONLY : LWINDO_CH, LWINDO_CU
-      USE LOGICAL_MOD,   ONLY : LWINDO_SE
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 
 #     include "define.h"
-! 
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 ! !REVISION HISTORY: 
 !  07 Mar 2003 - M. Prather  - Initial version
 !  (1 ) Now references N_TRACERS from "tracer_mod.f" (bmy, 7/20/04)
@@ -905,6 +995,7 @@
 !  15 May 2012 - R. Yantosca - Added ProTeX headers
 !  07 Sep 2012 - R. Yantosca - Simplify coding, remove parallel loops
 !  07 Sep 2012 - R. Yantosca - Now use 0d0 instead of 0e0 to zero BC arrays
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -913,9 +1004,26 @@
 !
       INTEGER :: I, J, L, N, N_TOT_TRC
 
+      ! For fields from Input_Opt
+      LOGICAL :: LWINDO_NA, LWINDO_EU
+      LOGICAL :: LWINDO_CH, LWINDO_CU
+      LOGICAL :: LWINDO_SE
+      INTEGER :: N_TRACERS
+
       !=================================================================
       ! CLEAN_WINDOW_TPCORE_BC begins here!
       !=================================================================
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LWINDO_NA = Input_Opt%LWINDO_NA
+      LWINDO_EU = Input_Opt%LWINDO_EU
+      LWINDO_CH = Input_Opt%LWINDO_CH
+      LWINDO_CU = Input_Opt%LWINDO_CU
+      LWINDO_SE = Input_Opt%LWINDO_SE
+      N_TRACERS = Input_Opt%N_TRACERS
 
 #if   defined( NESTED_CH ) || defined( NESTED_NA ) || defined( NESTED_EU ) || defined( SEAC4RS )
       BC = 0d0
@@ -958,14 +1066,24 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_WINDOW_TPCORE_BC
+      SUBROUTINE READ_WINDOW_TPCORE_BC( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD 
-      USE FILE_MOD,   ONLY : IOERROR
-      USE TIME_MOD,   ONLY : GET_TAU, TIMESTAMP_STRING
-      USE TRACER_MOD, ONLY : N_TRACERS
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : GET_TAU, TIMESTAMP_STRING
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  07 Mar 2003 - R. Yantosca - Initial version
@@ -975,6 +1093,7 @@
 !  (2 ) Now references N_TRACERS from "tracer_mod.f" (bmy, 7/20/04)
 !  (3 ) Rewritten to be more generic (amv, bmy, 12/18/09)
 !  15 May 2012 - R. Yantosca - Added ProTeX headers
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -997,9 +1116,19 @@
       ! For LINUX fix
       CHARACTER(LEN=16) :: STAMP
 
+      ! For fields from Input_Opt
+      INTEGER           :: N_TRACERS
+
       !=================================================================
       ! READ_WINDOW_TPCORE_BC begins here!
       !=================================================================
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      N_TRACERS = Input_Opt%N_TRACERS
+
       IF ( ITS_TIME_FOR_BC() ) THEN
 
          ! Open boundary conditions file (if necessary) 
@@ -1062,9 +1191,11 @@
 
                ! Echo output
                STAMP = TIMESTAMP_STRING()
-               WRITE( 6, 100 ) N_TRACERS, STAMP
- 100           FORMAT( '     - READ_WINDOW_TPCORE_BC: Found all ',
+               IF ( am_I_Root ) THEN
+                  WRITE( 6, 100 ) N_TRACERS, STAMP
+ 100              FORMAT( '     - READ_WINDOW_TPCORE_BC: Found all ',
      &                       i3, ' BC''s at ', a )
+               ENDIF
                EXIT
             ENDIF
          ENDDO
@@ -1477,28 +1608,27 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_TPCORE_BC( TS, I0W, J0W, I1, J1, I2, J2 )
+      SUBROUTINE INIT_TPCORE_BC( TS, I0W, J0W, I1, 
+     &                           J1, I2,  J2,  Input_Opt )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE DIRECTORY_MOD, ONLY : TPBC_DIR
-      USE ERROR_MOD,     ONLY : ALLOC_ERR
-      USE GRID_MOD,      ONLY : GET_XOFFSET, GET_YOFFSET 
-      USE GRID_MOD,      ONLY : ITS_A_NESTED_GRID
-      USE LOGICAL_MOD,   ONLY : LWINDO,    LWINDO_NA,  LWINDO_CU
-      USE LOGICAL_MOD,   ONLY : LWINDO_EU, LWINDO_CH,  LWINDO2x25
-      USE LOGICAL_MOD,   ONLY : LWINDO_SE
-      USE TRACER_MOD,    ONLY : N_TRACERS
+      USE DIRECTORY_MOD,      ONLY : TPBC_DIR
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET 
+      USE GRID_MOD,           ONLY : ITS_A_NESTED_GRID
 
 #     include "define.h"
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: TS          ! Timestep for BC data
-      INTEGER, INTENT(IN) :: I0W, J0W    ! Transport region offsets
-      INTEGER, INTENT(IN) :: I1,  J1     ! Lon, lat indices @ LL corner 
-      INTEGER, INTENT(IN) :: I2,  J2     ! Lon, lat indices @ UR corner
+      INTEGER,        INTENT(IN) :: TS          ! Timestep for BC data
+      INTEGER,        INTENT(IN) :: I0W, J0W    ! Transport region offsets
+      INTEGER,        INTENT(IN) :: I1,  J1     ! Lon, lat indices @ LL corner 
+      INTEGER,        INTENT(IN) :: I2,  J2     ! Lon, lat indices @ UR corner
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
 ! 
 ! !REVISION HISTORY: 
 !  10 Feb 2003 - R. Yantosca - Initial version
@@ -1511,6 +1641,7 @@
 !  17 Oct 2012 - M. Payer    - Bug fix: Define extent of coarse grid BC region
 !                              even if LWINDO_CH or LWINDO_SE = False to
 !                              avoid out-of-bounds errors in array BC
+!  05 Jun 2013 - K. Yu       - Define BC boundaries for GEOS_57 0.25 NA grid
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1519,9 +1650,24 @@
 !
       INTEGER :: AS, I, J
 
+      ! For values from Input_Opt
+      LOGICAL :: LWINDO,    LWINDO_NA,  LWINDO_CU
+      LOGICAL :: LWINDO_EU, LWINDO_CH,  LWINDO2x25
+      LOGICAL :: LWINDO_SE
+      INTEGER :: N_TRACERS
+
       !=================================================================
       ! INIT_TPCORE_BC begins here!
       !=================================================================
+
+      ! Copy values from Input_Opt
+      LWINDO     = Input_Opt%LWINDO
+      LWINDO_NA  = Input_Opt%LWINDO_NA
+      LWINDO_CU  = Input_Opt%LWINDO_CU
+      LWINDO_EU  = Input_Opt%LWINDO_EU
+      LWINDO_CH  = Input_Opt%LWINDO_CH
+      LWINDO2x25 = Input_Opt%LWINDO2x25
+      N_TRACERS  = Input_Opt%N_TRACERS
 
       ! Timestep for BC's [min]
       TS_BC = TS
@@ -1572,7 +1718,15 @@
       !-----------------------------------------------------------------
       IF ( .not. LWINDO2x25 ) THEN
 
-#if   defined( GRID4x5 ) || defined( NESTED_NA )        
+#if   defined( GRID4x5 ) || defined( NESTED_NA )
+
+#if   defined( GEOS_57 )
+         !%%%%% 4x5 BC REGION FOR NORTH AMERICA NESTED GRID (GEOS_57)
+         I1_BC_NA = 11                       ! 4x5  lon index, LL corner
+         J1_BC_NA = 26                       ! 4x5  lat index, LL corner
+         I2_BC_NA = 25                       ! 4x5  lon index, UR corner
+         J2_BC_NA = 39                       ! 4x5  lat index, UR corner
+#else
          !%%%%% 4x5 BC REGION FOR NORTH AMERICA NESTED GRID %%%%%
          I1_BC_NA = 9                        ! 4x5  lon index, LL corner
          J1_BC_NA = 26                       ! 4x5  lat index, LL corner
@@ -1580,14 +1734,26 @@
          J2_BC_NA = 41                       ! 4x5  lat index, UR corner
 #endif
 
+#endif
+
       ELSE
 
 #if   defined( GRID2x25 ) || defined( NESTED_NA )
+
+#if   defined( GEOS_57 )
+         !%%%%% 2x25 BC REGION FOR NORTH AMERICA NESTED GRID (GEOS_57)
+         I1_BC_NA = 21                       ! 2x25 lon index, LL corner
+         J1_BC_NA = 51                       ! 2x25 lat index, LL corner
+         I2_BC_NA = 49                       ! 2x25 lon index, UR corner
+         J2_BC_NA = 76                       ! 2x25 lat index, UR corner
+#else
          !%%%%% 2x25 BC REGION FOR NORTH AMERICA NESTED GRID %%%%%
          I1_BC_NA = 17                       ! 2x25 lon index, LL corner
          J1_BC_NA = 51                       ! 2x25 lat index, LL corner
          I2_BC_NA = 57                       ! 2x25 lon index, UR corner
          J2_BC_NA = 81                       ! 2x25 lat index, UR corner
+#endif
+
 #endif
 
       ENDIF

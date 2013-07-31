@@ -106,31 +106,51 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_ISOROPIAII( am_I_Root )
+      SUBROUTINE DO_ISOROPIAII( am_I_Root, Input_Opt, 
+     &                          State_Met, State_Chm, RC )
 !
 ! !USES:
 !
-      USE DAO_MOD,         ONLY : AIRVOL, RH, T
-      USE ERROR_MOD,       ONLY : DEBUG_MSG,       ERROR_STOP
-      USE ERROR_MOD,       ONLY : SAFE_DIV
-      USE GLOBAL_HNO3_MOD, ONLY : GET_GLOBAL_HNO3
-      USE LOGICAL_MOD,     ONLY : LPRT
-      USE TIME_MOD,        ONLY : GET_MONTH,       ITS_A_NEW_MONTH
-      USE TRACER_MOD             
-      USE TRACERID_MOD,    ONLY : IDTHNO3, IDTNIT, IDTNH4, IDTNH3
-      USE TRACERID_MOD,    ONLY : IDTSALA, IDTSO4
-      USE TROPOPAUSE_MOD,  ONLY : ITS_IN_THE_STRAT
-#if   defined( APM )
-      USE APM_INIT_MOD,    ONLY : NSO4
-      USE APM_INIT_MOD,    ONLY : IDTSO4BIN1,IDTCTSEA
-      USE APM_INIT_MOD,    ONLY : IDTCTBCOC, IDTCTDST,IDTCTSO4
+      USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE ERROR_MOD,          ONLY : SAFE_DIV
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GLOBAL_HNO3_MOD,    ONLY : GET_GLOBAL_HNO3
+      USE TIME_MOD,           ONLY : GET_MONTH
+      USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE TRACERID_MOD,       ONLY : IDTHNO3
+      USE TRACERID_MOD,       ONLY : IDTNIT
+      USE TRACERID_MOD,       ONLY : IDTNH4
+      USE TRACERID_MOD,       ONLY : IDTNH3
+      USE TRACERID_MOD,       ONLY : IDTSALA
+      USE TRACERID_MOD,       ONLY : IDTSO4
+      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
+#if   defined( APM )          
+      USE APM_INIT_MOD,       ONLY : NSO4
+      USE APM_INIT_MOD,       ONLY : IDTSO4BIN1
+      USE APM_INIT_MOD,       ONLY : IDTCTSEA
+      USE APM_INIT_MOD,       ONLY : IDTCTBCOC
+      USE APM_INIT_MOD,       ONLY : IDTCTDST
+      USE APM_INIT_MOD,       ONLY : IDTCTSO4
 #endif
-
-      USE CMN_SIZE_MOD        ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  Original isoropia v1.3 implmentation: (rjp, bec, bmy, 12/17/01, 8/22/05)
@@ -144,7 +164,11 @@
 !  23 Jul 2010 - R. Yantosca  - Bug fix: corrected typo in ND42 diag section
 !  30 Jul 2012 - R. Yantosca  - Now accept am_I_Root as an argument when
 !                               running with the traditional driver main.F
-!  31 Jul 2012 - R. Yantosca  - Now loop from 1..LLPAR for GIGC compatibility
+!  31 Jul 2012 - R. Yantosca  - Now loop from 1..LLPAR for GIGC compatibilit
+!  14 Nov 2012 - R. Yantosca  - Add am_I_Root, Input_Opt, RC as arguments
+!  15 Nov 2012 - M. Payer     - Replaced all met field arrays with State_Met
+!                               derived type object
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -192,10 +216,27 @@
       ! debug variables
       INTEGER                  :: Itemp, Jtemp, Ltemp
       LOGICAL, SAVE            :: FIRSTCHECK = .TRUE.
+
+      LOGICAL                  :: IT_IS_AN_AEROSOL_SIM
+      LOGICAL                  :: IT_IS_A_FULLCHEM_SIM
+      LOGICAL                  :: LPRT
                   
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER          :: STT(:,:,:,:)
+
       !=================================================================
       ! DO_ISOROPIAII begins here!
       !=================================================================
+
+      ! Assume success
+      RC                   = GIGC_SUCCESS
+
+      ! Copy fields from INPUT_OPT to local variables for use below
+      LPRT                 = Input_Opt%LPRT  
+      IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
+      IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
 
       ! Location string
       X = 'DO_ISOROPIAII (isoropiaII_mod.f)'
@@ -222,12 +263,12 @@
       !=================================================================
       IF ( IDTHNO3 == 0 ) THEN
 
-         IF ( ITS_A_FULLCHEM_SIM() ) THEN
+         IF ( IT_IS_A_FULLCHEM_SIM ) THEN
 
             ! Coupled simulation: stop w/ error since we need HNO3
             CALL ERROR_STOP( 'IDTHNO3 is not defined!', X )
  
-         ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
+         ELSE IF ( IT_IS_AN_AEROSOL_SIM ) THEN
 
             ! Offline simulation: read monthly mean HNO3
             IF ( ITS_A_NEW_MONTH() ) THEN
@@ -254,6 +295,10 @@
       NARAT_SAV   = 0d0
       ACIDPUR_SAV = 0d0
 
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+
       !=================================================================
       ! Loop over grid boxes and call ISOROPIA (see comments in the 
       ! ISOROPIA routine ISOROPIAIICODE.f which describes
@@ -277,7 +322,7 @@
       DO I = 1, IIPAR
 
          ! Skip strat boxes 
-         IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE
+         IF ( ITS_IN_THE_STRAT( I, J, L, State_Met ) ) CYCLE
 
          ! Initialize WI, WT
          DO N = 1, NCOMPA
@@ -291,17 +336,17 @@
          ENDDO
 
          ! Temperature [K]
-         TEMPI    = T(I,J,L)
+         TEMPI    = State_Met%T(I,J,L)
 
          ! Relative humidity [unitless]
-         RHI      = RH(I,J,L) * 1.d-2
+         RHI      = State_Met%RH(I,J,L) * 1.d-2
 
          ! Force RH in the range 0.01 - 0.98
          RHI      = MAX( 0.01d0, RHI )
          RHI      = MIN( 0.98d0, RHI )
 
          ! Volume of grid box [m3] 
-         VOL      = AIRVOL(I,J,L)
+         VOL      = State_Met%AIRVOL(I,J,L)
 
          !---------------------------------
          ! Compute quantities for ISOROPIA
@@ -408,7 +453,7 @@
             ! Convert total inorganic NO3 from [ug/m3] to [mole/m3].
             ! GET_HNO3, lets HNO3 conc's evolve, but relaxes to 
             ! monthly mean values every 3h.
-            TNO3  = GET_HNO3( I,J,L ) * 1.d-6 / 63.d0
+            TNO3  = GET_HNO3( I, J, L, State_Met ) * 1.d-6 / 63.d0
 
          ENDIF
 
@@ -540,6 +585,9 @@
       ENDDO 
 !$OMP END PARALLEL DO
 
+      ! Free pointer
+      NULLIFY( STT )
+
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### ISOROPIAII: a AERO_THERMO' )
 
@@ -651,18 +699,20 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_HNO3( I, J, L ) RESULT ( HNO3_UGM3 )
+      FUNCTION GET_HNO3( I, J, L, State_Met ) RESULT ( HNO3_UGM3 )
 !
 ! !USES:
 !
-      USE GLOBAL_HNO3_MOD, ONLY : GET_HNO3_UGM3
-      USE TIME_MOD,        ONLY : GET_ELAPSED_MIN
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GLOBAL_HNO3_MOD,    ONLY : GET_HNO3_UGM3
+      USE TIME_MOD,           ONLY : GET_ELAPSED_MIN
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: I  ! GEOS-Chem longitude index
-      INTEGER, INTENT(IN) :: J  ! GEOS-Chem latitude index
-      INTEGER, INTENT(IN) :: L  ! GEOS-Chem level index
+      INTEGER,        INTENT(IN)  :: I           ! GEOS-Chem longitude index
+      INTEGER,        INTENT(IN)  :: J           ! GEOS-Chem latitude index
+      INTEGER,        INTENT(IN)  :: L           ! GEOS-Chem level index
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  16 Dec 2002 - R. Yantosca  - Initial version, in ISORROPIA I
@@ -686,7 +736,7 @@
       ! Relax to monthly mean HNO3 concentrations every 3 hours
       ! Otherwise just return the concentration in HNO3_sav
       IF ( MOD( GET_ELAPSED_MIN(), 180 ) == 0 ) THEN
-         HNO3_UGM3 = GET_HNO3_UGM3( I, J, L )
+         HNO3_UGM3 = GET_HNO3_UGM3( I, J, L, State_Met )
       ELSE
          HNO3_UGM3 = HNO3_sav(I,J,L)
       ENDIF
@@ -740,26 +790,32 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_GNO3( I, J, L, HNO3_kg )
+      SUBROUTINE GET_GNO3( I, J, L, HNO3_kg, State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD, ONLY : AIRVOL, AD
+      USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)  :: I       ! GEOS-Chem longitude index
-      INTEGER, INTENT(IN)  :: J       ! GEOS-Chem latitude index
-      INTEGER, INTENT(IN)  :: L       ! GEOS-Chem level index
+      INTEGER,        INTENT(IN)    :: I          ! GEOS-Chem longitude index
+      INTEGER,        INTENT(IN)    :: J          ! GEOS-Chem latitude index
+      INTEGER,        INTENT(IN)    :: L          ! GEOS-Chem level index
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(MetState), INTENT(INOUT) :: State_Met  ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(OUT) :: HNO3_kg ! Gas-phase HNO3 [kg]
+      REAL*8,          INTENT(OUT)  :: HNO3_kg    ! Gas-phase HNO3 [kg]
 ! 
 ! !REVISION HISTORY: 
 !  15 Apr 2005 - B. Alexander - Initial version, in ISORROPIA I
 !  06 Jul 2007 - H. O. T. Pye - Initial version, in ISORROPIA II
 !  29 Jan 2010 - R. Yantosca  - Added ProTeX headers
+!  09 Nov 2012 - M. Payer     - Replaced all met field arrays with State_Met
+!                               derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -767,7 +823,7 @@
       HNO3_kg  = 0.D0
 
       ! convert from [mole/m3] to [kg]
-      HNO3_kg = GAS_HNO3(I,J,L) * 63.d-3 * AIRVOL(I,J,L) 
+      HNO3_kg = GAS_HNO3(I,J,L) * 63.d-3 * State_Met%AIRVOL(I,J,L) 
 
       ! Return to calling program
       END SUBROUTINE GET_GNO3

@@ -177,42 +177,51 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG49
+      SUBROUTINE DIAG49( am_I_Root, Input_Opt, 
+     &                   State_Met, State_Chm, RC )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,     ONLY : BPCH2,   OPEN_BPCH2_FOR_WRITE
-      USE DAO_MOD,       ONLY : AD,      AIRDEN, BXHEIGHT, CLDF 
-      USE DAO_MOD,       ONLY : CLDTOPS, OPTD,   RH,       SLP     
-      USE DAO_MOD,       ONLY : T,       UWND,   VWND
-      USE DAO_MOD,       ONLY : TS
-      USE DAO_MOD,       ONLY : PARDF, PARDR
-      USE DAO_MOD,       ONLY : PREACC,   PRECON
-      USE MODIS_LAI_MOD, ONLY : ISOLAI => GC_LAI
-      USE LOGICAL_MOD,   ONLY : LSOILNOX 
-      USE GRID_MOD,      ONLY : GET_XOFFSET,        GET_YOFFSET
-      USE inquireMod,    ONLY : findFreeLun
-      USE TIME_MOD,      ONLY : EXPAND_DATE
-      USE TIME_MOD,      ONLY : GET_NYMD,           GET_NHMS
-      USE TIME_MOD,      ONLY : GET_NYMD_DIAG,      GET_TS_DIAG
-      USE TIME_MOD,      ONLY : GET_TAU,            GET_HOUR
-      USE TIME_MOD,      ONLY : ITS_A_NEW_DAY,      TIMESTAMP_STRING
-      USE PBL_MIX_MOD,   ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
-      USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM, N_TRACERS
-      USE TRACER_MOD,    ONLY : STT,                TCVV
-      USE TRACER_MOD,    ONLY : XNUMOLAIR
-      USE PRESSURE_MOD,  ONLY : GET_PEDGE
-      USE TRACERID_MOD,  ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNOX  
-      USE TRACERID_MOD,  ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
-      USE TRACERID_MOD,  ONLY : IDTR4N2, IDTSALA, IDTSALC 
-      USE LOGICAL_MOD,   ONLY : DO_DIAG_WRITE
+      USE BPCH2_MOD,          ONLY : BPCH2,   OPEN_BPCH2_FOR_WRITE
+      USE MODIS_LAI_MOD,      ONLY : ISOLAI => GC_LAI
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_XOFFSET,        GET_YOFFSET
+      USE inquireMod,         ONLY : findFreeLun
+      USE TIME_MOD,           ONLY : EXPAND_DATE
+      USE TIME_MOD,           ONLY : GET_NYMD,           GET_NHMS
+      USE TIME_MOD,           ONLY : GET_NYMD_DIAG,      GET_TS_DIAG
+      USE TIME_MOD,           ONLY : GET_TAU,            GET_HOUR
+      USE TIME_MOD,           ONLY : ITS_A_NEW_DAY
+      USE TIME_MOD,           ONLY : TIMESTAMP_STRING
+      USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
+      USE TRACER_MOD,         ONLY : XNUMOLAIR
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE
+      USE TRACERID_MOD,       ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNO
+      USE TRACERID_MOD,       ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTO3
+      USE TRACERID_MOD,       ONLY : IDTR4N2, IDTSALA, IDTSALC, IDTNO2
 
-      USE CMN_FJ_MOD,    ONLY : JPMAX,   JPPJ     ! FAST-J stuff
-      USE JV_CMN_MOD                              ! ODAER, QAA, QAA_AOD (clh)
-      USE CMN_O3_MOD	                          ! Pure O3, SAVENO2
-      USE CMN_GCTM_MOD                            ! XTRA2
+      USE CMN_FJ_MOD,         ONLY : JPMAX,   JPPJ     ! FAST-J stuff
+      USE JV_CMN_MOD               ! ODAER, QAA, QAA_AOD (clh)
+      USE CMN_O3_MOD	           ! SAVEOH
+      USE CMN_GCTM_MOD             ! XTRA2
       USE COMMSOIL_MOD
-
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  09 Apr 1999 - I. Bey, R. Martin, R. Yantosca - Initial version
@@ -243,6 +252,10 @@
 !  11 Apr 2012 - R. Yantosca - Replace lai_mod.F with modis_lai_mod.F90
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  14 Mar 2013 - M. Payer    - Replace NOx and Ox with NO, NO2, and O3 as part
+!                              of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -250,7 +263,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE            :: FIRST  = .TRUE.
-      LOGICAL, SAVE            :: IS_FULLCHEM, IS_NOx,     IS_Ox 
+      LOGICAL, SAVE            :: IS_FULLCHEM, IS_NO,      IS_O3
       LOGICAL, SAVE            :: IS_NOy,      IS_CLDTOPS, IS_OPTD
       LOGICAL, SAVE            :: IS_SEASALT,  IS_SLP
       INTEGER                  :: IOS,  GMTRC, GMNL, I, J, K, L 
@@ -266,21 +279,41 @@
       ! Aerosol types (rvm, aad, bmy, 7/20/04)
       INTEGER                  :: IND(6) = (/ 22, 29, 36, 43, 50, 15 /)
 
+      ! For fields from Input_Opt
+      LOGICAL                  :: LSOILNOX
+      LOGICAL                  :: DO_DIAG_WRITE
+      INTEGER                  :: N_TRACERS
+      REAL*8                   :: TCVV(Input_Opt%N_TRACERS)
+ 
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER          :: STT(:,:,:,:)
+
       !=================================================================
       ! DIAG49 begins here!
       !=================================================================
 
+      ! Assume success
+      RC            =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LSOILNOX      = Input_Opt%LSOILNOX
+      DO_DIAG_WRITE = Input_Opt%DO_DIAG_WRITE
+      N_TRACERS     = Input_Opt%N_TRACERS
+      TCVV          = Input_Opt%TCVV(1:N_TRACERS)
+
       ! Set logical flags on first timestep
       IF ( FIRST ) THEN
-         IS_CLDTOPS  = ALLOCATED( CLDTOPS )
-         IS_OPTD     = ALLOCATED( OPTD    )
-         IS_SLP      = ALLOCATED( SLP     )
-         IS_FULLCHEM = ITS_A_FULLCHEM_SIM()
+         IS_CLDTOPS  = ASSOCIATED( State_Met%CLDTOPS )
+         IS_SLP      = ASSOCIATED( State_Met%SLP     )
+         IS_OPTD     = ASSOCIATED( State_Met%OPTD    )
+         IS_FULLCHEM = Input_Opt%ITS_A_FULLCHEM_SIM
          IS_SEASALT  = ( IDTSALA > 0 .and. IDTSALC > 0 )
-         IS_Ox       = ( IS_FULLCHEM .and. IDTOX   > 0 )
-         IS_NOx      = ( IS_FULLCHEM .and. IDTNOX  > 0 )
-         IS_NOy      = ( IS_FULLCHEM .and. 
-     &                   IDTNOX  > 0 .and. IDTPAN  > 0 .and.
+         IS_O3       = ( IS_FULLCHEM .and. IDTO3   > 0 )
+         IS_NO       = ( IS_FULLCHEM .and. IDTNO   > 0 )
+         IS_NOy      = ( IS_FULLCHEM .and. IDTNO   > 0 .and.
+     &                   IDTNO2  > 0 .and. IDTPAN  > 0 .and.
      &                   IDTHNO3 > 0 .and. IDTPMN  > 0 .and.
      &                   IDTPPN  > 0 .and. IDTR4N2 > 0 .and.
      &                   IDTN2O5 > 0 .and. IDTHNO4 > 0 ) 
@@ -353,6 +386,10 @@
             GMNL     = ND49_NL
             GMTRC    = N
       
+            ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+            ! (mpayer, 12/6/12)
+            STT => State_Chm%Tracers
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, X, Y, K )
@@ -362,13 +399,16 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = STT(I,J,L,N) * TCVV(N) / AD(I,J,L)
+               Q(X,Y,K) = STT(I,J,L,N) * TCVV(N) / State_Met%AD(I,J,L)
             ENDDO
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 91 .and. IS_Ox ) THEN
+            ! Free pointer
+            NULLIFY( STT )
+
+         ELSE IF ( N == 91 .and. IS_O3 ) THEN
 
             !-------------------------------------
             ! PURE O3 CONCENTRATION [v/v]
@@ -378,6 +418,10 @@
             GMNL     = ND49_NL
             GMTRC    = N_TRACERS + 1
 
+            ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+            ! (mpayer, 12/6/12)
+            STT => State_Chm%Tracers
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, X, Y, K )
@@ -387,14 +431,17 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = STT(I,J,L,IDTOX) * TCVV(IDTOX)  / 
-     &                    AD(I,J,L)        * FRACO3(I,J,L) 
+               Q(X,Y,K) = STT(I,J,L,IDTO3)    * TCVV(IDTO3)  / 
+     &                    State_Met%AD(I,J,L)
             ENDDO
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 92 .and. IS_NOx ) THEN
+            ! Free pointer
+            NULLIFY( STT )
+
+         ELSE IF ( N == 92 .and. IS_NO ) THEN
             
             !-------------------------------------
             ! NO CONCENTRATION [v/v]
@@ -404,6 +451,10 @@
             GMNL     = ND49_NL
             GMTRC    = 9
                
+            ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+            ! (mpayer, 12/6/12)
+            STT => State_Chm%Tracers
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, X, Y, K )
@@ -412,13 +463,16 @@
             DO Y = 1, ND49_NJ
                J = JOFF + Y
             DO X = 1, ND49_NI
-               I = GET_I( X )   
-               Q(X,Y,K) = STT(I,J,L,IDTNOX) * TCVV(IDTNOX) * 
-     &                    FRACNO(I,J,L)     / AD(I,J,L)
+               I = GET_I( X )
+               Q(X,Y,K) = STT(I,J,L,IDTNO)  * TCVV(IDTNO) /
+     &                    State_Met%AD(I,J,L)
             ENDDO
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
+
+            ! Free pointer
+            NULLIFY( STT )
 
          ELSE IF ( N == 93 .and. IS_NOy ) THEN
 
@@ -429,6 +483,10 @@
             UNIT     = ''              ! Let GAMAP pick unit
             GMNL     = ND49_NL
             GMTRC    = 3
+
+            ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+            ! (mpayer, 12/6/12)
+            STT => State_Chm%Tracers
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -443,43 +501,61 @@
                ! Temp variable for accumulation
                TMP = 0d0
             
-               ! NOx
-               TMP = TMP + ( TCVV(IDTNOX)        *
-     &                       STT(I,J,L,IDTNOX)   / AD(I,J,L) )
+               ! NO
+               TMP = TMP + ( TCVV(IDTNO)         *
+     &                       STT(I,J,L,IDTNO)    /
+     &                       State_Met%AD(I,J,L) )
+
+               ! NO2
+               TMP = TMP + ( TCVV(IDTNO2)        *
+     &                       STT(I,J,L,IDTNO2)   /
+     &                       State_Met%AD(I,J,L) )
+
                ! PAN
                TMP = TMP + ( TCVV(IDTPAN)        * 
-     &                       STT(I,J,L,IDTPAN)   / AD(I,J,L) )
+     &                       STT(I,J,L,IDTPAN)   / 
+     &                       State_Met%AD(I,J,L) )
 
                ! HNO3
                TMP = TMP + ( TCVV(IDTHNO3)       *
-     &                       STT(I,J,L,IDTHNO3)  / AD(I,J,L) )
+     &                       STT(I,J,L,IDTHNO3)  / 
+     &                       State_Met%AD(I,J,L) )
             
                ! PMN
                TMP = TMP + ( TCVV(IDTPMN)        *
-     &                       STT(I,J,L,IDTPMN)   / AD(I,J,L) )
+     &                       STT(I,J,L,IDTPMN)   / 
+     &                       State_Met%AD(I,J,L) )
 
                ! PPN
                TMP = TMP + ( TCVV(IDTPPN)        * 
-     &                       STT(I,J,L,IDTPPN)   / AD(I,J,L) )
+     &                       STT(I,J,L,IDTPPN)   / 
+     &                       State_Met%AD(I,J,L) )
  
                ! R4N2
                TMP = TMP + ( TCVV(IDTR4N2)       *
-     &                       STT(I,J,L,IDTR4N2)  / AD(I,J,L) )
+     &                       STT(I,J,L,IDTR4N2)  / 
+     &                       State_Met%AD(I,J,L) )
             
                ! N2O5
                TMP = TMP + ( 2d0 * TCVV(IDTN2O5) *
-     &                       STT(I,J,L,IDTN2O5)  / AD(I,J,L) )
+     &                       STT(I,J,L,IDTN2O5)  / 
+     &                       State_Met%AD(I,J,L) )
                         
                ! HNO4
                TMP = TMP + ( TCVV(IDTHNO4)       *
-     &                       STT(I,J,L,IDTHNO4)  / AD(I,J,L) )
+     &                       STT(I,J,L,IDTHNO4)  / 
+     &                       State_Met%AD(I,J,L) )
 
                ! Save afternoon points
                Q(X,Y,K) = Q(X,Y,K) + TMP
+
             ENDDO
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
+
+            ! Free pointer
+            NULLIFY( STT )
 
          ELSE IF ( N == 76 .and. IS_FULLCHEM ) THEN
 
@@ -525,7 +601,8 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = SAVENO2(I,J,L)
+               Q(X,Y,K) = STT(I,J,L,IDTNO2)  * TCVV(IDTNO2) /
+     &                    State_Met%AD(I,J,L)
             ENDDO
             ENDDO
             ENDDO
@@ -594,7 +671,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = AIRDEN(L,I,J) * XNUMOLAIR * 1d-6
+               Q(X,Y,K) = State_Met%AIRDEN(L,I,J) * XNUMOLAIR * 1d-6
             ENDDO
             ENDDO
             ENDDO
@@ -619,7 +696,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = CLDF(K,I,J)
+               Q(X,Y,K) = State_Met%CLDF(K,I,J)
             ENDDO
             ENDDO
             ENDDO
@@ -642,7 +719,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,1) = SUM( OPTD(:,I,J) )
+               Q(X,Y,1) = SUM( State_Met%OPTD(:,I,J) )
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
@@ -666,7 +743,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = GET_PEDGE( I, J, CLDTOPS(I,J) )
+               Q(X,Y,K) = GET_PEDGE( I, J, State_Met%CLDTOPS(I,J) )
             ENDDO
             ENDDO
             ENDDO
@@ -926,6 +1003,10 @@
             GMNL     = ND49_NL
             GMTRC    = 24
 
+            ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+            ! (mpayer, 12/6/12)
+            STT => State_Chm%Tracers
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, X, Y, K )
@@ -936,11 +1017,14 @@
             DO X = 1, ND49_NI
                I = GET_I( X )
                Q(X,Y,K) = ( STT(I,J,L,IDTSALA) + STT(I,J,L,IDTSALC) ) *
-     &                      TCVV(IDTSALA)      / AD(I,J,L) 
+     &                      TCVV(IDTSALA)      / State_Met%AD(I,J,L) 
             ENDDO
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
+
+            ! Free pointer
+            NULLIFY( STT )
 
          ELSE IF ( N == 94 ) THEN
 
@@ -961,7 +1045,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = BXHEIGHT(I,J,L)
+               Q(X,Y,K) = State_Met%BXHEIGHT(I,J,L)
             ENDDO
             ENDDO
             ENDDO
@@ -986,7 +1070,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = RH(I,J,L)
+               Q(X,Y,K) = State_Met%RH(I,J,L)
             ENDDO
             ENDDO
             ENDDO
@@ -1009,7 +1093,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,1) = SLP(I,J)
+               Q(X,Y,1) = State_Met%SLP(I,J)
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
@@ -1033,7 +1117,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = UWND(I,J,L)
+               Q(X,Y,K) = State_Met%U(I,J,L)
             ENDDO
             ENDDO
             ENDDO
@@ -1058,7 +1142,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = VWND(I,J,L)
+               Q(X,Y,K) = State_Met%V(I,J,L)
             ENDDO
             ENDDO
             ENDDO
@@ -1108,7 +1192,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = T(I,J,L)
+               Q(X,Y,K) = State_Met%T(I,J,L)
             ENDDO
             ENDDO
             ENDDO
@@ -1131,7 +1215,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,1) = PARDF(I,J)
+               Q(X,Y,1) = State_Met%PARDF(I,J)
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
@@ -1153,7 +1237,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,1) = PARDR(I,J)
+               Q(X,Y,1) = State_Met%PARDR(I,J)
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
@@ -1291,7 +1375,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,1) =  PREACC(I,J)
+               Q(X,Y,1) =  State_Met%PRECTOT(I,J)
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
@@ -1336,7 +1420,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,1) = TS( I , J )
+               Q(X,Y,1) = State_Met%TS( I , J )
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO

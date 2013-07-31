@@ -12,25 +12,29 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SETEMDEP( NTRACER, am_I_Root )
+      SUBROUTINE SETEMDEP( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
 #     include "define.h"
 
-      USE DRYDEP_MOD,   ONLY : DEPNAME, NUMDEP
-      USE TRACER_MOD,   ONLY : TRACER_NAME
       USE TRACERID_MOD, ONLY : IDEMIS, IDTRMB, NEMANTHRO, NEMBIOG
 
       USE CMN_SIZE_MOD                   ! Size parameters
       USE COMODE_LOOP_MOD                ! SMVGEAR II arrays
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
 
       IMPLICIT NONE
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN) :: NTRACER     ! # of tracers
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN) :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(IN) :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  03 Jan 1994 - L. Horowitz et al - - Initial version
@@ -44,14 +48,21 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  30 Jul 2012 - R. Yantosca - Added ProTeX headers
+!  13 Nov 2012 - R. Yantosca - Now pass Input_Opt and RC as arguments for GIGC
+!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%NUMDEP and Input_Opt%DEPNAME
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
-!
-      INTEGER             :: I, N, NK, NCS_TEMP
-      CHARACTER(LEN=14)   :: NAME1
+!     
+      ! Scalars
+      INTEGER            :: I, N, NK, NCS_TEMP
+      INTEGER            :: NTRACER, NUMDEP
+      CHARACTER(LEN=14)  :: NAME1
+
+      ! Arrays
+      CHARACTER(LEN=14 ) :: TRACER_NAME(Input_Opt%N_TRACERS)
 
       !=================================================================
       ! SETEMDEP begins here!
@@ -63,6 +74,11 @@
          WRITE( IO93,'(a)'   ) 'SETEMDEP: Emission & deposition species'
          WRITE( IO93,'(a,/)' ) REPEAT( '=', 79 )
       ENDIF
+
+      ! Set local variables from the Input_Opt object
+      NTRACER     = Input_Opt%N_TRACERS
+      TRACER_NAME = Input_Opt%TRACER_NAME
+      NUMDEP      = Input_Opt%NUMDEP
 
       !=================================================================
       ! Flag EMISSION REACTIONS in "globchem.dat" for GEOS-CHEM tracers
@@ -135,7 +151,7 @@
 
             ! If we can match NAME1 against the GEOS-CHEM drydep tracer
             ! names in DEPNAME, then store the rxn number in NTDEP
-            IF ( DEPNAME(I) == NAME1 ) THEN
+            IF ( Input_Opt%DEPNAME(I) == NAME1 ) THEN
                NTDEP(I) = NK
                EXIT
             ENDIF
@@ -143,7 +159,7 @@
 
          ! Flag drydep tracers
          IF ( NTDEP(I) > 0 ) THEN 
-            IF ( am_I_Root ) WRITE( IO93, 120 ) I, DEPNAME(I)
+            IF ( am_I_Root ) WRITE( IO93, 120 ) I, Input_Opt%DEPNAME(I)
  120        FORMAT( 'Drydep species # ', i3, ' (', a5, 
      &              ') has a drydep rxn defined in "globchem.dat"' )
          ENDIF

@@ -38,6 +38,7 @@
 ! !REVISION HISTORY:
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
 !  03 Aug 2012 - R. Yantosca - Now make IU_I6 a private module variable
+!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -62,27 +63,28 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE OPEN_MERRA_I6_FIELDS( NYMD, NHMS )
+      SUBROUTINE OPEN_MERRA_I6_FIELDS( NYMD, NHMS, Input_Opt )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE DIRECTORY_MOD, ONLY : MERRA_DIR
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE FILE_MOD,      ONLY : FILE_EXISTS
-      USE FILE_MOD,      ONLY : IOERROR
-      USE TIME_MOD,      ONLY : EXPAND_DATE
+      USE BPCH2_MOD,          ONLY : GET_RES_EXT
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE FILE_MOD,           ONLY : FILE_EXISTS
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : EXPAND_DATE
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: NYMD   ! YYYYMMDD date
-      INTEGER, INTENT(IN) :: NHMS   ! hhmmss time
+      INTEGER,        INTENT(IN) :: NYMD        ! YYYYMMDD date
+      INTEGER,        INTENT(IN) :: NHMS        ! hhmmss time
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
 !
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
 !  03 Aug 2012 - R. Yantosca - Now use findFreeLUN to define IU_I6 locally
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  11 Apr 2013 - R. Yantosca - Now pass directory fields with Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -110,7 +112,7 @@
          !---------------------------
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( MERRA_DIR )
+         GEOS_DIR = TRIM( Input_Opt%MERRA_DIR )
          I6_FILE  = 'YYYYMMDD.i6.' // GET_RES_EXT()
 
          ! Replace date tokens
@@ -118,8 +120,9 @@
          CALL EXPAND_DATE( I6_FILE,  NYMD, NHMS )
 
          ! Full file path
-         PATH = TRIM( DATA_DIR ) // 
-     &          TRIM( GEOS_DIR ) // TRIM( I6_FILE )
+         PATH = TRIM( Input_Opt%DATA_DIR ) // 
+     &          TRIM( GEOS_DIR           ) // 
+     &          TRIM( I6_FILE            )
 
          ! Close previously opened A-3 file
 	 INQUIRE( IU_I6, OPENED=IS_OPEN )
@@ -186,20 +189,26 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_MERRA_I6_FIELDS_1( NYMD, NHMS )
+      SUBROUTINE GET_MERRA_I6_FIELDS_1( NYMD, NHMS, State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD, ONLY : PS1       ! Surface pressure  [hPa]
-      USE DAO_MOD, ONLY : RH1       ! Relative humidity [fraction]
+      USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: NYMD   ! YYYYMMDD date 
-      INTEGER, INTENT(IN) :: NHMS   !  and hhmmss time of desired data
+      INTEGER,        INTENT(IN)    :: NYMD   ! YYYYMMDD date 
+      INTEGER,        INTENT(IN)    :: NHMS   ! hhmmss time of desired data
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
+!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
+!                              object
+!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -208,9 +217,9 @@
       !=================================================================
       CALL READ_I6( NYMD = NYMD, 
      &              NHMS = NHMS, 
-     &              PS   = PS1, 
-     &              RH   = RH1   )
-      
+     &              PS   = State_Met%PS1, 
+     &              RH   = State_Met%RH1   )
+
       END SUBROUTINE GET_MERRA_I6_FIELDS_1
 !EOC
 !------------------------------------------------------------------------------
@@ -226,20 +235,25 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_MERRA_I6_FIELDS_2( NYMD, NHMS )
+      SUBROUTINE GET_MERRA_I6_FIELDS_2( NYMD, NHMS, State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD, ONLY : PS2       ! Surface pressure  [hPa]
-      USE DAO_MOD, ONLY : RH2       ! Relative humidity [fraction]
+      USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: NYMD   ! YYYYMMDD date 
-      INTEGER, INTENT(IN) :: NHMS   !  and hhmmss time of desired data
+      INTEGER,        INTENT(IN)    :: NYMD   ! YYYYMMDD date 
+      INTEGER,        INTENT(IN)    :: NHMS   ! hhmmss time of desired data
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
+!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
+!                              object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -248,9 +262,9 @@
       !=================================================================
       CALL READ_I6( NYMD = NYMD, 
      &              NHMS = NHMS,
-     &              PS   = PS2, 
-     &              RH   = RH2   )
-      
+     &              PS   = State_Met%PS2, 
+     &              RH   = State_Met%RH2  )
+
       END SUBROUTINE GET_MERRA_I6_FIELDS_2
 !EOC
 !------------------------------------------------------------------------------

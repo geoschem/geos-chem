@@ -76,6 +76,12 @@
 !  (20) Added 9 gaseous biofuel emissions: GLYX, MGLY, BENZ, 
 !        TOLU, XYLE, C2H4, C2H2, GLYC, HAC. (tmf, 1/7/09)
 !  (21) Emissions for these 9 tracers are scaled from CO emissions. (tmf, 1/7/09)
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
+!  12 Jun 2013 - R. Yantosca - Now declare BIOFUEL_KG w/ the TARGET attribute
+!  14 Jun 2013 - R. Yantosca - Now determine weekday/weekend with respect to
+!                              the local time at each grid box.  (Formerly,
+!                              this had been done w/r/t the GMT time.
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -104,13 +110,13 @@
       !=================================================================     
       ! MODULE VARIABLES
       !=================================================================
-      INTEGER, PARAMETER  :: NBFMAX = 19
+      INTEGER, PARAMETER          :: NBFMAX = 19
 
-      INTEGER             :: NBFTRACE
-      INTEGER             :: BFTRACE(NBFMAX) 
+      INTEGER                     :: NBFTRACE
+      INTEGER                     :: BFTRACE(NBFMAX) 
 
-      REAL*8, ALLOCATABLE :: BIOFUEL(:,:,:)
-      REAL*8, ALLOCATABLE :: BIOFUEL_KG(:,:,:)
+      REAL*8, ALLOCATABLE         :: BIOFUEL(:,:,:)
+      REAL*8, ALLOCATABLE, TARGET :: BIOFUEL_KG(:,:,:)
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -119,11 +125,8 @@
 
 !------------------------------------------------------------------------------
 
-#if defined( DEVEL )
-      SUBROUTINE BIOFUEL_BURN( BIO_EMISS )
-#else
-      SUBROUTINE BIOFUEL_BURN
-#endif
+      SUBROUTINE BIOFUEL_BURN( am_I_Root, Input_Opt, 
+     &                         State_Met, State_Chm, RC )
 !
 !******************************************************************************
 !  Subroutine BIOFUEL_BURN computes the yearly biofuel burning emissions
@@ -197,38 +200,56 @@
 !  06 Apr 2012 - M. Payer    - Changed regrid algorithm to map_a2a (M. Cooper)
 !  24 May 2012 - R. Yantosca - Fix minor bugs in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  15 Nov 2012 - C. Keller   - Set biofuel emissions to zero if BRAVO, CAC or
+!                              EMEP emissions are used, since these 
+!                              inventories already contain biofuel emissions.
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC]
+!  12 Jun 2013 - R. Yantosca - Now eliminate array temporaries (as possible)
+!  14 Jun 2013 - R. Yantosca - Now determine weekday/weekend with respect to
+!                              the local time at each grid box.  (Formerly,
+!                              this had been done w/r/t the GMT time.
+!  22 Jul 2013 - M. Sulprizio- Now copy LRCP from Input_Opt
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D,  GET_RES_EXT
       USE BPCH2_MOD,            ONLY : GET_TAU0,         READ_BPCH2
-      USE DAO_MOD,              ONLY : BXHEIGHT
       USE DIAG_MOD,             ONLY : AD29,    AD32_bf, AD34
       USE DIRECTORY_MOD,        ONLY : DATA_DIR,         DATA_DIR_1x1
       USE EPA_NEI_MOD,          ONLY : GET_EPA_BIOFUEL,  GET_USA_MASK
-      USE LOGICAL_MOD,          ONLY : LFUTURE, LNEI99,  LSTREETS
-      USE LOGICAL_MOD,          ONLY : LRETRO ! (dbm, 8/18/2011)
-      USE LOGICAL_MOD,          ONLY : LNEI05
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
+      USE GIGC_State_Chm_Mod,   ONLY : ChmState
+      USE GIGC_State_Met_Mod,   ONLY : MetState
       USE STREETS_ANTHRO_MOD,   ONLY : GET_SE_ASIA_MASK
-      USE TIME_MOD,             ONLY : GET_DAY_OF_WEEK,  GET_YEAR
-      USE TRACER_MOD,           ONLY : ITS_A_H2HD_SIM
-      USE TRACERID_MOD,         ONLY : IDBFCO,  IDBFNOX, IDTACET
+      USE TIME_MOD,             ONLY : GET_DAY_OF_WEEK_LT,  GET_YEAR
+      USE TRACERID_MOD,         ONLY : IDBFCO,  IDBFNO,  IDTACET
       USE TRACERID_MOD,         ONLY : IDTALD2, IDTALK4, IDTC2H6
       USE TRACERID_MOD,         ONLY : IDTC3H8, IDTCH2O, IDTCO
-      USE TRACERID_MOD,         ONLY : IDTMEK,  IDTNOX,  IDTPRPE 
+      USE TRACERID_MOD,         ONLY : IDTMEK,  IDTNO,   IDTPRPE 
       USE TRACERID_MOD,         ONLY : IDTGLYX, IDTMGLY, IDTBENZ
       USE TRACERID_MOD,         ONLY : IDTTOLU, IDTXYLE, IDTC2H4
       USE TRACERID_MOD,         ONLY : IDTC2H2, IDTGLYC, IDTHAC
+      USE TRACERID_MOD,         ONLY : IDTNO2,  IDTNH3,  IDTSO2
+      USE TRACERID_MOD,         ONLY : IDTBCPO, IDTOCPO
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
-      ! for US emission fix (hotp 11/20/09)
       USE TRACERID_MOD,         ONLY : IDBFBENZ,IDBFTOLU,IDBFXYLE
       USE TRACERID_MOD,         ONLY : IDBFGLYX,IDBFMGLY,IDBFC2H4
       USE TRACERID_MOD,         ONLY : IDBFC2H2,IDBFGLYC,IDBFHAC
 ![eml 
-      USE LOGICAL_MOD,          ONLY : LHIST
       USE TIME_MOD,             ONLY : GET_HISTYR
       USE REGRID_A2A_MOD,       ONLY : DO_REGRID_A2A
 !eml]
+      ! for CAC / BRAVO emissions fix (ckeller, 11/15/12)
+      USE LOGICAL_MOD,          ONLY : LBRAVO, LCAC, LEMEP
+      USE BRAVO_MOD,            ONLY : GET_BRAVO_MASK
+      USE CAC_ANTHRO_MOD,       ONLY : GET_CANADA_MASK
+      USE EMEP_MOD,             ONLY : GET_EUROPE_MASK
 
       USE CMN_SIZE_MOD               ! Size parameters
       USE CMN_O3_MOD                 ! FSCLYR
@@ -236,13 +257,27 @@
 
       IMPLICIT NONE
 #     include "define.h"
-      
-      
-      ! Local variables
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !LOCAL VARIABLES:
+!            
       LOGICAL                       :: WEEKDAY
       LOGICAL, SAVE                 :: FIRST = .TRUE.
       LOGICAL, SAVE                 :: DO_ND29, DO_ND32, DO_ND34
-      INTEGER                       :: AS, I, J, N, NN, DAY_NUM
+      INTEGER                       :: AS, I, J, N, NN, DOW_LT
       INTEGER                       :: SIM_YEAR
       REAL*4                        :: ARRAY(IIPAR,JJPAR,1)
       REAL*8,  SAVE                 :: MOLWT(NBFMAX)
@@ -256,7 +291,7 @@
       REAL*8                        :: TEMP_ED(IIPAR,JJPAR,1), HIST_TAU
 !eml]
       CHARACTER(LEN=255)            :: LLFILENAME
-      REAL*8, POINTER               :: INGRID(:,:) => NULL()
+      REAL*8, POINTER               :: INGRID   (:,:) => NULL()
       REAL*8                        :: OUTGRID(IIPAR,JJPAR)
       
       ! External functions
@@ -264,13 +299,32 @@
 
       REAL*8                        :: BF_CO( IIPAR, JJPAR )  ! Biofuel emission of CO [molec/cm2/s]
 
-#if defined( DEVEL )
-      REAL*8, INTENT(INOUT)         :: BIO_EMISS(:,:,:)
-#endif
+      ! For fields from Input_Opt
+      LOGICAL                       :: LFUTURE
+      LOGICAL                       :: LNEI99
+      LOGICAL                       :: LSTREETS
+      LOGICAL                       :: LRETRO
+      LOGICAL                       :: LNEI05
+      LOGICAL                       :: LHIST
+      LOGICAL                       :: LRCP
+      LOGICAL                       :: ITS_A_H2HD_SIM
 
       !=================================================================
       !   B i o f u e l   B u r n i n g   B e g i n s   H e r e !!
       !=================================================================
+
+      ! Assume success
+      RC             =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LFUTURE        = Input_Opt%LFUTURE
+      LNEI99         = Input_Opt%LNEI99
+      LSTREETS       = Input_Opt%LSTREETS
+      LRETRO         = Input_Opt%LRETRO
+      LNEI05         = Input_Opt%LNEI05
+      LHIST          = Input_Opt%LHIST
+      LRCP           = Input_Opt%LRCP
+      ITS_A_H2HD_SIM = Input_Opt%ITS_A_H2HD_SIM
 
       ! First-time initialization
       IF ( FIRST ) THEN
@@ -280,7 +334,7 @@
 
          ! Flags for whether or not to archive diagnostics
          DO_ND29 = ( ND29 > 0 .and. IDBFCO  /= 0 ) 
-         DO_ND32 = ( ND32 > 0 .and. IDBFNOX /= 0 ) 
+         DO_ND32 = ( ND32 > 0 .and. IDBFNO /= 0  ) 
          DO_ND34 = ( ND34 > 0                    ) 
 
          ! Fancy output..
@@ -335,7 +389,8 @@
             NN = BFTRACE(N)
 
             ! Test for each tracer
-            IF ( NN == IDTNOX ) THEN
+            ! Replaced NOx with NO (mpayer, 3/14/13)
+            IF ( NN == IDTNO ) THEN
 
                !----------------
                ! Biofuel NOx
@@ -371,7 +426,7 @@
                   ! Regrid to current model resolution
                   INGRID => GENERIC_8_1x1
                   CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-     &                                INGRID,     OUTGRID, PERAREA=1,
+     &                                INGRID,     OUTGRID, IS_MASS=1,
      &                                netCDF=.TRUE. )
                   BIOFUEL_KG(N,:,:) = OUTGRID  
                   
@@ -385,7 +440,7 @@
      &                             1,         ARRAY,     QUIET=.TRUE. ) 
                           
                   ! Cast from REAL*4 to REAL*8, resize to (IIPAR,JJPAR)
-                  CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+                  BIOFUEL_KG(N,:,:) = ARRAY(:,:,1)
                
                ENDIF
 !eml]
@@ -397,7 +452,7 @@
 
                ! Compute total of biofuel NOx
                TOTAL = SUM( BIOFUEL_KG(N,:,:) ) * 1d-9
-               WRITE( 6, 120 ) 'NOx ', TOTAL, '[Tg  /yr]'
+               WRITE( 6, 120 ) 'NO ', TOTAL, '[Tg  /yr]'
                
                ! Define MOLWT for use below
                MOLWT(N) = 46d-3
@@ -414,10 +469,8 @@
      &                          1,         ARRAY,     QUIET=.TRUE. ) 
 
                ! Cast from REAL*4 to REAL*8, resize to (IIPAR,JJPAR)
-               CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
-
-               ! Save BF_CO before scaling (tmf, 6/15/07) 
-               CALL TRANSFER_2D( ARRAY(:,:,1), BF_CO(:,:) )         
+               BIOFUEL_KG(N,:,:) = ARRAY(:,:,1)
+               BF_CO             = ARRAY(:,:,1)
 
                ! Scale CO to account for oxidation of extra VOC's
                CALL SCALE_BIOFUEL_CO( BIOFUEL_KG(N,:,:) )
@@ -446,7 +499,7 @@
      &                          1,         ARRAY,     QUIET=.TRUE. ) 
 
                ! Cast from REAL*4 to REAL*8, resize to (IIPAR,JJPAR)
-               CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+               BIOFUEL_KG(N,:,:) = ARRAY(:,:,1)
 
                ! Compute future ALK4 emissions (if necessary)
                IF ( LFUTURE ) THEN
@@ -472,7 +525,7 @@
      &                          1,         ARRAY,     QUIET=.TRUE. ) 
 
                ! Cast from REAL*4 to REAL*8, resize to (IIPAR,JJPAR)
-               CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+               BIOFUEL_KG(N,:,:) = ARRAY(:,:,1)
 
                ! Scale to match a posteriori source (bdf, bmy, 9/10/01)
                CALL SCALE_BIOFUEL_ACET( BIOFUEL_KG(N,:,:) )
@@ -501,7 +554,7 @@
      &                          1,         ARRAY,     QUIET=.TRUE. ) 
 
                ! Cast from REAL*4 to REAL*8, resize to (IIPAR,JJPAR)
-               CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+               BIOFUEL_KG(N,:,:) = ARRAY(:,:,1)
 
                ! Compute future MEK emissions (if necessary)
                IF ( LFUTURE ) THEN
@@ -527,7 +580,7 @@
      &                          1,         ARRAY,     QUIET=.TRUE. ) 
 
                ! Cast from REAL*4 to REAL*8, resize to (IIPAR,JJPAR)
-               CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+               BIOFUEL_KG(N,:,:) = ARRAY(:,:,1)
 
                ! Compute future ALD2 emissions (if necessary)
                IF ( LFUTURE ) THEN
@@ -553,7 +606,7 @@
      &                          1,         ARRAY,     QUIET=.TRUE. ) 
 
                ! Cast from REAL*4 to REAL*8, resize to (IIPAR,JJPAR)
-               CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+               BIOFUEL_KG(N,:,:) = ARRAY(:,:,1)
 
                ! Compute future PRPE emissions (if necessary)
                IF ( LFUTURE ) THEN
@@ -579,7 +632,7 @@
      &                          1,         ARRAY,     QUIET=.TRUE. ) 
 
                ! Cast from REAL*4 to REAL*8, resize to (IIPAR,JJPAR)
-               CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+               BIOFUEL_KG(N,:,:) = ARRAY(:,:,1)
 
                ! Compute future C3H8 emissions (if necessary)
                IF ( LFUTURE ) THEN
@@ -605,7 +658,7 @@
      &                          1,         ARRAY,     QUIET=.TRUE. ) 
 
                ! Cast from REAL*4 to REAL*8, resize to (IIPAR,JJPAR)
-               CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+               BIOFUEL_KG(N,:,:) = ARRAY(:,:,1)
 
                ! Compute future CH2O emissions (if necessary)
                IF ( LFUTURE ) THEN
@@ -631,7 +684,7 @@
      &                          1,         ARRAY,     QUIET=.TRUE. ) 
 
                ! Cast from REAL*4 to REAL*8, resize to (IIPAR,JJPAR)
-               CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+               BIOFUEL_KG(N,:,:) = ARRAY(:,:,1)
 
                ! Compute future C2H6 emissions (if necessary)
                IF ( LFUTURE ) THEN
@@ -824,12 +877,6 @@
       ! Also archive diagnostics w/in parallel loop (bmy, 5/30/02)
       !=================================================================
 
-      ! Get current day of the week
-      DAY_NUM = GET_DAY_OF_WEEK()
-
-      ! Is it a weekday?
-      WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
-
       ! get emissions year to test Streets
       IF ( FSCALYR < 0 ) THEN
          SIM_YEAR = GET_YEAR()
@@ -839,12 +886,12 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, BXHEIGHT_CM, N, NN, EPA_NEI )
+!$OMP+PRIVATE( I, J, BXHEIGHT_CM, N, NN, EPA_NEI, DOW_LT, WEEKDAY )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
          ! BXHEIGHT_CM = the surface grid box height in cm
-         BXHEIGHT_CM = BXHEIGHT(I,J,1) * 1d2
+         BXHEIGHT_CM = State_Met%BXHEIGHT(I,J,1) * 1d2
 
          ! Loop over all biofuel tracers
          DO N = 1, NBFTRACE
@@ -855,7 +902,7 @@
             ! Biofuel emissions in [molec/cm3/s]
             BIOFUEL(N,I,J) = BIOFUEL_KG(N,I,J)                  * 
      &                       ( 6.023d23 / MOLWT(N)            ) /
-     &                       ( 365d0 * 86400d0 * BOXVL(I,J,1) )
+     &                       ( 365d0 * 86400d0 * BOXVL(I,J,1,State_Met))
 
             !-----------------------------------------------------------
             ! RETRO anthropogenic emissions include residential biofuel,
@@ -877,6 +924,28 @@
             ENDIF
 
             !-----------------------------------------------------------
+            ! RCP anthropogenic emissions include residential biofuel,
+            ! so set this to zero if we are using the RCP inventory
+            ! (cdh, 10/18/2011)
+            !-----------------------------------------------------------
+            IF ( LRCP ) THEN
+               IF ( (NN == IDTNO  ) .or. (NN == IDTCO  ) .or.
+     &              (NN == IDTBCPO) .or. (NN == IDTOCPO) .or.
+     &              (NN == IDTSO2 ) .or. (NN == IDTNH3 ) .or.
+     &              (NN == IDTC2H2) .or. (NN == IDTC2H4) .or.
+     &              (NN == IDTC2H6) .or. (NN == IDTPRPE) .or.
+     &              (NN == IDTC3H8) .or. (NN == IDTALK4) .or.
+     &              (NN == IDTCH2O) .or. (NN == IDTALD2) .or. 
+     &              (NN == IDTACET) .or. (NN == IDTMEK ) .or.
+     &              (NN == IDTBENZ) .or. (NN == IDTTOLU) .or.
+     &              (NN == IDTXYLE) ) THEN
+
+                  BIOFUEL(N,I,J) = 0.d0
+
+               ENDIF
+            ENDIF
+
+            !-----------------------------------------------------------
             ! Overwrite biofuels w/ EPA/NEI emissions over the USA
             !
             ! NOTE: The NEI05 inventory only contains anthro emissions,
@@ -884,13 +953,19 @@
             ! USA from the NEI99 inventory.  (bmy, 2/7/11)
             !-----------------------------------------------------------
 ![eml Not if historical or not NOx
-            IF( .not. LHIST .or. BFTRACE(N) .ne. IDTNOX ) THEN
+            IF( .not. LHIST .or. BFTRACE(N) .ne. IDTNO ) THEN
                ! If EPA/NEI99 emissions are turned on....
                IF ( LNEI99 .or. LNEI05 ) THEN
 
                   ! If we are over the USA ...
                   IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
   
+                     ! Determine if we should use weekday or weekend NEI
+                     ! emissions at grid box (I,J,L).  Since NEI is over
+                     ! the US, then weekend is Sat/Sun.
+                     DOW_LT  = GET_DAY_OF_WEEK_LT( I, J, 1 )
+                     WEEKDAY = ( DOW_LT > 0 .and. DOW_LT < 6 )
+
                      ! Get GEOS-CHEM tracer number
                      NN      = BFTRACE(N)
 
@@ -935,13 +1010,74 @@
                      ENDIF
                   ENDIF
                ENDIF
+
+               !--------------------------------------------------------
+               ! BRAVO anthropogenic emissions include residential 
+               ! biofuel, so set this to zero if we are using BRAVO
+               ! (ckeller, 11/15/2012)
+               !--------------------------------------------------------
+               IF ( LBRAVO .AND. .NOT. LHIST ) THEN
+
+                  ! If we are over the BRAVO region
+                  IF ( GET_BRAVO_MASK( I, J ) > 0d0 ) THEN
+
+                     ! If it's a BRAVO species 
+                     IF ( (NN == IDTNO) .or. (NN == IDTCO) ) THEN
+
+                        BIOFUEL(N,I,J) = 0.d0
+
+                     ENDIF
+                  ENDIF
+               ENDIF
+
+               !--------------------------------------------------------
+               ! CAC anthropogenic emissions include residential 
+               ! biofuel, so set this to zero if we are using CAC
+               ! (ckeller, 11/15/2012)
+               !--------------------------------------------------------
+               IF ( LCAC .AND. .NOT. LHIST ) THEN
+
+                  ! If we are over the CAC region
+                  IF ( GET_CANADA_MASK( I, J ) > 0d0 ) THEN
+
+                     ! If it's a CAC species 
+                     IF ( (NN == IDTNO) .or. (NN == IDTCO) ) THEN
+
+                        BIOFUEL(N,I,J) = 0.d0
+
+                     ENDIF
+                  ENDIF
+               ENDIF
+
+               !--------------------------------------------------------
+               ! EMEP anthropogenic emissions include residential 
+               ! biofuel, so set this to zero if we are using EMEP
+               ! (ckeller, 11/15/2012)
+               !--------------------------------------------------------
+               IF ( LEMEP .AND. .NOT. LHIST ) THEN
+
+                  ! If we are over the EMEP region
+                  IF ( GET_EUROPE_MASK( I, J ) > 0d0 ) THEN
+
+                     ! If it's an EMEP species 
+                     IF ( (NN == IDTNO)   .OR. (NN == IDTCO)   .OR.
+     &                    (NN == IDTALK4) .OR. (NN == IDTMEK)  .OR.
+     &                    (NN == IDTALD2) .OR. (NN == IDTPRPE) .OR. 
+     &                    (NN == IDTC2H6) ) THEN
+
+                        BIOFUEL(N,I,J) = 0.d0
+
+                     ENDIF
+                  ENDIF
+               ENDIF
+
             ENDIF
          ENDDO  
 
          ! ND29 -- CO source diagnostics [molec/cm2/s]
          IF ( DO_ND29 ) THEN
 
-            IF ( ITS_A_H2HD_SIM() ) THEN
+            IF ( ITS_A_H2HD_SIM ) THEN
                AD29(I,J,3) = AD29(I,J,3) + ( BIOFUEL(IDBFCO,I,J) * 
      &                                       BXHEIGHT_CM ) * 1.189d0
             ELSE
@@ -953,7 +1089,7 @@
 
          ! ND32 -- NOx source diagnostics [molec/cm2/s]
          IF ( DO_ND32 ) THEN 
-            AD32_bf(I,J) = AD32_bf(I,J) + ( BIOFUEL(IDBFNOX,I,J) * 
+            AD32_bf(I,J) = AD32_bf(I,J) + ( BIOFUEL(IDBFNO,I,J) * 
      &                                      BXHEIGHT_CM )
          ENDIF
       ENDDO  
@@ -1044,7 +1180,6 @@
       ENDDO ! J
 !$OMP END PARALLEL DO
 
-
       ! Save diagnostic information (biofuel burning emissions) (hotp 11/23/09)
       ! ND34 -- archive biofuel burning species [molec/cm2/s] or
       ! [molecC/cm2/s] for species transported as carbon
@@ -1056,7 +1191,7 @@
       DO I = 1, IIPAR
 
             ! BXHEIGHT_CM = the surface grid box height in cm
-            BXHEIGHT_CM = BXHEIGHT(I,J,1) * 1d2
+            BXHEIGHT_CM = State_Met%BXHEIGHT(I,J,1) * 1d2
 
             ! loop over biofuel species
             DO N = 1, NBFTRACE
@@ -1259,14 +1394,16 @@
 !  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !******************************************************************************
 !
       ! References to F90 modules
       USE TRACERID_MOD, ONLY : IDBFACET, IDBFALD2, IDBFALK4, IDBFC2H6 
       USE TRACERID_MOD, ONLY : IDBFC3H8, IDBFCH2O, IDBFCO,   IDBFMEK  
-      USE TRACERID_MOD, ONLY : IDBFNOX,  IDBFPRPE, IDTACET,  IDTALD2 
+      USE TRACERID_MOD, ONLY : IDBFNO,   IDBFPRPE, IDTACET,  IDTALD2 
       USE TRACERID_MOD, ONLY : IDTALK4,  IDTC2H6,  IDTC3H8,  IDTCH2O
-      USE TRACERID_MOD, ONLY : IDTCO,    IDTMEK,   IDTNOX,   IDTPRPE 
+      USE TRACERID_MOD, ONLY : IDTCO,    IDTMEK,   IDTNO,    IDTPRPE 
 
       USE TRACERID_MOD, ONLY : IDBFGLYX, IDBFMGLY, IDBFBENZ, IDBFTOLU
       USE TRACERID_MOD, ONLY : IDBFXYLE, IDBFC2H4, IDBFC2H2, IDBFGLYC
@@ -1285,7 +1422,8 @@
       NBFTRACE = 0
       
       ! Increment NBFTRACE for each turned on biofuel tracer
-      IF ( IDBFNOX  /= 0 ) NBFTRACE = NBFTRACE + 1
+      ! Replaced NOx with NO (mpayer, 3/14/13)
+      IF ( IDBFNO   /= 0 ) NBFTRACE = NBFTRACE + 1
       IF ( IDBFCO   /= 0 ) NBFTRACE = NBFTRACE + 1 
       IF ( IDBFALK4 /= 0 ) NBFTRACE = NBFTRACE + 1 
       IF ( IDBFACET /= 0 ) NBFTRACE = NBFTRACE + 1 
@@ -1306,7 +1444,8 @@
       IF ( IDBFHAC  /= 0 ) NBFTRACE = NBFTRACE + 1 
 
       ! Fill BFTRACE w/ appropriate TRACER ID #'s
-      IF ( IDBFNOX  /= 0 ) BFTRACE(IDBFNOX ) = IDTNOX
+      ! Replaced NOx with NO (mpayer, 3/14/13)
+      IF ( IDBFNO   /= 0 ) BFTRACE(IDBFNO  ) = IDTNO
       IF ( IDBFCO   /= 0 ) BFTRACE(IDBFCO  ) = IDTCO
       IF ( IDBFALK4 /= 0 ) BFTRACE(IDBFALK4) = IDTALK4
       IF ( IDBFACET /= 0 ) BFTRACE(IDBFACET) = IDTACET

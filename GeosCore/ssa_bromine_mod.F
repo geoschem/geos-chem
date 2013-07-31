@@ -224,6 +224,7 @@
 !  02 Mar 2010 - J. Parrella - Initial version
 !  22 May 2012 - M. Payer    - Added ProTeX headers
 !  27 Aug 2012 - M. Payer    - Now parallelize DO loop
+!  18 Dec 2012 - M. Payer    - Replace NLONG and NLAT with IIPAR and JJPAR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -267,7 +268,6 @@
 !jp      write(6, '(a)') '-------------------------------------------'
 !jp
 !jp      print*, 'jpp: beginning EMIT_Br2'
-!jp      print*, 'nlat =', nlat, '; nlon =',nlong
 !jp      call flush(6)
 
       ! Now convert the total emission of SSA_Br2
@@ -294,8 +294,8 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, AREA_M2 )
-      DO J = 1, NLAT
-      DO I = 1, NLONG
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! store the surface area of the box
          AREA_M2 = GET_AREA_M2( I, J, 1 )

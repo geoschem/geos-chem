@@ -33,7 +33,10 @@
       
 ! !REVISION HISTORY:
 !  24 Aug 2012 - J.D. Maasakkers - Initial version
-
+!  03 Jan 2013 - M. Payer        - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
 ! !LOCAL VARIABLES:
 !
@@ -150,30 +153,28 @@
       ! Regrid
       !=================================================================
 
-	!0.5x0.5 regrid - CLIM
-       ! File with lat/lon edges for regridding
+      ! 0.5x0.5 regrid - CLIM
+      ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
      &             'MAP_A2A_Regrid_201203/latlon_generic05x05.txt'
 
-       ! Regrid non-arid layer
+      ! Regrid non-arid layer [unitless]
+      INGRID = NON_ARID(:,:,1)
+      OUTGRID = 0.
 
-		INGRID = NON_ARID(:,:,1)
-		OUTGRID = 0.
-		
-       CALL DO_REGRID_A2A( LLFILENAME, 720,    360,
-     &             INGRID,     OUTGRID, PERAREA=0 )
+      CALL DO_REGRID_A2A( LLFILENAME, 720,     360,
+     &                    INGRID,     OUTGRID, IS_MASS=0 )
 
-		CLIM(:,:,1) = OUTGRID 
+      CLIM(:,:,1) = OUTGRID 
 
-       ! Regrid arid layer
+      ! Regrid arid layer [unitless]
+      INGRID = ARID(:,:,1)
+      OUTGRID = 0.
 
-		INGRID = ARID(:,:,1)
-		OUTGRID = 0.
-		
-       CALL DO_REGRID_A2A( LLFILENAME, 720,    360,
-     &             INGRID,     OUTGRID, PERAREA=0 )
+      CALL DO_REGRID_A2A( LLFILENAME, 720,     360,
+     &                    INGRID,     OUTGRID, IS_MASS=0 )
 
-		CLIM(:,:,2) = OUTGRID 
+      CLIM(:,:,2) = OUTGRID 
 
       !=================================================================
       ! Cleanup and quit
@@ -194,5 +195,5 @@
  140  FORMAT( '%% Successfully closed file!'                 )
 
       ENDIF
-
+!EOC
       END SUBROUTINE READCLIM

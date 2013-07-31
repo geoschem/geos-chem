@@ -133,9 +133,7 @@
       ! and routines from being seen outside "tpcore_mod.f"
       !=================================================================
 
-#if defined( DEVEL )
       USE ERROR_MOD, ONLY : ALLOC_ERR
-#endif
 
       ! Make everything PRIVATE ...
       PRIVATE
@@ -155,7 +153,7 @@
      &                          IM,   JM,   J1,   I0,   J0,   I0_W, 
      &                          J0_W, I1_W, J1_W, I2_W, J2_W, IM_W,
      &                          JM_W, IGZD, NL,   AP,   BP,   PT,
-     &                          AE,   FILL, MFCT, Umax )
+     &                          AE,   FILL, MFCT, Umax, State_Met )
  
 ! TransPort module for Goddard Chemistry Transport Model (G-CTM), Goddard
 ! Earth Observing System General Circulation Model (GEOS-GCM), and Data
@@ -413,13 +411,19 @@
 ! activated if the user set "fill" to be true.
 ! Alternatively, one can use the MFCT option to enforce monotonicity.
 
-      USE TOMAS_MOD
+
+      ! References to F90 modules
+      USE GIGC_State_Met_Mod, ONLY : MetState
+#if   defined( TOMAS )
+      USE TOMAS_MOD,          ONLY : IBINS   !(win, 7/17/09)
+#endif
 
       ! Added to pass C-preprocessor switches (bmy, 3/9/01)
 #     include "define.h"
 
 ! ****6***0*********0*********0*********0*********0*********0**********72
-      PARAMETER (Jmax = 721, kmax = 200 ) 
+!clb  PARAMETER (Jmax = 721, kmax = 200 ) 
+      PARAMETER (Jmax = 1200, kmax = 200 )
 !  add ghost zone depth here (yxw, 08/23/01)       
 ! ****6***0*********0*********0*********0*********0*********0**********72
  
@@ -428,6 +432,8 @@
       REAL*8 Q(IM,JM,NL,NC),PS1(IM,JM),PS2(IM,JM),W(IM,JM,NL),
      &     U(IM,JM,NL),V(IM,JM,NL),AP(NL+1),BP(NL+1)
       LOGICAL  ZCROSS, FILL, MFCT, deform
+
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
  
 ! Local dynamic arrays
 
@@ -458,11 +464,13 @@
 !%%%
       LOGICAL OUT       
  
+#if   defined( TOMAS )
 ! win, 7/17/09. For size-resolved aerosol number and mass
       REAL  FXNK(IM_W+1,JM_W,NL,IBINS), DQNKX(0:IM_W,0:JM_W+1,NL,IBINS)
       REAL  FYNK(IM_W,JM_W+1,NL,IBINS), DQNKY(0:IM_W,0:JM_W,NL,IBINS)
       REAL  FZNK(IM_W,JM_W,NL+1,IBINS), DQNKZ(0:IM_W+1,0:JM_W,NL,IBINS)
       REAL  DQ_W_X(0:IM_W+1,0:JM_W+1,NL)
+#endif
 
 ! bey, 6/20/00. for mass-flux diagnostic
       REAL*8 fx1_tp_w(IM_w,JM_w,NL), fy1_tp_w(IM_w,JM_w,NL), 
@@ -506,7 +514,8 @@
 !DIR$ NOBOUNDS
 !============================================================================ 
       deform = .false.
-      JM1 = 181 -1
+!clb  JM1 = 181 -1
+      JM1 = JM - 1
 !%%%
 !%%% MODIFICATIONS FOR NESTED GRID (yxw, bmy, 3/10/03)
 !%%% Comment out variables below
@@ -519,6 +528,7 @@
 ! Initialization
 !****6***0*********0*********0*********0*********0*********0**********72
  
+#if   defined( TOMAS )
       ! For aerosol mass flux modification (win, 7/17/09)
       FXNK(:,:,:,:) = 0d0
       FYNK(:,:,:,:) = 0d0
@@ -526,6 +536,7 @@
       DQNKX(:,:,:,:) = 0d0
       DQNKY(:,:,:,:) = 0d0
       DQNKZ(:,:,:,:) = 0d0
+#endif
 
       ! For mass flux diagnostics (bey, 6/20/00)
       fx1_tp_w(:,:,:) = 0d0
@@ -893,7 +904,8 @@
          ! XMASS_PF, YMASS_PF.  PRESS_FIX will call routine DYN0, etc.
          !==============================================================
          CALL PRESS_FIX( XMASS_PF_w, YMASS_PF_w, NDT,  ACOSP_w, Jmax,
-     &                   I0_W,       J0_W,       IM_W, JM_W,    IGZD )
+     &                   I0_W,       J0_W,       IM_W, JM_W,    IGZD,
+     &                   State_Met )
 
          ! Loop over vertical levels --
          ! added parallel loop #if statements (bmy, 10/11/01)
@@ -1409,51 +1421,8 @@
 
 ! Final update
 
-!With the addition for TOMAS, I don't know exactly how to make the 
-!new code parallel, so c/o this part for now (win, 8/11/09)
-!$$$#if   defined( multitask  )
-!$$$#if   defined( CRAY       )
-!$$$CMIC$ do all autoscope
-!$$$CMIC$* private(i,j,k,sum1,sum2)
-!$$$#else
-!$$$!$OMP PARALLEL DO PRIVATE( I, J, K, SUM1, SUM2 )
-!$$$#endif
-!$$$#endif 
 
-!Prior to modification for TOMAS aerosol (win, 7/17/09)
-!$$$      DO 101 K = 1, NL
-!$$$
-!$$$      DO J = 1, JM_W
-!$$$      DO I = 1, IM_W
-!$$$         DQ_W(I,J,K) = DQ_W(I,J,K)   
-!$$$     &               +   FX_W(I,J,K) - FX_W(I+1,J,K)
-!$$$     &               + ( FY_W(I,J,K) - FY_W(I,J+1,K) ) * ACOSP_W(J)
-!$$$     &               +   FZ_W(I,J,K) - FZ_W(I,J,K+1)
-!$$$      ENDDO
-!$$$      ENDDO
-!$$$
-!$$$!%%% 
-!$$$!%%% MODIFICATIONS FOR NESTED GRID (yxw, bmy, 3/10/03)
-!$$$!%%% Polar cap stuff, useless for nested simulation
-!$$$!%%%      sum1 = fy(IM,j1  ,k)
-!$$$!%%%      sum2 = fy(IM,J2+1,k)
-!$$$!%%%
-!$$$!%%%      do i=1,IM-1
-!$$$!%%%         sum1 = sum1 + fy(i,j1  ,k)
-!$$$!%%%         sum2 = sum2 + fy(i,J2+1,k)
-!$$$!%%%      enddo
-!$$$!%%% 
-!$$$!%%%      DQ(1, 1,k) = DQ(1, 1,k) - sum1*RCAP + fz(1, 1,k) - fz(1, 1,k+1)
-!$$$!%%%      DQ(1,JM,k) = DQ(1,JM,k) + sum2*RCAP + fz(1,JM,k) - fz(1,JM,k+1)
-!$$$!%%% 
-!$$$!%%%      do i=2,IM
-!$$$!%%%      DQ(i, 1,k) = DQ(1, 1,k)
-!$$$!%%%      DQ(i,JM,k) = DQ(1,JM,k)
-!$$$!%%%      enddo
-!$$$!%%%
-!$$$101   continue
-!ending of original code before addition for TOMAS (win, 7/17/09)
-
+#if   defined( TOMAS )
 !Modification for TOMAS aerosol (win, 7/17/09)
 !Split up the addition of fluxes to DQ array into separate directions;
 !E-W, N-S, then vertical.  Then add saving of aerosol number fluxes and 
@@ -1599,6 +1568,29 @@
  102  continue
 
 !----ending section modified for size-resolved aerosols (win, 7/17/09)
+#else
+
+# if   defined( multitask  )
+#  if   defined( CRAY       )
+!MIC$ do all autoscope
+!MIC$* private(i,j,k,sum1,sum2)
+#  else
+!$OMP PARALLEL DO PRIVATE( I, J, K, SUM1, SUM2 )
+#  endif
+# endif 
+
+      DO 101 K = 1, NL
+
+      DO J = 1, JM_W
+      DO I = 1, IM_W
+         DQ_W(I,J,K) = DQ_W(I,J,K)   
+     &               +   FX_W(I,J,K) - FX_W(I+1,J,K)
+     &               + ( FY_W(I,J,K) - FY_W(I,J+1,K) ) * ACOSP_W(J)
+     &               +   FZ_W(I,J,K) - FZ_W(I,J,K+1)
+      ENDDO
+      ENDDO
+ 101  continue
+#endif
 
 
 C****6***0*********0*********0*********0*********0*********0**********72
@@ -3413,8 +3405,9 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE PRESS_FIX( FX,    FY,   NDT,  ACOSP, Jmax,
-     &                      I0_W,  J0_W, IM_W, JM_W,  IGZD )
+      SUBROUTINE PRESS_FIX( FX,       FY,    NDT,   ACOSP,  Jmax,
+     &                      I0_W,     J0_W,  IM_W,  JM_W,   IGZD,
+     &                      State_Met )
 !
 !******************************************************************************
 !  Subroutine PRESS_FIX is a wrapper for the Pressure fixer DYN0.  PRESS_FIX
@@ -3440,12 +3433,13 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE GRID_MOD, ONLY : GET_AREA_M2
-      USE TIME_MOD, ONLY : GET_TS_DYN
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_M2
+      USE TIME_MOD,           ONLY : GET_TS_DYN
 
-      USE CMN_SIZE_MOD  ! Size parameters
-      USE CMN_DIAG_MOD  ! Diagnostic switches
-      USE CMN_GCTM_MOD  ! g0_100
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! Diagnostic switches
+      USE CMN_GCTM_MOD             ! g0_100
 
       IMPLICIT NONE
 #     include "define.h"
@@ -3455,14 +3449,17 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 !%%% MODIFICATIONS FOR NESTED GRID
 !%%% Modify array boundarys accordingly 
 !%%%
-      INTEGER, INTENT(IN)    :: NDT, Jmax, I0_W, J0_W, IM_W, JM_W, IGZD
-      REAL*8,  INTENT(IN)    :: ACOSP(-10:Jmax)
+      INTEGER,        INTENT(IN)    :: NDT,  Jmax, I0_W, J0_W
+      INTEGER,        INTENT(IN)    :: IM_W, JM_W, IGZD
+      REAL*8,         INTENT(IN)    :: ACOSP(-10:Jmax)
 
-      REAL*8,  INTENT(INOUT) :: FX(1-IGZD:IM_W+IGZD+1,
-     &                             1-IGZD:JM_W+IGZD,LLPAR)
+      REAL*8,         INTENT(INOUT) :: FX(1-IGZD:IM_W+IGZD+1,
+     &                                    1-IGZD:JM_W+IGZD,LLPAR)
 
-      REAL*8,  INTENT(INOUT) :: FY(1-IGZD:IM_W+IGZD,
-     &                             1-IGZD:JM_W+IGZD+1,LLPAR)
+      REAL*8,         INTENT(INOUT) :: FY(1-IGZD:IM_W+IGZD,
+     &                                    1-IGZD:JM_W+IGZD+1,LLPAR)
+
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 
       ! Local variables
       INTEGER                :: I, J, K, K2, L, AS
@@ -3480,13 +3477,8 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
       REAL*8 :: VMFLX(1-IGZD:IM_W+IGZD,   1-IGZD:JM_W+IGZD+1, LLPAR   )
 
       ! Local SAVEd variables
-#if defined( DEVEL )
       LOGICAL, SAVE       :: FIRST = .TRUE.
       REAL*8, ALLOCATABLE, SAVE :: DXYP(:)
-#else
-      LOGICAL, SAVE :: FIRST = .TRUE.
-      REAL*8,  SAVE :: DXYP(JJPAR)
-#endif
 
       !=================================================================
       ! PRESS_FIX begins here!
@@ -3518,10 +3510,8 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 
       ! Save grid box surface areas [m2] into the local DXYP array
       IF ( FIRST ) THEN
-#if defined( DEVEL )
          ALLOCATE( DXYP(JJPAR), STAT=AS)
          IF ( AS /=0 ) CALL ALLOC_ERR( 'DXYP_DYN0')
-#endif
 
          DO J = 1, JJPAR
             DXYP(J) = GET_AREA_M2( 1, J, 1 )
@@ -3640,7 +3630,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 !%%% Remove J1, NP_FLUX, SP_FLUX from call to DYN0
 !%%%
       CALL DYN0( NSDYN, UMFLX, VMFLX, ALFA, BETA, GAMA, 
-     &           I0_W,  J0_W,  IM_W,  JM_W, IGZD )
+     &           I0_W,  J0_W,  IM_W,  JM_W, IGZD, State_Met )
 
       !=================================================================
       ! ALFA is the E-W mass flux adjusted by DYN0 in [kg air/s]
@@ -3705,7 +3695,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 !------------------------------------------------------------------------------
 
       SUBROUTINE DYN0( DTWIND, UMFLX, VMFLX, ALFA, BETA, GAMA,
-     &                 I0_W,   J0_W,  IM_W,  JM_W, IGZD )
+     &                 I0_W,   J0_W,  IM_W,  JM_W, IGZD, State_Met )
 !
 !******************************************************************************
 !  Subroutine DYN0 is the pressure fixer for TPCORE.  DYN0 readjusts the
@@ -3736,12 +3726,14 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 !  (1 ) Differences from "tpcore_mod.f" denoted by !%%% (bmy, 3/10/03)
 !  (2 ) Removed reference to CMN (bmy, 7/20/04)
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,      ONLY : SPHU, PSC2, AIRDEN, AIRVOL
-      USE GRID_MOD,     ONLY : GET_AREA_M2
-      USE PRESSURE_MOD, ONLY : GET_BP
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_M2
+      USE PRESSURE_MOD,       ONLY : GET_BP
 
       USE CMN_SIZE_MOD     ! Size parameters
 
@@ -3759,23 +3751,25 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 !%%% MODIFICATIONS FOR NESTED GRID (yxw, bmy, 3/10/03)
 !%%% Change array limits accordingly
 !%%%
-      INTEGER, INTENT(IN)    :: I0_W, J0_W, IM_W, JM_W, IGZD
-      REAL*8,  INTENT(IN)    :: DTWIND
+      INTEGER,        INTENT(IN)    :: I0_W, J0_W, IM_W, JM_W, IGZD
+      REAL*8,         INTENT(IN)    :: DTWIND
 
-      REAL*8,  INTENT(IN)    :: UMFLX(1-IGZD:IM_W+IGZD+1,
-     &                                1-IGZD:JM_W+IGZD,LLPAR)
+      REAL*8,         INTENT(IN)    :: UMFLX(1-IGZD:IM_W+IGZD+1,
+     &                                       1-IGZD:JM_W+IGZD,LLPAR)
 
-      REAL*8,  INTENT(IN)    :: VMFLX(1-IGZD:IM_W+IGZD,
-     &                               1-IGZD:JM_W+IGZD+1,LLPAR)
+      REAL*8,         INTENT(IN)    :: VMFLX(1-IGZD:IM_W+IGZD,
+     &                                      1-IGZD:JM_W+IGZD+1,LLPAR)
 
-      REAL*8,  INTENT(INOUT) :: ALFA(1-IGZD:IM_W+IGZD+1,
-     &                               1-IGZD:JM_W+IGZD,LLPAR)
+      REAL*8,         INTENT(INOUT) :: ALFA(1-IGZD:IM_W+IGZD+1,
+     &                                      1-IGZD:JM_W+IGZD,LLPAR)
 
-      REAL*8,  INTENT(INOUT) :: BETA(1-IGZD:IM_W+IGZD,
-     &                               1-IGZD:JM_W+IGZD+1,LLPAR)
+      REAL*8,         INTENT(INOUT) :: BETA(1-IGZD:IM_W+IGZD,
+     &                                      1-IGZD:JM_W+IGZD+1,LLPAR)
 
-      REAL*8,  INTENT(INOUT) :: GAMA(1-IGZD:IM_W+IGZD,
-     &                               1-IGZD:JM_W+IGZD,LLPAR+1)
+      REAL*8,         INTENT(INOUT) :: GAMA(1-IGZD:IM_W+IGZD,
+     &                                      1-IGZD:JM_W+IGZD,LLPAR+1)
+
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 
       ! Local variables
       LOGICAL       :: LSP, LNP, LEW
@@ -3801,13 +3795,8 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 
       ! Local saved variables
       LOGICAL, SAVE :: FIRST = .TRUE.
-#if defined( DEVEL )
       REAL*8, ALLOCATABLE, SAVE :: DXYP(:)
       REAL*8, ALLOCATABLE, SAVE :: DSIG(:)
-#else
-      REAL*8,  SAVE :: DXYP(JJPAR)
-      REAL*8,  SAVE :: DSIG(LLPAR)
-#endif
 
       !=================================================================
       ! DYN0 begins here!
@@ -3918,13 +3907,11 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
       IF ( FIRST ) THEN
          
          ! Surface area [m2]
-#if defined( DEVEL )
          ALLOCATE( DXYP(JJPAR), STAT=AS)
          IF ( AS /=0 ) CALL ALLOC_ERR( 'DXYP_DYN0')
 
          ALLOCATE( DSIG(LLPAR), STAT=AS)
          IF ( AS /=0 ) CALL ALLOC_ERR( 'DSIG_DYN0')
-#endif
 
          DO J = 1, JJPAR
             DXYP(J) = GET_AREA_M2( 1, J, 1 )
@@ -3967,8 +3954,9 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
       DO J = 1, JJPAR
       DO I = 1, IIPAR
          XYZB(I,J,L)    = DSIG(L) * DXYP(J) * 1.d2 / G0
-         AD_L(I,J,L)    = AIRDEN(L,I,J) * AIRVOL(I,J,L)
-         SPHU_KG(I,J,L) = SPHU(I,J,L) / 1000d0
+         AD_L(I,J,L)    = State_Met%AIRDEN(L,I,J) *
+     &                    State_Met%AIRVOL(I,J,L)
+         SPHU_KG(I,J,L) = State_Met%SPHU(I,J,L) / 1000d0
       ENDDO
       ENDDO
       ENDDO
@@ -4055,7 +4043,8 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
          SUMAQ(I,J) = 0.D0
 
          DO K = 1, LLPAR
-            AIRWET     = PSC2(I+I0_w,J+J0_w) * XYZB(I+I0_w,J+J0_w,K)
+            AIRWET     = State_Met%PSC2(I+I0_w,J+J0_w) * 
+     &                   XYZB(I+I0_w,J+J0_w,K)
             AIRH2O     = SPHU_KG(I+I0_w,J+J0_w,K) * AIRWET
             SUMAQ(I,J) = SUMAQ(I,J)     + AIRH2O
             SUMAD0     = SUMAD0         + AIRWET
@@ -4191,7 +4180,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 !%%%            PCTM(I,J) = PSC2(I,J)
 !%%%         ENDIF
 !%%%
-         PERR(I,J) = PCTM(I,J) - PSC2(I+I0_w,J+J0_w)
+         PERR(I,J) = PCTM(I,J) - State_Met%PSC2(I+I0_w,J+J0_w)
          MERR(I,J) = PERR(I,J) * DXYP(J+J0_w) * G100
       ENDDO
       ENDDO
@@ -4341,11 +4330,12 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
          PCTM8     = ( SUM( AIRNEW(I,J,:) ) + SUMAQ(I,J) ) /
      &                               XYB(I+I0_W,J+J0_W)
          PCTM(I,J) = PCTM8
-         PERR(I,J) = PCTM8 - PSC2(I+I0_W,J+J0_W)
+         PERR(I,J) = PCTM8 - State_Met%PSC2(I+I0_W,J+J0_W)
 
          DO K = 1, LLPAR
             AIRQKG      = SPHU_KG(I+I0_W,J+J0_W,K) *
-     &             ( XYZB(I+I0_W,J+J0_W,K) * PSC2(I+I0_W,J+J0_W) )
+     &                  ( XYZB(I+I0_W,J+J0_W,K)    * 
+     &                    State_Met%PSC2(I+I0_W,J+J0_W) )
             AIRX(I,J,K) = PCTM8 * XYZB(I+I0_W,J+J0_W,K) - AIRQKG
          ENDDO
       ENDDO
@@ -4853,11 +4843,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 
       ! Local SAVEd variables
       LOGICAL, SAVE       :: FIRST = .TRUE.
-#if defined( DEVEL )
       REAL*8, ALLOCATABLE :: DXYP(:)
-#else
-      REAL*8, SAVE        :: DXYP(JJPAR)
-#endif
 
       !=================================================================
       ! DIAG_FLUX begins here!
@@ -4890,10 +4876,8 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
       IF ( FIRST ) THEN
          
          ! Surface area [m2]
-#if defined( DEVEL )
          ALLOCATE( DXYP(JJPAR), STAT=AS)
          IF ( AS /=0 ) CALL ALLOC_ERR( 'DXYP_')
-#endif
 
          DO J = 1, JJPAR
             DXYP(J) = GET_AREA_M2( 1, J, 1 )
@@ -5058,6 +5042,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 
 !------------------------------------------------------------------------------
 
+#if   defined ( TOMAS )
       SUBROUTINE MASSFLUX ( IC, IM, JM, NL, FLUXNK, DQNK,
      &                      FLUXM, DQ, DIR )
 
@@ -5262,6 +5247,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
       ENDIF
 
       END FUNCTION NBIN_W
+#endif
 
 !------------------------------------------------------------------------------
 

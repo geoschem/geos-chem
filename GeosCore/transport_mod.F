@@ -35,7 +35,6 @@
       PRIVATE :: GCAP_GLOBAL_ADV             
       PRIVATE :: DO_GEOS5_WINDOW_TRANSPORT
       PRIVATE :: DO_GEOS57_WINDOW_TRANSPORT      
-      !PRIVATE :: DO_WINDOW_TRANSPORT   
       PRIVATE :: GET_AIR_MASS                
 !
 ! !REVISION HISTORY:
@@ -111,14 +110,32 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_TRANSPORT
+      SUBROUTINE DO_TRANSPORT( am_I_Root, Input_Opt,
+     &                         State_Met, State_Chm, RC )
 !
 ! !USES:
 !
-      USE GRID_MOD,      ONLY : ITS_A_NESTED_GRID
-      USE TPCORE_BC_MOD, ONLY : INIT_TPCORE_BC
-
-      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_SIZE_MOD
+      USE GRID_MOD,           ONLY : ITS_A_NESTED_GRID
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TPCORE_BC_MOD,      ONLY : INIT_TPCORE_BC
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  10 Mar 2003 - R. Yantosca - Initial version
@@ -133,6 +150,7 @@
 !  06 Oct 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5.
 !  28 Feb 2012 - R. Yantosca - Treat GEOS-5.7 in the same way as MERRA
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -147,37 +165,64 @@
 
       ! First-time initialization
       IF ( FIRST ) THEN 
+
 #if   defined( GRID05x0666 )
+
+      ! GEOS-5.2.0 nested simulations
       CALL INIT_GEOS5_WINDOW_TRANSPORT
-#elif defined( GRID025x03125)
+     &   ( am_I_Root, Input_Opt, RC )
+
+#elif defined( GRID025x03125 )
+
+      ! GEOS-5.7.2 (aka "FP") nested grids
       CALL INIT_GEOS57_WINDOW_TRANSPORT
+     &     ( am_I_Root, Input_Opt, RC )    
 #else
-      CALL INIT_TRANSPORT
+
+      ! All global simulations
+      CALL INIT_TRANSPORT                   
+     &     ( am_I_Root, Input_Opt, RC )    
+
 #endif
          FIRST = .FALSE.
       ENDIF
 
+      !=================================================================
       ! Choose the proper version of TPCORE for the nested-grid window 
       ! region (usually 1x1 grids) or for the entire globe
+      !=================================================================
       IF ( ITS_A_NESTED_GRID() ) THEN
-#if   defined( GRID1x1 )
-         CALL DO_WINDOW_TRANSPORT
-#elif defined( GRID05x0666 )
-         CALL DO_GEOS5_WINDOW_TRANSPORT
-#elif defined( GRID025x03125 )
+
+#if defined(  GRID025x03125 )
+
+         ! Nested-grid simulation with GEOS 5.7-x met
          CALL DO_GEOS57_WINDOW_TRANSPORT
+     &      ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+
+#elif defined( GRID05x0666 )
+
+         ! Nested-grid simulation with GEOS-5.2.0 met
+         CALL DO_GEOS5_WINDOW_TRANSPORT
+     &      ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+
 #endif
+
+      !=================================================================
+      ! Choose the proper version of TPCORE for global simulations
+      !=================================================================
       ELSE
 
 #if defined( GCAP )
 
          ! Call TPCORE w/ proper settings for GCAP met
          CALL GCAP_GLOBAL_ADV
+     &      ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
 #else
 
          ! Call TPCORE w/ proper settings for GEOS-4/GEOS-5/MERRA/GEOS-5.7
          CALL GEOS4_GEOS5_GLOBAL_ADV
+     &      ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
 #endif
       ENDIF
@@ -198,27 +243,44 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GEOS4_GEOS5_GLOBAL_ADV
+      SUBROUTINE GEOS4_GEOS5_GLOBAL_ADV( am_I_Root, Input_Opt,
+     &                                   State_Met, State_Chm, RC )
 !
 ! !USES:
 !
-      USE DAO_MOD,          ONLY : PSC2, UWND, VWND
-      USE DIAG_MOD,         ONLY : MASSFLEW, MASSFLNS, MASSFLUP
-      USE ERROR_MOD,        ONLY : IT_IS_NAN, DEBUG_MSG, SAFE_DIV
-      USE LOGICAL_MOD,      ONLY : LFILL, LMFCT, LPRT, LWINDO
-      USE PJC_PFIX_MOD,     ONLY : DO_PJC_PFIX
-      USE PRESSURE_MOD,     ONLY : GET_PEDGE, SET_FLOATING_PRESSURE
-      USE TIME_MOD,         ONLY : GET_TS_DYN
-      USE TPCORE_BC_MOD,    ONLY : SAVE_GLOBAL_TPCORE_BC
-      USE TPCORE_FVDAS_MOD, ONLY : TPCORE_FVDAS
-      USE TRACER_MOD,       ONLY : N_TRACERS, STT, TCVV
+      USE DIAG_MOD,           ONLY : MASSFLEW, MASSFLNS, MASSFLUP
+      USE ERROR_MOD,          ONLY : IT_IS_NAN, DEBUG_MSG, SAFE_DIV
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE PJC_PFIX_MOD,       ONLY : DO_PJC_PFIX
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE, SET_FLOATING_PRESSURE
+      USE TIME_MOD,           ONLY : GET_TS_DYN
+      USE TPCORE_BC_MOD,      ONLY : SAVE_GLOBAL_TPCORE_BC
+      USE TPCORE_FVDAS_MOD,   ONLY : TPCORE_FVDAS
 #if   defined( APM )
-      USE TRACER_MOD,       ONLY : N_APMTRA
+      USE TRACER_MOD,         ONLY : N_APMTRA
 #endif
 
-      USE CMN_SIZE_MOD         ! Size parameters        
-      USE CMN_DIAG_MOD         ! NDxx flags
-      USE CMN_GCTM_MOD         ! Physical constants
+      USE CMN_SIZE_MOD             ! Size parameters        
+      USE CMN_DIAG_MOD             ! NDxx flags
+      USE CMN_GCTM_MOD             ! Physical constants
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  30 Oct 2007 - R. Yantosca - Initial version
@@ -231,6 +293,10 @@
 !  26 Feb 2010 - R. Yantosca - Added ProTeX headers
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !  21 Jun 2012 - R. Yantosca - Now use pointers to flip indices in vertical
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  04 Jun 2013 - R. Yantosca - Replace pointer STT with State_Chm%Tracers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -246,9 +312,11 @@
       REAL*8           :: P_TEMP(IIPAR,JJPAR)
       REAL*8           :: TR_A(IIPAR,JJPAR,LLPAR)
 #if   defined( APM )
-      REAL*8           :: TR_B(IIPAR,JJPAR,LLPAR,N_TRACERS+N_APMTRA)  ! With APM
+      REAL*8           :: TR_B(IIPAR,JJPAR,LLPAR,
+     &                         Input_Opt%N_TRACERS+N_APMTRA)  ! With APM
 #else
-      REAL*8           :: TR_B(IIPAR,JJPAR,LLPAR,N_TRACERS)           ! W/o APM
+      REAL*8           :: TR_B(IIPAR,JJPAR,LLPAR,
+     &                         Input_Opt%N_TRACERS)           ! W/o APM
 #endif
       REAL*8,  TARGET  :: XMASS(IIPAR,JJPAR,LLPAR) 
       REAL*8,  TARGET  :: YMASS(IIPAR,JJPAR,LLPAR) 
@@ -263,9 +331,28 @@
       ! Variable to ensure mass conservation (ccc, 2/17/09)
       REAL*8           :: SUMADA
 
+      ! For fields from Input_Opt
+      LOGICAL          :: LFILL
+      LOGICAL          :: LMFCT
+      LOGICAL          :: LPRT
+      LOGICAL          :: LWINDO
+      INTEGER          :: N_TRACERS
+      REAL*8           :: TCVV(Input_Opt%N_TRACERS)
+
       !=================================================================
       ! GEOS4_GEOS5_GLOBAL_ADV begins here!
       !=================================================================
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LFILL     = Input_Opt%LFILL
+      LMFCT     = Input_Opt%LMFCT
+      LPRT      = Input_Opt%LPRT
+      LWINDO    = Input_Opt%LWINDO
+      N_TRACERS = Input_Opt%N_TRACERS
+      TCVV      = Input_Opt%TCVV(1:N_TRACERS)
 
       ! Pick the proper # of tracers
 #if   defined( APM )
@@ -300,7 +387,7 @@
          P_TP1(I,J) = GET_PEDGE(I,J,1)
 
          ! True surface pressure at end of dynamic timestep [hPa]
-         P_TP2(I,J) = PSC2(I,J)    
+         P_TP2(I,J) = State_Met%PSC2(I,J)    
    
       ENDDO
       ENDDO
@@ -331,7 +418,9 @@
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         TR_B(I,J,L,N) = STT(I,J,L,N) * AD_B(I,J,L) / TCVV(N)
+         TR_B(I,J,L,N) = State_Chm%Tracers(I,J,L,N)
+     &                 * AD_B(I,J,L)
+     &                 / TCVV(N)
       ENDDO
       ENDDO
       ENDDO
@@ -345,19 +434,21 @@
       !=================================================================
 
       ! NOTE: P_TP1 and P_TP2 are the true surface pressures!
-      CALL DO_PJC_PFIX( D_DYN, P_TP1, P_TP2, 
-     &                  UWND,  VWND,  XMASS, YMASS )
+      CALL DO_PJC_PFIX( D_DYN,        
+     &                  P_TP1,        P_TP2,
+     &                  State_Met%U,  State_Met%V,
+     &                  XMASS,        YMASS )
 
       !=================================================================
       ! Call TPCORE_FVDAS to perform the advection
       !=================================================================
 
       ! Flip array indices in the vertical using pointer storage
-      p_UWND  => UWND (:,:,LLPAR:1:-1  )
-      p_VWND  => VWND (:,:,LLPAR:1:-1  )
-      p_STT   => STT  (:,:,LLPAR:1:-1,:)
-      p_XMASS => XMASS(:,:,LLPAR:1:-1  )
-      p_YMASS => YMASS(:,:,LLPAR:1:-1  )
+      p_UWND  => State_Met%U      (:,:,LLPAR:1:-1  )
+      p_VWND  => State_Met%V      (:,:,LLPAR:1:-1  )
+      p_STT   => State_Chm%Tracers(:,:,LLPAR:1:-1,:)
+      p_XMASS => XMASS            (:,:,LLPAR:1:-1  )
+      p_YMASS => YMASS            (:,:,LLPAR:1:-1  )
 
       ! Do the advection
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
@@ -404,11 +495,12 @@
             AD_A(I,J,L) = GET_AIR_MASS( I, J, L, P_TP2(I,J) )
          
             ! Tracer mass [kg] after transport
-            TR_A(I,J,L) = STT(I,J,L,N) * AD_A(I,J,L) / TCVV(N)
+            TR_A(I,J,L) = State_Chm%Tracers(I,J,L,N)
+     &                  * AD_A(I,J,L)
+     &                  / TCVV(N)
 
-            ! We apply mass conservation only on cells w/
-            ! nonzero tracer (ccc, 2/17/09)
-            IF ( STT(I,J,L,N) > 0.d0 .or. STT(I,J,L,N) < 0.d0 ) THEN
+            IF ( State_Chm%Tracers(I,J,L,N) > 0.d0   .or.
+     &           State_Chm%Tracers(I,J,L,N) < 0.d0 ) THEN
                SUMADA = SUMADA + AD_A(I,J,L)
             ENDIF
          ENDDO
@@ -426,11 +518,15 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-            IF ( STT(I,J,L,N) > 0.d0 .or. STT(I,J,L,N) < 0.d0 ) THEN
-               STT(I,J,L,N) = STT(I,J,L,N) + TR_DIFF
+            IF ( State_Chm%Tracers(I,J,L,N) > 0.d0   .or.
+     &           State_Chm%Tracers(I,J,L,N) < 0.d0 ) THEN
+               State_Chm%Tracers(I,J,L,N) =
+     &         State_Chm%Tracers(I,J,L,N) + TR_DIFF
             ENDIF
 
-            STT(I,J,L,N) = MAX( STT(I,J,L,N), 0d0 )
+            State_Chm%Tracers(I,J,L,N) =
+     &           MAX( State_Chm%Tracers(I,J,L,N), 0d0 )
+
          ENDDO
          ENDDO
          ENDDO
@@ -455,27 +551,43 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GCAP_GLOBAL_ADV
+      SUBROUTINE GCAP_GLOBAL_ADV( am_I_Root, Input_Opt,
+     &                            State_Met, State_Chm, RC )
 !
 ! !USES:
 !
-      USE DAO_MOD,          ONLY : PSC2, UWND, VWND
-      USE DIAG_MOD,         ONLY : MASSFLEW, MASSFLNS, MASSFLUP
-      USE ERROR_MOD,        ONLY : IT_IS_NAN, DEBUG_MSG
-      USE LOGICAL_MOD,      ONLY : LFILL, LMFCT, LPRT, LWINDO
-      USE PJC_PFIX_MOD,     ONLY : DO_PJC_PFIX
-      USE PRESSURE_MOD,     ONLY : GET_PEDGE, SET_FLOATING_PRESSURE
-      USE TIME_MOD,         ONLY : GET_TS_DYN
-      USE TPCORE_FVDAS_MOD, ONLY : TPCORE_FVDAS
-      USE TRACER_MOD,       ONLY : N_TRACERS, STT, TCVV
+      USE DIAG_MOD,           ONLY : MASSFLEW, MASSFLNS, MASSFLUP
+      USE ERROR_MOD,          ONLY : IT_IS_NAN, DEBUG_MSG
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE PJC_PFIX_MOD,       ONLY : DO_PJC_PFIX
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE, SET_FLOATING_PRESSURE
+      USE TIME_MOD,           ONLY : GET_TS_DYN
+      USE TPCORE_FVDAS_MOD,   ONLY : TPCORE_FVDAS
 #if   defined( APM )
-      USE TRACER_MOD,       ONLY : N_APMTRA
+      USE TRACER_MOD,         ONLY : N_APMTRA
 #endif
 
-      USE CMN_SIZE_MOD         ! Size parameters
-      USE CMN_DIAG_MOD         ! NDxx flags
-      USE CMN_GCTM_MOD         ! Physical constants
-! 
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! NDxx flags
+      USE CMN_GCTM_MOD             ! Physical constants
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
 ! !REVISION HISTORY: 
 !  30 Oct 2007 - R. Yantosca - Initial version
 !  (1 ) Split off the GCAP relevant parts from the previous routine
@@ -486,6 +598,10 @@
 !  26 Feb 2010 - R. Yantosca - Added ProTeX headers
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !  21 Jun 2012 - R. Yantosca - Now use pointers to flip arrays in the vertical
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  04 Jun 2013 - R. Yantosca - Replace pointer STT with State_Chm%Tracers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -501,9 +617,11 @@
       REAL*8           :: P_TEMP(IIPAR,JJPAR)
       REAL*8           :: TR_A(IIPAR,JJPAR,LLPAR)
 #if   defined( APM )
-      REAL*8           :: TR_B(IIPAR,JJPAR,LLPAR,N_TRACERS+N_APMTRA)
+      REAL*8           :: TR_B(IIPAR,JJPAR,LLPAR,
+     &                         Input_Opt%N_TRACERS+N_APMTRA)
 #else                  
-      REAL*8           :: TR_B(IIPAR,JJPAR,LLPAR,N_TRACERS)
+      REAL*8           :: TR_B(IIPAR,JJPAR,LLPAR,
+     &                         Input_Opt%N_TRACERS)
 #endif
       REAL*8           :: VTMP(IIPAR,JJPAR,LLPAR)
       REAL*8,  TARGET  :: XMASS(IIPAR,JJPAR,LLPAR) 
@@ -516,12 +634,31 @@
       REAL*8,  POINTER :: p_YMASS(:,:,:  )
       REAL*8,  POINTER :: p_STT  (:,:,:,:)
 
+      ! For fields from Input_Opt
+      LOGICAL          :: LFILL
+      LOGICAL          :: LMFCT
+      LOGICAL          :: LPRT
+      LOGICAL          :: LWINDO
+      INTEGER          :: N_TRACERS
+      REAL*8           :: TCVV(Input_Opt%N_TRACERS)
+
       ! Variable to ensure mass conservation (ccc, 20/11/08)
       REAL*8           :: SUMADA
 
       !=================================================================
       ! GCAP_GLOBAL_ADV begins here!
       !=================================================================
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LFILL     = Input_Opt%LFILL
+      LMFCT     = Input_Opt%LMFCT
+      LPRT      = Input_Opt%LPRT
+      LWINDO    = Input_Opt%LWINDO
+      N_TRACERS = Input_Opt%N_TRACERS
+      TCVV      = Input_Opt%TCVV(1:N_TRACERS)
 
       ! Pick the proper # of tracers
 #if   defined( APM )
@@ -561,7 +698,7 @@
          P_TP1(I,J) = GET_PEDGE(I,J,1) - PTOP
 
          ! Psurface - PTOP at end of dynamic timestep [hPa]
-         P_TP2(I,J) = PSC2(I,J)        - PTOP
+         P_TP2(I,J) = State_Met%PSC2(I,J) - PTOP
 
       ENDDO
       ENDDO
@@ -592,7 +729,9 @@
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         TR_B(I,J,L,N) = STT(I,J,L,N) * AD_B(I,J,L) / TCVV(N)
+         TR_B(I,J,L,N) = State_Chm%Tracers(I,J,L,N)
+     &                 * AD_B(I,J,L)
+     &                 / TCVV(N)
       ENDDO
       ENDDO
       ENDDO
@@ -606,19 +745,21 @@
       !=================================================================
 
       ! NOTE: P_TP1+PTOP & P_TP2+PTOP are the true surface pressures!
-      CALL DO_PJC_PFIX( D_DYN, P_TP1+PTOP, P_TP2+PTOP, 
-     &                  UWND,  VWND,       XMASS,     YMASS )
+      CALL DO_PJC_PFIX( D_DYN,
+     &                  P_TP1+PTOP,   P_TP2+PTOP, 
+     &                  State_Met%U,  State_Met%V,
+     &                  XMASS,        YMASS )
 
       !=================================================================
       ! Call TPCORE_FVDAS to perform the advection
       !=================================================================
 
       ! Flip array indices in the vertical using pointer storage
-      p_UWND  => UWND (:,:,LLPAR:1:-1  )
-      p_VWND  => VWND (:,:,LLPAR:1:-1  )
-      p_STT   => STT  (:,:,LLPAR:1:-1,:)
-      p_XMASS => XMASS(:,:,LLPAR:1:-1  )
-      p_YMASS => YMASS(:,:,LLPAR:1:-1  )
+      p_UWND  => State_Met%U      (:,:,LLPAR:1:-1  )
+      p_VWND  => State_Met%V      (:,:,LLPAR:1:-1  )
+      p_STT   => State_Chm%Tracers(:,:,LLPAR:1:-1,:)
+      p_XMASS => XMASS            (:,:,LLPAR:1:-1  )
+      p_YMASS => YMASS            (:,:,LLPAR:1:-1  )
 
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
       ! are incremented upside-down (level 1 = top of the atmosphere).
@@ -665,11 +806,14 @@
             AD_A(I,J,L) = GET_AIR_MASS( I, J, L, P_TP2(I,J) )
          
             ! Tracer mass [kg] after transport
-            TR_A(I,J,L) = STT(I,J,L,N) * AD_A(I,J,L) / TCVV(N)
+            TR_A(I,J,L) = State_Chm%Tracers(I,J,L,N)
+     &                  * AD_A(I,J,L)
+     &                  / TCVV(N)
 
             ! We apply mass conservation only on cells with 
             ! nonzero tracer. (ccc, 11/20/08)
-            IF ( STT(I,J,L,N) > 0.d0 .or. STT(I,J,L,N) < 0.d0 ) THEN
+            IF ( State_Chm%Tracers(I,J,L,N) > 0.d0   .or.
+     &           State_Chm%Tracers(I,J,L,N) < 0.d0 ) THEN
                SUMADA = SUMADA + AD_A(I,J,L)
             ENDIF
          ENDDO
@@ -687,11 +831,14 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-            IF ( STT(I,J,L,N) > 0.d0 .or. STT(I,J,L,N) < 0.d0 ) THEN
-               STT(I,J,L,N) = STT(I,J,L,N) + TR_DIFF
+            IF ( State_Chm%Tracers(I,J,L,N) > 0.d0   .or. 
+     &           State_Chm%Tracers(I,J,L,N) < 0.d0 ) THEN
+               State_Chm%Tracers(I,J,L,N) =
+     &         State_Chm%Tracers(I,J,L,N) + TR_DIFF
             ENDIF
 
-            STT(I,J,L,N) = MAX( STT(I,J,L,N), 0d0 )
+            State_Chm%Tracers(I,J,L,N) =
+     &           MAX( State_Chm%Tracers(I,J,L,N), 0d0 )
          ENDDO
          ENDDO
          ENDDO
@@ -716,17 +863,19 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_GEOS5_WINDOW_TRANSPORT 
+      SUBROUTINE DO_GEOS5_WINDOW_TRANSPORT( am_I_Root, Input_Opt,
+     &                                      State_Met, State_Chm, RC )
 !
 ! !USES:
 !
       ! References to F90 modules
-      USE DAO_MOD,                   ONLY : PSC2,     UWND,     VWND
       USE DIAG_MOD,                  ONLY : MASSFLEW, MASSFLNS, MASSFLUP
       USE ERROR_MOD,                 ONLY : IT_IS_NAN,     DEBUG_MSG
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod,        ONLY : OptInput
+      USE GIGC_State_Chm_Mod,        ONLY : ChmState
+      USE GIGC_State_Met_Mod,        ONLY : MetState
       USE GRID_MOD,                  ONLY : GET_XOFFSET,   GET_YOFFSET 
-      USE LOGICAL_MOD,               ONLY : LFILL,  LMFCT
-      USE LOGICAL_MOD,               ONLY : LPRT,   LWINDO
       USE PJC_PFIX_GEOS5_WINDOW_MOD, ONLY : DO_PJC_PFIX_GEOS5_WINDOW
       USE PRESSURE_MOD,              ONLY : GET_PEDGE
       USE PRESSURE_MOD,              ONLY : SET_FLOATING_PRESSURE
@@ -734,16 +883,28 @@
       USE TPCORE_BC_MOD,             ONLY : I0_W, J0_W, I1_W, J1_W
       USE TPCORE_BC_MOD,             ONLY : I2_W, J2_W, IM_W, JM_W, IGZD
       USE TPCORE_BC_MOD,             ONLY : DO_WINDOW_TPCORE_BC
-      USE TPCORE_WINDOW_MOD,         ONLY : TPCORE_WINDOW
       USE TPCORE_GEOS5_WINDOW_MOD,   ONLY : TPCORE_GEOS5_WINDOW
-      USE TRACER_MOD,                ONLY : N_TRACERS, STT, TCVV
 #if   defined( APM )
       USE TRACER_MOD,                ONLY : N_APMTRA
 #endif
 
-      USE CMN_SIZE_MOD                  ! Size parameters
-      USE CMN_DIAG_MOD                  ! NDxx flags
-      USE CMN_GCTM_MOD                  ! Physical constants
+      USE CMN_SIZE_MOD                    ! Size parameters
+      USE CMN_DIAG_MOD                    ! NDxx flags
+      USE CMN_GCTM_MOD                    ! Physical constants
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  10 Mar 2003 - R. Yantosca - Initial version
@@ -752,6 +913,10 @@
 !  26 Feb 2010 - R. Yantosca - Added ProTeX headers
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
 !  21 Jun 2012 - R. Yantosca - Now use pointers to flip arrays in the vertical
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  04 Jun 2013 - R. Yantosca - Replace pointer STT with State_Chm%Tracers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -768,9 +933,11 @@
       REAL*8           :: P_TEMP(IIPAR,JJPAR)
       REAL*8           :: TR_A(IIPAR,JJPAR,LLPAR)
 #if   defined( APM )
-      REAL*8           :: TR_B(IIPAR,JJPAR,LLPAR,N_TRACERS+N_APMTRA) 
+      REAL*8           :: TR_B(IIPAR,JJPAR,LLPAR,
+     &                         Input_Opt%N_TRACERS+N_APMTRA) 
 #else
-      REAL*8           :: TR_B(IIPAR,JJPAR,LLPAR,N_TRACERS)
+      REAL*8           :: TR_B(IIPAR,JJPAR,LLPAR,
+     &                         Input_Opt%N_TRACERS)
 #endif
       REAL*8,  TARGET  :: XMASS(IIPAR,JJPAR,LLPAR)
       REAL*8,  TARGET  :: YMASS(IIPAR,JJPAR,LLPAR)
@@ -782,9 +949,31 @@
       REAL*8,  POINTER :: p_YMASS(:,:,:  )
       REAL*8,  POINTER :: p_STT  (:,:,:,:)
 
+      ! For fields from Input_Opt
+      LOGICAL          :: LFILL
+      LOGICAL          :: LMFCT
+      LOGICAL          :: LPRT
+      LOGICAL          :: LWINDO
+      INTEGER          :: N_TRACERS
+      REAL*8           :: TCVV(Input_Opt%N_TRACERS)
+
+      ! Variable to ensure mass conservation (ccc, 20/11/08)
+      REAL*8           :: SUMADA
+
       !=================================================================
-      ! DO_GEOS5_FVDAS_WINDOW_TRANSPORT begins here!
+      ! DO_GEOS5_WINDOW_TRANSPORT begins here!
       !=================================================================
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LFILL     = Input_Opt%LFILL
+      LMFCT     = Input_Opt%LMFCT
+      LPRT      = Input_Opt%LPRT
+      LWINDO    = Input_Opt%LWINDO
+      N_TRACERS = Input_Opt%N_TRACERS
+      TCVV      = Input_Opt%TCVV(1:N_TRACERS)
 
       ! Pick the proper # of tracers
 #if   defined( APM )
@@ -823,7 +1012,7 @@
          P_TP1(I,J) = GET_PEDGE(I,J,1)
 
          ! True surface pressure at end of dynamic timestep [hPa]
-         P_TP2(I,J) = PSC2(I,J)
+         P_TP2(I,J) = State_Met%PSC2(I,J)
   
       ENDDO
       ENDDO
@@ -854,7 +1043,9 @@
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         TR_B(I,J,L,N) = STT(I,J,L,N) * AD_B(I,J,L) / TCVV(N)
+         TR_B(I,J,L,N) = State_Chm%Tracers(I,J,L,N)
+     &                 * AD_B(I,J,L)
+     &                 / TCVV(N)
       ENDDO
       ENDDO
       ENDDO
@@ -870,22 +1061,25 @@
       YMASS = 0d0
 
       ! NOTE: P_TP1 and P_TP2 are the true surface pressures!
-      CALL DO_PJC_PFIX_GEOS5_WINDOW( D_DYN, P_TP1, P_TP2,
-     &                               UWND,  VWND,  XMASS, YMASS )
+      CALL DO_PJC_PFIX_GEOS5_WINDOW( D_DYN,
+     &                               P_TP1,        P_TP2,
+     &                               State_Met%U,  State_Met%V,
+     &                               XMASS,        YMASS )
 
       IF ( LPRT ) CALL DEBUG_MSG( '### GEOS5_NESTED: a GET_TRA_MASS' )
 
-      ! Impose TPCORE boundary conditions @ edges of 1x1 grid
+      ! Impose TPCORE boundary conditions @ edges of nested grid
       CALL DO_WINDOW_TPCORE_BC
+     &   ( am_I_Root, Input_Opt, State_Chm, RC )
 
       IF ( LPRT ) CALL DEBUG_MSG( '### GEOS5_NESTED: a DO_WIN_TP_BC' )
 
       ! Flip array indices in the vertical using pointer storage
-      p_UWND  => UWND (:,:,LLPAR:1:-1  )
-      p_VWND  => VWND (:,:,LLPAR:1:-1  )
-      p_STT   => STT  (:,:,LLPAR:1:-1,:)
-      p_XMASS => XMASS(:,:,LLPAR:1:-1  )
-      p_YMASS => YMASS(:,:,LLPAR:1:-1  )
+      p_UWND  => State_Met%U      (:,:,LLPAR:1:-1  )
+      p_VWND  => State_Met%V      (:,:,LLPAR:1:-1  )
+      p_STT   => State_Chm%Tracers(:,:,LLPAR:1:-1,:)
+      p_XMASS => XMASS            (:,:,LLPAR:1:-1  )
+      p_YMASS => YMASS            (:,:,LLPAR:1:-1  )
 
       IF ( LPRT ) CALL DEBUG_MSG( '### GEOS5_NESTED: a array flip' )
 
@@ -904,7 +1098,7 @@
      &                          TCVV,     ND24,      ND25,     ND26 )
 
       ! Free pointer memory
-      NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS )
+      NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS ) 
 
       !=================================================================
       ! Reset surface pressure and ensure mass conservation
@@ -924,25 +1118,27 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: do_geos5_window_transport
+! !IROUTINE: do_geos57_window_transport
 !
-! !DESCRIPTION: Subroutine DO\_GEOS5\_WINDOW\_TRANSPORT is the driver program 
+! !DESCRIPTION: Subroutine DO\_GEOS57\_WINDOW\_TRANSPORT is the driver program 
 !  for the proper TPCORE program for the GEOS-5 nested-grid simulations. 
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_GEOS57_WINDOW_TRANSPORT 
+      SUBROUTINE DO_GEOS57_WINDOW_TRANSPORT( am_I_Root, Input_Opt,
+     &                                       State_Met, State_Chm, RC )
 !
 ! !USES:
 !
       ! References to F90 modules
-      USE DAO_MOD,                   ONLY : PSC2,     UWND,     VWND
       USE DIAG_MOD,                  ONLY : MASSFLEW, MASSFLNS, MASSFLUP
       USE ERROR_MOD,                 ONLY : IT_IS_NAN,     DEBUG_MSG
       USE GRID_MOD,                  ONLY : GET_XOFFSET,   GET_YOFFSET
-      USE LOGICAL_MOD,               ONLY : LFILL,  LMFCT
-      USE LOGICAL_MOD,               ONLY : LPRT,   LWINDO
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod,        ONLY : OptInput
+      USE GIGC_State_Chm_Mod,        ONLY : ChmState
+      USE GIGC_State_Met_Mod,        ONLY : MetState
       USE PJC_PFIX_GEOS57_WINDOW_MOD,ONLY : DO_PJC_PFIX_GEOS57_WINDOW
       USE PRESSURE_MOD,              ONLY : GET_PEDGE
       USE PRESSURE_MOD,              ONLY : SET_FLOATING_PRESSURE
@@ -950,17 +1146,29 @@
       USE TPCORE_BC_MOD,             ONLY : I0_W, J0_W, I1_W, J1_W
       USE TPCORE_BC_MOD,             ONLY : I2_W, J2_W, IM_W, JM_W, IGZD
       USE TPCORE_BC_MOD,             ONLY : DO_WINDOW_TPCORE_BC 
-      USE TPCORE_WINDOW_MOD,         ONLY : TPCORE_WINDOW
       USE TPCORE_GEOS57_WINDOW_MOD,  ONLY : TPCORE_GEOS57_WINDOW
-      USE TRACER_MOD,                ONLY : N_TRACERS, STT, TCVV
 #if   defined( APM )
       USE TRACER_MOD,                ONLY : N_APMTRA
 #endif
 
-      USE CMN_SIZE_MOD                  ! Size parameters
-      USE CMN_DIAG_MOD                  ! NDxx flags
-      USE CMN_GCTM_MOD                  ! Physical constants
-! 
+      USE CMN_SIZE_MOD                    ! Size parameters
+      USE CMN_DIAG_MOD                    ! NDxx flags
+      USE CMN_GCTM_MOD                    ! Physical constants
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
 ! !REVISION HISTORY: 
 !  10 Mar 2003 - R. Yantosca - Initial version
 
@@ -968,6 +1176,7 @@
 !  26 Feb 2010 - R. Yantosca - Added ProTeX headers
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
 !  21 Jun 2012 - R. Yantosca - Now use pointers to flip arrays in the vertical
+!  04 Jun 2013 - R. Yantosca - Replace pointer STT with State_Chm%Tracers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -984,9 +1193,11 @@
       REAL*8           :: P_TEMP(IIPAR,JJPAR)
       REAL*8           :: TR_A(IIPAR,JJPAR,LLPAR)
 #if   defined( APM )
-      REAL*8           :: TR_B(IIPAR,JJPAR,LLPAR,N_TRACERS+N_APMTRA)
+      REAL*8           :: TR_B(IIPAR,JJPAR,LLPAR,
+     &                         Input_Opt%N_TRACERS+N_APMTRA)
 #else
-      REAL*8           :: TR_B(IIPAR,JJPAR,LLPAR,N_TRACERS)
+      REAL*8           :: TR_B(IIPAR,JJPAR,LLPAR,
+     &                         Input_Opt%N_TRACERS)
 #endif
       REAL*8,  TARGET  :: XMASS(IIPAR,JJPAR,LLPAR)
       REAL*8,  TARGET  :: YMASS(IIPAR,JJPAR,LLPAR)
@@ -998,9 +1209,28 @@
       REAL*8,  POINTER :: p_YMASS(:,:,:  )
       REAL*8,  POINTER :: p_STT  (:,:,:,:)
 
+      ! For fields from Input_Opt
+      LOGICAL          :: LFILL
+      LOGICAL          :: LMFCT
+      LOGICAL          :: LPRT
+      LOGICAL          :: LWINDO
+      INTEGER          :: N_TRACERS
+      REAL*8           :: TCVV(Input_Opt%N_TRACERS)
+
       !=================================================================
       ! DO_GEOS57_FVDAS_WINDOW_TRANSPORT begins here!
       !=================================================================
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LFILL     = Input_Opt%LFILL
+      LMFCT     = Input_Opt%LMFCT
+      LPRT      = Input_Opt%LPRT
+      LWINDO    = Input_Opt%LWINDO
+      N_TRACERS = Input_Opt%N_TRACERS
+      TCVV      = Input_Opt%TCVV(1:N_TRACERS)
 
       ! Pick the proper # of tracers
 #if   defined( APM )
@@ -1012,6 +1242,7 @@
       ! Get nested-grid lon/lat offsets [# boxes]
       I0    = GET_XOFFSET( GLOBAL=.TRUE. )
       J0    = GET_YOFFSET( GLOBAL=.TRUE. )
+
       ! Dynamic timestep [s]
       N_DYN = GET_TS_DYN() * 60
       D_DYN = DBLE( N_DYN )
@@ -1038,7 +1269,7 @@
          P_TP1(I,J) = GET_PEDGE(I,J,1)
 
          ! True surface pressure at end of dynamic timestep [hPa]
-         P_TP2(I,J) = PSC2(I,J)
+         P_TP2(I,J) = State_Met%PSC2(I,J)
 
       ENDDO
       ENDDO
@@ -1069,7 +1300,9 @@
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         TR_B(I,J,L,N) = STT(I,J,L,N) * AD_B(I,J,L) / TCVV(N)
+         TR_B(I,J,L,N) = State_Chm%Tracers(I,J,L,N)
+     &                 * AD_B(I,J,L)
+     &                 / TCVV(N)
       ENDDO
       ENDDO
       ENDDO
@@ -1084,19 +1317,22 @@
       XMASS = 0d0 !(dan)
       YMASS = 0d0
       ! NOTE: P_TP1 and P_TP2 are the true surface pressures!  
-      CALL DO_PJC_PFIX_GEOS57_WINDOW( D_DYN, P_TP1, P_TP2,
-     &                               UWND,  VWND,  XMASS, YMASS )
+      CALL DO_PJC_PFIX_GEOS57_WINDOW( D_DYN,
+     &                                P_TP1,        P_TP2,
+     &                                State_Met%U,  State_Met%V,
+     &                                XMASS,        YMASS )
 
       IF ( LPRT ) CALL DEBUG_MSG( '### GEOS5_NESTED: a GET_TRA_MASS' )
-      ! Impose TPCORE boundary conditions @ edges of 1x1 grid
-      CALL DO_WINDOW_TPCORE_BC
+
+      ! Impose TPCORE boundary conditions @ edges of nested grid
+      CALL DO_WINDOW_TPCORE_BC( am_I_Root, Input_Opt, State_Chm, RC )
 
       ! Flip array indices in the vertical using pointer storage
-      p_UWND  => UWND (:,:,LLPAR:1:-1  )
-      p_VWND  => VWND (:,:,LLPAR:1:-1  )
-      p_STT   => STT  (:,:,LLPAR:1:-1,:)
-      p_XMASS => XMASS(:,:,LLPAR:1:-1  )
-      p_YMASS => YMASS(:,:,LLPAR:1:-1  )
+      p_UWND  => State_Met%U      (:,:,LLPAR:1:-1  )
+      p_VWND  => State_Met%V      (:,:,LLPAR:1:-1  )
+      p_STT   => State_Chm%Tracers(:,:,LLPAR:1:-1,:)
+      p_XMASS => XMASS            (:,:,LLPAR:1:-1  )
+      p_YMASS => YMASS            (:,:,LLPAR:1:-1  )
 
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
       ! are incremented upside-down (level 1 = top of the atmosphere).
@@ -1227,20 +1463,29 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_TRANSPORT
+      SUBROUTINE INIT_TRANSPORT( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE ERROR_MOD,        ONLY : ALLOC_ERR
-      USE GRID_MOD,         ONLY : GET_AREA_M2, GET_YMID_R
-      USE LOGICAL_MOD,      ONLY : LTPFV,       LTRAN
-      USE PRESSURE_MOD,     ONLY : GET_AP,      GET_BP
-      USE TIME_MOD,         ONLY : GET_TS_DYN
-      USE TPCORE_FVDAS_MOD, ONLY : INIT_TPCORE
-      USE TRACER_MOD,       ONLY : N_TRACERS
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GRID_MOD,           ONLY : GET_AREA_M2, GET_YMID_R
+      USE PRESSURE_MOD,       ONLY : GET_AP,      GET_BP
+      USE TIME_MOD,           ONLY : GET_TS_DYN
+      USE TPCORE_FVDAS_MOD,   ONLY : INIT_TPCORE
 
       USE CMN_SIZE_MOD         ! Size parameters
       USE CMN_GCTM_MOD         ! Re
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  10 Mar 2003 - R. Yantosca - Initial version
@@ -1259,14 +1504,30 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R_W(I,J,L) from grid_mod.F90
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: AS, J, K, L, N_DYN
-      REAL*8              :: YMID_R(JJPAR)
+      INTEGER :: J, K, L, N_DYN
+      REAL*8  :: YMID_R(JJPAR)
+
+      ! For fields from Input_Opt
+      LOGICAL :: LTRAN
+      INTEGER :: N_TRACERS
+
+      !=================================================================
+      ! Initialize
+      !=================================================================
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LTRAN     = Input_Opt%LTRAN
+      N_TRACERS = Input_Opt%N_TRACERS
 
       !=================================================================
       ! Allocate arrays for TPCORE vertical coordinates 
@@ -1282,11 +1543,11 @@
       ! Also here Ap, Bp will be flipped since both TPCORE versions
       ! index levels from the atm. top downwards (bdf, bmy, 10/30/07)
       !=================================================================
-      ALLOCATE( Ap( LLPAR+1 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Ap' )
+      ALLOCATE( Ap( LLPAR+1 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'Ap' )
  
-      ALLOCATE( Bp( LLPAR+1 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Bp' )
+      ALLOCATE( Bp( LLPAR+1 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'Bp' )
 
       ! Flip Ap and Bp for TPCORE
       DO L = 1, LLPAR+1 
@@ -1302,8 +1563,8 @@
       !=================================================================
       ! Allocate arrays for surface area and layer thickness
       !=================================================================
-      ALLOCATE( A_M2( JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'A_M2' )
+      ALLOCATE( A_M2( JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'A_M2' )
 
       ! Surface area [m2]
       DO J = 1, JJPAR
@@ -1329,9 +1590,7 @@
       CALL INIT_TPCORE( IIPAR,  JJPAR, LLPAR,  JFIRST, JLAST, 
      &                  NG, MG, DBLE( N_DYN ), Re,     YMID_R )
 
-
       END SUBROUTINE INIT_TRANSPORT
-
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -1349,14 +1608,15 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_GEOS5_WINDOW_TRANSPORT
+      SUBROUTINE INIT_GEOS5_WINDOW_TRANSPORT( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
       USE ERROR_MOD,               ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod,      ONLY : OptInput
       USE GRID_MOD,                ONLY : GET_AREA_M2
       USE GRID_MOD,                ONLY : GET_YMID_R_W
-      USE LOGICAL_MOD,             ONLY : LTPFV,  LTRAN
       USE PRESSURE_MOD,            ONLY : GET_AP, GET_BP
       USE TIME_MOD,                ONLY : GET_TS_DYN
       USE TPCORE_FVDAS_MOD,        ONLY : INIT_TPCORE
@@ -1364,10 +1624,18 @@
       USE TPCORE_BC_MOD,           ONLY : I2_W, J2_W, IM_W, JM_W
       USE TPCORE_BC_MOD,           ONLY : IGZD, INIT_TPCORE_BC
       USE TPCORE_GEOS5_WINDOW_MOD, ONLY : INIT_GEOS5_WINDOW
-      USE TRACER_MOD,              ONLY : N_TRACERS
 
       USE CMN_SIZE_MOD                ! Size parameters
       USE CMN_GCTM_MOD                ! Re
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  06 Jun 2008 - D. Chen & R. Yantosca - Initial version
@@ -1375,14 +1643,30 @@
 !  26 Feb 2010 - R. Yantosca - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R_W(I,J,L) from grid_mod.F90
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: AS, J, K, L, N_DYN
-      REAL*8              :: YMID_R_W(0:JJPAR+1)
+      INTEGER :: J, K, L, N_DYN
+      REAL*8  :: YMID_R_W(0:JJPAR+1)
+
+      ! For fields from Input_Opt
+      LOGICAL :: LTRAN
+      INTEGER :: N_TRACERS
+
+      !=================================================================
+      ! Initialize
+      !=================================================================
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LTRAN     = Input_Opt%LTRAN
+      N_TRACERS = Input_Opt%N_TRACERS
 
       !=================================================================
       ! Allocate arrays for TPCORE vertical coordinates
@@ -1395,11 +1679,11 @@
       ! Also here Ap, Bp will be flipped since both TPCORE versions
       ! index levels from the atm. top downwards (bdf, bmy, 10/30/07)
       !=================================================================
-      ALLOCATE( Ap( LLPAR+1 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Ap' )
+      ALLOCATE( Ap( LLPAR+1 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'Ap' )
 
-      ALLOCATE( Bp( LLPAR+1 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Bp' )
+      ALLOCATE( Bp( LLPAR+1 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'Bp' )
 
       ! Flip Ap and Bp for TPCORE
       DO L = 1, LLPAR+1
@@ -1415,8 +1699,8 @@
       !=================================================================
       ! Allocate arrays for surface area and layer thickness
       !=================================================================
-      ALLOCATE( A_M2( JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'A_M2' )
+      ALLOCATE( A_M2( JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'A_M2' )
 
       ! Surface area [m2]
       DO J = 1, JJPAR
@@ -1461,14 +1745,15 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_GEOS57_WINDOW_TRANSPORT
+      SUBROUTINE INIT_GEOS57_WINDOW_TRANSPORT( am_I_Root,Input_Opt,RC )
 !
 ! !USES:    
 !
       USE ERROR_MOD,               ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod,      ONLY : OptInput
       USE GRID_MOD,                ONLY : GET_AREA_M2
       USE GRID_MOD,                ONLY : GET_YMID_R_W
-      USE LOGICAL_MOD,             ONLY : LTPFV,  LTRAN
       USE PRESSURE_MOD,            ONLY : GET_AP, GET_BP
       USE TIME_MOD,                ONLY : GET_TS_DYN
       USE TPCORE_FVDAS_MOD,        ONLY : INIT_TPCORE
@@ -1476,25 +1761,50 @@
       USE TPCORE_BC_MOD,           ONLY : I2_W, J2_W, IM_W, JM_W
       USE TPCORE_BC_MOD,           ONLY : IGZD, INIT_TPCORE_BC
       USE TPCORE_GEOS57_WINDOW_MOD,ONLY : INIT_GEOS57_WINDOW
-      USE TRACER_MOD,              ONLY : N_TRACERS
 
       USE CMN_SIZE_MOD                ! Size parameters
       USE CMN_GCTM_MOD                ! Re
-! 
+
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+!
 ! !REVISION HISTORY: 
 !  06 Jun 2008 - D. Chen & R. Yantosca - Initial version
 !  26 Feb 2010 - R. Yantosca - Removed references to obsolete LEMBED switch
 !  26 Feb 2010 - R. Yantosca - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R_W(I,J,L) from grid_mod.F90
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: AS, J, K, L, N_DYN
-      REAL*8              :: YMID_R_W(0:JJPAR+1)
+      INTEGER :: J, K, L, N_DYN
+      REAL*8  :: YMID_R_W(0:JJPAR+1)
+
+      ! For fields from Input_Opt
+      LOGICAL :: LTRAN
+      INTEGER :: N_TRACERS
+
+      !=================================================================
+      ! Initialize
+      !=================================================================
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LTRAN     = Input_Opt%LTRAN
+      N_TRACERS = Input_Opt%N_TRACERS
 
       !=================================================================
       ! Allocate arrays for TPCORE vertical coordinates
@@ -1507,11 +1817,11 @@
       ! Also here Ap, Bp will be flipped since both TPCORE versions
       ! index levels from the atm. top downwards (bdf, bmy, 10/30/07)
       !=================================================================
-      ALLOCATE( Ap( LLPAR+1 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Ap' )
+      ALLOCATE( Ap( LLPAR+1 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'Ap' )
 
-      ALLOCATE( Bp( LLPAR+1 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Bp' )
+      ALLOCATE( Bp( LLPAR+1 ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'Bp' )
 
       ! Flip Ap and Bp for TPCORE
       DO L = 1, LLPAR+1
@@ -1527,8 +1837,8 @@
       !=================================================================
       ! Allocate arrays for surface area and layer thickness
       !=================================================================
-      ALLOCATE( A_M2( JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'A_M2' )
+      ALLOCATE( A_M2( JJPAR ), STAT=RC )
+      IF ( RC /= 0 ) CALL ALLOC_ERR( 'A_M2' )
 
       ! Surface area [m2]
       DO J = 1, JJPAR

@@ -72,30 +72,39 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG42
+      SUBROUTINE DIAG42( State_Met, State_Chm )
 !
 ! !USES:
 !
-      ! References to F90 modules
-      USE DAO_MOD,      ONLY : AIRVOL, T
-      !USE DIAG_MOD,     ONLY : LTOTH
-      USE PRESSURE_MOD, ONLY : GET_PCENTER
-      USE TRACER_MOD,   ONLY : STT
-      USE TRACERID_MOD, ONLY : IDTSOA1, IDTSOA2, IDTSOA3, IDTSOA4
-      USE TRACERID_MOD, ONLY : IDTSOA5
-      USE TRACERID_MOD, ONLY : IDTOCPI, IDTOCPO
-      USE TRACERID_MOD, ONLY : IDTSOAG, IDTSOAM
-      ! consider additional species (hotp 10/26/07)
-      USE TRACERID_MOD, ONLY : IDTSO4, IDTNIT, IDTNH4, IDTSALA, IDTSALC
-      USE TRACERID_MOD, ONLY : IDTBCPI, IDTBCPO
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER
+      USE TRACERID_MOD,       ONLY : IDTSOA1, IDTSOA2, IDTSOA3, IDTSOA4
+      USE TRACERID_MOD,       ONLY : IDTSOA5
+      USE TRACERID_MOD,       ONLY : IDTOCPI, IDTOCPO
+      USE TRACERID_MOD,       ONLY : IDTSOAG, IDTSOAM
+      USE TRACERID_MOD,       ONLY : IDTSO4,  IDTNIT, IDTNH4
+      USE TRACERID_MOD,       ONLY : IDTSALA, IDTSALC
+      USE TRACERID_MOD,       ONLY : IDTBCPI, IDTBCPO
 
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DIAG_MOD     ! NDxx flags
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! NDxx flags
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
 ! 
 ! !REVISION HISTORY: 
 !  22 May 2006 - D. Henze, R. Yantosca - Initial version
 !  (1 ) Now use ratio of 2.1 instead of 1.4 for SOA4 (dkh, bmy, 3/29/07)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -110,6 +119,11 @@
       ! Factor for computing standard volume
       REAL*8, PARAMETER :: STD_VOL_FAC = 1013.25d0 / 273.15d0
      
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !================================================================= 
       ! DIAG42 begins here! 
       !================================================================= 
@@ -123,6 +137,10 @@
       IF ( IDTOCPO == 0 ) RETURN
       IF ( IDTOCPI == 0 ) RETURN
 
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+
       ! Loop over grid boxes     
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
@@ -133,10 +151,10 @@
 
          ! Conversion factor from [kg] --> [ug/m3]
          ! (LTOTH=1 if between OTH_HR1 and OTH_HR2, LTOTH=0 otherwise)
-         !FACTOR        = 1d9 / AIRVOL(I,J,L) * LTOTH(I,J) 
+         !FACTOR        = 1d9 / State_Met%AIRVOL(I,J,L) * LTOTH(I,J) 
 
          ! Conversion factor from [kg] --> [ug/m3]
-         FACTOR        = 1d9 / AIRVOL(I,J,L)
+         FACTOR        = 1d9 / State_Met%AIRVOL(I,J,L)
 
          ! SOA1 [ug/m3]
          AD42(I,J,L,1) = AD42(I,J,L,1)        + 
@@ -195,7 +213,8 @@
 
          ! Sum of PRIMARY OC + SOA1 to SOA4 [ug C/sm3] at STP
          PRES          = GET_PCENTER( I, J, L )
-         AD42(I,J,L,10) = AD42(I,J,L,9) * STD_VOL_FAC * T(I,J,L) / PRES
+         AD42(I,J,L,10) = AD42(I,J,L,9)      * STD_VOL_FAC * 
+     &                    State_Met%T(I,J,L) / PRES
 
          ! Sum of all OA in ug/m3
          AD42(I,J,L,11) = AD42(I,J,L,11)        +
@@ -294,17 +313,20 @@
 
             ! Sum of SOA1 to SOA4, SOAG, SOAM at STP [ug/sm3 STP] (tmf, 1/31/07)  
             PRES          = GET_PCENTER( I, J, L )
-            AD42(I,J,L,23) = AD42(I,J,L,21) * STD_VOL_FAC * T(I,J,L) 
-     &                       / PRES
+            AD42(I,J,L,23) = AD42(I,J,L,21)     * STD_VOL_FAC *
+     &                       State_Met%T(I,J,L) / PRES
 
             ! Sum of all OC [ug C/sm3] at STP (including SOAG, SOAM)
-            AD42(I,J,L,24) = AD42(I,J,L,22) * STD_VOL_FAC * T(I,J,L) 
-     &                       / PRES
+            AD42(I,J,L,24) = AD42(I,J,L,22)     * STD_VOL_FAC *
+     &                       State_Met%T(I,J,L) / PRES
          ENDIF
       ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO 
+
+      ! Free pointer
+      NULLIFY( STT )
 
       END SUBROUTINE DIAG42
 !EOC

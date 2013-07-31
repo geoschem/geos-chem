@@ -68,6 +68,9 @@
 #  23 Oct 2012 - R. Yantosca - Added tagged_co_mod
 #  23 Oct 2012 - M. Payer    - Added soil NOx modules; Removed upbdflx_mod.F
 #  27 Nov 2012 - M. Payer    - Added modules for POPs simulation
+#  13 Dec 2012 - R. Yantosca - Added biofit, sunparam, and removed some 
+#                              obsolete functions
+#  22 Jul 2013 - M. Sulprizio- Added rcp_mod
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -78,7 +81,6 @@ SRC1 :=                               \
 ./headers.geos-chem                   \
 $(HDR)/define.h                       \
 $(HDR)/CMN_SIZE_mod.F                 \
-$(HDR)/CMN_DEP_mod.F                  \
 $(HDR)/CMN_DIAG_mod.F                 \
 $(HDR)/CMN_GCTM_mod.F                 \
 $(HDR)/CMN_NOX_mod.F                  \
@@ -169,6 +171,7 @@ $(CORE)/pbl_mix_mod.F                 \
 $(CORE)/pjc_pfix_mod.F                \
 $(CORE)/planeflight_mod.F             \
 $(CORE)/pops_mod.F                    \
+$(CORE)/rcp_mod.F                     \
 $(CORE)/retro_mod.F                   \
 $(CORE)/RnPbBe_mod.F                  \
 $(CORE)/scale_anthro_mod.F            \
@@ -192,6 +195,7 @@ $(CORE)/vdiff_pre_mod.F               \
 $(CORE)/vistas_anthro_mod.F           \
 ./subs.geos-chem                      \
 $(CORE)/anthroems.F                   \
+$(CORE)/biofit.F                      \
 $(CORE)/boxvl.F                       \
 $(CORE)/cldice_HBrHOBr_rxn.F          \
 $(CORE)/diag1.F                       \
@@ -217,7 +221,6 @@ $(CORE)/physproc.F                    \
 $(CORE)/RD_AOD.F                      \
 $(CORE)/rd_js.F                       \
 $(CORE)/RD_TJPL.F                     \
-$(CORE)/rdsoil.F                      \
 $(CORE)/read_jv_atms_dat.F90          \
 $(CORE)/set_aer.F                     \
 $(CORE)/setemdep.F                    \
@@ -228,14 +231,11 @@ $(CORE)/read_jv_atms_dat.F90          \
 $(CORE)/ruralbox.F                    \
 $(CORE)/setemis.F                     \
 $(CORE)/sfcwindsqr.F                  \
-$(ESMF)/gigc_chem_utils.F90           \
-$(ESMF)/gigc_chemdr.F90               \
+$(CORE)/sunparam.F                    \
 $(ESMF)/gigc_chunk_mod.F90            \
-$(ESMF)/gigc_esmf_utils.F90           \
 $(ESMF)/gigc_finalization_mod.F90     \
 $(ESMF)/gigc_initialization_mod.F90   \
-$(ESMF)/gigc_test_utils.F90
-
+$(ESMF)/gigc_land_interface.F90  
 
 # Output file names
 TEX1 := GC_Ref_Vol_3.tex

@@ -1904,6 +1904,7 @@
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1987,7 +1988,7 @@
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID   = ARRAY(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    INGRID,     OUTGRID, IS_MASS=0,
      &                    netCDF=.TRUE.                   )
       AEF_ISOP = OUTGRID
 
@@ -2026,7 +2027,7 @@
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID    = ARRAY(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    INGRID,     OUTGRID, IS_MASS=0,
      &                    netCDF=.TRUE.                   )
       AEF_MONOT = OUTGRID
 
@@ -2065,7 +2066,7 @@
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID  = ARRAY(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    INGRID,     OUTGRID, IS_MASS=0,
      &                    netCDF=.TRUE.                   )      
       AEF_MBO = OUTGRID
 
@@ -2107,7 +2108,7 @@
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID   = ARRAY(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    INGRID,     OUTGRID, IS_MASS=0,
      &                    netCDF=.TRUE.                   )
       AEF_ACET = OUTGRID 
 
@@ -2146,7 +2147,7 @@
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID   = ARRAY(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    INGRID,     OUTGRID, IS_MASS=0,
      &                    netCDF=.TRUE.                   )
       AEF_OVOC = OUTGRID
 
@@ -2187,7 +2188,7 @@
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID    = ARRAY(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    INGRID,     OUTGRID, IS_MASS=0,
      &                    netCDF=.TRUE.                   )
       AEF_APINE = OUTGRID
 
@@ -2224,7 +2225,7 @@
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID    = ARRAY(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    INGRID,     OUTGRID, IS_MASS=0,
      &                    netCDF=.TRUE.                   )
       AEF_BPINE = OUTGRID
 
@@ -2261,7 +2262,7 @@
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID    = ARRAY(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    INGRID,     OUTGRID, IS_MASS=0,
      &                    netCDF=.TRUE.                   )
       AEF_LIMON = OUTGRID
 
@@ -2298,7 +2299,7 @@
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID    = ARRAY(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    INGRID,     OUTGRID, IS_MASS=0,
      &                    netCDF=.TRUE.                   )
       AEF_SABIN = OUTGRID
 
@@ -2335,7 +2336,7 @@
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID    = ARRAY(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    INGRID,     OUTGRID, IS_MASS=0,
      &                    netCDF=.TRUE.                   )
 
       AEF_MYRCN = OUTGRID
@@ -2373,7 +2374,7 @@
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID    = ARRAY(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    INGRID,     OUTGRID, IS_MASS=0,
      &                    netCDF=.TRUE.                   )
       AEF_CAREN = OUTGRID
 
@@ -2410,7 +2411,7 @@
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID    = ARRAY(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    INGRID,     OUTGRID, IS_MASS=0,
      &                    netCDF=.TRUE.                   )
       AEF_OCIMN = OUTGRID
 
@@ -2470,6 +2471,9 @@
 !  02 Jul 2012 - R. Yantosca - Rename the input file latlon_nested.txt to 
 !                              latlon_geos05x0666.txt to avoid confusion
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Bug fix for regridding. Changed to PERAREA=0
+!                              since data is in ug C/m2/hr.
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2519,7 +2523,7 @@
       ! Regrid from 0.5 x 0.666 global to the current nested grid
       INGRID => GEOS_05x0666
       CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666,
-     &                    INGRID,     OUTGRID,  PERAREA=1,
+     &                    INGRID,     OUTGRID,  IS_MASS=0,
      &                    netCDF=.TRUE.                    )
       AEF_ISOP = OUTGRID
       NULLIFY( INGRID )
@@ -2562,7 +2566,7 @@
       ! Regrid from 0.5 x 0.666 to the current nested grid
       INGRID => GEOS_05x0666
       CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666,
-     &                    INGRID,     OUTGRID,  PERAREA=1,
+     &                    INGRID,     OUTGRID,  IS_MASS=0,
      &                    netCDF=.TRUE.                    )
       AEF_MONOT = OUTGRID
       NULLIFY( INGRID )
@@ -2606,7 +2610,7 @@
       ! Regrid from 0.5 x 0.666 global to the current nested grid
       INGRID => GEOS_05x0666
       CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666,
-     &                    INGRID,     OUTGRID,  PERAREA=1,
+     &                    INGRID,     OUTGRID,  IS_MASS=0,
      &                    netCDF=.TRUE.                    )
       AEF_MBO = OUTGRID
       NULLIFY( INGRID )
@@ -2649,7 +2653,7 @@
       ! Regrid from 0.5 x 0.666 global to the current nested grid
       INGRID => GEOS_05x0666
       CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666,
-     &                    INGRID,     OUTGRID,  PERAREA=1,
+     &                    INGRID,     OUTGRID,  IS_MASS=0,
      &                    netCDF=.TRUE.                    )
       AEF_OVOC = OUTGRID
       NULLIFY( INGRID )
@@ -2686,11 +2690,16 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE UPDATE_T_DAY
+      SUBROUTINE UPDATE_T_DAY( State_Met )
 !
 ! !USES:
 !
-      USE MEGANUT_MOD     ! We use all functions from the module
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE MEGANUT_MOD              ! We use all functions from the module
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  (1 ) All MEGAN biogenic emission are currently calculated using TS from DAO 
@@ -2699,6 +2708,8 @@
 !  (2 ) In GEOS4, TS are originally T2M in the A3 files, read in 
 !        'a3_read_mod.f'. 
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2725,9 +2736,9 @@
          ENDDO
             
          ! Store 
-         T_DAY(I,J,1)     = XLTMMP(I,J)
-         PARDF_DAY(I,J,1) = XLPARDF(I,J)
-         PARDR_DAY(I,J,1) = XLPARDR(I,J)
+         T_DAY(I,J,1)     = XLTMMP ( I, J, State_Met%TS    )
+         PARDF_DAY(I,J,1) = XLPARDF( I, J, State_Met%PARDF )
+         PARDR_DAY(I,J,1) = XLPARDR( I, J, State_Met%PARDR )
 
       ENDDO
       ENDDO
@@ -2842,21 +2853,30 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_MEGAN
+      SUBROUTINE INIT_MEGAN( Input_Opt, State_Met )
 !
 ! !USES:
 !
       USE A3_READ_MOD
-      USE GEOS57_READ_MOD,  ONLY : GEOS57_READ_A1
-      USE inquireMod,       ONLY : findFreeLUN
+      USE GEOS57_READ_MOD,    ONLY : GEOS57_READ_A1
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE inquireMod,         ONLY : findFreeLUN
       USE MERRA_A1_MOD
-      USE JULDAY_MOD,       ONLY : CALDATE
-      USE ERROR_MOD,        ONLY : ALLOC_ERR
-      USE LOGICAL_MOD,      ONLY : LUNZIP
-      USE TIME_MOD,         ONLY : GET_FIRST_A3_TIME
-      USE TIME_MOD,         ONLY : GET_JD
-      USE TIME_MOD,         ONLY : ITS_A_LEAPYEAR
-      USE TIME_MOD,         ONLY : YMD_EXTRACT
+      USE JULDAY_MOD,         ONLY : CALDATE
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE TIME_MOD,           ONLY : GET_FIRST_A3_TIME
+      USE TIME_MOD,           ONLY : GET_JD
+      USE TIME_MOD,           ONLY : ITS_A_LEAPYEAR
+      USE TIME_MOD,           ONLY : YMD_EXTRACT
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  (1 ) Change the logic in the #if block for G4AHEAD. (bmy, 12/6/05)
@@ -2874,6 +2894,7 @@
 !  11 Apr 2012 - R. Yantosca - Now remove the call to INIT_LAI; we shall 
 !                              initialize the LAI arrays from main.F
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  11 Apr 2013 - R. Yantosca - Now pass directory info with Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3084,8 +3105,8 @@
 #endif
 
       ! Remove any leftover A-3 files in temp dir (if necessary)
-      IF ( LUNZIP ) THEN
-         CALL UNZIP_A3_FIELDS( 'remove all' )
+      IF ( Input_Opt%LUNZIP ) THEN
+         CALL UNZIP_A3_FIELDS( Input_Opt, 'remove all' )
       ENDIF
 
       ! Loop over 15 days
@@ -3101,8 +3122,10 @@
          CALL CALDATE( JD_T15, NYMD_T15, NHMS_T15 )
 
          ! Unzip A-3 files for archving (if necessary)
-         IF ( LUNZIP ) THEN
-            CALL UNZIP_A3_FIELDS( 'unzip foreground', NYMD_T15 )
+         IF ( Input_Opt%LUNZIP ) THEN
+            CALL UNZIP_A3_FIELDS( Input_Opt, 
+     &                            'unzip foreground', 
+     &                            NYMD_T15             )
          ENDIF
 
          ! Loop over 3h periods during day
@@ -3114,7 +3137,10 @@
             ! GEOS-5.7.x met fields
             ! Sfc temp is hourly data
             !-----------------------------
-            CALL GEOS57_READ_A1( NYMD_T15, 010000*J + G4AHEAD ) 
+            CALL GEOS57_READ_A1( NYMD_T15, 
+     &                           010000*J + G4AHEAD,
+     &                           Input_Opt, 
+     &                           State_Met           ) 
 
 #elif   defined( MERRA )
 
@@ -3125,11 +3151,14 @@
 
             ! Open A1 fields
             CALL OPEN_MERRA_A1_FIELDS( NYMD_T15, 
-     &                                 010000*J + G4AHEAD, 
-     &                                 IUNIT=IUNIT                  )
+     &                                 010000*J + G4AHEAD,
+     &                                 Input_Opt, 
+     &                                 IUNIT=IUNIT         )
 
             ! Read A1 fields from disk
-            CALL GET_MERRA_A1_FIELDS(  NYMD_T15, 010000*J + G4AHEAD ) 
+            CALL GET_MERRA_A1_FIELDS(  NYMD_T15, 
+     &                                 010000*J + G4AHEAD,
+     &                                 State_Met           ) 
 
 #else
             !-----------------------------
@@ -3139,24 +3168,29 @@
 
             ! Open A3 fields
             CALL OPEN_A3_FIELDS( NYMD_T15, 
-     &                           030000*J + G4AHEAD,  
-     &                           IUNIT=IUNIT                  )
+     &                           030000*J + G4AHEAD,
+     &                           Input_Opt,  
+     &                           IUNIT=IUNIT         )
 
             ! Read A3 fields from disk
-            CALL GET_A3_FIELDS(  NYMD_T15, 030000*J + G4AHEAD ) 
+            CALL GET_A3_FIELDS(  NYMD_T15, 
+     &                           030000*J + G4AHEAD, 
+     &                           State_Met           ) 
 
 #endif
 
             ! Update hourly temperatures
-            CALL UPDATE_T_DAY
+            CALL UPDATE_T_DAY( State_Met )
          ENDDO     
 
          ! Compute 15-day average temperatures
          CALL UPDATE_T_15_AVG
 
          ! Remove A-3 file from temp dir (if necessary)
-         IF ( LUNZIP ) THEN
-            CALL UNZIP_A3_FIELDS( 'remove date', NYMD_T15 )
+         IF ( Input_Opt%LUNZIP ) THEN
+            CALL UNZIP_A3_FIELDS( Input_Opt, 
+     &                            'remove date', 
+     &                            NYMD_T15       )
          ENDIF
 
       ENDDO
@@ -3167,8 +3201,8 @@
 #endif
 
       ! Remove any leftover A-3 files in temp dir
-      IF ( LUNZIP ) THEN
-         CALL UNZIP_A3_FIELDS(  'remove all' )
+      IF ( Input_Opt%LUNZIP ) THEN
+         CALL UNZIP_A3_FIELDS( Input_Opt, 'remove all' )
       ENDIF
 
       END SUBROUTINE INIT_MEGAN

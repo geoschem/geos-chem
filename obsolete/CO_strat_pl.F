@@ -1,5 +1,9 @@
 ! $Id: CO_strat_pl.f,v 1.1 2009/09/16 14:06:49 bmy Exp $
-      SUBROUTINE CO_STRAT_PL( COPROD, COLOSS )
+#if defined( DEVEL )
+      SUBROUTINE CO_STRAT_PL( COPROD, COLOSS, State_Met, State_Chm )
+#else
+      SUBROUTINE CO_STRAT_PL( COPROD, COLOSS, State_Met )
+#endif
 !
 !******************************************************************************
 !  Subroutine CO_STRAT_PL computes net production of CO above the 
@@ -26,28 +30,46 @@
 !        is in the stratosphere or not.  Remove reference to CMN, it's 
 !        obsolete. (bmy, 8/22/05)
 !  (7 ) Now reference XNUMOL and XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !******************************************************************************
 !
       ! References to F90 modules 
-      USE DAO_MOD,        ONLY : AD
-      USE TIME_MOD,       ONLY : GET_TS_CHEM
-      USE TRACER_MOD,     ONLY : STT,   XNUMOL,   XNUMOLAIR
-      USE TRACERID_MOD,   ONLY : IDTCO,           IDTCH2O
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP, GET_MIN_TPAUSE_LEVEL
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+#if defined( DEVEL )
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
+      USE TRACER_MOD,         ONLY : STT
+#endif
+      USE TRACER_MOD,         ONLY : XNUMOL, XNUMOLAIR
+      USE TRACERID_MOD,       ONLY : IDTCO,  IDTCH2O
+      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_TROP
+      USE TROPOPAUSE_MOD,     ONLY : GET_MIN_TPAUSE_LEVEL
 
-      USE CMN_SIZE_MOD   ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 
       IMPLICIT NONE
 #     include "define.h"
 
       ! Arguments
-      REAL*4,  INTENT(IN) :: COPROD(JJPAR,LLPAR)
-      REAL*4,  INTENT(IN) :: COLOSS(JJPAR,LLPAR)
-
+      REAL*4,         INTENT(IN) :: COPROD(JJPAR,LLPAR)
+      REAL*4,         INTENT(IN) :: COLOSS(JJPAR,LLPAR)
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+#if defined( DEVEL )
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+#endif
       ! Local variables
       INTEGER             :: I, J, L, M, N, LMIN
 
       REAL*8              :: BAIRDENS, DT, GCO, STTTOGCO
+
+      ! Pointers
+#if defined( DEVEL )
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+#endif
 
       ! External functions
       REAL*8, EXTERNAL    :: BOXVL
@@ -55,6 +77,12 @@
       !=================================================================
       ! CO_STRAT_PL begins here!
       !=================================================================
+
+#if defined( DEVEL )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+#endif
 
       ! Chemistry timestep [s]
       DT = GET_TS_CHEM() * 60d0
@@ -85,16 +113,17 @@
       DO I = 1,    IIPAR
 
          ! Skip tropospheric grid boxes
-         IF ( ITS_IN_THE_TROP(I,J,L) ) CYCLE
+         IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) CYCLE
 
          ! conversion factor from [kg/box] to [molec/cm3]
-         STTTOGCO = 6.022d23 / ( 28d-3 * BOXVL(I,J,L) )
+         STTTOGCO = 6.022d23 / ( 28d-3 * BOXVL(I,J,L,State_Met) )
 
          ! Convert STT from [kg/box] to [molec/cm3]
          GCO = STT(I,J,L,IDTCO) * STTTOGCO
 
          ! Air density in molec/cm3
-         BAIRDENS = AD(I,J,L) * XNUMOLAIR / BOXVL(I,J,L)
+         BAIRDENS = State_Met%AD(I,J,L) * XNUMOLAIR /
+     &              BOXVL(I,J,L,State_Met)
 
          ! Apply P(CO) and L(CO) rates to GCO
          GCO = GCO * ( 1d0 - COLOSS(J,L) * DT ) +
@@ -111,6 +140,11 @@
       ENDDO
       ENDDO
       ENDDO
+
+#if defined( DEVEL )
+      ! Free pointer
+      NULLIFY( STT )
+#endif
 
       ! Return to calling program
       END SUBROUTINE CO_STRAT_PL

@@ -1,7 +1,7 @@
 ! $Id: get_global_ch4.f,v 1.1 2009/09/16 14:06:26 bmy Exp $
       SUBROUTINE GET_GLOBAL_CH4( THISYEAR, VARIABLE_CH4, 
      &                           A3090S, A0030S, A0030N, A3090N,
-     &                           am_I_Root )
+     &                           am_I_Root, Input_Opt )
 !
 !******************************************************************************
 !  Subroutine GET_GLOBAL_CH4 computes the latitudinal gradient in CH4
@@ -41,23 +41,32 @@
 !        2007 for years past 2007 (jaf, 4/15/09) 
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LFUTURE instead of LFUTURE
+!                              from logical_mod.F
 !******************************************************************************
 !
-      ! References to F90 modules
+! !USES:
+!
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCENARIO
-      USE LOGICAL_MOD,          ONLY : LFUTURE
+      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
 
       IMPLICIT NONE
 #     include "define.h"
-
-      ! Arguments
-      INTEGER, INTENT(IN)           :: THISYEAR
-      LOGICAL, INTENT(IN)           :: VARIABLE_CH4
-      LOGICAL, INTENT(IN)           :: am_I_Root
-      REAL*8,  INTENT(OUT)          :: A3090S, A0030S, A0030N, A3090N
-
-      ! Local variables
-      CHARACTER(LEN=2)              :: FUTURE_SCENARIO
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER,        INTENT(IN)  :: THISYEAR
+      LOGICAL,        INTENT(IN)  :: VARIABLE_CH4
+      LOGICAL,        INTENT(IN)  :: am_I_Root
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt
+!
+! !OUTPUT PARAMETERS:
+!
+      REAL*8,         INTENT(OUT) :: A3090S, A0030S, A0030N, A3090N
+!
+! !LOCAL VARIABLES:
+!
+      CHARACTER(LEN=2)            :: FUTURE_SCENARIO
 
       !=================================================================
       ! GET_GLOBAL_CH4 begins here!
@@ -84,7 +93,7 @@
       IF ( VARIABLE_CH4 ) THEN
 
          ! Get IPCC future scenario (e.g. A1, A2, B1, B2)
-         IF ( LFUTURE ) THEN
+         IF ( Input_Opt%LFUTURE ) THEN
             FUTURE_SCENARIO = GET_FUTURE_SCENARIO()
          ENDIF
 

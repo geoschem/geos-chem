@@ -11,41 +11,54 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG1 
+      SUBROUTINE DIAG1( am_I_Root, Input_Opt,
+     &                  State_Met, State_Chm, RC )
 !
 ! !USES:
 !
       ! References to F90 modules
-      USE DAO_MOD,        ONLY : AD,  AIRDEN, AVGW,     BXHEIGHT 
-      USE DAO_MOD,        ONLY : PBL, IS_ICE, IS_WATER, IS_LAND, IS_NEAR
-      USE DIAG_MOD,       ONLY : AD30, AD31, AD33, AD35, AD45, AD54 
-      USE DIAG_MOD,       ONLY : AD47, AD67, AD68, AD69, LTOTH, LTO3
-      USE DIAG_MOD,       ONLY : AD57
-      USE DAO_MOD,        ONLY : T
-      USE PRESSURE_MOD,   ONLY : GET_PCENTER
-      USE GRID_MOD,       ONLY : GET_AREA_M2
-      USE PRESSURE_MOD,   ONLY : GET_PEDGE
-      USE TIME_MOD,       ONLY : ITS_TIME_FOR_CHEM
-      USE TRACER_MOD,     ONLY : N_TRACERS, STT, TCVV
-      USE TRACER_MOD,     ONLY : ITS_A_FULLCHEM_SIM
-      USE TRACER_MOD,     ONLY : XNUMOLAIR
-      USE TRACERID_MOD,   ONLY : IDTOX
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
-      USE DIAG03_MOD,        ONLY : AD03_RGM, AD03_PBM, ND03   
-      USE OCEAN_MERCURY_MOD, ONLY : Fg, Fp, PARTITION_Hg2
+      USE DAO_MOD,            ONLY : IS_ICE, IS_WATER, IS_LAND
+      USE DIAG_MOD,           ONLY : AD30, AD31, AD33, AD35, AD45, AD54 
+      USE DIAG_MOD,           ONLY : AD47, AD67, AD68, AD69, LTOTH, LTO3
+      USE DIAG_MOD,           ONLY : AD57
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_M2
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE
+      USE TIME_MOD,           ONLY : ITS_TIME_FOR_CHEM
+      USE TRACER_MOD,         ONLY : XNUMOLAIR
+      USE TRACERID_MOD,       ONLY : IDTO3
+      USE TRACERID_MOD,       ONLY : ID_HG2, ID_HGP, ID_Hg_TOT
+      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_TROP
+      USE DIAG03_MOD,         ONLY : AD03_RGM, AD03_PBM, ND03   
 
 #if   defined( APM )
-      USE TRACER_MOD,     ONLY : N_APMTRA
+      USE TRACER_MOD,         ONLY : N_APMTRA
 #endif
 
-      USE CMN_SIZE_MOD  ! Size parameters
-      USE CMN_O3_MOD    ! FRACO3
-      USE CMN_DIAG_MOD  ! Diagnostic arrays & parameters
-      USE CMN_GCTM_MOD  ! Physical constants
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! Diagnostic arrays & parameters
+      USE CMN_GCTM_MOD             ! Physical constants
 
       IMPLICIT NONE
 #     include "define.h"
-
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  (1 ) This subroutine was reconstructed from gmg's version of (10/10/97)
@@ -102,6 +115,11 @@
 !  15 Feb 2011 - R. Yantosca - Added modifications for APM from G. Luo
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  14 Mar 2013 - M. Payer    - Replace Ox with O3 as part of removal of
+!                              NOx-Ox partitioning
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !
 ! !REMARKS:
 !  For a complete list of GEOS-Chem diagnostics, please see this web page:
@@ -116,19 +134,38 @@
       INTEGER :: I, J, K, L, N, NN, IREF, JREF, LN45, N_TRC
       REAL*8  :: FDTT, XLOCTM, AREA_M2
 #if   defined( APM ) 
-      REAL*8  :: STT_VV(IIPAR,JJPAR,LLPAR,N_TRACERS+N_APMTRA)
+      REAL*8  :: STT_VV(IIPAR,JJPAR,LLPAR,
+     &                  Input_Opt%N_TRACERS+N_APMTRA)
 #else
-      REAL*8  :: STT_VV(IIPAR,JJPAR,LLPAR,N_TRACERS)
+      REAL*8  :: STT_VV(IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS)
 #endif 
 
       !FOR ND57
       ! For FP potential temperature (hotp 7/31/09)
       REAL*8  :: P0
 
+      ! For fields from Input_Opt
+      LOGICAL :: ITS_A_FULLCHEM_SIM
+      INTEGER :: N_TRACERS
+      REAL*8  :: TCVV(Input_Opt%N_TRACERS)
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! DIAG1 begins here!
       !=================================================================
       
+      ! Assume success
+      RC                 =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      ITS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
+      N_TRACERS          = Input_Opt%N_TRACERS
+      TCVV               = Input_Opt%TCVV(1:N_TRACERS)
+
       ! Pick the proper # of tracers for diagnostics
 #if   defined( APM )
       N_TRC = N_TRACERS + N_APMTRA    ! G-C advected tracers + APM tracers
@@ -137,11 +174,16 @@
 #endif
 
       ! Is it a fullchem run?
-      IS_FULLCHEM = ITS_A_FULLCHEM_SIM()
+      IS_FULLCHEM = ITS_A_FULLCHEM_SIM
       IS_CHEM     = ITS_TIME_FOR_CHEM()
       
       ! Compute conc. in mixing ratio for ND35, ND45, ND47 diagnostics 
       IF ( ND35 > 0 .or. ND45 > 0 .or. ND47 > 0 ) THEN
+
+         ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+         ! (mpayer, 12/6/12)
+         STT => State_Chm%Tracers
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
@@ -150,12 +192,16 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
             STT_VV(I,J,L,N) = 
-     &           MAX( STT(I,J,L,N) * TCVV(N) / AD(I,J,L), 0d0 )
+     &         MAX( STT(I,J,L,N) * TCVV(N) / State_Met%AD(I,J,L), 0d0 )
          ENDDO
          ENDDO
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
+
+         ! Free pointer
+         NULLIFY( STT )
+
       ENDIF
 
 ! H Amos, 25 Oct 2011--------------------------------------------------
@@ -163,28 +209,37 @@
       !-----------------------------------------------!
       ! Write ND03 diagnostics for RGM and PBM (pptv) !
       !-----------------------------------------------!
-       IF(ND03 > 0) THEN
+      IF(ND03 > 0) THEN
+
+        ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+        ! (mpayer, 12/6/12)
+        STT => State_Chm%Tracers
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L)
-   
         DO L = 1, LLPAR
         DO J = 1, JJPAR
         DO I = 1, IIPAR
 
           ! Reactive gaseous mercury, RGM
           AD03_RGM(I,J,L) = AD03_RGM(I,J,L)+
-     &      Fg(I,J,L) * STT(I,J,L,2) * TCVV(2) / AD(I,J,L) *1D12
+     &          STT(I,J,L,ID_Hg2(ID_Hg_tot)) * TCVV(ID_Hg2(ID_Hg_tot)) /
+     &          State_Met%AD(I,J,L) *1D12 
 
           ! Reactive particulate mercury, PBM
           AD03_PBM(I,J,L) = AD03_PBM(I,J,L) + 
-     &      Fp(I,J,L)* STT(I,J,L,2) * TCVV(2) / AD(I,J,L) *1D12
+     &         STT(I,J,L,ID_HgP(ID_Hg_tot)) * TCVV(ID_HgP(ID_Hg_tot)) / 
+     &         State_Met%AD(I,J,L) *1D12
                                                        
         ENDDO
         ENDDO
         ENDDO
 !$OMP END PARALLEL DO 
+
+        ! Free pointer
+        NULLIFY( STT )
+
       ENDIF
 !-------------------------------------------------------------------------
 
@@ -197,9 +252,12 @@
 !$OMP+PRIVATE( I, J )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            IF ( IS_WATER( I, J ) ) AD30(I,J) = AD30(I,J) + 0e0
-            IF ( IS_LAND ( I, J ) ) AD30(I,J) = AD30(I,J) + 1e0
-            IF ( IS_ICE  ( I, J ) ) AD30(I,J) = AD30(I,J) + 2e0
+            IF ( IS_WATER( I, J, State_Met ) )
+     &           AD30(I,J) = AD30(I,J) + 0e0
+            IF ( IS_LAND ( I, J, State_Met ) )
+     &           AD30(I,J) = AD30(I,J) + 1e0
+            IF ( IS_ICE  ( I, J, State_Met ) )
+     &           AD30(I,J) = AD30(I,J) + 2e0
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
@@ -226,6 +284,11 @@
       ! ND33: Atmospheric column sum of tracer [kg]
       !=================================================================  
       IF ( ND33 > 0 ) THEN   
+
+         ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+         ! (mpayer, 12/6/12)
+         STT => State_Chm%Tracers
+
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
@@ -239,6 +302,10 @@
          ENDDO
          ENDDO  
 !$OMP END PARALLEL DO
+
+         ! Free pointer
+         NULLIFY( STT )
+
       ENDIF
 
       !================================================================= 
@@ -267,15 +334,13 @@
       ! ND45: Tracer (V/V) at level 1 to level LD45, averaged over 
       !       the time period OTH_HR1 to OTH_HR2.  
       !
-      ! Store pure O3 (as opposed to Ox) in the NTRACE+1 location of 
-      ! AD45.  FRACO3(I,J,L) is the fraction of Ox that is actually O3, 
-      ! and is calculated in subroutine OHSAVE.
-      !
       !  NOTES: 
       !  (1 ) AD45 array replaces the AIJ array for this diagnostic 
       !        (bmy, 3/22/99)
       !  (2 ) Add parallel loop over tracers (bmy, 5/4/00)
       !  (3 ) Use LTO3 and not LTOTH for O3. (ccc, 7/20/09)
+      !  (4 ) Removed code for storing pure O3 as N_TRACERS+1 because O3
+      !       is now a tracer (mpayer, 3/14/13)
       !================================================================= 
       IF ( ND45 > 0 ) THEN
 !$OMP PARALLEL DO 
@@ -290,26 +355,6 @@
             ENDDO
             ENDDO
             ENDDO
-
-            ! With TS_DIAG, the diags are automatically calculated at the
-            ! right time (= same time done for all processes). (ccc, 5/21/09)
-!            IF ( N == IDTOX .and. IS_FULLCHEM .and. IS_CHEM ) THEN
-            IF ( N == IDTOX .and. IS_FULLCHEM ) THEN
-               DO L = 1, LD45
-               DO J = 1, JJPAR
-               DO I = 1, IIPAR
-#if   defined( APM )
-                  AD45(I,J,L,(N_TRACERS+N_APMTRA+1)) = 
-     &            AD45(I,J,L,(N_TRACERS+N_APMTRA+1)) +
-     &                 ( STT_VV(I,J,L,N) * FRACO3(I,J,L) * LTO3(I,J) )
-#else
-                  AD45(I,J,L,N_TRACERS+1) = AD45(I,J,L,N_TRACERS+1) +
-     &                 ( STT_VV(I,J,L,N) * FRACO3(I,J,L) * LTO3(I,J) )
-#endif
-               ENDDO            
-               ENDDO            
-               ENDDO            
-            ENDIF
          ENDDO   
 !$OMP END PARALLEL DO 
       ENDIF
@@ -318,7 +363,9 @@
       ! ND47: Tracer (V/V) at level 1 to level LD45, 
       ! averaged from 0-24 hours
       !
-      ! Added parallel loop over tracers (bmy, 5/4/00)
+      !  (1 ) Added parallel loop over tracers (bmy, 5/4/00)
+      !  (2 ) Removed code for storing pure O3 as N_TRACERS+1 because O3
+      !       is now a tracer (mpayer, 3/14/13)
       !================================================================= 
       IF ( ND47 > 0 ) THEN
 !$OMP PARALLEL DO 
@@ -332,20 +379,6 @@
             ENDDO   
             ENDDO
             ENDDO
-            
-            ! With TS_DIAG, the diags are automatically calculated at the
-            ! right time (= same time done for all processes). (ccc, 5/21/09)
-!            IF ( N == IDTOX .and. IS_FULLCHEM .and. IS_CHEM ) THEN
-            IF ( N == IDTOX .and. IS_FULLCHEM ) THEN
-               DO L = 1, LD47
-               DO J = 1, JJPAR
-               DO I = 1, IIPAR
-                  AD47(I,J,L,N_TRACERS+1) = AD47(I,J,L,N_TRACERS+1) +
-     &                 ( STT_VV(I,J,L,N) * FRACO3(I,J,L) )
-               ENDDO
-               ENDDO
-               ENDDO
-            ENDIF
          ENDDO 
 !$OMP END PARALLEL DO   
       ENDIF
@@ -358,7 +391,7 @@
             DO L = 1, LD54
             DO J = 1, JJPAR
             DO I = 1, IIPAR
-               IF ( ITS_IN_THE_TROP(I,J,L) )
+               IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) )
      &              AD54(I,J,L) = AD54(I,J,L) + 1.
             ENDDO   
             ENDDO
@@ -380,8 +413,8 @@
 
             P0          = GET_PEDGE(I,J,1)
 
-            AD57(I,J,L) = AD57(I,J,L)
-     &                  + T(I,J,L)*(P0/GET_PCENTER( I, J, L ))**0.286
+            AD57(I,J,L) = AD57(I,J,L) + State_Met%T(I,J,L) *
+     &                  ( P0 / GET_PCENTER( I, J, L ) )**0.286
 
          ENDDO
          ENDDO
@@ -398,7 +431,8 @@
 
             ! PBL is in [m], use hydrostatic law to get [hPa]
             AD67(I,J,13) = AD67(I,J,13) + 
-     &           ( GET_PEDGE(I,J,1) * EXP( -PBL(I,J) / SCALE_HEIGHT ) )
+     &                   ( GET_PEDGE(I,J,1) * EXP( -State_Met%PBLH(I,J)
+     &                   / SCALE_HEIGHT ) )
 
          ENDDO
          ENDDO
@@ -415,7 +449,7 @@
       IF ( ND68 > 0 ) THEN
 
          ! Set a flag for whether AVGW is allocated or not
-         AVGW_ALLOCATED = ALLOCATED( AVGW )
+         AVGW_ALLOCATED = ASSOCIATED( State_Met%AVGW )
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
@@ -423,14 +457,15 @@
          DO L = 1, LD68
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            AD68(I,J,L,1) = AD68(I,J,L,1) + BXHEIGHT(I,J,L)
-            AD68(I,J,L,2) = AD68(I,J,L,2) + AD(I,J,L)
-            AD68(I,J,L,4) = AD68(I,J,L,4) + AIRDEN(L,I,J) * XNUMOLAIR
+            AD68(I,J,L,1) = AD68(I,J,L,1) + State_Met%BXHEIGHT(I,J,L)
+            AD68(I,J,L,2) = AD68(I,J,L,2) + State_Met%AD(I,J,L)
+            AD68(I,J,L,4) = AD68(I,J,L,4) + State_Met%AIRDEN(L,I,J) *
+     &                      XNUMOLAIR
 
             ! Make sure AVGW is now allocated (bmy, 9/25/01)
             IF ( AVGW_ALLOCATED ) THEN
-              AD68(I,J,L,3) = AD68(I,J,L,3) + AVGW(I,J,L)
-           ENDIF
+               AD68(I,J,L,3) = AD68(I,J,L,3) + State_Met%AVGW(I,J,L)
+            ENDIF
          ENDDO
          ENDDO
          ENDDO

@@ -120,7 +120,12 @@
       LOGICAL                        :: DO_PF
 
       ! Parameters
-      INTEGER,           PARAMETER   :: MAXVARS   = 200
+
+#if   defined( TOMAS )
+      INTEGER,           PARAMETER   :: MAXVARS   = 250  !(win, 7/28/09)
+#else
+      INTEGER,           PARAMETER   :: MAXVARS   = 200  !(sfarina, 1/28/13)
+#endif
       INTEGER,           PARAMETER   :: MAXPOINTS = 10000
       INTEGER,           PARAMETER   :: MAXREAC   = 50
       INTEGER,           PARAMETER   :: MAXRO2    = 45
@@ -360,7 +365,14 @@
       ENDIF
 
       ! FORMAT string
+      ! Replace 95 by 250 (win)
+      ! use 200 for non-Tomas sims (sfarina)
+
+#if   defined( TOMAS )
+ 110  FORMAT( A5,X,A5,X,A8,X,A4,X,A7,X,A7,X,A7,X,250(a10,x) )
+#else
  110  FORMAT( A5,X,A5,X,A8,X,A4,X,A7,X,A7,X,A7,X,200(a10,x) )
+#endif
 
       END SUBROUTINE SETUP_PLANEFLIGHT
 !EOC
@@ -412,6 +424,7 @@
 !  (10) We need to trim NAMEGAS before comparing to LINE so that comparisons 
 !        for species like "O3" will work.  Also set NCS=NCSURBAN at the top
 !        of the subroutine, to avoid out of bounds error. (dbm, bmy, 10/16/06)
+!  (11) Add tracer TMS_?? for TOMAS microphysics rate diagnostic (win, 7/28/09)
 !  29 Jul 2011 - R. Yantosca - Also search for MERRA SEAICExx met fields
 !  29 Jul 2011 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
@@ -499,6 +512,29 @@
 
                ! Save in PVAR -- add offset of 100000
                PVAR(N) = 100000 + NUM
+
+#if   defined( TOMAS )
+            ! Add case matching for TOMAS microphysics rates (win, 7/28/09)
+            !===========================================================
+            ! GEOS-CHEM tracer: listed as "TMS_001", etc.
+            ! PVAR offset: 200000
+            !===========================================================
+            CASE ( 'TMS_' )
+
+               ! Extract tracer # from the string
+               READ( LINE(5:14), '(i10)' ) NUM
+
+               ! Make sure the tracer # is valid!
+               IF ( NUM < 0 .or. NUM > N_TRACERS ) THEN                   
+                  WRITE( 6, 100 ) TRIM( LINE )
+                  WRITE( 6, '(a)' ) 'STOP in SETUP_PLANEFLIGHT!'
+                  WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+                  CALL GEOS_CHEM_STOP
+               ENDIF
+
+               ! Save in PVAR -- add offset of 200000
+               PVAR(N) = 200000 + NUM
+#endif
 
             !===========================================================
             ! GMAO met field: listed as "GMAO_TEMP", etc.
@@ -1126,28 +1162,43 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE PLANEFLIGHT
+      SUBROUTINE PLANEFLIGHT( am_I_Root, Input_Opt,
+     &                        State_Met, State_Chm, RC )
 !
 ! !USES:
 !
-      USE COMODE_MOD,   ONLY : AIRDENS,        CSPEC,       JLOP
-      USE COMODE_MOD,   ONLY : T3,             VOLUME,      ABSHUM
-      USE COMODE_MOD,   ONLY : TAREA
-      USE DAO_MOD,      ONLY : AD,             SEAICE00,    SEAICE10
-      USE DAO_MOD,      ONLY : SEAICE20,       SEAICE30,    SEAICE40
-      USE DAO_MOD,      ONLY : SEAICE50,       SEAICE60,    SEAICE70
-      USE DAO_MOD,      ONLY : SEAICE80,       SEAICE90,    T        
-      USE DAO_MOD,      ONLY : UWND,           VWND
-      USE ERROR_MOD,    ONLY : GEOS_CHEM_STOP  
-      USE PRESSURE_MOD, ONLY : GET_PEDGE
-      USE TIME_MOD,     ONLY : GET_TAU,        GET_TS_DIAG
-      USE TRACER_MOD,   ONLY : STT,            TCVV
-      USE OCEAN_MERCURY_MOD, ONLY : Fp, Fg !eds 10/27/11
+      USE COMODE_MOD,         ONLY : AIRDENS,        CSPEC,       JLOP
+      USE COMODE_MOD,         ONLY : T3,             VOLUME,      ABSHUM
+      USE COMODE_MOD,         ONLY : TAREA
+#if   defined( TOMAS )
+      USE DIAG_MOD,           ONLY : AD61_INST   ! (win, 7/28/09)
+#endif
+      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP  
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE
+      USE TIME_MOD,           ONLY : GET_TAU,        GET_TS_DIAG
+      USE OCEAN_MERCURY_MOD,  ONLY : Fp, Fg !eds 10/27/11
 
-      USE JV_CMN_MOD         ! ODAER, QAA, QAA_AOD
-      USE COMODE_LOOP_MOD    ! CSPEC, etc.
-
-! 
+      USE JV_CMN_MOD               ! ODAER, QAA, QAA_AOD
+      USE COMODE_LOOP_MOD          ! CSPEC, etc.
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
 ! !REVISION HISTORY: 
 !  08 Jul 2002 - M. Evans    - Initial version
 !  (1 ) Now reference AD from "dao_mod.f".  Now references GEOS_CHEM_STOP from
@@ -1167,9 +1218,14 @@
 !  (9 ) Bug fix: exit if PTAU(M) == PTAUE, so that we write out on the next !
 !        planeflight timestep (cdh, bmy, 12/12/06)
 !  (10) Change planeflight output time step. (ccc, 8/27/09)
-!  (11) Now scale AOD's to jv_spec_aod.dat wavelength. (clh, 5/14/09)
+!  (11) Add case matching for TOMAS rates (win, 7/28/09)
+!  (12) Modify PTAUE calculation w/ ref to GET_TS_DYN  (win, 7/28/09)
+!  (13) Now scale AOD's to jv_spec_aod.dat wavelength. (clh, 5/14/09)
 !  29 Jul 2011 - R. Yantosca - Added ProTeX headers
 !  09 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1193,9 +1249,17 @@
       REAL*8,  PARAMETER  :: TINY    = 1.d-36           ! arbitary small # to 
                                                         !  avoid faulty output
 
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! PLANEFLIGHT begins here!
       !=================================================================
+
+      ! Assume success
+      RC = GIGC_SUCCESS
 
       ! Return if there is no flighttrack data for today
       IF ( .not. DO_PF ) RETURN
@@ -1322,7 +1386,7 @@
                   ! GMAO temperature [K]
                   !--------------------------
                   CASE ( 1001 )
-                     VARI(V) = T(I,J,L)
+                     VARI(V) = State_Met%T(I,J,L)
 
                   !--------------------------
                   ! GMAO abs humidity [frac]
@@ -1366,13 +1430,13 @@
                   ! GMAO U-wind [m/s]
                   !-------------------------
                   CASE ( 1005 )
-                     VARI(V) = UWND(I,J,L)
+                     VARI(V) = State_Met%U(I,J,L)
 
                   !--------------------------
                   ! GMAO V-wind [m/s]
                   !--------------------------
                   CASE ( 1006 )
-                     VARI(V) = VWND(I,J,L)
+                     VARI(V) = State_Met%V(I,J,L)
 
                   !--------------------------
                   ! GEOS-Chem Grid Box I
@@ -1397,25 +1461,25 @@
                   ! GEOS-Chem SEAICE frac's
                   !--------------------------
                   CASE ( 1100 )
-                     VARI(V) = SEAICE00(I,J)
+                     VARI(V) = State_Met%SEAICE00(I,J)
                   CASE ( 1101 )
-                     VARI(V) = SEAICE10(I,J)
+                     VARI(V) = State_Met%SEAICE10(I,J)
                   CASE ( 1102 )
-                     VARI(V) = SEAICE20(I,J)
+                     VARI(V) = State_Met%SEAICE20(I,J)
                   CASE ( 1103 )
-                     VARI(V) = SEAICE30(I,J)
+                     VARI(V) = State_Met%SEAICE30(I,J)
                   CASE ( 1104 )
-                     VARI(V) = SEAICE40(I,J)
+                     VARI(V) = State_Met%SEAICE40(I,J)
                   CASE ( 1105 )
-                     VARI(V) = SEAICE50(I,J)
+                     VARI(V) = State_Met%SEAICE50(I,J)
                   CASE ( 1106 )
-                     VARI(V) = SEAICE60(I,J)
+                     VARI(V) = State_Met%SEAICE60(I,J)
                   CASE ( 1107 )
-                     VARI(V) = SEAICE70(I,J)
+                     VARI(V) = State_Met%SEAICE70(I,J)
                   CASE ( 1108 )
-                     VARI(V) = SEAICE80(I,J)
+                     VARI(V) = State_Met%SEAICE80(I,J)
                   CASE ( 1109 )
-                     VARI(V) = SEAICE90(I,J)
+                     VARI(V) = State_Met%SEAICE90(I,J)
 #endif
 
                   !--------------------------
@@ -1521,19 +1585,36 @@
 
                      ! Remove offset from PVAR
                      N = PVAR(V) - 100000
+
+                     ! Initialize GEOS-Chem tracer array [kg] from
+                     ! Chemistry State object (mpayer, 12/6/12)
+                     STT => State_Chm%Tracers
                      
                      ! Convert from [kg] --> [v/v]
-!--------------------eds test sampling 1 level up----------------------------
-!                     VARI(V) = STT(I,J,L,N) * TCVV(N) / AD(I,J,L)
-                      IF (L < LLPAR) THEN
-                         LL = L + 1
-                      ELSE
-                         LL = L
-                      ENDIF
-                      VARI(V) = STT(I,J,LL,N)* TCVV(N) /AD(I,J,LL)
-!----------------------------------------------------------------------------
+                     VARI(V) = STT(I,J,L,N) * Input_Opt%TCVV(N) /
+     &                         State_Met%AD(I,J,L)
 
                      IF ( VARI(V) < TINY ) VARI(V) = 0.d0
+
+                     ! Free pointer
+                     NULLIFY( STT )
+
+#if   defined( TOMAS )
+                  !-------------------------------
+                  ! TOMAS microphysics rate [kg/s] or [no./cm3/s]
+                  !-------------------------------
+                  CASE( 200000:299999 )
+
+                     ! Remove offset from PVAR
+                     N = PVAR(V) - 200000
+                     
+                     ! Archive the microphysics rate
+                     VARI(V) = AD61_INST(I,J,L,N)
+!debug
+                     write (6,*) 'ARCHIVE TO PLANEFLIGHT DIAG',
+     &                    'AD61_INST at',I,J,L,N,'=',AD61_INST(I,J,L,N)
+
+#endif
 
                   !--------------------------
                   ! Otherwise it's an error!
@@ -1579,7 +1660,6 @@
       USE COMODE_MOD,     ONLY : JLOP
       USE PRESSURE_MOD,   ONLY : GET_PEDGE
       USE TRACER_MOD,     ONLY : ITS_A_FULLCHEM_SIM
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
       USE GRID_MOD,       ONLY : GET_XOFFSET
       USE GRID_MOD,       ONLY : GET_YOFFSET
 
@@ -1608,6 +1688,8 @@
 !	 for points near the date line.  (bmy, 4/23/04)
 !  (4 ) Now references ITS_A_FULLCHEM_SIM from "tracer_mod.f" (bmy, 7/20/04)
 !  (5 ) Now references ITS_IN_THE_TROP from "tropopause_mod.f" (bmy, 8/22/05)
+!  (6 ) Reference GET_XOFFSET and GET_YOFFSET from "grid_mod.f" and also 
+!        add for the case of nested-grid simulation (win, 7/28/09)
 !  29 Jul 2011 - R. Yantosca - Added ProTeX headers
 !  08 Sep 2011 - L. Schiferl - Added correct definitions for I and J 
 !                              based on nested regions
@@ -1729,8 +1811,13 @@
       ! FP replace 95 by 200
 ! 110  FORMAT( I5,   X, A5,   X, I8.8, X, I4.4, X, 
 !     &        F7.2, X, F7.2, X, F7.2, X, 95(es11.3e3,x) )
+#if   defined( TOMAS )
+ 110  FORMAT(I5,X,A5,X,I8.8,X,I4.4,X,F7.2,X,F7.2,X,F7.2,X,
+     &       250(es11.3e3,x))
+#else
  110  FORMAT(I5,X,A5,X,I8.8,X,I4.4,X,F7.2,X,F7.2,X,F7.2,X,
      &       200(es11.3e3,x))
+#endif
 
       ! Error check
       IF ( IOS /= 0 ) CALL IOERROR( IOS,IU_PLANE,'write_vars_to_file:1')

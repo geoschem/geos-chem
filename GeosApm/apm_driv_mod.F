@@ -145,52 +145,59 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE APM_DRIV
+      SUBROUTINE APM_DRIV( State_Met )
 !
 ! !USES:
 !
-      USE TIME_MOD,     ONLY : GET_TS_CHEM, ITS_A_NEW_MONTH
-      USE PRESSURE_MOD, ONLY : GET_PCENTER
-      USE DAO_MOD,      ONLY : T, RH, AIRVOL
-      USE TRACER_MOD,   ONLY : STT
-      USE APM_INIT_MOD, ONLY : NGCOND,NSO4,NSEA,NDSTB,NTYP
-      USE APM_INIT_MOD, ONLY : NCTSO4,NCTBCOC,NCTDST,NCTSEA,NBCOCT
-      USE APM_INIT_MOD, ONLY : NBCPIF,NBCPIO,NOCPIF,NOCPIO
-      USE APM_INIT_MOD, ONLY : NBCPOF,NBCPOO,NOCPOF,NOCPOO !luogan
-      USE APM_INIT_MOD, ONLY : IDTSO4G, IDTSO4BIN1
-      USE APM_INIT_MOD, ONLY : IDTCTSO4, IDTCTBCOC, IDTCTDST
-      USE APM_INIT_MOD, ONLY : IDTCTSEA, IDTSEABIN1, IDTDSTBIN1
-      USE APM_INIT_MOD, ONLY : IDTBCPIFF
+      USE APM_INIT_MOD,       ONLY : NGCOND,   NSO4,       NSEA
+      USE APM_INIT_MOD,       ONLY : NDSTB,    NTYP
+      USE APM_INIT_MOD,       ONLY : NCTSO4,   NCTBCOC,    NCTDST
+      USE APM_INIT_MOD,       ONLY : NCTSEA,   NBCOCT
+      USE APM_INIT_MOD,       ONLY : NBCPIF,   NBCPIO
+      USE APM_INIT_MOD,       ONLY : NOCPIF,   NOCPIO
+      USE APM_INIT_MOD,       ONLY : NBCPOF,   NBCPOO
+      USE APM_INIT_MOD,       ONLY : NOCPOF,   NOCPOO !luogan
+      USE APM_INIT_MOD,       ONLY : IDTSO4G,  IDTSO4BIN1
+      USE APM_INIT_MOD,       ONLY : IDTCTSO4, IDTCTBCOC,  IDTCTDST
+      USE APM_INIT_MOD,       ONLY : IDTCTSEA, IDTSEABIN1, IDTDSTBIN1
+      USE APM_INIT_MOD,       ONLY : IDTBCPIFF
+      USE APM_INIT_MOD,       ONLY : IFNUCL,   IFAG
+      USE APM_INIT_MOD,       ONLY : XMACID,   XMLVSOG
+      USE APM_INIT_MOD,       ONLY : M1ACID,   M1LVSOG
+      USE APM_INIT_MOD,       ONLY : MAXSITE,  MSITE
+      USE APM_INIT_MOD,       ONLY : ISITES,   JSITES,     LOUT
+      USE APM_INIT_MOD,       ONLY : IFSITE,   IFSITEOUT,  IFQANN
+      USE APM_COAG_MOD,       ONLY : READCK6DTABLE
+      USE APM_PHYS_MOD,       ONLY : APM_PHYS
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_XMID,  GET_YMID
+      USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,GET_PBL_TOP_hPa
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER
+      USE TIME_MOD,           ONLY : GET_TS_CHEM, ITS_A_NEW_MONTH
+      USE TIME_MOD,           ONLY : GET_YEAR, GET_MONTH
+      USE TIME_MOD,           ONLY : GET_DAY,GET_HOUR,GET_MINUTE
+      USE TRACER_MOD,         ONLY : STT
+      USE TRACER_MOD,         ONLY : TRACER_MW_KG
+      USE TRACERID_MOD,       ONLY : IDTNH4,  IDTNIT, IDTSO4, IDTNH3
+      USE TRACERID_MOD,       ONLY : IDTBCPO,IDTBCPI,IDTOCPO, IDTOCPI
+      USE TRACERID_MOD,       ONLY : IDTSOA1, IDTSOA2, IDTSOA3, IDTSOA4
+      USE TRACERID_MOD,       ONLY : IDTSOG5, IDTSOA5
+      USE TRACERID_MOD,       ONLY : IDTMSA
+      USE TRACERID_MOD,       ONLY : IDTDST1,IDTDST2,IDTDST3,IDTDST4
+      USE TRACERID_MOD,       ONLY : IDTSO2
+      USE TRACERID_MOD,       ONLY : IDTSOG1, IDTSOG2, IDTSOG3, IDTSOG4
 
-      USE TRACERID_MOD, ONLY : IDTNH4,  IDTNIT, IDTSO4, IDTNH3
-      USE TRACERID_MOD, ONLY : IDTBCPO,IDTBCPI,IDTOCPO, IDTOCPI
-      USE TRACERID_MOD, ONLY : IDTSOA1, IDTSOA2, IDTSOA3, IDTSOA4
-      USE TRACERID_MOD, ONLY : IDTSOG5, IDTSOA5
-      USE TRACERID_MOD, ONLY : IDTMSA
-      USE TRACERID_MOD, ONLY : IDTDST1,IDTDST2,IDTDST3,IDTDST4
-
-      USE TRACERID_MOD, ONLY : IDTSO2
-      USE TRACERID_MOD, ONLY : IDTSOG1, IDTSOG2, IDTSOG3, IDTSOG4
-      USE TRACER_MOD,   ONLY : TRACER_MW_KG
-
-      USE DAO_MOD,      ONLY : UWND, VWND
-      USE TIME_MOD,     ONLY : GET_YEAR, GET_MONTH
-      USE TIME_MOD,     ONLY : GET_DAY,GET_HOUR,GET_MINUTE
-      USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_L,GET_PBL_TOP_hPa
-      USE GRID_MOD,     ONLY : GET_XMID,  GET_YMID
-
-      USE APM_PHYS_MOD, ONLY : APM_PHYS
-      USE APM_INIT_MOD, ONLY : IFNUCL,IFAG
-      USE APM_INIT_MOD, ONLY : XMACID,XMLVSOG,M1ACID,M1LVSOG
-      USE APM_COAG_MOD, ONLY : READCK6DTABLE
-      USE APM_INIT_MOD, ONLY : MAXSITE,MSITE,ISITES,JSITES,LOUT
-      USE APM_INIT_MOD, ONLY : IFSITE,IFSITEOUT,IFQANN
-
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !REVISION HISTORY: 
 !  8/2008 - 10/2010 - F. Yu & G. Luo  - Initial versions
 !  08 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -245,7 +252,7 @@
         IF(IFQANN.EQ.1) THEN
          IF(FIRST) THEN   ! only calculate Q once 
           WRITE(6,*)"CALCULATE 3-D ANNUAL MEAN IONIZATION RATES"
-          CALL APM3DQGEOS
+          CALL APM3DQGEOS( State_Met )
           FIRST = .FALSE.
          ENDIF
         ENDIF
@@ -312,11 +319,11 @@
       DO L = 1, LLTROP
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-        PRESS = GET_PCENTER(I,J,L) * 1.d2 ! P at level center [Pa]
-        TK    = T(I,J,L) ! Temperature [K]
-        VOL    = AIRVOL(I,J,L) ! Volume of grid box [m3]
-        RHIN  = MIN( 99.d0, RH(I,J,L) ) ! Cap RH at 99%
-        RHIN  = MAX( 0.d0, RHIN ) ! Safety check
+        PRESS = GET_PCENTER(I,J,L) * 1.d2         ! P at level center [Pa]
+        TK    = State_Met%T(I,J,L)                ! Temperature [K]
+        VOL   = State_Met%AIRVOL(I,J,L)           ! Volume of grid box [m3]
+        RHIN  = MIN( 99.d0, State_Met%RH(I,J,L) ) ! Cap RH at 99%
+        RHIN  = MAX( 0.d0, RHIN )                 ! Safety check
 
         IF(IFNUCL.EQ.1) THEN   ! IMN
          XQ = XQ3D(I,J,L)   !ion-pairs/cm3s
@@ -472,23 +479,29 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE AERONUM
+      SUBROUTINE AERONUM( State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD,      ONLY : AIRVOL
-      USE TRACER_MOD,   ONLY : N_TRACERS
-      USE TRACER_MOD,   ONLY : STT
-      USE APM_INIT_MOD, ONLY : NGCOND
-      USE APM_INIT_MOD, ONLY : NSO4
-      USE APM_INIT_MOD, ONLY : VDRY
-      USE APM_INIT_MOD, ONLY : DENSULF
-
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE APM_INIT_MOD,       ONLY : NGCOND
+      USE APM_INIT_MOD,       ONLY : NSO4
+      USE APM_INIT_MOD,       ONLY : VDRY
+      USE APM_INIT_MOD,       ONLY : DENSULF
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TRACER_MOD,         ONLY : N_TRACERS
+      USE TRACER_MOD,         ONLY : STT
+                        
+      USE CMN_SIZE_MOD             ! Size parameters
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  28 Aug 2008 - F. Yu       - Initial version  
 !  08 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -515,7 +528,7 @@
          ! Should we put the N loop on the outside?
          DO N=1,NSO4
             SIZENUM =N_TRACERS+NGCOND+N
-            XMATEMP=STT(I,J,L,SIZENUM)/AIRVOL(I,J,L)
+            XMATEMP=STT(I,J,L,SIZENUM) / State_Met%AIRVOL(I,J,L)
             XMATEMP= MAX( 1.d-40, XMATEMP)
             XN4D(I,J,L,N)=XMATEMP/(DENSULF*VDRY(N))*1.E-9 !XN4D in #/cm3, VDRY in m3
          ENDDO
@@ -540,19 +553,24 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE APM3DQGEOS
+      SUBROUTINE APM3DQGEOS( State_Met )
 !
 ! !USES:
 !
-      USE GRID_MOD,     ONLY : GET_XMID
-      USE GRID_MOD,     ONLY : GET_YMID
-      USE DAO_MOD,      ONLY : IS_WATER
-      USE DAO_MOD,      ONLY : IS_ICE
-      USE PRESSURE_MOD, ONLY : GET_PCENTER
-      USE PRESSURE_MOD, ONLY : GET_PEDGE
-      USE APM_NUCL_MOD, ONLY : IONRATE0
+      USE DAO_MOD,            ONLY : IS_WATER
+      USE DAO_MOD,            ONLY : IS_ICE
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_XMID
+      USE GRID_MOD,           ONLY : GET_YMID
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE
+      USE APM_NUCL_MOD,       ONLY : IONRATE0
 
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !REVISION HISTORY: 
 !  17 Mar 2010 - F. Yu       - Initial version  
@@ -572,7 +590,8 @@
 
 
           YPSURF = GET_PEDGE(I,J,1)  !surface P in mb
-          IF( IS_WATER( I, J ) .or. IS_ICE( I, J )) THEN
+          IF( IS_WATER( I, J, State_Met ) .or.
+     &        IS_ICE  ( I, J, State_Met )) THEN
              ISURF = 0
           ELSE
              ISURF = 1
@@ -603,29 +622,30 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_OH( I, J, L ) RESULT( OH_MOLEC_CM3 )
+      FUNCTION GET_OH( I, J, L, State_Met ) RESULT( OH_MOLEC_CM3 )
 !
 ! !USES:
 !
-      USE COMODE_MOD,   ONLY : CSPEC, JLOP
-      USE DAO_MOD,      ONLY : SUNCOS
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE TIME_MOD,     ONLY : GET_TS_CHEM
-      USE TRACER_MOD,   ONLY : ITS_A_FULLCHEM_SIM
-      USE TRACER_MOD,   ONLY : ITS_AN_AEROSOL_SIM
-      USE TRACERID_MOD, ONLY : IDOH
+      USE COMODE_MOD,         ONLY : CSPEC, JLOP
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
+      USE TRACER_MOD,         ONLY : ITS_AN_AEROSOL_SIM
+      USE TRACERID_MOD,       ONLY : IDOH
 
-      USE CMN_SIZE_MOD                      ! Size parameters
+      USE CMN_SIZE_MOD                          ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: I              ! Longitude index
-      INTEGER, INTENT(IN) :: J              ! Latitude index
-      INTEGER, INTENT(IN) :: L              ! Level index
+      INTEGER,        INTENT(IN)  :: I           ! Longitude index
+      INTEGER,        INTENT(IN)  :: J           ! Latitude index
+      INTEGER,        INTENT(IN)  :: L           ! Level index
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !RETURN VALUE:
 !
-      REAL*8              :: OH_MOLEC_CM3   ! OH [molec/cm3]
+      REAL*8                      :: OH_MOLEC_CM3 ! OH [molec/cm3]
 !
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version  
@@ -635,6 +655,7 @@
 !        "tracer_mod.f".  Also replace IJSURF w/ an analytic function.
 !        (bmy, 7/20/04)
 !  08 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  14 Dec 2012 - M. Payer    - Replace SUNCOS with State_Met%SUNCOS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -669,15 +690,12 @@
          ! Offline simulation
          !---------------------
 
-!         ! 1-D grid box index for SUNCOS
-!         JLOOP = ( (J-1) * IIPAR ) + I
-!
 !         ! Test for sunlight...
-!         IF ( SUNCOS(JLOOP) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
+!         IF ( State_Met%SUNCOS(I,J) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
 !
 !            ! Impose a diurnal variation on OH during the day
 !            OH_MOLEC_CM3 = OH(I,J,L)                      *
-!     &                     ( SUNCOS(JLOOP) / TCOSZ(I,J) ) *
+!     &                     ( State_Met%SUNCOS(I,J) / TCOSZ(I,J) ) *
 !     &                     ( 1440d0        / GET_TS_CHEM() )
 !
 !            ! Make sure OH is not negative

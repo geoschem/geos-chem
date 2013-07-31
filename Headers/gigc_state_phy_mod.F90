@@ -145,7 +145,9 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
+
+    ! Assume success
+    RC = GIGC_SUCCESS
 !
 !    ! 1-D arrays
 !   ALLOCATE( State_Met%LAT     (JM  )  
@@ -205,8 +207,7 @@ CONTAINS
 !
 !   ALLOCATE( State_Met%ZM      (:,:)   
 !   IF ( RC /= GIGC_SUCCESS ) RETURN
-                                            
-                                               
+                                      
   END SUBROUTINE Init_GIGC_State_Phy
 !EOC
 !------------------------------------------------------------------------------

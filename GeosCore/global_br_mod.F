@@ -74,27 +74,29 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_GLOBAL_Br( THISMONTH )
+      SUBROUTINE GET_GLOBAL_Br( THISMONTH, State_Met )
 !
 ! !USES:
 !
-      !USE LOGICAL_MOD,      ONLY : LVARTROP     ! Comment this out for now
-      USE BPCH2_MOD,         ONLY : GET_NAME_EXT
-      USE BPCH2_MOD,         ONLY : GET_RES_EXT
-      USE BPCH2_MOD,         ONLY : GET_TAU0
-      USE BPCH2_MOD,         ONLY : READ_BPCH2
-      USE DIRECTORY_MOD,     ONLY : DATA_DIR ! cdh
-      USE TRANSFER_MOD,      ONLY : TRANSFER_3D
-      USE TRANSFER_MOD,      ONLY : TRANSFER_3D_TROP
-      USE TROPOPAUSE_MOD,    ONLY : GET_TPAUSE_LEVEL
-      USE OCEAN_MERCURY_MOD, ONLY : LGCBROMINE     !eds 4/19/12
+      !USE LOGICAL_MOD,    ONLY : LVARTROP     ! Comment this out for now
+      USE BPCH2_MOD,          ONLY : GET_NAME_EXT
+      USE BPCH2_MOD,          ONLY : GET_RES_EXT
+      USE BPCH2_MOD,          ONLY : GET_TAU0
+      USE BPCH2_MOD,          ONLY : READ_BPCH2
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR ! cdh
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TRANSFER_MOD,       ONLY : TRANSFER_3D
+      USE TRANSFER_MOD,       ONLY : TRANSFER_3D_TROP
+      USE TROPOPAUSE_MOD,     ONLY : GET_TPAUSE_LEVEL
+      USE OCEAN_MERCURY_MOD,  ONLY : LGCBROMINE     !eds 4/19/12
 
-      USE CMN_SIZE_MOD            ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: THISMONTH   ! Current month
+      INTEGER,        INTENT(IN)  :: THISMONTH   ! Current month
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !REMARKS:
 !  THIS IS A NEW VERSION OF THIS SUBROUTINE WHICH COMBINES Br CONCENTRATIONS
@@ -148,8 +150,14 @@
          !-----------------------------------------------------------------
          
          ! Filename
+#if defined( GRID05x0666 ) && defined( NESTED_NA )
+         ! Need to read emission file at nested-resolution
+         FILENAME = TRIM( DATA_DIR ) // 'mercury_201203/BrOx.GC.' //
+     &              GET_NAME_EXT()   // '.' // GET_RES_EXT()
+#else
          FILENAME = TRIM( BR_DIR ) // 'BrOx.GC.' //
      &              GET_NAME_EXT() // '.' // GET_RES_EXT()
+#endif
    
          ! Get the TAU0 value for the start of the given month
          XTAU = GET_TAU0( THISMONTH, 1, 2007 ) 
@@ -285,7 +293,7 @@
       DO J=1, JJPAR      
          
          ! First layer in the stratosphere
-         TPL = GET_TPAUSE_LEVEL(I,J)
+         TPL = GET_TPAUSE_LEVEL( I, J, State_Met )
 
          BR_MERGE(I,J,TPL:LLPAR) = MERGE(
      &        BR_STRAT(I,J,TPL:LLPAR), 

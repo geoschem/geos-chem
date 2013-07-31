@@ -95,7 +95,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE DO_UPBDFLX( LOCAL_MET )
+#else
       SUBROUTINE DO_UPBDFLX
+#endif
 !
 ! !USES:
 !
@@ -106,9 +110,17 @@
       USE TRACER_MOD,  ONLY : ITS_A_TAGOX_SIM
       USE TRACER_MOD,  ONLY : ITS_A_H2HD_SIM
       USE LINOZ_MOD,   ONLY : DO_LINOZ
+#if defined( DEVEL )
+      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD  ! Size parameters
-
+!
+! !INPUT PARAMETERS: 
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  11 Mar 2003 - R. Yantosca - Initial version
@@ -134,6 +146,16 @@
 
          ! Ox from strat 
          ! dbj changed for linoz
+#if defined( DEVEL )
+         IF ( LLINOZ ) THEN 
+            CALL DO_LINOZ( LOCAL_MET )
+         ELSE
+            CALL UPBDFLX_O3( LOCAL_MET )
+         ENDIF
+
+         ! NOy from strat
+         CALL UPBDFLX_NOY( 1, LOCAL_MET )
+#else
          IF ( LLINOZ ) THEN 
             CALL DO_LINOZ
          ELSE
@@ -142,6 +164,7 @@
 
          ! NOy from strat
          CALL UPBDFLX_NOY( 1 )
+#endif
 
       ELSE IF ( ITS_A_TAGOX_SIM() ) THEN
 
@@ -151,11 +174,19 @@
 
          ! Ox from strat
          ! dbj changed for linoz
+#if defined( DEVEL )
+         IF ( LLINOZ ) THEN 
+            CALL DO_LINOZ( LOCAL_MET )
+         ELSE
+            CALL UPBDFLX_O3( LOCAL_MET )
+         ENDIF
+#else
          IF ( LLINOZ ) THEN 
             CALL DO_LINOZ
          ELSE
             CALL UPBDFLX_O3
          ENDIF
+#endif
 
       ELSE IF ( ITS_A_H2HD_SIM() ) THEN
 
@@ -164,7 +195,11 @@
          !---------------
 
          ! HD form strat
+#if defined( DEVEL )
+         CALL UPBDFLX_HD( LOCAL_MET )
+#else
          CALL UPBDFLX_HD
+#endif
 
       ENDIF
 
@@ -187,11 +222,15 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE UPBDFLX_O3( LOCAL_MET )
+#else
       SUBROUTINE UPBDFLX_O3      
+#endif
 !
 ! !USES:
 !
-      USE DAO_MOD,        ONLY : AD, BXHEIGHT, T, TROPP
+      USE DAO_MOD,        ONLY : AD, BXHEIGHT, T!, TROPP
       USE ERROR_MOD,      ONLY : ERROR_STOP
       USE LOGICAL_MOD,    ONLY : LVARTROP 
       USE PRESSURE_MOD,   ONLY : GET_PEDGE, GET_PCENTER
@@ -200,9 +239,18 @@
       USE TRACER_MOD,     ONLY : STT, ITS_A_TAGOX_SIM
       USE TRACERID_MOD,   ONLY : IDTOX
       USE TROPOPAUSE_MOD, ONLY : GET_TPAUSE_LEVEL
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+#endif
       
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_GCTM_MOD       ! Rdg0
+!
+! !INPUT PARAMETERS: 
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !REMARKS:
 !  Reference:
@@ -434,8 +482,13 @@
          ! ZUP is the height from the sigma center of the 
          ! (L70mb-1)th layer
          !============================================================== 
+#if defined( DEVEL )
+         T2   = LOCAL_MET%T(I,J,L70mb  )
+         T1   = LOCAL_MET%T(I,J,L70mb-1)
+#else
          T2   = T(I,J,L70mb  )
          T1   = T(I,J,L70mb-1)        
+#endif
 
          DZ   = Rdg0 * ( (T1 + T2) / 2d0 ) * LOG( P1 / P70mb ) 
          ZUP  = Rdg0 * T1 * LOG( P1 /P3 )
@@ -448,7 +501,11 @@
          ! If DZ <  ZUP then DZ is in level L70mb-1.
          !==============================================================       
          IF ( DZ >= ZUP ) THEN
+#if defined( DEVEL )
+            H70mb = LOCAL_MET%BXHEIGHT(I,J,L70mb) - ( DZ - ZUP )
+#else
             H70mb = BXHEIGHT(I,J,L70mb) - ( DZ - ZUP )
+#endif
          ELSE
             L70mb = L70mb - 1
             H70mb = ZUP - DZ
@@ -475,7 +532,11 @@
             ! of this level that lies above 70 mb, and scale 
             ! the O3 flux accordingly.
             IF ( L == L70mb ) THEN
+#if defined( DEVEL )
+               PO3 = PO3 * H70mb / LOCAL_MET%BXHEIGHT(I,J,L) 
+#else
                PO3 = PO3 * H70mb / BXHEIGHT(I,J,L) 
+#endif
             ENDIF
             
             ! Store O3 flux in the proper tracer number
@@ -487,9 +548,15 @@
 
             ! Archive stratospheric O3 for printout in [Tg/yr]
             IF ( FIRST ) THEN
+#if defined( DEVEL )
+               STFLUX(I,J,L) = STFLUX(I,J,L) + 
+     &              PO3   * LOCAL_MET%AD(I,J,L) * 1000.d0 / 28.8d0 /
+     &              DTDYN * 48.d0  *  365.25d0  * 86400d0 / 1e12
+#else
                STFLUX(I,J,L) = STFLUX(I,J,L) + 
      &              PO3 * AD(I,J,L) * 1000.d0 / 28.8d0 /
      &              DTDYN * 48.d0 * 365.25d0 * 86400d0 / 1e12
+#endif
             ENDIF
          ENDDO   
       ENDDO
@@ -522,7 +589,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE UPBDFLX_NOy( IFLAG, LOCAL_MET )
+#else
       SUBROUTINE UPBDFLX_NOy( IFLAG )
+#endif
 !
 ! !USES:
 !
@@ -538,6 +609,9 @@
       USE TRANSFER_MOD,   ONLY : TRANSFER_ZONAL
       USE TROPOPAUSE_MOD, ONLY : GET_MIN_TPAUSE_LEVEL
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD       ! Size parameters
 !
@@ -546,6 +620,9 @@
       ! IFLAG=1 will partition    [NOy] before transport
       ! IFLAG=2 will re-partition [NOy] after  transport
       INTEGER, INTENT(IN) :: IFLAG
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  22 Dec 1999 - Q. Li, R. Martin - Initial version
@@ -642,9 +719,6 @@
       ! File Names
       CHARACTER (LEN=255)  :: FILENAME
       CHARACTER (LEN=255)  :: FILENAME2
-
-      ! External functions
-      REAL*8,  EXTERNAL    :: BOXVL
 
       !=================================================================
       ! UPBDFLX_NOY begins here! 
@@ -798,7 +872,11 @@
          DO I = 1,    IIPAR
 
             ! Skip over tropospheric boxes
+#if defined( DEVEL )
+            IF ( ITS_IN_THE_STRAT( I, J, L, LOCAL_MET ) ) THEN 
+#else
             IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN 
+#endif
 
                ! PNOY = P(NOy) converted from [v/v/s] to [v/v] 
                PNOY = STRATPNOY(J,L) * DTDYN 
@@ -849,7 +927,11 @@
          DO I = 1,    IIPAR
 
             ! Skip over tropospheric boxes
+#if defined( DEVEL )
+            IF ( ITS_IN_THE_STRAT( I, J, L, LOCAL_MET ) ) THEN
+#else
             IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN
+#endif
 
                ! Compute the new total [NOy] by summing up [NOx] + [HNO3]
                PNOY = STT(I,J,L,IDTNOX) + STT(I,J,L,IDTHNO3)
@@ -891,7 +973,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE UPBDFLX_HD( LOCAL_MET )
+#else
       SUBROUTINE UPBDFLX_HD
+#endif
 !
 ! !USES:
 !
@@ -901,9 +987,18 @@
       USE TIME_MOD,     ONLY : GET_TS_DYN
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTHD, IDTH2
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
       
       USE CMN_SIZE_MOD     ! Size parameters
       USE CMN_GCTM_MOD     ! Rdg0
+!
+! !INPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !REMARKS:
 !  Instead of calculating the fractionation of H2 in the stratosphere 
@@ -1064,8 +1159,13 @@
             ! ZUP is the height from the sigma center of the 
             ! (L70mb-1)th layer
             !=========================================================== 
+#if defined( DEVEL )
+            T2   = LOCAL_MET%T(I,J,L70mb  )
+            T1   = LOCAL_MET%T(I,J,L70mb-1)
+#else
             T2   = T(I,J,L70mb  )
             T1   = T(I,J,L70mb-1)        
+#endif
 
             DZ   = Rdg0 * ( (T1 + T2) / 2d0 ) * LOG( P1 / P70mb ) 
             ZUP  = Rdg0 * T1 * LOG( P1 /P3 )
@@ -1078,7 +1178,11 @@
             ! If DZ <  ZUP then DZ is in level L70mb-1.
             !===========================================================       
             IF ( DZ >= ZUP ) THEN
+#if defined( DEVEL )
+               H70mb = LOCAL_MET%BXHEIGHT(I,J,L70mb) - ( DZ - ZUP )
+#else
                H70mb = BXHEIGHT(I,J,L70mb) - ( DZ - ZUP )
+#endif
             ELSE
                L70mb = L70mb - 1
                H70mb = ZUP - DZ
@@ -1105,7 +1209,11 @@
                ! of this level that lies above 70 mb, and scale 
                ! the HD flux accordingly.
                IF ( L == L70mb ) THEN
+#if defined( DEVEL )
+                  PHD = PHD * H70mb / LOCAL_MET%BXHEIGHT(I,J,L) 
+#else
                   PHD = PHD * H70mb / BXHEIGHT(I,J,L) 
+#endif
                ENDIF
             
                ! Store HD flux in the proper tracer number

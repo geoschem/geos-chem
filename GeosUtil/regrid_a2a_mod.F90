@@ -58,7 +58,7 @@ MODULE REGRID_A2A_MOD
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_REGRID_A2A( FILENAME, IM, JM, INGRID, OUTGRID, PERAREA, &
+  SUBROUTINE DO_REGRID_A2A( FILENAME, IM, JM, INGRID, OUTGRID, IS_MASS, &
                             netCDF )
 ! 
 ! !USES:
@@ -83,8 +83,10 @@ MODULE REGRID_A2A_MOD
     ! Data array on the input grid
     REAL*8,           INTENT(IN)    :: INGRID(IM,JM)
 
-    ! =1 if we need to convert INGRID to per unit area
-    INTEGER,          INTENT(IN)    :: PERAREA
+    ! IS_MASS=0 if data is units of concentration (molec/cm2/s, unitless, etc.)
+    ! IS_MASS=1 if data is units of mass (kg/yr, etc.); we will need to convert
+    !           INGRID to per unit area
+    INTEGER,          INTENT(IN)    :: IS_MASS
 
     ! Read from netCDF file?  (needed for debugging, will disappear later)
     LOGICAL, OPTIONAL,INTENT(IN)    :: netCDF  
@@ -107,6 +109,8 @@ MODULE REGRID_A2A_MOD
 !  23 Aug 2012 - R. Yantosca - Now use f10.4 format for hi-res grids
 !  23 Aug 2012 - R. Yantosca - Now can read grid info from netCDF files
 !  27 Aug 2012 - R. Yantosca - Add parallel DO loops
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS to describe parameter
+!                              more clearly
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -213,7 +217,7 @@ MODULE REGRID_A2A_MOD
     IN_GRID = INGRID
 
     ! Convert input to per area units if necessary
-    IF ( PERAREA == 1 ) THEN
+    IF ( IS_MASS == 1 ) THEN
 
        !$OMP PARALLEL DO                   &
        !$OMP DEFAULT( SHARED             ) &
@@ -234,7 +238,7 @@ MODULE REGRID_A2A_MOD
                   IIPAR, JJPAR, OUTLON, OUTSIN, OUTGRID, 0, 0 )
 
     ! Convert back from "per area" if necessary
-    IF ( PERAREA == 1 ) THEN
+    IF ( IS_MASS == 1 ) THEN
 
        !$OMP PARALLEL DO       &
        !$OMP DEFAULT( SHARED ) &
@@ -440,11 +444,6 @@ MODULE REGRID_A2A_MOD
     INTEGER              :: i, j0, m, mm, j
     REAL*8               :: dy1(jm)
     REAL*8               :: dy
-!------------------------------------------------------------------------------
-! Prior to 8/27/12:
-! Change REAL*4 to REAL*8, to eliminate numerical noise (bmy, 8/27/12)
-!    REAL*4               :: qsum, sum
-!------------------------------------------------------------------------------
     REAL*8               :: qsum, sum
     
     ! YMAP begins here!
@@ -510,31 +509,6 @@ MODULE REGRID_A2A_MOD
      !===================================================================
      if ( ig .eq. 0 .and. iv .eq. 0 ) then
          
-!------------------------------------------------------------------------------
-! Prior to 8/27/12:
-! Change REAL*4 to REAL*8, to eliminate numerical noise (bmy, 8/27/12)
-!        ! South pole
-!        sum = 0.
-!        do i=1,im
-!           sum = sum + q2(i,1)
-!        enddo
-!
-!        sum = sum / float(im)
-!        do i=1,im
-!           q2(i,1) = sum
-!        enddo
-!
-!        ! North pole:
-!        sum = 0.
-!        do i=1,im
-!           sum = sum + q2(i,jn)
-!        enddo
-!
-!        sum = sum / float(im)
-!        do i=1,im
-!           q2(i,jn) = sum
-!        enddo
-!------------------------------------------------------------------------------
         ! South pole
         sum = 0.d0
         do i=1,im
@@ -627,11 +601,6 @@ MODULE REGRID_A2A_MOD
     REAL*8               :: x1(-im:im+im+1)
     REAL*8               :: dx1(-im:im+im)
     REAL*8               :: dx
-!------------------------------------------------------------------------------
-! Prior to 8/27/12:
-! Change REAL*4 to REAL*8, to eliminate numerical noise (bmy, 8/27/12)
-!    REAL*4               :: qsum
-!------------------------------------------------------------------------------
     REAL*8               :: qsum
     LOGICAL              :: found
 

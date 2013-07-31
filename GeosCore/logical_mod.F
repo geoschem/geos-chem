@@ -57,6 +57,7 @@
 !  18 Dec 2009 - Aaron van D - Added logicals for NA, EU, CH, CU nested grids
 !  18 Dec 2009 - Aaron van D - Added logical for 2 x 2.5 TPCORE BC's 
 !  29 Jan 2009 - F. Paulot   - Added LFERTILIZERNOX.
+!  22 Jan 2010 - R. Yantosca - Added LTOMAS switch
 !  26 Feb 2010 - R. Yantosca - Remove obsolete LEMBED flag
 !  18 May 2010 - R. Nassar   - Add logical flags for CO2 offline simulation
 !  20 Jul 2010 - C. Carouge  - Add LPREINDHG and LGTMM for updated mercury.
@@ -65,6 +66,7 @@
 !  07 Sep 2011 - P. Kasibhatla - Modified to include GFED3
 !  26 Mar 2012 - R. Yantosca - Add USE_OLSON_2001 switch, which will use the
 !                              newer Olson 2001 land map & drydep inputs
+!  26 Apr 2013 - R. Yantosca - Remove LTOMAS; we now use #if defined( TOMAS )
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -160,6 +162,9 @@
       LOGICAL :: LWARWICK_VSLS   ! Use Warwick_s3 R(Br)n? (jpp 8/23/07)
       LOGICAL :: LSSABr2         ! Use sea salt Br2 emiss? (jpp, 3/28/2010)
       LOGICAL :: LFIX_PBL_BrO    ! Run 1ppt MBL BRO Sim.? (jpp 5/10/10)
+      LOGICAL :: LRCP            ! RCP anthro emissions (cdh, 10/14/11)
+      LOGICAL :: LRCPSHIP        ! RCP anthro SHIP emissions (cdh, 10/14/11)
+      LOGICAL :: LRCPAIR         ! RCP anthro AIRCRAFT emissions (cdh, 10/14/11)
 
       !%%%% Transport and strat BC's %%%%
       LOGICAL :: LFILL           ! Fill negative values in TPCORE?
@@ -247,5 +252,6 @@
       LOGICAL :: DO_DIAG_WRITE = .TRUE.  ! TURN ON/OFF DIAGNOSTIC WRITING
 
       LOGICAL :: LUPBD           ! Use stratospheric O3, NOY bdry conditions
+
       END MODULE LOGICAL_MOD
 !EOC

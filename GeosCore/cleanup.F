@@ -11,7 +11,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CLEANUP
+      SUBROUTINE CLEANUP( am_I_Root, RC )
 !
 ! !USES:
 !
@@ -28,7 +28,6 @@
       USE CO2_MOD,                 ONLY : CLEANUP_CO2
       USE COMODE_MOD,              ONLY : CLEANUP_COMODE
       USE GCKPP_COMODE_MOD,        ONLY : CLEANUP_GCKPP_COMODE
-      USE DAO_MOD,                 ONLY : CLEANUP_DAO
       USE DIAG_MOD,                ONLY : CLEANUP_DIAG
       USE DIAG03_MOD,              ONLY : CLEANUP_DIAG03
       USE DIAG04_MOD,              ONLY : CLEANUP_DIAG04
@@ -79,6 +78,9 @@
       USE SULFATE_MOD,             ONLY : CLEANUP_SULFATE
       USE STRAT_CHEM_MOD,          ONLY : CLEANUP_STRAT_CHEM
       USE TAGGED_CO_MOD,           ONLY : CLEANUP_TAGGED_CO
+#if   defined( TOMAS )
+      USE TOMAS_MOD,               ONLY : CLEANUP_TOMAS  !sfarina, 1/16/13
+#endif
       USE TOMS_MOD,                ONLY : CLEANUP_TOMS
       USE TPCORE_FVDAS_MOD,        ONLY : EXIT_TPCORE
       USE TPCORE_GEOS5_WINDOW_MOD, ONLY : EXIT_GEOS5_TPCORE_WINDOW
@@ -91,16 +93,53 @@
       USE ICOADS_SHIP_MOD,         ONLY : CLEANUP_ICOADS_SHIP  !(cklee,7/09/09)
       USE RETRO_MOD,               ONLY : CLEANUP_RETRO
       USE BROMOCARB_MOD,           ONLY : CLEANUP_BROMOCARB    ! jpp, 6/17/09
+      USE RCP_MOD,                 ONLY : CLEANUP_RCP !(cdh, 10/14/11)
 #if   defined( APM )
       USE APM_WETS_MOD,            ONLY : CLEANUP_WETSCAVBIN
 #endif
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Do not deallocate met field arrays from "dao_mod.F"
+      ! (mpayer, 3/14/13)
+      !-----------------------------------------------------------------
+#else
+      !-----------------------------------------------------------------
+      !                %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Deallocate met field arrays from "dao_mod.F" used to
+      ! correct vertical regridding of OH for offline simulations
+      ! (mpayer, 3/14/13)
+      !-----------------------------------------------------------------
+      USE DAO_MOD,                 ONLY : CLEANUP_DAO
+# if !defined( TOMAS )
+# endif
+#endif
+
 #if ! defined( ESMF_ )
       USE TRANSPORT_MOD,           ONLY : CLEANUP_TRANSPORT
 #endif
+      USE CMN_Mod,                 ONLY : Cleanup_CMN
+      USE CMN_FJ_Mod,              ONLY : Cleanup_CMN_FJ
+      USE CMN_NOX_Mod,             ONLY : Cleanup_CMN_NOX
+      USE CMN_O3_Mod,              ONLY : Cleanup_CMN_O3
+      USE CMN_SIZE_Mod,            ONLY : Cleanup_CMN_SIZE
+      USE COMODE_LOOP_Mod,         ONLY : Cleanup_COMODE_LOOP
+      USE COMMSOIL_Mod,            ONLY : Cleanup_COMMSOIL
+      USE JV_CMN_Mod,              ONLY : Cleanup_JV_CMN
+      USE VDIFF_PRE_Mod,           ONLY : Cleanup_VDIFF_PRE
 
       IMPLICIT NONE
 #     include "define.h"
-
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL, INTENT(IN)  :: am_I_Root    ! Are we on the root CPU?
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: RC           ! Success or failure
 !
 ! !REVISION HISTORY: 
 !  29 Nov 1999 - R. Yantosca - Initial version
@@ -197,6 +236,16 @@
 !  11 Apr 2012 - R. Yantosca - Remove reference to obsolete lai_mod.F
 !  01 May 2012 - M. Payer    - Added calls for CLEANUP_GLOBAL_GRID and
 !                              CLEANUP_GRID
+!  19 Nov 2012 - R. Yantosca - Add cleanup calls for modules in Headers;
+!                              these were omitted during development
+!  28 Nov 2012 - R. Yantosca - Remove reference to CLEANUP_DAO; we have now
+!                              removed all allocatable arrays from dao_mod.F
+!  03 Dec 2012 - R. Yantosca - Now call Cleanup_CMN_SIZE
+!  13 Dec 2012 - R. Yantosca - Remove reference to obsolete CMN_DEP_mod.F
+!  14 Mar 2013 - M. Payer    - Restore reference to CLEANUP_DAO. Some arrays
+!                              have been restored to dao_mod.F for use in
+!                              the vertical regridding of OH for offline
+!                              simulations.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -223,7 +272,6 @@
       CALL CLEANUP_CO2
       CALL CLEANUP_COMODE
       CALL CLEANUP_GCKPP_COMODE
-      CALL CLEANUP_DAO
       CALL CLEANUP_DIAG
       CALL CLEANUP_DIAG03
       CALL CLEANUP_DIAG04
@@ -285,11 +333,36 @@
       CALL CLEANUP_WETSCAV
       CALL CLEANUP_ICOADS_SHIP !(cklee,7/09/09)
       CALL CLEANUP_RETRO
+      CALL CLEANUP_RCP !(cdh, 10/14/11)
 
 #if   defined( APM )
       CALL CLEANUP_WETSCAVBIN  ! Cleanup arrays for APM wet scavenging
 #endif
 
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Do not deallocate met field arrays from "dao_mod.F"
+      ! (mpayer, 3/14/13)
+      !-----------------------------------------------------------------
+#else
+      !-----------------------------------------------------------------
+      !                %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Deallocate met field arrays from "dao_mod.F" used to
+      ! correct vertical regridding of OH for offline simulations
+      ! (mpayer, 3/14/13)
+      !-----------------------------------------------------------------
+      CALL CLEANUP_DAO
+# if !defined( TOMAS )
+      CALL CLEANUP_DAO         ! Clean up met fields for APM
+# endif
+#endif
+
+#if   defined( TOMAS )
+      CALL CLEANUP_TOMAS
+#endif
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )
       CALL EXIT_GEOS5_TPCORE_WINDOW 
 #elif defined( GEOS_57) && defined( GRID025x03125)
@@ -298,6 +371,17 @@
 #else
       CALL EXIT_TPCORE
 #endif
+
+      ! Call extra cleanup routines, mostly from modules in Headers/
+      CALL Cleanup_CMN        ( am_I_Root, RC )
+      CALL Cleanup_CMN_FJ     ( am_I_Root, RC )
+      CALL Cleanup_CMN_NOX    ( am_I_Root, RC )
+      CALL Cleanup_CMN_O3     ( am_I_Root, RC )
+      CALL Cleanup_CMN_SIZE   ( am_I_Root, RC )
+      CALL Cleanup_COMMSOIL   ( am_I_Root, RC )
+      CALL Cleanup_COMODE_LOOP( am_I_Root, RC )
+      CALL Cleanup_JV_CMN     ( am_I_Root, RC )
+      CALL Cleanup_VDIFF_PRE  ( am_I_Root, RC )
 
       END SUBROUTINE CLEANUP
 !EOC

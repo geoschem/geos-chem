@@ -110,43 +110,50 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE EMISS_H2_HD( BIO_EMISS )
-#else
-      SUBROUTINE EMISS_H2_HD
-#endif
+      SUBROUTINE EMISS_H2_HD( am_I_Root, Input_Opt,
+     &                        State_Met, State_Chm, RC )
 !
 ! !USES:
 !
-      USE BIOFUEL_MOD,      ONLY : BIOFUEL,     BIOFUEL_BURN
-      USE BIOMASS_MOD,      ONLY : BIOMASS
-      USE DAO_MOD,          ONLY : SUNCOS,      BXHEIGHT
-      USE DAO_MOD,          ONLY : PARDF,       PARDR
-      USE DAO_MOD,          ONLY : SUNCOS_MID
-      USE DIAG_MOD,         ONLY : AD29,        AD46,          AD10em
-      USE GEIA_MOD,         ONLY : GET_IHOUR,   GET_DAY_INDEX, READ_GEIA
-      USE GEIA_MOD,         ONLY : READ_LIQCO2, READ_TOTCO2,   READ_TODX
-      USE GRID_MOD,         ONLY : GET_XOFFSET, GET_YOFFSET  
-      USE GRID_MOD,         ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,      ONLY : LANTHRO,     LGFED2BB,      LGFED3BB
-      USE LOGICAL_MOD,      ONLY : LBIOMASS,    LBIOFUEL,      LNEI99
-      USE LOGICAL_MOD,      ONLY : LSTREETS,    LEDGAR,        LBRAVO
-      USE LOGICAL_MOD,      ONLY : LMEGAN
-      USE MEGANUT_MOD,      ONLY : XLTMMP
-      USE MEGAN_MOD,        ONLY : GET_EMMONOT_MEGAN
-      USE MEGAN_MOD,        ONLY : GET_EMISOP_MEGAN
-      USE TRACERID_MOD,     ONLY : IDBCO
-      USE TIME_MOD,         ONLY : GET_MONTH,   GET_TAU 
-      USE TIME_MOD,         ONLY : GET_YEAR,    GET_TS_EMIS  
-      USE TRACER_MOD,       ONLY : STT
-      USE TRACERID_MOD,     ONLY : IDBFCO,      IDTH2,         IDTHD
-      USE TAGGED_CO_MOD,    ONLY : INIT_TAGGED_CO
-      USE TAGGED_CO_MOD,    ONLY : READ_ACETONE,  EMACET
-      USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
-      
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE CMN_O3_MOD        ! FSCALYR, SCNR89, TODH, EMISTCO
-      USE CMN_DIAG_MOD      ! Diagnostic arrays & switches
+      USE BIOFUEL_MOD,        ONLY : BIOFUEL,     BIOFUEL_BURN
+      USE BIOMASS_MOD,        ONLY : BIOMASS
+      USE CMN_DIAG_MOD
+      USE CMN_O3_MOD
+      USE CMN_SIZE_MOD
+      USE DIAG_MOD,           ONLY : AD29,        AD46,         AD10em
+      USE GEIA_MOD,           ONLY : GET_IHOUR,   GET_DAY_INDEX
+      USE GEIA_MOD,           ONLY : READ_GEIA,   READ_TODX
+      USE GEIA_MOD,           ONLY : READ_LIQCO2, READ_TOTCO2
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET  
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE MEGANUT_MOD,        ONLY : XLTMMP
+      USE MEGAN_MOD,          ONLY : GET_EMMONOT_MEGAN
+      USE MEGAN_MOD,          ONLY : GET_EMISOP_MEGAN
+      USE TRACERID_MOD,       ONLY : IDBCO
+      USE TIME_MOD,           ONLY : GET_MONTH,   GET_TAU 
+      USE TIME_MOD,           ONLY : GET_YEAR,    GET_TS_EMIS  
+      USE TRACERID_MOD,       ONLY : IDBFCO,      IDTH2,        IDTHD
+      USE TAGGED_CO_MOD,      ONLY : INIT_TAGGED_CO
+      USE TAGGED_CO_MOD,      ONLY : READ_ACETONE,  EMACET
+      USE SCALE_ANTHRO_MOD,   ONLY : GET_ANNUAL_SCALAR
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  18 Sep 2007 - L. Jaegle, H. U. Price, P. Le Sager -- Initial version
@@ -157,6 +164,9 @@
 !  08 Dec 2011 - M. Payer    - Remove obsolete GEIA biogenic emissions and add
 !                              MEGAN biogenic emissions.
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  27 Nov 2012 - R. Yantosca - Replace SUNCOS_MID with State_Met%SUNCOS_MID
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -184,17 +194,41 @@
       ! Cosine SZA & PAR (for calculation of monoterpenes)
       REAL*8                 :: SC, PDF, PDR
 
+      ! For fields from Input_Opt
+      LOGICAL                :: LANTHRO,     LGFED2BB,     LGFED3BB
+      LOGICAL                :: LBIOMASS,    LBIOFUEL,     LNEI99
+      LOGICAL                :: LSTREETS,    LEDGAR,       LBRAVO
+      LOGICAL                :: LMEGAN
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER        :: STT(:,:,:,:)
+
       ! External functions
       REAL*8, EXTERNAL       :: BOXVL
       REAL*8, EXTERNAL       :: EMCH3OH
 
-#if defined( DEVEL )
-      REAL*8, INTENT(INOUT)  :: BIO_EMISS(:,:,:)
-#endif
-
       !=================================================================
       ! EMISS_H2_HD begins here!
-      !
+      !=================================================================
+
+      ! Assume success
+      RC       =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LANTHRO  = Input_Opt%LANTHRO
+      LGFED2BB = Input_Opt%LGFED2BB
+      LGFED3BB = Input_Opt%LGFED3BB
+      LBIOMASS = Input_Opt%LBIOMASS
+      LBIOFUEL = Input_Opt%LBIOFUEL
+      LNEI99   = Input_Opt%LNEI99 
+      LSTREETS = Input_Opt%LSTREETS
+      LEDGAR   = Input_Opt%LEDGAR
+      LBRAVO   = Input_Opt%LBRAVO
+      LMEGAN   = Input_Opt%LMEGAN
+
+      !=================================================================
       ! Do the following only on the first call to EMISS_H2_HD...
       !=================================================================
       IF ( FIRSTEMISS ) THEN
@@ -259,6 +293,10 @@
          LASTYEAR = SCALEYEAR
       ENDIF
 
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+
       ! DTSRCE is the number of seconds per emission timestep
       DTSRCE = GET_TS_EMIS() * 60d0
 
@@ -295,7 +333,6 @@
 
          ! SFAC89 is the Weekday/Saturday/Sunday scale factor
          SFAC89 = SCNR89( 2, GET_DAY_INDEX( NTAU ) ) 
-
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
@@ -502,11 +539,8 @@
       !       biofuel burning array (bmy, 6/8/01).
       !=================================================================
       IF ( LBIOFUEL ) THEN
-#if defined( DEVEL )
-         CALL BIOFUEL_BURN( BIO_EMISS )
-#else
          CALL BIOFUEL_BURN
-#endif
+     &      ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -519,8 +553,8 @@
             ! Scale by 0.322d0 H2/CO from Andreae and Merlet
             ! and enhance by 18.9% * yield h2/co from photochemical
             ! oxidation (lyj, 2/10/07)
-            E_H2 = BIOFUEL(IDBFCO,I,J)  / XNUMOL_H2 *
-     &             BOXVL(I,J,1)        * DTSRCE  *
+            E_H2 = BIOFUEL(IDBFCO,I,J)    / XNUMOL_H2 *
+     &             BOXVL(I,J,1,State_Met) * DTSRCE    *
      &             ( ( 0.189d0 * H2CO_YIELD(I,J,1) ) + 0.322d0 )
 
 
@@ -528,15 +562,16 @@
             ! isotopic signature (see BB emissions above).
             ! jaegle (4/20/07)
 
-            E_HD = ( BIOFUEL(IDBFCO,I,J) * 1.1059d-4 ) * 
-     &             ( ( 0.189d0 * H2CO_YIELD(I,J,1) ) + 0.322d0 ) /
-     &             XNUMOL_HD * ( BOXVL(I,J,1) * DTSRCE ) * 2.d0
+            E_HD = ( BIOFUEL(IDBFCO,I,J) * 1.1059d-4 )    * 
+     &             ( ( 0.189d0 * H2CO_YIELD(I,J,1) )      + 0.322d0 ) /
+     &             XNUMOL_HD   * ( BOXVL(I,J,1,State_Met) * DTSRCE  ) *
+     &             2.d0
 
             ! ND10 -- store Biofuel Fuel H2 [molec/cm2/s]
             IF ( ND10 > 0 ) THEN
                AD10em(I,J,3) = AD10em(I,J,3) + ( BIOFUEL(IDBFCO,I,J) *
      &                 ( ( 0.189d0 * H2CO_YIELD(I,J,1) ) + 0.322d0 ) *
-     &                       BXHEIGHT(I,J,1)*100d0 )
+     &                       State_Met%BXHEIGHT(I,J,1)   * 100d0 )
             ENDIF 
 
             ! Add H2 HD biomass burning to corresponding tracers -
@@ -575,18 +610,17 @@
             !===========================================================
 
             ! Surface air temperature [K]
-            TMMP = XLTMMP(I,J,IJLOOP)
-
+            TMMP = XLTMMP( I, J, State_Met%TS, IJLOOP )
 
             ! MEGAN biogenic emissions (mpayer,12/8/11)
             IF ( LMEGAN ) THEN
 
                ! Cosine of solar zenith angle
-               SC   = SUNCOS_MID(IJLOOP)
+               SC   = State_Met%SUNCOSmid(I,J)
 
                ! Diffuse and direct PAR
-               PDR  = PARDR(I,J)
-               PDF  = PARDF(I,J)
+               PDR  = State_Met%PARDR(I,J)
+               PDF  = State_Met%PARDF(I,J)
 
                ! ISOP and MONOTERPENE emissions in [atoms C/box/time step]
                EMXX = GET_EMISOP_MEGAN(  I,   J,   SC,    TMMP, 
@@ -664,6 +698,9 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+      ! Free pointer
+      NULLIFY( STT )
+
       END SUBROUTINE EMISS_H2_HD
 !EOC
 !------------------------------------------------------------------------------
@@ -682,78 +719,118 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_H2_HD
+      SUBROUTINE CHEM_H2_HD( am_I_Root, Input_Opt,
+     &                       State_Met, State_Chm, RC )
 !
 ! !USES:
 !
-      USE DAO_MOD,        ONLY : AD, AIRVOL, T
-      USE DIAG_MOD,       ONLY : AD10
-      USE ERROR_MOD,      ONLY : CHECK_VALUE
-      USE GLOBAL_OH_MOD,  ONLY : GET_GLOBAL_OH,   OH
-      USE GLOBAL_O1D_MOD, ONLY : GET_GLOBAL_O1D, O1D
-      USE GLOBAL_NOX_MOD, ONLY : GET_GLOBAL_NOX,  BNOX
-      USE GRID_MOD,       ONLY : GET_YMID, GET_AREA_M2, GET_AREA_CM2
-      USE PRESSURE_MOD,   ONLY : GET_PCENTER, GET_PEDGE
-      USE TIME_MOD,       ONLY : GET_TS_CHEM,     GET_MONTH, GET_YEAR
-      USE TIME_MOD,       ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
-      USE DRYDEP_MOD,     ONLY : DEPSAV
-      USE TRACER_MOD,     ONLY : N_TRACERS,       STT
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
-      USE TRACERID_MOD,   ONLY : IDTH2, IDTHD
-      USE TAGGED_CO_MOD,  ONLY : GET_ALPHA_ISOP,    READ_PCO_LCO_STRAT
-      USE TAGGED_CO_MOD,  ONLY : GET_PCO_LCO_STRAT
-
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DIAG_MOD     ! ND65
-      USE CMN_DEP_MOD      ! FRCLND
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
+      USE DIAG_MOD,           ONLY : AD10
+      USE ERROR_MOD,          ONLY : CHECK_VALUE
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GLOBAL_OH_MOD,      ONLY : GET_GLOBAL_OH,   OH
+      USE GLOBAL_O1D_MOD,     ONLY : GET_GLOBAL_O1D, O1D
+      USE GLOBAL_NOX_MOD,     ONLY : GET_GLOBAL_NOX,  BNOX
+      USE GRID_MOD,           ONLY : GET_YMID, GET_AREA_M2, GET_AREA_CM2
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER, GET_PEDGE
+      USE TIME_MOD,           ONLY : GET_TS_CHEM,     GET_MONTH
+      USE TIME_MOD,           ONLY : GET_YEAR
+      USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
+      USE DRYDEP_MOD,         ONLY : DEPSAV
+      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
+      USE TRACERID_MOD,       ONLY : IDTH2, IDTHD
+      USE TAGGED_CO_MOD,      ONLY : GET_ALPHA_ISOP
+      USE TAGGED_CO_MOD,      ONLY : READ_PCO_LCO_STRAT
+      USE TAGGED_CO_MOD,      ONLY : GET_PCO_LCO_STRAT
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  18 Sep 2007 - L. Jaegle, H. U. Price, P. Le Sager -- Initial version
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  11 Apr 2013 - R. Yantosca - Now pass Input_Opt to GET_GLOBAL_NOx
+!  10 Jun 2013 - R. Yantosca - Avoid array temporaries in CHECK_VALUE
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE          :: FIRSTCHEM = .TRUE.
-      INTEGER                :: I, J, L, N, MONTH
-      REAL*8                 :: ALPHA_CH4, ALPHA_ISOP, ALPHA_MONO
-      REAL*8                 :: DTCHEM,    GH2,        PCO
-      REAL*8                 :: GHD,       STTHD
-      REAL*8                 :: STTH2,     KRATE,      CH4
-      REAL*8                 :: H2_CH4,    H2_ISOP,    H2_MONO
-      REAL*8                 :: H2_CH3OH,  H2_OH,      H2_ACET
-      REAL*8                 :: HD_OH,     O1DRATE,    HD_RATE
-      REAL*8                 :: HD_O1D,    H2_O1D,     HD_CH4
-      REAL*8                 :: CH4RATE,   DENS,       ALPHA_ACET
-      REAL*8                 :: CORATE,    YMID,       DPHOTO
-      REAL*8                 :: KTEST(IIPAR, JJPAR)
-      REAL*8                 :: AREA_CM2, SVEL, FLUX
-      REAL*8                 :: THIK, P2, DRYF, TESTVAR
-      REAL*8                 :: FRACLOST, H2_RATE
+      LOGICAL, SAVE      :: FIRSTCHEM = .TRUE.
+      INTEGER            :: N_TRACERS
+      INTEGER            :: I, J, L, N, MONTH
+      REAL*8             :: ALPHA_CH4, ALPHA_ISOP, ALPHA_MONO
+      REAL*8             :: DTCHEM,    GH2,        PCO
+      REAL*8             :: GHD,       STTHD
+      REAL*8             :: STTH2,     KRATE,      CH4
+      REAL*8             :: H2_CH4,    H2_ISOP,    H2_MONO
+      REAL*8             :: H2_CH3OH,  H2_OH,      H2_ACET
+      REAL*8             :: HD_OH,     O1DRATE,    HD_RATE
+      REAL*8             :: HD_O1D,    H2_O1D,     HD_CH4
+      REAL*8             :: CH4RATE,   DENS,       ALPHA_ACET
+      REAL*8             :: CORATE,    YMID,       DPHOTO
+      REAL*8             :: KTEST(IIPAR, JJPAR)
+      REAL*8             :: AREA_CM2, SVEL, FLUX
+      REAL*8             :: THIK, P2, DRYF, TESTVAR
+      REAL*8             :: FRACLOST, H2_RATE
 
-      ! For saving CH4 latitudinal gradient
-      REAL*8,  SAVE          :: A3090S, A0030S, A0030N, A3090N
+      ! Avoid array temporaries in CHECK_VALUE
+      INTEGER            :: ERR_LOC(4)
+      CHARACTER(LEN=255) :: ERR_VAR
+      CHARACTER(LEN=255) :: ERR_MSG
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER    :: STT(:,:,:,:)
+
+      ! For saving CH4 l atitudinal gradient
+      REAL*8,  SAVE      :: A3090S, A0030S, A0030N, A3090N
 
       ! External functions
-      REAL*8,  EXTERNAL      :: BOXVL
+      REAL*8,  EXTERNAL  :: BOXVL
 !
 ! !DEFINED PARAMETERS:
 !
       ! WTAIR = molecular weight of air (g/mole)
-      REAL*8,  PARAMETER     :: WTAIR = 28.966d0
+      REAL*8,  PARAMETER :: WTAIR = 28.966d0
       
       ! Switch to scale yield of isoprene from NOx concentration or not
-      LOGICAL, PARAMETER     :: ALPHA_ISOP_FROM_NOX = .FALSE.
+      LOGICAL, PARAMETER :: ALPHA_ISOP_FROM_NOX = .FALSE.
 
       !=================================================================
       ! CHEM_H2_HD begins here!
       !
       ! Do the following on the first calla to CHEM_H2_HD...
       !=================================================================
+
+      ! Assume success
+      RC        = GIGC_SUCCESS
+
+      ! Get fields from Input_Opt
+      N_TRACERS = Input_Opt%N_TRACERS
+
       IF ( FIRSTCHEM ) THEN
          FIRSTCHEM = .FALSE.
       ENDIF
@@ -770,14 +847,16 @@
          MONTH = GET_MONTH()
 
          ! Global OH 
-         CALL GET_GLOBAL_OH( MONTH )
+         CALL GET_GLOBAL_OH( MONTH, State_Met )
 
 	 ! Global O1D
 	 CALL GET_GLOBAL_O1D( MONTH )
 
          ! Global NOx -- need this to determine 
          ! ALPHA_ISOP which is a function of NOx
-         IF ( ALPHA_ISOP_FROM_NOX ) CALL GET_GLOBAL_NOX( MONTH )
+         IF ( ALPHA_ISOP_FROM_NOX ) THEN
+            CALL GET_GLOBAL_NOX( MONTH, Input_Opt )
+         ENDIF
             
          ! Read in the loss/production of CO in the stratosphere.
          CALL READ_PCO_LCO_STRAT( MONTH )
@@ -795,6 +874,11 @@
       !=================================================================
       ! Do H2 and HD chemistry 
       !=================================================================
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED                                             ) 
 !$OMP+PRIVATE( I, J, L, N, STTH2, GH2, DENS, CH4RATE, H2_CH4, CH4 )
@@ -803,6 +887,7 @@
 !$OMP+PRIVATE( H2_OH, YMID, DPHOTO, SVEL, FLUX, AREA_CM2    )
 !$OMP+PRIVATE( GHD, STTHD, HD_OH, HD_CH4, HD_O1D, H2_RATE, HD_RATE)
 !$OMP+PRIVATE( H2_O1D, DRYF, P2, THIK, FRACLOST  )
+!$OMP+PRIVATE( ERR_LOC, ERR_VAR, ERR_MSG )
       
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -817,9 +902,11 @@
 
          ! STTH2 [molec H2/cm3/kg H2] converts [kg H2] --> [molec H2/cm3]
          ! kg H2/box * box/cm3 * mole/0.002 kg H2 * Avog.#/mole
-         STTH2 = 1d0 / AIRVOL(I,J,L) / 1d6 / FMOL_H2 * 6.023d23
+         STTH2 = 1d0     / State_Met%AIRVOL(I,J,L) / 1d6 /
+     &           FMOL_H2 * 6.023d23
 	 
-	 STTHD = 1d0 / AIRVOL(I,J,L) / 1d6 / FMOL_HD * 6.023d23 
+	 STTHD = 1d0     / State_Met%AIRVOL(I,J,L) / 1d6 / 
+     &           FMOL_HD * 6.023d23 
                   
          ! GH2 is H2 concentration in [molec H2/cm3]
          GH2   = STT(I,J,L,IDTH2) * STTH2
@@ -828,7 +915,8 @@
 	 GHD   = STT(I,J,L,IDTHD) * STTHD
 
          ! DENS is the number density of air [molec air/cm3]
-         DENS  = AD(I,J,L) * 1000.d0 / BOXVL(I,J,L) * 6.023d23  / WTAIR
+         DENS  = State_Met%AD(I,J,L)    * 1000.d0  /
+     &           BOXVL(I,J,L,State_Met) * 6.023d23 / WTAIR
 
          !==============================================================
          ! (1a) Production of H2 and HD by methane oxidation
@@ -838,7 +926,7 @@
          H2_CH4 = 0d0
 
          ! Test level for stratosphere or troposphere
-         IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN
+         IF ( ITS_IN_THE_STRAT( I, J, L, State_Met ) ) THEN
 
             !===========================================================
             ! (1a-1) Production of H2 from CH4 in the stratosphere
@@ -890,7 +978,7 @@
             ALPHA_CH4 = 1d0
 
             ! Calculate updated rate constant [s-1] (bnd, bmy, 1/2/01)
-            KRATE     = 2.45D-12 * EXP( -1775.d0 / T(I,J,L) ) 
+            KRATE     = 2.45D-12 * EXP( -1775.d0 / State_Met%T(I,J,L) ) 
  
             ! Production of CO from CH4 = alpha * k * [CH4] * [OH] * dt
             ! Scale this by the H2 yield relative to CO
@@ -908,11 +996,12 @@
 	    HD_CH4 = H2_CH4 * DPHOTO
 
          ENDIF
-	 
-         ! Check H2_CH4 for NaN or Infinity
-         CALL CHECK_VALUE( H2_CH4,  (/ I, J, L, 0 /),
-     *                    'H2_CH4', 'STOP at h2_hd_mod:1' )
 
+         ! Check H2_CH4 for NaN or Infinity
+         ERR_LOC = (/ I, J, L, 0 /)
+         ERR_VAR = 'H2_CH4'
+         ERR_MSG = 'STOP at h2_hd_mod:1'
+         CALL CHECK_VALUE( H2_CH4,  ERR_LOC, ERR_VAR, ERR_MSG )
 
          !==============================================================
          ! (1b) Production of H2 from ISOPRENE and METHANOL (CH3OH)
@@ -968,28 +1057,32 @@
             ! P(CO) from Isoprene Flux = ALPHA_ISOP * Flux(ISOP)
             ! Convert from [molec ISOP/box] to [molec CO/cm3]
             ! Also account for the fact that ISOP has 5 carbons
-            H2_ISOP = SUMISOPCO(I,J) / BOXVL(I,J,L) / 5.d0 * ALPHA_ISOP
+            H2_ISOP = SUMISOPCO(I,J) / BOXVL(I,J,L,State_Met) / 5.d0 *
+     &                ALPHA_ISOP
 	    
             ! P(CO) from CH3OH is scaled to Isoprene Flux (see above)
 	    ! Units are [molec CO/cm3]
             ! For H2, scale by the relative CO/H2 molar weights and
             ! the H2/CO yields.
-            H2_CH3OH = ( SUMISOPCO(I,J) / BOXVL(I,J,L) ) *
-     &                 ( 100d0          / 397d0        ) *
-     &                 ( H2CO_YIELD(I,J,L)             ) *
-     &                 ( 12d0           / 28d0         ) 
+            H2_CH3OH = ( SUMISOPCO(I,J) / BOXVL(I,J,L,State_Met) ) *
+     &                 ( 100d0          / 397d0                  ) *
+     &                 ( H2CO_YIELD(I,J,L)                       ) *
+     &                 ( 12d0           / 28d0                   ) 
  
             ! Zero SUMISOPCO and SUMCH3OHCO for the next emission step
             SUMISOPCO(I,J)  = 0d0
             SUMCH3OHCO(I,J) = 0d0
 
             ! Check H2_ISOP for NaN or Infinity
-            CALL CHECK_VALUE( H2_ISOP,  (/ I, J, L, 0 /),
-     &                       'H2_ISOP', 'STOP at h2_hd_mod:2' )
+            ERR_LOC = (/ I, J, L, 0 /)
+            ERR_VAR = 'H2_ISOP'
+            ERR_MSG = 'STOP at h2_hd_mod:2'
+            CALL CHECK_VALUE( H2_ISOP,  ERR_LOC, ERR_VAR, ERR_MSG )
 
             ! Check H2_CH4 for NaN or Infinity
-            CALL CHECK_VALUE( H2_CH3OH,  (/ I, J, L, 0 /),
-     &                       'H2_CH3OH', 'STOP at h2_hd_mod:3' )
+            ERR_VAR = 'H2_ISOP'
+            ERR_MSG = 'STOP at h2_hd_mod:3'
+            CALL CHECK_VALUE( H2_CH3OH,  ERR_LOC, ERR_VAR, ERR_MSG )
 
          ENDIF
 
@@ -1041,15 +1134,17 @@
             ! P(CO) from Monoterpene Flux =  alpha * Flux(Mono)
             ! Units are [molec H2/cm3]. Scale by the
             ! H2/CO photochemical yield.
-            H2_MONO = ( SUMMONOCO(I,J) / BOXVL(I,J,L)      ) * 
+            H2_MONO = ( SUMMONOCO(I,J) / BOXVL(I,J,L,State_Met) ) * 
      &                ( ALPHA_MONO     * H2CO_YIELD(I,J,L) )
 
             ! Zero SUMMONOCO for the next emission step
             SUMMONOCO(I,J) = 0d0
 
             ! Check H2_MONO for NaN or Infinity
-            CALL CHECK_VALUE( H2_MONO,  (/ I, J, L, 0 /),
-     &                       'H2_MONO', 'STOP at h2_hd_mod:4' )
+            ERR_LOC = (/ I, J, L, 0 /)
+            ERR_VAR = 'H2_MONO'
+            ERR_MSG = 'STOP at h2_hd_mod:4'
+            CALL CHECK_VALUE( H2_MONO, ERR_LOC, ERR_VAR, ERR_MSG )
 
          ENDIF
 
@@ -1086,16 +1181,17 @@
             ALPHA_ACET = 2.D0 / 3.D0
             
             ! Units are [molec H2/cc]. Scale by the H2/CO yield.
-            H2_ACET = SUMACETCO(I,J) / BOXVL(I,J,L) * 
-     &                ALPHA_ACET * H2CO_YIELD (I,J,L)
+            H2_ACET = SUMACETCO(I,J) / BOXVL(I,J,L,State_Met) * 
+     &                ALPHA_ACET     * H2CO_YIELD (I,J,L)
 
             ! Zero SUMACETCO for the next emission step
             SUMACETCO(I,J) = 0d0
 
             ! Check H2_ACET for NaN or Infinity
-            CALL CHECK_VALUE( H2_ACET,  (/I, J, L, 0 /),
-     &                       'H2_ACET', 'STOP at h2_hd_mod:5' )
-
+            ERR_LOC = (/ I, J, L, 0 /)
+            ERR_VAR = 'H2_MONO'
+            ERR_MSG = 'STOP at h2_hd_mod:5'
+            CALL CHECK_VALUE( H2_ACET, ERR_LOC, ERR_VAR, ERR_MSG )
 
          ENDIF
 
@@ -1111,7 +1207,7 @@
          HD_O1D = 0.d0
 
          ! Select out tropospheric or stratospheric boxes
-         IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN
+         IF ( ITS_IN_THE_STRAT( I, J, L, State_Met ) ) THEN
 
             !===========================================================
             ! (2a-1) Stratospheric loss H2 HD due to chem rxn w/OH & O1D
@@ -1121,8 +1217,8 @@
             CORATE = GET_PCO_LCO_STRAT( .FALSE., I, J, L )
 	    
 	    ! Rate constants for H2+OH and HD+OH from JPL, 2004 (hup, 06/28/04)
-            H2_RATE = 5.5D-12 * EXP( -2000.d0 / T(I,J,L) )
-            HD_RATE = 5.0D-12 * EXP( -2130.d0 / T(I,J,L) )
+            H2_RATE = 5.5D-12 * EXP( -2000.d0 / State_Met%T(I,J,L) )
+            HD_RATE = 5.0D-12 * EXP( -2130.d0 / State_Met%T(I,J,L) )
 	    
             ! H2_OH = Stratospheric loss of H2 by OH [molec/cm3]
 	    ! alpha=0.52 for HD-OH in strat 230K (Rockmann et al., 2003)
@@ -1146,13 +1242,16 @@
             ! Do not deal with this for HD.
 	    HD_O1D = 0d0
 	    
-	    
             ! Check values for NaN or Infinity
-            CALL CHECK_VALUE( H2_OH,  (/ I, J, L, 0 /),
-     &                      'H2_OH', 'STOP at h2_hd_mod:6' )
-     
-     	    CALL CHECK_VALUE( H2_O1D,  (/ I, J, L, 0 /),
-     &                      'H2_O1D', 'STOP at h2_hd_mod:6' )
+            ERR_LOC = (/ I, J, L, 0 /)
+            ERR_VAR = 'H2_OH'
+            ERR_MSG = 'STOP at h2_hd_mod:6'
+            CALL CHECK_VALUE( H2_OH,  ERR_LOC, ERR_VAR, ERR_MSG )
+
+            ! Check values for NaN or Infinity
+            ERR_VAR = 'H2_MONO'
+            ERR_MSG = 'STOP at h2_hd_mod:7'
+     	    CALL CHECK_VALUE( H2_O1D, ERR_LOC, ERR_VAR, ERR_MSG )
 
          ELSE
 
@@ -1174,8 +1273,8 @@
 
 	    ! Loss for H2 and HD by reaction with OH accd JPL, 2004 
 	    ! (hup, 06/28/04)
-            H2_RATE = 5.5D-12 * EXP( -2000.d0 / T(I,J,L) )
-	    HD_RATE = 5.0D-12 * EXP( -2130.d0 / T(I,J,L) )
+            H2_RATE = 5.5D-12 * EXP( -2000.d0 / State_Met%T(I,J,L) )
+	    HD_RATE = 5.0D-12 * EXP( -2130.d0 / State_Met%T(I,J,L) )
 
             ! H2_OH = Tropospheric loss of H2 by OH [molec/cm3]
             H2_OH   = H2_RATE * GH2 * OH(I,J,L) * DTCHEM
@@ -1289,6 +1388,9 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+      ! Free pointer
+      NULLIFY( STT )
 
       END SUBROUTINE CHEM_H2_HD
 !EOC
@@ -1489,7 +1591,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: AS, I, J, IJLOOP
+      INTEGER :: AS
       
       !=================================================================
       ! INIT_H2_HD begins here!

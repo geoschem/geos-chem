@@ -83,6 +83,8 @@
 !  01 Mar 2012 - R. Yantosca - Remove A_CM2 array, use GET_AREA_CM2 instead
 !  22 Mar 2012 - M. Payer    - C2H6 emissions are too low. Use Yaping
 !                              Xiao's C2H6 emissions instead.
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -235,6 +237,8 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  22 Mar 2012 - M. Payer    - C2H6 emissions are too low. Use Yaping
 !                              Xiao's C2H6 emissions instead.
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !******************************************************************************
 !
       ! References to F90 modules
@@ -242,10 +246,10 @@
       USE TRACER_MOD,           ONLY : ITS_A_CH4_SIM
       USE TRACER_MOD,           ONLY : ITS_A_CO2_SIM
       USE TRACER_MOD,           ONLY : XNUMOL
-      USE TRACERID_MOD,         ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
+      USE TRACERID_MOD,         ONLY : IDTNO,   IDTCO,   IDTSO2, IDTNH3
       USE TRACERID_MOD,         ONLY : IDTACET, IDTALK4, IDTC2H6
       USE TRACERID_MOD,         ONLY : IDTCH2O, IDTMEK,  IDTALD2
-      USE TRACERID_MOD,         ONLY : IDTPRPE, IDTC3H8
+      USE TRACERID_MOD,         ONLY : IDTPRPE, IDTC3H8, IDTNO2
 
       ! Arguments
       INTEGER, INTENT(IN)           :: I, J, N
@@ -289,7 +293,8 @@
          !-------------------
          ! Other simulations
          !-------------------
-         IF ( N == IDTNOx ) THEN
+         ! Replaced NOx with NO (mpayer, 3/14/13)
+         IF ( N == IDTNO ) THEN
 
             ! NOx [kg/yr]
             VALUE = NOx(I,J)
@@ -396,8 +401,15 @@
      &            / ( GET_AREA_CM2( I, J, 1 ) * SEC_IN_YEAR )            
          ELSE                                                     
             ! Convert from [kg/yr] to [molec/cm2/s]            
-            VALUE = VALUE * XNUMOL(N) 
-     &            / ( GET_AREA_CM2( I, J, 1 ) * SEC_IN_YEAR )
+            IF ( N == IDTNO ) THEN
+               ! Convert NOx using XNUMOL for NO2 since original NOX emissions
+               ! are in mass units of NO2 (mpayer, 4/18/13)
+               VALUE = VALUE * XNUMOL(IDTNO2) 
+     &               / ( GET_AREA_CM2( I, J, 1 ) * SEC_IN_YEAR )
+            ELSE
+               VALUE = VALUE * XNUMOL(N) 
+     &               / ( GET_AREA_CM2( I, J, 1 ) * SEC_IN_YEAR )
+            ENDIF
          ENDIF                                                    
 
       ENDIF
@@ -407,11 +419,8 @@
 
 !------------------------------------------------------------------------------
 
-#if defined( DEVEL )
-      SUBROUTINE EMISS_STREETS_ANTHRO(EMISSIONS)
-#else
-      SUBROUTINE EMISS_STREETS_ANTHRO
-#endif
+      SUBROUTINE EMISS_STREETS_ANTHRO( am_I_Root, Input_Opt,
+     &                                 State_Met, State_Chm, RC )
 !
 !******************************************************************************
 !  Subroutine EMISS_STREETS_ANTHRO reads the David Streets et al emission 
@@ -433,28 +442,52 @@
 !  (7 ) Bug fix : overwrite NOx, SO2, and CO emissions over water (ship tracks)
 !        with zero for Streets 2000 emissions since these are double counted 
 !        (jaf, gcmv, amv, 1/30/12)
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  03 Jan 2013 - M. Payer    - Bug fixes for regridding of NOx and CO base
+!                              emissions and monthly variability scale factors.
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD,        ONLY : GET_TAU0,          READ_BPCH2
-      USE DAO_MOD,          ONLY : FROCEAN, IS_WATER !jaf
-      USE DIRECTORY_MOD,    ONLY : DATA_DIR_1x1 
-      USE LOGICAL_MOD,      ONLY : LFUTURE
-      USE TRACER_MOD,       ONLY : ITS_A_CO2_SIM,     ITS_A_CH4_SIM
-      USE TIME_MOD,         ONLY : GET_YEAR,          GET_MONTH
-      USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
+      USE BPCH2_MOD,          ONLY : GET_TAU0,          READ_BPCH2
+      USE DAO_MOD,            ONLY : IS_WATER
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR_1x1 
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TRACER_MOD,         ONLY : ITS_A_CO2_SIM,     ITS_A_CH4_SIM
+      USE TIME_MOD,           ONLY : GET_YEAR,          GET_MONTH
+      USE SCALE_ANTHRO_MOD,   ONLY : GET_ANNUAL_SCALAR
 
-      USE CMN_SIZE_MOD         ! Size parameters
-      USE CMN_O3_MOD           ! FSCALYR
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_O3_MOD               ! FSCALYR
 
 #if defined( DEVEL )
-      USE TRACER_MOD,       ONLY : N_TRACERS
-      USE TRACERID_MOD,     ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
-      USE TRACERID_MOD,     ONLY : IDTACET, IDTALK4, IDTC2H6
-      USE TRACERID_MOD,     ONLY : IDTCH2O, IDTMEK,  IDTALD2
-      USE TRACERID_MOD,     ONLY : IDTPRPE, IDTC3H8
+      USE TRACERID_MOD,       ONLY : IDTNO,   IDTCO,   IDTSO2, IDTNH3
+      USE TRACERID_MOD,       ONLY : IDTACET, IDTALK4, IDTC2H6
+      USE TRACERID_MOD,       ONLY : IDTCH2O, IDTMEK,  IDTALD2
+      USE TRACERID_MOD,       ONLY : IDTPRPE, IDTC3H8
 #endif
-      ! Local variables
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE              :: FIRST = .TRUE.
       INTEGER                    :: BASE_YEAR,       SIM_YEAR
       INTEGER                    :: I, J !jaf
@@ -478,12 +511,20 @@
       REAL*8                     :: TAU2000,       TAU2004,      TAU2006
       REAL*8                     :: TAUMONTH_2001, TAUMONTH_2004, TAU
 
-#if defined( DEVEL )
-      REAL*8,INTENT(INOUT)       :: EMISSIONS(IIPAR,JJPAR,N_TRACERS)
-#endif
+      ! For fields from Input_Opt
+      LOGICAL                    :: LFUTURE
+      INTEGER                    :: N_TRACERS
+
       !=================================================================
       ! EMISS_STREETS_ANTHRO begins here!
       !=================================================================
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LFUTURE   = Input_Opt%LFUTURE
+      N_TRACERS = Input_Opt%N_TRACERS
 
       ! First-time initialization
       IF ( FIRST ) THEN
@@ -561,12 +602,14 @@
       IF (.NOT. IS_2006) THEN
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_527 )
-            IF ( FROCEAN(I,J) == 1d0 ) SCALOC(I,J) = 0d0
+
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+            IF ( State_Met%FROCEAN(I,J) == 1d0 ) SCALOC(I,J) = 0d0
 #else
-            IF ( IS_WATER(I,J) ) SCALOC(I,J) = 0d0
-#endif            
-        ENDDO
+            IF ( IS_WATER(I,J,State_Met) ) SCALOC(I,J) = 0d0
+#endif
+
+         ENDDO
          ENDDO
       ENDIF 
 
@@ -635,9 +678,9 @@
 
          BASE_YEAR = 2000
 
-         ! Read data
+         ! Read data [kg/yr]
          CALL READ_STREETS( FILENAME, 'CH4-EMIS', 1,
-     &                      TAU2000,   CH4,       PERAREA=1 )
+     &                      TAU2000,   CH4,       IS_MASS=1 )
 
       ELSE IF ( ITS_A_CO2_SIM() ) THEN
 
@@ -652,9 +695,9 @@
 
          BASE_YEAR = 2000
 
-         ! Read data
+         ! Read data [kg/yr]
          CALL READ_STREETS( FILENAME, 'CO2-SRCE', 1,
-     &                      TAU2000,   CO2,       PERAREA=1 )
+     &                      TAU2000,   CO2,       IS_MASS=1 )
 
       ELSE
 
@@ -682,9 +725,9 @@
 
             ENDIF
  
-            ! Read data
+            ! Read data [kg/yr]
             CALL READ_STREETS( FILENAME, 'ANTHSRCE', 1,
-     &                         TAU,       TEMP,      PERAREA=0 )
+     &                         TAU,       TEMP,      IS_MASS=1 )
    
             ! Set emissions over water (ship emissions) to zero (jaf, 1/31/12)
             !NOX = NOX + TEMP * ONOFF( NSOURCE ) * SCALE2020( NSOURCE )
@@ -724,9 +767,10 @@
      &                 // 'Streets_2004_NOx_MonthFctr_FF.generic.1x1'
 
          ENDIF
-         
+
+         ! Read data [unitless]
          CALL READ_STREETS( FILENAME,      'RATIO-2D', 71,
-     $                      TAUMONTH_2004,  TEMP,      PERAREA=1 )
+     &                      TAUMONTH_2004,  TEMP,      IS_MASS=0 )
 
          NOX = NOX * TEMP
 
@@ -744,9 +788,9 @@
                FILENAME  = TRIM( STREETS_DIR ) // 'Streets_CO_'// 
      &                     SOURCES( NSOURCE ) // '_2006.generic.1x1'
 
-               ! Read data
+               ! Read data [kg/yr]
                CALL READ_STREETS( FILENAME, 'ANTHSRCE', 4,
-     $                            TAU2006,   TEMP,      PERAREA=0 )
+     &                            TAU2006,   TEMP,      IS_MASS=1 )
 
                ! No scaling for 2006-2020
                CO = CO + TEMP * ONOFF( NSOURCE )
@@ -759,8 +803,9 @@
             FILENAME  = TRIM( STREETS_DIR ) // 
      &                  'Streets_2001_CO_MonthFctr_total.generic.1x1'
 
+            ! Read data [unitless]
             CALL READ_STREETS( FILENAME,     'RATIO-2D', 72,
-     $                         TAUMONTH_2001, TEMP,      PERAREA=1 )
+     &                         TAUMONTH_2001, TEMP,      IS_MASS=0 )
 
             CO = CO * TEMP
 
@@ -775,9 +820,9 @@
             FILENAME  = TRIM( STREETS_DIR ) // 
      &                 'Streets_CO_FF_2000.generic.1x1'
 
-            ! Read data
+            ! Read data [kg/yr]
             CALL READ_STREETS( FILENAME, 'ANTHSRCE', 4,
-     &                         TAU2000,   CO,        PERAREA=0 )
+     &                         TAU2000,   CO,        IS_MASS=1 )
 
             ! Set emissions over water (ship emissions) to zero (jaf, 1/31/12)
             ! Only necessary for 2000 emissions
@@ -791,9 +836,9 @@
             FILENAME  = TRIM( STREETS_DIR ) // 
      &                 'Streets_CO_FF_2001_monthly.generic.1x1'
 
-            ! Read data 
+            ! Read data [kg/yr]
             CALL READ_STREETS( FILENAME,      'ANTHSRCE', 4,
-     $                         TAUMONTH_2001,  TEMP,      PERAREA=0 )
+     $                         TAUMONTH_2001,  TEMP,      IS_MASS=1 )
 
             ! Annual scalar factor (amv, phs, 3/10/08)
             CALL GET_ANNUAL_SCALAR( 72, 2001, SIM_YEAR, SCALFAC )
@@ -828,9 +873,9 @@
 
             ENDIF
 
-            ! Read data
+            ! Read data [kg/yr]
             CALL READ_STREETS( FILENAME, 'ANTHSRCE', 26,
-     &                         TAU,       TEMP,      PERAREA=1 )
+     &                         TAU,       TEMP,      IS_MASS=1 )
 
             ! Set emissions over water (ship emissions) to zero (jaf, 1/31/12)
             !SO2 = SO2 + TEMP * ONOFF( NSOURCE )
@@ -861,9 +906,10 @@
             FILENAME  = TRIM( STREETS_DIR_2000 ) // 
      &                 'Streets_NH3_FF_2000.generic.1x1'
 
+            ! Read data [kg/yr]
             ! Old file has NH3 as tracer #30
             CALL READ_STREETS( FILENAME, 'ANTHSRCE', 30, 
-     &                         TAU2000,   NH3,       PERAREA=1 )
+     &                         TAU2000,   NH3,       IS_MASS=1 )
 
             ! switch and scale
             NH3 = NH3 * ONOFF( 1 ) * ONOFFNH3
@@ -886,8 +932,9 @@
                FILENAME  = TRIM( STREETS_DIR ) // 'Streets_ACET_'// 
      &                     SOURCES( NSOURCE ) // '_2006.generic.1x1'
 
+               ! Read data [atom C/yr]
                CALL READ_STREETS( FILENAME, 'ANTHSRCE', 9,
-     &                            TAU,       TEMP,      PERAREA=1 )
+     &                            TAU,       TEMP,      IS_MASS=1 )
       
                ACET = ACET + TEMP * ONOFF( NSOURCE ) 
      &                            * SCALE2020( NSOURCE )
@@ -904,7 +951,7 @@
 
                ! Read data [atom C/yr]
                CALL READ_STREETS( FILENAME, 'ANTHSRCE', 21,
-     &                            TAU,       TEMP,      PERAREA=1 )
+     &                            TAU,       TEMP,      IS_MASS=1 )
       
                C2H6 = C2H6 + TEMP * ONOFF( NSOURCE )
      &                            * SCALE2020( NSOURCE )
@@ -921,7 +968,7 @@
 
                ! Read data [atom C/yr]
                CALL READ_STREETS( FILENAME, 'ANTHSRCE', 20,
-     &                            TAU,       TEMP,      PERAREA=1 )
+     &                            TAU,       TEMP,      IS_MASS=1 )
       
                CH2O = CH2O + TEMP * ONOFF( NSOURCE )
      &                            * SCALE2020( NSOURCE )
@@ -937,7 +984,7 @@
    
                ! Read data [atom C/yr]
                CALL READ_STREETS( FILENAME, 'ANTHSRCE', 19,
-     &                            TAU,       TEMP,      PERAREA=1 )
+     &                            TAU,       TEMP,      IS_MASS=1 )
 
                C3H8 = C3H8 + TEMP * ONOFF( NSOURCE )
      &                            * SCALE2020( NSOURCE )
@@ -954,7 +1001,7 @@
 
                ! Read data [atom C/yr]
                CALL READ_STREETS( FILENAME, 'ANTHSRCE', 18,
-     &                            TAU,       TEMP,      PERAREA=1 )
+     &                            TAU,       TEMP,      IS_MASS=1 )
          
                PRPE = PRPE + TEMP * ONOFF( NSOURCE )
      &                            * SCALE2020( NSOURCE )
@@ -971,7 +1018,7 @@
 
                ! Read data [atom C/yr]
                CALL READ_STREETS( FILENAME, 'ANTHSRCE', 11,
-     &                            TAU,       TEMP,      PERAREA=1 )
+     &                            TAU,       TEMP,      IS_MASS=1 )
          
                ALD2 = ALD2 + TEMP * ONOFF( NSOURCE )
      &                            * SCALE2020( NSOURCE )
@@ -989,7 +1036,7 @@
 
                ! Read data [atom C/yr]
                CALL READ_STREETS( FILENAME, 'ANTHSRCE', 10,
-     &                            TAU,       TEMP,      PERAREA=1 )
+     &                            TAU,       TEMP,      IS_MASS=1 )
    
                MEK = MEK + TEMP * ONOFF( NSOURCE )
      &                          * SCALE2020( NSOURCE )
@@ -1006,7 +1053,7 @@
 
                ! Read data [atom C/yr]
                CALL READ_STREETS( FILENAME, 'ANTHSRCE', 5,
-     &                            TAU,       TEMP,      PERAREA=1 )
+     &                            TAU,       TEMP,      IS_MASS=1 )
       
                ALK4 = ALK4 + TEMP * ONOFF( NSOURCE )
      &                            * SCALE2020( NSOURCE )
@@ -1044,18 +1091,41 @@
       CALL TOTAL_ANTHRO_Tg( SIM_YEAR, BASE_YEAR )
 
 #if defined( DEVEL )
-      EMISSIONS(:,:,IDTNOX)  = EMISSIONS(:,:,IDTNOX)  + NOX
-      EMISSIONS(:,:,IDTCO)   = EMISSIONS(:,:,IDTCO)   + CO
-      EMISSIONS(:,:,IDTSO2)  = EMISSIONS(:,:,IDTSO2)  + SO2
-      EMISSIONS(:,:,IDTNH3)  = EMISSIONS(:,:,IDTNH3)  + NH3
-      EMISSIONS(:,:,IDTACET) = EMISSIONS(:,:,IDTACET) + ACET
-      EMISSIONS(:,:,IDTC2H6) = EMISSIONS(:,:,IDTC2H6) + C2H6
-      EMISSIONS(:,:,IDTCH2O) = EMISSIONS(:,:,IDTCH2O) + CH2O
-      EMISSIONS(:,:,IDTC3H8) = EMISSIONS(:,:,IDTC3H8) + C3H8
-      EMISSIONS(:,:,IDTPRPE) = EMISSIONS(:,:,IDTPRPE) + PRPE
-      EMISSIONS(:,:,IDTALD2) = EMISSIONS(:,:,IDTALD2) + ALD2
-      EMISSIONS(:,:,IDTMEK)  = EMISSIONS(:,:,IDTMEK)  + MEK
-      EMISSIONS(:,:,IDTALK4) = EMISSIONS(:,:,IDTALK4) + ALK4
+      State_Chm%TRAC_TEND(:,:,1,IDTNO )  = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTNO )  + NOX
+
+      State_Chm%TRAC_TEND(:,:,1,IDTCO)   = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTCO)   + CO
+
+      State_Chm%TRAC_TEND(:,:,1,IDTSO2)  = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTSO2)  + SO2
+
+      State_Chm%TRAC_TEND(:,:,1,IDTNH3)  = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTNH3)  + NH3
+
+      State_Chm%TRAC_TEND(:,:,1,IDTACET) = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTACET) + ACET
+
+      State_Chm%TRAC_TEND(:,:,1,IDTC2H6) = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTC2H6) + C2H6
+
+      State_Chm%TRAC_TEND(:,:,1,IDTCH2O) = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTCH2O) + CH2O
+
+      State_Chm%TRAC_TEND(:,:,1,IDTC3H8) = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTC3H8) + C3H8
+
+      State_Chm%TRAC_TEND(:,:,1,IDTPRPE) = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTPRPE) + PRPE
+
+      State_Chm%TRAC_TEND(:,:,1,IDTALD2) = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTALD2) + ALD2
+
+      State_Chm%TRAC_TEND(:,:,1,IDTMEK)  = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTMEK)  + MEK
+
+      State_Chm%TRAC_TEND(:,:,1,IDTALK4) = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTALK4) + ALK4
 #endif
 
       ! Return to calling program
@@ -1064,7 +1134,7 @@
 !------------------------------------------------------------------------------
 
       SUBROUTINE READ_STREETS( FILENAME, CATEGORY, TRACERN, TAU, ARR,
-     $                         PERAREA )
+     $                         IS_MASS )
 !
 !******************************************************************************
 !     Subroutine READ_STREETS reads data from one STREETS data file
@@ -1091,6 +1161,7 @@
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in calls to map_a2a
 !  03 Jul 2012 - R. Yantosca - Now call MAP_A2A w/ proper # of lat sines
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1105,7 +1176,7 @@
       ! Arguments
       CHARACTER(LEN=*), INTENT(IN)    :: FILENAME, CATEGORY
       INTEGER,          INTENT(IN)    :: TRACERN
-      INTEGER,          INTENT(IN)    :: PERAREA           ! For MAP_A2A regrid
+      INTEGER,          INTENT(IN)    :: IS_MASS           ! For MAP_A2A regrid
       REAL*8,           INTENT(INOUT) :: ARR(IIPAR,JJPAR)
       REAL*8,           INTENT(IN)    :: TAU
       
@@ -1181,10 +1252,11 @@
       LLFILENAME = TRIM( DATA_DIR_1x1) //
      &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc' 
 
+
       ! Regrid from GENERIC 1x1 --> current model resolution
       INGRID => GEN_1x1
       CALL DO_REGRID_A2A( LLFILENAME, I1x1, J1x1-1, 
-     &                    INGRID,     ARR,  PERAREA,
+     &                    INGRID,     ARR,  IS_MASS,
      &                    netCDF=.TRUE.              )
 
       ! Free pointer
@@ -1195,7 +1267,7 @@
 !------------------------------------------------------------------------------
 
       SUBROUTINE READ_STREETS_05x0666( FILENAME, CATEGORY, TRACERN,
-     $                                 TAU,      ARR )
+     $                                 TAU,      ARR,      IS_MASS  )
 !
 !******************************************************************************
 !     Subroutine READ_STREETS_05x0666 reads data from one STREETS data file
@@ -1218,6 +1290,7 @@
 !        still correct.
 !  03 Jul 2012 - R. Yantosca - Modified to use the proper # of lat sines
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Added IS_MASS as input argument
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1225,20 +1298,21 @@
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
 
-      USE CMN_SIZE_MOD        ! Size parameters
+      USE CMN_SIZE_MOD         ! Size parameters
   
       ! Arguments
       CHARACTER(LEN=*), INTENT(IN)    :: FILENAME, CATEGORY
       INTEGER,          INTENT(IN)    :: TRACERN
       REAL*8,           INTENT(INOUT) :: ARR(IIPAR,JJPAR)
       REAL*8,           INTENT(IN)    :: TAU
-      REAL*8,           POINTER       :: INGRID(:,:) => NULL()
-      REAL*8                          :: OUTGRID(IIPAR,JJPAR)
-      CHARACTER(LEN=255)              :: LLFILENAME
+      INTEGER,          INTENT(IN)    :: IS_MASS           ! For MAP_A2A regrid
 
       ! Local variables
       REAL*4                          :: ARRAY(I05x0666,J05x0666,1)
-      REAL*8, TARGET                  :: GEOS_05x0666(I05x0666,J05x0666)
+      REAL*8,           TARGET        :: GEOS_05x0666(I05x0666,J05x0666)
+      REAL*8,           POINTER       :: INGRID(:,:) => NULL()
+      REAL*8                          :: OUTGRID(IIPAR,JJPAR)
+      CHARACTER(LEN=255)              :: LLFILENAME
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -1260,7 +1334,7 @@
       ! Regrid from global 0.5 x 0.666 to current nested grid
       INGRID => GEOS_05x0666
       CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666,
-     &                    INGRID,     OUTGRID,  PERAREA=1,
+     &                    INGRID,     OUTGRID,  IS_MASS,
      &                    netCDF=.TRUE.                    )
 
       ARR = OUTGRID
@@ -1270,11 +1344,8 @@
 
 !------------------------------------------------------------------------------
 
-#if defined( DEVEL )
-      SUBROUTINE EMISS_STREETS_ANTHRO_05x0666(EMISSIONS)
-#else
-      SUBROUTINE EMISS_STREETS_ANTHRO_05x0666
-#endif
+      SUBROUTINE EMISS_STREETS_ANTHRO_05x0666( am_I_Root, Input_Opt,
+     &                                         State_Met, State_Chm, RC)
 !
 !******************************************************************************
 !  Subroutine EMISS_STREETS_ANTHRO_05x0666 reads the David Streets et al 
@@ -1290,34 +1361,52 @@
 !     (3) Bug fixe : we call only read_streets_05x0666. (ccc, 3/11/09)
 !     (4) Bug fix : use Streets 2006 emissions for years 2001-2005 (as in global
 !     simulation (jaf, 1/30/12)
-!     (5) Bug fix : overwrite NOx, SO2, and CO emissions over water (ship tracks)
-!     with zero for Streets 2000 emissions since these are double counted 
-!     (jaf, gcmv, amv, 1/30/12)
-!
-!  NOTES:
+!     (5) Bug fix : overwrite NOx, SO2, and CO emissions over water (ship
+!     tracks) with zero for Streets 2000 emissions since these are double
+!     counted (jaf, gcmv, amv, 1/30/12)
+!  03 Jan 2013 - M. Payer    - Now pass IS_MASS as  argument when calling
+!                              READ_STREETS_05x0666
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD,        ONLY : GET_TAU0,         READ_BPCH2
-      USE DAO_MOD,          ONLY : FROCEAN ! jaf
-      USE LOGICAL_MOD,      ONLY : LFUTURE
-      USE TRACER_MOD,       ONLY : ITS_A_CO2_SIM,    ITS_A_CH4_SIM
-      USE DIRECTORY_MOD,    ONLY : DATA_DIR              
-      USE TIME_MOD,         ONLY : GET_MONTH, GET_YEAR  
-      USE TRACER_MOD,       ONLY : XNUMOL
-      USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR_05x0666_NESTED
+      USE BPCH2_MOD,          ONLY : GET_TAU0,         READ_BPCH2
+      USE DIRECTORY_MOD,      ONLY : DATA_DIR   
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState           
+      USE TIME_MOD,           ONLY : GET_MONTH, GET_YEAR  
+      USE TRACER_MOD,         ONLY : ITS_A_CO2_SIM,    ITS_A_CH4_SIM
+      USE TRACER_MOD,         ONLY : XNUMOL
+      USE SCALE_ANTHRO_MOD,   ONLY : GET_ANNUAL_SCALAR_05x0666_NESTED
 
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_O3_MOD         ! FSCALYR
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_O3_MOD               ! FSCALYR
 
 #if defined( DEVEL )
-      USE TRACER_MOD,       ONLY : N_TRACERS
-      USE TRACERID_MOD,     ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
-      USE TRACERID_MOD,     ONLY : IDTACET, IDTALK4, IDTC2H6
-      USE TRACERID_MOD,     ONLY : IDTCH2O, IDTMEK,  IDTALD2
-      USE TRACERID_MOD,     ONLY : IDTPRPE, IDTC3H8
+      USE TRACERID_MOD,       ONLY : IDTNO,   IDTCO,   IDTSO2, IDTNH3
+      USE TRACERID_MOD,       ONLY : IDTACET, IDTALK4, IDTC2H6
+      USE TRACERID_MOD,       ONLY : IDTCH2O, IDTMEK,  IDTALD2
+      USE TRACERID_MOD,       ONLY : IDTPRPE, IDTC3H8
 #endif
-      ! Local variables
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE              :: FIRST = .TRUE.
       INTEGER                    :: BASE_YEAR,       SIM_YEAR
       INTEGER                    :: I, J !jaf 
@@ -1340,14 +1429,21 @@
       ! TAUs
       REAL*8                     :: TAU2000,       TAU2004,      TAU2006
       REAL*8                     :: TAUMONTH_2001, TAUMONTH_2004, TAU
-
-#if defined( DEVEL )
-      REAL*8,INTENT(INOUT)       :: EMISSIONS(IIPAR,JJPAR,N_TRACERS)
-#endif
       
+      ! For fields from Input_Opt
+      LOGICAL         :: LFUTURE
+      INTEGER         :: N_TRACERS
+
       !=================================================================
       ! EMISS_STREETS_ANTHRO begins here!
       !=================================================================
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LFUTURE   = Input_Opt%LFUTURE
+      N_TRACERS = Input_Opt%N_TRACERS
 
       ! First-time initialization
       IF ( FIRST ) THEN
@@ -1432,7 +1528,7 @@
       IF (.NOT. IS_2006) THEN
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            IF ( FROCEAN(I,J) == 1d0 ) SCALOC(I,J) = 0d0
+            IF ( State_Met%FROCEAN(I,J) == 1d0 ) SCALOC(I,J) = 0d0
          ENDDO
          ENDDO
       ENDIF 
@@ -1495,9 +1591,9 @@
 
          BASE_YEAR = 2000
 
-         ! Read data
+         ! Read data [kg/yr]
          CALL READ_STREETS_05x0666( FILENAME, 'CH4-EMIS', 1,
-     $                              TAU2000,   CH4 )
+     $                              TAU2000,   CH4,       IS_MASS=1 )
 
 
       ELSE IF ( ITS_A_CO2_SIM() ) THEN
@@ -1513,9 +1609,9 @@
 
          BASE_YEAR = 2000
          
-         ! Read data
+         ! Read data [kg/yr]
          CALL READ_STREETS_05x0666( FILENAME, 'CO2-SRCE', 1,
-     $                              TAU2000,   CO2 )
+     &                              TAU2000,   CO2,       IS_MASS=1 )
 
       ELSE
 
@@ -1547,9 +1643,9 @@
 
             ENDIF
 
-            ! Read data
+            ! Read data [kg/yr]
             CALL READ_STREETS_05x0666( FILENAME, 'ANTHSRCE', 1,
-     $                                 TAU,       TEMP )
+     &                                 TAU,       TEMP,      IS_MASS=1 )
 
             ! Set emissions over water (ship emissions) to zero (jaf, 1/31/12)
             !NOX = NOX + TEMP * ONOFF( NSOURCE ) * SCALE2020( NSOURCE )
@@ -1593,8 +1689,10 @@
 
          ENDIF
          
-         CALL READ_STREETS_05x0666( FILENAME, 'RATIO-2D',
-     $                              71,        TAUMONTH_2004, TEMP )
+         ! Read data [unitless]
+         CALL READ_STREETS_05x0666( FILENAME, 'RATIO-2D', 
+     &                              71,        TAUMONTH_2004,
+     &                              TEMP,      IS_MASS=0 )
 
          NOX = NOX * TEMP
 
@@ -1609,9 +1707,10 @@
                FILENAME  = TRIM( STREETS_DIR ) // 'Streets_CO_'// 
      &                     SOURCES( NSOURCE ) // '_2006.geos5.05x0666'
 
-               ! Read data
-               CALL READ_STREETS_05x0666( FILENAME, 'ANTHSRCE', 4,
-     $                                    TAU2006,   TEMP )
+               ! Read data [kg/yr]
+               CALL READ_STREETS_05x0666( FILENAME, 'ANTHSRCE',
+     &                                    4,         TAU2006,
+     &                                    TEMP,      IS_MASS=1 )
 
                ! No scaling for 2006-2020
                CO = CO + TEMP * ONOFF( NSOURCE )
@@ -1623,9 +1722,11 @@
             ! those data, only China features variability (phs, 12/2/08)
             FILENAME  = TRIM( STREETS_DIR ) // 
      &                 'Streets_2001_CO_MonthFctr_total.geos5.05x0666'
-            
-            CALL READ_STREETS_05x0666( FILENAME,      'RATIO-2D',  72,
-     $                                 TAUMONTH_2001,  TEMP     )  
+
+            ! Read data [unitless]
+            CALL READ_STREETS_05x0666( FILENAME, 'RATIO-2D',
+     &                                 72,        TAUMONTH_2001,
+     &                                 TEMP,      IS_MASS=0 )  
 
             CO = CO * TEMP
 
@@ -1643,9 +1744,9 @@
             FILENAME  = TRIM( STREETS_DIR ) //
      &                  'Streets_CO_FF_2000.geos5.05x0666'
 
-            ! Read data
+            ! Read data [kg/yr]
             CALL READ_STREETS_05x0666( FILENAME, 'ANTHSRCE', 4,
-     $                                 TAU2000,   CO )
+     &                                 TAU2000,   CO,        IS_MASS=1 )
 
             ! Set emissions over water (ship emissions) to zero (jaf, 1/31/12)
             ! Only necessary for 2000 emissions
@@ -1660,9 +1761,10 @@
             FILENAME  = TRIM( STREETS_DIR ) //
      &                  'Streets_2001CO_monthly_ff.geos5.05x0666'
 
-            ! Read data
-            CALL READ_STREETS_05x0666( FILENAME,      'ANTHSRCE', 4,
-     $                                 TAUMONTH_2001, TEMP )
+            ! Read data [kg/yr]
+            CALL READ_STREETS_05x0666( FILENAME, 'ANTHSRCE',
+     $                                 4,         TAUMONTH_2001,
+     &                                 TEMP,      IS_MASS=1 )
 
             ! (amv, 10/29/2009)
             CALL GET_ANNUAL_SCALAR_05x0666_NESTED( 72,    2001,
@@ -1674,6 +1776,8 @@
             
             WHERE ( MASK_CHINA > 0 ) CO = TEMP
 
+            ! switch and scale
+            CO = CO * ONOFF( 1 )
 
          ENDIF
             
@@ -1703,9 +1807,9 @@
 
             ENDIF
                
-            ! Read data
+            ! Read data [kg/yr]
             CALL READ_STREETS_05x0666( FILENAME, 'ANTHSRCE', 26,
-     $                                 TAU,       TEMP )
+     $                                 TAU,       TEMP,      IS_MASS=1 )
 
             ! Set emissions over water (ship emissions) to zero (jaf, 1/31/12)
             !SO2 = SO2 + TEMP * ONOFF( NSOURCE )
@@ -1740,9 +1844,10 @@
             FILENAME  = TRIM( STREETS_DIR_2000 ) //
      &                 'Streets_NH3_FF_2000.geos5.05x0666'
 
+            ! Read data [kg/yr]
             ! Old file has NH3 as tracer #30
             CALL READ_STREETS_05x0666( FILENAME, 'ANTHSRCE', 30, 
-     $                                 TAU2000, NH3 )
+     $                                 TAU2000,   NH3,       IS_MASS=1 )
 
             ! switch and scale
             NH3 = NH3 * ONOFF( 1 ) * ONOFFNH3
@@ -1766,8 +1871,10 @@
                FILENAME  = TRIM( STREETS_DIR ) // 'Streets_ACET_'// 
      &                     SOURCES( NSOURCE ) // '_2006.geos5.05x0666'
 
-               CALL READ_STREETS_05x0666( FILENAME, 'ANTHSRCE', 9, 
-     &                                    TAU, TEMP )
+               ! Read data [atom C/yr]
+               CALL READ_STREETS_05x0666( FILENAME, 'ANTHSRCE', 
+     &                                    9,         TAU,
+     &                                    TEMP,      IS_MASS=1 )
       
                ACET = ACET + TEMP * ONOFF( NSOURCE ) 
      &                            * SCALE2020( NSOURCE )
@@ -1783,8 +1890,9 @@
      &                     SOURCES( NSOURCE ) // '_2006.geos5.05x0666'
 
                ! Read data [atom C/yr]
-               CALL READ_STREETS_05x0666( FILENAME, 'ANTHSRCE', 21, 
-     &                                    TAU, TEMP )
+               CALL READ_STREETS_05x0666( FILENAME, 'ANTHSRCE',
+     &                                    21,        TAU,
+     &                                    TEMP,      IS_MASS=1 )
       
                C2H6 = C2H6 + TEMP * ONOFF( NSOURCE )
      &                            * SCALE2020( NSOURCE )
@@ -1800,8 +1908,9 @@
      &                     SOURCES( NSOURCE ) // '_2006.geos5.05x0666'
 
                ! Read data [atom C/yr]
-               CALL READ_STREETS_05x0666( FILENAME, 'ANTHSRCE', 20, 
-     &                                    TAU, TEMP )
+               CALL READ_STREETS_05x0666( FILENAME, 'ANTHSRCE',
+     &                                    20,        TAU,
+     &                                    TEMP,      IS_MASS=1 )
       
                CH2O = CH2O + TEMP * ONOFF( NSOURCE )
      &                            * SCALE2020( NSOURCE )
@@ -1816,8 +1925,9 @@
      &                     SOURCES( NSOURCE ) // '_2006.geos5.05x0666'
    
                ! Read data [atom C/yr]
-               CALL READ_STREETS_05x0666( FILENAME, 'ANTHSRCE', 19, 
-     &                                    TAU, TEMP )
+               CALL READ_STREETS_05x0666( FILENAME, 'ANTHSRCE',
+     &                                    19,        TAU,
+     &                                    TEMP,      IS_MASS=1 )
 
                C3H8 = C3H8 + TEMP * ONOFF( NSOURCE )
      &                            * SCALE2020( NSOURCE )
@@ -1833,8 +1943,9 @@
      &                     SOURCES( NSOURCE ) // '_2006.geos5.05x0666'
 
                ! Read data [atom C/yr]
-               CALL READ_STREETS_05x0666( FILENAME, 'ANTHSRCE', 18, 
-     &                                    TAU, TEMP )
+               CALL READ_STREETS_05x0666( FILENAME, 'ANTHSRCE',
+     &                                    18,        TAU,
+     &                                    TEMP,      IS_MASS=1 )
          
                PRPE = PRPE + TEMP * ONOFF( NSOURCE )
      &                            * SCALE2020( NSOURCE )
@@ -1850,8 +1961,9 @@
      &                     SOURCES( NSOURCE ) // '_2006.geos5.05x0666'
 
                ! Read data [atom C/yr]
-               CALL READ_STREETS_05x0666( FILENAME, 'ANTHSRCE', 11, 
-     &                                    TAU, TEMP )
+               CALL READ_STREETS_05x0666( FILENAME, 'ANTHSRCE',
+     &                                    11,        TAU,
+     &                                    TEMP,      IS_MASS=1 )
          
                ALD2 = ALD2 + TEMP * ONOFF( NSOURCE )
      &                            * SCALE2020( NSOURCE )
@@ -1868,8 +1980,9 @@
      &                     SOURCES( NSOURCE ) // '_2006.geos5.05x0666'
 
                ! Read data [atom C/yr]
-               CALL READ_STREETS_05x0666( FILENAME, 'ANTHSRCE', 10, 
-     &                                    TAU, TEMP )
+               CALL READ_STREETS_05x0666( FILENAME, 'ANTHSRCE',
+     &                                    10,        TAU,
+     &                                    TEMP,      IS_MASS=1 )
    
                MEK = MEK + TEMP * ONOFF( NSOURCE )
      &                          * SCALE2020( NSOURCE )
@@ -1885,8 +1998,9 @@
      &                     SOURCES( NSOURCE ) // '_2006.geos5.05x0666'
 
                ! Read data [atom C/yr]
-               CALL READ_STREETS_05x0666( FILENAME, 'ANTHSRCE', 5, 
-     &                                    TAU, TEMP )
+               CALL READ_STREETS_05x0666( FILENAME, 'ANTHSRCE',
+     &                                    5,         TAU,
+     &                                    TEMP,      IS_MASS=1 )
       
                ALK4 = ALK4 + TEMP * ONOFF( NSOURCE )
      &                            * SCALE2020( NSOURCE )
@@ -1927,18 +2041,41 @@
       CALL TOTAL_ANTHRO_Tg( SIM_YEAR, BASE_YEAR )
 
 #if defined( DEVEL )
-      EMISSIONS(:,:,IDTNOX)  = EMISSIONS(:,:,IDTNOX)  + NOX
-      EMISSIONS(:,:,IDTCO)   = EMISSIONS(:,:,IDTCO)   + CO
-      EMISSIONS(:,:,IDTSO2)  = EMISSIONS(:,:,IDTSO2)  + SO2
-      EMISSIONS(:,:,IDTNH3)  = EMISSIONS(:,:,IDTNH3)  + NH3
-      EMISSIONS(:,:,IDTACET) = EMISSIONS(:,:,IDTACET) + ACET
-      EMISSIONS(:,:,IDTC2H6) = EMISSIONS(:,:,IDTC2H6) + C2H6
-      EMISSIONS(:,:,IDTCH2O) = EMISSIONS(:,:,IDTCH2O) + CH2O
-      EMISSIONS(:,:,IDTC3H8) = EMISSIONS(:,:,IDTC3H8) + C3H8
-      EMISSIONS(:,:,IDTPRPE) = EMISSIONS(:,:,IDTPRPE) + PRPE
-      EMISSIONS(:,:,IDTALD2) = EMISSIONS(:,:,IDTALD2) + ALD2
-      EMISSIONS(:,:,IDTMEK)  = EMISSIONS(:,:,IDTMEK)  + MEK
-      EMISSIONS(:,:,IDTALK4) = EMISSIONS(:,:,IDTALK4) + ALK4
+      State_Chm%TRAC_TEND(:,:,1,IDTNO)   = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTNO)   + NOX
+
+      State_Chm%TRAC_TEND(:,:,1,IDTCO)   = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTCO)   + CO
+
+      State_Chm%TRAC_TEND(:,:,1,IDTSO2)  = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTSO2)  + SO2
+
+      State_Chm%TRAC_TEND(:,:,1,IDTNH3)  = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTNH3)  + NH3
+
+      State_Chm%TRAC_TEND(:,:,1,IDTACET) = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTACET) + ACET
+
+      State_Chm%TRAC_TEND(:,:,1,IDTC2H6) = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTC2H6) + C2H6
+
+      State_Chm%TRAC_TEND(:,:,1,IDTCH2O) = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTCH2O) + CH2O
+
+      State_Chm%TRAC_TEND(:,:,1,IDTC3H8) = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTC3H8) + C3H8
+
+      State_Chm%TRAC_TEND(:,:,1,IDTPRPE) = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTPRPE) + PRPE
+
+      State_Chm%TRAC_TEND(:,:,1,IDTALD2) = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTALD2) + ALD2
+
+      State_Chm%TRAC_TEND(:,:,1,IDTMEK)  = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTMEK)  + MEK
+
+      State_Chm%TRAC_TEND(:,:,1,IDTALK4) = 
+     &State_Chm%TRAC_TEND(:,:,1,IDTALK4) + ALK4
 #endif
 
       END SUBROUTINE EMISS_STREETS_ANTHRO_05x0666
@@ -2009,6 +2146,8 @@
 !     (2 ) Updated information output. Account for NH3 2000 used for all
 !          simulation years (phs, 2/27/09) 
 !  22 Mar 2012 - M. Payer    - Remove print for C2H6 emissions.
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2116,7 +2255,7 @@
 
             
          ! Print totals in [kg/month]
-         WRITE( 6, 110 ) 'NOx  ', YEAR, MONTH, T_NOx,  '[Tg N   ]'
+         WRITE( 6, 110 ) 'NO   ', YEAR, MONTH, T_NOx,  '[Tg N   ]'
          WRITE( 6, 110 ) 'CO   ', YEAR, MONTH, T_CO,   '[Tg CO  ]'
          WRITE( 6, 110 ) 'SO2  ', YEAR, MONTH, T_SO2,  '[Tg S   ]'
          WRITE( 6, 110 ) 'NH3  ', YEAR, MONTH, T_NH3,  '[Tg NH3 ]'
@@ -2168,6 +2307,7 @@
 !  15 Aug 2012 - M. Payer    - Fixed minor bugs in regridding of mask; Also
 !                              set mask to 1 if greater than 0 (L. Murray)
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2216,7 +2356,7 @@
  
       ! Regrid from GENERIC 1x1 to current model resolution
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,       J1x1-1, 
-     &                    GEN_1x1,    MASK_CHINA, PERAREA=0,
+     &                    GEN_1x1,    MASK_CHINA, IS_MASS=0,
      &                    netCDF=.TRUE.                      )
 
 
@@ -2243,7 +2383,7 @@
 
       ! Regrid from GENERIC 1x1 GRID to current model resolution
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,         J1x1-1, 
-     &                    GEN_1x1,    MASK_SE_ASIA, PERAREA=0,
+     &                    GEN_1x1,    MASK_SE_ASIA, IS_MASS=0,
      &                    netCDF=.TRUE.                        )
 
 
