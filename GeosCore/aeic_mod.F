@@ -346,13 +346,17 @@
 !
 !  NOTES: 
 !  (1 ) 
+!  31 Jul 2013 - M. Sulprizio- Now add aircraft NOx and SO2 emissions to
+!                              AD32 and AD13 arrays for diagnostics
 !******************************************************************************
 !
       ! References to F90 modules
+      USE DIAG_MOD,           ONLY : AD32_ac,     AD13_SO2_ac
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE PRESSURE_MOD,       ONLY : GET_AP,      GET_BP
       USE TIME_MOD,           ONLY : GET_MONTH,   GET_TS_EMIS
       USE TRACERID_MOD
@@ -372,7 +376,8 @@
       INTEGER, SAVE       :: LAST_MONTH = 0
       LOGICAL, SAVE       :: FIRST = .TRUE.
       REAL*8, SAVE        :: FBSUM = 0d0
-      
+      REAL*8              :: AREA_CM2
+
       ! For fields from Input_Opt
       LOGICAL             :: LVARTROP
       REAL*8              :: XNUMOL(Input_Opt%N_TRACERS)
@@ -498,6 +503,24 @@
                 STT(I,J,L,IDTPRPE) = STT(I,J,L,IDTPRPE) +
      &               (TMPMULT*ACF_PRPE)
              ENDIF
+
+             ! Surface area [cm2]
+             AREA_CM2 = GET_AREA_CM2( I, J, L )
+
+             ! ND32 -- NOx aircraft emissions in [molec/cm2]
+             IF ( ND32 > 0 ) THEN
+                AD32_ac(I,J,L) = AD32_ac(I,J,L) +
+     &             (AEIC_EMIT(I,J,L,NOx_INDEX)  *
+     &              XNUMOL(IDTNO2) / AREA_CM2 )
+             ENDIF
+
+             ! ND13 -- SO2 aircraft emissions in [kg S/box/timestep]
+             IF ( ND13 > 0 ) THEN 
+                AD13_SO2_ac(I,J,L) = AD13_SO2_ac(I,J,L) +
+     &          ((AEIC_EMIT(I,J,L,FB_INDEX)*FSC*DTSRCE*32.0d0/64.0d0)
+     &           *(1.d0-SULFCONV))
+            ENDIF
+
          ENDDO  ! L
       ENDDO     ! I 
       ENDDO     ! J
