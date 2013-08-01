@@ -184,6 +184,7 @@
       LOGICAL :: LSETNOYSTRAT    ! Initialize strat. NOx/HNO3 to generic conditions?
       LOGICAL :: LSETOCS         ! Initialize OCS to generic conditions?
       LOGICAL :: LSETH2SO4       ! Initialize H2SO4 to generic conditions?
+      LOGICAL :: LGEOENG         ! Apply geoengineering emissions?
 
       !%%%% Transport and strat BC's %%%%
       LOGICAL :: LFILL           ! Fill negative values in TPCORE?

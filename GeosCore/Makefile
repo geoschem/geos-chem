@@ -359,7 +359,7 @@ ch3i_mod.o                  : ch3i_mod.F                                     \
                               dao_mod.o               diag_mod.o             \
                               diag_pl_mod.o           logical_mod.o          \
                               tracerid_mod.o          tracer_mod.o           \
-                              uvalbedo_mod.o
+                              uvalbedo_mod.o          fast_jx_mod.o
 
 chemdr.o                    : chemdr.F                                       \
                               aerosol_mod.o           comode_mod.o           \
@@ -971,7 +971,8 @@ setemis.o                   : setemis.F                                      \
 
 gmistrat_mod.o              : gmistrat_mod.F          logical_mod.o          \
                               tracer_mod.o            tracerid_mod.o         \
-                              global_ch4_mod.o        chemgrid_mod.o
+                              global_ch4_mod.o        chemgrid_mod.o         \
+                              fast_jx_mod.o
 
 setmodel.o                  : setmodel.F
 

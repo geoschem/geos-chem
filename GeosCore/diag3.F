@@ -1627,14 +1627,20 @@
             ! 55          = GLYX
             ! 56          = MGLY
             ! -1          = O2
+            ! -2          = NO
+            ! -3          = NO3
             ! N_TRACERS+1 = O3 & OH
             !
             ! (ccc, bmy, 12/15/08)
             !-----------------------------------------------------------------
             IF ( NN >= N_TRACERS+1 ) THEN
                MM = 5    ! Write 'O3' and 'OH'
-            ELSEIF ( NN .lt. 0 ) THEN
+            ELSEIF ( NN == -1 ) THEN
                MM = 15   ! Write 'O2'
+            ELSEIF ( NN == -2 ) THEN
+               MM = 17   ! 'NO'
+            ELSEIF ( NN == -3 ) THEN
+               MM = 18   ! 'NO3'
             ELSE
                SELECT CASE ( TRIM( TRACER_NAME(NN) ) )
                   CASE ( 'NOx', 'HCN', 'CH3I' )

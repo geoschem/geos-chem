@@ -1832,6 +1832,10 @@ c new OH+CO rate from JPL2006.
                INDEX = 15
             CASE ( 'N2O' )
                INDEX = 16
+            CASE ( 'NO' )
+               INDEX = 17
+            CASE ( 'NO3' )
+               INDEX = 18
             CASE DEFAULT
                INDEX = 0
          END SELECT
@@ -1867,16 +1871,18 @@ c new OH+CO rate from JPL2006.
                ! Use AD22 array for J-value diagnostic (bmy, 9/30/99)
                IF ( LTJV(IX,IY) > 0 .and. IZ <= LD22 ) THEN
                   IF ( INDEX == 5 ) THEN
-                     ! Store unadjusted J-O3 as AD22(:,:,:,5)
-                     AD22(IX,IY,IZ,5) =
-     &                    AD22(IX,IY,IZ,5) + DUMMY(KLOOP)
+                     ! Store unadjusted total J-O3 as AD22(:,:,:,5)
 #if !defined( GMISTRAT )
+                     AD22(IX,IY,IZ,5) = AD22(IX,IY,IZ,5) + DUMMY(KLOOP)
                      ! Store POH as AD22(:,:,:,6)
                      AD22(IX,IY,IZ,6) =
      &                    AD22(IX,IY,IZ,6) + RRATE(KLOOP,NKN)
 #else
-                     ! POH is now from O1D rxn!
-                     AD22(IX,IY,IZ,6) = 0d0
+                     AD22(IX,IY,IZ,5) = DUMMY(KLOOP)
+                     ! POH is now from O1D rxn; store 
+                     ! total O3 phot rate here instead
+                     AD22(IX,IY,IZ,6) = AD22(IX,IY,IZ,6) +
+     &                                     RRATE(KLOOP,NKN)
 #endif
                   ELSEIF ( INDEX == 15 ) THEN
                      ! Store unadjusted O2

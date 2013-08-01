@@ -1645,6 +1645,9 @@
       USE TRACERID_MOD,  ONLY : IDTCH4, IDTOCS, IDTCFCX
       USE TRACERID_MOD,  ONLY : IDTCl, IDTN2O, IDTBr2, IDTH2O
       USE GMISTRAT_MOD,  ONLY : TRAC_FILE_ROOT
+      ! SDE 2013-07-28
+      USE GMISTRAT_MOD,  ONLY : GE_TGS, GE_PCEIL, GE_PBASE
+      USE GMISTRAT_MOD,  ONLY : GE_MINLAT, GE_MAXLAT
 !
 ! !INPUT PARAMETERS:
 !
@@ -2109,8 +2112,32 @@
 
       TRAC_FILE_ROOT = TRIM(TRAC_FILE_ROOT)
 
-      ! Separator line
+      ! Apply geoengineering emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:94' )
+      READ( SUBSTRS(1:N), * ) LGEOENG
+
+      ! Total geoeongeering emissions (TgS/yr)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:95' )
+      READ( SUBSTRS(1:N), * ) GE_TGS
+
+      ! Geoengineering pressure base (hPa)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:96' )
+      READ( SUBSTRS(1:N), * ) GE_PBASE
+
+      ! Geoengineering pressure ceiling (hPa)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:97' )
+      READ( SUBSTRS(1:N), * ) GE_PCEIL
+
+      ! Lower latitude edge (deg)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:98' )
+      READ( SUBSTRS(1:N), * ) GE_MINLAT
+
+      ! Upper latitude edge (deg)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:99' )
+      READ( SUBSTRS(1:N), * ) GE_MAXLAT
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:100' )
 
       !=================================================================
       ! Error check logical flags
@@ -2146,6 +2173,11 @@
       LSHIPSO2          = ( LSHIPSO2       .and. LANTHRO   )
       LARCSHIP          = ( LARCSHIP       .and. LANTHRO   )
       LCOOKE            = ( LCOOKE         .and. LANTHRO   )
+      ! SDE 2013-07-28
+      LGEOENG           = ( LGEOENG        .and. LANTHRO   )
+#if !defined( GMISTRAT )
+      LGEOENG           = .FALSE.
+#endif
 
       ! Biogenic
       LMEGAN            = ( LMEGAN         .and. LBIOGENIC )
@@ -2627,6 +2659,14 @@
         WRITE( 6, 100 ) '      --> strat. H2SO4?     : ', LSETH2SO4
         WRITE( 6, 130 ) ' Directory for 2D data      : ',
      &                                        TRIM(TRAC_FILE_ROOT)
+        WRITE( 6, 100 ) 'Emit geoengineering SO2?    : ', LGEOENG
+        IF (LGEOENG) THEN
+           WRITE( 6, 120 ) '      --> TgS per year      : ', GE_TGS
+           WRITE( 6, 120 ) '      --> Base P (hPa)      : ', GE_PBASE
+           WRITE( 6, 120 ) '      --> Ceiling P (hPa)   : ', GE_PCEIL
+           WRITE( 6, 120 ) '      --> Min. latitude     : ', GE_MINLAT
+           WRITE( 6, 120 ) '      --> Max. latitude     : ', GE_MAXLAT
+        ENDIF
       ENDIF
 
       ! FORMAT statements
@@ -7228,6 +7268,7 @@
       LSOLIDPSC      = .FALSE.
       LHOMNUCNAT     = .FALSE.
       LPSCCHEM       = .FALSE.
+      LGEOENG        = .FALSE.
 
       !Specifically for CO2 simulation (R Nassar, 2009-03-02)
       LGENFF         = .FALSE.

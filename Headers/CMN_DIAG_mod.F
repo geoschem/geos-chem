@@ -68,7 +68,7 @@
       ! changed PD39 (wetdep) to 38 (jpp, 7/08/09)
       ! Now set PD46 to 16 (jpp, 6/7/09)
       ! Changed PD11 from 7 to 5 (efischer, mpayer, 3/19/12)
-      ! Changed PD22 from 14 to 16 for O2 and N2O (SDE 04/13/13)
+      ! Changed PD22 from 14 to 18 for O2 and N2O (SDE 04/13/13)
       ! Changed PD21 from 27 to 33 for strat aerosols (SDE 04/17/13)
       ! Changed PD43 from 5 to 6 for O1D (SDE 2013-07-15)
       !=================================================================
@@ -91,7 +91,7 @@
       INTEGER, PARAMETER :: PD19=0            
       INTEGER, PARAMETER :: PD20=0 
       INTEGER, PARAMETER :: PD21=33
-      INTEGER, PARAMETER :: PD22=16      !jpp (Br), SDE (O2,N2O) 4/24/2011-04/13/13
+      INTEGER, PARAMETER :: PD22=18      !jpp (Br), SDE (O2,N2O,NO,NO3) 4/24/2011-04/13/13
       INTEGER, PARAMETER :: PD23=0           
       INTEGER, PARAMETER :: PD24=NNPAR        
       INTEGER, PARAMETER :: PD25=NNPAR       

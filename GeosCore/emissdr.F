@@ -148,6 +148,9 @@
       USE COMMSOIL_MOD            ! Soil wetness variables
       USE CMN_DEP_MOD
 
+      USE GMISTRAT_MOD,      ONLY : EMIT_GEOENG
+      USE LOGICAL_MOD,       ONLY : LGEOENG
+
 #if defined( DEVEL )
       USE TRACERID_MOD,      ONLY : IDTNOX
       USE TRACER_MOD,        ONLY : N_TRACERS
@@ -436,6 +439,10 @@
 ! AIRCRAFT emissions [kg/box]
 !
             IF ( LAEIC .AND. I == 1 .AND. J == 1 ) CALL EMIT_AEIC
+!-----------------------------------------------------------------------------
+! GEOENGINEERING emissions [kg/box]
+!
+            IF ( LGEOENG .AND. I == 1 .AND. J == 1 ) CALL EMIT_GEOENG
 !-----------------------------------------------------------------------------
 ! NOx AND CO from biofuel combustion [kg/box]  
 !

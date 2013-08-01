@@ -4920,7 +4920,7 @@
             !------------------
 
             ! Number of tracers
-            NTRAC(22) = 16 ! Increase for Br2, O2 & N2O (SDE, 03/28/13)
+            NTRAC(22) = 18 ! Increase for Br2, O2 & N2O (SDE, 03/28/13)
 
             ! Loop over tracers
             DO T = 1, NTRAC(22)
@@ -4935,10 +4935,17 @@
                      NAME(T,22) = 'JH2O2'
                   CASE( 4  )
                      NAME(T,22) = 'JCH2O'
+#if defined( GMISTRAT )
+                  CASE( 5  )
+                     NAME(T,22) = 'JO3_O1D'
+                  CASE( 6  )
+                     NAME(T,22) = 'JO3_TOT'
+#else
                   CASE( 5  )
                      NAME(T,22) = 'JO3'
                   CASE( 6  )
                      NAME(T,22) = 'POH'
+#endif
                   CASE( 7  )
                      NAME(T,22) = 'JGLYX'
                   CASE( 8  )
@@ -4959,6 +4966,10 @@
                      NAME(T,22) = 'JO2'
                   CASE( 16 )
                      NAME(T,22) = 'JN2O'
+                  CASE( 17 )
+                     NAME(T,22) = 'JNO'
+                  CASE( 18 )
+                     NAME(T,22) = 'JNO3'
                  CASE DEFAULT
                   ! Nothing
                END SELECT
