@@ -410,7 +410,7 @@
 
          ! Directory with FINN emissions
          ! FINN_DIR = 'FINN_201301/daily/'
-         FINN_DIR = '/as/scratch/skim/FINN/daily/'
+         FINN_DIR = '/home/skim/FINN/FINN_files/daily/'
          TIME_STR = 'daily'
 
       ! MONTHLY data
