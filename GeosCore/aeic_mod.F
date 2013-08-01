@@ -256,83 +256,94 @@
       ! Re-zero output grid
       AEIC_EMIT = 0d0
 
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, EMIT_INDEX )
+!$OMP+PRIVATE( PBASE, PCEIL, TEMP, CURRBASE, CURRCEIL, AEIC_DONE )
+!$OMP+PRIVATE( ACARRAY_IN, DEPTHLVLAEIC, AEIC_CEIL, AEIC_BASE )
+!$OMP+PRIVATE( FRAC_AEIC, ACTIVEDEPTH, L_AEIC )
+      DO J=1,JGLOB
       DO I=1,IGLOB
-         DO J=1,JGLOB
-            CURRCEIL = 0d0
-            PCEIL = PSEALEV
-            L_AEIC = 1
-            AEIC_CEIL = 0.0d0
-            ACARRAY_IN = 0.0d0
-            AEIC_DONE = .FALSE.
-            DO L=1,LLPAR
-               ! Are we in LTO or cruise (or fraction?)
-               CURRBASE = CURRCEIL
-               PBASE = PCEIL
+         CURRCEIL    = 0d0
+         PCEIL       = PSEALEV
+         L_AEIC      = 1
+         AEIC_CEIL   = 0.0d0
+         ACARRAY_IN  = 0.0d0
+         AEIC_DONE   = .FALSE.
 
-               ! Calculate ceiling of next box on standard grid
-               PCEIL = GET_AP(L+1) + (GET_BP(L+1) * PSEALEV)
+         DO L=1,LLPAR
+            ! Are we in LTO or cruise (or fraction?)
+            CURRBASE = CURRCEIL
+            PBASE    = PCEIL
 
-               ! Temperature [K]
-               TEMP = State_Met%T(I,J,L)
+            ! Calculate ceiling of next box on standard grid
+            PCEIL    = GET_AP(L+1) + (GET_BP(L+1) * PSEALEV)
 
-               CURRCEIL = CURRBASE + (Rdg0*TEMP*LOG(PBASE/PCEIL))
+            ! Temperature [K]
+            TEMP     = State_Met%T(I,J,L)
+
+            CURRCEIL = CURRBASE + (Rdg0*TEMP*LOG(PBASE/PCEIL))
  
-               ! Scan through layers until we hit a GC boundary
-               AEIC_DONE = ((AEIC_CEIL.le.CURRCEIL) .and. 
-     &              (L_AEIC.gt.NLVLAEIC))
-               ACARRAY_IN = 0d0
-               DO WHILE (.not. AEIC_DONE)
-                  ! Calculate fraction of AEIC level within GC level
-                  IF (L_AEIC .le. NLVL_HD) THEN
-                     ! In finely resolved area
-                     DEPTHLVLAEIC = DEPTHLVL_HD
-                     AEIC_CEIL = (REAL(L_AEIC)*DEPTHLVLAEIC)
-                  ELSE
-                     ! Standard resolution region
-                     DEPTHLVLAEIC = DEPTHLVL_SD
-                     AEIC_CEIL = (REAL(NLVL_HD)*DEPTHLVL_HD) +
-     &                           (REAL(L_AEIC-NLVL_HD)*DEPTHLVL_SD)
-                  ENDIF
-                  AEIC_BASE = AEIC_CEIL-DEPTHLVLAEIC
-                  ! Establish base level for input cell
-                  FRAC_AEIC = MAX(CURRBASE,AEIC_BASE)
-                  ACTIVEDEPTH = DEPTHLVLAEIC
+            ! Scan through layers until we hit a GC boundary
+            AEIC_DONE  = ((AEIC_CEIL.le.CURRCEIL) .and. 
+     &                    (L_AEIC.gt.NLVLAEIC))
+            ACARRAY_IN = 0d0
+            
+            DO WHILE (.not. AEIC_DONE)
+               ! Calculate fraction of AEIC level within GC level
+               IF (L_AEIC .le. NLVL_HD) THEN
+                  ! In finely resolved area
+                  DEPTHLVLAEIC = DEPTHLVL_HD
+                  AEIC_CEIL = (REAL(L_AEIC)*DEPTHLVLAEIC)
+               ELSE
+                  ! Standard resolution region
+                  DEPTHLVLAEIC = DEPTHLVL_SD
+                  AEIC_CEIL = (REAL(NLVL_HD)*DEPTHLVL_HD) +
+     &                        (REAL(L_AEIC-NLVL_HD)*DEPTHLVL_SD)
+               ENDIF
 
-                  IF (AEIC_CEIL.lt.CURRCEIL) THEN
-                     ! Switch input level
-                     FRAC_AEIC = (AEIC_CEIL-FRAC_AEIC)/ACTIVEDEPTH
-                  ELSE
-                     ! Switch output level
-                     FRAC_AEIC = (CURRCEIL-FRAC_AEIC)/ACTIVEDEPTH
-                  ENDIF
+               AEIC_BASE = AEIC_CEIL-DEPTHLVLAEIC
+               ! Establish base level for input cell
+               FRAC_AEIC = MAX(CURRBASE,AEIC_BASE)
+               ACTIVEDEPTH = DEPTHLVLAEIC
 
-                  ! Add to output grid
-                  DO EMIT_INDEX=1,4
-                     AEIC_EMIT(I,J,L,EMIT_INDEX) = 
-     &                  AEIC_EMIT(I,J,L,EMIT_INDEX) + 
-     &                  (AEIC_REGRID(I,J,L_AEIC,EMIT_INDEX)*FRAC_AEIC)
-                  ENDDO
+               IF (AEIC_CEIL.lt.CURRCEIL) THEN
+                  ! Switch input level
+                  FRAC_AEIC = (AEIC_CEIL-FRAC_AEIC)/ACTIVEDEPTH
+               ELSE
+                  ! Switch output level
+                  FRAC_AEIC = (CURRCEIL-FRAC_AEIC)/ACTIVEDEPTH
+               ENDIF
 
-                  IF (AEIC_CEIL.lt.CURRCEIL) THEN
-                     L_AEIC = L_AEIC + 1
-                     IF (L_AEIC.gt.NLVLAEIC) THEN
-                        AEIC_DONE = .TRUE.
-                     ENDIF
-                  ELSE
-                     ! Change GC level now
-                     AEIC_DONE = .TRUE.
-                  ENDIF
+               ! Add to output grid
+               DO EMIT_INDEX=1,4
+                  AEIC_EMIT(I,J,L,EMIT_INDEX) = 
+     &                 AEIC_EMIT(I,J,L,EMIT_INDEX) + 
+     &                (AEIC_REGRID(I,J,L_AEIC,EMIT_INDEX)*FRAC_AEIC)
                ENDDO
 
-               ! Copy OC/BC from fuelburn, apply EIs in cruise/LTO
-               AEIC_EMIT(I,J,L,OC_INDEX) = AEIC_EMIT(I,J,L,FB_INDEX)
-               AEIC_EMIT(I,J,L,BC_INDEX) = AEIC_EMIT(I,J,L,FB_INDEX)
-
-               ! Store emissions
-               AEIC_EMIT(I,J,L,:) = EMITSCALE*AEIC_EMIT(I,J,L,:)
+               IF (AEIC_CEIL.lt.CURRCEIL) THEN
+                  L_AEIC = L_AEIC + 1
+                  IF (L_AEIC.gt.NLVLAEIC) THEN
+                     AEIC_DONE = .TRUE.
+                  ENDIF
+               ELSE
+                  ! Change GC level now
+                  AEIC_DONE = .TRUE.
+               ENDIF
             ENDDO
+
+            ! Copy OC/BC from fuelburn, apply EIs in cruise/LTO
+            AEIC_EMIT(I,J,L,OC_INDEX) = AEIC_EMIT(I,J,L,FB_INDEX)
+            AEIC_EMIT(I,J,L,BC_INDEX) = AEIC_EMIT(I,J,L,FB_INDEX)
+
+            ! Store emissions
+            AEIC_EMIT(I,J,L,:) = EMITSCALE*AEIC_EMIT(I,J,L,:)
+            
          ENDDO
       ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
  
       END SUBROUTINE READ_AEIC_FILE
 !EOC
@@ -450,80 +461,83 @@
       WRITE(6,*) 'PRESO4: ', SUM(STT(:,:,:,IDTSO4))
       WRITE(6,*) 'PRENOx: ', SUM(STT(:,:,:,IDTNO))
 
-      ! Loop over surface grid boxes
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, TPL, TMPMULT, AREA_CM2 )
+      ! Loop over grid boxes
+      DO L = 1, LLPAR
       DO J = 1, JJPAR
-         JREF = J + J0
       DO I = 1, IIPAR
-         IREF = I + I0
-         !==============================================================
-         ! Loop over GEOS-CHEM levels 
-         !==============================================================
+
          IF ( LVARTROP ) THEN
             TPL = GET_TPAUSE_LEVEL(I,J,State_Met)
          ELSE
             TPL = GET_TPAUSE_LEVEL(I,J,State_Met) - 1
          END IF
  
-         DO L = 1, LLPAR
-             ! First handle fuelburn-multiplied emissinos
-             TMPMULT = (FSC*DTSRCE/32.0d0)
-             STT(I,J,L,IDTSO4) = STT(I,J,L,IDTSO4) + 
+         ! First handle fuelburn-multiplied emissinos
+         TMPMULT = (FSC*DTSRCE/32.0d0)
+
+         STT(I,J,L,IDTSO4) = STT(I,J,L,IDTSO4) + 
      &          (AEIC_EMIT(I,J,L,FB_INDEX)*96.0d0*TMPMULT
      &           *SULFCONV)
-             STT(I,J,L,IDTSO2) = STT(I,J,L,IDTSO2) +
+         STT(I,J,L,IDTSO2) = STT(I,J,L,IDTSO2) +
      &          ((AEIC_EMIT(I,J,L,FB_INDEX)*64.0d0*TMPMULT)
      &           *(1.d0-SULFCONV))
-             STT(I,J,L,IDTNO) = STT(I,J,L,IDTNO) +
+         STT(I,J,L,IDTNO) = STT(I,J,L,IDTNO) +
      &           (AEIC_EMIT(I,J,L,NOx_INDEX)*DTSRCE)
-             STT(I,J,L,IDTCO) = STT(I,J,L,IDTCO) +
+         STT(I,J,L,IDTCO) = STT(I,J,L,IDTCO) +
      &           (AEIC_EMIT(I,J,L,CO_INDEX)*DTSRCE)
-             STT(I,J,L,IDTOCPI) = STT(I,J,L,IDTOCPI) +
+         STT(I,J,L,IDTOCPI) = STT(I,J,L,IDTOCPI) +
      &           (AEIC_EMIT(I,J,L,OC_INDEX)*DTSRCE)
-             STT(I,J,L,IDTBCPI) = STT(I,J,L,IDTBCPI) +
+         STT(I,J,L,IDTBCPI) = STT(I,J,L,IDTBCPI) +
      &           (AEIC_EMIT(I,J,L,BC_INDEX)*DTSRCE)
-             IF (L.le.TPL) THEN
-                ! Only emit HC in trop, as can build up in strat
-                TMPMULT = THC2TOG*DTSRCE*AEIC_EMIT(I,J,L,HC_INDEX)
-                STT(I,J,L,IDTMACR) = STT(I,J,L,IDTMACR) +
+
+         ! Only emit HC in trop, as can build up in strat
+         IF ( L .le. TPL ) THEN
+            TMPMULT = THC2TOG*DTSRCE*AEIC_EMIT(I,J,L,HC_INDEX)
+
+            STT(I,J,L,IDTMACR) = STT(I,J,L,IDTMACR) +
      &               (TMPMULT*ACF_MACR)
-                STT(I,J,L,IDTRCHO) = STT(I,J,L,IDTRCHO) +
+            STT(I,J,L,IDTRCHO) = STT(I,J,L,IDTRCHO) +
      &               (TMPMULT*ACF_RCHO)
-                STT(I,J,L,IDTACET) = STT(I,J,L,IDTACET) +
+            STT(I,J,L,IDTACET) = STT(I,J,L,IDTACET) +
      &               (TMPMULT*ACF_ACET)
-                STT(I,J,L,IDTALD2) = STT(I,J,L,IDTALD2) +
+            STT(I,J,L,IDTALD2) = STT(I,J,L,IDTALD2) +
      &               (TMPMULT*ACF_ALD2)
-                STT(I,J,L,IDTALK4) = STT(I,J,L,IDTALK4) +
+            STT(I,J,L,IDTALK4) = STT(I,J,L,IDTALK4) +
      &               (TMPMULT*ACF_ALK4)
-                STT(I,J,L,IDTC2H6) = STT(I,J,L,IDTC2H6) +
+            STT(I,J,L,IDTC2H6) = STT(I,J,L,IDTC2H6) +
      &               (TMPMULT*ACF_C2H6)
-                STT(I,J,L,IDTC3H8) = STT(I,J,L,IDTC3H8) +
+            STT(I,J,L,IDTC3H8) = STT(I,J,L,IDTC3H8) +
      &               (TMPMULT*ACF_C3H8)
-                STT(I,J,L,IDTCH2O) = STT(I,J,L,IDTCH2O) +
+            STT(I,J,L,IDTCH2O) = STT(I,J,L,IDTCH2O) +
      &               (TMPMULT*ACF_CH2O)
-                STT(I,J,L,IDTPRPE) = STT(I,J,L,IDTPRPE) +
+            STT(I,J,L,IDTPRPE) = STT(I,J,L,IDTPRPE) +
      &               (TMPMULT*ACF_PRPE)
-             ENDIF
+         ENDIF
 
-             ! Surface area [cm2]
-             AREA_CM2 = GET_AREA_CM2( I, J, L )
+         ! Surface area [cm2]
+         AREA_CM2 = GET_AREA_CM2( I, J, L )
 
-             ! ND32 -- NOx aircraft emissions in [molec/cm2]
-             IF ( ND32 > 0 ) THEN
-                AD32_ac(I,J,L) = AD32_ac(I,J,L) +
-     &             (AEIC_EMIT(I,J,L,NOx_INDEX)  *
-     &              XNUMOL(IDTNO2) / AREA_CM2 )
-             ENDIF
+         ! ND32 -- NOx aircraft emissions in [molec/cm2]
+         IF ( ND32 > 0 ) THEN
+            AD32_ac(I,J,L) = AD32_ac(I,J,L) +
+     &                       (AEIC_EMIT(I,J,L,NOx_INDEX)  *
+     &                       XNUMOL(IDTNO2) / AREA_CM2 )
+         ENDIF
 
-             ! ND13 -- SO2 aircraft emissions in [kg S/box/timestep]
-             IF ( ND13 > 0 ) THEN 
-                AD13_SO2_ac(I,J,L) = AD13_SO2_ac(I,J,L) +
-     &          ((AEIC_EMIT(I,J,L,FB_INDEX)*FSC*DTSRCE*32.0d0/64.0d0)
-     &           *(1.d0-SULFCONV))
-            ENDIF
+         ! ND13 -- SO2 aircraft emissions in [kg S/box/timestep]
+         IF ( ND13 > 0 ) THEN 
+            AD13_SO2_ac(I,J,L) = AD13_SO2_ac(I,J,L) +
+     &                           ((AEIC_EMIT(I,J,L,FB_INDEX)*FSC*DTSRCE*
+     &                           32.0d0/64.0d0)*(1.d0-SULFCONV))
+         ENDIF
 
-         ENDDO  ! L
-      ENDDO     ! I 
-      ENDDO     ! J
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
 
       ! Debug
       WRITE(6,*) 'POSTSO4:  ', SUM(STT(:,:,:,IDTSO4))
