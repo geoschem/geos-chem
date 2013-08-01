@@ -280,6 +280,7 @@
       USE TIME_MOD,           ONLY : GET_TS_EMIS
       USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
+      USE VDIFF_PRE_MOD,      ONLY : EMIS_SAVE
 !
 ! !INPUT PARAMETERS: 
 !
@@ -341,6 +342,7 @@
 !                              derived type object
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !  25 Mar 2013 - R. Yantosca - Now use fields from Input_Opt
+!  01 Aug 2013 - R. Yantosca - Modified for use with non-local PBL mixing
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -499,8 +501,18 @@
          ! For boxes below freezing, reduce 222Rn emissions by 3x
          IF ( State_Met%TS(I,J) < 273.15 ) ADD_Rn = ADD_Rn / 3d0
 
+!-----------------------------------------------------------------------------
+! Prior to 8/1/13
+! Now modified for non-local PBL mixing (jintai, bmy, 8/1/13)
+!         ! Save 222Rn into STT array [kg]
+!         STT(I,J,1,1) = STT(I,J,1,1) + ADD_Rn
+!-----------------------------------------------------------------------------
          ! Save 222Rn into STT array [kg]
-         STT(I,J,1,1) = STT(I,J,1,1) + ADD_Rn
+         IF ( Input_Opt%LNLPBL ) THEN 
+            EMIS_SAVE(I,J,1) = ADD_Rn / DTSRCE          ! For non-local PBL
+         ELSE
+            STT(I,J,1,1)     = STT(I,J,1,1) + ADD_Rn    ! For TURBDAY
+         ENDIF
 
          ! ND01 diag: 222Rn emission [kg/s] 
          IF ( ND01 > 0 ) THEN
@@ -554,8 +566,28 @@
                CALL CORRECT_STE( ADD_Be )
             ENDIF
 
+!------------------------------------------------------------------------------
+! Prior to 8/1/13:
+! Now modified for non-local PBL mixing (jintai, bmy, 8/1/13)
+!            ! Add 7Be into STT tracer array [kg]
+!            STT(I,J,L,3) = STT(I,J,L,3) + ADD_Be
+!------------------------------------------------------------------------------
             ! Add 7Be into STT tracer array [kg]
-            STT(I,J,L,3) = STT(I,J,L,3) + ADD_Be
+            IF ( Input_Opt%LNLPBL ) THEN
+
+               ! For non-local PBL mixing
+               IF ( L == 1 ) THEN
+                  EMIS_SAVE(I,J,3) = ADD_Be / DTSRCE
+               ELSE
+                  STT(I,J,L,3)     = STT(I,J,L,3) + ADD_Be
+               ENDIF
+
+            ELSE
+
+               ! For TURBDAY PBL mixing
+               STT(I,J,L,3)        = STT(I,J,L,3) + ADD_Be
+
+            ENDIF
 
             ! ND01 diag: 7Be emission [kg/s]
             IF ( ND01 > 0 .and. L <= LD01 ) THEN

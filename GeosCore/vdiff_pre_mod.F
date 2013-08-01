@@ -42,7 +42,7 @@
       ! Make sure MAXTRACERS >= N_TRACERS
       INTEGER, PARAMETER :: MAXTRACERS = 100 
 
-      REAL*8, ALLOCATABLE :: emis_save(:,:,:)!(IIPAR, JJPAR, MAXTRACERS)
+      REAL*8, ALLOCATABLE :: emis_save(:,:,:)
 !
 ! !REVISION HISTORY:
 !  01 Jun 2009 - C. Carouge & J. Lin - Initial version  
