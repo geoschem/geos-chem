@@ -37,6 +37,11 @@
       PUBLIC :: RCPNAME, RCPYEAR
       PUBLIC :: RCP_AIREMISS
 !
+! !PUBLIC DATA MEMBERS:
+!
+      ! Array to pass aircraft NOx emissions to SMVGEAR
+      REAL*8,  PUBLIC, ALLOCATABLE :: RCP_AC_NOx(:,:,:)
+!
 ! !PRIVATE DATA MEMBERS:
 !
       REAL*4, ALLOCATABLE :: RCP_LAND(:,:,:)
@@ -49,6 +54,10 @@
 !
 ! !REVISION HISTORY:
 !  14 Jun 2012 - C. Holmes   - Initial version
+!  31 Jul 2013 - M. Sulprizio- Added new array RCP_AC_NOx to pass aircraft
+!                              emissions to SMVGEAR. The array EMIS_AC_NOx
+!                              was removed with the obsolete aircraft_nox_mod.F
+!                              when AEIC aircraft emissions were added.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -475,7 +484,6 @@
 !
 ! !USES:
 !
-      USE AIRCRAFT_NOX_MOD,       ONLY : EMIS_AC_NOx, READAIR
       USE DIAG_MOD,               ONLY : AD32_AC
       USE ERROR_MOD,              ONLY : ERROR_STOP
       USE GIGC_State_Met_Mod,     ONLY : MetState
@@ -504,12 +512,6 @@
       !  RCP_AIREMISS begins here
       !=================================================================
 
-      ! Allocate and initialize arrays
-      IF ( FIRST ) THEN 
-         CALL READAIR ! use this only because init_aircraft_nox is private
-         FIRST = .FALSE.
-      ENDIF
-
       ! Initialized
       TRACERFOUND = .FALSE.
       
@@ -527,7 +529,7 @@
      &                     'RCP_AIREMISS' )
       
       ! Convert molec/cm2/s  -> molec/cm3/s
-      EMIS_AC_NOx = RCP_AIR(:,:,:,K) / ( State_Met%BXHEIGHT * 1D2 )
+      RCP_AC_NOx = RCP_AIR(:,:,:,K) / ( State_Met%BXHEIGHT * 1D2 )
 
       ! ND32 -- save NOx in [molec/cm2], will convert to
       ! [molec/cm2/s] in subroutine "diag3.f" (bmy, 3/16/00)
@@ -535,7 +537,7 @@
          DO L=1, LLTROP
          DO J=1, JJPAR
          DO I=1, IIPAR
-            AD32_ac(I,J,L) = AD32_ac(I,J,L) + ( EMIS_AC_NOx(I,J,L) * 
+            AD32_ac(I,J,L) = AD32_ac(I,J,L) + ( RCP_AC_NOx(I,J,L) * 
      &                       State_Met%BXHEIGHT(I,J,L) * 1d2 )
          ENDDO
          ENDDO
@@ -966,6 +968,11 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'RCP_AIR' )
       RCP_AIR = 0e0
 
+      ! Array to pass aircraft NOx to SMVGEAR
+      ALLOCATE( RCP_AC_NOx( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AIREMS' )
+      RCP_AC_NOx = 0d0
+
       END SUBROUTINE INIT_RCP
 !EOC
 !------------------------------------------------------------------------------
@@ -993,9 +1000,10 @@
       !  CLEANUP_RCP begins here
       !=================================================================
 
-      IF ( ALLOCATED( RCP_LAND ) ) DEALLOCATE( RCP_LAND )
-      IF ( ALLOCATED( RCP_SHIP ) ) DEALLOCATE( RCP_SHIP )
-      IF ( ALLOCATED( RCP_AIR  ) ) DEALLOCATE( RCP_AIR )
+      IF ( ALLOCATED( RCP_LAND   ) ) DEALLOCATE( RCP_LAND   )
+      IF ( ALLOCATED( RCP_SHIP   ) ) DEALLOCATE( RCP_SHIP   )
+      IF ( ALLOCATED( RCP_AIR    ) ) DEALLOCATE( RCP_AIR    )
+      IF ( ALLOCATED( RCP_AC_NOx ) ) DEALLOCATE( RCP_AC_NOx )
 
       END SUBROUTINE CLEANUP_RCP
 !EOC

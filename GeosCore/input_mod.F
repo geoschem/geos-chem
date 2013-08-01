@@ -2499,6 +2499,12 @@
      &           'RCP, EDGAR, or ICOADS',
      &           'READ_EMISSIONS_MENU' )
 
+         ! Force user to choose just 1 global aircraft inventory
+         IF ( LAEIC )
+     &        CALL ERROR_STOP( 'INPUT.GEOS WARNING!! '//
+     &           'Choose either RCP or AEIC for global aircraft' //
+     &           ' emissions', 'READ_EMISSIONS_MENU' )
+
          ! Avoid double fertilizer NOx emissions
          IF ( LFERTILIZERNOX ) THEN
             WRITE( 6, '(a)' ) REPEAT( '=', 79 )

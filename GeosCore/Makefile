@@ -292,7 +292,8 @@ aerosol_mod.o               : aerosol_mod.F           comode_mod.o           \
                               tracer_mod.o            tropopause_mod.o  
 
 aeic_mod.o                  : aeic_mod.F              tropopause_mod.o       \
-                              dao_mod.o               diag_mod.o              
+                              dao_mod.o               diag_mod.o             \
+                              tracerid_mod.o
 
 airmas.o                    : airmas.F
 
@@ -974,6 +975,9 @@ RD_AOD.o                    : RD_AOD.F
 
 rd_js.o                     : rd_js.F
 
+rcp_mod.o                   : rcp_mod.F               diag_mod.o             \
+                              tracer_mod.o            tracerid_mod.o
+
 readsoil.o		    : readsoil.F
 
 readfert.o		    : readfert.F
@@ -1206,6 +1210,4 @@ ion_nucl.o                  : ion_nucl.F
 YuIMN_Code.o                : YuIMN_Code.F
 cf_nucl.o                   : cf_nucl.F
 
-rcp_mod.o                   : rcp_mod.F               diag_mod.o            \
-                              aircraft_nox_mod.o      dao_mod.o
 #EOC
