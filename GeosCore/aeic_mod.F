@@ -147,6 +147,10 @@
 ! !REVISION HISTORY: 
 !  14 Dec 2012 - S. Eastham  - Adapted from READ_NONERUP_VOLC
 !  31 Jul 2013 - M. Sulprizio- Now pass met fields using State_Met
+!  01 Aug 2013 - M. Sulprizio- Update to read emissions from netCDF file
+!                              created by Christoph Keller. He combined original
+!                              monthly files into one file and made file
+!                              COARDS compliant.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -175,15 +179,9 @@
       ! READ_AEIC begins here!
       !=================================================================
 
-      ! File name
-      IF (INMONTH .lt. 10) THEN
-         WRITE( MONTH_STR,'(I1)' ) INMONTH
-      ELSE
-         WRITE( MONTH_STR,'(I2)' ) INMONTH
-      END IF
-
+      ! Filename
       AEIC_FILE = TRIM( DATA_DIR_1x1 ) // '/AEIC_201301/' //
-     &           'AEIC_1x1_' // TRIM(MONTH_STR) // '.nc'
+     &           'AEIC.nc'
 
       ! Echo output
       WRITE( 6, 100 ) TRIM( AEIC_FILE )
@@ -214,7 +212,7 @@
          END SELECT
   
          CALL NcRd(AEIC_1x1(:,:,:,EMIT_INDEX),AEIC_FID,TRIM(EMIT_NAME),
-     &       (/ 1, 1, 1 /),(/360, 180, NLVLAEIC /))
+     &       (/ 1, 1, 1 , INMONTH /),(/360, 180, NLVLAEIC, 1 /))
  
       ENDDO
 
