@@ -1,113 +1,110 @@
-! $Id: aeic_mod.f,v 1.0 2012/12/12 13:34:07 sde Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: aeic_mod
+!
+! !DESCRIPTION: Module AEIC\_MOD contains variables and routines for aircraft
+!  flight emissions into the chemistry and transport grids. (sde, 12/14/12)
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE AEIC_MOD
 !
-!******************************************************************************
-!  Module AEIC_MOD contains variables and routines for aircraft flight
-!  emissions into the chemistry and transport grids. (sde, 12/14/12)
+! !USES:
 !
-!  The AEIC fields are stored on 1x1 grids.
-!  These fields will be interpolated onto the current horizontal grid.
-!
-!  Module Variables:
-!  ============================================================================
-!  (1 ) AEIC_EMIT (REAL*8 )  : Array for emissions on the GEOS-CHEM grid
-!
-!  Module Routines:
-!  ============================================================================
-!  (1 ) READ_AEIC_FILE       : Routine to read emissions from disk
-!  (2 ) EMIT_AEIC            : Routine to emit pollutants into GEOS-CHEM
-!  (3 ) INIT_AEIC            : Routine to allocate/initialize module variables
-!  (4 ) CLEANUP_AEIC         : Routine to deallocate module variables
-! 
-!  GEOS-CHEM modules referenced by biomass_mod.f
-!  ============================================================================
-!  (1 ) diag_mod.F     : Module containing GEOS-CHEM diagnostic arrays
-!  (2 ) error_mod.F    : Module containing NaN and other error check routines
-!  (3 ) file_mod.F     : Module containing file unit numbers and error checks
-!  (4 ) grid_mod.F     : Module containing horizontal grid information
-!  (5 ) pressure_mod.F : Module containing routines to compute P(I,J,L)
-!  (6 ) tropopause_mod.F:Module containing routines to find tropopause
-! 
-!  NOTES:
-!  14 Dec 2012 - S. Eastham - Adapted from AIRCRAFT_NOX_MOD. Now emits
-!                             aircraft NOx, CO, HC, SO2, SO4, OC and BC
-!******************************************************************************
-!
-
       IMPLICIT NONE
 #     include "define.h"
 #     include "netcdf.inc" ! Needed for netCDF libraries
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "aeic_mod.f"
-      !=================================================================
-
-      ! Initially declare all private
       PRIVATE
-
-      ! PUBLIC module routines
+!
+! !PUBLIC MEMBER FUNCTIONS: 
+!
       PUBLIC EMIT_AEIC
       PUBLIC CLEANUP_AEIC
-
-      !=================================================================
-      ! MODULE VARIABLES
-      !=================================================================
-      
-      ! Emissions on native 1x1 grid
-      REAL*8,  ALLOCATABLE :: AEIC_1x1(:,:,:,:)
-      ! Regridded emissions
-      REAL*8,  ALLOCATABLE :: AEIC_REGRID(:,:,:,:)
- 
+!
+! 
+! !REMARKS:
+!  The AEIC fields are stored on 1x1 grids.
+!  These fields will be interpolated onto the current horizontal grid.
+!                                                                             .
+!  References:
+!  ============================================================================
+!  (1) Stettler, M.E.J., S. Eastham, S.R.H. Barrett, “Air quality and public
+!       health impacts of UK airports. Part I: Emissions,” Atmos. Env., 2011.
+!       DOI: 10.1016/j.atmosenv.2011.07.012
+! 
+! !REVISION HISTORY: 
+!  14 Dec 2012 - S. Eastham  - Adapted from AIRCRAFT_NOX_MOD. Now emits
+!                              aircraft NOx, CO, HC, SO2, SO4, OC and BC
+!  01 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
       ! Number of levels on the 1x1 grid
       ! Standard resolution (~3 GB of data)
-      INTEGER, PARAMETER :: NLVL_HD = 5
-      REAL*8, PARAMETER  :: DEPTHLVL_HD = 60.96d0
-      INTEGER, PARAMETER :: NLVL_SD = 44
-      REAL*8, PARAMETER  :: DEPTHLVL_SD = 304.8d0
-      INTEGER, PARAMETER :: NLVLAEIC = 49
+      INTEGER, PARAMETER   :: NLVL_HD     = 5
+      REAL*8,  PARAMETER   :: DEPTHLVL_HD = 60.96d0
+      INTEGER, PARAMETER   :: NLVL_SD     = 44
+      REAL*8,  PARAMETER   :: DEPTHLVL_SD = 304.8d0
+      INTEGER, PARAMETER   :: NLVLAEIC    = 49
+ 
+      ! Indices for emitted species
+      INTEGER, PARAMETER   :: FB_INDEX    = 1
+      INTEGER, PARAMETER   :: HC_INDEX    = 2
+      INTEGER, PARAMETER   :: CO_INDEX    = 3
+      INTEGER, PARAMETER   :: NOx_INDEX   = 4
+      INTEGER, PARAMETER   :: BC_INDEX    = 5
+      INTEGER, PARAMETER   :: OC_INDEX    = 6
+  
+      ! THC to TOG conversion factor for aircraft emissions
+      REAL,    PARAMETER   :: THC2TOG     = 1.16d0
+
+      ! HC speciation is included below
+      REAL,    PARAMETER   :: ACF_ACET    = 0.003693477d0
+      REAL,    PARAMETER   :: ACF_ALD2    = 0.042718224d0
+      REAL,    PARAMETER   :: ACF_ALK4    = 0.213791063d0
+      REAL,    PARAMETER   :: ACF_C2H6    = 0.005214505d0
+      REAL,    PARAMETER   :: ACF_C3H8    = 0.000780871d0
+      REAL,    PARAMETER   :: ACF_CH2O    = 0.123081099d0
+      REAL,    PARAMETER   :: ACF_PRPE    = 0.178041756d0
+      REAL,    PARAMETER   :: ACF_MACR    = 0.005362609d0
+      REAL,    PARAMETER   :: ACF_RCHO    = 0.036769436d0
+      ! Note not all aircraft hydrocarbon species modeled in GEOS-Chem
+
+      ! Fuel sulfur properties
+      REAL,    PARAMETER   :: FSC         = 600.0d-6 ! Fraction by mass
+      REAL,    PARAMETER   :: SULFCONV    = 2.0d-2   ! Conversion efficiency
+ 
+      ! Carbon PM emissions indices (g/kg fuel)
+      REAL,    PARAMETER   :: EI_OC       = 3.0d-2
+      REAL,    PARAMETER   :: EI_BC       = 3.0d-2
+!
+! !PRIVATE TYPES:
+!
+      ! Emissions on native 1x1 grid
+      REAL*8,  ALLOCATABLE :: AEIC_1x1(:,:,:,:)
+
+      ! Regridded emissions
+      REAL*8,  ALLOCATABLE :: AEIC_REGRID(:,:,:,:)
  
       ! Aircraft emissions on GEOS-CHEM grid
       REAL*8,  ALLOCATABLE :: AEIC_EMIT(:,:,:,:)
 
-      INTEGER, PARAMETER :: FB_INDEX = 1
-      INTEGER, PARAMETER :: HC_INDEX = 2
-      INTEGER, PARAMETER :: CO_INDEX = 3
-      INTEGER, PARAMETER :: NOx_INDEX = 4
-      INTEGER, PARAMETER :: BC_INDEX = 5
-      INTEGER, PARAMETER :: OC_INDEX = 6
-  
-      ! THC to TOG conversion factor for aircraft emissions
-      REAL, PARAMETER   :: THC2TOG      = 1.16d0
-      ! HC speciation is included below
-      REAL, PARAMETER   :: ACF_ACET     = 0.003693477d0
-      REAL, PARAMETER   :: ACF_ALD2     = 0.042718224d0
-      REAL, PARAMETER   :: ACF_ALK4     = 0.213791063d0
-      REAL, PARAMETER   :: ACF_C2H6     = 0.005214505d0
-      REAL, PARAMETER   :: ACF_C3H8     = 0.000780871d0
-      REAL, PARAMETER   :: ACF_CH2O     = 0.123081099d0
-      REAL, PARAMETER   :: ACF_PRPE     = 0.178041756d0
-      REAL, PARAMETER   :: ACF_MACR     = 0.005362609d0
-      REAL, PARAMETER   :: ACF_RCHO     = 0.036769436d0
-      ! Note not all aircraft hydrocarbon species modeled in GEOS-Chem
 
-      ! Fuel sulfur properties
-      REAL, PARAMETER   :: FSC = 600.0d-6 ! Fraction by mass
-      REAL, PARAMETER   :: SULFCONV = 2.0d-2 ! Conversion efficiency
- 
-      ! Carbon PM emissions indices (g/kg fuel)
-      REAL, PARAMETER   :: EI_OC = 3.0d-2
-      REAL, PARAMETER   :: EI_BC = 3.0d-2
 
       ! LTO ceiling level (3000 ft = 914.4 m)
-      REAL*8            :: LTOCEIL = 9.144d2
+      REAL*8               :: LTOCEIL     = 9.144d2
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
       !=================================================================
       CONTAINS
-
-!------------------------------------------------------------------------------
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -127,11 +124,10 @@
 ! !USES:
 !
       ! NcdfUtil modules for netCDF I/O
-      USE m_netcdf_io_open                    ! netCDF open
-      USE m_netcdf_io_get_dimlen              ! netCDF dimension queries
-      USE m_netcdf_io_read                    ! netCDF data reads
-      USE m_netcdf_io_close                   ! netCDF close
-
+      USE m_netcdf_io_open         ! netCDF open
+      USE m_netcdf_io_get_dimlen   ! netCDF dimension queries
+      USE m_netcdf_io_read         ! netCDF data reads
+      USE m_netcdf_io_close        ! netCDF close
 
       USE DIRECTORY_MOD,      ONLY : DATA_DIR_1x1
       USE ERROR_MOD,          ONLY : ERROR_STOP
@@ -142,7 +138,6 @@
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_GCTM_MOD,       ONLY : Rdg0
-
 !
 ! !INPUT PARAMETERS: 
 !
@@ -150,7 +145,8 @@
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !REVISION HISTORY: 
-!  14 Dec 2012 - S. Eastham - Adapted from READ_NONERUP_VOLC
+!  14 Dec 2012 - S. Eastham  - Adapted from READ_NONERUP_VOLC
+!  31 Jul 2013 - M. Sulprizio- Now pass met fields using State_Met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -226,12 +222,12 @@
       CALL NcCl(AEIC_FID)
  
       ! Split out LTO and cruise emissions
-      EMITSCALE(FB_INDEX) = 1.0d0
-      EMITSCALE(CO_INDEX) = 1.0d-3
+      EMITSCALE(FB_INDEX)  = 1.0d0
+      EMITSCALE(CO_INDEX)  = 1.0d-3
       EMITSCALE(NOx_INDEX) = 1.0d-3
-      EMITSCALE(HC_INDEX) = 1.0d-3
-      EMITSCALE(OC_INDEX) = EI_OC * 1.0d-3
-      EMITSCALE(BC_INDEX) = EI_BC * 1.0d-3
+      EMITSCALE(HC_INDEX)  = 1.0d-3
+      EMITSCALE(OC_INDEX)  = EI_OC * 1.0d-3
+      EMITSCALE(BC_INDEX)  = EI_BC * 1.0d-3
 
       ! First step: rescale grid horizontally at each level
       DO L=1,NLVLAEIC
@@ -348,53 +344,70 @@
       END SUBROUTINE READ_AEIC_FILE
 !EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: emit_aeic
+!
+! !DESCRIPTION: Subroutine EMIT\_AEIC interpolates AEIC aircraft emissions from
+!  the native grid onto the given GEOS-CHEM grid. (sde, 12/14/12)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE EMIT_AEIC( Input_Opt, State_Met, State_Chm )
 !
-!******************************************************************************
-!  Subroutine EMIT_AEIC interpolates AEIC aircraft emissions from the
-!  native grid onto the given GEOS-CHEM grid. (sde, 12/14/12)
+! !USES:
 !
-!  NOTES: 
-!  (1 ) 
-!  31 Jul 2013 - M. Sulprizio- Now add aircraft NOx and SO2 emissions to
-!                              AD32 and AD13 arrays for diagnostics
-!******************************************************************************
-!
-      ! References to F90 modules
-      USE DIAG_MOD,           ONLY : AD32_ac,     AD13_SO2_ac
-      USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
-      USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE PRESSURE_MOD,       ONLY : GET_AP,      GET_BP
-      USE TIME_MOD,           ONLY : GET_MONTH,   GET_TS_EMIS
+      USE DIAG_MOD,           ONLY   : AD32_ac,     AD13_SO2_ac
+      USE GIGC_Input_Opt_Mod, ONLY   : OptInput
+      USE GIGC_State_Chm_Mod, ONLY   : ChmState
+      USE GIGC_State_Met_Mod, ONLY   : MetState
+      USE GRID_MOD,           ONLY   : GET_XOFFSET, GET_YOFFSET
+      USE GRID_MOD,           ONLY   : GET_AREA_CM2
+      USE PRESSURE_MOD,       ONLY   : GET_AP,      GET_BP
+      USE TIME_MOD,           ONLY   : GET_MONTH,   GET_TS_EMIS
       USE TRACERID_MOD
-      USE TROPOPAUSE_MOD,     ONLY : GET_TPAUSE_LEVEL
+      USE TROPOPAUSE_MOD,     ONLY   : GET_TPAUSE_LEVEL
 
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_DIAG_MOD             ! Diagnostic switches
-      USE CMN_MOD                  ! PTOP, SIGE, AVP
-
+      USE CMN_SIZE_MOD               ! Size parameters
+      USE CMN_DIAG_MOD               ! Diagnostic switches
+      USE CMN_MOD                    ! PTOP, SIGE, AVP
+!
+! !INPUT PARAMETERS: 
+!
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-
-      INTEGER             :: I,    J,     IREF, JREF,  L
-      INTEGER             :: I0,   J0, TPL
-      REAL*8              :: DTSRCE,TMPMULT,TEMP
-      INTEGER, SAVE       :: LAST_MONTH = 0
-      LOGICAL, SAVE       :: FIRST = .TRUE.
-      REAL*8, SAVE        :: FBSUM = 0d0
-      REAL*8              :: AREA_CM2
+! 
+! !REVISION HISTORY:
+!  31 Jul 2013 - M. Sulprizio- Now add aircraft NOx and SO2 emissions to
+!                              AD32 and AD13 arrays for diagnostics
+!  01 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER          :: I,  J,  IREF,    JREF,  L
+      INTEGER          :: I0, J0, TPL
+      REAL*8           :: DTSRCE, TMPMULT, TEMP
+      REAL*8           :: AREA_CM2
+      INTEGER, SAVE    :: LAST_MONTH = 0
+      LOGICAL, SAVE    :: FIRST      = .TRUE.
+      REAL*8,  SAVE    :: FBSUM      = 0d0
 
       ! For fields from Input_Opt
-      LOGICAL             :: LVARTROP
-      REAL*8              :: XNUMOL(Input_Opt%N_TRACERS)
+      LOGICAL          :: LVARTROP
+      REAL*8           :: XNUMOL(Input_Opt%N_TRACERS)
 
       ! For fields from State_Chm
-      REAL*8, POINTER     :: STT(:,:,:,:)
+      REAL*8, POINTER  :: STT(:,:,:,:)
 
       !=================================================================
       ! EMIT_AEIC begins here!
@@ -548,28 +561,42 @@
       ! Free pointer
       NULLIFY( STT )
 
-      ! Return to calling program
       END SUBROUTINE EMIT_AEIC
-
+!EOC
 !------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_aeic
+!
+! !DESCRIPTION: Subroutine INIT\_AEIC allocates and initializes module
+!  variables. (sde, 12/16/12)
+!\\
+!\\
+! !INTERFACE:
 
       SUBROUTINE INIT_AEIC
 !
-!******************************************************************************
-!  Subroutine INIT_AEIC allocates and initializes module variables.
-!  (sde, 12/16/12)
+! !USES:
 !
-!  NOTES:
-!  (1 )
-!******************************************************************************
-!
-      ! References to F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
       USE CMN_SIZE_MOD
-      
-      ! Local variables
+! 
+! !REVISION HISTORY:
+!  01 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER :: AS
+
+      !=================================================================
+      ! INIT_AEIC begins here!
+      !=================================================================
 
       ! AEIC_1x1 is used temporarily for input grids
       ALLOCATE( AEIC_1x1( 360, 180, NLVLAEIC, 4 ), STAT=AS )
@@ -585,29 +612,36 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AEIC_EMIT' )
       AEIC_EMIT = 0d0
 
-      ! Return to calling program
       END SUBROUTINE INIT_AEIC
-
-!------------------------------------------------------------------------------
 !EOC
-
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
 !BOP
+!
+! !IROUTINE: cleanup_aeic
+!
+! !DESCRIPTION: Subroutine CLEANUP\_AEIC deallocates module variables.
+!  (sde, 12/16/12)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CLEANUP_AEIC
-!
-!******************************************************************************
-!  Subroutine CLEANUP_AEIC deallocates module variables. (sde, 12/16/12)
-!
-!  NOTES:  
-!  (1 ) 
-!******************************************************************************
-!
+! 
+! !REVISION HISTORY:
+!  01 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+      !=================================================================
+      ! CLEANUP_AEIC begins here!
+      !=================================================================
+
       IF ( ALLOCATED( AEIC_1x1    ) ) DEALLOCATE( AEIC_1x1    )
       IF ( ALLOCATED( AEIC_EMIT   ) ) DEALLOCATE( AEIC_EMIT   )
 
-      ! Return to calling program
       END SUBROUTINE CLEANUP_AEIC
-
-!------------------------------------------------------------------------------
-
-      ! End of module
+!EOC
       END MODULE AEIC_MOD
