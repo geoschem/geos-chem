@@ -1659,7 +1659,7 @@ CONTAINS
 !%%%    ! Construct complete file path
 !%%%    nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
 !%%%
-#if defined( GEOS_57 ) || defined( GRID4x5 )
+#if defined( GEOS_57 ) && defined( GRID4x5 )
     IF ( YYYYMMDD == 20130722 ) THEN 
        nc_file = './' // TRIM( nc_file )
     ELSE
@@ -1874,7 +1874,7 @@ CONTAINS
 !%%%    ! Construct complete file path
 !%%%    nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
 !%%%
-#if defined( GEOS_57 ) || defined( GRID4x5 )
+#if defined( GEOS_57 ) && defined( GRID4x5 )
     IF ( YYYYMMDD == 20130722 ) THEN 
        nc_file = './' // TRIM( nc_file )
     ELSE
