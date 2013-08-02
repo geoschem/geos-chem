@@ -1650,9 +1650,27 @@ CONTAINS
     nc_file = 'GEOS572.YYYYMMDD.I3.' // TRIM( nc_file )
     CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% KLUDGE FOR SEAC4RS!
+!%%% July 22/23 I3 files are corrupted at 4x5, so read new files from 
+!%%% from the run directory (bmy, 8/2/13)
+!%%%
+!%%% Original code here:
+!%%%    ! Construct complete file path
+!%%%    nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
+!%%%
+#if defined( GEOS_57 ) || defined( GRID4x5 )
+    IF ( YYYYMMDD == 20130722 ) THEN 
+       nc_file = './' // TRIM( nc_file )
+    ELSE
+       nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
+    ENDIF
+#else
     ! Construct complete file path
     nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
-    
+#endif
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
     ! Open netCDF file
     CALL NcOp_Rd( fId, TRIM( nc_file ) )
 
@@ -1847,9 +1865,27 @@ CONTAINS
     nc_file = 'GEOS572.YYYYMMDD.I3.' // TRIM( nc_file )
     CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% KLUDGE FOR SEAC4RS!
+!%%% July 22/23 I3 files are corrupted at 4x5, so read new files from 
+!%%% from the run directory (bmy, 8/2/13)
+!%%%
+!%%% Original code here:
+!%%%    ! Construct complete file path
+!%%%    nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
+!%%%
+#if defined( GEOS_57 ) || defined( GRID4x5 )
+    IF ( YYYYMMDD == 20130722 ) THEN 
+       nc_file = './' // TRIM( nc_file )
+    ELSE
+       nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
+    ENDIF
+#else
     ! Construct complete file path
     nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
-    
+#endif
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
     ! Open netCDF file
     CALL NcOp_Rd( fId, TRIM( nc_file ) )
 
