@@ -469,8 +469,8 @@
       J0 = GET_YOFFSET()
 
       ! Debug
-      WRITE(6,*) 'PRESO4: ', SUM(STT(:,:,:,IDTSO4))
-      WRITE(6,*) 'PRENOx: ', SUM(STT(:,:,:,IDTNO))
+      !WRITE(6,*) 'PRESO4: ', SUM(STT(:,:,:,IDTSO4))
+      !WRITE(6,*) 'PRENOx: ', SUM(STT(:,:,:,IDTNO))
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -551,10 +551,10 @@
 !$OMP END PARALLEL DO
 
       ! Debug
-      WRITE(6,*) 'POSTSO4:  ', SUM(STT(:,:,:,IDTSO4))
-      WRITE(6,*) 'POSTNOx:  ', SUM(STT(:,:,:,IDTNO))
-      FBSUM = FBSUM + (DTSRCE*SUM(AEIC_EMIT(:,:,:,FB_INDEX)))
-      WRITE(6,*) 'Fuel burn in current year: ', FBSUM*1.d-9, 'Tg'
+      !WRITE(6,*) 'POSTSO4:  ', SUM(STT(:,:,:,IDTSO4))
+      !WRITE(6,*) 'POSTNOx:  ', SUM(STT(:,:,:,IDTNO))
+      !FBSUM = FBSUM + (DTSRCE*SUM(AEIC_EMIT(:,:,:,FB_INDEX)))
+      !WRITE(6,*) 'Fuel burn in current year: ', FBSUM*1.d-9, 'Tg'
 
       ! Free pointer
       NULLIFY( STT )
