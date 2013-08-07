@@ -6,7 +6,6 @@
 ! !MODULE: CMN_O3_mod
 !
 ! !DESCRIPTION: Common blocks for anthro emissions (via SMVGEAR!)
-!
 !\\
 !\\
 ! !INTERFACE: 
@@ -26,17 +25,16 @@
 !
       ! Rural Emissions: EMISRN = NOx (1:NOXLEVELS), EMISR = all other tracers
       ! Total Emissions: EMISTN = NOx (1:NOXLEVELS), EMIST = all other tracers
-      REAL*8  :: EMISR(IIPAR,JJPAR,NEMPARA)
-      REAL*8  :: EMISRN(IIPAR,JJPAR,NOXLEVELS)
-      REAL*8  :: EMIST(IIPAR,JJPAR,NEMPARA)
-      REAL*8  :: EMISTN(IIPAR,JJPAR,NOXLEVELS)
+      REAL*8, ALLOCATABLE  :: EMISR(:,:,:)
+      REAL*8, ALLOCATABLE  :: EMISRN(:,:,:)
+      REAL*8, ALLOCATABLE  :: EMIST(:,:,:)
+      REAL*8, ALLOCATABLE  :: EMISTN(:,:,:)
 
       ! Rural Emissions:
       ! EMISRRN = NOx emissions into sigma levels L=1,NOXEXTENT
       ! EMISRR  = All other tracer emissions into sigma level L=1
-      REAL*8  :: EMISRR (IIPAR,JJPAR,NEMPARA+NEMPARB)
-      REAL*8  :: EMISRRN(IIPAR,JJPAR,NOXEXTENT      )
-
+      REAL*8, ALLOCATABLE  :: EMISRR (:,:,:)
+      REAL*8, ALLOCATABLE  :: EMISRRN(:,:,:)
 
       !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
       !
@@ -63,12 +61,7 @@
       !     ---------------------------	
 
       ! Define common block	
-!-------------------------------------------------------------------------
-! Prior to 6/28/11:
-! Increase last dimension for SOA + semivol POA (hotp, mpayer, 6/28/11)
-!      REAL*8  :: EMISS_BVOC(IIPAR,JJPAR,10)
-!-------------------------------------------------------------------------
-      REAL*8  :: EMISS_BVOC(IIPAR,JJPAR,14)
+      REAL*8, ALLOCATABLE  :: EMISS_BVOC(:,:,:)
 
 
       !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -79,23 +72,22 @@
       !       into the EMISRR array for SMVGEAR. (bdf, bmy, 11/1/05)
       !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
       ! SOAupdate: Added naphthalene emissions (hotp, mpayer, 6/28/11)
-
-      REAL*4  :: EMISTNOX (IIPAR,JJPAR,4,2)
-      REAL*4  :: EMISTETHE(IIPAR,JJPAR    )
-      REAL*4  :: EMISTCO  (IIPAR,JJPAR    )
-      REAL*4  :: EMISTPRPE(IIPAR,JJPAR    )
-      REAL*4  :: EMISTC3H8(IIPAR,JJPAR    )
-      REAL*4  :: EMISTALK4(IIPAR,JJPAR    )
-      REAL*4  :: EMISTC2H6(IIPAR,JJPAR    )
-      REAL*4  :: EMISTSOX (IIPAR,JJPAR,4,2)
-      REAL*4  :: EMISTACET(IIPAR,JJPAR    )
-      REAL*4  :: EMISTMEK (IIPAR,JJPAR    )
-      REAL*4  :: EMISTBENZ(IIPAR,JJPAR    )
-      REAL*4  :: EMISTTOLU(IIPAR,JJPAR    )
-      REAL*4  :: EMISTXYLE(IIPAR,JJPAR    )
-      REAL*4  :: EMISTC2H4(IIPAR,JJPAR    )
-      REAL*4  :: EMISTC2H2(IIPAR,JJPAR    )
-      REAL*4  :: EMISTNAP (IIPAR,JJPAR    )
+      REAL*4, ALLOCATABLE  :: EMISTNOX (:,:,:,:)
+      REAL*4, ALLOCATABLE  :: EMISTETHE(:,:)
+      REAL*4, ALLOCATABLE  :: EMISTCO  (:,:)
+      REAL*4, ALLOCATABLE  :: EMISTPRPE(:,:)
+      REAL*4, ALLOCATABLE  :: EMISTC3H8(:,:)
+      REAL*4, ALLOCATABLE  :: EMISTALK4(:,:)
+      REAL*4, ALLOCATABLE  :: EMISTC2H6(:,:)
+      REAL*4, ALLOCATABLE  :: EMISTSOX (:,:,:,:)
+      REAL*4, ALLOCATABLE  :: EMISTACET(:,:)
+      REAL*4, ALLOCATABLE  :: EMISTMEK (:,:)
+      REAL*4, ALLOCATABLE  :: EMISTBENZ(:,:)
+      REAL*4, ALLOCATABLE  :: EMISTTOLU(:,:)
+      REAL*4, ALLOCATABLE  :: EMISTXYLE(:,:)
+      REAL*4, ALLOCATABLE  :: EMISTC2H4(:,:)
+      REAL*4, ALLOCATABLE  :: EMISTC2H2(:,:)
+      REAL*4, ALLOCATABLE  :: EMISTNAP (:,:)
 
 
       ! Time of day and weekday/weekend scale factors
@@ -113,29 +105,13 @@
 
       ! FTOTCO2 = yearly scale factors based on Total  Fuel CO2 emissions 
       ! FLIQCO2 = yearly scale factors based on Liquid Fuel CO2 emissions
-      REAL*4  :: FTOTCO2(IIPAR,JJPAR)
-      REAL*4  :: FLIQCO2(IIPAR,JJPAR)
+      REAL*4, ALLOCATABLE  :: FTOTCO2(:,:)
+      REAL*4, ALLOCATABLE  :: FLIQCO2(:,:)
 
-      ! FRACO3, FRACNO          = fractions of O3, NO
-      ! SAVEOH, SAVENO, SAVENO3 = array to save OH, NO, & NO3 fields 
-      ! SAVENO2                 = array to save NO2 fields (rvm, 5/9/00)
-      ! FRACNO2                 = fraction of NO2 (rvm, bmy, 2/27/02)
+      ! SAVEOH                  = array to save OH  fields 
       ! SAVEHO2                 = array to save HO2 fields (rvm, bmy, 2/27/02)
-      ! fracnox                 = look up table for fraction of NOx remaining
-      !                           for ship emissions (gvinken, 6/6/10)
-      ! intope                  = look up table for integrated Ozone Production
-      !                           Efficiency for ship emiss (gvinken, 6/6/10)
-      REAL*8 ::   FRACO3(IIPAR,JJPAR,LLPAR)
-      REAL*8 ::   SAVEOH(IIPAR,JJPAR,LLPAR)
-      REAL*8 ::   FRACNO(IIPAR,JJPAR,LLPAR)
-      REAL*8 ::   SAVENO(IIPAR,JJPAR,LLPAR)
-      REAL*8 ::   SAVENO2(IIPAR,JJPAR,LLPAR)
-      REAL*8 ::   SAVENO3(IIPAR,JJPAR,LLPAR)
-      REAL*8 ::   FRACNO2(IIPAR,JJPAR,LLPAR)
-      REAL*8 ::   SAVEHO2(IIPAR,JJPAR,LLPAR)
-      REAL*4 ::   fracnox(4,4,4,12,12,4,5)
-      REAL*4 ::   intope(4,4,4,12,12,4,5)
-      REAL   ::   jvalues(IIPAR,JJPAR,2)
+      REAL*8, ALLOCATABLE ::   SAVEOH(:,:,:)
+      REAL*8, ALLOCATABLE ::   SAVEHO2(:,:,:)
 !
 ! !REMARKS:
 !  NOTE: Now NEMPARA = max no. of anthropogenic emissions
@@ -149,8 +125,179 @@
 ! !REVISION HISTORY:
 !  23 Aug 2011 - M. Long   - Converted to Module from Header file
 !  28 Jun 2011 - M. Payer    - Add modifications for SOA + semivol POA (H. Pye)
+!  29 Mar 2013 - M. Payer    - Removed FRACO3, FRACNO, FRACNO2, SAVENO, SAVENO2,
+!                              and SAVENO3. They are no longer needed because
+!                              O3, NO, NO2, and NO3 are now tracers.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      END MODULE CMN_O3_MOD
+      CONTAINS
 !EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_cmn_o3
+!
+! !DESCRIPTION: Subroutine INIT\_CMN\_O3 allocates all module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Init_CMN_O3( am_I_Root, RC )
+!
+! !USES:
+!
+      USE GIGC_ErrCode_Mod
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: RC          ! Success or failure?
+! 
+! !REVISION HISTORY: 
+!  28 Jun 2011 - M. Payer    - Increase last dimension of EMISS_BVOC from 10 to
+!                              14 for SOA + semivol POA (H. Pye)
+!  19 Nov 2012 - R. Yantosca - Added ProTeX headers
+!  29 Mar 2013 - M. Payer    - Removed FRACO3, FRACNO, FRACNO2, SAVENO, SAVENO2,
+!                              and SAVENO3. They are no longer needed because
+!                              O3, NO, NO2, and NO3 are now tracers.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      ! Assume success
+      RC = GIGC_SUCCESS
+
+      ! Allocate arrays
+      ALLOCATE( EMISR     ( IIPAR, JJPAR, NEMPARA         ), STAT=RC )
+      ALLOCATE( EMISRN    ( IIPAR, JJPAR, NOXLEVELS       ), STAT=RC )
+      ALLOCATE( EMIST     ( IIPAR, JJPAR, NEMPARA         ), STAT=RC )
+      ALLOCATE( EMISTN    ( IIPAR, JJPAR, NOXLEVELS       ), STAT=RC )
+      ALLOCATE( EMISRR    ( IIPAR, JJPAR, NEMPARA+NEMPARB ), STAT=RC )
+      ALLOCATE( EMISRRN   ( IIPAR, JJPAR, NOXEXTENT       ), STAT=RC )
+      ALLOCATE( EMISS_BVOC( IIPAR, JJPAR, 14              ), STAT=RC )
+      ALLOCATE( EMISTNOX  ( IIPAR, JJPAR, 4, 2            ), STAT=RC )
+      ALLOCATE( EMISTETHE ( IIPAR, JJPAR                  ), STAT=RC )
+      ALLOCATE( EMISTCO   ( IIPAR, JJPAR                  ), STAT=RC )
+      ALLOCATE( EMISTPRPE ( IIPAR, JJPAR                  ), STAT=RC )
+      ALLOCATE( EMISTC3H8 ( IIPAR, JJPAR                  ), STAT=RC )
+      ALLOCATE( EMISTALK4 ( IIPAR, JJPAR                  ), STAT=RC )
+      ALLOCATE( EMISTC2H6 ( IIPAR, JJPAR                  ), STAT=RC )
+      ALLOCATE( EMISTSOX  ( IIPAR, JJPAR, 4, 2            ), STAT=RC )
+      ALLOCATE( EMISTACET ( IIPAR, JJPAR                  ), STAT=RC )
+      ALLOCATE( EMISTMEK  ( IIPAR, JJPAR                  ), STAT=RC )
+      ALLOCATE( EMISTBENZ ( IIPAR, JJPAR                  ), STAT=RC )
+      ALLOCATE( EMISTTOLU ( IIPAR, JJPAR                  ), STAT=RC )
+      ALLOCATE( EMISTXYLE ( IIPAR, JJPAR                  ), STAT=RC )
+      ALLOCATE( EMISTC2H4 ( IIPAR, JJPAR                  ), STAT=RC )
+      ALLOCATE( EMISTC2H2 ( IIPAR, JJPAR                  ), STAT=RC )
+      ALLOCATE( EMISTNAP  ( IIPAR, JJPAR                  ), STAT=RC )
+      ALLOCATE( FTOTCO2   ( IIPAR, JJPAR                  ), STAT=RC )
+      ALLOCATE( FLIQCO2   ( IIPAR, JJPAR                  ), STAT=RC )
+      ALLOCATE( SAVEOH    ( IIPAR, JJPAR, LLPAR           ), STAT=RC )
+      ALLOCATE( SAVEHO2   ( IIPAR, JJPAR, LLPAR           ), STAT=RC )
+
+      ! Zero arrays
+      EMISR      = 0d0
+      EMISRN     = 0d0
+      EMIST      = 0d0
+      EMISTN     = 0d0
+      EMISRR     = 0d0
+      EMISRRN    = 0d0
+      EMISS_BVOC = 0d0
+      EMISTNOX   = 0e0
+      EMISTETHE  = 0e0
+      EMISTCO    = 0e0
+      EMISTPRPE  = 0e0
+      EMISTC3H8  = 0e0
+      EMISTALK4  = 0e0
+      EMISTC2H6  = 0e0
+      EMISTSOX   = 0e0
+      EMISTACET  = 0e0
+      EMISTMEK   = 0e0
+      EMISTBENZ  = 0e0
+      EMISTTOLU  = 0e0
+      EMISTXYLE  = 0e0
+      EMISTC2H4  = 0e0
+      EMISTC2H2  = 0e0
+      FTOTCO2    = 0d0
+      FLIQCO2    = 0d0
+      SAVEOH     = 0d0
+      SAVEHO2    = 0d0
+
+      END SUBROUTINE Init_CMN_O3
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_cmn_o3
+!
+! !DESCRIPTION: Subroutine CLEANUP\_CMN\_O3 allocates all module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Cleanup_CMN_O3( am_I_Root, RC )
+!
+! !USES:
+!
+      USE GIGC_ErrCode_Mod
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: RC          ! Success or failure?
+! 
+! !REVISION HISTORY: 
+!  19 Nov 2012 - R. Yantosca - Added ProTeX headers
+!  29 Mar 2013 - M. Payer    - Removed FRACO3, FRACNO, FRACNO2, SAVENO, SAVENO2,
+!                              and SAVENO3. They are no longer needed because
+!                              O3, NO, NO2, and NO3 are now tracers.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      ! Assume success
+      RC = GIGC_SUCCESS
+      
+      ! Deallocate arrays
+      IF ( ALLOCATED( EMISR      ) ) DEALLOCATE( EMISR      )
+      IF ( ALLOCATED( EMISRN     ) ) DEALLOCATE( EMISRN     )
+      IF ( ALLOCATED( EMIST      ) ) DEALLOCATE( EMIST      )
+      IF ( ALLOCATED( EMISTN     ) ) DEALLOCATE( EMISTN     )
+      IF ( ALLOCATED( EMISRR     ) ) DEALLOCATE( EMISRR     )
+      IF ( ALLOCATED( EMISRRN    ) ) DEALLOCATE( EMISRRN    )
+      IF ( ALLOCATED( EMISS_BVOC ) ) DEALLOCATE( EMISS_BVOC )
+      IF ( ALLOCATED( EMISTNOX   ) ) DEALLOCATE( EMISTNOX   )
+      IF ( ALLOCATED( EMISTETHE  ) ) DEALLOCATE( EMISTETHE  )
+      IF ( ALLOCATED( EMISTCO    ) ) DEALLOCATE( EMISTCO    )
+      IF ( ALLOCATED( EMISTPRPE  ) ) DEALLOCATE( EMISTPRPE  )
+      IF ( ALLOCATED( EMISTC3H8  ) ) DEALLOCATE( EMISTC3H8  )
+      IF ( ALLOCATED( EMISTALK4  ) ) DEALLOCATE( EMISTALK4  )
+      IF ( ALLOCATED( EMISTC2H6  ) ) DEALLOCATE( EMISTC2H6  )
+      IF ( ALLOCATED( EMISTSOX   ) ) DEALLOCATE( EMISTSOX   )
+      IF ( ALLOCATED( EMISTACET  ) ) DEALLOCATE( EMISTACET  )
+      IF ( ALLOCATED( EMISTMEK   ) ) DEALLOCATE( EMISTMEK   )
+      IF ( ALLOCATED( EMISTBENZ  ) ) DEALLOCATE( EMISTBENZ  )
+      IF ( ALLOCATED( EMISTTOLU  ) ) DEALLOCATE( EMISTTOLU  )
+      IF ( ALLOCATED( EMISTXYLE  ) ) DEALLOCATE( EMISTXYLE  )
+      IF ( ALLOCATED( EMISTC2H4  ) ) DEALLOCATE( EMISTC2H4  )
+      IF ( ALLOCATED( EMISTC2H2  ) ) DEALLOCATE( EMISTC2H2  )
+      IF ( ALLOCATED( EMISTNAP   ) ) DEALLOCATE( EMISTNAP   )
+      IF ( ALLOCATED( FTOTCO2    ) ) DEALLOCATE( FTOTCO2    )
+      IF ( ALLOCATED( FLIQCO2    ) ) DEALLOCATE( FLIQCO2    )
+      IF ( ALLOCATED( SAVEOH     ) ) DEALLOCATE( SAVEOH     )
+      IF ( ALLOCATED( SAVEHO2    ) ) DEALLOCATE( SAVEHO2    )
+
+      END SUBROUTINE Cleanup_CMN_O3
+!EOC
+      END MODULE CMN_O3_MOD
+

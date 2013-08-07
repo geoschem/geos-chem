@@ -33,6 +33,7 @@
 !  (6 ) Now read files from "sulfate_sim_200508/offline" dir (bmy, 8/1/05)
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !   8 Feb 2012 - R. Yantosca - Add modifications for GEOS_5.7.x
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !******************************************************************************
 !     
       IMPLICIT NONE
@@ -63,7 +64,7 @@
 
 !------------------------------------------------------------------------------
       
-      FUNCTION GET_HNO3_UGM3( I, J, L ) RESULT( HNO3_UGM3 )
+      FUNCTION GET_HNO3_UGM3( I, J, L, State_Met ) RESULT( HNO3_UGM3 )
 !
 !******************************************************************************
 !  Subroutine GET_HNO3_UGM3 converts monthly mean HNO3 mixing ratio from [v/v] 
@@ -77,29 +78,32 @@
 !
 !  NOTES:
 !  (1 ) Now references TCVV from "tracer_mod.f" (bmy, 7/20/04)
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,    ONLY : AD, AIRVOL
-      USE TRACER_MOD, ONLY : TCVV
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TRACER_MOD,         ONLY : TCVV
 
-      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 
       ! Arguments
-      INTEGER, INTENT(IN) :: I, J, L
+      INTEGER,        INTENT(IN)  :: I, J, L
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 
-      ! Local variables
-      REAL*8              :: HNO3_UGM3
+      ! Return value
+      REAL*8                      :: HNO3_UGM3
       
       !=================================================================
       ! GET_HNO3_UGM3 begins here!
       !=================================================================
 
       ! First convert HNO3 from [v/v] to [kg]
-      HNO3_UGM3 = HNO3(I,J,L) * AD(I,J,L) / ( 28.97d0 / 63d0 )
+      HNO3_UGM3 = HNO3(I,J,L) * State_Met%AD(I,J,L) / ( 28.97d0 / 63d0 )
 
       ! Then convert HNO3 from [kg] to [ug/m3]
-      HNO3_UGM3 = HNO3_UGM3 * 1.d9 / AIRVOL(I,J,L)
+      HNO3_UGM3 = HNO3_UGM3 * 1.d9 / State_Met%AIRVOL(I,J,L)
 
       ! Return to calling program
       END FUNCTION GET_HNO3_UGM3
@@ -129,6 +133,7 @@
 !  (8 ) Renamed GRID30LEV to GRIDREDUCED (bmy, 2/7/07)
 !  (9 ) Treat MERRA in the same way as for GEOS-5 (bmy, 8/13/10)
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !******************************************************************************
 !
       ! References to F90 modules
@@ -179,7 +184,7 @@
       ! Assume "generic" year 1985 (TAU0 = [0, 744, ... 8016])
       XTAU = GET_TAU0( THISMONTH, 1, 1985 )
 
-#if   defined( GEOS_3 ) || defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
       !-------------------------------------------------------
       ! GEOS-3 / GEOS-4 data come from the 30 level model run

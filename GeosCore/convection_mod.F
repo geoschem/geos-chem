@@ -17,7 +17,7 @@
 ! !USES:
 !
       USE GC_TYPE_MOD
-      USE SMV_ERRCODE_MOD
+      USE GIGC_ERRCODE_MOD
       USE SMV_PHYSCONST_MOD
 
       IMPLICIT NONE
@@ -62,6 +62,9 @@
 !                              DO_MERRA_CONVECTION routine
 !  16 Aug 2011 - J. Fisher   - Minor bug fixes in DO_MERRA_CONVECTION
 !  15 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  02 Mar 2012 - R. Yantosca - Now reference the new grid_mod.F90
+!  22 Oct 2012 - R. Yantosca - Now reference Headers/gigc_errcode_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -80,43 +83,45 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_CONVECTION
+      SUBROUTINE DO_CONVECTION( am_I_Root, Input_Opt,
+     &                          State_Met, State_Chm, RC )
 !
 ! !USES:
 !
-      USE DAO_MOD,      ONLY : AD
-      USE DAO_MOD,      ONLY : BXHEIGHT 
-      USE DAO_MOD,      ONLY : T        
-      USE DAO_MOD,      ONLY : CLDMAS
-      USE DAO_MOD,      ONLY : CMFMC
-      USE DAO_MOD,      ONLY : DQRCU
-      USE DAO_MOD,      ONLY : DTRAIN
-      USE DAO_MOD,      ONLY : PFICU
-      USE DAO_MOD,      ONLY : PFLCU
-      USE DAO_MOD,      ONLY : REEVAPCN
-      USE DIAG_MOD,     ONLY : CONVFLUP
-      USE DIAG_MOD,     ONLY : AD38
-      USE ERROR_MOD,    ONLY : GEOS_CHEM_STOP
-      USE GRID_MOD,     ONLY : GET_AREA_M2
-      USE LOGICAL_MOD,  ONLY : LDYNOCEAN
-      USE PRESSURE_MOD, ONLY : GET_PEDGE
-      USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM
-      USE TRACER_MOD,   ONLY : N_TRACERS
-      USE TRACER_MOD,   ONLY : TCVV
-      USE TRACER_MOD,   ONLY : TRACER_MW_KG
-      USE TRACER_MOD,   ONLY : STT
-      USE TRACERID_MOD, ONLY : IDTHg2
-      USE TRACERID_MOD, ONLY : IDTHgP
-      USE TIME_MOD,     ONLY : GET_TS_DYN
-      USE WETSCAV_MOD,  ONLY : COMPUTE_F
-      USE WETSCAV_MOD,  ONLY : H2O2s
-      USE WETSCAV_MOD,  ONLY : SO2s
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
+      USE DIAG_MOD,           ONLY : CONVFLUP
+      USE DIAG_MOD,           ONLY : AD38
+      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_M2
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE
+      USE TRACERID_MOD,       ONLY : IDTHg2
+      USE TRACERID_MOD,       ONLY : IDTHgP
+      USE TIME_MOD,           ONLY : GET_TS_DYN
+      USE WETSCAV_MOD,        ONLY : COMPUTE_F
+      USE WETSCAV_MOD,        ONLY : H2O2s
+      USE WETSCAV_MOD,        ONLY : SO2s
 #if   defined( APM )
-      USE TRACER_MOD,   ONLY : N_APMTRA
+      USE TRACER_MOD,         ONLY : N_APMTRA
 #endif
-
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DIAG_MOD     ! Diagnostic flags
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  25 May 2005 - S. Wu       - Initial version
@@ -141,6 +146,15 @@
 !  09 Feb 2012 - R. Yantosca - For GEOS-5.7, PFICU and PFLCU fields are
 !                              defined on level edges.  Pass the top edge
 !                              of each level to DO_MERRA_CONVECTION
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!  21 Jun 2012 - R. Yantosca - Now use poiners to pass array slices to routines
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  04 Feb 2013 - S. Kim      - Bug fix: H2O2s, SO2s, STT are not in State_Met
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  31 May 2013 - R. Yantosca - Now pass objects to NFCLDMX
+!  03 Jun 2013 - R. Yantosca - Bug fix: pass State_Chm to DO_MERRA_CONVECTION
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -148,6 +162,18 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: N_TOT_TRC               ! # of tracers to convect
+ 
+      ! For fields from Input_Opt
+      LOGICAL         :: LDYNOCEAN
+      LOGICAL         :: ITS_A_MERCURY_SIM
+      INTEGER         :: N_TRACERS
+      REAL*8          :: TCVV(Input_Opt%N_TRACERS)
+      REAL*8          :: TRACER_MW_KG(Input_Opt%N_TRACERS)
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! DO_CONVECT begins here!
@@ -159,24 +185,12 @@
       ! GCAP met fields
       !=================================================================
 
+      ! Assume success
+      RC                =  GIGC_SUCCESS
+
       ! Call GCAP driver routine
       CALL DO_GCAP_CONVECT
-
-#elif defined( GEOS_3 )
-
-      !=================================================================
-      ! GEOS-3 met fields
-      !=================================================================
-
-      ! Pick the proper # of tracers
-#if   defined( APM )  
-      N_TOT_TRC = N_TRACERS + N_APMTRA   ! If APM is used, then convect
-#else                                    !  the G-C advected tracers +
-      N_TOT_TRC = N_TRACERS              !  the APM aerosol tracers
-#endif
-
-      ! Call the S-J Lin convection routine for GEOS-3
-      CALL NFCLDMX( N_TOT_TRC, TCVV, CLDMAS, DTRAIN, STT )
+     &   ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
 #elif defined( GEOS_4 )
 
@@ -184,8 +198,12 @@
       ! GEOS-4 met fields
       !=================================================================
 
+      ! Assume success
+      RC                =  GIGC_SUCCESS
+
       ! Call GEOS-4 driver routine
       CALL DO_GEOS4_CONVECT
+     &   ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
 #elif defined( GEOS_5 )
 
@@ -193,15 +211,29 @@
       ! GEOS-5 met fields
       !=================================================================
 
+      ! Assume success
+      RC                =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      ITS_A_MERCURY_SIM = Input_Opt%ITS_A_MERCURY_SIM
+      N_TRACERS         = Input_Opt%N_TRACERS
+
       ! Pick the proper # of tracers
 #if   defined( APM )  
       N_TOT_TRC = N_TRACERS + N_APMTRA   ! If APM is used, then convect
-#else                                    !  the G-C advected tracers +
+                                         !  the G-C advected tracers +
+#else                                    
       N_TOT_TRC = N_TRACERS              !  the APM aerosol tracers
 #endif
 
       ! Call the S-J Lin convection routine for GEOS-5
-      CALL NFCLDMX( N_TOT_TRC, TCVV, CMFMC(:,:,2:LLPAR+1), DTRAIN, STT )
+      CALL NFCLDMX( am_I_Root, 
+     &              Input_Opt, 
+     &              State_Met%CMFMC(:,:,2:LLPAR+1),
+     &              State_Met%DTRAIN,
+     &              State_Met, 
+     &              State_Chm, 
+     &              RC                               )
 
 #elif defined( MERRA ) || defined( GEOS_57 )
 
@@ -217,27 +249,49 @@
       TYPE(ID_TRAC)      :: IDT
                    
       ! Scalars          
-      INTEGER            :: I, J, L, N, NN, RC, TS_DYN
+      INTEGER            :: I, J, L, N, NN, TS_DYN
       REAL*8             :: AREA_M2, DT
                          
       ! Arrays           
-      REAL*8             :: DIAG14 (               LLPAR,   N_TRACERS )
-      REAL*8             :: DIAG38 (               LLPAR,   N_TRACERS )
-      REAL*8             :: F      (               LLPAR,   N_TRACERS )
-      REAL*8             :: FSOL   ( IIPAR, JJPAR, LLPAR,   N_TRACERS )
-      INTEGER            :: ISOL   (                        N_TRACERS )
-      REAL*8             :: PEDGE  (               LLPAR+1            )
+      REAL*8             :: DIAG14 ( LLPAR,   Input_Opt%N_TRACERS )
+      REAL*8             :: DIAG38 ( LLPAR,   Input_Opt%N_TRACERS )
+      REAL*8             :: F      ( LLPAR,   Input_Opt%N_TRACERS )
+      REAL*8,  TARGET    :: FSOL   ( IIPAR, JJPAR, LLPAR,   
+     &                                        Input_Opt%N_TRACERS )
+      INTEGER            :: ISOL   (          Input_Opt%N_TRACERS )
+      REAL*8             :: PEDGE  ( LLPAR+1                      )
 
       ! Pointers
-      REAL*8             :: T_PFICU(               LLPAR              )
-      REAL*8             :: T_PFLCU(               LLPAR              )
-
+      REAL*8,  POINTER   :: p_AD      (:    )   
+      REAL*8,  POINTER   :: p_BXHEIGHT(:    )
+      REAL*8,  POINTER   :: p_CMFMC   (:    )
+      REAL*8,  POINTER   :: p_DQRCU   (:    )
+      REAL*8,  POINTER   :: p_DTRAIN  (:    )
+      REAL*8,  POINTER   :: p_H2O2s   (:    )
+      REAL*8,  POINTER   :: p_FSOL    (:,:,:)
+      REAL*8,  POINTER   :: p_PFICU   (:    )   
+      REAL*8,  POINTER   :: p_PFLCU   (:    )
+      REAL*8,  POINTER   :: p_REEVAPCN(:    )
+      REAL*8,  POINTER   :: p_SO2s    (:    )
+      REAL*8,  POINTER   :: p_STT     (:,:  )
+      REAL*8,  POINTER   :: p_T       (:    )
+      
       ! Parameters
       LOGICAL, PARAMETER :: FIRST = .TRUE.
 
       !-----------------------------------------------------------------
       ! Initialization
       !-----------------------------------------------------------------
+
+      ! Assume success
+      RC                =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LDYNOCEAN         = Input_Opt%LDYNOCEAN
+      ITS_A_MERCURY_SIM = Input_Opt%ITS_A_MERCURY_SIM
+      N_TRACERS         = Input_Opt%N_TRACERS
+      TCVV              = Input_Opt%TCVV(1:N_TRACERS)
+      TRACER_MW_KG      = Input_Opt%TRACER_MW_KG(1:N_TRACERS)
 
       ! Pick the proper # of tracers
 #if   defined( APM )  
@@ -253,14 +307,14 @@
       DIMINFO%N_TRACERS       = N_TRACERS            ! # of tracers
       IDT%Hg2                 = IDTHg2               ! Tracer ID flag for Hg2
       IDT%HgP                 = IDTHgP               ! Tracer ID flag for HgP
-      OPTIONS%USE_Hg          = ITS_A_MERCURY_SIM()  ! Mercury simulation?
+      OPTIONS%USE_Hg          = ITS_A_MERCURY_SIM    ! Mercury simulation?
       OPTIONS%USE_Hg_DYNOCEAN = LDYNOCEAN            !  with dynamic ocean?
       OPTIONS%USE_DIAG14      = ( ND14 > 0 )         ! Use ND14 diagnostic?
       OPTIONS%USE_DIAG38      = ( ND38 > 0 )         ! Use ND38 diagnostic?
 
       ! Allocate the pointer array
       ALLOCATE( COEF%MOLWT_KG( N_TRACERS ), STAT=RC )
-      IF ( RC /= SMV_SUCCESS ) RETURN
+      IF ( RC /= GIGC_SUCCESS ) RETURN
       COEF%MOLWT_KG = 0d0
 
       ! Loop over advected tracers
@@ -269,8 +323,14 @@
          ! Molecular weight [kg]
          COEF%MOLWT_KG(N) = TRACER_MW_KG(N)
 
+         ! Set a pointer to each 3D slice of FSOL
+         p_FSOL => FSOL(:,:,:,N)
+
          ! Fraction of soluble tracer
-         CALL COMPUTE_F( N, FSOL(:,:,:,N), ISOL(N) ) 
+         CALL COMPUTE_F( N, p_FSOL, ISOL(N), State_Met, State_Chm ) 
+
+         ! Nullify the pointer
+         NULLIFY( p_FSOL )
 
       ENDDO
       
@@ -279,30 +339,31 @@
       !-----------------------------------------------------------------
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( J,       AREA_M2, I,      IDENT,  L,  PEDGE )
-!$OMP+PRIVATE( N,       F,       DIAG14, DIAG38, RC, NN    ) 
-!$OMP+PRIVATE( T_PFICU, T_PFLCU                            )
+!$OMP+PRIVATE( J,          AREA_M2,  I,       IDENT,      L       )
+!$OMP+PRIVATE( PEDGE,      N,        F,       DIAG14,     DIAG38  )
+!$OMP+PRIVATE( RC,         NN,       p_AD,    p_BXHEIGHT, p_CMFMC )
+!$OMP+PRIVATE( p_DQRCU,    p_DTRAIN, p_H2O2s, p_PFICU,    p_PFLCU )
+!$OMP+PRIVATE( P_REEVAPCN, p_SO2s,   p_STT,   p_T                 )
       DO J = 1, JJPAR
-
-         ! Grid box surface area [m2]
-         AREA_M2           = GET_AREA_M2( J ) 
-
       DO I = 1, IIPAR
 
+         ! Grid box surface area [m2]
+         AREA_M2           =  GET_AREA_M2( I, J, 1 ) 
+
          ! Initialize the IDENT object for error I/O
-         IDENT%STDOUT_FILE = ''                     ! Write to
-         IDENT%STDOUT_LUN  = 6                      !  stdout
-         IDENT%PET         = 0                      ! CPU #
-         IDENT%I_AM(1)     = 'MAIN'                 ! Main routine
-         IDENT%I_AM(2)     = 'DO_CONVECTION'        ! This routine
-         IDENT%LEV         = 2                      ! This level
-         IDENT%ERRMSG      = ''                     ! Error msg
-        !IDENT%VERBOSE     = ( I==23 .and. J==34 )  ! Debug box
-         IDENT%VERBOSE     = ( I==67 .and. J==31 )  ! Debug box
+         IDENT%STDOUT_FILE =  ''                     ! Write to
+         IDENT%STDOUT_LUN  =  6                      !  stdout
+         IDENT%PET         =  0                      ! CPU #
+         IDENT%I_AM(1)     =  'MAIN'                 ! Main routine
+         IDENT%I_AM(2)     =  'DO_CONVECTION'        ! This routine
+         IDENT%LEV         =  2                      ! This level
+         IDENT%ERRMSG      =  ''                     ! Error msg
+        !IDENT%VERBOSE     =  ( I==23 .and. J==34 )  ! Debug box
+         IDENT%VERBOSE     =  ( I==67 .and. J==31 )  ! Debug box
 
          ! Pressure edges
          DO L = 1, LLPAR+1
-            PEDGE(L)       = GET_PEDGE( I, J, L )
+            PEDGE(L)       =  GET_PEDGE( I, J, L )
          ENDDO
 
          ! For some reason, the parallelization chokes if we pass an array 
@@ -310,65 +371,77 @@
          ! copy the data into a local array and then pass that to the routine.
          DO N = 1, N_TRACERS
          DO L = 1, LLPAR
-            F(L,N)         = FSOL(I,J,L,N)
+            F(L,N)         =  FSOL(I,J,L,N)
          ENDDO
          ENDDO
 
 #if   defined( GEOS_57 )
 
          ! For GEOS-5.7, PFICU and PFLCU are defined on level edges
-         T_PFICU = PFICU( I, J, 2:LLPAR+1 )
-         T_PFLCU = PFLCU( I, J, 2:LLPAR+1 )
+         p_PFICU           => State_Met%PFICU   ( I, J, 2:LLPAR+1   )
+         p_PFLCU           => State_Met%PFLCU   ( I, J, 2:LLPAR+1   )
 
 #elif defined( MERRA   )
 
          ! For MERRA, PFICU and PFLCU are defined on level centers
-         T_PFICU = PFICU( I, J, 1:LLPAR   )
-         T_PFLCU = PFLCU( I, J, 1:LLPAR   )
+         p_PFICU           => State_Met%PFICU   ( I, J, 1:LLPAR     )
+         p_PFLCU           => State_Met%PFLCU   ( I, J, 1:LLPAR     )
 
 #endif
 
+         ! Pointers to slices of larger arrays
+         p_AD              => State_Met%AD      ( I, J,  :          )
+         p_BXHEIGHT        => State_Met%BXHEIGHT( I, J,  :          )
+         p_CMFMC           => State_Met%CMFMC   ( I, J, 2:LLPAR+1   )
+         p_DQRCU           => State_Met%DQRCU   ( I, J,  :          )
+         p_DTRAIN          => State_Met%DTRAIN  ( I, J,  :          )
+         p_H2O2s           =>           H2O2s   ( I, J,  :          )
+         p_REEVAPCN        => State_Met%REEVAPCN( I, J,  :          )
+         p_SO2s            =>           SO2s    ( I, J,  :          )
+         p_STT             => State_Chm%Tracers ( I, J,  :,       : )
+         p_T               => State_Met%T       ( I, J,  :          )
+         
          !--------------------------
          ! Do the cloud convection
          !--------------------------
-         CALL DO_MERRA_CONVECTION( IDENT    = IDENT,
-     &                             DIMINFO  = DIMINFO,
-     &                             COEF     = COEF,
-     &                             IDT      = IDT,
-     &                             OPTIONS  = OPTIONS,
-     &                             AREA_M2  = AREA_M2,
-     &                             PEDGE    = PEDGE,
-     &                             TS_DYN   = DT, 
-     &                             F        = F,
-     &                             AD       = AD      (I,J, :        ),
-     &                             BXHEIGHT = BXHEIGHT(I,J, :        ),
-     &                             CMFMC    = CMFMC   (I,J,2:LLPAR+1 ),
-     &                             DQRCU    = DQRCU   (I,J, :        ),
-     &                             DTRAIN   = DTRAIN  (I,J, :        ), 
-     &                             H2O2s    = H2O2s   (I,J, :        ),
-!----------------------------------------------------------------------------
-! Prior to 2/9/12:
-! Use temporary arrays so that the code will work properly with
-! both MERRA and GEOS-5.7.x met. (bmy, 2/9/12)
-!     &                             PFICU    = PFICU   (I,J, :        ),
-!     &                             PFLCU    = PFLCU   (I,J, :        ),
-!----------------------------------------------------------------------------
-     &                             PFICU    = T_PFICU,
-     &                             PFLCU    = T_PFLCU,
-     &                             REEVAPCN = REEVAPCN(I,J, :        ),
-     &                             SO2s     = SO2s    (I,J, :        ),
-     &                             T        = T       (I,J, :        ),
-     &                             Q        = STT     (I,J, :,      :), 
-     &                             DIAG14   = DIAG14,
-     &                             DIAG38   = DIAG38,
-     &                             I        = I,
-     &                             J        = J,
-     &                             RC       = RC )
+         CALL DO_MERRA_CONVECTION( IDENT     = IDENT,
+     &                             DIMINFO   = DIMINFO,
+     &                             COEF      = COEF,
+     &                             IDT       = IDT,
+     &                             OPTIONS   = OPTIONS,
+     &                             AREA_M2   = AREA_M2,
+     &                             PEDGE     = PEDGE,
+     &                             TS_DYN    = DT, 
+     &                             F         = F,
+     &                             AD        = p_AD,
+     &                             BXHEIGHT  = p_BXHEIGHT,
+     &                             CMFMC     = p_CMFMC,
+     &                             DQRCU     = p_DQRCU,
+     &                             DTRAIN    = p_DTRAIN,
+     &                             H2O2s     = p_H2O2s,
+     &                             PFICU     = p_PFICU,
+     &                             PFLCU     = p_PFLCU,
+     &                             REEVAPCN  = p_REEVAPCN,            
+     &                             SO2s      = p_SO2s,
+     &                             T         = p_T,
+     &                             Q         = p_STT,
+     &                             DIAG14    = DIAG14,
+     &                             DIAG38    = DIAG38,
+     &                             I         = I,
+     &                             J         = J,
+     &                             State_Met = State_Met,
+     &                             State_Chm = State_Chm,
+     &                             RC        = RC         )
 
          ! Stop if error is encountered
-         IF ( RC /= SMV_SUCCESS ) THEN
+         IF ( RC /= GIGC_SUCCESS ) THEN
             CALL GEOS_CHEM_STOP
          ENDIF
+
+         ! Free pointer memory
+         NULLIFY( p_AD,       p_BXHEIGHT, p_CMFMC, p_DQRCU )
+         NULLIFY( p_DTRAIN,   p_H2O2s,    p_PFICU, p_PFLCU )
+         NULLIFY( p_REEVAPCN, p_SO2s,     p_STT,   p_T     )
 
          !--------------------------
          ! ND14 diagnostic [kg/s]
@@ -423,25 +496,41 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_GEOS4_CONVECT
+      SUBROUTINE DO_GEOS4_CONVECT( am_I_Root, Input_Opt,
+     &                             State_Met, State_Chm, RC )
 !
 ! !USES:
 !
-      USE DAO_MOD,           ONLY : HKETA, HKBETA, ZMEU, ZMMU, ZMMD
-      USE DIAG_MOD,          ONLY : AD37
-      USE ERROR_MOD,         ONLY : DEBUG_MSG
-      USE FVDAS_CONVECT_MOD, ONLY : INIT_FVDAS_CONVECT, FVDAS_CONVECT
-      USE LOGICAL_MOD,       ONLY : LPRT
-      USE TIME_MOD,          ONLY : GET_TS_CONV
-      USE TRACER_MOD,        ONLY : N_TRACERS, STT, TCVV
-      USE PRESSURE_MOD,      ONLY : GET_PEDGE
-      USE WETSCAV_MOD,       ONLY : COMPUTE_F
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
+      USE DIAG_MOD,           ONLY : AD37
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE FVDAS_CONVECT_MOD,  ONLY : INIT_FVDAS_CONVECT, FVDAS_CONVECT
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE
+      USE TIME_MOD,           ONLY : GET_TS_CONV
+      USE WETSCAV_MOD,        ONLY : COMPUTE_F
 #if   defined( APM ) 
-      USE TRACER_MOD,        ONLY : N_APMTRA
+      USE TRACER_MOD,         ONLY : N_APMTRA
 #endif
 
-      USE CMN_SIZE_MOD          ! Size parameters
-      USE CMN_DIAG_MOD          ! ND37, LD37 
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  25 May 2005 - S. Wu       - Initial version
@@ -451,33 +540,56 @@
 !  (3 ) Add a check to set negative values in STT to TINY (ccc, 4/15/09)
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  15 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE :: FIRST = .TRUE.
-      INTEGER       :: I, ISOL, J, L, L2, N, NSTEP  
-      !INTEGER       :: INDEXSOL(N_TRACERS) 
-      INTEGER       :: CONVDT    
-      !REAL*8        :: F(IIPAR,JJPAR,LLPAR,N_TRACERS)
-      REAL*8        :: RPDEL(IIPAR,JJPAR,LLPAR)
-      REAL*8        :: DP(IIPAR,JJPAR,LLPAR)
-      REAL*8        :: P1, P2, TDT   
-      INTEGER       :: N_TOT_TRC      
-#if   defined( APM )
-      INTEGER       :: INDEXSOL(                  N_TRACERS+N_APMTRA) 
-      REAL*8        :: F       (IIPAR,JJPAR,LLPAR,N_TRACERS+N_APMTRA)
-#else
-      INTEGER       :: INDEXSOL(                  N_TRACERS) 
-      REAL*8        :: F       (IIPAR,JJPAR,LLPAR,N_TRACERS)
+      LOGICAL, SAVE   :: FIRST = .TRUE.
+      INTEGER         :: I, ISOL, J, L, L2, N, NSTEP
+      !INTEGER         :: INDEXSOL(N_TRACERS)
+      INTEGER         :: CONVDT
+      !REAL*8          :: F(IIPAR,JJPAR,LLPAR,N_TRACERS)
+      REAL*8          :: RPDEL(IIPAR,JJPAR,LLPAR)
+      REAL*8          :: DP(IIPAR,JJPAR,LLPAR)
+      REAL*8          :: P1, P2, TDT
+      INTEGER         :: N_TOT_TRC
+#if   defined( APM )  
+      INTEGER         :: INDEXSOL(Input_Opt%N_TRACERS+N_APMTRA)
+      REAL*8          :: F       (IIPAR,JJPAR,LLPAR,
+     &                            Input_Opt%N_TRACERS+N_APMTRA)
+#else                 
+      INTEGER         :: INDEXSOL(Input_Opt%N_TRACERS)
+      REAL*8          :: F       (IIPAR,JJPAR,LLPAR,
+     &                            Input_Opt%N_TRACERS)
 #endif
+
+      ! For fields from Input_Opt
+      LOGICAL         :: LPRT
+      INTEGER         :: N_TRACERS
+      REAL*8          :: TCVV(Input_Opt%N_TRACERS)
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! DO_GEOS4_CONVECT begins here!
       !=================================================================
       
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LPRT      = Input_Opt%LPRT
+      N_TRACERS = Input_Opt%N_TRACERS
+      TCVV      = Input_Opt%TCVV(1:N_TRACERS)
+
       ! Pick the proper # of tracers for convection
 #if   defined( APM )
       N_TOT_TRC = N_TRACERS + N_APMTRA  
@@ -518,7 +630,7 @@
 
          ! Get fraction of tracer scavenged and the soluble tracer 
          ! index (ISOL). For non-soluble tracers, F=0 and ISOL=0.
-         CALL COMPUTE_F( N, F(:,:,:,N), ISOL ) 
+         CALL COMPUTE_F( N, F(:,:,:,N), ISOL, State_Met, State_Chm ) 
          
          ! Store ISOL in an array for later use
          INDEXSOL(N) = ISOL
@@ -582,22 +694,26 @@
       ! Flip arrays in the vertical and call FVDAS_CONVECT
       !=================================================================
 
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+
       ! Call the fvDAS convection routines (originally from NCAR!)
       CALL FVDAS_CONVECT( TDT,   
      &                    N_TOT_TRC, 
      &                    STT   (:,:,LLPAR:1:-1,:),    
      &                    RPDEL,         
-     &                    HKETA (:,:,LLPAR:1:-1  ),
-     &                    HKBETA(:,:,LLPAR:1:-1  ), 
-     &                    ZMMU  (:,:,LLPAR:1:-1  ),    
-     &                    ZMMD  (:,:,LLPAR:1:-1  ),  
-     &                    ZMEU  (:,:,LLPAR:1:-1  ),  
+     &                    State_Met%HKETA (:,:,LLPAR:1:-1  ),
+     &                    State_Met%HKBETA(:,:,LLPAR:1:-1  ), 
+     &                    State_Met%ZMMU  (:,:,LLPAR:1:-1  ),    
+     &                    State_Met%ZMMD  (:,:,LLPAR:1:-1  ),  
+     &                    State_Met%ZMEU  (:,:,LLPAR:1:-1  ),  
      &                    DP,     
      &                    NSTEP,    
      &                    F     (:,:,LLPAR:1:-1,:),         
      &                    TCVV,   
-     &                    INDEXSOL )
-
+     &                    INDEXSOL,
+     &                    State_Met )
 
       ! Add a check to set negative values in STT to TINY
       ! (ccc, 4/15/09)
@@ -614,6 +730,9 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+      ! Free pointer
+      NULLIFY( STT )
 
       !### Debug! 
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_G4_CONV: a FVDAS_CONVECT' )
@@ -634,26 +753,40 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_GCAP_CONVECT
+      SUBROUTINE DO_GCAP_CONVECT( am_I_Root, Input_Opt,
+     &                            State_Met, State_Chm, RC )
 !
 ! !USES:
 !
-      USE DAO_MOD,          ONLY : DETRAINE, DETRAINN, DNDE
-      USE DAO_MOD,          ONLY : DNDN,     ENTRAIN,  UPDN, UPDE
-      USE DIAG_MOD,         ONLY : AD37
-      USE ERROR_MOD,        ONLY : DEBUG_MSG
-      USE GCAP_CONVECT_MOD, ONLY : GCAP_CONVECT
-      USE LOGICAL_MOD,      ONLY : LPRT
-      USE TIME_MOD,         ONLY : GET_TS_CONV
-      USE TRACER_MOD,       ONLY : N_TRACERS, STT, TCVV
-      USE PRESSURE_MOD,     ONLY : GET_PEDGE, GET_PCENTER
-      USE WETSCAV_MOD,      ONLY : COMPUTE_F
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
+      USE DIAG_MOD,           ONLY : AD37
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE GCAP_CONVECT_MOD,   ONLY : GCAP_CONVECT
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE, GET_PCENTER
+      USE TIME_MOD,           ONLY : GET_TS_CONV
+      USE WETSCAV_MOD,        ONLY : COMPUTE_F
 #if   defined( APM )
-      USE TRACER_MOD,       ONLY : N_APMTRA
+      USE TRACER_MOD,         ONLY : N_APMTRA
 #endif
-
-      USE CMN_SIZE_MOD         ! Size parameters
-      USE CMN_DIAG_MOD         ! ND37, LD37 
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  25 May 2005 - S. Wu       - Initial version
@@ -664,6 +797,9 @@
 !  (3 ) Add a check to set negative values in STT to TINY (ccc, 4/15/09)
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  15 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -680,17 +816,37 @@
       REAL*8        :: GAINMASS
       INTEGER       :: N_TOT_TRC      
 #if   defined( APM )
-      INTEGER       :: INDEXSOL(                  N_TRACERS+N_APMTRA) 
-      REAL*8        :: F       (IIPAR,JJPAR,LLPAR,N_TRACERS+N_APMTRA)
+      INTEGER       :: INDEXSOL(Input_Opt%N_TRACERS+N_APMTRA) 
+      REAL*8        :: F       (IIPAR,JJPAR,LLPAR,
+     &                          Input_Opt%N_TRACERS+N_APMTRA)
 #else
-      INTEGER       :: INDEXSOL(                  N_TRACERS) 
-      REAL*8        :: F       (IIPAR,JJPAR,LLPAR,N_TRACERS)
+      INTEGER       :: INDEXSOL(Input_Opt%N_TRACERS) 
+      REAL*8        :: F       (IIPAR,JJPAR,LLPAR,
+     &                          Input_Opt%N_TRACERS)
 #endif
+
+      ! For fields from Input_Opt
+      LOGICAL       :: LPRT
+      INTEGER       :: N_TRACERS
+      REAL*8        :: TCVV(Input_Opt%N_TRACERS)
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! DO_GCAP_CONVECT begins here!
       !=================================================================
       
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LPRT      = Input_Opt%LPRT
+      N_TRACERS = Input_Opt%N_TRACERS
+      TCVV      = Input_Opt%TCVV(1:N_TRACERS)
+
       ! Pick the proper # of tracers for convection
 #if   defined( APM )
       N_TOT_TRC = N_TRACERS + N_APMTRA   ! G-C tracers + APM tracers
@@ -728,7 +884,7 @@
 
          ! Get fraction of tracer scavenged and the soluble tracer 
          ! index (ISOL). For non-soluble tracers, F=0 and ISOL=0.
-         CALL COMPUTE_F( N, F(:,:,:,N), ISOL ) 
+         CALL COMPUTE_F( N, F(:,:,:,N), ISOL, State_Met, State_Chm ) 
          
          ! Store ISOL in an array for later use
          INDEXSOL(N) = ISOL
@@ -793,6 +949,10 @@
       ! Flip arrays in the vertical and call FVDAS_CONVECT
       !=================================================================
 
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+
       ! Call the GCAP convection routines 
       CALL GCAP_CONVECT( TDT, 
      &                   STT      (:,:,LLPAR:1:-1,:), 
@@ -802,13 +962,13 @@
      &                   F        (:,:,LLPAR:1:-1,:),     
      &                   TCVV,   
      &                   INDEXSOL, 
-     &                   UPDE     (:,:,LLPAR:1:-1  ),
-     &                   DNDE     (:,:,LLPAR:1:-1  ), 
-     &                   ENTRAIN  (:,:,LLPAR:1:-1  ), 
-     &                   DETRAINE (:,:,LLPAR:1:-1  ), 
-     &                   UPDN     (:,:,LLPAR:1:-1  ),  
-     &                   DNDN     (:,:,LLPAR:1:-1  ),
-     &                   DETRAINN (:,:,LLPAR:1:-1  )  )
+     &                   State_Met%UPDE     (:,:,LLPAR:1:-1  ),
+     &                   State_Met%DNDE     (:,:,LLPAR:1:-1  ), 
+     &                   State_Met%ENTRAIN  (:,:,LLPAR:1:-1  ), 
+     &                   State_Met%DETRAINE (:,:,LLPAR:1:-1  ), 
+     &                   State_Met%UPDN     (:,:,LLPAR:1:-1  ),  
+     &                   State_Met%DNDN     (:,:,LLPAR:1:-1  ),
+     &                   State_Met%DETRAINN (:,:,LLPAR:1:-1  )  )
 
       ! Add a check to set negative values in STT to TINY
       ! (ccc, 4/15/09)
@@ -825,6 +985,9 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+      ! Free pointer
+      NULLIFY( STT )
 
       !### Debug! 
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_GCAP_CONV: a GCAP_CONVECT' )
@@ -850,26 +1013,32 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE NFCLDMX( NC, TCVV, CLDMAS, DTRN, Q )
-
+      SUBROUTINE NFCLDMX( am_I_Root, Input_Opt, CLDMAS, 
+     &                    DTRN,      State_Met, State_Chm, RC )
 !
 ! !USES:
 !
-      USE DAO_MOD,          ONLY : AD  !,   CLDMAS, DTRN=>DTRAIN
-      USE DIAG_MOD,         ONLY : AD37, AD38,   CONVFLUP
-      USE GRID_MOD,         ONLY : GET_AREA_M2
-      USE LOGICAL_MOD,      ONLY : LDYNOCEAN, LGTMM
-      USE DEPO_MERCURY_MOD, ONLY : ADD_Hg2_WD, ADD_HgP_WD
-      USE PRESSURE_MOD,     ONLY : GET_BP, GET_PEDGE
-      USE TIME_MOD,         ONLY : GET_TS_CONV
-      USE TRACER_MOD,       ONLY : ITS_A_MERCURY_SIM
-      USE TRACERID_MOD,     ONLY : IS_Hg2, IS_HgP 
-      USE WETSCAV_MOD,      ONLY : COMPUTE_F
-      USE DEPO_MERCURY_MOD, ONLY : ADD_Hg2_SNOWPACK !CDH
-      USE DAO_MOD,          ONLY : SNOMAS, SNOW  !,   CLDMAS, DTRN=>DTRAIN
-
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DIAG_MOD     ! Diagnostic switches & arrays
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
+      USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_WD
+      USE DEPO_MERCURY_MOD,   ONLY : ADD_HgP_WD
+      USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
+      USE DIAG_MOD,           ONLY : AD37
+      USE DIAG_MOD,           ONLY : AD38
+      USE DIAG_MOD,           ONLY : CONVFLUP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_M2
+      USE PRESSURE_MOD,       ONLY : GET_BP
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE
+      USE TIME_MOD,           ONLY : GET_TS_CONV
+      USE TRACER_MOD,         ONLY : ITS_A_MERCURY_SIM
+      USE TRACERID_MOD,       ONLY : IS_Hg2
+      USE TRACERID_MOD,       ONLY : IS_HgP 
+      USE WETSCAV_MOD,        ONLY : COMPUTE_F
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
 
       IMPLICIT NONE
 #     include "define.h"
@@ -877,23 +1046,26 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      ! TOTAL number of tracers (soluble + insoluble)  [unitless]
-      INTEGER, INTENT(IN)    :: NC 
+      ! Are we on the root CPU
+      LOGICAL,        INTENT(IN)    :: am_I_Root
 
       ! CLDMAS : Cloud mass flux (at upper edges of each level) [kg/m2/s]
-      REAL*8,  INTENT(IN)    :: CLDMAS(IIPAR,JJPAR,LLPAR)
+      REAL*8,         INTENT(IN)    :: CLDMAS(IIPAR,JJPAR,LLPAR)
 
       ! Detrainment mass flux [kg/m2/s]
-      REAL*8,  INTENT(IN)    :: DTRN(IIPAR,JJPAR,LLPAR)
+      REAL*8,         INTENT(IN)    :: DTRN(IIPAR,JJPAR,LLPAR)
 
-      ! MW air (g/mol) / MW of tracer (g/mol) [unitless]
-      REAL*8,  INTENT(IN)    :: TCVV(NC)
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
-! !INPUT/OUTPUT PARAMETERS: 
-! 
-      ! Tracer concentration [v/v]
-      REAL*8,  INTENT(INOUT) :: Q(IIPAR,JJPAR,LLPAR,NC)
+! !INPUT/OUTPUT PARAMETERS:
 !
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+
 ! !REMARKS:
 !  (1) The "NF" stands for "no flipping", and denotes that you don't have to 
 !  flip the tracer array Q in the main program before passing it to NFCLDMX.
@@ -1029,6 +1201,12 @@
 !  (18) Add a check to set negative values in Q to TINY (ccc, 4/15/09)
 !  (19) Updates for mercury simulation (ccc, 5/17/10)
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  29 May 2013 - R. Yantosca - Now set TINY = 1d-60 only for TOMAS code
+!  31 May 2013 - R. Yantosca - Now pass State_Chm and then have Q point to 
+!                              State_Chm%Tracers.  This is for TOMAS.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1039,14 +1217,17 @@
       LOGICAL, SAVE          :: IS_Hg = .TRUE.
       INTEGER                :: I, J, K, KTOP, L, N, NDT
       INTEGER                :: IC, ISTEP, JUMP, JS, JN, NS
-      INTEGER                :: IMR, JNP, NLAY
-      REAL*8,  SAVE          :: DSIG(LLPAR)
+      INTEGER                :: IMR, JNP, NLAY, AS
       REAL*8                 :: SDT, CMOUT, ENTRN, DQ, AREA_M2
       REAL*8                 :: T0, T1, T2, T3, T4, TSUM, DELQ
-      REAL*8                 :: DTCSUM(IIPAR,JJPAR,LLPAR,NC)
+      REAL*8                 :: DTCSUM(IIPAR,JJPAR,LLPAR,
+     &                          Input_Opt%N_TRACERS)
+
+      REAL*8, ALLOCATABLE, SAVE :: DSIG(:)
 
       ! F is the fraction of tracer lost to wet scavenging in updrafts
-      REAL*8                 :: F(IIPAR,JJPAR,LLPAR,NC)
+      REAL*8                 :: F(IIPAR,JJPAR,LLPAR,
+     &                            Input_Opt%N_TRACERS)
 
       ! Local Work arrays
       REAL*8                 :: BMASS(IIPAR,JJPAR,LLPAR)
@@ -1055,7 +1236,11 @@
       REAL*8                 :: QC(IIPAR,JJPAR) 
 
       ! TINY = a very small number
-      REAL*8, PARAMETER      :: TINY = 1d-14 
+#if defined( TOMAS )
+      REAL*8, PARAMETER      :: TINY  = 1d-60   ! Set to 1d-60 for TOMAS code
+#else
+      REAL*8, PARAMETER      :: TINY  = 1d-14   ! Leave as 1d-14 for std GEOS-Chem
+#endif
       REAL*8, PARAMETER      :: TINY2 = 1d-30 
 
       ! ISOL is an index for the diagnostic arrays
@@ -1072,9 +1257,33 @@
       REAL*8                 :: WET_Hg2
       REAL*8                 :: WET_HgP 
 
+      ! For fields from Input_Opt
+      LOGICAL                :: LDYNOCEAN
+      LOGICAL                :: LGTMM
+      INTEGER                :: NC
+      REAL*8                 :: TCVV(Input_Opt%N_TRACERS)
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER        :: Q(:,:,:,:)
+
       !=================================================================
       ! NFCLDMX begins here!
       !=================================================================
+
+      ! Assume success
+      RC        = GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LDYNOCEAN = Input_Opt%LDYNOCEAN
+      LGTMM     = Input_Opt%LGTMM
+      NC        = Input_Opt%N_TRACERS
+      TCVV      = Input_Opt%TCVV(1:NC)
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      Q         => State_Chm%Tracers
 
       ! First-time initialization
       IF ( FIRST ) THEN
@@ -1086,17 +1295,22 @@
          WRITE( 6, '(a)' ) 'Last Modification Date: 1/27/04'
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
-#if   !defined( GEOS_5 ) 
+#if defined( GEOS_5 ) || defined( GEOS_57 ) || defined( MERRA )
+         ! Do nothing, these are all hybrid grids
+#else
          ! NOTE: We don't need to do this for GEOS-5 (bmy, 6/27/07)
          ! DSIG is the sigma-level thickness (NOTE: this assumes that
          ! we are using a pure-sigma grid.  Use new routine for fvDAS.)
+         ALLOCATE( DSIG(LLPAR), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'DSIG_CONVECTION' )
+
          DO L = 1, LLPAR        
             DSIG(L) = GET_BP(L) - GET_BP(L+1)
          ENDDO
 #endif
 
          ! Flag to denote if this is a mercury simulation (sas, bmy, 1/19/05)
-         IS_Hg = ( ITS_A_MERCURY_SIM() .and. LDYNOCEAN )
+         IS_Hg = ( Input_Opt%ITS_A_MERCURY_SIM .and. LDYNOCEAN )
 
          ! Reset first time flag
          FIRST = .FALSE.
@@ -1109,7 +1323,7 @@
 
       ! Convection timestep [s]
       NDT  = GET_TS_CONV() * 60d0
-     
+
       !=================================================================
       ! Define active convective region, from J = JS(outh) to 
       ! J = JN(orth), and to level K = KTOP. 
@@ -1158,12 +1372,12 @@
 !$OMP+PRIVATE( I, J, AREA_M2, K )
 !$OMP+SCHEDULE( DYNAMIC )
       DO K = 1, NLAY
-         DO J = 1, JJPAR
-            AREA_M2 = GET_AREA_M2( J )
-            DO I = 1, IMR
-               BMASS(I,J,K) = AD(I,J,K) / AREA_M2
-            ENDDO
-         ENDDO
+      DO J = 1, JJPAR
+      DO I = 1, IMR
+         AREA_M2      = GET_AREA_M2( I, J, K )
+         BMASS(I,J,K) = State_Met%AD(I,J,K) / AREA_M2
+      ENDDO
+      ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
@@ -1206,7 +1420,7 @@
          ! used for diagnostic arrays AD37 and AD38.  ISOL = 0 for all 
          ! non-soluble tracers.   
          !==============================================================
-         CALL COMPUTE_F( IC, F(:,:,:,IC), ISOL ) 
+         CALL COMPUTE_F( IC, F(:,:,:,IC), ISOL, State_Met, State_Chm ) 
 
          ! ND37 diagnostic -- store F only for soluble tracers
          IF ( ND37 > 0 .and. ISOL > 0 ) THEN
@@ -1322,13 +1536,12 @@
             ! is the level ABOVE level K.  This is the way that SJ Lin 
             ! indexes the sigma levels.
             !===========================================================
-            DO K = 3, KTOP
+            DO K = 3,  KTOP
             DO J = JS, JN
+            DO I = 1,  IMR
 
                ! Grid box surface area [m2]
-               AREA_M2 = GET_AREA_M2( J )
-
-               DO I = 1, IMR
+               AREA_M2 = GET_AREA_M2( I, J, K )
 
 !==============================================================================
 !  (5.1)  M a s s   B a l a n c e   i n   C l o u d  ===>  QC(I,J)
@@ -1362,6 +1575,11 @@
                      ENTRN    = CMOUT         - CLDMAS(I,J,K-1)
                      QC_PRES  = QC(I,J) * ( 1d0 - F(I,J,K,IC) )
                      QC_SCAV  = QC(I,J) * F(I,J,K,IC)
+!#if defined ( DEBUG )
+!       IF ( IC == 129 ) THEN
+!          print *, I, J, K, QC_PRES, QC_SCAV, QC(I,J), F(I,J,K,IC)
+!       ENDIF
+!#endif
 
                      IF ( ENTRN .ge. 0 ) THEN
                         QC(I,J) = ( CLDMAS(I,J,K-1) * QC_PRES       + 
@@ -1451,6 +1669,11 @@
                      !==================================================
                      IF ( ( ND38 > 0 .or. LGTMM )
      &                    .and. ISOL > 0 .and. K <= LD38 ) THEN
+!#if defined ( DEBUG )
+!                        if(TCVV(IC) <= 0.d0) then
+!                           print *, I, J, K, IC, ISOL, TCVV(IC)
+!                        endif
+!#endif
                         AD38(I,J,K,ISOL) = AD38(I,J,K,ISOL) +
      &                       ( T0 * AREA_M2 / ( TCVV(IC) * DNS ) )
                      ENDIF
@@ -1472,7 +1695,8 @@
 
                         ! Pass to "ocean_mercury_mod.f"
                         CALL ADD_Hg2_WD( I, J, IC, WET_Hg2 )
-                        CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_Hg2 )
+                        CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_Hg2,
+     &                                         State_Met )
                      ENDIF
 
                      IF ( IS_Hg .and. IS_HgP( IC ) ) THEN
@@ -1485,7 +1709,8 @@
 
                         ! Pass to "ocean_mercury_mod.f"
                         CALL ADD_HgP_WD( I, J, IC, WET_HgP )
-                        CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_HgP )
+                        CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_HgP,
+     &                                         State_Met )
                      ENDIF
 
                   !=====================================================
@@ -1576,6 +1801,9 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+      ! Free pointer memory
+      NULLIFY( Q )
+
       END SUBROUTINE NFCLDMX
 !EOC
 !------------------------------------------------------------------------------
@@ -1600,21 +1828,23 @@
      &                                REEVAPCN, T,        TS_DYN,   
      &                                Q,        DIAG14,   DIAG38,   
      &                                H2O2s,    SO2s,     I,        
-     &                                J,        RC )
+     &                                J,        RC,       State_Met,
+     &                                State_Chm                      )
 !
 ! !USES:
 !
-      USE ERROR_MOD,        ONLY : IT_IS_NAN, IT_IS_FINITE
-      USE ERROR_MOD,        ONLY : GEOS_CHEM_STOP  ! hma Nov 3, debug
-      USE DEPO_MERCURY_MOD, ONLY : ADD_Hg2_SNOWPACK
-      USE DEPO_MERCURY_MOD, ONLY : ADD_Hg2_WD
-      USE DEPO_MERCURY_MOD, ONLY : ADD_HgP_WD
-      USE MERCURY_MOD,      ONLY : PARTITIONHg
-      USE TRACERID_MOD,     ONLY : IS_Hg2
-      USE TRACERID_MOD,     ONLY : IS_HgP 
-      USE WETSCAV_MOD,      ONLY : WASHOUT
-      USE WETSCAV_MOD,      ONLY : LS_K_RAIN
-      USE WETSCAV_MOD,      ONLY : LS_F_PRIME
+      USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
+      USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_WD
+      USE DEPO_MERCURY_MOD,   ONLY : ADD_HgP_WD
+      USE ERROR_MOD,          ONLY : IT_IS_NAN, IT_IS_FINITE
+      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP  ! hma Nov 3, debug
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TRACERID_MOD,       ONLY : IS_Hg2
+      USE TRACERID_MOD,       ONLY : IS_HgP
+      USE WETSCAV_MOD,        ONLY : WASHOUT
+      USE WETSCAV_MOD,        ONLY : LS_K_RAIN
+      USE WETSCAV_MOD,        ONLY : LS_F_PRIME
 !
 ! !INPUT PARAMETERS:
 !  
@@ -1622,6 +1852,7 @@
       TYPE(GC_DIMS),     INTENT(IN) :: DIMINFO     ! Obj w/ array dimensions
       TYPE(ID_TRAC),     INTENT(IN) :: IDT         ! Obj w/ tracer ID flags
       TYPE(GC_OPTIONS),  INTENT(IN) :: OPTIONS     ! Obj w/ logical switches
+      TYPE(MetState),    INTENT(IN) :: State_Met   ! Meteorology State object
       REAL*8,            INTENT(IN) :: AD(:)       ! Air mass [kg]    
       REAL*8,            INTENT(IN) :: AREA_M2     ! Surface area [m2]
       REAL*8,            INTENT(IN) :: BXHEIGHT(:) ! Box height [m]
@@ -1646,7 +1877,8 @@
       INTEGER,           INTENT(IN) :: I, J        ! Lon & lat indices
 !                                                  
 ! !INPUT/OUTPUT PARAMETERS:                        
-!                                                  
+!        
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
       TYPE(GC_IDENT), INTENT(INOUT) :: IDENT       ! Obj w/ info from ESMF etc.
       REAL*8,         INTENT(INOUT) :: H2O2s(:)
       REAL*8,         INTENT(INOUT) :: SO2s(:)  
@@ -1702,6 +1934,10 @@
 !                              diagnostic below the cloud.  Using T0_SUM leads 
 !                              us to over-count the tracer scavenged out of 
 !                              the column.
+!  22 Oct 2012 - R. Yantosca - Now reference Headers/gigc_errcode_mod.F90
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  31 May 2013 - R. Yantosca - Now pass State_Chm to WASHOUT
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1748,14 +1984,14 @@
       ! Safety check #1: Invalid NLAY w/r/t Q
       IF ( NLAY < 1 .or. NLAY > SIZE( Q, 1 ) ) THEN
          WRITE( IDENT%ERRMSG, 200 ) NLAY, SIZE( Q, 1 )
-         RC = SMV_FAILURE
+         RC = GIGC_FAILURE
          RETURN
       ENDIF
 
       ! Safety check #2: Invalid NC w/r/t Q
       IF ( NC < 1 .or. NC > SIZE( Q, 2 ) ) THEN
          WRITE( IDENT%ERRMSG, 200 ) NC, SIZE( Q, 2 )
-         RC = SMV_FAILURE
+         RC = GIGC_FAILURE
          RETURN
       ENDIF
 
@@ -1763,7 +1999,7 @@
       IF ( NLAY > SIZE( F, 1 ) .or. NC > SIZE( F, 2 ) ) THEN
          WRITE( IDENT%ERRMSG, 220 ) NLAY, SIZE( F, 1 ),
      &                              NC,   SIZE( F, 2 )
-         RC = SMV_FAILURE
+         RC = GIGC_FAILURE
          RETURN
       ENDIF
 
@@ -2145,7 +2381,7 @@
                      WRITE( 6, 255 ) K, IC, Q(K,IC) 
  250                 FORMAT( 'NaN encountered in DO_MERRA_CONVECTION!' )
  255                 FORMAT( 'K, IC, Q(K,IC): ', 2i4, 1x, es13.6 )
-                     RC = SMV_FAILURE
+                     RC = GIGC_FAILURE
                      RETURN
                   ENDIF
 
@@ -2261,10 +2497,11 @@
                   
                   ! Call WASHOUT to compute the fraction of tracer lost
                   ! to washout in grid box (I,J,K)
-                  CALL WASHOUT( K,         IC,       BXHEIGHT(K), 
+                  CALL WASHOUT( I, J, K,   IC,       BXHEIGHT(K), 
      &                          T(K),      QDOWN,    DT,   
      &                          F_WASHOUT, H2O2s(K), SO2s(K), 
-     &                          WASHFRAC,  AER )
+     &                          WASHFRAC,  AER,      State_Met,
+     &                          State_Chm                         )
 
                   ! Check if the tracer is an aerosol or not
                   IF ( AER == .TRUE. ) THEN
@@ -2391,7 +2628,7 @@
 
                ! Pass to "ocean_mercury_mod.f"
                CALL ADD_Hg2_WD      ( I, J, IC, WET_Hg2 )
-               CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_Hg2 )
+               CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_Hg2, State_Met )
             ENDIF
 
             !--------------------------------------
@@ -2407,7 +2644,7 @@
 
                ! Pass to "ocean_mercury_mod.f"
                CALL ADD_HgP_WD      ( I, J, IC, WET_HgP )
-               CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_HgP )
+               CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_HgP, State_Met )
             ENDIF
 
          ENDDO 
@@ -2418,7 +2655,7 @@
       !================================================================
 
       ! Set error code to success
-      RC                      = SMV_SUCCESS
+      RC                      = GIGC_SUCCESS
 
       ! Remove this routine name from error trace stack
       IDENT%I_AM( IDENT%LEV ) = ''

@@ -12,20 +12,21 @@
 !\\
 ! !INTERFACE:
 !
-      REAL*8 FUNCTION BOXVL( I, J, L )
+      REAL*8 FUNCTION BOXVL( I, J, L, State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD, ONLY : AIRVOL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 
       IMPLICIT NONE
 #     include "define.h"
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: I   ! Longitude index
-      INTEGER, INTENT(IN) :: J   ! Latitude index
-      INTEGER, INTENT(IN) :: L   ! Level index
+      INTEGER,        INTENT(IN) :: I           ! Longitude index
+      INTEGER,        INTENT(IN) :: J           ! Latitude index
+      INTEGER,        INTENT(IN) :: L           ! Level index
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !REVISION HISTORY: 
 !  30 Jan 1998 - R. Yantosca - Initial version
@@ -38,6 +39,8 @@
 !  (5 ) Removed obsolete code from 6/26/00 (bmy, 8/31/00)
 !  (6 ) Updated comments (bmy, 8/5/02)
 !  02 Dec 2010 - R. Yantosca - Initial version
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -47,7 +50,7 @@
       !=================================================================
       ! BOXVL begins here!
       !=================================================================
-      BOXVL = AIRVOL(I,J,L) * 1d6
+      BOXVL = State_Met%AIRVOL(I,J,L) * 1d6
 
       END FUNCTION BOXVL
 !EOC

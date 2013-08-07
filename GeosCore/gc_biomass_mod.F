@@ -159,8 +159,11 @@
 !  (34) CO scaling for VOC production is transfered to biomass_mod.f.
 !        (jaf, 2/6/09)
 !  (35) Modification for 1 x 1.25 grid (lok, bmy, 1/13/10)
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !******************************************************************************
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h"
 
@@ -313,9 +316,6 @@
      &                                              31, 30, 31, 31, 
      &                                              30, 31, 30, 31 /)
 
-      ! External functions
-      REAL*8, EXTERNAL       :: BOXVL
-      
       !=================================================================
       !    B i o m a s s   B u r n i n g   B e g i n s   H e r e !!
       ! 
@@ -595,6 +595,8 @@
 !  (16) Treat all species with emissions dependant on CO emissions after
 !       the main loop on biomass species. To make sure CO emissions are already
 !       read. (ccc, 01/29/10)
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !******************************************************************************
 !
       ! References to F90 modules
@@ -602,7 +604,7 @@
       USE LOGICAL_MOD,          ONLY : LFUTURE
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
       ! Add IDBs of all species handled here (hotp 8/3/09)
-      USE TRACERID_MOD, ONLY : IDBNOX,  IDBCO,   IDBALK4, IDBACET 
+      USE TRACERID_MOD, ONLY : IDBNO,   IDBCO,   IDBALK4, IDBACET 
       USE TRACERID_MOD, ONLY : IDBMEK,  IDBALD2, IDBPRPE, IDBC3H8
       USE TRACERID_MOD, ONLY : IDBCH2O, IDBC2H6
       USE TRACERID_MOD, ONLY : IDBGLYX, IDBMGLY, IDBBENZ, IDBTOLU
@@ -617,7 +619,6 @@
       REAL*8,           INTENT(OUT) :: BIOMASS(IIPAR,JJPAR,NBIOMAX)
 
       ! Local variables
-      INTEGER                       :: N
       REAL*4                        :: ARRAY(IIPAR,JJPAR,1)
 
       ! Add storage of CO emissions to calculate emissions 
@@ -636,14 +637,12 @@
       ! Initialize the BIOMASS array
       BIOMASS = 0d0
 
-! We don't need the loop any more. We calculate emissions if IDBxxx > 0
-! (ccc, 01/29/10)
-!      ! Loop over only the emitted biomass tracers
-!      DO N = 1, NBIOMAX
+      ! We don't need the loop any more. We calculate emissions if IDBxxx > 0
+      ! (ccc, 01/29/10)
           
          ! Do scaling if necessary and print totals in Tg
-         !IF ( N == 1 ) THEN
-         IF  ( IDBNOX > 0 ) THEN
+         ! Replaced NOx emissions with NO emissions (mpayer, 3/14/13)
+         IF  ( IDBNO > 0 ) THEN
 
             !----------
             ! NOx
@@ -655,20 +654,19 @@
      &                       1,         ARRAY,     QUIET=.TRUE. )  
 
             ! Cast from REAL*4 to REAL*8 and resize to (IIPAR,JJPAR)
-            CALL TRANSFER_2D( ARRAY(:,:,1), BIOMASS(:,:,IDBNOX) )
+            CALL TRANSFER_2D( ARRAY(:,:,1), BIOMASS(:,:,IDBNO) )
 
             ! Compute future NOx emissions (if necessary)
             IF ( LFUTURE ) THEN
-               CALL SCALE_FUTURE( 'NOxbb', BIOMASS(:,:,IDBNOX) )
+               CALL SCALE_FUTURE( 'NObb', BIOMASS(:,:,IDBNO) )
             ENDIF
 
-            ! NOX -- print totals in [Tg/month]
-            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBNOX), 14d-3, 'NOx' )
+            ! NO -- print totals in [Tg/month]
+            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBNO), 14d-3, 'NO' )
          ENDIF
 
          !FP_ISOP (6/2009) removed hardwired IDBs
          IF  ( IDBCO > 0 ) THEN
-         !ELSE IF ( N == 2 ) THEN
  
             !----------
             ! CO
@@ -686,7 +684,7 @@
             ! for new gaseous emissions (tmf, 1/7/09)
             CALL TRANSFER_2D( ARRAY(:,:,1), COEMIS(:,:) )
 
-            ! Compute future NOx emissions (if necessary)
+            ! Compute future CO emissions (if necessary)
             IF ( LFUTURE ) THEN
                CALL SCALE_FUTURE( 'CObb', BIOMASS(:,:,IDBCO) )
             ENDIF
@@ -697,7 +695,6 @@
 
          !FP_ISOP
          IF  ( IDBALK4 > 0 ) THEN
-         !ELSE IF ( N == 3 ) THEN
 
             !----------
             ! ALK4
@@ -722,7 +719,6 @@
 
          !FP_ISOP
          IF  ( IDBACET > 0 ) THEN
-         !ELSE IF ( N == 4 ) THEN
 
             !----------
             ! ACET
@@ -737,7 +733,7 @@
             CALL TRANSFER_2D( ARRAY(:,:,1), BIOMASS(:,:,IDBACET) )
 
             ! ACET -- Convert from [molec/cm2/month] to [molec C/cm2/month] 
-            BIOMASS(:,:,N) = BIOMASS(:,:,IDBACET) * 3d0  
+            BIOMASS(:,:,IDBACET) = BIOMASS(:,:,IDBACET) * 3d0  
 
             ! Scale to yearly value for biogenic acetone (bdf, bmy, 7/23/01)
             CALL SCALE_BIOMASS_ACET( BIOMASS(:,:,IDBACET) )
@@ -753,7 +749,6 @@
 
          !FP_ISOP
          IF  ( IDBMEK > 0 ) THEN
-         !ELSE IF ( N == 5 ) THEN
 
             !----------
             ! MEK
@@ -778,7 +773,6 @@
 
          !FP_ISOP
          IF  ( IDBALD2 > 0 ) THEN
-         !ELSE IF ( N == 6 ) THEN
 
             !----------
             ! ALD2
@@ -803,7 +797,6 @@
 
          !FP_ISOP
          IF  ( IDBPRPE > 0 ) THEN
-         !ELSE IF ( N == 7 ) THEN
 
             !----------
             ! PRPE
@@ -828,8 +821,7 @@
          ENDIF
 
          !FP_ISOP
-         IF  ( N == IDBC3H8 ) THEN
-         !ELSE IF ( N == 8 ) THEN
+         IF  ( IDBC3H8 > 0 ) THEN
                
             !----------
             ! C3H8
@@ -844,7 +836,7 @@
             CALL TRANSFER_2D( ARRAY(:,:,1), BIOMASS(:,:,IDBC3H8) )
 
             ! C3H8 -- convert from [molec/cm2/month] to [molec C/cm2/month] 
-            BIOMASS(:,:,N) = BIOMASS(:,:,IDBC3H8) * 3d0 
+            BIOMASS(:,:,IDBC3H8) = BIOMASS(:,:,IDBC3H8) * 3d0 
 
             ! Compute future C3H8 emissions (if necessary)
             IF ( LFUTURE ) THEN
@@ -857,7 +849,6 @@
 
          !FP_ISOP
          IF  ( IDBCH2O > 0 ) THEN
-         !ELSE IF ( N == 9 ) THEN
 
             !----------
             ! CH2O
@@ -882,7 +873,6 @@
 
          !FP_ISOP
          IF  ( IDBC2H6 > 0 ) THEN
-         !ELSE IF ( N == 10 ) THEN
 
             !----------
             ! C2H6
@@ -897,7 +887,7 @@
             CALL TRANSFER_2D( ARRAY(:,:,1), BIOMASS(:,:,IDBC2H6) )
 
             ! C2H6 --convert from [molec/cm2/month] to [molec C/cm2/month]
-            BIOMASS(:,:,N) = BIOMASS(:,:,IDBC2H6) * 2d0 
+            BIOMASS(:,:,IDBC2H6) = BIOMASS(:,:,IDBC2H6) * 2d0 
 
             ! Compute future C2H6 emissions (if necessary)
             IF ( LFUTURE ) THEN
@@ -1140,6 +1130,8 @@
 !  (2 ) BB   (REAL*8   ) : Array w/ biomass burning emissions [molec/cm2]
 !
 !  NOTES:
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1160,7 +1152,7 @@
       ! SCALE_FUTURE begins here!
       !=================================================================
 
-      IF ( NAME == 'NOxbb' ) THEN
+      IF ( NAME == 'NObb' ) THEN
 
          ! Compute future NOx emissions
 !$OMP PARALLEL DO
@@ -1225,6 +1217,9 @@
 !        Cosmetic changes. (bmy, 3/14/03)
 !  (4 ) Now report sums of NOx as Tg N instead of Tg NOx (bmy, 4/5/06)
 !  (5 ) Add unit choice for GLYX, MGLY, GLYC, HAC (tmf, 1/7/09)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1251,19 +1246,19 @@
 
       ! Convert to [Tg/month] (or [Tg C/month] for hydrocarbons)
       DO J = 1, JJPAR
-         
+      DO I = 1, IIPAR
+
          ! Conversion factor to [Tg/month] (or [Tg C/month] for HC's)
-         CONV = GET_AREA_CM2( J ) * ( MOLWT / 6.023d23 ) * 1d-9
+         CONV  = GET_AREA_CM2( I, J, 1 ) * ( MOLWT / 6.023d23 ) * 1d-9
          
          ! Sum the emissions
-         DO I = 1, IIPAR
-            TOTAL = TOTAL + ( BBARRAY(I,J) * CONV )
-         ENDDO
+         TOTAL = TOTAL + ( BBARRAY(I,J) * CONV )
+      ENDDO
       ENDDO
      
       ! Define unit string
       SELECT CASE( NAME )
-         CASE( 'NOx' )
+         CASE( 'NO' )
             UNIT = '[Tg N]'
          CASE( 'CO', 'CH2O', 'GLYX', 'MGLY', 'GLYC', 'HAC' )
             UNIT = '[Tg  ]'
@@ -1302,6 +1297,7 @@
 !  (1 ) Took the code that reads the emissions from disk from 
 !        BIOMASS_CARB_GEOS in "carbon_mod.f". (bmy, 9/28/06)
 !  27 Jul 2011 - M. Payer    - Add POA1 for SOA + semivolatile POA (H. Pye) 
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1342,7 +1338,7 @@
 
       ! Make sure BCPO, OCPO tracers are defined
       ! SOAupdate: Add POA1 for SOA + semivol POA (hotp, mpayer, 7/27/11)
-      IF ( IDTBCPO == 0 .and. IDTOCPO == 0 .and. IDTPOA1 == 0 ) THEN
+      IF ( IDTBCPO == 0 .and. ( IDTOCPO == 0 .or. IDTPOA1 == 0 )) THEN
          BIOMASS_BC = 0d0
          BIOMASS_OC = 0d0
          RETURN
@@ -1453,12 +1449,12 @@
       ! Loop over latitudes
       DO J = 1, JJPAR
 
-         ! Conversion factor for [1/cm2/s]
-         CONV = 1d0 / ( GET_AREA_CM2( J ) * SEC_PER_MONTH )
-          
          ! Loop over longitudes
          DO I = 1, IIPAR
 
+            ! Conversion factor for [1/cm2/s]
+            CONV = 1d0 / ( GET_AREA_CM2( I, J, 1 ) * SEC_PER_MONTH )
+          
             ! Convert [kg C/month] -> [atoms C/cm2/s]
             BIOMASS_BC(I,J) = BIOMASS_BC(I,J) * XNUMOL(IDTBCPO) * CONV
 
@@ -1508,6 +1504,7 @@
 !  NOTES:
 !  (1 ) Took file reading code out of READ_BIOMASS_SO2 of "sulfate_mod.f"
 !        and inserted here (bmy, 9/28/06)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1625,24 +1622,23 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, CONV )
 
-      ! Loop over latitudes
+      ! Loop over surface boxes
       DO J = 1, JJPAR
-         
+      DO I = 1, IIPAR
+
          ! Conversion factor for [kg/month] -> [molec/cm2/s]
-         CONV = XNUMOL(IDTSO2) / ( GET_AREA_CM2( J ) * SEC_PER_MONTH )
+         CONV = XNUMOL(IDTSO2) 
+     &        / ( GET_AREA_CM2( I, J, 1 ) * SEC_PER_MONTH )
 
-         ! Loop over longitudes
-         DO I = 1, IIPAR
+         ! Convert [kg SO2/month] -> [molec SO2/cm2/s]
+         BIOMASS_SO2(I,J) = BIOMASS_SO2(I,J) * CONV
 
-            ! Convert [kg SO2/month] -> [molec SO2/cm2/s]
-            BIOMASS_SO2(I,J) = BIOMASS_SO2(I,J) * CONV
-
-            ! Scale to IPCC future scenario (if necessary)
-            IF ( LFUTURE ) THEN
-               BIOMASS_SO2(I,J) = BIOMASS_SO2(I,J) * 
-     &                            GET_FUTURE_SCALE_SO2bb( I, J )
-            ENDIF
-         ENDDO
+         ! Scale to IPCC future scenario (if necessary)
+         IF ( LFUTURE ) THEN
+            BIOMASS_SO2(I,J) = BIOMASS_SO2(I,J) * 
+     &                         GET_FUTURE_SCALE_SO2bb( I, J )
+         ENDIF
+      ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
@@ -1670,6 +1666,7 @@
 !  NOTES:
 !  (1 ) Took file reading code out of READ_BIOMASS_NH3 of "sulfate_mod.f"
 !        and inserted here (bmy, 9/28/06)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1787,24 +1784,24 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, CONV )
 
-      ! Loop over latitudes
+      ! Loop over surface boxes
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Conversion factor for [kg/month] -> [molec/cm2/s]
-         CONV = XNUMOL(IDTNH3) / ( GET_AREA_CM2( J ) * SEC_PER_MONTH ) 
+         CONV = XNUMOL(IDTNH3) 
+     &        / ( GET_AREA_CM2( I, J, 1 ) * SEC_PER_MONTH ) 
 
-         ! Loop over longitudes
-         DO I = 1, IIPAR
 
-            ! Convert [kg NH3/month] -> [molec NH3/cm2/s]
-            BIOMASS_NH3(I,J) = BIOMASS_NH3(I,J) * CONV
+         ! Convert [kg NH3/month] -> [molec NH3/cm2/s]
+         BIOMASS_NH3(I,J) = BIOMASS_NH3(I,J) * CONV
 
-            ! Scale to IPCC future scenario (if necessary)
-            IF ( LFUTURE ) THEN
-               BIOMASS_NH3(I,J) = BIOMASS_NH3(I,J) * 
-     &                            GET_FUTURE_SCALE_NH3bb( I, J )
-            ENDIF
-         ENDDO
+         ! Scale to IPCC future scenario (if necessary)
+         IF ( LFUTURE ) THEN
+            BIOMASS_NH3(I,J) = BIOMASS_NH3(I,J) * 
+     &                         GET_FUTURE_SCALE_NH3bb( I, J )
+         ENDIF
+      ENDDO
       ENDDO
 !$OMP END PARALLEL DO
       
@@ -2049,15 +2046,16 @@
 !  (6 ) Now reference DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (7 ) Added space in #ifdef block for 1 x 1.25 grid (bmy, 12/1/04)
 !  (8 ) Modification for 1 x 1.25 grid (lok, bmy, 1/13/10)
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !******************************************************************************
 !
       ! References to F90 modules
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE ERROR_MOD,     ONLY : ALLOC_ERR
       USE TIME_MOD,      ONLY : GET_MONTH, GET_TAU, GET_YEAR
+      USE CMN_SIZE_MOD        ! Size parameters
 
-      USE CMN_SIZE_MOD   ! Size parameters
-  
       ! Arguments
       INTEGER, INTENT(IN)    :: I, J
       REAL*8,  INTENT(INOUT) :: ADJUSTED_VALUE
@@ -2066,7 +2064,7 @@
 
       ! Local variables
       INTEGER                :: THEYEAR, IPICK, CTM_lat, CTM_lon
-      INTEGER                :: II, JJ, KK, LL, AS, IMONTH, JYEAR
+      INTEGER                :: II, JJ, KK, LL, N, AS, IMONTH, JYEAR
       INTEGER, SAVE          :: IFIRSTCALL = 1 
       REAL*8                 :: CONVERT_lon, READINTOMS(NMONTHSAI), TAU
 
@@ -2091,10 +2089,13 @@
          ALLOCATE( TOMSAISCALE( NAIREGIONS, NAIYEARS, 12 ), STAT=AS )
          IF ( AS / = 0 ) CALL ALLOC_ERR( 'TOMSAISCALE' )
 
+         ! Find a free file LUN
+         N = findFreeLUN()
+
          ! Read TOMS Aerosol index data
-         OPEN( 199, FILE = TRIM( DATA_DIR ) // 'TOMSAI', STATUS='OLD' )
+         OPEN( N, FILE = TRIM( DATA_DIR ) // 'TOMSAI', STATUS='OLD' )
          DO JJ=1,NAIREGIONS
-            READ( 199, * ) readinTOMS
+            READ( N, * ) readinTOMS
             
             II=0
             DO KK=1,NAIYEARS
@@ -2105,7 +2106,7 @@
             ENDDO
 
          ENDDO
-         CLOSE(199)
+         CLOSE(N)
       ENDIF
 
       !=================================================================

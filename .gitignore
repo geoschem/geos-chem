@@ -2,6 +2,14 @@
 *.mod
 *.MOD
 *~*
+*.swp
+*.bak
+*.patch
+*.diff
 geos
 geostomas
 geosapm
+diffs
+bak
+misc
+test

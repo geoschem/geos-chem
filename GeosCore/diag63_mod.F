@@ -40,6 +40,7 @@
 !  07 Feb 2012 - M. Payer    - Added ProTeX headers
 !  24 Feb 2012 - M. Payer    - Rename module from diag59_mod to diag63_mod.
 !                              Diag59 is used by TOMAS. Fix this throughout.
+!  06 Aug 2012 - R. Yantosca - Now make IU_ND63 a local module variable
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -86,6 +87,9 @@
       CHARACTER(LEN=80)  :: TITLE
       CHARACTER(LEN=255) :: ND63_OUTPUT_FILE
 
+      ! LUN for ND63 diagnostic file
+      INTEGER            :: IU_ND63
+
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -107,28 +111,18 @@
 ! !USES:
 !
       USE BPCH2_MOD,    ONLY : BPCH2,   OPEN_BPCH2_FOR_WRITE
-      USE DAO_MOD,      ONLY : AD,      AIRDEN, BXHEIGHT, CLDF 
-      USE DAO_MOD,      ONLY : CLDTOPS, OPTD,   RH,       SLP     
-      USE DAO_MOD,      ONLY : T,       UWND,   VWND
-      USE DAO_MOD,      ONLY : TS
-      USE DAO_MOD,      ONLY : PARDF, PARDR
-      USE LAI_MOD,      ONLY : ISOLAI
-      USE FILE_MOD,     ONLY : IU_ND63
       USE GRID_MOD,     ONLY : GET_XOFFSET,        GET_YOFFSET
+      USE inquireMod,   ONLY : findFreeLUN
       USE TIME_MOD,     ONLY : EXPAND_DATE
       USE TIME_MOD,     ONLY : GET_NYMD,           GET_NHMS
       USE TIME_MOD,     ONLY : GET_NYMD_DIAG,      GET_TS_DIAG
       USE TIME_MOD,     ONLY : GET_TAU,            GET_HOUR
       USE TIME_MOD,     ONLY : ITS_A_NEW_DAY,      TIMESTAMP_STRING
+      USE TIME_MOD,     ONLY : GET_TAUb
       USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
-      USE TRACER_MOD,   ONLY : ITS_A_FULLCHEM_SIM, N_TRACERS
-      USE TRACER_MOD,   ONLY : STT,                TCVV
-      USE TRACER_MOD,   ONLY : XNUMOLAIR
       USE PRESSURE_MOD, ONLY : GET_PEDGE
-      USE TRACERID_MOD, ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNOX  
-      USE TRACERID_MOD, ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
-      USE TRACERID_MOD, ONLY : IDTR4N2, IDTSALA, IDTSALC 
-      USE DIAG_MOD,     ONLY : AD63     
+      USE DIAG_MOD,     ONLY : AD63,    AD63_COUNT     
+      USE ERROR_MOD,    ONLY : SAFE_DIV
 
       USE CMN_FJ_MOD         ! FAST-J stuff, includes CMN_SIZE
       USE JV_CMN_MOD         ! ODAER, QAA, QAA_AOD (clh)
@@ -138,20 +132,18 @@
 ! !REVISION HISTORY:
 !  25 Feb 2011 - G. Vinken   - Initial version based on DIAG49 
 !  07 Feb 2012 - M. Payer    - Added ProTeX headers
+!  11 Apr 2012 - R. Yantosca - Remove reference to lai_mod.F, it's not needed
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE            :: FIRST  = .TRUE.
-      LOGICAL, SAVE            :: IS_FULLCHEM, IS_NOx,     IS_Ox 
-      LOGICAL, SAVE            :: IS_NOy,      IS_CLDTOPS, IS_OPTD
-      LOGICAL, SAVE            :: IS_SEASALT,  IS_SLP
       INTEGER                  :: IOS,  GMTRC, GMNL, I, J, K, L 
       INTEGER                  :: N,    R,     H,    W, X, Y
       INTEGER                  :: NHMS, TS_DIAG
-      REAL*8                   :: TAU, TMP,   SCALEAODnm
+      REAL*8                   :: TAU1, TAU0
       REAL*8                   :: Q( ND63_NI, ND63_NJ, 1)
       CHARACTER(LEN=16)        :: STAMP
       CHARACTER(LEN=40)        :: CATEGORY
@@ -161,23 +153,6 @@
       !=================================================================
       ! DIAG63 begins here!
       !=================================================================
-
-      ! Set logical flags on first timestep
-      IF ( FIRST ) THEN
-         IS_CLDTOPS  = ALLOCATED( CLDTOPS )
-         IS_OPTD     = ALLOCATED( OPTD    )
-         IS_SLP      = ALLOCATED( SLP     )
-         IS_FULLCHEM = ITS_A_FULLCHEM_SIM()
-         IS_SEASALT  = ( IDTSALA > 0 .and. IDTSALC > 0 )
-         IS_Ox       = ( IS_FULLCHEM .and. IDTOX   > 0 )
-         IS_NOx      = ( IS_FULLCHEM .and. IDTNOX  > 0 )
-         IS_NOy      = ( IS_FULLCHEM .and. 
-     &                   IDTNOX  > 0 .and. IDTPAN  > 0 .and.
-     &                   IDTHNO3 > 0 .and. IDTPMN  > 0 .and.
-     &                   IDTPPN  > 0 .and. IDTR4N2 > 0 .and.
-     &                   IDTN2O5 > 0 .and. IDTHNO4 > 0 ) 
-         FIRST       = .FALSE.
-      ENDIF
 
       !=================================================================
       ! If it's a new day, open a new BPCH file and write file header
@@ -191,7 +166,13 @@
       ! To change TS_DIAG to NHMS format
       TS_DIAG = TS_DIAG/60 * 10000 + (TS_DIAG - (TS_DIAG/60)*60) * 100  
 
-      IF ( NHMS == TS_DIAG ) THEN     ! It's a new day for diagnostics.
+      ! Check if it's a new day for diagnostics, 
+      ! or if the model run just started
+      IF ( (NHMS == TS_DIAG) .OR. 
+     &     (GET_TAU() == ( GET_TAUb() + ND63_FREQ/60d0 )) ) THEN
+
+         ! Find a free file LUN
+         IU_ND63  = findFreeLUN()
 
          ! Expand date tokens in the file name
          FILENAME = TRIM( ND63_OUTPUT_FILE )
@@ -199,7 +180,7 @@
 
          ! Echo info
          WRITE( 6, 100 ) TRIM( FILENAME )
- 100     FORMAT( '     - DIAG63: Opening file ', a )
+ 100     FORMAT( '     - DIAG63: Opening file ', a, ' on unit ', i6 )
         
          ! Open bpch file and write top-of-file header
          CALL OPEN_BPCH2_FOR_WRITE( IU_ND63, FILENAME, TITLE )
@@ -215,7 +196,10 @@
  110  FORMAT( '     - DIAG63: Saving timeseries at ', a )
 
       ! Time for BPCH file
-      TAU  = GET_TAU()
+      TAU1  = GET_TAU()
+      
+      ! Time for start of averaging period
+      TAU0  = TAU1 - (ND63_FREQ / 60d0) 
 
       ! Loop over tracers
       DO W = 1, ND63_N_TRACERS
@@ -238,7 +222,10 @@
                J = JOFF + Y
             DO X = 1, ND63_NI
                I = GET_I( X )
-               Q(X,Y,1) = AD63(I,J,W)
+               ! Normalize by AD63_COUNT, 
+               ! the number of times diagnostics are summed
+               Q(X,Y,1) = SAFE_DIV( DBLE(AD63(I,J,W)), DBLE(AD63_COUNT),
+     &                              0d0 )
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
@@ -249,12 +236,22 @@
          CALL BPCH2( IU_ND63,      MODELNAME,    LONRES,   
      &               LATRES,       HALFPOLAR,    CENTER180, 
      &               CATEGORY,     GMTRC,        UNIT,      
-     &               TAU,          TAU,          RESERVED,  
+     &               TAU0,         TAU1,         RESERVED,  
      &               ND63_NI,      ND63_NJ,      1,  
      &               ND63_IMIN+I0, ND63_JMIN+J0, 1, 
      &               REAL( Q(1:ND63_NI, 1:ND63_NJ, 1) ) )
       ENDDO
             
+      !=================================================================
+      ! Reset the AD63 to zero
+      !=================================================================
+
+      ! Zero all elements
+      AD63(:,:,:) = 0d0
+
+      ! Reset the counter
+      AD63_COUNT = 0d0
+
       !=================================================================
       ! Close the file at the proper time
       !=================================================================

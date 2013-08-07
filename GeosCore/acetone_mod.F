@@ -25,8 +25,6 @@
       PUBLIC :: EMISS_BIOACET
       PUBLIC :: OCEAN_SOURCE_ACET
       PUBLIC :: OCEAN_SINK_ACET
-      PUBLIC :: READ_JO1D
-      PUBLIC :: READ_RESP
 !
 ! !REMARKS:
 !  References:
@@ -73,17 +71,11 @@
 !  04 Nov 2010 - R. Yantosca - Added ProTeX headers
 !  06 Dec 2011 - E. Fischer  - Updated Ocean exchange, MEGAN biogenic emiss.
 !                              Removed obsolete code.
+!  19 Mar 2012 - M. Payer    - Removed obsolete subroutines READ_JO1D and
+!                              READ_RESP (E. Fischer)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !PRIVATE TYPES:
-! 
-      ! Array for J-O1D values
-      REAL*8,  ALLOCATABLE :: JO1D(:,:)
-
-      ! Array for heterotrophic respiration values
-      REAL*8,  ALLOCATABLE :: XRESP(:,:) 
 !
 ! !DEFINED PARAMETERS:
 !
@@ -100,216 +92,6 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: read_jo1d
-!
-! !DESCRIPTION: Subroutine READ\_JO1D reads in the J-Values for O1D from disk 
-!  that are needed for the biogenic acetone fluxes,
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE READ_JO1D( THISMONTH )
-!
-! !USES:
-!
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0
-      USE BPCH2_MOD,     ONLY : READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE ERROR_MOD,     ONLY : ALLOC_ERR
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-
-      USE CMN_SIZE_MOD                 ! Size parameters
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER, INTENT(IN) :: THISMONTH   ! Current month
-!
-! !REMARKS:
-!  J-values for O1D are are stored in the JO1D module array in [s^-1].
-! 
-! !REVISION HISTORY: 
-!  14 Sep 2001 - B. Field    - Initial version
-!  (1 ) Now use TRANSFER_2D from "transfer_mod" to cast from REAL*4 to REAL*8
-!        and to resize data block to (IIPAR,JJPAR).  Also use 3-argument
-!        form of GET_TAU0 (bmy, 11/15/01)
-!  (2 ) Removed obsolete code from 11/01 (bmy, 11/26/01, bmy, 2/27/02)
-!  (3 ) Now reference routines ALLOC_ERR and ERROR_STOP from "error_mod.f" 
-!        (bmy, 10/15/02)
-!  (4 ) Now call READ_BPCH2 with QUIET=.TRUE. to suppress printing of extra
-!        info to stdout.  Also made cosmetic changes. (bmy, 3/14/03)
-!  (5 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/19/04)
-!  (6 ) Now can read data from GEOS and GCAP grids (bmy, 8/16/05)
-!  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  04 Nov 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      LOGICAL, SAVE      :: FIRST = .TRUE.
-      INTEGER            :: AS
-      REAL*4             :: ARRAY(IIPAR,JJPAR,1)
-      REAL*8             :: TAU0
-      CHARACTER(LEN=255) :: FILENAME
-
-      !=================================================================
-      ! READ_JO1D begins here!
-      !=================================================================
-
-      ! Allocate JO1D only on the first call
-      IF ( FIRST ) THEN
-         ALLOCATE( JO1D( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'JO1D' )
-         JO1D  = 0d0
-         FIRST = .FALSE.
-      ENDIF
-
-      ! Construct filename
-      FILENAME = TRIM( DATA_DIR )       // 
-     &           'acetone_200108/JO1D.' // GET_NAME_EXT_2D() //
-     &           '.'                    // GET_RES_EXT()
-
-      ! Echo filename 
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - READ_JO1D: Reading ', a )  
-
-      ! Get TAU0 value -- use "generic" year 1985
-      TAU0 = GET_TAU0( THISMONTH, 1, 1985 )
-
-      ! Read JO1D data 
-      CALL READ_BPCH2( FILENAME, 'JV-MAP-$',    51, 
-     &                 TAU0,      IIPAR,        JJPAR,      
-     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
-   
-      ! Cast from REAL*4 to REAL*8
-      CALL TRANSFER_2D( ARRAY(:,:,1), JO1D )
-
-      ! Make sure JO1D is not zero everywhere 
-      IF ( .not. ( SUM( JO1D ) > 0d0 ) ) THEN
-         CALL ERROR_STOP( 'JO1D is zero everywhere!', 'READ_JO1D' )
-      ENDIF
-         
-      ! Echo information
-      WRITE( 6, 110 ) MAXVAL( JO1D )
- 110  FORMAT( '     - READ_JO1D: Max value of JO1D: ', es13.6 )
-
-      END SUBROUTINE READ_JO1D
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: read_resp
-!
-! !DESCRIPTION: Subroutine READ\_RESP reads in the monthly heterotrophic 
-!  respiration measured in g of plant matter/m\^2 flowing out of the biosphere.
-!  This is needed for the biogenic acetone fluxes.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE READ_RESP( THISMONTH )
-!
-! !USES:
-!
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0
-      USE BPCH2_MOD,     ONLY : READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE ERROR_MOD,     ONLY : ALLOC_ERR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-
-      USE CMN_SIZE_MOD                  ! Size parameters
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER, INTENT(IN)  :: THISMONTH   ! Current month
-!
-! !REMARKS:
-!  Respiration values are stored in the RESP module array in [g C/m2/s].
-! 
-! !REVISION HISTORY: 
-!  14 Sep 2001 - B. Field    - Initial version
-!  (1 ) Now use TRANSFER_2D from "transfer_mod" to cast from REAL*4 to REAL*8
-!        and to resize data block to (IIPAR,JJPAR).  Bug fix: THISMONTH > 12
-!        is never valid.  Also use 3-argument form of GET_TAU0 (bmy, 11/15/01)
-!  (2 ) Removed obsolete code from 11/01 (bmy, 11/26/01, bmy, 2/27/02)
-!  (3 ) Now reference ALLOC_ERR from "error_mod.f".  Also use version of
-!        GET_TAU0 w/ 3 arguments. (bmy, 10/15/02)
-!  (4 ) Now call READ_BPCH2 with QUIET=.TRUE. to suppress printing of extra
-!        info to stdout.  Also made cosmetic changes. (bmy, 3/14/03)
-!  (5 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
-!  (6 ) Now can read files for both GEOS and GCAP grids (bmy, 8/16/05)
-!  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  04 Nov 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      LOGICAL, SAVE      :: FIRST = .TRUE.
-      INTEGER            :: AS
-      REAL*4             :: ARRAY(IIPAR,JJPAR,1)
-      REAL*8             :: TAU0, TAU1
-      CHARACTER(LEN=255) :: FILENAME
-
-      !=================================================================
-      ! READ_RESP begins here!
-      !=================================================================
-      
-      ! Allocate XRESP only on the first call
-      IF ( FIRST ) THEN
-         ALLOCATE( XRESP( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'XRESP' )
-         XRESP = 0d0
-         FIRST = .FALSE.
-      ENDIF
-
-      ! Construct filename
-      FILENAME = TRIM( DATA_DIR )       // 
-     &           'acetone_200108/resp.' // GET_NAME_EXT_2D() //
-     &           '.'                    // GET_RES_EXT()
-      
-      ! Echo filename 
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - READ_RESP: Reading ', a )  
-
-      ! Get TAU0 value -- use "generic" year 1985
-      TAU0 = GET_TAU0( THISMONTH, 1, 1985 )
-
-      ! Get TAU1 value -- use generic year 1985 
-      ! Be careful -- if Dec then nextmonth is Jan 1986
-      IF ( THISMONTH == 12 ) THEN
-         TAU1 = GET_TAU0( 1, 1, 1986 )
-      ELSE
-         TAU1 = GET_TAU0( THISMONTH+1, 1, 1985 )
-      ENDIF
-
-      ! Read heterotrophic respiration data in [g C/m2/month]
-      CALL READ_BPCH2( FILENAME, 'HET-RESP',    1, 
-     &                 TAU0,      IIPAR,        JJPAR,      
-     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
-   
-      ! Cast from REAL*4 to REAL*8
-      CALL TRANSFER_2D( ARRAY(:,:,1), XRESP )
-
-      ! Convert RESP field to [g C/m2/s]
-      XRESP = XRESP / ( ( TAU1 - TAU0 ) * 3600d0 )
-
-      END SUBROUTINE READ_RESP
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: ocean_source_acet
 !
 ! !DESCRIPTION: Subroutine OCEAN\_SOURCE\_ACET specifies the ocean source of 
@@ -318,28 +100,28 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE OCEAN_SOURCE_ACET( I, J, ACETONE )
+      SUBROUTINE OCEAN_SOURCE_ACET( I, J, ACETONE, State_Met )
 !
 ! !USES:
 !
-      USE ERROR_MOD, ONLY : CHECK_VALUE
-      USE DAO_MOD,   ONLY : ALBD, TS
-      USE DIAG_MOD,  ONLY : AD11
-      USE GRID_MOD,  ONLY : GET_AREA_CM2
-      USE TIME_MOD,  ONLY : GET_TS_EMIS
+      USE ERROR_MOD,          ONLY : CHECK_VALUE
+      USE DIAG_MOD,           ONLY : AD11
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE TIME_MOD,           ONLY : GET_TS_EMIS
 
-      USE CMN_SIZE_MOD                  ! Size parameters
-      USE CMN_DIAG_MOD                  ! ND11
-      USE CMN_DEP_MOD                   ! FRCLND
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND11
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)    :: I         ! GEOS-Chem longitude index
-      INTEGER, INTENT(IN)    :: J         ! GEOS-Chem latitude index
+      INTEGER,        INTENT(IN)    :: I           ! GEOS-Chem longitude index
+      INTEGER,        INTENT(IN)    :: J           ! GEOS-Chem latitude index
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(INOUT) :: ACETONE   ! Acetone emission [atoms C/s]
+      REAL*8,         INTENT(INOUT) :: ACETONE     ! Acetone emiss [atoms C/s]
 !
 ! !REMARKS:
 
@@ -392,6 +174,9 @@
 !                              velocities have been updated following Johnson
 !                              [2010]. The model now reproduces aircraft
 !                              measurements over the remote oceans well.
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -424,10 +209,10 @@
       DTSRCE   = GET_TS_EMIS() * 60d0 
 
       ! Fraction of (I,J) that is ocean
-      FOCEAN   = 1d0 - FRCLND(I,J)    
+      FOCEAN   = 1d0 - State_Met%FRCLND(I,J)    
 
       ! Area of grid box (I,J) in cm^2
-      AREA_CM2 = GET_AREA_CM2( J )    
+      AREA_CM2 = GET_AREA_CM2( I, J, 1 )    
 
       !=================================================================
       ! Compute ocean source by Henry's law
@@ -438,9 +223,7 @@
 
          ! Updated Henry's Law to 27 M/atm following Benkelberg et al. [1995],
          ! Johnson [2010], and Zhou and Mopper [1990](evf, 5/11/11)
-
-         HSTAR = (660d0)*EXP(-5090d0*(1./298d0 - 1./TS(I,J)))
-
+         HSTAR = (660d0)*EXP(-5090d0*(1./298d0 - 1./State_Met%TS(I,J)))
   
          ! Want Henry constant exressed as
          ! concentration in air/concentration in water.
@@ -454,11 +237,13 @@
          ! Magnitude of resultant wind [m/s]
          ! SFCWINDSQR(I,J) is needed since this will compute the square
          ! of the surface wind correctly for all GEOS models (bmy, 9/5/01)
-         U        = SQRT( SFCWINDSQR( I, J ) )
+         U        = SQRT( SFCWINDSQR( I, J,
+     &                                State_Met%U10M,
+     &                                State_Met%V10M ) )
 
          ! TC is temperature in Celsius
          ! Also make sure -5 <= TC <= 30 (mje, rvm, bmy, 11/26/01)
-         TC       = TS(I,J) - 273.15d0                           
+         TC       = State_Met%TS(I,J) - 273.15d0                           
          TC       = MIN( MAX( TC, -5d0 ), 30d0 )
 
          ! SC is Schmidt # for acetone [unitless]
@@ -488,7 +273,7 @@
          KKL      = KKL / 3600d0
 
          ! Turn off ocean uptake over snow/ice (ALBEDO > 0.4)
-         IF ( ALBD(I,J) > 0.4d0 ) KKL = 0d0
+         IF ( State_Met%ALBD(I,J) > 0.4d0 ) KKL = 0d0
       
          !===============================================================
          !(evf, 5/11/11)
@@ -507,7 +292,6 @@
          ! convert Cl to kg acetone/cm3 (evf, 5/11/11)
          Cl = 15.0d-9*58.08d0/(1000.0d0*1000.0d0)
 
-         !OCEAN_ACET = OCEAN_SCALE * JO1D(I,J) * KKL * FOCEAN
          !correct for the fraction of the grid cell that is ocean
          !and compute the flux ( kg/cm2/s)(evf, 5/11/11)
          OCEAN_ACET = Cl * KKL * FOCEAN 
@@ -534,7 +318,7 @@
       ! ND11 diag -- save ACETONE from the ocean in [atoms C/cm2/s]
       !=================================================================
       IF ( ND11 > 0 ) THEN
-         AD11(I,J,6) = AD11(I,J,6) + ( OCEAN_ACET * XNUMOL_C ) / 
+         AD11(I,J,4) = AD11(I,J,4) + ( OCEAN_ACET * XNUMOL_C ) / 
      &                               ( AREA_CM2   * DTSRCE   )
       ENDIF
 
@@ -553,23 +337,24 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE OCEAN_SINK_ACET( ACETONE )
+      SUBROUTINE OCEAN_SINK_ACET( ACETONE, State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD,  ONLY : ALBD
-      USE DAO_MOD,  ONLY : TS
-      USE DIAG_MOD, ONLY : AD11
-      USE GRID_MOD, ONLY : GET_AREA_CM2
-      USE TIME_MOD, ONLY : GET_TS_CHEM
-
-      USE CMN_SIZE_MOD                              ! Size parameters 
-      USE CMN_DIAG_MOD                              ! ND11
-      USE CMN_DEP_MOD                               ! FRCLND 
+      USE CMN_SIZE_MOD
+      USE CMN_DIAG_MOD
+      USE DIAG_MOD,           ONLY : AD11
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      REAL*8, INTENT(INOUT) :: ACETONE(IIPAR,JJPAR)   ! Acetone mass [kg C]
+      REAL*8,         INTENT(INOUT) :: ACETONE(IIPAR,JJPAR) ! Acet mass [kg C]
 ! 
 ! !REVISION HISTORY: 
 !  14 Sep 2001 - B. Field    - Initial version
@@ -598,6 +383,10 @@
 !  (12) Now use Nightingale et al 2000b formulation for piston velocity KL.
 !        (swu, bmy, 8/16/05)
 !  04 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!  02 Aug 2012 - R. Yantosca - Add error trap for acetone under DEVEL tag
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -610,8 +399,9 @@
       REAL*8            :: USTAR, CD
       REAL*8            :: AREA_CM2, DTCHEM, FOCEAN, OCEAN_ACET
       REAL*8            :: PRE_ACET
-
-      ! External functions
+!
+! !EXTERNAL FUNCTIONS:
+!
       REAL*8, EXTERNAL  :: BOXVL, SFCWINDSQR
 !
 ! !DEFINED PARAMETERS:
@@ -638,30 +428,31 @@
       ! Loop over grid boxes
       DO J = 1, JJPAR
 
-         ! Grid box area in cm2
-         AREA_CM2 = GET_AREA_CM2( J )
-
          DO I = 1, IIPAR
 
+            ! Grid box area in cm2
+            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+
             ! Fraction of grid box that is ocean
-            FOCEAN = 1d0 - FRCLND(I,J)
+            FOCEAN = 1d0 - State_Met%FRCLND(I,J)
 
             !===========================================================
             ! Only compute ocean sink if there is more than 50% ocean
             ! in the grid box, and if it is not ice (albedo > 0.4)
             ! (mje, rvm, bmy, 11/26/01)
             !===========================================================
-            IF ( FOCEAN > 0.5d0 .and. ALBD(I,J) <= 0.4d0 ) THEN
+            IF ( FOCEAN > 0.5d0 .and.
+     &           State_Met%ALBD(I,J) <= 0.4d0 ) THEN
 
-               ! Updated Henry's Law to 27 M/atm following Benkelberg et al. [1995],
-               ! Johnson [2010], and Zhou and Mopper [1990](evf, 5/11/11)
-
-                HSTAR = (660d0)*EXP(-5090d0*(1./298d0 - 1./TS(I,J)))
+               ! Updated Henry's Law to 27 M/atm following Benkelberg et al.
+               ! [1995], Johnson [2010], and Zhou and Mopper [1990]
+               ! (evf, 5/11/11)
+               HSTAR = (660d0)*EXP(-5090d0*(1./298d0 -
+     &                 1./State_Met%TS(I,J)))
   
                ! Want Henry constant exressed as
                ! concentration in air/concentration in water.
-               ! Take reciprocal.(evf, 5/11/11) 
- 
+               ! Take reciprocal.(evf, 5/11/11)  
                HSTAR = 1d0/HSTAR
 
                ! Now HENCONST = dimensionless H 
@@ -670,11 +461,14 @@
                ! Magnitude of surface wind [m/s]
                ! SFCWINDSQR(I,J) is needed since this will compute the 
                ! square of the surface wind correctly for all GEOS models 
-               U     = SQRT( SFCWINDSQR( I, J ) )
+               U     = SQRT( SFCWINDSQR( I, J,
+     &                                   State_Met%U10M,
+     &                                   State_Met%V10M ) )
+
             
                ! TC is temperature in Celsius
                ! Bug fix: make sure -5 <= TC <= 30 (mje, rvm, bmy, 11/26/01) 
-               TC    = TS(I,J) - 273.15d0  
+               TC    = State_Met%TS(I,J) - 273.15d0  
                TC    = MIN( MAX( TC, -5d0 ), 30d0 )
 
                ! SC is Schmidt # for acetone [unitless]
@@ -704,7 +498,7 @@
                KKL   = KKL / 3600d0       
 
                ! CG is the gas concentration of acetone [kg C/cm3]
-               CG    = ACETONE(I,J) / BOXVL(I,J,1)
+               CG    = ACETONE(I,J) / BOXVL(I,J,1,State_Met)
 
                ! FLUX is the air-to-sea flux of acetone in [kg C/cm2/s].
                FLUX  = KKL * CG / HSTAR    
@@ -740,13 +534,21 @@
             PRE_ACET = ACETONE(I,J) 
 
             ! Apply exponential loss to acetone mass
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+            ! Eric Nielsen added this error trap .  We can eventually
+            ! bring this into the std G-C but we need to benchmark first.
+            IF ( ABS( ACETONE(I,J) ) .gt. 1d-99 )
+     &      ACETONE(I,J) = ACETONE(I,J) * EXP(-OCEAN_ACET/ACETONE(I,J))
+
+#else
             ACETONE(I,J) = ACETONE(I,J) * EXP(-OCEAN_ACET/ACETONE(I,J))
+#endif
 
             !===========================================================
             ! Diagnostics: save ACETONE lost to ocean in [atoms C/cm2/s]
             !===========================================================
             IF ( ND11 > 0 ) THEN
-               AD11(I,J,7) = AD11(I,J,7) + 
+               AD11(I,J,5) = AD11(I,J,5) + 
      &              ( ( PRE_ACET - ACETONE(I,J) ) * XNUMOL_C ) / 
      &              ( AREA_CM2 * DTCHEM   )
             ENDIF
@@ -834,6 +636,7 @@
 !                              0.10 as recommended by Alex Guenther. The
 !                              dependency on GEIA has been removed.
 !  08 Dec 2011 - M. Payer    - Remove use of obsolete CMN_MONOT_MOD
+!  01 Mar 2012 - R. Yantosca - Use new grid routines from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -841,9 +644,9 @@
 ! !LOCAL VARIABLES:
 !
       REAL*8                 :: EMMO_MOL,    YIELD_MO   
-      REAL*8                 :: YIELD_RESP,  ACET_MOL,    ACET_MB    
+      REAL*8                 :: ACET_MOL,    ACET_MB    
       REAL*8                 :: ACET_MO,     DTSRCE,      AREA_CM2 
-      REAL*8                 :: YIELD_ISOP,  MB_MOL,      ACET_RESP 
+      REAL*8                 :: YIELD_ISOP,  MB_MOL 
       REAL*8                 :: ACET_C,      ACET_ISOP,   YIELD_GRASS 
       REAL*8                 :: ACET_GRASS,  ACETSCAL,    AREA_M2
       REAL*8                 :: X,           Y
@@ -869,7 +672,7 @@
       DTSRCE = GET_TS_EMIS() * 60d0
 
       ! Grid box areas in [m2] and [cm2]
-      AREA_M2  = GET_AREA_M2( J )
+      AREA_M2  = GET_AREA_M2( I, J, 1 )
       AREA_CM2 = AREA_M2 * 1d4
 
       !=================================================================
@@ -917,8 +720,8 @@
       ACET_MB = 0D0
 
       ! Lon and lat of grid box (I,J) in degrees
-      X = GET_XMID( I )
-      Y = GET_YMID( J )
+      X = GET_XMID( I, J, 1 )
+      Y = GET_YMID( I, J, 1 )
 
       ! Methyl butenol is emitted only in North America, where
       ! ( -167.5 <= lon <= -52.5 ) and ( 16.0 <= lat <= 72.0 ) 
@@ -964,7 +767,6 @@
       ! Acetone Emissions from MEGAN (atoms C / box / step)         
       EMISS_MEGAN = GET_EMACET_MEGAN(I, J, SUNCOS, TMMP, 
      &              Q_DIR, Q_DIFF, XNUMOL_C )
-
      
       !convert MEGAN Acetone Emissions to atoms C/box/s (evf, 5/25/2011)
       EMISS_MEGAN = EMISS_MEGAN / DTSRCE
@@ -977,23 +779,6 @@
          AD11(I,J,3) = AD11(I,J,3) + 
      &                 ( EMISS_MEGAN / ( AREA_CM2 ) )
       ENDIF
-
-
-      !=================================================================
-      ! (4) BIOGENIC ACETONE FROM DRY LEAF MATTER / DEAD PLANTS
-      ! !evf, removed obsolete code for emissions from dry leave matter, 
-      ! MEGAN calculations for direct emissions include acetone
-      !emissions from dry leaf matter and dead plants
-      ! Diagnostic Acetdl = 0 (5/25/2011)
-
-      !=================================================================
-      ! (5) BIOGENIC ACETONE FROM GRASSLANDS
-      ! !evf, removed obsolete code for emissions from grasses, 
-      ! MEGAN calculations for direct emissions include acetone
-      !emissions from grasses
-      ! Diagnostic Acetgr = 0 (5/25/2011) 
-      !
-      !=================================================================
 
       END SUBROUTINE EMISS_BIOACET
 !EOC
@@ -1014,11 +799,12 @@
 ! !REVISION HISTORY: 
 !  14 Sep 2001 - R. Yantosca - Initial version
 !  04 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  19 Mar 2012 - M. Payer    - Removed deallocation of JO1D and XRESP. They
+!                              are obsolete after removal of READ_JO1D and
+!                              READ_RESP routines.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      IF ( ALLOCATED( JO1D  ) ) DEALLOCATE( JO1D  )
-      IF ( ALLOCATED( XRESP ) ) DEALLOCATE( XRESP )
 
       END SUBROUTINE CLEANUP_ACETONE   
 !EOC

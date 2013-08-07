@@ -64,7 +64,11 @@
       ! Now set PD52 to 1 (jaegle 2/26/09)
       ! Increase PD46 from 6 to 13 (mpb, ccc, 11/19/09)
       ! increase PD21 from 20 to 27 (clh, 05/06/10)
-      ! Increase PD46 from 13 to 17 for SOAupdate (hotp, mpayer, 6/28/11)
+      ! changed PD44 (drydep) to 53 (jpp, 6/13/09)
+      ! changed PD39 (wetdep) to 38 (jpp, 7/08/09)
+      ! Now set PD46 to 16 (jpp, 6/7/09)
+      ! Changed PD11 from 7 to 5 (efischer, mpayer, 3/19/12)
+      ! Increase PD46 from 16 to 20 for SOAupdate (hotp, mpayer, 6/28/11)
       !=================================================================
       INTEGER, PARAMETER :: PD01=3            
       INTEGER, PARAMETER :: PD02=3
@@ -74,7 +78,7 @@
       INTEGER, PARAMETER :: PD08=2
       INTEGER, PARAMETER :: PD09=6
       INTEGER, PARAMETER :: PD10=20            
-      INTEGER, PARAMETER :: PD11=7           
+      INTEGER, PARAMETER :: PD11=5
       INTEGER, PARAMETER :: PD12=0     
       INTEGER, PARAMETER :: PD13=1            
       INTEGER, PARAMETER :: PD14=NNPAR       
@@ -85,7 +89,7 @@
       INTEGER, PARAMETER :: PD19=0            
       INTEGER, PARAMETER :: PD20=0 
       INTEGER, PARAMETER :: PD21=27
-      INTEGER, PARAMETER :: PD22=8
+      INTEGER, PARAMETER :: PD22=14      !jpp replaced 8, 4/24/2011... for Br.
       INTEGER, PARAMETER :: PD23=0           
       INTEGER, PARAMETER :: PD24=NNPAR        
       INTEGER, PARAMETER :: PD25=NNPAR       
@@ -102,19 +106,18 @@
       INTEGER, PARAMETER :: PD36=NNPAR        
       INTEGER, PARAMETER :: PD37=35        
       INTEGER, PARAMETER :: PD38=35 
-      INTEGER, PARAMETER :: PD39=35            
+      INTEGER, PARAMETER :: PD39=38      !jpp replaced 35
       INTEGER, PARAMETER :: PD40=4       
       INTEGER, PARAMETER :: PD43=5  
-      INTEGER, PARAMETER :: PD44=41
+      INTEGER, PARAMETER :: PD44=53      !jpp replaced 41
       INTEGER, PARAMETER :: PD45=NNPAR+1      
-      INTEGER, PARAMETER :: PD46=17
+      INTEGER, PARAMETER :: PD46=20
       INTEGER, PARAMETER :: PD47=NNPAR+1
       INTEGER, PARAMETER :: PD48=2            
       INTEGER, PARAMETER :: PD49=0                
       INTEGER, PARAMETER :: PD50=0            
       INTEGER, PARAMETER :: PD51=0           
-      INTEGER, PARAMETER :: PD52=1 
-      INTEGER, PARAMETER :: PD53=0            
+      INTEGER, PARAMETER :: PD52=1          
       INTEGER, PARAMETER :: PD54=0           
       INTEGER, PARAMETER :: PD55=3
       ! Potential temperature diagnostic (hotp 7/31/09)
@@ -134,7 +137,7 @@
       INTEGER, PARAMETER :: PD62=NNPAR        
       INTEGER, PARAMETER :: PD63=0           
       INTEGER, PARAMETER :: PD64=0
-      INTEGER, PARAMETER :: PD65=LLPAR*MAXFAM 
+      INTEGER            :: PD65
       INTEGER, PARAMETER :: PD66=6           
       INTEGER, PARAMETER :: PD67=23 ! (Lin, 31/03/09)
       INTEGER, PARAMETER :: PD68=4            
@@ -186,7 +189,7 @@
       INTEGER :: ND21, ND22, ND23, ND24, ND25, ND26, ND27, ND28, ND29
       INTEGER :: ND30, ND31, ND32, ND33, ND34, ND35, ND36, ND37, ND38
       INTEGER :: ND39, ND40, ND43, ND44, ND45, ND46, ND47, ND48, ND49
-      INTEGER :: ND50, ND51, ND52, ND53, ND54, ND55, ND57, ND58, ND59
+      INTEGER :: ND50, ND51, ND52, ND54, ND55, ND57, ND58, ND59
       INTEGER :: ND60, ND61, ND62, ND63, ND64, ND65, ND66, ND67, ND68
       INTEGER :: ND69, ND70, ND71, ND72, ND73, ND74, ND75
 
@@ -206,10 +209,10 @@
 !
 ! !REMARKS:
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%%  NOTE: THIS MODULE IS DEPRECATED.  AT SOME POINT WE NEED TO DO A  %%%
-!  %%%  TOTAL REWRITE OF THE GEOS-CHEM DIAGNOSTICS.  MANY OF THESE FLAGS %%%
-!  %%%  CAN BE BUNDLED INTO A DERIVED TYPE FOR THE DIAGNOSTICS, THUS     %%%
-!  %%%  SIMPLIFYING THE CODE.  FOR NOW, LEAVE AS-IS.                     %%%
+!  %%%  NOTE: THIS MODULE IS DEPRECATED.  MANY OF THE QUANTITIES STORED  %%%
+!  %%%  in CMN_DIAG_MOD ARE NOW INCLUDED IN THE INPUT OPTIONS OBJECT,    %%%
+!  %%%  BASED ON THE DERIVED TYPE IN Headers/gigc_input_opt_mod.F90.     %%%
+!  %%%  (bmy, 11/19/12)                                                  %%%
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 ! !REVISION HISTORY:
@@ -254,6 +257,48 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-	END MODULE CMN_DIAG_MOD
+      CONTAINS
 !EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_cmn_diag
+!
+! !DESCRIPTION: Subroutine INIT\_CMN\_DIAG initializes quantities based on
+!  the grid-independent size parameters.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Init_CMN_DIAG( am_I_Root, RC )
+!
+! !USES:
+!
+      USE GIGC_ErrCode_Mod
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: RC          ! Success or failure?
+! 
+! !REVISION HISTORY: 
+!  19 Nov 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      ! Assume success
+      RC   = GIGC_SUCCESS
+
+      ! Set PD65 (for backwards compatibility, for now)
+      PD65 = LLPAR*MAXFAM 
+
+      END SUBROUTINE Init_CMN_DIAG
+!EOC
+      END MODULE CMN_DIAG_MOD
+
 

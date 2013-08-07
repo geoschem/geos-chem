@@ -22,12 +22,16 @@
 ! !PUBLIC DATA MEMBERS:
 !
       ! Scalars
-      LOGICAL, PUBLIC              :: DO_SAVE_PL
-      INTEGER, PUBLIC              :: TAGO3_PL_YEAR
+      LOGICAL,           PUBLIC              :: DO_SAVE_PL
+      INTEGER,           PUBLIC              :: TAGO3_PL_YEAR
 
       ! Arrays
-      REAL*4,  PUBLIC, ALLOCATABLE :: AD65  (:,:,:,:)
-      REAL*8,  PUBLIC, ALLOCATABLE :: FAM_PL(:,:,:,:)
+      REAL*4,            PUBLIC, ALLOCATABLE :: AD65  (:,:,:,:)
+      REAL*8,            PUBLIC, ALLOCATABLE :: FAM_PL(:,:,:,:)
+      CHARACTER(LEN=14), PUBLIC, ALLOCATABLE :: FAM_NAME(:)
+#if   defined( TOMAS )
+      REAL*8,            PUBLIC, ALLOCATABLE :: H2SO4RATE(:,:,:) 
+#endif
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -60,7 +64,9 @@
 !        in DO_DIAG_PL, DIAG20, and WRITE20 (phs, bmy, 12/4/07)
 !  (8 ) Now make COUNT a 3-D array (phs, 11/18/08)
 !  (9 ) Minor fix in DIAG20 (dbj, bmy, 10/26/09)
+!  (10) Make public FAM_NAME and H2SO4RATE (win, 1/25/10)  
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  06 Aug 2012 - R. Yantosca - Make IU_ND20 a local module variable
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -69,6 +75,7 @@
 !
       ! Scalars
       LOGICAL                        :: DO_SAVE_O3
+      INTEGER                        :: IU_ND20
       INTEGER                        :: NFAM
       INTEGER                        :: YYYYMMDD
       REAL*8                         :: TAUb, TAUe, TAU0, TAU1
@@ -78,7 +85,6 @@
       INTEGER,           ALLOCATABLE :: FAM_NMEM(:), COUNT(:,:,:)
       REAL*8,            ALLOCATABLE :: FAM_COEF(:,:)
       REAL*8,            ALLOCATABLE :: PL24H(:,:,:,:)
-      CHARACTER(LEN=14), ALLOCATABLE :: FAM_NAME(:)
       CHARACTER(LEN=14), ALLOCATABLE :: FAM_TYPE(:)
       CHARACTER(LEN=14), ALLOCATABLE :: FAM_MEMB(:,:)
 
@@ -97,18 +103,19 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SETJFAM( NACTIVE, NINAC )
+      SUBROUTINE SETJFAM( NACTIVE, NINAC, am_I_Root )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE COMODE_LOOP_MOD     ! SMVGEAR II arrays
+      USE CMN_SIZE_MOD                      ! Size parameters
+      USE COMODE_LOOP_MOD                   ! SMVGEAR II arrays
 
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 ! 
-      INTEGER, INTENT(INOUT) :: NACTIVE   ! # of active chemical species
-      INTEGER, INTENT(INOUT) :: NINAC     ! # of inactive chemical species
+      INTEGER, INTENT(INOUT) :: NACTIVE     ! # of active chemical species
+      INTEGER, INTENT(INOUT) :: NINAC       ! # of inactive chemical species
+      LOGICAL, INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
 !
 ! !REMARKS:
 !  At present, the ND65 diagnostic works only with SMVGEAR and not with
@@ -125,7 +132,9 @@
 !        first ND65 family.  Set NCS = NCSURBAN, since we have defined our 
 !        GEOS-CHEM mechanism in the urban slot of SMVGEAR II.(bmy, 4/21/03)
 !  (2 ) Bundled into "diag65_mod.f" (bmy, 7/20/04)
-!  15 Sep 2010 - R. Yantosca - Added ProTeX headers 
+!  15 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument, even when
+!                              called from the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -168,10 +177,12 @@
       !=================================================================
       ! Write out family names to "smv2.log" file
       !=================================================================
+      IF ( am_I_Root ) THEN
       WRITE( IO93, '(/,a)'      ) REPEAT( '=', 79 )
       WRITE( IO93, '(a)'        ) 'Families for prod or loss output:'
       WRITE( IO93, '(a,/)'      ) REPEAT( '=', 79 )
       WRITE( IO93, '(10(a7,1x))' ) ( TRIM( NAMEGAS(J) ), J=JGAS0,JGAS )
+      ENDIF
 
       END SUBROUTINE SETJFAM
 !EOC
@@ -189,16 +200,25 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SETPL
+      SUBROUTINE SETPL( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE ERROR_MOD,   ONLY : ERROR_STOP, GEOS_CHEM_STOP
-      USE ERROR_MOD,   ONLY : DEBUG_MSG
-      USE LOGICAL_MOD, ONLY : LPRT
-
       USE CMN_SIZE_MOD
       USE COMODE_LOOP_MOD
+      USE ERROR_MOD,          ONLY : ERROR_STOP, GEOS_CHEM_STOP
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_MOd, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 ! 
 ! !REMARKS:
 !  At present, the ND65 diagnostic works only with SMVGEAR and not with
@@ -214,12 +234,16 @@
 !        have defined our GEOS-CHEM mechanism in the urban slot of SMVGEAR II
 !        Updated comments.  (bmy, 5/1/03)
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers 
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument, even when
+!                              called from the traditional driver main.F
+!  05 Mar 2013 - R. Yantosca - Now accept Input_Opt, RC arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      LOGICAL          :: LPRT
       INTEGER          :: F, ICOUNT, I, J, INDEX, IOS
       INTEGER          :: K, M, N, NK, NREAC, NPROD, NPOS
       INTEGER          :: IREAC1, IREAC2, IREAC3
@@ -239,10 +263,16 @@
       ! SETPL begins here!
       !=================================================================
 
+      ! Assume success
+      RC     = GIGC_SUCCESS
+
       ! Set NCS = NCSURBAN for now, since we have defined our GEOS-CHEM
       ! mechanism in the urban slot of SMVGEAR II. (bmy, 4/21/03)
-      NCS = NCSURBAN
+      NCS    = NCSURBAN
       
+      ! Copy fields from Input_Opt to local variables
+      LPRT   = Input_Opt%LPRT
+
       ! Initialize
       ICOUNT = 0
 
@@ -287,11 +317,13 @@
          IF ( PORL(F) == 'LOSS' ) PORL(F) = 'loss'
 
          ! Write to "smv2.log"
-         WRITE( IO93, 104 ) F, FAM_NAME(F), PORL(F), FAM_NMEM(F) 
+	 IF ( am_I_Root ) THEN
+            WRITE( IO93, 104 ) F, FAM_NAME(F), PORL(F), FAM_NMEM(F) 
+         ENDIF
  104     FORMAT(/, 'Family ', i2, ' is ' ,a5, ' ', a4,
      &             ' with ',  i2, ' members' )
 
-         WRITE( IO93, 105 ) 
+         IF ( am_I_Root ) WRITE( IO93, 105 )
  105     FORMAT( 'ind', 2x, 'species', 1x, 'jnum', 2x, 'coef' )
 
          !------------------
@@ -308,8 +340,10 @@
             ENDDO
 
             ! Write to "smv2.log"
-            WRITE( IO93, '(i2,3x,a5,2x,i3,2x,f5.1 )') 
-     &           F, FAM_MEMB(M,F), IFAMMEM(M,F), COEFMEM(M,F)
+            IF ( am_I_Root ) THEN
+               WRITE( IO93, '(i2,3x,a5,2x,i3,2x,f5.1 )') 
+     &            F, FAM_MEMB(M,F), IFAMMEM(M,F), COEFMEM(M,F)
+            ENDIF
          ENDDO
       ENDDO
 
@@ -467,15 +501,19 @@
       !=================================================================
       ! Write out prod or loss reactions to "smv2.log"
       !=================================================================
-      WRITE( IO93, '(/,a)' ) REPEAT( '=', 79 )
-      WRITE( IO93, '(a)'   ) 'Here are the prod and loss reactions'
-      WRITE( IO93, '(a)'   ) REPEAT( '=', 79 )
+      IF ( am_I_Root ) THEN
+         WRITE( IO93, '(/,a)' ) REPEAT( '=', 79 )
+         WRITE( IO93, '(a)'   ) 'Here are the prod and loss reactions'
+         WRITE( IO93, '(a)'   ) REPEAT( '=', 79 )
+      ENDIF
 
       ! Loop over P/L diagnostic families
       DO N = 1, NFAMILIES
 
          ! Write family header
-         WRITE( IO93, 587 ) NAMEGAS(IFAM(N)), PORL(N), NNPL(N)
+         IF ( am_I_Root ) THEN
+            WRITE( IO93, 587 ) NAMEGAS(IFAM(N)), PORL(N), NNPL(N)
+         ENDIF
  587     FORMAT( /, 'Family ',a5,' ',a4,' -- no of rxns is  ',i3, 5x,
      &           'coefficient')
 
@@ -504,10 +542,11 @@
                !----------------------
                ! Write kinetic rxns
                !----------------------
-               WRITE(IO93,588) I, NK, NAMEGAS(IREAC1),
-     &              NAMEGAS(IREAC2),  NAMEGAS(IPROD1),
-     &              NAMEGAS(IPROD2),  EXTRACHAR, COEFPL(I,N)
-
+               IF (am_I_Root ) THEN
+                  WRITE(IO93,588) I, NK, NAMEGAS(IREAC1),
+     &               NAMEGAS(IREAC2),  NAMEGAS(IPROD1),
+     &               NAMEGAS(IPROD2),  EXTRACHAR, COEFPL(I,N)
+               ENDIF
  588           FORMAT(I3,1X,I3,1X,A5,' + ',A5,' = ',A5,' + ',A5,
      &                A5,1X,ES13.6)
 
@@ -516,10 +555,11 @@
                !----------------------
                ! Write photo rxns
                !----------------------
-               WRITE(IO93,589) I, NK, NAMEGAS(IREAC1),
-     &              NAMEGAS(IPROD1),  NAMEGAS(IPROD2), 
-     &              EXTRACHAR,        COEFPL(I,N)
-
+               IF ( am_I_Root ) THEN
+                  WRITE(IO93,589) I, NK, NAMEGAS(IREAC1),
+     &               NAMEGAS(IPROD1),  NAMEGAS(IPROD2), 
+     &               EXTRACHAR,        COEFPL(I,N)
+               ENDIF
  589           FORMAT(I3,1X,I3,1X,A5,' +  hv   = ',A5,' + ',A5,
      &                A5,1X,1P1E13.6)
 
@@ -553,22 +593,45 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_DIAG_PL 
+      SUBROUTINE DO_DIAG_PL( am_I_Root, Input_Opt,
+     &                       State_Met, State_Chm, RC )
 !
 ! !USES:
 !
-      USE COMODE_MOD, ONLY : CSPEC, JLOP
-
-      USE CMN_SIZE_MOD  ! Size parameters
-      USE COMODE_LOOP_MOD  ! SMVGEAR II arrays
-      USE CMN_DIAG_MOD  ! LD65
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
+      USE COMODE_MOD,         ONLY : CSPEC, JLOP
+      USE COMODE_LOOP_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY:
 !  16 Mar 2000 - I. Bey      - Initial version
 !  (1 ) Now bundled into "prod_loss_diag_mod.f" (bmy, 7/20/04)
 !  (2 ) Now only loop up thru LD65 levels (bmy, 12/4/07)
 !  (3 ) Set FAM_PL to zero in the stratosphere (phs, 11/17/08)
-!  15 Sep 2010 - R. Yantosca - Added ProTeX headers 
+!  (4 ) Add calcuation for H2SO4RATE (win, 8/4/09)
+!  15 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -586,6 +649,9 @@
       ! Make sure that memory has already been allocated to arrays
       ! FAMPL, JLOP, and CSPEC.
       !=================================================================
+
+      ! Assume success
+      RC = GIGC_SUCCESS
 
       ! If we are not saving 
       IF ( .not. DO_SAVE_PL ) RETURN
@@ -610,6 +676,23 @@
             ! to the FAM_PL diagnostic array.  Units are [molec/cm3/s].
             FAM_PL(I,J,L,N)      = CSPEC(JLOOP,IFAM(N)) / CHEMINTV
 
+#if   defined( TOMAS )
+            !-------------------------------------------------------------
+            ! FOR TOMAS MICROPHYSICS:
+            !
+            ! Overwrite FAM_PL with a unit [kg S] for tracing 
+            ! gas-phase sulfur species production (SO2, SO4, MSA)
+            ! (win, 8/4/09)
+            !-------------------------------------------------------------
+
+            ! Calculate H2SO4 production rate [kg s-1] in each time step 
+            ! (win, 8/4/09)
+            IF ( FAM_NAME(N) == 'PSO4' ) 
+     &           H2SO4RATE(I,J,L) = CSPEC(JLOOP,IFAM(N)) / 6.022d23  *
+     &                              98.d-3 * State_Met%AIRVOL(I,J,L) *
+     &                              1d6   / CHEMINTV
+#endif
+
             ! Zero each "fake" ND65 prod/loss family for next iteration
             CSPEC(JLOOP,IFAM(N)) = 0.0d0
 
@@ -633,8 +716,9 @@
       ! Also call DIAG20, which will save out the P(Ox) and L(Ox)
       ! from the fullchem simulation for a future tagged Ox run
       !=================================================================
-
-      IF ( DO_SAVE_O3 ) CALL DIAG20
+      IF ( DO_SAVE_O3 ) THEN
+         CALL DIAG20( am_I_Root, Input_Opt, State_Chm, RC )
+      ENDIF
 
       END SUBROUTINE DO_DIAG_PL
 !EOC
@@ -654,21 +738,35 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG20
+      SUBROUTINE DIAG20( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
-      USE COMODE_MOD,    ONLY : JLOP
-      USE DIRECTORY_MOD, ONLY : O3PL_DIR
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE TIME_MOD,      ONLY : EXPAND_DATE,   GET_NYMD
-      USE TIME_MOD,      ONLY : GET_TAU,       GET_TAUb 
-      USE TIME_MOD,      ONLY : ITS_A_NEW_DAY, TIMESTAMP_STRING
-      USE TRACER_MOD,    ONLY : STT,           XNUMOL
-      USE TRACERID_MOD,  ONLY : IDTOX
-
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE CMN_DIAG_MOD      ! LD65
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
+      USE COMODE_MOD,         ONLY : JLOP
+      USE DIRECTORY_MOD,      ONLY : O3PL_DIR
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE TIME_MOD,           ONLY : EXPAND_DATE,   GET_NYMD
+      USE TIME_MOD,           ONLY : GET_TAU,       GET_TAUb 
+      USE TIME_MOD,           ONLY : ITS_A_NEW_DAY, TIMESTAMP_STRING
+      USE TRACERID_MOD,       ONLY : IDTO3
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REMARKS:
 !  DIAG20 assumes that ND65 (P-L diagnostics) have been turned on.
@@ -689,6 +787,12 @@
 !        regimes (phs, 11/17/08)
 !  (8 ) Bug fix: Now just zero arrays w/o loop indices (dbj, bmy, 10/26/09)
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers 
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
+!  14 Mar 2013 - M. Payer    - Replace Ox with O3 as part of removal of
+!                              NOx-Ox partitioning
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object + RC via the arg list
+!  04 Apr 2013 - R. Yantosca - Now pass the Input_Opt object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -701,13 +805,21 @@
       REAL*8            :: P_Ox, L_Ox
       CHARACTER(LEN=16) :: STAMP 
 
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! DIAG20 begins here!
       !=================================================================
 
+      ! Assume success
+      RC = GIGC_SUCCESS
+
       ! Error check
-      IF ( IDTOX == 0 ) THEN 
-         CALL ERROR_STOP( 'IDTOX = 0!', 'DIAG20 ("diag20_mod.f")' )
+      IF ( IDTO3 == 0 ) THEN 
+         CALL ERROR_STOP( 'IDTO3 = 0!', 'DIAG20 ("diag20_mod.f")' )
       ENDIF
 
       ! First-time initialization
@@ -730,9 +842,12 @@
 
       ! Echo info
       STAMP = TIMESTAMP_STRING()
-      WRITE( 6, 120 ) STAMP
+      IF ( am_I_Root ) WRITE( 6, 120 ) STAMP
  120  FORMAT( '     - DIAG20: Archiving P(Ox) & L(Ox) at ', a )
 
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -756,7 +871,7 @@
          !-------------
 
          ! Convert P(Ox) from [molec/cm3/s] to [kg/cm3/s]
-         P_Ox           = FAM_PL(I,J,L,1) / XNUMOL(IDTOX)
+         P_Ox           = FAM_PL(I,J,L,1) / Input_Opt%XNUMOL(IDTO3)
 
          ! Store P(Ox) [kg/cm3/s] in PL24H array
          PL24H(I,J,L,1) = PL24H(I,J,L,1) + P_Ox
@@ -766,7 +881,7 @@
          !-------------
 
          ! Convert Ox mass from [kg] to [molec]
-         L_Ox           = STT(I,J,L,IDTOX) * XNUMOL(IDTOX)
+         L_Ox           = STT(I,J,L,IDTO3) * Input_Opt%XNUMOL(IDTO3)
 
          ! Divide L(Ox) [molec/cm3/s] by Ox mass [molec] 
          ! in order to get L(Ox) in [1/cm3/s]
@@ -779,6 +894,9 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+      ! Free pointer
+      NULLIFY( STT )
 
       !=================================================================
       ! Write data to disk and zero counters for next timestep
@@ -815,7 +933,7 @@
          FILENAME = TRIM( O3PL_DIR ) // FILENAME
 
          ! Echo info
-         WRITE( 6, 110 ) TRIM( FILENAME )
+         IF ( am_I_Root ) WRITE( 6, 110 ) TRIM( FILENAME )
  110     FORMAT( '     - DIAG20: Writing ', a )
 
          ! Write P(Ox) and L(Ox) to disk
@@ -850,11 +968,11 @@
 !
       USE BPCH2_MOD,  ONLY : BPCH2,         GET_HALFPOLAR
       USE BPCH2_MOD,  ONLY : GET_MODELNAME, OPEN_BPCH2_FOR_WRITE
-      USE FILE_MOD,   ONLY : IU_ND20
       USE GRID_MOD,   ONLY : GET_XOFFSET,   GET_YOFFSET
+      USE inquireMod, ONLY : findFreeLUN
 
-      USE CMN_SIZE_MOD   ! Size parameters
-      USE CMN_DIAG_MOD   ! LD65
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_DIAG_MOD     ! LD65
 ! 
 ! !REVISION HISTORY:
 !  09 Jun 1999 - I. Bey      - Initial version
@@ -864,6 +982,7 @@
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (4 ) Now only write up to LD65 levels (phs, bmy, 12/4/07)
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers 
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -885,6 +1004,9 @@
       !=================================================================
       ! WRITE20 begins here!
       !=================================================================
+
+      ! Find a free file LUN
+      IU_ND20   = findFreeLUN()
 
       ! Define various parameters for the BPCH file
       TITLE     = 'GEOS-CHEM archived P(O3) and L(O3) rates for Tag Ox'
@@ -1224,12 +1346,12 @@
 !
 ! !USES:
 !
-      USE ERROR_MOD,  ONLY : ALLOC_ERR
-      USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM
+      USE ERROR_MOD,   ONLY : ALLOC_ERR
+      USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM
 
-      USE CMN_SIZE_MOD   ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
       USE COMODE_LOOP_MOD   ! LFAMILY, NFAMILIES
-      USE CMN_DIAG_MOD   ! ND65,    LD65
+      USE CMN_DIAG_MOD      ! ND65,    LD65
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1261,6 +1383,7 @@
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Now allocate arrays up to LD65 levels (phs, bmy, 12/4/07)
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers 
+!  26 Apr 2013 - R. Yantosca - Removed LTOMAS; we now use #if defined( TOMAS )
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1342,6 +1465,12 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'FAM_PL' )
       ENDIF
 
+#if   defined ( TOMAS )
+      ! Only allocate H2SO4RATE for a TOMAS simulation !(win, 7/709)
+      ALLOCATE( H2SO4RATE( IIPAR, JJPAR, LLTROP ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'H2SO4RATE' )
+#endif
+
       ! Allocate PL24H if we are also saving out the P(Ox)
       ! and L(Ox) 
       IF ( DO_SAVE_O3 ) THEN
@@ -1391,6 +1520,9 @@
       IF ( ALLOCATED( FAM_MEMB ) ) DEALLOCATE( FAM_MEMB )
       IF ( ALLOCATED( FAM_PL   ) ) DEALLOCATE( FAM_PL   )
       IF ( ALLOCATED( FAM_TYPE ) ) DEALLOCATE( FAM_TYPE )
+#if   defined( TOMAS )
+      IF ( ALLOCATED( H2SO4RATE) ) DEALLOCATE( H2SO4RATE)  !(win, 1/25/10)
+#endif
 
       END SUBROUTINE CLEANUP_DIAG_PL
 !EOC

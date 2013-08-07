@@ -73,7 +73,8 @@
 
          ! Use default value if any of the above values are zero
          ! This will prevent div-by-zero errors in the eqns below
-         ARSL1K = 1.D-3
+         ! Value changed from 1d-3 to 1d-30 (bhh, jmao, eam, 7/18/2011)
+         ARSL1K = 1.D-30
 
       ELSE
 

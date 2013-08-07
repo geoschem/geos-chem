@@ -144,6 +144,7 @@
 !  (6 ) Now uses GOCART source function (tdf, bmy, 1/25/07)
 !  (7 ) Modifications for 0.5 x 0.667 grid (yxw, dan, bmy, 11/6/08)
 !  (8 ) Updates for nested grids (amv, bmy, 12/18/09)
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -251,7 +252,7 @@
      &                    PRS_MDP,     Q_H2O_VPR,   DSRC,
      &                    SNW_HGT_LQD, TM_ADJ,      TPT_MDP,
      &                    TPT_PTN_MDP, WND_MRD_MDP, WND_ZNL_MDP,
-     &                    FIRST,       NSTEP )
+     &                    FIRST,       NSTEP,       State_Met )
 !
 !******************************************************************************
 !  Subroutine DST_MBL is the driver for aerosol mobilization (DEAD model).
@@ -299,40 +300,62 @@
 !  29 Oct 2010 - T. D. Fairlie, R. Yantosca - Retune dust for MERRA 4x5
 !  08 Feb 2012 - R. Yantosca - For now, use same FLX_MSS_FDG_FCT for 
 !                              GEOS-5.7.x as for MERRA
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!   5 Jun 2013 - K. Yu       - Use 0.5 x 0.666 NA scale factor for the
+!                              0.25 x 0.3125 NA nested simulation
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,   ONLY : USTAR, Z0
-      USE GRID_MOD,  ONLY : GET_AREA_M2
-      USE ERROR_MOD, ONLY : ERROR_STOP
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_M2
 
-      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 
       ! Arguments
-      INTEGER, INTENT(IN)    :: LAT_IDX
-      REAL*8,  INTENT(IN)    :: DOY
-      REAL*8,  INTENT(IN)    :: HGT_MDP(IIPAR)
-      REAL*8,  INTENT(IN)    :: LAT_RDN
-      REAL*8,  INTENT(IN)    :: ORO(IIPAR)
-      REAL*8,  INTENT(IN)    :: PRS_DLT(IIPAR)
-      REAL*8,  INTENT(IN)    :: PRS_MDP(IIPAR)
-      REAL*8,  INTENT(IN)    :: Q_H2O_VPR(IIPAR)
-      REAL*8,  INTENT(IN)    :: SNW_HGT_LQD(IIPAR)
-      REAL*8,  INTENT(IN)    :: TM_ADJ
-      REAL*8,  INTENT(IN)    :: TPT_MDP(IIPAR)
-      REAL*8,  INTENT(IN)    :: TPT_PTN_MDP(IIPAR)
-      REAL*8,  INTENT(IN)    :: WND_MRD_MDP(IIPAR)
-      REAL*8,  INTENT(IN)    :: WND_ZNL_MDP(IIPAR)
-      INTEGER, INTENT(IN)    :: NSTEP
-      LOGICAL, INTENT(IN)    :: FIRST
-      REAL*8,  INTENT(INOUT) :: DSRC(IIPAR,NDSTBIN)
+      INTEGER,        INTENT(IN)    :: LAT_IDX
+      REAL*8,         INTENT(IN)    :: DOY
+      REAL*8,         INTENT(IN)    :: HGT_MDP(IIPAR)
+      REAL*8,         INTENT(IN)    :: LAT_RDN
+      REAL*8,         INTENT(IN)    :: ORO(IIPAR)
+      REAL*8,         INTENT(IN)    :: PRS_DLT(IIPAR)
+      REAL*8,         INTENT(IN)    :: PRS_MDP(IIPAR)
+      REAL*8,         INTENT(IN)    :: Q_H2O_VPR(IIPAR)
+      REAL*8,         INTENT(IN)    :: SNW_HGT_LQD(IIPAR)
+      REAL*8,         INTENT(IN)    :: TM_ADJ
+      REAL*8,         INTENT(IN)    :: TPT_MDP(IIPAR)
+      REAL*8,         INTENT(IN)    :: TPT_PTN_MDP(IIPAR)
+      REAL*8,         INTENT(IN)    :: WND_MRD_MDP(IIPAR)
+      REAL*8,         INTENT(IN)    :: WND_ZNL_MDP(IIPAR)
+      INTEGER,        INTENT(IN)    :: NSTEP
+      LOGICAL,        INTENT(IN)    :: FIRST
+      REAL*8,         INTENT(INOUT) :: DSRC(IIPAR,NDSTBIN)
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 
       !--------------
       ! Parameters
       !--------------
 
       ! Global mass flux tuning factor (a posteriori) [frc]
-#if   defined( GEOS_5 ) && defined( GRID05x0666 )
+#if   defined( GEOS_57 ) && defined( GRID025x03125 )
+
+      ! Copy the 05x0666 scale factors for now
+      ! (skim, 5/20/12)
+
+#if defined(NESTED_CH)  
+      ! retuned based upon updated GEOS-4 tuning (amv, Nov 9, 2009)
+      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 3.23d-4
+#elif defined(SEAC4RS)
+      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 4.54d-4
+! added NA, copied 05x0666 scale factor (kyu, 22 April 2013)
+#elif defined(NESTED_NA)
+      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 2.16d-4
+#endif
+
+      ! Global mass flux tuning factor (a posteriori) [frc]
+#elif defined( GEOS_5 ) && defined( GRID05x0666 )
 
 #if defined(NESTED_CH)  
       ! retuned based upon updated GEOS-4 tuning (amv, Nov 9, 2009)
@@ -386,18 +409,8 @@
 
 #elif defined( GEOS_57 ) && defined( GRID4x5 )
 
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !%%% NOTE: USE SAME VALUE AS MERRA 4x5 FOR NOW!                    %%%
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 7.0d-4 / 0.731d0
-
-
-#elif defined( GEOS_3 ) && defined( GRID1x1 ) && defined( NESTED_NA )
-
-      ! For the GEOS-3 1x1 N. America Nested grid (as used by the MIT/FAA-ULS
-      ! project), we'll tune the global dust emissions to the same totals as 
-      ! the GEOS-5 4x5 1-year benchmark v8-01-01-Run0. (bmy, 11/10/08)
-      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 7.0d-4 / 9.57d0
+      ! Based on results from GEOS 5.7 for September 2011
+      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 7.0d-4 * 1.272d0
 
 #else
 
@@ -594,13 +607,15 @@
       ! Get volumetric water content from GWET
       CALL VWC_SFC_GET(
      &    LAT_IDX,             ! I [idx] Latitude index
+     &    State_Met%GWETTOP,   ! I [unitless] Top soil moisture
      &    VWC_SFC_SLICE )      ! O [m3 m-3] Volumetric water content
 
       ! Get surface and soil temperature
       CALL TPT_GND_SOI_GET(
-     &     LAT_IDX,            ! I [idx] Latitude index!
-     &     TPT_GND_SLICE,      ! O [K] Ground temperature
-     &     TPT_SOI_SLICE )     ! O [K] Soil temperature
+     &    LAT_IDX,            ! I [idx] Latitude index!
+     &    State_Met%TS,       ! I [K] Sfc temperature at 2m
+     &    TPT_GND_SLICE,      ! O [K] Ground temperature
+     &    TPT_SOI_SLICE )     ! O [K] Soil temperature
 
       ! Get time-varying vegetation area index
       CALL DST_TVBDS_GET(
@@ -655,7 +670,8 @@ ctdf        print *,' no mobilisation candidates'
       ! Get reference wind at 10m
       !=================================================================
       DO I = 1, IIPAR
-         W10M = SQRT( SFCWINDSQR( I, LAT_IDX ) )
+         W10M = SQRT( SFCWINDSQR( I,              LAT_IDX,
+     &                            State_Met%U10M, State_Met%V10M ) )
 
          ! add mobilisation criterion flag
          IF ( FLG_MBL_SLICE(I) ) THEN
@@ -683,8 +699,8 @@ ctdf        print *,' no mobilisation candidates'
 
          ! Just assign for flag mobilisation candidates
          IF ( FLG_MBL_SLICE(I) ) THEN
-            WND_FRC_GEOS(I) = USTAR(I,LAT_IDX)
-            Z0_GEOS(I)      = Z0(I,LAT_IDX)
+            WND_FRC_GEOS(I) = State_Met%USTAR(I,LAT_IDX)
+            Z0_GEOS(I)      = State_Met%Z0(I,LAT_IDX)
          ELSE
             WND_FRC_GEOS(I) = 0.0D0
             Z0_GEOS(I)      = 0.0D0
@@ -888,7 +904,7 @@ ctdf        print *,' no mobilisation candidates'
 
                ! use get_area_m2 (Grid box surface area) [m2] instead of DXYP
                Q_DST_TND_MBL(I,M) =
-     &              FLX_MSS_VRT_DST(I,M) * GET_AREA_M2(LAT_IDX) ! [kg/sec]
+     &              FLX_MSS_VRT_DST(I,M) * GET_AREA_M2(I,LAT_IDX,1) ! [kg/sec]
 
                ! Introduce DSRC: dust mixing ratio increment   12/9/2K3
                DSRC(I,M) =      ! [kg]
@@ -1062,7 +1078,7 @@ ctdf        print *,' no mobilisation candidates'
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE TPT_GND_SOI_GET( J, TPT_GND_OUT, TPT_SOI_OUT )
+      SUBROUTINE TPT_GND_SOI_GET( J, TS, TPT_GND_OUT, TPT_SOI_OUT )
 !
 !******************************************************************************
 !  Subroutine TPT_GND_SOI_GET returns a latitude slice of soil temperature and
@@ -1071,6 +1087,7 @@ ctdf        print *,' no mobilisation candidates'
 !  Arguments as Input:
 !  ============================================================================
 !  (1 ) J           (INTEGER) : Grid box latitude index
+!  (2 ) TS          (REAL*8)  : Surface temperature at 2m [K]
 !
 !  Arguments as Output:
 !  ============================================================================
@@ -1082,12 +1099,11 @@ ctdf        print *,' no mobilisation candidates'
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD, ONLY : TS
-
-      USE CMN_SIZE_MOD   ! IIPAR
+      USE CMN_SIZE_MOD      ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)  :: J
+      REAL*8,  INTENT(IN)  :: TS(IIPAR,JJPAR)
       REAL*8,  INTENT(OUT) :: TPT_GND_OUT(IIPAR)
       REAL*8,  INTENT(OUT) :: TPT_SOI_OUT(IIPAR)
 
@@ -1109,7 +1125,7 @@ ctdf        print *,' no mobilisation candidates'
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE VWC_SFC_GET( J, VWC_SFC_OUT )
+      SUBROUTINE VWC_SFC_GET( J, GWETTOP, VWC_SFC_OUT )
 !
 !******************************************************************************
 !  Subroutine TPT_GND_SOI_GET returns a latitude slice of volumetric water
@@ -1117,23 +1133,23 @@ ctdf        print *,' no mobilisation candidates'
 !
 !  Arguments as Input:
 !  ============================================================================
-!  (1 ) J      (INTEGER) : Grid box latitude index
+!  (1 ) J       (INTEGER) : Grid box latitude index
+!  (2 ) GWETTOP (REAL*8)  : Top soil moisture [unitless]
 !
 !  Arguments as Output:
 !  ============================================================================
-!  VWC_SFC_OUT (REAL*8 ) : Volumetric water content [m3/m3]
+!  VWC_SFC_OUT  (REAL*8 ) : Volumetric water content [m3/m3]
 !
 !  NOTES
 !  (1 ) Updated comments & cosmetic changes (bmy, 3/30/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD, ONLY : GWETTOP
-
-      USE CMN_SIZE_MOD   ! IIPAR
+      USE CMN_SIZE_MOD      ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)  :: J
+      REAL*8,  INTENT(IN)  :: GWETTOP(IIPAR,JJPAR)
       REAL*8,  INTENT(OUT) :: VWC_SFC_OUT(IIPAR)
 
       ! Local variables
@@ -1359,7 +1375,7 @@ ctdf        print *,' no mobilisation candidates'
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE GET_ORO( OROGRAPHY )
+      SUBROUTINE GET_ORO( OROGRAPHY, State_Met )
 !
 !******************************************************************************
 !  Subroutine GET_ORO creates a 2D orography array, OROGRAPHY, from the
@@ -1374,15 +1390,19 @@ ctdf        print *,' no mobilisation candidates'
 !  (2 ) Now modified for GCAP and GEOS-5 met fields (swu, bmy, 6/9/05)
 !  (3 ) Now use IS_LAND, IS_WATER, IS_ICE functions from "dao_mod.f"
 !        (bmy, 8/17/05)
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD, ONLY : IS_LAND, IS_WATER, IS_ICE
+      USE DAO_MOD,            ONLY : IS_LAND, IS_WATER, IS_ICE
+      USE GIGC_State_Met_Mod, ONLY : MetState
 
       USE CMN_SIZE_MOD
 
       ! Arguments
-      INTEGER, INTENT(OUT)  :: OROGRAPHY(IIPAR,JJPAR)
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      INTEGER,        INTENT(OUT) :: OROGRAPHY(IIPAR,JJPAR)
 
       ! Local variables
       INTEGER :: I, J, TEMP
@@ -1397,13 +1417,13 @@ ctdf        print *,' no mobilisation candidates'
       DO I = 1, IIPAR
 
          ! Ocean
-         IF ( IS_WATER( I, J ) ) OROGRAPHY(I,J) = 0
+         IF ( IS_WATER( I, J, State_Met ) ) OROGRAPHY(I,J) = 0
 
          ! Land
-         IF ( IS_LAND(  I, J ) ) OROGRAPHY(I,J) = 1
+         IF ( IS_LAND(  I, J, State_Met ) ) OROGRAPHY(I,J) = 1
 
          ! Ice
-         IF ( IS_ICE (  I, J ) ) OROGRAPHY(I,J) = 2
+         IF ( IS_ICE (  I, J, State_Met ) ) OROGRAPHY(I,J) = 2
 
       ENDDO
       ENDDO
@@ -1843,7 +1863,6 @@ ctdf        print *,' no mobilisation candidates'
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,   ONLY : USTAR
       USE ERROR_MOD, ONLY : ERROR_STOP
 
       USE CMN_SIZE_MOD    ! Size parameters
@@ -4199,7 +4218,6 @@ ctdf        print *,' no mobilisation candidates'
 !******************************************************************************
 !
        IMPLICIT NONE
-#     include "define.h"
 
        ! Arguments
        REAL*8, INTENT(IN) :: X
@@ -4321,7 +4339,6 @@ ctdf        print *,' no mobilisation candidates'
 !******************************************************************************
 !
       IMPLICIT NONE
-#     include "define.h"
       INTEGER I,JINT
       REAL*8  A,ARG,B,C,D,DEL,FOUR,HALF,P,ONE,Q,RESULT,SIXTEN,SQRPI,
      &   TWO,THRESH,X,XBIG,XDEN,XHUGE,XINF,XMAX,XNEG,XNUM,XSMALL,

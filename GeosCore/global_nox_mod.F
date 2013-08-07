@@ -65,26 +65,22 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_GLOBAL_NOx( THISMONTH )
+      SUBROUTINE GET_GLOBAL_NOx( THISMONTH, Input_Opt )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0
-      USE BPCH2_MOD,     ONLY : READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE DIRECTORY_MOD, ONLY : TEMP_DIR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_3D
-      USE UNIX_CMDS_MOD, ONLY : REDIRECT
-      USE UNIX_CMDS_MOD, ONLY : UNZIP_CMD
-      USE UNIX_CMDS_MOD, ONLY : ZIP_SUFFIX
-
-      USE CMN_SIZE_MOD                  ! Size parameters
+      USE BPCH2_MOD,          ONLY : GET_NAME_EXT
+      USE BPCH2_MOD,          ONLY : GET_RES_EXT
+      USE BPCH2_MOD,          ONLY : GET_TAU0
+      USE BPCH2_MOD,          ONLY : READ_BPCH2
+      USE CMN_SIZE_MOD
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TRANSFER_MOD,       ONLY : TRANSFER_3D
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)  :: THISMONTH   ! Current month
+      INTEGER,        INTENT(IN)  :: THISMONTH   ! Current month
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
 ! 
 ! !REVISION HISTORY: 
 !  28 Jul 2000 - R. Yantosca - Initial version
@@ -100,6 +96,7 @@
 !        (bmy, 7/20/04)
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  01 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  11 Apr 2013 - R. Yantosca - Now pass directory fields etc with Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -140,15 +137,16 @@
       FIELD_DIR = '/data/ctm/GEOS_MEAN/OHparam/'
 
       ! Name of the zipped punch file w/ NOx in FIELD_DIR
-      RGNAME = TRIM( FIELD_DIR )   // 'ctm.bpch.'         // 
-     &         BMONTH( THISMONTH ) // '.'                 // 
-     &         GET_NAME_EXT()      // TRIM( ZIP_SUFFIX )
+      RGNAME = TRIM( FIELD_DIR )   // 'ctm.bpch.'                  // 
+     &         BMONTH( THISMONTH ) // '.'                          // 
+     &         GET_NAME_EXT()      // TRIM( Input_Opt%ZIP_SUFFIX )
 
       ! Construct the command to unzip the file & copy to TEMP_DIR
-      CHAROP = TRIM( UNZIP_CMD )   // ' '                 //
-     &         TRIM( RGNAME  )     // TRIM( REDIRECT  )   //
-     &         ' '                 // TRIM( TEMP_DIR  )   //
-     &         TRIM( TEMPO   )
+      CHAROP = TRIM( Input_Opt%UNZIP_CMD ) // ' ' //
+     &         TRIM( RGNAME              ) // 
+     &         TRIM( Input_Opt%REDIRECT  ) // ' ' //
+     &         TRIM( Input_Opt%TEMP_DIR  ) //
+     &         TRIM( TEMPO               )
 
       ! Uncompress the file and store in TEMP_DIR
       CALL SYSTEM( TRIM( CHAROP ) )
@@ -166,7 +164,7 @@
       ENDIF
 
       ! Name of unzipped file in TEMP_DIR
-      FILENAME = TRIM( TEMP_DIR ) // TRIM( TEMPO )
+      FILENAME = TRIM( Input_Opt%TEMP_DIR ) // TRIM( TEMPO )
 
       ! Echo info
       WRITE( 6, 110 ) TRIM( FILENAME )

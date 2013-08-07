@@ -41,34 +41,45 @@
 #  22 Aug 2011 - R. Yantosca - Modified for v9-01-02
 #  05 Aug 2011 - M. Long     - Now compile module files in Headers/ directory
 #  27 Sep 2011 - M. Payer    - Modified dependencies for GFED3
-#   6 Dec 2011 - R. Yantosca - Remove #ifdef blocks for GI model code
+#  06 Dec 2011 - R. Yantosca - Remove #ifdef blocks for GI model code
 #  16 Feb 2012 - M. Payer    - Remove references to ESMF directory
+#  05 Apr 2012 - R. Yantosca - Now also build code in NcdfUtil
+#  05 Apr 2012 - R. Yantosca - Remove reference to rdland.F
+#  05 Apr 2012 - R. Yantosca - Add c2h6_mod.o to emfossil.F dependency
+#  05 Apr 2012 - R. Yantosca - Remove reference to rdlai.F
+#  11 Apr 2012 - R. Yantosca - Remove reference to obsolete lai_mod.F
+#  12 Apr 2012 - R. Yantosca - Remove reference to findmon.F
+#  19 Apr 2012 - R. Yantosca - Remove reference to rd_prof.F
+#  11 Jul 2012 - R. Yantosca - Remove references to schem.F, upbdflx_mod.F
+#  30 Oct 2012 - R. Yantosca - Remove reference to rdsoil.F
+#  27 Nov 2012 - R. Yantosca - Remvoe reference to getifsun.F
 #EOP
 #------------------------------------------------------------------------------
 #BOC
 
 # Define variables
-SHELL   = /bin/sh
-ROOTDIR = ..
-APM     = $(ROOTDIR)/APM
-BIN     = $(ROOTDIR)/bin
-BPCH    = $(ROOTDIR)/GeosBpch
-CORE    = $(ROOTDIR)/GeosCore
-DOC     = $(ROOTDIR)/doc
-EXE     = geosapm
-GTMM    = $(ROOTDIR)/GTMM
-HDR     = $(ROOTDIR)/Headers
-HELP    = $(ROOTDIR)/help
-ISO     = $(ROOTDIR)/ISOROPIA
-LIB     = $(ROOTDIR)/lib
-KPP     = $(ROOTDIR)/KPP
-MOD     = $(ROOTDIR)/mod
-UTIL    = $(ROOTDIR)/GeosUtil
+SHELL   := /bin/sh
+ROOTDIR := ..
+APM     := $(ROOTDIR)/APM
+BIN     := $(ROOTDIR)/bin
+BPCH    := $(ROOTDIR)/GeosBpch
+CORE    := $(ROOTDIR)/GeosCore
+DOC     := $(ROOTDIR)/doc
+EXE     := geosapm
+GTMM    := $(ROOTDIR)/GTMM
+HDR     := $(ROOTDIR)/Headers
+HELP    := $(ROOTDIR)/help
+ISO     := $(ROOTDIR)/ISOROPIA
+LIB     := $(ROOTDIR)/lib
+KPP     := $(ROOTDIR)/KPP
+MOD     := $(ROOTDIR)/mod
+NCDF    := $(ROOTDIR)/NcdfUtil
+UTIL    := $(ROOTDIR)/GeosUtil
 
 # This directory only contains files that are different for the APM
 # aerosol microphysics.  For files that are the same as for the regular
 # GEOS-Chem code, look in the GeosCore directory.
-VPATH   = ../GeosCore
+VPATH   := ../GeosCore
 
 # Include header file.  This returns variables CC, F90, FREEFORM, LD, R8,
 # as well as the default Makefile compilation rules for source code files.
@@ -77,7 +88,7 @@ include $(ROOTDIR)/Makefile_header.mk
 #=============================================================================
 # List of files to compile (the order is important!).  We specify these as
 # a list of object files (*.o).  For each object file, the "make" utility
-# will find the corresponding source code file (*.F) and compile it. 
+# will find the corresponding source code file (*.f, *.f90) and compile it. 
 #=============================================================================
 
 OBJ =                                                                        \
@@ -109,22 +120,22 @@ diag_mod.o               diag_oh_mod.o           diag_pl_mod.o		     \
 diagoh.o                 drydep_mod.o            dust_dead_mod.o	     \
 dust_mod.o               edgar_mod.o             emep_mod.o		     \
 emf_scale.o              emfossil.o              emissdr.o		     \
-emissions_mod.o          epa_nei_mod.o		                             \
-fast_j.o                 fertadd.o               findmon.o		     \
+emissions_mod.o          epa_nei_mod.o		 mapping_mod.o               \
+fast_j.o                                                                     \
 fjfunc.o                 fjx_acet_mod.o          future_emissions_mod.o	     \
 fvdas_convect_mod.o      fyhoro.o                fyrno3.o		     \
 gamap_mod.o              gasconc.o               gc_biomass_mod.o	     \
 gc_type_mod.o            gcap_convect_mod.o      gcap_read_mod.o	     \
-geia_mod.o               get_global_ch4.o        getifsun.o		     \
+geia_mod.o               get_global_ch4.o                		     \
 gfed2_biomass_mod.o      gfed3_biomass_mod.o     geos57_read_mod.o           \
-global_br_mod.o          global_ch4_mod.o	                             \
+global_br_mod.o          global_ch4_mod.o	 olson_landmap_mod.o         \
 global_hno3_mod.o        global_no3_mod.o        global_nox_mod.o	     \
 global_o1d_mod.o         global_o3_mod.o         global_oh_mod.o	     \
-gwet_read_mod.o          h2_hd_mod.o             hcn_ch3cn_mod.o	     \
+h2_hd_mod.o              hcn_ch3cn_mod.o	                             \
 i6_read_mod.o            icoads_ship_mod.o       initialize.o		     \
 inphot.o                 input_mod.o             isoropiaII_mod.o	     \
 jsparse.o                jv_index.o              ksparse.o		     \
-lai_mod.o                land_mercury_mod.o      lightning_nox_mod.o	     \
+land_mercury_mod.o       lightning_nox_mod.o	                             \
 linoz_mod.o              logical_mod.o           lump.o			     \
 main.o                   megan_mod.o             meganut_mod.o		     \
 mercury_mod.o            merra_a1_mod.o          merra_a3_mod.o		     \
@@ -133,26 +144,33 @@ ndxx_setup.o             nei2005_anthro_mod.o    ocean_mercury_mod.o	     \
 ohsave.o                 optdepth_mod.o          partition.o		     \
 pbl_mix_mod.o            pderiv.o                photoj.o		     \
 physproc.o               pjc_pfix_mod.o          pjc_pfix_geos5_window_mod.o \
-planeflight_mod.o        precipfrac.o            pulsing.o		     \
-rd_js.o                  rd_prof.o               rdland.o                    \
-rdlai.o                  rdsoil.o                readchem.o	             \
-reader.o                 readlai.o               restart_mod.o		     \
+planeflight_mod.o        precipfrac.o                   		     \
+rd_js.o                  readchem.o	                                     \
+reader.o                 restart_mod.o		                             \
 rpmares_mod.o            ruralbox.o              scale_anthro_mod.o	     \
-schem.o                  seasalt_mod.o           set_aer.o		     \
-set_prof.o               setemdep.o		                             \
+seasalt_mod.o            set_aer.o	                                     \
+set_prof.o               setemdep.o		 modis_lai_mod.o             \
 setemis.o                setmodel.o              sfcwindsqr.o		     \
-smvgear.o                soaprod_mod.o           soilbase.o		     \
-soilcrf.o                soilnoxems.o            soiltemp.o		     \
-soiltype.o               streets_anthro_mod.o    subfun.o		     \
+smvgear.o                soaprod_mod.o                    		     \
+streets_anthro_mod.o     subfun.o	                         	     \
 sulfate_mod.o            sunparam.o              tagged_co_mod.o	     \
-tagged_ox_mod.o          tcorr.o                 toms_mod.o		     \
+tagged_ox_mod.o          toms_mod.o		                             \
 tpcore_bc_mod.o          tpcore_mod.o            tpcore_fvdas_mod.o          \
 tpcore_window_mod.o      tracer_mod.o            tpcore_geos5_window_mod.o   \
 tracerid_mod.o           transport_mod.o	 tropopause_mod.o            \
-upbdflx_mod.o            update.o                uvalbedo_mod.o              \
+update.o                 uvalbedo_mod.o                                      \
 vdiff_pre_mod.o          vdiff_mod.o             vistas_anthro_mod.o         \
-wetscav_mod.o            xtra_read_mod.o         retro_mod.o                 \
-diag63_mod.o             paranox_mod.o
+wetscav_mod.o            retro_mod.o             diag63_mod.o                \
+paranox_mod.o            read_jv_atms_dat.o      bromocarb_mod.o             \
+cldice_HBrHOBr_rxn.o     ssa_bromine_mod.o       strat_chem_mod.o            \
+gigc_environment_mod.o                                                       \
+canopy_nox_mod.o         get_ndep_mod.o          nc_soilnox_read.o           \
+readsoil.o               readfert.o              readclim.o                  \
+soil_nox_mod.o           soilnox_restart_mod.o                               \
+diag53_mod.o             global_oc_mod.o         global_bc_mod.o             \
+pops_mod.o               get_popsinfo_mod.o                                  \
+tpcore_geos57_window_mod.o                                                   \
+pjc_pfix_geos57_window_mod.o
 
 #=============================================================================
 # Makefile targets: type "make help" for a complete listing!
@@ -164,41 +182,47 @@ all:
 	@$(MAKE) lib
 	@$(MAKE) exe
 
-lib:                                                 # Build normal GEOS-Chem
-	@$(MAKE) libgc				     
-
-libgc:                                               # Compile everything
+lib:                                               # Build all G-C libraries
+	@$(MAKE) libnc                             
 	@$(MAKE) libheaders         		     
 	@$(MAKE) libkpp             		     
 	@$(MAKE) libutil 			     
 	@$(MAKE) libiso 			     
 	@$(MAKE) libapm
 
-libapm: $(OBJ)                                       # Build code in GeosApm/
+libapm: $(OBJ)                                     # Build code in GeosApm/
 
-libiso:                                              # Build code in ISOROPIA/
+libiso:                                            # Build code in ISOROPIA/
 	@$(MAKE) -C $(ISO)
 
-libkpp:                                              # Build code in KPP/
+libkpp:                                            # Build code in KPP/
 	@$(MAKE) -C $(KPP)
 
-libutil:                                             # Build code in GeosUtil/
+libnc:                                             # Build code in NcdfUtil/
+	@$(MAKE) -C $(NCDF) lib
+
+ncdfcheck:                                         # Check netCDF library
+	@$(MAKE) libnc
+	@$(MAKE) -C $(NCDF) check
+
+libutil:                                           # Build code in GeosUtil/
 	@$(MAKE) -C $(UTIL)
 
-libheaders:                                          # Build code in Headers/ 
+libheaders:                                        # Build code in Headers/ 
 	@$(MAKE) -C $(HDR)			     
 
-exe:                                                 # Build executable
+exe:                                               # Build executable
 	$(LD) $(OBJ) $(LINK) -o $(EXE)
 	cp -f $(EXE) $(BIN)
 
-clean:                                               # Remove files here
+clean:                                             # Remove files here
 	rm -f *.o *.mod geos geosapm geostomas
 
-realclean:                                           # Remove files everywhere
+realclean:                                         # Remove files everywhere
 	@$(MAKE) clean
 	@$(MAKE) -C $(ISO) clean
 	@$(MAKE) -C $(KPP) realclean
+	@$(MAKE) -C $(NCDF) clean
 	@$(MAKE) -C $(UTIL) clean
 	@$(MAKE) -C $(CORE) clean
 	@$(MAKE) -C $(GTMM) clean
@@ -207,13 +231,13 @@ realclean:                                           # Remove files everywhere
 	rm -f $(MOD)/*.mod
 	rm -f $(BIN)/geos*
 
-doc:                                                 # Build documentation
+doc:                                               # Build documentation
 	@$(MAKE) -C $(DOC) all
 
-docclean:                                            # Remove documentation
+docclean:                                          # Remove documentation
 	@$(MAKE) -C $(DOC) clean
 
-help:                                                # Show help screen
+help:                                              # Show help screen
 	@$(MAKE) -C $(HELP)
 
 #=============================================================================
@@ -236,7 +260,7 @@ acetone_mod.o               : acetone_mod.F           dao_mod.o              \
 aerosol_mod.o               : aerosol_mod.F           comode_mod.o           \
                               dao_mod.o               diag_mod.o             \
                               logical_mod.o           tracerid_mod.o         \
-                              tracer_mod.o            tropopause_mod.o
+                              tracer_mod.o            tropopause_mod.o  
 
 aircraft_nox_mod.o          : aircraft_nox_mod.F                             \
                               dao_mod.o               diag_mod.o              
@@ -278,7 +302,7 @@ apm_wets_mod.o              : apm_wets_mod.F                                 \
 
 arctas_ship_emiss_mod.o     : arctas_ship_emiss_mod.F                        \
                               logical_mod.o           scale_anthro_mod.o     \
-                              tracerid_mod.o          tracer_mod.o  
+                              tracerid_mod.o          tracer_mod.o           
 
 arsl1k.o                    : arsl1k.F
 
@@ -307,7 +331,12 @@ boxvl.o                     : boxvl.F                 dao_mod.o
 
 bravo_mod.o                 : bravo_mod.F                                    \
                               future_emissions_mod.o  logical_mod.o          \
-                              scale_anthro_mod.o      tracerid_mod.o    
+                              scale_anthro_mod.o      tracerid_mod.o         
+
+bromocarb_mod.o             : bromocarb_mod.F                                \
+                              dao_mod.o               diag_mod.o             \
+                              logical_mod.o           pbl_mix_mod.o          \
+                              tracer_mod.o
 
 c2h6_mod.o                  : c2h6_mod.F                                     \
                               biofuel_mod.o           biomass_mod.o          \
@@ -319,14 +348,19 @@ c2h6_mod.o                  : c2h6_mod.F                                     \
 cac_anthro_mod.o            : cac_anthro_mod.F                               \
                               future_emissions_mod.o  logical_mod.o          \
                               scale_anthro_mod.o      tracerid_mod.o         \
-                              tracer_mod.o  
+                              tracer_mod.o            
 
 calcrate.o                  : calcrate.F                                     \
                               comode_mod.o            dao_mod.o              \
                               diag_mod.o              diag63_mod.o           \
                               drydep_mod.o            emissions_mod.o        \
                               logical_mod.o           pbl_mix_mod.o          \
-                              planeflight_mod.o       tracerid_mod.o
+                              planeflight_mod.o       tracerid_mod.o         \
+                              cldice_HBrHOBr_rxn.o
+
+canopy_nox_mod.o            : canopy_nox_mod.F                               \
+                              dao_mod.o               drydep_mod.o           \
+			      nc_soilnox_read.o
 
 carbon_mod.o                : carbon_mod.F                                   \
                               biomass_mod.o           comode_mod.o           \
@@ -367,10 +401,11 @@ chemistry_mod.o             : chemistry_mod.F                                \
                               isoropiaII_mod.o        logical_mod.o          \
                               mercury_mod.o           optdepth_mod.o         \
                               rpmares_mod.o           RnPbBe_mod.o           \
-                              seasalt_mod.o           sulfate_mod.o          \
-                              tagged_co_mod.o         tagged_ox_mod.o        \
-                              tracerid_mod.o          tracer_mod.o           \
-	                      apm_init_mod.o          apm_driv_mod.o 
+                              seasalt_mod.o           strat_chem_mod.o       \
+                              sulfate_mod.o           tagged_co_mod.o        \
+                              tagged_ox_mod.o         tracerid_mod.o         \
+                              tracer_mod.o            pops_mod.o             \
+                              apm_init_mod.o          apm_driv_mod.o 
 
 cleanup.o                   : cleanup.F                                      \
                               acetone_mod.o           aerosol_mod.o          \
@@ -394,7 +429,7 @@ cleanup.o                   : cleanup.F                                      \
                               global_no3_mod.o        global_nox_mod.o       \
                               global_o1d_mod.o        global_oh_mod.o        \
                               h2_hd_mod.o             hcn_ch3cn_mod.o        \
-                              lai_mod.o               land_mercury_mod.o     \
+                              modis_lai_mod.o         land_mercury_mod.o     \
                               lightning_nox_mod.o     linoz_mod.o            \
                               megan_mod.o             mercury_mod.o          \
                               ocean_mercury_mod.o     pbl_mix_mod.o          \
@@ -405,14 +440,18 @@ cleanup.o                   : cleanup.F                                      \
                               tropopause_mod.o        uvalbedo_mod.o         \
                               vistas_anthro_mod.o     wetscav_mod.o          \
                               icoads_ship_mod.o       tpcore_fvdas_mod.o     \
-                              tpcore_geos5_window_mod.o  apm_wets_mod.o      \
-                              retro_mod.o
+                              tpcore_geos5_window_mod.o                      \
+                              tpcore_geos57_window_mod.o                     \
+                              retro_mod.o             strat_chem_mod.o       \
+                              apm_wets_mod.o
+
+cldice_HBrHOBr_rxn.o        : cldice_HBrHOBr_rxn.F
 
 CLDSRF.o                    : CLDSRF.F
 
 co2_mod.o                   : co2_mod.F               biomass_mod.o          \
                               diag04_mod.o            tracer_mod.o           \
-	                      tracerid_mod.o 
+	                      tracerid_mod.o          
 
 CO_strat_pl.o               : CO_strat_pl.F                                  \
                               dao_mod.o               tracer_mod.o           \
@@ -429,7 +468,8 @@ convection_mod.o            : convection_mod.F                               \
                               wetscav_mod.o          
 
 dao_mod.o                   : dao_mod.F                                      \
-                              logical_mod.o           tracer_mod.o           
+                              logical_mod.o           tracer_mod.o           \
+			      gc_type_mod.o
 
 decomp.o                    : decomp.F
 
@@ -444,7 +484,7 @@ diag04_mod.o                : diag04_mod.F
 diag1.o                     : diag1.F                                        \
                               dao_mod.o               diag_mod.o             \
                               tracer_mod.o            tracerid_mod.o         \
-                              tropopause_mod.o
+                              tropopause_mod.o        ocean_mercury_mod.o
 
 diag3.o                     : diag3.F                                        \
                               biofuel_mod.o           biomass_mod.o          \
@@ -467,7 +507,7 @@ diag48_mod.o                : diag48_mod.F                                   \
                               tracerid_mod.o          tracer_mod.o  
 
 diag49_mod.o                : diag49_mod.F                                   \
-                              dao_mod.o               lai_mod.o              \
+                              dao_mod.o               modis_lai_mod.o        \
                               pbl_mix_mod.o           tracerid_mod.o         \
                               tracer_mod.o  
 
@@ -478,23 +518,25 @@ diag50_mod.o                : diag50_mod.F                                   \
                               tropopause_mod.o  
 
 diag51_mod.o                : diag51_mod.F                                   \
-                              dao_mod.o               lai_mod.o              \
+                              dao_mod.o               modis_lai_mod.o        \
                               logical_mod.o           pbl_mix_mod.o          \
                               tracerid_mod.o          tracer_mod.o           \
                               tropopause_mod.o  
 
 diag51b_mod.o               : diag51b_mod.F                                  \
-                              dao_mod.o               lai_mod.o              \
+                              dao_mod.o               modis_lai_mod.o        \
                               logical_mod.o           pbl_mix_mod.o          \
                               tracerid_mod.o          tracer_mod.o           \
                               tropopause_mod.o  
 
+diag53_mod.o                : diag53_mod.F				     \
+			      tracerid_mod.o               
+
 diag56_mod.o                : diag56_mod.F
 
 diag63_mod.o                : diag63_mod.F                                   \
-                              dao_mod.o               lai_mod.o              \
-                              pbl_mix_mod.o           tracerid_mod.o         \
-                              tracer_mod.o
+                              dao_mod.o               pbl_mix_mod.o          \
+                              tracerid_mod.o          tracer_mod.o
 
 diag_2pm.o                  : diag_2pm.F                                     \
                               diag_mod.o              tropopause_mod.o
@@ -514,8 +556,9 @@ drydep_mod.o                : drydep_mod.F            comode_mod.o           \
                               dao_mod.o               diag_mod.o             \
                               logical_mod.o           pbl_mix_mod.o          \
                               tracerid_mod.o          tracer_mod.o           \
-                              meganut_mod.o           apm_init_mod.o         \
-                              apm_driv_mod.o
+                              meganut_mod.o           get_ndep_mod.o         \
+                              apm_init_mod.o          apm_driv_mod.o         \
+                              get_popsinfo_mod.o
 
 diagoh.o                    : diagoh.F                diag_mod.o
 
@@ -531,14 +574,14 @@ dust_mod.o                  : dust_mod.F                                     \
 
 edgar_mod.o                 : edgar_mod.F                                    \
                               future_emissions_mod.o  logical_mod.o          \
-                              scale_anthro_mod.o    
+                              scale_anthro_mod.o      tracerid_mod.o
 
 EFOLD.o                     : EFOLD.F
 
 emep_mod.o                  : emep_mod.F                                     \
                               future_emissions_mod.o  logical_mod.o          \
                               scale_anthro_mod.o      tracerid_mod.o         \
-                              tracer_mod.o  
+                              tracer_mod.o            
 
 emf_scale.o                 : emf_scale.F             tracerid_mod.o
 
@@ -550,14 +593,7 @@ emfossil.o                  : emfossil.F                                     \
                               logical_mod.o           nei2005_anthro_mod.o   \
                               streets_anthro_mod.o    tracer_mod.o           \
                               tracerid_mod.o          vistas_anthro_mod.o    \
-                              retro_mod.o   
-
-emisop.o                    : emisop.F                dao_mod.o              \
-                              meganut_mod.o
-
-emisop_grass.o              : emisop_grass.F          dao_mod.o
-
-emisop_mb.o                 : emisop_mb.F             dao_mod.o
+			      retro_mod.o             c2h6_mod.o
 
 emissdr.o                   : emissdr.F                                      \
                               acetone_mod.o           aircraft_nox_mod.o     \
@@ -565,7 +601,9 @@ emissdr.o                   : emissdr.F                                      \
                               diag_mod.o              emissions_mod.o        \
 			      lightning_nox_mod.o     logical_mod.o          \
                               megan_mod.o             tracer_mod.o           \
-                              tracerid_mod.o          meganut_mod.o
+                              tracerid_mod.o          meganut_mod.o          \
+                              canopy_nox_mod.o        soil_nox_mod.o         \
+			      get_ndep_mod.o          bromocarb_mod.o
 
 emissions_mod.o             : emissions_mod.F                                \
                               arctas_ship_emiss_mod.o biomass_mod.o          \
@@ -581,9 +619,8 @@ emissions_mod.o             : emissions_mod.F                                \
                               retro_mod.o             RnPbBe_mod.o           \
                               seasalt_mod.o           streets_anthro_mod.o   \
                               sulfate_mod.o           tagged_co_mod.o        \
-                              tracer_mod.o            vistas_anthro_mod.o
-
-emmonot.o                   : emmonot.F
+                              tracer_mod.o            vistas_anthro_mod.o    \
+                              pops_mod.o
 
 epa_nei_mod.o               : epa_nei_mod.F                                  \
                               future_emissions_mod.o  logical_mod.o          \
@@ -592,10 +629,6 @@ epa_nei_mod.o               : epa_nei_mod.F                                  \
 
 fast_j.o                    : fast_j.F                                       \
                               dao_mod.o               toms_mod.o
-
-fertadd.o                   : fertadd.F               logical_mod.o
-
-findmon.o                   : findmon.F
 
 fjfunc.o                    : fjfunc.F
 
@@ -621,7 +654,8 @@ gamap_mod.o                 : gamap_mod.F                                    \
                               diag_pl_mod.o  	      drydep_mod.o           \
                               logical_mod.o    	      tracerid_mod.o         \
                               tracer_mod.o            wetscav_mod.o          \
-                              diag63_mod.o 
+                              diag63_mod.o            get_popsinfo_mod.o
+
 ifeq ($(COMPILER),sun)
 	$(F90) -O0 -c $<
 endif
@@ -649,30 +683,37 @@ geia_mod.o                  : geia_mod.F
 
 GEN.o                       : GEN.F
 
-
 geos57_read_mod.o           : geos57_read_mod.F90                            \
                               dao_mod.o
 
-get_global_ch4.o            : get_global_ch4.F                               \
-                              future_emissions_mod.o  logical_mod.o
+get_popsinfo_mod.o          : get_popsinfo_mod.F
 
-getifsun.o                  : getifsun.F              comode_mod.o
+get_global_ch4.o            : get_global_ch4.F                               \
+                              future_emissions_mod.o  logical_mod.o          
+
+get_ndep_mod.o              : get_ndep_mod.F          tracerid_mod.o         \
+			      diag_mod.o 
 
 gfed2_biomass_mod.o         : gfed2_biomass_mod.F                            \
                               future_emissions_mod.o  logical_mod.o          \
-                              tracer_mod.o            tracerid_mod.o
+                              tracer_mod.o            tracerid_mod.o         
 
 gfed3_biomass_mod.o         : gfed3_biomass_mod.F                            \
                               future_emissions_mod.o  logical_mod.o          \
-                              tracer_mod.o            tracerid_mod.o
+                              tracer_mod.o            tracerid_mod.o         
 
-global_br_mod.o             : global_br_mod.F         tropopause_mod.o 
+gigc_environment_mod.o      : gigc_environment_mod.F90                       \
+			      gc_type_mod.o           vdiff_pre_mod.o
+
+global_br_mod.o             : global_br_mod.F         tropopause_mod.o       \
+                              ocean_mercury_mod.o
 
 global_ch4_mod.o            : global_ch4_mod.F                               \
                               dao_mod.o               diag_mod.o             \
                               diag_oh_mod.o           diag_pl_mod.o          \
                               global_oh_mod.o         logical_mod.o          \
-                              tracer_mod.o            vdiff_pre_mod.o  
+                              tracer_mod.o            vdiff_pre_mod.o        \
+                              biomass_mod.o  
 
 global_hno3_mod.o           : global_hno3_mod.F                              \
                               dao_mod.o               tracer_mod.o  
@@ -688,9 +729,9 @@ global_o3_mod.o             : global_o3_mod.F
 global_oh_mod.o             : global_oh_mod.F                                \
                               dao_mod.o
 
-gwet_read_mod.o             : gwet_read_mod.F                                \
-                              dao_mod.o               diag_mod.o             \
-                              logical_mod.o 
+global_oc_mod.o             : global_oc_mod.F
+
+global_bc_mod.o             : global_bc_mod.F
 
 h2_hd_mod.o                 : h2_hd_mod.F                                    \
                               biofuel_mod.o           biomass_mod.o          \
@@ -715,13 +756,14 @@ i6_read_mod.o               : i6_read_mod.F                                  \
 icoads_ship_mod.o           : icoads_ship_mod.F                              \
                               future_emissions_mod.o  logical_mod.o          \
                               scale_anthro_mod.o      tracerid_mod.o         \
-                              tracer_mod.o  
+                              tracer_mod.o            
 
 initialize.o                : initialize.F                                   \
                               diag_mod.o              diag03_mod.o           \
                               diag04_mod.o            diag41_mod.o           \
                               diag42_mod.o            diag56_mod.o           \
-                              diag_pl_mod.o           logical_mod.o 
+                              diag_pl_mod.o           logical_mod.o          \
+                              diag53_mod.o
 
 inphot.o                    : inphot.F
 
@@ -740,9 +782,10 @@ input_mod.o                 : input_mod.F                                    \
                               ocean_mercury_mod.o     planeflight_mod.o      \
                               restart_mod.o           tpcore_bc_mod.o        \
                               tracerid_mod.o          tracer_mod.o           \
-                              transport_mod.o         upbdflx_mod.o          \
-                              wetscav_mod.o           apm_init_mod.o         \
-                              diag63_mod.o
+                              transport_mod.o         wetscav_mod.o          \
+                              apm_init_mod.o          diag63_mod.o           \
+                              bromocarb_mod.o         get_popsinfo_mod.o     \
+                              pops_mod.o
 
 isoropiaII_mod.o            : isoropiaII_mod.F                               \
                               dao_mod.o               global_hno3_mod.o      \
@@ -760,11 +803,9 @@ jv_index.o                  : jv_index.F
 
 ksparse.o                   : ksparse.F
 
-lai_mod.o                   : lai_mod.F               logical_mod.o
-
 land_mercury_mod.o          : land_mercury_mod.F                             \
                               biomass_mod.o           dao_mod.o              \
-                              depo_mercury_mod.o      lai_mod.o              \
+                              depo_mercury_mod.o      modis_lai_mod.o        \
                               logical_mod.o           tracerid_mod.o         \
 
 LEGND0.o                    : LEGND0.F
@@ -793,27 +834,31 @@ main.o                      : main.F                                         \
                               diag_oh_mod.o           dao_mod.o              \
                               depo_mercury_mod.o      drydep_mod.o           \
                               emissions_mod.o         global_ch4_mod.o       \
-                              gcap_read_mod.o         gwet_read_mod.o        \
-                              i6_read_mod.o           input_mod.o            \
-                              lai_mod.o               lightning_nox_mod.o    \
-                              linoz_mod.o             logical_mod.o          \
-                              megan_mod.o             pbl_mix_mod.o          \
-                              ocean_mercury_mod.o     planeflight_mod.o      \
-                              soaprod_mod.o           tpcore_bc_mod.o        \
-                              tracer_mod.o            transport_mod.o        \
-                              tropopause_mod.o        restart_mod.o          \
-                              upbdflx_mod.o           uvalbedo_mod.o         \
+                              gcap_read_mod.o         i6_read_mod.o          \
+                              input_mod.o             modis_lai_mod.o        \
+                              lightning_nox_mod.o     linoz_mod.o            \
+                              logical_mod.o           megan_mod.o            \
+                              pbl_mix_mod.o           ocean_mercury_mod.o    \
+                              planeflight_mod.o       soaprod_mod.o          \
+                              tpcore_bc_mod.o         tracer_mod.o           \
+                              transport_mod.o         tropopause_mod.o       \
+                              restart_mod.o           uvalbedo_mod.o         \
                               vdiff_mod.o             wetscav_mod.o          \
-                              xtra_read_mod.o         merra_cn_mod.o         \
-                              merra_a1_mod.o          merra_a3_mod.o         \
-                              merra_i6_mod.o          apm_init_mod.o         \
-                              apm_driv_mod.o          apm_wets_mod.o         \
-                              geos57_read_mod.o       diag63_mod.o
+                              merra_cn_mod.o          merra_a1_mod.o         \
+                              merra_a3_mod.o          merra_i6_mod.o         \
+                              gigc_environment_mod.o  geos57_read_mod.o      \
+                              diag63_mod.o            olson_landmap_mod.o    \
+                              mapping_mod.o           toms_mod.o             \
+                              soilnox_restart_mod.o   apm_init_mod.o         \
+                              apm_driv_mod.o          apm_wets_mod.o
+
+mapping_mod.o               : mapping_mod.F90                                \
+                              logical_mod.o
 
 MATIN4.o                    : MATIN4.F
 
 megan_mod.o                 : megan_mod.F             a3_read_mod.o          \
-                              lai_mod.o               logical_mod.o          \
+                              modis_lai_mod.o         logical_mod.o          \
                               meganut_mod.o           merra_a1_mod.o         \
                               geos57_read_mod.o
 
@@ -824,7 +869,7 @@ mercury_mod.o               : mercury_mod.F                                  \
                               diag03_mod.o            diag_mod.o             \
                               drydep_mod.o            global_br_mod.o        \
                               global_o3_mod.o         global_oh_mod.o        \
-                              land_mercury_mod.o      lai_mod.o              \
+                              land_mercury_mod.o                             \
                               logical_mod.o           ocean_mercury_mod.o    \
                               pbl_mix_mod.o           RnPbBe_mod.o           \
                               tracerid_mod.o          tracer_mod.o           \
@@ -844,12 +889,17 @@ merra_i6_mod.o              : merra_i6_mod.F                                 \
 
 MIESCT.o                    : MIESCT.F
 
+modis_lai_mod.o             : modis_lai_mod.F90                              \
+                              mapping_mod.o
+
+nc_soilnox_read.o           : nc_soilnox_read.F90
+
 ndxx_setup.o                : ndxx_setup.F                                   \
                               biofuel_mod.o           diag_mod.o             \
                               diag_oh_mod.o           drydep_mod.o           \
                               logical_mod.o           planeflight_mod.o      \
                               tracer_mod.o            tracerid_mod.o         \
-                              wetscav_mod.o           diag63_mod.o  
+                              wetscav_mod.o           diag63_mod.o     
 
 nei2005_anthro_mod.o        : nei2005_anthro_mod.F                           \
                               future_emissions_mod.o  logical_mod.o          \
@@ -865,6 +915,9 @@ ocean_mercury_mod.o         : ocean_mercury_mod.F                            \
 
 ohsave.o                    : ohsave.F                comode_mod.o           \
                               diag_mod.o              tracerid_mod.o
+
+olson_landmap_mod.o         : olson_landmap_mod.F90                          \
+                              mapping_mod.o
 
 optdepth_mod.o              : optdepth_mod.F          diag_mod.o  
 
@@ -891,33 +944,35 @@ physproc.o                  : physproc.F                                     \
 
 pjc_pfix_geos5_window_mod.o : pjc_pfix_geos5_window_mod.F
 
+pjc_pfix_geos57_window_mod.o: pjc_pfix_geos57_window_mod.F
+
 pjc_pfix_mod.o              : pjc_pfix_mod.F
 
 planeflight_mod.o           : planeflight_mod.F                              \
                               comode_mod.o            dao_mod.o              \
-                              tracer_mod.o            tropopause_mod.o  
+                              tracer_mod.o            tropopause_mod.o       \
+                              ocean_mercury_mod.o
+
+pops_mod.o           	    : pops_mod.F    	                             \
+			      diag_mod.o	      vdiff_pre_mod.o	     \
+	        	      global_oh_mod.o         pbl_mix_mod.o	     \
+			      logical_mod.o	      diag53_mod.o	     \
+                              global_oc_mod.o	      global_bc_mod.o	     \
+			      tracer_mod.o            tracerid_mod.o         \
+                              global_o3_mod.o         dao_mod.o              \
+                              drydep_mod.o            get_popsinfo_mod.o
 
 precipfrac.o                : precipfrac.F            dao_mod.o
-
-pulsing.o                   : pulsing.F
 
 RD_AOD.o                    : RD_AOD.F
 
 rd_js.o                     : rd_js.F
 
-rd_prof.o                   : rd_prof.F
+readsoil.o		    : readsoil.F
 
-rdisopt.o                   : rdisopt.F
+readfert.o		    : readfert.F
 
-rdlai.o                     : rdlai.F
-
-rdland.o                    : rdland.F                logical_mod.o
-
-rdlight.o                   : rdlight.F
-
-rdmonot.o                   : rdmonot.F
-
-rdsoil.o                    : rdsoil.F
+readclim.o		    : readclim.F
 
 RD_TJPL.o                   : RD_TJPL.F
 
@@ -927,7 +982,7 @@ readchem.o                  : readchem.F                                     \
 
 reader.o                    : reader.F
 
-readlai.o                   : readlai.F               logical_mod.o
+read_jv_atms_dat.o          : read_jv_atms_dat.F90
 
 restart_mod.o               : restart_mod.F                                  \
                               comode_mod.o            dao_mod.o              \
@@ -952,25 +1007,20 @@ rpmares_mod.o               : rpmares_mod.F                                  \
 ruralbox.o                  : ruralbox.F                                     \
                               comode_mod.o            tropopause_mod.o
 
-scale_anthro_mod.o          : scale_anthro_mod.F
-
-schem.o                     : schem.F                 dao_mod.o              \
-                              tracerid_mod.o          tracer_mod.o           \
-                              tropopause_mod.o 
+scale_anthro_mod.o          : scale_anthro_mod.F      
 
 seasalt_mod.o               : seasalt_mod.F                                  \
                               dao_mod.o               diag_mod.o             \
                               drydep_mod.o            logical_mod.o          \
                               pbl_mix_mod.o           tracerid_mod.o         \
                               tracer_mod.o            vdiff_pre_mod.o        \
-                              apm_init_mod.o          apm_driv_mod.o
+                              apm_init_mod.o          apm_driv_mod.o         \
+                              ssa_bromine_mod.o
 
 set_aer.o                   : set_aer.F
 
 set_prof.o                  : set_prof.F                                     \
                               dao_mod.o               toms_mod.o
-
-setbase.o                   : setbase.F
 
 setemdep.o                  : setemdep.F              drydep_mod.o           \
                               tracer_mod.o            tracerid_mod.o
@@ -993,25 +1043,27 @@ soaprod_mod.o               : soaprod_mod.F                                  \
                               carbon_mod.o            dao_mod.o              \
                               logical_mod.o           tracer_mod.o
 
-soilbase.o                  : soilbase.F
+soil_nox_mod.o              : soil_nox_mod.F
 
-soilcrf.o                   : soilcrf.F
-
-soilnoxems.o                : soilnoxems.F                                   \
-                              dao_mod.o               diag_mod.o             \
-                              future_emissions_mod.o  logical_mod.o          \
-                              meganut_mod.o
-
-soiltemp.o                  : soiltemp.F
-
-soiltype.o                  : soiltype.F
+soilnox_restart_mod.o       : soilnox_restart_mod.F   logical_mod.o
 
 SPHERE.o                    : SPHERE.F
+
+ssa_bromine_mod.o           : ssa_bromine_mod.F                              \
+                              bromocarb_mod.o         comode_mod.o           \
+                              logical_mod.o           pbl_mix_mod.o          \
+                              tracerid_mod.o          tropopause_mod.o
 
 streets_anthro_mod.o        : streets_anthro_mod.F                           \
                               future_emissions_mod.o  logical_mod.o          \
                               scale_anthro_mod.o      tracerid_mod.o         \
-                              tracer_mod.o  
+                              tracer_mod.o            
+
+strat_chem_mod.o            : strat_chem_mod.F90                             \
+                              dao_mod.o               logical_mod.o          \
+                              linoz_mod.o             tagged_ox_mod.o        \
+                              tracer_mod.o            tracerid_mod.o         \
+                              tropopause_mod.o
 
 subfun.o                    : subfun.F
 
@@ -1031,8 +1083,8 @@ sulfate_mod.o               : sulfate_mod.F                                  \
                               streets_anthro_mod.o    tracerid_mod.o         \
                               tracer_mod.o            tropopause_mod.o       \
                               uvalbedo_mod.o          vdiff_pre_mod.o        \
-                              wetscav_mod.o           apm_init_mod.o         \
-                              apm_driv_mod.o
+                              wetscav_mod.o           get_ndep_mod.o         \
+                              apm_init_mod.o          apm_driv_mod.o
 
 sunparam.o                  : sunparam.F
 
@@ -1048,9 +1100,9 @@ tagged_co_mod.o             : tagged_co_mod.F                                \
 tagged_ox_mod.o             : tagged_ox_mod.F                                \
                               dao_mod.o               diag_mod.o             \
                               diag_pl_mod.o           drydep_mod.o           \
-                              logical_mod.o           pbl_mix_mod.o          \
-                              tracerid_mod.o          tracer_mod.o           \
-                              tropopause_mod.o        meganut_mod.o
+                              logical_mod.o           meganut_mod.o          \
+                              pbl_mix_mod.o           tracerid_mod.o         \
+                              tracer_mod.o            tropopause_mod.o
 
 tcorr.o                     : tcorr.F
 
@@ -1060,6 +1112,9 @@ tpcore_bc_mod.o             : tpcore_bc_mod.F                                \
                               logical_mod.o           tracer_mod.o  
 
 tpcore_geos5_window_mod.o   : tpcore_geos5_window_mod.F90
+	$(F90) -c $(FREEFORM) $(R8) $<
+
+tpcore_geos57_window_mod.o  : tpcore_geos57_window_mod.F90
 	$(F90) -c $(FREEFORM) $(R8) $<
 
 tpcore_mod.o                : tpcore_mod.F            dao_mod.o              \
@@ -1076,7 +1131,8 @@ tracer_mod.o                : tracer_mod.F                                   \
                               apm_init_mod.o
 
 tracerid_mod.o              : tracerid_mod.F                                 \
-                              logical_mod.o           tracer_mod.o
+                              logical_mod.o           tracer_mod.o           \
+			      gigc_environment_mod.o
 
 transport_mod.o             : transport_mod.F                                \
                               dao_mod.o               diag_mod.o             \
@@ -1085,7 +1141,9 @@ transport_mod.o             : transport_mod.F                                \
                               tpcore_fvdas_mod.o      tpcore_window_mod.o    \
                               tracer_mod.o                                   \
                               tpcore_geos5_window_mod.o                      \
-                              pjc_pfix_geos5_window_mod.o
+                              tpcore_geos57_window_mod.o                     \
+                              pjc_pfix_geos5_window_mod.o                    \
+                              pjc_pfix_geos57_window_mod.o
 
 
 tropopause.o                : tropopause.F                                   \
@@ -1095,12 +1153,6 @@ tropopause.o                : tropopause.F                                   \
 tropopause_mod.o            : tropopause_mod.F                               \
                               comode_mod.o            dao_mod.o              \
                               diag_mod.o              logical_mod.o
-
-upbdflx_mod.o               : upbdflx_mod.F                                  \
-                              dao_mod.o               linoz_mod.o            \
-                              logical_mod.o           tagged_ox_mod.o        \
-                              tracerid_mod.o          tracer_mod.o           \
-                              tropopause_mod.o
 
 update.o                    : update.F
 
@@ -1120,13 +1172,14 @@ vdiff_mod.o                 : vdiff_mod.F90                                  \
 vistas_anthro_mod.o         : vistas_anthro_mod.F                            \
                               future_emissions_mod.o  epa_nei_mod.o          \
                               logical_mod.o           scale_anthro_mod.o     \
-                              tracerid_mod.o          tracer_mod.o  
+                              tracerid_mod.o          tracer_mod.o           
 
 wetscav_mod.o               : wetscav_mod.F                                  \
                               dao_mod.o               diag_mod.o             \
                               depo_mercury_mod.o      logical_mod.o          \
                               mercury_mod.o           ocean_mercury_mod.o    \
                               tracerid_mod.o          tracer_mod.o           \
+                              get_ndep_mod.o          get_popsinfo_mod.o     \
                               apm_init_mod.o
 
 XSEC1D.o                    : XSEC1D.F
@@ -1134,8 +1187,5 @@ XSEC1D.o                    : XSEC1D.F
 XSECO2.o                    : XSECO2.F
 
 XSECO3.o                    : XSECO3.F
-
-xtra_read_mod.o             : xtra_read_mod.F         dao_mod.o             \
-                              diag_mod.o              logical_mod.o
 
 #EOC

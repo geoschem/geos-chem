@@ -11,47 +11,46 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE EMFOSSIL( I, J, N, NN, IREF, JREF, JSCEN )
+      SUBROUTINE EMFOSSIL( I, J, N, NN, IREF, JREF, JSCEN, Input_Opt )
 !
 ! !USES:
 !
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE BRAVO_MOD,          ONLY : GET_BRAVO_ANTHRO, GET_BRAVO_MASK
       USE CAC_ANTHRO_MOD,     ONLY : GET_CANADA_MASK,  GET_CAC_ANTHRO
-      USE DAO_MOD,            ONLY : IS_WATER
+      !USE DAO_MOD,            ONLY : IS_WATER
       USE DIAG_MOD,           ONLY : AD29,   AD32_an,  AD36
       USE EDGAR_MOD,          ONLY : GET_EDGAR_CO,     GET_EDGAR_NOx
       USE EDGAR_MOD,          ONLY : GET_EDGAR_TODN
       USE EMEP_MOD,           ONLY : GET_EMEP_ANTHRO,  GET_EUROPE_MASK
       USE EPA_NEI_MOD,        ONLY : GET_EPA_ANTHRO,   GET_USA_MASK
       USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,        ONLY : LBRAVO, LEMEP,    LNEI99
-      USE LOGICAL_MOD,        ONLY : LEDGARNOx,        LEDGARCO
-      USE LOGICAL_MOD,        ONLY : LSTREETS,         LCAC
-      USE LOGICAL_MOD,        ONLY : LEDGARSHIP,       LARCSHIP
-      USE LOGICAL_MOD,        ONLY : LEMEPSHIP,        LVISTAS
-      USE LOGICAL_MOD,        ONLY : LICARTT,          LNEI05
-      USE LOGICAL_MOD,        ONLY : LRETRO
       USE RETRO_MOD,          ONLY : GET_RETRO_ANTHRO
+      USE C2H6_MOD,           ONLY : GET_C2H6_ANTHRO
       USE NEI2005_ANTHRO_MOD, ONLY : GET_NEI2005_ANTHRO
       USE NEI2005_ANTHRO_MOD, ONLY : NEI05_MASK => USA_MASK
       USE LOGICAL_MOD,        ONLY : LICOADSSHIP !(cklee, 6/30/09)
+      USE RCP_MOD,            ONLY : GET_RCP_EMISSION
                               
       USE STREETS_ANTHRO_MOD, ONLY : GET_SE_ASIA_MASK
       USE STREETS_ANTHRO_MOD, ONLY : GET_STREETS_ANTHRO
-      USE TIME_MOD,           ONLY : GET_TS_EMIS,      GET_DAY_OF_WEEK
+      USE TIME_MOD,           ONLY : GET_TS_EMIS
+      USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK_LT
       USE TIME_MOD,           ONLY : GET_HOUR
-      USE TRACER_MOD,         ONLY : ITS_A_TAGCO_SIM
-      USE TRACER_MOD,         ONLY : XNUMOL
-      USE TRACERID_MOD,       ONLY : IDENOX, IDEOX,    IDEHNO3
-      USE TRACERID_MOD,       ONLY : IDTOX,  IDTCO,    IDTHNO3
+      USE TRACERID_MOD,       ONLY : IDENO,    IDEO3,    IDEHNO3
+      USE TRACERID_MOD,       ONLY : IDTCO,    IDTHNO3
+      USE TRACERID_MOD,       ONLY : IDTC2H6,  IDTNO2
       USE VISTAS_ANTHRO_MOD,  ONLY : GET_VISTAS_ANTHRO
       USE ICOADS_SHIP_MOD,    ONLY : GET_ICOADS_SHIP !(cklee, 7/09/09)
 
-      USE CMN_SIZE_MOD               ! Size parameters
-      USE COMODE_LOOP_MOD               ! IHOUR
-      USE CMN_O3_MOD                 ! EMISR, EMISRR, etc...
-      USE CMN_DIAG_MOD               ! Diagnostic switches & arrays
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE COMODE_LOOP_MOD          ! IHOUR
+      USE CMN_O3_MOD               ! EMISR, EMISRR, etc...
+      USE CMN_DIAG_MOD             ! Diagnostic switches & arrays
 
+      ! 10/24/12, ckeller: NOX diurnal scale factors fix:
+      USE TIME_MOD,           ONLY : GET_LOCALTIME
+ 
       IMPLICIT NONE
 #     include "define.h"
 !
@@ -64,6 +63,7 @@
       INTEGER, INTENT(IN)   :: IREF    ! Offset index I+I0
       INTEGER, INTENT(IN)   :: JREF    ! Offset index J+J0
       INTEGER, INTENT(IN)   :: JSCEN   ! Day index (Sat=1, Sun=2, Weekday=3)
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
 !
 ! !REMARKS:
 !  In most cases, I0=J0=0, so IREF=I and JREF=J.  The offsets I0 and J0 are
@@ -139,6 +139,21 @@
 !  24 Feb 2012 - M. Payer    - Commented out ship emissions, which has been
 !                              moved to calcrate.F for PARANOX.  Left original
 !                              code in place, but commented out.
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  22 Mar 2012 - M. Payer    - Update for C2H6. RETRO ethane emissions are too
+!                              low so we will use Yaping Xiao's offline emiss.
+!  24 Oct 2012 - C. Keller   - Use localtime instead of UTC to derive NOx 
+!                              diurnal scale factors.
+!  14 Mar 2013 - M. Payer    - Replace NOx and Ox emissions with NO and O3
+!                              emissions as part of removal of NOx-Ox
+!                              partitioning
+!  18 Apr 2013 - M. Payer    - Convert NOx using XNUMOL for NO2 since original
+!                              NOx emissions are in mass units of NO2
+!  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
+!  14 Jun 2013 - R. Yantosca - Now determine weekday/weekend with respect to
+!                              the local time at each grid box.  (Formerly,
+!                              this had been done w/r/t the GMT time.
+!  22 Jul 2013 - M. Sulprizio- Now copy LRCP and LRCPSHIP from Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -146,7 +161,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL :: WEEKDAY
-      INTEGER :: L, LL, K, DOW, HOUR
+      INTEGER :: L, LL, K, DOW_LT, HOUR
       REAL*8  :: TODX, DTSRCE, AREA_CM2           
       REAL*8  :: EMX(NOXLEVELS)  
       REAL*8  :: XEMISR
@@ -154,23 +169,73 @@
       REAL*8  :: BRAVO, EPA_NEI, EMEP,   EDGAR, STREETS
       REAL*8  :: CAC,   SHIP,    VISTAS, NEI05
       REAL*8  :: RETRO
+      REAL*8  :: C2H6_ANTHRO
+      ! 10/24/12, ckeller: NOX diurnal scale factors fix:
+      INTEGER :: NOXHOUR
+      REAL*8  :: RCP
+
+      ! For fields from Input_Opt
+      LOGICAL :: LBRAVO
+      LOGICAL :: LEMEP
+      LOGICAL :: LNEI99
+      LOGICAL :: LEDGARNOx
+      LOGICAL :: LEDGARCO
+      LOGICAL :: LSTREETS
+      LOGICAL :: LCAC
+      LOGICAL :: LEDGARSHIP
+      LOGICAL :: LARCSHIP
+      LOGICAL :: LEMEPSHIP
+      LOGICAL :: LVISTAS
+      LOGICAL :: LICARTT
+      LOGICAL :: LNEI05
+      LOGICAL :: LRETRO
+      LOGICAL :: LHIST
+      LOGICAL :: LRCP
+      LOGICAL :: LRCPSHIP
+      LOGICAL :: ITS_A_TAGCO_SIM
+      INTEGER :: N_TRACERS
+      REAL*8  :: XNUMOL(Input_Opt%N_TRACERS)
 
       !=================================================================
       ! EMFOSSIL begins here!
       !=================================================================
 
+      ! Copy values from Input_Opt
+      LBRAVO          = Input_Opt%LBRAVO
+      LEMEP           = Input_Opt%LEMEP 
+      LNEI99          = Input_Opt%LNEI99
+      LEDGARNOx       = Input_Opt%LEDGARNOx
+      LEDGARCO        = Input_Opt%LEDGARCO
+      LSTREETS        = Input_Opt%LSTREETS  
+      LCAC            = Input_Opt%LCAC
+      LEDGARSHIP      = Input_Opt%LEDGARSHIP
+      LARCSHIP        = Input_Opt%LARCSHIP
+      LEMEPSHIP       = Input_Opt%LEMEPSHIP
+      LVISTAS         = Input_Opt%LVISTAS
+      LICARTT         = Input_Opt%LICARTT
+      LNEI05          = Input_Opt%LNEI05
+      LRETRO          = Input_Opt%LRETRO
+      LHIST           = Input_Opt%LHIST
+      LRCP            = Input_Opt%LRCP
+      LRCPSHIP        = Input_Opt%LRCPSHIP
+      ITS_A_TAGCO_SIM = Input_Opt%ITS_A_TAGCO_SIM
+      N_TRACERS       = Input_Opt%N_TRACERS
+      XNUMOL          = Input_Opt%XNUMOL(1:N_TRACERS)
+
       ! Emission timestep [s]
       DTSRCE   = GET_TS_EMIS() * 60d0
 
       ! Surface area of grid box
-      AREA_CM2 = GET_AREA_CM2( J )
+      AREA_CM2 = GET_AREA_CM2( I, J, 1 )
 
       ! GMT hour of day
       HOUR     = GET_HOUR()
 
-      ! Flag for weekday or weekend for NEI/VISTAS emissions
-      DOW      = GET_DAY_OF_WEEK()
-      WEEKDAY  = ( DOW > 0 .and. DOW < 6 )
+      ! Determine if we should use weekday or weekend NEI
+      ! emissions at grid box (I,J,L).  Since NEI is over
+      ! the US, then weekend is Sat/Sun.
+      DOW_LT   = GET_DAY_OF_WEEK_LT( I, J, 1 )
+      WEEKDAY  = ( DOW_LT > 0 .and. DOW_LT < 6 )
 
       !=================================================================
       ! Call EMF_SCALE to do the following:
@@ -189,22 +254,26 @@
       !
       ! NOx only: account for all NOx levels (LL=1,NOXLEVELS)
       !=================================================================    
-      IF ( N == IDENOX ) THEN
+      ! Replaced NOx emissions with NO emissions (mpayer, 3/14/13)
+      IF ( N == IDENO ) THEN
 
          ! Initialize work variables
          EMX(:)  = 0d0
 
+         ! 10/24/12, ckeller: fix for EDGAR diurnal scale factors:
+         NOXHOUR = MIN( 23, NINT( GET_LOCALTIME ( I, J, 1 ) ) )
+         TODX = GET_EDGAR_TODN(I,J,NOXHOUR)
+
          ! Use spatially varying diurnal scale factors 
          ! from EDGAR (amv, phs, 3/10/08)
-         TODX = GET_EDGAR_TODN(I,J,HOUR)
+!         TODX = GET_EDGAR_TODN(I,J,HOUR)
 
-         
          ! Loop over all of the emission levels for NOx (e.g. surface, 100m)
          DO LL = 1, NOXLEVELS
             EMX(LL)  = TODX * EMISRN(IREF,JREF,LL)
 
             !-----------------------------------------------------------
-            ! Get NOx from the EDGAR inventory (global)
+            ! Get NOx from the EDGAR or RCP inventory (global)
             !-----------------------------------------------------------
 
             ! If we are using EDGAR emissions
@@ -217,10 +286,11 @@
                   EDGAR   = GET_EDGAR_NOx( I, J, MOLEC_CM2_S=.TRUE. )
 
                   ! Apply EDGAR time-of-day factor
-                  EDGAR   = EDGAR * GET_EDGAR_TODN( I, J, HOUR )
+                  EDGAR   = EDGAR * TODX
 
                   ! Replace GEIA with EPA/NEI emissions at surface
-                  EMX(LL) = EDGAR * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
+                  EMX(LL) = EDGAR * ( DTSRCE * AREA_CM2 ) /
+     &                      XNUMOL(IDTNO2) 
             
                ELSE 
             
@@ -228,6 +298,29 @@
                   EMX(LL) = 0d0                   
                   
                ENDIF
+
+            ! If we are using RCP emissions (cdh, 10/14/11)
+            ELSEIF ( LRCP ) THEN
+
+               ! Put all emissions into 1st level
+               IF ( LL == 1 ) THEN
+                  
+                  ! Get RCP emissions for NOx [molec/cm2/s]
+                  RCP   = GET_RCP_EMISSION( I, J, NN, 
+     &                                      LAND=.TRUE., SHIP=.FALSE. )
+
+                  ! Apply EDGAR time-of-day factor
+                  RCP   = RCP * TODX
+
+                  ! Replace GEIA with RCP emissions at surface
+                  EMX(LL) = RCP * ( DTSRCE * AREA_CM2 ) / XNUMOL(IDTNO2) 
+
+               ELSE 
+            
+                  ! Zero RCP emissions in the 2nd level 
+                  EMX(LL) = 0d0                   
+                  
+               ENDIF                  
             ENDIF
 
             !-----------------------------------------------------------
@@ -235,8 +328,9 @@
             !-----------------------------------------------------------
 
             ! If we are using EMEP ...
-            IF ( LEMEP ) THEN
-
+![eml Don't apply regional overwrites of NOx over global historical emissions
+            IF ( LEMEP .and. .not. LHIST ) THEN
+!eml]
                ! If we are over the European region ...
                IF ( GET_EUROPE_MASK( I, J ) > 0d0 ) THEN 
 
@@ -249,7 +343,8 @@
                      EMEP    = EMEP * TODX
 
                      ! Replace GEIA with EMEP emissions at surface
-                     EMX(LL) = EMEP * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
+                     EMX(LL) = EMEP * ( DTSRCE * AREA_CM2 ) /
+     &                         XNUMOL(IDTNO2) 
                   
                   ELSE 
             
@@ -267,7 +362,9 @@
             !-----------------------------------------------------------
 
             ! If we are using EPA/NEI emissions
-            IF ( LNEI99 ) THEN
+![eml 
+            IF ( LNEI99 .and. .not. LHIST ) THEN
+!eml]
 
                ! If we are over the USA ...               
                IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN 
@@ -282,7 +379,7 @@
 
                      ! Replace GEIA with EPA/NEI emissions at surface
                      EMX(LL) = EPA_NEI * 
-     &                         ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
+     &                         ( DTSRCE * AREA_CM2 ) / XNUMOL(IDTNO2) 
             
                   ELSE 
             
@@ -294,8 +391,9 @@
                ENDIF
             ENDIF
 
-            IF ( LVISTAS ) THEN
-
+![eml
+            IF ( LVISTAS .and. .not. LHIST ) THEN
+!eml]
                ! If we are over the USA ...
                IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
 
@@ -309,7 +407,7 @@
 
                      ! Replace with VISTAS emissions at surface
                      EMX(LL) = VISTAS * 
-     &                         ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)
+     &                         ( DTSRCE * AREA_CM2 ) / XNUMOL(IDTNO2)
 
                   ELSE 
 
@@ -324,8 +422,9 @@
             !-----------------------------------------------------------
 
             ! If we are using David Streets' emissions
-            IF ( LSTREETS ) THEN
-
+![eml
+            IF ( LSTREETS .and. .not. LHIST ) THEN
+!eml]
                ! If we are over the SE Asia region
                IF ( GET_SE_ASIA_MASK( I, J ) > 0d0 ) THEN
 
@@ -341,7 +440,7 @@
 
                      ! Replace base emissions with STREETS
                      EMX(LL) = STREETS * 
-     &                         ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
+     &                         ( DTSRCE * AREA_CM2 ) / XNUMOL(IDTNO2) 
             
                   ELSE 
             
@@ -358,8 +457,9 @@
             !-----------------------------------------------------------
 
             ! If we are using BRAVO ...
-            IF ( LBRAVO ) THEN
-
+![eml
+            IF ( LBRAVO .and. .not. LHIST ) THEN
+!eml]
                ! If we are over the Mexican region ...
                IF ( GET_BRAVO_MASK( I, J ) > 0d0 ) THEN 
 
@@ -374,12 +474,12 @@
                      IF ( LNEI99 ) THEN 
                         IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
 
-                           EMX(LL) = EMX(LL) + BRAVO * 
-     &                              ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
+                           EMX(LL) = EMX(LL) + BRAVO * ( DTSRCE *
+     &                               AREA_CM2 ) / XNUMOL(IDTNO2) 
                         ENDIF                           
                      ELSE
-                        EMX(LL) = BRAVO * 
-     &                            ( DTSRCE*AREA_CM2 ) / XNUMOL(NN) 
+                        EMX(LL) = BRAVO * ( DTSRCE*AREA_CM2 ) /
+     &                            XNUMOL(IDTNO2) 
 
                      ENDIF
 
@@ -398,8 +498,9 @@
             !-----------------------------------------------------------
 
             ! If we are using CAC emissions
-            IF ( LCAC ) THEN
-
+![eml
+            IF ( LCAC .and. .not. LHIST ) THEN
+!eml]
                ! If we are over the SE Asia region
                IF ( GET_CANADA_MASK( I, J ) > 0d0 ) THEN
 
@@ -418,17 +519,17 @@
                         ! If on border, add to NEI99 emissions (which has
                         ! no Canadian component)
                         IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
-                           EMX(LL) = EMX(LL) + CAC *
-     &                               ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)
+                           EMX(LL) = EMX(LL) + CAC * ( DTSRCE * 
+     &                               AREA_CM2 ) / XNUMOL(IDTNO2)
                         ELSE
-                           EMX(LL) = CAC *
-     &                               ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)
+                           EMX(LL) = CAC * ( DTSRCE * AREA_CM2 ) /
+     &                               XNUMOL(IDTNO2)
                         ENDIF
                      ELSE
 
                         ! Replace base emissions with CAC
-                        EMX(LL) = CAC *
-     &                            ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)
+                        EMX(LL) = CAC * ( DTSRCE * AREA_CM2 ) /
+     &                            XNUMOL(IDTNO2)
                      ENDIF
 
                   ELSE
@@ -440,7 +541,9 @@
                ENDIF
             ENDIF
 
-            IF ( LNEI05 ) THEN
+![eml
+            IF ( LNEI05 .and. .not. LHIST ) THEN
+!eml]
 
                ! If we are over the USA and CAN/MEX
                IF ( NEI05_MASK( I, J ) > 0d0 ) THEN
@@ -454,10 +557,9 @@
 
                   ! Replace GEIA with EPA/NEI emissions at surface
                   EMX(LL) = NEI05 *
-     &                      ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)
+     &                      ( DTSRCE * AREA_CM2 ) / XNUMOL(IDTNO2)
 
                ENDIF
-               
 
             ENDIF
 
@@ -531,26 +633,25 @@
 !            ENDIF
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
             !-----------------------------------------------------------
             ! Store in EMISRRN array and archive diagnostics
             !-----------------------------------------------------------
 
             ! EMISRRN [molec/box/s] is referenced by LL
             EMISRRN(I,J,LL) = EMISRRN(I,J,LL) +
-     &                       ( EMX(LL) * XNUMOL(NN) / DTSRCE )
+     &                       ( EMX(LL) * XNUMOL(IDTNO2) / DTSRCE )
 
             ! ND32 = save anthro NOx for levels L=1,NOXEXTENT [molec/cm2/s]
             IF ( ND32 > 0 ) THEN
                AD32_an(I,J,LL) = AD32_an(I,J,LL) + 
-     &              ( EMX(LL) * XNUMOL(NN) / ( DTSRCE * AREA_CM2 ) )   
+     &              ( EMX(LL) * XNUMOL(IDTNO2) / ( DTSRCE * AREA_CM2 ) )   
             ENDIF
 
             ! ND36 = save anthro emissions in [molec/cm2]
             ! and then convert to [molec/cm2/s] in DIAG3.F
             IF ( ND36 > 0 ) THEN
                AD36(I,J,N) = AD36(I,J,N) +
-     &            ( EMX(LL) * XNUMOL(NN) / AREA_CM2 )
+     &            ( EMX(LL) * XNUMOL(IDTNO2) / AREA_CM2 )
             ENDIF    
          ENDDO     
 
@@ -563,7 +664,8 @@
          EMX(:)  = 0d0
 
          ! Use appropriate scale factor for time of day
-         IF ( N == IDEOX ) THEN
+         ! Replaced Ox emissions with O3 emissions (mpayer, 3/14/13)
+         IF ( N == IDEO3 ) THEN
             TODX = TODN(IHOUR)
          ELSE
             TODX = TODH(IHOUR)
@@ -591,10 +693,10 @@
          ENDIF
 
          !--------------------------------------------------------------
-         ! Get CO emissions from RETRO inventory
+         ! Get hydrocarbon emissions from RETRO inventory
          !--------------------------------------------------------------
         
-        ! If we are using RETRO emissions ...
+         ! If we are using RETRO emissions ...
          IF ( LRETRO ) THEN
 
 	    ! Get RETRO emissions
@@ -605,12 +707,62 @@
 
 	       ! Apply time-of-day factor
 	       RETRO = RETRO * TODX
-           ! Convert from molec/cm2/s to kg/box/timestep in order
-           ! to be in the proper units for EMISRR array
 
-	    EMX(1) = RETRO * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)	    
+               ! Convert from molec/cm2/s to kg/box/timestep in order
+               ! to be in the proper units for EMISRR array
+	       EMX(1) = RETRO * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)	    
 
 	    ENDIF  
+         ENDIF
+
+         !--------------------------------------------------------------
+         ! Get C2H6 emissions from Yaping Xiao's inventory (mpayer, 3/22/12)
+         !--------------------------------------------------------------
+
+         ! If C2H6 is a defined tracer ...
+         IF ( NN == IDTC2H6 ) THEN
+
+               C2H6_ANTHRO = GET_C2H6_ANTHRO( I, J, NN )
+
+               ! Apply time-of-day factor
+	       C2H6_ANTHRO = C2H6_ANTHRO * TODX
+
+               ! Convert from molC/cm2/s to kg/box/timestep in order
+               ! to be in the proper units for EMISRR array
+               EMX(1) = C2H6_ANTHRO * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)
+
+         ENDIF
+  
+         !--------------------------------------------------------------
+         ! Get CO & hydrocarbons emissions from RCP inventory
+         ! (cdh, 10/14/11)
+         !--------------------------------------------------------------
+
+         IF ( LRCP ) THEN
+
+	    ! Get RCP emissions
+            IF (NN==IDTCO) THEN
+               ! Ship CO emissions are handled separately below
+               RCP = GET_RCP_EMISSION( I, J, NN, 
+     &              LAND=.TRUE., SHIP=.FALSE. )
+            ELSE
+               ! Land and ship emissions for all hydrocarbons
+               RCP = GET_RCP_EMISSION( I, J, NN, 
+     &              LAND=.TRUE., SHIP=.TRUE. )
+            ENDIF
+
+	    ! -1 means tracer NN does not have RCP emissions
+            IF ( RCP >= 0d0 ) THEN
+
+	       ! Apply time-of-day factor
+	       RCP = RCP * TODX
+
+               ! Convert from molec/cm2/s to kg/box/timestep in order
+               ! to be in the proper units for EMISRR array
+               EMX(1) = RCP * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)	    
+
+	    ENDIF  
+
          ENDIF
 
          !--------------------------------------------------------------
@@ -822,7 +974,7 @@
          ! Modifications of the scaling using Rynda GRL 2008.
          ! (jaf, ccc, 2/25/09)
          ! Added a nested if (phs, 7/9/09)
-         IF ( ITS_A_TAGCO_SIM() ) THEN           
+         IF ( ITS_A_TAGCO_SIM ) THEN           
             IF ( LICARTT ) THEN
                IF ( GET_USA_MASK(I,J) > 0.d0 ) THEN
                   IF ( NN == IDTCO ) EMX(1) = EMX(1) * 1.39d0
@@ -854,11 +1006,23 @@
 
                SHIP = GET_ICOADS_SHIP( I, J, NN, MOLEC_CM2_S=.TRUE. )
 
+            ELSE IF ( LRCPSHIP ) THEN
+
+               SHIP = GET_RCP_EMISSION( I, J, NN, 
+     &              LAND=.FALSE., SHIP=.TRUE. )
+
             ENDIF
 
             ! overwrite Europe
-            IF ( LEMEPSHIP ) SHIP = 
-     $           GET_EMEP_ANTHRO( I, J, NN, SHIP=.TRUE.)
+            IF ( LEMEPSHIP ) THEN
+            
+               ! If we are over the European region ...
+               ! (bug fix, now overwrite only EMEP region, cdh 1/2/2013)
+               IF ( GET_EUROPE_MASK( I, J ) > 0d0 ) THEN
+                  SHIP =  GET_EMEP_ANTHRO( I, J, NN, SHIP=.TRUE.)
+               ENDIF
+
+            ENDIF
 
             ! Convert to same units as EMX(1), and add
             SHIP = SHIP * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
@@ -891,7 +1055,7 @@
       !=================================================================
       ! Restore EMISR, EMISRN to original values
       !=================================================================
-      IF ( N == IDENOX ) THEN
+      IF ( N == IDENO ) THEN
          EMISRN(IREF,JREF,1:NOXLEVELS) = XEMISRN(1:NOXLEVELS)
       ELSE
          EMISR(IREF,JREF,N) = XEMISR

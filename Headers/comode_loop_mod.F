@@ -19,6 +19,13 @@
 
       IMPLICIT NONE
       PUBLIC
+
+#     include "define.h"
+!
+! !PUBLIC MEMBER FUNCTIONS:
+!
+      PUBLIC :: Init_COMODE_LOOP
+      PUBLIC :: Cleanup_COMODE_LOOP
 !
 ! !REMARKS:
 !         CCCCCCC  OOOOOOO  M     M  OOOOOOO  DDDDDD   EEEEEEE 
@@ -114,36 +121,79 @@
 !  (16) Increase IGAS, MAXGL, MAXGL2, NMRATE, IPHOT (tmf, 3/6/09)
 !  (17) Add RRATE_FOR_KPP variable to DKBLOOP2 common block (phs,ks,dhk, 09/15/09)
 !  (18) PINP(20) increased to PINP(IMISC) (FP 2/10)
+!  (19) Added NKO3PHOTH2 (bhh, jmao, eam, 7/18/11)
 !
 !  !REVISION HISTORY:
-!  23 Aug 2011 - M. Long   - Converted to Module from Header file
 !  28 Jun 2011 - M. Payer    - Add modifications for SOA + semivol POA (H. Pye)
+!  23 Aug 2011 - M. Long     - Converted to Module from Header file
+!  14 Aug 2012 - R. Yantosca - Add #include "define.h" to USES section
+!  14 Aug 2012 - R. Yantosca - Now set KBLOOP=1 only if we are connecting to
+!                              an external GCM (i.e. triggered by switches
+!                              EXTERNAL_GRID or EXTERNAL_FORCING).
+!  17 Oct 2012 - R. Yantosca - Do not define ILAYER if compiling w/ -DDEVEL
+!  24 Oct 2012 - R. Yantosca - Rewrite GIGC #ifdef blocks for clarity
+!  19 Nov 2012 - R. Yantosca - Now use funcitions INIT_COMODE_LOOP and
+!                              CLEANUP_COMODE_LOOP to allocate/free arrays
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS: 
 !
-      INTEGER ILAT,ILONG,IVERT,IPLUME,IPVERT,ITLOOP,KBLOOP,MXBLOCK
-      INTEGER IMLOOP,ILAYER,ILTLOOP,MAXDAYS
-      PARAMETER (ILAT    = JJPAR                   )  
-      PARAMETER (ILONG   = IIPAR                   )  
+      INTEGER, PARAMETER :: IPLUME  = 0       ! Set to zero, we don't use this
+      INTEGER, PARAMETER :: MAXDAYS = 1000    ! This is not used in G-C
 
-      ! LLTROP is the max number of tropospheric levels 
-      PARAMETER (IVERT   = LLTROP                  )  
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! KBLOOP is the # of boxes that SMVGEAR will process per CPU.
+      ! Set KBLOOP=1 for connecting to an external GCM
+      !
+      ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! %%% NOTE: If you are using GEOS-Chem without ESMF, but with  %%%
+      ! %%% the DEVEL=yes option (i.e. to test grid-independent      %%%
+      ! %%% updates w/r/t a standard G-C simulation), then you must  %%%
+      ! %%% make sure that KBLOOP is set to the same value in both   %%%
+      ! %%% simulations.                                             %%%
+      ! %%%                                                          %%%
+      ! %%% The absolute and relative errors (which determine if the %%%
+      ! %%% chemistry has converged to a solution) are computed over %%% 
+      ! %%% all KBLOOP boxes at once.  Using different KBLOOP values %%%
+      ! %%% in different simulations will cause slightly different   %%%
+      ! %%% results in chemical concentrations (even after only one  %%%
+      ! %%% timestep).                                               %%%
+      ! %%%                                                          %%%
+      ! %%% To this end, we now only set KBLOOP=1 if we are          %%%
+      ! %%% connecting GEOS-Chem to an external GCM (i.e. if the Cpp %%%
+      ! %%% switches EXTERNAL_GRID or EXTERNAL_FORCING are set in    %%%
+      ! %%% define.h).                                               %%%
+      ! %%%                                                          %%%
+      ! %%%    -- Bob Yantosca (14 Aug 2012)                         %%%
+      ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !-----------------------------------------------------------------
+      INTEGER, PARAMETER :: KBLOOP  = 1
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! KBLOOP is the # of boxes that SMVGEAR will process per CPU.
+      ! For "traditional" G-C simulations, leave KBLOOP = 24
+      !-----------------------------------------------------------------
+      INTEGER, PARAMETER :: KBLOOP  = 24
+#endif
 
-      ! GEOS-CHEM does not use plumes...set IPLUME=0 
-      PARAMETER (IPLUME  = 0                       )
-      PARAMETER (IPVERT  = IVERT + IPLUME          )
-      PARAMETER (ITLOOP  = ILAT * ILONG * IPVERT   )
-
-      ! Regular
-      PARAMETER (KBLOOP  = 24                       )
-      PARAMETER (IMLOOP  = ILAT * ILONG            )
-      PARAMETER (ILAYER  = IVERT + 1               )
-      PARAMETER (ILTLOOP = IMLOOP * ILAYER         )
-      PARAMETER (MAXDAYS = 1000                    )
-      PARAMETER (MXBLOCK = 16 + ITLOOP/KBLOOP      )
+      ! These values need to be defined as variables instead of
+      ! parameters so that they can be defined dynamically.
+      INTEGER            :: ILAT
+      INTEGER            :: ILONG
+      INTEGER            :: IVERT
+      INTEGER            :: IPVERT
+      INTEGER            :: ITLOOP
+      INTEGER            :: IMLOOP
+      INTEGER            :: ILAYER
+      INTEGER            :: ILTLOOP
+      INTEGER            :: MXBLOCK
 !
 ! ************************* TRACER PARAMETERS ****************************
 ! IDEMS    = EMISSION ID NUMBER (WHICH SPECIES)
@@ -175,14 +225,10 @@
       INTEGER IMASBAL,IALTS,MXCOF
 
       ! Updated for SMVGEAR II (bdf, bmy, 4/1/03)
-!FP_ISOP 06/15/09 !IGAS, NMRATE and MAXGL increased
-!      PARAMETER ( IGAS    = 200,               IAERTY  = 1           )
-!      PARAMETER ( NMRATE  = 510,               IPHOT   = 85          )
-      PARAMETER ( IGAS    = 300,               IAERTY  = 1           )
-      PARAMETER ( NMRATE  = 700,               IPHOT   = 85          )
+      PARAMETER ( IGAS    = 310,               IAERTY  = 1           )
+      PARAMETER ( NMRATE  = 726,               IPHOT   = 92          )
       PARAMETER ( NMTRATE = NMRATE + IPHOT,    NMQRATE = 1           ) 
       PARAMETER ( NMRPROD = 25,                NMDEAD  = 100         )
-!      PARAMETER ( MAXGL   = 750,               MAXGL2  = 90          )
       PARAMETER ( MAXGL   = 1000,              MAXGL2  = 90          )
       PARAMETER ( MAXGL3  = NNPAR,             MAXGL4  = 10          )
       PARAMETER ( ICS     = 3,                 ICP     = 2*ICS       ) 
@@ -351,16 +397,26 @@
       ! Add NKHO2 to /CHEM4/ to flag HO2 aerosol uptake (jaegle 02/26/09)
       ! Add NNADDF, NNADDH, NKHOROI and NKHOROJ to /CHEM4/ for HOC2H4O rxns
       ! (tmf, 3/6/09)
-      !Added NKGLYC and NKHAC NKMCO3
-      ! (hotp 7/31/09)
-      INTEGER            NNADD1,      NNADDA(ICS), NNADDB(  ICS), 
-     &                   NNADDC(ICS), NNADDD(ICS), NNADDK(  ICS), 
-     &                   NNADDV(ICS), NNADDZ,      NKO3PHOT(ICS),
-     &                   NNADDG(ICS), NEMIS( ICS), NDRYDEP( ICS),
-     &                   NNADDF(ICS), NNADDH(ICS), 
-     &                   NKHOROI(ICS),NKHOROJ(ICS),
-     &                   NKHNO4(ICS), NKN2O5,      NKHO2,
-     &                   NKGLYC(ICS,2), NKHAC(ICS,2), NKMCO3(ICS,3)
+      ! Added NKGLYC and NKHAC NKMCO3 (hotp 7/31/09)
+      ! Added NKBrNO3 to /CHEM4/ to flag BrNO3 hydrolysis rxn (jpp, 5/4/10)
+      ! Added NKHOBr and NK1HBR to /CHEM4/ to flag the two HOBr + HBr
+      !      pseudo reactions (in place of HBr + HOBr --het-->) (jpp, 3/22/11)
+      ! Added NK2HOBr and NK2HBR to /CHEM4/ to flag the two HOBr + HBr
+      !      pseudo reactions (in place of HBr + HOBr --ice-->) (jpp, 6/16/11)
+      ! Add NKO3PHOTH2 to account for the H2 reaction of O1D (bhh, jmao,
+      !  eam, 7/18/11)
+      !Added NNRO2HO2(jmao, 11/17/2012)
+      INTEGER            NNADD1,        NNADDA(ICS),  NNADDB(  ICS), 
+     &                   NNADDC(ICS),   NNADDD(ICS),  NNADDK(  ICS), 
+     &                   NNADDV(ICS),   NNADDZ,       
+     &                   NKO3PHOT(ICS), NKO3PHOTH2(ICS),
+     &                   NNADDG(ICS),   NEMIS( ICS),  NDRYDEP( ICS),
+     &                   NNADDF(ICS),   NNADDH(ICS), 
+     &                   NKHOROI(ICS),  NKHOROJ(ICS),
+     &                   NKHNO4(ICS),   NKN2O5,       NKHO2, 
+     &                   NKGLYC(ICS,2), NKHAC(ICS,2), NKMCO3(ICS,3),
+     &                   NKBrNO3,       NKHOBr,       NK1HBr, 
+     &                   NK2HOBr,       NK2HBr,       NNRO2HO2(ICS) 
 
       INTEGER ::         IH2O,        IOXYGEN,   MB1,      MB2
 
@@ -381,21 +437,26 @@
       INTEGER ::         ILBRO2H,    ILBRO2N,   ILTRO2H,  ILTRO2N
       INTEGER ::         ILXRO2H,    ILXRO2N,   ILNRO2H,  ILNRO2N
 
+      ! Added option for zeroing CHBr3 and CH2Br2 inside calcrate,
+      ! since zeroing their emissions doesn't prevent small
+      ! conc's on the order of 0.01pptv (jpp, 4/15/10)
+      INTEGER ::         ICHBr3, ICH2Br2
+
       INTEGER ::         IOUT,        KGLC,      KCPD,     IO93
 !
 ! *********************************************************************
 ! *               SET REAL AND INTEGER ARRAY VARIABLES                *
 ! *********************************************************************
 !
-      INTEGER ::        JLOWVAR( MXBLOCK), KTLPVAR( MXBLOCK), 
-     &                  JLOFIXED(MXBLOCK), JHIFIXED(MXBLOCK)
+      INTEGER, ALLOCATABLE ::  JLOWVAR( :), KTLPVAR( :), 
+     &                         JLOFIXED(:), JHIFIXED(:)
 
-      INTEGER ::        JREORDER(ITLOOP), LREORDER(ITLOOP), 
-     &                  ITWO(    ITLOOP), NCSLOOP( ITLOOP,ICS)
+      INTEGER, ALLOCATABLE ::  JREORDER(:), LREORDER(:), 
+     &                         ITWO(    :), NCSLOOP( :,:)
 
       ! Add NKSPECG for DMS+OH+O2 rxn (bdf, bmy, 4/18/03)
       ! Added NKSPECF, NKSPECH to /IDICS/ for C2H4 chemistry (tmf, 3/6/09) 
-
+      ! Added NKSPECRO2HO2 for RO2+HO2 (jmao, 11/17/2012)
       INTEGER ::
      &  NMOTH(   ICS), NTSPEC( ICS), JPHOTRAT(ICS),
      &  ISGAINR( ICS), ISPORL( ICS), NOGAINE( ICS),   NOUSE(    ICS),
@@ -408,7 +469,7 @@
      &  NKSPECY( ICS), NKSPECZ(ICS), NKSPECV(MAXGL2,ICS),ISLOSSR(ICS),
      &  NKSPECA(  MAXGL3,ICS), NKSPECB(  MAXGL3,ICS),
      &  NKSPECC(MAXGL3,ICS),NKSPECD(MAXGL3,ICS),NKSPECK(MAXGL3,ICS),
-     &  NKSPECG(MAXGL2,ICS),
+     &  NKSPECG(MAXGL2,ICS),NKSPECRO2HO2(MAXGL3,ICS),
      &  NKSPECF(MAXGL3,ICS), NKSPECH(MAXGL3,ICS)
 
       ! re-define some nkspec* arrays for harvard chem mechanism (bdf)
@@ -478,7 +539,7 @@
       INTEGER :: MBCOMP(IMASBAL,2), MBTRACE(IMASBAL)
 
       ! /DKBLOOP2/ needs to be declared THREADPRIVATE
-      REAL*8 ::                                                         &
+      REAL*8 ::
      &  CNEW(   KBLOOP,  MXGSAER),  
      &  CEST(   KBLOOP,  MXGSAER),  
      &  GLOSS(  KBLOOP,  MXGSAER),  
@@ -497,7 +558,7 @@
       ! /DKBLOOP0/ needs to be held THREADPRIVATE
       REAL*8  :: CC2(KBLOOP,0:MXARRAY)  
 
-      INTEGER :: MLOP(ILAT,ILONG), JLOP_SMV(ILAT,ILONG,ILAYER)
+      INTEGER, ALLOCATABLE :: MLOP(:,:), JLOP_SMV(:,:,:)
 
       INTEGER :: 
      &  NKPHOTRAT(IPHOT,ICS),      NPPHOTRAT(IPHOT,ICS),  
@@ -583,7 +644,7 @@
 
       REAL*8 ::  PERTS2(MORDER,3), PERTST(MORDER,3)
 
-      INTEGER :: JLLOW(MXBLOCK), KLHI(MXBLOCK)
+      INTEGER, ALLOCATABLE :: JLLOW(:), KLHI(:)
 
       REAL*8 ::  XGDFCF, ASTKCF, RUARSL, RH100
 
@@ -627,5 +688,222 @@
 ! ****************** END OF COMMON BLOCK COMODE.H *********************
 ! *********************************************************************
 !
-	END MODULE COMODE_LOOP_MOD
+!BOC
+      CONTAINS
 !EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_comode_loop
+!
+! !DESCRIPTION: Subroutine INIT\_COMODE\_LOOP initializes size parameters
+!  with the geospatial values obtained from the ESMF interface.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Init_COMODE_LOOP( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  Need to add error-checking on the allocation statements, so that we
+!  exit the code upon error.
+! 
+! !REVISION HISTORY: 
+!  17 Oct 2012 - R. Yantosca - Need to also set NLAT, NLONG, etc.
+!  17 Oct 2012 - R. Yantosca - Added ProTeX headers
+!  22 Oct 2012 - R. Yantosca - Now references gigc_errcode_mod.F90
+!  27 Nov 2012 - R. Yantosca - Now pass Input_Opt via the argument list
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      ! Assume success
+      RC     = GIGC_SUCCESS
+
+      ! Set size variables (from comode_loop_mod.F)
+      ILAT    = JJPAR
+      ILONG   = IIPAR
+      IVERT   = LLPAR
+      IPVERT  = IVERT + IPLUME
+      ILAYER  = LLPAR + 1
+      ITLOOP  = ILAT * ILONG * IPVERT
+      IMLOOP  = ILAT * ILONG
+      ILTLOOP = IMLOOP * ILAYER
+      MXBLOCK = 16 + ITLOOP/KBLOOP
+
+      ! Set size variables (these declarations were in chemdr.F)
+      NLAT    = JJPAR
+      NLONG   = IIPAR
+      NVERT   = IVERT 
+      NPVERT  = NVERT
+      NPVERT  = NVERT + IPLUME
+
+      ! Allocate arrays
+      ALLOCATE( MLOP( ILAT, ILONG ), STAT=RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         WRITE( 6, '(a)' ) 'Allocation error: MLOP'
+         RETURN
+      ENDIF
+
+      ALLOCATE( JLOP_SMV( ILAT, ILONG, ILAYER ), STAT=RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         WRITE( 6, '(a)' ) 'Allocation error: JLOP_SMV'
+         RETURN
+      ENDIF
+
+      ALLOCATE( JLLOW( MXBLOCK ), STAT=RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         WRITE( 6, '(a)' ) 'Allocation error: JLLOW'
+         RETURN
+      ENDIF
+
+      ALLOCATE( KLHI( MXBLOCK ), STAT=RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         WRITE( 6, '(a)' ) 'Allocation error: KLHI'
+         RETURN
+      ENDIF
+
+      ALLOCATE( JLOWVAR( MXBLOCK ), STAT=RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         WRITE( 6, '(a)' ) 'Allocation error: JLOWVAR'
+         RETURN
+      ENDIF
+
+      ALLOCATE( KTLPVAR( MXBLOCK ), STAT=RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         WRITE( 6, '(a)' ) 'Allocation error: KLTPVAR'
+         RETURN
+      ENDIF
+
+      ALLOCATE( JLOFIXED( MXBLOCK ), STAT=RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         WRITE( 6, '(a)' ) 'Allocation error: JLOFIXED'
+         RETURN
+      ENDIF
+
+      ALLOCATE( JHIFIXED( MXBLOCK ), STAT=RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         WRITE( 6, '(a)' ) 'Allocation error: JHIFIXED'
+         RETURN
+      ENDIF
+
+      ALLOCATE( JREORDER( ITLOOP ), STAT=RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         WRITE( 6, '(a)' ) 'Allocation error: JREORDER'
+         RETURN
+      ENDIF
+
+      ALLOCATE( LREORDER( ITLOOP ), STAT=RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         WRITE( 6, '(a)' ) 'Allocation error: LREORDERP'
+         RETURN
+      ENDIF
+
+      ALLOCATE( ITWO( ITLOOP ), STAT=RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         WRITE( 6, '(a)' ) 'Allocation error: ITWO'
+         RETURN
+      ENDIF
+
+      ALLOCATE( NCSLOOP( ITLOOP, ICS ), STAT=RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         WRITE( 6, '(a)' ) 'Allocation error: ITLOOP'
+         RETURN
+      ENDIF
+
+      IF ( Input_Opt%LPRT .and. am_I_Root ) THEN
+         write( 6, * ) '###########################################'
+         write( 6, * ) '### END of Init_COMODE_LOOP_MOD'
+         write( 6, * ) '### IIPAR   : ', IIPAR
+         write( 6, * ) '### JJPAR   : ', JJPAR
+         write( 6, * ) '### LLPAR   : ', LLPAR
+         write( 6, * ) '### LLTROP  : ', LLTROP
+         write( 6, * ) '### ----------'
+         write( 6, * ) '### ILAT    : ', ILAT   
+         write( 6, * ) '### ILONG   : ', ILONG  
+         write( 6, * ) '### IVERT   : ', IVERT  
+         write( 6, * ) '### IPVERT  : ', IPVERT 
+         write( 6, * ) '### ILAYER  : ', ILAYER 
+         write( 6, * ) '### ITLOOP  : ', ITLOOP 
+         write( 6, * ) '### IMLOOP  : ', IMLOOP 
+         write( 6, * ) '### ILTLOOP : ', ILTLOOP
+         write( 6, * ) '### MXBLOCK : ', MXBLOCK
+         write( 6, * ) '### NLAT    : ', NLAT   
+         write( 6, * ) '### NLONG   : ', NLONG  
+         write( 6, * ) '### NVERT   : ', NVERT  
+         write( 6, * ) '### NPVERT  : ', NPVERT 
+         write( 6, * ) '###########################################'
+      ENDIF
+
+      END SUBROUTINE Init_COMODE_LOOP
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_comode_loop
+!
+! !DESCRIPTION: Subroutine CLEANUP\_COMODE\_LOOP deallocates all module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Cleanup_COMODE_LOOP( am_I_Root, RC )
+!
+! !USES:
+!
+      USE GIGC_ErrCode_Mod
+
+      IMPLICIT NONE
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: RC          ! Success or failure?
+!
+! !REMARKS:
+!
+! !REVISION HISTORY: 
+!  19 Nov 2012 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      ! Assume success
+      RC = GIGC_SUCCESS
+
+      ! Deallocate arrays
+      IF ( ALLOCATED( MLOP     ) ) DEALLOCATE( MLOP     )  
+      IF ( ALLOCATED( JLOP_SMV ) ) DEALLOCATE( JLOP_SMV )  
+      IF ( ALLOCATED( JLLOW    ) ) DEALLOCATE( JLLOW    ) 
+      IF ( ALLOCATED( KLHI     ) ) DEALLOCATE( KLHI     ) 
+      IF ( ALLOCATED( JLOWVAR  ) ) DEALLOCATE( JLOWVAR  ) 
+      IF ( ALLOCATED( KTLPVAR  ) ) DEALLOCATE( KTLPVAR  ) 
+      IF ( ALLOCATED( JLOFIXED ) ) DEALLOCATE( JLOFIXED ) 
+      IF ( ALLOCATED( JHIFIXED ) ) DEALLOCATE( JHIFIXED ) 
+      IF ( ALLOCATED( JREORDER ) ) DEALLOCATE( JREORDER ) 
+      IF ( ALLOCATED( LREORDER ) ) DEALLOCATE( LREORDER ) 
+      IF ( ALLOCATED( ITWO     ) ) DEALLOCATE( ITWO     )
+      IF ( ALLOCATED( NCSLOOP  ) ) DEALLOCATE( NCSLOOP  )
+
+      END SUBROUTINE Cleanup_COMODE_LOOP
+!EOC
+      END MODULE COMODE_LOOP_MOD

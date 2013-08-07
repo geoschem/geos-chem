@@ -16,7 +16,7 @@
 !
 ! !INTERFACE:
 !
-      SUBROUTINE INITIALIZE( IFLAG )
+      SUBROUTINE INITIALIZE( IFLAG, am_I_Root )
 !
 ! !USES:
 !
@@ -32,6 +32,7 @@
       USE DIAG04_MOD
       USE DIAG41_MOD
       USE DIAG42_MOD
+      USE DIAG53_MOD
       USE DIAG56_MOD
       USE DIAG_PL_MOD
       USE LOGICAL_MOD
@@ -46,6 +47,9 @@
       ! If IFLAG=2, zero accumulating diagnostic arrays
       ! If IFLAG=3, zero accumulating diagnostic counters
       INTEGER, INTENT(IN)  :: IFLAG
+
+      ! Is this the root CPU?
+      LOGICAL, INTENT(IN) :: am_I_Root   
 !
 ! !REMARKS:
 !  Eventually we will fold this into "diag_mod.f" in a cleaner,
@@ -114,11 +118,18 @@
 !  (44) Add initialization of counter for diag time steps. (ccc, 7/20/09)
 !  (45) Define new diagnostics, ND19, ND58, ND60 for methane 
 !       (kjw, 8/18/09)
-!  (46) Add potential temperature diagnostic. (fp, 06/09)
+!  (46) Add ND59 and ND60 for initialization (win, 7/28/09)
+!  (47) Add potential temperature diagnostic. (fp, 06/09)
+!  (48) Add TOMAS diags using ifdefs. (sfarina, 01/13)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  25 Aug 2010 - R. Yantosca - Now also reset the counter for A1 timesteps
 !  08 Feb 2012 - R. Yantosca - Rewrote USE statements, for clarity
 !  08 Feb 2012 - R. Yantosca - Now also reset the counter for I3 timesteps
+!  15 Oct 2012 - R. Yantosca - Bug fix, make sure Counter arrays CTLBRO2H etc. 
+!                              are allocated before we use them
+!  02 Apr 2013 - M. Payer    - Remove code for CTNO, CTNO2, and CTNO3. These
+!                              are no onger needed because NO, NO2, and NO3
+!                              are now tracers.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -165,7 +176,6 @@
          IF ( ND33 > 0 ) AD33     = 0e0
          IF ( ND34 > 0 ) AD34     = 0e0
          IF ( ND35 > 0 ) AD35     = 0e0
-         IF ( ND36 > 0 ) AD36     = 0e0
          IF ( ND37 > 0 ) AD37     = 0e0
          IF ( ND38 > 0 ) AD38     = 0e0
          IF ( ND39 > 0 ) AD39     = 0e0
@@ -189,6 +199,11 @@
          ! For ND03 - mercury simulations (eck, sas, bmy, 1/20/05)
          IF ( ND03 > 0 ) THEN
             CALL ZERO_DIAG03
+         ENDIF
+
+         ! For ND53: POPS simulations (eck, 9/20/10)
+         IF ( ND53 > 0 ) THEN
+            CALL ZERO_DIAG53
          ENDIF
 
          ! For ND04 - CO2 simulation (pns, bmy, 7/26/05)
@@ -254,6 +269,14 @@
             AD32_li = 0e0
             AD32_so = 0e0
             AD32_ub = 0e0
+            AD32_ship       = 0e0
+            AD32_ship_count = 0
+         ENDIF
+
+         IF ( ND36 > 0 ) THEN
+            AD36            = 0e0
+            AD36_SHIP       = 0e0
+            AD36_SHIP_COUNT = 0
          ENDIF
 
          ! For ND41 - afternoon PBL heights (bmy, 2/17/05)
@@ -271,14 +294,40 @@
             CALL ZERO_DIAG56
          ENDIF
 
+#if   defined( TOMAS )
+         ! For ND59 - size-resolved primary aerosol emissions (win, 7/28/09)
+         IF ( ND59 > 0 ) THEN 
+            AD59_NUMB = 0e0
+            AD59_SULF = 0e0
+            AD59_SALT = 0e0
+            AD59_ECIL = 0e0
+            AD59_ECOB = 0e0
+            AD59_OCIL = 0e0
+            AD59_OCOB = 0e0
+            AD59_DUST = 0e0
+         ENDIF
+
+         ! For ND60 - aerosol microphysics (win, 7/28/09)
+         IF ( ND60 > 0 ) THEN
+            AD60_COND = 0e0
+            AD60_COAG = 0e0
+            AD60_NUCL = 0e0
+            AD60_AQOX = 0e0
+            AD60_ERROR = 0e0
+            AD60_SOA   = 0e0
+         ENDIF
+#endif
+
          ! For ND65 -- Chemical production & loss (bmy, 12/5/00)
          IF ( ND65 > 0 ) THEN
             AD65  = 0d0
             IF ( ALLOCATED( FAM_PL ) ) FAM_PL = 0d0      
-        ENDIF
+         ENDIF
 
          ! Echo output
-         WRITE( 6, '(a)' ) '     - INITIALIZE: Diag arrays zeroed!'
+         IF ( am_I_Root ) THEN
+            WRITE( 6, '(a)' ) '     - INITIALIZE: Diag arrays zeroed!'
+         ENDIF
       ENDIF  
 
       !================================================================= 
@@ -307,25 +356,26 @@
          IF ( ND17 >               0 ) CT17       = 0
          IF ( ND18 >               0 ) CT18       = 0
          IF ( ND22 >               0 ) CTJV       = 0
-         IF ( ND43 >               0 ) CTNO       = 0
          IF ( ND43 >               0 ) CTOH       = 0
          IF ( ND45 >               0 ) CTOTH      = 0
          IF ( ND45 >               0 ) CTO3       = 0
          IF ( ND47 > 0 .OR. ND65 > 0 ) CTO3_24h   = 0
-         IF ( ND43 >               0 ) CTNO2      = 0
          IF ( ND43 >               0 ) CTHO2      = 0
-         IF ( ND43 >               0 ) CTNO3      = 0
          ! update for arom (dkh, 06/21/07)  
-         IF ( ND43 >               0 ) CTLBRO2H   = 0
-         IF ( ND43 >               0 ) CTLBRO2N   = 0
-         IF ( ND43 >               0 ) CTLTRO2H   = 0
-         IF ( ND43 >               0 ) CTLTRO2N   = 0
-         IF ( ND43 >               0 ) CTLXRO2H   = 0
-         IF ( ND43 >               0 ) CTLXRO2N   = 0
+         IF ( ND43 > 0 ) THEN
+            IF ( ALLOCATED( CTLBRO2H ) ) CTLBRO2H   = 0
+            IF ( ALLOCATED( CTLBRO2N ) ) CTLBRO2N   = 0
+            IF ( ALLOCATED( CTLTRO2H ) ) CTLTRO2H   = 0
+            IF ( ALLOCATED( CTLTRO2N ) ) CTLTRO2N   = 0
+            IF ( ALLOCATED( CTLXRO2H ) ) CTLXRO2H   = 0
+            IF ( ALLOCATED( CTLXRO2N ) ) CTLXRO2N   = 0
+         ENDIF
 
          ! Echo output
-         WRITE( 6, '(a)' ) '     - INITIALIZE: Diag counters zeroed!'
+         IF ( am_I_Root ) THEN
+            WRITE( 6, '(a)' ) '     - INITIALIZE: Diag counters zeroed!'
+         ENDIF
       ENDIF
- 
+
       END SUBROUTINE INITIALIZE
 !EOC

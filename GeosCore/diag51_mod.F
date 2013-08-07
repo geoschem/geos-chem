@@ -115,6 +115,8 @@
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  03 Feb 2011 - S. Kim      - Now do not scale the AOD output
 !                              (recalculated in RDAER AND DUST_MOD)
+!  01 Mar 2012 - R. Yantosca - Use updated GET_LOCALTIME from time_mod.F
+!  06 Aug 2012 - R. Yantosca - Now make IU_ND51 a local module variable
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -181,6 +183,9 @@
       CHARACTER(LEN=80)    :: TITLE
       CHARACTER(LEN=255)   :: ND51_OUTPUT_FILE
 
+      ! LUN for ND51 file
+      INTEGER              :: IU_ND51
+
       ! Arrays
       INTEGER, ALLOCATABLE :: GOOD(:)
       INTEGER, ALLOCATABLE :: GOOD_CT(:)
@@ -240,13 +245,37 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG51
+      SUBROUTINE DIAG51( am_I_Root, Input_Opt,
+     &                   State_Met, State_Chm, RC )
+!
+! !USES:
+!
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Rewritten for clarity (bmy, 7/20/04)
 !  (2 ) Added TAU_W as a local variable (bmy, 9/28/04)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -258,16 +287,21 @@
       !=================================================================
       ! DIAG51 begins here!
       !=================================================================
-      
+
+      ! Assume success
+      RC =  GIGC_SUCCESS      
+
       ! Construct array of where local times are between HR1, HR2
       CALL GET_LOCAL_TIME
 
       ! Accumulate data in the Q array
       CALL ACCUMULATE_DIAG51
+     &   ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
       ! Write data to disk at the proper time
-      IF ( ITS_TIME_FOR_WRITE_DIAG51( TAU_W ) ) THEN
-         CALL WRITE_DIAG51( TAU_W )
+      IF ( ITS_TIME_FOR_WRITE_DIAG51( TAU_W )  .and. 
+     &     Input_Opt%DO_DIAG_WRITE            ) THEN
+         CALL WRITE_DIAG51( am_I_Root, Input_Opt, TAU_W, RC )
       ENDIF
 
       END SUBROUTINE DIAG51
@@ -295,6 +329,11 @@
 
       USE CMN_SIZE_MOD   ! Size parameters
 ! 
+! !REMARKS:
+!  For now use GET_LOCALTIME( I, 1, 1 ) which will be independent of J and L
+!  for a pure cartesian grid.  This may need to be revisited once G-C is
+!  interfaced into a GCM.
+!
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) The 1d-3 in the computation of XLOCTM is to remove roundoff ambiguity 
@@ -309,6 +348,7 @@
 !  (7 ) We need to substract TS_DYN to the time to get the local time at 
 !        the beginning of previous time step. (ccc, 8/11/09)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_LOCALTIME(I,J,L) from time_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -327,7 +367,7 @@
       DO I = 1, IIPAR
 
          ! Get local time
-         LT = GET_LOCALTIME(I) - TS_DYN
+         LT = GET_LOCALTIME( I, 1, 1 ) - TS_DYN
          IF ( LT < 0  ) LT = LT + 24d0
 
          ! GOOD indicates which boxes have local times between HR1 and HR2
@@ -351,36 +391,45 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE ACCUMULATE_DIAG51
+      SUBROUTINE ACCUMULATE_DIAG51( am_I_Root, Input_Opt,
+     &                              State_Met, State_Chm, RC )
 !
 ! !USES:
 !
-      ! References to F90 modules
-      USE DAO_MOD,        ONLY : AD,      AIRDEN, BXHEIGHT, CLDF 
-      USE DAO_MOD,        ONLY : CLDTOPS, OPTD,   RH,       T 
-      USE DAO_MOD,        ONLY : UWND,    VWND,   SLP
-      ! Now included T @ 2m (mpb,2009)
-      USE DAO_MOD,        ONLY : TS
-      ! Now included PAR direct and diffuse (mpb,2009)
-      USE DAO_MOD,        ONLY : PARDF, PARDR
-      ! Now included current (MODIS) LAI (mpb,2009)
-      USE LAI_MOD,        ONLY : ISOLAI
-      USE PBL_MIX_MOD,    ONLY : GET_PBL_TOP_L,   GET_PBL_TOP_m
-      USE PRESSURE_MOD,   ONLY : GET_PEDGE
-      USE TIME_MOD,       ONLY : GET_ELAPSED_MIN, GET_TS_CHEM 
-      USE TIME_MOD,       ONLY : TIMESTAMP_STRING, GET_TS_DYN
-      USE TIME_MOD,       ONLY : GET_TS_DIAG, GET_TS_EMIS
-      USE TRACER_MOD,     ONLY : STT, TCVV, ITS_A_FULLCHEM_SIM
-      USE TRACER_MOD,     ONLY : N_TRACERS, XNUMOLAIR
-      USE TRACERID_MOD,   ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNOX  
-      USE TRACERID_MOD,   ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
-      USE TRACERID_MOD,   ONLY : IDTR4N2, IDTSALA, IDTSALC 
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE MODIS_LAI_MOD,      ONLY : ISOLAI => GC_LAI
+      USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,   GET_PBL_TOP_m
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE
+      USE TIME_MOD,           ONLY : GET_ELAPSED_MIN, GET_TS_CHEM 
+      USE TIME_MOD,           ONLY : TIMESTAMP_STRING, GET_TS_DYN
+      USE TIME_MOD,           ONLY : GET_TS_DIAG, GET_TS_EMIS
+      USE TRACER_MOD,         ONLY : XNUMOLAIR
+      USE TRACERID_MOD,       ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNO
+      USE TRACERID_MOD,       ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTO3
+      USE TRACERID_MOD,       ONLY : IDTR4N2, IDTSALA, IDTSALC, IDTNO2
+      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_TROP
 
-      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ  ! includes CMN_SIZE
-      USE JV_CMN_MOD  ! ODAER, QAA, QAA_AOD
-      USE CMN_O3_MOD    ! FRACO3, FRACNO, SAVEO3, SAVENO2, SAVEHO2, FRACNO2
-      USE CMN_GCTM_MOD  ! SCALE_HEIGHT
+      USE CMN_FJ_MOD,         ONLY : JPMAX, JPPJ      ! includes F77_CMN_SIZE
+      USE JV_CMN_MOD               ! ODAER,   QAA,    QAA_AOD
+      USE CMN_O3_MOD               ! SAVEOH
+      USE CMN_GCTM_MOD             ! SCALE_HEIGHT
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -414,6 +463,11 @@
 !  12 Nov 2010 - R. Yantosca - Now save out PEDGE-$ (pressure at level edges)
 !                              rather than Psurface - PTOP
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  11 Apr 2012 - R. Yantosca - Replace lai_mod.F with modis_lai_mod.F90
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  14 Mar 2013 - M. Payer    - Replace NOx and Ox with NO, NO2, and O3 as part
+!                              of removal of NOx-Ox partitioning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -421,9 +475,10 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE     :: FIRST = .TRUE.
-      LOGICAL, SAVE     :: IS_FULLCHEM, IS_NOx, IS_Ox,   IS_SEASALT
-      LOGICAL, SAVE     :: IS_CLDTOPS,  IS_NOy, IS_OPTD, IS_SLP
-      LOGICAL           :: IS_CHEM,     IS_DIAG, IS_EMIS
+      LOGICAL, SAVE     :: IS_FULLCHEM, IS_SEASALT
+      LOGICAL, SAVE     :: IS_NO,       IS_O3,     IS_NO2
+      LOGICAL, SAVE     :: IS_CLDTOPS,  IS_NOy,    IS_OPTD, IS_SLP
+      LOGICAL           :: IS_CHEM,     IS_DIAG,   IS_EMIS
       INTEGER           :: H, I, J, K, L, M, N
       INTEGER           :: PBLINT,  R, X, Y, W, XMIN
       REAL*8            :: C1, C2, PBLDEC, TEMPBL, TMP, SCALEAODnm
@@ -432,21 +487,38 @@
       ! Aerosol types (rvm, aad, bmy, 7/20/04)
       INTEGER           :: IND(6) = (/ 22, 29, 36, 43, 50, 15 /)
 
+      ! For fields from Input_Opt
+      INTEGER           :: N_TRACERS
+      REAL*8            :: TCVV(Input_Opt%N_TRACERS)
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER   :: STT(:,:,:,:)
+
       !=================================================================
       ! ACCUMULATE_DIAG51 begins here!
       !=================================================================
 
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      N_TRACERS = Input_Opt%N_TRACERS
+      TCVV      = Input_Opt%TCVV(1:N_TRACERS)
+
       ! Set logical flags on first call
       IF ( FIRST ) THEN
-         IS_OPTD     = ALLOCATED( OPTD    )
-         IS_CLDTOPS  = ALLOCATED( CLDTOPS )
-         IS_SLP      = ALLOCATED( SLP     )
-         IS_FULLCHEM = ITS_A_FULLCHEM_SIM()
+         IS_OPTD     = ASSOCIATED( State_Met%OPTD    )
+         IS_CLDTOPS  = ASSOCIATED( State_Met%CLDTOPS )
+         IS_SLP      = ASSOCIATED( State_Met%SLP     )
+         IS_FULLCHEM = Input_Opt%ITS_A_FULLCHEM_SIM
          IS_SEASALT  = ( IDTSALA > 0 .and. IDTSALC > 0 )
-         IS_NOx      = ( IS_FULLCHEM .and. IDTNOX  > 0 )
-         IS_Ox       = ( IS_FULLCHEM .and. IDTOx   > 0 )
-         IS_NOy      = ( IS_FULLCHEM .and. 
-     &                   IDTNOX  > 0 .and. IDTPAN  > 0 .and.
+         IS_NO       = ( IS_FULLCHEM .and. IDTNO   > 0 )
+         IS_NO2      = ( IS_FULLCHEM .and. IDTNO2  > 0 )
+         IS_O3       = ( IS_FULLCHEM .and. IDTO3   > 0 )
+         IS_NOy      = ( IS_FULLCHEM .and. IDTNO   > 0 .and.
+     &                   IDTNO2  > 0 .and. IDTPAN  > 0 .and.
      &                   IDTHNO3 > 0 .and. IDTPMN  > 0 .and.
      &                   IDTPPN  > 0 .and. IDTR4N2 > 0 .and.
      &                   IDTN2O5 > 0 .and. IDTHNO4 > 0 ) 
@@ -524,7 +596,7 @@
             I = GET_I( X )
 
             ! Only increment if we are in the trop
-            IF ( ITS_IN_THE_TROP( I, J, L ) ) THEN
+            IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) THEN
                COUNT_CHEM3D(X,Y,K) = COUNT_CHEM3D(X,Y,K) + GOOD(I)
             ENDIF
          ENDDO
@@ -537,11 +609,16 @@
       ! Accumulate quantities
       !------------------------
       IF ( IS_DIAG ) THEN
+
+         ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+         ! (mpayer, 12/6/12)
+         STT => State_Chm%Tracers
+
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
 !$OMP+PRIVATE( W, N, X, Y, K, I, J, L, TMP, H, R, SCALEAODnm ) 
 !$OMP+SCHEDULE( DYNAMIC )
-      DO W = 1, ND51_N_TRACERS
+         DO W = 1, ND51_N_TRACERS
 
          ! ND51 Tracer number
          N = ND51_TRACERS(W)
@@ -567,10 +644,10 @@
 
                ! Archive afternoon points
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
-     &                      ( STT(I,J,L,N) * TCVV(N) / 
-     &                        AD(I,J,L)    * GOOD(I) )
+     &                      ( STT(I,J,L,N)        * TCVV(N) / 
+     &                        State_Met%AD(I,J,L) * GOOD(I) )
 
-            ELSE IF ( N == 91 .and. IS_Ox ) THEN
+            ELSE IF ( N == 91 .and. IS_O3 ) THEN
 
                !--------------------------------------
                ! Pure O3 [v/v]
@@ -578,12 +655,11 @@
                !--------------------------------------
 
                ! Accumulate data
+               Q(X,Y,K,W) = Q(X,Y,K,W)   + ( STT(I,J,L,IDTO3)    *
+     &                      TCVV(IDTO3)  /   State_Met%AD(I,J,L) *
+     &                      GOOD_CHEM(X) )
 
-               Q(X,Y,K,W) = Q(X,Y,K,W) + 
-     &              ( STT(I,J,L,IDTOX) * FRACO3(I,J,L) *
-     &                TCVV(IDTOX)      / AD(I,J,L)     * GOOD_CHEM(X) )
-
-            ELSE IF ( N == 92 .and. IS_NOx ) THEN
+            ELSE IF ( N == 92 .and. IS_NO ) THEN
 
                !--------------------------------------
                ! NO [v/v]
@@ -591,9 +667,9 @@
                !--------------------------------------
                
                ! Accumulate data
-               Q(X,Y,K,W) = Q(X,Y,K,W) + 
-     &              ( STT(I,J,L,IDTNOX) * FRACNO(I,J,L) *
-     &                TCVV(IDTNOX)      / AD(I,J,L)     * GOOD_CHEM(X) )
+               Q(X,Y,K,W) = Q(X,Y,K,W)   + ( STT(I,J,L,IDTNO)    *
+     &                      TCVV(IDTNO)  /   State_Met%AD(I,J,L) *
+     &                      GOOD_CHEM(X) )
 
             ELSE IF ( N == 93 .and. IS_NOy ) THEN
 
@@ -604,36 +680,49 @@
                ! Temp variable for accumulation
                TMP = 0d0
             
-               ! NOx
-               TMP = TMP + ( TCVV(IDTNOX)        * GOOD(I) *
-     &                       STT(I,J,L,IDTNOX)   / AD(I,J,L) )
+               ! NO
+               TMP = TMP + ( TCVV(IDTNO)         * GOOD(I) *
+     &                       STT(I,J,L,IDTNO)    /
+     &                       State_Met%AD(I,J,L) )
+
+               ! NO2
+               TMP = TMP + ( TCVV(IDTNO2)        * GOOD(I) *
+     &                       STT(I,J,L,IDTNO2)   /
+     &                       State_Met%AD(I,J,L) )
                ! PAN
                TMP = TMP + ( TCVV(IDTPAN)        * GOOD(I) *
-     &                       STT(I,J,L,IDTPAN)   / AD(I,J,L) )
+     &                       STT(I,J,L,IDTPAN)   / 
+     &                       State_Met%AD(I,J,L) )
 
                ! HNO3
                TMP = TMP + ( TCVV(IDTHNO3)       * GOOD(I) *
-     &                       STT(I,J,L,IDTHNO3)  / AD(I,J,L) )
+     &                       STT(I,J,L,IDTHNO3)  / 
+     &                       State_Met%AD(I,J,L) )
             
                ! PMN
                TMP = TMP + ( TCVV(IDTPMN)        * GOOD(I) *
-     &                       STT(I,J,L,IDTPMN)   / AD(I,J,L) )
+     &                       STT(I,J,L,IDTPMN)   / 
+     &                       State_Met%AD(I,J,L) )
 
                ! PPN
                TMP = TMP + ( TCVV(IDTPPN)        * GOOD(I) *
-     &                       STT(I,J,L,IDTPPN)   / AD(I,J,L) )
+     &                       STT(I,J,L,IDTPPN)   / 
+     &                       State_Met%AD(I,J,L) )
  
                ! R4N2
                TMP = TMP + ( TCVV(IDTR4N2)       * GOOD(I) *
-     &                       STT(I,J,L,IDTR4N2)  / AD(I,J,L) )
+     &                       STT(I,J,L,IDTR4N2)  / 
+     &                       State_Met%AD(I,J,L) )
             
                ! N2O5
                TMP = TMP + ( 2d0 * TCVV(IDTN2O5) * GOOD(I) *
-     &                       STT(I,J,L,IDTN2O5)  / AD(I,J,L) )
+     &                       STT(I,J,L,IDTN2O5)  / 
+     &                       State_Met%AD(I,J,L) )
                         
                ! HNO4
                TMP = TMP + ( TCVV(IDTHNO4)       * GOOD(I) *
-     &                       STT(I,J,L,IDTHNO4)  / AD(I,J,L) )
+     &                       STT(I,J,L,IDTHNO4)  / 
+     &                       State_Met%AD(I,J,L) )
 
                ! Save afternoon points
                Q(X,Y,K,W) = Q(X,Y,K,W) + TMP
@@ -649,15 +738,15 @@
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &              ( SAVEOH(I,J,L) * GOOD_CHEM(X) )
               
-            ELSE IF ( N == 77 .and. IS_NOx ) THEN
+            ELSE IF ( N == 77 .and. IS_NO2 ) THEN
 
                !--------------------------------------
                ! NO2 [v/v]
                ! NOTE: Only archive at chem timestep
                !--------------------------------------     
-               Q(X,Y,K,W) = Q(X,Y,K,W) + 
-     &            ( STT(I,J,L,IDTNOX)  * FRACNO2(I,J,L) *
-     &              TCVV(IDTNOX)       / AD(I,J,L)      * GOOD_CHEM(X) )
+               Q(X,Y,K,W) = Q(X,Y,K,W)   + ( STT(I,J,L,IDTNO2)   *
+     &                      TCVV(IDTNO2) /   State_Met%AD(I,J,L) *
+     &                      GOOD_CHEM(X) )
  
             ELSE IF ( N == 78 ) THEN
 
@@ -684,22 +773,24 @@
                !--------------------------------------
                ! AIR DENSITY [molec/cm3] 
                !--------------------------------------
-               Q(X,Y,K,W) = Q(X,Y,K,W) + 
-     &              ( AIRDEN(L,I,J) * XNUMOLAIR * 1d-6 * GOOD(I) )
+               Q(X,Y,K,W) = Q(X,Y,K,W) + ( State_Met%AIRDEN(L,I,J) *
+     &                      XNUMOLAIR  * 1d-6 * GOOD(I) )
 
             ELSE IF ( N == 81 ) THEN
 
                !--------------------------------------
                ! 3-D CLOUD FRACTION [unitless]
                !--------------------------------------
-               Q(X,Y,K,W) = Q(X,Y,K,W) + ( CLDF(L,I,J) * GOOD(I) )
+               Q(X,Y,K,W) = Q(X,Y,K,W) + ( State_Met%CLDF(L,I,J) *
+     &                      GOOD(I) )
 
             ELSE IF ( N == 82 .and. IS_OPTD ) THEN
 
                !--------------------------------------
                ! COLUMN OPTICAL DEPTH [unitless]
                !--------------------------------------
-               Q(X,Y,1,W) = Q(X,Y,1,W) + ( OPTD(L,I,J) * GOOD(I) )
+               Q(X,Y,1,W) = Q(X,Y,1,W) + ( State_Met%OPTD(L,I,J) *
+     &                      GOOD(I) )
 
             ELSE IF ( N == 83 .and. IS_CLDTOPS ) THEN
 
@@ -707,7 +798,7 @@
                ! CLOUD TOP HEIGHTS [mb]
                !--------------------------------------
                IF ( K == 1 ) THEN
-                  TMP        = GET_PEDGE( I, J, CLDTOPS(I,J) )
+                  TMP        = GET_PEDGE( I, J, State_Met%CLDTOPS(I,J) )
                   Q(X,Y,K,W) = Q(X,Y,K,W) + ( TMP * GOOD(I) )
                ENDIF
 
@@ -854,23 +945,26 @@
                ! TOTAL SEASALT TRACER [v/v]
                !-----------------------------------
                Q(X,Y,K,W) = Q(X,Y,K,W) +
-     &                      ( STT(I,J,L,IDTSALA) + 
+     &                      ( STT(I,J,L,IDTSALA)   + 
      &                        STT(I,J,L,IDTSALC) ) *
-     &                        TCVV(IDTSALA)  / AD(I,J,L) * GOOD(I)
+     &                        TCVV(IDTSALA)        /
+     &                        State_Met%AD(I,J,L)  * GOOD(I)
 
             ELSE IF ( N == 94 ) THEN
 
                !-----------------------------------
                ! GRID BOX HEIGHTS [m]
                !-----------------------------------               
-               Q(X,Y,K,W) = Q(X,Y,K,W) + ( BXHEIGHT(I,J,L) * GOOD(I) )
+               Q(X,Y,K,W) = Q(X,Y,K,W) + ( State_Met%BXHEIGHT(I,J,L) *
+     &                      GOOD(I) )
 
             ELSE IF ( N == 95 ) THEN
 
                !-----------------------------------
                ! RELATIVE HUMIDITY [%]
                !-----------------------------------               
-               Q(X,Y,K,W) = Q(X,Y,K,W) + ( RH(I,J,L) * GOOD(I) )
+               Q(X,Y,K,W) = Q(X,Y,K,W) + ( State_Met%RH(I,J,L) *
+     &                      GOOD(I) )
 
             ELSE IF ( N == 96 .and. IS_SLP ) THEN
 
@@ -878,7 +972,8 @@
                ! SEA LEVEL PRESSURE [hPa]
                !-----------------------------------               
                IF ( K == 1 ) THEN
-                  Q(X,Y,K,W) = Q(X,Y,K,W) + ( SLP(I,J) * GOOD(I) )
+                  Q(X,Y,K,W) = Q(X,Y,K,W) + ( State_Met%SLP(I,J) *
+     &                         GOOD(I) )
                ENDIF
 
             ELSE IF ( N == 97 ) THEN
@@ -886,14 +981,16 @@
                !-----------------------------------
                ! ZONAL (U) WIND [M/S]
                !-----------------------------------               
-               Q(X,Y,K,W) = Q(X,Y,K,W) + ( UWND(I,J,L) * GOOD(I) )
+               Q(X,Y,K,W) = Q(X,Y,K,W) + ( State_Met%U(I,J,L) *
+     &                      GOOD(I) )
 
             ELSE IF ( N == 98 ) THEN
 
                !-----------------------------------
                ! MERIDIONAL (V) WIND [M/S]
                !-----------------------------------               
-               Q(X,Y,K,W) = Q(X,Y,K,W) + ( VWND(I,J,L) * GOOD(I) )
+               Q(X,Y,K,W) = Q(X,Y,K,W) + ( State_Met%V(I,J,L) *
+     &                      GOOD(I) )
 
             ELSE IF ( N == 99 ) THEN
 
@@ -907,7 +1004,8 @@
                !-----------------------------------
                ! TEMPERATURE [K]
                !-----------------------------------
-               Q(X,Y,K,W) = Q(X,Y,K,W) + ( T(I,J,L) * GOOD(I) )
+               Q(X,Y,K,W) = Q(X,Y,K,W) + ( State_Met%T(I,J,L) *
+     &                      GOOD(I) )
 
 ! =====================================================================
 ! Added with MEGAN v2.1. (ccc, 11/20/09)
@@ -920,8 +1018,8 @@
               
                IF ( K == 1 ) THEN
               
-                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
-     &                     ( PARDR(I,J) * GOOD(I) ) 
+                  Q(X,Y,K,W) = Q(X,Y,K,W) +
+     &                       ( State_Met%PARDR(I,J) * GOOD(I) )
                ENDIF
 
             ELSE IF ( N == 102 ) THEN 
@@ -932,8 +1030,8 @@
               
                IF ( K == 1 ) THEN
               
-                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
-     &                     ( PARDF(I,J) * GOOD(I) ) 
+                  Q(X,Y,K,W) = Q(X,Y,K,W) +
+     &                       ( State_Met%PARDF(I,J) * GOOD(I) )
                ENDIF
 
             ELSE IF ( N == 103 ) THEN 
@@ -957,7 +1055,8 @@
               
                IF ( K == 1 ) THEN
 
-                  Q(X,Y,K,W) = Q(X,Y,K,W) + ( TS(I,J) * GOOD(I) )
+                  Q(X,Y,K,W) = Q(X,Y,K,W) +
+     &                       ( State_Met%TS(I,J) * GOOD(I) )
 
                ENDIF
 
@@ -1099,9 +1198,13 @@
          ENDDO
          ENDDO
          ENDDO
-      ENDDO 
+         ENDDO 
 !$OMP END PARALLEL DO
-      GOOD(:) = 0
+         GOOD(:) = 0
+
+         ! Free pointer
+         NULLIFY( STT )
+
       ENDIF
 
       END SUBROUTINE ACCUMULATE_DIAG51
@@ -1209,37 +1312,43 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WRITE_DIAG51( TAU_W )
+      SUBROUTINE WRITE_DIAG51( am_I_Root, Input_Opt, TAU_W, RC )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,   ONLY : BPCH2
-      USE BPCH2_MOD,   ONLY : OPEN_BPCH2_FOR_WRITE
-      USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE FILE_MOD,    ONLY : IU_ND51
-      USE LOGICAL_MOD, ONLY : LND51_HDF
-      USE TIME_MOD,    ONLY : EXPAND_DATE
-      USE TIME_MOD,    ONLY : GET_NYMD_DIAG    
-      USE TIME_MOD,    ONLY : GET_NHMS
-      USE TIME_MOD,    ONLY : GET_TAU 
-      USE TIME_MOD,    ONLY : TIMESTAMP_STRING
-      USE TIME_MOD,    ONLY : GET_TS_DYN
-      USE TRACER_MOD,  ONLY : N_TRACERS
+      USE BPCH2_MOD,          ONLY : BPCH2
+      USE BPCH2_MOD,          ONLY : OPEN_BPCH2_FOR_WRITE
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE inquireMod,         ONLY : findFreeLUN
+      USE TIME_MOD,           ONLY : EXPAND_DATE
+      USE TIME_MOD,           ONLY : GET_NYMD_DIAG    
+      USE TIME_MOD,           ONLY : GET_NHMS
+      USE TIME_MOD,           ONLY : GET_TAU 
+      USE TIME_MOD,           ONLY : TIMESTAMP_STRING
+      USE TIME_MOD,           ONLY : GET_TS_DYN
 
 #if   defined( USE_HDF5 )
       ! Only include this if we are linking to HDF5 library (bmy, 12/21/09)
-      USE HDF_MOD,     ONLY : OPEN_HDF
-      USE HDF_MOD,     ONLY : CLOSE_HDF
-      USE HDF_MOD,     ONLY : WRITE_HDF
-      USE HDF5,        ONLY : HID_T
-      INTEGER(HID_T)       :: IU_ND51_HDF
+      USE HDF_MOD,            ONLY : OPEN_HDF
+      USE HDF_MOD,            ONLY : CLOSE_HDF
+      USE HDF_MOD,            ONLY : WRITE_HDF
+      USE HDF5,               ONLY : HID_T
+      INTEGER(HID_T)              :: IU_ND51_HDF
 #endif
 
       USE CMN_SIZE_MOD   ! Size Parameters
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
-      REAL*8, INTENT(IN)  :: TAU_W   ! TAU value at time of disk write
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      REAL*8,         INTENT(IN)  :: TAU_W       ! TAU value at time of write
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -1269,6 +1378,9 @@
 !        if the HDF5 libraries are not installed. (amv, bmy, 12/21/09)
 !  12 Nov 2010 - R. Yantosca - Now save out PEDGE-$ (pressure at level edges)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1282,9 +1394,23 @@
       CHARACTER(LEN=40)   :: UNIT 
       CHARACTER(LEN=255)  :: FILENAME
 
+      ! For fields from Input_Opt
+      LOGICAL             :: LND51_HDF
+      INTEGER             :: N_TRACERS
+
       !=================================================================
       ! WRITE_DIAG51 begins here!
       !=================================================================
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      LND51_HDF = Input_Opt%LND51_HDF
+      N_TRACERS = Input_Opt%N_TRACERS
+
+      ! Find a free file LUN
+      IU_ND51 = findFreeLUN()
 
       ! Replace date tokens in FILENAME
       FILENAME = ND51_OUTPUT_FILE
@@ -1297,8 +1423,8 @@
       CALL EXPAND_DATE( FILENAME, GET_NYMD_DIAG(), NHMS )
       
       ! Echo info
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - DIAG51: Opening file ', a ) 
+      WRITE( 6, 100 ) TRIM( FILENAME ), IU_ND51
+ 100  FORMAT( '     - DIAG51: Opening file ', a, ' on unit ', i4 ) 
 
       ! Open output file
       IF ( LND51_HDF ) THEN
@@ -1854,7 +1980,7 @@
      &                  ND51_NI,      ND51_NJ,      GMNL,
      &                  ND51_IMIN+I0, ND51_JMIN+J0, ND51_LMIN,
      &                  REAL( Q(1:ND51_NI, 1:ND51_NJ, 1:GMNL, W)))
-#endif
+#else
          ELSE
             CALL BPCH2( IU_ND51,      MODELNAME,    LONRES,   
      &                  LATRES,       HALFPOLAR,    CENTER180, 
@@ -1863,6 +1989,7 @@
      &                  ND51_NI,      ND51_NJ,      GMNL,     
      &                  ND51_IMIN+I0, ND51_JMIN+J0, ND51_LMIN, 
      &                  REAL(Q(1:ND51_NI, 1:ND51_NJ, 1:GMNL, W)))
+#endif
          ENDIF
       ENDDO
 

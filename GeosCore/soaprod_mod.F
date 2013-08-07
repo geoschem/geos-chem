@@ -72,13 +72,16 @@
 !  NOTES:
 !  (1 ) Based on MAKE_RESTART_FILE 
 !  (2 ) Removed debug output (bmy, 4/21/10)
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !******************************************************************************
 !     
       ! References to F90 modules
       USE BPCH2_MOD
       USE CARBON_MOD,  ONLY : MHC, NPROD, NNOX, APROD, GPROD
       USE ERROR_MOD,   ONLY : DEBUG_MSG
-      USE FILE_MOD,    ONLY : IU_OAP,      IOERROR
+      USE FILE_MOD,    ONLY : IOERROR
+      USE inquireMod,  ONLY : findFreeLUN
       USE GRID_MOD,    ONLY : GET_XOFFSET, GET_YOFFSET
       USE LOGICAL_MOD, ONLY : LPRT
       USE TIME_MOD,    ONLY : EXPAND_DATE, GET_TAU
@@ -90,6 +93,7 @@
       INTEGER, INTENT(IN)  :: YYYYMMDD, HHMMSS
 
       ! Local Variables      
+      INTEGER              :: IU_OAP
       INTEGER              :: I,    I0, IOS, J,  J0, L, N
       INTEGER              :: YYYY, MM, DD,  HH, SS
       INTEGER              :: JHC, IPR, NOX 
@@ -133,14 +137,17 @@
       ! Open the restart file for output -- binary punch format
       !=================================================================
 
+      ! Find a free file LUN
+      IU_OAP   = findFreeLUN()
+
       ! Copy the output restart file name into a local variable
       FILENAME = TRIM( OUTPUT_SOAPROD_FILE )
 
       ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
       CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
 
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - MAKE_SOAPROD_FILE: Writing ', a )
+      WRITE( 6, 100 ) TRIM( FILENAME ), IU_OAP
+ 100  FORMAT( '     - MAKE_SOAPROD_FILE: Writing ', a, ' on unit ', i4 )
 
       ! Open restart file for output
       CALL OPEN_BPCH2_FOR_WRITE( IU_OAP, FILENAME, TITLE )
@@ -276,14 +283,16 @@
 !  (18) No longer use hardwired filename.  Also now reference "logical_mod.f"
 !        and "tracer_mod.f" (bmy, 7/20/04)
 !  (19) Removed debug output (bmy, 4/21/10)
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,   ONLY : OPEN_BPCH2_FOR_READ
       USE CARBON_MOD,  ONLY : APROD, GPROD
-      USE DAO_MOD,     ONLY : AD
       USE ERROR_MOD,   ONLY : DEBUG_MSG, ERROR_STOP
-      USE FILE_MOD,    ONLY : IU_OAP, IOERROR
+      USE FILE_MOD,    ONLY : IOERROR
+      USE inquireMod,  ONLY : findFreeLUN
       USE LOGICAL_MOD, ONLY : LSPLIT, LPRT
       USE TIME_MOD,    ONLY : EXPAND_DATE
       USE TRACER_MOD
@@ -295,6 +304,7 @@
       INTEGER, INTENT(IN) :: YYYYMMDD, HHMMSS
 
       ! Local Variables
+      INTEGER             :: IU_OAP
       INTEGER             :: I, IOS, J, L, N
       INTEGER             :: JHC, IPR, NOX
       !INTEGER             :: NCOUNT(NNPAR) 
@@ -325,6 +335,9 @@
       ! Open restart file and read top-of-file header
       !=================================================================
       
+      ! Find a free file LUN
+      IU_OAP   = findFreeLUN()
+
       ! Copy input file name to a local variable
       FILENAME = TRIM( INPUT_SOAPROD_FILE )
 
@@ -334,8 +347,8 @@
       ! Echo some input to the screen
       WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
       WRITE( 6, '(a,/)' ) 'S O A P R O D   F I L E   I N P U T'
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( 'READ_SOAPROD_FILE: Reading ', a )
+      WRITE( 6, 100 ) TRIM( FILENAME ), IU_OAP
+ 100  FORMAT( 'READ_SOAPROD_FILE: Reading ', a, ' on unit ', i4 )
 
       ! Open the binary punch file for input
       CALL OPEN_BPCH2_FOR_READ( IU_OAP, FILENAME )

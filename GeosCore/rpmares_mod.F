@@ -76,7 +76,8 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE DO_RPMARES
+      SUBROUTINE DO_RPMARES( am_I_Root, Input_Opt, 
+     &                       State_Met, State_Chm, RC )
 !
 !******************************************************************************
 !  Subroutine DO_RPMARES is the interface between the GEOS-CHEM model
@@ -95,30 +96,39 @@
 !        "time_mod.f" (bmy, 7/20/04)
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (6 ) Now limit RPMARES to the tropopause. (bmy, 4/10/08)
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
+!  31 Jul 2012 - R. Yantosca - Now loop from 1..LLPAR for GIGC compatibility
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  05 Mar 2013 - R. Yantosca - Now accept Input_Opt as an argument
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
 !******************************************************************************
 !
-      ! References to F90 modules
-      USE DAO_MOD,         ONLY : AIRVOL, RH, T
-      USE GLOBAL_HNO3_MOD, ONLY : GET_GLOBAL_HNO3
-      USE ERROR_MOD,       ONLY : ERROR_STOP
-      USE TIME_MOD,        ONLY : GET_ELAPSED_SEC,    GET_MONTH
-      USE TIME_MOD,        ONLY : ITS_A_NEW_MONTH
-      USE TRACER_MOD,      ONLY : ITS_A_FULLCHEM_SIM 
-      USE TRACER_MOD,      ONLY : ITS_AN_AEROSOL_SIM, STT
-      USE TRACERID_MOD,    ONLY : IDTSO4,             IDTNH3, IDTNH4 
-      USE TRACERID_MOD,    ONLY : IDTNIT,             IDTHNO3 
-      USE TROPOPAUSE_MOD,  ONLY : ITS_IN_THE_STRAT
-#if   defined( APM )
-      USE TRACER_MOD,      ONLY : N_TRACERS, N_APMTRA
-      USE TRACERID_MOD
-      USE APM_INIT_MOD,    ONLY : NSO4
-      USE APM_INIT_MOD,    ONLY : IDTCTSO4,IDTSO4BIN1,IDTCTSEA
-      USE APM_INIT_MOD,    ONLY : IDTCTBCOC, IDTCTDST
+! !USES:
+!      
+      USE CMN_SIZE_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GLOBAL_HNO3_MOD,    ONLY : GET_GLOBAL_HNO3
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE TIME_MOD,           ONLY : GET_ELAPSED_SEC,    GET_MONTH
+      USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
+      USE TRACERID_MOD,       ONLY : IDTSO4,             IDTNH3, IDTNH4 
+      USE TRACERID_MOD,       ONLY : IDTNIT,             IDTHNO3 
+      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
+#if   defined( APM )          
+      USE TRACER_MOD,         ONLY : N_TRACERS, N_APMTRA
+      USE TRACERID_MOD        
+      USE APM_INIT_MOD,       ONLY : NSO4
+      USE APM_INIT_MOD,       ONLY : IDTCTSO4,IDTSO4BIN1,IDTCTSEA
+      USE APM_INIT_MOD,       ONLY : IDTCTBCOC, IDTCTDST
 #endif
-
-      USE CMN_SIZE_MOD     ! Size parameters
-
-      ! Local variables
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE          :: FIRST     = .TRUE.
       INTEGER, SAVE          :: LASTMONTH = -99
       INTEGER                :: I,    J,     L
@@ -129,12 +139,37 @@
       REAL*8                 :: TSO4, TSO4COAT
 #endif
 
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !DEFINED PARAMETERS:
+!
       ! concentration lower limit [ug/m3 ]
       REAL*8,  PARAMETER     :: CONMIN = 1.0D-30
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! DO_RPMARES begins here!
       !=================================================================
+
+      ! Assume success
+      RC = GIGC_SUCCESS
 
       ! Initialize on first call
       IF ( FIRST ) THEN
@@ -152,12 +187,12 @@
       ! Check to see if we have to read in monthly mean HNO3
       IF ( IDTHNO3 == 0 ) THEN
 
-         IF ( ITS_A_FULLCHEM_SIM() ) THEN
+         IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
             ! Coupled simulation: stop w/ error since we need HNO3
             CALL ERROR_STOP( 'IDTHNO3 is not defined!', X )
 
-         ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
+         ELSE IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
             ! Offline simulation: read monthly mean HNO3
             IF ( ITS_A_NEW_MONTH() ) THEN
@@ -172,6 +207,10 @@
          ENDIF
       ENDIF
 
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+
       !=================================================================
       ! Get equilibrium values of water, ammonium  and nitrate content
       !=================================================================
@@ -182,17 +221,17 @@
 #if   defined( APM )
 !$OMP+PRIVATE( TSO4, TSO4COAT )
 #endif
-      DO L = 1, LLTROP
+      DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
          
          ! Skip if we are in the stratosphere (bmy, 4/3/08)
-         IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE
+         IF ( ITS_IN_THE_STRAT( I, J, L, State_Met ) ) CYCLE
 
          ! Temperature [K], RH [unitless], and volume [m3]
-         ATEMP = T(I,J,L)
-         ARH   = RH(I,J,L) * 1.d-2
-         AVOL  = AIRVOL(I,J,L)
+         ATEMP = State_Met%T(I,J,L)
+         ARH   = State_Met%RH(I,J,L) * 1.d-2
+         AVOL  = State_Met%AIRVOL(I,J,L)
 
 #if   defined( APM )
 
@@ -223,7 +262,7 @@
          IF ( IDTHNO3 > 0 ) THEN
             GNO3 = MAX( STT(I,J,L,IDTHNO3) * 1.d9 / AVOL, CONMIN )
          ELSE
-            GNO3 = MAX( GET_HNO3( I, J, L ), CONMIN )
+            GNO3 = MAX( GET_HNO3( I, J, L, State_Met ), CONMIN )
          ENDIF
 
          !==============================================================
@@ -263,12 +302,15 @@
       ENDDO
 !$OMP END PARALLEL DO      
     
+      ! Free pointer
+      NULLIFY( STT )
+
       ! Return to calling program
       END SUBROUTINE DO_RPMARES
 
 !------------------------------------------------------------------------------
 
-      FUNCTION GET_HNO3( I, J, L ) RESULT ( HNO3_UGM3 )
+      FUNCTION GET_HNO3( I, J, L, State_Met ) RESULT ( HNO3_UGM3 )
 !
 !******************************************************************************
 !  Subroutine GET_HNO3 allows the HNO3 concentrations to evolve with time,
@@ -289,11 +331,13 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE GLOBAL_HNO3_MOD, ONLY : GET_HNO3_UGM3
-      USE TIME_MOD,        ONLY : GET_ELAPSED_MIN
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GLOBAL_HNO3_MOD,    ONLY : GET_HNO3_UGM3
+      USE TIME_MOD,           ONLY : GET_ELAPSED_MIN
 
       ! Arguments
-      INTEGER, INTENT(IN) :: I, J, L
+      INTEGER,        INTENT(IN)  :: I, J, L
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 
       ! Local variables
       REAL*8              :: HNO3_UGM3
@@ -305,7 +349,7 @@
       ! Relax to monthly mean HNO3 concentrations every 3 hours
       ! Otherwise just return the concentration in HNO3_sav
       IF ( MOD( GET_ELAPSED_MIN(), 180 ) == 0 ) THEN
-         HNO3_UGM3 = GET_HNO3_UGM3( I, J, L )
+         HNO3_UGM3 = GET_HNO3_UGM3( I, J, L, State_Met )
       ELSE
          HNO3_UGM3 = HNO3_sav(I,J,L)
       ENDIF

@@ -12,10 +12,11 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE ANTHROEMS( NSEASON )
+      SUBROUTINE ANTHROEMS( NSEASON, Input_Opt )
 !
 ! !USES:
 !
+      USE GIGC_Input_Opt_Mod,  ONLY : OptInput
       USE FUTURE_EMISSIONS_MOD,ONLY : GET_FUTURE_SCALE_ALK4ff
       USE FUTURE_EMISSIONS_MOD,ONLY : GET_FUTURE_SCALE_C2H6ff
       USE FUTURE_EMISSIONS_MOD,ONLY : GET_FUTURE_SCALE_C3H8ff
@@ -28,19 +29,17 @@
       USE GEIA_MOD,            ONLY : READ_TOTCO2,  TOTAL_FOSSIL_TG
       USE GRID_MOD,            ONLY : GET_AREA_CM2, GET_XOFFSET
       USE GRID_MOD,            ONLY : GET_YOFFSET
-      USE LOGICAL_MOD,         ONLY : LFUTURE
       USE TIME_MOD,            ONLY : GET_TS_EMIS,  GET_YEAR
       USE TIME_MOD,            ONLY : GET_SEASON
-      USE TRACER_MOD,          ONLY : TRACER_MW_KG
       USE TRACERID_MOD,        ONLY : IDEACET,      IDEALK4
       USE TRACERID_MOD,        ONLY : IDEC2H6,      IDEC3H8
       USE TRACERID_MOD,        ONLY : IDECO,        IDEMEK
-      USE TRACERID_MOD,        ONLY : IDENOX,       IDEPRPE
+      USE TRACERID_MOD,        ONLY : IDENO,       IDEPRPE
       USE TRACERID_MOD,        ONLY : NEMANTHRO
       USE TRACERID_MOD,        ONLY : IDEBENZ,     IDETOLU,    IDEXYLE
       USE TRACERID_MOD,        ONLY : IDEC2H4,      IDEC2H2
       USE TRACERID_MOD,        ONLY : IDTBENZ,     IDTTOLU,    IDTXYLE
-      USE TRACERID_MOD,        ONLY : IDTC2H4,      IDTC2H2
+      USE TRACERID_MOD,        ONLY : IDTC2H4,      IDTC2H2,   IDTNO2
       USE SCALE_ANTHRO_MOD,    ONLY : GET_ANNUAL_SCALAR
       USE SCALE_ANTHRO_MOD,    ONLY : GET_ANNUAL_SCALAR_05x0666_NESTED
       USE EDGAR_MOD,           ONLY : READ_AROMATICS, READ_C2H4
@@ -52,9 +51,9 @@
       USE TRACERID_MOD,        ONLY : IDENAP
       USE LOGICAL_MOD,         ONLY : NAPEMISS
 
-      USE CMN_SIZE_MOD               ! Size parameters
-      USE COMODE_LOOP_MOD               ! IDEMS
-      USE CMN_O3_MOD                 ! EMIST, EMISR, EMISRR, etc.
+      USE CMN_SIZE_MOD              ! Size parameters
+      USE COMODE_LOOP_MOD           ! IDEMS
+      USE CMN_O3_MOD                ! EMIST, EMISR, EMISRR, etc.
 
       IMPLICIT NONE
 #     include "define.h"
@@ -63,8 +62,8 @@
 !
 ! !INPUT PARAMETERS: 
 !
-
-      INTEGER, INTENT(IN) :: NSEASON   ! Current season (1-4)
+      INTEGER,        INTENT(IN) :: NSEASON     ! Current season (1-4)
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
 !
 ! !REMARKS:
 !  NSEASON:  is the seasonal index for NOx emissions:
@@ -154,6 +153,9 @@
 !  19 Nov 2010 - R. Yantosca - Added ProTeX headers
 !  27 Jul 2011 - M. Payer    - Add gas-phase naphthalene chemistry for SOA +
 !                              semivolatile POA (H. Pye)
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
+!  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -184,9 +186,19 @@
       ! SOAupdate: Scale total NAP emissions to POA (hotp, mpayer, 7/27/11)
       REAL*8, PARAMETER    :: NAPTOTALSCALE = 66.09027d0
 
+      ! For values from Input_Opt
+      LOGICAL :: LFUTURE
+      INTEGER :: N_TRACERS
+      REAL*8  :: TRACER_MW_KG(Input_Opt%N_TRACERS)
+
       !=================================================================
       ! ANTHROEMS begins here!
       !=================================================================
+
+      ! Copy values from Input_Opt
+      LFUTURE      = Input_Opt%LFUTURE
+      N_TRACERS    = Input_Opt%N_TRACERS
+      TRACER_MW_KG = Input_Opt%TRACER_MW_KG(1:N_TRACERS)
 
       ! Echo info
       WRITE( 6, '(a)' ) REPEAT( '=', 79 ) 
@@ -211,7 +223,18 @@
       I0 = 0
       J0 = 0
 
+#elif defined( GRID025x0325 ) && defined( NESTED_CH )
+
+      I0 = 0
+      J0 = 0
+
+#elif defined( GRID025x0325 ) && defined( SEAC4RS )
+
+      I0 = 0
+      J0 = 0
+
 #endif
+
       !=================================================================
       ! If FSCALYR < 0 then use this year (JYEAR) for the scaling 
       ! factors.  Otherwise, use the value of FSCALYR as specified in 
@@ -630,7 +653,8 @@
             NN = IDEMS(N)
 
             ! Skip NOx
-            IF ( N == IDENOX ) CYCLE
+            ! Replaced NOx with NO (mpayer, 3/14/13)
+            IF ( N == IDENO ) CYCLE
 
             ! Skip if some tracer is not present because there are more 
             ! anthro. tracers for dicarbonyl chemistry. (ccc, 4/16/09)
@@ -640,11 +664,12 @@
             DO J = 1, JJPAR
                JREF = J + J0
                
-               ! Grid box surface area [cm2]
-               AREA_CM2 = GET_AREA_CM2( J )
-
                DO I = 1, IIPAR
                   IREF = I + I0
+                  
+                  ! Grid box surface area [cm2]
+                  AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+
                   EMIST(I,J,N) = EMIST(I,J,N) * TRACER_MW_KG(NN) * 
      &                           DTSRCE * AREA_CM2 / 6.023d23
 
@@ -667,7 +692,8 @@
 
       ! NOX: scale by total CO2 scale factors
       ! Now loop over 2 levels only (phs, 10/19/09)
-      IF ( IDENOX > 0 ) THEN
+      ! Replaced NOx with NO (mpayer, 3/14/13)
+      IF ( IDENO > 0 ) THEN
          DO LL = 1, 2 !NOXLEVELS
             DO J = 1, JJPAR
                JREF = J + J0
@@ -682,8 +708,7 @@
          ! Print total in Tg N
          ! Now loop over 2 levels only (phs, 10/19/09)
          CALL TOTAL_FOSSIL_TG( EMISTN,    IIPAR, JJPAR,  
-!     &                         NOXLEVELS, 14d-3, 'NOx', NSEASON )
-     &                         2,         14d-3, 'NOx', NSEASON )
+     &                         2,         14d-3, 'NO', NSEASON )
       ENDIF   
 
       !=================================================================
@@ -700,18 +725,22 @@
 
          ! Do unit conversion for NOx separately, since it is multi-level
          ! Now loop over 2 levels only (phs, 10/19/09)
-         IF ( N == IDENOX ) THEN
+         ! Replaced NOx with NO (mpayer, 3/14/13)
+         IF ( N == IDENO ) THEN
             DO LL = 1, 2 !NOXLEVELS
                DO J = 1, JJPAR
                   JREF = J + J0
                
-                  ! Grid box surface area [cm2]
-                  AREA_CM2 = GET_AREA_CM2( J )
-               
                   DO I = 1, IIPAR
                      IREF = I + I0
 
-                     EMISTN(I,J,LL) = EMISTN(I,J,LL) *TRACER_MW_KG(NN) * 
+                     ! Grid box surface area [cm2]
+                     AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+               
+                     ! Convert NOx using molecular weight of NO2 since original
+                     ! NOx emissions are in mass units of NO2 (mpayer, 4/18/13)
+                     EMISTN(I,J,LL) = EMISTN(I,J,LL) *
+     &                                TRACER_MW_KG(IDTNO2) * 
      &                                DTSRCE * AREA_CM2  / 6.023d23
                
                      EMISRN(IREF,JREF,LL) = EMISTN(I,J,LL)

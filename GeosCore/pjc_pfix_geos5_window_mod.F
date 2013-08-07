@@ -84,6 +84,7 @@
 !       Need to restrain the pressure to fixer to an inner window (-1 box in
 !       all directions) because edges mass fluxes and divergence not known.
 !       (lzh, ccc, 8/3/10)
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1689,6 +1690,8 @@ c     --------------------------------------
 !  the Phil Cameron-Smith P-fixer. (bdf, bmy, 5/8/03)
 !
 !  NOTES:
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1827,7 +1830,7 @@ c     --------------------------------------
       ! Grid box surface areas [m2]
       DO J = JU1_GL, J2_GL
       DO I =  I1_GL, I2_GL
-         MCOR(I,J) = GET_AREA_M2(J)
+         MCOR(I,J) = GET_AREA_M2( I, J, 1 )
       ENDDO
       ENDDO
 
@@ -1853,7 +1856,7 @@ c     --------------------------------------
          
       ! Grid box center latitudes [radians]
       DO J = JU1_GL, J2_GL
-         CLAT_FV(J) = GET_YMID_R(J)
+         CLAT_FV(J) = GET_YMID_R( 1, J, 1 )
       ENDDO
 
       ! Longitude spacing

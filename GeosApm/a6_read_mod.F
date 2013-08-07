@@ -53,8 +53,13 @@
 !        (phs, bmy, 3/28/08)
 !  (15) Now get the # of A-6 fields from the file ident string (bmy, 10/7/08)
 !  (16) Remove references to IN_CLOUD_OD (bmy, 10/15/09)
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  03 Aug 2012 - R. Yantosca - Now make IU_A6 a private module variable
+!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
 !******************************************************************************
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h"
 
@@ -80,6 +85,9 @@
 
       ! Number of A6 fields in the file
       INTEGER :: N_A6_FIELDS
+
+      ! File unit for A-6 met fields
+      INTEGER :: IU_A6
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -112,11 +120,12 @@
 !        and GCAP met fields. (bmy, 5/25/05)
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (6 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR,   GEOS_3_DIR 
+      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR
       USE DIRECTORY_MOD, ONLY : GEOS_4_DIR, GEOS_5_DIR, TEMP_DIR 
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE TIME_MOD,      ONLY : EXPAND_DATE
@@ -140,13 +149,7 @@
       !=================================================================
       IF ( PRESENT( NYMD ) ) THEN
 
-#if   defined( GEOS_3 )
-
-         ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_3_DIR )
-         A6_STR   = 'YYYYMMDD.a6.' // GET_RES_EXT() 
-
-#elif defined( GEOS_4 )
+#if   defined( GEOS_4 )
 
          ! Strings for directory & filename
          GEOS_DIR = TRIM( GEOS_4_DIR )
@@ -338,15 +341,18 @@
 !  (9 ) Now get the # of A-3 fields from the file ident string (bmy, 10/7/08)
 !  (10) Set N_A6_FIELDS=21 for GEOS-5 and IN_CLOUD_OD (jmao, bmy, 2/12/09)
 !  (11) Remove references to IN_CLOUD_OD (bmy, 10/15/09)
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  03 Aug 2012 - R. Yantosca - Now use findFreeLUN to define IU_A6 locally
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !******************************************************************************
 !      
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR,   GEOS_3_DIR 
+      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR
       USE DIRECTORY_MOD, ONLY : GEOS_4_DIR, GEOS_5_DIR, TEMP_DIR 
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE LOGICAL_MOD,   ONLY : LUNZIP
-      USE FILE_MOD,      ONLY : IU_A6, IOERROR, FILE_EXISTS
+      USE FILE_MOD,      ONLY : IOERROR, FILE_EXISTS
       USE TIME_MOD,      ONLY : EXPAND_DATE
 
       USE CMN_SIZE_MOD        ! Size parameters
@@ -356,7 +362,7 @@
 
       ! Local variables
       LOGICAL, SAVE          :: FIRST = .TRUE.
-      LOGICAL                :: IT_EXISTS
+      LOGICAL                :: IT_EXISTS, IS_OPEN
       INTEGER                :: IOS, IUNIT
       CHARACTER(LEN=8)       :: IDENT
       CHARACTER(LEN=255)     :: A6_FILE
@@ -370,13 +376,7 @@
       ! Open A-6 file at the proper time, or on the first call
       IF ( DO_OPEN_A6( NYMD, NHMS ) ) THEN
 
-#if   defined( GEOS_3 )
-
-         ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_3_DIR )
-         A6_FILE  = 'YYYYMMDD.a6.' // GET_RES_EXT()
-
-#elif defined( GEOS_4 )
+#if   defined( GEOS_4 )
 
          ! Strings for directory & filename
          GEOS_DIR = TRIM( GEOS_4_DIR )
@@ -410,7 +410,8 @@
          ENDIF
 
          ! Close previously opened A-3 file
-         CLOSE( IU_A6 )
+	 INQUIRE( IU_A6, OPENED=IS_OPEN )
+         IF ( IS_OPEN ) CLOSE( IU_A6 )
 
          ! Make sure the file unit is valid before we open the file
          IF ( .not. FILE_EXISTS( IU_A6 ) ) THEN
@@ -418,6 +419,9 @@
      &                       'OPEN_A6_FIELDS (a6_read_mod.f)' )
          ENDIF
 
+         ! Find a free file LUN
+         IU_A6 = findFreeLUN()
+         
          ! Open the file
          OPEN( UNIT   = IU_A6,         FILE   = TRIM( PATH ),
      &         STATUS = 'OLD',         ACCESS = 'SEQUENTIAL',  
@@ -428,10 +432,8 @@
          ENDIF
 
          ! Echo info
-         WRITE( 6, 100 ) TRIM( PATH )
- 100     FORMAT( '     - Opening: ', a ) 
-
-#if   !defined( GEOS_3 )
+         WRITE( 6, 100 ) TRIM( PATH ), IU_A6
+ 100     FORMAT( '     - Opening: ', a, ' on unit ', i4 ) 
 
          ! Skip past the ident string
          READ( IU_A6, IOSTAT=IOS ) IDENT
@@ -452,8 +454,6 @@
          N_A6_FIELDS = 21
 #endif
 
-#endif
-
       ENDIF
 
       ! Return to calling program
@@ -461,7 +461,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE GET_A6_FIELDS( NYMD, NHMS )
+      SUBROUTINE GET_A6_FIELDS( NYMD, NHMS, State_Met )
 !
 !******************************************************************************
 !  Subroutine GET_A6_FIELDS is a wrapper for routine READ_A6.  GET_A6_FIELDS
@@ -482,19 +482,17 @@
 !  (5 ) Now read CMFMC, DQIDTMST, DQLDTMST, DQRCON, DQRLSC, DQVDTMST, MFXC,
 !        MFYC, MFZ, PV, QI, QL, RH, TAUCLI, TAUCLW for GEOS-5 
 !        (bmy, 10/30/07)
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
+!  23 Oct 2012 - R. Yantosca - Add QI, QL to the State_Met object
+!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
+!                              object
+!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,      ONLY : CLDF,    CLDFRC,   CLDMAS,   CLDTOPS 
-      USE DAO_MOD,      ONLY : CMFMC,   DETRAINE, DETRAINN, DNDE    
-      USE DAO_MOD,      ONLY : DNDN,    DQIDTMST, DQLDTMST, DQRCON
-      USE DAO_MOD,      ONLY : DQRLSC,  DQVDTMST, DTRAIN,   ENTRAIN
-      USE DAO_MOD,      ONLY : HKBETA,  HKETA,    MFXC,     MFYC
-      USE DAO_MOD,      ONLY : MFZ,     MOISTQ,   OPTDEP,   PV
-      USE DAO_MOD,      ONLY : QI,      QL,       RH,       SPHU 
-      USE DAO_MOD,      ONLY : T,       TAUCLI,   TAUCLW,   UPDE
-      USE DAO_MOD,      ONLY : UPDN,    UWND,     VWND,     ZMEU
-      USE DAO_MOD,      ONLY : ZMMD,    ZMMU
+      USE CMN_SIZE_MOD
+      USE GIGC_State_Met_Mod, ONLY : MetState
 
 #if   defined( APM )
       ! A-6 fields used by interpolation for APM simulation
@@ -532,10 +530,9 @@
       USE DAO_MOD, ONLY : ZMMD0b,    ZMMU0b
 #endif
 
-      USE CMN_SIZE_MOD  ! Size parameters
-
       ! Arguments
-      INTEGER, INTENT(IN) :: NYMD, NHMS 
+      INTEGER,        INTENT(IN)    :: NYMD, NHMS 
+      TYPE(MetState), INTENT(INOUT) :: State_Met
 
       ! Local variables
       INTEGER, SAVE       :: LASTNYMD = -1, LASTNHMS = -1
@@ -555,39 +552,44 @@
          RETURN
       ENDIF
 
-#if   defined( GEOS_3 ) 
-
-      !=================================================================      
-      ! GEOS-3: get CLDF, CLDMAS, CLDTOPS, DTRAIN, MOISTQ, OPTDEP
-      !=================================================================
-#if   defined( APM )
-      CALL READ_A6( NYMD=NYMD,      NHMS=NHMS,       
-     &              CLDF=CLDF0,     CLDMAS=CLDMAS0, CLDTOPS=CLDTOPS0, 
-     &              DTRAIN=DTRAIN0, MOISTQ=MOISTQ0, OPTDEPTH=OPTDEP0 )
-#else
-      CALL READ_A6( NYMD=NYMD,     NHMS=NHMS,       
-     &              CLDF=CLDF,     CLDMAS=CLDMAS, CLDTOPS=CLDTOPS, 
-     &              DTRAIN=DTRAIN, MOISTQ=MOISTQ, OPTDEPTH=OPTDEP )
-#endif
-
-#elif defined( GEOS_4 )
+#if   defined( GEOS_4 )
 
       !=================================================================      
       ! GEOS-4: get CLDF, CLDTOPS, HKBETA, HKETA, MOISTQ, OPTDEP, SPHU
       !             TMPU, UWND,    VWND,  ZMEU,   ZMMD,   ZMMU
       !=================================================================
 #if   defined( APM )
-      CALL READ_A6( NYMD=NYMD,      NHMS=NHMS,        CLDTOPS=CLDTOPS0,
-     &              CLDF=CLDF0,     HKBETA=HKBETA0,   HKETA=HKETA0,   
-     &              MOISTQ=MOISTQ0, OPTDEPTH=OPTDEP0, Q=SPHU0,        
-     &              T=T0,           U=UWND0,          V=VWND0,        
-     &              ZMEU=ZMEU0,     ZMMD=ZMMD0,       ZMMU=ZMMU0 )
+      CALL READ_A6( NYMD     = NYMD,
+     &              NHMS     = NHMS,
+     &              CLDTOPS  = CLDTOPS0,
+     &              CLDF     = CLDF0,
+     &              HKBETA   = HKBETA0,
+     &              HKETA    = HKETA0,   
+     &              MOISTQ   = MOISTQ0,
+     &              OPTDEPTH = OPTDEP0,
+     &              Q        = SPHU0,        
+     &              T        = T0,
+     &              U        = UWND0,
+     &              V        = VWND0,        
+     &              ZMEU     = ZMEU0,
+     &              ZMMD     = ZMMD0,
+     &              ZMMU     = ZMMU0 )
 #else
-      CALL READ_A6( NYMD=NYMD,     NHMS=NHMS,       CLDTOPS=CLDTOPS,
-     &              CLDF=CLDF,     HKBETA=HKBETA,   HKETA=HKETA,   
-     &              MOISTQ=MOISTQ, OPTDEPTH=OPTDEP, Q=SPHU,        
-     &              T=T,           U=UWND,          V=VWND,        
-     &              ZMEU=ZMEU,     ZMMD=ZMMD,       ZMMU=ZMMU ) 
+      CALL READ_A6( NYMD     = NYMD,     
+     &              NHMS     = NHMS,       
+     &              CLDTOPS  = State_Met%CLDTOPS,
+     &              CLDF     = State_Met%CLDF,     
+     &              HKBETA   = State_Met%HKBETA,   
+     &              HKETA    = State_Met%HKETA,   
+     &              MOISTQ   = State_Met%MOISTQ, 
+     &              OPTDEPTH = State_Met%OPTDEP, 
+     &              Q        = State_Met%SPHU,        
+     &              T        = State_Met%T,           
+     &              U        = State_Met%UWND,          
+     &              V        = State_Met%VWND,        
+     &              ZMEU     = State_Met%ZMEU,     
+     &              ZMMD     = State_Met%ZMMD,       
+     &              ZMMU     = State_Met%ZMMU     ) 
 #endif
 
 #elif defined( GEOS_5 )
@@ -600,34 +602,53 @@
       !             U,      V    fields
       !=================================================================
 #if   defined( APM )
-      CALL READ_A6( NYMD=NYMD,          NHMS=NHMS,       
-     &              CLDF=CLDF0,         CLDTOPS=CLDTOPS0, 
-     &              CMFMC=CMFMC0,       DQIDTMST=DQIDTMST0, 
-     &              DQLDTMST=DQLDTMST0, DQRCON=DQRCON0, 
-     &              DQRLSC=DQRLSC0,     DQVDTMST=DQVDTMST0,
-     &              DTRAIN=DTRAIN0,     MOISTQ=MOISTQ0,
-     &              OPTDEPTH=OPTDEP0, 
-     &              PV=PV0,             RH=RH0,             
-     &              Q=SPHU0,            QL=QL0,             
-     &              QI=QI0,             T=T0,               
-     &              TAUCLI=TAUCLI0,     TAUCLW=TAUCLW0,     
-     &              U=UWND0,            V=VWND0         )
+      CALL READ_A6( NYMD     = NYMD,
+     &              NHMS     = NHMS,       
+     &              CLDF     = CLDF0,
+     &              CLDTOPS  = CLDTOPS0, 
+     &              CMFMC    = CMFMC0,
+     &              DQIDTMST = DQIDTMST0, 
+     &              DQLDTMST = DQLDTMST0,
+     &              DQRCON   = DQRCON0, 
+     &              DQRLSC   = DQRLSC0,
+     &              DQVDTMST = DQVDTMST0,
+     &              DTRAIN   = DTRAIN0,
+     &              MOISTQ   = MOISTQ0,
+     &              OPTDEPTH = OPTDEP0, 
+     &              PV       = PV0,
+     &              RH       = RH0,             
+     &              Q        = SPHU0,
+     &              QL       = QL0,             
+     &              QI       = QI0,
+     &              T        = T0,               
+     &              TAUCLI   = TAUCLI0,
+     &              TAUCLW   = TAUCLW0,     
+     &              U        = UWND0,
+     &              V        = VWND0 )
 #else
-      CALL READ_A6( NYMD=NYMD,          NHMS=NHMS,       
-     &              CLDF=CLDF,          CLDTOPS=CLDTOPS, 
-     &              CMFMC=CMFMC,        DQIDTMST=DQIDTMST, 
-     &              DQLDTMST=DQLDTMST,  DQRCON=DQRCON, 
-     &              DQRLSC=DQRLSC,      DQVDTMST=DQVDTMST,
-     &              DTRAIN=DTRAIN,     !-------------------------------------
-!--------------------------------------+ MFXC=MFXC,    Activate these    
-!     &              MFYC=MFYC,          MFZ=MFZ       later (bmy, 1/17/07)
-!----------------------------------------------------------------------------
-     &              MOISTQ=MOISTQ,     OPTDEPTH=OPTDEP, 
-     &              PV=PV,             RH=RH,             
-     &              Q=SPHU,            QL=QL,             
-     &              QI=QI,             T=T,               
-     &              TAUCLI=TAUCLI,     TAUCLW=TAUCLW,     
-     &              U=UWND,            V=VWND         ) 
+      CALL READ_A6( NYMD     = NYMD,          
+     &              NHMS     = NHMS,       
+     &              CLDF     = State_Met%CLDF,          
+     &              CLDTOPS  = State_Met%CLDTOPS, 
+     &              CMFMC    = State_Met%CMFMC,        
+     &              DQIDTMST = State_Met%DQIDTMST, 
+     &              DQLDTMST = State_Met%DQLDTMST,  
+     &              DQRCON   = State_Met%DQRCU, 
+     &              DQRLSC   = State_Met%DQRLSAN,      
+     &              DQVDTMST = State_Met%DQVDTMST,
+     &              DTRAIN   = State_Met%DTRAIN,     
+     &              MOISTQ   = State_Met%MOISTQ,      
+     &              OPTDEPTH = State_Met%OPTDEP, 
+     &              PV       = State_Met%PV,              
+     &              RH       = State_Met%RH,             
+     &              Q        = State_Met%SPHU,             
+     &              QL       = State_Met%QL,             
+     &              QI       = State_Met%QI,              
+     &              T        = State_Met%T,               
+     &              TAUCLI   = State_Met%TAUCLI,      
+     &              TAUCLW   = State_Met%TAUCLW,     
+     &              U        = State_Met%U,             
+     &              V        = State_Met%V          ) 
 #endif
 
 #elif defined( GCAP ) 
@@ -638,35 +659,50 @@
       !            UPDN,   VWND, and compute CLDTOPS & CLDFRC
       !=================================================================
 #if   defined( APM )
-      CALL READ_A6( NYMD=NYMD,          NHMS=NHMS,         
-     &              CLDF=CLDF0,         CLDTOPS=CLDTOPS0, 
-     &              DETRAINE=DETRAINE0, DETRAINN=DETRAINN0, 
-     &              DNDE=DNDE0,         DNDN=DNDN0,         
-     &              ENTRAIN=ENTRAIN0,   MOISTQ=MOISTQ0,
-     &              OPTDEPTH=OPTDEP0,   Q=SPHU0,            
-     &              T=T0,               U=UWND0,            
-     &              UPDE=UPDE0,         UPDN=UPDN0,  
-     &              V=VWND0 )
+      CALL READ_A6( NYMD     = NYMD,
+     &              NHMS     = NHMS,         
+     &              CLDF     = CLDF0,
+     &              CLDTOPS  = CLDTOPS0, 
+     &              DETRAINE = DETRAINE0,
+     &              DETRAINN = DETRAINN0, 
+     &              DNDE     = DNDE0,
+     &              DNDN     = DNDN0,         
+     &              ENTRAIN  = ENTRAIN0,
+     &              MOISTQ   = MOISTQ0,
+     &              OPTDEPTH = OPTDEP0,
+     &              Q        = SPHU0,            
+     &              T        = T0,
+     &              U        = UWND0,            
+     &              UPDE     = UPDE0,
+     &              UPDN     = UPDN0,  
+     &              V        = VWND0 )
           
       ! Create 2-D CLDFRC field from 3-D CLDF field
       CALL MAKE_GCAP_CLDFRC( CLDF0, CLDFRC0 )
 
 #else
-      CALL READ_A6( NYMD=NYMD,          NHMS=NHMS,         
-     &              CLDF=CLDF,          CLDTOPS=CLDTOPS, 
-     &              DETRAINE=DETRAINE,  DETRAINN=DETRAINN, 
-     &              DNDE=DNDE,          DNDN=DNDN,         
-     &              ENTRAIN=ENTRAIN,    MOISTQ=MOISTQ,
-     &              OPTDEPTH=OPTDEP,    Q=SPHU,            
-     &              T=T,                U=UWND,            
-     &              UPDE=UPDE,          UPDN=UPDN,  
-     &              V=VWND )
-      
+      CALL READ_A6( NYMD     = NYMD,          
+     &              NHMS     = NHMS,         
+     &              CLDF     = State_Met%CLDF,          
+     &              CLDTOPS  = State_Met%CLDTOPS, 
+     &              DETRAINE = State_Met%DETRAINE,  
+     &              DETRAINN = State_Met%DETRAINN, 
+     &              DNDE     = State_Met%DNDE,          
+     &              DNDN     = State_Met%DNDN,         
+     &              ENTRAIN  = State_Met%ENTRAIN,    
+     &              MOISTQ   = State_Met%MOISTQ,
+     &              OPTDEPTH = State_Met%OPTDEP,    
+     &              Q        = State_Met%SPHU,            
+     &              T        = State_Met%T,                
+     &              U        = State_Met%UWND,            
+     &              UPDE     = State_Met%UPDE,          
+     &              UPDN     = State_Met%UPDN,  
+     &              V        = State_Met%VWND )
+     
       ! Create 2-D CLDFRC field from 3-D CLDF field
-      CALL MAKE_GCAP_CLDFRC( CLDF, CLDFRC )
+      CALL MAKE_GCAP_CLDFRC( State_Met%CLDF, State_Met%CLDFRC )  
 #endif
 
-      
 #endif
 
       ! Save NYMD and NHMS for next call
@@ -795,7 +831,7 @@
 
 !------------------------------------------------------------------------------
 #if   defined( APM )
-      SUBROUTINE UPDATE_A6_FIELDS
+      SUBROUTINE UPDATE_A6_FIELDS( State_Met )
 !
 !******************************************************************************
       ! References to F90 modules
@@ -809,39 +845,32 @@
       USE DAO_MOD,      ONLY : T0,       TAUCLI0,   TAUCLW0,   UPDE0
       USE DAO_MOD,      ONLY : UPDN0,    UWND0,     VWND0,     ZMEU0
       USE DAO_MOD,      ONLY : ZMMD0,    ZMMU0
+      USE GIGC_State_Met_Mod, ONLY : MetState
 
-      USE DAO_MOD,      ONLY : CLDF,    CLDFRC,   CLDMAS,   CLDTOPS
-      USE DAO_MOD,      ONLY : CMFMC,   DETRAINE, DETRAINN, DNDE
-      USE DAO_MOD,      ONLY : DNDN,    DQIDTMST, DQLDTMST, DQRCON
-      USE DAO_MOD,      ONLY : DQRLSC,  DQVDTMST, DTRAIN,   ENTRAIN
-      USE DAO_MOD,      ONLY : HKBETA,  HKETA    
-      USE DAO_MOD,      ONLY : MOISTQ,  OPTDEP,   PV
-      USE DAO_MOD,      ONLY : QI,      QL,       RH,       SPHU
-      USE DAO_MOD,      ONLY : T,       TAUCLI,   TAUCLW,   UPDE
-      USE DAO_MOD,      ONLY : UPDN,    UWND,     VWND,     ZMEU
-      USE DAO_MOD,      ONLY : ZMMD,    ZMMU
+      ! Arguments
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 
-      CLDF     = CLDF0
-      CLDTOPS  = CLDTOPS0
-      CMFMC    = CMFMC0
-      DQIDTMST = DQIDTMST0
-      DQLDTMST = DQLDTMST0
-      DQRCON   = DQRCON0
-      DQRLSC   = DQRLSC0
-      DQVDTMST = DQVDTMST0
-      DTRAIN   = DTRAIN0
-      MOISTQ   = MOISTQ0
-      OPTDEP   = OPTDEP0
-      PV       = PV0
-      RH       = RH0
-      SPHU     = SPHU0
-      QL       = QL0
-      QI       = QI0
-      T        = T0
-      TAUCLI   = TAUCLI0
-      TAUCLW   = TAUCLW0
-      UWND     = UWND0
-      VWND     = VWND0
+      State_Met%CLDF     = CLDF0
+      State_Met%CLDTOPS  = CLDTOPS0
+      State_Met%CMFMC    = CMFMC0
+      State_Met%DQIDTMST = DQIDTMST0
+      State_Met%DQLDTMST = DQLDTMST0
+      State_Met%DQRCU    = DQRCON0
+      State_Met%DQRLSAN  = DQRLSC0
+      State_Met%DQVDTMST = DQVDTMST0
+      State_Met%DTRAIN   = DTRAIN0
+      State_Met%MOISTQ   = MOISTQ0
+      State_Met%OPTDEP   = OPTDEP0
+      State_Met%PV       = PV0
+      State_Met%RH       = RH0
+      State_Met%SPHU     = SPHU0
+      State_Met%QL       = QL0
+      State_Met%QI       = QI0
+      State_Met%T        = T0
+      State_Met%TAUCLI   = TAUCLI0
+      State_Met%TAUCLW   = TAUCLW0
+      State_Met%U        = UWND0
+      State_Met%V        = VWND0
 
       ! Return to calling program
       END SUBROUTINE UPDATE_A6_FIELDS
@@ -922,6 +951,7 @@
 !  (1 ) Now modified for GCAP and GEOS-5 met fields (swu, bmy, 5/25/05)
 !  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (3 ) Increase number of A-6 fields for GEOS-5 to 21 (bmy, 5/15/07)
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !******************************************************************************
 !
       USE CMN_SIZE_MOD 
@@ -932,12 +962,7 @@
       !=================================================================
       ! GET_N_A6 begins here!
       !=================================================================
-#if   defined( GEOS_3 )
-
-      ! GEOS-3 has 6 A-6 fields
-      N_A6 = 6
-
-#elif defined( GEOS_4 )
+#if   defined( GEOS_4 )
 
       ! GEOS-4 has 12 A-6 fields
       N_A6 = 12
@@ -1080,11 +1105,14 @@
 !        (phs, bmy, 3/28/08)
 !  (8 ) Now get the # of A-6 fields from the file ident string (bmy, 10/7/08)
 !  (9 ) Remove references to IN_CLOUD_OD (bmy, 10/15/09)
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  03 Aug 2012 - R. Yantosca - Now use locally-defined IU_A3 file LUN
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !******************************************************************************
 !
       ! References to F90 modules
       USE DIAG_MOD,     ONLY : AD66,        AD67
-      USE FILE_MOD,     ONLY : IOERROR,     IU_A6
+      USE FILE_MOD,     ONLY : IOERROR
       USE TIME_MOD,     ONLY : SET_CT_A6,   TIMESTAMP_STRING
       USE TRANSFER_MOD, ONLY : TRANSFER_A6, TRANSFER_3D_Lp1
       USE TRANSFER_MOD, ONLY : TRANSFER_3D, TRANSFER_G5_PLE
@@ -1703,8 +1731,9 @@
          IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) .AND. 
      &        NFOUND == N_A6 ) THEN
             STAMP = TIMESTAMP_STRING( NYMD, NHMS )
-            WRITE( 6, 210 ) NFOUND, STAMP
- 210        FORMAT( '     - Found all ', i3, ' A-6 met fields for ', a )
+            WRITE( 6, 210 ) NFOUND, STAMP, IU_A6
+ 210        FORMAT( '     - Found all ', i3, ' A-6 met fields for ', 
+     &                   a, ' on unit ', i4 )
             EXIT
          ENDIF
       ENDDO
@@ -1739,40 +1768,6 @@
          ENDDO
          ENDDO
       ENDIF     
-
-#elif defined( GEOS_3 )
-
-      !------------------------------
-      ! Special handling for GEOS-3
-      !------------------------------
-
-      ! Due to an error in the DAO archiving process, the CLDMAS and 
-      ! DTRAIN fields have units of [kg/m2/600s].  Divide here by 600 
-      ! to convert CLDMAS and DTRAIN into units of [kg/m2/s].
-      IF ( PRESENT( CLDMAS ) ) CLDMAS = CLDMAS / 600d0
-      IF ( PRESENT( DTRAIN ) ) DTRAIN = DTRAIN / 600d0
-
-      ! CLDTOPS highest location of CLDMAS in the column (I,J)
-      IF ( PRESENT( CLDTOPS ) .and. PRESENT( CLDMAS ) ) THEN
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            CLDTOPS(I,J) = 1
-            DO L = LLPAR, 1, -1
-               IF ( CLDMAS(I,J,L) > 0d0 ) THEN
-                  CLDTOPS(I,J) = L + 1
-               ENDIF
-            ENDDO
-         ENDDO
-         ENDDO
-      ENDIF
-
-      ! For 1998 GEOS-3 fields only, create OPTDEPTH = TAUCLD * CLDTOT
-      ! The 1998 fields only store TAUCLD, which is the in-cloud 
-      ! optical depth.  The actual grid box optical depth is 
-      ! TAUCLD * CLDTOT, which is what FAST-J needs. (bmy, 10/11/01)
-      IF ( PRESENT( OPTDEPTH ) .and. ( NYMD / 10000 ) == 1998 ) THEN
-         OPTDEPTH = TAUCLD * CLDTOT
-      ENDIF
 
 #elif defined( GEOS_4 )
 

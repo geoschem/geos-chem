@@ -36,6 +36,10 @@
 !
 !   CO2        24         1          [molec CO2 /cm2/s]
 !
+!  ----------------------------------------------------------------------------
+!  FOR CH4 SIMULATION ONLY (kjw)
+!
+!   CH4        25         1          [molec CH4 /cm2/s]!
 !
 !  Module Variables:
 !  ============================================================================
@@ -95,6 +99,9 @@
 !  (7 ) Updates to remove all hard-wired order. (fp, 2/2/10)
 !  (8)  Updates to include GFED3 (psk, 1/5/11)
 !  06 Jul 2011 - M. Payer    - Add modifications for SOA + semivol POA (H. Pye)
+!  14 Feb 2012 - M. Payer    - Add modifications for CH4 simulation (K. Wecht)
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !******************************************************************************
 !
       USE CMN_SIZE_MOD               ! Size parameters
@@ -110,29 +117,11 @@
       ! Make everything PRIVATE ...
       PRIVATE
 
-      ! ... except these variables
-      ! FP: NBIOMAX now specified in CMN_SIZE_mod and is the max
-      ! number of BB species allowed, used for array allocation (hotp 7/30/09)
-      ! if additional BB species are added, increase NBIOMAX in CMN_SIZE_mod
-      !PUBLIC :: NBIOMAX
-      !PUBLIC :: NBIOMAX_GAS ! no longer needed (hotp 8/3/09)
-      !FP_ISOP
       ! NBIOTRCE is the number of BB species in a simulation
       ! and is determined online FP (hotp 7/30/09)
       PUBLIC :: NBIOTRCE
       PUBLIC :: BIOMASS
       PUBLIC :: BIOTRCE
-      ! IDBxxx are now determined online and stored in
-      ! BIOTRCE array by FP (hotp 7/30/09)
-      ! IDBxxx are part of tracerid_mod by FP (hotp 7/31/09)
-      !PUBLIC :: IDBBC
-      !PUBLIC :: IDBCO
-      !PUBLIC :: IDBCO2
-      !PUBLIC :: IDBC2H6
-      !PUBLIC :: IDBNH3
-      !PUBLIC :: IDBNOX
-      !PUBLIC :: IDBOC
-      !PUBLIC :: IDBSO2
 
       ! Logical array to determine if species is treated in setemis 
       ! (hotp 8/3/09)
@@ -148,18 +137,6 @@
       !=================================================================
       ! MODULE VARIABLES
       !=================================================================
-
-      ! FP Removed hard-wired IDBxxx and move NBIOMAX to CMN_SIZE_mod (hotp 7/30/09)      ! Parameters
-!      INTEGER, PARAMETER   :: NBIOMAX     = 24
-!      INTEGER, PARAMETER   :: NBIOMAX_GAS = 19
-!      INTEGER, PARAMETER   :: IDBNOX      = 1
-!      INTEGER, PARAMETER   :: IDBCO       = 2
-!      INTEGER, PARAMETER   :: IDBC2H6     = 10
-!      INTEGER, PARAMETER   :: IDBSO2      = 11
-!      INTEGER, PARAMETER   :: IDBNH3      = 12
-!      INTEGER, PARAMETER   :: IDBBC       = 13
-!      INTEGER, PARAMETER   :: IDBOC       = 14
-!      INTEGER, PARAMETER   :: IDBCO2      = 24
       
       !FP_ISOP
       ! FP: NBIOTRCE is number of biomass burning tracers (hotp 7/30/09)
@@ -181,7 +158,9 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE COMPUTE_BIOMASS_EMISSIONS( YEAR, MONTH )
+      SUBROUTINE COMPUTE_BIOMASS_EMISSIONS( am_I_Root, YEAR,      
+     &                                      MONTH,     Input_Opt, 
+     &                                      State_Chm, RC         )
 !
 !******************************************************************************
 !  Subroutine COMPUTE_BIOMASS_EMISSIONS is a wrapper which allows us to select
@@ -217,61 +196,94 @@
 !  27 Jul 2011 - R. Yantosca - Make sure that IDBCO > 0 before using it
 !  06 Jul 2011 - M. Payer    - Add NAP and POA biomass burning emissions for 
 !                              SOA + semivolatile POA (H. Pye)
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIAG_MOD,          ONLY : AD28, AD29, AD32_bb
-      USE GC_BIOMASS_MOD,    ONLY : GC_COMPUTE_BIOMASS
-      USE GC_BIOMASS_MOD,    ONLY : GC_READ_BIOMASS_BCOC
-      USE GC_BIOMASS_MOD,    ONLY : GC_READ_BIOMASS_CO2
-      USE GC_BIOMASS_MOD,    ONLY : GC_READ_BIOMASS_NH3
-      USE GC_BIOMASS_MOD,    ONLY : GC_READ_BIOMASS_SO2
-      USE GC_BIOMASS_MOD,    ONLY : TOTAL_BIOMASS_TG
-      USE GFED2_BIOMASS_MOD, ONLY : GFED2_COMPUTE_BIOMASS
-      USE GFED3_BIOMASS_MOD, ONLY : GFED3_COMPUTE_BIOMASS
-      USE LOGICAL_MOD,       ONLY : LBIOMASS, LGFED2BB, LGFED3BB
-      USE LOGICAL_MOD,       ONLY : L8DAYBB,  LSYNOPBB, L3HRBB
-      USE LOGICAL_MOD,       ONLY : L8DAYBB3,  LSYNOPBB3, L3HRBB3
-      USE TIME_MOD,          ONLY : ITS_A_NEW_MONTH
-      USE TRACER_MOD,        ONLY : ITS_A_CO2_SIM
-      USE TRACER_MOD,        ONLY : ITS_A_H2HD_SIM
-      USE TRACER_MOD,        ONLY : ITS_A_FULLCHEM_SIM
-      USE TRACER_MOD,        ONLY : ITS_A_TAGCO_SIM
-      USE TRACERID_MOD,      ONLY : IDTBCPO, IDTNH3, IDTOCPO, IDTSO2
-      !FP_ISOP
-      ! FP: IDBxxxs will need to used here (hotp 7/30/09)
-      USE TRACERID_MOD,      ONLY : IDBBC, IDBNH3, IDBOC, IDBSO2
-      USE TRACERID_MOD,      ONLY : IDBCO, IDBNOx
-      USE TRACERID_MOD,      ONLY : IDBCO2
-      USE TRACERID_MOD,      ONLY : IDBXYLE, IDBTOLU, IDBBENZ ! hotp for debug
+      USE DIAG_MOD,           ONLY : AD28, AD29, AD32_bb
+      USE GC_BIOMASS_MOD,     ONLY : GC_COMPUTE_BIOMASS
+      USE GC_BIOMASS_MOD,     ONLY : GC_READ_BIOMASS_BCOC
+      USE GC_BIOMASS_MOD,     ONLY : GC_READ_BIOMASS_CO2
+      USE GC_BIOMASS_MOD,     ONLY : GC_READ_BIOMASS_NH3
+      USE GC_BIOMASS_MOD,     ONLY : GC_READ_BIOMASS_SO2
+      USE GFED2_BIOMASS_MOD,  ONLY : GFED2_COMPUTE_BIOMASS
+      USE GFED3_BIOMASS_MOD,  ONLY : GFED3_COMPUTE_BIOMASS
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
+      USE TRACERID_MOD,       ONLY : IDTBCPO, IDTNH3, IDTOCPO, IDTSO2
+      USE TRACERID_MOD,       ONLY : IDBBC, IDBNH3, IDBOC, IDBSO2
+      USE TRACERID_MOD,       ONLY : IDBCO, IDBNO
+      USE TRACERID_MOD,       ONLY : IDBCO2
       ! SOAupdate: For POA, NAP (hotp, mpayer, 7/6/11)
-      USE TRACERID_MOD,      ONLY : IDTPOA1
-      USE TRACERID_MOD,      ONLY : IDBNAP
-      USE LOGICAL_MOD,       ONLY : NAPEMISS
-      USE LOGICAL_MOD,       ONLY : LSVPOA
+      USE TRACERID_MOD,       ONLY : IDTPOA1
+      USE TRACERID_MOD,       ONLY : IDBNAP
+      USE LOGICAL_MOD,        ONLY : NAPEMISS
+      USE LOGICAL_MOD,        ONLY : LSVPOA
 
-
-      USE CMN_SIZE_MOD          ! Size parameters
-      USE CMN_DIAG_MOD          ! Diagnostic flags
-
-      ! Arguments
-      INTEGER, INTENT(IN)        :: YEAR, MONTH
-
-      ! Local variables
-      LOGICAL, SAVE              :: FIRST = .TRUE.
-      LOGICAL                    :: DO_ND28, DO_ND29, DO_ND32
-      LOGICAL, SAVE              :: USE_GFED
-      LOGICAL, SAVE              :: USE_GFED2
-      LOGICAL, SAVE              :: USE_GFED3
-      INTEGER                    :: I,       J,       N,      N_BIOB
-      REAL*8                     :: BXHT_CM, DTSRCE
-
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! Diagnostic flags
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      INTEGER,        INTENT(IN)    :: YEAR
+      INTEGER,        INTENT(IN)    :: MONTH
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !LOCAL VARIABLES:
+!
       ! SOAupdate: Scale up total NAP emissions (hotp, mpayer, 7/6/11)
-      REAL*8, PARAMETER          :: NAPTOTALSCALE = 66.09027d0
+      REAL*8, PARAMETER   :: NAPTOTALSCALE = 66.09027d0
+
+      LOGICAL, SAVE       :: FIRST = .TRUE.
+      LOGICAL             :: DO_ND28, DO_ND29, DO_ND32
+      LOGICAL, SAVE       :: USE_GFED
+      LOGICAL, SAVE       :: USE_GFED2
+      LOGICAL, SAVE       :: USE_GFED3
+      INTEGER             :: I,       J,       N,      N_BIOB
+      REAL*8              :: BXHT_CM, DTSRCE
       
+      ! For fields from Input_Opt
+      LOGICAL             :: ITS_A_CO2_SIM
+      LOGICAL             :: ITS_A_H2HD_SIM
+      LOGICAL             :: ITS_A_FULLCHEM_SIM
+      LOGICAL             :: ITS_A_TAGCO_SIM
+      LOGICAL             :: LBIOMASS, LGFED2BB, LGFED3BB
+      LOGICAL             :: L8DAYBB,  LSYNOPBB, L3HRBB
+      LOGICAL             :: LDAYBB3,  L3HRBB3
+
       !=================================================================
       ! COMPUTE_BIOMASS_EMISSIONS begins here!
       !=================================================================
+      
+      ! Assume success
+      RC                  =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      ITS_A_CO2_SIM       = Input_Opt%ITS_A_CO2_SIM
+      ITS_A_H2HD_SIM      = Input_Opt%ITS_A_H2HD_SIM
+      ITS_A_FULLCHEM_SIM  = Input_Opt%ITS_A_FULLCHEM_SIM
+      ITS_A_TAGCO_SIM     = Input_Opt%ITS_A_TAGCO_SIM
+      LBIOMASS            = Input_Opt%LBIOMASS
+      LGFED2BB            = Input_Opt%LGFED2BB
+      LGFED3BB            = Input_Opt%LGFED3BB
+      L8DAYBB             = Input_Opt%L8DAYBB
+      LSYNOPBB            = Input_Opt%LSYNOPBB
+      L3HRBB              = Input_Opt%L3HRBB
+      LDAYBB3             = Input_Opt%LDAYBB3
+      L3HRBB3             = Input_Opt%L3HRBB3  
 
       ! If there are biomass emissions ...
       IF ( LBIOMASS ) THEN
@@ -279,11 +291,10 @@
          ! First-time initialization
          IF ( FIRST ) THEN
             CALL INIT_BIOMASS
-            FIRST    = .FALSE.
-            USE_GFED2 = LGFED2BB .or. L8DAYBB .or. LSYNOPBB .or. L3HRBB
-            USE_GFED3 = LGFED3BB .or.
-     &                  L8DAYBB3 .or. LSYNOPBB3 .or. L3HRBB3
-            USE_GFED = USE_GFED2. or. USE_GFED3
+            FIRST     = .FALSE.
+            USE_GFED2 = LGFED2BB  .or. L8DAYBB .or. LSYNOPBB .or. L3HRBB
+            USE_GFED3 = LGFED3BB  .or. LDAYBB3 .or. L3HRBB3
+            USE_GFED  = USE_GFED2 .or. USE_GFED3
          ENDIF
          
          ! Define diagnostic flags
@@ -308,9 +319,9 @@
             ! Now make sure IDBCO is defined before using it.  This will
             ! avoid an out-of-bounds error. (bmy, 7/29/11)
             IF ( IDBCO > 0 ) THEN
-               IF ( ITS_A_FULLCHEM_SIM() ) THEN
+               IF ( ITS_A_FULLCHEM_SIM ) THEN
                   BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.05d0
-               ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
+               ELSE IF ( ITS_A_TAGCO_SIM ) THEN
                   BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.11d0
                ENDIF
             ENDIF
@@ -328,9 +339,9 @@
             ! explicitly carried in the chemistry mechanisms. This used
             ! to be done in gc_biomass_mod.f but then is not used for
             ! GFED3, FLAMBE, etc. (jaf, mak, 2/6/09)
-            IF ( ITS_A_FULLCHEM_SIM() ) THEN
+            IF ( ITS_A_FULLCHEM_SIM ) THEN
                BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.05d0
-            ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
+            ELSE IF ( ITS_A_TAGCO_SIM ) THEN
                BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.11d0
             ENDIF
 
@@ -343,7 +354,7 @@
             BIOMASS = 0d0
 
             ! Test if it's a CO2 simulation
-            IF ( ITS_A_CO2_SIM() ) THEN
+            IF ( ITS_A_CO2_SIM ) THEN
 
                !------------------------------
                ! CO2 emissions (based on 
@@ -353,6 +364,11 @@
                ! Get CO2 emissions [molec/cm2/s]
                CALL GC_READ_BIOMASS_CO2( YEAR, MONTH,
      &                                   BIOMASS(:,:,IDBCO2) )
+
+#if defined( DEVEL )
+               State_Chm%TRAC_BTEND(:,:,1,IDBCO2) = 
+     &         State_Chm%TRAC_BTEND(:,:,1,IDBCO2) + BIOMASS(:,:,IDBCO2)
+#endif
             ELSE
 
                !------------------------------
@@ -375,11 +391,21 @@
      &                                      BIOMASS(:,:,IDBSO2) )
                ENDIF
 
+#if defined( DEVEL )
+               State_Chm%TRAC_BTEND(:,:,1,IDBSO2) =
+     &         State_Chm%TRAC_BTEND(:,:,1,IDBSO2) + BIOMASS(:,:,IDBSO2)
+#endif
+
                ! Get biomass NH3 [molec/cm2/s]
                IF ( IDTNH3 > 0 ) THEN
                   CALL GC_READ_BIOMASS_NH3( YEAR, MONTH,
      &                                      BIOMASS(:,:,IDBNH3) )
                ENDIF
+
+#if defined( DEVEL )
+               State_Chm%TRAC_BTEND(:,:,1,IDBNH3) = 
+     &         State_Chm%TRAC_BTEND(:,:,1,IDBNH3) +BIOMASS(:,:,IDBNH3)
+#endif
 
                ! Get biomass BC & OC [molec/cm2/s]
                ! SOAupdate: OC emissions now are nonvolatile (OCPO defined) or
@@ -391,6 +417,12 @@
      &                                       BIOMASS(:,:,IDBOC) ) 
                   ENDIF
                ENDIF
+#if defined( DEVEL )
+               State_Chm%TRAC_BTEND(:,:,1,IDBBC) =  
+     &         State_Chm%TRAC_BTEND(:,:,1,IDBBC) + BIOMASS(:,:,IDBBC)
+               State_Chm%TRAC_BTEND(:,:,1,IDBOC) = 
+     &         State_Chm%TRAC_BTEND(:,:,1,IDBOC) + BIOMASS(:,:,IDBOC)
+#endif
             ENDIF
 
             ! Irrespective of inventory type, we need to scale biomass
@@ -402,11 +434,15 @@
             ! Now make sure IDBCO is defined before using it.  This will
             ! avoid an out-of-bounds error. (bmy, 7/29/11)
             IF ( IDBCO > 0 ) THEN
-               IF ( ITS_A_FULLCHEM_SIM() ) THEN
+               IF ( ITS_A_FULLCHEM_SIM ) THEN
                   BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.05d0
-               ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
+               ELSE IF ( ITS_A_TAGCO_SIM ) THEN
                   BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.11d0
                ENDIF
+#if defined( DEVEL )
+               State_Chm%TRAC_BTEND(:,:,1,IDBCO) = 
+     &         State_Chm%TRAC_BTEND(:,:,1,IDBCO) + BIOMASS(:,:,IDBCO)
+#endif
             ENDIF
          ENDIF
 
@@ -473,7 +509,7 @@
             ! ND29: CO biomass emissions [molec/cm2/s]
             IF ( DO_ND29 .and. N == IDBCO ) THEN 
 
-               IF ( ITS_A_H2HD_SIM() .and. (.not. USE_GFED ) ) THEN
+               IF ( ITS_A_H2HD_SIM .and. (.not. USE_GFED ) ) THEN
                   AD29(I,J,2) = AD29(I,J,2) + 
      &                          BIOMASS(I,J,IDBCO) * 1.11d0
                ELSE
@@ -482,8 +518,8 @@
             ENDIF
             
             ! ND32: NOx biomass emissions in [molec/cm2/s]
-            IF ( DO_ND32 .and. N == IDBNOx ) THEN
-               AD32_bb(I,J) = AD32_bb(I,J) + BIOMASS(I,J,IDBNOx)
+            IF ( DO_ND32 .and. N == IDBNO ) THEN
+               AD32_bb(I,J) = AD32_bb(I,J) + BIOMASS(I,J,IDBNO)
             ENDIF
 
          ENDDO
@@ -496,7 +532,8 @@
       END SUBROUTINE COMPUTE_BIOMASS_EMISSIONS
 
 !------------------------------------------------------------------------------
-      SUBROUTINE SET_BIOTRCE
+
+      SUBROUTINE SET_BIOTRCE( am_I_Root )
 
 !******************************************************************************
 !  Routine created by FP to set IDBxxxs according to the tracers defined
@@ -506,6 +543,10 @@
 !  NOTES:
 !  06 Jul 2011 - M. Payer    - Add NAP and POA biomass burning emissions for 
 !                              SOA + semivolatile POA (H. Pye)
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
+!  14 Mar 2013 - M. Payer    - Replace NOx emissions with NO emissions as part
+!                              of removal of NOx-Ox partitioning
 !******************************************************************************
 
 !FP_ISOP
@@ -516,12 +557,13 @@
       USE ERROR_MOD, ONLY    : ERROR_STOP
 
       ! need both IDBxxss and IDTxxxs
-      USE TRACERID_MOD, ONLY : IDBNOX,  IDBCO,   IDBALK4, IDBACET 
+      USE TRACERID_MOD, ONLY : IDBNO,   IDBCO,   IDBALK4, IDBACET 
       USE TRACERID_MOD, ONLY : IDBMEK,  IDBALD2, IDBPRPE, IDBC3H8
       USE TRACERID_MOD, ONLY : IDBCH2O, IDBC2H6
       USE TRACERID_MOD, ONLY : IDBSO2,  IDBNH3
       USE TRACERID_MOD, ONLY : IDBBC,   IDBOC
       USE TRACERID_MOD, ONLY : IDBCO2
+      USE TRACERID_MOD, ONLY : IDBCH4   !kjw
       USE TRACERID_MOD, ONLY : IDBBENZ, IDBTOLU, IDBXYLE
       ! Add dicarbonyls
       USE TRACERID_MOD, ONLY : IDBGLYX, IDBMGLY, IDBC2H4
@@ -529,7 +571,7 @@
       ! SOAupdate: Add NAP emissions (hotp, mpayer, 7/6/11)
       USE TRACERID_MOD, ONLY : IDBNAP
 
-      USE TRACERID_MOD, ONLY : IDTNOX,  IDTCO,   IDTALK4, IDTACET 
+      USE TRACERID_MOD, ONLY : IDTNO,   IDTCO,   IDTALK4, IDTACET 
       USE TRACERID_MOD, ONLY : IDTMEK,  IDTALD2, IDTPRPE, IDTC3H8
       USE TRACERID_MOD, ONLY : IDTCH2O, IDTC2H6
       USE TRACERID_MOD, ONLY : IDTSO2,  IDTNH3
@@ -541,6 +583,10 @@
       USE TRACERID_MOD, ONLY : IDTNAP
       USE TRACERID_MOD, ONLY : IDTPOA1
 
+      USE TRACER_MOD,   ONLY : ITS_A_CH4_SIM ! (mpayer, 2/14/12)
+
+      LOGICAL, INTENT(IN) :: am_I_Root
+
       !=================================================================
       ! SET_BIOTRCE begins here!
       !=================================================================
@@ -549,7 +595,8 @@
       NBIOTRCE = 0
       
       ! Increment NBIOTRCE for each turned on biomass burning tracer
-      IF ( IDBNOX   /= 0 ) NBIOTRCE = NBIOTRCE + 1
+      ! Replaced NOx with NO (mpayer, 3/14/13)
+      IF ( IDBNO    /= 0 ) NBIOTRCE = NBIOTRCE + 1
       IF ( IDBCO    /= 0 ) NBIOTRCE = NBIOTRCE + 1 
       IF ( IDBALK4  /= 0 ) NBIOTRCE = NBIOTRCE + 1 
       IF ( IDBACET  /= 0 ) NBIOTRCE = NBIOTRCE + 1 
@@ -579,7 +626,8 @@
       IF ( IDBNAP   /= 0 ) NBIOTRCE = NBIOTRCE + 1  ! (hotp, mpayer, 7/6/11)
 
       ! Fill BIOTRCE w/ appropriate TRACER ID #'s
-      IF ( IDBNOX   /= 0 ) BIOTRCE(IDBNOX ) = IDTNOX
+      ! Replaced NOx with NO (mpayer, 3/14/13)
+      IF ( IDBNO    /= 0 ) BIOTRCE(IDBNO  ) = IDTNO
       IF ( IDBCO    /= 0 ) BIOTRCE(IDBCO  ) = IDTCO
       IF ( IDBALK4  /= 0 ) BIOTRCE(IDBALK4) = IDTALK4
       IF ( IDBACET  /= 0 ) BIOTRCE(IDBACET) = IDTACET
@@ -620,7 +668,8 @@
       ! Initialize to false
       BIOBGAS = .FALSE.
       ! Original gas phase emissions handled in setemis
-      IF ( IDBNOX   /= 0 ) BIOBGAS(IDBNOX ) = .TRUE.
+      ! Replaced NOx with NO (mpayer, 3/14/13)
+      IF ( IDBNO    /= 0 ) BIOBGAS(IDBNO  ) = .TRUE.
       IF ( IDBCO    /= 0 ) BIOBGAS(IDBCO  ) = .TRUE.
       IF ( IDBALK4  /= 0 ) BIOBGAS(IDBALK4) = .TRUE.
       IF ( IDBACET  /= 0 ) BIOBGAS(IDBACET) = .TRUE.
@@ -659,6 +708,14 @@
       BIOTRCE( IDBCO2 ) = 1
       BIOBGAS( IDBCO2 ) = .FALSE.
 
+      ! For CH4 (kjw)
+      !  IDBCH4 is placed at end after all full chem tracers and CO2
+      IF ( ITS_A_CH4_SIM() ) THEN
+         IDBCH4            = NBIOTRCE + 1
+         BIOTRCE( IDBCH4 ) = 1
+         BIOBGAS( IDBCH4 ) = .FALSE.  ! not treated in setemis
+      ENDIF
+
       ! Error check 
       ! NBIOTRCE should be less than or equal to NBIOMAX (hotp 7/31/09)
       !IF ( NBIOTRCE > NBIOMAX ) THEN
@@ -673,7 +730,9 @@
       ENDIF
 
       ! Echo biomass burning tracer information
-      WRITE( 6, 100 ) BIOTRCE( 1:NBIOTRCE )
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 100 ) BIOTRCE( 1:NBIOTRCE )
+      ENDIF
  100  FORMAT( 'TRACERID: Biomass burning tracers        :', 20i3 )
       
       ! Return to calling program
@@ -789,7 +848,6 @@
       ! CLEANUP_BIOMASS begins here!
       !=================================================================
       IF ( ALLOCATED( BIOMASS ) ) DEALLOCATE( BIOMASS )
-
       ! Return to calling program
       END SUBROUTINE CLEANUP_BIOMASS
 

@@ -34,6 +34,7 @@
 #                              about tomas target.
 #  26 Aug 2011 - R. Yantosca - Added info about APM targets
 #  26 Aug 2011 - R. Yantosca - Add info about the PRECISE=no option
+#  11 May 2012 - R. Yantosca - Updated to include info about new make options
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -52,16 +53,27 @@ help:
 	@echo 'TARGET may be one of the following:'
 	@echo 'all            Default target (synonym for "lib exe")'
 	@echo 'lib            Builds GEOS-Chem source code'
-	@echo 'libheaders     Builds GEOS-Chem objs & libs only in GeosHeaders/'
 	@echo 'libcore        Builds GEOS-Chem objs & libs only in GeosCore/'
-	@echo 'libutil        Builds GEOS-Chem objs & libs only in GeosUtil/'
+	@echo 'libheaders     Builds GEOS-Chem objs & libs only in GeosHeaders/'
+	@echo 'libiso         Builds GEOS-Chem objs & libs only in ISOROPIA/'
 	@echo 'libkpp         Builds GEOS-Chem objs & libs only in KPP/'
+	@echo 'libnc          Builds GEOS-Chem objs & libs only in NcdfUtil/'  
+	@echo 'libutil        Builds GEOS-Chem objs & libs only in GeosUtil/'
+	@echo 'ncdfcheck      Determines if the netCDF library installation works'
 	@echo 'exe            Creates GEOS-Chem executable'
 	@echo 'clean          Removes *.o, *.mod files in source code subdirs only'
 	@echo 'realclean      Removes all *.o, *mod, *.lib *.a, *.tex, *ps, *pdf files everywhere'
+	@echo 'distclean      Synonym for "make realclean"'
+
 	@echo 'doc            Builds GEOS-Chem documentation (*.ps, *.pdf) in doc/'
 	@echo 'docclean       Removes *.tex, *.pdf, *,ps from doc/'
 	@echo 'help           Displays this help screen'
+	@echo ''
+	@echo 'Special targets for mercury simulation:'
+	@echo 'allhg          Default target for Hg simulation (synonym for "libhg exehg")'
+	@echo 'libhg          Builds GEOS-Chem code for Hg simulation'
+	@echo 'libgtmm        Builds GEOS-Chem + GTMM code for Hg simulation'
+	@echo 'exehg          Creates GEOS-Chem executable for Hg simulation'
 	@echo ''
 	@echo 'Special targets for TOMAS aerosol microphysics:'
 	@echo 'tomas          Builds GEOS-Chem + TOMAS (synonym for "libtomas exetomas")'
@@ -75,13 +87,9 @@ help:
 	@echo 'exeapm         Creates GEOS-Chem + APM executable in GeosApm/'
 	@echo 'cleanapm       Removes *.o *.mod files only in GeosApm/'
 	@echo ''
-	@echo 'Special target for mercury simulation:'
-	@echo 'hg             Builds GEOS-Chem + GTMM for mercury simulation'
-	@echo ''
 	@echo 'OPTIONAL-FLAGS may be:'
-	@echo 'COMPILER=___   Options: ifort pgi sun xlf (default is ifort)'
+	@echo 'COMPILER=___   Options: ifort pgi (default is ifort)'
 	@echo 'PRECISE=no     Disable precise floating point math optimization (for speed)'
-	@echo 'HDF5=yes       Enables writing diagnostic timeseries output to HDF5 files'
 	@echo 'DEBUG=yes      Builds GEOS-Chem for a debugger (with -g -O0)'
 	@echo 'BOUNDS=yes     Turns on subscript-array checking (for debug)'
 	@echo 'OMP=[yes|no]   Turns OpenMP parallelization on/off (default is yes)'

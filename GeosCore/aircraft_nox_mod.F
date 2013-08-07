@@ -52,8 +52,11 @@
 !  (8 ) Now references "grid_mod.f" and "time_mod.f" (bmy, 2/11/03)
 !  (9 ) Now references "directory_mod.f" (bmy, 7/19/04)
 !  (10) Replace GEMISNOX (from CMN_NOX) with a module variable (bmy, 10/3/07)
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !******************************************************************************
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h"
 
@@ -132,20 +135,22 @@
 !        FIRST and MONTHSAVE to LASTMONTH. (bmy, 2/11/03)
 !  (12) Removed reference to "CMN", it's obsolete.  Now references DATA_DIR 
 !        from "directory_mod.f" (bmy, 7/19/04)
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_RES_EXT
       USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
+      USE FILE_MOD,      ONLY : IOERROR
       USE TIME_MOD,      ONLY : GET_MONTH
-
-      USE CMN_SIZE_MOD    ! Size parameters
+      USE CMN_SIZE_MOD        ! Size parameters
 
       ! Local variables
       LOGICAL, SAVE      :: FIRST     = .TRUE.
       INTEGER, SAVE      :: LASTMONTH = -99
       INTEGER            :: I, J, K, IOS
+      INTEGER            :: IU_FILE
+      REAL*8             :: FUEL
 
       ! Conversion factor from [kg NO2/4h] to [molec NO2/s]
       REAL*8             :: CONV=9.0927d+20
@@ -189,18 +194,48 @@
          FILENAME = TRIM( DATA_DIR )        // 'aircraft_NOx_200202/' //
      &              MONTHSTR( GET_MONTH() ) // GET_RES_EXT()
 
+         ! Find a free file LUN
+         IU_FILE = findFreeLUN()
+
          ! Open file
          OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS)
          IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'readair:1' )
 
          ! Read aircraft NOx
          DO 
-            READ( IU_FILE, *, IOSTAT=IOS ) I, J, K, AIR(I,J,K)
-            
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% KLUDGE FOR NORTH AMERICAN NESTED GRID (bmy, 7/2/12)
+!%%% For some reason there seems to be bad data within the N. American
+!%%% nested grid data files.  Some of the longitude indices are out of bounds
+!%%% for the grid.  Put in a simple kludge to just skip over these boxes.
+!%%% We are going to be reinventing how emissions get done in GEOS-Chem,
+!%%% so it's probably not worth recreating the the file at this time.
+!%%%
+!%%%            READ( IU_FILE, *, IOSTAT=IOS ) I, J, K, AIR(I,J,K)
+!%%%          
+!%%%            ! IOS < 0 is end of file
+!%%%            ! IOS > 0 is an I/O error
+!%%%            IF ( IOS < 0 ) EXIT
+!%%%            IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'readair:2' )
+  
+            ! Now read emissions into a scalar
+            READ( IU_FILE, *, IOSTAT=IOS ) I, J, K, FUEL
+
             ! IOS < 0 is end of file
             ! IOS > 0 is an I/O error
             IF ( IOS < 0 ) EXIT
             IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'readair:2' )
+
+#if   defined( NESTED_NA )        
+            ! Error check, cycle if out of bounds
+            IF ( I > IIPAR ) CYCLE
+            IF ( J > JJPAR ) CYCLE
+#endif   
+
+            ! Save emissions into the AIR array
+            AIR(I,J,K) = FUEL
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
          ENDDO
 
          ! Close file
@@ -221,7 +256,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE AIREMISS
+      SUBROUTINE AIREMISS( State_Met, State_Chm )
 !
 !******************************************************************************
 !  Subroutine AIREMISS interpolates the aircraft NOx emissions from the 1-km
@@ -245,17 +280,25 @@
 !        and GET_YOFFSET from "grid_mod.f" (bmy, 2/11/03)
 !  (8 ) Replace GEMISNOX (from "CMN_NOX") with module variable EMIS_AC_NOx
 !        in order to avoid common block errors. (ltm, bmy, 10/3/07)
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  25 Mar 2013 - R. Yantosca - Now accept State_Chm argument
+!  31 May 2013 - R. Yantosca - Replace IDTNOx with IDTNO for DEVEL tag
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,      ONLY : BXHEIGHT
-      USE DIAG_MOD,     ONLY : AD32_ac
-      USE GRID_MOD,     ONLY : GET_XOFFSET, GET_YOFFSET
-      USE PRESSURE_MOD, ONLY : GET_PEDGE
-
-      USE CMN_SIZE_MOD  ! Size parameters
-      USE CMN_DIAG_MOD  ! Diagnostic switches
-      USE CMN_MOD       ! PTOP, SIGE, AVP
+      USE DIAG_MOD,           ONLY : AD32_ac
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GRID_MOD,           ONLY : GET_XOFFSET, GET_YOFFSET
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE
+      USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_STRAT
+#if defined( DEVEL )
+      USE TRACERID_MOD,       ONLY : IDTNO
+#endif
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! Diagnostic switches
+      USE CMN_MOD                  ! PTOP, SIGE, AVP
 
       INTEGER             :: I,    J,     IREF, JREF,  L,     K
       INTEGER             :: I0,   J0
@@ -263,6 +306,14 @@
       
       ! External functions
       REAL*8, EXTERNAL    ::  BOXVL
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
       
       !=================================================================
       ! AIREMISS begins here!
@@ -349,7 +400,10 @@
             IF ( AIREMIS(I,J,L) > 0.0 ) THEN
 
                ! Convert from [molec/s] to [molec/cm3/s]
-               TMP             = AIREMIS(I,J,L)  / BOXVL(I,J,L)
+               TMP = AIREMIS(I,J,L)  / BOXVL(I,J,L,State_Met)
+
+               ! No aircraft emissions in the stratosphere (cdh, 4/25/2013)
+               IF ( ITS_IN_THE_STRAT(I, J, L, State_Met) ) TMP = 0d0
 
                ! Store in GEMISNOX in [molec/cm3/s]
                EMIS_AC_NOx(I,J,L) = TMP
@@ -358,13 +412,20 @@
                ! [molec/cm2/s] in subroutine "diag3.f" (bmy, 3/16/00)
                IF ( ND32 > 0 ) THEN
                   AD32_ac(I,J,L) = AD32_ac(I,J,L) +
-     &                    ( TMP * BXHEIGHT(I,J,L) * 1d2 )
+     &                     ( TMP * State_Met%BXHEIGHT(I,J,L) * 1d2 )
                ENDIF
             ENDIF
 
          ENDDO  ! L
       ENDDO     ! I 
       ENDDO     ! J
+
+#if defined( DEVEL )
+      ! Superimpose aircraft NOx onto exiting tendency
+      ! Assumes dimension conformity
+      State_Chm%TRAC_TEND(:,:,:,IDTNO) = 
+     &State_Chm%TRAC_TEND(:,:,:,IDTNO) + EMIS_AC_NOx 
+#endif
 
       ! Return to calling program
       END SUBROUTINE AIREMISS

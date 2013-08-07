@@ -15,11 +15,18 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD, ONLY : NDUST, NAER, NRH
-      USE CMN_FJ_MOD,   ONLY : JPMAX, LPAR, IPAR, JPAR
+      USE CMN_SIZE_MOD,      ONLY : IIPAR, JJPAR, LLPAR
+      USE CMN_SIZE_MOD,      ONLY : NDUST, NAER, NRH
+      USE CMN_FJ_MOD,        ONLY : JPMAX
+      USE SMV_DIMENSION_MOD, ONLY : MAX_COLUMN
 
       IMPLICIT NONE
       PUBLIC
+!
+! !PUBLIC MEMBER FUNCTIONS:
+!
+      PUBLIC :: Init_JV_CMN
+      PUBLIC :: Cleanup_JV_CMN
 !
 ! !DEFINED PARAMETERS
 !
@@ -29,7 +36,9 @@
       ! NW  Maximum number of wavelength bins that can be used
       ! NP  Maximum number of aerosol/cloud types that can be used
       ! MX  Number of aerosol/cloud types supplied from CTM
-      INTEGER, PARAMETER :: NB      = LPAR+1
+      ! NOTE: MAX_COLUMN is set to 47L for GRIDREDUCED or 72L otherwise
+      ! This is kludge to let us test the DEVEL code (bmy, mlong, 8/10/12)
+      INTEGER, PARAMETER :: NB      = MAX_COLUMN+1
       INTEGER, PARAMETER :: NC      = 2*NB
       INTEGER, PARAMETER :: NS      = 51
       INTEGER, PARAMETER :: NW      = 15
@@ -64,8 +73,8 @@
       REAL*8  :: RAA_AOD(NP),SSA_AOD(NP)
 
       REAL*8  :: TREF(51,18,12),OREF(51,18,12),BREF(51)           
-      REAL*8  :: ODMDUST(IPAR,JPAR,LPAR,NDUST)
-      REAL*8  :: ODAER(IPAR,JPAR,LPAR,NAER*NRH)
+      REAL*8, ALLOCATABLE  :: ODMDUST(:,:,:,:)
+      REAL*8, ALLOCATABLE  :: ODAER(:,:,:,:)
 
       REAL*8  :: jfacta(JPMAX),zpdep(NW,7)
       INTEGER :: npdep,jpdep(NS),jind(JPMAX)
@@ -84,8 +93,8 @@
       ! (bmy, 5/2/00)
       REAL*8   :: TJ(NB),PJ(NB+1),DM(NB),DO3(NB),DBC(NB),Z(NB)    
       REAL*8   :: AER(MX,NB),AMF(NB,NB),RFLECT,SZA,U0,TANHT
-      REAL*8   :: zj(LPAR,JPMAX)
-      REAL*8   :: FFF(NW,lpar),VALJ(NS)
+      REAL*8   :: zj(NB,JPMAX)
+      REAL*8   :: FFF(NW,NB),VALJ(NS)
       INTEGER  :: jadsub(NC)
 
 !$OMP THREADPRIVATE( TJ, PJ, DM, DO3, DBC, Z)           
@@ -118,14 +127,14 @@
 !                                                                             .
 !  (6) For including aerosol optical depths: (rvm, bmy, 9/30/00)
 !      (a) Increase MX from 3 to 10 .  
-!      (c) Add ODMDUST(IPAR,JPAR,LPAR,NDUST) to common block /CLIM/
+!      (c) Add ODMDUST(IIPAR,JJPAR,LLPAR,NDUST) to common block /CLIM/
 !                                                                             .
 !  (7) Move NDUST to CMN_SIZE to avoid conflicts (bmy, 11/15/01)
 !                                                                             .
 !  (8) For updating aerosol optical depths again (rvm, bmy, 2/27/02):
 !      (a) Change NP from 21 to 56
 !      (b) Change MX from 10 to 35
-!      (c) Add ODAER(IPAR,JPAR,LPAR,NAER*NRH) to common block /CLIM/
+!      (c) Add ODAER(IIPAR,JJPAR,LLPAR,NAER*NRH) to common block /CLIM/
 !                                                                             .
 !  (9) Changed RCS ID tag comment character from "C" to "!" to allow freeform
 !       compilation.  Also added & continuation characters in column 73
@@ -149,8 +158,110 @@
 !
 ! !REVISION HISTORY:
 !  23 Aug 2011 - M. Long   - Converted to Module from Header file
+!  19 Nov 2012 - R. Yantosca - Now use INIT_JV_CMN to allocate arrays and
+!                              CLEANUP_JV_CMN to deallocate arrays
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      END MODULE JV_CMN_MOD
+      CONTAINS
 !EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_comode_loop
+!
+! !DESCRIPTION: Subroutine INIT\_COMODE\_LOOP initializes size parameters
+!  with the geospatial values obtained from the ESMF interface.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Init_JV_CMN( am_I_Root, RC )
+!
+! !USES:
+!
+      USE GIGC_ErrCode_Mod
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  Need to add error-checking on the allocation statements, so that we
+!  exit the code upon error.
+! 
+! !REVISION HISTORY: 
+!  19 Nov 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      ! Assume success
+      RC = GIGC_SUCCESS
+
+      ALLOCATE( ODMDUST(IIPAR,JJPAR,LLPAR,NDUST), STAT=RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         WRITE( 6, '(a)' ) 'Allocation error: ODMDUST'
+         RETURN
+      ENDIF
+      
+      ALLOCATE( ODAER(IIPAR,JJPAR,LLPAR,NAER*NRH), STAT=RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         WRITE( 6, '(a)' ) 'Allocation error: ODAERT'
+         RETURN
+      ENDIF
+
+      ! Zero arrays
+      ODMDUST = 0d0
+      ODAER   = 0d0
+
+      END SUBROUTINE Init_JV_CMN
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_comode_loop
+!
+! !DESCRIPTION: Subroutine CLEANUP\_COMODE\_LOOP deallocates all module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Cleanup_JV_CMN( am_I_Root, RC )
+!
+! !USES:
+!
+      USE GIGC_ErrCode_Mod
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: RC          ! Success or failure?
+!
+! !REMARKS:
+!
+! !REVISION HISTORY: 
+!  19 Nov 2012 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      ! Assume success
+      RC = GIGC_SUCCESS
+
+      ! Deallocate arrays
+      IF ( ALLOCATED( ODMDUST ) ) DEALLOCATE( ODMDUST )
+      IF ( ALLOCATED( ODAER   ) ) DEALLOCATE( ODAER   )
+
+      END SUBROUTINE Cleanup_JV_CMN
+!EOC
+      END MODULE JV_CMN_MOD

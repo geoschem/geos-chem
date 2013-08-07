@@ -503,16 +503,22 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*4,           INTENT(IN) :: VALUE        ! Value to be checked
-      CHARACTER(LEN=*), INTENT(IN) :: VARNAME      ! Name of variable
-      CHARACTER(LEN=*), INTENT(IN) :: MESSAGE      ! Short descriptive msg
-      INTEGER,          INTENT(IN) :: LOCATION(4)  ! (/ I, J, L, N /) indices
+      REAL*4,             INTENT(IN) :: VALUE        ! Value to be checked
+!------------------------------------------------------------------------------
+! Prior to 6/10/13:
+!      CHARACTER(LEN=*), INTENT(IN) :: VARNAME      ! Name of variable
+!      CHARACTER(LEN=*), INTENT(IN) :: MESSAGE      ! Short descriptive msg
+!------------------------------------------------------------------------------
+      CHARACTER(LEN=255), INTENT(IN) :: VARNAME      ! Name of variable
+      CHARACTER(LEN=255), INTENT(IN) :: MESSAGE      ! Short descriptive msg
+      INTEGER,            INTENT(IN) :: LOCATION(4)  ! (/ I, J, L, N /) indices
 !
 ! !REVISION HISTORY:
 !  13 Jun 2001 - R. Yantosca - Initial version
 !  15 Oct 2002 - R. Yantosca - Now call GEOS_CHEM_STOP to shutdown safely
 !  15 Oct 2002 - R. Yantosca - Updated comments, cosmetic changes
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  10 Jun 2013 - R. Yantosca - Avoid array temporaries, use CHAR*255 args
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -563,16 +569,23 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8,           INTENT(IN) :: VALUE        ! Value to be checked
-      CHARACTER(LEN=*), INTENT(IN) :: VARNAME      ! Name of variable
-      CHARACTER(LEN=*), INTENT(IN) :: MESSAGE      ! Short descriptive msg
-      INTEGER,          INTENT(IN) :: LOCATION(4)  ! (/ I, J, L, N /) indices
+      REAL*8,             INTENT(IN) :: VALUE        ! Value to be checked
+!------------------------------------------------------------------------------
+! Prior to 6/10/13:
+! Avoid array temporaries (bmy, 6/10/13)
+!      CHARACTER(LEN=*), INTENT(IN) :: VARNAME      ! Name of variable
+!      CHARACTER(LEN=*), INTENT(IN) :: MESSAGE      ! Short descriptive msg
+!------------------------------------------------------------------------------
+      CHARACTER(LEN=255), INTENT(IN) :: VARNAME      ! Name of variable
+      CHARACTER(LEN=255), INTENT(IN) :: MESSAGE      ! Short descriptive msg
+      INTEGER,            INTENT(IN) :: LOCATION(4)  ! (/ I, J, L, N /) indices
 !
 ! !REVISION HISTORY:
 !  13 Jun 2001 - R. Yantosca - Initial version
 !  15 Oct 2002 - R. Yantosca - Now call GEOS_CHEM_STOP to shutdown safely
 !  15 Oct 2002 - R. Yantosca - Updated comments, cosmetic changes
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  10 Jun 2013 - R. Yantosca - Avoid array temporaries, use CHAR*255 args
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -665,6 +678,16 @@
 !
 ! !USES:
 !
+#if defined( ESMF_ )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Use GEOS-5 style error reporting when connecting to the GEOS-5
+      ! GCM via the ESMF interface (bmy, 3/12/13)
+      !-----------------------------------------------------------------
+      USE MAPL_Mod
+#     include "MAPL_Generic.h"
+#endif
 #     include "define.h"
 
 ! !REVISION HISTORY:
@@ -672,10 +695,31 @@
 !  20 Nov 2009 - R. Yantosca - Now EXIT works for LINUX_IFC, LINUX_EFC,
 !                              so remove #if block.
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  12 Mar 2013 - R. Yantosca - Now use GEOS-5 style traceback when using ESMF
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
+#if defined( ESMF_ )
+
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Use GEOS-5 style error reporting when connecting to the GEOS-5
+      ! GCM via the ESMF interface (bmy, 3/12/13)
+      !-----------------------------------------------------------------
+      INTEGER :: RC      
+      __Iam__('GEOSCHEMSTOP')
+      STATUS = -1
+      VERIFY_(STATUS)
+
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Current practice in the std GEOS-Chem is to call CLEANUP to 
+      ! deallocate module arrays and then exit (bmy, 3/12/13)
+      !-----------------------------------------------------------------
 !$OMP CRITICAL
 
       ! Deallocate all module arrays
@@ -685,6 +729,8 @@
       CALL EXIT( 99999 )
 
 !$OMP END CRITICAL
+
+#endif
 
       ! End of program
       END SUBROUTINE GEOS_CHEM_STOP

@@ -23,14 +23,8 @@
 !
 ! !DEFINED PARAMETERS:
 !
-      ! Global array sizes in longitude, latitude, altitude
-      INTEGER, PARAMETER :: IPAR = IIPAR
-      INTEGER, PARAMETER :: JPAR = JJPAR
-      INTEGER, PARAMETER :: LPAR = LLPAR
-
       ! max # of photolysis rxns = 4 + IPHOT (see comode.h)
       ! FP increased JPMAX since IPHOT was increased (hotp 7/31/09)
-      !INTEGER, PARAMETER :: JPMAX = 79
       INTEGER, PARAMETER :: JPMAX = 89
 !
 ! !PUBLIC DATA MEMBERS:
@@ -52,7 +46,7 @@
       INTEGER            :: RINDEX(JPMAX)
 
       ! Output J-values
-      REAL*8             :: ZPJ(LPAR,JPMAX,IPAR,JPAR)
+      REAL*8, ALLOCATABLE :: ZPJ(:,:,:,:)
 ! 
 ! !REMARKS:
 !  Based on code from Oliver Wild (9 Jul 1999)
@@ -75,8 +69,96 @@
 !  (11) Increase photolysis rxns JPMAX = 89 for Isoprene (fp, 2/2/10)
 !  (12) Increase species name length. (fp, 2/2/10)
 !  23 Aug 2011 - M. Long   - Converted to Module from Header file
+!  10 Aug 2012 - R. Yantosca - Replace IPAR, JPAR, LPAR w/ IIPAR, JJPAR, LLPAR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      END MODULE CMN_FJ_MOD
+      CONTAINS
 !EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_cmn_fj
+!
+! !DESCRIPTION: Subroutine INIT\_CMN\_FJ allocates all module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Init_CMN_FJ( am_I_Root, RC )
+!
+! !USES:
+!
+      USE GIGC_ErrCode_Mod
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: RC          ! Success or failure?
+! 
+! !REVISION HISTORY: 
+!  19 Nov 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      ! Assume success
+      RC = GIGC_SUCCESS
+
+      ! Allocate arrays
+      ALLOCATE( ZPJ( LLPAR, JPMAX, IIPAR, JJPAR ), STAT=RC )
+      IF ( RC /= GIGC_SUCCESS ) THEN
+         WRITE( 6, '(a)' ) 'Could not allocate ZPJ (cmn_fj_mod.F)!'
+         RETURN
+      ENDIF
+
+      ! Zero arrays
+      ZPJ = 0d0
+
+      END SUBROUTINE Init_CMN_FJ
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_cmn_fj
+!
+! !DESCRIPTION: Subroutine CLEANUP\_CMN\_FJ deallocates all module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Cleanup_CMN_FJ( am_I_Root, RC )
+!
+! !USES:
+!
+      USE GIGC_ErrCode_Mod
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: RC          ! Success or failure?
+! 
+! !REVISION HISTORY: 
+!  19 Nov 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      ! Assume success
+      RC = GIGC_SUCCESS
+
+      ! Deallocate arrays
+      IF ( ALLOCATED( ZPJ ) ) DEALLOCATE( ZPJ )
+
+      END SUBROUTINE Cleanup_CMN_FJ
+!EOC
+      END MODULE CMN_FJ_MOD
+

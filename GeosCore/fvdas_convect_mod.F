@@ -49,6 +49,7 @@
 !        (bmy, 9/5/06)
 !  (10) Bug fix in CONVTRAN to avoid div potential div by zero.  Make SMALLEST
 !        = 1d-60 to avoid problems (bmy, 12/19/06)
+!  01 Mar 2012 - R. Yantosca - Now references the new grid_mod.F90
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -158,7 +159,8 @@
 
       SUBROUTINE FVDAS_CONVECT( TDT,   NTRACE, Q,     RPDEL, ETA, 
      &                          BETA,  MU,     MD,    EU,    DP,    
-     &                          NSTEP, FRACIS, TCVV,  INDEXSOL )
+     &                          NSTEP, FRACIS, TCVV,  INDEXSOL,
+     &                          State_Met )
 !
 !******************************************************************************
 !  Subroutine FVDAS_CONVECT is the convection driver routine for GEOS-4/fvDAS
@@ -215,22 +217,25 @@
 !        problems with OpenMP for some compilers. (bmy, 12/13/05)
 !******************************************************************************
 
-      USE CMN_SIZE_MOD      ! Size parameters
+      USE GIGC_State_Met_Mod, ONLY   : MetState
+
+      USE CMN_SIZE_MOD               ! Size parameters
 
       ! Arguments
-      INTEGER, INTENT(IN)    :: NSTEP, NTRACE             
-      INTEGER, INTENT(IN)    :: INDEXSOL(NTRACE) 
-      REAL*8,  INTENT(IN)    :: TDT                
-      REAL*8,  INTENT(INOUT) :: Q(IIPAR,JJPAR,LLPAR,NTRACE)
-      REAL*8,  INTENT(IN)    :: RPDEL(IIPAR,JJPAR,LLPAR)  
-      REAL*8,  INTENT(IN)    :: ETA(IIPAR,JJPAR,LLPAR)    
-      REAL*8,  INTENT(IN)    :: BETA(IIPAR,JJPAR,LLPAR)   
-      REAL*8,  INTENT(IN)    :: MU(IIPAR,JJPAR,LLPAR)     
-      REAL*8,  INTENT(IN)    :: MD(IIPAR,JJPAR,LLPAR)     
-      REAL*8,  INTENT(IN)    :: EU(IIPAR,JJPAR,LLPAR)     
-      REAL*8,  INTENT(IN)    :: DP(IIPAR,JJPAR,LLPAR)     
-      REAL*8,  INTENT(IN)    :: FRACIS(IIPAR,JJPAR,LLPAR,NTRACE) 
-      REAL*8,  INTENT(IN)    :: TCVV(NTRACE)
+      INTEGER,        INTENT(IN)    :: NSTEP, NTRACE             
+      INTEGER,        INTENT(IN)    :: INDEXSOL(NTRACE) 
+      REAL*8,         INTENT(IN)    :: TDT                
+      REAL*8,         INTENT(INOUT) :: Q(IIPAR,JJPAR,LLPAR,NTRACE)
+      REAL*8,         INTENT(IN)    :: RPDEL(IIPAR,JJPAR,LLPAR)  
+      REAL*8,         INTENT(IN)    :: ETA(IIPAR,JJPAR,LLPAR)    
+      REAL*8,         INTENT(IN)    :: BETA(IIPAR,JJPAR,LLPAR)   
+      REAL*8,         INTENT(IN)    :: MU(IIPAR,JJPAR,LLPAR)     
+      REAL*8,         INTENT(IN)    :: MD(IIPAR,JJPAR,LLPAR)     
+      REAL*8,         INTENT(IN)    :: EU(IIPAR,JJPAR,LLPAR)     
+      REAL*8,         INTENT(IN)    :: DP(IIPAR,JJPAR,LLPAR)     
+      REAL*8,         INTENT(IN)    :: FRACIS(IIPAR,JJPAR,LLPAR,NTRACE) 
+      REAL*8,         INTENT(IN)    :: TCVV(NTRACE)
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 
       ! Local variables
       INTEGER                :: I, J, L, N, LENGATH, ISTEP
@@ -278,7 +283,8 @@
                CALL CONVTRAN( J,     NTRACE,    Q,      MUG,  MDG,      
      &                        DUG,   EUG,       EDG,    DPG,  DSUBCLD,  
      &                        JT,    MX,        IDEEP,  1,    LENGATH, 
-     &                        NSTEP, 0.5D0*TDT, FRACIS, TCVV, INDEXSOL )
+     &                        NSTEP, 0.5D0*TDT, FRACIS, TCVV, INDEXSOL,
+     &                        State_Met )
             ENDIF
 
             !-----------------------------------
@@ -679,7 +685,8 @@
       SUBROUTINE CONVTRAN( J,     NTRACE, Q,      MU,   MD,       
      &                     DU,    EU,     ED,     DP,   DSUBCLD,  
      &                     JT,    MX,     IDEEP,  IL1G, IL2G,     
-     &                     NSTEP, DELT,   FRACIS, TCVV, INDEXSOL )
+     &                     NSTEP, DELT,   FRACIS, TCVV, INDEXSOL,
+     &                     State_Met )
 !
 !******************************************************************************
 !  Subroutine CONVTRAN applies the convective transport of trace species
@@ -751,43 +758,44 @@
 !        conserve mixing ratio (swu, bmy, 6/27/06)
 !  (8 ) Bug fix: avoid div by zero in formula for CHAT (bmy, 12/19/06)
 !  (9 ) Updates for mercury simulation (ccc, 5/6/10)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIAG_MOD,          ONLY : AD38, CONVFLUP 
-      USE GRID_MOD,          ONLY : GET_AREA_M2
-      USE LOGICAL_MOD,       ONLY : LDYNOCEAN, LGTMM
-!      USE OCEAN_MERCURY_MOD, ONLY : ADD_Hg2_WD
-      USE DEPO_MERCURY_MOD,  ONLY : ADD_Hg2_WD, ADD_HgP_WD !eck/eds
-      USE TRACER_MOD,        ONLY : ITS_A_MERCURY_SIM
-      USE TRACERID_MOD,      ONLY : IS_Hg2, IS_HgP !eck/eds
-      USE DEPO_MERCURY_MOD,  ONLY : ADD_Hg2_SNOWPACK !CDH
-      USE DAO_MOD,           ONLY : SNOMAS, SNOW 
+      USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_WD, ADD_HgP_WD !eck/eds
+      USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK !CDH
+      USE DIAG_MOD,           ONLY : AD38, CONVFLUP 
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_AREA_M2
+      USE LOGICAL_MOD,        ONLY : LDYNOCEAN, LGTMM
+      USE TRACER_MOD,         ONLY : ITS_A_MERCURY_SIM
+      USE TRACERID_MOD,       ONLY : IS_Hg2, IS_HgP !eck/eds
 
-      USE CMN_SIZE_MOD          ! Size parameters
-      USE CMN_DIAG_MOD          ! ND38, LD38, ND14, LD14
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND38, LD38, ND14, LD14
 
       ! Arguments
-      INTEGER, INTENT(IN)        :: J
-      INTEGER, INTENT(IN)        :: NTRACE  
-      REAL*8,  INTENT(INOUT)     :: Q(IIPAR,JJPAR,LLPAR,NTRACE)  
-      REAL*8,  INTENT(IN)        :: MU(IIPAR,LLPAR)      
-      REAL*8,  INTENT(IN)        :: MD(IIPAR,LLPAR)      
-      REAL*8,  INTENT(IN)        :: DU(IIPAR,LLPAR)      
-      REAL*8,  INTENT(IN)        :: EU(IIPAR,LLPAR)      
-      REAL*8,  INTENT(IN)        :: ED(IIPAR,LLPAR)      
-      REAL*8,  INTENT(IN)        :: DP(IIPAR,LLPAR)      
-      REAL*8,  INTENT(IN)        :: DSUBCLD(IIPAR)      
-      INTEGER, INTENT(IN)        :: JT(IIPAR)          
-      INTEGER, INTENT(IN)        :: MX(IIPAR)          
-      INTEGER, INTENT(IN)        :: IDEEP(IIPAR)       
-      INTEGER, INTENT(IN)        :: IL1G               
-      INTEGER, INTENT(IN)        :: IL2G 
-      INTEGER, INTENT(IN)        :: NSTEP               
-      REAL*8,  INTENT(IN)        :: DELT                
-      REAL*8,  INTENT(IN)        :: FRACIS(IIPAR,JJPAR,LLPAR,NTRACE) 
-      REAL*8,  INTENT(IN)        :: TCVV(NTRACE)
-      INTEGER, INTENT(IN)        :: INDEXSOL(NTRACE)
+      INTEGER,        INTENT(IN)    :: J
+      INTEGER,        INTENT(IN)    :: NTRACE  
+      REAL*8,         INTENT(INOUT) :: Q(IIPAR,JJPAR,LLPAR,NTRACE)  
+      REAL*8,         INTENT(IN)    :: MU(IIPAR,LLPAR)      
+      REAL*8,         INTENT(IN)    :: MD(IIPAR,LLPAR)      
+      REAL*8,         INTENT(IN)    :: DU(IIPAR,LLPAR)      
+      REAL*8,         INTENT(IN)    :: EU(IIPAR,LLPAR)      
+      REAL*8,         INTENT(IN)    :: ED(IIPAR,LLPAR)      
+      REAL*8,         INTENT(IN)    :: DP(IIPAR,LLPAR)      
+      REAL*8,         INTENT(IN)    :: DSUBCLD(IIPAR)      
+      INTEGER,        INTENT(IN)    :: JT(IIPAR)          
+      INTEGER,        INTENT(IN)    :: MX(IIPAR)          
+      INTEGER,        INTENT(IN)    :: IDEEP(IIPAR)       
+      INTEGER,        INTENT(IN)    :: IL1G               
+      INTEGER,        INTENT(IN)    :: IL2G 
+      INTEGER,        INTENT(IN)    :: NSTEP               
+      REAL*8,         INTENT(IN)    :: DELT                
+      REAL*8,         INTENT(IN)    :: FRACIS(IIPAR,JJPAR,LLPAR,NTRACE) 
+      REAL*8,         INTENT(IN)    :: TCVV(NTRACE)
+      INTEGER,        INTENT(IN)    :: INDEXSOL(NTRACE)
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 
       ! Local variables
       LOGICAL                    :: IS_Hg
@@ -1095,7 +1103,7 @@
                   LL = LLPAR - K + 1
 
                   ! Grid box surface area [m]
-                  AREA_M2 = GET_AREA_M2( JJ ) 
+                  AREA_M2 = GET_AREA_M2( II, JJ, LL ) 
 
                   ! Only save from levels 1..LD14 
                   IF ( LL < LD14 ) THEN
@@ -1151,7 +1159,7 @@
                   IF ( LL <= LD38 ) THEN
                   
                      ! Grid box surface area [m2] 
-                     AREA_M2 = GET_AREA_M2( JJ )  
+                     AREA_M2 = GET_AREA_M2( II, JJ, LL )  
 
                      ! Save loss in [kg/s]
                      AD38(II,JJ,LL,NN) = AD38(II,JJ,LL,NN) +
@@ -1185,7 +1193,7 @@
                      JJ      = J
 
                      ! Grid box surface area [m2] 
-                     AREA_M2 = GET_AREA_M2( JJ )
+                     AREA_M2 = GET_AREA_M2( II, JJ, 1 )
 
                      ! Hg2 wet-scavenged out of the column [kg]
                      WET_Hg2 = MU(I,KP1) * AREA_M2     * 100d0         / 
@@ -1194,7 +1202,8 @@
 
                      ! Pass to "ocean_mercury_mod.f"
                      CALL ADD_Hg2_WD( II, J, M, WET_Hg2 )
-                     CALL ADD_Hg2_SNOWPACK( II, J, M, WET_Hg2 )
+                     CALL ADD_Hg2_SNOWPACK( II, J, M, WET_Hg2, 
+     &                                      State_Met )
                   ENDIF
                   !eck/eds
                   IF ( IS_HgP( M ) ) THEN
@@ -1204,7 +1213,7 @@
                      JJ      = J
 
                      ! Grid box surface area [m2] 
-                     AREA_M2 = GET_AREA_M2( JJ )
+                     AREA_M2 = GET_AREA_M2( II, JJ, 1 )
 
                      ! Hg2 wet-scavenged out of the column [kg]
                      WET_HgP = MU(I,KP1) * AREA_M2     * 100d0         / 
@@ -1213,7 +1222,8 @@
 
                      ! Pass to "ocean_mercury_mod.f"
                      CALL ADD_HgP_WD( II, J, M, WET_HgP )
-                     CALL ADD_Hg2_SNOWPACK( II, J, M, WET_HgP )
+                     CALL ADD_Hg2_SNOWPACK( II, J, M, WET_HgP,
+     &                                      State_Met )
                   ENDIF
                ENDIF
 

@@ -1,53 +1,92 @@
-! $Id: lump.f,v 1.1 2009/09/16 14:06:21 bmy Exp $
-      SUBROUTINE LUMP( NTRACER, XNUMOL, STT )
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine LUMP takes individual chemistry species and "lumps" them back 
-!  into tracers after each SMVGEAR chemistry timestep. (bmy, 4/1/03, 7/20/04)
-! 
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) NTRACER (INTEGER) : Number of tracers
-!  (2 ) XNUMOL  (REAL*8 ) : Array of molecules tracer / kg tracer 
-!  (3 ) STT     (REAL*8 ) : Tracer concentrations [molec/cm3/box]
+! !ROUTINE: lump
 !
-!  Arguments as Output:
-!  ============================================================================
-!  (3 ) STT     (REAL*8 ) : Tracer concentrations [kg/box]
+! !DESCRIPTION: Subroutine LUMP takes individual chemistry species and 
+!  "lumps" them back into tracers after each SMVGEAR chemistry timestep.
+!\\
+!\\
+! !INTERFACE:
 !
-!  NOTES:
-!  (1 ) Updated comments, cosmetic changes (bmy, 4/1/03)
-!  (2 ) Added OpenMP parallelization commands (bmy, 8/1/03)
-!  (3 ) Now dimension args XNUMOL, STT w/ NTRACER and not NNPAR (bmy, 7/20/04)
-!******************************************************************************
+      SUBROUTINE LUMP( am_I_Root, Input_Opt, State_Chm, RC  )
 !
-      ! References to F90 modules
-      USE COMODE_MOD,   ONLY : CSPEC,  JLOP,    VOLUME
-      USE TRACERID_MOD, ONLY : IDTRMB, NMEMBER, CTRMB
-
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE COMODE_LOOP_MOD     ! SMVGEAR II arrays
+! !USES:
+!
+      USE CMN_SIZE_MOD
+      USE COMODE_MOD,         ONLY : CSPEC,  JLOP,    VOLUME
+      USE COMODE_LOOP_MOD
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE TRACERID_MOD,       ONLY : IDTRMB, NMEMBER, CTRMB
 
       IMPLICIT NONE
 #     include "define.h"
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+! 
+! !REVISION HISTORY: 
+!  01 Apr 2003 - R. Yantosca - Initial version
+!  (1 ) Updated comments, cosmetic changes (bmy, 4/1/03)
+!  (2 ) Added OpenMP parallelization commands (bmy, 8/1/03)
+!  (3 ) Now dimension args XNUMOL, STT w/ NTRACER and not NNPAR (bmy, 7/20/04)
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
+!  30 Jul 2012 - R. Yantosca - Added ProTeX headers
+!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES
+!
+      INTEGER         :: I, J, L, N, JLOOP, KK, JJ
+      REAL*8          :: CONCTMP  
 
-      ! Arguments
-      INTEGER, INTENT(IN)    :: NTRACER
-      REAL*8,  INTENT(IN)    :: XNUMOL(NTRACER)
-      REAL*8,  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,NTRACER)   
+      ! For values from Input_Opt
+      INTEGER         :: N_TRACERS
+      REAL*8          :: XNUMOL(Input_Opt%N_TRACERS)
 
-      ! Local variables
-      INTEGER                :: I, J, L, N, JLOOP, KK, JJ
-      REAL*8                 :: CONCTMP  
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! LUMP begins here!
       !=================================================================
+
+      ! Assume success
+      RC        =  GIGC_SUCCESS
+
+      ! Copy values from Input_Opt
+      N_TRACERS = Input_Opt%N_TRACERS
+      XNUMOL    = Input_Opt%XNUMOL(1:N_TRACERS)
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      ! (mpayer, 12/6/12)
+      STT => State_Chm%Tracers
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N, JLOOP, CONCTMP, KK, JJ )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO N = 1, NTRACER
+      DO N = 1, N_TRACERS
          
          ! Skip if not a valid tracer
          IF ( IDTRMB(N,1) == 0 ) CYCLE
@@ -80,6 +119,9 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
+      ! Free pointer
+      NULLIFY( STT )
+
       END SUBROUTINE LUMP
+!EOC
 

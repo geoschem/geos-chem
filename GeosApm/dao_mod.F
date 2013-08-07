@@ -26,25 +26,29 @@
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
+#if   defined( APM )
       PRIVATE :: INIT_DAO_GCAP
-      PRIVATE :: INIT_DAO_GEOS3
       PRIVATE :: INIT_DAO_GEOS4
       PRIVATE :: INIT_DAO_GEOS5
       PRIVATE :: INIT_DAO_GEOS57
       PRIVATE :: INIT_DAO_MERRA
       PRIVATE :: INIT_DAO_DERIVED
+#endif
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
       PUBLIC  :: AVGPOLE
       PUBLIC  :: AIRQNT
-      PUBLIC  :: AIRQNT_FULLGRID
+#if   defined( APM )
       PUBLIC  :: CLEANUP_DAO
+#endif
       PUBLIC  :: CONVERT_UNITS
       PUBLIC  :: COPY_I3_I6_FIELDS
       PUBLIC  :: GET_COSINE_SZA
       PUBLIC  :: GET_OBK
+#if   defined( APM )
       PUBLIC  :: INIT_DAO
+#endif
       PUBLIC  :: INTERP
       PUBLIC  :: IS_LAND
       PUBLIC  :: IS_WATER
@@ -55,140 +59,6 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !
-      ! 2-D data fields
-      REAL*8,  ALLOCATABLE, PUBLIC :: ALBD1          (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: ALBD2          (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: ALBD           (:,:  )
-      INTEGER, ALLOCATABLE, PUBLIC :: CLDTOPS        (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: CLDFRC         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: EFLUX          (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: EVAP           (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: FRLAKE         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: FRLAND         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: FROCEAN        (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: FRLANDIC       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: FRSEAICE       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: FRSNO          (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: GRN            (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: GWETROOT       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: GWETTOP        (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: HFLUX          (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: LAI            (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: LWI_GISS       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: LWI            (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: MOLENGTH       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: OICE           (:,:  )      
-      REAL*8,  ALLOCATABLE, PUBLIC :: PARDF          (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: PARDR          (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: PBL            (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: PHIS           (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: PREACC         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: PREANV         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: PRECON         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: PRELSC         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: PRECSNO        (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: PS1            (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: PS2            (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: PSC2           (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: RADLWG         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: RADSWG         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE00       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE10       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE20       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE30       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE40       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE50       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE60       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE70       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE80       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE90       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SLP            (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SNICE          (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SNODP          (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SNOMAS         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SNOW           (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SUNCOS         (:    )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SUNCOS_MID     (:    )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SUNCOS_MID_5hr (:    )
-      REAL*8,  ALLOCATABLE, PUBLIC :: TO31           (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: TO32           (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: TO3            (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: TTO3           (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: TROPP1         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: TROPP2         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: TROPP          (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: TS             (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: TSKIN          (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: U10M           (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: USTAR          (:,:  )  
-      REAL*8,  ALLOCATABLE, PUBLIC :: V10M           (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: Z0             (:,:  )
-
-      ! 3-D data fields
-      REAL*8,  ALLOCATABLE, PUBLIC :: AD             (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: AIRDEN         (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: AIRVOL         (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: AVGW           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: BXHEIGHT       (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DQRCU          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DQRLSAN        (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: CLDF           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: CLDMAS         (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: CMFMC          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DELP           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DETRAINE       (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DETRAINN       (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DNDE           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DNDN           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DQIDTMST       (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DQLDTMST       (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DQRCON         (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DQRLSC         (:,:,:)    
-      REAL*8,  ALLOCATABLE, PUBLIC :: DQVDTMST       (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DTRAIN         (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: ENTRAIN        (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: HKBETA         (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: HKETA          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: MFXC           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: MFYC           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: MFZ            (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: MOISTQ         (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: OPTDEP         (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: OPTD           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: PFICU          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: PFILSAN        (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: PFLCU          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: PFLLSAN        (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: PV             (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: QI             (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: QL             (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: REEVAPCN       (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: REEVAPLS       (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: RH1            (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: RH2            (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: RH             (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: SPHU1          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: SPHU2          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: SPHU           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: T              (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: TAUCLI         (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: TAUCLW         (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: TMPU1          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: TMPU2          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: UPDE           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: UPDN           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: UWND1          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: UWND2          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: UWND           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: VWND1          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: VWND2          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: VWND           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: ZMEU           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: ZMMD           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: ZMMU           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: AIRDEN_FULLGRID(:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: T_FULLGRID     (:,:,:)
-
 #if   defined( APM ) 
       !=================================================================
       ! Met field arrays needed only for APM microphysics
@@ -361,6 +231,7 @@
 !  18 Aug 2010 - R. Yantosca - Added modifications for MERRA data
 !  18 Aug 2010 - R. Yantosca - Move CMN_SIZE, CMN_DIAG to top of module
 !  25 Aug 2010 - R. Yantosca - Now read LWI (land/water/ice) for MERRA met
+!  15 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
 !  05 Oct 2011 - R. Yantosca - Add SUNCOS_30 array to hold the cos(SZA)
 !                              computed @ 30 mins after each GMT hour.
 !  07 Oct 2011 - R. Yantosca - Rename SUNCOS30 to SUNCOS_MID, which is the
@@ -371,6 +242,18 @@
 !                              angles at the current time and 5 hours prior to
 !                              the current time (for the PARANOX ship emissions
 !                              plume model) (R. Yantosca)
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  01 Mar 2012 - R. Yantosca - Use updated GET_LOCALTIME from time_mod.F
+!  01 Mar 2012 - R. Yantosca - Now references the new grid_mod.F90
+!  06 Mar 2012 - R. Yantosca - Now allocate TO3 for all met fields
+!  21 Nov 2012 - R. Yantosca - Removed met fields now contained in State_met
+!  21 Nov 2012 - R. Yantosca - Remove functions INIT_DAO_GCAP, INIT_DAO_GEOS4,
+!                              INIT_DAO_GEOS5, INIT_DAO_GEOS57, INIT_DAO_MERRA
+!  27 Nov 2012 - R. Yantosca - Removed obsolete AIRQNT_FULLGRID routine and 
+!                              obsolete arrays AIRDEN_FULLGRID, T_FULLGRID
+!  28 Nov 2012 - R. Yantosca - Removed SUNCOS, SUNCOS_MID, SUNCOS_MID_5hr
+!  28 Nov 2012 - R. Yantosca - Removed routines INIT_DAO, INIT_DAO_DERIVED, and
+!                              CLEANUP_DAO; we have no more allocatable arrays
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -416,6 +299,7 @@
 !  (7 ) Also need to RETURN for 0.5 x 0.666 nested grid simulations 
 !        (mpb, bmy, 12/18/09)
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -430,8 +314,8 @@
       ! AVGPOLE begins here!                                                  
       !=================================================================
 
-#if   defined( GRID1x1   ) || defined( GRID05x0666 ) 
-#if   defined( NESTED_CH ) || defined( NESTED_NA   ) 
+#if   defined( GRID1x1   ) || defined( GRID05x0666 ) || defined( GRID025x03125 )
+#if   defined( NESTED_CH ) || defined( NESTED_NA   ) || defined( NESTED_EU     ) || defined ( SEAC4RS )
       ! NOTE: Only do this for 1x1 nested grids (bmy, 12/1/04)
       ! 1x1 window grid does not extend to poles
       RETURN
@@ -448,14 +332,22 @@
       TOTAL_A4 = 0.
 
       DO I = 1, IIPAR
-         TOTAL_Z1 = TOTAL_Z1 + GET_AREA_M2(       1 ) * Z(I,      1)
-         TOTAL_Z2 = TOTAL_Z2 + GET_AREA_M2(       2 ) * Z(I,      2)
-         TOTAL_Z3 = TOTAL_Z3 + GET_AREA_M2( JJPAR-1 ) * Z(I,JJPAR-1)
-         TOTAL_Z4 = TOTAL_Z4 + GET_AREA_M2(   JJPAR ) * Z(I,JJPAR  )
-         TOTAL_A1 = TOTAL_A1 + GET_AREA_M2(       1 ) 
-         TOTAL_A2 = TOTAL_A2 + GET_AREA_M2(       2 )
-         TOTAL_A3 = TOTAL_A3 + GET_AREA_M2( JJPAR-1 )
-         TOTAL_A4 = TOTAL_A4 + GET_AREA_M2(   JJPAR )
+         TOTAL_Z1 = TOTAL_Z1 
+     &            + GET_AREA_M2( I, 1,       1 ) * Z(I,1      )
+
+         TOTAL_Z2 = TOTAL_Z2 
+     &            + GET_AREA_M2( I, 2,       1 ) * Z(I,2      )
+
+         TOTAL_Z3 = TOTAL_Z3 
+     &            + GET_AREA_M2( I, JJPAR-1, 1 ) * Z(I,JJPAR-1)
+
+         TOTAL_Z4 = TOTAL_Z4 
+     &            + GET_AREA_M2( I, JJPAR,   1 ) * Z(I,JJPAR  )
+
+         TOTAL_A1 = TOTAL_A1 + GET_AREA_M2( I, 1,       1 ) 
+         TOTAL_A2 = TOTAL_A2 + GET_AREA_M2( I, 2,       1 )
+         TOTAL_A3 = TOTAL_A3 + GET_AREA_M2( I, JJPAR-1, 1 )
+         TOTAL_A4 = TOTAL_A4 + GET_AREA_M2( I, JJPAR,   1 )
       ENDDO
 
       DO I = 1, IIPAR
@@ -482,12 +374,17 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE AIRQNT
+      SUBROUTINE AIRQNT( State_Met )
 !
 ! !USES:
 !
-      USE GRID_MOD,     ONLY : GET_AREA_M2
-      USE PRESSURE_MOD, ONLY : GET_BP, GET_PEDGE
+      USE GIGC_State_Met_Mod,   ONLY : MetState
+      USE GRID_MOD,             ONLY : GET_AREA_M2
+      USE PRESSURE_MOD,         ONLY : GET_BP, GET_PEDGE
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Obj for met fields
 !
 ! !REMARKS:
 !  DAO met fields updated by AIRQNT:
@@ -539,12 +436,18 @@
 !  (19) Now move computation of DELP into main loop.  Also remove P, LOGP,
 !        JREF, DSIG variables -- these are obsolete for fvDAS.  (bmy, 6/19/03)
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!  22 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
+!  22 Oct 2012 - R. Yantosca - Renamed LOCAL_MET argument to State_Met
+!  09 Nov 2012 - M. Payer    - Copy met field arrays to the State_Met derived
+!                              type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+
       INTEGER :: I,  J,  L
       REAL*8  :: P1, P2, AREA_M2
 
@@ -556,191 +459,80 @@
 !$OMP+PRIVATE( I, J, L, AREA_M2, P1, P2 )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Grid box surface area [m2]
-         AREA_M2 = GET_AREA_M2( J )
+         AREA_M2                   = GET_AREA_M2( I, J, L )
+  
+         ! Pressure at bottom edge of grid box [hPa]
+         P1                        = GET_PEDGE( I, J, L )
 
-         DO I = 1, IIPAR
-               
-            ! Pressure at bottom edge of grid box [hPa]
-            P1          = GET_PEDGE(I,J,L)
+         ! Pressure at top edge of grid box [hPa]
+         P2                        = GET_PEDGE( I, J, L+1 )
 
-            ! Pressure at top edge of grid box [hPa]
-            P2          = GET_PEDGE(I,J,L+1)
+         ! Pressure difference between top & bottom edges [hPa]
+         State_Met%DELP(L,I,J)     = P1 - P2
 
-            ! Pressure difference between top & bottom edges [hPa]
-            DELP(L,I,J) = P1 - P2
-            
-            !===========================================================
-            ! BXHEIGHT is the height (Delta-Z) of grid box (I,J,L) 
-            ! in meters. 
-            !
-            ! The formula for BXHEIGHT is just the hydrostatic eqn.  
-            ! Rd = 287 J/K/kg is the value for the ideal gas constant
-            ! R for air (M.W = 0.02897 kg/mol),  or 
-            ! Rd = 8.31 J/(mol*K) / 0.02897 kg/mol. 
-            !===========================================================
-            BXHEIGHT(I,J,L) = Rdg0 * T(I,J,L) * LOG( P1 / P2 )
+         !===========================================================
+         ! BXHEIGHT is the height (Delta-Z) of grid box (I,J,L) 
+         ! in meters. 
+         !
+         ! The formula for BXHEIGHT is just the hydrostatic eqn.  
+         ! Rd = 287 J/K/kg is the value for the ideal gas constant
+         ! R for air (M.W = 0.02897 kg/mol),  or 
+         ! Rd = 8.31 J/(mol*K) / 0.02897 kg/mol. 
+         !===========================================================
+         State_Met%BXHEIGHT(I,J,L) = Rdg0 
+     &                             * State_Met%T(I,J,L) 
+     &                             * LOG( P1 / P2 )
 
-            !===========================================================
-            ! AIRVOL is the volume of grid box (I,J,L) in meters^3
-            !
-            ! AREA_M2 is the Delta-X * Delta-Y surface area of grid
-            ! boxes (I,J,L=1), that is, at the earth's surface.
-            !
-            ! Since the thickness of the atmosphere is much smaller 
-            ! than the radius of the earth, we can make the "thin 
-            ! atmosphere" approximation, namely:
-            !
-            !               (Rearth + h) ~ Rearth
-            !
-            ! Therefore, the Delta-X * Delta-Y surface area of grid
-            ! boxes that are above the earth's surface will be 
-            ! approx. the same as AREA_M2.  Thus we are justified 
-            ! in using AREA_M2 for grid boxes (I, J, L > 1)
-            !===========================================================
-            AIRVOL(I,J,L) = BXHEIGHT(I,J,L) * AREA_M2
+         !===========================================================
+         ! AIRVOL is the volume of grid box (I,J,L) in meters^3
+         !
+         ! AREA_M2 is the Delta-X * Delta-Y surface area of grid
+         ! boxes (I,J,L=1), that is, at the earth's surface.
+         !
+         ! Since the thickness of the atmosphere is much smaller 
+         ! than the radius of the earth, we can make the "thin 
+         ! atmosphere" approximation, namely:
+         !
+         !               (Rearth + h) ~ Rearth
+         !
+         ! Therefore, the Delta-X * Delta-Y surface area of grid
+         ! boxes that are above the earth's surface will be 
+         ! approx. the same as AREA_M2.  Thus we are justified 
+         ! in using AREA_M2 for grid boxes (I, J, L > 1)
+         !===========================================================
+         State_Met%AIRVOL(I,J,L) = State_Met%BXHEIGHT(I,J,L) * AREA_M2
 
-            !===========================================================
-            ! AD = (dry) mass of air in grid box (I,J,L) in kg, 
-            ! given by:        
-            !
-            !  Mass    Pressure        100      1        Surface area 
-            !        = difference   *  ---  *  ---   *   of grid box 
-            !          in grid box      1       g          AREA_M2
-            !
-            !   kg         mb          Pa      s^2           m^2
-            !  ----  =    ----      * ----  * -----  *      -----
-            !    1          1          mb       m             1
-            !===========================================================
-            AD(I,J,L) = DELP(L,I,J) * G0_100 * AREA_M2
+         !===========================================================
+         ! AD = (dry) mass of air in grid box (I,J,L) in kg, 
+         ! given by:        
+         !
+         !  Mass    Pressure        100      1        Surface area 
+         !        = difference   *  ---  *  ---   *   of grid box 
+         !          in grid box      1       g          AREA_M2
+         !
+         !   kg         mb          Pa      s^2           m^2
+         !  ----  =    ----      * ----  * -----  *      -----
+         !    1          1          mb       m             1
+         !===========================================================
+         State_Met%AD(I,J,L) = State_Met%DELP(L,I,J) 
+     &                       * G0_100 
+     &                       * AREA_M2
 
-            !===========================================================
-            ! AIRDEN = density of air (AD / AIRVOL) in kg / m^3 
-            !===========================================================
-            AIRDEN(L,I,J) = AD(I,J,L) / AIRVOL(I,J,L)
-         ENDDO
+         !===========================================================
+         ! AIRDEN = density of air (AD / AIRVOL) in kg / m^3 
+         !===========================================================
+         State_Met%AIRDEN(L,I,J) = State_Met%AD(I,J,L) 
+     &                           / State_Met%AIRVOL(I,J,L)
+
+      ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
       END SUBROUTINE AIRQNT
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: airqnt_fullgrid
-!
-! !DESCRIPTION: Subroutine AIRQNT\_FULLGRID calculates the same quantities as 
-!  AIRQNT, but for the full, unlumped vertical grid of the GEOS GCM.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE AIRQNT_FULLGRID
-!
-! !USES:
-!
-      USE GRID_MOD,     ONLY : GET_AREA_M2
-      USE PRESSURE_MOD, ONLY : GET_PEDGE_FULLGRID
-!
-! !REMARKS:
-!  DAO met fields updated by AIRQNT_FULLGRID:
-!  ========================================================================
-!  (1 ) AIRDEN_FULLGRID (REAL*8 ) : Density of air  in a grid box   [kg/m^3  ]
-!
-!  NOTES:
-!  (1 ) Modified from AIRQNT in DAO_MOD (cdh, 1/22/09)
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER             :: I,  J,  L
-      REAL*8              :: P1, P2, AREA_M2, DELP_TMP
-      REAL*8              :: BXHEIGHT_TMP, AIRVOL_TMP, AD_TMP
-
-      !=================================================================
-      ! AIRQNT_FULLGRID begins here! 
-      !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, AREA_M2, P1, P2 )
-!$OMP+PRIVATE( DELP_TMP, BXHEIGHT_TMP, AIRVOL_TMP, AD_TMP )
-      DO L = 1, LGLOB
-      DO J = 1, JJPAR
-
-         ! Grid box surface area [m2]
-         AREA_M2 = GET_AREA_M2( J )
-
-         DO I = 1, IIPAR
-               
-            ! Pressure at bottom edge of grid box [hPa]
-            P1          = GET_PEDGE_FULLGRID(I,J,L)
-
-            ! Pressure at top edge of grid box [hPa]
-            P2          = GET_PEDGE_FULLGRID(I,J,L+1)
-
-            ! Pressure difference between top & bottom edges [hPa]
-            DELP_TMP = P1 - P2
-            
-            !===========================================================
-            ! BXHEIGHT is the height (Delta-Z) of grid box (I,J,L) 
-            ! in meters. 
-            !
-            ! The formula for BXHEIGHT is just the hydrostatic eqn.  
-            ! Rd = 287 J/K/kg is the value for the ideal gas constant
-            ! R for air (M.W = 0.02897 kg/mol),  or 
-            ! Rd = 8.31 J/(mol*K) / 0.02897 kg/mol. 
-            !===========================================================
-            BXHEIGHT_TMP = Rdg0 * T_FULLGRID(I,J,L) * LOG( P1 / P2 )
-
-            !===========================================================
-            ! AIRVOL is the volume of grid box (I,J,L) in meters^3
-            !
-            ! AREA_M2 is the Delta-X * Delta-Y surface area of grid
-            ! boxes (I,J,L=1), that is, at the earth's surface.
-            !
-            ! Since the thickness of the atmosphere is much smaller 
-            ! than the radius of the earth, we can make the "thin 
-            ! atmosphere" approximation, namely:
-            !
-            !               (Rearth + h) ~ Rearth
-            !
-            ! Therefore, the Delta-X * Delta-Y surface area of grid
-            ! boxes that are above the earth's surface will be 
-            ! approx. the same as AREA_M2.  Thus we are justified 
-            ! in using AREA_M2 for grid boxes (I, J, L > 1)
-            !===========================================================
-            AIRVOL_TMP = BXHEIGHT_TMP * AREA_M2
-
-            !===========================================================
-            ! AD = (dry) mass of air in grid box (I,J,L) in kg, 
-            ! given by:        
-            !
-            !  Mass    Pressure        100      1        Surface area 
-            !        = difference   *  ---  *  ---   *   of grid box 
-            !          in grid box      1       g          AREA_M2
-            !
-            !   kg         mb          Pa      s^2           m^2
-            !  ----  =    ----      * ----  * -----  *      -----
-            !    1          1          mb       m             1
-            !===========================================================
-            AD_TMP = DELP_TMP * G0_100 * AREA_M2
-
-            !===========================================================
-            ! AIRDEN = density of air (AD / AIRVOL) in kg / m^3 
-            !===========================================================
-            AIRDEN_FULLGRID(L,I,J) = AD_TMP / AIRVOL_TMP
-         ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      END SUBROUTINE AIRQNT_FULLGRID
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -756,18 +548,25 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INTERP( NTIME0, NTIME1, NTDT )
+      SUBROUTINE INTERP( NTIME0, NTIME1, NTDT, State_Met )
 !
 ! !USES:
 !
-      USE GRID_MOD,    ONLY : GET_YEDGE
-      USE LOGICAL_MOD, ONLY : LVARTROP
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_YEDGE
+      USE LOGICAL_MOD,        ONLY : LVARTROP
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)  :: NTIME0   ! Elapsed time [s] at start of 6hr step
-      INTEGER, INTENT(IN)  :: NTIME1   ! Elapsed time [s] at current time
-      INTEGER, INTENT(IN)  :: NTDT     ! Length of dynamic timestep [s]
+      INTEGER,        INTENT(IN)    :: NTIME0   ! Elapsed time [s] at start of
+                                                !  6hr step
+      INTEGER,        INTENT(IN)    :: NTIME1   ! Elapsed time [s] at current
+                                                !  time
+      INTEGER,        INTENT(IN)    :: NTDT     ! Length of dynamic timestep [s]
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(MetState), INTENT(INOUT) :: State_Met  ! Meteorology State object
 ! 
 ! !REMARKS:
 !  Different met fields are archived at I6 (instantaneous 6-hr) time 
@@ -814,7 +613,12 @@
 !        (phs, 9/18/07)
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  18 Aug 2010 - R. Yantosca - Rewrite #if block logic for clarity
+!  15 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
 !  06 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x met fields
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  01 Mar 2012 - R. Yantosca - Now use GET_YEDGE(I,J,L) from new grid_mod.F90
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -856,184 +660,46 @@
       IF ( TMA3 > 1d0 ) TMA3 = TMA3 - 1.d0
 #endif
 
-#if defined( GEOS_4 ) || defined( GCAP )
+#if   defined( GCAP )
 
       !=================================================================
-      ! Do the interpolation for GEOS-4 or 'GCAP' met fields
+      ! Do the interpolation for GEOS-4 or GCAP met fields 
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, YSOUTH, YNORTH )
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! North & south edges of box
-         YSOUTH = GET_YEDGE( J   )
-         YNORTH = GET_YEDGE( J+1 )
+         YSOUTH = GET_YEDGE( I, J,   1 )
+         YNORTH = GET_YEDGE( I, J+1, 1 )
 
-         DO I = 1, IIPAR
+         ! Interpolate pressure [hPa] to the end of the dynamic timestep
+         State_Met%PSC2(I,J) = State_Met%PS1(I,J) +
+     &                       ( State_Met%PS2(I,J) - 
+     &                         State_Met%PS1(I,J) ) * TC2 
 
-            ! Interpolate pressure [hPa] to the end of the dynamic timestep
-            PSC2(I,J) = PS1(I,J) + ( PS2(I,J) - PS1(I,J) ) * TC2 
-
-            ! Test if we are using the variable tropopause
-            IF ( LVARTROP ) THEN
+         ! Test if we are using the variable tropopause
+         IF ( LVARTROP ) THEN
  
-               ! Interpolate TROPP [hPa] to the midpt of the dynamic timestep
-               TROPP(I,J) = TROPP1(I,J) 
-     &                    + ( TROPP2(I,J) - TROPP1(I,J) ) * TM
+            ! Interpolate TROPP [hPa] to the midpt of the dynamic timestep
+            State_Met%TROPP(I,J) = State_Met%TROPP1(I,J) +
+     &                           ( State_Met%TROPP2(I,J) - 
+     &                             State_Met%TROPP1(I,J) ) * TM
 
-
-               ! However, we still need to make sure to cap TROPP in the
-               ! polar regions (if the entire box is outside 60S-60N)
-               ! so that we don't do chemistry at an abnormally high
-               ! altitude.  Set TROPP in the polar regions to 200 hPa.
-               ! (jal, phs, bmy, 9/18/07)
-               IF ( YSOUTH >= 60d0 .or. YNORTH <= -60d0 ) THEN
-                  TROPP(I,J) = MAX( TROPP(I,J), 200d0 )
-               ENDIF
-            ENDIF
-         ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-#elif defined( GEOS_5 )
-
-      !=================================================================
-      ! Do the interpolation for GEOS-5 met fields 
-      !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, YSOUTH, YNORTH )
-      DO J = 1, JJPAR
-
-         ! North & south edges of box
-         YSOUTH = GET_YEDGE( J   )
-         YNORTH = GET_YEDGE( J+1 )
-
-         DO I = 1, IIPAR
-
-            ! Interpolate pressure [hPa] to the end of the dynamic timestep
-            PSC2(I,J) = PS1(I,J)  + ( PS2(I,J)  - PS1(I,J)  ) * TC2 
-
-            ! Interpolate the GEOS-5 total O3 column [DU] to current time
-            TO3(I,J)  = TO31(I,J) + ( TO32(I,J) - TO31(I,J) ) * TM
-
-            ! Even though TROPP is a 3-hour average field, we 
-            ! we still need to make sure to cap TROPP in the
+            ! However, we still need to make sure to cap TROPP in the
             ! polar regions (if the entire box is outside 60S-60N)
             ! so that we don't do chemistry at an abnormally high
             ! altitude.  Set TROPP in the polar regions to 200 hPa.
             ! (jal, phs, bmy, 9/18/07)
-            IF ( LVARTROP ) THEN
-               IF ( YSOUTH >= 60d0 .or. YNORTH <= -60d0 ) THEN
-                  TROPP(I,J) = MAX( TROPP(I,J), 200d0 )
-               ENDIF
-            ENDIF
-         ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-#elif defined( MERRA )
-
-      !=================================================================
-      ! Do the interpolation for MERRA or GEOS-5.7.x met fields 
-      !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, YSOUTH, YNORTH )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-
-         ! North & south edges of box
-         YSOUTH = GET_YEDGE( J   )
-         YNORTH = GET_YEDGE( J+1 )
-
-      DO I = 1, IIPAR
-
-         !----------------------------------------------------
-         ! Interpolate 2D variables
-         !----------------------------------------------------
-         IF ( L == 1 ) THEN
-            
-            ! Interpolate pressure [hPa] to the end of the dynamic timestep
-            PSC2(I,J)  = PS1(I,J) + ( PS2(I,J) - PS1(I,J) ) * TC2 
-
-            ! Even though TROPP is a 3-hour average field, we 
-            ! we still need to make sure to cap TROPP in the
-            ! polar regions (if the entire box is outside 60S-60N)
-            ! so that we don't do chemistry at an abnormally high
-            ! altitude.  Set TROPP in the polar regions to 200 hPa.
-            ! (jal, phs, bmy, 9/18/07)
-            IF ( LVARTROP ) THEN
-               IF ( YSOUTH >= 60d0 .or. YNORTH <= -60d0 ) THEN
-                  TROPP(I,J) = MAX( TROPP(I,J), 200d0 )
-               ENDIF
+            IF ( YSOUTH >= 60d0 .or. YNORTH <= -60d0 ) THEN
+               State_Met%TROPP(I,J) = MAX( State_Met%TROPP(I,J), 200d0 )
             ENDIF
          ENDIF
-
-         !----------------------------------------------------
-         ! Interpolate 3D variables
-         !----------------------------------------------------
-         RH(I,J,L) = RH1(I,J,L) + ( RH2(I,J,L) - RH1(I,J,L) ) * TM
-
-      ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
-#elif defined( GEOS_57 )
-
-      !=================================================================
-      ! Do the interpolation for GEOS-5.7.x met fields 
-      !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, YSOUTH, YNORTH )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-
-         ! North & south edges of box
-         YSOUTH = GET_YEDGE( J   )
-         YNORTH = GET_YEDGE( J+1 )
-
-      DO I = 1, IIPAR
-
-         !----------------------------------------------------
-         ! Interpolate 2D variables
-         !----------------------------------------------------
-         IF ( L == 1 ) THEN
-            
-            ! Interpolate pressure [hPa] to the end of the dynamic timestep
-            PSC2(I,J)  = PS1(I,J) + ( PS2(I,J) - PS1(I,J) ) * TC2 
-
-            ! Even though TROPP is a 3-hour average field, we 
-            ! we still need to make sure to cap TROPP in the
-            ! polar regions (if the entire box is outside 60S-60N)
-            ! so that we don't do chemistry at an abnormally high
-            ! altitude.  Set TROPP in the polar regions to 200 hPa.
-            ! (jal, phs, bmy, 9/18/07)
-            IF ( LVARTROP ) THEN
-               IF ( YSOUTH >= 60d0 .or. YNORTH <= -60d0 ) THEN
-                  TROPP(I,J) = MAX( TROPP(I,J), 200d0 )
-               ENDIF
-            ENDIF
-         ENDIF
-
-         !----------------------------------------------------
-         ! Interpolate 3D variables
-         !----------------------------------------------------
-         T   (I,J,L) = TMPU1(I,J,L)
-     &               + ( TMPU2(I,J,L) - TMPU1(I,J,L) ) * TM
-
-         SPHU(I,J,L) = SPHU1(I,J,L)
-     &               + ( SPHU2(I,J,L) - SPHU1(I,J,L) ) * TM 
-
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-#endif
 
 #if   defined( APM )
 
@@ -1049,51 +715,51 @@
 
          ! %%% Common fields %%%
 
-         CLDF(L,I,J)     = CLDF0a(L,I,J)+
+         State_Met%CLDF(L,I,J)     = CLDF0a(L,I,J)+
      &                     ( CLDF0b(L,I,J)     - CLDF0a(L,I,J)     )*TM
 
-         MOISTQ(L,I,J)   = MOISTQ0a(L,I,J)
+         State_Met%MOISTQ(L,I,J)   = MOISTQ0a(L,I,J)
      &                   + ( MOISTQ0b(L,I,J)   - MOISTQ0a(L,I,J)   )*TM
 
-         OPTDEP(L,I,J)   = OPTDEP0a(L,I,J)
+         State_Met%OPTDEP(L,I,J)   = OPTDEP0a(L,I,J)
      &                   + ( OPTDEP0b(L,I,J)   - OPTDEP0a(L,I,J)   )*TM
 
-         RH(I,J,L)       = RH0a(I,J,L)
+         State_Met%RH(I,J,L)       = RH0a(I,J,L)
      &                   + ( RH0b(I,J,L)       - RH0a(I,J,L)       )*TM
  
-         SPHU(I,J,L)     = SPHU0a(I,J,L)
+         State_Met%SPHU(I,J,L)     = SPHU0a(I,J,L)
      &                   + ( SPHU0b(I,J,L)     - SPHU0a(I,J,L)     )*TM
 
-         T(I,J,L)        = T0a(I,J,L) 
+         State_Met%T(I,J,L)        = T0a(I,J,L) 
      &                   + ( T0b(I,J,L)        - T0a(I,J,L)        )*TM
 
-         UWND(I,J,L)     = UWND0a(I,J,L)
+         State_Met%U(I,J,L)     = UWND0a(I,J,L)
      &                   + ( UWND0b(I,J,L)     - UWND0a(I,J,L)     )*TM
 
-         VWND(I,J,L)     = VWND0a(I,J,L)
+         State_Met%V(I,J,L)     = VWND0a(I,J,L)
      &                   + ( VWND0b(I,J,L)     - VWND0a(I,J,L)     )*TM
          
          ! %%% GCAP-specific fields %%%
 
-         DETRAINE(I,J,L) = DETRAINE0a(I,J,L)
+         State_Met%DETRAINE(I,J,L) = DETRAINE0a(I,J,L)
      &                   + ( DETRAINE0b(I,J,L) - DETRAINE0a(I,J,L) )*TM
 
-         DETRAINN(I,J,L) = DETRAINN0a(I,J,L)
+         State_Met%DETRAINN(I,J,L) = DETRAINN0a(I,J,L)
      &                   + ( DETRAINN0b(I,J,L) - DETRAINN0a(I,J,L) )*TM
 
-         DNDE(I,J,L)     = DNDE0a(I,J,L)
+         State_Met%DNDE(I,J,L)     = DNDE0a(I,J,L)
      &                   + ( DNDE0b(I,J,L)     - DNDE0a(I,J,L)     )*TM
 
-         DNDN(I,J,L)     = DNDN0a(I,J,L)
+         State_Met%DNDN(I,J,L)     = DNDN0a(I,J,L)
      &                   + ( DNDN0b(I,J,L)     - DNDN0a(I,J,L)     )*TM
 
-         ENTRAIN(I,J,L)  = ENTRAIN0a(I,J,L)+
+         State_Met%ENTRAIN(I,J,L)  = ENTRAIN0a(I,J,L)+
      &                     ( ENTRAIN0b(I,J,L)  - ENTRAIN0a(I,J,L)  )*TM
 
-         UPDE(I,J,L)     = UPDE0a(I,J,L)
+         State_Met%UPDE(I,J,L)     = UPDE0a(I,J,L)
      &                   + ( UPDE0b(I,J,L)     - UPDE0a(I,J,L)     )*TM
 
-         UPDN(I,J,L)     = UPDN0a(I,J,L)
+         State_Met%UPDN(I,J,L)     = UPDN0a(I,J,L)
      &                   + ( UPDN0b(I,J,L)     - UPDN0a(I,J,L)     )*TM
       ENDDO
       ENDDO
@@ -1113,16 +779,16 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         CMFMC(I,J,L) = CMFMC0a(I,J,L)
+         State_Met%CMFMC(I,J,L) = CMFMC0a(I,J,L)
      &                + ( CMFMC0b(I,J,L) - CMFMC0a(I,J,L) ) * TM
 
-         CLDFRC(I,J)  = CLDFRC0a(I,J)
+         State_Met%CLDFRC(I,J)  = CLDFRC0a(I,J)
      &                + ( CLDFRC0b(I,J)  - CLDFRC0a(I,J)  ) * TM
  
-         CLDTOPS(I,J) = CLDTOPS0a(I,J)
+         State_Met%CLDTOPS(I,J) = CLDTOPS0a(I,J)
      &                + ( CLDTOPS0b(I,J) - CLDTOPS0a(I,J) ) * TM
 
-         PBL(I,J)     = PBL0a(I,J) 
+         State_Met%PBL(I,J)     = PBL0a(I,J) 
      &                + ( PBL0b(I,J)     - PBL0a(I,J)     ) * TMA3
 
       ENDDO
@@ -1131,314 +797,44 @@
 
 #endif
 
-      END SUBROUTINE INTERP
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: interp_geos3
-!
-! !DESCRIPTION: Subroutine INTERP\_GEOS3 linearly interpolates
-!  GEOS-3 met fields to the current dynamic timestep.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE INTERP_GEOS3( NTIME0, NTIME1, NTDT )
-!
-! !USES:
-!
-      USE GRID_MOD,    ONLY : GET_YEDGE
-      USE LOGICAL_MOD, ONLY : LVARTROP
-!
-! !INPUT PARAMETERS:
-!
-      INTEGER, INTENT(IN)  :: NTIME0   ! Elapsed time [s] at start of 6hr step
-      INTEGER, INTENT(IN)  :: NTIME1   ! Elapsed time [s] at current time
-      INTEGER, INTENT(IN)  :: NTDT     ! Length of dynamic timestep [s]
-!
-! !REMARKS:
-!  Different met fields are archived at I6 (instantaneous 6-hr) time
-!  resolution depending on the specific product.  For example, relative
-!  humidity is an instantaneous 6hr field in MERRA and a 6-hr time averaged
-!  field in GEOS-5.
-!
-! !REVISION HISTORY:
-!  15 Feb 2011 - R. Yantosca - Initial version, split off from INTERP
-!  15 Feb 2011 - R. Yantosca - Added modifications for APM, from G. Luo
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: I,        J,        L
-      REAL*8  :: D_NTIME0, D_NTIME1, D_NDT
-      REAL*8  :: D_NTDT,   TM,       TC2
-      REAL*8  :: YSOUTH,   YNORTH
-
-      REAL*8  :: TMA3
-
+#elif defined( GEOS_4 )
 
       !=================================================================
-      ! Initialization
-      !=================================================================
-
-      ! Convert time variables from FLOAT to DBLE
-      D_NTIME0 = DBLE( NTIME0 )
-      D_NTIME1 = DBLE( NTIME1 )
-      D_NTDT   = DBLE( NTDT   )
-      D_NDT    = 21600d0
-
-      ! Fraction of 6h timestep elapsed at mid point of this dyn timestep
-      TM  = ( D_NTIME1 + D_NTDT/2d0 - D_NTIME0 ) / D_NDT
-      
-      ! Fraction of 6h timestep elapsed at the end of this dyn timestep
-      TC2 = ( D_NTIME1 + D_NTDT     - D_NTIME0 ) / D_NDT 
-
-
-      ! Fraction of 3h timestep elapsed at mid point of this dyn timestep
-#if   defined( APM )
-      TMA3 = 2.d0 * TM
-      IF ( TMA3 > 1d0 ) TMA3 = TMA3 - 1.d0
-#endif
-
-      !=================================================================
-      ! Do the interpolation for GEOS-3 met fields
-      !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         
-         !----------------------------------------------------
-         ! Interpolate 2D variables
-         !----------------------------------------------------
-         IF ( L == 1 ) THEN
-            
-            ! Interpolate pressure [hPa] to the end of the dynamic timestep
-            PSC2(I,J)  = PS1(I,J)  + ( PS2(I,J) - PS1(I,J) ) * TC2 
-  
-            ! Interpolate ALBEDO to the midpt of the dynamic timestep
-            ALBD(I,J) = ALBD1(I,J) + ( ALBD2(I,J) - ALBD1(I,J) ) * TM
-
-            ! Interpolate TROPP to the midpt of the dynamic timestep
-            IF ( LVARTROP ) THEN
-               TROPP(I,J) = TROPP1(I,J) 
-     &                    + ( TROPP2(I,J) - TROPP1(I,J) ) * TM
-            ENDIF
-         ENDIF
-         
-         !-----------------------------------------------------
-         ! Interpolate 3D Variables
-         !-----------------------------------------------------
-
-         ! Interpolate to the midpt of the dynamic timestep
-         UWND(I,J,L) = UWND1(I,J,L) + (UWND2(I,J,L) - UWND1(I,J,L)) * TM
-         VWND(I,J,L) = VWND1(I,J,L) + (VWND2(I,J,L) - VWND1(I,J,L)) * TM
-         SPHU(I,J,L) = SPHU1(I,J,L) + (SPHU2(I,J,L) - SPHU1(I,J,L)) * TM
-         T(I,J,L)    = TMPU1(I,J,L) + (TMPU2(I,J,L) - TMPU1(I,J,L)) * TM
-
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-#if   defined( APM ) 
-
-      !=================================================================
-      ! Interpolate 3D GEOS-3 Variables for APM microphysics
-      !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! %%% Common fields %%%
-
-         CLDF(L,I,J)   = CLDF0a(L,I,J)+
-     &                   ( CLDF0b(L,I,J)   - CLDF0a(L,I,J)   ) * TM
-                                                                 
-         MOISTQ(L,I,J) = MOISTQ0a(L,I,J)                         
-     &                 + ( MOISTQ0b(L,I,J) - MOISTQ0a(L,I,J) ) * TM
-                                                                 
-         OPTDEP(L,I,J) = OPTDEP0a(L,I,J)                         
-     &                 + ( OPTDEP0b(L,I,J) - OPTDEP0a(L,I,J) ) * TM
-                                                                 
-         RH(I,J,L)     = RH0a(I,J,L)                             
-     &                 + ( RH0b(I,J,L)     - RH0a(I,J,L)     ) * TM
-                                                                 
-         SPHU(I,J,L)   = SPHU0a(I,J,L)                           
-     &                 + ( SPHU0b(I,J,L)   - SPHU0a(I,J,L)   ) * TM
-                                                                 
-         T(I,J,L)      = T0a(I,J,L)                              
-     &                 + ( T0b(I,J,L)      - T0a(I,J,L)      ) * TM
-                                                                 
-         UWND(I,J,L)   = UWND0a(I,J,L)                           
-     &                 + ( UWND0b(I,J,L)   - UWND0a(I,J,L)   ) * TM
-                                                                 
-         VWND(I,J,L)   = VWND0a(I,J,L)                           
-     &                 + ( VWND0b(I,J,L)   - VWND0a(I,J,L)   ) * TM
-              
-         ! %%% GEOS-3 specific fields %%%
-                                                   
-         CLDMAS(I,J,L) = CLDMAS0a(I,J,L)                         
-     &                 + ( CLDMAS0b(I,J,L) - CLDMAS0a(I,J,L) ) * TM
-
-         DTRAIN(I,J,L) = DTRAIN0a(I,J,L)                         
-     &                 + ( DTRAIN0b(I,J,L) - DTRAIN0a(I,J,L) ) * TM
-                                                                 
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      !=================================================================
-      ! Interpolate 2D GEOS-3 Variables for APM microphysics
-      !=================================================================
-      
-      ! We need to interpolate the LLPAR+1st level of CMFMC
-      L = LLPAR+1
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         CMFMC(I,J,L) = CMFMC0a(I,J,L)
-     &                + ( CMFMC0b(I,J,L) - CMFMC0a(I,J,L) ) * TM
-
-         CLDFRC(I,J)  = CLDFRC0a(I,J)
-     &                + ( CLDFRC0b(I,J) - CLDFRC0a(I,J)   ) * TM
-
-         CLDTOPS(I,J) = CLDTOPS0a(I,J)                          
-     &                + ( CLDTOPS0b(I,J)  - CLDTOPS0a(I,J)  ) * TM
-                                                                
-         PBL(I,J)     = PBL0a(I,J) 
-     &                + ( PBL0b(I,J)    - PBL0a(I,J)      ) * TMA3
-      
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-#endif
-
-      END SUBROUTINE INTERP_GEOS3
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: interp_geos4
-!
-! !DESCRIPTION: Subroutine INTERP\_GEOS4 linearly interpolates
-!  GEOS-4 met fields to the current dynamic timestep.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE INTERP_GEOS4( NTIME0, NTIME1, NTDT )
-!
-! !USES:
-!
-      USE GRID_MOD,    ONLY : GET_YEDGE
-      USE LOGICAL_MOD, ONLY : LVARTROP
-!
-! !INPUT PARAMETERS:
-!
-      INTEGER, INTENT(IN)  :: NTIME0   ! Elapsed time [s] at start of 6hr step
-      INTEGER, INTENT(IN)  :: NTIME1   ! Elapsed time [s] at current time
-      INTEGER, INTENT(IN)  :: NTDT     ! Length of dynamic timestep [s]
-!
-! !REMARKS:
-!  Different met fields are archived at I6 (instantaneous 6-hr) time
-!  resolution depending on the specific product.  For example, relative
-!  humidity is an instantaneous 6hr field in MERRA and a 6-hr time averaged
-!  field in GEOS-5.
-!
-! !REVISION HISTORY:
-!  15 Feb 2011 - R. Yantosca - Initial version, split off from INTERP
-!  15 Feb 2011 - R. Yantosca - Added modifications for APM, from G. Luo
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: I,        J,        L
-      REAL*8  :: D_NTIME0, D_NTIME1, D_NDT
-      REAL*8  :: D_NTDT,   TM,       TC2
-      REAL*8  :: YSOUTH,   YNORTH
-#if   defined( APM ) 
-      REAL*8  :: TMA3
-#endif
-
-      !=================================================================
-      ! Initialization
-      !=================================================================
-
-      ! Convert time variables from FLOAT to DBLE
-      D_NTIME0 = DBLE( NTIME0 )
-      D_NTIME1 = DBLE( NTIME1 )
-      D_NTDT   = DBLE( NTDT   )
-      D_NDT    = 21600d0
-
-      ! Fraction of 6h timestep elapsed at mid point of this dyn timestep
-      TM  = ( D_NTIME1 + D_NTDT/2d0 - D_NTIME0 ) / D_NDT
-      
-      ! Fraction of 6h timestep elapsed at the end of this dyn timestep
-      TC2 = ( D_NTIME1 + D_NTDT     - D_NTIME0 ) / D_NDT 
-
-
-      ! Fraction of 3h timestep elapsed at mid point of this dyn timestep
-#if   defined( APM )
-      TMA3 = 2.d0 * TM
-      IF ( TMA3 > 1d0 ) TMA3 = TMA3 - 1.d0
-#endif
-
-      !=================================================================
-      ! Do the interpolation for GEOS-4 or GCAP met fields
+      ! Do the interpolation for GEOS-4 or GCAP met fields 
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, YSOUTH, YNORTH )
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! North & south edges of box
-         YSOUTH = GET_YEDGE( J   )
-         YNORTH = GET_YEDGE( J+1 )
+         YSOUTH = GET_YEDGE( I, J,   1 )
+         YNORTH = GET_YEDGE( I, J+1, 1 )
 
-         DO I = 1, IIPAR
+         ! Interpolate pressure [hPa] to the end of the dynamic timestep
+         State_Met%PSC2(I,J) = State_Met%PS1(I,J)  +
+     &                       ( State_Met%PS2(I,J)  -
+     &                         State_Met%PS1(I,J)  ) * TC2 
 
-            ! Interpolate pressure [hPa] to the end of the dynamic timestep
-            PSC2(I,J) = PS1(I,J) + ( PS2(I,J) - PS1(I,J) ) * TC2 
+         ! Test if we are using the variable tropopause
+         IF ( LVARTROP ) THEN
+               
+            ! Interpolate TROPP [hPa] to the midpt of the dynamic timestep
+            State_Met%TROPP(I,J) = State_Met%TROPP1(I,J) +
+     &                           ( State_Met%TROPP2(I,J) - 
+     &                             State_Met%TROPP1(I,J) ) * TM
 
-            ! Test if we are using the variable tropopause
-            IF ( LVARTROP ) THEN
- 
-               ! Interpolate TROPP [hPa] to the midpt of the dynamic timestep
-               TROPP(I,J) = TROPP1(I,J) 
-     &                    + ( TROPP2(I,J) - TROPP1(I,J) ) * TM
-
-
-               ! However, we still need to make sure to cap TROPP in the
-               ! polar regions (if the entire box is outside 60S-60N)
-               ! so that we don't do chemistry at an abnormally high
-               ! altitude.  Set TROPP in the polar regions to 200 hPa.
-               ! (jal, phs, bmy, 9/18/07)
-               IF ( YSOUTH >= 60d0 .or. YNORTH <= -60d0 ) THEN
-                  TROPP(I,J) = MAX( TROPP(I,J), 200d0 )
-               ENDIF
+            ! However, we still need to make sure to cap TROPP in the
+            ! polar regions (if the entire box is outside 60S-60N)
+            ! so that we don't do chemistry at an abnormally high
+            ! altitude.  Set TROPP in the polar regions to 200 hPa.
+            ! (jal, phs, bmy, 9/18/07)
+            IF ( YSOUTH >= 60d0 .or. YNORTH <= -60d0 ) THEN
+               State_Met%TROPP(I,J) = MAX( State_Met%TROPP(I,J), 200d0 )
             ENDIF
-         ENDDO
+         ENDIF
+      ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
@@ -1456,45 +852,45 @@
 
          ! %%% Common fields %%%
 
-         CLDF(L,I,J)     = CLDF0a(L,I,J)+
+         State_Met%CLDF(L,I,J)     = CLDF0a(L,I,J)+
      &                     ( CLDF0b(L,I,J)     - CLDF0a(L,I,J)     )*TM
 
-         MOISTQ(L,I,J)   = MOISTQ0a(L,I,J)
+         State_Met%MOISTQ(L,I,J)   = MOISTQ0a(L,I,J)
      &                   + ( MOISTQ0b(L,I,J)   - MOISTQ0a(L,I,J)   )*TM
 
-         OPTDEP(L,I,J)   = OPTDEP0a(L,I,J)
+         State_Met%OPTDEP(L,I,J)   = OPTDEP0a(L,I,J)
      &                   + ( OPTDEP0b(L,I,J)   - OPTDEP0a(L,I,J)   )*TM
 
-         RH(I,J,L)       = RH0a(I,J,L)
+         State_Met%RH(I,J,L)       = RH0a(I,J,L)
      &                   + ( RH0b(I,J,L)       - RH0a(I,J,L)       )*TM
  
-         SPHU(I,J,L)     = SPHU0a(I,J,L)
+         State_Met%SPHU(I,J,L)     = SPHU0a(I,J,L)
      &                   + ( SPHU0b(I,J,L)     - SPHU0a(I,J,L)     )*TM
 
-         T(I,J,L)        = T0a(I,J,L) 
+         State_Met%T(I,J,L)        = T0a(I,J,L) 
      &                   + ( T0b(I,J,L)        - T0a(I,J,L)        )*TM
 
-         UWND(I,J,L)     = UWND0a(I,J,L)
+         State_Met%U(I,J,L)     = UWND0a(I,J,L)
      &                   + ( UWND0b(I,J,L)     - UWND0a(I,J,L)     )*TM
 
-         VWND(I,J,L)     = VWND0a(I,J,L)
+         State_Met%V(I,J,L)     = VWND0a(I,J,L)
      &                   + ( VWND0b(I,J,L)     - VWND0a(I,J,L)     )*TM
 
          ! %%% GEOS-4 specific fields %%%
 
-         HKBETA(I,J,L)   = HKBETA0a(I,J,L)
+         State_Met%HKBETA(I,J,L)   = HKBETA0a(I,J,L)
      &                   + ( HKBETA0b(I,J,L)   - HKBETA0a(I,J,L)   )*TM
 
-         HKETA(I,J,L)    = HKETA0a(I,J,L)      
+         State_Met%HKETA(I,J,L)    = HKETA0a(I,J,L)      
      &                   + ( HKETA0b(I,J,L)    - HKETA0a(I,J,L)    )*TM
 
-         ZMEU(I,J,L)     = ZMEU0a(I,J,L)
+         State_Met%ZMEU(I,J,L)     = ZMEU0a(I,J,L)
      &                   + ( ZMEU0b(I,J,L)     - ZMEU0a(I,J,L)     )*TM
 
-         ZMMD(I,J,L)     = ZMMD0a(I,J,L) 
+         State_Met%ZMMD(I,J,L)     = ZMMD0a(I,J,L) 
      &                   + ( ZMMD0b(I,J,L)     - ZMMD0a(I,J,L)     )*TM
 
-         ZMMU(I,J,L)     = ZMMU0a(I,J,L)   
+         State_Met%ZMMU(I,J,L)     = ZMMU0a(I,J,L)   
      &                   + ( ZMMU0b(I,J,L)     - ZMMU0a(I,J,L)     )*TM
 
       ENDDO
@@ -1515,16 +911,16 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         CMFMC(I,J,L) = CMFMC0a(I,J,L)
+         State_Met%CMFMC(I,J,L) = CMFMC0a(I,J,L)
      &                + ( CMFMC0b(I,J,L) - CMFMC0a(I,J,L) ) * TM
 
-         CLDTOPS(I,J) = CLDTOPS0a(I,J)
+         State_Met%CLDTOPS(I,J) = CLDTOPS0a(I,J)
      &                + ( CLDTOPS0b(I,J) - CLDTOPS0a(I,J) ) * TM
 
-         CLDFRC(I,J)  = CLDFRC0a(I,J)
+         State_Met%CLDFRC(I,J)  = CLDFRC0a(I,J)
      &                + ( CLDFRC0b(I,J)  - CLDFRC0a(I,J)  ) * TM
                        
-         PBL(I,J)     = PBL0a(I,J) 
+         State_Met%PBL(I,J)     = PBL0a(I,J) 
      &                + ( PBL0b(I,J)     - PBL0a(I,J)     ) * TMA3
       
       ENDDO
@@ -1533,111 +929,43 @@
 
 #endif
 
-      END SUBROUTINE INTERP_GEOS4
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: interp_geos5
-!
-! !DESCRIPTION: Subroutine INTERP\_GEOS5 linearly interpolates
-!  GEOS-5 met fields to the current dynamic timestep.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE INTERP_GEOS5( NTIME0, NTIME1, NTDT )
-!
-! !USES:
-!
-      USE GRID_MOD,    ONLY : GET_YEDGE
-      USE LOGICAL_MOD, ONLY : LVARTROP
-!
-! !INPUT PARAMETERS:
-!
-      INTEGER, INTENT(IN)  :: NTIME0   ! Elapsed time [s] at start of 6hr step
-      INTEGER, INTENT(IN)  :: NTIME1   ! Elapsed time [s] at current time
-      INTEGER, INTENT(IN)  :: NTDT     ! Length of dynamic timestep [s]
-!
-! !REMARKS:
-!  Different met fields are archived at I6 (instantaneous 6-hr) time
-!  resolution depending on the specific product.  For example, relative
-!  humidity is an instantaneous 6hr field in MERRA and a 6-hr time averaged
-!  field in GEOS-5.
-!
-! !REVISION HISTORY:
-!  15 Feb 2011 - R. Yantosca - Initial version, split off from INTERP
-!  15 Feb 2011 - R. Yantosca - Added modifications for APM, from G. Luo
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: I,        J,        L
-      REAL*8  :: D_NTIME0, D_NTIME1, D_NDT
-      REAL*8  :: D_NTDT,   TM,       TC2
-      REAL*8  :: YSOUTH,   YNORTH
-#if   defined( APM )
-      REAL*8  :: TMA3
-#endif
+#elif defined( GEOS_5 )
 
       !=================================================================
-      ! Initialization
-      !=================================================================
-
-      ! Convert time variables from FLOAT to DBLE
-      D_NTIME0 = DBLE( NTIME0 )
-      D_NTIME1 = DBLE( NTIME1 )
-      D_NTDT   = DBLE( NTDT   )
-      D_NDT    = 21600d0
-
-      ! Fraction of 6h timestep elapsed at mid point of this dyn timestep
-      TM  = ( D_NTIME1 + D_NTDT/2d0 - D_NTIME0 ) / D_NDT
-      
-      ! Fraction of 6h timestep elapsed at the end of this dyn timestep
-      TC2 = ( D_NTIME1 + D_NTDT     - D_NTIME0 ) / D_NDT 
-
-#if   defined( APM )
-      ! Fraction of 3h timestep elapsed at mid point of this dyn timestep
-      TMA3 = 2.d0 * TM
-      IF ( TMA3 > 1d0 ) TMA3 = TMA3 - 1.d0
-#endif
-
-      !=================================================================
-      ! Do the interpolation for GEOS-5 met fields
+      ! Do the interpolation for GEOS-5 met fields 
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, YSOUTH, YNORTH )
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! North & south edges of box
-         YSOUTH = GET_YEDGE( J   )
-         YNORTH = GET_YEDGE( J+1 )
+         YSOUTH = GET_YEDGE( I, J,   1 )
+         YNORTH = GET_YEDGE( I, J+1, 1 )
 
-         DO I = 1, IIPAR
+         ! Interpolate pressure [hPa] to the end of the dynamic timestep
+         State_Met%PSC2(I,J) = State_Met%PS1(I,J)  +
+     &                       ( State_Met%PS2(I,J)  -
+     &                         State_Met%PS1(I,J)  ) * TC2 
 
-            ! Interpolate pressure [hPa] to the end of the dynamic timestep
-            PSC2(I,J) = PS1(I,J)  + ( PS2(I,J)  - PS1(I,J)  ) * TC2 
+         ! Interpolate the GEOS-5 total O3 column [DU] to current time
+         State_Met%TO3(I,J)  = State_Met%TO31(I,J) +
+     &                       ( State_Met%TO32(I,J) -
+     &                         State_Met%TO31(I,J) ) * TM
 
-            ! Interpolate the GEOS-5 total O3 column [DU] to current time
-            TO3(I,J)  = TO31(I,J) + ( TO32(I,J) - TO31(I,J) ) * TM
-
-            ! Even though TROPP is a 3-hour average field, we
-            ! we still need to make sure to cap TROPP in the
-            ! polar regions (if the entire box is outside 60S-60N)
-            ! so that we don't do chemistry at an abnormally high
-            ! altitude.  Set TROPP in the polar regions to 200 hPa.
-            ! (jal, phs, bmy, 9/18/07)
-            IF ( LVARTROP ) THEN
-               IF ( YSOUTH >= 60d0 .or. YNORTH <= -60d0 ) THEN
-                  TROPP(I,J) = MAX( TROPP(I,J), 200d0 )
-               ENDIF
+         ! Even though TROPP is a 3-hour average field, we 
+         ! we still need to make sure to cap TROPP in the
+         ! polar regions (if the entire box is outside 60S-60N)
+         ! so that we don't do chemistry at an abnormally high
+         ! altitude.  Set TROPP in the polar regions to 200 hPa.
+         ! (jal, phs, bmy, 9/18/07)
+         IF ( LVARTROP ) THEN
+            IF ( YSOUTH >= 60d0 .or. YNORTH <= -60d0 ) THEN
+               State_Met%TROPP(I,J) = MAX( State_Met%TROPP(I,J), 200d0 )
             ENDIF
-         ENDDO
+         ENDIF
+      ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
@@ -1655,63 +983,63 @@
 
          ! %%% Common fields %%%
 
-         CLDF(L,I,J)     = CLDF0a(L,I,J)+
-     &                     ( CLDF0b(L,I,J)     - CLDF0a(L,I,J)     )*TM
+         State_Met%CLDF(L,I,J)     = CLDF0a(L,I,J)
+     &                   + ( CLDF0b(L,I,J)     - CLDF0a(L,I,J)     )*TM
 
-         MOISTQ(L,I,J)   = MOISTQ0a(L,I,J)
+         State_Met%MOISTQ(L,I,J)   = MOISTQ0a(L,I,J)
      &                   + ( MOISTQ0b(L,I,J)   - MOISTQ0a(L,I,J)   )*TM
 
-         OPTDEP(L,I,J)   = OPTDEP0a(L,I,J)
+         State_Met%OPTDEP(L,I,J)   = OPTDEP0a(L,I,J)
      &                   + ( OPTDEP0b(L,I,J)   - OPTDEP0a(L,I,J)   )*TM
 
-         RH(I,J,L)       = RH0a(I,J,L)
+         State_Met%RH(I,J,L)       = RH0a(I,J,L)
      &                   + ( RH0b(I,J,L)       - RH0a(I,J,L)       )*TM
  
-         SPHU(I,J,L)     = SPHU0a(I,J,L)
+         State_Met%SPHU(I,J,L)     = SPHU0a(I,J,L)
      &                   + ( SPHU0b(I,J,L)     - SPHU0a(I,J,L)     )*TM
 
-         T(I,J,L)        = T0a(I,J,L) 
+         State_Met%T(I,J,L)        = T0a(I,J,L) 
      &                   + ( T0b(I,J,L)        - T0a(I,J,L)        )*TM
 
-         UWND(I,J,L)     = UWND0a(I,J,L)
+         State_Met%U(I,J,L)     = UWND0a(I,J,L)
      &                   + ( UWND0b(I,J,L)     - UWND0a(I,J,L)     )*TM
 
-         VWND(I,J,L)     = VWND0a(I,J,L)
+         State_Met%V(I,J,L)     = VWND0a(I,J,L)
      &                   + ( VWND0b(I,J,L)     - VWND0a(I,J,L)     )*TM
 
          ! %%% GEOS-5-specific fields %%%
 
-         CMFMC(I,J,L)    = CMFMC0a(I,J,L)
+         State_Met%CMFMC(I,J,L)    = CMFMC0a(I,J,L)
      &                   + ( CMFMC0b(I,J,L)    - CMFMC0a(I,J,L)    )*TM
 
-         DQIDTMST(I,J,L) = DQIDTMST0a(I,J,L)
+         State_Met%DQIDTMST(I,J,L) = DQIDTMST0a(I,J,L)
      &                   + ( DQIDTMST0b(I,J,L) - DQIDTMST0a(I,J,L) )*TM
 
-         DQLDTMST(I,J,L) = DQLDTMST0a(I,J,L)
+         State_Met%DQLDTMST(I,J,L) = DQLDTMST0a(I,J,L)
      &                   + ( DQLDTMST0b(I,J,L) - DQLDTMST0a(I,J,L) )*TM
 
-         DQRCON(I,J,L)   = DQRCON0a(I,J,L)
+         State_Met%DQRCU(I,J,L)   = DQRCON0a(I,J,L)
      &                   + ( DQRCON0b(I,J,L)   - DQRCON0a(I,J,L)   )*TM
          
-         DQRLSC(I,J,L)   = DQRLSC0a(I,J,L)
+         State_Met%DQRLSAN(I,J,L)   = DQRLSC0a(I,J,L)
      &                   + ( DQRLSC0b(I,J,L)   - DQRLSC0a(I,J,L)   )*TM
 
-         DQVDTMST(I,J,L) = DQVDTMST0a(I,J,L)
+         State_Met%DQVDTMST(I,J,L) = DQVDTMST0a(I,J,L)
      &                   + ( DQVDTMST0b(I,J,L) - DQVDTMST0a(I,J,L) )*TM
          
-         PV(I,J,L)       = PV0a(I,J,L)
+         State_Met%PV(I,J,L)       = PV0a(I,J,L)
      &                   + (PV0b(I,J,L)        - PV0a(I,J,L)       )*TM
 
-         QI(I,J,L)       = QI0a(I,J,L)
+         State_Met%QI(I,J,L)       = QI0a(I,J,L)
      &                   + ( QI0b(I,J,L)       - QI0a(I,J,L)       )*TM
 
-         QL(I,J,L)       = QL0a(I,J,L)       
+         State_Met%QL(I,J,L)       = QL0a(I,J,L)       
      &                   + (QL0b(I,J,L)        - QL0a(I,J,L)       )*TM
 
-         TAUCLI(I,J,L)   = TAUCLI0a(I,J,L)
+         State_Met%TAUCLI(I,J,L)   = TAUCLI0a(I,J,L)
      &                   + ( TAUCLI0b(I,J,L)   - TAUCLI0a(I,J,L)   )*TM
 
-         TAUCLW(I,J,L)   = TAUCLW0a(I,J,L)
+         State_Met%TAUCLW(I,J,L)   = TAUCLW0a(I,J,L)
      &                     + ( TAUCLW0b(I,J,L) - TAUCLW0a(I,J,L)   )*TM
 
       ENDDO
@@ -1732,16 +1060,16 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         CMFMC(I,J,L) = CMFMC0a(I,J,L)
+         State_Met%CMFMC(I,J,L) = CMFMC0a(I,J,L)
      &                + ( CMFMC0b(I,J,L) - CMFMC0a(I,J,L) ) * TM
 
-         CLDTOPS(I,J) = CLDTOPS0a(I,J)
+         State_Met%CLDTOPS(I,J) = CLDTOPS0a(I,J)
      &                + ( CLDTOPS0b(I,J) - CLDTOPS0a(I,J) ) * TM
 
-         CLDFRC(I,J)  = CLDFRC0a(I,J)
+         State_Met%CLDFRC(I,J)  = CLDFRC0a(I,J)
      &                + ( CLDFRC0b(I,J)  - CLDFRC0a(I,J)  ) * TM
                        
-         PBL(I,J)     = PBL0a(I,J) 
+         State_Met%PBLH(I,J)     = PBL0a(I,J) 
      &                + ( PBL0b(I,J)     - PBL0a(I,J)     ) * TMA3
       
       ENDDO
@@ -1750,102 +1078,33 @@
 
 #endif
 
-      END SUBROUTINE INTERP_GEOS5
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: interp_merra
-!
-! !DESCRIPTION: Subroutine INTERP\_MERRA linearly interpolates MERRA met fields
-!  to the current dynamic timestep.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE INTERP_MERRA( NTIME0, NTIME1, NTDT )
-!
-! !USES:
-!
-      USE GRID_MOD,    ONLY : GET_YEDGE
-      USE LOGICAL_MOD, ONLY : LVARTROP
-!
-! !INPUT PARAMETERS:
-!
-      INTEGER, INTENT(IN)  :: NTIME0   ! Elapsed time [s] at start of 6hr step
-      INTEGER, INTENT(IN)  :: NTIME1   ! Elapsed time [s] at current time
-      INTEGER, INTENT(IN)  :: NTDT     ! Length of dynamic timestep [s]
-!
-! !REMARKS:
-!  Different met fields are archived at I6 (instantaneous 6-hr) time
-!  resolution depending on the specific product.  For example, relative
-!  humidity is an instantaneous 6hr field in 'MERRA' and a 6-hr time averaged
-!  field in GEOS-5.
-!
-! !REVISION HISTORY:
-!  15 Feb 2011 - R. Yantosca - Initial version, split off from INTERP
-!  15 Feb 2011 - R. Yantosca - Added modifications for APM, from G. Luo
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: I,        J,        L
-      REAL*8  :: D_NTIME0, D_NTIME1, D_NDT
-      REAL*8  :: D_NTDT,   TM,       TC2
-      REAL*8  :: YSOUTH,   YNORTH
-#if   defined( APM )
-      REAL*8  :: TMA3
-#endif
-      !=================================================================
-      ! Initialization
-      !=================================================================
-
-      ! Convert time variables from FLOAT to DBLE
-      D_NTIME0 = DBLE( NTIME0 )
-      D_NTIME1 = DBLE( NTIME1 )
-      D_NTDT   = DBLE( NTDT   )
-      D_NDT    = 21600d0
-
-      ! Fraction of 6h timestep elapsed at mid point of this dyn timestep
-      TM  = ( D_NTIME1 + D_NTDT/2d0 - D_NTIME0 ) / D_NDT
-      
-      ! Fraction of 6h timestep elapsed at the end of this dyn timestep
-      TC2 = ( D_NTIME1 + D_NTDT     - D_NTIME0 ) / D_NDT 
-
-#if   defined( APM )
-      ! Fraction of 3h timestep elapsed at mid point of this dyn timestep
-      TMA3 = 2.d0 * TM
-      IF ( TMA3 > 1d0 ) TMA3 = TMA3 - 1.d0
-#endif
+#elif defined( MERRA )
 
       !=================================================================
-      ! Do the interpolation for 'MERRA' met fields
+      ! Do the interpolation for MERRA or GEOS-5.7.x met fields 
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, YSOUTH, YNORTH )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
-
-         ! North & south edges of box
-         YSOUTH = GET_YEDGE( J   )
-         YNORTH = GET_YEDGE( J+1 )
-
       DO I = 1, IIPAR
 
          !----------------------------------------------------
          ! Interpolate 2D variables
          !----------------------------------------------------
          IF ( L == 1 ) THEN
+
+            ! North & south edges of box
+            YSOUTH     = GET_YEDGE( I, J,   L )
+            YNORTH     = GET_YEDGE( I, J+1, L )
             
             ! Interpolate pressure [hPa] to the end of the dynamic timestep
-            PSC2(I,J)  = PS1(I,J) + ( PS2(I,J) - PS1(I,J) ) * TC2 
+            State_Met%PSC2(I,J)  = State_Met%PS1(I,J) +
+     &                           ( State_Met%PS2(I,J) - 
+     &                             State_Met%PS1(I,J) ) * TC2 
 
-            ! Even though TROPP is a 3-hour average field, we
+            ! Even though TROPP is a 3-hour average field, we 
             ! we still need to make sure to cap TROPP in the
             ! polar regions (if the entire box is outside 60S-60N)
             ! so that we don't do chemistry at an abnormally high
@@ -1853,7 +1112,8 @@
             ! (jal, phs, bmy, 9/18/07)
             IF ( LVARTROP ) THEN
                IF ( YSOUTH >= 60d0 .or. YNORTH <= -60d0 ) THEN
-                  TROPP(I,J) = MAX( TROPP(I,J), 200d0 )
+                  State_Met%TROPP(I,J) = MAX( State_Met%TROPP(I,J),
+     &                                        200d0 )
                ENDIF
             ENDIF
          ENDIF
@@ -1861,7 +1121,9 @@
          !----------------------------------------------------
          ! Interpolate 3D variables
          !----------------------------------------------------
-         RH(I,J,L) = RH1(I,J,L) + ( RH2(I,J,L) - RH1(I,J,L) ) * TM
+         State_Met%RH(I,J,L) = State_Met%RH1(I,J,L)   +
+     &                       ( State_Met%RH2(I,J,L)   -
+     &                         State_Met%RH1(I,J,L) ) * TM
 
       ENDDO
       ENDDO
@@ -1882,63 +1144,63 @@
 
          ! %%% Common fields %%%
 
-         CLDF(L,I,J)     = CLDF0a(L,I,J)+
+         State_Met%CLDF(L,I,J)     = CLDF0a(L,I,J)+
      &                     ( CLDF0b(L,I,J)     - CLDF0a(L,I,J)     )*TM
 
-         MOISTQ(L,I,J)   = MOISTQ0a(L,I,J)
+         State_Met%MOISTQ(L,I,J)   = MOISTQ0a(L,I,J)
      &                   + ( MOISTQ0b(L,I,J)   - MOISTQ0a(L,I,J)   )*TM
 
-         OPTDEP(L,I,J)   = OPTDEP0a(L,I,J)
+         State_Met%OPTDEP(L,I,J)   = OPTDEP0a(L,I,J)
      &                   + ( OPTDEP0b(L,I,J)   - OPTDEP0a(L,I,J)   )*TM
 
-         RH(I,J,L)       = RH0a(I,J,L)
+         State_Met%RH(I,J,L)       = RH0a(I,J,L)
      &                   + ( RH0b(I,J,L)       - RH0a(I,J,L)       )*TM
  
-         SPHU(I,J,L)     = SPHU0a(I,J,L)
+         State_Met%SPHU(I,J,L)     = SPHU0a(I,J,L)
      &                   + ( SPHU0b(I,J,L)     - SPHU0a(I,J,L)     )*TM
 
-         T(I,J,L)        = T0a(I,J,L) 
+         State_Met%T(I,J,L)        = T0a(I,J,L) 
      &                   + ( T0b(I,J,L)        - T0a(I,J,L)        )*TM
 
-         UWND(I,J,L)     = UWND0a(I,J,L)
+         State_Met%U(I,J,L)     = UWND0a(I,J,L)
      &                   + ( UWND0b(I,J,L)     - UWND0a(I,J,L)     )*TM
 
-         VWND(I,J,L)     = VWND0a(I,J,L)
+         State_Met%V(I,J,L)     = VWND0a(I,J,L)
      &                   + ( VWND0b(I,J,L)     - VWND0a(I,J,L)     )*TM
 
-         ! %%% GEOS-5-specific fields %%%
+         ! %%% MERRA-specific fields %%%
 
-         CMFMC(I,J,L)    = CMFMC0a(I,J,L)
+         State_Met%CMFMC(I,J,L)    = CMFMC0a(I,J,L)
      &                   + ( CMFMC0b(I,J,L)    - CMFMC0a(I,J,L)    )*TM
 
-         DQIDTMST(I,J,L) = DQIDTMST0a(I,J,L)
+         State_Met%State_Met%DQIDTMST(I,J,L) = DQIDTMST0a(I,J,L)
      &                   + ( DQIDTMST0b(I,J,L) - DQIDTMST0a(I,J,L) )*TM
 
-         DQLDTMST(I,J,L) = DQLDTMST0a(I,J,L)
+         State_Met%DQLDTMST(I,J,L) = DQLDTMST0a(I,J,L)
      &                   + ( DQLDTMST0b(I,J,L) - DQLDTMST0a(I,J,L) )*TM
 
-         DQRCON(I,J,L)   = DQRCON0a(I,J,L)
+         State_Met%DQRCON(I,J,L)   = DQRCON0a(I,J,L)
      &                   + ( DQRCON0b(I,J,L)   - DQRCON0a(I,J,L)   )*TM
          
-         DQRLSC(I,J,L)   = DQRLSC0a(I,J,L)
+         State_Met%DQRLSC(I,J,L)   = DQRLSC0a(I,J,L)
      &                   + ( DQRLSC0b(I,J,L)   - DQRLSC0a(I,J,L)   )*TM
 
-         DQVDTMST(I,J,L) = DQVDTMST0a(I,J,L)
+         State_Met%DQVDTMST(I,J,L) = DQVDTMST0a(I,J,L)
      &                   + ( DQVDTMST0b(I,J,L) - DQVDTMST0a(I,J,L) )*TM
          
-         PV(I,J,L)       = PV0a(I,J,L)
+         State_Met%PV(I,J,L)       = PV0a(I,J,L)
      &                   + (PV0b(I,J,L)        - PV0a(I,J,L)       )*TM
 
-         QI(I,J,L)       = QI0a(I,J,L)
+         State_Met%QI(I,J,L)       = QI0a(I,J,L)
      &                   + ( QI0b(I,J,L)       - QI0a(I,J,L)       )*TM
 
-         QL(I,J,L)       = QL0a(I,J,L)       
+         State_Met%QL(I,J,L)       = QL0a(I,J,L)       
      &                   + (QL0b(I,J,L)        - QL0a(I,J,L)       )*TM
 
-         TAUCLI(I,J,L)   = TAUCLI0a(I,J,L)
+         State_Met%TAUCLI(I,J,L)   = TAUCLI0a(I,J,L)
      &                   + ( TAUCLI0b(I,J,L)   - TAUCLI0a(I,J,L)   )*TM
 
-         TAUCLW(I,J,L)   = TAUCLW0a(I,J,L)
+         State_Met%TAUCLW(I,J,L)   = TAUCLW0a(I,J,L)
      &                     + ( TAUCLW0b(I,J,L) - TAUCLW0a(I,J,L)   )*TM
 
       ENDDO
@@ -1959,16 +1221,16 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         CMFMC(I,J,L) = CMFMC0a(I,J,L)
+         State_Met%CMFMC(I,J,L) = CMFMC0a(I,J,L)
      &                + ( CMFMC0b(I,J,L) - CMFMC0a(I,J,L) ) * TM
 
-         CLDTOPS(I,J) = CLDTOPS0a(I,J)
+         State_Met%CLDTOPS(I,J) = CLDTOPS0a(I,J)
      &                + ( CLDTOPS0b(I,J) - CLDTOPS0a(I,J) ) * TM
 
-         CLDFRC(I,J)  = CLDFRC0a(I,J)
+         State_Met%CLDFRC(I,J)  = CLDFRC0a(I,J)
      &                + ( CLDFRC0b(I,J)  - CLDFRC0a(I,J)  ) * TM
                        
-         PBL(I,J)     = PBL0a(I,J) 
+         State_Met%PBL(I,J)     = PBL0a(I,J) 
      &                + ( PBL0b(I,J)     - PBL0a(I,J)     ) * TMA3
       
       ENDDO
@@ -1976,7 +1238,163 @@
 !$OMP END PARALLEL DO
 
 #endif
-      END SUBROUTINE INTERP_MERRA
+
+#elif defined( GEOS_57 )
+
+      !=================================================================
+      ! Do the interpolation for GEOS-5.7.x met fields 
+      !=================================================================
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, YSOUTH, YNORTH )
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         !----------------------------------------------------
+         ! Interpolate 2D variables
+         !----------------------------------------------------
+         IF ( L == 1 ) THEN
+
+            ! North & south edges of box
+            YSOUTH     = GET_YEDGE( I, J,   L )
+            YNORTH     = GET_YEDGE( I, J+1, L )
+
+            ! Interpolate pressure [hPa] to the end of the dynamic timestep
+            State_Met%PSC2(I,J)  = State_Met%PS1(I,J) +
+     &                           ( State_Met%PS2(I,J) -
+     &                             State_Met%PS1(I,J) ) * TC2 
+
+            ! Even though TROPP is a 3-hour average field, we 
+            ! we still need to make sure to cap TROPP in the
+            ! polar regions (if the entire box is outside 60S-60N)
+            ! so that we don't do chemistry at an abnormally high
+            ! altitude.  Set TROPP in the polar regions to 200 hPa.
+            ! (jal, phs, bmy, 9/18/07)
+            IF ( LVARTROP ) THEN
+               IF ( YSOUTH >= 60d0 .or. YNORTH <= -60d0 ) THEN
+                  State_Met%TROPP(I,J) = MAX( State_Met%TROPP(I,J),
+     &                                        200d0 )
+               ENDIF
+            ENDIF
+         ENDIF
+
+         !----------------------------------------------------
+         ! Interpolate 3D variables
+         !----------------------------------------------------
+         State_Met%T   (I,J,L) = State_Met%TMPU1(I,J,L)   +
+     &                         ( State_Met%TMPU2(I,J,L)   -
+     &                           State_Met%TMPU1(I,J,L) ) * TM
+
+         State_Met%SPHU(I,J,L) = State_Met%SPHU1(I,J,L)   +
+     &                         ( State_Met%SPHU2(I,J,L)   -
+     &                           State_Met%SPHU1(I,J,L)t ) * TM 
+
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+#if   defined( APM )
+
+      !=================================================================
+      ! Interpolate 3D fields for APM microphysics
+      !=================================================================
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         ! %%% Common fields %%%
+
+         State_Met%CLDF(L,I,J)     = CLDF0a(L,I,J)+
+     &                     ( CLDF0b(L,I,J)     - CLDF0a(L,I,J)     )*TM
+
+         State_Met%OPTDEP(L,I,J)   = OPTDEP0a(L,I,J)
+     &                   + ( OPTDEP0b(L,I,J)   - OPTDEP0a(L,I,J)   )*TM
+
+         State_Met%RH(I,J,L)       = RH0a(I,J,L)
+     &                   + ( RH0b(I,J,L)       - RH0a(I,J,L)       )*TM
+ 
+         State_Met%SPHU(I,J,L)     = SPHU0a(I,J,L)
+     &                   + ( SPHU0b(I,J,L)     - SPHU0a(I,J,L)     )*TM
+
+         State_Met%T(I,J,L)        = T0a(I,J,L) 
+     &                   + ( T0b(I,J,L)        - T0a(I,J,L)        )*TM
+
+         State_Met%U(I,J,L)     = UWND0a(I,J,L)
+     &                   + ( UWND0b(I,J,L)     - UWND0a(I,J,L)     )*TM
+
+         State_Met%V(I,J,L)     = VWND0a(I,J,L)
+     &                   + ( VWND0b(I,J,L)     - VWND0a(I,J,L)     )*TM
+
+         ! %%% GEOS-5.7-specific fields %%%
+
+         State_Met%CMFMC(I,J,L)    = CMFMC0a(I,J,L)
+     &                   + ( CMFMC0b(I,J,L)    - CMFMC0a(I,J,L)    )*TM
+
+         State_Met%DQRCON(I,J,L)   = DQRCON0a(I,J,L)
+     &                   + ( DQRCON0b(I,J,L)   - DQRCON0a(I,J,L)   )*TM
+         
+         State_Met%DQRLSC(I,J,L)   = DQRLSC0a(I,J,L)
+     &                   + ( DQRLSC0b(I,J,L)   - DQRLSC0a(I,J,L)   )*TM
+
+         State_Met%PV(I,J,L)       = PV0a(I,J,L)
+     &                   + (PV0b(I,J,L)        - PV0a(I,J,L)       )*TM
+
+         State_Met%QI(I,J,L)       = QI0a(I,J,L)
+     &                   + ( QI0b(I,J,L)       - QI0a(I,J,L)       )*TM
+
+         State_Met%QL(I,J,L)       = QL0a(I,J,L)       
+     &                   + (QL0b(I,J,L)        - QL0a(I,J,L)       )*TM
+
+         State_Met%TAUCLI(I,J,L)   = TAUCLI0a(I,J,L)
+     &                   + ( TAUCLI0b(I,J,L)   - TAUCLI0a(I,J,L)   )*TM
+
+         State_Met%TAUCLW(I,J,L)   = TAUCLW0a(I,J,L)
+     &                     + ( TAUCLW0b(I,J,L) - TAUCLW0a(I,J,L)   )*TM
+
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      !=================================================================
+      ! Interpolate 2D fields for APM microphysics
+      !=================================================================
+      
+      ! We need to interpolate the LLPAR+1st level of CMFMC
+      L = LLPAR+1
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         State_Met%CMFMC(I,J,L) = CMFMC0a(I,J,L)
+     &                + ( CMFMC0b(I,J,L) - CMFMC0a(I,J,L) ) * TM
+
+         State_Met%CLDTOPS(I,J) = CLDTOPS0a(I,J)
+     &                + ( CLDTOPS0b(I,J) - CLDTOPS0a(I,J) ) * TM
+
+         State_Met%CLDFRC(I,J)  = CLDFRC0a(I,J)
+     &                + ( CLDFRC0b(I,J)  - CLDFRC0a(I,J)  ) * TM
+                       
+         State_Met%PBL(I,J)     = PBL0a(I,J) 
+     &                + ( PBL0b(I,J)     - PBL0a(I,J)     ) * TMA3
+      
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+#endif
+
+#endif
+
+      END SUBROUTINE INTERP
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -1991,20 +1409,22 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION IS_LAND( I, J ) RESULT ( LAND )
+      FUNCTION IS_LAND( I, J, State_Met ) RESULT ( LAND )
 !
 ! !USES:
 !
-      USE TIME_MOD, ONLY : GET_YEAR
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_YEAR
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)  :: I           ! Longitude index of grid box
-      INTEGER, INTENT(IN)  :: J           ! Latitude  index of grid box
+      INTEGER,        INTENT(IN)  :: I           ! Longitude index of grid box
+      INTEGER,        INTENT(IN)  :: J           ! Latitude  index of grid box
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !RETURN VALUE:
 !
-      LOGICAL              :: LAND        ! =T if it is a land box
+      LOGICAL                     :: LAND        ! =T if it is a land box
 ! 
 ! !REVISION HISTORY: 
 !  26 Jun 2000 - R. Yantosca - Initial version
@@ -2030,40 +1450,14 @@
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  25 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
 !  06 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA/GEOS-5
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-#if   defined( GEOS_3 )
 
-      !--------------------------
-      ! GEOS-3
-      !--------------------------
-      IF ( GET_YEAR() == 1998 ) THEN
-
-         ! Fields for 1998 don't have LWI/SURFTYPE flags, so use albedo 
-         ! as a proxy for land coverage instead: 0.08 < ALBEDO < 0.55
-         LAND = ( ALBD(I,J) > 0.08d0 .and. ALBD(I,J) < 0.55d0 )
-
-      ELSE
-
-         ! Otherwise LWI < 50 and ALBEDO less than 69.5% is a water box 
-         LAND = ( LWI(I,J) < 50 .and. ALBD(I,J) < 0.695d0 )
-
-      ENDIF
-
-#elif defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
-
-      !--------------------------
-      ! GEOS-4 / GEOS-5 / MERRA
-      !--------------------------
-
-      ! LWI=1 and ALBEDO less than 69.5% is a LAND box 
-      LAND = ( NINT( LWI(I,J) ) == 1 .and. ALBD(I,J) < 0.695d0 )
-
-#elif defined( GCAP )
+#if   defined( GCAP )
 
       !--------------------------
       ! GCAP
@@ -2071,8 +1465,19 @@
 
       ! It's a land box if 50% or more of the box is covered by 
       ! land and less than 50% of the box is covered by ice
-      LAND = ( LWI_GISS(I,J) >= 0.5d0 .and. SNICE(I,J) < 0.5d0 )
-    
+      LAND = ( State_Met%LWI_GISS(I,J) >= 0.5d0 .and. 
+     &         State_Met%SNICE(I,J)    <  0.5d0 )
+
+#else
+
+      !--------------------------
+      ! GEOS-4 / GEOS-5 / MERRA
+      !--------------------------
+
+      ! LWI=1 and ALBEDO less than 69.5% is a LAND box 
+      LAND = ( NINT( State_Met%LWI(I,J) ) == 1       .and.
+     &               State_Met%ALBD(I,J)  <  0.695d0 )
+
 #endif
 
       END FUNCTION IS_LAND
@@ -2090,20 +1495,22 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION IS_WATER( I, J ) RESULT ( WATER )
+      FUNCTION IS_WATER( I, J, State_Met ) RESULT ( WATER )
 !
 ! !USES:
 !
-      USE TIME_MOD, ONLY : GET_YEAR
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_YEAR
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)  :: I           ! Longitude index of grid box
-      INTEGER, INTENT(IN)  :: J           ! Latitude  index of grid box
+      INTEGER,         INTENT(IN) :: I           ! Longitude index of grid box
+      INTEGER,         INTENT(IN) :: J           ! Latitude  index of grid box
+      TYPE(MetState),  INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !RETURN VALUE:
 !
-      LOGICAL              :: WATER       ! =T if this is a water box
+      LOGICAL                     :: WATER       ! =T if this is a water box
 ! 
 ! !REVISION HISTORY: 
 !  30 Jan 1998 - R. Yantosca - Initial version
@@ -2129,40 +1536,14 @@
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  25 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
 !  06 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA/GEOS-5
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-#if   defined( GEOS_3 )
-      
-      !--------------------------
-      ! GEOS-3 
-      !--------------------------
-      IF ( GET_YEAR() == 1998 ) THEN
 
-         ! 1998 fields don't have LWI/SURFTYPE flags, so use albedo as 
-         ! a proxy for water coverage: 55%  < ALBEDO < 69.5%
-         WATER = ( ALBD(I,J) > 0.55d0 .and. ALBD(I,J) < 0.695d0 )
-
-      ELSE
-
-         ! Otherwise LWI >= 50 and ALBEDO less than 69.5% is a water box
-         WATER = ( LWI(I,J) >= 50 .and. ALBD(I,J) < 0.695d0 )
-         
-      ENDIF
-
-#elif defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
-      
-      !---------------------------
-      ! GEOS-4 / GEOS-5 / MERRA
-      !---------------------------
-
-      ! LWI=0 and ALBEDO less than 69.5% is a water box 
-      WATER = ( NINT( LWI(I,J) ) == 0 .and. ALBD(I,J) < 0.695d0 )
-
-#elif defined( GCAP )
+#if   defined( GCAP )
 
       !--------------------------
       ! GCAP
@@ -2170,7 +1551,18 @@
 
       ! It's a water box if less than 50% of the box is
       ! covered by land and less than 50% is covered by ice
-      WATER = ( LWI_GISS(I,J) < 0.5d0 .and. SNICE(I,J) < 0.5d0 )
+      WATER = ( State_Met%LWI_GISS(I,J) < 0.5d0 .and. 
+     &          State_Met%SNICE(I,J)    < 0.5d0 )
+
+#else
+
+      !---------------------------
+      ! GEOS-4 / GEOS-5 / MERRA
+      !---------------------------
+
+      ! LWI=0 and ALBEDO less than 69.5% is a water box 
+      WATER = ( NINT( State_Met%LWI(I,J) ) == 0       .and.
+     &                State_Met%ALBD(I,J)  <  0.695d0 )
 
 #endif
 
@@ -2189,20 +1581,22 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION IS_ICE( I, J ) RESULT ( ICE )
+      FUNCTION IS_ICE( I, J, State_Met ) RESULT ( ICE )
 !
 ! !USES:
 !
-      USE TIME_MOD, ONLY : GET_YEAR
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_YEAR
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)  :: I           ! Longitude index of grid box
-      INTEGER, INTENT(IN)  :: J           ! Latitude  index of grid box
+      INTEGER,         INTENT(IN) :: I           ! Longitude index of grid box
+      INTEGER,         INTENT(IN) :: J           ! Latitude  index of grid box
+      TYPE(MetState),  INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !RETURN VALUE:
 !
-      LOGICAL              :: ICE         ! =T if this is an ice box
+      LOGICAL                     :: ICE         ! =T if this is an ice box
 !
 ! 
 ! !REVISION HISTORY: 
@@ -2211,39 +1605,29 @@
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  25 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
 !  06 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA/GEOS-5
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-#if   defined( GEOS_3 )
 
-      !--------------------------
-      ! GEOS-3
-      !-------------------------- 
-
-      ! Fields for 1998 don't have LWI/SURFTYPE flags, so use albedo 
-      ! as a proxy for water coverage instead: ALBEDO > 0.695
-      ICE = ( ALBD(I,J) >= 0.695d0 )
-
-#elif defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
-
-      !--------------------------
-      ! GEOS-4 / GEOS-5 / MERRA
-      !--------------------------
-
-      ! LWI=2 or ALBEDO > 69.5% is ice
-      ICE = ( NINT( LWI(I,J) ) == 2 .or. ALBD(I,J) >= 0.695d0 )
-
-#elif defined( GCAP )
+#if   defined( GCAP )
 
       !--------------------------
       ! GCAP
       !--------------------------
 
       ! It's an ice box if 50% or more of the box is covered by ice
-      ICE = ( SNICE(I,J) >= 0.5d0 )
+      ICE = ( State_Met%SNICE(I,J) >= 0.5d0 )
+
+#else
+
+      !--------------------------
+      ! GEOS-4 / GEOS-5 / MERRA
+      !--------------------------
+
+      ! LWI=2 or ALBEDO > 69.5% is ice
+      ICE = ( NINT( State_Met%LWI(I,J) ) == 2       .or.
+     &              State_Met%ALBD(I,J)  >= 0.695d0 )
 
 #endif
 
@@ -2263,18 +1647,24 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION IS_NEAR( I, J, THRESH, NEIGHBOR ) RESULT ( NEAR )
+      FUNCTION IS_NEAR( I, J, THRESH, NEIGHBOR, State_Met )
+     &   RESULT ( NEAR )
+!
+! !USES:
+!
+      USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
       ! Arguments
-      INTEGER, INTENT(IN) :: I, J        ! Lon & lat grid box indices
-      INTEGER, INTENT(IN) :: NEIGHBOR    ! # of neighbor boxes to consider
-      REAL*8,  INTENT(IN) :: THRESH      ! LWI threshold for near-land 
+      INTEGER,        INTENT(IN) :: I, J       ! Lon & lat grid box indices
+      INTEGER,        INTENT(IN) :: NEIGHBOR   ! # of neighbor boxes to consider
+      REAL*8,         INTENT(IN) :: THRESH     ! LWI threshold for near-land 
+      TYPE(MetState), INTENT(IN) :: State_Met  ! Meteorology State object
 !
 ! !RETURN VALUE:
 !
-      LOGICAL             :: NEAR        ! # of near land boxes
+      LOGICAL                    :: NEAR       ! # of near land boxes
 !
 ! !REMARKS:
 !  Typical values for:
@@ -2293,6 +1683,9 @@
 !  19 Aug 2010 - R. Yantosca - Rewrote logic of #if block for clarity
 !  25 Aug 2010 - R. Yantosca - Treat MERRA in same way as GEOS-5
 !  06 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA/GEOS-5
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2328,7 +1721,7 @@
             IF ( LONGI > IIPAR ) LONGI = LONGI - IIPAR
             
             ! If it's an ice box, skip to next neighbor
-            IF ( IS_ICE( LONGI, LATJ ) ) CYCLE
+            IF ( IS_ICE( LONGI, LATJ, State_Met ) ) CYCLE
 
 #if   defined( GCAP ) 
 
@@ -2342,33 +1735,8 @@
             !
             ! It's near-land if THRESH <= LWI_GISS <= 1.0 
             !---------------------------------------------------
-            IF ( LWI_GISS(LONGI,LATJ) >  THRESH .and.
-     &           LWI_GISS(LONGI,LATJ) <= 1.0d0 ) THEN
-
-               ! We are in a near-land box
-               NEAR = .TRUE.
-
-               ! Break out of loop
-               GOTO 999
-            ENDIF
-
-#elif defined( GEOS_3 )
-
-            !---------------------------------------------------
-            ! GEOS-3 met fields
-            !
-            ! LWI < 10 is land
-            ! LWI = 101 is water
-            !
-            ! with fractional values at land-water boundaries
-            !
-            ! Therefore if you pick a threshold value such
-            ! as 80, then everything with LWI < THRESH is 
-            ! sure to be a land box.
-            !
-            ! It's near land if LWI < THRESH.
-            !---------------------------------------------------
-            IF ( LWI(LONGI,LATJ) < THRESH ) THEN 
+            IF ( State_Met%LWI_GISS(LONGI,LATJ) >  THRESH .and.
+     &           State_Met%LWI_GISS(LONGI,LATJ) <= 1.0d0 ) THEN
 
                ! We are in a near-land box
                NEAR = .TRUE.
@@ -2391,8 +1759,8 @@
             !
             ! It's near-land if THRESH <= LWI <= 1.0 
             !---------------------------------------------------
-            IF ( LWI(LONGI,LATJ) >  THRESH  .and.
-     &           LWI(LONGI,LATJ) <= 1d0    ) THEN
+            IF ( State_Met%LWI(LONGI,LATJ) >  THRESH  .and.
+     &           State_Met%LWI(LONGI,LATJ) <= 1d0    ) THEN
 
                ! We are in a near-land box
                NEAR = .TRUE.
@@ -2424,7 +1792,15 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE MAKE_AVGW
+      SUBROUTINE MAKE_AVGW( State_Met )
+!
+! !USES:
+!
+      USE GIGC_State_Met_Mod,   ONLY : MetState
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  30 Jan 1998 - R. Yantosca - Initial version
@@ -2437,6 +1813,8 @@
 !  (4 ) SPHU and AVGW are declared w/in "dao_mod.f", so we don't need to pass
 !        these as arguments anymore (bmy, 11/15/02)
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2477,7 +1855,7 @@
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         AVGW(I,J,L) = HCONV * SPHU(I,J,L) 
+         State_Met%AVGW(I,J,L) = HCONV * State_Met%SPHU(I,J,L)
       ENDDO
       ENDDO
       ENDDO
@@ -2498,11 +1876,16 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE MAKE_RH
+      SUBROUTINE MAKE_RH( State_Met )
 !
 ! !USES:
 !
-      USE PRESSURE_MOD, ONLY : GET_PCENTER
+      USE GIGC_State_Met_Mod,   ONLY : MetState
+      USE PRESSURE_MOD,         ONLY : GET_PCENTER
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 !
 ! !REMARKS:
 !  Module variables used:
@@ -2523,6 +1906,8 @@
 !  (5 ) Now remove SPHU, TMPU, RH from the arg list, since these are now
 !        all contained w/in this dao_mod.f as module variables. (bmy, 9/23/02)
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2552,17 +1937,17 @@
          PRES = GET_PCENTER(I,J,L)
 
          ! Temperature at grid box (I,J,L)
-         TEMP = T(I,J,L)
+         TEMP = State_Met%T(I,J,L)
 
          ! Saturation water vapor pressure in mbar 
          ! (from NASA GTE PEM-Tropics handbook)
          ESAT = ( 10d0**( A - ( B / TEMP ) ) ) * ( TEMP**C )
             
          ! Specific humidity in mb
-         SHMB = SPHU(I,J,L) * 1.6072d-3 * PRES
+         SHMB = State_Met%SPHU(I,J,L) * 1.6072d-3 * PRES
             
          ! Relative humidity as a percentage
-         RH(I,J,L) = ( SHMB / ESAT ) * 100d0 
+         State_Met%RH(I,J,L) = ( SHMB / ESAT ) * 100d0 
 
       ENDDO
       ENDDO
@@ -2584,16 +1969,21 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_OBK( I, J ) RESULT( OBK )
+      FUNCTION GET_OBK( I, J, State_Met ) RESULT( OBK )
+!
+! !USES:
+!
+      USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: I     ! Longitude index
-      INTEGER, INTENT(IN) :: J     ! Latitude  index
+      INTEGER,         INTENT(IN) :: I           ! Longitude index
+      INTEGER,         INTENT(IN) :: J           ! Latitude  index
+      TYPE(MetState),  INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !RETURN VALUE:
 !
-      REAL*8              :: OBK   ! Monin-Obhukhov length
+      REAL*8                      :: OBK         ! Monin-Obhukhov length
 !
 ! !REMARKS:
 ! 
@@ -2601,6 +1991,8 @@
 ! !REVISION HISTORY: 
 !  25 May 2005 - R. Yantosca - Initial version
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2612,7 +2004,7 @@
       !=================================================================
 
       ! Monin-Obhukov length is a GCAP met field
-      OBK = MOLENGTH(I,J)
+      OBK = State_Met%MOLENGTH(I,J)
 
 #else
 
@@ -2640,11 +2032,12 @@
       REAL*8, PARAMETER :: CP    = 1000.0d0
 
       ! Numerator
-      NUM = -AIRDEN(1,I,J) *  CP            * TS(I,J) *
-     &       USTAR(I,J)    *  USTAR(I,J)    * USTAR(I,J)
+      NUM = - State_Met%AIRDEN(1,I,J) * CP                   *
+     &        State_Met%TS(I,J)        * State_Met%USTAR(I,J) *
+     &        State_Met%USTAR(I,J)     * State_Met%USTAR(I,J)
 
       ! Denominator
-      DEN =  KAPPA * g0 * HFLUX(I,J) 
+      DEN =  KAPPA         * g0       * State_Met%HFLUX(I,J) 
 
       ! Prevent div by zero
       IF ( ABS( DEN ) > 0d0 ) THEN
@@ -2673,32 +2066,41 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_COSINE_SZA( SUNCOS, SUNCOS_MID, SUNCOS_MID_5hr )
+      SUBROUTINE GET_COSINE_SZA( am_I_Root, Input_Opt, State_Met, RC  )
 !
 ! USES:
 !
-      USE JULDAY_MOD, ONLY : JULDAY
-      USE TIME_MOD,   ONLY : GET_DAY_OF_YEAR
-      USE TIME_MOD,   ONLY : GET_DAY
-      USE TIME_MOD,   ONLY : GET_GMT
-      USE TIME_MOD,   ONLY : GET_HOUR 
-      USE TIME_MOD,   ONLY : GET_MINUTE
-      USE TIME_MOD,   ONLY : GET_MONTH
-      USE TIME_MOD,   ONLY : GET_YEAR
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE JULDAY_MOD,         ONLY : JULDAY
+      USE TIME_MOD,           ONLY : GET_DAY_OF_YEAR
+      USE TIME_MOD,           ONLY : GET_DAY
+      USE TIME_MOD,           ONLY : GET_GMT
+      USE TIME_MOD,           ONLY : GET_HOUR 
+      USE TIME_MOD,           ONLY : GET_MINUTE
+      USE TIME_MOD,           ONLY : GET_MONTH
+      USE TIME_MOD,           ONLY : GET_YEAR
 !
 ! !INPUT PARAMETERS:
 !
-      ! Cosine(SZA) at current time
-      REAL*8,  INTENT(OUT) :: SUNCOS(MAXIJ)
-
-      ! Cosine(SZA) at midpoint of current chemistry  timestep
-      REAL*8,  INTENT(OUT) :: SUNCOS_MID(MAXIJ)
-
-      ! Cosine(SZA) at midpoint of the chemistry timestep 5hrs ago
-      REAL*8,  INTENT(OUT) :: SUNCOS_MID_5hr(MAXIJ)
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  07 Feb 2012 - R. Yantosca - Initial version
+!  27 Nov 2012 - R. Yantosca - Add am_I_root, Input_Opt, State_Met, RC args
+!  27 Nov 2012 - R. Yantosca - Now pass State_Met to COSSZA so that the
+!                              SUNCOS fields may be updated
+!  28 Nov 2012 - R. Yantosca - Removed references to 1-D SUNCOS arrays
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2708,13 +2110,14 @@
       ! Scalars
       INTEGER :: DOY,  DOY5, YEAR, MONTH,  DAY, HOUR, HOUR5, MINUTE
       REAL*8  :: DDAY, JD,   JD5,  JDJan0, GMT, GMT5
-      ! Arrays
-      REAL*8  :: SUNCOS_5hr(MAXIJ)    
 
       !=================================================================
       ! Get cosine(SZA) at the current time (SUNCOS) and at the
       ! midpoint of the chemistry timestep (SUNCOS_MID)
       !=================================================================
+
+      ! Assume success
+      RC     = GIGC_SUCCESS
 
       ! Current time
       DOY    = GET_DAY_OF_YEAR()                       ! Current day of year
@@ -2728,7 +2131,7 @@
       JD     = JULDAY( YEAR, MONTH, DDAY )             ! Current Julian date
 
       ! Compute cosine(SZA) quantities for the current time
-      CALL COSSZA( DOY, HOUR, SUNCOS, SUNCOS_MID )
+      CALL COSSZA( DOY, HOUR,  .FALSE., State_Met )
 
       !=================================================================
       ! Get cosine (SZA) at 5 hours behind the current time (SUNCOS_5hr)
@@ -2743,7 +2146,7 @@
       HOUR5  = INT( GMT5 )
 
       ! Compute cosine(SZA) quantities for 5h ago
-      CALL COSSZA( DOY5, HOUR5, SUNCOS_5hr, SUNCOS_MID_5hr )
+      CALL COSSZA( DOY5, HOUR5, .TRUE., State_Met )
 
       END SUBROUTINE GET_COSINE_SZA
 !EOC
@@ -2762,27 +2165,34 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE COSSZA( DOY, GMT_HOUR, SUNCOS, SUNCOS_MID )
+      SUBROUTINE COSSZA( DOY, GMT_HOUR, DO_5hr_AGO, State_Met )
 !
 ! !USES:
 !
-      USE GRID_MOD, ONLY : GET_YMID_R
-      USE TIME_MOD, ONLY : GET_MINUTE
-      USE TIME_MOD, ONLY : GET_LOCALTIME
-      USE TIME_MOD, ONLY : GET_TS_CHEM
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GRID_MOD,           ONLY : GET_YMID_R
+      USE TIME_MOD,           ONLY : GET_MINUTE
+      USE TIME_MOD,           ONLY : GET_LOCALTIME
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)  :: DOY                 ! Day of the year
-      INTEGER, INTENT(IN)  :: GMT_HOUR            ! Hour of day
+      INTEGER,        INTENT(IN)    :: DOY          ! Day of the year
+      INTEGER,        INTENT(IN)    :: GMT_HOUR     ! Hour of day
+      LOGICAL,        INTENT(IN)    :: DO_5hr_AGO   ! Compute 5h ago?
 !
-! !OUTPUT PARAMETERS:
+! !INPUT/OUTPUT PARAMETERS:
 !
-      ! Cosine of the solar zenith angle at: 
-      REAL*8,  INTENT(OUT) :: SUNCOS    (MAXIJ)   ! the current time
-      REAL*8,  INTENT(OUT) :: SUNCOS_MID(MAXIJ)   ! midpt of chem timestep
+      TYPE(MetState), INTENT(INOUT) :: State_Met    ! Meteorology State
 !
 ! !REMARKS:
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%  NOTE: The SUNCOS arrays of dimension MAXIJ are now deprecated.  We  %%%
+!  %%%  are replacing them with the SUNCOS fields of the State_Met object,  %%%
+!  %%%  which are of dimensions (IIPAR,JJPAR).   During the transition we   %%%
+!  %%%  will keep the old arrays. (bmy, 11/27/12)                           %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!                                                                             .
 !  Hour angle (AHR) is a function of longitude.  AHR is zero at solar noon, 
 !  and increases by 15 deg for every hour before or after solar noon.  Hour 
 !  angle can be thought of as the time in hours since the sun last passed
@@ -2829,6 +2239,9 @@
 !                              midpt of the chem step (not always at 00:30).
 !  07 Feb 2012 - R. Yantosca - Now add GMT_HOUR as a new argument, which !
 !                              will facilitate computing sun angles 5h ago
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_LOCALTIME(I,J,L) from time_mod.F90
+!  27 Nov 2012 - R. Yantosca - Update SUNCOS fields of the State_Met object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2841,6 +2254,7 @@
       REAL*8             :: TIMLOC,   DEC,      C_DEC
       REAL*8             :: S_DEC,    R,        YMID_R
       REAL*8             :: C_YMID_R, S_YMID_R
+      REAL*8             :: SUNCOS,   SUNCOS_MID
 !
 ! !DEFINED PARAMETERS:
 !
@@ -2885,57 +2299,69 @@
       !=================================================================
       ! Compute cosine of solar zenith angle
       !=================================================================
-
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, YMID_R, S_YMID_R, C_YMID_R, IJLOOP, TIMLOC, AHR )
-
-      ! Loop over latitude
+!$OMP+PRIVATE( I,      J,   YMID_R, S_YMID_R,  C_YMID_R )
+!$OMP+PRIVATE( TIMLOC, AHR, SUNCOS, SUNCOS_MID          )
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Latitude of grid box [radians]
-         YMID_R   = GET_YMID_R( J )
+         YMID_R     = GET_YMID_R( I, J, 1 )
 
          ! Pre-compute sin & cos of DEC outside of I loop (for efficiency)
-         S_YMID_R  = SIN( YMID_R )
-         C_YMID_R  = COS( YMID_R )
+         S_YMID_R   = SIN( YMID_R )
+         C_YMID_R   = COS( YMID_R )
 
-         ! Loop over longitude
-         DO I = 1, IIPAR
+         !==============================================================
+         ! Compute cosine of SZA at the current GMT time
+         !==============================================================
 
-            ! 1-D grid box index
-            IJLOOP             = ( (J-1) * IIPAR ) + I
+         ! Local time at box (I,J) [hours]
+         TIMLOC     = GET_LOCALTIME( I, J, 1, GMT=GMT_CUR )
 
-            !===========================================================
-            ! Compute cosine of SZA at the current GMT time
-            !===========================================================
+         ! Hour angle at box (I,J) [radians]
+         AHR        = ABS( TIMLOC - 12d0 ) * 15d0 * PI_180
+         
+         ! Cosine of solar zenith angle at box (I,J) [unitless]
+         SUNCOS     = ( S_YMID_R * S_DEC              ) 
+     &              + ( C_YMID_R * C_DEC * COS( AHR ) )
 
-            ! Local time at box (I,J) [hours]
-            TIMLOC             = GET_LOCALTIME( I, GMT=GMT_CUR )
+         !==============================================================
+         ! Compute cosine of SZA at the midpoint of the chem timestep
+         ! Required for photolysis, chemistry, emissions, drydep
+         !==============================================================
 
-            ! Hour angle at box (I,J) [radians]
-            AHR                = ABS( TIMLOC - 12d0 ) * 15d0 * PI_180
-            
-            ! Cosine of solar zenith angle at box (I,J) [unitless]
-            SUNCOS(IJLOOP)     = ( S_YMID_R * S_DEC              ) 
-     &                         + ( C_YMID_R * C_DEC * COS( AHR ) )
+         ! Local time [hours] at box (I,J) at the midpt of the chem timestep
+         TIMLOC     = GET_LOCALTIME( I, J, 1, GMT=GMT_MID )
 
-            !===========================================================
-            ! Compute cosine of SZA at the midpoint of the chem timestep
-            ! Required for photolysis, chemistry, emissions, drydep
-            !===========================================================
+         ! Hour angle at box (I,J) [radians]
+         AHR        = ABS( TIMLOC - 12d0 ) * 15d0 * PI_180
+         
+         ! Corresponding cosine( SZA ) at box (I,J) [unitless]
+         SUNCOS_MID = ( S_YMID_R * S_DEC              )
+     &              + ( C_YMID_R * C_DEC * COS( AHR ) )
 
-            ! Local time [hours] at box (I,J) at the midpt of the chem timestep
-            TIMLOC             = GET_LOCALTIME( I, GMT=GMT_MID )
+         !==============================================================
+         ! Copy data into fields of the Meteorology State object
+         !==============================================================
+         IF ( DO_5hr_AGO ) THEN
 
-            ! Hour angle at box (I,J) [radians]
-            AHR                = ABS( TIMLOC - 12d0 ) * 15d0 * PI_180
-            
-            ! Corresponding cosine( SZA ) at box (I,J) [unitless]
-            SUNCOS_MID(IJLOOP) = ( S_YMID_R * S_DEC              )
-     &                         + ( C_YMID_R * C_DEC * COS( AHR ) )
+            ! COS(SZA) at midpt of chemistry timestep that was 5h ago
+            ! This is needed for the PARANOX ship plume model
+            State_Met%SUNCOSmid5(I,J) = SUNCOS_MID
 
-         ENDDO
+         ELSE
+
+            ! COS(SZA) at the current time
+            State_Met%SUNCOS    (I,J) = SUNCOS
+                               
+            ! COS(SZA) @ the midpoint of the current chemistry timestep
+            State_Met%SUNCOSmid (I,J) = SUNCOS_MID
+                                                           
+         ENDIF                                             
+
+      ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
@@ -2981,6 +2407,16 @@
       !  Array containing tracer conc. [kg] or [v/v]
       REAL*8,  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
 !
+! !REMARKS
+!  Most of the GEOS-Chem subroutines require the tracer array STT to be in 
+!  units of [kg].  However, the cloud convection, PBL mixing, and transport
+!  routines require STT to be in volume mixing ratio [v/v].   
+!                                                                             .
+!  Therefore, we need to call CONVERT_UNITS to convert STT from [kg] to [v/v]
+!  before calling convection, PBL mixing, or transport.  We also need to
+!  call CONVERT_UNITS after these routines to make the inverse conversion
+!  from [v/v] to [kg].
+
 ! !REVISION HISTORY: 
 !  15 Jun 1998 - R. Yantosca - Initial version
 !  (1 ) CONVERT_UNITS is written in Fixed-Form Fortran 90.
@@ -3006,18 +2442,6 @@
 
       !=================================================================
       ! CONVERT_UNITS begins here!
-      !
-      ! Most of the GEOS-CHEM subroutines require the tracer array 
-      ! STT to be in units of [kg].  However, the cloud convection 
-      ! (NFCLDMX), boundaryk layer mixing (TURBDAY), diffusion (DIFFUSE), 
-      ! and transport (TPCORE) routines require STT to be in volume 
-      ! mixing ratio [v/v].  
-      !
-      ! Therefore, before calling NFCLDMX, TURBDAY, DIFFUSE, or TPCORE, 
-      ! call subroutine CONVERT_UNITS to convert STT from [kg] to [v/v].  
-      !
-      ! Also call CONVERT_UNITS again after calling NFCLDMX, TURBDAY, 
-      ! DIFFUSE, or TPCORE to convert back from [v/v] to [kg].  
       !=================================================================
       SELECT CASE ( IFLAG )
 
@@ -3111,7 +2535,15 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE COPY_I3_I6_FIELDS
+      SUBROUTINE COPY_I3_I6_FIELDS( State_Met )
+!
+! !USES:
+!
+      USE GIGC_State_Met_Mod,   ONLY : MetState
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  13 Apr 2004 - R. Yantosca - Initial version
@@ -3124,6 +2556,9 @@
 !  20 Aug 2010 - R. Yantosca - Added #if block for MERRA met fields
 !  06 Feb 2012 - R. Yantosca - Added #if block for GEOS-5.7.x met fields
 !  07 Feb 2012 - R. Yantosca - Renamed to COPY_I3_I6_FIELDS
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3138,61 +2573,49 @@
 
 #if   defined( GCAP )
 
-      !-----------------
+      !------------------
       ! GCAP met
-      !-----------------
-      PS1    = PS2          ! I6 surface pressure    [hPa]
-      TROPP1 = TROPP2       ! I6 tropopause pressure [hPa]
-
-#elif defined( GEOS_3 )
-
-      !-----------------
-      ! GEOS-3 met
-      !-----------------
-      PS1    = PS2          ! I6 surface pressure    [hPa]
-      TROPP1 = TROPP2       ! I6 tropopause pressure [hPa]
-      ALBD1  = ALBD2        ! I6 surface albedo      [unitless]
-      UWND1  = UWND2        ! I6 zonal wind          [m/s]
-      VWND1  = VWND2        ! I6 meridional wind     [m/s]
-      TMPU1  = TMPU2        ! I6 temperature         [K]
-      SPHU1  = SPHU2        ! I6 specific humidity   [g/kg]
+      !------------------
+      State_Met%PS1    = State_Met%PS2     ! I6 surface pressure    [hPa]
+      State_Met%TROPP1 = State_Met%TROPP2  ! I6 tropopause pressure [hPa]
 
 #elif defined( GEOS_4 )
 
-      !-----------------
+      !------------------
       ! GEOS-4 met
-      !-----------------
-      PS1    = PS2          ! I6 surface pressure    [hPa]
-      TROPP1 = TROPP2       ! I6 tropopause pressure [hPa]
+      !------------------
+      State_Met%PS1    = State_Met%PS2     ! I6 surface pressure    [hPa]
+      State_Met%TROPP1= State_Met%TROPP2  ! I6 tropopause pressure [hPa]
 
 #elif defined( GEOS_5 )
 
-      !-----------------
+      !------------------
       ! GEOS-5 met
-      !-----------------
-      PS1    = PS2          ! I6 surface pressure    [hPa] 
+      !------------------
+      State_Met%PS1    = State_Met%PS2     ! I6 surface pressure    [hPa] 
 
 #elif defined( GEOS_57 )
 
       !------------------
       ! GEOS-5.7.x met
       !------------------
-      PS1    = PS2          ! I3 surface pressure    [hPa]
-      SPHU1  = SPHU2        ! I3 specific humidity   [g/kg]
-      TMPU1  = TMPU2        ! I3 temperature         [K]
+      State_Met%PS1    = State_Met%PS2     ! I3 surface pressure    [hPa]
+      State_Met%SPHU1  = State_Met%SPHU2   ! I3 specific humidity   [g/kg]
+      State_Met%TMPU1  = State_Met%TMPU2   ! I3 temperature         [K]
 
 #elif defined( MERRA )
 
-      !-----------------
+      !------------------
       ! MERRA met
-      !-----------------
-      PS1    = PS2          ! I6 surface pressure    [hPa]
-      RH1    = RH2          ! I6 relative humidity   [%]
+      !------------------
+      State_Met%PS1    = State_Met%PS2     ! I6 surface pressure    [hPa]
+      State_Met%RH1    = State_Met%RH2     ! I6 relative humidity   [%]
 
 #endif
 
       END SUBROUTINE COPY_I3_I6_FIELDS
 !EOC
+#if   defined( APM ) 
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -3221,209 +2644,6 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: AS
-
-      !=================================================================
-      ! A-3 fields
-      !=================================================================
-
-      ALLOCATE( ALBD( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALBD' )
-      ALBD = 0d0
-
-      ALLOCATE( CLDFRC( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDFRC' )
-      CLDFRC = 0d0
-
-      ALLOCATE( GWETTOP( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GWETTOP' )
-      GWETTOP = 0d0
-
-      ALLOCATE( HFLUX( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HFLUX' )
-      HFLUX = 0d0
-
-      ALLOCATE( MOLENGTH( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOLENGTH' )
-      MOLENGTH = 0d0
-
-      ALLOCATE( OICE( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OICE' )
-      OICE = 0d0
-
-      ALLOCATE( PARDF( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDF' )
-      PARDF = 0d0
-
-      ALLOCATE( PARDR( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDR' )
-      PARDR = 0d0
-
-      ALLOCATE( PBL( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PBL' )
-      PBL = 0d0
-
-      ALLOCATE( PREACC( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PREACC' )
-      PREACC = 0d0
-
-      ALLOCATE( PRECON( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRECON' )
-      PRECON = 0d0
-   
-      ALLOCATE( RADLWG( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADLWG' )
-      RADLWG = 0d0
-
-      ALLOCATE( RADSWG( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADSWG' )
-      RADSWG = 0d0
-
-      ALLOCATE( SNICE( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNICE' )
-      SNICE = 0d0
-
-      ALLOCATE( SNOW( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNOW' )
-      SNOW = 0d0
-
-      ALLOCATE( TS( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TS' )
-      TS = 0d0
-
-      ALLOCATE( TSKIN( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TSKIN' )
-      TSKIN = 0d0
-
-      ALLOCATE( U10M( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'U10M' )
-      U10M = 0d0
-
-      ALLOCATE( USTAR( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'USTAR' )
-      USTAR = 0d0
-
-      ALLOCATE( V10M( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'V10M' )
-      V10M = 0d0
-
-      ALLOCATE( Z0( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Z0' )
-      Z0 = 0d0
-
-      !=================================================================
-      ! A-6 fields
-      !=================================================================
-
-      ALLOCATE( CLDF( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDF' )
-      CLDF = 0d0
-
-      ALLOCATE( DETRAINE( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DETRAINE' )
-      DETRAINE = 0d0  
-
-      ALLOCATE( DETRAINN( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DETRAINN' )
-      DETRAINN = 0d0  
-
-      ALLOCATE( DNDE( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DNDE' )
-      DNDE = 0d0  
-
-      ALLOCATE( DNDN( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DNDN' )
-      DNDN = 0d0  
-
-      ALLOCATE( ENTRAIN( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ENTRAIN' )
-      ENTRAIN = 0d0  
-
-      ALLOCATE( MOISTQ( LLPAR, IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOISTQ' )
-      MOISTQ = 0d0
-
-      ALLOCATE( OPTDEP( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTDEP' )
-      OPTDEP = 0d0
-
-      ALLOCATE( OPTD( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTD' )
-      OPTD = 0d0
-
-      ALLOCATE( SPHU( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPHU' )
-      SPHU = 0d0
-
-      ALLOCATE( T( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'T' )
-      T = 0d0
-
-      ALLOCATE( UPDE( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UPDE' )
-      UPDE = 0d0  
-
-      ALLOCATE( UPDN( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UPDN' )
-      UPDN = 0d0  
-
-      ALLOCATE( UWND( IIPAR, JJPAR, LLPAR), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UWND' )
-      UWND = 0d0
-
-      ALLOCATE( VWND( IIPAR, JJPAR, LLPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'VWND' )
-      VWND = 0d0
-
-      !=================================================================
-      ! I-6 fields / interpolated fields
-      !=================================================================
-
-      ALLOCATE( PS1( IIPAR, JJPAR ), STAT=AS )  
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS1' )
-      PS1 = 0d0
-
-      ! Pressure at end of 6hr timestep
-      ALLOCATE( PS2( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS2' )
-      PS2 = 0d0
-
-      ALLOCATE( PSC2( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSC2' )
-      PSC2 = 0d0
-
-      ALLOCATE( RH( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH' )
-      RH = 0d0
-
-      ALLOCATE( SLP( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SLP' )
-      SLP = 0d0      
-
-      ALLOCATE( TROPP( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP' )
-      TROPP = 0d0
-
-      ALLOCATE( TROPP1( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) C ALL ALLOC_ERR( 'TROPP1' )
-      TROPP1 = 0d0
-
-      ALLOCATE( TROPP2( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP2' )
-      TROPP2 = 0d0
-
-      !=================================================================
-      ! Constant fields
-      !=================================================================
-
-      ALLOCATE( PHIS( IIPAR, JJPAR ), STAT=AS )  
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PHIS' )
-      PHIS = 0d0
-
-      ALLOCATE( LWI_GISS( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LWI_GISS' )
-      LWI_GISS = 0d0
-
-#if   defined( APM ) 
       
       !-----------------------------------------------------------------
       ! GCAP fields for APM microphysics code
@@ -3519,273 +2739,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'UPDN0b' )
       UPDN0b = 0.d0
 
-#endif
-
       END SUBROUTINE INIT_DAO_GCAP
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: init_dao_geos3
-!
-! !DESCRIPTION: Subroutine INIT\_DAO allocates memory for all allocatable
-!  module arrays required when using the GEOS-3 met fields
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE INIT_DAO_GEOS3
-!
-! !USES:
-!
-      USE ERROR_MOD, ONLY : ALLOC_ERR
-!
-! !REVISION HISTORY:
-!  06 Feb 2012 - R. Yantosca - Split off GEOS-3 init from routine INIT_DAO
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: AS
-
-      !=================================================================
-      ! A-3 fields
-      !=================================================================
-
-      ALLOCATE( CLDFRC( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDFRC' )
-      CLDFRC = 0d0
-
-      ALLOCATE( GWETTOP( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GWETTOP' )
-      GWETTOP = 0d0
-
-      ALLOCATE( HFLUX( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HFLUX' )
-      HFLUX = 0d0
-
-      ALLOCATE( PBL( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PBL' )
-      PBL = 0d0
-
-      ALLOCATE( PHIS( IIPAR, JJPAR ), STAT=AS )  
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PHIS' )
-      PHIS = 0d0
-
-      ALLOCATE( PREACC( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PREACC' )
-      PREACC = 0d0
-
-      ALLOCATE( PRECON( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRECON' )
-      PRECON = 0d0
-
-      ALLOCATE( Z0( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Z0' )
-      Z0 = 0d0
-
-      !=================================================================
-      ! A-6 fields
-      !=================================================================
-
-      ALLOCATE( CLDF( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDF' )
-      CLDF = 0d0
-
-      ALLOCATE( CLDMAS( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDMAS' )
-      CLDMAS = 0d0
-
-      ALLOCATE( DTRAIN( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DTRAIN' )
-      DTRAIN = 0d0
-
-      ALLOCATE( MOISTQ( LLPAR, IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOISTQ' )
-      MOISTQ = 0d0
-
-      ALLOCATE( OPTDEP( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTDEP' )
-      OPTDEP = 0d0
-
-      ALLOCATE( OPTD( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTD' )
-      OPTD = 0d0
-
-      ALLOCATE( PARDF( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDF' )
-      PARDF = 0d0
-
-      ALLOCATE( PARDR( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDR' )
-      PARDR = 0d0
-
-      ALLOCATE( RADLWG( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADLWG' )
-      RADLWG = 0d0
-
-      ALLOCATE( RADSWG( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADSWG' )
-      RADSWG = 0d0
-
-      ALLOCATE( TS( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TS' )
-      TS = 0d0
-
-      ALLOCATE( TSKIN( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TSKIN' )
-      TSKIN = 0d0
-
-      ALLOCATE( U10M( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'U10M' )
-      U10M = 0d0
-
-      ALLOCATE( USTAR( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'USTAR' )
-      USTAR = 0d0
-
-      ALLOCATE( V10M( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'V10M' )
-      V10M = 0d0
-
-      !=================================================================
-      ! I-6 fields / interpolated fields
-      !=================================================================
-
-      ALLOCATE( ALBD( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALBD' )
-      ALBD = 0d0
-
-      ALLOCATE( ALBD1( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALBD1' )
-      ALBD1 = 0d0
-
-      ALLOCATE( ALBD2( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALBD2' )
-      ALBD2 = 0d0
-
-      ALLOCATE( LWI( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LWI' )
-      LWI = 0
-
-      ALLOCATE( PS1( IIPAR, JJPAR ), STAT=AS )  
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS1' )
-      PS1 = 0d0
-
-      ALLOCATE( PS2( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS2' )
-      PS2 = 0d0
-
-      ALLOCATE( PSC2( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSC2' )
-      PSC2 = 0d0
-
-      ALLOCATE( RH( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH' )
-      RH = 0d0
-
-      ALLOCATE( SLP( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SLP' )
-      SLP = 0d0      
-
-      ALLOCATE( SPHU( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPHU' )
-      SPHU = 0d0
-
-      ALLOCATE( SPHU1( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPHU1' )
-      SPHU1 = 0d0
-
-      ALLOCATE( SPHU2( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPHU2' )
-      SPHU2 = 0d0
-
-      ALLOCATE( T( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'T' )
-      T = 0d0
-
-      ALLOCATE( TMPU1( IIPAR, JJPAR, LLPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TMPU1' )
-      TMPU1 = 0d0
-
-      ALLOCATE( TMPU2( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TMPU2' )
-      TMPU2 = 0d0
-
-      ALLOCATE( TROPP( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP' )
-      TROPP = 0d0
-
-      ALLOCATE( TROPP1( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) C ALL ALLOC_ERR( 'TROPP1' )
-      TROPP1 = 0d0
-
-      ALLOCATE( TROPP2( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP2' )
-      TROPP2 = 0d0
-
-      ALLOCATE( UWND( IIPAR, JJPAR, LLPAR), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UWND' )
-      UWND = 0d0
-
-      ALLOCATE( UWND1( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UWND1' )
-      UWND1 = 0d0
-
-      ALLOCATE( UWND2( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UWND2' )
-      UWND2 = 0d0
-
-      ALLOCATE( VWND( IIPAR, JJPAR, LLPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'VWND' )
-      VWND = 0d0
-
-      ALLOCATE( VWND1( IIPAR, JJPAR, LLPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'VWND1' )
-      VWND1 = 0d0
-
-      ALLOCATE( VWND2( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'VWND2' )
-      VWND2 = 0d0
-
-#if   defined( APM )
-
-      !-----------------------------------------------------------------
-      ! GEOS-3 fields for APM microphysics code
-      !-----------------------------------------------------------------
-
-      ALLOCATE( CLDMAS0(IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDMAS0' )
-      CLDMAS0 = 0d0
-
-      ALLOCATE( CLDMAS0a(IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDMAS0a' )
-      CLDMAS0a = 0d0
-
-      ALLOCATE( CLDMAS0b(IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDMAS0b' )
-      CLDMAS0b = 0d0
-
-
-      ALLOCATE( DTRAIN0(IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DTRAIN0' )
-      DTRAIN0 = 0d0
-
-      ALLOCATE( DTRAIN0a(IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DTRAIN0a' )
-      DTRAIN0a = 0d0
-
-      ALLOCATE( DTRAIN0b(IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DTRAIN0b' )
-      DTRAIN0b = 0d0
-
-#endif
-
-      END SUBROUTINE INIT_DAO_GEOS3
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -3815,180 +2769,6 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: AS
-
-      !=================================================================
-      ! A-3 fields
-      !=================================================================
-
-      ALLOCATE( CLDFRC( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDFRC' )
-      CLDFRC = 0d0
-
-      ALLOCATE( GWETTOP( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GWETTOP' )
-      GWETTOP = 0d0
-
-      ALLOCATE( HFLUX( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HFLUX' )
-      HFLUX = 0d0
-
-      ALLOCATE( PARDF( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDF' )
-      PARDF = 0d0
-
-      ALLOCATE( PARDR( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDR' )
-      PARDR = 0d0
-
-      ALLOCATE( PBL( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PBL' )
-      PBL = 0d0
-
-      ALLOCATE( PHIS( IIPAR, JJPAR ), STAT=AS )  
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PHIS' )
-      PHIS = 0d0
-
-      ALLOCATE( PREACC( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PREACC' )
-      PREACC = 0d0
-
-      ALLOCATE( PRECON( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRECON' )
-      PRECON = 0d0
-   
-      ALLOCATE( RADLWG( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADLWG' )
-      RADLWG = 0d0
-
-      ALLOCATE( RADSWG( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADSWG' )
-      RADSWG = 0d0
-
-      ALLOCATE( SNOW( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNOW' )
-      SNOW = 0d0
-
-      ALLOCATE( TS( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TS' )
-      TS = 0d0
-
-      ALLOCATE( TSKIN( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TSKIN' )
-      TSKIN = 0d0
-
-      ALLOCATE( U10M( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'U10M' )
-      U10M = 0d0
-
-      ALLOCATE( USTAR( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'USTAR' )
-      USTAR = 0d0
-
-      ALLOCATE( V10M( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'V10M' )
-      V10M = 0d0
-
-      ALLOCATE( Z0( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Z0' )
-      Z0 = 0d0
-
-      !=================================================================
-      ! A-6 fields
-      !=================================================================
-
-      ALLOCATE( CLDF( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDF' )
-      CLDF = 0d0
-
-      ALLOCATE( HKBETA( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HKBETA' )
-      HKBETA = 0d0
-
-      ALLOCATE( HKETA( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HKETA' )
-      HKETA = 0d0
-
-      ALLOCATE( MOISTQ( LLPAR, IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOISTQ' )
-      MOISTQ = 0d0
-
-      ALLOCATE( OPTDEP( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTDEP' )
-      OPTDEP = 0d0
-
-      ALLOCATE( OPTD( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTD' )
-      OPTD = 0d0
-
-      ALLOCATE( SPHU( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPHU' )
-      SPHU = 0d0
-
-      ALLOCATE( T( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'T' )
-      T = 0d0
-
-      ALLOCATE( UWND( IIPAR, JJPAR, LLPAR), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UWND' )
-      UWND = 0d0
-
-      ALLOCATE( VWND( IIPAR, JJPAR, LLPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'VWND' )
-      VWND = 0d0
-
-      ALLOCATE( ZMEU( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ZMEU' )
-      ZMEU = 0d0
-
-      ALLOCATE( ZMMD( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ZMMD' )
-      ZMMD = 0d0
-
-      ALLOCATE( ZMMU( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ZMMU' )
-      ZMMU = 0d0
-
-      !=================================================================
-      ! I-6 fields / interpolated fields
-      !=================================================================
-
-      ALLOCATE( LWI( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LWI' )
-      LWI = 0
-
-      ALLOCATE( PS1( IIPAR, JJPAR ), STAT=AS )  
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS1' )
-      PS1 = 0d0
-
-      ALLOCATE( PS2( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS2' )
-      PS2 = 0d0
-
-      ALLOCATE( PSC2( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSC2' )
-      PSC2 = 0d0
-
-      ALLOCATE( RH( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH' )
-      RH = 0d0
-
-      ALLOCATE( SLP( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SLP' )
-      SLP = 0d0      
-
-      ALLOCATE( TROPP( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP' )
-      TROPP = 0d0
-
-      ALLOCATE( TROPP1( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) C ALL ALLOC_ERR( 'TROPP1' )
-      TROPP1 = 0d0
-
-      ALLOCATE( TROPP2( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP2' )
-      TROPP2 = 0d0
-
-#if   defined( APM )
 
       !-----------------------------------------------------------------
       ! GEOS-4 fields for APM microphysics code
@@ -4058,8 +2838,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ZMMU0b' )
       ZMMU0b = 0d0
 
-#endif
-
       END SUBROUTINE INIT_DAO_GEOS4
 !EOC
 !------------------------------------------------------------------------------
@@ -4083,6 +2861,7 @@
 !
 ! !REVISION HISTORY:
 !  06 Feb 2012 - R. Yantosca - Split off GEOS-5 init from routine INIT_DAO
+!  06 Mar 2012 - R. Yantosca - Move TO3 to INIT_GEOS3_DERIVED
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4090,264 +2869,6 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: AS
-
-      !=================================================================
-      ! A-3 fields
-      !=================================================================
-
-      ALLOCATE( ALBD( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALBD' )
-      ALBD = 0d0
-
-      ALLOCATE( CLDFRC( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDFRC' )
-      CLDFRC = 0d0
-
-      ALLOCATE( EFLUX( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EFLUX' )
-      EFLUX = 0d0
-
-      ALLOCATE( EVAP( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EVAP' )
-      EVAP = 0d0
-
-      ALLOCATE( FRLAND( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRLAND' )
-      FRLAND = 0d0
-
-      ALLOCATE( FRLAKE( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRLAKE' )
-      FRLAKE = 0d0
-
-      ALLOCATE( FROCEAN( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FROCEAN' )
-      FROCEAN = 0d0
-
-      ALLOCATE( FRLANDIC( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRLANDIC' )
-      FRLANDIC = 0d0
-
-      ALLOCATE( GRN( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GRN' )
-      GRN = 0d0
-
-      ALLOCATE( GWETROOT( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GWETROOT' )
-      GWETROOT = 0d0
-
-      ALLOCATE( LAI( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LAI' )
-      LAI = 0d0
-
-      ALLOCATE( PRECSNO( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRECSNO' )
-      PRECSNO = 0d0
-
-      ALLOCATE( GWETTOP( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GWETTOP' )
-      GWETTOP = 0d0
-
-      ALLOCATE( HFLUX( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HFLUX' )
-      HFLUX = 0d0
-
-      ALLOCATE( PARDF( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDF' )
-      PARDF = 0d0
-
-      ALLOCATE( PARDR( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDR' )
-      PARDR = 0d0
-
-      ALLOCATE( PBL( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PBL' )
-      PBL = 0d0
-
-      ALLOCATE( PHIS( IIPAR, JJPAR ), STAT=AS )  
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PHIS' )
-      PHIS = 0d0
-
-      ALLOCATE( PREACC( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PREACC' )
-      PREACC = 0d0
-
-      ALLOCATE( PRECON( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRECON' )
-      PRECON = 0d0
-
-      ALLOCATE( RADLWG( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADLWG' )
-      RADLWG = 0d0
-
-      ALLOCATE( RADSWG( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADSWG' )
-      RADSWG = 0d0
-
-      ALLOCATE( SNOMAS( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNOMAS' )
-      SNOMAS = 0d0
-
-      ALLOCATE( SNODP( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNODP' )
-      SNODP = 0d0
-
-      ALLOCATE( TROPP( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP' )
-      TROPP = 0d0
-
-      ALLOCATE( TS( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TS' )
-      TS = 0d0
-
-      ALLOCATE( TSKIN( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TSKIN' )
-      TSKIN = 0d0
-
-      ALLOCATE( U10M( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'U10M' )
-      U10M = 0d0
-
-      ALLOCATE( USTAR( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'USTAR' )
-      USTAR = 0d0
-
-      ALLOCATE( V10M( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'V10M' )
-      V10M = 0d0
-
-      ALLOCATE( Z0( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Z0' )
-      Z0 = 0d0
-
-      !=================================================================
-      ! A-6 fields
-      !=================================================================
-
-      ALLOCATE( CLDF( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDF' )
-      CLDF = 0d0
-
-      ALLOCATE( CMFMC( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CMFMC' )
-      CMFMC = 0d0
-
-      ALLOCATE( DQIDTMST( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQIDTMST' )
-      DQIDTMST = 0d0
-
-      ALLOCATE( DQLDTMST( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQLDTMST' )
-      DQLDTMST = 0d0
-
-      ALLOCATE( DQVDTMST( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQVDTMST' )
-      DQVDTMST = 0d0
-
-      ALLOCATE( DQRCON( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRCON' )
-      DQRCON = 0d0
-
-      ALLOCATE( DQRLSC( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRLSC' )
-      DQRLSC = 0d0
-
-      ALLOCATE( DTRAIN( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DTRAIN' )
-      DTRAIN = 0d0
-
-      ALLOCATE( MOISTQ( LLPAR, IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOISTQ' )
-      MOISTQ = 0d0
-
-      ALLOCATE( OPTDEP( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTDEP' )
-      OPTDEP = 0d0
-
-      ALLOCATE( OPTD( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTD' )
-      OPTD = 0d0
-
-      ALLOCATE( PV( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PV' )
-      PV = 0d0
-
-      ALLOCATE( QI( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QI' )
-      QI = 0d0
-
-      ALLOCATE( QL( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QL' )
-      QL = 0d0
-
-      ALLOCATE( RH( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH' )
-      RH = 0d0
-
-      ALLOCATE( SPHU( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPHU' )
-      SPHU = 0d0
-
-      ALLOCATE( T( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'T' )
-      T = 0d0
-
-      ALLOCATE( TAUCLI( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLI' )
-      TAUCLI = 0d0
-
-      ALLOCATE( TAUCLW( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLW' )
-      TAUCLW = 0d0
-
-      ALLOCATE( UWND( IIPAR, JJPAR, LLPAR), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UWND' )
-      UWND = 0d0
-
-      ALLOCATE( VWND( IIPAR, JJPAR, LLPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'VWND' )
-      VWND = 0d0
-
-      !=================================================================
-      ! I-6 fields
-      !=================================================================
-
-      ALLOCATE( LWI( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LWI' )
-      LWI = 0
-
-      ALLOCATE( PS1( IIPAR, JJPAR ), STAT=AS )  
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS1' )
-      PS1 = 0d0
-
-      ALLOCATE( PS2( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS2' )
-      PS2 = 0d0
-
-      ALLOCATE( PSC2( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSC2' )
-      PSC2 = 0d0
-
-      ALLOCATE( SLP( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SLP' )
-      SLP = 0d0    
-
-      ALLOCATE( TO31( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO31' )
-      TO31 = 0d0
-
-      ALLOCATE( TO32( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO32' )
-      TO32 = 0d0
-
-      ALLOCATE( TO3( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO3' )
-      TO3 = 0d0
-
-      ALLOCATE( TTO3( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TTO3' )
-      TTO3 = 0d0
-  
-#if   defined( APM )
 
       !-----------------------------------------------------------------
       ! GEOS-5 fields for APM microphysics code
@@ -4507,8 +3028,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLW0b' )
       TAUCLW0b = 0d0
 
-#endif
-
       END SUBROUTINE INIT_DAO_GEOS5
 !EOC
 !------------------------------------------------------------------------------
@@ -4539,349 +3058,6 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: AS
-
-      !=================================================================
-      ! A1 fields
-      !=================================================================
-
-      ALLOCATE( ALBD( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALBD' )
-      ALBD = 0d0
-
-      ALLOCATE( CLDFRC( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDFRC' )
-      CLDFRC = 0d0
-
-      ALLOCATE( EFLUX( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EFLUX' )
-      EFLUX = 0d0
-
-      ALLOCATE( EVAP( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EVAP' )
-      EVAP = 0d0
-
-      ALLOCATE( FRSEAICE( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRSEAICE' )
-      FRSEAICE = 0d0
-
-      ALLOCATE( FRSNO( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRSNO' )
-      FRSNO = 0d0
-
-      ALLOCATE( GRN( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GRN' )
-      GRN = 0d0
-
-      ALLOCATE( GWETROOT( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GWETROOT' )
-      GWETROOT = 0d0
-
-      ALLOCATE( GWETTOP( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GWETTOP' )
-      GWETTOP = 0d0
-
-      ALLOCATE( HFLUX( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HFLUX' )
-      HFLUX = 0d0
-
-      ALLOCATE( LAI( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LAI' )
-      LAI = 0d0
-
-      ALLOCATE( LWI( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LWI' )
-      LWI = 0
-
-      ALLOCATE( PARDF( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDF' )
-      PARDF = 0d0
-
-      ALLOCATE( PARDR( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDR' )
-      PARDR = 0d0
- 
-      ALLOCATE( PBL( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PBL' )
-      PBL = 0d0
-
-      ALLOCATE( PREACC( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PREACC' )
-      PREACC = 0d0
-
-      ALLOCATE( PREANV( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PREANV' )
-      PREANV = 0d0
-
-      ALLOCATE( PRECON( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRECON' )
-      PRECON = 0d0
-  
-      ALLOCATE( PRELSC( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRELSC' )
-      PRELSC = 0d0
-
-      ALLOCATE( PRECSNO( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRECSNO' )
-      PRECSNO = 0d0
-
-      ALLOCATE( RADLWG( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADLWG' )
-      RADLWG = 0d0
-
-      ALLOCATE( RADSWG( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADSWG' )
-      RADSWG = 0d0
-
-      ALLOCATE( SEAICE00( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE00' )
-      SEAICE00 = 0d0
-
-      ALLOCATE( SEAICE10( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE10' )
-      SEAICE10 = 0d0
-
-      ALLOCATE( SEAICE20( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE20' )
-      SEAICE20 = 0d0
-
-      ALLOCATE( SEAICE30( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE30' )
-      SEAICE30 = 0d0
-
-      ALLOCATE( SEAICE40( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE40' )
-      SEAICE40 = 0d0
-
-      ALLOCATE( SEAICE50( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE50' )
-      SEAICE50 = 0d0
-
-      ALLOCATE( SEAICE60( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE60' )
-      SEAICE60 = 0d0
-
-      ALLOCATE( SEAICE70( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE70' )
-      SEAICE70 = 0d0
-
-      ALLOCATE( SEAICE80( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE80' )
-      SEAICE80 = 0d0
-
-      ALLOCATE( SEAICE90( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE90' )
-      SEAICE90 = 0d0
-
-      ALLOCATE( SLP( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SLP' )
-      SLP = 0d0     
-
-      ALLOCATE( SNODP( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNODP' )
-      SNODP = 0d0
-
-      ALLOCATE( SNOMAS( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNOMAS' )
-      SNOMAS = 0d0
-
-      ALLOCATE( TROPP( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP' )
-      TROPP = 0d0
-
-      ALLOCATE( TS( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TS' )
-      TS = 0d0
-
-      ALLOCATE( TSKIN( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TSKIN' )
-      TSKIN = 0d0
-
-      ALLOCATE( U10M( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'U10M' )
-      U10M = 0d0
-
-      ALLOCATE( USTAR( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'USTAR' )
-      USTAR = 0d0
-
-      ALLOCATE( V10M( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'V10M' )
-      V10M = 0d0
-
-      ALLOCATE( Z0( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Z0' )
-      Z0 = 0d0
-
-      !=================================================================
-      ! A3cld fields
-      !=================================================================
-
-      ALLOCATE( CLDF( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDF' )
-      CLDF = 0d0
-
-      ALLOCATE( QI( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QI' )
-      QI = 0d0
-
-      ALLOCATE( QL( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QL' )
-      QL = 0d0
-
-      ALLOCATE( OPTDEP( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTDEP' )
-      OPTDEP = 0d0
-
-      ALLOCATE( OPTD( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTD' )
-      OPTD = 0d0
-
-      ALLOCATE( TAUCLI( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLI' )
-      TAUCLI = 0d0
-
-      ALLOCATE( TAUCLW( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLW' )
-      TAUCLW = 0d0
-
-      !=================================================================
-      ! A3dyn fields
-      !=================================================================
-
-      ALLOCATE( CMFMC( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CMFMC' )
-      CMFMC = 0d0
-
-      ALLOCATE( DTRAIN( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DTRAIN' )
-      DTRAIN = 0d0
-
-      ALLOCATE( RH( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH' )
-      RH = 0d0
-
-      ! U-wind
-      ALLOCATE( UWND( IIPAR, JJPAR, LLPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UWND' )
-      UWND = 0d0
-
-      ! V-wind
-      ALLOCATE( VWND( IIPAR, JJPAR, LLPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'VWND' )
-      VWND = 0d0
-
-      !=================================================================
-      ! A3mstC fields
-      !=================================================================
-
-      ALLOCATE( DQRCU( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRCU' )
-      DQRCU = 0d0
-
-      ALLOCATE( DQRLSAN( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRLSAN' )
-      DQRLSAN = 0d0
-
-      ALLOCATE( REEVAPCN( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'REEVAPCN' )
-      REEVAPCN = 0d0
-
-      ALLOCATE( REEVAPLS( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'REEVAPLS' )
-      REEVAPLS = 0d0
-
-      !=================================================================
-      ! A3mstE fields
-      !=================================================================
-
-      ALLOCATE( PFICU( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFICU' )
-      PFICU = 0d0
-
-      ALLOCATE( PFILSAN( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFILSAN' )
-      PFILSAN = 0d0
-
-      ALLOCATE( PFLCU( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFLCU' )
-      PFLCU = 0d0
-
-      ALLOCATE( PFLLSAN( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFLLSAN' )
-      PFLLSAN = 0d0
-
-      !=================================================================
-      ! Constant fields
-      !=================================================================
-
-      ALLOCATE( FRLAKE( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRLAKE' )
-      FRLAKE = 0d0
-
-      ALLOCATE( FRLAND( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRLAND' )
-      FRLAND = 0d0
-
-      ALLOCATE( FROCEAN( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FROCEAN' )
-      FROCEAN = 0d0
-
-      ALLOCATE( FRLANDIC( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRLANDIC' )
-      FRLANDIC = 0d0
-
-      ALLOCATE( PHIS( IIPAR, JJPAR ), STAT=AS )  
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PHIS' )
-      PHIS = 0d0
-
-      !=================================================================
-      ! I3 fields / interpolated fields
-      !=================================================================
-
-      ! Pressure at beginning of 6hr timestep
-      ALLOCATE( PS1( IIPAR, JJPAR ), STAT=AS )  
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS1' )
-      PS1 = 0d0
-
-      ! Pressure at end of 6hr timestep
-      ALLOCATE( PS2( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS2' )
-      PS2 = 0d0
-
-      ! Pressure at end of dynamic timestep
-      ALLOCATE( PSC2( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSC2' )
-      PSC2 = 0d0
-
-      ALLOCATE( PV( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PV' )
-      PV = 0d0
-
-      ALLOCATE( SPHU( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPHU' )
-      SPHU = 0d0
-
-      ALLOCATE( SPHU1( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPHU1' )
-      SPHU1 = 0d0
-
-      ALLOCATE( SPHU2( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPHU2' )
-      SPHU2 = 0d0
-
-      ALLOCATE( T( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'T' )
-      T = 0d0
-
-      ALLOCATE( TMPU1( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TMPU1' )
-      TMPU1 = 0d0
-
-      ALLOCATE( TMPU2( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TMPU2' )
-      TMPU2 = 0d0
-
-#if   defined( APM )
 
       !-----------------------------------------------------------------
       ! GEOS-5.7.x fields for APM microphysics code
@@ -5041,8 +3217,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLW0b' )
       TAUCLW0b = 0d0
 
-#endif
-
       END SUBROUTINE INIT_DAO_GEOS57
 !EOC
 !------------------------------------------------------------------------------
@@ -5066,6 +3240,7 @@
 !
 ! !REVISION HISTORY:
 !  06 Feb 2012 - R. Yantosca - Split off MERRA init from routine INIT_DAO
+!  17 Apr 2012 - R. Yantosca - Bug fix: allocate ALBD array (it was omitted)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5073,336 +3248,6 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: AS
-
-      !=================================================================
-      ! A1 fields
-      !=================================================================
-
-      ALLOCATE( CLDFRC( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDFRC' )
-      CLDFRC = 0d0
-
-      ALLOCATE( EFLUX( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EFLUX' )
-      EFLUX = 0d0
-
-      ALLOCATE( EVAP( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EVAP' )
-      EVAP = 0d0
-
-      ALLOCATE( FRSEAICE( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRSEAICE' )
-      FRSEAICE = 0d0
-
-      ALLOCATE( FRSNO( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRSNO' )
-      FRSNO = 0d0
-
-      ALLOCATE( GRN( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GRN' )
-      GRN = 0d0
-
-      ALLOCATE( GWETROOT( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GWETROOT' )
-      GWETROOT = 0d0
-
-      ALLOCATE( GWETTOP( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GWETTOP' )
-      GWETTOP = 0d0
-
-      ALLOCATE( HFLUX( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HFLUX' )
-      HFLUX = 0d0
-
-      ALLOCATE( LAI( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LAI' )
-      LAI = 0d0
-
-      ALLOCATE( LWI( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LWI' )
-      LWI = 0
-
-      ALLOCATE( PRECSNO( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRECSNO' )
-      PRECSNO = 0d0
-
-      ALLOCATE( PARDF( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDF' )
-      PARDF = 0d0
-
-      ALLOCATE( PARDR( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDR' )
-      PARDR = 0d0
-
-      ALLOCATE( PBL( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PBL' )
-      PBL = 0d0
-
-      ALLOCATE( PREACC( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PREACC' )
-      PREACC = 0d0
-
-      ALLOCATE( PREANV( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PREANV' )
-      PREANV = 0d0
-
-      ALLOCATE( PRECON( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRECON' )
-      PRECON = 0d0
-
-      ALLOCATE( PRELSC( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRELSC' )
-      PRELSC = 0d0
-
-      ALLOCATE( SEAICE00( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE00' )
-      SEAICE00 = 0d0
-
-      ALLOCATE( SEAICE10( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE10' )
-      SEAICE10 = 0d0
-
-      ALLOCATE( SEAICE20( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE20' )
-      SEAICE20 = 0d0
-
-      ALLOCATE( SEAICE30( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE30' )
-      SEAICE30 = 0d0
-
-      ALLOCATE( SEAICE40( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE40' )
-      SEAICE40 = 0d0
-
-      ALLOCATE( SEAICE50( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE50' )
-      SEAICE50 = 0d0
-
-      ALLOCATE( SEAICE60( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE60' )
-      SEAICE60 = 0d0
-
-      ALLOCATE( SEAICE70( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE70' )
-      SEAICE70 = 0d0
-
-      ALLOCATE( SEAICE80( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE80' )
-      SEAICE80 = 0d0
-
-      ALLOCATE( SEAICE90( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE90' )
-      SEAICE90 = 0d0
-
-      ALLOCATE( RADLWG( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADLWG' )
-      RADLWG = 0d0
-
-      ALLOCATE( RADSWG( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADSWG' )
-      RADSWG = 0d0
-
-      ALLOCATE( SLP( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SLP' )
-      SLP = 0d0    
-
-      ALLOCATE( SNODP( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNODP' )
-      SNODP = 0d0
-
-      ALLOCATE( SNOMAS( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNOMAS' )
-      SNOMAS = 0d0
-
-      ALLOCATE( TROPP( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP' )
-      TROPP = 0d0
-
-      ALLOCATE( TS( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TS' )
-      TS = 0d0
-
-      ALLOCATE( TSKIN( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TSKIN' )
-      TSKIN = 0d0
-
-      ALLOCATE( U10M( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'U10M' )
-      U10M = 0d0
-
-      ALLOCATE( USTAR( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'USTAR' )
-      USTAR = 0d0
- 
-      ALLOCATE( V10M( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'V10M' )
-      V10M = 0d0
-
-      ALLOCATE( Z0( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Z0' )
-      Z0 = 0d0
-
-      !=================================================================
-      ! A3 fields
-      !=================================================================
-
-      ALLOCATE( CLDF( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDF' )
-      CLDF = 0d0
-
-      ALLOCATE( CMFMC( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CMFMC' )
-      CMFMC = 0d0
-
-      ALLOCATE( DQIDTMST( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQIDTMST' )
-      DQIDTMST = 0d0
-
-      ALLOCATE( DQLDTMST( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQLDTMST' )
-      DQLDTMST = 0d0
-
-      ALLOCATE( DQRCU( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRCU' )
-      DQRCU = 0d0
-
-      ALLOCATE( DQRLSAN( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRLSAN' )
-      DQRLSAN = 0d0
-
-      ALLOCATE( DQVDTMST( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQVDTMST' )
-      DQVDTMST = 0d0
-
-      ALLOCATE( DTRAIN( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DTRAIN' )
-      DTRAIN = 0d0
-
-      ALLOCATE( MOISTQ( LLPAR, IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOISTQ' )
-      MOISTQ = 0d0
-
-      ALLOCATE( OPTDEP( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTDEP' )
-      OPTDEP = 0d0
-
-      ALLOCATE( OPTD( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTD' )
-      OPTD = 0d0
-
-      ALLOCATE( PFICU( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFICU' )
-      PFICU = 0d0
-
-      ALLOCATE( PFILSAN( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFILSAN' )
-      PFILSAN = 0d0
-
-      ALLOCATE( PFLCU( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFLCU' )
-      PFLCU = 0d0
-
-      ALLOCATE( PFLLSAN( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFLLSAN' )
-      PFLLSAN = 0d0
-
-      ALLOCATE( QI( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QI' )
-      QI = 0d0
-
-      ALLOCATE( QL( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QL' )
-      QL = 0d0
-
-      ALLOCATE( REEVAPCN( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'REEVAPCN' )
-      REEVAPCN = 0d0
-
-      ALLOCATE( REEVAPLS( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'REEVAPLS' )
-      REEVAPLS = 0d0
-
-      ALLOCATE( SPHU( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPHU' )
-      SPHU = 0d0
-
-      ALLOCATE( T( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'T' )
-      T = 0d0
-
-      ALLOCATE( TAUCLI( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLI' )
-      TAUCLI = 0d0
-
-      ALLOCATE( TAUCLW( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLW' )
-      TAUCLW = 0d0
-
-      ALLOCATE( UWND( IIPAR, JJPAR, LLPAR), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UWND' )
-      UWND = 0d0
-
-      ALLOCATE( VWND( IIPAR, JJPAR, LLPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'VWND' )
-      VWND = 0d0
-
-      !=================================================================
-      ! Constant fields
-      !=================================================================
-
-      ALLOCATE( FRLAKE( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRLAKE' )
-      FRLAKE = 0d0
-
-      ALLOCATE( FRLAND( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRLAND' )
-      FRLAND = 0d0
-
-      ALLOCATE( FROCEAN( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FROCEAN' )
-      FROCEAN = 0d0
-
-      ALLOCATE( FRLANDIC( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRLANDIC' )
-      FRLANDIC = 0d0
-
-      ALLOCATE( PHIS( IIPAR, JJPAR ), STAT=AS )  
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PHIS' )
-      PHIS = 0d0
-
-      !=================================================================
-      ! I6 fields / interpolated fields
-      !=================================================================
-
-      ALLOCATE( PS1( IIPAR, JJPAR ), STAT=AS )  
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS1' )
-      PS1 = 0d0
-
-      ALLOCATE( PS2( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS2' )
-      PS2 = 0d0
-
-      ALLOCATE( PSC2( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSC2' )
-      PSC2 = 0d0
-
-      ALLOCATE( PV( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PV' )
-      PV = 0d0
-
-      ALLOCATE( RH( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH' )
-      RH = 0d0
-
-      ALLOCATE( RH1( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH1' )
-      RH1 = 0d0
-
-      ALLOCATE( RH2( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH2' )
-      RH2 = 0d0
-
-#if   defined( APM )
 
       !-----------------------------------------------------------------
       ! MERRA fields for APM microphysics code
@@ -5562,8 +3407,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLW0b' )
       TAUCLW0b = 0d0
 
-#endif
-
       END SUBROUTINE INIT_DAO_MERRA
 !EOC
 !------------------------------------------------------------------------------
@@ -5597,62 +3440,6 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: AS
-
-      !=================================================================
-      ! Derived fields
-      !=================================================================
-
-      ALLOCATE( AD( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD' )
-      AD = 0d0
-
-      ALLOCATE( AIRDEN( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AIRDEN' )
-      AIRDEN = 0d0
-
-      ALLOCATE( AIRDEN_FULLGRID( LGLOB, IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AIRDEN_FULLGRID' )
-      AIRDEN_FULLGRID = 0d0
-
-      ALLOCATE( AIRVOL( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AIRVOL' )
-      AIRVOL = 0d0
-      
-      IF ( ITS_A_FULLCHEM_SIM() .or. ITS_AN_AEROSOL_SIM() ) THEN 
-         ALLOCATE( AVGW( IIPAR, JJPAR, LLPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AVGW' )
-         AVGW = 0d0
-      ENDIF
-
-      ALLOCATE( BXHEIGHT( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BXHEIGHT' )
-      BXHEIGHT = 0d0
-
-      ALLOCATE( CLDTOPS( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDTOPS' )
-      CLDTOPS = 0
-
-      ALLOCATE( DELP( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DELP' )
-      DELP = 0d0
-
-      ALLOCATE( SUNCOS( MAXIJ ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUNCOS' )
-      SUNCOS = 0d0
-
-      ALLOCATE( SUNCOS_MID( MAXIJ ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUNCOS_MID' )
-      SUNCOS_MID = 0d0
-
-      ALLOCATE( SUNCOS_MID_5hr( MAXIJ ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUNCOS_MID_5hr' )
-      SUNCOS_MID_5hr = 0d0
-
-      ALLOCATE( T_FULLGRID( IIPAR, JJPAR, LGLOB ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'T_FULLGRID' )
-      T_FULLGRID = 0d0
-
-#if   defined( APM ) 
       
       !-----------------------------------------------------------------
       ! Common fields for APM microphysics code
@@ -5704,6 +3491,7 @@
       ALLOCATE( MOISTQ0a( LLPAR, IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOISTQ0a' )
       MOISTQ0a = 0d0
+
       !-----------------------------------------------------------------
       ! Allocate met field arrays that are used for all met fields
       !-----------------------------------------------------------------
@@ -5800,8 +3588,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PBL0b' )
       PBL0b  = 0.d0
 
-#endif
-
       END SUBROUTINE INIT_DAO_DERIVED
 !EOC
 !------------------------------------------------------------------------------
@@ -5859,6 +3645,7 @@
 !  01 Feb 2012 - R. Yantosca - Now allocate met field arrays for GEOS-5.7.x
 !  06 Feb 2012 - R. Yantosca - Now split off array initializations into
 !                              separate routines, for clarity
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5877,17 +3664,12 @@
       ! GCAP met arrays
       CALL INIT_DAO_GCAP()
 
-#elif defined( GEOS_3 )
-
-      ! GEOS-3 met arrays
-      CALL INIT_DAO_GEOS3()
-
 #elif defined( GEOS_4 )
 
       ! GEOS-4 met arrays
       CALL INIT_DAO_GEOS4()
 
-#elif defined( GEOS_5 )
+#elif defined( GEOS_5 ) || defined ( EXTERNAL_FORCING )
 
       ! GEOS-5.2.0 met arrays
       CALL INIT_DAO_GEOS5()
@@ -5955,141 +3737,6 @@
 !
 ! !LOCAL VARIABLES:
 !
-      !=================================================================
-      ! CLEANUP_DAO begins here!
-      !=================================================================
-      IF ( ALLOCATED( AD              ) ) DEALLOCATE( AD              ) 
-      IF ( ALLOCATED( AIRDEN          ) ) DEALLOCATE( AIRDEN          )
-      IF ( ALLOCATED( AIRDEN_FULLGRID ) ) DEALLOCATE( AIRDEN_FULLGRID )
-      IF ( ALLOCATED( AIRVOL          ) ) DEALLOCATE( AIRVOL          )
-      IF ( ALLOCATED( ALBD1           ) ) DEALLOCATE( ALBD1           )
-      IF ( ALLOCATED( ALBD2           ) ) DEALLOCATE( ALBD2           )
-      IF ( ALLOCATED( ALBD            ) ) DEALLOCATE( ALBD            )
-      IF ( ALLOCATED( AVGW            ) ) DEALLOCATE( AVGW            )
-      IF ( ALLOCATED( BXHEIGHT        ) ) DEALLOCATE( BXHEIGHT        )
-      IF ( ALLOCATED( CLDF            ) ) DEALLOCATE( CLDF            )
-      IF ( ALLOCATED( CLDFRC          ) ) DEALLOCATE( CLDFRC          )
-      IF ( ALLOCATED( CLDMAS          ) ) DEALLOCATE( CLDMAS          )
-      IF ( ALLOCATED( CLDTOPS         ) ) DEALLOCATE( CLDTOPS         )
-      IF ( ALLOCATED( CMFMC           ) ) DEALLOCATE( CMFMC           )
-      IF ( ALLOCATED( DELP            ) ) DEALLOCATE( DELP            )
-      IF ( ALLOCATED( DETRAINE        ) ) DEALLOCATE( DETRAINE        )
-      IF ( ALLOCATED( DETRAINN        ) ) DEALLOCATE( DETRAINN        ) 
-      IF ( ALLOCATED( DNDE            ) ) DEALLOCATE( DNDE            ) 
-      IF ( ALLOCATED( DNDN            ) ) DEALLOCATE( DNDN            )
-      IF ( ALLOCATED( DQIDTMST        ) ) DEALLOCATE( DQIDTMST        )
-      IF ( ALLOCATED( DQLDTMST        ) ) DEALLOCATE( DQLDTMST        )
-      IF ( ALLOCATED( DQRCON          ) ) DEALLOCATE( DQRCON          )
-      IF ( ALLOCATED( DQRCU           ) ) DEALLOCATE( DQRCU           )
-      IF ( ALLOCATED( DQRLSC          ) ) DEALLOCATE( DQRLSC          )
-      IF ( ALLOCATED( DQRLSAN         ) ) DEALLOCATE( DQRLSAN         )
-      IF ( ALLOCATED( DQVDTMST        ) ) DEALLOCATE( DQVDTMST        )
-      IF ( ALLOCATED( DTRAIN          ) ) DEALLOCATE( DTRAIN          )
-      IF ( ALLOCATED( ENTRAIN         ) ) DEALLOCATE( ENTRAIN         ) 
-      IF ( ALLOCATED( EFLUX           ) ) DEALLOCATE( EFLUX           )
-      IF ( ALLOCATED( EVAP            ) ) DEALLOCATE( EVAP            ) 
-      IF ( ALLOCATED( FRLAND          ) ) DEALLOCATE( FRLAND          )
-      IF ( ALLOCATED( FRLAKE          ) ) DEALLOCATE( FRLAKE          )
-      IF ( ALLOCATED( FROCEAN         ) ) DEALLOCATE( FROCEAN         )
-      IF ( ALLOCATED( FRLANDIC        ) ) DEALLOCATE( FRLANDIC        )
-      IF ( ALLOCATED( FRSEAICE        ) ) DEALLOCATE( FRSEAICE        )
-      IF ( ALLOCATED( FRSNO           ) ) DEALLOCATE( FRSNO           )
-      IF ( ALLOCATED( GRN             ) ) DEALLOCATE( GRN             ) 
-      IF ( ALLOCATED( GWETROOT        ) ) DEALLOCATE( GWETROOT        ) 
-      IF ( ALLOCATED( GWETTOP         ) ) DEALLOCATE( GWETTOP         )
-      IF ( ALLOCATED( HFLUX           ) ) DEALLOCATE( HFLUX           )
-      IF ( ALLOCATED( HKBETA          ) ) DEALLOCATE( HKBETA          )
-      IF ( ALLOCATED( HKETA           ) ) DEALLOCATE( HKETA           )
-      IF ( ALLOCATED( LAI             ) ) DEALLOCATE( LAI             )      
-      IF ( ALLOCATED( LWI             ) ) DEALLOCATE( LWI             )
-      IF ( ALLOCATED( LWI_GISS        ) ) DEALLOCATE( LWI_GISS        ) 
-      IF ( ALLOCATED( MFXC            ) ) DEALLOCATE( MFXC            ) 
-      IF ( ALLOCATED( MFYC            ) ) DEALLOCATE( MFYC            ) 
-      IF ( ALLOCATED( MFZ             ) ) DEALLOCATE( MFZ             ) 
-      IF ( ALLOCATED( MOLENGTH        ) ) DEALLOCATE( MOLENGTH        ) 
-      IF ( ALLOCATED( MOISTQ          ) ) DEALLOCATE( MOISTQ          )
-      IF ( ALLOCATED( OICE            ) ) DEALLOCATE( OICE            )  
-      IF ( ALLOCATED( OPTD            ) ) DEALLOCATE( OPTD            )
-      IF ( ALLOCATED( OPTDEP          ) ) DEALLOCATE( OPTDEP          )
-      IF ( ALLOCATED( PARDF           ) ) DEALLOCATE( PARDF           )
-      IF ( ALLOCATED( PARDR           ) ) DEALLOCATE( PARDR           )
-      IF ( ALLOCATED( PBL             ) ) DEALLOCATE( PBL             )
-      IF ( ALLOCATED( PHIS            ) ) DEALLOCATE( PHIS            )
-      IF ( ALLOCATED( PFICU           ) ) DEALLOCATE( PFICU           )
-      IF ( ALLOCATED( PFILSAN         ) ) DEALLOCATE( PFILSAN         )
-      IF ( ALLOCATED( PFLCU           ) ) DEALLOCATE( PFLCU           )
-      IF ( ALLOCATED( PFLLSAN         ) ) DEALLOCATE( PFLLSAN         )
-      IF ( ALLOCATED( PREACC          ) ) DEALLOCATE( PREACC          )
-      IF ( ALLOCATED( PREANV          ) ) DEALLOCATE( PREANV          )
-      IF ( ALLOCATED( PRECON          ) ) DEALLOCATE( PRECON          )
-      IF ( ALLOCATED( PRELSC          ) ) DEALLOCATE( PRELSC          )
-      IF ( ALLOCATED( PRECSNO         ) ) DEALLOCATE( PRECSNO         )
-      IF ( ALLOCATED( PS1             ) ) DEALLOCATE( PS1             )
-      IF ( ALLOCATED( PS2             ) ) DEALLOCATE( PS2             )
-      IF ( ALLOCATED( PSC2            ) ) DEALLOCATE( PSC2            )
-      IF ( ALLOCATED( PV              ) ) DEALLOCATE( PV              )
-      IF ( ALLOCATED( QI              ) ) DEALLOCATE( QI              )
-      IF ( ALLOCATED( QL              ) ) DEALLOCATE( QL              )
-      IF ( ALLOCATED( RADLWG          ) ) DEALLOCATE( RADLWG          )
-      IF ( ALLOCATED( RADSWG          ) ) DEALLOCATE( RADSWG          )
-      IF ( ALLOCATED( REEVAPCN        ) ) DEALLOCATE( REEVAPCN        )
-      IF ( ALLOCATED( REEVAPLS        ) ) DEALLOCATE( REEVAPLS        )
-      IF ( ALLOCATED( RH1             ) ) DEALLOCATE( RH1             )
-      IF ( ALLOCATED( RH2             ) ) DEALLOCATE( RH2             )
-      IF ( ALLOCATED( RH              ) ) DEALLOCATE( RH              )
-      IF ( ALLOCATED( SEAICE00        ) ) DEALLOCATE( SEAICE00        )
-      IF ( ALLOCATED( SEAICE10        ) ) DEALLOCATE( SEAICE10        )
-      IF ( ALLOCATED( SEAICE20        ) ) DEALLOCATE( SEAICE20        )
-      IF ( ALLOCATED( SEAICE30        ) ) DEALLOCATE( SEAICE30        )
-      IF ( ALLOCATED( SEAICE40        ) ) DEALLOCATE( SEAICE40        )
-      IF ( ALLOCATED( SEAICE50        ) ) DEALLOCATE( SEAICE50        )
-      IF ( ALLOCATED( SEAICE60        ) ) DEALLOCATE( SEAICE60        )
-      IF ( ALLOCATED( SEAICE70        ) ) DEALLOCATE( SEAICE70        )
-      IF ( ALLOCATED( SEAICE80        ) ) DEALLOCATE( SEAICE80        )
-      IF ( ALLOCATED( SEAICE90        ) ) DEALLOCATE( SEAICE90        )
-      IF ( ALLOCATED( SLP             ) ) DEALLOCATE( SLP             )
-      IF ( ALLOCATED( SNICE           ) ) DEALLOCATE( SNICE           )
-      IF ( ALLOCATED( SNODP           ) ) DEALLOCATE( SNODP           )
-      IF ( ALLOCATED( SNOMAS          ) ) DEALLOCATE( SNOMAS          )
-      IF ( ALLOCATED( SNOW            ) ) DEALLOCATE( SNOW            )
-      IF ( ALLOCATED( SPHU1           ) ) DEALLOCATE( SPHU1           )
-      IF ( ALLOCATED( SPHU2           ) ) DEALLOCATE( SPHU2           )
-      IF ( ALLOCATED( SPHU            ) ) DEALLOCATE( SPHU            )
-      IF ( ALLOCATED( SUNCOS          ) ) DEALLOCATE( SUNCOS          )     
-      IF ( ALLOCATED( SUNCOS_MID      ) ) DEALLOCATE( SUNCOS_MID      )
-      IF ( ALLOCATED( SUNCOS_MID_5hr  ) ) DEALLOCATE( SUNCOS_MID_5hr  )
-      IF ( ALLOCATED( T               ) ) DEALLOCATE( T               )
-      IF ( ALLOCATED( T_FULLGRID      ) ) DEALLOCATE( T_FULLGRID      )
-      IF ( ALLOCATED( TAUCLI          ) ) DEALLOCATE( TAUCLI          )
-      IF ( ALLOCATED( TAUCLW          ) ) DEALLOCATE( TAUCLW          )
-      IF ( ALLOCATED( TO31            ) ) DEALLOCATE( TO31            )
-      IF ( ALLOCATED( TO32            ) ) DEALLOCATE( TO32            )
-      IF ( ALLOCATED( TO3             ) ) DEALLOCATE( TO3             )
-      IF ( ALLOCATED( TTO3            ) ) DEALLOCATE( TTO3            )
-      IF ( ALLOCATED( TMPU1           ) ) DEALLOCATE( TMPU1           )
-      IF ( ALLOCATED( TMPU2           ) ) DEALLOCATE( TMPU2           )
-      IF ( ALLOCATED( TROPP           ) ) DEALLOCATE( TROPP           )
-      IF ( ALLOCATED( TROPP1          ) ) DEALLOCATE( TROPP1          )
-      IF ( ALLOCATED( TROPP2          ) ) DEALLOCATE( TROPP2          )
-      IF ( ALLOCATED( TS              ) ) DEALLOCATE( TS              )
-      IF ( ALLOCATED( TSKIN           ) ) DEALLOCATE( TSKIN           )
-      IF ( ALLOCATED( U10M            ) ) DEALLOCATE( U10M            )
-      IF ( ALLOCATED( UPDE            ) ) DEALLOCATE( UPDE            ) 
-      IF ( ALLOCATED( UPDN            ) ) DEALLOCATE( UPDN            ) 
-      IF ( ALLOCATED( USTAR           ) ) DEALLOCATE( USTAR           )
-      IF ( ALLOCATED( UWND            ) ) DEALLOCATE( UWND            )
-      IF ( ALLOCATED( UWND1           ) ) DEALLOCATE( UWND1           )
-      IF ( ALLOCATED( UWND2           ) ) DEALLOCATE( UWND2           )
-      IF ( ALLOCATED( V10M            ) ) DEALLOCATE( V10M            ) 
-      IF ( ALLOCATED( VWND            ) ) DEALLOCATE( VWND            )
-      IF ( ALLOCATED( VWND1           ) ) DEALLOCATE( VWND1           )
-      IF ( ALLOCATED( VWND2           ) ) DEALLOCATE( VWND2           )
-      IF ( ALLOCATED( Z0              ) ) DEALLOCATE( Z0              )
-      IF ( ALLOCATED( ZMEU            ) ) DEALLOCATE( ZMEU            )
-      IF ( ALLOCATED( ZMMD            ) ) DEALLOCATE( ZMMD            )
-      IF ( ALLOCATED( ZMMU            ) ) DEALLOCATE( ZMMU            )
-
-#if   defined( APM )
       !=================================================================
       ! Deallocate fields used for APM microphysics
       !=================================================================
@@ -6198,8 +3845,8 @@
       IF ( ALLOCATED( ZMMU0      ) ) DEALLOCATE( ZMMU0      )
       IF ( ALLOCATED( ZMMU0a     ) ) DEALLOCATE( ZMMU0a     )
       IF ( ALLOCATED( ZMMU0b     ) ) DEALLOCATE( ZMMU0b     )
-#endif
 
       END SUBROUTINE CLEANUP_DAO
 !EOC
+#endif ! APM
       END MODULE DAO_MOD

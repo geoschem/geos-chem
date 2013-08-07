@@ -16,6 +16,8 @@
 !
 ! !USES:
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h"
       PRIVATE
@@ -78,6 +80,7 @@
 !  (24) Now scale AODs to wavelength specified in jv_spec_aod.dat(clh, 5/14/09)
 !  29 Jul 2011 - R. Yantosca - Now also archive MERRA SEAICExx fields
 !  29 Jul 2011 - R. Yantosca - Added ProTeX headers
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -117,7 +120,12 @@
       LOGICAL                        :: DO_PF
 
       ! Parameters
-      INTEGER,           PARAMETER   :: MAXVARS   = 200
+
+#if   defined( TOMAS )
+      INTEGER,           PARAMETER   :: MAXVARS   = 250  !(win, 7/28/09)
+#else
+      INTEGER,           PARAMETER   :: MAXVARS   = 200  !(sfarina, 1/28/13)
+#endif
       INTEGER,           PARAMETER   :: MAXPOINTS = 10000
       INTEGER,           PARAMETER   :: MAXREAC   = 50
       INTEGER,           PARAMETER   :: MAXRO2    = 45
@@ -165,6 +173,10 @@
       CHARACTER(LEN=255)             :: INFILENAME,  INF
       CHARACTER(LEN=255)             :: OUTFILENAME, OUTF
 
+      ! Logical unit numbers (formerly in file_mod.F)
+      INTEGER                        :: IU_FILE
+      INTEGER                        :: IU_PLANE
+
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
       !=================================================================
@@ -184,18 +196,20 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SETUP_PLANEFLIGHT
+      SUBROUTINE SETUP_PLANEFLIGHT( am_I_Root )
 !
 ! !USES:
 !
       USE FILE_MOD,   ONLY : FILE_EXISTS
       USE FILE_MOD,   ONLY : IOERROR
-      USE FILE_MOD,   ONLY : IU_FILE
-      USE FILE_MOD,   ONLY : IU_PLANE
       USE TIME_MOD,   ONLY : EXPAND_DATE
       USE TIME_MOD,   ONLY : GET_NYMD
       USE TIME_MOD,   ONLY : GET_NHMS
       USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 !
 ! !REMARKS:
 !  For SMVGEAR or KPP simulations, the call to SETUP_PLANEFLIGHT is made from 
@@ -216,6 +230,10 @@
 !        check if a flight track file exists on each day.  Open file for 
 !        output on each day and write header. (bmy, 3/25/05)
 !  29 Jul 2011 - R. Yantosca - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
+!  06 Aug 2012 - R. Yantosca - Now use local IU_PLANE and not from file_mod.F
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -223,26 +241,30 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE      :: FIRST = .TRUE.
+      LOGICAL            :: IS_OPEN
       INTEGER            :: I,  IP,      N,   TEMP, LENGTH
       INTEGER            :: RN, COUNTER, IOS, NYMD, NHMS
       CHARACTER(LEN=7)   :: NAMES
       CHARACTER(LEN=20)  :: LINE
       CHARACTER(LEN=10)  :: TYPE
-      
+
       !=================================================================
       ! SETUP_PLANEFLIGHT begins here!
       !=================================================================
 
       ! Assume that there is flight data for today
-      DO_PF = .TRUE.
+      DO_PF   = .TRUE.
+
+      ! Find a free file LUN
+      IU_FILE = findFreeLun()
 
       ! Get date & time
-      NYMD  = GET_NYMD()
-      NHMS  = GET_NHMS()
+      NYMD    = GET_NYMD()
+      NHMS    = GET_NHMS()
 
       ! Copy file names to local variables
-      INF   = INFILENAME
-      OUTF  = OUTFILENAME
+      INF     = INFILENAME
+      OUTF    = OUTFILENAME
       
       ! Replace any date & time tokens in the file names
       CALL EXPAND_DATE( INF,  NYMD, NHMS )
@@ -255,18 +277,23 @@
       ENDIF
 
       ! Echo info
-      WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-      WRITE( 6, '(a)' ) 'P L A N E   F L I G H T   D I A G N O S T I C'
-      WRITE( 6, 100   ) TRIM( INF )
- 100  FORMAT( /, 'SETUP_PLANEFLIGHT: Reading ',a )
-      WRITE( 6, '(a)' )  
+      IF ( am_I_Root ) THEN
+         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+         WRITE( 6, 99    )
+         WRITE( 6, 100   ) TRIM( INF ), IU_FILE
+ 99      FORMAT( 'P L A N E   F L I G H T   D I A G N O S T I C' )
+ 100     FORMAT( /, 'SETUP_PLANEFLIGHT: Reading ',a, ' on unit ', i4 )
+         WRITE( 6, '(a)' )  
+      ENDIF
 
       ! Compute # of species and # of points & allocate arrays
-      CALL INIT_PLANEFLIGHT
+      CALL INIT_PLANEFLIGHT( am_I_Root )
 
       ! Return if there are no flight track points for today
       IF ( NPOINTS == 0 ) THEN
-         WRITE( 6, '(a)' ) 'No flight track found for today!'
+         IF ( am_I_Root ) THEN
+            WRITE( 6, '(a)' ) 'No flight track found for today!'
+         ENDIF
          DO_PF = .FALSE.
          RETURN
       ENDIF
@@ -274,14 +301,16 @@
       !=================================================================
       ! Open file and read info
       !=================================================================
+
+      ! Open input file
       OPEN( IU_FILE, FILE=TRIM( INF ), IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'setup_planeflight:1')
 
       ! Read variables to be output -- sort into PVAR array by type
-      CALL READ_VARIABLES
+      CALL READ_VARIABLES( IU_FILE, am_I_Root )
 
       ! Read information about each point (date/time/lon/lat/alt)
-      CALL READ_POINTS
+      CALL READ_POINTS( IU_FILE, am_I_Root )
 
       ! Close the file
       CLOSE( IU_FILE )
@@ -311,10 +340,17 @@
       ! Open today's plane.log file and write file header
       !=================================================================
 
+      ! Close previously opened plane.log file
+      INQUIRE( IU_PLANE, OPENED=IS_OPEN )
+      IF( IS_OPEN ) CLOSE( IU_PLANE )
+
       ! Close previously-opened file
       CLOSE( IU_PLANE )
 
-      ! Open new file
+      ! Find a free file LUN
+      IU_PLANE = findFreeLUN()
+
+      ! Open output file
       OPEN( IU_PLANE, FILE=TRIM( OUTF ), STATUS='UNKNOWN', IOSTAT=IOS )
 
       ! Error check
@@ -323,13 +359,20 @@
       ENDIF
 
       ! Write header
-      WRITE( IU_PLANE, 110 ) 'POINT', 'TYPE', 'YYYYMMDD', 'HHMM',
-     &     'LAT', 'LON', 'PRESS', ( PNAME(I), I=1,NPVAR )
+      IF ( am_I_Root ) THEN
+         WRITE( IU_PLANE, 110 ) 'POINT', 'TYPE', 'YYYYMMDD', 'HHMM',
+     &        'LAT', 'LON', 'PRESS', ( PNAME(I), I=1,NPVAR )
+      ENDIF
 
       ! FORMAT string
-      ! Replace 95 by 200 FP
-! 110  FORMAT( A5,X,A5,X,A8,X,A4,X,A7,X,A7,X,A7,X,95(a10,x) )
+      ! Replace 95 by 250 (win)
+      ! use 200 for non-Tomas sims (sfarina)
+
+#if   defined( TOMAS )
+ 110  FORMAT( A5,X,A5,X,A8,X,A4,X,A7,X,A7,X,A7,X,250(a10,x) )
+#else
  110  FORMAT( A5,X,A5,X,A8,X,A4,X,A7,X,A7,X,A7,X,200(a10,x) )
+#endif
 
       END SUBROUTINE SETUP_PLANEFLIGHT
 !EOC
@@ -348,18 +391,21 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_VARIABLES
+      SUBROUTINE READ_VARIABLES( IU_FILE, am_I_Root )
 !
 ! !USES:
 !
       USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
-      USE FILE_MOD,   ONLY : IU_FILE
       USE FILE_MOD,   ONLY : IOERROR
       USE TRACER_MOD, ONLY : N_TRACERS
       USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM
-
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE COMODE_LOOP_MOD  ! NAMEGAS, NSPEC
+      USE CMN_SIZE_MOD                   ! Size parameters
+      USE COMODE_LOOP_MOD                ! NAMEGAS, NSPEC
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER, INTENT(IN) :: IU_FILE     ! Logical unit # for ASCII read
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 ! 
 ! !REVISION HISTORY:
 !  30 Jul 2002 - M. Evans    - Initial version
@@ -378,8 +424,11 @@
 !  (10) We need to trim NAMEGAS before comparing to LINE so that comparisons 
 !        for species like "O3" will work.  Also set NCS=NCSURBAN at the top
 !        of the subroutine, to avoid out of bounds error. (dbm, bmy, 10/16/06)
+!  (11) Add tracer TMS_?? for TOMAS microphysics rate diagnostic (win, 7/28/09)
 !  29 Jul 2011 - R. Yantosca - Also search for MERRA SEAICExx met fields
 !  29 Jul 2011 - R. Yantosca - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -415,8 +464,10 @@
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'read_variables:3' )
 
       ! Echo to stdout
-      WRITE( 6, '(a)' ) '   #    Species       PVAR'
-      WRITE( 6, '(a)' ) '-----------------------------'
+      IF ( am_I_Root ) THEN
+         WRITE( 6, '(a)' ) '   #    Species       PVAR'
+         WRITE( 6, '(a)' ) '-----------------------------'
+      ENDIF
 
       !=================================================================
       ! Sort variables by type; assign indices to PVAR, PREAC arrays
@@ -450,15 +501,40 @@
 
                ! Make sure the tracer # is valid!
                IF ( NUM < 0 .or. NUM > N_TRACERS ) THEN                   
-                  WRITE( 6, 100 ) TRIM( LINE )
- 100              FORMAT( 'TRACER ', i4, ' is out of range!' )
-                  WRITE( 6, '(a)' ) 'STOP in SETUP_PLANEFLIGHT!'
-                  WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+                  IF ( am_I_Root ) THEN
+                     WRITE( 6, 100 ) TRIM( LINE )
+ 100                 FORMAT( 'TRACER ', i4, ' is out of range!' )
+                     WRITE( 6, '(a)' ) 'STOP in SETUP_PLANEFLIGHT!'
+                     WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+                  ENDIF
                   CALL GEOS_CHEM_STOP
                ENDIF
 
                ! Save in PVAR -- add offset of 100000
                PVAR(N) = 100000 + NUM
+
+#if   defined( TOMAS )
+            ! Add case matching for TOMAS microphysics rates (win, 7/28/09)
+            !===========================================================
+            ! GEOS-CHEM tracer: listed as "TMS_001", etc.
+            ! PVAR offset: 200000
+            !===========================================================
+            CASE ( 'TMS_' )
+
+               ! Extract tracer # from the string
+               READ( LINE(5:14), '(i10)' ) NUM
+
+               ! Make sure the tracer # is valid!
+               IF ( NUM < 0 .or. NUM > N_TRACERS ) THEN                   
+                  WRITE( 6, 100 ) TRIM( LINE )
+                  WRITE( 6, '(a)' ) 'STOP in SETUP_PLANEFLIGHT!'
+                  WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+                  CALL GEOS_CHEM_STOP
+               ENDIF
+
+               ! Save in PVAR -- add offset of 200000
+               PVAR(N) = 200000 + NUM
+#endif
 
             !===========================================================
             ! GMAO met field: listed as "GMAO_TEMP", etc.
@@ -508,7 +584,15 @@
                IF ( LINE == 'AODB_BLKC'  ) PVAR(N) = 3002
                IF ( LINE == 'AODB_ORGC'  ) PVAR(N) = 3003
                IF ( LINE == 'AODB_SALA'  ) PVAR(N) = 3004
-               IF ( LINE == 'AODB_SALC'  ) PVAR(N) = 3005 
+               IF ( LINE == 'AODB_SALC'  ) PVAR(N) = 3005
+ 
+            !===========================================================
+            ! Hg(II) Partitioning - eds 10/27/11  PVAR offset: 4000
+            !===========================================================
+            CASE ( 'HG2_' )
+
+               IF ( LINE == 'HG2_FRACG'  ) PVAR(N) = 4001
+               IF ( LINE == 'HG2_FRACP'  ) PVAR(N) = 4002
 
             !===========================================================
             ! SMVGEAR rxn rate: listed as "REA_001", etc.
@@ -564,11 +648,13 @@
 
                      ! Stop w/ error 
                      IF ( PVAR(N) == -999 ) THEN 
-                        WRITE (6,*) 'Cant match up reaction number'
-                        WRITE (6,*) NUM
-                        WRITE (6,*) 'Is it the second line of the'
-                        WRITE (6,*) 'Three body reaction'
-                        WRITE (6,*) 'Stopping'
+                        IF ( am_I_Root ) THEN
+                           WRITE (6,*) 'Cant match up reaction number'
+                           WRITE (6,*) NUM
+                           WRITE (6,*) 'Is it the second line of the'
+                           WRITE (6,*) 'Three body reaction'
+                           WRITE (6,*) 'Stopping'
+                        ENDIF
                         CALL GEOS_CHEM_STOP
                      ENDIF
                   ENDIF
@@ -635,22 +721,29 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_POINTS
+      SUBROUTINE READ_POINTS( IU_FILE, am_I_Root )
 !
 ! !USES:
 !
       USE BPCH2_MOD, ONLY : GET_TAU0
       USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
-      USE FILE_MOD,  ONLY : IU_FILE, IOERROR
+      USE FILE_MOD,  ONLY : IOERROR
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 ! 
 ! !REVISION HISTORY: 
 !  30 Jul 2002 - M. Evans    - Initial version
 !  (1 ) Now references GEOS_CHEM_STOP from "error_mod.f", which frees all
 !        allocated memory before stopping the run. (bmy, 10/15/02)
 !  29 Jul 2011 - R. Yantosca - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+      INTEGER, INTENT(IN) :: IU_FILE
 !
 ! !LOCAL VARIABLES:
 !
@@ -691,33 +784,42 @@
 
          ! Error check MONTH
          IF ( QMM < 1 .or. QMM > 12 ) THEN
-            WRITE( 6, 105   ) QMM
- 105        FORMAT( 'ERROR: MONTH out of range: ', f8.3 )
-            WRITE( 6, '(a)' ) 'STOP in READ_POINTS (planeflight_mod.f)'
+            IF ( am_I_Root ) THEN
+               WRITE( 6, 105 ) QMM
+               WRITE( 6, 106 ) 
+ 105           FORMAT( 'ERROR: MONTH out of range: ', f8.3 )
+ 106           FORMAT( 'STOP in READ_POINTS (planeflight_mod.f)' )
+            ENDIF
             CALL GEOS_CHEM_STOP
          ENDIF
 
          ! Error check DAY
          IF ( QDD < 1 .or. QDD > 31 ) THEN
-            WRITE( 6, 110   ) QDD
- 110        FORMAT( 'ERROR: DAY out of range: ', f8.3 )
-            WRITE( 6, '(a)' ) 'STOP in READ_POINTS (planeflight_mod.f)'
+            IF ( am_I_Root ) THEN
+               WRITE( 6, 110 ) QDD
+ 111           WRITE( 6, 106 ) 
+ 110           FORMAT( 'ERROR: DAY out of range: ', f8.3 )
+            ENDIF
             CALL GEOS_CHEM_STOP 
          ENDIF
 
          ! Error check HOUR
          IF ( QHH < 0 .or. QHH > 23 ) THEN
-            WRITE( 6, 115   ) QHH
- 115        FORMAT( 'ERROR: HOUR out of range: ', f8.3 )
-            WRITE( 6, '(a)' ) 'STOP in READ_POINTS (planeflight_mod.f)'
+            IF ( am_I_Root ) THEN
+               WRITE( 6, 115 ) QHH
+               WRITE( 6, 106 )
+ 115           FORMAT( 'ERROR: HOUR out of range: ', f8.3 )
+            ENDIF
             CALL GEOS_CHEM_STOP  
          ENDIF
 
          ! Error check MINUTES
          IF ( QMN < 0 .or. QMN > 59 ) THEN
-            WRITE( 6, 120   ) QMN
- 120        FORMAT( 'ERROR: MINUTES out of range: ', f8.3 )
-            WRITE( 6, '(a)' ) 'STOP in READ_POINTS (planeflight_mod.f)'
+            IF ( am_I_Root ) THEN
+               WRITE( 6, 120 ) QMN
+               WRITE( 6, 106 )
+ 120           FORMAT( 'ERROR: MINUTES out of range: ', f8.3 )
+            ENDIF
             CALL GEOS_CHEM_STOP
          ENDIF
 
@@ -743,17 +845,21 @@
 
          ! Error check LONGITUDE
          IF ( LON < -180 .OR. LON > 180 ) THEN 
-            WRITE( 6, 125   ) LON
- 125        FORMAT( 'ERROR: Longitude out of range: ', f8.3 )
-            WRITE( 6, '(a)' ) 'STOP in READ_POINTS (planeflight_mod.f)'
+            IF ( am_I_Root ) THEN
+               WRITE( 6, 125 ) LON
+               WRITE( 6, 106 ) 'STOP in READ_POINTS (planeflight_mod.f)'
+ 125           FORMAT( 'ERROR: Longitude out of range: ', f8.3 )
+            ENDIF
             CALL GEOS_CHEM_STOP
          ENDIF
 
          ! Error check LATITUDE
          IF ( LAT < -90.0 .OR. LAT > 90.0 ) THEN 
-            WRITE( 6, 130   ) LAT
- 130        FORMAT( 'ERROR: Latitude out of range: ', f8.3 )
-            WRITE( 6, '(a)' ) 'STOP in READ_POINTS (planeflight_mod.f)'
+            IF ( am_I_Root ) THEN
+               WRITE( 6, 130 ) LAT
+               WRITE( 6, 106 ) 'STOP in READ_POINTS (planeflight_mod.f)'
+ 130           FORMAT( 'ERROR: Latitude out of range: ', f8.3 )
+            ENDIF
             CALL GEOS_CHEM_STOP
          ENDIF
         
@@ -771,7 +877,7 @@
       !=================================================================
       ! Echo number of points found and quit
       !=================================================================
-      WRITE( 6, 135 ) NPOINTS
+      IF ( am_I_Root ) WRITE( 6, 135 ) NPOINTS
  135  FORMAT( /, 'Number of flight track points : ', i6 )
 
       END SUBROUTINE READ_POINTS
@@ -1056,27 +1162,43 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE PLANEFLIGHT
+      SUBROUTINE PLANEFLIGHT( am_I_Root, Input_Opt,
+     &                        State_Met, State_Chm, RC )
 !
 ! !USES:
 !
-      USE COMODE_MOD,   ONLY : AIRDENS,        CSPEC,       JLOP
-      USE COMODE_MOD,   ONLY : T3,             VOLUME,      ABSHUM
-      USE COMODE_MOD,   ONLY : TAREA
-      USE DAO_MOD,      ONLY : AD,             SEAICE00,    SEAICE10
-      USE DAO_MOD,      ONLY : SEAICE20,       SEAICE30,    SEAICE40
-      USE DAO_MOD,      ONLY : SEAICE50,       SEAICE60,    SEAICE70
-      USE DAO_MOD,      ONLY : SEAICE80,       SEAICE90,    T        
-      USE DAO_MOD,      ONLY : UWND,           VWND
-      USE ERROR_MOD,    ONLY : GEOS_CHEM_STOP  
-      USE PRESSURE_MOD, ONLY : GET_PEDGE
-      USE TIME_MOD,     ONLY : GET_TAU,        GET_TS_DIAG
-      USE TRACER_MOD,   ONLY : STT,            TCVV
+      USE COMODE_MOD,         ONLY : AIRDENS,        CSPEC,       JLOP
+      USE COMODE_MOD,         ONLY : T3,             VOLUME,      ABSHUM
+      USE COMODE_MOD,         ONLY : TAREA
+#if   defined( TOMAS )
+      USE DIAG_MOD,           ONLY : AD61_INST   ! (win, 7/28/09)
+#endif
+      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP  
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE PRESSURE_MOD,       ONLY : GET_PEDGE
+      USE TIME_MOD,           ONLY : GET_TAU,        GET_TS_DIAG
+      USE OCEAN_MERCURY_MOD,  ONLY : Fp, Fg !eds 10/27/11
 
-      USE CMN_FJ_MOD,   ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
-      USE JV_CMN_MOD         ! ODAER, QAA, QAA_AOD
-      USE COMODE_LOOP_MOD    ! CSPEC, etc.
-! 
+      USE JV_CMN_MOD               ! ODAER, QAA, QAA_AOD
+      USE COMODE_LOOP_MOD          ! CSPEC, etc.
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
 ! !REVISION HISTORY: 
 !  08 Jul 2002 - M. Evans    - Initial version
 !  (1 ) Now reference AD from "dao_mod.f".  Now references GEOS_CHEM_STOP from
@@ -1096,9 +1218,14 @@
 !  (9 ) Bug fix: exit if PTAU(M) == PTAUE, so that we write out on the next !
 !        planeflight timestep (cdh, bmy, 12/12/06)
 !  (10) Change planeflight output time step. (ccc, 8/27/09)
-!  (11) Now scale AOD's to jv_spec_aod.dat wavelength. (clh, 5/14/09)
+!  (11) Add case matching for TOMAS rates (win, 7/28/09)
+!  (12) Modify PTAUE calculation w/ ref to GET_TS_DYN  (win, 7/28/09)
+!  (13) Now scale AOD's to jv_spec_aod.dat wavelength. (clh, 5/14/09)
 !  29 Jul 2011 - R. Yantosca - Added ProTeX headers
 !  09 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1108,6 +1235,7 @@
       LOGICAL, SAVE       :: FIRST = .TRUE.
       LOGICAL             :: PCHEM
       INTEGER             :: I, IP, IRHN, J, L, JLOOP, M, N, R, RH, V
+      INTEGER             :: LL     !eds
       INTEGER             :: LPLANE
       REAL*8              :: TK, PTAUS, PTAUE, CONSEXP, VPRESH2O, SAODnm
       REAL*8              :: VARI(NPVAR)
@@ -1121,9 +1249,17 @@
       REAL*8,  PARAMETER  :: TINY    = 1.d-36           ! arbitary small # to 
                                                         !  avoid faulty output
 
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! PLANEFLIGHT begins here!
       !=================================================================
+
+      ! Assume success
+      RC = GIGC_SUCCESS
 
       ! Return if there is no flighttrack data for today
       IF ( .not. DO_PF ) RETURN
@@ -1250,7 +1386,7 @@
                   ! GMAO temperature [K]
                   !--------------------------
                   CASE ( 1001 )
-                     VARI(V) = T(I,J,L)
+                     VARI(V) = State_Met%T(I,J,L)
 
                   !--------------------------
                   ! GMAO abs humidity [frac]
@@ -1294,13 +1430,13 @@
                   ! GMAO U-wind [m/s]
                   !-------------------------
                   CASE ( 1005 )
-                     VARI(V) = UWND(I,J,L)
+                     VARI(V) = State_Met%U(I,J,L)
 
                   !--------------------------
                   ! GMAO V-wind [m/s]
                   !--------------------------
                   CASE ( 1006 )
-                     VARI(V) = VWND(I,J,L)
+                     VARI(V) = State_Met%V(I,J,L)
 
                   !--------------------------
                   ! GEOS-Chem Grid Box I
@@ -1325,25 +1461,25 @@
                   ! GEOS-Chem SEAICE frac's
                   !--------------------------
                   CASE ( 1100 )
-                     VARI(V) = SEAICE00(I,J)
+                     VARI(V) = State_Met%SEAICE00(I,J)
                   CASE ( 1101 )
-                     VARI(V) = SEAICE10(I,J)
+                     VARI(V) = State_Met%SEAICE10(I,J)
                   CASE ( 1102 )
-                     VARI(V) = SEAICE20(I,J)
+                     VARI(V) = State_Met%SEAICE20(I,J)
                   CASE ( 1103 )
-                     VARI(V) = SEAICE30(I,J)
+                     VARI(V) = State_Met%SEAICE30(I,J)
                   CASE ( 1104 )
-                     VARI(V) = SEAICE40(I,J)
+                     VARI(V) = State_Met%SEAICE40(I,J)
                   CASE ( 1105 )
-                     VARI(V) = SEAICE50(I,J)
+                     VARI(V) = State_Met%SEAICE50(I,J)
                   CASE ( 1106 )
-                     VARI(V) = SEAICE60(I,J)
+                     VARI(V) = State_Met%SEAICE60(I,J)
                   CASE ( 1107 )
-                     VARI(V) = SEAICE70(I,J)
+                     VARI(V) = State_Met%SEAICE70(I,J)
                   CASE ( 1108 )
-                     VARI(V) = SEAICE80(I,J)
+                     VARI(V) = State_Met%SEAICE80(I,J)
                   CASE ( 1109 )
-                     VARI(V) = SEAICE90(I,J)
+                     VARI(V) = State_Met%SEAICE90(I,J)
 #endif
 
                   !--------------------------
@@ -1423,6 +1559,15 @@
                      ENDIF
 
                   !--------------------------
+                  ! Hg(II) partitioning eds 10/27/11
+                  !--------------------------
+                  CASE ( 4001 )
+                     VARI(V) = FG(I,J,LL) !L+1 sample 4/24/12
+
+                  CASE ( 4002 )
+                     VARI(V) = FP(I,J,LL) !L+1 sample 4/24/12
+
+                  !--------------------------
                   ! SMVGEAR reaction rates
                   !--------------------------
                   CASE ( 10000:99999 )
@@ -1440,11 +1585,36 @@
 
                      ! Remove offset from PVAR
                      N = PVAR(V) - 100000
+
+                     ! Initialize GEOS-Chem tracer array [kg] from
+                     ! Chemistry State object (mpayer, 12/6/12)
+                     STT => State_Chm%Tracers
                      
                      ! Convert from [kg] --> [v/v]
-                     VARI(V) = STT(I,J,L,N) * TCVV(N) / AD(I,J,L)
+                     VARI(V) = STT(I,J,L,N) * Input_Opt%TCVV(N) /
+     &                         State_Met%AD(I,J,L)
 
                      IF ( VARI(V) < TINY ) VARI(V) = 0.d0
+
+                     ! Free pointer
+                     NULLIFY( STT )
+
+#if   defined( TOMAS )
+                  !-------------------------------
+                  ! TOMAS microphysics rate [kg/s] or [no./cm3/s]
+                  !-------------------------------
+                  CASE( 200000:299999 )
+
+                     ! Remove offset from PVAR
+                     N = PVAR(V) - 200000
+                     
+                     ! Archive the microphysics rate
+                     VARI(V) = AD61_INST(I,J,L,N)
+!debug
+                     write (6,*) 'ARCHIVE TO PLANEFLIGHT DIAG',
+     &                    'AD61_INST at',I,J,L,N,'=',AD61_INST(I,J,L,N)
+
+#endif
 
                   !--------------------------
                   ! Otherwise it's an error!
@@ -1490,7 +1660,6 @@
       USE COMODE_MOD,     ONLY : JLOP
       USE PRESSURE_MOD,   ONLY : GET_PEDGE
       USE TRACER_MOD,     ONLY : ITS_A_FULLCHEM_SIM
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
       USE GRID_MOD,       ONLY : GET_XOFFSET
       USE GRID_MOD,       ONLY : GET_YOFFSET
 
@@ -1519,6 +1688,8 @@
 !	 for points near the date line.  (bmy, 4/23/04)
 !  (4 ) Now references ITS_A_FULLCHEM_SIM from "tracer_mod.f" (bmy, 7/20/04)
 !  (5 ) Now references ITS_IN_THE_TROP from "tropopause_mod.f" (bmy, 8/22/05)
+!  (6 ) Reference GET_XOFFSET and GET_YOFFSET from "grid_mod.f" and also 
+!        add for the case of nested-grid simulation (win, 7/28/09)
 !  29 Jul 2011 - R. Yantosca - Added ProTeX headers
 !  08 Sep 2011 - L. Schiferl - Added correct definitions for I and J 
 !                              based on nested regions
@@ -1603,7 +1774,6 @@
 !
 ! !USES:
 !
-      USE FILE_MOD, ONLY : IU_PLANE
       USE FILE_MOD, ONLY : IOERROR
 !
 ! !INPUT PARAMETERS: 
@@ -1641,8 +1811,13 @@
       ! FP replace 95 by 200
 ! 110  FORMAT( I5,   X, A5,   X, I8.8, X, I4.4, X, 
 !     &        F7.2, X, F7.2, X, F7.2, X, 95(es11.3e3,x) )
+#if   defined( TOMAS )
+ 110  FORMAT(I5,X,A5,X,I8.8,X,I4.4,X,F7.2,X,F7.2,X,F7.2,X,
+     &       250(es11.3e3,x))
+#else
  110  FORMAT(I5,X,A5,X,I8.8,X,I4.4,X,F7.2,X,F7.2,X,F7.2,X,
      &       200(es11.3e3,x))
+#endif
 
       ! Error check
       IF ( IOS /= 0 ) CALL IOERROR( IOS,IU_PLANE,'write_vars_to_file:1')
@@ -1837,17 +2012,19 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_PLANEFLIGHT
+      SUBROUTINE INIT_PLANEFLIGHT( am_I_Root )
 !
 ! !USES:
 !
       USE ERROR_MOD, ONLY : ALLOC_ERR
       USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
-      USE FILE_MOD,  ONLY : IU_FILE
       USE FILE_MOD,  ONLY : IOERROR
-
       USE CMN_SIZE_MOD    ! Size Parameters
       USE COMODE_LOOP_MOD ! ITLOOP
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 ! 
 ! !REVISION HISTORY: 
 !  08 Jul 2002 - M. Evans    - Initial version
@@ -1859,6 +2036,8 @@
 !        allocated once.  Arrays are now allocated to the maximum size.
 !        (bmy, 3/25/05)
 !  29 Jul 2011 - R. Yantosca - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1873,7 +2052,10 @@
       ! INIT_PLANEFLIGHT begins here!
       !=================================================================
 
-      ! Open file 
+      ! Find a free file LUN
+      IU_FILE = findFreeLUN()
+
+      ! Open file
       OPEN( IU_FILE, FILE=TRIM( INF ), IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'init_planeflight:1' )
 
@@ -1891,17 +2073,21 @@
 
       ! Make sure NPVAR is at least 1
       IF ( NPVAR < 1 ) THEN
+         IF ( am_I_Root ) THEN
          WRITE( 6, '(a)') 'NPVAR cannot be zero or negative!'
          WRITE( 6, '(a)') 'STOP in INIT_PLANEFLIGHT (planeflight_mod.f)'
          WRITE( 6, '(a)') REPEAT( '=', 79 )
+         ENDIF
          CALL GEOS_CHEM_STOP
       ENDIF
 
       ! Make sure NPVAR is less than MAXVARS
       IF ( NPVAR > MAXVARS ) THEN
+         IF ( am_I_Root ) THEN
          WRITE( 6, '(a)') 'NPVAR exceeds maximum allowed value!'
          WRITE( 6, '(a)') 'STOP in INIT_PLANEFLIGHT (planeflight_mod.f)'
          WRITE( 6, '(a)') REPEAT( '=', 79 )
+         ENDIF
          CALL GEOS_CHEM_STOP
       ENDIF
 
@@ -1960,9 +2146,11 @@
 
       ! Make sure NPOINTS is less than MAXPOINTS
       IF ( NPOINTS > MAXPOINTS ) THEN
+         IF ( am_I_Root ) THEN
          WRITE( 6, '(a)') 'NPOINTS exceeds maximum allowed value!'
          WRITE( 6, '(a)') 'STOP in INIT_PLANEFLIGHT (planeflight_mod.f)'
          WRITE( 6, '(a)') REPEAT( '=', 79 )
+         ENDIF
          CALL GEOS_CHEM_STOP
       ENDIF
          

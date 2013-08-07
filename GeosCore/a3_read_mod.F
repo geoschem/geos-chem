@@ -15,6 +15,8 @@
 !
 ! !USES:
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h"
       PRIVATE
@@ -34,6 +36,11 @@
       PRIVATE :: GET_N_A3        
       PRIVATE :: READ_A3         
 !
+! !REMARKS:
+!  This module reads GEOS-4, GEOS-5, and GCAP met fields
+!  MERRA met fields are read in routines merra_*_mod.F
+!  GEOS-5.7.2 met fields are read in geos572_read_mod.F
+!
 ! !REVISION HISTORY:
 !  23 Jun 2003 - R. Yantosca - Initial version
 !  (1 ) Adapted from "dao_read_mod.f" (bmy, 6/23/03)
@@ -51,6 +58,10 @@
 !  (12) Now get the # of A-3 fields from the file ident string (bmy, 10/7/08)
 !  (13) Remove references to IN_CLOUD_OD (bmy, 10/15/09)
 !  21 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  03 Aug 2012 - R. Yantosca - Now make IU_A3 a private module variable
+!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -59,6 +70,9 @@
 !
       ! Number of A3 fields in the file
       INTEGER :: N_A3_FIELDS
+
+      ! File unit for A-3 met fields
+      INTEGER :: IU_A3
 
       CONTAINS
 !EOC
@@ -77,25 +91,22 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE UNZIP_A3_FIELDS( OPTION, NYMD )
+      SUBROUTINE UNZIP_A3_FIELDS( Input_Opt, OPTION, NYMD )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR,   GEOS_3_DIR 
-      USE DIRECTORY_MOD, ONLY : GEOS_4_DIR, GEOS_5_DIR, TEMP_DIR 
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE TIME_MOD,      ONLY : EXPAND_DATE
-      USE UNIX_CMDS_MOD, ONLY : BACKGROUND, REDIRECT,   REMOVE_CMD 
-      USE UNIX_CMDS_MOD, ONLY : UNZIP_CMD,  WILD_CARD,  ZIP_SUFFIX
-
-      USE CMN_SIZE_MOD                          ! Size parameters
+      USE BPCH2_MOD,          ONLY : GET_RES_EXT
+      USE CMN_SIZE_MOD
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE TIME_MOD,           ONLY : EXPAND_DATE
 !
 ! !INPUT PARAMETERS: 
 !
-      CHARACTER(LEN=*),  INTENT(IN) :: OPTION   ! Unzip option
-      INTEGER, OPTIONAL, INTENT(IN) :: NYMD     ! YYYY/MM/DD of file to unzip
-! 
+      CHARACTER(LEN=*),  INTENT(IN) :: OPTION    ! Unzip option
+      INTEGER, OPTIONAL, INTENT(IN) :: NYMD      ! YYYY/MM/DD of file to unzip
+      TYPE(OptInput),    INTENT(IN) :: Input_Opt ! Input Options object
+!     
 ! !REVISION HISTORY: 
 !  15 Jun 1998 - R. Yantosca - Initial version
 !  (1 ) Adapted from UNZIP_MET_FIELDS of "dao_read_mod.f" (bmy, 6/23/03)
@@ -108,6 +119,7 @@
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (6 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  21 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -124,28 +136,22 @@
       !=================================================================
       IF ( PRESENT( NYMD ) ) THEN
 
-#if   defined( GEOS_3 )
+#if   defined( GEOS_4 )
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_3_DIR )
-         A3_STR   = 'YYYYMMDD.a3.' // GET_RES_EXT()
-
-#elif defined( GEOS_4 )
-
-         ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_4_DIR )
+         GEOS_DIR = TRIM( Input_Opt%GEOS_4_DIR )
          A3_STR   = 'YYYYMMDD.a3.' // GET_RES_EXT()
 
 #elif defined( GEOS_5 )
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_5_DIR )
+         GEOS_DIR = TRIM( Input_Opt%GEOS_5_DIR )
          A3_STR   = 'YYYYMMDD.a3.' // GET_RES_EXT()
 
 #elif defined( GCAP )
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( GCAP_DIR )
+         GEOS_DIR = TRIM( Input_Opt%GCAP_DIR )
          A3_STR   = 'YYYYMMDD.a3.' // GET_RES_EXT()
 
 #endif
@@ -155,33 +161,42 @@
          CALL EXPAND_DATE( A3_STR,   NYMD, 000000 )
 
          ! Location of zipped A-3 file in data dir 
-         A3_FILE_GZ  = TRIM( DATA_DIR   ) // TRIM( GEOS_DIR   ) // 
-     &                 TRIM( A3_STR     ) // TRIM( ZIP_SUFFIX )
+         A3_FILE_GZ  = TRIM( Input_Opt%DATA_DIR   ) // 
+     &                 TRIM( GEOS_DIR             ) // 
+     &                 TRIM( A3_STR               ) // 
+     &                 TRIM( Input_Opt%ZIP_SUFFIX )
 
          ! Location of unzipped A-3 file in temp dir 
-         A3_FILE     = TRIM( TEMP_DIR   ) // TRIM( A3_STR     )
+         A3_FILE     = TRIM( Input_Opt%TEMP_DIR   ) // 
+     &                 TRIM( A3_STR               )
 
          ! Remove A-3 files for this date from temp dir
-         REMOVE_DATE = TRIM( REMOVE_CMD ) // ' '                // 
-     &                 TRIM( TEMP_DIR   ) // TRIM( A3_STR     )   
+         REMOVE_DATE = TRIM( Input_Opt%REMOVE_CMD ) // ' '    // 
+     &                 TRIM( Input_Opt%TEMP_DIR   ) // 
+     &                 TRIM( A3_STR               )   
 
          !==============================================================
          ! Define the foreground and background UNZIP commands
          !==============================================================
 
          ! Foreground unzip
-         UNZIP_FG = TRIM( UNZIP_CMD ) // ' ' // TRIM( A3_FILE_GZ ) // 
-     &              TRIM( REDIRECT  ) // ' ' // TRIM( A3_FILE    )  
+         UNZIP_FG = TRIM( Input_Opt%UNZIP_CMD     ) // ' '    // 
+     &              TRIM( A3_FILE_GZ              ) // 
+     &              TRIM( Input_Opt%REDIRECT      ) // ' '    //
+     &              TRIM( A3_FILE                 )  
 
          ! Background unzip
-         UNZIP_BG  = TRIM( UNZIP_FG ) // TRIM( BACKGROUND )
+         UNZIP_BG  = TRIM( UNZIP_FG               ) // 
+     &               TRIM( Input_Opt%BACKGROUND   )
       ENDIF
 
       !=================================================================
       ! Define command to remove all A-3 files from the TEMP dir
       !=================================================================
-      REMOVE_ALL = TRIM( REMOVE_CMD ) // ' '    // TRIM( TEMP_DIR   ) // 
-     &             TRIM( WILD_CARD  ) // '.a3.' // TRIM( WILD_CARD  ) 
+      REMOVE_ALL = TRIM( Input_Opt%REMOVE_CMD     ) // ' '    // 
+     &             TRIM( Input_Opt%TEMP_DIR       ) // 
+     &             TRIM( Input_Opt%WILD_CARD      ) // '.a3.' // 
+     &             TRIM( Input_Opt%WILD_CARD      ) 
 
       !=================================================================
       ! Perform an F90 system call to do the desired operation
@@ -240,9 +255,9 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)           :: NYMD    ! YYYY/MM/DD date
-      INTEGER, INTENT(IN)           :: NHMS    ! hh:mm:ss time
-      LOGICAL, INTENT(IN), OPTIONAL :: RESET   ! Reset first-time flag?
+      INTEGER, INTENT(IN)            :: NYMD    ! YYYY/MM/DD date
+      INTEGER, INTENT(IN)            :: NHMS    ! hh:mm:ss time
+      LOGICAL, INTENT(IN),  OPTIONAL :: RESET   ! Reset first-time flag?
 ! 
 ! !REVISION HISTORY: 
 !  23 Jun 2003 - R. Yantosca - Initial version
@@ -252,6 +267,7 @@
 !                              days of A3 data @ start of run), then reset the
 !                              first-time flag.  This will prevent an error if
 !                              if the start time is not 00 GMT.
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -281,23 +297,11 @@
          GOTO 999
       ENDIF
 
-#if   defined( GEOS_3 ) 
-
-      ! Open A-3 file if it's 00:00 GMT, or on the first call
-      IF ( NHMS == 000000 .or. FIRST ) THEN
-         DO_OPEN = .TRUE. 
-         GOTO 999
-      ENDIF
-
-#else
-
       ! Open A-3 file if it's 01:30 GMT,  or on the first call
       IF ( NHMS == 013000 .or. FIRST ) THEN
          DO_OPEN = .TRUE. 
          GOTO 999
       ENDIF
-
-#endif
 
       !=================================================================
       ! Reset quantities for next call
@@ -322,25 +326,27 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE OPEN_A3_FIELDS( NYMD, NHMS, RESET )
+      SUBROUTINE OPEN_A3_FIELDS( NYMD, NHMS, Input_Opt, RESET, IUNIT )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR,   GEOS_3_DIR 
-      USE DIRECTORY_MOD, ONLY : GEOS_4_DIR, GEOS_5_DIR, TEMP_DIR 
-      USE LOGICAL_MOD,   ONLY : LUNZIP
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE FILE_MOD,      ONLY : IU_A3,      IOERROR,    FILE_EXISTS
-      USE TIME_MOD,      ONLY : EXPAND_DATE
-
-      USE CMN_SIZE_MOD                         ! Size parameters
+      USE BPCH2_MOD,          ONLY : GET_RES_EXT
+      USE CMN_SIZE_MOD                          ! Size parameters
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE FILE_MOD,           ONLY : IOERROR,    FILE_EXISTS
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,           ONLY : EXPAND_DATE
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)           :: NYMD    ! YYYY/MM/dd and 
-      INTEGER, INTENT(IN)           :: NHMS    !  hh:mm:ss of desired data
-      LOGICAL, INTENT(IN), OPTIONAL :: RESET   ! Reset first-time flag?
+      TYPE(OptInput), INTENT(IN)            :: Input_Opt  ! Input_Options
+      INTEGER,        INTENT(IN)            :: NYMD       ! YYYY/MM/dd and 
+      INTEGER,        INTENT(IN)            :: NHMS       !  hh:mm:ss of data
+      LOGICAL,        INTENT(IN),  OPTIONAL :: RESET      ! Reset first flag?
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT), OPTIONAL :: IUNIT      ! Returns IU_A1 
 ! 
 ! !REVISION HISTORY: 
 !  15 Jun 1998 - R. Yantosca - Initial version
@@ -358,6 +364,12 @@
 !  (9 ) Now get the # of A-3 fields from the file ident string (bmy, 10/7/08)
 !  21 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  21 Sep 2010 - R. Yantosca - Now pass RESET flag to DO_OPEN_A3
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  03 Aug 2012 - R. Yantosca - Now use findFreeLUN to define IU_A3 locally
+!  06 Aug 2012 - R. Yantosca - Add IUNIT to pass IU_A3 to calling routine
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  11 Apr 2013 - R. Yantosca - Now pass Input_Opt object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -365,7 +377,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL            :: DO_RESET
-      LOGICAL            :: IT_EXISTS
+      LOGICAL            :: IT_EXISTS, IS_OPEN
       INTEGER            :: IOS
       CHARACTER(LEN=2)   :: DUM
       CHARACTER(LEN=8)   :: IDENT
@@ -376,7 +388,7 @@
       !=================================================================
       ! OPEN_A3_FIELDS begins here!
       !=================================================================
-      
+
       IF ( PRESENT( RESET ) ) THEN
          DO_RESET = RESET
       ELSE
@@ -386,28 +398,22 @@
       ! Open A-3 fields at the proper time, or on the first call
       IF ( DO_OPEN_A3( NYMD, NHMS, DO_RESET ) ) THEN
 
-#if   defined( GEOS_3 )
+#if   defined( GEOS_4 )
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_3_DIR )
-         A3_FILE  = 'YYYYMMDD.a3.' // GET_RES_EXT()
-
-#elif defined( GEOS_4 )
-
-         ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_4_DIR )
+         GEOS_DIR = TRIM( Input_Opt%GEOS_4_DIR )
          A3_FILE  = 'YYYYMMDD.a3.' // GET_RES_EXT()
 
 #elif defined( GEOS_5 )
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_5_DIR )
+         GEOS_DIR = TRIM( Input_Opt%GEOS_5_DIR )
          A3_FILE  = 'YYYYMMDD.a3.' // GET_RES_EXT()
 
 #elif defined( GCAP )
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( GCAP_DIR )
+         GEOS_DIR = TRIM( Input_Opt%GCAP_DIR )
          A3_FILE  = 'YYYYMMDD.a3.' // GET_RES_EXT()
 
 #endif
@@ -418,15 +424,18 @@
 
          ! If unzipping, open GEOS-4 file in TEMP dir
          ! If not unzipping, open GEOS-4 file in DATA dir
-         IF ( LUNZIP ) THEN
-            PATH = TRIM( TEMP_DIR ) // TRIM( A3_FILE )
+         IF ( Input_Opt%LUNZIP ) THEN
+            PATH = TRIM( Input_Opt%TEMP_DIR ) // 
+     &             TRIM( A3_FILE            )
          ELSE
-            PATH = TRIM( DATA_DIR ) // 
-     &             TRIM( GEOS_DIR ) // TRIM( A3_FILE )
+            PATH = TRIM( Input_Opt%DATA_DIR ) // 
+     &             TRIM( GEOS_DIR           ) // 
+     &             TRIM( A3_FILE            )
          ENDIF
 
          ! Close previously opened A-3 file
-         CLOSE( IU_A3 )
+	 INQUIRE( IU_A3, OPENED=IS_OPEN )
+         IF( IS_OPEN ) CLOSE( IU_A3 )
 
          ! Make sure the file unit is valid before we open the file
          IF ( .not. FILE_EXISTS( IU_A3 ) ) THEN
@@ -434,7 +443,15 @@
      &                       'OPEN_A3_FIELDS (a3_read_mod.f)' )
          ENDIF
 
-         ! Open the file
+         ! Find a free file LUN
+         IU_A3 = findFreeLUN( IU_A3 )
+
+         ! Pass the value of IU_A3 to back to the calling routine
+         IF ( PRESENT( IUNIT ) ) THEN
+            IUNIT = IU_A3
+         ENDIF
+
+         ! Open the A3 file
          OPEN( UNIT   = IU_A3,         FILE   = TRIM( PATH ),
      &         STATUS = 'OLD',         ACCESS = 'SEQUENTIAL',  
      &         FORM   = 'UNFORMATTED', IOSTAT = IOS )
@@ -444,11 +461,9 @@
          ENDIF
 
          ! Echo info
-         WRITE( 6, 100 ) TRIM( PATH )
- 100     FORMAT( '     - Opening: ', a )
+         WRITE( 6, 100 ) TRIM( PATH ), IU_A3
+ 100     FORMAT( '     - Opening: ', a,  ' on unit ', i4 )
          
-#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( GCAP )
-
          ! Skip past the ident string
          READ( IU_A3, IOSTAT=IOS ) IDENT
 
@@ -460,8 +475,6 @@
          ! is the # of fields contained in the file
          READ( IDENT(7:8), '(i2.2)' ) N_A3_FIELDS        
         
-#endif
-
       ENDIF
 
       END SUBROUTINE OPEN_A3_FIELDS
@@ -480,24 +493,21 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_A3_FIELDS( NYMD, NHMS )
+      SUBROUTINE GET_A3_FIELDS( NYMD, NHMS, State_Met )
 !
 ! !USES:
 !
-      USE DAO_MOD, ONLY : ALBD,    CLDFRC, EVAP,   GRN,      GWETROOT 
-      USE DAO_MOD, ONLY : GWETTOP, HFLUX,  LAI,    MOLENGTH, OICE    
-      USE DAO_MOD, ONLY : PARDF,   PARDR,  PBL,    PREACC,   PRECON
-      USE DAO_MOD, ONLY : PRECSNO, RADLWG, RADSWG, SNICE,    SNOMAS
-      USE DAO_MOD, ONLY : SNODP,   SNOW,   TROPP,  TS,       TSKIN
-      USE DAO_MOD, ONLY : U10M,    USTAR,  V10M,   Z0, EFLUX
-      USE DAO_MOD, ONLY : FRLAND,  FROCEAN,FRLAKE, FRLANDIC
-
-      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_SIZE_MOD
+      USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN) :: NYMD   ! YYYY/MM/DD
       INTEGER, INTENT(IN) :: NHMS   !  and hh:mm:ss of desired data
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY: 
 !  23 Jun 2003 - R. Yantosca - Initial version
@@ -516,6 +526,12 @@
 !  (9 ) Now read FRLAND, FROCEAN, FRLANDIC and FRLAKE for methane
 !        (kjw, 8/18/09)
 !  21 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
+!                              object
+!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
+!  02 Jul 2013 - R. Yantosca - For GCAP, PBL is now State_Met%PBLH (similarly
+!                              for State_Met%PRECCON and State_Met%PRECTOT)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -536,20 +552,7 @@
          RETURN
       ENDIF
 
-#if   defined( GEOS_3 ) 
-
-      !=================================================================
-      ! For GEOS-3, read the following fields:
-      !    HFLUX, RADSWG, PREACC, PRECON, USTAR, 
-      !    Z0,    PBL,    CLDFRC, U10M,   V10M
-      !=================================================================
-      CALL READ_A3( NYMD=NYMD,     NHMS=NHMS,     CLDFRC=CLDFRC,  
-     &              HFLUX=HFLUX,   PBL=PBL,       PREACC=PREACC, 
-     &              PRECON=PRECON, RADSWG=RADSWG, TS=TS,
-     &              U10M=U10M,     USTAR=USTAR,   V10M=V10M, 
-     &              Z0=Z0 )              
-
-#elif defined( GEOS_4 )
+#if   defined( GEOS_4 )
 
       !================================================================
       ! For GEOS-4, read the following fields:
@@ -562,13 +565,26 @@
       ! (1 ) ALBEDO is an A-3 field in GEOS-4.
       ! (2 ) T2M is used as a proxy for TS in GEOS-4.
       !================================================================
-      CALL READ_A3( NYMD=NYMD,       NHMS=NHMS,     
-     &              ALBEDO=ALBD,     CLDFRC=CLDFRC, HFLUX=HFLUX,   
-     &              GWETTOP=GWETTOP, PARDF=PARDF,   PARDR=PARDR,  
-     &              PBL=PBL,         PREACC=PREACC, PRECON=PRECON, 
-     &              RADLWG=RADLWG,   RADSWG=RADSWG, SNOW=SNOW,  
-     &              TS=TS,           TSKIN=TSKIN,   U10M=U10M,       
-     &              USTAR=USTAR ,    V10M=V10M,     Z0=Z0 )
+      CALL READ_A3( NYMD    = NYMD,       
+     &              NHMS    = NHMS,     
+     &              ALBEDO  = State_Met%ALBD,     
+     &              CLDFRC  = State_Met%CLDFRC, 
+     &              HFLUX   = State_Met%HFLUX,   
+     &              GWETTOP = State_Met%GWETTOP, 
+     &              PARDF   = State_Met%PARDF,   
+     &              PARDR   = State_Met%PARDR,  
+     &              PBL     = State_Met%PBL,         
+     &              PREACC  = State_Met%PREACC, 
+     &              PRECON  = State_Met%PRECON, 
+     &              RADLWG  = State_Met%RADLWG,   
+     &              RADSWG  = State_Met%RADSWG, 
+     &              SNOW    = State_Met%SNOW,  
+     &              TS      = State_Met%TS,           
+     &              TSKIN   = State_Met%TSKIN,   
+     &              U10M    = State_Met%U10M,       
+     &              USTAR   = State_Met%USTAR,    
+     &              V10M    = State_Met%V10M,     
+     &              Z0      = State_Met%Z0 )
 
 #elif defined( GEOS_5 )
 
@@ -582,17 +598,38 @@
       !    FRLAND, FRLANDIC,      FROCEAN,          FRLAKE
       !
       !=================================================================
-      CALL READ_A3( NYMD=NYMD,         NHMS=NHMS,       ALBEDO=ALBD,   
-     &              CLDFRC=CLDFRC,     EVAP=EVAP,       GRN=GRN,       
-     &              GWETROOT=GWETROOT, GWETTOP=GWETTOP, HFLUX=HFLUX,   
-     &              LAI=LAI,           PARDF=PARDF,     PARDR=PARDR,       
-     &              PBL=PBL,           PREACC=PREACC,   PRECON=PRECON, 
-     &              PRECSNO=PRECSNO,   RADLWG=RADLWG,   RADSWG=RADSWG, 
-     &              SNODP=SNODP,       SNOMAS=SNOMAS,   TROPP=TROPP,   
-     &              TS=TS,             TSKIN=TSKIN,     U10M=U10M,     
-     &              USTAR=USTAR,       V10M=V10M,       Z0=Z0, 
-     &              EFLUX=EFLUX,       FRLAND=FRLAND,   FROCEAN=FROCEAN, 
-     &              FRLAKE=FRLAKE,     FRLANDIC=FRLANDIC )
+      CALL READ_A3( NYMD     = NYMD,         
+     &              NHMS     = NHMS,       
+     &              ALBEDO   = State_Met%ALBD,   
+     &              CLDFRC   = State_Met%CLDFRC,     
+     &              EVAP     = State_Met%EVAP,       
+     &              GRN      = State_Met%GRN,       
+     &              GWETROOT = State_Met%GWETROOT, 
+     &              GWETTOP  = State_Met%GWETTOP, 
+     &              HFLUX    = State_Met%HFLUX,   
+     &              LAI      = State_Met%LAI,           
+     &              PARDF    = State_Met%PARDF,     
+     &              PARDR    = State_Met%PARDR,       
+     &              PBL      = State_Met%PBLH,           
+     &              PREACC   = State_Met%PRECTOT,   
+     &              PRECON   = State_Met%PRECCON, 
+     &              PRECSNO  = State_Met%PRECSNO,   
+     &              RADLWG   = State_Met%RADLWG,   
+     &              RADSWG   = State_Met%RADSWG, 
+     &              SNODP    = State_Met%SNODP,       
+     &              SNOMAS   = State_Met%SNOMAS,   
+     &              TROPP    = State_Met%TROPP,   
+     &              TS       = State_Met%TS,             
+     &              TSKIN    = State_Met%TSKIN,     
+     &              U10M     = State_Met%U10M,     
+     &              USTAR    = State_Met%USTAR,       
+     &              V10M     = State_Met%V10M,       
+     &              Z0       = State_Met%Z0, 
+     &              EFLUX    = State_Met%EFLUX,       
+     &              FRLAND   = State_Met%FRLAND,   
+     &              FROCEAN  = State_Met%FROCEAN, 
+     &              FRLAKE   = State_Met%FRLAKE,     
+     &              FRLANDIC = State_Met%FRLANDIC )
 
 #elif defined( GCAP )
 
@@ -605,16 +642,27 @@
       !
       ! NOTES: 
       !================================================================
-      CALL READ_A3( NYMD=NYMD,     NHMS=NHMS,     
-     &              ALBEDO=ALBD,   GWETTOP=GWETTOP,   MOLENGTH=MOLENGTH,      
-     &              OICE=OICE,     PARDF=PARDF,       PARDR=PARDR,
-     &              PBL=PBL,       PREACC=PREACC,     PRECON=PRECON,
-     &              RADSWG=RADSWG, SNICE=SNICE,       SNOW=SNOW, 
-     &              TS=TS,         U10M=U10M,         USTAR=USTAR,
-     &              V10M=V10M  )
+      CALL READ_A3( NYMD     = NYMD,     
+     &              NHMS     = NHMS,     
+     &              ALBEDO   = State_Met%ALBD,   
+     &              GWETTOP  = State_Met%GWETTOP,   
+     &              MOLENGTH = State_Met%MOLENGTH,      
+     &              OICE     = State_Met%OICE,     
+     &              PARDF    = State_Met%PARDF,       
+     &              PARDR    = State_Met%PARDR,
+     &              PBL      = State_Met%PBLH,
+     &              PREACC   = State_Met%PRECTOT,
+     &              PRECON   = State_Met%PRECCON,
+     &              RADSWG   = State_Met%RADSWG, 
+     &              SNICE    = State_Met%SNICE,
+     &              SNOW     = State_Met%SNOW, 
+     &              TS       = State_Met%TS,
+     &              U10M     = State_Met%U10M,         
+     &              USTAR    = State_Met%USTAR,
+     &              V10M     = State_Met%V10M  )
 
       ! Convert [m] to [mm]
-      SNOW = SNOW*1000.D0
+      State_Met%SNOW = State_Met%SNOW*1000.D0
 
 #endif
 
@@ -664,26 +712,14 @@
 !  (5 ) Increase # of fields for GEOS-5 to 25 (bmy, 1/17/07)
 !  (6 ) Increase # of fields for GEOS-5 to 26 (EFLUX) (ccc, 5/21/09)
 !  21 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       !=================================================================
       ! GET_N_A3 begins here!
       !=================================================================
-#if   defined( GEOS_3 )
-
-      ! GEOS-3 for 1998, 1999 has 14 A-3 fields per file
-      ! GEOS-3 for 2000+      has 11 A-3 fields per file
-      SELECT CASE ( NYMD / 10000 )
-         CASE ( 1998, 1999 )
-            N_A3 = 14
-
-         CASE DEFAULT
-            N_A3 = 11
-      
-      END SELECT
-
-#elif defined( GEOS_4 )
+#if   defined( GEOS_4 )
 
       ! GEOS-4 has 19 A-3 fields
       N_A3 = 19
@@ -780,7 +816,6 @@
 !
       USE DIAG_MOD,     ONLY : AD67
       USE FILE_MOD,     ONLY : IOERROR
-      USE FILE_MOD,     ONLY : IU_A3
       USE TIME_MOD,     ONLY : SET_CT_A3
       USE TIME_MOD,     ONLY : TIMESTAMP_STRING
       USE TRANSFER_MOD, ONLY : TRANSFER_2D
@@ -889,6 +924,9 @@
 !  (10) Now read FRLAND, FROCEAN, FRLANDIC, FRLAKE for methane (kjw, 8/18/09)
 !  (11) Remove reference to IN_CLOUD_OD (bmy, 10/15/09)
 !  21 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  08 Jun 2012 - S. Philip   - Correction for GEOS_5 boundary layer height
+!  03 Aug 2012 - R. Yantosca - Now use locally-defined IU_A3 file LUN
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1415,8 +1453,9 @@
          IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) .and. 
      &        NFOUND == N_A3 ) THEN 
             STAMP = TIMESTAMP_STRING( NYMD, NHMS )
-            WRITE( 6, 210 ) NFOUND, STAMP
- 210        FORMAT( '     - Found all ', i3, ' A-3 met fields for ', a )
+            WRITE( 6, 210 ) NFOUND, STAMP, IU_A3
+ 210        FORMAT( '     - Found all ', i3, ' A-3 met fields for ', 
+     &                   a, ' on unit ', i4 )
             EXIT
          ENDIF
       ENDDO
@@ -1448,6 +1487,16 @@
 
       ! Convert GEOS-5 PRECCON from [kg/m2/s] to [mm/day]
       IF ( PRESENT( PRECON ) ) PRECON = PRECON * 86400d0
+
+      ! Correction for GEOS_5 PBLH:
+      ! PBLH must be greater than a minimum mechanical mixing depth,
+      ! defined as 700*friction velocity
+      ! (Koracin and Berkowicz, 1988; Lin and McElroy, 2010)
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+         PBL(I,J) = max( PBL(I,J), 700d0*USTAR(I,J) )
+      ENDDO
+      ENDDO
 
 #endif
 
