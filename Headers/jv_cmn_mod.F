@@ -95,6 +95,9 @@
 #else
       REAL*8  :: ODMDUST(IPAR,JPAR,LPAR,NWV,NDUST)
       REAL*8  :: ODAER(IPAR,JPAR,LPAR,NWV,NAER*NRH)
+!     now we're storing RH indices references ODAER can be smaller
+!      REAL*8  :: ODAER(IPAR,JPAR,LPAR,NWV,NAER)
+      REAL*8  :: IRHN(IPAR,JPAR,LPAR)
       !to pass to RT code
       !each tracer stored individually
       !SO4,BCPI,OCPI,SSa,SSc,BCPO,OCPO,DUST1-7
@@ -314,7 +317,11 @@
 
       REAL*8  :: TREF(51,18,12),OREF(51,18,12),BREF(51)           
       REAL*8  :: ODMDUST(IIPAR,JJPAR,LLPAR,NWVAA,NDUST)
-      REAL*8  :: ODAER(IIPAR,JJPAR,LLPAR,NWVAA,NAER*NRH)
+!      REAL*8  :: ODAER(IIPAR,JJPAR,LLPAR,NWVAA,NAER*NRH)
+!     now we're storing RH indices references ODAER can be smaller
+      REAL*8  :: ODAER(IIPAR,JJPAR,LLPAR,NWVAA,NAER)
+      INTEGER  :: IRHARR(IIPAR,JJPAR,LLPAR)
+
       !to pass to RT code
       !one for each hydrophilic/hydrophobic aerosol and optical dust bin
       !and also sulfate, nitrate and ammonia are separate too

@@ -336,7 +336,7 @@
 
       ! Global mass flux tuning factor (a posteriori) [frc]
       ! Default value (x2.5 DAR for Sept 2010 CALIPSO comparison)
-      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 2.5*3.38d-4
+      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 1.5*3.38d-4
 
       ! Reference height for mobilization processes [m]
       REAL*8,  PARAMETER     :: HGT_RFR         = 10.0d0
@@ -889,7 +889,7 @@ ctdf        print *,' no mobilisation candidates'
 
          ! Save latitude slice in SRCE_FUNC_OUT
          SRCE_FUNC_OUT(LON_IDX) = ERD_FCT_KVN(LON_IDX,LAT_IDX)
-
+!         SRCE_FUNC_OUT(LON_IDX) = SRCE_FUNC(LON_IDX,LAT_IDX)
       ENDDO
 
       ! Return to calling program

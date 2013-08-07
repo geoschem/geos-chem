@@ -45,7 +45,7 @@
       USE CMN_SIZE_MOD, ONLY : IIPAR,   JJPAR, LLPAR
       USE CMN_SIZE_MOD, ONLY : NDUST,   MAXIJ, NAER,  NRH
       USE CMN_FJ_MOD,   ONLY : JPMAX,   JPPJ
-      USE JV_CMN_MOD,   ONLY : ODMDUST, PJ,    NB,    ODAER
+      USE JV_CMN_MOD,   ONLY : ODMDUST, PJ,    NB, ODAER, IRHARR
 
       IMPLICIT NONE
 !
@@ -137,7 +137,8 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER, SAVE      :: LASTMONTH = -1
-      INTEGER            :: NLON, NLAT, DAY,  MONTH, DAY_OF_YR, L
+      INTEGER            :: NLON, NLAT, DAY,  MONTH, DAY_OF_YR,L,N
+      INTEGER            :: IOPT
       REAL*8             :: CSZA, PRES, SFCA, YLAT,  O3COL
       REAL*8             :: TEMP(LLPAR), OPTD(LLPAR)
       REAL*8             :: OPTDUST(LLPAR,NDUST)
@@ -203,12 +204,14 @@
       ! J-values will be stored in the common-block variable ZPJ, and 
       ! will be later accessed via function FJFUNC. 
       !=================================================================
+      OPTAER(:,:)=0.0
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( NLON,  NLAT,   YLAT,  CSZA,      OPTAER  )
 !$OMP+PRIVATE( PRES,  TEMP,   OPTD,  SFCA,      OPTDUST )
 !$OMP+PRIVATE( FMAX,  CLDF1D, KK,    NUMB,      L       )
 !$OMP+PRIVATE( KBOT,  KTOP,   ODNEW, INDICATOR, INDIC   )
+!$OMP+PRIVATE( N, IOPT                                  )
 !$OMP+PRIVATE( O3COL                                    )
 !$OMP+SCHEDULE( DYNAMIC )
 
@@ -250,10 +253,22 @@
 
             ! Aerosol OD profile [unitless] at (NLON,NLAT)
             ! and at 1000nm, IWV=14 (DAR)
-            OPTAER(:,:)  = ODAER(NLON,NLAT,:,14,:)
+            !OPTAER wants NAER*NRH values but ODAER is now 
+            !NAER - use IRHARR to map to correct OPTAER bin (DAR 08/13)
+            OPTAER(:,:)=0.0
+            DO N = 1, NAER
+             DO L = 1, LLPAR
+              IOPT = ( (N-1) * NRH ) + IRHARR(NLON,NLAT,L)
+              !WRITE(6,*) 'IOPT',N,IRHARR(NLON,NLAT,L),IOPT
+              OPTAER(L,IOPT)  = ODAER(NLON,NLAT,L,7,N)
+             ENDDO
+            ENDDO
+            !OPTAER(:,:)  = ODAER(NLON,NLAT,:,7,:)
+            !WRITE(6,*) 'odaer :',ODAER(NLON,NLAT,1,7,:)
+            !WRITE(6,*) 'optaer:',OPTAER(1,:)
             ! Mineral dust OD profile [unitless] at (NLON,NLAT)
-            ! and at 1000nm, IWV=14 (DAR)
-            OPTDUST(:,:) = ODMDUST(NLON,NLAT,:,14,:)
+            ! and at 1000nm, IWV=7 (DAR)
+            OPTDUST(:,:) = ODMDUST(NLON,NLAT,:,7,:)
 
             ! Cloud OD profile [unitless] at (NLON,NLAT)
             OPTD         = OD(1:LLPAR,NLON,NLAT)

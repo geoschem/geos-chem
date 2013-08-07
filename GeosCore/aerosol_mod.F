@@ -314,7 +314,7 @@
       USE TRACERID_MOD, ONLY : IDTDST3, IDTDST4, IDTNH4,  IDTNIT  
       USE TRACERID_MOD, ONLY : IDTOCPO, IDTOCPI, IDTSALA, IDTSALC 
       USE TRACERID_MOD, ONLY : IDTSOA1, IDTSOA2, IDTSOA3, IDTSOA4
-      USE TRACERID_MOD, ONLY : IDTSO4,  IDTSOA5  
+      USE TRACERID_MOD, ONLY : IDTSO4,  IDTSOA5, IDTSO4s, IDTNITs 
       USE TRACERID_MOD, ONLY : IDTSOAG, IDTSOAM
 
       USE CMN_SIZE_MOD       ! Size parameters
@@ -396,16 +396,23 @@
          IF ( LSULF ) THEN
 
             ! Compute SO4 aerosol concentration [kg/m3]
-            SO4_NH4_NIT(I,J,L) = ( STT(I,J,L,IDTSO4) + 
-     &                             STT(I,J,L,IDTNH4) +
-     &                             STT(I,J,L,IDTNIT) ) / AIRVOL(I,J,L)
+            ! now including sulfate and nitrate associated with sea-salt
+            ! NOTE: these should be treated as having a sea-salt size
+            ! distribution but are currently simply treated in the same
+            ! way (size and optics) as all other sulfate aerosol (DAR
+            ! 2013)
+            SO4_NH4_NIT(I,J,L) = ( STT(I,J,L,IDTSO4)  +
+     &                             STT(I,J,L,IDTNH4)  +
+     &                             STT(I,J,L,IDTNIT)  +
+     &                             STT(I,J,L,IDTSO4s) +
+     &                             STT(I,J,L,IDTNITs) ) / AIRVOL(I,J,L)
 
             ! Save these fractions for partitioning of optics
             ! until later when these may be treated independently
-            FRAC_SNA(I,J,L,1) = (STT(I,J,L,IDTSO4)/AIRVOL(I,J,L))/
-     &                           SO4_NH4_NIT(I,J,L)
-            FRAC_SNA(I,J,L,2) = (STT(I,J,L,IDTNIT)/AIRVOL(I,J,L))/
-     &                           SO4_NH4_NIT(I,J,L)
+            FRAC_SNA(I,J,L,1) = ((STT(I,J,L,IDTSO4)+STT(I,J,L,IDTSO4s))
+     &                           / AIRVOL(I,J,L))/SO4_NH4_NIT(I,J,L)
+            FRAC_SNA(I,J,L,2) = ((STT(I,J,L,IDTNIT)+STT(I,J,L,IDTNITs))
+     &                           / AIRVOL(I,J,L))/SO4_NH4_NIT(I,J,L)
             FRAC_SNA(I,J,L,3) = (STT(I,J,L,IDTNH4)/AIRVOL(I,J,L))/
      &                           SO4_NH4_NIT(I,J,L)
 
@@ -645,7 +652,7 @@
       CHARACTER(LEN=255)  :: FILENAME
       CHARACTER(LEN=16)   :: STAMP
       INTEGER             :: THISMONTH, THISYEAR
-      INTEGER             :: I, J, L, N, R, JLOOP, IRH, IRHN, W 
+      INTEGER             :: I, J, L, N, R, JLOOP, IRH, W 
       INTEGER             :: AA, IWV, IIWV, NWVS, IR, NRT
       INTEGER, SAVE       :: MONTH_LAST = -999
       REAL*4              :: TEMP(IIPAR,JJPAR,LGLOB)
@@ -1024,6 +1031,8 @@
       MSDENS(4) = 2200.0d0    !SS (accum)
       MSDENS(5) = 2200.0d0    !SS (coarse)
 
+      !set default values for RH index array
+      IRHARR(:,:,:)=1
 
       ! DAR Sept 2012
       ! if the call is from chemistry then only need to calc at 1000nm
@@ -1125,7 +1134,7 @@
 
             ! Sort into relative humidity bins
             ! Currently uses the 0, 50, 70, 80, 90% RH bins
-            ! (95 and 99% also stored in data files but not used) 
+            ! (95 and 99% also stored in data files but not used)
             IF (      ABSHUM(JLOOP) <= RH(2) ) THEN   
                IRH = 1
             ELSE IF ( ABSHUM(JLOOP) <= RH(3) ) THEN
@@ -1137,6 +1146,11 @@
             ELSE 
                IRH = 5
             ENDIF
+
+            ! save the index of the relative humidity into array that is
+            ! used by the photolysis to pull the right optics
+            ! information from the jv_spec.dat
+            IRHARR(I,J,L) = IRH
 
             ! For the NRHth bin, we don't have to interpolate
             ! For the other bins, we have to interpolate 
@@ -1362,7 +1376,7 @@
          ! Loop over aerosol types (dust handled in dust_mod.f)
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, IRHN, J, JLOOP, L, N, W, IOUT )
+!$OMP+PRIVATE( I, J, JLOOP, L, N, W, IOUT )
 !$OMP+SCHEDULE( DYNAMIC )
 
          DO N = 1, NAER
