@@ -102,6 +102,9 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LCRYST             
      LOGICAL                     :: LCARB              
      LOGICAL                     :: LSOA               
+     LOGICAL                     :: LSVPOA
+     REAL*8                      :: NAPEMISS
+     REAL*8                      :: POAEMISSSCALE
      LOGICAL                     :: LDUST              
      LOGICAL                     :: LDEAD              
      LOGICAL                     :: LSSALT             
@@ -584,6 +587,7 @@ MODULE GIGC_Input_Opt_Mod
 !  27 Mar 2013 - R. Yantosca - Add extra fields for tagged EDGAR
 !  29 Mar 2013 - R. Yantosca - Add DO_DIAG_WRITE field (to shut diags in MPI)
 !  22 Jul 2013 - M. Sulprizio- Add extra fields for RCP emissions
+!  07 Aug 2013 - M. Sulprizio- Add extra fields for SOA + SVPOA simulation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -651,6 +655,8 @@ CONTAINS
 !  29 Mar 2013 - R. Yantosca - Add DO_DIAG_WRITE field (to shut diags in MPI)
 !  22 Apr 2013 - R. Yantosca - Now dimension ND48_*ARR to 1000 so that we are
 !                              consistent with the settings in diag48_mod.F
+!  22 Jul 2013 - M. Sulprizio- Add extra fields for RCP emissions
+!  07 Aug 2013 - M. Sulprizio- Add extra fields for SOA + SVPOA simulation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -747,6 +753,9 @@ CONTAINS
     Input_Opt%LCRYST                 = .FALSE.
     Input_Opt%LCARB                  = .FALSE.
     Input_Opt%LSOA                   = .FALSE.
+    Input_Opt%LSVPOA                 = .FALSE.
+    Input_Opt%NAPEMISS               = 0d0
+    Input_Opt%POAEMISSSCALE          = 0d0
     Input_Opt%LDUST                  = .FALSE.
     Input_Opt%LDEAD                  = .FALSE.
     Input_Opt%LSSALT                 = .FALSE.

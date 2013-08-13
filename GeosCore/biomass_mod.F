@@ -208,6 +208,7 @@
       USE GC_BIOMASS_MOD,     ONLY : GC_READ_BIOMASS_CO2
       USE GC_BIOMASS_MOD,     ONLY : GC_READ_BIOMASS_NH3
       USE GC_BIOMASS_MOD,     ONLY : GC_READ_BIOMASS_SO2
+      USE GC_BIOMASS_MOD,     ONLY : TOTAL_BIOMASS_TG
       USE GFED2_BIOMASS_MOD,  ONLY : GFED2_COMPUTE_BIOMASS
       USE GFED3_BIOMASS_MOD,  ONLY : GFED3_COMPUTE_BIOMASS
       USE GIGC_ErrCode_Mod
@@ -221,8 +222,7 @@
       ! SOAupdate: For POA, NAP (hotp, mpayer, 7/6/11)
       USE TRACERID_MOD,       ONLY : IDTPOA1
       USE TRACERID_MOD,       ONLY : IDBNAP
-      USE LOGICAL_MOD,        ONLY : NAPEMISS
-      USE LOGICAL_MOD,        ONLY : LSVPOA
+      USE TRACERID_MOD,       ONLY : IDBXYLE, IDBTOLU, IDBBENZ
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! Diagnostic flags
@@ -263,6 +263,8 @@
       LOGICAL             :: LBIOMASS, LGFED2BB, LGFED3BB
       LOGICAL             :: L8DAYBB,  LSYNOPBB, L3HRBB
       LOGICAL             :: LDAYBB3,  L3HRBB3
+      LOGICAL             :: LSVPOA
+      REAL*8              :: NAPEMISS
 
       !=================================================================
       ! COMPUTE_BIOMASS_EMISSIONS begins here!
@@ -284,6 +286,8 @@
       L3HRBB              = Input_Opt%L3HRBB
       LDAYBB3             = Input_Opt%LDAYBB3
       L3HRBB3             = Input_Opt%L3HRBB3  
+      LSVPOA              = Input_Opt%LSVPOA
+      NAPEMISS            = Input_Opt%NAPEMISS
 
       ! If there are biomass emissions ...
       IF ( LBIOMASS ) THEN

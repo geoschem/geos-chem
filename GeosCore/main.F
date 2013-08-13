@@ -596,11 +596,6 @@
             !goto 9999
             !!
 
-            ! Need to initialize CARBON_MOD variables referenced in SOAPROD_MOD
-            ! that were previously parameters, but were made allocatable for 
-            ! SOA + semivolatile POA (mpayer, 8/10/11)
-            CALL INIT_CARBON
-
             CALL SET_SOAPROD
             CALL READ_SOAPROD_FILE( GET_NYMDb(), GET_NHMSb() )
 
@@ -739,7 +734,7 @@
 
                      !### Debug
                      IF ( prtDebug ) THEN
-                        CALL DEBUG_MSG( '### MAIN: a MAKE_SOAPROD_FILE' )
+                        CALL DEBUG_MSG('### MAIN: a MAKE_SOAPROD_FILE')
                      ENDIF
                   ENDIF
                ENDIF
@@ -1311,7 +1306,7 @@
 
             ! ND42: SOA concentrations [ug/m3]
             IF ( ND42 > 0 ) THEN
-               CALL DIAG42( State_Met, State_Chm )
+               CALL DIAG42( Input_Opt, State_Met, State_Chm )
             ENDIF
             IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG42' )
 

@@ -980,14 +980,17 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_EMTERP_MEGAN( I , J , SUNCOS, TS , Q_DIR ,
-     &                            Q_DIFF , XNUMOL , TERP_SPECIES ) 
+      FUNCTION GET_EMTERP_MEGAN( I,     J,      SUNCOS, TS,
+     &                           Q_DIR, Q_DIFF, XNUMOL, TERP_SPECIES ) 
      &            RESULT( EMTERP )
 !
 ! !USES:
 !
-      USE LAI_MOD,     ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
-      USE LOGICAL_MOD, ONLY : LPECCA 
+      USE LOGICAL_MOD,   ONLY : LPECCA                     ! Use PCEEA model?
+      USE MODIS_LAI_MOD, ONLY : ISOLAI     => GC_LAI       ! Daily LAI
+      USE MODIS_LAI_MOD, ONLY : PMISOLAI   => GC_LAI_PM    ! Prev month's LAI
+      USE MODIS_LAI_MOD, ONLY : MISOLAI    => GC_LAI_CM    ! Curr month's LAI
+      USE MODIS_LAI_MOD, ONLY : DAYS_BTW_M => DAYS_BTW_MON ! LAI month interval
 
       USE CMN_SIZE_MOD      ! Size parameters
 !
@@ -1220,7 +1223,10 @@
 !
 ! !USES:
 !
-      USE LAI_MOD,    ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
+      USE MODIS_LAI_MOD, ONLY : ISOLAI     => GC_LAI       ! Daily LAI
+      USE MODIS_LAI_MOD, ONLY : PMISOLAI   => GC_LAI_PM    ! Prev month's LAI
+      USE MODIS_LAI_MOD, ONLY : MISOLAI    => GC_LAI_CM    ! Curr month's LAI
+      USE MODIS_LAI_MOD, ONLY : DAYS_BTW_M => DAYS_BTW_MON ! LAI month interval
 
       USE CMN_SIZE_MOD     ! Size parameters
 !
@@ -3502,33 +3508,32 @@
          ENDIF
 
          ! Compute AEF and convert from [ug/m2/hr] to [kg C/box/timestep]
-         ! Loop over longitudes
+         ! Loop over surface boxes
          DO J = 1, JJPAR
+         DO I = 1, IIPAR
 
             ! Surface area 
-            AREA_M2 = GET_AREA_M2( J )
+            AREA_M2 = GET_AREA_M2( I, J, 1 )
   
             ! Conversion factor from [ug/m2/hr] to [kgC/box/timestep]
             FACTOR  = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0 *
      &                   SPECIES2CARBON
  
-            ! Loop over latitudes
-            DO I = 1, IIPAR
 
-               ! Calculate AEF in [ug/m2/hr]
-               AEF_GEN( I, J, SPECIES ) =
-     &                           PFT_BT( I, J ) * EF_BT( SPECIES ) +
-     &                           PFT_NT( I, J ) * EF_NT( SPECIES ) +
-     &                           PFT_SH( I, J ) * EF_SB( SPECIES ) +
-     &                           PFT_GR( I, J ) * EF_HB( SPECIES ) +
-     &                           PFT_CR( I, J ) * EF_HB( SPECIES )
+            ! Calculate AEF in [ug/m2/hr]
+            AEF_GEN( I, J, SPECIES ) =
+     &                        PFT_BT( I, J ) * EF_BT( SPECIES ) +
+     &                        PFT_NT( I, J ) * EF_NT( SPECIES ) +
+     &                        PFT_SH( I, J ) * EF_SB( SPECIES ) +
+     &                        PFT_GR( I, J ) * EF_HB( SPECIES ) +
+     &                        PFT_CR( I, J ) * EF_HB( SPECIES )
 
-               ! Convert AEF to [kg C/box/timestep]
-               AEF_GEN( I, J, SPECIES ) = AEF_GEN( I, J, SPECIES ) *
-     &                                    FACTOR 
+            ! Convert AEF to [kg C/box/timestep]
+            AEF_GEN( I, J, SPECIES ) = AEF_GEN( I, J, SPECIES ) *
+     &                                 FACTOR 
 
-            ENDDO ! IIPAR
-         ENDDO    ! JJPAR
+         ENDDO
+         ENDDO
 
       ENDDO       ! species
 !$OMP END PARALLEL DO
@@ -3569,7 +3574,6 @@
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE inquireMod,         ONLY : findFreeLUN
-      USE LOGICAL_MOD,      ONLY : LSVPOA
       USE MERRA_A1_MOD
       USE JULDAY_MOD,         ONLY : CALDATE
       USE ERROR_MOD,          ONLY : ALLOC_ERR
@@ -3730,7 +3734,7 @@
 
       ! SOAupdate: Only allocate PFT and AEG_GEN if using SOA + semivol POA
       ! (hotp, mpayer, 7/13/11)
-      IF ( LSVPOA ) THEN
+      IF ( Input_Opt%LSVPOA ) THEN
 
          ALLOCATE( PFT_BT( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFT_BT' )
@@ -3760,7 +3764,7 @@
 
       ! SOAupdate: Read fractional coverage of PFTs from file
       ! (hotp, mpayer, 7/13/11)
-      IF ( LSVPOA ) CALL READ_PFT
+      IF ( Input_Opt%LSVPOA ) CALL READ_PFT
 
 !------------------------------------------------------------------------------
 ! Prior to 11/22/11:
@@ -3795,7 +3799,7 @@
 
       ! SOAupdate: Get annual emission factors for MEGAN inventory for
       ! species without geospatial information (hotp, mpayer, 7/13/11)
-      IF ( LSVPOA ) CALL GET_AEF_GEN
+      IF ( Input_Opt%LSVPOA ) CALL GET_AEF_GEN
 
       !=================================================================
       ! Read A3 fields for the 15 days before the start of the run

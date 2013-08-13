@@ -272,10 +272,9 @@
       USE EMEP_MOD,             ONLY : GET_EUROPE_MASK
       ! SOAupdate: For gas-phase NAP chemistry and emiss (hotp, mpayer, 7/6/11)
       USE TRACERID_MOD,         ONLY : IDTNAP
+      USE TRACERID_MOD,         ONLY : IDBFNAP
       USE TRACER_MOD,           ONLY : ITS_A_FULLCHEM_SIM 
       USE TRACER_MOD,           ONLY : ITS_A_TAGCO_SIM
-      USE LOGICAL_MOD,          ONLY : NAPEMISS
-      USE TRACERID_MOD,         ONLY : IDBFNAP
 
       USE CMN_SIZE_MOD               ! Size parameters
       USE CMN_O3_MOD                 ! FSCLYR
@@ -340,6 +339,7 @@
       LOGICAL                       :: LHIST
       LOGICAL                       :: LRCP
       LOGICAL                       :: ITS_A_H2HD_SIM
+      REAL*8                        :: NAPEMISS
 
       !=================================================================
       !   B i o f u e l   B u r n i n g   B e g i n s   H e r e !!
@@ -357,6 +357,7 @@
       LHIST          = Input_Opt%LHIST
       LRCP           = Input_Opt%LRCP
       ITS_A_H2HD_SIM = Input_Opt%ITS_A_H2HD_SIM
+      NAPEMISS       = Input_Opt%NAPEMISS
 
       ! First-time initialization
       IF ( FIRST ) THEN

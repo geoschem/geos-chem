@@ -3982,7 +3982,7 @@
          IF ( LSOILNOX ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
+!$OMP+PRIVATE( I, J, L, IDTNH3 )
             DO L = 1, LLPAR
             DO J = 1, JJPAR
             DO I = 1, IIPAR
@@ -4223,7 +4223,7 @@
          IF ( LSOILNOX ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
+!$OMP+PRIVATE( I, J, L, IDTNH4 )
             DO L = 1, LLPAR
             DO J = 1, JJPAR
             DO I = 1, IIPAR
@@ -4557,7 +4557,7 @@
          IF ( LSOILNOX ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
+!$OMP+PRIVATE( I, J, L, IDTNIT, IDTNITs )
             DO L = 1, LLPAR
             DO J = 1, JJPAR
             DO I = 1, IIPAR

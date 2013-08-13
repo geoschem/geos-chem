@@ -118,6 +118,7 @@
       LOGICAL                      :: LBRAVO
       LOGICAL                      :: LCAC
       LOGICAL                      :: LFUTURE
+      LOGICAL                      :: LSVPOA
 !
 ! !DEFINED PARAMETERS:
 !
@@ -483,6 +484,7 @@
       LBRAVO    = Input_Opt%LBRAVO
       LCAC      = Input_Opt%LCAC
       LFUTURE   = Input_Opt%LFUTURE
+      LSVPOA    = Input_Opt%LSVPOA
       N_TRACERS = Input_Opt%N_TRACERS
 
       ! First-time initialization

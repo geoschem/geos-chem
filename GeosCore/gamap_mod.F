@@ -802,11 +802,15 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_DIAGINFO
+      SUBROUTINE INIT_DIAGINFO( Input_Opt )
 !
 ! !USES:
 !
-      USE LOGICAL_MOD, ONLY : LSVPOA
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input options
 ! 
 ! !REVISION HISTORY: 
 !  17 Oct 1996 - R. Yantosca - Initial version
@@ -838,10 +842,14 @@
 ! !LOCAL VARIABLES:
 ! 
       INTEGER :: N
+      LOGICAL :: LSVPOA
 
       !=================================================================
       ! INIT_DIAGINFO begins here!
       !=================================================================
+
+      ! Copy fields from INPUT_OPT to local variables for use below
+      LSVPOA = Input_Opt%LSVPOA
 
       N           = 1
       CATEGORY(N) = 'IJ-AVG-$'
@@ -1663,7 +1671,6 @@
       USE GET_POPSINFO_MOD,   ONLY : GET_POP_XMW
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
-      USE LOGICAL_MOD,  ONLY  : LSVPOA 
       USE TRACERID_MOD, ONLY : IDTBCPI, IDTOCPI, IDTALPH, IDTLIMO
       USE TRACERID_MOD, ONLY : IDTSOA1, IDTSOA2, IDTSOA3, NEMANTHRO
       USE TRACERID_MOD, ONLY : IDTSOA4, IDTSOAM, IDTSOAG, IDTSOA5
@@ -1759,7 +1766,7 @@
 !
       INTEGER :: N, NN, NYMDb, NHMSb, T
       LOGICAL :: DO_TIMESERIES
-
+      LOGICAL :: LSVPOA
 
       REAL*8,     SAVE      :: POP_XMW
       REAL*8                :: DUM
@@ -1767,6 +1774,9 @@
       !=================================================================
       ! INIT_TRACERINFO begins here!
       !=================================================================
+
+      ! Copy fields from INPUT_OPT
+      LSVPOA = Input_Opt%LSVPOA
 
       ! Assume success
       RC = GIGC_SUCCESS
@@ -4493,7 +4503,7 @@
 
          ! Number of tracers
          IF ( Input_Opt%LSOA ) THEN
-            IF ( LSVPOA ) THEN
+            IF ( Input_Opt%LSVPOA ) THEN
                NTRAC(07) = 15 ! SOA + semivol POA
             ELSE
                NTRAC(07) = 16 ! Traditional SOA
@@ -4513,7 +4523,7 @@
 
             ! SOAupdate: Check to see if using SOA + semivolatile POA or
             ! traditional SOA simulation (mpayer, 7/26/11)
-            IF ( LSVPOA ) THEN
+            IF ( Input_Opt%LSVPOA ) THEN
 
                !---------------------------------
                ! SOA + semivolatile POA (H. Pye) 
@@ -5270,7 +5280,7 @@
             !NTRAC(28) = 23
             !-----------------------------------------------------------------
             IF ( Input_Opt%LSOA ) THEN
-               IF ( LSVPOA ) THEN
+               IF ( Input_Opt%LSVPOA ) THEN
                   NTRAC(28) = 24    ! SOA + semivol POA simulation (add NAP)
                ELSE
                   NTRAC(28) = 23    ! Traditional SOA simulation
@@ -5622,7 +5632,7 @@
 
             ! SOAupdate: Check to see if using SOA + semivolatile POA or
             ! traditional SOA simulation (mpayer, 7/26/11)
-            IF ( LSVPOA ) THEN
+            IF ( Input_Opt%LSVPOA ) THEN
 
                !---------------------------------
                ! SOA + semivolatile POA (H. Pye)
@@ -7101,7 +7111,7 @@
       !=================================================================
 
       ! Initialize arrays for "diaginfo.dat"
-      CALL INIT_DIAGINFO
+      CALL INIT_DIAGINFO( Input_Opt )
 
       ! Initialize arrays for "tracerinfo.dat"
       CALL INIT_TRACERINFO( am_I_Root, Input_Opt, RC )

@@ -339,9 +339,6 @@
 !                              and replace with Input_Opt%LNLPBL
 !******************************************************************************
 !
-      ! References to F90 modules
-      USE LOGICAL_MOD,    ONLY : LSVPOA
-
       IMPLICIT NONE
 #     include "define.h"
 
@@ -362,7 +359,6 @@
       PUBLIC :: APROD, GPROD, MNOX, NPROD, MHC, NNOX, MPROD
       PUBLIC :: PRODPERCOFSTT
       PUBLIC :: BETANOSAVE
-      PUBLIC :: INIT_CARBON
 
       !=================================================================
       ! MODULE VARIABLES
@@ -528,6 +524,7 @@
 !
       USE CMN_SIZE_MOD 
       USE ERROR_MOD,          ONLY : DEBUG_MSG
+      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -611,8 +608,10 @@
       LOGICAL       :: LSOA
       LOGICAL       :: LEMIS
       LOGICAL       :: LPRT
+      LOGICAL       :: LSVPOA
       INTEGER       :: N
       INTEGER       :: THISMONTH
+      CHARACTER(LEN=14) :: DEPNAME(Input_Opt%MAX_DEP)
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -630,7 +629,9 @@
       LSOA                 = Input_Opt%LSOA
       LEMIS                = Input_Opt%LEMIS
       LPRT                 = Input_Opt%LPRT
+      LSVPOA               = Input_Opt%LSVPOA
       IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
+      DEPNAME              = Input_Opt%DEPNAME
 
       ! Do we have to print debug output?
       prtDebug = ( LPRT .and. am_I_Root )
@@ -702,7 +703,7 @@
          FIRSTCHEM = .FALSE.
 
          ! SOAupdate: Debug info
-         IF ( LPRT .and. LSVPOA ) THEN
+         IF ( prtDebug .and. LSVPOA ) THEN
             print*,'The following species have been identified'
             print*,'as dry dep species in CHEMCARBON (carbon_mod.f)'
 
@@ -845,7 +846,8 @@
             !-------------------------
             ! SOA + semivolatile POA
             !-------------------------
-            CALL SOA_SVPOA_CHEMISTRY
+            CALL SOA_SVPOA_CHEMISTRY( am_I_Root, Input_Opt, 
+     &                                State_Met, State_Chm )
 
             IF ( prtDebug ) THEN
                CALL DEBUG_MSG( '### CHEMCARBON: a SOA_SVPOA_CHEM' )
@@ -2350,6 +2352,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE   :: FIRST = .TRUE.
+      LOGICAL         :: prtDebug
       LOGICAL         :: LPRT
       INTEGER         :: I,        J,        L,        N    
       INTEGER         :: JHC,      IPR,      NOX ! (dkh, 10/30/06)  
@@ -2384,6 +2387,9 @@
 
       ! Save fields from Input_Opt to local variables
       LPRT = Input_Opt%LPRT
+
+      ! Do we have to print debug output?
+      prtDebug = ( LPRT .and. am_I_Root )
 
       !this section is need to initialize the equalibirum constants and
       !yield parameters, (jje 06/22/10)
@@ -2658,7 +2664,7 @@
 
       !------------------------------------------------------------------------
       !### Now only print when ND70 is turned on (bmy, 4/21/10)
-      IF ( LPRT ) THEN
+      IF ( prtDebug ) THEN
 
         ! dkh print some diagnostics 
          DARO2_TOT_0(:)    = DARO2_TOT(:)
@@ -2894,23 +2900,23 @@
       !local variables
       real*8             :: MNEW
       real*8             :: a,b,c,d,e,eps,fa,fb,fc,tol1,xm,p,q,r,s
-c
-c  compute eps, the relative machine precision
-c
+!
+!  compute eps, the relative machine precision
+!
       eps = 1.0d0
    10 eps = eps/2.0d0
       tol1 = 1.0d0 + eps
       if (tol1 .gt. 1.0d0) go to 10
-c
-c initialization
-c
+!
+! initialization
+!
       a  = ax
       b  = bx
       fa = SOA_equil( A, MPOC, Aerosol, GAS, Kom )
       fb = SOA_equil( B, MPOC, Aerosol, GAS, Kom ) 
-c
-c begin step
-c
+!
+! begin step
+!
    20 c = a
       fc = fa
       d = b - a
@@ -2923,59 +2929,59 @@ c
       fa = fb
       fb = fc
       fc = fa
-c
-c convergence test
-c
+!
+! convergence test
+!
    40 tol1 = 2.0d0*eps*ABS(b) + 0.5d0*tol
       xm = 0.5D0*(c - b)
       if (ABS(xm) .le. tol1) go to 90
       if (fb .eq. 0.0d0) go to 90
-c
-c is bisection necessary
-c
+!
+! is bisection necessary
+!
       if (ABS(e) .lt. tol1) go to 70
       if (ABS(fa) .le. ABS(fb)) go to 70
-c
-c is quadratic interpolation possible
-c
+!
+! is quadratic interpolation possible
+!
       if (a .ne. c) go to 50
-c
-c linear interpolation
-c
+!
+! linear interpolation
+!
       s = fb/fa
       p = 2.0d0*xm*s
       q = 1.0d0 - s
       go to 60
-c
-c inverse quadratic interpolation
-c
+!
+! inverse quadratic interpolation
+!
    50 q = fa/fc
       r = fb/fc
       s = fb/fa
       p = s*(2.0d0*xm*q*(q - r) - (b - a)*(r - 1.0d0))
       q = (q - 1.0d0)*(r - 1.0d0)*(s - 1.0d0)
-c
-c adjust signs
-c
+!
+! adjust signs
+!
    60 if (p .gt. 0.0d0) q = -q
       p = ABS(p)
-c
-c is interpolation acceptable
-c
+!
+! is interpolation acceptable
+!
       if ((2.0d0*p) .ge. (3.0d0*xm*q - ABS(tol1*q))) go to 70
       if (p .ge. ABS(0.5d0*e*q)) go to 70
 
       e = d
       d = p/q
       go to 80
-c
-c bisection
-c
+!
+! bisection
+!
    70 d = xm
       e = d
-c
-c complete step
-c
+!
+! complete step
+!
    80 a = b
       fa = fb
       if (ABS(d) .gt. tol1) b = b + d
@@ -2984,9 +2990,9 @@ c
       fb = SOA_equil( B, MPOC, Aerosol, GAS, Kom ) 
       if ((fb*(fc/ABS(fc))) .gt. 0.0d0) go to 20
       go to 30
-c
-c done
-c
+!
+! done
+!
    90 MNEW = b
 
       ! Return to calling program
@@ -4820,6 +4826,7 @@ c
       LOGICAL         :: LPRT
       LOGICAL         :: LSOA
       LOGICAL         :: LRCP
+      LOGICAL         :: LSVPOA
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -4843,6 +4850,7 @@ c
       LPRT      = Input_Opt%LPRT
       LSOA      = Input_Opt%LSOA
       LRCP      = Input_Opt%LRCP
+      LSVPOA    = Input_Opt%LSVPOA
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       ! (mpayer, 12/6/12)
@@ -4955,7 +4963,7 @@ c
          !-------------------------
          ! SOA + semivolatile POA 
          !-------------------------
-         CALL BIOGENIC_OC_SVPOA
+         CALL BIOGENIC_OC_SVPOA( Input_Opt, State_Met )
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a BIOGENIC_OC_SV' )
 
       ELSE
@@ -7260,7 +7268,6 @@ ccc
       USE TRACERID_MOD,       ONLY : IDTALPH, IDTLIMO, IDTALCO
       USE TRACERID_MOD,       ONLY : IDTMTPA, IDTMTPO
       USE TRACERID_MOD,       ONLY : IDTPOA1
-      USE LOGICAL_MOD,        ONLY : POAEMISSSCALE
       USE VDIFF_PRE_MOD,      ONLY : EMIS_SAVE ! (Lin, 03/31/09)
 !
 ! !INPUT PARAMETERS:
@@ -7284,6 +7291,8 @@ ccc
 
       ! For fields from Input_Opt
       LOGICAL         :: LNLPBL
+      LOGICAL         :: LSVPOA
+      REAL*8          :: POAEMISSSCALE
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -7295,7 +7304,9 @@ ccc
       !=================================================================
 
       ! Copy values from Input_Opt
-      LNLPBL  = Input_Opt%LNLPBL
+      LNLPBL        = Input_Opt%LNLPBL
+      LSVPOA        = Input_Opt%LSVPOA
+      POAEMISSSCALE = Input_Opt%POAEMISSSCALE
 
       ! Define logical flags for expediency
       IS_BCPI = ( IDTBCPI > 0 )
@@ -8149,12 +8160,15 @@ ccc
       REAL*8                     :: ARO2CARB
 
       ! For values from Input_Opt
-      INTEGER                    :: N_TRACERS
+      LOGICAL                    :: LSVPOA
       REAL*8                     :: XNUMOL(Input_Opt%N_TRACERS)
 
       !=================================================================
       ! GET_DARO2 begins here!
       !=================================================================
+
+      ! Copy logical fields from INPUT_OPT to local variables
+      LSVPOA  = Input_Opt%LSVPOA
 
       !print*, ' get DARO2'
       DARO2 = 0d0
@@ -9068,7 +9082,8 @@ ccc
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE SOA_SVPOA_CHEMISTRY
+      SUBROUTINE SOA_SVPOA_CHEMISTRY( am_I_Root, Input_Opt,
+     &                                State_Met, State_Chm )
 
 !
 !******************************************************************************
@@ -9176,13 +9191,13 @@ ccc
 !  NOTES:
 !  15 Jul 2011 - M. Payer    - Initial code based on SOA_CHEMISTRY and
 !                              modifications for SOA + semivol POA (H. Pye)
+!  07 Aug 2013 - M. Sulprizio- Now pass am_I_Root, Input_Opt, State_Met,
+!                              and State_Chm as arguments
 !******************************************************************************
 !
       ! References to F90 modules
       USE ERROR_MOD,    ONLY   : DEBUG_MSG
-      USE DAO_MOD,      ONLY   : T, AD, AIRVOL, SUNCOS
       USE DIAG_MOD,     ONLY   : AD07_HC
-      USE TRACER_MOD,   ONLY   : STT 
       USE TRACERID_MOD, ONLY   : IDTOCPI,  IDTOCPO
       USE TRACERID_MOD, ONLY   : IDTMTPA,  IDTLIMO, IDTMTPO
       USE TRACERID_MOD, ONLY   : IDTTSOA1, IDTTSOG1
@@ -9202,15 +9217,30 @@ ccc
       USE TRACERID_MOD, ONLY   : IDTASOA3, IDTASOG3
       USE TIME_MOD,     ONLY   : GET_TS_CHEM,       GET_MONTH
       USE TIME_MOD,     ONLY   : ITS_TIME_FOR_BPCH
-      USE LOGICAL_MOD,  ONLY   : LPRT
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
 
       USE CMN_SIZE_MOD         ! Size parameters
       USE CMN_O3_MOD           ! XNUMOL
       USE CMN_DIAG_MOD         ! ND44
 
-      ! Local variables
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE :: FIRST = .TRUE.
+      LOGICAL       :: prtDebug
       INTEGER       :: I,        J,        L,        N    
       INTEGER       :: JHC,      IPR 
       INTEGER       :: JSV
@@ -9231,9 +9261,24 @@ ccc
       REAL*8, SAVE  :: GLOB_POA_PROD
       REAL*8, SAVE  :: GLOB_OPOA_PROD
 
+      ! For fields from Input_Opt
+      LOGICAL         :: LPRT
+
+      ! Pointers
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! SOA_SVPOA_CHEMISTRY begins here!
       !=================================================================
+
+      ! Save fields from Input_Opt to local variables
+      LPRT = Input_Opt%LPRT
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      STT  => State_Chm%Tracers
+
+      ! Do we have to print debug output?
+      prtDebug = ( LPRT .and. am_I_Root )
 
       ! Zero for safety
       GLOB_POGRXN  = 0d0
@@ -9242,7 +9287,7 @@ ccc
 
       ! Save initial OA+OG for diagnostic
       IF ( LPRT ) THEN
-         CALL SAVE_OAGINIT
+         CALL SAVE_OAGINIT( State_Chm )
       ENDIF
 
       ! This section is need to initialize the equilibirum constants and
@@ -9250,10 +9295,10 @@ ccc
       IF ( FIRST ) THEN
 
          ! Initialize alphas, Koms and rxn rate constants
-         CALL SOA_SVPOA_PARA_INIT
+         CALL SOA_SVPOA_PARA_INIT( Input_Opt )
 
          ! Diagnostic/debug info
-         IF ( LPRT ) THEN
+         IF ( prtDebug ) THEN
             WRITE(*,*) 'HC and SV IDs'
             print*, 'Monoterpenes and sesquiterpenes'
             print*, 'MTPA ', PARENTMTPA, IDSV(PARENTMTPA)
@@ -9288,7 +9333,7 @@ ccc
 
       ENDIF
 
-      IF ( LPRT ) THEN
+      IF ( prtDebug ) THEN
          print*, ' MAX DARO2 = ', MAXLOC(GLOB_DARO2(:,:,:,1,1)), 
      &                            MAXVAL(GLOB_DARO2(:,:,:,1,1))
       ENDIF
@@ -9298,7 +9343,7 @@ ccc
       GLOB_AM0_POA_0 = 0.d0
 
       ! Print initial POA info
-      IF ( LPRT ) THEN
+      IF ( prtDebug ) THEN
          print*, 'START SOA_SVPOA_CHEMISTRY'
          print*, 'species   ','global sum   ', 
      &              'box 20,33,2   ', 'box 20,33,10    '
@@ -9321,13 +9366,13 @@ ccc
          print*, 'POAEMISS,2,ANTH',
      &                 SUM(POAEMISS(:,:,:,2)),POAEMISS(20,33,2,2),
      &                     POAEMISS(20,33,10,2)
-      ENDIF
       
-      IF ( IDTPOA1 > 0 ) THEN
-         print*,'POAG tot', SUM(STT(:,:,:,IDTPOA1))+
-     &                      SUM(STT(:,:,:,IDTPOA2))+
-     &                      SUM(STT(:,:,:,IDTPOG1))+
-     &                      SUM(STT(:,:,:,IDTPOG2))
+         IF ( IDTPOA1 > 0 ) THEN
+            print*,'POAG tot', SUM(STT(:,:,:,IDTPOA1))+
+     &                         SUM(STT(:,:,:,IDTPOA2))+
+     &                         SUM(STT(:,:,:,IDTPOG1))+
+     &                         SUM(STT(:,:,:,IDTPOG2))
+         ENDIF
       ENDIF
  
       ! Locate POA and OPOA in AM0
@@ -9345,19 +9390,19 @@ ccc
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         IF ( ITS_IN_THE_STRAT(I,J,L) )  CYCLE
+         IF ( ITS_IN_THE_STRAT( I, J, L, State_Met ) )  CYCLE
 
          ! Volume of grid box [m3]
-         VOL    = AIRVOL(I,J,L)    
+         VOL    = State_Met%AIRVOL(I,J,L)    
 
          ! conversion factor from kg to ug/m3
          FAC    = 1.D9 / VOL       
 
          ! air conc. in kg/m3
-         CAIR   = AD(I,J,L) / VOL  
+         CAIR   = State_Met%AD(I,J,L) / VOL  
 
          ! Temperature [K]
-         RTEMP  = T(I,J,L)         
+         RTEMP  = State_Met%T(I,J,L)         
 
          ! Get SOA yield parameters
          CALL SOA_SVPOA_PARA( RTEMP, KO3, KOH, KNO3,   KOM_SVPOA,   
@@ -9365,15 +9410,17 @@ ccc
 
          ! Partition mass of gas & aerosol tracers 
          ! according to 5 VOC classes & 3 oxidants
-         CALL SOA_SVPOA_PARTITION( I, J, L, GM0, AM0 )
+         CALL SOA_SVPOA_PARTITION( I, J, L, GM0, AM0, State_Chm )
 
          ! hotp diagnostic
          GLOB_AM0_POA_0(I,J,L,1,:,:) = AM0(:,JSVPOA:JSVOPOA)
 
          ! Compute oxidation of hydrocarbons by O3, OH, NO3
          ! Emit POA into semivolatiles here
-         CALL CHEM_NVOC_SVPOA( I, J, L, KO3, KOH, KNO3, GM0,
-     &                         KRO2NO, KRO2HO2)
+         CALL CHEM_NVOC_SVPOA( I,         J,         L,
+     &                         KO3,       KOH,       KNO3,
+     &                         GM0,       KRO2NO,    KRO2HO2,
+     &                         Input_Opt, State_Met, State_Chm)
 
          !==============================================================
          ! Equilibrium calculation between GAS (SOG) and Aerosol (SOA)
@@ -9551,7 +9598,7 @@ ccc
             DO JSV = 1, MAXSIMSV
             DO IPR = 1, NPROD(JSV)
                GM0(IPR,JSV) = GM0(IPR,JSV) + AM0(IPR,JSV)
-               !AM0(IPR,JSV) = 1.D-18 * AD(I,J,L)
+               !AM0(IPR,JSV) = 1.D-18 * State_Met%AD(I,J,L)
                AM0(IPR,JSV) = 1.D-20 ! try this to fix mass bal (hotp 5/25/10)
             ENDDO
             ENDDO
@@ -9569,7 +9616,7 @@ ccc
             GM0(IPR,JSV) = 0d0
             
          ! Lump SOA
-         CALL SOA_SVPOA_LUMP( I, J, L, GM0, AM0 )
+         CALL SOA_SVPOA_LUMP( I, J, L, GM0, AM0, State_Chm )
 
          ! hotp diagnostic
          GLOB_AM0_POA(I,J,L,1,:,:) = AM0(:,JSVPOA:JSVOPOA)
@@ -9579,7 +9626,8 @@ ccc
             ! IDSV for lumped arom/IVOC is hardwired (=3)
             ! Low NOX (non-volatile) aromatic product is IPR=4
             CALL CHECK_EQLB( I, J, L, KOM_SVPOA, FAC, MNEW, LOWER, TOL,
-     &                       ORG_GAS(4,3), ORG_AER(4,3), MPOC )
+     &                       ORG_GAS(4,3), ORG_AER(4,3), MPOC,
+     &                       State_Chm )
           ENDIF
 
       ENDDO
@@ -9589,12 +9637,12 @@ ccc
 
       ! Debug: check mass balance
       IF ( LPRT ) THEN
-         CALL CHECK_MB
+         CALL CHECK_MB( am_I_Root, Input_Opt, State_Met, State_Chm )
       ENDIF
 
       !------------------------------------------------------------------------
       !### Now only print when ND70 is turned on (bmy, 4/21/10)
-      IF ( LPRT ) THEN
+      IF ( prtDebug ) THEN
 
          IF ( IDTPOA1 > 0 ) THEN
             print*,'POAG tot', SUM(STT(:,:,:,IDTPOA1))+
@@ -9709,44 +9757,47 @@ ccc
       ! Calculate dry-deposition
       !=================================================================
 
-      CALL SOA_DEPO( STT(:,:,:,IDTMTPA ), DRYMTPA,  IDTMTPA  )
-      CALL SOA_DEPO( STT(:,:,:,IDTLIMO ), DRYLIMO,  IDTLIMO  )
-      CALL SOA_DEPO( STT(:,:,:,IDTMTPO ), DRYMTPO,  IDTMTPO  )
-      CALL SOA_DEPO( STT(:,:,:,IDTTSOA1), DRYTSOA1, IDTTSOA1 )
-      CALL SOA_DEPO( STT(:,:,:,IDTTSOA2), DRYTSOA2, IDTTSOA2 )
-      CALL SOA_DEPO( STT(:,:,:,IDTTSOA3), DRYTSOA3, IDTTSOA3 )
-      CALL SOA_DEPO( STT(:,:,:,IDTTSOA0), DRYTSOA0, IDTTSOA0 )
-      CALL SOA_DEPO( STT(:,:,:,IDTTSOG1), DRYTSOG1, IDTTSOG1 )
-      CALL SOA_DEPO( STT(:,:,:,IDTTSOG2), DRYTSOG2, IDTTSOG2 )
-      CALL SOA_DEPO( STT(:,:,:,IDTTSOG3), DRYTSOG3, IDTTSOG3 )
-      CALL SOA_DEPO( STT(:,:,:,IDTTSOG0), DRYTSOG0, IDTTSOG0 )
-      CALL SOA_DEPO( STT(:,:,:,IDTISOA1), DRYISOA1, IDTISOA1 )
-      CALL SOA_DEPO( STT(:,:,:,IDTISOA2), DRYISOA2, IDTISOA2 )
-      CALL SOA_DEPO( STT(:,:,:,IDTISOA3), DRYISOA3, IDTISOA3 )
-      CALL SOA_DEPO( STT(:,:,:,IDTISOG1), DRYISOG1, IDTISOG1 )
-      CALL SOA_DEPO( STT(:,:,:,IDTISOG2), DRYISOG2, IDTISOG2 )
-      CALL SOA_DEPO( STT(:,:,:,IDTISOG3), DRYISOG3, IDTISOG3 )
-      CALL SOA_DEPO( STT(:,:,:,IDTASOAN), DRYASOAN, IDTASOAN )
-      CALL SOA_DEPO( STT(:,:,:,IDTASOA1), DRYASOA1, IDTASOA1 )
-      CALL SOA_DEPO( STT(:,:,:,IDTASOA2), DRYASOA2, IDTASOA2 )
-      CALL SOA_DEPO( STT(:,:,:,IDTASOA3), DRYASOA3, IDTASOA3 )
-      CALL SOA_DEPO( STT(:,:,:,IDTASOG1), DRYASOG1, IDTASOG1 )
-      CALL SOA_DEPO( STT(:,:,:,IDTASOG2), DRYASOG2, IDTASOG2 )
-      CALL SOA_DEPO( STT(:,:,:,IDTASOG3), DRYASOG3, IDTASOG3 )
+      CALL SOA_DEPO(STT(:,:,:,IDTMTPA ), DRYMTPA,  IDTMTPA,  Input_Opt)
+      CALL SOA_DEPO(STT(:,:,:,IDTLIMO ), DRYLIMO,  IDTLIMO,  Input_Opt)
+      CALL SOA_DEPO(STT(:,:,:,IDTMTPO ), DRYMTPO,  IDTMTPO , Input_Opt)
+      CALL SOA_DEPO(STT(:,:,:,IDTTSOA1), DRYTSOA1, IDTTSOA1, Input_Opt)
+      CALL SOA_DEPO(STT(:,:,:,IDTTSOA2), DRYTSOA2, IDTTSOA2, Input_Opt)
+      CALL SOA_DEPO(STT(:,:,:,IDTTSOA3), DRYTSOA3, IDTTSOA3, Input_Opt)
+      CALL SOA_DEPO(STT(:,:,:,IDTTSOA0), DRYTSOA0, IDTTSOA0, Input_Opt)
+      CALL SOA_DEPO(STT(:,:,:,IDTTSOG1), DRYTSOG1, IDTTSOG1, Input_Opt)
+      CALL SOA_DEPO(STT(:,:,:,IDTTSOG2), DRYTSOG2, IDTTSOG2, Input_Opt)
+      CALL SOA_DEPO(STT(:,:,:,IDTTSOG3), DRYTSOG3, IDTTSOG3, Input_Opt)
+      CALL SOA_DEPO(STT(:,:,:,IDTTSOG0), DRYTSOG0, IDTTSOG0, Input_Opt)
+      CALL SOA_DEPO(STT(:,:,:,IDTISOA1), DRYISOA1, IDTISOA1, Input_Opt)
+      CALL SOA_DEPO(STT(:,:,:,IDTISOA2), DRYISOA2, IDTISOA2, Input_Opt)
+      CALL SOA_DEPO(STT(:,:,:,IDTISOA3), DRYISOA3, IDTISOA3, Input_Opt)
+      CALL SOA_DEPO(STT(:,:,:,IDTISOG1), DRYISOG1, IDTISOG1, Input_Opt)
+      CALL SOA_DEPO(STT(:,:,:,IDTISOG2), DRYISOG2, IDTISOG2, Input_Opt)
+      CALL SOA_DEPO(STT(:,:,:,IDTISOG3), DRYISOG3, IDTISOG3, Input_Opt)
+      CALL SOA_DEPO(STT(:,:,:,IDTASOAN), DRYASOAN, IDTASOAN, Input_Opt)
+      CALL SOA_DEPO(STT(:,:,:,IDTASOA1), DRYASOA1, IDTASOA1, Input_Opt)
+      CALL SOA_DEPO(STT(:,:,:,IDTASOA2), DRYASOA2, IDTASOA2, Input_Opt)
+      CALL SOA_DEPO(STT(:,:,:,IDTASOA3), DRYASOA3, IDTASOA3, Input_Opt)
+      CALL SOA_DEPO(STT(:,:,:,IDTASOG1), DRYASOG1, IDTASOG1, Input_Opt)
+      CALL SOA_DEPO(STT(:,:,:,IDTASOG2), DRYASOG2, IDTASOG2, Input_Opt)
+      CALL SOA_DEPO(STT(:,:,:,IDTASOG3), DRYASOG3, IDTASOG3, Input_Opt)
 
       IF ( IDTPOA1 > 0 ) THEN
-         CALL SOA_DEPO( STT(:,:,:,IDTPOA1 ), DRYPOA1,  IDTPOA1  )
-         CALL SOA_DEPO( STT(:,:,:,IDTPOA2 ), DRYPOA2,  IDTPOA2  )
-         CALL SOA_DEPO( STT(:,:,:,IDTPOG1 ), DRYPOG1,  IDTPOG1  )
-         CALL SOA_DEPO( STT(:,:,:,IDTPOG2 ), DRYPOG2,  IDTPOG2  )
+       CALL SOA_DEPO(STT(:,:,:,IDTPOA1 ), DRYPOA1,  IDTPOA1, Input_Opt)
+       CALL SOA_DEPO(STT(:,:,:,IDTPOA2 ), DRYPOA2,  IDTPOA2, Input_Opt)
+       CALL SOA_DEPO(STT(:,:,:,IDTPOG1 ), DRYPOG1,  IDTPOG1, Input_Opt)
+       CALL SOA_DEPO(STT(:,:,:,IDTPOG2 ), DRYPOG2,  IDTPOG2, Input_Opt)
       ENDIF
 
       IF ( IDTOPOA1 > 0 ) THEN
-         CALL SOA_DEPO( STT(:,:,:,IDTOPOA1), DRYOPOA1, IDTOPOA1 )
-         CALL SOA_DEPO( STT(:,:,:,IDTOPOA2), DRYOPOA2, IDTOPOA2 )
-         CALL SOA_DEPO( STT(:,:,:,IDTOPOG1), DRYOPOG1, IDTOPOG1 )
-         CALL SOA_DEPO( STT(:,:,:,IDTOPOG2), DRYOPOG2, IDTOPOG2 )
+       CALL SOA_DEPO(STT(:,:,:,IDTOPOA1), DRYOPOA1, IDTOPOA1, Input_Opt)
+       CALL SOA_DEPO(STT(:,:,:,IDTOPOA2), DRYOPOA2, IDTOPOA2, Input_Opt)
+       CALL SOA_DEPO(STT(:,:,:,IDTOPOG1), DRYOPOG1, IDTOPOG1, Input_Opt)
+       CALL SOA_DEPO(STT(:,:,:,IDTOPOG2), DRYOPOG2, IDTOPOG2, Input_Opt)
       ENDIF
+
+      ! Free pointer
+      NULLIFY( STT )
 
       ! Return to calling program
       END SUBROUTINE SOA_SVPOA_CHEMISTRY
@@ -10144,9 +10195,6 @@ ccc
 !                              for SOA + semivolatile POA (H. Pye)
 !******************************************************************************
 !
-      ! References to F90 modules
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
-
       ! Arguments
       INTEGER, INTENT(IN)  :: II, JJ, LL
       REAL*8,  INTENT(IN)  :: TEMP
@@ -10279,7 +10327,7 @@ ccc
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE SOA_SVPOA_PARA_INIT( )
+      SUBROUTINE SOA_SVPOA_PARA_INIT( Input_Opt )
 !
 !******************************************************************************
 !
@@ -10316,15 +10364,24 @@ ccc
 !******************************************************************************
 !     
       ! References to F90 modules
-      USE LOGICAL_MOD,    ONLY : LPRT
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 
       ! Local variables
       INTEGER :: ai,bj,cl   ! for debug
       INTEGER :: NOX
+      LOGICAL :: LPRT
+      LOGICAL :: LSVPOA
 
       !=================================================================
       ! SOA_SVPOA_PARA_INIT begins here!
       !=================================================================
+
+      LPRT    = Input_Opt%LPRT
+      LSVPOA  = Input_Opt%LSVPOA
 
       !=================================================================
       ! REACTION RATE CONSTANTS 
@@ -10630,7 +10687,7 @@ ccc
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE SOA_SVPOA_PARTITION( I, J, L, GM0, AM0 )
+      SUBROUTINE SOA_SVPOA_PARTITION( I, J, L, GM0, AM0, State_Chm )
 !
 !******************************************************************************
 !
@@ -10658,10 +10715,11 @@ ccc
 !  NOTES:
 !  20 Jul 2011 - M. Payer    - Initial code based on SOA_PARTITION and
 !                              modifications for SOA + semivol POA (H. Pye)
+!  07 Aug 2013 - M. Sulprizio- Now pass STT array using State_Chm
 !******************************************************************************
 !
       ! Refrences to F90 modules
-      USE TRACER_MOD,   ONLY : STT
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TRACERID_MOD, ONLY : IDTTSOG1, IDTTSOG2, IDTTSOG3
       USE TRACERID_MOD, ONLY : IDTTSOA1, IDTTSOA2, IDTTSOA3
       USE TRACERID_MOD, ONLY : IDTTSOA0, IDTTSOG0
@@ -10679,13 +10737,20 @@ ccc
       ! Arguments
       INTEGER, INTENT(IN)  :: I, J, L
       REAL*8,  INTENT(OUT) :: GM0(MPROD,MSV), AM0(MPROD,MSV)
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 
       ! Local variables
       INTEGER              :: JHC, IPR, NOX, JSV
 
+      ! Pointers
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! SOA_SVPOA_PARTITION begins here!
       !=================================================================
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      STT => State_Chm%Tracers
 
       ! Initialize to zero
       GM0 = 0d0
@@ -10764,12 +10829,15 @@ ccc
          AM0(2,JSV) = STT(I,J,L,IDTOPOA2)
       ENDIF
 
+      ! Free pointer
+      NULLIFY( STT )
+
       ! Return to calling program
       END SUBROUTINE SOA_SVPOA_PARTITION
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE SOA_SVPOA_LUMP( I, J, L, GM0, AM0 )
+      SUBROUTINE SOA_SVPOA_LUMP( I, J, L, GM0, AM0, State_Chm )
 !
 !******************************************************************************
 !
@@ -10791,11 +10859,12 @@ ccc
 !  NOTES:
 !  20 Jul 2011 - M. Payer    - Initial code based on SOA_LUMP and modifications
 !                              for SOA + semivolatile POA (H. Pye)
+!  07 Aug 2013 - M. Sulprizio- Now pass STT array using State_Chm
 !******************************************************************************
 !
       ! References to F90 modules
       USE DIAG_MOD,     ONLY : AD07_HC 
-      USE TRACER_MOD,   ONLY : STT
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TRACERID_MOD, ONLY : IDTTSOA1, IDTTSOA2, IDTTSOA3
       USE TRACERID_MOD, ONLY : IDTTSOG1, IDTTSOG2, IDTTSOG3
       USE TRACERID_MOD, ONLY : IDTTSOA0, IDTTSOG0
@@ -10814,6 +10883,7 @@ ccc
       ! Arguments
       INTEGER, INTENT(IN)  :: I, J, L
       REAL*8,  INTENT(IN)  :: GM0(MPROD,MSV), AM0(MPROD,MSV)
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 
       ! Local variables
       INTEGER              :: JHC, IPR, NOX, JSV
@@ -10821,9 +10891,15 @@ ccc
       INTEGER              :: IDTSPECIES
       REAL*8               :: AERCHANGE 
 
+      ! Pointers
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! SOA_SVPOA_LUMP begins here!
       !=================================================================
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      STT => State_Chm%Tracers
 
       !=================================================================
       ! SEMIVOLATILE GROUP 1: Monoterpenes and Sesquiterpenes
@@ -11207,13 +11283,18 @@ ccc
 
       ENDIF ! OPOA
 
+      ! Free pointer
+      NULLIFY( STT )
+
       ! Return to calling program
       END SUBROUTINE SOA_SVPOA_LUMP
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE CHEM_NVOC_SVPOA( I, J, L, KO3, KOH, KNO3, GM0, 
-     &                                     KNO, KHO2 )
+      SUBROUTINE CHEM_NVOC_SVPOA( I,         J,         L,
+     &                            KO3,       KOH,       KNO3,
+     &                            GM0,       KNO,       KHO2,
+     &                            Input_Opt, State_Met, State_Chm )
 
 !
 !******************************************************************************
@@ -11244,12 +11325,15 @@ ccc
 !  NOTES:
 !  20 Jul 2011 - M. Payer    - Initial code based on CHEM_NVOC and 
 !                              modifications for SOA + semivol POA (H. Pye)
+!   7 Aug 2013 - M. Sulprizio- Now pass Input_Opt, State_Met, and State_Chm
+!                              as arguments
 !******************************************************************************
 !
       ! References to F90 modules
       USE DIAG_MOD,      ONLY : AD07_HC
-      USE LOGICAL_MOD,   ONLY : LPRT
-      USE TRACER_MOD,    ONLY : STT
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TRACERID_MOD,  ONLY : IDTMTPA, IDTLIMO, IDTMTPO
       USE TRACERID_MOD,  ONLY : IDTPOA1
       USE TRACERID_MOD,  ONLY : IDTNAP
@@ -11263,6 +11347,9 @@ ccc
       REAL*8,  INTENT(IN)    :: KO3(MHC), KOH(MHC), KNO3(MHC)
       REAL*8,  INTENT(INOUT) :: GM0(MPROD,MSV)
       REAL*8,  INTENT(IN)    :: KNO, KHO2
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 
       ! Local variables
       INTEGER                :: JHC, IPR, NOX, JSV
@@ -11279,17 +11366,23 @@ ccc
       !REAL*8 :: BETANRO2
       REAL*8 :: TEMPHC
 
+      ! Pointers
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! CHEM_NVOC_SVPOA begins here!
       !=================================================================
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      STT => State_Chm%Tracers
 
       ! Chemistry timestep [s]
       DTCHEM  = GET_TS_CHEM() * 60d0 
 
       ! Get offline OH, NO3, O3 concentrations [molec/cm3]
-      OHMC    = GET_OH(  I, J, L ) 
-      TTNO3   = GET_NO3( I, J, L )
-      TTO3    = GET_O3(  I, J, L ) 
+      OHMC    = GET_OH(  I, J, L, Input_Opt, State_Met ) 
+      TTNO3   = GET_NO3( I, J, L, Input_Opt, State_Met )
+      TTO3    = GET_O3(  I, J, L, Input_Opt, State_Met ) 
 
       ! Get RO2+NO, RO2+HO2 branching ratio
       NOTEMP  = GET_NO(  I, J, L )
@@ -11411,7 +11504,7 @@ ccc
             !===========================================================
 
             ! Get ISOP lost to rxn with OH [kgC]
-            DELHC(1) = GET_DOH( I, J, L )
+            DELHC(1) = GET_DOH( I, J, L, Input_Opt )
 
             ! Get ISOP lost to rxn with NO3 [kgC]
             DELHC(2) = GET_ISOPNO3( I, J, L )
@@ -11446,11 +11539,12 @@ ccc
             ! 1 for high NOx, 2 for low NOx. Here, we add the two pathways
             ! together and use an offline branching ratio BETANO (hotp)
             NOX = NHIGHNOX ! NOX=1
-            DELHC(NOX) = ( GET_DARO2(I,J,L,1,JHC) +
-     &                     GET_DARO2(I,J,L,2,JHC)   ) * BETANO
+            DELHC(NOX) = ( GET_DARO2(I,J,L,1,JHC,Input_Opt) +
+     &                     GET_DARO2(I,J,L,2,JHC,Input_Opt) ) * BETANO
             NOX = NLOWNOX  ! NOX=2
-            DELHC(NOX) = ( GET_DARO2(I,J,L,1,JHC) +
-     &                     GET_DARO2(I,J,L,2,JHC)   ) * (1d0-BETANO)
+            DELHC(NOX) = ( GET_DARO2(I,J,L,1,JHC,Input_Opt) +
+     &                     GET_DARO2(I,J,L,2,JHC,Input_Opt) ) * 
+     &                   ( 1d0-BETANO )
 
             ! Determine SOG yield and add to GM0
             DO NOX = 1, NNOX(JSV)
@@ -11500,7 +11594,7 @@ ccc
 
             ! Here we oxidize gas phase POA (POG) to OPOG by reaction with OH
             ! use constant KOH = 2e-11 for now (hotp 3/18/09)
-            OHMC        = GET_OH(  I, J, L ) 
+            OHMC        = GET_OH(  I, J, L, Input_Opt, State_Met ) 
             RK          = 2.d-11 * OHMC
 
             ! Get IDSV
@@ -11581,12 +11675,15 @@ ccc
       ! Nothing to do for isoprene or aromatics here, 
       ! as their oxidation is treated online. 
 
+      ! Free pointer
+      NULLIFY( STT )
+
       ! Return to calling program
       END SUBROUTINE CHEM_NVOC_SVPOA
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE BIOGENIC_OC_SVPOA
+      SUBROUTINE BIOGENIC_OC_SVPOA( Input_Opt, State_Met )
 !
 !******************************************************************************
 !
@@ -11613,21 +11710,25 @@ ccc
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D,  GET_RES_EXT
       USE BPCH2_MOD,     ONLY : GET_TAU0,         READ_BPCH2
-      USE DAO_MOD,       ONLY : SUNCOS
       USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE LOGICAL_MOD,   ONLY : LMEGANMONO,       LSOA
       USE MEGAN_MOD,     ONLY : GET_EMMONOT_MEGAN
       USE MEGAN_MOD,     ONLY : GET_EMTERP_MEGAN  ! Speciated MEGAN terp emiss
       USE TIME_MOD,      ONLY : GET_MONTH,        GET_TS_CHEM
       USE TIME_MOD,      ONLY : GET_TS_EMIS,      ITS_A_NEW_MONTH
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-      ! For monoterpenes (mpb,2009)
-      USE DAO_MOD,       ONLY : PARDF, PARDR
       USE MEGANUT_MOD,   ONLY : XLTMMP
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
 
       USE CMN_SIZE_MOD        ! Size parameters
-
-      ! Local variables
+!
+! !INOUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE          :: FIRST = .TRUE.
       INTEGER                :: I, J, IJLOOP, THISMONTH
       REAL*4                 :: ARRAY(IGLOB,JGLOB,1)
@@ -11648,9 +11749,17 @@ ccc
       ! Cosine SZA & PAR (for calculation of monoterpenes) (mpb,2009)
       REAL*8                 :: SC, PDF, PDR
 
+      ! For fields from Input_Opt
+      LOGICAL         :: LMEGANMONO
+      LOGICAL         :: LSOA
+
       !=================================================================
       ! BIOGENIC_OC_SVPOA begins here!
       !=================================================================
+
+      ! Copy values from Input_Opt
+      LMEGANMONO = Input_Opt%LMEGANMONO
+      LSOA       = Input_Opt%LSOA
 
       !=================================================================
       ! If secondary organic aerosols are turned off ...
@@ -11668,15 +11777,15 @@ ccc
             IJLOOP         = ( (J-1) * IIPAR ) + I
 
              ! Surface temperature [K]
-            TMMP           = XLTMMP(I,J,IJLOOP)
+            TMMP           = XLTMMP( I, J, State_Met%TS, IJLOOP )
 
             ! +++++++++++++++++++++++++++++++++++++++++
             ! ** MEGAN v2.1 **
             ! Cosine of solar zenith angle   (mpb,2009) 
             ! Diffuse and direct PAR         (mpb,2009)
-            SC   = SUNCOS(IJLOOP)   
-            PDR  = PARDR(I,J)
-            PDF  = PARDF(I,J)
+            SC   = State_Met%SUNCOSmid(I,J)
+            PDR  = State_Met%PARDR(I,J)
+            PDF  = State_Met%PARDF(I,J)
             ! +++++++++++++++++++++++++++++++++++++++++
 
             ! Get monoterpenes from MEGAN [kg C/box]
@@ -11745,7 +11854,7 @@ ccc
             IJLOOP         = ( (J-1) * IIPAR ) + I
 
             ! Surface temperature [K]
-            TMMP           = XLTMMP(I,J,IJLOOP)
+            TMMP           = XLTMMP( I, J, State_Met%TS, IJLOOP )
 
             ! Monoterpene emission [kg C/box/timestep]
 
@@ -11753,9 +11862,9 @@ ccc
             ! ** MEGAN v2.1 **
             ! Cosine of solar zenith angle   (mpb,2009) 
             ! Diffuse and direct PAR         (mpb,2009)
-            SC   = SUNCOS(IJLOOP)   
-            PDR  = PARDR(I,J)
-            PDF  = PARDF(I,J)
+            SC   = State_Met%SUNCOSmid(I,J)
+            PDR  = State_Met%PARDR(I,J)
+            PDF  = State_Met%PARDF(I,J)
             ! +++++++++++++++++++++++++++++++++++++++++
 
             ! Get monoterpenes from MEGAN [kg C/box]
@@ -11767,10 +11876,11 @@ ccc
             !---------------------------------------------------
             ! Impose a diurnal variation on NVOC during the day
             !---------------------------------------------------
-            IF ( SUNCOS(IJLOOP) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
+            IF ( State_Met%SUNCOSmid(I,J) > 0d0  .and.
+     &           TCOSZ(I,J)               > 0d0 ) THEN
                DIUR_ORVC(I,J) = GEIA_ORVC(I,J)*
-     &                          ( SUNCOS(IJLOOP) / TCOSZ(I,J) ) *
-     &                          ( 1440d0        / GET_TS_CHEM() )
+     &              ( State_Met%SUNCOSmid(I,J) / TCOSZ(I,J) ) *
+     &              ( 1440d0                   / GET_TS_CHEM() )
 
                ! Make sure ORVC is not negative
                DIUR_ORVC(I,J) = MAX( DIUR_ORVC(I,J), 0d0 )
@@ -11956,7 +12066,8 @@ ccc
 !------------------------------------------------------------------------------
 
       SUBROUTINE CHECK_EQLB( I,   J,   L, KOMIJL, CONVFAC, MSOACHEM, 
-     &                       LOW, TOL, ASOANGAS, ASOANAER, OCPIOCPO )
+     &                       LOW, TOL, ASOANGAS, ASOANAER, OCPIOCPO,
+     &                       State_Chm )
 
 !******************************************************************************
 !
@@ -11996,7 +12107,7 @@ ccc
 !******************************************************************************
 
       ! References to modules
-      USE TRACER_MOD,   ONLY : STT
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TRACERID_MOD, ONLY : IDTASOAN
       USE TRACERID_MOD, ONLY : IDTASOA1, IDTASOA2, IDTASOA3
       USE TRACERID_MOD, ONLY : IDTASOG1, IDTASOG2, IDTASOG3
@@ -12021,7 +12132,8 @@ ccc
       REAL*8,  INTENT(IN) :: TOL      ! tolerance on soln
       REAL*8,  INTENT(IN) :: ASOANGAS ! gas phase ASOAN (should =0)
       REAL*8,  INTENT(IN) :: ASOANAER ! aer phase ASOAN
- 
+      TYPE(ChmState), INTENT(IN) :: State_Chm ! Chemistry State object
+
       ! Local variables
       INTEGER             :: NOX, IPR, JHC, JSV
       REAL*8              :: MOTEMP, OATEMP, EQLBDIFF
@@ -12034,9 +12146,15 @@ ccc
       ! hotp 6/11/10
       REAL*8, PARAMETER   :: ACCEPTERRORUG = 1d-8 ! error in ug/m3
 
+      ! Pointers
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! CHECK_EQLB starts here
       !=================================================================
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      STT => State_Chm%Tracers
 
       ! Calculate mass of absorbing organic medium 
       MOTEMP = STT(I,J,L,IDTASOAN) +
@@ -12304,12 +12422,15 @@ ccc
 
       ENDIF ! OPOA
 
+      ! Free pointer
+      NULLIFY( STT )
+
       ! Return to calling program
       END SUBROUTINE CHECK_EQLB
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE SAVE_OAGINIT
+      SUBROUTINE SAVE_OAGINIT( State_Chm )
 
 !******************************************************************************
 !
@@ -12329,7 +12450,7 @@ ccc
 !******************************************************************************
 
       ! References to modules
-      USE TRACER_MOD,   ONLY : STT
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TRACERID_MOD, ONLY : IDTASOAN
       USE TRACERID_MOD, ONLY : IDTASOA1, IDTASOA2, IDTASOA3
       USE TRACERID_MOD, ONLY : IDTASOG1, IDTASOG2, IDTASOG3
@@ -12345,12 +12466,23 @@ ccc
 
       USE CMN_SIZE_MOD       ! Size parameters
 
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
+
       ! Local variables
       INTEGER :: I, J, L, NOX, JHC, JSV
+
+      ! Pointers
+      REAL*8, POINTER :: STT(:,:,:,:)
 
       !=================================================================
       ! SAVE_OAGINIT starts here
       !=================================================================
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      STT => State_Chm%Tracers
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -12429,12 +12561,15 @@ ccc
       ENDDO
 !$OMP END PARALLEL DO
 
+      ! Free pointer
+      NULLIFY( STT )
+
       ! Return to calling program
       END SUBROUTINE SAVE_OAGINIT
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE CHECK_MB
+      SUBROUTINE CHECK_MB( am_I_Root, Input_Opt, State_Met, State_Chm )
 
 !******************************************************************************
 !
@@ -12456,7 +12591,9 @@ ccc
 !******************************************************************************
 
       ! References to modules
-      USE TRACER_MOD,     ONLY : STT
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE TRACERID_MOD,   ONLY : IDTASOAN
       USE TRACERID_MOD,   ONLY : IDTASOA1, IDTASOA2, IDTASOA3
       USE TRACERID_MOD,   ONLY : IDTASOG1, IDTASOG2, IDTASOG3
@@ -12471,11 +12608,18 @@ ccc
       USE TRACERID_MOD,   ONLY : IDTISOG1, IDTISOG2, IDTISOG3
       ! for debug:
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
-      USE LOGICAL_MOD,    ONLY : LPRT
 
       USE CMN_SIZE_MOD         ! Size parameters
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+      TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry State object
 
       ! Local variables
+      LOGICAL :: prtDebug
       INTEGER :: I, J, L, NOX, JHC, JSV, IPR
       REAL*8  :: TEMPDELTA(MNOX,MPROD)
       REAL*8  :: TEMPSOAG
@@ -12487,9 +12631,25 @@ ccc
       ! more strict (hotp 5/26/10): 1d-12 %
       REAL*8, PARAMETER  :: ACCEPTERROR = 1d-14 
 
+      ! For fields from Input_Opt
+      LOGICAL         :: LPRT
+
+      ! Pointers
+      REAL*8, POINTER :: STT(:,:,:,:)
+
       !=================================================================
       ! CHECK_MB starts here
       !=================================================================
+
+      ! Copy logical fields from INPUT_OPT to local variables
+      LPRT = Input_Opt%LPRT
+
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      STT => State_Chm%Tracers
+
+      ! Do we have to print debug output?
+      prtDebug = ( LPRT .and. am_I_Root )
 
       ! run in serial now (hotp 6/5/10)
       ! Make parallel again (mpayer, 9/14/11)
@@ -12526,7 +12686,7 @@ ccc
          MBDIFF   = ABS( TEMPSOAG - ( STT(I,J,L,IDTTSOA1) +
      &                                STT(I,J,L,IDTTSOG1)   ))
          MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
-         IF ( MBDIFF > ACCEPTERROR ) THEN
+         IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
             WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV,
      &                 'in box ', I, J, L
             print*,'CK_MB ',NOX,IPR,JSV,
@@ -12540,7 +12700,7 @@ ccc
          MBDIFF   = ABS( TEMPSOAG - ( STT(I,J,L,IDTTSOA2) +
      &                                STT(I,J,L,IDTTSOG2)   ))
          MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
-         IF ( MBDIFF > ACCEPTERROR ) THEN
+         IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
             WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV,
      &                 'in box ', I, J, L
             print*,'CK_MB ',NOX,IPR,JSV,
@@ -12554,7 +12714,7 @@ ccc
          MBDIFF   = ABS( TEMPSOAG - ( STT(I,J,L,IDTTSOA3) +
      &                                STT(I,J,L,IDTTSOG3)   ))
          MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
-         IF ( MBDIFF > ACCEPTERROR ) THEN
+         IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
             WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV,
      &                 'in box ', I, J, L
             print*,'CK_MB ',NOX,IPR,JSV,
@@ -12568,7 +12728,7 @@ ccc
          MBDIFF   = ABS( TEMPSOAG - ( STT(I,J,L,IDTTSOA0) +
      &                                STT(I,J,L,IDTTSOG0)   ))
          MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
-         IF ( MBDIFF > ACCEPTERROR ) THEN
+         IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
             WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV,
      &                 'in box ', I, J, L
             print*,'CK_MB ',NOX,IPR,JSV,
@@ -12595,7 +12755,7 @@ ccc
          MBDIFF   = ABS( TEMPSOAG - ( STT(I,J,L,IDTISOA1) +
      &                                STT(I,J,L,IDTISOG1)   ))
          MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
-         IF ( MBDIFF > ACCEPTERROR ) THEN
+         IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
             WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV,
      &                 'in box ', I, J, L
             print*,'CK_MB ',NOX,IPR,JSV,
@@ -12606,7 +12766,7 @@ ccc
             print*,'DELSOGSAVE NOx=3',DELTASOGSAVE(I,J,L,3,5)
             print*,'STT',STT(I,J,L,IDTISOA1),STT(I,J,L,IDTISOG1)
             print*,'NNOX',NNOX(JSV)
-            print*,'strat?',ITS_IN_THE_STRAT(I,J,L)
+            print*,'strat?',ITS_IN_THE_STRAT(I,J,L,State_Met)
          ENDIF
 
          ! Product 2, C* = 10 ug/m3
@@ -12615,7 +12775,7 @@ ccc
          MBDIFF   = ABS( TEMPSOAG - ( STT(I,J,L,IDTISOA2) +
      &                                STT(I,J,L,IDTISOG2)   ))
          MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
-         IF ( MBDIFF > ACCEPTERROR ) THEN
+         IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
             WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV,
      &                 'in box ', I, J, L
             print*,'CK_MB ',NOX,IPR,JSV,
@@ -12626,7 +12786,7 @@ ccc
             print*,'DELSOGSAVE NOx=3',DELTASOGSAVE(I,J,L,3,5)
             print*,'STT',STT(I,J,L,IDTISOA2),STT(I,J,L,IDTISOG2)
             print*,'NNOX',NNOX(JSV)
-            print*,'strat?',ITS_IN_THE_STRAT(I,J,L)
+            print*,'strat?',ITS_IN_THE_STRAT(I,J,L,State_Met)
          ENDIF
 
          ! Product 3, C* = 100 ug/m3
@@ -12635,7 +12795,7 @@ ccc
          MBDIFF   = ABS( TEMPSOAG - ( STT(I,J,L,IDTISOA3) +
      &                                STT(I,J,L,IDTISOG3)   ))
          MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
-         IF ( MBDIFF > ACCEPTERROR ) THEN
+         IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
             WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV,
      &                 'in box ', I, J, L
             print*,'CK_MB ',NOX,IPR,JSV,
@@ -12646,7 +12806,7 @@ ccc
             print*,'DELSOGSAVE NOx=3',DELTASOGSAVE(I,J,L,3,5)
             print*,'STT',STT(I,J,L,IDTISOA3),STT(I,J,L,IDTISOG3)
             print*,'NNOX',NNOX(JSV)
-            print*,'strat?',ITS_IN_THE_STRAT(I,J,L)
+            print*,'strat?',ITS_IN_THE_STRAT(I,J,L,State_Met)
          ENDIF
 
          !----------------------------------------------------
@@ -12671,7 +12831,7 @@ ccc
          TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
          MBDIFF   = ABS( TEMPSOAG - STT(I,J,L,IDTASOAN) )
          MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
-         IF ( MBDIFF > ACCEPTERROR ) THEN
+         IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
             WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV,
      &                 'in box ', I, J, L
             print*,'CK_MB ',NOX,IPR,JSV,
@@ -12681,7 +12841,7 @@ ccc
 !            print*,'DELSOGSAVE NOx=2',DELTASOGSAVE(I,J,L,2,11)
 !            print*,'STT',STT(I,J,L,IDTASOAN)
 !            print*,'NNOX',NNOX(JSV)
-!            print*,'strat?',ITS_IN_THE_STRAT(I,J,L)
+!            print*,'strat?',ITS_IN_THE_STRAT(I,J,L,State_Met)
          ENDIF
 
          ! Debug print to screen
@@ -12689,7 +12849,7 @@ ccc
 !            IF ( I == 37 .AND. J == 25 .AND. L == 4 ) THEN
 !               print*,'CK_MB ',NOX,IPR,JSV,
 !     &                TEMPSOAG,MBDIFF,OAGINITSAVE(I,J,L,NOX,IPR,JSV)
-!               print*,'strat?',ITS_IN_THE_STRAT(I,J,L)
+!               print*,'strat?',ITS_IN_THE_STRAT(I,J,L,State_Met)
 !            ENDIF
 !         ENDIF
 
@@ -12700,7 +12860,7 @@ ccc
          MBDIFF   = ABS( TEMPSOAG - ( STT(I,J,L,IDTASOA1) +
      &                                STT(I,J,L,IDTASOG1)   ))
          MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
-         IF ( MBDIFF > ACCEPTERROR ) THEN
+         IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
             WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV,
      &                 'in box ', I, J, L
             print*,'CK_MB ',NOX,IPR,JSV,
@@ -12715,7 +12875,7 @@ ccc
          MBDIFF   = ABS( TEMPSOAG - ( STT(I,J,L,IDTASOA2) +
      &                                STT(I,J,L,IDTASOG2)   ))
          MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
-         IF ( MBDIFF > ACCEPTERROR ) THEN
+         IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
             WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV,
      &                 'in box ', I, J, L
             print*,'CK_MB ',NOX,IPR,JSV,
@@ -12730,7 +12890,7 @@ ccc
          MBDIFF   = ABS( TEMPSOAG - ( STT(I,J,L,IDTASOA3) +
      &                                STT(I,J,L,IDTASOG3)   ))
          MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
-         IF ( MBDIFF > ACCEPTERROR ) THEN
+         IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
             WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV,
      &                 'in box ', I, J, L
             print*,'CK_MB ',NOX,IPR,JSV,
@@ -12761,7 +12921,7 @@ ccc
             MBDIFF   = ABS( TEMPSOAG - ( STT(I,J,L,IDTPOA1) +
      &                                   STT(I,J,L,IDTPOG1)   ))
             MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
-            IF ( MBDIFF > ACCEPTERROR ) THEN
+            IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
                WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR,
      &                    JSV, 'in box ', I, J, L
                print*,'CK_MB ',NOX,IPR,JSV,
@@ -12775,7 +12935,7 @@ ccc
             MBDIFF   = ABS( TEMPSOAG - ( STT(I,J,L,IDTPOA2) +
      &                                   STT(I,J,L,IDTPOG2)   ))
             MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
-            IF ( MBDIFF > ACCEPTERROR ) THEN
+            IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
                WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR,
      &                    JSV, 'in box ', I, J, L
                print*,'CK_MB ',NOX,IPR,JSV,
@@ -12803,7 +12963,7 @@ ccc
             MBDIFF   = ABS( TEMPSOAG - ( STT(I,J,L,IDTOPOA1) +
      &                                   STT(I,J,L,IDTOPOG1)   ))
             MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
-            IF ( MBDIFF > ACCEPTERROR ) THEN
+            IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
                WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR,
      &                    JSV, 'in box ', I, J, L
                print*,'CK_MB ',NOX,IPR,JSV,
@@ -12817,7 +12977,7 @@ ccc
             MBDIFF   = ABS( TEMPSOAG - ( STT(I,J,L,IDTOPOA2) +
      &                                   STT(I,J,L,IDTOPOG2)   ))
             MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
-            IF ( MBDIFF > ACCEPTERROR ) THEN
+            IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
                WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR,
      &                    JSV, 'in box ', I, J, L
                print*,'CK_MB ',NOX,IPR,JSV,
@@ -12841,104 +13001,109 @@ ccc
       ENDDO
 
       ! Print diagnostic information to screen
-      print*,'Global cumulative amount reacted in gas phase [Tg]'
-      JHC = 1
-      print*,'MTPA High NOx Rxn : ', DELTAHCSAVE(1,JHC)
-      print*,'MTPA Low  NOx Rxn : ', DELTAHCSAVE(2,JHC)
-      print*,'MTPA NO3      Rxn : ', DELTAHCSAVE(3,JHC)
-      JHC = 2
-      print*,'LIMO High NOx Rxn : ', DELTAHCSAVE(1,JHC)
-      print*,'LIMO Low  NOx Rxn : ', DELTAHCSAVE(2,JHC)
-      print*,'LIMO NO3      Rxn : ', DELTAHCSAVE(3,JHC)
-      JHC = 3
-      print*,'MTPO High NOx Rxn : ', DELTAHCSAVE(1,JHC)
-      print*,'MTPO Low  NOx Rxn : ', DELTAHCSAVE(2,JHC)
-      print*,'MTPO NO3      Rxn : ', DELTAHCSAVE(3,JHC)
-      JHC = 4
-      print*,'SESQ High NOx Rxn : ', DELTAHCSAVE(1,JHC)
-      print*,'SESQ Low  NOx Rxn : ', DELTAHCSAVE(2,JHC)
-      print*,'SESQ NO3      Rxn : ', DELTAHCSAVE(3,JHC)
-      JHC = 5
-      print*,'ISOP OH       Rxn : ', DELTAHCSAVE(1,JHC)
-      print*,'ISOP NO3      Rxn : ', DELTAHCSAVE(2,JHC)
-      JHC = 6
-      print*,'BENZ High NOx Rxn : ', DELTAHCSAVE(1,JHC)
-      print*,'BENZ Low  NOx Rxn : ', DELTAHCSAVE(2,JHC)
-      JHC = 7
-      print*,'TOLU High NOx Rxn : ', DELTAHCSAVE(1,JHC)
-      print*,'TOLU Low  NOx Rxn : ', DELTAHCSAVE(2,JHC)
-      JHC = 8
-      print*,'XYLE High NOx Rxn : ', DELTAHCSAVE(1,JHC)
-      print*,'XYLE Low  NOx Rxn : ', DELTAHCSAVE(2,JHC)
-      JHC = 11
-      print*,'NAP  High NOx Rxn : ', DELTAHCSAVE(1,JHC)
-      print*,'NAP  Low  NOx Rxn : ', DELTAHCSAVE(2,JHC)
-      JHC = 10
-      print*,'POG1 OH       Rxn : ', DELTAHCSAVE(1,JHC)
-      print*,'POG2 OH       Rxn : ', DELTAHCSAVE(2,JHC)
+      IF ( prtDebug ) THEN
+         print*,'Global cumulative amount reacted in gas phase [Tg]'
+         JHC = 1
+         print*,'MTPA High NOx Rxn : ', DELTAHCSAVE(1,JHC)
+         print*,'MTPA Low  NOx Rxn : ', DELTAHCSAVE(2,JHC)
+         print*,'MTPA NO3      Rxn : ', DELTAHCSAVE(3,JHC)
+         JHC = 2
+         print*,'LIMO High NOx Rxn : ', DELTAHCSAVE(1,JHC)
+         print*,'LIMO Low  NOx Rxn : ', DELTAHCSAVE(2,JHC)
+         print*,'LIMO NO3      Rxn : ', DELTAHCSAVE(3,JHC)
+         JHC = 3
+         print*,'MTPO High NOx Rxn : ', DELTAHCSAVE(1,JHC)
+         print*,'MTPO Low  NOx Rxn : ', DELTAHCSAVE(2,JHC)
+         print*,'MTPO NO3      Rxn : ', DELTAHCSAVE(3,JHC)
+         JHC = 4
+         print*,'SESQ High NOx Rxn : ', DELTAHCSAVE(1,JHC)
+         print*,'SESQ Low  NOx Rxn : ', DELTAHCSAVE(2,JHC)
+         print*,'SESQ NO3      Rxn : ', DELTAHCSAVE(3,JHC)
+         JHC = 5
+         print*,'ISOP OH       Rxn : ', DELTAHCSAVE(1,JHC)
+         print*,'ISOP NO3      Rxn : ', DELTAHCSAVE(2,JHC)
+         JHC = 6
+         print*,'BENZ High NOx Rxn : ', DELTAHCSAVE(1,JHC)
+         print*,'BENZ Low  NOx Rxn : ', DELTAHCSAVE(2,JHC)
+         JHC = 7
+         print*,'TOLU High NOx Rxn : ', DELTAHCSAVE(1,JHC)
+         print*,'TOLU Low  NOx Rxn : ', DELTAHCSAVE(2,JHC)
+         JHC = 8
+         print*,'XYLE High NOx Rxn : ', DELTAHCSAVE(1,JHC)
+         print*,'XYLE Low  NOx Rxn : ', DELTAHCSAVE(2,JHC)
+         JHC = 11
+         print*,'NAP  High NOx Rxn : ', DELTAHCSAVE(1,JHC)
+         print*,'NAP  Low  NOx Rxn : ', DELTAHCSAVE(2,JHC)
+         JHC = 10
+         print*,'POG1 OH       Rxn : ', DELTAHCSAVE(1,JHC)
+         print*,'POG2 OH       Rxn : ', DELTAHCSAVE(2,JHC)
 
-      ! Check STT for debug purposes (hotp 6/4/10)
-      !IF ( LPRT ) THEN
-      !   print*,STT(37,25,4,:)
-      !ENDIF
+         ! Check STT for debug purposes (hotp 6/4/10)
+         !IF ( LPRT ) THEN
+         !   print*,STT(37,25,4,:)
+         !ENDIF
  
-      ! Print diagnostic info about SOA production
-      print*,'Aerosol production and evaporation (cumulative kg)'
-      JSV = 1
-      IPR = 1
-      print*,'TSOA1 prod and evap: ',
-     & SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
-      IPR = 2
-      print*,'TSOA2 prod and evap: ',
-     & SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
-      IPR = 3
-      print*,'TSOA3 prod and evap: ',
-     & SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
-      IPR = 4
-      print*,'TSOA0 prod and evap: ',
-     & SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
+         ! Print diagnostic info about SOA production
+         print*,'Aerosol production and evaporation (cumulative kg)'
+         JSV = 1
+         IPR = 1
+         print*,'TSOA1 prod and evap: ',
+     &   SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
+         IPR = 2
+         print*,'TSOA2 prod and evap: ',
+     &   SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
+         IPR = 3
+         print*,'TSOA3 prod and evap: ',
+     &   SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
+         IPR = 4
+         print*,'TSOA0 prod and evap: ',
+     &   SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
 
-      JSV = 2
-      IPR = 1
-      print*,'ISOA1 prod and evap: ',
-     & SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
-      IPR = 2
-      print*,'ISOA2 prod and evap: ',
-     & SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
-      IPR = 3
-      print*,'ISOA3 prod and evap: ',
-     & SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
+         JSV = 2
+         IPR = 1
+         print*,'ISOA1 prod and evap: ',
+     &   SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
+         IPR = 2
+         print*,'ISOA2 prod and evap: ',
+     &   SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
+         IPR = 3
+         print*,'ISOA3 prod and evap: ',
+     &   SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
 
-      JSV = 3
-      IPR = 1
-      print*,'ASOA1 prod and evap: ',
-     & SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
-      IPR = 2
-      print*,'ASOA2 prod and evap: ',
-     & SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
-      IPR = 3
-      print*,'ASOA3 prod and evap: ',
-     & SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
-      IPR = 4
-      print*,'ASOAN prod and evap: ',
-     & SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
+         JSV = 3
+         IPR = 1
+         print*,'ASOA1 prod and evap: ',
+     &   SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
+         IPR = 2
+         print*,'ASOA2 prod and evap: ',
+     &   SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
+         IPR = 3
+         print*,'ASOA3 prod and evap: ',
+     &   SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
+         IPR = 4
+         print*,'ASOAN prod and evap: ',
+     &   SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
 
-      JSV = 4
-      IPR = 1
-      print*,'POA1  prod and evap: ',
-     & SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
-      IPR = 2
-      print*,'POA2  prod and evap: ',
-     & SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
+         JSV = 4
+         IPR = 1
+         print*,'POA1  prod and evap: ',
+     &   SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
+         IPR = 2
+         print*,'POA2  prod and evap: ',
+     &   SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
 
-      JSV = 5
-      IPR = 1
-      print*,'OPOA1 prod and evap: ',
-     & SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
-      IPR = 2
-      print*,'OPOA2 prod and evap: ',
-     & SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
+         JSV = 5
+         IPR = 1
+         print*,'OPOA1 prod and evap: ',
+     &   SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
+         IPR = 2
+         print*,'OPOA2 prod and evap: ',
+     &   SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
 
+      ENDIF
+
+      ! Free pointer
+      NULLIFY( STT )
 
       ! Return to calling program
       END SUBROUTINE CHECK_MB
@@ -13311,7 +13476,7 @@ ccc
       
          ! SOAupdate: Check to see if using SOA + semivolatile POA or
          ! traditional SOA simulation (mpayer, 7/21/11)
-         IF ( LSVPOA ) THEN
+         IF ( Input_Opt%LSVPOA ) THEN
 
             !------------------------
             ! SOA + semivolatile POA
@@ -13535,11 +13700,6 @@ ccc
          VCLDF = 0d0
 #endif
 
-         ! diagnostic  (dkh, 11/11/06) 
-         ALLOCATE( GLOB_DARO2( IIPAR, JJPAR, LLPAR,2,3), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'GLOB_DARO2' )
-         GLOB_DARO2 = 0d0
-
       ENDIF ! LSOA
 
       !=================================================================
@@ -13547,7 +13707,7 @@ ccc
       ! (hotp, mpayer, 7/21/11)
       !=================================================================
 
-      IF ( LSVPOA ) THEN
+      IF ( Input_Opt%LSVPOA ) THEN
          ! Monoterpenes + sesquiterpenes
          IDSV(PARENTMTPA) = 1
          IDSV(PARENTLIMO) = 1

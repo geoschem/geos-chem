@@ -49,7 +49,6 @@
       USE EDGAR_MOD,           ONLY : READ_C2H2_05x0666
       ! SOAupdate: For gas phase NAP chemistry (hotp, mpayer, 7/27/11)
       USE TRACERID_MOD,        ONLY : IDENAP
-      USE LOGICAL_MOD,         ONLY : NAPEMISS
 
       USE CMN_SIZE_MOD              ! Size parameters
       USE COMODE_LOOP_MOD           ! IDEMS
@@ -190,6 +189,7 @@
       LOGICAL :: LFUTURE
       INTEGER :: N_TRACERS
       REAL*8  :: TRACER_MW_KG(Input_Opt%N_TRACERS)
+      REAL*8  :: NAPEMISS
 
       !=================================================================
       ! ANTHROEMS begins here!
@@ -199,6 +199,7 @@
       LFUTURE      = Input_Opt%LFUTURE
       N_TRACERS    = Input_Opt%N_TRACERS
       TRACER_MW_KG = Input_Opt%TRACER_MW_KG(1:N_TRACERS)
+      NAPEMISS     = Input_Opt%NAPEMISS
 
       ! Echo info
       WRITE( 6, '(a)' ) REPEAT( '=', 79 ) 

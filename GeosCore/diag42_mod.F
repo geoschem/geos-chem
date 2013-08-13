@@ -84,10 +84,11 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG42( State_Met, State_Chm )
+      SUBROUTINE DIAG42( Input_Opt, State_Met, State_Chm )
 !
 ! !USES:
 !
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
@@ -107,13 +108,13 @@
       USE TRACERID_MOD,       ONLY : IDTTSOA3, IDTTSOA0
       USE TRACERID_MOD,       ONLY : IDTISOA1, IDTISOA2, IDTISOA3
       USE CARBON_MOD,         ONLY : BETANOSAVE
-      USE LOGICAL_MOD,        ONLY : LSVPOA
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! NDxx flags
 !
 ! !INPUT PARAMETERS:
 !
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -136,15 +137,16 @@
 !
       INTEGER           :: I,      J,    L
       REAL*8            :: FACTOR, PRES
-      REAL*8                :: TEMP6, TEMP7 ! (hotp, mpayer, 7/12/11)
+      REAL*8            :: TEMP6, TEMP7 ! (hotp, mpayer, 7/12/11)
 
       ! SOAupdate: Logical SOA tracer flags (mpayer, 7/12/11)
-      LOGICAL               :: IS_SOA1,  IS_SOA2,  IS_SOA3,  IS_SOA4
-      LOGICAL               :: IS_SOA5,  IS_SOA1to5
-      LOGICAL               :: IS_OC,    IS_BC,    IS_SO4,   IS_NH4
-      LOGICAL               :: IS_NIT,   IS_SAL,   IS_SOAG,  IS_SOAM
-      LOGICAL               :: IS_TSOA,  IS_ISOA,  IS_ASOA
-      LOGICAL               :: IS_POA,   IS_OPOA 
+      LOGICAL           :: IS_SOA1,  IS_SOA2,  IS_SOA3,  IS_SOA4
+      LOGICAL           :: IS_SOA5,  IS_SOA1to5
+      LOGICAL           :: IS_OC,    IS_BC,    IS_SO4,   IS_NH4
+      LOGICAL           :: IS_NIT,   IS_SAL,   IS_SOAG,  IS_SOAM
+      LOGICAL           :: IS_TSOA,  IS_ISOA,  IS_ASOA
+      LOGICAL           :: IS_POA,   IS_OPOA 
+      LOGICAL           :: LSVPOA
 !
 ! !DEFINED PARAMETERS:
 !
@@ -160,19 +162,9 @@
       ! DIAG42 begins here! 
       !================================================================= 
 
-!-----------------------------------------------------------------------
-! Prior to 7/12/11:
-! Removed for SOA + semivol POA, now use logical flags (mpayer, 7/12/11)
-!      ! Error check
-!!      IF ( IDTSOA1 == 0 ) RETURN
-!!      IF ( IDTSOA2 == 0 ) RETURN
-!!      IF ( IDTSOA3 == 0 ) RETURN
-!!      IF ( IDTSOA4 == 0 ) RETURN
-!!      IF ( IDTSOA5 == 0 ) RETURN
-!!      IF ( IDTOCPO == 0 ) RETURN
-!!      IF ( IDTOCPI == 0 ) RETURN
-!-----------------------------------------------------------------------
-        
+      ! Copy fields from INPUT_OPT
+      LSVPOA     = Input_Opt%LSVPOA
+
       ! SOAupdate: Define logical flags to decide whether or not to archive
       ! into AD42 array.  This will prevent out-of-bounds errors. 
       ! (mpayer, 7/12/11)
@@ -462,8 +454,8 @@
 
                ! Sum of PRIMARY OC + SOA1 to SOA4 [ug C/sm3] at STP
                PRES           = GET_PCENTER( I, J, L )
-               AD42(I,J,L,10) = AD42(I,J,L,9) * STD_VOL_FAC * T(I,J,L) 
-     &                        / PRES
+               AD42(I,J,L,10) = AD42(I,J,L,9)      * STD_VOL_FAC *
+     &                          State_Met%T(I,J,L) / PRES
 
                ! Sum of all OA in ug/m3
                AD42(I,J,L,11) = AD42(I,J,L,11)     +
@@ -658,24 +650,28 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WRITE_DIAG42
+      SUBROUTINE WRITE_DIAG42( Input_Opt )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,    ONLY : BPCH2
-      USE BPCH2_MOD,    ONLY : GET_MODELNAME
-      USE BPCH2_MOD,    ONLY : GET_HALFPOLAR
-      !USE DIAG_MOD,     ONLY : CTOTH
-      USE FILE_MOD,     ONLY : IU_BPCH
-      USE GRID_MOD,     ONLY : GET_XOFFSET
-      USE GRID_MOD,     ONLY : GET_YOFFSET
-      USE TIME_MOD,     ONLY : GET_CT_DIAG
-      USE TIME_MOD,     ONLY : GET_DIAGb
-      USE TIME_MOD,     ONLY : GET_DIAGe
-      USE LOGICAL_MOD,  ONLY : LSVPOA
+      USE BPCH2_MOD,          ONLY : BPCH2
+      USE BPCH2_MOD,          ONLY : GET_MODELNAME
+      USE BPCH2_MOD,          ONLY : GET_HALFPOLAR
+      !USE DIAG_MOD,          ONLY : CTOTH
+      USE FILE_MOD,           ONLY : IU_BPCH
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GRID_MOD,           ONLY : GET_XOFFSET
+      USE GRID_MOD,           ONLY : GET_YOFFSET
+      USE TIME_MOD,           ONLY : GET_CT_DIAG
+      USE TIME_MOD,           ONLY : GET_DIAGb
+      USE TIME_MOD,           ONLY : GET_DIAGe
 
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DIAG_MOD     ! TINDEX
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! TINDEX
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
 !
 ! !REMARKS:
 !   # : Field    : Description                 : Units    : Scale factor
@@ -714,10 +710,14 @@
       CHARACTER(LEN=40) :: CATEGORY
       CHARACTER(LEN=40) :: RESERVED
       CHARACTER(LEN=40) :: UNIT
+      LOGICAL           :: LSVPOA
 
       !=================================================================
       ! WRITE_DIAG42 begins here!
       !=================================================================
+
+      ! Copy fields from INPUT_OPT
+      LSVPOA    = Input_Opt%LSVPOA
 
       ! Exit if ND03 is turned off
       IF ( ND42 == 0 ) RETURN

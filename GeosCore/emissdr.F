@@ -224,6 +224,7 @@
       LOGICAL                :: LBIOGENIC
       LOGICAL                :: LNLPBL
       LOGICAL                :: LRCPAIR
+      LOGICAL                :: LSVPOA
       LOGICAL                :: ITS_A_TAGCO_SIM
       INTEGER                :: N_TRACERS
 !
@@ -254,6 +255,7 @@
       LBIOGENIC        = Input_Opt%LBIOGENIC
       LNLPBL           = Input_Opt%LNLPBL
       LRCPAIR          = Input_Opt%LRCPAIR
+      LSVPOA           = Input_Opt%LSVPOA
       ITS_A_TAGCO_SIM  = Input_Opt%ITS_A_TAGCO_SIM
       N_TRACERS        = Input_Opt%N_TRACERS
 

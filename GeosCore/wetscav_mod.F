@@ -1892,8 +1892,8 @@
             ! Compute liquid to gas ratio for MTPA, using
             ! Henry's law of 0.049 for all pinene (Sander, 1999)
             ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
-            CALL COMPUTE_L2G( 0.049d0, 0.d0, 
-     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
+            CALL COMPUTE_L2G( 0.049d0, 0.d0, State_Met%T(I,J,L), 
+     &                        CLDLIQ(I,J,L), L2G )
 
             ! Fraction of MTPA in liquid phase
             ! (Eq. 4, 5, 6, Jacob et al, 2000)
@@ -1903,10 +1903,11 @@
             ! Compute the rate constant K.  Assume retention factor  
             ! for liquid MTPA is 0.0 for T <= 248 K and 0.02 for 
             ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
-            IF ( T(I,J,L) >= 268d0 ) THEN
+            IF ( State_Met%T(I,J,L) >= 268d0 ) THEN
                K = KC * F_L  
 
-            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
+            ELSE IF ( State_Met%T(I,J,L) > 248d0 .and.
+     &                State_Met%T(I,J,L) < 268d0 ) THEN
                K = KC * ( 2d-2 * F_L ) 
                   
             ELSE
@@ -1915,7 +1916,8 @@
             ENDIF
                
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+            TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
+     &                      State_Met%BXHEIGHT(I,J,L) ) 
 
             ! F is the fraction of MTPA scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -1946,8 +1948,8 @@
             ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
             ! Terpenoid alcohol emission expected to be much lower
             ! than previously estimated. Use pinene H-law (hotp 5/24/10)
-            CALL COMPUTE_L2G( 0.049d0, 0.d0, 
-     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
+            CALL COMPUTE_L2G( 0.049d0, 0.d0, State_Met%T(I,J,L),
+     &                        CLDLIQ(I,J,L), L2G )
 
             ! Fraction of MTPO in liquid phase
             ! (Eq. 4, 5, 6, Jacob et al, 2000)
@@ -1957,10 +1959,11 @@
             ! Compute the rate constant K.  Assume retention factor  
             ! for liquid MTPO is 0.0 for T <= 248 K and 0.02 for 
             ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
-            IF ( T(I,J,L) >= 268d0 ) THEN
+            IF ( State_Met%T(I,J,L) >= 268d0 ) THEN
                K = KC * F_L  
 
-            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
+            ELSE IF ( State_Met%T(I,J,L) > 248d0 .and.
+     &                State_Met%T(I,J,L) < 268d0 ) THEN
                K = KC * ( 2d-2 * F_L ) 
                   
             ELSE
@@ -1969,7 +1972,8 @@
             ENDIF
 
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+            TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
+     &                      State_Met%BXHEIGHT(I,J,L) ) 
 
             ! F is the fraction of MTPO scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -2001,8 +2005,8 @@
             ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
             ! Heff and deltaH/R based on phenanthrene from
             ! Sander 1999
-            CALL COMPUTE_L2G( 9.5d0, -4.70d3, 
-     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
+            CALL COMPUTE_L2G( 9.5d0, -4.70d3, State_Met%T(I,J,L),
+     &                        CLDLIQ(I,J,L), L2G )
 
             ! Fraction of POG in liquid phase
             ! (Eq. 4, 5, 6, Jacob et al, 2000)
@@ -2012,10 +2016,11 @@
             ! Compute the rate constant K.  Assume retention factor  
             ! for liquid POG is 0.0 for T <= 248 K and 0.02 for 
             ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
-            IF ( T(I,J,L) >= 268d0 ) THEN
+            IF ( State_Met%T(I,J,L) >= 268d0 ) THEN
                K = KC * F_L  
 
-            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
+            ELSE IF ( State_Met%T(I,J,L) > 248d0 .and.
+     &                State_Met%T(I,J,L) < 268d0 ) THEN
                K = KC * ( 2d-2 * F_L ) 
                   
             ELSE
@@ -2024,7 +2029,8 @@
             ENDIF
                
             ! Distance between grid box centers [m]
-            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+            TMP = 0.5d0 * ( State_Met%BXHEIGHT(I,J,L-1) +
+     &                      State_Met%BXHEIGHT(I,J,L) ) 
 
             ! F is the fraction of POG scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)

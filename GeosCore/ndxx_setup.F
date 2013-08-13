@@ -83,7 +83,6 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Met_Mod, ONLY : MetState
-      USE LOGICAL_MOD,     ONLY : LSVPOA
       USE PLANEFLIGHT_MOD, ONLY : SETUP_PLANEFLIGHT
       USE TRACERID_MOD,    ONLY : NEMANTHRO
       USE WETSCAV_MOD,     ONLY : GET_WETDEP_NMAX
@@ -276,6 +275,7 @@
       LOGICAL :: LCRYST
       LOGICAL :: LDRYD
       LOGICAL :: LGTMM
+      LOGICAL :: LSVPOA
 
       !=================================================================
       ! NDXX_SETUP begins here! 
@@ -293,6 +293,7 @@
       IT_IS_A_MERCURY_SIM  = Input_Opt%ITS_A_MERCURY_SIM  
       IT_IS_A_TAGOX_SIM    = Input_Opt%ITS_A_TAGOX_SIM 
       IT_IS_A_H2HD_SIM     = Input_Opt%ITS_A_H2HD_SIM
+      LSVPOA               = Input_Opt%LSVPOA
 
       ! Assume success
       RC                   = GIGC_SUCCESS

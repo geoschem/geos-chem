@@ -68,6 +68,8 @@
 !  26 Mar 2012 - R. Yantosca - Add USE_OLSON_2001 switch, which will use the
 !                              newer Olson 2001 land map & drydep inputs
 !  26 Apr 2013 - R. Yantosca - Remove LTOMAS; we now use #if defined( TOMAS )
+!  07 Aug 2013 - M. Sulprizio- Move NAPEMISS and POAEMISSSCALE for SOA + SVPOA
+!                              simulation to Headers/gigc_input_opt_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -87,11 +89,6 @@
       LOGICAL :: LSSALT          ! Use sea-salt aerosol tracers?
       LOGICAL :: LDICARB         ! Use dicarbonyl chemistry mechanism?
       LOGICAL :: LSVPOA          ! Use SOA + semivolatile POA? (H. Pye)
-
-      ! SOAupdate: For SOA + semivolatile POA (hotp, mpayer, 7/6/11)
-      ! Find better place for these since not logical?
-      REAL*8  :: NAPEMISS        ! Set NAP emissions [Tg/yr]
-      REAL*8  :: POAEMISSSCALE   ! Fractional scaling, recommend value: 1.27
 
       !%%%% Chemistry %%%%
       LOGICAL :: LCHEM           ! Use chemistry?

@@ -42,7 +42,6 @@
       USE GIGC_Input_Opt_Mod,   ONLY : OptInput
       USE GIGC_State_Chm_Mod,   ONLY : ChmState
       USE GIGC_State_Met_Mod,   ONLY : MetState
-      USE LOGICAL_MOD,          ONLY : LSVPOA 
       USE PLANEFLIGHT_MOD,      ONLY : SETUP_PLANEFLIGHT
       USE RESTART_MOD,          ONLY : READ_CSPEC_FILE 
       USE TIME_MOD,             ONLY : GET_MONTH
@@ -276,6 +275,7 @@
       LOGICAL       :: LVARTROP
       LOGICAL       :: LFUTURE
       LOGICAL       :: LSVCSPEC
+      LOGICAL       :: LSVPOA
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -301,6 +301,7 @@
       LVARTROP  = Input_Opt%LVARTROP
       LFUTURE   = Input_Opt%LFUTURE
       LSVCSPEC  = Input_Opt%LSVCSPEC
+      LSVPOA    = Input_Opt%LSVPOA
 
       ! Do we need to print debug output?
       prtDebug  = ( LPRT .and. am_I_Root )

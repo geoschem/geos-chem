@@ -190,7 +190,6 @@
       USE GIGC_State_Met_Mod, ONLY : MetState
       USE GRID_MOD,           ONLY : GET_XOFFSET,        GET_YOFFSET
       USE inquireMod,         ONLY : findFreeLun
-      USE LOGICAL_MOD,        ONLY : LSVPOA
       USE TIME_MOD,           ONLY : EXPAND_DATE
       USE TIME_MOD,           ONLY : GET_NYMD,           GET_NHMS
       USE TIME_MOD,           ONLY : GET_NYMD_DIAG,      GET_TS_DIAG
@@ -284,6 +283,7 @@
 
       ! For fields from Input_Opt
       LOGICAL                  :: LSOILNOX
+      LOGICAL                  :: LSVPOA
       LOGICAL                  :: DO_DIAG_WRITE
       INTEGER                  :: N_TRACERS
       REAL*8                   :: TCVV(Input_Opt%N_TRACERS)
@@ -302,6 +302,7 @@
 
       ! Copy values from Input_Opt
       LSOILNOX      = Input_Opt%LSOILNOX
+      LSVPOA        = Input_Opt%LSVPOA
       DO_DIAG_WRITE = Input_Opt%DO_DIAG_WRITE
       N_TRACERS     = Input_Opt%N_TRACERS
       TCVV          = Input_Opt%TCVV(1:N_TRACERS)

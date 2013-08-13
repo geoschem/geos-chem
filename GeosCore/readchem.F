@@ -61,7 +61,6 @@
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE inquireMod,         ONLY : findFreeLUN
-      USE LOGICAL_MOD,        ONLY : LSVPOA
 
 !#if defined( DEVEL ) || defined ( ESMF_ )
 !      USE GIGC_MPI_WRAP
@@ -168,6 +167,7 @@
 
       CHARACTER(LEN=255) :: FILENAME
       LOGICAL            :: LPRT
+      LOGICAL            :: LSVPOA
 
       INTEGER             :: IU_CHEMDAT ! GLOBCHEM.DAT LUN
 
@@ -184,6 +184,7 @@
 
       ! Copy logical fields from INPUT_OPT to local variables for use below
       LPRT           = Input_Opt%LPRT
+      LSVPOA         = Input_Opt%LSVPOA
 
       NINAC          = 0
       NACTIVE        = 0 

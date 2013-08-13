@@ -339,10 +339,11 @@
       ! SOAupdate: For SOA + semivolatile POA (hotp, mpayer, 7/13/11)
       USE TRACERID_MOD,       ONLY : IDTPOA1,  IDTPOA2
       USE TRACERID_MOD,       ONLY : IDTOPOA1, IDTOPOA2
-      USE TRACERID_MOD,       ONLY : IDTTSOA1, IDTTSOA2, IDTTSOA3
-      USE TRACERID_MOD,       ONLY : IDTTSOA0 
+      USE TRACERID_MOD,       ONLY : IDTTSOA1, IDTTSOA2 
+      USE TRACERID_MOD,       ONLY : IDTTSOA3, IDTTSOA0
       USE TRACERID_MOD,       ONLY : IDTISOA1, IDTISOA2, IDTISOA3
-      USE TRACERID_MOD,       ONLY : IDTASOAN, IDTASOA1, IDTASOA2, IDTASOA3
+      USE TRACERID_MOD,       ONLY : IDTASOAN, IDTASOA1
+      USE TRACERID_MOD,       ONLY : IDTASOA2, IDTASOA3
 !
 ! !INPUT PARAMETERS:
 !
@@ -414,6 +415,7 @@
       LOGICAL            :: LSOA
       LOGICAL            :: LSSALT
       LOGICAL            :: LSULF
+      LOGICAL            :: LSVPOA
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -437,6 +439,7 @@
       LSOA   = Input_Opt%LSOA
       LSSALT = Input_Opt%LSSALT
       LSULF  = Input_Opt%LSULF
+      LSVPOA = Input_Opt%LSVPOA
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -492,7 +495,7 @@
             ! Hydrophobic OC [kg/m3]
             ! SOAupdate: Treat either OCPO (x2.1) or POA (x1.4) 
             !  (hotp, mpayer, 7/13/11)
-            IF ( IDTPOA1 > 0 .AND IDTPOA2 > 0 ) THEN
+            IF ( IDTPOA1 > 0 .and. IDTPOA2 > 0 ) THEN
                OCPO(I,J,L) = STT(I,J,L,IDTPOA1) * OCFPOA /
      &                       State_Met%AIRVOL(I,J,L)     +
      &                       STT(I,J,L,IDTPOA2) * OCFPOA /

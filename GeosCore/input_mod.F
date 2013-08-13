@@ -1548,7 +1548,7 @@
 ! !USES:
 !
       USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE LOGICAL_MOD,  ONLY : LSULF, LCARB, LSOA
+      USE LOGICAL_MOD,  ONLY : LSULF, LCARB, LSOA,   LSVPOA
       USE LOGICAL_MOD,  ONLY : LDUST, LDEAD, LSSALT, LCRYST
       USE LOGICAL_MOD,  ONLY : LDICARB
       USE TRACER_MOD,   ONLY : N_TRACERS
@@ -1573,8 +1573,6 @@
       USE TRACERID_MOD, ONLY : IDTPOA1,  IDTPOA2,  IDTPOG1,  IDTPOG2
       USE TRACERID_MOD, ONLY : IDTOPOA1, IDTOPOA2, IDTOPOG1, IDTOPOG2
       USE TRACERID_MOD, ONLY : IDTNAP
-      USE LOGICAL_MOD,  ONLY : NAPEMISS, POAEMISSSCALE
-      USE LOGICAL_MOD,  ONLY : LSVPOA
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
 !
@@ -1608,6 +1606,7 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!  07 Aug 2013 - M. Sulprizio- Now copy SOA + SVPOA options to Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1652,29 +1651,26 @@
 
       ! SOAupdate: Naphthanele (IVOC surrogate) emissions [Tg/yr]
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:6' )
-      READ( SUBSTRS(1:N), * ) NAPEMISS
+      READ( SUBSTRS(1:N), * ) Input_Opt%NAPEMISS
 
-      ! SOAupdate: POA emission scale
+      ! SOAupdate: Fractional POA emission scale, recommend value: 1.27
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:7' )
-      READ( SUBSTRS(1:N), * ) POAEMISSSCALE
-
-      ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:8' )
+      READ( SUBSTRS(1:N), * ) Input_Opt%POAEMISSSCALE
 
       ! Use online dust aerosols 
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:9' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:8' )
       READ( SUBSTRS(1:N), * ) LDUST
 
       ! Use DEAD dust mobilization (=T) or GINOUX (=F)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:10' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:9' )
       READ( SUBSTRS(1:N), * ) LDEAD      
 
       ! Use online sea-salt aerosols?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:11' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:10' )
       READ( SUBSTRS(1:N), * ) LSSALT      
 
       ! Accum mode seasalt radii bin edges [um]
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_aerosol_menu:12' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_aerosol_menu:11' )
       DO T = 1, N
          READ( SUBSTRS(T), * ) SALA_REDGE_um(T)
       ENDDO
@@ -1687,7 +1683,7 @@
 
       ! Switch to comment the SOG condensation in carbon_mod.f (ccc, 3/10/09)
       ! Use online dicarbonyl chemistry 
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:14' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:13' )
       READ( SUBSTRS(1:N), * ) LDICARB
 
       !=================================================================
@@ -1947,6 +1943,7 @@
       Input_Opt%LCRYST             = LCRYST
       Input_Opt%LCARB              = LCARB
       Input_Opt%LSOA               = LSOA 
+      Input_Opt%LSVPOA             = LSVPOA
       Input_Opt%LDUST              = LDUST 
       Input_Opt%LDEAD              = LDEAD
       Input_Opt%LSSALT             = LSSALT
@@ -1968,9 +1965,10 @@
          WRITE( 6, 100     ) 'Online CARBON AEROSOLS?     : ', LCARB
          WRITE( 6, 100     ) 'Online 2dy ORGANIC AEROSOLS?: ', LSOA
          WRITE( 6, 100     ) 'SOA + Semivolatile POA?     : ', LSVPOA
-         WRITE( 6, 105     ) 'Annual NAP emiss [TgC/yr]   : ', NAPEMISS
+         WRITE( 6, 105     ) 'Annual NAP emiss [TgC/yr]   : ',
+     &                        Input_Opt%NAPEMISS
          WRITE( 6, 105     ) 'POA emission scale [dimless]: ', 
-     &                        POAEMISSSCALE
+     &                        Input_Opt%POAEMISSSCALE
          WRITE( 6, 100     ) 'Online DUST AEROSOLS?       : ', LDUST
          WRITE( 6, 100     ) 'Use DEAD dust emissions?    : ', LDEAD
          WRITE( 6, 100     ) 'Online SEA SALT AEROSOLS?   : ', LSSALT
@@ -1982,7 +1980,7 @@
 
  100  FORMAT( A, L5     )
  110  FORMAT( A, f6.2, ' - ', f6.2 )
- 105  FORMAT( A, f32.16   )
+ 105  FORMAT( A, f6.2 )
 
       END SUBROUTINE READ_AEROSOL_MENU
 !EOC
@@ -8638,11 +8636,7 @@
       LWARWICK_VSLS  = .FALSE.
       LSSABr2        = .FALSE.
       LFIX_PBL_BRO   = .FALSE.
-
-      ! SOAupdate: Initialize for SOA + semivol POA (hotp, mpayer, 7/15/11)
-      LSVPOA         = .FALSE.
-      POAEMISSSCALE  = 0d0
-      NAPEMISS       = 0d0
+      LSVPOA         = .FALSE.  ! (hotp, mpayer, 7/15/11)
       
       !Specifically for CO2 simulation (R Nassar, 2009-03-02)
       LGENFF         = .FALSE.
