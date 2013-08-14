@@ -993,7 +993,7 @@
      &                             XNUMOL,         SPECIES, GAMMA_LAI, 
      &                             GAMMA_LEAF_AGE, GAMMA_P, GAMMA_T, 
      &                             GAMMA_SM,       GAMMA_CO2 )
-     ! Add GAMMA_CO2 (Tai, Jan 2013)
+! ! Add GAMMA_CO2 (Tai, Jan 2013)
 !
 ! !USES:
 !
