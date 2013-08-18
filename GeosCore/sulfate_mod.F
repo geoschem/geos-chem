@@ -5432,9 +5432,9 @@
       REAL*8                 :: TEMPEMISS(NOXLEVELS)
       REAL*8                 :: T_DIFF, T_SUM
 
-      ! New variables for volcanic emissions (jaf, 10/15/09)
-      INTEGER                :: IREF, JREF, I0, J0
-      REAL*8                 :: PLOW, PHIGH, PVOLCLOW, PVOLCHIGH, FRAC
+!      ! New variables for volcanic emissions (jaf, 10/15/09)
+!      INTEGER                :: IREF, JREF, I0, J0
+!      REAL*8                 :: PLOW, PHIGH, PVOLCLOW, PVOLCHIGH, FRAC
 
       ! For fields from Input_Opt
       LOGICAL                :: LHIST,    LNLPBL, LBRAVO, LNEI99  
@@ -5442,14 +5442,15 @@
       INTEGER                :: N_TRACERS
       REAL*8                 :: XNUMOL(Input_Opt%N_TRACERS)
 
-      ! Pressure edges of volcanic 0.5-km grid. Edges come from
-      ! converting 500 m increments to pressure using the U.S. standard
-      ! atmosphere since volcanic emissions are provided as meters above
-      ! sea level (jaf, 10/15/09)
-      REAL*8                 :: VOLCPRESS(LVOLC+1) = (/
-     &  1013.25, 954.61, 898.74, 845.56, 794.95, 746.83, 701.08,
-     &   657.64, 616.40, 577.28, 540.20, 505.07, 471.81, 440.35,
-     &   410.61, 382.52, 356.00, 330.99, 307.42, 285.24, 264.36 /)
+!------- Prior to 6/17/12 (jaf)
+!      ! Pressure edges of volcanic 0.5-km grid. Edges come from
+!      ! converting 500 m increments to pressure using the U.S. standard
+!      ! atmosphere since volcanic emissions are provided as meters above
+!      ! sea level (jaf, 10/15/09)
+!      REAL*8                 :: VOLCPRESS(LVOLC+1) = (/
+!     &  1013.25, 954.61, 898.74, 845.56, 794.95, 746.83, 701.08,
+!     &   657.64, 616.40, 577.28, 540.20, 505.07, 471.81, 440.35,
+!     &   410.61, 382.52, 356.00, 330.99, 307.42, 285.24, 264.36 /)
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -5486,143 +5487,145 @@
 
       ! is it local PBL mixing scheme?
       IS_LOCAL  = ( .NOT. LNLPBL )
-      
-      !=================================================================
-      ! SO2 emissions from volcanoes [kg SO2/box/s].
-      ! 
-      ! SO2 emissions are saved separately for eruptive and non-eruptive
-      ! volcanoes, but in both cases they have been gridded onto a
-      ! 1 degree x 1 degree by 0.5 km grid. Horizontal regridding is
-      ! done in READ_NONERUP_VOLC and READ_ERUP_VOLC. Here we do the
-      ! vertical regridding, with the scheme based on that in AIREMISS
-      ! in aircraft_nox_mod.f. Since both types of volcanoes are on the
-      ! same grid and have been similarly pre-processed, we can treat
-      ! them simultaneously here.
-      !
-      ! As before, non-eruptive volcanic emissions are injected into the
-      ! model layer corresponding to the altitude of the volcanic
-      ! crater. Eruptive emissions are injected into the top third of
-      ! the volcanic plume. These steps were performed in the pre-
-      ! processing and hence are not done here. 
-      !
-      ! (jaf, bmy, 10/15/09)
-      !=================================================================
-      ESO2_ev = 0d0
-      ESO2_nv = 0d0
 
-      ! Get nested-grid offsets
-      I0 = GET_XOFFSET()
-      J0 = GET_YOFFSET()
-    
-      ! Loop over surface grid boxes
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-    
-         !==============================================================
-         ! Loop over tropospheric GEOS-CHEM levels 
-         !==============================================================
-         DO L = 1, LLTROP
-
-            ! PLOW  is the pressure at the bottom edge of sigma level L
-            ! PHIGH is the pressure at the top    edge of sigma level L 
-            PLOW  = GET_PEDGE(I,J,L)
-            PHIGH = GET_PEDGE(I,J,L+1)
-
-            ! Make sure PLOW is not smaller than VOLCPRESS(1)
-            IF ( L == 1 .AND. PLOW < VOLCPRESS(1) ) PLOW = VOLCPRESS(1)
-
-            ! Exit loop if GEOS-Chem level is higher than top of grid
-            IF ( PLOW .LE. VOLCPRESS(LVOLC+1) ) EXIT
-
-            !===========================================================
-            ! Loop over the native 1-km volcanic SO2 grid layers
-            !===========================================================
-            DO K = 1, LVOLC
-
-               ! PVOLCLOW  is pressure at the bottom of 1-km grid layer K
-               ! PVOLCHIGH is pressure at the top    of 1-km grid layer K
-               PVOLCLOW = VOLCPRESS(K)
-               PVOLCHIGH = VOLCPRESS(K+1)
-
-               ! Compute the fraction of each 1-km layer K that
-               ! lies within the given GEOS-CHEM layer L
-               FRAC = 0.0d0
-
-               ! GC grid box is completely below volcanic grid box
-               IF ( PHIGH >= PVOLCLOW ) THEN
-                  GOTO 10
-
-               ! Bottom of GC grid box is in volcanic grid box
-               ELSE IF ( PLOW < PVOLCLOW .AND. PLOW > PVOLCHIGH ) THEN
-                  ! Only part of GC box is in volcanic box
-                  IF ( PHIGH < PVOLCHIGH ) THEN
-                     FRAC = (PLOW-PVOLCHIGH) / (PVOLCLOW-PVOLCHIGH)
-                  ! All of GC box is in volcanic box
-                  ELSE
-                     FRAC =  (PLOW-PHIGH) / (PVOLCLOW-PVOLCHIGH)
-                  ENDIF
-
-               ! Top of GC grid box is in volcanic box (bottom isn't)
-               ELSE IF ( PHIGH <  PVOLCLOW .AND. 
-     &                   PHIGH >  PVOLCHIGH .AND.
-     &                   PLOW  >= PVOLCLOW) THEN
-                  FRAC = (PVOLCLOW-PHIGH) / (PVOLCLOW-PVOLCHIGH)
-
-               ! All of volcanic box in GC box
-               ELSE IF ( PHIGH <= PVOLCHIGH .AND. 
-     &                   PLOW >= PVOLCLOW ) THEN
-                  FRAC = 1.0d0
-
-               ENDIF
-
-               ! Add contribution from this layer of volcanic grid (K)
-               ! to non-eruptive SO2 in model grid layer L.
-               ESO2_nv(I,J,L) = ESO2_nv(I,J,L) +
-     &                          FRAC * ENV(I,J,K)
-  
-               ! Add contribution from this layer of volcanic grid (K)
-               ! to eruptive SO2 in model grid layer L.
-               ESO2_ev(I,J,L) = ESO2_ev(I,J,L) +
-     &                          FRAC * EEV(I,J,K)
-
-            ENDDO ! K
-
-10          CONTINUE
-         ENDDO    ! L
-
-         !===========================================================
-         ! Consistency check: columns before and after regridding 
-         ! should be equal.  Be careful not to divide by zero!
-         !===========================================================
-
-         ! Non-eruptive volcanoes
-         T_SUM  = SUM( ENV(I,J,:) )
-         T_DIFF = ABS( SUM( ESO2_nv(I,J,:) ) - T_SUM )         
-
-         IF ( IS_SAFE_DIV( T_DIFF, T_SUM ) ) THEN
-            IF ( T_DIFF / T_SUM > 1d-5 ) THEN
-               PRINT*, 'Non-eruptive volcanic SO2 emissions before ' //
-     &                 'and after regridding are not equivalent!'
-               CALL FLUSH(6)
-               CALL GEOS_CHEM_STOP
-            ENDIF
-         ENDIF
-
-         ! Eruptive volcanoes
-         T_SUM  = SUM( EEV(I,J,:) )
-         T_DIFF = ABS( SUM( ESO2_ev(I,J,:) ) - T_SUM )         
-
-         IF ( IS_SAFE_DIV( T_DIFF, T_SUM ) ) THEN
-            IF ( T_DIFF / T_SUM > 1d-5 ) THEN
-               PRINT*, 'Eruptive volcanic SO2 emissions before ' //
-     &                 'and after regridding are not equivalent!'
-               CALL FLUSH(6)
-               CALL GEOS_CHEM_STOP
-            ENDIF
-         ENDIF
-
-      ENDDO       ! I
-      ENDDO       ! J
+!------- Prior to 6/17/12 (jaf)      
+!      !=================================================================
+!      ! SO2 emissions from volcanoes [kg SO2/box/s].
+!      ! 
+!      ! SO2 emissions are saved separately for eruptive and non-eruptive
+!      ! volcanoes, but in both cases they have been gridded onto a
+!      ! 1 degree x 1 degree by 0.5 km grid. Horizontal regridding is
+!      ! done in READ_NONERUP_VOLC and READ_ERUP_VOLC. Here we do the
+!      ! vertical regridding, with the scheme based on that in AIREMISS
+!      ! in aircraft_nox_mod.f. Since both types of volcanoes are on the
+!      ! same grid and have been similarly pre-processed, we can treat
+!      ! them simultaneously here.
+!      !
+!      ! As before, non-eruptive volcanic emissions are injected into the
+!      ! model layer corresponding to the altitude of the volcanic
+!      ! crater. Eruptive emissions are injected into the top third of
+!      ! the volcanic plume. These steps were performed in the pre-
+!      ! processing and hence are not done here. 
+!      !
+!      ! (jaf, bmy, 10/15/09)
+!      !=================================================================
+!      ESO2_ev = 0d0
+!      ESO2_nv = 0d0
+!
+!      ! Get nested-grid offsets
+!      I0 = GET_XOFFSET()
+!      J0 = GET_YOFFSET()
+!    
+!      ! Loop over surface grid boxes
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!    
+!         !==============================================================
+!         ! Loop over tropospheric GEOS-CHEM levels 
+!         !==============================================================
+!         DO L = 1, LLTROP
+!
+!            ! PLOW  is the pressure at the bottom edge of sigma level L
+!            ! PHIGH is the pressure at the top    edge of sigma level L 
+!            PLOW  = GET_PEDGE(I,J,L)
+!            PHIGH = GET_PEDGE(I,J,L+1)
+!
+!            ! Make sure PLOW is not smaller than VOLCPRESS(1)
+!            IF ( L == 1 .AND. PLOW < VOLCPRESS(1) ) PLOW = VOLCPRESS(1)
+!
+!            ! Exit loop if GEOS-Chem level is higher than top of grid
+!            IF ( PLOW .LE. VOLCPRESS(LVOLC+1) ) EXIT
+!
+!            !===========================================================
+!            ! Loop over the native 1-km volcanic SO2 grid layers
+!            !===========================================================
+!            DO K = 1, LVOLC
+!
+!               ! PVOLCLOW  is pressure at the bottom of 1-km grid layer K
+!               ! PVOLCHIGH is pressure at the top    of 1-km grid layer K
+!               PVOLCLOW = VOLCPRESS(K)
+!               PVOLCHIGH = VOLCPRESS(K+1)
+!
+!               ! Compute the fraction of each 1-km layer K that
+!               ! lies within the given GEOS-CHEM layer L
+!               FRAC = 0.0d0
+!
+!               ! GC grid box is completely below volcanic grid box
+!               IF ( PHIGH >= PVOLCLOW ) THEN
+!                  GOTO 10
+!
+!               ! Bottom of GC grid box is in volcanic grid box
+!               ELSE IF ( PLOW < PVOLCLOW .AND. PLOW > PVOLCHIGH ) THEN
+!                  ! Only part of GC box is in volcanic box
+!                  IF ( PHIGH < PVOLCHIGH ) THEN
+!                     FRAC = (PLOW-PVOLCHIGH) / (PVOLCLOW-PVOLCHIGH)
+!                  ! All of GC box is in volcanic box
+!                  ELSE
+!                     FRAC =  (PLOW-PHIGH) / (PVOLCLOW-PVOLCHIGH)
+!                  ENDIF
+!
+!               ! Top of GC grid box is in volcanic box (bottom isn't)
+!               ELSE IF ( PHIGH <  PVOLCLOW .AND. 
+!     &                   PHIGH >  PVOLCHIGH .AND.
+!     &                   PLOW  >= PVOLCLOW) THEN
+!                  FRAC = (PVOLCLOW-PHIGH) / (PVOLCLOW-PVOLCHIGH)
+!
+!               ! All of volcanic box in GC box
+!               ELSE IF ( PHIGH <= PVOLCHIGH .AND. 
+!     &                   PLOW >= PVOLCLOW ) THEN
+!                  FRAC = 1.0d0
+!
+!               ENDIF
+!
+!               ! Add contribution from this layer of volcanic grid (K)
+!               ! to non-eruptive SO2 in model grid layer L.
+!               ESO2_nv(I,J,L) = ESO2_nv(I,J,L) +
+!     &                          FRAC * ENV(I,J,K)
+!  
+!               ! Add contribution from this layer of volcanic grid (K)
+!               ! to eruptive SO2 in model grid layer L.
+!               ESO2_ev(I,J,L) = ESO2_ev(I,J,L) +
+!     &                          FRAC * EEV(I,J,K)
+!
+!            ENDDO ! K
+!
+!10          CONTINUE
+!         ENDDO    ! L
+!
+!         !===========================================================
+!         ! Consistency check: columns before and after regridding 
+!         ! should be equal.  Be careful not to divide by zero!
+!         !===========================================================
+!
+!         ! Non-eruptive volcanoes
+!         T_SUM  = SUM( ENV(I,J,:) )
+!         T_DIFF = ABS( SUM( ESO2_nv(I,J,:) ) - T_SUM )         
+!
+!         IF ( IS_SAFE_DIV( T_DIFF, T_SUM ) ) THEN
+!            IF ( T_DIFF / T_SUM > 1d-5 ) THEN
+!               PRINT*, 'Non-eruptive volcanic SO2 emissions before ' //
+!     &                 'and after regridding are not equivalent!'
+!               CALL FLUSH(6)
+!               CALL GEOS_CHEM_STOP
+!            ENDIF
+!         ENDIF
+!
+!         ! Eruptive volcanoes
+!         T_SUM  = SUM( EEV(I,J,:) )
+!         T_DIFF = ABS( SUM( ESO2_ev(I,J,:) ) - T_SUM )         
+!
+!         IF ( IS_SAFE_DIV( T_DIFF, T_SUM ) ) THEN
+!            IF ( T_DIFF / T_SUM > 1d-5 ) THEN
+!               PRINT*, 'Eruptive volcanic SO2 emissions before ' //
+!     &                 'and after regridding are not equivalent!'
+!               CALL FLUSH(6)
+!               CALL GEOS_CHEM_STOP
+!            ENDIF
+!         ENDIF
+!
+!      ENDDO       ! I
+!      ENDDO       ! J
+!------- Prior to 6/17/12 (jaf)
 
       !=================================================================
       ! Overwrite USA    w/ EPA/NEI99 (anthro+biofuel) SO2 emissions 
@@ -8140,6 +8143,7 @@
       J0 = GET_YOFFSET( GLOBAL=.TRUE. )
 
       ! Re-assign values to eruptive or non-eruptive arrays
+      ! Change the counters to start at zero (skim, 8/17/13)
       n_nv = 1
       n_ev = 1
       DO N = 1, NEVENTS
@@ -8148,8 +8152,12 @@
          I = INT( ( v_lon(N) + 180d0 - (I0 * DISIZE) )/DISIZE + 1.5d0 )
          J = INT( ( v_lat(N) +  90d0 - (J0 * DJSIZE) )/DJSIZE + 1.5d0 )
 
+         ! Only check for the date line for global simulations 
+         ! (skim, 8/17/13)
+#if defined( GRID4x5 ) || defined( GRID2x25 ) 
          ! Handle the date line correctly
          IF ( I > IIPAR ) I = I - IIPAR
+#endif
 
          ! Non-eruptive
          IF ( v_elevation(N) == v_cloud_column_height(N) ) THEN

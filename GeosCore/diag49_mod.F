@@ -324,8 +324,9 @@
      &                   IDTNO2  > 0 .and. IDTPAN  > 0 .and.
      &                   IDTHNO3 > 0 .and. IDTPMN  > 0 .and.
      &                   IDTPPN  > 0 .and. IDTR4N2 > 0 .and.
-     &                   IDTN2O5 > 0 .and. IDTHNO4 > 0 ) 
-         FIRST       = .FALSE.
+     &                   IDTN2O5 > 0 .and. IDTHNO4 > 0 )
+         ! Comment out for now (skim, 8/6/13)
+         ! FIRST       = .FALSE.
       ENDIF
 
       !=================================================================
@@ -340,7 +341,9 @@
       ! To change TS_DIAG to NHMS format
       TS_DIAG = TS_DIAG/60 * 10000 + (TS_DIAG - (TS_DIAG/60)*60) * 100  
 
-      IF ( NHMS == TS_DIAG ) THEN     ! It's a new day for diagnostics.
+      ! Kludge for mid hour saving of timeseries output
+      ! (skim, 8/6/13)
+      IF ( NHMS == TS_DIAG .OR. FIRST == .TRUE. ) THEN     ! It's a new day for diagnostics.
 
          ! Find a free file LUN
          IU_ND49 = findFreeLUN()
@@ -359,6 +362,9 @@
             CALL OPEN_BPCH2_FOR_WRITE( IU_ND49, FILENAME, TITLE )
 
          ENDIF
+
+         ! Kludge for mid hour saving of timeseries output
+         FIRST = .FALSE.
 
       ENDIF
 
@@ -1802,7 +1808,9 @@
 !       HR1 varies between 00 and 23:59. So compares to 00 not 24 anymore.
 !      ITS_TIME = ( INT( HR1 ) == 24 )
 
-      ITS_TIME = ( INT( HR1 ) == 00 )
+      !ITS_TIME = ( INT( HR1 ) == 00 )
+      ! Comment out for now, kludge for SEAC4RS (skim, 8/5/13)
+      ITS_TIME = ( INT( HR1 ) == 21 )
 
       END FUNCTION ITS_TIME_TO_CLOSE_FILE
 !EOC

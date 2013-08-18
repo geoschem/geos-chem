@@ -1400,7 +1400,9 @@
          ! [molec/6h/box] * [6h/21600s] * [box/BOXVL cm3] = [molec/cm3/s]
          TMP = SLBASE(I,J,L) / ( 21600.d0 * BOXVL(I,J,L,State_Met) )
 
-         EMIS_LI_NOx(I,J,L)                = TMP
+         ! For SEAC4RS, knock the emissions down by a factor of 5
+         ! ( skim, 8/15/13)
+         EMIS_LI_NOx(I,J,L)                = TMP / 5.0
 
 #if defined( DEVEL ) 
          State_Chm%TRAC_TEND(I,J,L,IDTNO)  = TMP
