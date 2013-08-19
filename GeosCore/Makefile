@@ -215,7 +215,7 @@ tomexe:                                               # Build executable
 	cp -f $(TOM) $(BIN)
 
 clean:                                             # Remove files here
-	rm -f *.o *.mod geos geosapm geostomas
+	rm -f *.o *.mod geos geosapm
 
 distclean:                                         # Synonym for "realclean"
 	@$(MAKE) realclean
@@ -226,7 +226,6 @@ realclean:                                         # Remove files everywhere
 	@$(MAKE) -C $(APM) clean
 	@$(MAKE) -C $(ISO) clean
 	@$(MAKE) -C $(KPP) realclean
-#	@$(MAKE) -C $(TOM) clean
 	@$(MAKE) -C $(GTMM) clean
 	@$(MAKE) -C $(UTIL) clean
 	@$(MAKE) -C $(HDR) clean
@@ -234,7 +233,7 @@ realclean:                                         # Remove files everywhere
 	rm -f $(LIB)/*.a
 	rm -f $(MOD)/*.mod
 	rm -f $(BIN)/geos*
-
+	@@echo $(FFLAGS)
 doc:                                               # Build documentation
 	@$(MAKE) -C $(DOC) all
 
@@ -243,6 +242,9 @@ docclean:                                          # Remove documentation
 
 help:                                              # Show help screen
 	@$(MAKE) -C $(HELP)
+
+debug:
+	@@echo "targets: $(MAKECMDGOALS)"
 
 #=============================================================================
 # Targets for mercury simulation (ccc, 6/7/10)

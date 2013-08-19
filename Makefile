@@ -40,7 +40,7 @@
 #BOC
 
 # Get the Unix shell definition
-include ./Makefile_header.mk
+#include ./Makefile_header.mk
 
 # Define variables
 GEOSAPM = GeosApm

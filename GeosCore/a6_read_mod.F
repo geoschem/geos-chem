@@ -499,6 +499,8 @@
 !                              OH for offline simulations (C. Holmes)
 !  02 Jul 2013 - R. Yantosca - Now use State_Met%U and State_Met%V to hold
 !                              the GCAP U and V wind fields
+!  02 Jul 2013 - R. Yantosca - Now use State_Met%U and State_Met%V to hold
+!                              the GEOS-4 U and V wind fields
 !******************************************************************************
 !
       ! References to F90 modules
@@ -655,8 +657,8 @@
      &              OPTDEPTH   = State_Met%OPTDEP, 
      &              Q          = State_Met%SPHU,        
      &              T          = State_Met%T,           
-     &              U          = State_Met%UWND,          
-     &              V          = State_Met%VWND,        
+     &              U          = State_Met%U,          
+     &              V          = State_Met%V,        
      &              ZMEU       = State_Met%ZMEU,     
      &              ZMMD       = State_Met%ZMMD,       
      &              ZMMU       = State_Met%ZMMU, 

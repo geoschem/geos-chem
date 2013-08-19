@@ -1903,6 +1903,8 @@ CONTAINS
 
 #if defined( NESTED_CH )
     INTEGER, PARAMETER   :: J30S = 1, J30N = 161
+#elif defined( NESTED_NA )
+    INTEGER, PARAMETER   :: J30S = 1, J30N = 161
 #elif defined( SEAC4RS )
     INTEGER, PARAMETER   :: J30S = 1, J30N = 161
 #endif
@@ -2258,6 +2260,8 @@ CONTAINS
 #elif defined( GRID025x03125 )
 
 #if defined( NESTED_CH )
+    INTEGER, PARAMETER   :: J30S = 1, J30N = 161
+#elif defined( NESTED_NA )
     INTEGER, PARAMETER   :: J30S = 1, J30N = 161
 #elif defined( SEAC4RS )
     INTEGER, PARAMETER   :: J30S = 1, J30N = 161

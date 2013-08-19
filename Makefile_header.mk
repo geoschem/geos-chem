@@ -35,13 +35,25 @@
 # but is only used locally.  COMPILER, HDF5, and OMP are all input via the
 # command line or via environment variables.
 #                                                                             .
-# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# %%%       NOTE: The IBM/XLF compiler has not been validated yet.         %%%
-# %%%                      Beta-testers welcome!                           %%%
-# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# %%%       NOTE: GEOS-Chem has not yet been ported to GNU Fortran.        %%%
-# %%%                      Beta-testers welcome!                           %%%
-# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# NOTE: We now use SHELL := /bin/bash as the default Unix shell.  This allows
+# us to extend the Makefile ifeq statements so that we can test for more than
+# one string.  The following example is used to ensure that the met field name
+# selected by the user is case-insensitive:
+# 
+#   # %%%%% GEOS-5 %%%%%
+#   ifdef MET
+#   REGEXP    := ((^[Gg][Ee][Oo][Ss])?5|.5)
+#   ifeq ($(shell [[ $(MET) =~ $(REGEXP) ]] && echo true),true)
+#   USER_DEFS += -DGEOS_5
+#   endif
+#   endif
+#                                                                             .
+# The [[ ]] in bash is an evauluation.  The above ifeq statement uses regular
+# expressions to test if the MET variable matches the string "GEOS" (case-
+# insensitive) and either "5" or "any character and then a 5".  This will
+# return true (via the "echo true" statement) for combinations like "GEOS-5", 
+# "geos5", "Geos-5", "GeOs.5", etc.  This is a robust way of evaluating
+# the user's input, and will make errors less likely.
 #
 # !REVISION HISTORY: 
 #  16 Sep 2009 - R. Yantosca - Initial version
@@ -108,48 +120,20 @@
 #  25 Feb 2013 - S. Farina   - Add flag for TOMAS40
 #  22 Apr 2013 - R. Yantosca - TOMAS40=yes option now sets -DTOMAS -DTOMAS40
 #  28 Apr 2013 - S. Farina   - Add flags for TOMAS15 and TOMAS12
+#  13 Aug 2013 - R. Yantosca - Removed "define.h"; now set all GEOS-Chem
+#                              user options via the Make command
+#  14 Aug 2013 - R. Yantosca - Now use regular expressions to test the
+#                              validity of command-line inputs
 #EOP
 #------------------------------------------------------------------------------
 #BOC
 
 #==============================================================================
-# Default settings for Makefile options
-#==============================================================================
-
-# IFORT is default compiler
-ifndef COMPILER
-COMPILER  := ifort
-endif
-
-# Get Operating System (Linux = Linux; Darwin = MacOSX)
-ifndef UNAME
-UNAME     := $(shell uname)
-endif
-
-# OpenMP is turned on by default
-ifndef OMP
-OMP       := yes
-endif
-
-# HDF5 I/O is turned off by default
-ifndef HDF5
-HDF5      := no
-endif
-
-# Use precise FP math optimization (i.e. to avoid numerical noise)
-ifndef PRECISE
-PRECISE   := yes
-endif 
-
-#==============================================================================
 # Default values for variables
 #==============================================================================
 
-# If your system uses "/bin/sh", then uncomment this line!
-SHELL     := /bin/sh
-
-# If your system uses "/bin/bash", then uncomment this line!
-#SHELL     := /bin/bash
+# Set default shell to bash, for use with the Makefile conditionals
+SHELL     := /bin/bash
 
 # Library include path
 NCI       := -I$(GC_INCLUDE)
@@ -180,19 +164,301 @@ LINK      := $(LINK) -lNcUtils $(NCL)
 LHG       := -L$(LIB) -lKpp -lIsoropia -lHg -lGeosUtil -lHeaders
 LHG       := $(LINK) -lNcUtils $(NCL)
 
-# Add the HDF5 library link commands (optional)
-ifeq ($(HDF5),yes) 
-LINK      := $(LINK) -L$(H5L)
-LHG       := $(LINK) -L$(H5L)
+#==============================================================================
+# Set C-preprocessor switches representing user options.  These are not
+# specific to any compiler, but are general options for the simulation.
+#
+# NOTE: To make the user input more robust, we use regular expression syntax
+# to match characters in the various Makefile variables.  See this web page
+# for more info: http://www.tldp.org/LDP/abs/html/x17046.html
+#==============================================================================
+
+#---------------------------------------
+# Compiler settings
+#---------------------------------------
+
+# %%%%% OpenMP parallelization default) %%%%%
+ifndef OMP
+OMP       := yes
 endif
 
-# For ESMF development
-ifeq ($(ESMF),yes)
-LINK      += -lESMF $(LIB_CHEM_BASE) $(LIB_CHEM_SHARED) $(LIB_PILGRIM)   \
-                    $(LIB_MAPL_BASE) $(LIB_CFIO) $(LIB_GFIO) $(LIB_MPEU) \
-                    $(LIB_ESMF) $(LIB_SDF) $(LIB_SYS) $(LIB_MPI)         \
-                    $(ESMF_LDFLAGS) -lmpi_cxx -lstdc++ -limf -lrt -ldl
-LHG       += -lESMF
+# %%%%% IFORT compiler (default) %%%%%
+ifndef COMPILER
+COMPILER  := ifort
+endif
+REGEXP    := (^[Ii][Ff][Oo][Rr][Tt])
+ifeq ($(shell [[ $(COMPILER) =~ $(REGEXP) ]] && echo true),true)
+USER_DEFS += -DLINUX_IFORT
+endif
+
+# %%%%% PGI compiler %%%%%
+REGEXP    := (^[Pp][Gg][Ii])
+ifeq ($(shell [[ $(COMPILER) =~ $(REGEXP) ]] && echo true),true)
+USER_DEFS += -DLINUX_PGI
+endif
+
+#---------------------------------------
+# Met field settings
+#---------------------------------------
+
+# Exit if the user has not selected a met field type
+# Skip this error check for "make clean, make distclean, make realclean"
+REGEXP := ([clean])
+ifneq ($(shell [[ $(MAKECMDGOALS) =~ $(REGEXP) ]] && echo true),true)
+ifndef MET
+$(error Select a met field: MET=gcap, MET=geos4, MET=geos5, MET=merra, MET=geos-fp)
+endif
+endif
+
+# %%%%% GCAP %%%%%
+ifdef MET
+REGEXP    := (^[Gg][Cc][Aa][Pp])
+ifeq ($(shell [[ $(MET) =~ $(REGEXP) ]] && echo true),true)
+USER_DEFS += -DGCAP
+endif
+endif
+
+# %%%%% GEOS-4 %%%%%
+ifdef MET
+REGEXP    := ((^[Gg][Ee][Oo][Ss])?4|.4)
+ifeq ($(shell [[ $(MET) =~ $(REGEXP) ]] && echo true),true)
+USER_DEFS += -DGEOS_4
+endif
+endif
+
+# %%%%% GEOS-5 %%%%%
+ifdef MET
+REGEXP    := ((^[Gg][Ee][Oo][Ss])?5|.5)
+ifeq ($(shell [[ $(MET) =~ $(REGEXP) ]] && echo true),true)
+USER_DEFS += -DGEOS_5
+endif
+endif
+
+# %%%%% MERRA %%%%%
+ifdef MET
+REGEXP    := (^[Mm][Ee][Rr][Rr][Aa])
+ifeq ($(shell [[ $(MET) =~ $(REGEXP) ]] && echo true),true)
+USER_DEFS += -DMERRA
+endif
+endif
+
+# %%%%% GEOS-FP %%%%%
+ifdef MET
+REGEXP    := (^[Gg][Ee][Oo][Ss][Ff][Pp])|(^[Gg][Ee][Oo][Ss].[Ff][Pp])
+ifeq ($(shell [[ $(MET) =~ $(REGEXP) ]] && echo true),true)
+USER_DEFS += -DGEOS_57
+endif
+endif
+
+# %%%%% REDUCED VERTICAL GRID %%%%
+# Assume a reduced vertical grid, unless specified otherwise
+ifndef NO_REDUCED
+USER_DEFS += -DGRIDREDUCED
+else
+REGEXP := (^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ $(NO_REDUCED) =~ $(REGEXP) ]] && echo true),true)
+endif
+endif
+
+#---------------------------------------
+# Horizontal grid settings
+#---------------------------------------
+
+# Exit if the user has not selected a met field type
+# Skip this error check for "make clean, make distclean, make realclean"
+REGEXP := ([clean])
+ifneq ($(shell [[ $(MAKECMDGOALS) =~ $(REGEXP) ]] && echo true),true)
+ifndef GRID
+$(error Select a horizontal grid: GRID=4x5. GRID=2x25, GRID=05x0666, GRID=025x03125)
+endif
+endif
+
+# %%%%% 4 x 5 %%%%%
+ifdef GRID
+REGEXP    := (^4.5|^4\.0.5\.0)
+ifeq ($(shell [[ $(GRID) =~ $(REGEXP) ]] && echo true),true)
+USER_DEFS += -DGRID4x5
+endif
+endif
+
+# %%%%% 2 x 2.5 %%%%%
+ifdef GRID
+REGEXP    := (^2.25|^2.2\.5|^2\.0.2\.5)
+ifeq ($(shell [[ $(GRID) =~ $(REGEXP) ]] && echo true),true)
+USER_DEFS += -DGRID2x25
+endif
+endif
+
+# %%%%% 1 x 1.25 %%%%%
+ifdef GRID
+REGEXP    := (^1.125|^1.1\.25|^1\.0.1\.25)
+ifeq ($(shell [[ $(GRID) =~ $(REGEXP) ]] && echo true),true)
+USER_DEFS += -DGRID1x125
+endif
+endif
+
+# %%%%% 0.5 x 0.666 %%%%%
+ifdef GRID
+REGEXP    := (^05.066.|^0\.5.0\.066.)
+ifeq ($(shell [[ $(GRID) =~ $(REGEXP) ]] && echo true),true)
+
+# Ensure that MET=geos5
+ifdef MET
+REGEXP    := ((^[Gg][Ee][Oo][Ss])?5|.5)
+ifneq ($(shell [[ $(MET) =~ $(REGEXP) ]] && echo true),true)
+$(error When GRID=05x0666, you can only use MET=geos5)
+endif
+endif
+
+# Ensure that a nested-grid option is selected
+ifndef NEST
+$(error Please select a nested grid option, e.g. NEST=ch, NEST=eu, NEST=na)
+else
+USER_DEFS += -DGRID05x0666
+endif
+endif
+endif
+
+# %%%%% 0.25 x 0.3125 %%%%%
+ifdef GRID
+REGEXP    := (^025.03125|^0\.25.0\.3125)
+ifeq ($(shell [[ $(GRID) =~ $(REGEXP) ]] && echo true),true)
+
+# Ensure that MET=geos-fp
+ifdef MET
+REGEXP    := (^[Gg][Ee][Oo][Ss][Ff][Pp])|(^[Gg][Ee][Oo][Ss].[Ff][Pp])
+ifneq ($(shell [[ $(MET) =~ $(REGEXP) ]] && echo true),true)
+$(error When GRID=025x03125, you can only use MET=geos-fp)
+endif
+endif
+
+# Ensure that a nested-grid option is selected
+ifndef NEST
+$(error Please select a nested grid option, e.g. NEST=ch, NEST=eu, NEST=na)
+else
+USER_DEFS += -DGRID025x03125
+endif
+endif
+endif
+
+#---------------------------------------
+# Nested grid settings
+#---------------------------------------
+
+# %%%%% China (CH) %%%%%
+ifdef NEST
+REGEXP    := (^[Cc][Hh])
+ifeq ($(shell [[ $(NEST) =~ $(REGEXP) ]] && echo true),true)
+USER_DEFS += -DNESTED_CH
+endif
+endif
+
+# %%%%% Europe (EU) %%%%%
+ifdef NEST
+REGEXP    := (^[Ee][Uu])
+ifeq ($(shell [[ $(NEST) =~ $(REGEXP) ]] && echo true),true)
+USER_DEFS += -DNESTED_EU
+endif
+endif
+
+# %%%%% North America (NA) %%%%%
+ifdef NEST
+REGEXP    := (^[Nn][Aa])
+ifeq ($(shell [[ $(NEST) =~ $(REGEXP) ]] && echo true),true)
+USER_DEFS += -DNESTED_NA
+endif
+endif
+
+#---------------------------------------
+# Aerosol microphysics settings
+#---------------------------------------
+
+# %%%%% TOMAS, 30 bins (default) %%%%%
+ifdef TOMAS
+REGEXP    := (^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ $(TOMAS) =~ $(REGEXP) ]] && echo true),true)
+USER_DEFS += -DTOMAS
+endif
+endif
+
+# %%%%% TOMAS, 40 bins %%%%%
+ifdef TOMAS40
+REGEXP    := (^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ $(TOMAS40) =~ $(REGEXP) ]] && echo true),true)
+USER_DEFS += -DTOMAS -DTOMAS40
+endif
+endif
+
+# %%%%% TOMAS, 15 bins %%%%% 
+ifdef TOMAS15
+REGEXP    := (^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ $(TOMAS15) =~ $(REGEXP) ]] && echo true),true)
+USER_DEFS += -DTOMAS -DTOMAS15
+endif
+endif
+
+# %%%%% TOMAS, 12 bins %%%%%
+ifdef TOMAS12
+REGEXP    := (^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ $(TOMAS12) =~ $(REGEXP) ]] && echo true),true)
+USER_DEFS += -DTOMAS -DTOMAS12
+endif
+endif
+
+# %%%%% APM %%%%%
+ifdef APM
+REGEXP    := (^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ $(APM) =~ $(REGEXP) ]] && echo true),true)
+USER_DEFS += -DAPM
+endif
+endif
+
+#---------------------------------------
+# Special chemistry settings
+#---------------------------------------
+
+# Specify GTMM mercury model
+ifdef GTMM_Hg
+REGEXP    := (^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ $(GTMM_Hg) =~ $(REGEXP) ]] && echo true),true)
+USER_DEFS += -DGTMM_Hg
+endif
+endif
+
+# Option to turn off ISORROPIA for testing
+ifdef NO_ISO
+REGEXP    := (^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ $(NO_ISO) =~ $(REGEXP) ]] && echo true),true)
+USER_DEFS += -DNO_ISORROPIA
+endif
+endif
+
+#---------------------------------------
+# Grid-Independent GEOS-Chem settings
+#---------------------------------------
+
+# %%%%% DEVEL %%%%%
+ifdef DEVEL
+REGEXP    := (^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ $(DEVEL) =~ $(REGEXP) ]] && echo true),true)
+USER_DEFS += -DDEVEL
+endif
+endif
+
+# %%%%% EXTERNAL_GRID %%%%%
+ifdef EXTERNAL_GRID
+REGEXP    := (^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ $(EXTERNAL_GRID) =~ $(REGEXP) ]] && echo true),true)
+USER_DEFS += -DEXTERNAL_GRID
+endif
+endif
+
+# %%%%% EXTERNAL_FORCING %%%%%
+ifdef EXTERNAL_FORCING
+REGEXP    := (^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ $(EXTERNAL_FORCING) =~ $(REGEXP) ]] && echo true),true)
+USER_DEFS += -DEXTERNAL_FORCING
+endif
 endif
 
 #==============================================================================
@@ -205,20 +471,22 @@ ifndef OPT
 OPT       := -O2
 endif
 
-# Turn on -traceback option by default for debugging runs
-ifdef DEBUG
-TRACEBACK := yes
-endif
-
 # Pick compiler options for debug run or regular run 
 ifdef DEBUG
 FFLAGS    := -cpp -w -O0 -auto -noalign -convert big_endian -g -DDEBUG -check arg_temp_created
+TRACEBACK := yes
 else
 FFLAGS    := -cpp -w $(OPT) -auto -noalign -convert big_endian -vec-report0 
 endif
 
-ifdef FPE
-FFLAGS    += -debug parallel -fpe3 -ftrapuv
+# Turn on OpenMP parallelization
+ifeq ($(OMP),yes) 
+FFLAGS    += -openmp
+endif
+
+# Get Operating System (Linux = Linux; Darwin = MacOSX)
+ifndef UNAME
+UNAME     := $(shell uname)
 endif
 
 # OSX compilation options
@@ -232,44 +500,17 @@ endif
 # Add options for medium memory model.  This is to prevent G-C from 
 # running out of memory at hi-res, especially when using netCDF I/O.
 ifneq ($(UNAME),Darwin)
-FFLAGS    += -mcmodel=medium -i-dynamic
+FFLAGS    += -mcmodel=medium -shared-intel
+endif
+
+# Turn on floating-point exceptions
+ifdef FPE
+FFLAGS    += -debug parallel -fpe3 -ftrapuv
 endif
 
 # Prevent any optimizations that would change numerical results
 # This is needed to prevent numerical noise from ISORROPIA (bmy, 8/25/11)
-ifeq ($(PRECISE),yes)
 FFLAGS    += -fp-model source
-endif
-
-# Turn on OpenMP parallelization
-ifeq ($(OMP),yes) 
-FFLAGS    += -openmp -Dmultitask
-endif
-
-# Add TOMAS aerosol microphysics option (30 bins, default)
-ifeq ($(TOMAS),yes) 
-FFLAGS    += -DTOMAS
-endif
-
-# Add TOMAS40 aerosol microphysics option (40 bins, optional)
-ifeq ($(TOMAS40),yes) 
-FFLAGS    += -DTOMAS -DTOMAS40
-endif
-
-# Add TOMAS15 aerosol microphysics option (15 bins, optional)
-ifeq ($(TOMAS15),yes) 
-FFLAGS    += -DTOMAS -DTOMAS15
-endif
-
-# Add TOMAS12 aerosol microphysics option (12 bins, optional)
-ifeq ($(TOMAS12),yes) 
-FFLAGS    += -DTOMAS -DTOMAS12
-endif
-
-# Also add APM aerosol microphysics option
-ifeq ($(APM),yes) 
-FFLAGS    += -DAPM
-endif
 
 # Add special IFORT optimization commands
 ifdef IPO
@@ -286,44 +527,13 @@ ifdef TRACEBACK
 FFLAGS    += -traceback
 endif
 
-# Option to turn off ISORROPIA for testing
-ifdef NO_ISO
-FFLAGS    += -DNO_ISORROPIA
-endif
+# Append the user options in USER_DEFS to FFLAGS
+FFLAGS    += $(USER_DEFS)
 
 # Include options (i.e. for finding *.h, *.mod files)
 INCLUDE   := -I$(HDR) -module $(MOD) $(NCI)
 
-# Also append HDF5 include commands (optional)
-ifeq ($(HDF5),yes)
-INCLUDE   += -DUSE_HDF5 -I$(H5I)
-endif
-
-#-----------------------------------------------------------------------------
-# Flags for interfacing GEOS-Chem with an external GCM (mlong, bmy, 9/6/12)
-#
-
-# Activate -DESMF_ switch (NOTE: Only needed for GEOS-5 GCM)
-ifeq ($(ESMF),yes)
-FFLAGS    += -DESMF_
-endif
-
-# Activate -DDEVEL switch
-ifeq ($(DEVEL),yes)
-FFLAGS    += -DDEVEL
-endif
-
-# Activate -DEXTERNAL_GRID switch
-ifeq ($(EXTERNAL_GRID),yes)
-FFLAGS    += -DEXTERNAL_GRID
-endif
-
-# Activate -DEXTERNAL_FORCING switch
-ifeq ($(EXTERNAL_FORCING),yes)
-FFLAGS    += -DEXTERNAL_FORCING
-endif
-#----------------------------------------------------------------------------
-
+# Set the standard compiler variables
 CC        :=
 F90       := ifort $(FFLAGS) $(INCLUDE)
 LD        := ifort $(FFLAGS)
@@ -363,31 +573,6 @@ ifeq ($(NONUMA),yes)
 FFLAGS    += -mp=nonuma
 endif
 
-# Add TOMAS aerosol microphysics option (30 bins, default)
-ifeq ($(TOMAS),yes) 
-FFLAGS    += -DTOMAS
-endif
-
-# Add TOMAS40 aerosol microphysics option (40 bins, optional)
-ifeq ($(TOMAS40),yes) 
-FFLAGS    += -DTOMAS -DTOMAS40
-endif
-
-# Add TOMAS15 aerosol microphysics option (15 bins, optional)
-ifeq ($(TOMAS15),yes) 
-FFLAGS    += -DTOMAS -DTOMAS15
-endif
-
-# Add TOMAS12 aerosol microphysics option (12 bins, optional)
-ifeq ($(TOMAS12),yes) 
-FFLAGS    += -DTOMAS -DTOMAS12
-endif
-
-# Also add APM aerosol microphysics option
-ifeq ($(APM),yes) 
-FFLAGS    += -DAPM
-endif
-
 # Add option for "array out of bounds" checking
 ifdef BOUNDS
 FFLAGS    += -C
@@ -398,42 +583,13 @@ ifdef TRACEBACK
 FFLAGS    += -traceback
 endif
 
-# Option to turn off ISORROPIA for testing
-ifdef NO_ISO
-FFLAGS    += -DNO_ISORROPIA
-endif
+# Append the user options in USER_DEFS to FFLAGS
+FFLAGS    += $(USER_DEFS)
 
 # Include options (i.e. for finding *.h, *.mod files)
 INCLUDE   := -I$(HDR) -module $(MOD) $(NCI)
 
-# Also append HDF5 include commands (optional)
-ifeq ($(HDF5),yes)
-INCLUDE   += -DUSE_HDF5 -I$(H5I)
-endif
-
-#-----------------------------------------------------------------------------
-# Flags for interfacing GEOS-Chem with an external GCM (mlong, bmy, 9/6/12)
-#
-
-#%%% NOTE: GEOS-5 development uses the IFORT compiler %%%
-#%%% so there is no need to set -DESMF (bmy, 4/22/13) %%%
-
-# Activate -DDEVEL switch
-ifeq ($(DEVEL),yes)
-FFLAGS    += -DDEVEL
-endif
-
-# Activate -DEXTERNAL_GRID switch
-ifeq ($(EXTERNAL_GRID),yes)
-FFLAGS    += -DEXTERNAL_GRID
-endif
-
-# Activate -DEXTERNAL_FORCING switch
-ifeq ($(EXTERNAL_FORCING),yes)
-FFLAGS    += -DEXTERNAL_FORCING
-endif
-#----------------------------------------------------------------------------
-
+# Set the standard compiler variables
 CC        := gcc
 F90       := pgf90 $(FFLAGS) $(INCLUDE)
 LD        := pgf90 $(FFLAGS)
@@ -472,7 +628,7 @@ export NCL
 #EOC
 #==============================================================================
 # Print variables for testing/debugging purposes (uncomment if necessary)
-##=============================================================================
+#=============================================================================
 #headerinfo:
 #	@@echo '####### in Makefile_header.mk ########' 
 #	@@echo "compiler: $(COMPILER)"
@@ -482,3 +638,4 @@ export NCL
 #	@@echo "cc      : $(CC)"
 #	@@echo "include : $(INCLUDE)"
 #	@@echo "link    : $(LINK)"
+#	@@echo "userdefs: $(USER_DEFS)"

@@ -19,7 +19,7 @@
       USE inquireMod, ONLY : I_Am_UnOPENed
 
       IMPLICIT NONE
-#     include "define.h"
+!#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
